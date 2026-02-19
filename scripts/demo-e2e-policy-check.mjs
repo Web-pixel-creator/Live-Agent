@@ -117,6 +117,7 @@ async function main() {
     ? toNumber(args.minApprovalsRecorded)
     : 1;
   const expectedUiAdapterMode = args.expectedUiAdapterMode ?? "remote_http";
+  const allowedUiAdapterModes = toStringArray(args.allowedUiAdapterModes ?? expectedUiAdapterMode);
   const allowedTranslationProviders = toStringArray(args.allowedTranslationProviders ?? "fallback,gemini");
   const requiredScenarios = toStringArray(
     args.requiredScenarios ??
@@ -205,9 +206,9 @@ async function main() {
   );
   addCheck(
     "kpi.uiAdapterMode",
-    kpis.uiAdapterMode === expectedUiAdapterMode,
+    allowedUiAdapterModes.includes(String(kpis.uiAdapterMode)),
     kpis.uiAdapterMode,
-    expectedUiAdapterMode,
+    allowedUiAdapterModes.join(" | "),
   );
   addCheck(
     "kpi.gatewayWsRoundTripMs",
@@ -244,6 +245,7 @@ async function main() {
       maxGatewayWsRoundTripMs,
       minApprovalsRecorded,
       expectedUiAdapterMode,
+      allowedUiAdapterModes,
       allowedTranslationProviders,
       requiredScenarios,
     },

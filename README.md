@@ -107,7 +107,7 @@ npm run verify:release
 Direct mode with explicit thresholds:
 
 ```powershell
-node ./scripts/demo-e2e-policy-check.mjs --input ./artifacts/demo-e2e/summary.json --output ./artifacts/demo-e2e/policy-check.md --maxGatewayWsRoundTripMs 1800 --minApprovalsRecorded 1 --expectedUiAdapterMode remote_http --allowedTranslationProviders fallback,gemini
+node ./scripts/demo-e2e-policy-check.mjs --input ./artifacts/demo-e2e/summary.json --output ./artifacts/demo-e2e/policy-check.md --maxGatewayWsRoundTripMs 1800 --minApprovalsRecorded 1 --expectedUiAdapterMode remote_http --allowedUiAdapterModes remote_http,simulated --allowedTranslationProviders fallback,gemini
 ```
 
 The script writes a structured report to:

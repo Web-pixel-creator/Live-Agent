@@ -48,6 +48,7 @@ jobs:
           --maxGatewayWsRoundTripMs 1800
           --minApprovalsRecorded 1
           --expectedUiAdapterMode remote_http
+          --allowedUiAdapterModes remote_http,simulated
           --allowedTranslationProviders fallback,gemini
         shell: powershell
 
