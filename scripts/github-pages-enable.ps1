@@ -77,7 +77,7 @@ else {
   Write-Host "Pages already configured: $currentBranch $currentPath"
 }
 
-$endpoint = "https://$($Owner.ToLowerInvariant()).github.io/$($Repo.ToLowerInvariant())/demo-e2e/badge.json"
+$endpoint = "https://$Owner.github.io/$Repo/demo-e2e/badge.json"
 $shield = "https://img.shields.io/endpoint?url=$([System.Uri]::EscapeDataString($endpoint))"
 
 Write-Host ""

@@ -102,8 +102,8 @@ jobs:
           }
           if ((Test-Path "artifacts/demo-e2e/badge.json") -and (("${{ github.event_name }}" -eq "push") -and (("${{ github.ref }}" -eq "refs/heads/main") -or ("${{ github.ref }}" -eq "refs/heads/master")))) {
             $repoParts = "${{ github.repository }}".Split("/")
-            $owner = $repoParts[0].ToLowerInvariant()
-            $repo = $repoParts[1].ToLowerInvariant()
+            $owner = $repoParts[0]
+            $repo = $repoParts[1]
             $badgeEndpoint = "https://$owner.github.io/$repo/demo-e2e/badge.json"
             $badgeShield = "https://img.shields.io/endpoint?url=$([System.Uri]::EscapeDataString($badgeEndpoint))"
             "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

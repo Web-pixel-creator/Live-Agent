@@ -20,7 +20,7 @@ if ([string]::IsNullOrWhiteSpace($Repo)) {
   Fail "Missing repo. Set -Repo or env GITHUB_REPO."
 }
 
-$endpoint = "https://$($Owner.ToLowerInvariant()).github.io/$($Repo.ToLowerInvariant())/demo-e2e/badge.json"
+$endpoint = "https://$Owner.github.io/$Repo/demo-e2e/badge.json"
 $shield = "https://img.shields.io/endpoint?url=$([System.Uri]::EscapeDataString($endpoint))"
 
 Write-Host "Checking badge endpoint:"
