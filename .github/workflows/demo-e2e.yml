@@ -1,0 +1,126 @@
+name: Demo E2E
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  demo-e2e:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      FIRESTORE_ENABLED: "false"
+      UI_NAVIGATOR_EXECUTOR_MODE: remote_http
+      UI_NAVIGATOR_EXECUTOR_URL: http://localhost:8090
+      UI_EXECUTOR_STRICT_PLAYWRIGHT: "false"
+      UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+        shell: powershell
+
+      - name: Run Demo E2E
+        run: npm run demo:e2e
+        shell: powershell
+
+      - name: Validate Demo KPI Policy
+        run: >
+          node ./scripts/demo-e2e-policy-check.mjs
+          --input ./artifacts/demo-e2e/summary.json
+          --output ./artifacts/demo-e2e/policy-check.md
+          --jsonOutput ./artifacts/demo-e2e/policy-check.json
+          --maxGatewayWsRoundTripMs 1800
+          --minApprovalsRecorded 1
+          --expectedUiAdapterMode remote_http
+          --allowedTranslationProviders fallback,gemini
+        shell: powershell
+
+      - name: Build Badge Artifact
+        run: npm run demo:e2e:badge
+        shell: powershell
+
+      - name: Prepare Badge Publish Directory
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        shell: powershell
+        run: |
+          New-Item -Path "artifacts/demo-e2e/public" -ItemType Directory -Force | Out-Null
+          Copy-Item "artifacts/demo-e2e/badge.json" "artifacts/demo-e2e/public/badge.json" -Force
+          if (Test-Path "artifacts/demo-e2e/badge-details.json") {
+            Copy-Item "artifacts/demo-e2e/badge-details.json" "artifacts/demo-e2e/public/badge-details.json" -Force
+          }
+
+      - name: Publish Badge To gh-pages
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: artifacts/demo-e2e/public
+          destination_dir: demo-e2e
+          keep_files: true
+          force_orphan: false
+
+      - name: Publish Demo Report To Job Summary
+        if: always()
+        shell: powershell
+        run: |
+          if (Test-Path "artifacts/demo-e2e/summary.md") {
+            Get-Content "artifacts/demo-e2e/summary.md" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          } else {
+            "Demo report was not generated." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+          if (Test-Path "artifacts/demo-e2e/policy-check.md") {
+            "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            Get-Content "artifacts/demo-e2e/policy-check.md" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+          if (Test-Path "artifacts/demo-e2e/policy-check.json") {
+            $policy = Get-Content "artifacts/demo-e2e/policy-check.json" -Raw | ConvertFrom-Json
+            "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Policy gate status: " + ($(if ($policy.ok) { "passed" } else { "failed" }))) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Policy checks: " + $policy.checks + ", violations: " + $policy.violations.Count) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+          if (Test-Path "artifacts/demo-e2e/badge.json") {
+            $badge = Get-Content "artifacts/demo-e2e/badge.json" -Raw | ConvertFrom-Json
+            ("Badge: " + $badge.label + " -> " + $badge.message + " (" + $badge.color + ")") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+          if ((Test-Path "artifacts/demo-e2e/badge.json") -and (("${{ github.event_name }}" -eq "push") -and (("${{ github.ref }}" -eq "refs/heads/main") -or ("${{ github.ref }}" -eq "refs/heads/master")))) {
+            $repoParts = "${{ github.repository }}".Split("/")
+            $owner = $repoParts[0].ToLowerInvariant()
+            $repo = $repoParts[1].ToLowerInvariant()
+            $badgeEndpoint = "https://$owner.github.io/$repo/demo-e2e/badge.json"
+            $badgeShield = "https://img.shields.io/endpoint?url=$([System.Uri]::EscapeDataString($badgeEndpoint))"
+            "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Badge endpoint: " + $badgeEndpoint) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Shields URL: " + $badgeShield) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+
+      - name: Upload Demo Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-e2e-artifacts
+          path: |
+            artifacts/demo-e2e/summary.json
+            artifacts/demo-e2e/summary.md
+            artifacts/demo-e2e/policy-check.md
+            artifacts/demo-e2e/policy-check.json
+            artifacts/demo-e2e/badge.json
+            artifacts/demo-e2e/badge-details.json
+            artifacts/demo-e2e/logs
+          if-no-files-found: warn

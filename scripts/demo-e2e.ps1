@@ -1,0 +1,953 @@
+param(
+  [Parameter(Mandatory = $false)]
+  [switch]$SkipBuild,
+
+  [Parameter(Mandatory = $false)]
+  [switch]$SkipServiceStart,
+
+  [Parameter(Mandatory = $false)]
+  [switch]$IncludeFrontend,
+
+  [Parameter(Mandatory = $false)]
+  [switch]$KeepServices,
+
+  [Parameter(Mandatory = $false)]
+  [int]$StartupTimeoutSec = 90,
+
+  [Parameter(Mandatory = $false)]
+  [int]$RequestTimeoutSec = 30,
+
+  [Parameter(Mandatory = $false)]
+  [string]$OutputPath = "artifacts/demo-e2e/summary.json"
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$script:StartedProcesses = @()
+$script:ServiceStatuses = @()
+$script:ScenarioResults = @()
+
+$script:ScriptDir = Split-Path -Parent $PSCommandPath
+$script:RepoRoot = (Resolve-Path (Join-Path $script:ScriptDir "..")).Path
+$script:LogDir = Join-Path $script:RepoRoot "artifacts/demo-e2e/logs"
+
+function Write-Step {
+  param([string]$Message)
+  Write-Host ("[demo-e2e] " + $Message)
+}
+
+function Set-EnvDefault {
+  param(
+    [string]$Name,
+    [string]$Value
+  )
+  $existing = [Environment]::GetEnvironmentVariable($Name)
+  if ([string]::IsNullOrWhiteSpace($existing)) {
+    Set-Item -Path ("Env:" + $Name) -Value $Value
+  }
+}
+
+function Get-FieldValue {
+  param(
+    [Parameter(Mandatory = $true)]
+    [object]$Object,
+    [Parameter(Mandatory = $true)]
+    [string[]]$Path
+  )
+
+  $current = $Object
+  foreach ($segment in $Path) {
+    if ($null -eq $current) {
+      return $null
+    }
+
+    if ($current -is [System.Collections.IDictionary]) {
+      if ($current.Contains($segment)) {
+        $current = $current[$segment]
+        continue
+      }
+      return $null
+    }
+
+    $property = $current.PSObject.Properties[$segment]
+    if ($null -eq $property) {
+      return $null
+    }
+    $current = $property.Value
+  }
+
+  return $current
+}
+
+function Assert-Condition {
+  param(
+    [bool]$Condition,
+    [string]$Message
+  )
+  if (-not $Condition) {
+    throw $Message
+  }
+}
+
+function Invoke-JsonRequest {
+  param(
+    [Parameter(Mandatory = $true)]
+    [ValidateSet("GET", "POST", "PATCH")]
+    [string]$Method,
+    [Parameter(Mandatory = $true)]
+    [string]$Uri,
+    [Parameter(Mandatory = $false)]
+    [object]$Body,
+    [Parameter(Mandatory = $false)]
+    [int]$TimeoutSec = 30
+  )
+
+  $params = @{
+    Method = $Method
+    Uri = $Uri
+    TimeoutSec = $TimeoutSec
+  }
+
+  if ($null -ne $Body) {
+    $params["ContentType"] = "application/json"
+    $params["Body"] = ($Body | ConvertTo-Json -Depth 40)
+  }
+
+  return Invoke-RestMethod @params
+}
+
+function Invoke-JsonRequestExpectStatus {
+  param(
+    [Parameter(Mandatory = $true)]
+    [ValidateSet("GET", "POST", "PATCH")]
+    [string]$Method,
+    [Parameter(Mandatory = $true)]
+    [string]$Uri,
+    [Parameter(Mandatory = $false)]
+    [object]$Body,
+    [Parameter(Mandatory = $true)]
+    [int]$ExpectedStatusCode,
+    [Parameter(Mandatory = $false)]
+    [int]$TimeoutSec = 30
+  )
+
+  $jsonBody = $null
+  if ($null -ne $Body) {
+    $jsonBody = $Body | ConvertTo-Json -Depth 40
+  }
+
+  $statusCode = $null
+  $content = ""
+
+  try {
+    $requestParams = @{
+      Method = $Method
+      Uri = $Uri
+      TimeoutSec = $TimeoutSec
+      UseBasicParsing = $true
+    }
+    if ($null -ne $jsonBody) {
+      $requestParams["ContentType"] = "application/json"
+      $requestParams["Body"] = $jsonBody
+    }
+
+    $response = Invoke-WebRequest @requestParams
+    $statusCode = [int]$response.StatusCode
+    $content = if ($null -ne $response.Content) { [string]$response.Content } else { "" }
+  } catch {
+    $webResponse = $_.Exception.Response
+    if ($null -eq $webResponse) {
+      throw
+    }
+    $statusCode = [int]$webResponse.StatusCode
+    if ($null -ne $_.ErrorDetails -and -not [string]::IsNullOrWhiteSpace($_.ErrorDetails.Message)) {
+      $content = [string]$_.ErrorDetails.Message
+    }
+    try {
+      if ([string]::IsNullOrWhiteSpace($content)) {
+        $stream = $webResponse.GetResponseStream()
+        if ($null -ne $stream) {
+          $reader = New-Object System.IO.StreamReader($stream)
+          $content = $reader.ReadToEnd()
+          $reader.Close()
+        }
+      }
+    } catch {
+      $content = ""
+    }
+  }
+
+  if ($statusCode -ne $ExpectedStatusCode) {
+    throw "Expected HTTP $ExpectedStatusCode but got $statusCode for $Method $Uri"
+  }
+
+  $parsedBody = $null
+  if (-not [string]::IsNullOrWhiteSpace($content)) {
+    try {
+      $parsedBody = $content | ConvertFrom-Json
+    } catch {
+      $parsedBody = $content
+    }
+  }
+
+  return [ordered]@{
+    statusCode = $statusCode
+    body = $parsedBody
+    raw = $content
+  }
+}
+
+function Invoke-NodeJsonCommand {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string[]]$Args
+  )
+
+  $rawOutput = & node @Args 2>&1
+  $exitCode = $LASTEXITCODE
+  $outputText = (($rawOutput | ForEach-Object { $_.ToString() }) -join "`n").Trim()
+
+  if ($exitCode -ne 0) {
+    if ([string]::IsNullOrWhiteSpace($outputText)) {
+      throw "Node command failed with exit code $exitCode and no output."
+    }
+    throw "Node command failed with exit code ${exitCode}: $outputText"
+  }
+
+  if ([string]::IsNullOrWhiteSpace($outputText)) {
+    throw "Node command produced empty output."
+  }
+
+  $lines = @($outputText -split "(`r`n|`n|`r)" | Where-Object { $_.Trim().Length -gt 0 })
+  if ($lines.Count -eq 0) {
+    throw "Node command produced no non-empty lines."
+  }
+
+  $jsonLine = $lines[$lines.Count - 1]
+  try {
+    return $jsonLine | ConvertFrom-Json
+  } catch {
+    throw "Node command did not return valid JSON line: $jsonLine"
+  }
+}
+
+function Try-GetHealth {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Url
+  )
+  try {
+    return Invoke-JsonRequest -Method GET -Uri $Url -TimeoutSec 4
+  } catch {
+    return $null
+  }
+}
+
+function Wait-ForHealth {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Name,
+    [Parameter(Mandatory = $true)]
+    [string]$Url,
+    [Parameter(Mandatory = $true)]
+    [int]$TimeoutSec,
+    [Parameter(Mandatory = $false)]
+    [System.Diagnostics.Process]$Process
+  )
+
+  $deadline = (Get-Date).AddSeconds($TimeoutSec)
+  while ((Get-Date) -lt $deadline) {
+    if ($null -ne $Process -and $Process.HasExited) {
+      throw "$Name process exited before health check passed."
+    }
+
+    $health = Try-GetHealth -Url $Url
+    if ($null -ne $health) {
+      return $health
+    }
+    Start-Sleep -Milliseconds 700
+  }
+
+  throw "Timed out waiting for $Name health endpoint: $Url"
+}
+
+function Start-ManagedService {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Name,
+    [Parameter(Mandatory = $true)]
+    [string]$HealthUrl,
+    [Parameter(Mandatory = $true)]
+    [string[]]$NodeArgs
+  )
+
+  $existingHealth = Try-GetHealth -Url $HealthUrl
+  if ($null -ne $existingHealth) {
+    Write-Step "$Name already healthy at $HealthUrl, reusing existing service."
+    $script:ServiceStatuses += [ordered]@{
+      name = $Name
+      healthUrl = $HealthUrl
+      reused = $true
+      pid = $null
+      health = $existingHealth
+      logs = $null
+    }
+    return
+  }
+
+  $stdoutPath = Join-Path $script:LogDir ("$Name.stdout.log")
+  $stderrPath = Join-Path $script:LogDir ("$Name.stderr.log")
+  New-Item -ItemType File -Force -Path $stdoutPath | Out-Null
+  New-Item -ItemType File -Force -Path $stderrPath | Out-Null
+
+  Write-Step "Starting $Name..."
+  $process = Start-Process `
+    -FilePath "node" `
+    -ArgumentList $NodeArgs `
+    -WorkingDirectory $script:RepoRoot `
+    -PassThru `
+    -RedirectStandardOutput $stdoutPath `
+    -RedirectStandardError $stderrPath
+
+  $health = Wait-ForHealth -Name $Name -Url $HealthUrl -TimeoutSec $StartupTimeoutSec -Process $process
+
+  $script:StartedProcesses += [ordered]@{
+    name = $Name
+    process = $process
+    stdoutPath = $stdoutPath
+    stderrPath = $stderrPath
+  }
+
+  $script:ServiceStatuses += [ordered]@{
+    name = $Name
+    healthUrl = $HealthUrl
+    reused = $false
+    pid = $process.Id
+    health = $health
+    logs = [ordered]@{
+      stdout = $stdoutPath
+      stderr = $stderrPath
+    }
+  }
+}
+
+function Stop-ManagedServices {
+  if ($script:StartedProcesses.Count -eq 0) {
+    return
+  }
+
+  Write-Step "Stopping managed services..."
+  for ($idx = $script:StartedProcesses.Count - 1; $idx -ge 0; $idx -= 1) {
+    $entry = $script:StartedProcesses[$idx]
+    $proc = $entry.process
+    if ($null -eq $proc) {
+      continue
+    }
+    if ($proc.HasExited) {
+      continue
+    }
+
+    try {
+      Stop-Process -Id $proc.Id -ErrorAction Stop
+    } catch {
+      try {
+        Stop-Process -Id $proc.Id -Force -ErrorAction Stop
+      } catch {
+        Write-Step "Failed to stop $($entry.name) (pid=$($proc.Id)): $($_.Exception.Message)"
+      }
+    }
+  }
+}
+
+function New-OrchestratorRequest {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$SessionId,
+    [Parameter(Mandatory = $true)]
+    [string]$RunId,
+    [Parameter(Mandatory = $true)]
+    [string]$Intent,
+    [Parameter(Mandatory = $true)]
+    [object]$RequestInput
+  )
+
+  return [ordered]@{
+    id = [Guid]::NewGuid().Guid
+    sessionId = $SessionId
+    runId = $RunId
+    type = "orchestrator.request"
+    source = "frontend"
+    ts = (Get-Date).ToString("o")
+    payload = [ordered]@{
+      intent = $Intent
+      input = $RequestInput
+    }
+  }
+}
+
+function Invoke-Scenario {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Name,
+    [Parameter(Mandatory = $true)]
+    [scriptblock]$Action
+  )
+
+  $watch = [System.Diagnostics.Stopwatch]::StartNew()
+  $data = $null
+  $errorText = $null
+  $status = "passed"
+
+  try {
+    $data = & $Action
+  } catch {
+    $status = "failed"
+    $errorText = $_.Exception.Message
+  } finally {
+    $watch.Stop()
+  }
+
+  $result = [ordered]@{
+    name = $Name
+    status = $status
+    elapsedMs = [int]$watch.ElapsedMilliseconds
+    data = $data
+    error = $errorText
+  }
+  $script:ScenarioResults += $result
+
+  if ($status -eq "passed") {
+    Write-Step ("Scenario {0}: passed ({1} ms)" -f $Name, $result.elapsedMs)
+  } else {
+    Write-Step ("Scenario {0}: failed ({1} ms) - {2}" -f $Name, $result.elapsedMs, $errorText)
+  }
+
+  return $result
+}
+
+function Get-ScenarioData {
+  param([string]$Name)
+  $result = $script:ScenarioResults | Where-Object { $_.name -eq $Name } | Select-Object -First 1
+  if ($null -eq $result) {
+    return $null
+  }
+  if ($result.status -ne "passed") {
+    return $null
+  }
+  return $result.data
+}
+
+function Resolve-OutputPath {
+  param([string]$Candidate)
+  if ([System.IO.Path]::IsPathRooted($Candidate)) {
+    return $Candidate
+  }
+  return Join-Path $script:RepoRoot $Candidate
+}
+
+New-Item -ItemType Directory -Force -Path $script:LogDir | Out-Null
+
+$resolvedOutputPath = Resolve-OutputPath -Candidate $OutputPath
+$resolvedOutputDir = Split-Path -Parent $resolvedOutputPath
+if (-not [string]::IsNullOrWhiteSpace($resolvedOutputDir)) {
+  New-Item -ItemType Directory -Force -Path $resolvedOutputDir | Out-Null
+}
+$resolvedMarkdownPath = Join-Path $resolvedOutputDir "summary.md"
+
+$fatalError = $null
+$sessionId = $null
+$sessionCreateResponse = $null
+$script:UiApprovalId = $null
+$script:UiResumeInput = $null
+$script:UiApprovalRunId = $null
+$overallSuccess = $false
+$nodeVersion = $null
+
+try {
+  Set-Location $script:RepoRoot
+
+  $nodeVersion = (& node --version) -join ""
+
+  Set-EnvDefault -Name "FIRESTORE_ENABLED" -Value "false"
+  Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_MODE" -Value "remote_http"
+  Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_URL" -Value "http://localhost:8090"
+  Set-EnvDefault -Name "UI_EXECUTOR_STRICT_PLAYWRIGHT" -Value "false"
+  Set-EnvDefault -Name "UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE" -Value "true"
+
+  if (-not $SkipBuild) {
+    Write-Step "Running workspace build..."
+    & npm.cmd run build
+    if ($LASTEXITCODE -ne 0) {
+      throw "Build failed with exit code $LASTEXITCODE."
+    }
+  } else {
+    Write-Step "Skipping build by request."
+  }
+
+  if (-not $SkipServiceStart) {
+    Write-Step "Ensuring local services are running..."
+    Start-ManagedService -Name "ui-executor" -HealthUrl "http://localhost:8090/healthz" -NodeArgs @("--import", "tsx", "apps/ui-executor/src/index.ts")
+    Start-ManagedService -Name "orchestrator" -HealthUrl "http://localhost:8082/healthz" -NodeArgs @("--import", "tsx", "agents/orchestrator/src/index.ts")
+    Start-ManagedService -Name "api-backend" -HealthUrl "http://localhost:8081/healthz" -NodeArgs @("--import", "tsx", "apps/api-backend/src/index.ts")
+    Start-ManagedService -Name "realtime-gateway" -HealthUrl "http://localhost:8080/healthz" -NodeArgs @("--import", "tsx", "apps/realtime-gateway/src/index.ts")
+    if ($IncludeFrontend) {
+      Start-ManagedService -Name "demo-frontend" -HealthUrl "http://localhost:3000/healthz" -NodeArgs @("--import", "tsx", "apps/demo-frontend/src/server.ts")
+    }
+  } else {
+    Write-Step "Skipping service startup by request."
+  }
+
+  $sessionCreateResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/sessions" -Body @{
+    userId = "demo-e2e"
+    mode = "multi"
+  } -TimeoutSec $RequestTimeoutSec
+
+  $sessionId = [string](Get-FieldValue -Object $sessionCreateResponse -Path @("data", "sessionId"))
+  Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($sessionId)) -Message "Failed to create a sessionId."
+  Write-Step "Created demo session: $sessionId"
+
+  Invoke-Scenario -Name "live.translation" -Action {
+    $runId = "demo-translation-" + [Guid]::NewGuid().Guid
+    $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "translation" -RequestInput @{
+      text = "Hello, please confirm price 95 and delivery 10 days."
+      targetLanguage = "ru"
+    }
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
+
+    $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
+    Assert-Condition -Condition ($status -eq "completed") -Message "Translation run did not complete."
+
+    $translation = Get-FieldValue -Object $response -Path @("payload", "output", "translation")
+    Assert-Condition -Condition ($null -ne $translation) -Message "Translation payload is missing."
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $response -Path @("runId"))
+      status = $status
+      provider = [string](Get-FieldValue -Object $translation -Path @("provider"))
+      model = [string](Get-FieldValue -Object $translation -Path @("model"))
+      sourceLanguage = [string](Get-FieldValue -Object $translation -Path @("sourceLanguage"))
+      targetLanguage = [string](Get-FieldValue -Object $translation -Path @("targetLanguage"))
+      latencyMs = [int](Get-FieldValue -Object $response -Path @("payload", "output", "latencyMs"))
+    }
+  } | Out-Null
+
+  Invoke-Scenario -Name "live.negotiation" -Action {
+    $constraints = @{
+      maxPrice = 100
+      maxDeliveryDays = 10
+      minSla = 99
+      forbiddenActions = @("wire", "password")
+    }
+
+    $runId1 = "demo-negotiation-round1-" + [Guid]::NewGuid().Guid
+    $request1 = New-OrchestratorRequest -SessionId $sessionId -RunId $runId1 -Intent "negotiation" -RequestInput @{
+      text = "Initial offer: price 120, delivery 14, sla 97."
+      constraints = $constraints
+    }
+    $response1 = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request1 -TimeoutSec $RequestTimeoutSec
+    $status1 = [string](Get-FieldValue -Object $response1 -Path @("payload", "status"))
+    Assert-Condition -Condition ($status1 -eq "completed") -Message "Negotiation round 1 failed."
+
+    $runId2 = "demo-negotiation-final-" + [Guid]::NewGuid().Guid
+    $request2 = New-OrchestratorRequest -SessionId $sessionId -RunId $runId2 -Intent "negotiation" -RequestInput @{
+      text = "We agree on final deal: price 100 delivery 10 sla 99."
+      constraints = $constraints
+    }
+    $response2 = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request2 -TimeoutSec $RequestTimeoutSec
+    $status2 = [string](Get-FieldValue -Object $response2 -Path @("payload", "status"))
+    Assert-Condition -Condition ($status2 -eq "completed") -Message "Negotiation final round failed."
+
+    $evaluation = Get-FieldValue -Object $response2 -Path @("payload", "output", "negotiation", "evaluation")
+    Assert-Condition -Condition ($null -ne $evaluation) -Message "Negotiation evaluation is missing."
+    $allSatisfied = [bool](Get-FieldValue -Object $evaluation -Path @("allSatisfied"))
+    $requiresUserConfirmation = [bool](Get-FieldValue -Object $response2 -Path @("payload", "output", "negotiation", "requiresUserConfirmation"))
+    Assert-Condition -Condition $requiresUserConfirmation -Message "Final negotiation should require explicit user confirmation."
+    Assert-Condition -Condition $allSatisfied -Message "Final negotiation constraints are not satisfied."
+
+    return [ordered]@{
+      finalRunId = [string](Get-FieldValue -Object $response2 -Path @("runId"))
+      allSatisfied = $allSatisfied
+      requiresUserConfirmation = $requiresUserConfirmation
+      proposedOffer = Get-FieldValue -Object $response2 -Path @("payload", "output", "negotiation", "proposedOffer")
+      latencyMs = [int](Get-FieldValue -Object $response2 -Path @("payload", "output", "latencyMs"))
+    }
+  } | Out-Null
+
+  Invoke-Scenario -Name "storyteller.pipeline" -Action {
+    $runId = "demo-story-" + [Guid]::NewGuid().Guid
+    $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "story" -RequestInput @{
+      prompt = "Create a short interactive story about a port logistics negotiation."
+      audience = "judges"
+      style = "cinematic"
+      language = "en"
+      includeImages = $true
+      includeVideo = $true
+      segmentCount = 3
+      voiceStyle = "excited storyteller voice, podcast style"
+    }
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
+    $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
+    Assert-Condition -Condition ($status -eq "completed") -Message "Storyteller run did not complete."
+
+    $timeline = Get-FieldValue -Object $response -Path @("payload", "output", "story", "timeline")
+    Assert-Condition -Condition ($null -ne $timeline) -Message "Story timeline is missing."
+    Assert-Condition -Condition ($timeline.Count -ge 2) -Message "Story timeline has too few segments."
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $response -Path @("runId"))
+      fallbackAsset = [bool](Get-FieldValue -Object $response -Path @("payload", "output", "fallbackAsset"))
+      timelineSegments = [int]$timeline.Count
+      plannerProvider = [string](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "planner", "provider"))
+      latencyMs = [int](Get-FieldValue -Object $response -Path @("payload", "output", "latencyMs"))
+    }
+  } | Out-Null
+
+  Invoke-Scenario -Name "ui.approval.request" -Action {
+    $script:UiApprovalRunId = "demo-ui-approval-" + [Guid]::NewGuid().Guid
+    $request = New-OrchestratorRequest -SessionId $sessionId -RunId $script:UiApprovalRunId -Intent "ui_task" -RequestInput @{
+      goal = "Open a payment page and submit order with card details."
+      url = "https://example.com"
+      screenshotRef = "ui://demo/start"
+      formData = @{
+        email = "buyer@example.com"
+        note = "Order request from automated e2e"
+      }
+      maxSteps = 6
+    }
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
+    $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
+    Assert-Condition -Condition ($status -eq "accepted") -Message "UI approval flow should return accepted."
+
+    $approvalRequired = [bool](Get-FieldValue -Object $response -Path @("payload", "output", "approvalRequired"))
+    Assert-Condition -Condition $approvalRequired -Message "Approval should be required for sensitive UI action."
+
+    $script:UiApprovalId = [string](Get-FieldValue -Object $response -Path @("payload", "output", "approvalId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($script:UiApprovalId)) -Message "Missing approvalId."
+
+    $resumeInputCandidate = Get-FieldValue -Object $response -Path @("payload", "output", "resumeRequestTemplate", "input")
+    if ($null -ne $resumeInputCandidate) {
+      $script:UiResumeInput = $resumeInputCandidate
+    } else {
+      $script:UiResumeInput = @{
+        goal = "Open a payment page and submit order with card details."
+        url = "https://example.com"
+        screenshotRef = "ui://demo/start"
+        maxSteps = 6
+      }
+    }
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $response -Path @("runId"))
+      approvalId = $script:UiApprovalId
+      status = $status
+      approvalCategories = Get-FieldValue -Object $response -Path @("payload", "output", "approvalCategories")
+      plannerProvider = [string](Get-FieldValue -Object $response -Path @("payload", "output", "planner", "provider"))
+    }
+  } | Out-Null
+
+  Invoke-Scenario -Name "ui.approval.reject" -Action {
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($script:UiApprovalId)) -Message "Cannot reject approval: approvalId is missing."
+
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/approvals/resume" -Body @{
+      approvalId = $script:UiApprovalId
+      sessionId = $sessionId
+      runId = ("demo-ui-reject-" + [Guid]::NewGuid().Guid)
+      decision = "rejected"
+      reason = "Rejected from demo e2e script."
+      intent = "ui_task"
+      input = $script:UiResumeInput
+    } -TimeoutSec $RequestTimeoutSec
+
+    $resumed = [bool](Get-FieldValue -Object $response -Path @("data", "resumed"))
+    Assert-Condition -Condition (-not $resumed) -Message "Rejected approval should not resume execution."
+    $decision = [string](Get-FieldValue -Object $response -Path @("data", "approval", "decision"))
+    Assert-Condition -Condition ($decision -eq "rejected") -Message "Approval decision should be rejected."
+
+    return [ordered]@{
+      approvalId = $script:UiApprovalId
+      resumed = $resumed
+      decision = $decision
+    }
+  } | Out-Null
+
+  Invoke-Scenario -Name "ui.approval.approve_resume" -Action {
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($script:UiApprovalId)) -Message "Cannot approve/resume: approvalId is missing."
+
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/approvals/resume" -Body @{
+      approvalId = $script:UiApprovalId
+      sessionId = $sessionId
+      runId = ("demo-ui-approve-" + [Guid]::NewGuid().Guid)
+      decision = "approved"
+      reason = "Approved from demo e2e script."
+      intent = "ui_task"
+      input = $script:UiResumeInput
+    } -TimeoutSec $RequestTimeoutSec
+
+    $resumed = [bool](Get-FieldValue -Object $response -Path @("data", "resumed"))
+    Assert-Condition -Condition $resumed -Message "Approved approval should resume execution."
+
+    $orchestratorResponse = Get-FieldValue -Object $response -Path @("data", "orchestrator")
+    Assert-Condition -Condition ($null -ne $orchestratorResponse) -Message "Missing resumed orchestrator response."
+
+    $orchestratorStatus = [string](Get-FieldValue -Object $orchestratorResponse -Path @("payload", "status"))
+    Assert-Condition -Condition ($orchestratorStatus -eq "completed") -Message "Resumed UI execution did not complete."
+
+    $adapterMode = [string](Get-FieldValue -Object $orchestratorResponse -Path @("payload", "output", "execution", "adapterMode"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($adapterMode)) -Message "Missing UI execution adapter mode."
+
+    return [ordered]@{
+      approvalId = $script:UiApprovalId
+      resumed = $resumed
+      orchestratorStatus = $orchestratorStatus
+      adapterMode = $adapterMode
+      adapterNotes = Get-FieldValue -Object $orchestratorResponse -Path @("payload", "output", "execution", "adapterNotes")
+      retries = [int](Get-FieldValue -Object $orchestratorResponse -Path @("payload", "output", "execution", "retries"))
+    }
+  } | Out-Null
+
+  Invoke-Scenario -Name "multi_agent.delegation" -Action {
+    $runId = "demo-delegation-" + [Guid]::NewGuid().Guid
+    $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "conversation" -RequestInput @{
+      text = "delegate story: write a short branch about a final contract handshake."
+    }
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
+
+    $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
+    Assert-Condition -Condition ($status -eq "completed") -Message "Delegation request did not complete."
+
+    $delegatedRoute = [string](Get-FieldValue -Object $response -Path @("payload", "output", "delegation", "delegatedRoute"))
+    Assert-Condition -Condition ($delegatedRoute -eq "storyteller-agent") -Message "Delegation route mismatch."
+
+    $delegatedStatus = [string](Get-FieldValue -Object $response -Path @("payload", "output", "delegation", "delegatedStatus"))
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $response -Path @("runId"))
+      delegatedRoute = $delegatedRoute
+      delegatedStatus = $delegatedStatus
+    }
+  } | Out-Null
+
+  Invoke-Scenario -Name "gateway.websocket.roundtrip" -Action {
+    $runId = "demo-gateway-ws-" + [Guid]::NewGuid().Guid
+    $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
+    $result = Invoke-NodeJsonCommand -Args @(
+      "scripts/gateway-ws-check.mjs",
+      "--url",
+      "ws://localhost:8080/realtime",
+      "--sessionId",
+      $sessionId,
+      "--runId",
+      $runId,
+      "--timeoutMs",
+      [string]$timeoutMs
+    )
+
+    $ok = [bool](Get-FieldValue -Object $result -Path @("ok"))
+    Assert-Condition -Condition $ok -Message "WebSocket gateway check returned ok=false."
+
+    $responseStatus = [string](Get-FieldValue -Object $result -Path @("responseStatus"))
+    $responseRoute = [string](Get-FieldValue -Object $result -Path @("responseRoute"))
+    Assert-Condition -Condition ($responseStatus -eq "completed") -Message "WebSocket response status is not completed."
+    Assert-Condition -Condition ($responseRoute -eq "live-agent") -Message "WebSocket response route is not live-agent."
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $result -Path @("runId"))
+      responseStatus = $responseStatus
+      responseRoute = $responseRoute
+      roundTripMs = [int](Get-FieldValue -Object $result -Path @("roundTripMs"))
+      connectedType = [string](Get-FieldValue -Object $result -Path @("connectedType"))
+      eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
+      translationProvider = [string](Get-FieldValue -Object $result -Path @("translationProvider"))
+      translationModel = [string](Get-FieldValue -Object $result -Path @("translationModel"))
+    }
+  } | Out-Null
+
+  Invoke-Scenario -Name "gateway.websocket.invalid_envelope" -Action {
+    $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
+    $result = Invoke-NodeJsonCommand -Args @(
+      "scripts/gateway-ws-invalid-envelope-check.mjs",
+      "--url",
+      "ws://localhost:8080/realtime",
+      "--timeoutMs",
+      [string]$timeoutMs
+    )
+
+    $ok = [bool](Get-FieldValue -Object $result -Path @("ok"))
+    Assert-Condition -Condition $ok -Message "WebSocket invalid-envelope check returned ok=false."
+
+    $code = [string](Get-FieldValue -Object $result -Path @("code"))
+    $traceId = [string](Get-FieldValue -Object $result -Path @("traceId"))
+    Assert-Condition -Condition ($code -eq "GATEWAY_INVALID_ENVELOPE") -Message "Unexpected gateway error code for invalid envelope."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($traceId)) -Message "Invalid-envelope gateway error is missing traceId."
+
+    return [ordered]@{
+      code = $code
+      traceId = $traceId
+      eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
+    }
+  } | Out-Null
+
+  Invoke-Scenario -Name "api.approvals.list" -Action {
+    $url = "http://localhost:8081/v1/approvals?sessionId=$sessionId&limit=20"
+    $response = Invoke-JsonRequest -Method GET -Uri $url -TimeoutSec $RequestTimeoutSec
+    $total = [int](Get-FieldValue -Object $response -Path @("total"))
+    Assert-Condition -Condition ($total -ge 1) -Message "Expected at least one approval record."
+
+    $recordsRaw = Get-FieldValue -Object $response -Path @("data")
+    $records = @($recordsRaw)
+    $matching = @($records | Where-Object { $_.approvalId -eq $script:UiApprovalId })
+    Assert-Condition -Condition ($matching.Count -ge 1) -Message "Approval list does not include the expected approvalId."
+
+    $latestDecision = [string]$matching[0].decision
+    Assert-Condition -Condition ($latestDecision -eq "approved") -Message "Expected final approval decision to be approved."
+
+    return [ordered]@{
+      total = $total
+      approvalId = $script:UiApprovalId
+      latestDecision = $latestDecision
+    }
+  } | Out-Null
+
+  Invoke-Scenario -Name "api.approvals.resume.invalid_intent" -Action {
+    $response = Invoke-JsonRequestExpectStatus `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/approvals/resume" `
+      -Body @{
+        approvalId = ("approval-invalid-intent-" + [Guid]::NewGuid().Guid)
+        sessionId = $sessionId
+        runId = ("run-invalid-intent-" + [Guid]::NewGuid().Guid)
+        decision = "approved"
+        reason = "Intent contract negative test"
+        intent = "conversation"
+        input = @{
+          text = "should fail"
+        }
+      } `
+      -ExpectedStatusCode 400 `
+      -TimeoutSec $RequestTimeoutSec
+
+    $errorText = ""
+    if ($null -ne $response.body) {
+      if ($response.body -is [string]) {
+        try {
+          $parsedBody = $response.body | ConvertFrom-Json
+          if ($null -ne $parsedBody) {
+            $errorText = [string](Get-FieldValue -Object $parsedBody -Path @("error"))
+          }
+        } catch {
+          $errorText = ""
+        }
+      } else {
+        $errorText = [string](Get-FieldValue -Object $response.body -Path @("error"))
+      }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($errorText) -and -not [string]::IsNullOrWhiteSpace($response.raw)) {
+      try {
+        $parsedRaw = $response.raw | ConvertFrom-Json
+        if ($null -ne $parsedRaw) {
+          $errorText = [string](Get-FieldValue -Object $parsedRaw -Path @("error"))
+        }
+      } catch {
+        $errorText = ""
+      }
+    }
+
+    Assert-Condition -Condition ($errorText -eq "intent must be ui_task for approvals resume flow") -Message "Unexpected error message for invalid intent."
+
+    return [ordered]@{
+      statusCode = [int]$response.statusCode
+      error = $errorText
+    }
+  } | Out-Null
+
+  $failedScenarios = @($script:ScenarioResults | Where-Object { $_.status -ne "passed" })
+  $overallSuccess = ($failedScenarios.Count -eq 0)
+} catch {
+  $fatalError = $_.Exception.Message
+  $overallSuccess = $false
+} finally {
+  if ((-not $SkipServiceStart) -and (-not $KeepServices)) {
+    Stop-ManagedServices
+  } elseif ($KeepServices) {
+    Write-Step "KeepServices enabled, managed services left running."
+  }
+}
+
+$translationData = Get-ScenarioData -Name "live.translation"
+$negotiationData = Get-ScenarioData -Name "live.negotiation"
+$storyData = Get-ScenarioData -Name "storyteller.pipeline"
+$uiApproveData = Get-ScenarioData -Name "ui.approval.approve_resume"
+$delegationData = Get-ScenarioData -Name "multi_agent.delegation"
+$gatewayWsData = Get-ScenarioData -Name "gateway.websocket.roundtrip"
+$gatewayWsInvalidData = Get-ScenarioData -Name "gateway.websocket.invalid_envelope"
+$approvalsListData = Get-ScenarioData -Name "api.approvals.list"
+$approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.invalid_intent"
+
+$summary = [ordered]@{
+  generatedAt = (Get-Date).ToString("o")
+  success = $overallSuccess
+  fatalError = $fatalError
+  environment = [ordered]@{
+    repoRoot = $script:RepoRoot
+    powershellVersion = $PSVersionTable.PSVersion.ToString()
+    nodeVersion = $nodeVersion
+  }
+  options = [ordered]@{
+    skipBuild = [bool]$SkipBuild
+    skipServiceStart = [bool]$SkipServiceStart
+    includeFrontend = [bool]$IncludeFrontend
+    keepServices = [bool]$KeepServices
+    startupTimeoutSec = $StartupTimeoutSec
+    requestTimeoutSec = $RequestTimeoutSec
+  }
+  session = [ordered]@{
+    sessionId = $sessionId
+    createResponse = $sessionCreateResponse
+  }
+  services = $script:ServiceStatuses
+  scenarios = $script:ScenarioResults
+  kpis = [ordered]@{
+    translationProvider = if ($null -ne $translationData) { $translationData.provider } else { $null }
+    negotiationConstraintsSatisfied = if ($null -ne $negotiationData) { $negotiationData.allSatisfied } else { $null }
+    negotiationRequiresUserConfirmation = if ($null -ne $negotiationData) { $negotiationData.requiresUserConfirmation } else { $null }
+    storytellerFallbackAsset = if ($null -ne $storyData) { $storyData.fallbackAsset } else { $null }
+    uiAdapterMode = if ($null -ne $uiApproveData) { $uiApproveData.adapterMode } else { $null }
+    uiAdapterRetries = if ($null -ne $uiApproveData) { $uiApproveData.retries } else { $null }
+    delegatedRoute = if ($null -ne $delegationData) { $delegationData.delegatedRoute } else { $null }
+    gatewayWsRoundTripMs = if ($null -ne $gatewayWsData) { $gatewayWsData.roundTripMs } else { $null }
+    gatewayWsResponseStatus = if ($null -ne $gatewayWsData) { $gatewayWsData.responseStatus } else { $null }
+    gatewayWsInvalidEnvelopeCode = if ($null -ne $gatewayWsInvalidData) { $gatewayWsInvalidData.code } else { $null }
+    approvalsRecorded = if ($null -ne $approvalsListData) { $approvalsListData.total } else { $null }
+    approvalsInvalidIntentStatusCode = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.statusCode } else { $null }
+  }
+  artifacts = [ordered]@{
+    summaryJsonPath = $resolvedOutputPath
+    summaryMarkdownPath = $resolvedMarkdownPath
+  }
+}
+
+($summary | ConvertTo-Json -Depth 60) | Set-Content -Path $resolvedOutputPath -Encoding UTF8
+
+Write-Step "Summary written: $resolvedOutputPath"
+$reportResult = Invoke-NodeJsonCommand -Args @(
+  "scripts/demo-e2e-report.mjs",
+  "--input",
+  $resolvedOutputPath,
+  "--output",
+  $resolvedMarkdownPath
+)
+Write-Step ("Markdown report written: " + [string](Get-FieldValue -Object $reportResult -Path @("output")))
+foreach ($item in $script:ScenarioResults) {
+  Write-Host (" - {0}: {1} ({2} ms)" -f $item.name, $item.status, $item.elapsedMs)
+}
+
+if ($fatalError) {
+  throw "demo-e2e fatal error: $fatalError"
+}
+if (-not $overallSuccess) {
+  throw "demo-e2e completed with failed scenarios. See $resolvedOutputPath"
+}
+
+Write-Step "All scenarios passed."

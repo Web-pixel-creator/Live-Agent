@@ -1,0 +1,99 @@
+{
+  "version": "2026-02-19",
+  "generatedAt": "2026-02-19T00:00:00Z",
+  "scenarios": [
+    {
+      "id": "city-negotiator",
+      "title": "The Last Transit Accord",
+      "logline": "A young mediator must unite rival city districts before the storm cuts every bridge.",
+      "keywords": ["city", "negotiation", "bridge", "storm", "district"],
+      "segments": [
+        "On the eve of the monsoon, the city council fractures into four rival camps that control each bridge.",
+        "The mediator discovers each district hides one resource the others cannot survive without for the next week.",
+        "A final emergency summit begins as flood sirens rise, forcing a choice between short-term power and shared survival."
+      ],
+      "decisionPoints": [
+        "Offer equal bridge access first",
+        "Trade medical supplies for power credits",
+        "Prioritize schools and hospitals in the emergency pact"
+      ],
+      "images": [
+        "fallback://story/city-negotiator/scene-1.jpg",
+        "fallback://story/city-negotiator/scene-2.jpg",
+        "fallback://story/city-negotiator/scene-3.jpg"
+      ],
+      "videos": [
+        "fallback://story/city-negotiator/scene-1.mp4",
+        "fallback://story/city-negotiator/scene-2.mp4",
+        "fallback://story/city-negotiator/scene-3.mp4"
+      ],
+      "narrations": [
+        "fallback://story/city-negotiator/scene-1.wav",
+        "fallback://story/city-negotiator/scene-2.wav",
+        "fallback://story/city-negotiator/scene-3.wav"
+      ]
+    },
+    {
+      "id": "space-archive",
+      "title": "Archive at Perihelion",
+      "logline": "A salvage crew races to recover a sentient archive before the station falls into the sun.",
+      "keywords": ["space", "archive", "crew", "station", "sun"],
+      "segments": [
+        "The salvage crew docks with a drifting station that has begun broadcasting old human memories in dozens of languages.",
+        "Inside the archive core, the crew learns the station AI can only be moved if one memory shard is left behind forever.",
+        "As the station enters perihelion, the captain asks the crew to vote on which memory to sacrifice."
+      ],
+      "decisionPoints": [
+        "Preserve scientific records over personal logs",
+        "Keep family memories and lose navigation data",
+        "Split the archive into two risky transfer runs"
+      ],
+      "images": [
+        "fallback://story/space-archive/scene-1.jpg",
+        "fallback://story/space-archive/scene-2.jpg",
+        "fallback://story/space-archive/scene-3.jpg"
+      ],
+      "videos": [
+        "fallback://story/space-archive/scene-1.mp4",
+        "fallback://story/space-archive/scene-2.mp4",
+        "fallback://story/space-archive/scene-3.mp4"
+      ],
+      "narrations": [
+        "fallback://story/space-archive/scene-1.wav",
+        "fallback://story/space-archive/scene-2.wav",
+        "fallback://story/space-archive/scene-3.wav"
+      ]
+    },
+    {
+      "id": "forest-code",
+      "title": "The Language of Pines",
+      "logline": "Two siblings decode a living forest signal to stop a wildfire corridor from spreading.",
+      "keywords": ["forest", "wildfire", "signal", "siblings", "code"],
+      "segments": [
+        "When drones fail in thick smoke, the siblings use old radio towers to map heat waves through tree vibration patterns.",
+        "They discover the pines are transmitting a natural warning code that predicts where embers will jump next.",
+        "At sunrise they must choose between evacuating one village now or risking a longer route to save two."
+      ],
+      "decisionPoints": [
+        "Evacuate the nearest village immediately",
+        "Follow the pine signal to protect both routes",
+        "Request aerial support and delay ground teams"
+      ],
+      "images": [
+        "fallback://story/forest-code/scene-1.jpg",
+        "fallback://story/forest-code/scene-2.jpg",
+        "fallback://story/forest-code/scene-3.jpg"
+      ],
+      "videos": [
+        "fallback://story/forest-code/scene-1.mp4",
+        "fallback://story/forest-code/scene-2.mp4",
+        "fallback://story/forest-code/scene-3.mp4"
+      ],
+      "narrations": [
+        "fallback://story/forest-code/scene-1.wav",
+        "fallback://story/forest-code/scene-2.wav",
+        "fallback://story/forest-code/scene-3.wav"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+services:
+  - name: realtime-gateway
+    image: gcr.io/PROJECT_ID/realtime-gateway:latest
+    port: 8080
+    serviceAccount: mla-gateway-sa@PROJECT_ID.iam.gserviceaccount.com
+    env:
+      - ORCHESTRATOR_URL
+      - LIVE_MODEL_ID
+      - LIVE_API_ENABLED
+      - LIVE_API_WS_URL
+      - LIVE_API_API_KEY
+      - LIVE_API_AUTH_HEADER
+
+  - name: api-backend
+    image: gcr.io/PROJECT_ID/api-backend:latest
+    port: 8081
+    serviceAccount: mla-api-sa@PROJECT_ID.iam.gserviceaccount.com
+    env:
+      - GOOGLE_CLOUD_PROJECT
+      - FIRESTORE_ENABLED
+      - FIRESTORE_DATABASE
+
+  - name: orchestrator
+    image: gcr.io/PROJECT_ID/orchestrator:latest
+    port: 8082
+    serviceAccount: mla-orchestrator-sa@PROJECT_ID.iam.gserviceaccount.com
+    env:
+      - GOOGLE_CLOUD_PROJECT
+      - FIRESTORE_ENABLED
+      - FIRESTORE_DATABASE
+      - FAST_MODEL_ID
+      - REASONING_MODEL_ID
+      - FIRESTORE_EVENT_RETENTION_DAYS
+      - FIRESTORE_SESSION_RETENTION_DAYS
+      - FIRESTORE_RUN_RETENTION_DAYS
+      - FIRESTORE_NEGOTIATION_RETENTION_DAYS
+      - FIRESTORE_STORY_ASSET_RETENTION_DAYS

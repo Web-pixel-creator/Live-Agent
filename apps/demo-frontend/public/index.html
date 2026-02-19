@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Live Translator Negotiator Console</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <header class="hero">
+        <h1>Live Translator Negotiator Console</h1>
+        <p class="hero-sub">
+          Minimal judged-demo frontend: realtime connection, voice I/O, transcript, KPI constraints.
+        </p>
+      </header>
+
+      <section class="panel">
+        <h2>Connection</h2>
+        <div class="grid-3">
+          <label class="field">
+            <span>Gateway WebSocket URL</span>
+            <input id="wsUrl" type="text" value="ws://localhost:8080/realtime" />
+          </label>
+          <label class="field">
+            <span>Session ID</span>
+            <input id="sessionId" type="text" />
+          </label>
+          <label class="field">
+            <span>Target Language</span>
+            <input id="targetLanguage" type="text" value="ru" />
+          </label>
+        </div>
+        <div class="actions">
+          <button id="connectBtn">Connect</button>
+          <button id="disconnectBtn" class="button-muted">Disconnect</button>
+          <button id="newSessionBtn" class="button-muted">New Session ID</button>
+        </div>
+        <div class="meta-row">
+          <div><strong>Status:</strong> <span id="connectionStatus">disconnected</span></div>
+          <div><strong>Run ID:</strong> <span id="runId">-</span></div>
+          <div><strong>Mode:</strong> <span id="modeStatus">voice</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Live Controls</h2>
+        <div class="actions">
+          <button id="startMicBtn">Start Mic Stream</button>
+          <button id="stopMicBtn" class="button-muted">Stop Mic</button>
+          <button id="interruptBtn" class="button-warn">Interrupt Assistant</button>
+          <button id="fallbackBtn" class="button-muted">Switch To Text Fallback</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Intent Request</h2>
+        <div class="grid-2">
+          <label class="field">
+            <span>Intent</span>
+            <select id="intent">
+              <option value="negotiation" selected>negotiation</option>
+              <option value="translation">translation</option>
+              <option value="conversation">conversation</option>
+              <option value="story">story</option>
+              <option value="ui_task">ui_task</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>User Message</span>
+            <textarea id="message" rows="3">Negotiate: price=97, delivery=10, sla=99</textarea>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="sendBtn">Send Request</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Approval Control</h2>
+        <div class="grid-3">
+          <label class="field">
+            <span>API Backend URL</span>
+            <input id="apiBaseUrl" type="text" value="http://localhost:8081" />
+          </label>
+          <label class="field">
+            <span>Pending Approval ID</span>
+            <input id="approvalId" type="text" value="-" readonly />
+          </label>
+          <label class="field">
+            <span>Approval Reason</span>
+            <input id="approvalReason" type="text" value="Approved from demo frontend" />
+          </label>
+        </div>
+        <div class="actions">
+          <button id="approveResumeBtn">Approve &amp; Resume</button>
+          <button id="rejectResumeBtn" class="button-warn">Reject</button>
+        </div>
+        <div class="meta-row">
+          <div><strong>Approval State:</strong> <span id="approvalStatus">idle</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>KPI Constraints</h2>
+        <div class="grid-3">
+          <label class="field">
+            <span>Target max price</span>
+            <input id="targetPrice" type="number" value="100" />
+          </label>
+          <label class="field">
+            <span>Target max delivery (days)</span>
+            <input id="targetDelivery" type="number" value="14" />
+          </label>
+          <label class="field">
+            <span>Target min SLA (%)</span>
+            <input id="targetSla" type="number" value="98" />
+          </label>
+        </div>
+        <div class="kpi-board">
+          <article class="kpi-card">
+            <h3>Current Offer</h3>
+            <p>Price: <span id="currentPrice">-</span></p>
+            <p>Delivery: <span id="currentDelivery">-</span></p>
+            <p>SLA: <span id="currentSla">-</span></p>
+          </article>
+          <article class="kpi-card">
+            <h3>Final Offer</h3>
+            <p>Price: <span id="finalPrice">-</span></p>
+            <p>Delivery: <span id="finalDelivery">-</span></p>
+            <p>SLA: <span id="finalSla">-</span></p>
+          </article>
+          <article class="kpi-card">
+            <h3>Constraint Status</h3>
+            <p id="constraintStatus" class="status-pill status-neutral">Waiting for offer</p>
+            <p id="fallbackAssetStatus" class="status-pill status-neutral">fallback_asset=false</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Transcript</h2>
+        <div id="transcript" class="transcript"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Event Log</h2>
+        <div id="events" class="events"></div>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
