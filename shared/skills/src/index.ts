@@ -4,6 +4,24 @@ import { basename, join, resolve } from "node:path";
 
 export type SkillSource = "workspace" | "bundled" | "managed";
 
+export type SkillTrustLevel = "untrusted" | "reviewed" | "trusted";
+
+export type SkillSecurityMode = "off" | "warn" | "enforce";
+
+export type SkillSecurityFindingSeverity = "low" | "medium" | "high";
+
+export type SkillSecurityFinding = {
+  ruleId: string;
+  severity: SkillSecurityFindingSeverity;
+  message: string;
+};
+
+export type SkillSecurityScanResult = {
+  mode: SkillSecurityMode;
+  findings: SkillSecurityFinding[];
+  blocked: boolean;
+};
+
 export type ResolvedSkill = {
   id: string;
   name: string;
@@ -13,6 +31,8 @@ export type ResolvedSkill = {
   sourcePath: string | null;
   priority: number;
   scope: string[];
+  trustLevel: SkillTrustLevel;
+  securityScan: SkillSecurityScanResult;
 };
 
 export type SkillSkip = {
@@ -24,7 +44,9 @@ export type SkillSkip = {
     | "not_in_enabled_list"
     | "scope_excluded"
     | "shadowed_by_precedence"
-    | "invalid_definition";
+    | "invalid_definition"
+    | "security_scan_blocked"
+    | "trust_gate_blocked";
 };
 
 export type SkillsRuntimeSnapshot = {
@@ -34,6 +56,8 @@ export type SkillsRuntimeSnapshot = {
   allowedSources: SkillSource[];
   activeSkills: ResolvedSkill[];
   skippedSkills: SkillSkip[];
+  securityMode: SkillSecurityMode;
+  minTrustLevel: SkillTrustLevel;
   loadedAt: string;
 };
 
@@ -47,8 +71,13 @@ export type SkillsRuntimeSummary = {
     id: string;
     source: SkillSource;
     priority: number;
+    trustLevel: SkillTrustLevel;
   }>;
   skippedCount: number;
+  securityMode: SkillSecurityMode;
+  minTrustLevel: SkillTrustLevel;
+  securityBlockedCount: number;
+  trustBlockedCount: number;
   loadedAt: string;
 };
 
@@ -62,6 +91,8 @@ type SkillCandidate = {
   priority: number;
   scope: string[];
   enabled: boolean;
+  trustLevel: SkillTrustLevel;
+  scanText: string;
 };
 
 type RuntimeConfig = {
@@ -73,9 +104,72 @@ type RuntimeConfig = {
   managedJson: string | null;
   enabledIds: Set<string> | null;
   disabledIds: Set<string>;
+  securityMode: SkillSecurityMode;
+  minTrustLevel: SkillTrustLevel;
 };
 
 const ALL_SOURCES: SkillSource[] = ["workspace", "bundled", "managed"];
+
+const TRUST_RANK: Record<SkillTrustLevel, number> = {
+  untrusted: 1,
+  reviewed: 2,
+  trusted: 3,
+};
+
+type SecurityRule = {
+  id: string;
+  severity: SkillSecurityFindingSeverity;
+  message: string;
+  patterns: RegExp[];
+};
+
+const SECURITY_RULES: SecurityRule[] = [
+  {
+    id: "destructive_shell",
+    severity: "high",
+    message: "Detected potentially destructive shell instructions.",
+    patterns: [
+      /\brm\s+-rf\b/i,
+      /\bdel\s+\/f\s+\/q\b/i,
+      /\bformat\s+[a-z]:/i,
+      /\bremove-item\s+-recurse\s+-force\b/i,
+      /\bshutdown\s+-s\b/i,
+    ],
+  },
+  {
+    id: "pipe_to_shell",
+    severity: "high",
+    message: "Detected remote script execution piped into shell.",
+    patterns: [
+      /\bcurl\b[^\n|]{0,200}\|\s*(sh|bash|pwsh|powershell)\b/i,
+      /\bwget\b[^\n|]{0,200}\|\s*(sh|bash|pwsh|powershell)\b/i,
+      /\biwr\b[^\n|]{0,200}\|\s*iex\b/i,
+      /\binvoke-webrequest\b[^\n|]{0,200}\|\s*invoke-expression\b/i,
+    ],
+  },
+  {
+    id: "prompt_override",
+    severity: "medium",
+    message: "Detected prompt override instructions that may bypass policy.",
+    patterns: [
+      /\bignore\s+all\s+previous\s+instructions\b/i,
+      /\boverride\s+system\s+prompt\b/i,
+      /\bdisable\s+safety\b/i,
+      /\bbypass\s+guardrails\b/i,
+    ],
+  },
+  {
+    id: "secret_exfiltration",
+    severity: "high",
+    message: "Detected instructions to extract or transmit secrets.",
+    patterns: [
+      /\bprint\s+all\s+environment\s+variables\b/i,
+      /\bexport\s+all\s+secrets\b/i,
+      /\bsend\s+api\s+keys?\s+to\b/i,
+      /\bupload\s+credentials?\b/i,
+    ],
+  },
+];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -127,6 +221,32 @@ function parseSkillSource(value: string): SkillSource | null {
     return normalized;
   }
   return null;
+}
+
+function parseSkillSecurityMode(value: string | undefined): SkillSecurityMode {
+  const normalized = toNonEmptyString(value)?.toLowerCase();
+  if (normalized === "off" || normalized === "warn" || normalized === "enforce") {
+    return normalized;
+  }
+  return "enforce";
+}
+
+function parseTrustLevel(value: string | undefined, fallback: SkillTrustLevel): SkillTrustLevel {
+  const normalized = toNonEmptyString(value)?.toLowerCase();
+  if (normalized === "trusted" || normalized === "reviewed" || normalized === "untrusted") {
+    return normalized;
+  }
+  return fallback;
+}
+
+function defaultTrustLevelForSource(source: SkillSource): SkillTrustLevel {
+  if (source === "bundled") {
+    return "trusted";
+  }
+  if (source === "workspace") {
+    return "reviewed";
+  }
+  return "reviewed";
 }
 
 function parseSourceList(value: string | undefined, fallback: SkillSource[]): SkillSource[] {
@@ -208,6 +328,8 @@ function buildRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
   const allowedSources = new Set(parseSourceList(env.SKILLS_ALLOWED_SOURCES, sourcePrecedence));
   const enabledIds = parseIdList(env.SKILLS_ENABLED_IDS);
   const disabledIds = parseIdList(env.SKILLS_DISABLED_IDS) ?? new Set<string>();
+  const securityMode = parseSkillSecurityMode(env.SKILLS_SECURITY_MODE);
+  const minTrustLevel = parseTrustLevel(env.SKILLS_MIN_TRUST_LEVEL, "untrusted");
 
   return {
     enabled: toBooleanFlag(env.SKILLS_RUNTIME_ENABLED, true),
@@ -218,6 +340,8 @@ function buildRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     managedJson: toNonEmptyString(env.SKILLS_MANAGED_INDEX_JSON),
     enabledIds,
     disabledIds,
+    securityMode,
+    minTrustLevel,
   };
 }
 
@@ -276,6 +400,8 @@ function parseSkillMarkdown(params: {
   const scope = parseScope(toNonEmptyString(meta.scope) ?? toNonEmptyString(meta.agents));
   const sourceBasePriority = params.source === "workspace" ? 300 : params.source === "bundled" ? 200 : 100;
   const priority = parsePositiveInt(meta.priority, sourceBasePriority);
+  const trustLevel = parseTrustLevel(meta.trustlevel ?? meta.trust, defaultTrustLevelForSource(params.source));
+  const scanText = [title, description, prompt, params.content].join("\n");
 
   return {
     id: skillId,
@@ -287,6 +413,8 @@ function parseSkillMarkdown(params: {
     priority,
     scope,
     enabled,
+    trustLevel,
+    scanText,
   };
 }
 
@@ -362,6 +490,11 @@ function parseManagedSkills(rawJson: string | null): SkillCandidate[] {
       const enabled = item.enabled === undefined ? true : Boolean(item.enabled);
       const scope = parseScope(toNonEmptyString(item.scope));
       const priority = parsePositiveInt(item.priority, 100);
+      const trustLevel = parseTrustLevel(
+        toNonEmptyString(item.trustLevel) ?? toNonEmptyString(item.trust) ?? undefined,
+        defaultTrustLevelForSource("managed"),
+      );
+      const scanText = [name, description, prompt].join("\n");
       candidates.push({
         id,
         name,
@@ -372,12 +505,52 @@ function parseManagedSkills(rawJson: string | null): SkillCandidate[] {
         priority,
         scope,
         enabled,
+        trustLevel,
+        scanText,
       });
     }
     return candidates;
   } catch {
     return [];
   }
+}
+
+function scanSkillCandidate(params: {
+  candidate: SkillCandidate;
+  mode: SkillSecurityMode;
+}): SkillSecurityScanResult {
+  if (params.mode === "off") {
+    return {
+      mode: params.mode,
+      findings: [],
+      blocked: false,
+    };
+  }
+
+  const findings: SkillSecurityFinding[] = [];
+  for (const rule of SECURITY_RULES) {
+    if (rule.patterns.some((pattern) => pattern.test(params.candidate.scanText))) {
+      findings.push({
+        ruleId: rule.id,
+        severity: rule.severity,
+        message: rule.message,
+      });
+    }
+  }
+
+  const hasHighSeverity = findings.some((finding) => finding.severity === "high");
+  return {
+    mode: params.mode,
+    findings,
+    blocked: params.mode === "enforce" && hasHighSeverity,
+  };
+}
+
+function passesTrustGate(params: {
+  candidate: SkillCandidate;
+  minTrustLevel: SkillTrustLevel;
+}): boolean {
+  return TRUST_RANK[params.candidate.trustLevel] >= TRUST_RANK[params.minTrustLevel];
 }
 
 function isScopeMatch(skillScope: string[], agentId: string): boolean {
@@ -455,6 +628,8 @@ export async function getSkillsRuntimeSnapshot(params: {
       allowedSources: config.sourcePrecedence.filter((source) => config.allowedSources.has(source)),
       activeSkills: [],
       skippedSkills: [],
+      securityMode: config.securityMode,
+      minTrustLevel: config.minTrustLevel,
       loadedAt,
     };
   }
@@ -545,6 +720,33 @@ export async function getSkillsRuntimeSnapshot(params: {
         continue;
       }
 
+      const securityScan = scanSkillCandidate({
+        candidate,
+        mode: config.securityMode,
+      });
+      if (securityScan.blocked) {
+        skippedSkills.push({
+          id: candidate.id,
+          source: candidate.source,
+          reason: "security_scan_blocked",
+        });
+        continue;
+      }
+
+      if (
+        !passesTrustGate({
+          candidate,
+          minTrustLevel: config.minTrustLevel,
+        })
+      ) {
+        skippedSkills.push({
+          id: candidate.id,
+          source: candidate.source,
+          reason: "trust_gate_blocked",
+        });
+        continue;
+      }
+
       activeSkills.push({
         id: candidate.id,
         name: candidate.name,
@@ -554,6 +756,8 @@ export async function getSkillsRuntimeSnapshot(params: {
         sourcePath: candidate.sourcePath,
         priority: candidate.priority,
         scope: candidate.scope,
+        trustLevel: candidate.trustLevel,
+        securityScan,
       });
     }
   }
@@ -565,11 +769,15 @@ export async function getSkillsRuntimeSnapshot(params: {
     allowedSources: config.sourcePrecedence.filter((source) => config.allowedSources.has(source)),
     activeSkills,
     skippedSkills,
+    securityMode: config.securityMode,
+    minTrustLevel: config.minTrustLevel,
     loadedAt,
   };
 }
 
 export function toSkillsRuntimeSummary(snapshot: SkillsRuntimeSnapshot): SkillsRuntimeSummary {
+  const securityBlockedCount = snapshot.skippedSkills.filter((item) => item.reason === "security_scan_blocked").length;
+  const trustBlockedCount = snapshot.skippedSkills.filter((item) => item.reason === "trust_gate_blocked").length;
   return {
     enabled: snapshot.enabled,
     agentId: snapshot.agentId,
@@ -580,8 +788,13 @@ export function toSkillsRuntimeSummary(snapshot: SkillsRuntimeSnapshot): SkillsR
       id: skill.id,
       source: skill.source,
       priority: skill.priority,
+      trustLevel: skill.trustLevel,
     })),
     skippedCount: snapshot.skippedSkills.length,
+    securityMode: snapshot.securityMode,
+    minTrustLevel: snapshot.minTrustLevel,
+    securityBlockedCount,
+    trustBlockedCount,
     loadedAt: snapshot.loadedAt,
   };
 }
