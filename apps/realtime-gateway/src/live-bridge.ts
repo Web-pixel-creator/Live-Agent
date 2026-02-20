@@ -1,9 +1,18 @@
 import WebSocket from "ws";
 import { createEnvelope, type EventEnvelope } from "@mla/contracts";
-import type { GatewayConfig, LiveApiProtocol } from "./config.js";
+import type { GatewayConfig, LiveApiProtocol, LiveAuthProfile } from "./config.js";
 
 type SendFn = (event: EventEnvelope) => void;
 type LiveModality = "audio" | "video" | "text";
+
+type AuthProfileState = {
+  name: string;
+  apiKey?: string;
+  authHeader?: string;
+  lastUsedAtMs: number;
+  cooldownUntilMs: number;
+  failureCount: number;
+};
 
 function isInterruptedMessage(parsed: unknown, raw: string): boolean {
   if (raw.includes('"interrupted":true')) {
@@ -42,6 +51,25 @@ function toRawUpstreamPayload(payload: unknown): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function parseHeaderSpec(value: string | undefined): { name: string; value: string } | null {
+  if (!value) {
+    return null;
+  }
+  const [headerName, ...rest] = value.split(":");
+  if (!headerName || rest.length === 0) {
+    return null;
+  }
+  const name = headerName.trim();
+  const headerValue = rest.join(":").trim();
+  if (name.length === 0 || headerValue.length === 0) {
+    return null;
+  }
+  return {
+    name,
+    value: headerValue,
+  };
 }
 
 function sleep(ms: number): Promise<void> {
@@ -194,6 +222,33 @@ function normalizeGeminiUpstreamMessage(parsed: unknown): NormalizedLiveOutput |
   return null;
 }
 
+function buildModelCandidates(config: GatewayConfig): string[] {
+  const candidates = [config.liveModelId, ...config.liveModelFallbackIds];
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    const normalized = candidate.trim();
+    if (normalized.length === 0 || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    deduped.push(normalized);
+  }
+  return deduped.length > 0 ? deduped : [config.liveModelId];
+}
+
+function buildAuthProfileState(config: GatewayConfig): AuthProfileState[] {
+  const sourceProfiles: LiveAuthProfile[] = config.liveAuthProfiles.length > 0 ? config.liveAuthProfiles : [];
+  return sourceProfiles.map((profile, index) => ({
+    name: profile.name.length > 0 ? profile.name : `profile-${index + 1}`,
+    apiKey: profile.apiKey,
+    authHeader: profile.authHeader,
+    lastUsedAtMs: 0,
+    cooldownUntilMs: 0,
+    failureCount: 0,
+  }));
+}
+
 export class LiveApiBridge {
   private upstream: WebSocket | null = null;
   private connectPromise: Promise<void> | null = null;
@@ -209,6 +264,13 @@ export class LiveApiBridge {
   private roundTripMeasuredForCurrentTurn = false;
   private currentTurnStartedAtMs: number | null = null;
   private currentTurnTextParts: string[] = [];
+  private readonly modelCandidates: string[];
+  private currentModelIndex = 0;
+  private readonly authProfiles: AuthProfileState[];
+  private currentAuthProfileIndex = 0;
+  private healthTimer: NodeJS.Timeout | null = null;
+  private lastUpstreamMessageAtMs = Date.now();
+  private healthDegraded = false;
 
   constructor(params: {
     config: GatewayConfig;
@@ -222,6 +284,8 @@ export class LiveApiBridge {
     this.userId = params.userId;
     this.activeRunId = params.runId;
     this.send = params.send;
+    this.modelCandidates = buildModelCandidates(params.config);
+    this.authProfiles = buildAuthProfileState(params.config);
   }
 
   updateContext(params: { userId?: string; runId?: string | null }): void {
@@ -235,6 +299,192 @@ export class LiveApiBridge {
 
   isConfigured(): boolean {
     return Boolean(this.config.liveApiEnabled && this.config.liveApiWsUrl);
+  }
+
+  private getActiveModelId(): string {
+    return this.modelCandidates[this.currentModelIndex] ?? this.config.liveModelId;
+  }
+
+  private getActiveAuthProfile(): AuthProfileState | null {
+    if (this.authProfiles.length === 0) {
+      return null;
+    }
+    return this.authProfiles[this.currentAuthProfileIndex] ?? this.authProfiles[0];
+  }
+
+  private buildUpstreamHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {};
+    const profile = this.getActiveAuthProfile();
+    const apiKey = profile?.apiKey ?? this.config.liveApiApiKey;
+    if (apiKey) {
+      headers.Authorization = `Bearer ${apiKey}`;
+    }
+    const authHeader = profile?.authHeader ?? this.config.liveApiAuthHeader;
+    const parsedHeader = parseHeaderSpec(authHeader);
+    if (parsedHeader) {
+      headers[parsedHeader.name] = parsedHeader.value;
+    }
+    return headers;
+  }
+
+  private markActiveAuthSuccess(): void {
+    const profile = this.getActiveAuthProfile();
+    if (!profile) {
+      return;
+    }
+    profile.lastUsedAtMs = Date.now();
+    profile.failureCount = 0;
+    profile.cooldownUntilMs = 0;
+  }
+
+  private markActiveAuthFailure(reason: string): void {
+    const profile = this.getActiveAuthProfile();
+    if (!profile) {
+      return;
+    }
+    const nowMs = Date.now();
+    profile.lastUsedAtMs = nowMs;
+    profile.failureCount += 1;
+    profile.cooldownUntilMs = nowMs + this.config.liveFailoverCooldownMs;
+    this.emit("live.bridge.auth_profile_failed", {
+      profile: profile.name,
+      failureCount: profile.failureCount,
+      cooldownUntil: new Date(profile.cooldownUntilMs).toISOString(),
+      reason,
+    });
+  }
+
+  private pickNextAuthProfileIndex(): number {
+    if (this.authProfiles.length === 0) {
+      return 0;
+    }
+
+    const nowMs = Date.now();
+    for (let offset = 1; offset <= this.authProfiles.length; offset += 1) {
+      const index = (this.currentAuthProfileIndex + offset) % this.authProfiles.length;
+      const profile = this.authProfiles[index];
+      if (!profile) {
+        continue;
+      }
+      if (profile.cooldownUntilMs <= nowMs) {
+        return index;
+      }
+    }
+
+    let soonestIndex = this.currentAuthProfileIndex;
+    let soonestAt = Number.POSITIVE_INFINITY;
+    for (let index = 0; index < this.authProfiles.length; index += 1) {
+      const profile = this.authProfiles[index];
+      if (!profile) {
+        continue;
+      }
+      if (profile.cooldownUntilMs < soonestAt) {
+        soonestAt = profile.cooldownUntilMs;
+        soonestIndex = index;
+      }
+    }
+    return soonestIndex;
+  }
+
+  private rotateFailover(reason: string): void {
+    const fromModel = this.getActiveModelId();
+    const fromProfile = this.getActiveAuthProfile()?.name ?? null;
+
+    let moved = false;
+    if (this.currentModelIndex < this.modelCandidates.length - 1) {
+      this.currentModelIndex += 1;
+      moved = true;
+    } else {
+      this.currentModelIndex = 0;
+      if (this.authProfiles.length > 0) {
+        const nextProfileIndex = this.pickNextAuthProfileIndex();
+        if (nextProfileIndex !== this.currentAuthProfileIndex) {
+          this.currentAuthProfileIndex = nextProfileIndex;
+          moved = true;
+        }
+      }
+      if (this.modelCandidates.length > 1) {
+        moved = true;
+      }
+    }
+
+    this.emit("live.bridge.failover", {
+      reason,
+      moved,
+      from: {
+        model: fromModel,
+        authProfile: fromProfile,
+      },
+      to: {
+        model: this.getActiveModelId(),
+        authProfile: this.getActiveAuthProfile()?.name ?? null,
+      },
+      modelCandidates: this.modelCandidates,
+    });
+  }
+
+  private startHealthMonitor(): void {
+    this.stopHealthMonitor();
+    const intervalMs = Math.max(500, this.config.liveHealthCheckIntervalMs);
+    this.healthTimer = setInterval(() => {
+      this.evaluateUpstreamHealth();
+    }, intervalMs);
+  }
+
+  private stopHealthMonitor(): void {
+    if (this.healthTimer) {
+      clearInterval(this.healthTimer);
+      this.healthTimer = null;
+    }
+    this.healthDegraded = false;
+  }
+
+  private markUpstreamMessageActivity(): void {
+    this.lastUpstreamMessageAtMs = Date.now();
+    if (this.healthDegraded) {
+      this.healthDegraded = false;
+      this.emit("live.bridge.health_recovered", {
+        at: new Date(this.lastUpstreamMessageAtMs).toISOString(),
+      });
+    }
+  }
+
+  private hasPendingLiveFlow(): boolean {
+    return this.pendingRoundTripStartAtMs !== null || this.pendingInterruptAtMs !== null || this.currentTurnStartedAtMs !== null;
+  }
+
+  private evaluateUpstreamHealth(): void {
+    if (!this.upstream || this.upstream.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    if (!this.hasPendingLiveFlow()) {
+      return;
+    }
+    const silenceMs = Date.now() - this.lastUpstreamMessageAtMs;
+    if (silenceMs <= this.config.liveHealthSilenceMs) {
+      return;
+    }
+    if (!this.healthDegraded) {
+      this.healthDegraded = true;
+      this.emit("live.bridge.health_degraded", {
+        reason: "upstream_silence",
+        silenceMs,
+        thresholdMs: this.config.liveHealthSilenceMs,
+        model: this.getActiveModelId(),
+        authProfile: this.getActiveAuthProfile()?.name ?? null,
+      });
+    }
+
+    const staleSocket = this.upstream;
+    this.upstream = null;
+    this.setupSent = false;
+    this.connectPromise = null;
+    this.resetLiveState();
+    try {
+      staleSocket.close(1011, "health watchdog reconnect");
+    } catch {
+      // best-effort close for watchdog-triggered reconnect
+    }
   }
 
   private emit(type: string, payload: unknown): void {
@@ -255,6 +505,7 @@ export class LiveApiBridge {
       throw new Error("Live API upstream is not connected");
     }
     this.upstream.send(JSON.stringify(value));
+    this.lastUpstreamMessageAtMs = Date.now();
   }
 
   private resetTurnAggregation(): void {
@@ -366,30 +617,67 @@ export class LiveApiBridge {
     }
   }
 
-  private sendGeminiSetup(payloadOverride?: Record<string, unknown>): void {
+  private buildGeminiSetupPayload(payloadOverride?: Record<string, unknown>): Record<string, unknown> {
     const responseModalities = ["TEXT", "AUDIO"];
-    const setupPayload: Record<string, unknown> = {
-      setup: {
-        model: this.config.liveModelId,
-        generationConfig: {
-          responseModalities,
+    const generationConfig: Record<string, unknown> = {
+      responseModalities,
+      speechConfig: {
+        voiceConfig: {
+          prebuiltVoiceConfig: {
+            voiceName: this.config.liveSetupVoiceName,
+          },
         },
+      },
+      realtimeInputConfig: {
+        activityHandling: this.config.liveRealtimeActivityHandling,
       },
     };
 
-    if (payloadOverride && Object.keys(payloadOverride).length > 0) {
-      setupPayload.setup = {
-        ...(setupPayload.setup as Record<string, unknown>),
-        ...payloadOverride,
+    if (this.config.liveEnableInputAudioTranscription) {
+      generationConfig.inputAudioTranscription = {};
+    }
+    if (this.config.liveEnableOutputAudioTranscription) {
+      generationConfig.outputAudioTranscription = {};
+    }
+
+    const baseSetup: Record<string, unknown> = {
+      model: this.getActiveModelId(),
+      generationConfig,
+    };
+
+    if (this.config.liveSystemInstruction) {
+      baseSetup.systemInstruction = {
+        parts: [{ text: this.config.liveSystemInstruction }],
       };
     }
 
+    const setup = payloadOverride && Object.keys(payloadOverride).length > 0
+      ? {
+          ...baseSetup,
+          ...payloadOverride,
+        }
+      : baseSetup;
+
+    return { setup };
+  }
+
+  private sendGeminiSetup(payloadOverride?: Record<string, unknown>): void {
+    const setupPayload = this.buildGeminiSetupPayload(payloadOverride);
     this.sendUpstreamJson(setupPayload);
     this.setupSent = true;
+    const responseModalities =
+      isRecord(setupPayload.setup) &&
+      isRecord(setupPayload.setup.generationConfig) &&
+      Array.isArray(setupPayload.setup.generationConfig.responseModalities)
+        ? setupPayload.setup.generationConfig.responseModalities
+        : ["TEXT", "AUDIO"];
     this.emit("live.bridge.setup_sent", {
       protocol: this.config.liveApiProtocol,
-      model: this.config.liveModelId,
+      model: this.getActiveModelId(),
+      authProfile: this.getActiveAuthProfile()?.name ?? null,
       responseModalities,
+      hasSystemInstruction: Boolean(this.config.liveSystemInstruction),
+      activityHandling: this.config.liveRealtimeActivityHandling,
     });
   }
 
@@ -539,20 +827,12 @@ export class LiveApiBridge {
     }
 
     this.connectPromise = new Promise<void>((resolve, reject) => {
-      const headers: Record<string, string> = {};
-      if (this.config.liveApiApiKey) {
-        headers.Authorization = `Bearer ${this.config.liveApiApiKey}`;
-      }
-      if (this.config.liveApiAuthHeader) {
-        const [headerName, ...rest] = this.config.liveApiAuthHeader.split(":");
-        if (headerName && rest.length > 0) {
-          headers[headerName.trim()] = rest.join(":").trim();
-        }
-      }
+      const headers = this.buildUpstreamHeaders();
 
       const upstream = new WebSocket(wsUrl, { headers });
       this.upstream = upstream;
       this.setupSent = false;
+      this.lastUpstreamMessageAtMs = Date.now();
 
       let settled = false;
       const resolveOnce = (): void => {
@@ -571,7 +851,14 @@ export class LiveApiBridge {
       };
 
       upstream.on("open", () => {
-        this.emit("live.bridge.connected", { wsUrl });
+        this.markActiveAuthSuccess();
+        this.markUpstreamMessageActivity();
+        this.startHealthMonitor();
+        this.emit("live.bridge.connected", {
+          wsUrl,
+          model: this.getActiveModelId(),
+          authProfile: this.getActiveAuthProfile()?.name ?? null,
+        });
         if (this.config.liveApiProtocol === "gemini" && this.config.liveAutoSetup) {
           this.sendGeminiSetup();
         }
@@ -579,6 +866,7 @@ export class LiveApiBridge {
       });
 
       upstream.on("message", (raw) => {
+        this.markUpstreamMessageActivity();
         const text = raw.toString("utf8");
         let parsed: unknown = text;
         try {
@@ -611,6 +899,7 @@ export class LiveApiBridge {
 
       upstream.on("close", (code, reason) => {
         const reasonText = reason.toString();
+        this.stopHealthMonitor();
         this.emit("live.bridge.closed", {
           code,
           reason: reasonText,
@@ -623,6 +912,7 @@ export class LiveApiBridge {
       });
 
       upstream.on("error", (error) => {
+        this.stopHealthMonitor();
         this.emit("live.bridge.error", {
           error: error.message,
         });
@@ -649,11 +939,16 @@ export class LiveApiBridge {
         return;
       } catch (error) {
         lastError = error;
+        const reason = error instanceof Error ? error.message : String(error);
+        this.markActiveAuthFailure(reason);
+        this.rotateFailover(reason);
         this.emit("live.bridge.reconnect_attempt", {
           attempt,
           maxAttempts,
           retryMs: this.config.liveConnectRetryMs,
-          error: error instanceof Error ? error.message : String(error),
+          error: reason,
+          model: this.getActiveModelId(),
+          authProfile: this.getActiveAuthProfile()?.name ?? null,
         });
 
         if (attempt < maxAttempts) {
@@ -687,8 +982,13 @@ export class LiveApiBridge {
     try {
       this.forwardByProtocol(this.config.liveApiProtocol, event);
     } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.markActiveAuthFailure(reason);
+      this.rotateFailover(`forward_failure:${reason}`);
       this.emit("live.bridge.forward_retry", {
-        error: error instanceof Error ? error.message : String(error),
+        error: reason,
+        model: this.getActiveModelId(),
+        authProfile: this.getActiveAuthProfile()?.name ?? null,
       });
 
       this.upstream = null;
@@ -701,6 +1001,7 @@ export class LiveApiBridge {
   close(): void {
     this.resetLiveState();
     this.pendingInterruptAtMs = null;
+    this.stopHealthMonitor();
     if (!this.upstream) {
       return;
     }
