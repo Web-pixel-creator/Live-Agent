@@ -719,6 +719,15 @@ function handleGatewayEvent(event) {
     if (Array.isArray(output?.story?.timeline)) {
       appendTranscript("system", `Story timeline segments: ${output.story.timeline.length}`);
     }
+    if (Array.isArray(output?.mediaJobs?.video) && output.mediaJobs.video.length > 0) {
+      const pending = output.mediaJobs.video.filter(
+        (job) => job && typeof job === "object" && (job.status === "queued" || job.status === "running"),
+      ).length;
+      appendTranscript(
+        "system",
+        `Story video jobs: ${output.mediaJobs.video.length} total, ${pending} pending`,
+      );
+    }
     if (output?.delegation?.delegatedRoute) {
       appendTranscript(
         "system",

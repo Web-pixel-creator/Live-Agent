@@ -51,6 +51,7 @@ Checkpoint B (hard interruption) at ~01:40:
 1. Switch intent to `story`.
 2. Send prompt for short branching story.
 3. Show generated timeline and fallback marker (`fallback_asset=true`) when pre-generated assets are used.
+4. For async video mode (`mediaMode=simulated`), show linked `mediaJobs.video` entries (`jobId`, `assetId`, `status=queued/running/completed`).
 
 ### 03:40-05:20 UI Navigator
 

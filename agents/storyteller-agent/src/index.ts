@@ -16,6 +16,7 @@ import {
   type OrchestratorRequest,
   type OrchestratorResponse,
 } from "@mla/contracts";
+import { createVideoMediaJob, type StoryMediaJob } from "./media-jobs.js";
 
 type StoryInput = {
   prompt: string;
@@ -27,6 +28,8 @@ type StoryInput = {
   includeImages: boolean;
   includeVideo: boolean;
   segmentCount: number;
+  mediaMode: "fallback" | "simulated" | null;
+  videoFailureRate: number;
 };
 
 type StoryPlan = {
@@ -44,10 +47,11 @@ type StoryAsset = {
   ref: string;
   provider: string;
   model: string;
-  status: "ready" | "pending";
+  status: "ready" | "pending" | "failed";
   fallbackAsset: boolean;
   segmentIndex: number;
   mimeType: string;
+  jobId: string | null;
   meta: Record<string, unknown>;
 };
 
@@ -56,6 +60,7 @@ type StoryTimelineSegment = {
   text: string;
   imageRef: string | null;
   videoRef: string | null;
+  videoStatus: StoryAsset["status"] | null;
   audioRef: string | null;
 };
 
@@ -142,6 +147,34 @@ function toIntInRange(value: unknown, fallback: number, min: number, max: number
   return Math.max(min, Math.min(max, Math.floor(parsed)));
 }
 
+function toNumberInRange(value: unknown, fallback: number, min: number, max: number): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  if (parsed < min) {
+    return min;
+  }
+  if (parsed > max) {
+    return max;
+  }
+  return parsed;
+}
+
+function normalizeMediaMode(value: unknown): "fallback" | "simulated" | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "fallback") {
+    return "fallback";
+  }
+  if (normalized === "simulated") {
+    return "simulated";
+  }
+  return null;
+}
+
 function sliceToCount<T>(values: T[], count: number): T[] {
   if (values.length <= count) {
     return values;
@@ -166,6 +199,8 @@ function normalizeStoryInput(input: unknown): StoryInput {
     includeImages: toBoolean(raw.includeImages, true),
     includeVideo: toBoolean(raw.includeVideo, false),
     segmentCount: toIntInRange(raw.segmentCount, 3, 2, 6),
+    mediaMode: normalizeMediaMode(raw.mediaMode),
+    videoFailureRate: toNumberInRange(raw.videoFailureRate, 0, 0, 1),
   };
 }
 
@@ -391,7 +426,10 @@ async function fetchGeminiText(params: {
   }
 }
 
-function createStorytellerCapabilitySet(config: GeminiConfig): StorytellerCapabilitySet {
+function createStorytellerCapabilitySet(
+  config: GeminiConfig,
+  mediaModeOverride: "fallback" | "simulated",
+): StorytellerCapabilitySet {
   const reasoning: ReasoningCapabilityAdapter = {
     descriptor: {
       capability: "reasoning",
@@ -416,13 +454,14 @@ function createStorytellerCapabilitySet(config: GeminiConfig): StorytellerCapabi
     },
   };
 
-  const mediaMode: "default" | "fallback" | "simulated" = config.mediaMode === "simulated" ? "simulated" : "fallback";
-  const mediaProvider = config.mediaMode === "simulated" ? "simulated" : "google_cloud";
+  const mediaMode: "default" | "fallback" | "simulated" =
+    mediaModeOverride === "simulated" ? "simulated" : "fallback";
+  const mediaProvider = mediaModeOverride === "simulated" ? "simulated" : "google_cloud";
 
   const image: ImageCapabilityAdapter = {
     descriptor: {
       capability: "image",
-      adapterId: config.mediaMode === "simulated" ? "imagen-simulated" : "imagen-fallback-pack",
+      adapterId: mediaModeOverride === "simulated" ? "imagen-simulated" : "imagen-fallback-pack",
       provider: mediaProvider,
       model: config.imageModel,
       mode: mediaMode,
@@ -432,7 +471,7 @@ function createStorytellerCapabilitySet(config: GeminiConfig): StorytellerCapabi
   const video: VideoCapabilityAdapter = {
     descriptor: {
       capability: "video",
-      adapterId: config.mediaMode === "simulated" ? "veo-simulated" : "veo-fallback-pack",
+      adapterId: mediaModeOverride === "simulated" ? "veo-simulated" : "veo-fallback-pack",
       provider: mediaProvider,
       model: config.videoModel,
       mode: mediaMode,
@@ -442,7 +481,7 @@ function createStorytellerCapabilitySet(config: GeminiConfig): StorytellerCapabi
   const tts: TtsCapabilityAdapter = {
     descriptor: {
       capability: "tts",
-      adapterId: config.mediaMode === "simulated" ? "gemini-tts-simulated" : "gemini-tts-fallback-pack",
+      adapterId: mediaModeOverride === "simulated" ? "gemini-tts-simulated" : "gemini-tts-fallback-pack",
       provider: mediaProvider,
       model: config.ttsModel,
       mode: mediaMode,
@@ -661,6 +700,7 @@ function createImageAsset(params: {
     fallbackAsset,
     segmentIndex: params.segmentIndex,
     mimeType: "image/jpeg",
+    jobId: null,
     meta: {
       prompt: `Illustration for segment ${params.segmentIndex + 1}: ${params.segmentText}`,
       adapterMode,
@@ -692,6 +732,7 @@ function createVideoAsset(params: {
     fallbackAsset,
     segmentIndex: params.segmentIndex,
     mimeType: "video/mp4",
+    jobId: null,
     meta: {
       prompt: `Video scene for segment ${params.segmentIndex + 1}: ${params.segmentText}`,
       adapterMode,
@@ -725,6 +766,7 @@ function createNarrationAsset(params: {
     fallbackAsset,
     segmentIndex: params.segmentIndex,
     mimeType: "audio/wav",
+    jobId: null,
     meta: {
       text: params.segmentText,
       voiceStyle: params.voiceStyle,
@@ -747,11 +789,13 @@ function buildTimeline(params: {
 
   const timeline: StoryTimelineSegment[] = [];
   for (let index = 0; index < params.segments.length; index += 1) {
+    const videoAsset = params.videos.find((asset) => asset.segmentIndex === index);
     timeline.push({
       index: index + 1,
       text: params.segments[index],
       imageRef: byKindRef("image", index),
       videoRef: byKindRef("video", index),
+      videoStatus: videoAsset ? videoAsset.status : null,
       audioRef: byKindRef("audio", index),
     });
   }
@@ -760,6 +804,70 @@ function buildTimeline(params: {
 
 function anyFallback(assets: StoryAsset[]): boolean {
   return assets.some((asset) => asset.fallbackAsset);
+}
+
+function resolveMediaMode(input: StoryInput, config: GeminiConfig): "fallback" | "simulated" {
+  return input.mediaMode ?? config.mediaMode;
+}
+
+function resolveVideoFailureRate(input: StoryInput): number {
+  if (input.videoFailureRate > 0) {
+    return input.videoFailureRate;
+  }
+  const raw = Number(process.env.STORYTELLER_VIDEO_FAILURE_RATE ?? "0");
+  if (!Number.isFinite(raw)) {
+    return 0;
+  }
+  if (raw < 0) {
+    return 0;
+  }
+  if (raw > 1) {
+    return 1;
+  }
+  return raw;
+}
+
+function mapJobStatusToAssetStatus(status: StoryMediaJob["status"]): StoryAsset["status"] {
+  if (status === "completed") {
+    return "ready";
+  }
+  if (status === "failed") {
+    return "failed";
+  }
+  return "pending";
+}
+
+function createVideoMediaJobs(params: {
+  request: OrchestratorRequest;
+  runId: string;
+  videoAssets: StoryAsset[];
+  mediaMode: "fallback" | "simulated";
+  failureRate: number;
+}): StoryMediaJob[] {
+  const jobs: StoryMediaJob[] = [];
+  for (const asset of params.videoAssets) {
+    const job = createVideoMediaJob({
+      sessionId: params.request.sessionId,
+      runId: params.runId,
+      assetId: asset.id,
+      assetRef: asset.ref,
+      segmentIndex: asset.segmentIndex,
+      provider: asset.provider,
+      model: asset.model,
+      mode: params.mediaMode,
+      failureRate: params.failureRate,
+    });
+    asset.jobId = job.jobId;
+    asset.status = mapJobStatusToAssetStatus(job.status);
+    asset.meta = {
+      ...asset.meta,
+      mediaJobId: job.jobId,
+      mediaJobStatus: job.status,
+      asyncGeneration: params.mediaMode === "simulated",
+    };
+    jobs.push(job);
+  }
+  return jobs;
 }
 
 function toNormalizedError(error: unknown, traceId: string): NormalizedError {
@@ -784,10 +892,14 @@ export async function runStorytellerAgent(
   const runId = request.runId ?? request.id;
   const startedAt = Date.now();
   const config = getGeminiConfig();
-  const capabilities = createStorytellerCapabilitySet(config);
+  let effectiveMediaMode: "fallback" | "simulated" = config.mediaMode;
+  let capabilities = createStorytellerCapabilitySet(config, effectiveMediaMode);
 
   try {
     const input = normalizeStoryInput(request.payload.input);
+    effectiveMediaMode = resolveMediaMode(input, config);
+    capabilities = createStorytellerCapabilitySet(config, effectiveMediaMode);
+    const videoFailureRate = resolveVideoFailureRate(input);
     const fallbackPack = await loadFallbackPack();
     const fallbackScenario = selectFallbackScenario(fallbackPack, input);
 
@@ -822,6 +934,15 @@ export async function runStorytellerAgent(
           }),
         )
       : [];
+    const videoJobs = input.includeVideo
+      ? createVideoMediaJobs({
+          request,
+          runId,
+          videoAssets,
+          mediaMode: effectiveMediaMode,
+          failureRate: videoFailureRate,
+        })
+      : [];
 
     const narrationAssets = finalSegments.map((segmentText, segmentIndex) =>
       createNarrationAsset({
@@ -842,7 +963,10 @@ export async function runStorytellerAgent(
     });
 
     const fallbackAsset = anyFallback(allAssets);
-    const message = `Story ready: "${plan.title}" with ${timeline.length} segments (${allAssets.length} media assets).`;
+    const pendingVideoJobs = videoJobs.filter(
+      (job) => job.status === "queued" || job.status === "running",
+    ).length;
+    const message = `Story ready: "${plan.title}" with ${timeline.length} segments (${allAssets.length} media assets).${input.includeVideo ? ` Video jobs pending: ${pendingVideoJobs}.` : ""}`;
 
     return createEnvelope({
       userId: request.userId,
@@ -871,13 +995,33 @@ export async function runStorytellerAgent(
             timeline,
           },
           assets: allAssets.map((asset) => ({
+            id: asset.id,
+            segmentIndex: asset.segmentIndex,
             kind: asset.kind,
             ref: asset.ref,
             status: asset.status,
             provider: asset.provider,
             model: asset.model,
             fallbackAsset: asset.fallbackAsset,
+            jobId: asset.jobId,
           })),
+          mediaJobs: {
+            video: videoJobs.map((job) => ({
+              jobId: job.jobId,
+              status: job.status,
+              assetId: job.assetId,
+              assetRef: job.assetRef,
+              segmentIndex: job.segmentIndex,
+              provider: job.provider,
+              model: job.model,
+              mode: job.mode,
+              attempts: job.attempts,
+              requestedAt: job.requestedAt,
+              startedAt: job.startedAt,
+              completedAt: job.completedAt,
+              error: job.error,
+            })),
+          },
           generation: {
             planner: {
               provider: plan.plannerProvider,
@@ -890,7 +1034,9 @@ export async function runStorytellerAgent(
             imageModel: config.imageModel,
             videoModel: input.includeVideo ? config.videoModel : null,
             ttsModel: config.ttsModel,
-            mediaMode: config.mediaMode,
+            mediaMode: effectiveMediaMode,
+            videoAsync: input.includeVideo && effectiveMediaMode === "simulated",
+            videoFailureRate,
             capabilityProfile: capabilities.profile,
             fallbackPack: {
               version: fallbackPack.version,

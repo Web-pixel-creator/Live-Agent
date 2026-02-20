@@ -125,6 +125,7 @@ async function main() {
   const allowedVisualComparatorModes = toStringArray(
     args.allowedVisualComparatorModes ?? "fallback_heuristic,gemini_reasoning",
   );
+  const allowedStoryMediaModes = toStringArray(args.allowedStoryMediaModes ?? "simulated");
   const requiredScenarios = toStringArray(
     args.requiredScenarios ??
       [
@@ -189,6 +190,36 @@ async function main() {
     "kpi.negotiationRequiresUserConfirmation",
     kpis.negotiationRequiresUserConfirmation === true,
     kpis.negotiationRequiresUserConfirmation,
+    true,
+  );
+  addCheck(
+    "kpi.storytellerMediaMode",
+    allowedStoryMediaModes.includes(String(kpis.storytellerMediaMode)),
+    kpis.storytellerMediaMode,
+    allowedStoryMediaModes.join(" | "),
+  );
+  addCheck(
+    "kpi.storytellerVideoAsync",
+    kpis.storytellerVideoAsync === true,
+    kpis.storytellerVideoAsync,
+    true,
+  );
+  addCheck(
+    "kpi.storytellerVideoJobsCount",
+    toNumber(kpis.storytellerVideoJobsCount) >= 1,
+    kpis.storytellerVideoJobsCount,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.storytellerVideoPendingCount",
+    toNumber(kpis.storytellerVideoPendingCount) >= 1,
+    kpis.storytellerVideoPendingCount,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.storytellerVideoAsyncValidated",
+    kpis.storytellerVideoAsyncValidated === true,
+    kpis.storytellerVideoAsyncValidated,
     true,
   );
   addCheck(
@@ -354,6 +385,7 @@ async function main() {
       expectedUiAdapterMode,
       allowedUiAdapterModes,
       allowedVisualComparatorModes,
+      allowedStoryMediaModes,
       allowedGatewayInterruptEvents,
       allowedTranslationProviders,
       requiredScenarios,

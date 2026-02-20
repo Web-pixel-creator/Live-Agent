@@ -432,6 +432,7 @@ flowchart TB
    - fallback to text-only response channel.
 2. Image/video generation timeout:
    - return partial story with pending media placeholders.
+   - expose async media job state (`mediaJobs.video`) linked to segment assets for polling/UI updates.
 3. UI action failure:
    - bounded retries + recovery prompt + human confirmation.
 4. Firestore transient errors:

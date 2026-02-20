@@ -602,6 +602,8 @@ try {
       language = "en"
       includeImages = $true
       includeVideo = $true
+      mediaMode = "simulated"
+      videoFailureRate = 0
       segmentCount = 3
       voiceStyle = "excited storyteller voice, podcast style"
     }
@@ -619,11 +621,33 @@ try {
     Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $storyCapabilityProfile -Path @("video"))) -Message "Missing storyteller video capability."
     Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $storyCapabilityProfile -Path @("tts"))) -Message "Missing storyteller tts capability."
 
+    $generationMediaMode = [string](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "mediaMode"))
+    Assert-Condition -Condition ($generationMediaMode -eq "simulated") -Message "Storyteller mediaMode should be simulated for async video pipeline test."
+    $videoAsync = [bool](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "videoAsync"))
+    Assert-Condition -Condition $videoAsync -Message "Expected generation.videoAsync=true."
+
+    $assets = @(Get-FieldValue -Object $response -Path @("payload", "output", "assets"))
+    $videoAssets = @($assets | Where-Object { $_.kind -eq "video" })
+    Assert-Condition -Condition ($videoAssets.Count -ge 2) -Message "Expected at least two video assets."
+    $pendingVideoAssets = @($videoAssets | Where-Object { $_.status -eq "pending" })
+    Assert-Condition -Condition ($pendingVideoAssets.Count -ge 1) -Message "Expected pending video assets for async pipeline."
+    $videoAssetsWithJobId = @($videoAssets | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.jobId) })
+    Assert-Condition -Condition ($videoAssetsWithJobId.Count -eq $videoAssets.Count) -Message "Each video asset must be linked to media job id."
+
+    $videoJobs = @(Get-FieldValue -Object $response -Path @("payload", "output", "mediaJobs", "video"))
+    Assert-Condition -Condition ($videoJobs.Count -eq $videoAssets.Count) -Message "Video job count must match video asset count."
+    $jobsWithIds = @($videoJobs | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.jobId) -and -not [string]::IsNullOrWhiteSpace([string]$_.assetId) })
+    Assert-Condition -Condition ($jobsWithIds.Count -eq $videoJobs.Count) -Message "Each video job must contain jobId and assetId."
+
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $response -Path @("runId"))
       fallbackAsset = [bool](Get-FieldValue -Object $response -Path @("payload", "output", "fallbackAsset"))
       timelineSegments = [int]$timeline.Count
       plannerProvider = [string](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "planner", "provider"))
+      mediaMode = $generationMediaMode
+      videoAsync = $videoAsync
+      videoJobsCount = $videoJobs.Count
+      videoPendingCount = $pendingVideoAssets.Count
       imageAdapterId = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("image", "adapterId"))
       ttsAdapterId = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("tts", "adapterId"))
       latencyMs = [int](Get-FieldValue -Object $response -Path @("payload", "output", "latencyMs"))
@@ -1193,6 +1217,17 @@ $summary = [ordered]@{
     negotiationConstraintsSatisfied = if ($null -ne $negotiationData) { $negotiationData.allSatisfied } else { $null }
     negotiationRequiresUserConfirmation = if ($null -ne $negotiationData) { $negotiationData.requiresUserConfirmation } else { $null }
     storytellerFallbackAsset = if ($null -ne $storyData) { $storyData.fallbackAsset } else { $null }
+    storytellerMediaMode = if ($null -ne $storyData) { $storyData.mediaMode } else { $null }
+    storytellerVideoAsync = if ($null -ne $storyData) { $storyData.videoAsync } else { $null }
+    storytellerVideoJobsCount = if ($null -ne $storyData) { $storyData.videoJobsCount } else { $null }
+    storytellerVideoPendingCount = if ($null -ne $storyData) { $storyData.videoPendingCount } else { $null }
+    storytellerVideoAsyncValidated = if (
+      $null -ne $storyData -and
+      $storyData.mediaMode -eq "simulated" -and
+      $storyData.videoAsync -eq $true -and
+      [int]$storyData.videoJobsCount -ge 1 -and
+      [int]$storyData.videoPendingCount -ge 1
+    ) { $true } else { $false }
     uiAdapterMode = if ($null -ne $uiApproveData) { $uiApproveData.adapterMode } else { $null }
     uiAdapterRetries = if ($null -ne $uiApproveData) { $uiApproveData.retries } else { $null }
     visualTestingStatus = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.reportStatus } else { $null }
