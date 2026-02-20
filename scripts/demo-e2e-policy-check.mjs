@@ -118,6 +118,9 @@ async function main() {
     : 1;
   const expectedUiAdapterMode = args.expectedUiAdapterMode ?? "remote_http";
   const allowedUiAdapterModes = toStringArray(args.allowedUiAdapterModes ?? expectedUiAdapterMode);
+  const allowedGatewayInterruptEvents = toStringArray(
+    args.allowedGatewayInterruptEvents ?? "live.interrupt.requested,live.bridge.unavailable",
+  );
   const allowedTranslationProviders = toStringArray(args.allowedTranslationProviders ?? "fallback,gemini");
   const requiredScenarios = toStringArray(
     args.requiredScenarios ??
@@ -130,6 +133,7 @@ async function main() {
         "ui.approval.approve_resume",
         "multi_agent.delegation",
         "gateway.websocket.roundtrip",
+        "gateway.websocket.interrupt_signal",
         "gateway.websocket.invalid_envelope",
         "api.approvals.list",
         "api.approvals.resume.invalid_intent",
@@ -185,6 +189,18 @@ async function main() {
     kpis.gatewayWsResponseStatus === "completed",
     kpis.gatewayWsResponseStatus,
     "completed",
+  );
+  addCheck(
+    "kpi.gatewayInterruptHandled",
+    kpis.gatewayInterruptHandled === true,
+    kpis.gatewayInterruptHandled,
+    true,
+  );
+  addCheck(
+    "kpi.gatewayInterruptEventType",
+    allowedGatewayInterruptEvents.includes(String(kpis.gatewayInterruptEventType)),
+    kpis.gatewayInterruptEventType,
+    allowedGatewayInterruptEvents.join(" | "),
   );
   addCheck(
     "kpi.gatewayWsInvalidEnvelopeCode",
@@ -246,6 +262,7 @@ async function main() {
       minApprovalsRecorded,
       expectedUiAdapterMode,
       allowedUiAdapterModes,
+      allowedGatewayInterruptEvents,
       allowedTranslationProviders,
       requiredScenarios,
     },

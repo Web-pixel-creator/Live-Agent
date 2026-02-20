@@ -78,8 +78,8 @@
 | T-107 | Добавить sensitive-action approval gates для UI Navigator | P0 | 0.5 day | T-106 | R6, R13, R16 | Опасные действия блокируются до явного подтверждения пользователя |
 | T-108 | Реализовать visual testing mode и отчёты регрессий | P1 | 0.5 day | T-106 | R9 | Генерируется структурированный отчёт с severity и screenshot artifacts |
 | T-109 | Реализовать multi-agent delegation (Live -> UI/Storyteller) | P0 | 0.5 day | T-004, T-106, T-104 | R16 | Делегирование задач работает с общим контекстом и trace событий |
-| T-110 | Подготовить demo-сценарии для трёх категорий челленджа | P0 | 0.5 day | T-109, T-112 | R1-R16 | Есть воспроизводимый demo script, fallback путь задокументирован, judge-oriented walkthrough готов |
-| T-111 | Реализовать demo control panel (targets/current/final), interruption checkpoints и stage fallback runbook | P0 | 0.5 day | T-008, T-110 | R1, R3, R13, R15 | В UI видны ограничения и KPI, interruption-план воспроизводим, fallback в text-mode документирован и протестирован |
+| T-110 | Подготовить demo-сценарии для трёх категорий челленджа | P0 | 0.5 day | T-109, T-112 | R1-R16 | Есть воспроизводимый demo script (`scripts/demo-e2e.ps1`), fallback путь задокументирован, judge-oriented walkthrough оформлен в `docs/challenge-demo-runbook.md` |
+| T-111 | Реализовать demo control panel (targets/current/final), interruption checkpoints и stage fallback runbook | P0 | 0.5 day | T-008, T-110 | R1, R3, R13, R15 | В UI видны ограничения и KPI, interruption-план воспроизводим (`gateway.websocket.interrupt_signal`), fallback в text-mode документирован и протестирован |
 | T-112 | Подготовить pre-generated media fallback pack для Storyteller demo | P0 | 0.5 day | T-102, T-104 | R4, R5, R15 | Для каждого demo-сценария есть заранее подготовленные image/video/audio ассеты на случай деградации API |
 
 ## Phase M3: V2 Hardening (Week 3-6)

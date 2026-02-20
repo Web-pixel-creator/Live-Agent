@@ -49,6 +49,7 @@ jobs:
           --minApprovalsRecorded 1
           --expectedUiAdapterMode remote_http
           --allowedUiAdapterModes remote_http,simulated
+          --allowedGatewayInterruptEvents live.interrupt.requested,live.bridge.unavailable
           --allowedTranslationProviders fallback,gemini
         shell: powershell
 

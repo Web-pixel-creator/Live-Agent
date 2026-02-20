@@ -763,6 +763,40 @@ try {
     }
   } | Out-Null
 
+  Invoke-Scenario -Name "gateway.websocket.interrupt_signal" -Action {
+    $runId = "demo-gateway-ws-interrupt-" + [Guid]::NewGuid().Guid
+    $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
+    $result = Invoke-NodeJsonCommand -Args @(
+      "scripts/gateway-ws-interrupt-check.mjs",
+      "--url",
+      "ws://localhost:8080/realtime",
+      "--sessionId",
+      $sessionId,
+      "--runId",
+      $runId,
+      "--timeoutMs",
+      [string]$timeoutMs,
+      "--reason",
+      "demo_interrupt_checkpoint"
+    )
+
+    $ok = [bool](Get-FieldValue -Object $result -Path @("ok"))
+    Assert-Condition -Condition $ok -Message "WebSocket interrupt signal check returned ok=false."
+
+    $interruptEventType = [string](Get-FieldValue -Object $result -Path @("interruptEventType"))
+    $allowedInterruptEvents = @("live.interrupt.requested", "live.bridge.unavailable")
+    Assert-Condition -Condition ($allowedInterruptEvents -contains $interruptEventType) -Message "Unexpected interrupt event type."
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $result -Path @("runId"))
+      connectedType = [string](Get-FieldValue -Object $result -Path @("connectedType"))
+      liveApiEnabled = Get-FieldValue -Object $result -Path @("liveApiEnabled")
+      interruptEventType = $interruptEventType
+      interruptReason = [string](Get-FieldValue -Object $result -Path @("interruptReason"))
+      eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
+    }
+  } | Out-Null
+
   Invoke-Scenario -Name "gateway.websocket.invalid_envelope" -Action {
     $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
     $result = Invoke-NodeJsonCommand -Args @(
@@ -881,6 +915,7 @@ $storyData = Get-ScenarioData -Name "storyteller.pipeline"
 $uiApproveData = Get-ScenarioData -Name "ui.approval.approve_resume"
 $delegationData = Get-ScenarioData -Name "multi_agent.delegation"
 $gatewayWsData = Get-ScenarioData -Name "gateway.websocket.roundtrip"
+$gatewayWsInterruptData = Get-ScenarioData -Name "gateway.websocket.interrupt_signal"
 $gatewayWsInvalidData = Get-ScenarioData -Name "gateway.websocket.invalid_envelope"
 $approvalsListData = Get-ScenarioData -Name "api.approvals.list"
 $approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.invalid_intent"
@@ -918,6 +953,8 @@ $summary = [ordered]@{
     delegatedRoute = if ($null -ne $delegationData) { $delegationData.delegatedRoute } else { $null }
     gatewayWsRoundTripMs = if ($null -ne $gatewayWsData) { $gatewayWsData.roundTripMs } else { $null }
     gatewayWsResponseStatus = if ($null -ne $gatewayWsData) { $gatewayWsData.responseStatus } else { $null }
+    gatewayInterruptEventType = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptEventType } else { $null }
+    gatewayInterruptHandled = if ($null -ne $gatewayWsInterruptData) { $true } else { $false }
     gatewayWsInvalidEnvelopeCode = if ($null -ne $gatewayWsInvalidData) { $gatewayWsInvalidData.code } else { $null }
     approvalsRecorded = if ($null -ne $approvalsListData) { $approvalsListData.total } else { $null }
     approvalsInvalidIntentStatusCode = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.statusCode } else { $null }

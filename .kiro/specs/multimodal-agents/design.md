@@ -579,7 +579,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 ### Demo Automation Artifact
 
 1. The repository SHALL include an executable demo smoke script at `scripts/demo-e2e.ps1`.
-2. The script SHALL validate end-to-end demo flows: translation, negotiation, storyteller generation, UI approval reject/approve resume, multi-agent delegation, WebSocket gateway roundtrip via `/realtime`, invalid-envelope error contract behavior (`gateway.error` with traceId), and REST contract behavior for invalid approval resume intent (`HTTP 400`).
+2. The script SHALL validate end-to-end demo flows: translation, negotiation, storyteller generation, UI approval reject/approve resume, multi-agent delegation, WebSocket gateway roundtrip via `/realtime`, WebSocket interruption signal contract behavior (`live.interrupt.requested` or `live.bridge.unavailable`), invalid-envelope error contract behavior (`gateway.error` with traceId), and REST contract behavior for invalid approval resume intent (`HTTP 400`).
 3. The script SHALL produce structured reports at `artifacts/demo-e2e/summary.json` and `artifacts/demo-e2e/summary.md` with per-scenario pass/fail and KPI fields.
 4. The script SHALL support local run modes for CI/demo prep (`-SkipBuild`, `-SkipServiceStart`, `-KeepServices`, `-OutputPath`).
 5. The repository SHALL include CI automation (`.github/workflows/demo-e2e.yml`) that executes demo e2e and publishes `summary.json`, `summary.md`, and logs as build artifacts.
@@ -590,6 +590,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 10. On `main/master` pushes, CI SHALL publish public badge endpoint files to `gh-pages` at `demo-e2e/badge.json` for external status embedding.
 11. The repository SHALL provide operator scripts to configure GitHub Pages source and verify public badge endpoint availability (`badge:pages:enable`, `badge:pages:check`).
 12. The repository SHALL provide scripted release operations for local quality gate execution and repository publish orchestration (`verify:release`, `repo:publish`).
+13. The repository SHALL provide a judge-facing walkthrough runbook with exact interruption checkpoints and text fallback procedure (`docs/challenge-demo-runbook.md`).
 
 ## Traceability Matrix
 

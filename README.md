@@ -74,7 +74,7 @@ Open `http://localhost:3000`.
 
 ## Automated Demo E2E
 
-Run a full judge-oriented smoke scenario (translation + negotiation + storyteller + UI approval/reject/approve + delegation + WebSocket gateway roundtrip + WebSocket invalid-envelope error contract check + approvals resume invalid-intent REST contract check):
+Run a full judge-oriented smoke scenario (translation + negotiation + storyteller + UI approval/reject/approve + delegation + WebSocket gateway roundtrip + WebSocket interruption signal contract check + WebSocket invalid-envelope error contract check + approvals resume invalid-intent REST contract check):
 
 ```powershell
 npm run demo:e2e
@@ -107,7 +107,7 @@ npm run verify:release
 Direct mode with explicit thresholds:
 
 ```powershell
-node ./scripts/demo-e2e-policy-check.mjs --input ./artifacts/demo-e2e/summary.json --output ./artifacts/demo-e2e/policy-check.md --maxGatewayWsRoundTripMs 1800 --minApprovalsRecorded 1 --expectedUiAdapterMode remote_http --allowedUiAdapterModes remote_http,simulated --allowedTranslationProviders fallback,gemini
+node ./scripts/demo-e2e-policy-check.mjs --input ./artifacts/demo-e2e/summary.json --output ./artifacts/demo-e2e/policy-check.md --maxGatewayWsRoundTripMs 1800 --minApprovalsRecorded 1 --expectedUiAdapterMode remote_http --allowedUiAdapterModes remote_http,simulated --allowedGatewayInterruptEvents live.interrupt.requested,live.bridge.unavailable --allowedTranslationProviders fallback,gemini
 ```
 
 The script writes a structured report to:
@@ -219,6 +219,11 @@ Useful flags:
 
 - PR template: `.github/pull_request_template.md`
 - Includes a demo-readiness checklist aligned with e2e KPIs and artifacts.
+
+## Challenge Runbook
+
+- Walkthrough + interruption checkpoints + stage fallback steps:
+  - `docs/challenge-demo-runbook.md`
 
 ## Day-1 Infra Bootstrap
 
