@@ -817,6 +817,53 @@ try {
     }
   } | Out-Null
 
+  Invoke-Scenario -Name "ui.sandbox.policy_modes" -Action {
+    $runId = "demo-ui-sandbox-" + [Guid]::NewGuid().Guid
+    $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "ui_task" -RequestInput @{
+      goal = "Delete account and remove billing profile permanently."
+      url = "https://example.com/settings"
+      screenshotRef = "ui://demo/sandbox"
+      maxSteps = 8
+      approvalConfirmed = $true
+      approvalDecision = "approved"
+      approvalReason = "Approved for sandbox validation scenario"
+      sandboxPolicyMode = "all"
+      sessionRole = "secondary"
+    }
+
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
+    $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
+    Assert-Condition -Condition ($status -eq "failed") -Message "Sandbox policy scenario should fail in strict mode."
+
+    $sandboxPolicy = Get-FieldValue -Object $response -Path @("payload", "output", "sandboxPolicy")
+    Assert-Condition -Condition ($null -ne $sandboxPolicy) -Message "Sandbox policy output is missing."
+
+    $sandboxActive = [bool](Get-FieldValue -Object $sandboxPolicy -Path @("active"))
+    $sandboxMode = [string](Get-FieldValue -Object $sandboxPolicy -Path @("effectiveMode"))
+    $sandboxReason = [string](Get-FieldValue -Object $sandboxPolicy -Path @("reason"))
+    $sandboxSessionClass = [string](Get-FieldValue -Object $sandboxPolicy -Path @("sessionClass"))
+    $blockedCategories = @(Get-FieldValue -Object $sandboxPolicy -Path @("blockedCategories"))
+    Assert-Condition -Condition $sandboxActive -Message "Sandbox policy should be active for mode=all."
+    Assert-Condition -Condition ($sandboxMode -eq "all") -Message "Sandbox mode should resolve to all."
+    Assert-Condition -Condition ($sandboxReason -eq "all_sessions") -Message "Sandbox reason should be all_sessions."
+    Assert-Condition -Condition ($sandboxSessionClass -eq "non_main") -Message "Sandbox session class should be non_main."
+    Assert-Condition -Condition ($blockedCategories -contains "destructive_operation") -Message "Expected destructive_operation category to be blocked by sandbox."
+
+    $executionFinalStatus = [string](Get-FieldValue -Object $response -Path @("payload", "output", "execution", "finalStatus"))
+    Assert-Condition -Condition ($executionFinalStatus -eq "failed_sandbox_policy") -Message "Sandbox blocked flow must expose failed_sandbox_policy execution status."
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $response -Path @("runId"))
+      status = $status
+      sandboxActive = $sandboxActive
+      sandboxMode = $sandboxMode
+      sandboxReason = $sandboxReason
+      sandboxSessionClass = $sandboxSessionClass
+      blockedCategories = $blockedCategories
+      executionFinalStatus = $executionFinalStatus
+    }
+  } | Out-Null
+
   Invoke-Scenario -Name "ui.visual_testing" -Action {
     $runId = "demo-ui-visual-" + [Guid]::NewGuid().Guid
     $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "ui_task" -RequestInput @{
@@ -1383,6 +1430,7 @@ $translationData = Get-ScenarioData -Name "live.translation"
 $negotiationData = Get-ScenarioData -Name "live.negotiation"
 $storyData = Get-ScenarioData -Name "storyteller.pipeline"
 $uiApproveData = Get-ScenarioData -Name "ui.approval.approve_resume"
+$uiSandboxData = Get-ScenarioData -Name "ui.sandbox.policy_modes"
 $uiVisualTestingData = Get-ScenarioData -Name "ui.visual_testing"
 $delegationData = Get-ScenarioData -Name "multi_agent.delegation"
 $gatewayWsData = Get-ScenarioData -Name "gateway.websocket.roundtrip"
@@ -1456,6 +1504,18 @@ $summary = [ordered]@{
     ) { $true } else { $false }
     uiAdapterMode = if ($null -ne $uiApproveData) { $uiApproveData.adapterMode } else { $null }
     uiAdapterRetries = if ($null -ne $uiApproveData) { $uiApproveData.retries } else { $null }
+    sandboxPolicyMode = if ($null -ne $uiSandboxData) { $uiSandboxData.sandboxMode } else { $null }
+    sandboxPolicyActive = if ($null -ne $uiSandboxData) { $uiSandboxData.sandboxActive } else { $null }
+    sandboxPolicyReason = if ($null -ne $uiSandboxData) { $uiSandboxData.sandboxReason } else { $null }
+    sandboxPolicyBlockedCategories = if ($null -ne $uiSandboxData) { $uiSandboxData.blockedCategories } else { @() }
+    sandboxPolicyExecutionStatus = if ($null -ne $uiSandboxData) { $uiSandboxData.executionFinalStatus } else { $null }
+    sandboxPolicyValidated = if (
+      $null -ne $uiSandboxData -and
+      [string]$uiSandboxData.status -eq "failed" -and
+      [bool]$uiSandboxData.sandboxActive -eq $true -and
+      [string]$uiSandboxData.sandboxMode -eq "all" -and
+      [string]$uiSandboxData.executionFinalStatus -eq "failed_sandbox_policy"
+    ) { $true } else { $false }
     visualTestingStatus = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.reportStatus } else { $null }
     visualChecksCount = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.checksCount } else { $null }
     visualRegressionCount = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.regressionCount } else { $null }

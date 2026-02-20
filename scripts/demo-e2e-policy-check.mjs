@@ -135,6 +135,7 @@ async function main() {
         "ui.approval.request",
         "ui.approval.reject",
         "ui.approval.approve_resume",
+        "ui.sandbox.policy_modes",
         "ui.visual_testing",
         "multi_agent.delegation",
         "gateway.websocket.roundtrip",
@@ -343,6 +344,12 @@ async function main() {
     allowedUiAdapterModes.includes(String(kpis.uiAdapterMode)),
     kpis.uiAdapterMode,
     allowedUiAdapterModes.join(" | "),
+  );
+  addCheck(
+    "kpi.sandboxPolicyValidated",
+    kpis.sandboxPolicyValidated === true,
+    kpis.sandboxPolicyValidated,
+    true,
   );
   addCheck(
     "kpi.visualTestingStatus",

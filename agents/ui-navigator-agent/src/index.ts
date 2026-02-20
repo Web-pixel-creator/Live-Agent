@@ -24,6 +24,8 @@ type UiTaskInput = {
   approvalDecision: "approved" | "rejected" | null;
   approvalReason: string | null;
   approvalId: string | null;
+  sandboxPolicyMode: "off" | "non-main" | "all" | null;
+  sessionRole: "main" | "secondary" | null;
   visualTesting: VisualTestingInput;
 };
 
@@ -91,6 +93,8 @@ type UiTraceStep = {
   notes: string;
 };
 
+type ExecutorMode = "simulated" | "playwright_preview" | "remote_http";
+
 type PlannerConfig = {
   apiKey: string | null;
   baseUrl: string;
@@ -102,12 +106,34 @@ type PlannerConfig = {
   plannerEnabled: boolean;
   maxStepsDefault: number;
   approvalKeywords: string[];
-  executorMode: "simulated" | "playwright_preview" | "remote_http";
+  executorMode: ExecutorMode;
   executorUrl: string | null;
   loopDetectionEnabled: boolean;
   loopWindowSize: number;
   loopRepeatThreshold: number;
   loopSimilarityThreshold: number;
+  sandboxPolicyMode: SandboxPolicyMode;
+  sandboxMainSessionIds: string[];
+  sandboxMaxSteps: number;
+  sandboxAllowedActionTypes: UiAction["type"][];
+  sandboxBlockedApprovalCategories: string[];
+  sandboxForcedExecutorMode: ExecutorMode | null;
+};
+
+type SandboxPolicyMode = "off" | "non-main" | "all";
+
+type SandboxPolicyContext = {
+  configuredMode: SandboxPolicyMode;
+  effectiveMode: SandboxPolicyMode;
+  active: boolean;
+  reason: "mode_off" | "main_session" | "non_main_session" | "all_sessions";
+  sessionClass: "main" | "non_main";
+  maxStepsLimit: number;
+  baseExecutorMode: ExecutorMode;
+  enforcedExecutorMode: ExecutorMode;
+  allowedActionTypes: UiAction["type"][];
+  blockedApprovalCategories: string[];
+  blockedCategories: string[];
 };
 
 type UiNavigatorCapabilitySet = {
@@ -199,7 +225,7 @@ function parseKeywordList(raw: string | undefined, fallback: string[]): string[]
   return values.length > 0 ? values : fallback;
 }
 
-function parseExecutorMode(raw: string | undefined): PlannerConfig["executorMode"] {
+function parseExecutorMode(raw: string | undefined): ExecutorMode {
   if (raw === "playwright_preview") {
     return "playwright_preview";
   }
@@ -207,6 +233,36 @@ function parseExecutorMode(raw: string | undefined): PlannerConfig["executorMode
     return "remote_http";
   }
   return "simulated";
+}
+
+function parseSandboxPolicyMode(raw: string | undefined): SandboxPolicyMode {
+  const normalized = toNonEmptyString(raw, "").toLowerCase();
+  if (normalized === "all") {
+    return "all";
+  }
+  if (normalized === "non-main" || normalized === "non_main") {
+    return "non-main";
+  }
+  return "off";
+}
+
+function parseActionTypeList(raw: string | undefined, fallback: UiAction["type"][]): UiAction["type"][] {
+  const values = parseKeywordList(raw, fallback);
+  const allowed = new Set<UiAction["type"]>();
+  for (const value of values) {
+    if (
+      value === "navigate" ||
+      value === "click" ||
+      value === "type" ||
+      value === "scroll" ||
+      value === "hotkey" ||
+      value === "wait" ||
+      value === "verify"
+    ) {
+      allowed.add(value);
+    }
+  }
+  return allowed.size > 0 ? Array.from(allowed) : fallback;
 }
 
 function normalizeVisualTestingInput(raw: Record<string, unknown>, screenshotRef: string | null): VisualTestingInput {
@@ -245,6 +301,36 @@ function normalizeVisualTestingInput(raw: Record<string, unknown>, screenshotRef
 }
 
 function getPlannerConfig(): PlannerConfig {
+  const defaultApprovalKeywords = [
+    "payment",
+    "pay",
+    "card",
+    "credential",
+    "password",
+    "delete",
+    "remove",
+    "transfer",
+    "wire",
+    "bank",
+    "purchase",
+    "submit order",
+  ];
+  const approvalKeywords = parseKeywordList(process.env.UI_NAVIGATOR_APPROVAL_KEYWORDS, defaultApprovalKeywords);
+  const sandboxPolicyMode = parseSandboxPolicyMode(process.env.UI_NAVIGATOR_SANDBOX_POLICY_MODE);
+  const sandboxMainSessionIds = parseKeywordList(process.env.UI_NAVIGATOR_SANDBOX_MAIN_SESSION_IDS, [
+    "main",
+    "primary",
+    "default",
+  ]);
+  const sandboxAllowedActionTypes = parseActionTypeList(
+    process.env.UI_NAVIGATOR_SANDBOX_ALLOWED_ACTIONS,
+    ["navigate", "click", "type", "scroll", "wait", "verify"],
+  );
+  const sandboxBlockedApprovalCategories = parseKeywordList(
+    process.env.UI_NAVIGATOR_SANDBOX_BLOCKED_CATEGORIES,
+    ["destructive_operation"],
+  );
+
   return {
     apiKey:
       toNullableString(process.env.UI_NAVIGATOR_GEMINI_API_KEY) ?? toNullableString(process.env.GEMINI_API_KEY),
@@ -256,26 +342,21 @@ function getPlannerConfig(): PlannerConfig {
     executorRetryBackoffMs: parsePositiveInt(process.env.UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS, 300),
     plannerEnabled: process.env.UI_NAVIGATOR_USE_GEMINI_PLANNER !== "false",
     maxStepsDefault: parsePositiveInt(process.env.UI_NAVIGATOR_MAX_STEPS, 8),
-    approvalKeywords: parseKeywordList(process.env.UI_NAVIGATOR_APPROVAL_KEYWORDS, [
-      "payment",
-      "pay",
-      "card",
-      "credential",
-      "password",
-      "delete",
-      "remove",
-      "transfer",
-      "wire",
-      "bank",
-      "purchase",
-      "submit order",
-    ]),
+    approvalKeywords,
     executorMode: parseExecutorMode(process.env.UI_NAVIGATOR_EXECUTOR_MODE),
     executorUrl: toNullableString(process.env.UI_NAVIGATOR_EXECUTOR_URL),
     loopDetectionEnabled: process.env.UI_NAVIGATOR_LOOP_DETECTION_ENABLED !== "false",
     loopWindowSize: parsePositiveInt(process.env.UI_NAVIGATOR_LOOP_WINDOW_SIZE, 8),
     loopRepeatThreshold: parsePositiveInt(process.env.UI_NAVIGATOR_LOOP_REPEAT_THRESHOLD, 3),
     loopSimilarityThreshold: parseFloatInRange(process.env.UI_NAVIGATOR_LOOP_SIMILARITY_THRESHOLD, 0.85, 0.5, 1),
+    sandboxPolicyMode,
+    sandboxMainSessionIds,
+    sandboxMaxSteps: parsePositiveInt(process.env.UI_NAVIGATOR_SANDBOX_MAX_STEPS, 4),
+    sandboxAllowedActionTypes,
+    sandboxBlockedApprovalCategories,
+    sandboxForcedExecutorMode: process.env.UI_NAVIGATOR_SANDBOX_FORCE_EXECUTOR_MODE
+      ? parseExecutorMode(process.env.UI_NAVIGATOR_SANDBOX_FORCE_EXECUTOR_MODE)
+      : null,
   };
 }
 
@@ -299,6 +380,19 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
     }
   }
 
+  const sandboxPolicyModeRaw = toNonEmptyString(raw.sandboxPolicyMode, "").toLowerCase();
+  const sandboxPolicyMode: UiTaskInput["sandboxPolicyMode"] =
+    sandboxPolicyModeRaw === "all"
+      ? "all"
+      : sandboxPolicyModeRaw === "non-main" || sandboxPolicyModeRaw === "non_main"
+        ? "non-main"
+        : sandboxPolicyModeRaw === "off"
+          ? "off"
+          : null;
+  const sessionRoleRaw = toNonEmptyString(raw.sessionRole, "").toLowerCase();
+  const sessionRole: UiTaskInput["sessionRole"] =
+    sessionRoleRaw === "main" ? "main" : sessionRoleRaw === "secondary" ? "secondary" : null;
+
   return {
     goal:
       toNonEmptyString(raw.goal, "") ||
@@ -321,6 +415,8 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
         : null,
     approvalReason: toNullableString(raw.approvalReason),
     approvalId: toNullableString(raw.approvalId),
+    sandboxPolicyMode,
+    sessionRole,
     visualTesting: normalizeVisualTestingInput(raw, screenshotRef),
   };
 }
@@ -328,6 +424,86 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
 function extractSensitiveSignals(text: string, keywords: string[]): string[] {
   const normalized = text.toLowerCase();
   return keywords.filter((keyword) => normalized.includes(keyword));
+}
+
+function classifySessionRole(requestSessionId: string, input: UiTaskInput, config: PlannerConfig): "main" | "non_main" {
+  if (input.sessionRole === "main") {
+    return "main";
+  }
+  if (input.sessionRole === "secondary") {
+    return "non_main";
+  }
+  const normalizedSessionId = requestSessionId.trim().toLowerCase();
+  if (config.sandboxMainSessionIds.includes(normalizedSessionId)) {
+    return "main";
+  }
+  return "non_main";
+}
+
+function resolveSandboxPolicyContext(params: {
+  requestSessionId: string;
+  input: UiTaskInput;
+  config: PlannerConfig;
+  approvalCategories: string[];
+}): SandboxPolicyContext {
+  const configuredMode = params.config.sandboxPolicyMode;
+  const effectiveMode = params.input.sandboxPolicyMode ?? configuredMode;
+  const sessionClass = classifySessionRole(params.requestSessionId, params.input, params.config);
+
+  if (effectiveMode === "off") {
+    return {
+      configuredMode,
+      effectiveMode,
+      active: false,
+      reason: "mode_off",
+      sessionClass,
+      maxStepsLimit: params.input.maxSteps,
+      baseExecutorMode: params.config.executorMode,
+      enforcedExecutorMode: params.config.executorMode,
+      allowedActionTypes: params.config.sandboxAllowedActionTypes,
+      blockedApprovalCategories: params.config.sandboxBlockedApprovalCategories,
+      blockedCategories: [],
+    };
+  }
+
+  const active = effectiveMode === "all" || (effectiveMode === "non-main" && sessionClass === "non_main");
+  const reason: SandboxPolicyContext["reason"] =
+    effectiveMode === "all"
+      ? "all_sessions"
+      : active
+        ? "non_main_session"
+        : "main_session";
+  const blockedCategories = active
+    ? params.approvalCategories.filter((item) => params.config.sandboxBlockedApprovalCategories.includes(item))
+    : [];
+
+  return {
+    configuredMode,
+    effectiveMode,
+    active,
+    reason,
+    sessionClass,
+    maxStepsLimit: active ? Math.max(1, Math.min(params.input.maxSteps, params.config.sandboxMaxSteps)) : params.input.maxSteps,
+    baseExecutorMode: params.config.executorMode,
+    enforcedExecutorMode: active
+      ? params.config.sandboxForcedExecutorMode ?? "simulated"
+      : params.config.executorMode,
+    allowedActionTypes: params.config.sandboxAllowedActionTypes,
+    blockedApprovalCategories: params.config.sandboxBlockedApprovalCategories,
+    blockedCategories,
+  };
+}
+
+function summarizeBlockedSandboxActions(actions: UiAction[], allowed: UiAction["type"][]): Array<{
+  type: UiAction["type"];
+  target: string;
+}> {
+  const allowedSet = new Set<UiAction["type"]>(allowed);
+  const blocked = actions.filter((action) => !allowedSet.has(action.type));
+  return blocked.slice(0, 12).map((action) => ({
+    type: action.type,
+    target: action.target,
+  }));
 }
 
 function makeAction(params: {
@@ -1659,6 +1835,22 @@ function toNormalizedError(error: unknown, traceId: string): NormalizedError {
   };
 }
 
+function buildSandboxPolicyPayload(context: SandboxPolicyContext): Record<string, unknown> {
+  return {
+    configuredMode: context.configuredMode,
+    effectiveMode: context.effectiveMode,
+    active: context.active,
+    reason: context.reason,
+    sessionClass: context.sessionClass,
+    maxStepsLimit: context.maxStepsLimit,
+    baseExecutorMode: context.baseExecutorMode,
+    enforcedExecutorMode: context.enforcedExecutorMode,
+    allowedActionTypes: context.allowedActionTypes,
+    blockedApprovalCategories: context.blockedApprovalCategories,
+    blockedCategories: context.blockedCategories,
+  };
+}
+
 export async function runUiNavigatorAgent(
   request: OrchestratorRequest,
 ): Promise<OrchestratorResponse> {
@@ -1670,6 +1862,14 @@ export async function runUiNavigatorAgent(
 
   try {
     const input = normalizeUiTaskInput(request.payload.input, config);
+    const sensitiveSignals = extractSensitiveSignals(input.goal, config.approvalKeywords);
+    const approvalCategories = buildApprovalCategories(sensitiveSignals);
+    const sandboxPolicy = resolveSandboxPolicyContext({
+      requestSessionId: request.sessionId,
+      input,
+      config,
+      approvalCategories,
+    });
 
     if (input.approvalDecision === "rejected") {
       return createEnvelope({
@@ -1693,13 +1893,13 @@ export async function runUiNavigatorAgent(
               decision: "rejected",
               reason: input.approvalReason ?? "Rejected by user",
             },
+            sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             capabilityProfile: capabilities.profile,
           },
         },
       });
     }
 
-    const sensitiveSignals = extractSensitiveSignals(input.goal, config.approvalKeywords);
     const approvalRequired = sensitiveSignals.length > 0 && !input.approvalConfirmed;
 
     const planResult = await buildActionPlan({
@@ -1707,7 +1907,7 @@ export async function runUiNavigatorAgent(
       config,
       capabilities,
     });
-    const actions = limitActions(planResult.actions, input.maxSteps);
+    const actions = limitActions(planResult.actions, sandboxPolicy.maxStepsLimit);
     const plannedLoop = detectActionLoop(actions, config);
     if (plannedLoop.detected) {
       return createEnvelope({
@@ -1743,6 +1943,7 @@ export async function runUiNavigatorAgent(
               provider: planResult.plannerProvider,
               model: planResult.plannerModel,
             },
+            sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             capabilityProfile: capabilities.profile,
             actionPlan: actions,
             execution: {
@@ -1750,6 +1951,84 @@ export async function runUiNavigatorAgent(
               retries: 0,
               trace: [],
               verifyLoopEnabled: true,
+              sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+            },
+          },
+        },
+      });
+    }
+
+    if (sandboxPolicy.active && input.approvalConfirmed && sandboxPolicy.blockedCategories.length > 0) {
+      return createEnvelope({
+        userId: request.userId,
+        sessionId: request.sessionId,
+        runId,
+        type: "orchestrator.response",
+        source: "ui-navigator-agent",
+        payload: {
+          route: "ui-navigator-agent",
+          status: "failed",
+          traceId,
+          output: {
+            message: "UI task is blocked by sandbox policy for this session.",
+            handledIntent: request.payload.intent,
+            traceId,
+            latencyMs: Date.now() - startedAt,
+            approvalRequired: false,
+            approvalCategories: sandboxPolicy.blockedCategories,
+            planner: {
+              provider: planResult.plannerProvider,
+              model: planResult.plannerModel,
+            },
+            sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+            capabilityProfile: capabilities.profile,
+            actionPlan: actions,
+            execution: {
+              finalStatus: "failed_sandbox_policy",
+              retries: 0,
+              trace: [],
+              verifyLoopEnabled: true,
+              sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+            },
+          },
+        },
+      });
+    }
+
+    const blockedSandboxActions = sandboxPolicy.active
+      ? summarizeBlockedSandboxActions(actions, sandboxPolicy.allowedActionTypes)
+      : [];
+    if (blockedSandboxActions.length > 0) {
+      return createEnvelope({
+        userId: request.userId,
+        sessionId: request.sessionId,
+        runId,
+        type: "orchestrator.response",
+        source: "ui-navigator-agent",
+        payload: {
+          route: "ui-navigator-agent",
+          status: "failed",
+          traceId,
+          output: {
+            message: "UI action plan includes actions not allowed by sandbox policy.",
+            handledIntent: request.payload.intent,
+            traceId,
+            latencyMs: Date.now() - startedAt,
+            approvalRequired: false,
+            blockedActions: blockedSandboxActions,
+            planner: {
+              provider: planResult.plannerProvider,
+              model: planResult.plannerModel,
+            },
+            sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+            capabilityProfile: capabilities.profile,
+            actionPlan: actions,
+            execution: {
+              finalStatus: "failed_sandbox_policy",
+              retries: 0,
+              trace: [],
+              verifyLoopEnabled: true,
+              sandbox: buildSandboxPolicyPayload(sandboxPolicy),
             },
           },
         },
@@ -1785,7 +2064,7 @@ export async function runUiNavigatorAgent(
             latencyMs: Date.now() - startedAt,
             approvalRequired: true,
             approvalId,
-            approvalCategories: buildApprovalCategories(sensitiveSignals),
+            approvalCategories,
             sensitiveSignals,
             resumeRequestTemplate: {
               intent: "ui_task",
@@ -1809,12 +2088,14 @@ export async function runUiNavigatorAgent(
               provider: planResult.plannerProvider,
               model: planResult.plannerModel,
             },
+            sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             capabilityProfile: capabilities.profile,
             actionPlan: actions,
             execution: {
               finalStatus: "needs_approval",
               retries: 0,
               trace: blockedTrace,
+              sandbox: buildSandboxPolicyPayload(sandboxPolicy),
             },
           },
         },
@@ -1822,8 +2103,15 @@ export async function runUiNavigatorAgent(
     }
 
     const screenshotSeed = input.screenshotRef ?? `ui://trace/${runId}`;
+    const executionConfig: PlannerConfig =
+      sandboxPolicy.active && sandboxPolicy.enforcedExecutorMode !== config.executorMode
+        ? {
+            ...config,
+            executorMode: sandboxPolicy.enforcedExecutorMode,
+          }
+        : config;
     const execution = await executeActionPlan({
-      config,
+      config: executionConfig,
       actions,
       screenshotSeed,
       input,
@@ -1880,6 +2168,7 @@ export async function runUiNavigatorAgent(
             provider: planResult.plannerProvider,
             model: planResult.plannerModel,
           },
+          sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
           capabilityProfile: capabilities.profile,
           actionPlan: actions,
           execution: {
@@ -1887,6 +2176,7 @@ export async function runUiNavigatorAgent(
             retries: execution.retries,
             trace: execution.trace,
             verifyLoopEnabled: true,
+            sandbox: buildSandboxPolicyPayload(sandboxPolicy),
             loopProtection: {
               detected: runtimeLoop.detected,
               source: runtimeLoop.source,

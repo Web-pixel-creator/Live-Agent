@@ -523,6 +523,11 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
    - Baseline implemented: role-gated recovery actions (`cancel_task`, `retry_task`, `failover drain/warmup`) with operator action audit trail visible in console summary.
    - Next step: add full UI audit timeline and richer incident automation controls.
 
+5. Sandbox policy modes for UI execution
+   - Baseline implemented: `off/non-main/all` policy modes with request override support for controlled test scenarios.
+   - Baseline implemented: sandbox restrictions for max-steps caps, action-type allowlists, blocked high-risk categories, and optional forced executor mode.
+   - Baseline implemented: sandbox policy metadata is emitted in UI agent output and validated by demo policy (`sandboxPolicyValidated`).
+
 ### Explicitly Out of Baseline Scope
 
 1. Replacing ADK orchestration with a non-ADK runtime core.
