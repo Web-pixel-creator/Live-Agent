@@ -54,6 +54,7 @@ Task lifecycle:
 2. `task.progress`
 3. `task.completed`
 4. `task.failed`
+5. `gateway.request_replayed` (duplicate orchestrator request replayed from gateway cache)
 
 Live bridge output/metrics:
 
@@ -85,6 +86,7 @@ Common codes:
 3. `GATEWAY_USER_MISMATCH`
 4. `GATEWAY_DRAINING`
 5. `GATEWAY_ORCHESTRATOR_FAILURE`
+6. `GATEWAY_SERIAL_LANE_FAILURE`
 
 Retry guidance:
 
@@ -98,3 +100,4 @@ Retry guidance:
 1. Client must keep stable `sessionId` + `userId` per socket.
 2. `runId` is operation-level and may change per request.
 3. `traceId` from `gateway.error` should be logged by frontend and operator tooling for diagnostics.
+4. Client SHOULD send stable request identity (`runId` and/or `payload.idempotencyKey`) so gateway/orchestrator can replay duplicates safely.

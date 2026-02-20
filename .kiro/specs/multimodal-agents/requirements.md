@@ -212,6 +212,7 @@
 4. THE System SHALL detect connection drops and reconnect automatically within 5 seconds.
 5. THE System SHALL apply bounded buffering and drop stale frames/chunks to preserve real-time behavior.
 6. THE System SHALL react to Live_API `interrupted` events without waiting for full turn completion.
+7. THE Gateway SHALL process websocket messages in a per-session serial lane to prevent race conditions between concurrent client events.
 
 ### Requirement 13: Security and Privacy
 
@@ -241,6 +242,7 @@
 6. THE System SHALL return consistent error formats with trace identifiers.
 7. THE System SHALL propagate correlation context (`userId`, `sessionId`, `runId`) across FE/Gateway/Orchestrator events and reject websocket requests with binding mismatches.
 8. THE System SHALL support optimistic session updates with `expectedVersion` and idempotent mutation replay via `idempotencyKey`, returning `409` on version conflicts.
+9. THE System SHALL support idempotent replay for duplicate orchestrator requests (`runId`/`idempotencyKey`) across Gateway and Orchestrator runtime boundaries.
 
 ### Requirement 15: Monitoring and Observability
 

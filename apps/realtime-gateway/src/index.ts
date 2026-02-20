@@ -34,6 +34,7 @@ const taskRegistry = new TaskRegistry({
 const metrics = new RollingMetrics({
   maxSamplesPerBucket: Number(process.env.GATEWAY_METRICS_MAX_SAMPLES ?? 2000),
 });
+const gatewayOrchestratorReplayTtlMs = parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_DEDUPE_TTL_MS, 120_000);
 
 function parsePositiveInt(raw: string | undefined, fallback: number): number {
   if (!raw) {
@@ -118,6 +119,27 @@ function extractRequestTaskId(request: OrchestratorRequest): string | null {
     return null;
   }
   return toNonEmptyString(request.payload.task.taskId);
+}
+
+function sanitizeIdempotencyToken(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_.:-]/g, "_").slice(0, 128);
+}
+
+function extractGatewayRequestIdempotencyKey(request: OrchestratorRequest): string {
+  const payload = request.payload as unknown;
+  if (!isObject(payload)) {
+    return sanitizeIdempotencyToken(request.runId ?? request.id);
+  }
+  const fromPayload =
+    toNonEmptyString(payload.idempotencyKey) ??
+    (isObject(payload.meta) ? toNonEmptyString(payload.meta.idempotencyKey) : null) ??
+    (isObject(payload.input) ? toNonEmptyString(payload.input.idempotencyKey) : null);
+  const fallback = fromPayload ?? toNonEmptyString(request.runId) ?? request.id;
+  return sanitizeIdempotencyToken(fallback);
+}
+
+function cloneOrchestratorResponse(response: OrchestratorResponse): OrchestratorResponse {
+  return JSON.parse(JSON.stringify(response)) as OrchestratorResponse;
 }
 
 function extractResponseRoute(event: EventEnvelope): string | null {
@@ -628,10 +650,32 @@ wss.on("connection", (ws) => {
     },
     currentRunId,
   );
+  type ReplayCacheEntry = {
+    response: OrchestratorResponse;
+    cachedAtMs: number;
+    expiresAtMs: number;
+  };
+  const requestReplayCache = new Map<string, ReplayCacheEntry>();
+  let messageLane: Promise<void> = Promise.resolve();
 
-  ws.on("message", async (raw) => {
+  const cleanupReplayCache = (nowMs = Date.now()): void => {
+    for (const [key, entry] of requestReplayCache.entries()) {
+      if (entry.expiresAtMs <= nowMs) {
+        requestReplayCache.delete(key);
+      }
+    }
+  };
+
+  const buildReplayKey = (request: OrchestratorRequest): string => {
+    const runId = toNonEmptyString(request.runId) ?? request.id;
+    const intent = extractRequestIntent(request) ?? "unknown";
+    const idempotencyKey = extractGatewayRequestIdempotencyKey(request);
+    return `${request.sessionId}:${runId}:${intent}:${idempotencyKey}`;
+  };
+
+  const processMessage = async (rawText: string): Promise<void> => {
     const messageStartedAt = Date.now();
-    const parsedEnvelope = safeParseEnvelope(raw.toString("utf8"));
+    const parsedEnvelope = safeParseEnvelope(rawText);
     if (!parsedEnvelope) {
       metrics.record("ws.message.invalid_envelope", Date.now() - messageStartedAt, false);
       emitGatewayError({
@@ -702,8 +746,63 @@ wss.on("connection", (ws) => {
         userId: binding.userId,
       };
       const shouldTrackTask = parsed.type === "orchestrator.request";
+      const replayKey = shouldTrackTask ? buildReplayKey(rawRequest) : null;
       let trackedTask: TaskRecord | null = null;
       let request = rawRequest;
+
+      if (replayKey) {
+        cleanupReplayCache();
+        const cached = requestReplayCache.get(replayKey);
+        if (cached && cached.expiresAtMs > Date.now()) {
+          const replayedResponse = cloneOrchestratorResponse(cached.response);
+          emitGatewayEvent({
+            sessionId: rawRequest.sessionId,
+            runId: rawRequest.runId ?? undefined,
+            type: "gateway.request_replayed",
+            payload: {
+              replayKey,
+              cachedAt: new Date(cached.cachedAtMs).toISOString(),
+              ageMs: Date.now() - cached.cachedAtMs,
+            },
+          });
+
+          const replayStatus = extractResponseStatus(replayedResponse);
+          const replayRoute = extractResponseRoute(replayedResponse);
+          if (replayStatus === "completed") {
+            emitSessionState(
+              "orchestrator_completed",
+              {
+                route: replayRoute,
+                replayed: true,
+              },
+              replayedResponse.runId,
+            );
+          } else if (replayStatus === "failed") {
+            emitSessionState(
+              "orchestrator_failed",
+              {
+                route: replayRoute,
+                replayed: true,
+              },
+              replayedResponse.runId,
+            );
+          } else {
+            emitSessionState(
+              "orchestrator_pending_approval",
+              {
+                route: replayRoute,
+                responseStatus: replayStatus,
+                replayed: true,
+              },
+              replayedResponse.runId,
+            );
+          }
+          sendEvent(replayedResponse);
+          metrics.record("ws.message.orchestrator.replayed", Date.now() - messageStartedAt, true);
+          metrics.record("ws.message.orchestrator", Date.now() - messageStartedAt, true);
+          return;
+        }
+      }
 
       if (shouldTrackTask) {
         trackedTask = taskRegistry.startTask({
@@ -859,6 +958,16 @@ wss.on("connection", (ws) => {
         }
       }
 
+      if (replayKey) {
+        const nowMs = Date.now();
+        requestReplayCache.set(replayKey, {
+          response: cloneOrchestratorResponse(response),
+          cachedAtMs: nowMs,
+          expiresAtMs: nowMs + gatewayOrchestratorReplayTtlMs,
+        });
+        cleanupReplayCache(nowMs);
+      }
+
       sendEvent(response);
       metrics.record("ws.message.orchestrator", Date.now() - messageStartedAt, true);
     } catch (error) {
@@ -900,6 +1009,23 @@ wss.on("connection", (ws) => {
         },
       });
     }
+  };
+
+  ws.on("message", (raw) => {
+    const rawText = raw.toString("utf8");
+    messageLane = messageLane
+      .then(async () => {
+        await processMessage(rawText);
+      })
+      .catch((error) => {
+        metrics.record("ws.message.serial_lane", 0, false);
+        emitGatewayError({
+          sessionId: currentSessionId,
+          runId: currentRunId,
+          code: "GATEWAY_SERIAL_LANE_FAILURE",
+          message: error instanceof Error ? error.message : "Unhandled gateway message lane failure",
+        });
+      });
   });
 
   ws.on("close", () => {

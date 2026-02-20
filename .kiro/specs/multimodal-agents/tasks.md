@@ -103,6 +103,7 @@
 | T-215 | Targeted unit-pack for bridge/orchestrator/contracts | P0 | 0.5 week | T-211, T-212, T-213, T-214 | R14, R15 | Критические ветки покрыты unit-тестами, e2e остаётся primary release gate |
 | T-216 | Session optimistic versioning + idempotency for REST mutations | P0 | 0.25 week | T-014, T-213 | R14, R15 | `PATCH /v1/sessions/{id}` поддерживает `expectedVersion` + `idempotencyKey`, возвращает `409` на конфликт и детерминированно обрабатывает повтор |
 | T-217 | Live Agent context compaction runtime (summary + recent turns) | P0 | 0.25 week | T-211, T-215 | R1, R10, R15 | При превышении token budget выполняется compaction c сохранением summary/recent turns и диагностикой в output context |
+| T-218 | Gateway/Orchestrator idempotent request dedupe + session serial lane | P0 | 0.25 week | T-211, T-215, T-216 | R12, R14, R15 | Gateway обрабатывает WS-сообщения последовательно по session lane, duplicate `orchestrator.request` переигрываются из TTL cache, orchestrator дедуплицирует in-flight/completed по `runId/idempotencyKey` |
 
 ### M3 Detailed Implementation Checklist (T-207..T-210)
 
@@ -146,7 +147,7 @@
 
 ## Current Quality Sprint Path
 
-1. T-211 -> T-212 -> T-213 -> T-214 -> T-215 -> T-216 -> T-217
+1. T-211 -> T-212 -> T-213 -> T-214 -> T-215 -> T-216 -> T-217 -> T-218
 
 ## Suggested Solo Execution (2-week MVP)
 

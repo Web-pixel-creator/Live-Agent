@@ -65,3 +65,61 @@ test("orchestrator returns approval-required flow for sensitive ui_task", async 
   assert.equal(output.approvalRequired, true);
   assert.ok(typeof output.approvalId === "string");
 });
+
+test("orchestrator replays cached response for duplicate request", async () => {
+  process.env.FIRESTORE_ENABLED = "false";
+  process.env.GEMINI_API_KEY = "";
+  process.env.ORCHESTRATOR_IDEMPOTENCY_TTL_MS = "120000";
+
+  const runId = `unit-run-idempotent-${Date.now()}`;
+  const request = createEnvelope({
+    userId: "unit-user",
+    sessionId: "unit-session-idempotent",
+    runId,
+    type: "orchestrator.request",
+    source: "frontend",
+    payload: {
+      intent: "conversation",
+      input: {
+        text: "hello idempotency",
+      },
+      idempotencyKey: `idem-${runId}`,
+    },
+  }) as OrchestratorRequest;
+
+  const first = await orchestrate(request);
+  const second = await orchestrate(request);
+
+  assert.equal(second.id, first.id);
+  const firstOutput = asObject(first.payload.output);
+  const secondOutput = asObject(second.payload.output);
+  assert.equal(secondOutput.traceId, firstOutput.traceId);
+});
+
+test("orchestrator deduplicates in-flight duplicates by request key", async () => {
+  process.env.FIRESTORE_ENABLED = "false";
+  process.env.GEMINI_API_KEY = "";
+  process.env.ORCHESTRATOR_IDEMPOTENCY_TTL_MS = "120000";
+
+  const runId = `unit-run-idempotent-inflight-${Date.now()}`;
+  const request = createEnvelope({
+    userId: "unit-user",
+    sessionId: "unit-session-idempotent-inflight",
+    runId,
+    type: "orchestrator.request",
+    source: "frontend",
+    payload: {
+      intent: "conversation",
+      input: {
+        text: "hello inflight idempotency",
+      },
+      idempotencyKey: `idem-${runId}`,
+    },
+  }) as OrchestratorRequest;
+
+  const [first, second] = await Promise.all([orchestrate(request), orchestrate(request)]);
+  assert.equal(second.id, first.id);
+  const firstOutput = asObject(first.payload.output);
+  const secondOutput = asObject(second.payload.output);
+  assert.equal(secondOutput.traceId, firstOutput.traceId);
+});

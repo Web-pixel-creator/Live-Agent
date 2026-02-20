@@ -94,6 +94,8 @@ Key behaviors:
 3. Стандартизированные envelope-сообщения для frontend.
 4. Сквозной correlation context (`userId/sessionId/runId`) и websocket mismatch-protection (`sessionId`, `userId`).
 5. Явные runtime transitions для UI через `session.state` events (`session_bound`, `orchestrator_dispatching`, `orchestrator_completed/failed`).
+6. Пер-сессионная serial-lane обработка входящих websocket сообщений для исключения race-condition между live/orchestrator событиями.
+7. Idempotent replay для duplicate `orchestrator.request` в gateway (TTL cache) и orchestrator (in-flight + completed dedupe).
 
 ### 3. ADK Orchestrator
 
@@ -636,3 +638,4 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 | WS protocol discipline + targeted unit pack | R14, R15 | T-214, T-215 |
 | Session optimistic versioning + idempotent mutation replay | R14, R15 | T-216 |
 | Live-agent context compaction runtime | R1, R10, R15 | T-217 |
+| Gateway/Orchestrator idempotent replay + serial lane hardening | R12, R14, R15 | T-218 |

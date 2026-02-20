@@ -6,6 +6,26 @@ import { runUiNavigatorAgent } from "@mla/ui-navigator-agent";
 import { routeIntent } from "./router.js";
 import { persistEvent } from "./services/firestore.js";
 
+type CachedOrchestrationResult = {
+  response: OrchestratorResponse;
+  expiresAtMs: number;
+};
+
+const inFlightOrchestration = new Map<string, Promise<OrchestratorResponse>>();
+const completedOrchestration = new Map<string, CachedOrchestrationResult>();
+const ORCHESTRATOR_IDEMPOTENCY_TTL_MS = parsePositiveInt(process.env.ORCHESTRATOR_IDEMPOTENCY_TTL_MS, 120_000);
+
+function parsePositiveInt(raw: string | undefined, fallback: number): number {
+  if (!raw) {
+    return fallback;
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return Math.floor(parsed);
+}
+
 function ensureRunId(request: OrchestratorRequest): OrchestratorRequest {
   if (request.runId) {
     return request;
@@ -18,6 +38,50 @@ function ensureRunId(request: OrchestratorRequest): OrchestratorRequest {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function toNonEmptyString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function sanitizeIdempotencyToken(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_.:-]/g, "_").slice(0, 128);
+}
+
+function extractRequestIdempotencyKey(request: OrchestratorRequest): string {
+  const payloadCandidate = request.payload as unknown;
+  const payload = isRecord(payloadCandidate) ? payloadCandidate : null;
+  const keyFromPayload = payload
+    ? toNonEmptyString(payload.idempotencyKey) ??
+      (isRecord(payload.meta) ? toNonEmptyString(payload.meta.idempotencyKey) : null) ??
+      (isRecord(payload.input) ? toNonEmptyString(payload.input.idempotencyKey) : null)
+    : null;
+  const fallback =
+    keyFromPayload ?? toNonEmptyString(request.runId) ?? toNonEmptyString(request.id) ?? randomUUID();
+  return sanitizeIdempotencyToken(fallback);
+}
+
+function buildOrchestrationKey(request: OrchestratorRequest): string {
+  const runId = toNonEmptyString(request.runId) ?? request.id;
+  const intent = request.payload.intent;
+  const key = extractRequestIdempotencyKey(request);
+  return `${request.sessionId}:${runId}:${intent}:${key}`;
+}
+
+function cleanupOrchestrationCache(nowMs = Date.now()): void {
+  for (const [key, entry] of completedOrchestration.entries()) {
+    if (entry.expiresAtMs <= nowMs) {
+      completedOrchestration.delete(key);
+    }
+  }
+}
+
+function cloneResponse(response: OrchestratorResponse): OrchestratorResponse {
+  return JSON.parse(JSON.stringify(response)) as OrchestratorResponse;
 }
 
 type TaskContext = {
@@ -162,7 +226,7 @@ function mergeDelegationResult(
   return merged;
 }
 
-export async function orchestrate(request: OrchestratorRequest): Promise<OrchestratorResponse> {
+async function orchestrateCore(request: OrchestratorRequest): Promise<OrchestratorResponse> {
   const normalizedRequest = ensureRunId(request);
 
   await persistEvent(normalizedRequest);
@@ -224,4 +288,38 @@ export async function orchestrate(request: OrchestratorRequest): Promise<Orchest
 
   await persistEvent(response);
   return response;
+}
+
+export async function orchestrate(request: OrchestratorRequest): Promise<OrchestratorResponse> {
+  const normalizedRequest = ensureRunId(request);
+  const key = buildOrchestrationKey(normalizedRequest);
+  const nowMs = Date.now();
+  cleanupOrchestrationCache(nowMs);
+
+  const cached = completedOrchestration.get(key);
+  if (cached && cached.expiresAtMs > nowMs) {
+    return cloneResponse(cached.response);
+  }
+
+  const inFlight = inFlightOrchestration.get(key);
+  if (inFlight) {
+    const response = await inFlight;
+    return cloneResponse(response);
+  }
+
+  const execution = orchestrateCore(normalizedRequest)
+    .then((response) => {
+      completedOrchestration.set(key, {
+        response: cloneResponse(response),
+        expiresAtMs: Date.now() + ORCHESTRATOR_IDEMPOTENCY_TTL_MS,
+      });
+      return response;
+    })
+    .finally(() => {
+      inFlightOrchestration.delete(key);
+    });
+
+  inFlightOrchestration.set(key, execution);
+  const response = await execution;
+  return cloneResponse(response);
 }
