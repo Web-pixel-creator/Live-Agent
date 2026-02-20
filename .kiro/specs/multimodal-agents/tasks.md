@@ -87,7 +87,7 @@
 | ID | Task | Priority | Estimate | Dependencies | Related Requirements | Definition of Done |
 | --- | --- | --- | --- | --- | --- | --- |
 | T-201 | Добавить profile-aware model failover (cooldowns, billing disable windows) | P1 | 1 week | T-005, T-009 | R10, R12, R15 | Live bridge классифицирует причины сбоев (transient/rate_limit/auth/billing), применяет profile/model cooldown+disable windows и прозрачно переключает route с диагностикой failover events |
-| T-202 | Добавить skills runtime (workspace/bundled/managed) и skill precedence | P1 | 1 week | T-004 | R10, R16 | Навыки загружаются с управляемыми приоритетами и конфиг-гейтингом |
+| T-202 | Добавить skills runtime (workspace/bundled/managed) и skill precedence | P1 | 1 week | T-004 | R10, R16 | Реализован runtime loader для `workspace/bundled/managed` c precedence+policy gating (scope/allowlist/denylist), а активные skill directives инжектируются в prompt flows агентов с диагностикой в output |
 | T-203 | Добавить skill security scanner и install-time trust gates | P1 | 0.5 week | T-202 | R13, R15 | Третьи навыки проходят scan/checklist до активации |
 | T-204 | Реализовать sandbox policy modes для non-main/high-risk sessions | P1 | 1 week | T-106 | R13, R16 | UI Navigator поддерживает режимы `off/non-main/all`, применяет policy-ограничения (allowed actions, max steps, forced executor, blocked categories), а e2e KPI валидирует `sandboxPolicyValidated=true` |
 | T-205 | Расширить execution traces и audit dashboard | P1 | 0.5 week | T-009, T-109 | R15, R16 | `/v1/operator/summary` содержит trace rollup (runs/events, tool steps, screenshot refs, approval links), UI operator console отображает его, а e2e policy валидирует `operatorTraceCoverageValidated=true` |

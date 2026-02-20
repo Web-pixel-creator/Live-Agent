@@ -6,6 +6,11 @@ import {
   type ReasoningCapabilityAdapter,
 } from "@mla/capabilities";
 import {
+  getSkillsRuntimeSnapshot,
+  renderSkillsPrompt,
+  toSkillsRuntimeSummary,
+} from "@mla/skills";
+import {
   createEnvelope,
   type NormalizedError,
   type OrchestratorIntent,
@@ -753,6 +758,7 @@ async function translateWithGemini(params: {
   targetLanguage: string;
   config: GeminiConfig;
   capabilities: LiveAgentCapabilitySet;
+  skillsPrompt: string | null;
 }): Promise<TranslationResult | null> {
   if (!params.config.apiKey) {
     return null;
@@ -761,10 +767,13 @@ async function translateWithGemini(params: {
   const prompt = [
     "Translate the user text.",
     "Return strict JSON with keys: translatedText, sourceLanguage, targetLanguage, confidence.",
+    params.skillsPrompt ? `Skill directives:\n${params.skillsPrompt}` : null,
     `Source language hint: ${params.sourceLanguage}`,
     `Target language: ${params.targetLanguage}`,
     `User text: ${params.text}`,
-  ].join("\n");
+  ]
+    .filter((item): item is string => Boolean(item))
+    .join("\n");
 
   const raw = await params.capabilities.reasoning.generateText({
     model: params.config.translationModel,
@@ -806,6 +815,7 @@ async function generateConversationReply(params: {
   config: GeminiConfig;
   capabilities: LiveAgentCapabilitySet;
   contextPrompt?: string | null;
+  skillsPrompt: string | null;
 }): Promise<{ text: string; provider: string; model: string }> {
   const inputText = params.inputText;
   const fallback = {
@@ -828,6 +838,7 @@ async function generateConversationReply(params: {
     "You are a concise real-time voice assistant.",
     "Respond in at most 2 short sentences.",
     "Keep tone neutral-professional.",
+    params.skillsPrompt ? `Skill directives:\n${params.skillsPrompt}` : null,
     params.contextPrompt ? `Session context:\n${params.contextPrompt}` : null,
     `User message: ${inputText || "(empty)"}`,
   ]
@@ -888,6 +899,7 @@ async function handleConversation(params: {
   input: NormalizedLiveInput;
   config: GeminiConfig;
   capabilities: LiveAgentCapabilitySet;
+  skillsPrompt: string | null;
 }): Promise<Record<string, unknown>> {
   const { input } = params;
   const contextConfig = getConversationContextConfig(params.config);
@@ -940,6 +952,7 @@ async function handleConversation(params: {
     config: params.config,
     capabilities: params.capabilities,
     contextPrompt: buildConversationContextPrompt(sessionContext),
+    skillsPrompt: params.skillsPrompt,
   });
   addConversationTurn({
     state: sessionContext,
@@ -974,6 +987,7 @@ async function handleTranslation(params: {
   input: NormalizedLiveInput;
   config: GeminiConfig;
   capabilities: LiveAgentCapabilitySet;
+  skillsPrompt: string | null;
 }): Promise<Record<string, unknown>> {
   const { input } = params;
   const sourceLanguage = detectLanguage(input.text);
@@ -997,6 +1011,7 @@ async function handleTranslation(params: {
       targetLanguage,
       config: params.config,
       capabilities: params.capabilities,
+      skillsPrompt: params.skillsPrompt,
     })) ?? fallbackTranslate(input.text, sourceLanguage, targetLanguage);
 
   return {
@@ -1082,14 +1097,16 @@ async function handleByIntent(params: {
   input: NormalizedLiveInput;
   config: GeminiConfig;
   capabilities: LiveAgentCapabilitySet;
+  skillsPrompt: string | null;
 }): Promise<Record<string, unknown>> {
-  const { intent, input, config, capabilities, sessionId } = params;
+  const { intent, input, config, capabilities, sessionId, skillsPrompt } = params;
   switch (intent) {
     case "translation":
       return handleTranslation({
         input,
         config,
         capabilities,
+        skillsPrompt,
       });
     case "negotiation":
       return handleNegotiation(input);
@@ -1100,6 +1117,7 @@ async function handleByIntent(params: {
         input,
         config,
         capabilities,
+        skillsPrompt,
       });
   }
 }
@@ -1110,6 +1128,13 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
   const startedAt = Date.now();
   const config = getGeminiConfig();
   const capabilities = createLiveAgentCapabilitySet(config);
+  const skillsRuntime = await getSkillsRuntimeSnapshot({
+    agentId: "live-agent",
+  });
+  const skillsPrompt = renderSkillsPrompt(skillsRuntime, {
+    maxSkills: 4,
+    maxChars: 1200,
+  });
 
   try {
     const intent = request.payload.intent;
@@ -1120,6 +1145,7 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
       input,
       config,
       capabilities,
+      skillsPrompt,
     });
 
     return createEnvelope({
@@ -1136,6 +1162,7 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
           ...result,
           handledIntent: intent,
           capabilityProfile: capabilities.profile,
+          skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
           traceId,
           latencyMs: Date.now() - startedAt,
         },
@@ -1158,6 +1185,7 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
         output: {
           handledIntent: request.payload.intent,
           capabilityProfile: capabilities.profile,
+          skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
           traceId,
           latencyMs: Date.now() - startedAt,
         },

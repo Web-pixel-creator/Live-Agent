@@ -65,6 +65,7 @@ Open `http://localhost:3000`.
 - UI Navigator executor modes: `UI_NAVIGATOR_EXECUTOR_MODE=simulated|playwright_preview|remote_http`, optional `UI_NAVIGATOR_EXECUTOR_URL`, and timeout/retry controls `UI_NAVIGATOR_EXECUTOR_TIMEOUT_MS`, `UI_NAVIGATOR_EXECUTOR_MAX_RETRIES`, `UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS`.
 - UI Navigator loop guard tuning: `UI_NAVIGATOR_LOOP_DETECTION_ENABLED`, `UI_NAVIGATOR_LOOP_WINDOW_SIZE`, `UI_NAVIGATOR_LOOP_REPEAT_THRESHOLD`, `UI_NAVIGATOR_LOOP_SIMILARITY_THRESHOLD`.
 - UI Navigator sandbox policy tuning: `UI_NAVIGATOR_SANDBOX_POLICY_MODE=off|non-main|all`, `UI_NAVIGATOR_SANDBOX_MAIN_SESSION_IDS`, `UI_NAVIGATOR_SANDBOX_MAX_STEPS`, `UI_NAVIGATOR_SANDBOX_ALLOWED_ACTIONS`, `UI_NAVIGATOR_SANDBOX_BLOCKED_CATEGORIES`, `UI_NAVIGATOR_SANDBOX_FORCE_EXECUTOR_MODE`.
+- Skills runtime tuning: `SKILLS_RUNTIME_ENABLED`, `SKILLS_SOURCE_PRECEDENCE=workspace,bundled,managed`, `SKILLS_ALLOWED_SOURCES`, `SKILLS_WORKSPACE_DIR`, `SKILLS_BUNDLED_DIR`, `SKILLS_MANAGED_INDEX_JSON`, `SKILLS_ENABLED_IDS`, `SKILLS_DISABLED_IDS`.
 - Remote UI executor service: run `npm run dev:ui-executor`; endpoint `/execute` is used when `UI_NAVIGATOR_EXECUTOR_MODE=remote_http`.
 - Approval SLA tuning in API backend: `APPROVAL_SOFT_TIMEOUT_MS`, `APPROVAL_HARD_TIMEOUT_MS`, `APPROVAL_SWEEP_LIMIT`.
 - Local-first profile for offline iteration: set `LOCAL_FIRST_PROFILE=true` and `APP_ENV=dev` (guardrail blocks local-first in `staging/prod`). Profile details: `docs/local-first-profile.md`.

@@ -11,6 +11,11 @@ import {
   type VideoCapabilityAdapter,
 } from "@mla/capabilities";
 import {
+  getSkillsRuntimeSnapshot,
+  renderSkillsPrompt,
+  toSkillsRuntimeSummary,
+} from "@mla/skills";
+import {
   createEnvelope,
   type NormalizedError,
   type OrchestratorRequest,
@@ -548,6 +553,7 @@ async function generateStoryPlan(
   fallback: FallbackScenario,
   config: GeminiConfig,
   capabilities: StorytellerCapabilitySet,
+  skillsPrompt: string | null,
 ): Promise<StoryPlan> {
   const cacheKey = buildStoryCacheKey("story.plan", {
     prompt: input.prompt,
@@ -583,12 +589,15 @@ async function generateStoryPlan(
     "You are a cinematic interactive storyteller.",
     "Create a story plan as strict JSON.",
     "Fields: title, logline, segments (array of strings), decisionPoints (array of strings).",
+    skillsPrompt ? `Skill directives:\n${skillsPrompt}` : null,
     `Audience: ${input.audience}`,
     `Style: ${input.style}`,
     `Language: ${input.language}`,
     `Segment count: ${input.segmentCount}`,
     `Prompt: ${input.prompt}`,
-  ].join("\n");
+  ]
+    .filter((item): item is string => Boolean(item))
+    .join("\n");
 
   const raw = await capabilities.reasoning.generateText({
     model: config.plannerModel,
@@ -638,8 +647,9 @@ async function extendStoryBranch(params: {
   fallback: FallbackScenario;
   config: GeminiConfig;
   capabilities: StorytellerCapabilitySet;
+  skillsPrompt: string | null;
 }): Promise<{ segments: string[]; branchProvider: "gemini" | "fallback"; branchModel: string }> {
-  const { input, currentSegments, fallback, config, capabilities } = params;
+  const { input, currentSegments, fallback, config, capabilities, skillsPrompt } = params;
   if (!input.branchChoice) {
     return {
       segments: currentSegments,
@@ -681,11 +691,14 @@ async function extendStoryBranch(params: {
 
   const prompt = [
     "Continue the interactive story in one concise segment.",
+    skillsPrompt ? `Skill directives:\n${skillsPrompt}` : null,
     `Language: ${input.language}`,
     `Branch choice: ${input.branchChoice}`,
     `Existing segments: ${JSON.stringify(currentSegments)}`,
     "Return plain text only, 1-2 sentences.",
-  ].join("\n");
+  ]
+    .filter((item): item is string => Boolean(item))
+    .join("\n");
 
   const raw = await capabilities.reasoning.generateText({
     model: config.branchModel,
@@ -1092,6 +1105,13 @@ export async function runStorytellerAgent(
   const config = getGeminiConfig();
   let effectiveMediaMode: "fallback" | "simulated" = config.mediaMode;
   let capabilities = createStorytellerCapabilitySet(config, effectiveMediaMode);
+  const skillsRuntime = await getSkillsRuntimeSnapshot({
+    agentId: "storyteller-agent",
+  });
+  const skillsPrompt = renderSkillsPrompt(skillsRuntime, {
+    maxSkills: 4,
+    maxChars: 1200,
+  });
 
   try {
     const input = normalizeStoryInput(request.payload.input);
@@ -1105,13 +1125,14 @@ export async function runStorytellerAgent(
     const fallbackPack = await loadFallbackPack();
     const fallbackScenario = selectFallbackScenario(fallbackPack, input);
 
-    const plan = await generateStoryPlan(input, fallbackScenario, config, capabilities);
+    const plan = await generateStoryPlan(input, fallbackScenario, config, capabilities, skillsPrompt);
     const branch = await extendStoryBranch({
       input,
       currentSegments: plan.segments,
       fallback: fallbackScenario,
       config,
       capabilities,
+      skillsPrompt,
     });
 
     const finalSegments = branch.segments;
@@ -1252,6 +1273,7 @@ export async function runStorytellerAgent(
             mediaWorkerRuntime: mediaQueue.runtime,
             cache: cacheSnapshot,
             capabilityProfile: capabilities.profile,
+            skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             fallbackPack: {
               version: fallbackPack.version,
               scenarioId: fallbackScenario.id,
@@ -1278,6 +1300,7 @@ export async function runStorytellerAgent(
           generation: {
             cache: getStoryCacheSnapshot(),
             capabilityProfile: capabilities.profile,
+            skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
           },
           traceId,
           latencyMs: Date.now() - startedAt,

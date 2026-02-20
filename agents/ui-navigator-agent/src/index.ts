@@ -6,6 +6,11 @@ import {
   type ReasoningCapabilityAdapter,
 } from "@mla/capabilities";
 import {
+  getSkillsRuntimeSnapshot,
+  renderSkillsPrompt,
+  toSkillsRuntimeSummary,
+} from "@mla/skills";
+import {
   createEnvelope,
   type NormalizedError,
   type OrchestratorRequest,
@@ -756,12 +761,13 @@ async function buildActionPlan(params: {
   input: UiTaskInput;
   config: PlannerConfig;
   capabilities: UiNavigatorCapabilitySet;
+  skillsPrompt: string | null;
 }): Promise<{
   actions: UiAction[];
   plannerProvider: "gemini" | "fallback";
   plannerModel: string;
 }> {
-  const { input, config, capabilities } = params;
+  const { input, config, capabilities, skillsPrompt } = params;
   const fallbackPlan = buildRuleBasedPlan(input);
   if (!config.apiKey || !config.plannerEnabled) {
     return {
@@ -776,13 +782,16 @@ async function buildActionPlan(params: {
     "Return strict JSON with an `actions` array.",
     "Each action item fields: type, target, coordinates(optional object x,y), text(optional), rationale.",
     "Allowed types: navigate, click, type, scroll, hotkey, wait, verify.",
+    skillsPrompt ? `Skill directives:\n${skillsPrompt}` : null,
     `Goal: ${input.goal}`,
     `URL: ${input.url ?? "n/a"}`,
     `ScreenshotRef: ${input.screenshotRef ?? "n/a"}`,
     `Cursor: ${input.cursor ? `${input.cursor.x},${input.cursor.y}` : "n/a"}`,
     `Form data: ${JSON.stringify(input.formData)}`,
     `Max steps: ${input.maxSteps}`,
-  ].join("\n");
+  ]
+    .filter((item): item is string => Boolean(item))
+    .join("\n");
 
   const raw = await capabilities.reasoning.generateText({
     model: config.plannerModel,
@@ -1694,6 +1703,7 @@ async function buildVisualChecksWithGemini(params: {
   capabilities: UiNavigatorCapabilitySet;
   actualScreenshotRefs: string[];
   execution: ExecutionResult;
+  skillsPrompt: string | null;
 }): Promise<VisualTestingCheck[] | null> {
   if (!params.config.apiKey || !params.config.plannerEnabled) {
     return null;
@@ -1704,13 +1714,16 @@ async function buildVisualChecksWithGemini(params: {
     "Given screenshot references and execution trace, produce strict JSON.",
     "Schema: {\"checks\":[{\"assertion\":\"string\",\"category\":\"layout|content|interaction\",\"status\":\"ok|regression\",\"severity\":\"low|medium|high\",\"observed\":\"string\",\"evidenceRefs\":[\"string\"]}]}",
     "Only output JSON.",
+    params.skillsPrompt ? `Skill directives:\n${params.skillsPrompt}` : null,
     `Baseline screenshot ref: ${params.input.visualTesting.baselineScreenshotRef ?? "n/a"}`,
     `Actual screenshot refs: ${JSON.stringify(params.actualScreenshotRefs.slice(0, 8))}`,
     `Expected assertions: ${JSON.stringify(params.input.visualTesting.expectedAssertions)}`,
     `Regression hint: ${params.input.visualTesting.regressionHint ?? "none"}`,
     `Execution finalStatus: ${params.execution.finalStatus}, retries: ${params.execution.retries}`,
     `Trace summary:\n${summarizeTraceForPrompt(params.execution.trace)}`,
-  ].join("\n");
+  ]
+    .filter((item): item is string => Boolean(item))
+    .join("\n");
 
   const raw = await params.capabilities.reasoning.generateText({
     model: params.config.plannerModel,
@@ -1764,6 +1777,7 @@ async function buildVisualTestingReport(params: {
   screenshotSeed: string;
   capabilities: UiNavigatorCapabilitySet;
   config: PlannerConfig;
+  skillsPrompt: string | null;
 }): Promise<VisualTestingReport> {
   if (!params.input.visualTesting.enabled) {
     return buildDefaultVisualTestingReport();
@@ -1782,6 +1796,7 @@ async function buildVisualTestingReport(params: {
     capabilities: params.capabilities,
     actualScreenshotRefs,
     execution: params.execution,
+    skillsPrompt: params.skillsPrompt,
   });
 
   const checks = geminiChecks ?? heuristicChecks;
@@ -1859,6 +1874,13 @@ export async function runUiNavigatorAgent(
   const startedAt = Date.now();
   const config = getPlannerConfig();
   const capabilities = createUiNavigatorCapabilitySet(config);
+  const skillsRuntime = await getSkillsRuntimeSnapshot({
+    agentId: "ui-navigator-agent",
+  });
+  const skillsPrompt = renderSkillsPrompt(skillsRuntime, {
+    maxSkills: 4,
+    maxChars: 1200,
+  });
 
   try {
     const input = normalizeUiTaskInput(request.payload.input, config);
@@ -1895,6 +1917,7 @@ export async function runUiNavigatorAgent(
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             capabilityProfile: capabilities.profile,
+            skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
           },
         },
       });
@@ -1906,6 +1929,7 @@ export async function runUiNavigatorAgent(
       input,
       config,
       capabilities,
+      skillsPrompt,
     });
     const actions = limitActions(planResult.actions, sandboxPolicy.maxStepsLimit);
     const plannedLoop = detectActionLoop(actions, config);
@@ -1945,6 +1969,7 @@ export async function runUiNavigatorAgent(
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             capabilityProfile: capabilities.profile,
+            skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             actionPlan: actions,
             execution: {
               finalStatus: "failed_loop",
@@ -1982,6 +2007,7 @@ export async function runUiNavigatorAgent(
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             capabilityProfile: capabilities.profile,
+            skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             actionPlan: actions,
             execution: {
               finalStatus: "failed_sandbox_policy",
@@ -2022,6 +2048,7 @@ export async function runUiNavigatorAgent(
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             capabilityProfile: capabilities.profile,
+            skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             actionPlan: actions,
             execution: {
               finalStatus: "failed_sandbox_policy",
@@ -2090,6 +2117,7 @@ export async function runUiNavigatorAgent(
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             capabilityProfile: capabilities.profile,
+            skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             actionPlan: actions,
             execution: {
               finalStatus: "needs_approval",
@@ -2125,6 +2153,7 @@ export async function runUiNavigatorAgent(
       screenshotSeed,
       capabilities,
       config,
+      skillsPrompt,
     });
     const overallStatus =
       finalStatus === "completed" && visualTesting.status !== "failed" ? "completed" : "failed";
@@ -2170,6 +2199,7 @@ export async function runUiNavigatorAgent(
           },
           sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
           capabilityProfile: capabilities.profile,
+          skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
           actionPlan: actions,
           execution: {
             finalStatus,
@@ -2214,6 +2244,7 @@ export async function runUiNavigatorAgent(
         output: {
           handledIntent: request.payload.intent,
           capabilityProfile: capabilities.profile,
+          skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
           traceId,
           latencyMs: Date.now() - startedAt,
         },
