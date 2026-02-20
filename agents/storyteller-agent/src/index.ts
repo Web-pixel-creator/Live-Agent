@@ -845,6 +845,7 @@ export async function runStorytellerAgent(
     const message = `Story ready: "${plan.title}" with ${timeline.length} segments (${allAssets.length} media assets).`;
 
     return createEnvelope({
+      userId: request.userId,
       sessionId: request.sessionId,
       runId,
       type: "orchestrator.response",
@@ -902,6 +903,7 @@ export async function runStorytellerAgent(
   } catch (error) {
     const normalizedError = toNormalizedError(error, traceId);
     return createEnvelope({
+      userId: request.userId,
       sessionId: request.sessionId,
       runId,
       type: "orchestrator.response",

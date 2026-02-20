@@ -57,6 +57,7 @@ async function persistTaskStatus(params: {
 }): Promise<void> {
   const route = params.response?.payload.route ?? null;
   const event = createEnvelope({
+    userId: params.request.userId,
     sessionId: params.request.sessionId,
     runId: params.request.runId,
     type: "task.status",
@@ -183,6 +184,7 @@ export async function orchestrate(request: OrchestratorRequest): Promise<Orchest
     const delegatedRequest: OrchestratorRequest = {
       ...normalizedRequest,
       id: randomUUID(),
+      userId: normalizedRequest.userId,
       runId: normalizedRequest.runId,
       source: "orchestrator",
       ts: new Date().toISOString(),

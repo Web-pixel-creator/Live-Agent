@@ -231,6 +231,7 @@
 4. THE System SHALL version APIs and maintain backward compatibility policy.
 5. THE System SHALL enforce authentication, authorization, and rate limiting on APIs.
 6. THE System SHALL return consistent error formats with trace identifiers.
+7. THE System SHALL propagate correlation context (`userId`, `sessionId`, `runId`) across FE/Gateway/Orchestrator events and reject websocket requests with binding mismatches.
 
 ### Requirement 15: Monitoring and Observability
 

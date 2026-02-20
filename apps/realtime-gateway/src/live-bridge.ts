@@ -199,6 +199,8 @@ export class LiveApiBridge {
   private connectPromise: Promise<void> | null = null;
   private readonly config: GatewayConfig;
   private readonly sessionId: string;
+  private userId: string;
+  private activeRunId: string | null;
   private readonly send: SendFn;
   private setupSent = false;
   private pendingInterruptAtMs: number | null = null;
@@ -208,10 +210,27 @@ export class LiveApiBridge {
   private currentTurnStartedAtMs: number | null = null;
   private currentTurnTextParts: string[] = [];
 
-  constructor(params: { config: GatewayConfig; sessionId: string; send: SendFn }) {
+  constructor(params: {
+    config: GatewayConfig;
+    sessionId: string;
+    userId: string;
+    runId: string;
+    send: SendFn;
+  }) {
     this.config = params.config;
     this.sessionId = params.sessionId;
+    this.userId = params.userId;
+    this.activeRunId = params.runId;
     this.send = params.send;
+  }
+
+  updateContext(params: { userId?: string; runId?: string | null }): void {
+    if (typeof params.userId === "string" && params.userId.trim().length > 0) {
+      this.userId = params.userId.trim();
+    }
+    if (typeof params.runId === "string" && params.runId.trim().length > 0) {
+      this.activeRunId = params.runId.trim();
+    }
   }
 
   isConfigured(): boolean {
@@ -221,7 +240,9 @@ export class LiveApiBridge {
   private emit(type: string, payload: unknown): void {
     this.send(
       createEnvelope({
+        userId: this.userId,
         sessionId: this.sessionId,
+        runId: this.activeRunId ?? undefined,
         type,
         source: "gateway",
         payload,
@@ -645,6 +666,11 @@ export class LiveApiBridge {
   }
 
   async forwardFromClient(event: EventEnvelope): Promise<void> {
+    this.updateContext({
+      userId: event.userId,
+      runId: event.runId ?? null,
+    });
+
     if (!this.isConfigured()) {
       this.emit("live.bridge.unavailable", {
         error: "Live API bridge is disabled or missing LIVE_API_WS_URL",

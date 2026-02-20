@@ -32,6 +32,9 @@ function assertEnvelope(event, messagePrefix = "Invalid envelope") {
   if (!hasStringField(event, "id")) {
     throw new Error(`${messagePrefix}: missing id`);
   }
+  if (event.userId !== undefined && !hasStringField(event, "userId")) {
+    throw new Error(`${messagePrefix}: invalid userId`);
+  }
   if (!hasStringField(event, "sessionId")) {
     throw new Error(`${messagePrefix}: missing sessionId`);
   }
@@ -62,6 +65,7 @@ const args = parseArgs(process.argv.slice(2));
 const wsUrl = args.url ?? "ws://localhost:8080/realtime";
 const sessionId = args.sessionId ?? `ws-interrupt-${randomUUID()}`;
 const runId = args.runId ?? `ws-interrupt-run-${randomUUID()}`;
+const userId = args.userId ?? "demo-user";
 const timeoutMs = Number(args.timeoutMs ?? 12000);
 const reason = args.reason ?? "demo_interrupt_checkpoint";
 
@@ -71,6 +75,7 @@ if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
 
 const requestEnvelope = {
   id: randomUUID(),
+  userId,
   sessionId,
   runId,
   type: "live.interrupt",
@@ -124,11 +129,20 @@ function finish() {
 
   const interruptEventType = interruptEnvelope.type;
   const interruptPayload = isObject(interruptEnvelope.payload) ? interruptEnvelope.payload : {};
+  const interruptUserId = hasStringField(interruptEnvelope, "userId") ? interruptEnvelope.userId : null;
+  if (interruptUserId !== userId) {
+    fail("Interrupt event userId mismatch", {
+      expectedUserId: userId,
+      interruptUserId,
+      interruptEnvelope,
+    });
+  }
   const result = {
     ok: true,
     wsUrl,
     sessionId,
     runId,
+    userId,
     connectedType: connectedEnvelope.type,
     liveApiEnabled:
       isObject(connectedEnvelope.payload) && typeof connectedEnvelope.payload.liveApiEnabled === "boolean"

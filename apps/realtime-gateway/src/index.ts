@@ -59,6 +59,24 @@ function toNonEmptyString(value: unknown): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
+function extractEnvelopeUserId(event: EventEnvelope): string | null {
+  const direct = toNonEmptyString((event as { userId?: unknown }).userId);
+  if (direct) {
+    return direct;
+  }
+  if (!isObject(event.payload)) {
+    return null;
+  }
+  const payloadUserId = toNonEmptyString(event.payload.userId);
+  if (payloadUserId) {
+    return payloadUserId;
+  }
+  if (isObject(event.payload.meta)) {
+    return toNonEmptyString(event.payload.meta.userId);
+  }
+  return null;
+}
+
 function extractRequestIntent(request: OrchestratorRequest): string | null {
   if (!isObject(request.payload)) {
     return null;
@@ -96,6 +114,16 @@ function extractApprovalRequired(event: EventEnvelope): boolean {
   }
   return event.payload.output.approvalRequired === true;
 }
+
+type SessionPhase =
+  | "socket_connected"
+  | "session_bound"
+  | "live_forwarded"
+  | "orchestrator_dispatching"
+  | "orchestrator_pending_approval"
+  | "orchestrator_completed"
+  | "orchestrator_failed"
+  | "text_fallback";
 
 function attachTaskToRequest(
   request: OrchestratorRequest,
@@ -313,7 +341,9 @@ wss.on("connection", (ws) => {
     ws.send(
       JSON.stringify(
         createEnvelope({
+          userId: "system",
           sessionId: "system",
+          runId: `conn-${randomUUID()}`,
           type: "gateway.error",
           source: "gateway",
           payload: {
@@ -329,36 +359,162 @@ wss.on("connection", (ws) => {
   }
   metrics.record("ws.connection", 0, true);
 
+  const connectionId = randomUUID();
   let currentSessionId = "system";
+  let currentUserId = "anonymous";
+  let currentRunId = `conn-${connectionId}`;
+  let sessionPhase: SessionPhase = "socket_connected";
   let liveBridge: LiveApiBridge | null = null;
+  let sessionBinding:
+    | {
+        sessionId: string;
+        userId: string;
+        establishedAt: string;
+      }
+    | null = null;
 
   const sendEvent = (event: EventEnvelope): void => {
     ws.send(JSON.stringify(event));
   };
 
-  const ensureLiveBridge = (sessionId: string): LiveApiBridge => {
+  const emitGatewayEvent = (params: {
+    type: string;
+    payload: unknown;
+    sessionId?: string;
+    runId?: string;
+    userId?: string;
+  }): void => {
+    sendEvent(
+      createEnvelope({
+        userId: params.userId ?? currentUserId,
+        sessionId: params.sessionId ?? currentSessionId,
+        runId: params.runId ?? currentRunId,
+        type: params.type,
+        source: "gateway",
+        payload: params.payload,
+      }),
+    );
+  };
+
+  const emitSessionState = (
+    nextState: SessionPhase,
+    details: Record<string, unknown> = {},
+    runId: string | undefined = currentRunId,
+  ): void => {
+    const previousState = sessionPhase;
+    sessionPhase = nextState;
+    emitGatewayEvent({
+      type: "session.state",
+      runId,
+      payload: {
+        previousState,
+        state: nextState,
+        connectionId,
+        ...details,
+      },
+    });
+  };
+
+  const establishBinding = (parsed: EventEnvelope): { runId: string; userId: string } | null => {
+    const messageRunId = toNonEmptyString(parsed.runId) ?? parsed.id;
+    const messageUserId = extractEnvelopeUserId(parsed) ?? currentUserId;
+
+    if (!sessionBinding) {
+      const establishedAt = new Date().toISOString();
+      sessionBinding = {
+        sessionId: parsed.sessionId,
+        userId: messageUserId,
+        establishedAt,
+      };
+      currentSessionId = parsed.sessionId;
+      currentUserId = messageUserId;
+      currentRunId = messageRunId;
+      emitSessionState(
+        "session_bound",
+        {
+          sessionId: currentSessionId,
+          userId: currentUserId,
+          establishedAt,
+        },
+        currentRunId,
+      );
+      return {
+        runId: currentRunId,
+        userId: currentUserId,
+      };
+    }
+
+    if (parsed.sessionId !== sessionBinding.sessionId) {
+      emitGatewayEvent({
+        sessionId: sessionBinding.sessionId,
+        runId: messageRunId,
+        type: "gateway.error",
+        payload: {
+          code: "GATEWAY_SESSION_MISMATCH",
+          message: "sessionId mismatch for bound websocket connection",
+          expectedSessionId: sessionBinding.sessionId,
+          receivedSessionId: parsed.sessionId,
+        },
+      });
+      return null;
+    }
+
+    const providedUserId = extractEnvelopeUserId(parsed);
+    if (providedUserId && providedUserId !== sessionBinding.userId) {
+      emitGatewayEvent({
+        sessionId: sessionBinding.sessionId,
+        runId: messageRunId,
+        type: "gateway.error",
+        payload: {
+          code: "GATEWAY_USER_MISMATCH",
+          message: "userId mismatch for bound websocket connection",
+          expectedUserId: sessionBinding.userId,
+          receivedUserId: providedUserId,
+        },
+      });
+      return null;
+    }
+
+    currentSessionId = sessionBinding.sessionId;
+    currentUserId = sessionBinding.userId;
+    currentRunId = messageRunId;
+    return {
+      runId: currentRunId,
+      userId: currentUserId,
+    };
+  };
+
+  const ensureLiveBridge = (sessionId: string, userId: string, runId: string): LiveApiBridge => {
     if (!liveBridge || currentSessionId !== sessionId) {
       liveBridge?.close();
       liveBridge = new LiveApiBridge({
         config,
         sessionId,
+        userId,
+        runId,
         send: sendEvent,
       });
+    } else {
+      liveBridge.updateContext({ userId, runId });
     }
     return liveBridge;
   };
 
-  sendEvent(
-    createEnvelope({
-      sessionId: currentSessionId,
-      type: "gateway.connected",
-      source: "gateway",
-      payload: {
-        ok: true,
-        liveApiEnabled: config.liveApiEnabled,
-        runtime: runtimeState(),
-      },
-    }),
+  emitGatewayEvent({
+    type: "gateway.connected",
+    payload: {
+      ok: true,
+      liveApiEnabled: config.liveApiEnabled,
+      runtime: runtimeState(),
+      connectionId,
+    },
+  });
+  emitSessionState(
+    "socket_connected",
+    {
+      connectedAt: new Date().toISOString(),
+    },
+    currentRunId,
   );
 
   ws.on("message", async (raw) => {
@@ -367,41 +523,38 @@ wss.on("connection", (ws) => {
     if (!parsedEnvelope) {
       metrics.record("ws.message.invalid_envelope", Date.now() - messageStartedAt, false);
       const traceId = randomUUID();
-      sendEvent(
-        createEnvelope({
-          sessionId: "unknown",
-          runId: traceId,
-          type: "gateway.error",
-          source: "gateway",
-          payload: {
-            code: "GATEWAY_INVALID_ENVELOPE",
-            message: "Invalid event envelope",
-            traceId,
-          },
-        }),
-      );
+      emitGatewayEvent({
+        sessionId: "unknown",
+        runId: traceId,
+        type: "gateway.error",
+        payload: {
+          code: "GATEWAY_INVALID_ENVELOPE",
+          message: "Invalid event envelope",
+          traceId,
+        },
+      });
       return;
     }
 
     const parsed: EventEnvelope = parsedEnvelope;
-
-    currentSessionId = parsed.sessionId;
+    const binding = establishBinding(parsed);
+    if (!binding) {
+      metrics.record("ws.message.binding_error", Date.now() - messageStartedAt, false);
+      return;
+    }
 
     if (draining) {
       metrics.record("ws.message.draining", Date.now() - messageStartedAt, false);
-      sendEvent(
-        createEnvelope({
-          sessionId: parsed.sessionId,
-          runId: parsed.runId,
-          type: "gateway.error",
-          source: "gateway",
-          payload: {
-            code: "GATEWAY_DRAINING",
-            message: "gateway is draining and does not accept new requests",
-            runtime: runtimeState(),
-          },
-        }),
-      );
+      emitGatewayEvent({
+        sessionId: parsed.sessionId,
+        runId: binding.runId,
+        type: "gateway.error",
+        payload: {
+          code: "GATEWAY_DRAINING",
+          message: "gateway is draining and does not accept new requests",
+          runtime: runtimeState(),
+        },
+      });
       return;
     }
 
@@ -410,15 +563,39 @@ wss.on("connection", (ws) => {
 
     try {
       if (parsed.type.startsWith("live.")) {
-        const bridge = ensureLiveBridge(parsed.sessionId);
-        await bridge.forwardFromClient(parsed);
+        const liveEvent = {
+          ...parsed,
+          userId: binding.userId,
+          runId: binding.runId,
+        } as EventEnvelope;
+        const bridge = ensureLiveBridge(parsed.sessionId, binding.userId, binding.runId);
+        if (!bridge.isConfigured()) {
+          emitSessionState(
+            "text_fallback",
+            {
+              reason: "live.bridge.unavailable",
+            },
+            binding.runId,
+          );
+        }
+        await bridge.forwardFromClient(liveEvent);
+        emitSessionState(
+          "live_forwarded",
+          {
+            eventType: parsed.type,
+          },
+          binding.runId,
+        );
         metrics.record("ws.message.live", Date.now() - messageStartedAt, true);
         return;
       }
 
-      const rawRequest: OrchestratorRequest = parsed.runId
-        ? (parsed as OrchestratorRequest)
-        : ({ ...parsed, runId: parsed.id } as OrchestratorRequest);
+      const normalizedRunId = toNonEmptyString(parsed.runId) ?? parsed.id;
+      const rawRequest: OrchestratorRequest = {
+        ...(parsed as OrchestratorRequest),
+        runId: normalizedRunId,
+        userId: binding.userId,
+      };
       const shouldTrackTask = parsed.type === "orchestrator.request";
       let trackedTask: TaskRecord | null = null;
       let request = rawRequest;
@@ -434,15 +611,12 @@ wss.on("connection", (ws) => {
         trackedTaskOnError = trackedTask;
         request = attachTaskToRequest(rawRequest, trackedTask);
 
-        sendEvent(
-          createEnvelope({
-            sessionId: trackedTask.sessionId,
-            runId: trackedTask.runId ?? undefined,
-            type: "task.started",
-            source: "gateway",
-            payload: trackedTask,
-          }),
-        );
+        emitGatewayEvent({
+          sessionId: trackedTask.sessionId,
+          runId: trackedTask.runId ?? undefined,
+          type: "task.started",
+          payload: trackedTask,
+        });
 
         const runningTask = taskRegistry.updateTask(trackedTask.taskId, {
           status: "running",
@@ -452,24 +626,40 @@ wss.on("connection", (ws) => {
         if (runningTask) {
           trackedTask = runningTask;
           trackedTaskOnError = runningTask;
-          sendEvent(
-            createEnvelope({
-              sessionId: runningTask.sessionId,
-              runId: runningTask.runId ?? undefined,
-              type: "task.progress",
-              source: "gateway",
-              payload: runningTask,
-            }),
-          );
+          emitGatewayEvent({
+            sessionId: runningTask.sessionId,
+            runId: runningTask.runId ?? undefined,
+            type: "task.progress",
+            payload: runningTask,
+          });
         }
       }
 
+      emitSessionState(
+        "orchestrator_dispatching",
+        {
+          intent: extractRequestIntent(rawRequest),
+        },
+        rawRequest.runId,
+      );
       orchestratorCallStartedAt = Date.now();
       let response = await sendToOrchestrator(config.orchestratorUrl, request, {
         timeoutMs: config.orchestratorTimeoutMs,
         maxRetries: config.orchestratorMaxRetries,
         retryBackoffMs: config.orchestratorRetryBackoffMs,
       });
+      if (!toNonEmptyString((response as { userId?: unknown }).userId)) {
+        response = {
+          ...response,
+          userId: binding.userId,
+        };
+      }
+      if (!toNonEmptyString(response.runId)) {
+        response = {
+          ...response,
+          runId: rawRequest.runId,
+        };
+      }
       metrics.record(
         "ws.orchestrator_request",
         Date.now() - (orchestratorCallStartedAt ?? messageStartedAt),
@@ -491,16 +681,20 @@ wss.on("connection", (ws) => {
           if (completedTask) {
             trackedTask = completedTask;
             trackedTaskOnError = null;
-            sendEvent(
-              createEnvelope({
-                sessionId: completedTask.sessionId,
-                runId: completedTask.runId ?? undefined,
-                type: "task.completed",
-                source: "gateway",
-                payload: completedTask,
-              }),
-            );
+            emitGatewayEvent({
+              sessionId: completedTask.sessionId,
+              runId: completedTask.runId ?? undefined,
+              type: "task.completed",
+              payload: completedTask,
+            });
           }
+          emitSessionState(
+            "orchestrator_completed",
+            {
+              route: responseRoute,
+            },
+            response.runId,
+          );
         } else if (responseStatus === "failed") {
           const failedTask = taskRegistry.updateTask(trackedTask.taskId, {
             status: "failed",
@@ -512,16 +706,20 @@ wss.on("connection", (ws) => {
           if (failedTask) {
             trackedTask = failedTask;
             trackedTaskOnError = null;
-            sendEvent(
-              createEnvelope({
-                sessionId: failedTask.sessionId,
-                runId: failedTask.runId ?? undefined,
-                type: "task.failed",
-                source: "gateway",
-                payload: failedTask,
-              }),
-            );
+            emitGatewayEvent({
+              sessionId: failedTask.sessionId,
+              runId: failedTask.runId ?? undefined,
+              type: "task.failed",
+              payload: failedTask,
+            });
           }
+          emitSessionState(
+            "orchestrator_failed",
+            {
+              route: responseRoute,
+            },
+            response.runId,
+          );
         } else {
           const pendingStatus = extractApprovalRequired(response) ? "pending_approval" : "running";
           const pendingTask = taskRegistry.updateTask(trackedTask.taskId, {
@@ -534,16 +732,21 @@ wss.on("connection", (ws) => {
           if (pendingTask) {
             trackedTask = pendingTask;
             trackedTaskOnError = pendingTask;
-            sendEvent(
-              createEnvelope({
-                sessionId: pendingTask.sessionId,
-                runId: pendingTask.runId ?? undefined,
-                type: "task.progress",
-                source: "gateway",
-                payload: pendingTask,
-              }),
-            );
+            emitGatewayEvent({
+              sessionId: pendingTask.sessionId,
+              runId: pendingTask.runId ?? undefined,
+              type: "task.progress",
+              payload: pendingTask,
+            });
           }
+          emitSessionState(
+            "orchestrator_pending_approval",
+            {
+              route: responseRoute,
+              responseStatus,
+            },
+            response.runId,
+          );
         }
 
         if (trackedTask) {
@@ -566,32 +769,33 @@ wss.on("connection", (ws) => {
           error: error instanceof Error ? error.message : "gateway orchestration failure",
         });
         if (failedTask) {
-          sendEvent(
-            createEnvelope({
-              sessionId: failedTask.sessionId,
-              runId: failedTask.runId ?? undefined,
-              type: "task.failed",
-              source: "gateway",
-              payload: failedTask,
-            }),
-          );
+          emitGatewayEvent({
+            sessionId: failedTask.sessionId,
+            runId: failedTask.runId ?? undefined,
+            type: "task.failed",
+            payload: failedTask,
+          });
         }
       }
 
-      const traceId = randomUUID();
-      sendEvent(
-        createEnvelope({
-          sessionId: parsed.sessionId,
-          runId: parsed.runId,
-          type: "gateway.error",
-          source: "gateway",
-          payload: {
-            code: "GATEWAY_ORCHESTRATOR_FAILURE",
-            message: error instanceof Error ? error.message : "Unknown gateway failure",
-            traceId,
-          },
-        }),
+      emitSessionState(
+        "orchestrator_failed",
+        {
+          error: error instanceof Error ? error.message : "Unknown gateway failure",
+        },
+        currentRunId,
       );
+      const traceId = randomUUID();
+      emitGatewayEvent({
+        sessionId: parsed.sessionId,
+        runId: currentRunId,
+        type: "gateway.error",
+        payload: {
+          code: "GATEWAY_ORCHESTRATOR_FAILURE",
+          message: error instanceof Error ? error.message : "Unknown gateway failure",
+          traceId,
+        },
+      });
     }
   });
 

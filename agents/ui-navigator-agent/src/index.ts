@@ -999,6 +999,7 @@ export async function runUiNavigatorAgent(
 
     if (input.approvalDecision === "rejected") {
       return createEnvelope({
+        userId: request.userId,
         sessionId: request.sessionId,
         runId,
         type: "orchestrator.response",
@@ -1047,6 +1048,7 @@ export async function runUiNavigatorAgent(
       }));
 
       return createEnvelope({
+        userId: request.userId,
         sessionId: request.sessionId,
         runId,
         type: "orchestrator.response",
@@ -1103,6 +1105,7 @@ export async function runUiNavigatorAgent(
     const overallStatus = finalStatus === "completed" ? "completed" : "failed";
 
     return createEnvelope({
+      userId: request.userId,
       sessionId: request.sessionId,
       runId,
       type: "orchestrator.response",
@@ -1150,6 +1153,7 @@ export async function runUiNavigatorAgent(
   } catch (error) {
     const normalizedError = toNormalizedError(error, traceId);
     return createEnvelope({
+      userId: request.userId,
       sessionId: request.sessionId,
       runId,
       type: "orchestrator.response",

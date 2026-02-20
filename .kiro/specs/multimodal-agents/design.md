@@ -87,6 +87,8 @@ Key behaviors:
 1. Поддержка stateful session binding (user/session/device).
 2. Таймауты и heartbeat на каждую сессию.
 3. Стандартизированные envelope-сообщения для frontend.
+4. Сквозной correlation context (`userId/sessionId/runId`) и websocket mismatch-protection (`sessionId`, `userId`).
+5. Явные runtime transitions для UI через `session.state` events (`session_bound`, `orchestrator_dispatching`, `orchestrator_completed/failed`).
 
 ### 3. ADK Orchestrator
 
@@ -580,7 +582,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 ### Demo Automation Artifact
 
 1. The repository SHALL include an executable demo smoke script at `scripts/demo-e2e.ps1`.
-2. The script SHALL validate end-to-end demo flows: translation, negotiation, storyteller generation, UI approval reject/approve resume, multi-agent delegation, WebSocket gateway roundtrip via `/realtime`, WebSocket task-progress contract behavior (`task.started` + `task.progress` + `/tasks/active`), WebSocket interruption signal contract behavior (`live.interrupt.requested` or `live.bridge.unavailable`), invalid-envelope error contract behavior (`gateway.error` with traceId), REST contract behavior for invalid approval resume intent (`HTTP 400`), runtime lifecycle endpoint contract checks (`/status`, `/version`, `/drain`, `/warmup`) for gateway/api/orchestrator, runtime observability checks (`/metrics`) for p95/error-rate visibility, and capability adapter profile coverage (`kpi.capabilityAdaptersValidated`).
+2. The script SHALL validate end-to-end demo flows: translation, negotiation, storyteller generation, UI approval reject/approve resume, multi-agent delegation, WebSocket gateway roundtrip via `/realtime`, WebSocket task-progress contract behavior (`task.started` + `task.progress` + `/tasks/active`), WebSocket interruption signal contract behavior (`live.interrupt.requested` or `live.bridge.unavailable`), invalid-envelope error contract behavior (`gateway.error` with traceId), REST contract behavior for invalid approval resume intent (`HTTP 400`), runtime lifecycle endpoint contract checks (`/status`, `/version`, `/drain`, `/warmup`) for gateway/api/orchestrator, runtime observability checks (`/metrics`) for p95/error-rate visibility, websocket correlation/session-binding checks (`userId/sessionId/runId` + `session.state` transitions), and capability adapter profile coverage (`kpi.capabilityAdaptersValidated`).
 3. The script SHALL produce structured reports at `artifacts/demo-e2e/summary.json` and `artifacts/demo-e2e/summary.md` with per-scenario pass/fail and KPI fields.
 4. The script SHALL support local run modes for CI/demo prep (`-SkipBuild`, `-SkipServiceStart`, `-KeepServices`, `-OutputPath`).
 5. The repository SHALL include CI automation (`.github/workflows/demo-e2e.yml`) that executes demo e2e and publishes `summary.json`, `summary.md`, and logs as build artifacts.

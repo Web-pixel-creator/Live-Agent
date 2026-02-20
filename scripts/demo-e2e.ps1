@@ -27,6 +27,7 @@ $ErrorActionPreference = "Stop"
 $script:StartedProcesses = @()
 $script:ServiceStatuses = @()
 $script:ScenarioResults = @()
+$script:DemoUserId = "demo-e2e-user"
 
 $script:ScriptDir = Split-Path -Parent $PSCommandPath
 $script:RepoRoot = (Resolve-Path (Join-Path $script:ScriptDir "..")).Path
@@ -369,11 +370,14 @@ function New-OrchestratorRequest {
     [Parameter(Mandatory = $true)]
     [string]$Intent,
     [Parameter(Mandatory = $true)]
-    [object]$RequestInput
+    [object]$RequestInput,
+    [Parameter(Mandatory = $false)]
+    [string]$UserId = $script:DemoUserId
   )
 
   return [ordered]@{
     id = [Guid]::NewGuid().Guid
+    userId = $UserId
     sessionId = $SessionId
     runId = $RunId
     type = "orchestrator.request"
@@ -508,7 +512,7 @@ try {
   }
 
   $sessionCreateResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/sessions" -Body @{
-    userId = "demo-e2e"
+    userId = $script:DemoUserId
     mode = "multi"
   } -TimeoutSec $RequestTimeoutSec
 
@@ -767,6 +771,8 @@ try {
       $sessionId,
       "--runId",
       $runId,
+      "--userId",
+      $script:DemoUserId,
       "--timeoutMs",
       [string]$timeoutMs
     )
@@ -776,14 +782,22 @@ try {
 
     $responseStatus = [string](Get-FieldValue -Object $result -Path @("responseStatus"))
     $responseRoute = [string](Get-FieldValue -Object $result -Path @("responseRoute"))
+    $contextValidated = [bool](Get-FieldValue -Object $result -Path @("contextValidated"))
+    $sessionStateCount = [int](Get-FieldValue -Object $result -Path @("sessionStateCount"))
     Assert-Condition -Condition ($responseStatus -eq "completed") -Message "WebSocket response status is not completed."
     Assert-Condition -Condition ($responseRoute -eq "live-agent") -Message "WebSocket response route is not live-agent."
+    Assert-Condition -Condition $contextValidated -Message "WebSocket session/run context validation failed."
+    Assert-Condition -Condition ($sessionStateCount -ge 3) -Message "Expected at least 3 session.state transitions."
 
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $result -Path @("runId"))
+      userId = [string](Get-FieldValue -Object $result -Path @("userId"))
       responseStatus = $responseStatus
       responseRoute = $responseRoute
       roundTripMs = [int](Get-FieldValue -Object $result -Path @("roundTripMs"))
+      contextValidated = $contextValidated
+      sessionStateCount = $sessionStateCount
+      sessionStateTransitions = @((Get-FieldValue -Object $result -Path @("sessionStateTransitions")))
       connectedType = [string](Get-FieldValue -Object $result -Path @("connectedType"))
       eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
       translationProvider = [string](Get-FieldValue -Object $result -Path @("translationProvider"))
@@ -804,6 +818,8 @@ try {
       $sessionId,
       "--runId",
       $runId,
+      "--userId",
+      $script:DemoUserId,
       "--timeoutMs",
       [string]$timeoutMs
     )
@@ -845,6 +861,8 @@ try {
       $sessionId,
       "--runId",
       $runId,
+      "--userId",
+      $script:DemoUserId,
       "--timeoutMs",
       [string]$timeoutMs,
       "--reason",
@@ -1127,6 +1145,8 @@ $summary = [ordered]@{
     delegatedRoute = if ($null -ne $delegationData) { $delegationData.delegatedRoute } else { $null }
     gatewayWsRoundTripMs = if ($null -ne $gatewayWsData) { $gatewayWsData.roundTripMs } else { $null }
     gatewayWsResponseStatus = if ($null -ne $gatewayWsData) { $gatewayWsData.responseStatus } else { $null }
+    sessionRunBindingValidated = if ($null -ne $gatewayWsData) { $gatewayWsData.contextValidated } else { $false }
+    sessionStateTransitionsObserved = if ($null -ne $gatewayWsData) { $gatewayWsData.sessionStateCount } else { $null }
     taskProgressEventsObserved = if ($null -ne $gatewayWsTaskData) { $gatewayWsTaskData.taskProgressCount } else { $null }
     activeTasksVisible = if ($null -ne $gatewayWsTaskData) { $gatewayWsTaskData.activeTaskCount } else { $null }
     gatewayInterruptEventType = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptEventType } else { $null }

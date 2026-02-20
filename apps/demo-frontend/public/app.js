@@ -2,8 +2,10 @@ const state = {
   ws: null,
   wsUrl: "ws://localhost:8080/realtime",
   apiBaseUrl: "http://localhost:8081",
+  userId: "",
   sessionId: "",
   runId: null,
+  sessionState: "-",
   mode: "voice",
   fallbackAsset: false,
   pendingApproval: null,
@@ -19,10 +21,13 @@ const state = {
 const el = {
   wsUrl: document.getElementById("wsUrl"),
   apiBaseUrl: document.getElementById("apiBaseUrl"),
+  userId: document.getElementById("userId"),
   sessionId: document.getElementById("sessionId"),
   targetLanguage: document.getElementById("targetLanguage"),
   connectionStatus: document.getElementById("connectionStatus"),
   runId: document.getElementById("runId"),
+  currentUserId: document.getElementById("currentUserId"),
+  sessionState: document.getElementById("sessionState"),
   modeStatus: document.getElementById("modeStatus"),
   approvalId: document.getElementById("approvalId"),
   approvalReason: document.getElementById("approvalReason"),
@@ -59,6 +64,11 @@ function makeId() {
 
 function setConnectionStatus(text) {
   el.connectionStatus.textContent = text;
+}
+
+function setSessionState(text) {
+  state.sessionState = text;
+  el.sessionState.textContent = text;
 }
 
 function setMode(mode) {
@@ -303,6 +313,7 @@ function setPendingApproval(params) {
 function createEnvelope(type, payload, source = "frontend", runId = state.runId) {
   return {
     id: makeId(),
+    userId: state.userId,
     sessionId: state.sessionId,
     runId: runId ?? undefined,
     type,
@@ -524,6 +535,7 @@ async function submitApprovalDecision(decision) {
       },
       body: JSON.stringify({
         approvalId: state.pendingApproval.approvalId,
+        userId: state.userId,
         sessionId: state.sessionId,
         runId: state.runId ?? makeId(),
         intent: state.pendingApproval.intent ?? "ui_task",
@@ -571,6 +583,12 @@ function handleGatewayEvent(event) {
     return;
   }
 
+  if (typeof event.userId === "string" && event.userId.trim().length > 0) {
+    state.userId = event.userId;
+    el.currentUserId.textContent = event.userId;
+    el.userId.value = event.userId;
+  }
+
   if (typeof event.runId === "string") {
     state.runId = event.runId;
     el.runId.textContent = event.runId;
@@ -579,7 +597,23 @@ function handleGatewayEvent(event) {
   appendEvent(event.type ?? "event", JSON.stringify(event.payload ?? {}, null, 0));
 
   if (event.type === "gateway.connected") {
+    setSessionState("socket_connected");
     appendTranscript("system", "Gateway connected");
+    return;
+  }
+
+  if (event.type === "session.state") {
+    const nextState =
+      event.payload && typeof event.payload.state === "string" ? event.payload.state : "unknown";
+    const previousState =
+      event.payload && typeof event.payload.previousState === "string"
+        ? event.payload.previousState
+        : null;
+    setSessionState(nextState);
+    appendTranscript(
+      "system",
+      previousState ? `Session state: ${previousState} -> ${nextState}` : `Session state: ${nextState}`,
+    );
     return;
   }
 
@@ -932,10 +966,16 @@ function bindEvents() {
     el.sessionId.value = state.sessionId;
     state.runId = null;
     el.runId.textContent = "-";
+    setSessionState("-");
     clearPendingApproval();
     state.taskRecords.clear();
     renderTaskList();
     appendTranscript("system", "Generated new session ID");
+  });
+  el.userId.addEventListener("input", () => {
+    state.userId = el.userId.value.trim() || "demo-user";
+    el.userId.value = state.userId;
+    el.currentUserId.textContent = state.userId;
   });
   el.sessionId.addEventListener("input", () => {
     state.sessionId = el.sessionId.value.trim() || makeId();
@@ -952,8 +992,12 @@ function bindEvents() {
 function bootstrap() {
   state.apiBaseUrl = normalizeApiBaseUrl(el.apiBaseUrl.value);
   el.apiBaseUrl.value = state.apiBaseUrl;
+  state.userId = "demo-user";
+  el.userId.value = state.userId;
+  el.currentUserId.textContent = state.userId;
   state.sessionId = makeId();
   el.sessionId.value = state.sessionId;
+  setSessionState("-");
   setStatusPill(el.constraintStatus, "Waiting for offer", "neutral");
   setFallbackAsset(false);
   clearPendingApproval();

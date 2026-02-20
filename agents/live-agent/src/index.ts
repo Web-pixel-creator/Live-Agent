@@ -759,6 +759,7 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
     });
 
     return createEnvelope({
+      userId: request.userId,
       sessionId: request.sessionId,
       runId,
       type: "orchestrator.response",
@@ -780,6 +781,7 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
     const normalizedError = toNormalizedError(error, traceId);
 
     return createEnvelope({
+      userId: request.userId,
       sessionId: request.sessionId,
       runId,
       type: "orchestrator.response",

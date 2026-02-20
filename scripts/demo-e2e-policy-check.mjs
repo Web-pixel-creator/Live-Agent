@@ -236,6 +236,18 @@ async function main() {
     `<= ${maxGatewayWsRoundTripMs}`,
   );
   addCheck(
+    "kpi.sessionRunBindingValidated",
+    kpis.sessionRunBindingValidated === true,
+    kpis.sessionRunBindingValidated,
+    true,
+  );
+  addCheck(
+    "kpi.sessionStateTransitionsObserved",
+    toNumber(kpis.sessionStateTransitionsObserved) >= 3,
+    kpis.sessionStateTransitionsObserved,
+    ">= 3",
+  );
+  addCheck(
     "kpi.taskProgressEventsObserved",
     toNumber(kpis.taskProgressEventsObserved) >= 1,
     kpis.taskProgressEventsObserved,

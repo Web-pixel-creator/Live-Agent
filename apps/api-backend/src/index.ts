@@ -352,6 +352,7 @@ export const server = createServer(async (req, res) => {
         approvalId?: unknown;
         sessionId?: unknown;
         runId?: unknown;
+        userId?: unknown;
         decision?: unknown;
         reason?: unknown;
         intent?: unknown;
@@ -383,6 +384,10 @@ export const server = createServer(async (req, res) => {
             ? "Approved by operator"
             : "Rejected by operator";
       const intent = parsed.intent === "ui_task" ? "ui_task" : null;
+      const userId =
+        typeof parsed.userId === "string" && parsed.userId.trim().length > 0
+          ? parsed.userId.trim()
+          : "operator";
 
       if (!intent) {
         writeJson(res, 400, { error: "intent must be ui_task for approvals resume flow" });
@@ -411,6 +416,7 @@ export const server = createServer(async (req, res) => {
 
       const baseInput = isRecord(parsed.input) ? parsed.input : {};
       const orchestratorRequest = createEnvelope({
+        userId,
         sessionId,
         runId,
         type: "orchestrator.request",

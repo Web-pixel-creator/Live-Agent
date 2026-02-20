@@ -12,6 +12,7 @@ export type SessionMode = "live" | "story" | "ui" | "multi";
 
 export type EventEnvelope<TPayload = unknown> = {
   id: string;
+  userId?: string;
   sessionId: string;
   runId?: string;
   type: string;

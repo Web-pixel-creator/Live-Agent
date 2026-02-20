@@ -32,6 +32,9 @@ function assertEnvelope(event, messagePrefix = "Invalid envelope") {
   if (!hasStringField(event, "id")) {
     throw new Error(`${messagePrefix}: missing id`);
   }
+  if (event.userId !== undefined && !hasStringField(event, "userId")) {
+    throw new Error(`${messagePrefix}: invalid userId`);
+  }
   if (!hasStringField(event, "sessionId")) {
     throw new Error(`${messagePrefix}: missing sessionId`);
   }
@@ -61,6 +64,7 @@ const args = parseArgs(process.argv.slice(2));
 const wsUrl = args.url ?? "ws://localhost:8080/realtime";
 const sessionId = args.sessionId ?? `ws-check-${randomUUID()}`;
 const runId = args.runId ?? `ws-check-run-${randomUUID()}`;
+const userId = args.userId ?? "demo-user";
 const timeoutMs = Number(args.timeoutMs ?? 12000);
 
 if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
@@ -69,6 +73,7 @@ if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
 
 const requestEnvelope = {
   id: randomUUID(),
+  userId,
   sessionId,
   runId,
   type: "orchestrator.request",
@@ -86,6 +91,7 @@ const requestEnvelope = {
 const receivedEventTypes = [];
 let connectedEnvelope = null;
 let responseEnvelope = null;
+const sessionStateEvents = [];
 let requestSentAtMs = 0;
 
 const ws = new WebSocket(wsUrl);
@@ -135,6 +141,17 @@ function finish() {
     isObject(responseEnvelope.payload.output.translation)
       ? responseEnvelope.payload.output.translation
       : null;
+  const responseUserId = hasStringField(responseEnvelope, "userId") ? responseEnvelope.userId : null;
+
+  if (responseUserId !== userId) {
+    fail("WebSocket response userId mismatch", {
+      expectedUserId: userId,
+      responseUserId,
+      runId,
+      sessionId,
+      receivedEventTypes,
+    });
+  }
 
   if (responseStatus !== "completed") {
     fail("WebSocket response status is not completed", {
@@ -161,18 +178,57 @@ function finish() {
     });
   }
 
+  const transitionStates = sessionStateEvents
+    .filter((event) => event.runId === runId && event.sessionId === sessionId)
+    .map((event) =>
+      isObject(event.payload) && typeof event.payload.state === "string" ? event.payload.state : null,
+    )
+    .filter((state) => typeof state === "string");
+  const requiredTransitions = ["session_bound", "orchestrator_dispatching", "orchestrator_completed"];
+  const missingTransitions = requiredTransitions.filter((state) => !transitionStates.includes(state));
+  if (missingTransitions.length > 0) {
+    fail("Missing required session.state transitions", {
+      requiredTransitions,
+      missingTransitions,
+      transitionStates,
+      runId,
+      sessionId,
+      userId,
+    });
+  }
+
+  const invalidStateContext = sessionStateEvents.find(
+    (event) =>
+      event.runId === runId &&
+      event.sessionId === sessionId &&
+      (!hasStringField(event, "userId") || event.userId !== userId),
+  );
+  if (invalidStateContext) {
+    fail("session.state event has invalid correlation context", {
+      expectedUserId: userId,
+      badEvent: invalidStateContext,
+      runId,
+      sessionId,
+    });
+  }
+
   const roundTripMs = requestSentAtMs > 0 ? Math.max(0, Date.now() - requestSentAtMs) : null;
+  const contextValidated = missingTransitions.length === 0 && !invalidStateContext;
   const result = {
     ok: true,
     wsUrl,
     sessionId,
     runId,
+    userId,
     connectedType: connectedEnvelope.type,
     responseType: responseEnvelope.type,
     responseStatus,
     responseRoute,
     roundTripMs,
     eventTypes: receivedEventTypes,
+    sessionStateCount: transitionStates.length,
+    sessionStateTransitions: transitionStates,
+    contextValidated,
     translationProvider:
       typeof responseTranslation.provider === "string" ? responseTranslation.provider : null,
     translationModel:
@@ -209,6 +265,10 @@ ws.on("message", (raw) => {
 
   if (parsed.type === "gateway.connected") {
     connectedEnvelope = parsed;
+  }
+
+  if (parsed.type === "session.state") {
+    sessionStateEvents.push(parsed);
   }
 
   if (parsed.type === "gateway.error" && parsed.runId === runId) {

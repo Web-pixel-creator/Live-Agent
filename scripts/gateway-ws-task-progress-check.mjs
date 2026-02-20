@@ -32,6 +32,9 @@ function assertEnvelope(event, prefix = "Invalid envelope") {
   if (!hasStringField(event, "id")) {
     throw new Error(`${prefix}: missing id`);
   }
+  if (event.userId !== undefined && !hasStringField(event, "userId")) {
+    throw new Error(`${prefix}: invalid userId`);
+  }
   if (!hasStringField(event, "sessionId")) {
     throw new Error(`${prefix}: missing sessionId`);
   }
@@ -89,6 +92,7 @@ const wsUrl = args.url ?? "ws://localhost:8080/realtime";
 const gatewayHttpBase = args.gatewayHttpBase ?? gatewayHttpBaseFromWs(wsUrl);
 const sessionId = args.sessionId ?? `ws-task-${randomUUID()}`;
 const runId = args.runId ?? `ws-task-run-${randomUUID()}`;
+const userId = args.userId ?? "demo-user";
 const timeoutMs = Number(args.timeoutMs ?? 12000);
 
 if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
@@ -97,6 +101,7 @@ if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
 
 const requestEnvelope = {
   id: randomUUID(),
+  userId,
   sessionId,
   runId,
   type: "orchestrator.request",
@@ -195,6 +200,18 @@ async function tryFinish() {
     });
   }
 
+  const badContextEvent = [taskStartedEnvelope, responseEnvelope]
+    .filter((event) => event && event.runId === runId && event.sessionId === sessionId)
+    .find((event) => !hasStringField(event, "userId") || event.userId !== userId);
+  if (badContextEvent) {
+    fail("Task-progress events have invalid user/session/run context", {
+      expectedUserId: userId,
+      badContextEvent,
+      runId,
+      sessionId,
+    });
+  }
+
   clearTimeout(timeout);
   try {
     ws.close();
@@ -209,6 +226,7 @@ async function tryFinish() {
       gatewayHttpBase,
       sessionId,
       runId,
+      userId,
       taskId,
       responseStatus:
         isObject(responseEnvelope.payload) && typeof responseEnvelope.payload.status === "string"
@@ -292,4 +310,3 @@ ws.on("close", (code, reason) => {
     });
   }
 });
-
