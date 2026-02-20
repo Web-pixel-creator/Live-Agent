@@ -104,6 +104,10 @@ type PlannerConfig = {
   approvalKeywords: string[];
   executorMode: "simulated" | "playwright_preview" | "remote_http";
   executorUrl: string | null;
+  loopDetectionEnabled: boolean;
+  loopWindowSize: number;
+  loopRepeatThreshold: number;
+  loopSimilarityThreshold: number;
 };
 
 type UiNavigatorCapabilitySet = {
@@ -165,6 +169,23 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
     return fallback;
   }
   return Math.floor(parsed);
+}
+
+function parseFloatInRange(value: string | undefined, fallback: number, min: number, max: number): number {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  if (parsed < min) {
+    return min;
+  }
+  if (parsed > max) {
+    return max;
+  }
+  return parsed;
 }
 
 function parseKeywordList(raw: string | undefined, fallback: string[]): string[] {
@@ -251,6 +272,10 @@ function getPlannerConfig(): PlannerConfig {
     ]),
     executorMode: parseExecutorMode(process.env.UI_NAVIGATOR_EXECUTOR_MODE),
     executorUrl: toNullableString(process.env.UI_NAVIGATOR_EXECUTOR_URL),
+    loopDetectionEnabled: process.env.UI_NAVIGATOR_LOOP_DETECTION_ENABLED !== "false",
+    loopWindowSize: parsePositiveInt(process.env.UI_NAVIGATOR_LOOP_WINDOW_SIZE, 8),
+    loopRepeatThreshold: parsePositiveInt(process.env.UI_NAVIGATOR_LOOP_REPEAT_THRESHOLD, 3),
+    loopSimilarityThreshold: parseFloatInRange(process.env.UI_NAVIGATOR_LOOP_SIMILARITY_THRESHOLD, 0.85, 0.5, 1),
   };
 }
 
@@ -628,6 +653,219 @@ function limitActions(actions: UiAction[], maxSteps: number): UiAction[] {
     return actions;
   }
   return actions.slice(0, maxSteps);
+}
+
+type ToolLoopDetectorRecord = {
+  signature: string;
+  actionType: UiAction["type"];
+  ts: number;
+};
+
+type LoopDetectionResult = {
+  detected: boolean;
+  atIndex: number | null;
+  duplicateCount: number;
+  signature: string | null;
+  source: "plan" | "trace";
+};
+
+function tokenizeSignature(value: string): string[] {
+  return value
+    .toLowerCase()
+    .split(/[^a-z0-9]+/g)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0);
+}
+
+function calculateTokenSimilarity(left: string, right: string): number {
+  if (left === right) {
+    return 1;
+  }
+  const leftTokens = tokenizeSignature(left);
+  const rightTokens = tokenizeSignature(right);
+  if (leftTokens.length === 0 || rightTokens.length === 0) {
+    return 0;
+  }
+  const leftSet = new Set(leftTokens);
+  const rightSet = new Set(rightTokens);
+  let intersection = 0;
+  for (const token of leftSet) {
+    if (rightSet.has(token)) {
+      intersection += 1;
+    }
+  }
+  const union = new Set([...leftSet, ...rightSet]).size;
+  return union === 0 ? 0 : intersection / union;
+}
+
+function actionSignature(action: {
+  type: UiAction["type"];
+  target: string;
+  text: string | null;
+  coordinates: { x: number; y: number } | null;
+}): string {
+  const coordinates = action.coordinates ? `${action.coordinates.x},${action.coordinates.y}` : "none";
+  return `${action.type}|${action.target.trim().toLowerCase()}|${(action.text ?? "").trim().toLowerCase()}|${coordinates}`;
+}
+
+class ToolLoopDetector {
+  private readonly recentCalls: ToolLoopDetectorRecord[] = [];
+
+  private readonly windowSize: number;
+
+  private readonly repeatThreshold: number;
+
+  private readonly similarityThreshold: number;
+
+  constructor(params: {
+    windowSize: number;
+    repeatThreshold: number;
+    similarityThreshold: number;
+  }) {
+    this.windowSize = Math.max(2, params.windowSize);
+    this.repeatThreshold = Math.max(2, params.repeatThreshold);
+    this.similarityThreshold = Math.min(1, Math.max(0.5, params.similarityThreshold));
+  }
+
+  check(action: {
+    type: UiAction["type"];
+    target: string;
+    text: string | null;
+    coordinates: { x: number; y: number } | null;
+  }): { verdict: "ok" | "loop_detected"; signature: string; duplicateCount: number } {
+    if (action.type === "wait" || action.type === "verify") {
+      return {
+        verdict: "ok",
+        signature: actionSignature(action),
+        duplicateCount: 0,
+      };
+    }
+
+    const signature = actionSignature(action);
+    const similarCount = this.recentCalls.filter(
+      (record) =>
+        record.actionType === action.type &&
+        calculateTokenSimilarity(record.signature, signature) >= this.similarityThreshold,
+    ).length;
+
+    const duplicateCount = similarCount + 1;
+    if (duplicateCount >= this.repeatThreshold) {
+      return {
+        verdict: "loop_detected",
+        signature,
+        duplicateCount,
+      };
+    }
+
+    this.recentCalls.push({
+      actionType: action.type,
+      signature,
+      ts: Date.now(),
+    });
+    if (this.recentCalls.length > this.windowSize) {
+      this.recentCalls.splice(0, this.recentCalls.length - this.windowSize);
+    }
+
+    return {
+      verdict: "ok",
+      signature,
+      duplicateCount,
+    };
+  }
+}
+
+function detectActionLoop(actions: UiAction[], config: PlannerConfig): LoopDetectionResult {
+  if (!config.loopDetectionEnabled || actions.length === 0) {
+    return {
+      detected: false,
+      atIndex: null,
+      duplicateCount: 0,
+      signature: null,
+      source: "plan",
+    };
+  }
+
+  const detector = new ToolLoopDetector({
+    windowSize: config.loopWindowSize,
+    repeatThreshold: config.loopRepeatThreshold,
+    similarityThreshold: config.loopSimilarityThreshold,
+  });
+
+  for (let index = 0; index < actions.length; index += 1) {
+    const action = actions[index];
+    if (!action) {
+      continue;
+    }
+    const verdict = detector.check(action);
+    if (verdict.verdict === "loop_detected") {
+      return {
+        detected: true,
+        atIndex: index + 1,
+        duplicateCount: verdict.duplicateCount,
+        signature: verdict.signature,
+        source: "plan",
+      };
+    }
+  }
+
+  return {
+    detected: false,
+    atIndex: null,
+    duplicateCount: 0,
+    signature: null,
+    source: "plan",
+  };
+}
+
+function detectTraceLoop(trace: UiTraceStep[], config: PlannerConfig): LoopDetectionResult {
+  if (!config.loopDetectionEnabled || trace.length === 0) {
+    return {
+      detected: false,
+      atIndex: null,
+      duplicateCount: 0,
+      signature: null,
+      source: "trace",
+    };
+  }
+
+  const detector = new ToolLoopDetector({
+    windowSize: config.loopWindowSize,
+    repeatThreshold: config.loopRepeatThreshold,
+    similarityThreshold: config.loopSimilarityThreshold,
+  });
+
+  for (let index = 0; index < trace.length; index += 1) {
+    const step = trace[index];
+    if (!step) {
+      continue;
+    }
+    if (step.status === "blocked") {
+      continue;
+    }
+    const verdict = detector.check({
+      type: step.actionType,
+      target: step.target,
+      text: null,
+      coordinates: null,
+    });
+    if (verdict.verdict === "loop_detected") {
+      return {
+        detected: true,
+        atIndex: index + 1,
+        duplicateCount: verdict.duplicateCount,
+        signature: verdict.signature,
+        source: "trace",
+      };
+    }
+  }
+
+  return {
+    detected: false,
+    atIndex: null,
+    duplicateCount: 0,
+    signature: null,
+    source: "trace",
+  };
 }
 
 function simulateExecution(params: {
@@ -1470,6 +1708,53 @@ export async function runUiNavigatorAgent(
       capabilities,
     });
     const actions = limitActions(planResult.actions, input.maxSteps);
+    const plannedLoop = detectActionLoop(actions, config);
+    if (plannedLoop.detected) {
+      return createEnvelope({
+        userId: request.userId,
+        sessionId: request.sessionId,
+        runId,
+        type: "orchestrator.response",
+        source: "ui-navigator-agent",
+        payload: {
+          route: "ui-navigator-agent",
+          status: "failed",
+          traceId,
+          output: {
+            message: "UI action plan was blocked by loop protection.",
+            handledIntent: request.payload.intent,
+            traceId,
+            latencyMs: Date.now() - startedAt,
+            approvalRequired: true,
+            approvalCategories: ["loop_detected"],
+            loopProtection: {
+              status: "failed_loop",
+              source: plannedLoop.source,
+              atIndex: plannedLoop.atIndex,
+              duplicateCount: plannedLoop.duplicateCount,
+              signature: plannedLoop.signature,
+              threshold: {
+                windowSize: config.loopWindowSize,
+                repeatThreshold: config.loopRepeatThreshold,
+                similarityThreshold: config.loopSimilarityThreshold,
+              },
+            },
+            planner: {
+              provider: planResult.plannerProvider,
+              model: planResult.plannerModel,
+            },
+            capabilityProfile: capabilities.profile,
+            actionPlan: actions,
+            execution: {
+              finalStatus: "failed_loop",
+              retries: 0,
+              trace: [],
+              verifyLoopEnabled: true,
+            },
+          },
+        },
+      });
+    }
 
     if (approvalRequired) {
       const approvalId = input.approvalId ?? `approval-${runId}`;
@@ -1544,7 +1829,8 @@ export async function runUiNavigatorAgent(
       input,
     });
 
-    const finalStatus = execution.finalStatus;
+    const runtimeLoop = detectTraceLoop(execution.trace, config);
+    const finalStatus = runtimeLoop.detected ? "failed" : execution.finalStatus;
     const visualTesting = await buildVisualTestingReport({
       input,
       execution,
@@ -1558,6 +1844,9 @@ export async function runUiNavigatorAgent(
       ? visualTesting.status === "passed"
         ? ` Visual testing passed (${visualTesting.checks.length} checks).`
         : ` Visual testing found ${visualTesting.regressionCount} regressions (highest severity: ${visualTesting.highestSeverity}).`
+      : "";
+    const loopProtectionSummary = runtimeLoop.detected
+      ? ` Loop protection triggered at trace step ${runtimeLoop.atIndex ?? "unknown"} (duplicateCount=${runtimeLoop.duplicateCount}).`
       : "";
 
     return createEnvelope({
@@ -1574,7 +1863,7 @@ export async function runUiNavigatorAgent(
           message:
             overallStatus === "completed"
               ? `UI task completed with ${actions.length} planned steps and ${execution.retries} retries.${visualTestingSummary}`
-              : `UI task failed after retries.${visualTestingSummary}`,
+              : `UI task failed after retries.${loopProtectionSummary}${visualTestingSummary}`,
           handledIntent: request.payload.intent,
           traceId,
           latencyMs: Date.now() - startedAt,
@@ -1598,6 +1887,18 @@ export async function runUiNavigatorAgent(
             retries: execution.retries,
             trace: execution.trace,
             verifyLoopEnabled: true,
+            loopProtection: {
+              detected: runtimeLoop.detected,
+              source: runtimeLoop.source,
+              atIndex: runtimeLoop.atIndex,
+              duplicateCount: runtimeLoop.duplicateCount,
+              signature: runtimeLoop.signature,
+              threshold: {
+                windowSize: config.loopWindowSize,
+                repeatThreshold: config.loopRepeatThreshold,
+                similarityThreshold: config.loopSimilarityThreshold,
+              },
+            },
             executor: execution.executor,
             adapterMode: execution.adapterMode,
             adapterNotes: execution.adapterNotes,
