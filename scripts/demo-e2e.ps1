@@ -950,38 +950,39 @@ try {
       -ExpectedStatusCode 400 `
       -TimeoutSec $RequestTimeoutSec
 
-    $errorText = ""
+    $parsedBody = $null
     if ($null -ne $response.body) {
       if ($response.body -is [string]) {
         try {
           $parsedBody = $response.body | ConvertFrom-Json
-          if ($null -ne $parsedBody) {
-            $errorText = [string](Get-FieldValue -Object $parsedBody -Path @("error"))
-          }
         } catch {
-          $errorText = ""
+          $parsedBody = $null
         }
       } else {
-        $errorText = [string](Get-FieldValue -Object $response.body -Path @("error"))
+        $parsedBody = $response.body
       }
     }
 
-    if ([string]::IsNullOrWhiteSpace($errorText) -and -not [string]::IsNullOrWhiteSpace($response.raw)) {
+    if ($null -eq $parsedBody -and -not [string]::IsNullOrWhiteSpace($response.raw)) {
       try {
-        $parsedRaw = $response.raw | ConvertFrom-Json
-        if ($null -ne $parsedRaw) {
-          $errorText = [string](Get-FieldValue -Object $parsedRaw -Path @("error"))
-        }
+        $parsedBody = $response.raw | ConvertFrom-Json
       } catch {
-        $errorText = ""
+        $parsedBody = $null
       }
     }
 
+    $errorCode = [string](Get-FieldValue -Object $parsedBody -Path @("error", "code"))
+    $errorText = [string](Get-FieldValue -Object $parsedBody -Path @("error", "message"))
+    $errorTraceId = [string](Get-FieldValue -Object $parsedBody -Path @("error", "traceId"))
+    Assert-Condition -Condition ($errorCode -eq "API_INVALID_INTENT") -Message "Unexpected error code for invalid intent."
     Assert-Condition -Condition ($errorText -eq "intent must be ui_task for approvals resume flow") -Message "Unexpected error message for invalid intent."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($errorTraceId)) -Message "Invalid intent error missing traceId."
 
     return [ordered]@{
       statusCode = [int]$response.statusCode
+      code = $errorCode
       error = $errorText
+      traceId = $errorTraceId
     }
   } | Out-Null
 
@@ -1154,6 +1155,8 @@ $summary = [ordered]@{
     gatewayWsInvalidEnvelopeCode = if ($null -ne $gatewayWsInvalidData) { $gatewayWsInvalidData.code } else { $null }
     approvalsRecorded = if ($null -ne $approvalsListData) { $approvalsListData.total } else { $null }
     approvalsInvalidIntentStatusCode = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.statusCode } else { $null }
+    approvalsInvalidIntentCode = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.code } else { $null }
+    approvalsInvalidIntentTraceId = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.traceId } else { $null }
     lifecycleEndpointsValidated = if ($null -ne $runtimeLifecycleData) { $true } else { $false }
     metricsEndpointsValidated = if ($null -ne $runtimeMetricsData) { $true } else { $false }
     metricsServicesValidated = if ($null -ne $runtimeMetricsData) { $runtimeMetricsData.count } else { $null }

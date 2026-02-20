@@ -1,6 +1,11 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
-import { createEnvelope, RollingMetrics } from "@mla/contracts";
+import {
+  createApiErrorResponse,
+  createNormalizedError,
+  normalizeUnknownError,
+  RollingMetrics,
+} from "@mla/contracts";
 import { orchestrate } from "./orchestrate.js";
 import { getFirestoreState } from "./services/firestore.js";
 
@@ -29,6 +34,34 @@ function writeJson(res: ServerResponse, statusCode: number, body: unknown): void
   res.end(JSON.stringify(body));
 }
 
+function writeHttpError(
+  res: ServerResponse,
+  statusCode: number,
+  params: {
+    code: string;
+    message: string;
+    traceId?: string;
+    details?: unknown;
+    runtime?: unknown;
+  },
+): void {
+  const error = createNormalizedError({
+    code: params.code,
+    message: params.message,
+    traceId: params.traceId,
+    details: params.details,
+  });
+  writeJson(
+    res,
+    statusCode,
+    createApiErrorResponse({
+      error,
+      service: serviceName,
+      runtime: params.runtime,
+    }),
+  );
+}
+
 function runtimeState(): Record<string, unknown> {
   const summary = metrics.snapshot({ topOperations: 10 });
   return {
@@ -51,119 +84,138 @@ function runtimeState(): Record<string, unknown> {
 
 export const server = createServer(async (req, res) => {
   const startedAt = Date.now();
-  const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
-  const operation = `${req.method ?? "UNKNOWN"} ${url.pathname}`;
+  let operation = `${req.method ?? "UNKNOWN"} /unknown`;
   res.once("finish", () => {
     metrics.record(operation, Date.now() - startedAt, res.statusCode < 500);
   });
 
-  if (url.pathname === "/healthz" && req.method === "GET") {
-    writeJson(res, 200, {
-      ok: true,
-      service: serviceName,
-      runtime: runtimeState(),
-      storage: {
-        firestore: getFirestoreState(),
-      },
-    });
-    return;
-  }
+  try {
+    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+    operation = `${req.method ?? "UNKNOWN"} ${url.pathname}`;
 
-  if (url.pathname === "/status" && req.method === "GET") {
-    writeJson(res, 200, {
-      ok: true,
-      service: serviceName,
-      runtime: runtimeState(),
-    });
-    return;
-  }
-
-  if (url.pathname === "/version" && req.method === "GET") {
-    writeJson(res, 200, {
-      ok: true,
-      service: serviceName,
-      version: serviceVersion,
-    });
-    return;
-  }
-
-  if (url.pathname === "/metrics" && req.method === "GET") {
-    writeJson(res, 200, {
-      ok: true,
-      service: serviceName,
-      metrics: metrics.snapshot({ topOperations: 50 }),
-    });
-    return;
-  }
-
-  if (url.pathname === "/warmup" && req.method === "POST") {
-    draining = false;
-    lastWarmupAt = new Date().toISOString();
-    writeJson(res, 200, {
-      ok: true,
-      service: serviceName,
-      runtime: runtimeState(),
-    });
-    return;
-  }
-
-  if (url.pathname === "/drain" && req.method === "POST") {
-    draining = true;
-    lastDrainAt = new Date().toISOString();
-    writeJson(res, 200, {
-      ok: true,
-      service: serviceName,
-      runtime: runtimeState(),
-    });
-    return;
-  }
-
-  if (url.pathname === "/orchestrate" && req.method === "POST") {
-    const traceId = randomUUID();
-
-    if (draining) {
-      const failure = createEnvelope({
-        sessionId: "unknown",
-        runId: traceId,
-        type: "orchestrator.error",
-        source: "orchestrator",
-        payload: {
-          status: "failed",
-          traceId,
-          code: "ORCHESTRATOR_DRAINING",
-          message: "orchestrator is draining and does not accept new runs",
-          runtime: runtimeState(),
+    if (url.pathname === "/healthz" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        runtime: runtimeState(),
+        storage: {
+          firestore: getFirestoreState(),
         },
       });
-      writeJson(res, 503, failure);
       return;
     }
 
-    try {
+    if (url.pathname === "/status" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        runtime: runtimeState(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/version" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        version: serviceVersion,
+      });
+      return;
+    }
+
+    if (url.pathname === "/metrics" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        metrics: metrics.snapshot({ topOperations: 50 }),
+      });
+      return;
+    }
+
+    if (url.pathname === "/warmup" && req.method === "POST") {
+      draining = false;
+      lastWarmupAt = new Date().toISOString();
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        runtime: runtimeState(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/drain" && req.method === "POST") {
+      draining = true;
+      lastDrainAt = new Date().toISOString();
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        runtime: runtimeState(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/orchestrate" && req.method === "POST") {
+      const traceId = randomUUID();
+
+      if (draining) {
+        writeHttpError(res, 503, {
+          code: "ORCHESTRATOR_DRAINING",
+          message: "orchestrator is draining and does not accept new runs",
+          traceId,
+          runtime: runtimeState(),
+        });
+        return;
+      }
+
       const raw = await readBody(req);
-      const parsed = JSON.parse(raw) as Parameters<typeof orchestrate>[0];
+      if (raw.trim().length === 0) {
+        writeHttpError(res, 400, {
+          code: "ORCHESTRATOR_INVALID_REQUEST",
+          message: "request body is required",
+          traceId,
+        });
+        return;
+      }
+
+      let parsed: Parameters<typeof orchestrate>[0];
+      try {
+        parsed = JSON.parse(raw) as Parameters<typeof orchestrate>[0];
+      } catch {
+        writeHttpError(res, 400, {
+          code: "ORCHESTRATOR_INVALID_JSON",
+          message: "invalid JSON body",
+          traceId,
+        });
+        return;
+      }
+
       const result = await orchestrate(parsed);
       writeJson(res, 200, result);
       return;
-    } catch (error) {
-      const failure = createEnvelope({
-        sessionId: "unknown",
-        runId: traceId,
-        type: "orchestrator.error",
-        source: "orchestrator",
-        payload: {
-          status: "failed",
-          traceId,
-          code: "ORCHESTRATOR_REQUEST_ERROR",
-          message: error instanceof Error ? error.message : "unknown error",
-        },
-      });
-      writeJson(res, 400, failure);
-      return;
     }
-  }
 
-  writeJson(res, 404, { error: "Not found" });
+    writeHttpError(res, 404, {
+      code: "ORCHESTRATOR_HTTP_NOT_FOUND",
+      message: "Not found",
+      details: {
+        method: req.method ?? "UNKNOWN",
+        path: url.pathname,
+      },
+    });
+  } catch (error) {
+    const normalized = normalizeUnknownError(error, {
+      defaultCode: "ORCHESTRATOR_HTTP_INTERNAL_ERROR",
+      defaultMessage: "orchestrator request failed",
+    });
+    writeJson(
+      res,
+      500,
+      createApiErrorResponse({
+        error: normalized,
+        service: serviceName,
+      }),
+    );
+  }
 });
 
 server.listen(port, () => {

@@ -1,8 +1,12 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import {
+  createApiErrorResponse,
   createEnvelope,
+  createNormalizedError,
+  normalizeUnknownError,
   RollingMetrics,
+  type NormalizedError,
   type OrchestratorRequest,
   type OrchestratorResponse,
 } from "@mla/contracts";
@@ -45,6 +49,35 @@ function writeJson(res: ServerResponse, statusCode: number, body: unknown): void
   res.end(JSON.stringify(body));
 }
 
+function writeApiError(
+  res: ServerResponse,
+  statusCode: number,
+  params: {
+    code: string;
+    message: string;
+    traceId?: string;
+    details?: unknown;
+    runtime?: unknown;
+  },
+): NormalizedError {
+  const error = createNormalizedError({
+    code: params.code,
+    message: params.message,
+    traceId: params.traceId,
+    details: params.details,
+  });
+  writeJson(
+    res,
+    statusCode,
+    createApiErrorResponse({
+      error,
+      service: serviceName,
+      runtime: params.runtime,
+    }),
+  );
+  return error;
+}
+
 async function readBody(req: IncomingMessage): Promise<string> {
   const chunks: Buffer[] = [];
   for await (const chunk of req) {
@@ -78,6 +111,48 @@ function sanitizeDecision(raw: unknown): ApprovalDecision {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+class ApiRequestError extends Error {
+  readonly statusCode: number;
+
+  readonly code: string;
+
+  readonly details?: unknown;
+
+  constructor(params: { statusCode: number; code: string; message: string; details?: unknown }) {
+    super(params.message);
+    this.name = "ApiRequestError";
+    this.statusCode = params.statusCode;
+    this.code = params.code;
+    this.details = params.details;
+  }
+}
+
+function parseJsonBody(raw: string): Record<string, unknown> {
+  if (raw.trim().length === 0) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!isRecord(parsed)) {
+      throw new ApiRequestError({
+        statusCode: 400,
+        code: "API_INVALID_JSON_BODY",
+        message: "Request body must be a JSON object",
+      });
+    }
+    return parsed;
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      throw error;
+    }
+    throw new ApiRequestError({
+      statusCode: 400,
+      code: "API_INVALID_JSON",
+      message: "Invalid JSON body",
+    });
+  }
 }
 
 function normalizeOperationPath(pathname: string): string {
@@ -274,10 +349,9 @@ export const server = createServer(async (req, res) => {
     }
 
     if (draining) {
-      writeJson(res, 503, {
-        error: "api-backend is draining and does not accept new requests",
+      writeApiError(res, 503, {
         code: "API_DRAINING",
-        service: serviceName,
+        message: "api-backend is draining and does not accept new requests",
         runtime: runtimeState(),
       });
       return;
@@ -292,7 +366,7 @@ export const server = createServer(async (req, res) => {
 
     if (url.pathname === "/v1/sessions" && req.method === "POST") {
       const raw = await readBody(req);
-      const parsed = (raw ? JSON.parse(raw) : {}) as { userId?: unknown; mode?: unknown };
+      const parsed = parseJsonBody(raw) as { userId?: unknown; mode?: unknown };
       const userId =
         typeof parsed.userId === "string" && parsed.userId.length > 0 ? parsed.userId : "anonymous";
       const mode = sanitizeMode(parsed.mode);
@@ -304,15 +378,22 @@ export const server = createServer(async (req, res) => {
     if (url.pathname.startsWith("/v1/sessions/") && req.method === "PATCH") {
       const sessionId = decodeURIComponent(url.pathname.replace("/v1/sessions/", ""));
       if (!sessionId) {
-        writeJson(res, 400, { error: "sessionId is required" });
+        writeApiError(res, 400, {
+          code: "API_SESSION_ID_REQUIRED",
+          message: "sessionId is required",
+        });
         return;
       }
       const raw = await readBody(req);
-      const parsed = (raw ? JSON.parse(raw) : {}) as { status?: unknown };
+      const parsed = parseJsonBody(raw) as { status?: unknown };
       const status = sanitizeStatus(parsed.status);
       const session = await updateSessionStatus(sessionId, status);
       if (!session) {
-        writeJson(res, 404, { error: "Session not found" });
+        writeApiError(res, 404, {
+          code: "API_SESSION_NOT_FOUND",
+          message: "Session not found",
+          details: { sessionId },
+        });
         return;
       }
       writeJson(res, 200, { data: session });
@@ -329,7 +410,10 @@ export const server = createServer(async (req, res) => {
     if (url.pathname === "/v1/events" && req.method === "GET") {
       const sessionId = url.searchParams.get("sessionId");
       if (!sessionId) {
-        writeJson(res, 400, { error: "sessionId query param is required" });
+        writeApiError(res, 400, {
+          code: "API_SESSION_ID_QUERY_REQUIRED",
+          message: "sessionId query param is required",
+        });
         return;
       }
       const limit = parsePositiveInt(url.searchParams.get("limit"), 100);
@@ -348,7 +432,7 @@ export const server = createServer(async (req, res) => {
 
     if (url.pathname === "/v1/approvals/resume" && req.method === "POST") {
       const raw = await readBody(req);
-      const parsed = (raw ? JSON.parse(raw) : {}) as {
+      const parsed = parseJsonBody(raw) as {
         approvalId?: unknown;
         sessionId?: unknown;
         runId?: unknown;
@@ -364,7 +448,10 @@ export const server = createServer(async (req, res) => {
           ? parsed.sessionId.trim()
           : null;
       if (!sessionId) {
-        writeJson(res, 400, { error: "sessionId is required" });
+        writeApiError(res, 400, {
+          code: "API_SESSION_ID_REQUIRED",
+          message: "sessionId is required",
+        });
         return;
       }
 
@@ -390,7 +477,14 @@ export const server = createServer(async (req, res) => {
           : "operator";
 
       if (!intent) {
-        writeJson(res, 400, { error: "intent must be ui_task for approvals resume flow" });
+        writeApiError(res, 400, {
+          code: "API_INVALID_INTENT",
+          message: "intent must be ui_task for approvals resume flow",
+          details: {
+            allowedIntent: "ui_task",
+            receivedIntent: parsed.intent,
+          },
+        });
         return;
       }
 
@@ -444,11 +538,36 @@ export const server = createServer(async (req, res) => {
       return;
     }
 
-    writeJson(res, 404, { error: "Not found" });
-  } catch (error) {
-    writeJson(res, 500, {
-      error: error instanceof Error ? error.message : "unknown api-backend error",
+    writeApiError(res, 404, {
+      code: "API_NOT_FOUND",
+      message: "Not found",
+      details: {
+        method: req.method ?? "UNKNOWN",
+        path: url.pathname,
+      },
     });
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      writeApiError(res, error.statusCode, {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      });
+      return;
+    }
+
+    const normalized = normalizeUnknownError(error, {
+      defaultCode: "API_INTERNAL_ERROR",
+      defaultMessage: "unknown api-backend error",
+    });
+    writeJson(
+      res,
+      500,
+      createApiErrorResponse({
+        error: normalized,
+        service: serviceName,
+      }),
+    );
   }
 });
 

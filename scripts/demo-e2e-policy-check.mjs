@@ -218,6 +218,12 @@ async function main() {
     400,
   );
   addCheck(
+    "kpi.approvalsInvalidIntentCode",
+    String(kpis.approvalsInvalidIntentCode) === "API_INVALID_INTENT",
+    kpis.approvalsInvalidIntentCode,
+    "API_INVALID_INTENT",
+  );
+  addCheck(
     "kpi.approvalsRecorded",
     toNumber(kpis.approvalsRecorded) >= minApprovalsRecorded,
     kpis.approvalsRecorded,

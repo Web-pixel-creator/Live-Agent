@@ -78,7 +78,7 @@ Open `http://localhost:3000`.
 
 ## Automated Demo E2E
 
-Run a full judge-oriented smoke scenario (translation + negotiation + storyteller + UI approval/reject/approve + delegation + WebSocket gateway roundtrip + session/run/user binding checks + WebSocket task-progress contract check + WebSocket interruption signal contract check + WebSocket invalid-envelope error contract check + approvals resume invalid-intent REST contract check + lifecycle status/version/warmup/drain checks + runtime metrics endpoint checks):
+Run a full judge-oriented smoke scenario (translation + negotiation + storyteller + UI approval/reject/approve + delegation + WebSocket gateway roundtrip + session/run/user binding checks + WebSocket task-progress contract check + WebSocket interruption signal contract check + WebSocket invalid-envelope error contract check + approvals resume invalid-intent REST contract check with normalized error `API_INVALID_INTENT` + `traceId` + lifecycle status/version/warmup/drain checks + runtime metrics endpoint checks):
 
 ```powershell
 npm run demo:e2e
@@ -286,6 +286,12 @@ Useful flags:
   - `orchestrator_failed`
   - `text_fallback`
 - Transition payload includes previous state and connection metadata, and envelopes include correlation context (`userId`, `sessionId`, `runId`).
+
+## Error Contract
+
+- REST errors are normalized as:
+  - `{ "ok": false, "error": { "code": "...", "message": "...", "traceId": "...", "details": { ... } } }`
+- WebSocket gateway errors use the same normalized payload in `gateway.error` envelopes.
 
 ## Day-1 Infra Bootstrap
 

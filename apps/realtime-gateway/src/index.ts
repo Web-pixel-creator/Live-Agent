@@ -1,10 +1,14 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
 import {
+  createApiErrorResponse,
   createEnvelope,
+  createNormalizedError,
+  normalizeUnknownError,
   RollingMetrics,
   safeParseEnvelope,
   type EventEnvelope,
+  type NormalizedError,
   type OrchestratorRequest,
   type OrchestratorResponse,
 } from "@mla/contracts";
@@ -192,145 +196,178 @@ function runtimeState(): Record<string, unknown> {
   };
 }
 
+function writeJson(
+  res: import("node:http").ServerResponse,
+  statusCode: number,
+  body: unknown,
+): void {
+  res.statusCode = statusCode;
+  res.setHeader("Content-Type", "application/json");
+  res.end(JSON.stringify(body));
+}
+
+function writeHttpError(
+  res: import("node:http").ServerResponse,
+  statusCode: number,
+  params: {
+    code: string;
+    message: string;
+    traceId?: string;
+    details?: unknown;
+    runtime?: unknown;
+  },
+): NormalizedError {
+  const error = createNormalizedError({
+    code: params.code,
+    message: params.message,
+    traceId: params.traceId,
+    details: params.details,
+  });
+  writeJson(
+    res,
+    statusCode,
+    createApiErrorResponse({
+      error,
+      service: serviceName,
+      runtime: params.runtime,
+    }),
+  );
+  return error;
+}
+
 const server = createServer((req, res) => {
   const startedAt = Date.now();
-  const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
-  const operation = `${req.method ?? "UNKNOWN"} ${normalizeHttpPath(url.pathname)}`;
+  let operation = `${req.method ?? "UNKNOWN"} /unknown`;
   res.once("finish", () => {
     metrics.record(operation, Date.now() - startedAt, res.statusCode < 500);
   });
 
-  if (url.pathname === "/healthz" && req.method === "GET") {
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
+  try {
+    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+    operation = `${req.method ?? "UNKNOWN"} ${normalizeHttpPath(url.pathname)}`;
+
+    if (url.pathname === "/healthz" && req.method === "GET") {
+      writeJson(res, 200, {
         ok: true,
         service: serviceName,
         runtime: runtimeState(),
-      }),
-    );
-    return;
-  }
+      });
+      return;
+    }
 
-  if (url.pathname === "/status" && req.method === "GET") {
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
+    if (url.pathname === "/status" && req.method === "GET") {
+      writeJson(res, 200, {
         ok: true,
         service: serviceName,
         runtime: runtimeState(),
-      }),
-    );
-    return;
-  }
+      });
+      return;
+    }
 
-  if (url.pathname === "/version" && req.method === "GET") {
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
+    if (url.pathname === "/version" && req.method === "GET") {
+      writeJson(res, 200, {
         ok: true,
         service: serviceName,
         version: serviceVersion,
-      }),
-    );
-    return;
-  }
+      });
+      return;
+    }
 
-  if (url.pathname === "/metrics" && req.method === "GET") {
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
+    if (url.pathname === "/metrics" && req.method === "GET") {
+      writeJson(res, 200, {
         ok: true,
         service: serviceName,
         metrics: metrics.snapshot({ topOperations: 50 }),
-      }),
-    );
-    return;
-  }
+      });
+      return;
+    }
 
-  if (url.pathname === "/warmup" && req.method === "POST") {
-    draining = false;
-    lastWarmupAt = new Date().toISOString();
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
+    if (url.pathname === "/warmup" && req.method === "POST") {
+      draining = false;
+      lastWarmupAt = new Date().toISOString();
+      writeJson(res, 200, {
         ok: true,
         service: serviceName,
         runtime: runtimeState(),
-      }),
-    );
-    return;
-  }
+      });
+      return;
+    }
 
-  if (url.pathname === "/drain" && req.method === "POST") {
-    draining = true;
-    lastDrainAt = new Date().toISOString();
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
+    if (url.pathname === "/drain" && req.method === "POST") {
+      draining = true;
+      lastDrainAt = new Date().toISOString();
+      writeJson(res, 200, {
         ok: true,
         service: serviceName,
         runtime: runtimeState(),
-      }),
-    );
-    return;
-  }
+      });
+      return;
+    }
 
-  if (url.pathname === "/tasks/active" && req.method === "GET") {
-    const sessionId = toNonEmptyString(url.searchParams.get("sessionId"));
-    const limit = parsePositiveInt(url.searchParams.get("limit") ?? undefined, 100);
-    const tasks = taskRegistry.listActive({
-      sessionId: sessionId ?? undefined,
-      limit,
-    });
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
+    if (url.pathname === "/tasks/active" && req.method === "GET") {
+      const sessionId = toNonEmptyString(url.searchParams.get("sessionId"));
+      const limit = parsePositiveInt(url.searchParams.get("limit") ?? undefined, 100);
+      const tasks = taskRegistry.listActive({
+        sessionId: sessionId ?? undefined,
+        limit,
+      });
+      writeJson(res, 200, {
         ok: true,
         service: serviceName,
         total: tasks.length,
         data: tasks,
-      }),
-    );
-    return;
-  }
+      });
+      return;
+    }
 
-  if (url.pathname.startsWith("/tasks/") && req.method === "GET") {
-    const taskId = decodeURIComponent(url.pathname.replace("/tasks/", ""));
-    if (!taskId) {
-      res.statusCode = 400;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: "taskId is required" }));
-      return;
-    }
-    const task = taskRegistry.getTask(taskId);
-    if (!task) {
-      res.statusCode = 404;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: "task not found" }));
-      return;
-    }
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
+    if (url.pathname.startsWith("/tasks/") && req.method === "GET") {
+      const taskId = decodeURIComponent(url.pathname.replace("/tasks/", ""));
+      if (!taskId) {
+        writeHttpError(res, 400, {
+          code: "GATEWAY_TASK_ID_REQUIRED",
+          message: "taskId is required",
+        });
+        return;
+      }
+      const task = taskRegistry.getTask(taskId);
+      if (!task) {
+        writeHttpError(res, 404, {
+          code: "GATEWAY_TASK_NOT_FOUND",
+          message: "task not found",
+          details: { taskId },
+        });
+        return;
+      }
+      writeJson(res, 200, {
         ok: true,
         service: serviceName,
         data: task,
+      });
+      return;
+    }
+
+    writeHttpError(res, 404, {
+      code: "GATEWAY_HTTP_NOT_FOUND",
+      message: "Not found",
+      details: {
+        method: req.method ?? "UNKNOWN",
+        path: url.pathname,
+      },
+    });
+  } catch (error) {
+    const normalized = normalizeUnknownError(error, {
+      defaultCode: "GATEWAY_HTTP_INTERNAL_ERROR",
+      defaultMessage: "gateway http request failed",
+    });
+    writeJson(
+      res,
+      500,
+      createApiErrorResponse({
+        error: normalized,
+        service: serviceName,
       }),
     );
-    return;
   }
-
-  res.statusCode = 404;
-  res.end("Not found");
 });
 
 const wss = new WebSocketServer({ server, path: "/realtime" });
@@ -338,19 +375,22 @@ const wss = new WebSocketServer({ server, path: "/realtime" });
 wss.on("connection", (ws) => {
   if (draining) {
     metrics.record("ws.connection", 0, false);
+    const normalized = createNormalizedError({
+      code: "GATEWAY_DRAINING",
+      message: "gateway is draining and does not accept new websocket sessions",
+      details: {
+        runtime: runtimeState(),
+      },
+    });
     ws.send(
       JSON.stringify(
         createEnvelope({
           userId: "system",
           sessionId: "system",
-          runId: `conn-${randomUUID()}`,
+          runId: normalized.traceId,
           type: "gateway.error",
           source: "gateway",
-          payload: {
-            code: "GATEWAY_DRAINING",
-            message: "gateway is draining and does not accept new websocket sessions",
-            runtime: runtimeState(),
-          },
+          payload: normalized,
         }),
       ),
     );
@@ -394,6 +434,31 @@ wss.on("connection", (ws) => {
         payload: params.payload,
       }),
     );
+  };
+
+  const emitGatewayError = (params: {
+    code: string;
+    message: string;
+    details?: unknown;
+    sessionId?: string;
+    runId?: string;
+    userId?: string;
+    traceId?: string;
+  }): NormalizedError => {
+    const normalized = createNormalizedError({
+      code: params.code,
+      message: params.message,
+      traceId: params.traceId,
+      details: params.details,
+    });
+    emitGatewayEvent({
+      type: "gateway.error",
+      sessionId: params.sessionId,
+      runId: params.runId ?? normalized.traceId,
+      userId: params.userId,
+      payload: normalized,
+    });
+    return normalized;
   };
 
   const emitSessionState = (
@@ -445,13 +510,12 @@ wss.on("connection", (ws) => {
     }
 
     if (parsed.sessionId !== sessionBinding.sessionId) {
-      emitGatewayEvent({
+      emitGatewayError({
         sessionId: sessionBinding.sessionId,
         runId: messageRunId,
-        type: "gateway.error",
-        payload: {
-          code: "GATEWAY_SESSION_MISMATCH",
-          message: "sessionId mismatch for bound websocket connection",
+        code: "GATEWAY_SESSION_MISMATCH",
+        message: "sessionId mismatch for bound websocket connection",
+        details: {
           expectedSessionId: sessionBinding.sessionId,
           receivedSessionId: parsed.sessionId,
         },
@@ -461,13 +525,12 @@ wss.on("connection", (ws) => {
 
     const providedUserId = extractEnvelopeUserId(parsed);
     if (providedUserId && providedUserId !== sessionBinding.userId) {
-      emitGatewayEvent({
+      emitGatewayError({
         sessionId: sessionBinding.sessionId,
         runId: messageRunId,
-        type: "gateway.error",
-        payload: {
-          code: "GATEWAY_USER_MISMATCH",
-          message: "userId mismatch for bound websocket connection",
+        code: "GATEWAY_USER_MISMATCH",
+        message: "userId mismatch for bound websocket connection",
+        details: {
           expectedUserId: sessionBinding.userId,
           receivedUserId: providedUserId,
         },
@@ -522,16 +585,10 @@ wss.on("connection", (ws) => {
     const parsedEnvelope = safeParseEnvelope(raw.toString("utf8"));
     if (!parsedEnvelope) {
       metrics.record("ws.message.invalid_envelope", Date.now() - messageStartedAt, false);
-      const traceId = randomUUID();
-      emitGatewayEvent({
+      emitGatewayError({
         sessionId: "unknown",
-        runId: traceId,
-        type: "gateway.error",
-        payload: {
-          code: "GATEWAY_INVALID_ENVELOPE",
-          message: "Invalid event envelope",
-          traceId,
-        },
+        code: "GATEWAY_INVALID_ENVELOPE",
+        message: "Invalid event envelope",
       });
       return;
     }
@@ -545,13 +602,12 @@ wss.on("connection", (ws) => {
 
     if (draining) {
       metrics.record("ws.message.draining", Date.now() - messageStartedAt, false);
-      emitGatewayEvent({
+      emitGatewayError({
         sessionId: parsed.sessionId,
         runId: binding.runId,
-        type: "gateway.error",
-        payload: {
-          code: "GATEWAY_DRAINING",
-          message: "gateway is draining and does not accept new requests",
+        code: "GATEWAY_DRAINING",
+        message: "gateway is draining and does not accept new requests",
+        details: {
           runtime: runtimeState(),
         },
       });
@@ -785,15 +841,13 @@ wss.on("connection", (ws) => {
         },
         currentRunId,
       );
-      const traceId = randomUUID();
-      emitGatewayEvent({
+      emitGatewayError({
         sessionId: parsed.sessionId,
         runId: currentRunId,
-        type: "gateway.error",
-        payload: {
-          code: "GATEWAY_ORCHESTRATOR_FAILURE",
-          message: error instanceof Error ? error.message : "Unknown gateway failure",
-          traceId,
+        code: "GATEWAY_ORCHESTRATOR_FAILURE",
+        message: error instanceof Error ? error.message : "Unknown gateway failure",
+        details: {
+          route: "orchestrator",
         },
       });
     }

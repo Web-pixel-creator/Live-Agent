@@ -360,7 +360,7 @@ async function refreshActiveTasks() {
     const response = await fetch(url, { method: "GET" });
     const payload = await response.json();
     if (!response.ok) {
-      const errorText = payload?.error ?? `tasks/active failed with ${response.status}`;
+      const errorText = getApiErrorMessage(payload, `tasks/active failed with ${response.status}`);
       throw new Error(String(errorText));
     }
     const records = Array.isArray(payload?.data) ? payload.data : [];
@@ -472,6 +472,24 @@ function findTextPayload(value) {
   return null;
 }
 
+function getApiErrorMessage(payload, fallback) {
+  if (!payload || typeof payload !== "object") {
+    return fallback;
+  }
+  if (typeof payload.error === "string" && payload.error.trim().length > 0) {
+    return payload.error;
+  }
+  if (payload.error && typeof payload.error === "object") {
+    if (typeof payload.error.message === "string" && payload.error.message.trim().length > 0) {
+      return payload.error.message;
+    }
+  }
+  if (typeof payload.message === "string" && payload.message.trim().length > 0) {
+    return payload.message;
+  }
+  return fallback;
+}
+
 function handleLiveOutput(upstream) {
   const audioBase64 = findAudioBase64(upstream);
   if (audioBase64) {
@@ -547,8 +565,7 @@ async function submitApprovalDecision(decision) {
 
     const payload = await response.json();
     if (!response.ok) {
-      const errorText =
-        payload?.error ?? payload?.message ?? `Approval request failed with status ${response.status}`;
+      const errorText = getApiErrorMessage(payload, `Approval request failed with status ${response.status}`);
       throw new Error(String(errorText));
     }
 

@@ -28,6 +28,13 @@ export type NormalizedError = {
   details?: unknown;
 };
 
+export type ApiErrorResponse = {
+  ok: false;
+  error: NormalizedError;
+  service?: string;
+  runtime?: unknown;
+};
+
 export type SessionRecord = {
   sessionId: string;
   userId: string;
