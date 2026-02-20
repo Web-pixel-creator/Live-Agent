@@ -19,8 +19,10 @@ import {
   listEvents,
   listRecentEvents,
   listApprovals,
+  listOperatorActions,
   listRuns,
   listSessions,
+  recordOperatorAction,
   recordApprovalDecision,
   sweepApprovalTimeouts,
   upsertPendingApproval,
@@ -526,6 +528,38 @@ async function runApprovalSlaSweep(): Promise<ApprovalSweepResult> {
   });
 }
 
+async function auditOperatorAction(params: {
+  role: OperatorRole;
+  action: string;
+  outcome: "succeeded" | "failed" | "denied";
+  reason: string;
+  taskId?: string;
+  targetService?: string;
+  operation?: string;
+  errorCode?: string;
+  details?: unknown;
+}): Promise<void> {
+  try {
+    await recordOperatorAction({
+      actorRole: params.role,
+      action: params.action,
+      outcome: params.outcome,
+      reason: params.reason,
+      taskId: params.taskId,
+      targetService: params.targetService,
+      operation: params.operation,
+      errorCode: params.errorCode,
+      details: params.details,
+    });
+  } catch (error) {
+    console.error("[api-backend] failed to write operator action audit", {
+      action: params.action,
+      role: params.role,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 async function sendToOrchestrator(request: OrchestratorRequest): Promise<OrchestratorResponse> {
   const startedAt = Date.now();
   let lastError: Error | null = null;
@@ -945,7 +979,10 @@ export const server = createServer(async (req, res) => {
         listRecentEvents(traceEventsLimit),
       ]);
       const syncedFromTasks = await syncPendingApprovalsFromTasks(activeTasks);
-      const approvals = await listApprovals({ limit: 100 });
+      const [approvals, operatorActions] = await Promise.all([
+        listApprovals({ limit: 100 }),
+        listOperatorActions(50),
+      ]);
       const pendingApprovalsFromTasks = activeTasks.filter(
         (task) => isRecord(task) && task.status === "pending_approval",
       ).length;
@@ -972,6 +1009,10 @@ export const server = createServer(async (req, res) => {
             pendingFromTasks: pendingApprovalsFromTasks,
             syncedFromTasks,
             slaSweep: sweep,
+          },
+          operatorActions: {
+            total: operatorActions.length,
+            recent: operatorActions.slice(0, 25),
           },
           services,
           traces,
@@ -1000,16 +1041,48 @@ export const server = createServer(async (req, res) => {
       if (action === "cancel_task") {
         const taskId = typeof parsed.taskId === "string" ? parsed.taskId.trim() : "";
         if (taskId.length === 0) {
+          await auditOperatorAction({
+            role,
+            action: "cancel_task",
+            outcome: "denied",
+            reason,
+            errorCode: "API_OPERATOR_TASK_ID_REQUIRED",
+          });
           writeApiError(res, 400, {
             code: "API_OPERATOR_TASK_ID_REQUIRED",
             message: "taskId is required for cancel_task",
           });
           return;
         }
-        const url = `${gatewayBaseUrl}/tasks/${encodeURIComponent(taskId)}/cancel?reason=${encodeURIComponent(
+        const targetUrl = `${gatewayBaseUrl}/tasks/${encodeURIComponent(taskId)}/cancel?reason=${encodeURIComponent(
           reason,
         )}`;
-        const result = await postJsonWithTimeout(url, {}, 8000);
+        let result: unknown;
+        try {
+          result = await postJsonWithTimeout(targetUrl, {}, 8000);
+        } catch (error) {
+          const normalized = normalizeUnknownError(error, {
+            defaultCode: "API_OPERATOR_ACTION_FAILED",
+            defaultMessage: "operator cancel_task failed",
+          });
+          await auditOperatorAction({
+            role,
+            action: "cancel_task",
+            outcome: "failed",
+            reason,
+            taskId,
+            errorCode: normalized.code,
+            details: normalized,
+          });
+          throw error;
+        }
+        await auditOperatorAction({
+          role,
+          action: "cancel_task",
+          outcome: "succeeded",
+          reason,
+          taskId,
+        });
         writeJson(res, 200, {
           data: {
             action: "cancel_task",
@@ -1023,16 +1096,48 @@ export const server = createServer(async (req, res) => {
       if (action === "retry_task") {
         const taskId = typeof parsed.taskId === "string" ? parsed.taskId.trim() : "";
         if (taskId.length === 0) {
+          await auditOperatorAction({
+            role,
+            action: "retry_task",
+            outcome: "denied",
+            reason,
+            errorCode: "API_OPERATOR_TASK_ID_REQUIRED",
+          });
           writeApiError(res, 400, {
             code: "API_OPERATOR_TASK_ID_REQUIRED",
             message: "taskId is required for retry_task",
           });
           return;
         }
-        const url = `${gatewayBaseUrl}/tasks/${encodeURIComponent(taskId)}/retry?reason=${encodeURIComponent(
+        const targetUrl = `${gatewayBaseUrl}/tasks/${encodeURIComponent(taskId)}/retry?reason=${encodeURIComponent(
           reason,
         )}`;
-        const result = await postJsonWithTimeout(url, {}, 8000);
+        let result: unknown;
+        try {
+          result = await postJsonWithTimeout(targetUrl, {}, 8000);
+        } catch (error) {
+          const normalized = normalizeUnknownError(error, {
+            defaultCode: "API_OPERATOR_ACTION_FAILED",
+            defaultMessage: "operator retry_task failed",
+          });
+          await auditOperatorAction({
+            role,
+            action: "retry_task",
+            outcome: "failed",
+            reason,
+            taskId,
+            errorCode: normalized.code,
+            details: normalized,
+          });
+          throw error;
+        }
+        await auditOperatorAction({
+          role,
+          action: "retry_task",
+          outcome: "succeeded",
+          reason,
+          taskId,
+        });
         writeJson(res, 200, {
           data: {
             action: "retry_task",
@@ -1045,6 +1150,13 @@ export const server = createServer(async (req, res) => {
 
       if (action === "failover") {
         if (role !== "admin") {
+          await auditOperatorAction({
+            role,
+            action: "failover",
+            outcome: "denied",
+            reason,
+            errorCode: "API_OPERATOR_ADMIN_REQUIRED",
+          });
           writeApiError(res, 403, {
             code: "API_OPERATOR_ADMIN_REQUIRED",
             message: "failover action requires admin role",
@@ -1058,6 +1170,15 @@ export const server = createServer(async (req, res) => {
         const operation = operationRaw === "drain" || operationRaw === "warmup" ? operationRaw : null;
 
         if (!targetService || !operation) {
+          await auditOperatorAction({
+            role,
+            action: "failover",
+            outcome: "denied",
+            reason,
+            targetService: typeof parsed.targetService === "string" ? parsed.targetService : undefined,
+            operation: typeof parsed.operation === "string" ? parsed.operation : undefined,
+            errorCode: "API_OPERATOR_FAILOVER_INVALID_INPUT",
+          });
           writeApiError(res, 400, {
             code: "API_OPERATOR_FAILOVER_INVALID_INPUT",
             message: "targetService and operation (drain|warmup) are required for failover action",
@@ -1077,6 +1198,14 @@ export const server = createServer(async (req, res) => {
             draining = false;
             lastWarmupAt = new Date().toISOString();
           }
+          await auditOperatorAction({
+            role,
+            action: "failover",
+            outcome: "succeeded",
+            reason,
+            targetService,
+            operation,
+          });
           writeJson(res, 200, {
             data: {
               action: "failover",
@@ -1089,7 +1218,34 @@ export const server = createServer(async (req, res) => {
         }
 
         const baseUrl = resolveServiceBaseUrl(targetService);
-        const result = await postJsonWithTimeout(`${baseUrl}/${operation}`, {}, 8000);
+        let result: unknown;
+        try {
+          result = await postJsonWithTimeout(`${baseUrl}/${operation}`, {}, 8000);
+        } catch (error) {
+          const normalized = normalizeUnknownError(error, {
+            defaultCode: "API_OPERATOR_ACTION_FAILED",
+            defaultMessage: "operator failover action failed",
+          });
+          await auditOperatorAction({
+            role,
+            action: "failover",
+            outcome: "failed",
+            reason,
+            targetService,
+            operation,
+            errorCode: normalized.code,
+            details: normalized,
+          });
+          throw error;
+        }
+        await auditOperatorAction({
+          role,
+          action: "failover",
+          outcome: "succeeded",
+          reason,
+          targetService,
+          operation,
+        });
         writeJson(res, 200, {
           data: {
             action: "failover",
@@ -1101,6 +1257,17 @@ export const server = createServer(async (req, res) => {
         return;
       }
 
+      await auditOperatorAction({
+        role,
+        action: action.length > 0 ? action : "unknown",
+        outcome: "denied",
+        reason,
+        errorCode: "API_OPERATOR_ACTION_INVALID",
+        details: {
+          action: parsed.action,
+          allowedActions: ["cancel_task", "retry_task", "failover"],
+        },
+      });
       writeApiError(res, 400, {
         code: "API_OPERATOR_ACTION_INVALID",
         message: "unsupported operator action",

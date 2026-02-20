@@ -91,6 +91,22 @@ export type ApprovalRecord = {
   metadata?: unknown;
 };
 
+export type OperatorActionOutcome = "succeeded" | "failed" | "denied";
+
+export type OperatorActionRecord = {
+  actionId: string;
+  actorRole: string;
+  action: string;
+  outcome: OperatorActionOutcome;
+  reason: string;
+  taskId?: string;
+  targetService?: string;
+  operation?: string;
+  errorCode?: string;
+  createdAt: string;
+  details?: unknown;
+};
+
 let firestoreClient: Firestore | null = null;
 let initialized = false;
 let state: FirestoreState = {
@@ -101,6 +117,7 @@ let state: FirestoreState = {
 
 const inMemorySessions = new Map<string, SessionListItem>();
 const inMemoryApprovals = new Map<string, ApprovalRecord>();
+const inMemoryOperatorActions: OperatorActionRecord[] = [];
 const DEFAULT_APPROVAL_SOFT_TIMEOUT_MS = 60 * 1000;
 const DEFAULT_APPROVAL_HARD_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -416,6 +433,49 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
     hasVisualTesting,
     hasError,
   };
+}
+
+function mapOperatorActionRecord(
+  docId: string,
+  raw: Record<string, unknown>,
+): OperatorActionRecord {
+  const action = toNonEmptyString(raw.action) ?? "unknown";
+  const role = toNonEmptyString(raw.actorRole) ?? "operator";
+  const outcomeRaw = toNonEmptyString(raw.outcome) ?? "succeeded";
+  const outcome: OperatorActionOutcome =
+    outcomeRaw === "failed" || outcomeRaw === "denied" ? outcomeRaw : "succeeded";
+  const reason = toNonEmptyString(raw.reason) ?? "operator action";
+
+  const record: OperatorActionRecord = {
+    actionId: toNonEmptyString(raw.actionId) ?? docId,
+    actorRole: role,
+    action,
+    outcome,
+    reason,
+    createdAt: toIso(raw.createdAt ?? raw.updatedAt),
+  };
+
+  const taskId = toNonEmptyString(raw.taskId);
+  const targetService = toNonEmptyString(raw.targetService);
+  const operation = toNonEmptyString(raw.operation);
+  const errorCode = toNonEmptyString(raw.errorCode);
+  if (taskId) {
+    record.taskId = taskId;
+  }
+  if (targetService) {
+    record.targetService = targetService;
+  }
+  if (operation) {
+    record.operation = operation;
+  }
+  if (errorCode) {
+    record.errorCode = errorCode;
+  }
+  if (raw.details !== undefined) {
+    record.details = raw.details;
+  }
+
+  return record;
 }
 
 function ensurePendingLifecycle(params: {
@@ -745,6 +805,81 @@ export async function listApprovals(params: {
   const snapshot = await query.limit(params.limit).get();
 
   return snapshot.docs.map((doc) => mapApprovalRecord(doc.id, doc.data() as Record<string, unknown>));
+}
+
+export async function recordOperatorAction(params: {
+  actorRole: string;
+  action: string;
+  outcome: OperatorActionOutcome;
+  reason: string;
+  taskId?: string;
+  targetService?: string;
+  operation?: string;
+  errorCode?: string;
+  details?: unknown;
+}): Promise<OperatorActionRecord> {
+  const nowIso = new Date().toISOString();
+  const db = initFirestore();
+
+  const actionRecord: OperatorActionRecord = {
+    actionId: `op-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+    actorRole: toNonEmptyString(params.actorRole) ?? "operator",
+    action: toNonEmptyString(params.action) ?? "unknown",
+    outcome: params.outcome,
+    reason: toNonEmptyString(params.reason) ?? "operator action",
+    createdAt: nowIso,
+    taskId: toNonEmptyString(params.taskId) ?? undefined,
+    targetService: toNonEmptyString(params.targetService) ?? undefined,
+    operation: toNonEmptyString(params.operation) ?? undefined,
+    errorCode: toNonEmptyString(params.errorCode) ?? undefined,
+    details: params.details,
+  };
+
+  if (!db) {
+    inMemoryOperatorActions.unshift(actionRecord);
+    if (inMemoryOperatorActions.length > 500) {
+      inMemoryOperatorActions.splice(500);
+    }
+    return actionRecord;
+  }
+
+  const ref = db.collection("operator_actions").doc(actionRecord.actionId);
+  await ref.set(
+    {
+      actionId: actionRecord.actionId,
+      actorRole: actionRecord.actorRole,
+      action: actionRecord.action,
+      outcome: actionRecord.outcome,
+      reason: actionRecord.reason,
+      taskId: actionRecord.taskId ?? null,
+      targetService: actionRecord.targetService ?? null,
+      operation: actionRecord.operation ?? null,
+      errorCode: actionRecord.errorCode ?? null,
+      details: actionRecord.details ?? null,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      expireAt: Timestamp.fromDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
+    },
+    { merge: true },
+  );
+
+  const stored = await ref.get();
+  return mapOperatorActionRecord(ref.id, (stored.data() ?? {}) as Record<string, unknown>);
+}
+
+export async function listOperatorActions(limit: number): Promise<OperatorActionRecord[]> {
+  const db = initFirestore();
+  if (!db) {
+    return inMemoryOperatorActions.slice(0, limit);
+  }
+
+  const snapshot = await db
+    .collection("operator_actions")
+    .orderBy("updatedAt", "desc")
+    .limit(limit)
+    .get();
+
+  return snapshot.docs.map((doc) => mapOperatorActionRecord(doc.id, doc.data() as Record<string, unknown>));
 }
 
 export type ApprovalSweepResult = {

@@ -520,7 +520,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 
 4. Rich operational console
    - Baseline implemented: operator summary APIs for active tasks, approval queue snapshots, per-service health/runtime profile status, and execution trace rollups (runs/events/tool steps/screenshots/approval links).
-   - Baseline implemented: role-gated recovery actions (`cancel_task`, `retry_task`, `failover drain/warmup`).
+   - Baseline implemented: role-gated recovery actions (`cancel_task`, `retry_task`, `failover drain/warmup`) with operator action audit trail visible in console summary.
    - Next step: add full UI audit timeline and richer incident automation controls.
 
 ### Explicitly Out of Baseline Scope

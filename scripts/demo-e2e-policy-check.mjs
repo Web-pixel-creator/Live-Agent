@@ -291,6 +291,12 @@ async function main() {
     true,
   );
   addCheck(
+    "kpi.operatorAuditTrailValidated",
+    kpis.operatorAuditTrailValidated === true,
+    kpis.operatorAuditTrailValidated,
+    true,
+  );
+  addCheck(
     "kpi.operatorTraceCoverageValidated",
     kpis.operatorTraceCoverageValidated === true,
     kpis.operatorTraceCoverageValidated,

@@ -87,6 +87,7 @@ Session mutation concurrency controls:
   - `action=cancel_task` + `taskId`
   - `action=retry_task` + `taskId`
   - `action=failover` + `targetService` + `operation` (`drain|warmup`, admin only)
+- Summary response now includes `operatorActions.recent` audit trail for cancel/retry/failover operations (role, outcome, reason, target/task metadata).
 
 9. Demo frontend includes an Operator Console panel for summary refresh and recovery actions.
 

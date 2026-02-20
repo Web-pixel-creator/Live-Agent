@@ -1149,6 +1149,14 @@ try {
     $warmupState = [string](Get-FieldValue -Object $warmupResponse -Path @("data", "result", "runtime", "state"))
     Assert-Condition -Condition ($warmupState -eq "ready") -Message "Admin failover warmup should set orchestrator back to ready."
 
+    $postSummaryResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/operator/summary" -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
+    $postSummaryData = Get-FieldValue -Object $postSummaryResponse -Path @("data")
+    $operatorActionsBlock = Get-FieldValue -Object $postSummaryData -Path @("operatorActions")
+    $operatorAuditTotal = [int](Get-FieldValue -Object $operatorActionsBlock -Path @("total"))
+    $operatorAuditRecent = @(Get-FieldValue -Object $operatorActionsBlock -Path @("recent"))
+    Assert-Condition -Condition ($operatorAuditTotal -ge 4) -Message "Operator audit trail should include recent operator actions."
+    Assert-Condition -Condition ($operatorAuditRecent.Count -ge 1) -Message "Operator audit trail recent entries should not be empty."
+
     return [ordered]@{
       taskId = $taskId
       summaryActiveTasks = $activeTasks.Count
@@ -1157,6 +1165,7 @@ try {
       forbiddenCode = $forbiddenCode
       drainState = $drainState
       warmupState = $warmupState
+      operatorAuditTotal = $operatorAuditTotal
       traceRuns = $traceRuns
       traceEvents = $traceEvents
       traceUiRuns = $traceUiRuns
@@ -1482,11 +1491,16 @@ $summary = [ordered]@{
     operatorFailoverForbiddenCode = if ($null -ne $operatorActionsData) { $operatorActionsData.forbiddenCode } else { $null }
     operatorFailoverDrainState = if ($null -ne $operatorActionsData) { $operatorActionsData.drainState } else { $null }
     operatorFailoverWarmupState = if ($null -ne $operatorActionsData) { $operatorActionsData.warmupState } else { $null }
+    operatorAuditTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.operatorAuditTotal } else { $null }
     operatorTraceRuns = if ($null -ne $operatorActionsData) { $operatorActionsData.traceRuns } else { $null }
     operatorTraceEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.traceEvents } else { $null }
     operatorTraceUiRuns = if ($null -ne $operatorActionsData) { $operatorActionsData.traceUiRuns } else { $null }
     operatorTraceApprovals = if ($null -ne $operatorActionsData) { $operatorActionsData.traceApprovals } else { $null }
     operatorTraceScreenshots = if ($null -ne $operatorActionsData) { $operatorActionsData.traceScreenshots } else { $null }
+    operatorAuditTrailValidated = if (
+      $null -ne $operatorActionsData -and
+      [int]$operatorActionsData.operatorAuditTotal -ge 4
+    ) { $true } else { $false }
     operatorTraceCoverageValidated = if (
       $null -ne $operatorActionsData -and
       [int]$operatorActionsData.traceRuns -ge 1 -and

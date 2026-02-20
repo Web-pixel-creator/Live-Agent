@@ -124,7 +124,7 @@
 | T-210.1 | T-210 | Спроектировать IA operator console (tasks, approvals, health, actions) | 2h | T-205, T-010 | Есть wireframe/flow и список обязательных виджетов |
 | T-210.2 | T-210 | Реализовать backend endpoints для operator actions (cancel/retry/failover) с RBAC | 5h | T-210.1, T-011 | Операции доступны только ролям оператора/админа |
 | T-210.3 | T-210 | Реализовать UI-экран operator console и действия с confirm-dialogs | 5h | T-210.2 | Оператор может выполнять управляемые recovery-действия из UI |
-| T-210.4 | T-210 | Добавить audit trail для операторских действий и E2E тесты runbook-сценариев | 3h | T-210.2, T-210.3 | Каждое действие логируется, E2E сценарии восстановления проходят |
+| T-210.4 | T-210 | Добавить audit trail для операторских действий и E2E тесты runbook-сценариев | 3h | T-210.2, T-210.3 | Каждое действие логируется (`operatorActions.recent`), E2E policy подтверждает `operatorAuditTrailValidated=true` |
 
 ## Phase M4: V3 Ecosystem Expansion (Week 7-12+)
 

@@ -423,6 +423,30 @@ function renderOperatorSummary(summary) {
     `recorded=${approvalsTotal} pending_from_tasks=${pendingApprovals}`,
   );
 
+  const operatorActions = summary.operatorActions && typeof summary.operatorActions === "object"
+    ? summary.operatorActions
+    : null;
+  if (operatorActions) {
+    const actionTotal = Number(operatorActions.total ?? 0);
+    appendEntry(el.operatorSummary, "system", "operator_actions", `recorded=${actionTotal}`);
+    const recentActions = Array.isArray(operatorActions.recent) ? operatorActions.recent : [];
+    for (const item of recentActions.slice(0, 4)) {
+      if (!item || typeof item !== "object") {
+        continue;
+      }
+      const action = typeof item.action === "string" ? item.action : "action";
+      const outcome = typeof item.outcome === "string" ? item.outcome : "unknown";
+      const actorRole = typeof item.actorRole === "string" ? item.actorRole : "unknown";
+      const taskId = typeof item.taskId === "string" ? item.taskId : "-";
+      appendEntry(
+        el.operatorSummary,
+        "system",
+        `audit.${action}`,
+        `role=${actorRole} outcome=${outcome} task=${taskId}`,
+      );
+    }
+  }
+
   const traces = summary.traces && typeof summary.traces === "object" ? summary.traces : null;
   if (traces) {
     const totals = traces.totals && typeof traces.totals === "object" ? traces.totals : {};
