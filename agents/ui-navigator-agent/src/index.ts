@@ -44,6 +44,9 @@ type PlannerConfig = {
   baseUrl: string;
   plannerModel: string;
   timeoutMs: number;
+  executorTimeoutMs: number;
+  executorRequestMaxRetries: number;
+  executorRetryBackoffMs: number;
   plannerEnabled: boolean;
   maxStepsDefault: number;
   approvalKeywords: string[];
@@ -112,6 +115,9 @@ function getPlannerConfig(): PlannerConfig {
     baseUrl: toNonEmptyString(process.env.GEMINI_API_BASE_URL, "https://generativelanguage.googleapis.com/v1beta"),
     plannerModel: toNonEmptyString(process.env.UI_NAVIGATOR_PLANNER_MODEL, "gemini-3-pro-preview"),
     timeoutMs: parsePositiveInt(process.env.UI_NAVIGATOR_GEMINI_TIMEOUT_MS, 10000),
+    executorTimeoutMs: parsePositiveInt(process.env.UI_NAVIGATOR_EXECUTOR_TIMEOUT_MS, 15000),
+    executorRequestMaxRetries: parsePositiveInt(process.env.UI_NAVIGATOR_EXECUTOR_MAX_RETRIES, 1),
+    executorRetryBackoffMs: parsePositiveInt(process.env.UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS, 300),
     plannerEnabled: process.env.UI_NAVIGATOR_USE_GEMINI_PLANNER !== "false",
     maxStepsDefault: parsePositiveInt(process.env.UI_NAVIGATOR_MAX_STEPS, 8),
     approvalKeywords: parseKeywordList(process.env.UI_NAVIGATOR_APPROVAL_KEYWORDS, [
@@ -546,6 +552,17 @@ function defaultExecutionResult(params: {
   };
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+class NonRetriableExecutorError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NonRetriableExecutorError";
+  }
+}
+
 async function executeWithRemoteHttpAdapter(params: {
   config: PlannerConfig;
   actions: UiAction[];
@@ -557,57 +574,99 @@ async function executeWithRemoteHttpAdapter(params: {
   }
 
   const endpoint = `${params.config.executorUrl.replace(/\/+$/, "")}/execute`;
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      actions: params.actions,
-      context: {
-        screenshotRef: params.input.screenshotRef,
-        cursor: params.input.cursor,
-        goal: params.input.goal,
-      },
-    }),
-  });
+  let lastError: Error | null = null;
+  const totalAttempts = params.config.executorRequestMaxRetries + 1;
 
-  if (!response.ok) {
-    throw new Error(`remote executor failed with ${response.status}`);
-  }
+  for (let attempt = 0; attempt < totalAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), params.config.executorTimeoutMs);
 
-  const parsed = (await response.json()) as unknown;
-  if (!isRecord(parsed) || !Array.isArray(parsed.trace)) {
-    throw new Error("remote executor returned invalid payload");
-  }
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          actions: params.actions,
+          context: {
+            screenshotRef: params.input.screenshotRef,
+            cursor: params.input.cursor,
+            goal: params.input.goal,
+          },
+        }),
+        signal: controller.signal,
+      });
 
-  const trace: UiTraceStep[] = [];
-  for (const item of parsed.trace) {
-    if (!isRecord(item)) {
+      if (!response.ok) {
+        if (response.status >= 500 || response.status === 429) {
+          lastError = new Error(`remote executor failed with ${response.status}`);
+        } else {
+          throw new NonRetriableExecutorError(`remote executor failed with ${response.status}`);
+        }
+      } else {
+        const parsed = (await response.json()) as unknown;
+        if (!isRecord(parsed) || !Array.isArray(parsed.trace)) {
+          throw new Error("remote executor returned invalid payload");
+        }
+
+        const trace: UiTraceStep[] = [];
+        for (const item of parsed.trace) {
+          if (!isRecord(item)) {
+            continue;
+          }
+          trace.push({
+            index: toNullableInt(item.index) ?? trace.length + 1,
+            actionId: toNonEmptyString(item.actionId, randomUUID()),
+            actionType: (toNonEmptyString(item.actionType, "verify") as UiAction["type"]),
+            target: toNonEmptyString(item.target, "unknown-target"),
+            status:
+              item.status === "retry" || item.status === "failed" || item.status === "blocked"
+                ? item.status
+                : "ok",
+            screenshotRef: toNonEmptyString(
+              item.screenshotRef,
+              `${params.screenshotSeed}/remote-${trace.length + 1}.png`,
+            ),
+            notes: toNonEmptyString(item.notes, "remote executor step"),
+          });
+        }
+
+        const finalStatus = parsed.finalStatus === "failed" ? "failed" : "completed";
+        const retries = toNullableInt(parsed.retries) ?? 0;
+        return defaultExecutionResult({
+          trace,
+          finalStatus,
+          retries,
+          executor: "remote-http-adapter",
+          adapterMode: "remote_http",
+          adapterNotes: ["Executed via remote HTTP adapter"],
+        });
+      }
+    } catch (error) {
+      if (error instanceof NonRetriableExecutorError) {
+        throw error;
+      }
+      const isAbortError = error instanceof Error && error.name === "AbortError";
+      lastError = isAbortError
+        ? new Error(`remote executor request timed out after ${params.config.executorTimeoutMs}ms`)
+        : error instanceof Error
+          ? error
+          : new Error("remote executor failed");
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (attempt < params.config.executorRequestMaxRetries) {
+      await sleep(params.config.executorRetryBackoffMs * (attempt + 1));
       continue;
     }
-    trace.push({
-      index: toNullableInt(item.index) ?? trace.length + 1,
-      actionId: toNonEmptyString(item.actionId, randomUUID()),
-      actionType: (toNonEmptyString(item.actionType, "verify") as UiAction["type"]),
-      target: toNonEmptyString(item.target, "unknown-target"),
-      status:
-        item.status === "retry" || item.status === "failed" || item.status === "blocked" ? item.status : "ok",
-      screenshotRef: toNonEmptyString(item.screenshotRef, `${params.screenshotSeed}/remote-${trace.length + 1}.png`),
-      notes: toNonEmptyString(item.notes, "remote executor step"),
-    });
+    if (lastError) {
+      throw lastError;
+    }
   }
 
-  const finalStatus = parsed.finalStatus === "failed" ? "failed" : "completed";
-  const retries = toNullableInt(parsed.retries) ?? 0;
-  return defaultExecutionResult({
-    trace,
-    finalStatus,
-    retries,
-    executor: "remote-http-adapter",
-    adapterMode: "remote_http",
-    adapterNotes: ["Executed via remote HTTP adapter"],
-  });
+  throw new Error("remote executor failed");
 }
 
 async function executeWithPlaywrightPreview(params: {

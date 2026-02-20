@@ -92,7 +92,11 @@ wss.on("connection", (ws) => {
       const request: OrchestratorRequest = parsed.runId
         ? (parsed as OrchestratorRequest)
         : ({ ...parsed, runId: parsed.id } as OrchestratorRequest);
-      const response = await sendToOrchestrator(config.orchestratorUrl, request);
+      const response = await sendToOrchestrator(config.orchestratorUrl, request, {
+        timeoutMs: config.orchestratorTimeoutMs,
+        maxRetries: config.orchestratorMaxRetries,
+        retryBackoffMs: config.orchestratorRetryBackoffMs,
+      });
       sendEvent(response);
     } catch (error) {
       const traceId = randomUUID();

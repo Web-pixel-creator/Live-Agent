@@ -18,6 +18,12 @@ import {
 const port = Number(process.env.API_PORT ?? 8081);
 const orchestratorUrl =
   process.env.API_ORCHESTRATOR_URL ?? process.env.ORCHESTRATOR_URL ?? "http://localhost:8082/orchestrate";
+const orchestratorTimeoutMs = parsePositiveInt(process.env.API_ORCHESTRATOR_TIMEOUT_MS ?? null, 15000);
+const orchestratorMaxRetries = parsePositiveInt(process.env.API_ORCHESTRATOR_MAX_RETRIES ?? null, 1);
+const orchestratorRetryBackoffMs = parsePositiveInt(
+  process.env.API_ORCHESTRATOR_RETRY_BACKOFF_MS ?? null,
+  300,
+);
 
 function writeJson(res: ServerResponse, statusCode: number, body: unknown): void {
   res.statusCode = statusCode;
@@ -60,28 +66,91 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-async function sendToOrchestrator(request: OrchestratorRequest): Promise<OrchestratorResponse> {
-  const response = await fetch(orchestratorUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  });
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  if (!response.ok) {
-    let details = "";
+async function readErrorDetails(response: Response): Promise<string> {
+  try {
+    const details = await response.text();
+    return details.slice(0, 300);
+  } catch {
+    return "";
+  }
+}
+
+function shouldRetryStatus(statusCode: number): boolean {
+  return statusCode >= 500 || statusCode === 429;
+}
+
+class NonRetriableRequestError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NonRetriableRequestError";
+  }
+}
+
+async function sendToOrchestrator(request: OrchestratorRequest): Promise<OrchestratorResponse> {
+  let lastError: Error | null = null;
+  const totalAttempts = orchestratorMaxRetries + 1;
+
+  for (let attempt = 0; attempt < totalAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), orchestratorTimeoutMs);
+
     try {
-      details = await response.text();
-    } catch {
-      details = "";
+      const response = await fetch(orchestratorUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(request),
+        signal: controller.signal,
+      });
+
+      if (response.ok) {
+        return (await response.json()) as OrchestratorResponse;
+      }
+
+      const details = await readErrorDetails(response);
+      const retriable = shouldRetryStatus(response.status) && attempt < orchestratorMaxRetries;
+      if (!retriable) {
+        throw new NonRetriableRequestError(
+          details.length > 0
+            ? `orchestrator request failed: ${response.status} ${details}`
+            : `orchestrator request failed: ${response.status}`,
+        );
+      }
+      lastError = new Error(
+        details.length > 0
+          ? `orchestrator request failed: ${response.status} ${details}`
+          : `orchestrator request failed: ${response.status}`,
+      );
+    } catch (error) {
+      if (error instanceof NonRetriableRequestError) {
+        throw error;
+      }
+      const isAbortError = error instanceof Error && error.name === "AbortError";
+      const retriable = attempt < orchestratorMaxRetries;
+      if (!retriable) {
+        if (isAbortError) {
+          throw new Error(`orchestrator request timed out after ${orchestratorTimeoutMs}ms`);
+        }
+        throw error instanceof Error ? error : new Error("orchestrator request failed");
+      }
+      lastError = isAbortError
+        ? new Error(`orchestrator request timed out after ${orchestratorTimeoutMs}ms`)
+        : error instanceof Error
+          ? error
+          : new Error("orchestrator request failed");
+    } finally {
+      clearTimeout(timeout);
     }
-    throw new Error(
-      details.length > 0
-        ? `orchestrator request failed: ${response.status} ${details.slice(0, 300)}`
-        : `orchestrator request failed: ${response.status}`,
-    );
+
+    if (attempt < orchestratorMaxRetries) {
+      await sleep(orchestratorRetryBackoffMs * (attempt + 1));
+    }
   }
 
-  return (await response.json()) as OrchestratorResponse;
+  throw lastError ?? new Error("orchestrator request failed");
 }
 
 export const server = createServer(async (req, res) => {

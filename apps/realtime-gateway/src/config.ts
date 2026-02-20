@@ -3,6 +3,9 @@ export type LiveApiProtocol = "gemini" | "passthrough";
 export type GatewayConfig = {
   port: number;
   orchestratorUrl: string;
+  orchestratorTimeoutMs: number;
+  orchestratorMaxRetries: number;
+  orchestratorRetryBackoffMs: number;
   liveApiEnabled: boolean;
   liveApiWsUrl?: string;
   liveApiApiKey?: string;
@@ -39,6 +42,9 @@ export function loadGatewayConfig(): GatewayConfig {
   return {
     port: Number(process.env.GATEWAY_PORT ?? 8080),
     orchestratorUrl: process.env.ORCHESTRATOR_URL ?? "http://localhost:8082/orchestrate",
+    orchestratorTimeoutMs: parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_TIMEOUT_MS, 15000),
+    orchestratorMaxRetries: parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_MAX_RETRIES, 1),
+    orchestratorRetryBackoffMs: parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_RETRY_BACKOFF_MS, 300),
     liveApiEnabled: process.env.LIVE_API_ENABLED === "true",
     liveApiWsUrl: process.env.LIVE_API_WS_URL,
     liveApiApiKey: process.env.LIVE_API_API_KEY,
