@@ -17,8 +17,22 @@ type ExecuteRequest = {
     goal?: string;
     url?: string;
     screenshotRef?: string;
+    deviceNodeId?: string;
     cursor?: { x: number; y: number };
   };
+};
+
+type DeviceNodeKind = "desktop" | "mobile";
+
+type DeviceNodeStatus = "online" | "offline" | "degraded";
+
+type DeviceNodeDescriptor = {
+  nodeId: string;
+  displayName: string;
+  kind: DeviceNodeKind;
+  platform: string;
+  status: DeviceNodeStatus;
+  capabilities: string[];
 };
 
 type TraceStep = {
@@ -38,6 +52,7 @@ type ExecuteResponse = {
   executor: string;
   adapterMode: "remote_http";
   adapterNotes: string[];
+  deviceNode: DeviceNodeDescriptor | null;
 };
 
 type ExecutorConfig = {
@@ -46,17 +61,65 @@ type ExecutorConfig = {
   strictPlaywright: boolean;
   simulateIfUnavailable: boolean;
   actionTimeoutMs: number;
+  defaultDeviceNodeId: string | null;
+  deviceNodes: Map<string, DeviceNodeDescriptor>;
 };
+
+function parseDeviceNodes(raw: string | undefined): Map<string, DeviceNodeDescriptor> {
+  const nodes = new Map<string, DeviceNodeDescriptor>();
+  if (!raw || raw.trim().length === 0) {
+    return nodes;
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return nodes;
+    }
+    for (const item of parsed) {
+      if (!isRecord(item)) {
+        continue;
+      }
+      const nodeId = toNonEmptyString(item.nodeId ?? item.id, "").toLowerCase();
+      if (!nodeId) {
+        continue;
+      }
+      const kind = toNonEmptyString(item.kind, "desktop") === "mobile" ? "mobile" : "desktop";
+      const statusRaw = toNonEmptyString(item.status, "online").toLowerCase();
+      const status: DeviceNodeStatus =
+        statusRaw === "offline" || statusRaw === "degraded" ? statusRaw : "online";
+      const capabilitiesRaw = Array.isArray(item.capabilities) ? item.capabilities : [];
+      const capabilities = capabilitiesRaw
+        .map((capability) => toNonEmptyString(capability, "").toLowerCase())
+        .filter((capability) => capability.length > 0);
+
+      nodes.set(nodeId, {
+        nodeId,
+        displayName: toNonEmptyString(item.displayName ?? item.name, nodeId),
+        kind,
+        platform: toNonEmptyString(item.platform, "unknown"),
+        status,
+        capabilities,
+      });
+    }
+    return nodes;
+  } catch {
+    return nodes;
+  }
+}
 
 function loadConfig(): ExecutorConfig {
   const portRaw = Number(process.env.UI_EXECUTOR_PORT ?? 8090);
   const timeoutRaw = Number(process.env.UI_EXECUTOR_ACTION_TIMEOUT_MS ?? 2500);
+  const deviceNodes = parseDeviceNodes(process.env.UI_EXECUTOR_DEVICE_NODES_JSON);
+  const defaultDeviceNodeId = toNonEmptyString(process.env.UI_EXECUTOR_DEFAULT_DEVICE_NODE_ID, "");
   return {
     port: Number.isFinite(portRaw) && portRaw > 0 ? Math.floor(portRaw) : 8090,
     defaultNavigationUrl: process.env.UI_EXECUTOR_DEFAULT_URL ?? "https://example.com",
     strictPlaywright: process.env.UI_EXECUTOR_STRICT_PLAYWRIGHT === "true",
     simulateIfUnavailable: process.env.UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE !== "false",
     actionTimeoutMs: Number.isFinite(timeoutRaw) && timeoutRaw > 0 ? Math.floor(timeoutRaw) : 2500,
+    defaultDeviceNodeId: defaultDeviceNodeId.length > 0 ? defaultDeviceNodeId.toLowerCase() : null,
+    deviceNodes,
   };
 }
 
@@ -128,6 +191,7 @@ function normalizeRequest(input: unknown): ExecuteRequest {
     goal: toNonEmptyString(contextRaw.goal, ""),
     url: toNonEmptyString(contextRaw.url, ""),
     screenshotRef: toNonEmptyString(contextRaw.screenshotRef, ""),
+    deviceNodeId: toNonEmptyString(contextRaw.deviceNodeId, "").toLowerCase(),
     cursor:
       isRecord(contextRaw.cursor) && typeof contextRaw.cursor.x === "number" && typeof contextRaw.cursor.y === "number"
         ? { x: contextRaw.cursor.x, y: contextRaw.cursor.y }
@@ -140,7 +204,11 @@ function normalizeRequest(input: unknown): ExecuteRequest {
   };
 }
 
-function simulateExecution(request: ExecuteRequest, note: string): ExecuteResponse {
+function simulateExecution(
+  request: ExecuteRequest,
+  note: string,
+  deviceNode: DeviceNodeDescriptor | null,
+): ExecuteResponse {
   const screenshotSeed = request.context?.screenshotRef || `ui://executor/${Date.now()}`;
   const trace: TraceStep[] = request.actions.map((action, idx) => ({
     index: idx + 1,
@@ -158,10 +226,14 @@ function simulateExecution(request: ExecuteRequest, note: string): ExecuteRespon
     executor: "ui-executor-service",
     adapterMode: "remote_http",
     adapterNotes: [note],
+    deviceNode,
   };
 }
 
-async function executeWithPlaywright(request: ExecuteRequest): Promise<ExecuteResponse | null> {
+async function executeWithPlaywright(
+  request: ExecuteRequest,
+  deviceNode: DeviceNodeDescriptor | null,
+): Promise<ExecuteResponse | null> {
   const dynamicImport = new Function(
     "specifier",
     "return import(specifier)",
@@ -303,6 +375,7 @@ async function executeWithPlaywright(request: ExecuteRequest): Promise<ExecuteRe
     executor: "ui-executor-service",
     adapterMode: "remote_http",
     adapterNotes: ["Executed via ui-executor playwright mode"],
+    deviceNode,
   };
 }
 
@@ -330,6 +403,7 @@ export const server = createServer(async (req, res) => {
         playwrightAvailable,
         strictPlaywright: config.strictPlaywright,
         simulateIfUnavailable: config.simulateIfUnavailable,
+        registeredDeviceNodes: config.deviceNodes.size,
       });
       return;
     }
@@ -342,7 +416,38 @@ export const server = createServer(async (req, res) => {
         return;
       }
 
-      const played = await executeWithPlaywright(request);
+      const headerNodeId = toNonEmptyString(req.headers["x-device-node-id"], "").toLowerCase();
+      const requestedNodeId = headerNodeId || toNonEmptyString(request.context?.deviceNodeId, "").toLowerCase();
+      const hasNodeRegistry = config.deviceNodes.size > 0;
+
+      let selectedNode: DeviceNodeDescriptor | null = null;
+      if (hasNodeRegistry) {
+        if (requestedNodeId.length > 0) {
+          selectedNode = config.deviceNodes.get(requestedNodeId) ?? null;
+          if (!selectedNode) {
+            writeJson(res, 404, {
+              error: "requested device node is not registered",
+              nodeId: requestedNodeId,
+            });
+            return;
+          }
+        } else if (config.defaultDeviceNodeId) {
+          selectedNode = config.deviceNodes.get(config.defaultDeviceNodeId) ?? null;
+        } else {
+          selectedNode = Array.from(config.deviceNodes.values()).find((node) => node.status !== "offline") ?? null;
+        }
+      }
+
+      if (selectedNode && selectedNode.status === "offline") {
+        writeJson(res, 409, {
+          error: "requested device node is offline",
+          nodeId: selectedNode.nodeId,
+          status: selectedNode.status,
+        });
+        return;
+      }
+
+      const played = await executeWithPlaywright(request, selectedNode);
       if (played) {
         writeJson(res, 200, played);
         return;
@@ -359,6 +464,7 @@ export const server = createServer(async (req, res) => {
       const simulated = simulateExecution(
         request,
         "Playwright unavailable in ui-executor, simulation fallback used",
+        selectedNode,
       );
       writeJson(res, 200, simulated);
       return;

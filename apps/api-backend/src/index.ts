@@ -15,7 +15,11 @@ import {
   type ApprovalDecision,
   type ApprovalSweepResult,
   createSession,
+  type DeviceNodeKind,
+  type DeviceNodeStatus,
   getFirestoreState,
+  listDeviceNodeIndex,
+  listDeviceNodes,
   listEvents,
   listRecentEvents,
   listApprovals,
@@ -28,6 +32,8 @@ import {
   recordOperatorAction,
   recordApprovalDecision,
   sweepApprovalTimeouts,
+  touchDeviceNodeHeartbeat,
+  upsertDeviceNode,
   upsertPendingApproval,
   upsertManagedSkill,
   updateSessionStatus,
@@ -234,6 +240,47 @@ function parseOptionalExpectedVersion(raw: unknown): number | null {
     }
   }
   return null;
+}
+
+function sanitizeDeviceNodeKind(raw: unknown): DeviceNodeKind {
+  if (raw === "mobile" || raw === "desktop") {
+    return raw;
+  }
+  if (typeof raw === "string" && raw.trim().toLowerCase() === "mobile") {
+    return "mobile";
+  }
+  return "desktop";
+}
+
+function sanitizeDeviceNodeStatus(raw: unknown): DeviceNodeStatus {
+  if (raw === "offline" || raw === "degraded" || raw === "online") {
+    return raw;
+  }
+  if (typeof raw === "string") {
+    const normalized = raw.trim().toLowerCase();
+    if (normalized === "offline" || normalized === "degraded" || normalized === "online") {
+      return normalized;
+    }
+  }
+  return "online";
+}
+
+function parseCapabilities(raw: unknown): string[] {
+  const values = Array.isArray(raw) ? raw : typeof raw === "string" ? raw.split(",") : [];
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+  for (const item of values) {
+    if (typeof item !== "string") {
+      continue;
+    }
+    const normalized = item.trim().toLowerCase();
+    if (normalized.length === 0 || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    deduped.push(normalized);
+  }
+  return deduped;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -993,6 +1040,214 @@ export const server = createServer(async (req, res) => {
         meta: {
           outcome: upsertResult.outcome,
         },
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/device-nodes/index" && req.method === "GET") {
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 200, 1, 500);
+      const includeOffline = url.searchParams.get("includeOffline") === "true";
+      const kindRaw = url.searchParams.get("kind");
+      const kind =
+        kindRaw && (kindRaw === "desktop" || kindRaw === "mobile")
+          ? sanitizeDeviceNodeKind(kindRaw)
+          : undefined;
+      const indexItems = await listDeviceNodeIndex({
+        limit,
+        includeOffline,
+        kind,
+      });
+      writeJson(res, 200, {
+        data: indexItems,
+        total: indexItems.length,
+        source: "device_node_registry",
+        generatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/device-nodes" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 200, 1, 500);
+      const includeOffline = url.searchParams.get("includeOffline") === "true";
+      const kindRaw = url.searchParams.get("kind");
+      const kind =
+        kindRaw && (kindRaw === "desktop" || kindRaw === "mobile")
+          ? sanitizeDeviceNodeKind(kindRaw)
+          : undefined;
+      const nodes = await listDeviceNodes({
+        limit,
+        includeOffline,
+        kind,
+      });
+      writeJson(res, 200, {
+        data: nodes,
+        total: nodes.length,
+        role,
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/device-nodes" && req.method === "POST") {
+      const role = assertOperatorRole(req, ["admin"]);
+      const raw = await readBody(req);
+      const parsed = parseJsonBody(raw) as {
+        nodeId?: unknown;
+        displayName?: unknown;
+        kind?: unknown;
+        platform?: unknown;
+        executorUrl?: unknown;
+        status?: unknown;
+        capabilities?: unknown;
+        trustLevel?: unknown;
+        expectedVersion?: unknown;
+        metadata?: unknown;
+        updatedBy?: unknown;
+      };
+
+      const nodeId = toOptionalString(parsed.nodeId);
+      const displayName = toOptionalString(parsed.displayName);
+      if (!nodeId || !displayName) {
+        await auditOperatorAction({
+          role,
+          action: "device_node_upsert",
+          outcome: "denied",
+          reason: "nodeId and displayName are required",
+          errorCode: "API_DEVICE_NODE_INVALID_INPUT",
+        });
+        writeApiError(res, 400, {
+          code: "API_DEVICE_NODE_INVALID_INPUT",
+          message: "nodeId and displayName are required",
+          details: {
+            required: ["nodeId", "displayName"],
+          },
+        });
+        return;
+      }
+
+      const result = await upsertDeviceNode({
+        nodeId,
+        displayName,
+        kind: sanitizeDeviceNodeKind(parsed.kind),
+        platform: toOptionalString(parsed.platform) ?? undefined,
+        executorUrl: toOptionalString(parsed.executorUrl),
+        status: sanitizeDeviceNodeStatus(parsed.status),
+        capabilities: parseCapabilities(parsed.capabilities),
+        trustLevel: sanitizeManagedTrustLevel(parsed.trustLevel),
+        expectedVersion: parseOptionalExpectedVersion(parsed.expectedVersion),
+        metadata: parsed.metadata,
+        updatedBy: toOptionalString(parsed.updatedBy) ?? role,
+      });
+
+      if (result.outcome === "version_conflict") {
+        await auditOperatorAction({
+          role,
+          action: "device_node_upsert",
+          outcome: "failed",
+          reason: "device node version conflict",
+          errorCode: "API_DEVICE_NODE_VERSION_CONFLICT",
+          details: {
+            nodeId: result.node.nodeId,
+            expectedVersion: result.expectedVersion,
+            actualVersion: result.actualVersion,
+          },
+        });
+        writeApiError(res, 409, {
+          code: "API_DEVICE_NODE_VERSION_CONFLICT",
+          message: "Device node version conflict",
+          details: {
+            nodeId: result.node.nodeId,
+            expectedVersion: result.expectedVersion,
+            actualVersion: result.actualVersion,
+          },
+        });
+        return;
+      }
+
+      await auditOperatorAction({
+        role,
+        action: "device_node_upsert",
+        outcome: "succeeded",
+        reason: `device node ${result.outcome}`,
+        details: {
+          nodeId: result.node.nodeId,
+          status: result.node.status,
+          version: result.node.version,
+        },
+      });
+
+      writeJson(res, result.outcome === "created" ? 201 : 200, {
+        data: result.node,
+        meta: {
+          outcome: result.outcome,
+        },
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/device-nodes/heartbeat" && req.method === "POST") {
+      const role = assertOperatorRole(req, ["operator", "admin"]);
+      const raw = await readBody(req);
+      const parsed = parseJsonBody(raw) as {
+        nodeId?: unknown;
+        status?: unknown;
+        metadata?: unknown;
+      };
+      const nodeId = toOptionalString(parsed.nodeId);
+      if (!nodeId) {
+        await auditOperatorAction({
+          role,
+          action: "device_node_heartbeat",
+          outcome: "denied",
+          reason: "nodeId is required",
+          errorCode: "API_DEVICE_NODE_ID_REQUIRED",
+        });
+        writeApiError(res, 400, {
+          code: "API_DEVICE_NODE_ID_REQUIRED",
+          message: "nodeId is required",
+        });
+        return;
+      }
+
+      const node = await touchDeviceNodeHeartbeat({
+        nodeId,
+        status: parsed.status === undefined ? undefined : sanitizeDeviceNodeStatus(parsed.status),
+        metadata: parsed.metadata,
+      });
+
+      if (!node) {
+        await auditOperatorAction({
+          role,
+          action: "device_node_heartbeat",
+          outcome: "failed",
+          reason: "device node not found",
+          errorCode: "API_DEVICE_NODE_NOT_FOUND",
+          details: {
+            nodeId,
+          },
+        });
+        writeApiError(res, 404, {
+          code: "API_DEVICE_NODE_NOT_FOUND",
+          message: "Device node not found",
+          details: {
+            nodeId,
+          },
+        });
+        return;
+      }
+
+      await auditOperatorAction({
+        role,
+        action: "device_node_heartbeat",
+        outcome: "succeeded",
+        reason: "device node heartbeat recorded",
+        details: {
+          nodeId: node.nodeId,
+          status: node.status,
+        },
+      });
+      writeJson(res, 200, {
+        data: node,
       });
       return;
     }

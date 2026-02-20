@@ -20,6 +20,7 @@ import {
 type UiTaskInput = {
   goal: string;
   url: string | null;
+  deviceNodeId: string | null;
   screenshotRef: string | null;
   cursor: { x: number; y: number } | null;
   formData: Record<string, string>;
@@ -113,6 +114,10 @@ type PlannerConfig = {
   approvalKeywords: string[];
   executorMode: ExecutorMode;
   executorUrl: string | null;
+  deviceNodeIndexUrl: string | null;
+  deviceNodeIndexAuthToken: string | null;
+  deviceNodeIndexTimeoutMs: number;
+  deviceNodesJson: string | null;
   loopDetectionEnabled: boolean;
   loopWindowSize: number;
   loopRepeatThreshold: number;
@@ -145,6 +150,31 @@ type UiNavigatorCapabilitySet = {
   reasoning: ReasoningCapabilityAdapter;
   computerUse: ComputerUseCapabilityAdapter;
   profile: CapabilityProfile;
+};
+
+type DeviceNodeKind = "desktop" | "mobile";
+
+type DeviceNodeStatus = "online" | "offline" | "degraded";
+
+type DeviceNodeRuntimeRecord = {
+  nodeId: string;
+  displayName: string;
+  kind: DeviceNodeKind;
+  platform: string;
+  executorUrl: string | null;
+  status: DeviceNodeStatus;
+  capabilities: string[];
+  trustLevel: "untrusted" | "reviewed" | "trusted";
+  version: number;
+  updatedAt: string | null;
+};
+
+type DeviceNodeResolution = {
+  requestedNodeId: string | null;
+  selectedNode: DeviceNodeRuntimeRecord | null;
+  executorUrl: string | null;
+  source: "none" | "inline_json" | "remote_index";
+  notes: string[];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -270,6 +300,205 @@ function parseActionTypeList(raw: string | undefined, fallback: UiAction["type"]
   return allowed.size > 0 ? Array.from(allowed) : fallback;
 }
 
+function parseDeviceNodeKind(raw: unknown): DeviceNodeKind {
+  if (raw === "mobile") {
+    return "mobile";
+  }
+  if (typeof raw === "string" && raw.trim().toLowerCase() === "mobile") {
+    return "mobile";
+  }
+  return "desktop";
+}
+
+function parseDeviceNodeStatus(raw: unknown): DeviceNodeStatus {
+  if (raw === "offline" || raw === "degraded" || raw === "online") {
+    return raw;
+  }
+  if (typeof raw === "string") {
+    const normalized = raw.trim().toLowerCase();
+    if (normalized === "offline" || normalized === "degraded" || normalized === "online") {
+      return normalized;
+    }
+  }
+  return "online";
+}
+
+function parseTrustLevel(raw: unknown): DeviceNodeRuntimeRecord["trustLevel"] {
+  if (raw === "trusted" || raw === "reviewed" || raw === "untrusted") {
+    return raw;
+  }
+  if (typeof raw === "string") {
+    const normalized = raw.trim().toLowerCase();
+    if (normalized === "trusted" || normalized === "reviewed" || normalized === "untrusted") {
+      return normalized;
+    }
+  }
+  return "reviewed";
+}
+
+function parseVersion(raw: unknown): number {
+  const parsed = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return 1;
+  }
+  return Math.floor(parsed);
+}
+
+function parseDeviceNodeRecord(raw: unknown): DeviceNodeRuntimeRecord | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const nodeId = toNonEmptyString(raw.nodeId ?? raw.id, "").toLowerCase();
+  if (nodeId.length === 0) {
+    return null;
+  }
+  const capabilityValues = Array.isArray(raw.capabilities) ? raw.capabilities : [];
+  const capabilities = capabilityValues
+    .map((item) => toNonEmptyString(item, "").toLowerCase())
+    .filter((item, index, arr) => item.length > 0 && arr.indexOf(item) === index);
+  return {
+    nodeId,
+    displayName: toNonEmptyString(raw.displayName ?? raw.name, nodeId),
+    kind: parseDeviceNodeKind(raw.kind),
+    platform: toNonEmptyString(raw.platform, "unknown"),
+    executorUrl: toNullableString(raw.executorUrl),
+    status: parseDeviceNodeStatus(raw.status),
+    capabilities,
+    trustLevel: parseTrustLevel(raw.trustLevel ?? raw.trust),
+    version: parseVersion(raw.version),
+    updatedAt: toNullableString(raw.updatedAt),
+  };
+}
+
+function parseDeviceNodesFromUnknown(raw: unknown): DeviceNodeRuntimeRecord[] {
+  const items = Array.isArray(raw)
+    ? raw
+    : isRecord(raw) && Array.isArray(raw.data)
+      ? raw.data
+      : [];
+  const nodes: DeviceNodeRuntimeRecord[] = [];
+  const seen = new Set<string>();
+  for (const item of items) {
+    const parsed = parseDeviceNodeRecord(item);
+    if (!parsed || seen.has(parsed.nodeId)) {
+      continue;
+    }
+    seen.add(parsed.nodeId);
+    nodes.push(parsed);
+  }
+  return nodes;
+}
+
+function parseDeviceNodesFromJson(raw: string | null): DeviceNodeRuntimeRecord[] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return parseDeviceNodesFromUnknown(parsed);
+  } catch {
+    return [];
+  }
+}
+
+async function loadDeviceNodesFromRemote(config: PlannerConfig): Promise<DeviceNodeRuntimeRecord[] | null> {
+  if (!config.deviceNodeIndexUrl) {
+    return null;
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), config.deviceNodeIndexTimeoutMs);
+  try {
+    const headers: Record<string, string> = {};
+    if (config.deviceNodeIndexAuthToken) {
+      headers.Authorization = `Bearer ${config.deviceNodeIndexAuthToken}`;
+    }
+    const response = await fetch(config.deviceNodeIndexUrl, {
+      method: "GET",
+      headers,
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const payload = (await response.json()) as unknown;
+    return parseDeviceNodesFromUnknown(payload);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function resolveDeviceNodeRouting(params: {
+  input: UiTaskInput;
+  config: PlannerConfig;
+}): Promise<DeviceNodeResolution> {
+  const requestedNodeId = params.input.deviceNodeId?.trim().toLowerCase() ?? null;
+  const notes: string[] = [];
+
+  if (!requestedNodeId) {
+    return {
+      requestedNodeId: null,
+      selectedNode: null,
+      executorUrl: params.config.executorUrl,
+      source: "none",
+      notes: ["No deviceNodeId requested; using default executor routing."],
+    };
+  }
+
+  let source: DeviceNodeResolution["source"] = "inline_json";
+  let nodes = parseDeviceNodesFromJson(params.config.deviceNodesJson);
+  const remoteNodes = await loadDeviceNodesFromRemote(params.config);
+  if (remoteNodes && remoteNodes.length > 0) {
+    nodes = remoteNodes;
+    source = "remote_index";
+  }
+
+  const node = nodes.find((item) => item.nodeId === requestedNodeId) ?? null;
+  if (!node) {
+    return {
+      requestedNodeId,
+      selectedNode: null,
+      executorUrl: null,
+      source,
+      notes: [`Requested node '${requestedNodeId}' is not present in ${source}.`],
+    };
+  }
+  if (node.status === "offline") {
+    return {
+      requestedNodeId,
+      selectedNode: node,
+      executorUrl: null,
+      source,
+      notes: [`Requested node '${requestedNodeId}' is offline.`],
+    };
+  }
+
+  const executorUrl = node.executorUrl ?? params.config.executorUrl;
+  if (!executorUrl) {
+    return {
+      requestedNodeId,
+      selectedNode: node,
+      executorUrl: null,
+      source,
+      notes: [`Requested node '${requestedNodeId}' has no executorUrl and default executor is not configured.`],
+    };
+  }
+
+  notes.push(
+    node.executorUrl
+      ? `Routed to node-specific executorUrl from ${source}.`
+      : "Node has no executorUrl; fell back to default executorUrl.",
+  );
+  return {
+    requestedNodeId,
+    selectedNode: node,
+    executorUrl,
+    source,
+    notes,
+  };
+}
+
 function normalizeVisualTestingInput(raw: Record<string, unknown>, screenshotRef: string | null): VisualTestingInput {
   const visualRaw = isRecord(raw.visualTesting) ? raw.visualTesting : {};
   const mode = toNonEmptyString(raw.mode, "").toLowerCase();
@@ -350,6 +579,10 @@ function getPlannerConfig(): PlannerConfig {
     approvalKeywords,
     executorMode: parseExecutorMode(process.env.UI_NAVIGATOR_EXECUTOR_MODE),
     executorUrl: toNullableString(process.env.UI_NAVIGATOR_EXECUTOR_URL),
+    deviceNodeIndexUrl: toNullableString(process.env.UI_NAVIGATOR_DEVICE_NODE_INDEX_URL),
+    deviceNodeIndexAuthToken: toNullableString(process.env.UI_NAVIGATOR_DEVICE_NODE_INDEX_AUTH_TOKEN),
+    deviceNodeIndexTimeoutMs: parsePositiveInt(process.env.UI_NAVIGATOR_DEVICE_NODE_INDEX_TIMEOUT_MS, 2500),
+    deviceNodesJson: toNullableString(process.env.UI_NAVIGATOR_DEVICE_NODES_JSON),
     loopDetectionEnabled: process.env.UI_NAVIGATOR_LOOP_DETECTION_ENABLED !== "false",
     loopWindowSize: parsePositiveInt(process.env.UI_NAVIGATOR_LOOP_WINDOW_SIZE, 8),
     loopRepeatThreshold: parsePositiveInt(process.env.UI_NAVIGATOR_LOOP_REPEAT_THRESHOLD, 3),
@@ -367,6 +600,7 @@ function getPlannerConfig(): PlannerConfig {
 
 function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInput {
   const raw = isRecord(input) ? input : {};
+  const deviceNodeRaw = isRecord(raw.deviceNode) ? raw.deviceNode : {};
   const cursor = isRecord(raw.cursor)
     ? {
         x: toNullableInt(raw.cursor.x) ?? 0,
@@ -405,6 +639,7 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
       toNonEmptyString(raw.text, "") ||
       "Open the page and complete the requested UI flow safely.",
     url: toNullableString(raw.url),
+    deviceNodeId: toNullableString(raw.deviceNodeId ?? deviceNodeRaw.nodeId ?? raw.targetNodeId),
     screenshotRef,
     cursor,
     formData,
@@ -1117,6 +1352,7 @@ type ExecutionResult = {
   executor: string;
   adapterMode: PlannerConfig["executorMode"];
   adapterNotes: string[];
+  deviceNode: DeviceNodeRuntimeRecord | null;
 };
 
 function defaultExecutionResult(params: {
@@ -1126,6 +1362,7 @@ function defaultExecutionResult(params: {
   executor: string;
   adapterMode: PlannerConfig["executorMode"];
   adapterNotes?: string[];
+  deviceNode?: DeviceNodeRuntimeRecord | null;
 }): ExecutionResult {
   return {
     trace: params.trace,
@@ -1134,6 +1371,7 @@ function defaultExecutionResult(params: {
     executor: params.executor,
     adapterMode: params.adapterMode,
     adapterNotes: params.adapterNotes ?? [],
+    deviceNode: params.deviceNode ?? null,
   };
 }
 
@@ -1153,12 +1391,13 @@ async function executeWithRemoteHttpAdapter(params: {
   actions: UiAction[];
   screenshotSeed: string;
   input: UiTaskInput;
+  routing: DeviceNodeResolution;
 }): Promise<ExecutionResult | null> {
-  if (!params.config.executorUrl) {
+  if (!params.routing.executorUrl) {
     return null;
   }
 
-  const endpoint = `${params.config.executorUrl.replace(/\/+$/, "")}/execute`;
+  const endpoint = `${params.routing.executorUrl.replace(/\/+$/, "")}/execute`;
   let lastError: Error | null = null;
   const totalAttempts = params.config.executorRequestMaxRetries + 1;
 
@@ -1171,6 +1410,7 @@ async function executeWithRemoteHttpAdapter(params: {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(params.routing.selectedNode ? { "x-device-node-id": params.routing.selectedNode.nodeId } : {}),
         },
         body: JSON.stringify({
           actions: params.actions,
@@ -1178,6 +1418,7 @@ async function executeWithRemoteHttpAdapter(params: {
             screenshotRef: params.input.screenshotRef,
             cursor: params.input.cursor,
             goal: params.input.goal,
+            deviceNodeId: params.routing.selectedNode?.nodeId ?? params.input.deviceNodeId,
           },
         }),
         signal: controller.signal,
@@ -1219,13 +1460,18 @@ async function executeWithRemoteHttpAdapter(params: {
 
         const finalStatus = parsed.finalStatus === "failed" ? "failed" : "completed";
         const retries = toNullableInt(parsed.retries) ?? 0;
+        const remoteNode = parseDeviceNodeRecord(parsed.deviceNode);
         return defaultExecutionResult({
           trace,
           finalStatus,
           retries,
           executor: "remote-http-adapter",
           adapterMode: "remote_http",
-          adapterNotes: ["Executed via remote HTTP adapter"],
+          adapterNotes: [
+            "Executed via remote HTTP adapter",
+            ...params.routing.notes,
+          ],
+          deviceNode: remoteNode ?? params.routing.selectedNode,
         });
       }
     } catch (error) {
@@ -1257,6 +1503,7 @@ async function executeWithRemoteHttpAdapter(params: {
 async function executeWithPlaywrightPreview(params: {
   actions: UiAction[];
   screenshotSeed: string;
+  deviceNode?: DeviceNodeRuntimeRecord | null;
 }): Promise<ExecutionResult | null> {
   const dynamicImport = new Function(
     "specifier",
@@ -1401,6 +1648,7 @@ async function executeWithPlaywrightPreview(params: {
     executor: "playwright-preview-adapter",
     adapterMode: "playwright_preview",
     adapterNotes: ["Executed with optional local playwright preview adapter"],
+    deviceNode: params.deviceNode ?? null,
   });
 }
 
@@ -1409,6 +1657,7 @@ async function executeActionPlan(params: {
   actions: UiAction[];
   screenshotSeed: string;
   input: UiTaskInput;
+  routing: DeviceNodeResolution;
 }): Promise<ExecutionResult> {
   let fallbackNote: string | null = null;
 
@@ -1418,9 +1667,9 @@ async function executeActionPlan(params: {
       if (remoteResult) {
         return remoteResult;
       }
-      fallbackNote = params.config.executorUrl
+      fallbackNote = params.routing.executorUrl
         ? "remote_http adapter returned no result, switched to simulation"
-        : "remote_http mode requested without UI_NAVIGATOR_EXECUTOR_URL, switched to simulation";
+        : "remote_http mode requested without executor URL, switched to simulation";
     } catch (error) {
       const fallbackSimulation = simulateExecution({
         actions: params.actions,
@@ -1433,7 +1682,11 @@ async function executeActionPlan(params: {
         retries: fallbackSimulation.retries,
         executor: "playwright-adapter",
         adapterMode: "simulated",
-        adapterNotes: [`remote_http fallback: ${error instanceof Error ? error.message : String(error)}`],
+        adapterNotes: [
+          `remote_http fallback: ${error instanceof Error ? error.message : String(error)}`,
+          ...params.routing.notes,
+        ],
+        deviceNode: params.routing.selectedNode,
       });
     }
   }
@@ -1443,6 +1696,7 @@ async function executeActionPlan(params: {
       const playwrightResult = await executeWithPlaywrightPreview({
         actions: params.actions,
         screenshotSeed: params.screenshotSeed,
+        deviceNode: params.routing.selectedNode,
       });
       if (playwrightResult) {
         return playwrightResult;
@@ -1461,6 +1715,7 @@ async function executeActionPlan(params: {
         executor: "playwright-adapter",
         adapterMode: "simulated",
         adapterNotes: [`playwright_preview fallback: ${error instanceof Error ? error.message : String(error)}`],
+        deviceNode: params.routing.selectedNode,
       });
     }
   }
@@ -1477,7 +1732,11 @@ async function executeActionPlan(params: {
     retries: simulation.retries,
     executor: "playwright-adapter",
     adapterMode: "simulated",
-    adapterNotes: [fallbackNote ?? "Executed in deterministic simulation mode"],
+    adapterNotes: [
+      fallbackNote ?? "Executed in deterministic simulation mode",
+      ...params.routing.notes,
+    ],
+    deviceNode: params.routing.selectedNode,
   });
 }
 
@@ -1983,6 +2242,98 @@ export async function runUiNavigatorAgent(
       });
     }
 
+    const executionConfig: PlannerConfig =
+      sandboxPolicy.active && sandboxPolicy.enforcedExecutorMode !== config.executorMode
+        ? {
+            ...config,
+            executorMode: sandboxPolicy.enforcedExecutorMode,
+          }
+        : config;
+    const deviceNodeRouting = await resolveDeviceNodeRouting({
+      input,
+      config: executionConfig,
+    });
+
+    if (input.deviceNodeId && !deviceNodeRouting.selectedNode) {
+      return createEnvelope({
+        userId: request.userId,
+        sessionId: request.sessionId,
+        runId,
+        type: "orchestrator.response",
+        source: "ui-navigator-agent",
+        payload: {
+          route: "ui-navigator-agent",
+          status: "failed",
+          traceId,
+          output: {
+            message: `Requested device node '${input.deviceNodeId}' is unavailable.`,
+            handledIntent: request.payload.intent,
+            traceId,
+            latencyMs: Date.now() - startedAt,
+            approvalRequired: false,
+            planner: {
+              provider: planResult.plannerProvider,
+              model: planResult.plannerModel,
+            },
+            sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+            capabilityProfile: capabilities.profile,
+            skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
+            deviceNodeRouting,
+            actionPlan: actions,
+            execution: {
+              finalStatus: "failed_device_node",
+              retries: 0,
+              trace: [],
+              verifyLoopEnabled: true,
+              sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+            },
+          },
+        },
+      });
+    }
+
+    if (
+      input.deviceNodeId &&
+      executionConfig.executorMode === "remote_http" &&
+      !deviceNodeRouting.executorUrl
+    ) {
+      return createEnvelope({
+        userId: request.userId,
+        sessionId: request.sessionId,
+        runId,
+        type: "orchestrator.response",
+        source: "ui-navigator-agent",
+        payload: {
+          route: "ui-navigator-agent",
+          status: "failed",
+          traceId,
+          output: {
+            message: "Requested device node cannot be routed to an executor URL.",
+            handledIntent: request.payload.intent,
+            traceId,
+            latencyMs: Date.now() - startedAt,
+            approvalRequired: false,
+            planner: {
+              provider: planResult.plannerProvider,
+              model: planResult.plannerModel,
+            },
+            sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+            capabilityProfile: capabilities.profile,
+            skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
+            deviceNodeRouting,
+            actionPlan: actions,
+            execution: {
+              finalStatus: "failed_device_node",
+              retries: 0,
+              trace: [],
+              verifyLoopEnabled: true,
+              sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+            },
+          },
+        },
+      });
+    }
+
     if (sandboxPolicy.active && input.approvalConfirmed && sandboxPolicy.blockedCategories.length > 0) {
       return createEnvelope({
         userId: request.userId,
@@ -2098,6 +2449,7 @@ export async function runUiNavigatorAgent(
               input: {
                 goal: input.goal,
                 url: input.url,
+                deviceNodeId: input.deviceNodeId,
                 screenshotRef: input.screenshotRef,
                 cursor: input.cursor,
                 formData: input.formData,
@@ -2118,6 +2470,7 @@ export async function runUiNavigatorAgent(
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             capabilityProfile: capabilities.profile,
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
+            deviceNodeRouting,
             actionPlan: actions,
             execution: {
               finalStatus: "needs_approval",
@@ -2131,18 +2484,12 @@ export async function runUiNavigatorAgent(
     }
 
     const screenshotSeed = input.screenshotRef ?? `ui://trace/${runId}`;
-    const executionConfig: PlannerConfig =
-      sandboxPolicy.active && sandboxPolicy.enforcedExecutorMode !== config.executorMode
-        ? {
-            ...config,
-            executorMode: sandboxPolicy.enforcedExecutorMode,
-          }
-        : config;
     const execution = await executeActionPlan({
       config: executionConfig,
       actions,
       screenshotSeed,
       input,
+      routing: deviceNodeRouting,
     });
 
     const runtimeLoop = detectTraceLoop(execution.trace, config);
@@ -2200,6 +2547,7 @@ export async function runUiNavigatorAgent(
           sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
           capabilityProfile: capabilities.profile,
           skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
+          deviceNodeRouting,
           actionPlan: actions,
           execution: {
             finalStatus,
@@ -2222,6 +2570,15 @@ export async function runUiNavigatorAgent(
             executor: execution.executor,
             adapterMode: execution.adapterMode,
             adapterNotes: execution.adapterNotes,
+            deviceNode: execution.deviceNode
+              ? {
+                  nodeId: execution.deviceNode.nodeId,
+                  displayName: execution.deviceNode.displayName,
+                  kind: execution.deviceNode.kind,
+                  platform: execution.deviceNode.platform,
+                  status: execution.deviceNode.status,
+                }
+              : null,
             computerUseProfile: capabilities.computerUse.descriptor.adapterId,
           },
           visualTesting,

@@ -152,6 +152,53 @@ export type ManagedSkillIndexItem = {
   checksum: string | null;
 };
 
+export type DeviceNodeKind = "desktop" | "mobile";
+
+export type DeviceNodeStatus = "online" | "offline" | "degraded";
+
+export type DeviceNodeRecord = {
+  nodeId: string;
+  displayName: string;
+  kind: DeviceNodeKind;
+  platform: string;
+  executorUrl: string | null;
+  status: DeviceNodeStatus;
+  capabilities: string[];
+  trustLevel: ManagedSkillTrustLevel;
+  version: number;
+  lastSeenAt: string | null;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: unknown;
+};
+
+export type DeviceNodeUpsertResult =
+  | {
+      outcome: "created" | "updated" | "idempotent_replay";
+      node: DeviceNodeRecord;
+    }
+  | {
+      outcome: "version_conflict";
+      node: DeviceNodeRecord;
+      expectedVersion: number;
+      actualVersion: number;
+    };
+
+export type DeviceNodeIndexItem = {
+  nodeId: string;
+  displayName: string;
+  kind: DeviceNodeKind;
+  platform: string;
+  executorUrl: string | null;
+  status: DeviceNodeStatus;
+  capabilities: string[];
+  trustLevel: ManagedSkillTrustLevel;
+  version: number;
+  lastSeenAt: string | null;
+  updatedAt: string;
+};
+
 let firestoreClient: Firestore | null = null;
 let initialized = false;
 let state: FirestoreState = {
@@ -164,6 +211,7 @@ const inMemorySessions = new Map<string, SessionListItem>();
 const inMemoryApprovals = new Map<string, ApprovalRecord>();
 const inMemoryOperatorActions: OperatorActionRecord[] = [];
 const inMemoryManagedSkills = new Map<string, ManagedSkillRecord>();
+const inMemoryDeviceNodes = new Map<string, DeviceNodeRecord>();
 const DEFAULT_APPROVAL_SOFT_TIMEOUT_MS = 60 * 1000;
 const DEFAULT_APPROVAL_HARD_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -528,6 +576,84 @@ function isScopeCompatible(skillScope: string[], requestedScope?: string): boole
   }
   const normalized = requestedScope.trim().toLowerCase();
   return skillScope.includes(normalized) || skillScope.includes("*") || skillScope.includes("all");
+}
+
+function normalizeDeviceNodeKind(value: unknown): DeviceNodeKind {
+  if (value === "mobile" || value === "desktop") {
+    return value;
+  }
+  if (typeof value === "string" && value.trim().toLowerCase() === "mobile") {
+    return "mobile";
+  }
+  return "desktop";
+}
+
+function normalizeDeviceNodeStatus(value: unknown): DeviceNodeStatus {
+  if (value === "offline" || value === "degraded" || value === "online") {
+    return value;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "offline" || normalized === "degraded" || normalized === "online") {
+      return normalized;
+    }
+  }
+  return "online";
+}
+
+function normalizeCapabilityList(value: unknown): string[] {
+  const values = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(",")
+      : [];
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+  for (const item of values) {
+    if (typeof item !== "string") {
+      continue;
+    }
+    const normalized = item.trim().toLowerCase();
+    if (normalized.length === 0 || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    deduped.push(normalized);
+  }
+  return deduped;
+}
+
+function mapDeviceNodeRecord(docId: string, raw: Record<string, unknown>): DeviceNodeRecord {
+  const nodeId = normalizeManagedSkillId(raw.nodeId ?? raw.id, docId);
+  return {
+    nodeId,
+    displayName: toNonEmptyString(raw.displayName) ?? toNonEmptyString(raw.name) ?? nodeId,
+    kind: normalizeDeviceNodeKind(raw.kind),
+    platform: toNonEmptyString(raw.platform) ?? "unknown",
+    executorUrl: toNonEmptyString(raw.executorUrl),
+    status: normalizeDeviceNodeStatus(raw.status),
+    capabilities: normalizeCapabilityList(raw.capabilities),
+    trustLevel: normalizeManagedTrustLevel(raw.trustLevel ?? raw.trust),
+    version: normalizeManagedSkillVersion(raw.version),
+    lastSeenAt: raw.lastSeenAt ? toIso(raw.lastSeenAt) : null,
+    updatedBy: toNonEmptyString(raw.updatedBy) ?? "system",
+    createdAt: toIso(raw.createdAt),
+    updatedAt: toIso(raw.updatedAt ?? raw.createdAt),
+    metadata: raw.metadata,
+  };
+}
+
+function deviceNodeSignature(node: DeviceNodeRecord): string {
+  return JSON.stringify({
+    displayName: node.displayName,
+    kind: node.kind,
+    platform: node.platform,
+    executorUrl: node.executorUrl,
+    status: node.status,
+    capabilities: node.capabilities,
+    trustLevel: node.trustLevel,
+    metadata: node.metadata ?? null,
+  });
 }
 
 function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSessionId?: string): EventListItem {
@@ -1623,5 +1749,278 @@ export async function listManagedSkillIndex(params: {
     updatedAt: skill.updatedAt,
     publisher: skill.publisher,
     checksum: skill.checksum,
+  }));
+}
+
+export async function listDeviceNodes(params: {
+  limit: number;
+  includeOffline?: boolean;
+  kind?: DeviceNodeKind;
+}): Promise<DeviceNodeRecord[]> {
+  const limit = Math.max(1, Math.min(500, params.limit));
+  const includeOffline = params.includeOffline === true;
+  const kind = params.kind;
+  const db = initFirestore();
+
+  if (!db) {
+    return Array.from(inMemoryDeviceNodes.values())
+      .filter((node) => (includeOffline ? true : node.status !== "offline"))
+      .filter((node) => (kind ? node.kind === kind : true))
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .slice(0, limit);
+  }
+
+  const snapshot = await db
+    .collection("device_nodes")
+    .orderBy("updatedAt", "desc")
+    .limit(limit)
+    .get();
+
+  const nodes = snapshot.docs.map((doc) =>
+    mapDeviceNodeRecord(doc.id, doc.data() as Record<string, unknown>),
+  );
+
+  return nodes
+    .filter((node) => (includeOffline ? true : node.status !== "offline"))
+    .filter((node) => (kind ? node.kind === kind : true));
+}
+
+export async function upsertDeviceNode(params: {
+  nodeId: string;
+  displayName: string;
+  kind?: DeviceNodeKind;
+  platform?: string;
+  executorUrl?: string | null;
+  status?: DeviceNodeStatus;
+  capabilities?: string[];
+  trustLevel?: ManagedSkillTrustLevel;
+  metadata?: unknown;
+  updatedBy?: string;
+  expectedVersion?: number | null;
+  lastSeenAt?: string | null;
+}): Promise<DeviceNodeUpsertResult> {
+  const nodeId = normalizeManagedSkillId(params.nodeId, "device-node");
+  const nowIso = new Date().toISOString();
+  const expectedVersion =
+    typeof params.expectedVersion === "number" &&
+    Number.isFinite(params.expectedVersion) &&
+    params.expectedVersion >= 1
+      ? Math.floor(params.expectedVersion)
+      : null;
+  const baseNode: DeviceNodeRecord = {
+    nodeId,
+    displayName: toNonEmptyString(params.displayName) ?? nodeId,
+    kind: normalizeDeviceNodeKind(params.kind),
+    platform: toNonEmptyString(params.platform) ?? "unknown",
+    executorUrl: toNonEmptyString(params.executorUrl),
+    status: normalizeDeviceNodeStatus(params.status),
+    capabilities: normalizeCapabilityList(params.capabilities),
+    trustLevel: normalizeManagedTrustLevel(params.trustLevel),
+    version: 1,
+    lastSeenAt: params.lastSeenAt ? toIso(params.lastSeenAt) : null,
+    updatedBy: toNonEmptyString(params.updatedBy) ?? "operator",
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    metadata: params.metadata,
+  };
+  const db = initFirestore();
+
+  if (!db) {
+    const existing = inMemoryDeviceNodes.get(nodeId) ?? null;
+    if (!existing) {
+      inMemoryDeviceNodes.set(nodeId, baseNode);
+      return {
+        outcome: "created",
+        node: baseNode,
+      };
+    }
+    if (expectedVersion !== null && existing.version !== expectedVersion) {
+      return {
+        outcome: "version_conflict",
+        node: existing,
+        expectedVersion,
+        actualVersion: existing.version,
+      };
+    }
+    const candidate: DeviceNodeRecord = {
+      ...baseNode,
+      version: existing.version + 1,
+      createdAt: existing.createdAt,
+      updatedAt: nowIso,
+    };
+    if (deviceNodeSignature(existing) === deviceNodeSignature(candidate)) {
+      return {
+        outcome: "idempotent_replay",
+        node: existing,
+      };
+    }
+    inMemoryDeviceNodes.set(nodeId, candidate);
+    return {
+      outcome: "updated",
+      node: candidate,
+    };
+  }
+
+  const ref = db.collection("device_nodes").doc(nodeId);
+  const transactionResult = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    if (!snapshot.exists) {
+      transaction.set(
+        ref,
+        {
+          nodeId: baseNode.nodeId,
+          displayName: baseNode.displayName,
+          kind: baseNode.kind,
+          platform: baseNode.platform,
+          executorUrl: baseNode.executorUrl,
+          status: baseNode.status,
+          capabilities: baseNode.capabilities,
+          trustLevel: baseNode.trustLevel,
+          version: 1,
+          lastSeenAt: baseNode.lastSeenAt,
+          updatedBy: baseNode.updatedBy,
+          metadata: baseNode.metadata ?? null,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      return {
+        outcome: "created" as const,
+      };
+    }
+
+    const existing = mapDeviceNodeRecord(ref.id, (snapshot.data() ?? {}) as Record<string, unknown>);
+    if (expectedVersion !== null && existing.version !== expectedVersion) {
+      return {
+        outcome: "version_conflict" as const,
+        node: existing,
+        expectedVersion,
+        actualVersion: existing.version,
+      };
+    }
+
+    const candidate: DeviceNodeRecord = {
+      ...baseNode,
+      version: existing.version + 1,
+      createdAt: existing.createdAt,
+      updatedAt: nowIso,
+    };
+    if (deviceNodeSignature(existing) === deviceNodeSignature(candidate)) {
+      return {
+        outcome: "idempotent_replay" as const,
+        node: existing,
+      };
+    }
+
+    transaction.set(
+      ref,
+      {
+        nodeId: candidate.nodeId,
+        displayName: candidate.displayName,
+        kind: candidate.kind,
+        platform: candidate.platform,
+        executorUrl: candidate.executorUrl,
+        status: candidate.status,
+        capabilities: candidate.capabilities,
+        trustLevel: candidate.trustLevel,
+        version: candidate.version,
+        lastSeenAt: candidate.lastSeenAt,
+        updatedBy: candidate.updatedBy,
+        metadata: candidate.metadata ?? null,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    return {
+      outcome: "updated" as const,
+    };
+  });
+
+  if (transactionResult.outcome === "version_conflict" || transactionResult.outcome === "idempotent_replay") {
+    return transactionResult;
+  }
+
+  const stored = await ref.get();
+  const node = mapDeviceNodeRecord(ref.id, (stored.data() ?? {}) as Record<string, unknown>);
+  return {
+    outcome: transactionResult.outcome,
+    node,
+  };
+}
+
+export async function touchDeviceNodeHeartbeat(params: {
+  nodeId: string;
+  status?: DeviceNodeStatus;
+  metadata?: unknown;
+}): Promise<DeviceNodeRecord | null> {
+  const nodeId = normalizeManagedSkillId(params.nodeId, "");
+  if (!nodeId) {
+    return null;
+  }
+  const nowIso = new Date().toISOString();
+  const db = initFirestore();
+
+  if (!db) {
+    const existing = inMemoryDeviceNodes.get(nodeId) ?? null;
+    if (!existing) {
+      return null;
+    }
+    const next: DeviceNodeRecord = {
+      ...existing,
+      status: params.status ? normalizeDeviceNodeStatus(params.status) : existing.status,
+      lastSeenAt: nowIso,
+      updatedAt: nowIso,
+      metadata: params.metadata ?? existing.metadata,
+      version: existing.version + 1,
+    };
+    inMemoryDeviceNodes.set(nodeId, next);
+    return next;
+  }
+
+  const ref = db.collection("device_nodes").doc(nodeId);
+  const snapshot = await ref.get();
+  if (!snapshot.exists) {
+    return null;
+  }
+
+  await ref.set(
+    {
+      status: params.status ? normalizeDeviceNodeStatus(params.status) : undefined,
+      lastSeenAt: nowIso,
+      metadata: params.metadata ?? null,
+      updatedAt: FieldValue.serverTimestamp(),
+      version: FieldValue.increment(1),
+    },
+    { merge: true },
+  );
+
+  const stored = await ref.get();
+  return mapDeviceNodeRecord(ref.id, (stored.data() ?? {}) as Record<string, unknown>);
+}
+
+export async function listDeviceNodeIndex(params: {
+  limit: number;
+  includeOffline?: boolean;
+  kind?: DeviceNodeKind;
+}): Promise<DeviceNodeIndexItem[]> {
+  const nodes = await listDeviceNodes({
+    limit: params.limit,
+    includeOffline: params.includeOffline,
+    kind: params.kind,
+  });
+  return nodes.map((node) => ({
+    nodeId: node.nodeId,
+    displayName: node.displayName,
+    kind: node.kind,
+    platform: node.platform,
+    executorUrl: node.executorUrl,
+    status: node.status,
+    capabilities: node.capabilities,
+    trustLevel: node.trustLevel,
+    version: node.version,
+    lastSeenAt: node.lastSeenAt,
+    updatedAt: node.updatedAt,
   }));
 }

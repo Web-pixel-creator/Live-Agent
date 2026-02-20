@@ -63,10 +63,12 @@ Open `http://localhost:3000`.
 - Storyteller pipeline config: set `STORYTELLER_*` envs for planner models and media mode (`STORYTELLER_MEDIA_MODE=fallback|simulated`).
 - UI Navigator planner config: set `UI_NAVIGATOR_*` envs for Computer Use-style planning, max steps, and approval keyword policy.
 - UI Navigator executor modes: `UI_NAVIGATOR_EXECUTOR_MODE=simulated|playwright_preview|remote_http`, optional `UI_NAVIGATOR_EXECUTOR_URL`, and timeout/retry controls `UI_NAVIGATOR_EXECUTOR_TIMEOUT_MS`, `UI_NAVIGATOR_EXECUTOR_MAX_RETRIES`, `UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS`.
+- UI Navigator device-node routing: `UI_NAVIGATOR_DEVICE_NODE_INDEX_URL`, `UI_NAVIGATOR_DEVICE_NODE_INDEX_AUTH_TOKEN`, `UI_NAVIGATOR_DEVICE_NODE_INDEX_TIMEOUT_MS`, `UI_NAVIGATOR_DEVICE_NODES_JSON`.
 - UI Navigator loop guard tuning: `UI_NAVIGATOR_LOOP_DETECTION_ENABLED`, `UI_NAVIGATOR_LOOP_WINDOW_SIZE`, `UI_NAVIGATOR_LOOP_REPEAT_THRESHOLD`, `UI_NAVIGATOR_LOOP_SIMILARITY_THRESHOLD`.
 - UI Navigator sandbox policy tuning: `UI_NAVIGATOR_SANDBOX_POLICY_MODE=off|non-main|all`, `UI_NAVIGATOR_SANDBOX_MAIN_SESSION_IDS`, `UI_NAVIGATOR_SANDBOX_MAX_STEPS`, `UI_NAVIGATOR_SANDBOX_ALLOWED_ACTIONS`, `UI_NAVIGATOR_SANDBOX_BLOCKED_CATEGORIES`, `UI_NAVIGATOR_SANDBOX_FORCE_EXECUTOR_MODE`.
 - Skills runtime tuning: `SKILLS_RUNTIME_ENABLED`, `SKILLS_SOURCE_PRECEDENCE=workspace,bundled,managed`, `SKILLS_ALLOWED_SOURCES`, `SKILLS_WORKSPACE_DIR`, `SKILLS_BUNDLED_DIR`, `SKILLS_MANAGED_INDEX_JSON`, `SKILLS_MANAGED_INDEX_URL`, `SKILLS_MANAGED_INDEX_AUTH_TOKEN`, `SKILLS_MANAGED_INDEX_TIMEOUT_MS`, `SKILLS_ENABLED_IDS`, `SKILLS_DISABLED_IDS`, `SKILLS_SECURITY_MODE=off|warn|enforce`, `SKILLS_MIN_TRUST_LEVEL=untrusted|reviewed|trusted`.
 - Remote UI executor service: run `npm run dev:ui-executor`; endpoint `/execute` is used when `UI_NAVIGATOR_EXECUTOR_MODE=remote_http`.
+- UI Executor device-node registry knobs: `UI_EXECUTOR_DEFAULT_DEVICE_NODE_ID`, `UI_EXECUTOR_DEVICE_NODES_JSON`.
 - Approval SLA tuning in API backend: `APPROVAL_SOFT_TIMEOUT_MS`, `APPROVAL_HARD_TIMEOUT_MS`, `APPROVAL_SWEEP_LIMIT`.
 - Local-first profile for offline iteration: set `LOCAL_FIRST_PROFILE=true` and `APP_ENV=dev` (guardrail blocks local-first in `staging/prod`). Profile details: `docs/local-first-profile.md`.
 
@@ -88,7 +90,13 @@ Session mutation concurrency controls:
 - `GET /v1/skills/registry` with `x-operator-role` -> operator catalog view (`limit`, `scope`, `includeDisabled`).
 - `POST /v1/skills/registry` with `x-operator-role: admin` -> versioned upsert (`expectedVersion` for optimistic locking).
 
-9. Operator console APIs (RBAC via `x-operator-role: viewer|operator|admin`):
+9. Device node registry APIs:
+- `GET /v1/device-nodes/index` -> public device-node index for runtime routing (`limit`, `kind`, `includeOffline`).
+- `GET /v1/device-nodes` with `x-operator-role` -> operator registry view.
+- `POST /v1/device-nodes` with `x-operator-role: admin` -> versioned upsert (`expectedVersion` supported).
+- `POST /v1/device-nodes/heartbeat` with `x-operator-role: operator|admin` -> update node liveness/status.
+
+10. Operator console APIs (RBAC via `x-operator-role: viewer|operator|admin`):
 - `GET /v1/operator/summary` -> active tasks, approvals snapshot, service runtime/health summary, and execution trace rollup (runs/events/tool steps/screenshots/approval links).
 - `POST /v1/operator/actions` with:
   - `action=cancel_task` + `taskId`
@@ -96,9 +104,9 @@ Session mutation concurrency controls:
   - `action=failover` + `targetService` + `operation` (`drain|warmup`, admin only)
 - Summary response now includes `operatorActions.recent` audit trail for cancel/retry/failover operations (role, outcome, reason, target/task metadata).
 
-10. Demo frontend includes an Operator Console panel for summary refresh and recovery actions.
+11. Demo frontend includes an Operator Console panel for summary refresh and recovery actions.
 
-11. Real Playwright remote-http run (no simulation fallback):
+12. Real Playwright remote-http run (no simulation fallback):
 - Install runtime once: `npm i -D playwright && npx playwright install chromium`
 - Set env:
   - `UI_NAVIGATOR_EXECUTOR_MODE=remote_http`
