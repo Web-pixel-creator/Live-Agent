@@ -528,6 +528,11 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
    - Baseline implemented: sandbox restrictions for max-steps caps, action-type allowlists, blocked high-risk categories, and optional forced executor mode.
    - Baseline implemented: sandbox policy metadata is emitted in UI agent output and validated by demo policy (`sandboxPolicyValidated`).
 
+6. Profile-aware live failover policy
+   - Baseline implemented: failover reason classification (`transient`, `rate_limit`, `auth`, `billing`) in live bridge retry loop.
+   - Baseline implemented: model/auth route state with cooldowns and billing/auth disable windows, plus automatic route re-selection.
+   - Baseline implemented: failover diagnostics expose reason class and route readiness in gateway events for operator/debug workflows.
+
 ### Explicitly Out of Baseline Scope
 
 1. Replacing ADK orchestration with a non-ADK runtime core.

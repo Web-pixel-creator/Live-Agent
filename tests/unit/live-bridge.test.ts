@@ -32,6 +32,9 @@ function createGatewayConfig(overrides: Partial<GatewayConfig>): GatewayConfig {
     liveConnectRetryMs: 40,
     liveConnectMaxAttempts: 2,
     liveFailoverCooldownMs: 5_000,
+    liveFailoverRateLimitCooldownMs: 7_000,
+    liveFailoverAuthDisableMs: 30_000,
+    liveFailoverBillingDisableMs: 60_000,
     liveHealthCheckIntervalMs: 100,
     liveHealthSilenceMs: 250,
     liveMaxStaleChunkMs: 2500,
@@ -139,6 +142,93 @@ test("live bridge emits failover event when upstream connection fails", async ()
   });
   assert.equal(switchedToFallback, true, "failover chain should include fallback model");
   bridge.close();
+});
+
+test("live bridge classifies 402 failures as billing and applies disable windows", async () => {
+  const wss = new WebSocketServer({
+    port: 0,
+    verifyClient: (_info, done) => done(false, 402, "billing required"),
+  });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+  const port = (wss.address() as AddressInfo).port;
+
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveModelId: "model-a",
+      liveModelFallbackIds: ["model-b"],
+      liveAuthProfiles: [
+        { name: "primary", apiKey: "key-primary" },
+        { name: "backup", apiKey: "key-backup" },
+      ],
+      liveConnectMaxAttempts: 2,
+      liveConnectRetryMs: 20,
+      liveFailoverBillingDisableMs: 90_000,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  await assert.rejects(async () => {
+    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "billing failover" } }));
+  });
+
+  const failoverEvent = emitted.find((event) => event.type === "live.bridge.failover");
+  assert.ok(failoverEvent, "expected failover event for billing failure");
+  const failoverPayload = failoverEvent?.payload as Record<string, unknown>;
+  assert.equal(failoverPayload.reasonClass, "billing");
+
+  const authFailureEvent = emitted.find((event) => event.type === "live.bridge.auth_profile_failed");
+  assert.ok(authFailureEvent, "expected auth profile failure diagnostics");
+  const authFailurePayload = authFailureEvent?.payload as Record<string, unknown>;
+  assert.equal(authFailurePayload.reasonClass, "billing");
+  assert.ok(typeof authFailurePayload.disabledUntil === "string" && authFailurePayload.disabledUntil.length > 0);
+
+  bridge.close();
+  await closeWss(wss);
+});
+
+test("live bridge classifies 429 failures as rate_limit", async () => {
+  const wss = new WebSocketServer({
+    port: 0,
+    verifyClient: (_info, done) => done(false, 429, "rate limit"),
+  });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+  const port = (wss.address() as AddressInfo).port;
+
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveAuthProfiles: [{ name: "primary", apiKey: "key-primary" }],
+      liveConnectMaxAttempts: 1,
+      liveConnectRetryMs: 20,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  await assert.rejects(async () => {
+    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "rate limit failover" } }));
+  });
+
+  const reconnectEvent = emitted.find((event) => event.type === "live.bridge.reconnect_attempt");
+  assert.ok(reconnectEvent, "expected reconnect attempt event for 429");
+  const reconnectPayload = reconnectEvent?.payload as Record<string, unknown>;
+  assert.equal(reconnectPayload.reasonClass, "rate_limit");
+
+  const authFailureEvent = emitted.find((event) => event.type === "live.bridge.auth_profile_failed");
+  assert.ok(authFailureEvent, "expected auth profile failure event");
+  const authFailurePayload = authFailureEvent?.payload as Record<string, unknown>;
+  assert.equal(authFailurePayload.reasonClass, "rate_limit");
+
+  bridge.close();
+  await closeWss(wss);
 });
 
 test("live bridge emits health degradation when upstream stays silent during pending turn", async () => {

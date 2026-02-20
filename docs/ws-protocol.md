@@ -75,6 +75,12 @@ Live bridge output/metrics:
 15. `live.bridge.health_degraded`
 16. `live.bridge.health_recovered`
 
+Failover diagnostics fields (where applicable):
+
+1. `reasonClass`: `transient | rate_limit | auth | billing`
+2. `routeReadyAt`, `routeAvailableNow`
+3. `modelState` / `authProfileState` (`cooldownUntil`, `disabledUntil`, `failureCount`)
+
 ## Error Taxonomy (WS Path)
 
 `gateway.error` payload uses normalized error format with `code`, `message`, `traceId`, optional `details`.

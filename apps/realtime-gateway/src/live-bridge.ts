@@ -11,8 +11,19 @@ type AuthProfileState = {
   authHeader?: string;
   lastUsedAtMs: number;
   cooldownUntilMs: number;
+  disabledUntilMs: number;
   failureCount: number;
 };
+
+type ModelState = {
+  modelId: string;
+  lastUsedAtMs: number;
+  cooldownUntilMs: number;
+  disabledUntilMs: number;
+  failureCount: number;
+};
+
+type FailoverReasonClass = "transient" | "rate_limit" | "auth" | "billing";
 
 function isInterruptedMessage(parsed: unknown, raw: string): boolean {
   if (raw.includes('"interrupted":true')) {
@@ -74,6 +85,43 @@ function parseHeaderSpec(value: string | undefined): { name: string; value: stri
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function classifyFailoverReason(reason: string): FailoverReasonClass {
+  const normalized = reason.trim().toLowerCase();
+
+  if (
+    normalized.includes("billing") ||
+    normalized.includes("payment") ||
+    normalized.includes("insufficient_quota") ||
+    normalized.includes("credit") ||
+    /\b402\b/.test(normalized)
+  ) {
+    return "billing";
+  }
+
+  if (
+    normalized.includes("rate limit") ||
+    normalized.includes("ratelimit") ||
+    normalized.includes("resource_exhausted") ||
+    normalized.includes("quota exceeded") ||
+    /\b429\b/.test(normalized)
+  ) {
+    return "rate_limit";
+  }
+
+  if (
+    normalized.includes("unauthorized") ||
+    normalized.includes("forbidden") ||
+    normalized.includes("invalid api key") ||
+    normalized.includes("permission denied") ||
+    /\b401\b/.test(normalized) ||
+    /\b403\b/.test(normalized)
+  ) {
+    return "auth";
+  }
+
+  return "transient";
 }
 
 function extractTextPayload(payload: unknown): string | null {
@@ -237,6 +285,16 @@ function buildModelCandidates(config: GatewayConfig): string[] {
   return deduped.length > 0 ? deduped : [config.liveModelId];
 }
 
+function buildModelState(config: GatewayConfig): ModelState[] {
+  return buildModelCandidates(config).map((modelId) => ({
+    modelId,
+    lastUsedAtMs: 0,
+    cooldownUntilMs: 0,
+    disabledUntilMs: 0,
+    failureCount: 0,
+  }));
+}
+
 function buildAuthProfileState(config: GatewayConfig): AuthProfileState[] {
   const sourceProfiles: LiveAuthProfile[] = config.liveAuthProfiles.length > 0 ? config.liveAuthProfiles : [];
   return sourceProfiles.map((profile, index) => ({
@@ -245,6 +303,7 @@ function buildAuthProfileState(config: GatewayConfig): AuthProfileState[] {
     authHeader: profile.authHeader,
     lastUsedAtMs: 0,
     cooldownUntilMs: 0,
+    disabledUntilMs: 0,
     failureCount: 0,
   }));
 }
@@ -264,7 +323,7 @@ export class LiveApiBridge {
   private roundTripMeasuredForCurrentTurn = false;
   private currentTurnStartedAtMs: number | null = null;
   private currentTurnTextParts: string[] = [];
-  private readonly modelCandidates: string[];
+  private readonly modelStates: ModelState[];
   private currentModelIndex = 0;
   private readonly authProfiles: AuthProfileState[];
   private currentAuthProfileIndex = 0;
@@ -284,7 +343,7 @@ export class LiveApiBridge {
     this.userId = params.userId;
     this.activeRunId = params.runId;
     this.send = params.send;
-    this.modelCandidates = buildModelCandidates(params.config);
+    this.modelStates = buildModelState(params.config);
     this.authProfiles = buildAuthProfileState(params.config);
   }
 
@@ -301,8 +360,16 @@ export class LiveApiBridge {
     return Boolean(this.config.liveApiEnabled && this.config.liveApiWsUrl);
   }
 
+  private getModelCandidates(): string[] {
+    return this.modelStates.map((state) => state.modelId);
+  }
+
+  private getActiveModelState(): ModelState | null {
+    return this.modelStates[this.currentModelIndex] ?? null;
+  }
+
   private getActiveModelId(): string {
-    return this.modelCandidates[this.currentModelIndex] ?? this.config.liveModelId;
+    return this.getActiveModelState()?.modelId ?? this.config.liveModelId;
   }
 
   private getActiveAuthProfile(): AuthProfileState | null {
@@ -310,6 +377,24 @@ export class LiveApiBridge {
       return null;
     }
     return this.authProfiles[this.currentAuthProfileIndex] ?? this.authProfiles[0];
+  }
+
+  private getAuthProfileByIndex(index: number | null): AuthProfileState | null {
+    if (this.authProfiles.length === 0 || index === null) {
+      return null;
+    }
+    return this.authProfiles[index] ?? null;
+  }
+
+  private getModelReadyAtMs(state: ModelState): number {
+    return Math.max(state.cooldownUntilMs, state.disabledUntilMs);
+  }
+
+  private getAuthProfileReadyAtMs(state: AuthProfileState | null): number {
+    if (!state) {
+      return 0;
+    }
+    return Math.max(state.cooldownUntilMs, state.disabledUntilMs);
   }
 
   private buildUpstreamHeaders(): Record<string, string> {
@@ -327,89 +412,160 @@ export class LiveApiBridge {
     return headers;
   }
 
-  private markActiveAuthSuccess(): void {
+  private markActiveRouteSuccess(): void {
+    const nowMs = Date.now();
+    const model = this.getActiveModelState();
+    if (model) {
+      model.lastUsedAtMs = nowMs;
+      model.failureCount = 0;
+      model.cooldownUntilMs = 0;
+      model.disabledUntilMs = 0;
+    }
+
     const profile = this.getActiveAuthProfile();
     if (!profile) {
       return;
     }
-    profile.lastUsedAtMs = Date.now();
+    profile.lastUsedAtMs = nowMs;
     profile.failureCount = 0;
     profile.cooldownUntilMs = 0;
+    profile.disabledUntilMs = 0;
   }
 
-  private markActiveAuthFailure(reason: string): void {
+  private markActiveRouteFailure(reason: string): FailoverReasonClass {
+    const reasonClass = classifyFailoverReason(reason);
+    const nowMs = Date.now();
+    const baseCooldownMs = this.config.liveFailoverCooldownMs;
+    const rateLimitCooldownMs = Math.max(baseCooldownMs, this.config.liveFailoverRateLimitCooldownMs);
+    const profileDisableMs =
+      reasonClass === "billing"
+        ? this.config.liveFailoverBillingDisableMs
+        : reasonClass === "auth"
+          ? this.config.liveFailoverAuthDisableMs
+          : 0;
+    const modelDisableMs = reasonClass === "billing" ? this.config.liveFailoverBillingDisableMs : 0;
+    const cooldownMs = reasonClass === "rate_limit" || reasonClass === "billing" ? rateLimitCooldownMs : baseCooldownMs;
+
+    const model = this.getActiveModelState();
+    if (model) {
+      model.lastUsedAtMs = nowMs;
+      model.failureCount += 1;
+      model.cooldownUntilMs = Math.max(model.cooldownUntilMs, nowMs + cooldownMs);
+      if (modelDisableMs > 0) {
+        model.disabledUntilMs = Math.max(model.disabledUntilMs, nowMs + modelDisableMs);
+      }
+    }
+
     const profile = this.getActiveAuthProfile();
-    if (!profile) {
-      return;
+    if (profile) {
+      profile.lastUsedAtMs = nowMs;
+      profile.failureCount += 1;
+      profile.cooldownUntilMs = Math.max(profile.cooldownUntilMs, nowMs + cooldownMs);
+      if (profileDisableMs > 0) {
+        profile.disabledUntilMs = Math.max(profile.disabledUntilMs, nowMs + profileDisableMs);
+      }
+
+      this.emit("live.bridge.auth_profile_failed", {
+        profile: profile.name,
+        failureCount: profile.failureCount,
+        reasonClass,
+        cooldownUntil: new Date(profile.cooldownUntilMs).toISOString(),
+        disabledUntil: profile.disabledUntilMs > 0 ? new Date(profile.disabledUntilMs).toISOString() : null,
+        reason,
+      });
     }
-    const nowMs = Date.now();
-    profile.lastUsedAtMs = nowMs;
-    profile.failureCount += 1;
-    profile.cooldownUntilMs = nowMs + this.config.liveFailoverCooldownMs;
-    this.emit("live.bridge.auth_profile_failed", {
-      profile: profile.name,
-      failureCount: profile.failureCount,
-      cooldownUntil: new Date(profile.cooldownUntilMs).toISOString(),
-      reason,
-    });
+
+    return reasonClass;
   }
 
-  private pickNextAuthProfileIndex(): number {
-    if (this.authProfiles.length === 0) {
-      return 0;
-    }
-
-    const nowMs = Date.now();
-    for (let offset = 1; offset <= this.authProfiles.length; offset += 1) {
-      const index = (this.currentAuthProfileIndex + offset) % this.authProfiles.length;
-      const profile = this.authProfiles[index];
-      if (!profile) {
-        continue;
-      }
-      if (profile.cooldownUntilMs <= nowMs) {
-        return index;
-      }
-    }
-
-    let soonestIndex = this.currentAuthProfileIndex;
-    let soonestAt = Number.POSITIVE_INFINITY;
-    for (let index = 0; index < this.authProfiles.length; index += 1) {
-      const profile = this.authProfiles[index];
-      if (!profile) {
-        continue;
-      }
-      if (profile.cooldownUntilMs < soonestAt) {
-        soonestAt = profile.cooldownUntilMs;
-        soonestIndex = index;
-      }
-    }
-    return soonestIndex;
+  private decodeRouteIndex(routeIndex: number): { modelIndex: number; authProfileIndex: number | null } {
+    const profileSlots = Math.max(1, this.authProfiles.length);
+    const modelIndex = Math.floor(routeIndex / profileSlots) % this.modelStates.length;
+    const authProfileIndex = this.authProfiles.length > 0 ? routeIndex % profileSlots : null;
+    return { modelIndex, authProfileIndex };
   }
 
-  private rotateFailover(reason: string): void {
+  private encodeRouteIndex(modelIndex: number, authProfileIndex: number | null): number {
+    const profileSlots = Math.max(1, this.authProfiles.length);
+    if (this.authProfiles.length === 0 || authProfileIndex === null) {
+      return modelIndex * profileSlots;
+    }
+    return modelIndex * profileSlots + authProfileIndex;
+  }
+
+  private pickNextRouteIndices(): {
+    modelIndex: number;
+    authProfileIndex: number | null;
+    routeReadyAtMs: number;
+  } {
+    const profileSlots = Math.max(1, this.authProfiles.length);
+    const totalRoutes = Math.max(1, this.modelStates.length * profileSlots);
+    const nowMs = Date.now();
+    const activeRouteIndex = this.encodeRouteIndex(
+      this.currentModelIndex,
+      this.authProfiles.length > 0 ? this.currentAuthProfileIndex : null,
+    );
+
+    let fallback: { modelIndex: number; authProfileIndex: number | null; routeReadyAtMs: number } | null = null;
+
+    for (let offset = 1; offset <= totalRoutes; offset += 1) {
+      const routeIndex = (activeRouteIndex + offset) % totalRoutes;
+      const decoded = this.decodeRouteIndex(routeIndex);
+      const model = this.modelStates[decoded.modelIndex];
+      if (!model) {
+        continue;
+      }
+      const profile = this.getAuthProfileByIndex(decoded.authProfileIndex);
+      const routeReadyAtMs = Math.max(this.getModelReadyAtMs(model), this.getAuthProfileReadyAtMs(profile));
+
+      if (routeReadyAtMs <= nowMs) {
+        return {
+          modelIndex: decoded.modelIndex,
+          authProfileIndex: decoded.authProfileIndex,
+          routeReadyAtMs,
+        };
+      }
+
+      if (!fallback || routeReadyAtMs < fallback.routeReadyAtMs) {
+        fallback = {
+          modelIndex: decoded.modelIndex,
+          authProfileIndex: decoded.authProfileIndex,
+          routeReadyAtMs,
+        };
+      }
+    }
+
+    if (fallback) {
+      return fallback;
+    }
+
+    return {
+      modelIndex: this.currentModelIndex,
+      authProfileIndex: this.authProfiles.length > 0 ? this.currentAuthProfileIndex : null,
+      routeReadyAtMs: nowMs,
+    };
+  }
+
+  private rotateFailover(reason: string, reasonClass: FailoverReasonClass): void {
     const fromModel = this.getActiveModelId();
     const fromProfile = this.getActiveAuthProfile()?.name ?? null;
+    const selection = this.pickNextRouteIndices();
+    const nextModelState = this.modelStates[selection.modelIndex] ?? null;
+    const nextProfile = this.getAuthProfileByIndex(selection.authProfileIndex);
+    const previousModelIndex = this.currentModelIndex;
+    const previousProfileIndex = this.currentAuthProfileIndex;
 
-    let moved = false;
-    if (this.currentModelIndex < this.modelCandidates.length - 1) {
-      this.currentModelIndex += 1;
-      moved = true;
-    } else {
-      this.currentModelIndex = 0;
-      if (this.authProfiles.length > 0) {
-        const nextProfileIndex = this.pickNextAuthProfileIndex();
-        if (nextProfileIndex !== this.currentAuthProfileIndex) {
-          this.currentAuthProfileIndex = nextProfileIndex;
-          moved = true;
-        }
-      }
-      if (this.modelCandidates.length > 1) {
-        moved = true;
-      }
+    this.currentModelIndex = selection.modelIndex;
+    if (this.authProfiles.length > 0 && selection.authProfileIndex !== null) {
+      this.currentAuthProfileIndex = selection.authProfileIndex;
     }
+    const moved =
+      this.currentModelIndex !== previousModelIndex ||
+      (this.authProfiles.length > 0 && this.currentAuthProfileIndex !== previousProfileIndex);
 
     this.emit("live.bridge.failover", {
       reason,
+      reasonClass,
       moved,
       from: {
         model: fromModel,
@@ -419,7 +575,25 @@ export class LiveApiBridge {
         model: this.getActiveModelId(),
         authProfile: this.getActiveAuthProfile()?.name ?? null,
       },
-      modelCandidates: this.modelCandidates,
+      routeReadyAt: new Date(selection.routeReadyAtMs).toISOString(),
+      routeAvailableNow: selection.routeReadyAtMs <= Date.now(),
+      modelCandidates: this.getModelCandidates(),
+      modelState: nextModelState
+        ? {
+            id: nextModelState.modelId,
+            cooldownUntil: nextModelState.cooldownUntilMs > 0 ? new Date(nextModelState.cooldownUntilMs).toISOString() : null,
+            disabledUntil: nextModelState.disabledUntilMs > 0 ? new Date(nextModelState.disabledUntilMs).toISOString() : null,
+            failureCount: nextModelState.failureCount,
+          }
+        : null,
+      authProfileState: nextProfile
+        ? {
+            name: nextProfile.name,
+            cooldownUntil: nextProfile.cooldownUntilMs > 0 ? new Date(nextProfile.cooldownUntilMs).toISOString() : null,
+            disabledUntil: nextProfile.disabledUntilMs > 0 ? new Date(nextProfile.disabledUntilMs).toISOString() : null,
+            failureCount: nextProfile.failureCount,
+          }
+        : null,
     });
   }
 
@@ -851,7 +1025,7 @@ export class LiveApiBridge {
       };
 
       upstream.on("open", () => {
-        this.markActiveAuthSuccess();
+        this.markActiveRouteSuccess();
         this.markUpstreamMessageActivity();
         this.startHealthMonitor();
         this.emit("live.bridge.connected", {
@@ -940,13 +1114,14 @@ export class LiveApiBridge {
       } catch (error) {
         lastError = error;
         const reason = error instanceof Error ? error.message : String(error);
-        this.markActiveAuthFailure(reason);
-        this.rotateFailover(reason);
+        const reasonClass = this.markActiveRouteFailure(reason);
+        this.rotateFailover(reason, reasonClass);
         this.emit("live.bridge.reconnect_attempt", {
           attempt,
           maxAttempts,
           retryMs: this.config.liveConnectRetryMs,
           error: reason,
+          reasonClass,
           model: this.getActiveModelId(),
           authProfile: this.getActiveAuthProfile()?.name ?? null,
         });
@@ -983,10 +1158,12 @@ export class LiveApiBridge {
       this.forwardByProtocol(this.config.liveApiProtocol, event);
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
-      this.markActiveAuthFailure(reason);
-      this.rotateFailover(`forward_failure:${reason}`);
+      const classifiedReason = `forward_failure:${reason}`;
+      const reasonClass = this.markActiveRouteFailure(classifiedReason);
+      this.rotateFailover(classifiedReason, reasonClass);
       this.emit("live.bridge.forward_retry", {
         error: reason,
+        reasonClass,
         model: this.getActiveModelId(),
         authProfile: this.getActiveAuthProfile()?.name ?? null,
       });

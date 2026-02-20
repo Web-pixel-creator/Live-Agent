@@ -86,7 +86,7 @@
 
 | ID | Task | Priority | Estimate | Dependencies | Related Requirements | Definition of Done |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-201 | Добавить profile-aware model failover (cooldowns, billing disable windows) | P1 | 1 week | T-005, T-009 | R10, R12, R15 | При rate-limit/billing model route переключается автоматически и прозрачно |
+| T-201 | Добавить profile-aware model failover (cooldowns, billing disable windows) | P1 | 1 week | T-005, T-009 | R10, R12, R15 | Live bridge классифицирует причины сбоев (transient/rate_limit/auth/billing), применяет profile/model cooldown+disable windows и прозрачно переключает route с диагностикой failover events |
 | T-202 | Добавить skills runtime (workspace/bundled/managed) и skill precedence | P1 | 1 week | T-004 | R10, R16 | Навыки загружаются с управляемыми приоритетами и конфиг-гейтингом |
 | T-203 | Добавить skill security scanner и install-time trust gates | P1 | 0.5 week | T-202 | R13, R15 | Третьи навыки проходят scan/checklist до активации |
 | T-204 | Реализовать sandbox policy modes для non-main/high-risk sessions | P1 | 1 week | T-106 | R13, R16 | UI Navigator поддерживает режимы `off/non-main/all`, применяет policy-ограничения (allowed actions, max steps, forced executor, blocked categories), а e2e KPI валидирует `sandboxPolicyValidated=true` |

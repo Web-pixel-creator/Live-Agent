@@ -31,6 +31,9 @@ export type GatewayConfig = {
   liveConnectRetryMs: number;
   liveConnectMaxAttempts: number;
   liveFailoverCooldownMs: number;
+  liveFailoverRateLimitCooldownMs: number;
+  liveFailoverAuthDisableMs: number;
+  liveFailoverBillingDisableMs: number;
   liveHealthCheckIntervalMs: number;
   liveHealthSilenceMs: number;
   liveMaxStaleChunkMs: number;
@@ -210,6 +213,9 @@ export function loadGatewayConfig(): GatewayConfig {
     liveConnectRetryMs: parsePositiveInt(process.env.LIVE_CONNECT_RETRY_MS, 500),
     liveConnectMaxAttempts: parsePositiveInt(process.env.LIVE_CONNECT_MAX_ATTEMPTS, 2),
     liveFailoverCooldownMs: parsePositiveInt(process.env.LIVE_FAILOVER_COOLDOWN_MS, 15000),
+    liveFailoverRateLimitCooldownMs: parsePositiveInt(process.env.LIVE_FAILOVER_RATE_LIMIT_COOLDOWN_MS, 30000),
+    liveFailoverAuthDisableMs: parsePositiveInt(process.env.LIVE_FAILOVER_AUTH_DISABLE_MS, 120000),
+    liveFailoverBillingDisableMs: parsePositiveInt(process.env.LIVE_FAILOVER_BILLING_DISABLE_MS, 300000),
     liveHealthCheckIntervalMs: parsePositiveInt(process.env.LIVE_HEALTH_CHECK_INTERVAL_MS, 2000),
     liveHealthSilenceMs: parsePositiveInt(process.env.LIVE_HEALTH_SILENCE_MS, 12000),
     liveMaxStaleChunkMs: parsePositiveInt(process.env.LIVE_MAX_STALE_CHUNK_MS, 2500),
