@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
   [switch]$SkipBuild,
+  [switch]$SkipProfileSmoke,
   [switch]$SkipDemoE2E,
   [switch]$SkipPolicy,
   [switch]$SkipBadge,
@@ -26,6 +27,10 @@ function Run-Step([string]$Name, [string]$Command) {
 
 if (-not $SkipBuild) {
   Run-Step "Build workspaces" "npm run build"
+}
+
+if (-not $SkipProfileSmoke) {
+  Run-Step "Run runtime profile smoke checks" "npm run profile:smoke"
 }
 
 if (-not $SkipDemoE2E) {

@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
 import {
+  applyRuntimeProfile,
   createApiErrorResponse,
   createEnvelope,
   createNormalizedError,
@@ -18,8 +19,9 @@ import { LiveApiBridge } from "./live-bridge.js";
 import { sendToOrchestrator } from "./orchestrator-client.js";
 import { TaskRegistry, type TaskRecord } from "./task-registry.js";
 
-const config = loadGatewayConfig();
 const serviceName = "realtime-gateway";
+const runtimeProfile = applyRuntimeProfile(serviceName);
+const config = loadGatewayConfig();
 const serviceVersion = process.env.REALTIME_GATEWAY_VERSION ?? process.env.SERVICE_VERSION ?? "0.1.0";
 const startedAtMs = Date.now();
 let draining = false;
@@ -187,6 +189,7 @@ function runtimeState(): Record<string, unknown> {
     lastWarmupAt,
     lastDrainAt,
     version: serviceVersion,
+    profile: runtimeProfile,
     metrics: {
       totalCount: summary.totalCount,
       totalErrors: summary.totalErrors,

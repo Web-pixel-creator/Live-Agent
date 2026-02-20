@@ -181,6 +181,8 @@
 4. THE System SHALL support Agent_Engine_Sessions and Memory_Bank for persistent context.
 5. THE System SHALL support environment-based promotion flows (dev, staging, production).
 6. THE System SHALL define an internal capability adapter interface (`live`, `reasoning`, `tts`, `image`, `video`, `computer_use`) with Gemini/Vertex defaults and auditable profile metadata per run.
+7. THE System SHALL support a `local-first` runtime profile for offline/non-production development iterations.
+8. THE System SHALL block `local-first` startup in staging/production environments and SHALL expose applied runtime profile metadata in runtime endpoints.
 
 ### Requirement 11: Platform Infrastructure - Google Cloud Services
 

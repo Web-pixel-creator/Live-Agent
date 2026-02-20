@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import {
+  applyRuntimeProfile,
   createApiErrorResponse,
   createEnvelope,
   createNormalizedError,
@@ -34,6 +35,7 @@ const orchestratorRetryBackoffMs = parsePositiveInt(
   300,
 );
 const serviceName = "api-backend";
+const runtimeProfile = applyRuntimeProfile(serviceName);
 const serviceVersion = process.env.API_BACKEND_VERSION ?? process.env.SERVICE_VERSION ?? "0.1.0";
 const startedAtMs = Date.now();
 let draining = false;
@@ -173,6 +175,7 @@ function runtimeState(): Record<string, unknown> {
     lastWarmupAt,
     lastDrainAt,
     version: serviceVersion,
+    profile: runtimeProfile,
     metrics: {
       totalCount: summary.totalCount,
       totalErrors: summary.totalErrors,

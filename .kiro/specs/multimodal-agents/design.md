@@ -504,8 +504,9 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
    - Next step: move cache store to shared/distributed backend for multi-instance consistency.
 
 3. Optional local-first development profile
-   - Provide a non-production local mode for developer iteration and offline demos.
-   - Keep this mode explicitly disabled for public challenge deployment paths.
+   - Baseline implemented: local-first profile with service-level guardrails (`APP_ENV`, `RUNTIME_PROFILE`/`LOCAL_FIRST_PROFILE`).
+   - Baseline implemented: automatic non-production defaults for offline iteration (Firestore/Live API/Gemini planner off, simulation-first adapters).
+   - Guardrail blocks local-first outside `dev`.
 
 4. Rich operational console
    - Add operator views for active tasks, queued approvals, and per-agent health summaries.
@@ -600,6 +601,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 14. The repository SHALL provide automated load/performance scripts (`scripts/perf-load.ps1`, `scripts/perf-load.mjs`, `scripts/perf-load-policy-check.mjs`) with p95/error-budget checks for live voice and UI navigation paths.
 15. The orchestrator runtime SHALL expose storyteller media queue visibility (`/story/media-jobs/queue` and `storytellerMediaJobs` in `/metrics`) for operator diagnostics.
 16. The orchestrator runtime SHALL expose storyteller cache visibility and invalidation controls (`/story/cache`, `/story/cache/purge`, `storytellerCache` in `/metrics`) for deterministic asset/prompt reuse policy operations.
+17. Runtime services SHALL expose applied runtime profile metadata (`runtime.profile`) and enforce local-first guardrails that block non-dev startup.
 
 ## Traceability Matrix
 
@@ -613,6 +615,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 | Security/monitoring | R13, R15 | T-009, T-107 |
 | Story media workers + queue visibility | R4, R10, R15 | T-103, T-207 |
 | Story cache + invalidation policy | R4, R5, R15 | T-208 |
+| Local-first runtime profile + guardrails | R10, R14 | T-209 |
 | Perf/load quality gate | R1, R6, R12, R15 | T-206 |
-| Borrowed-pattern hardening (post-MVP) | R10, R14, R15 | T-209..T-210 |
+| Borrowed-pattern hardening (post-MVP) | R10, R14, R15 | T-210 |
 | Demo frontend + controls | R1, R3, R14, R15 | T-000, T-110, T-111 |

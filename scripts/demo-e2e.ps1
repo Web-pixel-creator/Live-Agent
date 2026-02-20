@@ -1114,6 +1114,7 @@ try {
     )
 
     $results = @()
+    $profileValidated = $true
     foreach ($service in $services) {
       $baseUrl = [string]$service.baseUrl
       $serviceName = [string]$service.name
@@ -1125,6 +1126,13 @@ try {
       $statusBefore = Invoke-JsonRequest -Method GET -Uri ($baseUrl + "/status") -TimeoutSec $RequestTimeoutSec
       $stateBefore = [string](Get-FieldValue -Object $statusBefore -Path @("runtime", "state"))
       Assert-Condition -Condition ($stateBefore -eq "ready") -Message ("Expected ready state before drain for " + $serviceName)
+      $runtimeProfile = Get-FieldValue -Object $statusBefore -Path @("runtime", "profile")
+      Assert-Condition -Condition ($null -ne $runtimeProfile) -Message ("Missing runtime profile in /status for " + $serviceName)
+      $profileName = [string](Get-FieldValue -Object $runtimeProfile -Path @("profile"))
+      $profileEnvironment = [string](Get-FieldValue -Object $runtimeProfile -Path @("environment"))
+      $profileLocalFirst = [bool](Get-FieldValue -Object $runtimeProfile -Path @("localFirst"))
+      Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($profileName)) -Message ("Missing runtime profile name for " + $serviceName)
+      Assert-Condition -Condition (@("dev", "staging", "prod") -contains $profileEnvironment) -Message ("Invalid runtime profile environment for " + $serviceName)
 
       $versionResponse = Invoke-JsonRequest -Method GET -Uri ($baseUrl + "/version") -TimeoutSec $RequestTimeoutSec
       $version = [string](Get-FieldValue -Object $versionResponse -Path @("version"))
@@ -1149,15 +1157,24 @@ try {
       $results += [ordered]@{
         name = $serviceName
         version = $version
+        runtimeProfile = $profileName
+        runtimeEnvironment = $profileEnvironment
+        runtimeLocalFirst = $profileLocalFirst
         stateBefore = $stateBefore
         stateDuringDrain = $stateDuringDrain
         stateAfterWarmup = $stateAfterWarmup
+      }
+
+      if ([string]::IsNullOrWhiteSpace($profileName)) {
+        $profileValidated = $false
       }
     }
 
     return [ordered]@{
       services = $results
       count = $results.Count
+      profileValidated = $profileValidated
+      localFirstServices = (@($results | Where-Object { $_.runtimeLocalFirst -eq $true })).Count
     }
   } | Out-Null
 
@@ -1319,6 +1336,8 @@ $summary = [ordered]@{
     approvalsInvalidIntentCode = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.code } else { $null }
     approvalsInvalidIntentTraceId = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.traceId } else { $null }
     lifecycleEndpointsValidated = if ($null -ne $runtimeLifecycleData) { $true } else { $false }
+    runtimeProfileValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.profileValidated } else { $false }
+    runtimeLocalFirstServices = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.localFirstServices } else { $null }
     metricsEndpointsValidated = if ($null -ne $runtimeMetricsData) { $true } else { $false }
     metricsServicesValidated = if ($null -ne $runtimeMetricsData) { $runtimeMetricsData.count } else { $null }
     capabilityAdaptersValidated = if (

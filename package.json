@@ -18,6 +18,7 @@
     "perf:load:fast": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/perf-load.ps1 -SkipBuild",
     "perf:profile": "node ./scripts/perf-load.mjs --output ./artifacts/perf-load/summary.json --markdownOutput ./artifacts/perf-load/summary.md",
     "perf:load:policy": "node ./scripts/perf-load-policy-check.mjs --input ./artifacts/perf-load/summary.json --output ./artifacts/perf-load/policy-check.md --jsonOutput ./artifacts/perf-load/policy-check.json",
+    "profile:smoke": "node --import tsx ./scripts/runtime-profile-smoke.mjs",
     "verify:release": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1",
     "repo:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-repo-publish.ps1",
     "badge:pages:enable": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-pages-enable.ps1",

@@ -58,6 +58,7 @@ Open `http://localhost:3000`.
 - UI Navigator planner config: set `UI_NAVIGATOR_*` envs for Computer Use-style planning, max steps, and approval keyword policy.
 - UI Navigator executor modes: `UI_NAVIGATOR_EXECUTOR_MODE=simulated|playwright_preview|remote_http`, optional `UI_NAVIGATOR_EXECUTOR_URL`, and timeout/retry controls `UI_NAVIGATOR_EXECUTOR_TIMEOUT_MS`, `UI_NAVIGATOR_EXECUTOR_MAX_RETRIES`, `UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS`.
 - Remote UI executor service: run `npm run dev:ui-executor`; endpoint `/execute` is used when `UI_NAVIGATOR_EXECUTOR_MODE=remote_http`.
+- Local-first profile for offline iteration: set `LOCAL_FIRST_PROFILE=true` and `APP_ENV=dev` (guardrail blocks local-first in `staging/prod`). Profile details: `docs/local-first-profile.md`.
 
 6. Optional delegation demo commands (in demo frontend message box with `intent=conversation`):
 - `delegate story: <prompt>` -> Live Agent delegates to Storyteller.
@@ -188,6 +189,22 @@ Worker runtime knobs:
 - `STORYTELLER_CACHE_TTL_MS` (default: `1800000`)
 - `STORYTELLER_CACHE_VERSION` (default: `story-cache-v1`)
 - `STORYTELLER_CACHE_PURGE_TOKEN` (default: unset; changing token invalidates cache policy)
+
+## Runtime Profiles
+
+Runtime guardrails use `APP_ENV` + profile flags:
+
+- `APP_ENV=dev|staging|prod` (default resolves to `dev`)
+- `RUNTIME_PROFILE=standard|local-first` or `LOCAL_FIRST_PROFILE=true`
+- `local-first` is blocked outside `APP_ENV=dev`
+
+Profile smoke checks:
+
+```powershell
+npm run profile:smoke
+```
+
+Full profile matrix and disabled features: `docs/local-first-profile.md`.
 
 ### Status Badge Template (Shields Endpoint)
 

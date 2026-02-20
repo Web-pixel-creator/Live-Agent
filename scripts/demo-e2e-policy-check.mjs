@@ -379,6 +379,12 @@ async function main() {
     true,
   );
   addCheck(
+    "kpi.runtimeProfileValidated",
+    kpis.runtimeProfileValidated === true,
+    kpis.runtimeProfileValidated,
+    true,
+  );
+  addCheck(
     "kpi.metricsEndpointsValidated",
     kpis.metricsEndpointsValidated === true,
     kpis.metricsEndpointsValidated,

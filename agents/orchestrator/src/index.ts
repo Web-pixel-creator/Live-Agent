@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import {
+  applyRuntimeProfile,
   createApiErrorResponse,
   createNormalizedError,
   normalizeUnknownError,
@@ -16,6 +17,7 @@ import { getFirestoreState } from "./services/firestore.js";
 
 const port = Number(process.env.ORCHESTRATOR_PORT ?? 8082);
 const serviceName = "orchestrator";
+const runtimeProfile = applyRuntimeProfile(serviceName);
 const serviceVersion = process.env.ORCHESTRATOR_VERSION ?? process.env.SERVICE_VERSION ?? "0.1.0";
 const startedAtMs = Date.now();
 let draining = false;
@@ -78,6 +80,7 @@ function runtimeState(): Record<string, unknown> {
     lastWarmupAt,
     lastDrainAt,
     version: serviceVersion,
+    profile: runtimeProfile,
     metrics: {
       totalCount: summary.totalCount,
       totalErrors: summary.totalErrors,
