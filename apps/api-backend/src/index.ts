@@ -13,6 +13,7 @@ import {
 } from "@mla/contracts";
 import {
   type ApprovalDecision,
+  type ApprovalSweepResult,
   createSession,
   getFirestoreState,
   listEvents,
@@ -20,6 +21,8 @@ import {
   listRuns,
   listSessions,
   recordApprovalDecision,
+  sweepApprovalTimeouts,
+  upsertPendingApproval,
   updateSessionStatus,
   type SessionMode,
   type SessionStatus,
@@ -50,6 +53,9 @@ let lastDrainAt: string | null = null;
 const metrics = new RollingMetrics({
   maxSamplesPerBucket: Number(process.env.API_METRICS_MAX_SAMPLES ?? 2000),
 });
+const approvalSoftTimeoutMs = parsePositiveInt(process.env.APPROVAL_SOFT_TIMEOUT_MS ?? null, 60_000);
+const approvalHardTimeoutMs = parsePositiveInt(process.env.APPROVAL_HARD_TIMEOUT_MS ?? null, 300_000);
+const approvalSweepLimit = parsePositiveInt(process.env.APPROVAL_SWEEP_LIMIT ?? null, 250);
 
 function toBaseUrl(input: string | undefined, fallback: string): string {
   const candidate = typeof input === "string" && input.trim().length > 0 ? input.trim() : fallback;
@@ -405,6 +411,71 @@ async function getGatewayActiveTasks(limit = 100): Promise<unknown[]> {
   return response.data;
 }
 
+function toTaskString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function buildApprovalIdFromTask(task: Record<string, unknown>): string | null {
+  const runId = toTaskString(task.runId);
+  if (runId) {
+    return `approval-${runId}`;
+  }
+  const taskId = toTaskString(task.taskId);
+  if (taskId) {
+    return `approval-task-${taskId}`;
+  }
+  return null;
+}
+
+async function syncPendingApprovalsFromTasks(tasks: unknown[]): Promise<number> {
+  let createdOrRefreshed = 0;
+  for (const item of tasks) {
+    if (!isRecord(item)) {
+      continue;
+    }
+    if (item.status !== "pending_approval") {
+      continue;
+    }
+    const approvalId = buildApprovalIdFromTask(item);
+    const sessionId = toTaskString(item.sessionId);
+    if (!approvalId || !sessionId) {
+      continue;
+    }
+    const runId = toTaskString(item.runId) ?? approvalId.replace(/^approval-/, "run-unknown");
+    const stage = toTaskString(item.stage) ?? "awaiting_approval";
+    const updatedAt = toTaskString(item.updatedAt) ?? new Date().toISOString();
+    await upsertPendingApproval({
+      approvalId,
+      sessionId,
+      runId,
+      actionType: "ui_task",
+      actor: "gateway-task-sync",
+      metadata: {
+        taskId: toTaskString(item.taskId),
+        stage,
+        route: toTaskString(item.route),
+        intent: toTaskString(item.intent),
+      },
+      softTimeoutMs: approvalSoftTimeoutMs,
+      hardTimeoutMs: approvalHardTimeoutMs,
+      requestedAtIso: updatedAt,
+    });
+    createdOrRefreshed += 1;
+  }
+  return createdOrRefreshed;
+}
+
+async function runApprovalSlaSweep(): Promise<ApprovalSweepResult> {
+  return sweepApprovalTimeouts({
+    nowIso: new Date().toISOString(),
+    limit: approvalSweepLimit,
+  });
+}
+
 async function sendToOrchestrator(request: OrchestratorRequest): Promise<OrchestratorResponse> {
   const startedAt = Date.now();
   let lastError: Error | null = null;
@@ -624,12 +695,23 @@ export const server = createServer(async (req, res) => {
     if (url.pathname === "/v1/approvals" && req.method === "GET") {
       const limit = parsePositiveInt(url.searchParams.get("limit"), 50);
       const sessionId = url.searchParams.get("sessionId") ?? undefined;
+      const sweep = await runApprovalSlaSweep();
+      const activeTasks = await getGatewayActiveTasks(200);
+      const syncedFromTasks = await syncPendingApprovalsFromTasks(activeTasks);
       const approvals = await listApprovals({ limit, sessionId });
-      writeJson(res, 200, { data: approvals, total: approvals.length });
+      writeJson(res, 200, {
+        data: approvals,
+        total: approvals.length,
+        lifecycle: {
+          syncedFromTasks,
+          slaSweep: sweep,
+        },
+      });
       return;
     }
 
     if (url.pathname === "/v1/approvals/resume" && req.method === "POST") {
+      const sweep = await runApprovalSlaSweep();
       const raw = await readBody(req);
       const parsed = parseJsonBody(raw) as {
         approvalId?: unknown;
@@ -694,14 +776,46 @@ export const server = createServer(async (req, res) => {
         decision,
         reason,
         metadata: isRecord(parsed.input) ? parsed.input : undefined,
+        actor: userId,
       });
 
-      if (decision === "rejected") {
+      if (approval.status === "timeout") {
+        writeJson(res, 409, {
+          data: {
+            approval,
+            resumed: false,
+            reason: "Approval already timed out by SLA policy",
+            lifecycle: {
+              slaSweep: sweep,
+            },
+          },
+        });
+        return;
+      }
+
+      if (approval.status === "rejected") {
         writeJson(res, 200, {
           data: {
             approval,
             resumed: false,
             reason: "Approval decision is rejected",
+            lifecycle: {
+              slaSweep: sweep,
+            },
+          },
+        });
+        return;
+      }
+
+      if (approval.status !== "approved") {
+        writeJson(res, 409, {
+          data: {
+            approval,
+            resumed: false,
+            reason: `Approval is in non-resumable state: ${approval.status}`,
+            lifecycle: {
+              slaSweep: sweep,
+            },
           },
         });
         return;
@@ -732,6 +846,9 @@ export const server = createServer(async (req, res) => {
           approval,
           resumed: true,
           orchestrator: response,
+          lifecycle: {
+            slaSweep: sweep,
+          },
         },
       });
       return;
@@ -739,11 +856,13 @@ export const server = createServer(async (req, res) => {
 
     if (url.pathname === "/v1/operator/summary" && req.method === "GET") {
       const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
-      const [activeTasks, approvals, services] = await Promise.all([
+      const sweep = await runApprovalSlaSweep();
+      const [activeTasks, services] = await Promise.all([
         getGatewayActiveTasks(100),
-        listApprovals({ limit: 100 }),
         getOperatorServiceSummary(),
       ]);
+      const syncedFromTasks = await syncPendingApprovalsFromTasks(activeTasks);
+      const approvals = await listApprovals({ limit: 100 });
       const pendingApprovalsFromTasks = activeTasks.filter(
         (task) => isRecord(task) && task.status === "pending_approval",
       ).length;
@@ -760,6 +879,8 @@ export const server = createServer(async (req, res) => {
             total: approvals.length,
             recent: approvals.slice(0, 25),
             pendingFromTasks: pendingApprovalsFromTasks,
+            syncedFromTasks,
+            slaSweep: sweep,
           },
           services,
         },
