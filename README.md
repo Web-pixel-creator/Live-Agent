@@ -123,6 +123,46 @@ The script writes a structured report to:
 - `artifacts/demo-e2e/badge.json`
 - `artifacts/demo-e2e/badge-details.json`
 
+## Performance Load Suite
+
+Run load profile for live-agent translation path and UI navigation execution:
+
+```powershell
+npm run perf:load
+```
+
+Fast mode (skip build):
+
+```powershell
+npm run perf:load:fast
+```
+
+If services are already running, execute raw profile only:
+
+```powershell
+npm run perf:profile
+```
+
+Validate performance/error-budget policy on generated report:
+
+```powershell
+npm run perf:load:policy
+```
+
+Default artifacts:
+
+- `artifacts/perf-load/summary.json`
+- `artifacts/perf-load/summary.md`
+- `artifacts/perf-load/policy-check.json`
+- `artifacts/perf-load/policy-check.md`
+
+Example with custom thresholds:
+
+```powershell
+node ./scripts/perf-load.mjs --liveIterations 30 --liveConcurrency 6 --uiIterations 30 --uiConcurrency 6 --maxLiveP95Ms 1800 --maxUiP95Ms 25000 --maxAggregateErrorRatePct 10
+node ./scripts/perf-load-policy-check.mjs --input ./artifacts/perf-load/summary.json --maxLiveP95Ms 1800 --maxUiP95Ms 25000 --maxAggregateErrorRatePct 10 --requiredUiAdapterMode remote_http
+```
+
 ### Status Badge Template (Shields Endpoint)
 
 When `badge.json` is published at a static URL (for example GitHub Pages or gist raw), use:

@@ -596,6 +596,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 11. The repository SHALL provide operator scripts to configure GitHub Pages source and verify public badge endpoint availability (`badge:pages:enable`, `badge:pages:check`).
 12. The repository SHALL provide scripted release operations for local quality gate execution and repository publish orchestration (`verify:release`, `repo:publish`).
 13. The repository SHALL provide a judge-facing walkthrough runbook with exact interruption checkpoints and text fallback procedure (`docs/challenge-demo-runbook.md`).
+14. The repository SHALL provide automated load/performance scripts (`scripts/perf-load.ps1`, `scripts/perf-load.mjs`, `scripts/perf-load-policy-check.mjs`) with p95/error-budget checks for live voice and UI navigation paths.
 
 ## Traceability Matrix
 
@@ -603,9 +604,10 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 | --- | --- | --- |
 | Core stack + orchestration | R0, R10, R11 | T-001..T-005, T-012, T-013, T-014 |
 | Live realtime | R1, R2, R12 | T-005..T-008 |
-| Storyteller pipeline | R4, R5 | T-101, T-102, T-104, T-112 (T-103 optional) |
+| Storyteller pipeline | R4, R5 | T-101, T-102, T-103, T-104, T-112 |
 | UI Navigator + Computer Use | R6, R7, R8, R9 | T-105..T-108 |
 | Multi-agent delegation | R16 | T-109 |
 | Security/monitoring | R13, R15 | T-009, T-107 |
+| Perf/load quality gate | R1, R6, R12, R15 | T-206 |
 | Borrowed-pattern hardening (post-MVP) | R10, R14, R15 | T-207..T-210 |
 | Demo frontend + controls | R1, R3, R14, R15 | T-000, T-110, T-111 |
