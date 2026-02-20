@@ -107,6 +107,51 @@ export type OperatorActionRecord = {
   details?: unknown;
 };
 
+export type ManagedSkillTrustLevel = "untrusted" | "reviewed" | "trusted";
+
+export type ManagedSkillRecord = {
+  skillId: string;
+  name: string;
+  description: string;
+  prompt: string;
+  scope: string[];
+  enabled: boolean;
+  trustLevel: ManagedSkillTrustLevel;
+  version: number;
+  updatedBy: string;
+  publisher: string | null;
+  checksum: string | null;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: unknown;
+};
+
+export type ManagedSkillUpsertResult =
+  | {
+      outcome: "created" | "updated" | "idempotent_replay";
+      skill: ManagedSkillRecord;
+    }
+  | {
+      outcome: "version_conflict";
+      skill: ManagedSkillRecord;
+      expectedVersion: number;
+      actualVersion: number;
+    };
+
+export type ManagedSkillIndexItem = {
+  id: string;
+  name: string;
+  description: string;
+  prompt: string;
+  scope: string[];
+  enabled: boolean;
+  trustLevel: ManagedSkillTrustLevel;
+  version: number;
+  updatedAt: string;
+  publisher: string | null;
+  checksum: string | null;
+};
+
 let firestoreClient: Firestore | null = null;
 let initialized = false;
 let state: FirestoreState = {
@@ -118,6 +163,7 @@ let state: FirestoreState = {
 const inMemorySessions = new Map<string, SessionListItem>();
 const inMemoryApprovals = new Map<string, ApprovalRecord>();
 const inMemoryOperatorActions: OperatorActionRecord[] = [];
+const inMemoryManagedSkills = new Map<string, ManagedSkillRecord>();
 const DEFAULT_APPROVAL_SOFT_TIMEOUT_MS = 60 * 1000;
 const DEFAULT_APPROVAL_HARD_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -357,6 +403,131 @@ function toNonNegativeInt(value: unknown): number | null {
     }
   }
   return null;
+}
+
+function normalizeManagedSkillId(value: unknown, fallback: string): string {
+  const source =
+    typeof value === "string" && value.trim().length > 0
+      ? value.trim()
+      : fallback;
+  const normalized = source
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return normalized.length > 0 ? normalized.slice(0, 128) : fallback;
+}
+
+function normalizeManagedTrustLevel(value: unknown): ManagedSkillTrustLevel {
+  if (value === "trusted" || value === "reviewed" || value === "untrusted") {
+    return value;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "trusted" || normalized === "reviewed" || normalized === "untrusted") {
+      return normalized;
+    }
+  }
+  return "reviewed";
+}
+
+function normalizeScopeEntry(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized.length === 0) {
+    return null;
+  }
+  return normalized.slice(0, 64);
+}
+
+function normalizeScopeList(value: unknown): string[] {
+  const entries = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(",")
+      : [];
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+  for (const item of entries) {
+    const normalized = normalizeScopeEntry(item);
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    deduped.push(normalized);
+  }
+  return deduped;
+}
+
+function normalizeManagedSkillVersion(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 1) {
+    return Math.floor(value);
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed >= 1) {
+      return Math.floor(parsed);
+    }
+  }
+  return 1;
+}
+
+function mapManagedSkillRecord(docId: string, raw: Record<string, unknown>): ManagedSkillRecord {
+  const skillId = normalizeManagedSkillId(raw.skillId ?? raw.id, docId);
+  const name = toNonEmptyString(raw.name) ?? skillId;
+  const description =
+    toNonEmptyString(raw.description) ?? `${name} managed skill`;
+  const prompt = toNonEmptyString(raw.prompt) ?? description;
+  const enabled = raw.enabled === undefined ? true : Boolean(raw.enabled);
+  const scope = normalizeScopeList(raw.scope ?? raw.agents);
+  const trustLevel = normalizeManagedTrustLevel(raw.trustLevel ?? raw.trust);
+  const version = normalizeManagedSkillVersion(raw.version);
+  const updatedBy = toNonEmptyString(raw.updatedBy) ?? "system";
+  const publisher = toNonEmptyString(raw.publisher);
+  const checksum = toNonEmptyString(raw.checksum);
+  const createdAt = toIso(raw.createdAt);
+  const updatedAt = toIso(raw.updatedAt ?? raw.createdAt);
+
+  return {
+    skillId,
+    name,
+    description,
+    prompt,
+    scope,
+    enabled,
+    trustLevel,
+    version,
+    updatedBy,
+    publisher,
+    checksum,
+    createdAt,
+    updatedAt,
+    metadata: raw.metadata,
+  };
+}
+
+function managedSkillContentSignature(skill: ManagedSkillRecord): string {
+  return JSON.stringify({
+    name: skill.name,
+    description: skill.description,
+    prompt: skill.prompt,
+    scope: skill.scope,
+    enabled: skill.enabled,
+    trustLevel: skill.trustLevel,
+    publisher: skill.publisher,
+    checksum: skill.checksum,
+    metadata: skill.metadata ?? null,
+  });
+}
+
+function isScopeCompatible(skillScope: string[], requestedScope?: string): boolean {
+  if (!requestedScope || requestedScope.trim().length === 0 || skillScope.length === 0) {
+    return true;
+  }
+  const normalized = requestedScope.trim().toLowerCase();
+  return skillScope.includes(normalized) || skillScope.includes("*") || skillScope.includes("all");
 }
 
 function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSessionId?: string): EventListItem {
@@ -1223,4 +1394,234 @@ export async function sweepApprovalTimeouts(params: {
   }
 
   return result;
+}
+
+export async function listManagedSkills(params: {
+  limit: number;
+  includeDisabled?: boolean;
+  scope?: string;
+}): Promise<ManagedSkillRecord[]> {
+  const limit = Math.max(1, Math.min(500, params.limit));
+  const includeDisabled = params.includeDisabled === true;
+  const scope = toNonEmptyString(params.scope) ?? undefined;
+  const db = initFirestore();
+
+  if (!db) {
+    return Array.from(inMemoryManagedSkills.values())
+      .filter((skill) => (includeDisabled ? true : skill.enabled))
+      .filter((skill) => isScopeCompatible(skill.scope, scope))
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .slice(0, limit);
+  }
+
+  const snapshot = await db
+    .collection("skills_registry")
+    .orderBy("updatedAt", "desc")
+    .limit(limit)
+    .get();
+
+  const records = snapshot.docs.map((doc) =>
+    mapManagedSkillRecord(doc.id, doc.data() as Record<string, unknown>),
+  );
+
+  return records
+    .filter((skill) => (includeDisabled ? true : skill.enabled))
+    .filter((skill) => isScopeCompatible(skill.scope, scope));
+}
+
+export async function upsertManagedSkill(params: {
+  skillId: string;
+  name: string;
+  description?: string;
+  prompt: string;
+  scope?: string[];
+  enabled?: boolean;
+  trustLevel?: ManagedSkillTrustLevel;
+  updatedBy?: string;
+  publisher?: string | null;
+  checksum?: string | null;
+  metadata?: unknown;
+  expectedVersion?: number | null;
+}): Promise<ManagedSkillUpsertResult> {
+  const skillId = normalizeManagedSkillId(params.skillId, "managed-skill");
+  const nowIso = new Date().toISOString();
+  const expectedVersion =
+    typeof params.expectedVersion === "number" &&
+    Number.isFinite(params.expectedVersion) &&
+    params.expectedVersion >= 1
+      ? Math.floor(params.expectedVersion)
+      : null;
+
+  const baseRecord: ManagedSkillRecord = {
+    skillId,
+    name: toNonEmptyString(params.name) ?? skillId,
+    description:
+      toNonEmptyString(params.description) ??
+      `${toNonEmptyString(params.name) ?? skillId} managed skill`,
+    prompt: toNonEmptyString(params.prompt) ?? "Managed skill prompt",
+    scope: normalizeScopeList(params.scope ?? []),
+    enabled: params.enabled === undefined ? true : Boolean(params.enabled),
+    trustLevel: normalizeManagedTrustLevel(params.trustLevel),
+    version: 1,
+    updatedBy: toNonEmptyString(params.updatedBy) ?? "operator",
+    publisher: toNonEmptyString(params.publisher),
+    checksum: toNonEmptyString(params.checksum),
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    metadata: params.metadata,
+  };
+
+  const db = initFirestore();
+  if (!db) {
+    const existing = inMemoryManagedSkills.get(skillId) ?? null;
+    if (!existing) {
+      inMemoryManagedSkills.set(skillId, baseRecord);
+      return {
+        outcome: "created",
+        skill: baseRecord,
+      };
+    }
+
+    if (expectedVersion !== null && existing.version !== expectedVersion) {
+      return {
+        outcome: "version_conflict",
+        skill: existing,
+        expectedVersion,
+        actualVersion: existing.version,
+      };
+    }
+
+    const candidate: ManagedSkillRecord = {
+      ...baseRecord,
+      version: existing.version + 1,
+      createdAt: existing.createdAt,
+      updatedAt: nowIso,
+    };
+
+    if (managedSkillContentSignature(existing) === managedSkillContentSignature(candidate)) {
+      return {
+        outcome: "idempotent_replay",
+        skill: existing,
+      };
+    }
+
+    inMemoryManagedSkills.set(skillId, candidate);
+    return {
+      outcome: "updated",
+      skill: candidate,
+    };
+  }
+
+  const ref = db.collection("skills_registry").doc(skillId);
+  const transactionResult = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    if (!snapshot.exists) {
+      transaction.set(
+        ref,
+        {
+          skillId: baseRecord.skillId,
+          name: baseRecord.name,
+          description: baseRecord.description,
+          prompt: baseRecord.prompt,
+          scope: baseRecord.scope,
+          enabled: baseRecord.enabled,
+          trustLevel: baseRecord.trustLevel,
+          version: 1,
+          updatedBy: baseRecord.updatedBy,
+          publisher: baseRecord.publisher,
+          checksum: baseRecord.checksum,
+          metadata: baseRecord.metadata ?? null,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      return {
+        outcome: "created" as const,
+      };
+    }
+
+    const existing = mapManagedSkillRecord(ref.id, (snapshot.data() ?? {}) as Record<string, unknown>);
+    if (expectedVersion !== null && existing.version !== expectedVersion) {
+      return {
+        outcome: "version_conflict" as const,
+        skill: existing,
+        expectedVersion,
+        actualVersion: existing.version,
+      };
+    }
+
+    const candidate: ManagedSkillRecord = {
+      ...baseRecord,
+      version: existing.version + 1,
+      createdAt: existing.createdAt,
+      updatedAt: nowIso,
+    };
+    if (managedSkillContentSignature(existing) === managedSkillContentSignature(candidate)) {
+      return {
+        outcome: "idempotent_replay" as const,
+        skill: existing,
+      };
+    }
+
+    transaction.set(
+      ref,
+      {
+        skillId: candidate.skillId,
+        name: candidate.name,
+        description: candidate.description,
+        prompt: candidate.prompt,
+        scope: candidate.scope,
+        enabled: candidate.enabled,
+        trustLevel: candidate.trustLevel,
+        version: candidate.version,
+        updatedBy: candidate.updatedBy,
+        publisher: candidate.publisher,
+        checksum: candidate.checksum,
+        metadata: candidate.metadata ?? null,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    return {
+      outcome: "updated" as const,
+    };
+  });
+
+  if (transactionResult.outcome === "version_conflict" || transactionResult.outcome === "idempotent_replay") {
+    return transactionResult;
+  }
+
+  const stored = await ref.get();
+  const skill = mapManagedSkillRecord(ref.id, (stored.data() ?? {}) as Record<string, unknown>);
+  return {
+    outcome: transactionResult.outcome,
+    skill,
+  };
+}
+
+export async function listManagedSkillIndex(params: {
+  limit: number;
+  includeDisabled?: boolean;
+  scope?: string;
+}): Promise<ManagedSkillIndexItem[]> {
+  const records = await listManagedSkills({
+    limit: params.limit,
+    includeDisabled: params.includeDisabled,
+    scope: params.scope,
+  });
+  return records.map((skill) => ({
+    id: skill.skillId,
+    name: skill.name,
+    description: skill.description,
+    prompt: skill.prompt,
+    scope: skill.scope,
+    enabled: skill.enabled,
+    trustLevel: skill.trustLevel,
+    version: skill.version,
+    updatedAt: skill.updatedAt,
+    publisher: skill.publisher,
+    checksum: skill.checksum,
+  }));
 }

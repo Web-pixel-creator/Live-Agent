@@ -22,10 +22,14 @@ import {
   listOperatorActions,
   listRuns,
   listSessions,
+  listManagedSkillIndex,
+  listManagedSkills,
+  type ManagedSkillTrustLevel,
   recordOperatorAction,
   recordApprovalDecision,
   sweepApprovalTimeouts,
   upsertPendingApproval,
+  upsertManagedSkill,
   updateSessionStatus,
   type SessionMode,
   type SessionStatus,
@@ -178,6 +182,58 @@ function headerValue(req: IncomingMessage, name: string): string | null {
 
 function sanitizeDecision(raw: unknown): ApprovalDecision {
   return raw === "rejected" ? "rejected" : "approved";
+}
+
+function sanitizeManagedTrustLevel(raw: unknown): ManagedSkillTrustLevel {
+  if (raw === "trusted" || raw === "reviewed" || raw === "untrusted") {
+    return raw;
+  }
+  if (typeof raw === "string") {
+    const normalized = raw.trim().toLowerCase();
+    if (normalized === "trusted" || normalized === "reviewed" || normalized === "untrusted") {
+      return normalized;
+    }
+  }
+  return "reviewed";
+}
+
+function toOptionalString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function parseSkillScope(raw: unknown): string[] {
+  const entries = Array.isArray(raw) ? raw : typeof raw === "string" ? raw.split(",") : [];
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+  for (const item of entries) {
+    if (typeof item !== "string") {
+      continue;
+    }
+    const normalized = item.trim().toLowerCase();
+    if (normalized.length === 0 || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    deduped.push(normalized);
+  }
+  return deduped;
+}
+
+function parseOptionalExpectedVersion(raw: unknown): number | null {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw >= 1) {
+    return Math.floor(raw);
+  }
+  if (typeof raw === "string" && raw.trim().length > 0) {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed >= 1) {
+      return Math.floor(parsed);
+    }
+  }
+  return null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -802,6 +858,142 @@ export const server = createServer(async (req, res) => {
       const limit = parsePositiveInt(url.searchParams.get("limit"), 100);
       const events = await listEvents({ sessionId, limit });
       writeJson(res, 200, { data: events, total: events.length });
+      return;
+    }
+
+    if (url.pathname === "/v1/skills/index" && req.method === "GET") {
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 200, 1, 500);
+      const scope = url.searchParams.get("scope") ?? undefined;
+      const includeDisabled = url.searchParams.get("includeDisabled") === "true";
+      const indexItems = await listManagedSkillIndex({
+        limit,
+        includeDisabled,
+        scope,
+      });
+      writeJson(res, 200, {
+        data: indexItems,
+        total: indexItems.length,
+        source: "managed_registry",
+        generatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/skills/registry" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 200, 1, 500);
+      const scope = url.searchParams.get("scope") ?? undefined;
+      const includeDisabled = url.searchParams.get("includeDisabled") === "true";
+      const skills = await listManagedSkills({
+        limit,
+        includeDisabled,
+        scope,
+      });
+      writeJson(res, 200, {
+        data: skills,
+        total: skills.length,
+        role,
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/skills/registry" && req.method === "POST") {
+      const role = assertOperatorRole(req, ["admin"]);
+      const raw = await readBody(req);
+      const parsed = parseJsonBody(raw) as {
+        skillId?: unknown;
+        name?: unknown;
+        description?: unknown;
+        prompt?: unknown;
+        scope?: unknown;
+        enabled?: unknown;
+        trustLevel?: unknown;
+        expectedVersion?: unknown;
+        updatedBy?: unknown;
+        publisher?: unknown;
+        checksum?: unknown;
+        metadata?: unknown;
+      };
+
+      const skillId = toOptionalString(parsed.skillId);
+      const name = toOptionalString(parsed.name);
+      const prompt = toOptionalString(parsed.prompt);
+      if (!skillId || !name || !prompt) {
+        await auditOperatorAction({
+          role,
+          action: "skills_registry_upsert",
+          outcome: "denied",
+          reason: "skillId, name and prompt are required",
+          errorCode: "API_SKILL_REGISTRY_INVALID_INPUT",
+        });
+        writeApiError(res, 400, {
+          code: "API_SKILL_REGISTRY_INVALID_INPUT",
+          message: "skillId, name and prompt are required",
+          details: {
+            required: ["skillId", "name", "prompt"],
+          },
+        });
+        return;
+      }
+
+      const upsertResult = await upsertManagedSkill({
+        skillId,
+        name,
+        description: toOptionalString(parsed.description) ?? undefined,
+        prompt,
+        scope: parseSkillScope(parsed.scope),
+        enabled: parsed.enabled === undefined ? true : Boolean(parsed.enabled),
+        trustLevel: sanitizeManagedTrustLevel(parsed.trustLevel),
+        expectedVersion: parseOptionalExpectedVersion(parsed.expectedVersion),
+        updatedBy: toOptionalString(parsed.updatedBy) ?? role,
+        publisher: toOptionalString(parsed.publisher),
+        checksum: toOptionalString(parsed.checksum),
+        metadata: parsed.metadata,
+      });
+
+      if (upsertResult.outcome === "version_conflict") {
+        await auditOperatorAction({
+          role,
+          action: "skills_registry_upsert",
+          outcome: "failed",
+          reason: "managed skill version conflict",
+          errorCode: "API_SKILL_REGISTRY_VERSION_CONFLICT",
+          details: {
+            skillId: upsertResult.skill.skillId,
+            expectedVersion: upsertResult.expectedVersion,
+            actualVersion: upsertResult.actualVersion,
+          },
+        });
+        writeApiError(res, 409, {
+          code: "API_SKILL_REGISTRY_VERSION_CONFLICT",
+          message: "Managed skill version conflict",
+          details: {
+            skillId: upsertResult.skill.skillId,
+            expectedVersion: upsertResult.expectedVersion,
+            actualVersion: upsertResult.actualVersion,
+          },
+        });
+        return;
+      }
+
+      await auditOperatorAction({
+        role,
+        action: "skills_registry_upsert",
+        outcome: "succeeded",
+        reason: `managed skill ${upsertResult.outcome}`,
+        details: {
+          skillId: upsertResult.skill.skillId,
+          version: upsertResult.skill.version,
+          trustLevel: upsertResult.skill.trustLevel,
+        },
+      });
+
+      writeJson(res, upsertResult.outcome === "created" ? 201 : 200, {
+        data: upsertResult.skill,
+        meta: {
+          outcome: upsertResult.outcome,
+        },
+      });
       return;
     }
 
