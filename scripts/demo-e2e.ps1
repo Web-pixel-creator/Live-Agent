@@ -905,6 +905,61 @@ try {
     }
   } | Out-Null
 
+  Invoke-Scenario -Name "runtime.lifecycle.endpoints" -Action {
+    $services = @(
+      @{ name = "realtime-gateway"; baseUrl = "http://localhost:8080" },
+      @{ name = "api-backend"; baseUrl = "http://localhost:8081" },
+      @{ name = "orchestrator"; baseUrl = "http://localhost:8082" }
+    )
+
+    $results = @()
+    foreach ($service in $services) {
+      $baseUrl = [string]$service.baseUrl
+      $serviceName = [string]$service.name
+
+      $healthBefore = Invoke-JsonRequest -Method GET -Uri ($baseUrl + "/healthz") -TimeoutSec $RequestTimeoutSec
+      $healthBeforeOk = [bool](Get-FieldValue -Object $healthBefore -Path @("ok"))
+      Assert-Condition -Condition $healthBeforeOk -Message ("Health check failed for " + $serviceName)
+
+      $statusBefore = Invoke-JsonRequest -Method GET -Uri ($baseUrl + "/status") -TimeoutSec $RequestTimeoutSec
+      $stateBefore = [string](Get-FieldValue -Object $statusBefore -Path @("runtime", "state"))
+      Assert-Condition -Condition ($stateBefore -eq "ready") -Message ("Expected ready state before drain for " + $serviceName)
+
+      $versionResponse = Invoke-JsonRequest -Method GET -Uri ($baseUrl + "/version") -TimeoutSec $RequestTimeoutSec
+      $version = [string](Get-FieldValue -Object $versionResponse -Path @("version"))
+      Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($version)) -Message ("Version is missing for " + $serviceName)
+
+      $drainResponse = Invoke-JsonRequest -Method POST -Uri ($baseUrl + "/drain") -Body @{} -TimeoutSec $RequestTimeoutSec
+      $stateDuringDrain = [string](Get-FieldValue -Object $drainResponse -Path @("runtime", "state"))
+      Assert-Condition -Condition ($stateDuringDrain -eq "draining") -Message ("Expected draining state after drain for " + $serviceName)
+
+      $statusDuringDrain = Invoke-JsonRequest -Method GET -Uri ($baseUrl + "/status") -TimeoutSec $RequestTimeoutSec
+      $drainingFlag = [bool](Get-FieldValue -Object $statusDuringDrain -Path @("runtime", "draining"))
+      Assert-Condition -Condition $drainingFlag -Message ("Expected runtime.draining=true for " + $serviceName)
+
+      $warmupResponse = Invoke-JsonRequest -Method POST -Uri ($baseUrl + "/warmup") -Body @{} -TimeoutSec $RequestTimeoutSec
+      $stateAfterWarmup = [string](Get-FieldValue -Object $warmupResponse -Path @("runtime", "state"))
+      Assert-Condition -Condition ($stateAfterWarmup -eq "ready") -Message ("Expected ready state after warmup for " + $serviceName)
+
+      $healthAfter = Invoke-JsonRequest -Method GET -Uri ($baseUrl + "/healthz") -TimeoutSec $RequestTimeoutSec
+      $healthAfterOk = [bool](Get-FieldValue -Object $healthAfter -Path @("ok"))
+      Assert-Condition -Condition $healthAfterOk -Message ("Health check failed after warmup for " + $serviceName)
+
+      $results += [ordered]@{
+        name = $serviceName
+        version = $version
+        stateBefore = $stateBefore
+        stateDuringDrain = $stateDuringDrain
+        stateAfterWarmup = $stateAfterWarmup
+      }
+    }
+
+    return [ordered]@{
+      services = $results
+      count = $results.Count
+    }
+  } | Out-Null
+
   $failedScenarios = @($script:ScenarioResults | Where-Object { $_.status -ne "passed" })
   $overallSuccess = ($failedScenarios.Count -eq 0)
 } catch {
@@ -928,6 +983,7 @@ $gatewayWsInterruptData = Get-ScenarioData -Name "gateway.websocket.interrupt_si
 $gatewayWsInvalidData = Get-ScenarioData -Name "gateway.websocket.invalid_envelope"
 $approvalsListData = Get-ScenarioData -Name "api.approvals.list"
 $approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.invalid_intent"
+$runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
 
 $summary = [ordered]@{
   generatedAt = (Get-Date).ToString("o")
@@ -967,6 +1023,7 @@ $summary = [ordered]@{
     gatewayWsInvalidEnvelopeCode = if ($null -ne $gatewayWsInvalidData) { $gatewayWsInvalidData.code } else { $null }
     approvalsRecorded = if ($null -ne $approvalsListData) { $approvalsListData.total } else { $null }
     approvalsInvalidIntentStatusCode = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.statusCode } else { $null }
+    lifecycleEndpointsValidated = if ($null -ne $runtimeLifecycleData) { $true } else { $false }
   }
   artifacts = [ordered]@{
     summaryJsonPath = $resolvedOutputPath

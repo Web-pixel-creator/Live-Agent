@@ -76,7 +76,7 @@ Open `http://localhost:3000`.
 
 ## Automated Demo E2E
 
-Run a full judge-oriented smoke scenario (translation + negotiation + storyteller + UI approval/reject/approve + delegation + WebSocket gateway roundtrip + WebSocket interruption signal contract check + WebSocket invalid-envelope error contract check + approvals resume invalid-intent REST contract check):
+Run a full judge-oriented smoke scenario (translation + negotiation + storyteller + UI approval/reject/approve + delegation + WebSocket gateway roundtrip + WebSocket interruption signal contract check + WebSocket invalid-envelope error contract check + approvals resume invalid-intent REST contract check + lifecycle status/version/warmup/drain checks):
 
 ```powershell
 npm run demo:e2e
@@ -226,6 +226,17 @@ Useful flags:
 
 - Walkthrough + interruption checkpoints + stage fallback steps:
   - `docs/challenge-demo-runbook.md`
+
+## Lifecycle Endpoints
+
+- Implemented on `realtime-gateway`, `api-backend`, and `orchestrator`:
+  - `GET /healthz`
+  - `GET /status`
+  - `GET /version`
+  - `POST /drain`
+  - `POST /warmup`
+- `POST /drain` switches service to draining mode (rejects new business requests).
+- `POST /warmup` returns service back to ready mode.
 
 ## Day-1 Infra Bootstrap
 

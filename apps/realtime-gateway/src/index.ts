@@ -12,14 +12,98 @@ import { LiveApiBridge } from "./live-bridge.js";
 import { sendToOrchestrator } from "./orchestrator-client.js";
 
 const config = loadGatewayConfig();
+const serviceName = "realtime-gateway";
+const serviceVersion = process.env.REALTIME_GATEWAY_VERSION ?? process.env.SERVICE_VERSION ?? "0.1.0";
+const startedAtMs = Date.now();
+let draining = false;
+let lastWarmupAt: string | null = new Date().toISOString();
+let lastDrainAt: string | null = null;
+
+function runtimeState(): Record<string, unknown> {
+  return {
+    state: draining ? "draining" : "ready",
+    ready: !draining,
+    draining,
+    startedAt: new Date(startedAtMs).toISOString(),
+    uptimeSec: Math.floor((Date.now() - startedAtMs) / 1000),
+    lastWarmupAt,
+    lastDrainAt,
+    version: serviceVersion,
+  };
+}
 
 const server = createServer((req, res) => {
-  if (req.url === "/healthz" && req.method === "GET") {
+  const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+
+  if (url.pathname === "/healthz" && req.method === "GET") {
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ ok: true, service: "realtime-gateway" }));
+    res.end(
+      JSON.stringify({
+        ok: true,
+        service: serviceName,
+        runtime: runtimeState(),
+      }),
+    );
     return;
   }
+
+  if (url.pathname === "/status" && req.method === "GET") {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        ok: true,
+        service: serviceName,
+        runtime: runtimeState(),
+      }),
+    );
+    return;
+  }
+
+  if (url.pathname === "/version" && req.method === "GET") {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        ok: true,
+        service: serviceName,
+        version: serviceVersion,
+      }),
+    );
+    return;
+  }
+
+  if (url.pathname === "/warmup" && req.method === "POST") {
+    draining = false;
+    lastWarmupAt = new Date().toISOString();
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        ok: true,
+        service: serviceName,
+        runtime: runtimeState(),
+      }),
+    );
+    return;
+  }
+
+  if (url.pathname === "/drain" && req.method === "POST") {
+    draining = true;
+    lastDrainAt = new Date().toISOString();
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        ok: true,
+        service: serviceName,
+        runtime: runtimeState(),
+      }),
+    );
+    return;
+  }
+
   res.statusCode = 404;
   res.end("Not found");
 });
@@ -27,6 +111,25 @@ const server = createServer((req, res) => {
 const wss = new WebSocketServer({ server, path: "/realtime" });
 
 wss.on("connection", (ws) => {
+  if (draining) {
+    ws.send(
+      JSON.stringify(
+        createEnvelope({
+          sessionId: "system",
+          type: "gateway.error",
+          source: "gateway",
+          payload: {
+            code: "GATEWAY_DRAINING",
+            message: "gateway is draining and does not accept new websocket sessions",
+            runtime: runtimeState(),
+          },
+        }),
+      ),
+    );
+    ws.close(1013, "gateway draining");
+    return;
+  }
+
   let currentSessionId = "system";
   let liveBridge: LiveApiBridge | null = null;
 
@@ -54,6 +157,7 @@ wss.on("connection", (ws) => {
       payload: {
         ok: true,
         liveApiEnabled: config.liveApiEnabled,
+        runtime: runtimeState(),
       },
     }),
   );
@@ -81,6 +185,23 @@ wss.on("connection", (ws) => {
     const parsed: EventEnvelope = parsedEnvelope;
 
     currentSessionId = parsed.sessionId;
+
+    if (draining) {
+      sendEvent(
+        createEnvelope({
+          sessionId: parsed.sessionId,
+          runId: parsed.runId,
+          type: "gateway.error",
+          source: "gateway",
+          payload: {
+            code: "GATEWAY_DRAINING",
+            message: "gateway is draining and does not accept new requests",
+            runtime: runtimeState(),
+          },
+        }),
+      );
+      return;
+    }
 
     try {
       if (parsed.type.startsWith("live.")) {

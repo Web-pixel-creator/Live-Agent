@@ -137,6 +137,7 @@ async function main() {
         "gateway.websocket.invalid_envelope",
         "api.approvals.list",
         "api.approvals.resume.invalid_intent",
+        "runtime.lifecycle.endpoints",
       ].join(","),
   );
 
@@ -237,6 +238,12 @@ async function main() {
     allowedTranslationProviders.includes(String(kpis.translationProvider)),
     kpis.translationProvider,
     allowedTranslationProviders.join(" | "),
+  );
+  addCheck(
+    "kpi.lifecycleEndpointsValidated",
+    kpis.lifecycleEndpointsValidated === true,
+    kpis.lifecycleEndpointsValidated,
+    true,
   );
 
   const success = violations.length === 0;

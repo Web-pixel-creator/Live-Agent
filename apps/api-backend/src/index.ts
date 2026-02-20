@@ -24,6 +24,12 @@ const orchestratorRetryBackoffMs = parsePositiveInt(
   process.env.API_ORCHESTRATOR_RETRY_BACKOFF_MS ?? null,
   300,
 );
+const serviceName = "api-backend";
+const serviceVersion = process.env.API_BACKEND_VERSION ?? process.env.SERVICE_VERSION ?? "0.1.0";
+const startedAtMs = Date.now();
+let draining = false;
+let lastWarmupAt: string | null = new Date().toISOString();
+let lastDrainAt: string | null = null;
 
 function writeJson(res: ServerResponse, statusCode: number, body: unknown): void {
   res.statusCode = statusCode;
@@ -64,6 +70,19 @@ function sanitizeDecision(raw: unknown): ApprovalDecision {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function runtimeState(): Record<string, unknown> {
+  return {
+    state: draining ? "draining" : "ready",
+    ready: !draining,
+    draining,
+    startedAt: new Date(startedAtMs).toISOString(),
+    uptimeSec: Math.floor((Date.now() - startedAtMs) / 1000),
+    lastWarmupAt,
+    lastDrainAt,
+    version: serviceVersion,
+  };
 }
 
 function sleep(ms: number): Promise<void> {
@@ -160,10 +179,61 @@ export const server = createServer(async (req, res) => {
     if (url.pathname === "/healthz" && req.method === "GET") {
       writeJson(res, 200, {
         ok: true,
-        service: "api-backend",
+        service: serviceName,
+        runtime: runtimeState(),
         storage: {
           firestore: getFirestoreState(),
         },
+      });
+      return;
+    }
+
+    if (url.pathname === "/status" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        runtime: runtimeState(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/version" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        version: serviceVersion,
+      });
+      return;
+    }
+
+    if (url.pathname === "/warmup" && req.method === "POST") {
+      draining = false;
+      lastWarmupAt = new Date().toISOString();
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        runtime: runtimeState(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/drain" && req.method === "POST") {
+      draining = true;
+      lastDrainAt = new Date().toISOString();
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        runtime: runtimeState(),
+      });
+      return;
+    }
+
+    if (draining) {
+      writeJson(res, 503, {
+        error: "api-backend is draining and does not accept new requests",
+        code: "API_DRAINING",
+        service: serviceName,
+        runtime: runtimeState(),
       });
       return;
     }
