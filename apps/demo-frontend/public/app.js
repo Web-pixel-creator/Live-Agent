@@ -423,6 +423,43 @@ function renderOperatorSummary(summary) {
     `recorded=${approvalsTotal} pending_from_tasks=${pendingApprovals}`,
   );
 
+  const traces = summary.traces && typeof summary.traces === "object" ? summary.traces : null;
+  if (traces) {
+    const totals = traces.totals && typeof traces.totals === "object" ? traces.totals : {};
+    const traceRuns = Number(totals.runsConsidered ?? 0);
+    const traceEvents = Number(totals.eventsConsidered ?? 0);
+    const uiTraceRuns = Number(totals.uiTraceRuns ?? 0);
+    const traceApprovals = Number(totals.approvalLinkedRuns ?? 0);
+    const traceSteps = Number(totals.traceSteps ?? 0);
+    const screenshotRefs = Number(totals.screenshotRefs ?? 0);
+    appendEntry(
+      el.operatorSummary,
+      "system",
+      "traces",
+      `runs=${traceRuns} events=${traceEvents} ui_runs=${uiTraceRuns} approvals=${traceApprovals} steps=${traceSteps} screenshots=${screenshotRefs}`,
+    );
+
+    const recentRuns = Array.isArray(traces.recentRuns) ? traces.recentRuns : [];
+    for (const run of recentRuns.slice(0, 5)) {
+      if (!run || typeof run !== "object") {
+        continue;
+      }
+      const runId = typeof run.runId === "string" ? run.runId : "run";
+      const runRoute = typeof run.route === "string" ? run.route : "unknown";
+      const runStatus = typeof run.status === "string" ? run.status : "unknown";
+      const runEvents = Number(run.eventCount ?? 0);
+      const runTraceSteps = Number(run.traceSteps ?? 0);
+      const runShots = Number(run.screenshotRefs ?? 0);
+      const runApproval = typeof run.approvalStatus === "string" ? run.approvalStatus : "-";
+      appendEntry(
+        el.operatorSummary,
+        "system",
+        `trace.${runId.slice(0, 12)}`,
+        `route=${runRoute} status=${runStatus} events=${runEvents} steps=${runTraceSteps} screenshots=${runShots} approval=${runApproval}`,
+      );
+    }
+  }
+
   const services = Array.isArray(summary.services) ? summary.services : [];
   for (const service of services) {
     const name = typeof service.name === "string" ? service.name : "service";

@@ -17,6 +17,7 @@ import {
   createSession,
   getFirestoreState,
   listEvents,
+  listRecentEvents,
   listApprovals,
   listRuns,
   listSessions,
@@ -27,6 +28,7 @@ import {
   type SessionMode,
   type SessionStatus,
 } from "./firestore.js";
+import { buildOperatorTraceSummary } from "./operator-traces.js";
 
 const port = Number(process.env.API_PORT ?? 8081);
 const apiBaseUrl = toBaseUrl(process.env.API_BASE_URL, `http://localhost:${port}`);
@@ -114,6 +116,22 @@ function parsePositiveInt(value: string | null, fallback: number): number {
     return fallback;
   }
   return Math.floor(parsed);
+}
+
+function parseBoundedInt(
+  value: string | null,
+  fallback: number,
+  minValue: number,
+  maxValue: number,
+): number {
+  const parsed = parsePositiveInt(value, fallback);
+  if (parsed < minValue) {
+    return minValue;
+  }
+  if (parsed > maxValue) {
+    return maxValue;
+  }
+  return parsed;
 }
 
 function sanitizeMode(raw: unknown): SessionMode {
@@ -917,16 +935,28 @@ export const server = createServer(async (req, res) => {
 
     if (url.pathname === "/v1/operator/summary" && req.method === "GET") {
       const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const traceRunsLimit = parseBoundedInt(url.searchParams.get("traceRunsLimit"), 40, 10, 200);
+      const traceEventsLimit = parseBoundedInt(url.searchParams.get("traceEventsLimit"), 120, 20, 500);
       const sweep = await runApprovalSlaSweep();
-      const [activeTasks, services] = await Promise.all([
+      const [activeTasks, services, runs, recentEvents] = await Promise.all([
         getGatewayActiveTasks(100),
         getOperatorServiceSummary(),
+        listRuns(Math.max(traceRunsLimit, 100)),
+        listRecentEvents(traceEventsLimit),
       ]);
       const syncedFromTasks = await syncPendingApprovalsFromTasks(activeTasks);
       const approvals = await listApprovals({ limit: 100 });
       const pendingApprovalsFromTasks = activeTasks.filter(
         (task) => isRecord(task) && task.status === "pending_approval",
       ).length;
+      const traces = buildOperatorTraceSummary({
+        runs,
+        events: recentEvents,
+        approvals,
+        activeTasks,
+        runLimit: traceRunsLimit,
+        eventLimit: traceEventsLimit,
+      });
 
       writeJson(res, 200, {
         data: {
@@ -944,6 +974,7 @@ export const server = createServer(async (req, res) => {
             slaSweep: sweep,
           },
           services,
+          traces,
         },
       });
       return;

@@ -82,7 +82,7 @@ Session mutation concurrency controls:
 - On stale version, API returns `409 API_SESSION_VERSION_CONFLICT`.
 
 8. Operator console APIs (RBAC via `x-operator-role: viewer|operator|admin`):
-- `GET /v1/operator/summary` -> active tasks, approvals snapshot, service runtime/health summary.
+- `GET /v1/operator/summary` -> active tasks, approvals snapshot, service runtime/health summary, and execution trace rollup (runs/events/tool steps/screenshots/approval links).
 - `POST /v1/operator/actions` with:
   - `action=cancel_task` + `taskId`
   - `action=retry_task` + `taskId`

@@ -519,7 +519,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
    - Guardrail blocks local-first outside `dev`.
 
 4. Rich operational console
-   - Baseline implemented: operator summary APIs for active tasks, approval queue snapshots, and per-service health/runtime profile status.
+   - Baseline implemented: operator summary APIs for active tasks, approval queue snapshots, per-service health/runtime profile status, and execution trace rollups (runs/events/tool steps/screenshots/approval links).
    - Baseline implemented: role-gated recovery actions (`cancel_task`, `retry_task`, `failover drain/warmup`).
    - Next step: add full UI audit timeline and richer incident automation controls.
 

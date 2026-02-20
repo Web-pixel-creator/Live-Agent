@@ -90,7 +90,7 @@
 | T-202 | Добавить skills runtime (workspace/bundled/managed) и skill precedence | P1 | 1 week | T-004 | R10, R16 | Навыки загружаются с управляемыми приоритетами и конфиг-гейтингом |
 | T-203 | Добавить skill security scanner и install-time trust gates | P1 | 0.5 week | T-202 | R13, R15 | Третьи навыки проходят scan/checklist до активации |
 | T-204 | Реализовать sandbox policy modes для non-main/high-risk sessions | P1 | 1 week | T-106 | R13, R16 | Есть режимы `off/non-main/all`, документированные ограничения и исключения |
-| T-205 | Расширить execution traces и audit dashboard | P1 | 0.5 week | T-009, T-109 | R15, R16 | Видны end-to-end traces: agent decisions, tools, screenshots, approvals |
+| T-205 | Расширить execution traces и audit dashboard | P1 | 0.5 week | T-009, T-109 | R15, R16 | `/v1/operator/summary` содержит trace rollup (runs/events, tool steps, screenshot refs, approval links), UI operator console отображает его, а e2e policy валидирует `operatorTraceCoverageValidated=true` |
 | T-206 | Добавить performance/load test suite для live voice + UI navigation + gateway replay/dedupe | P1 | 0.5 week | T-005, T-106 | R1, R6, R12, R14, R15 | Автоматизированный профиль нагрузки с отчётом p95 latency, replay/dedupe контрактом и error budget |
 | T-207 | Вынести долгие Veo/Imagen jobs в dedicated workers с quota-aware scheduling | P1 | 1 week | T-103, T-010 | R4, R10, R15 | Медиа-джобы выполняются отдельными воркерами, есть retry budget и видимость очередей |
 | T-208 | Добавить детерминированный кэш для story assets/prompt variants и policy invalidation | P1 | 0.5 week | T-102, T-103, T-207 | R4, R5, R15 | Повторные запросы дают cache-hit, при смене model/version кэш инвалидируется консистентно |

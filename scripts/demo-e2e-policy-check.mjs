@@ -291,6 +291,12 @@ async function main() {
     true,
   );
   addCheck(
+    "kpi.operatorTraceCoverageValidated",
+    kpis.operatorTraceCoverageValidated === true,
+    kpis.operatorTraceCoverageValidated,
+    true,
+  );
+  addCheck(
     "kpi.operatorFailoverForbiddenCode",
     String(kpis.operatorFailoverForbiddenCode) === "API_OPERATOR_ADMIN_REQUIRED",
     kpis.operatorFailoverForbiddenCode,

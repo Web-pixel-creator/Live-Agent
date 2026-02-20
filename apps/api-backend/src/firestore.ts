@@ -48,6 +48,17 @@ export type EventListItem = {
   type: string;
   source: string;
   createdAt: string;
+  route?: string;
+  status?: string;
+  intent?: string;
+  traceId?: string;
+  approvalId?: string;
+  approvalStatus?: string;
+  delegatedRoute?: string;
+  traceSteps?: number;
+  screenshotRefs?: number;
+  hasVisualTesting?: boolean;
+  hasError?: boolean;
 };
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "timeout";
@@ -297,6 +308,113 @@ function mapApprovalRecord(docId: string, raw: Record<string, unknown>): Approva
     createdAt: toIso(raw.createdAt ?? requestedAt),
     updatedAt: toIso(raw.updatedAt ?? requestedAt),
     metadata: raw.metadata,
+  };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function toNonEmptyString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return null;
+  }
+  return normalized;
+}
+
+function toNonNegativeInt(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+    return Math.floor(value);
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return Math.floor(parsed);
+    }
+  }
+  return null;
+}
+
+function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSessionId?: string): EventListItem {
+  const payload = asRecord(raw.payload);
+  const output = payload ? asRecord(payload.output) : null;
+  const execution = output ? asRecord(output.execution) : null;
+  const approval = output ? asRecord(output.approval) : null;
+  const delegation = output ? asRecord(output.delegation) : null;
+  const visualTesting = output ? asRecord(output.visualTesting) : null;
+
+  const intent =
+    toNonEmptyString(payload?.intent) ??
+    toNonEmptyString(output?.handledIntent) ??
+    undefined;
+  const route = toNonEmptyString(payload?.route) ?? undefined;
+  const status = toNonEmptyString(payload?.status) ?? undefined;
+  const traceId =
+    toNonEmptyString(payload?.traceId) ??
+    toNonEmptyString(output?.traceId) ??
+    undefined;
+  const approvalId =
+    toNonEmptyString(output?.approvalId) ??
+    toNonEmptyString(approval?.approvalId) ??
+    undefined;
+  const approvalStatus =
+    toNonEmptyString(approval?.decision) ??
+    (output?.approvalRequired === true ? "pending" : null) ??
+    undefined;
+  const delegatedRoute = toNonEmptyString(delegation?.delegatedRoute) ?? undefined;
+
+  let traceSteps: number | undefined;
+  let screenshotRefs: number | undefined;
+  const trace = execution?.trace;
+  if (Array.isArray(trace)) {
+    traceSteps = trace.length;
+    let screenshotCount = 0;
+    for (const step of trace) {
+      if (!asRecord(step)) {
+        continue;
+      }
+      const screenshotRef = toNonEmptyString(step.screenshotRef);
+      if (screenshotRef) {
+        screenshotCount += 1;
+      }
+    }
+    screenshotRefs = screenshotCount;
+  } else {
+    traceSteps = toNonNegativeInt(execution?.traceSteps) ?? undefined;
+    screenshotRefs = toNonNegativeInt(execution?.screenshotRefs) ?? undefined;
+  }
+
+  const hasVisualTesting = visualTesting !== null ? true : undefined;
+  const hasError = Boolean(payload?.error) || status === "failed" || raw.type === "gateway.error";
+
+  return {
+    eventId: docId,
+    sessionId:
+      toNonEmptyString(raw.sessionId) ??
+      toNonEmptyString(fallbackSessionId) ??
+      "unknown",
+    runId: toNonEmptyString(raw.runId) ?? undefined,
+    type: toNonEmptyString(raw.type) ?? "unknown",
+    source: toNonEmptyString(raw.source) ?? "unknown",
+    createdAt: toIso(raw.createdAt),
+    route,
+    status,
+    intent,
+    traceId,
+    approvalId,
+    approvalStatus,
+    delegatedRoute,
+    traceSteps,
+    screenshotRefs,
+    hasVisualTesting,
+    hasError,
   };
 }
 
@@ -585,17 +703,24 @@ export async function listEvents(params: {
     .limit(params.limit)
     .get();
 
-  return snapshot.docs.map((doc) => {
-    const data = doc.data();
-    return {
-      eventId: doc.id,
-      sessionId: typeof data.sessionId === "string" ? data.sessionId : params.sessionId,
-      runId: typeof data.runId === "string" ? data.runId : undefined,
-      type: typeof data.type === "string" ? data.type : "unknown",
-      source: typeof data.source === "string" ? data.source : "unknown",
-      createdAt: toIso(data.createdAt),
-    };
-  });
+  return snapshot.docs.map((doc) =>
+    mapEventRecord(doc.id, doc.data() as Record<string, unknown>, params.sessionId),
+  );
+}
+
+export async function listRecentEvents(limit: number): Promise<EventListItem[]> {
+  const db = initFirestore();
+  if (!db) {
+    return [];
+  }
+
+  const snapshot = await db
+    .collection("events")
+    .orderBy("createdAt", "desc")
+    .limit(limit)
+    .get();
+
+  return snapshot.docs.map((doc) => mapEventRecord(doc.id, doc.data() as Record<string, unknown>));
 }
 
 export async function listApprovals(params: {

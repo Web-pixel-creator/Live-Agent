@@ -1094,6 +1094,16 @@ try {
     $activeTasks = @(Get-FieldValue -Object $summaryData -Path @("activeTasks", "data"))
     Assert-Condition -Condition ($activeTasks.Count -ge 1) -Message "Operator summary should include at least one active task."
 
+    $traceTotals = Get-FieldValue -Object $summaryData -Path @("traces", "totals")
+    Assert-Condition -Condition ($null -ne $traceTotals) -Message "Operator summary traces.totals is missing."
+    $traceRuns = [int](Get-FieldValue -Object $traceTotals -Path @("runsConsidered"))
+    $traceEvents = [int](Get-FieldValue -Object $traceTotals -Path @("eventsConsidered"))
+    $traceUiRuns = [int](Get-FieldValue -Object $traceTotals -Path @("uiTraceRuns"))
+    $traceApprovals = [int](Get-FieldValue -Object $traceTotals -Path @("approvalLinkedRuns"))
+    $traceScreenshots = [int](Get-FieldValue -Object $traceTotals -Path @("screenshotRefs"))
+    Assert-Condition -Condition ($traceRuns -ge 1) -Message "Operator traces should include at least one run."
+    Assert-Condition -Condition ($traceApprovals -ge 1) -Message "Operator traces should include approval-linked runs."
+
     $taskId = [string](Get-FieldValue -Object $activeTasks[0] -Path @("taskId"))
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($taskId)) -Message "Operator summary active task is missing taskId."
 
@@ -1147,6 +1157,11 @@ try {
       forbiddenCode = $forbiddenCode
       drainState = $drainState
       warmupState = $warmupState
+      traceRuns = $traceRuns
+      traceEvents = $traceEvents
+      traceUiRuns = $traceUiRuns
+      traceApprovals = $traceApprovals
+      traceScreenshots = $traceScreenshots
     }
   } | Out-Null
 
@@ -1467,6 +1482,16 @@ $summary = [ordered]@{
     operatorFailoverForbiddenCode = if ($null -ne $operatorActionsData) { $operatorActionsData.forbiddenCode } else { $null }
     operatorFailoverDrainState = if ($null -ne $operatorActionsData) { $operatorActionsData.drainState } else { $null }
     operatorFailoverWarmupState = if ($null -ne $operatorActionsData) { $operatorActionsData.warmupState } else { $null }
+    operatorTraceRuns = if ($null -ne $operatorActionsData) { $operatorActionsData.traceRuns } else { $null }
+    operatorTraceEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.traceEvents } else { $null }
+    operatorTraceUiRuns = if ($null -ne $operatorActionsData) { $operatorActionsData.traceUiRuns } else { $null }
+    operatorTraceApprovals = if ($null -ne $operatorActionsData) { $operatorActionsData.traceApprovals } else { $null }
+    operatorTraceScreenshots = if ($null -ne $operatorActionsData) { $operatorActionsData.traceScreenshots } else { $null }
+    operatorTraceCoverageValidated = if (
+      $null -ne $operatorActionsData -and
+      [int]$operatorActionsData.traceRuns -ge 1 -and
+      [int]$operatorActionsData.traceApprovals -ge 1
+    ) { $true } else { $false }
     operatorActionsValidated = if (
       $null -ne $operatorActionsData -and
       [int]$operatorActionsData.summaryActiveTasks -ge 1 -and
