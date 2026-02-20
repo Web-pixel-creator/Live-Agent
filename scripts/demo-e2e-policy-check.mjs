@@ -122,6 +122,9 @@ async function main() {
     args.allowedGatewayInterruptEvents ?? "live.interrupt.requested,live.bridge.unavailable",
   );
   const allowedTranslationProviders = toStringArray(args.allowedTranslationProviders ?? "fallback,gemini");
+  const allowedVisualComparatorModes = toStringArray(
+    args.allowedVisualComparatorModes ?? "fallback_heuristic,gemini_reasoning",
+  );
   const requiredScenarios = toStringArray(
     args.requiredScenarios ??
       [
@@ -131,6 +134,7 @@ async function main() {
         "ui.approval.request",
         "ui.approval.reject",
         "ui.approval.approve_resume",
+        "ui.visual_testing",
         "multi_agent.delegation",
         "gateway.websocket.roundtrip",
         "gateway.websocket.task_progress",
@@ -236,6 +240,36 @@ async function main() {
     allowedUiAdapterModes.join(" | "),
   );
   addCheck(
+    "kpi.visualTestingStatus",
+    String(kpis.visualTestingStatus) === "passed",
+    kpis.visualTestingStatus,
+    "passed",
+  );
+  addCheck(
+    "kpi.visualRegressionCount",
+    toNumber(kpis.visualRegressionCount) === 0,
+    kpis.visualRegressionCount,
+    0,
+  );
+  addCheck(
+    "kpi.visualChecksCount",
+    toNumber(kpis.visualChecksCount) >= 3,
+    kpis.visualChecksCount,
+    ">= 3",
+  );
+  addCheck(
+    "kpi.visualComparatorMode",
+    allowedVisualComparatorModes.includes(String(kpis.visualComparatorMode)),
+    kpis.visualComparatorMode,
+    allowedVisualComparatorModes.join(" | "),
+  );
+  addCheck(
+    "kpi.visualTestingValidated",
+    kpis.visualTestingValidated === true,
+    kpis.visualTestingValidated,
+    true,
+  );
+  addCheck(
     "kpi.gatewayWsRoundTripMs",
     toNumber(kpis.gatewayWsRoundTripMs) <= maxGatewayWsRoundTripMs,
     kpis.gatewayWsRoundTripMs,
@@ -319,6 +353,7 @@ async function main() {
       minApprovalsRecorded,
       expectedUiAdapterMode,
       allowedUiAdapterModes,
+      allowedVisualComparatorModes,
       allowedGatewayInterruptEvents,
       allowedTranslationProviders,
       requiredScenarios,

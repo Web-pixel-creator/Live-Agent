@@ -140,6 +140,7 @@ Responsibilities:
 2. Генерация action sequence и исполнение через Playwright.
 3. Self-correction loop (post-action verify screenshot).
 4. Sensitive action blocking + user confirmation.
+5. Visual testing mode with structured regression report (`layout/content/interaction`, severity, baseline/actual/diff refs).
 
 ## Sequence Flows
 

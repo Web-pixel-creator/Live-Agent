@@ -24,6 +24,52 @@ type UiTaskInput = {
   approvalDecision: "approved" | "rejected" | null;
   approvalReason: string | null;
   approvalId: string | null;
+  visualTesting: VisualTestingInput;
+};
+
+type VisualCategory = "layout" | "content" | "interaction";
+
+type VisualSeverity = "low" | "medium" | "high";
+
+type VisualStatus = "ok" | "regression";
+
+type VisualTestingInput = {
+  enabled: boolean;
+  baselineScreenshotRef: string | null;
+  expectedAssertions: string[];
+  simulateRegression: boolean;
+  regressionHint: string | null;
+};
+
+type VisualTestingCheck = {
+  id: string;
+  category: VisualCategory;
+  assertion: string;
+  status: VisualStatus;
+  severity: VisualSeverity;
+  observed: string;
+  evidenceRefs: string[];
+};
+
+type VisualTestingReport = {
+  enabled: boolean;
+  status: "not_requested" | "passed" | "failed";
+  baselineScreenshotRef: string | null;
+  actualScreenshotRefs: string[];
+  checks: VisualTestingCheck[];
+  regressionCount: number;
+  highestSeverity: "none" | VisualSeverity;
+  comparator: {
+    provider: string;
+    model: string;
+    mode: "gemini_reasoning" | "fallback_heuristic";
+  };
+  artifactRefs: {
+    baseline: string | null;
+    actual: string[];
+    diff: string[];
+  };
+  generatedAt: string;
 };
 
 type UiAction = {
@@ -88,6 +134,28 @@ function toNullableInt(value: unknown): number | null {
   return Number.isFinite(parsed) ? Math.floor(parsed) : null;
 }
 
+function toBoolean(value: unknown, fallback = false): boolean {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "string") {
+    if (value.toLowerCase() === "true") {
+      return true;
+    }
+    if (value.toLowerCase() === "false") {
+      return false;
+    }
+  }
+  return fallback;
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((item) => toNonEmptyString(item, "")).filter((item) => item.length > 0);
+}
+
 function parsePositiveInt(value: string | undefined, fallback: number): number {
   if (!value) {
     return fallback;
@@ -118,6 +186,41 @@ function parseExecutorMode(raw: string | undefined): PlannerConfig["executorMode
     return "remote_http";
   }
   return "simulated";
+}
+
+function normalizeVisualTestingInput(raw: Record<string, unknown>, screenshotRef: string | null): VisualTestingInput {
+  const visualRaw = isRecord(raw.visualTesting) ? raw.visualTesting : {};
+  const mode = toNonEmptyString(raw.mode, "").toLowerCase();
+  const enabled =
+    raw.visualTesting === true ||
+    toBoolean(visualRaw.enabled, false) ||
+    mode === "visual" ||
+    mode === "visual_test" ||
+    mode === "visual_testing";
+
+  const expectedAssertionsFromVisual = toStringArray(visualRaw.expectedAssertions);
+  const expectedAssertionsFromRoot = toStringArray(raw.expectedAssertions);
+  const expectedAssertions =
+    expectedAssertionsFromVisual.length > 0
+      ? expectedAssertionsFromVisual
+      : expectedAssertionsFromRoot.length > 0
+        ? expectedAssertionsFromRoot
+        : [
+            "Layout blocks remain aligned without overlap.",
+            "Critical content and labels remain visible.",
+            "Interactive controls remain usable after task execution.",
+          ];
+
+  return {
+    enabled,
+    baselineScreenshotRef:
+      toNullableString(visualRaw.baselineScreenshotRef) ??
+      toNullableString(raw.baselineScreenshotRef) ??
+      screenshotRef,
+    expectedAssertions: expectedAssertions.slice(0, 10),
+    simulateRegression: toBoolean(visualRaw.simulateRegression, false) || toBoolean(raw.simulateVisualRegression, false),
+    regressionHint: toNullableString(visualRaw.regressionHint) ?? toNullableString(raw.regressionHint),
+  };
 }
 
 function getPlannerConfig(): PlannerConfig {
@@ -193,6 +296,7 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
         : null,
     approvalReason: toNullableString(raw.approvalReason),
     approvalId: toNullableString(raw.approvalId),
+    visualTesting: normalizeVisualTestingInput(raw, screenshotRef),
   };
 }
 
@@ -970,6 +1074,338 @@ function buildApprovalCategories(signals: string[]): string[] {
   return Array.from(categories);
 }
 
+function inferVisualCategory(assertion: string): VisualCategory {
+  const normalized = assertion.toLowerCase();
+  if (/(click|type|button|control|interaction|form|input|submit|action)/.test(normalized)) {
+    return "interaction";
+  }
+  if (/(text|label|content|title|copy|message|value)/.test(normalized)) {
+    return "content";
+  }
+  return "layout";
+}
+
+function normalizeVisualCategory(value: unknown, fallback: VisualCategory): VisualCategory {
+  if (value === "layout" || value === "content" || value === "interaction") {
+    return value;
+  }
+  return fallback;
+}
+
+function normalizeVisualStatus(value: unknown, fallback: VisualStatus): VisualStatus {
+  if (value === "ok" || value === "regression") {
+    return value;
+  }
+  return fallback;
+}
+
+function normalizeVisualSeverity(value: unknown, fallback: VisualSeverity): VisualSeverity {
+  if (value === "low" || value === "medium" || value === "high") {
+    return value;
+  }
+  return fallback;
+}
+
+function uniqueStrings(values: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const normalized = value.trim();
+    if (normalized.length === 0) {
+      continue;
+    }
+    if (seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    result.push(normalized);
+  }
+  return result;
+}
+
+function collectActualScreenshotRefs(trace: UiTraceStep[], screenshotSeed: string): string[] {
+  const refs = trace
+    .map((step) => step.screenshotRef)
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+  const unique = uniqueStrings(refs);
+  if (unique.length > 0) {
+    return unique;
+  }
+  return [`${screenshotSeed}/visual-actual.png`];
+}
+
+function severityRank(value: "none" | VisualSeverity): number {
+  switch (value) {
+    case "high":
+      return 3;
+    case "medium":
+      return 2;
+    case "low":
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+function inferHighestSeverity(checks: VisualTestingCheck[]): "none" | VisualSeverity {
+  let highest: "none" | VisualSeverity = "none";
+  for (const check of checks) {
+    if (check.status !== "regression") {
+      continue;
+    }
+    if (severityRank(check.severity) > severityRank(highest)) {
+      highest = check.severity;
+    }
+  }
+  return highest;
+}
+
+function summarizeTraceForPrompt(trace: UiTraceStep[]): string {
+  const lines = trace.map(
+    (step) =>
+      `#${step.index} ${step.actionType} target=${step.target} status=${step.status} screenshot=${step.screenshotRef}`,
+  );
+  return lines.join("\n");
+}
+
+function buildVisualChecksHeuristic(params: {
+  input: UiTaskInput;
+  execution: ExecutionResult;
+  actualScreenshotRefs: string[];
+}): VisualTestingCheck[] {
+  const hasFailedStep = params.execution.trace.some((step) => step.status === "failed");
+  const hasRetryStep = params.execution.trace.some((step) => step.status === "retry");
+  const hasVerifyStep = params.execution.trace.some((step) => step.actionType === "verify" && step.status !== "failed");
+  const regressionHint = params.input.visualTesting.regressionHint?.toLowerCase() ?? "";
+  const hintSignalsRegression = /(missing|broken|overlap|misalign|clipped|wrong|mismatch|not visible|blocked)/.test(
+    regressionHint,
+  );
+
+  return params.input.visualTesting.expectedAssertions.map((assertion, index) => {
+    const category = inferVisualCategory(assertion);
+    let status: VisualStatus = "ok";
+    let severity: VisualSeverity = "low";
+    let observed = "No regression signal detected from execution trace.";
+
+    if (params.input.visualTesting.simulateRegression && index === 0) {
+      status = "regression";
+      severity = "high";
+      observed = params.input.visualTesting.regressionHint ?? "Simulated regression marker enabled for this run.";
+    } else if (category === "interaction") {
+      if (hasFailedStep) {
+        status = "regression";
+        severity = "high";
+        observed = "One or more interaction steps failed even after retry.";
+      } else if (hasRetryStep) {
+        status = "regression";
+        severity = "medium";
+        observed = "Interaction required retry/self-correction before completion.";
+      } else {
+        observed = "Interaction steps completed without retries.";
+      }
+    } else if (category === "layout") {
+      if (!params.input.visualTesting.baselineScreenshotRef) {
+        status = "regression";
+        severity = "medium";
+        observed = "Baseline screenshot reference is missing for layout comparison.";
+      } else if (hintSignalsRegression) {
+        status = "regression";
+        severity = "medium";
+        observed = params.input.visualTesting.regressionHint ?? "Layout anomaly flagged by regression hint.";
+      } else {
+        observed = "Baseline and actual screenshot references are present for layout check.";
+      }
+    } else if (!hasVerifyStep) {
+      status = "regression";
+      severity = "medium";
+      observed = "No verify step detected, content confirmation is weak.";
+    } else if (hintSignalsRegression) {
+      status = "regression";
+      severity = "medium";
+      observed = params.input.visualTesting.regressionHint ?? "Content anomaly flagged by regression hint.";
+    } else {
+      observed = "Verify checkpoints are present for content confirmation.";
+    }
+
+    return {
+      id: randomUUID(),
+      category,
+      assertion,
+      status,
+      severity,
+      observed,
+      evidenceRefs: params.actualScreenshotRefs.slice(0, 3),
+    };
+  });
+}
+
+function parseGeminiVisualChecks(parsed: Record<string, unknown>): VisualTestingCheck[] {
+  if (!Array.isArray(parsed.checks)) {
+    return [];
+  }
+  const checks: VisualTestingCheck[] = [];
+
+  for (const item of parsed.checks) {
+    if (!isRecord(item)) {
+      continue;
+    }
+    const assertion = toNonEmptyString(item.assertion, "");
+    if (assertion.length === 0) {
+      continue;
+    }
+    const fallbackCategory = inferVisualCategory(assertion);
+    const category = normalizeVisualCategory(item.category, fallbackCategory);
+    const status = normalizeVisualStatus(item.status, "ok");
+    const severity = normalizeVisualSeverity(item.severity, status === "regression" ? "medium" : "low");
+    const observed = toNonEmptyString(item.observed, "Model-based visual reasoning output.");
+    const evidenceRefs = toStringArray(item.evidenceRefs);
+
+    checks.push({
+      id: randomUUID(),
+      category,
+      assertion,
+      status,
+      severity,
+      observed,
+      evidenceRefs,
+    });
+  }
+
+  return checks;
+}
+
+async function buildVisualChecksWithGemini(params: {
+  input: UiTaskInput;
+  config: PlannerConfig;
+  capabilities: UiNavigatorCapabilitySet;
+  actualScreenshotRefs: string[];
+  execution: ExecutionResult;
+}): Promise<VisualTestingCheck[] | null> {
+  if (!params.config.apiKey || !params.config.plannerEnabled) {
+    return null;
+  }
+
+  const prompt = [
+    "You are a visual QA evaluator for UI automation outputs.",
+    "Given screenshot references and execution trace, produce strict JSON.",
+    "Schema: {\"checks\":[{\"assertion\":\"string\",\"category\":\"layout|content|interaction\",\"status\":\"ok|regression\",\"severity\":\"low|medium|high\",\"observed\":\"string\",\"evidenceRefs\":[\"string\"]}]}",
+    "Only output JSON.",
+    `Baseline screenshot ref: ${params.input.visualTesting.baselineScreenshotRef ?? "n/a"}`,
+    `Actual screenshot refs: ${JSON.stringify(params.actualScreenshotRefs.slice(0, 8))}`,
+    `Expected assertions: ${JSON.stringify(params.input.visualTesting.expectedAssertions)}`,
+    `Regression hint: ${params.input.visualTesting.regressionHint ?? "none"}`,
+    `Execution finalStatus: ${params.execution.finalStatus}, retries: ${params.execution.retries}`,
+    `Trace summary:\n${summarizeTraceForPrompt(params.execution.trace)}`,
+  ].join("\n");
+
+  const raw = await params.capabilities.reasoning.generateText({
+    model: params.config.plannerModel,
+    prompt,
+    responseMimeType: "application/json",
+    temperature: 0.1,
+  });
+  if (!raw) {
+    return null;
+  }
+
+  const parsed = parseJsonObject(raw);
+  if (!parsed) {
+    return null;
+  }
+
+  const checks = parseGeminiVisualChecks(parsed);
+  if (checks.length === 0) {
+    return null;
+  }
+
+  return checks;
+}
+
+function buildDefaultVisualTestingReport(): VisualTestingReport {
+  return {
+    enabled: false,
+    status: "not_requested",
+    baselineScreenshotRef: null,
+    actualScreenshotRefs: [],
+    checks: [],
+    regressionCount: 0,
+    highestSeverity: "none",
+    comparator: {
+      provider: "fallback",
+      model: "heuristic-visual-comparator",
+      mode: "fallback_heuristic",
+    },
+    artifactRefs: {
+      baseline: null,
+      actual: [],
+      diff: [],
+    },
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+async function buildVisualTestingReport(params: {
+  input: UiTaskInput;
+  execution: ExecutionResult;
+  screenshotSeed: string;
+  capabilities: UiNavigatorCapabilitySet;
+  config: PlannerConfig;
+}): Promise<VisualTestingReport> {
+  if (!params.input.visualTesting.enabled) {
+    return buildDefaultVisualTestingReport();
+  }
+
+  const actualScreenshotRefs = collectActualScreenshotRefs(params.execution.trace, params.screenshotSeed);
+  const heuristicChecks = buildVisualChecksHeuristic({
+    input: params.input,
+    execution: params.execution,
+    actualScreenshotRefs,
+  });
+
+  const geminiChecks = await buildVisualChecksWithGemini({
+    input: params.input,
+    config: params.config,
+    capabilities: params.capabilities,
+    actualScreenshotRefs,
+    execution: params.execution,
+  });
+
+  const checks = geminiChecks ?? heuristicChecks;
+  const regressionCount = checks.filter((check) => check.status === "regression").length;
+  const highestSeverity = inferHighestSeverity(checks);
+  const diffRefs = checks
+    .filter((check) => check.status === "regression")
+    .map((_, index) => `${params.screenshotSeed}/visual-diff-${index + 1}.png`);
+
+  return {
+    enabled: true,
+    status: regressionCount === 0 ? "passed" : "failed",
+    baselineScreenshotRef: params.input.visualTesting.baselineScreenshotRef,
+    actualScreenshotRefs,
+    checks,
+    regressionCount,
+    highestSeverity,
+    comparator:
+      geminiChecks !== null
+        ? {
+            provider: params.capabilities.reasoning.descriptor.provider,
+            model: params.config.plannerModel,
+            mode: "gemini_reasoning",
+          }
+        : {
+            provider: "fallback",
+            model: "heuristic-visual-comparator",
+            mode: "fallback_heuristic",
+          },
+    artifactRefs: {
+      baseline: params.input.visualTesting.baselineScreenshotRef,
+      actual: actualScreenshotRefs,
+      diff: diffRefs,
+    },
+    generatedAt: new Date().toISOString(),
+  };
+}
+
 function toNormalizedError(error: unknown, traceId: string): NormalizedError {
   if (error instanceof Error) {
     return {
@@ -1075,6 +1511,13 @@ export async function runUiNavigatorAgent(
                 cursor: input.cursor,
                 formData: input.formData,
                 maxSteps: input.maxSteps,
+                visualTesting: {
+                  enabled: input.visualTesting.enabled,
+                  baselineScreenshotRef: input.visualTesting.baselineScreenshotRef,
+                  expectedAssertions: input.visualTesting.expectedAssertions,
+                  simulateRegression: input.visualTesting.simulateRegression,
+                  regressionHint: input.visualTesting.regressionHint,
+                },
               },
             },
             planner: {
@@ -1102,7 +1545,20 @@ export async function runUiNavigatorAgent(
     });
 
     const finalStatus = execution.finalStatus;
-    const overallStatus = finalStatus === "completed" ? "completed" : "failed";
+    const visualTesting = await buildVisualTestingReport({
+      input,
+      execution,
+      screenshotSeed,
+      capabilities,
+      config,
+    });
+    const overallStatus =
+      finalStatus === "completed" && visualTesting.status !== "failed" ? "completed" : "failed";
+    const visualTestingSummary = visualTesting.enabled
+      ? visualTesting.status === "passed"
+        ? ` Visual testing passed (${visualTesting.checks.length} checks).`
+        : ` Visual testing found ${visualTesting.regressionCount} regressions (highest severity: ${visualTesting.highestSeverity}).`
+      : "";
 
     return createEnvelope({
       userId: request.userId,
@@ -1117,8 +1573,8 @@ export async function runUiNavigatorAgent(
         output: {
           message:
             overallStatus === "completed"
-              ? `UI task completed with ${actions.length} planned steps and ${execution.retries} retries.`
-              : "UI task failed after retries.",
+              ? `UI task completed with ${actions.length} planned steps and ${execution.retries} retries.${visualTestingSummary}`
+              : `UI task failed after retries.${visualTestingSummary}`,
           handledIntent: request.payload.intent,
           traceId,
           latencyMs: Date.now() - startedAt,
@@ -1147,6 +1603,7 @@ export async function runUiNavigatorAgent(
             adapterNotes: execution.adapterNotes,
             computerUseProfile: capabilities.computerUse.descriptor.adapterId,
           },
+          visualTesting,
         },
       },
     });

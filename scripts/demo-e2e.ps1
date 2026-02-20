@@ -738,6 +738,57 @@ try {
     }
   } | Out-Null
 
+  Invoke-Scenario -Name "ui.visual_testing" -Action {
+    $runId = "demo-ui-visual-" + [Guid]::NewGuid().Guid
+    $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "ui_task" -RequestInput @{
+      goal = "Open the page and verify dashboard layout/content/interaction checkpoints."
+      url = "https://example.com"
+      screenshotRef = "ui://demo/visual"
+      maxSteps = 5
+      visualTesting = @{
+        enabled = $true
+        baselineScreenshotRef = "ui://baseline/demo-dashboard"
+        expectedAssertions = @(
+          "Layout blocks remain aligned without overlap.",
+          "Critical content and labels remain visible.",
+          "Interactive controls remain usable after task execution."
+        )
+        simulateRegression = $false
+      }
+    }
+
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
+    $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
+    Assert-Condition -Condition ($status -eq "completed") -Message "UI visual testing run did not complete."
+
+    $visual = Get-FieldValue -Object $response -Path @("payload", "output", "visualTesting")
+    Assert-Condition -Condition ($null -ne $visual) -Message "Missing visualTesting report."
+
+    $visualEnabled = [bool](Get-FieldValue -Object $visual -Path @("enabled"))
+    Assert-Condition -Condition $visualEnabled -Message "visualTesting report should be enabled."
+
+    $visualStatus = [string](Get-FieldValue -Object $visual -Path @("status"))
+    Assert-Condition -Condition ($visualStatus -eq "passed") -Message "Visual testing report status should be passed."
+
+    $checks = @(Get-FieldValue -Object $visual -Path @("checks"))
+    Assert-Condition -Condition ($checks.Count -ge 3) -Message "Visual testing report should include at least 3 checks."
+
+    $regressionCount = [int](Get-FieldValue -Object $visual -Path @("regressionCount"))
+    Assert-Condition -Condition ($regressionCount -eq 0) -Message "Visual testing run should not have regressions."
+
+    $comparatorMode = [string](Get-FieldValue -Object $visual -Path @("comparator", "mode"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($comparatorMode)) -Message "Missing visual comparator mode."
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $response -Path @("runId"))
+      reportStatus = $visualStatus
+      checksCount = $checks.Count
+      regressionCount = $regressionCount
+      highestSeverity = [string](Get-FieldValue -Object $visual -Path @("highestSeverity"))
+      comparatorMode = $comparatorMode
+    }
+  } | Out-Null
+
   Invoke-Scenario -Name "multi_agent.delegation" -Action {
     $runId = "demo-delegation-" + [Guid]::NewGuid().Guid
     $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "conversation" -RequestInput @{
@@ -1103,6 +1154,7 @@ $translationData = Get-ScenarioData -Name "live.translation"
 $negotiationData = Get-ScenarioData -Name "live.negotiation"
 $storyData = Get-ScenarioData -Name "storyteller.pipeline"
 $uiApproveData = Get-ScenarioData -Name "ui.approval.approve_resume"
+$uiVisualTestingData = Get-ScenarioData -Name "ui.visual_testing"
 $delegationData = Get-ScenarioData -Name "multi_agent.delegation"
 $gatewayWsData = Get-ScenarioData -Name "gateway.websocket.roundtrip"
 $gatewayWsTaskData = Get-ScenarioData -Name "gateway.websocket.task_progress"
@@ -1143,6 +1195,16 @@ $summary = [ordered]@{
     storytellerFallbackAsset = if ($null -ne $storyData) { $storyData.fallbackAsset } else { $null }
     uiAdapterMode = if ($null -ne $uiApproveData) { $uiApproveData.adapterMode } else { $null }
     uiAdapterRetries = if ($null -ne $uiApproveData) { $uiApproveData.retries } else { $null }
+    visualTestingStatus = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.reportStatus } else { $null }
+    visualChecksCount = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.checksCount } else { $null }
+    visualRegressionCount = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.regressionCount } else { $null }
+    visualComparatorMode = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.comparatorMode } else { $null }
+    visualTestingValidated = if (
+      $null -ne $uiVisualTestingData -and
+      $uiVisualTestingData.reportStatus -eq "passed" -and
+      [int]$uiVisualTestingData.checksCount -ge 3 -and
+      [int]$uiVisualTestingData.regressionCount -eq 0
+    ) { $true } else { $false }
     delegatedRoute = if ($null -ne $delegationData) { $delegationData.delegatedRoute } else { $null }
     gatewayWsRoundTripMs = if ($null -ne $gatewayWsData) { $gatewayWsData.roundTripMs } else { $null }
     gatewayWsResponseStatus = if ($null -ne $gatewayWsData) { $gatewayWsData.responseStatus } else { $null }

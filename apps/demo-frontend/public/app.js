@@ -729,6 +729,26 @@ function handleGatewayEvent(event) {
         appendTranscript("assistant", delegatedText);
       }
     }
+    if (output?.visualTesting && typeof output.visualTesting === "object" && output.visualTesting.enabled === true) {
+      const checksCount = Array.isArray(output.visualTesting.checks) ? output.visualTesting.checks.length : 0;
+      const regressionCount =
+        typeof output.visualTesting.regressionCount === "number" ? output.visualTesting.regressionCount : 0;
+      appendTranscript(
+        "system",
+        `Visual testing: ${output.visualTesting.status ?? "unknown"} (checks=${checksCount}, regressions=${regressionCount})`,
+      );
+      if (Array.isArray(output.visualTesting.checks)) {
+        const regressions = output.visualTesting.checks
+          .filter((check) => check && typeof check === "object" && check.status === "regression")
+          .slice(0, 3);
+        for (const check of regressions) {
+          const severity = typeof check.severity === "string" ? check.severity : "n/a";
+          const category = typeof check.category === "string" ? check.category : "unknown";
+          const assertion = typeof check.assertion === "string" ? check.assertion : "unspecified assertion";
+          appendTranscript("system", `Regression [${severity}] ${category}: ${assertion}`);
+        }
+      }
+    }
 
     const text = findTextPayload(output) ?? "orchestrator.response received";
     appendTranscript("assistant", text);
