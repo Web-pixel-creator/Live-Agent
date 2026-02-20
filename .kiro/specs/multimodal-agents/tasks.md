@@ -33,7 +33,7 @@
 | T-009 | Включить минимальный observability слой (logging/metrics/alerts) | P0 | 0.5 day | T-001, T-002 | R15 | Есть `/metrics` endpoints для gateway/api/orchestrator c p50/p95/p99 и error rate, а также автоматическая e2e-проверка метрик (`runtime.metrics.endpoints`) |
 | T-010 | Добавить единый реестр активных задач и realtime-прогресс событий | P1 | 0.5 day | T-004, T-005 | R10, R12, R14, R15 | Для долгих операций выдается `taskId`, есть `/tasks/active` + `/tasks/{taskId}`, прогресс стримится событиями `task.started/task.progress/task.completed/task.failed` в UI, финальный `task.status` сохраняется в Firestore |
 | T-011 | Реализовать lifecycle endpoints рантайма (status, warmup, drain, health, version) | P1 | 0.5 day | T-001, T-002 | R10, R11, R14, R15 | Операционные endpoints (`/status`, `/warmup`, `/drain`, `/healthz`, `/version`) доступны для gateway/api/orchestrator; drain-mode блокирует новые бизнес-запросы; runtime profile/version фиксируются в ответах |
-| T-012 | Ввести границу capability-адаптеров (live, reasoning, tts, image, video, computer_use) | P1 | 1 day | T-004 | R0, R10, R11 | Бизнес-логика использует единый internal interface, Gemini/Vertex adapters заданы по умолчанию |
+| T-012 | Ввести границу capability-адаптеров (live, reasoning, tts, image, video, computer_use) | P1 | 1 day | T-004 | R0, R10, R11 | Бизнес-логика использует единый internal interface (`@mla/capabilities`), Gemini/Vertex adapters заданы по умолчанию, а e2e policy проверяет `kpi.capabilityAdaptersValidated=true` |
 | T-013 | Усилить remote execution split и session/run binding между FE/Gateway/Orchestrator | P0 | 0.5 day | T-005 | R10, R12, R13, R14 | UI получает явные state transitions, каждое событие несет userId/sessionId/runId |
 | T-014 | Внедрить минимальную дисциплину API-контрактов (contracts + normalized errors) | P0 | 0.5 day | T-001, T-005, T-013 | R14, R15 | Контракты обновлены и ошибки в API/WS возвращаются в едином формате с traceId |
 | T-015 | Добавить CI workflow для demo e2e и публикации отчетных артефактов | P0 | 0.5 day | T-000, T-014 | R14, R15 | CI запускает `demo:e2e`, публикует `summary.json`, `summary.md` и service logs как artifacts |
@@ -61,7 +61,7 @@
 | Keep in M1 (P0) | T-019.1 | Scripted release/publish flow | Минимизация ручных ошибок при подготовке и публикации demo baseline |
 | Defer to M3 (P1) | T-010.* | Task registry + progress plane | Nice-to-have для MVP |
 | Defer to M3 (P1) | T-011.3/T-011.4 | warmup/drain + lifecycle smoke | Production hardening |
-| Defer to M3 (P1) | T-012.* | Capability adapter layer | Полезно, но не blocker для demo |
+| Pulled into M1 | T-012.* | Capability adapter layer | Нужен ранний adapter boundary для безопасного failover/profile switching в judged demo |
 | Defer to M3 (P1) | T-013.3/T-013.4 | reconnect dedupe + E2E suite | Hardening после MVP |
 | Defer to M3 (P1) | T-014.2/T-014.4 | typed client generation + schema drift CI | Не блокирует judged сценарий |
 

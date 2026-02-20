@@ -529,6 +529,10 @@ try {
 
     $translation = Get-FieldValue -Object $response -Path @("payload", "output", "translation")
     Assert-Condition -Condition ($null -ne $translation) -Message "Translation payload is missing."
+    $liveCapability = Get-FieldValue -Object $response -Path @("payload", "output", "capabilityProfile", "live")
+    $reasoningCapability = Get-FieldValue -Object $response -Path @("payload", "output", "capabilityProfile", "reasoning")
+    Assert-Condition -Condition ($null -ne $liveCapability) -Message "Missing live capability adapter profile."
+    Assert-Condition -Condition ($null -ne $reasoningCapability) -Message "Missing reasoning capability adapter profile."
 
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $response -Path @("runId"))
@@ -537,6 +541,8 @@ try {
       model = [string](Get-FieldValue -Object $translation -Path @("model"))
       sourceLanguage = [string](Get-FieldValue -Object $translation -Path @("sourceLanguage"))
       targetLanguage = [string](Get-FieldValue -Object $translation -Path @("targetLanguage"))
+      liveAdapterId = [string](Get-FieldValue -Object $liveCapability -Path @("adapterId"))
+      reasoningAdapterId = [string](Get-FieldValue -Object $reasoningCapability -Path @("adapterId"))
       latencyMs = [int](Get-FieldValue -Object $response -Path @("payload", "output", "latencyMs"))
     }
   } | Out-Null
@@ -602,12 +608,20 @@ try {
     $timeline = Get-FieldValue -Object $response -Path @("payload", "output", "story", "timeline")
     Assert-Condition -Condition ($null -ne $timeline) -Message "Story timeline is missing."
     Assert-Condition -Condition ($timeline.Count -ge 2) -Message "Story timeline has too few segments."
+    $storyCapabilityProfile = Get-FieldValue -Object $response -Path @("payload", "output", "generation", "capabilityProfile")
+    Assert-Condition -Condition ($null -ne $storyCapabilityProfile) -Message "Missing storyteller capability profile."
+    Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $storyCapabilityProfile -Path @("reasoning"))) -Message "Missing storyteller reasoning capability."
+    Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $storyCapabilityProfile -Path @("image"))) -Message "Missing storyteller image capability."
+    Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $storyCapabilityProfile -Path @("video"))) -Message "Missing storyteller video capability."
+    Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $storyCapabilityProfile -Path @("tts"))) -Message "Missing storyteller tts capability."
 
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $response -Path @("runId"))
       fallbackAsset = [bool](Get-FieldValue -Object $response -Path @("payload", "output", "fallbackAsset"))
       timelineSegments = [int]$timeline.Count
       plannerProvider = [string](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "planner", "provider"))
+      imageAdapterId = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("image", "adapterId"))
+      ttsAdapterId = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("tts", "adapterId"))
       latencyMs = [int](Get-FieldValue -Object $response -Path @("payload", "output", "latencyMs"))
     }
   } | Out-Null
@@ -704,12 +718,17 @@ try {
 
     $adapterMode = [string](Get-FieldValue -Object $orchestratorResponse -Path @("payload", "output", "execution", "adapterMode"))
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($adapterMode)) -Message "Missing UI execution adapter mode."
+    $uiCapabilityProfile = Get-FieldValue -Object $orchestratorResponse -Path @("payload", "output", "capabilityProfile")
+    Assert-Condition -Condition ($null -ne $uiCapabilityProfile) -Message "Missing UI capability profile."
+    Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $uiCapabilityProfile -Path @("reasoning"))) -Message "Missing UI reasoning capability."
+    Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $uiCapabilityProfile -Path @("computer_use"))) -Message "Missing UI computer_use capability."
 
     return [ordered]@{
       approvalId = $script:UiApprovalId
       resumed = $resumed
       orchestratorStatus = $orchestratorStatus
       adapterMode = $adapterMode
+      computerUseAdapterId = [string](Get-FieldValue -Object $uiCapabilityProfile -Path @("computer_use", "adapterId"))
       adapterNotes = Get-FieldValue -Object $orchestratorResponse -Path @("payload", "output", "execution", "adapterNotes")
       retries = [int](Get-FieldValue -Object $orchestratorResponse -Path @("payload", "output", "execution", "retries"))
     }
@@ -1118,6 +1137,16 @@ $summary = [ordered]@{
     lifecycleEndpointsValidated = if ($null -ne $runtimeLifecycleData) { $true } else { $false }
     metricsEndpointsValidated = if ($null -ne $runtimeMetricsData) { $true } else { $false }
     metricsServicesValidated = if ($null -ne $runtimeMetricsData) { $runtimeMetricsData.count } else { $null }
+    capabilityAdaptersValidated = if (
+      $null -ne $translationData -and
+      -not [string]::IsNullOrWhiteSpace([string]$translationData.liveAdapterId) -and
+      -not [string]::IsNullOrWhiteSpace([string]$translationData.reasoningAdapterId) -and
+      $null -ne $storyData -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.imageAdapterId) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.ttsAdapterId) -and
+      $null -ne $uiApproveData -and
+      -not [string]::IsNullOrWhiteSpace([string]$uiApproveData.computerUseAdapterId)
+    ) { $true } else { $false }
   }
   artifacts = [ordered]@{
     summaryJsonPath = $resolvedOutputPath

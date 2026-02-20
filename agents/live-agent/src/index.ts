@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
 import {
+  buildCapabilityProfile,
+  type CapabilityProfile,
+  type LiveCapabilityAdapter,
+  type ReasoningCapabilityAdapter,
+} from "@mla/capabilities";
+import {
   createEnvelope,
   type NormalizedError,
   type OrchestratorIntent,
@@ -37,6 +43,7 @@ type GeminiConfig = {
   apiKey: string | null;
   baseUrl: string;
   timeoutMs: number;
+  liveModel: string;
   translationModel: string;
   conversationModel: string;
 };
@@ -54,6 +61,12 @@ type DelegationRequest = {
   intent: Extract<OrchestratorIntent, "story" | "ui_task">;
   input: Record<string, unknown>;
   reason: string;
+};
+
+type LiveAgentCapabilitySet = {
+  live: LiveCapabilityAdapter;
+  reasoning: ReasoningCapabilityAdapter;
+  profile: CapabilityProfile;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -287,17 +300,20 @@ function getGeminiConfig(): GeminiConfig {
       toNonEmptyString(process.env.LIVE_AGENT_GEMINI_API_KEY) ?? toNonEmptyString(process.env.GEMINI_API_KEY),
     baseUrl: toNonEmptyString(process.env.GEMINI_API_BASE_URL) ?? defaultBaseUrl,
     timeoutMs,
+    liveModel: toNonEmptyString(process.env.LIVE_AGENT_LIVE_MODEL) ?? "gemini-live-2.5-flash-native-audio",
     translationModel: toNonEmptyString(process.env.LIVE_AGENT_TRANSLATION_MODEL) ?? "gemini-3-flash",
     conversationModel: toNonEmptyString(process.env.LIVE_AGENT_CONVERSATION_MODEL) ?? "gemini-3-flash",
   };
 }
 
 async function fetchGeminiText(params: {
+  config: GeminiConfig;
   model: string;
   prompt: string;
   responseMimeType?: "application/json" | "text/plain";
+  temperature?: number;
 }): Promise<string | null> {
-  const config = getGeminiConfig();
+  const { config } = params;
   if (!config.apiKey) {
     return null;
   }
@@ -318,7 +334,7 @@ async function fetchGeminiText(params: {
         },
       ],
       generationConfig: {
-        temperature: 0.2,
+        temperature: params.temperature ?? 0.2,
       },
     };
 
@@ -376,6 +392,43 @@ async function fetchGeminiText(params: {
   }
 }
 
+function createLiveAgentCapabilitySet(config: GeminiConfig): LiveAgentCapabilitySet {
+  const reasoning: ReasoningCapabilityAdapter = {
+    descriptor: {
+      capability: "reasoning",
+      adapterId: config.apiKey ? "gemini-reasoning" : "fallback-reasoning",
+      provider: config.apiKey ? "gemini_api" : "fallback",
+      model: config.conversationModel,
+      mode: config.apiKey ? "default" : "fallback",
+    },
+    async generateText(params) {
+      return fetchGeminiText({
+        config,
+        model: params.model ?? config.conversationModel,
+        prompt: params.prompt,
+        responseMimeType: params.responseMimeType,
+        temperature: params.temperature,
+      });
+    },
+  };
+
+  const live: LiveCapabilityAdapter = {
+    descriptor: {
+      capability: "live",
+      adapterId: config.apiKey ? "gemini-live-default" : "fallback-live",
+      provider: config.apiKey ? "vertex_ai" : "fallback",
+      model: config.liveModel,
+      mode: config.apiKey ? "default" : "fallback",
+    },
+  };
+
+  return {
+    live,
+    reasoning,
+    profile: buildCapabilityProfile([live, reasoning]),
+  };
+}
+
 function tryParseJsonObject(value: string): Record<string, unknown> | null {
   const withoutFence = value
     .replace(/^```json\s*/i, "")
@@ -394,9 +447,10 @@ async function translateWithGemini(params: {
   text: string;
   sourceLanguage: string;
   targetLanguage: string;
+  config: GeminiConfig;
+  capabilities: LiveAgentCapabilitySet;
 }): Promise<TranslationResult | null> {
-  const config = getGeminiConfig();
-  if (!config.apiKey) {
+  if (!params.config.apiKey) {
     return null;
   }
 
@@ -408,10 +462,11 @@ async function translateWithGemini(params: {
     `User text: ${params.text}`,
   ].join("\n");
 
-  const raw = await fetchGeminiText({
-    model: config.translationModel,
+  const raw = await params.capabilities.reasoning.generateText({
+    model: params.config.translationModel,
     prompt,
     responseMimeType: "application/json",
+    temperature: 0.2,
   });
 
   if (!raw) {
@@ -437,12 +492,17 @@ async function translateWithGemini(params: {
     sourceLanguage,
     targetLanguage,
     provider: "gemini",
-    model: config.translationModel,
+    model: params.config.translationModel,
     confidence,
   };
 }
 
-async function generateConversationReply(inputText: string): Promise<{ text: string; provider: string; model: string }> {
+async function generateConversationReply(params: {
+  inputText: string;
+  config: GeminiConfig;
+  capabilities: LiveAgentCapabilitySet;
+}): Promise<{ text: string; provider: string; model: string }> {
+  const inputText = params.inputText;
   const fallback = {
     text: inputText.length > 0
       ? `Received: "${inputText}". I can continue the dialogue, translate this message, or switch to negotiation mode.`
@@ -455,8 +515,7 @@ async function generateConversationReply(inputText: string): Promise<{ text: str
     return fallback;
   }
 
-  const config = getGeminiConfig();
-  if (!config.apiKey) {
+  if (!params.config.apiKey) {
     return fallback;
   }
 
@@ -467,10 +526,11 @@ async function generateConversationReply(inputText: string): Promise<{ text: str
     `User message: ${inputText || "(empty)"}`,
   ].join("\n");
 
-  const generated = await fetchGeminiText({
-    model: config.conversationModel,
+  const generated = await params.capabilities.reasoning.generateText({
+    model: params.config.conversationModel,
     prompt,
     responseMimeType: "text/plain",
+    temperature: 0.2,
   });
 
   if (!generated) {
@@ -480,7 +540,7 @@ async function generateConversationReply(inputText: string): Promise<{ text: str
   return {
     text: generated,
     provider: "gemini",
-    model: config.conversationModel,
+    model: params.config.conversationModel,
   };
 }
 
@@ -515,7 +575,12 @@ function detectDelegationRequest(text: string): DelegationRequest | null {
   return null;
 }
 
-async function handleConversation(input: NormalizedLiveInput): Promise<Record<string, unknown>> {
+async function handleConversation(params: {
+  input: NormalizedLiveInput;
+  config: GeminiConfig;
+  capabilities: LiveAgentCapabilitySet;
+}): Promise<Record<string, unknown>> {
+  const { input } = params;
   const delegationRequest = detectDelegationRequest(input.text);
   if (delegationRequest) {
     return {
@@ -529,7 +594,11 @@ async function handleConversation(input: NormalizedLiveInput): Promise<Record<st
     };
   }
 
-  const reply = await generateConversationReply(input.text);
+  const reply = await generateConversationReply({
+    inputText: input.text,
+    config: params.config,
+    capabilities: params.capabilities,
+  });
   return {
     message: reply.text,
     mode: "conversation",
@@ -540,7 +609,12 @@ async function handleConversation(input: NormalizedLiveInput): Promise<Record<st
   };
 }
 
-async function handleTranslation(input: NormalizedLiveInput): Promise<Record<string, unknown>> {
+async function handleTranslation(params: {
+  input: NormalizedLiveInput;
+  config: GeminiConfig;
+  capabilities: LiveAgentCapabilitySet;
+}): Promise<Record<string, unknown>> {
+  const { input } = params;
   const sourceLanguage = detectLanguage(input.text);
   const targetLanguage = input.targetLanguage ?? (sourceLanguage === "ru" ? "en" : "ru");
 
@@ -560,6 +634,8 @@ async function handleTranslation(input: NormalizedLiveInput): Promise<Record<str
       text: input.text,
       sourceLanguage,
       targetLanguage,
+      config: params.config,
+      capabilities: params.capabilities,
     })) ?? fallbackTranslate(input.text, sourceLanguage, targetLanguage);
 
   return {
@@ -639,15 +715,29 @@ function toNormalizedError(error: unknown, traceId: string): NormalizedError {
   };
 }
 
-async function handleByIntent(intent: OrchestratorIntent, input: NormalizedLiveInput): Promise<Record<string, unknown>> {
+async function handleByIntent(params: {
+  intent: OrchestratorIntent;
+  input: NormalizedLiveInput;
+  config: GeminiConfig;
+  capabilities: LiveAgentCapabilitySet;
+}): Promise<Record<string, unknown>> {
+  const { intent, input, config, capabilities } = params;
   switch (intent) {
     case "translation":
-      return handleTranslation(input);
+      return handleTranslation({
+        input,
+        config,
+        capabilities,
+      });
     case "negotiation":
       return handleNegotiation(input);
     case "conversation":
     default:
-      return handleConversation(input);
+      return handleConversation({
+        input,
+        config,
+        capabilities,
+      });
   }
 }
 
@@ -655,11 +745,18 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
   const traceId = randomUUID();
   const runId = request.runId ?? request.id;
   const startedAt = Date.now();
+  const config = getGeminiConfig();
+  const capabilities = createLiveAgentCapabilitySet(config);
 
   try {
     const intent = request.payload.intent;
     const input = normalizeInput(request.payload.input);
-    const result = await handleByIntent(intent, input);
+    const result = await handleByIntent({
+      intent,
+      input,
+      config,
+      capabilities,
+    });
 
     return createEnvelope({
       sessionId: request.sessionId,
@@ -673,6 +770,7 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
         output: {
           ...result,
           handledIntent: intent,
+          capabilityProfile: capabilities.profile,
           traceId,
           latencyMs: Date.now() - startedAt,
         },
@@ -693,6 +791,7 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
         error: normalizedError,
         output: {
           handledIntent: request.payload.intent,
+          capabilityProfile: capabilities.profile,
           traceId,
           latencyMs: Date.now() - startedAt,
         },

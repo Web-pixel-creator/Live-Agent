@@ -3,6 +3,14 @@ import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  buildCapabilityProfile,
+  type CapabilityProfile,
+  type ImageCapabilityAdapter,
+  type ReasoningCapabilityAdapter,
+  type TtsCapabilityAdapter,
+  type VideoCapabilityAdapter,
+} from "@mla/capabilities";
+import {
   createEnvelope,
   type NormalizedError,
   type OrchestratorRequest,
@@ -80,6 +88,14 @@ type GeminiConfig = {
   imageModel: string;
   videoModel: string;
   ttsModel: string;
+};
+
+type StorytellerCapabilitySet = {
+  reasoning: ReasoningCapabilityAdapter;
+  image: ImageCapabilityAdapter;
+  video: VideoCapabilityAdapter;
+  tts: TtsCapabilityAdapter;
+  profile: CapabilityProfile;
 };
 
 const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -309,6 +325,7 @@ async function fetchGeminiText(params: {
   model: string;
   prompt: string;
   responseMimeType?: "application/json" | "text/plain";
+  temperature?: number;
 }): Promise<string | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), params.timeoutMs);
@@ -323,7 +340,7 @@ async function fetchGeminiText(params: {
         },
       ],
       generationConfig: {
-        temperature: 0.4,
+        temperature: params.temperature ?? 0.4,
       },
     };
     if (params.responseMimeType) {
@@ -374,6 +391,73 @@ async function fetchGeminiText(params: {
   }
 }
 
+function createStorytellerCapabilitySet(config: GeminiConfig): StorytellerCapabilitySet {
+  const reasoning: ReasoningCapabilityAdapter = {
+    descriptor: {
+      capability: "reasoning",
+      adapterId: config.apiKey ? "gemini-story-reasoning" : "fallback-story-reasoning",
+      provider: config.apiKey ? "gemini_api" : "fallback",
+      model: config.plannerModel,
+      mode: config.apiKey && config.plannerEnabled ? "default" : "fallback",
+    },
+    async generateText(params) {
+      if (!config.apiKey || !config.plannerEnabled) {
+        return null;
+      }
+      return fetchGeminiText({
+        apiKey: config.apiKey,
+        baseUrl: config.baseUrl,
+        timeoutMs: config.timeoutMs,
+        model: params.model ?? config.plannerModel,
+        prompt: params.prompt,
+        responseMimeType: params.responseMimeType,
+        temperature: params.temperature,
+      });
+    },
+  };
+
+  const mediaMode: "default" | "fallback" | "simulated" = config.mediaMode === "simulated" ? "simulated" : "fallback";
+  const mediaProvider = config.mediaMode === "simulated" ? "simulated" : "google_cloud";
+
+  const image: ImageCapabilityAdapter = {
+    descriptor: {
+      capability: "image",
+      adapterId: config.mediaMode === "simulated" ? "imagen-simulated" : "imagen-fallback-pack",
+      provider: mediaProvider,
+      model: config.imageModel,
+      mode: mediaMode,
+    },
+  };
+
+  const video: VideoCapabilityAdapter = {
+    descriptor: {
+      capability: "video",
+      adapterId: config.mediaMode === "simulated" ? "veo-simulated" : "veo-fallback-pack",
+      provider: mediaProvider,
+      model: config.videoModel,
+      mode: mediaMode,
+    },
+  };
+
+  const tts: TtsCapabilityAdapter = {
+    descriptor: {
+      capability: "tts",
+      adapterId: config.mediaMode === "simulated" ? "gemini-tts-simulated" : "gemini-tts-fallback-pack",
+      provider: mediaProvider,
+      model: config.ttsModel,
+      mode: mediaMode,
+    },
+  };
+
+  return {
+    reasoning,
+    image,
+    video,
+    tts,
+    profile: buildCapabilityProfile([reasoning, image, video, tts]),
+  };
+}
+
 function parseJsonObject(raw: string): Record<string, unknown> | null {
   const cleaned = raw
     .replace(/^```json\s*/i, "")
@@ -392,6 +476,7 @@ async function generateStoryPlan(
   input: StoryInput,
   fallback: FallbackScenario,
   config: GeminiConfig,
+  capabilities: StorytellerCapabilitySet,
 ): Promise<StoryPlan> {
   if (!config.apiKey || !config.plannerEnabled) {
     return {
@@ -415,13 +500,11 @@ async function generateStoryPlan(
     `Prompt: ${input.prompt}`,
   ].join("\n");
 
-  const raw = await fetchGeminiText({
-    apiKey: config.apiKey,
-    baseUrl: config.baseUrl,
-    timeoutMs: config.timeoutMs,
+  const raw = await capabilities.reasoning.generateText({
     model: config.plannerModel,
     prompt,
     responseMimeType: "application/json",
+    temperature: 0.4,
   });
 
   if (!raw) {
@@ -480,8 +563,9 @@ async function extendStoryBranch(params: {
   currentSegments: string[];
   fallback: FallbackScenario;
   config: GeminiConfig;
+  capabilities: StorytellerCapabilitySet;
 }): Promise<{ segments: string[]; branchProvider: "gemini" | "fallback"; branchModel: string }> {
-  const { input, currentSegments, fallback, config } = params;
+  const { input, currentSegments, fallback, config, capabilities } = params;
   if (!input.branchChoice) {
     return {
       segments: currentSegments,
@@ -507,13 +591,11 @@ async function extendStoryBranch(params: {
     "Return plain text only, 1-2 sentences.",
   ].join("\n");
 
-  const raw = await fetchGeminiText({
-    apiKey: config.apiKey,
-    baseUrl: config.baseUrl,
-    timeoutMs: config.timeoutMs,
+  const raw = await capabilities.reasoning.generateText({
     model: config.branchModel,
     prompt,
     responseMimeType: "text/plain",
+    temperature: 0.4,
   });
 
   if (!raw) {
@@ -559,12 +641,13 @@ function createImageAsset(params: {
   segmentText: string;
   segmentIndex: number;
   fallback: FallbackScenario;
-  config: GeminiConfig;
+  adapter: ImageCapabilityAdapter;
 }): StoryAsset {
   const fallbackRef = pickFallbackRef(params.fallback.images, params.segmentIndex);
-  const fallbackAsset = params.config.mediaMode === "fallback" || !fallbackRef ? true : false;
+  const adapterMode = params.adapter.descriptor.mode === "simulated" ? "simulated" : "fallback";
+  const fallbackAsset = adapterMode === "fallback" || !fallbackRef ? true : false;
   const ref =
-    params.config.mediaMode === "fallback"
+    adapterMode === "fallback"
       ? fallbackRef ?? buildSimulatedRef({ kind: "image", scenarioId: params.fallback.id, segmentIndex: params.segmentIndex, extension: "jpg" })
       : buildSimulatedRef({ kind: "image", scenarioId: params.fallback.id, segmentIndex: params.segmentIndex, extension: "jpg" });
 
@@ -572,15 +655,15 @@ function createImageAsset(params: {
     id: buildAssetId("image", params.segmentIndex),
     kind: "image",
     ref,
-    provider: "google",
-    model: params.config.imageModel,
+    provider: params.adapter.descriptor.provider,
+    model: params.adapter.descriptor.model,
     status: "ready",
     fallbackAsset,
     segmentIndex: params.segmentIndex,
     mimeType: "image/jpeg",
     meta: {
       prompt: `Illustration for segment ${params.segmentIndex + 1}: ${params.segmentText}`,
-      adapterMode: params.config.mediaMode,
+      adapterMode,
     },
   };
 }
@@ -589,12 +672,13 @@ function createVideoAsset(params: {
   segmentText: string;
   segmentIndex: number;
   fallback: FallbackScenario;
-  config: GeminiConfig;
+  adapter: VideoCapabilityAdapter;
 }): StoryAsset {
   const fallbackRef = pickFallbackRef(params.fallback.videos, params.segmentIndex);
-  const fallbackAsset = params.config.mediaMode === "fallback" || !fallbackRef ? true : false;
+  const adapterMode = params.adapter.descriptor.mode === "simulated" ? "simulated" : "fallback";
+  const fallbackAsset = adapterMode === "fallback" || !fallbackRef ? true : false;
   const ref =
-    params.config.mediaMode === "fallback"
+    adapterMode === "fallback"
       ? fallbackRef ?? buildSimulatedRef({ kind: "video", scenarioId: params.fallback.id, segmentIndex: params.segmentIndex, extension: "mp4" })
       : buildSimulatedRef({ kind: "video", scenarioId: params.fallback.id, segmentIndex: params.segmentIndex, extension: "mp4" });
 
@@ -602,16 +686,16 @@ function createVideoAsset(params: {
     id: buildAssetId("video", params.segmentIndex),
     kind: "video",
     ref,
-    provider: "google",
-    model: params.config.videoModel,
-    status: params.config.mediaMode === "fallback" ? "ready" : "pending",
+    provider: params.adapter.descriptor.provider,
+    model: params.adapter.descriptor.model,
+    status: adapterMode === "fallback" ? "ready" : "pending",
     fallbackAsset,
     segmentIndex: params.segmentIndex,
     mimeType: "video/mp4",
     meta: {
       prompt: `Video scene for segment ${params.segmentIndex + 1}: ${params.segmentText}`,
-      adapterMode: params.config.mediaMode,
-      notes: params.config.mediaMode === "fallback" ? "pre-generated fallback clip" : "queued for async generation",
+      adapterMode,
+      notes: adapterMode === "fallback" ? "pre-generated fallback clip" : "queued for async generation",
     },
   };
 }
@@ -621,12 +705,13 @@ function createNarrationAsset(params: {
   segmentIndex: number;
   voiceStyle: string;
   fallback: FallbackScenario;
-  config: GeminiConfig;
+  adapter: TtsCapabilityAdapter;
 }): StoryAsset {
   const fallbackRef = pickFallbackRef(params.fallback.narrations, params.segmentIndex);
-  const fallbackAsset = params.config.mediaMode === "fallback" || !fallbackRef ? true : false;
+  const adapterMode = params.adapter.descriptor.mode === "simulated" ? "simulated" : "fallback";
+  const fallbackAsset = adapterMode === "fallback" || !fallbackRef ? true : false;
   const ref =
-    params.config.mediaMode === "fallback"
+    adapterMode === "fallback"
       ? fallbackRef ?? buildSimulatedRef({ kind: "audio", scenarioId: params.fallback.id, segmentIndex: params.segmentIndex, extension: "wav" })
       : buildSimulatedRef({ kind: "audio", scenarioId: params.fallback.id, segmentIndex: params.segmentIndex, extension: "wav" });
 
@@ -634,8 +719,8 @@ function createNarrationAsset(params: {
     id: buildAssetId("audio", params.segmentIndex),
     kind: "audio",
     ref,
-    provider: "google",
-    model: params.config.ttsModel,
+    provider: params.adapter.descriptor.provider,
+    model: params.adapter.descriptor.model,
     status: "ready",
     fallbackAsset,
     segmentIndex: params.segmentIndex,
@@ -643,7 +728,7 @@ function createNarrationAsset(params: {
     meta: {
       text: params.segmentText,
       voiceStyle: params.voiceStyle,
-      adapterMode: params.config.mediaMode,
+      adapterMode,
     },
   };
 }
@@ -698,19 +783,21 @@ export async function runStorytellerAgent(
   const traceId = randomUUID();
   const runId = request.runId ?? request.id;
   const startedAt = Date.now();
+  const config = getGeminiConfig();
+  const capabilities = createStorytellerCapabilitySet(config);
 
   try {
     const input = normalizeStoryInput(request.payload.input);
-    const config = getGeminiConfig();
     const fallbackPack = await loadFallbackPack();
     const fallbackScenario = selectFallbackScenario(fallbackPack, input);
 
-    const plan = await generateStoryPlan(input, fallbackScenario, config);
+    const plan = await generateStoryPlan(input, fallbackScenario, config, capabilities);
     const branch = await extendStoryBranch({
       input,
       currentSegments: plan.segments,
       fallback: fallbackScenario,
       config,
+      capabilities,
     });
 
     const finalSegments = branch.segments;
@@ -720,7 +807,7 @@ export async function runStorytellerAgent(
             segmentText,
             segmentIndex,
             fallback: fallbackScenario,
-            config,
+            adapter: capabilities.image,
           }),
         )
       : [];
@@ -731,7 +818,7 @@ export async function runStorytellerAgent(
             segmentText,
             segmentIndex,
             fallback: fallbackScenario,
-            config,
+            adapter: capabilities.video,
           }),
         )
       : [];
@@ -742,7 +829,7 @@ export async function runStorytellerAgent(
         segmentIndex,
         voiceStyle: input.voiceStyle,
         fallback: fallbackScenario,
-        config,
+        adapter: capabilities.tts,
       }),
     );
 
@@ -803,6 +890,7 @@ export async function runStorytellerAgent(
             videoModel: input.includeVideo ? config.videoModel : null,
             ttsModel: config.ttsModel,
             mediaMode: config.mediaMode,
+            capabilityProfile: capabilities.profile,
             fallbackPack: {
               version: fallbackPack.version,
               scenarioId: fallbackScenario.id,
@@ -825,6 +913,9 @@ export async function runStorytellerAgent(
         error: normalizedError,
         output: {
           handledIntent: request.payload.intent,
+          generation: {
+            capabilityProfile: capabilities.profile,
+          },
           traceId,
           latencyMs: Date.now() - startedAt,
         },

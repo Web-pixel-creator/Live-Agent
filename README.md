@@ -12,8 +12,9 @@ Starter workspace for the "next-generation agents" spec:
 - `apps/api-backend` - management REST API
 - `agents/orchestrator` - ADK orchestration boundary and intent routing
 - `agents/live-agent` - live communication domain logic (conversation, translation, negotiation)
-- `agents/storyteller-agent` - storytelling domain logic stub
-- `agents/ui-navigator-agent` - UI automation domain logic stub
+- `agents/storyteller-agent` - storytelling pipeline (planner + branch + image/video/tts asset timeline)
+- `agents/ui-navigator-agent` - UI planning/execution with approval gates and adapter-aware traces
+- `shared/capabilities` - internal capability adapter contracts/profile helpers
 - `shared/contracts` - shared event/session contracts
 - `configs` - runtime configuration notes
 - `infra` - infrastructure templates and deployment notes
@@ -246,6 +247,21 @@ Useful flags:
   - request counts and error rate
   - latency summary (`min/max/avg/p50/p95/p99`)
   - per-operation breakdown (top operations)
+
+## Capability Adapter Boundary
+
+- Capability contracts are centralized in `@mla/capabilities` (`shared/capabilities`):
+  - `live`
+  - `reasoning`
+  - `tts`
+  - `image`
+  - `video`
+  - `computer_use`
+- Default Gemini/Google adapters are wired in:
+  - `agents/live-agent` (`live` + `reasoning`)
+  - `agents/storyteller-agent` (`reasoning` + `image` + `video` + `tts`)
+  - `agents/ui-navigator-agent` (`reasoning` + `computer_use`)
+- Each orchestrator response now carries adapter `capabilityProfile` for audit/debug, and demo policy checks enforce `kpi.capabilityAdaptersValidated=true`.
 
 ## Task Registry Endpoints
 

@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
 import {
+  buildCapabilityProfile,
+  type CapabilityProfile,
+  type ComputerUseCapabilityAdapter,
+  type ReasoningCapabilityAdapter,
+} from "@mla/capabilities";
+import {
   createEnvelope,
   type NormalizedError,
   type OrchestratorRequest,
@@ -52,6 +58,12 @@ type PlannerConfig = {
   approvalKeywords: string[];
   executorMode: "simulated" | "playwright_preview" | "remote_http";
   executorUrl: string | null;
+};
+
+type UiNavigatorCapabilitySet = {
+  reasoning: ReasoningCapabilityAdapter;
+  computerUse: ComputerUseCapabilityAdapter;
+  profile: CapabilityProfile;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -288,6 +300,7 @@ async function fetchGeminiText(params: {
   model: string;
   prompt: string;
   responseMimeType?: "application/json" | "text/plain";
+  temperature?: number;
 }): Promise<string | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), params.timeoutMs);
@@ -302,7 +315,7 @@ async function fetchGeminiText(params: {
         },
       ],
       generationConfig: {
-        temperature: 0.1,
+        temperature: params.temperature ?? 0.1,
       },
     };
     if (params.responseMimeType) {
@@ -346,6 +359,48 @@ async function fetchGeminiText(params: {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function createUiNavigatorCapabilitySet(config: PlannerConfig): UiNavigatorCapabilitySet {
+  const reasoning: ReasoningCapabilityAdapter = {
+    descriptor: {
+      capability: "reasoning",
+      adapterId: config.apiKey ? "gemini-ui-reasoning" : "fallback-ui-reasoning",
+      provider: config.apiKey ? "gemini_api" : "fallback",
+      model: config.plannerModel,
+      mode: config.apiKey && config.plannerEnabled ? "default" : "fallback",
+    },
+    async generateText(params) {
+      if (!config.apiKey || !config.plannerEnabled) {
+        return null;
+      }
+      return fetchGeminiText({
+        apiKey: config.apiKey,
+        baseUrl: config.baseUrl,
+        timeoutMs: config.timeoutMs,
+        model: params.model ?? config.plannerModel,
+        prompt: params.prompt,
+        responseMimeType: params.responseMimeType,
+        temperature: params.temperature,
+      });
+    },
+  };
+
+  const computerUse: ComputerUseCapabilityAdapter = {
+    descriptor: {
+      capability: "computer_use",
+      adapterId: config.apiKey ? "gemini-computer-use-compatible" : "rule-based-computer-use",
+      provider: config.apiKey ? "gemini_api" : "fallback",
+      model: config.plannerModel,
+      mode: config.apiKey && config.plannerEnabled ? "default" : "fallback",
+    },
+  };
+
+  return {
+    reasoning,
+    computerUse,
+    profile: buildCapabilityProfile([reasoning, computerUse]),
+  };
 }
 
 function parseJsonObject(raw: string): Record<string, unknown> | null {
@@ -392,11 +447,16 @@ function parseGeminiActions(parsed: Record<string, unknown>): UiAction[] {
   return actions;
 }
 
-async function buildActionPlan(input: UiTaskInput, config: PlannerConfig): Promise<{
+async function buildActionPlan(params: {
+  input: UiTaskInput;
+  config: PlannerConfig;
+  capabilities: UiNavigatorCapabilitySet;
+}): Promise<{
   actions: UiAction[];
   plannerProvider: "gemini" | "fallback";
   plannerModel: string;
 }> {
+  const { input, config, capabilities } = params;
   const fallbackPlan = buildRuleBasedPlan(input);
   if (!config.apiKey || !config.plannerEnabled) {
     return {
@@ -419,13 +479,11 @@ async function buildActionPlan(input: UiTaskInput, config: PlannerConfig): Promi
     `Max steps: ${input.maxSteps}`,
   ].join("\n");
 
-  const raw = await fetchGeminiText({
-    apiKey: config.apiKey,
-    baseUrl: config.baseUrl,
-    timeoutMs: config.timeoutMs,
+  const raw = await capabilities.reasoning.generateText({
     model: config.plannerModel,
     prompt,
     responseMimeType: "application/json",
+    temperature: 0.1,
   });
 
   if (!raw) {
@@ -933,9 +991,10 @@ export async function runUiNavigatorAgent(
   const traceId = randomUUID();
   const runId = request.runId ?? request.id;
   const startedAt = Date.now();
+  const config = getPlannerConfig();
+  const capabilities = createUiNavigatorCapabilitySet(config);
 
   try {
-    const config = getPlannerConfig();
     const input = normalizeUiTaskInput(request.payload.input, config);
 
     if (input.approvalDecision === "rejected") {
@@ -959,6 +1018,7 @@ export async function runUiNavigatorAgent(
               decision: "rejected",
               reason: input.approvalReason ?? "Rejected by user",
             },
+            capabilityProfile: capabilities.profile,
           },
         },
       });
@@ -967,7 +1027,11 @@ export async function runUiNavigatorAgent(
     const sensitiveSignals = extractSensitiveSignals(input.goal, config.approvalKeywords);
     const approvalRequired = sensitiveSignals.length > 0 && !input.approvalConfirmed;
 
-    const planResult = await buildActionPlan(input, config);
+    const planResult = await buildActionPlan({
+      input,
+      config,
+      capabilities,
+    });
     const actions = limitActions(planResult.actions, input.maxSteps);
 
     if (approvalRequired) {
@@ -1015,6 +1079,7 @@ export async function runUiNavigatorAgent(
               provider: planResult.plannerProvider,
               model: planResult.plannerModel,
             },
+            capabilityProfile: capabilities.profile,
             actionPlan: actions,
             execution: {
               finalStatus: "needs_approval",
@@ -1067,6 +1132,7 @@ export async function runUiNavigatorAgent(
             provider: planResult.plannerProvider,
             model: planResult.plannerModel,
           },
+          capabilityProfile: capabilities.profile,
           actionPlan: actions,
           execution: {
             finalStatus,
@@ -1076,7 +1142,7 @@ export async function runUiNavigatorAgent(
             executor: execution.executor,
             adapterMode: execution.adapterMode,
             adapterNotes: execution.adapterNotes,
-            computerUseProfile: "gemini-computer-use-compatible",
+            computerUseProfile: capabilities.computerUse.descriptor.adapterId,
           },
         },
       },
@@ -1095,6 +1161,7 @@ export async function runUiNavigatorAgent(
         error: normalizedError,
         output: {
           handledIntent: request.payload.intent,
+          capabilityProfile: capabilities.profile,
           traceId,
           latencyMs: Date.now() - startedAt,
         },

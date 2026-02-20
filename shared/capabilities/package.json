@@ -1,5 +1,5 @@
 {
-  "name": "@mla/ui-navigator-agent",
+  "name": "@mla/capabilities",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,9 +8,5 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/index.ts"
-  },
-  "dependencies": {
-    "@mla/capabilities": "0.1.0",
-    "@mla/contracts": "0.1.0"
   }
 }

@@ -10,6 +10,7 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
+    "@mla/capabilities": "0.1.0",
     "@mla/contracts": "0.1.0"
   }
 }

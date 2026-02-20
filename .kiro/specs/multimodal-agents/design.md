@@ -476,6 +476,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
    - Define an internal adapter interface per capability (`live`, `reasoning`, `tts`, `image`, `video`, `computer_use`).
    - Keep Gemini/Vertex implementations as default adapters.
    - Use adapter boundary to support safe profile switching and fallback without changing business logic.
+   - Current baseline implementation uses `@mla/capabilities` (`shared/capabilities`) and propagates `capabilityProfile` in orchestrator responses for audit/debug.
 
 4. Remote execution split
    - Keep frontend lightweight and state-aware; run agent orchestration and tool execution only on backend services.
@@ -579,7 +580,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 ### Demo Automation Artifact
 
 1. The repository SHALL include an executable demo smoke script at `scripts/demo-e2e.ps1`.
-2. The script SHALL validate end-to-end demo flows: translation, negotiation, storyteller generation, UI approval reject/approve resume, multi-agent delegation, WebSocket gateway roundtrip via `/realtime`, WebSocket task-progress contract behavior (`task.started` + `task.progress` + `/tasks/active`), WebSocket interruption signal contract behavior (`live.interrupt.requested` or `live.bridge.unavailable`), invalid-envelope error contract behavior (`gateway.error` with traceId), REST contract behavior for invalid approval resume intent (`HTTP 400`), runtime lifecycle endpoint contract checks (`/status`, `/version`, `/drain`, `/warmup`) for gateway/api/orchestrator, and runtime observability checks (`/metrics`) for p95/error-rate visibility.
+2. The script SHALL validate end-to-end demo flows: translation, negotiation, storyteller generation, UI approval reject/approve resume, multi-agent delegation, WebSocket gateway roundtrip via `/realtime`, WebSocket task-progress contract behavior (`task.started` + `task.progress` + `/tasks/active`), WebSocket interruption signal contract behavior (`live.interrupt.requested` or `live.bridge.unavailable`), invalid-envelope error contract behavior (`gateway.error` with traceId), REST contract behavior for invalid approval resume intent (`HTTP 400`), runtime lifecycle endpoint contract checks (`/status`, `/version`, `/drain`, `/warmup`) for gateway/api/orchestrator, runtime observability checks (`/metrics`) for p95/error-rate visibility, and capability adapter profile coverage (`kpi.capabilityAdaptersValidated`).
 3. The script SHALL produce structured reports at `artifacts/demo-e2e/summary.json` and `artifacts/demo-e2e/summary.md` with per-scenario pass/fail and KPI fields.
 4. The script SHALL support local run modes for CI/demo prep (`-SkipBuild`, `-SkipServiceStart`, `-KeepServices`, `-OutputPath`).
 5. The repository SHALL include CI automation (`.github/workflows/demo-e2e.yml`) that executes demo e2e and publishes `summary.json`, `summary.md`, and logs as build artifacts.
@@ -596,7 +597,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 
 | Design Area | Requirements | Tasks |
 | --- | --- | --- |
-| Core stack + orchestration | R0, R10, R11 | T-001..T-005, T-013, T-014 |
+| Core stack + orchestration | R0, R10, R11 | T-001..T-005, T-012, T-013, T-014 |
 | Live realtime | R1, R2, R12 | T-005..T-008 |
 | Storyteller pipeline | R4, R5 | T-101, T-102, T-104, T-112 (T-103 optional) |
 | UI Navigator + Computer Use | R6, R7, R8, R9 | T-105..T-108 |

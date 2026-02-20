@@ -271,6 +271,12 @@ async function main() {
     kpis.metricsServicesValidated,
     ">= 3",
   );
+  addCheck(
+    "kpi.capabilityAdaptersValidated",
+    kpis.capabilityAdaptersValidated === true,
+    kpis.capabilityAdaptersValidated,
+    true,
+  );
 
   const success = violations.length === 0;
   const report = renderMarkdown({
