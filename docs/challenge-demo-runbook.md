@@ -20,6 +20,7 @@ npm run dev:frontend
 - `Connection status` changes to `connected`.
 - KPI panel is visible (`target/current/final`).
 - `Approval Control` panel is visible.
+- `Device Nodes` panel is visible (create/update/heartbeat controls).
 
 ## Master Timeline (5-6 minutes)
 
@@ -55,12 +56,16 @@ Checkpoint B (hard interruption) at ~01:40:
 
 ### 03:40-05:20 UI Navigator
 
-1. Switch intent to `ui_task` with sensitive action phrase.
-2. Show `Approval Control` with pending `approvalId`.
-3. Execute both decisions:
+1. In `Operator Console`, switch role to `admin` and create or update one node in `Device Nodes`:
+   - `nodeId=desktop-main`, `kind=desktop`, `status=online`, capabilities include `screen,click,type`.
+2. Switch role to `operator` and send one heartbeat for the same node (optionally with `status=degraded` then back to `online`).
+3. Confirm `Device Nodes` list updates with latest `status`, `version`, and `lastSeenAt`.
+4. Switch intent to `ui_task` with sensitive action phrase.
+5. Show `Approval Control` with pending `approvalId`.
+6. Execute both decisions:
    - `Reject` (must not resume run),
    - `Approve & Resume` (must resume and complete).
-4. Run one safe `ui_task` in visual testing mode (`visualTesting.enabled=true`) and show:
+7. Run one safe `ui_task` in visual testing mode (`visualTesting.enabled=true`) and show:
    - structured visual report with `checks` and severity labels,
    - `status=passed|failed`,
    - artifact refs (`baseline`, `actual`, `diff`).

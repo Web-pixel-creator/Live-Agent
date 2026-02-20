@@ -190,6 +190,82 @@
       </section>
 
       <section class="panel">
+        <h2>Device Nodes</h2>
+        <div class="grid-3">
+          <label class="field">
+            <span>Node ID</span>
+            <input id="deviceNodeId" type="text" placeholder="desktop-main" />
+          </label>
+          <label class="field">
+            <span>Display Name</span>
+            <input id="deviceNodeDisplayName" type="text" placeholder="Desktop Main" />
+          </label>
+          <label class="field">
+            <span>Kind</span>
+            <select id="deviceNodeKind">
+              <option value="desktop" selected>desktop</option>
+              <option value="mobile">mobile</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Platform</span>
+            <input id="deviceNodePlatform" type="text" placeholder="windows-11" />
+          </label>
+          <label class="field">
+            <span>Executor URL</span>
+            <input id="deviceNodeExecutorUrl" type="text" placeholder="http://localhost:8090/execute" />
+          </label>
+          <label class="field">
+            <span>Status</span>
+            <select id="deviceNodeStatus">
+              <option value="online" selected>online</option>
+              <option value="degraded">degraded</option>
+              <option value="offline">offline</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Trust Level</span>
+            <select id="deviceNodeTrustLevel">
+              <option value="reviewed" selected>reviewed</option>
+              <option value="trusted">trusted</option>
+              <option value="untrusted">untrusted</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Expected Version (optional)</span>
+            <input id="deviceNodeExpectedVersion" type="number" min="1" step="1" placeholder="auto" />
+          </label>
+          <label class="field">
+            <span>Capabilities (comma-separated)</span>
+            <input id="deviceNodeCapabilities" type="text" placeholder="screen,click,type,scroll" />
+          </label>
+        </div>
+        <div class="grid-2">
+          <label class="field">
+            <span>Heartbeat Metadata (JSON, optional)</span>
+            <textarea id="deviceNodeMetadata" rows="3" placeholder='{"os":"windows","battery":97}'></textarea>
+          </label>
+          <div class="field">
+            <span>Quick Notes</span>
+            <div class="meta-box">
+              Use `admin` role for create/update and `operator/admin` for heartbeat.
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="deviceNodeRefreshBtn" class="button-muted">Refresh Nodes</button>
+          <button id="deviceNodeUpsertBtn">Create / Update Node</button>
+          <button id="deviceNodeHeartbeatBtn" class="button-muted">Send Heartbeat</button>
+        </div>
+        <div class="meta-row">
+          <div><strong>Total Nodes:</strong> <span id="deviceNodeCount">0</span></div>
+          <div><strong>Selected Version:</strong> <span id="deviceNodeSelectedVersion">-</span></div>
+          <div><strong>Last Seen:</strong> <span id="deviceNodeSelectedLastSeen">-</span></div>
+        </div>
+        <div id="deviceNodeList" class="events"></div>
+      </section>
+
+      <section class="panel">
         <h2>Transcript</h2>
         <div id="transcript" class="transcript"></div>
       </section>

@@ -16,6 +16,8 @@ const state = {
   micProcessor: null,
   micGain: null,
   taskRecords: new Map(),
+  deviceNodes: new Map(),
+  selectedDeviceNodeId: null,
 };
 
 const el = {
@@ -53,6 +55,20 @@ const el = {
   operatorTaskId: document.getElementById("operatorTaskId"),
   operatorTargetService: document.getElementById("operatorTargetService"),
   operatorSummary: document.getElementById("operatorSummary"),
+  deviceNodeId: document.getElementById("deviceNodeId"),
+  deviceNodeDisplayName: document.getElementById("deviceNodeDisplayName"),
+  deviceNodeKind: document.getElementById("deviceNodeKind"),
+  deviceNodePlatform: document.getElementById("deviceNodePlatform"),
+  deviceNodeExecutorUrl: document.getElementById("deviceNodeExecutorUrl"),
+  deviceNodeStatus: document.getElementById("deviceNodeStatus"),
+  deviceNodeTrustLevel: document.getElementById("deviceNodeTrustLevel"),
+  deviceNodeExpectedVersion: document.getElementById("deviceNodeExpectedVersion"),
+  deviceNodeCapabilities: document.getElementById("deviceNodeCapabilities"),
+  deviceNodeMetadata: document.getElementById("deviceNodeMetadata"),
+  deviceNodeCount: document.getElementById("deviceNodeCount"),
+  deviceNodeSelectedVersion: document.getElementById("deviceNodeSelectedVersion"),
+  deviceNodeSelectedLastSeen: document.getElementById("deviceNodeSelectedLastSeen"),
+  deviceNodeList: document.getElementById("deviceNodeList"),
 };
 
 function nowLabel() {
@@ -89,6 +105,63 @@ function normalizeApiBaseUrl(value) {
     return state.apiBaseUrl;
   }
   return trimmed.replace(/\/+$/, "");
+}
+
+function toOptionalText(value) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function normalizeDeviceNode(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const nodeId = toOptionalText(value.nodeId);
+  if (!nodeId) {
+    return null;
+  }
+  const status = toOptionalText(value.status) ?? "online";
+  const kind = toOptionalText(value.kind) ?? "desktop";
+  const displayName = toOptionalText(value.displayName) ?? nodeId;
+  const capabilities = Array.isArray(value.capabilities)
+    ? value.capabilities.filter((item) => typeof item === "string" && item.trim().length > 0)
+    : [];
+  return {
+    nodeId,
+    displayName,
+    kind,
+    platform: toOptionalText(value.platform) ?? "unknown",
+    executorUrl: toOptionalText(value.executorUrl),
+    status,
+    trustLevel: toOptionalText(value.trustLevel) ?? "reviewed",
+    version: typeof value.version === "number" ? value.version : null,
+    lastSeenAt: toOptionalText(value.lastSeenAt),
+    updatedAt: toOptionalText(value.updatedAt),
+    capabilities,
+  };
+}
+
+function parseCapabilitiesCsv(value) {
+  if (typeof value !== "string") {
+    return [];
+  }
+  const seen = new Set();
+  const deduped = [];
+  for (const item of value.split(",")) {
+    const normalized = item.trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    deduped.push(normalized);
+  }
+  return deduped;
+}
+
+function parseOptionalMetadataJson(value) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return null;
+  }
+  return JSON.parse(value);
 }
 
 function appendEntry(container, kind, title, message) {
@@ -507,6 +580,7 @@ async function refreshOperatorSummary() {
       throw new Error(String(errorText));
     }
     renderOperatorSummary(payload?.data ?? null);
+    await refreshDeviceNodes({ silent: true });
     appendTranscript("system", "Operator summary refreshed");
   } catch (error) {
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
@@ -535,6 +609,221 @@ async function runOperatorAction(action, data = {}) {
     await refreshOperatorSummary();
   } catch (error) {
     appendTranscript("error", `Operator action failed (${action}): ${String(error)}`);
+  }
+}
+
+function updateDeviceNodeSelectionMeta(node) {
+  if (!node) {
+    el.deviceNodeSelectedVersion.textContent = "-";
+    el.deviceNodeSelectedLastSeen.textContent = "-";
+    return;
+  }
+  el.deviceNodeSelectedVersion.textContent =
+    typeof node.version === "number" && Number.isFinite(node.version) ? String(node.version) : "-";
+  el.deviceNodeSelectedLastSeen.textContent = node.lastSeenAt ?? "-";
+}
+
+function applyDeviceNodeToForm(node) {
+  if (!node) {
+    updateDeviceNodeSelectionMeta(null);
+    return;
+  }
+  state.selectedDeviceNodeId = node.nodeId.toLowerCase();
+  el.deviceNodeId.value = node.nodeId;
+  el.deviceNodeDisplayName.value = node.displayName ?? node.nodeId;
+  el.deviceNodeKind.value = node.kind === "mobile" ? "mobile" : "desktop";
+  el.deviceNodePlatform.value = node.platform ?? "";
+  el.deviceNodeExecutorUrl.value = node.executorUrl ?? "";
+  el.deviceNodeStatus.value =
+    node.status === "offline" || node.status === "degraded" ? node.status : "online";
+  el.deviceNodeTrustLevel.value =
+    node.trustLevel === "trusted" || node.trustLevel === "untrusted" ? node.trustLevel : "reviewed";
+  el.deviceNodeCapabilities.value = Array.isArray(node.capabilities) ? node.capabilities.join(",") : "";
+  el.deviceNodeExpectedVersion.value =
+    typeof node.version === "number" && Number.isFinite(node.version) ? String(node.version) : "";
+  updateDeviceNodeSelectionMeta(node);
+}
+
+function renderDeviceNodeList(nodes) {
+  const normalizedNodes = Array.isArray(nodes) ? nodes.map(normalizeDeviceNode).filter(Boolean) : [];
+  state.deviceNodes.clear();
+  for (const node of normalizedNodes) {
+    state.deviceNodes.set(node.nodeId.toLowerCase(), node);
+  }
+  el.deviceNodeCount.textContent = String(normalizedNodes.length);
+  el.deviceNodeList.innerHTML = "";
+
+  if (normalizedNodes.length === 0) {
+    appendEntry(el.deviceNodeList, "system", "device_nodes", "No registered device nodes");
+    updateDeviceNodeSelectionMeta(null);
+    return;
+  }
+
+  const selected = state.selectedDeviceNodeId
+    ? state.deviceNodes.get(state.selectedDeviceNodeId.toLowerCase()) ?? normalizedNodes[0]
+    : normalizedNodes[0];
+  applyDeviceNodeToForm(selected);
+
+  for (const node of normalizedNodes) {
+    const status = toOptionalText(node.status) ?? "unknown";
+    const capabilities = Array.isArray(node.capabilities) && node.capabilities.length > 0
+      ? node.capabilities.join(",")
+      : "none";
+    const executor = node.executorUrl ?? "n/a";
+    const version = typeof node.version === "number" ? node.version : "n/a";
+    const message = [
+      `name=${node.displayName}`,
+      `kind=${node.kind}`,
+      `status=${status}`,
+      `platform=${node.platform ?? "unknown"}`,
+      `version=${version}`,
+      `trust=${node.trustLevel ?? "reviewed"}`,
+      `caps=${capabilities}`,
+      `executor=${executor}`,
+      node.lastSeenAt ? `last_seen=${node.lastSeenAt}` : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+    appendEntry(el.deviceNodeList, "system", node.nodeId, message);
+  }
+}
+
+async function refreshDeviceNodes(options = {}) {
+  const silent = options && options.silent === true;
+  try {
+    const response = await fetch(`${state.apiBaseUrl}/v1/device-nodes?limit=200&includeOffline=true`, {
+      method: "GET",
+      headers: operatorHeaders(false),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      const errorText = getApiErrorMessage(payload, `device nodes list failed with ${response.status}`);
+      throw new Error(String(errorText));
+    }
+    const nodes = Array.isArray(payload?.data) ? payload.data : [];
+    renderDeviceNodeList(nodes);
+    if (!silent) {
+      appendTranscript("system", `Device nodes refreshed: ${nodes.length}`);
+    }
+  } catch (error) {
+    appendTranscript("error", `Device nodes refresh failed: ${String(error)}`);
+  }
+}
+
+async function upsertDeviceNodeFromForm() {
+  const nodeId = toOptionalText(el.deviceNodeId.value);
+  const displayName = toOptionalText(el.deviceNodeDisplayName.value);
+  if (!nodeId || !displayName) {
+    appendTranscript("error", "Device node nodeId and displayName are required");
+    return;
+  }
+
+  const expectedVersionValue = Number(el.deviceNodeExpectedVersion.value);
+  const expectedVersion =
+    Number.isFinite(expectedVersionValue) && expectedVersionValue >= 1
+      ? Math.floor(expectedVersionValue)
+      : null;
+
+  let metadata = null;
+  try {
+    metadata = parseOptionalMetadataJson(el.deviceNodeMetadata.value);
+  } catch (error) {
+    appendTranscript("error", `Device node metadata JSON is invalid: ${String(error)}`);
+    return;
+  }
+
+  const payload = {
+    nodeId,
+    displayName,
+    kind: el.deviceNodeKind.value === "mobile" ? "mobile" : "desktop",
+    platform: toOptionalText(el.deviceNodePlatform.value),
+    executorUrl: toOptionalText(el.deviceNodeExecutorUrl.value),
+    status:
+      el.deviceNodeStatus.value === "offline" || el.deviceNodeStatus.value === "degraded"
+        ? el.deviceNodeStatus.value
+        : "online",
+    capabilities: parseCapabilitiesCsv(el.deviceNodeCapabilities.value),
+    trustLevel:
+      el.deviceNodeTrustLevel.value === "trusted" || el.deviceNodeTrustLevel.value === "untrusted"
+        ? el.deviceNodeTrustLevel.value
+        : "reviewed",
+    updatedBy: (el.operatorRole.value || "operator").trim().toLowerCase(),
+  };
+
+  if (expectedVersion !== null) {
+    payload.expectedVersion = expectedVersion;
+  }
+  if (metadata !== null) {
+    payload.metadata = metadata;
+  }
+
+  try {
+    const response = await fetch(`${state.apiBaseUrl}/v1/device-nodes`, {
+      method: "POST",
+      headers: operatorHeaders(true),
+      body: JSON.stringify(payload),
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      const errorText = getApiErrorMessage(body, `device node upsert failed with ${response.status}`);
+      throw new Error(String(errorText));
+    }
+    const node = normalizeDeviceNode(body?.data);
+    if (node) {
+      applyDeviceNodeToForm(node);
+    }
+    appendTranscript("system", `Device node upserted: ${nodeId}`);
+    await refreshDeviceNodes({ silent: true });
+  } catch (error) {
+    appendTranscript("error", `Device node upsert failed: ${String(error)}`);
+  }
+}
+
+async function sendDeviceNodeHeartbeatFromForm() {
+  const nodeId = toOptionalText(el.deviceNodeId.value);
+  if (!nodeId) {
+    appendTranscript("error", "Device node nodeId is required for heartbeat");
+    return;
+  }
+
+  let metadata = null;
+  try {
+    metadata = parseOptionalMetadataJson(el.deviceNodeMetadata.value);
+  } catch (error) {
+    appendTranscript("error", `Device node metadata JSON is invalid: ${String(error)}`);
+    return;
+  }
+
+  const payload = {
+    nodeId,
+    status:
+      el.deviceNodeStatus.value === "offline" || el.deviceNodeStatus.value === "degraded"
+        ? el.deviceNodeStatus.value
+        : "online",
+  };
+  if (metadata !== null) {
+    payload.metadata = metadata;
+  }
+
+  try {
+    const response = await fetch(`${state.apiBaseUrl}/v1/device-nodes/heartbeat`, {
+      method: "POST",
+      headers: operatorHeaders(true),
+      body: JSON.stringify(payload),
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      const errorText = getApiErrorMessage(body, `device node heartbeat failed with ${response.status}`);
+      throw new Error(String(errorText));
+    }
+    const node = normalizeDeviceNode(body?.data);
+    if (node) {
+      applyDeviceNodeToForm(node);
+    }
+    appendTranscript("system", `Device node heartbeat recorded: ${nodeId}`);
+    await refreshDeviceNodes({ silent: true });
+  } catch (error) {
+    appendTranscript("error", `Device node heartbeat failed: ${String(error)}`);
   }
 }
 
@@ -1203,6 +1492,15 @@ function bindEvents() {
       reason: "Warmup requested from operator console",
     });
   });
+  document.getElementById("deviceNodeRefreshBtn").addEventListener("click", () => {
+    refreshDeviceNodes();
+  });
+  document.getElementById("deviceNodeUpsertBtn").addEventListener("click", () => {
+    upsertDeviceNodeFromForm();
+  });
+  document.getElementById("deviceNodeHeartbeatBtn").addEventListener("click", () => {
+    sendDeviceNodeHeartbeatFromForm();
+  });
   document.getElementById("newSessionBtn").addEventListener("click", () => {
     state.sessionId = makeId();
     el.sessionId.value = state.sessionId;
@@ -1226,6 +1524,16 @@ function bindEvents() {
   el.apiBaseUrl.addEventListener("input", () => {
     state.apiBaseUrl = normalizeApiBaseUrl(el.apiBaseUrl.value);
   });
+  el.deviceNodeId.addEventListener("change", () => {
+    const nodeId = toOptionalText(el.deviceNodeId.value);
+    if (!nodeId) {
+      return;
+    }
+    const node = state.deviceNodes.get(nodeId.toLowerCase());
+    if (node) {
+      applyDeviceNodeToForm(node);
+    }
+  });
   [el.targetPrice, el.targetDelivery, el.targetSla].forEach((input) => {
     input.addEventListener("input", evaluateConstraints);
   });
@@ -1248,6 +1556,9 @@ function bootstrap() {
   bindEvents();
   refreshOperatorSummary().catch(() => {
     appendTranscript("error", "Initial operator summary fetch failed");
+  });
+  refreshDeviceNodes({ silent: true }).catch(() => {
+    appendTranscript("error", "Initial device node registry fetch failed");
   });
   appendTranscript("system", "Frontend ready");
 }
