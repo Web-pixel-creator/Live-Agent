@@ -121,6 +121,7 @@ Responsibilities:
 2. Native interruption handling (`interrupted` events).
 3. Translation mode и negotiation mode.
 4. Session memory sync в Firestore/Session store.
+5. Automatic context compaction (summary + recent turns) when token budget is exceeded.
 
 Core model split:
 
@@ -269,7 +270,9 @@ sequenceDiagram
   "language": "string",
   "createdAt": "timestamp",
   "updatedAt": "timestamp",
-  "contextVersion": "number",
+  "version": "number",
+  "lastMutationId": "string|null",
+  "lastMutationStatus": "active|paused|closed",
   "lastRunId": "string"
 }
 ```
@@ -631,3 +634,5 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 | Live bridge failover + channel watchdog | R1, R12, R15 | T-211 |
 | UI loop protection + approval SLA lifecycle | R6, R7, R8, R13, R15 | T-212, T-213 |
 | WS protocol discipline + targeted unit pack | R14, R15 | T-214, T-215 |
+| Session optimistic versioning + idempotent mutation replay | R14, R15 | T-216 |
+| Live-agent context compaction runtime | R1, R10, R15 | T-217 |

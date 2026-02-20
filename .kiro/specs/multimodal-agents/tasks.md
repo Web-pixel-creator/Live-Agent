@@ -101,6 +101,8 @@
 | T-213 | Approval lifecycle SLA runtime (pending/approved/rejected/timeout + audit trail) | P0 | 0.5 week | T-107, T-210 | R13, R15, R16 | Approval records имеют полный жизненный цикл и SLA sweep (soft reminder + hard timeout), оператор видит audit trail |
 | T-214 | Protocol discipline pass: ws-protocol doc + MVP transport sync in specs | P0 | 0.25 week | T-014 | R12, R14, R15 | Добавлен единый `docs/ws-protocol.md`; design/requirements синхронизированы с WebSocket-only MVP |
 | T-215 | Targeted unit-pack for bridge/orchestrator/contracts | P0 | 0.5 week | T-211, T-212, T-213, T-214 | R14, R15 | Критические ветки покрыты unit-тестами, e2e остаётся primary release gate |
+| T-216 | Session optimistic versioning + idempotency for REST mutations | P0 | 0.25 week | T-014, T-213 | R14, R15 | `PATCH /v1/sessions/{id}` поддерживает `expectedVersion` + `idempotencyKey`, возвращает `409` на конфликт и детерминированно обрабатывает повтор |
+| T-217 | Live Agent context compaction runtime (summary + recent turns) | P0 | 0.25 week | T-211, T-215 | R1, R10, R15 | При превышении token budget выполняется compaction c сохранением summary/recent turns и диагностикой в output context |
 
 ### M3 Detailed Implementation Checklist (T-207..T-210)
 
@@ -144,7 +146,7 @@
 
 ## Current Quality Sprint Path
 
-1. T-211 -> T-212 -> T-213 -> T-214 -> T-215
+1. T-211 -> T-212 -> T-213 -> T-214 -> T-215 -> T-216 -> T-217
 
 ## Suggested Solo Execution (2-week MVP)
 

@@ -64,6 +64,7 @@
 7. THE Live_Agent SHALL maintain at least 50 turns of active context per session.
 8. THE Live_Agent SHALL preserve speaking style and emotional tone in responses when supported by the selected model.
 9. THE Live_Agent SHALL persist session metadata and conversation history in Firestore or Agent_Engine_Sessions.
+10. THE Live_Agent SHALL apply automatic context compaction when session context exceeds configured token budget and SHALL preserve recent turns plus a stable summary.
 
 ### Requirement 2: Live Agent - Real-Time Translation
 
@@ -239,6 +240,7 @@
 5. THE System SHALL enforce authentication, authorization, and rate limiting on APIs.
 6. THE System SHALL return consistent error formats with trace identifiers.
 7. THE System SHALL propagate correlation context (`userId`, `sessionId`, `runId`) across FE/Gateway/Orchestrator events and reject websocket requests with binding mismatches.
+8. THE System SHALL support optimistic session updates with `expectedVersion` and idempotent mutation replay via `idempotencyKey`, returning `409` on version conflicts.
 
 ### Requirement 15: Monitoring and Observability
 

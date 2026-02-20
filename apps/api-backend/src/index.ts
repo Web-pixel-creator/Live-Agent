@@ -124,6 +124,38 @@ function sanitizeStatus(raw: unknown): SessionStatus {
   return raw === "paused" || raw === "closed" ? raw : "active";
 }
 
+function parseExpectedVersion(raw: unknown): number | null {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw >= 1) {
+    return Math.floor(raw);
+  }
+  if (typeof raw === "string" && raw.trim().length > 0) {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed >= 1) {
+      return Math.floor(parsed);
+    }
+  }
+  return null;
+}
+
+function parseIdempotencyKey(raw: unknown): string | null {
+  if (typeof raw !== "string") {
+    return null;
+  }
+  const normalized = raw.trim();
+  if (normalized.length === 0) {
+    return null;
+  }
+  return normalized.slice(0, 128);
+}
+
+function headerValue(req: IncomingMessage, name: string): string | null {
+  const value = req.headers[name];
+  if (Array.isArray(value)) {
+    return typeof value[0] === "string" ? value[0] : null;
+  }
+  return typeof value === "string" ? value : null;
+}
+
 function sanitizeDecision(raw: unknown): ApprovalDecision {
   return raw === "rejected" ? "rejected" : "approved";
 }
@@ -655,10 +687,20 @@ export const server = createServer(async (req, res) => {
         return;
       }
       const raw = await readBody(req);
-      const parsed = parseJsonBody(raw) as { status?: unknown };
+      const parsed = parseJsonBody(raw) as {
+        status?: unknown;
+        expectedVersion?: unknown;
+        idempotencyKey?: unknown;
+      };
       const status = sanitizeStatus(parsed.status);
-      const session = await updateSessionStatus(sessionId, status);
-      if (!session) {
+      const expectedVersion = parseExpectedVersion(parsed.expectedVersion);
+      const idempotencyKey =
+        parseIdempotencyKey(parsed.idempotencyKey) ?? parseIdempotencyKey(headerValue(req, "x-idempotency-key"));
+      const sessionUpdate = await updateSessionStatus(sessionId, status, {
+        expectedVersion,
+        idempotencyKey,
+      });
+      if (sessionUpdate.outcome === "not_found") {
         writeApiError(res, 404, {
           code: "API_SESSION_NOT_FOUND",
           message: "Session not found",
@@ -666,7 +708,26 @@ export const server = createServer(async (req, res) => {
         });
         return;
       }
-      writeJson(res, 200, { data: session });
+      if (sessionUpdate.outcome === "version_conflict") {
+        writeApiError(res, 409, {
+          code: "API_SESSION_VERSION_CONFLICT",
+          message: "Session version conflict",
+          details: {
+            sessionId,
+            expectedVersion: sessionUpdate.expectedVersion,
+            actualVersion: sessionUpdate.actualVersion,
+          },
+        });
+        return;
+      }
+      writeJson(res, 200, {
+        data: sessionUpdate.session,
+        meta: {
+          outcome: sessionUpdate.outcome,
+          expectedVersion,
+          idempotencyKey,
+        },
+      });
       return;
     }
 

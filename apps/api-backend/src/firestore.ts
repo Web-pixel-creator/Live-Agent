@@ -13,8 +13,25 @@ export type SessionListItem = {
   sessionId: string;
   mode: SessionMode;
   status: SessionStatus;
+  version: number;
+  lastMutationId: string | null;
   updatedAt: string;
 };
+
+export type SessionUpdateResult =
+  | {
+      outcome: "updated" | "idempotent_replay";
+      session: SessionListItem;
+    }
+  | {
+      outcome: "not_found";
+    }
+  | {
+      outcome: "version_conflict";
+      session: SessionListItem;
+      expectedVersion: number;
+      actualVersion: number;
+    };
 
 export type RunListItem = {
   runId: string;
@@ -142,6 +159,30 @@ function sanitizeMode(raw: unknown): SessionMode {
 
 function sanitizeStatus(raw: unknown): SessionStatus {
   return raw === "paused" || raw === "closed" ? raw : "active";
+}
+
+function sanitizeVersion(raw: unknown): number {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw >= 1) {
+    return Math.floor(raw);
+  }
+  if (typeof raw === "string" && raw.trim().length > 0) {
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed >= 1) {
+      return Math.floor(parsed);
+    }
+  }
+  return 1;
+}
+
+function normalizeMutationId(raw: unknown): string | null {
+  if (typeof raw !== "string") {
+    return null;
+  }
+  const normalized = raw.trim();
+  if (normalized.length === 0) {
+    return null;
+  }
+  return normalized.slice(0, 128);
 }
 
 function normalizeApprovalStatus(raw: unknown): ApprovalStatus {
@@ -305,6 +346,17 @@ function ensurePendingLifecycle(params: {
   };
 }
 
+function mapSessionRecord(sessionId: string, raw: Record<string, unknown>): SessionListItem {
+  return {
+    sessionId,
+    mode: sanitizeMode(raw.mode),
+    status: sanitizeStatus(raw.status),
+    version: sanitizeVersion(raw.version),
+    lastMutationId: normalizeMutationId(raw.lastMutationId),
+    updatedAt: toIso(raw.updatedAt),
+  };
+}
+
 export function getFirestoreState(): FirestoreState {
   initFirestore();
   return state;
@@ -326,12 +378,7 @@ export async function listSessions(limit: number): Promise<SessionListItem[]> {
 
   return snapshot.docs.map((doc) => {
     const data = doc.data();
-    return {
-      sessionId: doc.id,
-      mode: sanitizeMode(data.mode),
-      status: sanitizeStatus(data.status),
-      updatedAt: toIso(data.updatedAt),
-    };
+    return mapSessionRecord(doc.id, data);
   });
 }
 
@@ -348,6 +395,8 @@ export async function createSession(params: {
       sessionId,
       mode: params.mode,
       status: "active",
+      version: 1,
+      lastMutationId: null,
       updatedAt: nowIso,
     };
     inMemorySessions.set(sessionId, created);
@@ -361,6 +410,9 @@ export async function createSession(params: {
       userId: params.userId,
       mode: params.mode,
       status: "active",
+      version: 1,
+      lastMutationId: null,
+      lastMutationStatus: "active",
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
       expireAt: Timestamp.fromDate(
@@ -374,6 +426,8 @@ export async function createSession(params: {
     sessionId: ref.id,
     mode: params.mode,
     status: "active",
+    version: 1,
+    lastMutationId: null,
     updatedAt: nowIso,
   };
 }
@@ -381,40 +435,113 @@ export async function createSession(params: {
 export async function updateSessionStatus(
   sessionId: string,
   status: SessionStatus,
-): Promise<SessionListItem | null> {
+  options?: {
+    expectedVersion?: number | null;
+    idempotencyKey?: string | null;
+  },
+): Promise<SessionUpdateResult> {
   const nowIso = new Date().toISOString();
   const db = initFirestore();
+  const expectedVersion =
+    typeof options?.expectedVersion === "number" && Number.isFinite(options.expectedVersion) && options.expectedVersion >= 1
+      ? Math.floor(options.expectedVersion)
+      : null;
+  const idempotencyKey = normalizeMutationId(options?.idempotencyKey);
 
   if (!db) {
     const existing = inMemorySessions.get(sessionId);
     if (!existing) {
-      return null;
+      return {
+        outcome: "not_found",
+      };
     }
-    const updated = { ...existing, status, updatedAt: nowIso };
+    if (idempotencyKey && existing.lastMutationId === idempotencyKey && existing.status === status) {
+      return {
+        outcome: "idempotent_replay",
+        session: existing,
+      };
+    }
+    if (expectedVersion !== null && existing.version !== expectedVersion) {
+      return {
+        outcome: "version_conflict",
+        session: existing,
+        expectedVersion,
+        actualVersion: existing.version,
+      };
+    }
+    const updated = {
+      ...existing,
+      status,
+      version: existing.version + 1,
+      lastMutationId: idempotencyKey,
+      updatedAt: nowIso,
+    };
     inMemorySessions.set(sessionId, updated);
-    return updated;
+    return {
+      outcome: "updated",
+      session: updated,
+    };
   }
 
   const ref = db.collection("sessions").doc(sessionId);
-  const existing = await ref.get();
-  if (!existing.exists) {
-    return null;
+  const transactionResult = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    if (!snapshot.exists) {
+      return {
+        outcome: "not_found" as const,
+      };
+    }
+
+    const data = snapshot.data() ?? {};
+    const existing = mapSessionRecord(sessionId, data);
+
+    if (idempotencyKey && existing.lastMutationId === idempotencyKey && existing.status === status) {
+      return {
+        outcome: "idempotent_replay" as const,
+        session: existing,
+      };
+    }
+    if (expectedVersion !== null && existing.version !== expectedVersion) {
+      return {
+        outcome: "version_conflict" as const,
+        session: existing,
+        expectedVersion,
+        actualVersion: existing.version,
+      };
+    }
+
+    transaction.set(
+      ref,
+      {
+        status,
+        version: existing.version + 1,
+        lastMutationId: idempotencyKey,
+        lastMutationStatus: status,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    return {
+      outcome: "updated" as const,
+    };
+  });
+
+  if (transactionResult.outcome === "not_found") {
+    return transactionResult;
+  }
+  if (transactionResult.outcome === "idempotent_replay") {
+    return transactionResult;
+  }
+  if (transactionResult.outcome === "version_conflict") {
+    return transactionResult;
   }
 
-  await ref.set(
-    {
-      status,
-      updatedAt: FieldValue.serverTimestamp(),
-    },
-    { merge: true },
-  );
-
-  const data = (await ref.get()).data() ?? {};
+  const updatedSnapshot = await ref.get();
+  const updatedData = updatedSnapshot.data() ?? {};
   return {
-    sessionId,
-    mode: sanitizeMode(data.mode),
-    status: sanitizeStatus(data.status),
-    updatedAt: toIso(data.updatedAt),
+    outcome: "updated",
+    session: mapSessionRecord(sessionId, updatedData),
   };
 }
 

@@ -69,6 +69,50 @@ type LiveAgentCapabilitySet = {
   profile: CapabilityProfile;
 };
 
+type ConversationTurn = {
+  role: "user" | "assistant";
+  text: string;
+  intent: OrchestratorIntent;
+  at: string;
+};
+
+type ConversationSessionState = {
+  summary: string | null;
+  turns: ConversationTurn[];
+  revision: number;
+  compactionCount: number;
+  approxTokens: number;
+  lastCompactedAt: string | null;
+  updatedAtMs: number;
+};
+
+type ConversationContextConfig = {
+  enabled: boolean;
+  maxTokens: number;
+  targetTokens: number;
+  keepRecentTurns: number;
+  maxSessions: number;
+  summaryModel: string;
+};
+
+type CompactionOutcome = {
+  applied: boolean;
+  reason:
+    | "disabled"
+    | "below_threshold"
+    | "no_compactable_turns"
+    | "compacted"
+    | "compacted_with_fallback_summary";
+  beforeTokens: number;
+  afterTokens: number;
+  compactedTurns: number;
+  retainedTurns: number;
+  summaryModel: string | null;
+  at: string | null;
+};
+
+const conversationSessions = new Map<string, ConversationSessionState>();
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -90,6 +134,28 @@ function toNullableNumber(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+function toPositiveInt(value: unknown, fallback: number): number {
+  const parsed = toNullableNumber(value);
+  if (parsed === null || parsed <= 0) {
+    return fallback;
+  }
+  return Math.floor(parsed);
+}
+
+function toBooleanFlag(value: unknown, fallback: boolean): boolean {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true" || normalized === "1" || normalized === "yes") {
+    return true;
+  }
+  if (normalized === "false" || normalized === "0" || normalized === "no") {
+    return false;
+  }
+  return fallback;
 }
 
 function normalizeLanguageTag(input: unknown): string | null {
@@ -306,6 +372,244 @@ function getGeminiConfig(): GeminiConfig {
   };
 }
 
+function getConversationContextConfig(config: GeminiConfig): ConversationContextConfig {
+  const maxTokens = toPositiveInt(process.env.LIVE_AGENT_CONTEXT_MAX_TOKENS, 3200);
+  const targetTokens = toPositiveInt(process.env.LIVE_AGENT_CONTEXT_TARGET_TOKENS, Math.floor(maxTokens * 0.6));
+  return {
+    enabled: toBooleanFlag(process.env.LIVE_AGENT_CONTEXT_COMPACTION_ENABLED, true),
+    maxTokens,
+    targetTokens: Math.min(targetTokens, maxTokens),
+    keepRecentTurns: toPositiveInt(process.env.LIVE_AGENT_CONTEXT_KEEP_RECENT_TURNS, 8),
+    maxSessions: toPositiveInt(process.env.LIVE_AGENT_CONTEXT_MAX_SESSIONS, 200),
+    summaryModel: toNonEmptyString(process.env.LIVE_AGENT_CONTEXT_SUMMARY_MODEL) ?? config.conversationModel,
+  };
+}
+
+function estimateTextTokens(text: string): number {
+  if (!text || text.trim().length === 0) {
+    return 0;
+  }
+  return Math.max(1, Math.ceil(text.length / 4));
+}
+
+function estimateSessionTokens(state: ConversationSessionState): number {
+  const summaryTokens = state.summary ? estimateTextTokens(state.summary) : 0;
+  const turnsTokens = state.turns.reduce((sum, turn) => sum + estimateTextTokens(turn.text) + 4, 0);
+  return summaryTokens + turnsTokens;
+}
+
+function getOrCreateConversationSession(sessionId: string, config: ConversationContextConfig): ConversationSessionState {
+  const existing = conversationSessions.get(sessionId);
+  if (existing) {
+    existing.updatedAtMs = Date.now();
+    return existing;
+  }
+
+  const state: ConversationSessionState = {
+    summary: null,
+    turns: [],
+    revision: 0,
+    compactionCount: 0,
+    approxTokens: 0,
+    lastCompactedAt: null,
+    updatedAtMs: Date.now(),
+  };
+  conversationSessions.set(sessionId, state);
+
+  if (conversationSessions.size > config.maxSessions) {
+    let oldestSessionId: string | null = null;
+    let oldestUpdatedAt = Number.POSITIVE_INFINITY;
+    for (const [candidateSessionId, candidateState] of conversationSessions.entries()) {
+      if (candidateState.updatedAtMs < oldestUpdatedAt) {
+        oldestUpdatedAt = candidateState.updatedAtMs;
+        oldestSessionId = candidateSessionId;
+      }
+    }
+    if (oldestSessionId) {
+      conversationSessions.delete(oldestSessionId);
+    }
+  }
+
+  return state;
+}
+
+function addConversationTurn(params: {
+  state: ConversationSessionState;
+  role: "user" | "assistant";
+  text: string;
+  intent: OrchestratorIntent;
+}): void {
+  const text = params.text.trim();
+  if (text.length === 0) {
+    return;
+  }
+  params.state.turns.push({
+    role: params.role,
+    text,
+    intent: params.intent,
+    at: new Date().toISOString(),
+  });
+  if (params.state.turns.length > 80) {
+    params.state.turns = params.state.turns.slice(-80);
+  }
+  params.state.revision += 1;
+  params.state.updatedAtMs = Date.now();
+  params.state.approxTokens = estimateSessionTokens(params.state);
+}
+
+function clipText(text: string, maxChars: number): string {
+  if (text.length <= maxChars) {
+    return text;
+  }
+  return `${text.slice(0, Math.max(1, maxChars - 1))}...`;
+}
+
+function renderTurns(turns: ConversationTurn[], maxCharsPerTurn = 240): string {
+  return turns
+    .map((turn) => `${turn.role === "user" ? "USER" : "ASSISTANT"}: ${clipText(turn.text, maxCharsPerTurn)}`)
+    .join("\n");
+}
+
+function buildCompactionPrompt(params: {
+  state: ConversationSessionState;
+  turnsToCompact: ConversationTurn[];
+}): string {
+  const sections = [
+    "Summarize the dialogue context for a live assistant session.",
+    "Keep critical constraints, commitments, pending questions, and user goals.",
+    "Output plain text summary in 6-10 short bullet points.",
+  ];
+  if (params.state.summary) {
+    sections.push(`Previous summary:\n${clipText(params.state.summary, 1600)}`);
+  }
+  sections.push(`Transcript to compact:\n${renderTurns(params.turnsToCompact, 200)}`);
+  return sections.join("\n\n");
+}
+
+function buildFallbackSummary(turns: ConversationTurn[]): string {
+  const lines = turns
+    .slice(-10)
+    .map((turn) => `- ${turn.role === "user" ? "User" : "Assistant"}: ${clipText(turn.text, 120)}`);
+  if (lines.length === 0) {
+    return "No prior context.";
+  }
+  return ["Session summary:", ...lines].join("\n");
+}
+
+function mergeSummary(previous: string | null, next: string): string {
+  const cleanNext = next.trim();
+  if (!previous || previous.trim().length === 0) {
+    return cleanNext;
+  }
+  const merged = `${previous.trim()}\n${cleanNext}`;
+  return clipText(merged, 3200);
+}
+
+async function maybeCompactConversationContext(params: {
+  state: ConversationSessionState;
+  contextConfig: ConversationContextConfig;
+  capabilities: LiveAgentCapabilitySet;
+}): Promise<CompactionOutcome> {
+  const beforeTokens = params.state.approxTokens;
+  if (!params.contextConfig.enabled) {
+    return {
+      applied: false,
+      reason: "disabled",
+      beforeTokens,
+      afterTokens: beforeTokens,
+      compactedTurns: 0,
+      retainedTurns: params.state.turns.length,
+      summaryModel: null,
+      at: null,
+    };
+  }
+  if (beforeTokens <= params.contextConfig.maxTokens) {
+    return {
+      applied: false,
+      reason: "below_threshold",
+      beforeTokens,
+      afterTokens: beforeTokens,
+      compactedTurns: 0,
+      retainedTurns: params.state.turns.length,
+      summaryModel: null,
+      at: null,
+    };
+  }
+
+  const compactCount = Math.max(0, params.state.turns.length - params.contextConfig.keepRecentTurns);
+  if (compactCount <= 0) {
+    return {
+      applied: false,
+      reason: "no_compactable_turns",
+      beforeTokens,
+      afterTokens: beforeTokens,
+      compactedTurns: 0,
+      retainedTurns: params.state.turns.length,
+      summaryModel: null,
+      at: null,
+    };
+  }
+
+  const turnsToCompact = params.state.turns.slice(0, compactCount);
+  const retainedTurns = params.state.turns.slice(compactCount);
+  const summaryPrompt = buildCompactionPrompt({
+    state: params.state,
+    turnsToCompact,
+  });
+
+  let nextSummary = await params.capabilities.reasoning.generateText({
+    model: params.contextConfig.summaryModel,
+    prompt: summaryPrompt,
+    responseMimeType: "text/plain",
+    temperature: 0.1,
+  });
+
+  let reason: CompactionOutcome["reason"] = "compacted";
+  if (!nextSummary || nextSummary.trim().length === 0) {
+    nextSummary = buildFallbackSummary(turnsToCompact);
+    reason = "compacted_with_fallback_summary";
+  }
+
+  params.state.summary = mergeSummary(params.state.summary, nextSummary);
+  params.state.turns = retainedTurns;
+  params.state.compactionCount += 1;
+  params.state.lastCompactedAt = new Date().toISOString();
+  params.state.revision += 1;
+  params.state.updatedAtMs = Date.now();
+  params.state.approxTokens = estimateSessionTokens(params.state);
+
+  while (params.state.approxTokens > params.contextConfig.targetTokens && params.state.turns.length > 1) {
+    params.state.turns.shift();
+    params.state.approxTokens = estimateSessionTokens(params.state);
+  }
+
+  return {
+    applied: true,
+    reason,
+    beforeTokens,
+    afterTokens: params.state.approxTokens,
+    compactedTurns: turnsToCompact.length,
+    retainedTurns: params.state.turns.length,
+    summaryModel: reason === "compacted" ? params.contextConfig.summaryModel : "fallback-summary",
+    at: params.state.lastCompactedAt,
+  };
+}
+
+function buildConversationContextPrompt(state: ConversationSessionState): string | null {
+  const sections: string[] = [];
+  if (state.summary) {
+    sections.push(`Session summary:\n${clipText(state.summary, 1800)}`);
+  }
+  const recentTurns = state.turns.slice(-8);
+  if (recentTurns.length > 0) {
+    sections.push(`Recent turns:\n${renderTurns(recentTurns, 240)}`);
+  }
+  if (sections.length === 0) {
+    return null;
+  }
+  return sections.join("\n\n");
+}
+
 async function fetchGeminiText(params: {
   config: GeminiConfig;
   model: string;
@@ -501,6 +805,7 @@ async function generateConversationReply(params: {
   inputText: string;
   config: GeminiConfig;
   capabilities: LiveAgentCapabilitySet;
+  contextPrompt?: string | null;
 }): Promise<{ text: string; provider: string; model: string }> {
   const inputText = params.inputText;
   const fallback = {
@@ -523,8 +828,11 @@ async function generateConversationReply(params: {
     "You are a concise real-time voice assistant.",
     "Respond in at most 2 short sentences.",
     "Keep tone neutral-professional.",
+    params.contextPrompt ? `Session context:\n${params.contextPrompt}` : null,
     `User message: ${inputText || "(empty)"}`,
-  ].join("\n");
+  ]
+    .filter((item): item is string => Boolean(item))
+    .join("\n");
 
   const generated = await params.capabilities.reasoning.generateText({
     model: params.config.conversationModel,
@@ -576,20 +884,53 @@ function detectDelegationRequest(text: string): DelegationRequest | null {
 }
 
 async function handleConversation(params: {
+  sessionId: string;
   input: NormalizedLiveInput;
   config: GeminiConfig;
   capabilities: LiveAgentCapabilitySet;
 }): Promise<Record<string, unknown>> {
   const { input } = params;
+  const contextConfig = getConversationContextConfig(params.config);
+  const sessionContext = getOrCreateConversationSession(params.sessionId, contextConfig);
+
+  if (input.text.length > 0) {
+    addConversationTurn({
+      state: sessionContext,
+      role: "user",
+      text: input.text,
+      intent: "conversation",
+    });
+  }
+
+  const preReplyCompaction = await maybeCompactConversationContext({
+    state: sessionContext,
+    contextConfig,
+    capabilities: params.capabilities,
+  });
+
   const delegationRequest = detectDelegationRequest(input.text);
   if (delegationRequest) {
+    const delegationMessage = `Delegation requested: ${delegationRequest.intent}. Routing task to specialized agent.`;
+    addConversationTurn({
+      state: sessionContext,
+      role: "assistant",
+      text: delegationMessage,
+      intent: "conversation",
+    });
     return {
-      message: `Delegation requested: ${delegationRequest.intent}. Routing task to specialized agent.`,
+      message: delegationMessage,
       mode: "conversation",
       delegationRequest,
       model: {
         provider: "fallback",
         model: "delegation-router",
+      },
+      context: {
+        revision: sessionContext.revision,
+        approxTokens: sessionContext.approxTokens,
+        compactionCount: sessionContext.compactionCount,
+        summaryPresent: Boolean(sessionContext.summary),
+        preReplyCompaction,
       },
     };
   }
@@ -598,6 +939,18 @@ async function handleConversation(params: {
     inputText: input.text,
     config: params.config,
     capabilities: params.capabilities,
+    contextPrompt: buildConversationContextPrompt(sessionContext),
+  });
+  addConversationTurn({
+    state: sessionContext,
+    role: "assistant",
+    text: reply.text,
+    intent: "conversation",
+  });
+  const postReplyCompaction = await maybeCompactConversationContext({
+    state: sessionContext,
+    contextConfig,
+    capabilities: params.capabilities,
   });
   return {
     message: reply.text,
@@ -605,6 +958,14 @@ async function handleConversation(params: {
     model: {
       provider: reply.provider,
       model: reply.model,
+    },
+    context: {
+      revision: sessionContext.revision,
+      approxTokens: sessionContext.approxTokens,
+      compactionCount: sessionContext.compactionCount,
+      summaryPresent: Boolean(sessionContext.summary),
+      preReplyCompaction,
+      postReplyCompaction,
     },
   };
 }
@@ -716,12 +1077,13 @@ function toNormalizedError(error: unknown, traceId: string): NormalizedError {
 }
 
 async function handleByIntent(params: {
+  sessionId: string;
   intent: OrchestratorIntent;
   input: NormalizedLiveInput;
   config: GeminiConfig;
   capabilities: LiveAgentCapabilitySet;
 }): Promise<Record<string, unknown>> {
-  const { intent, input, config, capabilities } = params;
+  const { intent, input, config, capabilities, sessionId } = params;
   switch (intent) {
     case "translation":
       return handleTranslation({
@@ -734,6 +1096,7 @@ async function handleByIntent(params: {
     case "conversation":
     default:
       return handleConversation({
+        sessionId,
         input,
         config,
         capabilities,
@@ -752,6 +1115,7 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
     const intent = request.payload.intent;
     const input = normalizeInput(request.payload.input);
     const result = await handleByIntent({
+      sessionId: request.sessionId,
       intent,
       input,
       config,
