@@ -6,6 +6,7 @@ import {
   normalizeUnknownError,
   RollingMetrics,
 } from "@mla/contracts";
+import { getMediaJobQueueSnapshot } from "@mla/storyteller-agent";
 import { orchestrate } from "./orchestrate.js";
 import { getFirestoreState } from "./services/firestore.js";
 
@@ -128,6 +129,16 @@ export const server = createServer(async (req, res) => {
         ok: true,
         service: serviceName,
         metrics: metrics.snapshot({ topOperations: 50 }),
+        storytellerMediaJobs: getMediaJobQueueSnapshot(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/story/media-jobs/queue" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        storytellerMediaJobs: getMediaJobQueueSnapshot(),
       });
       return;
     }

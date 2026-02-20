@@ -495,8 +495,8 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 ### Post-MVP (Adopt Later)
 
 1. Advanced background workers for media pipelines
-   - Separate long Veo/Imagen jobs into dedicated worker pools with quota-aware scheduling.
-   - Add resumable job states and retry budgeting by media type.
+   - Baseline implemented: dedicated async worker slots with quota-aware scheduling, retry budget, and DLQ tracking for storyteller media jobs.
+   - Next step: move queue execution to dedicated Cloud Run worker service with managed queue trigger and resume/replay controls.
 
 2. Extended caching and artifact reuse
    - Add deterministic cache keys for repeated story assets and prompt variants.
@@ -597,6 +597,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 12. The repository SHALL provide scripted release operations for local quality gate execution and repository publish orchestration (`verify:release`, `repo:publish`).
 13. The repository SHALL provide a judge-facing walkthrough runbook with exact interruption checkpoints and text fallback procedure (`docs/challenge-demo-runbook.md`).
 14. The repository SHALL provide automated load/performance scripts (`scripts/perf-load.ps1`, `scripts/perf-load.mjs`, `scripts/perf-load-policy-check.mjs`) with p95/error-budget checks for live voice and UI navigation paths.
+15. The orchestrator runtime SHALL expose storyteller media queue visibility (`/story/media-jobs/queue` and `storytellerMediaJobs` in `/metrics`) for operator diagnostics.
 
 ## Traceability Matrix
 
@@ -608,6 +609,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 | UI Navigator + Computer Use | R6, R7, R8, R9 | T-105..T-108 |
 | Multi-agent delegation | R16 | T-109 |
 | Security/monitoring | R13, R15 | T-009, T-107 |
+| Story media workers + queue visibility | R4, R10, R15 | T-103, T-207 |
 | Perf/load quality gate | R1, R6, R12, R15 | T-206 |
-| Borrowed-pattern hardening (post-MVP) | R10, R14, R15 | T-207..T-210 |
+| Borrowed-pattern hardening (post-MVP) | R10, R14, R15 | T-208..T-210 |
 | Demo frontend + controls | R1, R3, R14, R15 | T-000, T-110, T-111 |

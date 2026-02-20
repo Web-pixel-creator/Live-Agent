@@ -163,6 +163,24 @@ node ./scripts/perf-load.mjs --liveIterations 30 --liveConcurrency 6 --uiIterati
 node ./scripts/perf-load-policy-check.mjs --input ./artifacts/perf-load/summary.json --maxLiveP95Ms 1800 --maxUiP95Ms 25000 --maxAggregateErrorRatePct 10 --requiredUiAdapterMode remote_http
 ```
 
+## Story Media Worker Runtime
+
+Long-running storyteller media jobs (Veo/Imagen profile) run through dedicated async worker slots with queue visibility, retry budget, and quota-aware scheduling.
+
+- Queue snapshot in story responses: `payload.output.mediaJobs.queue`
+- Queue operator endpoint: `GET http://localhost:8082/story/media-jobs/queue`
+- Queue metrics are embedded into orchestrator metrics response: `GET http://localhost:8082/metrics` -> `storytellerMediaJobs`
+
+Worker runtime knobs:
+
+- `STORYTELLER_MEDIA_WORKER_ENABLED` (default: `true`)
+- `STORYTELLER_MEDIA_WORKER_CONCURRENCY` (default: `2`)
+- `STORYTELLER_MEDIA_WORKER_POLL_MS` (default: `120`)
+- `STORYTELLER_MEDIA_JOB_MAX_ATTEMPTS` (default: `3`)
+- `STORYTELLER_MEDIA_JOB_RETRY_BASE_MS` (default: `800`)
+- `STORYTELLER_MEDIA_JOB_RETRY_MAX_MS` (default: `20000`)
+- `STORYTELLER_MEDIA_QUOTA_RULES` (default: `veo-3.1=1/1000,imagen-4=2/1000,*=2/1000`)
+
 ### Status Badge Template (Shields Endpoint)
 
 When `badge.json` is published at a static URL (for example GitHub Pages or gist raw), use:

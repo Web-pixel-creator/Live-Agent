@@ -16,7 +16,14 @@ import {
   type OrchestratorRequest,
   type OrchestratorResponse,
 } from "@mla/contracts";
-import { createVideoMediaJob, type StoryMediaJob } from "./media-jobs.js";
+import {
+  createVideoMediaJob,
+  getMediaJobQueueSnapshot,
+  type StoryMediaJob,
+  type StoryMediaWorkerSnapshot,
+} from "./media-jobs.js";
+
+export { getMediaJobQueueSnapshot } from "./media-jobs.js";
 
 type StoryInput = {
   prompt: string;
@@ -967,6 +974,7 @@ export async function runStorytellerAgent(
       (job) => job.status === "queued" || job.status === "running",
     ).length;
     const message = `Story ready: "${plan.title}" with ${timeline.length} segments (${allAssets.length} media assets).${input.includeVideo ? ` Video jobs pending: ${pendingVideoJobs}.` : ""}`;
+    const mediaQueue: StoryMediaWorkerSnapshot = getMediaJobQueueSnapshot();
 
     return createEnvelope({
       userId: request.userId,
@@ -1019,8 +1027,16 @@ export async function runStorytellerAgent(
               requestedAt: job.requestedAt,
               startedAt: job.startedAt,
               completedAt: job.completedAt,
+              nextAttemptAt: job.nextAttemptAt,
               error: job.error,
+              errorCode: job.errorCode,
+              maxAttempts: job.maxAttempts,
+              retryBudgetRemaining: job.retryBudgetRemaining,
+              deadLettered: job.deadLettered,
+              lastWorkerId: job.lastWorkerId,
+              executionMs: job.executionMs,
             })),
+            queue: mediaQueue,
           },
           generation: {
             planner: {
@@ -1037,6 +1053,7 @@ export async function runStorytellerAgent(
             mediaMode: effectiveMediaMode,
             videoAsync: input.includeVideo && effectiveMediaMode === "simulated",
             videoFailureRate,
+            mediaWorkerRuntime: mediaQueue.runtime,
             capabilityProfile: capabilities.profile,
             fallbackPack: {
               version: fallbackPack.version,

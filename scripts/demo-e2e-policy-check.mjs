@@ -223,6 +223,18 @@ async function main() {
     true,
   );
   addCheck(
+    "kpi.storytellerMediaQueueVisible",
+    kpis.storytellerMediaQueueVisible === true,
+    kpis.storytellerMediaQueueVisible,
+    true,
+  );
+  addCheck(
+    "kpi.storytellerMediaQueueWorkers",
+    toNumber(kpis.storytellerMediaQueueWorkers) >= 1,
+    kpis.storytellerMediaQueueWorkers,
+    ">= 1",
+  );
+  addCheck(
     "kpi.gatewayWsResponseStatus",
     kpis.gatewayWsResponseStatus === "completed",
     kpis.gatewayWsResponseStatus,

@@ -639,6 +639,15 @@ try {
     $jobsWithIds = @($videoJobs | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.jobId) -and -not [string]::IsNullOrWhiteSpace([string]$_.assetId) })
     Assert-Condition -Condition ($jobsWithIds.Count -eq $videoJobs.Count) -Message "Each video job must contain jobId and assetId."
 
+    $mediaQueue = Get-FieldValue -Object $response -Path @("payload", "output", "mediaJobs", "queue")
+    Assert-Condition -Condition ($null -ne $mediaQueue) -Message "Missing storyteller media job queue snapshot."
+    $queueBacklog = [int](Get-FieldValue -Object $mediaQueue -Path @("queue", "backlog"))
+    Assert-Condition -Condition ($queueBacklog -ge 0) -Message "Invalid storyteller queue backlog."
+    $queueWorkers = @(Get-FieldValue -Object $mediaQueue -Path @("workers"))
+    Assert-Condition -Condition ($queueWorkers.Count -ge 1) -Message "Storyteller media workers are not visible in queue snapshot."
+    $queueRuntimeEnabled = [bool](Get-FieldValue -Object $mediaQueue -Path @("runtime", "enabled"))
+    Assert-Condition -Condition $queueRuntimeEnabled -Message "Storyteller media worker runtime should be enabled for dedicated worker mode."
+
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $response -Path @("runId"))
       fallbackAsset = [bool](Get-FieldValue -Object $response -Path @("payload", "output", "fallbackAsset"))
@@ -648,6 +657,9 @@ try {
       videoAsync = $videoAsync
       videoJobsCount = $videoJobs.Count
       videoPendingCount = $pendingVideoAssets.Count
+      mediaQueueBacklog = $queueBacklog
+      mediaQueueWorkers = $queueWorkers.Count
+      mediaQueueRuntimeEnabled = $queueRuntimeEnabled
       imageAdapterId = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("image", "adapterId"))
       ttsAdapterId = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("tts", "adapterId"))
       latencyMs = [int](Get-FieldValue -Object $response -Path @("payload", "output", "latencyMs"))
@@ -1221,6 +1233,15 @@ $summary = [ordered]@{
     storytellerVideoAsync = if ($null -ne $storyData) { $storyData.videoAsync } else { $null }
     storytellerVideoJobsCount = if ($null -ne $storyData) { $storyData.videoJobsCount } else { $null }
     storytellerVideoPendingCount = if ($null -ne $storyData) { $storyData.videoPendingCount } else { $null }
+    storytellerMediaQueueBacklog = if ($null -ne $storyData) { $storyData.mediaQueueBacklog } else { $null }
+    storytellerMediaQueueWorkers = if ($null -ne $storyData) { $storyData.mediaQueueWorkers } else { $null }
+    storytellerMediaQueueRuntimeEnabled = if ($null -ne $storyData) { $storyData.mediaQueueRuntimeEnabled } else { $null }
+    storytellerMediaQueueVisible = if (
+      $null -ne $storyData -and
+      [int]$storyData.mediaQueueBacklog -ge 0 -and
+      [int]$storyData.mediaQueueWorkers -ge 1 -and
+      $storyData.mediaQueueRuntimeEnabled -eq $true
+    ) { $true } else { $false }
     storytellerVideoAsyncValidated = if (
       $null -ne $storyData -and
       $storyData.mediaMode -eq "simulated" -and
