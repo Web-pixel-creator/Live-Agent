@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "test:unit": "node --import tsx --test tests/unit/**/*.test.ts",
     "demo:e2e": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/demo-e2e.ps1",
     "demo:e2e:fast": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/demo-e2e.ps1 -SkipBuild",
     "demo:e2e:policy": "node ./scripts/demo-e2e-policy-check.mjs --input ./artifacts/demo-e2e/summary.json --output ./artifacts/demo-e2e/policy-check.md --jsonOutput ./artifacts/demo-e2e/policy-check.json",
