@@ -101,6 +101,8 @@ function Invoke-JsonRequest {
     [Parameter(Mandatory = $false)]
     [object]$Body,
     [Parameter(Mandatory = $false)]
+    [hashtable]$Headers,
+    [Parameter(Mandatory = $false)]
     [int]$TimeoutSec = 30
   )
 
@@ -113,6 +115,9 @@ function Invoke-JsonRequest {
   if ($null -ne $Body) {
     $params["ContentType"] = "application/json"
     $params["Body"] = ($Body | ConvertTo-Json -Depth 40)
+  }
+  if ($null -ne $Headers -and $Headers.Count -gt 0) {
+    $params["Headers"] = $Headers
   }
 
   return Invoke-RestMethod @params
@@ -127,6 +132,8 @@ function Invoke-JsonRequestExpectStatus {
     [string]$Uri,
     [Parameter(Mandatory = $false)]
     [object]$Body,
+    [Parameter(Mandatory = $false)]
+    [hashtable]$Headers,
     [Parameter(Mandatory = $true)]
     [int]$ExpectedStatusCode,
     [Parameter(Mandatory = $false)]
@@ -151,6 +158,9 @@ function Invoke-JsonRequestExpectStatus {
     if ($null -ne $jsonBody) {
       $requestParams["ContentType"] = "application/json"
       $requestParams["Body"] = $jsonBody
+    }
+    if ($null -ne $Headers -and $Headers.Count -gt 0) {
+      $requestParams["Headers"] = $Headers
     }
 
     $response = Invoke-WebRequest @requestParams
@@ -1031,6 +1041,77 @@ try {
     }
   } | Out-Null
 
+  Invoke-Scenario -Name "operator.console.actions" -Action {
+    $operatorHeaders = @{
+      "x-operator-role" = "operator"
+    }
+    $adminHeaders = @{
+      "x-operator-role" = "admin"
+    }
+
+    $summaryResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/operator/summary" -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
+    $summaryData = Get-FieldValue -Object $summaryResponse -Path @("data")
+    Assert-Condition -Condition ($null -ne $summaryData) -Message "Operator summary payload is missing."
+
+    $activeTasks = @(Get-FieldValue -Object $summaryData -Path @("activeTasks", "data"))
+    Assert-Condition -Condition ($activeTasks.Count -ge 1) -Message "Operator summary should include at least one active task."
+
+    $taskId = [string](Get-FieldValue -Object $activeTasks[0] -Path @("taskId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($taskId)) -Message "Operator summary active task is missing taskId."
+
+    $cancelResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/operator/actions" -Headers $operatorHeaders -Body @{
+      action = "cancel_task"
+      taskId = $taskId
+      reason = "demo operator cancel"
+    } -TimeoutSec $RequestTimeoutSec
+    $cancelStatus = [string](Get-FieldValue -Object $cancelResponse -Path @("data", "result", "data", "status"))
+    Assert-Condition -Condition ($cancelStatus -eq "failed") -Message "Operator cancel_task should mark task as failed."
+
+    $retryResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/operator/actions" -Headers $operatorHeaders -Body @{
+      action = "retry_task"
+      taskId = $taskId
+      reason = "demo operator retry"
+    } -TimeoutSec $RequestTimeoutSec
+    $retryStatus = [string](Get-FieldValue -Object $retryResponse -Path @("data", "result", "data", "status"))
+    Assert-Condition -Condition ($retryStatus -eq "queued") -Message "Operator retry_task should mark task as queued."
+
+    $forbiddenFailover = Invoke-JsonRequestExpectStatus -Method POST -Uri "http://localhost:8081/v1/operator/actions" -Headers $operatorHeaders -Body @{
+      action = "failover"
+      targetService = "orchestrator"
+      operation = "drain"
+    } -ExpectedStatusCode 403 -TimeoutSec $RequestTimeoutSec
+    $forbiddenCode = [string](Get-FieldValue -Object $forbiddenFailover -Path @("body", "error", "code"))
+    Assert-Condition -Condition ($forbiddenCode -eq "API_OPERATOR_ADMIN_REQUIRED") -Message "Expected admin-required error for operator failover."
+
+    $drainResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/operator/actions" -Headers $adminHeaders -Body @{
+      action = "failover"
+      targetService = "orchestrator"
+      operation = "drain"
+      reason = "demo admin drain"
+    } -TimeoutSec $RequestTimeoutSec
+    $drainState = [string](Get-FieldValue -Object $drainResponse -Path @("data", "result", "runtime", "state"))
+    Assert-Condition -Condition ($drainState -eq "draining") -Message "Admin failover drain should set orchestrator to draining."
+
+    $warmupResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/operator/actions" -Headers $adminHeaders -Body @{
+      action = "failover"
+      targetService = "orchestrator"
+      operation = "warmup"
+      reason = "demo admin warmup"
+    } -TimeoutSec $RequestTimeoutSec
+    $warmupState = [string](Get-FieldValue -Object $warmupResponse -Path @("data", "result", "runtime", "state"))
+    Assert-Condition -Condition ($warmupState -eq "ready") -Message "Admin failover warmup should set orchestrator back to ready."
+
+    return [ordered]@{
+      taskId = $taskId
+      summaryActiveTasks = $activeTasks.Count
+      cancelStatus = $cancelStatus
+      retryStatus = $retryStatus
+      forbiddenCode = $forbiddenCode
+      drainState = $drainState
+      warmupState = $warmupState
+    }
+  } | Out-Null
+
   Invoke-Scenario -Name "api.approvals.list" -Action {
     $url = "http://localhost:8081/v1/approvals?sessionId=$sessionId&limit=20"
     $response = Invoke-JsonRequest -Method GET -Uri $url -TimeoutSec $RequestTimeoutSec
@@ -1246,6 +1327,7 @@ $gatewayWsData = Get-ScenarioData -Name "gateway.websocket.roundtrip"
 $gatewayWsTaskData = Get-ScenarioData -Name "gateway.websocket.task_progress"
 $gatewayWsInterruptData = Get-ScenarioData -Name "gateway.websocket.interrupt_signal"
 $gatewayWsInvalidData = Get-ScenarioData -Name "gateway.websocket.invalid_envelope"
+$operatorActionsData = Get-ScenarioData -Name "operator.console.actions"
 $approvalsListData = Get-ScenarioData -Name "api.approvals.list"
 $approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.invalid_intent"
 $runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
@@ -1331,6 +1413,21 @@ $summary = [ordered]@{
     gatewayInterruptEventType = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptEventType } else { $null }
     gatewayInterruptHandled = if ($null -ne $gatewayWsInterruptData) { $true } else { $false }
     gatewayWsInvalidEnvelopeCode = if ($null -ne $gatewayWsInvalidData) { $gatewayWsInvalidData.code } else { $null }
+    operatorSummaryActiveTasks = if ($null -ne $operatorActionsData) { $operatorActionsData.summaryActiveTasks } else { $null }
+    operatorCancelStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.cancelStatus } else { $null }
+    operatorRetryStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.retryStatus } else { $null }
+    operatorFailoverForbiddenCode = if ($null -ne $operatorActionsData) { $operatorActionsData.forbiddenCode } else { $null }
+    operatorFailoverDrainState = if ($null -ne $operatorActionsData) { $operatorActionsData.drainState } else { $null }
+    operatorFailoverWarmupState = if ($null -ne $operatorActionsData) { $operatorActionsData.warmupState } else { $null }
+    operatorActionsValidated = if (
+      $null -ne $operatorActionsData -and
+      [int]$operatorActionsData.summaryActiveTasks -ge 1 -and
+      [string]$operatorActionsData.cancelStatus -eq "failed" -and
+      [string]$operatorActionsData.retryStatus -eq "queued" -and
+      [string]$operatorActionsData.forbiddenCode -eq "API_OPERATOR_ADMIN_REQUIRED" -and
+      [string]$operatorActionsData.drainState -eq "draining" -and
+      [string]$operatorActionsData.warmupState -eq "ready"
+    ) { $true } else { $false }
     approvalsRecorded = if ($null -ne $approvalsListData) { $approvalsListData.total } else { $null }
     approvalsInvalidIntentStatusCode = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.statusCode } else { $null }
     approvalsInvalidIntentCode = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.code } else { $null }

@@ -53,6 +53,26 @@ function normalizeHttpPath(pathname: string): string {
   return pathname;
 }
 
+function parseTaskActionPath(pathname: string): { taskId: string; action: "cancel" | "retry" } | null {
+  const match = pathname.match(/^\/tasks\/([^/]+)\/(cancel|retry)$/);
+  if (!match) {
+    return null;
+  }
+  const taskIdRaw = match[1];
+  const actionRaw = match[2];
+  const taskId = decodeURIComponent(taskIdRaw ?? "").trim();
+  if (taskId.length === 0) {
+    return null;
+  }
+  if (actionRaw !== "cancel" && actionRaw !== "retry") {
+    return null;
+  }
+  return {
+    taskId,
+    action: actionRaw,
+  };
+}
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -319,6 +339,32 @@ const server = createServer((req, res) => {
         service: serviceName,
         total: tasks.length,
         data: tasks,
+      });
+      return;
+    }
+
+    const taskAction = parseTaskActionPath(url.pathname);
+    if (taskAction && req.method === "POST") {
+      const operatorReason = toNonEmptyString(url.searchParams.get("reason"));
+      const task =
+        taskAction.action === "cancel"
+          ? taskRegistry.cancelTask(taskAction.taskId, operatorReason ?? undefined)
+          : taskRegistry.retryTask(taskAction.taskId);
+
+      if (!task) {
+        writeHttpError(res, 404, {
+          code: "GATEWAY_TASK_NOT_FOUND",
+          message: "task not found",
+          details: { taskId: taskAction.taskId },
+        });
+        return;
+      }
+
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        action: taskAction.action,
+        data: task,
       });
       return;
     }

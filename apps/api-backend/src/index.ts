@@ -26,8 +26,14 @@ import {
 } from "./firestore.js";
 
 const port = Number(process.env.API_PORT ?? 8081);
+const apiBaseUrl = toBaseUrl(process.env.API_BASE_URL, `http://localhost:${port}`);
+const gatewayBaseUrl = toBaseUrl(process.env.API_GATEWAY_BASE_URL, "http://localhost:8080");
+const orchestratorBaseUrl = toBaseUrl(
+  process.env.API_ORCHESTRATOR_BASE_URL ?? process.env.ORCHESTRATOR_BASE_URL,
+  "http://localhost:8082",
+);
 const orchestratorUrl =
-  process.env.API_ORCHESTRATOR_URL ?? process.env.ORCHESTRATOR_URL ?? "http://localhost:8082/orchestrate";
+  process.env.API_ORCHESTRATOR_URL ?? process.env.ORCHESTRATOR_URL ?? `${orchestratorBaseUrl}/orchestrate`;
 const orchestratorTimeoutMs = parsePositiveInt(process.env.API_ORCHESTRATOR_TIMEOUT_MS ?? null, 15000);
 const orchestratorMaxRetries = parsePositiveInt(process.env.API_ORCHESTRATOR_MAX_RETRIES ?? null, 1);
 const orchestratorRetryBackoffMs = parsePositiveInt(
@@ -44,6 +50,11 @@ let lastDrainAt: string | null = null;
 const metrics = new RollingMetrics({
   maxSamplesPerBucket: Number(process.env.API_METRICS_MAX_SAMPLES ?? 2000),
 });
+
+function toBaseUrl(input: string | undefined, fallback: string): string {
+  const candidate = typeof input === "string" && input.trim().length > 0 ? input.trim() : fallback;
+  return candidate.replace(/\/+$/, "");
+}
 
 function writeJson(res: ServerResponse, statusCode: number, body: unknown): void {
   res.statusCode = statusCode;
@@ -113,6 +124,53 @@ function sanitizeDecision(raw: unknown): ApprovalDecision {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+type OperatorRole = "viewer" | "operator" | "admin";
+
+function normalizeOperatorRole(value: unknown): OperatorRole | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "viewer" || normalized === "operator" || normalized === "admin") {
+    return normalized;
+  }
+  return null;
+}
+
+function extractOperatorRole(req: IncomingMessage): OperatorRole | null {
+  const header = req.headers["x-operator-role"];
+  if (Array.isArray(header)) {
+    return normalizeOperatorRole(header[0]);
+  }
+  return normalizeOperatorRole(header);
+}
+
+function assertOperatorRole(req: IncomingMessage, allowed: OperatorRole[]): OperatorRole {
+  const role = extractOperatorRole(req);
+  if (!role) {
+    throw new ApiRequestError({
+      statusCode: 401,
+      code: "API_OPERATOR_ROLE_REQUIRED",
+      message: "x-operator-role header is required",
+      details: {
+        allowedRoles: allowed,
+      },
+    });
+  }
+  if (!allowed.includes(role)) {
+    throw new ApiRequestError({
+      statusCode: 403,
+      code: "API_OPERATOR_ROLE_FORBIDDEN",
+      message: "operator role is not allowed for this action",
+      details: {
+        role,
+        allowedRoles: allowed,
+      },
+    });
+  }
+  return role;
 }
 
 class ApiRequestError extends Error {
@@ -207,6 +265,144 @@ class NonRetriableRequestError extends Error {
     super(message);
     this.name = "NonRetriableRequestError";
   }
+}
+
+async function fetchJsonWithTimeout(url: string, timeoutMs: number): Promise<unknown> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      return null;
+    }
+    return (await response.json()) as unknown;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function postJsonWithTimeout(url: string, body: unknown, timeoutMs: number): Promise<unknown> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!response.ok) {
+      throw new ApiRequestError({
+        statusCode: 502,
+        code: "API_OPERATOR_UPSTREAM_FAILURE",
+        message: `upstream action failed (${response.status})`,
+        details: {
+          url,
+          statusCode: response.status,
+          payload,
+        },
+      });
+    }
+    return payload;
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      throw error;
+    }
+    throw new ApiRequestError({
+      statusCode: 502,
+      code: "API_OPERATOR_UPSTREAM_UNAVAILABLE",
+      message: "failed to reach upstream service for operator action",
+      details: {
+        url,
+      },
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function normalizeServiceName(input: unknown): "realtime-gateway" | "api-backend" | "orchestrator" | null {
+  if (typeof input !== "string") {
+    return null;
+  }
+  const normalized = input.trim().toLowerCase();
+  if (normalized === "realtime-gateway" || normalized === "api-backend" || normalized === "orchestrator") {
+    return normalized;
+  }
+  return null;
+}
+
+function resolveServiceBaseUrl(name: "realtime-gateway" | "api-backend" | "orchestrator"): string {
+  switch (name) {
+    case "realtime-gateway":
+      return gatewayBaseUrl;
+    case "api-backend":
+      return apiBaseUrl;
+    case "orchestrator":
+      return orchestratorBaseUrl;
+    default:
+      return orchestratorBaseUrl;
+  }
+}
+
+async function getOperatorServiceSummary(): Promise<Array<Record<string, unknown>>> {
+  const services: Array<{ name: "realtime-gateway" | "api-backend" | "orchestrator"; baseUrl: string }> = [
+    { name: "realtime-gateway", baseUrl: gatewayBaseUrl },
+    { name: "api-backend", baseUrl: apiBaseUrl },
+    { name: "orchestrator", baseUrl: orchestratorBaseUrl },
+  ];
+  const timeoutMs = 4500;
+  const summaries: Array<Record<string, unknown>> = [];
+
+  for (const service of services) {
+    const [health, status, metricsResponse] = await Promise.all([
+      fetchJsonWithTimeout(`${service.baseUrl}/healthz`, timeoutMs),
+      fetchJsonWithTimeout(`${service.baseUrl}/status`, timeoutMs),
+      fetchJsonWithTimeout(`${service.baseUrl}/metrics`, timeoutMs),
+    ]);
+
+    const runtime = isRecord(status) && isRecord(status.runtime) ? status.runtime : null;
+    const profile = runtime && isRecord(runtime.profile) ? runtime.profile : null;
+    const metricsSummary =
+      isRecord(metricsResponse) && isRecord(metricsResponse.metrics) ? metricsResponse.metrics : null;
+
+    summaries.push({
+      name: service.name,
+      baseUrl: service.baseUrl,
+      healthy: isRecord(health) ? health.ok === true : false,
+      state: runtime ? runtime.state ?? null : null,
+      version: runtime ? runtime.version ?? null : null,
+      profile,
+      metrics: metricsSummary
+        ? {
+            totalCount: metricsSummary.totalCount ?? null,
+            errorRatePct: metricsSummary.errorRatePct ?? null,
+            p95Ms: isRecord(metricsSummary.latencyMs) ? metricsSummary.latencyMs.p95 ?? null : null,
+          }
+        : null,
+    });
+  }
+
+  return summaries;
+}
+
+async function getGatewayActiveTasks(limit = 100): Promise<unknown[]> {
+  const response = await fetchJsonWithTimeout(
+    `${gatewayBaseUrl}/tasks/active?limit=${encodeURIComponent(String(limit))}`,
+    5000,
+  );
+  if (!isRecord(response) || !Array.isArray(response.data)) {
+    return [];
+  }
+  return response.data;
 }
 
 async function sendToOrchestrator(request: OrchestratorRequest): Promise<OrchestratorResponse> {
@@ -536,6 +732,168 @@ export const server = createServer(async (req, res) => {
           approval,
           resumed: true,
           orchestrator: response,
+        },
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/operator/summary" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const [activeTasks, approvals, services] = await Promise.all([
+        getGatewayActiveTasks(100),
+        listApprovals({ limit: 100 }),
+        getOperatorServiceSummary(),
+      ]);
+      const pendingApprovalsFromTasks = activeTasks.filter(
+        (task) => isRecord(task) && task.status === "pending_approval",
+      ).length;
+
+      writeJson(res, 200, {
+        data: {
+          generatedAt: new Date().toISOString(),
+          role,
+          activeTasks: {
+            total: activeTasks.length,
+            data: activeTasks,
+          },
+          approvals: {
+            total: approvals.length,
+            recent: approvals.slice(0, 25),
+            pendingFromTasks: pendingApprovalsFromTasks,
+          },
+          services,
+        },
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/operator/actions" && req.method === "POST") {
+      const role = assertOperatorRole(req, ["operator", "admin"]);
+      const raw = await readBody(req);
+      const parsed = parseJsonBody(raw) as {
+        action?: unknown;
+        taskId?: unknown;
+        reason?: unknown;
+        targetService?: unknown;
+        operation?: unknown;
+      };
+
+      const action = typeof parsed.action === "string" ? parsed.action.trim().toLowerCase() : "";
+      const reason =
+        typeof parsed.reason === "string" && parsed.reason.trim().length > 0
+          ? parsed.reason.trim()
+          : "operator action";
+
+      if (action === "cancel_task") {
+        const taskId = typeof parsed.taskId === "string" ? parsed.taskId.trim() : "";
+        if (taskId.length === 0) {
+          writeApiError(res, 400, {
+            code: "API_OPERATOR_TASK_ID_REQUIRED",
+            message: "taskId is required for cancel_task",
+          });
+          return;
+        }
+        const url = `${gatewayBaseUrl}/tasks/${encodeURIComponent(taskId)}/cancel?reason=${encodeURIComponent(
+          reason,
+        )}`;
+        const result = await postJsonWithTimeout(url, {}, 8000);
+        writeJson(res, 200, {
+          data: {
+            action: "cancel_task",
+            taskId,
+            result,
+          },
+        });
+        return;
+      }
+
+      if (action === "retry_task") {
+        const taskId = typeof parsed.taskId === "string" ? parsed.taskId.trim() : "";
+        if (taskId.length === 0) {
+          writeApiError(res, 400, {
+            code: "API_OPERATOR_TASK_ID_REQUIRED",
+            message: "taskId is required for retry_task",
+          });
+          return;
+        }
+        const url = `${gatewayBaseUrl}/tasks/${encodeURIComponent(taskId)}/retry?reason=${encodeURIComponent(
+          reason,
+        )}`;
+        const result = await postJsonWithTimeout(url, {}, 8000);
+        writeJson(res, 200, {
+          data: {
+            action: "retry_task",
+            taskId,
+            result,
+          },
+        });
+        return;
+      }
+
+      if (action === "failover") {
+        if (role !== "admin") {
+          writeApiError(res, 403, {
+            code: "API_OPERATOR_ADMIN_REQUIRED",
+            message: "failover action requires admin role",
+          });
+          return;
+        }
+
+        const targetService = normalizeServiceName(parsed.targetService);
+        const operationRaw =
+          typeof parsed.operation === "string" ? parsed.operation.trim().toLowerCase() : "";
+        const operation = operationRaw === "drain" || operationRaw === "warmup" ? operationRaw : null;
+
+        if (!targetService || !operation) {
+          writeApiError(res, 400, {
+            code: "API_OPERATOR_FAILOVER_INVALID_INPUT",
+            message: "targetService and operation (drain|warmup) are required for failover action",
+            details: {
+              allowedServices: ["realtime-gateway", "api-backend", "orchestrator"],
+              allowedOperations: ["drain", "warmup"],
+            },
+          });
+          return;
+        }
+
+        if (targetService === "api-backend") {
+          if (operation === "drain") {
+            draining = true;
+            lastDrainAt = new Date().toISOString();
+          } else {
+            draining = false;
+            lastWarmupAt = new Date().toISOString();
+          }
+          writeJson(res, 200, {
+            data: {
+              action: "failover",
+              targetService,
+              operation,
+              runtime: runtimeState(),
+            },
+          });
+          return;
+        }
+
+        const baseUrl = resolveServiceBaseUrl(targetService);
+        const result = await postJsonWithTimeout(`${baseUrl}/${operation}`, {}, 8000);
+        writeJson(res, 200, {
+          data: {
+            action: "failover",
+            targetService,
+            operation,
+            result,
+          },
+        });
+        return;
+      }
+
+      writeApiError(res, 400, {
+        code: "API_OPERATOR_ACTION_INVALID",
+        message: "unsupported operator action",
+        details: {
+          action: parsed.action,
+          allowedActions: ["cancel_task", "retry_task", "failover"],
         },
       });
       return;

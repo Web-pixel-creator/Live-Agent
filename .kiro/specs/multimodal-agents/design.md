@@ -509,8 +509,9 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
    - Guardrail blocks local-first outside `dev`.
 
 4. Rich operational console
-   - Add operator views for active tasks, queued approvals, and per-agent health summaries.
-   - Include manual controls for cancel/retry/failover with full audit trail.
+   - Baseline implemented: operator summary APIs for active tasks, approval queue snapshots, and per-service health/runtime profile status.
+   - Baseline implemented: role-gated recovery actions (`cancel_task`, `retry_task`, `failover drain/warmup`).
+   - Next step: add full UI audit timeline and richer incident automation controls.
 
 ### Explicitly Out of Baseline Scope
 
@@ -602,6 +603,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 15. The orchestrator runtime SHALL expose storyteller media queue visibility (`/story/media-jobs/queue` and `storytellerMediaJobs` in `/metrics`) for operator diagnostics.
 16. The orchestrator runtime SHALL expose storyteller cache visibility and invalidation controls (`/story/cache`, `/story/cache/purge`, `storytellerCache` in `/metrics`) for deterministic asset/prompt reuse policy operations.
 17. Runtime services SHALL expose applied runtime profile metadata (`runtime.profile`) and enforce local-first guardrails that block non-dev startup.
+18. The API backend SHALL expose operator console endpoints (`/v1/operator/summary`, `/v1/operator/actions`) with role-gated recovery controls and cross-service status aggregation.
 
 ## Traceability Matrix
 
@@ -616,6 +618,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 | Story media workers + queue visibility | R4, R10, R15 | T-103, T-207 |
 | Story cache + invalidation policy | R4, R5, R15 | T-208 |
 | Local-first runtime profile + guardrails | R10, R14 | T-209 |
+| Operator console + recovery actions | R13, R15 | T-210 |
 | Perf/load quality gate | R1, R6, R12, R15 | T-206 |
-| Borrowed-pattern hardening (post-MVP) | R10, R14, R15 | T-210 |
+| Borrowed-pattern hardening (post-MVP) | R10, R14, R15 | T-201..T-205 |
 | Demo frontend + controls | R1, R3, R14, R15 | T-000, T-110, T-111 |

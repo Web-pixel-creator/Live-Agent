@@ -141,6 +141,7 @@ async function main() {
         "gateway.websocket.task_progress",
         "gateway.websocket.interrupt_signal",
         "gateway.websocket.invalid_envelope",
+        "operator.console.actions",
         "api.approvals.list",
         "api.approvals.resume.invalid_intent",
         "runtime.lifecycle.endpoints",
@@ -281,6 +282,30 @@ async function main() {
     kpis.gatewayWsInvalidEnvelopeCode === "GATEWAY_INVALID_ENVELOPE",
     kpis.gatewayWsInvalidEnvelopeCode,
     "GATEWAY_INVALID_ENVELOPE",
+  );
+  addCheck(
+    "kpi.operatorActionsValidated",
+    kpis.operatorActionsValidated === true,
+    kpis.operatorActionsValidated,
+    true,
+  );
+  addCheck(
+    "kpi.operatorFailoverForbiddenCode",
+    String(kpis.operatorFailoverForbiddenCode) === "API_OPERATOR_ADMIN_REQUIRED",
+    kpis.operatorFailoverForbiddenCode,
+    "API_OPERATOR_ADMIN_REQUIRED",
+  );
+  addCheck(
+    "kpi.operatorFailoverDrainState",
+    String(kpis.operatorFailoverDrainState) === "draining",
+    kpis.operatorFailoverDrainState,
+    "draining",
+  );
+  addCheck(
+    "kpi.operatorFailoverWarmupState",
+    String(kpis.operatorFailoverWarmupState) === "ready",
+    kpis.operatorFailoverWarmupState,
+    "ready",
   );
   addCheck(
     "kpi.approvalsInvalidIntentStatusCode",

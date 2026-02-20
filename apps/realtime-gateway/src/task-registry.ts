@@ -181,6 +181,42 @@ export class TaskRegistry {
     return found ? { ...found } : null;
   }
 
+  cancelTask(taskId: string, reason?: string): TaskRecord | null {
+    const existing = this.tasks.get(taskId);
+    if (!existing) {
+      return null;
+    }
+    const updated: TaskRecord = {
+      ...existing,
+      status: "failed",
+      progressPct: 100,
+      stage: "operator.cancelled",
+      updatedAt: toIsoNow(),
+      error: reason && reason.trim().length > 0 ? reason.trim() : "Cancelled by operator",
+    };
+    this.tasks.set(taskId, updated);
+    this.runMaintenance();
+    return { ...updated };
+  }
+
+  retryTask(taskId: string): TaskRecord | null {
+    const existing = this.tasks.get(taskId);
+    if (!existing) {
+      return null;
+    }
+    const updated: TaskRecord = {
+      ...existing,
+      status: "queued",
+      progressPct: 0,
+      stage: "operator.retry_requested",
+      updatedAt: toIsoNow(),
+      error: null,
+    };
+    this.tasks.set(taskId, updated);
+    this.runMaintenance();
+    return { ...updated };
+  }
+
   listActive(params?: { sessionId?: string; limit?: number }): TaskRecord[] {
     const sessionId = params?.sessionId;
     const limit = Math.max(1, Math.min(500, params?.limit ?? 100));
@@ -193,4 +229,3 @@ export class TaskRegistry {
     return values;
   }
 }
-

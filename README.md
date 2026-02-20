@@ -68,7 +68,16 @@ Open `http://localhost:3000`.
 - `GET /v1/approvals?sessionId=<id>&limit=50` -> list approval decisions.
 - `POST /v1/approvals/resume` with `intent=ui_task` + `decision=approved|rejected` -> persist decision and optionally resume execution through orchestrator.
 
-8. Real Playwright remote-http run (no simulation fallback):
+8. Operator console APIs (RBAC via `x-operator-role: viewer|operator|admin`):
+- `GET /v1/operator/summary` -> active tasks, approvals snapshot, service runtime/health summary.
+- `POST /v1/operator/actions` with:
+  - `action=cancel_task` + `taskId`
+  - `action=retry_task` + `taskId`
+  - `action=failover` + `targetService` + `operation` (`drain|warmup`, admin only)
+
+9. Demo frontend includes an Operator Console panel for summary refresh and recovery actions.
+
+10. Real Playwright remote-http run (no simulation fallback):
 - Install runtime once: `npm i -D playwright && npx playwright install chromium`
 - Set env:
   - `UI_NAVIGATOR_EXECUTOR_MODE=remote_http`

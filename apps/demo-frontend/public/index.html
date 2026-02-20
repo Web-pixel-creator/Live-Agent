@@ -156,6 +156,40 @@
       </section>
 
       <section class="panel">
+        <h2>Operator Console</h2>
+        <div class="grid-3">
+          <label class="field">
+            <span>Operator Role</span>
+            <select id="operatorRole">
+              <option value="operator" selected>operator</option>
+              <option value="admin">admin</option>
+              <option value="viewer">viewer</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Task ID</span>
+            <input id="operatorTaskId" type="text" placeholder="task-..." />
+          </label>
+          <label class="field">
+            <span>Target Service</span>
+            <select id="operatorTargetService">
+              <option value="realtime-gateway" selected>realtime-gateway</option>
+              <option value="orchestrator">orchestrator</option>
+              <option value="api-backend">api-backend</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="operatorRefreshBtn" class="button-muted">Refresh Summary</button>
+          <button id="operatorCancelBtn" class="button-warn">Cancel Task</button>
+          <button id="operatorRetryBtn" class="button-muted">Retry Task</button>
+          <button id="operatorDrainBtn" class="button-warn">Failover Drain</button>
+          <button id="operatorWarmupBtn" class="button-muted">Failover Warmup</button>
+        </div>
+        <div id="operatorSummary" class="events"></div>
+      </section>
+
+      <section class="panel">
         <h2>Transcript</h2>
         <div id="transcript" class="transcript"></div>
       </section>

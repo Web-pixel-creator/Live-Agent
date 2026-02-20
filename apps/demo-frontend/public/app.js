@@ -49,6 +49,10 @@ const el = {
   fallbackAssetStatus: document.getElementById("fallbackAssetStatus"),
   activeTaskCount: document.getElementById("activeTaskCount"),
   tasks: document.getElementById("tasks"),
+  operatorRole: document.getElementById("operatorRole"),
+  operatorTaskId: document.getElementById("operatorTaskId"),
+  operatorTargetService: document.getElementById("operatorTargetService"),
+  operatorSummary: document.getElementById("operatorSummary"),
 };
 
 function nowLabel() {
@@ -368,10 +372,108 @@ async function refreshActiveTasks() {
     for (const item of records) {
       upsertTaskRecord(item);
     }
+    if (!el.operatorTaskId.value.trim() && records.length > 0 && typeof records[0]?.taskId === "string") {
+      el.operatorTaskId.value = records[0].taskId;
+    }
     renderTaskList();
     appendTranscript("system", `Active tasks refreshed: ${records.length}`);
   } catch (error) {
     appendTranscript("error", `Active tasks refresh failed: ${String(error)}`);
+  }
+}
+
+function operatorHeaders(includeJson = false) {
+  const role = (el.operatorRole.value || "operator").trim().toLowerCase();
+  const headers = {
+    "x-operator-role": role,
+  };
+  if (includeJson) {
+    headers["Content-Type"] = "application/json";
+  }
+  return headers;
+}
+
+function renderOperatorSummary(summary) {
+  el.operatorSummary.innerHTML = "";
+  if (!summary || typeof summary !== "object") {
+    appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
+    return;
+  }
+
+  const role = typeof summary.role === "string" ? summary.role : "unknown";
+  const generatedAt = typeof summary.generatedAt === "string" ? summary.generatedAt : new Date().toISOString();
+  appendEntry(el.operatorSummary, "system", "summary", `role=${role} generatedAt=${generatedAt}`);
+
+  const activeTasks = summary.activeTasks?.data;
+  const activeTotal = Number(summary.activeTasks?.total ?? 0);
+  appendEntry(el.operatorSummary, "system", "tasks", `active=${activeTotal}`);
+  if (Array.isArray(activeTasks) && activeTasks.length > 0) {
+    const firstTask = activeTasks.find((item) => item && typeof item.taskId === "string");
+    if (firstTask && !el.operatorTaskId.value.trim()) {
+      el.operatorTaskId.value = firstTask.taskId;
+    }
+  }
+
+  const pendingApprovals = Number(summary.approvals?.pendingFromTasks ?? 0);
+  const approvalsTotal = Number(summary.approvals?.total ?? 0);
+  appendEntry(
+    el.operatorSummary,
+    "system",
+    "approvals",
+    `recorded=${approvalsTotal} pending_from_tasks=${pendingApprovals}`,
+  );
+
+  const services = Array.isArray(summary.services) ? summary.services : [];
+  for (const service of services) {
+    const name = typeof service.name === "string" ? service.name : "service";
+    const healthy = service.healthy === true ? "healthy" : "unavailable";
+    const state = typeof service.state === "string" ? service.state : "unknown";
+    const profile = service.profile?.profile || "n/a";
+    const env = service.profile?.environment || "n/a";
+    appendEntry(el.operatorSummary, "system", name, `${healthy} | state=${state} | profile=${profile}/${env}`);
+  }
+}
+
+async function refreshOperatorSummary() {
+  try {
+    const response = await fetch(`${state.apiBaseUrl}/v1/operator/summary`, {
+      method: "GET",
+      headers: operatorHeaders(false),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      const errorText = getApiErrorMessage(payload, `operator summary failed with ${response.status}`);
+      throw new Error(String(errorText));
+    }
+    renderOperatorSummary(payload?.data ?? null);
+    appendTranscript("system", "Operator summary refreshed");
+  } catch (error) {
+    appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
+  }
+}
+
+async function runOperatorAction(action, data = {}) {
+  try {
+    const response = await fetch(`${state.apiBaseUrl}/v1/operator/actions`, {
+      method: "POST",
+      headers: operatorHeaders(true),
+      body: JSON.stringify({
+        action,
+        ...data,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      const errorText = getApiErrorMessage(payload, `operator action failed with ${response.status}`);
+      throw new Error(String(errorText));
+    }
+    appendTranscript("system", `Operator action executed: ${action}`);
+    if (payload?.data?.taskId && typeof payload.data.taskId === "string") {
+      el.operatorTaskId.value = payload.data.taskId;
+    }
+    await refreshOperatorSummary();
+  } catch (error) {
+    appendTranscript("error", `Operator action failed (${action}): ${String(error)}`);
   }
 }
 
@@ -1007,6 +1109,39 @@ function bindEvents() {
   document.getElementById("interruptBtn").addEventListener("click", interruptAssistant);
   document.getElementById("fallbackBtn").addEventListener("click", toggleFallbackMode);
   document.getElementById("refreshTasksBtn").addEventListener("click", refreshActiveTasks);
+  document.getElementById("operatorRefreshBtn").addEventListener("click", refreshOperatorSummary);
+  document.getElementById("operatorCancelBtn").addEventListener("click", () => {
+    const taskId = el.operatorTaskId.value.trim();
+    if (!taskId) {
+      appendTranscript("error", "Operator taskId is required for cancel");
+      return;
+    }
+    runOperatorAction("cancel_task", { taskId, reason: "Cancelled from operator console" });
+  });
+  document.getElementById("operatorRetryBtn").addEventListener("click", () => {
+    const taskId = el.operatorTaskId.value.trim();
+    if (!taskId) {
+      appendTranscript("error", "Operator taskId is required for retry");
+      return;
+    }
+    runOperatorAction("retry_task", { taskId, reason: "Retry requested from operator console" });
+  });
+  document.getElementById("operatorDrainBtn").addEventListener("click", () => {
+    const targetService = el.operatorTargetService.value;
+    runOperatorAction("failover", {
+      targetService,
+      operation: "drain",
+      reason: "Drain requested from operator console",
+    });
+  });
+  document.getElementById("operatorWarmupBtn").addEventListener("click", () => {
+    const targetService = el.operatorTargetService.value;
+    runOperatorAction("failover", {
+      targetService,
+      operation: "warmup",
+      reason: "Warmup requested from operator console",
+    });
+  });
   document.getElementById("newSessionBtn").addEventListener("click", () => {
     state.sessionId = makeId();
     el.sessionId.value = state.sessionId;
@@ -1050,6 +1185,9 @@ function bootstrap() {
   renderTaskList();
   evaluateConstraints();
   bindEvents();
+  refreshOperatorSummary().catch(() => {
+    appendTranscript("error", "Initial operator summary fetch failed");
+  });
   appendTranscript("system", "Frontend ready");
 }
 
