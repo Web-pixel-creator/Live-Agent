@@ -980,6 +980,44 @@ try {
     }
   } | Out-Null
 
+  Invoke-Scenario -Name "gateway.websocket.request_replay" -Action {
+    $runId = "demo-gateway-ws-replay-" + [Guid]::NewGuid().Guid
+    $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
+    $result = Invoke-NodeJsonCommand -Args @(
+      "scripts/gateway-ws-replay-check.mjs",
+      "--url",
+      "ws://localhost:8080/realtime",
+      "--sessionId",
+      $sessionId,
+      "--runId",
+      $runId,
+      "--userId",
+      $script:DemoUserId,
+      "--timeoutMs",
+      [string]$timeoutMs
+    )
+
+    $ok = [bool](Get-FieldValue -Object $result -Path @("ok"))
+    Assert-Condition -Condition $ok -Message "WebSocket replay check returned ok=false."
+
+    $replayEventCount = [int](Get-FieldValue -Object $result -Path @("replayEventCount"))
+    $taskStartedCount = [int](Get-FieldValue -Object $result -Path @("taskStartedCount"))
+    $responseIdReused = [bool](Get-FieldValue -Object $result -Path @("responseIdReused"))
+    Assert-Condition -Condition ($replayEventCount -ge 1) -Message "Expected at least one gateway.request_replayed event."
+    Assert-Condition -Condition ($taskStartedCount -eq 1) -Message "Expected exactly one task.started event for replay scenario."
+    Assert-Condition -Condition $responseIdReused -Message "Expected response envelope id reuse for replayed request."
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $result -Path @("runId"))
+      replayEventCount = $replayEventCount
+      replayEventType = [string](Get-FieldValue -Object $result -Path @("replayEventType"))
+      replayAgeMs = [int](Get-FieldValue -Object $result -Path @("replayAgeMs"))
+      taskStartedCount = $taskStartedCount
+      responseIdReused = $responseIdReused
+      eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
+    }
+  } | Out-Null
+
   Invoke-Scenario -Name "gateway.websocket.interrupt_signal" -Action {
     $runId = "demo-gateway-ws-interrupt-" + [Guid]::NewGuid().Guid
     $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
@@ -1325,6 +1363,7 @@ $uiVisualTestingData = Get-ScenarioData -Name "ui.visual_testing"
 $delegationData = Get-ScenarioData -Name "multi_agent.delegation"
 $gatewayWsData = Get-ScenarioData -Name "gateway.websocket.roundtrip"
 $gatewayWsTaskData = Get-ScenarioData -Name "gateway.websocket.task_progress"
+$gatewayWsReplayData = Get-ScenarioData -Name "gateway.websocket.request_replay"
 $gatewayWsInterruptData = Get-ScenarioData -Name "gateway.websocket.interrupt_signal"
 $gatewayWsInvalidData = Get-ScenarioData -Name "gateway.websocket.invalid_envelope"
 $operatorActionsData = Get-ScenarioData -Name "operator.console.actions"
@@ -1410,6 +1449,15 @@ $summary = [ordered]@{
     sessionStateTransitionsObserved = if ($null -ne $gatewayWsData) { $gatewayWsData.sessionStateCount } else { $null }
     taskProgressEventsObserved = if ($null -ne $gatewayWsTaskData) { $gatewayWsTaskData.taskProgressCount } else { $null }
     activeTasksVisible = if ($null -ne $gatewayWsTaskData) { $gatewayWsTaskData.activeTaskCount } else { $null }
+    gatewayRequestReplayEventCount = if ($null -ne $gatewayWsReplayData) { $gatewayWsReplayData.replayEventCount } else { $null }
+    gatewayRequestReplayTaskStartedCount = if ($null -ne $gatewayWsReplayData) { $gatewayWsReplayData.taskStartedCount } else { $null }
+    gatewayRequestReplayResponseIdReused = if ($null -ne $gatewayWsReplayData) { $gatewayWsReplayData.responseIdReused } else { $false }
+    gatewayRequestReplayValidated = if (
+      $null -ne $gatewayWsReplayData -and
+      [int]$gatewayWsReplayData.replayEventCount -ge 1 -and
+      [int]$gatewayWsReplayData.taskStartedCount -eq 1 -and
+      [bool]$gatewayWsReplayData.responseIdReused -eq $true
+    ) { $true } else { $false }
     gatewayInterruptEventType = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptEventType } else { $null }
     gatewayInterruptHandled = if ($null -ne $gatewayWsInterruptData) { $true } else { $false }
     gatewayWsInvalidEnvelopeCode = if ($null -ne $gatewayWsInvalidData) { $gatewayWsInvalidData.code } else { $null }

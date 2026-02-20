@@ -139,6 +139,7 @@ async function main() {
         "multi_agent.delegation",
         "gateway.websocket.roundtrip",
         "gateway.websocket.task_progress",
+        "gateway.websocket.request_replay",
         "gateway.websocket.interrupt_signal",
         "gateway.websocket.invalid_envelope",
         "operator.console.actions",
@@ -390,6 +391,12 @@ async function main() {
     toNumber(kpis.activeTasksVisible) >= 1,
     kpis.activeTasksVisible,
     ">= 1",
+  );
+  addCheck(
+    "kpi.gatewayRequestReplayValidated",
+    kpis.gatewayRequestReplayValidated === true,
+    kpis.gatewayRequestReplayValidated,
+    true,
   );
   addCheck(
     "kpi.translationProvider",
