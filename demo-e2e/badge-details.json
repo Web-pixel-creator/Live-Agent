@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-02-20T04:08:00.530Z",
+  "generatedAt": "2026-02-20T04:14:19.075Z",
   "ok": true,
   "policyPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 24,
   "violations": 0,
-  "roundTripMs": 33,
+  "roundTripMs": 34,
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 24 checks | 33ms ws",
+    "message": "pass | 24 checks | 34ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }
