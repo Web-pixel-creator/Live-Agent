@@ -598,19 +598,21 @@ export class LiveApiBridge {
   }
 
   private startHealthMonitor(): void {
-    this.stopHealthMonitor();
+    this.stopHealthMonitor({ resetDegraded: false });
     const intervalMs = Math.max(500, this.config.liveHealthCheckIntervalMs);
     this.healthTimer = setInterval(() => {
       this.evaluateUpstreamHealth();
     }, intervalMs);
   }
 
-  private stopHealthMonitor(): void {
+  private stopHealthMonitor(params?: { resetDegraded?: boolean }): void {
     if (this.healthTimer) {
       clearInterval(this.healthTimer);
       this.healthTimer = null;
     }
-    this.healthDegraded = false;
+    if (params?.resetDegraded === true) {
+      this.healthDegraded = false;
+    }
   }
 
   private markUpstreamMessageActivity(): void {
@@ -648,6 +650,13 @@ export class LiveApiBridge {
         authProfile: this.getActiveAuthProfile()?.name ?? null,
       });
     }
+    this.emit("live.bridge.health_watchdog_reconnect", {
+      reason: "upstream_silence",
+      silenceMs,
+      thresholdMs: this.config.liveHealthSilenceMs,
+      model: this.getActiveModelId(),
+      authProfile: this.getActiveAuthProfile()?.name ?? null,
+    });
 
     const staleSocket = this.upstream;
     this.upstream = null;
@@ -1073,7 +1082,7 @@ export class LiveApiBridge {
 
       upstream.on("close", (code, reason) => {
         const reasonText = reason.toString();
-        this.stopHealthMonitor();
+        this.stopHealthMonitor({ resetDegraded: false });
         this.emit("live.bridge.closed", {
           code,
           reason: reasonText,
@@ -1086,7 +1095,7 @@ export class LiveApiBridge {
       });
 
       upstream.on("error", (error) => {
-        this.stopHealthMonitor();
+        this.stopHealthMonitor({ resetDegraded: false });
         this.emit("live.bridge.error", {
           error: error.message,
         });
@@ -1116,18 +1125,39 @@ export class LiveApiBridge {
         const reason = error instanceof Error ? error.message : String(error);
         const reasonClass = this.markActiveRouteFailure(reason);
         this.rotateFailover(reason, reasonClass);
+        const routeReadyAtMs = Math.max(
+          this.getModelReadyAtMs(this.getActiveModelState() ?? this.modelStates[0]),
+          this.getAuthProfileReadyAtMs(this.getActiveAuthProfile()),
+        );
+        const routeWaitMs = Math.max(0, routeReadyAtMs - Date.now());
+        const reconnectWaitMs = Math.max(
+          this.config.liveConnectRetryMs,
+          Math.min(routeWaitMs, this.config.liveConnectRetryMs * 4),
+        );
         this.emit("live.bridge.reconnect_attempt", {
           attempt,
           maxAttempts,
-          retryMs: this.config.liveConnectRetryMs,
+          retryMs: reconnectWaitMs,
           error: reason,
           reasonClass,
           model: this.getActiveModelId(),
           authProfile: this.getActiveAuthProfile()?.name ?? null,
+          routeReadyAt: new Date(routeReadyAtMs).toISOString(),
+          routeWaitMs,
         });
 
         if (attempt < maxAttempts) {
-          await sleep(this.config.liveConnectRetryMs);
+          if (routeWaitMs > 0) {
+            this.emit("live.bridge.reconnect_wait", {
+              waitMs: reconnectWaitMs,
+              routeWaitMs,
+              routeReadyAt: new Date(routeReadyAtMs).toISOString(),
+              reasonClass,
+              model: this.getActiveModelId(),
+              authProfile: this.getActiveAuthProfile()?.name ?? null,
+            });
+          }
+          await sleep(reconnectWaitMs);
         }
       }
     }
@@ -1178,7 +1208,7 @@ export class LiveApiBridge {
   close(): void {
     this.resetLiveState();
     this.pendingInterruptAtMs = null;
-    this.stopHealthMonitor();
+    this.stopHealthMonitor({ resetDegraded: true });
     if (!this.upstream) {
       return;
     }

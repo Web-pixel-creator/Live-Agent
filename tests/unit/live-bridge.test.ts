@@ -261,6 +261,93 @@ test("live bridge emits health degradation when upstream stays silent during pen
   await waitFor(() => emitted.some((event) => event.type === "live.bridge.health_degraded"), 3000);
 
   assert.ok(emitted.some((event) => event.type === "live.bridge.health_degraded"));
+  assert.ok(emitted.some((event) => event.type === "live.bridge.health_watchdog_reconnect"));
   bridge.close();
   await closeWss(wss);
+});
+
+test("live bridge emits health recovered after watchdog-triggered reconnect", async () => {
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+  const port = (wss.address() as AddressInfo).port;
+
+  let connectionCount = 0;
+  wss.on("connection", (ws) => {
+    connectionCount += 1;
+    ws.on("message", (raw) => {
+      if (connectionCount === 1) {
+        return;
+      }
+      const parsed = JSON.parse(raw.toString("utf8")) as Record<string, unknown>;
+      if (parsed.clientContent) {
+        ws.send(
+          JSON.stringify({
+            serverContent: {
+              modelTurn: {
+                parts: [{ text: "recovered response" }],
+              },
+              turnComplete: true,
+            },
+          }),
+        );
+      }
+    });
+  });
+
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveHealthCheckIntervalMs: 40,
+      liveHealthSilenceMs: 120,
+      liveConnectRetryMs: 20,
+      liveConnectMaxAttempts: 2,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "first silent turn" } }));
+  await waitFor(() => emitted.some((event) => event.type === "live.bridge.health_degraded"), 3000);
+
+  await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "second turn" } }));
+  await waitFor(() => emitted.some((event) => event.type === "live.bridge.health_recovered"), 3000);
+
+  assert.ok(connectionCount >= 2, "watchdog should force reconnect");
+  assert.ok(emitted.some((event) => event.type === "live.bridge.health_recovered"));
+
+  bridge.close();
+  await closeWss(wss);
+});
+
+test("live bridge emits reconnect wait diagnostics when route is cooling down", async () => {
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: "ws://127.0.0.1:65534/realtime",
+      liveModelId: "model-only",
+      liveModelFallbackIds: [],
+      liveConnectMaxAttempts: 2,
+      liveConnectRetryMs: 25,
+      liveFailoverCooldownMs: 5_000,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  await assert.rejects(async () => {
+    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "cooldown wait" } }));
+  });
+
+  const waitEvent = emitted.find((event) => event.type === "live.bridge.reconnect_wait");
+  assert.ok(waitEvent, "expected reconnect wait diagnostic event");
+  const waitPayload = waitEvent?.payload as Record<string, unknown>;
+  assert.ok(typeof waitPayload.waitMs === "number" && Number(waitPayload.waitMs) >= 25);
+  assert.ok(typeof waitPayload.routeWaitMs === "number");
+
+  bridge.close();
 });
