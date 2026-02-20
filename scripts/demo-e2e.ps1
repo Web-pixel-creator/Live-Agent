@@ -1003,6 +1003,51 @@ try {
     }
   } | Out-Null
 
+  Invoke-Scenario -Name "runtime.metrics.endpoints" -Action {
+    $services = @(
+      @{ name = "realtime-gateway"; baseUrl = "http://localhost:8080" },
+      @{ name = "api-backend"; baseUrl = "http://localhost:8081" },
+      @{ name = "orchestrator"; baseUrl = "http://localhost:8082" }
+    )
+
+    $results = @()
+    foreach ($service in $services) {
+      $baseUrl = [string]$service.baseUrl
+      $serviceName = [string]$service.name
+
+      $response = Invoke-JsonRequest -Method GET -Uri ($baseUrl + "/metrics") -TimeoutSec $RequestTimeoutSec
+      $ok = [bool](Get-FieldValue -Object $response -Path @("ok"))
+      Assert-Condition -Condition $ok -Message ("Metrics endpoint failed for " + $serviceName)
+
+      $totalCount = [int](Get-FieldValue -Object $response -Path @("metrics", "totalCount"))
+      Assert-Condition -Condition ($totalCount -ge 1) -Message ("Metrics totalCount must be >= 1 for " + $serviceName)
+
+      $errorRate = [double](Get-FieldValue -Object $response -Path @("metrics", "errorRatePct"))
+      Assert-Condition -Condition ($errorRate -ge 0) -Message ("Metrics errorRatePct must be >= 0 for " + $serviceName)
+
+      $p95 = [double](Get-FieldValue -Object $response -Path @("metrics", "latencyMs", "p95"))
+      Assert-Condition -Condition ($p95 -ge 0) -Message ("Metrics latency p95 must be >= 0 for " + $serviceName)
+
+      $operations = @(Get-FieldValue -Object $response -Path @("metrics", "operations"))
+      Assert-Condition -Condition ($operations.Count -ge 1) -Message ("Metrics operations list is empty for " + $serviceName)
+
+      $results += [ordered]@{
+        name = $serviceName
+        totalCount = $totalCount
+        errorRatePct = $errorRate
+        p95Ms = $p95
+        operations = $operations.Count
+      }
+    }
+
+    $maxP95 = ($results | ForEach-Object { [double]$_.p95Ms } | Measure-Object -Maximum).Maximum
+    return [ordered]@{
+      services = $results
+      count = $results.Count
+      maxP95Ms = [int]$maxP95
+    }
+  } | Out-Null
+
   $failedScenarios = @($script:ScenarioResults | Where-Object { $_.status -ne "passed" })
   $overallSuccess = ($failedScenarios.Count -eq 0)
 } catch {
@@ -1028,6 +1073,7 @@ $gatewayWsInvalidData = Get-ScenarioData -Name "gateway.websocket.invalid_envelo
 $approvalsListData = Get-ScenarioData -Name "api.approvals.list"
 $approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.invalid_intent"
 $runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
+$runtimeMetricsData = Get-ScenarioData -Name "runtime.metrics.endpoints"
 
 $summary = [ordered]@{
   generatedAt = (Get-Date).ToString("o")
@@ -1070,6 +1116,8 @@ $summary = [ordered]@{
     approvalsRecorded = if ($null -ne $approvalsListData) { $approvalsListData.total } else { $null }
     approvalsInvalidIntentStatusCode = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.statusCode } else { $null }
     lifecycleEndpointsValidated = if ($null -ne $runtimeLifecycleData) { $true } else { $false }
+    metricsEndpointsValidated = if ($null -ne $runtimeMetricsData) { $true } else { $false }
+    metricsServicesValidated = if ($null -ne $runtimeMetricsData) { $runtimeMetricsData.count } else { $null }
   }
   artifacts = [ordered]@{
     summaryJsonPath = $resolvedOutputPath

@@ -139,6 +139,7 @@ async function main() {
         "api.approvals.list",
         "api.approvals.resume.invalid_intent",
         "runtime.lifecycle.endpoints",
+        "runtime.metrics.endpoints",
       ].join(","),
   );
 
@@ -257,6 +258,18 @@ async function main() {
     kpis.lifecycleEndpointsValidated === true,
     kpis.lifecycleEndpointsValidated,
     true,
+  );
+  addCheck(
+    "kpi.metricsEndpointsValidated",
+    kpis.metricsEndpointsValidated === true,
+    kpis.metricsEndpointsValidated,
+    true,
+  );
+  addCheck(
+    "kpi.metricsServicesValidated",
+    toNumber(kpis.metricsServicesValidated) >= 3,
+    kpis.metricsServicesValidated,
+    ">= 3",
   );
 
   const success = violations.length === 0;

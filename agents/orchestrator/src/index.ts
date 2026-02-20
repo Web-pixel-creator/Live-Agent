@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
-import { createEnvelope } from "@mla/contracts";
+import { createEnvelope, RollingMetrics } from "@mla/contracts";
 import { orchestrate } from "./orchestrate.js";
 import { getFirestoreState } from "./services/firestore.js";
 
@@ -11,6 +11,9 @@ const startedAtMs = Date.now();
 let draining = false;
 let lastWarmupAt: string | null = new Date().toISOString();
 let lastDrainAt: string | null = null;
+const metrics = new RollingMetrics({
+  maxSamplesPerBucket: Number(process.env.ORCHESTRATOR_METRICS_MAX_SAMPLES ?? 2000),
+});
 
 async function readBody(req: IncomingMessage): Promise<string> {
   const chunks: Buffer[] = [];
@@ -27,6 +30,7 @@ function writeJson(res: ServerResponse, statusCode: number, body: unknown): void
 }
 
 function runtimeState(): Record<string, unknown> {
+  const summary = metrics.snapshot({ topOperations: 10 });
   return {
     state: draining ? "draining" : "ready",
     ready: !draining,
@@ -36,11 +40,22 @@ function runtimeState(): Record<string, unknown> {
     lastWarmupAt,
     lastDrainAt,
     version: serviceVersion,
+    metrics: {
+      totalCount: summary.totalCount,
+      totalErrors: summary.totalErrors,
+      errorRatePct: summary.errorRatePct,
+      p95Ms: summary.latencyMs.p95,
+    },
   };
 }
 
 export const server = createServer(async (req, res) => {
+  const startedAt = Date.now();
   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+  const operation = `${req.method ?? "UNKNOWN"} ${url.pathname}`;
+  res.once("finish", () => {
+    metrics.record(operation, Date.now() - startedAt, res.statusCode < 500);
+  });
 
   if (url.pathname === "/healthz" && req.method === "GET") {
     writeJson(res, 200, {
@@ -68,6 +83,15 @@ export const server = createServer(async (req, res) => {
       ok: true,
       service: serviceName,
       version: serviceVersion,
+    });
+    return;
+  }
+
+  if (url.pathname === "/metrics" && req.method === "GET") {
+    writeJson(res, 200, {
+      ok: true,
+      service: serviceName,
+      metrics: metrics.snapshot({ topOperations: 50 }),
     });
     return;
   }

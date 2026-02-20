@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
 import {
   createEnvelope,
+  RollingMetrics,
   safeParseEnvelope,
   type EventEnvelope,
   type OrchestratorRequest,
@@ -24,6 +25,9 @@ const taskRegistry = new TaskRegistry({
   completedRetentionMs: parsePositiveInt(process.env.GATEWAY_TASK_COMPLETED_RETENTION_MS, 5 * 60 * 1000),
   maxEntries: parsePositiveInt(process.env.GATEWAY_TASK_MAX_ENTRIES, 1000),
 });
+const metrics = new RollingMetrics({
+  maxSamplesPerBucket: Number(process.env.GATEWAY_METRICS_MAX_SAMPLES ?? 2000),
+});
 
 function parsePositiveInt(raw: string | undefined, fallback: number): number {
   if (!raw) {
@@ -34,6 +38,13 @@ function parsePositiveInt(raw: string | undefined, fallback: number): number {
     return fallback;
   }
   return Math.floor(parsed);
+}
+
+function normalizeHttpPath(pathname: string): string {
+  if (pathname.startsWith("/tasks/")) {
+    return "/tasks/:taskId";
+  }
+  return pathname;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -133,6 +144,7 @@ function attachTaskToResponse(response: OrchestratorResponse, task: TaskRecord):
 }
 
 function runtimeState(): Record<string, unknown> {
+  const summary = metrics.snapshot({ topOperations: 10 });
   return {
     state: draining ? "draining" : "ready",
     ready: !draining,
@@ -143,11 +155,22 @@ function runtimeState(): Record<string, unknown> {
     lastWarmupAt,
     lastDrainAt,
     version: serviceVersion,
+    metrics: {
+      totalCount: summary.totalCount,
+      totalErrors: summary.totalErrors,
+      errorRatePct: summary.errorRatePct,
+      p95Ms: summary.latencyMs.p95,
+    },
   };
 }
 
 const server = createServer((req, res) => {
+  const startedAt = Date.now();
   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+  const operation = `${req.method ?? "UNKNOWN"} ${normalizeHttpPath(url.pathname)}`;
+  res.once("finish", () => {
+    metrics.record(operation, Date.now() - startedAt, res.statusCode < 500);
+  });
 
   if (url.pathname === "/healthz" && req.method === "GET") {
     res.statusCode = 200;
@@ -183,6 +206,19 @@ const server = createServer((req, res) => {
         ok: true,
         service: serviceName,
         version: serviceVersion,
+      }),
+    );
+    return;
+  }
+
+  if (url.pathname === "/metrics" && req.method === "GET") {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        ok: true,
+        service: serviceName,
+        metrics: metrics.snapshot({ topOperations: 50 }),
       }),
     );
     return;
@@ -273,6 +309,7 @@ const wss = new WebSocketServer({ server, path: "/realtime" });
 
 wss.on("connection", (ws) => {
   if (draining) {
+    metrics.record("ws.connection", 0, false);
     ws.send(
       JSON.stringify(
         createEnvelope({
@@ -290,6 +327,7 @@ wss.on("connection", (ws) => {
     ws.close(1013, "gateway draining");
     return;
   }
+  metrics.record("ws.connection", 0, true);
 
   let currentSessionId = "system";
   let liveBridge: LiveApiBridge | null = null;
@@ -324,8 +362,10 @@ wss.on("connection", (ws) => {
   );
 
   ws.on("message", async (raw) => {
+    const messageStartedAt = Date.now();
     const parsedEnvelope = safeParseEnvelope(raw.toString("utf8"));
     if (!parsedEnvelope) {
+      metrics.record("ws.message.invalid_envelope", Date.now() - messageStartedAt, false);
       const traceId = randomUUID();
       sendEvent(
         createEnvelope({
@@ -348,6 +388,7 @@ wss.on("connection", (ws) => {
     currentSessionId = parsed.sessionId;
 
     if (draining) {
+      metrics.record("ws.message.draining", Date.now() - messageStartedAt, false);
       sendEvent(
         createEnvelope({
           sessionId: parsed.sessionId,
@@ -365,11 +406,13 @@ wss.on("connection", (ws) => {
     }
 
     let trackedTaskOnError: TaskRecord | null = null;
+    let orchestratorCallStartedAt: number | null = null;
 
     try {
       if (parsed.type.startsWith("live.")) {
         const bridge = ensureLiveBridge(parsed.sessionId);
         await bridge.forwardFromClient(parsed);
+        metrics.record("ws.message.live", Date.now() - messageStartedAt, true);
         return;
       }
 
@@ -421,11 +464,17 @@ wss.on("connection", (ws) => {
         }
       }
 
+      orchestratorCallStartedAt = Date.now();
       let response = await sendToOrchestrator(config.orchestratorUrl, request, {
         timeoutMs: config.orchestratorTimeoutMs,
         maxRetries: config.orchestratorMaxRetries,
         retryBackoffMs: config.orchestratorRetryBackoffMs,
       });
+      metrics.record(
+        "ws.orchestrator_request",
+        Date.now() - (orchestratorCallStartedAt ?? messageStartedAt),
+        true,
+      );
 
       if (trackedTask) {
         const responseStatus = extractResponseStatus(response);
@@ -503,7 +552,12 @@ wss.on("connection", (ws) => {
       }
 
       sendEvent(response);
+      metrics.record("ws.message.orchestrator", Date.now() - messageStartedAt, true);
     } catch (error) {
+      if (orchestratorCallStartedAt !== null) {
+        metrics.record("ws.orchestrator_request", Date.now() - orchestratorCallStartedAt, false);
+      }
+      metrics.record("ws.message.orchestrator", Date.now() - messageStartedAt, false);
       if (trackedTaskOnError) {
         const failedTask = taskRegistry.updateTask(trackedTaskOnError.taskId, {
           status: "failed",
@@ -542,6 +596,7 @@ wss.on("connection", (ws) => {
   });
 
   ws.on("close", () => {
+    metrics.record("ws.connection.closed", 0, true);
     liveBridge?.close();
     liveBridge = null;
   });

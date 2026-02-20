@@ -1,6 +1,11 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
-import { createEnvelope, type OrchestratorRequest, type OrchestratorResponse } from "@mla/contracts";
+import {
+  createEnvelope,
+  RollingMetrics,
+  type OrchestratorRequest,
+  type OrchestratorResponse,
+} from "@mla/contracts";
 import {
   type ApprovalDecision,
   createSession,
@@ -30,6 +35,9 @@ const startedAtMs = Date.now();
 let draining = false;
 let lastWarmupAt: string | null = new Date().toISOString();
 let lastDrainAt: string | null = null;
+const metrics = new RollingMetrics({
+  maxSamplesPerBucket: Number(process.env.API_METRICS_MAX_SAMPLES ?? 2000),
+});
 
 function writeJson(res: ServerResponse, statusCode: number, body: unknown): void {
   res.statusCode = statusCode;
@@ -72,7 +80,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function normalizeOperationPath(pathname: string): string {
+  if (pathname.startsWith("/v1/sessions/")) {
+    return "/v1/sessions/:id";
+  }
+  return pathname;
+}
+
 function runtimeState(): Record<string, unknown> {
+  const summary = metrics.snapshot({ topOperations: 10 });
   return {
     state: draining ? "draining" : "ready",
     ready: !draining,
@@ -82,6 +98,12 @@ function runtimeState(): Record<string, unknown> {
     lastWarmupAt,
     lastDrainAt,
     version: serviceVersion,
+    metrics: {
+      totalCount: summary.totalCount,
+      totalErrors: summary.totalErrors,
+      errorRatePct: summary.errorRatePct,
+      p95Ms: summary.latencyMs.p95,
+    },
   };
 }
 
@@ -110,6 +132,7 @@ class NonRetriableRequestError extends Error {
 }
 
 async function sendToOrchestrator(request: OrchestratorRequest): Promise<OrchestratorResponse> {
+  const startedAt = Date.now();
   let lastError: Error | null = null;
   const totalAttempts = orchestratorMaxRetries + 1;
 
@@ -126,12 +149,15 @@ async function sendToOrchestrator(request: OrchestratorRequest): Promise<Orchest
       });
 
       if (response.ok) {
-        return (await response.json()) as OrchestratorResponse;
+        const parsed = (await response.json()) as OrchestratorResponse;
+        metrics.record("internal.orchestrator_call", Date.now() - startedAt, true);
+        return parsed;
       }
 
       const details = await readErrorDetails(response);
       const retriable = shouldRetryStatus(response.status) && attempt < orchestratorMaxRetries;
       if (!retriable) {
+        metrics.record("internal.orchestrator_call", Date.now() - startedAt, false);
         throw new NonRetriableRequestError(
           details.length > 0
             ? `orchestrator request failed: ${response.status} ${details}`
@@ -151,8 +177,10 @@ async function sendToOrchestrator(request: OrchestratorRequest): Promise<Orchest
       const retriable = attempt < orchestratorMaxRetries;
       if (!retriable) {
         if (isAbortError) {
+          metrics.record("internal.orchestrator_call", Date.now() - startedAt, false);
           throw new Error(`orchestrator request timed out after ${orchestratorTimeoutMs}ms`);
         }
+        metrics.record("internal.orchestrator_call", Date.now() - startedAt, false);
         throw error instanceof Error ? error : new Error("orchestrator request failed");
       }
       lastError = isAbortError
@@ -169,12 +197,20 @@ async function sendToOrchestrator(request: OrchestratorRequest): Promise<Orchest
     }
   }
 
+  metrics.record("internal.orchestrator_call", Date.now() - startedAt, false);
   throw lastError ?? new Error("orchestrator request failed");
 }
 
 export const server = createServer(async (req, res) => {
+  const startedAt = Date.now();
+  let operation = `${req.method ?? "UNKNOWN"} /unknown`;
+  res.once("finish", () => {
+    metrics.record(operation, Date.now() - startedAt, res.statusCode < 500);
+  });
+
   try {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+    operation = `${req.method ?? "UNKNOWN"} ${normalizeOperationPath(url.pathname)}`;
 
     if (url.pathname === "/healthz" && req.method === "GET") {
       writeJson(res, 200, {
@@ -202,6 +238,15 @@ export const server = createServer(async (req, res) => {
         ok: true,
         service: serviceName,
         version: serviceVersion,
+      });
+      return;
+    }
+
+    if (url.pathname === "/metrics" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        metrics: metrics.snapshot({ topOperations: 50 }),
       });
       return;
     }

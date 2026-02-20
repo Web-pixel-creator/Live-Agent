@@ -76,7 +76,7 @@ Open `http://localhost:3000`.
 
 ## Automated Demo E2E
 
-Run a full judge-oriented smoke scenario (translation + negotiation + storyteller + UI approval/reject/approve + delegation + WebSocket gateway roundtrip + WebSocket task-progress contract check + WebSocket interruption signal contract check + WebSocket invalid-envelope error contract check + approvals resume invalid-intent REST contract check + lifecycle status/version/warmup/drain checks):
+Run a full judge-oriented smoke scenario (translation + negotiation + storyteller + UI approval/reject/approve + delegation + WebSocket gateway roundtrip + WebSocket task-progress contract check + WebSocket interruption signal contract check + WebSocket invalid-envelope error contract check + approvals resume invalid-intent REST contract check + lifecycle status/version/warmup/drain checks + runtime metrics endpoint checks):
 
 ```powershell
 npm run demo:e2e
@@ -237,6 +237,15 @@ Useful flags:
   - `POST /warmup`
 - `POST /drain` switches service to draining mode (rejects new business requests).
 - `POST /warmup` returns service back to ready mode.
+
+## Metrics Endpoints
+
+- Implemented on `realtime-gateway`, `api-backend`, and `orchestrator`:
+  - `GET /metrics`
+- Metrics include:
+  - request counts and error rate
+  - latency summary (`min/max/avg/p50/p95/p99`)
+  - per-operation breakdown (top operations)
 
 ## Task Registry Endpoints
 
