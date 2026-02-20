@@ -103,6 +103,8 @@ async function main() {
 
   const maxLiveP95Ms = toNumber(args.maxLiveP95Ms, 1800);
   const maxUiP95Ms = toNumber(args.maxUiP95Ms, 25000);
+  const maxGatewayReplayP95Ms = toNumber(args.maxGatewayReplayP95Ms, 9000);
+  const maxGatewayReplayErrorRatePct = toNumber(args.maxGatewayReplayErrorRatePct, 20);
   const maxAggregateErrorRatePct = toNumber(args.maxAggregateErrorRatePct, 10);
   const requiredUiAdapterMode = typeof args.requiredUiAdapterMode === "string" ? args.requiredUiAdapterMode : "remote_http";
 
@@ -115,6 +117,7 @@ async function main() {
 
   const live = findWorkload(summary, "live_voice_translation");
   const ui = findWorkload(summary, "ui_navigation_execution");
+  const gatewayReplay = findWorkload(summary, "gateway_ws_request_replay");
   const aggregate = isObject(summary.aggregate) ? summary.aggregate : {};
 
   const checks = [];
@@ -130,6 +133,12 @@ async function main() {
   addCheck("summary.success", summary.success === true, summary.success, true);
   addCheck("workload.live.exists", live !== null, live ? "present" : "missing", "present");
   addCheck("workload.ui.exists", ui !== null, ui ? "present" : "missing", "present");
+  addCheck(
+    "workload.gateway_replay.exists",
+    gatewayReplay !== null,
+    gatewayReplay ? "present" : "missing",
+    "present",
+  );
 
   addCheck(
     "workload.live.p95",
@@ -142,6 +151,18 @@ async function main() {
     ui !== null && toNumber(ui?.latencyMs?.p95) <= maxUiP95Ms,
     ui?.latencyMs?.p95,
     `<= ${maxUiP95Ms}`,
+  );
+  addCheck(
+    "workload.gateway_replay.p95",
+    gatewayReplay !== null && toNumber(gatewayReplay?.latencyMs?.p95) <= maxGatewayReplayP95Ms,
+    gatewayReplay?.latencyMs?.p95,
+    `<= ${maxGatewayReplayP95Ms}`,
+  );
+  addCheck(
+    "workload.gateway_replay.errorRatePct",
+    gatewayReplay !== null && toNumber(gatewayReplay?.errorRatePct) <= maxGatewayReplayErrorRatePct,
+    gatewayReplay?.errorRatePct,
+    `<= ${maxGatewayReplayErrorRatePct}`,
   );
   addCheck(
     "aggregate.errorRatePct",
@@ -160,6 +181,24 @@ async function main() {
     toNumber(ui?.success) >= 1,
     ui?.success,
     ">= 1",
+  );
+  addCheck(
+    "workload.gateway_replay.success",
+    toNumber(gatewayReplay?.success) >= 1,
+    gatewayReplay?.success,
+    ">= 1",
+  );
+  addCheck(
+    "workload.gateway_replay.contract.responseIdReusedAll",
+    gatewayReplay?.contract?.responseIdReusedAll === true,
+    gatewayReplay?.contract?.responseIdReusedAll,
+    true,
+  );
+  addCheck(
+    "workload.gateway_replay.contract.taskStartedExactlyOneAll",
+    gatewayReplay?.contract?.taskStartedExactlyOneAll === true,
+    gatewayReplay?.contract?.taskStartedExactlyOneAll,
+    true,
   );
   if (requiredUiAdapterMode.trim().length > 0) {
     const adapterCount = toNumber(ui?.adapterModes?.[requiredUiAdapterMode], 0);
@@ -192,6 +231,8 @@ async function main() {
     thresholds: {
       maxLiveP95Ms,
       maxUiP95Ms,
+      maxGatewayReplayP95Ms,
+      maxGatewayReplayErrorRatePct,
       maxAggregateErrorRatePct,
       requiredUiAdapterMode,
     },

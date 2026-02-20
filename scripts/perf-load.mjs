@@ -275,6 +275,8 @@ function buildMarkdown(summary) {
   lines.push("| --- | --- |");
   lines.push(`| maxLiveP95Ms | ${toSafeString(summary.thresholds?.maxLiveP95Ms)} |`);
   lines.push(`| maxUiP95Ms | ${toSafeString(summary.thresholds?.maxUiP95Ms)} |`);
+  lines.push(`| maxGatewayReplayP95Ms | ${toSafeString(summary.thresholds?.maxGatewayReplayP95Ms)} |`);
+  lines.push(`| maxGatewayReplayErrorRatePct | ${toSafeString(summary.thresholds?.maxGatewayReplayErrorRatePct)} |`);
   lines.push(`| maxAggregateErrorRatePct | ${toSafeString(summary.thresholds?.maxAggregateErrorRatePct)} |`);
   lines.push("");
   lines.push("## Workloads");
@@ -458,6 +460,91 @@ async function runUiNavigationLoad(options) {
   return summary;
 }
 
+async function runGatewayReplayLoad(options) {
+  const scriptPath = resolve("scripts/gateway-ws-replay-check.mjs");
+  const results = await runWithConcurrency(
+    options.gatewayReplayIterations,
+    options.gatewayReplayConcurrency,
+    async (iteration) => {
+      const sessionId = `perf-gateway-replay-session-${iteration}-${randomUUID()}`;
+      const runId = `perf-gateway-replay-run-${iteration}-${randomUUID()}`;
+      const userId = `perf-gateway-user-${iteration % 5}`;
+      const idempotencyKey = `idem-${runId}`;
+      const startedAt = Date.now();
+      try {
+        const payload = await runNodeJsonCommand(
+          [
+            scriptPath,
+            "--url",
+            options.gatewayWsUrl,
+            "--sessionId",
+            sessionId,
+            "--runId",
+            runId,
+            "--userId",
+            userId,
+            "--idempotencyKey",
+            idempotencyKey,
+            "--timeoutMs",
+            String(options.gatewayReplayTimeoutMs),
+          ],
+          options.gatewayReplayTimeoutMs,
+        );
+        const replayEventCount = toFiniteNumber(
+          isObject(payload) ? payload.replayEventCount : null,
+          0,
+        );
+        const taskStartedCount = toPositiveInt(
+          isObject(payload) ? payload.taskStartedCount : null,
+          0,
+        );
+        const responseIdReused = isObject(payload) ? payload.responseIdReused === true : false;
+        const ok =
+          isObject(payload) &&
+          payload.ok === true &&
+          replayEventCount >= 1 &&
+          taskStartedCount === 1 &&
+          responseIdReused;
+        return {
+          ok,
+          latencyMs: ok ? Date.now() - startedAt : null,
+          iteration,
+          replayEventCount,
+          taskStartedCount,
+          responseIdReused,
+          error: ok ? null : "replay contract validation failed",
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          latencyMs: null,
+          iteration,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    },
+  );
+
+  const summary = summarizeWorkload("gateway_ws_request_replay", results);
+  const successful = results.filter((item) => item.ok);
+  let replayEventMin = null;
+  for (const item of successful) {
+    const count = toFiniteNumber(item.replayEventCount, Number.NaN);
+    if (!Number.isFinite(count)) {
+      continue;
+    }
+    if (replayEventMin === null || count < replayEventMin) {
+      replayEventMin = count;
+    }
+  }
+  summary.contract = {
+    replayEventMin,
+    responseIdReusedAll: successful.every((item) => item.responseIdReused === true),
+    taskStartedExactlyOneAll: successful.every((item) => item.taskStartedCount === 1),
+  };
+  return summary;
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
 
@@ -474,21 +561,28 @@ async function main() {
     liveTimeoutMs: toPositiveInt(args.liveTimeoutMs, 12000),
     uiIterations: toPositiveInt(args.uiIterations, 20),
     uiConcurrency: toPositiveInt(args.uiConcurrency, 4),
+    gatewayReplayIterations: toPositiveInt(args.gatewayReplayIterations, 8),
+    gatewayReplayConcurrency: toPositiveInt(args.gatewayReplayConcurrency, 2),
+    gatewayReplayTimeoutMs: toPositiveInt(args.gatewayReplayTimeoutMs, 18000),
     maxLiveP95Ms: toPositiveInt(args.maxLiveP95Ms, 1800),
     maxUiP95Ms: toPositiveInt(args.maxUiP95Ms, 25000),
+    maxGatewayReplayP95Ms: toPositiveInt(args.maxGatewayReplayP95Ms, 9000),
+    maxGatewayReplayErrorRatePct: toFiniteNumber(args.maxGatewayReplayErrorRatePct, 20),
     maxAggregateErrorRatePct: toFiniteNumber(args.maxAggregateErrorRatePct, 10),
     requiredUiAdapterMode: args.requiredUiAdapterMode ?? "remote_http",
     skipHealthChecks: args.skipHealthChecks === "true",
   };
 
   if (!options.skipHealthChecks) {
+    await ensureHealth(options.gatewayBaseUrl, "realtime-gateway");
     await ensureHealth(options.apiBaseUrl, "api-backend");
     await ensureHealth(options.orchestratorBaseUrl, "orchestrator");
   }
 
   const liveWorkload = await runLiveVoiceLoad(options);
   const uiWorkload = await runUiNavigationLoad(options);
-  const workloads = [liveWorkload, uiWorkload];
+  const gatewayReplayWorkload = await runGatewayReplayLoad(options);
+  const workloads = [liveWorkload, uiWorkload, gatewayReplayWorkload];
 
   const aggregateTotal = workloads.reduce((acc, workload) => acc + workload.total, 0);
   const aggregateFailed = workloads.reduce((acc, workload) => acc + workload.failed, 0);
@@ -515,6 +609,23 @@ async function main() {
   addCheck(
     checks,
     violations,
+    "gateway_ws_request_replay.p95",
+    Number.isFinite(gatewayReplayWorkload.latencyMs.p95) &&
+      gatewayReplayWorkload.latencyMs.p95 <= options.maxGatewayReplayP95Ms,
+    gatewayReplayWorkload.latencyMs.p95,
+    `<= ${options.maxGatewayReplayP95Ms}`,
+  );
+  addCheck(
+    checks,
+    violations,
+    "gateway_ws_request_replay.errorRatePct",
+    gatewayReplayWorkload.errorRatePct <= options.maxGatewayReplayErrorRatePct,
+    gatewayReplayWorkload.errorRatePct,
+    `<= ${options.maxGatewayReplayErrorRatePct}`,
+  );
+  addCheck(
+    checks,
+    violations,
     "aggregate.errorRatePct",
     aggregateErrorRatePct <= options.maxAggregateErrorRatePct,
     aggregateErrorRatePct,
@@ -527,6 +638,30 @@ async function main() {
     liveWorkload.success >= 1,
     liveWorkload.success,
     ">= 1",
+  );
+  addCheck(
+    checks,
+    violations,
+    "gateway_ws_request_replay.successCount",
+    gatewayReplayWorkload.success >= 1,
+    gatewayReplayWorkload.success,
+    ">= 1",
+  );
+  addCheck(
+    checks,
+    violations,
+    "gateway_ws_request_replay.contract.responseIdReusedAll",
+    gatewayReplayWorkload.contract?.responseIdReusedAll === true,
+    gatewayReplayWorkload.contract?.responseIdReusedAll,
+    true,
+  );
+  addCheck(
+    checks,
+    violations,
+    "gateway_ws_request_replay.contract.taskStartedExactlyOneAll",
+    gatewayReplayWorkload.contract?.taskStartedExactlyOneAll === true,
+    gatewayReplayWorkload.contract?.taskStartedExactlyOneAll,
+    true,
   );
   addCheck(
     checks,
@@ -556,6 +691,9 @@ async function main() {
       liveConcurrency: options.liveConcurrency,
       uiIterations: options.uiIterations,
       uiConcurrency: options.uiConcurrency,
+      gatewayReplayIterations: options.gatewayReplayIterations,
+      gatewayReplayConcurrency: options.gatewayReplayConcurrency,
+      gatewayReplayTimeoutMs: options.gatewayReplayTimeoutMs,
       liveTimeoutMs: options.liveTimeoutMs,
       requiredUiAdapterMode: options.requiredUiAdapterMode,
       skipHealthChecks: options.skipHealthChecks,
@@ -563,6 +701,8 @@ async function main() {
     thresholds: {
       maxLiveP95Ms: options.maxLiveP95Ms,
       maxUiP95Ms: options.maxUiP95Ms,
+      maxGatewayReplayP95Ms: options.maxGatewayReplayP95Ms,
+      maxGatewayReplayErrorRatePct: options.maxGatewayReplayErrorRatePct,
       maxAggregateErrorRatePct: options.maxAggregateErrorRatePct,
     },
     workloads,

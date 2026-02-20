@@ -609,7 +609,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 11. The repository SHALL provide operator scripts to configure GitHub Pages source and verify public badge endpoint availability (`badge:pages:enable`, `badge:pages:check`).
 12. The repository SHALL provide scripted release operations for local quality gate execution and repository publish orchestration (`verify:release`, `repo:publish`).
 13. The repository SHALL provide a judge-facing walkthrough runbook with exact interruption checkpoints and text fallback procedure (`docs/challenge-demo-runbook.md`).
-14. The repository SHALL provide automated load/performance scripts (`scripts/perf-load.ps1`, `scripts/perf-load.mjs`, `scripts/perf-load-policy-check.mjs`) with p95/error-budget checks for live voice and UI navigation paths.
+14. The repository SHALL provide automated load/performance scripts (`scripts/perf-load.ps1`, `scripts/perf-load.mjs`, `scripts/perf-load-policy-check.mjs`) with p95/error-budget checks for live voice, UI navigation, and gateway websocket replay/dedupe paths.
 15. The orchestrator runtime SHALL expose storyteller media queue visibility (`/story/media-jobs/queue` and `storytellerMediaJobs` in `/metrics`) for operator diagnostics.
 16. The orchestrator runtime SHALL expose storyteller cache visibility and invalidation controls (`/story/cache`, `/story/cache/purge`, `storytellerCache` in `/metrics`) for deterministic asset/prompt reuse policy operations.
 17. Runtime services SHALL expose applied runtime profile metadata (`runtime.profile`) and enforce local-first guardrails that block non-dev startup.
@@ -630,7 +630,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 | Story cache + invalidation policy | R4, R5, R15 | T-208 |
 | Local-first runtime profile + guardrails | R10, R14 | T-209 |
 | Operator console + recovery actions | R13, R15 | T-210 |
-| Perf/load quality gate | R1, R6, R12, R15 | T-206 |
+| Perf/load quality gate | R1, R6, R12, R14, R15 | T-206 |
 | Borrowed-pattern hardening (post-MVP) | R10, R14, R15 | T-201..T-205 |
 | Demo frontend + controls | R1, R3, R14, R15 | T-000, T-110, T-111 |
 | Live bridge failover + channel watchdog | R1, R12, R15 | T-211 |

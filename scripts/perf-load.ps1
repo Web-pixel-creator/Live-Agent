@@ -24,10 +24,25 @@ param(
   [int]$UiConcurrency = 4,
 
   [Parameter(Mandatory = $false)]
+  [int]$GatewayReplayIterations = 8,
+
+  [Parameter(Mandatory = $false)]
+  [int]$GatewayReplayConcurrency = 2,
+
+  [Parameter(Mandatory = $false)]
+  [int]$GatewayReplayTimeoutMs = 18000,
+
+  [Parameter(Mandatory = $false)]
   [int]$MaxLiveP95Ms = 1800,
 
   [Parameter(Mandatory = $false)]
   [int]$MaxUiP95Ms = 25000,
+
+  [Parameter(Mandatory = $false)]
+  [int]$MaxGatewayReplayP95Ms = 9000,
+
+  [Parameter(Mandatory = $false)]
+  [double]$MaxGatewayReplayErrorRatePct = 20.0,
 
   [Parameter(Mandatory = $false)]
   [double]$MaxAggregateErrorRatePct = 10.0,
@@ -219,6 +234,7 @@ try {
     Start-ManagedService -Name "ui-executor" -HealthUrl "http://localhost:8090/healthz" -NodeArgs @("--import", "tsx", "apps/ui-executor/src/index.ts")
     Start-ManagedService -Name "orchestrator" -HealthUrl "http://localhost:8082/healthz" -NodeArgs @("--import", "tsx", "agents/orchestrator/src/index.ts")
     Start-ManagedService -Name "api-backend" -HealthUrl "http://localhost:8081/healthz" -NodeArgs @("--import", "tsx", "apps/api-backend/src/index.ts")
+    Start-ManagedService -Name "realtime-gateway" -HealthUrl "http://localhost:8080/healthz" -NodeArgs @("--import", "tsx", "apps/realtime-gateway/src/index.ts")
   } else {
     Write-Step "Skipping service startup by request."
   }
@@ -234,8 +250,13 @@ try {
     --liveConcurrency $LiveConcurrency `
     --uiIterations $UiIterations `
     --uiConcurrency $UiConcurrency `
+    --gatewayReplayIterations $GatewayReplayIterations `
+    --gatewayReplayConcurrency $GatewayReplayConcurrency `
+    --gatewayReplayTimeoutMs $GatewayReplayTimeoutMs `
     --maxLiveP95Ms $MaxLiveP95Ms `
     --maxUiP95Ms $MaxUiP95Ms `
+    --maxGatewayReplayP95Ms $MaxGatewayReplayP95Ms `
+    --maxGatewayReplayErrorRatePct $MaxGatewayReplayErrorRatePct `
     --maxAggregateErrorRatePct $MaxAggregateErrorRatePct `
     --requiredUiAdapterMode $RequiredUiAdapterMode `
     --skipHealthChecks true `
@@ -253,6 +274,8 @@ try {
     --jsonOutput $resolvedPolicyJsonOutputPath `
     --maxLiveP95Ms $MaxLiveP95Ms `
     --maxUiP95Ms $MaxUiP95Ms `
+    --maxGatewayReplayP95Ms $MaxGatewayReplayP95Ms `
+    --maxGatewayReplayErrorRatePct $MaxGatewayReplayErrorRatePct `
     --maxAggregateErrorRatePct $MaxAggregateErrorRatePct `
     --requiredUiAdapterMode $RequiredUiAdapterMode
   if ($LASTEXITCODE -ne 0) {

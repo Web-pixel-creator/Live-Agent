@@ -148,7 +148,7 @@ The script writes a structured report to:
 
 ## Performance Load Suite
 
-Run load profile for live-agent translation path and UI navigation execution:
+Run load profile for live-agent translation path, UI navigation execution, and gateway WebSocket replay/dedupe contract:
 
 ```powershell
 npm run perf:load
@@ -182,8 +182,8 @@ Default artifacts:
 Example with custom thresholds:
 
 ```powershell
-node ./scripts/perf-load.mjs --liveIterations 30 --liveConcurrency 6 --uiIterations 30 --uiConcurrency 6 --maxLiveP95Ms 1800 --maxUiP95Ms 25000 --maxAggregateErrorRatePct 10
-node ./scripts/perf-load-policy-check.mjs --input ./artifacts/perf-load/summary.json --maxLiveP95Ms 1800 --maxUiP95Ms 25000 --maxAggregateErrorRatePct 10 --requiredUiAdapterMode remote_http
+node ./scripts/perf-load.mjs --liveIterations 30 --liveConcurrency 6 --uiIterations 30 --uiConcurrency 6 --gatewayReplayIterations 12 --gatewayReplayConcurrency 3 --maxLiveP95Ms 1800 --maxUiP95Ms 25000 --maxGatewayReplayP95Ms 9000 --maxGatewayReplayErrorRatePct 20 --maxAggregateErrorRatePct 10
+node ./scripts/perf-load-policy-check.mjs --input ./artifacts/perf-load/summary.json --maxLiveP95Ms 1800 --maxUiP95Ms 25000 --maxGatewayReplayP95Ms 9000 --maxGatewayReplayErrorRatePct 20 --maxAggregateErrorRatePct 10 --requiredUiAdapterMode remote_http
 ```
 
 ## Story Media Worker Runtime
