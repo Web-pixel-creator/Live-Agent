@@ -96,6 +96,11 @@
 | T-208 | Добавить детерминированный кэш для story assets/prompt variants и policy invalidation | P1 | 0.5 week | T-102, T-103, T-207 | R4, R5, R15 | Повторные запросы дают cache-hit, при смене model/version кэш инвалидируется консистентно |
 | T-209 | Добавить local-first dev profile (non-production) для офлайн-итераций | P1 | 0.5 week | T-011, T-014 | R10, R14 | Отдельный dev profile существует, отключен policy в prod/staging и не влияет на challenge baseline |
 | T-210 | Собрать operator console (active tasks, approval queue, health summary, cancel/retry/failover) | P1 | 0.5 week | T-205, T-010, T-011 | R10, R13, R15 | Оператор видит активные процессы и может выполнять recovery-действия с полным audit trail |
+| T-211 | Live bridge hardening: richer Gemini setup + profile/auth failover + channel watchdog | P0 | 0.5 week | T-005, T-009 | R1, R12, R15 | Gateway поддерживает model/auth failover chain, расширенный setup payload, health degradation detection и recovery events |
+| T-212 | UI Navigator loop protection (tool/action loop detection + hard stop) | P0 | 0.25 week | T-106 | R6, R7, R8, R13 | Зацикливание однотипных действий детектируется sliding-window логикой, выполнение останавливается с явной диагностикой |
+| T-213 | Approval lifecycle SLA runtime (pending/approved/rejected/timeout + audit trail) | P0 | 0.5 week | T-107, T-210 | R13, R15, R16 | Approval records имеют полный жизненный цикл и SLA sweep (soft reminder + hard timeout), оператор видит audit trail |
+| T-214 | Protocol discipline pass: ws-protocol doc + MVP transport sync in specs | P0 | 0.25 week | T-014 | R12, R14, R15 | Добавлен единый `docs/ws-protocol.md`; design/requirements синхронизированы с WebSocket-only MVP |
+| T-215 | Targeted unit-pack for bridge/orchestrator/contracts | P0 | 0.5 week | T-211, T-212, T-213, T-214 | R14, R15 | Критические ветки покрыты unit-тестами, e2e остаётся primary release gate |
 
 ### M3 Detailed Implementation Checklist (T-207..T-210)
 
@@ -136,6 +141,10 @@
 4. T-004 -> T-101 -> T-102 -> T-104 -> T-112
 5. T-004 -> T-105 -> T-106 -> T-107
 6. T-106 + T-104 -> T-109 -> T-110 -> T-111
+
+## Current Quality Sprint Path
+
+1. T-211 -> T-212 -> T-213 -> T-214 -> T-215
 
 ## Suggested Solo Execution (2-week MVP)
 

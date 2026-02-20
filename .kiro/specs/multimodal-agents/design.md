@@ -31,7 +31,7 @@
 
 ```mermaid
 flowchart LR
-    U[User Web/Mobile Client] --> FE[Frontend: WebRTC/WebSocket UI]
+    U[User Web/Mobile Client] --> FE[Frontend: WebSocket UI (MVP)]
     FE --> GW[Realtime Gateway Service]
     GW --> ORCH[ADK Orchestrator]
 
@@ -54,8 +54,13 @@ flowchart LR
 
     ORCH --> FS[(Firestore)]
     GW --> LOG[Cloud Logging/Monitoring]
-    ORCH --> LOG
+ORCH --> LOG
 ```
+
+MVP Transport Baseline
+
+1. WebSocket is the only required transport in MVP.
+2. WebRTC remains a V2 enhancement and is intentionally excluded from judged demo critical path.
 
 ## Runtime Components
 
@@ -77,7 +82,7 @@ Interfaces:
 
 Responsibilities:
 
-1. Терминирование клиентских WebSocket/WebRTC сессий.
+1. Терминирование клиентских WebSocket сессий (WebRTC - deferred to V2).
 2. Session auth, rate limits, reconnect protocol.
 3. Маршрутизация событий в ADK Orchestrator.
 4. Backpressure control и stale frame dropping.
@@ -604,6 +609,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 16. The orchestrator runtime SHALL expose storyteller cache visibility and invalidation controls (`/story/cache`, `/story/cache/purge`, `storytellerCache` in `/metrics`) for deterministic asset/prompt reuse policy operations.
 17. Runtime services SHALL expose applied runtime profile metadata (`runtime.profile`) and enforce local-first guardrails that block non-dev startup.
 18. The API backend SHALL expose operator console endpoints (`/v1/operator/summary`, `/v1/operator/actions`) with role-gated recovery controls and cross-service status aggregation.
+19. The repository SHALL define a single authoritative WebSocket protocol and error taxonomy document for frontend/gateway integration (`docs/ws-protocol.md`).
 
 ## Traceability Matrix
 
@@ -622,3 +628,6 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 | Perf/load quality gate | R1, R6, R12, R15 | T-206 |
 | Borrowed-pattern hardening (post-MVP) | R10, R14, R15 | T-201..T-205 |
 | Demo frontend + controls | R1, R3, R14, R15 | T-000, T-110, T-111 |
+| Live bridge failover + channel watchdog | R1, R12, R15 | T-211 |
+| UI loop protection + approval SLA lifecycle | R6, R7, R8, R13, R15 | T-212, T-213 |
+| WS protocol discipline + targeted unit pack | R14, R15 | T-214, T-215 |

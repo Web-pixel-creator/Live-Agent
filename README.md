@@ -50,14 +50,19 @@ Open `http://localhost:3000`.
 - Live API bridge (gateway): set `LIVE_API_ENABLED=true`, `LIVE_API_WS_URL`, and auth values.
 - Live API protocol profile (gateway): set `LIVE_API_PROTOCOL=gemini` (default), `LIVE_API_AUTO_SETUP=true`, and tune `LIVE_AUDIO_MIME_TYPE` if needed.
 - Live gateway resilience tuning: configure `LIVE_CONNECT_RETRY_MS`, `LIVE_CONNECT_MAX_ATTEMPTS`, `LIVE_MAX_STALE_CHUNK_MS`.
+- Live gateway failover/health tuning: `LIVE_MODEL_FALLBACK_IDS`, `LIVE_API_FALLBACK_KEYS`, `LIVE_API_AUTH_PROFILES_JSON`, `LIVE_FAILOVER_COOLDOWN_MS`, `LIVE_HEALTH_CHECK_INTERVAL_MS`, `LIVE_HEALTH_SILENCE_MS`.
+- Live setup tuning: `LIVE_SETUP_VOICE_NAME`, `LIVE_SYSTEM_INSTRUCTION`, `LIVE_REALTIME_ACTIVITY_HANDLING`, `LIVE_ENABLE_INPUT_AUDIO_TRANSCRIPTION`, `LIVE_ENABLE_OUTPUT_AUDIO_TRANSCRIPTION`.
 - Gateway websocket binding guardrails: each message carries correlation context (`userId/sessionId/runId`), and gateway rejects bound-socket mismatch (`GATEWAY_SESSION_MISMATCH`, `GATEWAY_USER_MISMATCH`).
+- WebSocket integration contract and error taxonomy: `docs/ws-protocol.md`.
 - Gateway -> orchestrator request resilience: configure `GATEWAY_ORCHESTRATOR_TIMEOUT_MS`, `GATEWAY_ORCHESTRATOR_MAX_RETRIES`, `GATEWAY_ORCHESTRATOR_RETRY_BACKOFF_MS`.
 - API -> orchestrator request resilience: configure `API_ORCHESTRATOR_TIMEOUT_MS`, `API_ORCHESTRATOR_MAX_RETRIES`, `API_ORCHESTRATOR_RETRY_BACKOFF_MS`.
 - Live-agent Gemini text features (translation/conversation): set `GEMINI_API_KEY` (or `LIVE_AGENT_GEMINI_API_KEY`) and optionally tune `LIVE_AGENT_TRANSLATION_MODEL` / `LIVE_AGENT_CONVERSATION_MODEL`.
 - Storyteller pipeline config: set `STORYTELLER_*` envs for planner models and media mode (`STORYTELLER_MEDIA_MODE=fallback|simulated`).
 - UI Navigator planner config: set `UI_NAVIGATOR_*` envs for Computer Use-style planning, max steps, and approval keyword policy.
 - UI Navigator executor modes: `UI_NAVIGATOR_EXECUTOR_MODE=simulated|playwright_preview|remote_http`, optional `UI_NAVIGATOR_EXECUTOR_URL`, and timeout/retry controls `UI_NAVIGATOR_EXECUTOR_TIMEOUT_MS`, `UI_NAVIGATOR_EXECUTOR_MAX_RETRIES`, `UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS`.
+- UI Navigator loop guard tuning: `UI_NAVIGATOR_LOOP_DETECTION_ENABLED`, `UI_NAVIGATOR_LOOP_WINDOW_SIZE`, `UI_NAVIGATOR_LOOP_REPEAT_THRESHOLD`, `UI_NAVIGATOR_LOOP_SIMILARITY_THRESHOLD`.
 - Remote UI executor service: run `npm run dev:ui-executor`; endpoint `/execute` is used when `UI_NAVIGATOR_EXECUTOR_MODE=remote_http`.
+- Approval SLA tuning in API backend: `APPROVAL_SOFT_TIMEOUT_MS`, `APPROVAL_HARD_TIMEOUT_MS`, `APPROVAL_SWEEP_LIMIT`.
 - Local-first profile for offline iteration: set `LOCAL_FIRST_PROFILE=true` and `APP_ENV=dev` (guardrail blocks local-first in `staging/prod`). Profile details: `docs/local-first-profile.md`.
 
 6. Optional delegation demo commands (in demo frontend message box with `intent=conversation`):

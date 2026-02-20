@@ -60,9 +60,10 @@
 3. THE Live_Agent SHALL handle user interruptions natively via Live_API interruption events.
 4. THE Live_Agent SHALL stop ongoing speech playback immediately when interruption is detected.
 5. THE Live_Agent SHALL target end-to-end voice round-trip latency of <= 1.2s and SHALL keep p95 <= 1.8s under normal network conditions.
-6. THE Live_Agent SHALL maintain at least 50 turns of active context per session.
-7. THE Live_Agent SHALL preserve speaking style and emotional tone in responses when supported by the selected model.
-8. THE Live_Agent SHALL persist session metadata and conversation history in Firestore or Agent_Engine_Sessions.
+6. THE Live_Agent SHALL target interruption-stop latency <= 300ms p95 from `live.interrupt` request to playback stop signal under normal network conditions.
+7. THE Live_Agent SHALL maintain at least 50 turns of active context per session.
+8. THE Live_Agent SHALL preserve speaking style and emotional tone in responses when supported by the selected model.
+9. THE Live_Agent SHALL persist session metadata and conversation history in Firestore or Agent_Engine_Sessions.
 
 ### Requirement 2: Live Agent - Real-Time Translation
 
@@ -115,9 +116,10 @@
 3. THE Creative_Storyteller SHALL persist story state across sessions using Agent_Engine_Sessions or Firestore.
 4. THE Creative_Storyteller SHALL accept voice commands for navigation and branch selection.
 5. THE Creative_Storyteller SHALL keep text, narration, and visual timeline synchronized.
-6. THE Story_Generator SHALL use deterministic cache keys for repeated plan/branch/asset variants (prompt + model + locale + style context).
-7. THE System SHALL invalidate story cache when model/version fingerprint changes or when a manual purge token is rotated.
-8. THE System SHALL expose story cache observability and purge controls for operators (`/story/cache`, `/story/cache/purge`).
+6. THE Creative_Storyteller SHALL expose timeline sync metrics (`timelineSyncP50Ms`, `timelineSyncP95Ms`) and SHALL keep p95 drift <= 500ms across text/audio/visual checkpoints.
+7. THE Story_Generator SHALL use deterministic cache keys for repeated plan/branch/asset variants (prompt + model + locale + style context).
+8. THE System SHALL invalidate story cache when model/version fingerprint changes or when a manual purge token is rotated.
+9. THE System SHALL expose story cache observability and purge controls for operators (`/story/cache`, `/story/cache/purge`).
 
 ### Requirement 6: UI Navigator - Computer Use
 
