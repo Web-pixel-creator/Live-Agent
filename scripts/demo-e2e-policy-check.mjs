@@ -133,6 +133,7 @@ async function main() {
         "ui.approval.approve_resume",
         "multi_agent.delegation",
         "gateway.websocket.roundtrip",
+        "gateway.websocket.task_progress",
         "gateway.websocket.interrupt_signal",
         "gateway.websocket.invalid_envelope",
         "api.approvals.list",
@@ -232,6 +233,18 @@ async function main() {
     toNumber(kpis.gatewayWsRoundTripMs) <= maxGatewayWsRoundTripMs,
     kpis.gatewayWsRoundTripMs,
     `<= ${maxGatewayWsRoundTripMs}`,
+  );
+  addCheck(
+    "kpi.taskProgressEventsObserved",
+    toNumber(kpis.taskProgressEventsObserved) >= 1,
+    kpis.taskProgressEventsObserved,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.activeTasksVisible",
+    toNumber(kpis.activeTasksVisible) >= 1,
+    kpis.activeTasksVisible,
+    ">= 1",
   );
   addCheck(
     "kpi.translationProvider",

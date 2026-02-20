@@ -772,6 +772,49 @@ try {
     }
   } | Out-Null
 
+  Invoke-Scenario -Name "gateway.websocket.task_progress" -Action {
+    $runId = "demo-gateway-ws-task-" + [Guid]::NewGuid().Guid
+    $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
+    $result = Invoke-NodeJsonCommand -Args @(
+      "scripts/gateway-ws-task-progress-check.mjs",
+      "--url",
+      "ws://localhost:8080/realtime",
+      "--gatewayHttpBase",
+      "http://localhost:8080",
+      "--sessionId",
+      $sessionId,
+      "--runId",
+      $runId,
+      "--timeoutMs",
+      [string]$timeoutMs
+    )
+
+    $ok = [bool](Get-FieldValue -Object $result -Path @("ok"))
+    Assert-Condition -Condition $ok -Message "WebSocket task progress check returned ok=false."
+
+    $taskId = [string](Get-FieldValue -Object $result -Path @("taskId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($taskId)) -Message "Task progress check did not return taskId."
+
+    $taskStatus = [string](Get-FieldValue -Object $result -Path @("taskStatus"))
+    $allowedTaskStatuses = @("running", "pending_approval")
+    Assert-Condition -Condition ($allowedTaskStatuses -contains $taskStatus) -Message "Unexpected active task status."
+
+    $taskProgressCount = [int](Get-FieldValue -Object $result -Path @("taskProgressCount"))
+    Assert-Condition -Condition ($taskProgressCount -ge 1) -Message "Expected at least one task.progress event."
+
+    $activeTaskCount = [int](Get-FieldValue -Object $result -Path @("activeTaskCount"))
+    Assert-Condition -Condition ($activeTaskCount -ge 1) -Message "Expected active task list to contain at least one task."
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $result -Path @("runId"))
+      taskId = $taskId
+      taskStatus = $taskStatus
+      taskProgressCount = $taskProgressCount
+      activeTaskCount = $activeTaskCount
+      eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
+    }
+  } | Out-Null
+
   Invoke-Scenario -Name "gateway.websocket.interrupt_signal" -Action {
     $runId = "demo-gateway-ws-interrupt-" + [Guid]::NewGuid().Guid
     $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
@@ -979,6 +1022,7 @@ $storyData = Get-ScenarioData -Name "storyteller.pipeline"
 $uiApproveData = Get-ScenarioData -Name "ui.approval.approve_resume"
 $delegationData = Get-ScenarioData -Name "multi_agent.delegation"
 $gatewayWsData = Get-ScenarioData -Name "gateway.websocket.roundtrip"
+$gatewayWsTaskData = Get-ScenarioData -Name "gateway.websocket.task_progress"
 $gatewayWsInterruptData = Get-ScenarioData -Name "gateway.websocket.interrupt_signal"
 $gatewayWsInvalidData = Get-ScenarioData -Name "gateway.websocket.invalid_envelope"
 $approvalsListData = Get-ScenarioData -Name "api.approvals.list"
@@ -1018,6 +1062,8 @@ $summary = [ordered]@{
     delegatedRoute = if ($null -ne $delegationData) { $delegationData.delegatedRoute } else { $null }
     gatewayWsRoundTripMs = if ($null -ne $gatewayWsData) { $gatewayWsData.roundTripMs } else { $null }
     gatewayWsResponseStatus = if ($null -ne $gatewayWsData) { $gatewayWsData.responseStatus } else { $null }
+    taskProgressEventsObserved = if ($null -ne $gatewayWsTaskData) { $gatewayWsTaskData.taskProgressCount } else { $null }
+    activeTasksVisible = if ($null -ne $gatewayWsTaskData) { $gatewayWsTaskData.activeTaskCount } else { $null }
     gatewayInterruptEventType = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptEventType } else { $null }
     gatewayInterruptHandled = if ($null -ne $gatewayWsInterruptData) { $true } else { $false }
     gatewayWsInvalidEnvelopeCode = if ($null -ne $gatewayWsInvalidData) { $gatewayWsInvalidData.code } else { $null }

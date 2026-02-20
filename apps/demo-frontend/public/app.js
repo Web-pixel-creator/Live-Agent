@@ -13,6 +13,7 @@ const state = {
   micStream: null,
   micProcessor: null,
   micGain: null,
+  taskRecords: new Map(),
 };
 
 const el = {
@@ -41,6 +42,8 @@ const el = {
   finalSla: document.getElementById("finalSla"),
   constraintStatus: document.getElementById("constraintStatus"),
   fallbackAssetStatus: document.getElementById("fallbackAssetStatus"),
+  activeTaskCount: document.getElementById("activeTaskCount"),
+  tasks: document.getElementById("tasks"),
 };
 
 function nowLabel() {
@@ -92,6 +95,72 @@ function appendTranscript(role, text) {
 
 function appendEvent(type, text) {
   appendEntry(el.events, "system", type, text);
+}
+
+function normalizeTaskRecord(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const taskId = typeof value.taskId === "string" ? value.taskId : null;
+  if (!taskId || taskId.trim().length === 0) {
+    return null;
+  }
+  return {
+    taskId: taskId.trim(),
+    sessionId: typeof value.sessionId === "string" ? value.sessionId : state.sessionId,
+    runId: typeof value.runId === "string" ? value.runId : null,
+    intent: typeof value.intent === "string" ? value.intent : null,
+    route: typeof value.route === "string" ? value.route : null,
+    status: typeof value.status === "string" ? value.status : "running",
+    progressPct: typeof value.progressPct === "number" ? value.progressPct : 0,
+    stage: typeof value.stage === "string" ? value.stage : "unknown",
+    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date().toISOString(),
+    error: typeof value.error === "string" ? value.error : null,
+  };
+}
+
+function renderTaskList() {
+  const records = [...state.taskRecords.values()].sort((left, right) =>
+    String(right.updatedAt).localeCompare(String(left.updatedAt)),
+  );
+  el.activeTaskCount.textContent = String(records.length);
+  el.tasks.innerHTML = "";
+
+  if (records.length === 0) {
+    appendEntry(el.tasks, "system", "task", "No active tasks");
+    return;
+  }
+
+  for (const task of records) {
+    const summary = [
+      `status=${task.status}`,
+      `progress=${typeof task.progressPct === "number" ? task.progressPct : 0}%`,
+      `stage=${task.stage ?? "unknown"}`,
+      task.intent ? `intent=${task.intent}` : null,
+      task.route ? `route=${task.route}` : null,
+      task.error ? `error=${task.error}` : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+    appendEntry(el.tasks, "system", task.taskId, summary);
+  }
+}
+
+function upsertTaskRecord(value) {
+  const normalized = normalizeTaskRecord(value);
+  if (!normalized) {
+    return;
+  }
+  state.taskRecords.set(normalized.taskId, normalized);
+  renderTaskList();
+}
+
+function removeTaskRecord(taskId) {
+  if (typeof taskId !== "string" || taskId.trim().length === 0) {
+    return;
+  }
+  state.taskRecords.delete(taskId.trim());
+  renderTaskList();
 }
 
 function formatMs(value) {
@@ -250,6 +319,49 @@ function sendEnvelope(type, payload, source = "frontend", runId = state.runId) {
   }
   const envelope = createEnvelope(type, payload, source, runId);
   state.ws.send(JSON.stringify(envelope));
+}
+
+function gatewayHttpBaseFromWs(wsUrl) {
+  if (typeof wsUrl !== "string" || wsUrl.trim().length === 0) {
+    return "http://localhost:8080";
+  }
+  const normalized = wsUrl.trim();
+  if (normalized.startsWith("wss://")) {
+    return normalized.replace(/^wss:\/\//, "https://").replace(/\/realtime\/?$/, "");
+  }
+  if (normalized.startsWith("ws://")) {
+    return normalized.replace(/^ws:\/\//, "http://").replace(/\/realtime\/?$/, "");
+  }
+  return "http://localhost:8080";
+}
+
+async function refreshActiveTasks() {
+  const baseUrl = gatewayHttpBaseFromWs(el.wsUrl.value);
+  const sessionId = state.sessionId?.trim();
+  const params = new URLSearchParams();
+  if (sessionId) {
+    params.set("sessionId", sessionId);
+  }
+  params.set("limit", "50");
+  const url = `${baseUrl}/tasks/active?${params.toString()}`;
+
+  try {
+    const response = await fetch(url, { method: "GET" });
+    const payload = await response.json();
+    if (!response.ok) {
+      const errorText = payload?.error ?? `tasks/active failed with ${response.status}`;
+      throw new Error(String(errorText));
+    }
+    const records = Array.isArray(payload?.data) ? payload.data : [];
+    state.taskRecords.clear();
+    for (const item of records) {
+      upsertTaskRecord(item);
+    }
+    renderTaskList();
+    appendTranscript("system", `Active tasks refreshed: ${records.length}`);
+  } catch (error) {
+    appendTranscript("error", `Active tasks refresh failed: ${String(error)}`);
+  }
 }
 
 function decodeBase64ToInt16(base64) {
@@ -517,6 +629,16 @@ function handleGatewayEvent(event) {
 
   if (event.type === "orchestrator.response") {
     const output = event.payload?.output;
+    if (event.payload?.task) {
+      const task = normalizeTaskRecord(event.payload.task);
+      if (task) {
+        if (task.status === "completed" || task.status === "failed") {
+          removeTaskRecord(task.taskId);
+        } else {
+          upsertTaskRecord(task);
+        }
+      }
+    }
     if (typeof output?.fallbackAsset === "boolean") {
       setFallbackAsset(output.fallbackAsset);
     }
@@ -564,6 +686,27 @@ function handleGatewayEvent(event) {
       updateOfferFromText(text, true);
     }
     evaluateConstraints();
+    return;
+  }
+
+  if (event.type === "task.started" || event.type === "task.progress") {
+    upsertTaskRecord(event.payload);
+    const task = normalizeTaskRecord(event.payload);
+    if (task) {
+      appendTranscript(
+        "system",
+        `Task ${task.taskId}: ${task.status} (${task.progressPct}%, stage=${task.stage})`,
+      );
+    }
+    return;
+  }
+
+  if (event.type === "task.completed" || event.type === "task.failed") {
+    const task = normalizeTaskRecord(event.payload);
+    if (task) {
+      removeTaskRecord(task.taskId);
+      appendTranscript("system", `Task ${task.taskId}: ${task.status}`);
+    }
     return;
   }
 
@@ -783,12 +926,15 @@ function bindEvents() {
   });
   document.getElementById("interruptBtn").addEventListener("click", interruptAssistant);
   document.getElementById("fallbackBtn").addEventListener("click", toggleFallbackMode);
+  document.getElementById("refreshTasksBtn").addEventListener("click", refreshActiveTasks);
   document.getElementById("newSessionBtn").addEventListener("click", () => {
     state.sessionId = makeId();
     el.sessionId.value = state.sessionId;
     state.runId = null;
     el.runId.textContent = "-";
     clearPendingApproval();
+    state.taskRecords.clear();
+    renderTaskList();
     appendTranscript("system", "Generated new session ID");
   });
   el.sessionId.addEventListener("input", () => {
@@ -811,6 +957,7 @@ function bootstrap() {
   setStatusPill(el.constraintStatus, "Waiting for offer", "neutral");
   setFallbackAsset(false);
   clearPendingApproval();
+  renderTaskList();
   evaluateConstraints();
   bindEvents();
   appendTranscript("system", "Frontend ready");

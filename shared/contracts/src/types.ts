@@ -38,15 +38,34 @@ export type SessionRecord = {
 
 export type OrchestratorIntent = "conversation" | "translation" | "negotiation" | "story" | "ui_task";
 
+export type TaskLifecycleStatus =
+  | "queued"
+  | "running"
+  | "pending_approval"
+  | "completed"
+  | "failed";
+
+export type TaskMetadata = {
+  taskId: string;
+  status?: TaskLifecycleStatus;
+  progressPct?: number;
+  stage?: string;
+  route?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type OrchestratorRequest = EventEnvelope<{
   intent: OrchestratorIntent;
   input: unknown;
+  task?: TaskMetadata;
 }>;
 
 export type OrchestratorResponse = EventEnvelope<{
   route: "live-agent" | "storyteller-agent" | "ui-navigator-agent";
   status: "accepted" | "completed" | "failed";
   output?: unknown;
+  task?: TaskMetadata;
   traceId?: string;
   error?: string | NormalizedError;
 }>;
