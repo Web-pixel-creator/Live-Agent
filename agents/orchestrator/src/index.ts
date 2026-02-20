@@ -6,7 +6,11 @@ import {
   normalizeUnknownError,
   RollingMetrics,
 } from "@mla/contracts";
-import { getMediaJobQueueSnapshot } from "@mla/storyteller-agent";
+import {
+  getMediaJobQueueSnapshot,
+  getStoryCacheSnapshot,
+  purgeStoryCache,
+} from "@mla/storyteller-agent";
 import { orchestrate } from "./orchestrate.js";
 import { getFirestoreState } from "./services/firestore.js";
 
@@ -130,6 +134,7 @@ export const server = createServer(async (req, res) => {
         service: serviceName,
         metrics: metrics.snapshot({ topOperations: 50 }),
         storytellerMediaJobs: getMediaJobQueueSnapshot(),
+        storytellerCache: getStoryCacheSnapshot(),
       });
       return;
     }
@@ -139,6 +144,25 @@ export const server = createServer(async (req, res) => {
         ok: true,
         service: serviceName,
         storytellerMediaJobs: getMediaJobQueueSnapshot(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/story/cache" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        storytellerCache: getStoryCacheSnapshot(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/story/cache/purge" && req.method === "POST") {
+      const reason = url.searchParams.get("reason") ?? "orchestrator.manual_cache_purge";
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        storytellerCache: purgeStoryCache(reason),
       });
       return;
     }

@@ -115,6 +115,9 @@
 3. THE Creative_Storyteller SHALL persist story state across sessions using Agent_Engine_Sessions or Firestore.
 4. THE Creative_Storyteller SHALL accept voice commands for navigation and branch selection.
 5. THE Creative_Storyteller SHALL keep text, narration, and visual timeline synchronized.
+6. THE Story_Generator SHALL use deterministic cache keys for repeated plan/branch/asset variants (prompt + model + locale + style context).
+7. THE System SHALL invalidate story cache when model/version fingerprint changes or when a manual purge token is rotated.
+8. THE System SHALL expose story cache observability and purge controls for operators (`/story/cache`, `/story/cache/purge`).
 
 ### Requirement 6: UI Navigator - Computer Use
 

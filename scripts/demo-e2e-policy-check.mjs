@@ -235,6 +235,30 @@ async function main() {
     ">= 1",
   );
   addCheck(
+    "kpi.storytellerCacheEnabled",
+    kpis.storytellerCacheEnabled === true,
+    kpis.storytellerCacheEnabled,
+    true,
+  );
+  addCheck(
+    "kpi.storytellerCacheHits",
+    toNumber(kpis.storytellerCacheHits) >= 1,
+    kpis.storytellerCacheHits,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.storytellerCacheHitValidated",
+    kpis.storytellerCacheHitValidated === true,
+    kpis.storytellerCacheHitValidated,
+    true,
+  );
+  addCheck(
+    "kpi.storytellerCacheInvalidationValidated",
+    kpis.storytellerCacheInvalidationValidated === true,
+    kpis.storytellerCacheInvalidationValidated,
+    true,
+  );
+  addCheck(
     "kpi.gatewayWsResponseStatus",
     kpis.gatewayWsResponseStatus === "completed",
     kpis.gatewayWsResponseStatus,

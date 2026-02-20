@@ -648,6 +648,35 @@ try {
     $queueRuntimeEnabled = [bool](Get-FieldValue -Object $mediaQueue -Path @("runtime", "enabled"))
     Assert-Condition -Condition $queueRuntimeEnabled -Message "Storyteller media worker runtime should be enabled for dedicated worker mode."
 
+    $cacheRunId = "demo-story-cache-" + [Guid]::NewGuid().Guid
+    $cacheRequest = New-OrchestratorRequest -SessionId $sessionId -RunId $cacheRunId -Intent "story" -RequestInput @{
+      prompt = "Create a short interactive story about a port logistics negotiation."
+      audience = "judges"
+      style = "cinematic"
+      language = "en"
+      includeImages = $true
+      includeVideo = $true
+      mediaMode = "simulated"
+      videoFailureRate = 0
+      segmentCount = 3
+      voiceStyle = "excited storyteller voice, podcast style"
+    }
+    $cacheResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $cacheRequest -TimeoutSec $RequestTimeoutSec
+    $cacheStatus = [string](Get-FieldValue -Object $cacheResponse -Path @("payload", "status"))
+    Assert-Condition -Condition ($cacheStatus -eq "completed") -Message "Storyteller cache verification run failed."
+    $cacheSnapshot = Get-FieldValue -Object $cacheResponse -Path @("payload", "output", "generation", "cache")
+    Assert-Condition -Condition ($null -ne $cacheSnapshot) -Message "Missing storyteller cache snapshot."
+    $cacheEnabled = [bool](Get-FieldValue -Object $cacheSnapshot -Path @("enabled"))
+    Assert-Condition -Condition $cacheEnabled -Message "Story cache should be enabled."
+    $cacheHits = [int](Get-FieldValue -Object $cacheSnapshot -Path @("totals", "hits"))
+    Assert-Condition -Condition ($cacheHits -ge 1) -Message "Expected story cache hits after repeated request."
+    $cacheEntries = [int](Get-FieldValue -Object $cacheSnapshot -Path @("totals", "entries"))
+    Assert-Condition -Condition ($cacheEntries -ge 1) -Message "Expected story cache entries after repeated request."
+
+    $cachePurgeResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/story/cache/purge?reason=demo-e2e-story-cache" -TimeoutSec $RequestTimeoutSec
+    $cachePurgedEntries = [int](Get-FieldValue -Object $cachePurgeResponse -Path @("storytellerCache", "totals", "entries"))
+    Assert-Condition -Condition ($cachePurgedEntries -eq 0) -Message "Story cache purge endpoint did not clear cache entries."
+
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $response -Path @("runId"))
       fallbackAsset = [bool](Get-FieldValue -Object $response -Path @("payload", "output", "fallbackAsset"))
@@ -660,6 +689,10 @@ try {
       mediaQueueBacklog = $queueBacklog
       mediaQueueWorkers = $queueWorkers.Count
       mediaQueueRuntimeEnabled = $queueRuntimeEnabled
+      cacheEnabled = $cacheEnabled
+      cacheHits = $cacheHits
+      cacheEntries = $cacheEntries
+      cacheInvalidationValidated = ($cachePurgedEntries -eq 0)
       imageAdapterId = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("image", "adapterId"))
       ttsAdapterId = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("tts", "adapterId"))
       latencyMs = [int](Get-FieldValue -Object $response -Path @("payload", "output", "latencyMs"))
@@ -1241,6 +1274,16 @@ $summary = [ordered]@{
       [int]$storyData.mediaQueueBacklog -ge 0 -and
       [int]$storyData.mediaQueueWorkers -ge 1 -and
       $storyData.mediaQueueRuntimeEnabled -eq $true
+    ) { $true } else { $false }
+    storytellerCacheEnabled = if ($null -ne $storyData) { $storyData.cacheEnabled } else { $null }
+    storytellerCacheHits = if ($null -ne $storyData) { $storyData.cacheHits } else { $null }
+    storytellerCacheEntries = if ($null -ne $storyData) { $storyData.cacheEntries } else { $null }
+    storytellerCacheInvalidationValidated = if ($null -ne $storyData) { $storyData.cacheInvalidationValidated } else { $null }
+    storytellerCacheHitValidated = if (
+      $null -ne $storyData -and
+      $storyData.cacheEnabled -eq $true -and
+      [int]$storyData.cacheHits -ge 1 -and
+      [int]$storyData.cacheEntries -ge 1
     ) { $true } else { $false }
     storytellerVideoAsyncValidated = if (
       $null -ne $storyData -and

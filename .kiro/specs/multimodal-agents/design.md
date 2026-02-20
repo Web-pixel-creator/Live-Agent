@@ -499,8 +499,9 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
    - Next step: move queue execution to dedicated Cloud Run worker service with managed queue trigger and resume/replay controls.
 
 2. Extended caching and artifact reuse
-   - Add deterministic cache keys for repeated story assets and prompt variants.
-   - Introduce cache invalidation policies tied to model/version updates.
+   - Baseline implemented: deterministic story cache keys for plan/branch/asset variants with TTL+capacity limits.
+   - Baseline implemented: policy invalidation on cache fingerprint change (`model/version`) and manual purge token rotation.
+   - Next step: move cache store to shared/distributed backend for multi-instance consistency.
 
 3. Optional local-first development profile
    - Provide a non-production local mode for developer iteration and offline demos.
@@ -598,6 +599,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 13. The repository SHALL provide a judge-facing walkthrough runbook with exact interruption checkpoints and text fallback procedure (`docs/challenge-demo-runbook.md`).
 14. The repository SHALL provide automated load/performance scripts (`scripts/perf-load.ps1`, `scripts/perf-load.mjs`, `scripts/perf-load-policy-check.mjs`) with p95/error-budget checks for live voice and UI navigation paths.
 15. The orchestrator runtime SHALL expose storyteller media queue visibility (`/story/media-jobs/queue` and `storytellerMediaJobs` in `/metrics`) for operator diagnostics.
+16. The orchestrator runtime SHALL expose storyteller cache visibility and invalidation controls (`/story/cache`, `/story/cache/purge`, `storytellerCache` in `/metrics`) for deterministic asset/prompt reuse policy operations.
 
 ## Traceability Matrix
 
@@ -610,6 +612,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 | Multi-agent delegation | R16 | T-109 |
 | Security/monitoring | R13, R15 | T-009, T-107 |
 | Story media workers + queue visibility | R4, R10, R15 | T-103, T-207 |
+| Story cache + invalidation policy | R4, R5, R15 | T-208 |
 | Perf/load quality gate | R1, R6, R12, R15 | T-206 |
-| Borrowed-pattern hardening (post-MVP) | R10, R14, R15 | T-208..T-210 |
+| Borrowed-pattern hardening (post-MVP) | R10, R14, R15 | T-209..T-210 |
 | Demo frontend + controls | R1, R3, R14, R15 | T-000, T-110, T-111 |

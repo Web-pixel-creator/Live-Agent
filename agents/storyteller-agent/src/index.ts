@@ -22,8 +22,18 @@ import {
   type StoryMediaJob,
   type StoryMediaWorkerSnapshot,
 } from "./media-jobs.js";
+import {
+  buildStoryCacheKey,
+  ensureStoryCachePolicy,
+  getFromStoryCache,
+  getStoryCacheSnapshot,
+  purgeStoryCache,
+  setInStoryCache,
+  type StoryCacheSnapshot,
+} from "./story-cache.js";
 
 export { getMediaJobQueueSnapshot } from "./media-jobs.js";
+export { getStoryCacheSnapshot, purgeStoryCache } from "./story-cache.js";
 
 type StoryInput = {
   prompt: string;
@@ -100,6 +110,8 @@ type GeminiConfig = {
   imageModel: string;
   videoModel: string;
   ttsModel: string;
+  cacheVersion: string;
+  cachePurgeToken: string | null;
 };
 
 type StorytellerCapabilitySet = {
@@ -235,7 +247,20 @@ function getGeminiConfig(): GeminiConfig {
     imageModel: toNonEmptyString(process.env.STORYTELLER_IMAGE_MODEL, "imagen-4"),
     videoModel: toNonEmptyString(process.env.STORYTELLER_VIDEO_MODEL, "veo-3.1"),
     ttsModel: toNonEmptyString(process.env.STORYTELLER_TTS_MODEL, "gemini-tts"),
+    cacheVersion: toNonEmptyString(process.env.STORYTELLER_CACHE_VERSION, "story-cache-v1"),
+    cachePurgeToken: toNullableString(process.env.STORYTELLER_CACHE_PURGE_TOKEN),
   };
+}
+
+function buildStoryCacheFingerprint(config: GeminiConfig): string {
+  return [
+    `planner:${config.plannerModel}`,
+    `branch:${config.branchModel}`,
+    `image:${config.imageModel}`,
+    `video:${config.videoModel}`,
+    `tts:${config.ttsModel}`,
+    `version:${config.cacheVersion}`,
+  ].join("|");
 }
 
 async function loadFallbackPack(): Promise<FallbackPack> {
@@ -524,15 +549,34 @@ async function generateStoryPlan(
   config: GeminiConfig,
   capabilities: StorytellerCapabilitySet,
 ): Promise<StoryPlan> {
+  const cacheKey = buildStoryCacheKey("story.plan", {
+    prompt: input.prompt,
+    audience: input.audience,
+    style: input.style,
+    language: input.language,
+    segmentCount: input.segmentCount,
+    plannerModel: config.plannerModel,
+    plannerEnabled: config.plannerEnabled,
+    fallbackScenarioId: fallback.id,
+  });
+
+  const cachedPlan = getFromStoryCache<StoryPlan>("plan", cacheKey);
+  if (cachedPlan) {
+    return cachedPlan;
+  }
+
+  const fallbackPlan: StoryPlan = {
+    title: fallback.title,
+    logline: fallback.logline,
+    segments: sliceToCount(fallback.segments, input.segmentCount),
+    decisionPoints: fallback.decisionPoints,
+    plannerProvider: "fallback",
+    plannerModel: "fallback-pack",
+  };
+
   if (!config.apiKey || !config.plannerEnabled) {
-    return {
-      title: fallback.title,
-      logline: fallback.logline,
-      segments: sliceToCount(fallback.segments, input.segmentCount),
-      decisionPoints: fallback.decisionPoints,
-      plannerProvider: "fallback",
-      plannerModel: "fallback-pack",
-    };
+    setInStoryCache("plan", cacheKey, fallbackPlan);
+    return fallbackPlan;
   }
 
   const prompt = [
@@ -554,26 +598,14 @@ async function generateStoryPlan(
   });
 
   if (!raw) {
-    return {
-      title: fallback.title,
-      logline: fallback.logline,
-      segments: sliceToCount(fallback.segments, input.segmentCount),
-      decisionPoints: fallback.decisionPoints,
-      plannerProvider: "fallback",
-      plannerModel: "fallback-pack",
-    };
+    setInStoryCache("plan", cacheKey, fallbackPlan);
+    return fallbackPlan;
   }
 
   const parsed = parseJsonObject(raw);
   if (!parsed) {
-    return {
-      title: fallback.title,
-      logline: fallback.logline,
-      segments: sliceToCount(fallback.segments, input.segmentCount),
-      decisionPoints: fallback.decisionPoints,
-      plannerProvider: "fallback",
-      plannerModel: "fallback-pack",
-    };
+    setInStoryCache("plan", cacheKey, fallbackPlan);
+    return fallbackPlan;
   }
 
   const segments = Array.isArray(parsed.segments)
@@ -584,17 +616,11 @@ async function generateStoryPlan(
     : [];
 
   if (segments.length < 2) {
-    return {
-      title: fallback.title,
-      logline: fallback.logline,
-      segments: sliceToCount(fallback.segments, input.segmentCount),
-      decisionPoints: fallback.decisionPoints,
-      plannerProvider: "fallback",
-      plannerModel: "fallback-pack",
-    };
+    setInStoryCache("plan", cacheKey, fallbackPlan);
+    return fallbackPlan;
   }
 
-  return {
+  const planned: StoryPlan = {
     title: toNonEmptyString(parsed.title, fallback.title),
     logline: toNonEmptyString(parsed.logline, fallback.logline),
     segments: sliceToCount(segments, input.segmentCount),
@@ -602,6 +628,8 @@ async function generateStoryPlan(
     plannerProvider: "gemini",
     plannerModel: config.plannerModel,
   };
+  setInStoryCache("plan", cacheKey, planned);
+  return planned;
 }
 
 async function extendStoryBranch(params: {
@@ -620,13 +648,35 @@ async function extendStoryBranch(params: {
     };
   }
 
+  const cacheKey = buildStoryCacheKey("story.branch", {
+    branchChoice: input.branchChoice,
+    language: input.language,
+    branchModel: config.branchModel,
+    plannerEnabled: config.plannerEnabled,
+    currentSegments,
+  });
+  const cachedBranch = getFromStoryCache<{
+    segments: string[];
+    branchProvider: "gemini" | "fallback";
+    branchModel: string;
+  }>("branch", cacheKey);
+  if (cachedBranch) {
+    return cachedBranch;
+  }
+
   if (!config.apiKey || !config.plannerEnabled) {
     const branchLine = `Branch path selected: ${input.branchChoice}. The team adapts and continues toward the objective with higher stakes.`;
-    return {
+    const fallbackBranch: {
+      segments: string[];
+      branchProvider: "gemini" | "fallback";
+      branchModel: string;
+    } = {
       segments: sliceToCount([...currentSegments, branchLine], input.segmentCount + 1),
       branchProvider: "fallback",
       branchModel: "fallback-branch",
     };
+    setInStoryCache("branch", cacheKey, fallbackBranch);
+    return fallbackBranch;
   }
 
   const prompt = [
@@ -646,18 +696,30 @@ async function extendStoryBranch(params: {
 
   if (!raw) {
     const fallbackLine = `Branch path selected: ${input.branchChoice}. ${fallback.segments[fallback.segments.length - 1]}`;
-    return {
+    const fallbackBranch: {
+      segments: string[];
+      branchProvider: "gemini" | "fallback";
+      branchModel: string;
+    } = {
       segments: sliceToCount([...currentSegments, fallbackLine], input.segmentCount + 1),
       branchProvider: "fallback",
       branchModel: "fallback-branch",
     };
+    setInStoryCache("branch", cacheKey, fallbackBranch);
+    return fallbackBranch;
   }
 
-  return {
+  const generated: {
+    segments: string[];
+    branchProvider: "gemini" | "fallback";
+    branchModel: string;
+  } = {
     segments: sliceToCount([...currentSegments, raw], input.segmentCount + 1),
     branchProvider: "gemini",
     branchModel: config.branchModel,
   };
+  setInStoryCache("branch", cacheKey, generated);
+  return generated;
 }
 
 function buildAssetId(kind: StoryAsset["kind"], segmentIndex: number): string {
@@ -683,35 +745,94 @@ function pickFallbackRef(fallbackRefs: string[], index: number): string | null {
   return fallbackRefs[fallbackRefs.length - 1];
 }
 
+type CachedAssetDescriptor = {
+  ref: string;
+  provider: string;
+  model: string;
+  status: StoryAsset["status"];
+  fallbackAsset: boolean;
+  mimeType: string;
+  meta: Record<string, unknown>;
+};
+
+function resolveCachedAssetDescriptor(params: {
+  namespace: string;
+  cachePayload: Record<string, unknown>;
+  create: () => CachedAssetDescriptor;
+}): CachedAssetDescriptor {
+  const cacheKey = buildStoryCacheKey(params.namespace, params.cachePayload);
+  const cached = getFromStoryCache<CachedAssetDescriptor>("asset", cacheKey);
+  if (cached) {
+    return cached;
+  }
+  const created = params.create();
+  setInStoryCache("asset", cacheKey, created);
+  return created;
+}
+
 function createImageAsset(params: {
   segmentText: string;
   segmentIndex: number;
   fallback: FallbackScenario;
   adapter: ImageCapabilityAdapter;
 }): StoryAsset {
-  const fallbackRef = pickFallbackRef(params.fallback.images, params.segmentIndex);
   const adapterMode = params.adapter.descriptor.mode === "simulated" ? "simulated" : "fallback";
-  const fallbackAsset = adapterMode === "fallback" || !fallbackRef ? true : false;
-  const ref =
-    adapterMode === "fallback"
-      ? fallbackRef ?? buildSimulatedRef({ kind: "image", scenarioId: params.fallback.id, segmentIndex: params.segmentIndex, extension: "jpg" })
-      : buildSimulatedRef({ kind: "image", scenarioId: params.fallback.id, segmentIndex: params.segmentIndex, extension: "jpg" });
+  const fallbackRef = pickFallbackRef(params.fallback.images, params.segmentIndex);
+  const cached = resolveCachedAssetDescriptor({
+    namespace: "story.asset.image",
+    cachePayload: {
+      scenarioId: params.fallback.id,
+      segmentIndex: params.segmentIndex,
+      segmentText: params.segmentText,
+      adapterMode,
+      provider: params.adapter.descriptor.provider,
+      model: params.adapter.descriptor.model,
+      fallbackRef,
+    },
+    create: () => {
+      const fallbackAsset = adapterMode === "fallback" || !fallbackRef ? true : false;
+      const ref =
+        adapterMode === "fallback"
+          ? fallbackRef ??
+            buildSimulatedRef({
+              kind: "image",
+              scenarioId: params.fallback.id,
+              segmentIndex: params.segmentIndex,
+              extension: "jpg",
+            })
+          : buildSimulatedRef({
+              kind: "image",
+              scenarioId: params.fallback.id,
+              segmentIndex: params.segmentIndex,
+              extension: "jpg",
+            });
+      return {
+        ref,
+        provider: params.adapter.descriptor.provider,
+        model: params.adapter.descriptor.model,
+        status: "ready",
+        fallbackAsset,
+        mimeType: "image/jpeg",
+        meta: {
+          prompt: `Illustration for segment ${params.segmentIndex + 1}: ${params.segmentText}`,
+          adapterMode,
+        },
+      };
+    },
+  });
 
   return {
     id: buildAssetId("image", params.segmentIndex),
     kind: "image",
-    ref,
-    provider: params.adapter.descriptor.provider,
-    model: params.adapter.descriptor.model,
-    status: "ready",
-    fallbackAsset,
+    ref: cached.ref,
+    provider: cached.provider,
+    model: cached.model,
+    status: cached.status,
+    fallbackAsset: cached.fallbackAsset,
     segmentIndex: params.segmentIndex,
-    mimeType: "image/jpeg",
+    mimeType: cached.mimeType,
     jobId: null,
-    meta: {
-      prompt: `Illustration for segment ${params.segmentIndex + 1}: ${params.segmentText}`,
-      adapterMode,
-    },
+    meta: cached.meta,
   };
 }
 
@@ -721,30 +842,65 @@ function createVideoAsset(params: {
   fallback: FallbackScenario;
   adapter: VideoCapabilityAdapter;
 }): StoryAsset {
-  const fallbackRef = pickFallbackRef(params.fallback.videos, params.segmentIndex);
   const adapterMode = params.adapter.descriptor.mode === "simulated" ? "simulated" : "fallback";
-  const fallbackAsset = adapterMode === "fallback" || !fallbackRef ? true : false;
-  const ref =
-    adapterMode === "fallback"
-      ? fallbackRef ?? buildSimulatedRef({ kind: "video", scenarioId: params.fallback.id, segmentIndex: params.segmentIndex, extension: "mp4" })
-      : buildSimulatedRef({ kind: "video", scenarioId: params.fallback.id, segmentIndex: params.segmentIndex, extension: "mp4" });
+  const fallbackRef = pickFallbackRef(params.fallback.videos, params.segmentIndex);
+  const cached = resolveCachedAssetDescriptor({
+    namespace: "story.asset.video",
+    cachePayload: {
+      scenarioId: params.fallback.id,
+      segmentIndex: params.segmentIndex,
+      segmentText: params.segmentText,
+      adapterMode,
+      provider: params.adapter.descriptor.provider,
+      model: params.adapter.descriptor.model,
+      fallbackRef,
+    },
+    create: () => {
+      const fallbackAsset = adapterMode === "fallback" || !fallbackRef ? true : false;
+      const ref =
+        adapterMode === "fallback"
+          ? fallbackRef ??
+            buildSimulatedRef({
+              kind: "video",
+              scenarioId: params.fallback.id,
+              segmentIndex: params.segmentIndex,
+              extension: "mp4",
+            })
+          : buildSimulatedRef({
+              kind: "video",
+              scenarioId: params.fallback.id,
+              segmentIndex: params.segmentIndex,
+              extension: "mp4",
+            });
+      const status: StoryAsset["status"] = adapterMode === "fallback" ? "ready" : "pending";
+      return {
+        ref,
+        provider: params.adapter.descriptor.provider,
+        model: params.adapter.descriptor.model,
+        status,
+        fallbackAsset,
+        mimeType: "video/mp4",
+        meta: {
+          prompt: `Video scene for segment ${params.segmentIndex + 1}: ${params.segmentText}`,
+          adapterMode,
+          notes: adapterMode === "fallback" ? "pre-generated fallback clip" : "queued for async generation",
+        },
+      };
+    },
+  });
 
   return {
     id: buildAssetId("video", params.segmentIndex),
     kind: "video",
-    ref,
-    provider: params.adapter.descriptor.provider,
-    model: params.adapter.descriptor.model,
-    status: adapterMode === "fallback" ? "ready" : "pending",
-    fallbackAsset,
+    ref: cached.ref,
+    provider: cached.provider,
+    model: cached.model,
+    status: cached.status,
+    fallbackAsset: cached.fallbackAsset,
     segmentIndex: params.segmentIndex,
-    mimeType: "video/mp4",
+    mimeType: cached.mimeType,
     jobId: null,
-    meta: {
-      prompt: `Video scene for segment ${params.segmentIndex + 1}: ${params.segmentText}`,
-      adapterMode,
-      notes: adapterMode === "fallback" ? "pre-generated fallback clip" : "queued for async generation",
-    },
+    meta: cached.meta,
   };
 }
 
@@ -755,30 +911,65 @@ function createNarrationAsset(params: {
   fallback: FallbackScenario;
   adapter: TtsCapabilityAdapter;
 }): StoryAsset {
-  const fallbackRef = pickFallbackRef(params.fallback.narrations, params.segmentIndex);
   const adapterMode = params.adapter.descriptor.mode === "simulated" ? "simulated" : "fallback";
-  const fallbackAsset = adapterMode === "fallback" || !fallbackRef ? true : false;
-  const ref =
-    adapterMode === "fallback"
-      ? fallbackRef ?? buildSimulatedRef({ kind: "audio", scenarioId: params.fallback.id, segmentIndex: params.segmentIndex, extension: "wav" })
-      : buildSimulatedRef({ kind: "audio", scenarioId: params.fallback.id, segmentIndex: params.segmentIndex, extension: "wav" });
+  const fallbackRef = pickFallbackRef(params.fallback.narrations, params.segmentIndex);
+  const cached = resolveCachedAssetDescriptor({
+    namespace: "story.asset.audio",
+    cachePayload: {
+      scenarioId: params.fallback.id,
+      segmentIndex: params.segmentIndex,
+      segmentText: params.segmentText,
+      voiceStyle: params.voiceStyle,
+      adapterMode,
+      provider: params.adapter.descriptor.provider,
+      model: params.adapter.descriptor.model,
+      fallbackRef,
+    },
+    create: () => {
+      const fallbackAsset = adapterMode === "fallback" || !fallbackRef ? true : false;
+      const ref =
+        adapterMode === "fallback"
+          ? fallbackRef ??
+            buildSimulatedRef({
+              kind: "audio",
+              scenarioId: params.fallback.id,
+              segmentIndex: params.segmentIndex,
+              extension: "wav",
+            })
+          : buildSimulatedRef({
+              kind: "audio",
+              scenarioId: params.fallback.id,
+              segmentIndex: params.segmentIndex,
+              extension: "wav",
+            });
+      return {
+        ref,
+        provider: params.adapter.descriptor.provider,
+        model: params.adapter.descriptor.model,
+        status: "ready",
+        fallbackAsset,
+        mimeType: "audio/wav",
+        meta: {
+          text: params.segmentText,
+          voiceStyle: params.voiceStyle,
+          adapterMode,
+        },
+      };
+    },
+  });
 
   return {
     id: buildAssetId("audio", params.segmentIndex),
     kind: "audio",
-    ref,
-    provider: params.adapter.descriptor.provider,
-    model: params.adapter.descriptor.model,
-    status: "ready",
-    fallbackAsset,
+    ref: cached.ref,
+    provider: cached.provider,
+    model: cached.model,
+    status: cached.status,
+    fallbackAsset: cached.fallbackAsset,
     segmentIndex: params.segmentIndex,
-    mimeType: "audio/wav",
+    mimeType: cached.mimeType,
     jobId: null,
-    meta: {
-      text: params.segmentText,
-      voiceStyle: params.voiceStyle,
-      adapterMode,
-    },
+    meta: cached.meta,
   };
 }
 
@@ -906,6 +1097,10 @@ export async function runStorytellerAgent(
     const input = normalizeStoryInput(request.payload.input);
     effectiveMediaMode = resolveMediaMode(input, config);
     capabilities = createStorytellerCapabilitySet(config, effectiveMediaMode);
+    ensureStoryCachePolicy({
+      modelFingerprint: buildStoryCacheFingerprint(config),
+      purgeToken: config.cachePurgeToken,
+    });
     const videoFailureRate = resolveVideoFailureRate(input);
     const fallbackPack = await loadFallbackPack();
     const fallbackScenario = selectFallbackScenario(fallbackPack, input);
@@ -975,6 +1170,7 @@ export async function runStorytellerAgent(
     ).length;
     const message = `Story ready: "${plan.title}" with ${timeline.length} segments (${allAssets.length} media assets).${input.includeVideo ? ` Video jobs pending: ${pendingVideoJobs}.` : ""}`;
     const mediaQueue: StoryMediaWorkerSnapshot = getMediaJobQueueSnapshot();
+    const cacheSnapshot: StoryCacheSnapshot = getStoryCacheSnapshot();
 
     return createEnvelope({
       userId: request.userId,
@@ -1054,6 +1250,7 @@ export async function runStorytellerAgent(
             videoAsync: input.includeVideo && effectiveMediaMode === "simulated",
             videoFailureRate,
             mediaWorkerRuntime: mediaQueue.runtime,
+            cache: cacheSnapshot,
             capabilityProfile: capabilities.profile,
             fallbackPack: {
               version: fallbackPack.version,
@@ -1079,6 +1276,7 @@ export async function runStorytellerAgent(
         output: {
           handledIntent: request.payload.intent,
           generation: {
+            cache: getStoryCacheSnapshot(),
             capabilityProfile: capabilities.profile,
           },
           traceId,

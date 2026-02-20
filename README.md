@@ -170,6 +170,9 @@ Long-running storyteller media jobs (Veo/Imagen profile) run through dedicated a
 - Queue snapshot in story responses: `payload.output.mediaJobs.queue`
 - Queue operator endpoint: `GET http://localhost:8082/story/media-jobs/queue`
 - Queue metrics are embedded into orchestrator metrics response: `GET http://localhost:8082/metrics` -> `storytellerMediaJobs`
+- Story cache snapshot in story responses: `payload.output.generation.cache`
+- Story cache endpoints: `GET http://localhost:8082/story/cache` and `POST http://localhost:8082/story/cache/purge?reason=<reason>`
+- Story cache metrics are embedded into orchestrator metrics response: `GET http://localhost:8082/metrics` -> `storytellerCache`
 
 Worker runtime knobs:
 
@@ -180,6 +183,11 @@ Worker runtime knobs:
 - `STORYTELLER_MEDIA_JOB_RETRY_BASE_MS` (default: `800`)
 - `STORYTELLER_MEDIA_JOB_RETRY_MAX_MS` (default: `20000`)
 - `STORYTELLER_MEDIA_QUOTA_RULES` (default: `veo-3.1=1/1000,imagen-4=2/1000,*=2/1000`)
+- `STORYTELLER_CACHE_ENABLED` (default: `true`)
+- `STORYTELLER_CACHE_MAX_ENTRIES` (default: `600`)
+- `STORYTELLER_CACHE_TTL_MS` (default: `1800000`)
+- `STORYTELLER_CACHE_VERSION` (default: `story-cache-v1`)
+- `STORYTELLER_CACHE_PURGE_TOKEN` (default: unset; changing token invalidates cache policy)
 
 ### Status Badge Template (Shields Endpoint)
 
