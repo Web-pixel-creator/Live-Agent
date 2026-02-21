@@ -1,5 +1,10 @@
-import { randomUUID } from "node:crypto";
-import { createEnvelope, type OrchestratorRequest, type OrchestratorResponse } from "@mla/contracts";
+import { createHash, randomUUID } from "node:crypto";
+import {
+  createEnvelope,
+  createNormalizedError,
+  type OrchestratorRequest,
+  type OrchestratorResponse,
+} from "@mla/contracts";
 import { runLiveAgent } from "@mla/live-agent";
 import { runStorytellerAgent } from "@mla/storyteller-agent";
 import { runUiNavigatorAgent } from "@mla/ui-navigator-agent";
@@ -8,10 +13,16 @@ import { persistEvent } from "./services/firestore.js";
 
 type CachedOrchestrationResult = {
   response: OrchestratorResponse;
+  fingerprint: string;
   expiresAtMs: number;
 };
 
-const inFlightOrchestration = new Map<string, Promise<OrchestratorResponse>>();
+type InFlightOrchestrationEntry = {
+  fingerprint: string;
+  execution: Promise<OrchestratorResponse>;
+};
+
+const inFlightOrchestration = new Map<string, InFlightOrchestrationEntry>();
 const completedOrchestration = new Map<string, CachedOrchestrationResult>();
 const ORCHESTRATOR_IDEMPOTENCY_TTL_MS = parsePositiveInt(process.env.ORCHESTRATOR_IDEMPOTENCY_TTL_MS, 120_000);
 
@@ -72,6 +83,40 @@ function buildOrchestrationKey(request: OrchestratorRequest): string {
   return `${request.sessionId}:${runId}:${intent}:${key}`;
 }
 
+function stableSerialize(value: unknown): string {
+  if (value === null || value === undefined) {
+    return "null";
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "string") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableSerialize(item)).join(",")}]`;
+  }
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => `${JSON.stringify(key)}:${stableSerialize(item)}`);
+    return `{${entries.join(",")}}`;
+  }
+  return JSON.stringify(String(value));
+}
+
+function buildOrchestrationFingerprint(request: OrchestratorRequest): string {
+  const payload: Record<string, unknown> = isRecord(request.payload) ? request.payload : {};
+  const canonical = {
+    sessionId: request.sessionId,
+    userId: toNonEmptyString(request.userId),
+    runId: toNonEmptyString(request.runId) ?? request.id,
+    intent: toNonEmptyString(payload.intent),
+    input: isRecord(payload.input) || Array.isArray(payload.input) ? payload.input : payload.input ?? null,
+  };
+  return createHash("sha256").update(stableSerialize(canonical)).digest("hex");
+}
+
 function cleanupOrchestrationCache(nowMs = Date.now()): void {
   for (const [key, entry] of completedOrchestration.entries()) {
     if (entry.expiresAtMs <= nowMs) {
@@ -82,6 +127,41 @@ function cleanupOrchestrationCache(nowMs = Date.now()): void {
 
 function cloneResponse(response: OrchestratorResponse): OrchestratorResponse {
   return JSON.parse(JSON.stringify(response)) as OrchestratorResponse;
+}
+
+function buildIdempotencyConflictResponse(params: {
+  request: OrchestratorRequest;
+  key: string;
+  cachedFingerprint: string;
+  receivedFingerprint: string;
+}): OrchestratorResponse {
+  const normalizedError = createNormalizedError({
+    code: "ORCHESTRATOR_IDEMPOTENCY_CONFLICT",
+    message: "request identity conflict for idempotency key",
+    details: {
+      key: params.key,
+      cachedFingerprint: params.cachedFingerprint,
+      receivedFingerprint: params.receivedFingerprint,
+    },
+  });
+
+  return createEnvelope({
+    userId: params.request.userId,
+    sessionId: params.request.sessionId,
+    runId: params.request.runId ?? params.request.id,
+    type: "orchestrator.response",
+    source: "orchestrator",
+    payload: {
+      route: routeIntent(params.request.payload.intent),
+      status: "failed",
+      output: {
+        idempotencyConflict: true,
+        key: params.key,
+      },
+      traceId: normalizedError.traceId,
+      error: normalizedError,
+    },
+  }) as OrchestratorResponse;
 }
 
 type TaskContext = {
@@ -293,17 +373,34 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
 export async function orchestrate(request: OrchestratorRequest): Promise<OrchestratorResponse> {
   const normalizedRequest = ensureRunId(request);
   const key = buildOrchestrationKey(normalizedRequest);
+  const fingerprint = buildOrchestrationFingerprint(normalizedRequest);
   const nowMs = Date.now();
   cleanupOrchestrationCache(nowMs);
 
   const cached = completedOrchestration.get(key);
   if (cached && cached.expiresAtMs > nowMs) {
+    if (cached.fingerprint !== fingerprint) {
+      return buildIdempotencyConflictResponse({
+        request: normalizedRequest,
+        key,
+        cachedFingerprint: cached.fingerprint,
+        receivedFingerprint: fingerprint,
+      });
+    }
     return cloneResponse(cached.response);
   }
 
   const inFlight = inFlightOrchestration.get(key);
   if (inFlight) {
-    const response = await inFlight;
+    if (inFlight.fingerprint !== fingerprint) {
+      return buildIdempotencyConflictResponse({
+        request: normalizedRequest,
+        key,
+        cachedFingerprint: inFlight.fingerprint,
+        receivedFingerprint: fingerprint,
+      });
+    }
+    const response = await inFlight.execution;
     return cloneResponse(response);
   }
 
@@ -311,6 +408,7 @@ export async function orchestrate(request: OrchestratorRequest): Promise<Orchest
     .then((response) => {
       completedOrchestration.set(key, {
         response: cloneResponse(response),
+        fingerprint,
         expiresAtMs: Date.now() + ORCHESTRATOR_IDEMPOTENCY_TTL_MS,
       });
       return response;
@@ -319,7 +417,10 @@ export async function orchestrate(request: OrchestratorRequest): Promise<Orchest
       inFlightOrchestration.delete(key);
     });
 
-  inFlightOrchestration.set(key, execution);
+  inFlightOrchestration.set(key, {
+    fingerprint,
+    execution,
+  });
   const response = await execution;
   return cloneResponse(response);
 }

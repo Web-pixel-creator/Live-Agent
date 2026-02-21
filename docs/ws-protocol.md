@@ -136,11 +136,16 @@ Common WS codes:
 4. `GATEWAY_DRAINING`
 5. `GATEWAY_ORCHESTRATOR_FAILURE`
 6. `GATEWAY_SERIAL_LANE_FAILURE`
+7. `GATEWAY_IDEMPOTENCY_CONFLICT`
 
 Retry guidance:
 
 1. Retryable with backoff: transient `GATEWAY_ORCHESTRATOR_FAILURE`, `GATEWAY_DRAINING` (after warmup/recovery).
-2. Non-retryable without client fix: `GATEWAY_INVALID_ENVELOPE`, `GATEWAY_SESSION_MISMATCH`, `GATEWAY_USER_MISMATCH`.
+2. Non-retryable without client fix: `GATEWAY_INVALID_ENVELOPE`, `GATEWAY_SESSION_MISMATCH`, `GATEWAY_USER_MISMATCH`, `GATEWAY_IDEMPOTENCY_CONFLICT`.
+
+Orchestrator conflict code (in `orchestrator.response.payload.error`):
+
+1. `ORCHESTRATOR_IDEMPOTENCY_CONFLICT`
 
 ## Correlation And Replay Rules
 

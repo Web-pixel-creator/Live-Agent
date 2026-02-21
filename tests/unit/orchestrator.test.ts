@@ -123,3 +123,90 @@ test("orchestrator deduplicates in-flight duplicates by request key", async () =
   const secondOutput = asObject(second.payload.output);
   assert.equal(secondOutput.traceId, firstOutput.traceId);
 });
+
+test("orchestrator returns idempotency conflict for same key with different payload", async () => {
+  process.env.FIRESTORE_ENABLED = "false";
+  process.env.GEMINI_API_KEY = "";
+  process.env.ORCHESTRATOR_IDEMPOTENCY_TTL_MS = "120000";
+
+  const runId = `unit-run-idempotent-conflict-${Date.now()}`;
+  const idempotencyKey = `idem-${runId}`;
+
+  const firstRequest = createEnvelope({
+    userId: "unit-user",
+    sessionId: "unit-session-idempotent-conflict",
+    runId,
+    type: "orchestrator.request",
+    source: "frontend",
+    payload: {
+      intent: "conversation",
+      input: {
+        text: "first payload",
+      },
+      idempotencyKey,
+    },
+  }) as OrchestratorRequest;
+
+  const secondRequest = createEnvelope({
+    ...firstRequest,
+    payload: {
+      ...firstRequest.payload,
+      input: {
+        text: "mutated payload",
+      },
+    },
+  }) as OrchestratorRequest;
+
+  const first = await orchestrate(firstRequest);
+  const second = await orchestrate(secondRequest);
+
+  assert.equal(first.payload.status, "completed");
+  assert.equal(second.payload.status, "failed");
+
+  const error = asObject(second.payload.error);
+  assert.equal(error.code, "ORCHESTRATOR_IDEMPOTENCY_CONFLICT");
+});
+
+test("orchestrator returns idempotency conflict for in-flight request with same key and mutated payload", async () => {
+  process.env.FIRESTORE_ENABLED = "false";
+  process.env.GEMINI_API_KEY = "";
+  process.env.ORCHESTRATOR_IDEMPOTENCY_TTL_MS = "120000";
+
+  const runId = `unit-run-idempotent-conflict-inflight-${Date.now()}`;
+  const idempotencyKey = `idem-${runId}`;
+
+  const firstRequest = createEnvelope({
+    userId: "unit-user",
+    sessionId: "unit-session-idempotent-conflict-inflight",
+    runId,
+    type: "orchestrator.request",
+    source: "frontend",
+    payload: {
+      intent: "conversation",
+      input: {
+        text: "first payload inflight",
+      },
+      idempotencyKey,
+    },
+  }) as OrchestratorRequest;
+
+  const secondRequest = createEnvelope({
+    ...firstRequest,
+    payload: {
+      ...firstRequest.payload,
+      input: {
+        text: "mutated payload inflight",
+      },
+    },
+  }) as OrchestratorRequest;
+
+  const [first, second] = await Promise.all([orchestrate(firstRequest), orchestrate(secondRequest)]);
+  const statuses = [first.payload.status, second.payload.status];
+
+  assert.equal(statuses.includes("completed"), true);
+  assert.equal(statuses.includes("failed"), true);
+
+  const failedResponse = first.payload.status === "failed" ? first : second;
+  const error = asObject(failedResponse.payload.error);
+  assert.equal(error.code, "ORCHESTRATOR_IDEMPOTENCY_CONFLICT");
+});

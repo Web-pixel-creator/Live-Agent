@@ -17,6 +17,7 @@ import { WebSocketServer } from "ws";
 import { loadGatewayConfig } from "./config.js";
 import { LiveApiBridge } from "./live-bridge.js";
 import { sendToOrchestrator } from "./orchestrator-client.js";
+import { buildReplayFingerprint, buildReplayKey } from "./request-replay.js";
 import { TaskRegistry, type TaskRecord } from "./task-registry.js";
 
 const serviceName = "realtime-gateway";
@@ -119,23 +120,6 @@ function extractRequestTaskId(request: OrchestratorRequest): string | null {
     return null;
   }
   return toNonEmptyString(request.payload.task.taskId);
-}
-
-function sanitizeIdempotencyToken(value: string): string {
-  return value.replace(/[^a-zA-Z0-9_.:-]/g, "_").slice(0, 128);
-}
-
-function extractGatewayRequestIdempotencyKey(request: OrchestratorRequest): string {
-  const payload = request.payload as unknown;
-  if (!isObject(payload)) {
-    return sanitizeIdempotencyToken(request.runId ?? request.id);
-  }
-  const fromPayload =
-    toNonEmptyString(payload.idempotencyKey) ??
-    (isObject(payload.meta) ? toNonEmptyString(payload.meta.idempotencyKey) : null) ??
-    (isObject(payload.input) ? toNonEmptyString(payload.input.idempotencyKey) : null);
-  const fallback = fromPayload ?? toNonEmptyString(request.runId) ?? request.id;
-  return sanitizeIdempotencyToken(fallback);
 }
 
 function cloneOrchestratorResponse(response: OrchestratorResponse): OrchestratorResponse {
@@ -652,6 +636,7 @@ wss.on("connection", (ws) => {
   );
   type ReplayCacheEntry = {
     response: OrchestratorResponse;
+    fingerprint: string;
     cachedAtMs: number;
     expiresAtMs: number;
   };
@@ -664,13 +649,6 @@ wss.on("connection", (ws) => {
         requestReplayCache.delete(key);
       }
     }
-  };
-
-  const buildReplayKey = (request: OrchestratorRequest): string => {
-    const runId = toNonEmptyString(request.runId) ?? request.id;
-    const intent = extractRequestIntent(request) ?? "unknown";
-    const idempotencyKey = extractGatewayRequestIdempotencyKey(request);
-    return `${request.sessionId}:${runId}:${intent}:${idempotencyKey}`;
   };
 
   const processMessage = async (rawText: string): Promise<void> => {
@@ -747,13 +725,39 @@ wss.on("connection", (ws) => {
       };
       const shouldTrackTask = parsed.type === "orchestrator.request";
       const replayKey = shouldTrackTask ? buildReplayKey(rawRequest) : null;
+      const replayFingerprint = replayKey ? buildReplayFingerprint(rawRequest) : null;
       let trackedTask: TaskRecord | null = null;
       let request = rawRequest;
 
-      if (replayKey) {
+      if (replayKey && replayFingerprint) {
         cleanupReplayCache();
         const cached = requestReplayCache.get(replayKey);
         if (cached && cached.expiresAtMs > Date.now()) {
+          if (cached.fingerprint !== replayFingerprint) {
+            emitSessionState(
+              "orchestrator_failed",
+              {
+                reason: "idempotency_conflict",
+                replayKey,
+              },
+              rawRequest.runId,
+            );
+            emitGatewayError({
+              sessionId: rawRequest.sessionId,
+              runId: rawRequest.runId ?? undefined,
+              code: "GATEWAY_IDEMPOTENCY_CONFLICT",
+              message: "request identity conflict for replay key",
+              details: {
+                replayKey,
+                cachedFingerprint: cached.fingerprint,
+                receivedFingerprint: replayFingerprint,
+              },
+            });
+            metrics.record("ws.message.orchestrator.idempotency_conflict", Date.now() - messageStartedAt, false);
+            metrics.record("ws.message.orchestrator", Date.now() - messageStartedAt, false);
+            return;
+          }
+
           const replayedResponse = cloneOrchestratorResponse(cached.response);
           emitGatewayEvent({
             sessionId: rawRequest.sessionId,
@@ -962,6 +966,7 @@ wss.on("connection", (ws) => {
         const nowMs = Date.now();
         requestReplayCache.set(replayKey, {
           response: cloneOrchestratorResponse(response),
+          fingerprint: replayFingerprint ?? "unknown",
           cachedAtMs: nowMs,
           expiresAtMs: nowMs + gatewayOrchestratorReplayTtlMs,
         });
