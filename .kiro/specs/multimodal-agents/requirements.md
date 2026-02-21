@@ -243,6 +243,7 @@
 7. THE System SHALL propagate correlation context (`userId`, `sessionId`, `runId`) across FE/Gateway/Orchestrator events and reject websocket requests with binding mismatches.
 8. THE System SHALL support optimistic session updates with `expectedVersion` and idempotent mutation replay via `idempotencyKey`, returning `409` on version conflicts.
 9. THE System SHALL support idempotent replay for duplicate orchestrator requests (`runId`/`idempotencyKey`) across Gateway and Orchestrator runtime boundaries.
+10. THE repository SHALL provide a single authoritative WebSocket protocol and error taxonomy document (`docs/ws-protocol.md`) aligned with runtime behavior.
 
 ### Requirement 15: Monitoring and Observability
 

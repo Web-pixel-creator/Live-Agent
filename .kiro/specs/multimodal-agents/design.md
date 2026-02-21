@@ -75,7 +75,7 @@ Responsibilities:
 
 Interfaces:
 
-- `wss://.../realtime/session/{sessionId}` для live control/data.
+- `wss://.../realtime` for live control/data (session is carried in envelope as `sessionId`).
 - REST endpoints для history/assets/reports.
 
 ### 2. Realtime Gateway Service (Cloud Run)

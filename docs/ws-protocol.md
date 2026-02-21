@@ -2,13 +2,16 @@
 
 ## Scope
 
-This document is the canonical contract for `/realtime` WebSocket integration between frontend clients and `apps/realtime-gateway`.
+This document is the single authoritative protocol contract for frontend integration with `apps/realtime-gateway` over `ws(s)://<host>/realtime`.
 
-MVP transport is WebSocket only. WebRTC is out of scope for MVP.
+Transport baseline:
 
-## Envelope
+1. MVP transport is WebSocket only.
+2. WebRTC is deferred to V2 and is not required for judged demo flows.
 
-All messages MUST use the shared envelope shape:
+## Envelope Contract
+
+Every frame (both directions) MUST be an `EventEnvelope`:
 
 ```json
 {
@@ -17,15 +20,29 @@ All messages MUST use the shared envelope shape:
   "sessionId": "string",
   "runId": "string-optional",
   "type": "string",
-  "source": "frontend|gateway|...",
+  "source": "frontend|gateway|orchestrator|agent|tool",
   "ts": "ISO-8601",
   "payload": {}
 }
 ```
 
+Rules:
+
+1. `sessionId` is mandatory.
+2. `userId` MAY be omitted by client after socket binding is established.
+3. `runId` is operation-level and SHOULD be stable per user request.
+4. `type` drives routing and behavior.
+
+## Session Binding And Serial Lane
+
+1. On first valid inbound frame, gateway binds socket to `(sessionId, userId)`.
+2. Later frames with different `sessionId` are rejected (`GATEWAY_SESSION_MISMATCH`).
+3. Later frames with different explicit `userId` are rejected (`GATEWAY_USER_MISMATCH`).
+4. Inbound frames are processed in a per-socket serial lane to prevent race conditions.
+
 ## Client -> Gateway Events
 
-Required:
+Supported event types:
 
 1. `orchestrator.request`
 2. `live.audio`
@@ -33,59 +50,85 @@ Required:
 4. `live.text`
 5. `live.turn.end`
 6. `live.interrupt`
-7. `live.setup` (optional setup override)
+7. `live.setup` (optional Gemini setup override payload)
 
 Notes:
 
-1. `sessionId` and `userId` are binding keys for the socket session.
-2. Gateway enforces mismatch protection; messages with different bound `sessionId`/`userId` are rejected.
+1. `live.audio` is expected as PCM16 base64 chunks with `sampleRate=16000` in current frontend/gateway baseline.
+2. `orchestrator.request` SHOULD carry stable request identity (`runId` and/or `payload.idempotencyKey`) for replay safety.
 
 ## Gateway -> Client Events
 
-Connection/session:
+### Connection and Session
 
 1. `gateway.connected`
 2. `session.state`
 3. `gateway.error`
 
-Task lifecycle:
+`session.state` values:
 
-1. `task.started`
-2. `task.progress`
-3. `task.completed`
-4. `task.failed`
-5. `gateway.request_replayed` (duplicate orchestrator request replayed from gateway cache)
+1. `socket_connected`
+2. `session_bound`
+3. `live_forwarded`
+4. `orchestrator_dispatching`
+5. `orchestrator_pending_approval`
+6. `orchestrator_completed`
+7. `orchestrator_failed`
+8. `text_fallback`
 
-Live bridge output/metrics:
+### Orchestration and Tasks
+
+1. `orchestrator.response`
+2. `task.started`
+3. `task.progress`
+4. `task.completed`
+5. `task.failed`
+6. `gateway.request_replayed`
+
+### Live Bridge Output and Metrics
 
 1. `live.output`
 2. `live.turn.completed`
-3. `live.interrupted`
-4. `live.metrics.round_trip`
-5. `live.metrics.interrupt_latency`
-6. `live.bridge.setup_sent`
-7. `live.bridge.connected`
-8. `live.bridge.closed`
-9. `live.bridge.reconnect_attempt`
-10. `live.bridge.forward_retry`
-11. `live.bridge.unavailable`
-12. `live.bridge.chunk_dropped`
-13. `live.bridge.failover`
-14. `live.bridge.auth_profile_failed`
-15. `live.bridge.health_degraded`
-16. `live.bridge.health_recovered`
+3. `live.turn.end_sent`
+4. `live.interrupted`
+5. `live.interrupt.requested`
+6. `live.metrics.round_trip`
+7. `live.metrics.interrupt_latency`
 
-Failover diagnostics fields (where applicable):
+### Live Bridge Runtime Diagnostics
+
+1. `live.bridge.setup_sent`
+2. `live.bridge.connected`
+3. `live.bridge.closed`
+4. `live.bridge.error`
+5. `live.bridge.unavailable`
+6. `live.bridge.chunk_dropped`
+7. `live.bridge.reconnect_attempt`
+8. `live.bridge.reconnect_wait`
+9. `live.bridge.forward_retry`
+10. `live.bridge.failover`
+11. `live.bridge.auth_profile_failed`
+12. `live.bridge.health_degraded`
+13. `live.bridge.health_watchdog_reconnect`
+14. `live.bridge.health_recovered`
+
+Failover/watchdog diagnostics (where present):
 
 1. `reasonClass`: `transient | rate_limit | auth | billing`
-2. `routeReadyAt`, `routeAvailableNow`
-3. `modelState` / `authProfileState` (`cooldownUntil`, `disabledUntil`, `failureCount`)
+2. `routeReadyAt`, `routeAvailableNow`, `routeWaitMs`
+3. `modelState` and `authProfileState` with cooldown/disable windows and failure counters
+4. `silenceMs`, `thresholdMs` for watchdog-degradation path
 
 ## Error Taxonomy (WS Path)
 
-`gateway.error` payload uses normalized error format with `code`, `message`, `traceId`, optional `details`.
+`gateway.error` payload uses normalized structure:
 
-Common codes:
+1. `code` (stable machine code)
+2. `message` (human-readable summary)
+3. `traceId` (required)
+4. `details` (optional structured context)
+
+Common WS codes:
 
 1. `GATEWAY_INVALID_ENVELOPE`
 2. `GATEWAY_SESSION_MISMATCH`
@@ -96,14 +139,12 @@ Common codes:
 
 Retry guidance:
 
-1. Retryable:
-`GATEWAY_DRAINING` (after backoff / warmup), transient `GATEWAY_ORCHESTRATOR_FAILURE`.
-2. Non-retryable without client fix:
-`GATEWAY_INVALID_ENVELOPE`, `GATEWAY_SESSION_MISMATCH`, `GATEWAY_USER_MISMATCH`.
+1. Retryable with backoff: transient `GATEWAY_ORCHESTRATOR_FAILURE`, `GATEWAY_DRAINING` (after warmup/recovery).
+2. Non-retryable without client fix: `GATEWAY_INVALID_ENVELOPE`, `GATEWAY_SESSION_MISMATCH`, `GATEWAY_USER_MISMATCH`.
 
-## Correlation Rules
+## Correlation And Replay Rules
 
-1. Client must keep stable `sessionId` + `userId` per socket.
-2. `runId` is operation-level and may change per request.
-3. `traceId` from `gateway.error` should be logged by frontend and operator tooling for diagnostics.
-4. Client SHOULD send stable request identity (`runId` and/or `payload.idempotencyKey`) so gateway/orchestrator can replay duplicates safely.
+1. Keep stable `sessionId` and `userId` for a socket lifetime.
+2. Use `runId` per logical request and keep it stable across retries.
+3. Log and surface `traceId` from `gateway.error` in frontend/operator diagnostics.
+4. Gateway may replay duplicate requests (`gateway.request_replayed`) from TTL cache when request identity matches.
