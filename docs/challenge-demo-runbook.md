@@ -16,6 +16,15 @@ npm run dev:api
 npm run dev:gateway
 npm run dev:frontend
 ```
+Optional local realtime mode without cloud keys:
+```powershell
+npm run dev:live-mock
+```
+and configure gateway env:
+- `LIVE_API_ENABLED=true`
+- `LIVE_API_PROTOCOL=gemini`
+- `LIVE_API_WS_URL=ws://localhost:8091/live`
+
 3. Open `http://localhost:3000` and confirm:
 - `Connection status` changes to `connected`.
 - KPI panel is visible (`target/current/final`).

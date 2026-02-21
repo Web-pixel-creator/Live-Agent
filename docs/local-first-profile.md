@@ -48,3 +48,19 @@ Environment selector:
 ```powershell
 npm run profile:smoke
 ```
+
+## Optional: Live API Echo Mock (for realtime UI without cloud keys)
+
+Run local mock service:
+
+```powershell
+npm run dev:live-mock
+```
+
+Use gateway with mock upstream:
+
+- `LIVE_API_ENABLED=true`
+- `LIVE_API_PROTOCOL=gemini`
+- `LIVE_API_WS_URL=ws://localhost:8091/live`
+
+This allows frontend/gateway testing of `connected`, `live.output`, `live.interrupted`, and turn-complete flows without Gemini quota usage.

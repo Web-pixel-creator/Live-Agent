@@ -104,6 +104,11 @@
 | T-216 | Session optimistic versioning + idempotency for REST mutations | P0 | 0.25 week | T-014, T-213 | R14, R15 | `PATCH /v1/sessions/{id}` поддерживает `expectedVersion` + `idempotencyKey`, возвращает `409` на конфликт и детерминированно обрабатывает повтор |
 | T-217 | Live Agent context compaction runtime (summary + recent turns) | P0 | 0.25 week | T-211, T-215 | R1, R10, R15 | При превышении token budget выполняется compaction c сохранением summary/recent turns и диагностикой в output context |
 | T-218 | Gateway/Orchestrator idempotent request dedupe + session serial lane | P0 | 0.25 week | T-211, T-215, T-216 | R12, R14, R15 | Gateway обрабатывает WS-сообщения последовательно по session lane, duplicate `orchestrator.request` переигрываются из TTL cache, orchestrator дедуплицирует in-flight/completed по `runId/idempotencyKey` |
+| T-219 | Local Live API Echo Mock for offline UI/runtime development | P0 | 0.25 week | T-209, T-211 | R10, R12, R14 | Добавлен локальный WebSocket mock (`apps/live-api-echo-mock`) для Gemini Live-подобного протокола; local-first сценарии могут валидировать `connected/output/interrupted/turn_complete` без внешних ключей и квот |
+| T-220 | UI Navigator grounding upgrade: Screenshot + DOM/A11y + Set-of-Marks hints | P0 | 0.5 week | T-106, T-212 | R6, R7, R8, R15 | Планировщик/исполнитель UI действий принимает не только screenshot, но и структурированный DOM/a11y snapshot и mark hints; e2e фиксирует рост устойчивости кликов/локаторов |
+| T-221 | Telemetry storage split: Firestore state vs analytics sinks (Cloud Monitoring/BigQuery) | P1 | 0.5 week | T-009, T-205 | R11, R15 | Состояние/approval/session остаются в Firestore, метрики и тяжелые аналитические события экспортируются в Cloud Monitoring/BigQuery с документированной retention/cost политикой |
+| T-222 | Assistive LLM router with confidence gate and deterministic fallback | P1 | 0.5 week | T-004, T-109 | R10, R16 | Добавлен дополнительный router на `gemini-3-flash` под feature flag; при low-confidence сохраняется текущий deterministic routeIntent для воспроизводимости judged demo |
+| T-223 | WebRTC spike and migration plan for Live Agent V2 transport | P2 | 0.5 week | T-211 | R1, R12 | Выполнен технический spike (latency/loss behavior, adapter seam, rollout risks); подготовлен migration design без влияния на WebSocket-only MVP |
 
 ### M3 Detailed Implementation Checklist (T-207..T-210)
 
@@ -148,6 +153,13 @@
 ## Current Quality Sprint Path
 
 1. T-211 -> T-212 -> T-213 -> T-214 -> T-215 -> T-216 -> T-217 -> T-218
+
+## Current Post-Feedback Execution Path
+
+1. T-219 (Echo Mock) -> T-220 (UI Grounding SoM/DOM/A11y)
+2. T-221 (Telemetry split for cost/analytics)
+3. T-222 (Assistive LLM router with confidence fallback)
+4. T-223 (WebRTC V2 spike only, no MVP transport change)
 
 ## Suggested Solo Execution (2-week MVP)
 
