@@ -177,3 +177,89 @@ test("upsert does not reopen resolved approval and timeout decision remains immu
   assert.equal(afterTimeoutDecision.decision, null);
   assert.equal(afterTimeoutDecision.auditLog.some((entry) => entry.action === "decision_approved"), false);
 });
+
+test("concurrent approval decisions are serialized and first terminal decision wins", async () => {
+  process.env.FIRESTORE_ENABLED = "false";
+
+  const approvalId = uniqueToken("approval-concurrent");
+  const sessionId = uniqueToken("session-concurrent");
+  const runId = uniqueToken("run-concurrent");
+
+  await upsertPendingApproval({
+    approvalId,
+    sessionId,
+    runId,
+    actionType: "ui_task",
+    actor: "unit-test",
+  });
+
+  const [first, second] = await Promise.all([
+    recordApprovalDecision({
+      approvalId,
+      sessionId,
+      runId,
+      decision: "approved",
+      reason: "first decision should win",
+      actor: "operator-a",
+    }),
+    recordApprovalDecision({
+      approvalId,
+      sessionId,
+      runId,
+      decision: "rejected",
+      reason: "concurrent second decision should be ignored",
+      actor: "operator-b",
+    }),
+  ]);
+
+  assert.equal(first.status, "approved");
+  assert.equal(second.status, "approved");
+  assert.equal(first.approvalId, approvalId);
+  assert.equal(second.approvalId, approvalId);
+
+  const latest = (await listApprovals({ sessionId, limit: 10 })).find((item) => item.approvalId === approvalId);
+  assert.ok(latest);
+  assert.equal(latest?.status, "approved");
+  assert.equal(latest?.decision, "approved");
+  assert.equal(latest?.auditLog.filter((entry) => entry.action === "decision_approved").length, 1);
+  assert.equal(latest?.auditLog.some((entry) => entry.action === "decision_rejected"), false);
+});
+
+test("approval can transition from rejected to approved for explicit resume flow", async () => {
+  process.env.FIRESTORE_ENABLED = "false";
+
+  const approvalId = uniqueToken("approval-reject-approve");
+  const sessionId = uniqueToken("session-reject-approve");
+  const runId = uniqueToken("run-reject-approve");
+
+  await upsertPendingApproval({
+    approvalId,
+    sessionId,
+    runId,
+    actionType: "ui_task",
+    actor: "unit-test",
+  });
+
+  const rejected = await recordApprovalDecision({
+    approvalId,
+    sessionId,
+    runId,
+    decision: "rejected",
+    reason: "first decision reject",
+    actor: "operator-a",
+  });
+  assert.equal(rejected.status, "rejected");
+
+  const approved = await recordApprovalDecision({
+    approvalId,
+    sessionId,
+    runId,
+    decision: "approved",
+    reason: "override to resume",
+    actor: "operator-b",
+  });
+  assert.equal(approved.status, "approved");
+  assert.equal(approved.decision, "approved");
+  assert.equal(approved.auditLog.some((entry) => entry.action === "decision_rejected"), true);
+  assert.equal(approved.auditLog.some((entry) => entry.action === "decision_approved"), true);
+});

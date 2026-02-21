@@ -218,6 +218,7 @@ const inMemoryApprovals = new Map<string, ApprovalRecord>();
 const inMemoryOperatorActions: OperatorActionRecord[] = [];
 const inMemoryManagedSkills = new Map<string, ManagedSkillRecord>();
 const inMemoryDeviceNodes = new Map<string, DeviceNodeRecord>();
+const inMemoryWriteLanes = new Map<string, Promise<void>>();
 const DEFAULT_APPROVAL_SOFT_TIMEOUT_MS = 60 * 1000;
 const DEFAULT_APPROVAL_HARD_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -279,6 +280,28 @@ function toIso(value: unknown): string {
     return value;
   }
   return new Date().toISOString();
+}
+
+async function runInMemoryWriteLane<T>(laneKey: string, operation: () => Promise<T> | T): Promise<T> {
+  const previousTail = inMemoryWriteLanes.get(laneKey) ?? Promise.resolve();
+  let release: () => void = () => {};
+  const barrier = new Promise<void>((resolve) => {
+    release = () => {
+      resolve();
+    };
+  });
+  const nextTail = previousTail.then(() => barrier);
+  inMemoryWriteLanes.set(laneKey, nextTail);
+
+  await previousTail;
+  try {
+    return await operation();
+  } finally {
+    release();
+    if (inMemoryWriteLanes.get(laneKey) === nextTail) {
+      inMemoryWriteLanes.delete(laneKey);
+    }
+  }
 }
 
 function sanitizeMode(raw: unknown): SessionMode {
@@ -930,46 +953,48 @@ export async function updateSessionStatus(
   const idempotencyKey = normalizeMutationId(options?.idempotencyKey);
 
   if (!db) {
-    const existing = inMemorySessions.get(sessionId);
-    if (!existing) {
-      return {
-        outcome: "not_found",
-      };
-    }
-    if (idempotencyKey && existing.lastMutationId === idempotencyKey) {
-      if (existing.status === status) {
+    return runInMemoryWriteLane(`session:${sessionId}`, () => {
+      const existing = inMemorySessions.get(sessionId);
+      if (!existing) {
         return {
-          outcome: "idempotent_replay",
-          session: existing,
+          outcome: "not_found",
         };
       }
-      return {
-        outcome: "idempotency_conflict",
-        session: existing,
-        idempotencyKey,
-        requestedStatus: status,
+      if (idempotencyKey && existing.lastMutationId === idempotencyKey) {
+        if (existing.status === status) {
+          return {
+            outcome: "idempotent_replay",
+            session: existing,
+          };
+        }
+        return {
+          outcome: "idempotency_conflict",
+          session: existing,
+          idempotencyKey,
+          requestedStatus: status,
+        };
+      }
+      if (expectedVersion !== null && existing.version !== expectedVersion) {
+        return {
+          outcome: "version_conflict",
+          session: existing,
+          expectedVersion,
+          actualVersion: existing.version,
+        };
+      }
+      const updated = {
+        ...existing,
+        status,
+        version: existing.version + 1,
+        lastMutationId: idempotencyKey,
+        updatedAt: nowIso,
       };
-    }
-    if (expectedVersion !== null && existing.version !== expectedVersion) {
+      inMemorySessions.set(sessionId, updated);
       return {
-        outcome: "version_conflict",
-        session: existing,
-        expectedVersion,
-        actualVersion: existing.version,
+        outcome: "updated",
+        session: updated,
       };
-    }
-    const updated = {
-      ...existing,
-      status,
-      version: existing.version + 1,
-      lastMutationId: idempotencyKey,
-      updatedAt: nowIso,
-    };
-    inMemorySessions.set(sessionId, updated);
-    return {
-      outcome: "updated",
-      session: updated,
-    };
+    });
   }
 
   const ref = db.collection("sessions").doc(sessionId);
@@ -1228,24 +1253,26 @@ export async function upsertPendingApproval(params: {
   const db = initFirestore();
 
   if (!db) {
-    const existing = inMemoryApprovals.get(params.approvalId) ?? null;
-    if (existing && existing.status !== "pending") {
-      return existing;
-    }
-    const pending = ensurePendingLifecycle({
-      existing,
-      approvalId: params.approvalId,
-      sessionId: params.sessionId,
-      runId: params.runId,
-      metadata: params.metadata,
-      softTimeoutMs,
-      hardTimeoutMs,
-      actor,
-      actionType: params.actionType,
-      requestedAtIso: params.requestedAtIso,
+    return runInMemoryWriteLane("approvals", () => {
+      const existing = inMemoryApprovals.get(params.approvalId) ?? null;
+      if (existing && existing.status !== "pending") {
+        return existing;
+      }
+      const pending = ensurePendingLifecycle({
+        existing,
+        approvalId: params.approvalId,
+        sessionId: params.sessionId,
+        runId: params.runId,
+        metadata: params.metadata,
+        softTimeoutMs,
+        hardTimeoutMs,
+        actor,
+        actionType: params.actionType,
+        requestedAtIso: params.requestedAtIso,
+      });
+      inMemoryApprovals.set(params.approvalId, pending);
+      return pending;
     });
-    inMemoryApprovals.set(params.approvalId, pending);
-    return pending;
   }
 
   const ref = db.collection("approvals").doc(params.approvalId);
@@ -1308,41 +1335,54 @@ export async function recordApprovalDecision(params: {
   const db = initFirestore();
 
   if (!db) {
-    const existing = inMemoryApprovals.get(params.approvalId) ?? null;
-    const pending = existing
-      ? existing
-      : await upsertPendingApproval({
-          approvalId: params.approvalId,
-          sessionId: params.sessionId,
-          runId: params.runId,
-          actionType: "ui_task",
-          metadata: params.metadata,
-          actor: "system",
-        });
-    if (pending.status === "timeout") {
-      return pending;
-    }
-    const next: ApprovalRecord = {
-      ...pending,
-      status: params.decision,
-      decision: params.decision,
-      reason: params.reason,
-      resolvedAt: nowIso,
-      updatedAt: nowIso,
-      metadata: params.metadata ?? pending.metadata,
-      auditLog: addAuditEntry(
-        pending.auditLog,
-        createApprovalAuditEntry({
-          actor,
-          action: `decision_${params.decision}`,
-          reason: params.reason,
-          metadata: params.metadata,
-          ts: nowIso,
-        }),
-      ),
-    };
-    inMemoryApprovals.set(params.approvalId, next);
-    return next;
+    return runInMemoryWriteLane("approvals", () => {
+      const existing = inMemoryApprovals.get(params.approvalId) ?? null;
+      const pending = existing
+        ? existing
+        : ensurePendingLifecycle({
+            existing: null,
+            approvalId: params.approvalId,
+            sessionId: params.sessionId,
+            runId: params.runId,
+            metadata: params.metadata,
+            softTimeoutMs: DEFAULT_APPROVAL_SOFT_TIMEOUT_MS,
+            hardTimeoutMs: DEFAULT_APPROVAL_HARD_TIMEOUT_MS,
+            actor: "system",
+            actionType: "ui_task",
+          });
+
+      if (!existing) {
+        inMemoryApprovals.set(params.approvalId, pending);
+      }
+      if (pending.status === "timeout" || pending.status === "approved") {
+        return pending;
+      }
+      if (pending.status === "rejected" && params.decision === "rejected") {
+        return pending;
+      }
+
+      const next: ApprovalRecord = {
+        ...pending,
+        status: params.decision,
+        decision: params.decision,
+        reason: params.reason,
+        resolvedAt: nowIso,
+        updatedAt: nowIso,
+        metadata: params.metadata ?? pending.metadata,
+        auditLog: addAuditEntry(
+          pending.auditLog,
+          createApprovalAuditEntry({
+            actor,
+            action: `decision_${params.decision}`,
+            reason: params.reason,
+            metadata: params.metadata,
+            ts: nowIso,
+          }),
+        ),
+      };
+      inMemoryApprovals.set(params.approvalId, next);
+      return next;
+    });
   }
 
   const ref = db.collection("approvals").doc(params.approvalId);
@@ -1358,7 +1398,10 @@ export async function recordApprovalDecision(params: {
         actor: "system",
       });
 
-  if (pending.status === "timeout") {
+  if (pending.status === "timeout" || pending.status === "approved") {
+    return pending;
+  }
+  if (pending.status === "rejected" && params.decision === "rejected") {
     return pending;
   }
 
@@ -1414,63 +1457,65 @@ export async function sweepApprovalTimeouts(params: {
   const db = initFirestore();
 
   if (!db) {
-    for (const [approvalId, approval] of inMemoryApprovals.entries()) {
-      if (result.scanned >= limit) {
-        break;
-      }
-      if (approval.status !== "pending") {
-        continue;
-      }
-      result.scanned += 1;
-      const softDueMs = Date.parse(approval.softDueAt);
-      const hardDueMs = Date.parse(approval.hardDueAt);
-      let next = approval;
+    return runInMemoryWriteLane("approvals", () => {
+      for (const [approvalId, approval] of inMemoryApprovals.entries()) {
+        if (result.scanned >= limit) {
+          break;
+        }
+        if (approval.status !== "pending") {
+          continue;
+        }
+        result.scanned += 1;
+        const softDueMs = Date.parse(approval.softDueAt);
+        const hardDueMs = Date.parse(approval.hardDueAt);
+        let next = approval;
 
-      if (Number.isFinite(softDueMs) && nowMs >= softDueMs && !approval.softReminderSentAt) {
-        next = {
-          ...next,
-          softReminderSentAt: nowIso,
-          updatedAt: nowIso,
-          auditLog: addAuditEntry(
-            next.auditLog,
-            createApprovalAuditEntry({
-              actor: "system",
-              action: "soft_timeout_reminder",
-              reason: "Approval is still pending after soft timeout threshold",
-              ts: nowIso,
-            }),
-          ),
-        };
-        result.softReminders += 1;
-      }
+        if (Number.isFinite(softDueMs) && nowMs >= softDueMs && !approval.softReminderSentAt) {
+          next = {
+            ...next,
+            softReminderSentAt: nowIso,
+            updatedAt: nowIso,
+            auditLog: addAuditEntry(
+              next.auditLog,
+              createApprovalAuditEntry({
+                actor: "system",
+                action: "soft_timeout_reminder",
+                reason: "Approval is still pending after soft timeout threshold",
+                ts: nowIso,
+              }),
+            ),
+          };
+          result.softReminders += 1;
+        }
 
-      if (Number.isFinite(hardDueMs) && nowMs >= hardDueMs) {
-        next = {
-          ...next,
-          status: "timeout",
-          decision: null,
-          reason: "Approval timed out by SLA hard timeout policy",
-          resolvedAt: nowIso,
-          updatedAt: nowIso,
-          auditLog: addAuditEntry(
-            next.auditLog,
-            createApprovalAuditEntry({
-              actor: "system",
-              action: "hard_timeout_auto_reject",
-              reason: "Approval reached hard timeout and was auto-closed",
-              ts: nowIso,
-            }),
-          ),
-        };
-        result.hardTimeouts += 1;
-      }
+        if (Number.isFinite(hardDueMs) && nowMs >= hardDueMs) {
+          next = {
+            ...next,
+            status: "timeout",
+            decision: null,
+            reason: "Approval timed out by SLA hard timeout policy",
+            resolvedAt: nowIso,
+            updatedAt: nowIso,
+            auditLog: addAuditEntry(
+              next.auditLog,
+              createApprovalAuditEntry({
+                actor: "system",
+                action: "hard_timeout_auto_reject",
+                reason: "Approval reached hard timeout and was auto-closed",
+                ts: nowIso,
+              }),
+            ),
+          };
+          result.hardTimeouts += 1;
+        }
 
-      if (next !== approval) {
-        inMemoryApprovals.set(approvalId, next);
-        result.updatedApprovalIds.push(approvalId);
+        if (next !== approval) {
+          inMemoryApprovals.set(approvalId, next);
+          result.updatedApprovalIds.push(approvalId);
+        }
       }
-    }
-    return result;
+      return result;
+    });
   }
 
   const snapshot = await db
