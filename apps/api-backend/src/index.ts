@@ -875,6 +875,20 @@ export const server = createServer(async (req, res) => {
         });
         return;
       }
+      if (sessionUpdate.outcome === "idempotency_conflict") {
+        writeApiError(res, 409, {
+          code: "API_SESSION_IDEMPOTENCY_CONFLICT",
+          message: "Session idempotency key conflict",
+          details: {
+            sessionId,
+            idempotencyKey: sessionUpdate.idempotencyKey,
+            currentStatus: sessionUpdate.session.status,
+            requestedStatus: sessionUpdate.requestedStatus,
+            actualVersion: sessionUpdate.session.version,
+          },
+        });
+        return;
+      }
       writeJson(res, 200, {
         data: sessionUpdate.session,
         meta: {

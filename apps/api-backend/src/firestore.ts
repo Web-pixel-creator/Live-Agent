@@ -31,6 +31,12 @@ export type SessionUpdateResult =
       session: SessionListItem;
       expectedVersion: number;
       actualVersion: number;
+    }
+  | {
+      outcome: "idempotency_conflict";
+      session: SessionListItem;
+      idempotencyKey: string;
+      requestedStatus: SessionStatus;
     };
 
 export type RunListItem = {
@@ -930,10 +936,18 @@ export async function updateSessionStatus(
         outcome: "not_found",
       };
     }
-    if (idempotencyKey && existing.lastMutationId === idempotencyKey && existing.status === status) {
+    if (idempotencyKey && existing.lastMutationId === idempotencyKey) {
+      if (existing.status === status) {
+        return {
+          outcome: "idempotent_replay",
+          session: existing,
+        };
+      }
       return {
-        outcome: "idempotent_replay",
+        outcome: "idempotency_conflict",
         session: existing,
+        idempotencyKey,
+        requestedStatus: status,
       };
     }
     if (expectedVersion !== null && existing.version !== expectedVersion) {
@@ -970,10 +984,18 @@ export async function updateSessionStatus(
     const data = snapshot.data() ?? {};
     const existing = mapSessionRecord(sessionId, data);
 
-    if (idempotencyKey && existing.lastMutationId === idempotencyKey && existing.status === status) {
+    if (idempotencyKey && existing.lastMutationId === idempotencyKey) {
+      if (existing.status === status) {
+        return {
+          outcome: "idempotent_replay" as const,
+          session: existing,
+        };
+      }
       return {
-        outcome: "idempotent_replay" as const,
+        outcome: "idempotency_conflict" as const,
         session: existing,
+        idempotencyKey,
+        requestedStatus: status,
       };
     }
     if (expectedVersion !== null && existing.version !== expectedVersion) {
@@ -1006,6 +1028,9 @@ export async function updateSessionStatus(
     return transactionResult;
   }
   if (transactionResult.outcome === "idempotent_replay") {
+    return transactionResult;
+  }
+  if (transactionResult.outcome === "idempotency_conflict") {
     return transactionResult;
   }
   if (transactionResult.outcome === "version_conflict") {

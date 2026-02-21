@@ -66,3 +66,32 @@ test("session updates return version conflict when expectedVersion is stale", as
   assert.equal(conflict.expectedVersion, 1);
   assert.equal(conflict.actualVersion, 2);
 });
+
+test("session updates reject idempotency-key reuse with different target status", async () => {
+  process.env.FIRESTORE_ENABLED = "false";
+
+  const created = await createSession({
+    userId: "unit-user",
+    mode: "live",
+  });
+
+  const idempotencyKey = `idem-conflict-${Date.now()}`;
+  const first = await updateSessionStatus(created.sessionId, "paused", {
+    expectedVersion: created.version,
+    idempotencyKey,
+  });
+  assert.equal(first.outcome, "updated");
+
+  const conflict = await updateSessionStatus(created.sessionId, "closed", {
+    idempotencyKey,
+  });
+
+  assert.equal(conflict.outcome, "idempotency_conflict");
+  if (conflict.outcome !== "idempotency_conflict") {
+    throw new Error("expected idempotency conflict outcome");
+  }
+  assert.equal(conflict.idempotencyKey, idempotencyKey);
+  assert.equal(conflict.requestedStatus, "closed");
+  assert.equal(conflict.session.status, "paused");
+  assert.equal(conflict.session.version, 2);
+});
