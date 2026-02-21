@@ -1151,6 +1151,17 @@ try {
     Assert-Condition -Condition ($traceRuns -ge 1) -Message "Operator traces should include at least one run."
     Assert-Condition -Condition ($traceApprovals -ge 1) -Message "Operator traces should include approval-linked runs."
 
+    $liveBridgeHealth = Get-FieldValue -Object $summaryData -Path @("traces", "liveBridgeHealth")
+    Assert-Condition -Condition ($null -ne $liveBridgeHealth) -Message "Operator summary traces.liveBridgeHealth is missing."
+    $liveBridgeHealthState = [string](Get-FieldValue -Object $liveBridgeHealth -Path @("state"))
+    $liveBridgeHealthDegradedEvents = [int](Get-FieldValue -Object $liveBridgeHealth -Path @("degradedEvents"))
+    $liveBridgeHealthRecoveredEvents = [int](Get-FieldValue -Object $liveBridgeHealth -Path @("recoveredEvents"))
+    $liveBridgeHealthWatchdogReconnectEvents = [int](Get-FieldValue -Object $liveBridgeHealth -Path @("watchdogReconnectEvents"))
+    $liveBridgeHealthBridgeErrorEvents = [int](Get-FieldValue -Object $liveBridgeHealth -Path @("bridgeErrorEvents"))
+    $liveBridgeHealthUnavailableEvents = [int](Get-FieldValue -Object $liveBridgeHealth -Path @("unavailableEvents"))
+    $allowedHealthStates = @("healthy", "degraded", "unknown")
+    Assert-Condition -Condition ($allowedHealthStates -contains $liveBridgeHealthState) -Message "Operator summary live bridge state is invalid."
+
     $taskId = [string](Get-FieldValue -Object $activeTasks[0] -Path @("taskId"))
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($taskId)) -Message "Operator summary active task is missing taskId."
 
@@ -1218,6 +1229,13 @@ try {
       traceUiRuns = $traceUiRuns
       traceApprovals = $traceApprovals
       traceScreenshots = $traceScreenshots
+      liveBridgeHealthState = $liveBridgeHealthState
+      liveBridgeHealthDegradedEvents = $liveBridgeHealthDegradedEvents
+      liveBridgeHealthRecoveredEvents = $liveBridgeHealthRecoveredEvents
+      liveBridgeHealthWatchdogReconnectEvents = $liveBridgeHealthWatchdogReconnectEvents
+      liveBridgeHealthBridgeErrorEvents = $liveBridgeHealthBridgeErrorEvents
+      liveBridgeHealthUnavailableEvents = $liveBridgeHealthUnavailableEvents
+      liveBridgeHealthBlockValidated = $true
     }
   } | Out-Null
 
@@ -1557,6 +1575,13 @@ $summary = [ordered]@{
     operatorTraceUiRuns = if ($null -ne $operatorActionsData) { $operatorActionsData.traceUiRuns } else { $null }
     operatorTraceApprovals = if ($null -ne $operatorActionsData) { $operatorActionsData.traceApprovals } else { $null }
     operatorTraceScreenshots = if ($null -ne $operatorActionsData) { $operatorActionsData.traceScreenshots } else { $null }
+    operatorLiveBridgeHealthState = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthState } else { $null }
+    operatorLiveBridgeHealthDegradedEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthDegradedEvents } else { $null }
+    operatorLiveBridgeHealthRecoveredEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthRecoveredEvents } else { $null }
+    operatorLiveBridgeHealthWatchdogReconnectEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthWatchdogReconnectEvents } else { $null }
+    operatorLiveBridgeHealthBridgeErrorEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthBridgeErrorEvents } else { $null }
+    operatorLiveBridgeHealthUnavailableEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthUnavailableEvents } else { $null }
+    operatorLiveBridgeHealthBlockValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthBlockValidated } else { $false }
     operatorAuditTrailValidated = if (
       $null -ne $operatorActionsData -and
       [int]$operatorActionsData.operatorAuditTotal -ge 4

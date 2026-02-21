@@ -60,12 +60,16 @@ Checkpoint B (hard interruption) at ~01:40:
    - `nodeId=desktop-main`, `kind=desktop`, `status=online`, capabilities include `screen,click,type`.
 2. Switch role to `operator` and send one heartbeat for the same node (optionally with `status=degraded` then back to `online`).
 3. Confirm `Device Nodes` list updates with latest `status`, `version`, and `lastSeenAt`.
-4. Switch intent to `ui_task` with sensitive action phrase.
-5. Show `Approval Control` with pending `approvalId`.
-6. Execute both decisions:
+4. Click `Refresh Summary` in `Operator Console` and show `live_bridge_health` line:
+   - `state` in `healthy|degraded|unknown`,
+   - counters (`degraded/recovered/watchdog_reconnect/errors/unavailable`),
+   - last health event marker.
+5. Switch intent to `ui_task` with sensitive action phrase.
+6. Show `Approval Control` with pending `approvalId`.
+7. Execute both decisions:
    - `Reject` (must not resume run),
    - `Approve & Resume` (must resume and complete).
-7. Run one safe `ui_task` in visual testing mode (`visualTesting.enabled=true`) and show:
+8. Run one safe `ui_task` in visual testing mode (`visualTesting.enabled=true`) and show:
    - structured visual report with `checks` and severity labels,
    - `status=passed|failed`,
    - artifact refs (`baseline`, `actual`, `diff`).

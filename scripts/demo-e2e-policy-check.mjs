@@ -304,6 +304,18 @@ async function main() {
     true,
   );
   addCheck(
+    "kpi.operatorLiveBridgeHealthBlockValidated",
+    kpis.operatorLiveBridgeHealthBlockValidated === true,
+    kpis.operatorLiveBridgeHealthBlockValidated,
+    true,
+  );
+  addCheck(
+    "kpi.operatorLiveBridgeHealthState",
+    ["healthy", "degraded", "unknown"].includes(String(kpis.operatorLiveBridgeHealthState)),
+    kpis.operatorLiveBridgeHealthState,
+    "healthy | degraded | unknown",
+  );
+  addCheck(
     "kpi.operatorFailoverForbiddenCode",
     String(kpis.operatorFailoverForbiddenCode) === "API_OPERATOR_ADMIN_REQUIRED",
     kpis.operatorFailoverForbiddenCode,

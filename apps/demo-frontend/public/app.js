@@ -555,6 +555,27 @@ function renderOperatorSummary(summary) {
         `route=${runRoute} status=${runStatus} events=${runEvents} steps=${runTraceSteps} screenshots=${runShots} approval=${runApproval}`,
       );
     }
+
+    const liveBridgeHealth = traces.liveBridgeHealth && typeof traces.liveBridgeHealth === "object"
+      ? traces.liveBridgeHealth
+      : null;
+    if (liveBridgeHealth) {
+      const state = typeof liveBridgeHealth.state === "string" ? liveBridgeHealth.state : "unknown";
+      const degraded = Number(liveBridgeHealth.degradedEvents ?? 0);
+      const recovered = Number(liveBridgeHealth.recoveredEvents ?? 0);
+      const watchdogReconnects = Number(liveBridgeHealth.watchdogReconnectEvents ?? 0);
+      const errors = Number(liveBridgeHealth.bridgeErrorEvents ?? 0);
+      const unavailable = Number(liveBridgeHealth.unavailableEvents ?? 0);
+      const lastEventType = typeof liveBridgeHealth.lastEventType === "string" ? liveBridgeHealth.lastEventType : "-";
+      const lastEventAt = typeof liveBridgeHealth.lastEventAt === "string" ? liveBridgeHealth.lastEventAt : "-";
+
+      appendEntry(
+        el.operatorSummary,
+        state === "degraded" ? "error" : "system",
+        "live_bridge_health",
+        `state=${state} degraded=${degraded} recovered=${recovered} watchdog_reconnects=${watchdogReconnects} errors=${errors} unavailable=${unavailable} last=${lastEventType}@${lastEventAt}`,
+      );
+    }
   }
 
   const services = Array.isArray(summary.services) ? summary.services : [];
