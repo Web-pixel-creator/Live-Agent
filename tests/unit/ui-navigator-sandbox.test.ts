@@ -285,3 +285,146 @@ test("ui navigator fails when requested device node is missing", async () => {
     },
   );
 });
+
+test("ui navigator blocks planned action loops with failed_loop diagnostics", async () => {
+  await withEnv(
+    {
+      UI_NAVIGATOR_USE_GEMINI_PLANNER: "false",
+      UI_NAVIGATOR_EXECUTOR_MODE: "simulated",
+      UI_NAVIGATOR_SANDBOX_POLICY_MODE: "off",
+      UI_NAVIGATOR_LOOP_DETECTION_ENABLED: "true",
+      UI_NAVIGATOR_LOOP_WINDOW_SIZE: "8",
+      UI_NAVIGATOR_LOOP_REPEAT_THRESHOLD: "2",
+      UI_NAVIGATOR_LOOP_SIMILARITY_THRESHOLD: "0.5",
+    },
+    async () => {
+      const request = createEnvelope({
+        userId: "loop-user",
+        sessionId: "loop-session-plan",
+        runId: "loop-run-plan",
+        type: "orchestrator.request",
+        source: "frontend",
+        payload: {
+          intent: "ui_task",
+          input: {
+            goal: "Fill profile form and submit",
+            url: "https://example.com/profile",
+            formData: {
+              first_name: "Ada",
+              last_name: "Lovelace",
+            },
+          },
+        },
+      }) as OrchestratorRequest;
+
+      const response = await runUiNavigatorAgent(request);
+      assert.equal(response.payload.status, "failed");
+
+      const output = asObject(response.payload.output);
+      const loopProtection = asObject(output.loopProtection);
+      const execution = asObject(output.execution);
+
+      assert.equal(output.approvalRequired, true);
+      assert.equal(loopProtection.status, "failed_loop");
+      assert.equal(loopProtection.source, "plan");
+      assert.equal(execution.finalStatus, "failed_loop");
+      assert.match(String(output.message ?? ""), /loop protection/i);
+    },
+  );
+});
+
+test("ui navigator marks execution failed when runtime trace loop is detected", async () => {
+  const server = createServer((_req, res) => {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        trace: [
+          {
+            index: 1,
+            actionId: "runtime-loop-1",
+            actionType: "click",
+            target: "button:next",
+            status: "ok",
+            screenshotRef: "ui://runtime-loop/1.png",
+            notes: "step 1",
+          },
+          {
+            index: 2,
+            actionId: "runtime-loop-2",
+            actionType: "click",
+            target: "button:next",
+            status: "ok",
+            screenshotRef: "ui://runtime-loop/2.png",
+            notes: "step 2",
+          },
+          {
+            index: 3,
+            actionId: "runtime-loop-3",
+            actionType: "click",
+            target: "button:next",
+            status: "ok",
+            screenshotRef: "ui://runtime-loop/3.png",
+            notes: "step 3",
+          },
+        ],
+        finalStatus: "completed",
+        retries: 0,
+      }),
+    );
+  });
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, "127.0.0.1", () => resolve());
+  });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const executorUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    await withEnv(
+      {
+        UI_NAVIGATOR_USE_GEMINI_PLANNER: "false",
+        UI_NAVIGATOR_EXECUTOR_MODE: "remote_http",
+        UI_NAVIGATOR_EXECUTOR_URL: executorUrl,
+        UI_NAVIGATOR_SANDBOX_POLICY_MODE: "off",
+        UI_NAVIGATOR_LOOP_DETECTION_ENABLED: "true",
+        UI_NAVIGATOR_LOOP_WINDOW_SIZE: "8",
+        UI_NAVIGATOR_LOOP_REPEAT_THRESHOLD: "3",
+        UI_NAVIGATOR_LOOP_SIMILARITY_THRESHOLD: "0.85",
+      },
+      async () => {
+        const request = createEnvelope({
+          userId: "loop-user",
+          sessionId: "loop-session-runtime",
+          runId: "loop-run-runtime",
+          type: "orchestrator.request",
+          source: "frontend",
+          payload: {
+            intent: "ui_task",
+            input: {
+              goal: "Open page and verify results",
+              url: "https://example.com/runtime-loop",
+            },
+          },
+        }) as OrchestratorRequest;
+
+        const response = await runUiNavigatorAgent(request);
+        assert.equal(response.payload.status, "failed");
+
+        const output = asObject(response.payload.output);
+        const execution = asObject(output.execution);
+        const loopProtection = asObject(execution.loopProtection);
+
+        assert.equal(execution.finalStatus, "failed");
+        assert.equal(loopProtection.detected, true);
+        assert.equal(loopProtection.source, "trace");
+        assert.equal(execution.adapterMode, "remote_http");
+      },
+    );
+  } finally {
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+  }
+});
