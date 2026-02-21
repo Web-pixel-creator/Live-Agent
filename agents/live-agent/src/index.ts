@@ -112,6 +112,8 @@ type CompactionOutcome = {
   afterTokens: number;
   compactedTurns: number;
   retainedTurns: number;
+  minRetainedTurns: number;
+  targetReached: boolean;
   summaryModel: string | null;
   at: string | null;
 };
@@ -469,6 +471,14 @@ function clipText(text: string, maxChars: number): string {
   return `${text.slice(0, Math.max(1, maxChars - 1))}...`;
 }
 
+function clipTailText(text: string, maxChars: number): string {
+  if (text.length <= maxChars) {
+    return text;
+  }
+  const tailSize = Math.max(1, maxChars - 3);
+  return `...${text.slice(text.length - tailSize)}`;
+}
+
 function renderTurns(turns: ConversationTurn[], maxCharsPerTurn = 240): string {
   return turns
     .map((turn) => `${turn.role === "user" ? "USER" : "ASSISTANT"}: ${clipText(turn.text, maxCharsPerTurn)}`)
@@ -485,7 +495,7 @@ function buildCompactionPrompt(params: {
     "Output plain text summary in 6-10 short bullet points.",
   ];
   if (params.state.summary) {
-    sections.push(`Previous summary:\n${clipText(params.state.summary, 1600)}`);
+    sections.push(`Previous summary:\n${clipTailText(params.state.summary, 1600)}`);
   }
   sections.push(`Transcript to compact:\n${renderTurns(params.turnsToCompact, 200)}`);
   return sections.join("\n\n");
@@ -507,7 +517,7 @@ function mergeSummary(previous: string | null, next: string): string {
     return cleanNext;
   }
   const merged = `${previous.trim()}\n${cleanNext}`;
-  return clipText(merged, 3200);
+  return clipTailText(merged, 3200);
 }
 
 async function maybeCompactConversationContext(params: {
@@ -516,6 +526,10 @@ async function maybeCompactConversationContext(params: {
   capabilities: LiveAgentCapabilitySet;
 }): Promise<CompactionOutcome> {
   const beforeTokens = params.state.approxTokens;
+  const minRetainedTurns = Math.min(
+    params.state.turns.length,
+    Math.max(1, params.contextConfig.keepRecentTurns),
+  );
   if (!params.contextConfig.enabled) {
     return {
       applied: false,
@@ -524,6 +538,8 @@ async function maybeCompactConversationContext(params: {
       afterTokens: beforeTokens,
       compactedTurns: 0,
       retainedTurns: params.state.turns.length,
+      minRetainedTurns,
+      targetReached: beforeTokens <= params.contextConfig.targetTokens,
       summaryModel: null,
       at: null,
     };
@@ -536,6 +552,8 @@ async function maybeCompactConversationContext(params: {
       afterTokens: beforeTokens,
       compactedTurns: 0,
       retainedTurns: params.state.turns.length,
+      minRetainedTurns,
+      targetReached: beforeTokens <= params.contextConfig.targetTokens,
       summaryModel: null,
       at: null,
     };
@@ -550,6 +568,8 @@ async function maybeCompactConversationContext(params: {
       afterTokens: beforeTokens,
       compactedTurns: 0,
       retainedTurns: params.state.turns.length,
+      minRetainedTurns,
+      targetReached: beforeTokens <= params.contextConfig.targetTokens,
       summaryModel: null,
       at: null,
     };
@@ -583,7 +603,10 @@ async function maybeCompactConversationContext(params: {
   params.state.updatedAtMs = Date.now();
   params.state.approxTokens = estimateSessionTokens(params.state);
 
-  while (params.state.approxTokens > params.contextConfig.targetTokens && params.state.turns.length > 1) {
+  while (
+    params.state.approxTokens > params.contextConfig.targetTokens &&
+    params.state.turns.length > minRetainedTurns
+  ) {
     params.state.turns.shift();
     params.state.approxTokens = estimateSessionTokens(params.state);
   }
@@ -595,6 +618,8 @@ async function maybeCompactConversationContext(params: {
     afterTokens: params.state.approxTokens,
     compactedTurns: turnsToCompact.length,
     retainedTurns: params.state.turns.length,
+    minRetainedTurns,
+    targetReached: params.state.approxTokens <= params.contextConfig.targetTokens,
     summaryModel: reason === "compacted" ? params.contextConfig.summaryModel : "fallback-summary",
     at: params.state.lastCompactedAt,
   };
@@ -603,7 +628,7 @@ async function maybeCompactConversationContext(params: {
 function buildConversationContextPrompt(state: ConversationSessionState): string | null {
   const sections: string[] = [];
   if (state.summary) {
-    sections.push(`Session summary:\n${clipText(state.summary, 1800)}`);
+    sections.push(`Session summary:\n${clipTailText(state.summary, 1800)}`);
   }
   const recentTurns = state.turns.slice(-8);
   if (recentTurns.length > 0) {
@@ -613,6 +638,24 @@ function buildConversationContextPrompt(state: ConversationSessionState): string
     return null;
   }
   return sections.join("\n\n");
+}
+
+function buildContextDiagnostics(params: {
+  state: ConversationSessionState;
+  preReplyCompaction: CompactionOutcome;
+  postReplyCompaction?: CompactionOutcome;
+}): Record<string, unknown> {
+  return {
+    revision: params.state.revision,
+    approxTokens: params.state.approxTokens,
+    compactionCount: params.state.compactionCount,
+    summaryPresent: Boolean(params.state.summary),
+    summaryChars: params.state.summary ? params.state.summary.length : 0,
+    retainedTurns: params.state.turns.length,
+    lastCompactedAt: params.state.lastCompactedAt,
+    preReplyCompaction: params.preReplyCompaction,
+    ...(params.postReplyCompaction ? { postReplyCompaction: params.postReplyCompaction } : {}),
+  };
 }
 
 async function fetchGeminiText(params: {
@@ -937,13 +980,10 @@ async function handleConversation(params: {
         provider: "fallback",
         model: "delegation-router",
       },
-      context: {
-        revision: sessionContext.revision,
-        approxTokens: sessionContext.approxTokens,
-        compactionCount: sessionContext.compactionCount,
-        summaryPresent: Boolean(sessionContext.summary),
+      context: buildContextDiagnostics({
+        state: sessionContext,
         preReplyCompaction,
-      },
+      }),
     };
   }
 
@@ -972,14 +1012,11 @@ async function handleConversation(params: {
       provider: reply.provider,
       model: reply.model,
     },
-    context: {
-      revision: sessionContext.revision,
-      approxTokens: sessionContext.approxTokens,
-      compactionCount: sessionContext.compactionCount,
-      summaryPresent: Boolean(sessionContext.summary),
+    context: buildContextDiagnostics({
+      state: sessionContext,
       preReplyCompaction,
       postReplyCompaction,
-    },
+    }),
   };
 }
 
