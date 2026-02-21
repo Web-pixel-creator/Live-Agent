@@ -63,6 +63,16 @@ export type OperatorTraceSummary = {
     screenshotRefs: number;
     activeTaskBackedRuns: number;
   };
+  liveBridgeHealth: {
+    degradedEvents: number;
+    recoveredEvents: number;
+    watchdogReconnectEvents: number;
+    bridgeErrorEvents: number;
+    unavailableEvents: number;
+    lastEventType: string | null;
+    lastEventAt: string | null;
+    state: "healthy" | "degraded" | "unknown";
+  };
   byRoute: Record<string, number>;
   byStatus: Record<string, number>;
   recentRuns: OperatorTraceRunSummary[];
@@ -276,6 +286,48 @@ export function buildOperatorTraceSummary(params: {
   let traceStepsTotal = 0;
   let screenshotRefsTotal = 0;
   let activeTaskBackedRuns = 0;
+  let liveBridgeDegradedEvents = 0;
+  let liveBridgeRecoveredEvents = 0;
+  let liveBridgeWatchdogReconnectEvents = 0;
+  let liveBridgeErrorEvents = 0;
+  let liveBridgeUnavailableEvents = 0;
+  let liveBridgeLastEventType: string | null = null;
+  let liveBridgeLastEventAt: string | null = null;
+
+  for (const event of recentEvents) {
+    const eventType = toNonEmptyString(event.type);
+    if (!eventType) {
+      continue;
+    }
+    if (eventType === "live.bridge.health_degraded") {
+      liveBridgeDegradedEvents += 1;
+    } else if (eventType === "live.bridge.health_recovered") {
+      liveBridgeRecoveredEvents += 1;
+    } else if (eventType === "live.bridge.health_watchdog_reconnect") {
+      liveBridgeWatchdogReconnectEvents += 1;
+    } else if (eventType === "live.bridge.error") {
+      liveBridgeErrorEvents += 1;
+    } else if (eventType === "live.bridge.unavailable") {
+      liveBridgeUnavailableEvents += 1;
+    } else {
+      continue;
+    }
+
+    if (!liveBridgeLastEventAt || toEpochMs(event.createdAt) > toEpochMs(liveBridgeLastEventAt)) {
+      liveBridgeLastEventType = eventType;
+      liveBridgeLastEventAt = event.createdAt;
+    }
+  }
+
+  const liveBridgeState: "healthy" | "degraded" | "unknown" =
+    liveBridgeLastEventType === "live.bridge.health_recovered"
+      ? "healthy"
+      : liveBridgeLastEventType === "live.bridge.health_degraded" ||
+          liveBridgeLastEventType === "live.bridge.health_watchdog_reconnect" ||
+          liveBridgeLastEventType === "live.bridge.error" ||
+          liveBridgeLastEventType === "live.bridge.unavailable"
+        ? "degraded"
+        : "unknown";
 
   for (const run of runSeeds) {
     const runEvents = (eventsByRun.get(run.runId) ?? []).sort(
@@ -392,6 +444,16 @@ export function buildOperatorTraceSummary(params: {
       traceSteps: traceStepsTotal,
       screenshotRefs: screenshotRefsTotal,
       activeTaskBackedRuns,
+    },
+    liveBridgeHealth: {
+      degradedEvents: liveBridgeDegradedEvents,
+      recoveredEvents: liveBridgeRecoveredEvents,
+      watchdogReconnectEvents: liveBridgeWatchdogReconnectEvents,
+      bridgeErrorEvents: liveBridgeErrorEvents,
+      unavailableEvents: liveBridgeUnavailableEvents,
+      lastEventType: liveBridgeLastEventType,
+      lastEventAt: liveBridgeLastEventAt,
+      state: liveBridgeState,
     },
     byRoute: routeStats,
     byStatus: statusStats,
