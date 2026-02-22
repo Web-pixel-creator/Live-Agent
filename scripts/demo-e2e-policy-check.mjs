@@ -310,10 +310,46 @@ async function main() {
     true,
   );
   addCheck(
+    "kpi.operatorLiveBridgeProbeTelemetryValidated",
+    kpis.operatorLiveBridgeProbeTelemetryValidated === true,
+    kpis.operatorLiveBridgeProbeTelemetryValidated,
+    true,
+  );
+  addCheck(
     "kpi.operatorLiveBridgeHealthState",
     ["healthy", "degraded", "unknown"].includes(String(kpis.operatorLiveBridgeHealthState)),
     kpis.operatorLiveBridgeHealthState,
     "healthy | degraded | unknown",
+  );
+  addCheck(
+    "kpi.operatorLiveBridgeHealthConnectTimeoutEvents",
+    toNumber(kpis.operatorLiveBridgeHealthConnectTimeoutEvents) >= 0,
+    kpis.operatorLiveBridgeHealthConnectTimeoutEvents,
+    ">= 0",
+  );
+  addCheck(
+    "kpi.operatorLiveBridgeHealthProbeStartedEvents",
+    toNumber(kpis.operatorLiveBridgeHealthProbeStartedEvents) >= 0,
+    kpis.operatorLiveBridgeHealthProbeStartedEvents,
+    ">= 0",
+  );
+  addCheck(
+    "kpi.operatorLiveBridgeHealthPingSentEvents",
+    toNumber(kpis.operatorLiveBridgeHealthPingSentEvents) >= 0,
+    kpis.operatorLiveBridgeHealthPingSentEvents,
+    ">= 0",
+  );
+  addCheck(
+    "kpi.operatorLiveBridgeHealthPongEvents",
+    toNumber(kpis.operatorLiveBridgeHealthPongEvents) >= 0,
+    kpis.operatorLiveBridgeHealthPongEvents,
+    ">= 0",
+  );
+  addCheck(
+    "kpi.operatorLiveBridgeHealthPingErrorEvents",
+    toNumber(kpis.operatorLiveBridgeHealthPingErrorEvents) >= 0,
+    kpis.operatorLiveBridgeHealthPingErrorEvents,
+    ">= 0",
   );
   addCheck(
     "kpi.operatorFailoverForbiddenCode",

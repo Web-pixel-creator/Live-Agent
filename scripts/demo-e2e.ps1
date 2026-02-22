@@ -1159,6 +1159,27 @@ try {
     $liveBridgeHealthWatchdogReconnectEvents = [int](Get-FieldValue -Object $liveBridgeHealth -Path @("watchdogReconnectEvents"))
     $liveBridgeHealthBridgeErrorEvents = [int](Get-FieldValue -Object $liveBridgeHealth -Path @("bridgeErrorEvents"))
     $liveBridgeHealthUnavailableEvents = [int](Get-FieldValue -Object $liveBridgeHealth -Path @("unavailableEvents"))
+    $liveBridgeHealthConnectTimeoutEventsRaw = Get-FieldValue -Object $liveBridgeHealth -Path @("connectTimeoutEvents")
+    $liveBridgeHealthProbeStartedEventsRaw = Get-FieldValue -Object $liveBridgeHealth -Path @("probeStartedEvents")
+    $liveBridgeHealthPingSentEventsRaw = Get-FieldValue -Object $liveBridgeHealth -Path @("pingSentEvents")
+    $liveBridgeHealthPongEventsRaw = Get-FieldValue -Object $liveBridgeHealth -Path @("pongEvents")
+    $liveBridgeHealthPingErrorEventsRaw = Get-FieldValue -Object $liveBridgeHealth -Path @("pingErrorEvents")
+    Assert-Condition -Condition ($null -ne $liveBridgeHealthConnectTimeoutEventsRaw) -Message "Operator summary live bridge connectTimeoutEvents is missing."
+    Assert-Condition -Condition ($null -ne $liveBridgeHealthProbeStartedEventsRaw) -Message "Operator summary live bridge probeStartedEvents is missing."
+    Assert-Condition -Condition ($null -ne $liveBridgeHealthPingSentEventsRaw) -Message "Operator summary live bridge pingSentEvents is missing."
+    Assert-Condition -Condition ($null -ne $liveBridgeHealthPongEventsRaw) -Message "Operator summary live bridge pongEvents is missing."
+    Assert-Condition -Condition ($null -ne $liveBridgeHealthPingErrorEventsRaw) -Message "Operator summary live bridge pingErrorEvents is missing."
+    $liveBridgeHealthConnectTimeoutEvents = [int]$liveBridgeHealthConnectTimeoutEventsRaw
+    $liveBridgeHealthProbeStartedEvents = [int]$liveBridgeHealthProbeStartedEventsRaw
+    $liveBridgeHealthPingSentEvents = [int]$liveBridgeHealthPingSentEventsRaw
+    $liveBridgeHealthPongEvents = [int]$liveBridgeHealthPongEventsRaw
+    $liveBridgeHealthPingErrorEvents = [int]$liveBridgeHealthPingErrorEventsRaw
+    $liveBridgeHealthLastEventType = [string](Get-FieldValue -Object $liveBridgeHealth -Path @("lastEventType"))
+    Assert-Condition -Condition ($liveBridgeHealthConnectTimeoutEvents -ge 0) -Message "Operator summary live bridge connectTimeoutEvents must be >= 0."
+    Assert-Condition -Condition ($liveBridgeHealthProbeStartedEvents -ge 0) -Message "Operator summary live bridge probeStartedEvents must be >= 0."
+    Assert-Condition -Condition ($liveBridgeHealthPingSentEvents -ge 0) -Message "Operator summary live bridge pingSentEvents must be >= 0."
+    Assert-Condition -Condition ($liveBridgeHealthPongEvents -ge 0) -Message "Operator summary live bridge pongEvents must be >= 0."
+    Assert-Condition -Condition ($liveBridgeHealthPingErrorEvents -ge 0) -Message "Operator summary live bridge pingErrorEvents must be >= 0."
     $allowedHealthStates = @("healthy", "degraded", "unknown")
     Assert-Condition -Condition ($allowedHealthStates -contains $liveBridgeHealthState) -Message "Operator summary live bridge state is invalid."
 
@@ -1235,6 +1256,13 @@ try {
       liveBridgeHealthWatchdogReconnectEvents = $liveBridgeHealthWatchdogReconnectEvents
       liveBridgeHealthBridgeErrorEvents = $liveBridgeHealthBridgeErrorEvents
       liveBridgeHealthUnavailableEvents = $liveBridgeHealthUnavailableEvents
+      liveBridgeHealthConnectTimeoutEvents = $liveBridgeHealthConnectTimeoutEvents
+      liveBridgeHealthProbeStartedEvents = $liveBridgeHealthProbeStartedEvents
+      liveBridgeHealthPingSentEvents = $liveBridgeHealthPingSentEvents
+      liveBridgeHealthPongEvents = $liveBridgeHealthPongEvents
+      liveBridgeHealthPingErrorEvents = $liveBridgeHealthPingErrorEvents
+      liveBridgeHealthLastEventType = $liveBridgeHealthLastEventType
+      liveBridgeHealthProbeTelemetryValidated = $true
       liveBridgeHealthBlockValidated = $true
     }
   } | Out-Null
@@ -1581,7 +1609,14 @@ $summary = [ordered]@{
     operatorLiveBridgeHealthWatchdogReconnectEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthWatchdogReconnectEvents } else { $null }
     operatorLiveBridgeHealthBridgeErrorEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthBridgeErrorEvents } else { $null }
     operatorLiveBridgeHealthUnavailableEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthUnavailableEvents } else { $null }
+    operatorLiveBridgeHealthConnectTimeoutEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthConnectTimeoutEvents } else { $null }
+    operatorLiveBridgeHealthProbeStartedEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthProbeStartedEvents } else { $null }
+    operatorLiveBridgeHealthPingSentEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthPingSentEvents } else { $null }
+    operatorLiveBridgeHealthPongEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthPongEvents } else { $null }
+    operatorLiveBridgeHealthPingErrorEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthPingErrorEvents } else { $null }
+    operatorLiveBridgeHealthLastEventType = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthLastEventType } else { $null }
     operatorLiveBridgeHealthBlockValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthBlockValidated } else { $false }
+    operatorLiveBridgeProbeTelemetryValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthProbeTelemetryValidated } else { $false }
     operatorAuditTrailValidated = if (
       $null -ne $operatorActionsData -and
       [int]$operatorActionsData.operatorAuditTotal -ge 4
