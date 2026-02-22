@@ -225,7 +225,7 @@ Ensure-LogMetric `
   -Description "Extracted numeric values from analytics_metric structured logs" `
   -Filter "jsonPayload.category=`"analytics_metric`" AND jsonPayload.value:*" `
   -ValueExtractor "EXTRACT(jsonPayload.value)" `
-  -LabelExtractors "service=EXTRACT(jsonPayload.service),metric_type=EXTRACT(jsonPayload.metricType),operation=EXTRACT(jsonPayload.labels.operation),ok=EXTRACT(jsonPayload.labels.ok),model=EXTRACT(jsonPayload.labels.model),signal=EXTRACT(jsonPayload.labels.signal)"
+  -LabelExtractors "service=EXTRACT(jsonPayload.service),metric_type=EXTRACT(jsonPayload.metricType),operation=EXTRACT(jsonPayload.labels.operation),ok=EXTRACT(jsonPayload.labels.ok),model=EXTRACT(jsonPayload.labels.model),signal=EXTRACT(jsonPayload.labels.signal),scope=EXTRACT(jsonPayload.labels.scope)"
 
 Ensure-LogMetric `
   -Name "mla_analytics_error_count" `

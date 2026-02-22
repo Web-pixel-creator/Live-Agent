@@ -5,7 +5,7 @@ This folder contains template artifacts consumed by `infra/gcp/setup-monitoring-
 ## Files
 
 1. `dashboard.telemetry-kpis.json`
-   - Baseline KPI dashboard widgets for latency, service errors, analytics event errors, and Story media queue health/quota signals.
+   - Baseline KPI dashboard widgets for latency, service errors, analytics event errors, Story media queue health/quota signals, and Story cache health (hit-rate/evictions/scope).
 2. `alert-policy.gateway-latency.json`
    - Alert when gateway p95 duration is above threshold.
 3. `alert-policy.service-errors.json`

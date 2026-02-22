@@ -28,6 +28,9 @@ Services (`realtime-gateway`, `api-backend`, `orchestrator`) now emit:
 3. Story queue operational gauges from orchestrator runtime sampling (`storyteller.media.queue.*`, `storyteller.media.quota.*`), including:
    - backlog / retry_waiting / dead_letter / oldest_age_ms
    - worker utilization and per-model quota utilization
+4. Story cache operational gauges from orchestrator runtime sampling (`storyteller.cache.*`), including:
+   - entries / hit_rate_pct / hits_total / misses_total / evictions_total / invalidations_total
+   - scope-level distribution (`storyteller.cache.scope_entries`, labels: `scope=plan|branch|asset`)
 
 The export transport is structured stdout logs (`[analytics] { ...json... }`), designed for Cloud Logging ingestion and downstream sinks.
 

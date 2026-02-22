@@ -15,6 +15,7 @@ import {
 import { orchestrate } from "./orchestrate.js";
 import { AnalyticsExporter } from "./services/analytics-export.js";
 import { getFirestoreState } from "./services/firestore.js";
+import { buildStoryCacheMetricRecords } from "./story-cache-telemetry.js";
 import { buildStoryQueueMetricRecords } from "./story-queue-telemetry.js";
 
 const port = Number(process.env.ORCHESTRATOR_PORT ?? 8082);
@@ -75,8 +76,9 @@ function emitStoryQueueTelemetrySample(trigger: "interval" | "metrics_endpoint" 
     return;
   }
   const snapshot = getMediaJobQueueSnapshot();
-  const records = buildStoryQueueMetricRecords(snapshot);
-  for (const record of records) {
+  const queueRecords = buildStoryQueueMetricRecords(snapshot);
+  const cacheRecords = buildStoryCacheMetricRecords(getStoryCacheSnapshot());
+  for (const record of [...queueRecords, ...cacheRecords]) {
     analytics.recordMetric({
       metricType: record.metricType,
       value: record.value,
