@@ -38,6 +38,13 @@ type UiTaskInput = {
   visualTesting: VisualTestingInput;
 };
 
+type GroundingSignalSummary = {
+  screenshotRefProvided: boolean;
+  domSnapshotProvided: boolean;
+  accessibilityTreeProvided: boolean;
+  markHintsCount: number;
+};
+
 type VisualCategory = "layout" | "content" | "interaction";
 
 type VisualSeverity = "low" | "medium" | "high";
@@ -1403,6 +1410,7 @@ type ExecutionResult = {
   adapterMode: PlannerConfig["executorMode"];
   adapterNotes: string[];
   deviceNode: DeviceNodeRuntimeRecord | null;
+  grounding: GroundingSignalSummary;
 };
 
 function defaultExecutionResult(params: {
@@ -1413,6 +1421,7 @@ function defaultExecutionResult(params: {
   adapterMode: PlannerConfig["executorMode"];
   adapterNotes?: string[];
   deviceNode?: DeviceNodeRuntimeRecord | null;
+  grounding: GroundingSignalSummary;
 }): ExecutionResult {
   return {
     trace: params.trace,
@@ -1422,7 +1431,21 @@ function defaultExecutionResult(params: {
     adapterMode: params.adapterMode,
     adapterNotes: params.adapterNotes ?? [],
     deviceNode: params.deviceNode ?? null,
+    grounding: params.grounding,
   };
+}
+
+function buildGroundingSignalSummary(input: UiTaskInput): GroundingSignalSummary {
+  return {
+    screenshotRefProvided: typeof input.screenshotRef === "string" && input.screenshotRef.trim().length > 0,
+    domSnapshotProvided: typeof input.domSnapshot === "string" && input.domSnapshot.trim().length > 0,
+    accessibilityTreeProvided: typeof input.accessibilityTree === "string" && input.accessibilityTree.trim().length > 0,
+    markHintsCount: Array.isArray(input.markHints) ? input.markHints.length : 0,
+  };
+}
+
+function groundingAdapterNote(summary: GroundingSignalSummary): string {
+  return `grounding_context screenshot=${summary.screenshotRefProvided} dom=${summary.domSnapshotProvided} a11y=${summary.accessibilityTreeProvided} marks=${summary.markHintsCount}`;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -1450,6 +1473,7 @@ async function executeWithRemoteHttpAdapter(params: {
   const endpoint = `${params.routing.executorUrl.replace(/\/+$/, "")}/execute`;
   let lastError: Error | null = null;
   const totalAttempts = params.config.executorRequestMaxRetries + 1;
+  const grounding = buildGroundingSignalSummary(params.input);
 
   for (let attempt = 0; attempt < totalAttempts; attempt += 1) {
     const controller = new AbortController();
@@ -1522,9 +1546,11 @@ async function executeWithRemoteHttpAdapter(params: {
           adapterMode: "remote_http",
           adapterNotes: [
             "Executed via remote HTTP adapter",
+            groundingAdapterNote(grounding),
             ...params.routing.notes,
           ],
           deviceNode: remoteNode ?? params.routing.selectedNode,
+          grounding,
         });
       }
     } catch (error) {
@@ -1554,6 +1580,7 @@ async function executeWithRemoteHttpAdapter(params: {
 }
 
 async function executeWithPlaywrightPreview(params: {
+  input: UiTaskInput;
   actions: UiAction[];
   screenshotSeed: string;
   deviceNode?: DeviceNodeRuntimeRecord | null;
@@ -1700,8 +1727,12 @@ async function executeWithPlaywrightPreview(params: {
     retries,
     executor: "playwright-preview-adapter",
     adapterMode: "playwright_preview",
-    adapterNotes: ["Executed with optional local playwright preview adapter"],
+    adapterNotes: [
+      "Executed with optional local playwright preview adapter",
+      groundingAdapterNote(buildGroundingSignalSummary(params.input)),
+    ],
     deviceNode: params.deviceNode ?? null,
+    grounding: buildGroundingSignalSummary(params.input),
   });
 }
 
@@ -1729,6 +1760,7 @@ async function executeActionPlan(params: {
         screenshotSeed: params.screenshotSeed,
         simulateFailureAtStep: params.input.simulateFailureAtStep,
       });
+      const grounding = buildGroundingSignalSummary(params.input);
       return defaultExecutionResult({
         trace: fallbackSimulation.trace,
         finalStatus: fallbackSimulation.finalStatus,
@@ -1737,9 +1769,11 @@ async function executeActionPlan(params: {
         adapterMode: "simulated",
         adapterNotes: [
           `remote_http fallback: ${error instanceof Error ? error.message : String(error)}`,
+          groundingAdapterNote(grounding),
           ...params.routing.notes,
         ],
         deviceNode: params.routing.selectedNode,
+        grounding,
       });
     }
   }
@@ -1747,6 +1781,7 @@ async function executeActionPlan(params: {
   if (params.config.executorMode === "playwright_preview") {
     try {
       const playwrightResult = await executeWithPlaywrightPreview({
+        input: params.input,
         actions: params.actions,
         screenshotSeed: params.screenshotSeed,
         deviceNode: params.routing.selectedNode,
@@ -1761,14 +1796,19 @@ async function executeActionPlan(params: {
         screenshotSeed: params.screenshotSeed,
         simulateFailureAtStep: params.input.simulateFailureAtStep,
       });
+      const grounding = buildGroundingSignalSummary(params.input);
       return defaultExecutionResult({
         trace: fallbackSimulation.trace,
         finalStatus: fallbackSimulation.finalStatus,
         retries: fallbackSimulation.retries,
         executor: "playwright-adapter",
         adapterMode: "simulated",
-        adapterNotes: [`playwright_preview fallback: ${error instanceof Error ? error.message : String(error)}`],
+        adapterNotes: [
+          `playwright_preview fallback: ${error instanceof Error ? error.message : String(error)}`,
+          groundingAdapterNote(grounding),
+        ],
         deviceNode: params.routing.selectedNode,
+        grounding,
       });
     }
   }
@@ -1778,6 +1818,7 @@ async function executeActionPlan(params: {
     screenshotSeed: params.screenshotSeed,
     simulateFailureAtStep: params.input.simulateFailureAtStep,
   });
+  const grounding = buildGroundingSignalSummary(params.input);
 
   return defaultExecutionResult({
     trace: simulation.trace,
@@ -1787,9 +1828,11 @@ async function executeActionPlan(params: {
     adapterMode: "simulated",
     adapterNotes: [
       fallbackNote ?? "Executed in deterministic simulation mode",
+      groundingAdapterNote(grounding),
       ...params.routing.notes,
     ],
     deviceNode: params.routing.selectedNode,
+    grounding,
   });
 }
 
@@ -2504,6 +2547,9 @@ export async function runUiNavigatorAgent(
                 url: input.url,
                 deviceNodeId: input.deviceNodeId,
                 screenshotRef: input.screenshotRef,
+                domSnapshot: input.domSnapshot,
+                accessibilityTree: input.accessibilityTree,
+                markHints: input.markHints,
                 cursor: input.cursor,
                 formData: input.formData,
                 maxSteps: input.maxSteps,
@@ -2602,17 +2648,18 @@ export async function runUiNavigatorAgent(
           skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
           deviceNodeRouting,
           actionPlan: actions,
-          execution: {
-            finalStatus,
-            retries: execution.retries,
-            trace: execution.trace,
-            verifyLoopEnabled: true,
-            sandbox: buildSandboxPolicyPayload(sandboxPolicy),
-            loopProtection: {
-              detected: runtimeLoop.detected,
-              source: runtimeLoop.source,
-              atIndex: runtimeLoop.atIndex,
-              duplicateCount: runtimeLoop.duplicateCount,
+            execution: {
+              finalStatus,
+              retries: execution.retries,
+              trace: execution.trace,
+              verifyLoopEnabled: true,
+              sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+              grounding: execution.grounding,
+              loopProtection: {
+                detected: runtimeLoop.detected,
+                source: runtimeLoop.source,
+                atIndex: runtimeLoop.atIndex,
+                duplicateCount: runtimeLoop.duplicateCount,
               signature: runtimeLoop.signature,
               threshold: {
                 windowSize: config.loopWindowSize,

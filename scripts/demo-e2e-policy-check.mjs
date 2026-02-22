@@ -430,6 +430,36 @@ async function main() {
     true,
   );
   addCheck(
+    "kpi.uiGroundingDomSeen",
+    kpis.uiGroundingDomSeen === true,
+    kpis.uiGroundingDomSeen,
+    true,
+  );
+  addCheck(
+    "kpi.uiGroundingAccessibilitySeen",
+    kpis.uiGroundingAccessibilitySeen === true,
+    kpis.uiGroundingAccessibilitySeen,
+    true,
+  );
+  addCheck(
+    "kpi.uiGroundingMarkHintsCount",
+    toNumber(kpis.uiGroundingMarkHintsCount) >= 2,
+    kpis.uiGroundingMarkHintsCount,
+    ">= 2",
+  );
+  addCheck(
+    "kpi.uiGroundingAdapterNoteSeen",
+    kpis.uiGroundingAdapterNoteSeen === true,
+    kpis.uiGroundingAdapterNoteSeen,
+    true,
+  );
+  addCheck(
+    "kpi.uiGroundingSignalsValidated",
+    kpis.uiGroundingSignalsValidated === true,
+    kpis.uiGroundingSignalsValidated,
+    true,
+  );
+  addCheck(
     "kpi.gatewayWsRoundTripMs",
     toNumber(kpis.gatewayWsRoundTripMs) <= maxGatewayWsRoundTripMs,
     kpis.gatewayWsRoundTripMs,

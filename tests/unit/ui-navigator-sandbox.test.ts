@@ -239,8 +239,13 @@ test("ui navigator routes remote executor calls to requested device node", async
         const output = asObject(response.payload.output);
         const execution = asObject(output.execution);
         const node = asObject(execution.deviceNode);
+        const grounding = asObject(execution.grounding);
         assert.equal(node.nodeId, "desktop-a");
         assert.equal(execution.adapterMode, "remote_http");
+        assert.equal(grounding.screenshotRefProvided, false);
+        assert.equal(grounding.domSnapshotProvided, true);
+        assert.equal(grounding.accessibilityTreeProvided, true);
+        assert.equal(grounding.markHintsCount, 2);
       },
     );
   } finally {
@@ -248,6 +253,49 @@ test("ui navigator routes remote executor calls to requested device node", async
       server.close(() => resolve());
     });
   }
+});
+
+test("ui navigator approval resume template preserves grounding context", async () => {
+  await withEnv(
+    {
+      UI_NAVIGATOR_USE_GEMINI_PLANNER: "false",
+      UI_NAVIGATOR_EXECUTOR_MODE: "remote_http",
+      UI_NAVIGATOR_EXECUTOR_URL: "http://127.0.0.1:65530",
+      UI_NAVIGATOR_SANDBOX_POLICY_MODE: "off",
+    },
+    async () => {
+      const request = createEnvelope({
+        userId: "approval-user",
+        sessionId: "approval-session",
+        runId: "approval-run",
+        type: "orchestrator.request",
+        source: "frontend",
+        payload: {
+          intent: "ui_task",
+          input: {
+            goal: "Open payment page and submit card details",
+            url: "https://example.com/checkout",
+            screenshotRef: "ui://approval/start",
+            domSnapshot: "<main><button id='pay'>Pay</button></main>",
+            accessibilityTree: "main > button[name=Pay]",
+            markHints: ["pay_button@(520,620)", "card_field@(470,420)"],
+          },
+        },
+      }) as OrchestratorRequest;
+
+      const response = await runUiNavigatorAgent(request);
+      assert.equal(response.payload.status, "accepted");
+
+      const output = asObject(response.payload.output);
+      assert.equal(output.approvalRequired, true);
+      const resumeTemplate = asObject(output.resumeRequestTemplate);
+      const resumeInput = asObject(resumeTemplate.input);
+      const resumeMarkHints = Array.isArray(resumeInput.markHints) ? resumeInput.markHints : [];
+      assert.equal(resumeInput.domSnapshot, "<main><button id='pay'>Pay</button></main>");
+      assert.equal(resumeInput.accessibilityTree, "main > button[name=Pay]");
+      assert.equal(resumeMarkHints.length, 2);
+    },
+  );
 });
 
 test("ui navigator fails when requested device node is missing", async () => {

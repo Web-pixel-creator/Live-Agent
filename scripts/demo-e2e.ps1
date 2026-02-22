@@ -870,6 +870,12 @@ try {
       goal = "Open the page and verify dashboard layout/content/interaction checkpoints."
       url = "https://example.com"
       screenshotRef = "ui://demo/visual"
+      domSnapshot = "<main><header><button id='refresh'>Refresh</button></header><section id='dashboard'></section></main>"
+      accessibilityTree = "main > header > button[name=Refresh]; main > section[name=Dashboard]"
+      markHints = @(
+        "refresh_button@(192,96)"
+        "dashboard_panel@(640,420)"
+      )
       maxSteps = 5
       visualTesting = @{
         enabled = $true
@@ -905,6 +911,18 @@ try {
     $comparatorMode = [string](Get-FieldValue -Object $visual -Path @("comparator", "mode"))
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($comparatorMode)) -Message "Missing visual comparator mode."
 
+    $executionGrounding = Get-FieldValue -Object $response -Path @("payload", "output", "execution", "grounding")
+    Assert-Condition -Condition ($null -ne $executionGrounding) -Message "Missing execution grounding summary."
+    $domSeen = [bool](Get-FieldValue -Object $executionGrounding -Path @("domSnapshotProvided"))
+    $a11ySeen = [bool](Get-FieldValue -Object $executionGrounding -Path @("accessibilityTreeProvided"))
+    $markHintsCount = [int](Get-FieldValue -Object $executionGrounding -Path @("markHintsCount"))
+    Assert-Condition -Condition $domSeen -Message "Execution grounding should include domSnapshotProvided=true."
+    Assert-Condition -Condition $a11ySeen -Message "Execution grounding should include accessibilityTreeProvided=true."
+    Assert-Condition -Condition ($markHintsCount -ge 2) -Message "Execution grounding should include mark hints."
+
+    $adapterNotes = @((Get-FieldValue -Object $response -Path @("payload", "output", "execution", "adapterNotes")))
+    $groundingAdapterNoteSeen = ($adapterNotes | Where-Object { [string]$_ -like "grounding_context*" } | Measure-Object).Count -ge 1
+
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $response -Path @("runId"))
       reportStatus = $visualStatus
@@ -912,6 +930,10 @@ try {
       regressionCount = $regressionCount
       highestSeverity = [string](Get-FieldValue -Object $visual -Path @("highestSeverity"))
       comparatorMode = $comparatorMode
+      groundingDomSeen = $domSeen
+      groundingAccessibilitySeen = $a11ySeen
+      groundingMarkHintsCount = $markHintsCount
+      groundingAdapterNoteSeen = $groundingAdapterNoteSeen
     }
   } | Out-Null
 
@@ -1566,6 +1588,17 @@ $summary = [ordered]@{
     visualChecksCount = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.checksCount } else { $null }
     visualRegressionCount = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.regressionCount } else { $null }
     visualComparatorMode = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.comparatorMode } else { $null }
+    uiGroundingDomSeen = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.groundingDomSeen } else { $null }
+    uiGroundingAccessibilitySeen = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.groundingAccessibilitySeen } else { $null }
+    uiGroundingMarkHintsCount = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.groundingMarkHintsCount } else { $null }
+    uiGroundingAdapterNoteSeen = if ($null -ne $uiVisualTestingData) { $uiVisualTestingData.groundingAdapterNoteSeen } else { $null }
+    uiGroundingSignalsValidated = if (
+      $null -ne $uiVisualTestingData -and
+      [bool]$uiVisualTestingData.groundingDomSeen -eq $true -and
+      [bool]$uiVisualTestingData.groundingAccessibilitySeen -eq $true -and
+      [int]$uiVisualTestingData.groundingMarkHintsCount -ge 2 -and
+      [bool]$uiVisualTestingData.groundingAdapterNoteSeen -eq $true
+    ) { $true } else { $false }
     visualTestingValidated = if (
       $null -ne $uiVisualTestingData -and
       $uiVisualTestingData.reportStatus -eq "passed" -and

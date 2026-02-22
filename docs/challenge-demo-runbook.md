@@ -82,7 +82,8 @@ Checkpoint B (hard interruption) at ~01:40:
 8. Run one safe `ui_task` in visual testing mode (`visualTesting.enabled=true`) and show:
    - structured visual report with `checks` and severity labels,
    - `status=passed|failed`,
-   - artifact refs (`baseline`, `actual`, `diff`).
+   - artifact refs (`baseline`, `actual`, `diff`),
+   - execution grounding summary (`domSnapshotProvided`, `accessibilityTreeProvided`, `markHintsCount`).
 
 ## Stage Fallback Procedure (text mode)
 
