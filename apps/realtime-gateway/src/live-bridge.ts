@@ -1107,6 +1107,28 @@ export class LiveApiBridge {
       this.upstream = upstream;
       this.setupSent = false;
       this.lastUpstreamMessageAtMs = Date.now();
+      const isActiveSocket = (): boolean => this.upstream === upstream;
+      const connectTimeoutMs = Math.max(250, this.config.liveConnectAttemptTimeoutMs);
+      const connectTimeout = setTimeout(() => {
+        if (settled) {
+          return;
+        }
+        const timeoutError = new Error(`Live API connect timed out after ${connectTimeoutMs}ms`);
+        this.emit("live.bridge.connect_timeout", {
+          wsUrl,
+          timeoutMs: connectTimeoutMs,
+          model: this.getActiveModelId(),
+          authProfile: this.getActiveAuthProfile()?.name ?? null,
+        });
+        try {
+          upstream.terminate();
+        } catch {
+          // best-effort terminate on connect timeout
+        }
+        this.upstream = null;
+        this.connectPromise = null;
+        rejectOnce(timeoutError);
+      }, connectTimeoutMs);
 
       let settled = false;
       const resolveOnce = (): void => {
@@ -1114,6 +1136,7 @@ export class LiveApiBridge {
           return;
         }
         settled = true;
+        clearTimeout(connectTimeout);
         resolve();
       };
       const rejectOnce = (error: Error): void => {
@@ -1121,10 +1144,20 @@ export class LiveApiBridge {
           return;
         }
         settled = true;
+        clearTimeout(connectTimeout);
         reject(error);
       };
 
       upstream.on("open", () => {
+        if (!isActiveSocket()) {
+          try {
+            upstream.close(1000, "stale upstream open");
+          } catch {
+            // best-effort close for stale open event
+          }
+          rejectOnce(new Error("Live API upstream opened after route was replaced"));
+          return;
+        }
         this.markActiveRouteSuccess();
         this.markUpstreamMessageActivity();
         this.startHealthMonitor();
@@ -1140,6 +1173,9 @@ export class LiveApiBridge {
       });
 
       upstream.on("message", (raw) => {
+        if (!isActiveSocket()) {
+          return;
+        }
         this.markUpstreamMessageActivity();
         const text = raw.toString("utf8");
         let parsed: unknown = text;
@@ -1172,30 +1208,38 @@ export class LiveApiBridge {
       });
 
       upstream.on("pong", () => {
+        if (!isActiveSocket()) {
+          return;
+        }
         this.markUpstreamPongActivity();
       });
 
       upstream.on("close", (code, reason) => {
+        const activeSocket = isActiveSocket();
         const reasonText = reason.toString();
-        this.stopHealthMonitor({ resetDegraded: false });
-        this.emit("live.bridge.closed", {
-          code,
-          reason: reasonText,
-        });
-        this.upstream = null;
-        this.connectPromise = null;
+        if (activeSocket) {
+          this.stopHealthMonitor({ resetDegraded: false });
+          this.emit("live.bridge.closed", {
+            code,
+            reason: reasonText,
+          });
+          this.upstream = null;
+          this.connectPromise = null;
+        }
         if (!settled) {
           rejectOnce(new Error(`Live API upstream closed before ready: ${code} ${reasonText}`));
         }
       });
 
       upstream.on("error", (error) => {
-        this.stopHealthMonitor({ resetDegraded: false });
-        this.emit("live.bridge.error", {
-          error: error.message,
-        });
-        this.upstream = null;
-        this.connectPromise = null;
+        if (isActiveSocket()) {
+          this.stopHealthMonitor({ resetDegraded: false });
+          this.emit("live.bridge.error", {
+            error: error.message,
+          });
+          this.upstream = null;
+          this.connectPromise = null;
+        }
         rejectOnce(error);
       });
     });

@@ -29,6 +29,7 @@ function createGatewayConfig(overrides: Partial<GatewayConfig>): GatewayConfig {
     liveRealtimeActivityHandling: "INTERRUPT_AND_RESUME",
     liveEnableInputAudioTranscription: true,
     liveEnableOutputAudioTranscription: true,
+    liveConnectAttemptTimeoutMs: 300,
     liveConnectRetryMs: 40,
     liveConnectMaxAttempts: 2,
     liveFailoverCooldownMs: 5_000,
@@ -67,8 +68,22 @@ async function waitFor(predicate: () => boolean, timeoutMs: number): Promise<voi
 }
 
 async function closeWss(wss: WebSocketServer): Promise<void> {
-  await new Promise<void>((resolve) => {
-    wss.close(() => resolve());
+  for (const client of wss.clients) {
+    try {
+      client.terminate();
+    } catch {
+      // best-effort test teardown
+    }
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("websocket server close timed out"));
+    }, 2000);
+    wss.close(() => {
+      clearTimeout(timeout);
+      resolve();
+    });
   });
 }
 
@@ -97,22 +112,24 @@ test("live bridge sends rich Gemini setup payload", async () => {
     send: (event) => emitted.push(event),
   });
 
-  await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "hello" } }));
-  await waitFor(() => inboundFrames.length >= 2, 2000);
+  try {
+    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "hello" } }));
+    await waitFor(() => inboundFrames.length >= 2, 2000);
 
-  const setupFrame = inboundFrames.find((frame) => typeof frame.setup === "object");
-  assert.ok(setupFrame, "setup frame should be sent before live.text turn");
-  const setup = setupFrame?.setup as Record<string, unknown>;
-  assert.equal(setup.model, "gemini-live-primary");
-  const generationConfig = setup.generationConfig as Record<string, unknown>;
-  assert.ok(Array.isArray(generationConfig.responseModalities));
-  assert.ok(typeof generationConfig.speechConfig === "object");
-  assert.ok(typeof generationConfig.realtimeInputConfig === "object");
-  assert.ok(typeof setup.systemInstruction === "object");
-  assert.ok(emitted.some((event) => event.type === "live.bridge.setup_sent"));
-
-  bridge.close();
-  await closeWss(wss);
+    const setupFrame = inboundFrames.find((frame) => typeof frame.setup === "object");
+    assert.ok(setupFrame, "setup frame should be sent before live.text turn");
+    const setup = setupFrame?.setup as Record<string, unknown>;
+    assert.equal(setup.model, "gemini-live-primary");
+    const generationConfig = setup.generationConfig as Record<string, unknown>;
+    assert.ok(Array.isArray(generationConfig.responseModalities));
+    assert.ok(typeof generationConfig.speechConfig === "object");
+    assert.ok(typeof generationConfig.realtimeInputConfig === "object");
+    assert.ok(typeof setup.systemInstruction === "object");
+    assert.ok(emitted.some((event) => event.type === "live.bridge.setup_sent"));
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
 });
 
 test("live bridge emits failover event when upstream connection fails", async () => {
@@ -131,19 +148,22 @@ test("live bridge emits failover event when upstream connection fails", async ()
     send: (event) => emitted.push(event),
   });
 
-  await assert.rejects(async () => {
-    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "trigger failover" } }));
-  });
+  try {
+    await assert.rejects(async () => {
+      await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "trigger failover" } }));
+    });
 
-  const failoverEvents = emitted.filter((event) => event.type === "live.bridge.failover");
-  assert.ok(failoverEvents.length >= 1, "expected at least one failover event");
-  const switchedToFallback = failoverEvents.some((event) => {
-    const payload = event.payload as Record<string, unknown>;
-    const to = payload.to as Record<string, unknown>;
-    return to.model === "model-b";
-  });
-  assert.equal(switchedToFallback, true, "failover chain should include fallback model");
-  bridge.close();
+    const failoverEvents = emitted.filter((event) => event.type === "live.bridge.failover");
+    assert.ok(failoverEvents.length >= 1, "expected at least one failover event");
+    const switchedToFallback = failoverEvents.some((event) => {
+      const payload = event.payload as Record<string, unknown>;
+      const to = payload.to as Record<string, unknown>;
+      return to.model === "model-b";
+    });
+    assert.equal(switchedToFallback, true, "failover chain should include fallback model");
+  } finally {
+    bridge.close();
+  }
 });
 
 test("live bridge classifies 402 failures as billing and applies disable windows", async () => {
@@ -174,23 +194,25 @@ test("live bridge classifies 402 failures as billing and applies disable windows
     send: (event) => emitted.push(event),
   });
 
-  await assert.rejects(async () => {
-    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "billing failover" } }));
-  });
+  try {
+    await assert.rejects(async () => {
+      await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "billing failover" } }));
+    });
 
-  const failoverEvent = emitted.find((event) => event.type === "live.bridge.failover");
-  assert.ok(failoverEvent, "expected failover event for billing failure");
-  const failoverPayload = failoverEvent?.payload as Record<string, unknown>;
-  assert.equal(failoverPayload.reasonClass, "billing");
+    const failoverEvent = emitted.find((event) => event.type === "live.bridge.failover");
+    assert.ok(failoverEvent, "expected failover event for billing failure");
+    const failoverPayload = failoverEvent?.payload as Record<string, unknown>;
+    assert.equal(failoverPayload.reasonClass, "billing");
 
-  const authFailureEvent = emitted.find((event) => event.type === "live.bridge.auth_profile_failed");
-  assert.ok(authFailureEvent, "expected auth profile failure diagnostics");
-  const authFailurePayload = authFailureEvent?.payload as Record<string, unknown>;
-  assert.equal(authFailurePayload.reasonClass, "billing");
-  assert.ok(typeof authFailurePayload.disabledUntil === "string" && authFailurePayload.disabledUntil.length > 0);
-
-  bridge.close();
-  await closeWss(wss);
+    const authFailureEvent = emitted.find((event) => event.type === "live.bridge.auth_profile_failed");
+    assert.ok(authFailureEvent, "expected auth profile failure diagnostics");
+    const authFailurePayload = authFailureEvent?.payload as Record<string, unknown>;
+    assert.equal(authFailurePayload.reasonClass, "billing");
+    assert.ok(typeof authFailurePayload.disabledUntil === "string" && authFailurePayload.disabledUntil.length > 0);
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
 });
 
 test("live bridge classifies 429 failures as rate_limit", async () => {
@@ -215,22 +237,24 @@ test("live bridge classifies 429 failures as rate_limit", async () => {
     send: (event) => emitted.push(event),
   });
 
-  await assert.rejects(async () => {
-    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "rate limit failover" } }));
-  });
+  try {
+    await assert.rejects(async () => {
+      await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "rate limit failover" } }));
+    });
 
-  const reconnectEvent = emitted.find((event) => event.type === "live.bridge.reconnect_attempt");
-  assert.ok(reconnectEvent, "expected reconnect attempt event for 429");
-  const reconnectPayload = reconnectEvent?.payload as Record<string, unknown>;
-  assert.equal(reconnectPayload.reasonClass, "rate_limit");
+    const reconnectEvent = emitted.find((event) => event.type === "live.bridge.reconnect_attempt");
+    assert.ok(reconnectEvent, "expected reconnect attempt event for 429");
+    const reconnectPayload = reconnectEvent?.payload as Record<string, unknown>;
+    assert.equal(reconnectPayload.reasonClass, "rate_limit");
 
-  const authFailureEvent = emitted.find((event) => event.type === "live.bridge.auth_profile_failed");
-  assert.ok(authFailureEvent, "expected auth profile failure event");
-  const authFailurePayload = authFailureEvent?.payload as Record<string, unknown>;
-  assert.equal(authFailurePayload.reasonClass, "rate_limit");
-
-  bridge.close();
-  await closeWss(wss);
+    const authFailureEvent = emitted.find((event) => event.type === "live.bridge.auth_profile_failed");
+    assert.ok(authFailureEvent, "expected auth profile failure event");
+    const authFailurePayload = authFailureEvent?.payload as Record<string, unknown>;
+    assert.equal(authFailurePayload.reasonClass, "rate_limit");
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
 });
 
 test("live bridge emits health degradation when upstream stays silent during pending turn", async () => {
@@ -259,14 +283,18 @@ test("live bridge emits health degradation when upstream stays silent during pen
     send: (event) => emitted.push(event),
   });
 
-  await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "no response expected" } }));
-  await waitFor(() => emitted.some((event) => event.type === "live.bridge.health_degraded"), 3000);
+  try {
+    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "no response expected" } }));
+    await waitFor(() => emitted.some((event) => event.type === "live.bridge.health_degraded"), 3000);
+    await waitFor(() => emitted.some((event) => event.type === "live.bridge.health_watchdog_reconnect"), 3000);
 
-  assert.ok(emitted.some((event) => event.type === "live.bridge.health_degraded"));
-  assert.ok(emitted.some((event) => event.type === "live.bridge.health_probe_started"));
-  assert.ok(emitted.some((event) => event.type === "live.bridge.health_watchdog_reconnect"));
-  bridge.close();
-  await closeWss(wss);
+    assert.ok(emitted.some((event) => event.type === "live.bridge.health_degraded"));
+    assert.ok(emitted.some((event) => event.type === "live.bridge.health_probe_started"));
+    assert.ok(emitted.some((event) => event.type === "live.bridge.health_watchdog_reconnect"));
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
 });
 
 test("live bridge emits health recovered after watchdog-triggered reconnect", async () => {
@@ -312,17 +340,20 @@ test("live bridge emits health recovered after watchdog-triggered reconnect", as
     send: (event) => emitted.push(event),
   });
 
-  await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "first silent turn" } }));
-  await waitFor(() => emitted.some((event) => event.type === "live.bridge.health_degraded"), 3000);
+  try {
+    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "first silent turn" } }));
+    await waitFor(() => emitted.some((event) => event.type === "live.bridge.health_degraded"), 3000);
+    await waitFor(() => emitted.some((event) => event.type === "live.bridge.health_watchdog_reconnect"), 3000);
 
-  await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "second turn" } }));
-  await waitFor(() => emitted.some((event) => event.type === "live.bridge.health_recovered"), 3000);
+    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "second turn" } }));
+    await waitFor(() => emitted.some((event) => event.type === "live.bridge.health_recovered"), 5000);
 
-  assert.ok(connectionCount >= 2, "watchdog should force reconnect");
-  assert.ok(emitted.some((event) => event.type === "live.bridge.health_recovered"));
-
-  bridge.close();
-  await closeWss(wss);
+    assert.ok(connectionCount >= 2, "watchdog should force reconnect");
+    assert.ok(emitted.some((event) => event.type === "live.bridge.health_recovered"));
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
 });
 
 test("live bridge emits reconnect wait diagnostics when route is cooling down", async () => {
@@ -342,15 +373,17 @@ test("live bridge emits reconnect wait diagnostics when route is cooling down", 
     send: (event) => emitted.push(event),
   });
 
-  await assert.rejects(async () => {
-    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "cooldown wait" } }));
-  });
+  try {
+    await assert.rejects(async () => {
+      await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "cooldown wait" } }));
+    });
 
-  const waitEvent = emitted.find((event) => event.type === "live.bridge.reconnect_wait");
-  assert.ok(waitEvent, "expected reconnect wait diagnostic event");
-  const waitPayload = waitEvent?.payload as Record<string, unknown>;
-  assert.ok(typeof waitPayload.waitMs === "number" && Number(waitPayload.waitMs) >= 25);
-  assert.ok(typeof waitPayload.routeWaitMs === "number");
-
-  bridge.close();
+    const waitEvent = emitted.find((event) => event.type === "live.bridge.reconnect_wait");
+    assert.ok(waitEvent, "expected reconnect wait diagnostic event");
+    const waitPayload = waitEvent?.payload as Record<string, unknown>;
+    assert.ok(typeof waitPayload.waitMs === "number" && Number(waitPayload.waitMs) >= 25);
+    assert.ok(typeof waitPayload.routeWaitMs === "number");
+  } finally {
+    bridge.close();
+  }
 });

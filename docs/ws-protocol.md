@@ -108,13 +108,14 @@ Notes:
 9. `live.bridge.forward_retry`
 10. `live.bridge.failover`
 11. `live.bridge.auth_profile_failed`
-12. `live.bridge.health_degraded`
-13. `live.bridge.health_watchdog_reconnect`
-14. `live.bridge.health_recovered`
-15. `live.bridge.health_probe_started`
-16. `live.bridge.health_ping_sent`
-17. `live.bridge.health_pong`
-18. `live.bridge.health_ping_error`
+12. `live.bridge.connect_timeout`
+13. `live.bridge.health_degraded`
+14. `live.bridge.health_watchdog_reconnect`
+15. `live.bridge.health_recovered`
+16. `live.bridge.health_probe_started`
+17. `live.bridge.health_ping_sent`
+18. `live.bridge.health_pong`
+19. `live.bridge.health_ping_error`
 
 Failover/watchdog diagnostics (where present):
 

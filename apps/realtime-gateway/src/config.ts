@@ -28,6 +28,7 @@ export type GatewayConfig = {
   liveRealtimeActivityHandling: string;
   liveEnableInputAudioTranscription: boolean;
   liveEnableOutputAudioTranscription: boolean;
+  liveConnectAttemptTimeoutMs: number;
   liveConnectRetryMs: number;
   liveConnectMaxAttempts: number;
   liveFailoverCooldownMs: number;
@@ -212,6 +213,7 @@ export function loadGatewayConfig(): GatewayConfig {
     liveRealtimeActivityHandling: process.env.LIVE_REALTIME_ACTIVITY_HANDLING ?? "INTERRUPT_AND_RESUME",
     liveEnableInputAudioTranscription: parseBoolean(process.env.LIVE_ENABLE_INPUT_AUDIO_TRANSCRIPTION, true),
     liveEnableOutputAudioTranscription: parseBoolean(process.env.LIVE_ENABLE_OUTPUT_AUDIO_TRANSCRIPTION, true),
+    liveConnectAttemptTimeoutMs: parsePositiveInt(process.env.LIVE_CONNECT_ATTEMPT_TIMEOUT_MS, 5000),
     liveConnectRetryMs: parsePositiveInt(process.env.LIVE_CONNECT_RETRY_MS, 500),
     liveConnectMaxAttempts: parsePositiveInt(process.env.LIVE_CONNECT_MAX_ATTEMPTS, 2),
     liveFailoverCooldownMs: parsePositiveInt(process.env.LIVE_FAILOVER_COOLDOWN_MS, 15000),
