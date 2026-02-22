@@ -657,6 +657,18 @@ try {
     Assert-Condition -Condition ($queueWorkers.Count -ge 1) -Message "Storyteller media workers are not visible in queue snapshot."
     $queueRuntimeEnabled = [bool](Get-FieldValue -Object $mediaQueue -Path @("runtime", "enabled"))
     Assert-Condition -Condition $queueRuntimeEnabled -Message "Storyteller media worker runtime should be enabled for dedicated worker mode."
+    $queueQuotas = @(Get-FieldValue -Object $mediaQueue -Path @("quotas"))
+    Assert-Condition -Condition ($queueQuotas.Count -ge 1) -Message "Storyteller quota visibility is missing in media queue snapshot."
+    $veoQuota = $queueQuotas | Where-Object { [string]$_.model -eq "veo-3.1" } | Select-Object -First 1
+    Assert-Condition -Condition ($null -ne $veoQuota) -Message "Storyteller media queue quota snapshot must include veo-3.1 model entry."
+    $veoQuotaPerWindow = [int](Get-FieldValue -Object $veoQuota -Path @("perWindow"))
+    $veoQuotaWindowMs = [int](Get-FieldValue -Object $veoQuota -Path @("windowMs"))
+    $veoQuotaUsed = [int](Get-FieldValue -Object $veoQuota -Path @("used"))
+    $veoQuotaAvailable = [int](Get-FieldValue -Object $veoQuota -Path @("available"))
+    Assert-Condition -Condition ($veoQuotaPerWindow -ge 1) -Message "Invalid storyteller veo quota perWindow."
+    Assert-Condition -Condition ($veoQuotaWindowMs -ge 1) -Message "Invalid storyteller veo quota windowMs."
+    Assert-Condition -Condition ($veoQuotaUsed -ge 0) -Message "Invalid storyteller veo quota used counter."
+    Assert-Condition -Condition ($veoQuotaAvailable -ge 0) -Message "Invalid storyteller veo quota available counter."
 
     $cacheRunId = "demo-story-cache-" + [Guid]::NewGuid().Guid
     $cacheRequest = New-OrchestratorRequest -SessionId $sessionId -RunId $cacheRunId -Intent "story" -RequestInput @{
@@ -699,6 +711,8 @@ try {
       mediaQueueBacklog = $queueBacklog
       mediaQueueWorkers = $queueWorkers.Count
       mediaQueueRuntimeEnabled = $queueRuntimeEnabled
+      mediaQueueQuotaEntries = $queueQuotas.Count
+      mediaQueueQuotaModelSeen = ($null -ne $veoQuota)
       cacheEnabled = $cacheEnabled
       cacheHits = $cacheHits
       cacheEntries = $cacheEntries
@@ -1616,11 +1630,18 @@ $summary = [ordered]@{
     storytellerMediaQueueBacklog = if ($null -ne $storyData) { $storyData.mediaQueueBacklog } else { $null }
     storytellerMediaQueueWorkers = if ($null -ne $storyData) { $storyData.mediaQueueWorkers } else { $null }
     storytellerMediaQueueRuntimeEnabled = if ($null -ne $storyData) { $storyData.mediaQueueRuntimeEnabled } else { $null }
+    storytellerMediaQueueQuotaEntries = if ($null -ne $storyData) { $storyData.mediaQueueQuotaEntries } else { $null }
+    storytellerMediaQueueQuotaModelSeen = if ($null -ne $storyData) { $storyData.mediaQueueQuotaModelSeen } else { $null }
     storytellerMediaQueueVisible = if (
       $null -ne $storyData -and
       [int]$storyData.mediaQueueBacklog -ge 0 -and
       [int]$storyData.mediaQueueWorkers -ge 1 -and
       $storyData.mediaQueueRuntimeEnabled -eq $true
+    ) { $true } else { $false }
+    storytellerMediaQueueQuotaValidated = if (
+      $null -ne $storyData -and
+      [int]$storyData.mediaQueueQuotaEntries -ge 1 -and
+      $storyData.mediaQueueQuotaModelSeen -eq $true
     ) { $true } else { $false }
     storytellerCacheEnabled = if ($null -ne $storyData) { $storyData.cacheEnabled } else { $null }
     storytellerCacheHits = if ($null -ne $storyData) { $storyData.cacheHits } else { $null }

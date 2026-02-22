@@ -238,6 +238,24 @@ async function main() {
     ">= 1",
   );
   addCheck(
+    "kpi.storytellerMediaQueueQuotaEntries",
+    toNumber(kpis.storytellerMediaQueueQuotaEntries) >= 1,
+    kpis.storytellerMediaQueueQuotaEntries,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.storytellerMediaQueueQuotaModelSeen",
+    kpis.storytellerMediaQueueQuotaModelSeen === true,
+    kpis.storytellerMediaQueueQuotaModelSeen,
+    true,
+  );
+  addCheck(
+    "kpi.storytellerMediaQueueQuotaValidated",
+    kpis.storytellerMediaQueueQuotaValidated === true,
+    kpis.storytellerMediaQueueQuotaValidated,
+    true,
+  );
+  addCheck(
     "kpi.storytellerCacheEnabled",
     kpis.storytellerCacheEnabled === true,
     kpis.storytellerCacheEnabled,
