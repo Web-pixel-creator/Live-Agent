@@ -62,6 +62,12 @@ Judge report generation from collected evidence (repo root):
 npm run infra:observability:report
 ```
 
+GitHub Actions alternative:
+
+1. Configure repository secret `GCP_CREDENTIALS_JSON`.
+2. Run workflow `.github/workflows/observability-evidence.yml` via `workflow_dispatch`.
+3. Set `collect_live=true` and provide `project_id`.
+
 Optional flags:
 
 - `-GatewaySaName` default: `mla-gateway-sa`

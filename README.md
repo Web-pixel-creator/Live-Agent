@@ -80,6 +80,7 @@ Open `http://localhost:3000`.
 - Monitoring template validation (local/CI): `npm run infra:monitoring:validate`.
 - Observability evidence collector for judges: `pwsh ./infra/gcp/collect-observability-evidence.ps1 -ProjectId "<project-id>" -DatasetId "agent_analytics" -LookbackHours 24`.
 - Judge-ready observability report generation: `npm run infra:observability:report`.
+- GitHub Actions workflow for observability evidence: `.github/workflows/observability-evidence.yml` (manual dispatch; set `collect_live=true`, `project_id`, and repository secret `GCP_CREDENTIALS_JSON`).
 
 6. Optional delegation demo commands (in demo frontend message box with `intent=conversation`):
 - `delegate story: <prompt>` -> Live Agent delegates to Storyteller.

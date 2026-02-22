@@ -1,0 +1,138 @@
+name: Observability Evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      collect_live:
+        description: "Collect live evidence from GCP (requires credentials secret)"
+        required: false
+        type: boolean
+        default: false
+      project_id:
+        description: "GCP project id (required when collect_live=true)"
+        required: false
+        type: string
+        default: ""
+      dataset_id:
+        description: "BigQuery dataset id"
+        required: false
+        type: string
+        default: "agent_analytics"
+      lookback_hours:
+        description: "Lookback window (hours) for sampled rows"
+        required: false
+        type: string
+        default: "24"
+      max_rows:
+        description: "Maximum sampled rows"
+        required: false
+        type: string
+        default: "200"
+
+jobs:
+  validate-monitoring-templates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Validate Monitoring Templates
+        run: npm run infra:monitoring:validate
+
+  collect-observability-evidence:
+    if: ${{ inputs.collect_live == true }}
+    needs:
+      - validate-monitoring-templates
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PROJECT_ID: ${{ inputs.project_id }}
+      DATASET_ID: ${{ inputs.dataset_id }}
+      LOOKBACK_HOURS: ${{ inputs.lookback_hours }}
+      MAX_ROWS: ${{ inputs.max_rows }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Validate Required Inputs
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace("${{ env.PROJECT_ID }}")) {
+            Write-Error "Input 'project_id' is required when collect_live=true."
+            exit 1
+          }
+
+      - name: Validate GCP Credentials Secret
+        if: ${{ secrets.GCP_CREDENTIALS_JSON == '' }}
+        shell: pwsh
+        run: |
+          Write-Error "Missing required secret: GCP_CREDENTIALS_JSON"
+          exit 1
+
+      - name: Authenticate to Google Cloud
+        if: ${{ secrets.GCP_CREDENTIALS_JSON != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
+
+      - name: Setup gcloud SDK
+        if: ${{ secrets.GCP_CREDENTIALS_JSON != '' }}
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Collect Observability Evidence
+        if: ${{ secrets.GCP_CREDENTIALS_JSON != '' }}
+        shell: pwsh
+        run: |
+          ./infra/gcp/collect-observability-evidence.ps1 `
+            -ProjectId "${{ env.PROJECT_ID }}" `
+            -DatasetId "${{ env.DATASET_ID }}" `
+            -LookbackHours ${{ env.LOOKBACK_HOURS }} `
+            -MaxRows ${{ env.MAX_ROWS }}
+
+      - name: Generate Judge Observability Report
+        if: ${{ secrets.GCP_CREDENTIALS_JSON != '' }}
+        run: npm run infra:observability:report
+
+      - name: Publish Observability Report To Job Summary
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path "artifacts/observability/judge-observability.md") {
+            Get-Content "artifacts/observability/judge-observability.md" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          } elseif (Test-Path "artifacts/observability/observability-evidence-summary.md") {
+            Get-Content "artifacts/observability/observability-evidence-summary.md" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          } else {
+            "Observability evidence report was not generated." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+
+      - name: Upload Observability Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-artifacts
+          path: artifacts/observability
+          if-no-files-found: warn
