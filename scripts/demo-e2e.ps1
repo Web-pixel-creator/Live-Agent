@@ -1374,6 +1374,7 @@ try {
     $results = @()
     $profileValidated = $true
     $analyticsValidated = $true
+    $transportValidated = $true
     foreach ($service in $services) {
       $baseUrl = [string]$service.baseUrl
       $serviceName = [string]$service.name
@@ -1404,6 +1405,35 @@ try {
       Assert-Condition -Condition (@("disabled", "cloud_monitoring", "bigquery") -contains $analyticsMetricsTarget) -Message ("Invalid analytics metrics target for " + $serviceName)
       Assert-Condition -Condition (@("disabled", "cloud_monitoring", "bigquery") -contains $analyticsEventsTarget) -Message ("Invalid analytics events target for " + $serviceName)
       Assert-Condition -Condition ($analyticsSampleRate -ge 0 -and $analyticsSampleRate -le 1) -Message ("Invalid analytics sampleRate for " + $serviceName)
+
+      $transportRequestedMode = $null
+      $transportActiveMode = $null
+      $transportFallbackActive = $null
+      $transportWebrtcEnabled = $null
+      $transportWebrtcReady = $null
+      $transportWebrtcReason = $null
+      if ($serviceName -eq "realtime-gateway") {
+        $runtimeTransport = Get-FieldValue -Object $statusBefore -Path @("runtime", "transport")
+        Assert-Condition -Condition ($null -ne $runtimeTransport) -Message "Missing runtime transport block in /status for realtime-gateway"
+        $transportRequestedMode = [string](Get-FieldValue -Object $runtimeTransport -Path @("requestedMode"))
+        $transportActiveMode = [string](Get-FieldValue -Object $runtimeTransport -Path @("activeMode"))
+        $transportFallbackActive = [bool](Get-FieldValue -Object $runtimeTransport -Path @("fallbackActive"))
+        $transportWebrtc = Get-FieldValue -Object $runtimeTransport -Path @("webrtc")
+        Assert-Condition -Condition ($null -ne $transportWebrtc) -Message "Missing runtime transport.webrtc block in /status for realtime-gateway"
+        $transportWebrtcEnabled = [bool](Get-FieldValue -Object $transportWebrtc -Path @("enabled"))
+        $transportWebrtcReady = [bool](Get-FieldValue -Object $transportWebrtc -Path @("ready"))
+        $transportWebrtcReason = [string](Get-FieldValue -Object $transportWebrtc -Path @("reason"))
+
+        Assert-Condition -Condition (@("websocket", "webrtc") -contains $transportRequestedMode) -Message "Invalid runtime transport requestedMode for realtime-gateway"
+        Assert-Condition -Condition ($transportActiveMode -eq "websocket") -Message "MVP active transport must remain websocket for realtime-gateway"
+        if ($transportRequestedMode -eq "webrtc") {
+          Assert-Condition -Condition $transportFallbackActive -Message "WebRTC requested mode must surface fallbackActive=true until transport path is implemented"
+          Assert-Condition -Condition (-not $transportWebrtcReady) -Message "WebRTC requested mode must report webrtc.ready=false in current MVP baseline"
+          Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($transportWebrtcReason)) -Message "WebRTC requested mode must expose non-empty webrtc.reason"
+        } else {
+          Assert-Condition -Condition (-not $transportFallbackActive) -Message "WebSocket requested mode must keep fallbackActive=false"
+        }
+      }
 
       $versionResponse = Invoke-JsonRequest -Method GET -Uri ($baseUrl + "/version") -TimeoutSec $RequestTimeoutSec
       $version = [string](Get-FieldValue -Object $versionResponse -Path @("version"))
@@ -1436,6 +1466,12 @@ try {
         analyticsMetricsTarget = $analyticsMetricsTarget
         analyticsEventsTarget = $analyticsEventsTarget
         analyticsSampleRate = $analyticsSampleRate
+        transportRequestedMode = $transportRequestedMode
+        transportActiveMode = $transportActiveMode
+        transportFallbackActive = $transportFallbackActive
+        transportWebrtcEnabled = $transportWebrtcEnabled
+        transportWebrtcReady = $transportWebrtcReady
+        transportWebrtcReason = $transportWebrtcReason
         stateBefore = $stateBefore
         stateDuringDrain = $stateDuringDrain
         stateAfterWarmup = $stateAfterWarmup
@@ -1447,14 +1483,24 @@ try {
       if ([string]::IsNullOrWhiteSpace($analyticsReason)) {
         $analyticsValidated = $false
       }
+      if ($serviceName -eq "realtime-gateway" -and [string]::IsNullOrWhiteSpace($transportActiveMode)) {
+        $transportValidated = $false
+      }
     }
+
+    $gatewayTransport = $results | Where-Object { $_.name -eq "realtime-gateway" } | Select-Object -First 1
 
     return [ordered]@{
       services = $results
       count = $results.Count
       profileValidated = $profileValidated
       analyticsValidated = $analyticsValidated
+      transportValidated = $transportValidated
       analyticsServices = (@($results | Where-Object { -not [string]::IsNullOrWhiteSpace($_.analyticsReason) })).Count
+      transportServices = (@($results | Where-Object { -not [string]::IsNullOrWhiteSpace($_.transportActiveMode) })).Count
+      gatewayTransportRequestedMode = if ($null -ne $gatewayTransport) { $gatewayTransport.transportRequestedMode } else { $null }
+      gatewayTransportActiveMode = if ($null -ne $gatewayTransport) { $gatewayTransport.transportActiveMode } else { $null }
+      gatewayTransportFallbackActive = if ($null -ne $gatewayTransport) { $gatewayTransport.transportFallbackActive } else { $null }
       localFirstServices = (@($results | Where-Object { $_.runtimeLocalFirst -eq $true })).Count
     }
   } | Out-Null
@@ -1699,6 +1745,11 @@ $summary = [ordered]@{
     runtimeProfileValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.profileValidated } else { $false }
     analyticsRuntimeVisible = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsValidated } else { $false }
     analyticsServicesValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsServices } else { $null }
+    transportModeValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.transportValidated } else { $false }
+    transportServicesValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.transportServices } else { $null }
+    gatewayTransportRequestedMode = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.gatewayTransportRequestedMode } else { $null }
+    gatewayTransportActiveMode = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.gatewayTransportActiveMode } else { $null }
+    gatewayTransportFallbackActive = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.gatewayTransportFallbackActive } else { $null }
     runtimeLocalFirstServices = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.localFirstServices } else { $null }
     metricsEndpointsValidated = if ($null -ne $runtimeMetricsData) { $true } else { $false }
     metricsServicesValidated = if ($null -ne $runtimeMetricsData) { $runtimeMetricsData.count } else { $null }

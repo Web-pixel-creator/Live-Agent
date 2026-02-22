@@ -9,6 +9,7 @@ import type { GatewayConfig } from "../../apps/realtime-gateway/src/config.js";
 function createGatewayConfig(overrides: Partial<GatewayConfig>): GatewayConfig {
   return {
     port: 8080,
+    gatewayTransportMode: "websocket",
     orchestratorUrl: "http://localhost:8082/orchestrate",
     orchestratorTimeoutMs: 15_000,
     orchestratorMaxRetries: 1,

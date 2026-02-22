@@ -1,4 +1,5 @@
 export type LiveApiProtocol = "gemini" | "passthrough";
+export type GatewayTransportMode = "websocket" | "webrtc";
 
 export type LiveAuthProfile = {
   name: string;
@@ -8,6 +9,7 @@ export type LiveAuthProfile = {
 
 export type GatewayConfig = {
   port: number;
+  gatewayTransportMode: GatewayTransportMode;
   orchestratorUrl: string;
   orchestratorTimeoutMs: number;
   orchestratorMaxRetries: number;
@@ -47,6 +49,17 @@ function parseLiveApiProtocol(value: string | undefined): LiveApiProtocol {
     return "passthrough";
   }
   return "gemini";
+}
+
+function parseGatewayTransportMode(value: string | undefined): GatewayTransportMode {
+  if (!value) {
+    return "websocket";
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "webrtc") {
+    return "webrtc";
+  }
+  return "websocket";
 }
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -193,6 +206,7 @@ export function loadGatewayConfig(): GatewayConfig {
 
   return {
     port: Number(process.env.GATEWAY_PORT ?? 8080),
+    gatewayTransportMode: parseGatewayTransportMode(process.env.GATEWAY_TRANSPORT_MODE),
     orchestratorUrl: process.env.ORCHESTRATOR_URL ?? "http://localhost:8082/orchestrate",
     orchestratorTimeoutMs: parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_TIMEOUT_MS, 15000),
     orchestratorMaxRetries: parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_MAX_RETRIES, 1),

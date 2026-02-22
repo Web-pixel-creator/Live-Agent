@@ -15,7 +15,7 @@ import {
 } from "@mla/contracts";
 import { WebSocketServer } from "ws";
 import { AnalyticsExporter } from "./analytics-export.js";
-import { loadGatewayConfig } from "./config.js";
+import { loadGatewayConfig, type GatewayConfig } from "./config.js";
 import { LiveApiBridge } from "./live-bridge.js";
 import { sendToOrchestrator } from "./orchestrator-client.js";
 import { buildReplayFingerprint, buildReplayKey } from "./request-replay.js";
@@ -50,6 +50,17 @@ const metrics = new RollingMetrics({
   },
 });
 const gatewayOrchestratorReplayTtlMs = parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_DEDUPE_TTL_MS, 120_000);
+
+type GatewayTransportRuntimeState = {
+  requestedMode: GatewayConfig["gatewayTransportMode"];
+  activeMode: "websocket";
+  fallbackActive: boolean;
+  webrtc: {
+    enabled: boolean;
+    ready: boolean;
+    reason: string | null;
+  };
+};
 
 function parsePositiveInt(raw: string | undefined, fallback: number): number {
   if (!raw) {
@@ -217,6 +228,34 @@ function attachTaskToResponse(response: OrchestratorResponse, task: TaskRecord):
   };
 }
 
+function resolveGatewayTransportRuntimeState(currentConfig: GatewayConfig): GatewayTransportRuntimeState {
+  if (currentConfig.gatewayTransportMode === "webrtc") {
+    return {
+      requestedMode: "webrtc",
+      activeMode: "websocket",
+      fallbackActive: true,
+      webrtc: {
+        enabled: true,
+        ready: false,
+        reason: "webrtc_experimental_path_not_implemented",
+      },
+    };
+  }
+
+  return {
+    requestedMode: "websocket",
+    activeMode: "websocket",
+    fallbackActive: false,
+    webrtc: {
+      enabled: false,
+      ready: false,
+      reason: null,
+    },
+  };
+}
+
+const transportRuntimeState = resolveGatewayTransportRuntimeState(config);
+
 function runtimeState(): Record<string, unknown> {
   const summary = metrics.snapshot({ topOperations: 10 });
   return {
@@ -230,6 +269,7 @@ function runtimeState(): Record<string, unknown> {
     lastDrainAt,
     version: serviceVersion,
     profile: runtimeProfile,
+    transport: transportRuntimeState,
     analytics: analytics.snapshot(),
     metrics: {
       totalCount: summary.totalCount,
@@ -1058,4 +1098,13 @@ wss.on("connection", (ws) => {
 server.listen(config.port, () => {
   console.log(`[realtime-gateway] listening on :${config.port}`);
   console.log(`[realtime-gateway] websocket endpoint ws://localhost:${config.port}/realtime`);
+  if (transportRuntimeState.fallbackActive) {
+    console.warn(
+      `[realtime-gateway] transport fallback active: requested=${transportRuntimeState.requestedMode}, active=${transportRuntimeState.activeMode}, reason=${transportRuntimeState.webrtc.reason}`,
+    );
+  } else {
+    console.log(
+      `[realtime-gateway] transport mode: requested=${transportRuntimeState.requestedMode}, active=${transportRuntimeState.activeMode}`,
+    );
+  }
 });

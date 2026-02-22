@@ -39,6 +39,19 @@ Shared contracts to preserve:
 2. idempotent orchestrator request behavior
 3. session lifecycle events and operator observability
 
+## Implemented Baseline Seam (Current)
+
+1. `GATEWAY_TRANSPORT_MODE=websocket|webrtc` is now parsed in gateway config.
+2. Runtime status (`/status`, `/healthz`) exposes:
+   - `runtime.transport.requestedMode`
+   - `runtime.transport.activeMode`
+   - `runtime.transport.fallbackActive`
+   - `runtime.transport.webrtc.{enabled,ready,reason}`
+3. Current MVP behavior:
+   - `requestedMode=websocket` -> `activeMode=websocket`, `fallbackActive=false`
+   - `requestedMode=webrtc` -> `activeMode=websocket`, `fallbackActive=true`, reason=`webrtc_experimental_path_not_implemented`
+4. `demo:e2e` + `demo:e2e:policy` validate the transport baseline visibility and fallback semantics.
+
 ## Migration Plan (V2)
 
 Phase 1: Experimental path behind flag
@@ -76,4 +89,3 @@ Phase 3: Gradual rollout
 1. Keep WebSocket as MVP transport.
 2. Proceed with WebRTC only as V2 flagged migration.
 3. Do not alter challenge demo baseline transport in current release.
-

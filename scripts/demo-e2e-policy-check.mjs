@@ -526,6 +526,38 @@ async function main() {
     ">= 3",
   );
   addCheck(
+    "kpi.transportModeValidated",
+    kpis.transportModeValidated === true,
+    kpis.transportModeValidated,
+    true,
+  );
+  addCheck(
+    "kpi.transportServicesValidated",
+    toNumber(kpis.transportServicesValidated) >= 1,
+    kpis.transportServicesValidated,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.gatewayTransportRequestedMode",
+    ["websocket", "webrtc"].includes(String(kpis.gatewayTransportRequestedMode)),
+    kpis.gatewayTransportRequestedMode,
+    "websocket | webrtc",
+  );
+  addCheck(
+    "kpi.gatewayTransportActiveMode",
+    String(kpis.gatewayTransportActiveMode) === "websocket",
+    kpis.gatewayTransportActiveMode,
+    "websocket",
+  );
+  addCheck(
+    "kpi.gatewayTransportFallbackActive",
+    String(kpis.gatewayTransportRequestedMode) === "webrtc"
+      ? kpis.gatewayTransportFallbackActive === true
+      : kpis.gatewayTransportFallbackActive === false,
+    kpis.gatewayTransportFallbackActive,
+    String(kpis.gatewayTransportRequestedMode) === "webrtc" ? true : false,
+  );
+  addCheck(
     "kpi.metricsEndpointsValidated",
     kpis.metricsEndpointsValidated === true,
     kpis.metricsEndpointsValidated,
