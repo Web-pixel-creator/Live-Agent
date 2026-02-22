@@ -61,6 +61,7 @@ MVP Transport Baseline
 
 1. WebSocket is the only required transport in MVP.
 2. WebRTC remains a V2 enhancement and is intentionally excluded from judged demo critical path.
+3. V2 WebRTC spike and migration gates are documented in `docs/webrtc-v2-spike.md`.
 
 ## Runtime Components
 
