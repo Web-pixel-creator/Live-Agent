@@ -58,6 +58,7 @@ Open `http://localhost:3000`.
 - Gateway orchestrator replay-dedupe tuning: `GATEWAY_ORCHESTRATOR_DEDUPE_TTL_MS` (idempotent response replay window for duplicate websocket requests).
 - API -> orchestrator request resilience: configure `API_ORCHESTRATOR_TIMEOUT_MS`, `API_ORCHESTRATOR_MAX_RETRIES`, `API_ORCHESTRATOR_RETRY_BACKOFF_MS`.
 - Orchestrator idempotency cache tuning: `ORCHESTRATOR_IDEMPOTENCY_TTL_MS` (in-flight + completed request dedupe window).
+- Orchestrator assistive LLM router (feature-flagged): `ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED`, `ORCHESTRATOR_ASSISTIVE_ROUTER_MODEL`, `ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY`, `ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL`, `ORCHESTRATOR_ASSISTIVE_ROUTER_TIMEOUT_MS`, `ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE`, `ORCHESTRATOR_ASSISTIVE_ROUTER_ALLOW_INTENTS` (details: `docs/assistive-router.md`).
 - Live-agent Gemini text features (translation/conversation): set `GEMINI_API_KEY` (or `LIVE_AGENT_GEMINI_API_KEY`) and optionally tune `LIVE_AGENT_TRANSLATION_MODEL` / `LIVE_AGENT_CONVERSATION_MODEL`.
 - Live-agent context compaction tuning: `LIVE_AGENT_CONTEXT_COMPACTION_ENABLED`, `LIVE_AGENT_CONTEXT_MAX_TOKENS`, `LIVE_AGENT_CONTEXT_TARGET_TOKENS`, `LIVE_AGENT_CONTEXT_KEEP_RECENT_TURNS`, `LIVE_AGENT_CONTEXT_MAX_SESSIONS`, `LIVE_AGENT_CONTEXT_SUMMARY_MODEL`.
 - Storyteller pipeline config: set `STORYTELLER_*` envs for planner models and media mode (`STORYTELLER_MEDIA_MODE=fallback|simulated`).

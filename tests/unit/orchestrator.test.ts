@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createServer } from "node:http";
 import { createEnvelope, type OrchestratorRequest } from "../../shared/contracts/src/index.js";
 import { orchestrate } from "../../agents/orchestrator/src/orchestrate.js";
 
@@ -8,6 +9,52 @@ function asObject(value: unknown): Record<string, unknown> {
     return {};
   }
   return value as Record<string, unknown>;
+}
+
+async function startGeminiMockServer(responseText: string): Promise<{
+  baseUrl: string;
+  close: () => Promise<void>;
+}> {
+  const server = createServer((req, res) => {
+    if (req.method !== "POST") {
+      res.statusCode = 405;
+      res.end("method_not_allowed");
+      return;
+    }
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        candidates: [
+          {
+            content: {
+              parts: [{ text: responseText }],
+            },
+          },
+        ],
+      }),
+    );
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+  const address = server.address();
+  if (!address || typeof address !== "object") {
+    throw new Error("failed to start gemini mock server");
+  }
+  const baseUrl = `http://127.0.0.1:${address.port}/v1beta`;
+  return {
+    baseUrl,
+    close: async () => {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
+      });
+    },
+  };
 }
 
 test("orchestrator keeps live-agent primary route and returns delegation payload", async () => {
@@ -64,6 +111,106 @@ test("orchestrator returns approval-required flow for sensitive ui_task", async 
   const output = asObject(response.payload.output);
   assert.equal(output.approvalRequired, true);
   assert.ok(typeof output.approvalId === "string");
+});
+
+test("assistive router overrides route on high confidence story classification", async () => {
+  process.env.FIRESTORE_ENABLED = "false";
+  process.env.GEMINI_API_KEY = "";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED = "true";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY = "unit-test-key";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE = "0.75";
+
+  const mock = await startGeminiMockServer(
+    JSON.stringify({
+      intent: "story",
+      confidence: 0.93,
+      reason: "user requested a creative narrative",
+    }),
+  );
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL = mock.baseUrl;
+
+  try {
+    const request = createEnvelope({
+      userId: "unit-user",
+      sessionId: "unit-session-assistive-override",
+      runId: "unit-run-assistive-override",
+      type: "orchestrator.request",
+      source: "frontend",
+      payload: {
+        intent: "conversation",
+        input: {
+          text: "Create a short fantasy story about dragons and forests",
+        },
+      },
+    }) as OrchestratorRequest;
+
+    const response = await orchestrate(request);
+    assert.equal(response.payload.route, "storyteller-agent");
+    assert.equal(response.payload.status, "completed");
+
+    const output = asObject(response.payload.output);
+    const routing = asObject(output.routing);
+    assert.equal(routing.mode, "assistive_override");
+    assert.equal(routing.requestedIntent, "conversation");
+    assert.equal(routing.routedIntent, "story");
+    assert.equal(routing.route, "storyteller-agent");
+  } finally {
+    await mock.close();
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE;
+  }
+});
+
+test("assistive router falls back to deterministic route on low confidence", async () => {
+  process.env.FIRESTORE_ENABLED = "false";
+  process.env.GEMINI_API_KEY = "";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED = "true";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY = "unit-test-key";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE = "0.8";
+
+  const mock = await startGeminiMockServer(
+    JSON.stringify({
+      intent: "story",
+      confidence: 0.42,
+      reason: "weak signal",
+    }),
+  );
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL = mock.baseUrl;
+
+  try {
+    const request = createEnvelope({
+      userId: "unit-user",
+      sessionId: "unit-session-assistive-fallback",
+      runId: "unit-run-assistive-fallback",
+      type: "orchestrator.request",
+      source: "frontend",
+      payload: {
+        intent: "conversation",
+        input: {
+          text: "Tell me a short story with characters and plot",
+        },
+      },
+    }) as OrchestratorRequest;
+
+    const response = await orchestrate(request);
+    assert.equal(response.payload.route, "live-agent");
+    assert.equal(response.payload.status, "completed");
+
+    const output = asObject(response.payload.output);
+    const routing = asObject(output.routing);
+    assert.equal(routing.mode, "assistive_fallback");
+    assert.equal(routing.requestedIntent, "conversation");
+    assert.equal(routing.routedIntent, "conversation");
+    assert.equal(routing.route, "live-agent");
+  } finally {
+    await mock.close();
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE;
+  }
 });
 
 test("orchestrator replays cached response for duplicate request", async () => {

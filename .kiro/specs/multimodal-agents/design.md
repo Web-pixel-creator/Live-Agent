@@ -112,6 +112,7 @@ Routing policy (MVP):
 2. `intent=story` -> Creative Storyteller.
 3. `intent=ui_task` -> UI Navigator.
 4. Complex request -> primary agent + delegated subtask.
+5. Assistive router (feature-flagged): optional Gemini classifier (`gemini-3-flash`) can override eligible intents with confidence gate; low-confidence/timeout/error always fall back to deterministic routing.
 
 ### 4. Domain Agents
 

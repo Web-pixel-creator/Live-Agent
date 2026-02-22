@@ -2,12 +2,14 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   createEnvelope,
   createNormalizedError,
+  type OrchestratorIntent,
   type OrchestratorRequest,
   type OrchestratorResponse,
 } from "@mla/contracts";
 import { runLiveAgent } from "@mla/live-agent";
 import { runStorytellerAgent } from "@mla/storyteller-agent";
 import { runUiNavigatorAgent } from "@mla/ui-navigator-agent";
+import { resolveAssistiveRoute, type AssistiveRoutingDecision } from "./assistive-router.js";
 import { routeIntent } from "./router.js";
 import { persistEvent } from "./services/firestore.js";
 
@@ -306,8 +308,56 @@ function mergeDelegationResult(
   return merged;
 }
 
+function withRoutingMetadata(
+  response: OrchestratorResponse,
+  routing: AssistiveRoutingDecision,
+): OrchestratorResponse {
+  const output = isRecord(response.payload.output)
+    ? response.payload.output
+    : {
+        value: response.payload.output ?? null,
+      };
+
+  return {
+    ...response,
+    payload: {
+      ...response.payload,
+      output: {
+        ...output,
+        routing: {
+          requestedIntent: routing.requestedIntent,
+          routedIntent: routing.routedIntent,
+          route: routing.route,
+          mode: routing.mode,
+          reason: routing.reason,
+          confidence: routing.confidence,
+          model: routing.model,
+        },
+      },
+    },
+  };
+}
+
+function withRoutedIntent(
+  request: OrchestratorRequest,
+  routedIntent: OrchestratorIntent,
+): OrchestratorRequest {
+  if (request.payload.intent === routedIntent) {
+    return request;
+  }
+  return {
+    ...request,
+    payload: {
+      ...request.payload,
+      intent: routedIntent,
+    },
+  };
+}
+
 async function orchestrateCore(request: OrchestratorRequest): Promise<OrchestratorResponse> {
-  const normalizedRequest = ensureRunId(request);
+  const baseRequest = ensureRunId(request);
+  const routing = await resolveAssistiveRoute(baseRequest);
+  const normalizedRequest = withRoutedIntent(baseRequest, routing.routedIntent);
 
   await persistEvent(normalizedRequest);
   const taskContext = extractTaskContext(normalizedRequest);
@@ -320,8 +370,9 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
     });
   }
 
-  const route = routeIntent(normalizedRequest.payload.intent);
+  const route = routing.route;
   let response = await runByRoute(route, normalizedRequest);
+  response = withRoutingMetadata(response, routing);
 
   const delegation = extractDelegationRequest(response);
   if (delegation) {
@@ -344,6 +395,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
     await persistEvent(delegatedResponse);
 
     response = mergeDelegationResult(response, delegatedResponse, delegation, delegatedRoute);
+    response = withRoutingMetadata(response, routing);
   }
 
   if (taskContext) {
