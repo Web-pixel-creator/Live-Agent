@@ -566,14 +566,21 @@ function renderOperatorSummary(summary) {
       const watchdogReconnects = Number(liveBridgeHealth.watchdogReconnectEvents ?? 0);
       const errors = Number(liveBridgeHealth.bridgeErrorEvents ?? 0);
       const unavailable = Number(liveBridgeHealth.unavailableEvents ?? 0);
+      const connectTimeouts = Number(liveBridgeHealth.connectTimeoutEvents ?? 0);
+      const probeStarted = Number(liveBridgeHealth.probeStartedEvents ?? 0);
+      const pingSent = Number(liveBridgeHealth.pingSentEvents ?? 0);
+      const pongs = Number(liveBridgeHealth.pongEvents ?? 0);
+      const pingErrors = Number(liveBridgeHealth.pingErrorEvents ?? 0);
       const lastEventType = typeof liveBridgeHealth.lastEventType === "string" ? liveBridgeHealth.lastEventType : "-";
       const lastEventAt = typeof liveBridgeHealth.lastEventAt === "string" ? liveBridgeHealth.lastEventAt : "-";
+      const probeSuccessPct = pingSent > 0 ? Math.round((pongs / pingSent) * 100) : null;
+      const probeSuccessText = probeSuccessPct === null ? "n/a" : `${probeSuccessPct}%`;
 
       appendEntry(
         el.operatorSummary,
         state === "degraded" ? "error" : "system",
         "live_bridge_health",
-        `state=${state} degraded=${degraded} recovered=${recovered} watchdog_reconnects=${watchdogReconnects} errors=${errors} unavailable=${unavailable} last=${lastEventType}@${lastEventAt}`,
+        `state=${state} degraded=${degraded} recovered=${recovered} watchdog_reconnects=${watchdogReconnects} errors=${errors} unavailable=${unavailable} connect_timeouts=${connectTimeouts} probes=${probeStarted} ping_sent=${pingSent} pongs=${pongs} ping_errors=${pingErrors} probe_success=${probeSuccessText} last=${lastEventType}@${lastEventAt}`,
       );
     }
   }
