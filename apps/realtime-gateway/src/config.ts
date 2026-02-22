@@ -36,6 +36,8 @@ export type GatewayConfig = {
   liveFailoverBillingDisableMs: number;
   liveHealthCheckIntervalMs: number;
   liveHealthSilenceMs: number;
+  liveHealthPingEnabled: boolean;
+  liveHealthProbeGraceMs: number;
   liveMaxStaleChunkMs: number;
 };
 
@@ -218,6 +220,8 @@ export function loadGatewayConfig(): GatewayConfig {
     liveFailoverBillingDisableMs: parsePositiveInt(process.env.LIVE_FAILOVER_BILLING_DISABLE_MS, 300000),
     liveHealthCheckIntervalMs: parsePositiveInt(process.env.LIVE_HEALTH_CHECK_INTERVAL_MS, 2000),
     liveHealthSilenceMs: parsePositiveInt(process.env.LIVE_HEALTH_SILENCE_MS, 12000),
+    liveHealthPingEnabled: parseBoolean(process.env.LIVE_HEALTH_PING_ENABLED, true),
+    liveHealthProbeGraceMs: parsePositiveInt(process.env.LIVE_HEALTH_PROBE_GRACE_MS, 1500),
     liveMaxStaleChunkMs: parsePositiveInt(process.env.LIVE_MAX_STALE_CHUNK_MS, 2500),
   };
 }

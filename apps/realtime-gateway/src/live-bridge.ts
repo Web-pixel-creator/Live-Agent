@@ -330,6 +330,8 @@ export class LiveApiBridge {
   private healthTimer: NodeJS.Timeout | null = null;
   private lastUpstreamMessageAtMs = Date.now();
   private healthDegraded = false;
+  private healthProbeStartedAtMs: number | null = null;
+  private healthProbePongAtMs: number | null = null;
 
   constructor(params: {
     config: GatewayConfig;
@@ -599,6 +601,7 @@ export class LiveApiBridge {
 
   private startHealthMonitor(): void {
     this.stopHealthMonitor({ resetDegraded: false });
+    this.resetHealthProbeState();
     const intervalMs = Math.max(500, this.config.liveHealthCheckIntervalMs);
     this.healthTimer = setInterval(() => {
       this.evaluateUpstreamHealth();
@@ -610,13 +613,20 @@ export class LiveApiBridge {
       clearInterval(this.healthTimer);
       this.healthTimer = null;
     }
+    this.resetHealthProbeState();
     if (params?.resetDegraded === true) {
       this.healthDegraded = false;
     }
   }
 
+  private resetHealthProbeState(): void {
+    this.healthProbeStartedAtMs = null;
+    this.healthProbePongAtMs = null;
+  }
+
   private markUpstreamMessageActivity(): void {
     this.lastUpstreamMessageAtMs = Date.now();
+    this.resetHealthProbeState();
     if (this.healthDegraded) {
       this.healthDegraded = false;
       this.emit("live.bridge.health_recovered", {
@@ -629,15 +639,78 @@ export class LiveApiBridge {
     return this.pendingRoundTripStartAtMs !== null || this.pendingInterruptAtMs !== null || this.currentTurnStartedAtMs !== null;
   }
 
+  private markUpstreamPongActivity(): void {
+    if (this.healthProbeStartedAtMs === null) {
+      return;
+    }
+
+    const nowMs = Date.now();
+    this.healthProbePongAtMs = nowMs;
+    this.emit("live.bridge.health_pong", {
+      at: new Date(nowMs).toISOString(),
+      probeStartedAt: new Date(this.healthProbeStartedAtMs).toISOString(),
+      probeLatencyMs: nowMs - this.healthProbeStartedAtMs,
+      model: this.getActiveModelId(),
+      authProfile: this.getActiveAuthProfile()?.name ?? null,
+    });
+  }
+
+  private beginHealthProbe(silenceMs: number): void {
+    this.healthProbeStartedAtMs = Date.now();
+    let pingSent = false;
+    let pingError: string | null = null;
+    if (this.config.liveHealthPingEnabled && this.upstream && this.upstream.readyState === WebSocket.OPEN) {
+      try {
+        this.upstream.ping();
+        pingSent = true;
+        this.emit("live.bridge.health_ping_sent", {
+          at: new Date(this.healthProbeStartedAtMs).toISOString(),
+          silenceMs,
+          thresholdMs: this.config.liveHealthSilenceMs,
+          graceMs: this.config.liveHealthProbeGraceMs,
+          model: this.getActiveModelId(),
+          authProfile: this.getActiveAuthProfile()?.name ?? null,
+        });
+      } catch (error) {
+        pingError = error instanceof Error ? error.message : String(error);
+        this.emit("live.bridge.health_ping_error", {
+          at: new Date(this.healthProbeStartedAtMs).toISOString(),
+          silenceMs,
+          thresholdMs: this.config.liveHealthSilenceMs,
+          error: pingError,
+          model: this.getActiveModelId(),
+          authProfile: this.getActiveAuthProfile()?.name ?? null,
+        });
+      }
+    }
+
+    this.emit("live.bridge.health_probe_started", {
+      at: new Date(this.healthProbeStartedAtMs).toISOString(),
+      reason: "upstream_silence",
+      silenceMs,
+      thresholdMs: this.config.liveHealthSilenceMs,
+      graceMs: this.config.liveHealthProbeGraceMs,
+      pingEnabled: this.config.liveHealthPingEnabled,
+      pingSent,
+      pingError,
+      model: this.getActiveModelId(),
+      authProfile: this.getActiveAuthProfile()?.name ?? null,
+    });
+  }
+
   private evaluateUpstreamHealth(): void {
     if (!this.upstream || this.upstream.readyState !== WebSocket.OPEN) {
+      this.resetHealthProbeState();
       return;
     }
     if (!this.hasPendingLiveFlow()) {
+      this.resetHealthProbeState();
       return;
     }
-    const silenceMs = Date.now() - this.lastUpstreamMessageAtMs;
+    const nowMs = Date.now();
+    const silenceMs = nowMs - this.lastUpstreamMessageAtMs;
     if (silenceMs <= this.config.liveHealthSilenceMs) {
+      this.resetHealthProbeState();
       return;
     }
     if (!this.healthDegraded) {
@@ -650,10 +723,27 @@ export class LiveApiBridge {
         authProfile: this.getActiveAuthProfile()?.name ?? null,
       });
     }
+
+    if (this.config.liveHealthPingEnabled) {
+      if (this.healthProbeStartedAtMs === null) {
+        this.beginHealthProbe(silenceMs);
+        return;
+      }
+      const probeElapsedMs = nowMs - this.healthProbeStartedAtMs;
+      if (probeElapsedMs < this.config.liveHealthProbeGraceMs) {
+        return;
+      }
+    }
+
     this.emit("live.bridge.health_watchdog_reconnect", {
       reason: "upstream_silence",
       silenceMs,
       thresholdMs: this.config.liveHealthSilenceMs,
+      graceMs: this.config.liveHealthPingEnabled ? this.config.liveHealthProbeGraceMs : 0,
+      probeElapsedMs: this.healthProbeStartedAtMs === null ? null : nowMs - this.healthProbeStartedAtMs,
+      probeStartedAt:
+        this.healthProbeStartedAtMs === null ? null : new Date(this.healthProbeStartedAtMs).toISOString(),
+      probePongAt: this.healthProbePongAtMs === null ? null : new Date(this.healthProbePongAtMs).toISOString(),
       model: this.getActiveModelId(),
       authProfile: this.getActiveAuthProfile()?.name ?? null,
     });
@@ -663,6 +753,7 @@ export class LiveApiBridge {
     this.setupSent = false;
     this.connectPromise = null;
     this.resetLiveState();
+    this.resetHealthProbeState();
     try {
       staleSocket.close(1011, "health watchdog reconnect");
     } catch {
@@ -1078,6 +1169,10 @@ export class LiveApiBridge {
         if (interrupted) {
           this.handleUpstreamInterrupted(parsed);
         }
+      });
+
+      upstream.on("pong", () => {
+        this.markUpstreamPongActivity();
       });
 
       upstream.on("close", (code, reason) => {

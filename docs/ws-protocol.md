@@ -111,6 +111,10 @@ Notes:
 12. `live.bridge.health_degraded`
 13. `live.bridge.health_watchdog_reconnect`
 14. `live.bridge.health_recovered`
+15. `live.bridge.health_probe_started`
+16. `live.bridge.health_ping_sent`
+17. `live.bridge.health_pong`
+18. `live.bridge.health_ping_error`
 
 Failover/watchdog diagnostics (where present):
 
@@ -118,6 +122,7 @@ Failover/watchdog diagnostics (where present):
 2. `routeReadyAt`, `routeAvailableNow`, `routeWaitMs`
 3. `modelState` and `authProfileState` with cooldown/disable windows and failure counters
 4. `silenceMs`, `thresholdMs` for watchdog-degradation path
+5. `graceMs`, `probeStartedAt`, `probeElapsedMs`, `probePongAt` for ping-assisted watchdog probing
 
 ## Error Taxonomy (WS Path)
 

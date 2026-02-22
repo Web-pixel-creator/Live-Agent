@@ -37,6 +37,8 @@ function createGatewayConfig(overrides: Partial<GatewayConfig>): GatewayConfig {
     liveFailoverBillingDisableMs: 60_000,
     liveHealthCheckIntervalMs: 100,
     liveHealthSilenceMs: 250,
+    liveHealthPingEnabled: true,
+    liveHealthProbeGraceMs: 250,
     liveMaxStaleChunkMs: 2500,
     ...overrides,
   };
@@ -261,6 +263,7 @@ test("live bridge emits health degradation when upstream stays silent during pen
   await waitFor(() => emitted.some((event) => event.type === "live.bridge.health_degraded"), 3000);
 
   assert.ok(emitted.some((event) => event.type === "live.bridge.health_degraded"));
+  assert.ok(emitted.some((event) => event.type === "live.bridge.health_probe_started"));
   assert.ok(emitted.some((event) => event.type === "live.bridge.health_watchdog_reconnect"));
   bridge.close();
   await closeWss(wss);
