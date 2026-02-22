@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { WebSocketServer } from "ws";
-import type { AddressInfo } from "node:net";
+import { createServer as createNetServer, type AddressInfo, type Server as NetServer, type Socket } from "node:net";
 import { createEnvelope, type EventEnvelope } from "../../shared/contracts/src/index.js";
 import { LiveApiBridge } from "../../apps/realtime-gateway/src/live-bridge.js";
 import type { GatewayConfig } from "../../apps/realtime-gateway/src/config.js";
@@ -87,6 +87,31 @@ async function closeWss(wss: WebSocketServer): Promise<void> {
   });
 }
 
+async function closeNetServer(server: NetServer, sockets: Set<Socket>): Promise<void> {
+  for (const socket of sockets) {
+    try {
+      socket.destroy();
+    } catch {
+      // best-effort test teardown
+    }
+  }
+  sockets.clear();
+
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("net server close timed out"));
+    }, 2000);
+    server.close((error) => {
+      clearTimeout(timeout);
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
 test("live bridge sends rich Gemini setup payload", async () => {
   const inboundFrames: Array<Record<string, unknown>> = [];
   const wss = new WebSocketServer({ port: 0 });
@@ -129,6 +154,55 @@ test("live bridge sends rich Gemini setup payload", async () => {
   } finally {
     bridge.close();
     await closeWss(wss);
+  }
+});
+
+test("live bridge emits connect timeout when websocket handshake stalls", async () => {
+  const sockets = new Set<Socket>();
+  const stalledServer = createNetServer((socket) => {
+    sockets.add(socket);
+    socket.on("close", () => {
+      sockets.delete(socket);
+    });
+    // Intentionally keep the connection open without WS handshake response.
+  });
+  await new Promise<void>((resolve) => stalledServer.listen(0, "127.0.0.1", () => resolve()));
+  const port = (stalledServer.address() as AddressInfo).port;
+
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveConnectAttemptTimeoutMs: 200,
+      liveConnectMaxAttempts: 1,
+      liveConnectRetryMs: 20,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await assert.rejects(
+      async () => {
+        await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "timeout please" } }));
+      },
+      (error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        return message.toLowerCase().includes("timed out");
+      },
+    );
+
+    await waitFor(() => emitted.some((event) => event.type === "live.bridge.connect_timeout"), 2000);
+    const timeoutEvent = emitted.find((event) => event.type === "live.bridge.connect_timeout");
+    assert.ok(timeoutEvent, "expected live.bridge.connect_timeout diagnostic event");
+    const timeoutPayload = timeoutEvent.payload as Record<string, unknown>;
+    assert.ok(typeof timeoutPayload.timeoutMs === "number");
+    assert.ok(Number(timeoutPayload.timeoutMs) >= 200);
+  } finally {
+    bridge.close();
+    await closeNetServer(stalledServer, sockets);
   }
 });
 
