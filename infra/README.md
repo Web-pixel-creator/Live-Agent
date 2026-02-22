@@ -35,8 +35,14 @@ Infrastructure is intentionally lightweight in this scaffold.
    - Creates/updates Cloud Logging sink for structured analytics logs.
    - Creates/updates log-based metric extraction path for Cloud Monitoring dashboards/alerts.
    - Grants baseline IAM for sink writer.
-3. `infra/firestore/firestore.indexes.json`
+3. `infra/gcp/setup-monitoring-baseline.ps1`
+   - Ensures log-based metrics for analytics/error/event streams.
+   - Creates/replaces Cloud Monitoring dashboard with core KPI widgets.
+   - Creates/replaces baseline alert policies (latency, service errors, persistence failures).
+4. `infra/firestore/firestore.indexes.json`
    - Composite indexes for sessions/events/runs/logs/assets.
    - Field overrides with TTL on `expireAt`.
-4. `infra/firestore/apply.ps1`
+5. `infra/firestore/apply.ps1`
    - Applies indexes and TTL policies using `gcloud`.
+6. `infra/monitoring/*`
+   - Dashboard/alert policy templates used by monitoring baseline setup.

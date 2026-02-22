@@ -1,0 +1,37 @@
+{
+  "displayName": "MLA Gateway P95 Latency High",
+  "documentation": {
+    "content": "Gateway p95 latency crossed 1800ms for 5 minutes. Check realtime-gateway health, upstream Live API status, and reconnect/failover diagnostics.",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "enabled": true,
+  "notificationChannels": __NOTIFICATION_CHANNELS__,
+  "alertStrategy": {
+    "autoClose": "1800s"
+  },
+  "conditions": [
+    {
+      "displayName": "Gateway duration p95 > 1800ms",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"gateway.operation.duration_ms\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_PERCENTILE_95",
+            "crossSeriesReducer": "REDUCE_MEAN",
+            "groupByFields": [
+              "metric.labels.service"
+            ]
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 1800,
+        "duration": "300s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ]
+}

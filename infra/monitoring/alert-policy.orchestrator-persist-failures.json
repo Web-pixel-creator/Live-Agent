@@ -1,0 +1,37 @@
+{
+  "displayName": "MLA Orchestrator Persistence Failures",
+  "documentation": {
+    "content": "Orchestrator analytics event rollups report persistence failures (`writeFailed=true`). Check Firestore connectivity, IAM roles, and fallback event volume.",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "enabled": true,
+  "notificationChannels": __NOTIFICATION_CHANNELS__,
+  "alertStrategy": {
+    "autoClose": "1800s"
+  },
+  "conditions": [
+    {
+      "displayName": "orchestrator-firestore error event rate > 0",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_event_error_count\" AND metric.labels.service=\"orchestrator-firestore\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_RATE",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "groupByFields": [
+              "metric.labels.event_type"
+            ]
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "120s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ]
+}

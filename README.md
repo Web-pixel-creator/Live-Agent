@@ -75,6 +75,7 @@ Open `http://localhost:3000`.
 - Local-first profile for offline iteration: set `LOCAL_FIRST_PROFILE=true` and `APP_ENV=dev` (guardrail blocks local-first in `staging/prod`). Profile details: `docs/local-first-profile.md`.
 - Telemetry storage split profile (`T-221`): `ANALYTICS_EXPORT_ENABLED`, `ANALYTICS_EXPORT_METRICS_TARGET`, `ANALYTICS_EXPORT_EVENTS_TARGET`, `ANALYTICS_EXPORT_SAMPLE_RATE`, `ANALYTICS_BIGQUERY_DATASET`, `ANALYTICS_BIGQUERY_TABLE`; policy docs: `docs/telemetry-storage-split.md`.
 - GCP provisioning helper for telemetry split: `pwsh ./infra/gcp/setup-analytics-sinks.ps1 -ProjectId "<project-id>" -Location "US" -DatasetId "agent_analytics"`.
+- GCP monitoring baseline helper (dashboard + alerts): `pwsh ./infra/gcp/setup-monitoring-baseline.ps1 -ProjectId "<project-id>" -NotificationChannels "projects/<project-id>/notificationChannels/<channel-id>"`.
 
 6. Optional delegation demo commands (in demo frontend message box with `intent=conversation`):
 - `delegate story: <prompt>` -> Live Agent delegates to Storyteller.

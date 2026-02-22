@@ -11,6 +11,7 @@ This folder provides an idempotent baseline for:
 
 - `bootstrap.ps1` - baseline bootstrap script (Windows PowerShell).
 - `setup-analytics-sinks.ps1` - analytics routing baseline (Cloud Logging -> BigQuery sink + log-based metric for Cloud Monitoring dashboards/alerts).
+- `setup-monitoring-baseline.ps1` - Cloud Monitoring baseline (log-based metrics + KPI dashboard + alert policies).
 
 ## Usage
 
@@ -22,6 +23,13 @@ Analytics sink setup:
 
 ```powershell
 pwsh ./infra/gcp/setup-analytics-sinks.ps1 -ProjectId "<your-project-id>" -Location "US" -DatasetId "agent_analytics"
+```
+
+Monitoring baseline setup:
+
+```powershell
+pwsh ./infra/gcp/setup-monitoring-baseline.ps1 -ProjectId "<your-project-id>" `
+  -NotificationChannels "projects/<your-project-id>/notificationChannels/<channel-id>"
 ```
 
 Optional flags:
@@ -60,3 +68,4 @@ Optional flags:
 2. For production, scope `secretAccessor` to specific secrets and move role bindings to dedicated IAM modules.
 3. Rotate secret values after bootstrap if test placeholders were used.
 4. `setup-analytics-sinks.ps1` grants sink writer project-level `roles/bigquery.dataEditor` as a baseline. For production, scope access to dataset-level IAM only.
+5. Alert policies can be created without notification channels, but production should always attach channels and on-call routing.

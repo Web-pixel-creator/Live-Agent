@@ -57,7 +57,9 @@ Provisioning helper:
    - `pwsh ./infra/gcp/bootstrap.ps1 -ProjectId "<project-id>" -Region "us-central1"`
 2. Configure analytics sinks and log-based metric:
    - `pwsh ./infra/gcp/setup-analytics-sinks.ps1 -ProjectId "<project-id>" -Location "US" -DatasetId "agent_analytics"`
-3. Set runtime envs:
+3. Apply monitoring baseline (dashboard + alert policies):
+   - `pwsh ./infra/gcp/setup-monitoring-baseline.ps1 -ProjectId "<project-id>" -NotificationChannels "projects/<project-id>/notificationChannels/<channel-id>"`
+4. Set runtime envs:
    - `ANALYTICS_EXPORT_ENABLED=true`
    - `ANALYTICS_EXPORT_METRICS_TARGET=cloud_monitoring`
    - `ANALYTICS_EXPORT_EVENTS_TARGET=bigquery`
