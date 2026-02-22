@@ -95,12 +95,26 @@ Manual shortcut:
 
 ## Evidence and Artifacts
 
-1. Local artifacts:
-- `artifacts/demo-e2e/summary.json`
-- `artifacts/demo-e2e/summary.md`
-- `artifacts/demo-e2e/policy-check.json`
-- `artifacts/demo-e2e/policy-check.md`
-- `artifacts/demo-e2e/badge.json`
-2. Public status:
-- `https://Web-pixel-creator.github.io/Live-Agent/demo-e2e/badge.json`
-- `https://img.shields.io/endpoint?url=https%3A%2F%2FWeb-pixel-creator.github.io%2FLive-Agent%2Fdemo-e2e%2Fbadge.json`
+1. Local artifact `artifacts/demo-e2e/summary.json`.
+2. Local artifact `artifacts/demo-e2e/summary.md`.
+3. Local artifact `artifacts/demo-e2e/policy-check.json`.
+4. Local artifact `artifacts/demo-e2e/policy-check.md`.
+5. Local artifact `artifacts/demo-e2e/badge.json`.
+6. Observability screenshot: dashboard `MLA Telemetry KPI Overview` with latency and error widgets.
+7. Observability screenshot: alert policy `MLA Gateway P95 Latency High` enabled.
+8. Observability screenshot: alert policy `MLA Service Error Rate High` enabled.
+9. Observability screenshot: alert policy `MLA Orchestrator Persistence Failures` enabled.
+10. BigQuery evidence: dataset `agent_analytics` has recent `analytics_event` rows.
+11. Public status URL: `https://Web-pixel-creator.github.io/Live-Agent/demo-e2e/badge.json`.
+12. Public shield URL: `https://img.shields.io/endpoint?url=https%3A%2F%2FWeb-pixel-creator.github.io%2FLive-Agent%2Fdemo-e2e%2Fbadge.json`.
+
+## Quick Observability Setup (for demo environment)
+
+1. Validate templates locally:
+```powershell
+npm run infra:monitoring:validate
+```
+2. Apply GCP observability baseline:
+```powershell
+pwsh ./infra/gcp/setup-observability.ps1 -ProjectId "<your-project-id>" -Region "us-central1" -Location "US" -DatasetId "agent_analytics"
+```

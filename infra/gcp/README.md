@@ -12,6 +12,7 @@ This folder provides an idempotent baseline for:
 - `bootstrap.ps1` - baseline bootstrap script (Windows PowerShell).
 - `setup-analytics-sinks.ps1` - analytics routing baseline (Cloud Logging -> BigQuery sink + log-based metric for Cloud Monitoring dashboards/alerts).
 - `setup-monitoring-baseline.ps1` - Cloud Monitoring baseline (log-based metrics + KPI dashboard + alert policies).
+- `setup-observability.ps1` - one-shot wrapper (`bootstrap` + `setup-analytics-sinks` + `setup-monitoring-baseline`).
 
 ## Usage
 
@@ -30,6 +31,22 @@ Monitoring baseline setup:
 ```powershell
 pwsh ./infra/gcp/setup-monitoring-baseline.ps1 -ProjectId "<your-project-id>" `
   -NotificationChannels "projects/<your-project-id>/notificationChannels/<channel-id>"
+```
+
+One-shot observability setup:
+
+```powershell
+pwsh ./infra/gcp/setup-observability.ps1 -ProjectId "<your-project-id>" `
+  -Region "us-central1" `
+  -Location "US" `
+  -DatasetId "agent_analytics" `
+  -NotificationChannels "projects/<your-project-id>/notificationChannels/<channel-id>"
+```
+
+Template validation before apply (from repo root):
+
+```powershell
+npm run infra:monitoring:validate
 ```
 
 Optional flags:

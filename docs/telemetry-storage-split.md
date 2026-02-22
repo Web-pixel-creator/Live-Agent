@@ -65,6 +65,10 @@ Provisioning helper:
    - `ANALYTICS_EXPORT_EVENTS_TARGET=bigquery`
    - `ANALYTICS_BIGQUERY_DATASET=agent_analytics`
 
+One-command path:
+
+1. `pwsh ./infra/gcp/setup-observability.ps1 -ProjectId "<project-id>" -Region "us-central1" -Location "US" -DatasetId "agent_analytics"`
+
 ## Retention and Cost Policy
 
 Recommended baseline:

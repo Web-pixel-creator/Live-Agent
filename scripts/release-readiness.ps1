@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
   [switch]$SkipBuild,
+  [switch]$SkipMonitoringTemplates,
   [switch]$SkipProfileSmoke,
   [switch]$SkipDemoE2E,
   [switch]$SkipPolicy,
@@ -27,6 +28,10 @@ function Run-Step([string]$Name, [string]$Command) {
 
 if (-not $SkipBuild) {
   Run-Step "Build workspaces" "npm run build"
+}
+
+if (-not $SkipMonitoringTemplates) {
+  Run-Step "Validate monitoring templates" "npm run infra:monitoring:validate"
 }
 
 if (-not $SkipProfileSmoke) {

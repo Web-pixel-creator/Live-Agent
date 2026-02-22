@@ -39,10 +39,12 @@ Infrastructure is intentionally lightweight in this scaffold.
    - Ensures log-based metrics for analytics/error/event streams.
    - Creates/replaces Cloud Monitoring dashboard with core KPI widgets.
    - Creates/replaces baseline alert policies (latency, service errors, persistence failures).
-4. `infra/firestore/firestore.indexes.json`
+4. `infra/gcp/setup-observability.ps1`
+   - One-command wrapper for bootstrap + analytics sinks + monitoring baseline.
+5. `infra/firestore/firestore.indexes.json`
    - Composite indexes for sessions/events/runs/logs/assets.
    - Field overrides with TTL on `expireAt`.
-5. `infra/firestore/apply.ps1`
+6. `infra/firestore/apply.ps1`
    - Applies indexes and TTL policies using `gcloud`.
-6. `infra/monitoring/*`
+7. `infra/monitoring/*`
    - Dashboard/alert policy templates used by monitoring baseline setup.
