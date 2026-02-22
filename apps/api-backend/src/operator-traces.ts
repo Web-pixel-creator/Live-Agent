@@ -69,6 +69,11 @@ export type OperatorTraceSummary = {
     watchdogReconnectEvents: number;
     bridgeErrorEvents: number;
     unavailableEvents: number;
+    connectTimeoutEvents: number;
+    probeStartedEvents: number;
+    pingSentEvents: number;
+    pongEvents: number;
+    pingErrorEvents: number;
     lastEventType: string | null;
     lastEventAt: string | null;
     state: "healthy" | "degraded" | "unknown";
@@ -291,6 +296,11 @@ export function buildOperatorTraceSummary(params: {
   let liveBridgeWatchdogReconnectEvents = 0;
   let liveBridgeErrorEvents = 0;
   let liveBridgeUnavailableEvents = 0;
+  let liveBridgeConnectTimeoutEvents = 0;
+  let liveBridgeProbeStartedEvents = 0;
+  let liveBridgePingSentEvents = 0;
+  let liveBridgePongEvents = 0;
+  let liveBridgePingErrorEvents = 0;
   let liveBridgeLastEventType: string | null = null;
   let liveBridgeLastEventAt: string | null = null;
 
@@ -309,6 +319,16 @@ export function buildOperatorTraceSummary(params: {
       liveBridgeErrorEvents += 1;
     } else if (eventType === "live.bridge.unavailable") {
       liveBridgeUnavailableEvents += 1;
+    } else if (eventType === "live.bridge.connect_timeout") {
+      liveBridgeConnectTimeoutEvents += 1;
+    } else if (eventType === "live.bridge.health_probe_started") {
+      liveBridgeProbeStartedEvents += 1;
+    } else if (eventType === "live.bridge.health_ping_sent") {
+      liveBridgePingSentEvents += 1;
+    } else if (eventType === "live.bridge.health_pong") {
+      liveBridgePongEvents += 1;
+    } else if (eventType === "live.bridge.health_ping_error") {
+      liveBridgePingErrorEvents += 1;
     } else {
       continue;
     }
@@ -320,12 +340,15 @@ export function buildOperatorTraceSummary(params: {
   }
 
   const liveBridgeState: "healthy" | "degraded" | "unknown" =
-    liveBridgeLastEventType === "live.bridge.health_recovered"
+    liveBridgeLastEventType === "live.bridge.health_recovered" ||
+      liveBridgeLastEventType === "live.bridge.health_pong"
       ? "healthy"
       : liveBridgeLastEventType === "live.bridge.health_degraded" ||
           liveBridgeLastEventType === "live.bridge.health_watchdog_reconnect" ||
           liveBridgeLastEventType === "live.bridge.error" ||
-          liveBridgeLastEventType === "live.bridge.unavailable"
+          liveBridgeLastEventType === "live.bridge.unavailable" ||
+          liveBridgeLastEventType === "live.bridge.connect_timeout" ||
+          liveBridgeLastEventType === "live.bridge.health_ping_error"
         ? "degraded"
         : "unknown";
 
@@ -451,6 +474,11 @@ export function buildOperatorTraceSummary(params: {
       watchdogReconnectEvents: liveBridgeWatchdogReconnectEvents,
       bridgeErrorEvents: liveBridgeErrorEvents,
       unavailableEvents: liveBridgeUnavailableEvents,
+      connectTimeoutEvents: liveBridgeConnectTimeoutEvents,
+      probeStartedEvents: liveBridgeProbeStartedEvents,
+      pingSentEvents: liveBridgePingSentEvents,
+      pongEvents: liveBridgePongEvents,
+      pingErrorEvents: liveBridgePingErrorEvents,
       lastEventType: liveBridgeLastEventType,
       lastEventAt: liveBridgeLastEventAt,
       state: liveBridgeState,

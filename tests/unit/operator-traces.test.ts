@@ -163,6 +163,22 @@ test("operator trace summary falls back to active tasks and approvals without pe
 test("operator trace summary aggregates live bridge health telemetry", () => {
   const events: EventListItem[] = [
     {
+      eventId: "event-lb-0",
+      sessionId: "session-live",
+      runId: "run-live-health",
+      type: "live.bridge.connect_timeout",
+      source: "gateway",
+      createdAt: "2026-02-20T09:59:57.000Z",
+    },
+    {
+      eventId: "event-lb-00",
+      sessionId: "session-live",
+      runId: "run-live-health",
+      type: "live.bridge.health_ping_error",
+      source: "gateway",
+      createdAt: "2026-02-20T09:59:58.500Z",
+    },
+    {
       eventId: "event-lb-1",
       sessionId: "session-live",
       runId: "run-live-health",
@@ -177,6 +193,30 @@ test("operator trace summary aggregates live bridge health telemetry", () => {
       type: "live.bridge.health_watchdog_reconnect",
       source: "gateway",
       createdAt: "2026-02-20T10:00:01.000Z",
+    },
+    {
+      eventId: "event-lb-2b",
+      sessionId: "session-live",
+      runId: "run-live-health",
+      type: "live.bridge.health_probe_started",
+      source: "gateway",
+      createdAt: "2026-02-20T10:00:01.100Z",
+    },
+    {
+      eventId: "event-lb-2c",
+      sessionId: "session-live",
+      runId: "run-live-health",
+      type: "live.bridge.health_ping_sent",
+      source: "gateway",
+      createdAt: "2026-02-20T10:00:01.200Z",
+    },
+    {
+      eventId: "event-lb-2d",
+      sessionId: "session-live",
+      runId: "run-live-health",
+      type: "live.bridge.health_pong",
+      source: "gateway",
+      createdAt: "2026-02-20T10:00:01.300Z",
     },
     {
       eventId: "event-lb-3",
@@ -218,7 +258,47 @@ test("operator trace summary aggregates live bridge health telemetry", () => {
   assert.equal(summary.liveBridgeHealth.recoveredEvents, 1);
   assert.equal(summary.liveBridgeHealth.bridgeErrorEvents, 1);
   assert.equal(summary.liveBridgeHealth.unavailableEvents, 1);
+  assert.equal(summary.liveBridgeHealth.connectTimeoutEvents, 1);
+  assert.equal(summary.liveBridgeHealth.probeStartedEvents, 1);
+  assert.equal(summary.liveBridgeHealth.pingSentEvents, 1);
+  assert.equal(summary.liveBridgeHealth.pongEvents, 1);
+  assert.equal(summary.liveBridgeHealth.pingErrorEvents, 1);
   assert.equal(summary.liveBridgeHealth.lastEventType, "live.bridge.health_recovered");
   assert.equal(summary.liveBridgeHealth.lastEventAt, "2026-02-20T10:00:02.000Z");
   assert.equal(summary.liveBridgeHealth.state, "healthy");
+});
+
+test("operator trace summary marks live bridge as degraded when latest signal is ping error", () => {
+  const events: EventListItem[] = [
+    {
+      eventId: "event-health-pong",
+      sessionId: "session-live",
+      runId: "run-live-health",
+      type: "live.bridge.health_pong",
+      source: "gateway",
+      createdAt: "2026-02-20T10:00:01.000Z",
+    },
+    {
+      eventId: "event-health-ping-error",
+      sessionId: "session-live",
+      runId: "run-live-health",
+      type: "live.bridge.health_ping_error",
+      source: "gateway",
+      createdAt: "2026-02-20T10:00:02.000Z",
+    },
+  ];
+
+  const summary = buildOperatorTraceSummary({
+    runs: [],
+    events,
+    approvals: [],
+    activeTasks: [],
+    runLimit: 20,
+    eventLimit: 20,
+  });
+
+  assert.equal(summary.liveBridgeHealth.pongEvents, 1);
+  assert.equal(summary.liveBridgeHealth.pingErrorEvents, 1);
+  assert.equal(summary.liveBridgeHealth.lastEventType, "live.bridge.health_ping_error");
+  assert.equal(summary.liveBridgeHealth.state, "degraded");
 });
