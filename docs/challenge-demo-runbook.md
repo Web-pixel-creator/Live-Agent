@@ -122,3 +122,7 @@ pwsh ./infra/gcp/setup-observability.ps1 -ProjectId "<your-project-id>" -Region 
 ```powershell
 pwsh ./infra/gcp/collect-observability-evidence.ps1 -ProjectId "<your-project-id>" -DatasetId "agent_analytics" -LookbackHours 24
 ```
+4. Generate judge-ready report:
+```powershell
+npm run infra:observability:report
+```

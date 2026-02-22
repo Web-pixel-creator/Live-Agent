@@ -69,6 +69,7 @@ One-command path:
 
 1. `pwsh ./infra/gcp/setup-observability.ps1 -ProjectId "<project-id>" -Region "us-central1" -Location "US" -DatasetId "agent_analytics"`
 2. `pwsh ./infra/gcp/collect-observability-evidence.ps1 -ProjectId "<project-id>" -DatasetId "agent_analytics" -LookbackHours 24`
+3. `npm run infra:observability:report`
 
 ## Retention and Cost Policy
 

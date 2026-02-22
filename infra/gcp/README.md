@@ -56,6 +56,12 @@ Evidence collection (after setup and traffic):
 pwsh ./infra/gcp/collect-observability-evidence.ps1 -ProjectId "<your-project-id>" -DatasetId "agent_analytics" -LookbackHours 24
 ```
 
+Judge report generation from collected evidence (repo root):
+
+```powershell
+npm run infra:observability:report
+```
+
 Optional flags:
 
 - `-GatewaySaName` default: `mla-gateway-sa`

@@ -21,6 +21,7 @@
     "perf:load:policy": "node ./scripts/perf-load-policy-check.mjs --input ./artifacts/perf-load/summary.json --output ./artifacts/perf-load/policy-check.md --jsonOutput ./artifacts/perf-load/policy-check.json",
     "profile:smoke": "node --import tsx ./scripts/runtime-profile-smoke.mjs",
     "infra:monitoring:validate": "node ./scripts/validate-monitoring-templates.mjs",
+    "infra:observability:report": "node ./scripts/observability-evidence-report.mjs --input ./artifacts/observability/observability-evidence-summary.json --output ./artifacts/observability/judge-observability.md --jsonOutput ./artifacts/observability/judge-observability.json",
     "verify:release": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1",
     "repo:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-repo-publish.ps1",
     "badge:pages:enable": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-pages-enable.ps1",

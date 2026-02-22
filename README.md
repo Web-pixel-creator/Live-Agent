@@ -79,6 +79,7 @@ Open `http://localhost:3000`.
 - One-shot observability setup wrapper: `pwsh ./infra/gcp/setup-observability.ps1 -ProjectId "<project-id>" -Region "us-central1" -Location "US" -DatasetId "agent_analytics"`.
 - Monitoring template validation (local/CI): `npm run infra:monitoring:validate`.
 - Observability evidence collector for judges: `pwsh ./infra/gcp/collect-observability-evidence.ps1 -ProjectId "<project-id>" -DatasetId "agent_analytics" -LookbackHours 24`.
+- Judge-ready observability report generation: `npm run infra:observability:report`.
 
 6. Optional delegation demo commands (in demo frontend message box with `intent=conversation`):
 - `delegate story: <prompt>` -> Live Agent delegates to Storyteller.
