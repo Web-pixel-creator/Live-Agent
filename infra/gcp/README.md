@@ -10,11 +10,18 @@ This folder provides an idempotent baseline for:
 ## Files
 
 - `bootstrap.ps1` - baseline bootstrap script (Windows PowerShell).
+- `setup-analytics-sinks.ps1` - analytics routing baseline (Cloud Logging -> BigQuery sink + log-based metric for Cloud Monitoring dashboards/alerts).
 
 ## Usage
 
 ```powershell
 pwsh ./infra/gcp/bootstrap.ps1 -ProjectId "<your-project-id>" -Region "us-central1"
+```
+
+Analytics sink setup:
+
+```powershell
+pwsh ./infra/gcp/setup-analytics-sinks.ps1 -ProjectId "<your-project-id>" -Location "US" -DatasetId "agent_analytics"
 ```
 
 Optional flags:
@@ -33,6 +40,7 @@ Optional flags:
    - `secretmanager.googleapis.com`
    - `logging.googleapis.com`
    - `monitoring.googleapis.com`
+   - `bigquery.googleapis.com`
    - `iamcredentials.googleapis.com`
 2. Creates service accounts if missing.
 3. Binds baseline IAM roles:
@@ -51,3 +59,4 @@ Optional flags:
 1. This is a practical baseline, not final least-privilege hardening.
 2. For production, scope `secretAccessor` to specific secrets and move role bindings to dedicated IAM modules.
 3. Rotate secret values after bootstrap if test placeholders were used.
+4. `setup-analytics-sinks.ps1` grants sink writer project-level `roles/bigquery.dataEditor` as a baseline. For production, scope access to dataset-level IAM only.

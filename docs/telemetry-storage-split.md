@@ -51,6 +51,18 @@ Default local behavior is disabled.
 3. Alerts and dashboards read from Cloud Monitoring.
 4. Long-term product analytics and cost analysis run on BigQuery.
 
+Provisioning helper:
+
+1. Run baseline bootstrap:
+   - `pwsh ./infra/gcp/bootstrap.ps1 -ProjectId "<project-id>" -Region "us-central1"`
+2. Configure analytics sinks and log-based metric:
+   - `pwsh ./infra/gcp/setup-analytics-sinks.ps1 -ProjectId "<project-id>" -Location "US" -DatasetId "agent_analytics"`
+3. Set runtime envs:
+   - `ANALYTICS_EXPORT_ENABLED=true`
+   - `ANALYTICS_EXPORT_METRICS_TARGET=cloud_monitoring`
+   - `ANALYTICS_EXPORT_EVENTS_TARGET=bigquery`
+   - `ANALYTICS_BIGQUERY_DATASET=agent_analytics`
+
 ## Retention and Cost Policy
 
 Recommended baseline:
@@ -64,4 +76,3 @@ Cost controls:
 1. Keep payload rollups compact (no full raw payload blobs in analytics events).
 2. Use `ANALYTICS_EXPORT_SAMPLE_RATE` for high-volume environments.
 3. Partition and cluster BigQuery by `eventDate`, `service`, `intent`, `route`.
-

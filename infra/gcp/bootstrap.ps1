@@ -71,6 +71,7 @@ Invoke-Gcloud @(
   "secretmanager.googleapis.com",
   "logging.googleapis.com",
   "monitoring.googleapis.com",
+  "bigquery.googleapis.com",
   "iamcredentials.googleapis.com",
   "--project", $ProjectId
 )

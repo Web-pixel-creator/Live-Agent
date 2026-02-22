@@ -30,8 +30,13 @@ Infrastructure is intentionally lightweight in this scaffold.
    - Creates service accounts.
    - Applies baseline IAM roles.
    - Creates core secrets in Secret Manager.
-2. `infra/firestore/firestore.indexes.json`
+2. `infra/gcp/setup-analytics-sinks.ps1`
+   - Creates BigQuery dataset for analytics export.
+   - Creates/updates Cloud Logging sink for structured analytics logs.
+   - Creates/updates log-based metric extraction path for Cloud Monitoring dashboards/alerts.
+   - Grants baseline IAM for sink writer.
+3. `infra/firestore/firestore.indexes.json`
    - Composite indexes for sessions/events/runs/logs/assets.
    - Field overrides with TTL on `expireAt`.
-3. `infra/firestore/apply.ps1`
+4. `infra/firestore/apply.ps1`
    - Applies indexes and TTL policies using `gcloud`.
