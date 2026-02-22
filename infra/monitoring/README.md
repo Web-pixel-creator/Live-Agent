@@ -20,3 +20,10 @@ This folder contains template artifacts consumed by `infra/gcp/setup-monitoring-
 2. `__PROJECT_ID__`
    - Reserved placeholder for future project-bound filters.
 
+## Local Validation
+
+Run from repo root:
+
+```powershell
+npm run infra:monitoring:validate
+```

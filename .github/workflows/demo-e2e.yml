@@ -35,6 +35,10 @@ jobs:
         run: npm ci
         shell: powershell
 
+      - name: Validate Monitoring Templates
+        run: npm run infra:monitoring:validate
+        shell: powershell
+
       - name: Run Demo E2E
         run: npm run demo:e2e
         shell: powershell

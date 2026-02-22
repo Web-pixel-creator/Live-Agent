@@ -130,6 +130,8 @@ Run a full judge-oriented smoke scenario (translation + negotiation + storytelle
 npm run demo:e2e
 ```
 
+The GitHub workflow `.github/workflows/demo-e2e.yml` also runs `npm run infra:monitoring:validate` before demo execution.
+
 Fast mode (skip workspace build):
 
 ```powershell
