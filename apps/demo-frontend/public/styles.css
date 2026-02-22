@@ -190,6 +190,52 @@ button:hover {
   color: var(--muted);
 }
 
+.operator-health-board {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.operator-health-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(7, 22, 26, 0.5);
+}
+
+.operator-health-card h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  color: #d9f8f4;
+}
+
+.operator-health-card .status-pill {
+  margin-bottom: 8px;
+}
+
+.operator-health-row {
+  margin: 0 0 4px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.89rem;
+}
+
+.operator-health-row strong {
+  color: #c6e8e2;
+  font-weight: 600;
+}
+
+.operator-health-row span {
+  color: #f2fffb;
+  font-family: "IBM Plex Mono", "Consolas", "SFMono-Regular", monospace;
+  font-size: 0.83rem;
+  text-align: right;
+}
+
 .status-pill {
   display: inline-block;
   border-radius: 999px;
@@ -251,7 +297,8 @@ button:hover {
 
 @media (max-width: 980px) {
   .grid-3,
-  .kpi-board {
+  .kpi-board,
+  .operator-health-board {
     grid-template-columns: 1fr;
   }
 }

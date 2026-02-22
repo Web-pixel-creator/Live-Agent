@@ -55,6 +55,21 @@ const el = {
   operatorTaskId: document.getElementById("operatorTaskId"),
   operatorTargetService: document.getElementById("operatorTargetService"),
   operatorSummary: document.getElementById("operatorSummary"),
+  operatorHealthStatus: document.getElementById("operatorHealthStatus"),
+  operatorHealthState: document.getElementById("operatorHealthState"),
+  operatorHealthLastEventType: document.getElementById("operatorHealthLastEventType"),
+  operatorHealthLastEventAt: document.getElementById("operatorHealthLastEventAt"),
+  operatorHealthDegraded: document.getElementById("operatorHealthDegraded"),
+  operatorHealthRecovered: document.getElementById("operatorHealthRecovered"),
+  operatorHealthWatchdogReconnects: document.getElementById("operatorHealthWatchdogReconnects"),
+  operatorHealthErrors: document.getElementById("operatorHealthErrors"),
+  operatorHealthUnavailable: document.getElementById("operatorHealthUnavailable"),
+  operatorHealthConnectTimeouts: document.getElementById("operatorHealthConnectTimeouts"),
+  operatorHealthProbes: document.getElementById("operatorHealthProbes"),
+  operatorHealthPingSent: document.getElementById("operatorHealthPingSent"),
+  operatorHealthPongs: document.getElementById("operatorHealthPongs"),
+  operatorHealthPingErrors: document.getElementById("operatorHealthPingErrors"),
+  operatorHealthProbeSuccess: document.getElementById("operatorHealthProbeSuccess"),
   deviceNodeId: document.getElementById("deviceNodeId"),
   deviceNodeDisplayName: document.getElementById("deviceNodeDisplayName"),
   deviceNodeKind: document.getElementById("deviceNodeKind"),
@@ -258,6 +273,9 @@ function formatMs(value) {
 }
 
 function setStatusPill(node, text, variant) {
+  if (!node) {
+    return;
+  }
   node.textContent = text;
   node.className = "status-pill";
   if (variant === "ok") {
@@ -278,6 +296,78 @@ function getNumeric(inputEl) {
 
 function setMaybeValue(node, value, suffix = "") {
   node.textContent = value === null || value === undefined ? "-" : `${value}${suffix}`;
+}
+
+function setText(node, value) {
+  if (!node) {
+    return;
+  }
+  node.textContent = value;
+}
+
+function resetOperatorHealthWidget(reason = "no_data") {
+  setText(el.operatorHealthState, "unknown");
+  setText(el.operatorHealthLastEventType, "-");
+  setText(el.operatorHealthLastEventAt, "-");
+  setText(el.operatorHealthDegraded, "0");
+  setText(el.operatorHealthRecovered, "0");
+  setText(el.operatorHealthWatchdogReconnects, "0");
+  setText(el.operatorHealthErrors, "0");
+  setText(el.operatorHealthUnavailable, "0");
+  setText(el.operatorHealthConnectTimeouts, "0");
+  setText(el.operatorHealthProbes, "0");
+  setText(el.operatorHealthPingSent, "0");
+  setText(el.operatorHealthPongs, "0");
+  setText(el.operatorHealthPingErrors, "0");
+  setText(el.operatorHealthProbeSuccess, "n/a");
+  setStatusPill(el.operatorHealthStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function renderOperatorHealthWidget(liveBridgeHealth) {
+  if (!liveBridgeHealth || typeof liveBridgeHealth !== "object") {
+    resetOperatorHealthWidget("no_data");
+    return;
+  }
+
+  const bridgeState = typeof liveBridgeHealth.state === "string" ? liveBridgeHealth.state : "unknown";
+  const degraded = Number(liveBridgeHealth.degradedEvents ?? 0);
+  const recovered = Number(liveBridgeHealth.recoveredEvents ?? 0);
+  const watchdogReconnects = Number(liveBridgeHealth.watchdogReconnectEvents ?? 0);
+  const errors = Number(liveBridgeHealth.bridgeErrorEvents ?? 0);
+  const unavailable = Number(liveBridgeHealth.unavailableEvents ?? 0);
+  const connectTimeouts = Number(liveBridgeHealth.connectTimeoutEvents ?? 0);
+  const probes = Number(liveBridgeHealth.probeStartedEvents ?? 0);
+  const pingSent = Number(liveBridgeHealth.pingSentEvents ?? 0);
+  const pongs = Number(liveBridgeHealth.pongEvents ?? 0);
+  const pingErrors = Number(liveBridgeHealth.pingErrorEvents ?? 0);
+  const lastEventType = typeof liveBridgeHealth.lastEventType === "string" ? liveBridgeHealth.lastEventType : "-";
+  const lastEventAt = typeof liveBridgeHealth.lastEventAt === "string" ? liveBridgeHealth.lastEventAt : "-";
+  const probeSuccessPct = pingSent > 0 ? Math.round((pongs / pingSent) * 100) : null;
+  const probeSuccessText = probeSuccessPct === null ? "n/a" : `${probeSuccessPct}%`;
+
+  setText(el.operatorHealthState, bridgeState);
+  setText(el.operatorHealthLastEventType, lastEventType);
+  setText(el.operatorHealthLastEventAt, lastEventAt);
+  setText(el.operatorHealthDegraded, String(degraded));
+  setText(el.operatorHealthRecovered, String(recovered));
+  setText(el.operatorHealthWatchdogReconnects, String(watchdogReconnects));
+  setText(el.operatorHealthErrors, String(errors));
+  setText(el.operatorHealthUnavailable, String(unavailable));
+  setText(el.operatorHealthConnectTimeouts, String(connectTimeouts));
+  setText(el.operatorHealthProbes, String(probes));
+  setText(el.operatorHealthPingSent, String(pingSent));
+  setText(el.operatorHealthPongs, String(pongs));
+  setText(el.operatorHealthPingErrors, String(pingErrors));
+  setText(el.operatorHealthProbeSuccess, probeSuccessText);
+
+  let statusVariant = "ok";
+  if (bridgeState === "degraded" || unavailable > 0 || errors > 0) {
+    statusVariant = "fail";
+  } else if (bridgeState === "unknown" || pingErrors > 0 || (pingSent > 0 && pongs < pingSent)) {
+    statusVariant = "neutral";
+  }
+  const statusText = probeSuccessPct === null ? `state=${bridgeState}` : `state=${bridgeState} probe=${probeSuccessText}`;
+  setStatusPill(el.operatorHealthStatus, statusText, statusVariant);
 }
 
 function extractNumber(text, regex) {
@@ -468,6 +558,7 @@ function operatorHeaders(includeJson = false) {
 
 function renderOperatorSummary(summary) {
   el.operatorSummary.innerHTML = "";
+  resetOperatorHealthWidget("no_data");
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -521,6 +612,7 @@ function renderOperatorSummary(summary) {
   }
 
   const traces = summary.traces && typeof summary.traces === "object" ? summary.traces : null;
+  let liveBridgeHealthForWidget = null;
   if (traces) {
     const totals = traces.totals && typeof traces.totals === "object" ? traces.totals : {};
     const traceRuns = Number(totals.runsConsidered ?? 0);
@@ -560,7 +652,8 @@ function renderOperatorSummary(summary) {
       ? traces.liveBridgeHealth
       : null;
     if (liveBridgeHealth) {
-      const state = typeof liveBridgeHealth.state === "string" ? liveBridgeHealth.state : "unknown";
+      liveBridgeHealthForWidget = liveBridgeHealth;
+      const bridgeState = typeof liveBridgeHealth.state === "string" ? liveBridgeHealth.state : "unknown";
       const degraded = Number(liveBridgeHealth.degradedEvents ?? 0);
       const recovered = Number(liveBridgeHealth.recoveredEvents ?? 0);
       const watchdogReconnects = Number(liveBridgeHealth.watchdogReconnectEvents ?? 0);
@@ -578,12 +671,13 @@ function renderOperatorSummary(summary) {
 
       appendEntry(
         el.operatorSummary,
-        state === "degraded" ? "error" : "system",
+        bridgeState === "degraded" ? "error" : "system",
         "live_bridge_health",
-        `state=${state} degraded=${degraded} recovered=${recovered} watchdog_reconnects=${watchdogReconnects} errors=${errors} unavailable=${unavailable} connect_timeouts=${connectTimeouts} probes=${probeStarted} ping_sent=${pingSent} pongs=${pongs} ping_errors=${pingErrors} probe_success=${probeSuccessText} last=${lastEventType}@${lastEventAt}`,
+        `state=${bridgeState} degraded=${degraded} recovered=${recovered} watchdog_reconnects=${watchdogReconnects} errors=${errors} unavailable=${unavailable} connect_timeouts=${connectTimeouts} probes=${probeStarted} ping_sent=${pingSent} pongs=${pongs} ping_errors=${pingErrors} probe_success=${probeSuccessText} last=${lastEventType}@${lastEventAt}`,
       );
     }
   }
+  renderOperatorHealthWidget(liveBridgeHealthForWidget);
 
   const services = Array.isArray(summary.services) ? summary.services : [];
   for (const service of services) {
@@ -611,6 +705,7 @@ async function refreshOperatorSummary() {
     await refreshDeviceNodes({ silent: true });
     appendTranscript("system", "Operator summary refreshed");
   } catch (error) {
+    resetOperatorHealthWidget("summary_error");
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
 }
@@ -1579,6 +1674,7 @@ function bootstrap() {
   setStatusPill(el.constraintStatus, "Waiting for offer", "neutral");
   setFallbackAsset(false);
   clearPendingApproval();
+  resetOperatorHealthWidget("no_data");
   renderTaskList();
   evaluateConstraints();
   bindEvents();

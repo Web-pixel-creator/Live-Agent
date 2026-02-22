@@ -186,6 +186,50 @@
           <button id="operatorDrainBtn" class="button-warn">Failover Drain</button>
           <button id="operatorWarmupBtn" class="button-muted">Failover Warmup</button>
         </div>
+        <div class="operator-health-board">
+          <article class="operator-health-card">
+            <h3>Live Bridge Status</h3>
+            <p id="operatorHealthStatus" class="status-pill status-neutral">no_data</p>
+            <p class="operator-health-row">
+              <strong>State</strong>
+              <span id="operatorHealthState">unknown</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Last Event</strong>
+              <span id="operatorHealthLastEventType">-</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Last Event At</strong>
+              <span id="operatorHealthLastEventAt">-</span>
+            </p>
+          </article>
+          <article class="operator-health-card">
+            <h3>Errors & Recovery</h3>
+            <p class="operator-health-row"><strong>Degraded</strong><span id="operatorHealthDegraded">0</span></p>
+            <p class="operator-health-row"><strong>Recovered</strong><span id="operatorHealthRecovered">0</span></p>
+            <p class="operator-health-row">
+              <strong>Watchdog Reconnects</strong>
+              <span id="operatorHealthWatchdogReconnects">0</span>
+            </p>
+            <p class="operator-health-row"><strong>Errors</strong><span id="operatorHealthErrors">0</span></p>
+            <p class="operator-health-row"><strong>Unavailable</strong><span id="operatorHealthUnavailable">0</span></p>
+            <p class="operator-health-row">
+              <strong>Connect Timeouts</strong>
+              <span id="operatorHealthConnectTimeouts">0</span>
+            </p>
+          </article>
+          <article class="operator-health-card">
+            <h3>Probe Telemetry</h3>
+            <p class="operator-health-row"><strong>Probes</strong><span id="operatorHealthProbes">0</span></p>
+            <p class="operator-health-row"><strong>Ping Sent</strong><span id="operatorHealthPingSent">0</span></p>
+            <p class="operator-health-row"><strong>Pongs</strong><span id="operatorHealthPongs">0</span></p>
+            <p class="operator-health-row"><strong>Ping Errors</strong><span id="operatorHealthPingErrors">0</span></p>
+            <p class="operator-health-row">
+              <strong>Probe Success</strong>
+              <span id="operatorHealthProbeSuccess">n/a</span>
+            </p>
+          </article>
+        </div>
         <div id="operatorSummary" class="events"></div>
       </section>
 
