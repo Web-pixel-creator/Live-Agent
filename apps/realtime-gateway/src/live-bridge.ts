@@ -495,10 +495,29 @@ export class LiveApiBridge {
     return modelIndex * profileSlots + authProfileIndex;
   }
 
+  private getRouteLastUsedAtMs(modelIndex: number, authProfileIndex: number | null): number {
+    const model = this.modelStates[modelIndex];
+    if (!model) {
+      return 0;
+    }
+    const profile = this.getAuthProfileByIndex(authProfileIndex);
+    return Math.max(model.lastUsedAtMs, profile?.lastUsedAtMs ?? 0);
+  }
+
+  private getRouteFailureCount(modelIndex: number, authProfileIndex: number | null): number {
+    const model = this.modelStates[modelIndex];
+    if (!model) {
+      return 0;
+    }
+    const profile = this.getAuthProfileByIndex(authProfileIndex);
+    return model.failureCount + (profile?.failureCount ?? 0);
+  }
+
   private pickNextRouteIndices(): {
     modelIndex: number;
     authProfileIndex: number | null;
     routeReadyAtMs: number;
+    selectionStrategy: "ready_lru" | "earliest_ready" | "active_fallback";
   } {
     const profileSlots = Math.max(1, this.authProfiles.length);
     const totalRoutes = Math.max(1, this.modelStates.length * profileSlots);
@@ -508,10 +527,27 @@ export class LiveApiBridge {
       this.authProfiles.length > 0 ? this.currentAuthProfileIndex : null,
     );
 
-    let fallback: { modelIndex: number; authProfileIndex: number | null; routeReadyAtMs: number } | null = null;
+    const readyCandidates: Array<{
+      routeIndex: number;
+      modelIndex: number;
+      authProfileIndex: number | null;
+      routeReadyAtMs: number;
+      routeLastUsedAtMs: number;
+      routeFailureCount: number;
+    }> = [];
+    const pendingCandidates: Array<{
+      routeIndex: number;
+      modelIndex: number;
+      authProfileIndex: number | null;
+      routeReadyAtMs: number;
+      routeLastUsedAtMs: number;
+      routeFailureCount: number;
+    }> = [];
 
-    for (let offset = 1; offset <= totalRoutes; offset += 1) {
-      const routeIndex = (activeRouteIndex + offset) % totalRoutes;
+    for (let routeIndex = 0; routeIndex < totalRoutes; routeIndex += 1) {
+      if (routeIndex === activeRouteIndex) {
+        continue;
+      }
       const decoded = this.decodeRouteIndex(routeIndex);
       const model = this.modelStates[decoded.modelIndex];
       if (!model) {
@@ -519,32 +555,76 @@ export class LiveApiBridge {
       }
       const profile = this.getAuthProfileByIndex(decoded.authProfileIndex);
       const routeReadyAtMs = Math.max(this.getModelReadyAtMs(model), this.getAuthProfileReadyAtMs(profile));
+      const routeLastUsedAtMs = this.getRouteLastUsedAtMs(decoded.modelIndex, decoded.authProfileIndex);
+      const routeFailureCount = this.getRouteFailureCount(decoded.modelIndex, decoded.authProfileIndex);
 
       if (routeReadyAtMs <= nowMs) {
-        return {
+        readyCandidates.push({
+          routeIndex,
           modelIndex: decoded.modelIndex,
           authProfileIndex: decoded.authProfileIndex,
           routeReadyAtMs,
-        };
-      }
-
-      if (!fallback || routeReadyAtMs < fallback.routeReadyAtMs) {
-        fallback = {
+          routeLastUsedAtMs,
+          routeFailureCount,
+        });
+      } else {
+        pendingCandidates.push({
+          routeIndex,
           modelIndex: decoded.modelIndex,
           authProfileIndex: decoded.authProfileIndex,
           routeReadyAtMs,
-        };
+          routeLastUsedAtMs,
+          routeFailureCount,
+        });
       }
     }
 
-    if (fallback) {
-      return fallback;
+    if (readyCandidates.length > 0) {
+      readyCandidates.sort((left, right) => {
+        if (left.routeFailureCount !== right.routeFailureCount) {
+          return left.routeFailureCount - right.routeFailureCount;
+        }
+        if (left.routeLastUsedAtMs !== right.routeLastUsedAtMs) {
+          return left.routeLastUsedAtMs - right.routeLastUsedAtMs;
+        }
+        return left.routeIndex - right.routeIndex;
+      });
+      const selected = readyCandidates[0];
+      return {
+        modelIndex: selected.modelIndex,
+        authProfileIndex: selected.authProfileIndex,
+        routeReadyAtMs: selected.routeReadyAtMs,
+        selectionStrategy: "ready_lru",
+      };
+    }
+
+    if (pendingCandidates.length > 0) {
+      pendingCandidates.sort((left, right) => {
+        if (left.routeReadyAtMs !== right.routeReadyAtMs) {
+          return left.routeReadyAtMs - right.routeReadyAtMs;
+        }
+        if (left.routeFailureCount !== right.routeFailureCount) {
+          return left.routeFailureCount - right.routeFailureCount;
+        }
+        if (left.routeLastUsedAtMs !== right.routeLastUsedAtMs) {
+          return left.routeLastUsedAtMs - right.routeLastUsedAtMs;
+        }
+        return left.routeIndex - right.routeIndex;
+      });
+      const selected = pendingCandidates[0];
+      return {
+        modelIndex: selected.modelIndex,
+        authProfileIndex: selected.authProfileIndex,
+        routeReadyAtMs: selected.routeReadyAtMs,
+        selectionStrategy: "earliest_ready",
+      };
     }
 
     return {
       modelIndex: this.currentModelIndex,
       authProfileIndex: this.authProfiles.length > 0 ? this.currentAuthProfileIndex : null,
       routeReadyAtMs: nowMs,
+      selectionStrategy: "active_fallback",
     };
   }
 
@@ -577,6 +657,7 @@ export class LiveApiBridge {
         model: this.getActiveModelId(),
         authProfile: this.getActiveAuthProfile()?.name ?? null,
       },
+      selectionStrategy: selection.selectionStrategy,
       routeReadyAt: new Date(selection.routeReadyAtMs).toISOString(),
       routeAvailableNow: selection.routeReadyAtMs <= Date.now(),
       modelCandidates: this.getModelCandidates(),

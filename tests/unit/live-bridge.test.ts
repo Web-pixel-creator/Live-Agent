@@ -235,6 +235,83 @@ test("live bridge emits failover event when upstream connection fails", async ()
       return to.model === "model-b";
     });
     assert.equal(switchedToFallback, true, "failover chain should include fallback model");
+    const hasSelectionStrategy = failoverEvents.some((event) => {
+      const payload = event.payload as Record<string, unknown>;
+      return payload.selectionStrategy === "ready_lru" || payload.selectionStrategy === "earliest_ready";
+    });
+    assert.equal(hasSelectionStrategy, true, "failover diagnostics should include selectionStrategy");
+  } finally {
+    bridge.close();
+  }
+});
+
+test("live bridge chooses least-used ready route across model/auth profile combinations", () => {
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveModelId: "model-a",
+      liveModelFallbackIds: ["model-b"],
+      liveAuthProfiles: [
+        { name: "primary", apiKey: "key-primary" },
+        { name: "backup", apiKey: "key-backup" },
+      ],
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: () => {
+      // no-op in this deterministic selection test
+    },
+  });
+
+  try {
+    const internals = bridge as unknown as {
+      modelStates: Array<{
+        lastUsedAtMs: number;
+        cooldownUntilMs: number;
+        disabledUntilMs: number;
+        failureCount: number;
+      }>;
+      authProfiles: Array<{
+        lastUsedAtMs: number;
+        cooldownUntilMs: number;
+        disabledUntilMs: number;
+        failureCount: number;
+      }>;
+      currentModelIndex: number;
+      currentAuthProfileIndex: number;
+      pickNextRouteIndices: () => {
+        modelIndex: number;
+        authProfileIndex: number | null;
+        routeReadyAtMs: number;
+        selectionStrategy: "ready_lru" | "earliest_ready" | "active_fallback";
+      };
+    };
+
+    internals.currentModelIndex = 0;
+    internals.currentAuthProfileIndex = 0;
+
+    for (const modelState of internals.modelStates) {
+      modelState.cooldownUntilMs = 0;
+      modelState.disabledUntilMs = 0;
+      modelState.failureCount = 0;
+    }
+    for (const profileState of internals.authProfiles) {
+      profileState.cooldownUntilMs = 0;
+      profileState.disabledUntilMs = 0;
+      profileState.failureCount = 0;
+    }
+
+    // Active route is model-a + primary.
+    // Make model-b + backup the least-used ready route, which should win ready_lru selection.
+    internals.modelStates[0].lastUsedAtMs = 10_000;
+    internals.modelStates[1].lastUsedAtMs = 100;
+    internals.authProfiles[0].lastUsedAtMs = 9_500;
+    internals.authProfiles[1].lastUsedAtMs = 9_000;
+
+    const selection = internals.pickNextRouteIndices();
+    assert.equal(selection.modelIndex, 1);
+    assert.equal(selection.authProfileIndex, 1);
+    assert.equal(selection.selectionStrategy, "ready_lru");
   } finally {
     bridge.close();
   }

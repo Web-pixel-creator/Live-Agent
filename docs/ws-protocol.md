@@ -121,9 +121,10 @@ Failover/watchdog diagnostics (where present):
 
 1. `reasonClass`: `transient | rate_limit | auth | billing`
 2. `routeReadyAt`, `routeAvailableNow`, `routeWaitMs`
-3. `modelState` and `authProfileState` with cooldown/disable windows and failure counters
-4. `silenceMs`, `thresholdMs` for watchdog-degradation path
-5. `graceMs`, `probeStartedAt`, `probeElapsedMs`, `probePongAt` for ping-assisted watchdog probing
+3. `selectionStrategy`: `ready_lru | earliest_ready | active_fallback`
+4. `modelState` and `authProfileState` with cooldown/disable windows and failure counters
+5. `silenceMs`, `thresholdMs` for watchdog-degradation path
+6. `graceMs`, `probeStartedAt`, `probeElapsedMs`, `probePongAt` for ping-assisted watchdog probing
 
 ## Error Taxonomy (WS Path)
 
