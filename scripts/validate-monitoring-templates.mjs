@@ -47,6 +47,7 @@ const requiredFiles = [
   "alert-policy.gateway-latency.json",
   "alert-policy.service-errors.json",
   "alert-policy.orchestrator-persist-failures.json",
+  "alert-policy.story-media-queue-health.json",
 ];
 
 for (const file of requiredFiles) {

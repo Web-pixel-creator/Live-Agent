@@ -1,0 +1,81 @@
+{
+  "displayName": "MLA Story Media Queue Health",
+  "documentation": {
+    "content": "Story media queue is degraded (dead-lettered jobs, sustained retry pressure, or lag growth). Inspect `story/media-jobs/queue`, worker runtime, and per-model quota usage.",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "enabled": true,
+  "notificationChannels": __NOTIFICATION_CHANNELS__,
+  "alertStrategy": {
+    "autoClose": "1800s"
+  },
+  "conditions": [
+    {
+      "displayName": "Dead-letter jobs > 0",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.media.queue.dead_letter\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_MAX",
+            "crossSeriesReducer": "REDUCE_MAX",
+            "groupByFields": [
+              "metric.labels.service"
+            ]
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "120s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    },
+    {
+      "displayName": "Retry waiting queue > 3",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.media.queue.retry_waiting\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_MAX",
+            "crossSeriesReducer": "REDUCE_MAX",
+            "groupByFields": [
+              "metric.labels.service"
+            ]
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 3,
+        "duration": "300s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    },
+    {
+      "displayName": "Oldest queued age > 120000ms",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.media.queue.oldest_age_ms\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_MAX",
+            "crossSeriesReducer": "REDUCE_MAX",
+            "groupByFields": [
+              "metric.labels.service"
+            ]
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 120000,
+        "duration": "300s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ]
+}

@@ -25,6 +25,9 @@ Services (`realtime-gateway`, `api-backend`, `orchestrator`) now emit:
    - `eventId`, `sessionId`, `runId`, `runStatus`
    - `intent`, `route`, `mode`, `source`, `eventType`
    - `payloadBytes`, and storage/write status (`firestore|fallback`, `writeFailed`)
+3. Story queue operational gauges from orchestrator runtime sampling (`storyteller.media.queue.*`, `storyteller.media.quota.*`), including:
+   - backlog / retry_waiting / dead_letter / oldest_age_ms
+   - worker utilization and per-model quota utilization
 
 The export transport is structured stdout logs (`[analytics] { ...json... }`), designed for Cloud Logging ingestion and downstream sinks.
 
@@ -59,6 +62,7 @@ Provisioning helper:
    - `pwsh ./infra/gcp/setup-analytics-sinks.ps1 -ProjectId "<project-id>" -Location "US" -DatasetId "agent_analytics"`
 3. Apply monitoring baseline (dashboard + alert policies):
    - `pwsh ./infra/gcp/setup-monitoring-baseline.ps1 -ProjectId "<project-id>" -NotificationChannels "projects/<project-id>/notificationChannels/<channel-id>"`
+   - includes Story media queue health alert template (`alert-policy.story-media-queue-health.json`)
 4. Set runtime envs:
    - `ANALYTICS_EXPORT_ENABLED=true`
    - `ANALYTICS_EXPORT_METRICS_TARGET=cloud_monitoring`

@@ -15,6 +15,7 @@ import {
 import { orchestrate } from "./orchestrate.js";
 import { AnalyticsExporter } from "./services/analytics-export.js";
 import { getFirestoreState } from "./services/firestore.js";
+import { buildStoryQueueMetricRecords } from "./story-queue-telemetry.js";
 
 const port = Number(process.env.ORCHESTRATOR_PORT ?? 8082);
 const serviceName = "orchestrator";
@@ -40,6 +41,54 @@ const metrics = new RollingMetrics({
     });
   },
 });
+const storyQueueTelemetryEnabled = parseBoolean(process.env.ORCHESTRATOR_STORY_QUEUE_TELEMETRY_ENABLED, true);
+const storyQueueTelemetryPollMs = parsePositiveInt(process.env.ORCHESTRATOR_STORY_QUEUE_TELEMETRY_POLL_MS, 30000);
+let lastStoryQueueTelemetryAt: string | null = null;
+
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return Math.floor(parsed);
+}
+
+function parseBoolean(value: string | undefined, fallback: boolean): boolean {
+  if (!value) {
+    return fallback;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true" || normalized === "1" || normalized === "yes") {
+    return true;
+  }
+  if (normalized === "false" || normalized === "0" || normalized === "no") {
+    return false;
+  }
+  return fallback;
+}
+
+function emitStoryQueueTelemetrySample(trigger: "interval" | "metrics_endpoint" | "startup"): void {
+  if (!storyQueueTelemetryEnabled) {
+    return;
+  }
+  const snapshot = getMediaJobQueueSnapshot();
+  const records = buildStoryQueueMetricRecords(snapshot);
+  for (const record of records) {
+    analytics.recordMetric({
+      metricType: record.metricType,
+      value: record.value,
+      unit: record.unit,
+      labels: {
+        trigger,
+        ...record.labels,
+      },
+    });
+  }
+  lastStoryQueueTelemetryAt = new Date().toISOString();
+}
 
 async function readBody(req: IncomingMessage): Promise<string> {
   const chunks: Buffer[] = [];
@@ -96,6 +145,11 @@ function runtimeState(): Record<string, unknown> {
     version: serviceVersion,
     profile: runtimeProfile,
     analytics: analytics.snapshot(),
+    storyQueueTelemetry: {
+      enabled: storyQueueTelemetryEnabled,
+      pollMs: storyQueueTelemetryPollMs,
+      lastSampleAt: lastStoryQueueTelemetryAt,
+    },
     metrics: {
       totalCount: summary.totalCount,
       totalErrors: summary.totalErrors,
@@ -147,6 +201,7 @@ export const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === "/metrics" && req.method === "GET") {
+      emitStoryQueueTelemetrySample("metrics_endpoint");
       writeJson(res, 200, {
         ok: true,
         service: serviceName,
@@ -273,4 +328,13 @@ export const server = createServer(async (req, res) => {
 
 server.listen(port, () => {
   console.log(`[orchestrator] listening on :${port}`);
+  if (storyQueueTelemetryEnabled) {
+    emitStoryQueueTelemetrySample("startup");
+    const timer = setInterval(() => {
+      emitStoryQueueTelemetrySample("interval");
+    }, storyQueueTelemetryPollMs);
+    if (typeof timer.unref === "function") {
+      timer.unref();
+    }
+  }
 });

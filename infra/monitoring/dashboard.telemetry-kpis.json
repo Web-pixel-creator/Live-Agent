@@ -105,6 +105,126 @@
             }
           }
         }
+      },
+      {
+        "xPos": 0,
+        "yPos": 8,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Story Media Queue Backlog/Retry/Dead-Letter",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=monitoring.regex.full_match(\"storyteller.media.queue.(backlog|retry_waiting|dead_letter)\")",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "perSeriesAligner": "ALIGN_MAX",
+                      "crossSeriesReducer": "REDUCE_NONE",
+                      "groupByFields": [
+                        "metric.labels.service",
+                        "metric.labels.metric_type"
+                      ]
+                    }
+                  }
+                },
+                "plotType": "LINE",
+                "legendTemplate": "{{metric.labels.service}} / {{metric.labels.metric_type}}"
+              }
+            ],
+            "yAxis": {
+              "label": "jobs",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 8,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Story Queue Oldest Age / Worker Utilization",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.media.queue.oldest_age_ms\"",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "perSeriesAligner": "ALIGN_MAX",
+                      "crossSeriesReducer": "REDUCE_NONE",
+                      "groupByFields": [
+                        "metric.labels.service"
+                      ]
+                    }
+                  }
+                },
+                "plotType": "LINE",
+                "legendTemplate": "{{metric.labels.service}} / oldest_age_ms"
+              },
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.media.queue.worker_utilization_pct\"",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "perSeriesAligner": "ALIGN_MEAN",
+                      "crossSeriesReducer": "REDUCE_NONE",
+                      "groupByFields": [
+                        "metric.labels.service"
+                      ]
+                    }
+                  }
+                },
+                "plotType": "LINE",
+                "legendTemplate": "{{metric.labels.service}} / worker_utilization_pct"
+              }
+            ],
+            "yAxis": {
+              "label": "ms | %",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 0,
+        "yPos": 12,
+        "width": 12,
+        "height": 4,
+        "widget": {
+          "title": "Story Media Quota Utilization by Model",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.media.quota.utilization_pct\"",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "perSeriesAligner": "ALIGN_MEAN",
+                      "crossSeriesReducer": "REDUCE_NONE",
+                      "groupByFields": [
+                        "metric.labels.model"
+                      ]
+                    }
+                  }
+                },
+                "plotType": "LINE",
+                "legendTemplate": "{{metric.labels.model}}"
+              }
+            ],
+            "yAxis": {
+              "label": "%",
+              "scale": "LINEAR"
+            }
+          }
+        }
       }
     ]
   }

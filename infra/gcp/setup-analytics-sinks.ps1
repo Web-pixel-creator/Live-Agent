@@ -124,7 +124,7 @@ function Ensure-LogMetric {
     "--description", "Extracted metric values from structured analytics logs",
     "--log-filter", $Filter,
     "--value-extractor", "EXTRACT(jsonPayload.value)",
-    "--label-extractors", "service=EXTRACT(jsonPayload.service),metric_type=EXTRACT(jsonPayload.metricType),operation=EXTRACT(jsonPayload.labels.operation),ok=EXTRACT(jsonPayload.labels.ok)"
+    "--label-extractors", "service=EXTRACT(jsonPayload.service),metric_type=EXTRACT(jsonPayload.metricType),operation=EXTRACT(jsonPayload.labels.operation),ok=EXTRACT(jsonPayload.labels.ok),model=EXTRACT(jsonPayload.labels.model),signal=EXTRACT(jsonPayload.labels.signal)"
   )
 
   if (-not $MetricExists) {
