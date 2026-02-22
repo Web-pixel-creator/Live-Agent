@@ -1373,6 +1373,7 @@ try {
 
     $results = @()
     $profileValidated = $true
+    $analyticsValidated = $true
     foreach ($service in $services) {
       $baseUrl = [string]$service.baseUrl
       $serviceName = [string]$service.name
@@ -1391,6 +1392,18 @@ try {
       $profileLocalFirst = [bool](Get-FieldValue -Object $runtimeProfile -Path @("localFirst"))
       Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($profileName)) -Message ("Missing runtime profile name for " + $serviceName)
       Assert-Condition -Condition (@("dev", "staging", "prod") -contains $profileEnvironment) -Message ("Invalid runtime profile environment for " + $serviceName)
+
+      $runtimeAnalytics = Get-FieldValue -Object $statusBefore -Path @("runtime", "analytics")
+      Assert-Condition -Condition ($null -ne $runtimeAnalytics) -Message ("Missing runtime analytics block in /status for " + $serviceName)
+      $analyticsEnabled = [bool](Get-FieldValue -Object $runtimeAnalytics -Path @("enabled"))
+      $analyticsReason = [string](Get-FieldValue -Object $runtimeAnalytics -Path @("reason"))
+      $analyticsMetricsTarget = [string](Get-FieldValue -Object $runtimeAnalytics -Path @("metricsTarget"))
+      $analyticsEventsTarget = [string](Get-FieldValue -Object $runtimeAnalytics -Path @("eventsTarget"))
+      $analyticsSampleRate = [double](Get-FieldValue -Object $runtimeAnalytics -Path @("sampleRate"))
+      Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($analyticsReason)) -Message ("Missing analytics reason in /status for " + $serviceName)
+      Assert-Condition -Condition (@("disabled", "cloud_monitoring", "bigquery") -contains $analyticsMetricsTarget) -Message ("Invalid analytics metrics target for " + $serviceName)
+      Assert-Condition -Condition (@("disabled", "cloud_monitoring", "bigquery") -contains $analyticsEventsTarget) -Message ("Invalid analytics events target for " + $serviceName)
+      Assert-Condition -Condition ($analyticsSampleRate -ge 0 -and $analyticsSampleRate -le 1) -Message ("Invalid analytics sampleRate for " + $serviceName)
 
       $versionResponse = Invoke-JsonRequest -Method GET -Uri ($baseUrl + "/version") -TimeoutSec $RequestTimeoutSec
       $version = [string](Get-FieldValue -Object $versionResponse -Path @("version"))
@@ -1418,6 +1431,11 @@ try {
         runtimeProfile = $profileName
         runtimeEnvironment = $profileEnvironment
         runtimeLocalFirst = $profileLocalFirst
+        analyticsEnabled = $analyticsEnabled
+        analyticsReason = $analyticsReason
+        analyticsMetricsTarget = $analyticsMetricsTarget
+        analyticsEventsTarget = $analyticsEventsTarget
+        analyticsSampleRate = $analyticsSampleRate
         stateBefore = $stateBefore
         stateDuringDrain = $stateDuringDrain
         stateAfterWarmup = $stateAfterWarmup
@@ -1426,12 +1444,17 @@ try {
       if ([string]::IsNullOrWhiteSpace($profileName)) {
         $profileValidated = $false
       }
+      if ([string]::IsNullOrWhiteSpace($analyticsReason)) {
+        $analyticsValidated = $false
+      }
     }
 
     return [ordered]@{
       services = $results
       count = $results.Count
       profileValidated = $profileValidated
+      analyticsValidated = $analyticsValidated
+      analyticsServices = (@($results | Where-Object { -not [string]::IsNullOrWhiteSpace($_.analyticsReason) })).Count
       localFirstServices = (@($results | Where-Object { $_.runtimeLocalFirst -eq $true })).Count
     }
   } | Out-Null
@@ -1674,6 +1697,8 @@ $summary = [ordered]@{
     approvalsInvalidIntentTraceId = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.traceId } else { $null }
     lifecycleEndpointsValidated = if ($null -ne $runtimeLifecycleData) { $true } else { $false }
     runtimeProfileValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.profileValidated } else { $false }
+    analyticsRuntimeVisible = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsValidated } else { $false }
+    analyticsServicesValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsServices } else { $null }
     runtimeLocalFirstServices = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.localFirstServices } else { $null }
     metricsEndpointsValidated = if ($null -ne $runtimeMetricsData) { $true } else { $false }
     metricsServicesValidated = if ($null -ne $runtimeMetricsData) { $runtimeMetricsData.count } else { $null }

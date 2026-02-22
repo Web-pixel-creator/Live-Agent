@@ -514,6 +514,18 @@ async function main() {
     true,
   );
   addCheck(
+    "kpi.analyticsRuntimeVisible",
+    kpis.analyticsRuntimeVisible === true,
+    kpis.analyticsRuntimeVisible,
+    true,
+  );
+  addCheck(
+    "kpi.analyticsServicesValidated",
+    toNumber(kpis.analyticsServicesValidated) >= 3,
+    kpis.analyticsServicesValidated,
+    ">= 3",
+  );
+  addCheck(
     "kpi.metricsEndpointsValidated",
     kpis.metricsEndpointsValidated === true,
     kpis.metricsEndpointsValidated,
