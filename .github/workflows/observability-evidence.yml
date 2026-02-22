@@ -117,6 +117,10 @@ jobs:
         if: ${{ secrets.GCP_CREDENTIALS_JSON != '' }}
         run: npm run infra:observability:report
 
+      - name: Validate Observability Artifacts
+        if: ${{ secrets.GCP_CREDENTIALS_JSON != '' }}
+        run: npm run infra:observability:check
+
       - name: Publish Observability Report To Job Summary
         if: always()
         shell: pwsh

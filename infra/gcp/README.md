@@ -62,6 +62,12 @@ Judge report generation from collected evidence (repo root):
 npm run infra:observability:report
 ```
 
+Artifact integrity check (required files + summary schema):
+
+```powershell
+npm run infra:observability:check
+```
+
 GitHub Actions alternative:
 
 1. Configure repository secret `GCP_CREDENTIALS_JSON`.
