@@ -13,6 +13,7 @@ import {
   purgeStoryCache,
 } from "@mla/storyteller-agent";
 import { orchestrate } from "./orchestrate.js";
+import { AnalyticsExporter } from "./services/analytics-export.js";
 import { getFirestoreState } from "./services/firestore.js";
 
 const port = Number(process.env.ORCHESTRATOR_PORT ?? 8082);
@@ -23,8 +24,21 @@ const startedAtMs = Date.now();
 let draining = false;
 let lastWarmupAt: string | null = new Date().toISOString();
 let lastDrainAt: string | null = null;
+const analytics = new AnalyticsExporter({ serviceName });
 const metrics = new RollingMetrics({
   maxSamplesPerBucket: Number(process.env.ORCHESTRATOR_METRICS_MAX_SAMPLES ?? 2000),
+  onRecord: (entry) => {
+    analytics.recordMetric({
+      metricType: "orchestrator.operation.duration_ms",
+      value: entry.durationMs,
+      unit: "ms",
+      ts: entry.recordedAt,
+      labels: {
+        operation: entry.operation,
+        ok: entry.ok,
+      },
+    });
+  },
 });
 
 async function readBody(req: IncomingMessage): Promise<string> {
@@ -81,6 +95,7 @@ function runtimeState(): Record<string, unknown> {
     lastDrainAt,
     version: serviceVersion,
     profile: runtimeProfile,
+    analytics: analytics.snapshot(),
     metrics: {
       totalCount: summary.totalCount,
       totalErrors: summary.totalErrors,

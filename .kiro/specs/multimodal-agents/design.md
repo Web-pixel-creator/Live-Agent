@@ -428,6 +428,10 @@ flowchart TB
 1. Structured logs with `sessionId`, `runId`, `agent`, `eventType`.
 2. Correlation IDs propagated across gateway -> orchestrator -> tools.
 3. Redaction policy for PII/secrets.
+4. Analytics split routing:
+   - `analytics_metric` records routed to Cloud Monitoring.
+   - `analytics_event` rollups routed to BigQuery.
+   - Firestore remains authoritative for runtime/session/approval state only.
 
 ### Alerts
 
@@ -435,6 +439,14 @@ flowchart TB
 2. Latency SLO breach.
 3. Repeated failure loop for UI task execution.
 4. Approval queue timeout.
+
+### Telemetry Storage Split (T-221)
+
+1. Operational state remains in Firestore (`sessions`, `approvals`, `agent_runs`, `events`).
+2. Runtime metrics are exported as structured analytics logs and routed to Cloud Monitoring.
+3. Heavy event analytics rollups are exported as structured analytics logs and routed to BigQuery.
+4. Export is controlled by env flags (`ANALYTICS_EXPORT_*`) and can be sampled (`ANALYTICS_EXPORT_SAMPLE_RATE`) to manage cost.
+5. Detailed routing/retention policy is documented in `docs/telemetry-storage-split.md`.
 
 ## Failure Handling and Degradation
 

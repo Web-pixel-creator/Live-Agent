@@ -34,8 +34,16 @@ export type MetricsSnapshot = {
   operations: OperationMetricsSnapshot[];
 };
 
+export type RollingMetricsRecord = {
+  operation: string;
+  durationMs: number;
+  ok: boolean;
+  recordedAt: string;
+};
+
 export type RollingMetricsConfig = {
   maxSamplesPerBucket?: number;
+  onRecord?: (entry: RollingMetricsRecord) => void;
 };
 
 function clampDurationMs(value: number): number {
@@ -86,6 +94,7 @@ function computeLatencyStats(values: number[]): LatencyStats {
 export class RollingMetrics {
   private readonly startedAtMs: number;
   private readonly maxSamplesPerBucket: number;
+  private readonly onRecord: ((entry: RollingMetricsRecord) => void) | null;
   private readonly total: MetricsBucket;
   private readonly byOperation = new Map<string, MetricsBucket>();
 
@@ -96,6 +105,7 @@ export class RollingMetrics {
         ? Math.floor(config.maxSamplesPerBucket)
         : 2000;
     this.maxSamplesPerBucket = Math.max(50, rawMaxSamples);
+    this.onRecord = typeof config?.onRecord === "function" ? config.onRecord : null;
     const now = new Date().toISOString();
     this.total = {
       count: 0,
@@ -146,6 +156,19 @@ export class RollingMetrics {
     }
     operationBucket.lastUpdatedAt = now;
     this.pushDuration(operationBucket, normalizedDurationMs);
+
+    if (this.onRecord) {
+      try {
+        this.onRecord({
+          operation,
+          durationMs: normalizedDurationMs,
+          ok,
+          recordedAt: now,
+        });
+      } catch {
+        // Metrics callback failures must not affect main request path.
+      }
+    }
   }
 
   snapshot(params?: { topOperations?: number }): MetricsSnapshot {

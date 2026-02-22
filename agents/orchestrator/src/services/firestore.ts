@@ -1,5 +1,6 @@
 import type { EventEnvelope, OrchestratorIntent, SessionMode } from "@mla/contracts";
 import { FieldValue, Firestore, Timestamp } from "@google-cloud/firestore";
+import { AnalyticsExporter } from "./analytics-export.js";
 
 type FirestoreState = {
   enabled: boolean;
@@ -38,6 +39,7 @@ const retention: RetentionPolicy = {
   negotiationDays: parsePositiveDays("FIRESTORE_NEGOTIATION_RETENTION_DAYS", 365),
   storyAssetsDays: parsePositiveDays("FIRESTORE_STORY_ASSET_RETENTION_DAYS", 30),
 };
+const analytics = new AnalyticsExporter({ serviceName: "orchestrator-firestore" });
 
 function parsePositiveDays(envName: string, fallback: number): number {
   const raw = process.env[envName];
@@ -205,6 +207,52 @@ function extractStoryAssets(event: EventEnvelope): StoryAssetRef[] {
   return assets;
 }
 
+function payloadSizeBytes(payload: unknown): number {
+  try {
+    const serialized = JSON.stringify(payload);
+    return Buffer.byteLength(serialized, "utf8");
+  } catch {
+    return 0;
+  }
+}
+
+function emitEventRollup(params: {
+  event: EventEnvelope;
+  route: string | undefined;
+  intent: OrchestratorIntent | undefined;
+  mode: SessionMode;
+  runStatus: string;
+  storage: "firestore" | "fallback";
+  writeFailed: boolean;
+  errorMessage?: string;
+}): void {
+  analytics.recordEvent({
+    eventType: "orchestrator.event_rollup",
+    labels: {
+      intent: params.intent ?? "unknown",
+      route: params.route ?? "unknown",
+      mode: params.mode,
+      source: params.event.source,
+      eventType: params.event.type,
+      storage: params.storage,
+      writeFailed: params.writeFailed,
+    },
+    payload: {
+      eventId: params.event.id,
+      sessionId: params.event.sessionId,
+      runId: params.event.runId ?? null,
+      runStatus: params.runStatus,
+      ts: params.event.ts,
+      payloadBytes: payloadSizeBytes(params.event.payload),
+      negotiationEvent: params.intent === "negotiation",
+      storyEvent: params.intent === "story" || params.route === "storyteller-agent",
+      uiEvent: params.intent === "ui_task" || params.route === "ui-navigator-agent",
+      errorMessage: params.errorMessage,
+    },
+    severity: params.writeFailed ? "ERROR" : "INFO",
+  });
+}
+
 async function writeFallbackLog(event: EventEnvelope): Promise<void> {
   const compact = {
     id: event.id,
@@ -216,6 +264,18 @@ async function writeFallbackLog(event: EventEnvelope): Promise<void> {
     firestore: state,
   };
   console.log("[orchestrator] persistEvent(fallback)", compact);
+  const route = extractRoute(event);
+  const intent = extractIntent(event);
+  emitEventRollup({
+    event,
+    route,
+    intent,
+    mode: mapSessionMode(intent, route),
+    runStatus: extractRunStatus(event) ?? "accepted",
+    storage: "fallback",
+    writeFailed: true,
+    errorMessage: state.reason,
+  });
 }
 
 export function getFirestoreState(): FirestoreState {
@@ -236,6 +296,7 @@ export async function persistEvent(event: EventEnvelope): Promise<void> {
     const route = extractRoute(event);
     const intent = extractIntent(event);
     const mode = mapSessionMode(intent, route);
+    const runStatus = extractRunStatus(event) ?? "accepted";
 
     const eventRef = db.collection("events").doc(event.id);
     batch.set(eventRef, {
@@ -269,7 +330,7 @@ export async function persistEvent(event: EventEnvelope): Promise<void> {
         {
           runId: event.runId,
           sessionId: event.sessionId,
-          status: extractRunStatus(event) ?? "accepted",
+          status: runStatus,
           intent,
           route,
           lastEventType: event.type,
@@ -306,7 +367,7 @@ export async function persistEvent(event: EventEnvelope): Promise<void> {
           eventId: event.id,
           sessionId: event.sessionId,
           runId: event.runId ?? null,
-          status: extractRunStatus(event) ?? "accepted",
+          status: runStatus,
           assets: storyAssets,
           createdAt,
           updatedAt: FieldValue.serverTimestamp(),
@@ -317,12 +378,34 @@ export async function persistEvent(event: EventEnvelope): Promise<void> {
     }
 
     await batch.commit();
+    emitEventRollup({
+      event,
+      route,
+      intent,
+      mode,
+      runStatus,
+      storage: "firestore",
+      writeFailed: false,
+    });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("[orchestrator] Firestore write failed", {
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage,
       eventId: event.id,
       sessionId: event.sessionId,
       runId: event.runId,
+    });
+    const route = extractRoute(event);
+    const intent = extractIntent(event);
+    emitEventRollup({
+      event,
+      route,
+      intent,
+      mode: mapSessionMode(intent, route),
+      runStatus: extractRunStatus(event) ?? "accepted",
+      storage: "firestore",
+      writeFailed: true,
+      errorMessage,
     });
   }
 }

@@ -14,6 +14,7 @@ import {
   type OrchestratorResponse,
 } from "@mla/contracts";
 import { WebSocketServer } from "ws";
+import { AnalyticsExporter } from "./analytics-export.js";
 import { loadGatewayConfig } from "./config.js";
 import { LiveApiBridge } from "./live-bridge.js";
 import { sendToOrchestrator } from "./orchestrator-client.js";
@@ -28,12 +29,25 @@ const startedAtMs = Date.now();
 let draining = false;
 let lastWarmupAt: string | null = new Date().toISOString();
 let lastDrainAt: string | null = null;
+const analytics = new AnalyticsExporter({ serviceName });
 const taskRegistry = new TaskRegistry({
   completedRetentionMs: parsePositiveInt(process.env.GATEWAY_TASK_COMPLETED_RETENTION_MS, 5 * 60 * 1000),
   maxEntries: parsePositiveInt(process.env.GATEWAY_TASK_MAX_ENTRIES, 1000),
 });
 const metrics = new RollingMetrics({
   maxSamplesPerBucket: Number(process.env.GATEWAY_METRICS_MAX_SAMPLES ?? 2000),
+  onRecord: (entry) => {
+    analytics.recordMetric({
+      metricType: "gateway.operation.duration_ms",
+      value: entry.durationMs,
+      unit: "ms",
+      ts: entry.recordedAt,
+      labels: {
+        operation: entry.operation,
+        ok: entry.ok,
+      },
+    });
+  },
 });
 const gatewayOrchestratorReplayTtlMs = parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_DEDUPE_TTL_MS, 120_000);
 
@@ -216,6 +230,7 @@ function runtimeState(): Record<string, unknown> {
     lastDrainAt,
     version: serviceVersion,
     profile: runtimeProfile,
+    analytics: analytics.snapshot(),
     metrics: {
       totalCount: summary.totalCount,
       totalErrors: summary.totalErrors,

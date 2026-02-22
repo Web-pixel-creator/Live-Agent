@@ -40,6 +40,7 @@ import {
   type SessionMode,
   type SessionStatus,
 } from "./firestore.js";
+import { AnalyticsExporter } from "./analytics-export.js";
 import { buildOperatorTraceSummary } from "./operator-traces.js";
 
 const port = Number(process.env.API_PORT ?? 8081);
@@ -64,8 +65,21 @@ const startedAtMs = Date.now();
 let draining = false;
 let lastWarmupAt: string | null = new Date().toISOString();
 let lastDrainAt: string | null = null;
+const analytics = new AnalyticsExporter({ serviceName });
 const metrics = new RollingMetrics({
   maxSamplesPerBucket: Number(process.env.API_METRICS_MAX_SAMPLES ?? 2000),
+  onRecord: (entry) => {
+    analytics.recordMetric({
+      metricType: "api.operation.duration_ms",
+      value: entry.durationMs,
+      unit: "ms",
+      ts: entry.recordedAt,
+      labels: {
+        operation: entry.operation,
+        ok: entry.ok,
+      },
+    });
+  },
 });
 const approvalSoftTimeoutMs = parsePositiveInt(process.env.APPROVAL_SOFT_TIMEOUT_MS ?? null, 60_000);
 const approvalHardTimeoutMs = parsePositiveInt(process.env.APPROVAL_HARD_TIMEOUT_MS ?? null, 300_000);
@@ -395,6 +409,7 @@ function runtimeState(): Record<string, unknown> {
     lastDrainAt,
     version: serviceVersion,
     profile: runtimeProfile,
+    analytics: analytics.snapshot(),
     metrics: {
       totalCount: summary.totalCount,
       totalErrors: summary.totalErrors,

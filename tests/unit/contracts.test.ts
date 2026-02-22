@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createEnvelope, createNormalizedError, safeParseEnvelope } from "../../shared/contracts/src/index.js";
+import { createEnvelope, createNormalizedError, RollingMetrics, safeParseEnvelope } from "../../shared/contracts/src/index.js";
 
 test("createEnvelope + safeParseEnvelope roundtrip", () => {
   const envelope = createEnvelope({
@@ -40,4 +40,33 @@ test("createNormalizedError always emits traceId", () => {
   assert.equal(normalized.code, "TEST_ERROR");
   assert.equal(normalized.message, "failure");
   assert.ok(typeof normalized.traceId === "string" && normalized.traceId.length > 10);
+});
+
+test("rolling metrics onRecord hook receives normalized samples", () => {
+  const records: Array<{ operation: string; durationMs: number; ok: boolean }> = [];
+  const metrics = new RollingMetrics({
+    maxSamplesPerBucket: 50,
+    onRecord: (entry) => {
+      records.push({
+        operation: entry.operation,
+        durationMs: entry.durationMs,
+        ok: entry.ok,
+      });
+    },
+  });
+
+  metrics.record("GET /healthz", 10.9, true);
+  metrics.record("GET /healthz", -5, false);
+
+  assert.equal(records.length, 2);
+  assert.deepEqual(records[0], {
+    operation: "GET /healthz",
+    durationMs: 10,
+    ok: true,
+  });
+  assert.deepEqual(records[1], {
+    operation: "GET /healthz",
+    durationMs: 0,
+    ok: false,
+  });
 });
