@@ -128,6 +128,9 @@ test("ui navigator enforces simulated executor for non-main session sandbox mode
 test("ui navigator routes remote executor calls to requested device node", async () => {
   let observedNodeHeader = "";
   let observedNodeContext = "";
+  let observedDomSnapshot = "";
+  let observedAccessibilityTree = "";
+  let observedMarkHintsCount = 0;
   const server = createServer(async (req, res) => {
     if (req.url === "/execute" && req.method === "POST") {
       const chunks: Buffer[] = [];
@@ -140,6 +143,9 @@ test("ui navigator routes remote executor calls to requested device node", async
       const context = asObject(asObj.context);
       observedNodeHeader = typeof req.headers["x-device-node-id"] === "string" ? req.headers["x-device-node-id"] : "";
       observedNodeContext = typeof context.deviceNodeId === "string" ? context.deviceNodeId : "";
+      observedDomSnapshot = typeof context.domSnapshot === "string" ? context.domSnapshot : "";
+      observedAccessibilityTree = typeof context.accessibilityTree === "string" ? context.accessibilityTree : "";
+      observedMarkHintsCount = Array.isArray(context.markHints) ? context.markHints.length : 0;
 
       res.statusCode = 200;
       res.setHeader("Content-Type", "application/json");
@@ -212,17 +218,23 @@ test("ui navigator routes remote executor calls to requested device node", async
           payload: {
             intent: "ui_task",
             input: {
-              goal: "Open page and verify content",
-              url: "https://example.com",
-              deviceNodeId: "desktop-a",
-            },
+            goal: "Open page and verify content",
+            url: "https://example.com",
+            deviceNodeId: "desktop-a",
+            domSnapshot: "<main><button id='checkout'>Checkout</button></main>",
+            accessibilityTree: "main > button[name=Checkout]",
+            markHints: ["checkout_button@(420,620)", "cart_link@(120,88)"],
           },
-        }) as OrchestratorRequest;
+        },
+      }) as OrchestratorRequest;
 
         const response = await runUiNavigatorAgent(request);
         assert.equal(response.payload.status, "completed");
         assert.equal(observedNodeHeader, "desktop-a");
         assert.equal(observedNodeContext, "desktop-a");
+        assert.match(observedDomSnapshot, /checkout/i);
+        assert.match(observedAccessibilityTree, /button/i);
+        assert.equal(observedMarkHintsCount, 2);
 
         const output = asObject(response.payload.output);
         const execution = asObject(output.execution);

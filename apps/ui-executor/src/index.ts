@@ -17,6 +17,9 @@ type ExecuteRequest = {
     goal?: string;
     url?: string;
     screenshotRef?: string;
+    domSnapshot?: string;
+    accessibilityTree?: string;
+    markHints?: string[];
     deviceNodeId?: string;
     cursor?: { x: number; y: number };
   };
@@ -191,6 +194,11 @@ function normalizeRequest(input: unknown): ExecuteRequest {
     goal: toNonEmptyString(contextRaw.goal, ""),
     url: toNonEmptyString(contextRaw.url, ""),
     screenshotRef: toNonEmptyString(contextRaw.screenshotRef, ""),
+    domSnapshot: toNonEmptyString(contextRaw.domSnapshot, ""),
+    accessibilityTree: toNonEmptyString(contextRaw.accessibilityTree, ""),
+    markHints: Array.isArray(contextRaw.markHints)
+      ? contextRaw.markHints.map((item) => toNonEmptyString(item, "")).filter((item) => item.length > 0)
+      : [],
     deviceNodeId: toNonEmptyString(contextRaw.deviceNodeId, "").toLowerCase(),
     cursor:
       isRecord(contextRaw.cursor) && typeof contextRaw.cursor.x === "number" && typeof contextRaw.cursor.y === "number"

@@ -22,6 +22,9 @@ type UiTaskInput = {
   url: string | null;
   deviceNodeId: string | null;
   screenshotRef: string | null;
+  domSnapshot: string | null;
+  accessibilityTree: string | null;
+  markHints: string[];
   cursor: { x: number; y: number } | null;
   formData: Record<string, string>;
   maxSteps: number;
@@ -219,6 +222,44 @@ function toStringArray(value: unknown): string[] {
     return [];
   }
   return value.map((item) => toNonEmptyString(item, "")).filter((item) => item.length > 0);
+}
+
+function clipText(value: string | null, maxChars: number): string | null {
+  if (!value) {
+    return null;
+  }
+  if (value.length <= maxChars) {
+    return value;
+  }
+  return `${value.slice(0, maxChars)} ...[truncated]`;
+}
+
+function normalizeMarkHints(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const hints: string[] = [];
+  for (const item of value) {
+    if (typeof item === "string") {
+      const normalized = toNonEmptyString(item, "");
+      if (normalized.length > 0) {
+        hints.push(normalized);
+      }
+      continue;
+    }
+    if (!isRecord(item)) {
+      continue;
+    }
+    const label = toNonEmptyString(item.label, toNonEmptyString(item.id, "mark"));
+    const x = toNullableInt(item.x);
+    const y = toNullableInt(item.y);
+    if (label.length > 0 && x !== null && y !== null) {
+      hints.push(`${label}@(${x},${y})`);
+    } else if (label.length > 0) {
+      hints.push(label);
+    }
+  }
+  return hints.slice(0, 80);
 }
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -609,6 +650,9 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
     : null;
 
   const screenshotRef = toNullableString(raw.screenshotRef);
+  const domSnapshot = toNullableString(raw.domSnapshot ?? raw.dom);
+  const accessibilityTree = toNullableString(raw.accessibilityTree ?? raw.a11yTree ?? raw.accessibilitySnapshot);
+  const markHints = normalizeMarkHints(raw.markHints ?? raw.marks);
   const formDataRaw = isRecord(raw.formData) ? raw.formData : {};
   const formData: Record<string, string> = {};
   for (const [key, value] of Object.entries(formDataRaw)) {
@@ -641,6 +685,9 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
     url: toNullableString(raw.url),
     deviceNodeId: toNullableString(raw.deviceNodeId ?? deviceNodeRaw.nodeId ?? raw.targetNodeId),
     screenshotRef,
+    domSnapshot,
+    accessibilityTree,
+    markHints,
     cursor,
     formData,
     maxSteps: parsePositiveInt(String(raw.maxSteps ?? ""), config.maxStepsDefault),
@@ -1021,6 +1068,9 @@ async function buildActionPlan(params: {
     `Goal: ${input.goal}`,
     `URL: ${input.url ?? "n/a"}`,
     `ScreenshotRef: ${input.screenshotRef ?? "n/a"}`,
+    `DOM snapshot excerpt: ${clipText(input.domSnapshot, 1200) ?? "n/a"}`,
+    `Accessibility tree excerpt: ${clipText(input.accessibilityTree, 1200) ?? "n/a"}`,
+    `Set-of-marks hints: ${input.markHints.length > 0 ? JSON.stringify(input.markHints.slice(0, 25)) : "n/a"}`,
     `Cursor: ${input.cursor ? `${input.cursor.x},${input.cursor.y}` : "n/a"}`,
     `Form data: ${JSON.stringify(input.formData)}`,
     `Max steps: ${input.maxSteps}`,
@@ -1416,6 +1466,9 @@ async function executeWithRemoteHttpAdapter(params: {
           actions: params.actions,
           context: {
             screenshotRef: params.input.screenshotRef,
+            domSnapshot: params.input.domSnapshot,
+            accessibilityTree: params.input.accessibilityTree,
+            markHints: params.input.markHints,
             cursor: params.input.cursor,
             goal: params.input.goal,
             deviceNodeId: params.routing.selectedNode?.nodeId ?? params.input.deviceNodeId,
