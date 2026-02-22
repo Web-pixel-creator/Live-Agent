@@ -13,6 +13,7 @@ This folder provides an idempotent baseline for:
 - `setup-analytics-sinks.ps1` - analytics routing baseline (Cloud Logging -> BigQuery sink + log-based metric for Cloud Monitoring dashboards/alerts).
 - `setup-monitoring-baseline.ps1` - Cloud Monitoring baseline (log-based metrics + KPI dashboard + alert policies).
 - `setup-observability.ps1` - one-shot wrapper (`bootstrap` + `setup-analytics-sinks` + `setup-monitoring-baseline`).
+- `collect-observability-evidence.ps1` - collects judge-ready observability evidence into `artifacts/observability`.
 
 ## Usage
 
@@ -47,6 +48,12 @@ Template validation before apply (from repo root):
 
 ```powershell
 npm run infra:monitoring:validate
+```
+
+Evidence collection (after setup and traffic):
+
+```powershell
+pwsh ./infra/gcp/collect-observability-evidence.ps1 -ProjectId "<your-project-id>" -DatasetId "agent_analytics" -LookbackHours 24
 ```
 
 Optional flags:

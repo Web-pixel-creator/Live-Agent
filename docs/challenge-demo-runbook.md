@@ -118,3 +118,7 @@ npm run infra:monitoring:validate
 ```powershell
 pwsh ./infra/gcp/setup-observability.ps1 -ProjectId "<your-project-id>" -Region "us-central1" -Location "US" -DatasetId "agent_analytics"
 ```
+3. Collect evidence package:
+```powershell
+pwsh ./infra/gcp/collect-observability-evidence.ps1 -ProjectId "<your-project-id>" -DatasetId "agent_analytics" -LookbackHours 24
+```
