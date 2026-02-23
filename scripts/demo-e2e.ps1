@@ -1651,7 +1651,7 @@ try {
     $taskQueueStaleThresholdMs = [int]$taskQueueStaleThresholdMsRaw
     $taskQueueMaxAgeMs = [int]$taskQueueMaxAgeMsRaw
     $taskQueuePressureLevel = [string](Get-FieldValue -Object $taskQueue -Path @("pressureLevel"))
-    $allowedTaskQueuePressureLevels = @("idle", "healthy", "elevated", "critical")
+    $allowedTaskQueuePressureLevels = @("idle", "healthy", "elevated")
     Assert-Condition -Condition ($allowedTaskQueuePressureLevels -contains $taskQueuePressureLevel) -Message "Operator summary taskQueue pressureLevel is invalid."
     Assert-Condition -Condition ($taskQueueTotal -eq $activeTasks.Count) -Message "Operator summary taskQueue total must equal activeTasks count."
     Assert-Condition -Condition (($taskQueueQueued + $taskQueueRunning + $taskQueuePendingApproval + $taskQueueOther) -eq $taskQueueTotal) -Message "Operator summary taskQueue statusCounts must sum to total."
@@ -2488,7 +2488,7 @@ $summary = [ordered]@{
       [int]$operatorActionsData.taskQueueStaleCount -ge 0 -and
       [int]$operatorActionsData.taskQueueStaleThresholdMs -gt 0 -and
       [int]$operatorActionsData.taskQueueMaxAgeMs -ge 0 -and
-      @("idle", "healthy", "elevated", "critical") -contains [string]$operatorActionsData.taskQueuePressureLevel
+      @("idle", "healthy", "elevated") -contains [string]$operatorActionsData.taskQueuePressureLevel
     ) { $true } else { $false }
     operatorDeviceNodeId = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeId } else { $null }
     operatorDeviceNodeCreatedVersion = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeCreatedVersion } else { $null }

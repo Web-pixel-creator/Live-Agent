@@ -138,7 +138,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   }
 
   $taskQueuePressureLevel = [string]$summary.kpis.operatorTaskQueuePressureLevel
-  $allowedTaskQueuePressureLevels = @("idle", "healthy", "elevated", "critical")
+  $allowedTaskQueuePressureLevels = @("idle", "healthy", "elevated")
   if (-not ($allowedTaskQueuePressureLevels -contains $taskQueuePressureLevel)) {
     Fail ("Critical KPI check failed: operatorTaskQueuePressureLevel expected one of [" + ($allowedTaskQueuePressureLevels -join ", ") + "], actual " + $taskQueuePressureLevel)
   }
