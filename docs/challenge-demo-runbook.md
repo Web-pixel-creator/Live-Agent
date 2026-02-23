@@ -29,6 +29,10 @@ and configure gateway env:
 Recommended UI executor safety setting for judged demo:
 - `UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE=failed` (fail-fast instead of silent simulated fallback when remote executor is unavailable).
 
+Optional startup reliability knobs for local/CI runs:
+- `DEMO_E2E_SERVICE_START_MAX_ATTEMPTS=2` (or higher for unstable runners).
+- `DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS=1200`.
+
 3. Open `http://localhost:3000` and confirm:
 - `Connection status` changes to `connected`.
 - KPI panel is visible (`target/current/final`).
