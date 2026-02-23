@@ -63,6 +63,7 @@ type ExecutorConfig = {
   defaultNavigationUrl: string;
   strictPlaywright: boolean;
   simulateIfUnavailable: boolean;
+  forceSimulation: boolean;
   actionTimeoutMs: number;
   defaultDeviceNodeId: string | null;
   deviceNodes: Map<string, DeviceNodeDescriptor>;
@@ -120,6 +121,7 @@ function loadConfig(): ExecutorConfig {
     defaultNavigationUrl: process.env.UI_EXECUTOR_DEFAULT_URL ?? "https://example.com",
     strictPlaywright: process.env.UI_EXECUTOR_STRICT_PLAYWRIGHT === "true",
     simulateIfUnavailable: process.env.UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE !== "false",
+    forceSimulation: process.env.UI_EXECUTOR_FORCE_SIMULATION === "true",
     actionTimeoutMs: Number.isFinite(timeoutRaw) && timeoutRaw > 0 ? Math.floor(timeoutRaw) : 2500,
     defaultDeviceNodeId: defaultDeviceNodeId.length > 0 ? defaultDeviceNodeId.toLowerCase() : null,
     deviceNodes,
@@ -411,6 +413,7 @@ export const server = createServer(async (req, res) => {
         playwrightAvailable,
         strictPlaywright: config.strictPlaywright,
         simulateIfUnavailable: config.simulateIfUnavailable,
+        forceSimulation: config.forceSimulation,
         registeredDeviceNodes: config.deviceNodes.size,
       });
       return;
@@ -452,6 +455,16 @@ export const server = createServer(async (req, res) => {
           nodeId: selectedNode.nodeId,
           status: selectedNode.status,
         });
+        return;
+      }
+
+      if (config.forceSimulation) {
+        const simulated = simulateExecution(
+          request,
+          "Forced simulation mode (UI_EXECUTOR_FORCE_SIMULATION=true)",
+          selectedNode,
+        );
+        writeJson(res, 200, simulated);
         return;
       }
 

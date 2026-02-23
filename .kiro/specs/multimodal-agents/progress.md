@@ -46,6 +46,7 @@
 15. Demo e2e now exposes `gateway.websocket.draining_rejection` proof and policy validates drain-mode rejection + post-warmup recovery (`GATEWAY_DRAINING`, `traceId`, `recoveryStatus=completed`).
 16. Release readiness gate now fails fast on critical summary evidence (`gateway.websocket.binding_mismatch`, `gateway.websocket.draining_rejection`, `api.sessions.versioning`) and prints judge-critical KPI snapshots in final output.
 17. Demo frontend live transcript now uses per-turn streaming aggregation (single assistant entry + idle/turn completion finalization), reducing token-by-token noise in judged live sessions.
+18. Demo/perf runtime profiles now pin `UI_EXECUTOR_FORCE_SIMULATION=true`, preserving `remote_http` adapter contract while removing Playwright/network variance; `ui.approval.approve_resume` latency stabilized from multi-second tails to sub-second runs in e2e.
 
 ## Current Focus Queue
 

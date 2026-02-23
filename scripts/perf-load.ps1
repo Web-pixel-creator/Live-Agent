@@ -217,6 +217,7 @@ try {
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS" -Value "300"
   Set-EnvDefault -Name "UI_EXECUTOR_STRICT_PLAYWRIGHT" -Value "false"
   Set-EnvDefault -Name "UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE" -Value "true"
+  Set-EnvDefault -Name "UI_EXECUTOR_FORCE_SIMULATION" -Value "true"
   Set-EnvDefault -Name "ORCHESTRATOR_URL" -Value "http://127.0.0.1:8082/orchestrate"
 
   if (-not $SkipBuild) {
