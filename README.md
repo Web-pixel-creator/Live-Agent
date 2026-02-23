@@ -134,7 +134,10 @@ Run a full judge-oriented smoke scenario (translation + negotiation + storytelle
 npm run demo:e2e
 ```
 
-The GitHub workflow `.github/workflows/demo-e2e.yml` also runs `npm run infra:monitoring:validate` before demo execution.
+CI split:
+
+- PR quick gate: `.github/workflows/pr-quality.yml` (build + unit + profile smoke + monitoring validate + `demo:e2e:fast` + policy + badge artifact).
+- Full gate on `main/master` + manual dispatch: `.github/workflows/demo-e2e.yml` (includes perf-load policy gate and badge publish to `gh-pages`).
 
 Fast mode (skip workspace build):
 
@@ -344,11 +347,15 @@ Useful flags:
 
 ## CI Workflow
 
-- GitHub Actions workflow: `.github/workflows/demo-e2e.yml`
-- Triggered on push/PR and manual dispatch.
-- Runs `npm run demo:e2e` on `windows-latest`.
-- Runs KPI policy gate via `npm run demo:e2e:policy`.
-- On push to `main`/`master`, publishes public badge endpoint files (`demo-e2e/badge.json`) to `gh-pages`.
+- PR workflow: `.github/workflows/pr-quality.yml`
+- Triggered on pull requests.
+- Runs build + unit + profile smoke + monitoring validate + `npm run demo:e2e:fast` + policy check.
+- Uploads demo artifacts for PR review.
+
+- Full workflow: `.github/workflows/demo-e2e.yml`
+- Triggered on push to `main`/`master` and manual dispatch.
+- Runs unit/profile/monitoring/demo policy gates plus perf-load policy gate.
+- Publishes public badge endpoint files (`demo-e2e/badge.json`) to `gh-pages` on `main`/`master`.
 - Publishes `summary.md` into GitHub Job Summary for quick review.
 - Uploads:
   - `artifacts/demo-e2e/summary.json`
@@ -358,6 +365,11 @@ Useful flags:
   - `artifacts/demo-e2e/badge.json`
   - `artifacts/demo-e2e/badge-details.json`
   - `artifacts/demo-e2e/logs`
+  - `artifacts/perf-load/summary.json`
+  - `artifacts/perf-load/summary.md`
+  - `artifacts/perf-load/policy-check.json`
+  - `artifacts/perf-load/policy-check.md`
+  - `artifacts/perf-load/logs`
 
 ## PR Gate
 

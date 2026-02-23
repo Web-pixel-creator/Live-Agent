@@ -1,18 +1,14 @@
-name: Demo E2E
+name: PR Quality Gate
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-      - master
+  pull_request:
 
 jobs:
-  demo-e2e:
+  pr-quality:
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 35
     permissions:
-      contents: write
+      contents: read
     env:
       FIRESTORE_ENABLED: "false"
       UI_NAVIGATOR_EXECUTOR_MODE: remote_http
@@ -34,6 +30,10 @@ jobs:
         run: npm ci
         shell: powershell
 
+      - name: Build Workspaces
+        run: npm run build
+        shell: powershell
+
       - name: Run Unit Tests
         run: npm run test:unit
         shell: powershell
@@ -46,8 +46,8 @@ jobs:
         run: npm run infra:monitoring:validate
         shell: powershell
 
-      - name: Run Demo E2E
-        run: npm run demo:e2e
+      - name: Run Demo E2E (Fast)
+        run: npm run demo:e2e:fast
         shell: powershell
 
       - name: Validate Demo KPI Policy
@@ -67,31 +67,6 @@ jobs:
       - name: Build Badge Artifact
         run: npm run demo:e2e:badge
         shell: powershell
-
-      - name: Run Perf Load Policy Gate
-        run: npm run perf:load:fast -- -LiveIterations 6 -LiveConcurrency 2 -UiIterations 6 -UiConcurrency 2
-        shell: powershell
-
-      - name: Prepare Badge Publish Directory
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-        shell: powershell
-        run: |
-          New-Item -Path "artifacts/demo-e2e/public" -ItemType Directory -Force | Out-Null
-          Copy-Item "artifacts/demo-e2e/badge.json" "artifacts/demo-e2e/public/badge.json" -Force
-          if (Test-Path "artifacts/demo-e2e/badge-details.json") {
-            Copy-Item "artifacts/demo-e2e/badge-details.json" "artifacts/demo-e2e/public/badge-details.json" -Force
-          }
-
-      - name: Publish Badge To gh-pages
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: artifacts/demo-e2e/public
-          destination_dir: demo-e2e
-          keep_files: true
-          force_orphan: false
 
       - name: Publish Demo Report To Job Summary
         if: always()
@@ -116,26 +91,12 @@ jobs:
             $badge = Get-Content "artifacts/demo-e2e/badge.json" -Raw | ConvertFrom-Json
             ("Badge: " + $badge.label + " -> " + $badge.message + " (" + $badge.color + ")") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           }
-          if (Test-Path "artifacts/perf-load/policy-check.json") {
-            $perf = Get-Content "artifacts/perf-load/policy-check.json" -Raw | ConvertFrom-Json
-            ("Perf policy gate: " + ($(if ($perf.ok) { "passed" } else { "failed" })) + " (" + $perf.checks + " checks)") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-          }
-          if ((Test-Path "artifacts/demo-e2e/badge.json") -and (("${{ github.event_name }}" -eq "push") -and (("${{ github.ref }}" -eq "refs/heads/main") -or ("${{ github.ref }}" -eq "refs/heads/master")))) {
-            $repoParts = "${{ github.repository }}".Split("/")
-            $owner = $repoParts[0]
-            $repo = $repoParts[1]
-            $badgeEndpoint = "https://$owner.github.io/$repo/demo-e2e/badge.json"
-            $badgeShield = "https://img.shields.io/endpoint?url=$([System.Uri]::EscapeDataString($badgeEndpoint))"
-            "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-            ("Badge endpoint: " + $badgeEndpoint) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-            ("Shields URL: " + $badgeShield) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-          }
 
       - name: Upload Demo Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: demo-e2e-artifacts
+          name: pr-quality-artifacts
           path: |
             artifacts/demo-e2e/summary.json
             artifacts/demo-e2e/summary.md
@@ -144,9 +105,4 @@ jobs:
             artifacts/demo-e2e/badge.json
             artifacts/demo-e2e/badge-details.json
             artifacts/demo-e2e/logs
-            artifacts/perf-load/summary.json
-            artifacts/perf-load/summary.md
-            artifacts/perf-load/policy-check.json
-            artifacts/perf-load/policy-check.md
-            artifacts/perf-load/logs
           if-no-files-found: warn
