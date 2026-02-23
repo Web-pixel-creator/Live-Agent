@@ -388,6 +388,24 @@ async function main() {
     "ready",
   );
   addCheck(
+    "kpi.operatorDeviceNodeLookupValidated",
+    kpis.operatorDeviceNodeLookupValidated === true,
+    kpis.operatorDeviceNodeLookupValidated,
+    true,
+  );
+  addCheck(
+    "kpi.operatorDeviceNodeLookupStatus",
+    String(kpis.operatorDeviceNodeLookupStatus) === "degraded",
+    kpis.operatorDeviceNodeLookupStatus,
+    "degraded",
+  );
+  addCheck(
+    "kpi.operatorDeviceNodeLookupVersion",
+    toNumber(kpis.operatorDeviceNodeLookupVersion) >= 2,
+    kpis.operatorDeviceNodeLookupVersion,
+    ">= 2",
+  );
+  addCheck(
     "kpi.approvalsInvalidIntentStatusCode",
     toNumber(kpis.approvalsInvalidIntentStatusCode) === 400,
     kpis.approvalsInvalidIntentStatusCode,

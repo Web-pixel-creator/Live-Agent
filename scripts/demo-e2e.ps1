@@ -1169,6 +1169,47 @@ try {
     $adminHeaders = @{
       "x-operator-role" = "admin"
     }
+    $deviceNodeId = "desktop-main-$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
+
+    $deviceUpsertResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/device-nodes" -Headers $adminHeaders -Body @{
+      nodeId = $deviceNodeId
+      displayName = "E2E Desktop Main"
+      kind = "desktop"
+      platform = "windows-11"
+      executorUrl = "http://localhost:8090/execute"
+      status = "online"
+      capabilities = @("screen", "click", "type")
+      trustLevel = "reviewed"
+      updatedBy = "demo-e2e-admin"
+    } -TimeoutSec $RequestTimeoutSec
+    $deviceNodeCreated = Get-FieldValue -Object $deviceUpsertResponse -Path @("data")
+    $deviceNodeCreatedId = [string](Get-FieldValue -Object $deviceNodeCreated -Path @("nodeId"))
+    $deviceNodeCreatedVersion = [int](Get-FieldValue -Object $deviceNodeCreated -Path @("version"))
+    Assert-Condition -Condition ($deviceNodeCreatedId -eq $deviceNodeId) -Message "Device node upsert returned unexpected nodeId."
+    Assert-Condition -Condition ($deviceNodeCreatedVersion -ge 1) -Message "Device node upsert should set version >= 1."
+
+    $deviceHeartbeatResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/device-nodes/heartbeat" -Headers $operatorHeaders -Body @{
+      nodeId = $deviceNodeId
+      status = "degraded"
+      metadata = @{
+        source = "demo-e2e"
+        heartbeat = $true
+      }
+    } -TimeoutSec $RequestTimeoutSec
+    $deviceNodeHeartbeat = Get-FieldValue -Object $deviceHeartbeatResponse -Path @("data")
+    $deviceNodeHeartbeatStatus = [string](Get-FieldValue -Object $deviceNodeHeartbeat -Path @("status"))
+    Assert-Condition -Condition ($deviceNodeHeartbeatStatus -eq "degraded") -Message "Device node heartbeat should set status=degraded."
+
+    $deviceLookupResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/device-nodes/$([System.Uri]::EscapeDataString($deviceNodeId))" -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
+    $deviceLookupNode = Get-FieldValue -Object $deviceLookupResponse -Path @("data")
+    $deviceLookupNodeId = [string](Get-FieldValue -Object $deviceLookupNode -Path @("nodeId"))
+    $deviceLookupStatus = [string](Get-FieldValue -Object $deviceLookupNode -Path @("status"))
+    $deviceLookupVersion = [int](Get-FieldValue -Object $deviceLookupNode -Path @("version"))
+    $deviceLookupLastSeenAt = [string](Get-FieldValue -Object $deviceLookupNode -Path @("lastSeenAt"))
+    Assert-Condition -Condition ($deviceLookupNodeId -eq $deviceNodeId) -Message "Device node status lookup returned unexpected nodeId."
+    Assert-Condition -Condition ($deviceLookupStatus -eq "degraded") -Message "Device node status lookup should return degraded status after heartbeat."
+    Assert-Condition -Condition ($deviceLookupVersion -gt $deviceNodeCreatedVersion) -Message "Device node status lookup version should increase after heartbeat."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($deviceLookupLastSeenAt)) -Message "Device node status lookup should include lastSeenAt."
 
     $summaryResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/operator/summary" -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
     $summaryData = Get-FieldValue -Object $summaryResponse -Path @("data")
@@ -1300,6 +1341,13 @@ try {
       liveBridgeHealthLastEventType = $liveBridgeHealthLastEventType
       liveBridgeHealthProbeTelemetryValidated = $true
       liveBridgeHealthBlockValidated = $true
+      deviceNodeId = $deviceNodeId
+      deviceNodeCreatedVersion = $deviceNodeCreatedVersion
+      deviceNodeHeartbeatStatus = $deviceNodeHeartbeatStatus
+      deviceNodeLookupStatus = $deviceLookupStatus
+      deviceNodeLookupVersion = $deviceLookupVersion
+      deviceNodeLookupLastSeenAt = $deviceLookupLastSeenAt
+      deviceNodeLookupValidated = $true
     }
   } | Out-Null
 
@@ -1738,8 +1786,23 @@ $summary = [ordered]@{
     operatorLiveBridgeHealthPongEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthPongEvents } else { $null }
     operatorLiveBridgeHealthPingErrorEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthPingErrorEvents } else { $null }
     operatorLiveBridgeHealthLastEventType = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthLastEventType } else { $null }
+    operatorDeviceNodeId = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeId } else { $null }
+    operatorDeviceNodeCreatedVersion = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeCreatedVersion } else { $null }
+    operatorDeviceNodeHeartbeatStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeHeartbeatStatus } else { $null }
+    operatorDeviceNodeLookupStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeLookupStatus } else { $null }
+    operatorDeviceNodeLookupVersion = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeLookupVersion } else { $null }
+    operatorDeviceNodeLookupLastSeenAt = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeLookupLastSeenAt } else { $null }
     operatorLiveBridgeHealthBlockValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthBlockValidated } else { $false }
     operatorLiveBridgeProbeTelemetryValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthProbeTelemetryValidated } else { $false }
+    operatorDeviceNodeLookupValidated = if (
+      $null -ne $operatorActionsData -and
+      [bool]$operatorActionsData.deviceNodeLookupValidated -eq $true -and
+      -not [string]::IsNullOrWhiteSpace([string]$operatorActionsData.deviceNodeId) -and
+      [string]$operatorActionsData.deviceNodeHeartbeatStatus -eq "degraded" -and
+      [string]$operatorActionsData.deviceNodeLookupStatus -eq "degraded" -and
+      [int]$operatorActionsData.deviceNodeLookupVersion -ge 2 -and
+      -not [string]::IsNullOrWhiteSpace([string]$operatorActionsData.deviceNodeLookupLastSeenAt)
+    ) { $true } else { $false }
     operatorAuditTrailValidated = if (
       $null -ne $operatorActionsData -and
       [int]$operatorActionsData.operatorAuditTotal -ge 4
