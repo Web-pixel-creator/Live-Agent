@@ -13,6 +13,8 @@ param(
   [switch]$SkipPush,
   [switch]$SkipPages,
   [switch]$SkipBadgeCheck,
+  [switch]$SkipReleaseVerification,
+  [switch]$StrictReleaseVerification,
   [int]$BadgeCheckAttempts = 20,
   [int]$BadgeCheckIntervalSec = 20
 )
@@ -84,6 +86,15 @@ elseif ($existingRemote -ne $RemoteUrl) {
   }
   else {
     Fail "Remote '$RemoteName' already points to '$existingRemote'. Use -ForceRemoteUpdate to replace."
+  }
+}
+
+if (-not $SkipReleaseVerification) {
+  $verificationScript = if ($StrictReleaseVerification) { "verify:release:strict" } else { "verify:release" }
+  Write-Host "[repo-publish] Running pre-publish quality gate: npm run $verificationScript"
+  & npm run $verificationScript
+  if ($LASTEXITCODE -ne 0) {
+    Fail "Pre-publish quality gate failed: npm run $verificationScript"
   }
 }
 

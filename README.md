@@ -169,6 +169,12 @@ npm run verify:release
 
 Note: `verify:release` reuses the prebuilt workspace and runs `demo:e2e:fast` with `RequestTimeoutSec=45` for stability of long approval-resume paths.
 
+Strict final pre-submission gate (zero scenario retries allowed):
+
+```powershell
+npm run verify:release:strict
+```
+
 Optional faster local pass (skip build):
 
 ```powershell
@@ -334,6 +340,8 @@ $env:GITHUB_TOKEN="<token-with-repo-pages-permissions>"
 npm run repo:publish
 ```
 
+By default `repo:publish` runs pre-publish release verification (`npm run verify:release`). For strict final publishing, use `-StrictReleaseVerification`.
+
 Safe dry-run style (no push/pages/badge):
 
 ```powershell
@@ -358,6 +366,8 @@ Useful flags:
 - `-IncludeFrontend` - also start `demo-frontend` and health-check it.
 - `-KeepServices` - keep script-started services running after completion.
 - `-OutputPath <path>` - custom report output path.
+- `-SkipReleaseVerification` - skip pre-publish release verification (`verify:release`).
+- `-StrictReleaseVerification` - use strict pre-publish gate (`verify:release:strict`).
 
 ## CI Workflow
 
