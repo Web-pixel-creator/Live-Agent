@@ -59,7 +59,11 @@ function To-NumberOrNaN([object]$Value) {
     return [double]::NaN
   }
   $parsed = 0.0
-  if ([double]::TryParse($raw, [ref]$parsed)) {
+  $numberStyle = [System.Globalization.NumberStyles]::Float -bor [System.Globalization.NumberStyles]::AllowThousands
+  if ([double]::TryParse($raw, $numberStyle, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$parsed)) {
+    return $parsed
+  }
+  if ([double]::TryParse($raw, $numberStyle, [System.Globalization.CultureInfo]::CurrentCulture, [ref]$parsed)) {
     return $parsed
   }
   return [double]::NaN

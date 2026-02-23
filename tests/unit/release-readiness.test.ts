@@ -700,6 +700,23 @@ test(
 );
 
 test(
+  "release-readiness accepts decimal perf latency values from artifacts",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessWithPerfArtifacts(
+      createPassingSummary(),
+      createPassingPerfSummary({
+        liveP95Ms: 40.5,
+        uiP95Ms: 38.5,
+        gatewayReplayP95Ms: 123.95,
+      }),
+      createPassingPerfPolicy(),
+    );
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+  },
+);
+
+test(
   "release-readiness fails when perf policy threshold drifts above release limit",
   { skip: skipIfNoPowerShell },
   () => {

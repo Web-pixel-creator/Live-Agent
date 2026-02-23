@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `143` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`179` tests passed).
+4. Unit tests are green (`180` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -76,6 +76,7 @@
 45. `release-readiness` now supports strict final mode (`-StrictFinalRun`) that enforces zero scenario retries (`kpi.scenarioRetriesUsedCount = 0`) and forwards strict policy override (`--maxScenarioRetriesUsedCount 0`) to demo KPI gate for pre-submission cleanliness.
 46. Added dedicated CI workflow `.github/workflows/release-strict-final.yml` to run `verify:release:strict` (`release-readiness.ps1 -StrictFinalRun`) on `main/master` pushes and manual dispatch, with release-critical artifact publishing plus anti-drift coverage in `tests/unit/release-strict-workflow-alignment.test.ts`.
 47. `repo:publish` now runs pre-publish release verification by default (`verify:release`), supports strict mode (`-StrictReleaseVerification` -> `verify:release:strict`) and explicit bypass (`-SkipReleaseVerification`), with anti-drift coverage in `tests/unit/repo-publish-release-gate-alignment.test.ts`.
+48. Fixed locale-dependent numeric parsing in `scripts/release-readiness.ps1` (`To-NumberOrNaN` now parses with invariant culture fallback), eliminating false failures on decimal perf values (e.g., `ui_navigation_execution p95=38.5`), with dedicated regression test `release-readiness accepts decimal perf latency values from artifacts`.
 
 ## Current Focus Queue
 
