@@ -120,6 +120,15 @@ const el = {
   operatorLifecycleLastChange: document.getElementById("operatorLifecycleLastChange"),
   operatorLifecycleDrainingServices: document.getElementById("operatorLifecycleDrainingServices"),
   operatorLifecycleHint: document.getElementById("operatorLifecycleHint"),
+  operatorTaskQueueStatus: document.getElementById("operatorTaskQueueStatus"),
+  operatorTaskQueueTotal: document.getElementById("operatorTaskQueueTotal"),
+  operatorTaskQueueQueued: document.getElementById("operatorTaskQueueQueued"),
+  operatorTaskQueueRunning: document.getElementById("operatorTaskQueueRunning"),
+  operatorTaskQueuePendingApproval: document.getElementById("operatorTaskQueuePendingApproval"),
+  operatorTaskQueueStale: document.getElementById("operatorTaskQueueStale"),
+  operatorTaskQueueMaxAge: document.getElementById("operatorTaskQueueMaxAge"),
+  operatorTaskQueueOldest: document.getElementById("operatorTaskQueueOldest"),
+  operatorTaskQueueHint: document.getElementById("operatorTaskQueueHint"),
   deviceNodeId: document.getElementById("deviceNodeId"),
   deviceNodeDisplayName: document.getElementById("deviceNodeDisplayName"),
   deviceNodeKind: document.getElementById("deviceNodeKind"),
@@ -552,6 +561,27 @@ function setOperatorLifecycleHint(text, variant = "neutral") {
   el.operatorLifecycleHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorTaskQueueHint(text, variant = "neutral") {
+  if (!el.operatorTaskQueueHint) {
+    return;
+  }
+  el.operatorTaskQueueHint.textContent = text;
+  el.operatorTaskQueueHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorTaskQueueHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorTaskQueueHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorTaskQueueHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorTaskQueueHint.classList.add("operator-health-hint-neutral");
+}
+
 function resetOperatorHealthWidget(reason = "no_data") {
   setText(el.operatorHealthState, "unknown");
   setText(el.operatorHealthLastEventType, "-");
@@ -628,6 +658,18 @@ function resetOperatorLifecycleWidget(reason = "no_data") {
   setText(el.operatorLifecycleDrainingServices, "none");
   setOperatorLifecycleHint("Refresh summary to inspect runtime lifecycle states.", "neutral");
   setStatusPill(el.operatorLifecycleStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorTaskQueueWidget(reason = "no_data") {
+  setText(el.operatorTaskQueueTotal, "0");
+  setText(el.operatorTaskQueueQueued, "0");
+  setText(el.operatorTaskQueueRunning, "0");
+  setText(el.operatorTaskQueuePendingApproval, "0");
+  setText(el.operatorTaskQueueStale, "0");
+  setText(el.operatorTaskQueueMaxAge, "n/a");
+  setText(el.operatorTaskQueueOldest, "n/a");
+  setOperatorTaskQueueHint("Refresh summary to inspect active task queue pressure.", "neutral");
+  setStatusPill(el.operatorTaskQueueStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function renderOperatorHealthWidget(liveBridgeHealth) {
@@ -1133,6 +1175,207 @@ function renderOperatorLifecycleWidget(services) {
   setOperatorLifecycleHint(hint, hintVariant);
 }
 
+function formatAgeMs(value) {
+  if (!Number.isFinite(value) || value < 0) {
+    return "n/a";
+  }
+  if (value < 1000) {
+    return `${Math.floor(value)} ms`;
+  }
+  if (value < 10000) {
+    return `${(value / 1000).toFixed(1)} s`;
+  }
+  return `${Math.round(value / 1000)} s`;
+}
+
+function normalizeTaskQueueStatus(value) {
+  if (typeof value !== "string") {
+    return "other";
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "queued" || normalized === "running" || normalized === "pending_approval") {
+    return normalized;
+  }
+  return "other";
+}
+
+function normalizeTaskQueuePressureLevel(value) {
+  if (typeof value !== "string") {
+    return "healthy";
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "idle" || normalized === "healthy" || normalized === "elevated" || normalized === "critical") {
+    return normalized;
+  }
+  return "healthy";
+}
+
+function buildTaskQueueSummaryFromActiveTasks(activeTasks) {
+  if (!Array.isArray(activeTasks)) {
+    return null;
+  }
+  const staleThresholdMs = 30000;
+  const thresholds = {
+    elevatedActive: 6,
+    criticalActive: 12,
+    pendingApprovalWarn: 2,
+  };
+  const nowMs = Date.now();
+  let queued = 0;
+  let running = 0;
+  let pendingApproval = 0;
+  let other = 0;
+  let staleCount = 0;
+  let maxAgeMs = 0;
+  let oldestUpdatedAt = null;
+  let oldestTaskId = null;
+  let oldestTaskStatus = null;
+
+  for (const item of activeTasks) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+    const status = normalizeTaskQueueStatus(item.status);
+    if (status === "queued") {
+      queued += 1;
+    } else if (status === "running") {
+      running += 1;
+    } else if (status === "pending_approval") {
+      pendingApproval += 1;
+    } else {
+      other += 1;
+    }
+
+    const updatedAtMs = parseIsoTimestampMs(item.updatedAt);
+    if (updatedAtMs === null) {
+      continue;
+    }
+    const ageMs = Math.max(0, nowMs - updatedAtMs);
+    if (ageMs > maxAgeMs) {
+      maxAgeMs = ageMs;
+      oldestUpdatedAt = typeof item.updatedAt === "string" ? item.updatedAt : null;
+      oldestTaskId = typeof item.taskId === "string" ? item.taskId : null;
+      oldestTaskStatus = typeof item.status === "string" ? item.status : null;
+    }
+    if (ageMs >= staleThresholdMs) {
+      staleCount += 1;
+    }
+  }
+
+  const total = queued + running + pendingApproval + other;
+  let pressureLevel = "healthy";
+  if (total <= 0) {
+    pressureLevel = "idle";
+  } else if (staleCount > 0 || total >= thresholds.criticalActive) {
+    pressureLevel = "critical";
+  } else if (total >= thresholds.elevatedActive || pendingApproval >= thresholds.pendingApprovalWarn) {
+    pressureLevel = "elevated";
+  }
+
+  return {
+    total,
+    statusCounts: {
+      queued,
+      running,
+      pendingApproval,
+      other,
+    },
+    staleCount,
+    staleThresholdMs,
+    maxAgeMs,
+    oldestUpdatedAt,
+    oldestTaskId,
+    oldestTaskStatus,
+    pressureLevel,
+    thresholds,
+  };
+}
+
+function renderOperatorTaskQueueWidget(taskQueueSummary) {
+  if (!taskQueueSummary || typeof taskQueueSummary !== "object") {
+    resetOperatorTaskQueueWidget("no_data");
+    return;
+  }
+  const total = Number(taskQueueSummary.total ?? 0);
+  const statusCounts = taskQueueSummary.statusCounts && typeof taskQueueSummary.statusCounts === "object"
+    ? taskQueueSummary.statusCounts
+    : {};
+  const queued = Number(statusCounts.queued ?? 0);
+  const running = Number(statusCounts.running ?? 0);
+  const pendingApproval = Number(statusCounts.pendingApproval ?? 0);
+  const staleCount = Number(taskQueueSummary.staleCount ?? 0);
+  const staleThresholdMs = Number(taskQueueSummary.staleThresholdMs ?? 30000);
+  const maxAgeMsRaw = Number(taskQueueSummary.maxAgeMs ?? Number.NaN);
+  const maxAgeMs = Number.isFinite(maxAgeMsRaw) ? Math.max(0, maxAgeMsRaw) : null;
+  const pressureLevel = normalizeTaskQueuePressureLevel(taskQueueSummary.pressureLevel);
+  const thresholds = taskQueueSummary.thresholds && typeof taskQueueSummary.thresholds === "object"
+    ? taskQueueSummary.thresholds
+    : {};
+  const elevatedActive = Number(thresholds.elevatedActive ?? 6);
+  const pendingApprovalWarn = Number(thresholds.pendingApprovalWarn ?? 2);
+  const oldestTaskId =
+    typeof taskQueueSummary.oldestTaskId === "string" && taskQueueSummary.oldestTaskId.trim().length > 0
+      ? taskQueueSummary.oldestTaskId.trim()
+      : null;
+  const oldestTaskStatus =
+    typeof taskQueueSummary.oldestTaskStatus === "string" && taskQueueSummary.oldestTaskStatus.trim().length > 0
+      ? taskQueueSummary.oldestTaskStatus.trim()
+      : null;
+  const oldestUpdatedAt =
+    typeof taskQueueSummary.oldestUpdatedAt === "string" && taskQueueSummary.oldestUpdatedAt.trim().length > 0
+      ? taskQueueSummary.oldestUpdatedAt.trim()
+      : null;
+
+  setText(el.operatorTaskQueueTotal, String(Math.max(0, Math.floor(total))));
+  setText(el.operatorTaskQueueQueued, String(Math.max(0, Math.floor(queued))));
+  setText(el.operatorTaskQueueRunning, String(Math.max(0, Math.floor(running))));
+  setText(el.operatorTaskQueuePendingApproval, String(Math.max(0, Math.floor(pendingApproval))));
+  setText(el.operatorTaskQueueStale, String(Math.max(0, Math.floor(staleCount))));
+  setText(el.operatorTaskQueueMaxAge, maxAgeMs === null ? "n/a" : formatAgeMs(maxAgeMs));
+  setText(
+    el.operatorTaskQueueOldest,
+    oldestTaskId
+      ? `${oldestTaskId}${oldestTaskStatus ? ` (${oldestTaskStatus})` : ""}${
+        oldestUpdatedAt ? ` @ ${oldestUpdatedAt}` : ""
+      }`
+      : "n/a",
+  );
+
+  let statusVariant = "ok";
+  let statusText = pressureLevel;
+  let hintVariant = "ok";
+  let hint = "Task queue pressure is healthy. No recovery action is required.";
+
+  if (total <= 0 || pressureLevel === "idle") {
+    statusVariant = "neutral";
+    statusText = "idle";
+    hintVariant = "warn";
+    hint = "No active tasks right now. Run one scenario to keep queue-proof evidence fresh.";
+  } else if (pressureLevel === "critical" || staleCount > 0) {
+    statusVariant = "fail";
+    statusText = "critical";
+    hintVariant = "fail";
+    hint =
+      "Critical queue pressure detected. Use operator cancel/retry and finish pending approvals before judged flow.";
+  } else if (pressureLevel === "elevated" || pendingApproval > 0 || queued > running) {
+    statusVariant = "neutral";
+    statusText = "elevated";
+    hintVariant = "warn";
+    hint = `Queue pressure is elevated. Keep active tasks below ${Math.max(1, Math.floor(elevatedActive))} and pending approvals below ${Math.max(1, Math.floor(pendingApprovalWarn))}.`;
+  }
+
+  if (staleThresholdMs > 0 && statusVariant !== "fail") {
+    hint = `${hint} Stale threshold: ${Math.floor(staleThresholdMs)} ms.`;
+  }
+
+  setStatusPill(
+    el.operatorTaskQueueStatus,
+    `${statusText} total=${Math.max(0, Math.floor(total))} stale=${Math.max(0, Math.floor(staleCount))}`,
+    statusVariant,
+  );
+  setOperatorTaskQueueHint(hint, hintVariant);
+}
+
 function extractNumber(text, regex) {
   const match = text.match(regex);
   if (!match) {
@@ -1340,6 +1583,7 @@ function renderOperatorSummary(summary) {
   resetOperatorTraceWidget("no_data");
   resetOperatorApprovalsWidget("no_data");
   resetOperatorLifecycleWidget("no_data");
+  resetOperatorTaskQueueWidget("no_data");
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -1352,6 +1596,20 @@ function renderOperatorSummary(summary) {
   const activeTasks = summary.activeTasks?.data;
   const activeTotal = Number(summary.activeTasks?.total ?? 0);
   appendEntry(el.operatorSummary, "system", "tasks", `active=${activeTotal}`);
+  const taskQueueSummary = summary.taskQueue && typeof summary.taskQueue === "object"
+    ? summary.taskQueue
+    : buildTaskQueueSummaryFromActiveTasks(Array.isArray(activeTasks) ? activeTasks : []);
+  if (taskQueueSummary && typeof taskQueueSummary === "object") {
+    const queueTotal = Number(taskQueueSummary.total ?? activeTotal);
+    const queuePendingApproval = Number(taskQueueSummary.statusCounts?.pendingApproval ?? 0);
+    const queueStale = Number(taskQueueSummary.staleCount ?? 0);
+    appendEntry(
+      el.operatorSummary,
+      queueStale > 0 ? "error" : "system",
+      "task_queue_pressure",
+      `total=${queueTotal} pending_approval=${queuePendingApproval} stale=${queueStale}`,
+    );
+  }
   if (Array.isArray(activeTasks) && activeTasks.length > 0) {
     const firstTask = activeTasks.find((item) => item && typeof item.taskId === "string");
     if (firstTask && !el.operatorTaskId.value.trim()) {
@@ -1368,6 +1626,7 @@ function renderOperatorSummary(summary) {
     `recorded=${approvalsTotal} pending_from_tasks=${pendingApprovals}`,
   );
   renderOperatorApprovalsWidget(summary.approvals);
+  renderOperatorTaskQueueWidget(taskQueueSummary);
 
   const deviceNodes = summary.deviceNodes && typeof summary.deviceNodes === "object"
     ? summary.deviceNodes
@@ -1545,6 +1804,7 @@ async function refreshOperatorSummary() {
     resetOperatorTraceWidget("summary_error");
     resetOperatorApprovalsWidget("summary_error");
     resetOperatorLifecycleWidget("summary_error");
+    resetOperatorTaskQueueWidget("summary_error");
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
 }

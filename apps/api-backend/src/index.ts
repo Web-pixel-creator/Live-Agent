@@ -100,6 +100,22 @@ const operatorDeviceNodeStaleThresholdMs = parsePositiveInt(
   process.env.OPERATOR_DEVICE_NODE_STALE_THRESHOLD_MS ?? null,
   5 * 60 * 1000,
 );
+const operatorTaskQueueStaleThresholdMs = parsePositiveInt(
+  process.env.OPERATOR_TASK_QUEUE_STALE_THRESHOLD_MS ?? null,
+  30 * 1000,
+);
+const operatorTaskQueueElevatedActiveThreshold = parsePositiveInt(
+  process.env.OPERATOR_TASK_QUEUE_ELEVATED_ACTIVE_THRESHOLD ?? null,
+  6,
+);
+const operatorTaskQueueCriticalActiveThreshold = parsePositiveInt(
+  process.env.OPERATOR_TASK_QUEUE_CRITICAL_ACTIVE_THRESHOLD ?? null,
+  12,
+);
+const operatorTaskQueuePendingApprovalWarnThreshold = parsePositiveInt(
+  process.env.OPERATOR_TASK_QUEUE_PENDING_APPROVAL_WARN_THRESHOLD ?? null,
+  2,
+);
 
 function toBaseUrl(input: string | undefined, fallback: string): string {
   const candidate = typeof input === "string" && input.trim().length > 0 ? input.trim() : fallback;
@@ -636,6 +652,108 @@ function buildApprovalIdFromTask(task: Record<string, unknown>): string | null {
     return `approval-task-${taskId}`;
   }
   return null;
+}
+
+function parseIsoTimestampMs(value: unknown): number | null {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return null;
+  }
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  return parsed;
+}
+
+function normalizeTaskQueueStatus(value: unknown): "queued" | "running" | "pending_approval" | "other" {
+  if (typeof value !== "string") {
+    return "other";
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "queued" || normalized === "running" || normalized === "pending_approval") {
+    return normalized;
+  }
+  return "other";
+}
+
+function buildTaskQueueSummary(tasks: unknown[]): Record<string, unknown> {
+  const nowMs = Date.now();
+  let queued = 0;
+  let running = 0;
+  let pendingApproval = 0;
+  let other = 0;
+  let staleCount = 0;
+  let maxAgeMs = 0;
+  let oldestUpdatedAt: string | null = null;
+  let oldestTaskId: string | null = null;
+  let oldestTaskStatus: string | null = null;
+
+  for (const item of tasks) {
+    if (!isRecord(item)) {
+      continue;
+    }
+    const status = normalizeTaskQueueStatus(item.status);
+    if (status === "queued") {
+      queued += 1;
+    } else if (status === "running") {
+      running += 1;
+    } else if (status === "pending_approval") {
+      pendingApproval += 1;
+    } else {
+      other += 1;
+    }
+
+    const updatedAt = typeof item.updatedAt === "string" ? item.updatedAt : null;
+    const updatedAtMs = parseIsoTimestampMs(updatedAt);
+    if (updatedAtMs === null) {
+      continue;
+    }
+    const ageMs = Math.max(0, nowMs - updatedAtMs);
+    if (ageMs > maxAgeMs) {
+      maxAgeMs = ageMs;
+      oldestUpdatedAt = updatedAt;
+      oldestTaskId = toTaskString(item.taskId);
+      oldestTaskStatus = typeof item.status === "string" ? item.status : null;
+    }
+    if (ageMs >= operatorTaskQueueStaleThresholdMs) {
+      staleCount += 1;
+    }
+  }
+
+  const total = queued + running + pendingApproval + other;
+  let pressureLevel: "idle" | "healthy" | "elevated" | "critical" = "healthy";
+  if (total <= 0) {
+    pressureLevel = "idle";
+  } else if (staleCount > 0 || total >= operatorTaskQueueCriticalActiveThreshold) {
+    pressureLevel = "critical";
+  } else if (
+    total >= operatorTaskQueueElevatedActiveThreshold ||
+    pendingApproval >= operatorTaskQueuePendingApprovalWarnThreshold
+  ) {
+    pressureLevel = "elevated";
+  }
+
+  return {
+    total,
+    statusCounts: {
+      queued,
+      running,
+      pendingApproval,
+      other,
+    },
+    staleCount,
+    staleThresholdMs: operatorTaskQueueStaleThresholdMs,
+    maxAgeMs,
+    oldestUpdatedAt,
+    oldestTaskId,
+    oldestTaskStatus,
+    pressureLevel,
+    thresholds: {
+      elevatedActive: operatorTaskQueueElevatedActiveThreshold,
+      criticalActive: operatorTaskQueueCriticalActiveThreshold,
+      pendingApprovalWarn: operatorTaskQueuePendingApprovalWarnThreshold,
+    },
+  };
 }
 
 async function syncPendingApprovalsFromTasks(tasks: unknown[]): Promise<number> {
@@ -1565,6 +1683,7 @@ export const server = createServer(async (req, res) => {
       const pendingApprovalsFromTasks = activeTasks.filter(
         (task) => isRecord(task) && task.status === "pending_approval",
       ).length;
+      const taskQueue = buildTaskQueueSummary(activeTasks);
       const traces = buildOperatorTraceSummary({
         runs,
         events: recentEvents,
@@ -1585,6 +1704,7 @@ export const server = createServer(async (req, res) => {
             total: activeTasks.length,
             data: activeTasks,
           },
+          taskQueue,
           approvals: {
             total: approvals.length,
             recent: approvals.slice(0, 25),

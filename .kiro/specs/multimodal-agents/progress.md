@@ -56,6 +56,7 @@
 25. Operator Console now exposes a dedicated `Trace Coverage` widget (`runs/events/ui_runs/approval_linked/steps/screenshots + top route/status`) with coverage-state hints for faster operator diagnostics during demo.
 26. Operator summary now includes approval status rollups (`pending/approved/rejected/timeout`) and latest approval snapshot, and Operator Console shows a dedicated `Approvals Queue` widget with SLA sweep hints (`soft/hard`).
 27. Operator summary now exposes service lifecycle timestamps (`lastWarmupAt`, `lastDrainAt`) and flags (`ready`, `draining`), and Operator Console shows a dedicated `Service Lifecycle` widget for quick drain/warmup readiness checks.
+28. Operator summary now exposes task-queue pressure rollups (`queued/running/pending_approval/stale/maxAge/oldestTask + pressureLevel`), and Operator Console shows a dedicated `Task Queue Pressure` widget with recovery hints for queue saturation and stale task buildup.
 
 ## Current Focus Queue
 

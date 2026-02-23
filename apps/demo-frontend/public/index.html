@@ -404,6 +404,41 @@
               Refresh summary to inspect runtime lifecycle states.
             </p>
           </article>
+          <article class="operator-health-card">
+            <h3>Task Queue Pressure</h3>
+            <p id="operatorTaskQueueStatus" class="status-pill status-neutral">no_data</p>
+            <p class="operator-health-row">
+              <strong>Total Active</strong>
+              <span id="operatorTaskQueueTotal">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Queued</strong>
+              <span id="operatorTaskQueueQueued">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Running</strong>
+              <span id="operatorTaskQueueRunning">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Pending Approval</strong>
+              <span id="operatorTaskQueuePendingApproval">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Stale</strong>
+              <span id="operatorTaskQueueStale">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Max Age</strong>
+              <span id="operatorTaskQueueMaxAge">n/a</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Oldest Task</strong>
+              <span id="operatorTaskQueueOldest">n/a</span>
+            </p>
+            <p id="operatorTaskQueueHint" class="operator-health-hint operator-health-hint-neutral">
+              Refresh summary to inspect active task queue pressure.
+            </p>
+          </article>
         </div>
         <div id="operatorSummary" class="events"></div>
       </section>
