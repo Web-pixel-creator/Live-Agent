@@ -145,6 +145,11 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $summary = Get-Content $SummaryPath -Raw | ConvertFrom-Json
   Write-Host ("summary.success: " + $summary.success)
   Write-Host ("scenarios: " + $summary.scenarios.Count)
+  $uiAttempts = $summary.kpis.uiApprovalResumeRequestAttempts
+  $uiRetried = $summary.kpis.uiApprovalResumeRequestRetried
+  if ($null -ne $uiAttempts -or $null -ne $uiRetried) {
+    Write-Host ("ui.approval.resume.request: attempts=" + $uiAttempts + ", retried=" + $uiRetried)
+  }
 }
 if ((-not $SkipPolicy) -and (Test-Path $PolicyPath)) {
   $policy = Get-Content $PolicyPath -Raw | ConvertFrom-Json
