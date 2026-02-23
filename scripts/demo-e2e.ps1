@@ -1917,6 +1917,7 @@ try {
 
   Invoke-Scenario -Name "runtime.lifecycle.endpoints" -Action {
     $services = @(
+      @{ name = "ui-executor"; baseUrl = "http://localhost:8090" },
       @{ name = "realtime-gateway"; baseUrl = "http://localhost:8080" },
       @{ name = "api-backend"; baseUrl = "http://localhost:8081" },
       @{ name = "orchestrator"; baseUrl = "http://localhost:8082" }
@@ -2058,6 +2059,7 @@ try {
 
   Invoke-Scenario -Name "runtime.metrics.endpoints" -Action {
     $services = @(
+      @{ name = "ui-executor"; baseUrl = "http://localhost:8090" },
       @{ name = "realtime-gateway"; baseUrl = "http://localhost:8080" },
       @{ name = "api-backend"; baseUrl = "http://localhost:8081" },
       @{ name = "orchestrator"; baseUrl = "http://localhost:8082" }
@@ -2135,6 +2137,10 @@ $sessionVersioningData = Get-ScenarioData -Name "api.sessions.versioning"
 $runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
 $runtimeMetricsData = Get-ScenarioData -Name "runtime.metrics.endpoints"
 $uiExecutorService = $script:ServiceStatuses | Where-Object { $_.name -eq "ui-executor" } | Select-Object -First 1
+$uiExecutorLifecycleService = $null
+if ($null -ne $runtimeLifecycleData) {
+  $uiExecutorLifecycleService = @($runtimeLifecycleData.services | Where-Object { $_.name -eq "ui-executor" }) | Select-Object -First 1
+}
 
 $summary = [ordered]@{
   generatedAt = (Get-Date).ToString("o")
@@ -2212,6 +2218,14 @@ $summary = [ordered]@{
       $null -ne $uiExecutorService -and
       [string](Get-FieldValue -Object $uiExecutorService -Path @("health", "mode")) -eq "remote_http" -and
       [bool](Get-FieldValue -Object $uiExecutorService -Path @("health", "forceSimulation")) -eq $true
+    ) { $true } else { $false }
+    uiExecutorLifecycleValidated = if (
+      $null -ne $uiExecutorLifecycleService -and
+      [string](Get-FieldValue -Object $uiExecutorLifecycleService -Path @("stateBefore")) -eq "ready" -and
+      [string](Get-FieldValue -Object $uiExecutorLifecycleService -Path @("stateDuringDrain")) -eq "draining" -and
+      [string](Get-FieldValue -Object $uiExecutorLifecycleService -Path @("stateAfterWarmup")) -eq "ready" -and
+      -not [string]::IsNullOrWhiteSpace([string](Get-FieldValue -Object $uiExecutorLifecycleService -Path @("runtimeProfile"))) -and
+      -not [string]::IsNullOrWhiteSpace([string](Get-FieldValue -Object $uiExecutorLifecycleService -Path @("version")))
     ) { $true } else { $false }
     uiApprovalResumeRequestAttempts = if ($null -ne $uiApproveData) { $uiApproveData.requestAttempts } else { $null }
     uiApprovalResumeRequestRetried = if ($null -ne $uiApproveData) { $uiApproveData.requestRetried } else { $null }

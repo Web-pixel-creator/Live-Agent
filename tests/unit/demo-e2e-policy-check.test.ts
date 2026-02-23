@@ -118,6 +118,7 @@ function createPassingSummary(overrides?: {
     uiExecutorMode: "remote_http",
     uiExecutorForceSimulation: true,
     uiExecutorRuntimeValidated: true,
+    uiExecutorLifecycleValidated: true,
     uiApprovalResumeRequestAttempts: 1,
     uiApprovalResumeRequestRetried: false,
     sandboxPolicyValidated: true,
@@ -141,14 +142,14 @@ function createPassingSummary(overrides?: {
     lifecycleEndpointsValidated: true,
     runtimeProfileValidated: true,
     analyticsRuntimeVisible: true,
-    analyticsServicesValidated: 3,
+    analyticsServicesValidated: 4,
     transportModeValidated: true,
     transportServicesValidated: 1,
     gatewayTransportRequestedMode: "websocket",
     gatewayTransportActiveMode: "websocket",
     gatewayTransportFallbackActive: false,
     metricsEndpointsValidated: true,
-    metricsServicesValidated: 3,
+    metricsServicesValidated: 4,
     capabilityAdaptersValidated: true,
     ...(overrides?.kpis ?? {}),
   };
@@ -204,7 +205,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 125);
+  assert.equal(result.payload.checks, 126);
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {
@@ -364,4 +365,20 @@ test("demo-e2e policy check fails when ui-executor runtime profile is invalid", 
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.uiExecutorRuntimeValidated")));
+});
+
+test("demo-e2e policy check fails when ui-executor lifecycle KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        uiExecutorLifecycleValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.uiExecutorLifecycleValidated")));
 });

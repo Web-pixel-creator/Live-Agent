@@ -52,6 +52,10 @@ const orchestratorBaseUrl = toBaseUrl(
   process.env.API_ORCHESTRATOR_BASE_URL ?? process.env.ORCHESTRATOR_BASE_URL,
   "http://localhost:8082",
 );
+const uiExecutorBaseUrl = toBaseUrl(
+  process.env.API_UI_EXECUTOR_BASE_URL ?? process.env.UI_EXECUTOR_BASE_URL,
+  "http://localhost:8090",
+);
 const orchestratorUrl =
   process.env.API_ORCHESTRATOR_URL ?? process.env.ORCHESTRATOR_URL ?? `${orchestratorBaseUrl}/orchestrate`;
 const orchestratorTimeoutMs = parsePositiveInt(process.env.API_ORCHESTRATOR_TIMEOUT_MS ?? null, 15000);
@@ -517,18 +521,27 @@ async function postJsonWithTimeout(url: string, body: unknown, timeoutMs: number
   }
 }
 
-function normalizeServiceName(input: unknown): "realtime-gateway" | "api-backend" | "orchestrator" | null {
+function normalizeServiceName(
+  input: unknown,
+): "realtime-gateway" | "api-backend" | "orchestrator" | "ui-executor" | null {
   if (typeof input !== "string") {
     return null;
   }
   const normalized = input.trim().toLowerCase();
-  if (normalized === "realtime-gateway" || normalized === "api-backend" || normalized === "orchestrator") {
+  if (
+    normalized === "realtime-gateway" ||
+    normalized === "api-backend" ||
+    normalized === "orchestrator" ||
+    normalized === "ui-executor"
+  ) {
     return normalized;
   }
   return null;
 }
 
-function resolveServiceBaseUrl(name: "realtime-gateway" | "api-backend" | "orchestrator"): string {
+function resolveServiceBaseUrl(
+  name: "realtime-gateway" | "api-backend" | "orchestrator" | "ui-executor",
+): string {
   switch (name) {
     case "realtime-gateway":
       return gatewayBaseUrl;
@@ -536,13 +549,19 @@ function resolveServiceBaseUrl(name: "realtime-gateway" | "api-backend" | "orche
       return apiBaseUrl;
     case "orchestrator":
       return orchestratorBaseUrl;
+    case "ui-executor":
+      return uiExecutorBaseUrl;
     default:
       return orchestratorBaseUrl;
   }
 }
 
 async function getOperatorServiceSummary(): Promise<Array<Record<string, unknown>>> {
-  const services: Array<{ name: "realtime-gateway" | "api-backend" | "orchestrator"; baseUrl: string }> = [
+  const services: Array<{
+    name: "realtime-gateway" | "api-backend" | "orchestrator" | "ui-executor";
+    baseUrl: string;
+  }> = [
+    { name: "ui-executor", baseUrl: uiExecutorBaseUrl },
     { name: "realtime-gateway", baseUrl: gatewayBaseUrl },
     { name: "api-backend", baseUrl: apiBaseUrl },
     { name: "orchestrator", baseUrl: orchestratorBaseUrl },
@@ -1708,7 +1727,7 @@ export const server = createServer(async (req, res) => {
             code: "API_OPERATOR_FAILOVER_INVALID_INPUT",
             message: "targetService and operation (drain|warmup) are required for failover action",
             details: {
-              allowedServices: ["realtime-gateway", "api-backend", "orchestrator"],
+              allowedServices: ["realtime-gateway", "api-backend", "orchestrator", "ui-executor"],
               allowedOperations: ["drain", "warmup"],
             },
           });

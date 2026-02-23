@@ -614,6 +614,12 @@ async function main() {
     true,
   );
   addCheck(
+    "kpi.uiExecutorLifecycleValidated",
+    kpis.uiExecutorLifecycleValidated === true,
+    kpis.uiExecutorLifecycleValidated,
+    true,
+  );
+  addCheck(
     "options.uiNavigatorRemoteHttpFallbackMode",
     allowedUiRemoteHttpFallbackModes.includes(String(options.uiNavigatorRemoteHttpFallbackMode)),
     options.uiNavigatorRemoteHttpFallbackMode,
@@ -776,9 +782,9 @@ async function main() {
   );
   addCheck(
     "kpi.analyticsServicesValidated",
-    toNumber(kpis.analyticsServicesValidated) >= 3,
+    toNumber(kpis.analyticsServicesValidated) >= 4,
     kpis.analyticsServicesValidated,
-    ">= 3",
+    ">= 4",
   );
   addCheck(
     "kpi.transportModeValidated",
@@ -820,9 +826,9 @@ async function main() {
   );
   addCheck(
     "kpi.metricsServicesValidated",
-    toNumber(kpis.metricsServicesValidated) >= 3,
+    toNumber(kpis.metricsServicesValidated) >= 4,
     kpis.metricsServicesValidated,
-    ">= 3",
+    ">= 4",
   );
   addCheck(
     "kpi.capabilityAdaptersValidated",

@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
+import { applyRuntimeProfile, RollingMetrics } from "@mla/contracts";
 
 type ActionType = "navigate" | "click" | "type" | "scroll" | "hotkey" | "wait" | "verify";
 
@@ -69,6 +70,16 @@ type ExecutorConfig = {
   deviceNodes: Map<string, DeviceNodeDescriptor>;
 };
 
+type AnalyticsTarget = "disabled" | "cloud_monitoring" | "bigquery";
+
+type RuntimeAnalyticsSnapshot = {
+  enabled: boolean;
+  reason: string;
+  metricsTarget: AnalyticsTarget;
+  eventsTarget: AnalyticsTarget;
+  sampleRate: number;
+};
+
 function parseDeviceNodes(raw: string | undefined): Map<string, DeviceNodeDescriptor> {
   const nodes = new Map<string, DeviceNodeDescriptor>();
   if (!raw || raw.trim().length === 0) {
@@ -128,7 +139,104 @@ function loadConfig(): ExecutorConfig {
   };
 }
 
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return Math.floor(parsed);
+}
+
+function parseBooleanEnv(value: string | undefined, fallback: boolean): boolean {
+  if (!value) {
+    return fallback;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true" || normalized === "1" || normalized === "yes") {
+    return true;
+  }
+  if (normalized === "false" || normalized === "0" || normalized === "no") {
+    return false;
+  }
+  return fallback;
+}
+
+function parseSampleRate(value: string | undefined): number {
+  if (!value) {
+    return 1;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 1;
+  }
+  return Math.max(0, Math.min(1, parsed));
+}
+
+function parseAnalyticsTarget(value: string | undefined, fallback: AnalyticsTarget): AnalyticsTarget {
+  if (!value) {
+    return fallback;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "disabled" || normalized === "off" || normalized === "none") {
+    return "disabled";
+  }
+  if (normalized === "cloud_monitoring" || normalized === "monitoring") {
+    return "cloud_monitoring";
+  }
+  if (normalized === "bigquery" || normalized === "bq") {
+    return "bigquery";
+  }
+  return fallback;
+}
+
+function createRuntimeAnalyticsSnapshot(): RuntimeAnalyticsSnapshot {
+  const enabled = parseBooleanEnv(process.env.ANALYTICS_EXPORT_ENABLED, false);
+  return {
+    enabled,
+    reason: enabled ? "enabled" : "ANALYTICS_EXPORT_ENABLED=false",
+    metricsTarget: parseAnalyticsTarget(process.env.ANALYTICS_EXPORT_METRICS_TARGET, "cloud_monitoring"),
+    eventsTarget: parseAnalyticsTarget(process.env.ANALYTICS_EXPORT_EVENTS_TARGET, "bigquery"),
+    sampleRate: parseSampleRate(process.env.ANALYTICS_EXPORT_SAMPLE_RATE),
+  };
+}
+
+const serviceName = "ui-executor";
+const runtimeProfile = applyRuntimeProfile(serviceName);
+const serviceVersion = process.env.UI_EXECUTOR_VERSION ?? process.env.SERVICE_VERSION ?? "0.1.0";
+const startedAtMs = Date.now();
+let draining = false;
+let lastWarmupAt: string | null = new Date().toISOString();
+let lastDrainAt: string | null = null;
+const runtimeAnalytics = createRuntimeAnalyticsSnapshot();
+const metrics = new RollingMetrics({
+  maxSamplesPerBucket: parsePositiveInt(process.env.UI_EXECUTOR_METRICS_MAX_SAMPLES, 2000),
+});
 const config = loadConfig();
+
+function runtimeState(): Record<string, unknown> {
+  const summary = metrics.snapshot({ topOperations: 10 });
+  return {
+    state: draining ? "draining" : "ready",
+    ready: !draining,
+    draining,
+    startedAt: new Date(startedAtMs).toISOString(),
+    uptimeSec: Math.floor((Date.now() - startedAtMs) / 1000),
+    lastWarmupAt,
+    lastDrainAt,
+    version: serviceVersion,
+    profile: runtimeProfile,
+    analytics: runtimeAnalytics,
+    metrics: {
+      totalCount: summary.totalCount,
+      totalErrors: summary.totalErrors,
+      errorRatePct: summary.errorRatePct,
+      p95Ms: summary.latencyMs.p95,
+    },
+  };
+}
 
 function writeJson(res: ServerResponse, statusCode: number, body: unknown): void {
   res.statusCode = statusCode;
@@ -146,6 +254,10 @@ async function readBody(req: IncomingMessage): Promise<string> {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+function normalizeOperationPath(pathname: string): string {
+  return pathname === "/execute" ? "/execute" : pathname;
 }
 
 function toNonEmptyString(value: unknown, fallback = ""): string {
@@ -403,23 +515,93 @@ async function canUsePlaywright(): Promise<boolean> {
 }
 
 export const server = createServer(async (req, res) => {
+  const startedAt = Date.now();
+  let operation = `${req.method ?? "UNKNOWN"} /unknown`;
+  res.once("finish", () => {
+    metrics.record(operation, Date.now() - startedAt, res.statusCode < 500);
+  });
+
   try {
-    if (req.url === "/healthz" && req.method === "GET") {
+    const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+    operation = `${req.method ?? "UNKNOWN"} ${normalizeOperationPath(url.pathname)}`;
+
+    if (url.pathname === "/healthz" && req.method === "GET") {
       const playwrightAvailable = await canUsePlaywright();
       writeJson(res, 200, {
         ok: true,
-        service: "ui-executor",
+        service: serviceName,
         mode: "remote_http",
         playwrightAvailable,
         strictPlaywright: config.strictPlaywright,
         simulateIfUnavailable: config.simulateIfUnavailable,
         forceSimulation: config.forceSimulation,
         registeredDeviceNodes: config.deviceNodes.size,
+        runtime: runtimeState(),
       });
       return;
     }
 
-    if (req.url === "/execute" && req.method === "POST") {
+    if (url.pathname === "/status" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        mode: "remote_http",
+        forceSimulation: config.forceSimulation,
+        runtime: runtimeState(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/version" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        version: serviceVersion,
+      });
+      return;
+    }
+
+    if (url.pathname === "/metrics" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        metrics: metrics.snapshot({ topOperations: 50 }),
+      });
+      return;
+    }
+
+    if (url.pathname === "/warmup" && req.method === "POST") {
+      draining = false;
+      lastWarmupAt = new Date().toISOString();
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        runtime: runtimeState(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/drain" && req.method === "POST") {
+      draining = true;
+      lastDrainAt = new Date().toISOString();
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        runtime: runtimeState(),
+      });
+      return;
+    }
+
+    if (draining && url.pathname === "/execute" && req.method === "POST") {
+      writeJson(res, 503, {
+        error: "ui-executor is draining and does not accept new execute requests",
+        code: "UI_EXECUTOR_DRAINING",
+        runtime: runtimeState(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/execute" && req.method === "POST") {
       const raw = await readBody(req);
       const request = normalizeRequest(raw ? JSON.parse(raw) : {});
       if (request.actions.length === 0) {
