@@ -36,6 +36,7 @@ function createPassingSummary(
     serviceStartRetryBackoffMs: number | string;
   }> = {},
 ): Record<string, unknown> {
+  const hasOverride = (key: string): boolean => Object.prototype.hasOwnProperty.call(overrides, key);
   return {
     success: true,
     scenarios: [
@@ -48,17 +49,21 @@ function createPassingSummary(
       gatewayWsDrainingValidated: true,
       sessionVersioningValidated: true,
       operatorTaskQueueSummaryValidated: true,
-      operatorTaskQueuePressureLevel: overrides.pressureLevel ?? "healthy",
-      operatorTaskQueueTotal: overrides.queueTotal ?? 1,
-      operatorTaskQueueStaleCount: overrides.queueStale ?? 0,
-      operatorTaskQueuePendingApproval: overrides.queuePending ?? 0,
-      gatewayWsRoundTripMs: overrides.gatewayRoundTripMs ?? 120,
-      gatewayInterruptLatencyMs: overrides.gatewayInterruptLatencyMs ?? 120,
-      gatewayInterruptEventType: overrides.gatewayInterruptEventType ?? "live.interrupt.requested",
+      operatorTaskQueuePressureLevel: hasOverride("pressureLevel") ? overrides.pressureLevel : "healthy",
+      operatorTaskQueueTotal: hasOverride("queueTotal") ? overrides.queueTotal : 1,
+      operatorTaskQueueStaleCount: hasOverride("queueStale") ? overrides.queueStale : 0,
+      operatorTaskQueuePendingApproval: hasOverride("queuePending") ? overrides.queuePending : 0,
+      gatewayWsRoundTripMs: hasOverride("gatewayRoundTripMs") ? overrides.gatewayRoundTripMs : 120,
+      gatewayInterruptLatencyMs: hasOverride("gatewayInterruptLatencyMs") ? overrides.gatewayInterruptLatencyMs : 120,
+      gatewayInterruptEventType: hasOverride("gatewayInterruptEventType")
+        ? overrides.gatewayInterruptEventType
+        : "live.interrupt.requested",
     },
     options: {
-      serviceStartMaxAttempts: overrides.serviceStartMaxAttempts ?? "2",
-      serviceStartRetryBackoffMs: overrides.serviceStartRetryBackoffMs ?? "1200",
+      serviceStartMaxAttempts: hasOverride("serviceStartMaxAttempts") ? overrides.serviceStartMaxAttempts : "2",
+      serviceStartRetryBackoffMs: hasOverride("serviceStartRetryBackoffMs")
+        ? overrides.serviceStartRetryBackoffMs
+        : "1200",
     },
   };
 }
@@ -172,5 +177,47 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /options\.serviceStartMaxAttempts expected >= 2, actual 1/i);
+  },
+);
+
+test(
+  "release-readiness allows missing interrupt latency when bridge is unavailable",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        gatewayInterruptLatencyMs: null,
+        gatewayInterruptEventType: "live.bridge.unavailable",
+      }),
+    );
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+  },
+);
+
+test(
+  "release-readiness fails when interrupt latency is missing for non-unavailable event",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        gatewayInterruptLatencyMs: null,
+        gatewayInterruptEventType: "live.interrupt.requested",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /gatewayInterruptLatencyMs is missing and gatewayInterruptEventType is not live\.bridge/i);
+    assert.match(output, /actual live\.interrupt\.requested/i);
+  },
+);
+
+test(
+  "release-readiness fails when service startup retry backoff is below minimum",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ serviceStartRetryBackoffMs: "200" }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /options\.serviceStartRetryBackoffMs expected >= 300, actual 200/i);
   },
 );
