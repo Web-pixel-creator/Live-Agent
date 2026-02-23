@@ -774,6 +774,19 @@ function operatorHeaders(includeJson = false) {
   return headers;
 }
 
+function requestActionConfirmation(title, details = []) {
+  if (typeof window === "undefined" || typeof window.confirm !== "function") {
+    return true;
+  }
+  const lines = [String(title ?? "").trim(), ...details.map((item) => String(item ?? "").trim())]
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  if (lines.length === 0) {
+    return true;
+  }
+  return window.confirm(lines.join("\n"));
+}
+
 function renderOperatorSummary(summary) {
   el.operatorSummary.innerHTML = "";
   resetOperatorHealthWidget("no_data");
@@ -1981,6 +1994,16 @@ function bindEvents() {
       appendTranscript("error", "Operator taskId is required for cancel");
       return;
     }
+    const role = (el.operatorRole.value || "operator").trim().toLowerCase();
+    const shouldContinue = requestActionConfirmation("Cancel active task?", [
+      `taskId: ${taskId}`,
+      `role: ${role}`,
+      "This action requests immediate task cancellation.",
+    ]);
+    if (!shouldContinue) {
+      appendTranscript("system", "Operator action canceled by user: cancel_task");
+      return;
+    }
     runOperatorAction("cancel_task", { taskId, reason: "Cancelled from operator console" });
   });
   document.getElementById("operatorRetryBtn").addEventListener("click", () => {
@@ -1989,10 +2012,30 @@ function bindEvents() {
       appendTranscript("error", "Operator taskId is required for retry");
       return;
     }
+    const role = (el.operatorRole.value || "operator").trim().toLowerCase();
+    const shouldContinue = requestActionConfirmation("Retry task execution?", [
+      `taskId: ${taskId}`,
+      `role: ${role}`,
+      "This action asks orchestrator to re-run the selected task.",
+    ]);
+    if (!shouldContinue) {
+      appendTranscript("system", "Operator action canceled by user: retry_task");
+      return;
+    }
     runOperatorAction("retry_task", { taskId, reason: "Retry requested from operator console" });
   });
   document.getElementById("operatorDrainBtn").addEventListener("click", () => {
     const targetService = el.operatorTargetService.value;
+    const role = (el.operatorRole.value || "operator").trim().toLowerCase();
+    const shouldContinue = requestActionConfirmation("Start failover drain?", [
+      `targetService: ${targetService}`,
+      `role: ${role}`,
+      "Service will stop accepting new workload until warmup.",
+    ]);
+    if (!shouldContinue) {
+      appendTranscript("system", "Operator action canceled by user: failover/drain");
+      return;
+    }
     runOperatorAction("failover", {
       targetService,
       operation: "drain",
@@ -2001,6 +2044,16 @@ function bindEvents() {
   });
   document.getElementById("operatorWarmupBtn").addEventListener("click", () => {
     const targetService = el.operatorTargetService.value;
+    const role = (el.operatorRole.value || "operator").trim().toLowerCase();
+    const shouldContinue = requestActionConfirmation("Resume service with warmup?", [
+      `targetService: ${targetService}`,
+      `role: ${role}`,
+      "Service will return to ready state and accept new workload.",
+    ]);
+    if (!shouldContinue) {
+      appendTranscript("system", "Operator action canceled by user: failover/warmup");
+      return;
+    }
     runOperatorAction("failover", {
       targetService,
       operation: "warmup",
@@ -2011,14 +2064,46 @@ function bindEvents() {
     refreshDeviceNodes();
   });
   document.getElementById("deviceNodeUpsertBtn").addEventListener("click", () => {
+    const nodeId = toOptionalText(el.deviceNodeId.value) ?? "(new)";
+    const role = (el.operatorRole.value || "operator").trim().toLowerCase();
+    const shouldContinue = requestActionConfirmation("Create or update device node?", [
+      `nodeId: ${nodeId}`,
+      `role: ${role}`,
+      "This action writes device node metadata and increments version.",
+    ]);
+    if (!shouldContinue) {
+      appendTranscript("system", "Device node action canceled by user: upsert");
+      return;
+    }
     upsertDeviceNodeFromForm();
   });
   if (el.deviceNodeConflictBtn) {
     el.deviceNodeConflictBtn.addEventListener("click", () => {
+      const nodeId = toOptionalText(el.deviceNodeId.value) ?? "(missing)";
+      const shouldContinue = requestActionConfirmation("Run stale-version conflict probe?", [
+        `nodeId: ${nodeId}`,
+        "Expecting HTTP 409 API_DEVICE_NODE_VERSION_CONFLICT as a guard proof.",
+      ]);
+      if (!shouldContinue) {
+        appendTranscript("system", "Device node action canceled by user: conflict_probe");
+        return;
+      }
       probeDeviceNodeConflictFromForm();
     });
   }
   document.getElementById("deviceNodeHeartbeatBtn").addEventListener("click", () => {
+    const nodeId = toOptionalText(el.deviceNodeId.value) ?? "(missing)";
+    const targetStatus = toOptionalText(el.deviceNodeStatus.value) ?? "online";
+    const role = (el.operatorRole.value || "operator").trim().toLowerCase();
+    const shouldContinue = requestActionConfirmation("Send device-node heartbeat?", [
+      `nodeId: ${nodeId}`,
+      `status: ${targetStatus}`,
+      `role: ${role}`,
+    ]);
+    if (!shouldContinue) {
+      appendTranscript("system", "Device node action canceled by user: heartbeat");
+      return;
+    }
     sendDeviceNodeHeartbeatFromForm();
   });
   document.getElementById("deviceNodeStatusBtn").addEventListener("click", () => {

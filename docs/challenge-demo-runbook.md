@@ -76,6 +76,7 @@ Checkpoint B (hard interruption) at ~01:40:
 
 1. In `Operator Console`, switch role to `admin` and create one node in `Device Nodes`:
    - `nodeId=desktop-main`, `kind=desktop`, `status=online`, capabilities include `screen,click,type`.
+   - For mutating actions (`Create/Update`, `Heartbeat`, `Failover`), accept the confirmation dialog before request submission.
 2. Still as `admin`, run one update with `expectedVersion` from the created node and confirm version increments.
 3. Switch role to `operator` and send one heartbeat for the same node (optionally with `status=degraded` then back to `online`).
 4. Click `Check Status` for the same `nodeId` and confirm point-lookup returns current `status`, `version`, and `lastSeenAt`.
