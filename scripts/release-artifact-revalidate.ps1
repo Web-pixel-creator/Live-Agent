@@ -10,6 +10,8 @@ param(
   [int]$PerWorkflowRuns = 20,
   [int]$GithubApiMaxAttempts = 3,
   [int]$GithubApiRetryBackoffMs = 1200,
+  [int]$MaxSourceRunAgeHours = 168,
+  [switch]$AllowAnySourceBranch,
   [string]$ArtifactsDir = "artifacts",
   [string]$TempDir = ".tmp/release-artifact-revalidation",
   [switch]$SkipArtifactOnlyGate,
@@ -32,6 +34,25 @@ function Resolve-AbsolutePath([string]$PathValue) {
     return [System.IO.Path]::GetFullPath($PathValue)
   }
   return [System.IO.Path]::GetFullPath((Join-Path (Get-Location).Path $PathValue))
+}
+
+function Convert-ToUtcDateTime([object]$Value, [string]$ContextLabel) {
+  if ($Value -is [datetime]) {
+    return ([datetime]$Value).ToUniversalTime()
+  }
+
+  $raw = [string]$Value
+  if ([string]::IsNullOrWhiteSpace($raw)) {
+    Fail ("Missing datetime value for " + $ContextLabel + ".")
+  }
+
+  $parsed = [datetime]::MinValue
+  $style = [System.Globalization.DateTimeStyles]::AssumeUniversal -bor [System.Globalization.DateTimeStyles]::AdjustToUniversal
+  $ok = [datetime]::TryParse($raw, [System.Globalization.CultureInfo]::InvariantCulture, $style, [ref]$parsed)
+  if (-not $ok) {
+    Fail ("Invalid datetime value '" + $raw + "' for " + $ContextLabel + ".")
+  }
+  return $parsed.ToUniversalTime()
 }
 
 function Get-HttpStatusCode([object]$ErrorRecord) {
@@ -211,6 +232,10 @@ if ($GithubApiRetryBackoffMs -lt 0) {
   Fail "GithubApiRetryBackoffMs must be >= 0."
 }
 
+if ($MaxSourceRunAgeHours -lt 0) {
+  Fail "MaxSourceRunAgeHours must be >= 0."
+}
+
 $headers = @{
   Accept                 = "application/vnd.github+json"
   Authorization          = "Bearer $Token"
@@ -218,6 +243,13 @@ $headers = @{
 }
 
 $resolvedRunId = $SourceRunId
+$resolvedRunWorkflowId = ""
+$resolvedRunBranch = ""
+$resolvedRunHeadSha = ""
+$resolvedRunConclusion = ""
+$resolvedRunUpdatedAtUtc = [datetime]::MinValue
+$resolvedRunAgeHours = [double]::NaN
+
 if ($resolvedRunId -le 0) {
   $candidateRuns = @()
   foreach ($workflowId in $WorkflowIds) {
@@ -228,13 +260,16 @@ if ($resolvedRunId -le 0) {
       if ([string]$run.conclusion -ne "success") {
         continue
       }
-      if ($AllowedBranches -notcontains [string]$run.head_branch) {
+      if (-not $AllowAnySourceBranch -and $AllowedBranches -notcontains [string]$run.head_branch) {
         continue
       }
       $candidateRuns += [pscustomobject]@{
-        runId      = [long]$run.id
-        updatedAt  = [datetime]$run.updated_at
-        workflowId = $workflowId
+        runId        = [long]$run.id
+        updatedAtUtc = Convert-ToUtcDateTime -Value ($run.updated_at ?? $run.created_at) -ContextLabel "workflow run updated_at"
+        workflowId   = $workflowId
+        headBranch   = [string]$run.head_branch
+        headSha      = [string]$run.head_sha
+        conclusion   = [string]$run.conclusion
       }
     }
   }
@@ -243,13 +278,66 @@ if ($resolvedRunId -le 0) {
     Fail "No successful workflow runs found in the allowed branches."
   }
 
-  $latestRun = $candidateRuns | Sort-Object -Property updatedAt -Descending | Select-Object -First 1
+  $latestRun = $candidateRuns | Sort-Object -Property updatedAtUtc -Descending | Select-Object -First 1
   $resolvedRunId = [long]$latestRun.runId
-  Write-Host "[artifact-revalidate] Auto-selected run id: $resolvedRunId (workflow: $($latestRun.workflowId))"
+  $resolvedRunWorkflowId = [string]$latestRun.workflowId
+  $resolvedRunBranch = [string]$latestRun.headBranch
+  $resolvedRunHeadSha = [string]$latestRun.headSha
+  $resolvedRunConclusion = [string]$latestRun.conclusion
+  $resolvedRunUpdatedAtUtc = [datetime]$latestRun.updatedAtUtc
+  Write-Host "[artifact-revalidate] Auto-selected run id: $resolvedRunId (workflow: $resolvedRunWorkflowId)"
 }
 else {
   Write-Host "[artifact-revalidate] Using provided run id: $resolvedRunId"
+
+  $runDetailsUri = "https://api.github.com/repos/$Owner/$Repo/actions/runs/$resolvedRunId"
+  $runDetails = Invoke-GitHubJson -Uri $runDetailsUri -Headers $headers
+  $detailsRunId = [long]$runDetails.id
+  if ($detailsRunId -le 0) {
+    Fail "Failed to resolve workflow run metadata for provided run id $resolvedRunId."
+  }
+
+  $resolvedRunId = $detailsRunId
+  $resolvedRunWorkflowId = [string]$runDetails.path
+  if ([string]::IsNullOrWhiteSpace($resolvedRunWorkflowId)) {
+    $resolvedRunWorkflowId = [string]$runDetails.name
+  }
+  if ([string]::IsNullOrWhiteSpace($resolvedRunWorkflowId)) {
+    $resolvedRunWorkflowId = "unknown"
+  }
+  $resolvedRunBranch = [string]$runDetails.head_branch
+  $resolvedRunHeadSha = [string]$runDetails.head_sha
+  $resolvedRunConclusion = [string]$runDetails.conclusion
+  $resolvedRunUpdatedAtUtc = Convert-ToUtcDateTime -Value ($runDetails.updated_at ?? $runDetails.created_at) -ContextLabel "provided workflow run updated_at"
 }
+
+if ([string]::IsNullOrWhiteSpace($resolvedRunBranch)) {
+  Fail ("Workflow run " + $resolvedRunId + " is missing head_branch metadata.")
+}
+
+if (-not $AllowAnySourceBranch -and $AllowedBranches -notcontains $resolvedRunBranch) {
+  Fail ("Workflow run " + $resolvedRunId + " is from unsupported branch '" + $resolvedRunBranch + "'. Allowed branches: " + ($AllowedBranches -join ", "))
+}
+
+if ($resolvedRunConclusion -ne "success") {
+  Fail ("Workflow run " + $resolvedRunId + " conclusion is '" + $resolvedRunConclusion + "'. Expected 'success'.")
+}
+
+$resolvedRunAgeHours = ([datetime]::UtcNow - $resolvedRunUpdatedAtUtc).TotalHours
+if ($resolvedRunAgeHours -lt 0) {
+  $resolvedRunAgeHours = 0
+}
+if ($MaxSourceRunAgeHours -gt 0 -and $resolvedRunAgeHours -gt [double]$MaxSourceRunAgeHours) {
+  $formattedAge = [math]::Round($resolvedRunAgeHours, 2)
+  Fail ("Workflow run " + $resolvedRunId + " is older than allowed threshold (" + $formattedAge + "h > " + $MaxSourceRunAgeHours + "h).")
+}
+
+$runAgeHoursRounded = [math]::Round($resolvedRunAgeHours, 2)
+$resolvedRunHeadShaShort = "unknown"
+if (-not [string]::IsNullOrWhiteSpace($resolvedRunHeadSha)) {
+  $resolvedRunHeadShaShort = $resolvedRunHeadSha.Substring(0, [math]::Min(12, $resolvedRunHeadSha.Length))
+}
+Write-Host ("[artifact-revalidate] Source run metadata: branch=" + $resolvedRunBranch + ", conclusion=" + $resolvedRunConclusion + ", updatedAt=" + $resolvedRunUpdatedAtUtc.ToString("o") + ", ageHours=" + $runAgeHoursRounded + ", headSha=" + $resolvedRunHeadShaShort + ".")
 
 $artifactsListUri = "https://api.github.com/repos/$Owner/$Repo/actions/runs/$resolvedRunId/artifacts?per_page=100"
 $artifactsResponse = Invoke-GitHubJson -Uri $artifactsListUri -Headers $headers
@@ -369,9 +457,16 @@ else {
 Write-Host ""
 Write-Host "Artifact revalidation flow completed."
 Write-Host ("- run id: " + $resolvedRunId)
+Write-Host ("- run workflow: " + $resolvedRunWorkflowId)
+Write-Host ("- run branch: " + $resolvedRunBranch)
+Write-Host ("- run head sha: " + $resolvedRunHeadShaShort)
+Write-Host ("- run updated at (UTC): " + $resolvedRunUpdatedAtUtc.ToString("o"))
+Write-Host ("- run age hours: " + $runAgeHoursRounded)
 Write-Host ("- artifact: " + $resolvedArtifact.name)
 Write-Host ("- restored artifacts path: " + $resolvedArtifactsDir)
 Write-Host ("- strict final run: " + $StrictFinalRun)
+Write-Host ("- allow any source branch: " + $AllowAnySourceBranch)
+Write-Host ("- max source run age hours: " + $MaxSourceRunAgeHours)
 Write-Host ("- requested perf gate mode: " + $gateRequestedPerfMode)
 Write-Host ("- effective perf gate mode: " + $gateEffectivePerfMode)
 Write-Host ("- perf artifacts detected: " + $gateHasPerfArtifacts)

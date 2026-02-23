@@ -15,17 +15,23 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /strict_final_run:/);
   assert.match(source, /github_api_max_attempts:/);
   assert.match(source, /github_api_retry_backoff_ms:/);
+  assert.match(source, /max_source_run_age_hours:/);
+  assert.match(source, /allow_any_source_branch:/);
   assert.match(source, /default:\s*auto/);
   assert.match(source, /default:\s*false/);
   assert.match(source, /default:\s*"3"/);
   assert.match(source, /default:\s*"1200"/);
+  assert.match(source, /default:\s*"168"/);
   assert.match(source, /-\s*with_perf/);
   assert.match(source, /-\s*without_perf/);
   assert.match(source, /actions\/github-script@v7/);
   assert.match(source, /demo-e2e\.yml/);
   assert.match(source, /release-strict-final\.yml/);
+  assert.match(source, /getWorkflowRun/);
   assert.match(source, /withRetry/);
   assert.match(source, /artifact_id/);
+  assert.match(source, /source_run_branch/);
+  assert.match(source, /source_run_age_hours/);
   assert.match(source, /Invoke-WebRequest/);
   assert.match(source, /id:\s*inspect_artifacts/);
   assert.match(source, /has_perf_artifacts/);
@@ -35,6 +41,13 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /strict_final_run/);
   assert.match(source, /GitHub API retry attempts/);
   assert.match(source, /GitHub API retry backoff ms/);
+  assert.match(source, /Source run workflow:/);
+  assert.match(source, /Source run branch:/);
+  assert.match(source, /Source run head sha:/);
+  assert.match(source, /Source run updated at:/);
+  assert.match(source, /Source run age hours:/);
+  assert.match(source, /Allow any source branch:/);
+  assert.match(source, /Max source run age hours:/);
   assert.match(source, /npm run verify:release:artifact-only/);
   assert.match(source, /-SkipPerfLoad/);
   assert.match(source, /-StrictFinalRun/);
@@ -61,5 +74,7 @@ test("workflow docs include retry-control inputs", () => {
     assert.match(content, /release-artifact-revalidation/);
     assert.match(content, /github_api_max_attempts/);
     assert.match(content, /github_api_retry_backoff_ms/);
+    assert.match(content, /max_source_run_age_hours/);
+    assert.match(content, /allow_any_source_branch/);
   }
 });

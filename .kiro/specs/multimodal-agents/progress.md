@@ -92,6 +92,7 @@
 61. Added workflow-level retry controls to `.github/workflows/release-artifact-revalidation.yml`: new `workflow_dispatch` inputs (`github_api_max_attempts`, `github_api_retry_backoff_ms`), retry-aware source resolution in `actions/github-script`, retry-aware artifact download in PowerShell, and summary telemetry for effective retry settings; aligned docs/tests in `README.md`, `docs/challenge-demo-runbook.md`, and `tests/unit/release-artifact-workflow-alignment.test.ts`.
 62. Added dedicated anti-drift coverage (`tests/unit/release-artifact-retry-defaults-alignment.test.ts`) to enforce parity of artifact-revalidation retry defaults (`GithubApiMaxAttempts=3`, `GithubApiRetryBackoffMs=1200`) between local helper and CI workflow inputs.
 63. Added retry-policy anti-drift coverage (`tests/unit/release-artifact-retry-policy-alignment.test.ts`) to lock retryable HTTP status set consistency (`408/429/500/502/503/504`) across local helper and CI artifact-revalidation workflow paths.
+64. Added source-run guardrails to artifact revalidation (local helper + CI workflow): enforced successful source run, default branch allowlist (`main/master`), max source-run age threshold (`168h` by default), summary telemetry of source run metadata (`workflow/branch/headSha/updatedAt/ageHours`), and anti-drift coverage in `tests/unit/release-artifact-source-run-guard-defaults-alignment.test.ts`.
 
 ## Current Focus Queue
 

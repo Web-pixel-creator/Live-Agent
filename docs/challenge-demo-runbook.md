@@ -16,7 +16,7 @@ npm run verify:release:artifact-only
 This alias maps to `verify:release -- -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipDemoE2E -SkipPolicy -SkipBadge -SkipPerfRun`.
 Optional CI equivalent: run GitHub workflow `.github/workflows/release-artifact-revalidation.yml` to revalidate downloaded artifacts from the latest successful `demo-e2e`/`release-strict-final` run (or a specific `source_run_id`).
 Workflow behavior: when downloaded bundle includes `artifacts/perf-load/*`, full artifact-only gate runs; when perf artifacts are missing (for example `pr-quality-artifacts`), workflow automatically switches to `-SkipPerfLoad` mode.
-Manual overrides: use workflow inputs `perf_gate_mode=auto|with_perf|without_perf`, `strict_final_run=true|false`, `github_api_max_attempts=<int>=3`, and `github_api_retry_backoff_ms=<int>=1200` when dispatching `release-artifact-revalidation`.
+Manual overrides: use workflow inputs `perf_gate_mode=auto|with_perf|without_perf`, `strict_final_run=true|false`, `github_api_max_attempts=<int>=3`, `github_api_retry_backoff_ms=<int>=1200`, `max_source_run_age_hours=<int>=168` (`0` disables), and `allow_any_source_branch=true|false` when dispatching `release-artifact-revalidation`.
 Optional local equivalent: use helper to pull artifact bundle and run the same gate:
 ```powershell
 $env:GITHUB_OWNER="Web-pixel-creator"
@@ -25,7 +25,7 @@ $env:GITHUB_TOKEN="<token-with-actions-read>"
 npm run verify:release:artifact:revalidate
 ```
 If `GITHUB_TOKEN`/`GH_TOKEN` is not set, helper tries `gh auth token` (requires prior `gh auth login`).
-Optional flags: `-- -SourceRunId <id>`, `-- -ArtifactName <name>`, `-- -GithubApiMaxAttempts <n>`, `-- -GithubApiRetryBackoffMs <ms>`, `-- -StrictFinalRun`, `-- -PerfGateMode auto|with_perf|without_perf`, `-- -SkipPerfLoadGate` (deprecated alias), `-- -SkipArtifactOnlyGate`.
+Optional flags: `-- -SourceRunId <id>`, `-- -ArtifactName <name>`, `-- -GithubApiMaxAttempts <n>`, `-- -GithubApiRetryBackoffMs <ms>`, `-- -MaxSourceRunAgeHours <n>`, `-- -AllowAnySourceBranch`, `-- -StrictFinalRun`, `-- -PerfGateMode auto|with_perf|without_perf`, `-- -SkipPerfLoadGate` (deprecated alias), `-- -SkipArtifactOnlyGate`.
 Helper behavior: if downloaded bundle does not contain `artifacts/perf-load/*`, perf checks are skipped automatically while demo/policy/badge artifact checks stay enforced.
 For flaky local runners you can increase demo retry tolerance:
 ```powershell

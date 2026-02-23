@@ -204,6 +204,8 @@ Optional local helper flags:
 - `-- -ArtifactName <name>` - force specific artifact bundle name.
 - `-- -GithubApiMaxAttempts <n>` - max retry attempts for GitHub API + artifact download calls (default `3`).
 - `-- -GithubApiRetryBackoffMs <ms>` - linear backoff base for GitHub API/download retries (default `1200`).
+- `-- -MaxSourceRunAgeHours <n>` - maximum source-run age guard in hours (default `168`, `0` disables).
+- `-- -AllowAnySourceBranch` - allow source runs outside `main/master` (disabled by default).
 - `-- -StrictFinalRun` - enforce strict artifact gate (`scenarioRetriesUsedCount = 0`).
 - `-- -PerfGateMode auto|with_perf|without_perf` - explicit local perf gate mode.
 - `-- -SkipPerfLoadGate` - legacy alias for `-- -PerfGateMode without_perf` (deprecated).
@@ -442,8 +444,10 @@ Useful flags:
   - `strict_final_run=true|false` to enforce strict artifact gate (`-StrictFinalRun`).
   - `github_api_max_attempts=<int>=3` for bounded retry count on workflow GitHub API/download operations.
   - `github_api_retry_backoff_ms=<int>=1200` for linear retry backoff on workflow GitHub API/download operations.
+  - `max_source_run_age_hours=<int>=168` to block stale source runs (`0` disables age guard).
+  - `allow_any_source_branch=true|false` to allow non-`main/master` source runs (default `false`).
 - Workflow auto-detects presence of `artifacts/perf-load/*`: with perf artifacts it runs `npm run verify:release:artifact-only`; without perf artifacts (for example `pr-quality-artifacts`) it runs `release-readiness.ps1` with `-SkipPerfLoad`.
-- Local equivalent helper: `npm run verify:release:artifact:revalidate` (uses `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_TOKEN` or `GH_TOKEN`, then falls back to `gh auth token`; supports strict mode and auto-skip for missing perf artifacts).
+- Local equivalent helper: `npm run verify:release:artifact:revalidate` (uses `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_TOKEN` or `GH_TOKEN`, then falls back to `gh auth token`; enforces `main/master` + source-run age guard by default, supports strict mode and auto-skip for missing perf artifacts).
 
 ## PR Gate
 

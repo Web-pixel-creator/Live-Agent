@@ -35,6 +35,16 @@ on:
         required: false
         default: "1200"
         type: string
+      max_source_run_age_hours:
+        description: Maximum allowed age (hours) for selected source run (0 disables age guard)
+        required: false
+        default: "168"
+        type: string
+      allow_any_source_branch:
+        description: Allow source runs from branches outside main/master
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   release-artifact-revalidation:
@@ -66,10 +76,15 @@ jobs:
             const artifactNameRaw = core.getInput("artifact_name").trim();
             const githubApiMaxAttemptsRaw = core.getInput("github_api_max_attempts").trim();
             const githubApiRetryBackoffMsRaw = core.getInput("github_api_retry_backoff_ms").trim();
+            const maxSourceRunAgeHoursRaw = core.getInput("max_source_run_age_hours").trim();
+            const allowAnySourceBranchRaw = core.getInput("allow_any_source_branch").trim();
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const githubApiMaxAttempts = Number(githubApiMaxAttemptsRaw || "3");
             const githubApiRetryBackoffMs = Number(githubApiRetryBackoffMsRaw || "1200");
+            const maxSourceRunAgeHours = Number(maxSourceRunAgeHoursRaw || "168");
+            const allowAnySourceBranch = (allowAnySourceBranchRaw || "false").toLowerCase() === "true";
+            const allowedBranches = new Set(["main", "master"]);
 
             if (!Number.isInteger(githubApiMaxAttempts) || githubApiMaxAttempts < 1) {
               core.setFailed(`Invalid github_api_max_attempts: ${githubApiMaxAttemptsRaw}. Expected integer >= 1.`);
@@ -78,6 +93,12 @@ jobs:
             if (!Number.isInteger(githubApiRetryBackoffMs) || githubApiRetryBackoffMs < 0) {
               core.setFailed(
                 `Invalid github_api_retry_backoff_ms: ${githubApiRetryBackoffMsRaw}. Expected integer >= 0.`
+              );
+              return;
+            }
+            if (!Number.isInteger(maxSourceRunAgeHours) || maxSourceRunAgeHours < 0) {
+              core.setFailed(
+                `Invalid max_source_run_age_hours: ${maxSourceRunAgeHoursRaw}. Expected integer >= 0.`
               );
               return;
             }
@@ -107,6 +128,7 @@ jobs:
             };
 
             let resolvedRunId = sourceRunIdRaw || null;
+            let resolvedRunMeta = null;
             if (!resolvedRunId) {
               const candidates = [];
               const workflowIds = ["demo-e2e.yml", "release-strict-final.yml"];
@@ -125,13 +147,16 @@ jobs:
                   if (run.conclusion !== "success") {
                     continue;
                   }
-                  if (run.head_branch !== "main" && run.head_branch !== "master") {
+                  if (!allowAnySourceBranch && run.head_branch !== "main" && run.head_branch !== "master") {
                     continue;
                   }
                   candidates.push({
-                    runId: String(run.id),
+                    runId: Number(run.id),
                     updatedAt: run.updated_at || run.created_at || "",
-                    workflowId
+                    workflowId,
+                    headBranch: String(run.head_branch || ""),
+                    headSha: String(run.head_sha || ""),
+                    conclusion: String(run.conclusion || "")
                   });
                 }
               }
@@ -142,8 +167,10 @@ jobs:
               }
 
               candidates.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-              resolvedRunId = candidates[0].runId;
-              core.info(`Auto-selected run ${resolvedRunId} from ${candidates[0].workflowId}`);
+              const latest = candidates[0];
+              resolvedRunId = String(latest.runId);
+              resolvedRunMeta = latest;
+              core.info(`Auto-selected run ${resolvedRunId} from ${latest.workflowId}`);
             }
 
             const parsedRunId = Number(resolvedRunId);
@@ -151,6 +178,64 @@ jobs:
               core.setFailed(`Invalid run id: ${resolvedRunId}`);
               return;
             }
+
+            if (!resolvedRunMeta) {
+              const runResponse = await withRetry(`getWorkflowRun:${parsedRunId}`, () =>
+                github.rest.actions.getWorkflowRun({
+                  owner,
+                  repo,
+                  run_id: parsedRunId
+                })
+              );
+              const run = runResponse.data;
+              resolvedRunMeta = {
+                runId: Number(run.id || parsedRunId),
+                updatedAt: run.updated_at || run.created_at || "",
+                workflowId: String(run.path || run.name || "unknown"),
+                headBranch: String(run.head_branch || ""),
+                headSha: String(run.head_sha || ""),
+                conclusion: String(run.conclusion || "")
+              };
+            }
+
+            if (resolvedRunMeta.conclusion !== "success") {
+              core.setFailed(
+                `Run ${parsedRunId} conclusion is '${resolvedRunMeta.conclusion || "unknown"}'; expected success.`
+              );
+              return;
+            }
+
+            if (!resolvedRunMeta.headBranch) {
+              core.setFailed(`Run ${parsedRunId} is missing head_branch metadata.`);
+              return;
+            }
+
+            if (!allowAnySourceBranch && !allowedBranches.has(resolvedRunMeta.headBranch)) {
+              core.setFailed(
+                `Run ${parsedRunId} branch '${resolvedRunMeta.headBranch}' is not allowed. Allowed branches: main, master.`
+              );
+              return;
+            }
+
+            const updatedAtMs = Date.parse(resolvedRunMeta.updatedAt);
+            if (!Number.isFinite(updatedAtMs)) {
+              core.setFailed(
+                `Run ${parsedRunId} has invalid updated timestamp '${resolvedRunMeta.updatedAt || "missing"}'.`
+              );
+              return;
+            }
+
+            const runAgeHours = Math.max(0, (Date.now() - updatedAtMs) / 3_600_000);
+            if (maxSourceRunAgeHours > 0 && runAgeHours > maxSourceRunAgeHours) {
+              core.setFailed(
+                `Run ${parsedRunId} is too old (${runAgeHours.toFixed(2)}h > ${maxSourceRunAgeHours}h).`
+              );
+              return;
+            }
+
+            const runAgeHoursRounded = Number(runAgeHours.toFixed(2));
+            const sourceHeadSha = resolvedRunMeta.headSha || "";
+            const sourceHeadShaShort = sourceHeadSha.length > 12 ? sourceHeadSha.slice(0, 12) : sourceHeadSha || "unknown";
 
             const artifactsResponse = await withRetry(`listWorkflowRunArtifacts:${parsedRunId}`, () =>
               github.rest.actions.listWorkflowRunArtifacts({
@@ -198,8 +283,15 @@ jobs:
             core.setOutput("artifact_id", String(resolvedArtifact.id));
             core.setOutput("github_api_max_attempts", String(githubApiMaxAttempts));
             core.setOutput("github_api_retry_backoff_ms", String(githubApiRetryBackoffMs));
+            core.setOutput("source_run_workflow", String(resolvedRunMeta.workflowId || "unknown"));
+            core.setOutput("source_run_branch", String(resolvedRunMeta.headBranch));
+            core.setOutput("source_run_head_sha", sourceHeadShaShort);
+            core.setOutput("source_run_updated_at", new Date(updatedAtMs).toISOString());
+            core.setOutput("source_run_age_hours", String(runAgeHoursRounded));
+            core.setOutput("max_source_run_age_hours", String(maxSourceRunAgeHours));
+            core.setOutput("allow_any_source_branch", allowAnySourceBranch ? "true" : "false");
             core.info(
-              `Using run ${parsedRunId}, artifact ${resolvedArtifact.name} (id=${resolvedArtifact.id}), retry=${githubApiMaxAttempts}x/${githubApiRetryBackoffMs}ms.`
+              `Using run ${parsedRunId}, artifact ${resolvedArtifact.name} (id=${resolvedArtifact.id}), branch=${resolvedRunMeta.headBranch}, age=${runAgeHoursRounded}h, headSha=${sourceHeadShaShort}, retry=${githubApiMaxAttempts}x/${githubApiRetryBackoffMs}ms, ageGuard<=${maxSourceRunAgeHours}h, allowAnySourceBranch=${allowAnySourceBranch}.`
             );
 
       - name: Download Source Artifact Bundle
@@ -430,9 +522,16 @@ jobs:
         shell: powershell
         run: |
           ("Source run id: ${{ steps.resolve_source.outputs.run_id }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Source run workflow: ${{ steps.resolve_source.outputs.source_run_workflow }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Source run branch: ${{ steps.resolve_source.outputs.source_run_branch }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Source run head sha: ${{ steps.resolve_source.outputs.source_run_head_sha }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Source run updated at: ${{ steps.resolve_source.outputs.source_run_updated_at }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Source run age hours: ${{ steps.resolve_source.outputs.source_run_age_hours }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Artifact bundle: ${{ steps.resolve_source.outputs.artifact_name }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Requested perf mode: ${{ steps.inspect_artifacts.outputs.requested_perf_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Strict final run: ${{ steps.inspect_artifacts.outputs.strict_final_run }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Allow any source branch: ${{ steps.resolve_source.outputs.allow_any_source_branch }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Max source run age hours: ${{ steps.resolve_source.outputs.max_source_run_age_hours }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("GitHub API retry attempts: ${{ steps.resolve_source.outputs.github_api_max_attempts }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("GitHub API retry backoff ms: ${{ steps.resolve_source.outputs.github_api_retry_backoff_ms }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Perf artifacts detected: ${{ steps.inspect_artifacts.outputs.has_perf_artifacts }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
