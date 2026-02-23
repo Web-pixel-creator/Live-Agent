@@ -52,6 +52,7 @@
 21. Operator e2e flow now validates admin failover for `ui-executor` (`drain` -> `warmup`), and policy gate enforces `kpi.operatorFailoverUiExecutorDrainState=draining`, `kpi.operatorFailoverUiExecutorWarmupState=ready`, `kpi.operatorFailoverUiExecutorValidated=true`.
 22. Demo frontend Operator Console now exposes a dedicated `UI Executor Failover` widget (state/healthy/profile/version + last failover action/outcome), and judge runbook includes explicit on-stage `ui-executor` drain/warmup proof sequence.
 23. Operator Console now requires explicit confirmation dialogs for mutating actions (`cancel_task`, `retry_task`, `failover drain/warmup`, device-node upsert/conflict probe/heartbeat), reducing accidental control-plane writes during live demo.
+24. Operator Console now exposes a dedicated `Device Nodes Health` widget (`total/online/degraded/offline/stale/missing_heartbeat/max_age`) so device-node lifecycle proof is visible at a glance during judge walkthrough.
 
 ## Current Focus Queue
 

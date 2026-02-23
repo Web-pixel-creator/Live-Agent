@@ -264,6 +264,41 @@
               Refresh summary to inspect ui-executor failover state.
             </p>
           </article>
+          <article class="operator-health-card">
+            <h3>Device Nodes Health</h3>
+            <p id="operatorDeviceNodesStatus" class="status-pill status-neutral">no_data</p>
+            <p class="operator-health-row">
+              <strong>Total</strong>
+              <span id="operatorDeviceNodesTotal">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Online</strong>
+              <span id="operatorDeviceNodesOnline">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Degraded</strong>
+              <span id="operatorDeviceNodesDegraded">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Offline</strong>
+              <span id="operatorDeviceNodesOffline">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Stale</strong>
+              <span id="operatorDeviceNodesStale">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Missing Heartbeat</strong>
+              <span id="operatorDeviceNodesMissingHeartbeat">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Max Age</strong>
+              <span id="operatorDeviceNodesMaxAge">n/a</span>
+            </p>
+            <p id="operatorDeviceNodesHint" class="operator-health-hint operator-health-hint-neutral">
+              Refresh summary to inspect device-node fleet health.
+            </p>
+          </article>
         </div>
         <div id="operatorSummary" class="events"></div>
       </section>
