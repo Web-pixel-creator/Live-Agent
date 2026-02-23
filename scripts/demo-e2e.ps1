@@ -1560,6 +1560,49 @@ try {
     $activeTasks = @(Get-FieldValue -Object $summaryData -Path @("activeTasks", "data"))
     Assert-Condition -Condition ($activeTasks.Count -ge 1) -Message "Operator summary should include at least one active task."
 
+    $taskQueue = Get-FieldValue -Object $summaryData -Path @("taskQueue")
+    Assert-Condition -Condition ($null -ne $taskQueue) -Message "Operator summary taskQueue block is missing."
+    $taskQueueTotalRaw = Get-FieldValue -Object $taskQueue -Path @("total")
+    $taskQueueQueuedRaw = Get-FieldValue -Object $taskQueue -Path @("statusCounts", "queued")
+    $taskQueueRunningRaw = Get-FieldValue -Object $taskQueue -Path @("statusCounts", "running")
+    $taskQueuePendingApprovalRaw = Get-FieldValue -Object $taskQueue -Path @("statusCounts", "pendingApproval")
+    $taskQueueOtherRaw = Get-FieldValue -Object $taskQueue -Path @("statusCounts", "other")
+    $taskQueueStaleCountRaw = Get-FieldValue -Object $taskQueue -Path @("staleCount")
+    $taskQueueStaleThresholdMsRaw = Get-FieldValue -Object $taskQueue -Path @("staleThresholdMs")
+    $taskQueueMaxAgeMsRaw = Get-FieldValue -Object $taskQueue -Path @("maxAgeMs")
+    Assert-Condition -Condition ($null -ne $taskQueueTotalRaw) -Message "Operator summary taskQueue.total is missing."
+    Assert-Condition -Condition ($null -ne $taskQueueQueuedRaw) -Message "Operator summary taskQueue.statusCounts.queued is missing."
+    Assert-Condition -Condition ($null -ne $taskQueueRunningRaw) -Message "Operator summary taskQueue.statusCounts.running is missing."
+    Assert-Condition -Condition ($null -ne $taskQueuePendingApprovalRaw) -Message "Operator summary taskQueue.statusCounts.pendingApproval is missing."
+    Assert-Condition -Condition ($null -ne $taskQueueOtherRaw) -Message "Operator summary taskQueue.statusCounts.other is missing."
+    Assert-Condition -Condition ($null -ne $taskQueueStaleCountRaw) -Message "Operator summary taskQueue.staleCount is missing."
+    Assert-Condition -Condition ($null -ne $taskQueueStaleThresholdMsRaw) -Message "Operator summary taskQueue.staleThresholdMs is missing."
+    Assert-Condition -Condition ($null -ne $taskQueueMaxAgeMsRaw) -Message "Operator summary taskQueue.maxAgeMs is missing."
+    $taskQueueTotal = [int]$taskQueueTotalRaw
+    $taskQueueQueued = [int]$taskQueueQueuedRaw
+    $taskQueueRunning = [int]$taskQueueRunningRaw
+    $taskQueuePendingApproval = [int]$taskQueuePendingApprovalRaw
+    $taskQueueOther = [int]$taskQueueOtherRaw
+    $taskQueueStaleCount = [int]$taskQueueStaleCountRaw
+    $taskQueueStaleThresholdMs = [int]$taskQueueStaleThresholdMsRaw
+    $taskQueueMaxAgeMs = [int]$taskQueueMaxAgeMsRaw
+    $taskQueuePressureLevel = [string](Get-FieldValue -Object $taskQueue -Path @("pressureLevel"))
+    $allowedTaskQueuePressureLevels = @("idle", "healthy", "elevated", "critical")
+    Assert-Condition -Condition ($allowedTaskQueuePressureLevels -contains $taskQueuePressureLevel) -Message "Operator summary taskQueue pressureLevel is invalid."
+    Assert-Condition -Condition ($taskQueueTotal -eq $activeTasks.Count) -Message "Operator summary taskQueue total must equal activeTasks count."
+    Assert-Condition -Condition (($taskQueueQueued + $taskQueueRunning + $taskQueuePendingApproval + $taskQueueOther) -eq $taskQueueTotal) -Message "Operator summary taskQueue statusCounts must sum to total."
+    Assert-Condition -Condition ($taskQueueStaleCount -ge 0) -Message "Operator summary taskQueue staleCount must be >= 0."
+    Assert-Condition -Condition ($taskQueueStaleThresholdMs -gt 0) -Message "Operator summary taskQueue staleThresholdMs must be > 0."
+    Assert-Condition -Condition ($taskQueueMaxAgeMs -ge 0) -Message "Operator summary taskQueue maxAgeMs must be >= 0."
+    $taskQueueSummaryValidated = (
+      $taskQueueTotal -eq $activeTasks.Count -and
+      ($taskQueueQueued + $taskQueueRunning + $taskQueuePendingApproval + $taskQueueOther) -eq $taskQueueTotal -and
+      $taskQueueStaleCount -ge 0 -and
+      $taskQueueStaleThresholdMs -gt 0 -and
+      $taskQueueMaxAgeMs -ge 0 -and
+      ($allowedTaskQueuePressureLevels -contains $taskQueuePressureLevel)
+    )
+
     $deviceNodeHealth = Get-FieldValue -Object $summaryData -Path @("deviceNodes")
     Assert-Condition -Condition ($null -ne $deviceNodeHealth) -Message "Operator summary deviceNodes block is missing."
     $deviceNodeSummaryTotal = [int](Get-FieldValue -Object $deviceNodeHealth -Path @("total"))
@@ -1723,6 +1766,16 @@ try {
       liveBridgeHealthLastEventType = $liveBridgeHealthLastEventType
       liveBridgeHealthProbeTelemetryValidated = $true
       liveBridgeHealthBlockValidated = $true
+      taskQueueTotal = $taskQueueTotal
+      taskQueueQueued = $taskQueueQueued
+      taskQueueRunning = $taskQueueRunning
+      taskQueuePendingApproval = $taskQueuePendingApproval
+      taskQueueOther = $taskQueueOther
+      taskQueueStaleCount = $taskQueueStaleCount
+      taskQueueStaleThresholdMs = $taskQueueStaleThresholdMs
+      taskQueueMaxAgeMs = $taskQueueMaxAgeMs
+      taskQueuePressureLevel = $taskQueuePressureLevel
+      taskQueueSummaryValidated = $taskQueueSummaryValidated
       deviceNodeId = $deviceNodeId
       deviceNodeCreatedVersion = $deviceNodeCreatedVersion
       deviceNodeUpdatedVersion = $deviceNodeUpdatedVersion
@@ -2355,6 +2408,24 @@ $summary = [ordered]@{
     operatorLiveBridgeHealthPongEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthPongEvents } else { $null }
     operatorLiveBridgeHealthPingErrorEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthPingErrorEvents } else { $null }
     operatorLiveBridgeHealthLastEventType = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthLastEventType } else { $null }
+    operatorTaskQueueTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueueTotal } else { $null }
+    operatorTaskQueueQueued = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueueQueued } else { $null }
+    operatorTaskQueueRunning = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueueRunning } else { $null }
+    operatorTaskQueuePendingApproval = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueuePendingApproval } else { $null }
+    operatorTaskQueueOther = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueueOther } else { $null }
+    operatorTaskQueueStaleCount = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueueStaleCount } else { $null }
+    operatorTaskQueueStaleThresholdMs = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueueStaleThresholdMs } else { $null }
+    operatorTaskQueueMaxAgeMs = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueueMaxAgeMs } else { $null }
+    operatorTaskQueuePressureLevel = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueuePressureLevel } else { $null }
+    operatorTaskQueueSummaryValidated = if (
+      $null -ne $operatorActionsData -and
+      [bool]$operatorActionsData.taskQueueSummaryValidated -eq $true -and
+      [int]$operatorActionsData.taskQueueTotal -ge 1 -and
+      [int]$operatorActionsData.taskQueueStaleCount -ge 0 -and
+      [int]$operatorActionsData.taskQueueStaleThresholdMs -gt 0 -and
+      [int]$operatorActionsData.taskQueueMaxAgeMs -ge 0 -and
+      @("idle", "healthy", "elevated", "critical") -contains [string]$operatorActionsData.taskQueuePressureLevel
+    ) { $true } else { $false }
     operatorDeviceNodeId = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeId } else { $null }
     operatorDeviceNodeCreatedVersion = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeCreatedVersion } else { $null }
     operatorDeviceNodeUpdatedVersion = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeUpdatedVersion } else { $null }

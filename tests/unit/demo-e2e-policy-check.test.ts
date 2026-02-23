@@ -92,6 +92,11 @@ function createPassingSummary(overrides?: {
     operatorLiveBridgeHealthPingSentEvents: 0,
     operatorLiveBridgeHealthPongEvents: 0,
     operatorLiveBridgeHealthPingErrorEvents: 0,
+    operatorTaskQueueSummaryValidated: true,
+    operatorTaskQueuePressureLevel: "healthy",
+    operatorTaskQueueTotal: 1,
+    operatorTaskQueueStaleCount: 0,
+    operatorTaskQueuePendingApproval: 0,
     operatorFailoverForbiddenCode: "API_OPERATOR_ADMIN_REQUIRED",
     operatorFailoverDrainState: "draining",
     operatorFailoverWarmupState: "ready",
@@ -208,7 +213,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 129);
+  assert.equal(result.payload.checks, 134);
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {
@@ -400,4 +405,20 @@ test("demo-e2e policy check fails when operator ui-executor failover KPI is inva
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.operatorFailoverUiExecutorValidated")));
+});
+
+test("demo-e2e policy check fails when operator task queue KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorTaskQueueSummaryValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorTaskQueueSummaryValidated")));
 });

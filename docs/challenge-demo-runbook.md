@@ -94,7 +94,7 @@ Checkpoint B (hard interruption) at ~01:40:
    - `Service Lifecycle` widget (`ready/draining/unknown + last lifecycle change + draining services list`).
    - `Task Queue Pressure` widget (`total/queued/running/pending_approval/stale + max_age + oldest_task`).
    - `device_nodes_health` summary line (`total/online/degraded/offline/stale/missing_heartbeat`) and `device.<nodeId>` recent entry.
-   - policy evidence includes explicit scenario `operator.device_nodes.lifecycle=passed` in `summary.json`.
+   - policy evidence includes explicit scenario `operator.device_nodes.lifecycle=passed` and queue KPIs (`operatorTaskQueueSummaryValidated=true`, `operatorTaskQueuePressureLevel`) in `summary.json`.
 8. Show admin failover proof for `ui-executor`:
    - set `Target Service=ui-executor`,
    - click `Failover Drain` and confirm widget state switches to `draining`,

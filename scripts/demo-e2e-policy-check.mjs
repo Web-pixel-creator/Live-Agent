@@ -464,6 +464,36 @@ async function main() {
     ">= 0",
   );
   addCheck(
+    "kpi.operatorTaskQueueSummaryValidated",
+    kpis.operatorTaskQueueSummaryValidated === true,
+    kpis.operatorTaskQueueSummaryValidated,
+    true,
+  );
+  addCheck(
+    "kpi.operatorTaskQueuePressureLevel",
+    ["idle", "healthy", "elevated", "critical"].includes(String(kpis.operatorTaskQueuePressureLevel)),
+    kpis.operatorTaskQueuePressureLevel,
+    "idle | healthy | elevated | critical",
+  );
+  addCheck(
+    "kpi.operatorTaskQueueTotal",
+    toNumber(kpis.operatorTaskQueueTotal) >= 1,
+    kpis.operatorTaskQueueTotal,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorTaskQueueStaleCount",
+    toNumber(kpis.operatorTaskQueueStaleCount) >= 0,
+    kpis.operatorTaskQueueStaleCount,
+    ">= 0",
+  );
+  addCheck(
+    "kpi.operatorTaskQueuePendingApproval",
+    toNumber(kpis.operatorTaskQueuePendingApproval) >= 0,
+    kpis.operatorTaskQueuePendingApproval,
+    ">= 0",
+  );
+  addCheck(
     "kpi.operatorFailoverForbiddenCode",
     String(kpis.operatorFailoverForbiddenCode) === "API_OPERATOR_ADMIN_REQUIRED",
     kpis.operatorFailoverForbiddenCode,
