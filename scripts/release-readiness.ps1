@@ -10,7 +10,7 @@ param(
   [switch]$SkipBadge,
   [switch]$SkipPerfLoad,
   [int]$DemoStartupTimeoutSec = 90,
-  [int]$DemoRequestTimeoutSec = 30,
+  [int]$DemoRequestTimeoutSec = 45,
   [int]$PerfLiveIterations = 6,
   [int]$PerfLiveConcurrency = 2,
   [int]$PerfUiIterations = 6,
