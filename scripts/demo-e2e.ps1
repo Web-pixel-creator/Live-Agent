@@ -1382,6 +1382,46 @@ try {
     }
   } | Out-Null
 
+  Invoke-Scenario -Name "gateway.websocket.binding_mismatch" -Action {
+    $runId = "demo-gateway-ws-binding-" + [Guid]::NewGuid().Guid
+    $timeoutMs = [Math]::Max(5000, $RequestTimeoutSec * 1000)
+    $result = Invoke-NodeJsonCommand -Args @(
+      "scripts/gateway-ws-binding-mismatch-check.mjs",
+      "--url",
+      "ws://localhost:8080/realtime",
+      "--sessionId",
+      $sessionId,
+      "--runId",
+      $runId,
+      "--userId",
+      $script:DemoUserId,
+      "--timeoutMs",
+      [string]$timeoutMs
+    )
+
+    $ok = [bool](Get-FieldValue -Object $result -Path @("ok"))
+    Assert-Condition -Condition $ok -Message "WebSocket binding-mismatch check returned ok=false."
+
+    $sessionMismatchCode = [string](Get-FieldValue -Object $result -Path @("sessionMismatchCode"))
+    $sessionMismatchTraceId = [string](Get-FieldValue -Object $result -Path @("sessionMismatchTraceId"))
+    $userMismatchCode = [string](Get-FieldValue -Object $result -Path @("userMismatchCode"))
+    $userMismatchTraceId = [string](Get-FieldValue -Object $result -Path @("userMismatchTraceId"))
+    Assert-Condition -Condition ($sessionMismatchCode -eq "GATEWAY_SESSION_MISMATCH") -Message "Unexpected gateway error code for session mismatch."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($sessionMismatchTraceId)) -Message "Session mismatch gateway error is missing traceId."
+    Assert-Condition -Condition ($userMismatchCode -eq "GATEWAY_USER_MISMATCH") -Message "Unexpected gateway error code for user mismatch."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($userMismatchTraceId)) -Message "User mismatch gateway error is missing traceId."
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $result -Path @("firstRunId"))
+      firstResponseStatus = [string](Get-FieldValue -Object $result -Path @("firstResponseStatus"))
+      sessionMismatchCode = $sessionMismatchCode
+      sessionMismatchTraceId = $sessionMismatchTraceId
+      userMismatchCode = $userMismatchCode
+      userMismatchTraceId = $userMismatchTraceId
+      eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
+    }
+  } | Out-Null
+
   Invoke-Scenario -Name "operator.console.actions" -Action {
     $operatorHeaders = @{
       "x-operator-role" = "operator"
@@ -2043,6 +2083,7 @@ $gatewayWsTaskData = Get-ScenarioData -Name "gateway.websocket.task_progress"
 $gatewayWsReplayData = Get-ScenarioData -Name "gateway.websocket.request_replay"
 $gatewayWsInterruptData = Get-ScenarioData -Name "gateway.websocket.interrupt_signal"
 $gatewayWsInvalidData = Get-ScenarioData -Name "gateway.websocket.invalid_envelope"
+$gatewayWsBindingMismatchData = Get-ScenarioData -Name "gateway.websocket.binding_mismatch"
 $operatorActionsData = Get-ScenarioData -Name "operator.console.actions"
 $approvalsListData = Get-ScenarioData -Name "api.approvals.list"
 $approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.invalid_intent"
@@ -2177,6 +2218,16 @@ $summary = [ordered]@{
     gatewayInterruptLatencySource = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptLatencySource } else { $null }
     gatewayInterruptLatencyMeasured = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptLatencyMeasured } else { $false }
     gatewayWsInvalidEnvelopeCode = if ($null -ne $gatewayWsInvalidData) { $gatewayWsInvalidData.code } else { $null }
+    gatewayWsSessionMismatchCode = if ($null -ne $gatewayWsBindingMismatchData) { $gatewayWsBindingMismatchData.sessionMismatchCode } else { $null }
+    gatewayWsUserMismatchCode = if ($null -ne $gatewayWsBindingMismatchData) { $gatewayWsBindingMismatchData.userMismatchCode } else { $null }
+    gatewayWsBindingMismatchValidated = if (
+      $null -ne $gatewayWsBindingMismatchData -and
+      [string]$gatewayWsBindingMismatchData.firstResponseStatus -eq "completed" -and
+      [string]$gatewayWsBindingMismatchData.sessionMismatchCode -eq "GATEWAY_SESSION_MISMATCH" -and
+      -not [string]::IsNullOrWhiteSpace([string]$gatewayWsBindingMismatchData.sessionMismatchTraceId) -and
+      [string]$gatewayWsBindingMismatchData.userMismatchCode -eq "GATEWAY_USER_MISMATCH" -and
+      -not [string]::IsNullOrWhiteSpace([string]$gatewayWsBindingMismatchData.userMismatchTraceId)
+    ) { $true } else { $false }
     operatorSummaryActiveTasks = if ($null -ne $operatorActionsData) { $operatorActionsData.summaryActiveTasks } else { $null }
     operatorCancelStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.cancelStatus } else { $null }
     operatorRetryStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.retryStatus } else { $null }

@@ -165,6 +165,7 @@ async function main() {
         "gateway.websocket.request_replay",
         "gateway.websocket.interrupt_signal",
         "gateway.websocket.invalid_envelope",
+        "gateway.websocket.binding_mismatch",
         "operator.console.actions",
         "operator.device_nodes.lifecycle",
         "api.approvals.list",
@@ -352,6 +353,24 @@ async function main() {
     kpis.gatewayWsInvalidEnvelopeCode === "GATEWAY_INVALID_ENVELOPE",
     kpis.gatewayWsInvalidEnvelopeCode,
     "GATEWAY_INVALID_ENVELOPE",
+  );
+  addCheck(
+    "kpi.gatewayWsSessionMismatchCode",
+    String(kpis.gatewayWsSessionMismatchCode) === "GATEWAY_SESSION_MISMATCH",
+    kpis.gatewayWsSessionMismatchCode,
+    "GATEWAY_SESSION_MISMATCH",
+  );
+  addCheck(
+    "kpi.gatewayWsUserMismatchCode",
+    String(kpis.gatewayWsUserMismatchCode) === "GATEWAY_USER_MISMATCH",
+    kpis.gatewayWsUserMismatchCode,
+    "GATEWAY_USER_MISMATCH",
+  );
+  addCheck(
+    "kpi.gatewayWsBindingMismatchValidated",
+    kpis.gatewayWsBindingMismatchValidated === true,
+    kpis.gatewayWsBindingMismatchValidated,
+    true,
   );
   addCheck(
     "kpi.operatorActionsValidated",

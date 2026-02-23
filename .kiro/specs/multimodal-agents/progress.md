@@ -9,9 +9,9 @@
 ## Verified Quality Gates
 
 1. `npm run verify:release` passes end-to-end.
-2. Demo e2e policy gate is green with `113` checks.
+2. Demo e2e policy gate is green with `117` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`108` tests passed).
+4. Unit tests are green (`109` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -42,6 +42,7 @@
 11. Demo KPI policy gate now enforces startup-retry option floors (`serviceStartMaxAttempts >= 2`, `serviceStartRetryBackoffMs >= 300ms`) with dedicated unit coverage.
 12. Demo e2e now exposes a dedicated operator lifecycle scenario (`operator.device_nodes.lifecycle`) and policy enforces it as a required judge-facing proof.
 13. Demo e2e now exposes `api.sessions.versioning` proof and policy validates optimistic-versioning/idempotency outcomes (`idempotent_replay`, `API_SESSION_VERSION_CONFLICT`, `API_SESSION_IDEMPOTENCY_CONFLICT`).
+14. Demo e2e now exposes `gateway.websocket.binding_mismatch` proof and policy validates WebSocket binding guards (`GATEWAY_SESSION_MISMATCH`, `GATEWAY_USER_MISMATCH`).
 
 ## Current Focus Queue
 
