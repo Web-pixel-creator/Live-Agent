@@ -167,7 +167,7 @@ Single-command local quality gate (build + unit tests + profile smoke + demo e2e
 npm run verify:release
 ```
 
-Note: `verify:release` runs demo e2e with `RequestTimeoutSec=45` for stability of long approval-resume paths.
+Note: `verify:release` reuses the prebuilt workspace and runs `demo:e2e:fast` with `RequestTimeoutSec=45` for stability of long approval-resume paths.
 
 Optional faster local pass (skip build):
 

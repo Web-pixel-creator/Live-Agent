@@ -42,12 +42,16 @@ jobs:
         run: npm run profile:smoke
         shell: powershell
 
+      - name: Build Workspaces
+        run: npm run build
+        shell: powershell
+
       - name: Validate Monitoring Templates
         run: npm run infra:monitoring:validate
         shell: powershell
 
       - name: Run Demo E2E
-        run: npm run demo:e2e -- -RequestTimeoutSec 45
+        run: npm run demo:e2e:fast -- -RequestTimeoutSec 45
         shell: powershell
 
       - name: Validate Demo KPI Policy

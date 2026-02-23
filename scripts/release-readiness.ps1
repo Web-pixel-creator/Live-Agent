@@ -54,7 +54,8 @@ if (-not $SkipProfileSmoke) {
 }
 
 if (-not $SkipDemoE2E) {
-  $demoCommand = if ($UseFastDemoE2E) {
+  $runFastDemo = $UseFastDemoE2E -or (-not $SkipBuild)
+  $demoCommand = if ($runFastDemo) {
     "npm run demo:e2e:fast -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec"
   } else {
     "npm run demo:e2e -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec"
