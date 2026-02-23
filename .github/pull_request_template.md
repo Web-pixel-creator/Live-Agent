@@ -19,6 +19,8 @@
   - [ ] `gatewayWsResponseStatus=completed`
   - [ ] `gatewayWsInvalidEnvelopeCode=GATEWAY_INVALID_ENVELOPE`
   - [ ] `approvalsInvalidIntentStatusCode=400`
+  - [ ] `uiApprovalResumeRequestAttempts` in `1..2`
+  - [ ] `scenario.ui.approval.approve_resume.elapsedMs <= 60000`
 
 ## Risk and Rollback
 
