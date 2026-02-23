@@ -116,6 +116,12 @@ async function main() {
   const minApprovalsRecorded = Number.isFinite(toNumber(args.minApprovalsRecorded))
     ? toNumber(args.minApprovalsRecorded)
     : 1;
+  const minUiApprovalResumeRequestAttempts = Number.isFinite(toNumber(args.minUiApprovalResumeRequestAttempts))
+    ? toNumber(args.minUiApprovalResumeRequestAttempts)
+    : 1;
+  const maxUiApprovalResumeRequestAttempts = Number.isFinite(toNumber(args.maxUiApprovalResumeRequestAttempts))
+    ? toNumber(args.maxUiApprovalResumeRequestAttempts)
+    : 2;
   const expectedUiAdapterMode = args.expectedUiAdapterMode ?? "remote_http";
   const allowedUiAdapterModes = toStringArray(args.allowedUiAdapterModes ?? expectedUiAdapterMode);
   const allowedGatewayInterruptEvents = toStringArray(
@@ -477,6 +483,21 @@ async function main() {
     kpis.uiAdapterMode,
     allowedUiAdapterModes.join(" | "),
   );
+  const uiApprovalResumeRequestAttempts = toNumber(kpis.uiApprovalResumeRequestAttempts);
+  addCheck(
+    "kpi.uiApprovalResumeRequestAttempts",
+    Number.isFinite(uiApprovalResumeRequestAttempts) &&
+      uiApprovalResumeRequestAttempts >= minUiApprovalResumeRequestAttempts &&
+      uiApprovalResumeRequestAttempts <= maxUiApprovalResumeRequestAttempts,
+    kpis.uiApprovalResumeRequestAttempts,
+    `${minUiApprovalResumeRequestAttempts}..${maxUiApprovalResumeRequestAttempts}`,
+  );
+  addCheck(
+    "kpi.uiApprovalResumeRequestRetried",
+    typeof kpis.uiApprovalResumeRequestRetried === "boolean",
+    kpis.uiApprovalResumeRequestRetried,
+    "boolean",
+  );
   addCheck(
     "kpi.sandboxPolicyValidated",
     kpis.sandboxPolicyValidated === true,
@@ -681,6 +702,8 @@ async function main() {
     thresholds: {
       maxGatewayWsRoundTripMs,
       minApprovalsRecorded,
+      minUiApprovalResumeRequestAttempts,
+      maxUiApprovalResumeRequestAttempts,
       expectedUiAdapterMode,
       allowedUiAdapterModes,
       allowedVisualComparatorModes,
