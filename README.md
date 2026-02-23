@@ -211,6 +211,7 @@ Optional local helper flags:
 - `-- -SkipPerfLoadGate` - legacy alias for `-- -PerfGateMode without_perf` (deprecated).
 - `-- -SkipArtifactOnlyGate` - restore artifacts without running release gate.
 - Perf gate is auto-skipped when downloaded bundle has no `artifacts/perf-load/*` (for example `pr-quality-artifacts`).
+- Helper writes source provenance manifest to `artifacts/release-artifact-revalidation/source-run.json`.
 
 Optional faster local pass (skip build):
 
@@ -447,6 +448,7 @@ Useful flags:
   - `max_source_run_age_hours=<int>=168` to block stale source runs (`0` disables age guard).
   - `allow_any_source_branch=true|false` to allow non-`main/master` source runs (default `false`).
 - Workflow auto-detects presence of `artifacts/perf-load/*`: with perf artifacts it runs `npm run verify:release:artifact-only`; without perf artifacts (for example `pr-quality-artifacts`) it runs `release-readiness.ps1` with `-SkipPerfLoad`.
+- Workflow writes source provenance manifest to `artifacts/release-artifact-revalidation/source-run.json` and includes the path in job summary.
 - Local equivalent helper: `npm run verify:release:artifact:revalidate` (uses `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_TOKEN` or `GH_TOKEN`, then falls back to `gh auth token`; enforces `main/master` + source-run age guard by default, supports strict mode and auto-skip for missing perf artifacts).
 
 ## PR Gate

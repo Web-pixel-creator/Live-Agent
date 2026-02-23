@@ -454,6 +454,52 @@ else {
   Write-Host "[artifact-revalidate] SkipArtifactOnlyGate enabled; artifacts were restored without running release gate."
 }
 
+$manifestDir = Join-Path $resolvedArtifactsDir "release-artifact-revalidation"
+New-Item -Path $manifestDir -ItemType Directory -Force | Out-Null
+$sourceRunManifestPath = Join-Path $manifestDir "source-run.json"
+$retryableStatusCodes = @(408, 429, 500, 502, 503, 504)
+$sourceRunManifest = [ordered]@{
+  schemaVersion = "1.0"
+  generatedAt = [datetime]::UtcNow.ToString("o")
+  repository = [ordered]@{
+    owner = $Owner
+    repo  = $Repo
+  }
+  sourceRun = [ordered]@{
+    runId        = [long]$resolvedRunId
+    workflow     = $resolvedRunWorkflowId
+    branch       = $resolvedRunBranch
+    headSha      = $resolvedRunHeadSha
+    headShaShort = $resolvedRunHeadShaShort
+    conclusion   = $resolvedRunConclusion
+    updatedAtUtc = $resolvedRunUpdatedAtUtc.ToString("o")
+    ageHours     = $runAgeHoursRounded
+  }
+  artifact = [ordered]@{
+    name = [string]$resolvedArtifact.name
+    id   = [long]$resolvedArtifact.id
+  }
+  sourceSelection = [ordered]@{
+    allowAnySourceBranch = [bool]$AllowAnySourceBranch
+    allowedBranches      = $AllowedBranches
+    maxSourceRunAgeHours = $MaxSourceRunAgeHours
+  }
+  gate = [ordered]@{
+    skipArtifactOnlyGate = [bool]$SkipArtifactOnlyGate
+    strictFinalRun       = [bool]$StrictFinalRun
+    requestedPerfMode    = $gateRequestedPerfMode
+    effectivePerfMode    = $gateEffectivePerfMode
+    perfArtifactsDetected = $gateHasPerfArtifacts
+  }
+  retry = [ordered]@{
+    githubApiMaxAttempts     = $GithubApiMaxAttempts
+    githubApiRetryBackoffMs  = $GithubApiRetryBackoffMs
+    retryableStatusCodes     = $retryableStatusCodes
+  }
+}
+$sourceRunManifest | ConvertTo-Json -Depth 10 | Set-Content -Path $sourceRunManifestPath -Encoding utf8
+Write-Host ("[artifact-revalidate] Source run manifest written: " + $sourceRunManifestPath)
+
 Write-Host ""
 Write-Host "Artifact revalidation flow completed."
 Write-Host ("- run id: " + $resolvedRunId)
@@ -470,6 +516,7 @@ Write-Host ("- max source run age hours: " + $MaxSourceRunAgeHours)
 Write-Host ("- requested perf gate mode: " + $gateRequestedPerfMode)
 Write-Host ("- effective perf gate mode: " + $gateEffectivePerfMode)
 Write-Host ("- perf artifacts detected: " + $gateHasPerfArtifacts)
+Write-Host ("- source run manifest: " + $sourceRunManifestPath)
 
 if (-not $KeepTemp) {
   if (Test-Path $resolvedTempDir) {

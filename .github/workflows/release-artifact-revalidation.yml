@@ -491,6 +491,61 @@ jobs:
             Write-Host "Perf gate mode: $effectivePerfMode (requested=$requestedPerfMode, hasPerfArtifacts=$hasPerfArtifacts). strict_final_run=$requestedStrictMode. Running with -SkipPerfLoad."
           }
 
+      - name: Write Source Run Manifest
+        id: write_manifest
+        shell: powershell
+        run: |
+          $manifestDir = "artifacts/release-artifact-revalidation"
+          New-Item -Path $manifestDir -ItemType Directory -Force | Out-Null
+          $manifestPath = Join-Path $manifestDir "source-run.json"
+          $retryableStatusCodes = @(408, 429, 500, 502, 503, 504)
+
+          $manifest = [ordered]@{
+            schemaVersion = "1.0"
+            generatedAt = [datetime]::UtcNow.ToString("o")
+            repository = [ordered]@{
+              name = "${{ github.repository }}"
+              owner = "${{ github.repository_owner }}"
+            }
+            workflow = [ordered]@{
+              runId = "${{ github.run_id }}"
+              runAttempt = "${{ github.run_attempt }}"
+            }
+            sourceRun = [ordered]@{
+              runId = "${{ steps.resolve_source.outputs.run_id }}"
+              workflow = "${{ steps.resolve_source.outputs.source_run_workflow }}"
+              branch = "${{ steps.resolve_source.outputs.source_run_branch }}"
+              headSha = "${{ steps.resolve_source.outputs.source_run_head_sha }}"
+              updatedAt = "${{ steps.resolve_source.outputs.source_run_updated_at }}"
+              ageHours = "${{ steps.resolve_source.outputs.source_run_age_hours }}"
+            }
+            artifact = [ordered]@{
+              name = "${{ steps.resolve_source.outputs.artifact_name }}"
+              id = "${{ steps.resolve_source.outputs.artifact_id }}"
+            }
+            sourceSelection = [ordered]@{
+              allowAnySourceBranch = "${{ steps.resolve_source.outputs.allow_any_source_branch }}"
+              allowedBranches = @("main", "master")
+              maxSourceRunAgeHours = "${{ steps.resolve_source.outputs.max_source_run_age_hours }}"
+            }
+            gate = [ordered]@{
+              requestedPerfMode = "${{ steps.inspect_artifacts.outputs.requested_perf_mode }}"
+              effectivePerfMode = "${{ steps.inspect_artifacts.outputs.effective_perf_mode }}"
+              perfArtifactsDetected = "${{ steps.inspect_artifacts.outputs.has_perf_artifacts }}"
+              strictFinalRun = "${{ steps.inspect_artifacts.outputs.strict_final_run }}"
+            }
+            retry = [ordered]@{
+              githubApiMaxAttempts = "${{ steps.resolve_source.outputs.github_api_max_attempts }}"
+              githubApiRetryBackoffMs = "${{ steps.resolve_source.outputs.github_api_retry_backoff_ms }}"
+              retryableStatusCodes = $retryableStatusCodes
+            }
+          }
+
+          $manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $manifestPath -Encoding utf8
+          $normalizedManifestPath = $manifestPath.Replace('\', '/')
+          ("manifest_path=" + $normalizedManifestPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host ("Source run manifest written: " + $manifestPath)
+
       - name: Run Artifact-Only Release Revalidation (With Perf Artifacts, Standard)
         if: steps.inspect_artifacts.outputs.run_with_perf == 'true' && steps.inspect_artifacts.outputs.strict_final_run != 'true'
         run: npm run verify:release:artifact-only
@@ -536,6 +591,7 @@ jobs:
           ("GitHub API retry backoff ms: ${{ steps.resolve_source.outputs.github_api_retry_backoff_ms }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Perf artifacts detected: ${{ steps.inspect_artifacts.outputs.has_perf_artifacts }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Effective perf mode: ${{ steps.inspect_artifacts.outputs.effective_perf_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Source run manifest: ${{ steps.write_manifest.outputs.manifest_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           if (Test-Path "artifacts/demo-e2e/summary.md") {
             "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             Get-Content "artifacts/demo-e2e/summary.md" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
@@ -565,4 +621,5 @@ jobs:
             artifacts/perf-load/summary.md
             artifacts/perf-load/policy-check.json
             artifacts/perf-load/policy-check.md
+            artifacts/release-artifact-revalidation/source-run.json
           if-no-files-found: warn

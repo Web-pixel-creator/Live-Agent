@@ -27,6 +27,7 @@ npm run verify:release:artifact:revalidate
 If `GITHUB_TOKEN`/`GH_TOKEN` is not set, helper tries `gh auth token` (requires prior `gh auth login`).
 Optional flags: `-- -SourceRunId <id>`, `-- -ArtifactName <name>`, `-- -GithubApiMaxAttempts <n>`, `-- -GithubApiRetryBackoffMs <ms>`, `-- -MaxSourceRunAgeHours <n>`, `-- -AllowAnySourceBranch`, `-- -StrictFinalRun`, `-- -PerfGateMode auto|with_perf|without_perf`, `-- -SkipPerfLoadGate` (deprecated alias), `-- -SkipArtifactOnlyGate`.
 Helper behavior: if downloaded bundle does not contain `artifacts/perf-load/*`, perf checks are skipped automatically while demo/policy/badge artifact checks stay enforced.
+Provenance output: helper/workflow emit source-run manifest at `artifacts/release-artifact-revalidation/source-run.json`.
 For flaky local runners you can increase demo retry tolerance:
 ```powershell
 npm run verify:release -- -DemoRunMaxAttempts 3 -DemoRunRetryBackoffMs 3000 -DemoScenarioRetryMaxAttempts 3 -DemoScenarioRetryBackoffMs 1200
@@ -210,6 +211,7 @@ Manual shortcut:
 13. API reliability evidence: `api.sessions.versioning=passed` with `kpi.sessionVersioningValidated=true`, `API_SESSION_VERSION_CONFLICT`, `API_SESSION_IDEMPOTENCY_CONFLICT`.
 14. WebSocket contract evidence: `gateway.websocket.binding_mismatch=passed` with `kpi.gatewayWsSessionMismatchCode=GATEWAY_SESSION_MISMATCH`, `kpi.gatewayWsUserMismatchCode=GATEWAY_USER_MISMATCH`.
 15. WebSocket drain behavior evidence: `gateway.websocket.draining_rejection=passed` with `kpi.gatewayWsDrainingCode=GATEWAY_DRAINING` and successful post-warmup recovery (`kpi.gatewayWsDrainingRecoveryStatus=completed`).
+16. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings).
 
 ## Quick Observability Setup (for demo environment)
 

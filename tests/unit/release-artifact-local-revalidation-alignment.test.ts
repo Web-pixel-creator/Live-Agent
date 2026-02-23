@@ -38,6 +38,11 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /SkipPerfLoadGate is deprecated/);
   assert.match(source, /run branch/);
   assert.match(source, /run age hours/);
+  assert.match(source, /release-artifact-revalidation/);
+  assert.match(source, /source-run\.json/);
+  assert.match(source, /retryableStatusCodes/);
+  assert.match(source, /Source run manifest written/);
+  assert.match(source, /source run manifest:/);
   assert.match(source, /requested perf gate mode/);
   assert.match(source, /effective perf gate mode/);
 });
@@ -57,5 +62,6 @@ test("local release artifact revalidation docs stay aligned with helper controls
     assert.match(content, /GithubApiRetryBackoffMs/);
     assert.match(content, /MaxSourceRunAgeHours/);
     assert.match(content, /AllowAnySourceBranch/);
+    assert.match(content, /source-run\.json/);
   }
 });

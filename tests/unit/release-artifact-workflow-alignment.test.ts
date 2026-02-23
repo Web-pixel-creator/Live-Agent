@@ -34,6 +34,10 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /source_run_age_hours/);
   assert.match(source, /Invoke-WebRequest/);
   assert.match(source, /id:\s*inspect_artifacts/);
+  assert.match(source, /id:\s*write_manifest/);
+  assert.match(source, /Write Source Run Manifest/);
+  assert.match(source, /source-run\.json/);
+  assert.match(source, /retryableStatusCodes/);
   assert.match(source, /has_perf_artifacts/);
   assert.match(source, /run_with_perf/);
   assert.match(source, /effective_perf_mode/);
@@ -48,6 +52,7 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /Source run age hours:/);
   assert.match(source, /Allow any source branch:/);
   assert.match(source, /Max source run age hours:/);
+  assert.match(source, /Source run manifest:/);
   assert.match(source, /npm run verify:release:artifact-only/);
   assert.match(source, /-SkipPerfLoad/);
   assert.match(source, /-StrictFinalRun/);
@@ -62,6 +67,7 @@ test("release artifact revalidation workflow publishes consolidated artifacts", 
   assert.match(source, /artifacts\/demo-e2e\/policy-check\.json/);
   assert.match(source, /artifacts\/perf-load\/summary\.json/);
   assert.match(source, /artifacts\/perf-load\/policy-check\.json/);
+  assert.match(source, /artifacts\/release-artifact-revalidation\/source-run\.json/);
 });
 
 test("workflow docs include retry-control inputs", () => {
