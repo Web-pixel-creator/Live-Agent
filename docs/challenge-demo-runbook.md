@@ -59,6 +59,7 @@ Checkpoint B (hard interruption) at ~01:40:
    - interruption lifecycle event appears,
    - assistant resumes from same session context,
    - no KPI reset.
+   - policy evidence keeps interrupt latency guard green: `kpi.gatewayInterruptLatencyMs <= 300` when measured (or explicit `live.bridge.unavailable` fallback path).
 
 ### 02:20-03:40 Creative Storyteller
 

@@ -68,28 +68,39 @@ const runId = args.runId ?? `ws-interrupt-run-${randomUUID()}`;
 const userId = args.userId ?? "demo-user";
 const timeoutMs = Number(args.timeoutMs ?? 12000);
 const reason = args.reason ?? "demo_interrupt_checkpoint";
+const settleAfterRequestedMs = Number(args.settleAfterRequestedMs ?? 350);
 
 if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
   fail("Invalid timeoutMs argument", { timeoutMs: args.timeoutMs });
 }
+if (!Number.isFinite(settleAfterRequestedMs) || settleAfterRequestedMs < 0) {
+  fail("Invalid settleAfterRequestedMs argument", { settleAfterRequestedMs: args.settleAfterRequestedMs });
+}
 
-const requestEnvelope = {
-  id: randomUUID(),
-  userId,
-  sessionId,
-  runId,
-  type: "live.interrupt",
-  source: "frontend",
-  ts: new Date().toISOString(),
-  payload: {
-    reason,
-    sentAtMs: Date.now(),
-  },
-};
+function buildInterruptRequestEnvelope(sentAtMs) {
+  return {
+    id: randomUUID(),
+    userId,
+    sessionId,
+    runId,
+    type: "live.interrupt",
+    source: "frontend",
+    ts: new Date().toISOString(),
+    payload: {
+      reason,
+      sentAtMs,
+    },
+  };
+}
 
 const receivedEventTypes = [];
 let connectedEnvelope = null;
 let interruptEnvelope = null;
+let interruptedEnvelope = null;
+let interruptLatencyEnvelope = null;
+let interruptRequestedReceivedAtMs = null;
+let interruptedReceivedAtMs = null;
+let settleTimer = null;
 
 const acceptedInterruptEvents = new Set(["live.interrupt.requested", "live.bridge.unavailable"]);
 
@@ -105,6 +116,10 @@ const timeout = setTimeout(() => {
 }, timeoutMs);
 
 function finish() {
+  if (settleTimer !== null) {
+    clearTimeout(settleTimer);
+    settleTimer = null;
+  }
   clearTimeout(timeout);
   try {
     ws.close();
@@ -129,6 +144,22 @@ function finish() {
 
   const interruptEventType = interruptEnvelope.type;
   const interruptPayload = isObject(interruptEnvelope.payload) ? interruptEnvelope.payload : {};
+  const interruptedPayload = isObject(interruptedEnvelope?.payload) ? interruptedEnvelope.payload : {};
+  const interruptLatencyPayload = isObject(interruptLatencyEnvelope?.payload) ? interruptLatencyEnvelope.payload : {};
+
+  let interruptLatencyMs = null;
+  let interruptLatencySource = null;
+  if (typeof interruptLatencyPayload.interruptLatencyMs === "number") {
+    interruptLatencyMs = interruptLatencyPayload.interruptLatencyMs;
+    interruptLatencySource = "live.metrics.interrupt_latency";
+  } else if (typeof interruptedPayload.interruptLatencyMs === "number") {
+    interruptLatencyMs = interruptedPayload.interruptLatencyMs;
+    interruptLatencySource = "live.interrupted.payload";
+  } else if (interruptRequestedReceivedAtMs !== null && interruptedReceivedAtMs !== null) {
+    interruptLatencyMs = Math.max(0, interruptedReceivedAtMs - interruptRequestedReceivedAtMs);
+    interruptLatencySource = "client_receive_delta";
+  }
+
   const interruptUserId = hasStringField(interruptEnvelope, "userId") ? interruptEnvelope.userId : null;
   if (interruptUserId !== userId) {
     fail("Interrupt event userId mismatch", {
@@ -155,6 +186,9 @@ function finish() {
         : typeof interruptPayload.error === "string"
           ? interruptPayload.error
           : null,
+    interruptLatencyMs,
+    interruptLatencySource,
+    interruptLatencyMeasured: typeof interruptLatencyMs === "number",
     eventTypes: receivedEventTypes,
   };
 
@@ -163,7 +197,8 @@ function finish() {
 }
 
 ws.on("open", () => {
-  ws.send(JSON.stringify(requestEnvelope));
+  const sentAtMs = Date.now();
+  ws.send(JSON.stringify(buildInterruptRequestEnvelope(sentAtMs)));
 });
 
 ws.on("message", (raw) => {
@@ -197,8 +232,27 @@ ws.on("message", (raw) => {
     });
   }
 
+  if (parsed.type === "live.metrics.interrupt_latency" && parsed.sessionId === sessionId) {
+    interruptLatencyEnvelope = parsed;
+  }
+
+  if (parsed.type === "live.interrupted" && parsed.sessionId === sessionId) {
+    interruptedEnvelope = parsed;
+    interruptedReceivedAtMs = Date.now();
+  }
+
   if (acceptedInterruptEvents.has(parsed.type) && parsed.sessionId === sessionId) {
     interruptEnvelope = parsed;
+    if (parsed.type === "live.interrupt.requested") {
+      interruptRequestedReceivedAtMs = Date.now();
+      if (settleTimer !== null) {
+        clearTimeout(settleTimer);
+      }
+      settleTimer = setTimeout(() => {
+        finish();
+      }, settleAfterRequestedMs);
+      return;
+    }
     finish();
   }
 });

@@ -113,6 +113,9 @@ async function main() {
   const maxGatewayWsRoundTripMs = Number.isFinite(toNumber(args.maxGatewayWsRoundTripMs))
     ? toNumber(args.maxGatewayWsRoundTripMs)
     : 1800;
+  const maxGatewayInterruptLatencyMs = Number.isFinite(toNumber(args.maxGatewayInterruptLatencyMs))
+    ? toNumber(args.maxGatewayInterruptLatencyMs)
+    : 300;
   const minApprovalsRecorded = Number.isFinite(toNumber(args.minApprovalsRecorded))
     ? toNumber(args.minApprovalsRecorded)
     : 1;
@@ -320,6 +323,21 @@ async function main() {
     allowedGatewayInterruptEvents.includes(String(kpis.gatewayInterruptEventType)),
     kpis.gatewayInterruptEventType,
     allowedGatewayInterruptEvents.join(" | "),
+  );
+  const gatewayInterruptLatencyMs = toNumber(kpis.gatewayInterruptLatencyMs);
+  const gatewayInterruptUnavailable = String(kpis.gatewayInterruptEventType) === "live.bridge.unavailable";
+  const gatewayInterruptLatencyMeasured = Number.isFinite(gatewayInterruptLatencyMs);
+  addCheck(
+    "kpi.gatewayInterruptLatencyObservedOrUnavailable",
+    gatewayInterruptLatencyMeasured || gatewayInterruptUnavailable,
+    gatewayInterruptLatencyMeasured ? gatewayInterruptLatencyMs : kpis.gatewayInterruptEventType,
+    "latency measured | live.bridge.unavailable",
+  );
+  addCheck(
+    "kpi.gatewayInterruptLatencyMs",
+    gatewayInterruptLatencyMeasured ? gatewayInterruptLatencyMs <= maxGatewayInterruptLatencyMs : gatewayInterruptUnavailable,
+    gatewayInterruptLatencyMeasured ? gatewayInterruptLatencyMs : null,
+    `<= ${maxGatewayInterruptLatencyMs} (when measured)`,
   );
   addCheck(
     "kpi.gatewayWsInvalidEnvelopeCode",
@@ -725,6 +743,7 @@ async function main() {
     jsonOutput: jsonOutputPath,
     thresholds: {
       maxGatewayWsRoundTripMs,
+      maxGatewayInterruptLatencyMs,
       minApprovalsRecorded,
       maxUiApprovalResumeElapsedMs,
       minUiApprovalResumeRequestAttempts,

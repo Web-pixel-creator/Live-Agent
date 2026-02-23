@@ -68,6 +68,7 @@ function createPassingSummary(overrides?: {
     gatewayWsResponseStatus: "completed",
     gatewayInterruptHandled: true,
     gatewayInterruptEventType: "live.interrupt.requested",
+    gatewayInterruptLatencyMs: 120,
     gatewayWsInvalidEnvelopeCode: "GATEWAY_INVALID_ENVELOPE",
     operatorActionsValidated: true,
     operatorAuditTrailValidated: true,
@@ -183,7 +184,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 103);
+  assert.equal(result.payload.checks, 105);
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {
@@ -232,4 +233,20 @@ test("demo-e2e policy check fails when ui remote fallback mode is not strict", (
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("options.uiNavigatorRemoteHttpFallbackMode")));
+});
+
+test("demo-e2e policy check fails when interrupt latency is missing for requested interrupt event", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        gatewayInterruptLatencyMs: null,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.gatewayInterruptLatencyObservedOrUnavailable")));
 });

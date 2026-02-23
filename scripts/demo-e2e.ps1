@@ -1265,6 +1265,9 @@ try {
       liveApiEnabled = Get-FieldValue -Object $result -Path @("liveApiEnabled")
       interruptEventType = $interruptEventType
       interruptReason = [string](Get-FieldValue -Object $result -Path @("interruptReason"))
+      interruptLatencyMs = Get-FieldValue -Object $result -Path @("interruptLatencyMs")
+      interruptLatencySource = [string](Get-FieldValue -Object $result -Path @("interruptLatencySource"))
+      interruptLatencyMeasured = [bool](Get-FieldValue -Object $result -Path @("interruptLatencyMeasured"))
       eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
     }
   } | Out-Null
@@ -1965,6 +1968,9 @@ $summary = [ordered]@{
     ) { $true } else { $false }
     gatewayInterruptEventType = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptEventType } else { $null }
     gatewayInterruptHandled = if ($null -ne $gatewayWsInterruptData) { $true } else { $false }
+    gatewayInterruptLatencyMs = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptLatencyMs } else { $null }
+    gatewayInterruptLatencySource = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptLatencySource } else { $null }
+    gatewayInterruptLatencyMeasured = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptLatencyMeasured } else { $false }
     gatewayWsInvalidEnvelopeCode = if ($null -ne $gatewayWsInvalidData) { $gatewayWsInvalidData.code } else { $null }
     operatorSummaryActiveTasks = if ($null -ne $operatorActionsData) { $operatorActionsData.summaryActiveTasks } else { $null }
     operatorCancelStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.cancelStatus } else { $null }
