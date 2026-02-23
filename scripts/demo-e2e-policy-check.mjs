@@ -127,6 +127,10 @@ async function main() {
     : 2;
   const expectedUiAdapterMode = args.expectedUiAdapterMode ?? "remote_http";
   const allowedUiAdapterModes = toStringArray(args.allowedUiAdapterModes ?? expectedUiAdapterMode);
+  const expectedUiRemoteHttpFallbackMode = args.expectedUiRemoteHttpFallbackMode ?? "failed";
+  const allowedUiRemoteHttpFallbackModes = toStringArray(
+    args.allowedUiRemoteHttpFallbackModes ?? expectedUiRemoteHttpFallbackMode,
+  );
   const allowedGatewayInterruptEvents = toStringArray(
     args.allowedGatewayInterruptEvents ?? "live.interrupt.requested,live.bridge.unavailable",
   );
@@ -169,6 +173,7 @@ async function main() {
   }
 
   const kpis = isObject(summary.kpis) ? summary.kpis : {};
+  const options = isObject(summary.options) ? summary.options : {};
   const scenarios = Array.isArray(summary.scenarios) ? summary.scenarios : [];
   const scenarioByName = new Map(
     scenarios.map((item) => [isObject(item) ? String(item.name) : "", item]).filter(([name]) => name.length > 0),
@@ -496,6 +501,12 @@ async function main() {
     kpis.uiAdapterMode,
     allowedUiAdapterModes.join(" | "),
   );
+  addCheck(
+    "options.uiNavigatorRemoteHttpFallbackMode",
+    allowedUiRemoteHttpFallbackModes.includes(String(options.uiNavigatorRemoteHttpFallbackMode)),
+    options.uiNavigatorRemoteHttpFallbackMode,
+    allowedUiRemoteHttpFallbackModes.join(" | "),
+  );
   const uiApprovalResumeRequestAttempts = toNumber(kpis.uiApprovalResumeRequestAttempts);
   addCheck(
     "kpi.uiApprovalResumeRequestAttempts",
@@ -720,6 +731,8 @@ async function main() {
       maxUiApprovalResumeRequestAttempts,
       expectedUiAdapterMode,
       allowedUiAdapterModes,
+      expectedUiRemoteHttpFallbackMode,
+      allowedUiRemoteHttpFallbackModes,
       allowedVisualComparatorModes,
       allowedStoryMediaModes,
       allowedGatewayInterruptEvents,

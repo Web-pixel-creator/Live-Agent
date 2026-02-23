@@ -36,6 +36,7 @@ const requiredScenarioNames = [
 
 function createPassingSummary(overrides?: {
   kpis?: Record<string, unknown>;
+  options?: Record<string, unknown>;
   scenarios?: Array<Record<string, unknown>>;
 }): Record<string, unknown> {
   const scenarios =
@@ -138,6 +139,10 @@ function createPassingSummary(overrides?: {
     success: true,
     scenarios,
     kpis,
+    options: {
+      uiNavigatorRemoteHttpFallbackMode: "failed",
+      ...(overrides?.options ?? {}),
+    },
   };
 }
 
@@ -178,7 +183,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 102);
+  assert.equal(result.payload.checks, 103);
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {
@@ -211,4 +216,20 @@ test("demo-e2e policy check fails when approve-resume scenario exceeds elapsed t
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("scenario.ui.approval.approve_resume.elapsedMs")));
+});
+
+test("demo-e2e policy check fails when ui remote fallback mode is not strict", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      options: {
+        uiNavigatorRemoteHttpFallbackMode: "simulated",
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("options.uiNavigatorRemoteHttpFallbackMode")));
 });

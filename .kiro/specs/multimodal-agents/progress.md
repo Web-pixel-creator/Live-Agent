@@ -9,9 +9,9 @@
 ## Verified Quality Gates
 
 1. `npm run verify:release` passes end-to-end.
-2. Demo e2e policy gate is green with `102` checks.
+2. Demo e2e policy gate is green with `103` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`99` tests passed).
+4. Unit tests are green (`104` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -34,6 +34,7 @@
 3. Release summary now prints approval-resume retry KPI values.
 4. UI Navigator remote executor now supports strict fallback policy via `UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE=simulated|failed` (with dedicated unit coverage).
 5. Added dedicated unit coverage for `scripts/demo-e2e-policy-check.mjs` (pass path + threshold violations for attempts/elapsed guards).
+6. Demo KPI policy gate now enforces `options.uiNavigatorRemoteHttpFallbackMode=failed` for judged demo determinism.
 
 ## Current Focus Queue
 
