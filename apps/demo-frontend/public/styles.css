@@ -236,6 +236,38 @@ button:hover {
   text-align: right;
 }
 
+.operator-health-hint {
+  margin: 8px 0 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 9px;
+  font-size: 0.83rem;
+  line-height: 1.35;
+}
+
+.operator-health-hint-neutral {
+  background: rgba(125, 159, 168, 0.14);
+  color: #c8dee1;
+}
+
+.operator-health-hint-ok {
+  background: rgba(0, 200, 83, 0.12);
+  border-color: rgba(0, 200, 83, 0.32);
+  color: #a7ffd8;
+}
+
+.operator-health-hint-warn {
+  background: rgba(255, 159, 67, 0.12);
+  border-color: rgba(255, 159, 67, 0.34);
+  color: #ffd9b0;
+}
+
+.operator-health-hint-fail {
+  background: rgba(255, 107, 107, 0.14);
+  border-color: rgba(255, 107, 107, 0.36);
+  color: #ffc2c2;
+}
+
 .status-pill {
   display: inline-block;
   border-radius: 999px;

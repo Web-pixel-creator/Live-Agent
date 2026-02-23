@@ -36,6 +36,7 @@
 5. Added dedicated unit coverage for `scripts/demo-e2e-policy-check.mjs` (pass path + threshold violations for attempts/elapsed guards).
 6. Demo KPI policy gate now enforces `options.uiNavigatorRemoteHttpFallbackMode=failed` for judged demo determinism.
 7. Demo KPI policy gate now enforces interrupt-latency discipline (`maxGatewayInterruptLatencyMs=300` when measured) with explicit unavailable fallback allowance.
+8. Demo frontend operator console now shows actionable live-bridge recovery hints (`drain/warmup`) based on health state and probe/error counters.
 
 ## Current Focus Queue
 

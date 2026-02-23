@@ -59,6 +59,7 @@ const el = {
   operatorHealthState: document.getElementById("operatorHealthState"),
   operatorHealthLastEventType: document.getElementById("operatorHealthLastEventType"),
   operatorHealthLastEventAt: document.getElementById("operatorHealthLastEventAt"),
+  operatorHealthHint: document.getElementById("operatorHealthHint"),
   operatorHealthDegraded: document.getElementById("operatorHealthDegraded"),
   operatorHealthRecovered: document.getElementById("operatorHealthRecovered"),
   operatorHealthWatchdogReconnects: document.getElementById("operatorHealthWatchdogReconnects"),
@@ -307,6 +308,27 @@ function setText(node, value) {
   node.textContent = value;
 }
 
+function setOperatorHealthHint(text, variant = "neutral") {
+  if (!el.operatorHealthHint) {
+    return;
+  }
+  el.operatorHealthHint.textContent = text;
+  el.operatorHealthHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorHealthHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorHealthHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorHealthHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorHealthHint.classList.add("operator-health-hint-neutral");
+}
+
 function resetOperatorHealthWidget(reason = "no_data") {
   setText(el.operatorHealthState, "unknown");
   setText(el.operatorHealthLastEventType, "-");
@@ -322,6 +344,7 @@ function resetOperatorHealthWidget(reason = "no_data") {
   setText(el.operatorHealthPongs, "0");
   setText(el.operatorHealthPingErrors, "0");
   setText(el.operatorHealthProbeSuccess, "n/a");
+  setOperatorHealthHint("Refresh summary to evaluate recovery actions.", "neutral");
   setStatusPill(el.operatorHealthStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -363,13 +386,22 @@ function renderOperatorHealthWidget(liveBridgeHealth) {
   setText(el.operatorHealthProbeSuccess, probeSuccessText);
 
   let statusVariant = "ok";
+  let recoveryHint = "Bridge healthy. Keep monitoring counters; no failover action is required.";
+  let recoveryHintVariant = "ok";
   if (bridgeState === "degraded" || unavailable > 0 || errors > 0) {
     statusVariant = "fail";
+    recoveryHintVariant = "fail";
+    recoveryHint =
+      "Recommended: choose target `realtime-gateway`, click `Failover Drain`, then `Failover Warmup` after recovery.";
   } else if (bridgeState === "unknown" || pingErrors > 0 || (pingSent > 0 && pongs < pingSent)) {
     statusVariant = "neutral";
+    recoveryHintVariant = "warn";
+    recoveryHint =
+      "State is uncertain. Refresh summary; if probe/errors counters grow, run `Failover Drain` and then `Failover Warmup`.";
   }
   const statusText = probeSuccessPct === null ? `state=${bridgeState}` : `state=${bridgeState} probe=${probeSuccessText}`;
   setStatusPill(el.operatorHealthStatus, statusText, statusVariant);
+  setOperatorHealthHint(recoveryHint, recoveryHintVariant);
 }
 
 function extractNumber(text, regex) {
