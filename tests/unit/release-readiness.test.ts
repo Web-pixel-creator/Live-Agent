@@ -136,6 +136,142 @@ function runReleaseReadiness(summary: Record<string, unknown>): { exitCode: numb
   }
 }
 
+function createPassingPerfSummary(
+  overrides: Partial<{
+    liveP95Ms: number;
+    uiP95Ms: number;
+    gatewayReplayP95Ms: number;
+    gatewayReplayErrorRatePct: number;
+    aggregateErrorRatePct: number;
+  }> = {},
+): Record<string, unknown> {
+  const hasOverride = (key: string): boolean => Object.prototype.hasOwnProperty.call(overrides, key);
+  return {
+    success: true,
+    workloads: [
+      {
+        name: "live_voice_translation",
+        latencyMs: {
+          p95: hasOverride("liveP95Ms") ? overrides.liveP95Ms : 1100,
+        },
+        errorRatePct: 0,
+      },
+      {
+        name: "ui_navigation_execution",
+        latencyMs: {
+          p95: hasOverride("uiP95Ms") ? overrides.uiP95Ms : 8500,
+        },
+        errorRatePct: 0,
+      },
+      {
+        name: "gateway_ws_request_replay",
+        latencyMs: {
+          p95: hasOverride("gatewayReplayP95Ms") ? overrides.gatewayReplayP95Ms : 3200,
+        },
+        errorRatePct: hasOverride("gatewayReplayErrorRatePct") ? overrides.gatewayReplayErrorRatePct : 0,
+      },
+    ],
+    aggregate: {
+      errorRatePct: hasOverride("aggregateErrorRatePct") ? overrides.aggregateErrorRatePct : 0,
+    },
+  };
+}
+
+function createPassingPerfPolicy(): Record<string, unknown> {
+  const checkNames = [
+    "summary.success",
+    "workload.live.exists",
+    "workload.ui.exists",
+    "workload.gateway_replay.exists",
+    "workload.live.p95",
+    "workload.ui.p95",
+    "workload.gateway_replay.p95",
+    "workload.gateway_replay.errorRatePct",
+    "aggregate.errorRatePct",
+    "workload.live.success",
+    "workload.ui.success",
+    "workload.gateway_replay.success",
+    "workload.gateway_replay.contract.responseIdReusedAll",
+    "workload.gateway_replay.contract.taskStartedExactlyOneAll",
+    "workload.ui.adapterMode.remote_http",
+  ];
+  return {
+    ok: true,
+    checks: checkNames.length,
+    thresholds: {
+      maxLiveP95Ms: 1800,
+      maxUiP95Ms: 25000,
+      maxGatewayReplayP95Ms: 9000,
+      maxGatewayReplayErrorRatePct: 20,
+      maxAggregateErrorRatePct: 10,
+      requiredUiAdapterMode: "remote_http",
+    },
+    checkItems: checkNames.map((name) => ({
+      name,
+      passed: true,
+      value: 1,
+      expectation: "ok",
+    })),
+    violations: [],
+  };
+}
+
+function runReleaseReadinessWithPerfArtifacts(
+  summary: Record<string, unknown>,
+  perfSummary: Record<string, unknown>,
+  perfPolicy: Record<string, unknown>,
+): { exitCode: number; stdout: string; stderr: string } {
+  if (!powershellBin) {
+    throw new Error("PowerShell binary is not available");
+  }
+
+  const tempDir = mkdtempSync(join(tmpdir(), "mla-release-readiness-perf-"));
+  try {
+    const summaryPath = join(tempDir, "summary.json");
+    const perfSummaryPath = join(tempDir, "perf-summary.json");
+    const perfPolicyPath = join(tempDir, "perf-policy.json");
+    writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
+    writeFileSync(perfSummaryPath, `${JSON.stringify(perfSummary, null, 2)}\n`, "utf8");
+    writeFileSync(perfPolicyPath, `${JSON.stringify(perfPolicy, null, 2)}\n`, "utf8");
+
+    const result = spawnSync(
+      powershellBin,
+      [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        releaseScriptPath,
+        "-SkipBuild",
+        "-SkipUnitTests",
+        "-SkipMonitoringTemplates",
+        "-SkipProfileSmoke",
+        "-SkipPolicy",
+        "-SkipBadge",
+        "-SkipDemoRun",
+        "-SkipPerfRun",
+        "-SummaryPath",
+        summaryPath,
+        "-PerfSummaryPath",
+        perfSummaryPath,
+        "-PerfPolicyPath",
+        perfPolicyPath,
+      ],
+      {
+        encoding: "utf8",
+      },
+    );
+
+    return {
+      exitCode: result.status ?? 1,
+      stdout: result.stdout ?? "",
+      stderr: result.stderr ?? "",
+    };
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
 test(
   "release-readiness passes with healthy operator task queue pressure",
   { skip: skipIfNoPowerShell },
@@ -336,5 +472,78 @@ test(
       }),
     );
     assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+  },
+);
+
+test(
+  "release-readiness passes with validated perf summary and policy artifacts",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessWithPerfArtifacts(
+      createPassingSummary(),
+      createPassingPerfSummary(),
+      createPassingPerfPolicy(),
+    );
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+  },
+);
+
+test(
+  "release-readiness fails when perf policy threshold drifts above release limit",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const policy = createPassingPerfPolicy();
+    if (policy.thresholds && typeof policy.thresholds === "object") {
+      (policy.thresholds as Record<string, unknown>).maxLiveP95Ms = 2600;
+    }
+
+    const result = runReleaseReadinessWithPerfArtifacts(createPassingSummary(), createPassingPerfSummary(), policy);
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /perf policy threshold mismatch: maxLiveP95Ms expected <= 1800, actual 2600/i);
+  },
+);
+
+test(
+  "release-readiness fails when required perf policy check is missing",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const policy = createPassingPerfPolicy();
+    if (Array.isArray(policy.checkItems)) {
+      policy.checkItems = policy.checkItems.filter(
+        (item) =>
+          typeof item === "object" &&
+          item !== null &&
+          (item as { name?: string }).name !== "workload.ui.adapterMode.remote_http",
+      );
+      policy.checkItems.push({
+        name: "workload.ui.adapterMode.placeholder",
+        passed: true,
+        value: 1,
+        expectation: "ok",
+      });
+    }
+    policy.checks = 15;
+
+    const result = runReleaseReadinessWithPerfArtifacts(createPassingSummary(), createPassingPerfSummary(), policy);
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /perf policy-check missing required check: workload\.ui\.adapterMode\.remote_http/i);
+  },
+);
+
+test(
+  "release-readiness fails when perf summary live p95 exceeds release limit",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const perfSummary = createPassingPerfSummary({ liveP95Ms: 2400 });
+    const result = runReleaseReadinessWithPerfArtifacts(
+      createPassingSummary(),
+      perfSummary,
+      createPassingPerfPolicy(),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /perf summary check failed: live_voice_translation p95 expected <= 1800, actual 2400/i);
   },
 );

@@ -10,6 +10,7 @@ param(
   [switch]$SkipPolicy,
   [switch]$SkipBadge,
   [switch]$SkipPerfLoad,
+  [switch]$SkipPerfRun,
   [int]$DemoStartupTimeoutSec = 90,
   [int]$DemoRequestTimeoutSec = 45,
   [int]$PerfLiveIterations = 6,
@@ -30,6 +31,13 @@ $ReleaseThresholds = @{
   MaxGatewayInterruptLatencyMs = 300
   MinServiceStartMaxAttempts = 2
   MinServiceStartRetryBackoffMs = 300
+  MaxPerfLiveP95Ms = 1800
+  MaxPerfUiP95Ms = 25000
+  MaxPerfGatewayReplayP95Ms = 9000
+  MaxPerfGatewayReplayErrorRatePct = 20
+  MaxPerfAggregateErrorRatePct = 10
+  RequiredPerfUiAdapterMode = "remote_http"
+  MinPerfPolicyChecks = 15
 }
 
 function To-NumberOrNaN([object]$Value) {
@@ -112,8 +120,12 @@ if (-not $SkipBadge) {
 }
 
 if (-not $SkipPerfLoad) {
-  $perfCommand = "npm run perf:load:fast -- -LiveIterations $PerfLiveIterations -LiveConcurrency $PerfLiveConcurrency -UiIterations $PerfUiIterations -UiConcurrency $PerfUiConcurrency"
-  Run-Step "Run perf load profile + policy gate" $perfCommand
+  if (-not $SkipPerfRun) {
+    $perfCommand = "npm run perf:load:fast -- -LiveIterations $PerfLiveIterations -LiveConcurrency $PerfLiveConcurrency -UiIterations $PerfUiIterations -UiConcurrency $PerfUiConcurrency"
+    Run-Step "Run perf load profile + policy gate" $perfCommand
+  } else {
+    Write-Host "[release-check] SkipPerfRun enabled; using existing perf artifacts"
+  }
 }
 
 $requiredFiles = @()
@@ -285,12 +297,122 @@ if ((-not $SkipPerfLoad) -and (Test-Path $PerfSummaryPath)) {
   if (-not $perfSummary.success) {
     Fail "perf summary.success is false"
   }
+
+  $perfWorkloads = @($perfSummary.workloads)
+  $livePerfWorkload = @($perfWorkloads | Where-Object { [string]$_.name -eq "live_voice_translation" } | Select-Object -First 1)
+  if ($livePerfWorkload.Count -eq 0) {
+    Fail "perf summary missing workload: live_voice_translation"
+  }
+
+  $uiPerfWorkload = @($perfWorkloads | Where-Object { [string]$_.name -eq "ui_navigation_execution" } | Select-Object -First 1)
+  if ($uiPerfWorkload.Count -eq 0) {
+    Fail "perf summary missing workload: ui_navigation_execution"
+  }
+
+  $gatewayReplayPerfWorkload = @($perfWorkloads | Where-Object { [string]$_.name -eq "gateway_ws_request_replay" } | Select-Object -First 1)
+  if ($gatewayReplayPerfWorkload.Count -eq 0) {
+    Fail "perf summary missing workload: gateway_ws_request_replay"
+  }
+
+  $perfLiveP95 = To-NumberOrNaN $livePerfWorkload[0].latencyMs.p95
+  if ([double]::IsNaN($perfLiveP95) -or $perfLiveP95 -gt $ReleaseThresholds.MaxPerfLiveP95Ms) {
+    Fail ("perf summary check failed: live_voice_translation p95 expected <= " + $ReleaseThresholds.MaxPerfLiveP95Ms + ", actual " + $livePerfWorkload[0].latencyMs.p95)
+  }
+
+  $perfUiP95 = To-NumberOrNaN $uiPerfWorkload[0].latencyMs.p95
+  if ([double]::IsNaN($perfUiP95) -or $perfUiP95 -gt $ReleaseThresholds.MaxPerfUiP95Ms) {
+    Fail ("perf summary check failed: ui_navigation_execution p95 expected <= " + $ReleaseThresholds.MaxPerfUiP95Ms + ", actual " + $uiPerfWorkload[0].latencyMs.p95)
+  }
+
+  $perfGatewayReplayP95 = To-NumberOrNaN $gatewayReplayPerfWorkload[0].latencyMs.p95
+  if ([double]::IsNaN($perfGatewayReplayP95) -or $perfGatewayReplayP95 -gt $ReleaseThresholds.MaxPerfGatewayReplayP95Ms) {
+    Fail ("perf summary check failed: gateway_ws_request_replay p95 expected <= " + $ReleaseThresholds.MaxPerfGatewayReplayP95Ms + ", actual " + $gatewayReplayPerfWorkload[0].latencyMs.p95)
+  }
+
+  $perfGatewayReplayErrorRatePct = To-NumberOrNaN $gatewayReplayPerfWorkload[0].errorRatePct
+  if ([double]::IsNaN($perfGatewayReplayErrorRatePct) -or $perfGatewayReplayErrorRatePct -gt $ReleaseThresholds.MaxPerfGatewayReplayErrorRatePct) {
+    Fail ("perf summary check failed: gateway_ws_request_replay errorRatePct expected <= " + $ReleaseThresholds.MaxPerfGatewayReplayErrorRatePct + ", actual " + $gatewayReplayPerfWorkload[0].errorRatePct)
+  }
+
+  $perfAggregateErrorRatePct = To-NumberOrNaN $perfSummary.aggregate.errorRatePct
+  if ([double]::IsNaN($perfAggregateErrorRatePct) -or $perfAggregateErrorRatePct -gt $ReleaseThresholds.MaxPerfAggregateErrorRatePct) {
+    Fail ("perf summary check failed: aggregate.errorRatePct expected <= " + $ReleaseThresholds.MaxPerfAggregateErrorRatePct + ", actual " + $perfSummary.aggregate.errorRatePct)
+  }
 }
 
 if ((-not $SkipPerfLoad) -and (Test-Path $PerfPolicyPath)) {
   $perfPolicy = Get-Content $PerfPolicyPath -Raw | ConvertFrom-Json
   if (-not $perfPolicy.ok) {
     Fail "perf policy-check result is not ok"
+  }
+
+  $perfPolicyThresholds = $perfPolicy.thresholds
+  if ($null -eq $perfPolicyThresholds) {
+    Fail "perf policy-check missing thresholds section"
+  }
+
+  $perfPolicyMaxLiveP95Ms = To-NumberOrNaN $perfPolicyThresholds.maxLiveP95Ms
+  if ([double]::IsNaN($perfPolicyMaxLiveP95Ms) -or $perfPolicyMaxLiveP95Ms -gt $ReleaseThresholds.MaxPerfLiveP95Ms) {
+    Fail ("perf policy threshold mismatch: maxLiveP95Ms expected <= " + $ReleaseThresholds.MaxPerfLiveP95Ms + ", actual " + $perfPolicyThresholds.maxLiveP95Ms)
+  }
+
+  $perfPolicyMaxUiP95Ms = To-NumberOrNaN $perfPolicyThresholds.maxUiP95Ms
+  if ([double]::IsNaN($perfPolicyMaxUiP95Ms) -or $perfPolicyMaxUiP95Ms -gt $ReleaseThresholds.MaxPerfUiP95Ms) {
+    Fail ("perf policy threshold mismatch: maxUiP95Ms expected <= " + $ReleaseThresholds.MaxPerfUiP95Ms + ", actual " + $perfPolicyThresholds.maxUiP95Ms)
+  }
+
+  $perfPolicyMaxGatewayReplayP95Ms = To-NumberOrNaN $perfPolicyThresholds.maxGatewayReplayP95Ms
+  if ([double]::IsNaN($perfPolicyMaxGatewayReplayP95Ms) -or $perfPolicyMaxGatewayReplayP95Ms -gt $ReleaseThresholds.MaxPerfGatewayReplayP95Ms) {
+    Fail ("perf policy threshold mismatch: maxGatewayReplayP95Ms expected <= " + $ReleaseThresholds.MaxPerfGatewayReplayP95Ms + ", actual " + $perfPolicyThresholds.maxGatewayReplayP95Ms)
+  }
+
+  $perfPolicyMaxGatewayReplayErrorRatePct = To-NumberOrNaN $perfPolicyThresholds.maxGatewayReplayErrorRatePct
+  if ([double]::IsNaN($perfPolicyMaxGatewayReplayErrorRatePct) -or $perfPolicyMaxGatewayReplayErrorRatePct -gt $ReleaseThresholds.MaxPerfGatewayReplayErrorRatePct) {
+    Fail ("perf policy threshold mismatch: maxGatewayReplayErrorRatePct expected <= " + $ReleaseThresholds.MaxPerfGatewayReplayErrorRatePct + ", actual " + $perfPolicyThresholds.maxGatewayReplayErrorRatePct)
+  }
+
+  $perfPolicyMaxAggregateErrorRatePct = To-NumberOrNaN $perfPolicyThresholds.maxAggregateErrorRatePct
+  if ([double]::IsNaN($perfPolicyMaxAggregateErrorRatePct) -or $perfPolicyMaxAggregateErrorRatePct -gt $ReleaseThresholds.MaxPerfAggregateErrorRatePct) {
+    Fail ("perf policy threshold mismatch: maxAggregateErrorRatePct expected <= " + $ReleaseThresholds.MaxPerfAggregateErrorRatePct + ", actual " + $perfPolicyThresholds.maxAggregateErrorRatePct)
+  }
+
+  $perfPolicyRequiredUiAdapterMode = [string]$perfPolicyThresholds.requiredUiAdapterMode
+  if ($perfPolicyRequiredUiAdapterMode -ne $ReleaseThresholds.RequiredPerfUiAdapterMode) {
+    Fail ("perf policy threshold mismatch: requiredUiAdapterMode expected " + $ReleaseThresholds.RequiredPerfUiAdapterMode + ", actual " + $perfPolicyRequiredUiAdapterMode)
+  }
+
+  $perfPolicyChecksCount = To-NumberOrNaN $perfPolicy.checks
+  if ([double]::IsNaN($perfPolicyChecksCount) -or $perfPolicyChecksCount -lt $ReleaseThresholds.MinPerfPolicyChecks) {
+    Fail ("perf policy-check count expected >= " + $ReleaseThresholds.MinPerfPolicyChecks + ", actual " + $perfPolicy.checks)
+  }
+
+  $requiredPerfPolicyChecks = @(
+    "summary.success",
+    "workload.live.exists",
+    "workload.ui.exists",
+    "workload.gateway_replay.exists",
+    "workload.live.p95",
+    "workload.ui.p95",
+    "workload.gateway_replay.p95",
+    "workload.gateway_replay.errorRatePct",
+    "aggregate.errorRatePct",
+    "workload.live.success",
+    "workload.ui.success",
+    "workload.gateway_replay.success",
+    "workload.gateway_replay.contract.responseIdReusedAll",
+    "workload.gateway_replay.contract.taskStartedExactlyOneAll",
+    ("workload.ui.adapterMode." + $ReleaseThresholds.RequiredPerfUiAdapterMode)
+  )
+
+  foreach ($requiredPerfPolicyCheck in $requiredPerfPolicyChecks) {
+    $checkRecord = @($perfPolicy.checkItems | Where-Object { [string]$_.name -eq $requiredPerfPolicyCheck } | Select-Object -First 1)
+    if ($checkRecord.Count -eq 0) {
+      Fail ("perf policy-check missing required check: " + $requiredPerfPolicyCheck)
+    }
+    $isPassed = To-BoolOrNull $checkRecord[0].passed
+    if ($isPassed -ne $true) {
+      Fail ("perf policy-check failed for required check: " + $requiredPerfPolicyCheck)
+    }
   }
 }
 
