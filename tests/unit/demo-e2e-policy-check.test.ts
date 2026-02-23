@@ -470,3 +470,19 @@ test("demo-e2e policy check fails when webrtc requested mode does not expose fal
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.gatewayTransportFallbackActive")));
 });
+
+test("demo-e2e policy check fails when gateway requested transport mode is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        gatewayTransportRequestedMode: "tcp",
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.gatewayTransportRequestedMode")));
+});
