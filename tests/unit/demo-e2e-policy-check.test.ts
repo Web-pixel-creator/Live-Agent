@@ -115,6 +115,9 @@ function createPassingSummary(overrides?: {
     sessionIdempotencyReplayOutcome: "idempotent_replay",
     sessionIdempotencyConflictCode: "API_SESSION_IDEMPOTENCY_CONFLICT",
     uiAdapterMode: "remote_http",
+    uiExecutorMode: "remote_http",
+    uiExecutorForceSimulation: true,
+    uiExecutorRuntimeValidated: true,
     uiApprovalResumeRequestAttempts: 1,
     uiApprovalResumeRequestRetried: false,
     sandboxPolicyValidated: true,
@@ -201,7 +204,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 122);
+  assert.equal(result.payload.checks, 125);
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {
@@ -345,4 +348,20 @@ test("demo-e2e policy check fails when gateway websocket draining KPI is invalid
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.gatewayWsDrainingValidated")));
+});
+
+test("demo-e2e policy check fails when ui-executor runtime profile is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        uiExecutorRuntimeValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.uiExecutorRuntimeValidated")));
 });

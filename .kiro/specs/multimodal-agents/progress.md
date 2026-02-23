@@ -9,9 +9,9 @@
 ## Verified Quality Gates
 
 1. `npm run verify:release` passes end-to-end.
-2. Demo e2e policy gate is green with `122` checks.
+2. Demo e2e policy gate is green with `125` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`110` tests passed).
+4. Unit tests are green (`111` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -47,6 +47,7 @@
 16. Release readiness gate now fails fast on critical summary evidence (`gateway.websocket.binding_mismatch`, `gateway.websocket.draining_rejection`, `api.sessions.versioning`) and prints judge-critical KPI snapshots in final output.
 17. Demo frontend live transcript now uses per-turn streaming aggregation (single assistant entry + idle/turn completion finalization), reducing token-by-token noise in judged live sessions.
 18. Demo/perf runtime profiles now pin `UI_EXECUTOR_FORCE_SIMULATION=true`, preserving `remote_http` adapter contract while removing Playwright/network variance; `ui.approval.approve_resume` latency stabilized from multi-second tails to sub-second runs in e2e.
+19. Demo KPI policy gate now enforces `ui-executor` runtime profile invariants (`kpi.uiExecutorMode=remote_http`, `kpi.uiExecutorForceSimulation=true`, `kpi.uiExecutorRuntimeValidated=true`) to prevent accidental regression to flaky browser/network execution paths.
 
 ## Current Focus Queue
 

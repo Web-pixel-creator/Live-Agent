@@ -2134,6 +2134,7 @@ $approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.inval
 $sessionVersioningData = Get-ScenarioData -Name "api.sessions.versioning"
 $runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
 $runtimeMetricsData = Get-ScenarioData -Name "runtime.metrics.endpoints"
+$uiExecutorService = $script:ServiceStatuses | Where-Object { $_.name -eq "ui-executor" } | Select-Object -First 1
 
 $summary = [ordered]@{
   generatedAt = (Get-Date).ToString("o")
@@ -2205,6 +2206,13 @@ $summary = [ordered]@{
     ) { $true } else { $false }
     uiAdapterMode = if ($null -ne $uiApproveData) { $uiApproveData.adapterMode } else { $null }
     uiAdapterRetries = if ($null -ne $uiApproveData) { $uiApproveData.retries } else { $null }
+    uiExecutorMode = if ($null -ne $uiExecutorService) { Get-FieldValue -Object $uiExecutorService -Path @("health", "mode") } else { $null }
+    uiExecutorForceSimulation = if ($null -ne $uiExecutorService) { Get-FieldValue -Object $uiExecutorService -Path @("health", "forceSimulation") } else { $null }
+    uiExecutorRuntimeValidated = if (
+      $null -ne $uiExecutorService -and
+      [string](Get-FieldValue -Object $uiExecutorService -Path @("health", "mode")) -eq "remote_http" -and
+      [bool](Get-FieldValue -Object $uiExecutorService -Path @("health", "forceSimulation")) -eq $true
+    ) { $true } else { $false }
     uiApprovalResumeRequestAttempts = if ($null -ne $uiApproveData) { $uiApproveData.requestAttempts } else { $null }
     uiApprovalResumeRequestRetried = if ($null -ne $uiApproveData) { $uiApproveData.requestRetried } else { $null }
     sandboxPolicyMode = if ($null -ne $uiSandboxData) { $uiSandboxData.sandboxMode } else { $null }

@@ -596,6 +596,24 @@ async function main() {
     allowedUiAdapterModes.join(" | "),
   );
   addCheck(
+    "kpi.uiExecutorMode",
+    String(kpis.uiExecutorMode) === "remote_http",
+    kpis.uiExecutorMode,
+    "remote_http",
+  );
+  addCheck(
+    "kpi.uiExecutorForceSimulation",
+    kpis.uiExecutorForceSimulation === true,
+    kpis.uiExecutorForceSimulation,
+    true,
+  );
+  addCheck(
+    "kpi.uiExecutorRuntimeValidated",
+    kpis.uiExecutorRuntimeValidated === true,
+    kpis.uiExecutorRuntimeValidated,
+    true,
+  );
+  addCheck(
     "options.uiNavigatorRemoteHttpFallbackMode",
     allowedUiRemoteHttpFallbackModes.includes(String(options.uiNavigatorRemoteHttpFallbackMode)),
     options.uiNavigatorRemoteHttpFallbackMode,
