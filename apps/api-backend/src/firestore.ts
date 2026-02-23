@@ -1855,6 +1855,25 @@ export async function listDeviceNodes(params: {
     .filter((node) => (kind ? node.kind === kind : true));
 }
 
+export async function getDeviceNodeById(nodeIdInput: string): Promise<DeviceNodeRecord | null> {
+  const nodeId = normalizeManagedSkillId(nodeIdInput, "");
+  if (!nodeId) {
+    return null;
+  }
+
+  const db = initFirestore();
+  if (!db) {
+    return inMemoryDeviceNodes.get(nodeId) ?? null;
+  }
+
+  const snapshot = await db.collection("device_nodes").doc(nodeId).get();
+  if (!snapshot.exists) {
+    return null;
+  }
+
+  return mapDeviceNodeRecord(snapshot.id, snapshot.data() as Record<string, unknown>);
+}
+
 export async function upsertDeviceNode(params: {
   nodeId: string;
   displayName: string;

@@ -17,6 +17,7 @@ import {
   createSession,
   type DeviceNodeKind,
   type DeviceNodeStatus,
+  getDeviceNodeById,
   getFirestoreState,
   listDeviceNodeIndex,
   listDeviceNodes,
@@ -1093,6 +1094,35 @@ export const server = createServer(async (req, res) => {
         generatedAt: new Date().toISOString(),
       });
       return;
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith("/v1/device-nodes/")) {
+      const rawNodeId = url.pathname.slice("/v1/device-nodes/".length);
+      if (
+        rawNodeId.length > 0 &&
+        rawNodeId !== "index" &&
+        rawNodeId !== "heartbeat"
+      ) {
+        const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+        const decodedNodeId = decodeURIComponent(rawNodeId);
+        const node = await getDeviceNodeById(decodedNodeId);
+        if (!node) {
+          writeApiError(res, 404, {
+            code: "API_DEVICE_NODE_NOT_FOUND",
+            message: "Device node not found",
+            details: {
+              nodeId: decodedNodeId,
+            },
+          });
+          return;
+        }
+        writeJson(res, 200, {
+          data: node,
+          role,
+          source: "device_node_registry",
+        });
+        return;
+      }
     }
 
     if (url.pathname === "/v1/device-nodes" && req.method === "GET") {

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  getDeviceNodeById,
   listDeviceNodeIndex,
   listDeviceNodes,
   touchDeviceNodeHeartbeat,
@@ -87,6 +88,14 @@ test("device node registry supports versioned upsert and heartbeat", async () =>
   assert.ok(heartbeat);
   assert.equal(heartbeat?.status, "online");
   assert.ok(heartbeat?.lastSeenAt);
+
+  const lookup = await getDeviceNodeById(nodeId);
+  assert.ok(lookup);
+  assert.equal(lookup?.nodeId, nodeId);
+  assert.equal(lookup?.status, "online");
+
+  const missing = await getDeviceNodeById(`missing-${Date.now()}`);
+  assert.equal(missing, null);
 });
 
 test("device node index applies status and kind filtering", async () => {

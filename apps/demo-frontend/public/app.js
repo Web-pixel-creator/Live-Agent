@@ -81,6 +81,7 @@ const el = {
   deviceNodeCapabilities: document.getElementById("deviceNodeCapabilities"),
   deviceNodeMetadata: document.getElementById("deviceNodeMetadata"),
   deviceNodeCount: document.getElementById("deviceNodeCount"),
+  deviceNodeSelectedStatus: document.getElementById("deviceNodeSelectedStatus"),
   deviceNodeSelectedVersion: document.getElementById("deviceNodeSelectedVersion"),
   deviceNodeSelectedLastSeen: document.getElementById("deviceNodeSelectedLastSeen"),
   deviceNodeList: document.getElementById("deviceNodeList"),
@@ -737,10 +738,12 @@ async function runOperatorAction(action, data = {}) {
 
 function updateDeviceNodeSelectionMeta(node) {
   if (!node) {
+    el.deviceNodeSelectedStatus.textContent = "-";
     el.deviceNodeSelectedVersion.textContent = "-";
     el.deviceNodeSelectedLastSeen.textContent = "-";
     return;
   }
+  el.deviceNodeSelectedStatus.textContent = node.status ?? "-";
   el.deviceNodeSelectedVersion.textContent =
     typeof node.version === "number" && Number.isFinite(node.version) ? String(node.version) : "-";
   el.deviceNodeSelectedLastSeen.textContent = node.lastSeenAt ?? "-";
@@ -830,6 +833,34 @@ async function refreshDeviceNodes(options = {}) {
     }
   } catch (error) {
     appendTranscript("error", `Device nodes refresh failed: ${String(error)}`);
+  }
+}
+
+async function fetchDeviceNodeStatusFromForm() {
+  const nodeId = toOptionalText(el.deviceNodeId.value);
+  if (!nodeId) {
+    appendTranscript("error", "Device node nodeId is required for status check");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${state.apiBaseUrl}/v1/device-nodes/${encodeURIComponent(nodeId)}`, {
+      method: "GET",
+      headers: operatorHeaders(false),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      const errorText = getApiErrorMessage(payload, `device node status failed with ${response.status}`);
+      throw new Error(String(errorText));
+    }
+    const node = normalizeDeviceNode(payload?.data);
+    if (!node) {
+      throw new Error("Device node response payload is invalid");
+    }
+    applyDeviceNodeToForm(node);
+    appendTranscript("system", `Device node status loaded: ${node.nodeId} (${node.status ?? "unknown"})`);
+  } catch (error) {
+    appendTranscript("error", `Device node status check failed: ${String(error)}`);
   }
 }
 
@@ -1623,6 +1654,9 @@ function bindEvents() {
   });
   document.getElementById("deviceNodeHeartbeatBtn").addEventListener("click", () => {
     sendDeviceNodeHeartbeatFromForm();
+  });
+  document.getElementById("deviceNodeStatusBtn").addEventListener("click", () => {
+    fetchDeviceNodeStatusFromForm();
   });
   document.getElementById("newSessionBtn").addEventListener("click", () => {
     state.sessionId = makeId();
