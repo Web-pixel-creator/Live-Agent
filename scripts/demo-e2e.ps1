@@ -209,6 +209,132 @@ function Invoke-JsonRequestExpectStatus {
   }
 }
 
+function Get-HttpStatusCodeFromErrorRecord {
+  param(
+    [Parameter(Mandatory = $true)]
+    [System.Management.Automation.ErrorRecord]$ErrorRecord
+  )
+
+  if ($null -eq $ErrorRecord.Exception -or $null -eq $ErrorRecord.Exception.Response) {
+    return $null
+  }
+
+  $response = $ErrorRecord.Exception.Response
+  try {
+    if ($null -ne $response.StatusCode) {
+      return [int]$response.StatusCode
+    }
+  } catch {
+    # Ignore conversion failures and fall through to alternate extraction.
+  }
+
+  try {
+    if ($null -ne $response.StatusCode.value__) {
+      return [int]$response.StatusCode.value__
+    }
+  } catch {
+    # Ignore conversion failures and return null.
+  }
+
+  return $null
+}
+
+function Test-IsTransientRequestFailure {
+  param(
+    [Parameter(Mandatory = $true)]
+    [System.Management.Automation.ErrorRecord]$ErrorRecord
+  )
+
+  $statusCode = Get-HttpStatusCodeFromErrorRecord -ErrorRecord $ErrorRecord
+  if ($null -ne $statusCode) {
+    if ($statusCode -eq 408 -or $statusCode -eq 429 -or $statusCode -eq 502 -or $statusCode -eq 503 -or $statusCode -eq 504) {
+      return $true
+    }
+    if ($statusCode -ge 500) {
+      return $true
+    }
+    return $false
+  }
+
+  $message = ""
+  if ($null -ne $ErrorRecord.Exception) {
+    $message = [string]$ErrorRecord.Exception.Message
+  }
+  if ([string]::IsNullOrWhiteSpace($message)) {
+    $message = [string]$ErrorRecord
+  }
+
+  $normalizedMessage = $message.ToLowerInvariant()
+  $transientFragments = @(
+    "timed out",
+    "timeout",
+    "temporarily unavailable",
+    "unable to connect",
+    "no connection could be made",
+    "connection was forcibly closed",
+    "connection reset",
+    "connection aborted",
+    "name resolution",
+    "temporary failure",
+    "remote host closed",
+    "underlying connection was closed"
+  )
+
+  foreach ($fragment in $transientFragments) {
+    if ($normalizedMessage.Contains($fragment)) {
+      return $true
+    }
+  }
+
+  return $false
+}
+
+function Invoke-JsonRequestWithRetry {
+  param(
+    [Parameter(Mandatory = $true)]
+    [ValidateSet("GET", "POST", "PATCH")]
+    [string]$Method,
+    [Parameter(Mandatory = $true)]
+    [string]$Uri,
+    [Parameter(Mandatory = $false)]
+    [object]$Body,
+    [Parameter(Mandatory = $false)]
+    [hashtable]$Headers,
+    [Parameter(Mandatory = $false)]
+    [int]$TimeoutSec = 30,
+    [Parameter(Mandatory = $false)]
+    [int]$MaxAttempts = 2,
+    [Parameter(Mandatory = $false)]
+    [int]$InitialBackoffMs = 900
+  )
+
+  if ($MaxAttempts -lt 1) {
+    throw "MaxAttempts must be greater than or equal to 1."
+  }
+
+  for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+    try {
+      $response = Invoke-JsonRequest -Method $Method -Uri $Uri -Body $Body -Headers $Headers -TimeoutSec $TimeoutSec
+      return [ordered]@{
+        response = $response
+        attempts = $attempt
+        retried = ($attempt -gt 1)
+      }
+    } catch {
+      $isTransient = Test-IsTransientRequestFailure -ErrorRecord $_
+      if ($attempt -ge $MaxAttempts -or -not $isTransient) {
+        throw
+      }
+
+      $delayMs = [int]($InitialBackoffMs * [Math]::Pow(2, [double]($attempt - 1)))
+      Write-Step ("Transient request failure for {0} {1} (attempt {2}/{3}). Retrying in {4} ms." -f $Method, $Uri, $attempt, $MaxAttempts, $delayMs)
+      Start-Sleep -Milliseconds $delayMs
+    }
+  }
+
+  throw "Request retry loop exhausted for $Method $Uri."
+}
+
 function Invoke-NodeJsonCommand {
   param(
     [Parameter(Mandatory = $true)]
@@ -795,7 +921,7 @@ try {
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($script:UiApprovalId)) -Message "Cannot approve/resume: approvalId is missing."
     $approveResumeTimeoutSec = [Math]::Max($RequestTimeoutSec, 60)
 
-    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/approvals/resume" -Body @{
+    $resumeRequest = Invoke-JsonRequestWithRetry -Method POST -Uri "http://localhost:8081/v1/approvals/resume" -Body @{
       approvalId = $script:UiApprovalId
       sessionId = $sessionId
       runId = ("demo-ui-approve-" + [Guid]::NewGuid().Guid)
@@ -803,7 +929,8 @@ try {
       reason = "Approved from demo e2e script."
       intent = "ui_task"
       input = $script:UiResumeInput
-    } -TimeoutSec $approveResumeTimeoutSec
+    } -TimeoutSec $approveResumeTimeoutSec -MaxAttempts 2 -InitialBackoffMs 1000
+    $response = $resumeRequest.response
 
     $resumed = [bool](Get-FieldValue -Object $response -Path @("data", "resumed"))
     Assert-Condition -Condition $resumed -Message "Approved approval should resume execution."
@@ -830,6 +957,8 @@ try {
       adapterNotes = Get-FieldValue -Object $orchestratorResponse -Path @("payload", "output", "execution", "adapterNotes")
       retries = [int](Get-FieldValue -Object $orchestratorResponse -Path @("payload", "output", "execution", "retries"))
       timeoutSec = $approveResumeTimeoutSec
+      requestAttempts = [int]$resumeRequest.attempts
+      requestRetried = [bool]$resumeRequest.retried
     }
   } | Out-Null
 
@@ -1781,6 +1910,8 @@ $summary = [ordered]@{
     ) { $true } else { $false }
     uiAdapterMode = if ($null -ne $uiApproveData) { $uiApproveData.adapterMode } else { $null }
     uiAdapterRetries = if ($null -ne $uiApproveData) { $uiApproveData.retries } else { $null }
+    uiApprovalResumeRequestAttempts = if ($null -ne $uiApproveData) { $uiApproveData.requestAttempts } else { $null }
+    uiApprovalResumeRequestRetried = if ($null -ne $uiApproveData) { $uiApproveData.requestRetried } else { $null }
     sandboxPolicyMode = if ($null -ne $uiSandboxData) { $uiSandboxData.sandboxMode } else { $null }
     sandboxPolicyActive = if ($null -ne $uiSandboxData) { $uiSandboxData.sandboxActive } else { $null }
     sandboxPolicyReason = if ($null -ne $uiSandboxData) { $uiSandboxData.sandboxReason } else { $null }
