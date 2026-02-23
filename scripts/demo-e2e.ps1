@@ -793,6 +793,7 @@ try {
 
   Invoke-Scenario -Name "ui.approval.approve_resume" -Action {
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($script:UiApprovalId)) -Message "Cannot approve/resume: approvalId is missing."
+    $approveResumeTimeoutSec = [Math]::Max($RequestTimeoutSec, 60)
 
     $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/approvals/resume" -Body @{
       approvalId = $script:UiApprovalId
@@ -802,7 +803,7 @@ try {
       reason = "Approved from demo e2e script."
       intent = "ui_task"
       input = $script:UiResumeInput
-    } -TimeoutSec $RequestTimeoutSec
+    } -TimeoutSec $approveResumeTimeoutSec
 
     $resumed = [bool](Get-FieldValue -Object $response -Path @("data", "resumed"))
     Assert-Condition -Condition $resumed -Message "Approved approval should resume execution."
@@ -828,6 +829,7 @@ try {
       computerUseAdapterId = [string](Get-FieldValue -Object $uiCapabilityProfile -Path @("computer_use", "adapterId"))
       adapterNotes = Get-FieldValue -Object $orchestratorResponse -Path @("payload", "output", "execution", "adapterNotes")
       retries = [int](Get-FieldValue -Object $orchestratorResponse -Path @("payload", "output", "execution", "retries"))
+      timeoutSec = $approveResumeTimeoutSec
     }
   } | Out-Null
 
