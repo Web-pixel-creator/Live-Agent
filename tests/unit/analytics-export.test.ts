@@ -126,6 +126,31 @@ for (const { name, Ctor } of exporters) {
     );
   });
 
+  test(`${name}: analytics snapshot keeps storage split defaults when env is unset`, { concurrency: false }, async () => {
+    await withEnv(
+      {
+        ANALYTICS_EXPORT_ENABLED: undefined,
+        ANALYTICS_EXPORT_METRICS_TARGET: undefined,
+        ANALYTICS_EXPORT_EVENTS_TARGET: undefined,
+        ANALYTICS_EXPORT_SAMPLE_RATE: undefined,
+        ANALYTICS_BIGQUERY_DATASET: undefined,
+        ANALYTICS_BIGQUERY_TABLE: undefined,
+      },
+      () => {
+        const exporter = new Ctor({ serviceName: `${name}-svc` });
+        assert.deepEqual(exporter.snapshot(), {
+          enabled: false,
+          reason: "ANALYTICS_EXPORT_ENABLED=false",
+          metricsTarget: "cloud_monitoring",
+          eventsTarget: "bigquery",
+          sampleRate: 1,
+          bigQueryDataset: null,
+          bigQueryTable: null,
+        });
+      },
+    );
+  });
+
   test(`${name}: recordMetric emits normalized analytics payload`, { concurrency: false }, async () => {
     await withEnv(
       {
