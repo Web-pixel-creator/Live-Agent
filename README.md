@@ -188,6 +188,20 @@ Artifact-only revalidation (no build/test/demo reruns, validates existing artifa
 npm run verify:release:artifact-only
 ```
 
+Artifact bundle pull + local revalidation (downloads latest successful `demo-e2e`/`release-strict-final` bundle, restores `artifacts/`, then runs artifact-only gate):
+
+```powershell
+$env:GITHUB_OWNER="Web-pixel-creator"
+$env:GITHUB_REPO="Live-Agent"
+$env:GITHUB_TOKEN="<token-with-actions-read>"
+npm run verify:release:artifact:revalidate
+```
+
+Optional local helper flags:
+- `-- -SourceRunId <id>` - force specific workflow run.
+- `-- -ArtifactName <name>` - force specific artifact bundle name.
+- `-- -SkipArtifactOnlyGate` - restore artifacts without running release gate.
+
 Optional faster local pass (skip build):
 
 ```powershell
@@ -415,6 +429,7 @@ Useful flags:
 - Artifact-only release revalidation workflow: `.github/workflows/release-artifact-revalidation.yml`
 - Triggered on manual dispatch.
 - Resolves latest successful `demo-e2e`/`release-strict-final` run (or uses provided `source_run_id`), downloads artifact bundle, and runs `npm run verify:release:artifact-only`.
+- Local equivalent helper: `npm run verify:release:artifact:revalidate` (uses `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_TOKEN` or `GH_TOKEN`).
 
 ## PR Gate
 

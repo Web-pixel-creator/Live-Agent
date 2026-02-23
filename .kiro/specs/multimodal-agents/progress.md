@@ -80,6 +80,7 @@
 49. Added release-check npm aliases for deterministic operator usage: `verify:release:strict:skip-perf-run` and `verify:release:artifact-only`; synchronized docs in `README.md` and `docs/challenge-demo-runbook.md`; added anti-drift coverage in `tests/unit/release-script-alias-alignment.test.ts`.
 50. Updated `README.md` CI visibility with explicit strict-release workflow coverage (`release-strict-final.yml` badge + workflow section) so release-grade gate status is visible alongside PR/demo badges.
 51. Added manual artifact-only CI revalidation workflow `.github/workflows/release-artifact-revalidation.yml`: auto-resolves latest successful `demo-e2e`/`release-strict-final` run (or accepts `source_run_id`), auto-detects artifact bundle, restores `artifacts/` tree, runs `verify:release:artifact-only`, and uploads consolidated evidence with anti-drift coverage in `tests/unit/release-artifact-workflow-alignment.test.ts`.
+52. Added local artifact pull + revalidation helper `scripts/release-artifact-revalidate.ps1` and npm alias `verify:release:artifact:revalidate`: auto-resolves latest successful `demo-e2e`/`release-strict-final` run (or uses `-SourceRunId`), downloads artifact bundle via GitHub Actions API, restores local `artifacts/`, and runs `verify:release:artifact-only`; docs updated in `README.md` and `docs/challenge-demo-runbook.md`, with anti-drift coverage in `tests/unit/release-artifact-local-revalidation-alignment.test.ts`.
 
 ## Current Focus Queue
 

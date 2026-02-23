@@ -15,6 +15,14 @@ npm run verify:release:artifact-only
 ```
 This alias maps to `verify:release -- -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipDemoE2E -SkipPolicy -SkipBadge -SkipPerfRun`.
 Optional CI equivalent: run GitHub workflow `.github/workflows/release-artifact-revalidation.yml` to revalidate downloaded artifacts from the latest successful `demo-e2e`/`release-strict-final` run (or a specific `source_run_id`).
+Optional local equivalent: use helper to pull artifact bundle and run the same gate:
+```powershell
+$env:GITHUB_OWNER="Web-pixel-creator"
+$env:GITHUB_REPO="Live-Agent"
+$env:GITHUB_TOKEN="<token-with-actions-read>"
+npm run verify:release:artifact:revalidate
+```
+Optional flags: `-- -SourceRunId <id>`, `-- -ArtifactName <name>`, `-- -SkipArtifactOnlyGate`.
 For flaky local runners you can increase demo retry tolerance:
 ```powershell
 npm run verify:release -- -DemoRunMaxAttempts 3 -DemoRunRetryBackoffMs 3000 -DemoScenarioRetryMaxAttempts 3 -DemoScenarioRetryBackoffMs 1200
