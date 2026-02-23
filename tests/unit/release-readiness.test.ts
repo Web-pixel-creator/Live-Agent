@@ -36,6 +36,10 @@ function createPassingSummary(
     serviceStartRetryBackoffMs: number | string;
     scenarioRetryMaxAttempts: number | string;
     scenarioRetryBackoffMs: number | string;
+    scenarioRetriesUsedCount: number | string;
+    uiVisualTestingScenarioAttempts: number | string;
+    operatorConsoleActionsScenarioAttempts: number | string;
+    scenarioRetryableFailuresTotal: number | string;
     analyticsSplitTargetsValidated: boolean | string;
     assistiveRouterDiagnosticsValidated: boolean | string;
     assistiveRouterMode: string;
@@ -138,6 +142,16 @@ function createPassingSummary(
         ? overrides.storytellerMediaQueueWorkers
         : 2,
       storytellerCacheHits: hasOverride("storytellerCacheHits") ? overrides.storytellerCacheHits : 3,
+      scenarioRetriesUsedCount: hasOverride("scenarioRetriesUsedCount") ? overrides.scenarioRetriesUsedCount : 0,
+      uiVisualTestingScenarioAttempts: hasOverride("uiVisualTestingScenarioAttempts")
+        ? overrides.uiVisualTestingScenarioAttempts
+        : 1,
+      operatorConsoleActionsScenarioAttempts: hasOverride("operatorConsoleActionsScenarioAttempts")
+        ? overrides.operatorConsoleActionsScenarioAttempts
+        : 1,
+      scenarioRetryableFailuresTotal: hasOverride("scenarioRetryableFailuresTotal")
+        ? overrides.scenarioRetryableFailuresTotal
+        : 0,
     },
     options: {
       serviceStartMaxAttempts: hasOverride("serviceStartMaxAttempts") ? overrides.serviceStartMaxAttempts : "2",
@@ -459,6 +473,33 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /options\.scenarioRetryBackoffMs expected >= 500, actual 300/i);
+  },
+);
+
+test(
+  "release-readiness fails when scenario retries used exceed threshold",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ scenarioRetriesUsedCount: "3" }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.scenarioRetriesUsedCount expected 0\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when ui visual scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        uiVisualTestingScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.uiVisualTestingScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 

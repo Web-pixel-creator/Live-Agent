@@ -64,6 +64,10 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
 - Demo e2e scenario retry discipline:
   - `options.scenarioRetryMaxAttempts >= 2`
   - `options.scenarioRetryBackoffMs >= 500`
+  - `kpi.scenarioRetriesUsedCount <= 2`
+  - `kpi.uiVisualTestingScenarioAttempts <= options.scenarioRetryMaxAttempts`
+  - `kpi.operatorConsoleActionsScenarioAttempts <= options.scenarioRetryMaxAttempts`
+  - `kpi.scenarioRetryableFailuresTotal >= 0`
 - Perf-load anti-drift (from `artifacts/perf-load/policy-check.json`):
   - required check items include:
     - `workload.live.p95`

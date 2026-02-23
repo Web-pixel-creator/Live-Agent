@@ -48,6 +48,11 @@ test("critical KPI thresholds are aligned across policy/release and demo startup
     /const minScenarioRetryBackoffMs[\s\S]*?:\s*(\d+)\s*;/,
     "policy minScenarioRetryBackoffMs",
   );
+  const policyMaxScenarioRetriesUsedCount = parseRequiredNumber(
+    policySource,
+    /const maxScenarioRetriesUsedCount[\s\S]*?:\s*(\d+)\s*;/,
+    "policy maxScenarioRetriesUsedCount",
+  );
 
   const releaseMaxRoundTrip = parseRequiredNumber(
     releaseSource,
@@ -79,6 +84,11 @@ test("critical KPI thresholds are aligned across policy/release and demo startup
     /MinScenarioRetryBackoffMs\s*=\s*(\d+)/,
     "release MinScenarioRetryBackoffMs",
   );
+  const releaseMaxScenarioRetriesUsedCount = parseRequiredNumber(
+    releaseSource,
+    /MaxScenarioRetriesUsedCount\s*=\s*(\d+)/,
+    "release MaxScenarioRetriesUsedCount",
+  );
 
   const demoDefaultStartAttempts = parseRequiredNumber(
     demoSource,
@@ -107,6 +117,7 @@ test("critical KPI thresholds are aligned across policy/release and demo startup
   assert.equal(releaseMinStartBackoff, policyMinStartBackoff);
   assert.equal(releaseMinScenarioRetryAttempts, policyMinScenarioRetryAttempts);
   assert.equal(releaseMinScenarioRetryBackoff, policyMinScenarioRetryBackoff);
+  assert.equal(releaseMaxScenarioRetriesUsedCount, policyMaxScenarioRetriesUsedCount);
 
   assert.ok(demoDefaultStartAttempts >= policyMinStartAttempts);
   assert.ok(demoDefaultStartBackoff >= policyMinStartBackoff);

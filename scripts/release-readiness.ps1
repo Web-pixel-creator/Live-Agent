@@ -37,6 +37,7 @@ $ReleaseThresholds = @{
   MinServiceStartRetryBackoffMs = 300
   MinScenarioRetryMaxAttempts = 2
   MinScenarioRetryBackoffMs = 500
+  MaxScenarioRetriesUsedCount = 2
   MaxPerfLiveP95Ms = 1800
   MaxPerfUiP95Ms = 25000
   MaxPerfGatewayReplayP95Ms = 9000
@@ -315,6 +316,53 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     Fail ("Critical KPI check failed: options.scenarioRetryBackoffMs expected >= " + $ReleaseThresholds.MinScenarioRetryBackoffMs + ", actual " + $summary.options.scenarioRetryBackoffMs)
   }
 
+  $scenarioRetriesUsedCount = To-NumberOrNaN $summary.kpis.scenarioRetriesUsedCount
+  if (
+    [double]::IsNaN($scenarioRetriesUsedCount) -or
+    $scenarioRetriesUsedCount -lt 0 -or
+    $scenarioRetriesUsedCount -gt $ReleaseThresholds.MaxScenarioRetriesUsedCount
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.scenarioRetriesUsedCount expected 0.." +
+      $ReleaseThresholds.MaxScenarioRetriesUsedCount +
+      ", actual " +
+      $summary.kpis.scenarioRetriesUsedCount
+    )
+  }
+
+  $uiVisualTestingScenarioAttempts = To-NumberOrNaN $summary.kpis.uiVisualTestingScenarioAttempts
+  if (
+    [double]::IsNaN($uiVisualTestingScenarioAttempts) -or
+    $uiVisualTestingScenarioAttempts -lt 1 -or
+    $uiVisualTestingScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.uiVisualTestingScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.uiVisualTestingScenarioAttempts
+    )
+  }
+
+  $operatorConsoleActionsScenarioAttempts = To-NumberOrNaN $summary.kpis.operatorConsoleActionsScenarioAttempts
+  if (
+    [double]::IsNaN($operatorConsoleActionsScenarioAttempts) -or
+    $operatorConsoleActionsScenarioAttempts -lt 1 -or
+    $operatorConsoleActionsScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.operatorConsoleActionsScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.operatorConsoleActionsScenarioAttempts
+    )
+  }
+
+  $scenarioRetryableFailuresTotal = To-NumberOrNaN $summary.kpis.scenarioRetryableFailuresTotal
+  if ([double]::IsNaN($scenarioRetryableFailuresTotal) -or $scenarioRetryableFailuresTotal -lt 0) {
+    Fail ("Critical KPI check failed: kpi.scenarioRetryableFailuresTotal expected >= 0, actual " + $summary.kpis.scenarioRetryableFailuresTotal)
+  }
+
   $analyticsSplitTargetsValidated = To-BoolOrNull $summary.kpis.analyticsSplitTargetsValidated
   if ($analyticsSplitTargetsValidated -ne $true) {
     Fail ("Critical KPI check failed: analyticsSplitTargetsValidated expected True, actual " + $summary.kpis.analyticsSplitTargetsValidated)
@@ -506,6 +554,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $scenarioRetryAttempts = $summary.options.scenarioRetryMaxAttempts
   $scenarioRetryBackoff = $summary.options.scenarioRetryBackoffMs
   $scenarioRetriesUsedCount = $summary.kpis.scenarioRetriesUsedCount
+  $scenarioRetryableFailuresTotal = $summary.kpis.scenarioRetryableFailuresTotal
   $uiVisualAttempts = $summary.kpis.uiVisualTestingScenarioAttempts
   $operatorActionsAttempts = $summary.kpis.operatorConsoleActionsScenarioAttempts
   if (
@@ -519,6 +568,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       "demo.scenario.retry: max_attempts=" + $scenarioRetryAttempts +
       ", backoff_ms=" + $scenarioRetryBackoff +
       ", retries_used=" + $scenarioRetriesUsedCount +
+      ", retryable_failures=" + $scenarioRetryableFailuresTotal +
       ", ui.visual_testing_attempts=" + $uiVisualAttempts +
       ", operator.console.actions_attempts=" + $operatorActionsAttempts
     )

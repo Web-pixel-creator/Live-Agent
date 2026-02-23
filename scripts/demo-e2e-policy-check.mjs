@@ -128,6 +128,9 @@ async function main() {
   const minScenarioRetryBackoffMs = Number.isFinite(toNumber(args.minScenarioRetryBackoffMs))
     ? toNumber(args.minScenarioRetryBackoffMs)
     : 500;
+  const maxScenarioRetriesUsedCount = Number.isFinite(toNumber(args.maxScenarioRetriesUsedCount))
+    ? toNumber(args.maxScenarioRetriesUsedCount)
+    : 2;
   const minApprovalsRecorded = Number.isFinite(toNumber(args.minApprovalsRecorded))
     ? toNumber(args.minApprovalsRecorded)
     : 1;
@@ -710,6 +713,42 @@ async function main() {
     options.scenarioRetryBackoffMs,
     `>= ${minScenarioRetryBackoffMs}`,
   );
+  const scenarioRetriesUsedCount = toNumber(kpis.scenarioRetriesUsedCount);
+  addCheck(
+    "kpi.scenarioRetriesUsedCount",
+    Number.isFinite(scenarioRetriesUsedCount) &&
+      scenarioRetriesUsedCount >= 0 &&
+      scenarioRetriesUsedCount <= maxScenarioRetriesUsedCount,
+    kpis.scenarioRetriesUsedCount,
+    `0..${maxScenarioRetriesUsedCount}`,
+  );
+  const uiVisualTestingScenarioAttempts = toNumber(kpis.uiVisualTestingScenarioAttempts);
+  addCheck(
+    "kpi.uiVisualTestingScenarioAttempts",
+    Number.isFinite(uiVisualTestingScenarioAttempts) &&
+      uiVisualTestingScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      uiVisualTestingScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.uiVisualTestingScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const operatorConsoleActionsScenarioAttempts = toNumber(kpis.operatorConsoleActionsScenarioAttempts);
+  addCheck(
+    "kpi.operatorConsoleActionsScenarioAttempts",
+    Number.isFinite(operatorConsoleActionsScenarioAttempts) &&
+      operatorConsoleActionsScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      operatorConsoleActionsScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.operatorConsoleActionsScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const scenarioRetryableFailuresTotal = toNumber(kpis.scenarioRetryableFailuresTotal);
+  addCheck(
+    "kpi.scenarioRetryableFailuresTotal",
+    Number.isFinite(scenarioRetryableFailuresTotal) && scenarioRetryableFailuresTotal >= 0,
+    kpis.scenarioRetryableFailuresTotal,
+    ">= 0",
+  );
   const uiApprovalResumeRequestAttempts = toNumber(kpis.uiApprovalResumeRequestAttempts);
   addCheck(
     "kpi.uiApprovalResumeRequestAttempts",
@@ -951,6 +990,7 @@ async function main() {
       minServiceStartRetryBackoffMs,
       minScenarioRetryMaxAttempts,
       minScenarioRetryBackoffMs,
+      maxScenarioRetriesUsedCount,
       minApprovalsRecorded,
       maxUiApprovalResumeElapsedMs,
       minUiApprovalResumeRequestAttempts,
