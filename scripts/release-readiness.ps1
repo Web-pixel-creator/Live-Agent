@@ -107,6 +107,34 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     $names = $failedScenarios | ForEach-Object { $_.name }
     Fail ("One or more scenarios failed: " + ($names -join ", "))
   }
+
+  $requiredSummaryScenarios = @(
+    "gateway.websocket.binding_mismatch",
+    "gateway.websocket.draining_rejection",
+    "api.sessions.versioning"
+  )
+  foreach ($requiredScenario in $requiredSummaryScenarios) {
+    $scenarioRecord = @($summary.scenarios | Where-Object { $_.name -eq $requiredScenario } | Select-Object -First 1)
+    if ($scenarioRecord.Count -eq 0) {
+      Fail ("Required scenario missing in summary: " + $requiredScenario)
+    }
+    if ($scenarioRecord[0].status -ne "passed") {
+      Fail ("Required scenario did not pass: " + $requiredScenario + " (status=" + $scenarioRecord[0].status + ")")
+    }
+  }
+
+  $criticalKpiChecks = @{
+    gatewayWsBindingMismatchValidated = $true
+    gatewayWsDrainingValidated = $true
+    sessionVersioningValidated = $true
+  }
+  foreach ($kpiName in $criticalKpiChecks.Keys) {
+    $expectedValue = $criticalKpiChecks[$kpiName]
+    $actualValue = $summary.kpis.$kpiName
+    if ($actualValue -ne $expectedValue) {
+      Fail ("Critical KPI check failed: " + $kpiName + " expected " + $expectedValue + ", actual " + $actualValue)
+    }
+  }
 }
 
 if ((-not $SkipPolicy) -and (Test-Path $PolicyPath)) {
@@ -149,6 +177,23 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $uiRetried = $summary.kpis.uiApprovalResumeRequestRetried
   if ($null -ne $uiAttempts -or $null -ne $uiRetried) {
     Write-Host ("ui.approval.resume.request: attempts=" + $uiAttempts + ", retried=" + $uiRetried)
+  }
+  $gatewayRoundTrip = $summary.kpis.gatewayWsRoundTripMs
+  if ($null -ne $gatewayRoundTrip) {
+    Write-Host ("gateway.ws.roundtrip.ms: " + $gatewayRoundTrip)
+  }
+  $drainCode = $summary.kpis.gatewayWsDrainingCode
+  $drainValidated = $summary.kpis.gatewayWsDrainingValidated
+  if ($null -ne $drainCode -or $null -ne $drainValidated) {
+    Write-Host ("gateway.ws.draining: code=" + $drainCode + ", validated=" + $drainValidated)
+  }
+  $bindingValidated = $summary.kpis.gatewayWsBindingMismatchValidated
+  if ($null -ne $bindingValidated) {
+    Write-Host ("gateway.ws.binding.validated: " + $bindingValidated)
+  }
+  $sessionVersioningValidated = $summary.kpis.sessionVersioningValidated
+  if ($null -ne $sessionVersioningValidated) {
+    Write-Host ("api.sessions.versioning.validated: " + $sessionVersioningValidated)
   }
 }
 if ((-not $SkipPolicy) -and (Test-Path $PolicyPath)) {
