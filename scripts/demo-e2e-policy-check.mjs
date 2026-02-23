@@ -116,6 +116,9 @@ async function main() {
   const minApprovalsRecorded = Number.isFinite(toNumber(args.minApprovalsRecorded))
     ? toNumber(args.minApprovalsRecorded)
     : 1;
+  const maxUiApprovalResumeElapsedMs = Number.isFinite(toNumber(args.maxUiApprovalResumeElapsedMs))
+    ? toNumber(args.maxUiApprovalResumeElapsedMs)
+    : 60_000;
   const minUiApprovalResumeRequestAttempts = Number.isFinite(toNumber(args.minUiApprovalResumeRequestAttempts))
     ? toNumber(args.minUiApprovalResumeRequestAttempts)
     : 1;
@@ -188,6 +191,16 @@ async function main() {
     const status = isObject(found) ? found.status : null;
     addCheck(`scenario.${scenarioName}`, status === "passed", status, "passed");
   }
+  const uiApprovalResumeScenario = scenarioByName.get("ui.approval.approve_resume");
+  const uiApprovalResumeElapsedMs = isObject(uiApprovalResumeScenario)
+    ? toNumber(uiApprovalResumeScenario.elapsedMs)
+    : Number.NaN;
+  addCheck(
+    "scenario.ui.approval.approve_resume.elapsedMs",
+    Number.isFinite(uiApprovalResumeElapsedMs) && uiApprovalResumeElapsedMs <= maxUiApprovalResumeElapsedMs,
+    isObject(uiApprovalResumeScenario) ? uiApprovalResumeScenario.elapsedMs : null,
+    `<= ${maxUiApprovalResumeElapsedMs}`,
+  );
 
   addCheck(
     "kpi.negotiationConstraintsSatisfied",
@@ -702,6 +715,7 @@ async function main() {
     thresholds: {
       maxGatewayWsRoundTripMs,
       minApprovalsRecorded,
+      maxUiApprovalResumeElapsedMs,
       minUiApprovalResumeRequestAttempts,
       maxUiApprovalResumeRequestAttempts,
       expectedUiAdapterMode,
