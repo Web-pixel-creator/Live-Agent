@@ -175,6 +175,18 @@ Strict final pre-submission gate (zero scenario retries allowed):
 npm run verify:release:strict
 ```
 
+Strict gate with existing perf artifacts (skip perf rerun):
+
+```powershell
+npm run verify:release:strict:skip-perf-run
+```
+
+Artifact-only revalidation (no build/test/demo reruns, validates existing artifacts):
+
+```powershell
+npm run verify:release:artifact-only
+```
+
 Optional faster local pass (skip build):
 
 ```powershell

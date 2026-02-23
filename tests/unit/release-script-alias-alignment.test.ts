@@ -1,0 +1,31 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import test from "node:test";
+
+test("release script aliases stay aligned with release-readiness flags", () => {
+  const packagePath = resolve(process.cwd(), "package.json");
+  const pkgRaw = readFileSync(packagePath, "utf8");
+  const pkg = JSON.parse(pkgRaw) as { scripts?: Record<string, string> };
+
+  const strictScript = pkg.scripts?.["verify:release:strict"] ?? "";
+  const strictSkipPerfRunScript = pkg.scripts?.["verify:release:strict:skip-perf-run"] ?? "";
+  const artifactOnlyScript = pkg.scripts?.["verify:release:artifact-only"] ?? "";
+
+  assert.match(strictScript, /release-readiness\.ps1/);
+  assert.match(strictScript, /-StrictFinalRun/);
+
+  assert.match(strictSkipPerfRunScript, /release-readiness\.ps1/);
+  assert.match(strictSkipPerfRunScript, /-StrictFinalRun/);
+  assert.match(strictSkipPerfRunScript, /-SkipPerfRun/);
+
+  assert.match(artifactOnlyScript, /release-readiness\.ps1/);
+  assert.match(artifactOnlyScript, /-SkipBuild/);
+  assert.match(artifactOnlyScript, /-SkipUnitTests/);
+  assert.match(artifactOnlyScript, /-SkipMonitoringTemplates/);
+  assert.match(artifactOnlyScript, /-SkipProfileSmoke/);
+  assert.match(artifactOnlyScript, /-SkipDemoE2E/);
+  assert.match(artifactOnlyScript, /-SkipPolicy/);
+  assert.match(artifactOnlyScript, /-SkipBadge/);
+  assert.match(artifactOnlyScript, /-SkipPerfRun/);
+});

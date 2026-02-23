@@ -11,8 +11,9 @@ npm run verify:release
 This gate validates build, unit tests, runtime profile smoke, demo e2e policy, badge artifact, and perf-load policy.
 For artifact-only revalidation (without rerunning perf profile), keep perf artifacts and run:
 ```powershell
-npm run verify:release -- -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipDemoE2E -SkipPolicy -SkipBadge -SkipPerfRun
+npm run verify:release:artifact-only
 ```
+This alias maps to `verify:release -- -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipDemoE2E -SkipPolicy -SkipBadge -SkipPerfRun`.
 For flaky local runners you can increase demo retry tolerance:
 ```powershell
 npm run verify:release -- -DemoRunMaxAttempts 3 -DemoRunRetryBackoffMs 3000 -DemoScenarioRetryMaxAttempts 3 -DemoScenarioRetryBackoffMs 1200
@@ -22,6 +23,10 @@ For final pre-submission validation, enforce strict no-retry discipline:
 npm run verify:release:strict
 ```
 This alias maps to `verify:release -- -StrictFinalRun`.
+If perf artifacts are already present and you only want to skip rerunning perf profile, use:
+```powershell
+npm run verify:release:strict:skip-perf-run
+```
 Optional CI equivalent: run GitHub workflow `.github/workflows/release-strict-final.yml` (manual `workflow_dispatch`) for the same strict gate + artifact bundle.
 2. Start services for live walkthrough:
 ```powershell
