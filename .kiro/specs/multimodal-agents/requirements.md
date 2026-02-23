@@ -259,11 +259,11 @@
 6. THE System SHALL provide real-time dashboards for operations and quality monitoring.
 7. THE System SHALL expose operator summary APIs for active tasks, approval queues, and per-service health/runtime profile state.
 8. THE System SHALL support operator recovery actions (task cancel/retry, failover drain/warmup) with role-based access control.
-7. THE System SHALL retain logs and metrics according to compliance policy.
-8. THE System SHALL enforce an automated CI policy check on demo KPI artifacts (`summary.json`) and fail release pipelines on regression of judge-critical metrics.
-9. THE System SHALL publish a public, machine-readable demo KPI badge endpoint (`badge.json`, e.g. via `gh-pages`) for external status embedding and reviewer visibility.
-10. THE repository SHALL provide an operator runbook or scripts to configure badge endpoint publication and validate endpoint health after deployment.
-11. THE repository SHALL provide scripted local release verification and repository publish workflows to reduce manual release errors.
+9. THE System SHALL retain logs and metrics according to compliance policy.
+10. THE System SHALL enforce an automated CI policy check on demo KPI artifacts (`summary.json`) and fail release pipelines on regression of judge-critical metrics.
+11. THE System SHALL publish a public, machine-readable demo KPI badge endpoint (`badge.json`, e.g. via `gh-pages`) for external status embedding and reviewer visibility.
+12. THE repository SHALL provide an operator runbook or scripts to configure badge endpoint publication and validate endpoint health after deployment.
+13. THE repository SHALL provide scripted local release verification and repository publish workflows to reduce manual release errors.
 
 ### Requirement 16: Multi-Agent Collaboration
 
