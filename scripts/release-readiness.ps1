@@ -26,7 +26,8 @@ param(
   [string]$PolicyPath = "artifacts/demo-e2e/policy-check.json",
   [string]$BadgePath = "artifacts/demo-e2e/badge.json",
   [string]$PerfSummaryPath = "artifacts/perf-load/summary.json",
-  [string]$PerfPolicyPath = "artifacts/perf-load/policy-check.json"
+  [string]$PerfPolicyPath = "artifacts/perf-load/policy-check.json",
+  [string]$SourceRunManifestPath = "artifacts/release-artifact-revalidation/source-run.json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -49,6 +50,7 @@ $ReleaseThresholds = @{
 }
 
 $MaxAllowedScenarioRetriesUsedCount = if ($StrictFinalRun) { 0 } else { $ReleaseThresholds.MaxScenarioRetriesUsedCount }
+$IsArtifactOnlyMode = $SkipDemoE2E -and $SkipPolicy -and $SkipBadge
 
 function To-NumberOrNaN([object]$Value) {
   if ($null -eq $Value) {
@@ -185,10 +187,46 @@ if (-not $SkipPerfLoad) {
   $requiredFiles += $PerfSummaryPath
   $requiredFiles += $PerfPolicyPath
 }
+if ($IsArtifactOnlyMode) {
+  $requiredFiles += $SourceRunManifestPath
+}
 
 $missing = @($requiredFiles | Where-Object { -not (Test-Path $_) })
 if ($missing.Count -gt 0) {
   Fail ("Missing required artifacts: " + ($missing -join ", "))
+}
+
+if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
+  $sourceRunManifest = $null
+  try {
+    $sourceRunManifest = Get-Content $SourceRunManifestPath -Raw | ConvertFrom-Json
+  }
+  catch {
+    Fail ("Invalid source run manifest JSON: " + $SourceRunManifestPath)
+  }
+
+  $manifestSchemaVersion = [string]$sourceRunManifest.schemaVersion
+  if ([string]::IsNullOrWhiteSpace($manifestSchemaVersion)) {
+    Fail ("source run manifest schemaVersion is missing: " + $SourceRunManifestPath)
+  }
+  if ($manifestSchemaVersion -ne "1.0") {
+    Fail ("source run manifest schemaVersion expected 1.0, actual " + $manifestSchemaVersion)
+  }
+
+  $manifestSourceRunId = [string]$sourceRunManifest.sourceRun.runId
+  if ([string]::IsNullOrWhiteSpace($manifestSourceRunId)) {
+    Fail ("source run manifest missing sourceRun.runId: " + $SourceRunManifestPath)
+  }
+
+  $manifestSourceBranch = [string]$sourceRunManifest.sourceRun.branch
+  if ([string]::IsNullOrWhiteSpace($manifestSourceBranch)) {
+    Fail ("source run manifest missing sourceRun.branch: " + $SourceRunManifestPath)
+  }
+
+  $manifestRetryAttempts = To-NumberOrNaN $sourceRunManifest.retry.githubApiMaxAttempts
+  if ([double]::IsNaN($manifestRetryAttempts) -or $manifestRetryAttempts -lt 1) {
+    Fail ("source run manifest retry.githubApiMaxAttempts expected >= 1, actual " + $sourceRunManifest.retry.githubApiMaxAttempts)
+  }
 }
 
 if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
@@ -629,4 +667,17 @@ if ((-not $SkipPerfLoad) -and (Test-Path $PerfPolicyPath)) {
   $perfPolicy = Get-Content $PerfPolicyPath -Raw | ConvertFrom-Json
   $violationsCount = @($perfPolicy.violations).Count
   Write-Host ("perf.policy.ok: " + $perfPolicy.ok + " (" + $perfPolicy.checks + " checks, violations: " + $violationsCount + ")")
+}
+if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
+  $sourceRunManifest = Get-Content $SourceRunManifestPath -Raw | ConvertFrom-Json
+  $manifestSchemaVersion = [string]$sourceRunManifest.schemaVersion
+  $manifestSourceRunId = [string]$sourceRunManifest.sourceRun.runId
+  $manifestSourceBranch = [string]$sourceRunManifest.sourceRun.branch
+  $manifestPerfMode = [string]$sourceRunManifest.gate.effectivePerfMode
+  Write-Host (
+    "artifact.source_run_manifest: schema=" + $manifestSchemaVersion +
+    ", run_id=" + $manifestSourceRunId +
+    ", branch=" + $manifestSourceBranch +
+    ", perf_mode=" + $manifestPerfMode
+  )
 }

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 
 const releaseScriptPath = resolve(process.cwd(), "scripts", "release-readiness.ps1");
@@ -298,6 +298,57 @@ function createPassingPerfPolicy(): Record<string, unknown> {
   };
 }
 
+function createPassingSourceRunManifest(
+  overrides: Partial<{
+    schemaVersion: string;
+    sourceRunId: string;
+    sourceRunBranch: string;
+    retryAttempts: number | string;
+    effectivePerfMode: string;
+  }> = {},
+): Record<string, unknown> {
+  const hasOverride = (key: string): boolean => Object.prototype.hasOwnProperty.call(overrides, key);
+  return {
+    schemaVersion: hasOverride("schemaVersion") ? overrides.schemaVersion : "1.0",
+    generatedAt: "2026-02-23T00:00:00.000Z",
+    repository: {
+      owner: "Web-pixel-creator",
+      repo: "Live-Agent",
+    },
+    sourceRun: {
+      runId: hasOverride("sourceRunId") ? overrides.sourceRunId : "123456",
+      workflow: "demo-e2e.yml",
+      branch: hasOverride("sourceRunBranch") ? overrides.sourceRunBranch : "main",
+      headSha: "abcdef123456",
+      headShaShort: "abcdef123456",
+      conclusion: "success",
+      updatedAtUtc: "2026-02-23T00:00:00.000Z",
+      ageHours: 1.5,
+    },
+    artifact: {
+      name: "demo-e2e-artifacts",
+      id: 777,
+    },
+    sourceSelection: {
+      allowAnySourceBranch: false,
+      allowedBranches: ["main", "master"],
+      maxSourceRunAgeHours: 168,
+    },
+    gate: {
+      skipArtifactOnlyGate: false,
+      strictFinalRun: false,
+      requestedPerfMode: "without_perf",
+      effectivePerfMode: hasOverride("effectivePerfMode") ? overrides.effectivePerfMode : "without_perf",
+      perfArtifactsDetected: "false",
+    },
+    retry: {
+      githubApiMaxAttempts: hasOverride("retryAttempts") ? overrides.retryAttempts : 3,
+      githubApiRetryBackoffMs: 1200,
+      retryableStatusCodes: [408, 429, 500, 502, 503, 504],
+    },
+  };
+}
+
 function runReleaseReadinessWithPerfArtifacts(
   summary: Record<string, unknown>,
   perfSummary: Record<string, unknown>,
@@ -338,6 +389,69 @@ function runReleaseReadinessWithPerfArtifacts(
         perfSummaryPath,
         "-PerfPolicyPath",
         perfPolicyPath,
+      ],
+      {
+        encoding: "utf8",
+      },
+    );
+
+    return {
+      exitCode: result.status ?? 1,
+      stdout: result.stdout ?? "",
+      stderr: result.stderr ?? "",
+    };
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
+function runReleaseReadinessArtifactOnly(
+  options?: Partial<{
+    manifest: Record<string, unknown> | null;
+    manifestRaw: string | null;
+  }>,
+): { exitCode: number; stdout: string; stderr: string } {
+  if (!powershellBin) {
+    throw new Error("PowerShell binary is not available");
+  }
+
+  const tempDir = mkdtempSync(join(tmpdir(), "mla-release-readiness-artifact-only-"));
+  try {
+    const manifestPath = join(tempDir, "release-artifact-revalidation", "source-run.json");
+    const manifest = Object.prototype.hasOwnProperty.call(options ?? {}, "manifest")
+      ? options?.manifest
+      : createPassingSourceRunManifest();
+    const manifestRaw = Object.prototype.hasOwnProperty.call(options ?? {}, "manifestRaw")
+      ? options?.manifestRaw
+      : null;
+
+    if (manifestRaw !== null) {
+      mkdirSync(dirname(manifestPath), { recursive: true });
+      writeFileSync(manifestPath, manifestRaw, "utf8");
+    } else if (manifest !== null && manifest !== undefined) {
+      mkdirSync(dirname(manifestPath), { recursive: true });
+      writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+    }
+
+    const result = spawnSync(
+      powershellBin,
+      [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        releaseScriptPath,
+        "-SkipBuild",
+        "-SkipUnitTests",
+        "-SkipMonitoringTemplates",
+        "-SkipProfileSmoke",
+        "-SkipDemoE2E",
+        "-SkipPolicy",
+        "-SkipBadge",
+        "-SkipPerfLoad",
+        "-SkipDemoRun",
+        "-SourceRunManifestPath",
+        manifestPath,
       ],
       {
         encoding: "utf8",
@@ -773,5 +887,69 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /perf summary check failed: live_voice_translation p95 expected <= 1800, actual 2400/i);
+  },
+);
+
+test(
+  "release-readiness artifact-only mode passes with valid source run manifest",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly();
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /artifact\.source_run_manifest: schema=1\.0/i);
+    assert.match(output, /run_id=123456/i);
+    assert.match(output, /branch=main/i);
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run manifest is missing",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({ manifest: null });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /missing required artifacts:/i);
+    assert.match(output, /source-run\.json/i);
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run manifest schemaVersion drifts",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ schemaVersion: "2.0" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /source run manifest schemaVersion expected 1\.0, actual 2\.0/i);
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run manifest retry attempts are invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ retryAttempts: 0 }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /source run manifest retry\.githubApiMaxAttempts expected >= 1, actual 0/i);
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run manifest JSON is invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifestRaw: "{not-json}",
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /invalid source run manifest json/i);
   },
 );

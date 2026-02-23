@@ -95,6 +95,7 @@
 64. Added source-run guardrails to artifact revalidation (local helper + CI workflow): enforced successful source run, default branch allowlist (`main/master`), max source-run age threshold (`168h` by default), summary telemetry of source run metadata (`workflow/branch/headSha/updatedAt/ageHours`), and anti-drift coverage in `tests/unit/release-artifact-source-run-guard-defaults-alignment.test.ts`.
 65. Added artifact provenance manifest output for revalidation flows: local helper and CI workflow now write `artifacts/release-artifact-revalidation/source-run.json` (source run metadata, guardrails, perf gate mode, retry policy), include manifest path in summaries, and upload it in `release-artifact-revalidation-artifacts`.
 66. Added manifest schema anti-drift coverage (`tests/unit/release-artifact-source-run-manifest-alignment.test.ts`) to keep `source-run.json` structure aligned across local helper and CI workflow (`schemaVersion/generatedAt/repository/sourceRun/artifact/sourceSelection/gate/retry` + retry policy fields).
+67. Hardened `release-readiness` artifact-only gate with mandatory `source-run.json` validation (`schemaVersion=1.0`, `sourceRun.runId`, `sourceRun.branch`, `retry.githubApiMaxAttempts>=1`) and added dedicated unit coverage for pass/fail paths (missing file, schema drift, invalid retry value, malformed JSON).
 
 ## Current Focus Queue
 
