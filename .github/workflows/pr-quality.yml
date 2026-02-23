@@ -30,42 +30,8 @@ jobs:
         run: npm ci
         shell: powershell
 
-      - name: Build Workspaces
-        run: npm run build
-        shell: powershell
-
-      - name: Run Unit Tests
-        run: npm run test:unit
-        shell: powershell
-
-      - name: Run Runtime Profile Smoke
-        run: npm run profile:smoke
-        shell: powershell
-
-      - name: Validate Monitoring Templates
-        run: npm run infra:monitoring:validate
-        shell: powershell
-
-      - name: Run Demo E2E (Fast)
-        run: npm run demo:e2e:fast
-        shell: powershell
-
-      - name: Validate Demo KPI Policy
-        run: >
-          node ./scripts/demo-e2e-policy-check.mjs
-          --input ./artifacts/demo-e2e/summary.json
-          --output ./artifacts/demo-e2e/policy-check.md
-          --jsonOutput ./artifacts/demo-e2e/policy-check.json
-          --maxGatewayWsRoundTripMs 1800
-          --minApprovalsRecorded 1
-          --expectedUiAdapterMode remote_http
-          --allowedUiAdapterModes remote_http,simulated
-          --allowedGatewayInterruptEvents live.interrupt.requested,live.bridge.unavailable
-          --allowedTranslationProviders fallback,gemini
-        shell: powershell
-
-      - name: Build Badge Artifact
-        run: npm run demo:e2e:badge
+      - name: Run PR Quality Gate
+        run: npm run verify:pr
         shell: powershell
 
       - name: Publish Demo Report To Job Summary

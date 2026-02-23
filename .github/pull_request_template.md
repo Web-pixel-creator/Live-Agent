@@ -6,6 +6,7 @@
 
 ## Demo Readiness Checklist
 
+- [ ] (Optional but recommended) local gate `npm run verify:pr` passed.
 - [ ] `PR Quality Gate` workflow passed for this PR.
 - [ ] KPI policy gate passed (`demo:e2e:policy`).
 - [ ] `artifacts/demo-e2e/summary.json` is available in workflow artifacts.

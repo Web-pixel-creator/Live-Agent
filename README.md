@@ -173,6 +173,14 @@ Optional faster local pass (skip build):
 powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1 -SkipBuild
 ```
 
+Single-command local PR-equivalent gate (same checks as `pr-quality.yml`, without perf):
+
+```powershell
+npm run verify:pr
+```
+
+Note: `verify:pr` uses fast demo mode (`demo:e2e:fast`) with a slightly higher request timeout for CI stability.
+
 Direct mode with explicit thresholds:
 
 ```powershell
@@ -353,7 +361,7 @@ Useful flags:
 
 - PR workflow: `.github/workflows/pr-quality.yml`
 - Triggered on pull requests.
-- Runs build + unit + profile smoke + monitoring validate + `npm run demo:e2e:fast` + policy check.
+- Runs `npm run verify:pr` (build + unit + profile smoke + monitoring validate + demo policy/badge gate).
 - Uploads demo artifacts for PR review.
 
 - Full workflow: `.github/workflows/demo-e2e.yml`
