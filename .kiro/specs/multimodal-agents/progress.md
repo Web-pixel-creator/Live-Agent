@@ -32,6 +32,7 @@
    - `kpi.uiApprovalResumeRequestRetried` (`boolean`)
    - `scenario.ui.approval.approve_resume.elapsedMs <= 60000`
 3. Release summary now prints approval-resume retry KPI values.
+4. UI Navigator remote executor now supports strict fallback policy via `UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE=simulated|failed` (with dedicated unit coverage).
 
 ## Current Focus Queue
 
