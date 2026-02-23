@@ -34,3 +34,17 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /requested perf gate mode/);
   assert.match(source, /effective perf gate mode/);
 });
+
+test("local release artifact revalidation docs stay aligned with helper controls", () => {
+  const readmePath = resolve(process.cwd(), "README.md");
+  const runbookPath = resolve(process.cwd(), "docs", "challenge-demo-runbook.md");
+  const readme = readFileSync(readmePath, "utf8");
+  const runbook = readFileSync(runbookPath, "utf8");
+
+  for (const content of [readme, runbook]) {
+    assert.match(content, /verify:release:artifact:revalidate/);
+    assert.match(content, /PerfGateMode auto\|with_perf\|without_perf/);
+    assert.match(content, /SkipPerfLoadGate/);
+    assert.match(content, /gh auth token/);
+  }
+});
