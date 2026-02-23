@@ -8,7 +8,7 @@
 
 ## Verified Quality Gates
 
-1. `npm run verify:pr` passes end-to-end.
+1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `122` checks.
 3. Perf-load policy gate is green.
 4. Unit tests are green (`110` tests passed).
@@ -44,6 +44,7 @@
 13. Demo e2e now exposes `api.sessions.versioning` proof and policy validates optimistic-versioning/idempotency outcomes (`idempotent_replay`, `API_SESSION_VERSION_CONFLICT`, `API_SESSION_IDEMPOTENCY_CONFLICT`).
 14. Demo e2e now exposes `gateway.websocket.binding_mismatch` proof and policy validates WebSocket binding guards (`GATEWAY_SESSION_MISMATCH`, `GATEWAY_USER_MISMATCH`).
 15. Demo e2e now exposes `gateway.websocket.draining_rejection` proof and policy validates drain-mode rejection + post-warmup recovery (`GATEWAY_DRAINING`, `traceId`, `recoveryStatus=completed`).
+16. Release readiness gate now fails fast on critical summary evidence (`gateway.websocket.binding_mismatch`, `gateway.websocket.draining_rejection`, `api.sessions.versioning`) and prints judge-critical KPI snapshots in final output.
 
 ## Current Focus Queue
 
