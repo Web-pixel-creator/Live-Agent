@@ -83,7 +83,23 @@ if ([string]::IsNullOrWhiteSpace($Repo)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($Token)) {
-  Fail "Missing token. Set -Token or env GITHUB_TOKEN (or GH_TOKEN)."
+  $ghCli = Get-Command "gh" -ErrorAction SilentlyContinue
+  if ($null -ne $ghCli) {
+    try {
+      $ghToken = (& gh auth token 2>$null | Select-Object -First 1)
+      if (-not [string]::IsNullOrWhiteSpace($ghToken)) {
+        $Token = $ghToken.Trim()
+        Write-Host "[artifact-revalidate] Using token resolved from 'gh auth token'."
+      }
+    }
+    catch {
+      # Best-effort fallback only: keep explicit validation below.
+    }
+  }
+}
+
+if ([string]::IsNullOrWhiteSpace($Token)) {
+  Fail "Missing token. Set -Token or env GITHUB_TOKEN/GH_TOKEN, or authenticate GitHub CLI via 'gh auth login'."
 }
 
 if ($WorkflowIds.Count -eq 0) {

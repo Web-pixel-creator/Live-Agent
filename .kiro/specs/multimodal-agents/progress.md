@@ -86,6 +86,7 @@
 55. Added explicit operator perf-mode control to CI artifact revalidation workflow via `workflow_dispatch` input `perf_gate_mode=auto|with_perf|without_perf`, with strict validation for `with_perf` when perf artifacts are missing, summary telemetry of requested/effective mode, and anti-drift coverage updates in `tests/unit/release-artifact-workflow-alignment.test.ts`.
 56. Added explicit strict-mode control to CI artifact revalidation workflow via `workflow_dispatch` input `strict_final_run=true|false`: workflow now executes one of four deterministic gate branches (`with/without perf` x `standard/strict`), propagates `-StrictFinalRun` where requested, and emits strict-mode state in job summary with anti-drift coverage updates in `tests/unit/release-artifact-workflow-alignment.test.ts`.
 57. Aligned local artifact helper with CI perf-mode semantics by adding `-PerfGateMode auto|with_perf|without_perf` to `scripts/release-artifact-revalidate.ps1`, keeping `-SkipPerfLoadGate` as deprecated compatibility alias, enforcing `with_perf` artifact presence validation, and emitting requested/effective perf mode in final summary; docs/tests updated in `README.md`, `docs/challenge-demo-runbook.md`, and `tests/unit/release-artifact-local-revalidation-alignment.test.ts`.
+58. Added GitHub CLI token fallback to local artifact revalidation helper (`scripts/release-artifact-revalidate.ps1`): when `GITHUB_TOKEN`/`GH_TOKEN` is absent, script now attempts `gh auth token` before failing; docs and anti-drift unit coverage were updated accordingly.
 
 ## Current Focus Queue
 
