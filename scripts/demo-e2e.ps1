@@ -18,6 +18,12 @@ param(
   [int]$RequestTimeoutSec = 30,
 
   [Parameter(Mandatory = $false)]
+  [int]$ScenarioRetryMaxAttempts = 2,
+
+  [Parameter(Mandatory = $false)]
+  [int]$ScenarioRetryBackoffMs = 900,
+
+  [Parameter(Mandatory = $false)]
   [string]$OutputPath = "artifacts/demo-e2e/summary.json"
 )
 
@@ -667,37 +673,88 @@ function Invoke-Scenario {
   param(
     [Parameter(Mandatory = $true)]
     [string]$Name,
+    [Parameter(Mandatory = $false)]
+    [int]$MaxAttempts = 1,
+    [Parameter(Mandatory = $false)]
+    [int]$InitialBackoffMs = 900,
+    [Parameter(Mandatory = $false)]
+    [switch]$RetryTransientFailures,
     [Parameter(Mandatory = $true)]
     [scriptblock]$Action
   )
 
+  if ($MaxAttempts -lt 1) {
+    throw "Scenario MaxAttempts must be >= 1."
+  }
+
   $watch = [System.Diagnostics.Stopwatch]::StartNew()
   $data = $null
   $errorText = $null
-  $status = "passed"
+  $status = "failed"
+  $attempts = 0
+  $attemptErrors = @()
 
-  try {
-    $data = & $Action
-  } catch {
-    $status = "failed"
-    $errorText = $_.Exception.Message
-  } finally {
-    $watch.Stop()
+  for ($attempt = 1; $attempt -le $MaxAttempts; $attempt += 1) {
+    $attempts = $attempt
+    try {
+      $data = & $Action
+      $status = "passed"
+      $errorText = $null
+      break
+    } catch {
+      $status = "failed"
+      $errorText = $_.Exception.Message
+      $isTransient = Test-IsTransientRequestFailure -ErrorRecord $_
+      $attemptErrors += [ordered]@{
+        attempt = $attempt
+        transient = $isTransient
+        error = $errorText
+      }
+
+      $canRetry = ($attempt -lt $MaxAttempts) -and ((-not $RetryTransientFailures) -or $isTransient)
+      if (-not $canRetry) {
+        break
+      }
+
+      $delayMs = [int]($InitialBackoffMs * [Math]::Pow(2, [double]($attempt - 1)))
+      if ($delayMs -lt 0) {
+        $delayMs = 0
+      }
+      Write-Step ("Scenario {0}: transient failure on attempt {1}/{2}, retrying in {3} ms." -f $Name, $attempt, $MaxAttempts, $delayMs)
+      if ($delayMs -gt 0) {
+        Start-Sleep -Milliseconds $delayMs
+      }
+    }
   }
+  $watch.Stop()
 
   $result = [ordered]@{
     name = $Name
     status = $status
     elapsedMs = [int]$watch.ElapsedMilliseconds
+    attempts = $attempts
+    maxAttempts = $MaxAttempts
+    retried = ($attempts -gt 1)
+    retryTransientOnly = [bool]$RetryTransientFailures
+    retryableFailureCount = @($attemptErrors | Where-Object { [bool]$_.transient }).Count
     data = $data
     error = $errorText
+    attemptErrors = $attemptErrors
   }
   $script:ScenarioResults += $result
 
   if ($status -eq "passed") {
-    Write-Step ("Scenario {0}: passed ({1} ms)" -f $Name, $result.elapsedMs)
+    if ($result.retried) {
+      Write-Step ("Scenario {0}: passed ({1} ms) after {2} attempts" -f $Name, $result.elapsedMs, $result.attempts)
+    } else {
+      Write-Step ("Scenario {0}: passed ({1} ms)" -f $Name, $result.elapsedMs)
+    }
   } else {
-    Write-Step ("Scenario {0}: failed ({1} ms) - {2}" -f $Name, $result.elapsedMs, $errorText)
+    if ($result.retried) {
+      Write-Step ("Scenario {0}: failed ({1} ms) after {2} attempts - {3}" -f $Name, $result.elapsedMs, $result.attempts, $errorText)
+    } else {
+      Write-Step ("Scenario {0}: failed ({1} ms) - {2}" -f $Name, $result.elapsedMs, $errorText)
+    }
   }
 
   return $result
@@ -1160,7 +1217,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "ui.visual_testing" -Action {
+  Invoke-Scenario `
+    -Name "ui.visual_testing" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $runId = "demo-ui-visual-" + [Guid]::NewGuid().Guid
     $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "ui_task" -RequestInput @{
       goal = "Open the page and verify dashboard layout/content/interaction checkpoints."
@@ -1547,7 +1609,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "operator.console.actions" -Action {
+  Invoke-Scenario `
+    -Name "operator.console.actions" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $operatorHeaders = @{
       "x-operator-role" = "operator"
     }
@@ -2304,6 +2371,10 @@ $approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.inval
 $sessionVersioningData = Get-ScenarioData -Name "api.sessions.versioning"
 $runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
 $runtimeMetricsData = Get-ScenarioData -Name "runtime.metrics.endpoints"
+$uiVisualTestingScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.visual_testing" } | Select-Object -First 1)
+$operatorActionsScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "operator.console.actions" } | Select-Object -First 1)
+$scenarioRetriedSet = @($script:ScenarioResults | Where-Object { [bool]$_.retried })
+$scenarioRetryableFailuresTotal = @($script:ScenarioResults | ForEach-Object { [int]$_.retryableFailureCount } | Measure-Object -Sum).Sum
 $uiExecutorService = $script:ServiceStatuses | Where-Object { $_.name -eq "ui-executor" } | Select-Object -First 1
 $uiExecutorLifecycleService = $null
 if ($null -ne $runtimeLifecycleData) {
@@ -2326,6 +2397,8 @@ $summary = [ordered]@{
     keepServices = [bool]$KeepServices
     startupTimeoutSec = $StartupTimeoutSec
     requestTimeoutSec = $RequestTimeoutSec
+    scenarioRetryMaxAttempts = $ScenarioRetryMaxAttempts
+    scenarioRetryBackoffMs = $ScenarioRetryBackoffMs
     uiNavigatorRemoteHttpFallbackMode = [Environment]::GetEnvironmentVariable("UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE")
     serviceStartMaxAttempts = [Environment]::GetEnvironmentVariable("DEMO_E2E_SERVICE_START_MAX_ATTEMPTS")
     serviceStartRetryBackoffMs = [Environment]::GetEnvironmentVariable("DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS")
@@ -2430,6 +2503,11 @@ $summary = [ordered]@{
       [int]$uiVisualTestingData.checksCount -ge 3 -and
       [int]$uiVisualTestingData.regressionCount -eq 0
     ) { $true } else { $false }
+    scenarioRetriesUsedCount = $scenarioRetriedSet.Count
+    scenarioRetriesUsedNames = @($scenarioRetriedSet | ForEach-Object { [string]$_.name })
+    scenarioRetryableFailuresTotal = [int]$scenarioRetryableFailuresTotal
+    uiVisualTestingScenarioAttempts = if ($uiVisualTestingScenario.Count -gt 0) { [int]$uiVisualTestingScenario[0].attempts } else { $null }
+    operatorConsoleActionsScenarioAttempts = if ($operatorActionsScenario.Count -gt 0) { [int]$operatorActionsScenario[0].attempts } else { $null }
     delegatedRoute = if ($null -ne $delegationData) { $delegationData.delegatedRoute } else { $null }
     assistiveRouterMode = if ($null -ne $delegationData) { $delegationData.routingMode } else { $null }
     assistiveRouterReason = if ($null -ne $delegationData) { $delegationData.routingReason } else { $null }
