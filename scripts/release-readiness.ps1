@@ -7,6 +7,7 @@ param(
   [switch]$SkipDemoE2E,
   [switch]$SkipDemoRun,
   [switch]$UseFastDemoE2E,
+  [switch]$StrictFinalRun,
   [switch]$SkipPolicy,
   [switch]$SkipBadge,
   [switch]$SkipPerfLoad,
@@ -46,6 +47,8 @@ $ReleaseThresholds = @{
   RequiredPerfUiAdapterMode = "remote_http"
   MinPerfPolicyChecks = 15
 }
+
+$MaxAllowedScenarioRetriesUsedCount = if ($StrictFinalRun) { 0 } else { $ReleaseThresholds.MaxScenarioRetriesUsedCount }
 
 function To-NumberOrNaN([object]$Value) {
   if ($null -eq $Value) {
@@ -147,7 +150,8 @@ if ((-not $SkipDemoE2E) -and (-not $SkipDemoRun)) {
 }
 
 if (-not $SkipPolicy) {
-  Run-Step "Run policy gate" "npm run demo:e2e:policy"
+  $policyCommand = "npm run demo:e2e:policy -- --maxScenarioRetriesUsedCount $MaxAllowedScenarioRetriesUsedCount"
+  Run-Step "Run policy gate" $policyCommand
 }
 
 if (-not $SkipBadge) {
@@ -320,11 +324,11 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   if (
     [double]::IsNaN($scenarioRetriesUsedCount) -or
     $scenarioRetriesUsedCount -lt 0 -or
-    $scenarioRetriesUsedCount -gt $ReleaseThresholds.MaxScenarioRetriesUsedCount
+    $scenarioRetriesUsedCount -gt $MaxAllowedScenarioRetriesUsedCount
   ) {
     Fail (
       "Critical KPI check failed: kpi.scenarioRetriesUsedCount expected 0.." +
-      $ReleaseThresholds.MaxScenarioRetriesUsedCount +
+      $MaxAllowedScenarioRetriesUsedCount +
       ", actual " +
       $summary.kpis.scenarioRetriesUsedCount
     )

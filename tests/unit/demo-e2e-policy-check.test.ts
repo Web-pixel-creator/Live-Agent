@@ -194,7 +194,7 @@ function parseJsonFromStream(streamValue: string): Record<string, unknown> {
   return JSON.parse(lastLine) as Record<string, unknown>;
 }
 
-function runPolicyCheck(summary: Record<string, unknown>): PolicyRunResult {
+function runPolicyCheck(summary: Record<string, unknown>, extraArgs: string[] = []): PolicyRunResult {
   const tempDir = mkdtempSync(join(tmpdir(), "mla-policy-check-"));
   try {
     const inputPath = join(tempDir, "summary.json");
@@ -204,7 +204,7 @@ function runPolicyCheck(summary: Record<string, unknown>): PolicyRunResult {
 
     const result = spawnSync(
       process.execPath,
-      [policyScriptPath, "--input", inputPath, "--output", markdownOutputPath, "--jsonOutput", jsonOutputPath],
+      [policyScriptPath, "--input", inputPath, "--output", markdownOutputPath, "--jsonOutput", jsonOutputPath, ...extraArgs],
       {
         encoding: "utf8",
       },
@@ -344,6 +344,23 @@ test("demo-e2e policy check fails when scenario retries used exceed max threshol
         scenarioRetriesUsedCount: 3,
       },
     }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.scenarioRetriesUsedCount")));
+});
+
+test("demo-e2e policy check strict override fails when any scenario retry is used", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        scenarioRetriesUsedCount: 1,
+      },
+    }),
+    ["--maxScenarioRetriesUsedCount", "0"],
   );
   assert.equal(result.exitCode, 1);
   assert.equal(result.payload.ok, false);

@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `143` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`172` tests passed).
+4. Unit tests are green (`175` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -73,6 +73,7 @@
 42. `demo-e2e` now supports bounded per-scenario transient retries (`ScenarioRetryMaxAttempts`, `ScenarioRetryBackoffMs`) for flaky paths (`ui.visual_testing`, `operator.console.actions`) with summary KPIs for attempt count and retry usage; coverage added in `tests/unit/demo-scenario-retry-alignment.test.ts`.
 43. `release-readiness` now exposes scenario-retry controls (`DemoScenarioRetryMaxAttempts`, `DemoScenarioRetryBackoffMs`) and forwards them into demo runs; policy/release gates enforce `options.scenarioRetryMaxAttempts >= 2` and `options.scenarioRetryBackoffMs >= 500`, with runbook and anti-drift tests updated.
 44. Policy/release gates now enforce anti-noise scenario-retry guards (`kpi.scenarioRetriesUsedCount <= 2`, per-scenario attempts bounded by `options.scenarioRetryMaxAttempts`, `kpi.scenarioRetryableFailuresTotal >= 0`), including runbook updates and dedicated unit coverage.
+45. `release-readiness` now supports strict final mode (`-StrictFinalRun`) that enforces zero scenario retries (`kpi.scenarioRetriesUsedCount = 0`) and forwards strict policy override (`--maxScenarioRetriesUsedCount 0`) to demo KPI gate for pre-submission cleanliness.
 
 ## Current Focus Queue
 

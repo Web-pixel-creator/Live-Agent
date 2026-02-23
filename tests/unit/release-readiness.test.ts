@@ -164,7 +164,12 @@ function createPassingSummary(
   };
 }
 
-function runReleaseReadiness(summary: Record<string, unknown>): { exitCode: number; stdout: string; stderr: string } {
+function runReleaseReadiness(
+  summary: Record<string, unknown>,
+  options?: Partial<{
+    strictFinalRun: boolean;
+  }>,
+): { exitCode: number; stdout: string; stderr: string } {
   if (!powershellBin) {
     throw new Error("PowerShell binary is not available");
   }
@@ -174,25 +179,30 @@ function runReleaseReadiness(summary: Record<string, unknown>): { exitCode: numb
     const summaryPath = join(tempDir, "summary.json");
     writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
 
+    const args = [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      releaseScriptPath,
+      "-SkipBuild",
+      "-SkipUnitTests",
+      "-SkipMonitoringTemplates",
+      "-SkipProfileSmoke",
+      "-SkipPolicy",
+      "-SkipBadge",
+      "-SkipPerfLoad",
+      "-SkipDemoRun",
+      "-SummaryPath",
+      summaryPath,
+    ];
+    if (options?.strictFinalRun) {
+      args.push("-StrictFinalRun");
+    }
+
     const result = spawnSync(
       powershellBin,
-      [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        releaseScriptPath,
-        "-SkipBuild",
-        "-SkipUnitTests",
-        "-SkipMonitoringTemplates",
-        "-SkipProfileSmoke",
-        "-SkipPolicy",
-        "-SkipBadge",
-        "-SkipPerfLoad",
-        "-SkipDemoRun",
-        "-SummaryPath",
-        summaryPath,
-      ],
+      args,
       {
         encoding: "utf8",
       },
@@ -484,6 +494,30 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /kpi\.scenarioRetriesUsedCount expected 0\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness strict final run fails when any scenario retry is used",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ scenarioRetriesUsedCount: "1" }), {
+      strictFinalRun: true,
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.scenarioRetriesUsedCount expected 0\.\.0, actual 1/i);
+  },
+);
+
+test(
+  "release-readiness strict final run passes when no scenario retries are used",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ scenarioRetriesUsedCount: "0" }), {
+      strictFinalRun: true,
+    });
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
   },
 );
 

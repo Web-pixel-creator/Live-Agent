@@ -17,6 +17,10 @@ For flaky local runners you can increase demo retry tolerance:
 ```powershell
 npm run verify:release -- -DemoRunMaxAttempts 3 -DemoRunRetryBackoffMs 3000 -DemoScenarioRetryMaxAttempts 3 -DemoScenarioRetryBackoffMs 1200
 ```
+For final pre-submission validation, enforce strict no-retry discipline:
+```powershell
+npm run verify:release -- -StrictFinalRun
+```
 2. Start services for live walkthrough:
 ```powershell
 npm run dev:ui-executor
@@ -65,6 +69,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `options.scenarioRetryMaxAttempts >= 2`
   - `options.scenarioRetryBackoffMs >= 500`
   - `kpi.scenarioRetriesUsedCount <= 2`
+  - strict final run (`-StrictFinalRun`) enforces `kpi.scenarioRetriesUsedCount = 0`
   - `kpi.uiVisualTestingScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.operatorConsoleActionsScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.scenarioRetryableFailuresTotal >= 0`
