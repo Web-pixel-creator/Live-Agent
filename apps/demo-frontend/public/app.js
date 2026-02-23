@@ -93,6 +93,16 @@ const el = {
   operatorDeviceNodesMissingHeartbeat: document.getElementById("operatorDeviceNodesMissingHeartbeat"),
   operatorDeviceNodesMaxAge: document.getElementById("operatorDeviceNodesMaxAge"),
   operatorDeviceNodesHint: document.getElementById("operatorDeviceNodesHint"),
+  operatorTraceStatus: document.getElementById("operatorTraceStatus"),
+  operatorTraceRuns: document.getElementById("operatorTraceRuns"),
+  operatorTraceEvents: document.getElementById("operatorTraceEvents"),
+  operatorTraceUiRuns: document.getElementById("operatorTraceUiRuns"),
+  operatorTraceApprovals: document.getElementById("operatorTraceApprovals"),
+  operatorTraceSteps: document.getElementById("operatorTraceSteps"),
+  operatorTraceScreenshots: document.getElementById("operatorTraceScreenshots"),
+  operatorTraceTopRoute: document.getElementById("operatorTraceTopRoute"),
+  operatorTraceTopStatus: document.getElementById("operatorTraceTopStatus"),
+  operatorTraceHint: document.getElementById("operatorTraceHint"),
   deviceNodeId: document.getElementById("deviceNodeId"),
   deviceNodeDisplayName: document.getElementById("deviceNodeDisplayName"),
   deviceNodeKind: document.getElementById("deviceNodeKind"),
@@ -462,6 +472,27 @@ function setOperatorDeviceNodesHint(text, variant = "neutral") {
   el.operatorDeviceNodesHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorTraceHint(text, variant = "neutral") {
+  if (!el.operatorTraceHint) {
+    return;
+  }
+  el.operatorTraceHint.textContent = text;
+  el.operatorTraceHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorTraceHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorTraceHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorTraceHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorTraceHint.classList.add("operator-health-hint-neutral");
+}
+
 function resetOperatorHealthWidget(reason = "no_data") {
   setText(el.operatorHealthState, "unknown");
   setText(el.operatorHealthLastEventType, "-");
@@ -502,6 +533,19 @@ function resetOperatorDeviceNodesWidget(reason = "no_data") {
   setText(el.operatorDeviceNodesMaxAge, "n/a");
   setOperatorDeviceNodesHint("Refresh summary to inspect device-node fleet health.", "neutral");
   setStatusPill(el.operatorDeviceNodesStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorTraceWidget(reason = "no_data") {
+  setText(el.operatorTraceRuns, "0");
+  setText(el.operatorTraceEvents, "0");
+  setText(el.operatorTraceUiRuns, "0");
+  setText(el.operatorTraceApprovals, "0");
+  setText(el.operatorTraceSteps, "0");
+  setText(el.operatorTraceScreenshots, "0");
+  setText(el.operatorTraceTopRoute, "n/a");
+  setText(el.operatorTraceTopStatus, "n/a");
+  setOperatorTraceHint("Refresh summary to inspect operator trace coverage.", "neutral");
+  setStatusPill(el.operatorTraceStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function renderOperatorHealthWidget(liveBridgeHealth) {
@@ -682,6 +726,106 @@ function renderOperatorDeviceNodesWidget(deviceNodesSummary) {
     statusVariant,
   );
   setOperatorDeviceNodesHint(hint, hintVariant);
+}
+
+function extractTopCounterEntry(counters) {
+  if (!counters || typeof counters !== "object") {
+    return null;
+  }
+  let topKey = null;
+  let topValue = -1;
+  for (const [key, value] of Object.entries(counters)) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric < 0) {
+      continue;
+    }
+    if (numeric > topValue) {
+      topValue = numeric;
+      topKey = key;
+    }
+  }
+  if (!topKey || topValue < 0) {
+    return null;
+  }
+  return {
+    key: topKey,
+    value: Math.floor(topValue),
+  };
+}
+
+function renderOperatorTraceWidget(traces) {
+  if (!traces || typeof traces !== "object") {
+    resetOperatorTraceWidget("no_data");
+    return;
+  }
+  const totals = traces.totals && typeof traces.totals === "object" ? traces.totals : {};
+  const runs = Number(totals.runsConsidered ?? 0);
+  const events = Number(totals.eventsConsidered ?? 0);
+  const uiRuns = Number(totals.uiTraceRuns ?? 0);
+  const approvals = Number(totals.approvalLinkedRuns ?? 0);
+  const traceSteps = Number(totals.traceSteps ?? 0);
+  const screenshots = Number(totals.screenshotRefs ?? 0);
+  const errorRuns = Number(totals.errorRuns ?? 0);
+  const topRoute = extractTopCounterEntry(traces.byRoute);
+  const topStatus = extractTopCounterEntry(traces.byStatus);
+
+  setText(el.operatorTraceRuns, String(Math.max(0, Math.floor(runs))));
+  setText(el.operatorTraceEvents, String(Math.max(0, Math.floor(events))));
+  setText(el.operatorTraceUiRuns, String(Math.max(0, Math.floor(uiRuns))));
+  setText(el.operatorTraceApprovals, String(Math.max(0, Math.floor(approvals))));
+  setText(el.operatorTraceSteps, String(Math.max(0, Math.floor(traceSteps))));
+  setText(el.operatorTraceScreenshots, String(Math.max(0, Math.floor(screenshots))));
+  setText(
+    el.operatorTraceTopRoute,
+    topRoute ? `${topRoute.key} (${topRoute.value})` : "n/a",
+  );
+  setText(
+    el.operatorTraceTopStatus,
+    topStatus ? `${topStatus.key} (${topStatus.value})` : "n/a",
+  );
+
+  let statusVariant = "ok";
+  let statusText = "covered";
+  let hintVariant = "ok";
+  let hint = "Trace coverage looks healthy for operator diagnostics.";
+
+  if (runs <= 0) {
+    statusVariant = "neutral";
+    statusText = "no_runs";
+    hintVariant = "warn";
+    hint = "No runs available in trace summary yet. Run at least one live/story/ui scenario.";
+  } else if (events <= 0) {
+    statusVariant = "neutral";
+    statusText = "no_events";
+    hintVariant = "warn";
+    hint = "Runs are present but event coverage is empty. Refresh summary and verify event persistence.";
+  } else if (uiRuns <= 0 || traceSteps <= 0 || screenshots <= 0) {
+    statusVariant = "neutral";
+    statusText = "partial";
+    hintVariant = "warn";
+    hint = "Trace coverage is partial. Ensure UI runs include trace steps and screenshot references.";
+  }
+
+  if (errorRuns > 0) {
+    if (errorRuns >= runs) {
+      statusVariant = "fail";
+      statusText = "error_heavy";
+      hintVariant = "fail";
+      hint = "Most traced runs ended with errors. Investigate recent trace failures before demo.";
+    } else if (statusVariant === "ok") {
+      statusVariant = "neutral";
+      statusText = "warnings";
+      hintVariant = "warn";
+      hint = "Trace coverage is present but includes error runs. Verify retry/failover readiness.";
+    }
+  }
+
+  setStatusPill(
+    el.operatorTraceStatus,
+    `${statusText} runs=${Math.max(0, Math.floor(runs))} events=${Math.max(0, Math.floor(events))}`,
+    statusVariant,
+  );
+  setOperatorTraceHint(hint, hintVariant);
 }
 
 function extractNumber(text, regex) {
@@ -888,6 +1032,7 @@ function renderOperatorSummary(summary) {
   resetOperatorHealthWidget("no_data");
   resetOperatorUiExecutorWidget("no_data");
   resetOperatorDeviceNodesWidget("no_data");
+  resetOperatorTraceWidget("no_data");
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -1051,6 +1196,7 @@ function renderOperatorSummary(summary) {
       );
     }
   }
+  renderOperatorTraceWidget(traces);
   renderOperatorHealthWidget(liveBridgeHealthForWidget);
 
   const services = Array.isArray(summary.services) ? summary.services : [];
@@ -1087,6 +1233,7 @@ async function refreshOperatorSummary() {
     resetOperatorHealthWidget("summary_error");
     resetOperatorUiExecutorWidget("summary_error");
     resetOperatorDeviceNodesWidget("summary_error");
+    resetOperatorTraceWidget("summary_error");
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
 }
