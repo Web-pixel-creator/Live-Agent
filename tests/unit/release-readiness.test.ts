@@ -303,6 +303,11 @@ function createPassingSourceRunManifest(
     schemaVersion: string;
     sourceRunId: string;
     sourceRunBranch: string;
+    sourceRunConclusion: string;
+    sourceRunAgeHours: number | string;
+    allowAnySourceBranch: boolean | string;
+    allowedBranches: string[];
+    maxSourceRunAgeHours: number | string;
     retryAttempts: number | string;
     effectivePerfMode: string;
   }> = {},
@@ -321,18 +326,18 @@ function createPassingSourceRunManifest(
       branch: hasOverride("sourceRunBranch") ? overrides.sourceRunBranch : "main",
       headSha: "abcdef123456",
       headShaShort: "abcdef123456",
-      conclusion: "success",
+      conclusion: hasOverride("sourceRunConclusion") ? overrides.sourceRunConclusion : "success",
       updatedAtUtc: "2026-02-23T00:00:00.000Z",
-      ageHours: 1.5,
+      ageHours: hasOverride("sourceRunAgeHours") ? overrides.sourceRunAgeHours : 1.5,
     },
     artifact: {
       name: "demo-e2e-artifacts",
       id: 777,
     },
     sourceSelection: {
-      allowAnySourceBranch: false,
-      allowedBranches: ["main", "master"],
-      maxSourceRunAgeHours: 168,
+      allowAnySourceBranch: hasOverride("allowAnySourceBranch") ? overrides.allowAnySourceBranch : false,
+      allowedBranches: hasOverride("allowedBranches") ? overrides.allowedBranches : ["main", "master"],
+      maxSourceRunAgeHours: hasOverride("maxSourceRunAgeHours") ? overrides.maxSourceRunAgeHours : 168,
     },
     gate: {
       skipArtifactOnlyGate: false,
@@ -951,5 +956,61 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /invalid source run manifest json/i);
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run manifest conclusion is not success",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ sourceRunConclusion: "failure" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /source run manifest sourceRun\.conclusion expected success, actual failure/i);
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run branch is outside allowlist",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ sourceRunBranch: "feature/demo" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /source run manifest sourceRun\.branch not in allowlist: feature\/demo/i);
+  },
+);
+
+test(
+  "release-readiness artifact-only mode allows non-main branch when allowAnySourceBranch is true",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({
+        sourceRunBranch: "feature/demo",
+        allowAnySourceBranch: true,
+      }),
+    });
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run age exceeds max age guard",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({
+        sourceRunAgeHours: 200,
+        maxSourceRunAgeHours: 168,
+      }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /source run manifest sourceRun\.ageHours expected <= 168, actual 200/i);
   },
 );

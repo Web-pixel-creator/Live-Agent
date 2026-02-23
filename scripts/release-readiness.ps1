@@ -223,6 +223,46 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     Fail ("source run manifest missing sourceRun.branch: " + $SourceRunManifestPath)
   }
 
+  $manifestSourceConclusion = [string]$sourceRunManifest.sourceRun.conclusion
+  if ($manifestSourceConclusion -ne "success") {
+    Fail ("source run manifest sourceRun.conclusion expected success, actual " + $manifestSourceConclusion)
+  }
+
+  $manifestAllowAnySourceBranch = To-BoolOrNull $sourceRunManifest.sourceSelection.allowAnySourceBranch
+  if ($null -eq $manifestAllowAnySourceBranch) {
+    $manifestAllowAnySourceBranch = $false
+  }
+
+  $manifestAllowedBranches = @(
+    @($sourceRunManifest.sourceSelection.allowedBranches) |
+      ForEach-Object { [string]$_ } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+  )
+  if (-not $manifestAllowAnySourceBranch) {
+    if ($manifestAllowedBranches.Count -eq 0) {
+      Fail ("source run manifest sourceSelection.allowedBranches is required when allowAnySourceBranch=false")
+    }
+    if (-not ($manifestAllowedBranches -contains $manifestSourceBranch)) {
+      Fail ("source run manifest sourceRun.branch not in allowlist: " + $manifestSourceBranch)
+    }
+  }
+
+  $manifestMaxSourceRunAgeHours = To-NumberOrNaN $sourceRunManifest.sourceSelection.maxSourceRunAgeHours
+  if ((-not [double]::IsNaN($manifestMaxSourceRunAgeHours)) -and ($manifestMaxSourceRunAgeHours -gt 0)) {
+    $manifestSourceRunAgeHours = To-NumberOrNaN $sourceRunManifest.sourceRun.ageHours
+    if ([double]::IsNaN($manifestSourceRunAgeHours)) {
+      Fail ("source run manifest sourceRun.ageHours is required when maxSourceRunAgeHours > 0")
+    }
+    if ($manifestSourceRunAgeHours -gt $manifestMaxSourceRunAgeHours) {
+      Fail (
+        "source run manifest sourceRun.ageHours expected <= " +
+        $manifestMaxSourceRunAgeHours +
+        ", actual " +
+        $manifestSourceRunAgeHours
+      )
+    }
+  }
+
   $manifestRetryAttempts = To-NumberOrNaN $sourceRunManifest.retry.githubApiMaxAttempts
   if ([double]::IsNaN($manifestRetryAttempts) -or $manifestRetryAttempts -lt 1) {
     Fail ("source run manifest retry.githubApiMaxAttempts expected >= 1, actual " + $sourceRunManifest.retry.githubApiMaxAttempts)
