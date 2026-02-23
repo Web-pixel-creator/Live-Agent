@@ -15,7 +15,10 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /demo-e2e\.yml/);
   assert.match(source, /release-strict-final\.yml/);
   assert.match(source, /actions\/download-artifact@v4/);
+  assert.match(source, /id:\s*inspect_artifacts/);
+  assert.match(source, /has_perf_artifacts/);
   assert.match(source, /npm run verify:release:artifact-only/);
+  assert.match(source, /-SkipPerfLoad/);
 });
 
 test("release artifact revalidation workflow publishes consolidated artifacts", () => {
