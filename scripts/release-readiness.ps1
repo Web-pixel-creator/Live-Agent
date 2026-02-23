@@ -127,6 +127,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     gatewayWsBindingMismatchValidated = $true
     gatewayWsDrainingValidated = $true
     sessionVersioningValidated = $true
+    operatorTaskQueueSummaryValidated = $true
   }
   foreach ($kpiName in $criticalKpiChecks.Keys) {
     $expectedValue = $criticalKpiChecks[$kpiName]
@@ -134,6 +135,27 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     if ($actualValue -ne $expectedValue) {
       Fail ("Critical KPI check failed: " + $kpiName + " expected " + $expectedValue + ", actual " + $actualValue)
     }
+  }
+
+  $taskQueuePressureLevel = [string]$summary.kpis.operatorTaskQueuePressureLevel
+  $allowedTaskQueuePressureLevels = @("idle", "healthy", "elevated", "critical")
+  if (-not ($allowedTaskQueuePressureLevels -contains $taskQueuePressureLevel)) {
+    Fail ("Critical KPI check failed: operatorTaskQueuePressureLevel expected one of [" + ($allowedTaskQueuePressureLevels -join ", ") + "], actual " + $taskQueuePressureLevel)
+  }
+
+  $taskQueueTotal = [int]$summary.kpis.operatorTaskQueueTotal
+  if ($taskQueueTotal -lt 1) {
+    Fail ("Critical KPI check failed: operatorTaskQueueTotal expected >= 1, actual " + $taskQueueTotal)
+  }
+
+  $taskQueueStaleCount = [int]$summary.kpis.operatorTaskQueueStaleCount
+  if ($taskQueueStaleCount -lt 0) {
+    Fail ("Critical KPI check failed: operatorTaskQueueStaleCount expected >= 0, actual " + $taskQueueStaleCount)
+  }
+
+  $taskQueuePendingApproval = [int]$summary.kpis.operatorTaskQueuePendingApproval
+  if ($taskQueuePendingApproval -lt 0) {
+    Fail ("Critical KPI check failed: operatorTaskQueuePendingApproval expected >= 0, actual " + $taskQueuePendingApproval)
   }
 }
 
@@ -194,6 +216,20 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $sessionVersioningValidated = $summary.kpis.sessionVersioningValidated
   if ($null -ne $sessionVersioningValidated) {
     Write-Host ("api.sessions.versioning.validated: " + $sessionVersioningValidated)
+  }
+  $taskQueueValidated = $summary.kpis.operatorTaskQueueSummaryValidated
+  $taskQueueLevel = $summary.kpis.operatorTaskQueuePressureLevel
+  $taskQueueTotal = $summary.kpis.operatorTaskQueueTotal
+  $taskQueuePending = $summary.kpis.operatorTaskQueuePendingApproval
+  $taskQueueStale = $summary.kpis.operatorTaskQueueStaleCount
+  if (
+    $null -ne $taskQueueValidated -or
+    $null -ne $taskQueueLevel -or
+    $null -ne $taskQueueTotal -or
+    $null -ne $taskQueuePending -or
+    $null -ne $taskQueueStale
+  ) {
+    Write-Host ("operator.task_queue: validated=" + $taskQueueValidated + ", level=" + $taskQueueLevel + ", total=" + $taskQueueTotal + ", pending=" + $taskQueuePending + ", stale=" + $taskQueueStale)
   }
 }
 if ((-not $SkipPolicy) -and (Test-Path $PolicyPath)) {

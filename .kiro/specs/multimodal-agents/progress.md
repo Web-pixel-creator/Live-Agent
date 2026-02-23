@@ -58,6 +58,7 @@
 27. Operator summary now exposes service lifecycle timestamps (`lastWarmupAt`, `lastDrainAt`) and flags (`ready`, `draining`), and Operator Console shows a dedicated `Service Lifecycle` widget for quick drain/warmup readiness checks.
 28. Operator summary now exposes task-queue pressure rollups (`queued/running/pending_approval/stale/maxAge/oldestTask + pressureLevel`), and Operator Console shows a dedicated `Task Queue Pressure` widget with recovery hints for queue saturation and stale task buildup.
 29. Demo e2e/policy evidence now enforces operator task-queue KPIs (`operatorTaskQueueSummaryValidated`, `operatorTaskQueuePressureLevel`, `operatorTaskQueueTotal`, `operatorTaskQueueStaleCount`, `operatorTaskQueuePendingApproval`) so queue-pressure regressions are blocked by CI gates.
+30. Release-readiness gate now treats operator task-queue KPIs as critical checks and prints `operator.task_queue` summary line (`validated/level/total/pending/stale`) in final output for faster go/no-go diagnostics.
 
 ## Current Focus Queue
 
