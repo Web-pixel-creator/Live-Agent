@@ -45,6 +45,7 @@
 14. Demo e2e now exposes `gateway.websocket.binding_mismatch` proof and policy validates WebSocket binding guards (`GATEWAY_SESSION_MISMATCH`, `GATEWAY_USER_MISMATCH`).
 15. Demo e2e now exposes `gateway.websocket.draining_rejection` proof and policy validates drain-mode rejection + post-warmup recovery (`GATEWAY_DRAINING`, `traceId`, `recoveryStatus=completed`).
 16. Release readiness gate now fails fast on critical summary evidence (`gateway.websocket.binding_mismatch`, `gateway.websocket.draining_rejection`, `api.sessions.versioning`) and prints judge-critical KPI snapshots in final output.
+17. Demo frontend live transcript now uses per-turn streaming aggregation (single assistant entry + idle/turn completion finalization), reducing token-by-token noise in judged live sessions.
 
 ## Current Focus Queue
 
