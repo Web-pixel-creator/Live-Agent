@@ -75,6 +75,7 @@ Checkpoint B (hard interruption) at ~01:40:
    - counters (`degraded/recovered/watchdog_reconnect/errors/unavailable/connect_timeouts`),
    - probe telemetry (`probes/ping_sent/pongs/ping_errors`),
    - last health event marker (`lastEventType`, `lastEventAt`).
+   - `device_nodes_health` summary line (`total/online/degraded/offline/stale/missing_heartbeat`) and `device.<nodeId>` recent entry.
 6. Switch intent to `ui_task` with sensitive action phrase.
 7. Show `Approval Control` with pending `approvalId`.
 8. Execute both decisions:

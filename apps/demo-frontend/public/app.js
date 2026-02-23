@@ -588,6 +588,44 @@ function renderOperatorSummary(summary) {
     `recorded=${approvalsTotal} pending_from_tasks=${pendingApprovals}`,
   );
 
+  const deviceNodes = summary.deviceNodes && typeof summary.deviceNodes === "object"
+    ? summary.deviceNodes
+    : null;
+  if (deviceNodes) {
+    const total = Number(deviceNodes.total ?? 0);
+    const online = Number(deviceNodes.statusCounts?.online ?? 0);
+    const degraded = Number(deviceNodes.statusCounts?.degraded ?? 0);
+    const offline = Number(deviceNodes.statusCounts?.offline ?? 0);
+    const stale = Number(deviceNodes.staleCount ?? 0);
+    const missingHeartbeat = Number(deviceNodes.missingHeartbeatCount ?? 0);
+    const staleThresholdMs = Number(deviceNodes.staleThresholdMs ?? 0);
+    const maxAgeMsRaw = Number(deviceNodes.lastSeenMaxAgeMs ?? Number.NaN);
+    const maxAgeMs = Number.isFinite(maxAgeMsRaw) ? maxAgeMsRaw : null;
+    appendEntry(
+      el.operatorSummary,
+      degraded > 0 || stale > 0 ? "error" : "system",
+      "device_nodes_health",
+      `total=${total} online=${online} degraded=${degraded} offline=${offline} stale=${stale} missing_heartbeat=${missingHeartbeat} stale_threshold_ms=${staleThresholdMs} max_age_ms=${maxAgeMs === null ? "n/a" : maxAgeMs}`,
+    );
+    const recentNodes = Array.isArray(deviceNodes.recent) ? deviceNodes.recent : [];
+    for (const node of recentNodes.slice(0, 3)) {
+      if (!node || typeof node !== "object") {
+        continue;
+      }
+      const nodeId = typeof node.nodeId === "string" ? node.nodeId : "node";
+      const nodeStatus = typeof node.status === "string" ? node.status : "unknown";
+      const nodeKind = typeof node.kind === "string" ? node.kind : "unknown";
+      const nodeVersion = Number(node.version ?? Number.NaN);
+      const nodeLastSeen = typeof node.lastSeenAt === "string" ? node.lastSeenAt : "n/a";
+      appendEntry(
+        el.operatorSummary,
+        nodeStatus === "degraded" || nodeStatus === "offline" ? "error" : "system",
+        `device.${nodeId}`,
+        `status=${nodeStatus} kind=${nodeKind} version=${Number.isFinite(nodeVersion) ? nodeVersion : "n/a"} last_seen=${nodeLastSeen}`,
+      );
+    }
+  }
+
   const operatorActions = summary.operatorActions && typeof summary.operatorActions === "object"
     ? summary.operatorActions
     : null;

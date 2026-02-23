@@ -406,6 +406,30 @@ async function main() {
     ">= 2",
   );
   addCheck(
+    "kpi.operatorDeviceNodeHealthSummaryValidated",
+    kpis.operatorDeviceNodeHealthSummaryValidated === true,
+    kpis.operatorDeviceNodeHealthSummaryValidated,
+    true,
+  );
+  addCheck(
+    "kpi.operatorDeviceNodeSummaryTotal",
+    toNumber(kpis.operatorDeviceNodeSummaryTotal) >= 1,
+    kpis.operatorDeviceNodeSummaryTotal,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorDeviceNodeSummaryDegraded",
+    toNumber(kpis.operatorDeviceNodeSummaryDegraded) >= 1,
+    kpis.operatorDeviceNodeSummaryDegraded,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorDeviceNodeSummaryRecentContainsLookup",
+    kpis.operatorDeviceNodeSummaryRecentContainsLookup === true,
+    kpis.operatorDeviceNodeSummaryRecentContainsLookup,
+    true,
+  );
+  addCheck(
     "kpi.approvalsInvalidIntentStatusCode",
     toNumber(kpis.approvalsInvalidIntentStatusCode) === 400,
     kpis.approvalsInvalidIntentStatusCode,

@@ -1218,6 +1218,23 @@ try {
     $activeTasks = @(Get-FieldValue -Object $summaryData -Path @("activeTasks", "data"))
     Assert-Condition -Condition ($activeTasks.Count -ge 1) -Message "Operator summary should include at least one active task."
 
+    $deviceNodeHealth = Get-FieldValue -Object $summaryData -Path @("deviceNodes")
+    Assert-Condition -Condition ($null -ne $deviceNodeHealth) -Message "Operator summary deviceNodes block is missing."
+    $deviceNodeSummaryTotal = [int](Get-FieldValue -Object $deviceNodeHealth -Path @("total"))
+    $deviceNodeSummaryDegraded = [int](Get-FieldValue -Object $deviceNodeHealth -Path @("statusCounts", "degraded"))
+    $deviceNodeSummaryStale = [int](Get-FieldValue -Object $deviceNodeHealth -Path @("staleCount"))
+    $deviceNodeSummaryMissingHeartbeat = [int](Get-FieldValue -Object $deviceNodeHealth -Path @("missingHeartbeatCount"))
+    Assert-Condition -Condition ($deviceNodeSummaryTotal -ge 1) -Message "Operator summary deviceNodes.total should be >= 1."
+    Assert-Condition -Condition ($deviceNodeSummaryDegraded -ge 1) -Message "Operator summary deviceNodes.degraded should be >= 1 after degraded heartbeat."
+    Assert-Condition -Condition ($deviceNodeSummaryStale -ge 0) -Message "Operator summary deviceNodes.staleCount must be >= 0."
+    Assert-Condition -Condition ($deviceNodeSummaryMissingHeartbeat -ge 0) -Message "Operator summary deviceNodes.missingHeartbeatCount must be >= 0."
+    $deviceNodeRecent = @(Get-FieldValue -Object $deviceNodeHealth -Path @("recent"))
+    $recentLookup = @($deviceNodeRecent | Where-Object {
+      [string](Get-FieldValue -Object $_ -Path @("nodeId")) -eq $deviceNodeId -and
+      [string](Get-FieldValue -Object $_ -Path @("status")) -eq "degraded"
+    })
+    Assert-Condition -Condition ($recentLookup.Count -ge 1) -Message "Operator summary deviceNodes.recent should include the degraded test node."
+
     $traceTotals = Get-FieldValue -Object $summaryData -Path @("traces", "totals")
     Assert-Condition -Condition ($null -ne $traceTotals) -Message "Operator summary traces.totals is missing."
     $traceRuns = [int](Get-FieldValue -Object $traceTotals -Path @("runsConsidered"))
@@ -1348,6 +1365,12 @@ try {
       deviceNodeLookupVersion = $deviceLookupVersion
       deviceNodeLookupLastSeenAt = $deviceLookupLastSeenAt
       deviceNodeLookupValidated = $true
+      deviceNodeSummaryTotal = $deviceNodeSummaryTotal
+      deviceNodeSummaryDegraded = $deviceNodeSummaryDegraded
+      deviceNodeSummaryStale = $deviceNodeSummaryStale
+      deviceNodeSummaryMissingHeartbeat = $deviceNodeSummaryMissingHeartbeat
+      deviceNodeSummaryRecentContainsLookup = ($recentLookup.Count -ge 1)
+      deviceNodeHealthSummaryValidated = $true
     }
   } | Out-Null
 
@@ -1792,6 +1815,11 @@ $summary = [ordered]@{
     operatorDeviceNodeLookupStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeLookupStatus } else { $null }
     operatorDeviceNodeLookupVersion = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeLookupVersion } else { $null }
     operatorDeviceNodeLookupLastSeenAt = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeLookupLastSeenAt } else { $null }
+    operatorDeviceNodeSummaryTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeSummaryTotal } else { $null }
+    operatorDeviceNodeSummaryDegraded = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeSummaryDegraded } else { $null }
+    operatorDeviceNodeSummaryStale = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeSummaryStale } else { $null }
+    operatorDeviceNodeSummaryMissingHeartbeat = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeSummaryMissingHeartbeat } else { $null }
+    operatorDeviceNodeSummaryRecentContainsLookup = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeSummaryRecentContainsLookup } else { $false }
     operatorLiveBridgeHealthBlockValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthBlockValidated } else { $false }
     operatorLiveBridgeProbeTelemetryValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthProbeTelemetryValidated } else { $false }
     operatorDeviceNodeLookupValidated = if (
@@ -1802,6 +1830,15 @@ $summary = [ordered]@{
       [string]$operatorActionsData.deviceNodeLookupStatus -eq "degraded" -and
       [int]$operatorActionsData.deviceNodeLookupVersion -ge 2 -and
       -not [string]::IsNullOrWhiteSpace([string]$operatorActionsData.deviceNodeLookupLastSeenAt)
+    ) { $true } else { $false }
+    operatorDeviceNodeHealthSummaryValidated = if (
+      $null -ne $operatorActionsData -and
+      [bool]$operatorActionsData.deviceNodeHealthSummaryValidated -eq $true -and
+      [int]$operatorActionsData.deviceNodeSummaryTotal -ge 1 -and
+      [int]$operatorActionsData.deviceNodeSummaryDegraded -ge 1 -and
+      [int]$operatorActionsData.deviceNodeSummaryStale -ge 0 -and
+      [int]$operatorActionsData.deviceNodeSummaryMissingHeartbeat -ge 0 -and
+      [bool]$operatorActionsData.deviceNodeSummaryRecentContainsLookup -eq $true
     ) { $true } else { $false }
     operatorAuditTrailValidated = if (
       $null -ne $operatorActionsData -and

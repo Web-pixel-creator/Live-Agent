@@ -43,6 +43,7 @@ import {
 } from "./firestore.js";
 import { AnalyticsExporter } from "./analytics-export.js";
 import { buildOperatorTraceSummary } from "./operator-traces.js";
+import { buildDeviceNodeHealthSummary } from "./device-node-summary.js";
 
 const port = Number(process.env.API_PORT ?? 8081);
 const apiBaseUrl = toBaseUrl(process.env.API_BASE_URL, `http://localhost:${port}`);
@@ -85,6 +86,16 @@ const metrics = new RollingMetrics({
 const approvalSoftTimeoutMs = parsePositiveInt(process.env.APPROVAL_SOFT_TIMEOUT_MS ?? null, 60_000);
 const approvalHardTimeoutMs = parsePositiveInt(process.env.APPROVAL_HARD_TIMEOUT_MS ?? null, 300_000);
 const approvalSweepLimit = parsePositiveInt(process.env.APPROVAL_SWEEP_LIMIT ?? null, 250);
+const operatorDeviceNodeSummaryLimit = parseBoundedInt(
+  process.env.OPERATOR_DEVICE_NODE_SUMMARY_LIMIT ?? null,
+  200,
+  1,
+  500,
+);
+const operatorDeviceNodeStaleThresholdMs = parsePositiveInt(
+  process.env.OPERATOR_DEVICE_NODE_STALE_THRESHOLD_MS ?? null,
+  5 * 60 * 1000,
+);
 
 function toBaseUrl(input: string | undefined, fallback: string): string {
   const candidate = typeof input === "string" && input.trim().length > 0 ? input.trim() : fallback;
@@ -1478,11 +1489,15 @@ export const server = createServer(async (req, res) => {
       const traceRunsLimit = parseBoundedInt(url.searchParams.get("traceRunsLimit"), 40, 10, 200);
       const traceEventsLimit = parseBoundedInt(url.searchParams.get("traceEventsLimit"), 120, 20, 500);
       const sweep = await runApprovalSlaSweep();
-      const [activeTasks, services, runs, recentEvents] = await Promise.all([
+      const [activeTasks, services, runs, recentEvents, deviceNodes] = await Promise.all([
         getGatewayActiveTasks(100),
         getOperatorServiceSummary(),
         listRuns(Math.max(traceRunsLimit, 100)),
         listRecentEvents(traceEventsLimit),
+        listDeviceNodes({
+          limit: operatorDeviceNodeSummaryLimit,
+          includeOffline: true,
+        }),
       ]);
       const syncedFromTasks = await syncPendingApprovalsFromTasks(activeTasks);
       const [approvals, operatorActions] = await Promise.all([
@@ -1499,6 +1514,9 @@ export const server = createServer(async (req, res) => {
         activeTasks,
         runLimit: traceRunsLimit,
         eventLimit: traceEventsLimit,
+      });
+      const deviceNodeHealth = buildDeviceNodeHealthSummary(deviceNodes, {
+        staleThresholdMs: operatorDeviceNodeStaleThresholdMs,
       });
 
       writeJson(res, 200, {
@@ -1520,6 +1538,7 @@ export const server = createServer(async (req, res) => {
             total: operatorActions.length,
             recent: operatorActions.slice(0, 25),
           },
+          deviceNodes: deviceNodeHealth,
           services,
           traces,
         },
