@@ -48,6 +48,7 @@ const requiredFiles = [
   "alert-policy.service-errors.json",
   "alert-policy.orchestrator-persist-failures.json",
   "alert-policy.story-media-queue-health.json",
+  "alert-policy.story-cache-health.json",
 ];
 
 for (const file of requiredFiles) {

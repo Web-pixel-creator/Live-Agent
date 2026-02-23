@@ -66,6 +66,7 @@ Provisioning helper:
 3. Apply monitoring baseline (dashboard + alert policies):
    - `pwsh ./infra/gcp/setup-monitoring-baseline.ps1 -ProjectId "<project-id>" -NotificationChannels "projects/<project-id>/notificationChannels/<channel-id>"`
    - includes Story media queue health alert template (`alert-policy.story-media-queue-health.json`)
+   - includes Story cache health alert template (`alert-policy.story-cache-health.json`)
 4. Set runtime envs:
    - `ANALYTICS_EXPORT_ENABLED=true`
    - `ANALYTICS_EXPORT_METRICS_TARGET=cloud_monitoring`

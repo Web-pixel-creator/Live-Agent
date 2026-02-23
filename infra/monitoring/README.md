@@ -14,6 +14,8 @@ This folder contains template artifacts consumed by `infra/gcp/setup-monitoring-
    - Alert when orchestrator persistence rollups report failures.
 5. `alert-policy.story-media-queue-health.json`
    - Alert when Story media queue shows dead-letter growth, sustained retry pressure, or excessive queue age.
+6. `alert-policy.story-cache-health.json`
+   - Alert when Story cache hit-rate degrades or eviction pressure grows.
 
 ## Template Placeholders
 

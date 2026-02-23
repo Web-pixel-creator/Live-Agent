@@ -1,0 +1,59 @@
+{
+  "displayName": "MLA Story Cache Health",
+  "documentation": {
+    "content": "Story cache is degraded (low hit rate or elevated eviction pressure). Inspect storyteller cache policy/versioning and cache limits (`STORYTELLER_CACHE_*`).",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "enabled": true,
+  "notificationChannels": __NOTIFICATION_CHANNELS__,
+  "alertStrategy": {
+    "autoClose": "1800s"
+  },
+  "conditions": [
+    {
+      "displayName": "Story cache hit-rate below 40%",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.cache.hit_rate_pct\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_MEAN",
+            "crossSeriesReducer": "REDUCE_MEAN",
+            "groupByFields": [
+              "metric.labels.service"
+            ]
+          }
+        ],
+        "comparison": "COMPARISON_LT",
+        "thresholdValue": 40,
+        "duration": "600s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    },
+    {
+      "displayName": "Story cache evictions delta > 10",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.cache.evictions_total\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_DELTA",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "groupByFields": [
+              "metric.labels.service"
+            ]
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 10,
+        "duration": "300s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ]
+}
