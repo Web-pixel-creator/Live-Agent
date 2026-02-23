@@ -12,6 +12,8 @@ param(
   [string]$TempDir = ".tmp/release-artifact-revalidation",
   [switch]$SkipArtifactOnlyGate,
   [switch]$StrictFinalRun,
+  [ValidateSet("auto", "with_perf", "without_perf")]
+  [string]$PerfGateMode = "auto",
   [switch]$SkipPerfLoadGate,
   [switch]$KeepTemp
 )
@@ -198,18 +200,48 @@ foreach ($artifactChild in $artifactChildren) {
   Copy-Item -Path $artifactChild.FullName -Destination $targetPath -Recurse -Force
 }
 
+$gateRequestedPerfMode = "not_run"
+$gateEffectivePerfMode = "not_run"
+$gateHasPerfArtifacts = "unknown"
+
 if (-not $SkipArtifactOnlyGate) {
   $perfSummaryPath = Join-Path $resolvedArtifactsDir "perf-load/summary.json"
   $perfPolicyPath = Join-Path $resolvedArtifactsDir "perf-load/policy-check.json"
   $hasPerfArtifacts = (Test-Path $perfSummaryPath) -and (Test-Path $perfPolicyPath)
-  $includePerfChecks = $hasPerfArtifacts -and (-not $SkipPerfLoadGate)
+  $gateHasPerfArtifacts = if ($hasPerfArtifacts) { "true" } else { "false" }
+  $requestedPerfMode = [string]$PerfGateMode
+  if ([string]::IsNullOrWhiteSpace($requestedPerfMode)) {
+    $requestedPerfMode = "auto"
+  }
+  $requestedPerfMode = $requestedPerfMode.ToLowerInvariant()
 
-  if (-not $hasPerfArtifacts) {
-    Write-Host "[artifact-revalidate] Perf artifacts are not present in the bundle; perf gate will be skipped."
+  if ($SkipPerfLoadGate) {
+    if ($requestedPerfMode -eq "with_perf") {
+      Fail "SkipPerfLoadGate cannot be combined with PerfGateMode=with_perf."
+    }
+    Write-Host "[artifact-revalidate] SkipPerfLoadGate is deprecated; forcing PerfGateMode=without_perf."
+    $requestedPerfMode = "without_perf"
   }
-  elseif ($SkipPerfLoadGate) {
-    Write-Host "[artifact-revalidate] SkipPerfLoadGate enabled; perf gate will be skipped."
+
+  $includePerfChecks = $false
+  switch ($requestedPerfMode) {
+    "with_perf" {
+      if (-not $hasPerfArtifacts) {
+        Fail "PerfGateMode=with_perf requires artifacts/perf-load/summary.json and artifacts/perf-load/policy-check.json in the restored bundle."
+      }
+      $includePerfChecks = $true
+    }
+    "without_perf" {
+      $includePerfChecks = $false
+    }
+    default {
+      $includePerfChecks = $hasPerfArtifacts
+    }
   }
+
+  $gateRequestedPerfMode = $requestedPerfMode
+  $gateEffectivePerfMode = if ($includePerfChecks) { "with_perf" } else { "without_perf" }
+  Write-Host ("[artifact-revalidate] Perf gate mode: requested=" + $gateRequestedPerfMode + ", effective=" + $gateEffectivePerfMode + ", hasPerfArtifacts=" + $gateHasPerfArtifacts + ".")
 
   Invoke-ReleaseReadinessGate -IncludePerfChecks $includePerfChecks -StrictMode $StrictFinalRun
 }
@@ -222,6 +254,10 @@ Write-Host "Artifact revalidation flow completed."
 Write-Host ("- run id: " + $resolvedRunId)
 Write-Host ("- artifact: " + $resolvedArtifact.name)
 Write-Host ("- restored artifacts path: " + $resolvedArtifactsDir)
+Write-Host ("- strict final run: " + $StrictFinalRun)
+Write-Host ("- requested perf gate mode: " + $gateRequestedPerfMode)
+Write-Host ("- effective perf gate mode: " + $gateEffectivePerfMode)
+Write-Host ("- perf artifacts detected: " + $gateHasPerfArtifacts)
 
 if (-not $KeepTemp) {
   if (Test-Path $resolvedTempDir) {

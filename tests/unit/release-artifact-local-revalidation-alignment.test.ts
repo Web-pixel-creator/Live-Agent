@@ -23,8 +23,13 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /release-strict-final-artifacts/);
   assert.match(source, /demo-e2e-artifacts/);
   assert.match(source, /pr-quality-artifacts/);
+  assert.match(source, /PerfGateMode/);
+  assert.match(source, /with_perf/);
+  assert.match(source, /without_perf/);
   assert.match(source, /-StrictFinalRun/);
   assert.match(source, /-SkipPerfLoad/);
   assert.match(source, /SkipPerfLoadGate/);
-  assert.match(source, /Perf artifacts are not present in the bundle/);
+  assert.match(source, /SkipPerfLoadGate is deprecated/);
+  assert.match(source, /requested perf gate mode/);
+  assert.match(source, /effective perf gate mode/);
 });

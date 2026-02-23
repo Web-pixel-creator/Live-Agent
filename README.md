@@ -201,7 +201,8 @@ Optional local helper flags:
 - `-- -SourceRunId <id>` - force specific workflow run.
 - `-- -ArtifactName <name>` - force specific artifact bundle name.
 - `-- -StrictFinalRun` - enforce strict artifact gate (`scenarioRetriesUsedCount = 0`).
-- `-- -SkipPerfLoadGate` - skip perf artifact checks even if perf artifacts are present.
+- `-- -PerfGateMode auto|with_perf|without_perf` - explicit local perf gate mode.
+- `-- -SkipPerfLoadGate` - legacy alias for `-- -PerfGateMode without_perf` (deprecated).
 - `-- -SkipArtifactOnlyGate` - restore artifacts without running release gate.
 - Perf gate is auto-skipped when downloaded bundle has no `artifacts/perf-load/*` (for example `pr-quality-artifacts`).
 
