@@ -471,9 +471,9 @@ async function main() {
   );
   addCheck(
     "kpi.operatorTaskQueuePressureLevel",
-    ["idle", "healthy", "elevated", "critical"].includes(String(kpis.operatorTaskQueuePressureLevel)),
+    ["idle", "healthy", "elevated"].includes(String(kpis.operatorTaskQueuePressureLevel)),
     kpis.operatorTaskQueuePressureLevel,
-    "idle | healthy | elevated | critical",
+    "idle | healthy | elevated",
   );
   addCheck(
     "kpi.operatorTaskQueueTotal",
