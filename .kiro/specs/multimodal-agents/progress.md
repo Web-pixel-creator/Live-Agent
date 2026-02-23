@@ -90,6 +90,7 @@
 59. Extended anti-drift coverage for artifact revalidation docs (`tests/unit/release-artifact-local-revalidation-alignment.test.ts`): README and runbook are now checked for `verify:release:artifact:revalidate`, `PerfGateMode auto|with_perf|without_perf`, `SkipPerfLoadGate`, and `gh auth token` guidance.
 60. Hardened local artifact revalidation network resilience (`scripts/release-artifact-revalidate.ps1`) with bounded GitHub API/download retries (`GithubApiMaxAttempts`, `GithubApiRetryBackoffMs`) across run discovery/artifact metadata/download operations; docs and anti-drift tests were updated to keep helper flags aligned.
 61. Added workflow-level retry controls to `.github/workflows/release-artifact-revalidation.yml`: new `workflow_dispatch` inputs (`github_api_max_attempts`, `github_api_retry_backoff_ms`), retry-aware source resolution in `actions/github-script`, retry-aware artifact download in PowerShell, and summary telemetry for effective retry settings; aligned docs/tests in `README.md`, `docs/challenge-demo-runbook.md`, and `tests/unit/release-artifact-workflow-alignment.test.ts`.
+62. Added dedicated anti-drift coverage (`tests/unit/release-artifact-retry-defaults-alignment.test.ts`) to enforce parity of artifact-revalidation retry defaults (`GithubApiMaxAttempts=3`, `GithubApiRetryBackoffMs=1200`) between local helper and CI workflow inputs.
 
 ## Current Focus Queue
 
