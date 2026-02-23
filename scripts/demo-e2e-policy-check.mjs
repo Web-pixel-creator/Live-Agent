@@ -122,6 +122,12 @@ async function main() {
   const minServiceStartRetryBackoffMs = Number.isFinite(toNumber(args.minServiceStartRetryBackoffMs))
     ? toNumber(args.minServiceStartRetryBackoffMs)
     : 300;
+  const minScenarioRetryMaxAttempts = Number.isFinite(toNumber(args.minScenarioRetryMaxAttempts))
+    ? toNumber(args.minScenarioRetryMaxAttempts)
+    : 2;
+  const minScenarioRetryBackoffMs = Number.isFinite(toNumber(args.minScenarioRetryBackoffMs))
+    ? toNumber(args.minScenarioRetryBackoffMs)
+    : 500;
   const minApprovalsRecorded = Number.isFinite(toNumber(args.minApprovalsRecorded))
     ? toNumber(args.minApprovalsRecorded)
     : 1;
@@ -690,6 +696,20 @@ async function main() {
     options.serviceStartRetryBackoffMs,
     `>= ${minServiceStartRetryBackoffMs}`,
   );
+  const scenarioRetryMaxAttempts = toNumber(options.scenarioRetryMaxAttempts);
+  addCheck(
+    "options.scenarioRetryMaxAttempts",
+    Number.isFinite(scenarioRetryMaxAttempts) && scenarioRetryMaxAttempts >= minScenarioRetryMaxAttempts,
+    options.scenarioRetryMaxAttempts,
+    `>= ${minScenarioRetryMaxAttempts}`,
+  );
+  const scenarioRetryBackoffMs = toNumber(options.scenarioRetryBackoffMs);
+  addCheck(
+    "options.scenarioRetryBackoffMs",
+    Number.isFinite(scenarioRetryBackoffMs) && scenarioRetryBackoffMs >= minScenarioRetryBackoffMs,
+    options.scenarioRetryBackoffMs,
+    `>= ${minScenarioRetryBackoffMs}`,
+  );
   const uiApprovalResumeRequestAttempts = toNumber(kpis.uiApprovalResumeRequestAttempts);
   addCheck(
     "kpi.uiApprovalResumeRequestAttempts",
@@ -929,6 +949,8 @@ async function main() {
       maxGatewayInterruptLatencyMs,
       minServiceStartMaxAttempts,
       minServiceStartRetryBackoffMs,
+      minScenarioRetryMaxAttempts,
+      minScenarioRetryBackoffMs,
       minApprovalsRecorded,
       maxUiApprovalResumeElapsedMs,
       minUiApprovalResumeRequestAttempts,

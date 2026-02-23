@@ -174,6 +174,8 @@ function createPassingSummary(overrides?: {
       uiNavigatorRemoteHttpFallbackMode: "failed",
       serviceStartMaxAttempts: 2,
       serviceStartRetryBackoffMs: 1200,
+      scenarioRetryMaxAttempts: 2,
+      scenarioRetryBackoffMs: 900,
       ...(overrides?.options ?? {}),
     },
   };
@@ -216,7 +218,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 137);
+  assert.equal(result.payload.checks, 139);
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {
@@ -297,6 +299,38 @@ test("demo-e2e policy check fails when service startup retry config is too low",
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("options.serviceStartMaxAttempts")));
+});
+
+test("demo-e2e policy check fails when scenario retry max attempts is too low", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      options: {
+        scenarioRetryMaxAttempts: 1,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("options.scenarioRetryMaxAttempts")));
+});
+
+test("demo-e2e policy check fails when scenario retry backoff is too low", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      options: {
+        scenarioRetryBackoffMs: 300,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("options.scenarioRetryBackoffMs")));
 });
 
 test("demo-e2e policy check fails when operator.device_nodes.lifecycle scenario is missing", () => {

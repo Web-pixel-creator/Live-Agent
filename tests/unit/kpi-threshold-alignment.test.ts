@@ -38,6 +38,16 @@ test("critical KPI thresholds are aligned across policy/release and demo startup
     /const minServiceStartRetryBackoffMs[\s\S]*?:\s*(\d+)\s*;/,
     "policy minServiceStartRetryBackoffMs",
   );
+  const policyMinScenarioRetryAttempts = parseRequiredNumber(
+    policySource,
+    /const minScenarioRetryMaxAttempts[\s\S]*?:\s*(\d+)\s*;/,
+    "policy minScenarioRetryMaxAttempts",
+  );
+  const policyMinScenarioRetryBackoff = parseRequiredNumber(
+    policySource,
+    /const minScenarioRetryBackoffMs[\s\S]*?:\s*(\d+)\s*;/,
+    "policy minScenarioRetryBackoffMs",
+  );
 
   const releaseMaxRoundTrip = parseRequiredNumber(
     releaseSource,
@@ -59,6 +69,16 @@ test("critical KPI thresholds are aligned across policy/release and demo startup
     /MinServiceStartRetryBackoffMs\s*=\s*(\d+)/,
     "release MinServiceStartRetryBackoffMs",
   );
+  const releaseMinScenarioRetryAttempts = parseRequiredNumber(
+    releaseSource,
+    /MinScenarioRetryMaxAttempts\s*=\s*(\d+)/,
+    "release MinScenarioRetryMaxAttempts",
+  );
+  const releaseMinScenarioRetryBackoff = parseRequiredNumber(
+    releaseSource,
+    /MinScenarioRetryBackoffMs\s*=\s*(\d+)/,
+    "release MinScenarioRetryBackoffMs",
+  );
 
   const demoDefaultStartAttempts = parseRequiredNumber(
     demoSource,
@@ -70,12 +90,26 @@ test("critical KPI thresholds are aligned across policy/release and demo startup
     /Set-EnvDefault\s+-Name\s+"DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS"\s+-Value\s+"(\d+)"/,
     "demo DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS",
   );
+  const demoDefaultScenarioRetryAttempts = parseRequiredNumber(
+    demoSource,
+    /\[int\]\$ScenarioRetryMaxAttempts\s*=\s*(\d+)/,
+    "demo ScenarioRetryMaxAttempts default",
+  );
+  const demoDefaultScenarioRetryBackoff = parseRequiredNumber(
+    demoSource,
+    /\[int\]\$ScenarioRetryBackoffMs\s*=\s*(\d+)/,
+    "demo ScenarioRetryBackoffMs default",
+  );
 
   assert.equal(releaseMaxRoundTrip, policyMaxRoundTrip);
   assert.equal(releaseMaxInterruptLatency, policyMaxInterruptLatency);
   assert.equal(releaseMinStartAttempts, policyMinStartAttempts);
   assert.equal(releaseMinStartBackoff, policyMinStartBackoff);
+  assert.equal(releaseMinScenarioRetryAttempts, policyMinScenarioRetryAttempts);
+  assert.equal(releaseMinScenarioRetryBackoff, policyMinScenarioRetryBackoff);
 
   assert.ok(demoDefaultStartAttempts >= policyMinStartAttempts);
   assert.ok(demoDefaultStartBackoff >= policyMinStartBackoff);
+  assert.ok(demoDefaultScenarioRetryAttempts >= policyMinScenarioRetryAttempts);
+  assert.ok(demoDefaultScenarioRetryBackoff >= policyMinScenarioRetryBackoff);
 });

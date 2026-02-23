@@ -9,9 +9,9 @@
 ## Verified Quality Gates
 
 1. `npm run verify:release` passes end-to-end.
-2. Demo e2e policy gate is green with `137` checks.
+2. Demo e2e policy gate is green with `139` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`164` tests passed).
+4. Unit tests are green (`168` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -71,6 +71,7 @@
 40. `release-readiness` now retries the `demo:e2e` step with bounded attempts/backoff (`DemoRunMaxAttempts`, `DemoRunRetryBackoffMs`) to reduce transient CI/local flakes without weakening gates.
 41. Added anti-drift unit coverage (`tests/unit/release-demo-retry-defaults.test.ts`) to lock demo retry defaults and ensure demo e2e path uses retry runner.
 42. `demo-e2e` now supports bounded per-scenario transient retries (`ScenarioRetryMaxAttempts`, `ScenarioRetryBackoffMs`) for flaky paths (`ui.visual_testing`, `operator.console.actions`) with summary KPIs for attempt count and retry usage; coverage added in `tests/unit/demo-scenario-retry-alignment.test.ts`.
+43. `release-readiness` now exposes scenario-retry controls (`DemoScenarioRetryMaxAttempts`, `DemoScenarioRetryBackoffMs`) and forwards them into demo runs; policy/release gates enforce `options.scenarioRetryMaxAttempts >= 2` and `options.scenarioRetryBackoffMs >= 500`, with runbook and anti-drift tests updated.
 
 ## Current Focus Queue
 

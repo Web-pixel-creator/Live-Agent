@@ -15,7 +15,7 @@ npm run verify:release -- -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -Sk
 ```
 For flaky local runners you can increase demo retry tolerance:
 ```powershell
-npm run verify:release -- -DemoRunMaxAttempts 3 -DemoRunRetryBackoffMs 3000
+npm run verify:release -- -DemoRunMaxAttempts 3 -DemoRunRetryBackoffMs 3000 -DemoScenarioRetryMaxAttempts 3 -DemoScenarioRetryBackoffMs 1200
 ```
 2. Start services for live walkthrough:
 ```powershell
@@ -61,6 +61,9 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `storytellerMediaMode=simulated`
   - `storytellerMediaQueueWorkers >= 1`
   - `storytellerCacheHits >= 1`
+- Demo e2e scenario retry discipline:
+  - `options.scenarioRetryMaxAttempts >= 2`
+  - `options.scenarioRetryBackoffMs >= 500`
 - Perf-load anti-drift (from `artifacts/perf-load/policy-check.json`):
   - required check items include:
     - `workload.live.p95`

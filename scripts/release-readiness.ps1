@@ -13,6 +13,8 @@ param(
   [switch]$SkipPerfRun,
   [int]$DemoRunMaxAttempts = 2,
   [int]$DemoRunRetryBackoffMs = 2000,
+  [int]$DemoScenarioRetryMaxAttempts = 2,
+  [int]$DemoScenarioRetryBackoffMs = 900,
   [int]$DemoStartupTimeoutSec = 90,
   [int]$DemoRequestTimeoutSec = 45,
   [int]$PerfLiveIterations = 6,
@@ -33,6 +35,8 @@ $ReleaseThresholds = @{
   MaxGatewayInterruptLatencyMs = 300
   MinServiceStartMaxAttempts = 2
   MinServiceStartRetryBackoffMs = 300
+  MinScenarioRetryMaxAttempts = 2
+  MinScenarioRetryBackoffMs = 500
   MaxPerfLiveP95Ms = 1800
   MaxPerfUiP95Ms = 25000
   MaxPerfGatewayReplayP95Ms = 9000
@@ -132,10 +136,11 @@ if (-not $SkipProfileSmoke) {
 
 if ((-not $SkipDemoE2E) -and (-not $SkipDemoRun)) {
   $runFastDemo = $UseFastDemoE2E -or (-not $SkipBuild)
+  $scenarioRetryArgs = "-ScenarioRetryMaxAttempts $DemoScenarioRetryMaxAttempts -ScenarioRetryBackoffMs $DemoScenarioRetryBackoffMs"
   $demoCommand = if ($runFastDemo) {
-    "npm run demo:e2e:fast -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec"
+    "npm run demo:e2e:fast -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs"
   } else {
-    "npm run demo:e2e -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec"
+    "npm run demo:e2e -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs"
   }
   Run-StepWithRetry "Run demo e2e" $demoCommand $DemoRunMaxAttempts $DemoRunRetryBackoffMs
 }
@@ -298,6 +303,16 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $serviceStartRetryBackoffMs = To-NumberOrNaN $summary.options.serviceStartRetryBackoffMs
   if ([double]::IsNaN($serviceStartRetryBackoffMs) -or $serviceStartRetryBackoffMs -lt $ReleaseThresholds.MinServiceStartRetryBackoffMs) {
     Fail ("Critical KPI check failed: options.serviceStartRetryBackoffMs expected >= " + $ReleaseThresholds.MinServiceStartRetryBackoffMs + ", actual " + $summary.options.serviceStartRetryBackoffMs)
+  }
+
+  $scenarioRetryMaxAttempts = To-NumberOrNaN $summary.options.scenarioRetryMaxAttempts
+  if ([double]::IsNaN($scenarioRetryMaxAttempts) -or $scenarioRetryMaxAttempts -lt $ReleaseThresholds.MinScenarioRetryMaxAttempts) {
+    Fail ("Critical KPI check failed: options.scenarioRetryMaxAttempts expected >= " + $ReleaseThresholds.MinScenarioRetryMaxAttempts + ", actual " + $summary.options.scenarioRetryMaxAttempts)
+  }
+
+  $scenarioRetryBackoffMs = To-NumberOrNaN $summary.options.scenarioRetryBackoffMs
+  if ([double]::IsNaN($scenarioRetryBackoffMs) -or $scenarioRetryBackoffMs -lt $ReleaseThresholds.MinScenarioRetryBackoffMs) {
+    Fail ("Critical KPI check failed: options.scenarioRetryBackoffMs expected >= " + $ReleaseThresholds.MinScenarioRetryBackoffMs + ", actual " + $summary.options.scenarioRetryBackoffMs)
   }
 
   $analyticsSplitTargetsValidated = To-BoolOrNull $summary.kpis.analyticsSplitTargetsValidated
@@ -487,6 +502,26 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $uiRetried = $summary.kpis.uiApprovalResumeRequestRetried
   if ($null -ne $uiAttempts -or $null -ne $uiRetried) {
     Write-Host ("ui.approval.resume.request: attempts=" + $uiAttempts + ", retried=" + $uiRetried)
+  }
+  $scenarioRetryAttempts = $summary.options.scenarioRetryMaxAttempts
+  $scenarioRetryBackoff = $summary.options.scenarioRetryBackoffMs
+  $scenarioRetriesUsedCount = $summary.kpis.scenarioRetriesUsedCount
+  $uiVisualAttempts = $summary.kpis.uiVisualTestingScenarioAttempts
+  $operatorActionsAttempts = $summary.kpis.operatorConsoleActionsScenarioAttempts
+  if (
+    $null -ne $scenarioRetryAttempts -or
+    $null -ne $scenarioRetryBackoff -or
+    $null -ne $scenarioRetriesUsedCount -or
+    $null -ne $uiVisualAttempts -or
+    $null -ne $operatorActionsAttempts
+  ) {
+    Write-Host (
+      "demo.scenario.retry: max_attempts=" + $scenarioRetryAttempts +
+      ", backoff_ms=" + $scenarioRetryBackoff +
+      ", retries_used=" + $scenarioRetriesUsedCount +
+      ", ui.visual_testing_attempts=" + $uiVisualAttempts +
+      ", operator.console.actions_attempts=" + $operatorActionsAttempts
+    )
   }
   $gatewayRoundTrip = $summary.kpis.gatewayWsRoundTripMs
   if ($null -ne $gatewayRoundTrip) {

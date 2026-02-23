@@ -9,7 +9,7 @@ function parseRequiredNumber(source: string, pattern: RegExp, label: string): nu
   return Number(match[1]);
 }
 
-test("release-readiness uses demo e2e retry defaults and retry runner", () => {
+test("release-readiness uses demo and scenario retry defaults and retry runner", () => {
   const releasePath = resolve(process.cwd(), "scripts", "release-readiness.ps1");
   const source = readFileSync(releasePath, "utf8");
 
@@ -23,9 +23,24 @@ test("release-readiness uses demo e2e retry defaults and retry runner", () => {
     /\[int\]\$DemoRunRetryBackoffMs\s*=\s*(\d+)/,
     "DemoRunRetryBackoffMs default",
   );
+  const demoScenarioRetryMaxAttempts = parseRequiredNumber(
+    source,
+    /\[int\]\$DemoScenarioRetryMaxAttempts\s*=\s*(\d+)/,
+    "DemoScenarioRetryMaxAttempts default",
+  );
+  const demoScenarioRetryBackoffMs = parseRequiredNumber(
+    source,
+    /\[int\]\$DemoScenarioRetryBackoffMs\s*=\s*(\d+)/,
+    "DemoScenarioRetryBackoffMs default",
+  );
 
   assert.ok(demoRunMaxAttempts >= 2, "demo run max attempts should provide at least one retry");
   assert.ok(demoRunRetryBackoffMs >= 500, "demo run retry backoff should be non-trivial");
+  assert.ok(demoScenarioRetryMaxAttempts >= 2, "demo scenario retry max attempts should provide at least one retry");
+  assert.ok(demoScenarioRetryBackoffMs >= 500, "demo scenario retry backoff should be non-trivial");
+
   assert.match(source, /function\s+Run-StepWithRetry\s*\(/);
   assert.match(source, /Run-StepWithRetry\s+"Run demo e2e"/);
+  assert.match(source, /-ScenarioRetryMaxAttempts\s+\$DemoScenarioRetryMaxAttempts/);
+  assert.match(source, /-ScenarioRetryBackoffMs\s+\$DemoScenarioRetryBackoffMs/);
 });

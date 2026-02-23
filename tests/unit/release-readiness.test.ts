@@ -34,6 +34,8 @@ function createPassingSummary(
     gatewayInterruptEventType: string;
     serviceStartMaxAttempts: number | string;
     serviceStartRetryBackoffMs: number | string;
+    scenarioRetryMaxAttempts: number | string;
+    scenarioRetryBackoffMs: number | string;
     analyticsSplitTargetsValidated: boolean | string;
     assistiveRouterDiagnosticsValidated: boolean | string;
     assistiveRouterMode: string;
@@ -142,6 +144,8 @@ function createPassingSummary(
       serviceStartRetryBackoffMs: hasOverride("serviceStartRetryBackoffMs")
         ? overrides.serviceStartRetryBackoffMs
         : "1200",
+      scenarioRetryMaxAttempts: hasOverride("scenarioRetryMaxAttempts") ? overrides.scenarioRetryMaxAttempts : "2",
+      scenarioRetryBackoffMs: hasOverride("scenarioRetryBackoffMs") ? overrides.scenarioRetryBackoffMs : "900",
     },
   };
 }
@@ -433,6 +437,28 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /options\.serviceStartRetryBackoffMs expected >= 300, actual 200/i);
+  },
+);
+
+test(
+  "release-readiness fails when scenario retry max attempts are below minimum",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ scenarioRetryMaxAttempts: "1" }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /options\.scenarioRetryMaxAttempts expected >= 2, actual 1/i);
+  },
+);
+
+test(
+  "release-readiness fails when scenario retry backoff is below minimum",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ scenarioRetryBackoffMs: "300" }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /options\.scenarioRetryBackoffMs expected >= 500, actual 300/i);
   },
 );
 
