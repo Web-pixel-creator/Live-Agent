@@ -180,6 +180,10 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     gatewayWsDrainingValidated = $true
     sessionVersioningValidated = $true
     operatorTaskQueueSummaryValidated = $true
+    operatorAuditTrailValidated = $true
+    operatorTraceCoverageValidated = $true
+    operatorLiveBridgeHealthBlockValidated = $true
+    operatorLiveBridgeProbeTelemetryValidated = $true
   }
   foreach ($kpiName in $criticalKpiChecks.Keys) {
     $expectedValue = $criticalKpiChecks[$kpiName]
@@ -208,6 +212,12 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $taskQueuePendingApproval = [int]$summary.kpis.operatorTaskQueuePendingApproval
   if ($taskQueuePendingApproval -lt 0) {
     Fail ("Critical KPI check failed: operatorTaskQueuePendingApproval expected >= 0, actual " + $taskQueuePendingApproval)
+  }
+
+  $operatorLiveBridgeHealthState = [string]$summary.kpis.operatorLiveBridgeHealthState
+  $allowedOperatorLiveBridgeHealthStates = @("healthy", "degraded", "unknown")
+  if (-not ($allowedOperatorLiveBridgeHealthStates -contains $operatorLiveBridgeHealthState)) {
+    Fail ("Critical KPI check failed: operatorLiveBridgeHealthState expected one of [" + ($allowedOperatorLiveBridgeHealthStates -join ", ") + "], actual " + $operatorLiveBridgeHealthState)
   }
 
   $gatewayRoundTrip = To-NumberOrNaN $summary.kpis.gatewayWsRoundTripMs

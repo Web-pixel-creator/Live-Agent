@@ -41,6 +41,11 @@ function createPassingSummary(
     gatewayTransportRequestedMode: string;
     gatewayTransportActiveMode: string;
     gatewayTransportFallbackActive: boolean | string;
+    operatorAuditTrailValidated: boolean | string;
+    operatorTraceCoverageValidated: boolean | string;
+    operatorLiveBridgeHealthBlockValidated: boolean | string;
+    operatorLiveBridgeProbeTelemetryValidated: boolean | string;
+    operatorLiveBridgeHealthState: string;
   }> = {},
 ): Record<string, unknown> {
   const hasOverride = (key: string): boolean => Object.prototype.hasOwnProperty.call(overrides, key);
@@ -82,6 +87,21 @@ function createPassingSummary(
       gatewayTransportFallbackActive: hasOverride("gatewayTransportFallbackActive")
         ? overrides.gatewayTransportFallbackActive
         : false,
+      operatorAuditTrailValidated: hasOverride("operatorAuditTrailValidated")
+        ? overrides.operatorAuditTrailValidated
+        : true,
+      operatorTraceCoverageValidated: hasOverride("operatorTraceCoverageValidated")
+        ? overrides.operatorTraceCoverageValidated
+        : true,
+      operatorLiveBridgeHealthBlockValidated: hasOverride("operatorLiveBridgeHealthBlockValidated")
+        ? overrides.operatorLiveBridgeHealthBlockValidated
+        : true,
+      operatorLiveBridgeProbeTelemetryValidated: hasOverride("operatorLiveBridgeProbeTelemetryValidated")
+        ? overrides.operatorLiveBridgeProbeTelemetryValidated
+        : true,
+      operatorLiveBridgeHealthState: hasOverride("operatorLiveBridgeHealthState")
+        ? overrides.operatorLiveBridgeHealthState
+        : "unknown",
     },
     options: {
       serviceStartMaxAttempts: hasOverride("serviceStartMaxAttempts") ? overrides.serviceStartMaxAttempts : "2",
@@ -457,6 +477,40 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /gatewayTransportFallbackActive expected False, actual True/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator audit trail KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ operatorAuditTrailValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorAuditTrailValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator trace coverage KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ operatorTraceCoverageValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorTraceCoverageValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator live bridge health state is invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ operatorLiveBridgeHealthState: "offline" }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorLiveBridgeHealthState expected one of \[healthy, degraded, unknown\]/i);
+    assert.match(output, /actual of\s*fline/i);
   },
 );
 
