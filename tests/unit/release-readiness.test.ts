@@ -115,3 +115,28 @@ test(
     assert.match(output, /actual\s+crit\s*ical/i);
   },
 );
+
+test(
+  "release-readiness fails when required summary scenario is missing",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const summary = createPassingSummary();
+    summary.scenarios = [{ name: "gateway.websocket.binding_mismatch", status: "passed" }];
+
+    const result = runReleaseReadiness(summary);
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /Required scenario missing in summary:\s*gateway\.websocket\.draining_rejection/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator task queue total is below one",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ queueTotal: 0 }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorTaskQueueTotal expected >= 1, actual 0/i);
+  },
+);
