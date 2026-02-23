@@ -552,6 +552,60 @@ function Start-ManagedService {
   throw "Unreachable startup retry state for $Name."
 }
 
+function Assert-ManagedServicePortsAvailable {
+  param(
+    [Parameter(Mandatory = $true)]
+    [object[]]$Services
+  )
+
+  foreach ($service in $Services) {
+    $serviceName = [string](Get-FieldValue -Object $service -Path @("name"))
+    $healthUrl = [string](Get-FieldValue -Object $service -Path @("healthUrl"))
+    $port = [int](Get-FieldValue -Object $service -Path @("port"))
+
+    if ($port -le 0 -or [string]::IsNullOrWhiteSpace($healthUrl)) {
+      continue
+    }
+
+    $existingHealth = Try-GetHealth -Url $healthUrl
+    if ($null -ne $existingHealth) {
+      continue
+    }
+
+    $listeners = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
+    if ($listeners.Count -eq 0) {
+      continue
+    }
+
+    $listener = $listeners[0]
+    $owningProcessId = [int](Get-FieldValue -Object $listener -Path @("OwningProcess"))
+    $processName = "unknown"
+    $processCommandLine = "n/a"
+
+    if ($owningProcessId -gt 0) {
+      $proc = Get-Process -Id $owningProcessId -ErrorAction SilentlyContinue
+      if ($null -ne $proc -and -not [string]::IsNullOrWhiteSpace([string]$proc.ProcessName)) {
+        $processName = [string]$proc.ProcessName
+      }
+
+      try {
+        $procMeta = Get-CimInstance Win32_Process -Filter ("ProcessId={0}" -f $owningProcessId)
+        $rawCommandLine = [string](Get-FieldValue -Object $procMeta -Path @("CommandLine"))
+        if (-not [string]::IsNullOrWhiteSpace($rawCommandLine)) {
+          $processCommandLine = $rawCommandLine
+        }
+      } catch {
+        # Best-effort diagnostics only.
+      }
+    }
+
+    throw (
+      "Port conflict before service startup: {0} requires :{1} ({2}), but the port is occupied by pid={3} process={4}. Command: {5}" -f
+      $serviceName, $port, $healthUrl, $owningProcessId, $processName, $processCommandLine
+    )
+  }
+}
+
 function Stop-ManagedServices {
   if ($script:StartedProcesses.Count -eq 0) {
     return
@@ -723,6 +777,16 @@ try {
 
   if (-not $SkipServiceStart) {
     Write-Step "Ensuring local services are running..."
+    $servicePortChecks = @(
+      [ordered]@{ name = "ui-executor"; port = 8090; healthUrl = "http://localhost:8090/healthz" },
+      [ordered]@{ name = "orchestrator"; port = 8082; healthUrl = "http://localhost:8082/healthz" },
+      [ordered]@{ name = "api-backend"; port = 8081; healthUrl = "http://localhost:8081/healthz" },
+      [ordered]@{ name = "realtime-gateway"; port = 8080; healthUrl = "http://localhost:8080/healthz" }
+    )
+    if ($IncludeFrontend) {
+      $servicePortChecks += [ordered]@{ name = "demo-frontend"; port = 3000; healthUrl = "http://localhost:3000/healthz" }
+    }
+    Assert-ManagedServicePortsAvailable -Services $servicePortChecks
     Start-ManagedService -Name "ui-executor" -HealthUrl "http://localhost:8090/healthz" -NodeArgs @("--import", "tsx", "apps/ui-executor/src/index.ts")
     Start-ManagedService -Name "orchestrator" -HealthUrl "http://localhost:8082/healthz" -NodeArgs @("--import", "tsx", "agents/orchestrator/src/index.ts")
     Start-ManagedService -Name "api-backend" -HealthUrl "http://localhost:8081/healthz" -NodeArgs @("--import", "tsx", "apps/api-backend/src/index.ts")

@@ -59,6 +59,7 @@
 28. Operator summary now exposes task-queue pressure rollups (`queued/running/pending_approval/stale/maxAge/oldestTask + pressureLevel`), and Operator Console shows a dedicated `Task Queue Pressure` widget with recovery hints for queue saturation and stale task buildup.
 29. Demo e2e/policy evidence now enforces operator task-queue KPIs (`operatorTaskQueueSummaryValidated`, `operatorTaskQueuePressureLevel`, `operatorTaskQueueTotal`, `operatorTaskQueueStaleCount`, `operatorTaskQueuePendingApproval`) so queue-pressure regressions are blocked by CI gates.
 30. Release-readiness gate now treats operator task-queue KPIs as critical checks and prints `operator.task_queue` summary line (`validated/level/total/pending/stale`) in final output for faster go/no-go diagnostics.
+31. Demo e2e startup now runs explicit managed-service port preflight (`8080/8081/8082/8090` + optional `3000`) and fails early with `pid/process/commandLine` diagnostics on conflicts, reducing flaky `EADDRINUSE` startup failures.
 
 ## Current Focus Queue
 
