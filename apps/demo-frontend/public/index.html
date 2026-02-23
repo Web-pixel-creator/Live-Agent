@@ -377,6 +377,33 @@
               Refresh summary to inspect approval backlog and SLA timeouts.
             </p>
           </article>
+          <article class="operator-health-card">
+            <h3>Service Lifecycle</h3>
+            <p id="operatorLifecycleStatus" class="status-pill status-neutral">no_data</p>
+            <p class="operator-health-row">
+              <strong>Ready</strong>
+              <span id="operatorLifecycleReady">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Draining</strong>
+              <span id="operatorLifecycleDraining">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Unknown</strong>
+              <span id="operatorLifecycleUnknown">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Last Change</strong>
+              <span id="operatorLifecycleLastChange">n/a</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Draining Services</strong>
+              <span id="operatorLifecycleDrainingServices">none</span>
+            </p>
+            <p id="operatorLifecycleHint" class="operator-health-hint operator-health-hint-neutral">
+              Refresh summary to inspect runtime lifecycle states.
+            </p>
+          </article>
         </div>
         <div id="operatorSummary" class="events"></div>
       </section>

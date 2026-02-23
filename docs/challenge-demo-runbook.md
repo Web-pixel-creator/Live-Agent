@@ -91,6 +91,7 @@ Checkpoint B (hard interruption) at ~01:40:
    - `Device Nodes Health` widget (`total/online/degraded/offline/stale/missing_heartbeat/max_age`).
    - `Trace Coverage` widget (`runs/events/ui_runs/approval_linked/steps/screenshots + top_route/top_status`).
    - `Approvals Queue` widget (`total/pending/approved/rejected/timeout + pending_from_tasks + SLA soft/hard sweep`).
+   - `Service Lifecycle` widget (`ready/draining/unknown + last lifecycle change + draining services list`).
    - `device_nodes_health` summary line (`total/online/degraded/offline/stale/missing_heartbeat`) and `device.<nodeId>` recent entry.
    - policy evidence includes explicit scenario `operator.device_nodes.lifecycle=passed` in `summary.json`.
 8. Show admin failover proof for `ui-executor`:

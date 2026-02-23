@@ -586,6 +586,12 @@ async function getOperatorServiceSummary(): Promise<Array<Record<string, unknown
       baseUrl: service.baseUrl,
       healthy: isRecord(health) ? health.ok === true : false,
       state: runtime ? runtime.state ?? null : null,
+      ready: runtime ? runtime.ready ?? null : null,
+      draining: runtime ? runtime.draining ?? null : null,
+      startedAt: runtime ? runtime.startedAt ?? null : null,
+      uptimeSec: runtime ? runtime.uptimeSec ?? null : null,
+      lastWarmupAt: runtime ? runtime.lastWarmupAt ?? null : null,
+      lastDrainAt: runtime ? runtime.lastDrainAt ?? null : null,
       version: runtime ? runtime.version ?? null : null,
       profile,
       metrics: metricsSummary

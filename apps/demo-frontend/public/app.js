@@ -113,6 +113,13 @@ const el = {
   operatorApprovalsSla: document.getElementById("operatorApprovalsSla"),
   operatorApprovalsLatest: document.getElementById("operatorApprovalsLatest"),
   operatorApprovalsHint: document.getElementById("operatorApprovalsHint"),
+  operatorLifecycleStatus: document.getElementById("operatorLifecycleStatus"),
+  operatorLifecycleReady: document.getElementById("operatorLifecycleReady"),
+  operatorLifecycleDraining: document.getElementById("operatorLifecycleDraining"),
+  operatorLifecycleUnknown: document.getElementById("operatorLifecycleUnknown"),
+  operatorLifecycleLastChange: document.getElementById("operatorLifecycleLastChange"),
+  operatorLifecycleDrainingServices: document.getElementById("operatorLifecycleDrainingServices"),
+  operatorLifecycleHint: document.getElementById("operatorLifecycleHint"),
   deviceNodeId: document.getElementById("deviceNodeId"),
   deviceNodeDisplayName: document.getElementById("deviceNodeDisplayName"),
   deviceNodeKind: document.getElementById("deviceNodeKind"),
@@ -524,6 +531,27 @@ function setOperatorApprovalsHint(text, variant = "neutral") {
   el.operatorApprovalsHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorLifecycleHint(text, variant = "neutral") {
+  if (!el.operatorLifecycleHint) {
+    return;
+  }
+  el.operatorLifecycleHint.textContent = text;
+  el.operatorLifecycleHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorLifecycleHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorLifecycleHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorLifecycleHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorLifecycleHint.classList.add("operator-health-hint-neutral");
+}
+
 function resetOperatorHealthWidget(reason = "no_data") {
   setText(el.operatorHealthState, "unknown");
   setText(el.operatorHealthLastEventType, "-");
@@ -590,6 +618,16 @@ function resetOperatorApprovalsWidget(reason = "no_data") {
   setText(el.operatorApprovalsLatest, "n/a");
   setOperatorApprovalsHint("Refresh summary to inspect approval backlog and SLA timeouts.", "neutral");
   setStatusPill(el.operatorApprovalsStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorLifecycleWidget(reason = "no_data") {
+  setText(el.operatorLifecycleReady, "0");
+  setText(el.operatorLifecycleDraining, "0");
+  setText(el.operatorLifecycleUnknown, "0");
+  setText(el.operatorLifecycleLastChange, "n/a");
+  setText(el.operatorLifecycleDrainingServices, "none");
+  setOperatorLifecycleHint("Refresh summary to inspect runtime lifecycle states.", "neutral");
+  setStatusPill(el.operatorLifecycleStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function renderOperatorHealthWidget(liveBridgeHealth) {
@@ -981,6 +1019,120 @@ function renderOperatorApprovalsWidget(approvalsSummary) {
   setOperatorApprovalsHint(hint, hintVariant);
 }
 
+function parseIsoTimestampMs(value) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return null;
+  }
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  return parsed;
+}
+
+function normalizeLifecycleState(service) {
+  if (!service || typeof service !== "object") {
+    return "unknown";
+  }
+  const state = typeof service.state === "string" ? service.state.trim().toLowerCase() : "";
+  if (state === "ready" || state === "draining") {
+    return state;
+  }
+  if (service.draining === true) {
+    return "draining";
+  }
+  if (service.ready === true) {
+    return "ready";
+  }
+  return "unknown";
+}
+
+function renderOperatorLifecycleWidget(services) {
+  if (!Array.isArray(services) || services.length === 0) {
+    resetOperatorLifecycleWidget("no_data");
+    return;
+  }
+
+  let readyCount = 0;
+  let drainingCount = 0;
+  let unknownCount = 0;
+  let unhealthyCount = 0;
+  const drainingServices = [];
+  let latestChangeTs = null;
+  let latestChangeLabel = "n/a";
+
+  for (const item of services) {
+    if (!item || typeof item !== "object") {
+      unknownCount += 1;
+      continue;
+    }
+    const serviceName = typeof item.name === "string" ? item.name : "service";
+    const lifecycleState = normalizeLifecycleState(item);
+    const healthy = item.healthy === true;
+    if (!healthy) {
+      unhealthyCount += 1;
+    }
+
+    if (lifecycleState === "ready") {
+      readyCount += 1;
+    } else if (lifecycleState === "draining") {
+      drainingCount += 1;
+      drainingServices.push(serviceName);
+    } else {
+      unknownCount += 1;
+    }
+
+    const warmupTs = parseIsoTimestampMs(item.lastWarmupAt);
+    if (warmupTs !== null && (latestChangeTs === null || warmupTs > latestChangeTs)) {
+      latestChangeTs = warmupTs;
+      latestChangeLabel = `${serviceName} warmup @ ${item.lastWarmupAt}`;
+    }
+    const drainTs = parseIsoTimestampMs(item.lastDrainAt);
+    if (drainTs !== null && (latestChangeTs === null || drainTs > latestChangeTs)) {
+      latestChangeTs = drainTs;
+      latestChangeLabel = `${serviceName} drain @ ${item.lastDrainAt}`;
+    }
+  }
+
+  setText(el.operatorLifecycleReady, String(readyCount));
+  setText(el.operatorLifecycleDraining, String(drainingCount));
+  setText(el.operatorLifecycleUnknown, String(unknownCount));
+  setText(el.operatorLifecycleLastChange, latestChangeLabel);
+  setText(
+    el.operatorLifecycleDrainingServices,
+    drainingServices.length > 0 ? drainingServices.join(", ") : "none",
+  );
+
+  let statusVariant = "ok";
+  let statusText = "stable";
+  let hintVariant = "ok";
+  let hint = "All tracked services are in ready lifecycle state.";
+
+  if (unhealthyCount > 0) {
+    statusVariant = "fail";
+    statusText = "unhealthy";
+    hintVariant = "fail";
+    hint = `${unhealthyCount} service(s) unhealthy. Run failover drain/warmup and re-check /healthz before demo.`;
+  } else if (drainingCount > 0) {
+    statusVariant = "neutral";
+    statusText = "draining_active";
+    hintVariant = "warn";
+    hint = "One or more services are draining. Complete warmup before starting judged flow.";
+  } else if (unknownCount > 0) {
+    statusVariant = "neutral";
+    statusText = "unknown_state";
+    hintVariant = "warn";
+    hint = "Some services report unknown lifecycle state. Refresh summary and verify /status endpoints.";
+  }
+
+  setStatusPill(
+    el.operatorLifecycleStatus,
+    `${statusText} ready=${readyCount} draining=${drainingCount}`,
+    statusVariant,
+  );
+  setOperatorLifecycleHint(hint, hintVariant);
+}
+
 function extractNumber(text, regex) {
   const match = text.match(regex);
   if (!match) {
@@ -1187,6 +1339,7 @@ function renderOperatorSummary(summary) {
   resetOperatorDeviceNodesWidget("no_data");
   resetOperatorTraceWidget("no_data");
   resetOperatorApprovalsWidget("no_data");
+  resetOperatorLifecycleWidget("no_data");
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -1367,6 +1520,7 @@ function renderOperatorSummary(summary) {
       uiExecutorService = service;
     }
   }
+  renderOperatorLifecycleWidget(services);
   renderOperatorUiExecutorWidget(uiExecutorService, uiExecutorLastFailoverAction);
 }
 
@@ -1390,6 +1544,7 @@ async function refreshOperatorSummary() {
     resetOperatorDeviceNodesWidget("summary_error");
     resetOperatorTraceWidget("summary_error");
     resetOperatorApprovalsWidget("summary_error");
+    resetOperatorLifecycleWidget("summary_error");
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
 }
