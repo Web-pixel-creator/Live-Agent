@@ -15,6 +15,11 @@ const state = {
   micStream: null,
   micProcessor: null,
   micGain: null,
+  assistantStreamEntry: null,
+  assistantStreamBody: null,
+  assistantStreamText: "",
+  assistantStreamFlushTimer: null,
+  assistantStreamIdleFinalizeMs: 500,
   taskRecords: new Map(),
   deviceNodes: new Map(),
   selectedDeviceNodeId: null,
@@ -192,9 +197,78 @@ function appendEntry(container, kind, title, message) {
   entry.appendChild(titleNode);
   entry.appendChild(bodyNode);
   container.prepend(entry);
+  return entry;
+}
+
+function clearAssistantStreamFlushTimer() {
+  if (state.assistantStreamFlushTimer === null) {
+    return;
+  }
+  window.clearTimeout(state.assistantStreamFlushTimer);
+  state.assistantStreamFlushTimer = null;
+}
+
+function finalizeAssistantStreamEntry() {
+  clearAssistantStreamFlushTimer();
+
+  const entry = state.assistantStreamEntry;
+  const body = state.assistantStreamBody;
+  const text = state.assistantStreamText.trim();
+  if (entry && body) {
+    if (text.length > 0) {
+      body.textContent = text;
+    } else {
+      entry.remove();
+    }
+  }
+
+  state.assistantStreamEntry = null;
+  state.assistantStreamBody = null;
+  state.assistantStreamText = "";
+}
+
+function scheduleAssistantStreamFinalize() {
+  clearAssistantStreamFlushTimer();
+  state.assistantStreamFlushTimer = window.setTimeout(() => {
+    finalizeAssistantStreamEntry();
+  }, state.assistantStreamIdleFinalizeMs);
+}
+
+function ensureAssistantStreamEntry() {
+  if (
+    state.assistantStreamEntry &&
+    state.assistantStreamBody &&
+    state.assistantStreamEntry.isConnected
+  ) {
+    return;
+  }
+  const entry = appendEntry(el.transcript, "system", "assistant", "");
+  const body = entry.lastElementChild;
+  if (!(body instanceof HTMLDivElement)) {
+    return;
+  }
+  state.assistantStreamEntry = entry;
+  state.assistantStreamBody = body;
+  state.assistantStreamText = "";
+}
+
+function appendAssistantStreamingText(text) {
+  if (typeof text !== "string" || text.length === 0) {
+    return;
+  }
+  ensureAssistantStreamEntry();
+  if (!state.assistantStreamBody) {
+    return;
+  }
+  state.assistantStreamText += text;
+  state.assistantStreamBody.textContent = state.assistantStreamText;
+  updateOfferFromText(text, false);
+  evaluateConstraints();
+  scheduleAssistantStreamFinalize();
 }
 
 function appendTranscript(role, text) {
+  finalizeAssistantStreamEntry();
   appendEntry(el.transcript, role === "error" ? "error" : "system", role, text);
 }
 
@@ -1268,9 +1342,7 @@ function handleLiveOutput(upstream) {
   }
   const text = findTextPayload(upstream);
   if (text) {
-    appendTranscript("assistant", text);
-    updateOfferFromText(text, false);
-    evaluateConstraints();
+    appendAssistantStreamingText(text);
   }
 }
 
@@ -1286,11 +1358,10 @@ function handleNormalizedLiveOutput(normalized) {
     }
   }
   if (typeof normalized.text === "string") {
-    appendTranscript("assistant", normalized.text);
-    updateOfferFromText(normalized.text, false);
-    evaluateConstraints();
+    appendAssistantStreamingText(normalized.text);
   }
   if (normalized.interrupted === true) {
+    finalizeAssistantStreamEntry();
     resetAssistantPlayback();
     appendTranscript("system", "Assistant interrupted (normalized signal)");
   }
@@ -1402,6 +1473,7 @@ function handleGatewayEvent(event) {
   }
 
   if (event.type === "live.bridge.unavailable") {
+    finalizeAssistantStreamEntry();
     setMode("text-fallback");
     appendTranscript("system", "Live bridge unavailable. Switched to text fallback.");
     return;
@@ -1425,12 +1497,14 @@ function handleGatewayEvent(event) {
   }
 
   if (event.type === "live.turn.completed") {
+    finalizeAssistantStreamEntry();
     const textChars = event.payload?.textChars;
     appendTranscript("system", `Assistant turn completed (${typeof textChars === "number" ? textChars : 0} chars)`);
     return;
   }
 
   if (event.type === "live.interrupted") {
+    finalizeAssistantStreamEntry();
     resetAssistantPlayback();
     appendTranscript("system", "Assistant output interrupted");
     return;
@@ -1446,6 +1520,7 @@ function handleGatewayEvent(event) {
   }
 
   if (event.type === "orchestrator.response") {
+    finalizeAssistantStreamEntry();
     const output = event.payload?.output;
     if (event.payload?.task) {
       const task = normalizeTaskRecord(event.payload.task);
@@ -1579,12 +1654,14 @@ function connectWebSocket() {
   });
 
   ws.addEventListener("close", () => {
+    finalizeAssistantStreamEntry();
     setConnectionStatus("disconnected");
     appendTranscript("system", "WebSocket closed");
     state.ws = null;
   });
 
   ws.addEventListener("error", () => {
+    finalizeAssistantStreamEntry();
     setConnectionStatus("error");
     appendTranscript("error", "WebSocket error");
   });
