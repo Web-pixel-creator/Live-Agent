@@ -232,14 +232,20 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     Fail ("Critical KPI check failed: transportModeValidated expected True, actual " + $summary.kpis.transportModeValidated)
   }
 
+  $gatewayTransportRequestedMode = [string]$summary.kpis.gatewayTransportRequestedMode
+  if (@("websocket", "webrtc") -notcontains $gatewayTransportRequestedMode) {
+    Fail ("Critical KPI check failed: gatewayTransportRequestedMode expected websocket|webrtc, actual " + $gatewayTransportRequestedMode)
+  }
+
   $gatewayTransportActiveMode = [string]$summary.kpis.gatewayTransportActiveMode
   if ($gatewayTransportActiveMode -ne "websocket") {
     Fail ("Critical KPI check failed: gatewayTransportActiveMode expected websocket, actual " + $gatewayTransportActiveMode)
   }
 
   $gatewayTransportFallbackActive = To-BoolOrNull $summary.kpis.gatewayTransportFallbackActive
-  if ($gatewayTransportFallbackActive -ne $false) {
-    Fail ("Critical KPI check failed: gatewayTransportFallbackActive expected False, actual " + $summary.kpis.gatewayTransportFallbackActive)
+  $expectedGatewayTransportFallbackActive = if ($gatewayTransportRequestedMode -eq "webrtc") { $true } else { $false }
+  if ($gatewayTransportFallbackActive -ne $expectedGatewayTransportFallbackActive) {
+    Fail ("Critical KPI check failed: gatewayTransportFallbackActive expected " + $expectedGatewayTransportFallbackActive + ", actual " + $summary.kpis.gatewayTransportFallbackActive)
   }
 }
 

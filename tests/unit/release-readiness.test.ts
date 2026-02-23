@@ -35,6 +35,7 @@ function createPassingSummary(
     serviceStartMaxAttempts: number | string;
     serviceStartRetryBackoffMs: number | string;
     transportModeValidated: boolean | string;
+    gatewayTransportRequestedMode: string;
     gatewayTransportActiveMode: string;
     gatewayTransportFallbackActive: boolean | string;
   }> = {},
@@ -62,6 +63,9 @@ function createPassingSummary(
         ? overrides.gatewayInterruptEventType
         : "live.interrupt.requested",
       transportModeValidated: hasOverride("transportModeValidated") ? overrides.transportModeValidated : true,
+      gatewayTransportRequestedMode: hasOverride("gatewayTransportRequestedMode")
+        ? overrides.gatewayTransportRequestedMode
+        : "websocket",
       gatewayTransportActiveMode: hasOverride("gatewayTransportActiveMode")
         ? overrides.gatewayTransportActiveMode
         : "websocket",
@@ -262,5 +266,20 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /gatewayTransportFallbackActive expected False, actual True/i);
+  },
+);
+
+test(
+  "release-readiness allows gateway transport fallback when requested mode is webrtc",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        gatewayTransportRequestedMode: "webrtc",
+        gatewayTransportActiveMode: "websocket",
+        gatewayTransportFallbackActive: true,
+      }),
+    );
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
   },
 );
