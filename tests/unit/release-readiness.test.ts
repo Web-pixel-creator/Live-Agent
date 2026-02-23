@@ -46,6 +46,15 @@ function createPassingSummary(
     operatorLiveBridgeHealthBlockValidated: boolean | string;
     operatorLiveBridgeProbeTelemetryValidated: boolean | string;
     operatorLiveBridgeHealthState: string;
+    storytellerVideoAsyncValidated: boolean | string;
+    storytellerMediaQueueVisible: boolean | string;
+    storytellerMediaQueueQuotaValidated: boolean | string;
+    storytellerCacheEnabled: boolean | string;
+    storytellerCacheHitValidated: boolean | string;
+    storytellerCacheInvalidationValidated: boolean | string;
+    storytellerMediaMode: string;
+    storytellerMediaQueueWorkers: number | string;
+    storytellerCacheHits: number | string;
   }> = {},
 ): Record<string, unknown> {
   const hasOverride = (key: string): boolean => Object.prototype.hasOwnProperty.call(overrides, key);
@@ -102,6 +111,31 @@ function createPassingSummary(
       operatorLiveBridgeHealthState: hasOverride("operatorLiveBridgeHealthState")
         ? overrides.operatorLiveBridgeHealthState
         : "unknown",
+      storytellerVideoAsyncValidated: hasOverride("storytellerVideoAsyncValidated")
+        ? overrides.storytellerVideoAsyncValidated
+        : true,
+      storytellerMediaQueueVisible: hasOverride("storytellerMediaQueueVisible")
+        ? overrides.storytellerMediaQueueVisible
+        : true,
+      storytellerMediaQueueQuotaValidated: hasOverride("storytellerMediaQueueQuotaValidated")
+        ? overrides.storytellerMediaQueueQuotaValidated
+        : true,
+      storytellerCacheEnabled: hasOverride("storytellerCacheEnabled")
+        ? overrides.storytellerCacheEnabled
+        : true,
+      storytellerCacheHitValidated: hasOverride("storytellerCacheHitValidated")
+        ? overrides.storytellerCacheHitValidated
+        : true,
+      storytellerCacheInvalidationValidated: hasOverride("storytellerCacheInvalidationValidated")
+        ? overrides.storytellerCacheInvalidationValidated
+        : true,
+      storytellerMediaMode: hasOverride("storytellerMediaMode")
+        ? overrides.storytellerMediaMode
+        : "simulated",
+      storytellerMediaQueueWorkers: hasOverride("storytellerMediaQueueWorkers")
+        ? overrides.storytellerMediaQueueWorkers
+        : 2,
+      storytellerCacheHits: hasOverride("storytellerCacheHits") ? overrides.storytellerCacheHits : 3,
     },
     options: {
       serviceStartMaxAttempts: hasOverride("serviceStartMaxAttempts") ? overrides.serviceStartMaxAttempts : "2",
@@ -511,6 +545,28 @@ test(
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /operatorLiveBridgeHealthState expected one of \[healthy, degraded, unknown\]/i);
     assert.match(output, /actual of\s*fline/i);
+  },
+);
+
+test(
+  "release-readiness fails when storyteller media mode is not simulated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ storytellerMediaMode: "live_api" }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /storytellerMediaMode expected one of \[simulated\], actual live_api/i);
+  },
+);
+
+test(
+  "release-readiness fails when storyteller cache hit KPI is below one",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ storytellerCacheHits: 0 }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /storytellerCacheHits expected >= 1, actual 0/i);
   },
 );
 

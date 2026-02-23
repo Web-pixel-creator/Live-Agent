@@ -184,6 +184,12 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     operatorTraceCoverageValidated = $true
     operatorLiveBridgeHealthBlockValidated = $true
     operatorLiveBridgeProbeTelemetryValidated = $true
+    storytellerVideoAsyncValidated = $true
+    storytellerMediaQueueVisible = $true
+    storytellerMediaQueueQuotaValidated = $true
+    storytellerCacheEnabled = $true
+    storytellerCacheHitValidated = $true
+    storytellerCacheInvalidationValidated = $true
   }
   foreach ($kpiName in $criticalKpiChecks.Keys) {
     $expectedValue = $criticalKpiChecks[$kpiName]
@@ -212,6 +218,22 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $taskQueuePendingApproval = [int]$summary.kpis.operatorTaskQueuePendingApproval
   if ($taskQueuePendingApproval -lt 0) {
     Fail ("Critical KPI check failed: operatorTaskQueuePendingApproval expected >= 0, actual " + $taskQueuePendingApproval)
+  }
+
+  $storytellerMediaMode = [string]$summary.kpis.storytellerMediaMode
+  $allowedStorytellerMediaModes = @("simulated")
+  if (-not ($allowedStorytellerMediaModes -contains $storytellerMediaMode)) {
+    Fail ("Critical KPI check failed: storytellerMediaMode expected one of [" + ($allowedStorytellerMediaModes -join ", ") + "], actual " + $storytellerMediaMode)
+  }
+
+  $storytellerMediaQueueWorkers = To-NumberOrNaN $summary.kpis.storytellerMediaQueueWorkers
+  if ([double]::IsNaN($storytellerMediaQueueWorkers) -or $storytellerMediaQueueWorkers -lt 1) {
+    Fail ("Critical KPI check failed: storytellerMediaQueueWorkers expected >= 1, actual " + $summary.kpis.storytellerMediaQueueWorkers)
+  }
+
+  $storytellerCacheHits = To-NumberOrNaN $summary.kpis.storytellerCacheHits
+  if ([double]::IsNaN($storytellerCacheHits) -or $storytellerCacheHits -lt 1) {
+    Fail ("Critical KPI check failed: storytellerCacheHits expected >= 1, actual " + $summary.kpis.storytellerCacheHits)
   }
 
   $operatorLiveBridgeHealthState = [string]$summary.kpis.operatorLiveBridgeHealthState
