@@ -169,6 +169,7 @@ async function main() {
         "operator.device_nodes.lifecycle",
         "api.approvals.list",
         "api.approvals.resume.invalid_intent",
+        "api.sessions.versioning",
         "runtime.lifecycle.endpoints",
         "runtime.metrics.endpoints",
       ].join(","),
@@ -519,6 +520,30 @@ async function main() {
     toNumber(kpis.approvalsRecorded) >= minApprovalsRecorded,
     kpis.approvalsRecorded,
     `>= ${minApprovalsRecorded}`,
+  );
+  addCheck(
+    "kpi.sessionVersioningValidated",
+    kpis.sessionVersioningValidated === true,
+    kpis.sessionVersioningValidated,
+    true,
+  );
+  addCheck(
+    "kpi.sessionVersionConflictCode",
+    String(kpis.sessionVersionConflictCode) === "API_SESSION_VERSION_CONFLICT",
+    kpis.sessionVersionConflictCode,
+    "API_SESSION_VERSION_CONFLICT",
+  );
+  addCheck(
+    "kpi.sessionIdempotencyReplayOutcome",
+    String(kpis.sessionIdempotencyReplayOutcome) === "idempotent_replay",
+    kpis.sessionIdempotencyReplayOutcome,
+    "idempotent_replay",
+  );
+  addCheck(
+    "kpi.sessionIdempotencyConflictCode",
+    String(kpis.sessionIdempotencyConflictCode) === "API_SESSION_IDEMPOTENCY_CONFLICT",
+    kpis.sessionIdempotencyConflictCode,
+    "API_SESSION_IDEMPOTENCY_CONFLICT",
   );
   addCheck(
     "kpi.uiAdapterMode",

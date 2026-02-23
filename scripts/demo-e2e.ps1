@@ -1757,6 +1757,81 @@ try {
     }
   } | Out-Null
 
+  Invoke-Scenario -Name "api.sessions.versioning" -Action {
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($sessionId)) -Message "Session versioning scenario requires a valid sessionId."
+
+    $initialVersion = [int](Get-FieldValue -Object $sessionCreateResponse -Path @("data", "version"))
+    Assert-Condition -Condition ($initialVersion -ge 1) -Message "Session create response should include version >= 1."
+
+    $mutationId = "demo-session-versioning-" + [Guid]::NewGuid().Guid
+    $pauseResponse = Invoke-JsonRequest -Method PATCH -Uri "http://localhost:8081/v1/sessions/$([System.Uri]::EscapeDataString($sessionId))" -Body @{
+      status = "paused"
+      expectedVersion = $initialVersion
+      idempotencyKey = $mutationId
+    } -TimeoutSec $RequestTimeoutSec
+    $pauseSession = Get-FieldValue -Object $pauseResponse -Path @("data")
+    $pauseVersion = [int](Get-FieldValue -Object $pauseSession -Path @("version"))
+    $pauseStatus = [string](Get-FieldValue -Object $pauseSession -Path @("status"))
+    $pauseOutcome = [string](Get-FieldValue -Object $pauseResponse -Path @("meta", "outcome"))
+    Assert-Condition -Condition ($pauseVersion -gt $initialVersion) -Message "Session version should increment after pause update."
+    Assert-Condition -Condition ($pauseStatus -eq "paused") -Message "Session status should become paused."
+    Assert-Condition -Condition ($pauseOutcome -eq "updated") -Message "Initial session mutation should return outcome=updated."
+
+    $replayResponse = Invoke-JsonRequest -Method PATCH -Uri "http://localhost:8081/v1/sessions/$([System.Uri]::EscapeDataString($sessionId))" -Body @{
+      status = "paused"
+      expectedVersion = $initialVersion
+      idempotencyKey = $mutationId
+    } -TimeoutSec $RequestTimeoutSec
+    $replaySession = Get-FieldValue -Object $replayResponse -Path @("data")
+    $replayVersion = [int](Get-FieldValue -Object $replaySession -Path @("version"))
+    $replayStatus = [string](Get-FieldValue -Object $replaySession -Path @("status"))
+    $replayOutcome = [string](Get-FieldValue -Object $replayResponse -Path @("meta", "outcome"))
+    Assert-Condition -Condition ($replayVersion -eq $pauseVersion) -Message "Session idempotent replay should keep same version."
+    Assert-Condition -Condition ($replayStatus -eq "paused") -Message "Session idempotent replay should preserve paused status."
+    Assert-Condition -Condition ($replayOutcome -eq "idempotent_replay") -Message "Session idempotent replay should return outcome=idempotent_replay."
+
+    $versionConflictResponse = Invoke-JsonRequestExpectStatus -Method PATCH -Uri "http://localhost:8081/v1/sessions/$([System.Uri]::EscapeDataString($sessionId))" -Body @{
+      status = "active"
+      expectedVersion = $initialVersion
+      idempotencyKey = ("demo-session-version-conflict-" + [Guid]::NewGuid().Guid)
+    } -ExpectedStatusCode 409 -TimeoutSec $RequestTimeoutSec
+    $versionConflictCode = [string](Get-FieldValue -Object $versionConflictResponse -Path @("body", "error", "code"))
+    Assert-Condition -Condition ($versionConflictCode -eq "API_SESSION_VERSION_CONFLICT") -Message "Stale expectedVersion must return API_SESSION_VERSION_CONFLICT."
+
+    $idempotencyConflictResponse = Invoke-JsonRequestExpectStatus -Method PATCH -Uri "http://localhost:8081/v1/sessions/$([System.Uri]::EscapeDataString($sessionId))" -Body @{
+      status = "active"
+      idempotencyKey = $mutationId
+    } -ExpectedStatusCode 409 -TimeoutSec $RequestTimeoutSec
+    $idempotencyConflictCode = [string](Get-FieldValue -Object $idempotencyConflictResponse -Path @("body", "error", "code"))
+    Assert-Condition -Condition ($idempotencyConflictCode -eq "API_SESSION_IDEMPOTENCY_CONFLICT") -Message "Changed payload with same idempotency key must return API_SESSION_IDEMPOTENCY_CONFLICT."
+
+    $restoreMutationId = "demo-session-restore-" + [Guid]::NewGuid().Guid
+    $restoreResponse = Invoke-JsonRequest -Method PATCH -Uri "http://localhost:8081/v1/sessions/$([System.Uri]::EscapeDataString($sessionId))" -Body @{
+      status = "active"
+      expectedVersion = $replayVersion
+      idempotencyKey = $restoreMutationId
+    } -TimeoutSec $RequestTimeoutSec
+    $restoreSession = Get-FieldValue -Object $restoreResponse -Path @("data")
+    $restoreVersion = [int](Get-FieldValue -Object $restoreSession -Path @("version"))
+    $restoreStatus = [string](Get-FieldValue -Object $restoreSession -Path @("status"))
+    $restoreOutcome = [string](Get-FieldValue -Object $restoreResponse -Path @("meta", "outcome"))
+    Assert-Condition -Condition ($restoreVersion -gt $replayVersion) -Message "Session restore should increment version."
+    Assert-Condition -Condition ($restoreStatus -eq "active") -Message "Session restore should return active status."
+    Assert-Condition -Condition ($restoreOutcome -eq "updated") -Message "Session restore should return outcome=updated."
+
+    return [ordered]@{
+      initialVersion = $initialVersion
+      pausedVersion = $pauseVersion
+      pausedStatus = $pauseStatus
+      idempotencyReplayOutcome = $replayOutcome
+      idempotencyReplayVersion = $replayVersion
+      versionConflictCode = $versionConflictCode
+      idempotencyConflictCode = $idempotencyConflictCode
+      restoredVersion = $restoreVersion
+      restoredStatus = $restoreStatus
+    }
+  } | Out-Null
+
   Invoke-Scenario -Name "runtime.lifecycle.endpoints" -Action {
     $services = @(
       @{ name = "realtime-gateway"; baseUrl = "http://localhost:8080" },
@@ -1971,6 +2046,7 @@ $gatewayWsInvalidData = Get-ScenarioData -Name "gateway.websocket.invalid_envelo
 $operatorActionsData = Get-ScenarioData -Name "operator.console.actions"
 $approvalsListData = Get-ScenarioData -Name "api.approvals.list"
 $approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.invalid_intent"
+$sessionVersioningData = Get-ScenarioData -Name "api.sessions.versioning"
 $runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
 $runtimeMetricsData = Get-ScenarioData -Name "runtime.metrics.endpoints"
 
@@ -2194,6 +2270,20 @@ $summary = [ordered]@{
     approvalsInvalidIntentStatusCode = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.statusCode } else { $null }
     approvalsInvalidIntentCode = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.code } else { $null }
     approvalsInvalidIntentTraceId = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.traceId } else { $null }
+    sessionVersionConflictCode = if ($null -ne $sessionVersioningData) { $sessionVersioningData.versionConflictCode } else { $null }
+    sessionIdempotencyReplayOutcome = if ($null -ne $sessionVersioningData) { $sessionVersioningData.idempotencyReplayOutcome } else { $null }
+    sessionIdempotencyConflictCode = if ($null -ne $sessionVersioningData) { $sessionVersioningData.idempotencyConflictCode } else { $null }
+    sessionStatusRestored = if ($null -ne $sessionVersioningData) { $sessionVersioningData.restoredStatus } else { $null }
+    sessionVersioningValidated = if (
+      $null -ne $sessionVersioningData -and
+      [int]$sessionVersioningData.pausedVersion -gt [int]$sessionVersioningData.initialVersion -and
+      [string]$sessionVersioningData.pausedStatus -eq "paused" -and
+      [string]$sessionVersioningData.idempotencyReplayOutcome -eq "idempotent_replay" -and
+      [string]$sessionVersioningData.versionConflictCode -eq "API_SESSION_VERSION_CONFLICT" -and
+      [string]$sessionVersioningData.idempotencyConflictCode -eq "API_SESSION_IDEMPOTENCY_CONFLICT" -and
+      [string]$sessionVersioningData.restoredStatus -eq "active" -and
+      [int]$sessionVersioningData.restoredVersion -gt [int]$sessionVersioningData.idempotencyReplayVersion
+    ) { $true } else { $false }
     lifecycleEndpointsValidated = if ($null -ne $runtimeLifecycleData) { $true } else { $false }
     runtimeProfileValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.profileValidated } else { $false }
     analyticsRuntimeVisible = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsValidated } else { $false }

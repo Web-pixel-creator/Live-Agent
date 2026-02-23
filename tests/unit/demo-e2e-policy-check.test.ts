@@ -31,6 +31,7 @@ const requiredScenarioNames = [
   "operator.device_nodes.lifecycle",
   "api.approvals.list",
   "api.approvals.resume.invalid_intent",
+  "api.sessions.versioning",
   "runtime.lifecycle.endpoints",
   "runtime.metrics.endpoints",
 ];
@@ -100,6 +101,10 @@ function createPassingSummary(overrides?: {
     approvalsInvalidIntentStatusCode: 400,
     approvalsInvalidIntentCode: "API_INVALID_INTENT",
     approvalsRecorded: 2,
+    sessionVersioningValidated: true,
+    sessionVersionConflictCode: "API_SESSION_VERSION_CONFLICT",
+    sessionIdempotencyReplayOutcome: "idempotent_replay",
+    sessionIdempotencyConflictCode: "API_SESSION_IDEMPOTENCY_CONFLICT",
     uiAdapterMode: "remote_http",
     uiApprovalResumeRequestAttempts: 1,
     uiApprovalResumeRequestRetried: false,
@@ -187,7 +192,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 108);
+  assert.equal(result.payload.checks, 113);
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {
@@ -283,4 +288,20 @@ test("demo-e2e policy check fails when operator.device_nodes.lifecycle scenario 
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("scenario.operator.device_nodes.lifecycle")));
+});
+
+test("demo-e2e policy check fails when session versioning KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        sessionVersioningValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.sessionVersioningValidated")));
 });
