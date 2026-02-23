@@ -166,6 +166,7 @@ async function main() {
         "gateway.websocket.interrupt_signal",
         "gateway.websocket.invalid_envelope",
         "gateway.websocket.binding_mismatch",
+        "gateway.websocket.draining_rejection",
         "operator.console.actions",
         "operator.device_nodes.lifecycle",
         "api.approvals.list",
@@ -370,6 +371,30 @@ async function main() {
     "kpi.gatewayWsBindingMismatchValidated",
     kpis.gatewayWsBindingMismatchValidated === true,
     kpis.gatewayWsBindingMismatchValidated,
+    true,
+  );
+  addCheck(
+    "kpi.gatewayWsDrainingCode",
+    String(kpis.gatewayWsDrainingCode) === "GATEWAY_DRAINING",
+    kpis.gatewayWsDrainingCode,
+    "GATEWAY_DRAINING",
+  );
+  addCheck(
+    "kpi.gatewayWsDrainingTraceIdPresent",
+    kpis.gatewayWsDrainingTraceIdPresent === true,
+    kpis.gatewayWsDrainingTraceIdPresent,
+    true,
+  );
+  addCheck(
+    "kpi.gatewayWsDrainingRecoveryStatus",
+    String(kpis.gatewayWsDrainingRecoveryStatus) === "completed",
+    kpis.gatewayWsDrainingRecoveryStatus,
+    "completed",
+  );
+  addCheck(
+    "kpi.gatewayWsDrainingValidated",
+    kpis.gatewayWsDrainingValidated === true,
+    kpis.gatewayWsDrainingValidated,
     true,
   );
   addCheck(

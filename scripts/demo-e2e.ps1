@@ -1422,6 +1422,48 @@ try {
     }
   } | Out-Null
 
+  Invoke-Scenario -Name "gateway.websocket.draining_rejection" -Action {
+    $runId = "demo-gateway-ws-drain-" + [Guid]::NewGuid().Guid
+    $timeoutMs = [Math]::Max(6000, $RequestTimeoutSec * 1000)
+    $result = Invoke-NodeJsonCommand -Args @(
+      "scripts/gateway-ws-draining-check.mjs",
+      "--url",
+      "ws://localhost:8080/realtime",
+      "--sessionId",
+      $sessionId,
+      "--runId",
+      $runId,
+      "--userId",
+      $script:DemoUserId,
+      "--timeoutMs",
+      [string]$timeoutMs
+    )
+
+    $ok = [bool](Get-FieldValue -Object $result -Path @("ok"))
+    Assert-Condition -Condition $ok -Message "WebSocket draining-rejection check returned ok=false."
+
+    $drainingCode = [string](Get-FieldValue -Object $result -Path @("drainingCode"))
+    $drainingTraceId = [string](Get-FieldValue -Object $result -Path @("drainingTraceId"))
+    $recoveryStatus = [string](Get-FieldValue -Object $result -Path @("recoveryStatus"))
+    $drainState = [string](Get-FieldValue -Object $result -Path @("drainState"))
+    $warmupState = [string](Get-FieldValue -Object $result -Path @("warmupState"))
+    Assert-Condition -Condition ($drainingCode -eq "GATEWAY_DRAINING") -Message "Unexpected gateway error code for drain-mode rejection."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($drainingTraceId)) -Message "Drain-mode gateway error is missing traceId."
+    Assert-Condition -Condition ($recoveryStatus -eq "completed") -Message "Recovery websocket request should complete after warmup."
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $result -Path @("runIdBase"))
+      drainState = $drainState
+      warmupState = $warmupState
+      drainingCode = $drainingCode
+      drainingTraceId = $drainingTraceId
+      drainingTraceIdPresent = (-not [string]::IsNullOrWhiteSpace($drainingTraceId))
+      recoveryStatus = $recoveryStatus
+      recoveryRoute = [string](Get-FieldValue -Object $result -Path @("recoveryRoute"))
+      eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
+    }
+  } | Out-Null
+
   Invoke-Scenario -Name "operator.console.actions" -Action {
     $operatorHeaders = @{
       "x-operator-role" = "operator"
@@ -2084,6 +2126,7 @@ $gatewayWsReplayData = Get-ScenarioData -Name "gateway.websocket.request_replay"
 $gatewayWsInterruptData = Get-ScenarioData -Name "gateway.websocket.interrupt_signal"
 $gatewayWsInvalidData = Get-ScenarioData -Name "gateway.websocket.invalid_envelope"
 $gatewayWsBindingMismatchData = Get-ScenarioData -Name "gateway.websocket.binding_mismatch"
+$gatewayWsDrainingData = Get-ScenarioData -Name "gateway.websocket.draining_rejection"
 $operatorActionsData = Get-ScenarioData -Name "operator.console.actions"
 $approvalsListData = Get-ScenarioData -Name "api.approvals.list"
 $approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.invalid_intent"
@@ -2227,6 +2270,17 @@ $summary = [ordered]@{
       -not [string]::IsNullOrWhiteSpace([string]$gatewayWsBindingMismatchData.sessionMismatchTraceId) -and
       [string]$gatewayWsBindingMismatchData.userMismatchCode -eq "GATEWAY_USER_MISMATCH" -and
       -not [string]::IsNullOrWhiteSpace([string]$gatewayWsBindingMismatchData.userMismatchTraceId)
+    ) { $true } else { $false }
+    gatewayWsDrainingCode = if ($null -ne $gatewayWsDrainingData) { $gatewayWsDrainingData.drainingCode } else { $null }
+    gatewayWsDrainingTraceIdPresent = if ($null -ne $gatewayWsDrainingData) { $gatewayWsDrainingData.drainingTraceIdPresent } else { $false }
+    gatewayWsDrainingRecoveryStatus = if ($null -ne $gatewayWsDrainingData) { $gatewayWsDrainingData.recoveryStatus } else { $null }
+    gatewayWsDrainingValidated = if (
+      $null -ne $gatewayWsDrainingData -and
+      [string]$gatewayWsDrainingData.drainingCode -eq "GATEWAY_DRAINING" -and
+      [bool]$gatewayWsDrainingData.drainingTraceIdPresent -eq $true -and
+      [string]$gatewayWsDrainingData.recoveryStatus -eq "completed" -and
+      [string]$gatewayWsDrainingData.drainState -eq "draining" -and
+      [string]$gatewayWsDrainingData.warmupState -eq "ready"
     ) { $true } else { $false }
     operatorSummaryActiveTasks = if ($null -ne $operatorActionsData) { $operatorActionsData.summaryActiveTasks } else { $null }
     operatorCancelStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.cancelStatus } else { $null }

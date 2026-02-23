@@ -28,6 +28,7 @@ const requiredScenarioNames = [
   "gateway.websocket.interrupt_signal",
   "gateway.websocket.invalid_envelope",
   "gateway.websocket.binding_mismatch",
+  "gateway.websocket.draining_rejection",
   "operator.console.actions",
   "operator.device_nodes.lifecycle",
   "api.approvals.list",
@@ -76,6 +77,10 @@ function createPassingSummary(overrides?: {
     gatewayWsSessionMismatchCode: "GATEWAY_SESSION_MISMATCH",
     gatewayWsUserMismatchCode: "GATEWAY_USER_MISMATCH",
     gatewayWsBindingMismatchValidated: true,
+    gatewayWsDrainingCode: "GATEWAY_DRAINING",
+    gatewayWsDrainingTraceIdPresent: true,
+    gatewayWsDrainingRecoveryStatus: "completed",
+    gatewayWsDrainingValidated: true,
     operatorActionsValidated: true,
     operatorAuditTrailValidated: true,
     operatorTraceCoverageValidated: true,
@@ -196,7 +201,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 117);
+  assert.equal(result.payload.checks, 122);
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {
@@ -324,4 +329,20 @@ test("demo-e2e policy check fails when gateway websocket binding mismatch KPI is
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.gatewayWsBindingMismatchValidated")));
+});
+
+test("demo-e2e policy check fails when gateway websocket draining KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        gatewayWsDrainingValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.gatewayWsDrainingValidated")));
 });
