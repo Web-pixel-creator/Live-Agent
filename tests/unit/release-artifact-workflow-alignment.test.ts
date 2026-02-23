@@ -12,7 +12,9 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /source_run_id:/);
   assert.match(source, /artifact_name:/);
   assert.match(source, /perf_gate_mode:/);
+  assert.match(source, /strict_final_run:/);
   assert.match(source, /default:\s*auto/);
+  assert.match(source, /default:\s*false/);
   assert.match(source, /-\s*with_perf/);
   assert.match(source, /-\s*without_perf/);
   assert.match(source, /actions\/github-script@v7/);
@@ -24,8 +26,10 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /run_with_perf/);
   assert.match(source, /effective_perf_mode/);
   assert.match(source, /requested_perf_mode/);
+  assert.match(source, /strict_final_run/);
   assert.match(source, /npm run verify:release:artifact-only/);
   assert.match(source, /-SkipPerfLoad/);
+  assert.match(source, /-StrictFinalRun/);
 });
 
 test("release artifact revalidation workflow publishes consolidated artifacts", () => {

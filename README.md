@@ -432,7 +432,9 @@ Useful flags:
 - Artifact-only release revalidation workflow: `.github/workflows/release-artifact-revalidation.yml`
 - Triggered on manual dispatch.
 - Resolves latest successful `demo-e2e`/`release-strict-final` run (or uses provided `source_run_id`), downloads artifact bundle, and runs artifact-only release gate.
-- Supports manual `workflow_dispatch` input `perf_gate_mode=auto|with_perf|without_perf` for explicit operator control of perf validation behavior.
+- Supports manual `workflow_dispatch` inputs:
+  - `perf_gate_mode=auto|with_perf|without_perf` for explicit operator control of perf validation behavior.
+  - `strict_final_run=true|false` to enforce strict artifact gate (`-StrictFinalRun`).
 - Workflow auto-detects presence of `artifacts/perf-load/*`: with perf artifacts it runs `npm run verify:release:artifact-only`; without perf artifacts (for example `pr-quality-artifacts`) it runs `release-readiness.ps1` with `-SkipPerfLoad`.
 - Local equivalent helper: `npm run verify:release:artifact:revalidate` (uses `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_TOKEN` or `GH_TOKEN`; supports strict mode and auto-skip for missing perf artifacts).
 

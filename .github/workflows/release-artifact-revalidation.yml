@@ -20,6 +20,11 @@ on:
           - auto
           - with_perf
           - without_perf
+      strict_final_run:
+        description: Enforce strict artifact gate (scenario retries must remain zero)
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   release-artifact-revalidation:
@@ -184,27 +189,52 @@ jobs:
             }
           }
 
+          $requestedStrictRaw = "${{ github.event.inputs.strict_final_run }}"
+          if ([string]::IsNullOrWhiteSpace($requestedStrictRaw)) {
+            $requestedStrictRaw = "false"
+          }
+          $requestedStrictMode = $requestedStrictRaw.ToLowerInvariant()
+          if (@("true", "false") -notcontains $requestedStrictMode) {
+            Write-Error "Unsupported strict_final_run value: $requestedStrictRaw. Allowed values: true|false."
+            exit 1
+          }
+
           "requested_perf_mode=$requestedPerfMode" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "has_perf_artifacts=$($hasPerfArtifacts.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "run_with_perf=$($runWithPerf.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "effective_perf_mode=$effectivePerfMode" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "strict_final_run=$requestedStrictMode" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
           if ($runWithPerf) {
-            Write-Host "Perf gate mode: $effectivePerfMode (requested=$requestedPerfMode, hasPerfArtifacts=$hasPerfArtifacts)."
+            Write-Host "Perf gate mode: $effectivePerfMode (requested=$requestedPerfMode, hasPerfArtifacts=$hasPerfArtifacts). strict_final_run=$requestedStrictMode."
           } else {
-            Write-Host "Perf gate mode: $effectivePerfMode (requested=$requestedPerfMode, hasPerfArtifacts=$hasPerfArtifacts). Running with -SkipPerfLoad."
+            Write-Host "Perf gate mode: $effectivePerfMode (requested=$requestedPerfMode, hasPerfArtifacts=$hasPerfArtifacts). strict_final_run=$requestedStrictMode. Running with -SkipPerfLoad."
           }
 
-      - name: Run Artifact-Only Release Revalidation (With Perf Artifacts)
-        if: steps.inspect_artifacts.outputs.run_with_perf == 'true'
+      - name: Run Artifact-Only Release Revalidation (With Perf Artifacts, Standard)
+        if: steps.inspect_artifacts.outputs.run_with_perf == 'true' && steps.inspect_artifacts.outputs.strict_final_run != 'true'
         run: npm run verify:release:artifact-only
         shell: powershell
 
-      - name: Run Artifact-Only Release Revalidation (No Perf Artifacts)
-        if: steps.inspect_artifacts.outputs.run_with_perf != 'true'
+      - name: Run Artifact-Only Release Revalidation (With Perf Artifacts, Strict)
+        if: steps.inspect_artifacts.outputs.run_with_perf == 'true' && steps.inspect_artifacts.outputs.strict_final_run == 'true'
+        run: >
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1
+          -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipDemoE2E -SkipPolicy -SkipBadge -SkipPerfRun -StrictFinalRun
+        shell: powershell
+
+      - name: Run Artifact-Only Release Revalidation (No Perf Artifacts, Standard)
+        if: steps.inspect_artifacts.outputs.run_with_perf != 'true' && steps.inspect_artifacts.outputs.strict_final_run != 'true'
         run: >
           powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1
           -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipDemoE2E -SkipPolicy -SkipBadge -SkipPerfLoad -SkipPerfRun
+        shell: powershell
+
+      - name: Run Artifact-Only Release Revalidation (No Perf Artifacts, Strict)
+        if: steps.inspect_artifacts.outputs.run_with_perf != 'true' && steps.inspect_artifacts.outputs.strict_final_run == 'true'
+        run: >
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1
+          -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipDemoE2E -SkipPolicy -SkipBadge -SkipPerfLoad -SkipPerfRun -StrictFinalRun
         shell: powershell
 
       - name: Publish Artifact Revalidation Summary
@@ -214,6 +244,7 @@ jobs:
           ("Source run id: ${{ steps.resolve_source.outputs.run_id }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Artifact bundle: ${{ steps.resolve_source.outputs.artifact_name }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Requested perf mode: ${{ steps.inspect_artifacts.outputs.requested_perf_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Strict final run: ${{ steps.inspect_artifacts.outputs.strict_final_run }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Perf artifacts detected: ${{ steps.inspect_artifacts.outputs.has_perf_artifacts }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Effective perf mode: ${{ steps.inspect_artifacts.outputs.effective_perf_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           if (Test-Path "artifacts/demo-e2e/summary.md") {
