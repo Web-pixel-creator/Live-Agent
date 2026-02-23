@@ -111,6 +111,8 @@ type UiTraceStep = {
 
 type ExecutorMode = "simulated" | "playwright_preview" | "remote_http";
 
+type RemoteHttpFallbackMode = "simulated" | "failed";
+
 type PlannerConfig = {
   apiKey: string | null;
   baseUrl: string;
@@ -123,6 +125,7 @@ type PlannerConfig = {
   maxStepsDefault: number;
   approvalKeywords: string[];
   executorMode: ExecutorMode;
+  remoteHttpFallbackMode: RemoteHttpFallbackMode;
   executorUrl: string | null;
   deviceNodeIndexUrl: string | null;
   deviceNodeIndexAuthToken: string | null;
@@ -314,6 +317,14 @@ function parseExecutorMode(raw: string | undefined): ExecutorMode {
   }
   if (raw === "remote_http") {
     return "remote_http";
+  }
+  return "simulated";
+}
+
+function parseRemoteHttpFallbackMode(raw: string | undefined): RemoteHttpFallbackMode {
+  const normalized = toNonEmptyString(raw, "").toLowerCase();
+  if (normalized === "failed" || normalized === "fail" || normalized === "strict") {
+    return "failed";
   }
   return "simulated";
 }
@@ -626,6 +637,7 @@ function getPlannerConfig(): PlannerConfig {
     maxStepsDefault: parsePositiveInt(process.env.UI_NAVIGATOR_MAX_STEPS, 8),
     approvalKeywords,
     executorMode: parseExecutorMode(process.env.UI_NAVIGATOR_EXECUTOR_MODE),
+    remoteHttpFallbackMode: parseRemoteHttpFallbackMode(process.env.UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE),
     executorUrl: toNullableString(process.env.UI_NAVIGATOR_EXECUTOR_URL),
     deviceNodeIndexUrl: toNullableString(process.env.UI_NAVIGATOR_DEVICE_NODE_INDEX_URL),
     deviceNodeIndexAuthToken: toNullableString(process.env.UI_NAVIGATOR_DEVICE_NODE_INDEX_AUTH_TOKEN),
@@ -1743,6 +1755,58 @@ async function executeActionPlan(params: {
   input: UiTaskInput;
   routing: DeviceNodeResolution;
 }): Promise<ExecutionResult> {
+  function buildRemoteHttpFallbackResult(message: string): ExecutionResult {
+    const grounding = buildGroundingSignalSummary(params.input);
+    if (params.config.remoteHttpFallbackMode === "failed") {
+      const firstAction = params.actions[0];
+      const failedTrace: UiTraceStep[] = [
+        {
+          index: 1,
+          actionId: firstAction?.id ?? "remote-http-failure",
+          actionType: firstAction?.type ?? "verify",
+          target: firstAction?.target ?? "remote-http",
+          status: "failed",
+          screenshotRef: `${params.screenshotSeed}/remote-http-failure.png`,
+          notes: `Remote HTTP execution failed: ${message}`,
+        },
+      ];
+      return defaultExecutionResult({
+        trace: failedTrace,
+        finalStatus: "failed",
+        retries: 0,
+        executor: "remote-http-adapter",
+        adapterMode: "remote_http",
+        adapterNotes: [
+          `remote_http strict failure: ${message}`,
+          groundingAdapterNote(grounding),
+          ...params.routing.notes,
+        ],
+        deviceNode: params.routing.selectedNode,
+        grounding,
+      });
+    }
+
+    const fallbackSimulation = simulateExecution({
+      actions: params.actions,
+      screenshotSeed: params.screenshotSeed,
+      simulateFailureAtStep: params.input.simulateFailureAtStep,
+    });
+    return defaultExecutionResult({
+      trace: fallbackSimulation.trace,
+      finalStatus: fallbackSimulation.finalStatus,
+      retries: fallbackSimulation.retries,
+      executor: "playwright-adapter",
+      adapterMode: "simulated",
+      adapterNotes: [
+        `remote_http fallback: ${message}`,
+        groundingAdapterNote(grounding),
+        ...params.routing.notes,
+      ],
+      deviceNode: params.routing.selectedNode,
+      grounding,
+    });
+  }
+
   let fallbackNote: string | null = null;
 
   if (params.config.executorMode === "remote_http") {
@@ -1751,30 +1815,12 @@ async function executeActionPlan(params: {
       if (remoteResult) {
         return remoteResult;
       }
-      fallbackNote = params.routing.executorUrl
-        ? "remote_http adapter returned no result, switched to simulation"
-        : "remote_http mode requested without executor URL, switched to simulation";
+      const missingResultMessage = params.routing.executorUrl
+        ? "remote_http adapter returned no result"
+        : "remote_http mode requested without executor URL";
+      return buildRemoteHttpFallbackResult(missingResultMessage);
     } catch (error) {
-      const fallbackSimulation = simulateExecution({
-        actions: params.actions,
-        screenshotSeed: params.screenshotSeed,
-        simulateFailureAtStep: params.input.simulateFailureAtStep,
-      });
-      const grounding = buildGroundingSignalSummary(params.input);
-      return defaultExecutionResult({
-        trace: fallbackSimulation.trace,
-        finalStatus: fallbackSimulation.finalStatus,
-        retries: fallbackSimulation.retries,
-        executor: "playwright-adapter",
-        adapterMode: "simulated",
-        adapterNotes: [
-          `remote_http fallback: ${error instanceof Error ? error.message : String(error)}`,
-          groundingAdapterNote(grounding),
-          ...params.routing.notes,
-        ],
-        deviceNode: params.routing.selectedNode,
-        grounding,
-      });
+      return buildRemoteHttpFallbackResult(error instanceof Error ? error.message : String(error));
     }
   }
 

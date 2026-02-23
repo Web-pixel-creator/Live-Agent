@@ -346,6 +346,47 @@ test("ui navigator fails when requested device node is missing", async () => {
   );
 });
 
+test("ui navigator supports strict remote_http fallback mode", async () => {
+  await withEnv(
+    {
+      UI_NAVIGATOR_USE_GEMINI_PLANNER: "false",
+      UI_NAVIGATOR_EXECUTOR_MODE: "remote_http",
+      UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE: "failed",
+      UI_NAVIGATOR_EXECUTOR_URL: "http://127.0.0.1:65530",
+      UI_NAVIGATOR_SANDBOX_POLICY_MODE: "off",
+    },
+    async () => {
+      const request = createEnvelope({
+        userId: "strict-user",
+        sessionId: "strict-session",
+        runId: "strict-run",
+        type: "orchestrator.request",
+        source: "frontend",
+        payload: {
+          intent: "ui_task",
+          input: {
+            goal: "Open page and verify content",
+            url: "https://example.com",
+          },
+        },
+      }) as OrchestratorRequest;
+
+      const response = await runUiNavigatorAgent(request);
+      assert.equal(response.payload.status, "failed");
+
+      const output = asObject(response.payload.output);
+      const execution = asObject(output.execution);
+      const trace = Array.isArray(execution.trace) ? execution.trace : [];
+      const adapterNotes = Array.isArray(execution.adapterNotes) ? execution.adapterNotes : [];
+
+      assert.equal(execution.finalStatus, "failed");
+      assert.equal(execution.adapterMode, "remote_http");
+      assert.equal(trace.length, 1);
+      assert.match(String(adapterNotes.join(" ")), /strict failure/i);
+    },
+  );
+});
+
 test("ui navigator blocks planned action loops with failed_loop diagnostics", async () => {
   await withEnv(
     {
