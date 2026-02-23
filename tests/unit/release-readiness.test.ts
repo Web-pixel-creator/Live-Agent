@@ -36,6 +36,7 @@ function createPassingSummary(
     serviceStartRetryBackoffMs: number | string;
     analyticsSplitTargetsValidated: boolean | string;
     assistiveRouterDiagnosticsValidated: boolean | string;
+    assistiveRouterMode: string;
     transportModeValidated: boolean | string;
     gatewayTransportRequestedMode: string;
     gatewayTransportActiveMode: string;
@@ -70,6 +71,7 @@ function createPassingSummary(
       assistiveRouterDiagnosticsValidated: hasOverride("assistiveRouterDiagnosticsValidated")
         ? overrides.assistiveRouterDiagnosticsValidated
         : true,
+      assistiveRouterMode: hasOverride("assistiveRouterMode") ? overrides.assistiveRouterMode : "deterministic",
       transportModeValidated: hasOverride("transportModeValidated") ? overrides.transportModeValidated : true,
       gatewayTransportRequestedMode: hasOverride("gatewayTransportRequestedMode")
         ? overrides.gatewayTransportRequestedMode
@@ -263,6 +265,18 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /assistiveRouterDiagnosticsValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when assistive router mode is invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ assistiveRouterMode: "unknown" }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /assistiveRouterMode expected/i);
+    assert.match(output, /actual unknown/i);
   },
 );
 

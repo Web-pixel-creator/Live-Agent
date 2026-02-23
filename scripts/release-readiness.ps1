@@ -237,6 +237,11 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     Fail ("Critical KPI check failed: assistiveRouterDiagnosticsValidated expected True, actual " + $summary.kpis.assistiveRouterDiagnosticsValidated)
   }
 
+  $assistiveRouterMode = [string]$summary.kpis.assistiveRouterMode
+  if (@("deterministic", "assistive_override", "assistive_match", "assistive_fallback") -notcontains $assistiveRouterMode) {
+    Fail ("Critical KPI check failed: assistiveRouterMode expected deterministic|assistive_override|assistive_match|assistive_fallback, actual " + $assistiveRouterMode)
+  }
+
   $transportModeValidated = To-BoolOrNull $summary.kpis.transportModeValidated
   if ($transportModeValidated -ne $true) {
     Fail ("Critical KPI check failed: transportModeValidated expected True, actual " + $summary.kpis.transportModeValidated)
