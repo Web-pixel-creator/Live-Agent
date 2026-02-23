@@ -1,0 +1,214 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { spawnSync } from "node:child_process";
+
+type PolicyRunResult = {
+  exitCode: number;
+  payload: Record<string, unknown>;
+};
+
+const policyScriptPath = resolve(process.cwd(), "scripts", "demo-e2e-policy-check.mjs");
+
+const requiredScenarioNames = [
+  "live.translation",
+  "live.negotiation",
+  "storyteller.pipeline",
+  "ui.approval.request",
+  "ui.approval.reject",
+  "ui.approval.approve_resume",
+  "ui.sandbox.policy_modes",
+  "ui.visual_testing",
+  "multi_agent.delegation",
+  "gateway.websocket.roundtrip",
+  "gateway.websocket.task_progress",
+  "gateway.websocket.request_replay",
+  "gateway.websocket.interrupt_signal",
+  "gateway.websocket.invalid_envelope",
+  "operator.console.actions",
+  "api.approvals.list",
+  "api.approvals.resume.invalid_intent",
+  "runtime.lifecycle.endpoints",
+  "runtime.metrics.endpoints",
+];
+
+function createPassingSummary(overrides?: {
+  kpis?: Record<string, unknown>;
+  scenarios?: Array<Record<string, unknown>>;
+}): Record<string, unknown> {
+  const scenarios =
+    overrides?.scenarios ??
+    requiredScenarioNames.map((name) => ({
+      name,
+      status: "passed",
+      elapsedMs: name === "ui.approval.approve_resume" ? 12_000 : 50,
+      data: {},
+    }));
+
+  const kpis: Record<string, unknown> = {
+    negotiationConstraintsSatisfied: true,
+    negotiationRequiresUserConfirmation: true,
+    storytellerMediaMode: "simulated",
+    storytellerVideoAsync: true,
+    storytellerVideoJobsCount: 1,
+    storytellerVideoPendingCount: 1,
+    storytellerVideoAsyncValidated: true,
+    storytellerMediaQueueVisible: true,
+    storytellerMediaQueueWorkers: 1,
+    storytellerMediaQueueQuotaEntries: 1,
+    storytellerMediaQueueQuotaModelSeen: true,
+    storytellerMediaQueueQuotaValidated: true,
+    storytellerCacheEnabled: true,
+    storytellerCacheHits: 1,
+    storytellerCacheHitValidated: true,
+    storytellerCacheInvalidationValidated: true,
+    gatewayWsResponseStatus: "completed",
+    gatewayInterruptHandled: true,
+    gatewayInterruptEventType: "live.interrupt.requested",
+    gatewayWsInvalidEnvelopeCode: "GATEWAY_INVALID_ENVELOPE",
+    operatorActionsValidated: true,
+    operatorAuditTrailValidated: true,
+    operatorTraceCoverageValidated: true,
+    operatorLiveBridgeHealthBlockValidated: true,
+    operatorLiveBridgeProbeTelemetryValidated: true,
+    operatorLiveBridgeHealthState: "healthy",
+    operatorLiveBridgeHealthConnectTimeoutEvents: 0,
+    operatorLiveBridgeHealthProbeStartedEvents: 0,
+    operatorLiveBridgeHealthPingSentEvents: 0,
+    operatorLiveBridgeHealthPongEvents: 0,
+    operatorLiveBridgeHealthPingErrorEvents: 0,
+    operatorFailoverForbiddenCode: "API_OPERATOR_ADMIN_REQUIRED",
+    operatorFailoverDrainState: "draining",
+    operatorFailoverWarmupState: "ready",
+    operatorDeviceNodeLookupValidated: true,
+    operatorDeviceNodeLookupStatus: "degraded",
+    operatorDeviceNodeLookupVersion: 3,
+    operatorDeviceNodeCreatedVersion: 1,
+    operatorDeviceNodeUpdatedVersion: 2,
+    operatorDeviceNodeVersionConflictValidated: true,
+    operatorDeviceNodeVersionConflictStatusCode: 409,
+    operatorDeviceNodeVersionConflictCode: "API_DEVICE_NODE_VERSION_CONFLICT",
+    operatorDeviceNodeHealthSummaryValidated: true,
+    operatorDeviceNodeSummaryTotal: 1,
+    operatorDeviceNodeSummaryDegraded: 1,
+    operatorDeviceNodeSummaryRecentContainsLookup: true,
+    approvalsInvalidIntentStatusCode: 400,
+    approvalsInvalidIntentCode: "API_INVALID_INTENT",
+    approvalsRecorded: 2,
+    uiAdapterMode: "remote_http",
+    uiApprovalResumeRequestAttempts: 1,
+    uiApprovalResumeRequestRetried: false,
+    sandboxPolicyValidated: true,
+    visualTestingStatus: "passed",
+    visualRegressionCount: 0,
+    visualChecksCount: 3,
+    visualComparatorMode: "fallback_heuristic",
+    visualTestingValidated: true,
+    uiGroundingDomSeen: true,
+    uiGroundingAccessibilitySeen: true,
+    uiGroundingMarkHintsCount: 2,
+    uiGroundingAdapterNoteSeen: true,
+    uiGroundingSignalsValidated: true,
+    gatewayWsRoundTripMs: 120,
+    sessionRunBindingValidated: true,
+    sessionStateTransitionsObserved: 3,
+    taskProgressEventsObserved: 1,
+    activeTasksVisible: 1,
+    gatewayRequestReplayValidated: true,
+    translationProvider: "fallback",
+    lifecycleEndpointsValidated: true,
+    runtimeProfileValidated: true,
+    analyticsRuntimeVisible: true,
+    analyticsServicesValidated: 3,
+    transportModeValidated: true,
+    transportServicesValidated: 1,
+    gatewayTransportRequestedMode: "websocket",
+    gatewayTransportActiveMode: "websocket",
+    gatewayTransportFallbackActive: false,
+    metricsEndpointsValidated: true,
+    metricsServicesValidated: 3,
+    capabilityAdaptersValidated: true,
+    ...(overrides?.kpis ?? {}),
+  };
+
+  return {
+    generatedAt: new Date().toISOString(),
+    success: true,
+    scenarios,
+    kpis,
+  };
+}
+
+function parseJsonFromStream(streamValue: string): Record<string, unknown> {
+  const lines = streamValue
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  const lastLine = lines[lines.length - 1];
+  return JSON.parse(lastLine) as Record<string, unknown>;
+}
+
+function runPolicyCheck(summary: Record<string, unknown>): PolicyRunResult {
+  const tempDir = mkdtempSync(join(tmpdir(), "mla-policy-check-"));
+  try {
+    const inputPath = join(tempDir, "summary.json");
+    const markdownOutputPath = join(tempDir, "policy-check.md");
+    const jsonOutputPath = join(tempDir, "policy-check.json");
+    writeFileSync(inputPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
+
+    const result = spawnSync(
+      process.execPath,
+      [policyScriptPath, "--input", inputPath, "--output", markdownOutputPath, "--jsonOutput", jsonOutputPath],
+      {
+        encoding: "utf8",
+      },
+    );
+    const exitCode = result.status ?? 1;
+    const payloadSource = exitCode === 0 ? result.stdout : result.stderr;
+    const payload = parseJsonFromStream(payloadSource);
+    return { exitCode, payload };
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
+test("demo-e2e policy check passes with baseline passing summary", () => {
+  const result = runPolicyCheck(createPassingSummary());
+  assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
+  assert.equal(result.payload.ok, true);
+  assert.equal(result.payload.checks, 102);
+});
+
+test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        uiApprovalResumeRequestAttempts: 3,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.uiApprovalResumeRequestAttempts")));
+});
+
+test("demo-e2e policy check fails when approve-resume scenario exceeds elapsed threshold", () => {
+  const summary = createPassingSummary();
+  const scenarios = (summary.scenarios as Array<Record<string, unknown>>).map((item) =>
+    item.name === "ui.approval.approve_resume" ? { ...item, elapsedMs: 80_001 } : item,
+  );
+  summary.scenarios = scenarios;
+
+  const result = runPolicyCheck(summary);
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("scenario.ui.approval.approve_resume.elapsedMs")));
+});
