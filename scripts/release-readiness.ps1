@@ -25,6 +25,28 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$ReleaseThresholds = @{
+  MaxGatewayWsRoundTripMs = 1800
+  MaxGatewayInterruptLatencyMs = 300
+  MinServiceStartMaxAttempts = 2
+  MinServiceStartRetryBackoffMs = 300
+}
+
+function To-NumberOrNaN([object]$Value) {
+  if ($null -eq $Value) {
+    return [double]::NaN
+  }
+  $raw = [string]$Value
+  if ([string]::IsNullOrWhiteSpace($raw)) {
+    return [double]::NaN
+  }
+  $parsed = 0.0
+  if ([double]::TryParse($raw, [ref]$parsed)) {
+    return $parsed
+  }
+  return [double]::NaN
+}
+
 function Fail([string]$Message) {
   Write-Error $Message
   exit 1
@@ -157,6 +179,35 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $taskQueuePendingApproval = [int]$summary.kpis.operatorTaskQueuePendingApproval
   if ($taskQueuePendingApproval -lt 0) {
     Fail ("Critical KPI check failed: operatorTaskQueuePendingApproval expected >= 0, actual " + $taskQueuePendingApproval)
+  }
+
+  $gatewayRoundTrip = To-NumberOrNaN $summary.kpis.gatewayWsRoundTripMs
+  if ([double]::IsNaN($gatewayRoundTrip)) {
+    Fail "Critical KPI check failed: gatewayWsRoundTripMs is missing or invalid"
+  }
+  if ($gatewayRoundTrip -gt $ReleaseThresholds.MaxGatewayWsRoundTripMs) {
+    Fail ("Critical KPI check failed: gatewayWsRoundTripMs expected <= " + $ReleaseThresholds.MaxGatewayWsRoundTripMs + ", actual " + $gatewayRoundTrip)
+  }
+
+  $gatewayInterruptLatencyMs = To-NumberOrNaN $summary.kpis.gatewayInterruptLatencyMs
+  $gatewayInterruptEventType = [string]$summary.kpis.gatewayInterruptEventType
+  $gatewayInterruptUnavailable = $gatewayInterruptEventType -eq "live.bridge.unavailable"
+  if ([double]::IsNaN($gatewayInterruptLatencyMs)) {
+    if (-not $gatewayInterruptUnavailable) {
+      Fail ("Critical KPI check failed: gatewayInterruptLatencyMs is missing and gatewayInterruptEventType is not live.bridge.unavailable (actual " + $gatewayInterruptEventType + ")")
+    }
+  } elseif ($gatewayInterruptLatencyMs -gt $ReleaseThresholds.MaxGatewayInterruptLatencyMs) {
+    Fail ("Critical KPI check failed: gatewayInterruptLatencyMs expected <= " + $ReleaseThresholds.MaxGatewayInterruptLatencyMs + ", actual " + $gatewayInterruptLatencyMs)
+  }
+
+  $serviceStartMaxAttempts = To-NumberOrNaN $summary.options.serviceStartMaxAttempts
+  if ([double]::IsNaN($serviceStartMaxAttempts) -or $serviceStartMaxAttempts -lt $ReleaseThresholds.MinServiceStartMaxAttempts) {
+    Fail ("Critical KPI check failed: options.serviceStartMaxAttempts expected >= " + $ReleaseThresholds.MinServiceStartMaxAttempts + ", actual " + $summary.options.serviceStartMaxAttempts)
+  }
+
+  $serviceStartRetryBackoffMs = To-NumberOrNaN $summary.options.serviceStartRetryBackoffMs
+  if ([double]::IsNaN($serviceStartRetryBackoffMs) -or $serviceStartRetryBackoffMs -lt $ReleaseThresholds.MinServiceStartRetryBackoffMs) {
+    Fail ("Critical KPI check failed: options.serviceStartRetryBackoffMs expected >= " + $ReleaseThresholds.MinServiceStartRetryBackoffMs + ", actual " + $summary.options.serviceStartRetryBackoffMs)
   }
 }
 

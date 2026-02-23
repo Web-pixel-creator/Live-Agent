@@ -29,6 +29,11 @@ function createPassingSummary(
     queueTotal: number;
     queueStale: number;
     queuePending: number;
+    gatewayRoundTripMs: number;
+    gatewayInterruptLatencyMs: number | null;
+    gatewayInterruptEventType: string;
+    serviceStartMaxAttempts: number | string;
+    serviceStartRetryBackoffMs: number | string;
   }> = {},
 ): Record<string, unknown> {
   return {
@@ -47,6 +52,13 @@ function createPassingSummary(
       operatorTaskQueueTotal: overrides.queueTotal ?? 1,
       operatorTaskQueueStaleCount: overrides.queueStale ?? 0,
       operatorTaskQueuePendingApproval: overrides.queuePending ?? 0,
+      gatewayWsRoundTripMs: overrides.gatewayRoundTripMs ?? 120,
+      gatewayInterruptLatencyMs: overrides.gatewayInterruptLatencyMs ?? 120,
+      gatewayInterruptEventType: overrides.gatewayInterruptEventType ?? "live.interrupt.requested",
+    },
+    options: {
+      serviceStartMaxAttempts: overrides.serviceStartMaxAttempts ?? "2",
+      serviceStartRetryBackoffMs: overrides.serviceStartRetryBackoffMs ?? "1200",
     },
   };
 }
@@ -138,5 +150,27 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /operatorTaskQueueTotal expected >= 1, actual 0/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway websocket roundtrip exceeds threshold",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ gatewayRoundTripMs: 2001 }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /gatewayWsRoundTripMs expected <= 1800, actual 2001/i);
+  },
+);
+
+test(
+  "release-readiness fails when service startup max attempts are below minimum",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ serviceStartMaxAttempts: "1" }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /options\.serviceStartMaxAttempts expected >= 2, actual 1/i);
   },
 );
