@@ -25,6 +25,7 @@
     "infra:observability:check": "node ./scripts/observability-artifact-check.mjs --baseDir ./artifacts/observability",
     "verify:pr": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/pr-quality.ps1",
     "verify:release": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1",
+    "verify:release:strict": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1 -StrictFinalRun",
     "repo:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-repo-publish.ps1",
     "badge:pages:enable": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-pages-enable.ps1",
     "badge:pages:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-pages-badge-check.ps1",

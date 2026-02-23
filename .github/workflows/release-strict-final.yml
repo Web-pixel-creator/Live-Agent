@@ -38,7 +38,7 @@ jobs:
         shell: powershell
 
       - name: Run Release Strict Final Gate
-        run: npm run verify:release -- -StrictFinalRun
+        run: npm run verify:release:strict
         shell: powershell
 
       - name: Publish Release Report To Job Summary

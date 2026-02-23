@@ -19,8 +19,10 @@ npm run verify:release -- -DemoRunMaxAttempts 3 -DemoRunRetryBackoffMs 3000 -Dem
 ```
 For final pre-submission validation, enforce strict no-retry discipline:
 ```powershell
-npm run verify:release -- -StrictFinalRun
+npm run verify:release:strict
 ```
+This alias maps to `verify:release -- -StrictFinalRun`.
+Optional CI equivalent: run GitHub workflow `.github/workflows/release-strict-final.yml` (manual `workflow_dispatch`) for the same strict gate + artifact bundle.
 2. Start services for live walkthrough:
 ```powershell
 npm run dev:ui-executor
@@ -69,7 +71,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `options.scenarioRetryMaxAttempts >= 2`
   - `options.scenarioRetryBackoffMs >= 500`
   - `kpi.scenarioRetriesUsedCount <= 2`
-  - strict final run (`-StrictFinalRun`) enforces `kpi.scenarioRetriesUsedCount = 0`
+  - strict final run (`npm run verify:release:strict`) enforces `kpi.scenarioRetriesUsedCount = 0`
   - `kpi.uiVisualTestingScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.operatorConsoleActionsScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.scenarioRetryableFailuresTotal >= 0`

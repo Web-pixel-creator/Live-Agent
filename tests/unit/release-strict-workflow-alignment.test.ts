@@ -11,7 +11,7 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /workflow_dispatch:/);
   assert.match(source, /push:\s*\r?\n\s*branches:\s*\r?\n\s*-\s*main[\s\S]*-\s*master/);
   assert.match(source, /Run Release Strict Final Gate/);
-  assert.match(source, /npm run verify:release -- -StrictFinalRun/);
+  assert.match(source, /npm run verify:release:strict/);
   assert.match(source, /release-strict-final-\$\{\{ github\.ref \}\}/);
 });
 
@@ -25,4 +25,14 @@ test("release strict workflow publishes release-critical artifacts", () => {
   assert.match(source, /artifacts\/demo-e2e\/badge\.json/);
   assert.match(source, /artifacts\/perf-load\/summary\.json/);
   assert.match(source, /artifacts\/perf-load\/policy-check\.json/);
+});
+
+test("strict release npm script stays aligned with release-readiness strict flag", () => {
+  const packagePath = resolve(process.cwd(), "package.json");
+  const pkgRaw = readFileSync(packagePath, "utf8");
+  const pkg = JSON.parse(pkgRaw) as { scripts?: Record<string, string> };
+  const strictScript = pkg.scripts?.["verify:release:strict"] ?? "";
+
+  assert.match(strictScript, /release-readiness\.ps1/);
+  assert.match(strictScript, /-StrictFinalRun/);
 });
