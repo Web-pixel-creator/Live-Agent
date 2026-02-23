@@ -76,6 +76,14 @@ const el = {
   operatorHealthPongs: document.getElementById("operatorHealthPongs"),
   operatorHealthPingErrors: document.getElementById("operatorHealthPingErrors"),
   operatorHealthProbeSuccess: document.getElementById("operatorHealthProbeSuccess"),
+  operatorUiExecutorStatus: document.getElementById("operatorUiExecutorStatus"),
+  operatorUiExecutorState: document.getElementById("operatorUiExecutorState"),
+  operatorUiExecutorHealthy: document.getElementById("operatorUiExecutorHealthy"),
+  operatorUiExecutorProfile: document.getElementById("operatorUiExecutorProfile"),
+  operatorUiExecutorVersion: document.getElementById("operatorUiExecutorVersion"),
+  operatorUiExecutorLastAction: document.getElementById("operatorUiExecutorLastAction"),
+  operatorUiExecutorLastOutcome: document.getElementById("operatorUiExecutorLastOutcome"),
+  operatorUiExecutorHint: document.getElementById("operatorUiExecutorHint"),
   deviceNodeId: document.getElementById("deviceNodeId"),
   deviceNodeDisplayName: document.getElementById("deviceNodeDisplayName"),
   deviceNodeKind: document.getElementById("deviceNodeKind"),
@@ -403,6 +411,27 @@ function setOperatorHealthHint(text, variant = "neutral") {
   el.operatorHealthHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorUiExecutorHint(text, variant = "neutral") {
+  if (!el.operatorUiExecutorHint) {
+    return;
+  }
+  el.operatorUiExecutorHint.textContent = text;
+  el.operatorUiExecutorHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorUiExecutorHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorUiExecutorHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorUiExecutorHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorUiExecutorHint.classList.add("operator-health-hint-neutral");
+}
+
 function resetOperatorHealthWidget(reason = "no_data") {
   setText(el.operatorHealthState, "unknown");
   setText(el.operatorHealthLastEventType, "-");
@@ -420,6 +449,17 @@ function resetOperatorHealthWidget(reason = "no_data") {
   setText(el.operatorHealthProbeSuccess, "n/a");
   setOperatorHealthHint("Refresh summary to evaluate recovery actions.", "neutral");
   setStatusPill(el.operatorHealthStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorUiExecutorWidget(reason = "no_data") {
+  setText(el.operatorUiExecutorState, "unknown");
+  setText(el.operatorUiExecutorHealthy, "unknown");
+  setText(el.operatorUiExecutorProfile, "n/a");
+  setText(el.operatorUiExecutorVersion, "n/a");
+  setText(el.operatorUiExecutorLastAction, "-");
+  setText(el.operatorUiExecutorLastOutcome, "-");
+  setOperatorUiExecutorHint("Refresh summary to inspect ui-executor failover state.", "neutral");
+  setStatusPill(el.operatorUiExecutorStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function renderOperatorHealthWidget(liveBridgeHealth) {
@@ -476,6 +516,76 @@ function renderOperatorHealthWidget(liveBridgeHealth) {
   const statusText = probeSuccessPct === null ? `state=${bridgeState}` : `state=${bridgeState} probe=${probeSuccessText}`;
   setStatusPill(el.operatorHealthStatus, statusText, statusVariant);
   setOperatorHealthHint(recoveryHint, recoveryHintVariant);
+}
+
+function renderOperatorUiExecutorWidget(uiExecutorService, lastFailoverAction) {
+  if (!uiExecutorService || typeof uiExecutorService !== "object") {
+    resetOperatorUiExecutorWidget("no_data");
+    return;
+  }
+
+  const serviceState = typeof uiExecutorService.state === "string" ? uiExecutorService.state : "unknown";
+  const healthy = uiExecutorService.healthy === true;
+  const profileName =
+    uiExecutorService.profile && typeof uiExecutorService.profile === "object" && typeof uiExecutorService.profile.profile === "string"
+      ? uiExecutorService.profile.profile
+      : "n/a";
+  const profileEnv =
+    uiExecutorService.profile && typeof uiExecutorService.profile === "object" && typeof uiExecutorService.profile.environment === "string"
+      ? uiExecutorService.profile.environment
+      : "n/a";
+  const version = typeof uiExecutorService.version === "string" && uiExecutorService.version.trim().length > 0
+    ? uiExecutorService.version.trim()
+    : "n/a";
+  const actionOperation =
+    lastFailoverAction && typeof lastFailoverAction === "object" && typeof lastFailoverAction.operation === "string"
+      ? lastFailoverAction.operation
+      : null;
+  const actionName =
+    lastFailoverAction && typeof lastFailoverAction === "object" && typeof lastFailoverAction.action === "string"
+      ? lastFailoverAction.action
+      : null;
+  const actionOutcome =
+    lastFailoverAction && typeof lastFailoverAction === "object" && typeof lastFailoverAction.outcome === "string"
+      ? lastFailoverAction.outcome
+      : null;
+
+  setText(el.operatorUiExecutorState, serviceState);
+  setText(el.operatorUiExecutorHealthy, healthy ? "yes" : "no");
+  setText(el.operatorUiExecutorProfile, `${profileName}/${profileEnv}`);
+  setText(el.operatorUiExecutorVersion, version);
+  setText(el.operatorUiExecutorLastAction, actionOperation ?? actionName ?? "-");
+  setText(el.operatorUiExecutorLastOutcome, actionOutcome ?? "-");
+
+  let statusVariant = "ok";
+  let hintVariant = "ok";
+  let hint = "ui-executor is ready. No manual failover action required.";
+
+  if (!healthy) {
+    statusVariant = "fail";
+    hintVariant = "fail";
+    hint =
+      "ui-executor is unavailable. Use admin failover: target `ui-executor` -> `Failover Drain`, then `Failover Warmup` after health recovery.";
+  } else if (serviceState === "draining") {
+    statusVariant = "neutral";
+    hintVariant = "warn";
+    hint = "ui-executor is draining. Run `Failover Warmup` when safe to accept new execute requests.";
+  } else if (actionOutcome === "failed" || actionOutcome === "denied") {
+    statusVariant = "fail";
+    hintVariant = "fail";
+    hint = `Last ui-executor failover action ended as ${actionOutcome}. Re-run action with admin role and verify service health.`;
+  } else if (serviceState !== "ready") {
+    statusVariant = "neutral";
+    hintVariant = "warn";
+    hint = "ui-executor state is not ready. Refresh summary and verify failover sequence.";
+  }
+
+  setStatusPill(
+    el.operatorUiExecutorStatus,
+    `state=${serviceState} healthy=${healthy ? "yes" : "no"}`,
+    statusVariant,
+  );
+  setOperatorUiExecutorHint(hint, hintVariant);
 }
 
 function extractNumber(text, regex) {
@@ -667,6 +777,7 @@ function operatorHeaders(includeJson = false) {
 function renderOperatorSummary(summary) {
   el.operatorSummary.innerHTML = "";
   resetOperatorHealthWidget("no_data");
+  resetOperatorUiExecutorWidget("no_data");
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -736,6 +847,7 @@ function renderOperatorSummary(summary) {
   const operatorActions = summary.operatorActions && typeof summary.operatorActions === "object"
     ? summary.operatorActions
     : null;
+  let uiExecutorLastFailoverAction = null;
   if (operatorActions) {
     const actionTotal = Number(operatorActions.total ?? 0);
     appendEntry(el.operatorSummary, "system", "operator_actions", `recorded=${actionTotal}`);
@@ -748,12 +860,17 @@ function renderOperatorSummary(summary) {
       const outcome = typeof item.outcome === "string" ? item.outcome : "unknown";
       const actorRole = typeof item.actorRole === "string" ? item.actorRole : "unknown";
       const taskId = typeof item.taskId === "string" ? item.taskId : "-";
+      const targetService = typeof item.targetService === "string" ? item.targetService : "-";
+      const operation = typeof item.operation === "string" ? item.operation : "-";
       appendEntry(
         el.operatorSummary,
         "system",
         `audit.${action}`,
-        `role=${actorRole} outcome=${outcome} task=${taskId}`,
+        `role=${actorRole} outcome=${outcome} task=${taskId} target=${targetService} op=${operation}`,
       );
+      if (!uiExecutorLastFailoverAction && action === "failover" && targetService === "ui-executor") {
+        uiExecutorLastFailoverAction = item;
+      }
     }
   }
 
@@ -826,6 +943,7 @@ function renderOperatorSummary(summary) {
   renderOperatorHealthWidget(liveBridgeHealthForWidget);
 
   const services = Array.isArray(summary.services) ? summary.services : [];
+  let uiExecutorService = null;
   for (const service of services) {
     const name = typeof service.name === "string" ? service.name : "service";
     const healthy = service.healthy === true ? "healthy" : "unavailable";
@@ -833,7 +951,11 @@ function renderOperatorSummary(summary) {
     const profile = service.profile?.profile || "n/a";
     const env = service.profile?.environment || "n/a";
     appendEntry(el.operatorSummary, "system", name, `${healthy} | state=${state} | profile=${profile}/${env}`);
+    if (name === "ui-executor") {
+      uiExecutorService = service;
+    }
   }
+  renderOperatorUiExecutorWidget(uiExecutorService, uiExecutorLastFailoverAction);
 }
 
 async function refreshOperatorSummary() {
@@ -852,6 +974,7 @@ async function refreshOperatorSummary() {
     appendTranscript("system", "Operator summary refreshed");
   } catch (error) {
     resetOperatorHealthWidget("summary_error");
+    resetOperatorUiExecutorWidget("summary_error");
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
 }

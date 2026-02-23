@@ -86,15 +86,21 @@ Checkpoint B (hard interruption) at ~01:40:
    - counters (`degraded/recovered/watchdog_reconnect/errors/unavailable/connect_timeouts`),
    - probe telemetry (`probes/ping_sent/pongs/ping_errors`),
    - last health event marker (`lastEventType`, `lastEventAt`).
+   - `UI Executor Failover` widget (`state/healthy/profile/version + last_action/last_outcome`).
    - `device_nodes_health` summary line (`total/online/degraded/offline/stale/missing_heartbeat`) and `device.<nodeId>` recent entry.
    - policy evidence includes explicit scenario `operator.device_nodes.lifecycle=passed` in `summary.json`.
-8. Switch intent to `ui_task` with sensitive action phrase.
-9. Show `Approval Control` with pending `approvalId`.
-10. Execute both decisions:
+8. Show admin failover proof for `ui-executor`:
+   - set `Target Service=ui-executor`,
+   - click `Failover Drain` and confirm widget state switches to `draining`,
+   - click `Failover Warmup` and confirm widget state returns to `ready`.
+   - policy evidence in `summary.json`: `operatorFailoverUiExecutorDrainState=draining`, `operatorFailoverUiExecutorWarmupState=ready`, `operatorFailoverUiExecutorValidated=true`.
+9. Switch intent to `ui_task` with sensitive action phrase.
+10. Show `Approval Control` with pending `approvalId`.
+11. Execute both decisions:
    - `Reject` (must not resume run),
    - `Approve & Resume` (must resume and complete).
    - Check KPI evidence in `summary.json`: `uiApprovalResumeRequestAttempts` is `1..2` and scenario `ui.approval.approve_resume.elapsedMs <= 60000`.
-11. Run one safe `ui_task` in visual testing mode (`visualTesting.enabled=true`) and show:
+12. Run one safe `ui_task` in visual testing mode (`visualTesting.enabled=true`) and show:
    - structured visual report with `checks` and severity labels,
    - `status=passed|failed`,
    - artifact refs (`baseline`, `actual`, `diff`),

@@ -50,6 +50,7 @@
 19. Demo KPI policy gate now enforces `ui-executor` runtime profile invariants (`kpi.uiExecutorMode=remote_http`, `kpi.uiExecutorForceSimulation=true`, `kpi.uiExecutorRuntimeValidated=true`) to prevent accidental regression to flaky browser/network execution paths.
 20. `ui-executor` now exposes full lifecycle/runtime endpoints (`/status`, `/version`, `/metrics`, `/drain`, `/warmup`) and is included in runtime lifecycle + metrics evidence (`analyticsServicesValidated>=4`, `metricsServicesValidated>=4`, `kpi.uiExecutorLifecycleValidated=true`).
 21. Operator e2e flow now validates admin failover for `ui-executor` (`drain` -> `warmup`), and policy gate enforces `kpi.operatorFailoverUiExecutorDrainState=draining`, `kpi.operatorFailoverUiExecutorWarmupState=ready`, `kpi.operatorFailoverUiExecutorValidated=true`.
+22. Demo frontend Operator Console now exposes a dedicated `UI Executor Failover` widget (state/healthy/profile/version + last failover action/outcome), and judge runbook includes explicit on-stage `ui-executor` drain/warmup proof sequence.
 
 ## Current Focus Queue
 
