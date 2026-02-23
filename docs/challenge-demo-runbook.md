@@ -70,7 +70,7 @@ Checkpoint B (hard interruption) at ~01:40:
 2. Still as `admin`, run one update with `expectedVersion` from the created node and confirm version increments.
 3. Switch role to `operator` and send one heartbeat for the same node (optionally with `status=degraded` then back to `online`).
 4. Click `Check Status` for the same `nodeId` and confirm point-lookup returns current `status`, `version`, and `lastSeenAt`.
-5. Optional resilience proof: send stale `expectedVersion` and show guarded `409 API_DEVICE_NODE_VERSION_CONFLICT`.
+5. Optional resilience proof: click `Probe Stale Conflict` (or send stale `expectedVersion`) and show guarded `409 API_DEVICE_NODE_VERSION_CONFLICT`.
 6. Confirm `Device Nodes` list updates with latest `status`, `version`, and `lastSeenAt`.
 7. Click `Refresh Summary` in `Operator Console` and show `Live Bridge Status` widget:
    - status badge (`state=<healthy|degraded|unknown>`, probe success when available),

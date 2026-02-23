@@ -80,6 +80,7 @@ const el = {
   deviceNodeExpectedVersion: document.getElementById("deviceNodeExpectedVersion"),
   deviceNodeCapabilities: document.getElementById("deviceNodeCapabilities"),
   deviceNodeMetadata: document.getElementById("deviceNodeMetadata"),
+  deviceNodeConflictBtn: document.getElementById("deviceNodeConflictBtn"),
   deviceNodeCount: document.getElementById("deviceNodeCount"),
   deviceNodeSelectedStatus: document.getElementById("deviceNodeSelectedStatus"),
   deviceNodeSelectedVersion: document.getElementById("deviceNodeSelectedVersion"),
@@ -971,6 +972,96 @@ async function upsertDeviceNodeFromForm() {
   }
 }
 
+async function probeDeviceNodeConflictFromForm() {
+  const nodeId = toOptionalText(el.deviceNodeId.value);
+  if (!nodeId) {
+    appendTranscript("error", "Device node nodeId is required for conflict probe");
+    return;
+  }
+
+  const knownNode = state.deviceNodes.get(nodeId.toLowerCase()) ?? null;
+  const knownVersionRaw = Number(knownNode?.version ?? Number.NaN);
+  const fallbackVersionRaw = Number(el.deviceNodeSelectedVersion.textContent);
+  const currentVersion = Number.isFinite(knownVersionRaw)
+    ? Math.floor(knownVersionRaw)
+    : Number.isFinite(fallbackVersionRaw)
+      ? Math.floor(fallbackVersionRaw)
+      : Number.NaN;
+  if (!Number.isFinite(currentVersion) || currentVersion < 2) {
+    appendTranscript(
+      "error",
+      "Conflict probe requires an existing node with version >= 2. Run create/update first.",
+    );
+    return;
+  }
+
+  const displayName = toOptionalText(el.deviceNodeDisplayName.value) ?? (knownNode?.displayName ?? nodeId);
+  let metadata = null;
+  try {
+    metadata = parseOptionalMetadataJson(el.deviceNodeMetadata.value);
+  } catch (error) {
+    appendTranscript("error", `Device node metadata JSON is invalid: ${String(error)}`);
+    return;
+  }
+
+  const staleExpectedVersion = Math.max(1, currentVersion - 1);
+  const payload = {
+    nodeId,
+    displayName,
+    kind: el.deviceNodeKind.value === "mobile" ? "mobile" : "desktop",
+    platform: toOptionalText(el.deviceNodePlatform.value),
+    executorUrl: toOptionalText(el.deviceNodeExecutorUrl.value),
+    status:
+      el.deviceNodeStatus.value === "offline" || el.deviceNodeStatus.value === "degraded"
+        ? el.deviceNodeStatus.value
+        : "online",
+    capabilities: parseCapabilitiesCsv(el.deviceNodeCapabilities.value),
+    trustLevel:
+      el.deviceNodeTrustLevel.value === "trusted" || el.deviceNodeTrustLevel.value === "untrusted"
+        ? el.deviceNodeTrustLevel.value
+        : "reviewed",
+    updatedBy: (el.operatorRole.value || "operator").trim().toLowerCase(),
+    expectedVersion: staleExpectedVersion,
+  };
+  if (metadata !== null) {
+    payload.metadata = metadata;
+  }
+
+  try {
+    const response = await fetch(`${state.apiBaseUrl}/v1/device-nodes`, {
+      method: "POST",
+      headers: operatorHeaders(true),
+      body: JSON.stringify(payload),
+    });
+    let body = null;
+    try {
+      body = await response.json();
+    } catch {
+      body = null;
+    }
+    if (response.status !== 409) {
+      const errorText = getApiErrorMessage(
+        body,
+        `expected 409 conflict but got ${response.status} for stale expectedVersion`,
+      );
+      throw new Error(String(errorText));
+    }
+    const errorCode = String(body?.error?.code ?? "");
+    const actualVersion = Number(body?.error?.details?.actualVersion ?? Number.NaN);
+    if (errorCode !== "API_DEVICE_NODE_VERSION_CONFLICT") {
+      throw new Error(`unexpected conflict code: ${errorCode || "unknown"}`);
+    }
+    const actualVersionText = Number.isFinite(actualVersion) ? String(Math.floor(actualVersion)) : "n/a";
+    appendTranscript(
+      "system",
+      `Device node conflict probe passed: stale=${staleExpectedVersion}, actual=${actualVersionText}`,
+    );
+    await refreshDeviceNodes({ silent: true });
+  } catch (error) {
+    appendTranscript("error", `Device node conflict probe failed: ${String(error)}`);
+  }
+}
+
 async function sendDeviceNodeHeartbeatFromForm() {
   const nodeId = toOptionalText(el.deviceNodeId.value);
   if (!nodeId) {
@@ -1690,6 +1781,11 @@ function bindEvents() {
   document.getElementById("deviceNodeUpsertBtn").addEventListener("click", () => {
     upsertDeviceNodeFromForm();
   });
+  if (el.deviceNodeConflictBtn) {
+    el.deviceNodeConflictBtn.addEventListener("click", () => {
+      probeDeviceNodeConflictFromForm();
+    });
+  }
   document.getElementById("deviceNodeHeartbeatBtn").addEventListener("click", () => {
     sendDeviceNodeHeartbeatFromForm();
   });
