@@ -259,6 +259,17 @@ test(
 );
 
 test(
+  "release-readiness fails when gateway requested transport mode is invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ gatewayTransportRequestedMode: "tcp" }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /gatewayTransportRequestedMode expected websocket\|webrtc, actual tcp/i);
+  },
+);
+
+test(
   "release-readiness fails when gateway transport fallback remains active",
   { skip: skipIfNoPowerShell },
   () => {
