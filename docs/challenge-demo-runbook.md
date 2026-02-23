@@ -65,23 +65,25 @@ Checkpoint B (hard interruption) at ~01:40:
 
 ### 03:40-05:20 UI Navigator
 
-1. In `Operator Console`, switch role to `admin` and create or update one node in `Device Nodes`:
+1. In `Operator Console`, switch role to `admin` and create one node in `Device Nodes`:
    - `nodeId=desktop-main`, `kind=desktop`, `status=online`, capabilities include `screen,click,type`.
-2. Switch role to `operator` and send one heartbeat for the same node (optionally with `status=degraded` then back to `online`).
-3. Click `Check Status` for the same `nodeId` and confirm point-lookup returns current `status`, `version`, and `lastSeenAt`.
-4. Confirm `Device Nodes` list updates with latest `status`, `version`, and `lastSeenAt`.
-5. Click `Refresh Summary` in `Operator Console` and show `Live Bridge Status` widget:
+2. Still as `admin`, run one update with `expectedVersion` from the created node and confirm version increments.
+3. Switch role to `operator` and send one heartbeat for the same node (optionally with `status=degraded` then back to `online`).
+4. Click `Check Status` for the same `nodeId` and confirm point-lookup returns current `status`, `version`, and `lastSeenAt`.
+5. Optional resilience proof: send stale `expectedVersion` and show guarded `409 API_DEVICE_NODE_VERSION_CONFLICT`.
+6. Confirm `Device Nodes` list updates with latest `status`, `version`, and `lastSeenAt`.
+7. Click `Refresh Summary` in `Operator Console` and show `Live Bridge Status` widget:
    - status badge (`state=<healthy|degraded|unknown>`, probe success when available),
    - counters (`degraded/recovered/watchdog_reconnect/errors/unavailable/connect_timeouts`),
    - probe telemetry (`probes/ping_sent/pongs/ping_errors`),
    - last health event marker (`lastEventType`, `lastEventAt`).
    - `device_nodes_health` summary line (`total/online/degraded/offline/stale/missing_heartbeat`) and `device.<nodeId>` recent entry.
-6. Switch intent to `ui_task` with sensitive action phrase.
-7. Show `Approval Control` with pending `approvalId`.
-8. Execute both decisions:
+8. Switch intent to `ui_task` with sensitive action phrase.
+9. Show `Approval Control` with pending `approvalId`.
+10. Execute both decisions:
    - `Reject` (must not resume run),
    - `Approve & Resume` (must resume and complete).
-9. Run one safe `ui_task` in visual testing mode (`visualTesting.enabled=true`) and show:
+11. Run one safe `ui_task` in visual testing mode (`visualTesting.enabled=true`) and show:
    - structured visual report with `checks` and severity labels,
    - `status=passed|failed`,
    - artifact refs (`baseline`, `actual`, `diff`),

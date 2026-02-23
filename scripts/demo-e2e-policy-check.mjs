@@ -401,9 +401,33 @@ async function main() {
   );
   addCheck(
     "kpi.operatorDeviceNodeLookupVersion",
-    toNumber(kpis.operatorDeviceNodeLookupVersion) >= 2,
+    toNumber(kpis.operatorDeviceNodeLookupVersion) > toNumber(kpis.operatorDeviceNodeUpdatedVersion),
     kpis.operatorDeviceNodeLookupVersion,
-    ">= 2",
+    "> operatorDeviceNodeUpdatedVersion",
+  );
+  addCheck(
+    "kpi.operatorDeviceNodeUpdatedVersion",
+    toNumber(kpis.operatorDeviceNodeUpdatedVersion) > toNumber(kpis.operatorDeviceNodeCreatedVersion),
+    kpis.operatorDeviceNodeUpdatedVersion,
+    "> operatorDeviceNodeCreatedVersion",
+  );
+  addCheck(
+    "kpi.operatorDeviceNodeVersionConflictValidated",
+    kpis.operatorDeviceNodeVersionConflictValidated === true,
+    kpis.operatorDeviceNodeVersionConflictValidated,
+    true,
+  );
+  addCheck(
+    "kpi.operatorDeviceNodeVersionConflictStatusCode",
+    toNumber(kpis.operatorDeviceNodeVersionConflictStatusCode) === 409,
+    kpis.operatorDeviceNodeVersionConflictStatusCode,
+    409,
+  );
+  addCheck(
+    "kpi.operatorDeviceNodeVersionConflictCode",
+    String(kpis.operatorDeviceNodeVersionConflictCode) === "API_DEVICE_NODE_VERSION_CONFLICT",
+    kpis.operatorDeviceNodeVersionConflictCode,
+    "API_DEVICE_NODE_VERSION_CONFLICT",
   );
   addCheck(
     "kpi.operatorDeviceNodeHealthSummaryValidated",

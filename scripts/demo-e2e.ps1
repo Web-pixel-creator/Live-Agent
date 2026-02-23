@@ -1188,6 +1188,45 @@ try {
     Assert-Condition -Condition ($deviceNodeCreatedId -eq $deviceNodeId) -Message "Device node upsert returned unexpected nodeId."
     Assert-Condition -Condition ($deviceNodeCreatedVersion -ge 1) -Message "Device node upsert should set version >= 1."
 
+    $deviceUpdateResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/device-nodes" -Headers $adminHeaders -Body @{
+      nodeId = $deviceNodeId
+      displayName = "E2E Desktop Main Updated"
+      kind = "desktop"
+      platform = "windows-11"
+      executorUrl = "http://localhost:8090/execute"
+      status = "online"
+      capabilities = @("screen", "click", "type", "scroll")
+      trustLevel = "trusted"
+      updatedBy = "demo-e2e-admin"
+      expectedVersion = $deviceNodeCreatedVersion
+    } -TimeoutSec $RequestTimeoutSec
+    $deviceNodeUpdated = Get-FieldValue -Object $deviceUpdateResponse -Path @("data")
+    $deviceNodeUpdatedVersion = [int](Get-FieldValue -Object $deviceNodeUpdated -Path @("version"))
+    $deviceNodeUpdatedStatus = [string](Get-FieldValue -Object $deviceNodeUpdated -Path @("status"))
+    Assert-Condition -Condition ($deviceNodeUpdatedVersion -gt $deviceNodeCreatedVersion) -Message "Device node expected-version update should increment version."
+    Assert-Condition -Condition ($deviceNodeUpdatedStatus -eq "online") -Message "Device node expected-version update should preserve online status."
+
+    $deviceVersionConflictResponse = Invoke-JsonRequestExpectStatus -Method POST -Uri "http://localhost:8081/v1/device-nodes" -Headers $adminHeaders -Body @{
+      nodeId = $deviceNodeId
+      displayName = "E2E Desktop Main Conflict"
+      kind = "desktop"
+      platform = "windows-11"
+      executorUrl = "http://localhost:8090/execute"
+      status = "online"
+      capabilities = @("screen", "click", "type", "scroll")
+      trustLevel = "trusted"
+      updatedBy = "demo-e2e-admin"
+      expectedVersion = $deviceNodeCreatedVersion
+    } -ExpectedStatusCode 409 -TimeoutSec $RequestTimeoutSec
+    $deviceVersionConflictStatusCode = [int](Get-FieldValue -Object $deviceVersionConflictResponse -Path @("statusCode"))
+    $deviceVersionConflictCode = [string](Get-FieldValue -Object $deviceVersionConflictResponse -Path @("body", "error", "code"))
+    $deviceVersionConflictExpectedVersion = [int](Get-FieldValue -Object $deviceVersionConflictResponse -Path @("body", "error", "details", "expectedVersion"))
+    $deviceVersionConflictActualVersion = [int](Get-FieldValue -Object $deviceVersionConflictResponse -Path @("body", "error", "details", "actualVersion"))
+    Assert-Condition -Condition ($deviceVersionConflictStatusCode -eq 409) -Message "Device node stale expectedVersion should return HTTP 409."
+    Assert-Condition -Condition ($deviceVersionConflictCode -eq "API_DEVICE_NODE_VERSION_CONFLICT") -Message "Device node stale expectedVersion should return API_DEVICE_NODE_VERSION_CONFLICT."
+    Assert-Condition -Condition ($deviceVersionConflictExpectedVersion -eq $deviceNodeCreatedVersion) -Message "Device node version conflict should echo stale expectedVersion."
+    Assert-Condition -Condition ($deviceVersionConflictActualVersion -ge $deviceNodeUpdatedVersion) -Message "Device node version conflict should expose actualVersion >= updated version."
+
     $deviceHeartbeatResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/device-nodes/heartbeat" -Headers $operatorHeaders -Body @{
       nodeId = $deviceNodeId
       status = "degraded"
@@ -1208,7 +1247,7 @@ try {
     $deviceLookupLastSeenAt = [string](Get-FieldValue -Object $deviceLookupNode -Path @("lastSeenAt"))
     Assert-Condition -Condition ($deviceLookupNodeId -eq $deviceNodeId) -Message "Device node status lookup returned unexpected nodeId."
     Assert-Condition -Condition ($deviceLookupStatus -eq "degraded") -Message "Device node status lookup should return degraded status after heartbeat."
-    Assert-Condition -Condition ($deviceLookupVersion -gt $deviceNodeCreatedVersion) -Message "Device node status lookup version should increase after heartbeat."
+    Assert-Condition -Condition ($deviceLookupVersion -gt $deviceNodeUpdatedVersion) -Message "Device node status lookup version should increase after expected-version update + heartbeat."
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($deviceLookupLastSeenAt)) -Message "Device node status lookup should include lastSeenAt."
 
     $summaryResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/operator/summary" -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
@@ -1360,11 +1399,18 @@ try {
       liveBridgeHealthBlockValidated = $true
       deviceNodeId = $deviceNodeId
       deviceNodeCreatedVersion = $deviceNodeCreatedVersion
+      deviceNodeUpdatedVersion = $deviceNodeUpdatedVersion
+      deviceNodeUpdatedStatus = $deviceNodeUpdatedStatus
       deviceNodeHeartbeatStatus = $deviceNodeHeartbeatStatus
       deviceNodeLookupStatus = $deviceLookupStatus
       deviceNodeLookupVersion = $deviceLookupVersion
       deviceNodeLookupLastSeenAt = $deviceLookupLastSeenAt
       deviceNodeLookupValidated = $true
+      deviceNodeVersionConflictStatusCode = $deviceVersionConflictStatusCode
+      deviceNodeVersionConflictCode = $deviceVersionConflictCode
+      deviceNodeVersionConflictExpectedVersion = $deviceVersionConflictExpectedVersion
+      deviceNodeVersionConflictActualVersion = $deviceVersionConflictActualVersion
+      deviceNodeVersionConflictValidated = $true
       deviceNodeSummaryTotal = $deviceNodeSummaryTotal
       deviceNodeSummaryDegraded = $deviceNodeSummaryDegraded
       deviceNodeSummaryStale = $deviceNodeSummaryStale
@@ -1811,10 +1857,16 @@ $summary = [ordered]@{
     operatorLiveBridgeHealthLastEventType = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthLastEventType } else { $null }
     operatorDeviceNodeId = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeId } else { $null }
     operatorDeviceNodeCreatedVersion = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeCreatedVersion } else { $null }
+    operatorDeviceNodeUpdatedVersion = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeUpdatedVersion } else { $null }
+    operatorDeviceNodeUpdatedStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeUpdatedStatus } else { $null }
     operatorDeviceNodeHeartbeatStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeHeartbeatStatus } else { $null }
     operatorDeviceNodeLookupStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeLookupStatus } else { $null }
     operatorDeviceNodeLookupVersion = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeLookupVersion } else { $null }
     operatorDeviceNodeLookupLastSeenAt = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeLookupLastSeenAt } else { $null }
+    operatorDeviceNodeVersionConflictStatusCode = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeVersionConflictStatusCode } else { $null }
+    operatorDeviceNodeVersionConflictCode = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeVersionConflictCode } else { $null }
+    operatorDeviceNodeVersionConflictExpectedVersion = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeVersionConflictExpectedVersion } else { $null }
+    operatorDeviceNodeVersionConflictActualVersion = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeVersionConflictActualVersion } else { $null }
     operatorDeviceNodeSummaryTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeSummaryTotal } else { $null }
     operatorDeviceNodeSummaryDegraded = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeSummaryDegraded } else { $null }
     operatorDeviceNodeSummaryStale = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeSummaryStale } else { $null }
@@ -1826,10 +1878,20 @@ $summary = [ordered]@{
       $null -ne $operatorActionsData -and
       [bool]$operatorActionsData.deviceNodeLookupValidated -eq $true -and
       -not [string]::IsNullOrWhiteSpace([string]$operatorActionsData.deviceNodeId) -and
+      [int]$operatorActionsData.deviceNodeUpdatedVersion -gt [int]$operatorActionsData.deviceNodeCreatedVersion -and
+      [string]$operatorActionsData.deviceNodeUpdatedStatus -eq "online" -and
       [string]$operatorActionsData.deviceNodeHeartbeatStatus -eq "degraded" -and
       [string]$operatorActionsData.deviceNodeLookupStatus -eq "degraded" -and
-      [int]$operatorActionsData.deviceNodeLookupVersion -ge 2 -and
+      [int]$operatorActionsData.deviceNodeLookupVersion -gt [int]$operatorActionsData.deviceNodeUpdatedVersion -and
       -not [string]::IsNullOrWhiteSpace([string]$operatorActionsData.deviceNodeLookupLastSeenAt)
+    ) { $true } else { $false }
+    operatorDeviceNodeVersionConflictValidated = if (
+      $null -ne $operatorActionsData -and
+      [bool]$operatorActionsData.deviceNodeVersionConflictValidated -eq $true -and
+      [int]$operatorActionsData.deviceNodeVersionConflictStatusCode -eq 409 -and
+      [string]$operatorActionsData.deviceNodeVersionConflictCode -eq "API_DEVICE_NODE_VERSION_CONFLICT" -and
+      [int]$operatorActionsData.deviceNodeVersionConflictExpectedVersion -eq [int]$operatorActionsData.deviceNodeCreatedVersion -and
+      [int]$operatorActionsData.deviceNodeVersionConflictActualVersion -ge [int]$operatorActionsData.deviceNodeUpdatedVersion
     ) { $true } else { $false }
     operatorDeviceNodeHealthSummaryValidated = if (
       $null -ne $operatorActionsData -and
