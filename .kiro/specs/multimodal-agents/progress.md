@@ -94,6 +94,7 @@
 63. Added retry-policy anti-drift coverage (`tests/unit/release-artifact-retry-policy-alignment.test.ts`) to lock retryable HTTP status set consistency (`408/429/500/502/503/504`) across local helper and CI artifact-revalidation workflow paths.
 64. Added source-run guardrails to artifact revalidation (local helper + CI workflow): enforced successful source run, default branch allowlist (`main/master`), max source-run age threshold (`168h` by default), summary telemetry of source run metadata (`workflow/branch/headSha/updatedAt/ageHours`), and anti-drift coverage in `tests/unit/release-artifact-source-run-guard-defaults-alignment.test.ts`.
 65. Added artifact provenance manifest output for revalidation flows: local helper and CI workflow now write `artifacts/release-artifact-revalidation/source-run.json` (source run metadata, guardrails, perf gate mode, retry policy), include manifest path in summaries, and upload it in `release-artifact-revalidation-artifacts`.
+66. Added manifest schema anti-drift coverage (`tests/unit/release-artifact-source-run-manifest-alignment.test.ts`) to keep `source-run.json` structure aligned across local helper and CI workflow (`schemaVersion/generatedAt/repository/sourceRun/artifact/sourceSelection/gate/retry` + retry policy fields).
 
 ## Current Focus Queue
 
