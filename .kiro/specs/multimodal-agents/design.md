@@ -475,6 +475,49 @@ MVP хранит это как extension point без полной реализ�
 
 Это позволяет позже подключить managed registry без изменения core архитектуры.
 
+## Borrowed Patterns from OpenClaw (Adapted, Not Copied)
+
+This section documents the OpenClaw-inspired runtime patterns that are adapted into this project
+while preserving the required baseline stack (Gemini + Live API + ADK + Google Cloud).
+
+Reference: `https://github.com/openclaw/openclaw` (MIT license).
+
+Adoption rule:
+
+1. Reuse architectural ideas and safety mechanisms.
+2. Reimplement in project-native modules and contracts (no large 1:1 code import).
+3. Keep challenge constraints as source-of-truth (Gemini-first + WebSocket MVP transport).
+
+### Adopted in Baseline
+
+1. Live bridge failover reasoning and route rotation
+   - Model/auth route selection with cooldown/disable windows.
+   - Failure classification (`transient`, `rate_limit`, `auth`, `billing`) and failover diagnostics.
+   - Runtime status surfaced through operator summary and gateway events.
+
+2. Channel watchdog and health degradation handling
+   - Upstream silence probes, degradation markers, and recovery events.
+   - Health state visible in operator APIs and demo policy checks.
+
+3. UI execution loop protection
+   - Loop detection for repeated planner/executor actions.
+   - Hard-stop behavior with explicit diagnostics (`failed_loop`) and policy-safe fallback.
+
+4. Approval lifecycle hardening
+   - Stateful approval records (`pending`, `approved`, `rejected`, `timeout`).
+   - SLA sweeps, audit trail enrichment, and deterministic resume behavior.
+
+5. Session mutation safety
+   - Optimistic versioning + idempotency keys for REST mutations.
+   - Conflict/replay contracts with normalized error envelopes.
+
+### Intentionally Deferred / Out of MVP
+
+1. Full subagent registry runtime and deep nested orchestration controls.
+2. Full skills installation platform as primary runtime dependency.
+3. WebRTC transport replacement in MVP (kept as V2 research only).
+4. Any non-Gemini core model replacement for judged challenge flows.
+
 ## Borrowed Patterns from Voicebox (Adapted to Gemini/ADK)
 
 This section captures practical patterns inspired by the open-source Voicebox repository
