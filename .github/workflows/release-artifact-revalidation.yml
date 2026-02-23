@@ -11,6 +11,15 @@ on:
         description: Optional artifact bundle name (auto-detected if omitted)
         required: false
         type: string
+      perf_gate_mode:
+        description: Perf gate mode for artifact-only revalidation (auto/with_perf/without_perf)
+        required: false
+        default: auto
+        type: choice
+        options:
+          - auto
+          - with_perf
+          - without_perf
 
 jobs:
   release-artifact-revalidation:
@@ -140,24 +149,59 @@ jobs:
         id: inspect_artifacts
         shell: powershell
         run: |
+          $requestedPerfMode = "${{ github.event.inputs.perf_gate_mode }}"
+          if ([string]::IsNullOrWhiteSpace($requestedPerfMode)) {
+            $requestedPerfMode = "auto"
+          }
+          $requestedPerfMode = $requestedPerfMode.ToLowerInvariant()
+          if (@("auto", "with_perf", "without_perf") -notcontains $requestedPerfMode) {
+            Write-Error "Unsupported perf_gate_mode: $requestedPerfMode. Allowed values: auto|with_perf|without_perf."
+            exit 1
+          }
+
           $perfSummaryExists = Test-Path "artifacts/perf-load/summary.json"
           $perfPolicyExists = Test-Path "artifacts/perf-load/policy-check.json"
           $hasPerfArtifacts = $perfSummaryExists -and $perfPolicyExists
-          if ($hasPerfArtifacts) {
-            "has_perf_artifacts=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            Write-Host "Perf artifacts detected; running full artifact-only release gate."
+
+          $runWithPerf = $false
+          $effectivePerfMode = "without_perf"
+          switch ($requestedPerfMode) {
+            "with_perf" {
+              if (-not $hasPerfArtifacts) {
+                Write-Error "perf_gate_mode=with_perf requires artifacts/perf-load/summary.json and artifacts/perf-load/policy-check.json."
+                exit 1
+              }
+              $runWithPerf = $true
+              $effectivePerfMode = "with_perf"
+            }
+            "without_perf" {
+              $runWithPerf = $false
+              $effectivePerfMode = "without_perf"
+            }
+            default {
+              $runWithPerf = $hasPerfArtifacts
+              $effectivePerfMode = if ($runWithPerf) { "with_perf" } else { "without_perf" }
+            }
+          }
+
+          "requested_perf_mode=$requestedPerfMode" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "has_perf_artifacts=$($hasPerfArtifacts.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "run_with_perf=$($runWithPerf.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "effective_perf_mode=$effectivePerfMode" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          if ($runWithPerf) {
+            Write-Host "Perf gate mode: $effectivePerfMode (requested=$requestedPerfMode, hasPerfArtifacts=$hasPerfArtifacts)."
           } else {
-            "has_perf_artifacts=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            Write-Host "Perf artifacts are missing; running artifact-only gate with -SkipPerfLoad."
+            Write-Host "Perf gate mode: $effectivePerfMode (requested=$requestedPerfMode, hasPerfArtifacts=$hasPerfArtifacts). Running with -SkipPerfLoad."
           }
 
       - name: Run Artifact-Only Release Revalidation (With Perf Artifacts)
-        if: steps.inspect_artifacts.outputs.has_perf_artifacts == 'true'
+        if: steps.inspect_artifacts.outputs.run_with_perf == 'true'
         run: npm run verify:release:artifact-only
         shell: powershell
 
       - name: Run Artifact-Only Release Revalidation (No Perf Artifacts)
-        if: steps.inspect_artifacts.outputs.has_perf_artifacts != 'true'
+        if: steps.inspect_artifacts.outputs.run_with_perf != 'true'
         run: >
           powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1
           -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipDemoE2E -SkipPolicy -SkipBadge -SkipPerfLoad -SkipPerfRun
@@ -169,7 +213,9 @@ jobs:
         run: |
           ("Source run id: ${{ steps.resolve_source.outputs.run_id }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Artifact bundle: ${{ steps.resolve_source.outputs.artifact_name }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Requested perf mode: ${{ steps.inspect_artifacts.outputs.requested_perf_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Perf artifacts detected: ${{ steps.inspect_artifacts.outputs.has_perf_artifacts }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Effective perf mode: ${{ steps.inspect_artifacts.outputs.effective_perf_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           if (Test-Path "artifacts/demo-e2e/summary.md") {
             "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             Get-Content "artifacts/demo-e2e/summary.md" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
