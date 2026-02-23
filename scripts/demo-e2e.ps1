@@ -1664,6 +1664,26 @@ try {
     $warmupState = [string](Get-FieldValue -Object $warmupResponse -Path @("data", "result", "runtime", "state"))
     Assert-Condition -Condition ($warmupState -eq "ready") -Message "Admin failover warmup should set orchestrator back to ready."
 
+    $uiExecutorDrainResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/operator/actions" -Headers $adminHeaders -Body @{
+      action = "failover"
+      targetService = "ui-executor"
+      operation = "drain"
+      reason = "demo admin ui-executor drain"
+    } -TimeoutSec $RequestTimeoutSec
+    $uiExecutorDrainState = [string](Get-FieldValue -Object $uiExecutorDrainResponse -Path @("data", "result", "runtime", "state"))
+    Assert-Condition -Condition ($uiExecutorDrainState -eq "draining") -Message "Admin failover drain should set ui-executor to draining."
+
+    $uiExecutorWarmupResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/operator/actions" -Headers $adminHeaders -Body @{
+      action = "failover"
+      targetService = "ui-executor"
+      operation = "warmup"
+      reason = "demo admin ui-executor warmup"
+    } -TimeoutSec $RequestTimeoutSec
+    $uiExecutorWarmupState = [string](Get-FieldValue -Object $uiExecutorWarmupResponse -Path @("data", "result", "runtime", "state"))
+    Assert-Condition -Condition ($uiExecutorWarmupState -eq "ready") -Message "Admin failover warmup should set ui-executor back to ready."
+    $uiExecutorFailoverValidated = ($uiExecutorDrainState -eq "draining" -and $uiExecutorWarmupState -eq "ready")
+    Assert-Condition -Condition $uiExecutorFailoverValidated -Message "ui-executor failover drain/warmup validation failed."
+
     $postSummaryResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/operator/summary" -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
     $postSummaryData = Get-FieldValue -Object $postSummaryResponse -Path @("data")
     $operatorActionsBlock = Get-FieldValue -Object $postSummaryData -Path @("operatorActions")
@@ -1680,6 +1700,9 @@ try {
       forbiddenCode = $forbiddenCode
       drainState = $drainState
       warmupState = $warmupState
+      uiExecutorDrainState = $uiExecutorDrainState
+      uiExecutorWarmupState = $uiExecutorWarmupState
+      uiExecutorFailoverValidated = $uiExecutorFailoverValidated
       operatorAuditTotal = $operatorAuditTotal
       traceRuns = $traceRuns
       traceEvents = $traceEvents
@@ -2311,6 +2334,9 @@ $summary = [ordered]@{
     operatorFailoverForbiddenCode = if ($null -ne $operatorActionsData) { $operatorActionsData.forbiddenCode } else { $null }
     operatorFailoverDrainState = if ($null -ne $operatorActionsData) { $operatorActionsData.drainState } else { $null }
     operatorFailoverWarmupState = if ($null -ne $operatorActionsData) { $operatorActionsData.warmupState } else { $null }
+    operatorFailoverUiExecutorDrainState = if ($null -ne $operatorActionsData) { $operatorActionsData.uiExecutorDrainState } else { $null }
+    operatorFailoverUiExecutorWarmupState = if ($null -ne $operatorActionsData) { $operatorActionsData.uiExecutorWarmupState } else { $null }
+    operatorFailoverUiExecutorValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.uiExecutorFailoverValidated } else { $false }
     operatorAuditTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.operatorAuditTotal } else { $null }
     operatorTraceRuns = if ($null -ne $operatorActionsData) { $operatorActionsData.traceRuns } else { $null }
     operatorTraceEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.traceEvents } else { $null }

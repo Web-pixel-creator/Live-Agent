@@ -482,6 +482,24 @@ async function main() {
     "ready",
   );
   addCheck(
+    "kpi.operatorFailoverUiExecutorDrainState",
+    String(kpis.operatorFailoverUiExecutorDrainState) === "draining",
+    kpis.operatorFailoverUiExecutorDrainState,
+    "draining",
+  );
+  addCheck(
+    "kpi.operatorFailoverUiExecutorWarmupState",
+    String(kpis.operatorFailoverUiExecutorWarmupState) === "ready",
+    kpis.operatorFailoverUiExecutorWarmupState,
+    "ready",
+  );
+  addCheck(
+    "kpi.operatorFailoverUiExecutorValidated",
+    kpis.operatorFailoverUiExecutorValidated === true,
+    kpis.operatorFailoverUiExecutorValidated,
+    true,
+  );
+  addCheck(
     "kpi.operatorDeviceNodeLookupValidated",
     kpis.operatorDeviceNodeLookupValidated === true,
     kpis.operatorDeviceNodeLookupValidated,
