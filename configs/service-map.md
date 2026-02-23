@@ -20,10 +20,15 @@
 5. Results are returned to gateway/API and persisted to Firestore collections (`events`, `sessions`, `agent_runs`).
 6. For UI Navigator with `remote_http` mode, orchestrator -> ui-navigator-agent -> `ui-executor` (`/execute`) is used for action execution.
 
-## Integration TODOs
+## Integration Status
 
-1. Validate Gemini Live protocol payloads against target region/model profile and finalize setup/runtime schema.
-2. Add richer session/history endpoints in `apps/api-backend` for operational tooling.
-3. Add Vertex AI runtime wiring for model calls.
-4. Add approval and policy middleware for sensitive actions.
-5. Extend observability sink for `live.metrics.round_trip` / `live.metrics.interrupt_latency` events.
+1. Gemini Live setup/runtime schema: implemented in gateway live-bridge (`setup`, model profile routing, interruption handling, health watchdog/failover diagnostics).
+2. Session/history and operational endpoints: implemented in `apps/api-backend` (`/v1/sessions`, approvals, operator summary/actions, lifecycle/status surfaces).
+3. Approval + policy middleware for sensitive UI actions: implemented in `ui-navigator-agent` and validated by demo e2e policy scenarios.
+4. Observability sinks: structured analytics metrics/events exported for Cloud Monitoring/BigQuery routing (`docs/telemetry-storage-split.md`).
+
+## Open Items (Post-MVP)
+
+1. Vertex AI managed runtime wiring for cloud deployment profile (current baseline supports local/cloud-ready adapters).
+2. WebRTC transport migration (V2): keep WebSocket as MVP baseline, follow `docs/webrtc-v2-spike.md`.
+3. Multi-channel adapters and ecosystem expansion (V3 roadmap items in `.kiro/specs/multimodal-agents/tasks.md`).
