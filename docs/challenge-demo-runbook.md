@@ -25,7 +25,7 @@ $env:GITHUB_TOKEN="<token-with-actions-read>"
 npm run verify:release:artifact:revalidate
 ```
 If `GITHUB_TOKEN`/`GH_TOKEN` is not set, helper tries `gh auth token` (requires prior `gh auth login`).
-Optional flags: `-- -SourceRunId <id>`, `-- -ArtifactName <name>`, `-- -StrictFinalRun`, `-- -PerfGateMode auto|with_perf|without_perf`, `-- -SkipPerfLoadGate` (deprecated alias), `-- -SkipArtifactOnlyGate`.
+Optional flags: `-- -SourceRunId <id>`, `-- -ArtifactName <name>`, `-- -GithubApiMaxAttempts <n>`, `-- -GithubApiRetryBackoffMs <ms>`, `-- -StrictFinalRun`, `-- -PerfGateMode auto|with_perf|without_perf`, `-- -SkipPerfLoadGate` (deprecated alias), `-- -SkipArtifactOnlyGate`.
 Helper behavior: if downloaded bundle does not contain `artifacts/perf-load/*`, perf checks are skipped automatically while demo/policy/badge artifact checks stay enforced.
 For flaky local runners you can increase demo retry tolerance:
 ```powershell

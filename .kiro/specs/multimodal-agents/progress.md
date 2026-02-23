@@ -88,6 +88,7 @@
 57. Aligned local artifact helper with CI perf-mode semantics by adding `-PerfGateMode auto|with_perf|without_perf` to `scripts/release-artifact-revalidate.ps1`, keeping `-SkipPerfLoadGate` as deprecated compatibility alias, enforcing `with_perf` artifact presence validation, and emitting requested/effective perf mode in final summary; docs/tests updated in `README.md`, `docs/challenge-demo-runbook.md`, and `tests/unit/release-artifact-local-revalidation-alignment.test.ts`.
 58. Added GitHub CLI token fallback to local artifact revalidation helper (`scripts/release-artifact-revalidate.ps1`): when `GITHUB_TOKEN`/`GH_TOKEN` is absent, script now attempts `gh auth token` before failing; docs and anti-drift unit coverage were updated accordingly.
 59. Extended anti-drift coverage for artifact revalidation docs (`tests/unit/release-artifact-local-revalidation-alignment.test.ts`): README and runbook are now checked for `verify:release:artifact:revalidate`, `PerfGateMode auto|with_perf|without_perf`, `SkipPerfLoadGate`, and `gh auth token` guidance.
+60. Hardened local artifact revalidation network resilience (`scripts/release-artifact-revalidate.ps1`) with bounded GitHub API/download retries (`GithubApiMaxAttempts`, `GithubApiRetryBackoffMs`) across run discovery/artifact metadata/download operations; docs and anti-drift tests were updated to keep helper flags aligned.
 
 ## Current Focus Queue
 

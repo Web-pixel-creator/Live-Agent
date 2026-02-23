@@ -27,6 +27,9 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /PerfGateMode/);
   assert.match(source, /with_perf/);
   assert.match(source, /without_perf/);
+  assert.match(source, /GithubApiMaxAttempts/);
+  assert.match(source, /GithubApiRetryBackoffMs/);
+  assert.match(source, /Invoke-WithRetry/);
   assert.match(source, /-StrictFinalRun/);
   assert.match(source, /-SkipPerfLoad/);
   assert.match(source, /SkipPerfLoadGate/);
@@ -46,5 +49,7 @@ test("local release artifact revalidation docs stay aligned with helper controls
     assert.match(content, /PerfGateMode auto\|with_perf\|without_perf/);
     assert.match(content, /SkipPerfLoadGate/);
     assert.match(content, /gh auth token/);
+    assert.match(content, /GithubApiMaxAttempts/);
+    assert.match(content, /GithubApiRetryBackoffMs/);
   }
 });

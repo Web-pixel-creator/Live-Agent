@@ -202,6 +202,8 @@ If `GITHUB_TOKEN`/`GH_TOKEN` is not set, the helper attempts `gh auth token` (Gi
 Optional local helper flags:
 - `-- -SourceRunId <id>` - force specific workflow run.
 - `-- -ArtifactName <name>` - force specific artifact bundle name.
+- `-- -GithubApiMaxAttempts <n>` - max retry attempts for GitHub API + artifact download calls (default `3`).
+- `-- -GithubApiRetryBackoffMs <ms>` - linear backoff base for GitHub API/download retries (default `1200`).
 - `-- -StrictFinalRun` - enforce strict artifact gate (`scenarioRetriesUsedCount = 0`).
 - `-- -PerfGateMode auto|with_perf|without_perf` - explicit local perf gate mode.
 - `-- -SkipPerfLoadGate` - legacy alias for `-- -PerfGateMode without_perf` (deprecated).

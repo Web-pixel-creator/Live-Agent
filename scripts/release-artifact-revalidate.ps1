@@ -8,6 +8,8 @@ param(
   [string[]]$WorkflowIds = @("demo-e2e.yml", "release-strict-final.yml"),
   [string[]]$AllowedBranches = @("main", "master"),
   [int]$PerWorkflowRuns = 20,
+  [int]$GithubApiMaxAttempts = 3,
+  [int]$GithubApiRetryBackoffMs = 1200,
   [string]$ArtifactsDir = "artifacts",
   [string]$TempDir = ".tmp/release-artifact-revalidation",
   [switch]$SkipArtifactOnlyGate,
@@ -32,8 +34,99 @@ function Resolve-AbsolutePath([string]$PathValue) {
   return [System.IO.Path]::GetFullPath((Join-Path (Get-Location).Path $PathValue))
 }
 
+function Get-HttpStatusCode([object]$ErrorRecord) {
+  try {
+    if ($null -eq $ErrorRecord -or $null -eq $ErrorRecord.Exception) {
+      return 0
+    }
+
+    $response = $ErrorRecord.Exception.Response
+    if ($null -eq $response) {
+      return 0
+    }
+
+    $statusCode = $response.StatusCode
+    if ($null -eq $statusCode) {
+      return 0
+    }
+
+    if ($statusCode -is [int]) {
+      return [int]$statusCode
+    }
+
+    if ($null -ne $statusCode.value__) {
+      return [int]$statusCode.value__
+    }
+
+    return [int]$statusCode
+  }
+  catch {
+    return 0
+  }
+}
+
+function Is-RetryableStatusCode([int]$StatusCode) {
+  if ($StatusCode -eq 0) {
+    return $true
+  }
+  return @(408, 429, 500, 502, 503, 504) -contains $StatusCode
+}
+
+function Invoke-WithRetry(
+  [string]$OperationName,
+  [int]$MaxAttempts,
+  [int]$BaseBackoffMs,
+  [scriptblock]$Operation
+) {
+  if ($MaxAttempts -lt 1) {
+    $MaxAttempts = 1
+  }
+  if ($BaseBackoffMs -lt 0) {
+    $BaseBackoffMs = 0
+  }
+
+  $attempt = 0
+  while ($attempt -lt $MaxAttempts) {
+    $attempt++
+    try {
+      return & $Operation
+    }
+    catch {
+      $statusCode = Get-HttpStatusCode -ErrorRecord $_
+      $retryable = Is-RetryableStatusCode -StatusCode $statusCode
+      if ($attempt -ge $MaxAttempts -or -not $retryable) {
+        throw
+      }
+
+      $delayMs = $BaseBackoffMs * $attempt
+      Write-Host ("[artifact-revalidate] " + $OperationName + " failed (attempt " + $attempt + "/" + $MaxAttempts + ", status=" + $statusCode + "). Retrying in " + $delayMs + "ms...")
+      if ($delayMs -gt 0) {
+        Start-Sleep -Milliseconds $delayMs
+      }
+    }
+  }
+
+  throw ("Retry loop exited unexpectedly for operation: " + $OperationName)
+}
+
 function Invoke-GitHubJson([string]$Uri, [hashtable]$Headers) {
-  return Invoke-RestMethod -Method Get -Uri $Uri -Headers $Headers -TimeoutSec 60
+  return Invoke-WithRetry `
+    -OperationName ("GitHub API GET " + $Uri) `
+    -MaxAttempts $GithubApiMaxAttempts `
+    -BaseBackoffMs $GithubApiRetryBackoffMs `
+    -Operation {
+      Invoke-RestMethod -Method Get -Uri $Uri -Headers $Headers -TimeoutSec 60
+    }
+}
+
+function Download-ArtifactZip([string]$Uri, [hashtable]$Headers, [string]$OutFilePath) {
+  Invoke-WithRetry `
+    -OperationName ("Artifact download " + $Uri) `
+    -MaxAttempts $GithubApiMaxAttempts `
+    -BaseBackoffMs $GithubApiRetryBackoffMs `
+    -Operation {
+      Invoke-WebRequest -Uri $Uri -Headers $Headers -OutFile $OutFilePath -TimeoutSec 120 | Out-Null
+    } | Out-Null
 }
 
 function Invoke-ReleaseReadinessGate(
@@ -108,6 +201,14 @@ if ($WorkflowIds.Count -eq 0) {
 
 if ($AllowedBranches.Count -eq 0) {
   Fail "AllowedBranches cannot be empty."
+}
+
+if ($GithubApiMaxAttempts -lt 1) {
+  Fail "GithubApiMaxAttempts must be >= 1."
+}
+
+if ($GithubApiRetryBackoffMs -lt 0) {
+  Fail "GithubApiRetryBackoffMs must be >= 0."
 }
 
 $headers = @{
@@ -198,7 +299,7 @@ New-Item -Path $resolvedTempDir -ItemType Directory -Force | Out-Null
 
 $artifactDownloadUri = "https://api.github.com/repos/$Owner/$Repo/actions/artifacts/$($resolvedArtifact.id)/zip"
 Write-Host "[artifact-revalidate] Downloading artifact '$($resolvedArtifact.name)' from run $resolvedRunId..."
-Invoke-WebRequest -Uri $artifactDownloadUri -Headers $headers -OutFile $zipPath -TimeoutSec 120 | Out-Null
+Download-ArtifactZip -Uri $artifactDownloadUri -Headers $headers -OutFilePath $zipPath
 
 Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
 $bundleArtifactsDir = Join-Path $extractDir "artifacts"
