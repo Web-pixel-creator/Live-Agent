@@ -166,6 +166,7 @@ async function main() {
         "gateway.websocket.interrupt_signal",
         "gateway.websocket.invalid_envelope",
         "operator.console.actions",
+        "operator.device_nodes.lifecycle",
         "api.approvals.list",
         "api.approvals.resume.invalid_intent",
         "runtime.lifecycle.endpoints",

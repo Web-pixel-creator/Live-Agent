@@ -1640,6 +1640,48 @@ try {
     }
   } | Out-Null
 
+  Invoke-Scenario -Name "operator.device_nodes.lifecycle" -Action {
+    $operatorActions = Get-ScenarioData -Name "operator.console.actions"
+    Assert-Condition -Condition ($null -ne $operatorActions) -Message "operator.console.actions scenario must pass before operator.device_nodes.lifecycle."
+
+    $deviceNodeId = [string](Get-FieldValue -Object $operatorActions -Path @("deviceNodeId"))
+    $createdVersion = [int](Get-FieldValue -Object $operatorActions -Path @("deviceNodeCreatedVersion"))
+    $updatedVersion = [int](Get-FieldValue -Object $operatorActions -Path @("deviceNodeUpdatedVersion"))
+    $lookupVersion = [int](Get-FieldValue -Object $operatorActions -Path @("deviceNodeLookupVersion"))
+    $lookupStatus = [string](Get-FieldValue -Object $operatorActions -Path @("deviceNodeLookupStatus"))
+    $heartbeatStatus = [string](Get-FieldValue -Object $operatorActions -Path @("deviceNodeHeartbeatStatus"))
+    $versionConflictValidated = [bool](Get-FieldValue -Object $operatorActions -Path @("deviceNodeVersionConflictValidated"))
+    $healthSummaryValidated = [bool](Get-FieldValue -Object $operatorActions -Path @("deviceNodeHealthSummaryValidated"))
+    $summaryTotal = [int](Get-FieldValue -Object $operatorActions -Path @("deviceNodeSummaryTotal"))
+    $summaryDegraded = [int](Get-FieldValue -Object $operatorActions -Path @("deviceNodeSummaryDegraded"))
+    $summaryRecentContainsLookup = [bool](Get-FieldValue -Object $operatorActions -Path @("deviceNodeSummaryRecentContainsLookup"))
+
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($deviceNodeId)) -Message "Device node lifecycle proof is missing nodeId."
+    Assert-Condition -Condition ($updatedVersion -gt $createdVersion) -Message "Device node update should increment version."
+    Assert-Condition -Condition ($lookupVersion -gt $updatedVersion) -Message "Device node lookup version should increase after heartbeat."
+    Assert-Condition -Condition ($heartbeatStatus -eq "degraded") -Message "Device node heartbeat status should be degraded in lifecycle proof."
+    Assert-Condition -Condition ($lookupStatus -eq "degraded") -Message "Device node lookup status should be degraded in lifecycle proof."
+    Assert-Condition -Condition $versionConflictValidated -Message "Device node lifecycle proof requires version conflict guard validation."
+    Assert-Condition -Condition $healthSummaryValidated -Message "Device node lifecycle proof requires operator health summary validation."
+    Assert-Condition -Condition ($summaryTotal -ge 1) -Message "Device node lifecycle proof requires summary total >= 1."
+    Assert-Condition -Condition ($summaryDegraded -ge 1) -Message "Device node lifecycle proof requires summary degraded >= 1."
+    Assert-Condition -Condition $summaryRecentContainsLookup -Message "Device node lifecycle proof requires recent lookup entry."
+
+    return [ordered]@{
+      deviceNodeId = $deviceNodeId
+      createdVersion = $createdVersion
+      updatedVersion = $updatedVersion
+      lookupVersion = $lookupVersion
+      heartbeatStatus = $heartbeatStatus
+      lookupStatus = $lookupStatus
+      versionConflictValidated = $versionConflictValidated
+      healthSummaryValidated = $healthSummaryValidated
+      summaryTotal = $summaryTotal
+      summaryDegraded = $summaryDegraded
+      summaryRecentContainsLookup = $summaryRecentContainsLookup
+    }
+  } | Out-Null
+
   Invoke-Scenario -Name "api.approvals.list" -Action {
     $url = "http://localhost:8081/v1/approvals?sessionId=$sessionId&limit=20"
     $response = Invoke-JsonRequest -Method GET -Uri $url -TimeoutSec $RequestTimeoutSec

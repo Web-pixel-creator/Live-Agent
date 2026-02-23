@@ -87,6 +87,7 @@ Checkpoint B (hard interruption) at ~01:40:
    - probe telemetry (`probes/ping_sent/pongs/ping_errors`),
    - last health event marker (`lastEventType`, `lastEventAt`).
    - `device_nodes_health` summary line (`total/online/degraded/offline/stale/missing_heartbeat`) and `device.<nodeId>` recent entry.
+   - policy evidence includes explicit scenario `operator.device_nodes.lifecycle=passed` in `summary.json`.
 8. Switch intent to `ui_task` with sensitive action phrase.
 9. Show `Approval Control` with pending `approvalId`.
 10. Execute both decisions:

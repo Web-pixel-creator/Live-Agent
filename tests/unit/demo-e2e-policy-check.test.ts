@@ -28,6 +28,7 @@ const requiredScenarioNames = [
   "gateway.websocket.interrupt_signal",
   "gateway.websocket.invalid_envelope",
   "operator.console.actions",
+  "operator.device_nodes.lifecycle",
   "api.approvals.list",
   "api.approvals.resume.invalid_intent",
   "runtime.lifecycle.endpoints",
@@ -186,7 +187,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 107);
+  assert.equal(result.payload.checks, 108);
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {
@@ -267,4 +268,19 @@ test("demo-e2e policy check fails when service startup retry config is too low",
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("options.serviceStartMaxAttempts")));
+});
+
+test("demo-e2e policy check fails when operator.device_nodes.lifecycle scenario is missing", () => {
+  const summary = createPassingSummary();
+  summary.scenarios = (summary.scenarios as Array<Record<string, unknown>>).filter(
+    (item) => item.name !== "operator.device_nodes.lifecycle",
+  );
+
+  const result = runPolicyCheck(summary);
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("scenario.operator.device_nodes.lifecycle")));
 });
