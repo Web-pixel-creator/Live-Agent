@@ -438,3 +438,35 @@ test("demo-e2e policy check fails when operator task queue pressure is critical"
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.operatorTaskQueuePressureLevel")));
 });
+
+test("demo-e2e policy check allows transport fallback when requested mode is webrtc", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        gatewayTransportRequestedMode: "webrtc",
+        gatewayTransportActiveMode: "websocket",
+        gatewayTransportFallbackActive: true,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
+  assert.equal(result.payload.ok, true);
+});
+
+test("demo-e2e policy check fails when webrtc requested mode does not expose fallback", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        gatewayTransportRequestedMode: "webrtc",
+        gatewayTransportActiveMode: "websocket",
+        gatewayTransportFallbackActive: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.gatewayTransportFallbackActive")));
+});
