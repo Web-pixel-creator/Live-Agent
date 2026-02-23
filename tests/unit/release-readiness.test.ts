@@ -34,6 +34,9 @@ function createPassingSummary(
     gatewayInterruptEventType: string;
     serviceStartMaxAttempts: number | string;
     serviceStartRetryBackoffMs: number | string;
+    transportModeValidated: boolean | string;
+    gatewayTransportActiveMode: string;
+    gatewayTransportFallbackActive: boolean | string;
   }> = {},
 ): Record<string, unknown> {
   const hasOverride = (key: string): boolean => Object.prototype.hasOwnProperty.call(overrides, key);
@@ -58,6 +61,13 @@ function createPassingSummary(
       gatewayInterruptEventType: hasOverride("gatewayInterruptEventType")
         ? overrides.gatewayInterruptEventType
         : "live.interrupt.requested",
+      transportModeValidated: hasOverride("transportModeValidated") ? overrides.transportModeValidated : true,
+      gatewayTransportActiveMode: hasOverride("gatewayTransportActiveMode")
+        ? overrides.gatewayTransportActiveMode
+        : "websocket",
+      gatewayTransportFallbackActive: hasOverride("gatewayTransportFallbackActive")
+        ? overrides.gatewayTransportFallbackActive
+        : false,
     },
     options: {
       serviceStartMaxAttempts: hasOverride("serviceStartMaxAttempts") ? overrides.serviceStartMaxAttempts : "2",
@@ -219,5 +229,38 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /options\.serviceStartRetryBackoffMs expected >= 300, actual 200/i);
+  },
+);
+
+test(
+  "release-readiness fails when transport mode KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ transportModeValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /transportModeValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway active transport mode is not websocket",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ gatewayTransportActiveMode: "webrtc" }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /gatewayTransportActiveMode expected websocket, actual webrtc/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway transport fallback remains active",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ gatewayTransportFallbackActive: true }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /gatewayTransportFallbackActive expected False, actual True/i);
   },
 );

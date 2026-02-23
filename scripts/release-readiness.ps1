@@ -47,6 +47,23 @@ function To-NumberOrNaN([object]$Value) {
   return [double]::NaN
 }
 
+function To-BoolOrNull([object]$Value) {
+  if ($null -eq $Value) {
+    return $null
+  }
+  if ($Value -is [bool]) {
+    return $Value
+  }
+  $raw = [string]$Value
+  if ($raw -match "^(?i:true)$") {
+    return $true
+  }
+  if ($raw -match "^(?i:false)$") {
+    return $false
+  }
+  return $null
+}
+
 function Fail([string]$Message) {
   Write-Error $Message
   exit 1
@@ -208,6 +225,21 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $serviceStartRetryBackoffMs = To-NumberOrNaN $summary.options.serviceStartRetryBackoffMs
   if ([double]::IsNaN($serviceStartRetryBackoffMs) -or $serviceStartRetryBackoffMs -lt $ReleaseThresholds.MinServiceStartRetryBackoffMs) {
     Fail ("Critical KPI check failed: options.serviceStartRetryBackoffMs expected >= " + $ReleaseThresholds.MinServiceStartRetryBackoffMs + ", actual " + $summary.options.serviceStartRetryBackoffMs)
+  }
+
+  $transportModeValidated = To-BoolOrNull $summary.kpis.transportModeValidated
+  if ($transportModeValidated -ne $true) {
+    Fail ("Critical KPI check failed: transportModeValidated expected True, actual " + $summary.kpis.transportModeValidated)
+  }
+
+  $gatewayTransportActiveMode = [string]$summary.kpis.gatewayTransportActiveMode
+  if ($gatewayTransportActiveMode -ne "websocket") {
+    Fail ("Critical KPI check failed: gatewayTransportActiveMode expected websocket, actual " + $gatewayTransportActiveMode)
+  }
+
+  $gatewayTransportFallbackActive = To-BoolOrNull $summary.kpis.gatewayTransportFallbackActive
+  if ($gatewayTransportFallbackActive -ne $false) {
+    Fail ("Critical KPI check failed: gatewayTransportFallbackActive expected False, actual " + $summary.kpis.gatewayTransportFallbackActive)
   }
 }
 
