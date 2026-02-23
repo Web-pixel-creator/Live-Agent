@@ -409,6 +409,26 @@ function Wait-ForHealth {
   throw "Timed out waiting for $Name health endpoint: $Url"
 }
 
+function Get-LogTail {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path,
+    [Parameter(Mandatory = $false)]
+    [int]$MaxLines = 20
+  )
+
+  if (-not (Test-Path -Path $Path)) {
+    return ""
+  }
+
+  try {
+    $lines = Get-Content -Path $Path -Tail $MaxLines -ErrorAction Stop
+    return (($lines | ForEach-Object { $_.ToString() }) -join "`n").Trim()
+  } catch {
+    return ""
+  }
+}
+
 function Start-ManagedService {
   param(
     [Parameter(Mandatory = $true)]
@@ -433,40 +453,103 @@ function Start-ManagedService {
     return
   }
 
-  $stdoutPath = Join-Path $script:LogDir ("$Name.stdout.log")
-  $stderrPath = Join-Path $script:LogDir ("$Name.stderr.log")
-  New-Item -ItemType File -Force -Path $stdoutPath | Out-Null
-  New-Item -ItemType File -Force -Path $stderrPath | Out-Null
-
-  Write-Step "Starting $Name..."
-  $process = Start-Process `
-    -FilePath "node" `
-    -ArgumentList $NodeArgs `
-    -WorkingDirectory $script:RepoRoot `
-    -PassThru `
-    -RedirectStandardOutput $stdoutPath `
-    -RedirectStandardError $stderrPath
-
-  $health = Wait-ForHealth -Name $Name -Url $HealthUrl -TimeoutSec $StartupTimeoutSec -Process $process
-
-  $script:StartedProcesses += [ordered]@{
-    name = $Name
-    process = $process
-    stdoutPath = $stdoutPath
-    stderrPath = $stderrPath
-  }
-
-  $script:ServiceStatuses += [ordered]@{
-    name = $Name
-    healthUrl = $HealthUrl
-    reused = $false
-    pid = $process.Id
-    health = $health
-    logs = [ordered]@{
-      stdout = $stdoutPath
-      stderr = $stderrPath
+  $maxAttemptsRaw = [Environment]::GetEnvironmentVariable("DEMO_E2E_SERVICE_START_MAX_ATTEMPTS")
+  $maxAttempts = 2
+  if (-not [string]::IsNullOrWhiteSpace($maxAttemptsRaw)) {
+    $parsedAttempts = 0
+    if ([int]::TryParse($maxAttemptsRaw, [ref]$parsedAttempts) -and $parsedAttempts -ge 1) {
+      $maxAttempts = $parsedAttempts
     }
   }
+
+  $retryBackoffRaw = [Environment]::GetEnvironmentVariable("DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS")
+  $retryBackoffMs = 1200
+  if (-not [string]::IsNullOrWhiteSpace($retryBackoffRaw)) {
+    $parsedBackoff = 0
+    if ([int]::TryParse($retryBackoffRaw, [ref]$parsedBackoff) -and $parsedBackoff -ge 0) {
+      $retryBackoffMs = $parsedBackoff
+    }
+  }
+
+  for ($attempt = 1; $attempt -le $maxAttempts; $attempt += 1) {
+    $stdoutPath = Join-Path $script:LogDir ("{0}.attempt{1}.stdout.log" -f $Name, $attempt)
+    $stderrPath = Join-Path $script:LogDir ("{0}.attempt{1}.stderr.log" -f $Name, $attempt)
+    New-Item -ItemType File -Force -Path $stdoutPath | Out-Null
+    New-Item -ItemType File -Force -Path $stderrPath | Out-Null
+
+    if ($attempt -eq 1) {
+      Write-Step "Starting $Name..."
+    } else {
+      Write-Step ("Restarting {0} (attempt {1}/{2})..." -f $Name, $attempt, $maxAttempts)
+    }
+
+    $process = Start-Process `
+      -FilePath "node" `
+      -ArgumentList $NodeArgs `
+      -WorkingDirectory $script:RepoRoot `
+      -PassThru `
+      -RedirectStandardOutput $stdoutPath `
+      -RedirectStandardError $stderrPath
+
+    try {
+      $health = Wait-ForHealth -Name $Name -Url $HealthUrl -TimeoutSec $StartupTimeoutSec -Process $process
+
+      $script:StartedProcesses += [ordered]@{
+        name = $Name
+        process = $process
+        stdoutPath = $stdoutPath
+        stderrPath = $stderrPath
+      }
+
+      $script:ServiceStatuses += [ordered]@{
+        name = $Name
+        healthUrl = $HealthUrl
+        reused = $false
+        pid = $process.Id
+        health = $health
+        logs = [ordered]@{
+          stdout = $stdoutPath
+          stderr = $stderrPath
+        }
+      }
+      return
+    } catch {
+      $attemptError = $_.Exception.Message
+      $stderrTail = Get-LogTail -Path $stderrPath -MaxLines 30
+
+      if ($null -ne $process -and -not $process.HasExited) {
+        try {
+          Stop-Process -Id $process.Id -Force -ErrorAction Stop
+        } catch {
+          Write-Step ("Failed to stop unhealthy {0} process (pid={1}) during retry: {2}" -f $Name, $process.Id, $_.Exception.Message)
+        }
+      }
+
+      if ($attempt -ge $maxAttempts) {
+        $tailText = if ([string]::IsNullOrWhiteSpace($stderrTail)) { "n/a" } else { $stderrTail }
+        throw ("{0} failed to start after {1} attempt(s): {2}`n[{0} stderr tail]`n{3}" -f $Name, $maxAttempts, $attemptError, $tailText)
+      }
+
+      Write-Step ("{0} startup attempt {1}/{2} failed: {3}" -f $Name, $attempt, $maxAttempts, $attemptError)
+      Start-Sleep -Milliseconds $retryBackoffMs
+
+      $healthAfterBackoff = Try-GetHealth -Url $HealthUrl
+      if ($null -ne $healthAfterBackoff) {
+        Write-Step "$Name became healthy during retry backoff; reusing service."
+        $script:ServiceStatuses += [ordered]@{
+          name = $Name
+          healthUrl = $HealthUrl
+          reused = $true
+          pid = $null
+          health = $healthAfterBackoff
+          logs = $null
+        }
+        return
+      }
+    }
+  }
+
+  throw "Unreachable startup retry state for $Name."
 }
 
 function Stop-ManagedServices {
