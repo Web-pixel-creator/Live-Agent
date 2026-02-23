@@ -11,7 +11,7 @@ on:
 jobs:
   demo-e2e:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
       contents: write
     env:
@@ -33,6 +33,14 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
+        shell: powershell
+
+      - name: Run Unit Tests
+        run: npm run test:unit
+        shell: powershell
+
+      - name: Run Runtime Profile Smoke
+        run: npm run profile:smoke
         shell: powershell
 
       - name: Validate Monitoring Templates
@@ -59,6 +67,10 @@ jobs:
 
       - name: Build Badge Artifact
         run: npm run demo:e2e:badge
+        shell: powershell
+
+      - name: Run Perf Load Policy Gate
+        run: npm run perf:load:fast -- -LiveIterations 6 -LiveConcurrency 2 -UiIterations 6 -UiConcurrency 2
         shell: powershell
 
       - name: Prepare Badge Publish Directory
@@ -105,6 +117,10 @@ jobs:
             $badge = Get-Content "artifacts/demo-e2e/badge.json" -Raw | ConvertFrom-Json
             ("Badge: " + $badge.label + " -> " + $badge.message + " (" + $badge.color + ")") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           }
+          if (Test-Path "artifacts/perf-load/policy-check.json") {
+            $perf = Get-Content "artifacts/perf-load/policy-check.json" -Raw | ConvertFrom-Json
+            ("Perf policy gate: " + ($(if ($perf.ok) { "passed" } else { "failed" })) + " (" + $perf.checks + " checks)") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
           if ((Test-Path "artifacts/demo-e2e/badge.json") -and (("${{ github.event_name }}" -eq "push") -and (("${{ github.ref }}" -eq "refs/heads/main") -or ("${{ github.ref }}" -eq "refs/heads/master")))) {
             $repoParts = "${{ github.repository }}".Split("/")
             $owner = $repoParts[0]
@@ -129,4 +145,9 @@ jobs:
             artifacts/demo-e2e/badge.json
             artifacts/demo-e2e/badge-details.json
             artifacts/demo-e2e/logs
+            artifacts/perf-load/summary.json
+            artifacts/perf-load/summary.md
+            artifacts/perf-load/policy-check.json
+            artifacts/perf-load/policy-check.md
+            artifacts/perf-load/logs
           if-no-files-found: warn

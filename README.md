@@ -154,10 +154,16 @@ Badge artifact generation:
 npm run demo:e2e:badge
 ```
 
-Single-command local quality gate (build + demo e2e + policy + badge):
+Single-command local quality gate (build + unit tests + profile smoke + demo e2e + policy + badge + perf load policy):
 
 ```powershell
 npm run verify:release
+```
+
+Optional faster local pass (skip build):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1 -SkipBuild
 ```
 
 Direct mode with explicit thresholds:

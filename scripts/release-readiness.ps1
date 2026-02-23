@@ -1,14 +1,22 @@
 [CmdletBinding()]
 param(
   [switch]$SkipBuild,
+  [switch]$SkipUnitTests,
   [switch]$SkipMonitoringTemplates,
   [switch]$SkipProfileSmoke,
   [switch]$SkipDemoE2E,
   [switch]$SkipPolicy,
   [switch]$SkipBadge,
+  [switch]$SkipPerfLoad,
+  [int]$PerfLiveIterations = 6,
+  [int]$PerfLiveConcurrency = 2,
+  [int]$PerfUiIterations = 6,
+  [int]$PerfUiConcurrency = 2,
   [string]$SummaryPath = "artifacts/demo-e2e/summary.json",
   [string]$PolicyPath = "artifacts/demo-e2e/policy-check.json",
-  [string]$BadgePath = "artifacts/demo-e2e/badge.json"
+  [string]$BadgePath = "artifacts/demo-e2e/badge.json",
+  [string]$PerfSummaryPath = "artifacts/perf-load/summary.json",
+  [string]$PerfPolicyPath = "artifacts/perf-load/policy-check.json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -28,6 +36,10 @@ function Run-Step([string]$Name, [string]$Command) {
 
 if (-not $SkipBuild) {
   Run-Step "Build workspaces" "npm run build"
+}
+
+if (-not $SkipUnitTests) {
+  Run-Step "Run unit tests" "npm run test:unit"
 }
 
 if (-not $SkipMonitoringTemplates) {
@@ -50,6 +62,11 @@ if (-not $SkipBadge) {
   Run-Step "Generate badge artifact" "npm run demo:e2e:badge"
 }
 
+if (-not $SkipPerfLoad) {
+  $perfCommand = "npm run perf:load:fast -- -LiveIterations $PerfLiveIterations -LiveConcurrency $PerfLiveConcurrency -UiIterations $PerfUiIterations -UiConcurrency $PerfUiConcurrency"
+  Run-Step "Run perf load profile + policy gate" $perfCommand
+}
+
 $requiredFiles = @()
 if (-not $SkipDemoE2E) {
   $requiredFiles += $SummaryPath
@@ -59,6 +76,10 @@ if (-not $SkipPolicy) {
 }
 if (-not $SkipBadge) {
   $requiredFiles += $BadgePath
+}
+if (-not $SkipPerfLoad) {
+  $requiredFiles += $PerfSummaryPath
+  $requiredFiles += $PerfPolicyPath
 }
 
 $missing = @($requiredFiles | Where-Object { -not (Test-Path $_) })
@@ -95,6 +116,20 @@ if (Test-Path $BadgePath) {
   }
 }
 
+if (Test-Path $PerfSummaryPath) {
+  $perfSummary = Get-Content $PerfSummaryPath -Raw | ConvertFrom-Json
+  if (-not $perfSummary.success) {
+    Fail "perf summary.success is false"
+  }
+}
+
+if (Test-Path $PerfPolicyPath) {
+  $perfPolicy = Get-Content $PerfPolicyPath -Raw | ConvertFrom-Json
+  if (-not $perfPolicy.ok) {
+    Fail "perf policy-check result is not ok"
+  }
+}
+
 Write-Host ""
 Write-Host "Release readiness check passed."
 if (Test-Path $SummaryPath) {
@@ -109,4 +144,13 @@ if (Test-Path $PolicyPath) {
 if (Test-Path $BadgePath) {
   $badge = Get-Content $BadgePath -Raw | ConvertFrom-Json
   Write-Host ("badge: " + $badge.label + " -> " + $badge.message + " (" + $badge.color + ")")
+}
+if (Test-Path $PerfSummaryPath) {
+  $perfSummary = Get-Content $PerfSummaryPath -Raw | ConvertFrom-Json
+  Write-Host ("perf.success: " + $perfSummary.success)
+}
+if (Test-Path $PerfPolicyPath) {
+  $perfPolicy = Get-Content $PerfPolicyPath -Raw | ConvertFrom-Json
+  $violationsCount = @($perfPolicy.violations).Count
+  Write-Host ("perf.policy.ok: " + $perfPolicy.ok + " (" + $perfPolicy.checks + " checks, violations: " + $violationsCount + ")")
 }

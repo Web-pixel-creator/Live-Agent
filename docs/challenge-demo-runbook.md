@@ -8,6 +8,7 @@ This runbook defines the judged-demo flow for all three categories with explicit
 ```powershell
 npm run verify:release
 ```
+This gate validates build, unit tests, runtime profile smoke, demo e2e policy, badge artifact, and perf-load policy.
 2. Start services for live walkthrough:
 ```powershell
 npm run dev:ui-executor
