@@ -5,6 +5,7 @@ param(
   [switch]$SkipMonitoringTemplates,
   [switch]$SkipProfileSmoke,
   [switch]$SkipDemoE2E,
+  [switch]$SkipDemoRun,
   [switch]$UseFastDemoE2E,
   [switch]$SkipPolicy,
   [switch]$SkipBadge,
@@ -53,7 +54,7 @@ if (-not $SkipProfileSmoke) {
   Run-Step "Run runtime profile smoke checks" "npm run profile:smoke"
 }
 
-if (-not $SkipDemoE2E) {
+if ((-not $SkipDemoE2E) -and (-not $SkipDemoRun)) {
   $runFastDemo = $UseFastDemoE2E -or (-not $SkipBuild)
   $demoCommand = if ($runFastDemo) {
     "npm run demo:e2e:fast -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec"
