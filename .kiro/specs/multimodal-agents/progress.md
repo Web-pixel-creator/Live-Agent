@@ -54,6 +54,7 @@
 23. Operator Console now requires explicit confirmation dialogs for mutating actions (`cancel_task`, `retry_task`, `failover drain/warmup`, device-node upsert/conflict probe/heartbeat), reducing accidental control-plane writes during live demo.
 24. Operator Console now exposes a dedicated `Device Nodes Health` widget (`total/online/degraded/offline/stale/missing_heartbeat/max_age`) so device-node lifecycle proof is visible at a glance during judge walkthrough.
 25. Operator Console now exposes a dedicated `Trace Coverage` widget (`runs/events/ui_runs/approval_linked/steps/screenshots + top route/status`) with coverage-state hints for faster operator diagnostics during demo.
+26. Operator summary now includes approval status rollups (`pending/approved/rejected/timeout`) and latest approval snapshot, and Operator Console shows a dedicated `Approvals Queue` widget with SLA sweep hints (`soft/hard`).
 
 ## Current Focus Queue
 

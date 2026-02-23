@@ -338,6 +338,45 @@
               Refresh summary to inspect operator trace coverage.
             </p>
           </article>
+          <article class="operator-health-card">
+            <h3>Approvals Queue</h3>
+            <p id="operatorApprovalsStatus" class="status-pill status-neutral">no_data</p>
+            <p class="operator-health-row">
+              <strong>Total</strong>
+              <span id="operatorApprovalsTotal">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Pending</strong>
+              <span id="operatorApprovalsPending">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Approved</strong>
+              <span id="operatorApprovalsApproved">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Rejected</strong>
+              <span id="operatorApprovalsRejected">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Timeout</strong>
+              <span id="operatorApprovalsTimeout">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Pending from Tasks</strong>
+              <span id="operatorApprovalsPendingFromTasks">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>SLA Soft/Hard</strong>
+              <span id="operatorApprovalsSla">0 / 0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Latest</strong>
+              <span id="operatorApprovalsLatest">n/a</span>
+            </p>
+            <p id="operatorApprovalsHint" class="operator-health-hint operator-health-hint-neutral">
+              Refresh summary to inspect approval backlog and SLA timeouts.
+            </p>
+          </article>
         </div>
         <div id="operatorSummary" class="events"></div>
       </section>

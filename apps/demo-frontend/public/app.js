@@ -103,6 +103,16 @@ const el = {
   operatorTraceTopRoute: document.getElementById("operatorTraceTopRoute"),
   operatorTraceTopStatus: document.getElementById("operatorTraceTopStatus"),
   operatorTraceHint: document.getElementById("operatorTraceHint"),
+  operatorApprovalsStatus: document.getElementById("operatorApprovalsStatus"),
+  operatorApprovalsTotal: document.getElementById("operatorApprovalsTotal"),
+  operatorApprovalsPending: document.getElementById("operatorApprovalsPending"),
+  operatorApprovalsApproved: document.getElementById("operatorApprovalsApproved"),
+  operatorApprovalsRejected: document.getElementById("operatorApprovalsRejected"),
+  operatorApprovalsTimeout: document.getElementById("operatorApprovalsTimeout"),
+  operatorApprovalsPendingFromTasks: document.getElementById("operatorApprovalsPendingFromTasks"),
+  operatorApprovalsSla: document.getElementById("operatorApprovalsSla"),
+  operatorApprovalsLatest: document.getElementById("operatorApprovalsLatest"),
+  operatorApprovalsHint: document.getElementById("operatorApprovalsHint"),
   deviceNodeId: document.getElementById("deviceNodeId"),
   deviceNodeDisplayName: document.getElementById("deviceNodeDisplayName"),
   deviceNodeKind: document.getElementById("deviceNodeKind"),
@@ -493,6 +503,27 @@ function setOperatorTraceHint(text, variant = "neutral") {
   el.operatorTraceHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorApprovalsHint(text, variant = "neutral") {
+  if (!el.operatorApprovalsHint) {
+    return;
+  }
+  el.operatorApprovalsHint.textContent = text;
+  el.operatorApprovalsHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorApprovalsHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorApprovalsHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorApprovalsHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorApprovalsHint.classList.add("operator-health-hint-neutral");
+}
+
 function resetOperatorHealthWidget(reason = "no_data") {
   setText(el.operatorHealthState, "unknown");
   setText(el.operatorHealthLastEventType, "-");
@@ -546,6 +577,19 @@ function resetOperatorTraceWidget(reason = "no_data") {
   setText(el.operatorTraceTopStatus, "n/a");
   setOperatorTraceHint("Refresh summary to inspect operator trace coverage.", "neutral");
   setStatusPill(el.operatorTraceStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorApprovalsWidget(reason = "no_data") {
+  setText(el.operatorApprovalsTotal, "0");
+  setText(el.operatorApprovalsPending, "0");
+  setText(el.operatorApprovalsApproved, "0");
+  setText(el.operatorApprovalsRejected, "0");
+  setText(el.operatorApprovalsTimeout, "0");
+  setText(el.operatorApprovalsPendingFromTasks, "0");
+  setText(el.operatorApprovalsSla, "0 / 0");
+  setText(el.operatorApprovalsLatest, "n/a");
+  setOperatorApprovalsHint("Refresh summary to inspect approval backlog and SLA timeouts.", "neutral");
+  setStatusPill(el.operatorApprovalsStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function renderOperatorHealthWidget(liveBridgeHealth) {
@@ -828,6 +872,115 @@ function renderOperatorTraceWidget(traces) {
   setOperatorTraceHint(hint, hintVariant);
 }
 
+function buildApprovalStatusCountsFromRecent(recentApprovals) {
+  const counts = {
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    timeout: 0,
+  };
+  if (!Array.isArray(recentApprovals)) {
+    return counts;
+  }
+  for (const item of recentApprovals) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+    const status = typeof item.status === "string" ? item.status : "";
+    if (status === "pending") {
+      counts.pending += 1;
+    } else if (status === "approved") {
+      counts.approved += 1;
+    } else if (status === "rejected") {
+      counts.rejected += 1;
+    } else if (status === "timeout") {
+      counts.timeout += 1;
+    }
+  }
+  return counts;
+}
+
+function renderOperatorApprovalsWidget(approvalsSummary) {
+  if (!approvalsSummary || typeof approvalsSummary !== "object") {
+    resetOperatorApprovalsWidget("no_data");
+    return;
+  }
+
+  const total = Number(approvalsSummary.total ?? 0);
+  const pendingFromTasks = Number(approvalsSummary.pendingFromTasks ?? 0);
+  const recentApprovals = Array.isArray(approvalsSummary.recent) ? approvalsSummary.recent : [];
+  const providedCounts = approvalsSummary.statusCounts && typeof approvalsSummary.statusCounts === "object"
+    ? approvalsSummary.statusCounts
+    : null;
+  const fallbackCounts = buildApprovalStatusCountsFromRecent(recentApprovals);
+  const pending = Number(providedCounts?.pending ?? fallbackCounts.pending);
+  const approved = Number(providedCounts?.approved ?? fallbackCounts.approved);
+  const rejected = Number(providedCounts?.rejected ?? fallbackCounts.rejected);
+  const timeout = Number(providedCounts?.timeout ?? fallbackCounts.timeout);
+  const sweep = approvalsSummary.slaSweep && typeof approvalsSummary.slaSweep === "object"
+    ? approvalsSummary.slaSweep
+    : null;
+  const softReminders = Number(sweep?.softReminders ?? 0);
+  const hardTimeouts = Number(sweep?.hardTimeouts ?? 0);
+  const latest = approvalsSummary.latest && typeof approvalsSummary.latest === "object"
+    ? approvalsSummary.latest
+    : recentApprovals.find((item) => item && typeof item === "object") ?? null;
+  const latestId = typeof latest?.approvalId === "string" ? latest.approvalId : null;
+  const latestStatus = typeof latest?.status === "string" ? latest.status : null;
+  const latestUpdatedAt = typeof latest?.updatedAt === "string" ? latest.updatedAt : null;
+
+  setText(el.operatorApprovalsTotal, String(Math.max(0, Math.floor(total))));
+  setText(el.operatorApprovalsPending, String(Math.max(0, Math.floor(pending))));
+  setText(el.operatorApprovalsApproved, String(Math.max(0, Math.floor(approved))));
+  setText(el.operatorApprovalsRejected, String(Math.max(0, Math.floor(rejected))));
+  setText(el.operatorApprovalsTimeout, String(Math.max(0, Math.floor(timeout))));
+  setText(el.operatorApprovalsPendingFromTasks, String(Math.max(0, Math.floor(pendingFromTasks))));
+  setText(
+    el.operatorApprovalsSla,
+    `${Math.max(0, Math.floor(softReminders))} / ${Math.max(0, Math.floor(hardTimeouts))}`,
+  );
+  setText(
+    el.operatorApprovalsLatest,
+    latestId && latestStatus
+      ? `${latestId.slice(0, 12)}... ${latestStatus}${latestUpdatedAt ? ` @ ${latestUpdatedAt}` : ""}`
+      : "n/a",
+  );
+
+  let statusVariant = "ok";
+  let statusText = "healthy";
+  let hintVariant = "ok";
+  let hint = "Approval backlog is healthy. Resume decisions are flowing normally.";
+
+  if (total <= 0) {
+    statusVariant = "neutral";
+    statusText = "no_approvals";
+    hintVariant = "warn";
+    hint = "No approvals recorded yet. Trigger a sensitive UI task to validate approval flow.";
+  } else if (timeout > 0 || hardTimeouts > 0) {
+    statusVariant = "fail";
+    statusText = "timeouts";
+    hintVariant = "fail";
+    hint = "Approval timeouts detected. Review pending queue and SLA thresholds before demo.";
+  } else if (pending > 0 || pendingFromTasks > 0) {
+    statusVariant = "neutral";
+    statusText = "pending";
+    hintVariant = "warn";
+    hint = "Pending approvals require operator decision. Complete approve/reject flow before final run.";
+  } else if (rejected > 0) {
+    statusVariant = "neutral";
+    statusText = "review";
+    hintVariant = "warn";
+    hint = "Queue contains rejected approvals. Confirm expected policy behavior in runbook evidence.";
+  }
+
+  setStatusPill(
+    el.operatorApprovalsStatus,
+    `${statusText} total=${Math.max(0, Math.floor(total))} pending=${Math.max(0, Math.floor(pending))}`,
+    statusVariant,
+  );
+  setOperatorApprovalsHint(hint, hintVariant);
+}
+
 function extractNumber(text, regex) {
   const match = text.match(regex);
   if (!match) {
@@ -1033,6 +1186,7 @@ function renderOperatorSummary(summary) {
   resetOperatorUiExecutorWidget("no_data");
   resetOperatorDeviceNodesWidget("no_data");
   resetOperatorTraceWidget("no_data");
+  resetOperatorApprovalsWidget("no_data");
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -1060,6 +1214,7 @@ function renderOperatorSummary(summary) {
     "approvals",
     `recorded=${approvalsTotal} pending_from_tasks=${pendingApprovals}`,
   );
+  renderOperatorApprovalsWidget(summary.approvals);
 
   const deviceNodes = summary.deviceNodes && typeof summary.deviceNodes === "object"
     ? summary.deviceNodes
@@ -1234,6 +1389,7 @@ async function refreshOperatorSummary() {
     resetOperatorUiExecutorWidget("summary_error");
     resetOperatorDeviceNodesWidget("summary_error");
     resetOperatorTraceWidget("summary_error");
+    resetOperatorApprovalsWidget("summary_error");
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
 }

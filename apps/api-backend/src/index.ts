@@ -1523,6 +1523,39 @@ export const server = createServer(async (req, res) => {
         listApprovals({ limit: 100 }),
         listOperatorActions(50),
       ]);
+      const approvalStatusCounts = approvals.reduce(
+        (acc, approval) => {
+          if (approval.status === "pending") {
+            acc.pending += 1;
+          } else if (approval.status === "approved") {
+            acc.approved += 1;
+          } else if (approval.status === "rejected") {
+            acc.rejected += 1;
+          } else if (approval.status === "timeout") {
+            acc.timeout += 1;
+          }
+          return acc;
+        },
+        {
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+          timeout: 0,
+        },
+      );
+      const latestApproval = approvals.length > 0
+        ? {
+            approvalId: approvals[0].approvalId,
+            status: approvals[0].status,
+            decision: approvals[0].decision,
+            updatedAt: approvals[0].updatedAt,
+            requestedAt: approvals[0].requestedAt,
+            hardDueAt: approvals[0].hardDueAt,
+            resolvedAt: approvals[0].resolvedAt,
+            runId: approvals[0].runId,
+            sessionId: approvals[0].sessionId,
+          }
+        : null;
       const pendingApprovalsFromTasks = activeTasks.filter(
         (task) => isRecord(task) && task.status === "pending_approval",
       ).length;
@@ -1549,9 +1582,11 @@ export const server = createServer(async (req, res) => {
           approvals: {
             total: approvals.length,
             recent: approvals.slice(0, 25),
+            statusCounts: approvalStatusCounts,
             pendingFromTasks: pendingApprovalsFromTasks,
             syncedFromTasks,
             slaSweep: sweep,
+            latest: latestApproval,
           },
           operatorActions: {
             total: operatorActions.length,
