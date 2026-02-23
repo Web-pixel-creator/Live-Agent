@@ -9,6 +9,10 @@ This runbook defines the judged-demo flow for all three categories with explicit
 npm run verify:release
 ```
 This gate validates build, unit tests, runtime profile smoke, demo e2e policy, badge artifact, and perf-load policy.
+For artifact-only revalidation (without rerunning perf profile), keep perf artifacts and run:
+```powershell
+npm run verify:release -- -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipDemoE2E -SkipPolicy -SkipBadge -SkipPerfRun
+```
 2. Start services for live walkthrough:
 ```powershell
 npm run dev:ui-executor
@@ -32,6 +36,37 @@ Recommended UI executor safety setting for judged demo:
 Optional startup reliability knobs for local/CI runs:
 - `DEMO_E2E_SERVICE_START_MAX_ATTEMPTS=2` (or higher for unstable runners).
 - `DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS=1200`.
+
+### Release-Critical KPI Snapshot
+
+The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidence items regress:
+
+- Operator reliability:
+  - `operatorAuditTrailValidated=true`
+  - `operatorTraceCoverageValidated=true`
+  - `operatorLiveBridgeHealthBlockValidated=true`
+  - `operatorLiveBridgeProbeTelemetryValidated=true`
+  - `operatorLiveBridgeHealthState in {healthy,degraded,unknown}`
+- Storyteller reliability:
+  - `storytellerVideoAsyncValidated=true`
+  - `storytellerMediaQueueVisible=true`
+  - `storytellerMediaQueueQuotaValidated=true`
+  - `storytellerCacheEnabled=true`
+  - `storytellerCacheHitValidated=true`
+  - `storytellerCacheInvalidationValidated=true`
+  - `storytellerMediaMode=simulated`
+  - `storytellerMediaQueueWorkers >= 1`
+  - `storytellerCacheHits >= 1`
+- Perf-load anti-drift (from `artifacts/perf-load/policy-check.json`):
+  - required check items include:
+    - `workload.live.p95`
+    - `workload.ui.p95`
+    - `workload.gateway_replay.p95`
+    - `workload.gateway_replay.errorRatePct`
+    - `aggregate.errorRatePct`
+    - `workload.gateway_replay.contract.responseIdReusedAll`
+    - `workload.gateway_replay.contract.taskStartedExactlyOneAll`
+    - `workload.ui.adapterMode.remote_http`
 
 3. Open `http://localhost:3000` and confirm:
 - `Connection status` changes to `connected`.
