@@ -412,6 +412,10 @@ Useful flags:
 - Triggered on push to `main`/`master` and manual dispatch.
 - Runs `npm run verify:release:strict` (`-StrictFinalRun`) and uploads consolidated release artifacts bundle.
 
+- Artifact-only release revalidation workflow: `.github/workflows/release-artifact-revalidation.yml`
+- Triggered on manual dispatch.
+- Resolves latest successful `demo-e2e`/`release-strict-final` run (or uses provided `source_run_id`), downloads artifact bundle, and runs `npm run verify:release:artifact-only`.
+
 ## PR Gate
 
 - PR template: `.github/pull_request_template.md`

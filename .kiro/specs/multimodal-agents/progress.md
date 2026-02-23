@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `143` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`181` tests passed).
+4. Unit tests are green (`183` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -79,6 +79,7 @@
 48. Fixed locale-dependent numeric parsing in `scripts/release-readiness.ps1` (`To-NumberOrNaN` now parses with invariant culture fallback), eliminating false failures on decimal perf values (e.g., `ui_navigation_execution p95=38.5`), with dedicated regression test `release-readiness accepts decimal perf latency values from artifacts`.
 49. Added release-check npm aliases for deterministic operator usage: `verify:release:strict:skip-perf-run` and `verify:release:artifact-only`; synchronized docs in `README.md` and `docs/challenge-demo-runbook.md`; added anti-drift coverage in `tests/unit/release-script-alias-alignment.test.ts`.
 50. Updated `README.md` CI visibility with explicit strict-release workflow coverage (`release-strict-final.yml` badge + workflow section) so release-grade gate status is visible alongside PR/demo badges.
+51. Added manual artifact-only CI revalidation workflow `.github/workflows/release-artifact-revalidation.yml`: auto-resolves latest successful `demo-e2e`/`release-strict-final` run (or accepts `source_run_id`), auto-detects artifact bundle, restores `artifacts/` tree, runs `verify:release:artifact-only`, and uploads consolidated evidence with anti-drift coverage in `tests/unit/release-artifact-workflow-alignment.test.ts`.
 
 ## Current Focus Queue
 
