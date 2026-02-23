@@ -22,7 +22,8 @@ $env:GITHUB_REPO="Live-Agent"
 $env:GITHUB_TOKEN="<token-with-actions-read>"
 npm run verify:release:artifact:revalidate
 ```
-Optional flags: `-- -SourceRunId <id>`, `-- -ArtifactName <name>`, `-- -SkipArtifactOnlyGate`.
+Optional flags: `-- -SourceRunId <id>`, `-- -ArtifactName <name>`, `-- -StrictFinalRun`, `-- -SkipPerfLoadGate`, `-- -SkipArtifactOnlyGate`.
+Helper behavior: if downloaded bundle does not contain `artifacts/perf-load/*`, perf checks are skipped automatically while demo/policy/badge artifact checks stay enforced.
 For flaky local runners you can increase demo retry tolerance:
 ```powershell
 npm run verify:release -- -DemoRunMaxAttempts 3 -DemoRunRetryBackoffMs 3000 -DemoScenarioRetryMaxAttempts 3 -DemoScenarioRetryBackoffMs 1200

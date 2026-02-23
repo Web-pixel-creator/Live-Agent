@@ -200,7 +200,10 @@ npm run verify:release:artifact:revalidate
 Optional local helper flags:
 - `-- -SourceRunId <id>` - force specific workflow run.
 - `-- -ArtifactName <name>` - force specific artifact bundle name.
+- `-- -StrictFinalRun` - enforce strict artifact gate (`scenarioRetriesUsedCount = 0`).
+- `-- -SkipPerfLoadGate` - skip perf artifact checks even if perf artifacts are present.
 - `-- -SkipArtifactOnlyGate` - restore artifacts without running release gate.
+- Perf gate is auto-skipped when downloaded bundle has no `artifacts/perf-load/*` (for example `pr-quality-artifacts`).
 
 Optional faster local pass (skip build):
 
@@ -429,7 +432,7 @@ Useful flags:
 - Artifact-only release revalidation workflow: `.github/workflows/release-artifact-revalidation.yml`
 - Triggered on manual dispatch.
 - Resolves latest successful `demo-e2e`/`release-strict-final` run (or uses provided `source_run_id`), downloads artifact bundle, and runs `npm run verify:release:artifact-only`.
-- Local equivalent helper: `npm run verify:release:artifact:revalidate` (uses `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_TOKEN` or `GH_TOKEN`).
+- Local equivalent helper: `npm run verify:release:artifact:revalidate` (uses `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_TOKEN` or `GH_TOKEN`; supports strict mode and auto-skip for missing perf artifacts).
 
 ## PR Gate
 

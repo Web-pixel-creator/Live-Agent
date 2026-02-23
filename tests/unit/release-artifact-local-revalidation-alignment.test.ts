@@ -23,5 +23,8 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /release-strict-final-artifacts/);
   assert.match(source, /demo-e2e-artifacts/);
   assert.match(source, /pr-quality-artifacts/);
-  assert.match(source, /npm run verify:release:artifact-only/);
+  assert.match(source, /-StrictFinalRun/);
+  assert.match(source, /-SkipPerfLoad/);
+  assert.match(source, /SkipPerfLoadGate/);
+  assert.match(source, /Perf artifacts are not present in the bundle/);
 });

@@ -11,6 +11,8 @@ param(
   [string]$ArtifactsDir = "artifacts",
   [string]$TempDir = ".tmp/release-artifact-revalidation",
   [switch]$SkipArtifactOnlyGate,
+  [switch]$StrictFinalRun,
+  [switch]$SkipPerfLoadGate,
   [switch]$KeepTemp
 )
 
@@ -30,6 +32,44 @@ function Resolve-AbsolutePath([string]$PathValue) {
 
 function Invoke-GitHubJson([string]$Uri, [hashtable]$Headers) {
   return Invoke-RestMethod -Method Get -Uri $Uri -Headers $Headers -TimeoutSec 60
+}
+
+function Invoke-ReleaseReadinessGate(
+  [bool]$IncludePerfChecks,
+  [bool]$StrictMode
+) {
+  $releaseScript = Join-Path $PSScriptRoot "release-readiness.ps1"
+  if (-not (Test-Path $releaseScript)) {
+    Fail "release-readiness.ps1 was not found next to this script."
+  }
+
+  $releaseArgs = @(
+    "-SkipBuild",
+    "-SkipUnitTests",
+    "-SkipMonitoringTemplates",
+    "-SkipProfileSmoke",
+    "-SkipDemoE2E",
+    "-SkipPolicy",
+    "-SkipBadge",
+    "-SkipPerfRun"
+  )
+
+  if (-not $IncludePerfChecks) {
+    $releaseArgs += "-SkipPerfLoad"
+  }
+  if ($StrictMode) {
+    $releaseArgs += "-StrictFinalRun"
+  }
+
+  $perfModeLabel = if ($IncludePerfChecks) { "with perf checks" } else { "without perf checks" }
+  $strictModeLabel = if ($StrictMode) { "strict" } else { "standard" }
+  Write-Host ("[artifact-revalidate] Running local gate: release-readiness.ps1 (" + $strictModeLabel + ", " + $perfModeLabel + ")")
+
+  & $releaseScript @releaseArgs
+  if ($LASTEXITCODE -ne 0) {
+    $modeLabel = if ($StrictMode) { "strict artifact-only" } else { "artifact-only" }
+    Fail ("Release revalidation failed in " + $modeLabel + " mode.")
+  }
 }
 
 if ([string]::IsNullOrWhiteSpace($Owner)) {
@@ -159,11 +199,19 @@ foreach ($artifactChild in $artifactChildren) {
 }
 
 if (-not $SkipArtifactOnlyGate) {
-  Write-Host "[artifact-revalidate] Running local gate: npm run verify:release:artifact-only"
-  & cmd.exe /c "npm run verify:release:artifact-only"
-  if ($LASTEXITCODE -ne 0) {
-    Fail "Artifact-only release revalidation failed."
+  $perfSummaryPath = Join-Path $resolvedArtifactsDir "perf-load/summary.json"
+  $perfPolicyPath = Join-Path $resolvedArtifactsDir "perf-load/policy-check.json"
+  $hasPerfArtifacts = (Test-Path $perfSummaryPath) -and (Test-Path $perfPolicyPath)
+  $includePerfChecks = $hasPerfArtifacts -and (-not $SkipPerfLoadGate)
+
+  if (-not $hasPerfArtifacts) {
+    Write-Host "[artifact-revalidate] Perf artifacts are not present in the bundle; perf gate will be skipped."
   }
+  elseif ($SkipPerfLoadGate) {
+    Write-Host "[artifact-revalidate] SkipPerfLoadGate enabled; perf gate will be skipped."
+  }
+
+  Invoke-ReleaseReadinessGate -IncludePerfChecks $includePerfChecks -StrictMode $StrictFinalRun
 }
 else {
   Write-Host "[artifact-revalidate] SkipArtifactOnlyGate enabled; artifacts were restored without running release gate."
