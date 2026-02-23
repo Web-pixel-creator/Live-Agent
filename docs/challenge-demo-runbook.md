@@ -84,6 +84,7 @@ Checkpoint B (hard interruption) at ~01:40:
 10. Execute both decisions:
    - `Reject` (must not resume run),
    - `Approve & Resume` (must resume and complete).
+   - Check KPI evidence in `summary.json`: `uiApprovalResumeRequestAttempts` is `1..2` and scenario `ui.approval.approve_resume.elapsedMs <= 60000`.
 11. Run one safe `ui_task` in visual testing mode (`visualTesting.enabled=true`) and show:
    - structured visual report with `checks` and severity labels,
    - `status=passed|failed`,
