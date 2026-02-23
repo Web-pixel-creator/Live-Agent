@@ -2066,6 +2066,7 @@ try {
     $results = @()
     $profileValidated = $true
     $analyticsValidated = $true
+    $analyticsSplitTargetsValidated = $true
     $transportValidated = $true
     foreach ($service in $services) {
       $baseUrl = [string]$service.baseUrl
@@ -2097,6 +2098,10 @@ try {
       Assert-Condition -Condition (@("disabled", "cloud_monitoring", "bigquery") -contains $analyticsMetricsTarget) -Message ("Invalid analytics metrics target for " + $serviceName)
       Assert-Condition -Condition (@("disabled", "cloud_monitoring", "bigquery") -contains $analyticsEventsTarget) -Message ("Invalid analytics events target for " + $serviceName)
       Assert-Condition -Condition ($analyticsSampleRate -ge 0 -and $analyticsSampleRate -le 1) -Message ("Invalid analytics sampleRate for " + $serviceName)
+      if ($analyticsEnabled) {
+        Assert-Condition -Condition ($analyticsMetricsTarget -eq "cloud_monitoring") -Message ("Enabled analytics must use cloud_monitoring metrics target for " + $serviceName)
+        Assert-Condition -Condition ($analyticsEventsTarget -eq "bigquery") -Message ("Enabled analytics must use bigquery events target for " + $serviceName)
+      }
 
       $transportRequestedMode = $null
       $transportActiveMode = $null
@@ -2175,6 +2180,9 @@ try {
       if ([string]::IsNullOrWhiteSpace($analyticsReason)) {
         $analyticsValidated = $false
       }
+      if ($analyticsEnabled -and ($analyticsMetricsTarget -ne "cloud_monitoring" -or $analyticsEventsTarget -ne "bigquery")) {
+        $analyticsSplitTargetsValidated = $false
+      }
       if ($serviceName -eq "realtime-gateway" -and [string]::IsNullOrWhiteSpace($transportActiveMode)) {
         $transportValidated = $false
       }
@@ -2187,8 +2195,10 @@ try {
       count = $results.Count
       profileValidated = $profileValidated
       analyticsValidated = $analyticsValidated
+      analyticsSplitTargetsValidated = $analyticsSplitTargetsValidated
       transportValidated = $transportValidated
       analyticsServices = (@($results | Where-Object { -not [string]::IsNullOrWhiteSpace($_.analyticsReason) })).Count
+      analyticsEnabledServices = (@($results | Where-Object { $_.analyticsEnabled -eq $true })).Count
       transportServices = (@($results | Where-Object { -not [string]::IsNullOrWhiteSpace($_.transportActiveMode) })).Count
       gatewayTransportRequestedMode = if ($null -ne $gatewayTransport) { $gatewayTransport.transportRequestedMode } else { $null }
       gatewayTransportActiveMode = if ($null -ne $gatewayTransport) { $gatewayTransport.transportActiveMode } else { $null }
@@ -2577,6 +2587,8 @@ $summary = [ordered]@{
     runtimeProfileValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.profileValidated } else { $false }
     analyticsRuntimeVisible = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsValidated } else { $false }
     analyticsServicesValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsServices } else { $null }
+    analyticsSplitTargetsValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsSplitTargetsValidated } else { $false }
+    analyticsEnabledServices = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsEnabledServices } else { $null }
     transportModeValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.transportValidated } else { $false }
     transportServicesValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.transportServices } else { $null }
     gatewayTransportRequestedMode = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.gatewayTransportRequestedMode } else { $null }

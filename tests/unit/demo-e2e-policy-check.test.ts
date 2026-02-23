@@ -151,6 +151,7 @@ function createPassingSummary(overrides?: {
     runtimeProfileValidated: true,
     analyticsRuntimeVisible: true,
     analyticsServicesValidated: 4,
+    analyticsSplitTargetsValidated: true,
     transportModeValidated: true,
     transportServicesValidated: 1,
     gatewayTransportRequestedMode: "websocket",
@@ -213,7 +214,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 134);
+  assert.equal(result.payload.checks, 135);
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {
@@ -437,6 +438,22 @@ test("demo-e2e policy check fails when operator task queue pressure is critical"
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.operatorTaskQueuePressureLevel")));
+});
+
+test("demo-e2e policy check fails when analytics split targets KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        analyticsSplitTargetsValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.analyticsSplitTargetsValidated")));
 });
 
 test("demo-e2e policy check allows transport fallback when requested mode is webrtc", () => {

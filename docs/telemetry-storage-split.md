@@ -32,6 +32,15 @@ Services (`realtime-gateway`, `api-backend`, `orchestrator`) now emit:
    - entries / hit_rate_pct / hits_total / misses_total / evictions_total / invalidations_total
    - scope-level distribution (`storyteller.cache.scope_entries`, labels: `scope=plan|branch|asset`)
 
+Runtime gate alignment:
+
+1. `runtime.lifecycle.endpoints` validates telemetry split targets for enabled analytics services:
+   - `metricsTarget` must be `cloud_monitoring`
+   - `eventsTarget` must be `bigquery`
+2. Summary KPI `analyticsSplitTargetsValidated=true` is enforced by:
+   - `demo:e2e:policy`
+   - `release-readiness`
+
 The export transport is structured stdout logs (`[analytics] { ...json... }`), designed for Cloud Logging ingestion and downstream sinks.
 
 ## Configuration

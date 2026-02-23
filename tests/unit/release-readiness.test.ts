@@ -34,6 +34,7 @@ function createPassingSummary(
     gatewayInterruptEventType: string;
     serviceStartMaxAttempts: number | string;
     serviceStartRetryBackoffMs: number | string;
+    analyticsSplitTargetsValidated: boolean | string;
     transportModeValidated: boolean | string;
     gatewayTransportRequestedMode: string;
     gatewayTransportActiveMode: string;
@@ -62,6 +63,9 @@ function createPassingSummary(
       gatewayInterruptEventType: hasOverride("gatewayInterruptEventType")
         ? overrides.gatewayInterruptEventType
         : "live.interrupt.requested",
+      analyticsSplitTargetsValidated: hasOverride("analyticsSplitTargetsValidated")
+        ? overrides.analyticsSplitTargetsValidated
+        : true,
       transportModeValidated: hasOverride("transportModeValidated") ? overrides.transportModeValidated : true,
       gatewayTransportRequestedMode: hasOverride("gatewayTransportRequestedMode")
         ? overrides.gatewayTransportRequestedMode
@@ -233,6 +237,17 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /options\.serviceStartRetryBackoffMs expected >= 300, actual 200/i);
+  },
+);
+
+test(
+  "release-readiness fails when analytics split targets KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ analyticsSplitTargetsValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /analyticsSplitTargetsValidated expected True, actual False/i);
   },
 );
 

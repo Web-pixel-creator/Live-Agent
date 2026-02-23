@@ -835,6 +835,12 @@ async function main() {
     ">= 4",
   );
   addCheck(
+    "kpi.analyticsSplitTargetsValidated",
+    kpis.analyticsSplitTargetsValidated === true,
+    kpis.analyticsSplitTargetsValidated,
+    true,
+  );
+  addCheck(
     "kpi.transportModeValidated",
     kpis.transportModeValidated === true,
     kpis.transportModeValidated,
