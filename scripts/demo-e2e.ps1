@@ -618,6 +618,7 @@ try {
   Set-EnvDefault -Name "GATEWAY_ORCHESTRATOR_RETRY_BACKOFF_MS" -Value "300"
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_MODE" -Value "remote_http"
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_URL" -Value "http://localhost:8090"
+  Set-EnvDefault -Name "UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE" -Value "failed"
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_TIMEOUT_MS" -Value "15000"
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_MAX_RETRIES" -Value "1"
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS" -Value "300"
@@ -1859,6 +1860,7 @@ $summary = [ordered]@{
     keepServices = [bool]$KeepServices
     startupTimeoutSec = $StartupTimeoutSec
     requestTimeoutSec = $RequestTimeoutSec
+    uiNavigatorRemoteHttpFallbackMode = [Environment]::GetEnvironmentVariable("UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE")
   }
   session = [ordered]@{
     sessionId = $sessionId
