@@ -78,6 +78,7 @@
 47. `repo:publish` now runs pre-publish release verification by default (`verify:release`), supports strict mode (`-StrictReleaseVerification` -> `verify:release:strict`) and explicit bypass (`-SkipReleaseVerification`), with anti-drift coverage in `tests/unit/repo-publish-release-gate-alignment.test.ts`.
 48. Fixed locale-dependent numeric parsing in `scripts/release-readiness.ps1` (`To-NumberOrNaN` now parses with invariant culture fallback), eliminating false failures on decimal perf values (e.g., `ui_navigation_execution p95=38.5`), with dedicated regression test `release-readiness accepts decimal perf latency values from artifacts`.
 49. Added release-check npm aliases for deterministic operator usage: `verify:release:strict:skip-perf-run` and `verify:release:artifact-only`; synchronized docs in `README.md` and `docs/challenge-demo-runbook.md`; added anti-drift coverage in `tests/unit/release-script-alias-alignment.test.ts`.
+50. Updated `README.md` CI visibility with explicit strict-release workflow coverage (`release-strict-final.yml` badge + workflow section) so release-grade gate status is visible alongside PR/demo badges.
 
 ## Current Focus Queue
 

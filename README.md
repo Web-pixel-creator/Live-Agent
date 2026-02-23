@@ -8,6 +8,7 @@ Starter workspace for the "next-generation agents" spec:
 
 ![PR Quality Gate](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/pr-quality.yml/badge.svg)
 ![Demo E2E](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/demo-e2e.yml/badge.svg)
+![Release Strict Final Gate](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/release-strict-final.yml/badge.svg)
 ![Demo KPI Badge](https://img.shields.io/endpoint?url=https%3A%2F%2FWeb-pixel-creator.github.io%2FLive-Agent%2Fdemo-e2e%2Fbadge.json)
 
 ## Workspace Layout
@@ -406,6 +407,10 @@ Useful flags:
   - `artifacts/perf-load/policy-check.json`
   - `artifacts/perf-load/policy-check.md`
   - `artifacts/perf-load/logs`
+
+- Strict final release workflow: `.github/workflows/release-strict-final.yml`
+- Triggered on push to `main`/`master` and manual dispatch.
+- Runs `npm run verify:release:strict` (`-StrictFinalRun`) and uploads consolidated release artifacts bundle.
 
 ## PR Gate
 
