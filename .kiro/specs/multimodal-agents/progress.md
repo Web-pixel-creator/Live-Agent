@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `137` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`159` tests passed).
+4. Unit tests are green (`161` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -67,6 +67,7 @@
 36. Release-readiness now treats Storyteller queue/cache evidence as critical (`storytellerMediaMode=simulated`, queue workers, cache hits, async/queue/cache validation KPIs).
 37. Judge runbook now documents artifact-only release revalidation (`-SkipPerfRun`) and explicitly lists release-critical operator/story/perf evidence keys.
 38. Added anti-drift unit coverage (`tests/unit/runbook-release-alignment.test.ts`) to keep `docs/challenge-demo-runbook.md` aligned with `scripts/release-readiness.ps1`.
+39. Added anti-drift unit coverage (`tests/unit/ws-protocol-error-taxonomy-alignment.test.ts`) to keep `docs/ws-protocol.md` aligned with policy-level gateway error codes and retryability taxonomy.
 
 ## Current Focus Queue
 
