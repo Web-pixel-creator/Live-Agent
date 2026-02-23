@@ -26,6 +26,9 @@ and configure gateway env:
 - `LIVE_API_PROTOCOL=gemini`
 - `LIVE_API_WS_URL=ws://localhost:8091/live`
 
+Recommended UI executor safety setting for judged demo:
+- `UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE=failed` (fail-fast instead of silent simulated fallback when remote executor is unavailable).
+
 3. Open `http://localhost:3000` and confirm:
 - `Connection status` changes to `connected`.
 - KPI panel is visible (`target/current/final`).
