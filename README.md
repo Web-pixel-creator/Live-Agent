@@ -6,6 +6,10 @@ Starter workspace for the "next-generation agents" spec:
 - Creative Storyteller (Gemini + Imagen + Veo + TTS)
 - UI Navigator (Computer Use + action execution)
 
+![PR Quality Gate](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/pr-quality.yml/badge.svg)
+![Demo E2E](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/demo-e2e.yml/badge.svg)
+![Demo KPI Badge](https://img.shields.io/endpoint?url=https%3A%2F%2FWeb-pixel-creator.github.io%2FLive-Agent%2Fdemo-e2e%2Fbadge.json)
+
 ## Workspace Layout
 
 - `apps/realtime-gateway` - realtime ingress/egress service

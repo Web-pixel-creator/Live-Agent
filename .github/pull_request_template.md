@@ -6,7 +6,7 @@
 
 ## Demo Readiness Checklist
 
-- [ ] `Demo E2E` workflow passed for this PR.
+- [ ] `PR Quality Gate` workflow passed for this PR.
 - [ ] KPI policy gate passed (`demo:e2e:policy`).
 - [ ] `artifacts/demo-e2e/summary.json` is available in workflow artifacts.
 - [ ] `artifacts/demo-e2e/summary.md` is available in workflow artifacts.
@@ -28,4 +28,5 @@
 ## Evidence
 
 - Workflow run URL:
+- Full `Demo E2E` + perf gate on `main/master` will execute after merge.
 - Notes for reviewers/judges:
