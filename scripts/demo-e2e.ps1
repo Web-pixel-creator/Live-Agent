@@ -707,6 +707,8 @@ try {
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS" -Value "300"
   Set-EnvDefault -Name "UI_EXECUTOR_STRICT_PLAYWRIGHT" -Value "false"
   Set-EnvDefault -Name "UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE" -Value "true"
+  Set-EnvDefault -Name "DEMO_E2E_SERVICE_START_MAX_ATTEMPTS" -Value "2"
+  Set-EnvDefault -Name "DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS" -Value "1200"
 
   if (-not $SkipBuild) {
     Write-Step "Running workspace build..."
@@ -1947,6 +1949,8 @@ $summary = [ordered]@{
     startupTimeoutSec = $StartupTimeoutSec
     requestTimeoutSec = $RequestTimeoutSec
     uiNavigatorRemoteHttpFallbackMode = [Environment]::GetEnvironmentVariable("UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE")
+    serviceStartMaxAttempts = [Environment]::GetEnvironmentVariable("DEMO_E2E_SERVICE_START_MAX_ATTEMPTS")
+    serviceStartRetryBackoffMs = [Environment]::GetEnvironmentVariable("DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS")
   }
   session = [ordered]@{
     sessionId = $sessionId
