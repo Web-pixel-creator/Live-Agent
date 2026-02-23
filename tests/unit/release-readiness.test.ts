@@ -35,6 +35,7 @@ function createPassingSummary(
     serviceStartMaxAttempts: number | string;
     serviceStartRetryBackoffMs: number | string;
     analyticsSplitTargetsValidated: boolean | string;
+    assistiveRouterDiagnosticsValidated: boolean | string;
     transportModeValidated: boolean | string;
     gatewayTransportRequestedMode: string;
     gatewayTransportActiveMode: string;
@@ -65,6 +66,9 @@ function createPassingSummary(
         : "live.interrupt.requested",
       analyticsSplitTargetsValidated: hasOverride("analyticsSplitTargetsValidated")
         ? overrides.analyticsSplitTargetsValidated
+        : true,
+      assistiveRouterDiagnosticsValidated: hasOverride("assistiveRouterDiagnosticsValidated")
+        ? overrides.assistiveRouterDiagnosticsValidated
         : true,
       transportModeValidated: hasOverride("transportModeValidated") ? overrides.transportModeValidated : true,
       gatewayTransportRequestedMode: hasOverride("gatewayTransportRequestedMode")
@@ -248,6 +252,17 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /analyticsSplitTargetsValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when assistive router diagnostics KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ assistiveRouterDiagnosticsValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /assistiveRouterDiagnosticsValidated expected True, actual False/i);
   },
 );
 

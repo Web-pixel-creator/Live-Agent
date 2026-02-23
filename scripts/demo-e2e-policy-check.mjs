@@ -144,6 +144,9 @@ async function main() {
     args.allowedGatewayInterruptEvents ?? "live.interrupt.requested,live.bridge.unavailable",
   );
   const allowedTranslationProviders = toStringArray(args.allowedTranslationProviders ?? "fallback,gemini");
+  const allowedAssistiveRouterModes = toStringArray(
+    args.allowedAssistiveRouterModes ?? "deterministic,assistive_override,assistive_match,assistive_fallback",
+  );
   const allowedVisualComparatorModes = toStringArray(
     args.allowedVisualComparatorModes ?? "fallback_heuristic,gemini_reasoning",
   );
@@ -811,6 +814,18 @@ async function main() {
     allowedTranslationProviders.join(" | "),
   );
   addCheck(
+    "kpi.assistiveRouterDiagnosticsValidated",
+    kpis.assistiveRouterDiagnosticsValidated === true,
+    kpis.assistiveRouterDiagnosticsValidated,
+    true,
+  );
+  addCheck(
+    "kpi.assistiveRouterMode",
+    allowedAssistiveRouterModes.includes(String(kpis.assistiveRouterMode)),
+    kpis.assistiveRouterMode,
+    allowedAssistiveRouterModes.join(" | "),
+  );
+  addCheck(
     "kpi.lifecycleEndpointsValidated",
     kpis.lifecycleEndpointsValidated === true,
     kpis.lifecycleEndpointsValidated,
@@ -926,6 +941,7 @@ async function main() {
       allowedStoryMediaModes,
       allowedGatewayInterruptEvents,
       allowedTranslationProviders,
+      allowedAssistiveRouterModes,
       requiredScenarios,
     },
     checks: checks.length,

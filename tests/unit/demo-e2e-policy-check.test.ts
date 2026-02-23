@@ -147,6 +147,8 @@ function createPassingSummary(overrides?: {
     activeTasksVisible: 1,
     gatewayRequestReplayValidated: true,
     translationProvider: "fallback",
+    assistiveRouterDiagnosticsValidated: true,
+    assistiveRouterMode: "deterministic",
     lifecycleEndpointsValidated: true,
     runtimeProfileValidated: true,
     analyticsRuntimeVisible: true,
@@ -214,7 +216,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 135);
+  assert.equal(result.payload.checks, 137);
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {
@@ -454,6 +456,38 @@ test("demo-e2e policy check fails when analytics split targets KPI is invalid", 
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.analyticsSplitTargetsValidated")));
+});
+
+test("demo-e2e policy check fails when assistive router diagnostics KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        assistiveRouterDiagnosticsValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.assistiveRouterDiagnosticsValidated")));
+});
+
+test("demo-e2e policy check fails when assistive router mode is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        assistiveRouterMode: "unknown",
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.assistiveRouterMode")));
 });
 
 test("demo-e2e policy check allows transport fallback when requested mode is webrtc", () => {

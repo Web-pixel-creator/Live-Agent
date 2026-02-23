@@ -33,3 +33,11 @@ The orchestrator now supports an optional assistive classifier that can override
 2. Low confidence -> deterministic fallback with diagnostic mode `assistive_fallback`.
 3. No runtime hard failure is propagated to the user from the classifier path.
 
+## KPI Gate Alignment
+
+1. Demo summary exposes routing diagnostics from orchestrator output:
+   - `assistiveRouterDiagnosticsValidated`
+   - `assistiveRouterMode`
+2. `demo:e2e:policy` and `release-readiness` enforce:
+   - diagnostics must be present and valid
+   - mode must be one of `deterministic|assistive_override|assistive_match|assistive_fallback`

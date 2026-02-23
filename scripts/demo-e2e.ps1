@@ -1247,11 +1247,29 @@ try {
     Assert-Condition -Condition ($delegatedRoute -eq "storyteller-agent") -Message "Delegation route mismatch."
 
     $delegatedStatus = [string](Get-FieldValue -Object $response -Path @("payload", "output", "delegation", "delegatedStatus"))
+    $routingMode = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "mode"))
+    $routingReason = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "reason"))
+    $routingRoute = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "route"))
+    $routingConfidenceRaw = Get-FieldValue -Object $response -Path @("payload", "output", "routing", "confidence")
+    $routingConfidence = $null
+    if ($null -ne $routingConfidenceRaw -and -not [string]::IsNullOrWhiteSpace([string]$routingConfidenceRaw)) {
+      $routingConfidence = [double]$routingConfidenceRaw
+    }
+    Assert-Condition -Condition (@("deterministic", "assistive_override", "assistive_match", "assistive_fallback") -contains $routingMode) -Message "Routing mode is invalid for delegation scenario."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($routingReason)) -Message "Routing reason is missing for delegation scenario."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($routingRoute)) -Message "Routing route is missing for delegation scenario."
+    if ($null -ne $routingConfidence) {
+      Assert-Condition -Condition ($routingConfidence -ge 0 -and $routingConfidence -le 1) -Message "Routing confidence must be in [0..1] when present."
+    }
 
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $response -Path @("runId"))
       delegatedRoute = $delegatedRoute
       delegatedStatus = $delegatedStatus
+      routingMode = $routingMode
+      routingReason = $routingReason
+      routingRoute = $routingRoute
+      routingConfidence = $routingConfidence
     }
   } | Out-Null
 
@@ -2413,6 +2431,23 @@ $summary = [ordered]@{
       [int]$uiVisualTestingData.regressionCount -eq 0
     ) { $true } else { $false }
     delegatedRoute = if ($null -ne $delegationData) { $delegationData.delegatedRoute } else { $null }
+    assistiveRouterMode = if ($null -ne $delegationData) { $delegationData.routingMode } else { $null }
+    assistiveRouterReason = if ($null -ne $delegationData) { $delegationData.routingReason } else { $null }
+    assistiveRouterRoute = if ($null -ne $delegationData) { $delegationData.routingRoute } else { $null }
+    assistiveRouterConfidence = if ($null -ne $delegationData) { $delegationData.routingConfidence } else { $null }
+    assistiveRouterDiagnosticsValidated = if (
+      $null -ne $delegationData -and
+      @("deterministic", "assistive_override", "assistive_match", "assistive_fallback") -contains [string]$delegationData.routingMode -and
+      -not [string]::IsNullOrWhiteSpace([string]$delegationData.routingReason) -and
+      -not [string]::IsNullOrWhiteSpace([string]$delegationData.routingRoute) -and
+      (
+        $null -eq $delegationData.routingConfidence -or
+        (
+          [double]$delegationData.routingConfidence -ge 0 -and
+          [double]$delegationData.routingConfidence -le 1
+        )
+      )
+    ) { $true } else { $false }
     gatewayWsRoundTripMs = if ($null -ne $gatewayWsData) { $gatewayWsData.roundTripMs } else { $null }
     gatewayWsResponseStatus = if ($null -ne $gatewayWsData) { $gatewayWsData.responseStatus } else { $null }
     sessionRunBindingValidated = if ($null -ne $gatewayWsData) { $gatewayWsData.contextValidated } else { $false }

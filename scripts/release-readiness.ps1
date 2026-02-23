@@ -232,6 +232,11 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     Fail ("Critical KPI check failed: analyticsSplitTargetsValidated expected True, actual " + $summary.kpis.analyticsSplitTargetsValidated)
   }
 
+  $assistiveRouterDiagnosticsValidated = To-BoolOrNull $summary.kpis.assistiveRouterDiagnosticsValidated
+  if ($assistiveRouterDiagnosticsValidated -ne $true) {
+    Fail ("Critical KPI check failed: assistiveRouterDiagnosticsValidated expected True, actual " + $summary.kpis.assistiveRouterDiagnosticsValidated)
+  }
+
   $transportModeValidated = To-BoolOrNull $summary.kpis.transportModeValidated
   if ($transportModeValidated -ne $true) {
     Fail ("Critical KPI check failed: transportModeValidated expected True, actual " + $summary.kpis.transportModeValidated)
