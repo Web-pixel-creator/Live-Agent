@@ -11,6 +11,8 @@ param(
   [switch]$SkipBadge,
   [switch]$SkipPerfLoad,
   [switch]$SkipPerfRun,
+  [int]$DemoRunMaxAttempts = 2,
+  [int]$DemoRunRetryBackoffMs = 2000,
   [int]$DemoStartupTimeoutSec = 90,
   [int]$DemoRequestTimeoutSec = 45,
   [int]$PerfLiveIterations = 6,
@@ -85,6 +87,33 @@ function Run-Step([string]$Name, [string]$Command) {
   }
 }
 
+function Run-StepWithRetry(
+  [string]$Name,
+  [string]$Command,
+  [int]$MaxAttempts,
+  [int]$BackoffMs
+) {
+  $attempts = if ($MaxAttempts -lt 1) { 1 } else { $MaxAttempts }
+  for ($attempt = 1; $attempt -le $attempts; $attempt += 1) {
+    Write-Host ("[release-check] " + $Name + " (attempt " + $attempt + "/" + $attempts + ")")
+    & cmd.exe /c $Command
+    if ($LASTEXITCODE -eq 0) {
+      return
+    }
+
+    if ($attempt -lt $attempts) {
+      if ($BackoffMs -gt 0) {
+        Write-Host ("[release-check] " + $Name + " failed; retrying after " + $BackoffMs + "ms")
+        Start-Sleep -Milliseconds $BackoffMs
+      } else {
+        Write-Host ("[release-check] " + $Name + " failed; retrying immediately")
+      }
+    }
+  }
+
+  Fail "Step failed after retries: $Name"
+}
+
 if (-not $SkipBuild) {
   Run-Step "Build workspaces" "npm run build"
 }
@@ -108,7 +137,7 @@ if ((-not $SkipDemoE2E) -and (-not $SkipDemoRun)) {
   } else {
     "npm run demo:e2e -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec"
   }
-  Run-Step "Run demo e2e" $demoCommand
+  Run-StepWithRetry "Run demo e2e" $demoCommand $DemoRunMaxAttempts $DemoRunRetryBackoffMs
 }
 
 if (-not $SkipPolicy) {

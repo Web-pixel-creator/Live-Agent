@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `137` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`161` tests passed).
+4. Unit tests are green (`162` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -68,6 +68,8 @@
 37. Judge runbook now documents artifact-only release revalidation (`-SkipPerfRun`) and explicitly lists release-critical operator/story/perf evidence keys.
 38. Added anti-drift unit coverage (`tests/unit/runbook-release-alignment.test.ts`) to keep `docs/challenge-demo-runbook.md` aligned with `scripts/release-readiness.ps1`.
 39. Added anti-drift unit coverage (`tests/unit/ws-protocol-error-taxonomy-alignment.test.ts`) to keep `docs/ws-protocol.md` aligned with policy-level gateway error codes and retryability taxonomy.
+40. `release-readiness` now retries the `demo:e2e` step with bounded attempts/backoff (`DemoRunMaxAttempts`, `DemoRunRetryBackoffMs`) to reduce transient CI/local flakes without weakening gates.
+41. Added anti-drift unit coverage (`tests/unit/release-demo-retry-defaults.test.ts`) to lock demo retry defaults and ensure demo e2e path uses retry runner.
 
 ## Current Focus Queue
 

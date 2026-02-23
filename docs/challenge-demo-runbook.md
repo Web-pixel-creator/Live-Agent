@@ -13,6 +13,10 @@ For artifact-only revalidation (without rerunning perf profile), keep perf artif
 ```powershell
 npm run verify:release -- -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipDemoE2E -SkipPolicy -SkipBadge -SkipPerfRun
 ```
+For flaky local runners you can increase demo retry tolerance:
+```powershell
+npm run verify:release -- -DemoRunMaxAttempts 3 -DemoRunRetryBackoffMs 3000
+```
 2. Start services for live walkthrough:
 ```powershell
 npm run dev:ui-executor

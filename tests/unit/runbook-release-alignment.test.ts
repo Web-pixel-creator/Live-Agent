@@ -39,6 +39,8 @@ test("runbook documents release perf artifact-only mode and critical evidence ke
   const requiredRunbookTokens = [
     "npm run verify:release",
     "-SkipPerfRun",
+    "-DemoRunMaxAttempts",
+    "-DemoRunRetryBackoffMs",
     "`operatorAuditTrailValidated=true`",
     "`operatorTraceCoverageValidated=true`",
     "`operatorLiveBridgeHealthBlockValidated=true`",
