@@ -142,6 +142,8 @@ function createPassingSummary(overrides?: {
     kpis,
     options: {
       uiNavigatorRemoteHttpFallbackMode: "failed",
+      serviceStartMaxAttempts: 2,
+      serviceStartRetryBackoffMs: 1200,
       ...(overrides?.options ?? {}),
     },
   };
@@ -184,7 +186,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 105);
+  assert.equal(result.payload.checks, 107);
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {
@@ -249,4 +251,20 @@ test("demo-e2e policy check fails when interrupt latency is missing for requeste
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.gatewayInterruptLatencyObservedOrUnavailable")));
+});
+
+test("demo-e2e policy check fails when service startup retry config is too low", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      options: {
+        serviceStartMaxAttempts: 1,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("options.serviceStartMaxAttempts")));
 });

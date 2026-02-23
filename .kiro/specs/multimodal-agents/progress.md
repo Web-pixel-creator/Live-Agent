@@ -9,9 +9,9 @@
 ## Verified Quality Gates
 
 1. `npm run verify:release` passes end-to-end.
-2. Demo e2e policy gate is green with `105` checks.
+2. Demo e2e policy gate is green with `107` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`105` tests passed).
+4. Unit tests are green (`106` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -39,6 +39,7 @@
 8. Demo frontend operator console now shows actionable live-bridge recovery hints (`drain/warmup`) based on health state and probe/error counters.
 9. Demo e2e managed-service startup now uses retry+backoff with stderr-tail diagnostics, reducing transient startup flakes (`process exited before health check passed`).
 10. Demo summary artifacts now include startup-retry runtime options (`serviceStartMaxAttempts`, `serviceStartRetryBackoffMs`) for deterministic run forensics.
+11. Demo KPI policy gate now enforces startup-retry option floors (`serviceStartMaxAttempts >= 2`, `serviceStartRetryBackoffMs >= 300ms`) with dedicated unit coverage.
 
 ## Current Focus Queue
 

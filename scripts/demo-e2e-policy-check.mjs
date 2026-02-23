@@ -116,6 +116,12 @@ async function main() {
   const maxGatewayInterruptLatencyMs = Number.isFinite(toNumber(args.maxGatewayInterruptLatencyMs))
     ? toNumber(args.maxGatewayInterruptLatencyMs)
     : 300;
+  const minServiceStartMaxAttempts = Number.isFinite(toNumber(args.minServiceStartMaxAttempts))
+    ? toNumber(args.minServiceStartMaxAttempts)
+    : 2;
+  const minServiceStartRetryBackoffMs = Number.isFinite(toNumber(args.minServiceStartRetryBackoffMs))
+    ? toNumber(args.minServiceStartRetryBackoffMs)
+    : 300;
   const minApprovalsRecorded = Number.isFinite(toNumber(args.minApprovalsRecorded))
     ? toNumber(args.minApprovalsRecorded)
     : 1;
@@ -525,6 +531,20 @@ async function main() {
     options.uiNavigatorRemoteHttpFallbackMode,
     allowedUiRemoteHttpFallbackModes.join(" | "),
   );
+  const serviceStartMaxAttempts = toNumber(options.serviceStartMaxAttempts);
+  addCheck(
+    "options.serviceStartMaxAttempts",
+    Number.isFinite(serviceStartMaxAttempts) && serviceStartMaxAttempts >= minServiceStartMaxAttempts,
+    options.serviceStartMaxAttempts,
+    `>= ${minServiceStartMaxAttempts}`,
+  );
+  const serviceStartRetryBackoffMs = toNumber(options.serviceStartRetryBackoffMs);
+  addCheck(
+    "options.serviceStartRetryBackoffMs",
+    Number.isFinite(serviceStartRetryBackoffMs) && serviceStartRetryBackoffMs >= minServiceStartRetryBackoffMs,
+    options.serviceStartRetryBackoffMs,
+    `>= ${minServiceStartRetryBackoffMs}`,
+  );
   const uiApprovalResumeRequestAttempts = toNumber(kpis.uiApprovalResumeRequestAttempts);
   addCheck(
     "kpi.uiApprovalResumeRequestAttempts",
@@ -744,6 +764,8 @@ async function main() {
     thresholds: {
       maxGatewayWsRoundTripMs,
       maxGatewayInterruptLatencyMs,
+      minServiceStartMaxAttempts,
+      minServiceStartRetryBackoffMs,
       minApprovalsRecorded,
       maxUiApprovalResumeElapsedMs,
       minUiApprovalResumeRequestAttempts,
