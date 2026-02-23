@@ -9,9 +9,9 @@
 ## Verified Quality Gates
 
 1. `npm run verify:release` passes end-to-end.
-2. Demo e2e policy gate is green with `129` checks.
+2. Demo e2e policy gate is green with `137` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`113` tests passed).
+4. Unit tests are green (`155` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -60,6 +60,10 @@
 29. Demo e2e/policy evidence now enforces operator task-queue KPIs (`operatorTaskQueueSummaryValidated`, `operatorTaskQueuePressureLevel`, `operatorTaskQueueTotal`, `operatorTaskQueueStaleCount`, `operatorTaskQueuePendingApproval`) so queue-pressure regressions are blocked by CI gates.
 30. Release-readiness gate now treats operator task-queue KPIs as critical checks and prints `operator.task_queue` summary line (`validated/level/total/pending/stale`) in final output for faster go/no-go diagnostics.
 31. Demo e2e startup now runs explicit managed-service port preflight (`8080/8081/8082/8090` + optional `3000`) and fails early with `pid/process/commandLine` diagnostics on conflicts, reducing flaky `EADDRINUSE` startup failures.
+32. Release-readiness now supports `-SkipPerfRun` so CI/unit flows can validate existing perf artifacts without re-running load; perf artifacts are still mandatory when `-SkipPerfLoad` is not set.
+33. Release-readiness now performs anti-drift perf validation beyond `perfPolicy.ok`: hard thresholds, required perf check set, and mandatory workload presence (`live/ui/gateway_replay`) in perf summary.
+34. Added dedicated unit coverage for `scripts/perf-load-policy-check.mjs` and expanded release-readiness unit coverage for perf threshold drift and missing required perf checks.
+35. Release-readiness now treats operator evidence as critical: `operatorAuditTrailValidated`, `operatorTraceCoverageValidated`, `operatorLiveBridgeHealthBlockValidated`, `operatorLiveBridgeProbeTelemetryValidated`, plus allowlisted `operatorLiveBridgeHealthState`.
 
 ## Current Focus Queue
 
