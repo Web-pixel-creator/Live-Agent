@@ -440,6 +440,8 @@ Useful flags:
 - Supports manual `workflow_dispatch` inputs:
   - `perf_gate_mode=auto|with_perf|without_perf` for explicit operator control of perf validation behavior.
   - `strict_final_run=true|false` to enforce strict artifact gate (`-StrictFinalRun`).
+  - `github_api_max_attempts=<int>=3` for bounded retry count on workflow GitHub API/download operations.
+  - `github_api_retry_backoff_ms=<int>=1200` for linear retry backoff on workflow GitHub API/download operations.
 - Workflow auto-detects presence of `artifacts/perf-load/*`: with perf artifacts it runs `npm run verify:release:artifact-only`; without perf artifacts (for example `pr-quality-artifacts`) it runs `release-readiness.ps1` with `-SkipPerfLoad`.
 - Local equivalent helper: `npm run verify:release:artifact:revalidate` (uses `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_TOKEN` or `GH_TOKEN`, then falls back to `gh auth token`; supports strict mode and auto-skip for missing perf artifacts).
 

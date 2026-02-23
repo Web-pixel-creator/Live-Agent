@@ -25,6 +25,16 @@ on:
         required: false
         default: false
         type: boolean
+      github_api_max_attempts:
+        description: Max retry attempts for GitHub API and artifact download operations
+        required: false
+        default: "3"
+        type: string
+      github_api_retry_backoff_ms:
+        description: Linear retry backoff base in milliseconds for GitHub API/download operations
+        required: false
+        default: "1200"
+        type: string
 
 jobs:
   release-artifact-revalidation:
@@ -54,21 +64,62 @@ jobs:
           script: |
             const sourceRunIdRaw = core.getInput("source_run_id").trim();
             const artifactNameRaw = core.getInput("artifact_name").trim();
+            const githubApiMaxAttemptsRaw = core.getInput("github_api_max_attempts").trim();
+            const githubApiRetryBackoffMsRaw = core.getInput("github_api_retry_backoff_ms").trim();
             const owner = context.repo.owner;
             const repo = context.repo.repo;
+            const githubApiMaxAttempts = Number(githubApiMaxAttemptsRaw || "3");
+            const githubApiRetryBackoffMs = Number(githubApiRetryBackoffMsRaw || "1200");
+
+            if (!Number.isInteger(githubApiMaxAttempts) || githubApiMaxAttempts < 1) {
+              core.setFailed(`Invalid github_api_max_attempts: ${githubApiMaxAttemptsRaw}. Expected integer >= 1.`);
+              return;
+            }
+            if (!Number.isInteger(githubApiRetryBackoffMs) || githubApiRetryBackoffMs < 0) {
+              core.setFailed(
+                `Invalid github_api_retry_backoff_ms: ${githubApiRetryBackoffMsRaw}. Expected integer >= 0.`
+              );
+              return;
+            }
+
+            const retryableStatuses = new Set([408, 429, 500, 502, 503, 504]);
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+            const withRetry = async (operationName, operation) => {
+              for (let attempt = 1; attempt <= githubApiMaxAttempts; attempt += 1) {
+                try {
+                  return await operation();
+                } catch (error) {
+                  const status = Number(error?.status ?? error?.response?.status ?? 0);
+                  const retryable = status === 0 || retryableStatuses.has(status);
+                  if (attempt >= githubApiMaxAttempts || !retryable) {
+                    throw error;
+                  }
+                  const delayMs = githubApiRetryBackoffMs * attempt;
+                  core.warning(
+                    `${operationName} failed (attempt ${attempt}/${githubApiMaxAttempts}, status=${status || "n/a"}). Retrying in ${delayMs}ms.`
+                  );
+                  if (delayMs > 0) {
+                    await sleep(delayMs);
+                  }
+                }
+              }
+              throw new Error(`Retry loop exited unexpectedly for operation: ${operationName}`);
+            };
 
             let resolvedRunId = sourceRunIdRaw || null;
             if (!resolvedRunId) {
               const candidates = [];
               const workflowIds = ["demo-e2e.yml", "release-strict-final.yml"];
               for (const workflowId of workflowIds) {
-                const response = await github.rest.actions.listWorkflowRuns({
-                  owner,
-                  repo,
-                  workflow_id: workflowId,
-                  status: "completed",
-                  per_page: 20
-                });
+                const response = await withRetry(`listWorkflowRuns:${workflowId}`, () =>
+                  github.rest.actions.listWorkflowRuns({
+                    owner,
+                    repo,
+                    workflow_id: workflowId,
+                    status: "completed",
+                    per_page: 20
+                  })
+                );
 
                 for (const run of response.data.workflow_runs || []) {
                   if (run.conclusion !== "success") {
@@ -101,44 +152,181 @@ jobs:
               return;
             }
 
-            let resolvedArtifactName = artifactNameRaw || null;
-            if (!resolvedArtifactName) {
-              const artifactsResponse = await github.rest.actions.listWorkflowRunArtifacts({
+            const artifactsResponse = await withRetry(`listWorkflowRunArtifacts:${parsedRunId}`, () =>
+              github.rest.actions.listWorkflowRunArtifacts({
                 owner,
                 repo,
                 run_id: parsedRunId,
                 per_page: 100
-              });
+              })
+            );
 
-              const availableArtifacts = (artifactsResponse.data.artifacts || [])
-                .filter((artifact) => !artifact.expired)
-                .map((artifact) => artifact.name);
+            const availableArtifacts = (artifactsResponse.data.artifacts || []).filter((artifact) => !artifact.expired);
+            let resolvedArtifact = null;
+
+            if (artifactNameRaw) {
+              resolvedArtifact = availableArtifacts.find((artifact) => artifact.name === artifactNameRaw) || null;
+              if (!resolvedArtifact) {
+                const availableNames = availableArtifacts.map((artifact) => artifact.name);
+                core.setFailed(
+                  `Artifact '${artifactNameRaw}' not found in run ${parsedRunId}. Available: ${availableNames.join(", ")}`
+                );
+                return;
+              }
+            } else {
               const preferredOrder = [
                 "release-strict-final-artifacts",
                 "demo-e2e-artifacts",
                 "pr-quality-artifacts"
               ];
-              resolvedArtifactName = preferredOrder.find((name) => availableArtifacts.includes(name)) || null;
+              resolvedArtifact =
+                preferredOrder
+                  .map((name) => availableArtifacts.find((artifact) => artifact.name === name) || null)
+                  .find((artifact) => artifact !== null) || null;
 
-              if (!resolvedArtifactName) {
+              if (!resolvedArtifact) {
+                const availableNames = availableArtifacts.map((artifact) => artifact.name);
                 core.setFailed(
-                  `No supported artifact bundle found in run ${parsedRunId}. Available: ${availableArtifacts.join(", ")}`
+                  `No supported artifact bundle found in run ${parsedRunId}. Available: ${availableNames.join(", ")}`
                 );
                 return;
               }
             }
 
             core.setOutput("run_id", String(parsedRunId));
-            core.setOutput("artifact_name", resolvedArtifactName);
-            core.info(`Using run ${parsedRunId}, artifact ${resolvedArtifactName}`);
+            core.setOutput("artifact_name", resolvedArtifact.name);
+            core.setOutput("artifact_id", String(resolvedArtifact.id));
+            core.setOutput("github_api_max_attempts", String(githubApiMaxAttempts));
+            core.setOutput("github_api_retry_backoff_ms", String(githubApiRetryBackoffMs));
+            core.info(
+              `Using run ${parsedRunId}, artifact ${resolvedArtifact.name} (id=${resolvedArtifact.id}), retry=${githubApiMaxAttempts}x/${githubApiRetryBackoffMs}ms.`
+            );
 
       - name: Download Source Artifact Bundle
-        uses: actions/download-artifact@v4
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ steps.resolve_source.outputs.run_id }}
-          name: ${{ steps.resolve_source.outputs.artifact_name }}
-          path: artifact-bundle
+        shell: powershell
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          function Get-HttpStatusCode([object]$ErrorRecord) {
+            try {
+              if ($null -eq $ErrorRecord -or $null -eq $ErrorRecord.Exception) {
+                return 0
+              }
+              $response = $ErrorRecord.Exception.Response
+              if ($null -eq $response) {
+                return 0
+              }
+              $statusCode = $response.StatusCode
+              if ($null -eq $statusCode) {
+                return 0
+              }
+              if ($statusCode -is [int]) {
+                return [int]$statusCode
+              }
+              if ($null -ne $statusCode.value__) {
+                return [int]$statusCode.value__
+              }
+              return [int]$statusCode
+            } catch {
+              return 0
+            }
+          }
+
+          function Is-RetryableStatusCode([int]$StatusCode) {
+            if ($StatusCode -eq 0) {
+              return $true
+            }
+            return @(408, 429, 500, 502, 503, 504) -contains $StatusCode
+          }
+
+          function Invoke-WithRetry(
+            [string]$OperationName,
+            [int]$MaxAttempts,
+            [int]$BaseBackoffMs,
+            [scriptblock]$Operation
+          ) {
+            if ($MaxAttempts -lt 1) {
+              $MaxAttempts = 1
+            }
+            if ($BaseBackoffMs -lt 0) {
+              $BaseBackoffMs = 0
+            }
+
+            $attempt = 0
+            while ($attempt -lt $MaxAttempts) {
+              $attempt++
+              try {
+                return & $Operation
+              } catch {
+                $statusCode = Get-HttpStatusCode -ErrorRecord $_
+                $retryable = Is-RetryableStatusCode -StatusCode $statusCode
+                if ($attempt -ge $MaxAttempts -or -not $retryable) {
+                  throw
+                }
+                $delayMs = $BaseBackoffMs * $attempt
+                Write-Host ("Download failed (attempt " + $attempt + "/" + $MaxAttempts + ", status=" + $statusCode + "). Retrying in " + $delayMs + "ms...")
+                if ($delayMs -gt 0) {
+                  Start-Sleep -Milliseconds $delayMs
+                }
+              }
+            }
+
+            throw ("Retry loop exited unexpectedly for operation: " + $OperationName)
+          }
+
+          $artifactIdRaw = "${{ steps.resolve_source.outputs.artifact_id }}"
+          if ([string]::IsNullOrWhiteSpace($artifactIdRaw)) {
+            Write-Error "Missing artifact_id from resolve step."
+            exit 1
+          }
+          $artifactId = 0
+          if (-not [long]::TryParse($artifactIdRaw, [ref]$artifactId) -or $artifactId -le 0) {
+            Write-Error "Invalid artifact_id from resolve step: $artifactIdRaw"
+            exit 1
+          }
+
+          $maxAttemptsRaw = "${{ steps.resolve_source.outputs.github_api_max_attempts }}"
+          $backoffRaw = "${{ steps.resolve_source.outputs.github_api_retry_backoff_ms }}"
+          $maxAttempts = 0
+          $backoffMs = 0
+          if (-not [int]::TryParse($maxAttemptsRaw, [ref]$maxAttempts) -or $maxAttempts -lt 1) {
+            Write-Error "Invalid github_api_max_attempts output: $maxAttemptsRaw"
+            exit 1
+          }
+          if (-not [int]::TryParse($backoffRaw, [ref]$backoffMs) -or $backoffMs -lt 0) {
+            Write-Error "Invalid github_api_retry_backoff_ms output: $backoffRaw"
+            exit 1
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:GITHUB_TOKEN)) {
+            Write-Error "GITHUB_TOKEN is required for artifact download."
+            exit 1
+          }
+
+          $downloadUri = "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/$artifactId/zip"
+          $headers = @{
+            Accept                 = "application/vnd.github+json"
+            Authorization          = "Bearer $env:GITHUB_TOKEN"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+
+          $zipPath = "artifact-bundle.zip"
+          if (Test-Path $zipPath) {
+            Remove-Item -Path $zipPath -Force
+          }
+          if (Test-Path "artifact-bundle") {
+            Remove-Item -Path "artifact-bundle" -Recurse -Force
+          }
+
+          Invoke-WithRetry `
+            -OperationName "artifact download" `
+            -MaxAttempts $maxAttempts `
+            -BaseBackoffMs $backoffMs `
+            -Operation {
+              Invoke-WebRequest -Uri $downloadUri -Headers $headers -OutFile $zipPath -TimeoutSec 120 | Out-Null
+            } | Out-Null
+
+          Expand-Archive -Path $zipPath -DestinationPath "artifact-bundle" -Force
 
       - name: Prepare Local Artifact Paths
         shell: powershell
@@ -245,6 +433,8 @@ jobs:
           ("Artifact bundle: ${{ steps.resolve_source.outputs.artifact_name }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Requested perf mode: ${{ steps.inspect_artifacts.outputs.requested_perf_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Strict final run: ${{ steps.inspect_artifacts.outputs.strict_final_run }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("GitHub API retry attempts: ${{ steps.resolve_source.outputs.github_api_max_attempts }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("GitHub API retry backoff ms: ${{ steps.resolve_source.outputs.github_api_retry_backoff_ms }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Perf artifacts detected: ${{ steps.inspect_artifacts.outputs.has_perf_artifacts }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Effective perf mode: ${{ steps.inspect_artifacts.outputs.effective_perf_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           if (Test-Path "artifacts/demo-e2e/summary.md") {

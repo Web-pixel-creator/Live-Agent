@@ -16,7 +16,7 @@ npm run verify:release:artifact-only
 This alias maps to `verify:release -- -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipDemoE2E -SkipPolicy -SkipBadge -SkipPerfRun`.
 Optional CI equivalent: run GitHub workflow `.github/workflows/release-artifact-revalidation.yml` to revalidate downloaded artifacts from the latest successful `demo-e2e`/`release-strict-final` run (or a specific `source_run_id`).
 Workflow behavior: when downloaded bundle includes `artifacts/perf-load/*`, full artifact-only gate runs; when perf artifacts are missing (for example `pr-quality-artifacts`), workflow automatically switches to `-SkipPerfLoad` mode.
-Manual overrides: use workflow inputs `perf_gate_mode=auto|with_perf|without_perf` and `strict_final_run=true|false` when dispatching `release-artifact-revalidation`.
+Manual overrides: use workflow inputs `perf_gate_mode=auto|with_perf|without_perf`, `strict_final_run=true|false`, `github_api_max_attempts=<int>=3`, and `github_api_retry_backoff_ms=<int>=1200` when dispatching `release-artifact-revalidation`.
 Optional local equivalent: use helper to pull artifact bundle and run the same gate:
 ```powershell
 $env:GITHUB_OWNER="Web-pixel-creator"
