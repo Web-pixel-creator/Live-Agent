@@ -147,6 +147,8 @@ function createPassingSummary(overrides?: {
     scenarioRetriesUsedCount: 0,
     uiVisualTestingScenarioAttempts: 1,
     operatorConsoleActionsScenarioAttempts: 1,
+    runtimeLifecycleScenarioAttempts: 1,
+    runtimeMetricsScenarioAttempts: 1,
     scenarioRetryableFailuresTotal: 0,
     sandboxPolicyValidated: true,
     visualTestingStatus: "passed",
@@ -240,7 +242,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 160);
+  assert.equal(result.payload.checks, 162);
 });
 
 test("demo-e2e policy check fails when assistant activity lifecycle KPI is missing", () => {
@@ -453,6 +455,44 @@ test("demo-e2e policy check fails when ui visual scenario attempts exceed config
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.uiVisualTestingScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when runtime lifecycle scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        runtimeLifecycleScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.runtimeLifecycleScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when runtime metrics scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        runtimeMetricsScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.runtimeMetricsScenarioAttempts")));
 });
 
 test("demo-e2e policy check fails when operator.device_nodes.lifecycle scenario is missing", () => {

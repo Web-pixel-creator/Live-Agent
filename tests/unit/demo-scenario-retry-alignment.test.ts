@@ -54,4 +54,6 @@ test("demo-e2e applies transient retry to flaky operator/ui/runtime scenarios", 
   assert.match(source, /scenarioRetriesUsedCount/);
   assert.match(source, /uiVisualTestingScenarioAttempts/);
   assert.match(source, /operatorConsoleActionsScenarioAttempts/);
+  assert.match(source, /runtimeLifecycleScenarioAttempts/);
+  assert.match(source, /runtimeMetricsScenarioAttempts/);
 });

@@ -832,6 +832,26 @@ async function main() {
     kpis.operatorConsoleActionsScenarioAttempts,
     "1..options.scenarioRetryMaxAttempts",
   );
+  const runtimeLifecycleScenarioAttempts = toNumber(kpis.runtimeLifecycleScenarioAttempts);
+  addCheck(
+    "kpi.runtimeLifecycleScenarioAttempts",
+    Number.isFinite(runtimeLifecycleScenarioAttempts) &&
+      runtimeLifecycleScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      runtimeLifecycleScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.runtimeLifecycleScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const runtimeMetricsScenarioAttempts = toNumber(kpis.runtimeMetricsScenarioAttempts);
+  addCheck(
+    "kpi.runtimeMetricsScenarioAttempts",
+    Number.isFinite(runtimeMetricsScenarioAttempts) &&
+      runtimeMetricsScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      runtimeMetricsScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.runtimeMetricsScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
   const scenarioRetryableFailuresTotal = toNumber(kpis.scenarioRetryableFailuresTotal);
   addCheck(
     "kpi.scenarioRetryableFailuresTotal",

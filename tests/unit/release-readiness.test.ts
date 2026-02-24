@@ -41,6 +41,8 @@ function createPassingSummary(
     scenarioRetriesUsedCount: number | string;
     uiVisualTestingScenarioAttempts: number | string;
     operatorConsoleActionsScenarioAttempts: number | string;
+    runtimeLifecycleScenarioAttempts: number | string;
+    runtimeMetricsScenarioAttempts: number | string;
     scenarioRetryableFailuresTotal: number | string;
     analyticsSplitTargetsValidated: boolean | string;
     analyticsBigQueryConfigValidated: boolean | string;
@@ -172,6 +174,12 @@ function createPassingSummary(
         : 1,
       operatorConsoleActionsScenarioAttempts: hasOverride("operatorConsoleActionsScenarioAttempts")
         ? overrides.operatorConsoleActionsScenarioAttempts
+        : 1,
+      runtimeLifecycleScenarioAttempts: hasOverride("runtimeLifecycleScenarioAttempts")
+        ? overrides.runtimeLifecycleScenarioAttempts
+        : 1,
+      runtimeMetricsScenarioAttempts: hasOverride("runtimeMetricsScenarioAttempts")
+        ? overrides.runtimeMetricsScenarioAttempts
         : 1,
       scenarioRetryableFailuresTotal: hasOverride("scenarioRetryableFailuresTotal")
         ? overrides.scenarioRetryableFailuresTotal
@@ -677,6 +685,38 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /kpi\.uiVisualTestingScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when runtime lifecycle scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        runtimeLifecycleScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.runtimeLifecycleScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when runtime metrics scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        runtimeMetricsScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.runtimeMetricsScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 

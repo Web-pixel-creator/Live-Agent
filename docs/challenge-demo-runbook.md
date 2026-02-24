@@ -135,6 +135,8 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - strict final run (`npm run verify:release:strict`) enforces `kpi.scenarioRetriesUsedCount = 0`
   - `kpi.uiVisualTestingScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.operatorConsoleActionsScenarioAttempts <= options.scenarioRetryMaxAttempts`
+  - `kpi.runtimeLifecycleScenarioAttempts <= options.scenarioRetryMaxAttempts`
+  - `kpi.runtimeMetricsScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.scenarioRetryableFailuresTotal >= 0`
 - Perf-load anti-drift (from `artifacts/perf-load/policy-check.json`):
   - required check items include:

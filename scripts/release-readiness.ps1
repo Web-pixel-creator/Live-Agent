@@ -450,6 +450,34 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     )
   }
 
+  $runtimeLifecycleScenarioAttempts = To-NumberOrNaN $summary.kpis.runtimeLifecycleScenarioAttempts
+  if (
+    [double]::IsNaN($runtimeLifecycleScenarioAttempts) -or
+    $runtimeLifecycleScenarioAttempts -lt 1 -or
+    $runtimeLifecycleScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.runtimeLifecycleScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.runtimeLifecycleScenarioAttempts
+    )
+  }
+
+  $runtimeMetricsScenarioAttempts = To-NumberOrNaN $summary.kpis.runtimeMetricsScenarioAttempts
+  if (
+    [double]::IsNaN($runtimeMetricsScenarioAttempts) -or
+    $runtimeMetricsScenarioAttempts -lt 1 -or
+    $runtimeMetricsScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.runtimeMetricsScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.runtimeMetricsScenarioAttempts
+    )
+  }
+
   $scenarioRetryableFailuresTotal = To-NumberOrNaN $summary.kpis.scenarioRetryableFailuresTotal
   if ([double]::IsNaN($scenarioRetryableFailuresTotal) -or $scenarioRetryableFailuresTotal -lt 0) {
     Fail ("Critical KPI check failed: kpi.scenarioRetryableFailuresTotal expected >= 0, actual " + $summary.kpis.scenarioRetryableFailuresTotal)
@@ -687,12 +715,16 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $scenarioRetryableFailuresTotal = $summary.kpis.scenarioRetryableFailuresTotal
   $uiVisualAttempts = $summary.kpis.uiVisualTestingScenarioAttempts
   $operatorActionsAttempts = $summary.kpis.operatorConsoleActionsScenarioAttempts
+  $runtimeLifecycleAttempts = $summary.kpis.runtimeLifecycleScenarioAttempts
+  $runtimeMetricsAttempts = $summary.kpis.runtimeMetricsScenarioAttempts
   if (
     $null -ne $scenarioRetryAttempts -or
     $null -ne $scenarioRetryBackoff -or
     $null -ne $scenarioRetriesUsedCount -or
     $null -ne $uiVisualAttempts -or
-    $null -ne $operatorActionsAttempts
+    $null -ne $operatorActionsAttempts -or
+    $null -ne $runtimeLifecycleAttempts -or
+    $null -ne $runtimeMetricsAttempts
   ) {
     Write-Host (
       "demo.scenario.retry: max_attempts=" + $scenarioRetryAttempts +
@@ -700,7 +732,9 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", retries_used=" + $scenarioRetriesUsedCount +
       ", retryable_failures=" + $scenarioRetryableFailuresTotal +
       ", ui.visual_testing_attempts=" + $uiVisualAttempts +
-      ", operator.console.actions_attempts=" + $operatorActionsAttempts
+      ", operator.console.actions_attempts=" + $operatorActionsAttempts +
+      ", runtime.lifecycle.endpoints_attempts=" + $runtimeLifecycleAttempts +
+      ", runtime.metrics.endpoints_attempts=" + $runtimeMetricsAttempts
     )
   }
   $gatewayRoundTrip = $summary.kpis.gatewayWsRoundTripMs

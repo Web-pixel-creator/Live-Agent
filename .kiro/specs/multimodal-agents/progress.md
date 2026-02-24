@@ -131,6 +131,8 @@
 100. Synced fast-retry workflow docs and alignment tests: updated `README.md` + `docs/challenge-demo-runbook.md`, extended `tests/unit/release-script-alias-alignment.test.ts`, and added `tests/unit/demo-fast-retry-docs-alignment.test.ts` to keep alias and documentation consistent.
 101. Expanded transient scenario retry coverage in `scripts/demo-e2e.ps1`: `runtime.lifecycle.endpoints` and `runtime.metrics.endpoints` now use bounded transient retries (`ScenarioRetryMaxAttempts`/`ScenarioRetryBackoffMs`) in addition to operator/visual flows, reducing false-negative demo failures from short-lived service/network blips.
 102. Updated alignment guard `tests/unit/demo-scenario-retry-alignment.test.ts` to enforce retry configuration across operator/ui/runtime flaky scenarios and prevent future drift in demo retry policy wiring.
+103. Added runtime scenario attempt KPIs to demo summary (`runtimeLifecycleScenarioAttempts`, `runtimeMetricsScenarioAttempts`) in `scripts/demo-e2e.ps1`, so runtime retry behavior is visible in judge-facing artifacts and release logs.
+104. Extended scenario retry gates across policy/release/docs/tests: `scripts/demo-e2e-policy-check.mjs` and `scripts/release-readiness.ps1` now enforce runtime attempt bounds (`1..options.scenarioRetryMaxAttempts`), runbook evidence was updated, and unit coverage expanded in `tests/unit/demo-e2e-policy-check.test.ts`, `tests/unit/release-readiness.test.ts`, `tests/unit/demo-scenario-retry-alignment.test.ts`, and `tests/unit/runbook-release-alignment.test.ts`.
 
 ## Current Focus Queue
 
