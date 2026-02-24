@@ -2528,6 +2528,20 @@ $summary = [ordered]@{
     ) { $true } else { $false }
     gatewayWsRoundTripMs = if ($null -ne $gatewayWsData) { $gatewayWsData.roundTripMs } else { $null }
     gatewayWsResponseStatus = if ($null -ne $gatewayWsData) { $gatewayWsData.responseStatus } else { $null }
+    assistantActivityConnectedEventType = if ($null -ne $gatewayWsData) { $gatewayWsData.connectedType } else { $null }
+    assistantActivityOutputEventSeen = if (
+      $null -ne $gatewayWsData -and
+      @($gatewayWsData.eventTypes) -contains "orchestrator.response"
+    ) { $true } else { $false }
+    assistantActivityInterruptEventType = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptEventType } else { $null }
+    assistantActivityLifecycleValidated = if (
+      $null -ne $gatewayWsData -and
+      [string]$gatewayWsData.connectedType -eq "gateway.connected" -and
+      [string]$gatewayWsData.responseStatus -eq "completed" -and
+      @($gatewayWsData.eventTypes) -contains "orchestrator.response" -and
+      $null -ne $gatewayWsInterruptData -and
+      @("live.interrupt.requested", "live.bridge.unavailable") -contains [string]$gatewayWsInterruptData.interruptEventType
+    ) { $true } else { $false }
     sessionRunBindingValidated = if ($null -ne $gatewayWsData) { $gatewayWsData.contextValidated } else { $false }
     sessionStateTransitionsObserved = if ($null -ne $gatewayWsData) { $gatewayWsData.sessionStateCount } else { $null }
     taskProgressEventsObserved = if ($null -ne $gatewayWsTaskData) { $gatewayWsTaskData.taskProgressCount } else { $null }

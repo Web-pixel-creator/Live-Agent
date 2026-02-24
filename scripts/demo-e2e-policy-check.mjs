@@ -335,6 +335,12 @@ async function main() {
     "completed",
   );
   addCheck(
+    "kpi.assistantActivityLifecycleValidated",
+    kpis.assistantActivityLifecycleValidated === true,
+    kpis.assistantActivityLifecycleValidated,
+    true,
+  );
+  addCheck(
     "kpi.gatewayInterruptHandled",
     kpis.gatewayInterruptHandled === true,
     kpis.gatewayInterruptHandled,

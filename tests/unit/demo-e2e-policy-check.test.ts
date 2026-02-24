@@ -70,6 +70,7 @@ function createPassingSummary(overrides?: {
     storytellerCacheHitValidated: true,
     storytellerCacheInvalidationValidated: true,
     gatewayWsResponseStatus: "completed",
+    assistantActivityLifecycleValidated: true,
     gatewayInterruptHandled: true,
     gatewayInterruptEventType: "live.interrupt.requested",
     gatewayInterruptLatencyMs: 120,
@@ -222,7 +223,23 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 143);
+  assert.equal(result.payload.checks, 144);
+});
+
+test("demo-e2e policy check fails when assistant activity lifecycle KPI is missing", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        assistantActivityLifecycleValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.assistantActivityLifecycleValidated")));
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {

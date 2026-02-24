@@ -107,6 +107,7 @@
 76. Improved demo-frontend transcript smoothing: extracted streaming helpers (`apps/demo-frontend/public/streaming-text.js`) for chunk normalization and punctuation-aware finalize delay, wired them into `app.js`, and added unit coverage in `tests/unit/frontend-streaming-text.test.ts` to lock text readability behavior during live output streaming.
 77. Added explicit assistant activity indicator in demo frontend (`assistantStreamStatus`): UI now reflects `waiting_connection/disconnected/streaming/speaking/idle` based on websocket + stream/audio activity; logic extracted to `apps/demo-frontend/public/assistant-activity.js` with unit coverage in `tests/unit/frontend-assistant-activity.test.ts`.
 78. Synced judged-demo runbook with assistant activity UX: `docs/challenge-demo-runbook.md` now requires explicit `Assistant` status lifecycle checks (`waiting_connection -> idle -> streaming/speaking -> idle`), with anti-drift coverage in `tests/unit/runbook-assistant-activity-alignment.test.ts` to keep docs and frontend wiring aligned.
+79. Added assistant-activity KPI into automated demo policy flow: `scripts/demo-e2e.ps1` now emits `assistantActivityLifecycleValidated` (derived from websocket connect/response/interrupt lifecycle contract), `scripts/demo-e2e-policy-check.mjs` enforces it, and `tests/unit/demo-e2e-policy-check.test.ts` now covers pass/fail behavior for this KPI.
 
 ## Current Focus Queue
 
