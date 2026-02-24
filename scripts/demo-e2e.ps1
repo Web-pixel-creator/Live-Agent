@@ -55,6 +55,23 @@ function Set-EnvDefault {
   }
 }
 
+function Write-Utf8NoBomFile {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path,
+    [Parameter(Mandatory = $true)]
+    [string]$Content
+  )
+
+  $directory = Split-Path -Parent $Path
+  if (-not [string]::IsNullOrWhiteSpace($directory)) {
+    New-Item -ItemType Directory -Force -Path $directory | Out-Null
+  }
+
+  $encoding = New-Object System.Text.UTF8Encoding($false)
+  [System.IO.File]::WriteAllText($Path, $Content, $encoding)
+}
+
 function Get-FieldValue {
   param(
     [Parameter(Mandatory = $true)]
@@ -3070,7 +3087,8 @@ $summary = [ordered]@{
   }
 }
 
-($summary | ConvertTo-Json -Depth 60) | Set-Content -Path $resolvedOutputPath -Encoding UTF8
+$summaryJson = $summary | ConvertTo-Json -Depth 60
+Write-Utf8NoBomFile -Path $resolvedOutputPath -Content $summaryJson
 
 Write-Step "Summary written: $resolvedOutputPath"
 $reportResult = Invoke-NodeJsonCommand -Args @(

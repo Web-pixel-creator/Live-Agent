@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `160` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`247` tests passed).
+4. Unit tests are green (`248` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -121,6 +121,8 @@
 90. Aligned `ui-executor` runtime analytics contract with release/policy lifecycle expectations by adding `requestedEnabled/splitValid/bigQueryConfigValid/bigQueryDataset/bigQueryTable` to `/status.runtime.analytics`, restoring deterministic pass for `runtime.lifecycle.endpoints` and analytics service-count KPIs.
 91. Added anti-regression unit guard `tests/unit/demo-e2e-strict-error-handling.test.ts` to enforce strict-mode-safe exception handling in `scripts/demo-e2e.ps1` (no direct `.Exception.Response` access; helper-based property resolution required).
 92. Added anti-drift coverage `tests/unit/ui-executor-runtime-analytics-alignment.test.ts` to lock parity between `apps/ui-executor/src/index.ts` runtime analytics fields (`requestedEnabled/splitValid/bigQuery*`) and the `runtime.lifecycle.endpoints` gate contract in `scripts/demo-e2e.ps1`.
+93. Hardened demo artifact encoding: `scripts/demo-e2e.ps1` now writes `summary.json` via UTF-8 no-BOM helper (`Write-Utf8NoBomFile`), improving compatibility for external JSON consumers without BOM normalization.
+94. Added anti-regression coverage `tests/unit/demo-e2e-summary-encoding.test.ts` to enforce no-BOM summary write path and prevent fallback to `Set-Content -Encoding UTF8` for the demo summary artifact.
 
 ## Current Focus Queue
 
