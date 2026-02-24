@@ -81,6 +81,18 @@ Optional startup reliability knobs for local/CI runs:
 - `DEMO_E2E_SERVICE_START_MAX_ATTEMPTS=2` (or higher for unstable runners).
 - `DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS=1200`.
 
+Non-retryable startup failures (fail-fast):
+- `scripts/demo-e2e.ps1` now aborts early (without consuming full retry budget) when stderr indicates deterministic startup breakage, for example:
+  - `cannot find module` / `ERR_MODULE_NOT_FOUND`
+  - `SyntaxError` / `ReferenceError` / `TypeError`
+  - `EADDRINUSE` / `address already in use`
+  - `EACCES` / `permission denied`
+- Operator recovery sequence:
+  1. Open `artifacts/demo-e2e/logs/<service>.attempt<k>.stderr.log` and capture the tail included in the thrown error.
+  2. For module/syntax failures, rebuild and restart (`npm run build`, then rerun `npm run verify:release`).
+  3. For port conflicts (`EADDRINUSE`), free the conflicting process or change local port mapping before rerun.
+  4. For permission failures (`EACCES`), fix filesystem/env permissions and rerun.
+
 ### Release-Critical KPI Snapshot
 
 The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidence items regress:
