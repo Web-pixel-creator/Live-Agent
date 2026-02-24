@@ -19,6 +19,14 @@ For local self-contained sanity check (without GitHub API calls), run:
 ```powershell
 npm run verify:release:artifact-only:smoke
 ```
+Strict local smoke (same path with strict final gate):
+```powershell
+npm run verify:release:artifact-only:smoke:strict
+```
+Debug local smoke (keeps generated temp artifacts for inspection):
+```powershell
+npm run verify:release:artifact-only:smoke:keep-temp
+```
 Optional CI equivalent: run `.github/workflows/release-artifact-only-smoke.yml` (manual dispatch) with `strict_final_run=true|false`.
 Workflow uploads smoke diagnostics as `release-artifact-only-smoke-artifacts` (`artifacts/release-artifact-only-smoke/summary.json`, `artifacts/release-artifact-only-smoke/smoke.log`).
 Optional CI equivalent: run GitHub workflow `.github/workflows/release-artifact-revalidation.yml` to revalidate downloaded artifacts from the latest successful `demo-e2e`/`release-strict-final` run (or a specific `source_run_id`).

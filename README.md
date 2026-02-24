@@ -194,6 +194,16 @@ Local artifact-only smoke (self-contained, no GitHub API, generates temp perf + 
 ```powershell
 npm run verify:release:artifact-only:smoke
 ```
+Strict final variant (enforces strict release policy inside smoke gate):
+
+```powershell
+npm run verify:release:artifact-only:smoke:strict
+```
+Debug variant (keeps generated temp artifacts for inspection):
+
+```powershell
+npm run verify:release:artifact-only:smoke:keep-temp
+```
 
 Optional CI equivalent for fast sanity (without artifact download): run workflow `.github/workflows/release-artifact-only-smoke.yml` with `strict_final_run=true|false`.
 This workflow uploads debug artifacts as `release-artifact-only-smoke-artifacts` (`artifacts/release-artifact-only-smoke/summary.json`, `artifacts/release-artifact-only-smoke/smoke.log`).

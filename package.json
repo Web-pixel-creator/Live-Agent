@@ -29,6 +29,8 @@
     "verify:release:strict:skip-perf-run": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1 -StrictFinalRun -SkipPerfRun",
     "verify:release:artifact-only": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1 -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipDemoE2E -SkipPolicy -SkipBadge -SkipPerfRun",
     "verify:release:artifact-only:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifact-only-smoke.ps1",
+    "verify:release:artifact-only:smoke:strict": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifact-only-smoke.ps1 -StrictFinalRun",
+    "verify:release:artifact-only:smoke:keep-temp": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifact-only-smoke.ps1 -KeepTemp",
     "verify:release:artifact:revalidate": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifact-revalidate.ps1",
     "repo:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-repo-publish.ps1",
     "badge:pages:enable": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-pages-enable.ps1",
