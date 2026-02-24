@@ -9,9 +9,9 @@
 ## Verified Quality Gates
 
 1. `npm run verify:release` passes end-to-end.
-2. Demo e2e policy gate is green with `160` checks.
+2. Demo e2e policy gate is green with `179` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`251` tests passed).
+4. Unit tests are green (`289` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -147,6 +147,7 @@
 116. Added session-versioning retry evidence gating end-to-end: `sessionVersioningScenarioAttempts` is now emitted by `demo-e2e`, validated in `scripts/demo-e2e-policy-check.mjs` and `scripts/release-readiness.ps1`, included in release retry summary and runbook evidence, and covered by updated alignment/regression tests.
 117. Extended bounded scenario-level retries in `scripts/demo-e2e.ps1` to core live/story/sandbox flows: `live.translation`, `live.negotiation`, `live.context_compaction`, `storyteller.pipeline`, and `ui.sandbox.policy_modes` now use `ScenarioRetryMaxAttempts`/`ScenarioRetryBackoffMs` with `-RetryTransientFailures`.
 118. Added attempt evidence gates for core live/story/sandbox retries: new KPIs (`liveTranslationScenarioAttempts`, `liveNegotiationScenarioAttempts`, `liveContextCompactionScenarioAttempts`, `storytellerPipelineScenarioAttempts`, `uiSandboxPolicyModesScenarioAttempts`) are emitted by `demo-e2e`, enforced in demo policy and release-readiness gates, surfaced in release retry telemetry, documented in runbook, and locked by updated unit anti-drift coverage.
+119. Revalidated release baseline after retry-gate expansion: `verify:release` is green with `demo:e2e:policy` at `179` checks and unit suite at `289` passing tests, and `progress.md` quality-gate counters are now synchronized to those values.
 
 ## Current Focus Queue
 
