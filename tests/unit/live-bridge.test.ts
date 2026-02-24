@@ -508,6 +508,89 @@ test("live bridge emits health recovered after watchdog-triggered reconnect", as
   }
 });
 
+test("live bridge emits text deltas when upstream transcript frames are cumulative", async () => {
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+  const port = (wss.address() as AddressInfo).port;
+
+  wss.on("connection", (ws) => {
+    ws.on("message", (raw) => {
+      const parsed = JSON.parse(raw.toString("utf8")) as Record<string, unknown>;
+      if (!parsed.clientContent) {
+        return;
+      }
+      ws.send(
+        JSON.stringify({
+          serverContent: {
+            modelTurn: {
+              parts: [{ text: "Hello" }],
+            },
+          },
+        }),
+      );
+      ws.send(
+        JSON.stringify({
+          serverContent: {
+            outputTranscript: "Hello there",
+          },
+        }),
+      );
+      ws.send(
+        JSON.stringify({
+          serverContent: {
+            outputTranscript: "Hello there",
+          },
+        }),
+      );
+      ws.send(
+        JSON.stringify({
+          serverContent: {
+            outputTranscript: "Hello there!",
+            turnComplete: true,
+          },
+        }),
+      );
+    });
+  });
+
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveConnectMaxAttempts: 1,
+      liveConnectRetryMs: 20,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "delta test" } }));
+    await waitFor(() => emitted.some((event) => event.type === "live.turn.completed"), 3000);
+
+    const normalizedTextChunks = emitted
+      .filter((event) => event.type === "live.output")
+      .map((event) => {
+        const payload = event.payload as { normalized?: { text?: string } };
+        return payload.normalized?.text;
+      })
+      .filter((value): value is string => typeof value === "string" && value.length > 0);
+
+    assert.deepEqual(normalizedTextChunks, ["Hello", " there", "!"]);
+
+    const turnCompletedEvent = emitted.find((event) => event.type === "live.turn.completed");
+    assert.ok(turnCompletedEvent, "expected live.turn.completed event");
+    const turnCompletedPayload = turnCompletedEvent?.payload as { text?: string | null; textChars?: number };
+    assert.equal(turnCompletedPayload.text, "Hello there!");
+    assert.equal(turnCompletedPayload.textChars, "Hello there!".length);
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
+});
+
 test("live bridge emits reconnect wait diagnostics when route is cooling down", async () => {
   const emitted: EventEnvelope[] = [];
   const bridge = new LiveApiBridge({

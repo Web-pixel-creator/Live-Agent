@@ -323,6 +323,7 @@ export class LiveApiBridge {
   private roundTripMeasuredForCurrentTurn = false;
   private currentTurnStartedAtMs: number | null = null;
   private currentTurnTextParts: string[] = [];
+  private currentTurnTextCombined = "";
   private readonly modelStates: ModelState[];
   private currentModelIndex = 0;
   private readonly authProfiles: AuthProfileState[];
@@ -866,6 +867,7 @@ export class LiveApiBridge {
   private resetTurnAggregation(): void {
     this.currentTurnStartedAtMs = null;
     this.currentTurnTextParts = [];
+    this.currentTurnTextCombined = "";
     this.roundTripMeasuredForCurrentTurn = false;
   }
 
@@ -876,7 +878,7 @@ export class LiveApiBridge {
   }
 
   private markClientTurnStart(source: LiveModality): void {
-    if (this.currentTurnStartedAtMs !== null || this.currentTurnTextParts.length > 0) {
+    if (this.currentTurnStartedAtMs !== null || this.currentTurnTextCombined.length > 0) {
       this.resetTurnAggregation();
     }
     this.pendingRoundTripStartAtMs = Date.now();
@@ -918,7 +920,7 @@ export class LiveApiBridge {
   }
 
   private emitTurnCompleted(nowMs: number): void {
-    const text = this.currentTurnTextParts.join("\n").trim();
+    const text = this.currentTurnTextCombined.trim();
     const turnDurationMs = this.currentTurnStartedAtMs === null ? null : nowMs - this.currentTurnStartedAtMs;
     this.emit("live.turn.completed", {
       text: text.length > 0 ? text : null,
@@ -930,7 +932,7 @@ export class LiveApiBridge {
 
   private handleUpstreamInterrupted(upstream: unknown): void {
     const nowMs = Date.now();
-    const hadAssistantOutput = this.currentTurnStartedAtMs !== null || this.currentTurnTextParts.length > 0;
+    const hadAssistantOutput = this.currentTurnStartedAtMs !== null || this.currentTurnTextCombined.length > 0;
     const hadExplicitInterrupt = this.pendingInterruptAtMs !== null;
     let interruptLatencyMs: number | null = null;
     if (this.pendingInterruptAtMs !== null) {
@@ -954,15 +956,52 @@ export class LiveApiBridge {
     });
   }
 
+  private toStreamingTextDelta(nextText: string): string | null {
+    if (nextText.length === 0) {
+      return null;
+    }
+    const current = this.currentTurnTextCombined;
+    if (current.length === 0) {
+      return nextText;
+    }
+    if (nextText === current) {
+      return null;
+    }
+    if (nextText.startsWith(current)) {
+      const delta = nextText.slice(current.length);
+      return delta.length > 0 ? delta : null;
+    }
+    if (current.startsWith(nextText)) {
+      return null;
+    }
+    const normalizedCurrent = current.replace(/\s+/g, " ").trim();
+    const normalizedNext = nextText.replace(/\s+/g, " ").trim();
+    if (normalizedCurrent.length > 0 && normalizedCurrent === normalizedNext) {
+      return null;
+    }
+    return nextText;
+  }
+
   private observeNormalizedOutput(normalized: NormalizedLiveOutput): void {
     const nowMs = Date.now();
-    const hasOutput = typeof normalized.text === "string" || typeof normalized.audioBase64 === "string";
+    let normalizedTextDelta: string | null = null;
+    if (typeof normalized.text === "string") {
+      normalizedTextDelta = this.toStreamingTextDelta(normalized.text);
+      if (normalizedTextDelta === null) {
+        delete normalized.text;
+      } else {
+        normalized.text = normalizedTextDelta;
+      }
+    }
+
+    const hasOutput = normalizedTextDelta !== null || typeof normalized.audioBase64 === "string";
     if (hasOutput) {
       if (this.currentTurnStartedAtMs === null) {
         this.currentTurnStartedAtMs = nowMs;
       }
-      if (typeof normalized.text === "string") {
-        this.currentTurnTextParts.push(normalized.text);
+      if (normalizedTextDelta !== null) {
+        this.currentTurnTextParts.push(normalizedTextDelta);
+        this.currentTurnTextCombined += normalizedTextDelta;
       }
       this.emitRoundTripIfNeeded(nowMs);
     }
