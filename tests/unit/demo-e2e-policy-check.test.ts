@@ -147,6 +147,8 @@ function createPassingSummary(overrides?: {
     scenarioRetriesUsedCount: 0,
     gatewayWsRoundTripScenarioAttempts: 1,
     gatewayInterruptSignalScenarioAttempts: 1,
+    gatewayTaskProgressScenarioAttempts: 1,
+    gatewayRequestReplayScenarioAttempts: 1,
     uiVisualTestingScenarioAttempts: 1,
     operatorConsoleActionsScenarioAttempts: 1,
     runtimeLifecycleScenarioAttempts: 1,
@@ -244,7 +246,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 164);
+  assert.equal(result.payload.checks, 166);
 });
 
 test("demo-e2e policy check fails when assistant activity lifecycle KPI is missing", () => {
@@ -495,6 +497,44 @@ test("demo-e2e policy check fails when gateway interrupt scenario attempts excee
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.gatewayInterruptSignalScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when gateway task-progress scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        gatewayTaskProgressScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.gatewayTaskProgressScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when gateway request-replay scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        gatewayRequestReplayScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.gatewayRequestReplayScenarioAttempts")));
 });
 
 test("demo-e2e policy check fails when runtime lifecycle scenario attempts exceed configured retry max", () => {

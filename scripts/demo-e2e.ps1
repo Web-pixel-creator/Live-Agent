@@ -1573,7 +1573,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "gateway.websocket.task_progress" -Action {
+  Invoke-Scenario `
+    -Name "gateway.websocket.task_progress" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $runId = "demo-gateway-ws-task-" + [Guid]::NewGuid().Guid
     $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
     $result = Invoke-NodeJsonCommand -Args @(
@@ -1618,7 +1623,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "gateway.websocket.request_replay" -Action {
+  Invoke-Scenario `
+    -Name "gateway.websocket.request_replay" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $runId = "demo-gateway-ws-replay-" + [Guid]::NewGuid().Guid
     $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
     $result = Invoke-NodeJsonCommand -Args @(
@@ -2702,6 +2712,8 @@ $sessionVersioningData = Get-ScenarioData -Name "api.sessions.versioning"
 $runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
 $runtimeMetricsData = Get-ScenarioData -Name "runtime.metrics.endpoints"
 $gatewayRoundTripScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.roundtrip" } | Select-Object -First 1)
+$gatewayTaskProgressScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.task_progress" } | Select-Object -First 1)
+$gatewayRequestReplayScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.request_replay" } | Select-Object -First 1)
 $gatewayInterruptScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.interrupt_signal" } | Select-Object -First 1)
 $uiVisualTestingScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.visual_testing" } | Select-Object -First 1)
 $operatorActionsScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "operator.console.actions" } | Select-Object -First 1)
@@ -2859,6 +2871,8 @@ $summary = [ordered]@{
     scenarioRetriesUsedNames = @($scenarioRetriedSet | ForEach-Object { [string]$_.name })
     scenarioRetryableFailuresTotal = [int]$scenarioRetryableFailuresTotal
     gatewayWsRoundTripScenarioAttempts = if ($gatewayRoundTripScenario.Count -gt 0) { [int]$gatewayRoundTripScenario[0].attempts } else { $null }
+    gatewayTaskProgressScenarioAttempts = if ($gatewayTaskProgressScenario.Count -gt 0) { [int]$gatewayTaskProgressScenario[0].attempts } else { $null }
+    gatewayRequestReplayScenarioAttempts = if ($gatewayRequestReplayScenario.Count -gt 0) { [int]$gatewayRequestReplayScenario[0].attempts } else { $null }
     gatewayInterruptSignalScenarioAttempts = if ($gatewayInterruptScenario.Count -gt 0) { [int]$gatewayInterruptScenario[0].attempts } else { $null }
     uiVisualTestingScenarioAttempts = if ($uiVisualTestingScenario.Count -gt 0) { [int]$uiVisualTestingScenario[0].attempts } else { $null }
     operatorConsoleActionsScenarioAttempts = if ($operatorActionsScenario.Count -gt 0) { [int]$operatorActionsScenario[0].attempts } else { $null }

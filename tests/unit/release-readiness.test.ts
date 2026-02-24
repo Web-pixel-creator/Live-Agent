@@ -41,6 +41,8 @@ function createPassingSummary(
     scenarioRetriesUsedCount: number | string;
     gatewayWsRoundTripScenarioAttempts: number | string;
     gatewayInterruptSignalScenarioAttempts: number | string;
+    gatewayTaskProgressScenarioAttempts: number | string;
+    gatewayRequestReplayScenarioAttempts: number | string;
     uiVisualTestingScenarioAttempts: number | string;
     operatorConsoleActionsScenarioAttempts: number | string;
     runtimeLifecycleScenarioAttempts: number | string;
@@ -176,6 +178,12 @@ function createPassingSummary(
         : 1,
       gatewayInterruptSignalScenarioAttempts: hasOverride("gatewayInterruptSignalScenarioAttempts")
         ? overrides.gatewayInterruptSignalScenarioAttempts
+        : 1,
+      gatewayTaskProgressScenarioAttempts: hasOverride("gatewayTaskProgressScenarioAttempts")
+        ? overrides.gatewayTaskProgressScenarioAttempts
+        : 1,
+      gatewayRequestReplayScenarioAttempts: hasOverride("gatewayRequestReplayScenarioAttempts")
+        ? overrides.gatewayRequestReplayScenarioAttempts
         : 1,
       uiVisualTestingScenarioAttempts: hasOverride("uiVisualTestingScenarioAttempts")
         ? overrides.uiVisualTestingScenarioAttempts
@@ -725,6 +733,38 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /kpi\.gatewayInterruptSignalScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway task-progress scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        gatewayTaskProgressScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.gatewayTaskProgressScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway request-replay scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        gatewayRequestReplayScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.gatewayRequestReplayScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 

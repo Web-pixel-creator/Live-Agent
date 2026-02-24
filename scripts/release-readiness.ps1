@@ -450,6 +450,34 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     )
   }
 
+  $gatewayTaskProgressScenarioAttempts = To-NumberOrNaN $summary.kpis.gatewayTaskProgressScenarioAttempts
+  if (
+    [double]::IsNaN($gatewayTaskProgressScenarioAttempts) -or
+    $gatewayTaskProgressScenarioAttempts -lt 1 -or
+    $gatewayTaskProgressScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.gatewayTaskProgressScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.gatewayTaskProgressScenarioAttempts
+    )
+  }
+
+  $gatewayRequestReplayScenarioAttempts = To-NumberOrNaN $summary.kpis.gatewayRequestReplayScenarioAttempts
+  if (
+    [double]::IsNaN($gatewayRequestReplayScenarioAttempts) -or
+    $gatewayRequestReplayScenarioAttempts -lt 1 -or
+    $gatewayRequestReplayScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.gatewayRequestReplayScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.gatewayRequestReplayScenarioAttempts
+    )
+  }
+
   $uiVisualTestingScenarioAttempts = To-NumberOrNaN $summary.kpis.uiVisualTestingScenarioAttempts
   if (
     [double]::IsNaN($uiVisualTestingScenarioAttempts) -or
@@ -743,6 +771,8 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $scenarioRetryableFailuresTotal = $summary.kpis.scenarioRetryableFailuresTotal
   $gatewayRoundTripAttempts = $summary.kpis.gatewayWsRoundTripScenarioAttempts
   $gatewayInterruptAttempts = $summary.kpis.gatewayInterruptSignalScenarioAttempts
+  $gatewayTaskProgressAttempts = $summary.kpis.gatewayTaskProgressScenarioAttempts
+  $gatewayRequestReplayAttempts = $summary.kpis.gatewayRequestReplayScenarioAttempts
   $uiVisualAttempts = $summary.kpis.uiVisualTestingScenarioAttempts
   $operatorActionsAttempts = $summary.kpis.operatorConsoleActionsScenarioAttempts
   $runtimeLifecycleAttempts = $summary.kpis.runtimeLifecycleScenarioAttempts
@@ -753,6 +783,8 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     $null -ne $scenarioRetriesUsedCount -or
     $null -ne $gatewayRoundTripAttempts -or
     $null -ne $gatewayInterruptAttempts -or
+    $null -ne $gatewayTaskProgressAttempts -or
+    $null -ne $gatewayRequestReplayAttempts -or
     $null -ne $uiVisualAttempts -or
     $null -ne $operatorActionsAttempts -or
     $null -ne $runtimeLifecycleAttempts -or
@@ -765,6 +797,8 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", retryable_failures=" + $scenarioRetryableFailuresTotal +
       ", gateway.websocket.roundtrip_attempts=" + $gatewayRoundTripAttempts +
       ", gateway.websocket.interrupt_signal_attempts=" + $gatewayInterruptAttempts +
+      ", gateway.websocket.task_progress_attempts=" + $gatewayTaskProgressAttempts +
+      ", gateway.websocket.request_replay_attempts=" + $gatewayRequestReplayAttempts +
       ", ui.visual_testing_attempts=" + $uiVisualAttempts +
       ", operator.console.actions_attempts=" + $operatorActionsAttempts +
       ", runtime.lifecycle.endpoints_attempts=" + $runtimeLifecycleAttempts +
