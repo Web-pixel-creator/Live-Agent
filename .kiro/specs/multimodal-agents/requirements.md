@@ -66,6 +66,7 @@
 9. THE Live_Agent SHALL persist session metadata and conversation history in Firestore or Agent_Engine_Sessions.
 10. THE Live_Agent SHALL apply automatic context compaction when session context exceeds configured token budget and SHALL preserve recent turns plus a stable summary.
 11. THE Live_Agent demo surface SHALL expose assistant activity lifecycle states (`waiting_connection`, `idle`, `streaming`, `speaking`) and SHALL keep transitions consistent with websocket and playback events.
+12. THE Live_Agent demo artifacts SHALL prove context compaction behavior via KPI evidence (`liveContextCompactionValidated=true`) with summary-presence and retained-turn constraints.
 
 ### Requirement 2: Live Agent - Real-Time Translation
 

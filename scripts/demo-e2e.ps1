@@ -867,6 +867,10 @@ try {
   Set-EnvDefault -Name "UI_EXECUTOR_FORCE_SIMULATION" -Value "true"
   Set-EnvDefault -Name "DEMO_E2E_SERVICE_START_MAX_ATTEMPTS" -Value "2"
   Set-EnvDefault -Name "DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS" -Value "1200"
+  Set-EnvDefault -Name "LIVE_AGENT_CONTEXT_COMPACTION_ENABLED" -Value "true"
+  Set-EnvDefault -Name "LIVE_AGENT_CONTEXT_MAX_TOKENS" -Value "120"
+  Set-EnvDefault -Name "LIVE_AGENT_CONTEXT_TARGET_TOKENS" -Value "60"
+  Set-EnvDefault -Name "LIVE_AGENT_CONTEXT_KEEP_RECENT_TURNS" -Value "2"
 
   if (-not $SkipBuild) {
     Write-Step "Running workspace build..."
@@ -980,6 +984,99 @@ try {
       requiresUserConfirmation = $requiresUserConfirmation
       proposedOffer = Get-FieldValue -Object $response2 -Path @("payload", "output", "negotiation", "proposedOffer")
       latencyMs = [int](Get-FieldValue -Object $response2 -Path @("payload", "output", "latencyMs"))
+    }
+  } | Out-Null
+
+  Invoke-Scenario -Name "live.context_compaction" -Action {
+    $compactionObserved = $false
+    $compactionCount = 0
+    $summaryPresent = $false
+    $summaryChars = 0
+    $retainedTurns = 0
+    $minRetainedTurns = 0
+    $compactionReason = $null
+    $targetReached = $false
+    $lastCompactedAt = $null
+
+    for ($index = 0; $index -lt 6; $index += 1) {
+      $runId = "demo-context-compaction-" + $index + "-" + [Guid]::NewGuid().Guid
+      $text = "Context compaction probe turn $index. " + ("signal " * 120)
+      $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "conversation" -RequestInput @{
+        text = $text
+      }
+      $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
+      $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
+      Assert-Condition -Condition ($status -eq "completed") -Message "Conversation compaction probe run failed."
+
+      $context = Get-FieldValue -Object $response -Path @("payload", "output", "context")
+      Assert-Condition -Condition ($null -ne $context) -Message "Conversation context diagnostics are missing."
+
+      $preOutcome = Get-FieldValue -Object $context -Path @("preReplyCompaction")
+      $postOutcome = Get-FieldValue -Object $context -Path @("postReplyCompaction")
+      $outcomes = @($preOutcome, $postOutcome) | Where-Object { $null -ne $_ }
+      foreach ($outcome in $outcomes) {
+        $applied = [bool](Get-FieldValue -Object $outcome -Path @("applied"))
+        if ($applied) {
+          $compactionObserved = $true
+          $outcomeReason = [string](Get-FieldValue -Object $outcome -Path @("reason"))
+          if (-not [string]::IsNullOrWhiteSpace($outcomeReason)) {
+            $compactionReason = $outcomeReason
+          }
+          $targetReached = [bool](Get-FieldValue -Object $outcome -Path @("targetReached"))
+
+          $retainedTurnsRaw = Get-FieldValue -Object $outcome -Path @("retainedTurns")
+          if ($null -ne $retainedTurnsRaw) {
+            $retainedTurns = [int]$retainedTurnsRaw
+          }
+          $minRetainedTurnsRaw = Get-FieldValue -Object $outcome -Path @("minRetainedTurns")
+          if ($null -ne $minRetainedTurnsRaw) {
+            $minRetainedTurns = [int]$minRetainedTurnsRaw
+          }
+
+          $outcomeAt = [string](Get-FieldValue -Object $outcome -Path @("at"))
+          if (-not [string]::IsNullOrWhiteSpace($outcomeAt)) {
+            $lastCompactedAt = $outcomeAt
+          }
+        }
+      }
+
+      $compactionCountRaw = Get-FieldValue -Object $context -Path @("compactionCount")
+      if ($null -ne $compactionCountRaw) {
+        $compactionCount = [int]$compactionCountRaw
+      }
+
+      $summaryPresent = [bool](Get-FieldValue -Object $context -Path @("summaryPresent"))
+      $summaryCharsRaw = Get-FieldValue -Object $context -Path @("summaryChars")
+      if ($null -ne $summaryCharsRaw) {
+        $summaryChars = [int]$summaryCharsRaw
+      }
+
+      $contextRetainedTurnsRaw = Get-FieldValue -Object $context -Path @("retainedTurns")
+      if ($null -ne $contextRetainedTurnsRaw) {
+        $retainedTurns = [int]$contextRetainedTurnsRaw
+      }
+    }
+
+    Assert-Condition -Condition $compactionObserved -Message "Context compaction was not observed in live conversation probes."
+    Assert-Condition -Condition ($compactionCount -ge 1) -Message "Context compaction count should be >= 1."
+    Assert-Condition -Condition $summaryPresent -Message "Compaction should produce session summary diagnostics."
+    Assert-Condition -Condition ($summaryChars -ge 1) -Message "Compaction summary chars should be >= 1."
+    Assert-Condition -Condition ($summaryChars -le 3200) -Message "Compaction summary chars should be <= 3200."
+    Assert-Condition -Condition ($retainedTurns -ge $minRetainedTurns) -Message "Compaction retained turns should stay above minRetainedTurns."
+    $allowedCompactionReasons = @("compacted", "compacted_with_fallback_summary")
+    Assert-Condition -Condition ($allowedCompactionReasons -contains $compactionReason) -Message "Unexpected compaction reason."
+
+    return [ordered]@{
+      status = "completed"
+      compactionObserved = $compactionObserved
+      compactionCount = $compactionCount
+      summaryPresent = $summaryPresent
+      summaryChars = $summaryChars
+      retainedTurns = $retainedTurns
+      minRetainedTurns = $minRetainedTurns
+      compactionReason = $compactionReason
+      targetReached = $targetReached
+      lastCompactedAt = $lastCompactedAt
     }
   } | Out-Null
 
@@ -2435,6 +2532,7 @@ try {
 
 $translationData = Get-ScenarioData -Name "live.translation"
 $negotiationData = Get-ScenarioData -Name "live.negotiation"
+$contextCompactionData = Get-ScenarioData -Name "live.context_compaction"
 $storyData = Get-ScenarioData -Name "storyteller.pipeline"
 $uiApproveData = Get-ScenarioData -Name "ui.approval.approve_resume"
 $uiSandboxData = Get-ScenarioData -Name "ui.sandbox.policy_modes"
@@ -2495,6 +2593,24 @@ $summary = [ordered]@{
     translationProvider = if ($null -ne $translationData) { $translationData.provider } else { $null }
     negotiationConstraintsSatisfied = if ($null -ne $negotiationData) { $negotiationData.allSatisfied } else { $null }
     negotiationRequiresUserConfirmation = if ($null -ne $negotiationData) { $negotiationData.requiresUserConfirmation } else { $null }
+    liveContextCompactionObserved = if ($null -ne $contextCompactionData) { $contextCompactionData.compactionObserved } else { $null }
+    liveContextCompactionCount = if ($null -ne $contextCompactionData) { $contextCompactionData.compactionCount } else { $null }
+    liveContextCompactionSummaryPresent = if ($null -ne $contextCompactionData) { $contextCompactionData.summaryPresent } else { $null }
+    liveContextCompactionSummaryChars = if ($null -ne $contextCompactionData) { $contextCompactionData.summaryChars } else { $null }
+    liveContextCompactionRetainedTurns = if ($null -ne $contextCompactionData) { $contextCompactionData.retainedTurns } else { $null }
+    liveContextCompactionMinRetainedTurns = if ($null -ne $contextCompactionData) { $contextCompactionData.minRetainedTurns } else { $null }
+    liveContextCompactionReason = if ($null -ne $contextCompactionData) { $contextCompactionData.compactionReason } else { $null }
+    liveContextCompactionTargetReached = if ($null -ne $contextCompactionData) { $contextCompactionData.targetReached } else { $null }
+    liveContextCompactionValidated = if (
+      $null -ne $contextCompactionData -and
+      [bool]$contextCompactionData.compactionObserved -eq $true -and
+      [int]$contextCompactionData.compactionCount -ge 1 -and
+      [bool]$contextCompactionData.summaryPresent -eq $true -and
+      [int]$contextCompactionData.summaryChars -ge 1 -and
+      [int]$contextCompactionData.summaryChars -le 3200 -and
+      [int]$contextCompactionData.retainedTurns -ge [int]$contextCompactionData.minRetainedTurns -and
+      @("compacted", "compacted_with_fallback_summary") -contains [string]$contextCompactionData.compactionReason
+    ) { $true } else { $false }
     storytellerFallbackAsset = if ($null -ne $storyData) { $storyData.fallbackAsset } else { $null }
     storytellerMediaMode = if ($null -ne $storyData) { $storyData.mediaMode } else { $null }
     storytellerVideoAsync = if ($null -ne $storyData) { $storyData.videoAsync } else { $null }

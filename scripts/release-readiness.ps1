@@ -300,6 +300,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     gatewayWsBindingMismatchValidated = $true
     gatewayWsDrainingValidated = $true
     assistantActivityLifecycleValidated = $true
+    liveContextCompactionValidated = $true
     sessionVersioningValidated = $true
     operatorTaskQueueSummaryValidated = $true
     operatorAuditTrailValidated = $true
@@ -676,6 +677,10 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $assistantActivityValidated = $summary.kpis.assistantActivityLifecycleValidated
   if ($null -ne $assistantActivityValidated) {
     Write-Host ("assistant.activity.lifecycle.validated: " + $assistantActivityValidated)
+  }
+  $contextCompactionValidated = $summary.kpis.liveContextCompactionValidated
+  if ($null -ne $contextCompactionValidated) {
+    Write-Host ("live.context.compaction.validated: " + $contextCompactionValidated)
   }
   $sessionVersioningValidated = $summary.kpis.sessionVersioningValidated
   if ($null -ne $sessionVersioningValidated) {

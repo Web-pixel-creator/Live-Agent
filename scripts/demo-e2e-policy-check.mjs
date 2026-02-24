@@ -165,6 +165,7 @@ async function main() {
       [
         "live.translation",
         "live.negotiation",
+        "live.context_compaction",
         "storyteller.pipeline",
         "ui.approval.request",
         "ui.approval.reject",
@@ -243,6 +244,49 @@ async function main() {
     kpis.negotiationRequiresUserConfirmation === true,
     kpis.negotiationRequiresUserConfirmation,
     true,
+  );
+  addCheck(
+    "kpi.liveContextCompactionValidated",
+    kpis.liveContextCompactionValidated === true,
+    kpis.liveContextCompactionValidated,
+    true,
+  );
+  addCheck(
+    "kpi.liveContextCompactionObserved",
+    kpis.liveContextCompactionObserved === true,
+    kpis.liveContextCompactionObserved,
+    true,
+  );
+  addCheck(
+    "kpi.liveContextCompactionCount",
+    toNumber(kpis.liveContextCompactionCount) >= 1,
+    kpis.liveContextCompactionCount,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.liveContextCompactionSummaryPresent",
+    kpis.liveContextCompactionSummaryPresent === true,
+    kpis.liveContextCompactionSummaryPresent,
+    true,
+  );
+  addCheck(
+    "kpi.liveContextCompactionSummaryChars",
+    toNumber(kpis.liveContextCompactionSummaryChars) >= 1 &&
+      toNumber(kpis.liveContextCompactionSummaryChars) <= 3200,
+    kpis.liveContextCompactionSummaryChars,
+    "1..3200",
+  );
+  addCheck(
+    "kpi.liveContextCompactionRetainedTurns",
+    toNumber(kpis.liveContextCompactionRetainedTurns) >= toNumber(kpis.liveContextCompactionMinRetainedTurns),
+    kpis.liveContextCompactionRetainedTurns,
+    ">= liveContextCompactionMinRetainedTurns",
+  );
+  addCheck(
+    "kpi.liveContextCompactionReason",
+    ["compacted", "compacted_with_fallback_summary"].includes(String(kpis.liveContextCompactionReason)),
+    kpis.liveContextCompactionReason,
+    "compacted | compacted_with_fallback_summary",
   );
   addCheck(
     "kpi.storytellerMediaMode",

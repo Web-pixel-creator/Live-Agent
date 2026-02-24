@@ -15,6 +15,7 @@ const policyScriptPath = resolve(process.cwd(), "scripts", "demo-e2e-policy-chec
 const requiredScenarioNames = [
   "live.translation",
   "live.negotiation",
+  "live.context_compaction",
   "storyteller.pipeline",
   "ui.approval.request",
   "ui.approval.reject",
@@ -55,6 +56,14 @@ function createPassingSummary(overrides?: {
   const kpis: Record<string, unknown> = {
     negotiationConstraintsSatisfied: true,
     negotiationRequiresUserConfirmation: true,
+    liveContextCompactionValidated: true,
+    liveContextCompactionObserved: true,
+    liveContextCompactionCount: 1,
+    liveContextCompactionSummaryPresent: true,
+    liveContextCompactionSummaryChars: 240,
+    liveContextCompactionRetainedTurns: 2,
+    liveContextCompactionMinRetainedTurns: 2,
+    liveContextCompactionReason: "compacted_with_fallback_summary",
     storytellerMediaMode: "simulated",
     storytellerVideoAsync: true,
     storytellerVideoJobsCount: 1,
@@ -227,7 +236,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 148);
+  assert.equal(result.payload.checks, 156);
 });
 
 test("demo-e2e policy check fails when assistant activity lifecycle KPI is missing", () => {
@@ -244,6 +253,22 @@ test("demo-e2e policy check fails when assistant activity lifecycle KPI is missi
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.assistantActivityLifecycleValidated")));
+});
+
+test("demo-e2e policy check fails when live context compaction KPI is missing", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        liveContextCompactionValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.liveContextCompactionValidated")));
 });
 
 test("demo-e2e policy check fails when approval resume attempts exceed threshold", () => {

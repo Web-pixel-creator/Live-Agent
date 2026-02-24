@@ -33,6 +33,7 @@ function createPassingSummary(
     gatewayInterruptLatencyMs: number | null;
     gatewayInterruptEventType: string;
     assistantActivityLifecycleValidated: boolean | string;
+    liveContextCompactionValidated: boolean | string;
     serviceStartMaxAttempts: number | string;
     serviceStartRetryBackoffMs: number | string;
     scenarioRetryMaxAttempts: number | string;
@@ -77,6 +78,9 @@ function createPassingSummary(
       gatewayWsDrainingValidated: true,
       assistantActivityLifecycleValidated: hasOverride("assistantActivityLifecycleValidated")
         ? overrides.assistantActivityLifecycleValidated
+        : true,
+      liveContextCompactionValidated: hasOverride("liveContextCompactionValidated")
+        ? overrides.liveContextCompactionValidated
         : true,
       sessionVersioningValidated: true,
       operatorTaskQueueSummaryValidated: true,
@@ -746,6 +750,17 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /assistantActivityLifecycleValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when live context compaction KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ liveContextCompactionValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /liveContextCompactionValidated expected True, actual False/i);
   },
 );
 

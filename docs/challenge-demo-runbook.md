@@ -104,6 +104,9 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `operatorLiveBridgeProbeTelemetryValidated=true`
   - `operatorStartupDiagnosticsValidated=true`
   - `operatorLiveBridgeHealthState in {healthy,degraded,unknown}`
+- Live Agent reliability:
+  - `assistantActivityLifecycleValidated=true`
+  - `liveContextCompactionValidated=true`
 - Storyteller reliability:
   - `storytellerVideoAsyncValidated=true`
   - `storytellerMediaQueueVisible=true`
