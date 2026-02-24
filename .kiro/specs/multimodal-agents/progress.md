@@ -129,6 +129,8 @@
 98. Added global guardrail `tests/unit/powershell-exception-response-safety.test.ts` to enforce that PowerShell scripts in `scripts/` do not reintroduce direct `.Exception.Response` property access.
 99. Added `demo:e2e:fast:retry` alias in `package.json`: demo-only fast run now uses `release-readiness.ps1` retry harness (`DemoRunMaxAttempts`/`DemoRunRetryBackoffMs`) while skipping unit/policy/badge/perf gates for quicker local stabilization loops.
 100. Synced fast-retry workflow docs and alignment tests: updated `README.md` + `docs/challenge-demo-runbook.md`, extended `tests/unit/release-script-alias-alignment.test.ts`, and added `tests/unit/demo-fast-retry-docs-alignment.test.ts` to keep alias and documentation consistent.
+101. Expanded transient scenario retry coverage in `scripts/demo-e2e.ps1`: `runtime.lifecycle.endpoints` and `runtime.metrics.endpoints` now use bounded transient retries (`ScenarioRetryMaxAttempts`/`ScenarioRetryBackoffMs`) in addition to operator/visual flows, reducing false-negative demo failures from short-lived service/network blips.
+102. Updated alignment guard `tests/unit/demo-scenario-retry-alignment.test.ts` to enforce retry configuration across operator/ui/runtime flaky scenarios and prevent future drift in demo retry policy wiring.
 
 ## Current Focus Queue
 

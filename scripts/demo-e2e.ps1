@@ -2424,7 +2424,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "runtime.lifecycle.endpoints" -Action {
+  Invoke-Scenario `
+    -Name "runtime.lifecycle.endpoints" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $services = @(
       @{ name = "ui-executor"; baseUrl = "http://localhost:8090" },
       @{ name = "realtime-gateway"; baseUrl = "http://localhost:8080" },
@@ -2601,7 +2606,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "runtime.metrics.endpoints" -Action {
+  Invoke-Scenario `
+    -Name "runtime.metrics.endpoints" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $services = @(
       @{ name = "ui-executor"; baseUrl = "http://localhost:8090" },
       @{ name = "realtime-gateway"; baseUrl = "http://localhost:8080" },

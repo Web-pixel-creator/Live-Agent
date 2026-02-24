@@ -31,7 +31,7 @@ test("demo-e2e defines scenario retry defaults for transient flake control", () 
   assert.match(source, /\[switch\]\$RetryTransientFailures/);
 });
 
-test("demo-e2e applies transient retry to flaky operator/ui visual scenarios", () => {
+test("demo-e2e applies transient retry to flaky operator/ui/runtime scenarios", () => {
   const demoPath = resolve(process.cwd(), "scripts", "demo-e2e.ps1");
   const source = readFileSync(demoPath, "utf8");
 
@@ -42,6 +42,14 @@ test("demo-e2e applies transient retry to flaky operator/ui visual scenarios", (
   assert.match(
     source,
     /Invoke-Scenario[\s\S]*-Name\s+"operator\.console\.actions"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
+    /Invoke-Scenario[\s\S]*-Name\s+"runtime\.lifecycle\.endpoints"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
+    /Invoke-Scenario[\s\S]*-Name\s+"runtime\.metrics\.endpoints"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
   );
   assert.match(source, /scenarioRetriesUsedCount/);
   assert.match(source, /uiVisualTestingScenarioAttempts/);
