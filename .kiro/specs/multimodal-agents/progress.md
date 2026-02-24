@@ -133,6 +133,8 @@
 102. Updated alignment guard `tests/unit/demo-scenario-retry-alignment.test.ts` to enforce retry configuration across operator/ui/runtime flaky scenarios and prevent future drift in demo retry policy wiring.
 103. Added runtime scenario attempt KPIs to demo summary (`runtimeLifecycleScenarioAttempts`, `runtimeMetricsScenarioAttempts`) in `scripts/demo-e2e.ps1`, so runtime retry behavior is visible in judge-facing artifacts and release logs.
 104. Extended scenario retry gates across policy/release/docs/tests: `scripts/demo-e2e-policy-check.mjs` and `scripts/release-readiness.ps1` now enforce runtime attempt bounds (`1..options.scenarioRetryMaxAttempts`), runbook evidence was updated, and unit coverage expanded in `tests/unit/demo-e2e-policy-check.test.ts`, `tests/unit/release-readiness.test.ts`, `tests/unit/demo-scenario-retry-alignment.test.ts`, and `tests/unit/runbook-release-alignment.test.ts`.
+105. Added gateway scenario attempt KPIs in demo summary (`gatewayWsRoundTripScenarioAttempts`, `gatewayInterruptSignalScenarioAttempts`) to make websocket roundtrip/interrupt retry behavior explicit in judge artifacts.
+106. Extended scenario retry policy/release discipline to gateway websocket scenarios: `scripts/demo-e2e-policy-check.mjs` and `scripts/release-readiness.ps1` now enforce gateway attempt bounds (`1..options.scenarioRetryMaxAttempts`), release log prints these counts, runbook evidence was updated, and anti-drift tests expanded in `tests/unit/demo-e2e-policy-check.test.ts`, `tests/unit/release-readiness.test.ts`, `tests/unit/demo-scenario-retry-alignment.test.ts`, and `tests/unit/runbook-release-alignment.test.ts`.
 
 ## Current Focus Queue
 

@@ -52,6 +52,8 @@ test("demo-e2e applies transient retry to flaky operator/ui/runtime scenarios", 
     /Invoke-Scenario[\s\S]*-Name\s+"runtime\.metrics\.endpoints"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
   );
   assert.match(source, /scenarioRetriesUsedCount/);
+  assert.match(source, /gatewayWsRoundTripScenarioAttempts/);
+  assert.match(source, /gatewayInterruptSignalScenarioAttempts/);
   assert.match(source, /uiVisualTestingScenarioAttempts/);
   assert.match(source, /operatorConsoleActionsScenarioAttempts/);
   assert.match(source, /runtimeLifecycleScenarioAttempts/);

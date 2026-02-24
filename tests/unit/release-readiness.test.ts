@@ -39,6 +39,8 @@ function createPassingSummary(
     scenarioRetryMaxAttempts: number | string;
     scenarioRetryBackoffMs: number | string;
     scenarioRetriesUsedCount: number | string;
+    gatewayWsRoundTripScenarioAttempts: number | string;
+    gatewayInterruptSignalScenarioAttempts: number | string;
     uiVisualTestingScenarioAttempts: number | string;
     operatorConsoleActionsScenarioAttempts: number | string;
     runtimeLifecycleScenarioAttempts: number | string;
@@ -169,6 +171,12 @@ function createPassingSummary(
         : 2,
       storytellerCacheHits: hasOverride("storytellerCacheHits") ? overrides.storytellerCacheHits : 3,
       scenarioRetriesUsedCount: hasOverride("scenarioRetriesUsedCount") ? overrides.scenarioRetriesUsedCount : 0,
+      gatewayWsRoundTripScenarioAttempts: hasOverride("gatewayWsRoundTripScenarioAttempts")
+        ? overrides.gatewayWsRoundTripScenarioAttempts
+        : 1,
+      gatewayInterruptSignalScenarioAttempts: hasOverride("gatewayInterruptSignalScenarioAttempts")
+        ? overrides.gatewayInterruptSignalScenarioAttempts
+        : 1,
       uiVisualTestingScenarioAttempts: hasOverride("uiVisualTestingScenarioAttempts")
         ? overrides.uiVisualTestingScenarioAttempts
         : 1,
@@ -685,6 +693,38 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /kpi\.uiVisualTestingScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway roundtrip scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        gatewayWsRoundTripScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.gatewayWsRoundTripScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway interrupt scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        gatewayInterruptSignalScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.gatewayInterruptSignalScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 

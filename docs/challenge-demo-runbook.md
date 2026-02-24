@@ -133,6 +133,8 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `options.scenarioRetryBackoffMs >= 500`
   - `kpi.scenarioRetriesUsedCount <= 2`
   - strict final run (`npm run verify:release:strict`) enforces `kpi.scenarioRetriesUsedCount = 0`
+  - `kpi.gatewayWsRoundTripScenarioAttempts <= options.scenarioRetryMaxAttempts`
+  - `kpi.gatewayInterruptSignalScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.uiVisualTestingScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.operatorConsoleActionsScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.runtimeLifecycleScenarioAttempts <= options.scenarioRetryMaxAttempts`

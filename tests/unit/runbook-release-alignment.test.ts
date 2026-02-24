@@ -64,6 +64,8 @@ test("runbook documents release perf artifact-only mode and critical evidence ke
     "`options.scenarioRetryBackoffMs >= 500`",
     "`kpi.scenarioRetriesUsedCount <= 2`",
     "`kpi.scenarioRetriesUsedCount = 0`",
+    "`kpi.gatewayWsRoundTripScenarioAttempts <= options.scenarioRetryMaxAttempts`",
+    "`kpi.gatewayInterruptSignalScenarioAttempts <= options.scenarioRetryMaxAttempts`",
     "`kpi.uiVisualTestingScenarioAttempts <= options.scenarioRetryMaxAttempts`",
     "`kpi.operatorConsoleActionsScenarioAttempts <= options.scenarioRetryMaxAttempts`",
     "`kpi.runtimeLifecycleScenarioAttempts <= options.scenarioRetryMaxAttempts`",

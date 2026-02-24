@@ -812,6 +812,26 @@ async function main() {
     kpis.scenarioRetriesUsedCount,
     `0..${maxScenarioRetriesUsedCount}`,
   );
+  const gatewayWsRoundTripScenarioAttempts = toNumber(kpis.gatewayWsRoundTripScenarioAttempts);
+  addCheck(
+    "kpi.gatewayWsRoundTripScenarioAttempts",
+    Number.isFinite(gatewayWsRoundTripScenarioAttempts) &&
+      gatewayWsRoundTripScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      gatewayWsRoundTripScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.gatewayWsRoundTripScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const gatewayInterruptSignalScenarioAttempts = toNumber(kpis.gatewayInterruptSignalScenarioAttempts);
+  addCheck(
+    "kpi.gatewayInterruptSignalScenarioAttempts",
+    Number.isFinite(gatewayInterruptSignalScenarioAttempts) &&
+      gatewayInterruptSignalScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      gatewayInterruptSignalScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.gatewayInterruptSignalScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
   const uiVisualTestingScenarioAttempts = toNumber(kpis.uiVisualTestingScenarioAttempts);
   addCheck(
     "kpi.uiVisualTestingScenarioAttempts",

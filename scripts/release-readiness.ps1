@@ -422,6 +422,34 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     )
   }
 
+  $gatewayWsRoundTripScenarioAttempts = To-NumberOrNaN $summary.kpis.gatewayWsRoundTripScenarioAttempts
+  if (
+    [double]::IsNaN($gatewayWsRoundTripScenarioAttempts) -or
+    $gatewayWsRoundTripScenarioAttempts -lt 1 -or
+    $gatewayWsRoundTripScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.gatewayWsRoundTripScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.gatewayWsRoundTripScenarioAttempts
+    )
+  }
+
+  $gatewayInterruptSignalScenarioAttempts = To-NumberOrNaN $summary.kpis.gatewayInterruptSignalScenarioAttempts
+  if (
+    [double]::IsNaN($gatewayInterruptSignalScenarioAttempts) -or
+    $gatewayInterruptSignalScenarioAttempts -lt 1 -or
+    $gatewayInterruptSignalScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.gatewayInterruptSignalScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.gatewayInterruptSignalScenarioAttempts
+    )
+  }
+
   $uiVisualTestingScenarioAttempts = To-NumberOrNaN $summary.kpis.uiVisualTestingScenarioAttempts
   if (
     [double]::IsNaN($uiVisualTestingScenarioAttempts) -or
@@ -713,6 +741,8 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $scenarioRetryBackoff = $summary.options.scenarioRetryBackoffMs
   $scenarioRetriesUsedCount = $summary.kpis.scenarioRetriesUsedCount
   $scenarioRetryableFailuresTotal = $summary.kpis.scenarioRetryableFailuresTotal
+  $gatewayRoundTripAttempts = $summary.kpis.gatewayWsRoundTripScenarioAttempts
+  $gatewayInterruptAttempts = $summary.kpis.gatewayInterruptSignalScenarioAttempts
   $uiVisualAttempts = $summary.kpis.uiVisualTestingScenarioAttempts
   $operatorActionsAttempts = $summary.kpis.operatorConsoleActionsScenarioAttempts
   $runtimeLifecycleAttempts = $summary.kpis.runtimeLifecycleScenarioAttempts
@@ -721,6 +751,8 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     $null -ne $scenarioRetryAttempts -or
     $null -ne $scenarioRetryBackoff -or
     $null -ne $scenarioRetriesUsedCount -or
+    $null -ne $gatewayRoundTripAttempts -or
+    $null -ne $gatewayInterruptAttempts -or
     $null -ne $uiVisualAttempts -or
     $null -ne $operatorActionsAttempts -or
     $null -ne $runtimeLifecycleAttempts -or
@@ -731,6 +763,8 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", backoff_ms=" + $scenarioRetryBackoff +
       ", retries_used=" + $scenarioRetriesUsedCount +
       ", retryable_failures=" + $scenarioRetryableFailuresTotal +
+      ", gateway.websocket.roundtrip_attempts=" + $gatewayRoundTripAttempts +
+      ", gateway.websocket.interrupt_signal_attempts=" + $gatewayInterruptAttempts +
       ", ui.visual_testing_attempts=" + $uiVisualAttempts +
       ", operator.console.actions_attempts=" + $operatorActionsAttempts +
       ", runtime.lifecycle.endpoints_attempts=" + $runtimeLifecycleAttempts +
