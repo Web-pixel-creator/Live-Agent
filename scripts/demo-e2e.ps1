@@ -1523,7 +1523,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "gateway.websocket.roundtrip" -Action {
+  Invoke-Scenario `
+    -Name "gateway.websocket.roundtrip" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $runId = "demo-gateway-ws-" + [Guid]::NewGuid().Guid
     $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
     $result = Invoke-NodeJsonCommand -Args @(
@@ -1651,7 +1656,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "gateway.websocket.interrupt_signal" -Action {
+  Invoke-Scenario `
+    -Name "gateway.websocket.interrupt_signal" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $runId = "demo-gateway-ws-interrupt-" + [Guid]::NewGuid().Guid
     $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
     $result = Invoke-NodeJsonCommand -Args @(

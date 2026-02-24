@@ -37,6 +37,14 @@ test("demo-e2e applies transient retry to flaky operator/ui/runtime scenarios", 
 
   assert.match(
     source,
+    /Invoke-Scenario[\s\S]*-Name\s+"gateway\.websocket\.roundtrip"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
+    /Invoke-Scenario[\s\S]*-Name\s+"gateway\.websocket\.interrupt_signal"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
     /Invoke-Scenario[\s\S]*-Name\s+"ui\.visual_testing"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
   );
   assert.match(
