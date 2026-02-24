@@ -422,6 +422,76 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     )
   }
 
+  $liveTranslationScenarioAttempts = To-NumberOrNaN $summary.kpis.liveTranslationScenarioAttempts
+  if (
+    [double]::IsNaN($liveTranslationScenarioAttempts) -or
+    $liveTranslationScenarioAttempts -lt 1 -or
+    $liveTranslationScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.liveTranslationScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.liveTranslationScenarioAttempts
+    )
+  }
+
+  $liveNegotiationScenarioAttempts = To-NumberOrNaN $summary.kpis.liveNegotiationScenarioAttempts
+  if (
+    [double]::IsNaN($liveNegotiationScenarioAttempts) -or
+    $liveNegotiationScenarioAttempts -lt 1 -or
+    $liveNegotiationScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.liveNegotiationScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.liveNegotiationScenarioAttempts
+    )
+  }
+
+  $liveContextCompactionScenarioAttempts = To-NumberOrNaN $summary.kpis.liveContextCompactionScenarioAttempts
+  if (
+    [double]::IsNaN($liveContextCompactionScenarioAttempts) -or
+    $liveContextCompactionScenarioAttempts -lt 1 -or
+    $liveContextCompactionScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.liveContextCompactionScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.liveContextCompactionScenarioAttempts
+    )
+  }
+
+  $storytellerPipelineScenarioAttempts = To-NumberOrNaN $summary.kpis.storytellerPipelineScenarioAttempts
+  if (
+    [double]::IsNaN($storytellerPipelineScenarioAttempts) -or
+    $storytellerPipelineScenarioAttempts -lt 1 -or
+    $storytellerPipelineScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.storytellerPipelineScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.storytellerPipelineScenarioAttempts
+    )
+  }
+
+  $uiSandboxPolicyModesScenarioAttempts = To-NumberOrNaN $summary.kpis.uiSandboxPolicyModesScenarioAttempts
+  if (
+    [double]::IsNaN($uiSandboxPolicyModesScenarioAttempts) -or
+    $uiSandboxPolicyModesScenarioAttempts -lt 1 -or
+    $uiSandboxPolicyModesScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.uiSandboxPolicyModesScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.uiSandboxPolicyModesScenarioAttempts
+    )
+  }
+
   $gatewayWsRoundTripScenarioAttempts = To-NumberOrNaN $summary.kpis.gatewayWsRoundTripScenarioAttempts
   if (
     [double]::IsNaN($gatewayWsRoundTripScenarioAttempts) -or
@@ -881,6 +951,11 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $scenarioRetryBackoff = $summary.options.scenarioRetryBackoffMs
   $scenarioRetriesUsedCount = $summary.kpis.scenarioRetriesUsedCount
   $scenarioRetryableFailuresTotal = $summary.kpis.scenarioRetryableFailuresTotal
+  $liveTranslationAttempts = $summary.kpis.liveTranslationScenarioAttempts
+  $liveNegotiationAttempts = $summary.kpis.liveNegotiationScenarioAttempts
+  $liveContextCompactionAttempts = $summary.kpis.liveContextCompactionScenarioAttempts
+  $storytellerPipelineAttempts = $summary.kpis.storytellerPipelineScenarioAttempts
+  $uiSandboxPolicyAttempts = $summary.kpis.uiSandboxPolicyModesScenarioAttempts
   $gatewayRoundTripAttempts = $summary.kpis.gatewayWsRoundTripScenarioAttempts
   $gatewayInterruptAttempts = $summary.kpis.gatewayInterruptSignalScenarioAttempts
   $gatewayTaskProgressAttempts = $summary.kpis.gatewayTaskProgressScenarioAttempts
@@ -901,6 +976,11 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     $null -ne $scenarioRetryAttempts -or
     $null -ne $scenarioRetryBackoff -or
     $null -ne $scenarioRetriesUsedCount -or
+    $null -ne $liveTranslationAttempts -or
+    $null -ne $liveNegotiationAttempts -or
+    $null -ne $liveContextCompactionAttempts -or
+    $null -ne $storytellerPipelineAttempts -or
+    $null -ne $uiSandboxPolicyAttempts -or
     $null -ne $gatewayRoundTripAttempts -or
     $null -ne $gatewayInterruptAttempts -or
     $null -ne $gatewayTaskProgressAttempts -or
@@ -923,6 +1003,11 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", backoff_ms=" + $scenarioRetryBackoff +
       ", retries_used=" + $scenarioRetriesUsedCount +
       ", retryable_failures=" + $scenarioRetryableFailuresTotal +
+      ", live.translation_attempts=" + $liveTranslationAttempts +
+      ", live.negotiation_attempts=" + $liveNegotiationAttempts +
+      ", live.context_compaction_attempts=" + $liveContextCompactionAttempts +
+      ", storyteller.pipeline_attempts=" + $storytellerPipelineAttempts +
+      ", ui.sandbox.policy_modes_attempts=" + $uiSandboxPolicyAttempts +
       ", gateway.websocket.roundtrip_attempts=" + $gatewayRoundTripAttempts +
       ", gateway.websocket.interrupt_signal_attempts=" + $gatewayInterruptAttempts +
       ", gateway.websocket.task_progress_attempts=" + $gatewayTaskProgressAttempts +

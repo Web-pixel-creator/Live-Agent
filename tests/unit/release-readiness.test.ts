@@ -51,6 +51,11 @@ function createPassingSummary(
     approvalsListScenarioAttempts: number | string;
     approvalsInvalidIntentScenarioAttempts: number | string;
     sessionVersioningScenarioAttempts: number | string;
+    liveTranslationScenarioAttempts: number | string;
+    liveNegotiationScenarioAttempts: number | string;
+    liveContextCompactionScenarioAttempts: number | string;
+    storytellerPipelineScenarioAttempts: number | string;
+    uiSandboxPolicyModesScenarioAttempts: number | string;
     uiVisualTestingScenarioAttempts: number | string;
     operatorConsoleActionsScenarioAttempts: number | string;
     runtimeLifecycleScenarioAttempts: number | string;
@@ -181,6 +186,21 @@ function createPassingSummary(
         : 2,
       storytellerCacheHits: hasOverride("storytellerCacheHits") ? overrides.storytellerCacheHits : 3,
       scenarioRetriesUsedCount: hasOverride("scenarioRetriesUsedCount") ? overrides.scenarioRetriesUsedCount : 0,
+      liveTranslationScenarioAttempts: hasOverride("liveTranslationScenarioAttempts")
+        ? overrides.liveTranslationScenarioAttempts
+        : 1,
+      liveNegotiationScenarioAttempts: hasOverride("liveNegotiationScenarioAttempts")
+        ? overrides.liveNegotiationScenarioAttempts
+        : 1,
+      liveContextCompactionScenarioAttempts: hasOverride("liveContextCompactionScenarioAttempts")
+        ? overrides.liveContextCompactionScenarioAttempts
+        : 1,
+      storytellerPipelineScenarioAttempts: hasOverride("storytellerPipelineScenarioAttempts")
+        ? overrides.storytellerPipelineScenarioAttempts
+        : 1,
+      uiSandboxPolicyModesScenarioAttempts: hasOverride("uiSandboxPolicyModesScenarioAttempts")
+        ? overrides.uiSandboxPolicyModesScenarioAttempts
+        : 1,
       gatewayWsRoundTripScenarioAttempts: hasOverride("gatewayWsRoundTripScenarioAttempts")
         ? overrides.gatewayWsRoundTripScenarioAttempts
         : 1,
@@ -717,6 +737,86 @@ test(
       strictFinalRun: true,
     });
     assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+  },
+);
+
+test(
+  "release-readiness fails when live translation scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        liveTranslationScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.liveTranslationScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when live negotiation scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        liveNegotiationScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.liveNegotiationScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when live context compaction scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        liveContextCompactionScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.liveContextCompactionScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when storyteller pipeline scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        storytellerPipelineScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.storytellerPipelineScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when ui sandbox policy scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        uiSandboxPolicyModesScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.uiSandboxPolicyModesScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 

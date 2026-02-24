@@ -959,7 +959,12 @@ try {
   Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($sessionId)) -Message "Failed to create a sessionId."
   Write-Step "Created demo session: $sessionId"
 
-  Invoke-Scenario -Name "live.translation" -Action {
+  Invoke-Scenario `
+    -Name "live.translation" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $runId = "demo-translation-" + [Guid]::NewGuid().Guid
     $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "translation" -RequestInput @{
       text = "Hello, please confirm price 95 and delivery 10 days."
@@ -990,7 +995,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "live.negotiation" -Action {
+  Invoke-Scenario `
+    -Name "live.negotiation" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $constraints = @{
       maxPrice = 100
       maxDeliveryDays = 10
@@ -1032,7 +1042,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "live.context_compaction" -Action {
+  Invoke-Scenario `
+    -Name "live.context_compaction" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $compactionObserved = $false
     $compactionCount = 0
     $summaryPresent = $false
@@ -1125,10 +1140,17 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "storyteller.pipeline" -Action {
+  Invoke-Scenario `
+    -Name "storyteller.pipeline" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $runId = "demo-story-" + [Guid]::NewGuid().Guid
+    $storyPromptSeed = [Guid]::NewGuid().Guid
+    $storyPrompt = "Create a short interactive story about a port logistics negotiation. seed:" + $storyPromptSeed
     $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "story" -RequestInput @{
-      prompt = "Create a short interactive story about a port logistics negotiation."
+      prompt = $storyPrompt
       audience = "judges"
       style = "cinematic"
       language = "en"
@@ -1194,7 +1216,7 @@ try {
 
     $cacheRunId = "demo-story-cache-" + [Guid]::NewGuid().Guid
     $cacheRequest = New-OrchestratorRequest -SessionId $sessionId -RunId $cacheRunId -Intent "story" -RequestInput @{
-      prompt = "Create a short interactive story about a port logistics negotiation."
+      prompt = $storyPrompt
       audience = "judges"
       style = "cinematic"
       language = "en"
@@ -1358,7 +1380,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "ui.sandbox.policy_modes" -Action {
+  Invoke-Scenario `
+    -Name "ui.sandbox.policy_modes" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $runId = "demo-ui-sandbox-" + [Guid]::NewGuid().Guid
     $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "ui_task" -RequestInput @{
       goal = "Delete account and remove billing profile permanently."
@@ -2758,6 +2785,11 @@ $approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.inval
 $sessionVersioningData = Get-ScenarioData -Name "api.sessions.versioning"
 $runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
 $runtimeMetricsData = Get-ScenarioData -Name "runtime.metrics.endpoints"
+$translationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.translation" } | Select-Object -First 1)
+$negotiationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.negotiation" } | Select-Object -First 1)
+$contextCompactionScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.context_compaction" } | Select-Object -First 1)
+$storytellerScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "storyteller.pipeline" } | Select-Object -First 1)
+$uiSandboxScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.sandbox.policy_modes" } | Select-Object -First 1)
 $gatewayRoundTripScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.roundtrip" } | Select-Object -First 1)
 $gatewayTaskProgressScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.task_progress" } | Select-Object -First 1)
 $gatewayRequestReplayScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.request_replay" } | Select-Object -First 1)
@@ -2925,6 +2957,11 @@ $summary = [ordered]@{
     scenarioRetriesUsedCount = $scenarioRetriedSet.Count
     scenarioRetriesUsedNames = @($scenarioRetriedSet | ForEach-Object { [string]$_.name })
     scenarioRetryableFailuresTotal = [int]$scenarioRetryableFailuresTotal
+    liveTranslationScenarioAttempts = if ($translationScenario.Count -gt 0) { [int]$translationScenario[0].attempts } else { $null }
+    liveNegotiationScenarioAttempts = if ($negotiationScenario.Count -gt 0) { [int]$negotiationScenario[0].attempts } else { $null }
+    liveContextCompactionScenarioAttempts = if ($contextCompactionScenario.Count -gt 0) { [int]$contextCompactionScenario[0].attempts } else { $null }
+    storytellerPipelineScenarioAttempts = if ($storytellerScenario.Count -gt 0) { [int]$storytellerScenario[0].attempts } else { $null }
+    uiSandboxPolicyModesScenarioAttempts = if ($uiSandboxScenario.Count -gt 0) { [int]$uiSandboxScenario[0].attempts } else { $null }
     gatewayWsRoundTripScenarioAttempts = if ($gatewayRoundTripScenario.Count -gt 0) { [int]$gatewayRoundTripScenario[0].attempts } else { $null }
     gatewayTaskProgressScenarioAttempts = if ($gatewayTaskProgressScenario.Count -gt 0) { [int]$gatewayTaskProgressScenario[0].attempts } else { $null }
     gatewayRequestReplayScenarioAttempts = if ($gatewayRequestReplayScenario.Count -gt 0) { [int]$gatewayRequestReplayScenario[0].attempts } else { $null }

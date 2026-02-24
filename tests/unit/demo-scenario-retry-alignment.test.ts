@@ -37,6 +37,26 @@ test("demo-e2e applies transient retry to flaky operator/ui/runtime scenarios", 
 
   assert.match(
     source,
+    /Invoke-Scenario[\s\S]*-Name\s+"live\.translation"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
+    /Invoke-Scenario[\s\S]*-Name\s+"live\.negotiation"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
+    /Invoke-Scenario[\s\S]*-Name\s+"live\.context_compaction"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
+    /Invoke-Scenario[\s\S]*-Name\s+"storyteller\.pipeline"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
+    /Invoke-Scenario[\s\S]*-Name\s+"ui\.sandbox\.policy_modes"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
     /Invoke-Scenario[\s\S]*-Name\s+"multi_agent\.delegation"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
   );
   assert.match(
@@ -100,6 +120,11 @@ test("demo-e2e applies transient retry to flaky operator/ui/runtime scenarios", 
     /Invoke-Scenario[\s\S]*-Name\s+"runtime\.metrics\.endpoints"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
   );
   assert.match(source, /scenarioRetriesUsedCount/);
+  assert.match(source, /liveTranslationScenarioAttempts/);
+  assert.match(source, /liveNegotiationScenarioAttempts/);
+  assert.match(source, /liveContextCompactionScenarioAttempts/);
+  assert.match(source, /storytellerPipelineScenarioAttempts/);
+  assert.match(source, /uiSandboxPolicyModesScenarioAttempts/);
   assert.match(source, /gatewayWsRoundTripScenarioAttempts/);
   assert.match(source, /gatewayInterruptSignalScenarioAttempts/);
   assert.match(source, /gatewayTaskProgressScenarioAttempts/);

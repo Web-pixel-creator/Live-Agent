@@ -812,6 +812,56 @@ async function main() {
     kpis.scenarioRetriesUsedCount,
     `0..${maxScenarioRetriesUsedCount}`,
   );
+  const liveTranslationScenarioAttempts = toNumber(kpis.liveTranslationScenarioAttempts);
+  addCheck(
+    "kpi.liveTranslationScenarioAttempts",
+    Number.isFinite(liveTranslationScenarioAttempts) &&
+      liveTranslationScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      liveTranslationScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.liveTranslationScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const liveNegotiationScenarioAttempts = toNumber(kpis.liveNegotiationScenarioAttempts);
+  addCheck(
+    "kpi.liveNegotiationScenarioAttempts",
+    Number.isFinite(liveNegotiationScenarioAttempts) &&
+      liveNegotiationScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      liveNegotiationScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.liveNegotiationScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const liveContextCompactionScenarioAttempts = toNumber(kpis.liveContextCompactionScenarioAttempts);
+  addCheck(
+    "kpi.liveContextCompactionScenarioAttempts",
+    Number.isFinite(liveContextCompactionScenarioAttempts) &&
+      liveContextCompactionScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      liveContextCompactionScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.liveContextCompactionScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const storytellerPipelineScenarioAttempts = toNumber(kpis.storytellerPipelineScenarioAttempts);
+  addCheck(
+    "kpi.storytellerPipelineScenarioAttempts",
+    Number.isFinite(storytellerPipelineScenarioAttempts) &&
+      storytellerPipelineScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      storytellerPipelineScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.storytellerPipelineScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const uiSandboxPolicyModesScenarioAttempts = toNumber(kpis.uiSandboxPolicyModesScenarioAttempts);
+  addCheck(
+    "kpi.uiSandboxPolicyModesScenarioAttempts",
+    Number.isFinite(uiSandboxPolicyModesScenarioAttempts) &&
+      uiSandboxPolicyModesScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      uiSandboxPolicyModesScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.uiSandboxPolicyModesScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
   const gatewayWsRoundTripScenarioAttempts = toNumber(kpis.gatewayWsRoundTripScenarioAttempts);
   addCheck(
     "kpi.gatewayWsRoundTripScenarioAttempts",

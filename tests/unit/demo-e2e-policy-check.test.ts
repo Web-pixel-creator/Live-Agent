@@ -145,6 +145,11 @@ function createPassingSummary(overrides?: {
     uiApprovalResumeRequestAttempts: 1,
     uiApprovalResumeRequestRetried: false,
     scenarioRetriesUsedCount: 0,
+    liveTranslationScenarioAttempts: 1,
+    liveNegotiationScenarioAttempts: 1,
+    liveContextCompactionScenarioAttempts: 1,
+    storytellerPipelineScenarioAttempts: 1,
+    uiSandboxPolicyModesScenarioAttempts: 1,
     gatewayWsRoundTripScenarioAttempts: 1,
     gatewayInterruptSignalScenarioAttempts: 1,
     gatewayTaskProgressScenarioAttempts: 1,
@@ -254,7 +259,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 174);
+  assert.equal(result.payload.checks, 179);
 });
 
 test("demo-e2e policy check fails when assistant activity lifecycle KPI is missing", () => {
@@ -448,6 +453,101 @@ test("demo-e2e policy check strict override fails when any scenario retry is use
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.scenarioRetriesUsedCount")));
+});
+
+test("demo-e2e policy check fails when live translation scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        liveTranslationScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.liveTranslationScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when live negotiation scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        liveNegotiationScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.liveNegotiationScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when live context compaction scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        liveContextCompactionScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.liveContextCompactionScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when storyteller pipeline scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        storytellerPipelineScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.storytellerPipelineScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when ui sandbox policy scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        uiSandboxPolicyModesScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.uiSandboxPolicyModesScenarioAttempts")));
 });
 
 test("demo-e2e policy check fails when ui visual scenario attempts exceed configured retry max", () => {
