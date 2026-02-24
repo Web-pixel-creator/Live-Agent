@@ -535,6 +535,12 @@ async function main() {
     ">= 0",
   );
   addCheck(
+    "kpi.operatorLiveBridgeHealthConsistencyValidated",
+    kpis.operatorLiveBridgeHealthConsistencyValidated === true,
+    kpis.operatorLiveBridgeHealthConsistencyValidated,
+    true,
+  );
+  addCheck(
     "kpi.operatorStartupDiagnosticsValidated",
     kpis.operatorStartupDiagnosticsValidated === true,
     kpis.operatorStartupDiagnosticsValidated,

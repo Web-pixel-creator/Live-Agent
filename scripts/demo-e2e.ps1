@@ -1979,7 +1979,10 @@ try {
     $liveBridgeHealthPingSentEvents = [int]$liveBridgeHealthPingSentEventsRaw
     $liveBridgeHealthPongEvents = [int]$liveBridgeHealthPongEventsRaw
     $liveBridgeHealthPingErrorEvents = [int]$liveBridgeHealthPingErrorEventsRaw
-    $liveBridgeHealthLastEventType = [string](Get-FieldValue -Object $liveBridgeHealth -Path @("lastEventType"))
+    $liveBridgeHealthLastEventTypeRaw = Get-FieldValue -Object $liveBridgeHealth -Path @("lastEventType")
+    $liveBridgeHealthLastEventType = if ([string]::IsNullOrWhiteSpace([string]$liveBridgeHealthLastEventTypeRaw)) { $null } else { [string]$liveBridgeHealthLastEventTypeRaw }
+    $liveBridgeHealthLastEventAtRaw = Get-FieldValue -Object $liveBridgeHealth -Path @("lastEventAt")
+    $liveBridgeHealthLastEventAt = if ([string]::IsNullOrWhiteSpace([string]$liveBridgeHealthLastEventAtRaw)) { $null } else { [string]$liveBridgeHealthLastEventAtRaw }
     Assert-Condition -Condition ($liveBridgeHealthConnectTimeoutEvents -ge 0) -Message "Operator summary live bridge connectTimeoutEvents must be >= 0."
     Assert-Condition -Condition ($liveBridgeHealthProbeStartedEvents -ge 0) -Message "Operator summary live bridge probeStartedEvents must be >= 0."
     Assert-Condition -Condition ($liveBridgeHealthPingSentEvents -ge 0) -Message "Operator summary live bridge pingSentEvents must be >= 0."
@@ -1987,6 +1990,61 @@ try {
     Assert-Condition -Condition ($liveBridgeHealthPingErrorEvents -ge 0) -Message "Operator summary live bridge pingErrorEvents must be >= 0."
     $allowedHealthStates = @("healthy", "degraded", "unknown")
     Assert-Condition -Condition ($allowedHealthStates -contains $liveBridgeHealthState) -Message "Operator summary live bridge state is invalid."
+    $liveBridgeHealthyEventTypes = @("live.bridge.health_recovered", "live.bridge.health_pong")
+    $liveBridgeDegradedEventTypes = @(
+      "live.bridge.health_degraded",
+      "live.bridge.health_watchdog_reconnect",
+      "live.bridge.error",
+      "live.bridge.unavailable",
+      "live.bridge.connect_timeout",
+      "live.bridge.health_ping_error"
+    )
+    $liveBridgeKnownEventTypes = @($liveBridgeHealthyEventTypes + $liveBridgeDegradedEventTypes + @("live.bridge.health_probe_started", "live.bridge.health_ping_sent"))
+    $liveBridgeHealthHasKnownLastEventType = $null -ne $liveBridgeHealthLastEventType -and ($liveBridgeKnownEventTypes -contains $liveBridgeHealthLastEventType)
+    $liveBridgeHealthHasLastEventAt = -not [string]::IsNullOrWhiteSpace([string]$liveBridgeHealthLastEventAt)
+    $liveBridgeHealthLastEventAtIsIso = $false
+    if ($liveBridgeHealthHasLastEventAt) {
+      $parsedLiveBridgeLastEventAt = [DateTimeOffset]::MinValue
+      $liveBridgeHealthLastEventAtIsIso = [DateTimeOffset]::TryParse([string]$liveBridgeHealthLastEventAt, [ref]$parsedLiveBridgeLastEventAt)
+    }
+    $liveBridgeHealthProbeBoundsValidated = (
+      $liveBridgeHealthPongEvents -le $liveBridgeHealthPingSentEvents -and
+      $liveBridgeHealthPingErrorEvents -le $liveBridgeHealthPingSentEvents
+    )
+    $liveBridgeHealthStateConsistent = $false
+    if ($liveBridgeHealthState -eq "healthy") {
+      $liveBridgeHealthStateConsistent = (
+        $liveBridgeHealthHasKnownLastEventType -and
+        ($liveBridgeHealthyEventTypes -contains $liveBridgeHealthLastEventType) -and
+        $liveBridgeHealthHasLastEventAt -and
+        $liveBridgeHealthLastEventAtIsIso
+      )
+    } elseif ($liveBridgeHealthState -eq "degraded") {
+      $liveBridgeHealthStateConsistent = (
+        $liveBridgeHealthHasKnownLastEventType -and
+        ($liveBridgeDegradedEventTypes -contains $liveBridgeHealthLastEventType) -and
+        $liveBridgeHealthHasLastEventAt -and
+        $liveBridgeHealthLastEventAtIsIso
+      )
+    } else {
+      $liveBridgeHealthStateConsistent = (
+        (-not $liveBridgeHealthHasKnownLastEventType) -and
+        (-not $liveBridgeHealthHasLastEventAt) -and
+        $liveBridgeHealthConnectTimeoutEvents -eq 0 -and
+        $liveBridgeHealthProbeStartedEvents -eq 0 -and
+        $liveBridgeHealthPingSentEvents -eq 0 -and
+        $liveBridgeHealthPongEvents -eq 0 -and
+        $liveBridgeHealthPingErrorEvents -eq 0 -and
+        $liveBridgeHealthDegradedEvents -eq 0 -and
+        $liveBridgeHealthRecoveredEvents -eq 0 -and
+        $liveBridgeHealthWatchdogReconnectEvents -eq 0 -and
+        $liveBridgeHealthBridgeErrorEvents -eq 0 -and
+        $liveBridgeHealthUnavailableEvents -eq 0
+      )
+    }
+    $liveBridgeHealthConsistencyValidated = $liveBridgeHealthProbeBoundsValidated -and $liveBridgeHealthStateConsistent
+    Assert-Condition -Condition $liveBridgeHealthProbeBoundsValidated -Message "Operator summary live bridge probe counters are inconsistent."
+    Assert-Condition -Condition $liveBridgeHealthConsistencyValidated -Message "Operator summary live bridge health state/event consistency check failed."
 
     $taskId = [string](Get-FieldValue -Object $activeTasks[0] -Path @("taskId"))
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($taskId)) -Message "Operator summary active task is missing taskId."
@@ -2090,6 +2148,8 @@ try {
       liveBridgeHealthPongEvents = $liveBridgeHealthPongEvents
       liveBridgeHealthPingErrorEvents = $liveBridgeHealthPingErrorEvents
       liveBridgeHealthLastEventType = $liveBridgeHealthLastEventType
+      liveBridgeHealthLastEventAt = $liveBridgeHealthLastEventAt
+      liveBridgeHealthConsistencyValidated = $liveBridgeHealthConsistencyValidated
       liveBridgeHealthProbeTelemetryValidated = $true
       liveBridgeHealthBlockValidated = $true
       taskQueueTotal = $taskQueueTotal
@@ -2837,6 +2897,8 @@ $summary = [ordered]@{
     operatorLiveBridgeHealthPongEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthPongEvents } else { $null }
     operatorLiveBridgeHealthPingErrorEvents = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthPingErrorEvents } else { $null }
     operatorLiveBridgeHealthLastEventType = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthLastEventType } else { $null }
+    operatorLiveBridgeHealthLastEventAt = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthLastEventAt } else { $null }
+    operatorLiveBridgeHealthConsistencyValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthConsistencyValidated } else { $false }
     operatorTaskQueueTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueueTotal } else { $null }
     operatorTaskQueueQueued = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueueQueued } else { $null }
     operatorTaskQueueRunning = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueueRunning } else { $null }

@@ -57,6 +57,7 @@ function createPassingSummary(
     operatorTraceCoverageValidated: boolean | string;
     operatorLiveBridgeHealthBlockValidated: boolean | string;
     operatorLiveBridgeProbeTelemetryValidated: boolean | string;
+    operatorLiveBridgeHealthConsistencyValidated: boolean | string;
     operatorLiveBridgeHealthState: string;
     storytellerVideoAsyncValidated: boolean | string;
     storytellerMediaQueueVisible: boolean | string;
@@ -133,6 +134,9 @@ function createPassingSummary(
         : true,
       operatorLiveBridgeProbeTelemetryValidated: hasOverride("operatorLiveBridgeProbeTelemetryValidated")
         ? overrides.operatorLiveBridgeProbeTelemetryValidated
+        : true,
+      operatorLiveBridgeHealthConsistencyValidated: hasOverride("operatorLiveBridgeHealthConsistencyValidated")
+        ? overrides.operatorLiveBridgeHealthConsistencyValidated
         : true,
       operatorLiveBridgeHealthState: hasOverride("operatorLiveBridgeHealthState")
         ? overrides.operatorLiveBridgeHealthState
@@ -851,6 +855,17 @@ test(
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /operatorLiveBridgeHealthState expected one of \[healthy, degraded, unknown\]/i);
     assert.match(output, /actual of\s*fline/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator live bridge health consistency KPI is invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ operatorLiveBridgeHealthConsistencyValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorLiveBridgeHealthConsistencyValidated expected True, actual False/i);
   },
 );
 

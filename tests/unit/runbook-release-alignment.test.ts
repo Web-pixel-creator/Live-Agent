@@ -48,6 +48,7 @@ test("runbook documents release perf artifact-only mode and critical evidence ke
     "`operatorTraceCoverageValidated=true`",
     "`operatorLiveBridgeHealthBlockValidated=true`",
     "`operatorLiveBridgeProbeTelemetryValidated=true`",
+    "`operatorLiveBridgeHealthConsistencyValidated=true`",
     "`operatorStartupDiagnosticsValidated=true`",
     "`assistantActivityLifecycleValidated=true`",
     "`liveContextCompactionValidated=true`",

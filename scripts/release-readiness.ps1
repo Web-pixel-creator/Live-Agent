@@ -310,6 +310,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     operatorTraceCoverageValidated = $true
     operatorLiveBridgeHealthBlockValidated = $true
     operatorLiveBridgeProbeTelemetryValidated = $true
+    operatorLiveBridgeHealthConsistencyValidated = $true
     storytellerVideoAsyncValidated = $true
     storytellerMediaQueueVisible = $true
     storytellerMediaQueueQuotaValidated = $true

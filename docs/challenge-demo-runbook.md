@@ -102,6 +102,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `operatorTraceCoverageValidated=true`
   - `operatorLiveBridgeHealthBlockValidated=true`
   - `operatorLiveBridgeProbeTelemetryValidated=true`
+  - `operatorLiveBridgeHealthConsistencyValidated=true`
   - `operatorStartupDiagnosticsValidated=true`
   - `operatorLiveBridgeHealthState in {healthy,degraded,unknown}`
 - Live Agent reliability:

@@ -102,6 +102,7 @@ function createPassingSummary(overrides?: {
     operatorLiveBridgeHealthPingSentEvents: 0,
     operatorLiveBridgeHealthPongEvents: 0,
     operatorLiveBridgeHealthPingErrorEvents: 0,
+    operatorLiveBridgeHealthConsistencyValidated: true,
     operatorStartupDiagnosticsValidated: true,
     operatorStartupFailuresStatus: "healthy",
     operatorStartupFailuresTotal: 0,
@@ -239,7 +240,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 159);
+  assert.equal(result.payload.checks, 160);
 });
 
 test("demo-e2e policy check fails when assistant activity lifecycle KPI is missing", () => {
@@ -595,6 +596,22 @@ test("demo-e2e policy check fails when operator task queue pressure is critical"
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.operatorTaskQueuePressureLevel")));
+});
+
+test("demo-e2e policy check fails when operator live bridge health consistency KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorLiveBridgeHealthConsistencyValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorLiveBridgeHealthConsistencyValidated")));
 });
 
 test("demo-e2e policy check fails when analytics split targets KPI is invalid", () => {
