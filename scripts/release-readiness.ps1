@@ -299,6 +299,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $criticalKpiChecks = @{
     gatewayWsBindingMismatchValidated = $true
     gatewayWsDrainingValidated = $true
+    assistantActivityLifecycleValidated = $true
     sessionVersioningValidated = $true
     operatorTaskQueueSummaryValidated = $true
     operatorAuditTrailValidated = $true
@@ -671,6 +672,10 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $bindingValidated = $summary.kpis.gatewayWsBindingMismatchValidated
   if ($null -ne $bindingValidated) {
     Write-Host ("gateway.ws.binding.validated: " + $bindingValidated)
+  }
+  $assistantActivityValidated = $summary.kpis.assistantActivityLifecycleValidated
+  if ($null -ne $assistantActivityValidated) {
+    Write-Host ("assistant.activity.lifecycle.validated: " + $assistantActivityValidated)
   }
   $sessionVersioningValidated = $summary.kpis.sessionVersioningValidated
   if ($null -ne $sessionVersioningValidated) {

@@ -32,6 +32,7 @@ function createPassingSummary(
     gatewayRoundTripMs: number;
     gatewayInterruptLatencyMs: number | null;
     gatewayInterruptEventType: string;
+    assistantActivityLifecycleValidated: boolean | string;
     serviceStartMaxAttempts: number | string;
     serviceStartRetryBackoffMs: number | string;
     scenarioRetryMaxAttempts: number | string;
@@ -74,6 +75,9 @@ function createPassingSummary(
     kpis: {
       gatewayWsBindingMismatchValidated: true,
       gatewayWsDrainingValidated: true,
+      assistantActivityLifecycleValidated: hasOverride("assistantActivityLifecycleValidated")
+        ? overrides.assistantActivityLifecycleValidated
+        : true,
       sessionVersioningValidated: true,
       operatorTaskQueueSummaryValidated: true,
       operatorTaskQueuePressureLevel: hasOverride("pressureLevel") ? overrides.pressureLevel : "healthy",
@@ -731,6 +735,17 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /gatewayTransportFallbackActive expected False, actual True/i);
+  },
+);
+
+test(
+  "release-readiness fails when assistant activity lifecycle KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ assistantActivityLifecycleValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /assistantActivityLifecycleValidated expected True, actual False/i);
   },
 );
 
