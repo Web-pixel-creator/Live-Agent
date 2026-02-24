@@ -106,6 +106,7 @@
 75. Hardened live transcript streaming in `LiveApiBridge`: cumulative upstream transcript frames are now normalized to text deltas per turn to prevent duplicate assistant output in realtime UI (`Hello`, ` there`, `!` style progression), with integration coverage in `tests/unit/live-bridge.test.ts`.
 76. Improved demo-frontend transcript smoothing: extracted streaming helpers (`apps/demo-frontend/public/streaming-text.js`) for chunk normalization and punctuation-aware finalize delay, wired them into `app.js`, and added unit coverage in `tests/unit/frontend-streaming-text.test.ts` to lock text readability behavior during live output streaming.
 77. Added explicit assistant activity indicator in demo frontend (`assistantStreamStatus`): UI now reflects `waiting_connection/disconnected/streaming/speaking/idle` based on websocket + stream/audio activity; logic extracted to `apps/demo-frontend/public/assistant-activity.js` with unit coverage in `tests/unit/frontend-assistant-activity.test.ts`.
+78. Synced judged-demo runbook with assistant activity UX: `docs/challenge-demo-runbook.md` now requires explicit `Assistant` status lifecycle checks (`waiting_connection -> idle -> streaming/speaking -> idle`), with anti-drift coverage in `tests/unit/runbook-assistant-activity-alignment.test.ts` to keep docs and frontend wiring aligned.
 
 ## Current Focus Queue
 

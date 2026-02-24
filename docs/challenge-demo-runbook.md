@@ -131,17 +131,22 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
 ### 00:00-02:20 Live Agent (primary category)
 
 1. Connect WebSocket and start mic stream.
-2. Send negotiation request with constraints:
+2. Validate `Assistant` status pill lifecycle in the header before negotiation:
+   - `waiting_connection` while websocket is opening,
+   - `idle` after websocket is connected and no active output,
+   - `streaming`/`speaking` while assistant output is in progress.
+3. Send negotiation request with constraints:
    - `price <= 100`
    - `delivery <= 14`
    - `SLA >= 98`
-3. Show KPI panel updates in real time.
+4. Show KPI panel updates in real time.
 
 Checkpoint A (soft interruption) at ~00:55:
 1. Click `Interrupt Assistant` once while assistant is speaking.
 2. Expected behavior:
    - playback stops immediately,
    - transcript continues after recovery,
+   - `Assistant` status returns from `speaking`/`streaming` to `idle`,
    - KPI state remains intact.
 
 Checkpoint B (hard interruption) at ~01:40:
