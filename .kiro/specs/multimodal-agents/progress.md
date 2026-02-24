@@ -101,6 +101,7 @@
 70. Fixed CI artifact revalidation manifest parity by exporting `source_run_conclusion` and writing `sourceRun.conclusion` in `.github/workflows/release-artifact-revalidation.yml`; added anti-drift coverage in `tests/unit/release-artifact-provenance-guardrails-alignment.test.ts` to lock readiness guardrails (`conclusion`, branch allowlist, age guard) across `release-readiness`, local helper, and workflow manifest producers.
 71. Added executable artifact-only e2e smoke path: new `scripts/release-artifact-only-smoke.ps1` generates local perf/provenance artifacts (`artifacts/perf-load/*` + `artifacts/release-artifact-revalidation/source-run.json`) and runs real `release-readiness` artifact-only gate; exposed via npm alias `verify:release:artifact-only:smoke`, documented in README/runbook, and covered by `tests/unit/release-artifact-only-smoke.test.ts`.
 72. Added fast CI sanity workflow `.github/workflows/release-artifact-only-smoke.yml` (manual dispatch, `strict_final_run=true|false`) to run local artifact-only smoke without GitHub artifact download; locked wiring via `tests/unit/release-artifact-smoke-workflow-alignment.test.ts` and updated README/runbook references.
+73. Extended `release-artifact-only-smoke` workflow with persistent diagnostics: run step now writes `artifacts/release-artifact-only-smoke/summary.json` and `smoke.log`, summary step prints smoke status + log tail, and workflow uploads `release-artifact-only-smoke-artifacts`; anti-drift test and docs updated accordingly.
 
 ## Current Focus Queue
 

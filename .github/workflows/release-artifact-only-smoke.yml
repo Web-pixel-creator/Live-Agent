@@ -23,22 +23,80 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run Artifact-Only Smoke (Standard)
-        if: github.event.inputs.strict_final_run != 'true'
+      - name: Run Artifact-Only Smoke
         shell: powershell
-        run: >
-          powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifact-only-smoke.ps1
+        run: |
+          $strictFinalRun = "${{ github.event.inputs.strict_final_run }}" -eq "true"
+          $artifactDir = "artifacts/release-artifact-only-smoke"
+          New-Item -Path $artifactDir -ItemType Directory -Force | Out-Null
+          $logPath = Join-Path $artifactDir "smoke.log"
+          $summaryPath = Join-Path $artifactDir "summary.json"
 
-      - name: Run Artifact-Only Smoke (Strict)
-        if: github.event.inputs.strict_final_run == 'true'
-        shell: powershell
-        run: >
-          powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifact-only-smoke.ps1 -StrictFinalRun
+          $smokeArgs = @(
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            "./scripts/release-artifact-only-smoke.ps1"
+          )
+          if ($strictFinalRun) {
+            $smokeArgs += "-StrictFinalRun"
+          }
+
+          Write-Host ("[smoke-workflow] strict_final_run=" + $strictFinalRun)
+          & powershell @smokeArgs *>&1 | Tee-Object -FilePath $logPath
+          $exitCode = $LASTEXITCODE
+
+          $summary = [ordered]@{
+            generatedAt = [datetime]::UtcNow.ToString("o")
+            strictFinalRun = $strictFinalRun
+            exitCode = $exitCode
+            passed = ($exitCode -eq 0)
+            script = "scripts/release-artifact-only-smoke.ps1"
+            logPath = ($logPath -replace "\\", "/")
+          }
+          $summary | ConvertTo-Json -Depth 6 | Set-Content -Path $summaryPath -Encoding utf8
+
+          if ($exitCode -ne 0) {
+            Write-Error ("Artifact-only smoke failed with exit code " + $exitCode)
+            exit $exitCode
+          }
 
       - name: Publish Smoke Summary
         if: always()
         shell: powershell
         run: |
+          $summaryPath = "artifacts/release-artifact-only-smoke/summary.json"
+          $logPath = "artifacts/release-artifact-only-smoke/smoke.log"
+
           ("Workflow: Release Artifact-Only Smoke") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-          ("Strict final run: ${{ github.event.inputs.strict_final_run }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-          ("Smoke script: scripts/release-artifact-only-smoke.ps1") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Strict final run input: ${{ github.event.inputs.strict_final_run }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
+          if (Test-Path $summaryPath) {
+            $summary = Get-Content $summaryPath -Raw | ConvertFrom-Json
+            ("Smoke result: " + ($(if ($summary.passed) { "passed" } else { "failed" }))) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Smoke exit code: " + $summary.exitCode) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Smoke strict final run: " + $summary.strictFinalRun) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Smoke script: " + $summary.script) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Smoke log path: " + $summary.logPath) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          } else {
+            "Smoke summary was not generated." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+
+          if (Test-Path $logPath) {
+            "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            "Smoke log tail (last 80 lines):" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            "```text" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            Get-Content $logPath -Tail 80 | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            "```" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+
+      - name: Upload Smoke Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifact-only-smoke-artifacts
+          path: |
+            artifacts/release-artifact-only-smoke/summary.json
+            artifacts/release-artifact-only-smoke/smoke.log
+          if-no-files-found: warn

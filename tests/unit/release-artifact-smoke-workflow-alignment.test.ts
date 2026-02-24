@@ -14,14 +14,24 @@ test("artifact-only smoke workflow keeps manual strict toggle and script wiring"
   assert.match(source, /default:\s*false/);
   assert.match(source, /release-artifact-only-smoke-\$\{\{ github\.ref \}\}/);
 
-  assert.match(source, /Run Artifact-Only Smoke \(Standard\)/);
-  assert.match(source, /Run Artifact-Only Smoke \(Strict\)/);
-  assert.match(source, /strict_final_run != 'true'/);
-  assert.match(source, /strict_final_run == 'true'/);
+  assert.match(source, /Run Artifact-Only Smoke/);
+  assert.match(source, /\$strictFinalRun\s*=\s*"\$\{\{\s*github\.event\.inputs\.strict_final_run\s*\}\}"\s*-eq\s*"true"/);
   assert.match(source, /release-artifact-only-smoke\.ps1/);
   assert.match(source, /-StrictFinalRun/);
+  assert.match(source, /Tee-Object -FilePath/);
+  assert.match(source, /artifacts\/release-artifact-only-smoke\/smoke\.log/);
+  assert.match(source, /artifacts\/release-artifact-only-smoke\/summary\.json/);
+  assert.match(source, /exitCode/);
+  assert.match(source, /passed/);
 
   assert.match(source, /Publish Smoke Summary/);
-  assert.match(source, /Strict final run:/);
-  assert.match(source, /Smoke script:\s*scripts\/release-artifact-only-smoke\.ps1/);
+  assert.match(source, /Strict final run input:/);
+  assert.match(source, /script\s*=\s*"scripts\/release-artifact-only-smoke\.ps1"/);
+  assert.match(source, /Smoke script:/);
+  assert.match(source, /Smoke log tail \(last 80 lines\)/);
+
+  assert.match(source, /Upload Smoke Artifacts/);
+  assert.match(source, /name:\s*release-artifact-only-smoke-artifacts/);
+  assert.match(source, /artifacts\/release-artifact-only-smoke\/summary\.json/);
+  assert.match(source, /artifacts\/release-artifact-only-smoke\/smoke\.log/);
 });

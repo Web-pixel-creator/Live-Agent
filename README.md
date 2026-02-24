@@ -196,6 +196,7 @@ npm run verify:release:artifact-only:smoke
 ```
 
 Optional CI equivalent for fast sanity (without artifact download): run workflow `.github/workflows/release-artifact-only-smoke.yml` with `strict_final_run=true|false`.
+This workflow uploads debug artifacts as `release-artifact-only-smoke-artifacts` (`artifacts/release-artifact-only-smoke/summary.json`, `artifacts/release-artifact-only-smoke/smoke.log`).
 
 Artifact bundle pull + local revalidation (downloads latest successful `demo-e2e`/`release-strict-final` bundle, restores `artifacts/`, then runs artifact-only gate):
 
