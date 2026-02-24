@@ -2,16 +2,16 @@
 
 ## As Of
 
-- Date: 2026-02-23
+- Date: 2026-02-24
 - Branch: `main`
 - Status: `release-ready baseline (green gates)`
 
 ## Verified Quality Gates
 
 1. `npm run verify:release` passes end-to-end.
-2. Demo e2e policy gate is green with `143` checks.
+2. Demo e2e policy gate is green with `144` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`183` tests passed).
+4. Unit tests are green (`220` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -110,6 +110,7 @@
 79. Added assistant-activity KPI into automated demo policy flow: `scripts/demo-e2e.ps1` now emits `assistantActivityLifecycleValidated` (derived from websocket connect/response/interrupt lifecycle contract), `scripts/demo-e2e-policy-check.mjs` enforces it, and `tests/unit/demo-e2e-policy-check.test.ts` now covers pass/fail behavior for this KPI.
 80. Promoted assistant-activity KPI into final release gate: `scripts/release-readiness.ps1` now treats `assistantActivityLifecycleValidated=true` as critical and prints `assistant.activity.lifecycle.validated` in release output; alignment tests updated in `tests/unit/release-readiness.test.ts` and `tests/unit/runbook-release-alignment.test.ts`.
 81. Synced specs with runtime gates for assistant lifecycle proof: `requirements.md`, `design.md`, and `tasks.md` now explicitly require `waiting_connection/idle/streaming/speaking` states and `assistantActivityLifecycleValidated=true`; anti-drift coverage added in `tests/unit/spec-assistant-lifecycle-alignment.test.ts`.
+82. Hardened demo service startup retry behavior with fail-fast classification for non-retryable failures (`cannot find module`, `syntaxerror`, `eaddrinuse`, permissions): `scripts/demo-e2e.ps1` now aborts early with explicit diagnostics instead of wasting retry budget; anti-drift coverage added in `tests/unit/demo-service-start-retry-classification.test.ts`.
 
 ## Current Focus Queue
 

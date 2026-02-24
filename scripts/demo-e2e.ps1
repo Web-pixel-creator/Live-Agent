@@ -415,6 +415,44 @@ function Wait-ForHealth {
   throw "Timed out waiting for $Name health endpoint: $Url"
 }
 
+function Test-IsRetryableServiceStartFailure {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$ErrorMessage,
+    [Parameter(Mandatory = $false)]
+    [string]$StderrTail
+  )
+
+  $message = if ([string]::IsNullOrWhiteSpace($StderrTail)) {
+    $ErrorMessage
+  } else {
+    "$ErrorMessage`n$StderrTail"
+  }
+
+  $normalizedMessage = $message.ToLowerInvariant()
+  $nonRetryableFragments = @(
+    "cannot find module",
+    "err_module_not_found",
+    "module_not_found",
+    "syntaxerror",
+    "referenceerror",
+    "typeerror",
+    "eacces",
+    "permission denied",
+    "eaddrinuse",
+    "address already in use",
+    "is not recognized as an internal or external command"
+  )
+
+  foreach ($fragment in $nonRetryableFragments) {
+    if ($normalizedMessage.Contains($fragment)) {
+      return $false
+    }
+  }
+
+  return $true
+}
+
 function Get-LogTail {
   param(
     [Parameter(Mandatory = $true)]
@@ -528,6 +566,14 @@ function Start-ManagedService {
           Stop-Process -Id $process.Id -Force -ErrorAction Stop
         } catch {
           Write-Step ("Failed to stop unhealthy {0} process (pid={1}) during retry: {2}" -f $Name, $process.Id, $_.Exception.Message)
+        }
+      }
+
+      if ($attempt -lt $maxAttempts) {
+        $isRetryableFailure = Test-IsRetryableServiceStartFailure -ErrorMessage $attemptError -StderrTail $stderrTail
+        if (-not $isRetryableFailure) {
+          $tailText = if ([string]::IsNullOrWhiteSpace($stderrTail)) { "n/a" } else { $stderrTail }
+          throw ("{0} startup failed with non-retryable diagnostics on attempt {1}/{2}: {3}`n[{0} stderr tail]`n{4}" -f $Name, $attempt, $maxAttempts, $attemptError, $tailText)
         }
       }
 
