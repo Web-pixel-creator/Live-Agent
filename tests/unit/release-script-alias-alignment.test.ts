@@ -14,6 +14,7 @@ test("release script aliases stay aligned with release-readiness flags", () => {
   const artifactOnlySmokeScript = pkg.scripts?.["verify:release:artifact-only:smoke"] ?? "";
   const artifactOnlySmokeStrictScript = pkg.scripts?.["verify:release:artifact-only:smoke:strict"] ?? "";
   const artifactOnlySmokeKeepTempScript = pkg.scripts?.["verify:release:artifact-only:smoke:keep-temp"] ?? "";
+  const demoFastRetryScript = pkg.scripts?.["demo:e2e:fast:retry"] ?? "";
 
   assert.match(strictScript, /release-readiness\.ps1/);
   assert.match(strictScript, /-StrictFinalRun/);
@@ -39,4 +40,14 @@ test("release script aliases stay aligned with release-readiness flags", () => {
 
   assert.match(artifactOnlySmokeKeepTempScript, /release-artifact-only-smoke\.ps1/);
   assert.match(artifactOnlySmokeKeepTempScript, /-KeepTemp/);
+
+  assert.match(demoFastRetryScript, /release-readiness\.ps1/);
+  assert.match(demoFastRetryScript, /-SkipBuild/);
+  assert.match(demoFastRetryScript, /-SkipUnitTests/);
+  assert.match(demoFastRetryScript, /-SkipMonitoringTemplates/);
+  assert.match(demoFastRetryScript, /-SkipProfileSmoke/);
+  assert.match(demoFastRetryScript, /-SkipPolicy/);
+  assert.match(demoFastRetryScript, /-SkipBadge/);
+  assert.match(demoFastRetryScript, /-SkipPerfLoad/);
+  assert.match(demoFastRetryScript, /-UseFastDemoE2E/);
 });

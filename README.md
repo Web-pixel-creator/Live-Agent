@@ -150,6 +150,12 @@ Fast mode (skip workspace build):
 npm run demo:e2e:fast
 ```
 
+Fast mode with built-in full-run retry (demo-only, skips policy/badge/perf gates):
+
+```powershell
+npm run demo:e2e:fast:retry
+```
+
 Policy validation for generated report:
 
 ```powershell

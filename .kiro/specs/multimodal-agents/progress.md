@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `160` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`250` tests passed).
+4. Unit tests are green (`251` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -127,6 +127,8 @@
 96. Added cross-script anti-drift coverage `tests/unit/artifact-json-encoding-alignment.test.ts` to ensure demo/release artifact JSON outputs stay on helper-based UTF-8 no-BOM write paths and do not regress to `Set-Content -Encoding utf8`.
 97. Removed remaining direct `.Exception.Response` accesses from automation scripts (`scripts/release-artifact-revalidate.ps1`, `scripts/github-pages-enable.ps1`) by switching to guarded exception-property lookup helpers, reducing strict-mode fragility and inconsistent exception-shape failures.
 98. Added global guardrail `tests/unit/powershell-exception-response-safety.test.ts` to enforce that PowerShell scripts in `scripts/` do not reintroduce direct `.Exception.Response` property access.
+99. Added `demo:e2e:fast:retry` alias in `package.json`: demo-only fast run now uses `release-readiness.ps1` retry harness (`DemoRunMaxAttempts`/`DemoRunRetryBackoffMs`) while skipping unit/policy/badge/perf gates for quicker local stabilization loops.
+100. Synced fast-retry workflow docs and alignment tests: updated `README.md` + `docs/challenge-demo-runbook.md`, extended `tests/unit/release-script-alias-alignment.test.ts`, and added `tests/unit/demo-fast-retry-docs-alignment.test.ts` to keep alias and documentation consistent.
 
 ## Current Focus Queue
 

@@ -47,6 +47,10 @@ For flaky local runners you can increase demo retry tolerance:
 ```powershell
 npm run verify:release -- -DemoRunMaxAttempts 3 -DemoRunRetryBackoffMs 3000 -DemoScenarioRetryMaxAttempts 3 -DemoScenarioRetryBackoffMs 1200
 ```
+For demo-only retry (without unit/policy/badge/perf gates), use:
+```powershell
+npm run demo:e2e:fast:retry
+```
 For final pre-submission validation, enforce strict no-retry discipline:
 ```powershell
 npm run verify:release:strict
