@@ -1,7 +1,9 @@
 import { prepareAssistantStreamChunk, resolveAssistantFinalizeDelay } from "./streaming-text.js";
+import { resolveAssistantActivityStatus } from "./assistant-activity.js";
 
 const state = {
   ws: null,
+  connectionStatus: "disconnected",
   wsUrl: "ws://localhost:8080/realtime",
   apiBaseUrl: "http://localhost:8081",
   userId: "",
@@ -21,6 +23,9 @@ const state = {
   assistantStreamBody: null,
   assistantStreamText: "",
   assistantStreamFlushTimer: null,
+  assistantSpeakingResetTimer: null,
+  assistantIsStreaming: false,
+  assistantIsSpeaking: false,
   assistantStreamIdleFinalizeMs: 500,
   assistantStreamPunctuationFinalizeMs: 160,
   taskRecords: new Map(),
@@ -35,6 +40,7 @@ const el = {
   sessionId: document.getElementById("sessionId"),
   targetLanguage: document.getElementById("targetLanguage"),
   connectionStatus: document.getElementById("connectionStatus"),
+  assistantStreamStatus: document.getElementById("assistantStreamStatus"),
   runId: document.getElementById("runId"),
   currentUserId: document.getElementById("currentUserId"),
   sessionState: document.getElementById("sessionState"),
@@ -162,7 +168,10 @@ function makeId() {
 }
 
 function setConnectionStatus(text) {
-  el.connectionStatus.textContent = text;
+  const normalized = typeof text === "string" ? text : "disconnected";
+  state.connectionStatus = normalized;
+  el.connectionStatus.textContent = normalized;
+  renderAssistantActivityStatus();
 }
 
 function setSessionState(text) {
@@ -264,6 +273,37 @@ function clearAssistantStreamFlushTimer() {
   state.assistantStreamFlushTimer = null;
 }
 
+function clearAssistantSpeakingResetTimer() {
+  if (state.assistantSpeakingResetTimer === null) {
+    return;
+  }
+  window.clearTimeout(state.assistantSpeakingResetTimer);
+  state.assistantSpeakingResetTimer = null;
+}
+
+function scheduleAssistantSpeakingReset() {
+  clearAssistantSpeakingResetTimer();
+  const audioContext = state.audioContext;
+  if (!audioContext) {
+    state.assistantIsSpeaking = false;
+    renderAssistantActivityStatus();
+    return;
+  }
+
+  const remainingMs = Math.max(0, (state.nextPlayTime - audioContext.currentTime) * 1000);
+  if (remainingMs <= 10) {
+    state.assistantIsSpeaking = false;
+    renderAssistantActivityStatus();
+    return;
+  }
+
+  const delayMs = Math.min(Math.max(Math.ceil(remainingMs + 30), 40), 2000);
+  state.assistantSpeakingResetTimer = window.setTimeout(() => {
+    state.assistantSpeakingResetTimer = null;
+    scheduleAssistantSpeakingReset();
+  }, delayMs);
+}
+
 function finalizeAssistantStreamEntry() {
   clearAssistantStreamFlushTimer();
 
@@ -281,6 +321,8 @@ function finalizeAssistantStreamEntry() {
   state.assistantStreamEntry = null;
   state.assistantStreamBody = null;
   state.assistantStreamText = "";
+  state.assistantIsStreaming = false;
+  renderAssistantActivityStatus();
 }
 
 function scheduleAssistantStreamFinalize(delayMs) {
@@ -324,7 +366,9 @@ function appendAssistantStreamingText(text) {
     return;
   }
   state.assistantStreamText += chunk;
+  state.assistantIsStreaming = true;
   state.assistantStreamBody.textContent = state.assistantStreamText;
+  renderAssistantActivityStatus();
   updateOfferFromText(chunk, false);
   evaluateConstraints();
   const finalizeDelayMs = resolveAssistantFinalizeDelay(
@@ -432,6 +476,15 @@ function setStatusPill(node, text, variant) {
     return;
   }
   node.classList.add("status-neutral");
+}
+
+function renderAssistantActivityStatus() {
+  const resolved = resolveAssistantActivityStatus({
+    connectionStatus: state.connectionStatus,
+    isStreaming: state.assistantIsStreaming,
+    isSpeaking: state.assistantIsSpeaking,
+  });
+  setStatusPill(el.assistantStreamStatus, resolved.text, resolved.variant);
 }
 
 function getNumeric(inputEl) {
@@ -2217,10 +2270,16 @@ function playPcm16Chunk(samples, sampleRate = 16000) {
   const startAt = Math.max(audioContext.currentTime + 0.01, state.nextPlayTime);
   source.start(startAt);
   state.nextPlayTime = startAt + buffer.duration;
+  state.assistantIsSpeaking = true;
+  renderAssistantActivityStatus();
+  scheduleAssistantSpeakingReset();
 }
 
 function resetAssistantPlayback() {
   state.nextPlayTime = 0;
+  clearAssistantSpeakingResetTimer();
+  state.assistantIsSpeaking = false;
+  renderAssistantActivityStatus();
 }
 
 function findAudioBase64(upstream) {
@@ -2623,6 +2682,7 @@ function connectWebSocket() {
 
   ws.addEventListener("close", () => {
     finalizeAssistantStreamEntry();
+    resetAssistantPlayback();
     setConnectionStatus("disconnected");
     appendTranscript("system", "WebSocket closed");
     state.ws = null;
@@ -2630,6 +2690,7 @@ function connectWebSocket() {
 
   ws.addEventListener("error", () => {
     finalizeAssistantStreamEntry();
+    resetAssistantPlayback();
     setConnectionStatus("error");
     appendTranscript("error", "WebSocket error");
   });
@@ -2988,6 +3049,7 @@ function bootstrap() {
   state.sessionId = makeId();
   el.sessionId.value = state.sessionId;
   setSessionState("-");
+  setConnectionStatus("disconnected");
   setStatusPill(el.constraintStatus, "Waiting for offer", "neutral");
   setFallbackAsset(false);
   clearPendingApproval();

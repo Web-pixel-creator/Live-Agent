@@ -105,6 +105,7 @@
 74. Added explicit local smoke aliases for release operators: `verify:release:artifact-only:smoke:strict` (strict final gate) and `verify:release:artifact-only:smoke:keep-temp` (debug artifact retention); synchronized `tests/unit/release-script-alias-alignment.test.ts` and runbook/README usage docs.
 75. Hardened live transcript streaming in `LiveApiBridge`: cumulative upstream transcript frames are now normalized to text deltas per turn to prevent duplicate assistant output in realtime UI (`Hello`, ` there`, `!` style progression), with integration coverage in `tests/unit/live-bridge.test.ts`.
 76. Improved demo-frontend transcript smoothing: extracted streaming helpers (`apps/demo-frontend/public/streaming-text.js`) for chunk normalization and punctuation-aware finalize delay, wired them into `app.js`, and added unit coverage in `tests/unit/frontend-streaming-text.test.ts` to lock text readability behavior during live output streaming.
+77. Added explicit assistant activity indicator in demo frontend (`assistantStreamStatus`): UI now reflects `waiting_connection/disconnected/streaming/speaking/idle` based on websocket + stream/audio activity; logic extracted to `apps/demo-frontend/public/assistant-activity.js` with unit coverage in `tests/unit/frontend-assistant-activity.test.ts`.
 
 ## Current Focus Queue
 
