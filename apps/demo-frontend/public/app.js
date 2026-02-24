@@ -1,3 +1,5 @@
+import { prepareAssistantStreamChunk, resolveAssistantFinalizeDelay } from "./streaming-text.js";
+
 const state = {
   ws: null,
   wsUrl: "ws://localhost:8080/realtime",
@@ -20,6 +22,7 @@ const state = {
   assistantStreamText: "",
   assistantStreamFlushTimer: null,
   assistantStreamIdleFinalizeMs: 500,
+  assistantStreamPunctuationFinalizeMs: 160,
   taskRecords: new Map(),
   deviceNodes: new Map(),
   selectedDeviceNodeId: null,
@@ -280,11 +283,14 @@ function finalizeAssistantStreamEntry() {
   state.assistantStreamText = "";
 }
 
-function scheduleAssistantStreamFinalize() {
+function scheduleAssistantStreamFinalize(delayMs) {
+  const finalDelayMs = Number.isFinite(delayMs) && delayMs > 0
+    ? Math.floor(delayMs)
+    : state.assistantStreamIdleFinalizeMs;
   clearAssistantStreamFlushTimer();
   state.assistantStreamFlushTimer = window.setTimeout(() => {
     finalizeAssistantStreamEntry();
-  }, state.assistantStreamIdleFinalizeMs);
+  }, finalDelayMs);
 }
 
 function ensureAssistantStreamEntry() {
@@ -313,11 +319,20 @@ function appendAssistantStreamingText(text) {
   if (!state.assistantStreamBody) {
     return;
   }
-  state.assistantStreamText += text;
+  const chunk = prepareAssistantStreamChunk(state.assistantStreamText, text);
+  if (chunk.length === 0) {
+    return;
+  }
+  state.assistantStreamText += chunk;
   state.assistantStreamBody.textContent = state.assistantStreamText;
-  updateOfferFromText(text, false);
+  updateOfferFromText(chunk, false);
   evaluateConstraints();
-  scheduleAssistantStreamFinalize();
+  const finalizeDelayMs = resolveAssistantFinalizeDelay(
+    chunk,
+    state.assistantStreamIdleFinalizeMs,
+    state.assistantStreamPunctuationFinalizeMs,
+  );
+  scheduleAssistantStreamFinalize(finalizeDelayMs);
 }
 
 function appendTranscript(role, text) {
