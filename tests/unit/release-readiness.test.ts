@@ -43,6 +43,9 @@ function createPassingSummary(
     gatewayInterruptSignalScenarioAttempts: number | string;
     gatewayTaskProgressScenarioAttempts: number | string;
     gatewayRequestReplayScenarioAttempts: number | string;
+    gatewayInvalidEnvelopeScenarioAttempts: number | string;
+    gatewayBindingMismatchScenarioAttempts: number | string;
+    gatewayDrainingRejectionScenarioAttempts: number | string;
     uiVisualTestingScenarioAttempts: number | string;
     operatorConsoleActionsScenarioAttempts: number | string;
     runtimeLifecycleScenarioAttempts: number | string;
@@ -184,6 +187,15 @@ function createPassingSummary(
         : 1,
       gatewayRequestReplayScenarioAttempts: hasOverride("gatewayRequestReplayScenarioAttempts")
         ? overrides.gatewayRequestReplayScenarioAttempts
+        : 1,
+      gatewayInvalidEnvelopeScenarioAttempts: hasOverride("gatewayInvalidEnvelopeScenarioAttempts")
+        ? overrides.gatewayInvalidEnvelopeScenarioAttempts
+        : 1,
+      gatewayBindingMismatchScenarioAttempts: hasOverride("gatewayBindingMismatchScenarioAttempts")
+        ? overrides.gatewayBindingMismatchScenarioAttempts
+        : 1,
+      gatewayDrainingRejectionScenarioAttempts: hasOverride("gatewayDrainingRejectionScenarioAttempts")
+        ? overrides.gatewayDrainingRejectionScenarioAttempts
         : 1,
       uiVisualTestingScenarioAttempts: hasOverride("uiVisualTestingScenarioAttempts")
         ? overrides.uiVisualTestingScenarioAttempts
@@ -765,6 +777,54 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /kpi\.gatewayRequestReplayScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway invalid-envelope scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        gatewayInvalidEnvelopeScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.gatewayInvalidEnvelopeScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway binding-mismatch scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        gatewayBindingMismatchScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.gatewayBindingMismatchScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway draining-rejection scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        gatewayDrainingRejectionScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.gatewayDrainingRejectionScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 

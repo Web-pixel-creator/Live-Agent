@@ -1710,7 +1710,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "gateway.websocket.invalid_envelope" -Action {
+  Invoke-Scenario `
+    -Name "gateway.websocket.invalid_envelope" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
     $result = Invoke-NodeJsonCommand -Args @(
       "scripts/gateway-ws-invalid-envelope-check.mjs",
@@ -1735,7 +1740,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "gateway.websocket.binding_mismatch" -Action {
+  Invoke-Scenario `
+    -Name "gateway.websocket.binding_mismatch" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $runId = "demo-gateway-ws-binding-" + [Guid]::NewGuid().Guid
     $timeoutMs = [Math]::Max(5000, $RequestTimeoutSec * 1000)
     $result = Invoke-NodeJsonCommand -Args @(
@@ -1775,7 +1785,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "gateway.websocket.draining_rejection" -Action {
+  Invoke-Scenario `
+    -Name "gateway.websocket.draining_rejection" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $runId = "demo-gateway-ws-drain-" + [Guid]::NewGuid().Guid
     $timeoutMs = [Math]::Max(6000, $RequestTimeoutSec * 1000)
     $result = Invoke-NodeJsonCommand -Args @(
@@ -2715,6 +2730,9 @@ $gatewayRoundTripScenario = @($script:ScenarioResults | Where-Object { $_.name -
 $gatewayTaskProgressScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.task_progress" } | Select-Object -First 1)
 $gatewayRequestReplayScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.request_replay" } | Select-Object -First 1)
 $gatewayInterruptScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.interrupt_signal" } | Select-Object -First 1)
+$gatewayInvalidEnvelopeScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.invalid_envelope" } | Select-Object -First 1)
+$gatewayBindingMismatchScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.binding_mismatch" } | Select-Object -First 1)
+$gatewayDrainingRejectionScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.draining_rejection" } | Select-Object -First 1)
 $uiVisualTestingScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.visual_testing" } | Select-Object -First 1)
 $operatorActionsScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "operator.console.actions" } | Select-Object -First 1)
 $runtimeLifecycleScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "runtime.lifecycle.endpoints" } | Select-Object -First 1)
@@ -2874,6 +2892,9 @@ $summary = [ordered]@{
     gatewayTaskProgressScenarioAttempts = if ($gatewayTaskProgressScenario.Count -gt 0) { [int]$gatewayTaskProgressScenario[0].attempts } else { $null }
     gatewayRequestReplayScenarioAttempts = if ($gatewayRequestReplayScenario.Count -gt 0) { [int]$gatewayRequestReplayScenario[0].attempts } else { $null }
     gatewayInterruptSignalScenarioAttempts = if ($gatewayInterruptScenario.Count -gt 0) { [int]$gatewayInterruptScenario[0].attempts } else { $null }
+    gatewayInvalidEnvelopeScenarioAttempts = if ($gatewayInvalidEnvelopeScenario.Count -gt 0) { [int]$gatewayInvalidEnvelopeScenario[0].attempts } else { $null }
+    gatewayBindingMismatchScenarioAttempts = if ($gatewayBindingMismatchScenario.Count -gt 0) { [int]$gatewayBindingMismatchScenario[0].attempts } else { $null }
+    gatewayDrainingRejectionScenarioAttempts = if ($gatewayDrainingRejectionScenario.Count -gt 0) { [int]$gatewayDrainingRejectionScenario[0].attempts } else { $null }
     uiVisualTestingScenarioAttempts = if ($uiVisualTestingScenario.Count -gt 0) { [int]$uiVisualTestingScenario[0].attempts } else { $null }
     operatorConsoleActionsScenarioAttempts = if ($operatorActionsScenario.Count -gt 0) { [int]$operatorActionsScenario[0].attempts } else { $null }
     runtimeLifecycleScenarioAttempts = if ($runtimeLifecycleScenario.Count -gt 0) { [int]$runtimeLifecycleScenario[0].attempts } else { $null }

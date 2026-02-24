@@ -852,6 +852,36 @@ async function main() {
     kpis.gatewayRequestReplayScenarioAttempts,
     "1..options.scenarioRetryMaxAttempts",
   );
+  const gatewayInvalidEnvelopeScenarioAttempts = toNumber(kpis.gatewayInvalidEnvelopeScenarioAttempts);
+  addCheck(
+    "kpi.gatewayInvalidEnvelopeScenarioAttempts",
+    Number.isFinite(gatewayInvalidEnvelopeScenarioAttempts) &&
+      gatewayInvalidEnvelopeScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      gatewayInvalidEnvelopeScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.gatewayInvalidEnvelopeScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const gatewayBindingMismatchScenarioAttempts = toNumber(kpis.gatewayBindingMismatchScenarioAttempts);
+  addCheck(
+    "kpi.gatewayBindingMismatchScenarioAttempts",
+    Number.isFinite(gatewayBindingMismatchScenarioAttempts) &&
+      gatewayBindingMismatchScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      gatewayBindingMismatchScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.gatewayBindingMismatchScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const gatewayDrainingRejectionScenarioAttempts = toNumber(kpis.gatewayDrainingRejectionScenarioAttempts);
+  addCheck(
+    "kpi.gatewayDrainingRejectionScenarioAttempts",
+    Number.isFinite(gatewayDrainingRejectionScenarioAttempts) &&
+      gatewayDrainingRejectionScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      gatewayDrainingRejectionScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.gatewayDrainingRejectionScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
   const uiVisualTestingScenarioAttempts = toNumber(kpis.uiVisualTestingScenarioAttempts);
   addCheck(
     "kpi.uiVisualTestingScenarioAttempts",

@@ -478,6 +478,48 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     )
   }
 
+  $gatewayInvalidEnvelopeScenarioAttempts = To-NumberOrNaN $summary.kpis.gatewayInvalidEnvelopeScenarioAttempts
+  if (
+    [double]::IsNaN($gatewayInvalidEnvelopeScenarioAttempts) -or
+    $gatewayInvalidEnvelopeScenarioAttempts -lt 1 -or
+    $gatewayInvalidEnvelopeScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.gatewayInvalidEnvelopeScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.gatewayInvalidEnvelopeScenarioAttempts
+    )
+  }
+
+  $gatewayBindingMismatchScenarioAttempts = To-NumberOrNaN $summary.kpis.gatewayBindingMismatchScenarioAttempts
+  if (
+    [double]::IsNaN($gatewayBindingMismatchScenarioAttempts) -or
+    $gatewayBindingMismatchScenarioAttempts -lt 1 -or
+    $gatewayBindingMismatchScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.gatewayBindingMismatchScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.gatewayBindingMismatchScenarioAttempts
+    )
+  }
+
+  $gatewayDrainingRejectionScenarioAttempts = To-NumberOrNaN $summary.kpis.gatewayDrainingRejectionScenarioAttempts
+  if (
+    [double]::IsNaN($gatewayDrainingRejectionScenarioAttempts) -or
+    $gatewayDrainingRejectionScenarioAttempts -lt 1 -or
+    $gatewayDrainingRejectionScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.gatewayDrainingRejectionScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.gatewayDrainingRejectionScenarioAttempts
+    )
+  }
+
   $uiVisualTestingScenarioAttempts = To-NumberOrNaN $summary.kpis.uiVisualTestingScenarioAttempts
   if (
     [double]::IsNaN($uiVisualTestingScenarioAttempts) -or
@@ -773,6 +815,9 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $gatewayInterruptAttempts = $summary.kpis.gatewayInterruptSignalScenarioAttempts
   $gatewayTaskProgressAttempts = $summary.kpis.gatewayTaskProgressScenarioAttempts
   $gatewayRequestReplayAttempts = $summary.kpis.gatewayRequestReplayScenarioAttempts
+  $gatewayInvalidEnvelopeAttempts = $summary.kpis.gatewayInvalidEnvelopeScenarioAttempts
+  $gatewayBindingMismatchAttempts = $summary.kpis.gatewayBindingMismatchScenarioAttempts
+  $gatewayDrainingRejectionAttempts = $summary.kpis.gatewayDrainingRejectionScenarioAttempts
   $uiVisualAttempts = $summary.kpis.uiVisualTestingScenarioAttempts
   $operatorActionsAttempts = $summary.kpis.operatorConsoleActionsScenarioAttempts
   $runtimeLifecycleAttempts = $summary.kpis.runtimeLifecycleScenarioAttempts
@@ -785,6 +830,9 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     $null -ne $gatewayInterruptAttempts -or
     $null -ne $gatewayTaskProgressAttempts -or
     $null -ne $gatewayRequestReplayAttempts -or
+    $null -ne $gatewayInvalidEnvelopeAttempts -or
+    $null -ne $gatewayBindingMismatchAttempts -or
+    $null -ne $gatewayDrainingRejectionAttempts -or
     $null -ne $uiVisualAttempts -or
     $null -ne $operatorActionsAttempts -or
     $null -ne $runtimeLifecycleAttempts -or
@@ -799,6 +847,9 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", gateway.websocket.interrupt_signal_attempts=" + $gatewayInterruptAttempts +
       ", gateway.websocket.task_progress_attempts=" + $gatewayTaskProgressAttempts +
       ", gateway.websocket.request_replay_attempts=" + $gatewayRequestReplayAttempts +
+      ", gateway.websocket.invalid_envelope_attempts=" + $gatewayInvalidEnvelopeAttempts +
+      ", gateway.websocket.binding_mismatch_attempts=" + $gatewayBindingMismatchAttempts +
+      ", gateway.websocket.draining_rejection_attempts=" + $gatewayDrainingRejectionAttempts +
       ", ui.visual_testing_attempts=" + $uiVisualAttempts +
       ", operator.console.actions_attempts=" + $operatorActionsAttempts +
       ", runtime.lifecycle.endpoints_attempts=" + $runtimeLifecycleAttempts +
