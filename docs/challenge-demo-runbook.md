@@ -19,6 +19,7 @@ For local self-contained sanity check (without GitHub API calls), run:
 ```powershell
 npm run verify:release:artifact-only:smoke
 ```
+Optional CI equivalent: run `.github/workflows/release-artifact-only-smoke.yml` (manual dispatch) with `strict_final_run=true|false`.
 Optional CI equivalent: run GitHub workflow `.github/workflows/release-artifact-revalidation.yml` to revalidate downloaded artifacts from the latest successful `demo-e2e`/`release-strict-final` run (or a specific `source_run_id`).
 Workflow behavior: when downloaded bundle includes `artifacts/perf-load/*`, full artifact-only gate runs; when perf artifacts are missing (for example `pr-quality-artifacts`), workflow automatically switches to `-SkipPerfLoad` mode.
 Manual overrides: use workflow inputs `perf_gate_mode=auto|with_perf|without_perf`, `strict_final_run=true|false`, `github_api_max_attempts=<int>=3`, `github_api_retry_backoff_ms=<int>=1200`, `max_source_run_age_hours=<int>=168` (`0` disables), and `allow_any_source_branch=true|false` when dispatching `release-artifact-revalidation`.

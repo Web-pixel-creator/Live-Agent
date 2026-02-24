@@ -195,6 +195,8 @@ Local artifact-only smoke (self-contained, no GitHub API, generates temp perf + 
 npm run verify:release:artifact-only:smoke
 ```
 
+Optional CI equivalent for fast sanity (without artifact download): run workflow `.github/workflows/release-artifact-only-smoke.yml` with `strict_final_run=true|false`.
+
 Artifact bundle pull + local revalidation (downloads latest successful `demo-e2e`/`release-strict-final` bundle, restores `artifacts/`, then runs artifact-only gate):
 
 ```powershell

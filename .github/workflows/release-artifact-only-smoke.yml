@@ -1,0 +1,44 @@
+name: Release Artifact-Only Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      strict_final_run:
+        description: Enforce strict artifact-only smoke (`-StrictFinalRun`)
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  release-artifact-only-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    concurrency:
+      group: release-artifact-only-smoke-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Artifact-Only Smoke (Standard)
+        if: github.event.inputs.strict_final_run != 'true'
+        shell: powershell
+        run: >
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifact-only-smoke.ps1
+
+      - name: Run Artifact-Only Smoke (Strict)
+        if: github.event.inputs.strict_final_run == 'true'
+        shell: powershell
+        run: >
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifact-only-smoke.ps1 -StrictFinalRun
+
+      - name: Publish Smoke Summary
+        if: always()
+        shell: powershell
+        run: |
+          ("Workflow: Release Artifact-Only Smoke") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Strict final run: ${{ github.event.inputs.strict_final_run }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Smoke script: scripts/release-artifact-only-smoke.ps1") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
