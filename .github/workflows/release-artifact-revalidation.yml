@@ -286,12 +286,13 @@ jobs:
             core.setOutput("source_run_workflow", String(resolvedRunMeta.workflowId || "unknown"));
             core.setOutput("source_run_branch", String(resolvedRunMeta.headBranch));
             core.setOutput("source_run_head_sha", sourceHeadShaShort);
+            core.setOutput("source_run_conclusion", String(resolvedRunMeta.conclusion || ""));
             core.setOutput("source_run_updated_at", new Date(updatedAtMs).toISOString());
             core.setOutput("source_run_age_hours", String(runAgeHoursRounded));
             core.setOutput("max_source_run_age_hours", String(maxSourceRunAgeHours));
             core.setOutput("allow_any_source_branch", allowAnySourceBranch ? "true" : "false");
             core.info(
-              `Using run ${parsedRunId}, artifact ${resolvedArtifact.name} (id=${resolvedArtifact.id}), branch=${resolvedRunMeta.headBranch}, age=${runAgeHoursRounded}h, headSha=${sourceHeadShaShort}, retry=${githubApiMaxAttempts}x/${githubApiRetryBackoffMs}ms, ageGuard<=${maxSourceRunAgeHours}h, allowAnySourceBranch=${allowAnySourceBranch}.`
+              `Using run ${parsedRunId}, artifact ${resolvedArtifact.name} (id=${resolvedArtifact.id}), branch=${resolvedRunMeta.headBranch}, conclusion=${resolvedRunMeta.conclusion}, age=${runAgeHoursRounded}h, headSha=${sourceHeadShaShort}, retry=${githubApiMaxAttempts}x/${githubApiRetryBackoffMs}ms, ageGuard<=${maxSourceRunAgeHours}h, allowAnySourceBranch=${allowAnySourceBranch}.`
             );
 
       - name: Download Source Artifact Bundle
@@ -516,6 +517,7 @@ jobs:
               workflow = "${{ steps.resolve_source.outputs.source_run_workflow }}"
               branch = "${{ steps.resolve_source.outputs.source_run_branch }}"
               headSha = "${{ steps.resolve_source.outputs.source_run_head_sha }}"
+              conclusion = "${{ steps.resolve_source.outputs.source_run_conclusion }}"
               updatedAt = "${{ steps.resolve_source.outputs.source_run_updated_at }}"
               ageHours = "${{ steps.resolve_source.outputs.source_run_age_hours }}"
             }
@@ -579,6 +581,7 @@ jobs:
           ("Source run id: ${{ steps.resolve_source.outputs.run_id }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Source run workflow: ${{ steps.resolve_source.outputs.source_run_workflow }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Source run branch: ${{ steps.resolve_source.outputs.source_run_branch }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Source run conclusion: ${{ steps.resolve_source.outputs.source_run_conclusion }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Source run head sha: ${{ steps.resolve_source.outputs.source_run_head_sha }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Source run updated at: ${{ steps.resolve_source.outputs.source_run_updated_at }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Source run age hours: ${{ steps.resolve_source.outputs.source_run_age_hours }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
