@@ -93,6 +93,10 @@ function createPassingSummary(overrides?: {
     operatorLiveBridgeHealthPingSentEvents: 0,
     operatorLiveBridgeHealthPongEvents: 0,
     operatorLiveBridgeHealthPingErrorEvents: 0,
+    operatorStartupDiagnosticsValidated: true,
+    operatorStartupFailuresStatus: "healthy",
+    operatorStartupFailuresTotal: 0,
+    operatorStartupFailuresBlocking: 0,
     operatorTaskQueueSummaryValidated: true,
     operatorTaskQueuePressureLevel: "healthy",
     operatorTaskQueueTotal: 1,
@@ -223,7 +227,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 144);
+  assert.equal(result.payload.checks, 148);
 });
 
 test("demo-e2e policy check fails when assistant activity lifecycle KPI is missing", () => {
@@ -320,6 +324,22 @@ test("demo-e2e policy check fails when service startup retry config is too low",
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("options.serviceStartMaxAttempts")));
+});
+
+test("demo-e2e policy check fails when operator startup diagnostics KPI is missing", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorStartupDiagnosticsValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorStartupDiagnosticsValidated")));
 });
 
 test("demo-e2e policy check fails when scenario retry max attempts is too low", () => {

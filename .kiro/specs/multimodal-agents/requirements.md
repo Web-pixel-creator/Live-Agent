@@ -266,6 +266,7 @@
 12. THE repository SHALL provide an operator runbook or scripts to configure badge endpoint publication and validate endpoint health after deployment.
 13. THE repository SHALL provide scripted local release verification and repository publish workflows to reduce manual release errors.
 14. THE System SHALL include assistant activity lifecycle proof in demo KPI artifacts and release gates (`assistantActivityLifecycleValidated=true`).
+15. THE System SHALL expose operator startup diagnostics in `/v1/operator/summary` via structured `startupFailures` (`status=healthy|degraded|critical`, `total`, `blockingServices`, `recent[]`) and SHALL prove this in demo KPI artifacts (`operatorStartupDiagnosticsValidated=true`).
 
 ### Requirement 16: Multi-Agent Collaboration
 

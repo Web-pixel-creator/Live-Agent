@@ -95,7 +95,7 @@
 | T-207 | Вынести долгие Veo/Imagen jobs в dedicated workers с quota-aware scheduling | P1 | 1 week | T-103, T-010 | R4, R10, R15 | Медиа-джобы выполняются отдельными воркерами, есть retry budget и видимость очередей |
 | T-208 | Добавить детерминированный кэш для story assets/prompt variants и policy invalidation | P1 | 0.5 week | T-102, T-103, T-207 | R4, R5, R15 | Повторные запросы дают cache-hit, при смене model/version кэш инвалидируется консистентно |
 | T-209 | Добавить local-first dev profile (non-production) для офлайн-итераций | P1 | 0.5 week | T-011, T-014 | R10, R14 | Отдельный dev profile существует, отключен policy в prod/staging и не влияет на challenge baseline |
-| T-210 | Собрать operator console (active tasks, approval queue, health summary, cancel/retry/failover) | P1 | 0.5 week | T-205, T-010, T-011 | R10, R13, R15 | Оператор видит активные процессы и может выполнять recovery-действия с полным audit trail |
+| T-210 | Собрать operator console (active tasks, approval queue, health summary, startup diagnostics, cancel/retry/failover) | P1 | 0.5 week | T-205, T-010, T-011 | R10, R13, R15 | Оператор видит активные процессы, startup-failure состояние (`startupFailures`) и может выполнять recovery-действия с полным audit trail; e2e policy валидирует `operatorStartupDiagnosticsValidated=true` |
 | T-211 | Live bridge hardening: richer Gemini setup + profile/auth failover + channel watchdog | P0 | 0.5 week | T-005, T-009 | R1, R12, R15 | Gateway поддерживает model/auth failover chain, расширенный setup payload, health degradation detection и recovery events |
 | T-212 | UI Navigator loop protection (tool/action loop detection + hard stop) | P0 | 0.25 week | T-106 | R6, R7, R8, R13 | Зацикливание однотипных действий детектируется sliding-window логикой, выполнение останавливается с явной диагностикой |
 | T-213 | Approval lifecycle SLA runtime (pending/approved/rejected/timeout + audit trail) | P0 | 0.5 week | T-107, T-210 | R13, R15, R16 | Approval records имеют полный жизненный цикл и SLA sweep (soft reminder + hard timeout), оператор видит audit trail |
@@ -130,6 +130,7 @@
 | T-210.2 | T-210 | Реализовать backend endpoints для operator actions (cancel/retry/failover) с RBAC | 5h | T-210.1, T-011 | Операции доступны только ролям оператора/админа |
 | T-210.3 | T-210 | Реализовать UI-экран operator console и действия с confirm-dialogs | 5h | T-210.2 | Оператор может выполнять управляемые recovery-действия из UI |
 | T-210.4 | T-210 | Добавить audit trail для операторских действий и E2E тесты runbook-сценариев | 3h | T-210.2, T-210.3 | Каждое действие логируется (`operatorActions.recent`), E2E policy подтверждает `operatorAuditTrailValidated=true` |
+| T-210.5 | T-210 | Добавить startup diagnostics виджет и summary-контракт в operator console | 2h | T-210.2, T-210.3 | `/v1/operator/summary` возвращает `startupFailures` (`status/total/blocking/recent`), UI отображает `Startup Failures`, а E2E policy подтверждает `operatorStartupDiagnosticsValidated=true` |
 
 ## Phase M4: V3 Ecosystem Expansion (Week 7-12+)
 

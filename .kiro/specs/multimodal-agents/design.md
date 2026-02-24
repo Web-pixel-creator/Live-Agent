@@ -576,7 +576,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
    - Guardrail blocks local-first outside `dev`.
 
 4. Rich operational console
-   - Baseline implemented: operator summary APIs for active tasks, approval queue snapshots, per-service health/runtime profile status, and execution trace rollups (runs/events/tool steps/screenshots/approval links).
+   - Baseline implemented: operator summary APIs for active tasks, approval queue snapshots, per-service health/runtime profile status, startup failure diagnostics (`startupFailures`), and execution trace rollups (runs/events/tool steps/screenshots/approval links).
    - Baseline implemented: role-gated recovery actions (`cancel_task`, `retry_task`, `failover drain/warmup`) with operator action audit trail visible in console summary.
    - Next step: add full UI audit timeline and richer incident automation controls.
 
@@ -665,7 +665,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 ### Demo Automation Artifact
 
 1. The repository SHALL include an executable demo smoke script at `scripts/demo-e2e.ps1`.
-2. The script SHALL validate end-to-end demo flows: translation, negotiation, storyteller generation, UI approval reject/approve resume, multi-agent delegation, WebSocket gateway roundtrip via `/realtime`, WebSocket task-progress contract behavior (`task.started` + `task.progress` + `/tasks/active`), WebSocket duplicate-request replay contract behavior (`gateway.request_replayed` + single `task.started` + reused response envelope id), WebSocket interruption signal contract behavior (`live.interrupt.requested` or `live.bridge.unavailable`), assistant lifecycle proof contract (`kpi.assistantActivityLifecycleValidated=true`), invalid-envelope error contract behavior (`gateway.error` with traceId), REST contract behavior for invalid approval resume intent (`HTTP 400` + normalized error `API_INVALID_INTENT` + traceId), runtime lifecycle endpoint contract checks (`/status`, `/version`, `/drain`, `/warmup`) for gateway/api/orchestrator, runtime observability checks (`/metrics`) for p95/error-rate visibility, websocket correlation/session-binding checks (`userId/sessionId/runId` + `session.state` transitions), and capability adapter profile coverage (`kpi.capabilityAdaptersValidated`).
+2. The script SHALL validate end-to-end demo flows: translation, negotiation, storyteller generation, UI approval reject/approve resume, multi-agent delegation, WebSocket gateway roundtrip via `/realtime`, WebSocket task-progress contract behavior (`task.started` + `task.progress` + `/tasks/active`), WebSocket duplicate-request replay contract behavior (`gateway.request_replayed` + single `task.started` + reused response envelope id), WebSocket interruption signal contract behavior (`live.interrupt.requested` or `live.bridge.unavailable`), assistant lifecycle proof contract (`kpi.assistantActivityLifecycleValidated=true`), operator startup diagnostics proof contract (`kpi.operatorStartupDiagnosticsValidated=true` + `kpi.operatorStartupFailuresStatus in {healthy,degraded,critical}`), invalid-envelope error contract behavior (`gateway.error` with traceId), REST contract behavior for invalid approval resume intent (`HTTP 400` + normalized error `API_INVALID_INTENT` + traceId), runtime lifecycle endpoint contract checks (`/status`, `/version`, `/drain`, `/warmup`) for gateway/api/orchestrator, runtime observability checks (`/metrics`) for p95/error-rate visibility, websocket correlation/session-binding checks (`userId/sessionId/runId` + `session.state` transitions), and capability adapter profile coverage (`kpi.capabilityAdaptersValidated`).
 3. The script SHALL produce structured reports at `artifacts/demo-e2e/summary.json` and `artifacts/demo-e2e/summary.md` with per-scenario pass/fail and KPI fields.
 4. The script SHALL support local run modes for CI/demo prep (`-SkipBuild`, `-SkipServiceStart`, `-KeepServices`, `-OutputPath`).
 5. The repository SHALL include CI automation (`.github/workflows/demo-e2e.yml`) that executes demo e2e and publishes `summary.json`, `summary.md`, and logs as build artifacts.
@@ -681,7 +681,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 15. The orchestrator runtime SHALL expose storyteller media queue visibility (`/story/media-jobs/queue` and `storytellerMediaJobs` in `/metrics`) for operator diagnostics.
 16. The orchestrator runtime SHALL expose storyteller cache visibility and invalidation controls (`/story/cache`, `/story/cache/purge`, `storytellerCache` in `/metrics`) for deterministic asset/prompt reuse policy operations.
 17. Runtime services SHALL expose applied runtime profile metadata (`runtime.profile`) and enforce local-first guardrails that block non-dev startup.
-18. The API backend SHALL expose operator console endpoints (`/v1/operator/summary`, `/v1/operator/actions`) with role-gated recovery controls and cross-service status aggregation.
+18. The API backend SHALL expose operator console endpoints (`/v1/operator/summary`, `/v1/operator/actions`) with role-gated recovery controls, startup-failure visibility, and cross-service status aggregation.
 19. The repository SHALL define a single authoritative WebSocket protocol and error taxonomy document for frontend/gateway integration (`docs/ws-protocol.md`).
 
 ## Traceability Matrix

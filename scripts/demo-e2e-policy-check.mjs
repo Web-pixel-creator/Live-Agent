@@ -482,6 +482,31 @@ async function main() {
     ">= 0",
   );
   addCheck(
+    "kpi.operatorStartupDiagnosticsValidated",
+    kpis.operatorStartupDiagnosticsValidated === true,
+    kpis.operatorStartupDiagnosticsValidated,
+    true,
+  );
+  addCheck(
+    "kpi.operatorStartupFailuresStatus",
+    ["healthy", "degraded", "critical"].includes(String(kpis.operatorStartupFailuresStatus)),
+    kpis.operatorStartupFailuresStatus,
+    "healthy | degraded | critical",
+  );
+  addCheck(
+    "kpi.operatorStartupFailuresTotal",
+    toNumber(kpis.operatorStartupFailuresTotal) >= 0,
+    kpis.operatorStartupFailuresTotal,
+    ">= 0",
+  );
+  addCheck(
+    "kpi.operatorStartupFailuresBlocking",
+    toNumber(kpis.operatorStartupFailuresBlocking) >= 0 &&
+      toNumber(kpis.operatorStartupFailuresBlocking) <= toNumber(kpis.operatorStartupFailuresTotal),
+    kpis.operatorStartupFailuresBlocking,
+    ">= 0 and <= operatorStartupFailuresTotal",
+  );
+  addCheck(
     "kpi.operatorTaskQueueSummaryValidated",
     kpis.operatorTaskQueueSummaryValidated === true,
     kpis.operatorTaskQueueSummaryValidated,

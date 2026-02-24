@@ -440,6 +440,33 @@
               Refresh summary to inspect active task queue pressure.
             </p>
           </article>
+          <article class="operator-health-card">
+            <h3>Startup Failures</h3>
+            <p id="operatorStartupStatus" class="status-pill status-neutral">no_data</p>
+            <p class="operator-health-row">
+              <strong>Total</strong>
+              <span id="operatorStartupTotal">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Blocking Services</strong>
+              <span id="operatorStartupBlocking">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Last Type</strong>
+              <span id="operatorStartupLastType">n/a</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Last Service</strong>
+              <span id="operatorStartupLastService">n/a</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Last Checked</strong>
+              <span id="operatorStartupLastCheckedAt">n/a</span>
+            </p>
+            <p id="operatorStartupHint" class="operator-health-hint operator-health-hint-neutral">
+              Refresh summary to inspect startup diagnostics from service probes.
+            </p>
+          </article>
         </div>
         <div id="operatorSummary" class="events"></div>
       </section>

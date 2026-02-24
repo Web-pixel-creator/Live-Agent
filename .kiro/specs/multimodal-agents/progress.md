@@ -9,9 +9,9 @@
 ## Verified Quality Gates
 
 1. `npm run verify:release` passes end-to-end.
-2. Demo e2e policy gate is green with `144` checks.
+2. Demo e2e policy gate is green with `148` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`223` tests passed).
+4. Unit tests are green (`227` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -112,6 +112,8 @@
 81. Synced specs with runtime gates for assistant lifecycle proof: `requirements.md`, `design.md`, and `tasks.md` now explicitly require `waiting_connection/idle/streaming/speaking` states and `assistantActivityLifecycleValidated=true`; anti-drift coverage added in `tests/unit/spec-assistant-lifecycle-alignment.test.ts`.
 82. Hardened demo service startup retry behavior with fail-fast classification for non-retryable failures (`cannot find module`, `syntaxerror`, `eaddrinuse`, permissions): `scripts/demo-e2e.ps1` now aborts early with explicit diagnostics instead of wasting retry budget; anti-drift coverage added in `tests/unit/demo-service-start-retry-classification.test.ts`.
 83. Extended judged-demo runbook with explicit non-retryable managed-service startup recovery playbook (`module/syntax/port/permission` cases + operator steps) and added anti-drift coverage in `tests/unit/runbook-startup-failure-alignment.test.ts` to keep docs aligned with fail-fast startup classifier behavior.
+84. Added operator startup diagnostics end-to-end: `/v1/operator/summary` now exposes structured `startupFailures` (status/total/blocking/recent by service+type), demo frontend includes `Startup Failures` widget, `demo-e2e` emits startup KPI evidence (`operatorStartupDiagnosticsValidated`, status/total/blocking), policy gate enforces these KPIs, and anti-drift coverage added in `tests/unit/frontend-operator-startup-widget-alignment.test.ts` + `tests/unit/operator-summary-startup-failures-alignment.test.ts`.
+85. Synced startup diagnostics contract into specs: updated `requirements.md` (R15 acceptance criteria), `design.md` (operator summary + demo artifact validation contract), and `tasks.md` (T-210/T-210.5 DoD) with explicit `startupFailures` and `operatorStartupDiagnosticsValidated=true`; added anti-drift guard `tests/unit/spec-operator-startup-diagnostics-alignment.test.ts`.
 
 ## Current Focus Queue
 

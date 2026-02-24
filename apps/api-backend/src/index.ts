@@ -494,6 +494,152 @@ async function fetchJsonWithTimeout(url: string, timeoutMs: number): Promise<unk
   }
 }
 
+type ServiceProbeFailureType =
+  | "http_error"
+  | "timeout"
+  | "connection_refused"
+  | "network_error"
+  | "invalid_json";
+
+type ServiceProbeResult = {
+  endpoint: string;
+  checkedAt: string;
+  latencyMs: number;
+  ok: boolean;
+  payload: unknown;
+  statusCode: number | null;
+  type: ServiceProbeFailureType | null;
+  message: string | null;
+};
+
+function classifyServiceProbeError(error: unknown): {
+  type: Exclude<ServiceProbeFailureType, "http_error" | "invalid_json">;
+  message: string;
+} {
+  const fallbackMessage = "network request failed";
+  if (!isRecord(error)) {
+    return {
+      type: "network_error",
+      message: fallbackMessage,
+    };
+  }
+
+  const name = typeof error.name === "string" ? error.name : "";
+  const message = typeof error.message === "string" && error.message.trim().length > 0 ? error.message.trim() : fallbackMessage;
+  if (name === "AbortError") {
+    return {
+      type: "timeout",
+      message,
+    };
+  }
+
+  const cause = isRecord(error.cause) ? error.cause : null;
+  const causeCode = cause && typeof cause.code === "string" ? cause.code.toUpperCase() : "";
+  if (causeCode === "ECONNREFUSED") {
+    return {
+      type: "connection_refused",
+      message: cause && typeof cause.message === "string" && cause.message.trim().length > 0 ? cause.message : message,
+    };
+  }
+  if (
+    causeCode === "ECONNRESET" ||
+    causeCode === "EHOSTUNREACH" ||
+    causeCode === "ENETUNREACH" ||
+    causeCode === "ENOTFOUND" ||
+    causeCode === "EAI_AGAIN"
+  ) {
+    return {
+      type: "network_error",
+      message: cause && typeof cause.message === "string" && cause.message.trim().length > 0 ? cause.message : message,
+    };
+  }
+
+  const normalizedMessage = message.toLowerCase();
+  if (normalizedMessage.includes("abort")) {
+    return {
+      type: "timeout",
+      message,
+    };
+  }
+  if (normalizedMessage.includes("refused")) {
+    return {
+      type: "connection_refused",
+      message,
+    };
+  }
+
+  return {
+    type: "network_error",
+    message,
+  };
+}
+
+async function probeJsonWithTimeout(url: string, timeoutMs: number): Promise<ServiceProbeResult> {
+  const startedAt = Date.now();
+  const checkedAt = new Date().toISOString();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    const latencyMs = Math.max(0, Date.now() - startedAt);
+    if (!response.ok) {
+      const details = await readErrorDetails(response);
+      return {
+        endpoint: url,
+        checkedAt,
+        latencyMs,
+        ok: false,
+        payload: null,
+        statusCode: response.status,
+        type: "http_error",
+        message: details.length > 0 ? `HTTP ${response.status}: ${details}` : `HTTP ${response.status}`,
+      };
+    }
+
+    try {
+      const payload = (await response.json()) as unknown;
+      return {
+        endpoint: url,
+        checkedAt,
+        latencyMs,
+        ok: true,
+        payload,
+        statusCode: response.status,
+        type: null,
+        message: null,
+      };
+    } catch {
+      return {
+        endpoint: url,
+        checkedAt,
+        latencyMs,
+        ok: false,
+        payload: null,
+        statusCode: response.status,
+        type: "invalid_json",
+        message: "response body is not valid JSON",
+      };
+    }
+  } catch (error) {
+    const classified = classifyServiceProbeError(error);
+    return {
+      endpoint: url,
+      checkedAt,
+      latencyMs: Math.max(0, Date.now() - startedAt),
+      ok: false,
+      payload: null,
+      statusCode: null,
+      type: classified.type,
+      message: classified.message,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function postJsonWithTimeout(url: string, body: unknown, timeoutMs: number): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -586,16 +732,45 @@ async function getOperatorServiceSummary(): Promise<Array<Record<string, unknown
   const summaries: Array<Record<string, unknown>> = [];
 
   for (const service of services) {
-    const [health, status, metricsResponse] = await Promise.all([
-      fetchJsonWithTimeout(`${service.baseUrl}/healthz`, timeoutMs),
-      fetchJsonWithTimeout(`${service.baseUrl}/status`, timeoutMs),
-      fetchJsonWithTimeout(`${service.baseUrl}/metrics`, timeoutMs),
+    const [healthProbe, statusProbe, metricsProbe] = await Promise.all([
+      probeJsonWithTimeout(`${service.baseUrl}/healthz`, timeoutMs),
+      probeJsonWithTimeout(`${service.baseUrl}/status`, timeoutMs),
+      probeJsonWithTimeout(`${service.baseUrl}/metrics`, timeoutMs),
     ]);
+    const health = healthProbe.ok ? healthProbe.payload : null;
+    const status = statusProbe.ok ? statusProbe.payload : null;
+    const metricsResponse = metricsProbe.ok ? metricsProbe.payload : null;
+    const probeFailures = [
+      {
+        probe: healthProbe,
+        endpoint: "healthz",
+      },
+      {
+        probe: statusProbe,
+        endpoint: "status",
+      },
+      {
+        probe: metricsProbe,
+        endpoint: "metrics",
+      },
+    ]
+      .filter((entry) => entry.probe.ok !== true)
+      .map((entry) => ({
+        endpoint: entry.endpoint,
+        checkedAt: entry.probe.checkedAt,
+        latencyMs: entry.probe.latencyMs,
+        type: entry.probe.type ?? "network_error",
+        statusCode: entry.probe.statusCode,
+        message: entry.probe.message ?? "probe failed",
+      }));
 
     const runtime = isRecord(status) && isRecord(status.runtime) ? status.runtime : null;
     const profile = runtime && isRecord(runtime.profile) ? runtime.profile : null;
     const metricsSummary =
       isRecord(metricsResponse) && isRecord(metricsResponse.metrics) ? metricsResponse.metrics : null;
+    const startupFailureCount = probeFailures.length;
+    const startupBlockingFailure = startupFailureCount >= 2;
+    const startupStatus = startupFailureCount <= 0 ? "healthy" : startupBlockingFailure ? "critical" : "degraded";
 
     summaries.push({
       name: service.name,
@@ -617,6 +792,10 @@ async function getOperatorServiceSummary(): Promise<Array<Record<string, unknown
             p95Ms: isRecord(metricsSummary.latencyMs) ? metricsSummary.latencyMs.p95 ?? null : null,
           }
         : null,
+      startupStatus,
+      startupFailureCount,
+      startupBlockingFailure,
+      startupFailures: probeFailures,
     });
   }
 
@@ -753,6 +932,85 @@ function buildTaskQueueSummary(tasks: unknown[]): Record<string, unknown> {
       criticalActive: operatorTaskQueueCriticalActiveThreshold,
       pendingApprovalWarn: operatorTaskQueuePendingApprovalWarnThreshold,
     },
+  };
+}
+
+function normalizeStartupFailureType(value: unknown): ServiceProbeFailureType {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (
+    normalized === "http_error" ||
+    normalized === "timeout" ||
+    normalized === "connection_refused" ||
+    normalized === "network_error" ||
+    normalized === "invalid_json"
+  ) {
+    return normalized;
+  }
+  return "network_error";
+}
+
+function buildStartupFailureSummary(services: Array<Record<string, unknown>>): Record<string, unknown> {
+  const byType = {
+    http_error: 0,
+    timeout: 0,
+    connection_refused: 0,
+    network_error: 0,
+    invalid_json: 0,
+  };
+  const byService: Record<string, number> = {};
+  const recent: Array<Record<string, unknown>> = [];
+  let blockingServices = 0;
+
+  for (const service of services) {
+    const serviceName = typeof service.name === "string" ? service.name : "service";
+    const startupFailures = Array.isArray(service.startupFailures)
+      ? service.startupFailures.filter((item): item is Record<string, unknown> => isRecord(item))
+      : [];
+    if (startupFailures.length <= 0) {
+      continue;
+    }
+    if (service.startupBlockingFailure === true) {
+      blockingServices += 1;
+    }
+    byService[serviceName] = startupFailures.length;
+
+    for (const item of startupFailures) {
+      const type = normalizeStartupFailureType(item.type);
+      byType[type] += 1;
+      recent.push({
+        service: serviceName,
+        endpoint: typeof item.endpoint === "string" ? item.endpoint : "unknown",
+        type,
+        statusCode: typeof item.statusCode === "number" ? item.statusCode : null,
+        message: typeof item.message === "string" ? item.message : "probe failed",
+        checkedAt: typeof item.checkedAt === "string" ? item.checkedAt : null,
+        latencyMs: typeof item.latencyMs === "number" ? item.latencyMs : null,
+      });
+    }
+  }
+
+  recent.sort((left, right) => {
+    const leftTs = typeof left.checkedAt === "string" ? Date.parse(left.checkedAt) : Number.NaN;
+    const rightTs = typeof right.checkedAt === "string" ? Date.parse(right.checkedAt) : Number.NaN;
+    const leftValue = Number.isFinite(leftTs) ? leftTs : 0;
+    const rightValue = Number.isFinite(rightTs) ? rightTs : 0;
+    return rightValue - leftValue;
+  });
+
+  const total = recent.length;
+  const status = total <= 0 ? "healthy" : blockingServices > 0 ? "critical" : "degraded";
+  const latest = recent.length > 0 ? recent[0] : null;
+
+  return {
+    status,
+    total,
+    blockingServices,
+    hasBlockingFailures: blockingServices > 0,
+    byType,
+    byService,
+    recent: recent.slice(0, 20),
+    latest,
+    validated: true,
   };
 }
 
@@ -1695,6 +1953,7 @@ export const server = createServer(async (req, res) => {
       const deviceNodeHealth = buildDeviceNodeHealthSummary(deviceNodes, {
         staleThresholdMs: operatorDeviceNodeStaleThresholdMs,
       });
+      const startupFailures = buildStartupFailureSummary(services);
 
       writeJson(res, 200, {
         data: {
@@ -1718,6 +1977,7 @@ export const server = createServer(async (req, res) => {
             total: operatorActions.length,
             recent: operatorActions.slice(0, 25),
           },
+          startupFailures,
           deviceNodes: deviceNodeHealth,
           services,
           traces,

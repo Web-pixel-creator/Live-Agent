@@ -138,6 +138,13 @@ const el = {
   operatorTaskQueueMaxAge: document.getElementById("operatorTaskQueueMaxAge"),
   operatorTaskQueueOldest: document.getElementById("operatorTaskQueueOldest"),
   operatorTaskQueueHint: document.getElementById("operatorTaskQueueHint"),
+  operatorStartupStatus: document.getElementById("operatorStartupStatus"),
+  operatorStartupTotal: document.getElementById("operatorStartupTotal"),
+  operatorStartupBlocking: document.getElementById("operatorStartupBlocking"),
+  operatorStartupLastType: document.getElementById("operatorStartupLastType"),
+  operatorStartupLastService: document.getElementById("operatorStartupLastService"),
+  operatorStartupLastCheckedAt: document.getElementById("operatorStartupLastCheckedAt"),
+  operatorStartupHint: document.getElementById("operatorStartupHint"),
   deviceNodeId: document.getElementById("deviceNodeId"),
   deviceNodeDisplayName: document.getElementById("deviceNodeDisplayName"),
   deviceNodeKind: document.getElementById("deviceNodeKind"),
@@ -650,6 +657,27 @@ function setOperatorTaskQueueHint(text, variant = "neutral") {
   el.operatorTaskQueueHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorStartupHint(text, variant = "neutral") {
+  if (!el.operatorStartupHint) {
+    return;
+  }
+  el.operatorStartupHint.textContent = text;
+  el.operatorStartupHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorStartupHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorStartupHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorStartupHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorStartupHint.classList.add("operator-health-hint-neutral");
+}
+
 function resetOperatorHealthWidget(reason = "no_data") {
   setText(el.operatorHealthState, "unknown");
   setText(el.operatorHealthLastEventType, "-");
@@ -738,6 +766,16 @@ function resetOperatorTaskQueueWidget(reason = "no_data") {
   setText(el.operatorTaskQueueOldest, "n/a");
   setOperatorTaskQueueHint("Refresh summary to inspect active task queue pressure.", "neutral");
   setStatusPill(el.operatorTaskQueueStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorStartupWidget(reason = "no_data") {
+  setText(el.operatorStartupTotal, "0");
+  setText(el.operatorStartupBlocking, "0");
+  setText(el.operatorStartupLastType, "n/a");
+  setText(el.operatorStartupLastService, "n/a");
+  setText(el.operatorStartupLastCheckedAt, "n/a");
+  setOperatorStartupHint("Refresh summary to inspect startup diagnostics from service probes.", "neutral");
+  setStatusPill(el.operatorStartupStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function renderOperatorHealthWidget(liveBridgeHealth) {
@@ -1444,6 +1482,57 @@ function renderOperatorTaskQueueWidget(taskQueueSummary) {
   setOperatorTaskQueueHint(hint, hintVariant);
 }
 
+function renderOperatorStartupWidget(startupSummary) {
+  if (!startupSummary || typeof startupSummary !== "object") {
+    resetOperatorStartupWidget("no_data");
+    return;
+  }
+
+  const status = typeof startupSummary.status === "string" ? startupSummary.status.trim().toLowerCase() : "healthy";
+  const total = Number(startupSummary.total ?? 0);
+  const blocking = Number(startupSummary.blockingServices ?? 0);
+  const recent = Array.isArray(startupSummary.recent) ? startupSummary.recent : [];
+  const latest = recent.length > 0 && recent[0] && typeof recent[0] === "object" ? recent[0] : null;
+  const latestType = latest && typeof latest.type === "string" ? latest.type : "n/a";
+  const latestService = latest && typeof latest.service === "string" ? latest.service : "n/a";
+  const latestCheckedAt = latest && typeof latest.checkedAt === "string" ? latest.checkedAt : "n/a";
+
+  setText(el.operatorStartupTotal, String(Math.max(0, Math.floor(total))));
+  setText(el.operatorStartupBlocking, String(Math.max(0, Math.floor(blocking))));
+  setText(el.operatorStartupLastType, latestType);
+  setText(el.operatorStartupLastService, latestService);
+  setText(el.operatorStartupLastCheckedAt, latestCheckedAt);
+
+  let statusVariant = "ok";
+  let statusText = "healthy";
+  let hintVariant = "ok";
+  let hint = "No startup probe failures detected. Operator plane is ready for judged flow.";
+
+  if (Math.max(0, Math.floor(total)) <= 0) {
+    statusVariant = "ok";
+    statusText = "healthy";
+    hintVariant = "ok";
+    hint = "No startup probe failures detected. Operator plane is ready for judged flow.";
+  } else if (Math.max(0, Math.floor(blocking)) > 0 || status === "critical") {
+    statusVariant = "fail";
+    statusText = "critical";
+    hintVariant = "fail";
+    hint = "Blocking startup probe failures detected. Resolve service startup errors before continuing demo.";
+  } else {
+    statusVariant = "neutral";
+    statusText = "degraded";
+    hintVariant = "warn";
+    hint = "Non-blocking startup probe failures detected. Recheck service health before judged run.";
+  }
+
+  setStatusPill(
+    el.operatorStartupStatus,
+    `${statusText} total=${Math.max(0, Math.floor(total))} blocking=${Math.max(0, Math.floor(blocking))}`,
+    statusVariant,
+  );
+  setOperatorStartupHint(hint, hintVariant);
+}
+
 function extractNumber(text, regex) {
   const match = text.match(regex);
   if (!match) {
@@ -1652,6 +1741,7 @@ function renderOperatorSummary(summary) {
   resetOperatorApprovalsWidget("no_data");
   resetOperatorLifecycleWidget("no_data");
   resetOperatorTaskQueueWidget("no_data");
+  resetOperatorStartupWidget("no_data");
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -1695,6 +1785,37 @@ function renderOperatorSummary(summary) {
   );
   renderOperatorApprovalsWidget(summary.approvals);
   renderOperatorTaskQueueWidget(taskQueueSummary);
+  const startupFailures = summary.startupFailures && typeof summary.startupFailures === "object"
+    ? summary.startupFailures
+    : null;
+  if (startupFailures) {
+    const startupTotal = Number(startupFailures.total ?? 0);
+    const startupBlocking = Number(startupFailures.blockingServices ?? 0);
+    const startupStatus = typeof startupFailures.status === "string" ? startupFailures.status : "healthy";
+    appendEntry(
+      el.operatorSummary,
+      startupBlocking > 0 ? "error" : startupTotal > 0 ? "system" : "system",
+      "startup_failures",
+      `status=${startupStatus} total=${Math.max(0, Math.floor(startupTotal))} blocking=${Math.max(0, Math.floor(startupBlocking))}`,
+    );
+    const startupRecent = Array.isArray(startupFailures.recent) ? startupFailures.recent : [];
+    for (const item of startupRecent.slice(0, 2)) {
+      if (!item || typeof item !== "object") {
+        continue;
+      }
+      const failureService = typeof item.service === "string" ? item.service : "service";
+      const failureEndpoint = typeof item.endpoint === "string" ? item.endpoint : "endpoint";
+      const failureType = typeof item.type === "string" ? item.type : "unknown";
+      const failureMessage = typeof item.message === "string" ? item.message : "probe failed";
+      appendEntry(
+        el.operatorSummary,
+        "error",
+        `startup.${failureService}.${failureEndpoint}`,
+        `type=${failureType} message=${failureMessage}`,
+      );
+    }
+  }
+  renderOperatorStartupWidget(startupFailures);
 
   const deviceNodes = summary.deviceNodes && typeof summary.deviceNodes === "object"
     ? summary.deviceNodes
@@ -1873,6 +1994,7 @@ async function refreshOperatorSummary() {
     resetOperatorApprovalsWidget("summary_error");
     resetOperatorLifecycleWidget("summary_error");
     resetOperatorTaskQueueWidget("summary_error");
+    resetOperatorStartupWidget("summary_error");
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
 }

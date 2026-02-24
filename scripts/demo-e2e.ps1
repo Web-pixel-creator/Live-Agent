@@ -1798,6 +1798,35 @@ try {
       ($allowedTaskQueuePressureLevels -contains $taskQueuePressureLevel)
     )
 
+    $startupFailures = Get-FieldValue -Object $summaryData -Path @("startupFailures")
+    Assert-Condition -Condition ($null -ne $startupFailures) -Message "Operator summary startupFailures block is missing."
+    $startupFailuresStatus = [string](Get-FieldValue -Object $startupFailures -Path @("status"))
+    $startupFailuresTotalRaw = Get-FieldValue -Object $startupFailures -Path @("total")
+    $startupFailuresBlockingRaw = Get-FieldValue -Object $startupFailures -Path @("blockingServices")
+    Assert-Condition -Condition ($null -ne $startupFailuresTotalRaw) -Message "Operator summary startupFailures.total is missing."
+    Assert-Condition -Condition ($null -ne $startupFailuresBlockingRaw) -Message "Operator summary startupFailures.blockingServices is missing."
+    $startupFailuresTotal = [int]$startupFailuresTotalRaw
+    $startupFailuresBlocking = [int]$startupFailuresBlockingRaw
+    $allowedStartupStatuses = @("healthy", "degraded", "critical")
+    Assert-Condition -Condition ($allowedStartupStatuses -contains $startupFailuresStatus) -Message "Operator summary startupFailures.status is invalid."
+    Assert-Condition -Condition ($startupFailuresTotal -ge 0) -Message "Operator summary startupFailures.total must be >= 0."
+    Assert-Condition -Condition ($startupFailuresBlocking -ge 0) -Message "Operator summary startupFailures.blockingServices must be >= 0."
+    Assert-Condition -Condition ($startupFailuresBlocking -le $startupFailuresTotal) -Message "Operator summary startupFailures.blockingServices must be <= total."
+    $startupFailuresRecent = @(Get-FieldValue -Object $startupFailures -Path @("recent"))
+    if ($startupFailuresTotal -gt 0) {
+      Assert-Condition -Condition ($startupFailuresRecent.Count -ge 1) -Message "Operator summary startupFailures.recent should contain at least one entry when total > 0."
+    }
+    $startupFailureLatest = if ($startupFailuresRecent.Count -gt 0) { $startupFailuresRecent[0] } else { $null }
+    $startupFailureLastType = if ($null -ne $startupFailureLatest) { [string](Get-FieldValue -Object $startupFailureLatest -Path @("type")) } else { $null }
+    $startupFailureLastService = if ($null -ne $startupFailureLatest) { [string](Get-FieldValue -Object $startupFailureLatest -Path @("service")) } else { $null }
+    $startupFailureLastCheckedAt = if ($null -ne $startupFailureLatest) { [string](Get-FieldValue -Object $startupFailureLatest -Path @("checkedAt")) } else { $null }
+    $startupFailuresValidated = (
+      ($allowedStartupStatuses -contains $startupFailuresStatus) -and
+      $startupFailuresTotal -ge 0 -and
+      $startupFailuresBlocking -ge 0 -and
+      $startupFailuresBlocking -le $startupFailuresTotal
+    )
+
     $deviceNodeHealth = Get-FieldValue -Object $summaryData -Path @("deviceNodes")
     Assert-Condition -Condition ($null -ne $deviceNodeHealth) -Message "Operator summary deviceNodes block is missing."
     $deviceNodeSummaryTotal = [int](Get-FieldValue -Object $deviceNodeHealth -Path @("total"))
@@ -1971,6 +2000,13 @@ try {
       taskQueueMaxAgeMs = $taskQueueMaxAgeMs
       taskQueuePressureLevel = $taskQueuePressureLevel
       taskQueueSummaryValidated = $taskQueueSummaryValidated
+      startupFailuresStatus = $startupFailuresStatus
+      startupFailuresTotal = $startupFailuresTotal
+      startupFailuresBlocking = $startupFailuresBlocking
+      startupFailureLastType = $startupFailureLastType
+      startupFailureLastService = $startupFailureLastService
+      startupFailureLastCheckedAt = $startupFailureLastCheckedAt
+      startupFailuresValidated = $startupFailuresValidated
       deviceNodeId = $deviceNodeId
       deviceNodeCreatedVersion = $deviceNodeCreatedVersion
       deviceNodeUpdatedVersion = $deviceNodeUpdatedVersion
@@ -2664,6 +2700,20 @@ $summary = [ordered]@{
     operatorTaskQueueStaleThresholdMs = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueueStaleThresholdMs } else { $null }
     operatorTaskQueueMaxAgeMs = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueueMaxAgeMs } else { $null }
     operatorTaskQueuePressureLevel = if ($null -ne $operatorActionsData) { $operatorActionsData.taskQueuePressureLevel } else { $null }
+    operatorStartupFailuresStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.startupFailuresStatus } else { $null }
+    operatorStartupFailuresTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.startupFailuresTotal } else { $null }
+    operatorStartupFailuresBlocking = if ($null -ne $operatorActionsData) { $operatorActionsData.startupFailuresBlocking } else { $null }
+    operatorStartupFailureLastType = if ($null -ne $operatorActionsData) { $operatorActionsData.startupFailureLastType } else { $null }
+    operatorStartupFailureLastService = if ($null -ne $operatorActionsData) { $operatorActionsData.startupFailureLastService } else { $null }
+    operatorStartupFailureLastCheckedAt = if ($null -ne $operatorActionsData) { $operatorActionsData.startupFailureLastCheckedAt } else { $null }
+    operatorStartupDiagnosticsValidated = if (
+      $null -ne $operatorActionsData -and
+      [bool]$operatorActionsData.startupFailuresValidated -eq $true -and
+      [int]$operatorActionsData.startupFailuresTotal -ge 0 -and
+      [int]$operatorActionsData.startupFailuresBlocking -ge 0 -and
+      [int]$operatorActionsData.startupFailuresBlocking -le [int]$operatorActionsData.startupFailuresTotal -and
+      @("healthy", "degraded", "critical") -contains [string]$operatorActionsData.startupFailuresStatus
+    ) { $true } else { $false }
     operatorTaskQueueSummaryValidated = if (
       $null -ne $operatorActionsData -and
       [bool]$operatorActionsData.taskQueueSummaryValidated -eq $true -and
