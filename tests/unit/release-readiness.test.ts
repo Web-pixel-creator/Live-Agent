@@ -50,6 +50,7 @@ function createPassingSummary(
     operatorDeviceNodesLifecycleScenarioAttempts: number | string;
     approvalsListScenarioAttempts: number | string;
     approvalsInvalidIntentScenarioAttempts: number | string;
+    sessionVersioningScenarioAttempts: number | string;
     uiVisualTestingScenarioAttempts: number | string;
     operatorConsoleActionsScenarioAttempts: number | string;
     runtimeLifecycleScenarioAttempts: number | string;
@@ -212,6 +213,9 @@ function createPassingSummary(
         : 1,
       approvalsInvalidIntentScenarioAttempts: hasOverride("approvalsInvalidIntentScenarioAttempts")
         ? overrides.approvalsInvalidIntentScenarioAttempts
+        : 1,
+      sessionVersioningScenarioAttempts: hasOverride("sessionVersioningScenarioAttempts")
+        ? overrides.sessionVersioningScenarioAttempts
         : 1,
       uiVisualTestingScenarioAttempts: hasOverride("uiVisualTestingScenarioAttempts")
         ? overrides.uiVisualTestingScenarioAttempts
@@ -905,6 +909,22 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /kpi\.approvalsInvalidIntentScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when session versioning scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        sessionVersioningScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.sessionVersioningScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 

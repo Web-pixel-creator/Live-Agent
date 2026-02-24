@@ -156,6 +156,7 @@ function createPassingSummary(overrides?: {
     operatorDeviceNodesLifecycleScenarioAttempts: 1,
     approvalsListScenarioAttempts: 1,
     approvalsInvalidIntentScenarioAttempts: 1,
+    sessionVersioningScenarioAttempts: 1,
     uiVisualTestingScenarioAttempts: 1,
     operatorConsoleActionsScenarioAttempts: 1,
     runtimeLifecycleScenarioAttempts: 1,
@@ -253,7 +254,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 173);
+  assert.equal(result.payload.checks, 174);
 });
 
 test("demo-e2e policy check fails when assistant activity lifecycle KPI is missing", () => {
@@ -675,6 +676,25 @@ test("demo-e2e policy check fails when approvals invalid-intent scenario attempt
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.approvalsInvalidIntentScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when session versioning scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        sessionVersioningScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.sessionVersioningScenarioAttempts")));
 });
 
 test("demo-e2e policy check fails when runtime lifecycle scenario attempts exceed configured retry max", () => {

@@ -576,6 +576,20 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     )
   }
 
+  $sessionVersioningScenarioAttempts = To-NumberOrNaN $summary.kpis.sessionVersioningScenarioAttempts
+  if (
+    [double]::IsNaN($sessionVersioningScenarioAttempts) -or
+    $sessionVersioningScenarioAttempts -lt 1 -or
+    $sessionVersioningScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.sessionVersioningScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.sessionVersioningScenarioAttempts
+    )
+  }
+
   $uiVisualTestingScenarioAttempts = To-NumberOrNaN $summary.kpis.uiVisualTestingScenarioAttempts
   if (
     [double]::IsNaN($uiVisualTestingScenarioAttempts) -or
@@ -878,6 +892,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $operatorDeviceNodesLifecycleAttempts = $summary.kpis.operatorDeviceNodesLifecycleScenarioAttempts
   $approvalsListAttempts = $summary.kpis.approvalsListScenarioAttempts
   $approvalsInvalidIntentAttempts = $summary.kpis.approvalsInvalidIntentScenarioAttempts
+  $sessionVersioningAttempts = $summary.kpis.sessionVersioningScenarioAttempts
   $uiVisualAttempts = $summary.kpis.uiVisualTestingScenarioAttempts
   $operatorActionsAttempts = $summary.kpis.operatorConsoleActionsScenarioAttempts
   $runtimeLifecycleAttempts = $summary.kpis.runtimeLifecycleScenarioAttempts
@@ -897,6 +912,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     $null -ne $operatorDeviceNodesLifecycleAttempts -or
     $null -ne $approvalsListAttempts -or
     $null -ne $approvalsInvalidIntentAttempts -or
+    $null -ne $sessionVersioningAttempts -or
     $null -ne $uiVisualAttempts -or
     $null -ne $operatorActionsAttempts -or
     $null -ne $runtimeLifecycleAttempts -or
@@ -918,6 +934,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", operator.device_nodes.lifecycle_attempts=" + $operatorDeviceNodesLifecycleAttempts +
       ", api.approvals.list_attempts=" + $approvalsListAttempts +
       ", api.approvals.resume.invalid_intent_attempts=" + $approvalsInvalidIntentAttempts +
+      ", api.sessions.versioning_attempts=" + $sessionVersioningAttempts +
       ", ui.visual_testing_attempts=" + $uiVisualAttempts +
       ", operator.console.actions_attempts=" + $operatorActionsAttempts +
       ", runtime.lifecycle.endpoints_attempts=" + $runtimeLifecycleAttempts +

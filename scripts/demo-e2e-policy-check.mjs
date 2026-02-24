@@ -922,6 +922,16 @@ async function main() {
     kpis.approvalsInvalidIntentScenarioAttempts,
     "1..options.scenarioRetryMaxAttempts",
   );
+  const sessionVersioningScenarioAttempts = toNumber(kpis.sessionVersioningScenarioAttempts);
+  addCheck(
+    "kpi.sessionVersioningScenarioAttempts",
+    Number.isFinite(sessionVersioningScenarioAttempts) &&
+      sessionVersioningScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      sessionVersioningScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.sessionVersioningScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
   const uiVisualTestingScenarioAttempts = toNumber(kpis.uiVisualTestingScenarioAttempts);
   addCheck(
     "kpi.uiVisualTestingScenarioAttempts",

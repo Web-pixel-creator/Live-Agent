@@ -144,6 +144,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `kpi.operatorDeviceNodesLifecycleScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.approvalsListScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.approvalsInvalidIntentScenarioAttempts <= options.scenarioRetryMaxAttempts`
+  - `kpi.sessionVersioningScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.uiVisualTestingScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.operatorConsoleActionsScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.runtimeLifecycleScenarioAttempts <= options.scenarioRetryMaxAttempts`

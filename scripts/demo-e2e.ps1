@@ -2404,29 +2404,40 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "api.sessions.versioning" -Action {
+  Invoke-Scenario `
+    -Name "api.sessions.versioning" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($sessionId)) -Message "Session versioning scenario requires a valid sessionId."
 
-    $initialVersion = [int](Get-FieldValue -Object $sessionCreateResponse -Path @("data", "version"))
-    Assert-Condition -Condition ($initialVersion -ge 1) -Message "Session create response should include version >= 1."
+    $sessionsSnapshot = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/sessions?limit=200" -TimeoutSec $RequestTimeoutSec
+    $sessionsData = @((Get-FieldValue -Object $sessionsSnapshot -Path @("data")))
+    $sessionSnapshot = @($sessionsData | Where-Object { [string]$_.sessionId -eq $sessionId } | Select-Object -First 1)
+    Assert-Condition -Condition ($sessionSnapshot.Count -gt 0) -Message "Session versioning scenario could not resolve current session snapshot."
+    $baselineVersion = [int](Get-FieldValue -Object $sessionSnapshot[0] -Path @("version"))
+    $baselineStatus = [string](Get-FieldValue -Object $sessionSnapshot[0] -Path @("status"))
+    Assert-Condition -Condition ($baselineVersion -ge 1) -Message "Session snapshot should include version >= 1."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($baselineStatus)) -Message "Session snapshot should include non-empty status."
 
     $mutationId = "demo-session-versioning-" + [Guid]::NewGuid().Guid
     $pauseResponse = Invoke-JsonRequest -Method PATCH -Uri "http://localhost:8081/v1/sessions/$([System.Uri]::EscapeDataString($sessionId))" -Body @{
       status = "paused"
-      expectedVersion = $initialVersion
+      expectedVersion = $baselineVersion
       idempotencyKey = $mutationId
     } -TimeoutSec $RequestTimeoutSec
     $pauseSession = Get-FieldValue -Object $pauseResponse -Path @("data")
     $pauseVersion = [int](Get-FieldValue -Object $pauseSession -Path @("version"))
     $pauseStatus = [string](Get-FieldValue -Object $pauseSession -Path @("status"))
     $pauseOutcome = [string](Get-FieldValue -Object $pauseResponse -Path @("meta", "outcome"))
-    Assert-Condition -Condition ($pauseVersion -gt $initialVersion) -Message "Session version should increment after pause update."
+    Assert-Condition -Condition ($pauseVersion -gt $baselineVersion) -Message "Session version should increment after pause update."
     Assert-Condition -Condition ($pauseStatus -eq "paused") -Message "Session status should become paused."
     Assert-Condition -Condition ($pauseOutcome -eq "updated") -Message "Initial session mutation should return outcome=updated."
 
     $replayResponse = Invoke-JsonRequest -Method PATCH -Uri "http://localhost:8081/v1/sessions/$([System.Uri]::EscapeDataString($sessionId))" -Body @{
       status = "paused"
-      expectedVersion = $initialVersion
+      expectedVersion = $baselineVersion
       idempotencyKey = $mutationId
     } -TimeoutSec $RequestTimeoutSec
     $replaySession = Get-FieldValue -Object $replayResponse -Path @("data")
@@ -2439,7 +2450,7 @@ try {
 
     $versionConflictResponse = Invoke-JsonRequestExpectStatus -Method PATCH -Uri "http://localhost:8081/v1/sessions/$([System.Uri]::EscapeDataString($sessionId))" -Body @{
       status = "active"
-      expectedVersion = $initialVersion
+      expectedVersion = $baselineVersion
       idempotencyKey = ("demo-session-version-conflict-" + [Guid]::NewGuid().Guid)
     } -ExpectedStatusCode 409 -TimeoutSec $RequestTimeoutSec
     $versionConflictCode = [string](Get-FieldValue -Object $versionConflictResponse -Path @("body", "error", "code"))
@@ -2467,7 +2478,8 @@ try {
     Assert-Condition -Condition ($restoreOutcome -eq "updated") -Message "Session restore should return outcome=updated."
 
     return [ordered]@{
-      initialVersion = $initialVersion
+      baselineVersion = $baselineVersion
+      baselineStatus = $baselineStatus
       pausedVersion = $pauseVersion
       pausedStatus = $pauseStatus
       idempotencyReplayOutcome = $replayOutcome
@@ -2757,6 +2769,7 @@ $delegationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "mu
 $operatorDeviceNodesScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "operator.device_nodes.lifecycle" } | Select-Object -First 1)
 $approvalsListScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.approvals.list" } | Select-Object -First 1)
 $approvalsInvalidIntentScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.approvals.resume.invalid_intent" } | Select-Object -First 1)
+$sessionVersioningScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.sessions.versioning" } | Select-Object -First 1)
 $uiVisualTestingScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.visual_testing" } | Select-Object -First 1)
 $operatorActionsScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "operator.console.actions" } | Select-Object -First 1)
 $runtimeLifecycleScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "runtime.lifecycle.endpoints" } | Select-Object -First 1)
@@ -2923,6 +2936,7 @@ $summary = [ordered]@{
     operatorDeviceNodesLifecycleScenarioAttempts = if ($operatorDeviceNodesScenario.Count -gt 0) { [int]$operatorDeviceNodesScenario[0].attempts } else { $null }
     approvalsListScenarioAttempts = if ($approvalsListScenario.Count -gt 0) { [int]$approvalsListScenario[0].attempts } else { $null }
     approvalsInvalidIntentScenarioAttempts = if ($approvalsInvalidIntentScenario.Count -gt 0) { [int]$approvalsInvalidIntentScenario[0].attempts } else { $null }
+    sessionVersioningScenarioAttempts = if ($sessionVersioningScenario.Count -gt 0) { [int]$sessionVersioningScenario[0].attempts } else { $null }
     uiVisualTestingScenarioAttempts = if ($uiVisualTestingScenario.Count -gt 0) { [int]$uiVisualTestingScenario[0].attempts } else { $null }
     operatorConsoleActionsScenarioAttempts = if ($operatorActionsScenario.Count -gt 0) { [int]$operatorActionsScenario[0].attempts } else { $null }
     runtimeLifecycleScenarioAttempts = if ($runtimeLifecycleScenario.Count -gt 0) { [int]$runtimeLifecycleScenario[0].attempts } else { $null }
@@ -3137,7 +3151,9 @@ $summary = [ordered]@{
     sessionStatusRestored = if ($null -ne $sessionVersioningData) { $sessionVersioningData.restoredStatus } else { $null }
     sessionVersioningValidated = if (
       $null -ne $sessionVersioningData -and
-      [int]$sessionVersioningData.pausedVersion -gt [int]$sessionVersioningData.initialVersion -and
+      [int]$sessionVersioningData.baselineVersion -ge 1 -and
+      @("active", "paused") -contains [string]$sessionVersioningData.baselineStatus -and
+      [int]$sessionVersioningData.pausedVersion -gt [int]$sessionVersioningData.baselineVersion -and
       [string]$sessionVersioningData.pausedStatus -eq "paused" -and
       [string]$sessionVersioningData.idempotencyReplayOutcome -eq "idempotent_replay" -and
       [string]$sessionVersioningData.versionConflictCode -eq "API_SESSION_VERSION_CONFLICT" -and
