@@ -115,9 +115,12 @@ for (const { name, Ctor } of exporters) {
         const exporter = new Ctor({ serviceName: `${name}-svc` });
         assert.deepEqual(exporter.snapshot(), {
           enabled: true,
+          requestedEnabled: true,
           reason: "enabled",
           metricsTarget: "cloud_monitoring",
           eventsTarget: "bigquery",
+          splitValid: true,
+          bigQueryConfigValid: true,
           sampleRate: 0.7,
           bigQueryDataset: "agent_analytics",
           bigQueryTable: "events",
@@ -140,9 +143,12 @@ for (const { name, Ctor } of exporters) {
         const exporter = new Ctor({ serviceName: `${name}-svc` });
         assert.deepEqual(exporter.snapshot(), {
           enabled: false,
+          requestedEnabled: false,
           reason: "ANALYTICS_EXPORT_ENABLED=false",
           metricsTarget: "cloud_monitoring",
           eventsTarget: "bigquery",
+          splitValid: true,
+          bigQueryConfigValid: false,
           sampleRate: 1,
           bigQueryDataset: null,
           bigQueryTable: null,
@@ -158,8 +164,8 @@ for (const { name, Ctor } of exporters) {
         ANALYTICS_EXPORT_METRICS_TARGET: "cloud_monitoring",
         ANALYTICS_EXPORT_EVENTS_TARGET: "bigquery",
         ANALYTICS_EXPORT_SAMPLE_RATE: "1",
-        ANALYTICS_BIGQUERY_DATASET: undefined,
-        ANALYTICS_BIGQUERY_TABLE: undefined,
+        ANALYTICS_BIGQUERY_DATASET: "agent_analytics",
+        ANALYTICS_BIGQUERY_TABLE: "event_rollups",
         ANALYTICS_LOG_NAME: "mla_analytics",
       },
       async () => {
@@ -202,6 +208,8 @@ for (const { name, Ctor } of exporters) {
         ANALYTICS_EXPORT_METRICS_TARGET: "cloud_monitoring",
         ANALYTICS_EXPORT_EVENTS_TARGET: "bigquery",
         ANALYTICS_EXPORT_SAMPLE_RATE: "1",
+        ANALYTICS_BIGQUERY_DATASET: "agent_analytics",
+        ANALYTICS_BIGQUERY_TABLE: "event_rollups",
       },
       async () => {
         const exporter = new Ctor({ serviceName: `${name}-svc` });
@@ -283,6 +291,8 @@ for (const { name, Ctor } of exporters) {
         ANALYTICS_EXPORT_METRICS_TARGET: "cloud_monitoring",
         ANALYTICS_EXPORT_EVENTS_TARGET: "bigquery",
         ANALYTICS_EXPORT_SAMPLE_RATE: "1",
+        ANALYTICS_BIGQUERY_DATASET: "agent_analytics",
+        ANALYTICS_BIGQUERY_TABLE: "event_rollups",
       },
       async () => {
         const exporter = new Ctor({ serviceName: `${name}-svc` });
@@ -317,6 +327,8 @@ for (const { name, Ctor } of exporters) {
         ANALYTICS_EXPORT_METRICS_TARGET: "cloud_monitoring",
         ANALYTICS_EXPORT_EVENTS_TARGET: "bigquery",
         ANALYTICS_EXPORT_SAMPLE_RATE: "0.4",
+        ANALYTICS_BIGQUERY_DATASET: "agent_analytics",
+        ANALYTICS_BIGQUERY_TABLE: "event_rollups",
       },
       async () => {
         const exporter = new Ctor({ serviceName: `${name}-svc` });
@@ -337,6 +349,60 @@ for (const { name, Ctor } of exporters) {
           }),
         );
         assert.equal(emitted.length, 1);
+      },
+    );
+  });
+
+  test(`${name}: analytics split guard disables invalid target pairing`, { concurrency: false }, async () => {
+    await withEnv(
+      {
+        ANALYTICS_EXPORT_ENABLED: "true",
+        ANALYTICS_EXPORT_METRICS_TARGET: "bigquery",
+        ANALYTICS_EXPORT_EVENTS_TARGET: "bigquery",
+        ANALYTICS_EXPORT_SAMPLE_RATE: "1",
+        ANALYTICS_BIGQUERY_DATASET: "agent_analytics",
+        ANALYTICS_BIGQUERY_TABLE: "events",
+      },
+      async () => {
+        const exporter = new Ctor({ serviceName: `${name}-svc` });
+        const snapshot = exporter.snapshot();
+        assert.equal(snapshot.enabled, false);
+        assert.equal(snapshot.requestedEnabled, true);
+        assert.equal(snapshot.splitValid, false);
+        assert.equal(snapshot.reason, "ANALYTICS_SPLIT_INVALID");
+
+        const records = await captureAnalyticsLogs(() => {
+          exporter.recordMetric({
+            metricType: "guard.invalid_split.metric",
+            value: 1,
+          });
+          exporter.recordEvent({
+            eventType: "guard.invalid_split.event",
+          });
+        });
+        assert.equal(records.length, 0);
+      },
+    );
+  });
+
+  test(`${name}: analytics guard requires BigQuery dataset/table when events target is bigquery`, { concurrency: false }, async () => {
+    await withEnv(
+      {
+        ANALYTICS_EXPORT_ENABLED: "true",
+        ANALYTICS_EXPORT_METRICS_TARGET: "cloud_monitoring",
+        ANALYTICS_EXPORT_EVENTS_TARGET: "bigquery",
+        ANALYTICS_EXPORT_SAMPLE_RATE: "1",
+        ANALYTICS_BIGQUERY_DATASET: undefined,
+        ANALYTICS_BIGQUERY_TABLE: undefined,
+      },
+      async () => {
+        const exporter = new Ctor({ serviceName: `${name}-svc` });
+        const snapshot = exporter.snapshot();
+        assert.equal(snapshot.enabled, false);
+        assert.equal(snapshot.requestedEnabled, true);
+        assert.equal(snapshot.splitValid, true);
+        assert.equal(snapshot.bigQueryConfigValid, false);
+        assert.equal(snapshot.reason, "ANALYTICS_BIGQUERY_CONFIG_INVALID");
       },
     );
   });

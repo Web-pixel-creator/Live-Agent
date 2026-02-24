@@ -43,6 +43,10 @@ function createPassingSummary(
     operatorConsoleActionsScenarioAttempts: number | string;
     scenarioRetryableFailuresTotal: number | string;
     analyticsSplitTargetsValidated: boolean | string;
+    analyticsBigQueryConfigValidated: boolean | string;
+    analyticsServicesValidated: number | string;
+    analyticsRequestedEnabledServices: number | string;
+    analyticsEnabledServices: number | string;
     assistiveRouterDiagnosticsValidated: boolean | string;
     assistiveRouterMode: string;
     transportModeValidated: boolean | string;
@@ -96,6 +100,14 @@ function createPassingSummary(
       analyticsSplitTargetsValidated: hasOverride("analyticsSplitTargetsValidated")
         ? overrides.analyticsSplitTargetsValidated
         : true,
+      analyticsBigQueryConfigValidated: hasOverride("analyticsBigQueryConfigValidated")
+        ? overrides.analyticsBigQueryConfigValidated
+        : true,
+      analyticsServicesValidated: hasOverride("analyticsServicesValidated") ? overrides.analyticsServicesValidated : 4,
+      analyticsRequestedEnabledServices: hasOverride("analyticsRequestedEnabledServices")
+        ? overrides.analyticsRequestedEnabledServices
+        : 4,
+      analyticsEnabledServices: hasOverride("analyticsEnabledServices") ? overrides.analyticsEnabledServices : 4,
       assistiveRouterDiagnosticsValidated: hasOverride("assistiveRouterDiagnosticsValidated")
         ? overrides.assistiveRouterDiagnosticsValidated
         : true,
@@ -672,6 +684,50 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /analyticsSplitTargetsValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when analytics BigQuery config KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ analyticsBigQueryConfigValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /analyticsBigQueryConfigValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when analytics services validated count is below threshold",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ analyticsServicesValidated: 3 }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.analyticsServicesValidated expected >= 4, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when analytics requested-enabled service count is below threshold",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ analyticsRequestedEnabledServices: 3 }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.analyticsRequestedEnabledServices expected >= 4, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when analytics enabled service count is below threshold",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ analyticsEnabledServices: 3 }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.analyticsEnabledServices expected >= 4, actual 3/i);
   },
 );
 

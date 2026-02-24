@@ -107,6 +107,12 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
 - Live Agent reliability:
   - `assistantActivityLifecycleValidated=true`
   - `liveContextCompactionValidated=true`
+- Telemetry split reliability:
+  - `analyticsSplitTargetsValidated=true`
+  - `analyticsBigQueryConfigValidated=true`
+  - `kpi.analyticsServicesValidated >= 4`
+  - `kpi.analyticsRequestedEnabledServices >= 4`
+  - `kpi.analyticsEnabledServices >= 4`
 - Storyteller reliability:
   - `storytellerVideoAsyncValidated=true`
   - `storytellerMediaQueueVisible=true`

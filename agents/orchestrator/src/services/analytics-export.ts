@@ -4,9 +4,12 @@ type AnalyticsLabels = Record<string, string | number | boolean>;
 
 export type AnalyticsStatus = {
   enabled: boolean;
+  requestedEnabled: boolean;
   reason: string;
   metricsTarget: AnalyticsTarget;
   eventsTarget: AnalyticsTarget;
+  splitValid: boolean;
+  bigQueryConfigValid: boolean;
   sampleRate: number;
   bigQueryDataset: string | null;
   bigQueryTable: string | null;
@@ -121,7 +124,7 @@ export class AnalyticsExporter {
 
   constructor(params: { serviceName: string }) {
     this.serviceName = params.serviceName;
-    const enabled = parseBool(process.env.ANALYTICS_EXPORT_ENABLED, false);
+    const requestedEnabled = parseBool(process.env.ANALYTICS_EXPORT_ENABLED, false);
     const metricsTarget = parseTarget(process.env.ANALYTICS_EXPORT_METRICS_TARGET, "cloud_monitoring");
     const eventsTarget = parseTarget(process.env.ANALYTICS_EXPORT_EVENTS_TARGET, "bigquery");
     const sampleRate = parseSampleRate(process.env.ANALYTICS_EXPORT_SAMPLE_RATE);
@@ -133,12 +136,28 @@ export class AnalyticsExporter {
       typeof process.env.ANALYTICS_BIGQUERY_TABLE === "string" && process.env.ANALYTICS_BIGQUERY_TABLE.trim()
         ? process.env.ANALYTICS_BIGQUERY_TABLE.trim()
         : null;
+    const splitValid = metricsTarget === "cloud_monitoring" && eventsTarget === "bigquery";
+    const bigQueryConfigValid = eventsTarget !== "bigquery" || (bigQueryDataset !== null && bigQueryTable !== null);
+
+    let reason = "ANALYTICS_EXPORT_ENABLED=false";
+    if (requestedEnabled) {
+      if (!splitValid) {
+        reason = "ANALYTICS_SPLIT_INVALID";
+      } else if (!bigQueryConfigValid) {
+        reason = "ANALYTICS_BIGQUERY_CONFIG_INVALID";
+      } else {
+        reason = "enabled";
+      }
+    }
 
     this.status = {
-      enabled,
-      reason: enabled ? "enabled" : "ANALYTICS_EXPORT_ENABLED=false",
+      enabled: requestedEnabled && splitValid && bigQueryConfigValid,
+      requestedEnabled,
+      reason,
       metricsTarget,
       eventsTarget,
+      splitValid,
+      bigQueryConfigValid,
       sampleRate,
       bigQueryDataset,
       bigQueryTable,

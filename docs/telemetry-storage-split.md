@@ -34,12 +34,20 @@ Services (`realtime-gateway`, `api-backend`, `orchestrator`) now emit:
 
 Runtime gate alignment:
 
-1. `runtime.lifecycle.endpoints` validates telemetry split targets for enabled analytics services:
-   - `metricsTarget` must be `cloud_monitoring`
-   - `eventsTarget` must be `bigquery`
-2. Summary KPI `analyticsSplitTargetsValidated=true` is enforced by:
+1. `runtime.lifecycle.endpoints` validates telemetry split targets and BigQuery config for all runtime services:
+   - `requestedEnabled=true`
+   - `enabled=true`
+   - `metricsTarget=cloud_monitoring`
+   - `eventsTarget=bigquery`
+   - `bigQueryDataset` + `bigQueryTable` present
+2. Summary KPIs are enforced by:
    - `demo:e2e:policy`
    - `release-readiness`
+3. Required telemetry KPIs for a passing run:
+   - `analyticsSplitTargetsValidated=true`
+   - `analyticsBigQueryConfigValidated=true`
+   - `analyticsRequestedEnabledServices >= 4`
+   - `analyticsEnabledServices >= 4`
 
 The export transport is structured stdout logs (`[analytics] { ...json... }`), designed for Cloud Logging ingestion and downstream sinks.
 

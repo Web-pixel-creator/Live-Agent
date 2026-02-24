@@ -867,6 +867,11 @@ try {
   Set-EnvDefault -Name "UI_EXECUTOR_FORCE_SIMULATION" -Value "true"
   Set-EnvDefault -Name "DEMO_E2E_SERVICE_START_MAX_ATTEMPTS" -Value "2"
   Set-EnvDefault -Name "DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS" -Value "1200"
+  Set-EnvDefault -Name "ANALYTICS_EXPORT_ENABLED" -Value "true"
+  Set-EnvDefault -Name "ANALYTICS_EXPORT_METRICS_TARGET" -Value "cloud_monitoring"
+  Set-EnvDefault -Name "ANALYTICS_EXPORT_EVENTS_TARGET" -Value "bigquery"
+  Set-EnvDefault -Name "ANALYTICS_BIGQUERY_DATASET" -Value "agent_analytics"
+  Set-EnvDefault -Name "ANALYTICS_BIGQUERY_TABLE" -Value "analytics_event_rollups"
   Set-EnvDefault -Name "LIVE_AGENT_CONTEXT_COMPACTION_ENABLED" -Value "true"
   Set-EnvDefault -Name "LIVE_AGENT_CONTEXT_MAX_TOKENS" -Value "120"
   Set-EnvDefault -Name "LIVE_AGENT_CONTEXT_TARGET_TOKENS" -Value "60"
@@ -2354,18 +2359,27 @@ try {
       $runtimeAnalytics = Get-FieldValue -Object $statusBefore -Path @("runtime", "analytics")
       Assert-Condition -Condition ($null -ne $runtimeAnalytics) -Message ("Missing runtime analytics block in /status for " + $serviceName)
       $analyticsEnabled = [bool](Get-FieldValue -Object $runtimeAnalytics -Path @("enabled"))
+      $analyticsRequestedEnabled = [bool](Get-FieldValue -Object $runtimeAnalytics -Path @("requestedEnabled"))
       $analyticsReason = [string](Get-FieldValue -Object $runtimeAnalytics -Path @("reason"))
       $analyticsMetricsTarget = [string](Get-FieldValue -Object $runtimeAnalytics -Path @("metricsTarget"))
       $analyticsEventsTarget = [string](Get-FieldValue -Object $runtimeAnalytics -Path @("eventsTarget"))
+      $analyticsSplitValid = [bool](Get-FieldValue -Object $runtimeAnalytics -Path @("splitValid"))
+      $analyticsBigQueryConfigValid = [bool](Get-FieldValue -Object $runtimeAnalytics -Path @("bigQueryConfigValid"))
+      $analyticsBigQueryDataset = [string](Get-FieldValue -Object $runtimeAnalytics -Path @("bigQueryDataset"))
+      $analyticsBigQueryTable = [string](Get-FieldValue -Object $runtimeAnalytics -Path @("bigQueryTable"))
       $analyticsSampleRate = [double](Get-FieldValue -Object $runtimeAnalytics -Path @("sampleRate"))
       Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($analyticsReason)) -Message ("Missing analytics reason in /status for " + $serviceName)
       Assert-Condition -Condition (@("disabled", "cloud_monitoring", "bigquery") -contains $analyticsMetricsTarget) -Message ("Invalid analytics metrics target for " + $serviceName)
       Assert-Condition -Condition (@("disabled", "cloud_monitoring", "bigquery") -contains $analyticsEventsTarget) -Message ("Invalid analytics events target for " + $serviceName)
       Assert-Condition -Condition ($analyticsSampleRate -ge 0 -and $analyticsSampleRate -le 1) -Message ("Invalid analytics sampleRate for " + $serviceName)
-      if ($analyticsEnabled) {
-        Assert-Condition -Condition ($analyticsMetricsTarget -eq "cloud_monitoring") -Message ("Enabled analytics must use cloud_monitoring metrics target for " + $serviceName)
-        Assert-Condition -Condition ($analyticsEventsTarget -eq "bigquery") -Message ("Enabled analytics must use bigquery events target for " + $serviceName)
-      }
+      Assert-Condition -Condition $analyticsRequestedEnabled -Message ("Analytics requestedEnabled should be true for demo runtime in " + $serviceName)
+      Assert-Condition -Condition $analyticsEnabled -Message ("Analytics runtime should be enabled for demo runtime in " + $serviceName)
+      Assert-Condition -Condition $analyticsSplitValid -Message ("Analytics splitValid should be true for " + $serviceName)
+      Assert-Condition -Condition $analyticsBigQueryConfigValid -Message ("Analytics BigQuery config should be valid for " + $serviceName)
+      Assert-Condition -Condition ($analyticsMetricsTarget -eq "cloud_monitoring") -Message ("Enabled analytics must use cloud_monitoring metrics target for " + $serviceName)
+      Assert-Condition -Condition ($analyticsEventsTarget -eq "bigquery") -Message ("Enabled analytics must use bigquery events target for " + $serviceName)
+      Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($analyticsBigQueryDataset)) -Message ("Analytics bigQueryDataset should be configured for " + $serviceName)
+      Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($analyticsBigQueryTable)) -Message ("Analytics bigQueryTable should be configured for " + $serviceName)
 
       $transportRequestedMode = $null
       $transportActiveMode = $null
@@ -2423,9 +2437,14 @@ try {
         runtimeEnvironment = $profileEnvironment
         runtimeLocalFirst = $profileLocalFirst
         analyticsEnabled = $analyticsEnabled
+        analyticsRequestedEnabled = $analyticsRequestedEnabled
         analyticsReason = $analyticsReason
         analyticsMetricsTarget = $analyticsMetricsTarget
         analyticsEventsTarget = $analyticsEventsTarget
+        analyticsSplitValid = $analyticsSplitValid
+        analyticsBigQueryConfigValid = $analyticsBigQueryConfigValid
+        analyticsBigQueryDataset = $analyticsBigQueryDataset
+        analyticsBigQueryTable = $analyticsBigQueryTable
         analyticsSampleRate = $analyticsSampleRate
         transportRequestedMode = $transportRequestedMode
         transportActiveMode = $transportActiveMode
@@ -2444,7 +2463,16 @@ try {
       if ([string]::IsNullOrWhiteSpace($analyticsReason)) {
         $analyticsValidated = $false
       }
-      if ($analyticsEnabled -and ($analyticsMetricsTarget -ne "cloud_monitoring" -or $analyticsEventsTarget -ne "bigquery")) {
+      if (
+        (-not $analyticsRequestedEnabled) -or
+        (-not $analyticsEnabled) -or
+        (-not $analyticsSplitValid) -or
+        (-not $analyticsBigQueryConfigValid) -or
+        ($analyticsMetricsTarget -ne "cloud_monitoring") -or
+        ($analyticsEventsTarget -ne "bigquery") -or
+        [string]::IsNullOrWhiteSpace($analyticsBigQueryDataset) -or
+        [string]::IsNullOrWhiteSpace($analyticsBigQueryTable)
+      ) {
         $analyticsSplitTargetsValidated = $false
       }
       if ($serviceName -eq "realtime-gateway" -and [string]::IsNullOrWhiteSpace($transportActiveMode)) {
@@ -2460,8 +2488,10 @@ try {
       profileValidated = $profileValidated
       analyticsValidated = $analyticsValidated
       analyticsSplitTargetsValidated = $analyticsSplitTargetsValidated
+      analyticsBigQueryConfigValidated = (@($results | Where-Object { $_.analyticsBigQueryConfigValid -eq $true })).Count -eq $results.Count
       transportValidated = $transportValidated
       analyticsServices = (@($results | Where-Object { -not [string]::IsNullOrWhiteSpace($_.analyticsReason) })).Count
+      analyticsRequestedEnabledServices = (@($results | Where-Object { $_.analyticsRequestedEnabled -eq $true })).Count
       analyticsEnabledServices = (@($results | Where-Object { $_.analyticsEnabled -eq $true })).Count
       transportServices = (@($results | Where-Object { -not [string]::IsNullOrWhiteSpace($_.transportActiveMode) })).Count
       gatewayTransportRequestedMode = if ($null -ne $gatewayTransport) { $gatewayTransport.transportRequestedMode } else { $null }
@@ -2927,6 +2957,8 @@ $summary = [ordered]@{
     analyticsRuntimeVisible = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsValidated } else { $false }
     analyticsServicesValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsServices } else { $null }
     analyticsSplitTargetsValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsSplitTargetsValidated } else { $false }
+    analyticsBigQueryConfigValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsBigQueryConfigValidated } else { $false }
+    analyticsRequestedEnabledServices = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsRequestedEnabledServices } else { $null }
     analyticsEnabledServices = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.analyticsEnabledServices } else { $null }
     transportModeValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.transportValidated } else { $false }
     transportServicesValidated = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.transportServices } else { $null }

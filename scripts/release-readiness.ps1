@@ -40,6 +40,9 @@ $ReleaseThresholds = @{
   MinScenarioRetryMaxAttempts = 2
   MinScenarioRetryBackoffMs = 500
   MaxScenarioRetriesUsedCount = 2
+  MinAnalyticsServicesValidated = 4
+  MinAnalyticsRequestedEnabledServices = 4
+  MinAnalyticsEnabledServices = 4
   MaxPerfLiveP95Ms = 1800
   MaxPerfUiP95Ms = 25000
   MaxPerfGatewayReplayP95Ms = 9000
@@ -454,6 +457,44 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $analyticsSplitTargetsValidated = To-BoolOrNull $summary.kpis.analyticsSplitTargetsValidated
   if ($analyticsSplitTargetsValidated -ne $true) {
     Fail ("Critical KPI check failed: analyticsSplitTargetsValidated expected True, actual " + $summary.kpis.analyticsSplitTargetsValidated)
+  }
+
+  $analyticsBigQueryConfigValidated = To-BoolOrNull $summary.kpis.analyticsBigQueryConfigValidated
+  if ($analyticsBigQueryConfigValidated -ne $true) {
+    Fail ("Critical KPI check failed: analyticsBigQueryConfigValidated expected True, actual " + $summary.kpis.analyticsBigQueryConfigValidated)
+  }
+
+  $analyticsServicesValidated = To-NumberOrNaN $summary.kpis.analyticsServicesValidated
+  if ([double]::IsNaN($analyticsServicesValidated) -or $analyticsServicesValidated -lt $ReleaseThresholds.MinAnalyticsServicesValidated) {
+    Fail (
+      "Critical KPI check failed: kpi.analyticsServicesValidated expected >= " +
+      $ReleaseThresholds.MinAnalyticsServicesValidated +
+      ", actual " +
+      $summary.kpis.analyticsServicesValidated
+    )
+  }
+
+  $analyticsRequestedEnabledServices = To-NumberOrNaN $summary.kpis.analyticsRequestedEnabledServices
+  if (
+    [double]::IsNaN($analyticsRequestedEnabledServices) -or
+    $analyticsRequestedEnabledServices -lt $ReleaseThresholds.MinAnalyticsRequestedEnabledServices
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.analyticsRequestedEnabledServices expected >= " +
+      $ReleaseThresholds.MinAnalyticsRequestedEnabledServices +
+      ", actual " +
+      $summary.kpis.analyticsRequestedEnabledServices
+    )
+  }
+
+  $analyticsEnabledServices = To-NumberOrNaN $summary.kpis.analyticsEnabledServices
+  if ([double]::IsNaN($analyticsEnabledServices) -or $analyticsEnabledServices -lt $ReleaseThresholds.MinAnalyticsEnabledServices) {
+    Fail (
+      "Critical KPI check failed: kpi.analyticsEnabledServices expected >= " +
+      $ReleaseThresholds.MinAnalyticsEnabledServices +
+      ", actual " +
+      $summary.kpis.analyticsEnabledServices
+    )
   }
 
   $assistiveRouterDiagnosticsValidated = To-BoolOrNull $summary.kpis.assistiveRouterDiagnosticsValidated

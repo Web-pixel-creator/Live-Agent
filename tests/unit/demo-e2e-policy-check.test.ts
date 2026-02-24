@@ -172,6 +172,9 @@ function createPassingSummary(overrides?: {
     analyticsRuntimeVisible: true,
     analyticsServicesValidated: 4,
     analyticsSplitTargetsValidated: true,
+    analyticsBigQueryConfigValidated: true,
+    analyticsRequestedEnabledServices: 4,
+    analyticsEnabledServices: 4,
     transportModeValidated: true,
     transportServicesValidated: 1,
     gatewayTransportRequestedMode: "websocket",
@@ -236,7 +239,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 156);
+  assert.equal(result.payload.checks, 159);
 });
 
 test("demo-e2e policy check fails when assistant activity lifecycle KPI is missing", () => {
@@ -608,6 +611,54 @@ test("demo-e2e policy check fails when analytics split targets KPI is invalid", 
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.analyticsSplitTargetsValidated")));
+});
+
+test("demo-e2e policy check fails when analytics BigQuery config KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        analyticsBigQueryConfigValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.analyticsBigQueryConfigValidated")));
+});
+
+test("demo-e2e policy check fails when analytics requested-enabled service count is below threshold", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        analyticsRequestedEnabledServices: 3,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.analyticsRequestedEnabledServices")));
+});
+
+test("demo-e2e policy check fails when analytics enabled service count is below threshold", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        analyticsEnabledServices: 3,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.analyticsEnabledServices")));
 });
 
 test("demo-e2e policy check fails when assistive router diagnostics KPI is invalid", () => {

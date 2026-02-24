@@ -9,9 +9,9 @@
 ## Verified Quality Gates
 
 1. `npm run verify:release` passes end-to-end.
-2. Demo e2e policy gate is green with `156` checks.
+2. Demo e2e policy gate is green with `159` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`230` tests passed).
+4. Unit tests are green (`243` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -115,6 +115,7 @@
 84. Added operator startup diagnostics end-to-end: `/v1/operator/summary` now exposes structured `startupFailures` (status/total/blocking/recent by service+type), demo frontend includes `Startup Failures` widget, `demo-e2e` emits startup KPI evidence (`operatorStartupDiagnosticsValidated`, status/total/blocking), policy gate enforces these KPIs, and anti-drift coverage added in `tests/unit/frontend-operator-startup-widget-alignment.test.ts` + `tests/unit/operator-summary-startup-failures-alignment.test.ts`.
 85. Synced startup diagnostics contract into specs: updated `requirements.md` (R15 acceptance criteria), `design.md` (operator summary + demo artifact validation contract), and `tasks.md` (T-210/T-210.5 DoD) with explicit `startupFailures` and `operatorStartupDiagnosticsValidated=true`; added anti-drift guard `tests/unit/spec-operator-startup-diagnostics-alignment.test.ts`.
 86. Added Live Agent context-compaction proof to judged gates: `demo-e2e` now runs `live.context_compaction` scenario and emits `liveContextCompaction*` KPIs, policy gate enforces compaction contract (`kpi.liveContextCompactionValidated=true` + summary/retained-turn constraints), `release-readiness` treats `liveContextCompactionValidated=true` as critical, runbook documents the KPI, and anti-drift coverage added in `tests/unit/spec-live-context-compaction-alignment.test.ts`.
+87. Hardened telemetry split gates end-to-end (T-221): analytics exporters now require valid split+BigQuery config (`requestedEnabled/splitValid/bigQueryConfigValid`), demo e2e runtime lifecycle enforces enabled telemetry across all managed services, policy gate enforces `analyticsBigQueryConfigValidated=true`, `analyticsRequestedEnabledServices>=4`, `analyticsEnabledServices>=4`, and release-readiness now treats these KPIs as release-critical.
 
 ## Current Focus Queue
 

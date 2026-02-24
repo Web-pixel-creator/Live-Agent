@@ -131,6 +131,15 @@ async function main() {
   const maxScenarioRetriesUsedCount = Number.isFinite(toNumber(args.maxScenarioRetriesUsedCount))
     ? toNumber(args.maxScenarioRetriesUsedCount)
     : 2;
+  const minAnalyticsServicesValidated = Number.isFinite(toNumber(args.minAnalyticsServicesValidated))
+    ? toNumber(args.minAnalyticsServicesValidated)
+    : 4;
+  const minAnalyticsRequestedEnabledServices = Number.isFinite(toNumber(args.minAnalyticsRequestedEnabledServices))
+    ? toNumber(args.minAnalyticsRequestedEnabledServices)
+    : 4;
+  const minAnalyticsEnabledServices = Number.isFinite(toNumber(args.minAnalyticsEnabledServices))
+    ? toNumber(args.minAnalyticsEnabledServices)
+    : 4;
   const minApprovalsRecorded = Number.isFinite(toNumber(args.minApprovalsRecorded))
     ? toNumber(args.minApprovalsRecorded)
     : 1;
@@ -979,15 +988,33 @@ async function main() {
   );
   addCheck(
     "kpi.analyticsServicesValidated",
-    toNumber(kpis.analyticsServicesValidated) >= 4,
+    toNumber(kpis.analyticsServicesValidated) >= minAnalyticsServicesValidated,
     kpis.analyticsServicesValidated,
-    ">= 4",
+    `>= ${minAnalyticsServicesValidated}`,
   );
   addCheck(
     "kpi.analyticsSplitTargetsValidated",
     kpis.analyticsSplitTargetsValidated === true,
     kpis.analyticsSplitTargetsValidated,
     true,
+  );
+  addCheck(
+    "kpi.analyticsBigQueryConfigValidated",
+    kpis.analyticsBigQueryConfigValidated === true,
+    kpis.analyticsBigQueryConfigValidated,
+    true,
+  );
+  addCheck(
+    "kpi.analyticsRequestedEnabledServices",
+    toNumber(kpis.analyticsRequestedEnabledServices) >= minAnalyticsRequestedEnabledServices,
+    kpis.analyticsRequestedEnabledServices,
+    `>= ${minAnalyticsRequestedEnabledServices}`,
+  );
+  addCheck(
+    "kpi.analyticsEnabledServices",
+    toNumber(kpis.analyticsEnabledServices) >= minAnalyticsEnabledServices,
+    kpis.analyticsEnabledServices,
+    `>= ${minAnalyticsEnabledServices}`,
   );
   addCheck(
     "kpi.transportModeValidated",
@@ -1066,6 +1093,9 @@ async function main() {
       minScenarioRetryMaxAttempts,
       minScenarioRetryBackoffMs,
       maxScenarioRetriesUsedCount,
+      minAnalyticsServicesValidated,
+      minAnalyticsRequestedEnabledServices,
+      minAnalyticsEnabledServices,
       minApprovalsRecorded,
       maxUiApprovalResumeElapsedMs,
       minUiApprovalResumeRequestAttempts,
