@@ -29,6 +29,26 @@ function Fail([string]$Message) {
   exit 1
 }
 
+function Get-ExceptionPropertyValue {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Exception,
+    [Parameter(Mandatory = $true)]
+    [string]$Name
+  )
+
+  if ($null -eq $Exception) {
+    return $null
+  }
+
+  $property = $Exception.PSObject.Properties[$Name]
+  if ($null -eq $property) {
+    return $null
+  }
+
+  return $property.Value
+}
+
 function Write-Utf8NoBomFile {
   param(
     [Parameter(Mandatory = $true)]
@@ -78,7 +98,7 @@ function Get-HttpStatusCode([object]$ErrorRecord) {
       return 0
     }
 
-    $response = $ErrorRecord.Exception.Response
+    $response = Get-ExceptionPropertyValue -Exception $ErrorRecord.Exception -Name "Response"
     if ($null -eq $response) {
       return 0
     }

@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `160` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`249` tests passed).
+4. Unit tests are green (`250` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -125,6 +125,8 @@
 94. Added anti-regression coverage `tests/unit/demo-e2e-summary-encoding.test.ts` to enforce no-BOM summary write path and prevent fallback to `Set-Content -Encoding UTF8` for the demo summary artifact.
 95. Extended no-BOM artifact writing to release revalidation flows: `scripts/release-artifact-only-smoke.ps1` and `scripts/release-artifact-revalidate.ps1` now persist generated JSON artifacts/manifests via UTF-8 no-BOM helper (`Write-Utf8NoBomFile`) for consistent cross-tool parsing.
 96. Added cross-script anti-drift coverage `tests/unit/artifact-json-encoding-alignment.test.ts` to ensure demo/release artifact JSON outputs stay on helper-based UTF-8 no-BOM write paths and do not regress to `Set-Content -Encoding utf8`.
+97. Removed remaining direct `.Exception.Response` accesses from automation scripts (`scripts/release-artifact-revalidate.ps1`, `scripts/github-pages-enable.ps1`) by switching to guarded exception-property lookup helpers, reducing strict-mode fragility and inconsistent exception-shape failures.
+98. Added global guardrail `tests/unit/powershell-exception-response-safety.test.ts` to enforce that PowerShell scripts in `scripts/` do not reintroduce direct `.Exception.Response` property access.
 
 ## Current Focus Queue
 

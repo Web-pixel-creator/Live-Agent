@@ -14,6 +14,26 @@ function Fail([string]$Message) {
   exit 1
 }
 
+function Get-ExceptionPropertyValue {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Exception,
+    [Parameter(Mandatory = $true)]
+    [string]$Name
+  )
+
+  if ($null -eq $Exception) {
+    return $null
+  }
+
+  $property = $Exception.PSObject.Properties[$Name]
+  if ($null -eq $property) {
+    return $null
+  }
+
+  return $property.Value
+}
+
 if ([string]::IsNullOrWhiteSpace($Owner)) {
   Fail "Missing owner. Set -Owner or env GITHUB_OWNER."
 }
@@ -53,8 +73,9 @@ try {
 }
 catch {
   $statusCode = $null
-  if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
-    $statusCode = [int]$_.Exception.Response.StatusCode
+  $response = Get-ExceptionPropertyValue -Exception $_.Exception -Name "Response"
+  if ($null -ne $response -and $null -ne $response.StatusCode) {
+    $statusCode = [int]$response.StatusCode
   }
 
   if ($statusCode -eq 404) {
