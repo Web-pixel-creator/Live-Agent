@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `160` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`245` tests passed).
+4. Unit tests are green (`246` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -119,6 +119,7 @@
 88. Hardened operator live-bridge evidence consistency in judged gates: `demo-e2e` now validates state/event/probe-counter invariants for `traces.liveBridgeHealth`, emits `operatorLiveBridgeHealthConsistencyValidated`, policy gate enforces this KPI, release-readiness treats it as critical, and runbook evidence list now documents it explicitly.
 89. Fixed strict-mode-safe HTTP error handling in `scripts/demo-e2e.ps1`: replaced direct `Exception.Response` access with guarded property resolution, removing fatal end-of-run failures (`The property 'Response' cannot be found on this object`) during release/demo runs.
 90. Aligned `ui-executor` runtime analytics contract with release/policy lifecycle expectations by adding `requestedEnabled/splitValid/bigQueryConfigValid/bigQueryDataset/bigQueryTable` to `/status.runtime.analytics`, restoring deterministic pass for `runtime.lifecycle.endpoints` and analytics service-count KPIs.
+91. Added anti-regression unit guard `tests/unit/demo-e2e-strict-error-handling.test.ts` to enforce strict-mode-safe exception handling in `scripts/demo-e2e.ps1` (no direct `.Exception.Response` access; helper-based property resolution required).
 
 ## Current Focus Queue
 
