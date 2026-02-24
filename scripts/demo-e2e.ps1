@@ -97,6 +97,26 @@ function Assert-Condition {
   }
 }
 
+function Get-ExceptionPropertyValue {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Exception,
+    [Parameter(Mandatory = $true)]
+    [string]$Name
+  )
+
+  if ($null -eq $Exception) {
+    return $null
+  }
+
+  $property = $Exception.PSObject.Properties[$Name]
+  if ($null -eq $property) {
+    return $null
+  }
+
+  return $property.Value
+}
+
 function Invoke-JsonRequest {
   param(
     [Parameter(Mandatory = $true)]
@@ -173,7 +193,7 @@ function Invoke-JsonRequestExpectStatus {
     $statusCode = [int]$response.StatusCode
     $content = if ($null -ne $response.Content) { [string]$response.Content } else { "" }
   } catch {
-    $webResponse = $_.Exception.Response
+    $webResponse = Get-ExceptionPropertyValue -Exception $_.Exception -Name "Response"
     if ($null -eq $webResponse) {
       throw
     }
@@ -221,11 +241,14 @@ function Get-HttpStatusCodeFromErrorRecord {
     [System.Management.Automation.ErrorRecord]$ErrorRecord
   )
 
-  if ($null -eq $ErrorRecord.Exception -or $null -eq $ErrorRecord.Exception.Response) {
+  if ($null -eq $ErrorRecord.Exception) {
     return $null
   }
 
-  $response = $ErrorRecord.Exception.Response
+  $response = Get-ExceptionPropertyValue -Exception $ErrorRecord.Exception -Name "Response"
+  if ($null -eq $response) {
+    return $null
+  }
   try {
     if ($null -ne $response.StatusCode) {
       return [int]$response.StatusCode

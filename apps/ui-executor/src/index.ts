@@ -74,10 +74,15 @@ type AnalyticsTarget = "disabled" | "cloud_monitoring" | "bigquery";
 
 type RuntimeAnalyticsSnapshot = {
   enabled: boolean;
+  requestedEnabled: boolean;
   reason: string;
   metricsTarget: AnalyticsTarget;
   eventsTarget: AnalyticsTarget;
+  splitValid: boolean;
+  bigQueryConfigValid: boolean;
   sampleRate: number;
+  bigQueryDataset: string | null;
+  bigQueryTable: string | null;
 };
 
 function parseDeviceNodes(raw: string | undefined): Map<string, DeviceNodeDescriptor> {
@@ -193,13 +198,44 @@ function parseAnalyticsTarget(value: string | undefined, fallback: AnalyticsTarg
 }
 
 function createRuntimeAnalyticsSnapshot(): RuntimeAnalyticsSnapshot {
-  const enabled = parseBooleanEnv(process.env.ANALYTICS_EXPORT_ENABLED, false);
+  const requestedEnabled = parseBooleanEnv(process.env.ANALYTICS_EXPORT_ENABLED, false);
+  const metricsTarget = parseAnalyticsTarget(process.env.ANALYTICS_EXPORT_METRICS_TARGET, "cloud_monitoring");
+  const eventsTarget = parseAnalyticsTarget(process.env.ANALYTICS_EXPORT_EVENTS_TARGET, "bigquery");
+  const sampleRate = parseSampleRate(process.env.ANALYTICS_EXPORT_SAMPLE_RATE);
+  const bigQueryDataset =
+    typeof process.env.ANALYTICS_BIGQUERY_DATASET === "string" && process.env.ANALYTICS_BIGQUERY_DATASET.trim()
+      ? process.env.ANALYTICS_BIGQUERY_DATASET.trim()
+      : null;
+  const bigQueryTable =
+    typeof process.env.ANALYTICS_BIGQUERY_TABLE === "string" && process.env.ANALYTICS_BIGQUERY_TABLE.trim()
+      ? process.env.ANALYTICS_BIGQUERY_TABLE.trim()
+      : null;
+  const splitValid = metricsTarget === "cloud_monitoring" && eventsTarget === "bigquery";
+  const bigQueryConfigValid = eventsTarget !== "bigquery" || (bigQueryDataset !== null && bigQueryTable !== null);
+  const enabled = requestedEnabled && splitValid && bigQueryConfigValid;
+
+  let reason = "ANALYTICS_EXPORT_ENABLED=false";
+  if (requestedEnabled) {
+    if (!splitValid) {
+      reason = "ANALYTICS_SPLIT_INVALID";
+    } else if (!bigQueryConfigValid) {
+      reason = "ANALYTICS_BIGQUERY_CONFIG_INVALID";
+    } else {
+      reason = "enabled";
+    }
+  }
+
   return {
     enabled,
-    reason: enabled ? "enabled" : "ANALYTICS_EXPORT_ENABLED=false",
-    metricsTarget: parseAnalyticsTarget(process.env.ANALYTICS_EXPORT_METRICS_TARGET, "cloud_monitoring"),
-    eventsTarget: parseAnalyticsTarget(process.env.ANALYTICS_EXPORT_EVENTS_TARGET, "bigquery"),
-    sampleRate: parseSampleRate(process.env.ANALYTICS_EXPORT_SAMPLE_RATE),
+    requestedEnabled,
+    reason,
+    metricsTarget,
+    eventsTarget,
+    splitValid,
+    bigQueryConfigValid,
+    sampleRate,
+    bigQueryDataset,
+    bigQueryTable,
   };
 }
 
