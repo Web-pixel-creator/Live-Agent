@@ -189,6 +189,12 @@ npm run verify:release:artifact-only
 ```
 This gate requires `artifacts/release-artifact-revalidation/source-run.json` (provenance manifest). The recommended path is `npm run verify:release:artifact:revalidate` or workflow `.github/workflows/release-artifact-revalidation.yml`, both of which generate the manifest automatically.
 
+Local artifact-only smoke (self-contained, no GitHub API, generates temp perf + provenance artifacts and runs the real artifact-only gate):
+
+```powershell
+npm run verify:release:artifact-only:smoke
+```
+
 Artifact bundle pull + local revalidation (downloads latest successful `demo-e2e`/`release-strict-final` bundle, restores `artifacts/`, then runs artifact-only gate):
 
 ```powershell

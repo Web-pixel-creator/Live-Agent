@@ -99,6 +99,7 @@
 68. Clarified artifact-only operator docs (`README.md`, `docs/challenge-demo-runbook.md`): `verify:release:artifact-only` now explicitly documents required provenance manifest path (`artifacts/release-artifact-revalidation/source-run.json`) and points to helper/workflow auto-generation paths.
 69. Strengthened provenance policy in `release-readiness` artifact-only mode: enforce `sourceRun.conclusion=success`, branch allowlist checks when `allowAnySourceBranch=false`, and source-run age guard (`sourceRun.ageHours <= maxSourceRunAgeHours`), with dedicated unit tests for each pass/fail branch.
 70. Fixed CI artifact revalidation manifest parity by exporting `source_run_conclusion` and writing `sourceRun.conclusion` in `.github/workflows/release-artifact-revalidation.yml`; added anti-drift coverage in `tests/unit/release-artifact-provenance-guardrails-alignment.test.ts` to lock readiness guardrails (`conclusion`, branch allowlist, age guard) across `release-readiness`, local helper, and workflow manifest producers.
+71. Added executable artifact-only e2e smoke path: new `scripts/release-artifact-only-smoke.ps1` generates local perf/provenance artifacts (`artifacts/perf-load/*` + `artifacts/release-artifact-revalidation/source-run.json`) and runs real `release-readiness` artifact-only gate; exposed via npm alias `verify:release:artifact-only:smoke`, documented in README/runbook, and covered by `tests/unit/release-artifact-only-smoke.test.ts`.
 
 ## Current Focus Queue
 

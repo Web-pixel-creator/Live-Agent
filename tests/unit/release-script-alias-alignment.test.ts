@@ -11,6 +11,7 @@ test("release script aliases stay aligned with release-readiness flags", () => {
   const strictScript = pkg.scripts?.["verify:release:strict"] ?? "";
   const strictSkipPerfRunScript = pkg.scripts?.["verify:release:strict:skip-perf-run"] ?? "";
   const artifactOnlyScript = pkg.scripts?.["verify:release:artifact-only"] ?? "";
+  const artifactOnlySmokeScript = pkg.scripts?.["verify:release:artifact-only:smoke"] ?? "";
 
   assert.match(strictScript, /release-readiness\.ps1/);
   assert.match(strictScript, /-StrictFinalRun/);
@@ -28,4 +29,6 @@ test("release script aliases stay aligned with release-readiness flags", () => {
   assert.match(artifactOnlyScript, /-SkipPolicy/);
   assert.match(artifactOnlyScript, /-SkipBadge/);
   assert.match(artifactOnlyScript, /-SkipPerfRun/);
+
+  assert.match(artifactOnlySmokeScript, /release-artifact-only-smoke\.ps1/);
 });
