@@ -29,6 +29,23 @@ function Fail([string]$Message) {
   exit 1
 }
 
+function Write-Utf8NoBomFile {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path,
+    [Parameter(Mandatory = $true)]
+    [string]$Content
+  )
+
+  $directory = Split-Path -Parent $Path
+  if (-not [string]::IsNullOrWhiteSpace($directory)) {
+    New-Item -ItemType Directory -Force -Path $directory | Out-Null
+  }
+
+  $encoding = New-Object System.Text.UTF8Encoding($false)
+  [System.IO.File]::WriteAllText($Path, $Content, $encoding)
+}
+
 function Resolve-AbsolutePath([string]$PathValue) {
   if ([System.IO.Path]::IsPathRooted($PathValue)) {
     return [System.IO.Path]::GetFullPath($PathValue)
@@ -497,7 +514,8 @@ $sourceRunManifest = [ordered]@{
     retryableStatusCodes     = $retryableStatusCodes
   }
 }
-$sourceRunManifest | ConvertTo-Json -Depth 10 | Set-Content -Path $sourceRunManifestPath -Encoding utf8
+$sourceRunManifestJson = $sourceRunManifest | ConvertTo-Json -Depth 10
+Write-Utf8NoBomFile -Path $sourceRunManifestPath -Content $sourceRunManifestJson
 Write-Host ("[artifact-revalidate] Source run manifest written: " + $sourceRunManifestPath)
 
 Write-Host ""

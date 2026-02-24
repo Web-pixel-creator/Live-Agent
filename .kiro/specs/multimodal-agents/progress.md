@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `160` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`248` tests passed).
+4. Unit tests are green (`249` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -123,6 +123,8 @@
 92. Added anti-drift coverage `tests/unit/ui-executor-runtime-analytics-alignment.test.ts` to lock parity between `apps/ui-executor/src/index.ts` runtime analytics fields (`requestedEnabled/splitValid/bigQuery*`) and the `runtime.lifecycle.endpoints` gate contract in `scripts/demo-e2e.ps1`.
 93. Hardened demo artifact encoding: `scripts/demo-e2e.ps1` now writes `summary.json` via UTF-8 no-BOM helper (`Write-Utf8NoBomFile`), improving compatibility for external JSON consumers without BOM normalization.
 94. Added anti-regression coverage `tests/unit/demo-e2e-summary-encoding.test.ts` to enforce no-BOM summary write path and prevent fallback to `Set-Content -Encoding UTF8` for the demo summary artifact.
+95. Extended no-BOM artifact writing to release revalidation flows: `scripts/release-artifact-only-smoke.ps1` and `scripts/release-artifact-revalidate.ps1` now persist generated JSON artifacts/manifests via UTF-8 no-BOM helper (`Write-Utf8NoBomFile`) for consistent cross-tool parsing.
+96. Added cross-script anti-drift coverage `tests/unit/artifact-json-encoding-alignment.test.ts` to ensure demo/release artifact JSON outputs stay on helper-based UTF-8 no-BOM write paths and do not regress to `Set-Content -Encoding utf8`.
 
 ## Current Focus Queue
 

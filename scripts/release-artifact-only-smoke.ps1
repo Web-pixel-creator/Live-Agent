@@ -11,6 +11,23 @@ function Fail([string]$Message) {
   exit 1
 }
 
+function Write-Utf8NoBomFile {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path,
+    [Parameter(Mandatory = $true)]
+    [string]$Content
+  )
+
+  $directory = Split-Path -Parent $Path
+  if (-not [string]::IsNullOrWhiteSpace($directory)) {
+    New-Item -ItemType Directory -Force -Path $directory | Out-Null
+  }
+
+  $encoding = New-Object System.Text.UTF8Encoding($false)
+  [System.IO.File]::WriteAllText($Path, $Content, $encoding)
+}
+
 $releaseScript = Join-Path $PSScriptRoot "release-readiness.ps1"
 if (-not (Test-Path $releaseScript)) {
   Fail "release-readiness.ps1 was not found next to this script."
@@ -63,7 +80,8 @@ $perfSummary = [ordered]@{
     errorRatePct = 0
   }
 }
-$perfSummary | ConvertTo-Json -Depth 8 | Set-Content -Path $perfSummaryPath -Encoding utf8
+$perfSummaryJson = $perfSummary | ConvertTo-Json -Depth 8
+Write-Utf8NoBomFile -Path $perfSummaryPath -Content $perfSummaryJson
 
 $perfCheckNames = @(
   "summary.success",
@@ -105,7 +123,8 @@ $perfPolicy = [ordered]@{
   )
   violations = @()
 }
-$perfPolicy | ConvertTo-Json -Depth 8 | Set-Content -Path $perfPolicyPath -Encoding utf8
+$perfPolicyJson = $perfPolicy | ConvertTo-Json -Depth 8
+Write-Utf8NoBomFile -Path $perfPolicyPath -Content $perfPolicyJson
 
 $sourceRunManifest = [ordered]@{
   schemaVersion = "1.0"
@@ -146,7 +165,8 @@ $sourceRunManifest = [ordered]@{
     retryableStatusCodes    = @(408, 429, 500, 502, 503, 504)
   }
 }
-$sourceRunManifest | ConvertTo-Json -Depth 10 | Set-Content -Path $sourceRunManifestPath -Encoding utf8
+$sourceRunManifestJson = $sourceRunManifest | ConvertTo-Json -Depth 10
+Write-Utf8NoBomFile -Path $sourceRunManifestPath -Content $sourceRunManifestJson
 
 $args = @(
   "-NoProfile",
