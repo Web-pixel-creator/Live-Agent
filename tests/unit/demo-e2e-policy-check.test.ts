@@ -152,6 +152,10 @@ function createPassingSummary(overrides?: {
     gatewayInvalidEnvelopeScenarioAttempts: 1,
     gatewayBindingMismatchScenarioAttempts: 1,
     gatewayDrainingRejectionScenarioAttempts: 1,
+    multiAgentDelegationScenarioAttempts: 1,
+    operatorDeviceNodesLifecycleScenarioAttempts: 1,
+    approvalsListScenarioAttempts: 1,
+    approvalsInvalidIntentScenarioAttempts: 1,
     uiVisualTestingScenarioAttempts: 1,
     operatorConsoleActionsScenarioAttempts: 1,
     runtimeLifecycleScenarioAttempts: 1,
@@ -249,7 +253,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 169);
+  assert.equal(result.payload.checks, 173);
 });
 
 test("demo-e2e policy check fails when assistant activity lifecycle KPI is missing", () => {
@@ -595,6 +599,82 @@ test("demo-e2e policy check fails when gateway draining-rejection scenario attem
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.gatewayDrainingRejectionScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when multi-agent delegation scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        multiAgentDelegationScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.multiAgentDelegationScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when operator device-nodes lifecycle scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorDeviceNodesLifecycleScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorDeviceNodesLifecycleScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when approvals list scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        approvalsListScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.approvalsListScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when approvals invalid-intent scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        approvalsInvalidIntentScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.approvalsInvalidIntentScenarioAttempts")));
 });
 
 test("demo-e2e policy check fails when runtime lifecycle scenario attempts exceed configured retry max", () => {

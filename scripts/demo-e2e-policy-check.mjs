@@ -882,6 +882,46 @@ async function main() {
     kpis.gatewayDrainingRejectionScenarioAttempts,
     "1..options.scenarioRetryMaxAttempts",
   );
+  const multiAgentDelegationScenarioAttempts = toNumber(kpis.multiAgentDelegationScenarioAttempts);
+  addCheck(
+    "kpi.multiAgentDelegationScenarioAttempts",
+    Number.isFinite(multiAgentDelegationScenarioAttempts) &&
+      multiAgentDelegationScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      multiAgentDelegationScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.multiAgentDelegationScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const operatorDeviceNodesLifecycleScenarioAttempts = toNumber(kpis.operatorDeviceNodesLifecycleScenarioAttempts);
+  addCheck(
+    "kpi.operatorDeviceNodesLifecycleScenarioAttempts",
+    Number.isFinite(operatorDeviceNodesLifecycleScenarioAttempts) &&
+      operatorDeviceNodesLifecycleScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      operatorDeviceNodesLifecycleScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.operatorDeviceNodesLifecycleScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const approvalsListScenarioAttempts = toNumber(kpis.approvalsListScenarioAttempts);
+  addCheck(
+    "kpi.approvalsListScenarioAttempts",
+    Number.isFinite(approvalsListScenarioAttempts) &&
+      approvalsListScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      approvalsListScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.approvalsListScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const approvalsInvalidIntentScenarioAttempts = toNumber(kpis.approvalsInvalidIntentScenarioAttempts);
+  addCheck(
+    "kpi.approvalsInvalidIntentScenarioAttempts",
+    Number.isFinite(approvalsInvalidIntentScenarioAttempts) &&
+      approvalsInvalidIntentScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      approvalsInvalidIntentScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.approvalsInvalidIntentScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
   const uiVisualTestingScenarioAttempts = toNumber(kpis.uiVisualTestingScenarioAttempts);
   addCheck(
     "kpi.uiVisualTestingScenarioAttempts",

@@ -37,11 +37,23 @@ test("demo-e2e applies transient retry to flaky operator/ui/runtime scenarios", 
 
   assert.match(
     source,
-    /Invoke-Scenario[\s\S]*-Name\s+"gateway\.websocket\.roundtrip"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+    /Invoke-Scenario[\s\S]*-Name\s+"multi_agent\.delegation"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
   );
   assert.match(
     source,
-    /Invoke-Scenario[\s\S]*-Name\s+"gateway\.websocket\.interrupt_signal"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+    /Invoke-Scenario[\s\S]*-Name\s+"operator\.device_nodes\.lifecycle"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
+    /Invoke-Scenario[\s\S]*-Name\s+"api\.approvals\.list"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
+    /Invoke-Scenario[\s\S]*-Name\s+"api\.approvals\.resume\.invalid_intent"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
+    /Invoke-Scenario[\s\S]*-Name\s+"gateway\.websocket\.roundtrip"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
   );
   assert.match(
     source,
@@ -50,6 +62,10 @@ test("demo-e2e applies transient retry to flaky operator/ui/runtime scenarios", 
   assert.match(
     source,
     /Invoke-Scenario[\s\S]*-Name\s+"gateway\.websocket\.request_replay"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
+    /Invoke-Scenario[\s\S]*-Name\s+"gateway\.websocket\.interrupt_signal"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
   );
   assert.match(
     source,
@@ -87,6 +103,10 @@ test("demo-e2e applies transient retry to flaky operator/ui/runtime scenarios", 
   assert.match(source, /gatewayInvalidEnvelopeScenarioAttempts/);
   assert.match(source, /gatewayBindingMismatchScenarioAttempts/);
   assert.match(source, /gatewayDrainingRejectionScenarioAttempts/);
+  assert.match(source, /multiAgentDelegationScenarioAttempts/);
+  assert.match(source, /operatorDeviceNodesLifecycleScenarioAttempts/);
+  assert.match(source, /approvalsListScenarioAttempts/);
+  assert.match(source, /approvalsInvalidIntentScenarioAttempts/);
   assert.match(source, /uiVisualTestingScenarioAttempts/);
   assert.match(source, /operatorConsoleActionsScenarioAttempts/);
   assert.match(source, /runtimeLifecycleScenarioAttempts/);

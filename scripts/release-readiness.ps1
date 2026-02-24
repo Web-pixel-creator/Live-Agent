@@ -520,6 +520,62 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     )
   }
 
+  $multiAgentDelegationScenarioAttempts = To-NumberOrNaN $summary.kpis.multiAgentDelegationScenarioAttempts
+  if (
+    [double]::IsNaN($multiAgentDelegationScenarioAttempts) -or
+    $multiAgentDelegationScenarioAttempts -lt 1 -or
+    $multiAgentDelegationScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.multiAgentDelegationScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.multiAgentDelegationScenarioAttempts
+    )
+  }
+
+  $operatorDeviceNodesLifecycleScenarioAttempts = To-NumberOrNaN $summary.kpis.operatorDeviceNodesLifecycleScenarioAttempts
+  if (
+    [double]::IsNaN($operatorDeviceNodesLifecycleScenarioAttempts) -or
+    $operatorDeviceNodesLifecycleScenarioAttempts -lt 1 -or
+    $operatorDeviceNodesLifecycleScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.operatorDeviceNodesLifecycleScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.operatorDeviceNodesLifecycleScenarioAttempts
+    )
+  }
+
+  $approvalsListScenarioAttempts = To-NumberOrNaN $summary.kpis.approvalsListScenarioAttempts
+  if (
+    [double]::IsNaN($approvalsListScenarioAttempts) -or
+    $approvalsListScenarioAttempts -lt 1 -or
+    $approvalsListScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.approvalsListScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.approvalsListScenarioAttempts
+    )
+  }
+
+  $approvalsInvalidIntentScenarioAttempts = To-NumberOrNaN $summary.kpis.approvalsInvalidIntentScenarioAttempts
+  if (
+    [double]::IsNaN($approvalsInvalidIntentScenarioAttempts) -or
+    $approvalsInvalidIntentScenarioAttempts -lt 1 -or
+    $approvalsInvalidIntentScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.approvalsInvalidIntentScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.approvalsInvalidIntentScenarioAttempts
+    )
+  }
+
   $uiVisualTestingScenarioAttempts = To-NumberOrNaN $summary.kpis.uiVisualTestingScenarioAttempts
   if (
     [double]::IsNaN($uiVisualTestingScenarioAttempts) -or
@@ -818,6 +874,10 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $gatewayInvalidEnvelopeAttempts = $summary.kpis.gatewayInvalidEnvelopeScenarioAttempts
   $gatewayBindingMismatchAttempts = $summary.kpis.gatewayBindingMismatchScenarioAttempts
   $gatewayDrainingRejectionAttempts = $summary.kpis.gatewayDrainingRejectionScenarioAttempts
+  $multiAgentDelegationAttempts = $summary.kpis.multiAgentDelegationScenarioAttempts
+  $operatorDeviceNodesLifecycleAttempts = $summary.kpis.operatorDeviceNodesLifecycleScenarioAttempts
+  $approvalsListAttempts = $summary.kpis.approvalsListScenarioAttempts
+  $approvalsInvalidIntentAttempts = $summary.kpis.approvalsInvalidIntentScenarioAttempts
   $uiVisualAttempts = $summary.kpis.uiVisualTestingScenarioAttempts
   $operatorActionsAttempts = $summary.kpis.operatorConsoleActionsScenarioAttempts
   $runtimeLifecycleAttempts = $summary.kpis.runtimeLifecycleScenarioAttempts
@@ -833,6 +893,10 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     $null -ne $gatewayInvalidEnvelopeAttempts -or
     $null -ne $gatewayBindingMismatchAttempts -or
     $null -ne $gatewayDrainingRejectionAttempts -or
+    $null -ne $multiAgentDelegationAttempts -or
+    $null -ne $operatorDeviceNodesLifecycleAttempts -or
+    $null -ne $approvalsListAttempts -or
+    $null -ne $approvalsInvalidIntentAttempts -or
     $null -ne $uiVisualAttempts -or
     $null -ne $operatorActionsAttempts -or
     $null -ne $runtimeLifecycleAttempts -or
@@ -850,6 +914,10 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", gateway.websocket.invalid_envelope_attempts=" + $gatewayInvalidEnvelopeAttempts +
       ", gateway.websocket.binding_mismatch_attempts=" + $gatewayBindingMismatchAttempts +
       ", gateway.websocket.draining_rejection_attempts=" + $gatewayDrainingRejectionAttempts +
+      ", multi_agent.delegation_attempts=" + $multiAgentDelegationAttempts +
+      ", operator.device_nodes.lifecycle_attempts=" + $operatorDeviceNodesLifecycleAttempts +
+      ", api.approvals.list_attempts=" + $approvalsListAttempts +
+      ", api.approvals.resume.invalid_intent_attempts=" + $approvalsInvalidIntentAttempts +
       ", ui.visual_testing_attempts=" + $uiVisualAttempts +
       ", operator.console.actions_attempts=" + $operatorActionsAttempts +
       ", runtime.lifecycle.endpoints_attempts=" + $runtimeLifecycleAttempts +

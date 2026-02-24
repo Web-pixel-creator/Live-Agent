@@ -46,6 +46,10 @@ function createPassingSummary(
     gatewayInvalidEnvelopeScenarioAttempts: number | string;
     gatewayBindingMismatchScenarioAttempts: number | string;
     gatewayDrainingRejectionScenarioAttempts: number | string;
+    multiAgentDelegationScenarioAttempts: number | string;
+    operatorDeviceNodesLifecycleScenarioAttempts: number | string;
+    approvalsListScenarioAttempts: number | string;
+    approvalsInvalidIntentScenarioAttempts: number | string;
     uiVisualTestingScenarioAttempts: number | string;
     operatorConsoleActionsScenarioAttempts: number | string;
     runtimeLifecycleScenarioAttempts: number | string;
@@ -196,6 +200,18 @@ function createPassingSummary(
         : 1,
       gatewayDrainingRejectionScenarioAttempts: hasOverride("gatewayDrainingRejectionScenarioAttempts")
         ? overrides.gatewayDrainingRejectionScenarioAttempts
+        : 1,
+      multiAgentDelegationScenarioAttempts: hasOverride("multiAgentDelegationScenarioAttempts")
+        ? overrides.multiAgentDelegationScenarioAttempts
+        : 1,
+      operatorDeviceNodesLifecycleScenarioAttempts: hasOverride("operatorDeviceNodesLifecycleScenarioAttempts")
+        ? overrides.operatorDeviceNodesLifecycleScenarioAttempts
+        : 1,
+      approvalsListScenarioAttempts: hasOverride("approvalsListScenarioAttempts")
+        ? overrides.approvalsListScenarioAttempts
+        : 1,
+      approvalsInvalidIntentScenarioAttempts: hasOverride("approvalsInvalidIntentScenarioAttempts")
+        ? overrides.approvalsInvalidIntentScenarioAttempts
         : 1,
       uiVisualTestingScenarioAttempts: hasOverride("uiVisualTestingScenarioAttempts")
         ? overrides.uiVisualTestingScenarioAttempts
@@ -825,6 +841,70 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /kpi\.gatewayDrainingRejectionScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when multi-agent delegation scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        multiAgentDelegationScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.multiAgentDelegationScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator device-nodes lifecycle scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        operatorDeviceNodesLifecycleScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.operatorDeviceNodesLifecycleScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when approvals list scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        approvalsListScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.approvalsListScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when approvals invalid-intent scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        approvalsInvalidIntentScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.approvalsInvalidIntentScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 

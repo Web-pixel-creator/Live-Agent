@@ -1483,7 +1483,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "multi_agent.delegation" -Action {
+  Invoke-Scenario `
+    -Name "multi_agent.delegation" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $runId = "demo-delegation-" + [Guid]::NewGuid().Guid
     $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "conversation" -RequestInput @{
       text = "delegate story: write a short branch about a final contract handshake."
@@ -2267,7 +2272,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "operator.device_nodes.lifecycle" -Action {
+  Invoke-Scenario `
+    -Name "operator.device_nodes.lifecycle" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $operatorActions = Get-ScenarioData -Name "operator.console.actions"
     Assert-Condition -Condition ($null -ne $operatorActions) -Message "operator.console.actions scenario must pass before operator.device_nodes.lifecycle."
 
@@ -2309,7 +2319,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "api.approvals.list" -Action {
+  Invoke-Scenario `
+    -Name "api.approvals.list" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $url = "http://localhost:8081/v1/approvals?sessionId=$sessionId&limit=20"
     $response = Invoke-JsonRequest -Method GET -Uri $url -TimeoutSec $RequestTimeoutSec
     $total = [int](Get-FieldValue -Object $response -Path @("total"))
@@ -2330,7 +2345,12 @@ try {
     }
   } | Out-Null
 
-  Invoke-Scenario -Name "api.approvals.resume.invalid_intent" -Action {
+  Invoke-Scenario `
+    -Name "api.approvals.resume.invalid_intent" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
     $response = Invoke-JsonRequestExpectStatus `
       -Method POST `
       -Uri "http://localhost:8081/v1/approvals/resume" `
@@ -2733,6 +2753,10 @@ $gatewayInterruptScenario = @($script:ScenarioResults | Where-Object { $_.name -
 $gatewayInvalidEnvelopeScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.invalid_envelope" } | Select-Object -First 1)
 $gatewayBindingMismatchScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.binding_mismatch" } | Select-Object -First 1)
 $gatewayDrainingRejectionScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.draining_rejection" } | Select-Object -First 1)
+$delegationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "multi_agent.delegation" } | Select-Object -First 1)
+$operatorDeviceNodesScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "operator.device_nodes.lifecycle" } | Select-Object -First 1)
+$approvalsListScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.approvals.list" } | Select-Object -First 1)
+$approvalsInvalidIntentScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.approvals.resume.invalid_intent" } | Select-Object -First 1)
 $uiVisualTestingScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.visual_testing" } | Select-Object -First 1)
 $operatorActionsScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "operator.console.actions" } | Select-Object -First 1)
 $runtimeLifecycleScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "runtime.lifecycle.endpoints" } | Select-Object -First 1)
@@ -2895,6 +2919,10 @@ $summary = [ordered]@{
     gatewayInvalidEnvelopeScenarioAttempts = if ($gatewayInvalidEnvelopeScenario.Count -gt 0) { [int]$gatewayInvalidEnvelopeScenario[0].attempts } else { $null }
     gatewayBindingMismatchScenarioAttempts = if ($gatewayBindingMismatchScenario.Count -gt 0) { [int]$gatewayBindingMismatchScenario[0].attempts } else { $null }
     gatewayDrainingRejectionScenarioAttempts = if ($gatewayDrainingRejectionScenario.Count -gt 0) { [int]$gatewayDrainingRejectionScenario[0].attempts } else { $null }
+    multiAgentDelegationScenarioAttempts = if ($delegationScenario.Count -gt 0) { [int]$delegationScenario[0].attempts } else { $null }
+    operatorDeviceNodesLifecycleScenarioAttempts = if ($operatorDeviceNodesScenario.Count -gt 0) { [int]$operatorDeviceNodesScenario[0].attempts } else { $null }
+    approvalsListScenarioAttempts = if ($approvalsListScenario.Count -gt 0) { [int]$approvalsListScenario[0].attempts } else { $null }
+    approvalsInvalidIntentScenarioAttempts = if ($approvalsInvalidIntentScenario.Count -gt 0) { [int]$approvalsInvalidIntentScenario[0].attempts } else { $null }
     uiVisualTestingScenarioAttempts = if ($uiVisualTestingScenario.Count -gt 0) { [int]$uiVisualTestingScenario[0].attempts } else { $null }
     operatorConsoleActionsScenarioAttempts = if ($operatorActionsScenario.Count -gt 0) { [int]$operatorActionsScenario[0].attempts } else { $null }
     runtimeLifecycleScenarioAttempts = if ($runtimeLifecycleScenario.Count -gt 0) { [int]$runtimeLifecycleScenario[0].attempts } else { $null }
