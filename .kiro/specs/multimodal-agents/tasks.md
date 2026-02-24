@@ -21,7 +21,7 @@
 
 | ID | Task | Priority | Estimate | Dependencies | Related Requirements | Definition of Done |
 | --- | --- | --- | --- | --- | --- | --- |
-| T-000 | Реализовать Minimal Demo Frontend (WebSocket + mic capture/playback + transcript + KPI panel) | P0 | 1 day | T-001 | R1, R3, R14 | Есть рабочая web-страница демо: соединение с gateway, захват/проигрывание аудио, видимый transcript и KPI/constraint panel |
+| T-000 | Реализовать Minimal Demo Frontend (WebSocket + mic capture/playback + transcript + KPI panel) | P0 | 1 day | T-001 | R1, R3, R14, R15 | Есть рабочая web-страница демо: соединение с gateway, захват/проигрывание аудио, видимый transcript и KPI/constraint panel, а также lifecycle-индикатор ассистента (`waiting_connection/idle/streaming/speaking`) и policy-proof `assistantActivityLifecycleValidated=true` |
 | T-001 | Инициализировать сервисы проекта (API gateway, agent runtime, frontend shell) | P0 | 1 day | None | R0, R10, R11 | Запускаются локально и в cloud окружении, есть health endpoints |
 | T-002 | Настроить GCP baseline (Project/IAM/Secrets/Service Accounts) | P0 | 0.5 day | T-001 | R11, R13 | Все сервисы аутентифицируются через IAM, секреты вынесены в Secret Manager/env |
 | T-003 | Поднять Firestore схемы: sessions, events, negotiation_logs, assets | P0 | 0.5 day | T-002 | R1, R3, R4, R11, R16 | CRUD проходит, индексы созданы, TTL/retention правила заданы |

@@ -109,6 +109,7 @@
 78. Synced judged-demo runbook with assistant activity UX: `docs/challenge-demo-runbook.md` now requires explicit `Assistant` status lifecycle checks (`waiting_connection -> idle -> streaming/speaking -> idle`), with anti-drift coverage in `tests/unit/runbook-assistant-activity-alignment.test.ts` to keep docs and frontend wiring aligned.
 79. Added assistant-activity KPI into automated demo policy flow: `scripts/demo-e2e.ps1` now emits `assistantActivityLifecycleValidated` (derived from websocket connect/response/interrupt lifecycle contract), `scripts/demo-e2e-policy-check.mjs` enforces it, and `tests/unit/demo-e2e-policy-check.test.ts` now covers pass/fail behavior for this KPI.
 80. Promoted assistant-activity KPI into final release gate: `scripts/release-readiness.ps1` now treats `assistantActivityLifecycleValidated=true` as critical and prints `assistant.activity.lifecycle.validated` in release output; alignment tests updated in `tests/unit/release-readiness.test.ts` and `tests/unit/runbook-release-alignment.test.ts`.
+81. Synced specs with runtime gates for assistant lifecycle proof: `requirements.md`, `design.md`, and `tasks.md` now explicitly require `waiting_connection/idle/streaming/speaking` states and `assistantActivityLifecycleValidated=true`; anti-drift coverage added in `tests/unit/spec-assistant-lifecycle-alignment.test.ts`.
 
 ## Current Focus Queue
 

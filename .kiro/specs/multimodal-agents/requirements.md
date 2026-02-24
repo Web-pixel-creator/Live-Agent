@@ -65,6 +65,7 @@
 8. THE Live_Agent SHALL preserve speaking style and emotional tone in responses when supported by the selected model.
 9. THE Live_Agent SHALL persist session metadata and conversation history in Firestore or Agent_Engine_Sessions.
 10. THE Live_Agent SHALL apply automatic context compaction when session context exceeds configured token budget and SHALL preserve recent turns plus a stable summary.
+11. THE Live_Agent demo surface SHALL expose assistant activity lifecycle states (`waiting_connection`, `idle`, `streaming`, `speaking`) and SHALL keep transitions consistent with websocket and playback events.
 
 ### Requirement 2: Live Agent - Real-Time Translation
 
@@ -264,6 +265,7 @@
 11. THE System SHALL publish a public, machine-readable demo KPI badge endpoint (`badge.json`, e.g. via `gh-pages`) for external status embedding and reviewer visibility.
 12. THE repository SHALL provide an operator runbook or scripts to configure badge endpoint publication and validate endpoint health after deployment.
 13. THE repository SHALL provide scripted local release verification and repository publish workflows to reduce manual release errors.
+14. THE System SHALL include assistant activity lifecycle proof in demo KPI artifacts and release gates (`assistantActivityLifecycleValidated=true`).
 
 ### Requirement 16: Multi-Agent Collaboration
 
