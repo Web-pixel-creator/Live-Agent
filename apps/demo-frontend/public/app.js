@@ -37,6 +37,7 @@ const state = {
   deviceNodes: new Map(),
   selectedDeviceNodeId: null,
   pendingClientEvents: new Map(),
+  operatorGatewayErrorSnapshot: null,
 };
 
 const PENDING_CLIENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
@@ -164,6 +165,16 @@ const el = {
   operatorTaskQueueMaxAge: document.getElementById("operatorTaskQueueMaxAge"),
   operatorTaskQueueOldest: document.getElementById("operatorTaskQueueOldest"),
   operatorTaskQueueHint: document.getElementById("operatorTaskQueueHint"),
+  operatorGatewayErrorStatus: document.getElementById("operatorGatewayErrorStatus"),
+  operatorGatewayErrorSource: document.getElementById("operatorGatewayErrorSource"),
+  operatorGatewayErrorCode: document.getElementById("operatorGatewayErrorCode"),
+  operatorGatewayErrorTraceId: document.getElementById("operatorGatewayErrorTraceId"),
+  operatorGatewayErrorClientEventId: document.getElementById("operatorGatewayErrorClientEventId"),
+  operatorGatewayErrorClientEventType: document.getElementById("operatorGatewayErrorClientEventType"),
+  operatorGatewayErrorConversation: document.getElementById("operatorGatewayErrorConversation"),
+  operatorGatewayErrorLatency: document.getElementById("operatorGatewayErrorLatency"),
+  operatorGatewayErrorSeenAt: document.getElementById("operatorGatewayErrorSeenAt"),
+  operatorGatewayErrorHint: document.getElementById("operatorGatewayErrorHint"),
   operatorStartupStatus: document.getElementById("operatorStartupStatus"),
   operatorStartupTotal: document.getElementById("operatorStartupTotal"),
   operatorStartupBlocking: document.getElementById("operatorStartupBlocking"),
@@ -741,6 +752,27 @@ function setOperatorTaskQueueHint(text, variant = "neutral") {
   el.operatorTaskQueueHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorGatewayErrorHint(text, variant = "neutral") {
+  if (!el.operatorGatewayErrorHint) {
+    return;
+  }
+  el.operatorGatewayErrorHint.textContent = text;
+  el.operatorGatewayErrorHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorGatewayErrorHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorGatewayErrorHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorGatewayErrorHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorGatewayErrorHint.classList.add("operator-health-hint-neutral");
+}
+
 function setOperatorStartupHint(text, variant = "neutral") {
   if (!el.operatorStartupHint) {
     return;
@@ -852,6 +884,19 @@ function resetOperatorTaskQueueWidget(reason = "no_data") {
   setStatusPill(el.operatorTaskQueueStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
+function resetOperatorGatewayErrorWidget(reason = "no_data") {
+  setText(el.operatorGatewayErrorSource, "n/a");
+  setText(el.operatorGatewayErrorCode, "n/a");
+  setText(el.operatorGatewayErrorTraceId, "n/a");
+  setText(el.operatorGatewayErrorClientEventId, "n/a");
+  setText(el.operatorGatewayErrorClientEventType, "n/a");
+  setText(el.operatorGatewayErrorConversation, "n/a");
+  setText(el.operatorGatewayErrorLatency, "n/a");
+  setText(el.operatorGatewayErrorSeenAt, "n/a");
+  setOperatorGatewayErrorHint("Waiting for gateway/orchestrator error events.", "neutral");
+  setStatusPill(el.operatorGatewayErrorStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
 function resetOperatorStartupWidget(reason = "no_data") {
   setText(el.operatorStartupTotal, "0");
   setText(el.operatorStartupBlocking, "0");
@@ -860,6 +905,88 @@ function resetOperatorStartupWidget(reason = "no_data") {
   setText(el.operatorStartupLastCheckedAt, "n/a");
   setOperatorStartupHint("Refresh summary to inspect startup diagnostics from service probes.", "neutral");
   setStatusPill(el.operatorStartupStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function renderOperatorGatewayErrorWidget(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") {
+    resetOperatorGatewayErrorWidget("no_data");
+    return;
+  }
+
+  const source = typeof snapshot.source === "string" ? snapshot.source : "unknown";
+  const code = typeof snapshot.code === "string" ? snapshot.code : "n/a";
+  const traceId = typeof snapshot.traceId === "string" ? snapshot.traceId : "n/a";
+  const clientEventId = typeof snapshot.clientEventId === "string" ? snapshot.clientEventId : "n/a";
+  const clientEventType = typeof snapshot.clientEventType === "string" ? snapshot.clientEventType : "n/a";
+  const conversation = typeof snapshot.conversation === "string" ? snapshot.conversation : "n/a";
+  const latencyMs = typeof snapshot.latencyMs === "number" && Number.isFinite(snapshot.latencyMs)
+    ? `${Math.max(0, Math.round(snapshot.latencyMs))} ms`
+    : "n/a";
+  const seenAt = typeof snapshot.seenAt === "string" ? snapshot.seenAt : "n/a";
+  const errorCount =
+    typeof snapshot.errorCount === "number" && Number.isFinite(snapshot.errorCount) ? Math.max(1, snapshot.errorCount) : 1;
+
+  setText(el.operatorGatewayErrorSource, source);
+  setText(el.operatorGatewayErrorCode, code);
+  setText(el.operatorGatewayErrorTraceId, traceId);
+  setText(el.operatorGatewayErrorClientEventId, clientEventId);
+  setText(el.operatorGatewayErrorClientEventType, clientEventType);
+  setText(el.operatorGatewayErrorConversation, conversation);
+  setText(el.operatorGatewayErrorLatency, latencyMs);
+  setText(el.operatorGatewayErrorSeenAt, seenAt);
+
+  const hasCorrelation = clientEventId !== "n/a" && clientEventType !== "n/a";
+  const hasTrace = traceId !== "n/a";
+  let statusVariant = "fail";
+  let hintVariant = "fail";
+  let hint = "Correlation incomplete. Capture a new error with client event metadata enabled.";
+  if (hasCorrelation && hasTrace) {
+    statusVariant = "ok";
+    hintVariant = "ok";
+    hint = "Correlation complete. Use traceId and clientEventId pair for deterministic replay diagnostics.";
+  } else if (hasCorrelation || hasTrace) {
+    statusVariant = "neutral";
+    hintVariant = "warn";
+    hint = "Partial correlation captured. Inspect missing trace/client event fields before rerunning scenario.";
+  }
+
+  setStatusPill(el.operatorGatewayErrorStatus, `${source} #${errorCount}`, statusVariant);
+  setOperatorGatewayErrorHint(hint, hintVariant);
+}
+
+function updateOperatorGatewayErrorWidgetFromEvent(eventType, payload, pendingContext = null) {
+  const source = eventType === "orchestrator.error" ? "orchestrator.error" : "gateway.error";
+  const context = extractGatewayErrorContext(payload);
+  const details = payload && typeof payload.details === "object" ? payload.details : null;
+
+  const code =
+    toOptionalText(payload?.code) ??
+    toOptionalText(payload?.errorCode) ??
+    toOptionalText(details?.code) ??
+    "n/a";
+  const traceId = context.traceId ?? "n/a";
+  const clientEventId = context.clientEventId ?? "n/a";
+  const clientEventType = toOptionalText(pendingContext?.sentType) ?? "n/a";
+  const conversation = toOptionalText(pendingContext?.conversation) ?? "n/a";
+  const latencyMs =
+    typeof pendingContext?.elapsedMs === "number" && Number.isFinite(pendingContext.elapsedMs)
+      ? Math.max(0, Math.round(pendingContext.elapsedMs))
+      : null;
+
+  const previousCount = Number(state.operatorGatewayErrorSnapshot?.errorCount ?? 0);
+  const nextSnapshot = {
+    source,
+    code,
+    traceId,
+    clientEventId,
+    clientEventType,
+    conversation,
+    latencyMs,
+    seenAt: new Date().toISOString(),
+    errorCount: Number.isFinite(previousCount) ? previousCount + 1 : 1,
+  };
+  state.operatorGatewayErrorSnapshot = nextSnapshot;
+  renderOperatorGatewayErrorWidget(nextSnapshot);
 }
 
 function renderOperatorHealthWidget(liveBridgeHealth) {
@@ -1846,7 +1973,9 @@ function renderOperatorSummary(summary) {
   resetOperatorApprovalsWidget("no_data");
   resetOperatorLifecycleWidget("no_data");
   resetOperatorTaskQueueWidget("no_data");
+  resetOperatorGatewayErrorWidget("no_data");
   resetOperatorStartupWidget("no_data");
+  renderOperatorGatewayErrorWidget(state.operatorGatewayErrorSnapshot);
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -3118,24 +3247,28 @@ function handleGatewayEvent(event) {
 
   if (event.type === "gateway.error" || event.type === "orchestrator.error") {
     const fallbackMessage = findTextPayload(event.payload) ?? "Gateway/Orchestrator error";
-    if (event.type === "gateway.error") {
-      const context = extractGatewayErrorContext(event.payload);
-      const pendingContext = resolvePendingClientEventContext(context.clientEventId);
-      const details = [
-        context.clientEventId ? `clientEventId=${context.clientEventId}` : null,
-        context.traceId ? `traceId=${context.traceId}` : null,
-        pendingContext?.sentType ? `clientEventType=${pendingContext.sentType}` : null,
-        pendingContext?.conversation ? `conversation=${pendingContext.conversation}` : null,
-        pendingContext?.elapsedMs !== null && pendingContext?.elapsedMs !== undefined
-          ? `latencyMs=${pendingContext.elapsedMs}`
-          : null,
-      ]
-        .filter((item) => typeof item === "string")
-        .join(" ");
-      appendTranscript("error", details.length > 0 ? `${fallbackMessage} (${details})` : fallbackMessage);
-      return;
-    }
-    appendTranscript("error", fallbackMessage);
+    const detailsObj = event.payload && typeof event.payload.details === "object" ? event.payload.details : null;
+    const code =
+      toOptionalText(event.payload?.code) ??
+      toOptionalText(event.payload?.errorCode) ??
+      toOptionalText(detailsObj?.code);
+    const context = extractGatewayErrorContext(event.payload);
+    const pendingContext = resolvePendingClientEventContext(context.clientEventId);
+    updateOperatorGatewayErrorWidgetFromEvent(event.type, event.payload, pendingContext);
+    const details = [
+      code ? `code=${code}` : null,
+      context.clientEventId ? `clientEventId=${context.clientEventId}` : null,
+      context.traceId ? `traceId=${context.traceId}` : null,
+      pendingContext?.sentType ? `clientEventType=${pendingContext.sentType}` : null,
+      pendingContext?.conversation ? `conversation=${pendingContext.conversation}` : null,
+      pendingContext?.elapsedMs !== null && pendingContext?.elapsedMs !== undefined
+        ? `latencyMs=${pendingContext.elapsedMs}`
+        : null,
+    ]
+      .filter((item) => typeof item === "string")
+      .join(" ");
+    appendTranscript("error", details.length > 0 ? `${fallbackMessage} (${details})` : fallbackMessage);
+    return;
   }
 }
 
@@ -3966,6 +4099,7 @@ function bootstrap() {
   setFallbackAsset(false);
   clearPendingApproval();
   resetOperatorHealthWidget("no_data");
+  resetOperatorGatewayErrorWidget("no_data");
   renderTaskList();
   evaluateConstraints();
   bindEvents();

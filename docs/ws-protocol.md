@@ -206,3 +206,4 @@ Orchestrator conflict code (in `orchestrator.response.payload.error`):
 3. Log and surface `traceId` from `gateway.error` in frontend/operator diagnostics.
 4. Frontend SHOULD correlate `gateway.error.details.clientEventId` with locally tracked outbound envelopes to surface `clientEventType` and request latency for faster debugging.
 5. Gateway may replay duplicate requests (`gateway.request_replayed`) from TTL cache when request identity matches.
+6. Frontend operator console SHOULD persist the latest `gateway.error` or `orchestrator.error` correlation tuple (`code`, `traceId`, `clientEventId`, `clientEventType`, `conversation`, `latencyMs`) as a dedicated diagnostics widget.

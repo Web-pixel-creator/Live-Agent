@@ -122,6 +122,7 @@
 | T-234 | Demo frontend live.setup override controls (model/voice/activity/systemInstruction) | P1 | 0.25 week | T-232 | R1, R12, R14 | Frontend позволяет отправить runtime `live.setup` override, ws-протокол и README задокументированы, добавлен unit alignment test на UI/runtime wiring |
 | T-235 | Demo frontend UI grounding controls for `ui_task` intent payloads | P1 | 0.25 week | T-220 | R6, R7, R14, R15 | Frontend передает `url/deviceNodeId/screenshotRef/domSnapshot/accessibilityTree/markHints` в `orchestrator.request` для `ui_task`, документация синхронизирована, добавлен unit alignment test |
 | T-236 | Frontend gateway.error correlation context for pending client events | P1 | 0.25 week | T-224 | R14, R15 | Frontend связывает `details.clientEventId` с локальным pending-event буфером и показывает `clientEventType/conversation/latencyMs`; добавлены TTL-prune/cleanup hooks и unit alignment tests |
+| T-237 | Operator Console gateway error-correlation widget | P1 | 0.25 week | T-236, T-210 | R14, R15 | Operator Console показывает отдельный виджет `Gateway Error Correlation` (`source/code/traceId/clientEventId/clientEventType/conversation/latency/seenAt`), обновляет его из `gateway.error`/`orchestrator.error`, и anti-drift unit test фиксирует HTML/runtime wiring |
 
 ### M3 Detailed Implementation Checklist (T-207..T-210)
 
@@ -182,7 +183,8 @@
 10. T-234 (P1 capability expansion lane, runtime live.setup override controls) [Completed]
 11. T-235 (P1 capability expansion lane, ui_task grounding controls in demo frontend) [Completed]
 12. T-236 (P1 capability expansion lane, gateway.error client-event correlation context) [Completed]
-13. T-223 remains V2 spike only (no MVP transport change)
+13. T-237 (P1 capability expansion lane, operator gateway-error correlation widget) [Completed]
+14. T-223 remains V2 spike only (no MVP transport change)
 
 ## Suggested Solo Execution (2-week MVP)
 

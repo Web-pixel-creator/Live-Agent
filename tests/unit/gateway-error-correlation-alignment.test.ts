@@ -20,4 +20,5 @@ test("ws protocol documents clientEventId correlation in gateway.error payload",
   const source = readFileSync(protocolPath, "utf8");
 
   assert.match(source, /details\.clientEventId/i);
+  assert.match(source, /operator console should persist the latest `gateway\.error` or `orchestrator\.error` correlation tuple/i);
 });

@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `179` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`313` tests passed).
+4. Unit tests are green (`314` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -185,6 +185,9 @@
 154. Completed `T-236` for frontend gateway-error correlation context: demo frontend now retains bounded pending client-event metadata, resolves `gateway.error.details.clientEventId` against that buffer, and surfaces `clientEventType/conversation/latencyMs` in error diagnostics.
 155. Added anti-drift coverage for `T-236`: `tests/unit/frontend-gateway-error-correlation-context.test.ts` enforces pending-event TTL pruning, correlation context resolver wiring, and socket close/error cleanup hooks.
 156. Revalidated release baseline after `T-236`: `npm run test:unit` green (`313` tests), `npm run verify:release` green, Demo KPI gate green (`179` checks, websocket roundtrip `108ms`), and perf policy green (`15` checks, `0` violations).
+157. Completed `T-237` for operator diagnostics UX: demo frontend Operator Console now exposes a dedicated `Gateway Error Correlation` widget (`source/code/traceId/clientEventId/clientEventType/conversation/latency/seenAt`) and updates it from both `gateway.error` and `orchestrator.error` flows.
+158. Added anti-drift coverage for `T-237`: `tests/unit/frontend-operator-gateway-error-widget-alignment.test.ts` enforces HTML/runtime wiring for the new widget, and `tests/unit/gateway-error-correlation-alignment.test.ts` now locks ws-protocol guidance for operator-side correlation tuple persistence.
+159. Revalidated release baseline after `T-237`: `npm run test:unit` green (`314` tests), `npm run verify:release` green, Demo KPI gate green (`179` checks, websocket roundtrip `36ms`), and perf policy green (`15` checks, `0` violations).
 
 ## Current Focus Queue
 
