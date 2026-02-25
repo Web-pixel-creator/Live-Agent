@@ -9,9 +9,9 @@
 ## Verified Quality Gates
 
 1. `npm run verify:release` passes end-to-end.
-2. Demo e2e policy gate is green with `190` checks.
+2. Demo e2e policy gate is green with `193` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`323` tests passed).
+4. Unit tests are green (`329` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -202,6 +202,7 @@
 171. Extended realtime conversation-item lifecycle lane with `conversation.item.delete`: gateway now routes delete events through live bridge (`isLiveBridgeEventType`), bridge emits session-local diagnostics (`live.turn.deleted`), demo frontend exposes `Delete Active Turn` control, ws-protocol docs include the new event contract, and release revalidation remains green (`test:unit` 319, `verify:release` pass with Demo KPI gate `187` checks and websocket roundtrip `40ms`).
 172. Reduced local UX noise for managed-service startup scripts: `Start-ManagedService` now launches Node processes with hidden windows (`-WindowStyle Hidden`) in both `scripts/demo-e2e.ps1` and `scripts/perf-load.ps1`, preventing repeated visible terminal pop-ups during demo/perf automation.
 173. Promoted `conversation.item.delete` from runtime-only behavior to release-critical evidence: added dedicated WS scenario (`gateway.websocket.item_delete`) and KPI gates (`gatewayItemDeleteValidated`, `gatewayItemDeleteScenarioAttempts`) across demo e2e/policy/release scripts, updated runbook evidence and anti-drift tests, and revalidated unit suite (`323` tests green).
+174. Promoted `conversation.item.truncate` to release-critical evidence: added dedicated WS scenario (`gateway.websocket.item_truncate`) and KPI gates (`gatewayItemTruncateValidated`, `gatewayItemTruncateScenarioAttempts`) across demo e2e/policy/release scripts, added session-local unavailable-path unit coverage in live bridge, synced runbook/required-scenario anti-drift tests, and revalidated full baseline (`test:unit` 329, `verify:release` pass with Demo KPI gate `193` checks).
 
 ## Current Focus Queue
 

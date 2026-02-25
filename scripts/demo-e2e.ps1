@@ -1744,6 +1744,69 @@ try {
   } | Out-Null
 
   Invoke-Scenario `
+    -Name "gateway.websocket.item_truncate" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    $runId = "demo-gateway-ws-truncate-" + [Guid]::NewGuid().Guid
+    $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
+    $turnId = "turn-truncate-demo"
+    $truncateReason = "demo_truncate_checkpoint"
+    $contentIndex = 0
+    $audioEndMs = 1500
+    $result = Invoke-NodeJsonCommand -Args @(
+      "scripts/gateway-ws-item-truncate-check.mjs",
+      "--url",
+      "ws://localhost:8080/realtime",
+      "--sessionId",
+      $sessionId,
+      "--runId",
+      $runId,
+      "--userId",
+      $script:DemoUserId,
+      "--timeoutMs",
+      [string]$timeoutMs,
+      "--turnId",
+      $turnId,
+      "--reason",
+      $truncateReason,
+      "--contentIndex",
+      [string]$contentIndex,
+      "--audioEndMs",
+      [string]$audioEndMs
+    )
+
+    $ok = [bool](Get-FieldValue -Object $result -Path @("ok"))
+    Assert-Condition -Condition $ok -Message "WebSocket item-truncate check returned ok=false."
+
+    $eventType = [string](Get-FieldValue -Object $result -Path @("eventType"))
+    $scope = [string](Get-FieldValue -Object $result -Path @("scope"))
+    $truncatedTurnId = [string](Get-FieldValue -Object $result -Path @("turnId"))
+    $truncatedReason = [string](Get-FieldValue -Object $result -Path @("reason"))
+    $truncatedContentIndex = [int](Get-FieldValue -Object $result -Path @("contentIndex"))
+    $truncatedAudioEndMs = [int](Get-FieldValue -Object $result -Path @("audioEndMs"))
+    Assert-Condition -Condition ($eventType -eq "live.turn.truncated") -Message "Unexpected event type for item-truncate scenario."
+    Assert-Condition -Condition ($scope -eq "session_local") -Message "Unexpected scope for item-truncate scenario."
+    Assert-Condition -Condition ($truncatedTurnId -eq $turnId) -Message "Unexpected turnId for item-truncate scenario."
+    Assert-Condition -Condition ($truncatedReason -eq $truncateReason) -Message "Unexpected reason for item-truncate scenario."
+    Assert-Condition -Condition ($truncatedContentIndex -eq $contentIndex) -Message "Unexpected contentIndex for item-truncate scenario."
+    Assert-Condition -Condition ($truncatedAudioEndMs -eq $audioEndMs) -Message "Unexpected audioEndMs for item-truncate scenario."
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $result -Path @("runId"))
+      eventType = $eventType
+      turnId = $truncatedTurnId
+      reason = $truncatedReason
+      contentIndex = $truncatedContentIndex
+      audioEndMs = $truncatedAudioEndMs
+      scope = $scope
+      hadActiveTurn = Get-FieldValue -Object $result -Path @("hadActiveTurn")
+      eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
+    }
+  } | Out-Null
+
+  Invoke-Scenario `
     -Name "gateway.websocket.item_delete" `
     -MaxAttempts $ScenarioRetryMaxAttempts `
     -InitialBackoffMs $ScenarioRetryBackoffMs `
@@ -2849,6 +2912,7 @@ $gatewayWsData = Get-ScenarioData -Name "gateway.websocket.roundtrip"
 $gatewayWsTaskData = Get-ScenarioData -Name "gateway.websocket.task_progress"
 $gatewayWsReplayData = Get-ScenarioData -Name "gateway.websocket.request_replay"
 $gatewayWsInterruptData = Get-ScenarioData -Name "gateway.websocket.interrupt_signal"
+$gatewayWsItemTruncateData = Get-ScenarioData -Name "gateway.websocket.item_truncate"
 $gatewayWsItemDeleteData = Get-ScenarioData -Name "gateway.websocket.item_delete"
 $gatewayWsInvalidData = Get-ScenarioData -Name "gateway.websocket.invalid_envelope"
 $gatewayWsBindingMismatchData = Get-ScenarioData -Name "gateway.websocket.binding_mismatch"
@@ -2868,6 +2932,7 @@ $gatewayRoundTripScenario = @($script:ScenarioResults | Where-Object { $_.name -
 $gatewayTaskProgressScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.task_progress" } | Select-Object -First 1)
 $gatewayRequestReplayScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.request_replay" } | Select-Object -First 1)
 $gatewayInterruptScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.interrupt_signal" } | Select-Object -First 1)
+$gatewayItemTruncateScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.item_truncate" } | Select-Object -First 1)
 $gatewayItemDeleteScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.item_delete" } | Select-Object -First 1)
 $gatewayInvalidEnvelopeScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.invalid_envelope" } | Select-Object -First 1)
 $gatewayBindingMismatchScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.binding_mismatch" } | Select-Object -First 1)
@@ -3041,6 +3106,7 @@ $summary = [ordered]@{
     gatewayTaskProgressScenarioAttempts = if ($gatewayTaskProgressScenario.Count -gt 0) { [int]$gatewayTaskProgressScenario[0].attempts } else { $null }
     gatewayRequestReplayScenarioAttempts = if ($gatewayRequestReplayScenario.Count -gt 0) { [int]$gatewayRequestReplayScenario[0].attempts } else { $null }
     gatewayInterruptSignalScenarioAttempts = if ($gatewayInterruptScenario.Count -gt 0) { [int]$gatewayInterruptScenario[0].attempts } else { $null }
+    gatewayItemTruncateScenarioAttempts = if ($gatewayItemTruncateScenario.Count -gt 0) { [int]$gatewayItemTruncateScenario[0].attempts } else { $null }
     gatewayItemDeleteScenarioAttempts = if ($gatewayItemDeleteScenario.Count -gt 0) { [int]$gatewayItemDeleteScenario[0].attempts } else { $null }
     gatewayInvalidEnvelopeScenarioAttempts = if ($gatewayInvalidEnvelopeScenario.Count -gt 0) { [int]$gatewayInvalidEnvelopeScenario[0].attempts } else { $null }
     gatewayBindingMismatchScenarioAttempts = if ($gatewayBindingMismatchScenario.Count -gt 0) { [int]$gatewayBindingMismatchScenario[0].attempts } else { $null }
@@ -3106,6 +3172,21 @@ $summary = [ordered]@{
     gatewayInterruptLatencyMs = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptLatencyMs } else { $null }
     gatewayInterruptLatencySource = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptLatencySource } else { $null }
     gatewayInterruptLatencyMeasured = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptLatencyMeasured } else { $false }
+    gatewayItemTruncateEventType = if ($null -ne $gatewayWsItemTruncateData) { $gatewayWsItemTruncateData.eventType } else { $null }
+    gatewayItemTruncateTurnId = if ($null -ne $gatewayWsItemTruncateData) { $gatewayWsItemTruncateData.turnId } else { $null }
+    gatewayItemTruncateReason = if ($null -ne $gatewayWsItemTruncateData) { $gatewayWsItemTruncateData.reason } else { $null }
+    gatewayItemTruncateContentIndex = if ($null -ne $gatewayWsItemTruncateData) { $gatewayWsItemTruncateData.contentIndex } else { $null }
+    gatewayItemTruncateAudioEndMs = if ($null -ne $gatewayWsItemTruncateData) { $gatewayWsItemTruncateData.audioEndMs } else { $null }
+    gatewayItemTruncateScope = if ($null -ne $gatewayWsItemTruncateData) { $gatewayWsItemTruncateData.scope } else { $null }
+    gatewayItemTruncateValidated = if (
+      $null -ne $gatewayWsItemTruncateData -and
+      [string]$gatewayWsItemTruncateData.eventType -eq "live.turn.truncated" -and
+      [string]$gatewayWsItemTruncateData.turnId -eq "turn-truncate-demo" -and
+      [string]$gatewayWsItemTruncateData.reason -eq "demo_truncate_checkpoint" -and
+      [int]$gatewayWsItemTruncateData.contentIndex -eq 0 -and
+      [int]$gatewayWsItemTruncateData.audioEndMs -eq 1500 -and
+      [string]$gatewayWsItemTruncateData.scope -eq "session_local"
+    ) { $true } else { $false }
     gatewayItemDeleteEventType = if ($null -ne $gatewayWsItemDeleteData) { $gatewayWsItemDeleteData.eventType } else { $null }
     gatewayItemDeleteTurnId = if ($null -ne $gatewayWsItemDeleteData) { $gatewayWsItemDeleteData.turnId } else { $null }
     gatewayItemDeleteReason = if ($null -ne $gatewayWsItemDeleteData) { $gatewayWsItemDeleteData.reason } else { $null }

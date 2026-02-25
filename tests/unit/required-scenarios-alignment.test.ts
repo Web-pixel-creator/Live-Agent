@@ -34,6 +34,7 @@ test("release required scenarios are aligned with policy required scenarios", ()
   const releaseRequired = parseReleaseRequiredScenarios(releaseSource);
 
   const expectedReleaseCritical = [
+    "gateway.websocket.item_truncate",
     "gateway.websocket.item_delete",
     "gateway.websocket.binding_mismatch",
     "gateway.websocket.draining_rejection",

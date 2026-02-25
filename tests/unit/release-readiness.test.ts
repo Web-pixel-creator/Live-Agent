@@ -50,6 +50,7 @@ function createPassingSummary(
     scenarioRetriesUsedCount: number | string;
     gatewayWsRoundTripScenarioAttempts: number | string;
     gatewayInterruptSignalScenarioAttempts: number | string;
+    gatewayItemTruncateScenarioAttempts: number | string;
     gatewayItemDeleteScenarioAttempts: number | string;
     gatewayTaskProgressScenarioAttempts: number | string;
     gatewayRequestReplayScenarioAttempts: number | string;
@@ -87,6 +88,7 @@ function createPassingSummary(
     operatorLiveBridgeHealthBlockValidated: boolean | string;
     operatorLiveBridgeProbeTelemetryValidated: boolean | string;
     operatorLiveBridgeHealthConsistencyValidated: boolean | string;
+    gatewayItemTruncateValidated: boolean | string;
     gatewayItemDeleteValidated: boolean | string;
     operatorLiveBridgeHealthState: string;
     storytellerVideoAsyncValidated: boolean | string;
@@ -104,12 +106,16 @@ function createPassingSummary(
   return {
     success: true,
     scenarios: [
+      { name: "gateway.websocket.item_truncate", status: "passed" },
       { name: "gateway.websocket.item_delete", status: "passed" },
       { name: "gateway.websocket.binding_mismatch", status: "passed" },
       { name: "gateway.websocket.draining_rejection", status: "passed" },
       { name: "api.sessions.versioning", status: "passed" },
     ],
     kpis: {
+      gatewayItemTruncateValidated: hasOverride("gatewayItemTruncateValidated")
+        ? overrides.gatewayItemTruncateValidated
+        : true,
       gatewayItemDeleteValidated: hasOverride("gatewayItemDeleteValidated")
         ? overrides.gatewayItemDeleteValidated
         : true,
@@ -248,6 +254,9 @@ function createPassingSummary(
         : 1,
       gatewayInterruptSignalScenarioAttempts: hasOverride("gatewayInterruptSignalScenarioAttempts")
         ? overrides.gatewayInterruptSignalScenarioAttempts
+        : 1,
+      gatewayItemTruncateScenarioAttempts: hasOverride("gatewayItemTruncateScenarioAttempts")
+        ? overrides.gatewayItemTruncateScenarioAttempts
         : 1,
       gatewayItemDeleteScenarioAttempts: hasOverride("gatewayItemDeleteScenarioAttempts")
         ? overrides.gatewayItemDeleteScenarioAttempts
@@ -649,7 +658,7 @@ test(
     const result = runReleaseReadiness(summary);
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
-    assert.match(output, /Required scenario missing in summary:\s*gateway\.websocket\.item_delete/i);
+    assert.match(output, /Required scenario missing in summary:\s*gateway\.websocket\.item_truncate/i);
   },
 );
 
@@ -910,6 +919,22 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /kpi\.gatewayInterruptSignalScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway item-truncate scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        gatewayItemTruncateScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.gatewayItemTruncateScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 
@@ -1240,6 +1265,17 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /gatewayTransportFallbackActive expected False, actual True/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway item-truncate KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ gatewayItemTruncateValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /gatewayItemTruncateValidated expected True, actual False/i);
   },
 );
 

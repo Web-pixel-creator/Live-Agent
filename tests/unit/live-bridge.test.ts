@@ -1230,6 +1230,56 @@ test("live bridge emits local delete diagnostics for conversation.item.delete", 
   }
 });
 
+test("live bridge keeps conversation.item.truncate session-local when live bridge is unavailable", async () => {
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiEnabled: false,
+      liveApiWsUrl: undefined,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await bridge.forwardFromClient(
+      createClientEvent({
+        type: "conversation.item.truncate",
+        payload: {
+          item_id: "turn-local-truncate",
+          content_index: 0,
+          audio_end_ms: 700,
+          reason: "local_interrupt",
+        },
+      }),
+    );
+
+    const truncatedEvent = emitted.find((event) => event.type === "live.turn.truncated");
+    assert.ok(truncatedEvent, "expected live.turn.truncated event");
+    const payload = truncatedEvent?.payload as {
+      turnId?: string | null;
+      reason?: string | null;
+      scope?: string | null;
+      audioEndMs?: number | null;
+      contentIndex?: number | null;
+    };
+    assert.equal(payload.turnId, "turn-local-truncate");
+    assert.equal(payload.reason, "local_interrupt");
+    assert.equal(payload.scope, "session_local");
+    assert.equal(payload.audioEndMs, 700);
+    assert.equal(payload.contentIndex, 0);
+    assert.equal(
+      emitted.some((event) => event.type === "live.bridge.unavailable"),
+      false,
+      "conversation.item.truncate should not emit live.bridge.unavailable",
+    );
+  } finally {
+    bridge.close();
+  }
+});
+
 test("live bridge keeps conversation.item.delete session-local when live bridge is unavailable", async () => {
   const emitted: EventEnvelope[] = [];
   const bridge = new LiveApiBridge({

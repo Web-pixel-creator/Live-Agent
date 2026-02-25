@@ -27,6 +27,7 @@ const requiredScenarioNames = [
   "gateway.websocket.task_progress",
   "gateway.websocket.request_replay",
   "gateway.websocket.interrupt_signal",
+  "gateway.websocket.item_truncate",
   "gateway.websocket.item_delete",
   "gateway.websocket.invalid_envelope",
   "gateway.websocket.binding_mismatch",
@@ -84,6 +85,7 @@ function createPassingSummary(overrides?: {
     gatewayInterruptHandled: true,
     gatewayInterruptEventType: "live.interrupt.requested",
     gatewayInterruptLatencyMs: 120,
+    gatewayItemTruncateValidated: true,
     gatewayItemDeleteValidated: true,
     gatewayWsInvalidEnvelopeCode: "GATEWAY_INVALID_ENVELOPE",
     gatewayWsSessionMismatchCode: "GATEWAY_SESSION_MISMATCH",
@@ -163,6 +165,7 @@ function createPassingSummary(overrides?: {
     uiSandboxPolicyModesScenarioAttempts: 1,
     gatewayWsRoundTripScenarioAttempts: 1,
     gatewayInterruptSignalScenarioAttempts: 1,
+    gatewayItemTruncateScenarioAttempts: 1,
     gatewayTaskProgressScenarioAttempts: 1,
     gatewayRequestReplayScenarioAttempts: 1,
     gatewayInvalidEnvelopeScenarioAttempts: 1,
@@ -271,7 +274,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 190);
+  assert.equal(result.payload.checks, 193);
 });
 
 test("demo-e2e policy check fails when gateway error correlation KPI is invalid", () => {
@@ -654,6 +657,25 @@ test("demo-e2e policy check fails when gateway item-delete scenario attempts exc
   assert.ok(violations.some((item) => item.includes("kpi.gatewayItemDeleteScenarioAttempts")));
 });
 
+test("demo-e2e policy check fails when gateway item-truncate scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        gatewayItemTruncateScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.gatewayItemTruncateScenarioAttempts")));
+});
+
 test("demo-e2e policy check fails when gateway task-progress scenario attempts exceed configured retry max", () => {
   const result = runPolicyCheck(
     createPassingSummary({
@@ -959,6 +981,22 @@ test("demo-e2e policy check fails when gateway item-delete KPI is invalid", () =
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.gatewayItemDeleteValidated")));
+});
+
+test("demo-e2e policy check fails when gateway item-truncate KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        gatewayItemTruncateValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.gatewayItemTruncateValidated")));
 });
 
 test("demo-e2e policy check fails when ui-executor runtime profile is invalid", () => {
