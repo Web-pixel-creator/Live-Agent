@@ -573,18 +573,40 @@ test("live bridge emits text deltas when upstream transcript frames are cumulati
     const normalizedTextChunks = emitted
       .filter((event) => event.type === "live.output")
       .map((event) => {
-        const payload = event.payload as { normalized?: { text?: string } };
-        return payload.normalized?.text;
+        const payload = event.payload as { normalized?: { text?: string; turnId?: string } };
+        return {
+          text: payload.normalized?.text,
+          turnId: payload.normalized?.turnId,
+        };
       })
-      .filter((value): value is string => typeof value === "string" && value.length > 0);
+      .filter(
+        (value): value is { text: string; turnId?: string } => typeof value.text === "string" && value.text.length > 0,
+      );
 
-    assert.deepEqual(normalizedTextChunks, ["Hello", " there", "!"]);
+    assert.deepEqual(
+      normalizedTextChunks.map((item) => item.text),
+      ["Hello", " there", "!"],
+    );
+    const turnIdSet = new Set(
+      normalizedTextChunks
+        .map((item) => item.turnId)
+        .filter((value): value is string => typeof value === "string" && value.length > 0),
+    );
+    assert.equal(turnIdSet.size, 1, "all streaming deltas should belong to one generated turnId");
 
     const turnCompletedEvent = emitted.find((event) => event.type === "live.turn.completed");
     assert.ok(turnCompletedEvent, "expected live.turn.completed event");
-    const turnCompletedPayload = turnCompletedEvent?.payload as { text?: string | null; textChars?: number };
+    const turnCompletedPayload = turnCompletedEvent?.payload as {
+      turnId?: string | null;
+      text?: string | null;
+      textChars?: number;
+    };
     assert.equal(turnCompletedPayload.text, "Hello there!");
     assert.equal(turnCompletedPayload.textChars, "Hello there!".length);
+    assert.equal(typeof turnCompletedPayload.turnId, "string");
+    if (typeof turnCompletedPayload.turnId === "string") {
+      assert.ok(turnIdSet.has(turnCompletedPayload.turnId));
+    }
   } finally {
     bridge.close();
     await closeWss(wss);
@@ -620,5 +642,247 @@ test("live bridge emits reconnect wait diagnostics when route is cooling down", 
     assert.ok(typeof waitPayload.routeWaitMs === "number");
   } finally {
     bridge.close();
+  }
+});
+
+test("live bridge maps live.input.commit to activityEnd and emits commit diagnostics", async () => {
+  const inboundFrames: Array<Record<string, unknown>> = [];
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+
+  wss.on("connection", (ws) => {
+    ws.on("message", (raw) => {
+      const parsed = JSON.parse(raw.toString("utf8")) as Record<string, unknown>;
+      inboundFrames.push(parsed);
+    });
+  });
+
+  const port = (wss.address() as AddressInfo).port;
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveConnectMaxAttempts: 1,
+      liveConnectRetryMs: 20,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await bridge.forwardFromClient(createClientEvent({ type: "live.input.commit", payload: { reason: "ptt_release" } }));
+    await waitFor(() => inboundFrames.length >= 2, 2000);
+
+    const activityEndFrame = inboundFrames.find(
+      (frame) =>
+        typeof frame.realtimeInput === "object" &&
+        frame.realtimeInput !== null &&
+        (frame.realtimeInput as { activityEnd?: unknown }).activityEnd === true,
+    );
+    assert.ok(activityEndFrame, "expected realtimeInput.activityEnd frame from live.input.commit");
+    assert.ok(emitted.some((event) => event.type === "live.input.committed"));
+    assert.ok(emitted.some((event) => event.type === "live.turn.end_sent"));
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
+});
+
+test("live bridge emits local truncation diagnostics for conversation.item.truncate", async () => {
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+  const port = (wss.address() as AddressInfo).port;
+
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveConnectMaxAttempts: 1,
+      liveConnectRetryMs: 20,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await bridge.forwardFromClient(
+      createClientEvent({
+        type: "conversation.item.truncate",
+        payload: {
+          item_id: "turn-demo",
+          content_index: 0,
+          audio_end_ms: 1200,
+          reason: "user_interrupt",
+        },
+      }),
+    );
+    await waitFor(() => emitted.some((event) => event.type === "live.turn.truncated"), 2000);
+
+    const truncatedEvent = emitted.find((event) => event.type === "live.turn.truncated");
+    assert.ok(truncatedEvent, "expected live.turn.truncated event");
+    const payload = truncatedEvent?.payload as {
+      turnId?: string | null;
+      audioEndMs?: number | null;
+      reason?: string | null;
+      scope?: string | null;
+    };
+    assert.equal(payload.turnId, "turn-demo");
+    assert.equal(payload.audioEndMs, 1200);
+    assert.equal(payload.reason, "user_interrupt");
+    assert.equal(payload.scope, "session_local");
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
+});
+
+test("live bridge emits deduplicated live.function_call events from upstream", async () => {
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+  const port = (wss.address() as AddressInfo).port;
+
+  wss.on("connection", (ws) => {
+    ws.on("message", (raw) => {
+      const parsed = JSON.parse(raw.toString("utf8")) as Record<string, unknown>;
+      if (!parsed.clientContent) {
+        return;
+      }
+      const functionCallPayload = {
+        serverContent: {
+          modelTurn: {
+            parts: [
+              {
+                functionCall: {
+                  name: "lookup_price",
+                  callId: "call-lookup-1",
+                  arguments: {
+                    sku: "SKU-001",
+                  },
+                },
+              },
+            ],
+          },
+        },
+      };
+      ws.send(JSON.stringify(functionCallPayload));
+      ws.send(JSON.stringify(functionCallPayload));
+      ws.send(
+        JSON.stringify({
+          serverContent: {
+            turnComplete: true,
+          },
+        }),
+      );
+    });
+  });
+
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveConnectMaxAttempts: 1,
+      liveConnectRetryMs: 20,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "function call test" } }));
+    await waitFor(() => emitted.some((event) => event.type === "live.function_call"), 3000);
+
+    const functionCallEvents = emitted.filter((event) => event.type === "live.function_call");
+    assert.equal(functionCallEvents.length, 1, "function call events should be deduplicated by call fingerprint");
+    const payload = functionCallEvents[0].payload as {
+      name?: string;
+      callId?: string;
+      argumentsJson?: string;
+      turnId?: string;
+    };
+    assert.equal(payload.name, "lookup_price");
+    assert.equal(payload.callId, "call-lookup-1");
+    assert.equal(typeof payload.argumentsJson, "string");
+    assert.equal(typeof payload.turnId, "string");
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
+});
+
+test("live bridge maps live.function_call_output to Gemini functionResponse frame", async () => {
+  const inboundFrames: Array<Record<string, unknown>> = [];
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+
+  wss.on("connection", (ws) => {
+    ws.on("message", (raw) => {
+      const parsed = JSON.parse(raw.toString("utf8")) as Record<string, unknown>;
+      inboundFrames.push(parsed);
+    });
+  });
+
+  const port = (wss.address() as AddressInfo).port;
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveConnectMaxAttempts: 1,
+      liveConnectRetryMs: 20,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await bridge.forwardFromClient(
+      createClientEvent({
+        type: "live.function_call_output",
+        payload: {
+          callId: "call-lookup-1",
+          name: "lookup_price",
+          output: {
+            price: 99,
+            currency: "USD",
+          },
+        },
+      }),
+    );
+    await waitFor(() => inboundFrames.length >= 2, 2000);
+
+    const functionResponseFrame = inboundFrames.find(
+      (frame) =>
+        typeof frame.clientContent === "object" &&
+        frame.clientContent !== null &&
+        Array.isArray((frame.clientContent as { turns?: unknown[] }).turns),
+    );
+    assert.ok(functionResponseFrame, "expected functionResponse clientContent frame");
+
+    const turns = ((functionResponseFrame?.clientContent as { turns?: unknown[] }).turns ?? []) as Array<{
+      parts?: Array<{ functionResponse?: Record<string, unknown> }>;
+    }>;
+    const functionResponse = turns[0]?.parts?.[0]?.functionResponse;
+    assert.ok(functionResponse, "expected functionResponse part");
+    assert.equal(functionResponse?.name, "lookup_price");
+    assert.equal(functionResponse?.id, "call-lookup-1");
+    assert.deepEqual(functionResponse?.response, {
+      price: 99,
+      currency: "USD",
+    });
+
+    const outputSentEvent = emitted.find((event) => event.type === "live.function_call_output.sent");
+    assert.ok(outputSentEvent, "expected output sent diagnostic event");
+    const outputSentPayload = outputSentEvent?.payload as { outputSizeBytes?: number };
+    assert.ok(typeof outputSentPayload.outputSizeBytes === "number" && outputSentPayload.outputSizeBytes > 0);
+  } finally {
+    bridge.close();
+    await closeWss(wss);
   }
 });

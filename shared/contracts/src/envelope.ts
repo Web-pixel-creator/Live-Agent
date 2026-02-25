@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AgentKind, EventEnvelope } from "./types.js";
+import type { AgentKind, ConversationScope, EventEnvelope } from "./types.js";
 
 export function createEnvelope<TPayload>(params: {
   userId?: string;
@@ -8,12 +8,16 @@ export function createEnvelope<TPayload>(params: {
   source: AgentKind;
   payload: TPayload;
   runId?: string;
+  conversation?: ConversationScope;
+  metadata?: Record<string, unknown>;
 }): EventEnvelope<TPayload> {
   return {
     id: randomUUID(),
     userId: params.userId,
     sessionId: params.sessionId,
     runId: params.runId,
+    conversation: params.conversation,
+    metadata: params.metadata,
     type: params.type,
     source: params.source,
     ts: new Date().toISOString(),
@@ -24,12 +28,23 @@ export function createEnvelope<TPayload>(params: {
 export function safeParseEnvelope(input: string): EventEnvelope | null {
   try {
     const parsed = JSON.parse(input) as Partial<EventEnvelope>;
+    const idValid = typeof parsed.id === "string" && parsed.id.trim().length > 0;
     const userIdValid =
       parsed.userId === undefined || (typeof parsed.userId === "string" && parsed.userId.trim().length > 0);
+    const conversationValid =
+      parsed.conversation === undefined ||
+      parsed.conversation === "default" ||
+      parsed.conversation === "none";
+    const metadataValid =
+      parsed.metadata === undefined ||
+      (typeof parsed.metadata === "object" && parsed.metadata !== null && !Array.isArray(parsed.metadata));
     if (
       typeof parsed !== "object" ||
       parsed === null ||
+      !idValid ||
       !userIdValid ||
+      !conversationValid ||
+      !metadataValid ||
       typeof parsed.sessionId !== "string" ||
       typeof parsed.type !== "string" ||
       typeof parsed.source !== "string" ||

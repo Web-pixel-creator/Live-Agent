@@ -9,12 +9,15 @@ export type AgentKind =
   | "system";
 
 export type SessionMode = "live" | "story" | "ui" | "multi";
+export type ConversationScope = "default" | "none";
 
 export type EventEnvelope<TPayload = unknown> = {
   id: string;
   userId?: string;
   sessionId: string;
   runId?: string;
+  conversation?: ConversationScope;
+  metadata?: Record<string, unknown>;
   type: string;
   source: AgentKind;
   ts: string;

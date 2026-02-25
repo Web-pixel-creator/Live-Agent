@@ -7,6 +7,10 @@ test("createEnvelope + safeParseEnvelope roundtrip", () => {
     userId: "user-1",
     sessionId: "session-1",
     runId: "run-1",
+    conversation: "default",
+    metadata: {
+      clientEventId: "evt-123",
+    },
     type: "orchestrator.request",
     source: "frontend",
     payload: {
@@ -17,8 +21,11 @@ test("createEnvelope + safeParseEnvelope roundtrip", () => {
 
   const parsed = safeParseEnvelope(JSON.stringify(envelope));
   assert.ok(parsed, "safeParseEnvelope should parse valid envelope");
+  assert.equal(parsed?.id, envelope.id);
   assert.equal(parsed?.sessionId, "session-1");
   assert.equal(parsed?.type, "orchestrator.request");
+  assert.equal(parsed?.conversation, "default");
+  assert.equal((parsed?.metadata as { clientEventId?: string })?.clientEventId, "evt-123");
 });
 
 test("safeParseEnvelope rejects malformed payload", () => {

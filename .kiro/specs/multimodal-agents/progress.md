@@ -2,7 +2,7 @@
 
 ## As Of
 
-- Date: 2026-02-24
+- Date: 2026-02-25
 - Branch: `main`
 - Status: `release-ready baseline (green gates)`
 
@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `179` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`291` tests passed).
+4. Unit tests are green (`303` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -147,8 +147,22 @@
 116. Added session-versioning retry evidence gating end-to-end: `sessionVersioningScenarioAttempts` is now emitted by `demo-e2e`, validated in `scripts/demo-e2e-policy-check.mjs` and `scripts/release-readiness.ps1`, included in release retry summary and runbook evidence, and covered by updated alignment/regression tests.
 117. Extended bounded scenario-level retries in `scripts/demo-e2e.ps1` to core live/story/sandbox flows: `live.translation`, `live.negotiation`, `live.context_compaction`, `storyteller.pipeline`, and `ui.sandbox.policy_modes` now use `ScenarioRetryMaxAttempts`/`ScenarioRetryBackoffMs` with `-RetryTransientFailures`.
 118. Added attempt evidence gates for core live/story/sandbox retries: new KPIs (`liveTranslationScenarioAttempts`, `liveNegotiationScenarioAttempts`, `liveContextCompactionScenarioAttempts`, `storytellerPipelineScenarioAttempts`, `uiSandboxPolicyModesScenarioAttempts`) are emitted by `demo-e2e`, enforced in demo policy and release-readiness gates, surfaced in release retry telemetry, documented in runbook, and locked by updated unit anti-drift coverage.
-119. Revalidated release baseline after retry-gate expansion: `verify:release` is green with `demo:e2e:policy` at `179` checks and unit suite at `291` passing tests, and `progress.md` quality-gate counters are now synchronized to those values.
+119. Revalidated release baseline after retry-gate expansion: `verify:release` is green with `demo:e2e:policy` at `179` checks and unit suite at `303` passing tests, and `progress.md` quality-gate counters are now synchronized to those values.
 120. Added WS protocol event-matrix anti-drift coverage (`tests/unit/ws-protocol-event-matrix-alignment.test.ts`): runtime gateway outbound events (`live.*`, `gateway.*`, `session.state`, `task.*`, `orchestrator.response`) and demo frontend outbound events (`sendEnvelope(...)`) must remain documented in `docs/ws-protocol.md`.
+121. Completed P0 realtime reliability lane (`T-224/T-225/T-226`) with shipping behavior in runtime/frontend: envelope correlation (`conversation/metadata` + `gateway.error.details.clientEventId`), interruption truncation pipeline (`conversation.item.truncate` + `live.turn.truncated`), and push-to-talk controls (`live.input.clear`/`live.input.commit`).
+122. Gateway now supports out-of-band orchestration lane (`conversation=none`) without default task/session-state mutation: requests are forwarded as side-lane operations, responses are tagged with `conversation=none`, `metadata.oob=true`, and `metadata.parentEventId`.
+123. Demo frontend now exposes explicit OOB dispatch path (`Send OOB Request`) and marks returned side-lane outputs as `[OOB:<topic>] ...`, while preserving negotiation/task UX only for default conversation lane.
+124. Orchestrator idempotency key/fingerprint now include conversation scope (`default|none`) to avoid cross-lane replay collisions; anti-drift tests added for gateway OOB lane and orchestrator conversation-scoped idempotency.
+125. Revalidated post-OOB baseline: `verify:release` green, `demo:e2e:policy` `179` checks green, `perf-load` policy green, and unit suite at `303` passing tests.
+126. Added realtime function-calling baseline in `LiveApiBridge`: upstream function call frames are normalized and emitted as `live.function_call` with call-correlation payload (`callId/name/argumentsJson/turnId`), and duplicate frames within one turn are deduplicated.
+127. Added client-to-upstream function output bridge (`live.function_call_output` -> Gemini `functionResponse` frame) with outbound diagnostic event `live.function_call_output.sent` (payload size + call correlation).
+128. Demo frontend now auto-handles `live.function_call` events by returning `live.function_call_output` and logs bridge confirmation, enabling end-to-end local validation of realtime function-call loop without manual frame crafting.
+129. WS protocol and specs updated for function-calling event contracts (`live.function_call`, `live.function_call_output`, `live.function_call_output.sent`), with anti-drift coverage in `tests/unit/live-bridge.test.ts` and `tests/unit/ws-protocol-event-matrix-alignment.test.ts`.
+130. Revalidated post-function-calling baseline: `verify:release` green with `Demo KPI Gate` pass (`179` checks, `37ms ws`) and perf policy pass (`15` checks, `0` violations).
+131. Extended T-228 from bridge baseline to runtime auto-dispatch in gateway: when `LIVE_FUNCTION_AUTO_INVOKE=true`, `live.function_call` is mapped to orchestrator intents (allowlist + intent resolution), and guardrails enforce argument-size bounds plus default `ui_task` sandbox/approval policy (`sandboxPolicyMode`, `approvalConfirmed=false`, `sessionRole=secondary`).
+132. Added realtime function-call audit lifecycle and correlation path: gateway emits `live.function_call.dispatching/completed/failed`, decorates function-call events with `metadata.autoDispatch=gateway_auto_invoke`, sends side-lane orchestrator requests (`conversation=none`) and relays outputs back through `live.function_call_output`.
+133. Synced docs/frontend/tests for auto-dispatch mode: `docs/ws-protocol.md` documents new events and metadata semantics, frontend avoids duplicate function output when gateway auto-dispatch is active, and new anti-drift coverage (`tests/unit/gateway-live-function-auto-invoke-alignment.test.ts`) locks the contract.
+134. Finalized T-228 validation after docs/spec sync: `npm run test:unit` is green (`303` tests), `npm run verify:release` is green with `Demo KPI Gate` pass (`179` checks, `37ms ws`) and perf policy pass (`15` checks, `0` violations).
 
 ## Current Focus Queue
 

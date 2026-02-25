@@ -10,6 +10,7 @@ import {
   safeParseEnvelope,
   type EventEnvelope,
   type NormalizedError,
+  type OrchestratorIntent,
   type OrchestratorRequest,
   type OrchestratorResponse,
 } from "@mla/contracts";
@@ -50,6 +51,28 @@ const metrics = new RollingMetrics({
   },
 });
 const gatewayOrchestratorReplayTtlMs = parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_DEDUPE_TTL_MS, 120_000);
+const liveFunctionAutoInvokeEnabled = process.env.LIVE_FUNCTION_AUTO_INVOKE === "true";
+const liveFunctionArgumentMaxBytes = parsePositiveInt(process.env.LIVE_FUNCTION_ARGUMENT_MAX_BYTES, 16 * 1024);
+const liveFunctionDispatchDedupeTtlMs = parsePositiveInt(process.env.LIVE_FUNCTION_DEDUPE_TTL_MS, 120_000);
+const liveFunctionAllowlist = parseCsvSet(process.env.LIVE_FUNCTION_ALLOWLIST);
+const liveFunctionUiSandboxMode = parseUiSandboxMode(process.env.LIVE_FUNCTION_UI_SANDBOX_MODE);
+
+const functionIntentAliasMap: Record<string, OrchestratorIntent> = {
+  ui_task: "ui_task",
+  delegate_ui_task: "ui_task",
+  run_ui_task: "ui_task",
+  computer_use: "ui_task",
+  story: "story",
+  create_story: "story",
+  delegate_story: "story",
+  translation: "translation",
+  translate: "translation",
+  live_translation: "translation",
+  negotiation: "negotiation",
+  negotiate: "negotiation",
+  conversation: "conversation",
+  chat: "conversation",
+};
 
 type GatewayTransportRuntimeState = {
   requestedMode: GatewayConfig["gatewayTransportMode"];
@@ -71,6 +94,32 @@ function parsePositiveInt(raw: string | undefined, fallback: number): number {
     return fallback;
   }
   return Math.floor(parsed);
+}
+
+function parseCsvSet(raw: string | undefined): Set<string> {
+  if (!raw) {
+    return new Set();
+  }
+  return new Set(
+    raw
+      .split(",")
+      .map((item) => item.trim().toLowerCase())
+      .filter((item) => item.length > 0),
+  );
+}
+
+function parseUiSandboxMode(raw: string | undefined): "off" | "non-main" | "all" {
+  if (!raw) {
+    return "all";
+  }
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === "off") {
+    return "off";
+  }
+  if (normalized === "non-main" || normalized === "non_main") {
+    return "non-main";
+  }
+  return "all";
 }
 
 function normalizeHttpPath(pathname: string): string {
@@ -112,6 +161,75 @@ function toNonEmptyString(value: unknown): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
+function normalizeFunctionName(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function resolveFunctionCallIntent(functionName: string): OrchestratorIntent | null {
+  const normalized = normalizeFunctionName(functionName);
+  const fromAlias = functionIntentAliasMap[normalized];
+  if (fromAlias) {
+    return fromAlias;
+  }
+  if (normalized.startsWith("ui.") || normalized.startsWith("ui_") || normalized.includes("browser")) {
+    return "ui_task";
+  }
+  if (normalized.includes("story")) {
+    return "story";
+  }
+  if (normalized.includes("translate")) {
+    return "translation";
+  }
+  if (normalized.includes("negotiat")) {
+    return "negotiation";
+  }
+  if (normalized.includes("chat") || normalized.includes("conversation")) {
+    return "conversation";
+  }
+  return null;
+}
+
+function parseFunctionArguments(argsJson: string): { value: unknown; sizeBytes: number; parseError: string | null } {
+  const normalized = argsJson.trim();
+  const sizeBytes = Buffer.byteLength(argsJson, "utf8");
+  if (normalized.length === 0) {
+    return {
+      value: {},
+      sizeBytes,
+      parseError: null,
+    };
+  }
+  try {
+    return {
+      value: JSON.parse(argsJson) as unknown,
+      sizeBytes,
+      parseError: null,
+    };
+  } catch {
+    return {
+      value: {},
+      sizeBytes,
+      parseError: "invalid_json",
+    };
+  }
+}
+
+function toObjectInput(value: unknown): Record<string, unknown> {
+  if (isObject(value)) {
+    return { ...value };
+  }
+  return {
+    value,
+  };
+}
+
+function extractApprovalRequiredFromOutput(value: unknown): boolean {
+  if (!isObject(value)) {
+    return false;
+  }
+  return value.approvalRequired === true;
+}
+
 function extractEnvelopeUserId(event: EventEnvelope): string | null {
   const direct = toNonEmptyString((event as { userId?: unknown }).userId);
   if (direct) {
@@ -147,6 +265,13 @@ function extractRequestTaskId(request: OrchestratorRequest): string | null {
   return toNonEmptyString(request.payload.task.taskId);
 }
 
+function isLiveBridgeEventType(type: string): boolean {
+  if (type.startsWith("live.")) {
+    return true;
+  }
+  return type === "conversation.item.truncate";
+}
+
 function cloneOrchestratorResponse(response: OrchestratorResponse): OrchestratorResponse {
   return JSON.parse(JSON.stringify(response)) as OrchestratorResponse;
 }
@@ -163,6 +288,17 @@ function extractResponseStatus(event: EventEnvelope): string | null {
     return null;
   }
   return toNonEmptyString(event.payload.status);
+}
+
+function isOutOfBandConversation(scope: unknown): scope is "none" {
+  return scope === "none";
+}
+
+function toMetadataRecord(value: unknown): Record<string, unknown> {
+  if (!isObject(value)) {
+    return {};
+  }
+  return value;
 }
 
 function extractApprovalRequired(event: EventEnvelope): boolean {
@@ -522,9 +658,337 @@ wss.on("connection", (ws) => {
         establishedAt: string;
       }
     | null = null;
+  let messageLane: Promise<void> = Promise.resolve();
+  const dispatchedLiveFunctionCalls = new Map<string, number>();
+
+  const cleanupDispatchedLiveFunctionCalls = (nowMs = Date.now()): void => {
+    for (const [callId, dispatchedAtMs] of dispatchedLiveFunctionCalls.entries()) {
+      if (nowMs - dispatchedAtMs >= liveFunctionDispatchDedupeTtlMs) {
+        dispatchedLiveFunctionCalls.delete(callId);
+      }
+    }
+  };
+
+  const markLiveFunctionCallDispatched = (callId: string): boolean => {
+    cleanupDispatchedLiveFunctionCalls();
+    if (dispatchedLiveFunctionCalls.has(callId)) {
+      return false;
+    }
+    dispatchedLiveFunctionCalls.set(callId, Date.now());
+    return true;
+  };
+
+  const decorateOutboundEvent = (event: EventEnvelope): EventEnvelope => {
+    if (!liveFunctionAutoInvokeEnabled || event.type !== "live.function_call") {
+      return event;
+    }
+    const metadata = toMetadataRecord((event as { metadata?: unknown }).metadata);
+    return {
+      ...event,
+      metadata: {
+        ...metadata,
+        autoDispatch: "gateway_auto_invoke",
+      },
+    };
+  };
+
+  async function handleLiveFunctionCallAutoInvoke(event: EventEnvelope): Promise<void> {
+    const startedAtMs = Date.now();
+    if (!liveFunctionAutoInvokeEnabled || event.type !== "live.function_call") {
+      return;
+    }
+
+    const payload = isObject(event.payload) ? event.payload : null;
+    const name = payload ? toNonEmptyString(payload.name) : null;
+    const callId = payload ? toNonEmptyString(payload.callId) ?? randomUUID() : randomUUID();
+    const turnId = payload ? toNonEmptyString(payload.turnId) : null;
+    const functionRunId = `fc-${callId}`;
+
+    const emitFunctionCallFailure = async (params: {
+      code: string;
+      message: string;
+      details?: unknown;
+      intent?: OrchestratorIntent | null;
+      argumentBytes?: number;
+    }): Promise<void> => {
+      const normalized = createNormalizedError({
+        code: params.code,
+        message: params.message,
+        details: params.details,
+      });
+      emitGatewayEvent({
+        type: "live.function_call.failed",
+        runId: functionRunId,
+        payload: {
+          callId,
+          name: name ?? "unknown_function",
+          intent: params.intent ?? null,
+          argumentBytes: params.argumentBytes ?? null,
+          traceId: normalized.traceId,
+          errorCode: normalized.code,
+          message: normalized.message,
+        },
+      });
+
+      const bridge = ensureLiveBridge(currentSessionId, currentUserId, functionRunId);
+      await bridge.forwardFromClient(
+        createEnvelope({
+          userId: currentUserId,
+          sessionId: currentSessionId,
+          runId: functionRunId,
+          conversation: "none",
+          metadata: {
+            oob: true,
+            autoDispatch: "gateway_auto_invoke",
+            parentEventId: event.id,
+            functionCallName: name ?? "unknown_function",
+            failed: true,
+          },
+          type: "live.function_call_output",
+          source: "gateway",
+          payload: {
+            callId,
+            name: name ?? "unknown_function",
+            output: {
+              status: "failed",
+              route: null,
+              approvalRequired: false,
+              output: null,
+              traceId: normalized.traceId,
+              error: normalized,
+            },
+          },
+        }),
+      );
+      metrics.record("ws.message.live.function_call.auto", Date.now() - startedAtMs, false);
+    };
+
+    if (!name || !payload) {
+      await emitFunctionCallFailure({
+        code: "GATEWAY_FUNCTION_CALL_INVALID_PAYLOAD",
+        message: "invalid live.function_call payload",
+      });
+      return;
+    }
+
+    if (!markLiveFunctionCallDispatched(callId)) {
+      metrics.record("ws.message.live.function_call.auto", Date.now() - startedAtMs, true);
+      return;
+    }
+
+    const normalizedFunctionName = normalizeFunctionName(name);
+    if (liveFunctionAllowlist.size > 0 && !liveFunctionAllowlist.has(normalizedFunctionName)) {
+      await emitFunctionCallFailure({
+        code: "GATEWAY_FUNCTION_CALL_NOT_ALLOWED",
+        message: "function call is not in configured allowlist",
+        details: {
+          functionName: normalizedFunctionName,
+        },
+      });
+      return;
+    }
+
+    const intent = resolveFunctionCallIntent(normalizedFunctionName);
+    if (!intent) {
+      await emitFunctionCallFailure({
+        code: "GATEWAY_FUNCTION_CALL_UNMAPPED",
+        message: "function call name cannot be mapped to orchestrator intent",
+        details: {
+          functionName: normalizedFunctionName,
+        },
+      });
+      return;
+    }
+
+    const argumentsJson =
+      typeof payload.argumentsJson === "string"
+        ? payload.argumentsJson
+        : typeof payload.arguments === "string"
+          ? payload.arguments
+          : JSON.stringify(payload.arguments ?? payload.args ?? {});
+    const parsedArguments = parseFunctionArguments(argumentsJson);
+    if (parsedArguments.sizeBytes > liveFunctionArgumentMaxBytes) {
+      await emitFunctionCallFailure({
+        code: "GATEWAY_FUNCTION_CALL_ARGUMENTS_TOO_LARGE",
+        message: "function call arguments exceed configured byte limit",
+        details: {
+          maxBytes: liveFunctionArgumentMaxBytes,
+          sizeBytes: parsedArguments.sizeBytes,
+        },
+        intent,
+        argumentBytes: parsedArguments.sizeBytes,
+      });
+      return;
+    }
+    if (parsedArguments.parseError) {
+      await emitFunctionCallFailure({
+        code: "GATEWAY_FUNCTION_CALL_ARGUMENTS_INVALID",
+        message: "function call arguments are not valid JSON",
+        details: {
+          parseError: parsedArguments.parseError,
+        },
+        intent,
+        argumentBytes: parsedArguments.sizeBytes,
+      });
+      return;
+    }
+
+    const input = toObjectInput(parsedArguments.value);
+    if (!toNonEmptyString(input.idempotencyKey)) {
+      input.idempotencyKey = `live-function:${callId}`;
+    }
+    input.functionCall = {
+      name,
+      callId,
+      turnId,
+      sourceEventId: event.id,
+      autoDispatch: true,
+    };
+    if (intent === "ui_task") {
+      if (!toNonEmptyString(input.sandboxPolicyMode)) {
+        input.sandboxPolicyMode = liveFunctionUiSandboxMode;
+      }
+      if (!toNonEmptyString(input.sessionRole)) {
+        input.sessionRole = "secondary";
+      }
+      if (input.approvalConfirmed !== true) {
+        input.approvalConfirmed = false;
+      }
+    }
+
+    emitGatewayEvent({
+      type: "live.function_call.dispatching",
+      runId: functionRunId,
+      payload: {
+        callId,
+        name,
+        turnId,
+        intent,
+        argumentBytes: parsedArguments.sizeBytes,
+        autoDispatch: true,
+        sandboxPolicyMode: intent === "ui_task" ? input.sandboxPolicyMode : null,
+      },
+    });
+
+    try {
+      const request = createEnvelope({
+        userId: currentUserId,
+        sessionId: currentSessionId,
+        runId: functionRunId,
+        conversation: "none",
+        metadata: {
+          oob: true,
+          topic: "realtime_function_call",
+          parentEventId: event.id,
+          functionCallName: name,
+          autoDispatch: "gateway_auto_invoke",
+        },
+        type: "orchestrator.request",
+        source: "gateway",
+        payload: {
+          intent,
+          input,
+        },
+      }) as OrchestratorRequest;
+
+      let response = await sendToOrchestrator(config.orchestratorUrl, request, {
+        timeoutMs: config.orchestratorTimeoutMs,
+        maxRetries: config.orchestratorMaxRetries,
+        retryBackoffMs: config.orchestratorRetryBackoffMs,
+      });
+
+      if (!toNonEmptyString((response as { userId?: unknown }).userId)) {
+        response = {
+          ...response,
+          userId: currentUserId,
+        };
+      }
+      if (!toNonEmptyString(response.runId)) {
+        response = {
+          ...response,
+          runId: functionRunId,
+        };
+      }
+
+      const approvalRequired = extractApprovalRequiredFromOutput(response.payload.output);
+      const responseRunId = response.runId ?? functionRunId;
+      emitGatewayEvent({
+        type: "live.function_call.completed",
+        runId: responseRunId,
+        payload: {
+          callId,
+          name,
+          turnId,
+          intent,
+          status: response.payload.status,
+          route: response.payload.route,
+          approvalRequired,
+        },
+      });
+
+      const bridge = ensureLiveBridge(currentSessionId, currentUserId, responseRunId);
+      await bridge.forwardFromClient(
+        createEnvelope({
+          userId: currentUserId,
+          sessionId: currentSessionId,
+          runId: responseRunId,
+          conversation: "none",
+          metadata: {
+            oob: true,
+            autoDispatch: "gateway_auto_invoke",
+            parentEventId: event.id,
+            functionCallName: name,
+            intent,
+            approvalRequired,
+          },
+          type: "live.function_call_output",
+          source: "gateway",
+          payload: {
+            callId,
+            name,
+            output: {
+              status: response.payload.status,
+              route: response.payload.route,
+              output: response.payload.output ?? null,
+              traceId: response.payload.traceId ?? null,
+              error: response.payload.error ?? null,
+              approvalRequired,
+            },
+          },
+        }),
+      );
+      metrics.record("ws.message.live.function_call.auto", Date.now() - startedAtMs, true);
+    } catch (error) {
+      await emitFunctionCallFailure({
+        code: "GATEWAY_FUNCTION_CALL_ORCHESTRATOR_FAILURE",
+        message: error instanceof Error ? error.message : "function call dispatch failed",
+        details: {
+          intent,
+          functionName: normalizedFunctionName,
+        },
+        intent,
+        argumentBytes: parsedArguments.sizeBytes,
+      });
+    }
+  }
 
   const sendEvent = (event: EventEnvelope): void => {
-    ws.send(JSON.stringify(event));
+    const outboundEvent = decorateOutboundEvent(event);
+    ws.send(JSON.stringify(outboundEvent));
+    if (liveFunctionAutoInvokeEnabled && outboundEvent.type === "live.function_call") {
+      messageLane = messageLane
+        .then(async () => {
+          await handleLiveFunctionCallAutoInvoke(outboundEvent);
+        })
+        .catch((error) => {
+          emitGatewayError({
+            sessionId: currentSessionId,
+            runId: currentRunId,
+            code: "GATEWAY_SERIAL_LANE_FAILURE",
+            message: error instanceof Error ? error.message : "Unhandled gateway message lane failure",
+          });
+        });
+    }
   };
 
   const emitGatewayEvent = (params: {
@@ -554,12 +1018,33 @@ wss.on("connection", (ws) => {
     runId?: string;
     userId?: string;
     traceId?: string;
+    clientEventId?: string;
   }): NormalizedError => {
+    let details = params.details;
+    const clientEventId = toNonEmptyString(params.clientEventId);
+    if (clientEventId) {
+      if (isObject(details)) {
+        details = {
+          ...details,
+          clientEventId,
+        };
+      } else if (details === undefined) {
+        details = {
+          clientEventId,
+        };
+      } else {
+        details = {
+          clientEventId,
+          context: details,
+        };
+      }
+    }
+
     const normalized = createNormalizedError({
       code: params.code,
       message: params.message,
       traceId: params.traceId,
-      details: params.details,
+      details,
     });
     emitGatewayEvent({
       type: "gateway.error",
@@ -625,6 +1110,7 @@ wss.on("connection", (ws) => {
         runId: messageRunId,
         code: "GATEWAY_SESSION_MISMATCH",
         message: "sessionId mismatch for bound websocket connection",
+        clientEventId: parsed.id,
         details: {
           expectedSessionId: sessionBinding.sessionId,
           receivedSessionId: parsed.sessionId,
@@ -640,6 +1126,7 @@ wss.on("connection", (ws) => {
         runId: messageRunId,
         code: "GATEWAY_USER_MISMATCH",
         message: "userId mismatch for bound websocket connection",
+        clientEventId: parsed.id,
         details: {
           expectedUserId: sessionBinding.userId,
           receivedUserId: providedUserId,
@@ -696,7 +1183,6 @@ wss.on("connection", (ws) => {
     expiresAtMs: number;
   };
   const requestReplayCache = new Map<string, ReplayCacheEntry>();
-  let messageLane: Promise<void> = Promise.resolve();
 
   const cleanupReplayCache = (nowMs = Date.now()): void => {
     for (const [key, entry] of requestReplayCache.entries()) {
@@ -720,6 +1206,7 @@ wss.on("connection", (ws) => {
     }
 
     const parsed: EventEnvelope = parsedEnvelope;
+    const isOutOfBandRequest = isOutOfBandConversation(parsed.conversation);
     const binding = establishBinding(parsed);
     if (!binding) {
       metrics.record("ws.message.binding_error", Date.now() - messageStartedAt, false);
@@ -733,6 +1220,7 @@ wss.on("connection", (ws) => {
         runId: binding.runId,
         code: "GATEWAY_DRAINING",
         message: "gateway is draining and does not accept new requests",
+        clientEventId: parsed.id,
         details: {
           runtime: runtimeState(),
         },
@@ -744,7 +1232,7 @@ wss.on("connection", (ws) => {
     let orchestratorCallStartedAt: number | null = null;
 
     try {
-      if (parsed.type.startsWith("live.")) {
+      if (isLiveBridgeEventType(parsed.type)) {
         const liveEvent = {
           ...parsed,
           userId: binding.userId,
@@ -778,7 +1266,7 @@ wss.on("connection", (ws) => {
         runId: normalizedRunId,
         userId: binding.userId,
       };
-      const shouldTrackTask = parsed.type === "orchestrator.request";
+      const shouldTrackTask = parsed.type === "orchestrator.request" && !isOutOfBandRequest;
       const replayKey = shouldTrackTask ? buildReplayKey(rawRequest) : null;
       const replayFingerprint = replayKey ? buildReplayFingerprint(rawRequest) : null;
       let trackedTask: TaskRecord | null = null;
@@ -802,6 +1290,7 @@ wss.on("connection", (ws) => {
               runId: rawRequest.runId ?? undefined,
               code: "GATEWAY_IDEMPOTENCY_CONFLICT",
               message: "request identity conflict for replay key",
+              clientEventId: rawRequest.id,
               details: {
                 replayKey,
                 cachedFingerprint: cached.fingerprint,
@@ -898,13 +1387,15 @@ wss.on("connection", (ws) => {
         }
       }
 
-      emitSessionState(
-        "orchestrator_dispatching",
-        {
-          intent: extractRequestIntent(rawRequest),
-        },
-        rawRequest.runId,
-      );
+      if (!isOutOfBandRequest) {
+        emitSessionState(
+          "orchestrator_dispatching",
+          {
+            intent: extractRequestIntent(rawRequest),
+          },
+          rawRequest.runId,
+        );
+      }
       orchestratorCallStartedAt = Date.now();
       let response = await sendToOrchestrator(config.orchestratorUrl, request, {
         timeoutMs: config.orchestratorTimeoutMs,
@@ -921,6 +1412,24 @@ wss.on("connection", (ws) => {
         response = {
           ...response,
           runId: rawRequest.runId,
+        };
+      }
+      if (isOutOfBandRequest) {
+        const responseMetadata = toMetadataRecord((response as { metadata?: unknown }).metadata);
+        const requestMetadata = toMetadataRecord(parsed.metadata);
+        const taggedMetadata: Record<string, unknown> = {
+          ...responseMetadata,
+          oob: true,
+          parentEventId: parsed.id,
+          parentRunId: rawRequest.runId ?? null,
+        };
+        if (Object.keys(requestMetadata).length > 0) {
+          taggedMetadata.requestMetadata = requestMetadata;
+        }
+        response = {
+          ...response,
+          conversation: "none",
+          metadata: taggedMetadata,
         };
       }
       metrics.record(
@@ -1029,10 +1538,16 @@ wss.on("connection", (ws) => {
       }
 
       sendEvent(response);
+      if (isOutOfBandRequest) {
+        metrics.record("ws.message.orchestrator.oob", Date.now() - messageStartedAt, true);
+      }
       metrics.record("ws.message.orchestrator", Date.now() - messageStartedAt, true);
     } catch (error) {
       if (orchestratorCallStartedAt !== null) {
         metrics.record("ws.orchestrator_request", Date.now() - orchestratorCallStartedAt, false);
+      }
+      if (isOutOfBandRequest) {
+        metrics.record("ws.message.orchestrator.oob", Date.now() - messageStartedAt, false);
       }
       metrics.record("ws.message.orchestrator", Date.now() - messageStartedAt, false);
       if (trackedTaskOnError) {
@@ -1052,18 +1567,21 @@ wss.on("connection", (ws) => {
         }
       }
 
-      emitSessionState(
-        "orchestrator_failed",
-        {
-          error: error instanceof Error ? error.message : "Unknown gateway failure",
-        },
-        currentRunId,
-      );
+      if (!isOutOfBandRequest) {
+        emitSessionState(
+          "orchestrator_failed",
+          {
+            error: error instanceof Error ? error.message : "Unknown gateway failure",
+          },
+          currentRunId,
+        );
+      }
       emitGatewayError({
         sessionId: parsed.sessionId,
         runId: currentRunId,
         code: "GATEWAY_ORCHESTRATOR_FAILURE",
         message: error instanceof Error ? error.message : "Unknown gateway failure",
+        clientEventId: parsed.id,
         details: {
           route: "orchestrator",
         },

@@ -109,6 +109,11 @@
 | T-221 | Telemetry storage split: Firestore state vs analytics sinks (Cloud Monitoring/BigQuery) | P1 | 0.5 week | T-009, T-205 | R11, R15 | Состояние/approval/session остаются в Firestore; метрики и event rollups экспортируются через structured analytics logs для routing в Cloud Monitoring/BigQuery, policy задокументирована в `docs/telemetry-storage-split.md` |
 | T-222 | Assistive LLM router with confidence gate and deterministic fallback | P1 | 0.5 week | T-004, T-109 | R10, R16 | Добавлен дополнительный router на `gemini-3-flash` под feature flag; при low-confidence сохраняется deterministic routeIntent, а routing diagnostics документированы в `docs/assistive-router.md` |
 | T-223 | WebRTC spike and migration plan for Live Agent V2 transport | P2 | 0.5 week | T-211 | R1, R12 | Выполнен технический spike (latency/loss behavior, adapter seam, rollout risks); migration plan зафиксирован в `docs/webrtc-v2-spike.md` без влияния на WebSocket-only MVP |
+| T-224 | Realtime envelope correlation pass (`event id` + metadata + gateway error echo) | P0 | 0.25 week | T-214, T-218 | R12, R14, R15 | `EventEnvelope` поддерживает `conversation/metadata`; `gateway.error.details.clientEventId` эхирует клиентский `id`; docs/tests/e2e не дрейфуют |
+| T-225 | Interruption truncation pipeline for WebSocket playback clients | P0 | 0.5 week | T-211, T-224 | R1, R12, R14, R15 | Frontend вычисляет `audio_end_ms`, отправляет `conversation.item.truncate`, gateway фиксирует `live.turn.truncated`, а недослушанный хвост не остается в активном turn-state |
+| T-226 | Push-to-Talk runtime mode (`live.input.clear/commit`) for noisy environments | P0 | 0.5 week | T-225 | R1, R12, R14 | В UI есть PTT режим (`hold-to-talk`), на press/release отправляются clear/commit события, а сценарий стабилен в e2e |
+| T-227 | Out-of-band response lane (`conversation=none` + metadata tagging) | P1 | 0.5 week | T-224, T-222 | R10, R12, R16 | Поддержан side-lane ответов без мутации default conversation; метаданные позволяют связать OOB результат с задачей (router/moderation/classification) |
+| T-228 | Realtime function-calling bridge (tools -> skill invocation -> function output) | P1 | 1 week | T-202, T-212, T-227 | R10, R13, R16 | В realtime-сессии поддержаны function-call запросы к skills/capabilities с approval/sandbox guards и audit-трассировкой |
 
 ### M3 Detailed Implementation Checklist (T-207..T-210)
 
@@ -157,10 +162,11 @@
 
 ## Current Post-Feedback Execution Path
 
-1. T-219 (Echo Mock) -> T-220 (UI Grounding SoM/DOM/A11y)
-2. T-221 (Telemetry split for cost/analytics)
-3. T-222 (Assistive LLM router with confidence fallback)
-4. T-223 (WebRTC V2 spike only, no MVP transport change)
+1. T-224 -> T-225 -> T-226 (P0 realtime reliability lane) [Completed]
+2. T-227 (P1 capability expansion lane, OOB response lane) [Completed]
+3. T-228 (P1 capability expansion lane, realtime function-calling bridge) [Completed]
+4. T-219/T-220/T-221/T-222 run as parallel hardening where no protocol conflict exists
+5. T-223 remains V2 spike only (no MVP transport change)
 
 ## Suggested Solo Execution (2-week MVP)
 

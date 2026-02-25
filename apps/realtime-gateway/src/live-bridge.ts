@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import WebSocket from "ws";
 import { createEnvelope, type EventEnvelope } from "@mla/contracts";
 import type { GatewayConfig, LiveApiProtocol, LiveAuthProfile } from "./config.js";
@@ -212,11 +213,82 @@ function extractClientTimestampMs(payload: unknown): number | null {
 }
 
 type NormalizedLiveOutput = {
+  turnId?: string;
   text?: string;
   audioBase64?: string;
+  functionCall?: {
+    name: string;
+    argumentsJson: string;
+    callId: string | null;
+  };
   interrupted?: boolean;
   turnComplete?: boolean;
 };
+
+function toFunctionArgumentsJson(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value === undefined) {
+    return "{}";
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return "{}";
+  }
+}
+
+function normalizeFunctionCallCandidate(candidate: unknown): NormalizedLiveOutput["functionCall"] | null {
+  if (!isRecord(candidate)) {
+    return null;
+  }
+  const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
+  if (name.length === 0) {
+    return null;
+  }
+  const callId =
+    typeof candidate.callId === "string"
+      ? candidate.callId
+      : typeof candidate.id === "string"
+        ? candidate.id
+        : null;
+  const argumentsJson = toFunctionArgumentsJson(
+    candidate.argumentsJson ?? candidate.arguments ?? candidate.args ?? candidate.parameters,
+  );
+  return {
+    name,
+    argumentsJson,
+    callId: callId && callId.trim().length > 0 ? callId.trim() : null,
+  };
+}
+
+function extractGeminiFunctionCall(parsed: Record<string, unknown>): NormalizedLiveOutput["functionCall"] | null {
+  const directCandidates = [parsed.functionCall, parsed.toolCall, parsed.tool_call];
+  for (const candidate of directCandidates) {
+    const normalized = normalizeFunctionCallCandidate(candidate);
+    if (normalized) {
+      return normalized;
+    }
+    if (Array.isArray(candidate)) {
+      for (const item of candidate) {
+        const fromArray = normalizeFunctionCallCandidate(item);
+        if (fromArray) {
+          return fromArray;
+        }
+      }
+    }
+    if (isRecord(candidate) && Array.isArray(candidate.functionCalls)) {
+      for (const item of candidate.functionCalls) {
+        const fromNested = normalizeFunctionCallCandidate(item);
+        if (fromNested) {
+          return fromNested;
+        }
+      }
+    }
+  }
+  return null;
+}
 
 function normalizeGeminiUpstreamMessage(parsed: unknown): NormalizedLiveOutput | null {
   if (!isRecord(parsed)) {
@@ -252,6 +324,16 @@ function normalizeGeminiUpstreamMessage(parsed: unknown): NormalizedLiveOutput |
         normalized.audioBase64 = part.inlineData.data;
       }
     }
+    if (!normalized.functionCall && isRecord(part.functionCall)) {
+      const functionCall = normalizeFunctionCallCandidate(part.functionCall);
+      if (functionCall) {
+        normalized.functionCall = functionCall;
+      }
+    }
+  }
+
+  if (!normalized.functionCall) {
+    normalized.functionCall = extractGeminiFunctionCall(parsed) ?? undefined;
   }
 
   if (texts.length > 0) {
@@ -261,7 +343,11 @@ function normalizeGeminiUpstreamMessage(parsed: unknown): NormalizedLiveOutput |
     normalized.text = serverContent.outputTranscript;
   }
 
-  if (typeof normalized.text === "string" || typeof normalized.audioBase64 === "string") {
+  if (
+    typeof normalized.text === "string" ||
+    typeof normalized.audioBase64 === "string" ||
+    typeof normalized.functionCall === "object"
+  ) {
     return normalized;
   }
   if (normalized.interrupted === true || normalized.turnComplete === true) {
@@ -322,8 +408,10 @@ export class LiveApiBridge {
   private pendingRoundTripSource: LiveModality | null = null;
   private roundTripMeasuredForCurrentTurn = false;
   private currentTurnStartedAtMs: number | null = null;
+  private currentTurnId: string | null = null;
   private currentTurnTextParts: string[] = [];
   private currentTurnTextCombined = "";
+  private lastFunctionCallFingerprint: string | null = null;
   private readonly modelStates: ModelState[];
   private currentModelIndex = 0;
   private readonly authProfiles: AuthProfileState[];
@@ -866,8 +954,10 @@ export class LiveApiBridge {
 
   private resetTurnAggregation(): void {
     this.currentTurnStartedAtMs = null;
+    this.currentTurnId = null;
     this.currentTurnTextParts = [];
     this.currentTurnTextCombined = "";
+    this.lastFunctionCallFingerprint = null;
     this.roundTripMeasuredForCurrentTurn = false;
   }
 
@@ -923,6 +1013,7 @@ export class LiveApiBridge {
     const text = this.currentTurnTextCombined.trim();
     const turnDurationMs = this.currentTurnStartedAtMs === null ? null : nowMs - this.currentTurnStartedAtMs;
     this.emit("live.turn.completed", {
+      turnId: this.currentTurnId,
       text: text.length > 0 ? text : null,
       textChars: text.length,
       turnDurationMs,
@@ -932,6 +1023,7 @@ export class LiveApiBridge {
 
   private handleUpstreamInterrupted(upstream: unknown): void {
     const nowMs = Date.now();
+    const turnId = this.currentTurnId;
     const hadAssistantOutput = this.currentTurnStartedAtMs !== null || this.currentTurnTextCombined.length > 0;
     const hadExplicitInterrupt = this.pendingInterruptAtMs !== null;
     let interruptLatencyMs: number | null = null;
@@ -951,6 +1043,7 @@ export class LiveApiBridge {
 
     this.emit("live.interrupted", {
       reason: "upstream interrupted event",
+      turnId,
       interruptLatencyMs,
       upstream,
     });
@@ -994,14 +1087,41 @@ export class LiveApiBridge {
       }
     }
 
-    const hasOutput = normalizedTextDelta !== null || typeof normalized.audioBase64 === "string";
+    const functionCall = typeof normalized.functionCall === "object" && normalized.functionCall !== null
+      ? normalized.functionCall
+      : null;
+    const hasFunctionCall = functionCall !== null;
+    const hasOutput =
+      normalizedTextDelta !== null || typeof normalized.audioBase64 === "string" || hasFunctionCall;
     if (hasOutput) {
       if (this.currentTurnStartedAtMs === null) {
         this.currentTurnStartedAtMs = nowMs;
       }
+      if (this.currentTurnId === null) {
+        this.currentTurnId = `turn-${randomUUID()}`;
+      }
+      normalized.turnId = this.currentTurnId;
       if (normalizedTextDelta !== null) {
         this.currentTurnTextParts.push(normalizedTextDelta);
         this.currentTurnTextCombined += normalizedTextDelta;
+      }
+      if (functionCall) {
+        const callId =
+          functionCall.callId && functionCall.callId.trim().length > 0
+            ? functionCall.callId.trim()
+            : `call-${randomUUID()}`;
+        functionCall.callId = callId;
+        const fingerprint = `${callId}:${functionCall.name}:${functionCall.argumentsJson}`;
+        if (fingerprint !== this.lastFunctionCallFingerprint) {
+          this.lastFunctionCallFingerprint = fingerprint;
+          this.emit("live.function_call", {
+            turnId: this.currentTurnId,
+            callId,
+            name: functionCall.name,
+            argumentsJson: functionCall.argumentsJson,
+            receivedAt: new Date(nowMs).toISOString(),
+          });
+        }
       }
       this.emitRoundTripIfNeeded(nowMs);
     }
@@ -1144,6 +1264,126 @@ export class LiveApiBridge {
     });
   }
 
+  private sendGeminiInputClear(payload: unknown): void {
+    const reason = isRecord(payload) && typeof payload.reason === "string" ? payload.reason : "client_input_clear";
+    this.resetLiveState();
+    this.pendingInterruptAtMs = null;
+    this.emit("live.input.cleared", {
+      reason,
+      clearedAt: new Date().toISOString(),
+    });
+  }
+
+  private sendGeminiInputCommit(payload: unknown): void {
+    const reason = isRecord(payload) && typeof payload.reason === "string" ? payload.reason : "client_input_commit";
+    this.sendGeminiTurnEnd({ reason });
+    this.emit("live.input.committed", {
+      reason,
+      committedAt: new Date().toISOString(),
+    });
+  }
+
+  private sendGeminiFunctionCallOutput(payload: unknown): void {
+    if (!isRecord(payload)) {
+      this.emit("live.bridge.error", {
+        error: "Invalid payload for live.function_call_output",
+      });
+      return;
+    }
+
+    const name =
+      typeof payload.name === "string"
+        ? payload.name.trim()
+        : typeof payload.functionName === "string"
+          ? payload.functionName.trim()
+          : "";
+    if (name.length === 0) {
+      this.emit("live.bridge.error", {
+        error: "Missing function name for live.function_call_output",
+      });
+      return;
+    }
+
+    const callId =
+      typeof payload.callId === "string"
+        ? payload.callId.trim()
+        : typeof payload.call_id === "string"
+          ? payload.call_id.trim()
+          : "";
+    const outputValue = payload.output ?? payload.result ?? payload.response ?? null;
+    const responsePayload =
+      isRecord(outputValue) || Array.isArray(outputValue)
+        ? outputValue
+        : {
+            value: outputValue,
+          };
+
+    this.sendUpstreamJson({
+      clientContent: {
+        turns: [
+          {
+            role: "user",
+            parts: [
+              {
+                functionResponse: {
+                  name,
+                  ...(callId.length > 0 ? { id: callId } : {}),
+                  response: responsePayload,
+                },
+              },
+            ],
+          },
+        ],
+        turnComplete: true,
+      },
+    });
+
+    const outputJson = JSON.stringify(responsePayload);
+    this.emit("live.function_call_output.sent", {
+      name,
+      callId: callId.length > 0 ? callId : null,
+      outputSizeBytes: Buffer.byteLength(outputJson, "utf8"),
+      sentAt: new Date().toISOString(),
+    });
+  }
+
+  private sendConversationItemTruncate(payload: unknown): void {
+    const turnIdFromPayload =
+      isRecord(payload) &&
+      (typeof payload.item_id === "string" || typeof payload.itemId === "string")
+        ? (typeof payload.item_id === "string" ? payload.item_id : payload.itemId)
+        : null;
+    const contentIndexRaw =
+      isRecord(payload) && typeof payload.content_index === "number"
+        ? payload.content_index
+        : isRecord(payload) && typeof payload.contentIndex === "number"
+          ? payload.contentIndex
+          : 0;
+    const audioEndMsRaw =
+      isRecord(payload) && typeof payload.audio_end_ms === "number"
+        ? payload.audio_end_ms
+        : isRecord(payload) && typeof payload.audioEndMs === "number"
+          ? payload.audioEndMs
+          : null;
+    const reason = isRecord(payload) && typeof payload.reason === "string" ? payload.reason : "client_truncate";
+    const activeTurnId = this.currentTurnId;
+    const targetTurnId = turnIdFromPayload ?? activeTurnId;
+    const shouldResetTurn = Boolean(activeTurnId && (!turnIdFromPayload || turnIdFromPayload === activeTurnId));
+    if (shouldResetTurn) {
+      this.resetLiveState();
+    }
+    this.pendingInterruptAtMs = null;
+    this.emit("live.turn.truncated", {
+      reason,
+      turnId: targetTurnId,
+      contentIndex: Number.isFinite(contentIndexRaw) ? Math.max(0, Math.floor(contentIndexRaw)) : 0,
+      audioEndMs: audioEndMsRaw !== null && Number.isFinite(audioEndMsRaw) ? Math.max(0, Math.floor(audioEndMsRaw)) : null,
+      hadActiveTurn: activeTurnId !== null,
+      appliedAt: new Date().toISOString(),
+      scope: "session_local",
+    });
+  }
+
   private sendGeminiInterrupt(payload: unknown): void {
     const reason = isRecord(payload) && typeof payload.reason === "string" ? payload.reason : "user_interrupt";
     this.pendingInterruptAtMs = Date.now();
@@ -1183,8 +1423,24 @@ export class LiveApiBridge {
         this.sendGeminiTurnEnd(event.payload);
         return;
       }
+      case "live.input.clear": {
+        this.sendGeminiInputClear(event.payload);
+        return;
+      }
+      case "live.input.commit": {
+        this.sendGeminiInputCommit(event.payload);
+        return;
+      }
+      case "live.function_call_output": {
+        this.sendGeminiFunctionCallOutput(event.payload);
+        return;
+      }
       case "live.interrupt": {
         this.sendGeminiInterrupt(event.payload);
+        return;
+      }
+      case "conversation.item.truncate": {
+        this.sendConversationItemTruncate(event.payload);
         return;
       }
       default: {

@@ -81,8 +81,9 @@ function extractRequestIdempotencyKey(request: OrchestratorRequest): string {
 function buildOrchestrationKey(request: OrchestratorRequest): string {
   const runId = toNonEmptyString(request.runId) ?? request.id;
   const intent = request.payload.intent;
+  const conversation = request.conversation === "none" ? "none" : "default";
   const key = extractRequestIdempotencyKey(request);
-  return `${request.sessionId}:${runId}:${intent}:${key}`;
+  return `${request.sessionId}:${runId}:${intent}:${conversation}:${key}`;
 }
 
 function stableSerialize(value: unknown): string {
@@ -113,6 +114,7 @@ function buildOrchestrationFingerprint(request: OrchestratorRequest): string {
     sessionId: request.sessionId,
     userId: toNonEmptyString(request.userId),
     runId: toNonEmptyString(request.runId) ?? request.id,
+    conversation: request.conversation === "none" ? "none" : "default",
     intent: toNonEmptyString(payload.intent),
     input: isRecord(payload.input) || Array.isArray(payload.input) ? payload.input : payload.input ?? null,
   };

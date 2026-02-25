@@ -19,6 +19,8 @@ Every frame (both directions) MUST be an `EventEnvelope`:
   "userId": "string-optional",
   "sessionId": "string",
   "runId": "string-optional",
+  "conversation": "default|none (optional)",
+  "metadata": {},
   "type": "string",
   "source": "frontend|gateway|orchestrator|agent|tool",
   "ts": "ISO-8601",
@@ -31,7 +33,10 @@ Rules:
 1. `sessionId` is mandatory.
 2. `userId` MAY be omitted by client after socket binding is established.
 3. `runId` is operation-level and SHOULD be stable per user request.
-4. `type` drives routing and behavior.
+4. `conversation` MAY be set to `none` for out-of-band requests that should not mutate default dialog context.
+5. `metadata` MAY contain client diagnostics and request labels.
+6. Gateway MAY enrich `metadata.autoDispatch` for runtime-managed flows (for example realtime function auto-dispatch).
+7. `type` drives routing and behavior.
 
 ## Session Binding And Serial Lane
 
@@ -51,11 +56,16 @@ Supported event types:
 5. `live.turn.end`
 6. `live.interrupt`
 7. `live.setup` (optional Gemini setup override payload)
+8. `live.input.clear` (push-to-talk/manual input control)
+9. `live.input.commit` (push-to-talk/manual input control)
+10. `conversation.item.truncate` (remove unplayed assistant audio from active turn context)
+11. `live.function_call_output` (client-provided function/skill execution result for active live turn)
 
 Notes:
 
 1. `live.audio` is expected as PCM16 base64 chunks with `sampleRate=16000` in current frontend/gateway baseline.
 2. `orchestrator.request` SHOULD carry stable request identity (`runId` and/or `payload.idempotencyKey`) for replay safety.
+3. `orchestrator.request` with `conversation=none` is treated as out-of-band lane: gateway forwards request but does not emit task lifecycle events for that request.
 
 ## Gateway -> Client Events
 
@@ -85,6 +95,12 @@ Notes:
 5. `task.failed`
 6. `gateway.request_replayed`
 
+Out-of-band behavior (`conversation=none`):
+
+1. `orchestrator.response` is returned with `conversation=none`.
+2. `orchestrator.response.metadata` includes `oob=true` and `parentEventId` for correlation.
+3. Task lifecycle events (`task.*`) are emitted only for default conversation lane.
+
 ### Live Bridge Output and Metrics
 
 1. `live.output`
@@ -94,6 +110,20 @@ Notes:
 5. `live.interrupt.requested`
 6. `live.metrics.round_trip`
 7. `live.metrics.interrupt_latency`
+8. `live.input.cleared`
+9. `live.input.committed`
+10. `live.turn.truncated`
+11. `live.function_call`
+12. `live.function_call_output.sent`
+13. `live.function_call.dispatching`
+14. `live.function_call.completed`
+15. `live.function_call.failed`
+
+Realtime function-call auto-dispatch behavior:
+
+1. When `LIVE_FUNCTION_AUTO_INVOKE=true`, gateway may enrich `live.function_call.metadata.autoDispatch=gateway_auto_invoke`.
+2. Gateway may execute mapped function calls via orchestrator as side-lane (`conversation=none`) requests.
+3. Auto-dispatch lifecycle is exposed via `live.function_call.dispatching/completed/failed` and the final model callback still uses `live.function_call_output` -> `live.function_call_output.sent`.
 
 ### Live Bridge Runtime Diagnostics
 
@@ -134,6 +164,7 @@ Failover/watchdog diagnostics (where present):
 2. `message` (human-readable summary)
 3. `traceId` (required)
 4. `details` (optional structured context)
+5. `details.clientEventId` (optional echo of client envelope `id` when available)
 
 Common WS codes:
 

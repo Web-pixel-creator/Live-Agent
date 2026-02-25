@@ -47,6 +47,7 @@
           <div><strong>User ID:</strong> <span id="currentUserId">-</span></div>
           <div><strong>Session State:</strong> <span id="sessionState">-</span></div>
           <div><strong>Mode:</strong> <span id="modeStatus">voice</span></div>
+          <div><strong>PTT:</strong> <span id="pttStatus" class="status-pill status-neutral">ptt=off</span></div>
         </div>
       </section>
 
@@ -55,6 +56,8 @@
         <div class="actions">
           <button id="startMicBtn">Start Mic Stream</button>
           <button id="stopMicBtn" class="button-muted">Stop Mic</button>
+          <button id="pttToggleBtn" class="button-muted">Enable Push-to-Talk</button>
+          <button id="pttHoldBtn" class="button-muted" disabled>Hold to Talk</button>
           <button id="interruptBtn" class="button-warn">Interrupt Assistant</button>
           <button id="fallbackBtn" class="button-muted">Switch To Text Fallback</button>
         </div>
@@ -80,6 +83,7 @@
         </div>
         <div class="actions">
           <button id="sendBtn">Send Request</button>
+          <button id="sendOobBtn" class="button-muted">Send OOB Request</button>
         </div>
       </section>
 

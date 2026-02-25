@@ -57,6 +57,7 @@ Open `http://localhost:3000`.
 - Live gateway resilience tuning: configure `LIVE_CONNECT_ATTEMPT_TIMEOUT_MS`, `LIVE_CONNECT_RETRY_MS`, `LIVE_CONNECT_MAX_ATTEMPTS`, `LIVE_MAX_STALE_CHUNK_MS`.
 - Live gateway failover/health tuning: `LIVE_MODEL_FALLBACK_IDS`, `LIVE_API_FALLBACK_KEYS`, `LIVE_API_AUTH_PROFILES_JSON`, `LIVE_FAILOVER_COOLDOWN_MS`, `LIVE_FAILOVER_RATE_LIMIT_COOLDOWN_MS`, `LIVE_FAILOVER_AUTH_DISABLE_MS`, `LIVE_FAILOVER_BILLING_DISABLE_MS`, `LIVE_HEALTH_CHECK_INTERVAL_MS`, `LIVE_HEALTH_SILENCE_MS`, `LIVE_HEALTH_PING_ENABLED`, `LIVE_HEALTH_PROBE_GRACE_MS`.
 - Live setup tuning: `LIVE_SETUP_VOICE_NAME`, `LIVE_SYSTEM_INSTRUCTION`, `LIVE_REALTIME_ACTIVITY_HANDLING`, `LIVE_ENABLE_INPUT_AUDIO_TRANSCRIPTION`, `LIVE_ENABLE_OUTPUT_AUDIO_TRANSCRIPTION`.
+- Live function auto-dispatch tuning: `LIVE_FUNCTION_AUTO_INVOKE`, `LIVE_FUNCTION_ALLOWLIST`, `LIVE_FUNCTION_ARGUMENT_MAX_BYTES`, `LIVE_FUNCTION_UI_SANDBOX_MODE`, `LIVE_FUNCTION_DEDUPE_TTL_MS`.
 - Gateway websocket binding guardrails: each message carries correlation context (`userId/sessionId/runId`), and gateway rejects bound-socket mismatch (`GATEWAY_SESSION_MISMATCH`, `GATEWAY_USER_MISMATCH`).
 - WebSocket integration contract and error taxonomy: `docs/ws-protocol.md`.
 - WebRTC V2 transport spike plan (no MVP switch): `docs/webrtc-v2-spike.md`.

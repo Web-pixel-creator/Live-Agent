@@ -67,6 +67,8 @@
 10. THE Live_Agent SHALL apply automatic context compaction when session context exceeds configured token budget and SHALL preserve recent turns plus a stable summary.
 11. THE Live_Agent demo surface SHALL expose assistant activity lifecycle states (`waiting_connection`, `idle`, `streaming`, `speaking`) and SHALL keep transitions consistent with websocket and playback events.
 12. THE Live_Agent demo artifacts SHALL prove context compaction behavior via KPI evidence (`liveContextCompactionValidated=true`) with summary-presence and retained-turn constraints.
+13. THE Live_Agent SHALL support interruption-aware truncation for WebSocket playback clients by accepting `conversation.item.truncate` with `item_id` and `audio_end_ms` and applying truncation to active assistant turn state.
+14. THE Live_Agent SHALL support push-to-talk control mode with manual input boundaries (`live.input.clear`, `live.input.commit`) in addition to default VAD interaction.
 
 ### Requirement 2: Live Agent - Real-Time Translation
 
@@ -215,6 +217,10 @@
 5. THE System SHALL apply bounded buffering and drop stale frames/chunks to preserve real-time behavior.
 6. THE System SHALL react to Live_API `interrupted` events without waiting for full turn completion.
 7. THE Gateway SHALL process websocket messages in a per-session serial lane to prevent race conditions between concurrent client events.
+8. THE Gateway SHALL route `conversation.item.truncate` events through the realtime bridge and emit explicit truncation diagnostics (`live.turn.truncated`) for operator visibility.
+9. THE Gateway SHALL support out-of-band websocket requests via envelope `conversation=none`, returning side-lane responses without mutating default conversation task lifecycle.
+10. THE Gateway SHALL support realtime function-call handoff events (`live.function_call`, `live.function_call_output`) and SHALL preserve call correlation IDs across request/response frames.
+11. WHERE gateway auto-dispatch mode is enabled for realtime function calls, THE Gateway SHALL map allowed function names to orchestrator intents, enforce sandbox/approval guard defaults for `ui_task`, and emit audit lifecycle events (`live.function_call.dispatching/completed/failed`).
 
 ### Requirement 13: Security and Privacy
 
@@ -246,6 +252,9 @@
 8. THE System SHALL support optimistic session updates with `expectedVersion` and idempotent mutation replay via `idempotencyKey`, returning `409` on version conflicts.
 9. THE System SHALL support idempotent replay for duplicate orchestrator requests (`runId`/`idempotencyKey`) across Gateway and Orchestrator runtime boundaries.
 10. THE repository SHALL provide a single authoritative WebSocket protocol and error taxonomy document (`docs/ws-protocol.md`) aligned with runtime behavior.
+11. THE System SHALL propagate client event correlation IDs by echoing websocket envelope `id` as `gateway.error.details.clientEventId` whenever request context is available.
+12. THE System SHALL preserve out-of-band response correlation metadata (`oob=true`, `parentEventId`) when processing websocket requests with `conversation=none`.
+13. THE System SHALL document websocket function-calling event contracts (`live.function_call`, `live.function_call_output`, `live.function_call_output.sent`) in `docs/ws-protocol.md` and keep docs aligned with runtime event emitters.
 
 ### Requirement 15: Monitoring and Observability
 
@@ -281,6 +290,7 @@
 4. THE System SHALL persist cross-agent events, decisions, and tool calls in Firestore.
 5. THE System SHALL support human-in-the-loop approval gates for high-risk delegated actions.
 6. THE System SHALL expose an end-to-end trace of delegated workflows for audit and debugging.
+7. THE System SHALL support realtime function-call delegation as multi-agent side-lane workflows, preserving `callId` correlation and approval/sandbox diagnostics across gateway-orchestrator-agent boundaries.
 
 ## Technology Mapping
 

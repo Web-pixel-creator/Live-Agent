@@ -11,10 +11,15 @@ const state = {
   runId: null,
   sessionState: "-",
   mode: "voice",
+  pttEnabled: false,
+  pttPressed: false,
   fallbackAsset: false,
   pendingApproval: null,
   audioContext: null,
   nextPlayTime: 0,
+  assistantPlaybackTurnId: null,
+  assistantPlaybackStartedAtMs: null,
+  assistantPlaybackScheduledMs: 0,
   micContext: null,
   micStream: null,
   micProcessor: null,
@@ -31,6 +36,7 @@ const state = {
   taskRecords: new Map(),
   deviceNodes: new Map(),
   selectedDeviceNodeId: null,
+  pendingClientEvents: new Map(),
 };
 
 const el = {
@@ -45,6 +51,9 @@ const el = {
   currentUserId: document.getElementById("currentUserId"),
   sessionState: document.getElementById("sessionState"),
   modeStatus: document.getElementById("modeStatus"),
+  pttToggleBtn: document.getElementById("pttToggleBtn"),
+  pttHoldBtn: document.getElementById("pttHoldBtn"),
+  pttStatus: document.getElementById("pttStatus"),
   approvalId: document.getElementById("approvalId"),
   approvalReason: document.getElementById("approvalReason"),
   approvalStatus: document.getElementById("approvalStatus"),
@@ -174,6 +183,43 @@ function makeId() {
   return `id-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 }
 
+function toConversationScope(value) {
+  return value === "none" ? "none" : "default";
+}
+
+function toEnvelopeOptions(runOrOptions) {
+  if (typeof runOrOptions === "string" || runOrOptions === null || runOrOptions === undefined) {
+    return {
+      runId: runOrOptions ?? state.runId,
+      conversation: "default",
+      metadata: {},
+    };
+  }
+  if (typeof runOrOptions !== "object") {
+    return {
+      runId: state.runId,
+      conversation: "default",
+      metadata: {},
+    };
+  }
+
+  const runId =
+    typeof runOrOptions.runId === "string" || runOrOptions.runId === null || runOrOptions.runId === undefined
+      ? runOrOptions.runId
+      : state.runId;
+  const conversation = toConversationScope(runOrOptions.conversation);
+  const metadata =
+    runOrOptions.metadata && typeof runOrOptions.metadata === "object" && !Array.isArray(runOrOptions.metadata)
+      ? runOrOptions.metadata
+      : {};
+
+  return {
+    runId: runId ?? state.runId,
+    conversation,
+    metadata,
+  };
+}
+
 function setConnectionStatus(text) {
   const normalized = typeof text === "string" ? text : "disconnected";
   state.connectionStatus = normalized;
@@ -189,6 +235,27 @@ function setSessionState(text) {
 function setMode(mode) {
   state.mode = mode;
   el.modeStatus.textContent = mode;
+}
+
+function setPttStatus(text, variant = "neutral") {
+  if (!el.pttStatus) {
+    return;
+  }
+  setStatusPill(el.pttStatus, text, variant);
+}
+
+function resetPlaybackTracking() {
+  state.assistantPlaybackTurnId = null;
+  state.assistantPlaybackStartedAtMs = null;
+  state.assistantPlaybackScheduledMs = 0;
+}
+
+function estimateAssistantPlaybackMs() {
+  if (!state.assistantPlaybackStartedAtMs || state.assistantPlaybackScheduledMs <= 0) {
+    return 0;
+  }
+  const elapsedMs = Math.max(0, Date.now() - state.assistantPlaybackStartedAtMs);
+  return Math.min(Math.floor(elapsedMs), Math.floor(state.assistantPlaybackScheduledMs));
 }
 
 function normalizeApiBaseUrl(value) {
@@ -1640,12 +1707,21 @@ function setPendingApproval(params) {
   setApprovalStatus("pending_approval", "fail");
 }
 
-function createEnvelope(type, payload, source = "frontend", runId = state.runId) {
+function createEnvelope(type, payload, source = "frontend", runOrOptions = state.runId) {
+  const options = toEnvelopeOptions(runOrOptions);
+  const envelopeId = makeId();
   return {
-    id: makeId(),
+    id: envelopeId,
     userId: state.userId,
     sessionId: state.sessionId,
-    runId: runId ?? undefined,
+    runId: options.runId ?? undefined,
+    conversation: options.conversation,
+    metadata: {
+      clientSentAtMs: Date.now(),
+      clientMode: state.mode,
+      pttEnabled: state.pttEnabled,
+      ...options.metadata,
+    },
     type,
     source,
     ts: new Date().toISOString(),
@@ -1653,12 +1729,23 @@ function createEnvelope(type, payload, source = "frontend", runId = state.runId)
   };
 }
 
-function sendEnvelope(type, payload, source = "frontend", runId = state.runId) {
+function sendEnvelope(type, payload, source = "frontend", runOrOptions = state.runId) {
   if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
     appendTranscript("error", "WebSocket is not connected");
     return;
   }
-  const envelope = createEnvelope(type, payload, source, runId);
+  const envelope = createEnvelope(type, payload, source, runOrOptions);
+  state.pendingClientEvents.set(envelope.id, {
+    type,
+    sentAtMs: Date.now(),
+    conversation: envelope.conversation,
+  });
+  if (state.pendingClientEvents.size > 200) {
+    const oldestKey = state.pendingClientEvents.keys().next().value;
+    if (typeof oldestKey === "string") {
+      state.pendingClientEvents.delete(oldestKey);
+    }
+  }
   state.ws.send(JSON.stringify(envelope));
 }
 
@@ -2376,7 +2463,7 @@ function ensureAudioContext() {
   return state.audioContext;
 }
 
-function playPcm16Chunk(samples, sampleRate = 16000) {
+function playPcm16Chunk(samples, sampleRate = 16000, turnId = null) {
   const audioContext = ensureAudioContext();
   const floatData = new Float32Array(samples.length);
   for (let i = 0; i < samples.length; i += 1) {
@@ -2389,6 +2476,19 @@ function playPcm16Chunk(samples, sampleRate = 16000) {
   source.buffer = buffer;
   source.connect(audioContext.destination);
 
+  if (typeof turnId === "string" && turnId.trim().length > 0) {
+    const normalizedTurnId = turnId.trim();
+    if (state.assistantPlaybackTurnId !== normalizedTurnId) {
+      state.assistantPlaybackTurnId = normalizedTurnId;
+      state.assistantPlaybackStartedAtMs = Date.now();
+      state.assistantPlaybackScheduledMs = 0;
+    }
+  }
+  if (!state.assistantPlaybackStartedAtMs) {
+    state.assistantPlaybackStartedAtMs = Date.now();
+  }
+  state.assistantPlaybackScheduledMs += Math.max(0, Math.round(buffer.duration * 1000));
+
   const startAt = Math.max(audioContext.currentTime + 0.01, state.nextPlayTime);
   source.start(startAt);
   state.nextPlayTime = startAt + buffer.duration;
@@ -2399,6 +2499,7 @@ function playPcm16Chunk(samples, sampleRate = 16000) {
 
 function resetAssistantPlayback() {
   state.nextPlayTime = 0;
+  resetPlaybackTracking();
   clearAssistantSpeakingResetTimer();
   state.assistantIsSpeaking = false;
   renderAssistantActivityStatus();
@@ -2480,11 +2581,25 @@ function getApiErrorMessage(payload, fallback) {
   return fallback;
 }
 
-function handleLiveOutput(upstream) {
+function extractGatewayErrorContext(payload) {
+  if (!payload || typeof payload !== "object") {
+    return { traceId: null, clientEventId: null };
+  }
+  const traceId =
+    typeof payload.traceId === "string" && payload.traceId.trim().length > 0 ? payload.traceId.trim() : null;
+  const details = payload.details && typeof payload.details === "object" ? payload.details : null;
+  const clientEventId =
+    details && typeof details.clientEventId === "string" && details.clientEventId.trim().length > 0
+      ? details.clientEventId.trim()
+      : null;
+  return { traceId, clientEventId };
+}
+
+function handleLiveOutput(upstream, turnId = null) {
   const audioBase64 = findAudioBase64(upstream);
   if (audioBase64) {
     try {
-      playPcm16Chunk(decodeBase64ToInt16(audioBase64));
+      playPcm16Chunk(decodeBase64ToInt16(audioBase64), 16000, turnId);
     } catch (error) {
       appendTranscript("error", `Audio decode failed: ${String(error)}`);
     }
@@ -2495,13 +2610,19 @@ function handleLiveOutput(upstream) {
   }
 }
 
-function handleNormalizedLiveOutput(normalized) {
+function handleNormalizedLiveOutput(normalized, turnIdFromEvent = null) {
   if (!normalized || typeof normalized !== "object") {
     return;
   }
+  const turnId =
+    typeof normalized.turnId === "string" && normalized.turnId.trim().length > 0
+      ? normalized.turnId.trim()
+      : typeof turnIdFromEvent === "string" && turnIdFromEvent.trim().length > 0
+        ? turnIdFromEvent.trim()
+        : null;
   if (typeof normalized.audioBase64 === "string") {
     try {
-      playPcm16Chunk(decodeBase64ToInt16(normalized.audioBase64));
+      playPcm16Chunk(decodeBase64ToInt16(normalized.audioBase64), 16000, turnId);
     } catch (error) {
       appendTranscript("error", `Audio decode failed: ${String(error)}`);
     }
@@ -2647,8 +2768,97 @@ function handleGatewayEvent(event) {
 
   if (event.type === "live.turn.completed") {
     finalizeAssistantStreamEntry();
+    if (
+      typeof event.payload?.turnId === "string" &&
+      state.assistantPlaybackTurnId &&
+      event.payload.turnId === state.assistantPlaybackTurnId
+    ) {
+      resetPlaybackTracking();
+    }
     const textChars = event.payload?.textChars;
     appendTranscript("system", `Assistant turn completed (${typeof textChars === "number" ? textChars : 0} chars)`);
+    return;
+  }
+
+  if (event.type === "live.turn.truncated") {
+    const turnId = typeof event.payload?.turnId === "string" ? event.payload.turnId : "unknown_turn";
+    const audioEndMs = event.payload?.audioEndMs;
+    appendTranscript("system", `Assistant turn truncated (${turnId}, audio_end_ms=${formatMs(audioEndMs)})`);
+    if (state.assistantPlaybackTurnId && state.assistantPlaybackTurnId === turnId) {
+      resetPlaybackTracking();
+    }
+    return;
+  }
+
+  if (event.type === "live.input.cleared" || event.type === "live.input.committed") {
+    const reason = typeof event.payload?.reason === "string" ? event.payload.reason : "n/a";
+    appendTranscript("system", `${event.type} (${reason})`);
+    return;
+  }
+
+  if (event.type === "live.function_call.dispatching") {
+    const name = typeof event.payload?.name === "string" ? event.payload.name : "unknown_function";
+    const callId = typeof event.payload?.callId === "string" ? event.payload.callId : "n/a";
+    const intent = typeof event.payload?.intent === "string" ? event.payload.intent : "unknown_intent";
+    appendTranscript("system", `Function dispatching: ${name} (intent=${intent}, callId=${callId})`);
+    return;
+  }
+
+  if (event.type === "live.function_call.completed") {
+    const name = typeof event.payload?.name === "string" ? event.payload.name : "unknown_function";
+    const callId = typeof event.payload?.callId === "string" ? event.payload.callId : "n/a";
+    const status = typeof event.payload?.status === "string" ? event.payload.status : "unknown";
+    appendTranscript("system", `Function dispatch completed: ${name} (status=${status}, callId=${callId})`);
+    return;
+  }
+
+  if (event.type === "live.function_call.failed") {
+    const name = typeof event.payload?.name === "string" ? event.payload.name : "unknown_function";
+    const callId = typeof event.payload?.callId === "string" ? event.payload.callId : "n/a";
+    const message = typeof event.payload?.message === "string" ? event.payload.message : "function dispatch failed";
+    appendTranscript("error", `Function dispatch failed: ${name} (callId=${callId}) ${message}`);
+    return;
+  }
+
+  if (event.type === "live.function_call") {
+    const callId = typeof event.payload?.callId === "string" ? event.payload.callId : makeId();
+    const name = typeof event.payload?.name === "string" ? event.payload.name : "unknown_function";
+    const autoDispatchMode =
+      typeof event.metadata?.autoDispatch === "string" ? event.metadata.autoDispatch : null;
+    const argumentsJson =
+      typeof event.payload?.argumentsJson === "string" ? event.payload.argumentsJson : "{}";
+    if (autoDispatchMode === "gateway_auto_invoke") {
+      appendTranscript("system", `Function call requested: ${name} (callId=${callId}, dispatch=gateway)`);
+      return;
+    }
+    appendTranscript("system", `Function call requested: ${name} (callId=${callId}, dispatch=frontend)`);
+    sendEnvelope(
+      "live.function_call_output",
+      {
+        callId,
+        name,
+        output: {
+          handledBy: "demo-frontend",
+          status: "ok",
+          argumentsJson,
+        },
+      },
+      "frontend",
+      {
+        conversation: event.conversation === "none" ? "none" : "default",
+        metadata: {
+          parentEventId: event.id,
+          functionCallName: name,
+        },
+      },
+    );
+    return;
+  }
+
+  if (event.type === "live.function_call_output.sent") {
+    const name = typeof event.payload?.name === "string" ? event.payload.name : "unknown_function";
+    const callId = typeof event.payload?.callId === "string" ? event.payload.callId : "n/a";
+    appendTranscript("system", `Function output sent: ${name} (callId=${callId})`);
     return;
   }
 
@@ -2660,18 +2870,31 @@ function handleGatewayEvent(event) {
   }
 
   if (event.type === "live.output") {
+    const turnId =
+      typeof event.payload?.normalized?.turnId === "string"
+        ? event.payload.normalized.turnId
+        : typeof event.payload?.turnId === "string"
+          ? event.payload.turnId
+          : null;
     if (event.payload?.normalized) {
-      handleNormalizedLiveOutput(event.payload.normalized);
+      handleNormalizedLiveOutput(event.payload.normalized, turnId);
       return;
     }
-    handleLiveOutput(event.payload?.upstream);
+    handleLiveOutput(event.payload?.upstream, turnId);
     return;
   }
 
   if (event.type === "orchestrator.response") {
     finalizeAssistantStreamEntry();
+    const isOutOfBandResponse = event.conversation === "none";
+    const oobTopic =
+      typeof event.metadata?.topic === "string"
+        ? event.metadata.topic
+        : typeof event.metadata?.requestMetadata?.topic === "string"
+          ? event.metadata.requestMetadata.topic
+          : "oob";
     const output = event.payload?.output;
-    if (event.payload?.task) {
+    if (!isOutOfBandResponse && event.payload?.task) {
       const task = normalizeTaskRecord(event.payload.task);
       if (task) {
         if (task.status === "completed" || task.status === "failed") {
@@ -2681,10 +2904,10 @@ function handleGatewayEvent(event) {
         }
       }
     }
-    if (typeof output?.fallbackAsset === "boolean") {
+    if (!isOutOfBandResponse && typeof output?.fallbackAsset === "boolean") {
       setFallbackAsset(output.fallbackAsset);
     }
-    if (output?.approvalRequired === true && output?.approvalId) {
+    if (!isOutOfBandResponse && output?.approvalRequired === true && output?.approvalId) {
       appendTranscript("system", `Approval required: ${output.approvalId}`);
       const resumeTemplate =
         output?.resumeRequestTemplate &&
@@ -2697,20 +2920,20 @@ function handleGatewayEvent(event) {
         intent: resumeTemplate.intent ?? "ui_task",
         input: resumeTemplate.input ?? {},
       });
-    } else if (output?.approval && output.approval.decision === "approved") {
+    } else if (!isOutOfBandResponse && output?.approval && output.approval.decision === "approved") {
       setApprovalStatus("approved", "ok");
       clearPendingApproval({ keepStatus: true });
-    } else if (output?.approval && output.approval.decision === "rejected") {
+    } else if (!isOutOfBandResponse && output?.approval && output.approval.decision === "rejected") {
       setApprovalStatus("rejected", "fail");
       clearPendingApproval({ keepStatus: true });
     }
-    if (output?.story?.title) {
+    if (!isOutOfBandResponse && output?.story?.title) {
       appendTranscript("system", `Story title: ${output.story.title}`);
     }
-    if (Array.isArray(output?.story?.timeline)) {
+    if (!isOutOfBandResponse && Array.isArray(output?.story?.timeline)) {
       appendTranscript("system", `Story timeline segments: ${output.story.timeline.length}`);
     }
-    if (Array.isArray(output?.mediaJobs?.video) && output.mediaJobs.video.length > 0) {
+    if (!isOutOfBandResponse && Array.isArray(output?.mediaJobs?.video) && output.mediaJobs.video.length > 0) {
       const pending = output.mediaJobs.video.filter(
         (job) => job && typeof job === "object" && (job.status === "queued" || job.status === "running"),
       ).length;
@@ -2719,7 +2942,7 @@ function handleGatewayEvent(event) {
         `Story video jobs: ${output.mediaJobs.video.length} total, ${pending} pending`,
       );
     }
-    if (output?.delegation?.delegatedRoute) {
+    if (!isOutOfBandResponse && output?.delegation?.delegatedRoute) {
       appendTranscript(
         "system",
         `Delegated to ${output.delegation.delegatedRoute} (${output.delegation.delegatedStatus ?? "unknown"})`,
@@ -2729,7 +2952,12 @@ function handleGatewayEvent(event) {
         appendTranscript("assistant", delegatedText);
       }
     }
-    if (output?.visualTesting && typeof output.visualTesting === "object" && output.visualTesting.enabled === true) {
+    if (
+      !isOutOfBandResponse &&
+      output?.visualTesting &&
+      typeof output.visualTesting === "object" &&
+      output.visualTesting.enabled === true
+    ) {
       const checksCount = Array.isArray(output.visualTesting.checks) ? output.visualTesting.checks.length : 0;
       const regressionCount =
         typeof output.visualTesting.regressionCount === "number" ? output.visualTesting.regressionCount : 0;
@@ -2751,6 +2979,10 @@ function handleGatewayEvent(event) {
     }
 
     const text = findTextPayload(output) ?? "orchestrator.response received";
+    if (isOutOfBandResponse) {
+      appendTranscript("system", `[OOB:${oobTopic}] ${text}`);
+      return;
+    }
     appendTranscript("assistant", text);
     updateOfferFromText(text, false);
     if (event.payload?.status === "completed") {
@@ -2782,7 +3014,19 @@ function handleGatewayEvent(event) {
   }
 
   if (event.type === "gateway.error" || event.type === "orchestrator.error") {
-    appendTranscript("error", findTextPayload(event.payload) ?? "Gateway/Orchestrator error");
+    const fallbackMessage = findTextPayload(event.payload) ?? "Gateway/Orchestrator error";
+    if (event.type === "gateway.error") {
+      const context = extractGatewayErrorContext(event.payload);
+      const details = [
+        context.clientEventId ? `clientEventId=${context.clientEventId}` : null,
+        context.traceId ? `traceId=${context.traceId}` : null,
+      ]
+        .filter((item) => typeof item === "string")
+        .join(" ");
+      appendTranscript("error", details.length > 0 ? `${fallbackMessage} (${details})` : fallbackMessage);
+      return;
+    }
+    appendTranscript("error", fallbackMessage);
   }
 }
 
@@ -2805,6 +3049,8 @@ function connectWebSocket() {
   ws.addEventListener("close", () => {
     finalizeAssistantStreamEntry();
     resetAssistantPlayback();
+    state.pttPressed = false;
+    updatePttUi();
     setConnectionStatus("disconnected");
     appendTranscript("system", "WebSocket closed");
     state.ws = null;
@@ -2813,6 +3059,8 @@ function connectWebSocket() {
   ws.addEventListener("error", () => {
     finalizeAssistantStreamEntry();
     resetAssistantPlayback();
+    state.pttPressed = false;
+    updatePttUi();
     setConnectionStatus("error");
     appendTranscript("error", "WebSocket error");
   });
@@ -2885,6 +3133,9 @@ async function startMicStream() {
     gain.gain.value = 0;
 
     processor.onaudioprocess = (event) => {
+      if (state.pttEnabled && !state.pttPressed) {
+        return;
+      }
       const channel = event.inputBuffer.getChannelData(0);
       const downsampled = downsampleTo16k(channel, micContext.sampleRate);
       const pcm16 = float32ToInt16(downsampled);
@@ -2934,21 +3185,36 @@ function stopMicStream() {
     state.micContext = null;
   }
   if (hadActiveMic) {
-    sendEnvelope("live.turn.end", {
-      reason: "mic_stopped",
-      sentAtMs: Date.now(),
-    });
+    if (state.pttEnabled) {
+      if (state.pttPressed) {
+        state.pttPressed = false;
+        sendEnvelope("live.input.commit", {
+          reason: "ptt_mic_stopped",
+          sentAtMs: Date.now(),
+        });
+      }
+    } else {
+      sendEnvelope("live.turn.end", {
+        reason: "mic_stopped",
+        sentAtMs: Date.now(),
+      });
+    }
   }
   appendTranscript("system", "Mic stream stopped");
 }
 
-function sendIntentRequest() {
+function sendIntentRequest(options = {}) {
   const intent = el.intent.value;
   const message = el.message.value.trim();
   const targetLanguage = el.targetLanguage.value.trim();
   const targetPrice = getNumeric(el.targetPrice);
   const targetDelivery = getNumeric(el.targetDelivery);
   const targetSla = getNumeric(el.targetSla);
+  const conversation = toConversationScope(options.conversation);
+  const requestMetadata =
+    options.metadata && typeof options.metadata === "object" && !Array.isArray(options.metadata)
+      ? options.metadata
+      : {};
 
   const input = {
     text: message,
@@ -2968,13 +3234,107 @@ function sendIntentRequest() {
   state.runId = requestRunId;
   el.runId.textContent = requestRunId;
 
-  sendEnvelope("orchestrator.request", { intent, input }, "frontend", requestRunId);
+  sendEnvelope("orchestrator.request", { intent, input }, "frontend", {
+    runId: requestRunId,
+    conversation,
+    metadata: requestMetadata,
+  });
+
+  if (conversation === "none") {
+    const topic = typeof requestMetadata.topic === "string" ? requestMetadata.topic : "oob";
+    appendTranscript("system", `OOB request dispatched (topic=${topic}, runId=${requestRunId})`);
+  }
 }
 
-function interruptAssistant() {
+function sendOutOfBandRequest() {
+  sendIntentRequest({
+    conversation: "none",
+    metadata: {
+      topic: "assistive_router",
+      lane: "oob",
+      purpose: "classification_probe",
+    },
+  });
+}
+
+function interruptAssistant(reason = "user_interrupt") {
+  const wsReady = Boolean(state.ws && state.ws.readyState === WebSocket.OPEN);
+  if (!wsReady) {
+    resetAssistantPlayback();
+    appendTranscript("error", "WebSocket is not connected");
+    return;
+  }
+  const turnId = state.assistantPlaybackTurnId;
+  const audioEndMs = estimateAssistantPlaybackMs();
+  if (turnId) {
+    sendEnvelope("conversation.item.truncate", {
+      item_id: turnId,
+      content_index: 0,
+      audio_end_ms: audioEndMs,
+      reason,
+    });
+  }
   resetAssistantPlayback();
-  sendEnvelope("live.interrupt", { reason: "user_interrupt" });
+  sendEnvelope("live.interrupt", { reason });
   appendTranscript("system", "Interrupt requested");
+}
+
+function updatePttUi() {
+  if (!el.pttToggleBtn || !el.pttHoldBtn) {
+    return;
+  }
+  if (state.pttEnabled) {
+    el.pttToggleBtn.textContent = "Disable Push-to-Talk";
+    el.pttHoldBtn.disabled = false;
+    setPttStatus(state.pttPressed ? "ptt=recording" : "ptt=armed", state.pttPressed ? "ok" : "neutral");
+  } else {
+    el.pttToggleBtn.textContent = "Enable Push-to-Talk";
+    el.pttHoldBtn.disabled = true;
+    setPttStatus("ptt=off", "neutral");
+  }
+}
+
+function togglePushToTalkMode() {
+  state.pttEnabled = !state.pttEnabled;
+  if (!state.pttEnabled) {
+    state.pttPressed = false;
+  }
+  updatePttUi();
+  appendTranscript("system", state.pttEnabled ? "Push-to-talk enabled" : "Push-to-talk disabled");
+}
+
+async function startPushToTalk() {
+  if (!state.pttEnabled || state.pttPressed) {
+    return;
+  }
+  if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+    appendTranscript("error", "Connect WebSocket before using push-to-talk");
+    return;
+  }
+  if (!state.micProcessor) {
+    await startMicStream();
+  }
+  state.pttPressed = true;
+  updatePttUi();
+  sendEnvelope("live.input.clear", {
+    reason: "ptt_press",
+    sentAtMs: Date.now(),
+  });
+  if (state.assistantIsSpeaking || state.assistantIsStreaming) {
+    interruptAssistant("ptt_interrupt");
+  }
+}
+
+function stopPushToTalk() {
+  if (!state.pttEnabled || !state.pttPressed) {
+    return;
+  }
+  state.pttPressed = false;
+  updatePttUi();
+  sendEnvelope("live.input.commit", {
+    reason: "ptt_release",
+    sentAtMs: Date.now(),
+  });
 }
 
 function toggleFallbackMode() {
@@ -2992,7 +3352,23 @@ function bindEvents() {
   document.getElementById("disconnectBtn").addEventListener("click", disconnectWebSocket);
   document.getElementById("startMicBtn").addEventListener("click", startMicStream);
   document.getElementById("stopMicBtn").addEventListener("click", stopMicStream);
+  document.getElementById("pttToggleBtn").addEventListener("click", togglePushToTalkMode);
+  document.getElementById("pttHoldBtn").addEventListener("pointerdown", async (event) => {
+    event.preventDefault();
+    await startPushToTalk();
+  });
+  document.getElementById("pttHoldBtn").addEventListener("pointerup", (event) => {
+    event.preventDefault();
+    stopPushToTalk();
+  });
+  document.getElementById("pttHoldBtn").addEventListener("pointerleave", () => {
+    stopPushToTalk();
+  });
+  document.getElementById("pttHoldBtn").addEventListener("pointercancel", () => {
+    stopPushToTalk();
+  });
   document.getElementById("sendBtn").addEventListener("click", sendIntentRequest);
+  document.getElementById("sendOobBtn").addEventListener("click", sendOutOfBandRequest);
   document.getElementById("approveResumeBtn").addEventListener("click", () => {
     submitApprovalDecision("approved");
   });
@@ -3172,6 +3548,7 @@ function bootstrap() {
   el.sessionId.value = state.sessionId;
   setSessionState("-");
   setConnectionStatus("disconnected");
+  updatePttUi();
   setStatusPill(el.constraintStatus, "Waiting for offer", "neutral");
   setFallbackAsset(false);
   clearPendingApproval();
