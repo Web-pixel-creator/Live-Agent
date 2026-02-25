@@ -61,7 +61,8 @@ Supported event types:
 10. `live.input.commit` (push-to-talk/manual input control)
 11. `conversation.item.truncate` (remove unplayed assistant audio from active turn context)
 12. `conversation.item.create` (structured conversation item lane for text/image/audio content parts)
-13. `live.function_call_output` (client-provided function/skill execution result for active live turn)
+13. `conversation.item.delete` (clear current assistant turn state from local playback context)
+14. `live.function_call_output` (client-provided function/skill execution result for active live turn)
 
 Notes:
 
@@ -73,6 +74,7 @@ Notes:
 6. `live.setup` overrides are merged on top of gateway base setup and optional env patch (`LIVE_SETUP_PATCH_JSON`), with `live.setup` taking highest precedence.
 7. `live.setup` MAY override runtime setup fields such as `model`, `generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName`, `generationConfig.realtimeInputConfig.activityHandling`, and `systemInstruction`.
 8. `orchestrator.request` for `intent=ui_task` MAY include grounding signals (`url`, `deviceNodeId`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`) to improve computer-use action stability.
+9. `conversation.item.delete` is session-local in current Gemini bridge profile and emits `live.turn.deleted` for UI playback cleanup.
 
 ## Gateway -> Client Events
 
@@ -122,11 +124,12 @@ Out-of-band behavior (`conversation=none`):
 10. `live.input.cleared`
 11. `live.input.committed`
 12. `live.turn.truncated`
-13. `live.function_call`
-14. `live.function_call_output.sent`
-15. `live.function_call.dispatching`
-16. `live.function_call.completed`
-17. `live.function_call.failed`
+13. `live.turn.deleted`
+14. `live.function_call`
+15. `live.function_call_output.sent`
+16. `live.function_call.dispatching`
+17. `live.function_call.completed`
+18. `live.function_call.failed`
 
 Granular output guidance:
 

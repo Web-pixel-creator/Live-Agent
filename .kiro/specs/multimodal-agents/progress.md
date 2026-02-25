@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `187` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`318` tests passed).
+4. Unit tests are green (`319` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -199,6 +199,7 @@
 168. Revalidated full release gate after `repo:publish`/Railway automation updates: `npm run verify:release` is green end-to-end with Demo KPI gate `187` checks (`54ms` websocket roundtrip), gateway error-correlation tuple validated, and perf policy green (`15` checks, `0` violations).
 169. Hardened remote URL matching in `repo:publish`: added `Normalize-GitHubRemote` equivalence logic so SSH/HTTPS variants of the same GitHub repo do not fail remote validation; updated alignment coverage in `tests/unit/repo-publish-release-gate-alignment.test.ts` and docs note in `README.md`.
 170. Revalidated `repo:publish` with default SSH target against existing HTTPS `origin`: publish flow now recognizes equivalent GitHub remote URLs and continues without `-UseHttps`/`-ForceRemoteUpdate`, successfully triggering Railway deploy in smoke mode (`0f9da5be-24fa-4e10-a29f-65285d17d452`).
+171. Extended realtime conversation-item lifecycle lane with `conversation.item.delete`: gateway now routes delete events through live bridge (`isLiveBridgeEventType`), bridge emits session-local diagnostics (`live.turn.deleted`), demo frontend exposes `Delete Active Turn` control, ws-protocol docs include the new event contract, and release revalidation remains green (`test:unit` 319, `verify:release` pass with Demo KPI gate `187` checks and websocket roundtrip `40ms`).
 
 ## Current Focus Queue
 

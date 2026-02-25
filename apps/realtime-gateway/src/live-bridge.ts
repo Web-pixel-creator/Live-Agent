@@ -1751,6 +1751,29 @@ export class LiveApiBridge {
     });
   }
 
+  private sendConversationItemDelete(payload: unknown): void {
+    const turnIdFromPayload =
+      isRecord(payload) &&
+      (typeof payload.item_id === "string" || typeof payload.itemId === "string")
+        ? (typeof payload.item_id === "string" ? payload.item_id : payload.itemId)
+        : null;
+    const reason = isRecord(payload) && typeof payload.reason === "string" ? payload.reason : "client_delete";
+    const activeTurnId = this.currentTurnId;
+    const targetTurnId = turnIdFromPayload ?? activeTurnId;
+    const shouldResetTurn = Boolean(activeTurnId && (!turnIdFromPayload || turnIdFromPayload === activeTurnId));
+    if (shouldResetTurn) {
+      this.resetLiveState();
+    }
+    this.pendingInterruptAtMs = null;
+    this.emit("live.turn.deleted", {
+      reason,
+      turnId: targetTurnId,
+      hadActiveTurn: activeTurnId !== null,
+      appliedAt: new Date().toISOString(),
+      scope: "session_local",
+    });
+  }
+
   private sendGeminiInterrupt(payload: unknown): void {
     const reason = isRecord(payload) && typeof payload.reason === "string" ? payload.reason : "user_interrupt";
     this.pendingInterruptAtMs = Date.now();
@@ -1816,6 +1839,10 @@ export class LiveApiBridge {
       }
       case "conversation.item.truncate": {
         this.sendConversationItemTruncate(event.payload);
+        return;
+      }
+      case "conversation.item.delete": {
+        this.sendConversationItemDelete(event.payload);
         return;
       }
       default: {

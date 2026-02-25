@@ -1184,6 +1184,52 @@ test("live bridge emits local truncation diagnostics for conversation.item.trunc
   }
 });
 
+test("live bridge emits local delete diagnostics for conversation.item.delete", async () => {
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+  const port = (wss.address() as AddressInfo).port;
+
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveConnectMaxAttempts: 1,
+      liveConnectRetryMs: 20,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await bridge.forwardFromClient(
+      createClientEvent({
+        type: "conversation.item.delete",
+        payload: {
+          item_id: "turn-delete-demo",
+          reason: "operator_cleanup",
+        },
+      }),
+    );
+    await waitFor(() => emitted.some((event) => event.type === "live.turn.deleted"), 2000);
+
+    const deletedEvent = emitted.find((event) => event.type === "live.turn.deleted");
+    assert.ok(deletedEvent, "expected live.turn.deleted event");
+    const payload = deletedEvent?.payload as {
+      turnId?: string | null;
+      reason?: string | null;
+      scope?: string | null;
+    };
+    assert.equal(payload.turnId, "turn-delete-demo");
+    assert.equal(payload.reason, "operator_cleanup");
+    assert.equal(payload.scope, "session_local");
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
+});
+
 test("live bridge emits deduplicated live.function_call events from upstream", async () => {
   const wss = new WebSocketServer({ port: 0 });
   await new Promise<void>((resolve) => wss.on("listening", () => resolve()));

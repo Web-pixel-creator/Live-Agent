@@ -77,6 +77,7 @@ const el = {
   uiTaskAccessibilityTree: document.getElementById("uiTaskAccessibilityTree"),
   uiTaskMarkHints: document.getElementById("uiTaskMarkHints"),
   sendConversationItemBtn: document.getElementById("sendConversationItemBtn"),
+  sendConversationDeleteBtn: document.getElementById("sendConversationDeleteBtn"),
   transcript: document.getElementById("transcript"),
   events: document.getElementById("events"),
   targetPrice: document.getElementById("targetPrice"),
@@ -3009,6 +3010,16 @@ function handleGatewayEvent(event) {
     return;
   }
 
+  if (event.type === "live.turn.deleted") {
+    const turnId = typeof event.payload?.turnId === "string" ? event.payload.turnId : "unknown_turn";
+    appendTranscript("system", `Assistant turn deleted (${turnId})`);
+    if (state.assistantPlaybackTurnId && state.assistantPlaybackTurnId === turnId) {
+      resetPlaybackTracking();
+    }
+    finalizeAssistantStreamEntry();
+    return;
+  }
+
   if (event.type === "live.input.cleared" || event.type === "live.input.committed") {
     const reason = typeof event.payload?.reason === "string" ? event.payload.reason : "n/a";
     appendTranscript("system", `${event.type} (${reason})`);
@@ -3779,6 +3790,24 @@ async function sendConversationItemCreate() {
   appendTranscript("system", `conversation.item.create sent (${content.length} part${content.length > 1 ? "s" : ""})`);
 }
 
+function sendConversationItemDelete() {
+  if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+    appendTranscript("error", "Connect WebSocket before deleting conversation item");
+    return;
+  }
+
+  const turnId = state.assistantPlaybackTurnId;
+  sendEnvelope("conversation.item.delete", {
+    ...(turnId ? { item_id: turnId } : {}),
+    reason: "operator_delete_active_turn",
+    sentAtMs: Date.now(),
+  });
+
+  finalizeAssistantStreamEntry();
+  resetAssistantPlayback();
+  appendTranscript("system", `conversation.item.delete sent (${turnId ?? "active_turn"})`);
+}
+
 function sendOutOfBandRequest() {
   sendIntentRequest({
     conversation: "none",
@@ -3913,6 +3942,9 @@ function bindEvents() {
     el.sendConversationItemBtn.addEventListener("click", () => {
       void sendConversationItemCreate();
     });
+  }
+  if (el.sendConversationDeleteBtn) {
+    el.sendConversationDeleteBtn.addEventListener("click", sendConversationItemDelete);
   }
   document.getElementById("sendOobBtn").addEventListener("click", sendOutOfBandRequest);
   document.getElementById("approveResumeBtn").addEventListener("click", () => {

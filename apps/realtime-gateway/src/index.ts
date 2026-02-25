@@ -269,7 +269,7 @@ function isLiveBridgeEventType(type: string): boolean {
   if (type.startsWith("live.")) {
     return true;
   }
-  return type === "conversation.item.truncate" || type === "conversation.item.create";
+  return type === "conversation.item.truncate" || type === "conversation.item.create" || type === "conversation.item.delete";
 }
 
 function cloneOrchestratorResponse(response: OrchestratorResponse): OrchestratorResponse {
