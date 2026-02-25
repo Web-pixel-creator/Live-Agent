@@ -50,6 +50,7 @@ function createPassingSummary(
     scenarioRetriesUsedCount: number | string;
     gatewayWsRoundTripScenarioAttempts: number | string;
     gatewayInterruptSignalScenarioAttempts: number | string;
+    gatewayItemDeleteScenarioAttempts: number | string;
     gatewayTaskProgressScenarioAttempts: number | string;
     gatewayRequestReplayScenarioAttempts: number | string;
     gatewayInvalidEnvelopeScenarioAttempts: number | string;
@@ -86,6 +87,7 @@ function createPassingSummary(
     operatorLiveBridgeHealthBlockValidated: boolean | string;
     operatorLiveBridgeProbeTelemetryValidated: boolean | string;
     operatorLiveBridgeHealthConsistencyValidated: boolean | string;
+    gatewayItemDeleteValidated: boolean | string;
     operatorLiveBridgeHealthState: string;
     storytellerVideoAsyncValidated: boolean | string;
     storytellerMediaQueueVisible: boolean | string;
@@ -102,11 +104,15 @@ function createPassingSummary(
   return {
     success: true,
     scenarios: [
+      { name: "gateway.websocket.item_delete", status: "passed" },
       { name: "gateway.websocket.binding_mismatch", status: "passed" },
       { name: "gateway.websocket.draining_rejection", status: "passed" },
       { name: "api.sessions.versioning", status: "passed" },
     ],
     kpis: {
+      gatewayItemDeleteValidated: hasOverride("gatewayItemDeleteValidated")
+        ? overrides.gatewayItemDeleteValidated
+        : true,
       gatewayWsBindingMismatchValidated: true,
       gatewayWsDrainingValidated: true,
       gatewayErrorCorrelationSource: hasOverride("gatewayErrorCorrelationSource")
@@ -242,6 +248,9 @@ function createPassingSummary(
         : 1,
       gatewayInterruptSignalScenarioAttempts: hasOverride("gatewayInterruptSignalScenarioAttempts")
         ? overrides.gatewayInterruptSignalScenarioAttempts
+        : 1,
+      gatewayItemDeleteScenarioAttempts: hasOverride("gatewayItemDeleteScenarioAttempts")
+        ? overrides.gatewayItemDeleteScenarioAttempts
         : 1,
       gatewayTaskProgressScenarioAttempts: hasOverride("gatewayTaskProgressScenarioAttempts")
         ? overrides.gatewayTaskProgressScenarioAttempts
@@ -640,7 +649,7 @@ test(
     const result = runReleaseReadiness(summary);
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
-    assert.match(output, /Required scenario missing in summary:\s*gateway\.websocket\.draining_rejection/i);
+    assert.match(output, /Required scenario missing in summary:\s*gateway\.websocket\.item_delete/i);
   },
 );
 
@@ -901,6 +910,22 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /kpi\.gatewayInterruptSignalScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway item-delete scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        gatewayItemDeleteScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.gatewayItemDeleteScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 
@@ -1215,6 +1240,17 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /gatewayTransportFallbackActive expected False, actual True/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway item-delete KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ gatewayItemDeleteValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /gatewayItemDeleteValidated expected True, actual False/i);
   },
 );
 

@@ -93,6 +93,10 @@ test("demo-e2e applies transient retry to flaky operator/ui/runtime scenarios", 
   );
   assert.match(
     source,
+    /Invoke-Scenario[\s\S]*-Name\s+"gateway\.websocket\.item_delete"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
+  );
+  assert.match(
+    source,
     /Invoke-Scenario[\s\S]*-Name\s+"gateway\.websocket\.invalid_envelope"[\s\S]*-MaxAttempts\s+\$ScenarioRetryMaxAttempts[\s\S]*-RetryTransientFailures/,
   );
   assert.match(
@@ -130,6 +134,7 @@ test("demo-e2e applies transient retry to flaky operator/ui/runtime scenarios", 
   assert.match(source, /gatewayTaskProgressScenarioAttempts/);
   assert.match(source, /gatewayRequestReplayScenarioAttempts/);
   assert.match(source, /gatewayInvalidEnvelopeScenarioAttempts/);
+  assert.match(source, /gatewayItemDeleteScenarioAttempts/);
   assert.match(source, /gatewayBindingMismatchScenarioAttempts/);
   assert.match(source, /gatewayDrainingRejectionScenarioAttempts/);
   assert.match(source, /multiAgentDelegationScenarioAttempts/);

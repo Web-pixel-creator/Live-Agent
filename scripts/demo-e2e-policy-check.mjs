@@ -189,6 +189,7 @@ async function main() {
         "gateway.websocket.task_progress",
         "gateway.websocket.request_replay",
         "gateway.websocket.interrupt_signal",
+        "gateway.websocket.item_delete",
         "gateway.websocket.invalid_envelope",
         "gateway.websocket.binding_mismatch",
         "gateway.websocket.draining_rejection",
@@ -422,6 +423,12 @@ async function main() {
     gatewayInterruptLatencyMeasured ? gatewayInterruptLatencyMs <= maxGatewayInterruptLatencyMs : gatewayInterruptUnavailable,
     gatewayInterruptLatencyMeasured ? gatewayInterruptLatencyMs : null,
     `<= ${maxGatewayInterruptLatencyMs} (when measured)`,
+  );
+  addCheck(
+    "kpi.gatewayItemDeleteValidated",
+    kpis.gatewayItemDeleteValidated === true,
+    kpis.gatewayItemDeleteValidated,
+    true,
   );
   addCheck(
     "kpi.gatewayWsInvalidEnvelopeCode",
@@ -937,6 +944,16 @@ async function main() {
       Number.isFinite(scenarioRetryMaxAttempts) &&
       gatewayInterruptSignalScenarioAttempts <= scenarioRetryMaxAttempts,
     kpis.gatewayInterruptSignalScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const gatewayItemDeleteScenarioAttempts = toNumber(kpis.gatewayItemDeleteScenarioAttempts);
+  addCheck(
+    "kpi.gatewayItemDeleteScenarioAttempts",
+    Number.isFinite(gatewayItemDeleteScenarioAttempts) &&
+      gatewayItemDeleteScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      gatewayItemDeleteScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.gatewayItemDeleteScenarioAttempts,
     "1..options.scenarioRetryMaxAttempts",
   );
   const gatewayTaskProgressScenarioAttempts = toNumber(kpis.gatewayTaskProgressScenarioAttempts);

@@ -1744,6 +1744,57 @@ try {
   } | Out-Null
 
   Invoke-Scenario `
+    -Name "gateway.websocket.item_delete" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    $runId = "demo-gateway-ws-delete-" + [Guid]::NewGuid().Guid
+    $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
+    $turnId = "turn-delete-demo"
+    $deleteReason = "demo_delete_checkpoint"
+    $result = Invoke-NodeJsonCommand -Args @(
+      "scripts/gateway-ws-item-delete-check.mjs",
+      "--url",
+      "ws://localhost:8080/realtime",
+      "--sessionId",
+      $sessionId,
+      "--runId",
+      $runId,
+      "--userId",
+      $script:DemoUserId,
+      "--timeoutMs",
+      [string]$timeoutMs,
+      "--turnId",
+      $turnId,
+      "--reason",
+      $deleteReason
+    )
+
+    $ok = [bool](Get-FieldValue -Object $result -Path @("ok"))
+    Assert-Condition -Condition $ok -Message "WebSocket item-delete check returned ok=false."
+
+    $eventType = [string](Get-FieldValue -Object $result -Path @("eventType"))
+    $scope = [string](Get-FieldValue -Object $result -Path @("scope"))
+    $deletedTurnId = [string](Get-FieldValue -Object $result -Path @("turnId"))
+    $deletedReason = [string](Get-FieldValue -Object $result -Path @("reason"))
+    Assert-Condition -Condition ($eventType -eq "live.turn.deleted") -Message "Unexpected event type for item-delete scenario."
+    Assert-Condition -Condition ($scope -eq "session_local") -Message "Unexpected scope for item-delete scenario."
+    Assert-Condition -Condition ($deletedTurnId -eq $turnId) -Message "Unexpected turnId for item-delete scenario."
+    Assert-Condition -Condition ($deletedReason -eq $deleteReason) -Message "Unexpected reason for item-delete scenario."
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $result -Path @("runId"))
+      eventType = $eventType
+      turnId = $deletedTurnId
+      reason = $deletedReason
+      scope = $scope
+      hadActiveTurn = Get-FieldValue -Object $result -Path @("hadActiveTurn")
+      eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
+    }
+  } | Out-Null
+
+  Invoke-Scenario `
     -Name "gateway.websocket.invalid_envelope" `
     -MaxAttempts $ScenarioRetryMaxAttempts `
     -InitialBackoffMs $ScenarioRetryBackoffMs `
@@ -2798,6 +2849,7 @@ $gatewayWsData = Get-ScenarioData -Name "gateway.websocket.roundtrip"
 $gatewayWsTaskData = Get-ScenarioData -Name "gateway.websocket.task_progress"
 $gatewayWsReplayData = Get-ScenarioData -Name "gateway.websocket.request_replay"
 $gatewayWsInterruptData = Get-ScenarioData -Name "gateway.websocket.interrupt_signal"
+$gatewayWsItemDeleteData = Get-ScenarioData -Name "gateway.websocket.item_delete"
 $gatewayWsInvalidData = Get-ScenarioData -Name "gateway.websocket.invalid_envelope"
 $gatewayWsBindingMismatchData = Get-ScenarioData -Name "gateway.websocket.binding_mismatch"
 $gatewayWsDrainingData = Get-ScenarioData -Name "gateway.websocket.draining_rejection"
@@ -2816,6 +2868,7 @@ $gatewayRoundTripScenario = @($script:ScenarioResults | Where-Object { $_.name -
 $gatewayTaskProgressScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.task_progress" } | Select-Object -First 1)
 $gatewayRequestReplayScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.request_replay" } | Select-Object -First 1)
 $gatewayInterruptScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.interrupt_signal" } | Select-Object -First 1)
+$gatewayItemDeleteScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.item_delete" } | Select-Object -First 1)
 $gatewayInvalidEnvelopeScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.invalid_envelope" } | Select-Object -First 1)
 $gatewayBindingMismatchScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.binding_mismatch" } | Select-Object -First 1)
 $gatewayDrainingRejectionScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.draining_rejection" } | Select-Object -First 1)
@@ -2988,6 +3041,7 @@ $summary = [ordered]@{
     gatewayTaskProgressScenarioAttempts = if ($gatewayTaskProgressScenario.Count -gt 0) { [int]$gatewayTaskProgressScenario[0].attempts } else { $null }
     gatewayRequestReplayScenarioAttempts = if ($gatewayRequestReplayScenario.Count -gt 0) { [int]$gatewayRequestReplayScenario[0].attempts } else { $null }
     gatewayInterruptSignalScenarioAttempts = if ($gatewayInterruptScenario.Count -gt 0) { [int]$gatewayInterruptScenario[0].attempts } else { $null }
+    gatewayItemDeleteScenarioAttempts = if ($gatewayItemDeleteScenario.Count -gt 0) { [int]$gatewayItemDeleteScenario[0].attempts } else { $null }
     gatewayInvalidEnvelopeScenarioAttempts = if ($gatewayInvalidEnvelopeScenario.Count -gt 0) { [int]$gatewayInvalidEnvelopeScenario[0].attempts } else { $null }
     gatewayBindingMismatchScenarioAttempts = if ($gatewayBindingMismatchScenario.Count -gt 0) { [int]$gatewayBindingMismatchScenario[0].attempts } else { $null }
     gatewayDrainingRejectionScenarioAttempts = if ($gatewayDrainingRejectionScenario.Count -gt 0) { [int]$gatewayDrainingRejectionScenario[0].attempts } else { $null }
@@ -3052,6 +3106,17 @@ $summary = [ordered]@{
     gatewayInterruptLatencyMs = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptLatencyMs } else { $null }
     gatewayInterruptLatencySource = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptLatencySource } else { $null }
     gatewayInterruptLatencyMeasured = if ($null -ne $gatewayWsInterruptData) { $gatewayWsInterruptData.interruptLatencyMeasured } else { $false }
+    gatewayItemDeleteEventType = if ($null -ne $gatewayWsItemDeleteData) { $gatewayWsItemDeleteData.eventType } else { $null }
+    gatewayItemDeleteTurnId = if ($null -ne $gatewayWsItemDeleteData) { $gatewayWsItemDeleteData.turnId } else { $null }
+    gatewayItemDeleteReason = if ($null -ne $gatewayWsItemDeleteData) { $gatewayWsItemDeleteData.reason } else { $null }
+    gatewayItemDeleteScope = if ($null -ne $gatewayWsItemDeleteData) { $gatewayWsItemDeleteData.scope } else { $null }
+    gatewayItemDeleteValidated = if (
+      $null -ne $gatewayWsItemDeleteData -and
+      [string]$gatewayWsItemDeleteData.eventType -eq "live.turn.deleted" -and
+      [string]$gatewayWsItemDeleteData.turnId -eq "turn-delete-demo" -and
+      [string]$gatewayWsItemDeleteData.reason -eq "demo_delete_checkpoint" -and
+      [string]$gatewayWsItemDeleteData.scope -eq "session_local"
+    ) { $true } else { $false }
     gatewayWsInvalidEnvelopeCode = if ($null -ne $gatewayWsInvalidData) { $gatewayWsInvalidData.code } else { $null }
     gatewayWsSessionMismatchCode = if ($null -ne $gatewayWsBindingMismatchData) { $gatewayWsBindingMismatchData.sessionMismatchCode } else { $null }
     gatewayWsUserMismatchCode = if ($null -ne $gatewayWsBindingMismatchData) { $gatewayWsBindingMismatchData.userMismatchCode } else { $null }

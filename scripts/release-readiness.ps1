@@ -286,6 +286,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   }
 
   $requiredSummaryScenarios = @(
+    "gateway.websocket.item_delete",
     "gateway.websocket.binding_mismatch",
     "gateway.websocket.draining_rejection",
     "api.sessions.versioning"
@@ -301,6 +302,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   }
 
   $criticalKpiChecks = @{
+    gatewayItemDeleteValidated = $true
     gatewayWsBindingMismatchValidated = $true
     gatewayWsDrainingValidated = $true
     gatewayErrorCorrelationValidated = $true
@@ -567,6 +569,20 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       $summary.options.scenarioRetryMaxAttempts +
       ", actual " +
       $summary.kpis.gatewayInterruptSignalScenarioAttempts
+    )
+  }
+
+  $gatewayItemDeleteScenarioAttempts = To-NumberOrNaN $summary.kpis.gatewayItemDeleteScenarioAttempts
+  if (
+    [double]::IsNaN($gatewayItemDeleteScenarioAttempts) -or
+    $gatewayItemDeleteScenarioAttempts -lt 1 -or
+    $gatewayItemDeleteScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.gatewayItemDeleteScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.gatewayItemDeleteScenarioAttempts
     )
   }
 
@@ -1008,6 +1024,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $uiSandboxPolicyAttempts = $summary.kpis.uiSandboxPolicyModesScenarioAttempts
   $gatewayRoundTripAttempts = $summary.kpis.gatewayWsRoundTripScenarioAttempts
   $gatewayInterruptAttempts = $summary.kpis.gatewayInterruptSignalScenarioAttempts
+  $gatewayItemDeleteAttempts = $summary.kpis.gatewayItemDeleteScenarioAttempts
   $gatewayTaskProgressAttempts = $summary.kpis.gatewayTaskProgressScenarioAttempts
   $gatewayRequestReplayAttempts = $summary.kpis.gatewayRequestReplayScenarioAttempts
   $gatewayInvalidEnvelopeAttempts = $summary.kpis.gatewayInvalidEnvelopeScenarioAttempts
@@ -1033,6 +1050,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     $null -ne $uiSandboxPolicyAttempts -or
     $null -ne $gatewayRoundTripAttempts -or
     $null -ne $gatewayInterruptAttempts -or
+    $null -ne $gatewayItemDeleteAttempts -or
     $null -ne $gatewayTaskProgressAttempts -or
     $null -ne $gatewayRequestReplayAttempts -or
     $null -ne $gatewayInvalidEnvelopeAttempts -or
@@ -1060,6 +1078,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", ui.sandbox.policy_modes_attempts=" + $uiSandboxPolicyAttempts +
       ", gateway.websocket.roundtrip_attempts=" + $gatewayRoundTripAttempts +
       ", gateway.websocket.interrupt_signal_attempts=" + $gatewayInterruptAttempts +
+      ", gateway.websocket.item_delete_attempts=" + $gatewayItemDeleteAttempts +
       ", gateway.websocket.task_progress_attempts=" + $gatewayTaskProgressAttempts +
       ", gateway.websocket.request_replay_attempts=" + $gatewayRequestReplayAttempts +
       ", gateway.websocket.invalid_envelope_attempts=" + $gatewayInvalidEnvelopeAttempts +
