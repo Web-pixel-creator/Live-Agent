@@ -17,6 +17,8 @@ test("railway deploy helper stays aligned across package, script, and docs", () 
   assert.match(scriptRaw, /\$env:RAILWAY_SERVICE_ID/);
   assert.match(scriptRaw, /SkipReleaseVerification/);
   assert.match(scriptRaw, /StrictReleaseVerification/);
+  assert.match(scriptRaw, /Resolve-ServiceIdFromStatus/);
+  assert.match(scriptRaw, /serviceInstances/);
   assert.match(scriptRaw, /@\("link", "-p"/);
   assert.match(scriptRaw, /@\("up", "-d", "-m"/);
   assert.match(scriptRaw, /deployment", "list"/);

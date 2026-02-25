@@ -20,20 +20,20 @@ function Fail([string]$Message) {
   exit 1
 }
 
-function Run-Cli([string[]]$Args) {
-  & railway @Args
+function Run-Cli([string[]]$CliArgs) {
+  & railway @CliArgs
   if ($LASTEXITCODE -ne 0) {
-    Fail ("railway command failed: railway " + ($Args -join " "))
+    Fail ("railway command failed: railway " + ($CliArgs -join " "))
   }
 }
 
-function Run-CliCapture([string[]]$Args) {
-  $output = & railway @Args 2>&1
+function Run-CliCapture([string[]]$CliArgs) {
+  $output = & railway @CliArgs 2>&1
   if ($output) {
     $output | ForEach-Object { Write-Host $_ }
   }
   if ($LASTEXITCODE -ne 0) {
-    Fail ("railway command failed: railway " + ($Args -join " "))
+    Fail ("railway command failed: railway " + ($CliArgs -join " "))
   }
   return ,$output
 }
@@ -81,6 +81,60 @@ function Get-DeploymentById([string]$DeploymentId, [string]$Service, [string]$En
   return $items | Where-Object { $_.id -eq $DeploymentId } | Select-Object -First 1
 }
 
+function Resolve-ServiceIdFromStatus([object]$StatusPayload, [string]$TargetEnvironment) {
+  if ($null -eq $StatusPayload) {
+    return $null
+  }
+
+  if ($StatusPayload.PSObject.Properties.Name -contains "service") {
+    $serviceNode = $StatusPayload.service
+    if ($null -ne $serviceNode -and -not [string]::IsNullOrWhiteSpace([string]$serviceNode.id)) {
+      return [string]$serviceNode.id
+    }
+  }
+
+  if ($StatusPayload.PSObject.Properties.Name -contains "services") {
+    $serviceEdges = $StatusPayload.services.edges
+    if ($null -ne $serviceEdges) {
+      foreach ($edge in $serviceEdges) {
+        $serviceNode = $edge.node
+        if ($null -ne $serviceNode -and -not [string]::IsNullOrWhiteSpace([string]$serviceNode.id)) {
+          return [string]$serviceNode.id
+        }
+      }
+    }
+  }
+
+  if ($StatusPayload.PSObject.Properties.Name -contains "environments") {
+    $envEdges = $StatusPayload.environments.edges
+    if ($null -ne $envEdges) {
+      foreach ($envEdge in $envEdges) {
+        $envNode = $envEdge.node
+        if ($null -eq $envNode) {
+          continue
+        }
+        if (-not [string]::IsNullOrWhiteSpace($TargetEnvironment) -and $envNode.name -ne $TargetEnvironment) {
+          continue
+        }
+
+        $instances = $envNode.serviceInstances.edges
+        if ($null -eq $instances) {
+          continue
+        }
+
+        foreach ($instanceEdge in $instances) {
+          $instance = $instanceEdge.node
+          if ($null -ne $instance -and -not [string]::IsNullOrWhiteSpace([string]$instance.serviceId)) {
+            return [string]$instance.serviceId
+          }
+        }
+      }
+    }
+  }
+
+  return $null
+}
+
 & railway --version *> $null
 if ($LASTEXITCODE -ne 0) {
   Fail "Railway CLI is not installed or unavailable in PATH."
@@ -109,7 +163,7 @@ if (-not $SkipLink) {
     $linkArgs += @("-w", $Workspace)
   }
   Write-Host "[railway-deploy] Linking workspace to Railway service..."
-  Run-Cli -Args $linkArgs
+  Run-Cli -CliArgs $linkArgs
 }
 
 $statusJson = (& railway status --json)
@@ -118,7 +172,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 $status = $statusJson | ConvertFrom-Json
 
-$resolvedService = if (-not [string]::IsNullOrWhiteSpace($ServiceId)) { $ServiceId } else { [string]$status.service.id }
+$resolvedService = if (-not [string]::IsNullOrWhiteSpace($ServiceId)) { $ServiceId } else { Resolve-ServiceIdFromStatus -StatusPayload $status -TargetEnvironment $Environment }
 if ([string]::IsNullOrWhiteSpace($resolvedService)) {
   Fail "No Railway service resolved. Link a service first or provide -ServiceId."
 }
@@ -137,13 +191,17 @@ if (-not [string]::IsNullOrWhiteSpace($ProjectId)) {
 }
 
 Write-Host "[railway-deploy] Triggering deployment..."
-$deployOutput = Run-CliCapture -Args $deployArgs
+$deployOutput = Run-CliCapture -CliArgs $deployArgs
 $deployText = [string]::Join("`n", $deployOutput)
 
 $deploymentId = $null
 $idMatch = [regex]::Match($deployText, "id=([0-9a-fA-F-]{36})")
 if ($idMatch.Success) {
   $deploymentId = $idMatch.Groups[1].Value
+}
+
+if (-not $idMatch.Success -and $deployText -match "Usage:\s*railway\s+\[COMMAND\]") {
+  Fail "Railway CLI returned global help output instead of deployment logs. Check deploy arguments/service link."
 }
 
 if ([string]::IsNullOrWhiteSpace($deploymentId)) {
