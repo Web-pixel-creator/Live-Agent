@@ -573,19 +573,28 @@ test("live bridge emits text deltas when upstream transcript frames are cumulati
     const normalizedTextChunks = emitted
       .filter((event) => event.type === "live.output")
       .map((event) => {
-        const payload = event.payload as { normalized?: { text?: string; turnId?: string } };
+        const payload = event.payload as {
+          normalized?: { text?: string; turnId?: string; granular?: boolean };
+        };
         return {
           text: payload.normalized?.text,
           turnId: payload.normalized?.turnId,
+          granular: payload.normalized?.granular,
         };
       })
       .filter(
-        (value): value is { text: string; turnId?: string } => typeof value.text === "string" && value.text.length > 0,
+        (value): value is { text: string; turnId?: string; granular?: boolean } =>
+          typeof value.text === "string" && value.text.length > 0,
       );
 
     assert.deepEqual(
       normalizedTextChunks.map((item) => item.text),
       ["Hello", " there", "!"],
+    );
+    assert.equal(
+      normalizedTextChunks.every((item) => item.granular === true),
+      true,
+      "normalized output should mark granular delta emission",
     );
     const turnIdSet = new Set(
       normalizedTextChunks
@@ -607,6 +616,82 @@ test("live bridge emits text deltas when upstream transcript frames are cumulati
     if (typeof turnCompletedPayload.turnId === "string") {
       assert.ok(turnIdSet.has(turnCompletedPayload.turnId));
     }
+
+    const transcriptDeltaEvents = emitted
+      .filter((event) => event.type === "live.output.transcript.delta")
+      .map((event) => event.payload as { text?: string; turnId?: string });
+    assert.deepEqual(
+      transcriptDeltaEvents.map((item) => item.text),
+      ["Hello", " there", "!"],
+    );
+    assert.equal(
+      transcriptDeltaEvents.every((item) => typeof item.turnId === "string" && item.turnId.length > 0),
+      true,
+    );
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
+});
+
+test("live bridge emits live.output.audio.delta for upstream audio chunks", async () => {
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+  const port = (wss.address() as AddressInfo).port;
+
+  wss.on("connection", (ws) => {
+    ws.on("message", (raw) => {
+      const parsed = JSON.parse(raw.toString("utf8")) as Record<string, unknown>;
+      if (!parsed.clientContent) {
+        return;
+      }
+      ws.send(
+        JSON.stringify({
+          serverContent: {
+            modelTurn: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: "audio/pcm",
+                    data: "AQID",
+                  },
+                },
+              ],
+            },
+            turnComplete: true,
+          },
+        }),
+      );
+    });
+  });
+
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveConnectMaxAttempts: 1,
+      liveConnectRetryMs: 20,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "audio delta test" } }));
+    await waitFor(() => emitted.some((event) => event.type === "live.output.audio.delta"), 3000);
+
+    const audioDeltaEvent = emitted.find((event) => event.type === "live.output.audio.delta");
+    assert.ok(audioDeltaEvent, "expected live.output.audio.delta event");
+    const audioDeltaPayload = audioDeltaEvent?.payload as {
+      audioBase64?: string;
+      mimeType?: string | null;
+      turnId?: string | null;
+    };
+    assert.equal(audioDeltaPayload.audioBase64, "AQID");
+    assert.equal(audioDeltaPayload.mimeType, "audio/pcm");
+    assert.equal(typeof audioDeltaPayload.turnId, "string");
   } finally {
     bridge.close();
     await closeWss(wss);

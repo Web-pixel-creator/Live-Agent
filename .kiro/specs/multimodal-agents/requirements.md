@@ -222,6 +222,7 @@
 10. THE Gateway SHALL support out-of-band websocket requests via envelope `conversation=none`, returning side-lane responses without mutating default conversation task lifecycle.
 11. THE Gateway SHALL support realtime function-call handoff events (`live.function_call`, `live.function_call_output`) and SHALL preserve call correlation IDs across request/response frames.
 12. WHERE gateway auto-dispatch mode is enabled for realtime function calls, THE Gateway SHALL map allowed function names to orchestrator intents, enforce sandbox/approval guard defaults for `ui_task`, and emit audit lifecycle events (`live.function_call.dispatching/completed/failed`).
+13. THE Gateway SHALL emit granular realtime output events (`live.output.audio.delta`, `live.output.transcript.delta`) for low-latency UI rendering while preserving compatibility `live.output` envelopes.
 
 ### Requirement 13: Security and Privacy
 
@@ -256,6 +257,7 @@
 11. THE System SHALL propagate client event correlation IDs by echoing websocket envelope `id` as `gateway.error.details.clientEventId` whenever request context is available.
 12. THE System SHALL preserve out-of-band response correlation metadata (`oob=true`, `parentEventId`) when processing websocket requests with `conversation=none`.
 13. THE System SHALL document websocket function-calling event contracts (`live.function_call`, `live.function_call_output`, `live.function_call_output.sent`) in `docs/ws-protocol.md` and keep docs aligned with runtime event emitters.
+14. THE System SHALL document websocket granular output contracts (`live.output.audio.delta`, `live.output.transcript.delta`) in `docs/ws-protocol.md` and keep docs aligned with runtime event emitters.
 
 ### Requirement 15: Monitoring and Observability
 

@@ -299,6 +299,7 @@ type NormalizedLiveOutput = {
   turnId?: string;
   text?: string;
   audioBase64?: string;
+  audioMimeType?: string;
   functionCall?: {
     name: string;
     argumentsJson: string;
@@ -306,6 +307,7 @@ type NormalizedLiveOutput = {
   };
   interrupted?: boolean;
   turnComplete?: boolean;
+  granular?: boolean;
 };
 
 function toFunctionArgumentsJson(value: unknown): string {
@@ -405,6 +407,7 @@ function normalizeGeminiUpstreamMessage(parsed: unknown): NormalizedLiveOutput |
       const mimeType = typeof part.inlineData.mimeType === "string" ? part.inlineData.mimeType : "";
       if (mimeType.startsWith("audio/")) {
         normalized.audioBase64 = part.inlineData.data;
+        normalized.audioMimeType = mimeType;
       }
     }
     if (!normalized.functionCall && isRecord(part.functionCall)) {
@@ -1184,9 +1187,25 @@ export class LiveApiBridge {
         this.currentTurnId = `turn-${randomUUID()}`;
       }
       normalized.turnId = this.currentTurnId;
+      normalized.granular = true;
       if (normalizedTextDelta !== null) {
         this.currentTurnTextParts.push(normalizedTextDelta);
         this.currentTurnTextCombined += normalizedTextDelta;
+        this.emit("live.output.transcript.delta", {
+          turnId: this.currentTurnId,
+          text: normalizedTextDelta,
+          deltaChars: normalizedTextDelta.length,
+          totalTextChars: this.currentTurnTextCombined.length,
+          at: new Date(nowMs).toISOString(),
+        });
+      }
+      if (typeof normalized.audioBase64 === "string") {
+        this.emit("live.output.audio.delta", {
+          turnId: this.currentTurnId,
+          audioBase64: normalized.audioBase64,
+          mimeType: typeof normalized.audioMimeType === "string" ? normalized.audioMimeType : null,
+          at: new Date(nowMs).toISOString(),
+        });
       }
       if (functionCall) {
         const callId =

@@ -105,20 +105,27 @@ Out-of-band behavior (`conversation=none`):
 ### Live Bridge Output and Metrics
 
 1. `live.output`
-2. `live.turn.completed`
-3. `live.turn.end_sent`
-4. `live.interrupted`
-5. `live.interrupt.requested`
-6. `live.metrics.round_trip`
-7. `live.metrics.interrupt_latency`
-8. `live.input.cleared`
-9. `live.input.committed`
-10. `live.turn.truncated`
-11. `live.function_call`
-12. `live.function_call_output.sent`
-13. `live.function_call.dispatching`
-14. `live.function_call.completed`
-15. `live.function_call.failed`
+2. `live.output.audio.delta`
+3. `live.output.transcript.delta`
+4. `live.turn.completed`
+5. `live.turn.end_sent`
+6. `live.interrupted`
+7. `live.interrupt.requested`
+8. `live.metrics.round_trip`
+9. `live.metrics.interrupt_latency`
+10. `live.input.cleared`
+11. `live.input.committed`
+12. `live.turn.truncated`
+13. `live.function_call`
+14. `live.function_call_output.sent`
+15. `live.function_call.dispatching`
+16. `live.function_call.completed`
+17. `live.function_call.failed`
+
+Granular output guidance:
+
+1. `live.output.audio.delta` and `live.output.transcript.delta` are the preferred low-latency rendering events for realtime UI.
+2. `live.output` remains as compatibility envelope and may include `normalized.granular=true` when granular deltas were already emitted.
 
 Realtime function-call auto-dispatch behavior:
 

@@ -2639,6 +2639,36 @@ function handleNormalizedLiveOutput(normalized, turnIdFromEvent = null) {
   }
 }
 
+function handleLiveOutputAudioDelta(payload) {
+  if (!payload || typeof payload !== "object" || typeof payload.audioBase64 !== "string") {
+    return;
+  }
+  const turnId = typeof payload.turnId === "string" && payload.turnId.trim().length > 0
+    ? payload.turnId.trim()
+    : null;
+  try {
+    playPcm16Chunk(decodeBase64ToInt16(payload.audioBase64), 16000, turnId);
+  } catch (error) {
+    appendTranscript("error", `Audio decode failed: ${String(error)}`);
+  }
+}
+
+function handleLiveOutputTranscriptDelta(payload) {
+  if (!payload || typeof payload !== "object") {
+    return;
+  }
+  const text = typeof payload.text === "string"
+    ? payload.text
+    : typeof payload.delta === "string"
+      ? payload.delta
+      : typeof payload.transcript === "string"
+        ? payload.transcript
+        : null;
+  if (typeof text === "string" && text.length > 0) {
+    appendAssistantStreamingText(text);
+  }
+}
+
 async function submitApprovalDecision(decision) {
   if (!state.pendingApproval || !state.pendingApproval.approvalId) {
     appendTranscript("error", "No pending approval to process");
@@ -2871,6 +2901,16 @@ function handleGatewayEvent(event) {
     return;
   }
 
+  if (event.type === "live.output.audio.delta") {
+    handleLiveOutputAudioDelta(event.payload);
+    return;
+  }
+
+  if (event.type === "live.output.transcript.delta") {
+    handleLiveOutputTranscriptDelta(event.payload);
+    return;
+  }
+
   if (event.type === "live.output") {
     const turnId =
       typeof event.payload?.normalized?.turnId === "string"
@@ -2879,6 +2919,9 @@ function handleGatewayEvent(event) {
           ? event.payload.turnId
           : null;
     if (event.payload?.normalized) {
+      if (event.payload.normalized.granular === true) {
+        return;
+      }
       handleNormalizedLiveOutput(event.payload.normalized, turnId);
       return;
     }
