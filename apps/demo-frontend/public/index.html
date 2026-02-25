@@ -119,6 +119,36 @@
             <input id="audioInput" type="file" accept="audio/*" />
           </label>
         </div>
+        <div class="grid-3">
+          <label class="field">
+            <span>UI Task URL (optional)</span>
+            <input id="uiTaskUrl" type="text" placeholder="https://example.com/dashboard" />
+          </label>
+          <label class="field">
+            <span>UI Device Node ID (optional)</span>
+            <input id="uiTaskDeviceNodeId" type="text" placeholder="desktop-main" />
+          </label>
+          <label class="field">
+            <span>UI Screenshot Ref (optional)</span>
+            <input id="uiTaskScreenshotRef" type="text" placeholder="ui://session/screenshot-001.png" />
+          </label>
+          <label class="field">
+            <span>UI DOM Snapshot (optional)</span>
+            <textarea id="uiTaskDomSnapshot" rows="3" placeholder="<main>...</main>"></textarea>
+          </label>
+          <label class="field">
+            <span>UI Accessibility Tree (optional)</span>
+            <textarea
+              id="uiTaskAccessibilityTree"
+              rows="3"
+              placeholder="main > button[name=Submit]"
+            ></textarea>
+          </label>
+          <label class="field">
+            <span>UI Mark Hints (optional, one per line)</span>
+            <textarea id="uiTaskMarkHints" rows="3" placeholder="submit_button@(520,620)"></textarea>
+          </label>
+        </div>
         <div class="actions">
           <button id="sendBtn">Send Request</button>
           <button id="sendConversationItemBtn" class="button-muted">Send Conversation Item</button>

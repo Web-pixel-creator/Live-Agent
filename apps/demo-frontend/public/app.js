@@ -67,6 +67,12 @@ const el = {
   approvalStatus: document.getElementById("approvalStatus"),
   intent: document.getElementById("intent"),
   message: document.getElementById("message"),
+  uiTaskUrl: document.getElementById("uiTaskUrl"),
+  uiTaskDeviceNodeId: document.getElementById("uiTaskDeviceNodeId"),
+  uiTaskScreenshotRef: document.getElementById("uiTaskScreenshotRef"),
+  uiTaskDomSnapshot: document.getElementById("uiTaskDomSnapshot"),
+  uiTaskAccessibilityTree: document.getElementById("uiTaskAccessibilityTree"),
+  uiTaskMarkHints: document.getElementById("uiTaskMarkHints"),
   sendConversationItemBtn: document.getElementById("sendConversationItemBtn"),
   transcript: document.getElementById("transcript"),
   events: document.getElementById("events"),
@@ -3206,6 +3212,65 @@ function parseBase64DataUrl(value) {
   };
 }
 
+function parseMarkHintsInput(value) {
+  if (typeof value !== "string") {
+    return [];
+  }
+  const chunks = value
+    .split(/\r?\n|,/g)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  const unique = [];
+  const seen = new Set();
+  for (const chunk of chunks) {
+    if (seen.has(chunk)) {
+      continue;
+    }
+    seen.add(chunk);
+    unique.push(chunk);
+    if (unique.length >= 80) {
+      break;
+    }
+  }
+  return unique;
+}
+
+function collectUiTaskOverrides() {
+  const url = typeof el.uiTaskUrl?.value === "string" ? el.uiTaskUrl.value.trim() : "";
+  const deviceNodeId =
+    typeof el.uiTaskDeviceNodeId?.value === "string" ? el.uiTaskDeviceNodeId.value.trim() : "";
+  const screenshotRef =
+    typeof el.uiTaskScreenshotRef?.value === "string" ? el.uiTaskScreenshotRef.value.trim() : "";
+  const domSnapshot =
+    typeof el.uiTaskDomSnapshot?.value === "string" ? el.uiTaskDomSnapshot.value.trim() : "";
+  const accessibilityTree =
+    typeof el.uiTaskAccessibilityTree?.value === "string" ? el.uiTaskAccessibilityTree.value.trim() : "";
+  const markHintsRaw =
+    typeof el.uiTaskMarkHints?.value === "string" ? el.uiTaskMarkHints.value : "";
+  const markHints = parseMarkHintsInput(markHintsRaw);
+
+  const payload = {};
+  if (url.length > 0) {
+    payload.url = url;
+  }
+  if (deviceNodeId.length > 0) {
+    payload.deviceNodeId = deviceNodeId;
+  }
+  if (screenshotRef.length > 0) {
+    payload.screenshotRef = screenshotRef;
+  }
+  if (domSnapshot.length > 0) {
+    payload.domSnapshot = domSnapshot;
+  }
+  if (accessibilityTree.length > 0) {
+    payload.accessibilityTree = accessibilityTree;
+  }
+  if (markHints.length > 0) {
+    payload.markHints = markHints;
+  }
+  return payload;
+}
+
 function collectLiveSetupOverride() {
   const model =
     typeof el.liveSetupModel?.value === "string"
@@ -3407,6 +3472,7 @@ function sendIntentRequest(options = {}) {
   const targetPrice = getNumeric(el.targetPrice);
   const targetDelivery = getNumeric(el.targetDelivery);
   const targetSla = getNumeric(el.targetSla);
+  const uiTaskOverrides = collectUiTaskOverrides();
   const conversation = toConversationScope(options.conversation);
   const requestMetadata =
     options.metadata && typeof options.metadata === "object" && !Array.isArray(options.metadata)
@@ -3422,6 +3488,9 @@ function sendIntentRequest(options = {}) {
       minSla: targetSla,
     },
   };
+  if (intent === "ui_task" || Object.keys(uiTaskOverrides).length > 0) {
+    Object.assign(input, uiTaskOverrides);
+  }
 
   appendTranscript("user", message);
   updateOfferFromText(message, false);

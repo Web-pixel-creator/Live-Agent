@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `179` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`310` tests passed).
+4. Unit tests are green (`311` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -176,6 +176,9 @@
 145. Completed `T-234` for runtime setup controls in demo frontend: `Live Controls` now supports explicit `live.setup` overrides for `model`, `voice`, `activityHandling`, and `systemInstruction`, sent through existing WebSocket envelope flow.
 146. Synced protocol/docs and anti-drift coverage for `T-234`: `docs/ws-protocol.md` now documents practical `live.setup` override fields, `README.md` includes operator usage note, and new alignment guard `tests/unit/frontend-live-setup-alignment.test.ts` locks HTML/runtime wiring.
 147. Revalidated release baseline after `T-234`: `npm run test:unit` green (`310` tests), `npm run verify:release` green, Demo KPI gate green (`179` checks, websocket roundtrip `40ms`), and perf policy green (`15` checks, `0` violations).
+148. Completed `T-235` for UI grounding input controls in demo frontend: `Intent Request` now supports optional `ui_task` override fields (`url`, `deviceNodeId`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`) and serializes them into `orchestrator.request` payload.
+149. Added anti-drift coverage for `T-235`: `tests/unit/frontend-ui-grounding-controls-alignment.test.ts` verifies both HTML controls and runtime wiring tokens (`parseMarkHintsInput`, `collectUiTaskOverrides`, payload projection fields).
+150. Revalidated release baseline after `T-235`: `npm run test:unit` green (`311` tests), `npm run verify:release` green, Demo KPI gate green (`179` checks, websocket roundtrip `40ms`), and perf policy green (`15` checks, `0` violations).
 
 ## Current Focus Queue
 
