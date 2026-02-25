@@ -61,6 +61,15 @@ If perf artifacts are already present and you only want to skip rerunning perf p
 npm run verify:release:strict:skip-perf-run
 ```
 Optional CI equivalent: run GitHub workflow `.github/workflows/release-strict-final.yml` (manual `workflow_dispatch`) for the same strict gate + artifact bundle.
+Optional one-command publish + Railway deploy flow:
+```powershell
+$env:GITHUB_OWNER="Web-pixel-creator"
+$env:GITHUB_REPO="Live-Agent"
+$env:RAILWAY_PROJECT_ID="bbca2889-fd0d-48fe-bded-79802230e5a6"
+$env:RAILWAY_SERVICE_ID="b8c1a952-da24-4410-a53a-82b634b70f47"
+$env:RAILWAY_ENVIRONMENT="production"
+npm run repo:publish -- -DeployRailway -SkipPages -SkipBadgeCheck
+```
 If you need to refresh hosted Railway environment before demo, run:
 ```powershell
 $env:RAILWAY_PROJECT_ID="bbca2889-fd0d-48fe-bded-79802230e5a6"

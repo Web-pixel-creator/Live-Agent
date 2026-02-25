@@ -15,6 +15,13 @@ param(
   [switch]$SkipBadgeCheck,
   [switch]$SkipReleaseVerification,
   [switch]$StrictReleaseVerification,
+  [switch]$DeployRailway,
+  [string]$RailwayProjectId = $env:RAILWAY_PROJECT_ID,
+  [string]$RailwayServiceId = $env:RAILWAY_SERVICE_ID,
+  [string]$RailwayEnvironment = $env:RAILWAY_ENVIRONMENT,
+  [string]$RailwayWorkspace = $env:RAILWAY_WORKSPACE,
+  [switch]$RailwaySkipLink,
+  [switch]$RailwayNoWait,
   [int]$BadgeCheckAttempts = 20,
   [int]$BadgeCheckIntervalSec = 20
 )
@@ -26,10 +33,10 @@ function Fail([string]$Message) {
   exit 1
 }
 
-function Run-Git([string[]]$Args) {
-  & git @Args
+function Run-Git([string[]]$CliArgs) {
+  & git @CliArgs
   if ($LASTEXITCODE -ne 0) {
-    Fail ("git command failed: git " + ($Args -join " "))
+    Fail ("git command failed: git " + ($CliArgs -join " "))
   }
 }
 
@@ -157,6 +164,41 @@ if (-not $SkipBadgeCheck) {
 
   if (-not $badgeOk) {
     Fail "Badge endpoint did not become available in time."
+  }
+}
+
+if ($DeployRailway) {
+  Write-Host "[repo-publish] Triggering Railway deploy..."
+
+  $railwayArgs = @(
+    "-NoProfile",
+    "-ExecutionPolicy", "Bypass",
+    "-File", "$PSScriptRoot/railway-deploy.ps1",
+    "-SkipReleaseVerification"
+  )
+
+  if (-not [string]::IsNullOrWhiteSpace($RailwayProjectId)) {
+    $railwayArgs += @("-ProjectId", $RailwayProjectId)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($RailwayServiceId)) {
+    $railwayArgs += @("-ServiceId", $RailwayServiceId)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($RailwayEnvironment)) {
+    $railwayArgs += @("-Environment", $RailwayEnvironment)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($RailwayWorkspace)) {
+    $railwayArgs += @("-Workspace", $RailwayWorkspace)
+  }
+  if ($RailwaySkipLink) {
+    $railwayArgs += "-SkipLink"
+  }
+  if ($RailwayNoWait) {
+    $railwayArgs += "-NoWait"
+  }
+
+  & powershell @railwayArgs
+  if ($LASTEXITCODE -ne 0) {
+    Fail "Railway deploy failed."
   }
 }
 

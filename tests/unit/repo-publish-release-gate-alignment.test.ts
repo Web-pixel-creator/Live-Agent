@@ -12,4 +12,11 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /npm run \$verificationScript/);
   assert.match(source, /verify:release:strict/);
   assert.match(source, /verify:release/);
+  assert.match(source, /\[switch\]\$DeployRailway/);
+  assert.match(source, /\[string\]\$RailwayProjectId = \$env:RAILWAY_PROJECT_ID/);
+  assert.match(source, /\[string\]\$RailwayServiceId = \$env:RAILWAY_SERVICE_ID/);
+  assert.match(source, /function Run-Git\(\[string\[\]\]\$CliArgs\)/);
+  assert.doesNotMatch(source, /function Run-Git\(\[string\[\]\]\$Args\)/);
+  assert.match(source, /railway-deploy\.ps1/);
+  assert.match(source, /\-SkipReleaseVerification/);
 });

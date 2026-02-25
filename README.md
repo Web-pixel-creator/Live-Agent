@@ -410,6 +410,17 @@ npm run repo:publish
 
 By default `repo:publish` runs pre-publish release verification (`npm run verify:release`). For strict final publishing, use `-StrictReleaseVerification`.
 
+Publish + deploy to Railway in one command:
+
+```powershell
+$env:GITHUB_OWNER="Web-pixel-creator"
+$env:GITHUB_REPO="Live-Agent"
+$env:RAILWAY_PROJECT_ID="bbca2889-fd0d-48fe-bded-79802230e5a6"
+$env:RAILWAY_SERVICE_ID="b8c1a952-da24-4410-a53a-82b634b70f47"
+$env:RAILWAY_ENVIRONMENT="production"
+npm run repo:publish -- -DeployRailway -SkipPages -SkipBadgeCheck
+```
+
 Safe dry-run style (no push/pages/badge):
 
 ```powershell
@@ -436,6 +447,10 @@ Useful flags:
 - `-OutputPath <path>` - custom report output path.
 - `-SkipReleaseVerification` - skip pre-publish release verification (`verify:release`).
 - `-StrictReleaseVerification` - use strict pre-publish gate (`verify:release:strict`).
+- `-DeployRailway` - trigger Railway deploy after publish (calls `scripts/railway-deploy.ps1` with `-SkipReleaseVerification`).
+- `-RailwayProjectId` / `-RailwayServiceId` / `-RailwayEnvironment` / `-RailwayWorkspace` - Railway target overrides.
+- `-RailwaySkipLink` - skip `railway link` step and use existing linked service.
+- `-RailwayNoWait` - return after deploy trigger without waiting for terminal Railway status.
 
 ## Railway Deploy Automation
 
