@@ -1230,6 +1230,50 @@ test("live bridge emits local delete diagnostics for conversation.item.delete", 
   }
 });
 
+test("live bridge keeps conversation.item.delete session-local when live bridge is unavailable", async () => {
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiEnabled: false,
+      liveApiWsUrl: undefined,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await bridge.forwardFromClient(
+      createClientEvent({
+        type: "conversation.item.delete",
+        payload: {
+          item_id: "turn-local-delete",
+          reason: "local_cleanup",
+        },
+      }),
+    );
+
+    const deletedEvent = emitted.find((event) => event.type === "live.turn.deleted");
+    assert.ok(deletedEvent, "expected live.turn.deleted event");
+    const payload = deletedEvent?.payload as {
+      turnId?: string | null;
+      reason?: string | null;
+      scope?: string | null;
+    };
+    assert.equal(payload.turnId, "turn-local-delete");
+    assert.equal(payload.reason, "local_cleanup");
+    assert.equal(payload.scope, "session_local");
+    assert.equal(
+      emitted.some((event) => event.type === "live.bridge.unavailable"),
+      false,
+      "conversation.item.delete should not emit live.bridge.unavailable",
+    );
+  } finally {
+    bridge.close();
+  }
+});
+
 test("live bridge emits deduplicated live.function_call events from upstream", async () => {
   const wss = new WebSocketServer({ port: 0 });
   await new Promise<void>((resolve) => wss.on("listening", () => resolve()));

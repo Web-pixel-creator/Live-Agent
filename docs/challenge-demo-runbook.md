@@ -129,6 +129,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `assistantActivityLifecycleValidated=true`
   - `liveContextCompactionValidated=true`
 - Gateway error-correlation reliability:
+  - `gatewayItemDeleteValidated=true`
   - `gatewayErrorCorrelationValidated=true`
   - `gatewayErrorCorrelationSource in {gateway.error,orchestrator.error}`
   - `gatewayErrorCorrelationCode=GATEWAY_SESSION_MISMATCH`
@@ -163,6 +164,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `kpi.uiSandboxPolicyModesScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.gatewayWsRoundTripScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.gatewayInterruptSignalScenarioAttempts <= options.scenarioRetryMaxAttempts`
+  - `kpi.gatewayItemDeleteScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.gatewayTaskProgressScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.gatewayRequestReplayScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.gatewayInvalidEnvelopeScenarioAttempts <= options.scenarioRetryMaxAttempts`
@@ -302,7 +304,8 @@ Manual shortcut:
 13. API reliability evidence: `api.sessions.versioning=passed` with `kpi.sessionVersioningValidated=true`, `API_SESSION_VERSION_CONFLICT`, `API_SESSION_IDEMPOTENCY_CONFLICT`.
 14. WebSocket contract evidence: `gateway.websocket.binding_mismatch=passed` with `kpi.gatewayWsSessionMismatchCode=GATEWAY_SESSION_MISMATCH`, `kpi.gatewayWsUserMismatchCode=GATEWAY_USER_MISMATCH`.
 15. WebSocket drain behavior evidence: `gateway.websocket.draining_rejection=passed` with `kpi.gatewayWsDrainingCode=GATEWAY_DRAINING` and successful post-warmup recovery (`kpi.gatewayWsDrainingRecoveryStatus=completed`).
-16. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings).
+16. WebSocket conversation-item delete evidence: `gateway.websocket.item_delete=passed` with `kpi.gatewayItemDeleteValidated=true` and session-local cleanup event `live.turn.deleted`.
+17. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings).
 
 ## Quick Observability Setup (for demo environment)
 

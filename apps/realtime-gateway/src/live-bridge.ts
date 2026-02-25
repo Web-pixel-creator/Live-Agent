@@ -1789,7 +1789,10 @@ export class LiveApiBridge {
   }
 
   private forwardGemini(event: EventEnvelope): void {
-    this.ensureSetupSent();
+    const isSessionLocalConversationEvent = event.type === "conversation.item.truncate" || event.type === "conversation.item.delete";
+    if (!isSessionLocalConversationEvent) {
+      this.ensureSetupSent();
+    }
 
     switch (event.type) {
       case "live.setup": {
@@ -2087,6 +2090,11 @@ export class LiveApiBridge {
       userId: event.userId,
       runId: event.runId ?? null,
     });
+
+    if (event.type === "conversation.item.truncate" || event.type === "conversation.item.delete") {
+      this.forwardGemini(event);
+      return;
+    }
 
     if (!this.isConfigured()) {
       this.emit("live.bridge.unavailable", {
