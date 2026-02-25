@@ -87,6 +87,15 @@ function createPassingSummary(overrides?: {
     gatewayWsSessionMismatchCode: "GATEWAY_SESSION_MISMATCH",
     gatewayWsUserMismatchCode: "GATEWAY_USER_MISMATCH",
     gatewayWsBindingMismatchValidated: true,
+    gatewayErrorCorrelationSource: "gateway.error",
+    gatewayErrorCorrelationCode: "GATEWAY_SESSION_MISMATCH",
+    gatewayErrorCorrelationTraceId: "trace-gateway-correlation-1",
+    gatewayErrorCorrelationClientEventId: "event-gateway-correlation-1",
+    gatewayErrorCorrelationExpectedClientEventId: "event-gateway-correlation-1",
+    gatewayErrorCorrelationClientEventType: "orchestrator.request",
+    gatewayErrorCorrelationConversation: "none",
+    gatewayErrorCorrelationLatencyMs: 120,
+    gatewayErrorCorrelationValidated: true,
     gatewayWsDrainingCode: "GATEWAY_DRAINING",
     gatewayWsDrainingTraceIdPresent: true,
     gatewayWsDrainingRecoveryStatus: "completed",
@@ -259,7 +268,23 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 179);
+  assert.equal(result.payload.checks, 187);
+});
+
+test("demo-e2e policy check fails when gateway error correlation KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        gatewayErrorCorrelationValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.gatewayErrorCorrelationValidated")));
 });
 
 test("demo-e2e policy check fails when assistant activity lifecycle KPI is missing", () => {

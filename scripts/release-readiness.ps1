@@ -35,6 +35,7 @@ $ErrorActionPreference = "Stop"
 $ReleaseThresholds = @{
   MaxGatewayWsRoundTripMs = 1800
   MaxGatewayInterruptLatencyMs = 300
+  MaxGatewayErrorCorrelationLatencyMs = 5000
   MinServiceStartMaxAttempts = 2
   MinServiceStartRetryBackoffMs = 300
   MinScenarioRetryMaxAttempts = 2
@@ -302,6 +303,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $criticalKpiChecks = @{
     gatewayWsBindingMismatchValidated = $true
     gatewayWsDrainingValidated = $true
+    gatewayErrorCorrelationValidated = $true
     assistantActivityLifecycleValidated = $true
     liveContextCompactionValidated = $true
     sessionVersioningValidated = $true
@@ -386,6 +388,54 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     }
   } elseif ($gatewayInterruptLatencyMs -gt $ReleaseThresholds.MaxGatewayInterruptLatencyMs) {
     Fail ("Critical KPI check failed: gatewayInterruptLatencyMs expected <= " + $ReleaseThresholds.MaxGatewayInterruptLatencyMs + ", actual " + $gatewayInterruptLatencyMs)
+  }
+
+  $gatewayErrorCorrelationSource = [string]$summary.kpis.gatewayErrorCorrelationSource
+  if (@("gateway.error", "orchestrator.error") -notcontains $gatewayErrorCorrelationSource) {
+    Fail ("Critical KPI check failed: gatewayErrorCorrelationSource expected gateway.error|orchestrator.error, actual " + $gatewayErrorCorrelationSource)
+  }
+
+  $gatewayErrorCorrelationCode = [string]$summary.kpis.gatewayErrorCorrelationCode
+  if ($gatewayErrorCorrelationCode -ne "GATEWAY_SESSION_MISMATCH") {
+    Fail ("Critical KPI check failed: gatewayErrorCorrelationCode expected GATEWAY_SESSION_MISMATCH, actual " + $gatewayErrorCorrelationCode)
+  }
+
+  $gatewayErrorCorrelationTraceId = [string]$summary.kpis.gatewayErrorCorrelationTraceId
+  if ([string]::IsNullOrWhiteSpace($gatewayErrorCorrelationTraceId)) {
+    Fail "Critical KPI check failed: gatewayErrorCorrelationTraceId is missing"
+  }
+
+  $gatewayErrorCorrelationClientEventId = [string]$summary.kpis.gatewayErrorCorrelationClientEventId
+  $gatewayErrorCorrelationExpectedClientEventId = [string]$summary.kpis.gatewayErrorCorrelationExpectedClientEventId
+  if ([string]::IsNullOrWhiteSpace($gatewayErrorCorrelationClientEventId)) {
+    Fail "Critical KPI check failed: gatewayErrorCorrelationClientEventId is missing"
+  }
+  if ($gatewayErrorCorrelationClientEventId -ne $gatewayErrorCorrelationExpectedClientEventId) {
+    Fail ("Critical KPI check failed: gatewayErrorCorrelationClientEventId expected to equal gatewayErrorCorrelationExpectedClientEventId, actual " + $gatewayErrorCorrelationClientEventId + " vs " + $gatewayErrorCorrelationExpectedClientEventId)
+  }
+
+  $gatewayErrorCorrelationClientEventType = [string]$summary.kpis.gatewayErrorCorrelationClientEventType
+  if ($gatewayErrorCorrelationClientEventType -ne "orchestrator.request") {
+    Fail ("Critical KPI check failed: gatewayErrorCorrelationClientEventType expected orchestrator.request, actual " + $gatewayErrorCorrelationClientEventType)
+  }
+
+  $gatewayErrorCorrelationConversation = [string]$summary.kpis.gatewayErrorCorrelationConversation
+  if ($gatewayErrorCorrelationConversation -ne "none") {
+    Fail ("Critical KPI check failed: gatewayErrorCorrelationConversation expected none, actual " + $gatewayErrorCorrelationConversation)
+  }
+
+  $gatewayErrorCorrelationLatencyMs = To-NumberOrNaN $summary.kpis.gatewayErrorCorrelationLatencyMs
+  if (
+    [double]::IsNaN($gatewayErrorCorrelationLatencyMs) -or
+    $gatewayErrorCorrelationLatencyMs -lt 0 -or
+    $gatewayErrorCorrelationLatencyMs -gt $ReleaseThresholds.MaxGatewayErrorCorrelationLatencyMs
+  ) {
+    Fail (
+      "Critical KPI check failed: gatewayErrorCorrelationLatencyMs expected 0.." +
+      $ReleaseThresholds.MaxGatewayErrorCorrelationLatencyMs +
+      ", actual " +
+      $summary.kpis.gatewayErrorCorrelationLatencyMs
+    )
   }
 
   $serviceStartMaxAttempts = To-NumberOrNaN $summary.options.serviceStartMaxAttempts
@@ -1038,6 +1088,26 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $bindingValidated = $summary.kpis.gatewayWsBindingMismatchValidated
   if ($null -ne $bindingValidated) {
     Write-Host ("gateway.ws.binding.validated: " + $bindingValidated)
+  }
+  $gatewayErrorCorrelationValidated = $summary.kpis.gatewayErrorCorrelationValidated
+  $gatewayErrorCorrelationCode = $summary.kpis.gatewayErrorCorrelationCode
+  $gatewayErrorCorrelationClientEventType = $summary.kpis.gatewayErrorCorrelationClientEventType
+  $gatewayErrorCorrelationConversation = $summary.kpis.gatewayErrorCorrelationConversation
+  $gatewayErrorCorrelationLatencyMs = $summary.kpis.gatewayErrorCorrelationLatencyMs
+  if (
+    $null -ne $gatewayErrorCorrelationValidated -or
+    $null -ne $gatewayErrorCorrelationCode -or
+    $null -ne $gatewayErrorCorrelationClientEventType -or
+    $null -ne $gatewayErrorCorrelationConversation -or
+    $null -ne $gatewayErrorCorrelationLatencyMs
+  ) {
+    Write-Host (
+      "gateway.error.correlation: validated=" + $gatewayErrorCorrelationValidated +
+      ", code=" + $gatewayErrorCorrelationCode +
+      ", event_type=" + $gatewayErrorCorrelationClientEventType +
+      ", conversation=" + $gatewayErrorCorrelationConversation +
+      ", latency_ms=" + $gatewayErrorCorrelationLatencyMs
+    )
   }
   $assistantActivityValidated = $summary.kpis.assistantActivityLifecycleValidated
   if ($null -ne $assistantActivityValidated) {

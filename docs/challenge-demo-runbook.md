@@ -112,6 +112,13 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
 - Live Agent reliability:
   - `assistantActivityLifecycleValidated=true`
   - `liveContextCompactionValidated=true`
+- Gateway error-correlation reliability:
+  - `gatewayErrorCorrelationValidated=true`
+  - `gatewayErrorCorrelationSource in {gateway.error,orchestrator.error}`
+  - `gatewayErrorCorrelationCode=GATEWAY_SESSION_MISMATCH`
+  - `gatewayErrorCorrelationClientEventType=orchestrator.request`
+  - `gatewayErrorCorrelationConversation=none`
+  - `gatewayErrorCorrelationLatencyMs in [0..5000]`
 - Telemetry split reliability:
   - `analyticsSplitTargetsValidated=true`
   - `analyticsBigQueryConfigValidated=true`

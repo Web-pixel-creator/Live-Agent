@@ -116,6 +116,9 @@ async function main() {
   const maxGatewayInterruptLatencyMs = Number.isFinite(toNumber(args.maxGatewayInterruptLatencyMs))
     ? toNumber(args.maxGatewayInterruptLatencyMs)
     : 300;
+  const maxGatewayErrorCorrelationLatencyMs = Number.isFinite(toNumber(args.maxGatewayErrorCorrelationLatencyMs))
+    ? toNumber(args.maxGatewayErrorCorrelationLatencyMs)
+    : 5000;
   const minServiceStartMaxAttempts = Number.isFinite(toNumber(args.minServiceStartMaxAttempts))
     ? toNumber(args.minServiceStartMaxAttempts)
     : 2;
@@ -442,6 +445,60 @@ async function main() {
     "kpi.gatewayWsBindingMismatchValidated",
     kpis.gatewayWsBindingMismatchValidated === true,
     kpis.gatewayWsBindingMismatchValidated,
+    true,
+  );
+  addCheck(
+    "kpi.gatewayErrorCorrelationSource",
+    ["gateway.error", "orchestrator.error"].includes(String(kpis.gatewayErrorCorrelationSource)),
+    kpis.gatewayErrorCorrelationSource,
+    "gateway.error | orchestrator.error",
+  );
+  addCheck(
+    "kpi.gatewayErrorCorrelationCode",
+    String(kpis.gatewayErrorCorrelationCode) === "GATEWAY_SESSION_MISMATCH",
+    kpis.gatewayErrorCorrelationCode,
+    "GATEWAY_SESSION_MISMATCH",
+  );
+  addCheck(
+    "kpi.gatewayErrorCorrelationTraceId",
+    typeof kpis.gatewayErrorCorrelationTraceId === "string" &&
+      String(kpis.gatewayErrorCorrelationTraceId).trim().length > 0,
+    kpis.gatewayErrorCorrelationTraceId,
+    "non-empty traceId",
+  );
+  addCheck(
+    "kpi.gatewayErrorCorrelationClientEventId",
+    typeof kpis.gatewayErrorCorrelationClientEventId === "string" &&
+      String(kpis.gatewayErrorCorrelationClientEventId).trim().length > 0 &&
+      String(kpis.gatewayErrorCorrelationClientEventId) ===
+        String(kpis.gatewayErrorCorrelationExpectedClientEventId),
+    kpis.gatewayErrorCorrelationClientEventId,
+    "matches gatewayErrorCorrelationExpectedClientEventId",
+  );
+  addCheck(
+    "kpi.gatewayErrorCorrelationClientEventType",
+    String(kpis.gatewayErrorCorrelationClientEventType) === "orchestrator.request",
+    kpis.gatewayErrorCorrelationClientEventType,
+    "orchestrator.request",
+  );
+  addCheck(
+    "kpi.gatewayErrorCorrelationConversation",
+    String(kpis.gatewayErrorCorrelationConversation) === "none",
+    kpis.gatewayErrorCorrelationConversation,
+    "none",
+  );
+  addCheck(
+    "kpi.gatewayErrorCorrelationLatencyMs",
+    Number.isFinite(toNumber(kpis.gatewayErrorCorrelationLatencyMs)) &&
+      toNumber(kpis.gatewayErrorCorrelationLatencyMs) >= 0 &&
+      toNumber(kpis.gatewayErrorCorrelationLatencyMs) <= maxGatewayErrorCorrelationLatencyMs,
+    kpis.gatewayErrorCorrelationLatencyMs,
+    `0..${maxGatewayErrorCorrelationLatencyMs}`,
+  );
+  addCheck(
+    "kpi.gatewayErrorCorrelationValidated",
+    kpis.gatewayErrorCorrelationValidated === true,
+    kpis.gatewayErrorCorrelationValidated,
     true,
   );
   addCheck(
@@ -1284,6 +1341,7 @@ async function main() {
     thresholds: {
       maxGatewayWsRoundTripMs,
       maxGatewayInterruptLatencyMs,
+      maxGatewayErrorCorrelationLatencyMs,
       minServiceStartMaxAttempts,
       minServiceStartRetryBackoffMs,
       minScenarioRetryMaxAttempts,

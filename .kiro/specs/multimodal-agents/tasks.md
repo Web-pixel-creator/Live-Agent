@@ -184,7 +184,8 @@
 11. T-235 (P1 capability expansion lane, ui_task grounding controls in demo frontend) [Completed]
 12. T-236 (P1 capability expansion lane, gateway.error client-event correlation context) [Completed]
 13. T-237 (P1 capability expansion lane, operator gateway-error correlation widget) [Completed]
-14. T-223 remains V2 spike only (no MVP transport change)
+14. T-237 follow-up hardening (e2e/policy/release gates for correlation tuple) [Completed]
+15. T-223 remains V2 spike only (no MVP transport change)
 
 ## Suggested Solo Execution (2-week MVP)
 

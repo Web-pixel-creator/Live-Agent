@@ -188,6 +188,9 @@
 157. Completed `T-237` for operator diagnostics UX: demo frontend Operator Console now exposes a dedicated `Gateway Error Correlation` widget (`source/code/traceId/clientEventId/clientEventType/conversation/latency/seenAt`) and updates it from both `gateway.error` and `orchestrator.error` flows.
 158. Added anti-drift coverage for `T-237`: `tests/unit/frontend-operator-gateway-error-widget-alignment.test.ts` enforces HTML/runtime wiring for the new widget, and `tests/unit/gateway-error-correlation-alignment.test.ts` now locks ws-protocol guidance for operator-side correlation tuple persistence.
 159. Revalidated release baseline after `T-237`: `npm run test:unit` green (`314` tests), `npm run verify:release` green, Demo KPI gate green (`179` checks, websocket roundtrip `36ms`), and perf policy green (`15` checks, `0` violations).
+160. Added end-to-end gateway error-correlation proof in `gateway.websocket.binding_mismatch`: the WS check now validates `payload.details.clientEventId` echo against sent envelope `id`, preserves `conversation=none`, and reports measured correlation latency for policy/release evidence.
+161. Extended demo/release gates for operator correlation tuple: `scripts/demo-e2e.ps1`, `scripts/demo-e2e-policy-check.mjs`, and `scripts/release-readiness.ps1` now enforce `gatewayErrorCorrelation*` KPIs (`source/code/traceId/clientEventId/clientEventType/conversation/latency/validated`) as hard quality signals.
+162. Synced unit coverage and runbook evidence for the new gate (`tests/unit/demo-e2e-policy-check.test.ts`, `tests/unit/release-readiness.test.ts`, `docs/challenge-demo-runbook.md`); full `npm run test:unit` remains green (`317` tests).
 
 ## Current Focus Queue
 

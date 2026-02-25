@@ -1799,20 +1799,41 @@ try {
 
     $sessionMismatchCode = [string](Get-FieldValue -Object $result -Path @("sessionMismatchCode"))
     $sessionMismatchTraceId = [string](Get-FieldValue -Object $result -Path @("sessionMismatchTraceId"))
+    $sessionMismatchClientEventId = [string](Get-FieldValue -Object $result -Path @("sessionMismatchClientEventId"))
+    $sessionMismatchExpectedClientEventId = [string](Get-FieldValue -Object $result -Path @("sessionMismatchExpectedClientEventId"))
+    $sessionMismatchClientEventType = [string](Get-FieldValue -Object $result -Path @("sessionMismatchClientEventType"))
+    $sessionMismatchConversation = [string](Get-FieldValue -Object $result -Path @("sessionMismatchConversation"))
+    $sessionMismatchLatencyMs = Get-FieldValue -Object $result -Path @("sessionMismatchLatencyMs")
     $userMismatchCode = [string](Get-FieldValue -Object $result -Path @("userMismatchCode"))
     $userMismatchTraceId = [string](Get-FieldValue -Object $result -Path @("userMismatchTraceId"))
+    $userMismatchClientEventId = [string](Get-FieldValue -Object $result -Path @("userMismatchClientEventId"))
+    $userMismatchExpectedClientEventId = [string](Get-FieldValue -Object $result -Path @("userMismatchExpectedClientEventId"))
     Assert-Condition -Condition ($sessionMismatchCode -eq "GATEWAY_SESSION_MISMATCH") -Message "Unexpected gateway error code for session mismatch."
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($sessionMismatchTraceId)) -Message "Session mismatch gateway error is missing traceId."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($sessionMismatchClientEventId)) -Message "Session mismatch gateway error is missing clientEventId correlation."
+    Assert-Condition -Condition ($sessionMismatchClientEventId -eq $sessionMismatchExpectedClientEventId) -Message "Session mismatch gateway error clientEventId should echo request envelope id."
+    Assert-Condition -Condition ($sessionMismatchClientEventType -eq "orchestrator.request") -Message "Session mismatch client event type should be orchestrator.request."
+    Assert-Condition -Condition ($sessionMismatchConversation -eq "none") -Message "Session mismatch conversation should preserve none lane for correlation diagnostics."
+    Assert-Condition -Condition ($null -ne $sessionMismatchLatencyMs) -Message "Session mismatch latency should be present for correlation diagnostics."
+    Assert-Condition -Condition ([int]$sessionMismatchLatencyMs -ge 0) -Message "Session mismatch latency should be >= 0ms."
     Assert-Condition -Condition ($userMismatchCode -eq "GATEWAY_USER_MISMATCH") -Message "Unexpected gateway error code for user mismatch."
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($userMismatchTraceId)) -Message "User mismatch gateway error is missing traceId."
+    Assert-Condition -Condition ($userMismatchClientEventId -eq $userMismatchExpectedClientEventId) -Message "User mismatch gateway error clientEventId should echo request envelope id."
 
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $result -Path @("firstRunId"))
       firstResponseStatus = [string](Get-FieldValue -Object $result -Path @("firstResponseStatus"))
       sessionMismatchCode = $sessionMismatchCode
       sessionMismatchTraceId = $sessionMismatchTraceId
+      sessionMismatchClientEventId = $sessionMismatchClientEventId
+      sessionMismatchExpectedClientEventId = $sessionMismatchExpectedClientEventId
+      sessionMismatchClientEventType = $sessionMismatchClientEventType
+      sessionMismatchConversation = $sessionMismatchConversation
+      sessionMismatchLatencyMs = [int]$sessionMismatchLatencyMs
       userMismatchCode = $userMismatchCode
       userMismatchTraceId = $userMismatchTraceId
+      userMismatchClientEventId = $userMismatchClientEventId
+      userMismatchExpectedClientEventId = $userMismatchExpectedClientEventId
       eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
     }
   } | Out-Null
@@ -3040,6 +3061,24 @@ $summary = [ordered]@{
       -not [string]::IsNullOrWhiteSpace([string]$gatewayWsBindingMismatchData.sessionMismatchTraceId) -and
       [string]$gatewayWsBindingMismatchData.userMismatchCode -eq "GATEWAY_USER_MISMATCH" -and
       -not [string]::IsNullOrWhiteSpace([string]$gatewayWsBindingMismatchData.userMismatchTraceId)
+    ) { $true } else { $false }
+    gatewayErrorCorrelationSource = if ($null -ne $gatewayWsBindingMismatchData) { "gateway.error" } else { $null }
+    gatewayErrorCorrelationCode = if ($null -ne $gatewayWsBindingMismatchData) { $gatewayWsBindingMismatchData.sessionMismatchCode } else { $null }
+    gatewayErrorCorrelationTraceId = if ($null -ne $gatewayWsBindingMismatchData) { $gatewayWsBindingMismatchData.sessionMismatchTraceId } else { $null }
+    gatewayErrorCorrelationClientEventId = if ($null -ne $gatewayWsBindingMismatchData) { $gatewayWsBindingMismatchData.sessionMismatchClientEventId } else { $null }
+    gatewayErrorCorrelationExpectedClientEventId = if ($null -ne $gatewayWsBindingMismatchData) { $gatewayWsBindingMismatchData.sessionMismatchExpectedClientEventId } else { $null }
+    gatewayErrorCorrelationClientEventType = if ($null -ne $gatewayWsBindingMismatchData) { $gatewayWsBindingMismatchData.sessionMismatchClientEventType } else { $null }
+    gatewayErrorCorrelationConversation = if ($null -ne $gatewayWsBindingMismatchData) { $gatewayWsBindingMismatchData.sessionMismatchConversation } else { $null }
+    gatewayErrorCorrelationLatencyMs = if ($null -ne $gatewayWsBindingMismatchData) { $gatewayWsBindingMismatchData.sessionMismatchLatencyMs } else { $null }
+    gatewayErrorCorrelationValidated = if (
+      $null -ne $gatewayWsBindingMismatchData -and
+      [string]$gatewayWsBindingMismatchData.sessionMismatchCode -eq "GATEWAY_SESSION_MISMATCH" -and
+      -not [string]::IsNullOrWhiteSpace([string]$gatewayWsBindingMismatchData.sessionMismatchTraceId) -and
+      -not [string]::IsNullOrWhiteSpace([string]$gatewayWsBindingMismatchData.sessionMismatchClientEventId) -and
+      [string]$gatewayWsBindingMismatchData.sessionMismatchClientEventId -eq [string]$gatewayWsBindingMismatchData.sessionMismatchExpectedClientEventId -and
+      [string]$gatewayWsBindingMismatchData.sessionMismatchClientEventType -eq "orchestrator.request" -and
+      [string]$gatewayWsBindingMismatchData.sessionMismatchConversation -eq "none" -and
+      [int]$gatewayWsBindingMismatchData.sessionMismatchLatencyMs -ge 0
     ) { $true } else { $false }
     gatewayWsDrainingCode = if ($null -ne $gatewayWsDrainingData) { $gatewayWsDrainingData.drainingCode } else { $null }
     gatewayWsDrainingTraceIdPresent = if ($null -ne $gatewayWsDrainingData) { $gatewayWsDrainingData.drainingTraceIdPresent } else { $false }

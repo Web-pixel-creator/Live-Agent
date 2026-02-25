@@ -32,6 +32,15 @@ function createPassingSummary(
     gatewayRoundTripMs: number;
     gatewayInterruptLatencyMs: number | null;
     gatewayInterruptEventType: string;
+    gatewayErrorCorrelationSource: string;
+    gatewayErrorCorrelationCode: string;
+    gatewayErrorCorrelationTraceId: string;
+    gatewayErrorCorrelationClientEventId: string;
+    gatewayErrorCorrelationExpectedClientEventId: string;
+    gatewayErrorCorrelationClientEventType: string;
+    gatewayErrorCorrelationConversation: string;
+    gatewayErrorCorrelationLatencyMs: number | string;
+    gatewayErrorCorrelationValidated: boolean | string;
     assistantActivityLifecycleValidated: boolean | string;
     liveContextCompactionValidated: boolean | string;
     serviceStartMaxAttempts: number | string;
@@ -100,6 +109,33 @@ function createPassingSummary(
     kpis: {
       gatewayWsBindingMismatchValidated: true,
       gatewayWsDrainingValidated: true,
+      gatewayErrorCorrelationSource: hasOverride("gatewayErrorCorrelationSource")
+        ? overrides.gatewayErrorCorrelationSource
+        : "gateway.error",
+      gatewayErrorCorrelationCode: hasOverride("gatewayErrorCorrelationCode")
+        ? overrides.gatewayErrorCorrelationCode
+        : "GATEWAY_SESSION_MISMATCH",
+      gatewayErrorCorrelationTraceId: hasOverride("gatewayErrorCorrelationTraceId")
+        ? overrides.gatewayErrorCorrelationTraceId
+        : "trace-gateway-correlation-1",
+      gatewayErrorCorrelationClientEventId: hasOverride("gatewayErrorCorrelationClientEventId")
+        ? overrides.gatewayErrorCorrelationClientEventId
+        : "event-gateway-correlation-1",
+      gatewayErrorCorrelationExpectedClientEventId: hasOverride("gatewayErrorCorrelationExpectedClientEventId")
+        ? overrides.gatewayErrorCorrelationExpectedClientEventId
+        : "event-gateway-correlation-1",
+      gatewayErrorCorrelationClientEventType: hasOverride("gatewayErrorCorrelationClientEventType")
+        ? overrides.gatewayErrorCorrelationClientEventType
+        : "orchestrator.request",
+      gatewayErrorCorrelationConversation: hasOverride("gatewayErrorCorrelationConversation")
+        ? overrides.gatewayErrorCorrelationConversation
+        : "none",
+      gatewayErrorCorrelationLatencyMs: hasOverride("gatewayErrorCorrelationLatencyMs")
+        ? overrides.gatewayErrorCorrelationLatencyMs
+        : 120,
+      gatewayErrorCorrelationValidated: hasOverride("gatewayErrorCorrelationValidated")
+        ? overrides.gatewayErrorCorrelationValidated
+        : true,
       assistantActivityLifecycleValidated: hasOverride("assistantActivityLifecycleValidated")
         ? overrides.assistantActivityLifecycleValidated
         : true,
@@ -1179,6 +1215,28 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /gatewayTransportFallbackActive expected False, actual True/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway error correlation KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ gatewayErrorCorrelationValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /gatewayErrorCorrelationValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when gateway error correlation conversation is not none",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ gatewayErrorCorrelationConversation: "default" }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /gatewayErrorCorrelationConversation expected none, actual default/i);
   },
 );
 

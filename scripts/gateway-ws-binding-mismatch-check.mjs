@@ -61,7 +61,7 @@ function fail(message, details) {
 }
 
 function buildRequestEnvelope(params) {
-  return {
+  const envelope = {
     id: randomUUID(),
     userId: params.userId,
     sessionId: params.sessionId,
@@ -77,6 +77,10 @@ function buildRequestEnvelope(params) {
       },
     },
   };
+  if (typeof params.conversation === "string" && params.conversation.trim().length > 0) {
+    envelope.conversation = params.conversation.trim();
+  }
+  return envelope;
 }
 
 const args = parseArgs(process.argv.slice(2));
@@ -106,6 +110,7 @@ const sessionMismatchEnvelope = buildRequestEnvelope({
   sessionId: mismatchSessionId,
   runId: sessionMismatchRunId,
   text: "Session mismatch request.",
+  conversation: "none",
 });
 const userMismatchEnvelope = buildRequestEnvelope({
   userId: mismatchUserId,
@@ -122,6 +127,8 @@ let userMismatchError = null;
 let firstRequestSent = false;
 let sessionMismatchSent = false;
 let userMismatchSent = false;
+let sessionMismatchSentAtMs = 0;
+let sessionMismatchReceivedAtMs = 0;
 let finished = false;
 
 const ws = new WebSocket(wsUrl);
@@ -146,9 +153,11 @@ function errorSummary(errorEnvelope) {
     return null;
   }
   const payload = isObject(errorEnvelope.payload) ? errorEnvelope.payload : null;
+  const details = payload && isObject(payload.details) ? payload.details : null;
   return {
     code: payload && hasStringField(payload, "code") ? payload.code : null,
     traceId: payload && hasStringField(payload, "traceId") ? payload.traceId : null,
+    clientEventId: details && hasStringField(details, "clientEventId") ? details.clientEventId : null,
     runId: hasStringField(errorEnvelope, "runId") ? errorEnvelope.runId : null,
     sessionId: hasStringField(errorEnvelope, "sessionId") ? errorEnvelope.sessionId : null,
   };
@@ -199,6 +208,33 @@ function maybeFinish() {
       eventTypes: receivedEventTypes,
     });
   }
+  if (sessionMismatchSummary?.clientEventId !== sessionMismatchEnvelope.id) {
+    fail("Session mismatch error clientEventId does not match request envelope id", {
+      expectedClientEventId: sessionMismatchEnvelope.id,
+      actualClientEventId: sessionMismatchSummary?.clientEventId ?? null,
+      eventTypes: receivedEventTypes,
+    });
+  }
+  if (userMismatchSummary?.clientEventId !== userMismatchEnvelope.id) {
+    fail("User mismatch error clientEventId does not match request envelope id", {
+      expectedClientEventId: userMismatchEnvelope.id,
+      actualClientEventId: userMismatchSummary?.clientEventId ?? null,
+      eventTypes: receivedEventTypes,
+    });
+  }
+
+  const sessionMismatchLatencyMs =
+    sessionMismatchSentAtMs > 0 && sessionMismatchReceivedAtMs >= sessionMismatchSentAtMs
+      ? sessionMismatchReceivedAtMs - sessionMismatchSentAtMs
+      : null;
+  if (!Number.isFinite(sessionMismatchLatencyMs) || sessionMismatchLatencyMs < 0) {
+    fail("Session mismatch correlation latency is invalid", {
+      sessionMismatchSentAtMs,
+      sessionMismatchReceivedAtMs,
+      sessionMismatchLatencyMs,
+      eventTypes: receivedEventTypes,
+    });
+  }
 
   finished = true;
   clearTimeout(timeout);
@@ -218,8 +254,15 @@ function maybeFinish() {
       firstResponseStatus,
       sessionMismatchCode: sessionMismatchSummary.code,
       sessionMismatchTraceId: sessionMismatchSummary.traceId,
+      sessionMismatchClientEventId: sessionMismatchSummary.clientEventId,
+      sessionMismatchExpectedClientEventId: sessionMismatchEnvelope.id,
+      sessionMismatchClientEventType: sessionMismatchEnvelope.type,
+      sessionMismatchConversation: sessionMismatchEnvelope.conversation ?? "default",
+      sessionMismatchLatencyMs,
       userMismatchCode: userMismatchSummary.code,
       userMismatchTraceId: userMismatchSummary.traceId,
+      userMismatchClientEventId: userMismatchSummary.clientEventId,
+      userMismatchExpectedClientEventId: userMismatchEnvelope.id,
       eventTypes: receivedEventTypes,
     })}\n`,
   );
@@ -260,6 +303,7 @@ ws.on("message", (raw) => {
     if (!sessionMismatchSent) {
       ws.send(JSON.stringify(sessionMismatchEnvelope));
       sessionMismatchSent = true;
+      sessionMismatchSentAtMs = Date.now();
     }
     maybeFinish();
     return;
@@ -270,6 +314,7 @@ ws.on("message", (raw) => {
     const code = payload && hasStringField(payload, "code") ? payload.code : null;
     if (code === "GATEWAY_SESSION_MISMATCH" && parsed.runId === sessionMismatchRunId) {
       sessionMismatchError = parsed;
+      sessionMismatchReceivedAtMs = Date.now();
       if (!userMismatchSent) {
         ws.send(JSON.stringify(userMismatchEnvelope));
         userMismatchSent = true;
