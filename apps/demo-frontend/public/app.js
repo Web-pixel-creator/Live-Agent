@@ -39,6 +39,8 @@ const state = {
   pendingClientEvents: new Map(),
 };
 
+const PENDING_CLIENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
+
 const el = {
   wsUrl: document.getElementById("wsUrl"),
   apiBaseUrl: document.getElementById("apiBaseUrl"),
@@ -1750,6 +1752,7 @@ function sendEnvelope(type, payload, source = "frontend", runOrOptions = state.r
     return;
   }
   const envelope = createEnvelope(type, payload, source, runOrOptions);
+  prunePendingClientEvents();
   state.pendingClientEvents.set(envelope.id, {
     type,
     sentAtMs: Date.now(),
@@ -2610,6 +2613,48 @@ function extractGatewayErrorContext(payload) {
   return { traceId, clientEventId };
 }
 
+function prunePendingClientEvents(nowMs = Date.now()) {
+  if (!(state.pendingClientEvents instanceof Map) || state.pendingClientEvents.size === 0) {
+    return;
+  }
+  for (const [eventId, record] of state.pendingClientEvents.entries()) {
+    const sentAtMs = record && typeof record === "object" && typeof record.sentAtMs === "number" ? record.sentAtMs : null;
+    if (!Number.isFinite(sentAtMs) || nowMs - sentAtMs > PENDING_CLIENT_EVENT_MAX_AGE_MS) {
+      state.pendingClientEvents.delete(eventId);
+    }
+  }
+}
+
+function resolvePendingClientEventContext(clientEventId) {
+  if (typeof clientEventId !== "string" || clientEventId.trim().length === 0) {
+    return null;
+  }
+
+  prunePendingClientEvents();
+
+  const eventId = clientEventId.trim();
+  const record = state.pendingClientEvents.get(eventId);
+  if (!record || typeof record !== "object") {
+    return null;
+  }
+  state.pendingClientEvents.delete(eventId);
+
+  const sentType = typeof record.type === "string" && record.type.trim().length > 0 ? record.type.trim() : null;
+  const conversation =
+    typeof record.conversation === "string" && record.conversation.trim().length > 0
+      ? record.conversation.trim()
+      : null;
+  const sentAtMs = typeof record.sentAtMs === "number" ? record.sentAtMs : null;
+  const elapsedMsRaw = Number.isFinite(sentAtMs) ? Date.now() - sentAtMs : null;
+  const elapsedMs = Number.isFinite(elapsedMsRaw) && elapsedMsRaw >= 0 ? Math.round(elapsedMsRaw) : null;
+
+  return {
+    sentType,
+    conversation,
+    elapsedMs,
+  };
+}
+
 function handleLiveOutput(upstream, turnId = null) {
   const audioBase64 = findAudioBase64(upstream);
   if (audioBase64) {
@@ -3075,9 +3120,15 @@ function handleGatewayEvent(event) {
     const fallbackMessage = findTextPayload(event.payload) ?? "Gateway/Orchestrator error";
     if (event.type === "gateway.error") {
       const context = extractGatewayErrorContext(event.payload);
+      const pendingContext = resolvePendingClientEventContext(context.clientEventId);
       const details = [
         context.clientEventId ? `clientEventId=${context.clientEventId}` : null,
         context.traceId ? `traceId=${context.traceId}` : null,
+        pendingContext?.sentType ? `clientEventType=${pendingContext.sentType}` : null,
+        pendingContext?.conversation ? `conversation=${pendingContext.conversation}` : null,
+        pendingContext?.elapsedMs !== null && pendingContext?.elapsedMs !== undefined
+          ? `latencyMs=${pendingContext.elapsedMs}`
+          : null,
       ]
         .filter((item) => typeof item === "string")
         .join(" ");
@@ -3111,6 +3162,7 @@ function connectWebSocket() {
     updatePttUi();
     setConnectionStatus("disconnected");
     appendTranscript("system", "WebSocket closed");
+    state.pendingClientEvents.clear();
     state.ws = null;
   });
 
@@ -3121,6 +3173,7 @@ function connectWebSocket() {
     updatePttUi();
     setConnectionStatus("error");
     appendTranscript("error", "WebSocket error");
+    state.pendingClientEvents.clear();
   });
 
   ws.addEventListener("message", (raw) => {

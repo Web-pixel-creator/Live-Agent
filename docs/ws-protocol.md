@@ -204,4 +204,5 @@ Orchestrator conflict code (in `orchestrator.response.payload.error`):
 1. Keep stable `sessionId` and `userId` for a socket lifetime.
 2. Use `runId` per logical request and keep it stable across retries.
 3. Log and surface `traceId` from `gateway.error` in frontend/operator diagnostics.
-4. Gateway may replay duplicate requests (`gateway.request_replayed`) from TTL cache when request identity matches.
+4. Frontend SHOULD correlate `gateway.error.details.clientEventId` with locally tracked outbound envelopes to surface `clientEventType` and request latency for faster debugging.
+5. Gateway may replay duplicate requests (`gateway.request_replayed`) from TTL cache when request identity matches.

@@ -121,6 +121,7 @@
 | T-233 | Demo frontend audio attachment support for `conversation.item.create` | P1 | 0.25 week | T-231 | R12, R14 | Frontend отправляет `input_audio` part (base64 + mimeType) в `conversation.item.create`, bridge корректно мапит в Gemini inlineData, unit/docs/specs синхронизированы |
 | T-234 | Demo frontend live.setup override controls (model/voice/activity/systemInstruction) | P1 | 0.25 week | T-232 | R1, R12, R14 | Frontend позволяет отправить runtime `live.setup` override, ws-протокол и README задокументированы, добавлен unit alignment test на UI/runtime wiring |
 | T-235 | Demo frontend UI grounding controls for `ui_task` intent payloads | P1 | 0.25 week | T-220 | R6, R7, R14, R15 | Frontend передает `url/deviceNodeId/screenshotRef/domSnapshot/accessibilityTree/markHints` в `orchestrator.request` для `ui_task`, документация синхронизирована, добавлен unit alignment test |
+| T-236 | Frontend gateway.error correlation context for pending client events | P1 | 0.25 week | T-224 | R14, R15 | Frontend связывает `details.clientEventId` с локальным pending-event буфером и показывает `clientEventType/conversation/latencyMs`; добавлены TTL-prune/cleanup hooks и unit alignment tests |
 
 ### M3 Detailed Implementation Checklist (T-207..T-210)
 
@@ -180,7 +181,8 @@
 9. T-219/T-220/T-221/T-222 (parallel hardening lane) [Completed]
 10. T-234 (P1 capability expansion lane, runtime live.setup override controls) [Completed]
 11. T-235 (P1 capability expansion lane, ui_task grounding controls in demo frontend) [Completed]
-12. T-223 remains V2 spike only (no MVP transport change)
+12. T-236 (P1 capability expansion lane, gateway.error client-event correlation context) [Completed]
+13. T-223 remains V2 spike only (no MVP transport change)
 
 ## Suggested Solo Execution (2-week MVP)
 
