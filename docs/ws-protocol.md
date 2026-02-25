@@ -52,14 +52,15 @@ Supported event types:
 1. `orchestrator.request`
 2. `live.audio`
 3. `live.video`
-4. `live.text`
-5. `live.turn.end`
-6. `live.interrupt`
-7. `live.setup` (optional Gemini setup override payload)
-8. `live.input.clear` (push-to-talk/manual input control)
-9. `live.input.commit` (push-to-talk/manual input control)
-10. `conversation.item.truncate` (remove unplayed assistant audio from active turn context)
-11. `live.function_call_output` (client-provided function/skill execution result for active live turn)
+4. `live.image`
+5. `live.text`
+6. `live.turn.end`
+7. `live.interrupt`
+8. `live.setup` (optional Gemini setup override payload)
+9. `live.input.clear` (push-to-talk/manual input control)
+10. `live.input.commit` (push-to-talk/manual input control)
+11. `conversation.item.truncate` (remove unplayed assistant audio from active turn context)
+12. `live.function_call_output` (client-provided function/skill execution result for active live turn)
 
 Notes:
 

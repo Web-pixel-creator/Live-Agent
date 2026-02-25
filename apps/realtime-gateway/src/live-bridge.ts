@@ -4,7 +4,7 @@ import { createEnvelope, type EventEnvelope } from "@mla/contracts";
 import type { GatewayConfig, LiveApiProtocol, LiveAuthProfile } from "./config.js";
 
 type SendFn = (event: EventEnvelope) => void;
-type LiveModality = "audio" | "video" | "text";
+type LiveModality = "audio" | "video" | "image" | "text";
 
 type AuthProfileState = {
   name: string;
@@ -174,6 +174,89 @@ function extractMimeType(payload: unknown, fallback: string): string {
     return payload.mimeType;
   }
   return fallback;
+}
+
+type DataUrlChunk = {
+  mimeType: string;
+  base64: string;
+};
+
+function parseBase64DataUrl(value: string): DataUrlChunk | null {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  const match = /^data:([^;,]+);base64,(.+)$/i.exec(trimmed);
+  if (!match) {
+    return null;
+  }
+
+  const mimeType = match[1].trim();
+  const base64 = match[2].replace(/\s+/g, "");
+  if (mimeType.length === 0 || base64.length === 0) {
+    return null;
+  }
+
+  return {
+    mimeType,
+    base64,
+  };
+}
+
+function extractImageChunk(payload: unknown, fallbackMimeType: string): DataUrlChunk | null {
+  if (typeof payload === "string") {
+    const dataUrlChunk = parseBase64DataUrl(payload);
+    if (dataUrlChunk) {
+      return dataUrlChunk;
+    }
+    const base64 = payload.trim();
+    if (base64.length === 0) {
+      return null;
+    }
+    return {
+      mimeType: fallbackMimeType,
+      base64,
+    };
+  }
+
+  if (!isRecord(payload)) {
+    return null;
+  }
+
+  const dataUrlCandidates = [payload.dataUrl, payload.imageDataUrl, payload.image_url, payload.imageUrl, payload.url];
+  for (const candidate of dataUrlCandidates) {
+    if (typeof candidate !== "string") {
+      continue;
+    }
+    const dataUrlChunk = parseBase64DataUrl(candidate);
+    if (dataUrlChunk) {
+      return dataUrlChunk;
+    }
+  }
+
+  const directBase64 =
+    typeof payload.imageBase64 === "string"
+      ? payload.imageBase64
+      : typeof payload.base64 === "string"
+        ? payload.base64
+        : typeof payload.data === "string"
+          ? payload.data
+          : typeof payload.chunkBase64 === "string"
+            ? payload.chunkBase64
+            : null;
+  if (directBase64 && directBase64.trim().length > 0) {
+    return {
+      mimeType: extractMimeType(payload, fallbackMimeType),
+      base64: directBase64.trim(),
+    };
+  }
+
+  if (isRecord(payload.upstream)) {
+    return extractImageChunk(payload.upstream, fallbackMimeType);
+  }
+
+  return null;
 }
 
 function parseTimestampMs(raw: unknown): number | null {
@@ -1204,7 +1287,7 @@ export class LiveApiBridge {
     }
   }
 
-  private sendGeminiMediaChunk(payload: unknown, modality: Exclude<LiveModality, "text">): void {
+  private sendGeminiMediaChunk(payload: unknown, modality: "audio" | "video"): void {
     if (this.maybeDropStaleChunk(payload, modality)) {
       return;
     }
@@ -1248,6 +1331,27 @@ export class LiveApiBridge {
           },
         ],
         turnComplete: true,
+      },
+    });
+  }
+
+  private sendGeminiImage(payload: unknown): void {
+    if (this.maybeDropStaleChunk(payload, "image")) {
+      return;
+    }
+
+    const chunk = extractImageChunk(payload, this.config.liveVideoMimeType);
+    if (!chunk) {
+      this.emit("live.bridge.error", {
+        error: "Missing image payload for live.image",
+      });
+      return;
+    }
+
+    this.markClientTurnStart("image");
+    this.sendUpstreamJson({
+      realtimeInput: {
+        mediaChunks: [{ mimeType: chunk.mimeType, data: chunk.base64 }],
       },
     });
   }
@@ -1413,6 +1517,10 @@ export class LiveApiBridge {
       }
       case "live.video": {
         this.sendGeminiMediaChunk(event.payload, "video");
+        return;
+      }
+      case "live.image": {
+        this.sendGeminiImage(event.payload);
         return;
       }
       case "live.text": {

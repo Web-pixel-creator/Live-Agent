@@ -213,14 +213,15 @@
 1. THE System SHALL establish stateful WebSocket connections for Live_API streaming.
 2. THE System SHALL support audio input streams in 16kHz PCM format and maintain continuous turn-taking.
 3. THE System SHALL support low-frequency video frame streaming (recommended baseline: 1 FPS JPEG frames) for real-time scene context when enabled.
-4. THE System SHALL detect connection drops and reconnect automatically within 5 seconds.
-5. THE System SHALL apply bounded buffering and drop stale frames/chunks to preserve real-time behavior.
-6. THE System SHALL react to Live_API `interrupted` events without waiting for full turn completion.
-7. THE Gateway SHALL process websocket messages in a per-session serial lane to prevent race conditions between concurrent client events.
-8. THE Gateway SHALL route `conversation.item.truncate` events through the realtime bridge and emit explicit truncation diagnostics (`live.turn.truncated`) for operator visibility.
-9. THE Gateway SHALL support out-of-band websocket requests via envelope `conversation=none`, returning side-lane responses without mutating default conversation task lifecycle.
-10. THE Gateway SHALL support realtime function-call handoff events (`live.function_call`, `live.function_call_output`) and SHALL preserve call correlation IDs across request/response frames.
-11. WHERE gateway auto-dispatch mode is enabled for realtime function calls, THE Gateway SHALL map allowed function names to orchestrator intents, enforce sandbox/approval guard defaults for `ui_task`, and emit audit lifecycle events (`live.function_call.dispatching/completed/failed`).
+4. THE System SHALL support still-image inputs (`live.image`) using base64 payloads and data-URL payloads for realtime visual grounding.
+5. THE System SHALL detect connection drops and reconnect automatically within 5 seconds.
+6. THE System SHALL apply bounded buffering and drop stale frames/chunks to preserve real-time behavior.
+7. THE System SHALL react to Live_API `interrupted` events without waiting for full turn completion.
+8. THE Gateway SHALL process websocket messages in a per-session serial lane to prevent race conditions between concurrent client events.
+9. THE Gateway SHALL route `conversation.item.truncate` events through the realtime bridge and emit explicit truncation diagnostics (`live.turn.truncated`) for operator visibility.
+10. THE Gateway SHALL support out-of-band websocket requests via envelope `conversation=none`, returning side-lane responses without mutating default conversation task lifecycle.
+11. THE Gateway SHALL support realtime function-call handoff events (`live.function_call`, `live.function_call_output`) and SHALL preserve call correlation IDs across request/response frames.
+12. WHERE gateway auto-dispatch mode is enabled for realtime function calls, THE Gateway SHALL map allowed function names to orchestrator intents, enforce sandbox/approval guard defaults for `ui_task`, and emit audit lifecycle events (`live.function_call.dispatching/completed/failed`).
 
 ### Requirement 13: Security and Privacy
 

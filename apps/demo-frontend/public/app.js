@@ -54,6 +54,8 @@ const el = {
   pttToggleBtn: document.getElementById("pttToggleBtn"),
   pttHoldBtn: document.getElementById("pttHoldBtn"),
   pttStatus: document.getElementById("pttStatus"),
+  imageInput: document.getElementById("imageInput"),
+  sendImageBtn: document.getElementById("sendImageBtn"),
   approvalId: document.getElementById("approvalId"),
   approvalReason: document.getElementById("approvalReason"),
   approvalStatus: document.getElementById("approvalStatus"),
@@ -3114,6 +3116,50 @@ function int16ToBase64(buffer) {
   return btoa(binary);
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("Unable to read image as data URL"));
+    };
+    reader.onerror = () => {
+      reject(reader.error ?? new Error("Image read failed"));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function sendImageFrame() {
+  if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+    appendTranscript("error", "Connect WebSocket before sending image frame");
+    return;
+  }
+
+  const fileList = el.imageInput?.files;
+  const file = fileList && fileList.length > 0 ? fileList[0] : null;
+  if (!file) {
+    appendTranscript("error", "Select an image file before sending");
+    return;
+  }
+
+  try {
+    const dataUrl = await readFileAsDataUrl(file);
+    sendEnvelope("live.image", {
+      dataUrl,
+      mimeType: file.type || undefined,
+      fileName: file.name || null,
+      sentAtMs: Date.now(),
+    });
+    appendTranscript("system", `Image frame sent (${file.name}, ${file.type || "unknown"})`);
+  } catch (error) {
+    appendTranscript("error", `Image send failed: ${String(error)}`);
+  }
+}
+
 async function startMicStream() {
   if (state.micProcessor) {
     return;
@@ -3367,6 +3413,11 @@ function bindEvents() {
   document.getElementById("pttHoldBtn").addEventListener("pointercancel", () => {
     stopPushToTalk();
   });
+  if (el.sendImageBtn) {
+    el.sendImageBtn.addEventListener("click", () => {
+      void sendImageFrame();
+    });
+  }
   document.getElementById("sendBtn").addEventListener("click", sendIntentRequest);
   document.getElementById("sendOobBtn").addEventListener("click", sendOutOfBandRequest);
   document.getElementById("approveResumeBtn").addEventListener("click", () => {

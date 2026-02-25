@@ -690,6 +690,65 @@ test("live bridge maps live.input.commit to activityEnd and emits commit diagnos
   }
 });
 
+test("live bridge maps live.image data URL payload to Gemini media chunk", async () => {
+  const inboundFrames: Array<Record<string, unknown>> = [];
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+
+  wss.on("connection", (ws) => {
+    ws.on("message", (raw) => {
+      const parsed = JSON.parse(raw.toString("utf8")) as Record<string, unknown>;
+      inboundFrames.push(parsed);
+    });
+  });
+
+  const port = (wss.address() as AddressInfo).port;
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveConnectMaxAttempts: 1,
+      liveConnectRetryMs: 20,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await bridge.forwardFromClient(
+      createClientEvent({
+        type: "live.image",
+        payload: {
+          dataUrl: "data:image/png;base64,aGVsbG8=",
+          sentAtMs: Date.now(),
+        },
+      }),
+    );
+    await waitFor(() => inboundFrames.length >= 2, 2000);
+
+    const imageFrame = inboundFrames.find(
+      (frame) =>
+        typeof frame.realtimeInput === "object" &&
+        frame.realtimeInput !== null &&
+        Array.isArray((frame.realtimeInput as { mediaChunks?: unknown[] }).mediaChunks),
+    );
+    assert.ok(imageFrame, "expected realtimeInput media chunk for live.image");
+    const mediaChunks = (imageFrame?.realtimeInput as { mediaChunks?: unknown[] }).mediaChunks as Array<{
+      mimeType?: string;
+      data?: string;
+    }>;
+    assert.equal(mediaChunks.length, 1);
+    assert.equal(mediaChunks[0]?.mimeType, "image/png");
+    assert.equal(mediaChunks[0]?.data, "aGVsbG8=");
+    assert.equal(emitted.some((event) => event.type === "live.bridge.error"), false);
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
+});
+
 test("live bridge emits local truncation diagnostics for conversation.item.truncate", async () => {
   const wss = new WebSocketServer({ port: 0 });
   await new Promise<void>((resolve) => wss.on("listening", () => resolve()));

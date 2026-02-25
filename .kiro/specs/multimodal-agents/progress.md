@@ -163,6 +163,7 @@
 132. Added realtime function-call audit lifecycle and correlation path: gateway emits `live.function_call.dispatching/completed/failed`, decorates function-call events with `metadata.autoDispatch=gateway_auto_invoke`, sends side-lane orchestrator requests (`conversation=none`) and relays outputs back through `live.function_call_output`.
 133. Synced docs/frontend/tests for auto-dispatch mode: `docs/ws-protocol.md` documents new events and metadata semantics, frontend avoids duplicate function output when gateway auto-dispatch is active, and new anti-drift coverage (`tests/unit/gateway-live-function-auto-invoke-alignment.test.ts`) locks the contract.
 134. Finalized T-228 validation after docs/spec sync: `npm run test:unit` is green (`303` tests), `npm run verify:release` is green with `Demo KPI Gate` pass (`179` checks, `37ms ws`) and perf policy pass (`15` checks, `0` violations).
+135. Added realtime still-image lane (`T-229`): gateway bridge now accepts `live.image` payloads (base64 or data URL), normalizes and forwards as Gemini `realtimeInput.mediaChunks` with image MIME, demo frontend can send image frames from file input, protocol/spec docs include `live.image`, and unit coverage added in `tests/unit/live-bridge.test.ts`.
 
 ## Current Focus Queue
 

@@ -114,6 +114,7 @@
 | T-226 | Push-to-Talk runtime mode (`live.input.clear/commit`) for noisy environments | P0 | 0.5 week | T-225 | R1, R12, R14 | В UI есть PTT режим (`hold-to-talk`), на press/release отправляются clear/commit события, а сценарий стабилен в e2e |
 | T-227 | Out-of-band response lane (`conversation=none` + metadata tagging) | P1 | 0.5 week | T-224, T-222 | R10, R12, R16 | Поддержан side-lane ответов без мутации default conversation; метаданные позволяют связать OOB результат с задачей (router/moderation/classification) |
 | T-228 | Realtime function-calling bridge (tools -> skill invocation -> function output) | P1 | 1 week | T-202, T-212, T-227 | R10, R13, R16 | В realtime-сессии поддержаны function-call запросы к skills/capabilities с approval/sandbox guards и audit-трассировкой |
+| T-229 | Realtime still-image input lane (`live.image`) for visual grounding prompts | P1 | 0.25 week | T-224, T-225 | R1, R12, R14 | Gateway/bridge принимают `live.image` (base64 и data URL), фронтенд может отправлять image frame, протокол/тесты синхронизированы |
 
 ### M3 Detailed Implementation Checklist (T-207..T-210)
 
@@ -165,8 +166,9 @@
 1. T-224 -> T-225 -> T-226 (P0 realtime reliability lane) [Completed]
 2. T-227 (P1 capability expansion lane, OOB response lane) [Completed]
 3. T-228 (P1 capability expansion lane, realtime function-calling bridge) [Completed]
-4. T-219/T-220/T-221/T-222 run as parallel hardening where no protocol conflict exists
-5. T-223 remains V2 spike only (no MVP transport change)
+4. T-229 (P1 capability expansion lane, realtime still-image lane) [Completed]
+5. T-219/T-220/T-221/T-222 run as parallel hardening where no protocol conflict exists
+6. T-223 remains V2 spike only (no MVP transport change)
 
 ## Suggested Solo Execution (2-week MVP)
 
