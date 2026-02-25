@@ -52,6 +52,29 @@ function In-GitRepo {
   }
 }
 
+function Normalize-GitHubRemote([string]$Url) {
+  if ([string]::IsNullOrWhiteSpace($Url)) {
+    return $null
+  }
+
+  $trimmed = $Url.Trim()
+  $patterns = @(
+    '^git@github\.com:(?<path>[^/]+/[^/]+?)(?:\.git)?/?$',
+    '^ssh://git@github\.com/(?<path>[^/]+/[^/]+?)(?:\.git)?/?$',
+    '^https?://github\.com/(?<path>[^/]+/[^/]+?)(?:\.git)?/?$',
+    '^git://github\.com/(?<path>[^/]+/[^/]+?)(?:\.git)?/?$'
+  )
+
+  foreach ($pattern in $patterns) {
+    $match = [regex]::Match($trimmed, $pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    if ($match.Success) {
+      return $match.Groups["path"].Value.ToLowerInvariant()
+    }
+  }
+
+  return $null
+}
+
 & git --version *> $null
 if ($LASTEXITCODE -ne 0) {
   Fail "git is not installed or unavailable in PATH."
@@ -87,7 +110,17 @@ if ($LASTEXITCODE -ne 0) {
   Run-Git @("remote", "add", $RemoteName, $RemoteUrl)
 }
 elseif ($existingRemote -ne $RemoteUrl) {
-  if ($ForceRemoteUpdate) {
+  $existingRemoteCanonical = Normalize-GitHubRemote -Url $existingRemote
+  $targetRemoteCanonical = Normalize-GitHubRemote -Url $RemoteUrl
+
+  if (
+    -not [string]::IsNullOrWhiteSpace($existingRemoteCanonical) -and
+    -not [string]::IsNullOrWhiteSpace($targetRemoteCanonical) -and
+    $existingRemoteCanonical -eq $targetRemoteCanonical
+  ) {
+    Write-Host "[repo-publish] Remote '$RemoteName' already points to the same GitHub repository ($existingRemoteCanonical). Using existing equivalent URL."
+  }
+  elseif ($ForceRemoteUpdate) {
     Write-Host "[repo-publish] Updating remote '$RemoteName' URL..."
     Run-Git @("remote", "set-url", $RemoteName, $RemoteUrl)
   }

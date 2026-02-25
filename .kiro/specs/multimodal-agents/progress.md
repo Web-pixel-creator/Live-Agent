@@ -197,6 +197,8 @@
 166. Extended Git publish pipeline with optional Railway rollout: `scripts/github-repo-publish.ps1` now supports `-DeployRailway` plus Railway target/link/wait flags and triggers `scripts/railway-deploy.ps1 -SkipReleaseVerification` after publish; README/runbook usage examples and unit alignment coverage (`tests/unit/repo-publish-release-gate-alignment.test.ts`) were updated.
 167. Hardened `repo:publish` git argument handling by replacing PowerShell auto-variable collision (`Run-Git([string[]]$Args)`) with explicit `Run-Git([string[]]$CliArgs)` and added anti-drift assertion for this guard. Revalidated end-to-end publish+deploy path in safe mode (`-SkipCommit -SkipPush -SkipPages -SkipBadgeCheck -SkipReleaseVerification -DeployRailway -RailwayNoWait -RailwaySkipLink`) and confirmed successful Railway deployment (`0097f16b-1f2c-46a1-a217-b35f047df6fc`).
 168. Revalidated full release gate after `repo:publish`/Railway automation updates: `npm run verify:release` is green end-to-end with Demo KPI gate `187` checks (`54ms` websocket roundtrip), gateway error-correlation tuple validated, and perf policy green (`15` checks, `0` violations).
+169. Hardened remote URL matching in `repo:publish`: added `Normalize-GitHubRemote` equivalence logic so SSH/HTTPS variants of the same GitHub repo do not fail remote validation; updated alignment coverage in `tests/unit/repo-publish-release-gate-alignment.test.ts` and docs note in `README.md`.
+170. Revalidated `repo:publish` with default SSH target against existing HTTPS `origin`: publish flow now recognizes equivalent GitHub remote URLs and continues without `-UseHttps`/`-ForceRemoteUpdate`, successfully triggering Railway deploy in smoke mode (`0f9da5be-24fa-4e10-a29f-65285d17d452`).
 
 ## Current Focus Queue
 

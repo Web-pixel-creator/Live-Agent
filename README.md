@@ -409,6 +409,7 @@ npm run repo:publish
 ```
 
 By default `repo:publish` runs pre-publish release verification (`npm run verify:release`). For strict final publishing, use `-StrictReleaseVerification`.
+If `origin` already points to the same GitHub repository with a different URL format (SSH vs HTTPS), `repo:publish` now treats it as equivalent and continues without `-ForceRemoteUpdate`.
 
 Publish + deploy to Railway in one command:
 

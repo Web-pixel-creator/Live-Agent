@@ -17,6 +17,10 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /\[string\]\$RailwayServiceId = \$env:RAILWAY_SERVICE_ID/);
   assert.match(source, /function Run-Git\(\[string\[\]\]\$CliArgs\)/);
   assert.doesNotMatch(source, /function Run-Git\(\[string\[\]\]\$Args\)/);
+  assert.match(source, /function Normalize-GitHubRemote\(\[string\]\$Url\)/);
+  assert.match(source, /\$existingRemoteCanonical = Normalize-GitHubRemote/);
+  assert.match(source, /\$targetRemoteCanonical = Normalize-GitHubRemote/);
+  assert.match(source, /Using existing equivalent URL/);
   assert.match(source, /railway-deploy\.ps1/);
   assert.match(source, /\-SkipReleaseVerification/);
 });
