@@ -61,6 +61,7 @@ const el = {
   approvalStatus: document.getElementById("approvalStatus"),
   intent: document.getElementById("intent"),
   message: document.getElementById("message"),
+  sendConversationItemBtn: document.getElementById("sendConversationItemBtn"),
   transcript: document.getElementById("transcript"),
   events: document.getElementById("events"),
   targetPrice: document.getElementById("targetPrice"),
@@ -3335,6 +3336,66 @@ function sendIntentRequest(options = {}) {
   }
 }
 
+async function sendConversationItemCreate() {
+  if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+    appendTranscript("error", "Connect WebSocket before sending conversation item");
+    return;
+  }
+
+  const content = [];
+  const message = el.message.value.trim();
+  if (message.length > 0) {
+    content.push({
+      type: "input_text",
+      text: message,
+    });
+  }
+
+  const fileList = el.imageInput?.files;
+  const imageFile = fileList && fileList.length > 0 ? fileList[0] : null;
+  if (imageFile) {
+    try {
+      const imageDataUrl = await readFileAsDataUrl(imageFile);
+      content.push({
+        type: "input_image",
+        image_url: imageDataUrl,
+      });
+    } catch (error) {
+      appendTranscript("error", `Image encode failed: ${String(error)}`);
+      return;
+    }
+  }
+
+  if (content.length === 0) {
+    appendTranscript("error", "Provide message text or image before sending conversation item");
+    return;
+  }
+
+  const requestRunId = makeId();
+  state.runId = requestRunId;
+  el.runId.textContent = requestRunId;
+
+  sendEnvelope(
+    "conversation.item.create",
+    {
+      item: {
+        type: "message",
+        role: "user",
+        content,
+      },
+      turnComplete: true,
+      sentAtMs: Date.now(),
+    },
+    "frontend",
+    requestRunId,
+  );
+
+  if (message.length > 0) {
+    appendTranscript("user", message);
+  }
+  appendTranscript("system", `conversation.item.create sent (${content.length} part${content.length > 1 ? "s" : ""})`);
+}
+
 function sendOutOfBandRequest() {
   sendIntentRequest({
     conversation: "none",
@@ -3462,6 +3523,11 @@ function bindEvents() {
     });
   }
   document.getElementById("sendBtn").addEventListener("click", sendIntentRequest);
+  if (el.sendConversationItemBtn) {
+    el.sendConversationItemBtn.addEventListener("click", () => {
+      void sendConversationItemCreate();
+    });
+  }
   document.getElementById("sendOobBtn").addEventListener("click", sendOutOfBandRequest);
   document.getElementById("approveResumeBtn").addEventListener("click", () => {
     submitApprovalDecision("approved");

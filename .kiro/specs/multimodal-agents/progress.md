@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `179` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`303` tests passed).
+4. Unit tests are green (`307` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -165,6 +165,8 @@
 134. Finalized T-228 validation after docs/spec sync: `npm run test:unit` is green (`303` tests), `npm run verify:release` is green with `Demo KPI Gate` pass (`179` checks, `37ms ws`) and perf policy pass (`15` checks, `0` violations).
 135. Added realtime still-image lane (`T-229`): gateway bridge now accepts `live.image` payloads (base64 or data URL), normalizes and forwards as Gemini `realtimeInput.mediaChunks` with image MIME, demo frontend can send image frames from file input, protocol/spec docs include `live.image`, and unit coverage added in `tests/unit/live-bridge.test.ts`.
 136. Added granular realtime output lane (`T-230`): bridge now emits `live.output.audio.delta` and `live.output.transcript.delta` per turn (while preserving compatibility `live.output` envelopes), frontend consumes granular events without duplicate rendering, and ws-protocol/spec/task docs plus unit coverage were synced.
+137. Added structured conversation item lane (`T-231`): gateway bridge now accepts `conversation.item.create` with OpenAI-style multimodal parts (`input_text`, `input_image`, `input_audio`), maps them into Gemini `clientContent.turns[*].parts`, routes event type through realtime gateway live-path, demo frontend includes explicit `Send Conversation Item` action, and protocol/spec/task docs plus unit coverage were synchronized.
+138. Revalidated release baseline after `T-231`: `npm run test:unit` green (`307` tests), `npm run verify:release` green, Demo KPI gate green (`179` checks, websocket roundtrip `35ms`), and perf policy green (`15` checks, `0` violations).
 
 ## Current Focus Queue
 

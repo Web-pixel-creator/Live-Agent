@@ -181,6 +181,19 @@ type DataUrlChunk = {
   base64: string;
 };
 
+type GeminiInlineDataPart = {
+  inlineData: {
+    mimeType: string;
+    data: string;
+  };
+};
+
+type GeminiTextPart = {
+  text: string;
+};
+
+type GeminiConversationPart = GeminiInlineDataPart | GeminiTextPart;
+
 function parseBase64DataUrl(value: string): DataUrlChunk | null {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
@@ -257,6 +270,193 @@ function extractImageChunk(payload: unknown, fallbackMimeType: string): DataUrlC
   }
 
   return null;
+}
+
+function extractAudioChunk(payload: unknown, fallbackMimeType: string): DataUrlChunk | null {
+  if (typeof payload === "string") {
+    const base64 = payload.trim();
+    if (base64.length === 0) {
+      return null;
+    }
+    return {
+      mimeType: fallbackMimeType,
+      base64,
+    };
+  }
+
+  if (!isRecord(payload)) {
+    return null;
+  }
+
+  const base64 =
+    typeof payload.audio === "string"
+      ? payload.audio
+      : typeof payload.audioBase64 === "string"
+        ? payload.audioBase64
+        : typeof payload.base64 === "string"
+          ? payload.base64
+          : typeof payload.data === "string"
+            ? payload.data
+            : null;
+  if (!base64 || base64.trim().length === 0) {
+    return null;
+  }
+
+  return {
+    mimeType: extractMimeType(payload, fallbackMimeType),
+    base64: base64.trim(),
+  };
+}
+
+function classifyConversationSource(parts: GeminiConversationPart[]): LiveModality {
+  let hasImage = false;
+  for (const part of parts) {
+    if (!("inlineData" in part)) {
+      continue;
+    }
+    const mimeType = part.inlineData.mimeType.toLowerCase();
+    if (mimeType.startsWith("audio/")) {
+      return "audio";
+    }
+    if (mimeType.startsWith("image/")) {
+      hasImage = true;
+    }
+  }
+  if (hasImage) {
+    return "image";
+  }
+  return "text";
+}
+
+function toGeminiConversationPart(value: unknown, config: GatewayConfig): GeminiConversationPart | null {
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (text.length === 0) {
+      return null;
+    }
+    return {
+      text,
+    };
+  }
+
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const type = typeof value.type === "string" ? value.type.trim().toLowerCase() : "";
+  if (type === "input_text" || type === "text" || type === "message") {
+    const text = extractTextPayload(value);
+    if (!text || text.trim().length === 0) {
+      return null;
+    }
+    return {
+      text: text.trim(),
+    };
+  }
+
+  if (type === "input_image" || type === "image") {
+    const imageChunk = extractImageChunk(value, config.liveVideoMimeType);
+    if (!imageChunk) {
+      return null;
+    }
+    return {
+      inlineData: {
+        mimeType: imageChunk.mimeType,
+        data: imageChunk.base64,
+      },
+    };
+  }
+
+  if (type === "input_audio" || type === "audio") {
+    const audioChunk = extractAudioChunk(value, config.liveAudioMimeType);
+    if (!audioChunk) {
+      return null;
+    }
+    return {
+      inlineData: {
+        mimeType: audioChunk.mimeType,
+        data: audioChunk.base64,
+      },
+    };
+  }
+
+  if (typeof value.text === "string" && value.text.trim().length > 0) {
+    return {
+      text: value.text.trim(),
+    };
+  }
+
+  const imageChunk = extractImageChunk(value, config.liveVideoMimeType);
+  if (imageChunk) {
+    return {
+      inlineData: {
+        mimeType: imageChunk.mimeType,
+        data: imageChunk.base64,
+      },
+    };
+  }
+
+  const audioChunk = extractAudioChunk(value, config.liveAudioMimeType);
+  if (audioChunk) {
+    return {
+      inlineData: {
+        mimeType: audioChunk.mimeType,
+        data: audioChunk.base64,
+      },
+    };
+  }
+
+  return null;
+}
+
+function toGeminiConversationItemInput(
+  payload: unknown,
+  config: GatewayConfig,
+): { role: string; parts: GeminiConversationPart[]; turnComplete: boolean; source: LiveModality } | null {
+  if (!isRecord(payload)) {
+    return null;
+  }
+
+  const item = isRecord(payload.item) ? payload.item : payload;
+  const role = typeof item.role === "string" && item.role.trim().length > 0 ? item.role.trim() : "user";
+  const content = Array.isArray(item.content) ? item.content : Array.isArray(payload.content) ? payload.content : [];
+  const parts: GeminiConversationPart[] = [];
+
+  for (const contentPart of content) {
+    const part = toGeminiConversationPart(contentPart, config);
+    if (part) {
+      parts.push(part);
+    }
+  }
+
+  if (parts.length === 0) {
+    const textFallback = extractTextPayload(item);
+    if (textFallback && textFallback.trim().length > 0) {
+      parts.push({
+        text: textFallback.trim(),
+      });
+    }
+  }
+
+  if (parts.length === 0) {
+    return null;
+  }
+
+  const turnCompleteRaw =
+    typeof payload.turnComplete === "boolean"
+      ? payload.turnComplete
+      : typeof payload.turn_complete === "boolean"
+        ? payload.turn_complete
+        : typeof item.turnComplete === "boolean"
+          ? item.turnComplete
+          : true;
+
+  return {
+    role,
+    parts,
+    turnComplete: turnCompleteRaw,
+    source: classifyConversationSource(parts),
+  };
 }
 
 function parseTimestampMs(raw: unknown): number | null {
@@ -1354,6 +1554,29 @@ export class LiveApiBridge {
     });
   }
 
+  private sendGeminiConversationItemCreate(payload: unknown): void {
+    const input = toGeminiConversationItemInput(payload, this.config);
+    if (!input) {
+      this.emit("live.bridge.error", {
+        error: "Missing content payload for conversation.item.create",
+      });
+      return;
+    }
+
+    this.markClientTurnStart(input.source);
+    this.sendUpstreamJson({
+      clientContent: {
+        turns: [
+          {
+            role: input.role,
+            parts: input.parts,
+          },
+        ],
+        turnComplete: input.turnComplete,
+      },
+    });
+  }
+
   private sendGeminiImage(payload: unknown): void {
     if (this.maybeDropStaleChunk(payload, "image")) {
       return;
@@ -1544,6 +1767,10 @@ export class LiveApiBridge {
       }
       case "live.text": {
         this.sendGeminiText(event.payload);
+        return;
+      }
+      case "conversation.item.create": {
+        this.sendGeminiConversationItemCreate(event.payload);
         return;
       }
       case "live.turn.end": {

@@ -9,5 +9,6 @@ test("gateway routes conversation.item.truncate through live bridge path", () =>
 
   assert.match(source, /function isLiveBridgeEventType\(type: string\)/);
   assert.match(source, /type === "conversation\.item\.truncate"/);
+  assert.match(source, /type === "conversation\.item\.create"/);
   assert.match(source, /if \(isLiveBridgeEventType\(parsed\.type\)\)/);
 });

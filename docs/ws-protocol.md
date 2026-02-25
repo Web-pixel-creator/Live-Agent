@@ -60,13 +60,15 @@ Supported event types:
 9. `live.input.clear` (push-to-talk/manual input control)
 10. `live.input.commit` (push-to-talk/manual input control)
 11. `conversation.item.truncate` (remove unplayed assistant audio from active turn context)
-12. `live.function_call_output` (client-provided function/skill execution result for active live turn)
+12. `conversation.item.create` (structured conversation item lane for text/image/audio content parts)
+13. `live.function_call_output` (client-provided function/skill execution result for active live turn)
 
 Notes:
 
 1. `live.audio` is expected as PCM16 base64 chunks with `sampleRate=16000` in current frontend/gateway baseline.
 2. `orchestrator.request` SHOULD carry stable request identity (`runId` and/or `payload.idempotencyKey`) for replay safety.
 3. `orchestrator.request` with `conversation=none` is treated as out-of-band lane: gateway forwards request but does not emit task lifecycle events for that request.
+4. `conversation.item.create` accepts OpenAI-style content parts (`input_text`, `input_image`, `input_audio`) and gateway maps them into Gemini `clientContent.turns[*].parts`.
 
 ## Gateway -> Client Events
 
