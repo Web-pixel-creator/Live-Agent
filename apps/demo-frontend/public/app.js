@@ -38,6 +38,7 @@ const state = {
   selectedDeviceNodeId: null,
   pendingClientEvents: new Map(),
   operatorGatewayErrorSnapshot: null,
+  operatorTurnTruncationSnapshot: null,
 };
 
 const PENDING_CLIENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
@@ -176,6 +177,16 @@ const el = {
   operatorGatewayErrorLatency: document.getElementById("operatorGatewayErrorLatency"),
   operatorGatewayErrorSeenAt: document.getElementById("operatorGatewayErrorSeenAt"),
   operatorGatewayErrorHint: document.getElementById("operatorGatewayErrorHint"),
+  operatorTurnTruncationStatus: document.getElementById("operatorTurnTruncationStatus"),
+  operatorTurnTruncationTotal: document.getElementById("operatorTurnTruncationTotal"),
+  operatorTurnTruncationRuns: document.getElementById("operatorTurnTruncationRuns"),
+  operatorTurnTruncationSessions: document.getElementById("operatorTurnTruncationSessions"),
+  operatorTurnTruncationTurnId: document.getElementById("operatorTurnTruncationTurnId"),
+  operatorTurnTruncationReason: document.getElementById("operatorTurnTruncationReason"),
+  operatorTurnTruncationAudioEndMs: document.getElementById("operatorTurnTruncationAudioEndMs"),
+  operatorTurnTruncationContentIndex: document.getElementById("operatorTurnTruncationContentIndex"),
+  operatorTurnTruncationSeenAt: document.getElementById("operatorTurnTruncationSeenAt"),
+  operatorTurnTruncationHint: document.getElementById("operatorTurnTruncationHint"),
   operatorStartupStatus: document.getElementById("operatorStartupStatus"),
   operatorStartupTotal: document.getElementById("operatorStartupTotal"),
   operatorStartupBlocking: document.getElementById("operatorStartupBlocking"),
@@ -774,6 +785,27 @@ function setOperatorGatewayErrorHint(text, variant = "neutral") {
   el.operatorGatewayErrorHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorTurnTruncationHint(text, variant = "neutral") {
+  if (!el.operatorTurnTruncationHint) {
+    return;
+  }
+  el.operatorTurnTruncationHint.textContent = text;
+  el.operatorTurnTruncationHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorTurnTruncationHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorTurnTruncationHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorTurnTruncationHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorTurnTruncationHint.classList.add("operator-health-hint-neutral");
+}
+
 function setOperatorStartupHint(text, variant = "neutral") {
   if (!el.operatorStartupHint) {
     return;
@@ -898,6 +930,19 @@ function resetOperatorGatewayErrorWidget(reason = "no_data") {
   setStatusPill(el.operatorGatewayErrorStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
+function resetOperatorTurnTruncationWidget(reason = "no_data") {
+  setText(el.operatorTurnTruncationTotal, "0");
+  setText(el.operatorTurnTruncationRuns, "0");
+  setText(el.operatorTurnTruncationSessions, "0");
+  setText(el.operatorTurnTruncationTurnId, "n/a");
+  setText(el.operatorTurnTruncationReason, "n/a");
+  setText(el.operatorTurnTruncationAudioEndMs, "n/a");
+  setText(el.operatorTurnTruncationContentIndex, "n/a");
+  setText(el.operatorTurnTruncationSeenAt, "n/a");
+  setOperatorTurnTruncationHint("Waiting for live.turn.truncated evidence.", "neutral");
+  setStatusPill(el.operatorTurnTruncationStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
 function resetOperatorStartupWidget(reason = "no_data") {
   setText(el.operatorStartupTotal, "0");
   setText(el.operatorStartupBlocking, "0");
@@ -988,6 +1033,115 @@ function updateOperatorGatewayErrorWidgetFromEvent(eventType, payload, pendingCo
   };
   state.operatorGatewayErrorSnapshot = nextSnapshot;
   renderOperatorGatewayErrorWidget(nextSnapshot);
+}
+
+function renderOperatorTurnTruncationWidget(truncationSummary, snapshot = null) {
+  const summary = truncationSummary && typeof truncationSummary === "object" ? truncationSummary : null;
+  const latestFromSummary =
+    summary?.latest && typeof summary.latest === "object"
+      ? summary.latest
+      : Array.isArray(summary?.recent) && summary.recent.length > 0 && summary.recent[0] && typeof summary.recent[0] === "object"
+        ? summary.recent[0]
+        : null;
+  const snapshotRecord = snapshot && typeof snapshot === "object" ? snapshot : null;
+
+  const summaryLatestSeenAt = latestFromSummary && typeof latestFromSummary.createdAt === "string"
+    ? latestFromSummary.createdAt
+    : null;
+  const snapshotSeenAt = snapshotRecord && typeof snapshotRecord.seenAt === "string" ? snapshotRecord.seenAt : null;
+  const summaryLatestSeenAtMs = parseIsoTimestampMs(summaryLatestSeenAt);
+  const snapshotSeenAtMs = parseIsoTimestampMs(snapshotSeenAt);
+  const useSnapshotLatest =
+    snapshotRecord &&
+    (
+      summaryLatestSeenAtMs === null ||
+      (snapshotSeenAtMs !== null && snapshotSeenAtMs >= summaryLatestSeenAtMs)
+    );
+
+  const latest = useSnapshotLatest ? snapshotRecord : latestFromSummary;
+  const totalFromSummary = Number(summary?.total ?? 0);
+  const totalFromSnapshot =
+    snapshotRecord && typeof snapshotRecord.eventCount === "number" && Number.isFinite(snapshotRecord.eventCount)
+      ? Math.max(0, Math.floor(snapshotRecord.eventCount))
+      : 0;
+  const total = Math.max(Math.max(0, Math.floor(totalFromSummary)), totalFromSnapshot);
+  const uniqueRunsSummary = Number(summary?.uniqueRuns ?? 0);
+  const uniqueSessionsSummary = Number(summary?.uniqueSessions ?? 0);
+  const latestRunId = latest && typeof latest.runId === "string" ? latest.runId : null;
+  const latestSessionId = latest && typeof latest.sessionId === "string" ? latest.sessionId : null;
+  const uniqueRuns = Math.max(Math.max(0, Math.floor(uniqueRunsSummary)), latestRunId ? 1 : 0);
+  const uniqueSessions = Math.max(Math.max(0, Math.floor(uniqueSessionsSummary)), latestSessionId ? 1 : 0);
+
+  const latestTurnId = latest && typeof latest.turnId === "string" && latest.turnId.trim().length > 0
+    ? latest.turnId
+    : "n/a";
+  const latestReason = latest && typeof latest.reason === "string" && latest.reason.trim().length > 0
+    ? latest.reason
+    : "n/a";
+  const latestAudioEndMs = latest && typeof latest.audioEndMs === "number" && Number.isFinite(latest.audioEndMs)
+    ? `${Math.max(0, Math.floor(latest.audioEndMs))} ms`
+    : "n/a";
+  const latestContentIndex = latest && typeof latest.contentIndex === "number" && Number.isFinite(latest.contentIndex)
+    ? String(Math.max(0, Math.floor(latest.contentIndex)))
+    : "n/a";
+  const latestSeenAt = latest && typeof latest.seenAt === "string"
+    ? latest.seenAt
+    : latest && typeof latest.createdAt === "string"
+      ? latest.createdAt
+      : "n/a";
+
+  setText(el.operatorTurnTruncationTotal, String(total));
+  setText(el.operatorTurnTruncationRuns, String(uniqueRuns));
+  setText(el.operatorTurnTruncationSessions, String(uniqueSessions));
+  setText(el.operatorTurnTruncationTurnId, latestTurnId);
+  setText(el.operatorTurnTruncationReason, latestReason);
+  setText(el.operatorTurnTruncationAudioEndMs, latestAudioEndMs);
+  setText(el.operatorTurnTruncationContentIndex, latestContentIndex);
+  setText(el.operatorTurnTruncationSeenAt, latestSeenAt);
+
+  if (total <= 0) {
+    setStatusPill(el.operatorTurnTruncationStatus, "no_evidence", "neutral");
+    setOperatorTurnTruncationHint("No turn truncation observed yet. Run truncate flow to populate operator evidence.", "warn");
+    return;
+  }
+
+  const statusText = `observed total=${total} runs=${uniqueRuns}`;
+  const statusVariant = latestTurnId === "n/a" || latestReason === "n/a" ? "neutral" : "ok";
+  const hintVariant = statusVariant === "ok" ? "ok" : "warn";
+  const hint = statusVariant === "ok"
+    ? "Turn truncation evidence captured and ready for judge-facing verification."
+    : "Turn truncation observed, but latest payload is incomplete. Re-run truncate checkpoint.";
+  setStatusPill(el.operatorTurnTruncationStatus, statusText, statusVariant);
+  setOperatorTurnTruncationHint(hint, hintVariant);
+}
+
+function updateOperatorTurnTruncationWidgetFromEvent(event) {
+  const payload = event && typeof event.payload === "object" && event.payload !== null ? event.payload : {};
+  const turnId = toOptionalText(payload.turnId) ?? null;
+  const reason = toOptionalText(payload.reason) ?? null;
+  const audioEndMs =
+    typeof payload.audioEndMs === "number" && Number.isFinite(payload.audioEndMs)
+      ? Math.max(0, Math.floor(payload.audioEndMs))
+      : null;
+  const contentIndex =
+    typeof payload.contentIndex === "number" && Number.isFinite(payload.contentIndex)
+      ? Math.max(0, Math.floor(payload.contentIndex))
+      : null;
+  const scope = toOptionalText(payload.scope) ?? null;
+  const previousCount = Number(state.operatorTurnTruncationSnapshot?.eventCount ?? 0);
+  const nextSnapshot = {
+    eventCount: Number.isFinite(previousCount) ? Math.max(0, Math.floor(previousCount)) + 1 : 1,
+    runId: typeof event.runId === "string" ? event.runId : null,
+    sessionId: typeof event.sessionId === "string" ? event.sessionId : null,
+    turnId,
+    reason,
+    audioEndMs,
+    contentIndex,
+    scope,
+    seenAt: new Date().toISOString(),
+  };
+  state.operatorTurnTruncationSnapshot = nextSnapshot;
+  renderOperatorTurnTruncationWidget(null, nextSnapshot);
 }
 
 function renderOperatorHealthWidget(liveBridgeHealth) {
@@ -1975,8 +2129,10 @@ function renderOperatorSummary(summary) {
   resetOperatorLifecycleWidget("no_data");
   resetOperatorTaskQueueWidget("no_data");
   resetOperatorGatewayErrorWidget("no_data");
+  resetOperatorTurnTruncationWidget("no_data");
   resetOperatorStartupWidget("no_data");
   renderOperatorGatewayErrorWidget(state.operatorGatewayErrorSnapshot);
+  renderOperatorTurnTruncationWidget(null, state.operatorTurnTruncationSnapshot);
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -2018,6 +2174,38 @@ function renderOperatorSummary(summary) {
     "approvals",
     `recorded=${approvalsTotal} pending_from_tasks=${pendingApprovals}`,
   );
+  const turnTruncation = summary.turnTruncation && typeof summary.turnTruncation === "object"
+    ? summary.turnTruncation
+    : null;
+  if (turnTruncation) {
+    const truncationTotal = Number(turnTruncation.total ?? 0);
+    const truncationUniqueRuns = Number(turnTruncation.uniqueRuns ?? 0);
+    const truncationUniqueSessions = Number(turnTruncation.uniqueSessions ?? 0);
+    appendEntry(
+      el.operatorSummary,
+      truncationTotal > 0 ? "system" : "error",
+      "turn_truncation",
+      `total=${Math.max(0, Math.floor(truncationTotal))} unique_runs=${Math.max(0, Math.floor(truncationUniqueRuns))} unique_sessions=${Math.max(0, Math.floor(truncationUniqueSessions))}`,
+    );
+    const truncationLatest = turnTruncation.latest && typeof turnTruncation.latest === "object"
+      ? turnTruncation.latest
+      : null;
+    if (truncationLatest) {
+      const latestTurnId = typeof truncationLatest.turnId === "string" ? truncationLatest.turnId : "n/a";
+      const latestReason = typeof truncationLatest.reason === "string" ? truncationLatest.reason : "n/a";
+      const latestAudioEndMs = typeof truncationLatest.audioEndMs === "number" ? truncationLatest.audioEndMs : "n/a";
+      const latestContentIndex =
+        typeof truncationLatest.contentIndex === "number" ? truncationLatest.contentIndex : "n/a";
+      const latestSeenAt = typeof truncationLatest.createdAt === "string" ? truncationLatest.createdAt : "n/a";
+      appendEntry(
+        el.operatorSummary,
+        "system",
+        "turn_truncation.latest",
+        `turn=${latestTurnId} reason=${latestReason} audio_end_ms=${latestAudioEndMs} content_index=${latestContentIndex} seen_at=${latestSeenAt}`,
+      );
+    }
+  }
+  renderOperatorTurnTruncationWidget(turnTruncation, state.operatorTurnTruncationSnapshot);
   renderOperatorApprovalsWidget(summary.approvals);
   renderOperatorTaskQueueWidget(taskQueueSummary);
   const startupFailures = summary.startupFailures && typeof summary.startupFailures === "object"
@@ -2230,6 +2418,11 @@ async function refreshOperatorSummary() {
     resetOperatorLifecycleWidget("summary_error");
     resetOperatorTaskQueueWidget("summary_error");
     resetOperatorStartupWidget("summary_error");
+    if (state.operatorTurnTruncationSnapshot) {
+      renderOperatorTurnTruncationWidget(null, state.operatorTurnTruncationSnapshot);
+    } else {
+      resetOperatorTurnTruncationWidget("summary_error");
+    }
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
 }
@@ -3004,6 +3197,7 @@ function handleGatewayEvent(event) {
     const turnId = typeof event.payload?.turnId === "string" ? event.payload.turnId : "unknown_turn";
     const audioEndMs = event.payload?.audioEndMs;
     appendTranscript("system", `Assistant turn truncated (${turnId}, audio_end_ms=${formatMs(audioEndMs)})`);
+    updateOperatorTurnTruncationWidgetFromEvent(event);
     if (state.assistantPlaybackTurnId && state.assistantPlaybackTurnId === turnId) {
       resetPlaybackTracking();
     }
@@ -4132,6 +4326,7 @@ function bootstrap() {
   clearPendingApproval();
   resetOperatorHealthWidget("no_data");
   resetOperatorGatewayErrorWidget("no_data");
+  resetOperatorTurnTruncationWidget("no_data");
   renderTaskList();
   evaluateConstraints();
   bindEvents();

@@ -85,6 +85,17 @@ type GatewayTransportRuntimeState = {
   };
 };
 
+type TurnTruncationSnapshot = {
+  runId: string | null;
+  sessionId: string;
+  seenAt: string;
+  turnId: string | null;
+  reason: string | null;
+  contentIndex: number | null;
+  audioEndMs: number | null;
+  scope: string | null;
+};
+
 function parsePositiveInt(raw: string | undefined, fallback: number): number {
   if (!raw) {
     return fallback;
@@ -159,6 +170,19 @@ function toNonEmptyString(value: unknown): string | null {
   }
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+function toNonNegativeInt(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+    return Math.floor(value);
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return Math.floor(parsed);
+    }
+  }
+  return null;
 }
 
 function normalizeFunctionName(value: string): string {
@@ -391,6 +415,42 @@ function resolveGatewayTransportRuntimeState(currentConfig: GatewayConfig): Gate
 }
 
 const transportRuntimeState = resolveGatewayTransportRuntimeState(config);
+const turnTruncationRecentLimit = parsePositiveInt(process.env.GATEWAY_TURN_TRUNCATION_RECENT_LIMIT, 20);
+const turnTruncationRuntime = {
+  total: 0,
+  uniqueRuns: new Set<string>(),
+  uniqueSessions: new Set<string>(),
+  latest: null as TurnTruncationSnapshot | null,
+  recent: [] as TurnTruncationSnapshot[],
+};
+
+function observeTurnTruncationEvidence(event: EventEnvelope): void {
+  if (event.type !== "live.turn.truncated") {
+    return;
+  }
+  const payload = isObject(event.payload) ? event.payload : {};
+  const seenAt = new Date().toISOString();
+  const snapshot: TurnTruncationSnapshot = {
+    runId: toNonEmptyString(event.runId),
+    sessionId: event.sessionId,
+    seenAt,
+    turnId: toNonEmptyString(payload.turnId),
+    reason: toNonEmptyString(payload.reason),
+    contentIndex: toNonNegativeInt(payload.contentIndex),
+    audioEndMs: toNonNegativeInt(payload.audioEndMs),
+    scope: toNonEmptyString(payload.scope),
+  };
+  turnTruncationRuntime.total += 1;
+  if (snapshot.runId) {
+    turnTruncationRuntime.uniqueRuns.add(snapshot.runId);
+  }
+  turnTruncationRuntime.uniqueSessions.add(snapshot.sessionId);
+  turnTruncationRuntime.latest = snapshot;
+  turnTruncationRuntime.recent.unshift(snapshot);
+  if (turnTruncationRuntime.recent.length > turnTruncationRecentLimit) {
+    turnTruncationRuntime.recent.length = turnTruncationRecentLimit;
+  }
+}
 
 function runtimeState(): Record<string, unknown> {
   const summary = metrics.snapshot({ topOperations: 10 });
@@ -407,6 +467,14 @@ function runtimeState(): Record<string, unknown> {
     profile: runtimeProfile,
     transport: transportRuntimeState,
     analytics: analytics.snapshot(),
+    turnTruncation: {
+      total: turnTruncationRuntime.total,
+      uniqueRuns: turnTruncationRuntime.uniqueRuns.size,
+      uniqueSessions: turnTruncationRuntime.uniqueSessions.size,
+      latest: turnTruncationRuntime.latest,
+      recent: turnTruncationRuntime.recent.slice(0, turnTruncationRecentLimit),
+      validated: turnTruncationRuntime.total > 0,
+    },
     metrics: {
       totalCount: summary.totalCount,
       totalErrors: summary.totalErrors,
@@ -974,6 +1042,7 @@ wss.on("connection", (ws) => {
 
   const sendEvent = (event: EventEnvelope): void => {
     const outboundEvent = decorateOutboundEvent(event);
+    observeTurnTruncationEvidence(outboundEvent);
     ws.send(JSON.stringify(outboundEvent));
     if (liveFunctionAutoInvokeEnabled && outboundEvent.type === "live.function_call") {
       messageLane = messageLane

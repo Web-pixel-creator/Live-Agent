@@ -2172,6 +2172,49 @@ try {
       $startupFailuresBlocking -le $startupFailuresTotal
     )
 
+    $turnTruncation = Get-FieldValue -Object $summaryData -Path @("turnTruncation")
+    Assert-Condition -Condition ($null -ne $turnTruncation) -Message "Operator summary turnTruncation block is missing."
+    $turnTruncationTotalRaw = Get-FieldValue -Object $turnTruncation -Path @("total")
+    $turnTruncationUniqueRunsRaw = Get-FieldValue -Object $turnTruncation -Path @("uniqueRuns")
+    $turnTruncationUniqueSessionsRaw = Get-FieldValue -Object $turnTruncation -Path @("uniqueSessions")
+    Assert-Condition -Condition ($null -ne $turnTruncationTotalRaw) -Message "Operator summary turnTruncation.total is missing."
+    Assert-Condition -Condition ($null -ne $turnTruncationUniqueRunsRaw) -Message "Operator summary turnTruncation.uniqueRuns is missing."
+    Assert-Condition -Condition ($null -ne $turnTruncationUniqueSessionsRaw) -Message "Operator summary turnTruncation.uniqueSessions is missing."
+    $turnTruncationTotal = [int]$turnTruncationTotalRaw
+    $turnTruncationUniqueRuns = [int]$turnTruncationUniqueRunsRaw
+    $turnTruncationUniqueSessions = [int]$turnTruncationUniqueSessionsRaw
+    Assert-Condition -Condition ($turnTruncationTotal -ge 1) -Message "Operator summary turnTruncation.total should be >= 1 after gateway item-truncate scenario."
+    Assert-Condition -Condition ($turnTruncationUniqueRuns -ge 1) -Message "Operator summary turnTruncation.uniqueRuns should be >= 1."
+    Assert-Condition -Condition ($turnTruncationUniqueSessions -ge 1) -Message "Operator summary turnTruncation.uniqueSessions should be >= 1."
+    $turnTruncationRecent = @(Get-FieldValue -Object $turnTruncation -Path @("recent"))
+    $turnTruncationExpected = @($turnTruncationRecent | Where-Object {
+      [string](Get-FieldValue -Object $_ -Path @("turnId")) -eq "turn-truncate-demo" -and
+      [string](Get-FieldValue -Object $_ -Path @("reason")) -eq "demo_truncate_checkpoint" -and
+      [int](Get-FieldValue -Object $_ -Path @("contentIndex")) -eq 0 -and
+      [int](Get-FieldValue -Object $_ -Path @("audioEndMs")) -eq 1500
+    })
+    Assert-Condition -Condition ($turnTruncationExpected.Count -ge 1) -Message "Operator summary turnTruncation.recent should include the expected truncate checkpoint event."
+    $turnTruncationLatest = Get-FieldValue -Object $turnTruncation -Path @("latest")
+    Assert-Condition -Condition ($null -ne $turnTruncationLatest) -Message "Operator summary turnTruncation.latest is missing."
+    $turnTruncationLatestTurnId = [string](Get-FieldValue -Object $turnTruncationLatest -Path @("turnId"))
+    $turnTruncationLatestReason = [string](Get-FieldValue -Object $turnTruncationLatest -Path @("reason"))
+    $turnTruncationLatestAudioEndMs = [int](Get-FieldValue -Object $turnTruncationLatest -Path @("audioEndMs"))
+    $turnTruncationLatestContentIndex = [int](Get-FieldValue -Object $turnTruncationLatest -Path @("contentIndex"))
+    $turnTruncationLatestSeenAt = [string](Get-FieldValue -Object $turnTruncationLatest -Path @("createdAt"))
+    $turnTruncationLatestSeenAtIsIso = $false
+    if (-not [string]::IsNullOrWhiteSpace($turnTruncationLatestSeenAt)) {
+      $parsedTurnTruncationLatestSeenAt = [DateTimeOffset]::MinValue
+      $turnTruncationLatestSeenAtIsIso = [DateTimeOffset]::TryParse($turnTruncationLatestSeenAt, [ref]$parsedTurnTruncationLatestSeenAt)
+    }
+    Assert-Condition -Condition $turnTruncationLatestSeenAtIsIso -Message "Operator summary turnTruncation.latest.createdAt must be ISO timestamp."
+    $turnTruncationSummaryValidated = (
+      $turnTruncationTotal -ge 1 -and
+      $turnTruncationUniqueRuns -ge 1 -and
+      $turnTruncationUniqueSessions -ge 1 -and
+      $turnTruncationExpected.Count -ge 1 -and
+      $turnTruncationLatestSeenAtIsIso
+    )
+
     $deviceNodeHealth = Get-FieldValue -Object $summaryData -Path @("deviceNodes")
     Assert-Condition -Condition ($null -ne $deviceNodeHealth) -Message "Operator summary deviceNodes block is missing."
     $deviceNodeSummaryTotal = [int](Get-FieldValue -Object $deviceNodeHealth -Path @("total"))
@@ -2412,6 +2455,16 @@ try {
       startupFailureLastService = $startupFailureLastService
       startupFailureLastCheckedAt = $startupFailureLastCheckedAt
       startupFailuresValidated = $startupFailuresValidated
+      turnTruncationTotal = $turnTruncationTotal
+      turnTruncationUniqueRuns = $turnTruncationUniqueRuns
+      turnTruncationUniqueSessions = $turnTruncationUniqueSessions
+      turnTruncationLatestTurnId = $turnTruncationLatestTurnId
+      turnTruncationLatestReason = $turnTruncationLatestReason
+      turnTruncationLatestAudioEndMs = $turnTruncationLatestAudioEndMs
+      turnTruncationLatestContentIndex = $turnTruncationLatestContentIndex
+      turnTruncationLatestSeenAt = $turnTruncationLatestSeenAt
+      turnTruncationExpectedEventSeen = ($turnTruncationExpected.Count -ge 1)
+      turnTruncationSummaryValidated = $turnTruncationSummaryValidated
       deviceNodeId = $deviceNodeId
       deviceNodeCreatedVersion = $deviceNodeCreatedVersion
       deviceNodeUpdatedVersion = $deviceNodeUpdatedVersion
@@ -3282,6 +3335,24 @@ $summary = [ordered]@{
     operatorStartupFailureLastType = if ($null -ne $operatorActionsData) { $operatorActionsData.startupFailureLastType } else { $null }
     operatorStartupFailureLastService = if ($null -ne $operatorActionsData) { $operatorActionsData.startupFailureLastService } else { $null }
     operatorStartupFailureLastCheckedAt = if ($null -ne $operatorActionsData) { $operatorActionsData.startupFailureLastCheckedAt } else { $null }
+    operatorTurnTruncationTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.turnTruncationTotal } else { $null }
+    operatorTurnTruncationUniqueRuns = if ($null -ne $operatorActionsData) { $operatorActionsData.turnTruncationUniqueRuns } else { $null }
+    operatorTurnTruncationUniqueSessions = if ($null -ne $operatorActionsData) { $operatorActionsData.turnTruncationUniqueSessions } else { $null }
+    operatorTurnTruncationLatestTurnId = if ($null -ne $operatorActionsData) { $operatorActionsData.turnTruncationLatestTurnId } else { $null }
+    operatorTurnTruncationLatestReason = if ($null -ne $operatorActionsData) { $operatorActionsData.turnTruncationLatestReason } else { $null }
+    operatorTurnTruncationLatestAudioEndMs = if ($null -ne $operatorActionsData) { $operatorActionsData.turnTruncationLatestAudioEndMs } else { $null }
+    operatorTurnTruncationLatestContentIndex = if ($null -ne $operatorActionsData) { $operatorActionsData.turnTruncationLatestContentIndex } else { $null }
+    operatorTurnTruncationLatestSeenAt = if ($null -ne $operatorActionsData) { $operatorActionsData.turnTruncationLatestSeenAt } else { $null }
+    operatorTurnTruncationExpectedEventSeen = if ($null -ne $operatorActionsData) { $operatorActionsData.turnTruncationExpectedEventSeen } else { $false }
+    operatorTurnTruncationSummaryValidated = if (
+      $null -ne $operatorActionsData -and
+      [bool]$operatorActionsData.turnTruncationSummaryValidated -eq $true -and
+      [int]$operatorActionsData.turnTruncationTotal -ge 1 -and
+      [int]$operatorActionsData.turnTruncationUniqueRuns -ge 1 -and
+      [int]$operatorActionsData.turnTruncationUniqueSessions -ge 1 -and
+      [bool]$operatorActionsData.turnTruncationExpectedEventSeen -eq $true -and
+      -not [string]::IsNullOrWhiteSpace([string]$operatorActionsData.turnTruncationLatestSeenAt)
+    ) { $true } else { $false }
     operatorStartupDiagnosticsValidated = if (
       $null -ne $operatorActionsData -and
       [bool]$operatorActionsData.startupFailuresValidated -eq $true -and

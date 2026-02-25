@@ -65,6 +65,11 @@ export type EventListItem = {
   screenshotRefs?: number;
   hasVisualTesting?: boolean;
   hasError?: boolean;
+  turnId?: string;
+  truncateReason?: string;
+  truncateContentIndex?: number;
+  truncateAudioEndMs?: number;
+  truncateScope?: string;
 };
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "timeout";
@@ -712,6 +717,11 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
     (output?.approvalRequired === true ? "pending" : null) ??
     undefined;
   const delegatedRoute = toNonEmptyString(delegation?.delegatedRoute) ?? undefined;
+  const turnId = toNonEmptyString(payload?.turnId) ?? undefined;
+  const truncateReason = toNonEmptyString(payload?.reason) ?? undefined;
+  const truncateContentIndex = toNonNegativeInt(payload?.contentIndex) ?? undefined;
+  const truncateAudioEndMs = toNonNegativeInt(payload?.audioEndMs) ?? undefined;
+  const truncateScope = toNonEmptyString(payload?.scope) ?? undefined;
 
   let traceSteps: number | undefined;
   let screenshotRefs: number | undefined;
@@ -758,6 +768,11 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
     screenshotRefs,
     hasVisualTesting,
     hasError,
+    turnId,
+    truncateReason,
+    truncateContentIndex,
+    truncateAudioEndMs,
+    truncateScope,
   };
 }
 
