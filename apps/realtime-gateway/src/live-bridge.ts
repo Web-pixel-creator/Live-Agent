@@ -459,6 +459,23 @@ function toGeminiConversationItemInput(
   };
 }
 
+function mergeGeminiSetup(
+  baseSetup: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = {
+    ...baseSetup,
+    ...patch,
+  };
+  if (isRecord(baseSetup.generationConfig) && isRecord(patch.generationConfig)) {
+    merged.generationConfig = {
+      ...baseSetup.generationConfig,
+      ...patch.generationConfig,
+    };
+  }
+  return merged;
+}
+
 function parseTimestampMs(raw: unknown): number | null {
   if (typeof raw === "number" && Number.isFinite(raw)) {
     return Math.floor(raw);
@@ -1467,12 +1484,13 @@ export class LiveApiBridge {
       };
     }
 
-    const setup = payloadOverride && Object.keys(payloadOverride).length > 0
-      ? {
-          ...baseSetup,
-          ...payloadOverride,
-        }
-      : baseSetup;
+    let setup = baseSetup;
+    if (this.config.liveSetupPatch && Object.keys(this.config.liveSetupPatch).length > 0) {
+      setup = mergeGeminiSetup(setup, this.config.liveSetupPatch);
+    }
+    if (payloadOverride && Object.keys(payloadOverride).length > 0) {
+      setup = mergeGeminiSetup(setup, payloadOverride);
+    }
 
     return { setup };
   }
@@ -1493,6 +1511,9 @@ export class LiveApiBridge {
       authProfile: this.getActiveAuthProfile()?.name ?? null,
       responseModalities,
       hasSystemInstruction: Boolean(this.config.liveSystemInstruction),
+      hasSetupPatch: Boolean(this.config.liveSetupPatch && Object.keys(this.config.liveSetupPatch).length > 0),
+      toolsCount:
+        isRecord(setupPayload.setup) && Array.isArray(setupPayload.setup.tools) ? setupPayload.setup.tools.length : 0,
       activityHandling: this.config.liveRealtimeActivityHandling,
     });
   }

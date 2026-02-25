@@ -117,6 +117,7 @@
 | T-229 | Realtime still-image input lane (`live.image`) for visual grounding prompts | P1 | 0.25 week | T-224, T-225 | R1, R12, R14 | Gateway/bridge принимают `live.image` (base64 и data URL), фронтенд может отправлять image frame, протокол/тесты синхронизированы |
 | T-230 | Granular realtime output lane (`live.output.audio.delta` + `live.output.transcript.delta`) | P1 | 0.25 week | T-224, T-229 | R12, R14, R15 | Bridge эмитит отдельные audio/transcript delta события для UI, frontend использует их без дублирования, docs/tests/specs синхронизированы |
 | T-231 | Structured conversation item lane (`conversation.item.create`) for multimodal turns | P1 | 0.25 week | T-224, T-229 | R12, R14 | Gateway/bridge принимают `conversation.item.create` с `input_text/input_image/input_audio`, корректно мапят в Gemini `clientContent.turns`, frontend умеет отправлять lane, docs/tests/specs синхронизированы |
+| T-232 | Live setup patch lane (`LIVE_SETUP_PATCH_JSON`) for realtime tools/toolConfig overrides | P1 | 0.25 week | T-228, T-231 | R12, R14, R16 | Gateway применяет JSON patch к Gemini setup (tools/toolConfig/generationConfig overrides) с приоритетом runtime `live.setup` override; unit/docs/specs синхронизированы |
 
 ### M3 Detailed Implementation Checklist (T-207..T-210)
 
@@ -171,8 +172,9 @@
 4. T-229 (P1 capability expansion lane, realtime still-image lane) [Completed]
 5. T-230 (P1 capability expansion lane, granular realtime output lane) [Completed]
 6. T-231 (P1 capability expansion lane, structured conversation item lane) [Completed]
-7. T-219/T-220/T-221/T-222 run as parallel hardening where no protocol conflict exists
-8. T-223 remains V2 spike only (no MVP transport change)
+7. T-232 (P1 capability expansion lane, setup patch for realtime tools) [Completed]
+8. T-219/T-220/T-221/T-222 run as parallel hardening where no protocol conflict exists
+9. T-223 remains V2 spike only (no MVP transport change)
 
 ## Suggested Solo Execution (2-week MVP)
 

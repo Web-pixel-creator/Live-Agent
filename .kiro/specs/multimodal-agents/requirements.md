@@ -224,6 +224,7 @@
 12. WHERE gateway auto-dispatch mode is enabled for realtime function calls, THE Gateway SHALL map allowed function names to orchestrator intents, enforce sandbox/approval guard defaults for `ui_task`, and emit audit lifecycle events (`live.function_call.dispatching/completed/failed`).
 13. THE Gateway SHALL emit granular realtime output events (`live.output.audio.delta`, `live.output.transcript.delta`) for low-latency UI rendering while preserving compatibility `live.output` envelopes.
 14. THE Gateway SHALL support structured realtime conversation items (`conversation.item.create`) with multimodal content parts (`input_text`, `input_image`, `input_audio`) and SHALL map them to Gemini `clientContent` turns without breaking `live.text` or `live.image` lanes.
+15. THE Gateway SHALL support configurable realtime setup patching (`LIVE_SETUP_PATCH_JSON`) for Gemini setup fields (for example tools/toolConfig/generationConfig overrides) while preserving base setup defaults and allowing per-request `live.setup` runtime overrides.
 
 ### Requirement 13: Security and Privacy
 

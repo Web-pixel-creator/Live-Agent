@@ -27,6 +27,7 @@ function createGatewayConfig(overrides: Partial<GatewayConfig>): GatewayConfig {
     liveAutoSetup: true,
     liveSetupVoiceName: "Aoede",
     liveSystemInstruction: "Test instruction",
+    liveSetupPatch: undefined,
     liveRealtimeActivityHandling: "INTERRUPT_AND_RESUME",
     liveEnableInputAudioTranscription: true,
     liveEnableOutputAudioTranscription: true,
@@ -152,6 +153,75 @@ test("live bridge sends rich Gemini setup payload", async () => {
     assert.ok(typeof generationConfig.realtimeInputConfig === "object");
     assert.ok(typeof setup.systemInstruction === "object");
     assert.ok(emitted.some((event) => event.type === "live.bridge.setup_sent"));
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
+});
+
+test("live bridge applies env setup patch for tools while preserving base generation config", async () => {
+  const inboundFrames: Array<Record<string, unknown>> = [];
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+
+  wss.on("connection", (ws) => {
+    ws.on("message", (raw) => {
+      const parsed = JSON.parse(raw.toString("utf8")) as Record<string, unknown>;
+      inboundFrames.push(parsed);
+    });
+  });
+
+  const port = (wss.address() as AddressInfo).port;
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveModelId: "gemini-live-primary",
+      liveSetupPatch: {
+        tools: [
+          {
+            functionDeclarations: [
+              {
+                name: "lookup_price",
+                description: "Lookup product price",
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          responseModalities: ["TEXT"],
+        },
+      },
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "hello tools" } }));
+    await waitFor(() => inboundFrames.length >= 2, 2000);
+
+    const setupFrame = inboundFrames.find((frame) => typeof frame.setup === "object");
+    assert.ok(setupFrame, "setup frame should be sent");
+    const setup = setupFrame?.setup as Record<string, unknown>;
+    const tools = Array.isArray(setup.tools) ? setup.tools : [];
+    assert.equal(tools.length, 1);
+
+    const generationConfig = setup.generationConfig as Record<string, unknown>;
+    assert.deepEqual(generationConfig.responseModalities, ["TEXT"]);
+    assert.ok(typeof generationConfig.speechConfig === "object");
+    assert.ok(typeof generationConfig.realtimeInputConfig === "object");
+
+    const setupSentEvent = emitted.find((event) => event.type === "live.bridge.setup_sent");
+    assert.ok(setupSentEvent, "expected setup diagnostics event");
+    const setupSentPayload = setupSentEvent?.payload as {
+      hasSetupPatch?: boolean;
+      toolsCount?: number;
+    };
+    assert.equal(setupSentPayload.hasSetupPatch, true);
+    assert.equal(setupSentPayload.toolsCount, 1);
   } finally {
     bridge.close();
     await closeWss(wss);

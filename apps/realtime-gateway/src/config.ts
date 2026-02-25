@@ -27,6 +27,7 @@ export type GatewayConfig = {
   liveAutoSetup: boolean;
   liveSetupVoiceName: string;
   liveSystemInstruction?: string;
+  liveSetupPatch?: Record<string, unknown>;
   liveRealtimeActivityHandling: string;
   liveEnableInputAudioTranscription: boolean;
   liveEnableOutputAudioTranscription: boolean;
@@ -103,6 +104,22 @@ function parseOptionalString(value: string | undefined): string | undefined {
   }
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : undefined;
+}
+
+function parseOptionalJsonObject(value: string | undefined): Record<string, unknown> | undefined {
+  const normalized = parseOptionalString(value);
+  if (!normalized) {
+    return undefined;
+  }
+  try {
+    const parsed = JSON.parse(normalized) as unknown;
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return undefined;
+    }
+    return parsed as Record<string, unknown>;
+  } catch {
+    return undefined;
+  }
 }
 
 function parseAuthProfilesJson(value: string | undefined): LiveAuthProfile[] {
@@ -224,6 +241,7 @@ export function loadGatewayConfig(): GatewayConfig {
     liveAutoSetup: process.env.LIVE_AUTO_SETUP !== "false",
     liveSetupVoiceName: process.env.LIVE_SETUP_VOICE_NAME ?? "Aoede",
     liveSystemInstruction: parseOptionalString(process.env.LIVE_SYSTEM_INSTRUCTION),
+    liveSetupPatch: parseOptionalJsonObject(process.env.LIVE_SETUP_PATCH_JSON),
     liveRealtimeActivityHandling: process.env.LIVE_REALTIME_ACTIVITY_HANDLING ?? "INTERRUPT_AND_RESUME",
     liveEnableInputAudioTranscription: parseBoolean(process.env.LIVE_ENABLE_INPUT_AUDIO_TRANSCRIPTION, true),
     liveEnableOutputAudioTranscription: parseBoolean(process.env.LIVE_ENABLE_OUTPUT_AUDIO_TRANSCRIPTION, true),
