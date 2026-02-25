@@ -177,7 +177,7 @@
 6. T-231 (P1 capability expansion lane, structured conversation item lane) [Completed]
 7. T-232 (P1 capability expansion lane, setup patch for realtime tools) [Completed]
 8. T-233 (P1 capability expansion lane, conversation item audio attachment support) [Completed]
-9. T-219/T-220/T-221/T-222 run as parallel hardening where no protocol conflict exists
+9. T-219/T-220/T-221/T-222 (parallel hardening lane) [Completed]
 10. T-234 (P1 capability expansion lane, runtime live.setup override controls) [Completed]
 11. T-235 (P1 capability expansion lane, ui_task grounding controls in demo frontend) [Completed]
 12. T-223 remains V2 spike only (no MVP transport change)

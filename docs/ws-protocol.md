@@ -72,6 +72,7 @@ Notes:
 5. `input_audio` parts SHOULD provide base64 audio bytes (`audio` or `audioBase64`) and SHOULD include `mimeType` (for example `audio/wav` or `audio/pcm;rate=16000`) for deterministic decoding.
 6. `live.setup` overrides are merged on top of gateway base setup and optional env patch (`LIVE_SETUP_PATCH_JSON`), with `live.setup` taking highest precedence.
 7. `live.setup` MAY override runtime setup fields such as `model`, `generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName`, `generationConfig.realtimeInputConfig.activityHandling`, and `systemInstruction`.
+8. `orchestrator.request` for `intent=ui_task` MAY include grounding signals (`url`, `deviceNodeId`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`) to improve computer-use action stability.
 
 ## Gateway -> Client Events
 

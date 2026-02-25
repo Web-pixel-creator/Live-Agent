@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `179` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`311` tests passed).
+4. Unit tests are green (`312` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -179,6 +179,9 @@
 148. Completed `T-235` for UI grounding input controls in demo frontend: `Intent Request` now supports optional `ui_task` override fields (`url`, `deviceNodeId`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`) and serializes them into `orchestrator.request` payload.
 149. Added anti-drift coverage for `T-235`: `tests/unit/frontend-ui-grounding-controls-alignment.test.ts` verifies both HTML controls and runtime wiring tokens (`parseMarkHintsInput`, `collectUiTaskOverrides`, payload projection fields).
 150. Revalidated release baseline after `T-235`: `npm run test:unit` green (`311` tests), `npm run verify:release` green, Demo KPI gate green (`179` checks, websocket roundtrip `40ms`), and perf policy green (`15` checks, `0` violations).
+151. Finalized parallel hardening lane status: `tasks.md` now marks `T-219/T-220/T-221/T-222` as completed, and protocol contract now explicitly documents `ui_task` grounding signals in `orchestrator.request` (`url/deviceNodeId/screenshotRef/domSnapshot/accessibilityTree/markHints`).
+152. Added protocol anti-drift guard for UI grounding contract: `tests/unit/ws-protocol-ui-grounding-note.test.ts` now enforces `docs/ws-protocol.md` contains `intent=ui_task` grounding fields (`url/deviceNodeId/screenshotRef/domSnapshot/accessibilityTree/markHints`) in the `orchestrator.request` section.
+153. Revalidated release baseline after protocol hardening update: `npm run test:unit` green (`312` tests), `npm run verify:release` green, Demo KPI gate green (`179` checks, websocket roundtrip `40ms`), and perf policy green (`15` checks, `0` violations).
 
 ## Current Focus Queue
 
