@@ -56,6 +56,11 @@ const el = {
   pttStatus: document.getElementById("pttStatus"),
   imageInput: document.getElementById("imageInput"),
   audioInput: document.getElementById("audioInput"),
+  liveSetupModel: document.getElementById("liveSetupModel"),
+  liveSetupVoice: document.getElementById("liveSetupVoice"),
+  liveSetupActivityHandling: document.getElementById("liveSetupActivityHandling"),
+  liveSetupInstruction: document.getElementById("liveSetupInstruction"),
+  applyLiveSetupBtn: document.getElementById("applyLiveSetupBtn"),
   sendImageBtn: document.getElementById("sendImageBtn"),
   approvalId: document.getElementById("approvalId"),
   approvalReason: document.getElementById("approvalReason"),
@@ -3201,6 +3206,84 @@ function parseBase64DataUrl(value) {
   };
 }
 
+function collectLiveSetupOverride() {
+  const model =
+    typeof el.liveSetupModel?.value === "string"
+      ? el.liveSetupModel.value.trim()
+      : "";
+  const voice =
+    typeof el.liveSetupVoice?.value === "string"
+      ? el.liveSetupVoice.value.trim()
+      : "";
+  const activityHandling =
+    typeof el.liveSetupActivityHandling?.value === "string"
+      ? el.liveSetupActivityHandling.value.trim()
+      : "";
+  const systemInstruction =
+    typeof el.liveSetupInstruction?.value === "string"
+      ? el.liveSetupInstruction.value.trim()
+      : "";
+
+  const payload = {};
+  const summary = [];
+
+  if (model.length > 0) {
+    payload.model = model;
+    summary.push(`model=${model}`);
+  }
+
+  const generationConfig = {};
+  if (voice.length > 0) {
+    generationConfig.speechConfig = {
+      voiceConfig: {
+        prebuiltVoiceConfig: {
+          voiceName: voice,
+        },
+      },
+    };
+    summary.push(`voice=${voice}`);
+  }
+  if (activityHandling.length > 0) {
+    generationConfig.realtimeInputConfig = {
+      activityHandling,
+    };
+    summary.push(`activity=${activityHandling}`);
+  }
+  if (Object.keys(generationConfig).length > 0) {
+    payload.generationConfig = generationConfig;
+  }
+
+  if (systemInstruction.length > 0) {
+    payload.systemInstruction = {
+      parts: [{ text: systemInstruction }],
+    };
+    summary.push("systemInstruction=custom");
+  }
+
+  return { payload, summary };
+}
+
+function sendLiveSetupOverride() {
+  if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+    appendTranscript("error", "Connect WebSocket before applying live setup");
+    return;
+  }
+
+  const { payload, summary } = collectLiveSetupOverride();
+  if (Object.keys(payload).length === 0) {
+    appendTranscript("error", "Provide at least one live setup override field");
+    return;
+  }
+
+  const requestRunId = makeId();
+  state.runId = requestRunId;
+  el.runId.textContent = requestRunId;
+
+  sendEnvelope("live.setup", payload, "frontend", requestRunId);
+  const details = summary.length > 0 ? summary.join(", ") : "override";
+  appendTranscript("system", `live.setup sent (${details})`);
+}
+
 async function sendImageFrame() {
   if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
     appendTranscript("error", "Connect WebSocket before sending image frame");
@@ -3566,6 +3649,9 @@ function bindEvents() {
     el.sendImageBtn.addEventListener("click", () => {
       void sendImageFrame();
     });
+  }
+  if (el.applyLiveSetupBtn) {
+    el.applyLiveSetupBtn.addEventListener("click", sendLiveSetupOverride);
   }
   document.getElementById("sendBtn").addEventListener("click", sendIntentRequest);
   if (el.sendConversationItemBtn) {

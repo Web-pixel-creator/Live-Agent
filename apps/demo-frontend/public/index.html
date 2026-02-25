@@ -70,6 +70,31 @@
             <button id="sendImageBtn" class="button-muted">Send Image Frame</button>
           </div>
         </div>
+        <div class="grid-3">
+          <label class="field">
+            <span>Live Setup Model (optional)</span>
+            <input id="liveSetupModel" type="text" placeholder="models/gemini-live-2.5-flash-native-audio" />
+          </label>
+          <label class="field">
+            <span>Live Setup Voice (optional)</span>
+            <input id="liveSetupVoice" type="text" value="Aoede" />
+          </label>
+          <label class="field">
+            <span>Activity Handling</span>
+            <select id="liveSetupActivityHandling">
+              <option value="" selected>keep default</option>
+              <option value="INTERRUPT_AND_RESUME">INTERRUPT_AND_RESUME</option>
+              <option value="NO_INTERRUPTION">NO_INTERRUPTION</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Live System Instruction (optional)</span>
+            <textarea id="liveSetupInstruction" rows="3" placeholder="Speak clearly and briefly."></textarea>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="applyLiveSetupBtn" class="button-muted">Apply Live Setup</button>
+        </div>
       </section>
 
       <section class="panel">

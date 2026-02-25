@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `179` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`309` tests passed).
+4. Unit tests are green (`310` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -173,6 +173,9 @@
 142. Completed `T-233` for multimodal conversation-item UX: demo frontend now supports optional audio attachment in `conversation.item.create` (`input_audio` part with base64 + `mimeType`), and protocol documentation was updated with explicit audio-part contract guidance.
 143. Added unit coverage for `conversation.item.create` audio mapping (`tests/unit/live-bridge.test.ts`) to verify bridge normalization into Gemini `inlineData` for `input_audio`.
 144. Revalidated release baseline after `T-233`: `npm run test:unit` green (`309` tests), `npm run verify:release` green, Demo KPI gate green (`179` checks, websocket roundtrip `36ms`), and perf policy green (`15` checks, `0` violations).
+145. Completed `T-234` for runtime setup controls in demo frontend: `Live Controls` now supports explicit `live.setup` overrides for `model`, `voice`, `activityHandling`, and `systemInstruction`, sent through existing WebSocket envelope flow.
+146. Synced protocol/docs and anti-drift coverage for `T-234`: `docs/ws-protocol.md` now documents practical `live.setup` override fields, `README.md` includes operator usage note, and new alignment guard `tests/unit/frontend-live-setup-alignment.test.ts` locks HTML/runtime wiring.
+147. Revalidated release baseline after `T-234`: `npm run test:unit` green (`310` tests), `npm run verify:release` green, Demo KPI gate green (`179` checks, websocket roundtrip `40ms`), and perf policy green (`15` checks, `0` violations).
 
 ## Current Focus Queue
 
