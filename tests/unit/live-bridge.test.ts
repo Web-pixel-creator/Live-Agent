@@ -1053,6 +1053,87 @@ test("live bridge maps conversation.item.create text+image payload to Gemini mul
   }
 });
 
+test("live bridge maps conversation.item.create text+audio payload to Gemini multimodal turn", async () => {
+  const inboundFrames: Array<Record<string, unknown>> = [];
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+
+  wss.on("connection", (ws) => {
+    ws.on("message", (raw) => {
+      const parsed = JSON.parse(raw.toString("utf8")) as Record<string, unknown>;
+      inboundFrames.push(parsed);
+    });
+  });
+
+  const port = (wss.address() as AddressInfo).port;
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveConnectMaxAttempts: 1,
+      liveConnectRetryMs: 20,
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await bridge.forwardFromClient(
+      createClientEvent({
+        type: "conversation.item.create",
+        payload: {
+          item: {
+            type: "message",
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: "listen and summarize",
+              },
+              {
+                type: "input_audio",
+                audio: "UklGRg==",
+                mimeType: "audio/wav",
+              },
+            ],
+          },
+          turnComplete: true,
+        },
+      }),
+    );
+    await waitFor(() => inboundFrames.length >= 2, 2000);
+
+    const clientContentFrame = inboundFrames.find(
+      (frame) =>
+        typeof frame.clientContent === "object" &&
+        frame.clientContent !== null &&
+        Array.isArray((frame.clientContent as { turns?: unknown[] }).turns),
+    );
+    assert.ok(clientContentFrame, "expected multimodal clientContent frame");
+    const clientContent = clientContentFrame?.clientContent as {
+      turns?: Array<{ parts?: Array<Record<string, unknown>> }>;
+    };
+    const parts = clientContent.turns?.[0]?.parts ?? [];
+    assert.equal(parts.length, 2);
+    assert.equal(parts[0]?.text, "listen and summarize");
+
+    const audioPart = parts[1] as {
+      inlineData?: {
+        mimeType?: string;
+        data?: string;
+      };
+    };
+    assert.equal(audioPart.inlineData?.mimeType, "audio/wav");
+    assert.equal(audioPart.inlineData?.data, "UklGRg==");
+    assert.equal(emitted.some((event) => event.type === "live.bridge.error"), false);
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
+});
+
 test("live bridge emits local truncation diagnostics for conversation.item.truncate", async () => {
   const wss = new WebSocketServer({ port: 0 });
   await new Promise<void>((resolve) => wss.on("listening", () => resolve()));

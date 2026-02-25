@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `179` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`308` tests passed).
+4. Unit tests are green (`309` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -170,6 +170,9 @@
 139. Added setup patch lane (`T-232`): gateway now supports `LIVE_SETUP_PATCH_JSON` and merges this JSON object into Gemini setup payload (including tools/toolConfig/generationConfig overrides) while preserving base setup defaults; runtime `live.setup` overrides remain highest-precedence.
 140. Extended setup diagnostics and coverage for `T-232`: `live.bridge.setup_sent` now exposes `hasSetupPatch` and `toolsCount`, docs/env/spec/task references were synced (`docs/ws-protocol.md`, `README.md`, `.env.example`, `.kiro/specs/*`), and unit coverage was added in `tests/unit/live-bridge.test.ts`.
 141. Revalidated release baseline after `T-232`: `npm run test:unit` green (`308` tests), `npm run verify:release` green, Demo KPI gate green (`179` checks, websocket roundtrip `36ms`), and perf policy green (`15` checks, `0` violations).
+142. Completed `T-233` for multimodal conversation-item UX: demo frontend now supports optional audio attachment in `conversation.item.create` (`input_audio` part with base64 + `mimeType`), and protocol documentation was updated with explicit audio-part contract guidance.
+143. Added unit coverage for `conversation.item.create` audio mapping (`tests/unit/live-bridge.test.ts`) to verify bridge normalization into Gemini `inlineData` for `input_audio`.
+144. Revalidated release baseline after `T-233`: `npm run test:unit` green (`309` tests), `npm run verify:release` green, Demo KPI gate green (`179` checks, websocket roundtrip `36ms`), and perf policy green (`15` checks, `0` violations).
 
 ## Current Focus Queue
 

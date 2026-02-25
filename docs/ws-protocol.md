@@ -69,7 +69,8 @@ Notes:
 2. `orchestrator.request` SHOULD carry stable request identity (`runId` and/or `payload.idempotencyKey`) for replay safety.
 3. `orchestrator.request` with `conversation=none` is treated as out-of-band lane: gateway forwards request but does not emit task lifecycle events for that request.
 4. `conversation.item.create` accepts OpenAI-style content parts (`input_text`, `input_image`, `input_audio`) and gateway maps them into Gemini `clientContent.turns[*].parts`.
-5. `live.setup` overrides are merged on top of gateway base setup and optional env patch (`LIVE_SETUP_PATCH_JSON`), with `live.setup` taking highest precedence.
+5. `input_audio` parts SHOULD provide base64 audio bytes (`audio` or `audioBase64`) and SHOULD include `mimeType` (for example `audio/wav` or `audio/pcm;rate=16000`) for deterministic decoding.
+6. `live.setup` overrides are merged on top of gateway base setup and optional env patch (`LIVE_SETUP_PATCH_JSON`), with `live.setup` taking highest precedence.
 
 ## Gateway -> Client Events
 

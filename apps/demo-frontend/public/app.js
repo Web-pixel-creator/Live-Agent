@@ -55,6 +55,7 @@ const el = {
   pttHoldBtn: document.getElementById("pttHoldBtn"),
   pttStatus: document.getElementById("pttStatus"),
   imageInput: document.getElementById("imageInput"),
+  audioInput: document.getElementById("audioInput"),
   sendImageBtn: document.getElementById("sendImageBtn"),
   approvalId: document.getElementById("approvalId"),
   approvalReason: document.getElementById("approvalReason"),
@@ -3177,6 +3178,29 @@ function readFileAsDataUrl(file) {
   });
 }
 
+function parseBase64DataUrl(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  const match = /^data:([^;,]+);base64,(.+)$/i.exec(trimmed);
+  if (!match) {
+    return null;
+  }
+  const mimeType = typeof match[1] === "string" ? match[1].trim() : "";
+  const base64 = typeof match[2] === "string" ? match[2].replace(/\s+/g, "") : "";
+  if (mimeType.length === 0 || base64.length === 0) {
+    return null;
+  }
+  return {
+    mimeType,
+    base64,
+  };
+}
+
 async function sendImageFrame() {
   if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
     appendTranscript("error", "Connect WebSocket before sending image frame");
@@ -3366,8 +3390,29 @@ async function sendConversationItemCreate() {
     }
   }
 
+  const audioFileList = el.audioInput?.files;
+  const audioFile = audioFileList && audioFileList.length > 0 ? audioFileList[0] : null;
+  if (audioFile) {
+    try {
+      const audioDataUrl = await readFileAsDataUrl(audioFile);
+      const parsedAudio = parseBase64DataUrl(audioDataUrl);
+      if (!parsedAudio) {
+        appendTranscript("error", "Audio encode failed: invalid data URL payload");
+        return;
+      }
+      content.push({
+        type: "input_audio",
+        audio: parsedAudio.base64,
+        mimeType: parsedAudio.mimeType || audioFile.type || "audio/wav",
+      });
+    } catch (error) {
+      appendTranscript("error", `Audio encode failed: ${String(error)}`);
+      return;
+    }
+  }
+
   if (content.length === 0) {
-    appendTranscript("error", "Provide message text or image before sending conversation item");
+    appendTranscript("error", "Provide message text, image, or audio before sending conversation item");
     return;
   }
 
