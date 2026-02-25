@@ -437,6 +437,30 @@ Useful flags:
 - `-SkipReleaseVerification` - skip pre-publish release verification (`verify:release`).
 - `-StrictReleaseVerification` - use strict pre-publish gate (`verify:release:strict`).
 
+## Railway Deploy Automation
+
+Deploy current workspace to a linked Railway service:
+
+```powershell
+$env:RAILWAY_PROJECT_ID="bbca2889-fd0d-48fe-bded-79802230e5a6"
+$env:RAILWAY_SERVICE_ID="b8c1a952-da24-4410-a53a-82b634b70f47"
+$env:RAILWAY_ENVIRONMENT="production"
+npm run deploy:railway
+```
+
+Behavior:
+
+- Runs release verification before deploy (`verify:release` by default).
+- Links local directory to Railway project/service (unless `-SkipLink`).
+- Triggers deployment (`railway up`) and waits until terminal status.
+
+Common flags:
+
+- `-- -StrictReleaseVerification` - use strict pre-deploy gate (`verify:release:strict`).
+- `-- -SkipReleaseVerification` - skip local verification before deploy.
+- `-- -SkipLink` - deploy using already linked Railway service.
+- `-- -NoWait` - return immediately after deploy trigger.
+
 ## CI Workflow
 
 - PR workflow: `.github/workflows/pr-quality.yml`

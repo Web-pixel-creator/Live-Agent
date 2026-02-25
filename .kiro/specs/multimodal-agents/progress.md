@@ -11,7 +11,7 @@
 1. `npm run verify:release` passes end-to-end.
 2. Demo e2e policy gate is green with `187` checks.
 3. Perf-load policy gate is green.
-4. Unit tests are green (`317` tests passed).
+4. Unit tests are green (`318` tests passed).
 
 ## Implemented Hardening Highlights
 
@@ -192,6 +192,7 @@
 161. Extended demo/release gates for operator correlation tuple: `scripts/demo-e2e.ps1`, `scripts/demo-e2e-policy-check.mjs`, and `scripts/release-readiness.ps1` now enforce `gatewayErrorCorrelation*` KPIs (`source/code/traceId/clientEventId/clientEventType/conversation/latency/validated`) as hard quality signals.
 162. Synced unit coverage and runbook evidence for the new gate (`tests/unit/demo-e2e-policy-check.test.ts`, `tests/unit/release-readiness.test.ts`, `docs/challenge-demo-runbook.md`); full `npm run test:unit` remains green (`317` tests).
 163. Revalidated strict release gate on `main`: `npm run verify:release:strict` is green with Demo KPI gate `187` checks (`35ms` websocket roundtrip), gateway error-correlation tuple validated (`code=GATEWAY_SESSION_MISMATCH`, `conversation=none`), and perf policy green (`15` checks, `0` violations).
+164. Added Railway deploy automation path: new script `scripts/railway-deploy.ps1` + npm alias `deploy:railway` now support pre-deploy release verification, project/service link, detached deploy trigger, and terminal status wait (`deployment list` polling). README/runbook usage docs and anti-drift coverage `tests/unit/railway-deploy-alignment.test.ts` were added; full `npm run test:unit` remains green (`318` tests).
 
 ## Current Focus Queue
 
