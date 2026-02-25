@@ -571,6 +571,7 @@ function Start-ManagedService {
       -FilePath "node" `
       -ArgumentList $NodeArgs `
       -WorkingDirectory $script:RepoRoot `
+      -WindowStyle Hidden `
       -PassThru `
       -RedirectStandardOutput $stdoutPath `
       -RedirectStandardError $stderrPath

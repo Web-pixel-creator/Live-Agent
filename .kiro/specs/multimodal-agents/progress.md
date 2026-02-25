@@ -200,6 +200,7 @@
 169. Hardened remote URL matching in `repo:publish`: added `Normalize-GitHubRemote` equivalence logic so SSH/HTTPS variants of the same GitHub repo do not fail remote validation; updated alignment coverage in `tests/unit/repo-publish-release-gate-alignment.test.ts` and docs note in `README.md`.
 170. Revalidated `repo:publish` with default SSH target against existing HTTPS `origin`: publish flow now recognizes equivalent GitHub remote URLs and continues without `-UseHttps`/`-ForceRemoteUpdate`, successfully triggering Railway deploy in smoke mode (`0f9da5be-24fa-4e10-a29f-65285d17d452`).
 171. Extended realtime conversation-item lifecycle lane with `conversation.item.delete`: gateway now routes delete events through live bridge (`isLiveBridgeEventType`), bridge emits session-local diagnostics (`live.turn.deleted`), demo frontend exposes `Delete Active Turn` control, ws-protocol docs include the new event contract, and release revalidation remains green (`test:unit` 319, `verify:release` pass with Demo KPI gate `187` checks and websocket roundtrip `40ms`).
+172. Reduced local UX noise for managed-service startup scripts: `Start-ManagedService` now launches Node processes with hidden windows (`-WindowStyle Hidden`) in both `scripts/demo-e2e.ps1` and `scripts/perf-load.ps1`, preventing repeated visible terminal pop-ups during demo/perf automation.
 
 ## Current Focus Queue
 
