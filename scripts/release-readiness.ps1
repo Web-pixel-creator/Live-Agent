@@ -10,6 +10,7 @@ param(
   [switch]$StrictFinalRun,
   [switch]$SkipPolicy,
   [switch]$SkipBadge,
+  [switch]$SkipPublicBadgeSync,
   [switch]$SkipPerfLoad,
   [switch]$SkipPerfRun,
   [int]$DemoRunMaxAttempts = 2,
@@ -25,6 +26,9 @@ param(
   [string]$SummaryPath = "artifacts/demo-e2e/summary.json",
   [string]$PolicyPath = "artifacts/demo-e2e/policy-check.json",
   [string]$BadgePath = "artifacts/demo-e2e/badge.json",
+  [string]$BadgeDetailsPath = "artifacts/demo-e2e/badge-details.json",
+  [string]$PublicBadgePath = "public/demo-e2e/badge.json",
+  [string]$PublicBadgeDetailsPath = "public/demo-e2e/badge-details.json",
   [string]$PerfSummaryPath = "artifacts/perf-load/summary.json",
   [string]$PerfPolicyPath = "artifacts/perf-load/policy-check.json",
   [string]$SourceRunManifestPath = "artifacts/release-artifact-revalidation/source-run.json"
@@ -132,6 +136,17 @@ function Run-StepWithRetry(
   Fail "Step failed after retries: $Name"
 }
 
+function Sync-PublicBadgeArtifacts([string]$SourcePath, [string]$TargetPath) {
+  if (-not (Test-Path $SourcePath)) {
+    Fail ("Badge sync source missing: " + $SourcePath)
+  }
+  $targetDirectory = Split-Path -Parent $TargetPath
+  if (-not [string]::IsNullOrWhiteSpace($targetDirectory)) {
+    New-Item -ItemType Directory -Force -Path $targetDirectory | Out-Null
+  }
+  Copy-Item -Path $SourcePath -Destination $TargetPath -Force
+}
+
 if (-not $SkipBuild) {
   Run-Step "Build workspaces" "npm run build"
 }
@@ -166,6 +181,11 @@ if (-not $SkipPolicy) {
 
 if (-not $SkipBadge) {
   Run-Step "Generate badge artifact" "npm run demo:e2e:badge"
+  if (-not $SkipPublicBadgeSync) {
+    Write-Host "[release-check] Sync public badge artifacts"
+    Sync-PublicBadgeArtifacts -SourcePath $BadgePath -TargetPath $PublicBadgePath
+    Sync-PublicBadgeArtifacts -SourcePath $BadgeDetailsPath -TargetPath $PublicBadgeDetailsPath
+  }
 }
 
 if (-not $SkipPerfLoad) {
@@ -186,6 +206,11 @@ if (-not $SkipPolicy) {
 }
 if (-not $SkipBadge) {
   $requiredFiles += $BadgePath
+  $requiredFiles += $BadgeDetailsPath
+  if (-not $SkipPublicBadgeSync) {
+    $requiredFiles += $PublicBadgePath
+    $requiredFiles += $PublicBadgeDetailsPath
+  }
 }
 if (-not $SkipPerfLoad) {
   $requiredFiles += $PerfSummaryPath

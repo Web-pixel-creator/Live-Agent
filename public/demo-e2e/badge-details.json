@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-02-26T05:35:22.567Z",
+  "generatedAt": "2026-02-26T05:50:18.742Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 199,
   "violations": 0,
-  "roundTripMs": 35,
+  "roundTripMs": 36,
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 199 checks | 35ms ws",
+    "message": "pass | 199 checks | 36ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }

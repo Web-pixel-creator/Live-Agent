@@ -178,7 +178,7 @@ Single-command local quality gate (build + unit tests + profile smoke + demo e2e
 npm run verify:release
 ```
 
-Note: `verify:release` reuses the prebuilt workspace and runs `demo:e2e:fast` with `RequestTimeoutSec=45` for stability of long approval-resume paths.
+Note: `verify:release` reuses the prebuilt workspace and runs `demo:e2e:fast` with `RequestTimeoutSec=45` for stability of long approval-resume paths. The gate also syncs `artifacts/demo-e2e/badge*.json` into `public/demo-e2e/` for runtime badge endpoints.
 
 Strict final pre-submission gate (zero scenario retries allowed):
 
