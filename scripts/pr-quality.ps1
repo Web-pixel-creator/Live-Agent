@@ -22,6 +22,7 @@ if (-not (Test-Path $releaseScript)) {
 $params = @{
   SkipPerfLoad = $true
   UseFastDemoE2E = $true
+  SkipPublicBadgeSync = $true
   DemoStartupTimeoutSec = $DemoStartupTimeoutSec
   DemoRequestTimeoutSec = $DemoRequestTimeoutSec
 }
