@@ -517,6 +517,12 @@ $env:RAILWAY_ENVIRONMENT="production"
 npm run deploy:railway
 ```
 
+Deploy gateway + frontend in one command:
+
+```powershell
+npm run deploy:railway:all -- -ProjectId "bbca2889-fd0d-48fe-bded-79802230e5a6" -GatewayServiceId "b8c1a952-da24-4410-a53a-82b634b70f47" -FrontendService "Live-Agent-Frontend" -Environment production -SkipReleaseVerification -GatewayPublicUrl https://live-agent-production.up.railway.app
+```
+
 Behavior:
 
 - Runs release verification before deploy (`verify:release` by default).
@@ -547,6 +553,7 @@ Common flags:
 - `-- -FailureLogLines <n>` - number of lines to fetch for failure diagnostics (`120` by default).
 - `-- -PublicBadgeEndpoint <url>` / `-- -PublicBadgeDetailsEndpoint <url>` - override public badge endpoints.
 - `-- -RailwayPublicUrl <url>` - set base URL used by badge checker (`/demo-e2e/badge*.json`).
+- Combined helper (`deploy:railway:all`) forwards gateway flags (`-SkipReleaseVerification`, `-StrictReleaseVerification`, `-GatewaySkipLink`, `-GatewaySkipPublicBadgeCheck`, `-GatewayNoWait`) and frontend flags (`-FrontendNoWait`, `-FrontendSkipHealthCheck`), and derives frontend runtime URLs from `-GatewayPublicUrl` when explicit frontend URLs are not set.
 
 ## Railway Frontend Service
 
