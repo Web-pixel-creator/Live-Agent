@@ -496,6 +496,7 @@ Behavior:
 - Links local directory to Railway project/service (unless `-SkipLink`).
 - Triggers deployment (`railway up`) and waits until terminal status.
 - Runs post-deploy public badge endpoint check (`badge:public:check` helper logic) after successful deploy.
+- In `-- -NoWait` mode, post-deploy badge endpoint check is not executed (trigger-only flow).
 
 Common flags:
 
