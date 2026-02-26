@@ -27,6 +27,16 @@ param(
   [string]$RailwayPublicUrl = $env:RAILWAY_PUBLIC_URL,
   [int]$RailwayPublicBadgeCheckTimeoutSec = 20,
   [switch]$RailwayNoWait,
+  [switch]$DeployRailwayFrontend,
+  [string]$RailwayFrontendProjectId = $(if (-not [string]::IsNullOrWhiteSpace($env:RAILWAY_FRONTEND_PROJECT_ID)) { $env:RAILWAY_FRONTEND_PROJECT_ID } else { $env:RAILWAY_PROJECT_ID }),
+  [string]$RailwayFrontendService = $(if (-not [string]::IsNullOrWhiteSpace($env:RAILWAY_FRONTEND_SERVICE_ID)) { $env:RAILWAY_FRONTEND_SERVICE_ID } elseif (-not [string]::IsNullOrWhiteSpace($env:RAILWAY_FRONTEND_SERVICE)) { $env:RAILWAY_FRONTEND_SERVICE } else { "Live-Agent-Frontend" }),
+  [string]$RailwayFrontendEnvironment = $env:RAILWAY_ENVIRONMENT,
+  [string]$RailwayFrontendPath = "apps/demo-frontend",
+  [string]$RailwayFrontendWsUrl = $env:FRONTEND_WS_URL,
+  [string]$RailwayFrontendApiBaseUrl = $env:FRONTEND_API_BASE_URL,
+  [switch]$RailwayFrontendNoWait,
+  [switch]$RailwayFrontendSkipHealthCheck,
+  [int]$RailwayFrontendHealthCheckTimeoutSec = 20,
   [int]$BadgeCheckAttempts = 20,
   [int]$BadgeCheckIntervalSec = 20
 )
@@ -85,6 +95,29 @@ function Normalize-GitHubRemote([string]$Url) {
   }
 
   return $null
+}
+
+function Convert-ToWebSocketBaseUrl([string]$HttpBaseUrl) {
+  if ([string]::IsNullOrWhiteSpace($HttpBaseUrl)) {
+    return $null
+  }
+
+  $trimmed = $HttpBaseUrl.Trim().TrimEnd("/")
+  if ([string]::IsNullOrWhiteSpace($trimmed)) {
+    return $null
+  }
+
+  if ($trimmed -match "^https://") {
+    return ("wss://" + $trimmed.Substring(8))
+  }
+  if ($trimmed -match "^http://") {
+    return ("ws://" + $trimmed.Substring(7))
+  }
+  if ($trimmed -match "^wss?://") {
+    return $trimmed
+  }
+
+  return ("wss://" + $trimmed)
 }
 
 & git --version *> $null
@@ -260,6 +293,62 @@ if ($DeployRailway) {
   & powershell @railwayArgs
   if ($LASTEXITCODE -ne 0) {
     Fail "Railway deploy failed."
+  }
+}
+
+if ($DeployRailwayFrontend) {
+  Write-Host "[repo-publish] Triggering Railway frontend deploy..."
+
+  $resolvedFrontendApiBaseUrl = $RailwayFrontendApiBaseUrl
+  if ([string]::IsNullOrWhiteSpace($resolvedFrontendApiBaseUrl) -and -not [string]::IsNullOrWhiteSpace($RailwayPublicUrl)) {
+    $resolvedFrontendApiBaseUrl = $RailwayPublicUrl.TrimEnd("/")
+  }
+
+  $resolvedFrontendWsUrl = $RailwayFrontendWsUrl
+  if ([string]::IsNullOrWhiteSpace($resolvedFrontendWsUrl) -and -not [string]::IsNullOrWhiteSpace($resolvedFrontendApiBaseUrl)) {
+    $resolvedWsBase = Convert-ToWebSocketBaseUrl -HttpBaseUrl $resolvedFrontendApiBaseUrl
+    if (-not [string]::IsNullOrWhiteSpace($resolvedWsBase)) {
+      $resolvedFrontendWsUrl = $resolvedWsBase.TrimEnd("/") + "/realtime"
+    }
+  }
+
+  $railwayFrontendArgs = @(
+    "-NoProfile",
+    "-ExecutionPolicy", "Bypass",
+    "-File", "$PSScriptRoot/railway-deploy-frontend.ps1"
+  )
+
+  if (-not [string]::IsNullOrWhiteSpace($RailwayFrontendProjectId)) {
+    $railwayFrontendArgs += @("-ProjectId", $RailwayFrontendProjectId)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($RailwayFrontendService)) {
+    $railwayFrontendArgs += @("-Service", $RailwayFrontendService)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($RailwayFrontendEnvironment)) {
+    $railwayFrontendArgs += @("-Environment", $RailwayFrontendEnvironment)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($RailwayFrontendPath)) {
+    $railwayFrontendArgs += @("-FrontendPath", $RailwayFrontendPath)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($resolvedFrontendWsUrl)) {
+    $railwayFrontendArgs += @("-FrontendWsUrl", $resolvedFrontendWsUrl)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($resolvedFrontendApiBaseUrl)) {
+    $railwayFrontendArgs += @("-FrontendApiBaseUrl", $resolvedFrontendApiBaseUrl)
+  }
+  if ($RailwayFrontendNoWait) {
+    $railwayFrontendArgs += "-NoWait"
+  }
+  if ($RailwayFrontendSkipHealthCheck) {
+    $railwayFrontendArgs += "-SkipHealthCheck"
+  }
+  if ($RailwayFrontendHealthCheckTimeoutSec -gt 0) {
+    $railwayFrontendArgs += @("-HealthCheckTimeoutSec", [string]$RailwayFrontendHealthCheckTimeoutSec)
+  }
+
+  & powershell @railwayFrontendArgs
+  if ($LASTEXITCODE -ne 0) {
+    Fail "Railway frontend deploy failed."
   }
 }
 

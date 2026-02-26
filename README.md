@@ -455,6 +455,16 @@ Trigger-only Railway deploy (no wait + no post-deploy badge check):
 npm run repo:publish -- -DeployRailway -SkipPages -SkipBadgeCheck -RailwayNoWait -RailwaySkipPublicBadgeCheck
 ```
 
+Publish + deploy gateway and frontend Railway services in one command:
+
+```powershell
+npm run repo:publish -- -DeployRailway -DeployRailwayFrontend -SkipPages -SkipBadgeCheck -RailwayPublicUrl https://live-agent-production.up.railway.app -RailwayFrontendService "Live-Agent-Frontend"
+```
+
+When `-DeployRailwayFrontend` is enabled and frontend URLs are not passed explicitly, `repo:publish` derives:
+- `FRONTEND_API_BASE_URL` from `-RailwayPublicUrl`
+- `FRONTEND_WS_URL` as `<ws(s)://host>/realtime`
+
 Safe dry-run style (no push/pages/badge):
 
 ```powershell
@@ -489,6 +499,12 @@ Useful flags:
 - `-RailwayPublicUrl` - Railway public base URL override passed to deploy helper (`/demo-e2e/badge*.json`).
 - `-RailwayPublicBadgeCheckTimeoutSec` - timeout (seconds) for Railway post-deploy public badge endpoint checks.
 - `-RailwayNoWait` - return after deploy trigger without waiting for terminal Railway status.
+- `-DeployRailwayFrontend` - trigger Railway frontend deploy after publish (calls `scripts/railway-deploy-frontend.ps1`).
+- `-RailwayFrontendProjectId` / `-RailwayFrontendService` / `-RailwayFrontendEnvironment` / `-RailwayFrontendPath` - frontend deploy target/path overrides.
+- `-RailwayFrontendWsUrl` / `-RailwayFrontendApiBaseUrl` - explicit frontend runtime endpoints (`FRONTEND_WS_URL` / `FRONTEND_API_BASE_URL`).
+- `-RailwayFrontendNoWait` - trigger frontend deploy without waiting for terminal status.
+- `-RailwayFrontendSkipHealthCheck` - skip frontend `/healthz` check after successful deploy.
+- `-RailwayFrontendHealthCheckTimeoutSec` - frontend `/healthz` timeout override.
 
 ## Railway Deploy Automation
 
