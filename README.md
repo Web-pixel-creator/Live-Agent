@@ -444,6 +444,12 @@ Publish + deploy to Railway with explicit post-deploy badge check controls:
 npm run repo:publish -- -DeployRailway -SkipPages -SkipBadgeCheck -RailwayPublicUrl https://live-agent-production.up.railway.app -RailwayPublicBadgeCheckTimeoutSec 30
 ```
 
+Trigger-only Railway deploy (no wait + no post-deploy badge check):
+
+```powershell
+npm run repo:publish -- -DeployRailway -SkipPages -SkipBadgeCheck -RailwayNoWait -RailwaySkipPublicBadgeCheck
+```
+
 Safe dry-run style (no push/pages/badge):
 
 ```powershell

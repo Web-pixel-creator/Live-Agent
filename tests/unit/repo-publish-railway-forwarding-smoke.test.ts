@@ -58,3 +58,13 @@ test("repo publish docs include railway badge check override example", () => {
   assert.match(readme, /-RailwayPublicUrl https:\/\/live-agent-production\.up\.railway\.app/);
   assert.match(readme, /-RailwayPublicBadgeCheckTimeoutSec 30/);
 });
+
+test("repo publish supports trigger-only railway deploy flags combination", () => {
+  const scriptPath = resolve(process.cwd(), "scripts", "github-repo-publish.ps1");
+  const source = readFileSync(scriptPath, "utf8");
+
+  assert.match(
+    source,
+    /if \(\$RailwaySkipPublicBadgeCheck\)\s*\{\s*\$railwayArgs \+= "-SkipPublicBadgeCheck"\s*\}[\s\S]*if \(\$RailwayNoWait\)\s*\{\s*\$railwayArgs \+= "-NoWait"\s*\}/,
+  );
+});
