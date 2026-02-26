@@ -21,6 +21,11 @@ param(
   [string]$RailwayEnvironment = $env:RAILWAY_ENVIRONMENT,
   [string]$RailwayWorkspace = $env:RAILWAY_WORKSPACE,
   [switch]$RailwaySkipLink,
+  [switch]$RailwaySkipPublicBadgeCheck,
+  [string]$RailwayPublicBadgeEndpoint = $env:PUBLIC_BADGE_ENDPOINT,
+  [string]$RailwayPublicBadgeDetailsEndpoint = $env:PUBLIC_BADGE_DETAILS_ENDPOINT,
+  [string]$RailwayPublicUrl = $env:RAILWAY_PUBLIC_URL,
+  [int]$RailwayPublicBadgeCheckTimeoutSec = 20,
   [switch]$RailwayNoWait,
   [int]$BadgeCheckAttempts = 20,
   [int]$BadgeCheckIntervalSec = 20
@@ -224,6 +229,21 @@ if ($DeployRailway) {
   }
   if ($RailwaySkipLink) {
     $railwayArgs += "-SkipLink"
+  }
+  if ($RailwaySkipPublicBadgeCheck) {
+    $railwayArgs += "-SkipPublicBadgeCheck"
+  }
+  if (-not [string]::IsNullOrWhiteSpace($RailwayPublicBadgeEndpoint)) {
+    $railwayArgs += @("-PublicBadgeEndpoint", $RailwayPublicBadgeEndpoint)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($RailwayPublicBadgeDetailsEndpoint)) {
+    $railwayArgs += @("-PublicBadgeDetailsEndpoint", $RailwayPublicBadgeDetailsEndpoint)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($RailwayPublicUrl)) {
+    $railwayArgs += @("-RailwayPublicUrl", $RailwayPublicUrl)
+  }
+  if ($RailwayPublicBadgeCheckTimeoutSec -gt 0) {
+    $railwayArgs += @("-PublicBadgeCheckTimeoutSec", [string]$RailwayPublicBadgeCheckTimeoutSec)
   }
   if ($RailwayNoWait) {
     $railwayArgs += "-NoWait"

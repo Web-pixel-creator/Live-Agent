@@ -15,6 +15,11 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /\[switch\]\$DeployRailway/);
   assert.match(source, /\[string\]\$RailwayProjectId = \$env:RAILWAY_PROJECT_ID/);
   assert.match(source, /\[string\]\$RailwayServiceId = \$env:RAILWAY_SERVICE_ID/);
+  assert.match(source, /\[switch\]\$RailwaySkipPublicBadgeCheck/);
+  assert.match(source, /\[string\]\$RailwayPublicBadgeEndpoint = \$env:PUBLIC_BADGE_ENDPOINT/);
+  assert.match(source, /\[string\]\$RailwayPublicBadgeDetailsEndpoint = \$env:PUBLIC_BADGE_DETAILS_ENDPOINT/);
+  assert.match(source, /\[string\]\$RailwayPublicUrl = \$env:RAILWAY_PUBLIC_URL/);
+  assert.match(source, /\[int\]\$RailwayPublicBadgeCheckTimeoutSec = 20/);
   assert.match(source, /function Run-Git\(\[string\[\]\]\$CliArgs\)/);
   assert.doesNotMatch(source, /function Run-Git\(\[string\[\]\]\$Args\)/);
   assert.match(source, /function Normalize-GitHubRemote\(\[string\]\$Url\)/);
@@ -23,4 +28,9 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /Using existing equivalent URL/);
   assert.match(source, /railway-deploy\.ps1/);
   assert.match(source, /\-SkipReleaseVerification/);
+  assert.match(source, /\-SkipPublicBadgeCheck/);
+  assert.match(source, /\-PublicBadgeEndpoint/);
+  assert.match(source, /\-PublicBadgeDetailsEndpoint/);
+  assert.match(source, /\-RailwayPublicUrl/);
+  assert.match(source, /\-PublicBadgeCheckTimeoutSec/);
 });

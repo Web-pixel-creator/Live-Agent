@@ -467,6 +467,10 @@ Useful flags:
 - `-DeployRailway` - trigger Railway deploy after publish (calls `scripts/railway-deploy.ps1` with `-SkipReleaseVerification`).
 - `-RailwayProjectId` / `-RailwayServiceId` / `-RailwayEnvironment` / `-RailwayWorkspace` - Railway target overrides.
 - `-RailwaySkipLink` - skip `railway link` step and use existing linked service.
+- `-RailwaySkipPublicBadgeCheck` - skip Railway post-deploy public badge endpoint validation.
+- `-RailwayPublicBadgeEndpoint` / `-RailwayPublicBadgeDetailsEndpoint` - override Railway public badge endpoints passed to deploy helper.
+- `-RailwayPublicUrl` - Railway public base URL override passed to deploy helper (`/demo-e2e/badge*.json`).
+- `-RailwayPublicBadgeCheckTimeoutSec` - timeout (seconds) for Railway post-deploy public badge endpoint checks.
 - `-RailwayNoWait` - return after deploy trigger without waiting for terminal Railway status.
 
 ## Railway Deploy Automation
