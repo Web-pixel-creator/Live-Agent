@@ -485,13 +485,17 @@ Behavior:
 - Runs release verification before deploy (`verify:release` by default).
 - Links local directory to Railway project/service (unless `-SkipLink`).
 - Triggers deployment (`railway up`) and waits until terminal status.
+- Runs post-deploy public badge endpoint check (`badge:public:check` helper logic) after successful deploy.
 
 Common flags:
 
 - `-- -StrictReleaseVerification` - use strict pre-deploy gate (`verify:release:strict`).
 - `-- -SkipReleaseVerification` - skip local verification before deploy.
+- `-- -SkipPublicBadgeCheck` - skip post-deploy public badge endpoint check.
 - `-- -SkipLink` - deploy using already linked Railway service.
 - `-- -NoWait` - return immediately after deploy trigger.
+- `-- -PublicBadgeEndpoint <url>` / `-- -PublicBadgeDetailsEndpoint <url>` - override public badge endpoints.
+- `-- -RailwayPublicUrl <url>` - set base URL used by badge checker (`/demo-e2e/badge*.json`).
 
 ## CI Workflow
 

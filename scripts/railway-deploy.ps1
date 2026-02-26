@@ -8,6 +8,11 @@ param(
   [switch]$SkipLink,
   [switch]$SkipReleaseVerification,
   [switch]$StrictReleaseVerification,
+  [switch]$SkipPublicBadgeCheck,
+  [string]$PublicBadgeEndpoint = $env:PUBLIC_BADGE_ENDPOINT,
+  [string]$PublicBadgeDetailsEndpoint = $env:PUBLIC_BADGE_DETAILS_ENDPOINT,
+  [string]$RailwayPublicUrl = $env:RAILWAY_PUBLIC_URL,
+  [int]$PublicBadgeCheckTimeoutSec = 20,
   [switch]$NoWait,
   [int]$StatusPollMaxAttempts = 60,
   [int]$StatusPollIntervalSec = 5
@@ -135,6 +140,35 @@ function Resolve-ServiceIdFromStatus([object]$StatusPayload, [string]$TargetEnvi
   return $null
 }
 
+function Invoke-PublicBadgeCheck(
+  [string]$Endpoint,
+  [string]$DetailsEndpoint,
+  [string]$PublicUrl,
+  [int]$TimeoutSec
+) {
+  $badgeScriptPath = Join-Path $PSScriptRoot "public-badge-check.ps1"
+  if (-not (Test-Path $badgeScriptPath)) {
+    Fail "Missing helper script: $badgeScriptPath"
+  }
+
+  $badgeArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $badgeScriptPath, "-TimeoutSec", [string]$TimeoutSec)
+  if (-not [string]::IsNullOrWhiteSpace($Endpoint)) {
+    $badgeArgs += @("-BadgeEndpoint", $Endpoint)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($DetailsEndpoint)) {
+    $badgeArgs += @("-DetailsEndpoint", $DetailsEndpoint)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($PublicUrl)) {
+    $badgeArgs += @("-RailwayPublicUrl", $PublicUrl)
+  }
+
+  Write-Host "[railway-deploy] Running post-deploy public badge endpoint check..."
+  & powershell @badgeArgs
+  if ($LASTEXITCODE -ne 0) {
+    Fail "Post-deploy public badge endpoint check failed."
+  }
+}
+
 & railway --version *> $null
 if ($LASTEXITCODE -ne 0) {
   Fail "Railway CLI is not installed or unavailable in PATH."
@@ -218,6 +252,9 @@ if ([string]::IsNullOrWhiteSpace($deploymentId)) {
 Write-Host "[railway-deploy] Deployment ID: $deploymentId"
 
 if ($NoWait) {
+  if (-not $SkipPublicBadgeCheck) {
+    Write-Host "[railway-deploy] Skipping public badge endpoint check in no-wait mode."
+  }
   Write-Host "[railway-deploy] No-wait mode enabled. Exiting after trigger."
   exit 0
 }
@@ -232,6 +269,9 @@ for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
     $state = [string]$deployment.status
     Write-Host "[railway-deploy] Status ($attempt/$StatusPollMaxAttempts): $state"
     if ($state -eq "SUCCESS") {
+      if (-not $SkipPublicBadgeCheck) {
+        Invoke-PublicBadgeCheck -Endpoint $PublicBadgeEndpoint -DetailsEndpoint $PublicBadgeDetailsEndpoint -PublicUrl $RailwayPublicUrl -TimeoutSec $PublicBadgeCheckTimeoutSec
+      }
       Write-Host ""
       Write-Host "Railway deployment completed successfully."
       Write-Host "Deployment ID: $deploymentId"

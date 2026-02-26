@@ -17,6 +17,11 @@ test("railway deploy helper stays aligned across package, script, and docs", () 
   assert.match(scriptRaw, /\$env:RAILWAY_SERVICE_ID/);
   assert.match(scriptRaw, /SkipReleaseVerification/);
   assert.match(scriptRaw, /StrictReleaseVerification/);
+  assert.match(scriptRaw, /SkipPublicBadgeCheck/);
+  assert.match(scriptRaw, /PublicBadgeEndpoint/);
+  assert.match(scriptRaw, /PublicBadgeDetailsEndpoint/);
+  assert.match(scriptRaw, /RailwayPublicUrl/);
+  assert.match(scriptRaw, /Invoke-PublicBadgeCheck/);
   assert.match(scriptRaw, /Resolve-ServiceIdFromStatus/);
   assert.match(scriptRaw, /serviceInstances/);
   assert.match(scriptRaw, /@\("link", "-p"/);
@@ -28,6 +33,8 @@ test("railway deploy helper stays aligned across package, script, and docs", () 
   assert.match(readmeRaw, /## Railway Deploy Automation/);
   assert.match(readmeRaw, /npm run deploy:railway/);
   assert.match(readmeRaw, /-- -SkipReleaseVerification/);
+  assert.match(readmeRaw, /-- -SkipPublicBadgeCheck/);
+  assert.match(readmeRaw, /-- -PublicBadgeEndpoint <url>/);
   assert.match(readmeRaw, /-- -NoWait/);
 
   const runbookPath = resolve(process.cwd(), "docs/challenge-demo-runbook.md");
