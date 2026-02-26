@@ -40,6 +40,7 @@ const state = {
   operatorGatewayErrorSnapshot: null,
   operatorTurnTruncationSnapshot: null,
   operatorTurnDeleteSnapshot: null,
+  operatorDamageControlSnapshot: null,
 };
 
 const PENDING_CLIENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
@@ -197,6 +198,15 @@ const el = {
   operatorTurnDeleteScope: document.getElementById("operatorTurnDeleteScope"),
   operatorTurnDeleteSeenAt: document.getElementById("operatorTurnDeleteSeenAt"),
   operatorTurnDeleteHint: document.getElementById("operatorTurnDeleteHint"),
+  operatorDamageControlStatus: document.getElementById("operatorDamageControlStatus"),
+  operatorDamageControlTotal: document.getElementById("operatorDamageControlTotal"),
+  operatorDamageControlRuns: document.getElementById("operatorDamageControlRuns"),
+  operatorDamageControlSessions: document.getElementById("operatorDamageControlSessions"),
+  operatorDamageControlVerdicts: document.getElementById("operatorDamageControlVerdicts"),
+  operatorDamageControlLatest: document.getElementById("operatorDamageControlLatest"),
+  operatorDamageControlRuleIds: document.getElementById("operatorDamageControlRuleIds"),
+  operatorDamageControlSeenAt: document.getElementById("operatorDamageControlSeenAt"),
+  operatorDamageControlHint: document.getElementById("operatorDamageControlHint"),
   operatorStartupStatus: document.getElementById("operatorStartupStatus"),
   operatorStartupTotal: document.getElementById("operatorStartupTotal"),
   operatorStartupBlocking: document.getElementById("operatorStartupBlocking"),
@@ -837,6 +847,27 @@ function setOperatorTurnDeleteHint(text, variant = "neutral") {
   el.operatorTurnDeleteHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorDamageControlHint(text, variant = "neutral") {
+  if (!el.operatorDamageControlHint) {
+    return;
+  }
+  el.operatorDamageControlHint.textContent = text;
+  el.operatorDamageControlHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorDamageControlHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorDamageControlHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorDamageControlHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorDamageControlHint.classList.add("operator-health-hint-neutral");
+}
+
 function setOperatorStartupHint(text, variant = "neutral") {
   if (!el.operatorStartupHint) {
     return;
@@ -984,6 +1015,18 @@ function resetOperatorTurnDeleteWidget(reason = "no_data") {
   setText(el.operatorTurnDeleteSeenAt, "n/a");
   setOperatorTurnDeleteHint("Waiting for live.turn.deleted evidence.", "neutral");
   setStatusPill(el.operatorTurnDeleteStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorDamageControlWidget(reason = "no_data") {
+  setText(el.operatorDamageControlTotal, "0");
+  setText(el.operatorDamageControlRuns, "0");
+  setText(el.operatorDamageControlSessions, "0");
+  setText(el.operatorDamageControlVerdicts, "allow=0 ask=0 block=0");
+  setText(el.operatorDamageControlLatest, "n/a");
+  setText(el.operatorDamageControlRuleIds, "n/a");
+  setText(el.operatorDamageControlSeenAt, "n/a");
+  setOperatorDamageControlHint("Waiting for damage-control decisions.", "neutral");
+  setStatusPill(el.operatorDamageControlStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function resetOperatorStartupWidget(reason = "no_data") {
@@ -1282,6 +1325,149 @@ function updateOperatorTurnDeleteWidgetFromEvent(event) {
   };
   state.operatorTurnDeleteSnapshot = nextSnapshot;
   renderOperatorTurnDeleteWidget(null, nextSnapshot);
+}
+
+function renderOperatorDamageControlWidget(damageControlSummary, snapshot = null) {
+  const summary = damageControlSummary && typeof damageControlSummary === "object" ? damageControlSummary : null;
+  const latestFromSummary =
+    summary?.latest && typeof summary.latest === "object"
+      ? summary.latest
+      : Array.isArray(summary?.recent) && summary.recent.length > 0 && summary.recent[0] && typeof summary.recent[0] === "object"
+        ? summary.recent[0]
+        : null;
+  const snapshotRecord = snapshot && typeof snapshot === "object" ? snapshot : null;
+
+  const summaryLatestSeenAt = latestFromSummary && typeof latestFromSummary.createdAt === "string"
+    ? latestFromSummary.createdAt
+    : null;
+  const snapshotSeenAt = snapshotRecord && typeof snapshotRecord.seenAt === "string" ? snapshotRecord.seenAt : null;
+  const summaryLatestSeenAtMs = parseIsoTimestampMs(summaryLatestSeenAt);
+  const snapshotSeenAtMs = parseIsoTimestampMs(snapshotSeenAt);
+  const useSnapshotLatest =
+    snapshotRecord &&
+    (
+      summaryLatestSeenAtMs === null ||
+      (snapshotSeenAtMs !== null && snapshotSeenAtMs >= summaryLatestSeenAtMs)
+    );
+
+  const latest = useSnapshotLatest ? snapshotRecord : latestFromSummary;
+  const totalFromSummary = Number(summary?.total ?? 0);
+  const totalFromSnapshot =
+    snapshotRecord && typeof snapshotRecord.eventCount === "number" && Number.isFinite(snapshotRecord.eventCount)
+      ? Math.max(0, Math.floor(snapshotRecord.eventCount))
+      : 0;
+  const total = Math.max(Math.max(0, Math.floor(totalFromSummary)), totalFromSnapshot);
+  const uniqueRunsSummary = Number(summary?.uniqueRuns ?? 0);
+  const uniqueSessionsSummary = Number(summary?.uniqueSessions ?? 0);
+  const latestRunId = latest && typeof latest.runId === "string" ? latest.runId : null;
+  const latestSessionId = latest && typeof latest.sessionId === "string" ? latest.sessionId : null;
+  const uniqueRuns = Math.max(Math.max(0, Math.floor(uniqueRunsSummary)), latestRunId ? 1 : 0);
+  const uniqueSessions = Math.max(Math.max(0, Math.floor(uniqueSessionsSummary)), latestSessionId ? 1 : 0);
+
+  const verdictCounts = summary?.verdictCounts && typeof summary.verdictCounts === "object"
+    ? summary.verdictCounts
+    : {};
+  const allowCount = Math.max(0, Math.floor(Number(verdictCounts.allow ?? 0) || 0));
+  const askCount = Math.max(0, Math.floor(Number(verdictCounts.ask ?? 0) || 0));
+  const blockCount = Math.max(0, Math.floor(Number(verdictCounts.block ?? 0) || 0));
+  const latestVerdict = latest && typeof latest.verdict === "string" && latest.verdict.trim().length > 0
+    ? latest.verdict
+    : "n/a";
+  const latestPolicySource = latest && typeof latest.policySource === "string" && latest.policySource.trim().length > 0
+    ? latest.policySource
+    : latest && typeof latest.source === "string" && latest.source.trim().length > 0
+      ? latest.source
+      : "n/a";
+  const latestMatchedRuleCount = latest && typeof latest.matchedRuleCount === "number" && Number.isFinite(latest.matchedRuleCount)
+    ? Math.max(0, Math.floor(latest.matchedRuleCount))
+    : null;
+  const latestRuleIds = latest && Array.isArray(latest.matchRuleIds)
+    ? latest.matchRuleIds.filter((item) => typeof item === "string" && item.trim().length > 0)
+    : [];
+  const latestSeenAt = latest && typeof latest.seenAt === "string"
+    ? latest.seenAt
+    : latest && typeof latest.createdAt === "string"
+      ? latest.createdAt
+      : "n/a";
+  const latestLabel = latestMatchedRuleCount === null
+    ? `verdict=${latestVerdict} source=${latestPolicySource}`
+    : `verdict=${latestVerdict} source=${latestPolicySource} rules=${latestMatchedRuleCount}`;
+
+  setText(el.operatorDamageControlTotal, String(total));
+  setText(el.operatorDamageControlRuns, String(uniqueRuns));
+  setText(el.operatorDamageControlSessions, String(uniqueSessions));
+  setText(el.operatorDamageControlVerdicts, `allow=${allowCount} ask=${askCount} block=${blockCount}`);
+  setText(el.operatorDamageControlLatest, latestLabel);
+  setText(el.operatorDamageControlRuleIds, latestRuleIds.length > 0 ? latestRuleIds.join(", ") : "n/a");
+  setText(el.operatorDamageControlSeenAt, latestSeenAt);
+
+  if (total <= 0) {
+    setStatusPill(el.operatorDamageControlStatus, "no_evidence", "neutral");
+    setOperatorDamageControlHint("No damage-control decisions observed yet. Run UI sandbox flow to populate evidence.", "warn");
+    return;
+  }
+
+  const completeLatest = latestVerdict !== "n/a" && latestPolicySource !== "n/a";
+  const statusVariant = completeLatest ? "ok" : "neutral";
+  const hintVariant = completeLatest ? "ok" : "warn";
+  const statusText = `observed total=${total} block=${blockCount} ask=${askCount}`;
+  const hint = completeLatest
+    ? "Damage-control timeline captured and ready for judge-facing safety review."
+    : "Damage-control events observed, but latest payload is incomplete. Re-run ui.sandbox.policy_modes.";
+  setStatusPill(el.operatorDamageControlStatus, statusText, statusVariant);
+  setOperatorDamageControlHint(hint, hintVariant);
+}
+
+function updateOperatorDamageControlWidgetFromResponse(event) {
+  const payload = event && typeof event.payload === "object" && event.payload !== null ? event.payload : {};
+  const output = payload && typeof payload.output === "object" && payload.output !== null ? payload.output : {};
+  const damageControl =
+    output && typeof output.damageControl === "object" && output.damageControl !== null ? output.damageControl : null;
+  if (!damageControl) {
+    return;
+  }
+
+  const verdict = toOptionalText(damageControl.verdict) ?? null;
+  const policySource = toOptionalText(damageControl.source) ?? null;
+  const matchedRuleCount =
+    typeof damageControl.matchedRuleCount === "number" && Number.isFinite(damageControl.matchedRuleCount)
+      ? Math.max(0, Math.floor(damageControl.matchedRuleCount))
+      : 0;
+  const matchRuleIds = Array.isArray(damageControl.matches)
+    ? damageControl.matches
+      .map((item) => (item && typeof item === "object" ? toOptionalText(item.ruleId) : null))
+      .filter((item) => typeof item === "string")
+    : [];
+
+  const previousCount = Number(state.operatorDamageControlSnapshot?.eventCount ?? 0);
+  const previousVerdictCounts =
+    state.operatorDamageControlSnapshot &&
+    state.operatorDamageControlSnapshot.verdictCounts &&
+    typeof state.operatorDamageControlSnapshot.verdictCounts === "object"
+      ? state.operatorDamageControlSnapshot.verdictCounts
+      : { allow: 0, ask: 0, block: 0 };
+  const nextVerdictCounts = {
+    allow: Math.max(0, Math.floor(Number(previousVerdictCounts.allow ?? 0) || 0)),
+    ask: Math.max(0, Math.floor(Number(previousVerdictCounts.ask ?? 0) || 0)),
+    block: Math.max(0, Math.floor(Number(previousVerdictCounts.block ?? 0) || 0)),
+  };
+  if (verdict === "allow" || verdict === "ask" || verdict === "block") {
+    nextVerdictCounts[verdict] += 1;
+  }
+
+  const nextSnapshot = {
+    eventCount: Number.isFinite(previousCount) ? Math.max(0, Math.floor(previousCount)) + 1 : 1,
+    runId: typeof event.runId === "string" ? event.runId : null,
+    sessionId: typeof event.sessionId === "string" ? event.sessionId : null,
+    verdict,
+    policySource,
+    matchedRuleCount,
+    matchRuleIds,
+    seenAt: new Date().toISOString(),
+    verdictCounts: nextVerdictCounts,
+  };
+  state.operatorDamageControlSnapshot = nextSnapshot;
+  renderOperatorDamageControlWidget(null, nextSnapshot);
 }
 
 function renderOperatorHealthWidget(liveBridgeHealth) {
@@ -2271,10 +2457,12 @@ function renderOperatorSummary(summary) {
   resetOperatorGatewayErrorWidget("no_data");
   resetOperatorTurnTruncationWidget("no_data");
   resetOperatorTurnDeleteWidget("no_data");
+  resetOperatorDamageControlWidget("no_data");
   resetOperatorStartupWidget("no_data");
   renderOperatorGatewayErrorWidget(state.operatorGatewayErrorSnapshot);
   renderOperatorTurnTruncationWidget(null, state.operatorTurnTruncationSnapshot);
   renderOperatorTurnDeleteWidget(null, state.operatorTurnDeleteSnapshot);
+  renderOperatorDamageControlWidget(null, state.operatorDamageControlSnapshot);
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -2378,6 +2566,48 @@ function renderOperatorSummary(summary) {
     }
   }
   renderOperatorTurnDeleteWidget(turnDelete, state.operatorTurnDeleteSnapshot);
+  const damageControl = summary.damageControl && typeof summary.damageControl === "object"
+    ? summary.damageControl
+    : null;
+  if (damageControl) {
+    const damageControlTotal = Number(damageControl.total ?? 0);
+    const damageControlUniqueRuns = Number(damageControl.uniqueRuns ?? 0);
+    const damageControlUniqueSessions = Number(damageControl.uniqueSessions ?? 0);
+    const verdictCounts = damageControl.verdictCounts && typeof damageControl.verdictCounts === "object"
+      ? damageControl.verdictCounts
+      : {};
+    const allowCount = Math.max(0, Math.floor(Number(verdictCounts.allow ?? 0) || 0));
+    const askCount = Math.max(0, Math.floor(Number(verdictCounts.ask ?? 0) || 0));
+    const blockCount = Math.max(0, Math.floor(Number(verdictCounts.block ?? 0) || 0));
+    appendEntry(
+      el.operatorSummary,
+      damageControlTotal > 0 ? "system" : "error",
+      "damage_control",
+      `total=${Math.max(0, Math.floor(damageControlTotal))} unique_runs=${Math.max(0, Math.floor(damageControlUniqueRuns))} unique_sessions=${Math.max(0, Math.floor(damageControlUniqueSessions))} allow=${allowCount} ask=${askCount} block=${blockCount}`,
+    );
+    const damageControlLatest = damageControl.latest && typeof damageControl.latest === "object"
+      ? damageControl.latest
+      : null;
+    if (damageControlLatest) {
+      const latestVerdict = typeof damageControlLatest.verdict === "string" ? damageControlLatest.verdict : "n/a";
+      const latestSource = typeof damageControlLatest.policySource === "string"
+        ? damageControlLatest.policySource
+        : typeof damageControlLatest.source === "string"
+          ? damageControlLatest.source
+          : "n/a";
+      const latestMatchedRuleCount = typeof damageControlLatest.matchedRuleCount === "number"
+        ? damageControlLatest.matchedRuleCount
+        : "n/a";
+      const latestSeenAt = typeof damageControlLatest.createdAt === "string" ? damageControlLatest.createdAt : "n/a";
+      appendEntry(
+        el.operatorSummary,
+        "system",
+        "damage_control.latest",
+        `verdict=${latestVerdict} source=${latestSource} matched_rules=${latestMatchedRuleCount} seen_at=${latestSeenAt}`,
+      );
+    }
+  }
+  renderOperatorDamageControlWidget(damageControl, state.operatorDamageControlSnapshot);
   renderOperatorApprovalsWidget(summary.approvals);
   renderOperatorTaskQueueWidget(taskQueueSummary);
   const startupFailures = summary.startupFailures && typeof summary.startupFailures === "object"
@@ -2599,6 +2829,11 @@ async function refreshOperatorSummary() {
       renderOperatorTurnDeleteWidget(null, state.operatorTurnDeleteSnapshot);
     } else {
       resetOperatorTurnDeleteWidget("summary_error");
+    }
+    if (state.operatorDamageControlSnapshot) {
+      renderOperatorDamageControlWidget(null, state.operatorDamageControlSnapshot);
+    } else {
+      resetOperatorDamageControlWidget("summary_error");
     }
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
@@ -3509,6 +3744,9 @@ function handleGatewayEvent(event) {
           ? event.metadata.requestMetadata.topic
           : "oob";
     const output = event.payload?.output;
+    if (!isOutOfBandResponse) {
+      updateOperatorDamageControlWidgetFromResponse(event);
+    }
     if (!isOutOfBandResponse && event.payload?.task) {
       const task = normalizeTaskRecord(event.payload.task);
       if (task) {
@@ -4505,6 +4743,8 @@ function bootstrap() {
   resetOperatorHealthWidget("no_data");
   resetOperatorGatewayErrorWidget("no_data");
   resetOperatorTurnTruncationWidget("no_data");
+  resetOperatorTurnDeleteWidget("no_data");
+  resetOperatorDamageControlWidget("no_data");
   renderTaskList();
   evaluateConstraints();
   bindEvents();

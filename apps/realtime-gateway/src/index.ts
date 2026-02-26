@@ -140,6 +140,18 @@ type TurnDeleteSnapshot = {
   hadActiveTurn: boolean;
 };
 
+type DamageControlSnapshot = {
+  runId: string | null;
+  sessionId: string;
+  seenAt: string;
+  verdict: "allow" | "ask" | "block" | null;
+  source: string | null;
+  path: string | null;
+  matchedRuleCount: number;
+  matchRuleIds: string[];
+  enabled: boolean | null;
+};
+
 function parsePositiveInt(raw: string | undefined, fallback: number): number {
   if (!raw) {
     return fallback;
@@ -495,6 +507,7 @@ function resolveGatewayTransportRuntimeState(currentConfig: GatewayConfig): Gate
 const transportRuntimeState = resolveGatewayTransportRuntimeState(config);
 const turnTruncationRecentLimit = parsePositiveInt(process.env.GATEWAY_TURN_TRUNCATION_RECENT_LIMIT, 20);
 const turnDeleteRecentLimit = parsePositiveInt(process.env.GATEWAY_TURN_DELETE_RECENT_LIMIT, 20);
+const damageControlRecentLimit = parsePositiveInt(process.env.GATEWAY_DAMAGE_CONTROL_RECENT_LIMIT, 20);
 const turnTruncationRuntime = {
   total: 0,
   uniqueRuns: new Set<string>(),
@@ -508,6 +521,20 @@ const turnDeleteRuntime = {
   uniqueSessions: new Set<string>(),
   latest: null as TurnDeleteSnapshot | null,
   recent: [] as TurnDeleteSnapshot[],
+};
+const damageControlRuntime = {
+  total: 0,
+  uniqueRuns: new Set<string>(),
+  uniqueSessions: new Set<string>(),
+  latest: null as DamageControlSnapshot | null,
+  recent: [] as DamageControlSnapshot[],
+  matchedRuleCountTotal: 0,
+  verdictCounts: {
+    allow: 0,
+    ask: 0,
+    block: 0,
+  },
+  sourceCounts: new Map<string, number>(),
 };
 
 function observeTurnTruncationEvidence(event: EventEnvelope): void {
@@ -565,6 +592,67 @@ function observeTurnDeleteEvidence(event: EventEnvelope): void {
   }
 }
 
+function observeDamageControlEvidence(event: EventEnvelope): void {
+  if (event.type !== "orchestrator.response") {
+    return;
+  }
+  const payload = isObject(event.payload) ? event.payload : {};
+  const output = isObject(payload.output) ? payload.output : null;
+  const damageControl = output && isObject(output.damageControl) ? output.damageControl : null;
+  if (!damageControl) {
+    return;
+  }
+  const enabled = typeof damageControl.enabled === "boolean" ? damageControl.enabled : null;
+  const verdictRaw = toNonEmptyString(damageControl.verdict);
+  const verdict =
+    verdictRaw === "allow" || verdictRaw === "ask" || verdictRaw === "block"
+      ? verdictRaw
+      : null;
+  const source = toNonEmptyString(damageControl.source);
+  const path = toNonEmptyString(damageControl.path);
+  const matchedRuleCount = toNonNegativeInt(damageControl.matchedRuleCount) ?? 0;
+  const matchRuleIds = Array.isArray(damageControl.matches)
+    ? damageControl.matches
+      .filter((item): item is Record<string, unknown> => isObject(item))
+      .map((item) => toNonEmptyString(item.ruleId))
+      .filter((item): item is string => item !== null)
+    : [];
+  const hasEvidence = enabled !== null || verdict !== null || source !== null || matchedRuleCount > 0 || matchRuleIds.length > 0;
+  if (!hasEvidence) {
+    return;
+  }
+
+  const seenAt = new Date().toISOString();
+  const snapshot: DamageControlSnapshot = {
+    runId: toNonEmptyString(event.runId),
+    sessionId: event.sessionId,
+    seenAt,
+    verdict,
+    source,
+    path,
+    matchedRuleCount,
+    matchRuleIds: Array.from(new Set(matchRuleIds)),
+    enabled,
+  };
+  damageControlRuntime.total += 1;
+  if (snapshot.runId) {
+    damageControlRuntime.uniqueRuns.add(snapshot.runId);
+  }
+  damageControlRuntime.uniqueSessions.add(snapshot.sessionId);
+  damageControlRuntime.latest = snapshot;
+  damageControlRuntime.recent.unshift(snapshot);
+  if (damageControlRuntime.recent.length > damageControlRecentLimit) {
+    damageControlRuntime.recent.length = damageControlRecentLimit;
+  }
+  damageControlRuntime.matchedRuleCountTotal += matchedRuleCount;
+  if (verdict) {
+    damageControlRuntime.verdictCounts[verdict] += 1;
+  }
+  const sourceKey = source ?? "unknown";
+  const currentSourceCount = damageControlRuntime.sourceCounts.get(sourceKey) ?? 0;
+  damageControlRuntime.sourceCounts.set(sourceKey, currentSourceCount + 1);
+}
+
 function runtimeState(): Record<string, unknown> {
   const summary = metrics.snapshot({ topOperations: 10 });
   return {
@@ -595,6 +683,28 @@ function runtimeState(): Record<string, unknown> {
       latest: turnDeleteRuntime.latest,
       recent: turnDeleteRuntime.recent.slice(0, turnDeleteRecentLimit),
       validated: turnDeleteRuntime.total > 0,
+    },
+    damageControl: {
+      total: damageControlRuntime.total,
+      uniqueRuns: damageControlRuntime.uniqueRuns.size,
+      uniqueSessions: damageControlRuntime.uniqueSessions.size,
+      latest: damageControlRuntime.latest,
+      recent: damageControlRuntime.recent.slice(0, damageControlRecentLimit),
+      matchedRuleCountTotal: damageControlRuntime.matchedRuleCountTotal,
+      verdictCounts: {
+        allow: damageControlRuntime.verdictCounts.allow,
+        ask: damageControlRuntime.verdictCounts.ask,
+        block: damageControlRuntime.verdictCounts.block,
+      },
+      sourceCounts: {
+        default: damageControlRuntime.sourceCounts.get("default") ?? 0,
+        file: damageControlRuntime.sourceCounts.get("file") ?? 0,
+        env_json: damageControlRuntime.sourceCounts.get("env_json") ?? 0,
+        unknown: Array.from(damageControlRuntime.sourceCounts.entries())
+          .filter(([key]) => key !== "default" && key !== "file" && key !== "env_json")
+          .reduce((acc, [, count]) => acc + count, 0),
+      },
+      validated: damageControlRuntime.total > 0,
     },
     metrics: {
       totalCount: summary.totalCount,
@@ -1177,6 +1287,7 @@ wss.on("connection", (ws) => {
     const outboundEvent = decorateOutboundEvent(event);
     observeTurnTruncationEvidence(outboundEvent);
     observeTurnDeleteEvidence(outboundEvent);
+    observeDamageControlEvidence(outboundEvent);
     ws.send(JSON.stringify(outboundEvent));
     if (liveFunctionAutoInvokeEnabled && outboundEvent.type === "live.function_call") {
       messageLane = messageLane

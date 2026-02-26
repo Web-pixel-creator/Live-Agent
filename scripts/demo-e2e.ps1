@@ -2278,6 +2278,79 @@ try {
       $turnDeleteLatestSeenAtIsIso
     )
 
+    $uiSandboxData = Get-ScenarioData -Name "ui.sandbox.policy_modes"
+    $expectedDamageControlVerdict = if ($null -ne $uiSandboxData) { [string](Get-FieldValue -Object $uiSandboxData -Path @("damageControlVerdict")) } else { $null }
+    $expectedDamageControlSource = if ($null -ne $uiSandboxData) { [string](Get-FieldValue -Object $uiSandboxData -Path @("damageControlSource")) } else { $null }
+    $damageControl = Get-FieldValue -Object $summaryData -Path @("damageControl")
+    Assert-Condition -Condition ($null -ne $damageControl) -Message "Operator summary damageControl block is missing."
+    $damageControlTotalRaw = Get-FieldValue -Object $damageControl -Path @("total")
+    $damageControlUniqueRunsRaw = Get-FieldValue -Object $damageControl -Path @("uniqueRuns")
+    $damageControlUniqueSessionsRaw = Get-FieldValue -Object $damageControl -Path @("uniqueSessions")
+    $damageControlMatchedRuleCountTotalRaw = Get-FieldValue -Object $damageControl -Path @("matchedRuleCountTotal")
+    Assert-Condition -Condition ($null -ne $damageControlTotalRaw) -Message "Operator summary damageControl.total is missing."
+    Assert-Condition -Condition ($null -ne $damageControlUniqueRunsRaw) -Message "Operator summary damageControl.uniqueRuns is missing."
+    Assert-Condition -Condition ($null -ne $damageControlUniqueSessionsRaw) -Message "Operator summary damageControl.uniqueSessions is missing."
+    Assert-Condition -Condition ($null -ne $damageControlMatchedRuleCountTotalRaw) -Message "Operator summary damageControl.matchedRuleCountTotal is missing."
+    $damageControlTotal = [int]$damageControlTotalRaw
+    $damageControlUniqueRuns = [int]$damageControlUniqueRunsRaw
+    $damageControlUniqueSessions = [int]$damageControlUniqueSessionsRaw
+    $damageControlMatchedRuleCountTotal = [int]$damageControlMatchedRuleCountTotalRaw
+    Assert-Condition -Condition ($damageControlTotal -ge 1) -Message "Operator summary damageControl.total should be >= 1 after ui.sandbox.policy_modes scenario."
+    Assert-Condition -Condition ($damageControlUniqueRuns -ge 1) -Message "Operator summary damageControl.uniqueRuns should be >= 1."
+    Assert-Condition -Condition ($damageControlUniqueSessions -ge 1) -Message "Operator summary damageControl.uniqueSessions should be >= 1."
+    Assert-Condition -Condition ($damageControlMatchedRuleCountTotal -ge 1) -Message "Operator summary damageControl.matchedRuleCountTotal should be >= 1."
+    $damageControlVerdictCounts = Get-FieldValue -Object $damageControl -Path @("verdictCounts")
+    $damageControlSourceCounts = Get-FieldValue -Object $damageControl -Path @("sourceCounts")
+    Assert-Condition -Condition ($null -ne $damageControlVerdictCounts) -Message "Operator summary damageControl.verdictCounts is missing."
+    Assert-Condition -Condition ($null -ne $damageControlSourceCounts) -Message "Operator summary damageControl.sourceCounts is missing."
+    $damageControlAllowCount = [int](Get-FieldValue -Object $damageControlVerdictCounts -Path @("allow"))
+    $damageControlAskCount = [int](Get-FieldValue -Object $damageControlVerdictCounts -Path @("ask"))
+    $damageControlBlockCount = [int](Get-FieldValue -Object $damageControlVerdictCounts -Path @("block"))
+    Assert-Condition -Condition (($damageControlAllowCount + $damageControlAskCount + $damageControlBlockCount) -eq $damageControlTotal) -Message "Operator summary damageControl verdictCounts must sum to total."
+    $damageControlSourceDefaultCount = [int](Get-FieldValue -Object $damageControlSourceCounts -Path @("default"))
+    $damageControlSourceFileCount = [int](Get-FieldValue -Object $damageControlSourceCounts -Path @("file"))
+    $damageControlSourceEnvJsonCount = [int](Get-FieldValue -Object $damageControlSourceCounts -Path @("env_json"))
+    $damageControlSourceUnknownCount = [int](Get-FieldValue -Object $damageControlSourceCounts -Path @("unknown"))
+    Assert-Condition -Condition (($damageControlSourceDefaultCount + $damageControlSourceFileCount + $damageControlSourceEnvJsonCount + $damageControlSourceUnknownCount) -eq $damageControlTotal) -Message "Operator summary damageControl sourceCounts must sum to total."
+    $damageControlLatest = Get-FieldValue -Object $damageControl -Path @("latest")
+    Assert-Condition -Condition ($null -ne $damageControlLatest) -Message "Operator summary damageControl.latest is missing."
+    $damageControlLatestVerdict = [string](Get-FieldValue -Object $damageControlLatest -Path @("verdict"))
+    $damageControlLatestSource = [string](Get-FieldValue -Object $damageControlLatest -Path @("policySource"))
+    $damageControlLatestMatchedRuleCount = [int](Get-FieldValue -Object $damageControlLatest -Path @("matchedRuleCount"))
+    $damageControlLatestSeenAt = [string](Get-FieldValue -Object $damageControlLatest -Path @("createdAt"))
+    $damageControlLatestSeenAtIsIso = $false
+    if (-not [string]::IsNullOrWhiteSpace($damageControlLatestSeenAt)) {
+      $parsedDamageControlLatestSeenAt = [DateTimeOffset]::MinValue
+      $damageControlLatestSeenAtIsIso = [DateTimeOffset]::TryParse($damageControlLatestSeenAt, [ref]$parsedDamageControlLatestSeenAt)
+    }
+    Assert-Condition -Condition $damageControlLatestSeenAtIsIso -Message "Operator summary damageControl.latest.createdAt must be ISO timestamp."
+    $damageControlLatestRuleIds = @(
+      @(Get-FieldValue -Object $damageControlLatest -Path @("matchRuleIds")) |
+      ForEach-Object { [string]$_ } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+    Assert-Condition -Condition ($damageControlLatestRuleIds.Count -ge 1) -Message "Operator summary damageControl.latest.matchRuleIds should contain at least one rule id."
+    $damageControlExpectedVerdictObserved = if (-not [string]::IsNullOrWhiteSpace($expectedDamageControlVerdict)) {
+      ([int](Get-FieldValue -Object $damageControlVerdictCounts -Path @($expectedDamageControlVerdict)) -ge 1)
+    } else {
+      $false
+    }
+    $damageControlExpectedSourceObserved = if (-not [string]::IsNullOrWhiteSpace($expectedDamageControlSource)) {
+      ([int](Get-FieldValue -Object $damageControlSourceCounts -Path @($expectedDamageControlSource)) -ge 1)
+    } else {
+      $false
+    }
+    $damageControlSummaryValidated = (
+      $damageControlTotal -ge 1 -and
+      $damageControlUniqueRuns -ge 1 -and
+      $damageControlUniqueSessions -ge 1 -and
+      $damageControlMatchedRuleCountTotal -ge 1 -and
+      ($damageControlAllowCount + $damageControlAskCount + $damageControlBlockCount) -eq $damageControlTotal -and
+      ($damageControlSourceDefaultCount + $damageControlSourceFileCount + $damageControlSourceEnvJsonCount + $damageControlSourceUnknownCount) -eq $damageControlTotal -and
+      $damageControlLatestSeenAtIsIso -and
+      $damageControlLatestRuleIds.Count -ge 1
+    )
+
     $deviceNodeHealth = Get-FieldValue -Object $summaryData -Path @("deviceNodes")
     Assert-Condition -Condition ($null -ne $deviceNodeHealth) -Message "Operator summary deviceNodes block is missing."
     $deviceNodeSummaryTotal = [int](Get-FieldValue -Object $deviceNodeHealth -Path @("total"))
@@ -2537,6 +2610,21 @@ try {
       turnDeleteLatestSeenAt = $turnDeleteLatestSeenAt
       turnDeleteExpectedEventSeen = ($turnDeleteExpected.Count -ge 1)
       turnDeleteSummaryValidated = $turnDeleteSummaryValidated
+      damageControlTotal = $damageControlTotal
+      damageControlUniqueRuns = $damageControlUniqueRuns
+      damageControlUniqueSessions = $damageControlUniqueSessions
+      damageControlMatchedRuleCountTotal = $damageControlMatchedRuleCountTotal
+      damageControlAllowCount = $damageControlAllowCount
+      damageControlAskCount = $damageControlAskCount
+      damageControlBlockCount = $damageControlBlockCount
+      damageControlLatestVerdict = $damageControlLatestVerdict
+      damageControlLatestSource = $damageControlLatestSource
+      damageControlLatestMatchedRuleCount = $damageControlLatestMatchedRuleCount
+      damageControlLatestSeenAt = $damageControlLatestSeenAt
+      damageControlLatestRuleIds = $damageControlLatestRuleIds
+      damageControlExpectedVerdictObserved = $damageControlExpectedVerdictObserved
+      damageControlExpectedSourceObserved = $damageControlExpectedSourceObserved
+      damageControlSummaryValidated = $damageControlSummaryValidated
       deviceNodeId = $deviceNodeId
       deviceNodeCreatedVersion = $deviceNodeCreatedVersion
       deviceNodeUpdatedVersion = $deviceNodeUpdatedVersion
@@ -3454,6 +3542,27 @@ $summary = [ordered]@{
       [int]$operatorActionsData.turnDeleteUniqueSessions -ge 1 -and
       [bool]$operatorActionsData.turnDeleteExpectedEventSeen -eq $true -and
       -not [string]::IsNullOrWhiteSpace([string]$operatorActionsData.turnDeleteLatestSeenAt)
+    ) { $true } else { $false }
+    operatorDamageControlTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.damageControlTotal } else { $null }
+    operatorDamageControlUniqueRuns = if ($null -ne $operatorActionsData) { $operatorActionsData.damageControlUniqueRuns } else { $null }
+    operatorDamageControlUniqueSessions = if ($null -ne $operatorActionsData) { $operatorActionsData.damageControlUniqueSessions } else { $null }
+    operatorDamageControlMatchedRuleCountTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.damageControlMatchedRuleCountTotal } else { $null }
+    operatorDamageControlAllowCount = if ($null -ne $operatorActionsData) { $operatorActionsData.damageControlAllowCount } else { $null }
+    operatorDamageControlAskCount = if ($null -ne $operatorActionsData) { $operatorActionsData.damageControlAskCount } else { $null }
+    operatorDamageControlBlockCount = if ($null -ne $operatorActionsData) { $operatorActionsData.damageControlBlockCount } else { $null }
+    operatorDamageControlLatestVerdict = if ($null -ne $operatorActionsData) { $operatorActionsData.damageControlLatestVerdict } else { $null }
+    operatorDamageControlLatestSource = if ($null -ne $operatorActionsData) { $operatorActionsData.damageControlLatestSource } else { $null }
+    operatorDamageControlLatestMatchedRuleCount = if ($null -ne $operatorActionsData) { $operatorActionsData.damageControlLatestMatchedRuleCount } else { $null }
+    operatorDamageControlLatestSeenAt = if ($null -ne $operatorActionsData) { $operatorActionsData.damageControlLatestSeenAt } else { $null }
+    operatorDamageControlSummaryValidated = if (
+      $null -ne $operatorActionsData -and
+      [bool]$operatorActionsData.damageControlSummaryValidated -eq $true -and
+      [int]$operatorActionsData.damageControlTotal -ge 1 -and
+      [int]$operatorActionsData.damageControlUniqueRuns -ge 1 -and
+      [int]$operatorActionsData.damageControlUniqueSessions -ge 1 -and
+      [int]$operatorActionsData.damageControlMatchedRuleCountTotal -ge 1 -and
+      ([int]$operatorActionsData.damageControlAllowCount + [int]$operatorActionsData.damageControlAskCount + [int]$operatorActionsData.damageControlBlockCount) -eq [int]$operatorActionsData.damageControlTotal -and
+      -not [string]::IsNullOrWhiteSpace([string]$operatorActionsData.damageControlLatestSeenAt)
     ) { $true } else { $false }
     operatorStartupDiagnosticsValidated = if (
       $null -ne $operatorActionsData -and

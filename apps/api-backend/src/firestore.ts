@@ -70,6 +70,12 @@ export type EventListItem = {
   truncateContentIndex?: number;
   truncateAudioEndMs?: number;
   truncateScope?: string;
+  damageControlEnabled?: boolean;
+  damageControlVerdict?: string;
+  damageControlSource?: string;
+  damageControlPath?: string;
+  damageControlMatchedRuleCount?: number;
+  damageControlMatchRuleIds?: string[];
 };
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "timeout";
@@ -697,6 +703,7 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
   const approval = output ? asRecord(output.approval) : null;
   const delegation = output ? asRecord(output.delegation) : null;
   const visualTesting = output ? asRecord(output.visualTesting) : null;
+  const damageControl = output ? asRecord(output.damageControl) : null;
 
   const intent =
     toNonEmptyString(payload?.intent) ??
@@ -722,6 +729,24 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
   const truncateContentIndex = toNonNegativeInt(payload?.contentIndex) ?? undefined;
   const truncateAudioEndMs = toNonNegativeInt(payload?.audioEndMs) ?? undefined;
   const truncateScope = toNonEmptyString(payload?.scope) ?? undefined;
+  const damageControlEnabled =
+    damageControl && typeof damageControl.enabled === "boolean" ? damageControl.enabled : undefined;
+  const damageControlVerdict = toNonEmptyString(damageControl?.verdict) ?? undefined;
+  const damageControlSource = toNonEmptyString(damageControl?.source) ?? undefined;
+  const damageControlPath = toNonEmptyString(damageControl?.path) ?? undefined;
+  const damageControlMatches = Array.isArray(damageControl?.matches)
+    ? damageControl.matches.filter((item): item is Record<string, unknown> => asRecord(item) !== null)
+    : [];
+  const damageControlMatchedRuleCount =
+    toNonNegativeInt(damageControl?.matchedRuleCount) ??
+    (damageControlMatches.length > 0 ? damageControlMatches.length : undefined);
+  const damageControlMatchRuleIds = Array.from(
+    new Set(
+      damageControlMatches
+        .map((item) => toNonEmptyString(item.ruleId))
+        .filter((item): item is string => item !== null),
+    ),
+  );
 
   let traceSteps: number | undefined;
   let screenshotRefs: number | undefined;
@@ -773,6 +798,12 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
     truncateContentIndex,
     truncateAudioEndMs,
     truncateScope,
+    damageControlEnabled,
+    damageControlVerdict,
+    damageControlSource,
+    damageControlPath,
+    damageControlMatchedRuleCount,
+    damageControlMatchRuleIds: damageControlMatchRuleIds.length > 0 ? damageControlMatchRuleIds : undefined,
   };
 }
 

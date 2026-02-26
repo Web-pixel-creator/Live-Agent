@@ -800,6 +800,7 @@ async function getOperatorServiceSummary(): Promise<Array<Record<string, unknown
       version: runtime ? runtime.version ?? null : null,
       turnTruncation: runtime ? runtime.turnTruncation ?? null : null,
       turnDelete: runtime ? runtime.turnDelete ?? null : null,
+      damageControl: runtime ? runtime.damageControl ?? null : null,
       profile,
       metrics: metricsSummary
         ? {
@@ -1255,6 +1256,188 @@ function buildTurnDeleteSummary(
     recent: normalized.slice(0, 20),
     source: "operator_summary",
     validated: normalized.length > 0,
+  };
+}
+
+function buildDamageControlSummary(
+  events: EventListItem[],
+  services: Array<Record<string, unknown>>,
+): Record<string, unknown> {
+  const uniqueRuns = new Set<string>();
+  const uniqueSessions = new Set<string>();
+  const normalized: Array<Record<string, unknown>> = [];
+  let enabledTrueCount = 0;
+  let matchedRuleCountTotal = 0;
+  const verdictCounts = {
+    allow: 0,
+    ask: 0,
+    block: 0,
+  };
+  const sourceCounts = {
+    default: 0,
+    file: 0,
+    env_json: 0,
+    unknown: 0,
+  };
+
+  for (const event of events) {
+    const enabled = typeof event.damageControlEnabled === "boolean" ? event.damageControlEnabled : null;
+    const verdict = toOptionalString(event.damageControlVerdict);
+    const source = toOptionalString(event.damageControlSource);
+    const matchedRuleCount = parseNonNegativeInt(event.damageControlMatchedRuleCount) ?? 0;
+    const matchRuleIds = Array.isArray(event.damageControlMatchRuleIds)
+      ? event.damageControlMatchRuleIds.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+      : [];
+    const hasDamageControlEvidence = enabled !== null || verdict !== null || source !== null || matchedRuleCount > 0 || matchRuleIds.length > 0;
+    if (!hasDamageControlEvidence) {
+      continue;
+    }
+    if (typeof event.runId === "string" && event.runId.trim().length > 0) {
+      uniqueRuns.add(event.runId);
+    }
+    if (typeof event.sessionId === "string" && event.sessionId.trim().length > 0) {
+      uniqueSessions.add(event.sessionId);
+    }
+    if (enabled === true) {
+      enabledTrueCount += 1;
+    }
+    matchedRuleCountTotal += matchedRuleCount;
+    if (verdict === "allow" || verdict === "ask" || verdict === "block") {
+      verdictCounts[verdict] += 1;
+    }
+    if (source === "default" || source === "file" || source === "env_json") {
+      sourceCounts[source] += 1;
+    } else {
+      sourceCounts.unknown += 1;
+    }
+    normalized.push({
+      eventId: event.eventId,
+      runId: event.runId ?? null,
+      sessionId: event.sessionId,
+      createdAt: event.createdAt,
+      source: event.source,
+      eventType: event.type,
+      enabled,
+      verdict,
+      policySource: source,
+      path: toOptionalString(event.damageControlPath),
+      matchedRuleCount,
+      matchRuleIds,
+    });
+  }
+
+  if (normalized.length <= 0) {
+    const gatewayService = services.find((service) => service.name === "realtime-gateway");
+    const runtimeEvidence =
+      gatewayService && isRecord(gatewayService.damageControl) ? gatewayService.damageControl : null;
+    if (!runtimeEvidence) {
+      return {
+        status: "missing",
+        total: 0,
+        uniqueRuns: 0,
+        uniqueSessions: 0,
+        enabledTrueCount: 0,
+        matchedRuleCountTotal: 0,
+        verdictCounts,
+        sourceCounts,
+        latest: null,
+        recent: [],
+        source: "operator_summary",
+        validated: false,
+      };
+    }
+
+    const runtimeRecentRaw = Array.isArray(runtimeEvidence.recent)
+      ? runtimeEvidence.recent.filter((item): item is Record<string, unknown> => isRecord(item))
+      : [];
+    const runtimeRecent = runtimeRecentRaw.map((item) => ({
+      eventId: null,
+      runId: toOptionalString(item.runId),
+      sessionId: toOptionalString(item.sessionId) ?? "unknown",
+      createdAt: toOptionalString(item.seenAt) ?? new Date().toISOString(),
+      source: "gateway",
+      eventType: "orchestrator.response",
+      enabled: typeof item.enabled === "boolean" ? item.enabled : null,
+      verdict: toOptionalString(item.verdict),
+      policySource: toOptionalString(item.source),
+      path: toOptionalString(item.path),
+      matchedRuleCount: parseNonNegativeInt(item.matchedRuleCount) ?? 0,
+      matchRuleIds: Array.isArray(item.matchRuleIds)
+        ? item.matchRuleIds.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+        : [],
+    }));
+    const runtimeLatestRaw = isRecord(runtimeEvidence.latest) ? runtimeEvidence.latest : null;
+    const runtimeLatest = runtimeLatestRaw
+      ? {
+          eventId: null,
+          runId: toOptionalString(runtimeLatestRaw.runId),
+          sessionId: toOptionalString(runtimeLatestRaw.sessionId) ?? "unknown",
+          createdAt: toOptionalString(runtimeLatestRaw.seenAt) ?? new Date().toISOString(),
+          source: "gateway",
+          eventType: "orchestrator.response",
+          enabled: typeof runtimeLatestRaw.enabled === "boolean" ? runtimeLatestRaw.enabled : null,
+          verdict: toOptionalString(runtimeLatestRaw.verdict),
+          policySource: toOptionalString(runtimeLatestRaw.source),
+          path: toOptionalString(runtimeLatestRaw.path),
+          matchedRuleCount: parseNonNegativeInt(runtimeLatestRaw.matchedRuleCount) ?? 0,
+          matchRuleIds: Array.isArray(runtimeLatestRaw.matchRuleIds)
+            ? runtimeLatestRaw.matchRuleIds.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+            : [],
+        }
+      : runtimeRecent.length > 0
+        ? runtimeRecent[0]
+        : null;
+    const runtimeTotal = parseNonNegativeInt(runtimeEvidence.total) ?? runtimeRecent.length;
+    const runtimeUniqueRuns =
+      parseNonNegativeInt(runtimeEvidence.uniqueRuns) ??
+      new Set(runtimeRecent.map((item) => (typeof item.runId === "string" ? item.runId : null)).filter(Boolean)).size;
+    const runtimeUniqueSessions =
+      parseNonNegativeInt(runtimeEvidence.uniqueSessions) ??
+      new Set(runtimeRecent.map((item) => item.sessionId)).size;
+    const runtimeMatchedRuleCountTotal =
+      parseNonNegativeInt(runtimeEvidence.matchedRuleCountTotal) ??
+      runtimeRecent.reduce((acc, item) => acc + (parseNonNegativeInt(item.matchedRuleCount) ?? 0), 0);
+    const runtimeVerdictCounts = isRecord(runtimeEvidence.verdictCounts) ? runtimeEvidence.verdictCounts : null;
+    const runtimeSourceCounts = isRecord(runtimeEvidence.sourceCounts) ? runtimeEvidence.sourceCounts : null;
+
+    return {
+      status: runtimeTotal > 0 ? "observed" : "missing",
+      total: runtimeTotal,
+      uniqueRuns: runtimeUniqueRuns,
+      uniqueSessions: runtimeUniqueSessions,
+      enabledTrueCount: runtimeRecent.filter((item) => item.enabled === true).length,
+      matchedRuleCountTotal: runtimeMatchedRuleCountTotal,
+      verdictCounts: {
+        allow: parseNonNegativeInt(runtimeVerdictCounts?.allow) ?? 0,
+        ask: parseNonNegativeInt(runtimeVerdictCounts?.ask) ?? 0,
+        block: parseNonNegativeInt(runtimeVerdictCounts?.block) ?? 0,
+      },
+      sourceCounts: {
+        default: parseNonNegativeInt(runtimeSourceCounts?.default) ?? 0,
+        file: parseNonNegativeInt(runtimeSourceCounts?.file) ?? 0,
+        env_json: parseNonNegativeInt(runtimeSourceCounts?.env_json) ?? 0,
+        unknown: parseNonNegativeInt(runtimeSourceCounts?.unknown) ?? 0,
+      },
+      latest: runtimeLatest,
+      recent: runtimeRecent.slice(0, 20),
+      source: "gateway_runtime",
+      validated: runtimeTotal > 0,
+    };
+  }
+
+  return {
+    status: "observed",
+    total: normalized.length,
+    uniqueRuns: uniqueRuns.size,
+    uniqueSessions: uniqueSessions.size,
+    enabledTrueCount,
+    matchedRuleCountTotal,
+    verdictCounts,
+    sourceCounts,
+    latest: normalized[0],
+    recent: normalized.slice(0, 20),
+    source: "operator_summary",
+    validated: true,
   };
 }
 
@@ -2200,6 +2383,7 @@ export const server = createServer(async (req, res) => {
       const startupFailures = buildStartupFailureSummary(services);
       const turnTruncation = buildTurnTruncationSummary(recentEvents, services);
       const turnDelete = buildTurnDeleteSummary(recentEvents, services);
+      const damageControl = buildDamageControlSummary(recentEvents, services);
 
       writeJson(res, 200, {
         data: {
@@ -2226,6 +2410,7 @@ export const server = createServer(async (req, res) => {
           startupFailures,
           turnTruncation,
           turnDelete,
+          damageControl,
           deviceNodes: deviceNodeHealth,
           services,
           traces,
