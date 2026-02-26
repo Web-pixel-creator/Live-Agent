@@ -30,6 +30,10 @@ jobs:
         run: npm ci
         shell: powershell
 
+      - name: Run Railway Deploy Dry Contracts
+        run: npm run verify:deploy:railway:dry
+        shell: powershell
+
       - name: Run PR Quality Gate
         run: npm run verify:pr
         shell: powershell

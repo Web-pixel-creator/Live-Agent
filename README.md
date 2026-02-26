@@ -145,7 +145,7 @@ npm run demo:e2e
 
 CI split:
 
-- PR quick gate: `.github/workflows/pr-quality.yml` (build + unit + profile smoke + monitoring validate + `demo:e2e:fast` + policy + badge artifact).
+- PR quick gate: `.github/workflows/pr-quality.yml` (`verify:deploy:railway:dry` + build + unit + profile smoke + monitoring validate + `demo:e2e:fast` + policy + badge artifact).
 - Full gate on `main/master` + manual dispatch: `.github/workflows/demo-e2e.yml` (includes perf-load policy gate and best-effort badge publish to `gh-pages`).
 
 Fast mode (skip workspace build):
@@ -524,7 +524,7 @@ Common flags:
 
 - PR workflow: `.github/workflows/pr-quality.yml`
 - Triggered on pull requests.
-- Runs `npm run verify:pr` (build + unit + profile smoke + monitoring validate + demo policy/badge gate).
+- Runs `npm run verify:deploy:railway:dry` (deploy/repo-publish contract checks) before `npm run verify:pr` (build + unit + profile smoke + monitoring validate + demo policy/badge gate).
 - Uploads demo artifacts for PR review.
 
 - Full workflow: `.github/workflows/demo-e2e.yml`
