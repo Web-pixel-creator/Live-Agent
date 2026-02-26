@@ -1812,6 +1812,70 @@ test(
 );
 
 test(
+  "release-readiness artifact-only mode fails when source run evidence truncation validation is false",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceOperatorTurnTruncationValidated: false }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.operatorTurnTruncationSummaryValidated expected true, actual False/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence damage-control validation is false",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceOperatorDamageControlValidated: false }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.operatorDamageControlSummaryValidated expected true, actual False/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence damage-control status is not pass",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceOperatorDamageControlStatus: "warn" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceOperatorDamageControlStatus expected pass, actual warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence damage-control total is below one",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceOperatorDamageControlTotal: 0 }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.operatorDamageControlTotal expected >= 1, actual 0/i,
+    );
+  },
+);
+
+test(
   "release-readiness artifact-only mode fails when source run manifest is missing",
   { skip: skipIfNoPowerShell },
   () => {

@@ -296,6 +296,74 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
   if ([double]::IsNaN($manifestRetryAttempts) -or $manifestRetryAttempts -lt 1) {
     Fail ("source run manifest retry.githubApiMaxAttempts expected >= 1, actual " + $sourceRunManifest.retry.githubApiMaxAttempts)
   }
+
+  $manifestEvidenceSnapshot = $sourceRunManifest.gate.evidenceSnapshot
+  if ($null -ne $manifestEvidenceSnapshot) {
+    $manifestTurnTruncationValidated = To-BoolOrNull $manifestEvidenceSnapshot.operatorTurnTruncationSummaryValidated
+    if ($manifestTurnTruncationValidated -ne $true) {
+      Fail (
+        "source run manifest evidenceSnapshot.operatorTurnTruncationSummaryValidated expected true, actual " +
+        $manifestEvidenceSnapshot.operatorTurnTruncationSummaryValidated
+      )
+    }
+
+    $manifestTurnDeleteValidated = To-BoolOrNull $manifestEvidenceSnapshot.operatorTurnDeleteSummaryValidated
+    if ($manifestTurnDeleteValidated -ne $true) {
+      Fail (
+        "source run manifest evidenceSnapshot.operatorTurnDeleteSummaryValidated expected true, actual " +
+        $manifestEvidenceSnapshot.operatorTurnDeleteSummaryValidated
+      )
+    }
+
+    $manifestDamageControlValidated = To-BoolOrNull $manifestEvidenceSnapshot.operatorDamageControlSummaryValidated
+    if ($manifestDamageControlValidated -ne $true) {
+      Fail (
+        "source run manifest evidenceSnapshot.operatorDamageControlSummaryValidated expected true, actual " +
+        $manifestEvidenceSnapshot.operatorDamageControlSummaryValidated
+      )
+    }
+
+    $manifestDamageControlTotal = To-NumberOrNaN $manifestEvidenceSnapshot.operatorDamageControlTotal
+    if ([double]::IsNaN($manifestDamageControlTotal) -or $manifestDamageControlTotal -lt 1) {
+      Fail (
+        "source run manifest evidenceSnapshot.operatorDamageControlTotal expected >= 1, actual " +
+        $manifestEvidenceSnapshot.operatorDamageControlTotal
+      )
+    }
+
+    $manifestDamageControlStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceOperatorDamageControlStatus
+    $manifestDamageControlStatus = $manifestDamageControlStatusRaw.ToLowerInvariant()
+    if ($manifestDamageControlStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceOperatorDamageControlStatus expected pass, actual " +
+        $manifestDamageControlStatusRaw
+      )
+    }
+
+    $manifestDamageControlLatestVerdictRaw = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestVerdict
+    $manifestDamageControlLatestVerdict = $manifestDamageControlLatestVerdictRaw.ToLowerInvariant()
+    $allowedOperatorDamageControlLatestVerdicts = @("allow", "ask", "block")
+    if (-not ($allowedOperatorDamageControlLatestVerdicts -contains $manifestDamageControlLatestVerdict)) {
+      Fail (
+        "source run manifest evidenceSnapshot.operatorDamageControlLatestVerdict expected one of [" +
+        ($allowedOperatorDamageControlLatestVerdicts -join ", ") +
+        "], actual " +
+        $manifestDamageControlLatestVerdictRaw
+      )
+    }
+
+    $manifestDamageControlLatestSourceRaw = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestSource
+    $manifestDamageControlLatestSource = $manifestDamageControlLatestSourceRaw.ToLowerInvariant()
+    $allowedOperatorDamageControlLatestSources = @("default", "file", "env_json", "unknown")
+    if (-not ($allowedOperatorDamageControlLatestSources -contains $manifestDamageControlLatestSource)) {
+      Fail (
+        "source run manifest evidenceSnapshot.operatorDamageControlLatestSource expected one of [" +
+        ($allowedOperatorDamageControlLatestSources -join ", ") +
+        "], actual " +
+        $manifestDamageControlLatestSourceRaw
+      )
+    }
+  }
 }
 
 if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
