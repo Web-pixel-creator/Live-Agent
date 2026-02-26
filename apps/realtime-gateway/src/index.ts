@@ -130,6 +130,16 @@ type TurnTruncationSnapshot = {
   scope: string | null;
 };
 
+type TurnDeleteSnapshot = {
+  runId: string | null;
+  sessionId: string;
+  seenAt: string;
+  turnId: string | null;
+  reason: string | null;
+  scope: string | null;
+  hadActiveTurn: boolean;
+};
+
 function parsePositiveInt(raw: string | undefined, fallback: number): number {
   if (!raw) {
     return fallback;
@@ -484,12 +494,20 @@ function resolveGatewayTransportRuntimeState(currentConfig: GatewayConfig): Gate
 
 const transportRuntimeState = resolveGatewayTransportRuntimeState(config);
 const turnTruncationRecentLimit = parsePositiveInt(process.env.GATEWAY_TURN_TRUNCATION_RECENT_LIMIT, 20);
+const turnDeleteRecentLimit = parsePositiveInt(process.env.GATEWAY_TURN_DELETE_RECENT_LIMIT, 20);
 const turnTruncationRuntime = {
   total: 0,
   uniqueRuns: new Set<string>(),
   uniqueSessions: new Set<string>(),
   latest: null as TurnTruncationSnapshot | null,
   recent: [] as TurnTruncationSnapshot[],
+};
+const turnDeleteRuntime = {
+  total: 0,
+  uniqueRuns: new Set<string>(),
+  uniqueSessions: new Set<string>(),
+  latest: null as TurnDeleteSnapshot | null,
+  recent: [] as TurnDeleteSnapshot[],
 };
 
 function observeTurnTruncationEvidence(event: EventEnvelope): void {
@@ -520,6 +538,33 @@ function observeTurnTruncationEvidence(event: EventEnvelope): void {
   }
 }
 
+function observeTurnDeleteEvidence(event: EventEnvelope): void {
+  if (event.type !== "live.turn.deleted") {
+    return;
+  }
+  const payload = isObject(event.payload) ? event.payload : {};
+  const seenAt = new Date().toISOString();
+  const snapshot: TurnDeleteSnapshot = {
+    runId: toNonEmptyString(event.runId),
+    sessionId: event.sessionId,
+    seenAt,
+    turnId: toNonEmptyString(payload.turnId),
+    reason: toNonEmptyString(payload.reason),
+    scope: toNonEmptyString(payload.scope),
+    hadActiveTurn: payload.hadActiveTurn === true,
+  };
+  turnDeleteRuntime.total += 1;
+  if (snapshot.runId) {
+    turnDeleteRuntime.uniqueRuns.add(snapshot.runId);
+  }
+  turnDeleteRuntime.uniqueSessions.add(snapshot.sessionId);
+  turnDeleteRuntime.latest = snapshot;
+  turnDeleteRuntime.recent.unshift(snapshot);
+  if (turnDeleteRuntime.recent.length > turnDeleteRecentLimit) {
+    turnDeleteRuntime.recent.length = turnDeleteRecentLimit;
+  }
+}
+
 function runtimeState(): Record<string, unknown> {
   const summary = metrics.snapshot({ topOperations: 10 });
   return {
@@ -542,6 +587,14 @@ function runtimeState(): Record<string, unknown> {
       latest: turnTruncationRuntime.latest,
       recent: turnTruncationRuntime.recent.slice(0, turnTruncationRecentLimit),
       validated: turnTruncationRuntime.total > 0,
+    },
+    turnDelete: {
+      total: turnDeleteRuntime.total,
+      uniqueRuns: turnDeleteRuntime.uniqueRuns.size,
+      uniqueSessions: turnDeleteRuntime.uniqueSessions.size,
+      latest: turnDeleteRuntime.latest,
+      recent: turnDeleteRuntime.recent.slice(0, turnDeleteRecentLimit),
+      validated: turnDeleteRuntime.total > 0,
     },
     metrics: {
       totalCount: summary.totalCount,
@@ -1123,6 +1176,7 @@ wss.on("connection", (ws) => {
   const sendEvent = (event: EventEnvelope): void => {
     const outboundEvent = decorateOutboundEvent(event);
     observeTurnTruncationEvidence(outboundEvent);
+    observeTurnDeleteEvidence(outboundEvent);
     ws.send(JSON.stringify(outboundEvent));
     if (liveFunctionAutoInvokeEnabled && outboundEvent.type === "live.function_call") {
       messageLane = messageLane

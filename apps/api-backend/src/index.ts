@@ -1145,6 +1145,118 @@ function buildTurnTruncationSummary(
   };
 }
 
+function buildTurnDeleteSummary(
+  events: EventListItem[],
+  services: Array<Record<string, unknown>>,
+): Record<string, unknown> {
+  const uniqueRuns = new Set<string>();
+  const uniqueSessions = new Set<string>();
+  const normalized: Array<Record<string, unknown>> = [];
+
+  for (const event of events) {
+    if (event.type !== "live.turn.deleted") {
+      continue;
+    }
+    if (typeof event.runId === "string" && event.runId.trim().length > 0) {
+      uniqueRuns.add(event.runId);
+    }
+    if (typeof event.sessionId === "string" && event.sessionId.trim().length > 0) {
+      uniqueSessions.add(event.sessionId);
+    }
+    normalized.push({
+      eventId: event.eventId,
+      runId: event.runId ?? null,
+      sessionId: event.sessionId,
+      createdAt: event.createdAt,
+      turnId: event.turnId ?? null,
+      reason: event.truncateReason ?? null,
+      scope: event.truncateScope ?? null,
+    });
+  }
+
+  if (normalized.length <= 0) {
+    const gatewayService = services.find((service) => service.name === "realtime-gateway");
+    const runtimeEvidence =
+      gatewayService && isRecord(gatewayService.turnDelete) ? gatewayService.turnDelete : null;
+    if (!runtimeEvidence) {
+      return {
+        status: "missing",
+        total: 0,
+        uniqueRuns: 0,
+        uniqueSessions: 0,
+        latest: null,
+        recent: [],
+        source: "operator_summary",
+        validated: false,
+      };
+    }
+
+    const runtimeRecentRaw = Array.isArray(runtimeEvidence.recent)
+      ? runtimeEvidence.recent.filter((item): item is Record<string, unknown> => isRecord(item))
+      : [];
+    const runtimeRecent = runtimeRecentRaw.map((item) => {
+      const runId = toOptionalString(item.runId);
+      const sessionId = toOptionalString(item.sessionId) ?? "unknown";
+      const seenAt = toOptionalString(item.seenAt) ?? new Date().toISOString();
+      return {
+        eventId: null,
+        runId,
+        sessionId,
+        createdAt: seenAt,
+        turnId: toOptionalString(item.turnId),
+        reason: toOptionalString(item.reason),
+        scope: toOptionalString(item.scope),
+        hadActiveTurn: item.hadActiveTurn === true,
+      };
+    });
+    const runtimeLatestRaw = isRecord(runtimeEvidence.latest) ? runtimeEvidence.latest : null;
+    const runtimeLatest = runtimeLatestRaw
+      ? {
+          eventId: null,
+          runId: toOptionalString(runtimeLatestRaw.runId),
+          sessionId: toOptionalString(runtimeLatestRaw.sessionId) ?? "unknown",
+          createdAt: toOptionalString(runtimeLatestRaw.seenAt) ?? new Date().toISOString(),
+          turnId: toOptionalString(runtimeLatestRaw.turnId),
+          reason: toOptionalString(runtimeLatestRaw.reason),
+          scope: toOptionalString(runtimeLatestRaw.scope),
+          hadActiveTurn: runtimeLatestRaw.hadActiveTurn === true,
+        }
+      : runtimeRecent.length > 0
+        ? runtimeRecent[0]
+        : null;
+
+    const runtimeTotal = parseNonNegativeInt(runtimeEvidence.total) ?? runtimeRecent.length;
+    const runtimeUniqueRuns =
+      parseNonNegativeInt(runtimeEvidence.uniqueRuns) ??
+      new Set(runtimeRecent.map((item) => (typeof item.runId === "string" ? item.runId : null)).filter(Boolean)).size;
+    const runtimeUniqueSessions =
+      parseNonNegativeInt(runtimeEvidence.uniqueSessions) ??
+      new Set(runtimeRecent.map((item) => item.sessionId)).size;
+
+    return {
+      status: runtimeTotal > 0 ? "observed" : "missing",
+      total: runtimeTotal,
+      uniqueRuns: runtimeUniqueRuns,
+      uniqueSessions: runtimeUniqueSessions,
+      latest: runtimeLatest,
+      recent: runtimeRecent.slice(0, 20),
+      source: "gateway_runtime",
+      validated: runtimeTotal > 0,
+    };
+  }
+
+  return {
+    status: "observed",
+    total: normalized.length,
+    uniqueRuns: uniqueRuns.size,
+    uniqueSessions: uniqueSessions.size,
+    latest: normalized.length > 0 ? normalized[0] : null,
+    recent: normalized.slice(0, 20),
+    source: "operator_summary",
+    validated: normalized.length > 0,
+  };
+}
+
 async function syncPendingApprovalsFromTasks(tasks: unknown[]): Promise<number> {
   let createdOrRefreshed = 0;
   for (const item of tasks) {
@@ -2086,6 +2198,7 @@ export const server = createServer(async (req, res) => {
       });
       const startupFailures = buildStartupFailureSummary(services);
       const turnTruncation = buildTurnTruncationSummary(recentEvents, services);
+      const turnDelete = buildTurnDeleteSummary(recentEvents, services);
 
       writeJson(res, 200, {
         data: {
@@ -2111,6 +2224,7 @@ export const server = createServer(async (req, res) => {
           },
           startupFailures,
           turnTruncation,
+          turnDelete,
           deviceNodes: deviceNodeHealth,
           services,
           traces,

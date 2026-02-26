@@ -318,7 +318,7 @@ Manual shortcut:
 14. WebSocket contract evidence: `gateway.websocket.binding_mismatch=passed` with `kpi.gatewayWsSessionMismatchCode=GATEWAY_SESSION_MISMATCH`, `kpi.gatewayWsUserMismatchCode=GATEWAY_USER_MISMATCH`.
 15. WebSocket drain behavior evidence: `gateway.websocket.draining_rejection=passed` with `kpi.gatewayWsDrainingCode=GATEWAY_DRAINING` and successful post-warmup recovery (`kpi.gatewayWsDrainingRecoveryStatus=completed`).
 16. WebSocket conversation-item truncate evidence: `gateway.websocket.item_truncate=passed` with `kpi.gatewayItemTruncateValidated=true`, `kpi.operatorTurnTruncationSummaryValidated=true`, session-local playback truncation event `live.turn.truncated`, and judge-facing Operator Console block `Turn Truncation Evidence` (`turnTruncation.total >= 1`).
-17. WebSocket conversation-item delete evidence: `gateway.websocket.item_delete=passed` with `kpi.gatewayItemDeleteValidated=true` and session-local cleanup event `live.turn.deleted`.
+17. WebSocket conversation-item delete evidence: `gateway.websocket.item_delete=passed` with `kpi.gatewayItemDeleteValidated=true`, session-local cleanup event `live.turn.deleted`, and judge-facing Operator Console block `Turn Delete Evidence` (`turnDelete.total >= 1`).
 18. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings).
 
 ## Quick Observability Setup (for demo environment)

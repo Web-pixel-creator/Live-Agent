@@ -39,6 +39,7 @@ const state = {
   pendingClientEvents: new Map(),
   operatorGatewayErrorSnapshot: null,
   operatorTurnTruncationSnapshot: null,
+  operatorTurnDeleteSnapshot: null,
 };
 
 const PENDING_CLIENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
@@ -187,6 +188,15 @@ const el = {
   operatorTurnTruncationContentIndex: document.getElementById("operatorTurnTruncationContentIndex"),
   operatorTurnTruncationSeenAt: document.getElementById("operatorTurnTruncationSeenAt"),
   operatorTurnTruncationHint: document.getElementById("operatorTurnTruncationHint"),
+  operatorTurnDeleteStatus: document.getElementById("operatorTurnDeleteStatus"),
+  operatorTurnDeleteTotal: document.getElementById("operatorTurnDeleteTotal"),
+  operatorTurnDeleteRuns: document.getElementById("operatorTurnDeleteRuns"),
+  operatorTurnDeleteSessions: document.getElementById("operatorTurnDeleteSessions"),
+  operatorTurnDeleteTurnId: document.getElementById("operatorTurnDeleteTurnId"),
+  operatorTurnDeleteReason: document.getElementById("operatorTurnDeleteReason"),
+  operatorTurnDeleteScope: document.getElementById("operatorTurnDeleteScope"),
+  operatorTurnDeleteSeenAt: document.getElementById("operatorTurnDeleteSeenAt"),
+  operatorTurnDeleteHint: document.getElementById("operatorTurnDeleteHint"),
   operatorStartupStatus: document.getElementById("operatorStartupStatus"),
   operatorStartupTotal: document.getElementById("operatorStartupTotal"),
   operatorStartupBlocking: document.getElementById("operatorStartupBlocking"),
@@ -806,6 +816,27 @@ function setOperatorTurnTruncationHint(text, variant = "neutral") {
   el.operatorTurnTruncationHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorTurnDeleteHint(text, variant = "neutral") {
+  if (!el.operatorTurnDeleteHint) {
+    return;
+  }
+  el.operatorTurnDeleteHint.textContent = text;
+  el.operatorTurnDeleteHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorTurnDeleteHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorTurnDeleteHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorTurnDeleteHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorTurnDeleteHint.classList.add("operator-health-hint-neutral");
+}
+
 function setOperatorStartupHint(text, variant = "neutral") {
   if (!el.operatorStartupHint) {
     return;
@@ -941,6 +972,18 @@ function resetOperatorTurnTruncationWidget(reason = "no_data") {
   setText(el.operatorTurnTruncationSeenAt, "n/a");
   setOperatorTurnTruncationHint("Waiting for live.turn.truncated evidence.", "neutral");
   setStatusPill(el.operatorTurnTruncationStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorTurnDeleteWidget(reason = "no_data") {
+  setText(el.operatorTurnDeleteTotal, "0");
+  setText(el.operatorTurnDeleteRuns, "0");
+  setText(el.operatorTurnDeleteSessions, "0");
+  setText(el.operatorTurnDeleteTurnId, "n/a");
+  setText(el.operatorTurnDeleteReason, "n/a");
+  setText(el.operatorTurnDeleteScope, "n/a");
+  setText(el.operatorTurnDeleteSeenAt, "n/a");
+  setOperatorTurnDeleteHint("Waiting for live.turn.deleted evidence.", "neutral");
+  setStatusPill(el.operatorTurnDeleteStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function resetOperatorStartupWidget(reason = "no_data") {
@@ -1115,6 +1158,82 @@ function renderOperatorTurnTruncationWidget(truncationSummary, snapshot = null) 
   setOperatorTurnTruncationHint(hint, hintVariant);
 }
 
+function renderOperatorTurnDeleteWidget(deleteSummary, snapshot = null) {
+  const summary = deleteSummary && typeof deleteSummary === "object" ? deleteSummary : null;
+  const latestFromSummary =
+    summary?.latest && typeof summary.latest === "object"
+      ? summary.latest
+      : Array.isArray(summary?.recent) && summary.recent.length > 0 && summary.recent[0] && typeof summary.recent[0] === "object"
+        ? summary.recent[0]
+        : null;
+  const snapshotRecord = snapshot && typeof snapshot === "object" ? snapshot : null;
+
+  const summaryLatestSeenAt = latestFromSummary && typeof latestFromSummary.createdAt === "string"
+    ? latestFromSummary.createdAt
+    : null;
+  const snapshotSeenAt = snapshotRecord && typeof snapshotRecord.seenAt === "string" ? snapshotRecord.seenAt : null;
+  const summaryLatestSeenAtMs = parseIsoTimestampMs(summaryLatestSeenAt);
+  const snapshotSeenAtMs = parseIsoTimestampMs(snapshotSeenAt);
+  const useSnapshotLatest =
+    snapshotRecord &&
+    (
+      summaryLatestSeenAtMs === null ||
+      (snapshotSeenAtMs !== null && snapshotSeenAtMs >= summaryLatestSeenAtMs)
+    );
+
+  const latest = useSnapshotLatest ? snapshotRecord : latestFromSummary;
+  const totalFromSummary = Number(summary?.total ?? 0);
+  const totalFromSnapshot =
+    snapshotRecord && typeof snapshotRecord.eventCount === "number" && Number.isFinite(snapshotRecord.eventCount)
+      ? Math.max(0, Math.floor(snapshotRecord.eventCount))
+      : 0;
+  const total = Math.max(Math.max(0, Math.floor(totalFromSummary)), totalFromSnapshot);
+  const uniqueRunsSummary = Number(summary?.uniqueRuns ?? 0);
+  const uniqueSessionsSummary = Number(summary?.uniqueSessions ?? 0);
+  const latestRunId = latest && typeof latest.runId === "string" ? latest.runId : null;
+  const latestSessionId = latest && typeof latest.sessionId === "string" ? latest.sessionId : null;
+  const uniqueRuns = Math.max(Math.max(0, Math.floor(uniqueRunsSummary)), latestRunId ? 1 : 0);
+  const uniqueSessions = Math.max(Math.max(0, Math.floor(uniqueSessionsSummary)), latestSessionId ? 1 : 0);
+
+  const latestTurnId = latest && typeof latest.turnId === "string" && latest.turnId.trim().length > 0
+    ? latest.turnId
+    : "n/a";
+  const latestReason = latest && typeof latest.reason === "string" && latest.reason.trim().length > 0
+    ? latest.reason
+    : "n/a";
+  const latestScope = latest && typeof latest.scope === "string" && latest.scope.trim().length > 0
+    ? latest.scope
+    : "n/a";
+  const latestSeenAt = latest && typeof latest.seenAt === "string"
+    ? latest.seenAt
+    : latest && typeof latest.createdAt === "string"
+      ? latest.createdAt
+      : "n/a";
+
+  setText(el.operatorTurnDeleteTotal, String(total));
+  setText(el.operatorTurnDeleteRuns, String(uniqueRuns));
+  setText(el.operatorTurnDeleteSessions, String(uniqueSessions));
+  setText(el.operatorTurnDeleteTurnId, latestTurnId);
+  setText(el.operatorTurnDeleteReason, latestReason);
+  setText(el.operatorTurnDeleteScope, latestScope);
+  setText(el.operatorTurnDeleteSeenAt, latestSeenAt);
+
+  if (total <= 0) {
+    setStatusPill(el.operatorTurnDeleteStatus, "no_evidence", "neutral");
+    setOperatorTurnDeleteHint("No turn delete observed yet. Run delete flow to populate operator evidence.", "warn");
+    return;
+  }
+
+  const statusText = `observed total=${total} runs=${uniqueRuns}`;
+  const statusVariant = latestTurnId === "n/a" || latestReason === "n/a" ? "neutral" : "ok";
+  const hintVariant = statusVariant === "ok" ? "ok" : "warn";
+  const hint = statusVariant === "ok"
+    ? "Turn delete evidence captured and ready for judge-facing verification."
+    : "Turn delete observed, but latest payload is incomplete. Re-run delete checkpoint.";
+  setStatusPill(el.operatorTurnDeleteStatus, statusText, statusVariant);
+  setOperatorTurnDeleteHint(hint, hintVariant);
+}
+
 function updateOperatorTurnTruncationWidgetFromEvent(event) {
   const payload = event && typeof event.payload === "object" && event.payload !== null ? event.payload : {};
   const turnId = toOptionalText(payload.turnId) ?? null;
@@ -1142,6 +1261,27 @@ function updateOperatorTurnTruncationWidgetFromEvent(event) {
   };
   state.operatorTurnTruncationSnapshot = nextSnapshot;
   renderOperatorTurnTruncationWidget(null, nextSnapshot);
+}
+
+function updateOperatorTurnDeleteWidgetFromEvent(event) {
+  const payload = event && typeof event.payload === "object" && event.payload !== null ? event.payload : {};
+  const turnId = toOptionalText(payload.turnId) ?? null;
+  const reason = toOptionalText(payload.reason) ?? null;
+  const scope = toOptionalText(payload.scope) ?? null;
+  const hadActiveTurn = payload.hadActiveTurn === true;
+  const previousCount = Number(state.operatorTurnDeleteSnapshot?.eventCount ?? 0);
+  const nextSnapshot = {
+    eventCount: Number.isFinite(previousCount) ? Math.max(0, Math.floor(previousCount)) + 1 : 1,
+    runId: typeof event.runId === "string" ? event.runId : null,
+    sessionId: typeof event.sessionId === "string" ? event.sessionId : null,
+    turnId,
+    reason,
+    scope,
+    hadActiveTurn,
+    seenAt: new Date().toISOString(),
+  };
+  state.operatorTurnDeleteSnapshot = nextSnapshot;
+  renderOperatorTurnDeleteWidget(null, nextSnapshot);
 }
 
 function renderOperatorHealthWidget(liveBridgeHealth) {
@@ -2130,9 +2270,11 @@ function renderOperatorSummary(summary) {
   resetOperatorTaskQueueWidget("no_data");
   resetOperatorGatewayErrorWidget("no_data");
   resetOperatorTurnTruncationWidget("no_data");
+  resetOperatorTurnDeleteWidget("no_data");
   resetOperatorStartupWidget("no_data");
   renderOperatorGatewayErrorWidget(state.operatorGatewayErrorSnapshot);
   renderOperatorTurnTruncationWidget(null, state.operatorTurnTruncationSnapshot);
+  renderOperatorTurnDeleteWidget(null, state.operatorTurnDeleteSnapshot);
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -2206,6 +2348,36 @@ function renderOperatorSummary(summary) {
     }
   }
   renderOperatorTurnTruncationWidget(turnTruncation, state.operatorTurnTruncationSnapshot);
+  const turnDelete = summary.turnDelete && typeof summary.turnDelete === "object"
+    ? summary.turnDelete
+    : null;
+  if (turnDelete) {
+    const deleteTotal = Number(turnDelete.total ?? 0);
+    const deleteUniqueRuns = Number(turnDelete.uniqueRuns ?? 0);
+    const deleteUniqueSessions = Number(turnDelete.uniqueSessions ?? 0);
+    appendEntry(
+      el.operatorSummary,
+      deleteTotal > 0 ? "system" : "error",
+      "turn_delete",
+      `total=${Math.max(0, Math.floor(deleteTotal))} unique_runs=${Math.max(0, Math.floor(deleteUniqueRuns))} unique_sessions=${Math.max(0, Math.floor(deleteUniqueSessions))}`,
+    );
+    const deleteLatest = turnDelete.latest && typeof turnDelete.latest === "object"
+      ? turnDelete.latest
+      : null;
+    if (deleteLatest) {
+      const latestTurnId = typeof deleteLatest.turnId === "string" ? deleteLatest.turnId : "n/a";
+      const latestReason = typeof deleteLatest.reason === "string" ? deleteLatest.reason : "n/a";
+      const latestScope = typeof deleteLatest.scope === "string" ? deleteLatest.scope : "n/a";
+      const latestSeenAt = typeof deleteLatest.createdAt === "string" ? deleteLatest.createdAt : "n/a";
+      appendEntry(
+        el.operatorSummary,
+        "system",
+        "turn_delete.latest",
+        `turn=${latestTurnId} reason=${latestReason} scope=${latestScope} seen_at=${latestSeenAt}`,
+      );
+    }
+  }
+  renderOperatorTurnDeleteWidget(turnDelete, state.operatorTurnDeleteSnapshot);
   renderOperatorApprovalsWidget(summary.approvals);
   renderOperatorTaskQueueWidget(taskQueueSummary);
   const startupFailures = summary.startupFailures && typeof summary.startupFailures === "object"
@@ -2422,6 +2594,11 @@ async function refreshOperatorSummary() {
       renderOperatorTurnTruncationWidget(null, state.operatorTurnTruncationSnapshot);
     } else {
       resetOperatorTurnTruncationWidget("summary_error");
+    }
+    if (state.operatorTurnDeleteSnapshot) {
+      renderOperatorTurnDeleteWidget(null, state.operatorTurnDeleteSnapshot);
+    } else {
+      resetOperatorTurnDeleteWidget("summary_error");
     }
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
@@ -3207,6 +3384,7 @@ function handleGatewayEvent(event) {
   if (event.type === "live.turn.deleted") {
     const turnId = typeof event.payload?.turnId === "string" ? event.payload.turnId : "unknown_turn";
     appendTranscript("system", `Assistant turn deleted (${turnId})`);
+    updateOperatorTurnDeleteWidgetFromEvent(event);
     if (state.assistantPlaybackTurnId && state.assistantPlaybackTurnId === turnId) {
       resetPlaybackTracking();
     }
