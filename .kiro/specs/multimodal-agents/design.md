@@ -151,6 +151,7 @@ Responsibilities:
 3. Self-correction loop (post-action verify screenshot).
 4. Sensitive action blocking + user confirmation.
 5. Visual testing mode with structured regression report (`layout/content/interaction`, severity, baseline/actual/diff refs).
+6. Rule-driven damage-control policy layer (`allow/ask/block`) applied before execution with operator-visible diagnostics.
 
 ## Sequence Flows
 
@@ -703,6 +704,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 | Demo frontend + controls | R1, R3, R14, R15 | T-000, T-110, T-111 |
 | Live bridge failover + channel watchdog | R1, R12, R15 | T-211 |
 | UI loop protection + approval SLA lifecycle | R6, R7, R8, R13, R15 | T-212, T-213 |
+| UI damage-control rule layer | R6, R7, R13, R15 | T-238 |
 | WS protocol discipline + targeted unit pack | R14, R15 | T-214, T-215 |
 | Session optimistic versioning + idempotent mutation replay | R14, R15 | T-216 |
 | Live-agent context compaction runtime | R1, R10, R15 | T-217 |

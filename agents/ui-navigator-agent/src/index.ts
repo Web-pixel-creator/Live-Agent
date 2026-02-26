@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve as resolvePath } from "node:path";
 import {
   buildCapabilityProfile,
   type CapabilityProfile,
@@ -141,6 +143,9 @@ type PlannerConfig = {
   sandboxAllowedActionTypes: UiAction["type"][];
   sandboxBlockedApprovalCategories: string[];
   sandboxForcedExecutorMode: ExecutorMode | null;
+  damageControlEnabled: boolean;
+  damageControlRulesPath: string | null;
+  damageControlRulesJson: string | null;
 };
 
 type SandboxPolicyMode = "off" | "non-main" | "all";
@@ -157,6 +162,40 @@ type SandboxPolicyContext = {
   allowedActionTypes: UiAction["type"][];
   blockedApprovalCategories: string[];
   blockedCategories: string[];
+};
+
+type DamageControlRuleMode = "block" | "ask";
+
+type DamageControlRule = {
+  id: string;
+  mode: DamageControlRuleMode;
+  reason: string;
+  goalPatterns: string[];
+  actionTypes: UiAction["type"][];
+  actionTargetPatterns: string[];
+  approvalCategories: string[];
+};
+
+type DamageControlMatch = {
+  ruleId: string;
+  mode: DamageControlRuleMode;
+  reason: string;
+};
+
+type DamageControlRuleset = {
+  source: "default" | "file" | "env_json";
+  path: string | null;
+  warnings: string[];
+  rules: DamageControlRule[];
+};
+
+type DamageControlVerdict = {
+  enabled: boolean;
+  source: DamageControlRuleset["source"];
+  path: string | null;
+  verdict: "allow" | "ask" | "block";
+  matches: DamageControlMatch[];
+  warnings: string[];
 };
 
 type UiNavigatorCapabilitySet = {
@@ -232,6 +271,267 @@ function toStringArray(value: unknown): string[] {
     return [];
   }
   return value.map((item) => toNonEmptyString(item, "")).filter((item) => item.length > 0);
+}
+
+const VALID_UI_ACTION_TYPES: UiAction["type"][] = ["navigate", "click", "type", "scroll", "hotkey", "wait", "verify"];
+
+const DEFAULT_DAMAGE_CONTROL_RULES: DamageControlRule[] = [
+  {
+    id: "dc-payment-ask",
+    mode: "ask",
+    reason: "Payment-related actions require explicit confirmation.",
+    goalPatterns: [],
+    actionTypes: [],
+    actionTargetPatterns: [],
+    approvalCategories: ["payment"],
+  },
+  {
+    id: "dc-credential-ask",
+    mode: "ask",
+    reason: "Credential submission requires explicit confirmation.",
+    goalPatterns: [],
+    actionTypes: [],
+    actionTargetPatterns: [],
+    approvalCategories: ["credential_submission"],
+  },
+  {
+    id: "dc-destructive-ask",
+    mode: "ask",
+    reason: "Destructive operations require explicit confirmation.",
+    goalPatterns: [],
+    actionTypes: [],
+    actionTargetPatterns: [],
+    approvalCategories: ["destructive_operation"],
+  },
+  {
+    id: "dc-hotkey-block",
+    mode: "block",
+    reason: "Critical system hotkeys are blocked by policy.",
+    goalPatterns: [],
+    actionTypes: ["hotkey"],
+    actionTargetPatterns: ["\\b(alt\\+f4|cmd\\+q|ctrl\\+alt\\+delete)\\b"],
+    approvalCategories: [],
+  },
+];
+
+let cachedDamageControlRules: { cacheKey: string; ruleset: DamageControlRuleset } | null = null;
+
+function normalizeDamageControlMode(value: unknown): DamageControlRuleMode {
+  return String(value).toLowerCase() === "block" ? "block" : "ask";
+}
+
+function normalizeDamageControlActionTypes(value: unknown): UiAction["type"][] {
+  const candidates = toStringArray(value).map((item) => item.trim().toLowerCase());
+  return candidates.filter((candidate): candidate is UiAction["type"] =>
+    VALID_UI_ACTION_TYPES.includes(candidate as UiAction["type"]),
+  );
+}
+
+function normalizeDamageControlRule(raw: unknown, index: number): DamageControlRule | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const id = toNonEmptyString(raw.id, `dc-rule-${index + 1}`);
+  const reason = toNonEmptyString(raw.reason, "");
+  if (reason.length === 0) {
+    return null;
+  }
+  const goalPatterns = toStringArray(raw.goalPatterns).slice(0, 12);
+  const actionTypes = normalizeDamageControlActionTypes(raw.actionTypes).slice(0, 8);
+  const actionTargetPatterns = toStringArray(raw.actionTargetPatterns).slice(0, 12);
+  const approvalCategories = toStringArray(raw.approvalCategories).slice(0, 12);
+  if (
+    goalPatterns.length === 0 &&
+    actionTypes.length === 0 &&
+    actionTargetPatterns.length === 0 &&
+    approvalCategories.length === 0
+  ) {
+    return null;
+  }
+  return {
+    id,
+    mode: normalizeDamageControlMode(raw.mode),
+    reason,
+    goalPatterns,
+    actionTypes,
+    actionTargetPatterns,
+    approvalCategories,
+  };
+}
+
+function parseDamageControlRules(source: unknown): DamageControlRule[] {
+  const rawRules = isRecord(source) ? source.rules : [];
+  if (!Array.isArray(rawRules)) {
+    return [];
+  }
+  const normalized: DamageControlRule[] = [];
+  for (let index = 0; index < rawRules.length; index += 1) {
+    const rule = normalizeDamageControlRule(rawRules[index], index);
+    if (rule) {
+      normalized.push(rule);
+    }
+  }
+  return normalized;
+}
+
+function buildDefaultDamageControlRuleset(): DamageControlRuleset {
+  return {
+    source: "default",
+    path: null,
+    warnings: [],
+    rules: DEFAULT_DAMAGE_CONTROL_RULES,
+  };
+}
+
+function loadDamageControlRules(config: PlannerConfig): DamageControlRuleset {
+  const cacheKey = `${config.damageControlRulesPath ?? ""}::${config.damageControlRulesJson ?? ""}`;
+  if (cachedDamageControlRules && cachedDamageControlRules.cacheKey === cacheKey) {
+    return cachedDamageControlRules.ruleset;
+  }
+
+  const fallback = buildDefaultDamageControlRuleset();
+  const warnings: string[] = [];
+
+  if (config.damageControlRulesJson) {
+    try {
+      const parsed = JSON.parse(config.damageControlRulesJson) as unknown;
+      const rules = parseDamageControlRules(parsed);
+      if (rules.length > 0) {
+        const ruleset: DamageControlRuleset = {
+          source: "env_json",
+          path: null,
+          warnings,
+          rules,
+        };
+        cachedDamageControlRules = { cacheKey, ruleset };
+        return ruleset;
+      }
+      warnings.push("UI_NAVIGATOR_DAMAGE_CONTROL_RULES_JSON did not provide any valid rules.");
+    } catch (error) {
+      warnings.push(
+        `Failed to parse UI_NAVIGATOR_DAMAGE_CONTROL_RULES_JSON: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  if (config.damageControlRulesPath) {
+    try {
+      const absolutePath = resolvePath(process.cwd(), config.damageControlRulesPath);
+      if (existsSync(absolutePath)) {
+        const raw = readFileSync(absolutePath, "utf8");
+        const parsed = JSON.parse(raw) as unknown;
+        const rules = parseDamageControlRules(parsed);
+        if (rules.length > 0) {
+          const ruleset: DamageControlRuleset = {
+            source: "file",
+            path: config.damageControlRulesPath,
+            warnings,
+            rules,
+          };
+          cachedDamageControlRules = { cacheKey, ruleset };
+          return ruleset;
+        }
+        warnings.push(`Damage-control rules file has no valid rules: ${config.damageControlRulesPath}`);
+      }
+    } catch (error) {
+      warnings.push(
+        `Failed to load damage-control rules file '${config.damageControlRulesPath}': ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  const ruleset: DamageControlRuleset = {
+    source: fallback.source,
+    path: fallback.path,
+    warnings,
+    rules: fallback.rules,
+  };
+  cachedDamageControlRules = { cacheKey, ruleset };
+  return ruleset;
+}
+
+function containsPatternMatch(text: string, patterns: string[]): boolean {
+  if (patterns.length === 0) {
+    return true;
+  }
+  for (const pattern of patterns) {
+    try {
+      if (new RegExp(pattern, "i").test(text)) {
+        return true;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return false;
+}
+
+function intersects<T extends string>(left: T[], right: T[]): boolean {
+  const rightSet = new Set<T>(right);
+  return left.some((item) => rightSet.has(item));
+}
+
+function evaluateDamageControl(params: {
+  config: PlannerConfig;
+  input: UiTaskInput;
+  actions: UiAction[];
+  approvalCategories: string[];
+}): DamageControlVerdict {
+  if (!params.config.damageControlEnabled) {
+    return {
+      enabled: false,
+      source: "default",
+      path: null,
+      verdict: "allow",
+      matches: [],
+      warnings: [],
+    };
+  }
+
+  const ruleset = loadDamageControlRules(params.config);
+  const actionTypes = params.actions.map((action) => action.type);
+  const actionTargets = params.actions.map((action) => action.target);
+  const matches: DamageControlMatch[] = [];
+
+  for (const rule of ruleset.rules) {
+    if (!containsPatternMatch(params.input.goal, rule.goalPatterns)) {
+      continue;
+    }
+    if (rule.actionTypes.length > 0 && !intersects(rule.actionTypes, actionTypes)) {
+      continue;
+    }
+    if (rule.actionTargetPatterns.length > 0) {
+      const targetMatched = actionTargets.some((target) => containsPatternMatch(target, rule.actionTargetPatterns));
+      if (!targetMatched) {
+        continue;
+      }
+    }
+    if (rule.approvalCategories.length > 0 && !intersects(rule.approvalCategories, params.approvalCategories)) {
+      continue;
+    }
+    matches.push({
+      ruleId: rule.id,
+      mode: rule.mode,
+      reason: rule.reason,
+    });
+  }
+
+  const hasBlock = matches.some((match) => match.mode === "block");
+  const hasAsk = matches.some((match) => match.mode === "ask");
+  const approvalAlreadyConfirmed = params.input.approvalConfirmed || params.input.approvalDecision === "approved";
+
+  return {
+    enabled: true,
+    source: ruleset.source,
+    path: ruleset.path,
+    verdict: hasBlock ? "block" : hasAsk && !approvalAlreadyConfirmed ? "ask" : "allow",
+    matches,
+    warnings: ruleset.warnings,
+  };
 }
 
 function clipText(value: string | null, maxChars: number): string | null {
@@ -655,6 +955,11 @@ function getPlannerConfig(): PlannerConfig {
     sandboxForcedExecutorMode: process.env.UI_NAVIGATOR_SANDBOX_FORCE_EXECUTOR_MODE
       ? parseExecutorMode(process.env.UI_NAVIGATOR_SANDBOX_FORCE_EXECUTOR_MODE)
       : null,
+    damageControlEnabled: process.env.UI_NAVIGATOR_DAMAGE_CONTROL_ENABLED !== "false",
+    damageControlRulesPath: toNullableString(
+      process.env.UI_NAVIGATOR_DAMAGE_CONTROL_RULES_PATH ?? ".kiro/policies/ui-damage-control.rules.json",
+    ),
+    damageControlRulesJson: toNullableString(process.env.UI_NAVIGATOR_DAMAGE_CONTROL_RULES_JSON),
   };
 }
 
@@ -2267,6 +2572,18 @@ function buildSandboxPolicyPayload(context: SandboxPolicyContext): Record<string
   };
 }
 
+function buildDamageControlPayload(verdict: DamageControlVerdict): Record<string, unknown> {
+  return {
+    enabled: verdict.enabled,
+    source: verdict.source,
+    path: verdict.path,
+    verdict: verdict.verdict,
+    matchedRuleCount: verdict.matches.length,
+    matches: verdict.matches,
+    warnings: verdict.warnings,
+  };
+}
+
 export async function runUiNavigatorAgent(
   request: OrchestratorRequest,
 ): Promise<OrchestratorResponse> {
@@ -2324,8 +2641,6 @@ export async function runUiNavigatorAgent(
       });
     }
 
-    const approvalRequired = sensitiveSignals.length > 0 && !input.approvalConfirmed;
-
     const planResult = await buildActionPlan({
       input,
       config,
@@ -2333,6 +2648,56 @@ export async function runUiNavigatorAgent(
       skillsPrompt,
     });
     const actions = limitActions(planResult.actions, sandboxPolicy.maxStepsLimit);
+    const damageControl = evaluateDamageControl({
+      config,
+      input,
+      actions,
+      approvalCategories,
+    });
+    if (damageControl.verdict === "block") {
+      return createEnvelope({
+        userId: request.userId,
+        sessionId: request.sessionId,
+        runId,
+        type: "orchestrator.response",
+        source: "ui-navigator-agent",
+        payload: {
+          route: "ui-navigator-agent",
+          status: "failed",
+          traceId,
+          output: {
+            message: "UI task is blocked by damage-control policy.",
+            handledIntent: request.payload.intent,
+            traceId,
+            latencyMs: Date.now() - startedAt,
+            approvalRequired: false,
+            approvalCategories,
+            planner: {
+              provider: planResult.plannerProvider,
+              model: planResult.plannerModel,
+            },
+            sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+            damageControl: buildDamageControlPayload(damageControl),
+            capabilityProfile: capabilities.profile,
+            skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
+            actionPlan: actions,
+            execution: {
+              finalStatus: "failed_damage_control",
+              retries: 0,
+              trace: [],
+              verifyLoopEnabled: true,
+              sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+            },
+          },
+        },
+      });
+    }
+    const damageControlApprovalCategories = damageControl.matches
+      .filter((match) => match.mode === "ask")
+      .map((match) => `damage_control:${match.ruleId}`);
+    const effectiveApprovalCategories = uniqueStrings([...approvalCategories, ...damageControlApprovalCategories]);
+    const approvalRequired = effectiveApprovalCategories.length > 0 && !input.approvalConfirmed;
+
     const plannedLoop = detectActionLoop(actions, config);
     if (plannedLoop.detected) {
       return createEnvelope({
@@ -2369,6 +2734,7 @@ export async function runUiNavigatorAgent(
               model: planResult.plannerModel,
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+            damageControl: buildDamageControlPayload(damageControl),
             capabilityProfile: capabilities.profile,
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             actionPlan: actions,
@@ -2418,6 +2784,7 @@ export async function runUiNavigatorAgent(
               model: planResult.plannerModel,
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+            damageControl: buildDamageControlPayload(damageControl),
             capabilityProfile: capabilities.profile,
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             deviceNodeRouting,
@@ -2460,6 +2827,7 @@ export async function runUiNavigatorAgent(
               model: planResult.plannerModel,
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+            damageControl: buildDamageControlPayload(damageControl),
             capabilityProfile: capabilities.profile,
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             deviceNodeRouting,
@@ -2499,6 +2867,7 @@ export async function runUiNavigatorAgent(
               model: planResult.plannerModel,
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+            damageControl: buildDamageControlPayload(damageControl),
             capabilityProfile: capabilities.profile,
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             actionPlan: actions,
@@ -2540,6 +2909,7 @@ export async function runUiNavigatorAgent(
               model: planResult.plannerModel,
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+            damageControl: buildDamageControlPayload(damageControl),
             capabilityProfile: capabilities.profile,
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             actionPlan: actions,
@@ -2584,7 +2954,7 @@ export async function runUiNavigatorAgent(
             latencyMs: Date.now() - startedAt,
             approvalRequired: true,
             approvalId,
-            approvalCategories,
+            approvalCategories: effectiveApprovalCategories,
             sensitiveSignals,
             resumeRequestTemplate: {
               intent: "ui_task",
@@ -2613,6 +2983,7 @@ export async function runUiNavigatorAgent(
               model: planResult.plannerModel,
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+            damageControl: buildDamageControlPayload(damageControl),
             capabilityProfile: capabilities.profile,
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             deviceNodeRouting,
@@ -2690,6 +3061,7 @@ export async function runUiNavigatorAgent(
             model: planResult.plannerModel,
           },
           sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+          damageControl: buildDamageControlPayload(damageControl),
           capabilityProfile: capabilities.profile,
           skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
           deviceNodeRouting,

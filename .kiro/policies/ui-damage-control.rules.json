@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "dc-payment-ask",
+      "mode": "ask",
+      "reason": "Payment-related actions require explicit confirmation.",
+      "approvalCategories": ["payment"]
+    },
+    {
+      "id": "dc-credential-ask",
+      "mode": "ask",
+      "reason": "Credential submission requires explicit confirmation.",
+      "approvalCategories": ["credential_submission"]
+    },
+    {
+      "id": "dc-destructive-ask",
+      "mode": "ask",
+      "reason": "Destructive operations require explicit confirmation.",
+      "approvalCategories": ["destructive_operation"]
+    },
+    {
+      "id": "dc-hotkey-block",
+      "mode": "block",
+      "reason": "Critical system hotkeys are blocked by policy.",
+      "actionTypes": ["hotkey"],
+      "actionTargetPatterns": ["\\b(alt\\+f4|cmd\\+q|ctrl\\+alt\\+delete)\\b"]
+    }
+  ]
+}

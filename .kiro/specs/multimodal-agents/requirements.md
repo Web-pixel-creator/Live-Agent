@@ -138,6 +138,7 @@
 4. THE Action_Executor SHALL execute actions through Playwright/Puppeteer for web flows or through approved native control adapters.
 5. THE UI_Navigator SHALL capture a post-action screenshot and verify expected state in a self-correction loop.
 6. THE UI_Navigator SHALL stop execution and request user confirmation for sensitive actions (payments, credential submission, destructive operations).
+7. THE UI_Navigator SHALL enforce a rule-driven damage-control policy layer that can return `allow`, `ask`, or `block` before action execution and SHALL expose matched policy diagnostics in run output.
 
 ### Requirement 7: UI Navigator - Action Execution Reliability
 

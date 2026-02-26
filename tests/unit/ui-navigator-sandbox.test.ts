@@ -529,3 +529,102 @@ test("ui navigator marks execution failed when runtime trace loop is detected", 
     });
   }
 });
+
+test("ui navigator blocks execution when damage-control rule returns block verdict", async () => {
+  await withEnv(
+    {
+      UI_NAVIGATOR_USE_GEMINI_PLANNER: "false",
+      UI_NAVIGATOR_SANDBOX_POLICY_MODE: "off",
+      UI_NAVIGATOR_DAMAGE_CONTROL_ENABLED: "true",
+      UI_NAVIGATOR_DAMAGE_CONTROL_RULES_JSON: JSON.stringify({
+        version: 1,
+        rules: [
+          {
+            id: "dc-test-block-archive",
+            mode: "block",
+            reason: "Archive operation is blocked for this environment.",
+            goalPatterns: ["archive\\s+account"],
+          },
+        ],
+      }),
+    },
+    async () => {
+      const request = createEnvelope({
+        userId: "damage-user",
+        sessionId: "damage-session-block",
+        runId: "damage-run-block",
+        type: "orchestrator.request",
+        source: "frontend",
+        payload: {
+          intent: "ui_task",
+          input: {
+            goal: "Archive account for inactive users",
+            url: "https://example.com/admin/archive",
+          },
+        },
+      }) as OrchestratorRequest;
+
+      const response = await runUiNavigatorAgent(request);
+      assert.equal(response.payload.status, "failed");
+
+      const output = asObject(response.payload.output);
+      const execution = asObject(output.execution);
+      const damageControl = asObject(output.damageControl);
+      const matches = Array.isArray(damageControl.matches) ? damageControl.matches : [];
+
+      assert.equal(execution.finalStatus, "failed_damage_control");
+      assert.equal(output.approvalRequired, false);
+      assert.equal(damageControl.verdict, "block");
+      assert.equal(matches.length, 1);
+    },
+  );
+});
+
+test("ui navigator requests approval when damage-control rule returns ask verdict", async () => {
+  await withEnv(
+    {
+      UI_NAVIGATOR_USE_GEMINI_PLANNER: "false",
+      UI_NAVIGATOR_SANDBOX_POLICY_MODE: "off",
+      UI_NAVIGATOR_DAMAGE_CONTROL_ENABLED: "true",
+      UI_NAVIGATOR_DAMAGE_CONTROL_RULES_JSON: JSON.stringify({
+        version: 1,
+        rules: [
+          {
+            id: "dc-test-ask-nav",
+            mode: "ask",
+            reason: "Navigation in this scope requires explicit approval.",
+            actionTypes: ["navigate"],
+          },
+        ],
+      }),
+      UI_NAVIGATOR_APPROVAL_KEYWORDS: "payment,pay,card",
+    },
+    async () => {
+      const request = createEnvelope({
+        userId: "damage-user",
+        sessionId: "damage-session-ask",
+        runId: "damage-run-ask",
+        type: "orchestrator.request",
+        source: "frontend",
+        payload: {
+          intent: "ui_task",
+          input: {
+            goal: "Open public dashboard and inspect metrics",
+            url: "https://example.com/dashboard",
+          },
+        },
+      }) as OrchestratorRequest;
+
+      const response = await runUiNavigatorAgent(request);
+      assert.equal(response.payload.status, "accepted");
+
+      const output = asObject(response.payload.output);
+      const damageControl = asObject(output.damageControl);
+      const categories = Array.isArray(output.approvalCategories) ? output.approvalCategories : [];
+
+      assert.equal(output.approvalRequired, true);
+      assert.equal(damageControl.verdict, "ask");
+      assert.ok(categories.includes("damage_control:dc-test-ask-nav"));
+    },
+  );
+});
