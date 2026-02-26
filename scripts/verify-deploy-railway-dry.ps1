@@ -1,0 +1,32 @@
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "Stop"
+
+function Fail([string]$Message) {
+  Write-Error $Message
+  exit 1
+}
+
+$testFiles = @(
+  "tests/unit/public-badge-check-alignment.test.ts",
+  "tests/unit/railway-deploy-alignment.test.ts",
+  "tests/unit/railway-deploy-public-badge-flow-smoke.test.ts",
+  "tests/unit/repo-publish-release-gate-alignment.test.ts",
+  "tests/unit/repo-publish-railway-forwarding-smoke.test.ts"
+)
+
+foreach ($testFile in $testFiles) {
+  if (-not (Test-Path $testFile)) {
+    Fail "Missing contract test file: $testFile"
+  }
+}
+
+Write-Host "[verify-deploy-railway-dry] Running deploy-contract checks..."
+$nodeArgs = @("--import", "tsx", "--test") + $testFiles
+& node @nodeArgs
+if ($LASTEXITCODE -ne 0) {
+  Fail "Deploy-contract checks failed."
+}
+
+Write-Host "[verify-deploy-railway-dry] Deploy-contract checks passed."

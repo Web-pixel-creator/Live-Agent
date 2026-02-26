@@ -504,6 +504,12 @@ Behavior:
 - Runs post-deploy public badge endpoint check (`badge:public:check` helper logic) after successful deploy.
 - In `-- -NoWait` mode, post-deploy badge endpoint check is not executed (trigger-only flow).
 
+Fast contract-only dry gate for Railway deploy/repo-publish wiring:
+
+```powershell
+npm run verify:deploy:railway:dry
+```
+
 Common flags:
 
 - `-- -StrictReleaseVerification` - use strict pre-deploy gate (`verify:release:strict`).
