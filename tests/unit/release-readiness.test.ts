@@ -95,6 +95,18 @@ function createPassingSummary(
     operatorTurnDeleteUniqueRuns: number | string;
     operatorTurnDeleteUniqueSessions: number | string;
     operatorTurnDeleteLatestSeenAt: string;
+    operatorDamageControlSummaryValidated: boolean | string;
+    operatorDamageControlTotal: number | string;
+    operatorDamageControlUniqueRuns: number | string;
+    operatorDamageControlUniqueSessions: number | string;
+    operatorDamageControlMatchedRuleCountTotal: number | string;
+    operatorDamageControlAllowCount: number | string;
+    operatorDamageControlAskCount: number | string;
+    operatorDamageControlBlockCount: number | string;
+    operatorDamageControlLatestVerdict: string;
+    operatorDamageControlLatestSource: string;
+    operatorDamageControlLatestMatchedRuleCount: number | string;
+    operatorDamageControlLatestSeenAt: string;
     operatorAuditTrailValidated: boolean | string;
     operatorTraceCoverageValidated: boolean | string;
     operatorLiveBridgeHealthBlockValidated: boolean | string;
@@ -202,6 +214,42 @@ function createPassingSummary(
         : 1,
       operatorTurnDeleteLatestSeenAt: hasOverride("operatorTurnDeleteLatestSeenAt")
         ? overrides.operatorTurnDeleteLatestSeenAt
+        : "2026-02-26T00:00:00.000Z",
+      operatorDamageControlSummaryValidated: hasOverride("operatorDamageControlSummaryValidated")
+        ? overrides.operatorDamageControlSummaryValidated
+        : true,
+      operatorDamageControlTotal: hasOverride("operatorDamageControlTotal")
+        ? overrides.operatorDamageControlTotal
+        : 1,
+      operatorDamageControlUniqueRuns: hasOverride("operatorDamageControlUniqueRuns")
+        ? overrides.operatorDamageControlUniqueRuns
+        : 1,
+      operatorDamageControlUniqueSessions: hasOverride("operatorDamageControlUniqueSessions")
+        ? overrides.operatorDamageControlUniqueSessions
+        : 1,
+      operatorDamageControlMatchedRuleCountTotal: hasOverride("operatorDamageControlMatchedRuleCountTotal")
+        ? overrides.operatorDamageControlMatchedRuleCountTotal
+        : 1,
+      operatorDamageControlAllowCount: hasOverride("operatorDamageControlAllowCount")
+        ? overrides.operatorDamageControlAllowCount
+        : 0,
+      operatorDamageControlAskCount: hasOverride("operatorDamageControlAskCount")
+        ? overrides.operatorDamageControlAskCount
+        : 1,
+      operatorDamageControlBlockCount: hasOverride("operatorDamageControlBlockCount")
+        ? overrides.operatorDamageControlBlockCount
+        : 0,
+      operatorDamageControlLatestVerdict: hasOverride("operatorDamageControlLatestVerdict")
+        ? overrides.operatorDamageControlLatestVerdict
+        : "ask",
+      operatorDamageControlLatestSource: hasOverride("operatorDamageControlLatestSource")
+        ? overrides.operatorDamageControlLatestSource
+        : "file",
+      operatorDamageControlLatestMatchedRuleCount: hasOverride("operatorDamageControlLatestMatchedRuleCount")
+        ? overrides.operatorDamageControlLatestMatchedRuleCount
+        : 1,
+      operatorDamageControlLatestSeenAt: hasOverride("operatorDamageControlLatestSeenAt")
+        ? overrides.operatorDamageControlLatestSeenAt
         : "2026-02-26T00:00:00.000Z",
       operatorTaskQueueSummaryValidated: true,
       operatorTaskQueuePressureLevel: hasOverride("pressureLevel") ? overrides.pressureLevel : "healthy",
@@ -1428,6 +1476,50 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /operatorTurnDeleteLatestSeenAt expected ISO timestamp, actual not-an-iso/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator damage-control summary KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({ operatorDamageControlSummaryValidated: false }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorDamageControlSummaryValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator damage-control verdict counts do not match total",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        operatorDamageControlAllowCount: 1,
+        operatorDamageControlAskCount: 1,
+        operatorDamageControlBlockCount: 1,
+        operatorDamageControlTotal: 1,
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorDamageControl verdictCounts sum expected operatorDamageControlTotal/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator damage-control latest timestamp is invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({ operatorDamageControlLatestSeenAt: "not-an-iso" }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorDamageControlLatestSeenAt expected ISO timestamp, actual not-an-iso/i);
   },
 );
 

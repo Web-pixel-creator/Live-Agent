@@ -340,6 +340,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     operatorTurnTruncationExpectedEventSeen = $true
     operatorTurnDeleteSummaryValidated = $true
     operatorTurnDeleteExpectedEventSeen = $true
+    operatorDamageControlSummaryValidated = $true
     operatorTaskQueueSummaryValidated = $true
     operatorAuditTrailValidated = $true
     operatorTraceCoverageValidated = $true
@@ -413,6 +414,80 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $parsedTurnDeleteLatestSeenAt = [DateTimeOffset]::MinValue
   if (-not [DateTimeOffset]::TryParse($turnDeleteLatestSeenAt, [ref]$parsedTurnDeleteLatestSeenAt)) {
     Fail ("Critical KPI check failed: operatorTurnDeleteLatestSeenAt expected ISO timestamp, actual " + $turnDeleteLatestSeenAt)
+  }
+
+  $operatorDamageControlTotal = [int]$summary.kpis.operatorDamageControlTotal
+  if ($operatorDamageControlTotal -lt 1) {
+    Fail ("Critical KPI check failed: operatorDamageControlTotal expected >= 1, actual " + $operatorDamageControlTotal)
+  }
+
+  $operatorDamageControlUniqueRuns = [int]$summary.kpis.operatorDamageControlUniqueRuns
+  if ($operatorDamageControlUniqueRuns -lt 1) {
+    Fail ("Critical KPI check failed: operatorDamageControlUniqueRuns expected >= 1, actual " + $operatorDamageControlUniqueRuns)
+  }
+
+  $operatorDamageControlUniqueSessions = [int]$summary.kpis.operatorDamageControlUniqueSessions
+  if ($operatorDamageControlUniqueSessions -lt 1) {
+    Fail ("Critical KPI check failed: operatorDamageControlUniqueSessions expected >= 1, actual " + $operatorDamageControlUniqueSessions)
+  }
+
+  $operatorDamageControlMatchedRuleCountTotal = [int]$summary.kpis.operatorDamageControlMatchedRuleCountTotal
+  if ($operatorDamageControlMatchedRuleCountTotal -lt 1) {
+    Fail ("Critical KPI check failed: operatorDamageControlMatchedRuleCountTotal expected >= 1, actual " + $operatorDamageControlMatchedRuleCountTotal)
+  }
+
+  $operatorDamageControlAllowCount = [int]$summary.kpis.operatorDamageControlAllowCount
+  $operatorDamageControlAskCount = [int]$summary.kpis.operatorDamageControlAskCount
+  $operatorDamageControlBlockCount = [int]$summary.kpis.operatorDamageControlBlockCount
+  if (($operatorDamageControlAllowCount + $operatorDamageControlAskCount + $operatorDamageControlBlockCount) -ne $operatorDamageControlTotal) {
+    Fail (
+      "Critical KPI check failed: operatorDamageControl verdictCounts sum expected operatorDamageControlTotal, actual " +
+      ($operatorDamageControlAllowCount + $operatorDamageControlAskCount + $operatorDamageControlBlockCount) +
+      " vs " +
+      $operatorDamageControlTotal
+    )
+  }
+
+  $operatorDamageControlLatestVerdict = [string]$summary.kpis.operatorDamageControlLatestVerdict
+  $allowedOperatorDamageControlLatestVerdicts = @("allow", "ask", "block")
+  if (-not ($allowedOperatorDamageControlLatestVerdicts -contains $operatorDamageControlLatestVerdict)) {
+    Fail (
+      "Critical KPI check failed: operatorDamageControlLatestVerdict expected one of [" +
+      ($allowedOperatorDamageControlLatestVerdicts -join ", ") +
+      "], actual " +
+      $operatorDamageControlLatestVerdict
+    )
+  }
+
+  $operatorDamageControlLatestSource = [string]$summary.kpis.operatorDamageControlLatestSource
+  $allowedOperatorDamageControlLatestSources = @("default", "file", "env_json", "unknown")
+  if (-not ($allowedOperatorDamageControlLatestSources -contains $operatorDamageControlLatestSource)) {
+    Fail (
+      "Critical KPI check failed: operatorDamageControlLatestSource expected one of [" +
+      ($allowedOperatorDamageControlLatestSources -join ", ") +
+      "], actual " +
+      $operatorDamageControlLatestSource
+    )
+  }
+
+  $operatorDamageControlLatestMatchedRuleCount = [int]$summary.kpis.operatorDamageControlLatestMatchedRuleCount
+  if ($operatorDamageControlLatestMatchedRuleCount -lt 1) {
+    Fail (
+      "Critical KPI check failed: operatorDamageControlLatestMatchedRuleCount expected >= 1, actual " +
+      $operatorDamageControlLatestMatchedRuleCount
+    )
+  }
+
+  $operatorDamageControlLatestSeenAt = [string]$summary.kpis.operatorDamageControlLatestSeenAt
+  if ([string]::IsNullOrWhiteSpace($operatorDamageControlLatestSeenAt)) {
+    Fail "Critical KPI check failed: operatorDamageControlLatestSeenAt is missing"
+  }
+  $parsedOperatorDamageControlLatestSeenAt = [DateTimeOffset]::MinValue
+  if (-not [DateTimeOffset]::TryParse($operatorDamageControlLatestSeenAt, [ref]$parsedOperatorDamageControlLatestSeenAt)) {
+    Fail (
+      "Critical KPI check failed: operatorDamageControlLatestSeenAt expected ISO timestamp, actual " +
+      $operatorDamageControlLatestSeenAt
+    )
   }
 
   $taskQueueTotal = [int]$summary.kpis.operatorTaskQueueTotal
@@ -1266,6 +1341,26 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", unique_sessions=" + $turnDeleteUniqueSessions +
       ", expected_event_seen=" + $turnDeleteExpectedEventSeen +
       ", latest_seen_at=" + $turnDeleteLatestSeenAt
+    )
+  }
+  $operatorDamageControlValidated = $summary.kpis.operatorDamageControlSummaryValidated
+  $operatorDamageControlTotal = $summary.kpis.operatorDamageControlTotal
+  $operatorDamageControlUniqueRuns = $summary.kpis.operatorDamageControlUniqueRuns
+  $operatorDamageControlUniqueSessions = $summary.kpis.operatorDamageControlUniqueSessions
+  $operatorDamageControlMatchedRuleCountTotal = $summary.kpis.operatorDamageControlMatchedRuleCountTotal
+  $operatorDamageControlLatestVerdict = $summary.kpis.operatorDamageControlLatestVerdict
+  $operatorDamageControlLatestSource = $summary.kpis.operatorDamageControlLatestSource
+  $operatorDamageControlLatestSeenAt = $summary.kpis.operatorDamageControlLatestSeenAt
+  if ($null -ne $operatorDamageControlValidated) {
+    Write-Host (
+      "operator.damage_control: validated=" + $operatorDamageControlValidated +
+      ", total=" + $operatorDamageControlTotal +
+      ", unique_runs=" + $operatorDamageControlUniqueRuns +
+      ", unique_sessions=" + $operatorDamageControlUniqueSessions +
+      ", matched_rule_count_total=" + $operatorDamageControlMatchedRuleCountTotal +
+      ", latest_verdict=" + $operatorDamageControlLatestVerdict +
+      ", latest_source=" + $operatorDamageControlLatestSource +
+      ", latest_seen_at=" + $operatorDamageControlLatestSeenAt
     )
   }
   $taskQueueValidated = $summary.kpis.operatorTaskQueueSummaryValidated
