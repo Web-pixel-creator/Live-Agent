@@ -1331,6 +1331,12 @@ function updateOperatorTurnDeleteWidgetFromEvent(event) {
   };
   state.operatorTurnDeleteSnapshot = nextSnapshot;
   renderOperatorTurnDeleteWidget(null, nextSnapshot);
+  appendEntry(
+    el.operatorSummary,
+    "system",
+    "turn_delete.live_event",
+    `event_count=${nextSnapshot.eventCount} turn=${turnId ?? "n/a"} reason=${reason ?? "n/a"} scope=${scope ?? "n/a"} had_active_turn=${hadActiveTurn} run=${nextSnapshot.runId ?? "n/a"} session=${nextSnapshot.sessionId ?? "n/a"} seen_at=${nextSnapshot.seenAt}`,
+  );
 }
 
 function renderOperatorDamageControlWidget(damageControlSummary, snapshot = null) {

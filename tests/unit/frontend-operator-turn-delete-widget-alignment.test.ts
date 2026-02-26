@@ -32,9 +32,9 @@ test("operator turn-delete evidence widget is wired in frontend HTML and runtime
     "updateOperatorTurnDeleteWidgetFromEvent",
     "updateOperatorTurnDeleteWidgetFromEvent(event);",
     "turn_delete",
+    "turn_delete.live_event",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing operator turn-delete token: ${token}`);
   }
 });
-
