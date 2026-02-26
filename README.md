@@ -438,6 +438,12 @@ $env:RAILWAY_ENVIRONMENT="production"
 npm run repo:publish -- -DeployRailway -SkipPages -SkipBadgeCheck
 ```
 
+Publish + deploy to Railway with explicit post-deploy badge check controls:
+
+```powershell
+npm run repo:publish -- -DeployRailway -SkipPages -SkipBadgeCheck -RailwayPublicUrl https://live-agent-production.up.railway.app -RailwayPublicBadgeCheckTimeoutSec 30
+```
+
 Safe dry-run style (no push/pages/badge):
 
 ```powershell
