@@ -158,6 +158,18 @@ $sourceRunManifest = [ordered]@{
     requestedPerfMode    = "with_perf"
     effectivePerfMode    = "with_perf"
     perfArtifactsDetected = "true"
+    evidenceSnapshot     = [ordered]@{
+      demoSummaryPresent = $false
+      badgeDetailsPresent = $false
+      operatorTurnTruncationSummaryValidated = $true
+      operatorTurnDeleteSummaryValidated = $true
+      operatorDamageControlSummaryValidated = $true
+      operatorDamageControlTotal = 1
+      operatorDamageControlLatestVerdict = "ask"
+      operatorDamageControlLatestSource = "default"
+      operatorDamageControlLatestSeenAt = [datetime]::UtcNow.ToString("o")
+      badgeEvidenceOperatorDamageControlStatus = "pass"
+    }
   }
   retry = [ordered]@{
     githubApiMaxAttempts    = 3

@@ -1407,4 +1407,23 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     ", branch=" + $manifestSourceBranch +
     ", perf_mode=" + $manifestPerfMode
   )
+  $manifestEvidenceSnapshot = $sourceRunManifest.gate.evidenceSnapshot
+  if ($null -ne $manifestEvidenceSnapshot) {
+    $manifestTurnTruncationValidated = [string]$manifestEvidenceSnapshot.operatorTurnTruncationSummaryValidated
+    $manifestTurnDeleteValidated = [string]$manifestEvidenceSnapshot.operatorTurnDeleteSummaryValidated
+    $manifestDamageControlValidated = [string]$manifestEvidenceSnapshot.operatorDamageControlSummaryValidated
+    $manifestDamageControlTotal = [string]$manifestEvidenceSnapshot.operatorDamageControlTotal
+    $manifestDamageControlStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceOperatorDamageControlStatus
+    $manifestDamageControlLatestVerdict = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestVerdict
+    $manifestDamageControlLatestSource = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestSource
+    Write-Host (
+      "artifact.source_run_manifest.evidence: operator_turn_truncation_validated=" + $manifestTurnTruncationValidated +
+      ", operator_turn_delete_validated=" + $manifestTurnDeleteValidated +
+      ", operator_damage_control_validated=" + $manifestDamageControlValidated +
+      ", operator_damage_control_total=" + $manifestDamageControlTotal +
+      ", operator_damage_control_status=" + $manifestDamageControlStatus +
+      ", operator_damage_control_latest_verdict=" + $manifestDamageControlLatestVerdict +
+      ", operator_damage_control_latest_source=" + $manifestDamageControlLatestSource
+    )
+  }
 }

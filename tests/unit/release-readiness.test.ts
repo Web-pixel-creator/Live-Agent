@@ -560,6 +560,13 @@ function createPassingSourceRunManifest(
     maxSourceRunAgeHours: number | string;
     retryAttempts: number | string;
     effectivePerfMode: string;
+    evidenceOperatorTurnTruncationValidated: boolean | string;
+    evidenceOperatorTurnDeleteValidated: boolean | string;
+    evidenceOperatorDamageControlValidated: boolean | string;
+    evidenceOperatorDamageControlTotal: number | string;
+    evidenceOperatorDamageControlStatus: string;
+    evidenceOperatorDamageControlLatestVerdict: string;
+    evidenceOperatorDamageControlLatestSource: string;
   }> = {},
 ): Record<string, unknown> {
   const hasOverride = (key: string): boolean => Object.prototype.hasOwnProperty.call(overrides, key);
@@ -595,6 +602,29 @@ function createPassingSourceRunManifest(
       requestedPerfMode: "without_perf",
       effectivePerfMode: hasOverride("effectivePerfMode") ? overrides.effectivePerfMode : "without_perf",
       perfArtifactsDetected: "false",
+      evidenceSnapshot: {
+        operatorTurnTruncationSummaryValidated: hasOverride("evidenceOperatorTurnTruncationValidated")
+          ? overrides.evidenceOperatorTurnTruncationValidated
+          : true,
+        operatorTurnDeleteSummaryValidated: hasOverride("evidenceOperatorTurnDeleteValidated")
+          ? overrides.evidenceOperatorTurnDeleteValidated
+          : true,
+        operatorDamageControlSummaryValidated: hasOverride("evidenceOperatorDamageControlValidated")
+          ? overrides.evidenceOperatorDamageControlValidated
+          : true,
+        operatorDamageControlTotal: hasOverride("evidenceOperatorDamageControlTotal")
+          ? overrides.evidenceOperatorDamageControlTotal
+          : 1,
+        badgeEvidenceOperatorDamageControlStatus: hasOverride("evidenceOperatorDamageControlStatus")
+          ? overrides.evidenceOperatorDamageControlStatus
+          : "pass",
+        operatorDamageControlLatestVerdict: hasOverride("evidenceOperatorDamageControlLatestVerdict")
+          ? overrides.evidenceOperatorDamageControlLatestVerdict
+          : "ask",
+        operatorDamageControlLatestSource: hasOverride("evidenceOperatorDamageControlLatestSource")
+          ? overrides.evidenceOperatorDamageControlLatestSource
+          : "file",
+      },
     },
     retry: {
       githubApiMaxAttempts: hasOverride("retryAttempts") ? overrides.retryAttempts : 3,
@@ -1760,6 +1790,24 @@ test(
     assert.match(output, /artifact\.source_run_manifest: schema=1\.0/i);
     assert.match(output, /run_id=123456/i);
     assert.match(output, /branch=main/i);
+    assert.match(output, /artifact\.source_run_manifest\.evidence:/i);
+    assert.match(output, /operator_damage_control_validated=true/i);
+    assert.match(output, /operator_damage_control_status=pass/i);
+  },
+);
+
+test(
+  "release-readiness artifact-only mode remains compatible when source run manifest has no evidence snapshot",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const manifest = createPassingSourceRunManifest();
+    const gate = manifest.gate as Record<string, unknown>;
+    delete gate.evidenceSnapshot;
+    const result = runReleaseReadinessArtifactOnly({ manifest });
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /artifact\.source_run_manifest: schema=1\.0/i);
+    assert.doesNotMatch(output, /artifact\.source_run_manifest\.evidence:/i);
   },
 );
 
