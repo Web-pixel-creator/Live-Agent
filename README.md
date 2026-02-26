@@ -546,6 +546,12 @@ Deploy `apps/demo-frontend` as a standalone Railway service:
 railway up apps/demo-frontend --path-as-root -s "Live-Agent-Frontend" -e production -p "bbca2889-fd0d-48fe-bded-79802230e5a6" -d
 ```
 
+Or deploy via helper script:
+
+```powershell
+npm run deploy:railway:frontend -- -Service "Live-Agent-Frontend" -Environment production -ProjectId "bbca2889-fd0d-48fe-bded-79802230e5a6"
+```
+
 Recommended frontend runtime variables for this project:
 
 ```powershell
@@ -558,6 +564,7 @@ Notes:
 - Frontend serves `GET /config.json` and applies `FRONTEND_WS_URL` / `FRONTEND_API_BASE_URL` at bootstrap.
 - Frontend service health endpoint: `GET /healthz`.
 - Frontend service config-as-code is at `apps/demo-frontend/railway.json`.
+- Helper flags: `-NoWait`, `-SkipHealthCheck`, `-StatusPollMaxAttempts`, `-StatusPollIntervalSec`.
 
 ## CI Workflow
 

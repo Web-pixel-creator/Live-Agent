@@ -11,6 +11,7 @@ function Fail([string]$Message) {
 $testFiles = @(
   "tests/unit/public-badge-check-alignment.test.ts",
   "tests/unit/railway-deploy-alignment.test.ts",
+  "tests/unit/railway-deploy-frontend-alignment.test.ts",
   "tests/unit/railway-deploy-public-badge-flow-smoke.test.ts",
   "tests/unit/railway-runtime-start-command-alignment.test.ts",
   "tests/unit/repo-publish-release-gate-alignment.test.ts",
