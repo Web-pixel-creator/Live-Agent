@@ -1225,6 +1225,24 @@ async function main() {
     true,
   );
   addCheck(
+    "kpi.damageControlDiagnosticsValidated",
+    kpis.damageControlDiagnosticsValidated === true,
+    kpis.damageControlDiagnosticsValidated,
+    true,
+  );
+  addCheck(
+    "kpi.damageControlMatchedRuleCount",
+    toNumber(kpis.damageControlMatchedRuleCount) >= 1,
+    kpis.damageControlMatchedRuleCount,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.damageControlSource",
+    ["default", "file", "env_json"].includes(String(kpis.damageControlSource)),
+    kpis.damageControlSource,
+    "default | file | env_json",
+  );
+  addCheck(
     "kpi.visualTestingStatus",
     String(kpis.visualTestingStatus) === "passed",
     kpis.visualTestingStatus,

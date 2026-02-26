@@ -195,6 +195,9 @@ function createPassingSummary(overrides?: {
     runtimeMetricsScenarioAttempts: 1,
     scenarioRetryableFailuresTotal: 0,
     sandboxPolicyValidated: true,
+    damageControlDiagnosticsValidated: true,
+    damageControlMatchedRuleCount: 1,
+    damageControlSource: "default",
     visualTestingStatus: "passed",
     visualRegressionCount: 0,
     visualChecksCount: 3,
@@ -286,7 +289,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 205);
+  assert.equal(result.payload.checks, 208);
 });
 
 test("demo-e2e policy check fails when gateway error correlation KPI is invalid", () => {
@@ -383,6 +386,22 @@ test("demo-e2e policy check fails when ui remote fallback mode is not strict", (
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("options.uiNavigatorRemoteHttpFallbackMode")));
+});
+
+test("demo-e2e policy check fails when damage-control diagnostics KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        damageControlDiagnosticsValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.damageControlDiagnosticsValidated")));
 });
 
 test("demo-e2e policy check fails when interrupt latency is missing for requested interrupt event", () => {

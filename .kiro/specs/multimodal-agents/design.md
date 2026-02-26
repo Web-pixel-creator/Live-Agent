@@ -585,6 +585,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
    - Baseline implemented: `off/non-main/all` policy modes with request override support for controlled test scenarios.
    - Baseline implemented: sandbox restrictions for max-steps caps, action-type allowlists, blocked high-risk categories, and optional forced executor mode.
    - Baseline implemented: sandbox policy metadata is emitted in UI agent output and validated by demo policy (`sandboxPolicyValidated`).
+   - Baseline implemented: damage-control diagnostics are emitted with sandbox evidence and validated by demo policy (`damageControlDiagnosticsValidated=true`).
 
 6. Profile-aware live failover policy
    - Baseline implemented: failover reason classification (`transient`, `rate_limit`, `auth`, `billing`) in live bridge retry loop.

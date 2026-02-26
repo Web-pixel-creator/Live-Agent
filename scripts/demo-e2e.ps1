@@ -1406,6 +1406,8 @@ try {
 
     $sandboxPolicy = Get-FieldValue -Object $response -Path @("payload", "output", "sandboxPolicy")
     Assert-Condition -Condition ($null -ne $sandboxPolicy) -Message "Sandbox policy output is missing."
+    $damageControl = Get-FieldValue -Object $response -Path @("payload", "output", "damageControl")
+    Assert-Condition -Condition ($null -ne $damageControl) -Message "Damage-control output is missing."
 
     $sandboxActive = [bool](Get-FieldValue -Object $sandboxPolicy -Path @("active"))
     $sandboxMode = [string](Get-FieldValue -Object $sandboxPolicy -Path @("effectiveMode"))
@@ -1418,6 +1420,21 @@ try {
     Assert-Condition -Condition ($sandboxSessionClass -eq "non_main") -Message "Sandbox session class should be non_main."
     Assert-Condition -Condition ($blockedCategories -contains "destructive_operation") -Message "Expected destructive_operation category to be blocked by sandbox."
 
+    $damageControlEnabled = [bool](Get-FieldValue -Object $damageControl -Path @("enabled"))
+    $damageControlVerdict = [string](Get-FieldValue -Object $damageControl -Path @("verdict"))
+    $damageControlSource = [string](Get-FieldValue -Object $damageControl -Path @("source"))
+    $damageControlMatchedRuleCount = [int](Get-FieldValue -Object $damageControl -Path @("matchedRuleCount"))
+    $damageControlMatches = @(Get-FieldValue -Object $damageControl -Path @("matches"))
+    $damageControlMatchRuleIds = @(
+      $damageControlMatches |
+      ForEach-Object { [string](Get-FieldValue -Object $_ -Path @("ruleId")) } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
+    )
+    Assert-Condition -Condition $damageControlEnabled -Message "Damage-control should be enabled."
+    Assert-Condition -Condition (@("allow", "ask", "block") -contains $damageControlVerdict) -Message "Damage-control verdict should be allow|ask|block."
+    Assert-Condition -Condition ($damageControlMatchedRuleCount -ge 1) -Message "Damage-control should include at least one matched rule."
+    Assert-Condition -Condition ($damageControlMatchRuleIds.Count -ge 1) -Message "Damage-control should expose matched rule ids."
+
     $executionFinalStatus = [string](Get-FieldValue -Object $response -Path @("payload", "output", "execution", "finalStatus"))
     Assert-Condition -Condition ($executionFinalStatus -eq "failed_sandbox_policy") -Message "Sandbox blocked flow must expose failed_sandbox_policy execution status."
 
@@ -1429,6 +1446,11 @@ try {
       sandboxReason = $sandboxReason
       sandboxSessionClass = $sandboxSessionClass
       blockedCategories = $blockedCategories
+      damageControlEnabled = $damageControlEnabled
+      damageControlVerdict = $damageControlVerdict
+      damageControlSource = $damageControlSource
+      damageControlMatchedRuleCount = $damageControlMatchedRuleCount
+      damageControlMatchRuleIds = $damageControlMatchRuleIds
       executionFinalStatus = $executionFinalStatus
     }
   } | Out-Null
@@ -3169,6 +3191,19 @@ $summary = [ordered]@{
     sandboxPolicyReason = if ($null -ne $uiSandboxData) { $uiSandboxData.sandboxReason } else { $null }
     sandboxPolicyBlockedCategories = if ($null -ne $uiSandboxData) { $uiSandboxData.blockedCategories } else { @() }
     sandboxPolicyExecutionStatus = if ($null -ne $uiSandboxData) { $uiSandboxData.executionFinalStatus } else { $null }
+    damageControlEnabled = if ($null -ne $uiSandboxData) { $uiSandboxData.damageControlEnabled } else { $null }
+    damageControlVerdict = if ($null -ne $uiSandboxData) { $uiSandboxData.damageControlVerdict } else { $null }
+    damageControlSource = if ($null -ne $uiSandboxData) { $uiSandboxData.damageControlSource } else { $null }
+    damageControlMatchedRuleCount = if ($null -ne $uiSandboxData) { $uiSandboxData.damageControlMatchedRuleCount } else { $null }
+    damageControlMatchRuleIds = if ($null -ne $uiSandboxData) { $uiSandboxData.damageControlMatchRuleIds } else { @() }
+    damageControlDiagnosticsValidated = if (
+      $null -ne $uiSandboxData -and
+      [bool]$uiSandboxData.damageControlEnabled -eq $true -and
+      @("allow", "ask", "block") -contains [string]$uiSandboxData.damageControlVerdict -and
+      @("default", "file", "env_json") -contains [string]$uiSandboxData.damageControlSource -and
+      [int]$uiSandboxData.damageControlMatchedRuleCount -ge 1 -and
+      @($uiSandboxData.damageControlMatchRuleIds).Count -ge 1
+    ) { $true } else { $false }
     sandboxPolicyValidated = if (
       $null -ne $uiSandboxData -and
       [string]$uiSandboxData.status -eq "failed" -and
