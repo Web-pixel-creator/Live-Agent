@@ -2,6 +2,45 @@ name: Release Strict Final Gate
 
 on:
   workflow_dispatch:
+    inputs:
+      deploy_to_railway:
+        description: "Deploy gateway + frontend to Railway after strict gate passes"
+        required: true
+        type: boolean
+        default: false
+      railway_environment:
+        description: "Railway environment name"
+        required: true
+        default: "production"
+      gateway_public_url:
+        description: "Gateway public URL for badge validation and frontend runtime derivation"
+        required: true
+        default: "https://live-agent-production.up.railway.app"
+      skip_gateway_deploy:
+        description: "Skip gateway deploy stage in combined helper"
+        required: true
+        type: boolean
+        default: false
+      skip_frontend_deploy:
+        description: "Skip frontend deploy stage in combined helper"
+        required: true
+        type: boolean
+        default: false
+      gateway_no_wait:
+        description: "Trigger gateway deploy without waiting"
+        required: true
+        type: boolean
+        default: false
+      frontend_no_wait:
+        description: "Trigger frontend deploy without waiting"
+        required: true
+        type: boolean
+        default: false
+      frontend_skip_health_check:
+        description: "Skip frontend health check after deploy"
+        required: true
+        type: boolean
+        default: false
   push:
     branches:
       - main
@@ -22,6 +61,10 @@ jobs:
       UI_NAVIGATOR_EXECUTOR_URL: http://localhost:8090
       UI_EXECUTOR_STRICT_PLAYWRIGHT: "false"
       UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE: "true"
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+      RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+      RAILWAY_FRONTEND_SERVICE_ID: ${{ secrets.RAILWAY_FRONTEND_SERVICE_ID }}
 
     steps:
       - name: Checkout
@@ -40,6 +83,60 @@ jobs:
       - name: Run Release Strict Final Gate
         run: npm run verify:release:strict
         shell: powershell
+
+      - name: Install Railway CLI
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true
+        run: npm install -g @railway/cli
+        shell: powershell
+
+      - name: Validate Railway Secrets
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true
+        shell: powershell
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RAILWAY_TOKEN)) {
+            throw "Missing required repository secret: RAILWAY_TOKEN"
+          }
+          if ([string]::IsNullOrWhiteSpace($env:RAILWAY_PROJECT_ID)) {
+            throw "Missing required repository secret: RAILWAY_PROJECT_ID"
+          }
+          if ([string]::IsNullOrWhiteSpace($env:RAILWAY_SERVICE_ID)) {
+            throw "Missing required repository secret: RAILWAY_SERVICE_ID"
+          }
+
+      - name: Deploy To Railway (Gateway + Frontend)
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true
+        shell: powershell
+        run: |
+          $args = @(
+            "--",
+            "-ProjectId", $env:RAILWAY_PROJECT_ID,
+            "-GatewayServiceId", $env:RAILWAY_SERVICE_ID,
+            "-Environment", "${{ inputs.railway_environment }}",
+            "-GatewayPublicUrl", "${{ inputs.gateway_public_url }}",
+            "-SkipReleaseVerification"
+          )
+
+          if (-not [string]::IsNullOrWhiteSpace($env:RAILWAY_FRONTEND_SERVICE_ID)) {
+            $args += @("-FrontendService", $env:RAILWAY_FRONTEND_SERVICE_ID)
+          }
+
+          if ("${{ inputs.skip_gateway_deploy }}" -eq "true") {
+            $args += "-SkipGatewayDeploy"
+          }
+          if ("${{ inputs.skip_frontend_deploy }}" -eq "true") {
+            $args += "-SkipFrontendDeploy"
+          }
+          if ("${{ inputs.gateway_no_wait }}" -eq "true") {
+            $args += "-GatewayNoWait"
+          }
+          if ("${{ inputs.frontend_no_wait }}" -eq "true") {
+            $args += "-FrontendNoWait"
+          }
+          if ("${{ inputs.frontend_skip_health_check }}" -eq "true") {
+            $args += "-FrontendSkipHealthCheck"
+          }
+
+          npm run deploy:railway:all @args
 
       - name: Publish Release Report To Job Summary
         if: always()

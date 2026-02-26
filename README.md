@@ -626,6 +626,8 @@ Notes:
 - Strict final release workflow: `.github/workflows/release-strict-final.yml`
 - Triggered on push to `main`/`master` and manual dispatch.
 - Runs `npm run verify:release:strict` (`-StrictFinalRun`) and uploads consolidated release artifacts bundle.
+- Manual dispatch supports optional deploy to Railway (`deploy_to_railway=true`) after strict gate passes using `npm run deploy:railway:all`.
+- For release-triggered deploy, configure repository secrets: `RAILWAY_TOKEN`, `RAILWAY_PROJECT_ID`, `RAILWAY_SERVICE_ID` (optional `RAILWAY_FRONTEND_SERVICE_ID`).
 
 - Artifact-only release revalidation workflow: `.github/workflows/release-artifact-revalidation.yml`
 - Triggered on manual dispatch.
