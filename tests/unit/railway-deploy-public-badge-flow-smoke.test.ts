@@ -31,8 +31,9 @@ test("railway deploy pre-deploy gate selects strict/default verification script 
 
   assert.match(
     source,
-    /if \(-not \$SkipReleaseVerification\)\s*\{[\s\S]*\$verificationScript = if \(\$StrictReleaseVerification\) \{ "verify:release:strict" \} else \{ "verify:release" \}[\s\S]*& npm\.cmd run \$verificationScript[\s\S]*\}/,
+    /if \(-not \$SkipReleaseVerification\)\s*\{[\s\S]*\$verificationScript = if \(\$StrictReleaseVerification\) \{ "verify:release:strict" \} else \{ "verify:release" \}[\s\S]*\$npmCli = Resolve-NpmCli[\s\S]*& \$npmCli run \$verificationScript[\s\S]*\}/,
   );
+  assert.match(source, /function Resolve-NpmCli\(\)/);
 });
 
 test("railway deploy link step accepts existing linked context when project/service are omitted", () => {

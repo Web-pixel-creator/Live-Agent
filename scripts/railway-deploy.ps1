@@ -45,6 +45,13 @@ function Run-CliCapture([string[]]$CliArgs) {
   return ,$output
 }
 
+function Resolve-NpmCli() {
+  if ($env:OS -eq "Windows_NT") {
+    return "npm.cmd"
+  }
+  return "npm"
+}
+
 function Get-LatestDeployment([string]$Service, [string]$Env) {
   $args = @("deployment", "list", "--limit", "20", "--json")
   if (-not [string]::IsNullOrWhiteSpace($Service)) {
@@ -316,8 +323,9 @@ if ([string]::IsNullOrWhiteSpace($Environment)) {
 
 if (-not $SkipReleaseVerification) {
   $verificationScript = if ($StrictReleaseVerification) { "verify:release:strict" } else { "verify:release" }
+  $npmCli = Resolve-NpmCli
   Write-Host "[railway-deploy] Running pre-deploy quality gate: npm run $verificationScript"
-  & npm.cmd run $verificationScript
+  & $npmCli run $verificationScript
   if ($LASTEXITCODE -ne 0) {
     Fail "Pre-deploy quality gate failed: npm run $verificationScript"
   }

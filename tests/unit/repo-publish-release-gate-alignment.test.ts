@@ -10,7 +10,9 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /\[switch\]\$SkipReleaseVerification/);
   assert.match(source, /\[switch\]\$StrictReleaseVerification/);
   assert.match(source, /npm run \$verificationScript/);
-  assert.match(source, /& npm\.cmd run \$verificationScript/);
+  assert.match(source, /function Resolve-NpmCli\(\)/);
+  assert.match(source, /\$npmCli = Resolve-NpmCli/);
+  assert.match(source, /& \$npmCli run \$verificationScript/);
   assert.match(source, /verify:release:strict/);
   assert.match(source, /verify:release/);
   assert.match(source, /\[switch\]\$DeployRailway/);
