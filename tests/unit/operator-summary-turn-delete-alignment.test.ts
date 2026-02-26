@@ -10,6 +10,7 @@ test("api operator summary includes turn delete evidence contract", () => {
   const requiredTokens = [
     "buildTurnDeleteSummary",
     'event.type !== "live.turn.deleted"',
+    "turnDelete: runtime ? runtime.turnDelete ?? null : null,",
     "const turnDelete = buildTurnDeleteSummary(recentEvents, services);",
     "turnDelete,",
     'source: "gateway_runtime"',
@@ -20,4 +21,3 @@ test("api operator summary includes turn delete evidence contract", () => {
     assert.ok(source.includes(token), `api-backend turn delete summary contract missing token: ${token}`);
   }
 });
-
