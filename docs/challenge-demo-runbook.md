@@ -141,6 +141,16 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `operatorTurnDeleteUniqueRuns >= 1`
   - `operatorTurnDeleteUniqueSessions >= 1`
   - `operatorTurnDeleteLatestSeenAt` is ISO timestamp
+  - `operatorDamageControlSummaryValidated=true`
+  - `operatorDamageControlTotal >= 1`
+  - `operatorDamageControlUniqueRuns >= 1`
+  - `operatorDamageControlUniqueSessions >= 1`
+  - `operatorDamageControlMatchedRuleCountTotal >= 1`
+  - `operatorDamageControlAllowCount + operatorDamageControlAskCount + operatorDamageControlBlockCount = operatorDamageControlTotal`
+  - `operatorDamageControlLatestVerdict in {allow,ask,block}`
+  - `operatorDamageControlLatestSource in {default,file,env_json,unknown}`
+  - `operatorDamageControlLatestMatchedRuleCount >= 1`
+  - `operatorDamageControlLatestSeenAt` is ISO timestamp
   - `operatorLiveBridgeHealthState in {healthy,degraded,unknown}`
 - Live Agent reliability:
   - `assistantActivityLifecycleValidated=true`
@@ -313,7 +323,7 @@ Manual shortcut:
 3. Local artifact `artifacts/demo-e2e/policy-check.json`.
 4. Local artifact `artifacts/demo-e2e/policy-check.md`.
 5. Local artifact `artifacts/demo-e2e/badge.json`.
-6. Local artifact `artifacts/demo-e2e/badge-details.json` (must include `evidence.operatorTurnTruncation` and `evidence.operatorTurnDelete`).
+6. Local artifact `artifacts/demo-e2e/badge-details.json` (must include `evidence.operatorTurnTruncation`, `evidence.operatorTurnDelete`, and `evidence.operatorDamageControl`).
 7. Observability screenshot: dashboard `MLA Telemetry KPI Overview` with latency and error widgets.
 8. Observability screenshot: alert policy `MLA Gateway P95 Latency High` enabled.
 9. Observability screenshot: alert policy `MLA Service Error Rate High` enabled.
