@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-02-26T05:50:18.742Z",
+  "generatedAt": "2026-02-26T10:25:26.901Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
-  "checks": 205,
+  "checks": 208,
   "violations": 0,
-  "roundTripMs": 36,
+  "roundTripMs": 38,
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-02-26T05:50:18.742Z",
+    "sourceSummaryGeneratedAt": "2026-02-26T15:19:16.8240561+05:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -15,7 +15,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-02-26T05:50:18.742Z",
+      "latestSeenAt": "2026-02-26T10:19:14.128Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -29,17 +29,28 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-02-26T05:50:18.742Z",
+      "latestSeenAt": "2026-02-26T10:19:14.288Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
       "latestScope": "session_local"
+    },
+    "damageControl": {
+      "status": "pass",
+      "diagnosticsValidated": true,
+      "enabled": true,
+      "verdict": "allow",
+      "source": "file",
+      "matchedRuleCount": 1,
+      "matchedRuleIds": [
+        "dc-destructive-ask"
+      ]
     }
   },
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 205 checks | 36ms ws",
+    "message": "pass | 208 checks | 38ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }

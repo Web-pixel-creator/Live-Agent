@@ -108,15 +108,19 @@ if (-not $SkipDetails) {
     Fail "badge-details JSON field 'evidence' must be present."
   }
 
-  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete") -Payload $details.evidence -ScopeName "badge-details.evidence"
+  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl") -Payload $details.evidence -ScopeName "badge-details.evidence"
 
   $truncationEvidence = $details.evidence.operatorTurnTruncation
   $deleteEvidence = $details.evidence.operatorTurnDelete
+  $damageControlEvidence = $details.evidence.damageControl
   if ($null -eq $truncationEvidence) {
     Fail "badge-details evidence is missing operatorTurnTruncation block."
   }
   if ($null -eq $deleteEvidence) {
     Fail "badge-details evidence is missing operatorTurnDelete block."
+  }
+  if ($null -eq $damageControlEvidence) {
+    Fail "badge-details evidence is missing damageControl block."
   }
 
   $turnEvidenceRequired = @("status", "validated", "expectedEventSeen", "total", "uniqueRuns", "uniqueSessions", "latestSeenAt", "latestSeenAtIsIso")
@@ -131,6 +135,13 @@ if (-not $SkipDetails) {
   }
   if (-not ($allowedTurnEvidenceStatuses -contains $deleteStatus)) {
     Fail "badge-details evidence operatorTurnDelete.status must be one of [pass, fail]."
+  }
+
+  $damageControlEvidenceRequired = @("status", "diagnosticsValidated", "enabled", "verdict", "source", "matchedRuleCount", "matchedRuleIds")
+  Assert-RequiredFields -Required $damageControlEvidenceRequired -Payload $damageControlEvidence -ScopeName "badge-details.evidence.damageControl"
+  $damageControlStatus = [string]$damageControlEvidence.status
+  if (-not ($allowedTurnEvidenceStatuses -contains $damageControlStatus)) {
+    Fail "badge-details evidence damageControl.status must be one of [pass, fail]."
   }
 
   Assert-RequiredFields -Required @("schemaVersion", "label", "message", "color", "cacheSeconds") -Payload $details.badge -ScopeName "badge-details.badge"

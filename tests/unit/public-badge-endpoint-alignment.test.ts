@@ -34,8 +34,10 @@ test("tracked public badge details embed badge payload", () => {
   assert.ok(evidence && typeof evidence === "object");
   const turnTruncation = evidence.operatorTurnTruncation as Record<string, unknown>;
   const turnDelete = evidence.operatorTurnDelete as Record<string, unknown>;
+  const damageControl = evidence.damageControl as Record<string, unknown>;
   assert.ok(turnTruncation && typeof turnTruncation === "object");
   assert.ok(turnDelete && typeof turnDelete === "object");
+  assert.ok(damageControl && typeof damageControl === "object");
 
   assert.equal(details.ok, true);
   assert.equal(typeof details.generatedAt, "string");
@@ -51,6 +53,11 @@ test("tracked public badge details embed badge payload", () => {
   assert.equal(typeof turnDelete.total, "number");
   assert.equal(typeof turnTruncation.latestSeenAtIsIso, "boolean");
   assert.equal(typeof turnDelete.latestSeenAtIsIso, "boolean");
+  assert.equal(typeof damageControl.status, "string");
+  assert.equal(typeof damageControl.diagnosticsValidated, "boolean");
+  assert.equal(typeof damageControl.enabled, "boolean");
+  assert.equal(typeof damageControl.matchedRuleCount, "number");
+  assert.equal(Array.isArray(damageControl.matchedRuleIds), true);
   assert.equal(typeof details.policyPath, "string");
   assert.equal(typeof details.summaryPath, "string");
   assert.equal(badge.schemaVersion, 1);

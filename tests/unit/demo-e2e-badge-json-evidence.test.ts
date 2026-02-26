@@ -78,6 +78,12 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         operatorTurnDeleteLatestTurnId: "turn-delete-demo",
         operatorTurnDeleteLatestReason: "demo_delete_checkpoint",
         operatorTurnDeleteLatestScope: "session_local",
+        damageControlDiagnosticsValidated: true,
+        damageControlEnabled: true,
+        damageControlVerdict: "ask",
+        damageControlSource: "file",
+        damageControlMatchedRuleCount: 2,
+        damageControlMatchRuleIds: ["requires_approval_sensitive_action", "allow_search_docs"],
       },
     },
   });
@@ -88,11 +94,16 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.ok(evidence && typeof evidence === "object");
   const turnTruncation = evidence.operatorTurnTruncation as Record<string, unknown>;
   const turnDelete = evidence.operatorTurnDelete as Record<string, unknown>;
+  const damageControl = evidence.damageControl as Record<string, unknown>;
   assert.equal(turnTruncation.status, "pass");
   assert.equal(turnDelete.status, "pass");
+  assert.equal(damageControl.status, "pass");
   assert.equal(turnTruncation.latestTurnId, "turn-truncate-demo");
   assert.equal(turnDelete.latestTurnId, "turn-delete-demo");
   assert.equal(turnDelete.latestScope, "session_local");
+  assert.equal(damageControl.verdict, "ask");
+  assert.equal(damageControl.source, "file");
+  assert.deepEqual(damageControl.matchedRuleIds, ["requires_approval_sensitive_action", "allow_search_docs"]);
 });
 
 test("demo-e2e badge details marks operator turn delete evidence as failed when checkpoint is missing", () => {
@@ -124,8 +135,14 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   assert.equal(result.badge.color, "red");
   const evidence = result.details.evidence as Record<string, unknown>;
   const turnDelete = evidence.operatorTurnDelete as Record<string, unknown>;
+  const damageControl = evidence.damageControl as Record<string, unknown>;
   assert.equal(turnDelete.status, "fail");
   assert.equal(turnDelete.validated, false);
   assert.equal(turnDelete.total, 0);
   assert.equal(turnDelete.latestSeenAtIsIso, false);
+  assert.equal(damageControl.status, "fail");
+  assert.equal(damageControl.enabled, false);
+  assert.equal(damageControl.diagnosticsValidated, false);
+  assert.equal(damageControl.matchedRuleCount, 0);
+  assert.deepEqual(damageControl.matchedRuleIds, []);
 });

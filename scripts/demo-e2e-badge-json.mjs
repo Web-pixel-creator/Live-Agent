@@ -59,6 +59,19 @@ function toOptionalString(value) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function toStringArray(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+      .filter((entry) => entry.length > 0);
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? [trimmed] : [];
+  }
+  return [];
+}
+
 function isIsoTimestamp(value) {
   if (typeof value !== "string" || value.trim().length === 0) {
     return false;
@@ -114,6 +127,39 @@ function buildTurnEvidence(kpis, config) {
   }
 
   return result;
+}
+
+function buildDamageControlEvidence(kpis) {
+  const diagnosticsValidated = toBoolean(kpis.damageControlDiagnosticsValidated) === true;
+  const enabled = toBoolean(kpis.damageControlEnabled) === true;
+  const verdict = toOptionalString(kpis.damageControlVerdict);
+  const source = toOptionalString(kpis.damageControlSource);
+  const matchedRuleCount = toNumber(kpis.damageControlMatchedRuleCount) ?? 0;
+  const matchedRuleIds = toStringArray(kpis.damageControlMatchRuleIds);
+  const allowedVerdicts = new Set(["allow", "ask", "block"]);
+  const allowedSources = new Set(["default", "file", "env_json"]);
+
+  const verdictValid = verdict !== null && allowedVerdicts.has(verdict);
+  const sourceValid = source !== null && allowedSources.has(source);
+  const status =
+    diagnosticsValidated &&
+    enabled &&
+    verdictValid &&
+    sourceValid &&
+    matchedRuleCount >= 1 &&
+    matchedRuleIds.length >= 1
+      ? "pass"
+      : "fail";
+
+  return {
+    status,
+    diagnosticsValidated,
+    enabled,
+    verdict,
+    source,
+    matchedRuleCount,
+    matchedRuleIds,
+  };
 }
 
 function fail(message, details) {
@@ -176,6 +222,7 @@ async function main() {
     latestReasonKey: "operatorTurnDeleteLatestReason",
     latestScopeKey: "operatorTurnDeleteLatestScope",
   });
+  const damageControlEvidence = buildDamageControlEvidence(kpis);
 
   let color = "red";
   if (ok) {
@@ -209,6 +256,7 @@ async function main() {
       sourceSummaryGeneratedAt: toOptionalString(summary.generatedAt),
       operatorTurnTruncation: operatorTurnTruncationEvidence,
       operatorTurnDelete: operatorTurnDeleteEvidence,
+      damageControl: damageControlEvidence,
     },
     badge,
   };
