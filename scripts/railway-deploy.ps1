@@ -234,6 +234,77 @@ function Resolve-DeploymentStartCommand([object]$Deployment) {
   return $null
 }
 
+function Resolve-ServicePublicUrlFromStatus([object]$StatusPayload, [string]$Service, [string]$TargetEnvironment) {
+  if ($null -eq $StatusPayload -or -not ($StatusPayload.PSObject.Properties.Name -contains "environments")) {
+    return $null
+  }
+
+  $envEdges = $StatusPayload.environments.edges
+  if ($null -eq $envEdges) {
+    return $null
+  }
+
+  foreach ($envEdge in $envEdges) {
+    $envNode = $envEdge.node
+    if ($null -eq $envNode) {
+      continue
+    }
+    if (-not [string]::IsNullOrWhiteSpace($TargetEnvironment) -and $envNode.name -ne $TargetEnvironment) {
+      continue
+    }
+
+    $instanceEdges = $envNode.serviceInstances.edges
+    if ($null -eq $instanceEdges) {
+      continue
+    }
+
+    foreach ($instanceEdge in $instanceEdges) {
+      $instance = $instanceEdge.node
+      if ($null -eq $instance) {
+        continue
+      }
+      if (-not [string]::IsNullOrWhiteSpace($Service) -and [string]$instance.serviceId -ne $Service) {
+        continue
+      }
+
+      $domains = $instance.domains
+      if ($null -eq $domains) {
+        continue
+      }
+
+      $domainCandidates = @()
+      if ($domains.PSObject.Properties.Name -contains "customDomains" -and $null -ne $domains.customDomains) {
+        foreach ($item in $domains.customDomains) {
+          $domainValue = [string]$item.domain
+          if (-not [string]::IsNullOrWhiteSpace($domainValue)) {
+            $domainCandidates += $domainValue
+          }
+        }
+      }
+      if ($domains.PSObject.Properties.Name -contains "serviceDomains" -and $null -ne $domains.serviceDomains) {
+        foreach ($item in $domains.serviceDomains) {
+          $domainValue = [string]$item.domain
+          if (-not [string]::IsNullOrWhiteSpace($domainValue)) {
+            $domainCandidates += $domainValue
+          }
+        }
+      }
+
+      foreach ($domain in $domainCandidates) {
+        if ([string]::IsNullOrWhiteSpace($domain)) {
+          continue
+        }
+        if ($domain -match "^https?://") {
+          return $domain.TrimEnd("/")
+        }
+        return ("https://" + $domain.Trim())
+      }
+    }
+  }
+
+  return $null
+}
+
 & railway --version *> $null
 if ($LASTEXITCODE -ne 0) {
   Fail "Railway CLI is not installed or unavailable in PATH."
@@ -349,6 +420,16 @@ for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
       $configSource = [string]$deployment.meta.configFile
       if (-not [string]::IsNullOrWhiteSpace($configSource)) {
         Write-Host ("[railway-deploy] Config-as-code source: " + $configSource)
+      }
+
+      $effectivePublicUrl = if (-not [string]::IsNullOrWhiteSpace($RailwayPublicUrl)) {
+        [string]$RailwayPublicUrl.TrimEnd("/")
+      }
+      else {
+        Resolve-ServicePublicUrlFromStatus -StatusPayload $status -Service $resolvedService -TargetEnvironment $Environment
+      }
+      if (-not [string]::IsNullOrWhiteSpace($effectivePublicUrl)) {
+        Write-Host ("[railway-deploy] Effective public URL: " + $effectivePublicUrl)
       }
 
       if (-not $SkipPublicBadgeCheck) {

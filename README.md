@@ -508,6 +508,7 @@ Behavior:
 - If `-ProjectId/-ServiceId` are omitted, reuses existing Railway linked context for this workspace.
 - Triggers deployment (`railway up`) and waits until terminal status.
 - Uses `railway.json` config-as-code to pin Railway runtime start command (`node --import tsx apps/realtime-gateway/src/index.ts`) for workspace TypeScript imports.
+- Prints effective runtime metadata after successful deploy (`start command`, `config-as-code source`, `effective public URL`).
 - Runs post-deploy public badge endpoint check (`badge:public:check` helper logic) after successful deploy.
 - In `-- -NoWait` mode, post-deploy badge endpoint check is not executed (trigger-only flow).
 

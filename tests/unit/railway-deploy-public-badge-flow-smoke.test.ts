@@ -71,6 +71,7 @@ test("railway deploy success path reports effective runtime start command metada
   const source = readFileSync(scriptPath, "utf8");
 
   assert.match(source, /function Resolve-DeploymentStartCommand/);
+  assert.match(source, /function Resolve-ServicePublicUrlFromStatus/);
   assert.match(
     source,
     /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*\$effectiveStartCommand = Resolve-DeploymentStartCommand -Deployment \$deployment[\s\S]*Effective start command:/,
@@ -78,6 +79,10 @@ test("railway deploy success path reports effective runtime start command metada
   assert.match(
     source,
     /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*\$configSource = \[string\]\$deployment\.meta\.configFile[\s\S]*Config-as-code source:/,
+  );
+  assert.match(
+    source,
+    /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*\$effectivePublicUrl = if \(-not \[string\]::IsNullOrWhiteSpace\(\$RailwayPublicUrl\)\)[\s\S]*Effective public URL:/,
   );
 });
 
@@ -87,4 +92,5 @@ test("railway deploy docs mention no-wait badge-check skip behavior", () => {
 
   assert.match(readme, /In `-- -NoWait` mode, post-deploy badge endpoint check is not executed/);
   assert.match(readme, /If `-ProjectId\/-ServiceId` are omitted, reuses existing Railway linked context/);
+  assert.match(readme, /effective runtime metadata after successful deploy/);
 });
