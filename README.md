@@ -397,6 +397,22 @@ $env:GITHUB_REPO="<repo>"
 npm run badge:pages:check
 ```
 
+Runtime public endpoint validation (Railway-first default):
+
+```powershell
+npm run badge:public:check
+```
+
+Optional endpoint overrides:
+
+```powershell
+$env:PUBLIC_BADGE_ENDPOINT="https://<host>/demo-e2e/badge.json"
+$env:PUBLIC_BADGE_DETAILS_ENDPOINT="https://<host>/demo-e2e/badge-details.json"
+# or set base host only:
+$env:RAILWAY_PUBLIC_URL="https://<host>"
+npm run badge:public:check
+```
+
 ## Repository Publish Automation
 
 Publish flow script (git init/commit/push + optional Pages + optional badge polling):
