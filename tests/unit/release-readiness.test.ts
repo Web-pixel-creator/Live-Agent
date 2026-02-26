@@ -89,6 +89,12 @@ function createPassingSummary(
     operatorTurnTruncationUniqueRuns: number | string;
     operatorTurnTruncationUniqueSessions: number | string;
     operatorTurnTruncationLatestSeenAt: string;
+    operatorTurnDeleteSummaryValidated: boolean | string;
+    operatorTurnDeleteExpectedEventSeen: boolean | string;
+    operatorTurnDeleteTotal: number | string;
+    operatorTurnDeleteUniqueRuns: number | string;
+    operatorTurnDeleteUniqueSessions: number | string;
+    operatorTurnDeleteLatestSeenAt: string;
     operatorAuditTrailValidated: boolean | string;
     operatorTraceCoverageValidated: boolean | string;
     operatorLiveBridgeHealthBlockValidated: boolean | string;
@@ -178,6 +184,24 @@ function createPassingSummary(
         : 1,
       operatorTurnTruncationLatestSeenAt: hasOverride("operatorTurnTruncationLatestSeenAt")
         ? overrides.operatorTurnTruncationLatestSeenAt
+        : "2026-02-26T00:00:00.000Z",
+      operatorTurnDeleteSummaryValidated: hasOverride("operatorTurnDeleteSummaryValidated")
+        ? overrides.operatorTurnDeleteSummaryValidated
+        : true,
+      operatorTurnDeleteExpectedEventSeen: hasOverride("operatorTurnDeleteExpectedEventSeen")
+        ? overrides.operatorTurnDeleteExpectedEventSeen
+        : true,
+      operatorTurnDeleteTotal: hasOverride("operatorTurnDeleteTotal")
+        ? overrides.operatorTurnDeleteTotal
+        : 1,
+      operatorTurnDeleteUniqueRuns: hasOverride("operatorTurnDeleteUniqueRuns")
+        ? overrides.operatorTurnDeleteUniqueRuns
+        : 1,
+      operatorTurnDeleteUniqueSessions: hasOverride("operatorTurnDeleteUniqueSessions")
+        ? overrides.operatorTurnDeleteUniqueSessions
+        : 1,
+      operatorTurnDeleteLatestSeenAt: hasOverride("operatorTurnDeleteLatestSeenAt")
+        ? overrides.operatorTurnDeleteLatestSeenAt
         : "2026-02-26T00:00:00.000Z",
       operatorTaskQueueSummaryValidated: true,
       operatorTaskQueuePressureLevel: hasOverride("pressureLevel") ? overrides.pressureLevel : "healthy",
@@ -1352,6 +1376,58 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /operatorTurnTruncationLatestSeenAt expected ISO timestamp, actual not-an-iso/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator turn delete KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({ operatorTurnDeleteSummaryValidated: false }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorTurnDeleteSummaryValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator turn delete expected-event KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({ operatorTurnDeleteExpectedEventSeen: false }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorTurnDeleteExpectedEventSeen expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator turn delete total is below one",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({ operatorTurnDeleteTotal: 0 }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorTurnDeleteTotal expected >= 1, actual 0/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator turn delete latest timestamp is invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({ operatorTurnDeleteLatestSeenAt: "not-an-iso" }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorTurnDeleteLatestSeenAt expected ISO timestamp, actual not-an-iso/i);
   },
 );
 

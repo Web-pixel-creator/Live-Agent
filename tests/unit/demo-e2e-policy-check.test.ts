@@ -126,6 +126,12 @@ function createPassingSummary(overrides?: {
     operatorTurnTruncationUniqueSessions: 1,
     operatorTurnTruncationExpectedEventSeen: true,
     operatorTurnTruncationLatestSeenAt: "2026-02-26T00:00:00.000Z",
+    operatorTurnDeleteSummaryValidated: true,
+    operatorTurnDeleteTotal: 1,
+    operatorTurnDeleteUniqueRuns: 1,
+    operatorTurnDeleteUniqueSessions: 1,
+    operatorTurnDeleteExpectedEventSeen: true,
+    operatorTurnDeleteLatestSeenAt: "2026-02-26T00:00:00.000Z",
     operatorTaskQueueSummaryValidated: true,
     operatorTaskQueuePressureLevel: "healthy",
     operatorTaskQueueTotal: 1,
@@ -280,7 +286,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 199);
+  assert.equal(result.payload.checks, 205);
 });
 
 test("demo-e2e policy check fails when gateway error correlation KPI is invalid", () => {
@@ -1115,6 +1121,54 @@ test("demo-e2e policy check fails when operator turn truncation latest timestamp
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.operatorTurnTruncationLatestSeenAt")));
+});
+
+test("demo-e2e policy check fails when operator turn delete KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorTurnDeleteSummaryValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorTurnDeleteSummaryValidated")));
+});
+
+test("demo-e2e policy check fails when operator turn delete totals are invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorTurnDeleteTotal: 0,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorTurnDeleteTotal")));
+});
+
+test("demo-e2e policy check fails when operator turn delete latest timestamp is not ISO", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorTurnDeleteLatestSeenAt: "not-an-iso",
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorTurnDeleteLatestSeenAt")));
 });
 
 test("demo-e2e policy check fails when operator task queue KPI is invalid", () => {

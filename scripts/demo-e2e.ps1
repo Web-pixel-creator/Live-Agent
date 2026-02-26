@@ -2215,6 +2215,47 @@ try {
       $turnTruncationLatestSeenAtIsIso
     )
 
+    $turnDelete = Get-FieldValue -Object $summaryData -Path @("turnDelete")
+    Assert-Condition -Condition ($null -ne $turnDelete) -Message "Operator summary turnDelete block is missing."
+    $turnDeleteTotalRaw = Get-FieldValue -Object $turnDelete -Path @("total")
+    $turnDeleteUniqueRunsRaw = Get-FieldValue -Object $turnDelete -Path @("uniqueRuns")
+    $turnDeleteUniqueSessionsRaw = Get-FieldValue -Object $turnDelete -Path @("uniqueSessions")
+    Assert-Condition -Condition ($null -ne $turnDeleteTotalRaw) -Message "Operator summary turnDelete.total is missing."
+    Assert-Condition -Condition ($null -ne $turnDeleteUniqueRunsRaw) -Message "Operator summary turnDelete.uniqueRuns is missing."
+    Assert-Condition -Condition ($null -ne $turnDeleteUniqueSessionsRaw) -Message "Operator summary turnDelete.uniqueSessions is missing."
+    $turnDeleteTotal = [int]$turnDeleteTotalRaw
+    $turnDeleteUniqueRuns = [int]$turnDeleteUniqueRunsRaw
+    $turnDeleteUniqueSessions = [int]$turnDeleteUniqueSessionsRaw
+    Assert-Condition -Condition ($turnDeleteTotal -ge 1) -Message "Operator summary turnDelete.total should be >= 1 after gateway item-delete scenario."
+    Assert-Condition -Condition ($turnDeleteUniqueRuns -ge 1) -Message "Operator summary turnDelete.uniqueRuns should be >= 1."
+    Assert-Condition -Condition ($turnDeleteUniqueSessions -ge 1) -Message "Operator summary turnDelete.uniqueSessions should be >= 1."
+    $turnDeleteRecent = @(Get-FieldValue -Object $turnDelete -Path @("recent"))
+    $turnDeleteExpected = @($turnDeleteRecent | Where-Object {
+      [string](Get-FieldValue -Object $_ -Path @("turnId")) -eq "turn-delete-demo" -and
+      [string](Get-FieldValue -Object $_ -Path @("reason")) -eq "demo_delete_checkpoint" -and
+      [string](Get-FieldValue -Object $_ -Path @("scope")) -eq "session_local"
+    })
+    Assert-Condition -Condition ($turnDeleteExpected.Count -ge 1) -Message "Operator summary turnDelete.recent should include the expected delete checkpoint event."
+    $turnDeleteLatest = Get-FieldValue -Object $turnDelete -Path @("latest")
+    Assert-Condition -Condition ($null -ne $turnDeleteLatest) -Message "Operator summary turnDelete.latest is missing."
+    $turnDeleteLatestTurnId = [string](Get-FieldValue -Object $turnDeleteLatest -Path @("turnId"))
+    $turnDeleteLatestReason = [string](Get-FieldValue -Object $turnDeleteLatest -Path @("reason"))
+    $turnDeleteLatestScope = [string](Get-FieldValue -Object $turnDeleteLatest -Path @("scope"))
+    $turnDeleteLatestSeenAt = [string](Get-FieldValue -Object $turnDeleteLatest -Path @("createdAt"))
+    $turnDeleteLatestSeenAtIsIso = $false
+    if (-not [string]::IsNullOrWhiteSpace($turnDeleteLatestSeenAt)) {
+      $parsedTurnDeleteLatestSeenAt = [DateTimeOffset]::MinValue
+      $turnDeleteLatestSeenAtIsIso = [DateTimeOffset]::TryParse($turnDeleteLatestSeenAt, [ref]$parsedTurnDeleteLatestSeenAt)
+    }
+    Assert-Condition -Condition $turnDeleteLatestSeenAtIsIso -Message "Operator summary turnDelete.latest.createdAt must be ISO timestamp."
+    $turnDeleteSummaryValidated = (
+      $turnDeleteTotal -ge 1 -and
+      $turnDeleteUniqueRuns -ge 1 -and
+      $turnDeleteUniqueSessions -ge 1 -and
+      $turnDeleteExpected.Count -ge 1 -and
+      $turnDeleteLatestSeenAtIsIso
+    )
+
     $deviceNodeHealth = Get-FieldValue -Object $summaryData -Path @("deviceNodes")
     Assert-Condition -Condition ($null -ne $deviceNodeHealth) -Message "Operator summary deviceNodes block is missing."
     $deviceNodeSummaryTotal = [int](Get-FieldValue -Object $deviceNodeHealth -Path @("total"))
@@ -2465,6 +2506,15 @@ try {
       turnTruncationLatestSeenAt = $turnTruncationLatestSeenAt
       turnTruncationExpectedEventSeen = ($turnTruncationExpected.Count -ge 1)
       turnTruncationSummaryValidated = $turnTruncationSummaryValidated
+      turnDeleteTotal = $turnDeleteTotal
+      turnDeleteUniqueRuns = $turnDeleteUniqueRuns
+      turnDeleteUniqueSessions = $turnDeleteUniqueSessions
+      turnDeleteLatestTurnId = $turnDeleteLatestTurnId
+      turnDeleteLatestReason = $turnDeleteLatestReason
+      turnDeleteLatestScope = $turnDeleteLatestScope
+      turnDeleteLatestSeenAt = $turnDeleteLatestSeenAt
+      turnDeleteExpectedEventSeen = ($turnDeleteExpected.Count -ge 1)
+      turnDeleteSummaryValidated = $turnDeleteSummaryValidated
       deviceNodeId = $deviceNodeId
       deviceNodeCreatedVersion = $deviceNodeCreatedVersion
       deviceNodeUpdatedVersion = $deviceNodeUpdatedVersion
@@ -3352,6 +3402,23 @@ $summary = [ordered]@{
       [int]$operatorActionsData.turnTruncationUniqueSessions -ge 1 -and
       [bool]$operatorActionsData.turnTruncationExpectedEventSeen -eq $true -and
       -not [string]::IsNullOrWhiteSpace([string]$operatorActionsData.turnTruncationLatestSeenAt)
+    ) { $true } else { $false }
+    operatorTurnDeleteTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.turnDeleteTotal } else { $null }
+    operatorTurnDeleteUniqueRuns = if ($null -ne $operatorActionsData) { $operatorActionsData.turnDeleteUniqueRuns } else { $null }
+    operatorTurnDeleteUniqueSessions = if ($null -ne $operatorActionsData) { $operatorActionsData.turnDeleteUniqueSessions } else { $null }
+    operatorTurnDeleteLatestTurnId = if ($null -ne $operatorActionsData) { $operatorActionsData.turnDeleteLatestTurnId } else { $null }
+    operatorTurnDeleteLatestReason = if ($null -ne $operatorActionsData) { $operatorActionsData.turnDeleteLatestReason } else { $null }
+    operatorTurnDeleteLatestScope = if ($null -ne $operatorActionsData) { $operatorActionsData.turnDeleteLatestScope } else { $null }
+    operatorTurnDeleteLatestSeenAt = if ($null -ne $operatorActionsData) { $operatorActionsData.turnDeleteLatestSeenAt } else { $null }
+    operatorTurnDeleteExpectedEventSeen = if ($null -ne $operatorActionsData) { $operatorActionsData.turnDeleteExpectedEventSeen } else { $false }
+    operatorTurnDeleteSummaryValidated = if (
+      $null -ne $operatorActionsData -and
+      [bool]$operatorActionsData.turnDeleteSummaryValidated -eq $true -and
+      [int]$operatorActionsData.turnDeleteTotal -ge 1 -and
+      [int]$operatorActionsData.turnDeleteUniqueRuns -ge 1 -and
+      [int]$operatorActionsData.turnDeleteUniqueSessions -ge 1 -and
+      [bool]$operatorActionsData.turnDeleteExpectedEventSeen -eq $true -and
+      -not [string]::IsNullOrWhiteSpace([string]$operatorActionsData.turnDeleteLatestSeenAt)
     ) { $true } else { $false }
     operatorStartupDiagnosticsValidated = if (
       $null -ne $operatorActionsData -and

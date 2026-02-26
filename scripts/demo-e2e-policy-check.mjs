@@ -684,6 +684,42 @@ async function main() {
     "ISO UTC timestamp",
   );
   addCheck(
+    "kpi.operatorTurnDeleteSummaryValidated",
+    kpis.operatorTurnDeleteSummaryValidated === true,
+    kpis.operatorTurnDeleteSummaryValidated,
+    true,
+  );
+  addCheck(
+    "kpi.operatorTurnDeleteTotal",
+    toNumber(kpis.operatorTurnDeleteTotal) >= 1,
+    kpis.operatorTurnDeleteTotal,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorTurnDeleteUniqueRuns",
+    toNumber(kpis.operatorTurnDeleteUniqueRuns) >= 1,
+    kpis.operatorTurnDeleteUniqueRuns,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorTurnDeleteUniqueSessions",
+    toNumber(kpis.operatorTurnDeleteUniqueSessions) >= 1,
+    kpis.operatorTurnDeleteUniqueSessions,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorTurnDeleteExpectedEventSeen",
+    kpis.operatorTurnDeleteExpectedEventSeen === true,
+    kpis.operatorTurnDeleteExpectedEventSeen,
+    true,
+  );
+  addCheck(
+    "kpi.operatorTurnDeleteLatestSeenAt",
+    isIsoUtcTimestamp(kpis.operatorTurnDeleteLatestSeenAt),
+    kpis.operatorTurnDeleteLatestSeenAt,
+    "ISO UTC timestamp",
+  );
+  addCheck(
     "kpi.operatorTaskQueueSummaryValidated",
     kpis.operatorTaskQueueSummaryValidated === true,
     kpis.operatorTaskQueueSummaryValidated,

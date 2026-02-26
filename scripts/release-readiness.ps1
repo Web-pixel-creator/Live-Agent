@@ -338,6 +338,8 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     sessionVersioningValidated = $true
     operatorTurnTruncationSummaryValidated = $true
     operatorTurnTruncationExpectedEventSeen = $true
+    operatorTurnDeleteSummaryValidated = $true
+    operatorTurnDeleteExpectedEventSeen = $true
     operatorTaskQueueSummaryValidated = $true
     operatorAuditTrailValidated = $true
     operatorTraceCoverageValidated = $true
@@ -387,6 +389,30 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $parsedTurnTruncationLatestSeenAt = [DateTimeOffset]::MinValue
   if (-not [DateTimeOffset]::TryParse($turnTruncationLatestSeenAt, [ref]$parsedTurnTruncationLatestSeenAt)) {
     Fail ("Critical KPI check failed: operatorTurnTruncationLatestSeenAt expected ISO timestamp, actual " + $turnTruncationLatestSeenAt)
+  }
+
+  $turnDeleteTotal = [int]$summary.kpis.operatorTurnDeleteTotal
+  if ($turnDeleteTotal -lt 1) {
+    Fail ("Critical KPI check failed: operatorTurnDeleteTotal expected >= 1, actual " + $turnDeleteTotal)
+  }
+
+  $turnDeleteUniqueRuns = [int]$summary.kpis.operatorTurnDeleteUniqueRuns
+  if ($turnDeleteUniqueRuns -lt 1) {
+    Fail ("Critical KPI check failed: operatorTurnDeleteUniqueRuns expected >= 1, actual " + $turnDeleteUniqueRuns)
+  }
+
+  $turnDeleteUniqueSessions = [int]$summary.kpis.operatorTurnDeleteUniqueSessions
+  if ($turnDeleteUniqueSessions -lt 1) {
+    Fail ("Critical KPI check failed: operatorTurnDeleteUniqueSessions expected >= 1, actual " + $turnDeleteUniqueSessions)
+  }
+
+  $turnDeleteLatestSeenAt = [string]$summary.kpis.operatorTurnDeleteLatestSeenAt
+  if ([string]::IsNullOrWhiteSpace($turnDeleteLatestSeenAt)) {
+    Fail "Critical KPI check failed: operatorTurnDeleteLatestSeenAt is missing"
+  }
+  $parsedTurnDeleteLatestSeenAt = [DateTimeOffset]::MinValue
+  if (-not [DateTimeOffset]::TryParse($turnDeleteLatestSeenAt, [ref]$parsedTurnDeleteLatestSeenAt)) {
+    Fail ("Critical KPI check failed: operatorTurnDeleteLatestSeenAt expected ISO timestamp, actual " + $turnDeleteLatestSeenAt)
   }
 
   $taskQueueTotal = [int]$summary.kpis.operatorTaskQueueTotal
@@ -1224,6 +1250,22 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", unique_sessions=" + $turnTruncationUniqueSessions +
       ", expected_event_seen=" + $turnTruncationExpectedEventSeen +
       ", latest_seen_at=" + $turnTruncationLatestSeenAt
+    )
+  }
+  $turnDeleteValidated = $summary.kpis.operatorTurnDeleteSummaryValidated
+  $turnDeleteTotal = $summary.kpis.operatorTurnDeleteTotal
+  $turnDeleteUniqueRuns = $summary.kpis.operatorTurnDeleteUniqueRuns
+  $turnDeleteUniqueSessions = $summary.kpis.operatorTurnDeleteUniqueSessions
+  $turnDeleteExpectedEventSeen = $summary.kpis.operatorTurnDeleteExpectedEventSeen
+  $turnDeleteLatestSeenAt = $summary.kpis.operatorTurnDeleteLatestSeenAt
+  if ($null -ne $turnDeleteValidated) {
+    Write-Host (
+      "operator.turn_delete: validated=" + $turnDeleteValidated +
+      ", total=" + $turnDeleteTotal +
+      ", unique_runs=" + $turnDeleteUniqueRuns +
+      ", unique_sessions=" + $turnDeleteUniqueSessions +
+      ", expected_event_seen=" + $turnDeleteExpectedEventSeen +
+      ", latest_seen_at=" + $turnDeleteLatestSeenAt
     )
   }
   $taskQueueValidated = $summary.kpis.operatorTaskQueueSummaryValidated
