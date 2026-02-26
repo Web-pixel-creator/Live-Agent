@@ -14,8 +14,8 @@ test("railway config-as-code pins production-safe start command for realtime gat
 
   assert.equal(
     railwayConfig.deploy?.startCommand,
-    "node apps/realtime-gateway/dist/index.js",
-    "railway.json deploy.startCommand must run compiled gateway runtime",
+    "node --import tsx apps/realtime-gateway/src/index.ts",
+    "railway.json deploy.startCommand must run gateway runtime via tsx loader",
   );
 });
 
