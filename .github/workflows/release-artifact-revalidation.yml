@@ -500,6 +500,63 @@ jobs:
           New-Item -Path $manifestDir -ItemType Directory -Force | Out-Null
           $manifestPath = Join-Path $manifestDir "source-run.json"
           $retryableStatusCodes = @(408, 429, 500, 502, 503, 504)
+          $demoSummaryPath = "artifacts/demo-e2e/summary.json"
+          $badgeDetailsPath = "artifacts/demo-e2e/badge-details.json"
+          $demoSummaryPresent = Test-Path $demoSummaryPath
+          $badgeDetailsPresent = Test-Path $badgeDetailsPath
+          $demoSummary = $null
+          $badgeDetails = $null
+
+          if ($demoSummaryPresent) {
+            try {
+              $demoSummary = Get-Content $demoSummaryPath -Raw | ConvertFrom-Json
+            } catch {
+              Write-Host ("Failed to parse demo summary for manifest evidence snapshot: " + $_.Exception.Message)
+            }
+          }
+
+          if ($badgeDetailsPresent) {
+            try {
+              $badgeDetails = Get-Content $badgeDetailsPath -Raw | ConvertFrom-Json
+            } catch {
+              Write-Host ("Failed to parse badge details for manifest evidence snapshot: " + $_.Exception.Message)
+            }
+          }
+
+          $operatorTurnTruncationSummaryValidated = $null
+          $operatorTurnDeleteSummaryValidated = $null
+          $operatorDamageControlSummaryValidated = $null
+          $operatorDamageControlTotal = $null
+          $operatorDamageControlLatestVerdict = $null
+          $operatorDamageControlLatestSource = $null
+          $operatorDamageControlLatestSeenAt = $null
+          if ($null -ne $demoSummary -and $null -ne $demoSummary.kpis) {
+            $operatorTurnTruncationSummaryValidated = $demoSummary.kpis.operatorTurnTruncationSummaryValidated
+            $operatorTurnDeleteSummaryValidated = $demoSummary.kpis.operatorTurnDeleteSummaryValidated
+            $operatorDamageControlSummaryValidated = $demoSummary.kpis.operatorDamageControlSummaryValidated
+            $operatorDamageControlTotal = $demoSummary.kpis.operatorDamageControlTotal
+            $operatorDamageControlLatestVerdict = $demoSummary.kpis.operatorDamageControlLatestVerdict
+            $operatorDamageControlLatestSource = $demoSummary.kpis.operatorDamageControlLatestSource
+            $operatorDamageControlLatestSeenAt = $demoSummary.kpis.operatorDamageControlLatestSeenAt
+          }
+
+          $badgeEvidenceOperatorDamageControlStatus = $null
+          if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorDamageControl) {
+            $badgeEvidenceOperatorDamageControlStatus = $badgeDetails.evidence.operatorDamageControl.status
+          }
+
+          $gateEvidenceSnapshot = [ordered]@{
+            demoSummaryPresent = [bool]$demoSummaryPresent
+            badgeDetailsPresent = [bool]$badgeDetailsPresent
+            operatorTurnTruncationSummaryValidated = $operatorTurnTruncationSummaryValidated
+            operatorTurnDeleteSummaryValidated = $operatorTurnDeleteSummaryValidated
+            operatorDamageControlSummaryValidated = $operatorDamageControlSummaryValidated
+            operatorDamageControlTotal = $operatorDamageControlTotal
+            operatorDamageControlLatestVerdict = $operatorDamageControlLatestVerdict
+            operatorDamageControlLatestSource = $operatorDamageControlLatestSource
+            operatorDamageControlLatestSeenAt = $operatorDamageControlLatestSeenAt
+            badgeEvidenceOperatorDamageControlStatus = $badgeEvidenceOperatorDamageControlStatus
+          }
 
           $manifest = [ordered]@{
             schemaVersion = "1.0"
@@ -535,6 +592,7 @@ jobs:
               effectivePerfMode = "${{ steps.inspect_artifacts.outputs.effective_perf_mode }}"
               perfArtifactsDetected = "${{ steps.inspect_artifacts.outputs.has_perf_artifacts }}"
               strictFinalRun = "${{ steps.inspect_artifacts.outputs.strict_final_run }}"
+              evidenceSnapshot = $gateEvidenceSnapshot
             }
             retry = [ordered]@{
               githubApiMaxAttempts = "${{ steps.resolve_source.outputs.github_api_max_attempts }}"
@@ -546,6 +604,7 @@ jobs:
           $manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $manifestPath -Encoding utf8
           $normalizedManifestPath = $manifestPath.Replace('\', '/')
           ("manifest_path=" + $normalizedManifestPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("operator_damage_control_status=" + [string]$badgeEvidenceOperatorDamageControlStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Host ("Source run manifest written: " + $manifestPath)
 
       - name: Run Artifact-Only Release Revalidation (With Perf Artifacts, Standard)
@@ -594,6 +653,7 @@ jobs:
           ("GitHub API retry backoff ms: ${{ steps.resolve_source.outputs.github_api_retry_backoff_ms }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Perf artifacts detected: ${{ steps.inspect_artifacts.outputs.has_perf_artifacts }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Effective perf mode: ${{ steps.inspect_artifacts.outputs.effective_perf_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Operator damage-control status (badge evidence): ${{ steps.write_manifest.outputs.operator_damage_control_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Source run manifest: ${{ steps.write_manifest.outputs.manifest_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           if (Test-Path "artifacts/demo-e2e/summary.md") {
             "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

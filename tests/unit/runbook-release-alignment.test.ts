@@ -74,6 +74,8 @@ test("runbook documents release perf artifact-only mode and critical evidence ke
     "`evidence.operatorTurnDelete`",
     "`evidence.operatorTurnTruncation`",
     "`evidence.operatorDamageControl`",
+    "`gate.evidenceSnapshot.operatorDamageControlSummaryValidated`",
+    "`gate.evidenceSnapshot.badgeEvidenceOperatorDamageControlStatus`",
     "`analyticsSplitTargetsValidated=true`",
     "`analyticsBigQueryConfigValidated=true`",
     "`kpi.analyticsServicesValidated >= 4`",

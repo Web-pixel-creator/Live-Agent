@@ -495,6 +495,68 @@ $manifestDir = Join-Path $resolvedArtifactsDir "release-artifact-revalidation"
 New-Item -Path $manifestDir -ItemType Directory -Force | Out-Null
 $sourceRunManifestPath = Join-Path $manifestDir "source-run.json"
 $retryableStatusCodes = @(408, 429, 500, 502, 503, 504)
+
+$demoSummaryPath = Join-Path $resolvedArtifactsDir "demo-e2e/summary.json"
+$badgeDetailsPath = Join-Path $resolvedArtifactsDir "demo-e2e/badge-details.json"
+$demoSummaryPresent = Test-Path $demoSummaryPath
+$badgeDetailsPresent = Test-Path $badgeDetailsPath
+$demoSummary = $null
+$badgeDetails = $null
+
+if ($demoSummaryPresent) {
+  try {
+    $demoSummary = Get-Content $demoSummaryPath -Raw | ConvertFrom-Json
+  }
+  catch {
+    Write-Host ("[artifact-revalidate] Failed to parse demo summary for evidence snapshot: " + $_.Exception.Message)
+  }
+}
+
+if ($badgeDetailsPresent) {
+  try {
+    $badgeDetails = Get-Content $badgeDetailsPath -Raw | ConvertFrom-Json
+  }
+  catch {
+    Write-Host ("[artifact-revalidate] Failed to parse badge details for evidence snapshot: " + $_.Exception.Message)
+  }
+}
+
+$operatorTurnTruncationSummaryValidated = $null
+$operatorTurnDeleteSummaryValidated = $null
+$operatorDamageControlSummaryValidated = $null
+$operatorDamageControlTotal = $null
+$operatorDamageControlLatestVerdict = $null
+$operatorDamageControlLatestSource = $null
+$operatorDamageControlLatestSeenAt = $null
+
+if ($null -ne $demoSummary -and $null -ne $demoSummary.kpis) {
+  $operatorTurnTruncationSummaryValidated = $demoSummary.kpis.operatorTurnTruncationSummaryValidated
+  $operatorTurnDeleteSummaryValidated = $demoSummary.kpis.operatorTurnDeleteSummaryValidated
+  $operatorDamageControlSummaryValidated = $demoSummary.kpis.operatorDamageControlSummaryValidated
+  $operatorDamageControlTotal = $demoSummary.kpis.operatorDamageControlTotal
+  $operatorDamageControlLatestVerdict = $demoSummary.kpis.operatorDamageControlLatestVerdict
+  $operatorDamageControlLatestSource = $demoSummary.kpis.operatorDamageControlLatestSource
+  $operatorDamageControlLatestSeenAt = $demoSummary.kpis.operatorDamageControlLatestSeenAt
+}
+
+$badgeEvidenceOperatorDamageControlStatus = $null
+if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorDamageControl) {
+  $badgeEvidenceOperatorDamageControlStatus = $badgeDetails.evidence.operatorDamageControl.status
+}
+
+$gateEvidenceSnapshot = [ordered]@{
+  demoSummaryPresent                          = [bool]$demoSummaryPresent
+  badgeDetailsPresent                         = [bool]$badgeDetailsPresent
+  operatorTurnTruncationSummaryValidated      = $operatorTurnTruncationSummaryValidated
+  operatorTurnDeleteSummaryValidated          = $operatorTurnDeleteSummaryValidated
+  operatorDamageControlSummaryValidated       = $operatorDamageControlSummaryValidated
+  operatorDamageControlTotal                  = $operatorDamageControlTotal
+  operatorDamageControlLatestVerdict          = $operatorDamageControlLatestVerdict
+  operatorDamageControlLatestSource           = $operatorDamageControlLatestSource
+  operatorDamageControlLatestSeenAt           = $operatorDamageControlLatestSeenAt
+  badgeEvidenceOperatorDamageControlStatus    = $badgeEvidenceOperatorDamageControlStatus
+}
+
 $sourceRunManifest = [ordered]@{
   schemaVersion = "1.0"
   generatedAt = [datetime]::UtcNow.ToString("o")
@@ -527,6 +589,7 @@ $sourceRunManifest = [ordered]@{
     requestedPerfMode    = $gateRequestedPerfMode
     effectivePerfMode    = $gateEffectivePerfMode
     perfArtifactsDetected = $gateHasPerfArtifacts
+    evidenceSnapshot     = $gateEvidenceSnapshot
   }
   retry = [ordered]@{
     githubApiMaxAttempts     = $GithubApiMaxAttempts
@@ -554,6 +617,7 @@ Write-Host ("- max source run age hours: " + $MaxSourceRunAgeHours)
 Write-Host ("- requested perf gate mode: " + $gateRequestedPerfMode)
 Write-Host ("- effective perf gate mode: " + $gateEffectivePerfMode)
 Write-Host ("- perf artifacts detected: " + $gateHasPerfArtifacts)
+Write-Host ("- evidence snapshot (operator damage-control status): " + $badgeEvidenceOperatorDamageControlStatus)
 Write-Host ("- source run manifest: " + $sourceRunManifestPath)
 
 if (-not $KeepTemp) {

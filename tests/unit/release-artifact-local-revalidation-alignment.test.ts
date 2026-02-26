@@ -40,6 +40,9 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /run age hours/);
   assert.match(source, /release-artifact-revalidation/);
   assert.match(source, /source-run\.json/);
+  assert.match(source, /evidenceSnapshot/);
+  assert.match(source, /operatorDamageControlSummaryValidated/);
+  assert.match(source, /badgeEvidenceOperatorDamageControlStatus/);
   assert.match(source, /retryableStatusCodes/);
   assert.match(source, /Source run manifest written/);
   assert.match(source, /source run manifest:/);
