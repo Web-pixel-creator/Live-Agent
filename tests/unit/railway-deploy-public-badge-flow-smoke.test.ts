@@ -86,4 +86,5 @@ test("railway deploy docs mention no-wait badge-check skip behavior", () => {
   const readme = readFileSync(readmePath, "utf8");
 
   assert.match(readme, /In `-- -NoWait` mode, post-deploy badge endpoint check is not executed/);
+  assert.match(readme, /If `-ProjectId\/-ServiceId` are omitted, reuses existing Railway linked context/);
 });
