@@ -35,6 +35,21 @@ test("railway deploy pre-deploy gate selects strict/default verification script 
   );
 });
 
+test("railway deploy failure path captures diagnostics logs before failing", () => {
+  const scriptPath = resolve(process.cwd(), "scripts", "railway-deploy.ps1");
+  const source = readFileSync(scriptPath, "utf8");
+
+  assert.match(source, /function Show-DeploymentFailureDiagnostics/);
+  assert.match(source, /if \(\$SkipFailureLogs\)\s*\{[\s\S]*Failure diagnostics log capture skipped by flag\./);
+  assert.match(source, /Collecting failure diagnostics \(build logs\)/);
+  assert.match(source, /Collecting failure diagnostics \(deployment logs\)/);
+  assert.match(source, /\$baseArgs = @\("logs", \$DeploymentId, "--lines", \[string\]\$lineCount\)/);
+  assert.match(
+    source,
+    /if \(\$pending -notcontains \$state\)\s*\{[\s\S]*Show-DeploymentFailureDiagnostics -DeploymentId \$deploymentId -Service \$resolvedService -Env \$Environment -Lines \$FailureLogLines[\s\S]*Fail "Railway deployment finished with non-success status:/,
+  );
+});
+
 test("railway deploy docs mention no-wait badge-check skip behavior", () => {
   const readmePath = resolve(process.cwd(), "README.md");
   const readme = readFileSync(readmePath, "utf8");

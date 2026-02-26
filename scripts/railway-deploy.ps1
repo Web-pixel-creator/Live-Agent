@@ -14,6 +14,8 @@ param(
   [string]$RailwayPublicUrl = $env:RAILWAY_PUBLIC_URL,
   [int]$PublicBadgeCheckTimeoutSec = 20,
   [switch]$NoWait,
+  [switch]$SkipFailureLogs,
+  [int]$FailureLogLines = 120,
   [int]$StatusPollMaxAttempts = 60,
   [int]$StatusPollIntervalSec = 5
 )
@@ -169,6 +171,43 @@ function Invoke-PublicBadgeCheck(
   }
 }
 
+function Show-DeploymentFailureDiagnostics(
+  [string]$DeploymentId,
+  [string]$Service,
+  [string]$Env,
+  [int]$Lines
+) {
+  if ([string]::IsNullOrWhiteSpace($DeploymentId)) {
+    return
+  }
+
+  if ($SkipFailureLogs) {
+    Write-Host "[railway-deploy] Failure diagnostics log capture skipped by flag."
+    return
+  }
+
+  $lineCount = if ($Lines -gt 0) { $Lines } else { 120 }
+  $baseArgs = @("logs", $DeploymentId, "--lines", [string]$lineCount)
+  if (-not [string]::IsNullOrWhiteSpace($Service)) {
+    $baseArgs += @("-s", $Service)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($Env)) {
+    $baseArgs += @("-e", $Env)
+  }
+
+  Write-Host "[railway-deploy] Collecting failure diagnostics (build logs)..."
+  & railway @($baseArgs + @("--build"))
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning "[railway-deploy] Unable to fetch build logs for failed deployment."
+  }
+
+  Write-Host "[railway-deploy] Collecting failure diagnostics (deployment logs)..."
+  & railway @($baseArgs + @("--deployment"))
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning "[railway-deploy] Unable to fetch deployment logs for failed deployment."
+  }
+}
+
 & railway --version *> $null
 if ($LASTEXITCODE -ne 0) {
   Fail "Railway CLI is not installed or unavailable in PATH."
@@ -278,6 +317,7 @@ for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
       exit 0
     }
     if ($pending -notcontains $state) {
+      Show-DeploymentFailureDiagnostics -DeploymentId $deploymentId -Service $resolvedService -Env $Environment -Lines $FailureLogLines
       Fail "Railway deployment finished with non-success status: $state (deploymentId=$deploymentId)"
     }
   }
@@ -287,4 +327,5 @@ for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
   }
 }
 
+Show-DeploymentFailureDiagnostics -DeploymentId $deploymentId -Service $resolvedService -Env $Environment -Lines $FailureLogLines
 Fail "Timed out waiting for Railway deployment completion (deploymentId=$deploymentId)."

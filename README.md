@@ -521,8 +521,10 @@ Common flags:
 - `-- -StrictReleaseVerification` - use strict pre-deploy gate (`verify:release:strict`).
 - `-- -SkipReleaseVerification` - skip local verification before deploy.
 - `-- -SkipPublicBadgeCheck` - skip post-deploy public badge endpoint check.
+- `-- -SkipFailureLogs` - do not auto-fetch Railway build/deployment logs when deploy fails or times out.
 - `-- -SkipLink` - deploy using already linked Railway service.
 - `-- -NoWait` - return immediately after deploy trigger.
+- `-- -FailureLogLines <n>` - number of lines to fetch for failure diagnostics (`120` by default).
 - `-- -PublicBadgeEndpoint <url>` / `-- -PublicBadgeDetailsEndpoint <url>` - override public badge endpoints.
 - `-- -RailwayPublicUrl <url>` - set base URL used by badge checker (`/demo-e2e/badge*.json`).
 
