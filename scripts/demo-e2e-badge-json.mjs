@@ -162,6 +162,62 @@ function buildDamageControlEvidence(kpis) {
   };
 }
 
+function buildOperatorDamageControlEvidence(kpis) {
+  const validated = toBoolean(kpis.operatorDamageControlSummaryValidated) === true;
+  const total = toNumber(kpis.operatorDamageControlTotal) ?? 0;
+  const uniqueRuns = toNumber(kpis.operatorDamageControlUniqueRuns) ?? 0;
+  const uniqueSessions = toNumber(kpis.operatorDamageControlUniqueSessions) ?? 0;
+  const matchedRuleCountTotal = toNumber(kpis.operatorDamageControlMatchedRuleCountTotal) ?? 0;
+  const allowCount = toNumber(kpis.operatorDamageControlAllowCount) ?? 0;
+  const askCount = toNumber(kpis.operatorDamageControlAskCount) ?? 0;
+  const blockCount = toNumber(kpis.operatorDamageControlBlockCount) ?? 0;
+  const latestVerdict = toOptionalString(kpis.operatorDamageControlLatestVerdict);
+  const latestSource = toOptionalString(kpis.operatorDamageControlLatestSource);
+  const latestMatchedRuleCount = toNumber(kpis.operatorDamageControlLatestMatchedRuleCount);
+  const latestSeenAt = toOptionalString(kpis.operatorDamageControlLatestSeenAt);
+  const latestSeenAtIsIso = latestSeenAt !== null && isIsoTimestamp(latestSeenAt);
+  const verdictValid = latestVerdict !== null && ["allow", "ask", "block"].includes(latestVerdict);
+  const sourceValid =
+    latestSource !== null && ["default", "file", "env_json", "unknown"].includes(latestSource);
+  const verdictCountsSum = allowCount + askCount + blockCount;
+
+  const status =
+    validated &&
+    total >= 1 &&
+    uniqueRuns >= 1 &&
+    uniqueSessions >= 1 &&
+    matchedRuleCountTotal >= 1 &&
+    verdictCountsSum === total &&
+    verdictValid &&
+    sourceValid &&
+    (latestMatchedRuleCount ?? 0) >= 1 &&
+    latestSeenAtIsIso
+      ? "pass"
+      : "fail";
+
+  return {
+    status,
+    validated,
+    total,
+    uniqueRuns,
+    uniqueSessions,
+    matchedRuleCountTotal,
+    verdictCounts: {
+      allow: allowCount,
+      ask: askCount,
+      block: blockCount,
+      total: verdictCountsSum,
+    },
+    latest: {
+      verdict: latestVerdict,
+      source: latestSource,
+      matchedRuleCount: latestMatchedRuleCount ?? 0,
+      seenAt: latestSeenAt,
+      seenAtIsIso: latestSeenAtIsIso,
+    },
+  };
+}
+
 function fail(message, details) {
   process.stderr.write(
     `${JSON.stringify({
@@ -223,6 +279,7 @@ async function main() {
     latestScopeKey: "operatorTurnDeleteLatestScope",
   });
   const damageControlEvidence = buildDamageControlEvidence(kpis);
+  const operatorDamageControlEvidence = buildOperatorDamageControlEvidence(kpis);
 
   let color = "red";
   if (ok) {
@@ -257,6 +314,7 @@ async function main() {
       operatorTurnTruncation: operatorTurnTruncationEvidence,
       operatorTurnDelete: operatorTurnDeleteEvidence,
       damageControl: damageControlEvidence,
+      operatorDamageControl: operatorDamageControlEvidence,
     },
     badge,
   };

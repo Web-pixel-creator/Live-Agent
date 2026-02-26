@@ -132,6 +132,18 @@ function createPassingSummary(overrides?: {
     operatorTurnDeleteUniqueSessions: 1,
     operatorTurnDeleteExpectedEventSeen: true,
     operatorTurnDeleteLatestSeenAt: "2026-02-26T00:00:00.000Z",
+    operatorDamageControlSummaryValidated: true,
+    operatorDamageControlTotal: 1,
+    operatorDamageControlUniqueRuns: 1,
+    operatorDamageControlUniqueSessions: 1,
+    operatorDamageControlMatchedRuleCountTotal: 2,
+    operatorDamageControlAllowCount: 0,
+    operatorDamageControlAskCount: 1,
+    operatorDamageControlBlockCount: 0,
+    operatorDamageControlLatestVerdict: "ask",
+    operatorDamageControlLatestSource: "default",
+    operatorDamageControlLatestMatchedRuleCount: 2,
+    operatorDamageControlLatestSeenAt: "2026-02-26T00:00:00.000Z",
     operatorTaskQueueSummaryValidated: true,
     operatorTaskQueuePressureLevel: "healthy",
     operatorTaskQueueTotal: 1,
@@ -289,7 +301,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 208);
+  assert.equal(result.payload.checks, 218);
 });
 
 test("demo-e2e policy check fails when gateway error correlation KPI is invalid", () => {
@@ -1188,6 +1200,41 @@ test("demo-e2e policy check fails when operator turn delete latest timestamp is 
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.operatorTurnDeleteLatestSeenAt")));
+});
+
+test("demo-e2e policy check fails when operator damage-control KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorDamageControlSummaryValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorDamageControlSummaryValidated")));
+});
+
+test("demo-e2e policy check fails when operator damage-control verdict counts do not match total", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorDamageControlAllowCount: 1,
+        operatorDamageControlAskCount: 1,
+        operatorDamageControlBlockCount: 1,
+        operatorDamageControlTotal: 1,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorDamageControlVerdictCountsSum")));
 });
 
 test("demo-e2e policy check fails when operator task queue KPI is invalid", () => {

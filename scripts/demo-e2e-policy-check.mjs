@@ -720,6 +720,80 @@ async function main() {
     "ISO UTC timestamp",
   );
   addCheck(
+    "kpi.operatorDamageControlSummaryValidated",
+    kpis.operatorDamageControlSummaryValidated === true,
+    kpis.operatorDamageControlSummaryValidated,
+    true,
+  );
+  addCheck(
+    "kpi.operatorDamageControlTotal",
+    toNumber(kpis.operatorDamageControlTotal) >= 1,
+    kpis.operatorDamageControlTotal,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorDamageControlUniqueRuns",
+    toNumber(kpis.operatorDamageControlUniqueRuns) >= 1,
+    kpis.operatorDamageControlUniqueRuns,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorDamageControlUniqueSessions",
+    toNumber(kpis.operatorDamageControlUniqueSessions) >= 1,
+    kpis.operatorDamageControlUniqueSessions,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorDamageControlMatchedRuleCountTotal",
+    toNumber(kpis.operatorDamageControlMatchedRuleCountTotal) >= 1,
+    kpis.operatorDamageControlMatchedRuleCountTotal,
+    ">= 1",
+  );
+  const operatorDamageControlAllowCount = toNumber(kpis.operatorDamageControlAllowCount);
+  const operatorDamageControlAskCount = toNumber(kpis.operatorDamageControlAskCount);
+  const operatorDamageControlBlockCount = toNumber(kpis.operatorDamageControlBlockCount);
+  const operatorDamageControlTotal = toNumber(kpis.operatorDamageControlTotal);
+  addCheck(
+    "kpi.operatorDamageControlVerdictCountsSum",
+    Number.isFinite(operatorDamageControlAllowCount) &&
+      Number.isFinite(operatorDamageControlAskCount) &&
+      Number.isFinite(operatorDamageControlBlockCount) &&
+      Number.isFinite(operatorDamageControlTotal) &&
+      operatorDamageControlAllowCount + operatorDamageControlAskCount + operatorDamageControlBlockCount ===
+        operatorDamageControlTotal,
+    {
+      allow: kpis.operatorDamageControlAllowCount,
+      ask: kpis.operatorDamageControlAskCount,
+      block: kpis.operatorDamageControlBlockCount,
+      total: kpis.operatorDamageControlTotal,
+    },
+    "allow + ask + block === total",
+  );
+  addCheck(
+    "kpi.operatorDamageControlLatestVerdict",
+    ["allow", "ask", "block"].includes(String(kpis.operatorDamageControlLatestVerdict)),
+    kpis.operatorDamageControlLatestVerdict,
+    "allow | ask | block",
+  );
+  addCheck(
+    "kpi.operatorDamageControlLatestSource",
+    ["default", "file", "env_json", "unknown"].includes(String(kpis.operatorDamageControlLatestSource)),
+    kpis.operatorDamageControlLatestSource,
+    "default | file | env_json | unknown",
+  );
+  addCheck(
+    "kpi.operatorDamageControlLatestMatchedRuleCount",
+    toNumber(kpis.operatorDamageControlLatestMatchedRuleCount) >= 1,
+    kpis.operatorDamageControlLatestMatchedRuleCount,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorDamageControlLatestSeenAt",
+    isIsoUtcTimestamp(kpis.operatorDamageControlLatestSeenAt),
+    kpis.operatorDamageControlLatestSeenAt,
+    "ISO UTC timestamp",
+  );
+  addCheck(
     "kpi.operatorTaskQueueSummaryValidated",
     kpis.operatorTaskQueueSummaryValidated === true,
     kpis.operatorTaskQueueSummaryValidated,
