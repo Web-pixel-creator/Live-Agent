@@ -83,6 +83,7 @@ function createPassingSummary(
     gatewayTransportRequestedMode: string;
     gatewayTransportActiveMode: string;
     gatewayTransportFallbackActive: boolean | string;
+    operatorTurnTruncationSummaryValidated: boolean | string;
     operatorAuditTrailValidated: boolean | string;
     operatorTraceCoverageValidated: boolean | string;
     operatorLiveBridgeHealthBlockValidated: boolean | string;
@@ -155,6 +156,9 @@ function createPassingSummary(
         ? overrides.liveContextCompactionValidated
         : true,
       sessionVersioningValidated: true,
+      operatorTurnTruncationSummaryValidated: hasOverride("operatorTurnTruncationSummaryValidated")
+        ? overrides.operatorTurnTruncationSummaryValidated
+        : true,
       operatorTaskQueueSummaryValidated: true,
       operatorTaskQueuePressureLevel: hasOverride("pressureLevel") ? overrides.pressureLevel : "healthy",
       operatorTaskQueueTotal: hasOverride("queueTotal") ? overrides.queueTotal : 1,
@@ -1276,6 +1280,19 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /gatewayItemTruncateValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator turn truncation KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({ operatorTurnTruncationSummaryValidated: false }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorTurnTruncationSummaryValidated expected True, actual False/i);
   },
 );
 

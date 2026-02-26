@@ -637,6 +637,12 @@ async function main() {
     ">= 0 and <= operatorStartupFailuresTotal",
   );
   addCheck(
+    "kpi.operatorTurnTruncationSummaryValidated",
+    kpis.operatorTurnTruncationSummaryValidated === true,
+    kpis.operatorTurnTruncationSummaryValidated,
+    true,
+  );
+  addCheck(
     "kpi.operatorTaskQueueSummaryValidated",
     kpis.operatorTaskQueueSummaryValidated === true,
     kpis.operatorTaskQueueSummaryValidated,

@@ -311,6 +311,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     assistantActivityLifecycleValidated = $true
     liveContextCompactionValidated = $true
     sessionVersioningValidated = $true
+    operatorTurnTruncationSummaryValidated = $true
     operatorTaskQueueSummaryValidated = $true
     operatorAuditTrailValidated = $true
     operatorTraceCoverageValidated = $true
@@ -1158,6 +1159,10 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $sessionVersioningValidated = $summary.kpis.sessionVersioningValidated
   if ($null -ne $sessionVersioningValidated) {
     Write-Host ("api.sessions.versioning.validated: " + $sessionVersioningValidated)
+  }
+  $turnTruncationValidated = $summary.kpis.operatorTurnTruncationSummaryValidated
+  if ($null -ne $turnTruncationValidated) {
+    Write-Host ("operator.turn_truncation.validated: " + $turnTruncationValidated)
   }
   $taskQueueValidated = $summary.kpis.operatorTaskQueueSummaryValidated
   $taskQueueLevel = $summary.kpis.operatorTaskQueuePressureLevel

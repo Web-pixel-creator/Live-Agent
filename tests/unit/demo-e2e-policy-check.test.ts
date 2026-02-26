@@ -120,6 +120,7 @@ function createPassingSummary(overrides?: {
     operatorStartupFailuresStatus: "healthy",
     operatorStartupFailuresTotal: 0,
     operatorStartupFailuresBlocking: 0,
+    operatorTurnTruncationSummaryValidated: true,
     operatorTaskQueueSummaryValidated: true,
     operatorTaskQueuePressureLevel: "healthy",
     operatorTaskQueueTotal: 1,
@@ -274,7 +275,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 193);
+  assert.equal(result.payload.checks, 194);
 });
 
 test("demo-e2e policy check fails when gateway error correlation KPI is invalid", () => {
@@ -1045,6 +1046,22 @@ test("demo-e2e policy check fails when operator ui-executor failover KPI is inva
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.operatorFailoverUiExecutorValidated")));
+});
+
+test("demo-e2e policy check fails when operator turn truncation KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorTurnTruncationSummaryValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorTurnTruncationSummaryValidated")));
 });
 
 test("demo-e2e policy check fails when operator task queue KPI is invalid", () => {
