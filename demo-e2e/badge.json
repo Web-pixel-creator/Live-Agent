@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "label": "Demo KPI Gate",
-  "message": "pass | 67 checks | 47ms ws",
+  "message": "pass | 199 checks | 57ms ws",
   "color": "brightgreen",
   "cacheSeconds": 300
 }
