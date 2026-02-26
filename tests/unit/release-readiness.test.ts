@@ -1828,6 +1828,22 @@ test(
 );
 
 test(
+  "release-readiness artifact-only mode fails when source run evidence turn-delete validation is false",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceOperatorTurnDeleteValidated: false }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.operatorTurnDeleteSummaryValidated expected true, actual False/i,
+    );
+  },
+);
+
+test(
   "release-readiness artifact-only mode fails when source run evidence damage-control validation is false",
   { skip: skipIfNoPowerShell },
   () => {
@@ -1839,6 +1855,38 @@ test(
     assert.match(
       output,
       /source run manifest evidenceSnapshot\.operatorDamageControlSummaryValidated expected true, actual False/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence damage-control latest verdict is invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceOperatorDamageControlLatestVerdict: "invalid" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.operatorDamageControlLatestVerdict expected one of \[allow,\s*ask,\s*block\],\s*act\s*ual invalid/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence damage-control latest source is invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceOperatorDamageControlLatestSource: "manual" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.operatorDamageControlLatestSource expected one of \[default,\s*file,\s*env_json,\s*unknown\],\s*actual manual/i,
     );
   },
 );
