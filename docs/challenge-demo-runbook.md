@@ -313,19 +313,21 @@ Manual shortcut:
 3. Local artifact `artifacts/demo-e2e/policy-check.json`.
 4. Local artifact `artifacts/demo-e2e/policy-check.md`.
 5. Local artifact `artifacts/demo-e2e/badge.json`.
-6. Observability screenshot: dashboard `MLA Telemetry KPI Overview` with latency and error widgets.
-7. Observability screenshot: alert policy `MLA Gateway P95 Latency High` enabled.
-8. Observability screenshot: alert policy `MLA Service Error Rate High` enabled.
-9. Observability screenshot: alert policy `MLA Orchestrator Persistence Failures` enabled.
-10. BigQuery evidence: dataset `agent_analytics` has recent `analytics_event` rows.
-11. Public status URL: `https://live-agent-production.up.railway.app/demo-e2e/badge.json`.
-12. Public shield URL: `https://img.shields.io/endpoint?url=https%3A%2F%2Flive-agent-production.up.railway.app%2Fdemo-e2e%2Fbadge.json`.
-13. API reliability evidence: `api.sessions.versioning=passed` with `kpi.sessionVersioningValidated=true`, `API_SESSION_VERSION_CONFLICT`, `API_SESSION_IDEMPOTENCY_CONFLICT`.
-14. WebSocket contract evidence: `gateway.websocket.binding_mismatch=passed` with `kpi.gatewayWsSessionMismatchCode=GATEWAY_SESSION_MISMATCH`, `kpi.gatewayWsUserMismatchCode=GATEWAY_USER_MISMATCH`.
-15. WebSocket drain behavior evidence: `gateway.websocket.draining_rejection=passed` with `kpi.gatewayWsDrainingCode=GATEWAY_DRAINING` and successful post-warmup recovery (`kpi.gatewayWsDrainingRecoveryStatus=completed`).
-16. WebSocket conversation-item truncate evidence: `gateway.websocket.item_truncate=passed` with `kpi.gatewayItemTruncateValidated=true`, `kpi.operatorTurnTruncationSummaryValidated=true`, session-local playback truncation event `live.turn.truncated`, and judge-facing Operator Console block `Turn Truncation Evidence` (`turnTruncation.total >= 1`).
-17. WebSocket conversation-item delete evidence: `gateway.websocket.item_delete=passed` with `kpi.gatewayItemDeleteValidated=true`, session-local cleanup event `live.turn.deleted`, and judge-facing Operator Console block `Turn Delete Evidence` (`turnDelete.total >= 1`).
-18. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings).
+6. Local artifact `artifacts/demo-e2e/badge-details.json` (must include `evidence.operatorTurnTruncation` and `evidence.operatorTurnDelete`).
+7. Observability screenshot: dashboard `MLA Telemetry KPI Overview` with latency and error widgets.
+8. Observability screenshot: alert policy `MLA Gateway P95 Latency High` enabled.
+9. Observability screenshot: alert policy `MLA Service Error Rate High` enabled.
+10. Observability screenshot: alert policy `MLA Orchestrator Persistence Failures` enabled.
+11. BigQuery evidence: dataset `agent_analytics` has recent `analytics_event` rows.
+12. Public status URL: `https://live-agent-production.up.railway.app/demo-e2e/badge.json`.
+13. Public details URL: `https://live-agent-production.up.railway.app/demo-e2e/badge-details.json`.
+14. Public shield URL: `https://img.shields.io/endpoint?url=https%3A%2F%2Flive-agent-production.up.railway.app%2Fdemo-e2e%2Fbadge.json`.
+15. API reliability evidence: `api.sessions.versioning=passed` with `kpi.sessionVersioningValidated=true`, `API_SESSION_VERSION_CONFLICT`, `API_SESSION_IDEMPOTENCY_CONFLICT`.
+16. WebSocket contract evidence: `gateway.websocket.binding_mismatch=passed` with `kpi.gatewayWsSessionMismatchCode=GATEWAY_SESSION_MISMATCH`, `kpi.gatewayWsUserMismatchCode=GATEWAY_USER_MISMATCH`.
+17. WebSocket drain behavior evidence: `gateway.websocket.draining_rejection=passed` with `kpi.gatewayWsDrainingCode=GATEWAY_DRAINING` and successful post-warmup recovery (`kpi.gatewayWsDrainingRecoveryStatus=completed`).
+18. WebSocket conversation-item truncate evidence: `gateway.websocket.item_truncate=passed` with `kpi.gatewayItemTruncateValidated=true`, `kpi.operatorTurnTruncationSummaryValidated=true`, session-local playback truncation event `live.turn.truncated`, and judge-facing Operator Console block `Turn Truncation Evidence` (`turnTruncation.total >= 1`).
+19. WebSocket conversation-item delete evidence: `gateway.websocket.item_delete=passed` with `kpi.gatewayItemDeleteValidated=true`, session-local cleanup event `live.turn.deleted`, and judge-facing Operator Console block `Turn Delete Evidence` (`turnDelete.total >= 1`).
+20. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings).
 
 ## Quick Observability Setup (for demo environment)
 

@@ -19,6 +19,9 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /live-agent-production\.up\.railway\.app/);
   assert.match(scriptRaw, /schemaVersion/);
   assert.match(scriptRaw, /badge-details\.json/);
+  assert.match(scriptRaw, /badge-details\.evidence/);
+  assert.match(scriptRaw, /operatorTurnTruncation/);
+  assert.match(scriptRaw, /operatorTurnDelete/);
   assert.match(scriptRaw, /img\.shields\.io\/endpoint/);
 
   const readmePath = resolve(process.cwd(), "README.md");

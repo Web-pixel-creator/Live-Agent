@@ -413,6 +413,10 @@ $env:RAILWAY_PUBLIC_URL="https://<host>"
 npm run badge:public:check
 ```
 
+`badge-details.json` includes judge-facing operator evidence snapshots:
+- `evidence.operatorTurnTruncation`
+- `evidence.operatorTurnDelete`
+
 ## Repository Publish Automation
 
 Publish flow script (git init/commit/push + optional Pages + optional badge polling):

@@ -3,13 +3,43 @@
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
-  "checks": 199,
+  "checks": 205,
   "violations": 0,
   "roundTripMs": 36,
+  "evidence": {
+    "sourceSummaryGeneratedAt": "2026-02-26T05:50:18.742Z",
+    "operatorTurnTruncation": {
+      "status": "pass",
+      "validated": true,
+      "expectedEventSeen": true,
+      "total": 1,
+      "uniqueRuns": 1,
+      "uniqueSessions": 1,
+      "latestSeenAt": "2026-02-26T05:50:18.742Z",
+      "latestSeenAtIsIso": true,
+      "latestTurnId": "turn-truncate-demo",
+      "latestReason": "demo_truncate_checkpoint",
+      "latestAudioEndMs": 1500,
+      "latestContentIndex": 0
+    },
+    "operatorTurnDelete": {
+      "status": "pass",
+      "validated": true,
+      "expectedEventSeen": true,
+      "total": 1,
+      "uniqueRuns": 1,
+      "uniqueSessions": 1,
+      "latestSeenAt": "2026-02-26T05:50:18.742Z",
+      "latestSeenAtIsIso": true,
+      "latestTurnId": "turn-delete-demo",
+      "latestReason": "demo_delete_checkpoint",
+      "latestScope": "session_local"
+    }
+  },
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 199 checks | 36ms ws",
+    "message": "pass | 205 checks | 36ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }

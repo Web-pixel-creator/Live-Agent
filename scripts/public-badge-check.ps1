@@ -98,10 +98,39 @@ if (-not $SkipDetails) {
     Fail "Public badge details endpoint is not reachable: $detailsEndpoint"
   }
 
-  Assert-RequiredFields -Required @("ok", "generatedAt", "checks", "violations", "roundTripMs", "badge") -Payload $details -ScopeName "badge-details"
+  Assert-RequiredFields -Required @("ok", "generatedAt", "checks", "violations", "roundTripMs", "evidence", "badge") -Payload $details -ScopeName "badge-details"
 
   if ($details.badge -eq $null) {
     Fail "badge-details JSON field 'badge' must be present."
+  }
+
+  if ($details.evidence -eq $null) {
+    Fail "badge-details JSON field 'evidence' must be present."
+  }
+
+  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete") -Payload $details.evidence -ScopeName "badge-details.evidence"
+
+  $truncationEvidence = $details.evidence.operatorTurnTruncation
+  $deleteEvidence = $details.evidence.operatorTurnDelete
+  if ($null -eq $truncationEvidence) {
+    Fail "badge-details evidence is missing operatorTurnTruncation block."
+  }
+  if ($null -eq $deleteEvidence) {
+    Fail "badge-details evidence is missing operatorTurnDelete block."
+  }
+
+  $turnEvidenceRequired = @("status", "validated", "expectedEventSeen", "total", "uniqueRuns", "uniqueSessions", "latestSeenAt", "latestSeenAtIsIso")
+  Assert-RequiredFields -Required $turnEvidenceRequired -Payload $truncationEvidence -ScopeName "badge-details.evidence.operatorTurnTruncation"
+  Assert-RequiredFields -Required $turnEvidenceRequired -Payload $deleteEvidence -ScopeName "badge-details.evidence.operatorTurnDelete"
+
+  $allowedTurnEvidenceStatuses = @("pass", "fail")
+  $truncationStatus = [string]$truncationEvidence.status
+  $deleteStatus = [string]$deleteEvidence.status
+  if (-not ($allowedTurnEvidenceStatuses -contains $truncationStatus)) {
+    Fail "badge-details evidence operatorTurnTruncation.status must be one of [pass, fail]."
+  }
+  if (-not ($allowedTurnEvidenceStatuses -contains $deleteStatus)) {
+    Fail "badge-details evidence operatorTurnDelete.status must be one of [pass, fail]."
   }
 
   Assert-RequiredFields -Required @("schemaVersion", "label", "message", "color", "cacheSeconds") -Payload $details.badge -ScopeName "badge-details.badge"
