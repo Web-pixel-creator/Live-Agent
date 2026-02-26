@@ -31,7 +31,7 @@ test("railway deploy pre-deploy gate selects strict/default verification script 
 
   assert.match(
     source,
-    /if \(-not \$SkipReleaseVerification\)\s*\{[\s\S]*\$verificationScript = if \(\$StrictReleaseVerification\) \{ "verify:release:strict" \} else \{ "verify:release" \}[\s\S]*& npm run \$verificationScript[\s\S]*\}/,
+    /if \(-not \$SkipReleaseVerification\)\s*\{[\s\S]*\$verificationScript = if \(\$StrictReleaseVerification\) \{ "verify:release:strict" \} else \{ "verify:release" \}[\s\S]*& npm\.cmd run \$verificationScript[\s\S]*\}/,
   );
 });
 
