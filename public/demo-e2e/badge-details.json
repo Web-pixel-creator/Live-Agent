@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-02-26T10:25:26.901Z",
+  "generatedAt": "2026-02-26T11:11:53.927Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
-  "checks": 208,
+  "checks": 218,
   "violations": 0,
   "roundTripMs": 38,
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-02-26T15:19:16.8240561+05:00",
+    "sourceSummaryGeneratedAt": "2026-02-26T15:51:14.9162708+05:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -15,7 +15,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-02-26T10:19:14.128Z",
+      "latestSeenAt": "2026-02-26T10:51:12.446Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -29,7 +29,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-02-26T10:19:14.288Z",
+      "latestSeenAt": "2026-02-26T10:51:12.616Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -45,12 +45,33 @@
       "matchedRuleIds": [
         "dc-destructive-ask"
       ]
+    },
+    "operatorDamageControl": {
+      "status": "pass",
+      "validated": true,
+      "total": 1,
+      "uniqueRuns": 1,
+      "uniqueSessions": 1,
+      "matchedRuleCountTotal": 1,
+      "verdictCounts": {
+        "allow": 0,
+        "ask": 1,
+        "block": 0,
+        "total": 1
+      },
+      "latest": {
+        "verdict": "ask",
+        "source": "file",
+        "matchedRuleCount": 1,
+        "seenAt": "2026-02-26T10:51:11.967Z",
+        "seenAtIsIso": true
+      }
     }
   },
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 208 checks | 38ms ws",
+    "message": "pass | 218 checks | 38ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }

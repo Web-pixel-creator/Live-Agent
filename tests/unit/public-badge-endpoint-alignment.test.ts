@@ -35,9 +35,11 @@ test("tracked public badge details embed badge payload", () => {
   const turnTruncation = evidence.operatorTurnTruncation as Record<string, unknown>;
   const turnDelete = evidence.operatorTurnDelete as Record<string, unknown>;
   const damageControl = evidence.damageControl as Record<string, unknown>;
+  const operatorDamageControl = evidence.operatorDamageControl as Record<string, unknown>;
   assert.ok(turnTruncation && typeof turnTruncation === "object");
   assert.ok(turnDelete && typeof turnDelete === "object");
   assert.ok(damageControl && typeof damageControl === "object");
+  assert.ok(operatorDamageControl && typeof operatorDamageControl === "object");
 
   assert.equal(details.ok, true);
   assert.equal(typeof details.generatedAt, "string");
@@ -58,6 +60,25 @@ test("tracked public badge details embed badge payload", () => {
   assert.equal(typeof damageControl.enabled, "boolean");
   assert.equal(typeof damageControl.matchedRuleCount, "number");
   assert.equal(Array.isArray(damageControl.matchedRuleIds), true);
+  assert.equal(typeof operatorDamageControl.status, "string");
+  assert.equal(typeof operatorDamageControl.validated, "boolean");
+  assert.equal(typeof operatorDamageControl.total, "number");
+  assert.equal(typeof operatorDamageControl.uniqueRuns, "number");
+  assert.equal(typeof operatorDamageControl.uniqueSessions, "number");
+  assert.equal(typeof operatorDamageControl.matchedRuleCountTotal, "number");
+  const operatorDamageControlVerdictCounts = operatorDamageControl.verdictCounts as Record<string, unknown>;
+  const operatorDamageControlLatest = operatorDamageControl.latest as Record<string, unknown>;
+  assert.ok(operatorDamageControlVerdictCounts && typeof operatorDamageControlVerdictCounts === "object");
+  assert.ok(operatorDamageControlLatest && typeof operatorDamageControlLatest === "object");
+  assert.equal(typeof operatorDamageControlVerdictCounts.allow, "number");
+  assert.equal(typeof operatorDamageControlVerdictCounts.ask, "number");
+  assert.equal(typeof operatorDamageControlVerdictCounts.block, "number");
+  assert.equal(typeof operatorDamageControlVerdictCounts.total, "number");
+  assert.equal(typeof operatorDamageControlLatest.verdict, "string");
+  assert.equal(typeof operatorDamageControlLatest.source, "string");
+  assert.equal(typeof operatorDamageControlLatest.matchedRuleCount, "number");
+  assert.equal(typeof operatorDamageControlLatest.seenAt, "string");
+  assert.equal(typeof operatorDamageControlLatest.seenAtIsIso, "boolean");
   assert.equal(typeof details.policyPath, "string");
   assert.equal(typeof details.summaryPath, "string");
   assert.equal(badge.schemaVersion, 1);

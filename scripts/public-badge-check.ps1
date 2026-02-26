@@ -108,11 +108,12 @@ if (-not $SkipDetails) {
     Fail "badge-details JSON field 'evidence' must be present."
   }
 
-  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl") -Payload $details.evidence -ScopeName "badge-details.evidence"
+  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl") -Payload $details.evidence -ScopeName "badge-details.evidence"
 
   $truncationEvidence = $details.evidence.operatorTurnTruncation
   $deleteEvidence = $details.evidence.operatorTurnDelete
   $damageControlEvidence = $details.evidence.damageControl
+  $operatorDamageControlEvidence = $details.evidence.operatorDamageControl
   if ($null -eq $truncationEvidence) {
     Fail "badge-details evidence is missing operatorTurnTruncation block."
   }
@@ -121,6 +122,9 @@ if (-not $SkipDetails) {
   }
   if ($null -eq $damageControlEvidence) {
     Fail "badge-details evidence is missing damageControl block."
+  }
+  if ($null -eq $operatorDamageControlEvidence) {
+    Fail "badge-details evidence is missing operatorDamageControl block."
   }
 
   $turnEvidenceRequired = @("status", "validated", "expectedEventSeen", "total", "uniqueRuns", "uniqueSessions", "latestSeenAt", "latestSeenAtIsIso")
@@ -143,6 +147,21 @@ if (-not $SkipDetails) {
   if (-not ($allowedTurnEvidenceStatuses -contains $damageControlStatus)) {
     Fail "badge-details evidence damageControl.status must be one of [pass, fail]."
   }
+
+  $operatorDamageControlEvidenceRequired = @("status", "validated", "total", "uniqueRuns", "uniqueSessions", "matchedRuleCountTotal", "verdictCounts", "latest")
+  Assert-RequiredFields -Required $operatorDamageControlEvidenceRequired -Payload $operatorDamageControlEvidence -ScopeName "badge-details.evidence.operatorDamageControl"
+  $operatorDamageControlStatus = [string]$operatorDamageControlEvidence.status
+  if (-not ($allowedTurnEvidenceStatuses -contains $operatorDamageControlStatus)) {
+    Fail "badge-details evidence operatorDamageControl.status must be one of [pass, fail]."
+  }
+  if ($null -eq $operatorDamageControlEvidence.verdictCounts) {
+    Fail "badge-details evidence operatorDamageControl.verdictCounts must be present."
+  }
+  if ($null -eq $operatorDamageControlEvidence.latest) {
+    Fail "badge-details evidence operatorDamageControl.latest must be present."
+  }
+  Assert-RequiredFields -Required @("allow", "ask", "block", "total") -Payload $operatorDamageControlEvidence.verdictCounts -ScopeName "badge-details.evidence.operatorDamageControl.verdictCounts"
+  Assert-RequiredFields -Required @("verdict", "source", "matchedRuleCount", "seenAt", "seenAtIsIso") -Payload $operatorDamageControlEvidence.latest -ScopeName "badge-details.evidence.operatorDamageControl.latest"
 
   Assert-RequiredFields -Required @("schemaVersion", "label", "message", "color", "cacheSeconds") -Payload $details.badge -ScopeName "badge-details.badge"
 

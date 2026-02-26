@@ -23,6 +23,7 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /operatorTurnTruncation/);
   assert.match(scriptRaw, /operatorTurnDelete/);
   assert.match(scriptRaw, /damageControl/);
+  assert.match(scriptRaw, /operatorDamageControl/);
   assert.match(scriptRaw, /img\.shields\.io\/endpoint/);
 
   const readmePath = resolve(process.cwd(), "README.md");
