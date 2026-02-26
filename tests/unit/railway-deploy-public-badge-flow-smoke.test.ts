@@ -35,6 +35,22 @@ test("railway deploy pre-deploy gate selects strict/default verification script 
   );
 });
 
+test("railway deploy link step accepts existing linked context when project/service are omitted", () => {
+  const scriptPath = resolve(process.cwd(), "scripts", "railway-deploy.ps1");
+  const source = readFileSync(scriptPath, "utf8");
+
+  assert.match(source, /\$hasProjectId = -not \[string\]::IsNullOrWhiteSpace\(\$ProjectId\)/);
+  assert.match(source, /\$hasServiceId = -not \[string\]::IsNullOrWhiteSpace\(\$ServiceId\)/);
+  assert.match(
+    source,
+    /elseif \(-not \$hasProjectId -and -not \$hasServiceId\)\s*\{[\s\S]*using existing linked Railway context\./,
+  );
+  assert.match(
+    source,
+    /else\s*\{[\s\S]*Fail "Provide both -ProjectId and -ServiceId together, or omit both to use existing Railway link, or use -SkipLink\."/,
+  );
+});
+
 test("railway deploy failure path captures diagnostics logs before failing", () => {
   const scriptPath = resolve(process.cwd(), "scripts", "railway-deploy.ps1");
   const source = readFileSync(scriptPath, "utf8");

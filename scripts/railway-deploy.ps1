@@ -253,16 +253,23 @@ if (-not $SkipReleaseVerification) {
 }
 
 if (-not $SkipLink) {
-  if ([string]::IsNullOrWhiteSpace($ProjectId) -or [string]::IsNullOrWhiteSpace($ServiceId)) {
-    Fail "Provide -ProjectId and -ServiceId (or set RAILWAY_PROJECT_ID and RAILWAY_SERVICE_ID), or use -SkipLink."
-  }
+  $hasProjectId = -not [string]::IsNullOrWhiteSpace($ProjectId)
+  $hasServiceId = -not [string]::IsNullOrWhiteSpace($ServiceId)
 
-  $linkArgs = @("link", "-p", $ProjectId, "-s", $ServiceId, "-e", $Environment)
-  if (-not [string]::IsNullOrWhiteSpace($Workspace)) {
-    $linkArgs += @("-w", $Workspace)
+  if ($hasProjectId -and $hasServiceId) {
+    $linkArgs = @("link", "-p", $ProjectId, "-s", $ServiceId, "-e", $Environment)
+    if (-not [string]::IsNullOrWhiteSpace($Workspace)) {
+      $linkArgs += @("-w", $Workspace)
+    }
+    Write-Host "[railway-deploy] Linking workspace to Railway service..."
+    Run-Cli -CliArgs $linkArgs
   }
-  Write-Host "[railway-deploy] Linking workspace to Railway service..."
-  Run-Cli -CliArgs $linkArgs
+  elseif (-not $hasProjectId -and -not $hasServiceId) {
+    Write-Host "[railway-deploy] -ProjectId/-ServiceId are not set; using existing linked Railway context."
+  }
+  else {
+    Fail "Provide both -ProjectId and -ServiceId together, or omit both to use existing Railway link, or use -SkipLink."
+  }
 }
 
 $statusJson = (& railway status --json)
