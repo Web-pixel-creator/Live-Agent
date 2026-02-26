@@ -25,6 +25,16 @@ test("railway deploy success path runs badge check only when skip flag is disabl
   );
 });
 
+test("railway deploy pre-deploy gate selects strict/default verification script when not skipped", () => {
+  const scriptPath = resolve(process.cwd(), "scripts", "railway-deploy.ps1");
+  const source = readFileSync(scriptPath, "utf8");
+
+  assert.match(
+    source,
+    /if \(-not \$SkipReleaseVerification\)\s*\{[\s\S]*\$verificationScript = if \(\$StrictReleaseVerification\) \{ "verify:release:strict" \} else \{ "verify:release" \}[\s\S]*& npm run \$verificationScript[\s\S]*\}/,
+  );
+});
+
 test("railway deploy docs mention no-wait badge-check skip behavior", () => {
   const readmePath = resolve(process.cwd(), "README.md");
   const readme = readFileSync(readmePath, "utf8");
