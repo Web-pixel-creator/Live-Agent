@@ -1304,6 +1304,12 @@ function updateOperatorTurnTruncationWidgetFromEvent(event) {
   };
   state.operatorTurnTruncationSnapshot = nextSnapshot;
   renderOperatorTurnTruncationWidget(null, nextSnapshot);
+  appendEntry(
+    el.operatorSummary,
+    "system",
+    "turn_truncation.live_event",
+    `event_count=${nextSnapshot.eventCount} turn=${turnId ?? "n/a"} reason=${reason ?? "n/a"} audio_end_ms=${audioEndMs ?? "n/a"} content_index=${contentIndex ?? "n/a"} scope=${scope ?? "n/a"} run=${nextSnapshot.runId ?? "n/a"} session=${nextSnapshot.sessionId ?? "n/a"} seen_at=${nextSnapshot.seenAt}`,
+  );
 }
 
 function updateOperatorTurnDeleteWidgetFromEvent(event) {

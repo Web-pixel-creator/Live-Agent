@@ -33,6 +33,7 @@ test("operator turn-truncation evidence widget is wired in frontend HTML and run
     "updateOperatorTurnTruncationWidgetFromEvent",
     "updateOperatorTurnTruncationWidgetFromEvent(event);",
     "turn_truncation",
+    "turn_truncation.live_event",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing operator turn-truncation token: ${token}`);
