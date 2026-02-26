@@ -87,7 +87,9 @@ jobs:
           }
 
       - name: Publish Badge To gh-pages
+        id: publish_badge
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        continue-on-error: true
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -130,7 +132,12 @@ jobs:
             $repo = $repoParts[1]
             $badgeEndpoint = "https://$owner.github.io/$repo/demo-e2e/badge.json"
             $badgeShield = "https://img.shields.io/endpoint?url=$([System.Uri]::EscapeDataString($badgeEndpoint))"
+            $badgePublishOutcome = "${{ steps.publish_badge.outcome }}"
             "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Badge publish outcome: " + $badgePublishOutcome) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            if ($badgePublishOutcome -ne "success") {
+              "Badge publish to gh-pages is best-effort and may be unsupported for this repository plan." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            }
             ("Badge endpoint: " + $badgeEndpoint) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             ("Shields URL: " + $badgeShield) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           }

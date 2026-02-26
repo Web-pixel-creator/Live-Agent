@@ -146,7 +146,7 @@ npm run demo:e2e
 CI split:
 
 - PR quick gate: `.github/workflows/pr-quality.yml` (build + unit + profile smoke + monitoring validate + `demo:e2e:fast` + policy + badge artifact).
-- Full gate on `main/master` + manual dispatch: `.github/workflows/demo-e2e.yml` (includes perf-load policy gate and badge publish to `gh-pages`).
+- Full gate on `main/master` + manual dispatch: `.github/workflows/demo-e2e.yml` (includes perf-load policy gate and best-effort badge publish to `gh-pages`).
 
 Fast mode (skip workspace build):
 
