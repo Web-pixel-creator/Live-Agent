@@ -799,6 +799,7 @@ async function getOperatorServiceSummary(): Promise<Array<Record<string, unknown
       lastDrainAt: runtime ? runtime.lastDrainAt ?? null : null,
       version: runtime ? runtime.version ?? null : null,
       turnTruncation: runtime ? runtime.turnTruncation ?? null : null,
+      turnDelete: runtime ? runtime.turnDelete ?? null : null,
       profile,
       metrics: metricsSummary
         ? {
