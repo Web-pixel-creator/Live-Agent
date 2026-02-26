@@ -208,6 +208,32 @@ function Show-DeploymentFailureDiagnostics(
   }
 }
 
+function Resolve-DeploymentStartCommand([object]$Deployment) {
+  if ($null -eq $Deployment) {
+    return $null
+  }
+
+  if ($Deployment.PSObject.Properties.Name -contains "meta") {
+    $meta = $Deployment.meta
+    if ($null -ne $meta -and $meta.PSObject.Properties.Name -contains "serviceManifest") {
+      $manifest = $meta.serviceManifest
+      if (
+        $null -ne $manifest -and
+        $manifest.PSObject.Properties.Name -contains "deploy" -and
+        $null -ne $manifest.deploy -and
+        $manifest.deploy.PSObject.Properties.Name -contains "startCommand"
+      ) {
+        $startCommand = [string]$manifest.deploy.startCommand
+        if (-not [string]::IsNullOrWhiteSpace($startCommand)) {
+          return $startCommand
+        }
+      }
+    }
+  }
+
+  return $null
+}
+
 & railway --version *> $null
 if ($LASTEXITCODE -ne 0) {
   Fail "Railway CLI is not installed or unavailable in PATH."
@@ -308,6 +334,16 @@ for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
     $state = [string]$deployment.status
     Write-Host "[railway-deploy] Status ($attempt/$StatusPollMaxAttempts): $state"
     if ($state -eq "SUCCESS") {
+      $effectiveStartCommand = Resolve-DeploymentStartCommand -Deployment $deployment
+      if (-not [string]::IsNullOrWhiteSpace($effectiveStartCommand)) {
+        Write-Host ("[railway-deploy] Effective start command: " + $effectiveStartCommand)
+      }
+
+      $configSource = [string]$deployment.meta.configFile
+      if (-not [string]::IsNullOrWhiteSpace($configSource)) {
+        Write-Host ("[railway-deploy] Config-as-code source: " + $configSource)
+      }
+
       if (-not $SkipPublicBadgeCheck) {
         Invoke-PublicBadgeCheck -Endpoint $PublicBadgeEndpoint -DetailsEndpoint $PublicBadgeDetailsEndpoint -PublicUrl $RailwayPublicUrl -TimeoutSec $PublicBadgeCheckTimeoutSec
       }

@@ -50,6 +50,21 @@ test("railway deploy failure path captures diagnostics logs before failing", () 
   );
 });
 
+test("railway deploy success path reports effective runtime start command metadata", () => {
+  const scriptPath = resolve(process.cwd(), "scripts", "railway-deploy.ps1");
+  const source = readFileSync(scriptPath, "utf8");
+
+  assert.match(source, /function Resolve-DeploymentStartCommand/);
+  assert.match(
+    source,
+    /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*\$effectiveStartCommand = Resolve-DeploymentStartCommand -Deployment \$deployment[\s\S]*Effective start command:/,
+  );
+  assert.match(
+    source,
+    /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*\$configSource = \[string\]\$deployment\.meta\.configFile[\s\S]*Config-as-code source:/,
+  );
+});
+
 test("railway deploy docs mention no-wait badge-check skip behavior", () => {
   const readmePath = resolve(process.cwd(), "README.md");
   const readme = readFileSync(readmePath, "utf8");
