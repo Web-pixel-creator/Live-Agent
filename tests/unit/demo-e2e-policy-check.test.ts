@@ -121,6 +121,11 @@ function createPassingSummary(overrides?: {
     operatorStartupFailuresTotal: 0,
     operatorStartupFailuresBlocking: 0,
     operatorTurnTruncationSummaryValidated: true,
+    operatorTurnTruncationTotal: 1,
+    operatorTurnTruncationUniqueRuns: 1,
+    operatorTurnTruncationUniqueSessions: 1,
+    operatorTurnTruncationExpectedEventSeen: true,
+    operatorTurnTruncationLatestSeenAt: "2026-02-26T00:00:00.000Z",
     operatorTaskQueueSummaryValidated: true,
     operatorTaskQueuePressureLevel: "healthy",
     operatorTaskQueueTotal: 1,
@@ -275,7 +280,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 194);
+  assert.equal(result.payload.checks, 199);
 });
 
 test("demo-e2e policy check fails when gateway error correlation KPI is invalid", () => {
@@ -1062,6 +1067,38 @@ test("demo-e2e policy check fails when operator turn truncation KPI is invalid",
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.operatorTurnTruncationSummaryValidated")));
+});
+
+test("demo-e2e policy check fails when operator turn truncation totals are invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorTurnTruncationTotal: 0,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorTurnTruncationTotal")));
+});
+
+test("demo-e2e policy check fails when operator turn truncation latest timestamp is missing", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorTurnTruncationLatestSeenAt: "",
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorTurnTruncationLatestSeenAt")));
 });
 
 test("demo-e2e policy check fails when operator task queue KPI is invalid", () => {

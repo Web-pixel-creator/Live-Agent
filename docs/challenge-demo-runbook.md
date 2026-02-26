@@ -125,6 +125,11 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `operatorLiveBridgeHealthConsistencyValidated=true`
   - `operatorStartupDiagnosticsValidated=true`
   - `operatorTurnTruncationSummaryValidated=true`
+  - `operatorTurnTruncationExpectedEventSeen=true`
+  - `operatorTurnTruncationTotal >= 1`
+  - `operatorTurnTruncationUniqueRuns >= 1`
+  - `operatorTurnTruncationUniqueSessions >= 1`
+  - `operatorTurnTruncationLatestSeenAt` is ISO timestamp
   - `operatorLiveBridgeHealthState in {healthy,degraded,unknown}`
 - Live Agent reliability:
   - `assistantActivityLifecycleValidated=true`

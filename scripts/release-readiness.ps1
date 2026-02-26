@@ -312,6 +312,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     liveContextCompactionValidated = $true
     sessionVersioningValidated = $true
     operatorTurnTruncationSummaryValidated = $true
+    operatorTurnTruncationExpectedEventSeen = $true
     operatorTaskQueueSummaryValidated = $true
     operatorAuditTrailValidated = $true
     operatorTraceCoverageValidated = $true
@@ -337,6 +338,30 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $allowedTaskQueuePressureLevels = @("idle", "healthy", "elevated")
   if (-not ($allowedTaskQueuePressureLevels -contains $taskQueuePressureLevel)) {
     Fail ("Critical KPI check failed: operatorTaskQueuePressureLevel expected one of [" + ($allowedTaskQueuePressureLevels -join ", ") + "], actual " + $taskQueuePressureLevel)
+  }
+
+  $turnTruncationTotal = [int]$summary.kpis.operatorTurnTruncationTotal
+  if ($turnTruncationTotal -lt 1) {
+    Fail ("Critical KPI check failed: operatorTurnTruncationTotal expected >= 1, actual " + $turnTruncationTotal)
+  }
+
+  $turnTruncationUniqueRuns = [int]$summary.kpis.operatorTurnTruncationUniqueRuns
+  if ($turnTruncationUniqueRuns -lt 1) {
+    Fail ("Critical KPI check failed: operatorTurnTruncationUniqueRuns expected >= 1, actual " + $turnTruncationUniqueRuns)
+  }
+
+  $turnTruncationUniqueSessions = [int]$summary.kpis.operatorTurnTruncationUniqueSessions
+  if ($turnTruncationUniqueSessions -lt 1) {
+    Fail ("Critical KPI check failed: operatorTurnTruncationUniqueSessions expected >= 1, actual " + $turnTruncationUniqueSessions)
+  }
+
+  $turnTruncationLatestSeenAt = [string]$summary.kpis.operatorTurnTruncationLatestSeenAt
+  if ([string]::IsNullOrWhiteSpace($turnTruncationLatestSeenAt)) {
+    Fail "Critical KPI check failed: operatorTurnTruncationLatestSeenAt is missing"
+  }
+  $parsedTurnTruncationLatestSeenAt = [DateTimeOffset]::MinValue
+  if (-not [DateTimeOffset]::TryParse($turnTruncationLatestSeenAt, [ref]$parsedTurnTruncationLatestSeenAt)) {
+    Fail ("Critical KPI check failed: operatorTurnTruncationLatestSeenAt expected ISO timestamp, actual " + $turnTruncationLatestSeenAt)
   }
 
   $taskQueueTotal = [int]$summary.kpis.operatorTaskQueueTotal
@@ -1161,8 +1186,20 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     Write-Host ("api.sessions.versioning.validated: " + $sessionVersioningValidated)
   }
   $turnTruncationValidated = $summary.kpis.operatorTurnTruncationSummaryValidated
+  $turnTruncationTotal = $summary.kpis.operatorTurnTruncationTotal
+  $turnTruncationUniqueRuns = $summary.kpis.operatorTurnTruncationUniqueRuns
+  $turnTruncationUniqueSessions = $summary.kpis.operatorTurnTruncationUniqueSessions
+  $turnTruncationExpectedEventSeen = $summary.kpis.operatorTurnTruncationExpectedEventSeen
+  $turnTruncationLatestSeenAt = $summary.kpis.operatorTurnTruncationLatestSeenAt
   if ($null -ne $turnTruncationValidated) {
-    Write-Host ("operator.turn_truncation.validated: " + $turnTruncationValidated)
+    Write-Host (
+      "operator.turn_truncation: validated=" + $turnTruncationValidated +
+      ", total=" + $turnTruncationTotal +
+      ", unique_runs=" + $turnTruncationUniqueRuns +
+      ", unique_sessions=" + $turnTruncationUniqueSessions +
+      ", expected_event_seen=" + $turnTruncationExpectedEventSeen +
+      ", latest_seen_at=" + $turnTruncationLatestSeenAt
+    )
   }
   $taskQueueValidated = $summary.kpis.operatorTaskQueueSummaryValidated
   $taskQueueLevel = $summary.kpis.operatorTaskQueuePressureLevel

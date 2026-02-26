@@ -84,6 +84,11 @@ function createPassingSummary(
     gatewayTransportActiveMode: string;
     gatewayTransportFallbackActive: boolean | string;
     operatorTurnTruncationSummaryValidated: boolean | string;
+    operatorTurnTruncationExpectedEventSeen: boolean | string;
+    operatorTurnTruncationTotal: number | string;
+    operatorTurnTruncationUniqueRuns: number | string;
+    operatorTurnTruncationUniqueSessions: number | string;
+    operatorTurnTruncationLatestSeenAt: string;
     operatorAuditTrailValidated: boolean | string;
     operatorTraceCoverageValidated: boolean | string;
     operatorLiveBridgeHealthBlockValidated: boolean | string;
@@ -159,6 +164,21 @@ function createPassingSummary(
       operatorTurnTruncationSummaryValidated: hasOverride("operatorTurnTruncationSummaryValidated")
         ? overrides.operatorTurnTruncationSummaryValidated
         : true,
+      operatorTurnTruncationExpectedEventSeen: hasOverride("operatorTurnTruncationExpectedEventSeen")
+        ? overrides.operatorTurnTruncationExpectedEventSeen
+        : true,
+      operatorTurnTruncationTotal: hasOverride("operatorTurnTruncationTotal")
+        ? overrides.operatorTurnTruncationTotal
+        : 1,
+      operatorTurnTruncationUniqueRuns: hasOverride("operatorTurnTruncationUniqueRuns")
+        ? overrides.operatorTurnTruncationUniqueRuns
+        : 1,
+      operatorTurnTruncationUniqueSessions: hasOverride("operatorTurnTruncationUniqueSessions")
+        ? overrides.operatorTurnTruncationUniqueSessions
+        : 1,
+      operatorTurnTruncationLatestSeenAt: hasOverride("operatorTurnTruncationLatestSeenAt")
+        ? overrides.operatorTurnTruncationLatestSeenAt
+        : "2026-02-26T00:00:00.000Z",
       operatorTaskQueueSummaryValidated: true,
       operatorTaskQueuePressureLevel: hasOverride("pressureLevel") ? overrides.pressureLevel : "healthy",
       operatorTaskQueueTotal: hasOverride("queueTotal") ? overrides.queueTotal : 1,
@@ -1293,6 +1313,45 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /operatorTurnTruncationSummaryValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator turn truncation expected-event KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({ operatorTurnTruncationExpectedEventSeen: false }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorTurnTruncationExpectedEventSeen expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator turn truncation total is below one",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({ operatorTurnTruncationTotal: 0 }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorTurnTruncationTotal expected >= 1, actual 0/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator turn truncation latest timestamp is invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({ operatorTurnTruncationLatestSeenAt: "not-an-iso" }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorTurnTruncationLatestSeenAt expected ISO timestamp, actual not-an-iso/i);
   },
 );
 

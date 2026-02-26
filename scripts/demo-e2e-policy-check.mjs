@@ -643,6 +643,37 @@ async function main() {
     true,
   );
   addCheck(
+    "kpi.operatorTurnTruncationTotal",
+    toNumber(kpis.operatorTurnTruncationTotal) >= 1,
+    kpis.operatorTurnTruncationTotal,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorTurnTruncationUniqueRuns",
+    toNumber(kpis.operatorTurnTruncationUniqueRuns) >= 1,
+    kpis.operatorTurnTruncationUniqueRuns,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorTurnTruncationUniqueSessions",
+    toNumber(kpis.operatorTurnTruncationUniqueSessions) >= 1,
+    kpis.operatorTurnTruncationUniqueSessions,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorTurnTruncationExpectedEventSeen",
+    kpis.operatorTurnTruncationExpectedEventSeen === true,
+    kpis.operatorTurnTruncationExpectedEventSeen,
+    true,
+  );
+  addCheck(
+    "kpi.operatorTurnTruncationLatestSeenAt",
+    typeof kpis.operatorTurnTruncationLatestSeenAt === "string" &&
+      String(kpis.operatorTurnTruncationLatestSeenAt).trim().length > 0,
+    kpis.operatorTurnTruncationLatestSeenAt,
+    "non-empty ISO timestamp",
+  );
+  addCheck(
     "kpi.operatorTaskQueueSummaryValidated",
     kpis.operatorTaskQueueSummaryValidated === true,
     kpis.operatorTaskQueueSummaryValidated,
