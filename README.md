@@ -596,6 +596,14 @@ Notes:
 - Runs `npm run verify:deploy:railway:dry` (deploy/repo-publish contract checks) before `npm run verify:pr` (build + unit + profile smoke + monitoring validate + demo policy/badge gate).
 - Uploads demo artifacts for PR review.
 
+- Railway combined deploy workflow: `.github/workflows/railway-deploy-all.yml`
+- Triggered manually (`workflow_dispatch`) to deploy `gateway + frontend` via `npm run deploy:railway:all`.
+- Required repository secrets:
+  - `RAILWAY_TOKEN`
+  - `RAILWAY_PROJECT_ID`
+  - `RAILWAY_SERVICE_ID`
+  - optional `RAILWAY_FRONTEND_SERVICE_ID` (if omitted, helper default service name is used).
+
 - Full workflow: `.github/workflows/demo-e2e.yml`
 - Triggered on push to `main`/`master` and manual dispatch.
 - Runs unit/profile/monitoring/demo policy gates plus perf-load policy gate.

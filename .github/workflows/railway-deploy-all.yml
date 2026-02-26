@@ -1,0 +1,121 @@
+name: Railway Deploy All
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Railway environment name"
+        required: true
+        default: "production"
+      gateway_public_url:
+        description: "Gateway public base URL for badge check and frontend runtime derivation"
+        required: true
+        default: "https://live-agent-production.up.railway.app"
+      skip_release_verification:
+        description: "Skip local release gate before gateway deploy"
+        required: true
+        type: boolean
+        default: true
+      skip_gateway_deploy:
+        description: "Skip gateway deploy step"
+        required: true
+        type: boolean
+        default: false
+      skip_frontend_deploy:
+        description: "Skip frontend deploy step"
+        required: true
+        type: boolean
+        default: false
+      gateway_no_wait:
+        description: "Trigger gateway deploy and exit without waiting"
+        required: true
+        type: boolean
+        default: false
+      frontend_no_wait:
+        description: "Trigger frontend deploy and exit without waiting"
+        required: true
+        type: boolean
+        default: false
+      frontend_skip_health_check:
+        description: "Skip frontend /healthz check"
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+      RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+      RAILWAY_FRONTEND_SERVICE_ID: ${{ secrets.RAILWAY_FRONTEND_SERVICE_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+        shell: powershell
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+        shell: powershell
+
+      - name: Validate Railway Secrets
+        shell: powershell
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RAILWAY_TOKEN)) {
+            throw "Missing required repository secret: RAILWAY_TOKEN"
+          }
+          if ([string]::IsNullOrWhiteSpace($env:RAILWAY_PROJECT_ID)) {
+            throw "Missing required repository secret: RAILWAY_PROJECT_ID"
+          }
+          if ([string]::IsNullOrWhiteSpace($env:RAILWAY_SERVICE_ID)) {
+            throw "Missing required repository secret: RAILWAY_SERVICE_ID"
+          }
+
+      - name: Run Combined Railway Deploy
+        shell: powershell
+        run: |
+          $args = @(
+            "--",
+            "-ProjectId", $env:RAILWAY_PROJECT_ID,
+            "-GatewayServiceId", $env:RAILWAY_SERVICE_ID,
+            "-Environment", "${{ inputs.environment }}",
+            "-GatewayPublicUrl", "${{ inputs.gateway_public_url }}"
+          )
+
+          if (-not [string]::IsNullOrWhiteSpace($env:RAILWAY_FRONTEND_SERVICE_ID)) {
+            $args += @("-FrontendService", $env:RAILWAY_FRONTEND_SERVICE_ID)
+          }
+
+          if ("${{ inputs.skip_release_verification }}" -eq "true") {
+            $args += "-SkipReleaseVerification"
+          }
+          if ("${{ inputs.skip_gateway_deploy }}" -eq "true") {
+            $args += "-SkipGatewayDeploy"
+          }
+          if ("${{ inputs.skip_frontend_deploy }}" -eq "true") {
+            $args += "-SkipFrontendDeploy"
+          }
+          if ("${{ inputs.gateway_no_wait }}" -eq "true") {
+            $args += "-GatewayNoWait"
+          }
+          if ("${{ inputs.frontend_no_wait }}" -eq "true") {
+            $args += "-FrontendNoWait"
+          }
+          if ("${{ inputs.frontend_skip_health_check }}" -eq "true") {
+            $args += "-FrontendSkipHealthCheck"
+          }
+
+          npm run deploy:railway:all @args
