@@ -765,6 +765,37 @@ const server = createServer((req, res) => {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
     operation = `${req.method ?? "UNKNOWN"} ${normalizeHttpPath(url.pathname)}`;
 
+    if (url.pathname === "/" && req.method === "GET") {
+      const configuredPublicUrl = toNonEmptyString(process.env.RAILWAY_PUBLIC_URL);
+      const publicUrl = configuredPublicUrl ? configuredPublicUrl.replace(/\/+$/, "") : null;
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        message: "realtime-gateway is online",
+        runtime: runtimeState(),
+        routes: {
+          websocket: "/realtime",
+          health: "/healthz",
+          status: "/status",
+          version: "/version",
+          metrics: "/metrics",
+          badge: "/demo-e2e/badge.json",
+          badgeDetails: "/demo-e2e/badge-details.json",
+          tasksActive: "/tasks/active",
+          taskById: "/tasks/{taskId}",
+        },
+        ui: "demo-frontend is deployed separately",
+        publicUrl,
+      });
+      return;
+    }
+
+    if (url.pathname === "/favicon.ico" && req.method === "GET") {
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
+
     if (url.pathname === "/demo-e2e/badge.json" && req.method === "GET") {
       res.setHeader("Cache-Control", "public, max-age=300");
       writeJson(res, 200, getPublicBadgePayload());

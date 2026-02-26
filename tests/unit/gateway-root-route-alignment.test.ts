@@ -1,0 +1,18 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import test from "node:test";
+
+test("realtime gateway root endpoint exposes service descriptor instead of 404", () => {
+  const sourcePath = resolve(process.cwd(), "apps/realtime-gateway/src/index.ts");
+  const source = readFileSync(sourcePath, "utf8");
+
+  assert.match(source, /if \(url\.pathname === "\/" && req\.method === "GET"\)/);
+  assert.match(source, /message:\s*"realtime-gateway is online"/);
+  assert.match(source, /websocket:\s*"\/realtime"/);
+  assert.match(source, /health:\s*"\/healthz"/);
+  assert.match(source, /badge:\s*"\/demo-e2e\/badge\.json"/);
+  assert.match(source, /ui:\s*"demo-frontend is deployed separately"/);
+  assert.match(source, /if \(url\.pathname === "\/favicon\.ico" && req\.method === "GET"\)/);
+});
+
