@@ -16,4 +16,14 @@ test("release-readiness emits artifact source-run evidence snapshot output contr
   assert.match(source, /operator_damage_control_status=/);
   assert.match(source, /operator_damage_control_latest_verdict=/);
   assert.match(source, /operator_damage_control_latest_source=/);
+
+  assert.match(source, /evidenceSnapshot\.operatorTurnTruncationSummaryValidated expected true/);
+  assert.match(source, /evidenceSnapshot\.operatorTurnDeleteSummaryValidated expected true/);
+  assert.match(source, /evidenceSnapshot\.operatorDamageControlSummaryValidated expected true/);
+  assert.match(source, /evidenceSnapshot\.operatorDamageControlTotal expected >= 1/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceOperatorDamageControlStatus expected pass/);
+  assert.match(source, /evidenceSnapshot\.operatorDamageControlLatestVerdict expected one of \[/);
+  assert.match(source, /\$allowedOperatorDamageControlLatestVerdicts = @\("allow", "ask", "block"\)/);
+  assert.match(source, /evidenceSnapshot\.operatorDamageControlLatestSource expected one of \[/);
+  assert.match(source, /\$allowedOperatorDamageControlLatestSources = @\("default", "file", "env_json", "unknown"\)/);
 });
