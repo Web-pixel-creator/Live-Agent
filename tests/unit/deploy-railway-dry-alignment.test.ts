@@ -23,4 +23,8 @@ test("railway dry deploy verifier stays aligned across package, script, and docs
   const readmePath = resolve(process.cwd(), "README.md");
   const readmeRaw = readFileSync(readmePath, "utf8");
   assert.match(readmeRaw, /npm run verify:deploy:railway:dry/);
+
+  const runbookPath = resolve(process.cwd(), "docs", "challenge-demo-runbook.md");
+  const runbookRaw = readFileSync(runbookPath, "utf8");
+  assert.match(runbookRaw, /npm run verify:deploy:railway:dry/);
 });

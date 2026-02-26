@@ -9,6 +9,11 @@ This runbook defines the judged-demo flow for all three categories with explicit
 npm run verify:release
 ```
 This gate validates build, unit tests, runtime profile smoke, demo e2e policy, badge artifact, and perf-load policy.
+For PR/deploy contract drift check (without full demo gate), run:
+```powershell
+npm run verify:deploy:railway:dry
+```
+This dry verifier checks `deploy:railway` and `repo:publish` contract alignment and does not trigger a real deploy.
 For artifact-only revalidation (without rerunning perf profile), keep perf artifacts and run:
 ```powershell
 npm run verify:release:artifact-only
