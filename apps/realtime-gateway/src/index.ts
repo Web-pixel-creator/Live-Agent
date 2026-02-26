@@ -1,5 +1,7 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   applyRuntimeProfile,
   createApiErrorResponse,
@@ -26,6 +28,17 @@ const serviceName = "realtime-gateway";
 const runtimeProfile = applyRuntimeProfile(serviceName);
 const config = loadGatewayConfig();
 const serviceVersion = process.env.REALTIME_GATEWAY_VERSION ?? process.env.SERVICE_VERSION ?? "0.1.0";
+const publicBadgeFilePath =
+  process.env.PUBLIC_BADGE_PATH ?? resolve(process.cwd(), "public", "demo-e2e", "badge.json");
+const publicBadgeDetailsFilePath =
+  process.env.PUBLIC_BADGE_DETAILS_PATH ?? resolve(process.cwd(), "public", "demo-e2e", "badge-details.json");
+const publicBadgeFallback: Record<string, unknown> = {
+  schemaVersion: 1,
+  label: "Demo KPI Gate",
+  message: "service online",
+  color: "blue",
+  cacheSeconds: 300,
+};
 const startedAtMs = Date.now();
 let draining = false;
 let lastWarmupAt: string | null = new Date().toISOString();
@@ -105,6 +118,37 @@ function parsePositiveInt(raw: string | undefined, fallback: number): number {
     return fallback;
   }
   return Math.floor(parsed);
+}
+
+function loadPublicJsonFile(filePath: string): Record<string, unknown> | null {
+  try {
+    const raw = readFileSync(filePath, "utf8");
+    const normalized = raw.replace(/^\uFEFF/, "");
+    const parsed = JSON.parse(normalized) as unknown;
+    if (!isObject(parsed)) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function getPublicBadgePayload(): Record<string, unknown> {
+  return loadPublicJsonFile(publicBadgeFilePath) ?? { ...publicBadgeFallback };
+}
+
+function getPublicBadgeDetailsPayload(): Record<string, unknown> {
+  const fromFile = loadPublicJsonFile(publicBadgeDetailsFilePath);
+  if (fromFile) {
+    return fromFile;
+  }
+  return {
+    generatedAt: new Date().toISOString(),
+    ok: true,
+    source: "gateway_fallback",
+    badge: getPublicBadgePayload(),
+  };
 }
 
 function parseCsvSet(raw: string | undefined): Set<string> {
@@ -533,6 +577,18 @@ const server = createServer((req, res) => {
   try {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
     operation = `${req.method ?? "UNKNOWN"} ${normalizeHttpPath(url.pathname)}`;
+
+    if (url.pathname === "/demo-e2e/badge.json" && req.method === "GET") {
+      res.setHeader("Cache-Control", "public, max-age=300");
+      writeJson(res, 200, getPublicBadgePayload());
+      return;
+    }
+
+    if (url.pathname === "/demo-e2e/badge-details.json" && req.method === "GET") {
+      res.setHeader("Cache-Control", "public, max-age=60");
+      writeJson(res, 200, getPublicBadgeDetailsPayload());
+      return;
+    }
 
     if (url.pathname === "/healthz" && req.method === "GET") {
       writeJson(res, 200, {
