@@ -1101,6 +1101,22 @@ test("demo-e2e policy check fails when operator turn truncation latest timestamp
   assert.ok(violations.some((item) => item.includes("kpi.operatorTurnTruncationLatestSeenAt")));
 });
 
+test("demo-e2e policy check fails when operator turn truncation latest timestamp is not ISO", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorTurnTruncationLatestSeenAt: "not-an-iso",
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorTurnTruncationLatestSeenAt")));
+});
+
 test("demo-e2e policy check fails when operator task queue KPI is invalid", () => {
   const result = runPolicyCheck(
     createPassingSummary({

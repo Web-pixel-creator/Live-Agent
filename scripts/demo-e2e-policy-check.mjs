@@ -35,6 +35,17 @@ function toNumber(value, fallback = Number.NaN) {
   return fallback;
 }
 
+function isIsoUtcTimestamp(value) {
+  if (typeof value !== "string") {
+    return false;
+  }
+  const normalized = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(normalized)) {
+    return false;
+  }
+  return Number.isFinite(Date.parse(normalized));
+}
+
 function toStringArray(value) {
   if (Array.isArray(value)) {
     return value.map((item) => String(item).trim()).filter((item) => item.length > 0);
@@ -668,10 +679,9 @@ async function main() {
   );
   addCheck(
     "kpi.operatorTurnTruncationLatestSeenAt",
-    typeof kpis.operatorTurnTruncationLatestSeenAt === "string" &&
-      String(kpis.operatorTurnTruncationLatestSeenAt).trim().length > 0,
+    isIsoUtcTimestamp(kpis.operatorTurnTruncationLatestSeenAt),
     kpis.operatorTurnTruncationLatestSeenAt,
-    "non-empty ISO timestamp",
+    "ISO UTC timestamp",
   );
   addCheck(
     "kpi.operatorTaskQueueSummaryValidated",
