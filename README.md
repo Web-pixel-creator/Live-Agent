@@ -532,6 +532,33 @@ Common flags:
 - `-- -PublicBadgeEndpoint <url>` / `-- -PublicBadgeDetailsEndpoint <url>` - override public badge endpoints.
 - `-- -RailwayPublicUrl <url>` - set base URL used by badge checker (`/demo-e2e/badge*.json`).
 
+## Railway Frontend Service
+
+Public demo frontend URL:
+
+```text
+https://live-agent-frontend-production.up.railway.app
+```
+
+Deploy `apps/demo-frontend` as a standalone Railway service:
+
+```powershell
+railway up apps/demo-frontend --path-as-root -s "Live-Agent-Frontend" -e production -p "bbca2889-fd0d-48fe-bded-79802230e5a6" -d
+```
+
+Recommended frontend runtime variables for this project:
+
+```powershell
+railway variable set -s "Live-Agent-Frontend" -e production --skip-deploys "FRONTEND_WS_URL=wss://live-agent-production.up.railway.app/realtime"
+railway variable set -s "Live-Agent-Frontend" -e production --skip-deploys "FRONTEND_API_BASE_URL=https://live-agent-production.up.railway.app"
+```
+
+Notes:
+
+- Frontend serves `GET /config.json` and applies `FRONTEND_WS_URL` / `FRONTEND_API_BASE_URL` at bootstrap.
+- Frontend service health endpoint: `GET /healthz`.
+- Frontend service config-as-code is at `apps/demo-frontend/railway.json`.
+
 ## CI Workflow
 
 - PR workflow: `.github/workflows/pr-quality.yml`

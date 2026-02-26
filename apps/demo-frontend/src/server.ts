@@ -8,7 +8,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.resolve(__dirname, "../public");
 
-const port = Number(process.env.FRONTEND_PORT ?? 3000);
+const port = Number(process.env.PORT ?? process.env.FRONTEND_PORT ?? 3000);
+const configuredWsUrl = (process.env.FRONTEND_WS_URL ?? "").trim();
+const configuredApiBaseUrl = (process.env.FRONTEND_API_BASE_URL ?? "").trim();
 
 const contentTypes: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -30,6 +32,23 @@ function resolveSafePath(urlPath: string): string {
 }
 
 const server = createServer(async (req, res) => {
+  if (req.method === "GET" && req.url === "/config.json") {
+    res.statusCode = 200;
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        ok: true,
+        service: "demo-frontend",
+        runtime: {
+          wsUrl: configuredWsUrl.length > 0 ? configuredWsUrl : null,
+          apiBaseUrl: configuredApiBaseUrl.length > 0 ? configuredApiBaseUrl : null,
+        },
+      }),
+    );
+    return;
+  }
+
   if (req.method === "GET" && req.url === "/healthz") {
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");

@@ -329,6 +329,35 @@ function normalizeApiBaseUrl(value) {
   return trimmed.replace(/\/+$/, "");
 }
 
+async function loadRuntimeConfig() {
+  try {
+    const response = await fetch("/config.json", {
+      method: "GET",
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const payload = await response.json();
+    const runtime = payload && typeof payload.runtime === "object" ? payload.runtime : null;
+    if (!runtime) {
+      return null;
+    }
+    const wsUrl = typeof runtime.wsUrl === "string" && runtime.wsUrl.trim().length > 0 ? runtime.wsUrl.trim() : null;
+    const apiBaseUrl =
+      typeof runtime.apiBaseUrl === "string" && runtime.apiBaseUrl.trim().length > 0 ? runtime.apiBaseUrl.trim() : null;
+    if (!wsUrl && !apiBaseUrl) {
+      return null;
+    }
+    return {
+      wsUrl,
+      apiBaseUrl,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function toOptionalText(value) {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
@@ -4738,7 +4767,16 @@ function bindEvents() {
   });
 }
 
-function bootstrap() {
+async function bootstrap() {
+  const runtimeConfig = await loadRuntimeConfig();
+  if (runtimeConfig?.wsUrl) {
+    el.wsUrl.value = runtimeConfig.wsUrl;
+    state.wsUrl = runtimeConfig.wsUrl;
+  }
+  if (runtimeConfig?.apiBaseUrl) {
+    el.apiBaseUrl.value = runtimeConfig.apiBaseUrl;
+  }
+
   state.apiBaseUrl = normalizeApiBaseUrl(el.apiBaseUrl.value);
   el.apiBaseUrl.value = state.apiBaseUrl;
   state.userId = "demo-user";
@@ -4769,5 +4807,7 @@ function bootstrap() {
   appendTranscript("system", "Frontend ready");
 }
 
-bootstrap();
+bootstrap().catch(() => {
+  appendTranscript("error", "Frontend bootstrap failed");
+});
 
