@@ -1,7 +1,8 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   applyRuntimeProfile,
   createApiErrorResponse,
@@ -28,10 +29,30 @@ const serviceName = "realtime-gateway";
 const runtimeProfile = applyRuntimeProfile(serviceName);
 const config = loadGatewayConfig();
 const serviceVersion = process.env.REALTIME_GATEWAY_VERSION ?? process.env.SERVICE_VERSION ?? "0.1.0";
-const publicBadgeFilePath =
-  process.env.PUBLIC_BADGE_PATH ?? resolve(process.cwd(), "public", "demo-e2e", "badge.json");
-const publicBadgeDetailsFilePath =
-  process.env.PUBLIC_BADGE_DETAILS_PATH ?? resolve(process.cwd(), "public", "demo-e2e", "badge-details.json");
+const moduleDir = dirname(fileURLToPath(import.meta.url));
+
+function resolveReadablePath(preferredPath: string | undefined, candidates: string[]): string | null {
+  if (preferredPath) {
+    return preferredPath;
+  }
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return candidates[0] ?? null;
+}
+
+const publicBadgeFilePath = resolveReadablePath(process.env.PUBLIC_BADGE_PATH, [
+  resolve(process.cwd(), "public", "demo-e2e", "badge.json"),
+  resolve(process.cwd(), "..", "..", "public", "demo-e2e", "badge.json"),
+  resolve(moduleDir, "..", "..", "..", "public", "demo-e2e", "badge.json"),
+]);
+const publicBadgeDetailsFilePath = resolveReadablePath(process.env.PUBLIC_BADGE_DETAILS_PATH, [
+  resolve(process.cwd(), "public", "demo-e2e", "badge-details.json"),
+  resolve(process.cwd(), "..", "..", "public", "demo-e2e", "badge-details.json"),
+  resolve(moduleDir, "..", "..", "..", "public", "demo-e2e", "badge-details.json"),
+]);
 const publicBadgeFallback: Record<string, unknown> = {
   schemaVersion: 1,
   label: "Demo KPI Gate",
@@ -120,7 +141,10 @@ function parsePositiveInt(raw: string | undefined, fallback: number): number {
   return Math.floor(parsed);
 }
 
-function loadPublicJsonFile(filePath: string): Record<string, unknown> | null {
+function loadPublicJsonFile(filePath: string | null): Record<string, unknown> | null {
+  if (!filePath) {
+    return null;
+  }
   try {
     const raw = readFileSync(filePath, "utf8");
     const normalized = raw.replace(/^\uFEFF/, "");
