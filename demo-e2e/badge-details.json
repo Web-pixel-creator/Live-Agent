@@ -1,15 +1,77 @@
 {
-  "generatedAt": "2026-02-26T04:17:19.010Z",
+  "generatedAt": "2026-02-27T05:45:01.767Z",
   "ok": true,
-  "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
-  "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
-  "checks": 199,
+  "policyPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\policy-check.json",
+  "summaryPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\summary.json",
+  "checks": 218,
   "violations": 0,
-  "roundTripMs": 57,
+  "roundTripMs": 52,
+  "evidence": {
+    "sourceSummaryGeneratedAt": "2026-02-27T05:45:00.1380234+00:00",
+    "operatorTurnTruncation": {
+      "status": "pass",
+      "validated": true,
+      "expectedEventSeen": true,
+      "total": 1,
+      "uniqueRuns": 1,
+      "uniqueSessions": 1,
+      "latestSeenAt": "2026-02-27T05:44:58.890Z",
+      "latestSeenAtIsIso": true,
+      "latestTurnId": "turn-truncate-demo",
+      "latestReason": "demo_truncate_checkpoint",
+      "latestAudioEndMs": 1500,
+      "latestContentIndex": 0
+    },
+    "operatorTurnDelete": {
+      "status": "pass",
+      "validated": true,
+      "expectedEventSeen": true,
+      "total": 1,
+      "uniqueRuns": 1,
+      "uniqueSessions": 1,
+      "latestSeenAt": "2026-02-27T05:44:59.006Z",
+      "latestSeenAtIsIso": true,
+      "latestTurnId": "turn-delete-demo",
+      "latestReason": "demo_delete_checkpoint",
+      "latestScope": "session_local"
+    },
+    "damageControl": {
+      "status": "pass",
+      "diagnosticsValidated": true,
+      "enabled": true,
+      "verdict": "allow",
+      "source": "file",
+      "matchedRuleCount": 1,
+      "matchedRuleIds": [
+        "dc-destructive-ask"
+      ]
+    },
+    "operatorDamageControl": {
+      "status": "pass",
+      "validated": true,
+      "total": 1,
+      "uniqueRuns": 1,
+      "uniqueSessions": 1,
+      "matchedRuleCountTotal": 1,
+      "verdictCounts": {
+        "allow": 0,
+        "ask": 1,
+        "block": 0,
+        "total": 1
+      },
+      "latest": {
+        "verdict": "ask",
+        "source": "file",
+        "matchedRuleCount": 1,
+        "seenAt": "2026-02-27T05:44:58.316Z",
+        "seenAtIsIso": true
+      }
+    }
+  },
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 199 checks | 57ms ws",
+    "message": "pass | 218 checks | 52ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }
