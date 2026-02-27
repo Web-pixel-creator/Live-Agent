@@ -223,6 +223,33 @@ function parseUiSandboxMode(raw: string | undefined): "off" | "non-main" | "all"
   return "all";
 }
 
+function resolveGatewayPublicUrl(req: IncomingMessage): string | null {
+  const configuredPublicUrl = toNonEmptyString(process.env.RAILWAY_PUBLIC_URL);
+  if (configuredPublicUrl) {
+    return configuredPublicUrl.replace(/\/+$/, "");
+  }
+  const host = toNonEmptyString(req.headers.host);
+  if (!host) {
+    return null;
+  }
+  const forwardedProtoHeader = req.headers["x-forwarded-proto"];
+  const forwardedProtoRaw = Array.isArray(forwardedProtoHeader) ? forwardedProtoHeader[0] : forwardedProtoHeader;
+  const forwardedProto = toNonEmptyString(forwardedProtoRaw);
+  const protoToken = forwardedProto ? forwardedProto.split(",")[0]?.trim().toLowerCase() : "";
+  const protocol =
+    protoToken === "http" || protoToken === "https"
+      ? protoToken
+      : host.startsWith("localhost") || host.startsWith("127.0.0.1") || host.startsWith("[::1]")
+        ? "http"
+        : "https";
+  return `${protocol}://${host}`.replace(/\/+$/, "");
+}
+
+function resolveDemoFrontendPublicUrl(): string | null {
+  const configuredFrontendUrl = toNonEmptyString(process.env.DEMO_FRONTEND_PUBLIC_URL);
+  return configuredFrontendUrl ? configuredFrontendUrl.replace(/\/+$/, "") : null;
+}
+
 function normalizeHttpPath(pathname: string): string {
   if (pathname.startsWith("/tasks/")) {
     return "/tasks/:taskId";
@@ -766,8 +793,8 @@ const server = createServer((req, res) => {
     operation = `${req.method ?? "UNKNOWN"} ${normalizeHttpPath(url.pathname)}`;
 
     if (url.pathname === "/" && req.method === "GET") {
-      const configuredPublicUrl = toNonEmptyString(process.env.RAILWAY_PUBLIC_URL);
-      const publicUrl = configuredPublicUrl ? configuredPublicUrl.replace(/\/+$/, "") : null;
+      const publicUrl = resolveGatewayPublicUrl(req);
+      const demoFrontendPublicUrl = resolveDemoFrontendPublicUrl();
       writeJson(res, 200, {
         ok: true,
         service: serviceName,
@@ -785,6 +812,7 @@ const server = createServer((req, res) => {
           taskById: "/tasks/{taskId}",
         },
         ui: "demo-frontend is deployed separately",
+        uiUrl: demoFrontendPublicUrl,
         publicUrl,
       });
       return;

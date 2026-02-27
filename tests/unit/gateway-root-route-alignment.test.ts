@@ -8,11 +8,15 @@ test("realtime gateway root endpoint exposes service descriptor instead of 404",
   const source = readFileSync(sourcePath, "utf8");
 
   assert.match(source, /if \(url\.pathname === "\/" && req\.method === "GET"\)/);
+  assert.match(source, /const publicUrl = resolveGatewayPublicUrl\(req\);/);
   assert.match(source, /message:\s*"realtime-gateway is online"/);
   assert.match(source, /websocket:\s*"\/realtime"/);
   assert.match(source, /health:\s*"\/healthz"/);
   assert.match(source, /badge:\s*"\/demo-e2e\/badge\.json"/);
   assert.match(source, /ui:\s*"demo-frontend is deployed separately"/);
+  assert.match(source, /uiUrl:\s*demoFrontendPublicUrl/);
+  assert.match(source, /function resolveGatewayPublicUrl\(req: IncomingMessage\)/);
+  assert.match(source, /const forwardedProtoHeader = req\.headers\["x-forwarded-proto"\]/);
+  assert.match(source, /function resolveDemoFrontendPublicUrl\(\)/);
   assert.match(source, /if \(url\.pathname === "\/favicon\.ico" && req\.method === "GET"\)/);
 });
-

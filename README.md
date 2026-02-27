@@ -411,6 +411,8 @@ $env:PUBLIC_BADGE_ENDPOINT="https://<host>/demo-e2e/badge.json"
 $env:PUBLIC_BADGE_DETAILS_ENDPOINT="https://<host>/demo-e2e/badge-details.json"
 # or set base host only:
 $env:RAILWAY_PUBLIC_URL="https://<host>"
+# optional: expose demo frontend URL in gateway root descriptor (`GET /`)
+$env:DEMO_FRONTEND_PUBLIC_URL="https://<demo-frontend-host>"
 npm run badge:public:check
 ```
 
