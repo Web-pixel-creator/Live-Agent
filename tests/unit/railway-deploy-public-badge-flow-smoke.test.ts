@@ -12,6 +12,7 @@ test("railway deploy no-wait mode skips post-deploy badge check flow", () => {
     /if \(\$NoWait\)\s*\{[\s\S]*if \(-not \$SkipPublicBadgeCheck\)\s*\{[\s\S]*Skipping public badge endpoint check in no-wait mode\.[\s\S]*No-wait mode enabled\. Exiting after trigger\.[\s\S]*exit 0[\s\S]*\}/,
   );
 
+  assert.match(source, /if \(\$NoWait\)\s*\{[\s\S]*Skipping gateway root descriptor check in no-wait mode\./);
   assert.match(source, /\$pending = @\("QUEUED", "INITIALIZING", "BUILDING", "DEPLOYING"\)/);
 });
 
@@ -19,6 +20,11 @@ test("railway deploy success path runs badge check only when skip flag is disabl
   const scriptPath = resolve(process.cwd(), "scripts", "railway-deploy.ps1");
   const source = readFileSync(scriptPath, "utf8");
 
+  assert.match(source, /function Invoke-GatewayRootDescriptorCheck\(/);
+  assert.match(
+    source,
+    /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*if \(-not \$SkipRootDescriptorCheck\)\s*\{[\s\S]*Invoke-GatewayRootDescriptorCheck -Endpoint \$effectivePublicUrl -TimeoutSec \$RootDescriptorCheckTimeoutSec/,
+  );
   assert.match(
     source,
     /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*if \(-not \$SkipPublicBadgeCheck\)\s*\{[\s\S]*Invoke-PublicBadgeCheck -Endpoint \$PublicBadgeEndpoint -DetailsEndpoint \$PublicBadgeDetailsEndpoint -PublicUrl \$RailwayPublicUrl -TimeoutSec \$PublicBadgeCheckTimeoutSec/,
@@ -92,6 +98,8 @@ test("railway deploy docs mention no-wait badge-check skip behavior", () => {
   const readme = readFileSync(readmePath, "utf8");
 
   assert.match(readme, /In `-- -NoWait` mode, post-deploy badge endpoint check is not executed/);
+  assert.match(readme, /Runs gateway root descriptor check \(`GET \/`\) after successful deploy/);
+  assert.match(readme, /`-- -SkipRootDescriptorCheck` - skip post-deploy gateway root descriptor check/);
   assert.match(readme, /If `-ProjectId\/-ServiceId` are omitted, reuses existing Railway linked context/);
   assert.match(readme, /effective runtime metadata after successful deploy/);
 });

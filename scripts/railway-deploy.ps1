@@ -9,10 +9,12 @@ param(
   [switch]$SkipReleaseVerification,
   [switch]$StrictReleaseVerification,
   [switch]$SkipPublicBadgeCheck,
+  [switch]$SkipRootDescriptorCheck,
   [string]$PublicBadgeEndpoint = $env:PUBLIC_BADGE_ENDPOINT,
   [string]$PublicBadgeDetailsEndpoint = $env:PUBLIC_BADGE_DETAILS_ENDPOINT,
   [string]$RailwayPublicUrl = $env:RAILWAY_PUBLIC_URL,
   [int]$PublicBadgeCheckTimeoutSec = 20,
+  [int]$RootDescriptorCheckTimeoutSec = 20,
   [switch]$NoWait,
   [switch]$SkipFailureLogs,
   [int]$FailureLogLines = 120,
@@ -175,6 +177,38 @@ function Invoke-PublicBadgeCheck(
   & powershell @badgeArgs
   if ($LASTEXITCODE -ne 0) {
     Fail "Post-deploy public badge endpoint check failed."
+  }
+}
+
+function Invoke-GatewayRootDescriptorCheck(
+  [string]$Endpoint,
+  [int]$TimeoutSec
+) {
+  if ([string]::IsNullOrWhiteSpace($Endpoint)) {
+    Write-Host "[railway-deploy] Effective public URL is empty; skipping gateway root descriptor check."
+    return
+  }
+
+  $target = [string]$Endpoint.TrimEnd("/")
+  Write-Host ("[railway-deploy] Running gateway root descriptor check: " + $target + "/")
+
+  try {
+    $response = Invoke-RestMethod -Method Get -Uri ($target + "/") -TimeoutSec $TimeoutSec -ErrorAction Stop
+  }
+  catch {
+    Fail ("Gateway root descriptor check failed for " + $target + "/ : " + $_.Exception.Message)
+  }
+
+  if ($null -eq $response -or $response.ok -ne $true) {
+    Fail "Gateway root descriptor check failed: expected payload.ok=true."
+  }
+
+  $serviceName = [string]$response.service
+  if ([string]::IsNullOrWhiteSpace($serviceName)) {
+    Fail "Gateway root descriptor check failed: response.service is missing."
+  }
+  if ($serviceName -ne "realtime-gateway") {
+    Fail ("Gateway root descriptor check failed: expected service 'realtime-gateway', actual '" + $serviceName + "'.")
   }
 }
 
@@ -403,6 +437,9 @@ if ([string]::IsNullOrWhiteSpace($deploymentId)) {
 Write-Host "[railway-deploy] Deployment ID: $deploymentId"
 
 if ($NoWait) {
+  if (-not $SkipRootDescriptorCheck) {
+    Write-Host "[railway-deploy] Skipping gateway root descriptor check in no-wait mode."
+  }
   if (-not $SkipPublicBadgeCheck) {
     Write-Host "[railway-deploy] Skipping public badge endpoint check in no-wait mode."
   }
@@ -440,6 +477,9 @@ for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
         Write-Host ("[railway-deploy] Effective public URL: " + $effectivePublicUrl)
       }
 
+      if (-not $SkipRootDescriptorCheck) {
+        Invoke-GatewayRootDescriptorCheck -Endpoint $effectivePublicUrl -TimeoutSec $RootDescriptorCheckTimeoutSec
+      }
       if (-not $SkipPublicBadgeCheck) {
         Invoke-PublicBadgeCheck -Endpoint $PublicBadgeEndpoint -DetailsEndpoint $PublicBadgeDetailsEndpoint -PublicUrl $RailwayPublicUrl -TimeoutSec $PublicBadgeCheckTimeoutSec
       }
