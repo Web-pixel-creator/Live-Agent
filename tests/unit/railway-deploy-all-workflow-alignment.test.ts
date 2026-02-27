@@ -19,17 +19,27 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /gateway_no_wait:/);
   assert.match(source, /frontend_no_wait:/);
   assert.match(source, /frontend_skip_health_check:/);
+  assert.match(source, /verify_only_fallback_on_auth_failure:/);
 
   assert.match(source, /RAILWAY_TOKEN:\s*\$\{\{\s*secrets\.RAILWAY_TOKEN\s*\}\}/);
   assert.match(source, /RAILWAY_PROJECT_ID:\s*\$\{\{\s*secrets\.RAILWAY_PROJECT_ID\s*\}\}/);
   assert.match(source, /RAILWAY_SERVICE_ID:\s*\$\{\{\s*secrets\.RAILWAY_SERVICE_ID\s*\}\}/);
+  assert.match(source, /FRONTEND_PUBLIC_URL:\s*\$\{\{\s*vars\.FRONTEND_PUBLIC_URL\s*\}\}/);
 
   assert.match(source, /- name:\s*Install Railway CLI/);
   assert.match(source, /npm install -g @railway\/cli/);
   assert.match(source, /- name:\s*Validate Railway Secrets/);
   assert.match(source, /Missing required repository secret: RAILWAY_TOKEN/);
+  assert.match(source, /- name:\s*Probe Railway Auth/);
+  assert.match(source, /run:\s*railway whoami/);
   assert.match(source, /- name:\s*Run Combined Railway Deploy/);
+  assert.match(source, /if:\s*steps\.railway_auth_probe\.outcome == 'success'/);
   assert.match(source, /npm run deploy:railway:all @args/);
+  assert.match(source, /- name:\s*Verify Public Endpoints Fallback \(Auth Failure\)/);
+  assert.match(source, /npm run badge:public:check -- -RailwayPublicUrl/);
+  assert.match(source, /frontend fallback health check/i);
+  assert.match(source, /- name:\s*Fail on Railway Auth Probe/);
+  assert.match(source, /verify_only_fallback_on_auth_failure=false/);
   assert.match(source, /-SkipReleaseVerification/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
   assert.match(source, /-GatewayRootDescriptorCheckMaxAttempts/);

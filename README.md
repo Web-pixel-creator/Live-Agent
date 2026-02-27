@@ -625,6 +625,8 @@ Notes:
   - `RAILWAY_PROJECT_ID`
   - `RAILWAY_SERVICE_ID`
   - optional `RAILWAY_FRONTEND_SERVICE_ID` (if omitted, helper default service name is used).
+- Auth-resilience: workflow probes `railway whoami` first; if auth fails and `verify_only_fallback_on_auth_failure=true` (default), it runs verify-only checks (`badge:public:check` + frontend `/healthz`) instead of hard-failing deploy stage.
+- Optional repository variable: `FRONTEND_PUBLIC_URL` (used by verify-only fallback frontend health check; default fallback URL is `https://live-agent-frontend-production.up.railway.app`).
 
 - Full workflow: `.github/workflows/demo-e2e.yml`
 - Triggered on push to `main`/`master` and manual dispatch.
@@ -650,6 +652,7 @@ Notes:
 - Runs `npm run verify:release:strict` (`-StrictFinalRun`) and uploads consolidated release artifacts bundle.
 - Manual dispatch supports optional deploy to Railway (`deploy_to_railway=true`) after strict gate passes using `npm run deploy:railway:all`.
 - For release-triggered deploy, configure repository secrets: `RAILWAY_TOKEN`, `RAILWAY_PROJECT_ID`, `RAILWAY_SERVICE_ID` (optional `RAILWAY_FRONTEND_SERVICE_ID`).
+- Same auth-resilience path is enabled for strict manual deploys: `verify_only_fallback_on_auth_failure=true` triggers verify-only public endpoint checks when Railway auth probe fails.
 
 Local helper to dispatch the same strict workflow (and optionally wait for completion):
 

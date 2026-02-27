@@ -58,6 +58,11 @@ on:
         required: true
         type: boolean
         default: false
+      verify_only_fallback_on_auth_failure:
+        description: "When Railway auth fails in CI, run verify-only fallback (public endpoints) instead of deploy"
+        required: true
+        type: boolean
+        default: true
   push:
     branches:
       - main
@@ -82,6 +87,7 @@ jobs:
       RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
       RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
       RAILWAY_FRONTEND_SERVICE_ID: ${{ secrets.RAILWAY_FRONTEND_SERVICE_ID }}
+      FRONTEND_PUBLIC_URL: ${{ vars.FRONTEND_PUBLIC_URL }}
 
     steps:
       - name: Checkout
@@ -120,8 +126,15 @@ jobs:
             throw "Missing required repository secret: RAILWAY_SERVICE_ID"
           }
 
-      - name: Deploy To Railway (Gateway + Frontend)
+      - name: Probe Railway Auth
+        id: railway_auth_probe
         if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true
+        continue-on-error: true
+        shell: powershell
+        run: railway whoami
+
+      - name: Deploy To Railway (Gateway + Frontend)
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true && steps.railway_auth_probe.outcome == 'success'
         shell: powershell
         run: |
           $args = @(
@@ -167,6 +180,42 @@ jobs:
           }
 
           npm run deploy:railway:all @args
+
+      - name: Verify Public Endpoints Fallback (Auth Failure)
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true && steps.railway_auth_probe.outcome != 'success' && inputs.verify_only_fallback_on_auth_failure == true
+        shell: powershell
+        run: |
+          Write-Warning "Railway auth probe failed; running verify-only fallback."
+
+          $gatewayPublicUrl = "${{ inputs.gateway_public_url }}".Trim().TrimEnd("/")
+          if ([string]::IsNullOrWhiteSpace($gatewayPublicUrl)) {
+            throw "gateway_public_url is required for verify-only fallback."
+          }
+
+          npm run badge:public:check -- -RailwayPublicUrl $gatewayPublicUrl
+
+          $frontendShouldBeChecked = ("${{ inputs.skip_frontend_deploy }}" -ne "true") -and ("${{ inputs.frontend_skip_health_check }}" -ne "true")
+          if ($frontendShouldBeChecked) {
+            $frontendBaseUrl = if (-not [string]::IsNullOrWhiteSpace($env:FRONTEND_PUBLIC_URL)) {
+              $env:FRONTEND_PUBLIC_URL.Trim().TrimEnd("/")
+            } else {
+              "https://live-agent-frontend-production.up.railway.app"
+            }
+
+            $frontendHealth = Invoke-RestMethod -Method Get -Uri ($frontendBaseUrl + "/healthz") -TimeoutSec 20
+            if ($null -eq $frontendHealth -or $frontendHealth.ok -ne $true) {
+              throw ("Frontend fallback health check failed for " + $frontendBaseUrl + "/healthz")
+            }
+            Write-Host ("Frontend fallback health check passed: " + $frontendBaseUrl + "/healthz")
+          } else {
+            Write-Host "Frontend fallback health check skipped by workflow inputs."
+          }
+
+      - name: Fail on Railway Auth Probe
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true && steps.railway_auth_probe.outcome != 'success' && inputs.verify_only_fallback_on_auth_failure != true
+        shell: powershell
+        run: |
+          throw "Railway auth probe failed and verify_only_fallback_on_auth_failure=false."
 
       - name: Publish Release Report To Job Summary
         if: always()
