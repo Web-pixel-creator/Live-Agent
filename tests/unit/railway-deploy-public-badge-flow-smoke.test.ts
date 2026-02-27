@@ -122,6 +122,10 @@ test("railway deploy success path reports effective runtime start command metada
     source,
     /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*\$effectivePublicUrl = if \(-not \[string\]::IsNullOrWhiteSpace\(\$RailwayPublicUrl\)\)[\s\S]*Effective public URL:/,
   );
+  assert.match(
+    source,
+    /if \(-not \[string\]::IsNullOrWhiteSpace\(\$DemoFrontendPublicUrl\)\)\s*\{[\s\S]*Setting DEMO_FRONTEND_PUBLIC_URL on gateway service\.\.\.[\s\S]*Run-Cli -CliArgs @\("variable", "set", "-s", \$resolvedService, "-e", \$Environment, "--skip-deploys", \("DEMO_FRONTEND_PUBLIC_URL=" \+ \$DemoFrontendPublicUrl\)\)/,
+  );
 });
 
 test("railway deploy docs mention no-wait badge-check skip behavior", () => {

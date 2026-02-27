@@ -515,6 +515,11 @@ if ([string]::IsNullOrWhiteSpace($resolvedService)) {
   Fail "No Railway service resolved. Link a service first or provide -ServiceId."
 }
 
+if (-not [string]::IsNullOrWhiteSpace($DemoFrontendPublicUrl)) {
+  Write-Host "[railway-deploy] Setting DEMO_FRONTEND_PUBLIC_URL on gateway service..."
+  Run-Cli -CliArgs @("variable", "set", "-s", $resolvedService, "-e", $Environment, "--skip-deploys", ("DEMO_FRONTEND_PUBLIC_URL=" + $DemoFrontendPublicUrl))
+}
+
 if ([string]::IsNullOrWhiteSpace($DeployMessage)) {
   $commit = (& git rev-parse --short HEAD 2>$null)
   if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commit)) {

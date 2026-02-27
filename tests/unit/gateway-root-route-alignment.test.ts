@@ -18,5 +18,6 @@ test("realtime gateway root endpoint exposes service descriptor instead of 404",
   assert.match(source, /function resolveGatewayPublicUrl\(req: IncomingMessage\)/);
   assert.match(source, /const forwardedProtoHeader = req\.headers\["x-forwarded-proto"\]/);
   assert.match(source, /function resolveDemoFrontendPublicUrl\(\)/);
+  assert.match(source, /const frontendPublicUrl = toNonEmptyString\(process\.env\.FRONTEND_PUBLIC_URL\)/);
   assert.match(source, /if \(url\.pathname === "\/favicon\.ico" && req\.method === "GET"\)/);
 });

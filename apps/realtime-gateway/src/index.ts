@@ -247,7 +247,11 @@ function resolveGatewayPublicUrl(req: IncomingMessage): string | null {
 
 function resolveDemoFrontendPublicUrl(): string | null {
   const configuredFrontendUrl = toNonEmptyString(process.env.DEMO_FRONTEND_PUBLIC_URL);
-  return configuredFrontendUrl ? configuredFrontendUrl.replace(/\/+$/, "") : null;
+  if (configuredFrontendUrl) {
+    return configuredFrontendUrl.replace(/\/+$/, "");
+  }
+  const frontendPublicUrl = toNonEmptyString(process.env.FRONTEND_PUBLIC_URL);
+  return frontendPublicUrl ? frontendPublicUrl.replace(/\/+$/, "") : null;
 }
 
 function normalizeHttpPath(pathname: string): string {
