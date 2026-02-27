@@ -54,4 +54,6 @@ test("railway combined deploy helper is wired across package script, script cont
   const readme = readFileSync(readmePath, "utf8");
   assert.match(readme, /npm run deploy:railway:all/);
   assert.match(readme, /Deploy gateway \+ frontend in one command/);
+  assert.match(readme, /-GatewayRootDescriptorCheckMaxAttempts/);
+  assert.match(readme, /-GatewayRootDescriptorCheckRetryBackoffSec/);
 });

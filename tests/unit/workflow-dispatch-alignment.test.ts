@@ -62,4 +62,6 @@ test("readme documents unified workflow dispatch entrypoint", () => {
   assert.match(readme, /npm run workflow:dispatch/);
   assert.match(readme, /-Workflow railway_deploy_all/);
   assert.match(readme, /-Workflow release_strict/);
+  assert.match(readme, /-GatewayRootDescriptorCheckMaxAttempts/);
+  assert.match(readme, /-GatewayRootDescriptorCheckRetryBackoffSec/);
 });

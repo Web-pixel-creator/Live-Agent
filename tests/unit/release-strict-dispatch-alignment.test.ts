@@ -52,4 +52,6 @@ test("release strict dispatch helper is wired across package script, script cont
   const readme = readFileSync(readmePath, "utf8");
   assert.match(readme, /npm run release:strict:dispatch/);
   assert.match(readme, /-DeployToRailway/);
+  assert.match(readme, /-GatewayRootDescriptorCheckMaxAttempts/);
+  assert.match(readme, /-GatewayRootDescriptorCheckRetryBackoffSec/);
 });

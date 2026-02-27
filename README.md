@@ -501,6 +501,8 @@ Useful flags:
 - `-RailwayPublicBadgeEndpoint` / `-RailwayPublicBadgeDetailsEndpoint` - override Railway public badge endpoints passed to deploy helper.
 - `-RailwayPublicUrl` - Railway public base URL override passed to deploy helper (`/demo-e2e/badge*.json`).
 - `-RailwayDemoFrontendPublicUrl` - expected frontend public URL passed to gateway root descriptor validation (`uiUrl`).
+- `-RailwayRootDescriptorCheckMaxAttempts <n>` - max retry attempts for gateway root descriptor check inside `repo:publish -> railway-deploy`.
+- `-RailwayRootDescriptorCheckRetryBackoffSec <n>` - retry backoff (seconds) for gateway root descriptor check inside `repo:publish -> railway-deploy`.
 - `-RailwayPublicBadgeCheckTimeoutSec` - timeout (seconds) for Railway post-deploy public badge endpoint checks.
 - `-RailwayNoWait` - return after deploy trigger without waiting for terminal Railway status.
 - `-DeployRailwayFrontend` - trigger Railway frontend deploy after publish (calls `scripts/railway-deploy-frontend.ps1`).
@@ -573,7 +575,7 @@ Common flags:
 - `-- -FailureLogLines <n>` - number of lines to fetch for failure diagnostics (`120` by default).
 - `-- -PublicBadgeEndpoint <url>` / `-- -PublicBadgeDetailsEndpoint <url>` - override public badge endpoints.
 - `-- -RailwayPublicUrl <url>` - set base URL used by badge checker (`/demo-e2e/badge*.json`).
-- Combined helper (`deploy:railway:all`) forwards gateway flags (`-SkipReleaseVerification`, `-StrictReleaseVerification`, `-GatewaySkipLink`, `-GatewaySkipRootDescriptorCheck`, `-GatewaySkipPublicBadgeCheck`, `-GatewayNoWait`, `-GatewayDemoFrontendPublicUrl`) and frontend flags (`-FrontendNoWait`, `-FrontendSkipHealthCheck`), and derives frontend runtime URLs from `-GatewayPublicUrl` when explicit frontend URLs are not set.
+- Combined helper (`deploy:railway:all`) forwards gateway flags (`-SkipReleaseVerification`, `-StrictReleaseVerification`, `-GatewaySkipLink`, `-GatewaySkipRootDescriptorCheck`, `-GatewaySkipPublicBadgeCheck`, `-GatewayNoWait`, `-GatewayDemoFrontendPublicUrl`, `-GatewayRootDescriptorCheckMaxAttempts`, `-GatewayRootDescriptorCheckRetryBackoffSec`) and frontend flags (`-FrontendNoWait`, `-FrontendSkipHealthCheck`), and derives frontend runtime URLs from `-GatewayPublicUrl` when explicit frontend URLs are not set.
 
 ## Railway Frontend Service
 
@@ -674,6 +676,7 @@ npm run workflow:dispatch -- -Workflow release_strict -DeployToRailway -RailwayE
 ```
 
 Optional cross-workflow override: `-GatewayDemoFrontendPublicUrl https://live-agent-frontend-production.up.railway.app` (propagates to deploy helper root-descriptor `uiUrl` validation).
+Optional root-descriptor retry overrides: `-GatewayRootDescriptorCheckMaxAttempts 5 -GatewayRootDescriptorCheckRetryBackoffSec 3` (propagates through dispatch helpers into workflow inputs and `deploy:railway:all` gateway checks).
 
 Use `-DryRun` to validate argument routing without dispatching workflows:
 
