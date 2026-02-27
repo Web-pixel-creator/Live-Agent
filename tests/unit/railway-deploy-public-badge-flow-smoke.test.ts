@@ -92,7 +92,11 @@ test("railway deploy failure path captures diagnostics logs before failing", () 
   assert.match(source, /function Show-DeploymentFailureDiagnostics/);
   assert.match(source, /if \(\$SkipFailureLogs\)\s*\{[\s\S]*Failure diagnostics log capture skipped by flag\./);
   assert.match(source, /Collecting failure diagnostics \(build logs\)/);
+  assert.match(source, /\$buildArgs = \$baseArgs \+ @\("-b"\)/);
+  assert.match(source, /& railway @buildArgs/);
   assert.match(source, /Collecting failure diagnostics \(deployment logs\)/);
+  assert.match(source, /\$deploymentArgs = \$baseArgs \+ @\("-d"\)/);
+  assert.match(source, /& railway @deploymentArgs/);
   assert.match(source, /\$baseArgs = @\("logs", \$DeploymentId, "--lines", \[string\]\$lineCount\)/);
   assert.match(
     source,

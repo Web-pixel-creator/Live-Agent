@@ -354,13 +354,15 @@ function Show-DeploymentFailureDiagnostics(
   }
 
   Write-Host "[railway-deploy] Collecting failure diagnostics (build logs)..."
-  & railway @($baseArgs + @("--build"))
+  $buildArgs = $baseArgs + @("-b")
+  & railway @buildArgs
   if ($LASTEXITCODE -ne 0) {
     Write-Warning "[railway-deploy] Unable to fetch build logs for failed deployment."
   }
 
   Write-Host "[railway-deploy] Collecting failure diagnostics (deployment logs)..."
-  & railway @($baseArgs + @("--deployment"))
+  $deploymentArgs = $baseArgs + @("-d")
+  & railway @deploymentArgs
   if ($LASTEXITCODE -ne 0) {
     Write-Warning "[railway-deploy] Unable to fetch deployment logs for failed deployment."
   }
