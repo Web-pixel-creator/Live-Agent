@@ -216,6 +216,48 @@ export type DeviceNodeIndexItem = {
   updatedAt: string;
 };
 
+export type ChannelSessionBindingRecord = {
+  bindingId: string;
+  adapterId: string;
+  externalSessionId: string;
+  externalUserId: string | null;
+  sessionId: string;
+  userId: string;
+  version: number;
+  lastMutationId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: unknown;
+};
+
+export type ChannelSessionBindingUpsertResult =
+  | {
+      outcome: "created" | "updated" | "idempotent_replay";
+      binding: ChannelSessionBindingRecord;
+    }
+  | {
+      outcome: "version_conflict";
+      binding: ChannelSessionBindingRecord;
+      expectedVersion: number;
+      actualVersion: number;
+    }
+  | {
+      outcome: "idempotency_conflict";
+      binding: ChannelSessionBindingRecord;
+      idempotencyKey: string;
+    };
+
+export type ChannelSessionBindingIndexItem = {
+  bindingId: string;
+  adapterId: string;
+  externalSessionId: string;
+  externalUserId: string | null;
+  sessionId: string;
+  userId: string;
+  version: number;
+  updatedAt: string;
+};
+
 let firestoreClient: Firestore | null = null;
 let initialized = false;
 let state: FirestoreState = {
@@ -229,6 +271,7 @@ const inMemoryApprovals = new Map<string, ApprovalRecord>();
 const inMemoryOperatorActions: OperatorActionRecord[] = [];
 const inMemoryManagedSkills = new Map<string, ManagedSkillRecord>();
 const inMemoryDeviceNodes = new Map<string, DeviceNodeRecord>();
+const inMemoryChannelSessionBindings = new Map<string, ChannelSessionBindingRecord>();
 const inMemoryWriteLanes = new Map<string, Promise<void>>();
 const DEFAULT_APPROVAL_SOFT_TIMEOUT_MS = 60 * 1000;
 const DEFAULT_APPROVAL_HARD_TIMEOUT_MS = 5 * 60 * 1000;
@@ -693,6 +736,67 @@ function deviceNodeSignature(node: DeviceNodeRecord): string {
     capabilities: node.capabilities,
     trustLevel: node.trustLevel,
     metadata: node.metadata ?? null,
+  });
+}
+
+function normalizeChannelAdapterId(value: unknown): string {
+  const source = toNonEmptyString(value) ?? "webchat";
+  const normalized = source
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return normalized.length > 0 ? normalized.slice(0, 64) : "webchat";
+}
+
+function normalizeExternalSessionId(value: unknown): string {
+  const source = toNonEmptyString(value) ?? "unknown";
+  return source.slice(0, 256);
+}
+
+function makeChannelSessionBindingMapKey(adapterId: string, externalSessionId: string): string {
+  return `${adapterId}::${externalSessionId}`;
+}
+
+function makeChannelSessionBindingDocId(adapterId: string, externalSessionId: string): string {
+  const encoded = Buffer.from(`${adapterId}\u241f${externalSessionId}`, "utf8")
+    .toString("base64url")
+    .replace(/=+$/g, "");
+  if (encoded.length > 0) {
+    return encoded.slice(0, 256);
+  }
+  return normalizeManagedSkillId(`${adapterId}-${externalSessionId}`, "channel-session");
+}
+
+function mapChannelSessionBindingRecord(
+  docId: string,
+  raw: Record<string, unknown>,
+): ChannelSessionBindingRecord {
+  const adapterId = normalizeChannelAdapterId(raw.adapterId ?? raw.adapter);
+  const externalSessionId = normalizeExternalSessionId(raw.externalSessionId);
+  return {
+    bindingId: toNonEmptyString(raw.bindingId) ?? docId,
+    adapterId,
+    externalSessionId,
+    externalUserId: toNonEmptyString(raw.externalUserId),
+    sessionId: toNonEmptyString(raw.sessionId) ?? "unknown",
+    userId: toNonEmptyString(raw.userId) ?? "anonymous",
+    version: sanitizeVersion(raw.version),
+    lastMutationId: normalizeMutationId(raw.lastMutationId),
+    createdAt: toIso(raw.createdAt),
+    updatedAt: toIso(raw.updatedAt ?? raw.createdAt),
+    metadata: raw.metadata,
+  };
+}
+
+function channelSessionBindingSignature(binding: ChannelSessionBindingRecord): string {
+  return JSON.stringify({
+    adapterId: binding.adapterId,
+    externalSessionId: binding.externalSessionId,
+    externalUserId: binding.externalUserId,
+    sessionId: binding.sessionId,
+    userId: binding.userId,
+    metadata: binding.metadata ?? null,
   });
 }
 
@@ -2158,4 +2262,302 @@ export async function listDeviceNodeIndex(params: {
     lastSeenAt: node.lastSeenAt,
     updatedAt: node.updatedAt,
   }));
+}
+
+export async function getChannelSessionBinding(params: {
+  adapterId: string;
+  externalSessionId: string;
+}): Promise<ChannelSessionBindingRecord | null> {
+  const adapterId = normalizeChannelAdapterId(params.adapterId);
+  const externalSessionId = normalizeExternalSessionId(params.externalSessionId);
+  const mapKey = makeChannelSessionBindingMapKey(adapterId, externalSessionId);
+  const db = initFirestore();
+
+  if (!db) {
+    return inMemoryChannelSessionBindings.get(mapKey) ?? null;
+  }
+
+  const ref = db.collection("channel_sessions").doc(makeChannelSessionBindingDocId(adapterId, externalSessionId));
+  const snapshot = await ref.get();
+  if (!snapshot.exists) {
+    return null;
+  }
+  return mapChannelSessionBindingRecord(ref.id, snapshot.data() as Record<string, unknown>);
+}
+
+export async function listChannelSessionBindings(params: {
+  limit: number;
+  adapterId?: string;
+  sessionId?: string;
+  userId?: string;
+  externalUserId?: string;
+}): Promise<ChannelSessionBindingRecord[]> {
+  const limit = Math.max(1, Math.min(500, params.limit));
+  const adapterId = toNonEmptyString(params.adapterId)
+    ? normalizeChannelAdapterId(params.adapterId)
+    : null;
+  const sessionId = toNonEmptyString(params.sessionId);
+  const userId = toNonEmptyString(params.userId);
+  const externalUserId = toNonEmptyString(params.externalUserId);
+  const db = initFirestore();
+
+  const filterRecords = (records: ChannelSessionBindingRecord[]): ChannelSessionBindingRecord[] =>
+    records
+      .filter((record) => (adapterId ? record.adapterId === adapterId : true))
+      .filter((record) => (sessionId ? record.sessionId === sessionId : true))
+      .filter((record) => (userId ? record.userId === userId : true))
+      .filter((record) => (externalUserId ? record.externalUserId === externalUserId : true))
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .slice(0, limit);
+
+  if (!db) {
+    return filterRecords(Array.from(inMemoryChannelSessionBindings.values()));
+  }
+
+  const fetchLimit = Math.max(limit * 5, 500);
+  const snapshot = await db
+    .collection("channel_sessions")
+    .orderBy("updatedAt", "desc")
+    .limit(fetchLimit)
+    .get();
+  const records = snapshot.docs.map((doc) =>
+    mapChannelSessionBindingRecord(doc.id, doc.data() as Record<string, unknown>),
+  );
+  return filterRecords(records);
+}
+
+export async function listChannelSessionBindingIndex(params: {
+  limit: number;
+  adapterId?: string;
+  sessionId?: string;
+  userId?: string;
+  externalUserId?: string;
+}): Promise<ChannelSessionBindingIndexItem[]> {
+  const records = await listChannelSessionBindings(params);
+  return records.map((record) => ({
+    bindingId: record.bindingId,
+    adapterId: record.adapterId,
+    externalSessionId: record.externalSessionId,
+    externalUserId: record.externalUserId,
+    sessionId: record.sessionId,
+    userId: record.userId,
+    version: record.version,
+    updatedAt: record.updatedAt,
+  }));
+}
+
+export async function upsertChannelSessionBinding(params: {
+  adapterId: string;
+  externalSessionId: string;
+  externalUserId?: string | null;
+  sessionId: string;
+  userId: string;
+  metadata?: unknown;
+  expectedVersion?: number | null;
+  idempotencyKey?: string | null;
+}): Promise<ChannelSessionBindingUpsertResult> {
+  const adapterId = normalizeChannelAdapterId(params.adapterId);
+  const externalSessionId = normalizeExternalSessionId(params.externalSessionId);
+  const mapKey = makeChannelSessionBindingMapKey(adapterId, externalSessionId);
+  const bindingId = makeChannelSessionBindingDocId(adapterId, externalSessionId);
+  const nowIso = new Date().toISOString();
+  const expectedVersion =
+    typeof params.expectedVersion === "number" &&
+    Number.isFinite(params.expectedVersion) &&
+    params.expectedVersion >= 1
+      ? Math.floor(params.expectedVersion)
+      : null;
+  const idempotencyKey = normalizeMutationId(params.idempotencyKey);
+  const baseBinding: ChannelSessionBindingRecord = {
+    bindingId,
+    adapterId,
+    externalSessionId,
+    externalUserId: toNonEmptyString(params.externalUserId),
+    sessionId: toNonEmptyString(params.sessionId) ?? "unknown",
+    userId: toNonEmptyString(params.userId) ?? "anonymous",
+    version: 1,
+    lastMutationId: idempotencyKey,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    metadata: params.metadata,
+  };
+
+  const db = initFirestore();
+  if (!db) {
+    return runInMemoryWriteLane(`channel-session:${mapKey}`, () => {
+      const existing = inMemoryChannelSessionBindings.get(mapKey) ?? null;
+      if (!existing) {
+        inMemoryChannelSessionBindings.set(mapKey, baseBinding);
+        return {
+          outcome: "created" as const,
+          binding: baseBinding,
+        };
+      }
+
+      const replayCandidate: ChannelSessionBindingRecord = {
+        ...existing,
+        adapterId: baseBinding.adapterId,
+        externalSessionId: baseBinding.externalSessionId,
+        externalUserId: baseBinding.externalUserId,
+        sessionId: baseBinding.sessionId,
+        userId: baseBinding.userId,
+        metadata: baseBinding.metadata,
+      };
+
+      if (idempotencyKey && existing.lastMutationId === idempotencyKey) {
+        if (channelSessionBindingSignature(existing) === channelSessionBindingSignature(replayCandidate)) {
+          return {
+            outcome: "idempotent_replay" as const,
+            binding: existing,
+          };
+        }
+        return {
+          outcome: "idempotency_conflict" as const,
+          binding: existing,
+          idempotencyKey,
+        };
+      }
+
+      if (expectedVersion !== null && existing.version !== expectedVersion) {
+        return {
+          outcome: "version_conflict" as const,
+          binding: existing,
+          expectedVersion,
+          actualVersion: existing.version,
+        };
+      }
+
+      if (channelSessionBindingSignature(existing) === channelSessionBindingSignature(replayCandidate)) {
+        return {
+          outcome: "idempotent_replay" as const,
+          binding: existing,
+        };
+      }
+
+      const next: ChannelSessionBindingRecord = {
+        ...existing,
+        adapterId: baseBinding.adapterId,
+        externalSessionId: baseBinding.externalSessionId,
+        externalUserId: baseBinding.externalUserId,
+        sessionId: baseBinding.sessionId,
+        userId: baseBinding.userId,
+        version: existing.version + 1,
+        lastMutationId: idempotencyKey,
+        updatedAt: nowIso,
+        metadata: baseBinding.metadata,
+      };
+
+      inMemoryChannelSessionBindings.set(mapKey, next);
+      return {
+        outcome: "updated" as const,
+        binding: next,
+      };
+    });
+  }
+
+  const ref = db.collection("channel_sessions").doc(bindingId);
+  const transactionResult = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    if (!snapshot.exists) {
+      transaction.set(
+        ref,
+        {
+          bindingId,
+          adapterId: baseBinding.adapterId,
+          externalSessionId: baseBinding.externalSessionId,
+          externalUserId: baseBinding.externalUserId,
+          sessionId: baseBinding.sessionId,
+          userId: baseBinding.userId,
+          version: 1,
+          lastMutationId: baseBinding.lastMutationId,
+          metadata: baseBinding.metadata ?? null,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      return {
+        outcome: "created" as const,
+      };
+    }
+
+    const existing = mapChannelSessionBindingRecord(
+      ref.id,
+      (snapshot.data() ?? {}) as Record<string, unknown>,
+    );
+    const replayCandidate: ChannelSessionBindingRecord = {
+      ...existing,
+      adapterId: baseBinding.adapterId,
+      externalSessionId: baseBinding.externalSessionId,
+      externalUserId: baseBinding.externalUserId,
+      sessionId: baseBinding.sessionId,
+      userId: baseBinding.userId,
+      metadata: baseBinding.metadata,
+    };
+
+    if (idempotencyKey && existing.lastMutationId === idempotencyKey) {
+      if (channelSessionBindingSignature(existing) === channelSessionBindingSignature(replayCandidate)) {
+        return {
+          outcome: "idempotent_replay" as const,
+          binding: existing,
+        };
+      }
+      return {
+        outcome: "idempotency_conflict" as const,
+        binding: existing,
+        idempotencyKey,
+      };
+    }
+
+    if (expectedVersion !== null && existing.version !== expectedVersion) {
+      return {
+        outcome: "version_conflict" as const,
+        binding: existing,
+        expectedVersion,
+        actualVersion: existing.version,
+      };
+    }
+
+    if (channelSessionBindingSignature(existing) === channelSessionBindingSignature(replayCandidate)) {
+      return {
+        outcome: "idempotent_replay" as const,
+        binding: existing,
+      };
+    }
+
+    const nextVersion = existing.version + 1;
+    transaction.set(
+      ref,
+      {
+        adapterId: baseBinding.adapterId,
+        externalSessionId: baseBinding.externalSessionId,
+        externalUserId: baseBinding.externalUserId,
+        sessionId: baseBinding.sessionId,
+        userId: baseBinding.userId,
+        version: nextVersion,
+        lastMutationId: idempotencyKey,
+        metadata: baseBinding.metadata ?? null,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    return {
+      outcome: "updated" as const,
+    };
+  });
+
+  if (
+    transactionResult.outcome === "version_conflict" ||
+    transactionResult.outcome === "idempotent_replay" ||
+    transactionResult.outcome === "idempotency_conflict"
+  ) {
+    return transactionResult;
+  }
+
+  const stored = await ref.get();
+  return {
+    outcome: transactionResult.outcome,
+    binding: mapChannelSessionBindingRecord(ref.id, (stored.data() ?? {}) as Record<string, unknown>),
+  };
 }

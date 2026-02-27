@@ -118,6 +118,16 @@ Session mutation concurrency controls:
 - `POST /v1/device-nodes` with `x-operator-role: admin` -> versioned upsert (`expectedVersion` supported).
 - `POST /v1/device-nodes/heartbeat` with `x-operator-role: operator|admin` -> update node liveness/status.
 
+9.5 Multi-channel session binding APIs (`T-301` baseline):
+- `GET /v1/channels/adapters` -> enabled channel adapters from env (`API_CHANNEL_ADAPTERS`).
+- `GET /v1/channels/sessions/index` -> compact index (`adapterId`, `sessionId`, `userId`, `externalUserId`, `limit` filters).
+- `GET /v1/channels/sessions` -> full binding records with same filters.
+- `GET /v1/channels/sessions/resolve?adapterId=<id>&externalSessionId=<id>` -> resolve external channel session to internal session/user.
+- `POST /v1/channels/sessions/bind` -> create/update adapter binding with optimistic versioning (`expectedVersion`) and idempotency key (`idempotencyKey` or `x-idempotency-key`).
+- Optional env:
+  - `API_CHANNEL_ADAPTERS=webchat,telegram,slack`
+  - `API_CHANNEL_ADAPTERS_ALLOW_CUSTOM=true|false`
+
 10. Operator console APIs (RBAC via `x-operator-role: viewer|operator|admin`):
 - `GET /v1/operator/summary` -> active tasks, approvals snapshot, service runtime/health summary, and execution trace rollup (runs/events/tool steps/screenshots/approval links).
 - `POST /v1/operator/actions` with:

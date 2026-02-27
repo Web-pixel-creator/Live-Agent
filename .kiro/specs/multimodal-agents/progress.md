@@ -218,6 +218,7 @@
 187. Updated docs/spec operability for WebRTC V2 spike controls (`docs/webrtc-v2-spike.md`, `README.md`, `.env.example`) and aligned anti-drift coverage in `tests/unit/webrtc-spike-alignment.test.ts`.
 188. Revalidated baseline after WebRTC rollout telemetry update: `npm run test:unit` green (`420` tests, `0` failures) including updated gateway config parsing coverage and spike alignment guards.
 189. Revalidated strict final release gate after `T-223` updates: `npm run verify:release:strict` is green with Demo KPI gate pass (`218` checks, websocket roundtrip `37ms`) and perf policy pass (`15` checks, `0` violations).
+190. Implemented `T-301` baseline (multi-channel adapters): added API backend channel adapter/session-binding endpoints (`/v1/channels/adapters`, `/v1/channels/sessions/index`, `/v1/channels/sessions`, `/v1/channels/sessions/resolve`, `/v1/channels/sessions/bind`) with Firestore/in-memory storage for versioned/idempotent channel-to-session bindings and unit coverage for conflict/resolve/index behavior.
 190. Synced refreshed strict-run public badge artifacts (`public/demo-e2e/badge.json`, `public/demo-e2e/badge-details.json`) and redeployed Railway gateway (`e2f2c8b3-cfaa-42b4-8200-838c852faf60`) so public badge endpoint reflects the latest strict baseline (`pass | 218 checks | 37ms ws`).
 
 ## Current Focus Queue

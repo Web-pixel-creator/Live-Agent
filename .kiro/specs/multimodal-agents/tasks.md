@@ -188,6 +188,7 @@
 14. T-237 follow-up hardening (e2e/policy/release gates for correlation tuple) [Completed]
 15. T-238 (P0 resilience lane, UI damage-control policy layer) [Completed]
 16. T-223 remains V2 spike only (no MVP transport change)
+17. T-301 baseline (P2 ecosystem lane, multi-channel adapter/session binding APIs) [Completed baseline]
 
 ## Suggested Solo Execution (2-week MVP)
 

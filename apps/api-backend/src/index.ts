@@ -14,12 +14,16 @@ import {
 import {
   type ApprovalDecision,
   type ApprovalSweepResult,
+  type ChannelSessionBindingRecord,
   createSession,
   type DeviceNodeKind,
   type DeviceNodeStatus,
   type EventListItem,
+  getChannelSessionBinding,
   getDeviceNodeById,
   getFirestoreState,
+  listChannelSessionBindingIndex,
+  listChannelSessionBindings,
   listDeviceNodeIndex,
   listDeviceNodes,
   listEvents,
@@ -35,6 +39,7 @@ import {
   recordApprovalDecision,
   sweepApprovalTimeouts,
   touchDeviceNodeHeartbeat,
+  upsertChannelSessionBinding,
   upsertDeviceNode,
   upsertPendingApproval,
   upsertManagedSkill,
@@ -117,10 +122,30 @@ const operatorTaskQueuePendingApprovalWarnThreshold = parsePositiveInt(
   process.env.OPERATOR_TASK_QUEUE_PENDING_APPROVAL_WARN_THRESHOLD ?? null,
   2,
 );
+const configuredChannelAdapters = parseChannelAdapters(
+  process.env.API_CHANNEL_ADAPTERS ?? "webchat,telegram,slack",
+);
+const allowCustomChannelAdapters = process.env.API_CHANNEL_ADAPTERS_ALLOW_CUSTOM === "true";
 
 function toBaseUrl(input: string | undefined, fallback: string): string {
   const candidate = typeof input === "string" && input.trim().length > 0 ? input.trim() : fallback;
   return candidate.replace(/\/+$/, "");
+}
+
+function parseChannelAdapters(raw: string): string[] {
+  const entries = raw
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter((item) => item.length > 0)
+    .map((item) =>
+      item
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, ""),
+    )
+    .filter((item) => item.length > 0);
+  const deduped = Array.from(new Set(entries));
+  return deduped.length > 0 ? deduped : ["webchat"];
 }
 
 function writeJson(res: ServerResponse, statusCode: number, body: unknown): void {
@@ -341,6 +366,26 @@ function parseCapabilities(raw: unknown): string[] {
     deduped.push(normalized);
   }
   return deduped;
+}
+
+function sanitizeChannelAdapterId(raw: unknown): string | null {
+  if (typeof raw !== "string") {
+    return null;
+  }
+  const normalized = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  if (normalized.length === 0) {
+    return null;
+  }
+  return normalized.slice(0, 64);
+}
+
+function isConfiguredChannelAdapter(adapterId: string): boolean {
+  return configuredChannelAdapters.includes(adapterId);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -2146,6 +2191,257 @@ export const server = createServer(async (req, res) => {
       });
       writeJson(res, 200, {
         data: node,
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/channels/adapters" && req.method === "GET") {
+      writeJson(res, 200, {
+        data: configuredChannelAdapters.map((adapterId) => ({
+          adapterId,
+          enabled: true,
+          source: "env",
+        })),
+        total: configuredChannelAdapters.length,
+        allowCustomAdapters: allowCustomChannelAdapters,
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/channels/sessions/index" && req.method === "GET") {
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 200, 1, 500);
+      const rawAdapterId = url.searchParams.get("adapterId") ?? url.searchParams.get("adapter");
+      const adapterId =
+        rawAdapterId === null
+          ? undefined
+          : sanitizeChannelAdapterId(rawAdapterId) ?? undefined;
+      if (rawAdapterId !== null && !adapterId) {
+        writeApiError(res, 400, {
+          code: "API_CHANNEL_ADAPTER_REQUIRED",
+          message: "adapterId must be a non-empty string",
+        });
+        return;
+      }
+      if (adapterId && !allowCustomChannelAdapters && !isConfiguredChannelAdapter(adapterId)) {
+        writeApiError(res, 400, {
+          code: "API_CHANNEL_ADAPTER_NOT_ENABLED",
+          message: "Channel adapter is not enabled",
+          details: {
+            adapterId,
+            enabledAdapters: configuredChannelAdapters,
+            allowCustomAdapters: allowCustomChannelAdapters,
+          },
+        });
+        return;
+      }
+
+      const index = await listChannelSessionBindingIndex({
+        limit,
+        adapterId,
+        sessionId: url.searchParams.get("sessionId") ?? undefined,
+        userId: url.searchParams.get("userId") ?? undefined,
+        externalUserId: url.searchParams.get("externalUserId") ?? undefined,
+      });
+      writeJson(res, 200, {
+        data: index,
+        total: index.length,
+        source: "channel_session_bindings",
+        generatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/channels/sessions" && req.method === "GET") {
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 200, 1, 500);
+      const rawAdapterId = url.searchParams.get("adapterId") ?? url.searchParams.get("adapter");
+      const adapterId =
+        rawAdapterId === null
+          ? undefined
+          : sanitizeChannelAdapterId(rawAdapterId) ?? undefined;
+      if (rawAdapterId !== null && !adapterId) {
+        writeApiError(res, 400, {
+          code: "API_CHANNEL_ADAPTER_REQUIRED",
+          message: "adapterId must be a non-empty string",
+        });
+        return;
+      }
+      if (adapterId && !allowCustomChannelAdapters && !isConfiguredChannelAdapter(adapterId)) {
+        writeApiError(res, 400, {
+          code: "API_CHANNEL_ADAPTER_NOT_ENABLED",
+          message: "Channel adapter is not enabled",
+          details: {
+            adapterId,
+            enabledAdapters: configuredChannelAdapters,
+            allowCustomAdapters: allowCustomChannelAdapters,
+          },
+        });
+        return;
+      }
+      const bindings = await listChannelSessionBindings({
+        limit,
+        adapterId,
+        sessionId: url.searchParams.get("sessionId") ?? undefined,
+        userId: url.searchParams.get("userId") ?? undefined,
+        externalUserId: url.searchParams.get("externalUserId") ?? undefined,
+      });
+      writeJson(res, 200, {
+        data: bindings,
+        total: bindings.length,
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/channels/sessions/resolve" && req.method === "GET") {
+      const rawAdapterId = url.searchParams.get("adapterId") ?? url.searchParams.get("adapter");
+      const rawExternalSessionId = url.searchParams.get("externalSessionId");
+      const adapterId = sanitizeChannelAdapterId(rawAdapterId);
+      const externalSessionId = toOptionalString(rawExternalSessionId);
+      if (!adapterId || !externalSessionId) {
+        writeApiError(res, 400, {
+          code: "API_CHANNEL_RESOLVE_INVALID_INPUT",
+          message: "adapterId and externalSessionId query params are required",
+          details: {
+            required: ["adapterId", "externalSessionId"],
+          },
+        });
+        return;
+      }
+      if (!allowCustomChannelAdapters && !isConfiguredChannelAdapter(adapterId)) {
+        writeApiError(res, 400, {
+          code: "API_CHANNEL_ADAPTER_NOT_ENABLED",
+          message: "Channel adapter is not enabled",
+          details: {
+            adapterId,
+            enabledAdapters: configuredChannelAdapters,
+            allowCustomAdapters: allowCustomChannelAdapters,
+          },
+        });
+        return;
+      }
+      const binding = await getChannelSessionBinding({
+        adapterId,
+        externalSessionId,
+      });
+      if (!binding) {
+        writeApiError(res, 404, {
+          code: "API_CHANNEL_SESSION_NOT_FOUND",
+          message: "Channel session binding not found",
+          details: {
+            adapterId,
+            externalSessionId,
+          },
+        });
+        return;
+      }
+      writeJson(res, 200, {
+        data: binding,
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/channels/sessions/bind" && req.method === "POST") {
+      const raw = await readBody(req);
+      const parsed = parseJsonBody(raw) as {
+        adapterId?: unknown;
+        adapter?: unknown;
+        externalSessionId?: unknown;
+        externalUserId?: unknown;
+        sessionId?: unknown;
+        userId?: unknown;
+        expectedVersion?: unknown;
+        idempotencyKey?: unknown;
+        metadata?: unknown;
+      };
+
+      const adapterId = sanitizeChannelAdapterId(parsed.adapterId ?? parsed.adapter);
+      const externalSessionId = toOptionalString(parsed.externalSessionId);
+      const externalUserId = toOptionalString(parsed.externalUserId);
+      const requestedUserId = toOptionalString(parsed.userId) ?? externalUserId ?? "anonymous";
+      const requestedSessionId = toOptionalString(parsed.sessionId);
+      const idempotencyKey =
+        parseIdempotencyKey(parsed.idempotencyKey) ??
+        parseIdempotencyKey(headerValue(req, "x-idempotency-key"));
+
+      if (!adapterId || !externalSessionId) {
+        writeApiError(res, 400, {
+          code: "API_CHANNEL_BIND_INVALID_INPUT",
+          message: "adapterId and externalSessionId are required",
+          details: {
+            required: ["adapterId", "externalSessionId"],
+          },
+        });
+        return;
+      }
+      if (!allowCustomChannelAdapters && !isConfiguredChannelAdapter(adapterId)) {
+        writeApiError(res, 400, {
+          code: "API_CHANNEL_ADAPTER_NOT_ENABLED",
+          message: "Channel adapter is not enabled",
+          details: {
+            adapterId,
+            enabledAdapters: configuredChannelAdapters,
+            allowCustomAdapters: allowCustomChannelAdapters,
+          },
+        });
+        return;
+      }
+
+      let resolvedSessionId = requestedSessionId;
+      let autoCreatedSession: ChannelSessionBindingRecord["sessionId"] | null = null;
+      if (!resolvedSessionId) {
+        const created = await createSession({
+          userId: requestedUserId,
+          mode: "multi",
+        });
+        resolvedSessionId = created.sessionId;
+        autoCreatedSession = created.sessionId;
+      }
+
+      const bindingResult = await upsertChannelSessionBinding({
+        adapterId,
+        externalSessionId,
+        externalUserId,
+        sessionId: resolvedSessionId,
+        userId: requestedUserId,
+        expectedVersion: parseOptionalExpectedVersion(parsed.expectedVersion),
+        idempotencyKey,
+        metadata: parsed.metadata,
+      });
+
+      if (bindingResult.outcome === "version_conflict") {
+        writeApiError(res, 409, {
+          code: "API_CHANNEL_SESSION_VERSION_CONFLICT",
+          message: "Channel session binding version conflict",
+          details: {
+            adapterId,
+            externalSessionId,
+            expectedVersion: bindingResult.expectedVersion,
+            actualVersion: bindingResult.actualVersion,
+          },
+        });
+        return;
+      }
+
+      if (bindingResult.outcome === "idempotency_conflict") {
+        writeApiError(res, 409, {
+          code: "API_CHANNEL_SESSION_IDEMPOTENCY_CONFLICT",
+          message: "Channel session binding idempotency conflict",
+          details: {
+            adapterId,
+            externalSessionId,
+            idempotencyKey: bindingResult.idempotencyKey,
+            actualVersion: bindingResult.binding.version,
+          },
+        });
+        return;
+      }
+
+      writeJson(res, bindingResult.outcome === "created" ? 201 : 200, {
+        data: bindingResult.binding,
+        meta: {
+          outcome: bindingResult.outcome,
+          idempotencyKey,
+          autoCreatedSessionId: autoCreatedSession,
+        },
       });
       return;
     }
