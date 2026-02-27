@@ -28,9 +28,12 @@ test("workflow dispatch helper routes to release and railway dispatch scripts wi
   assert.match(source, /if \(\$GatewayNoWait\)\s*\{\s*\$dispatchArgs \+= "-GatewayNoWait"/);
   assert.match(source, /if \(\$FrontendNoWait\)\s*\{\s*\$dispatchArgs \+= "-FrontendNoWait"/);
   assert.match(source, /if \(\$FrontendSkipHealthCheck\)\s*\{\s*\$dispatchArgs \+= "-FrontendSkipHealthCheck"/);
+  assert.match(source, /\[switch\]\$DryRun/);
   assert.match(source, /if \(\$NoWaitForRun\)\s*\{\s*\$dispatchArgs \+= "-NoWaitForRun"/);
   assert.match(source, /\[int\]\$WaitTimeoutSec = 900/);
   assert.match(source, /\[int\]\$PollIntervalSec = 10/);
+  assert.match(source, /\[workflow-dispatch\] DryRun enabled\. Command preview:/);
+  assert.match(source, /if \(\$DryRun\)\s*\{[\s\S]*exit 0[\s\S]*\}/);
 });
 
 test("readme documents unified workflow dispatch entrypoint", () => {

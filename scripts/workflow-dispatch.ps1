@@ -15,6 +15,7 @@ param(
   [switch]$GatewayNoWait,
   [switch]$FrontendNoWait,
   [switch]$FrontendSkipHealthCheck,
+  [switch]$DryRun,
   [switch]$NoWaitForRun,
   [int]$WaitTimeoutSec = 900,
   [int]$PollIntervalSec = 10
@@ -115,6 +116,15 @@ if ($FrontendSkipHealthCheck) {
 }
 
 Write-Host ("[workflow-dispatch] Dispatch target: " + $Workflow + " (" + $targetScript + ")")
+
+if ($DryRun) {
+  $quotedArgs = @($dispatchArgs | ForEach-Object { '"' + [string]$_ + '"' })
+  $previewCommand = "powershell " + ($quotedArgs -join " ")
+  Write-Host "[workflow-dispatch] DryRun enabled. Command preview:"
+  Write-Host $previewCommand
+  exit 0
+}
+
 & powershell @dispatchArgs
 if ($LASTEXITCODE -ne 0) {
   Fail ("Workflow dispatch failed for target '" + $Workflow + "'.")

@@ -663,6 +663,12 @@ $env:GITHUB_REPO="Live-Agent"
 npm run workflow:dispatch -- -Workflow release_strict -DeployToRailway -RailwayEnvironment production -GatewayPublicUrl https://live-agent-production.up.railway.app
 ```
 
+Use `-DryRun` to validate argument routing without dispatching workflows:
+
+```powershell
+npm run workflow:dispatch -- -Workflow railway_deploy_all -DryRun
+```
+
 - Artifact-only release revalidation workflow: `.github/workflows/release-artifact-revalidation.yml`
 - Triggered on manual dispatch.
 - Resolves latest successful `demo-e2e`/`release-strict-final` run (or uses provided `source_run_id`), downloads artifact bundle, and runs artifact-only release gate.
