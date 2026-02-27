@@ -547,6 +547,7 @@ Behavior:
 - Prints effective runtime metadata after successful deploy (`start command`, `config-as-code source`, `effective public URL`).
 - `GET /` on Railway returns gateway service descriptor JSON (health/status/metrics/ws/badge links). Interactive UI (`demo-frontend`) is deployed separately.
 - Runs gateway root descriptor check (`GET /`) after successful deploy.
+  - Root descriptor check retries automatically (`-RootDescriptorCheckMaxAttempts`, `-RootDescriptorCheckRetryBackoffSec`) to tolerate transient post-rollout warmup failures.
 - Runs post-deploy public badge endpoint check (`badge:public:check` helper logic) after successful deploy.
 - In `-- -NoWait` mode, post-deploy gateway root descriptor and badge endpoint checks are not executed (trigger-only flow).
 
@@ -562,6 +563,8 @@ Common flags:
 - `-- -SkipReleaseVerification` - skip local verification before deploy.
 - `-- -ProjectId <id> -- -ServiceId <id>` - explicit Railway link target override for current run (must be provided as a pair).
 - `-- -SkipRootDescriptorCheck` - skip post-deploy gateway root descriptor check.
+- `-- -RootDescriptorCheckMaxAttempts <n>` - max retry attempts for root descriptor check (default `3`).
+- `-- -RootDescriptorCheckRetryBackoffSec <n>` - retry backoff in seconds for root descriptor check (default `2`).
 - `-- -SkipPublicBadgeCheck` - skip post-deploy public badge endpoint check.
 - `-- -DemoFrontendPublicUrl <url>` - expected demo frontend URL for root descriptor validation (`uiUrl` contract).
 - `-- -SkipFailureLogs` - do not auto-fetch Railway build/deployment logs when deploy fails or times out.

@@ -21,8 +21,14 @@ test("railway deploy success path runs badge check only when skip flag is disabl
   const source = readFileSync(scriptPath, "utf8");
 
   assert.match(source, /\[string\]\$DemoFrontendPublicUrl = \$env:DEMO_FRONTEND_PUBLIC_URL/);
+  assert.match(source, /\[int\]\$RootDescriptorCheckMaxAttempts = 3/);
+  assert.match(source, /\[int\]\$RootDescriptorCheckRetryBackoffSec = 2/);
   assert.match(source, /function Invoke-GatewayRootDescriptorCheck\(/);
   assert.match(source, /\[string\]\$ExpectedUiUrl,/);
+  assert.match(source, /\[int\]\$MaxAttempts,/);
+  assert.match(source, /\[int\]\$RetryBackoffSec/);
+  assert.match(source, /\$attemptCount = if \(\$MaxAttempts -ge 1\)/);
+  assert.match(source, /for \(\$attempt = 1; \$attempt -le \$attemptCount; \$attempt\+\+\)/);
   assert.match(source, /\$message = \[string\]\$response\.message/);
   assert.match(source, /if \(\$message -ne "realtime-gateway is online"\)/);
   assert.match(source, /\$expectedRoutes = \[ordered\]@\{/);
@@ -34,16 +40,15 @@ test("railway deploy success path runs badge check only when skip flag is disabl
   assert.match(source, /badgeDetails = "\/demo-e2e\/badge-details\.json"/);
   assert.match(source, /\$reportedPublicUrl = \[string\]\$response\.publicUrl/);
   assert.match(source, /if \(\[string\]::IsNullOrWhiteSpace\(\$reportedPublicUrl\)\)/);
-  assert.match(source, /Gateway root descriptor check failed: response\.publicUrl is missing\./);
+  assert.match(source, /response\.publicUrl is missing\./);
   assert.match(source, /if \(-not \[string\]::IsNullOrWhiteSpace\(\$ExpectedUiUrl\)\)/);
   assert.match(source, /\$reportedUiUrl = \[string\]\$response\.uiUrl/);
+  assert.match(source, /response\.uiUrl is missing while expected UI URL was provided\./);
+  assert.match(source, /Gateway root descriptor check attempt /);
+  assert.match(source, /Retrying gateway root descriptor check in /);
   assert.match(
     source,
-    /Gateway root descriptor check failed: response\.uiUrl is missing while expected UI URL was provided\./,
-  );
-  assert.match(
-    source,
-    /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*if \(-not \$SkipRootDescriptorCheck\)\s*\{[\s\S]*Invoke-GatewayRootDescriptorCheck -Endpoint \$effectivePublicUrl -ExpectedUiUrl \$DemoFrontendPublicUrl -TimeoutSec \$RootDescriptorCheckTimeoutSec/,
+    /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*if \(-not \$SkipRootDescriptorCheck\)\s*\{[\s\S]*Invoke-GatewayRootDescriptorCheck -Endpoint \$effectivePublicUrl -ExpectedUiUrl \$DemoFrontendPublicUrl -TimeoutSec \$RootDescriptorCheckTimeoutSec -MaxAttempts \$RootDescriptorCheckMaxAttempts -RetryBackoffSec \$RootDescriptorCheckRetryBackoffSec/,
   );
   assert.match(
     source,

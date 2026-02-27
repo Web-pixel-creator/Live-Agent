@@ -16,6 +16,8 @@ param(
   [string]$DemoFrontendPublicUrl = $env:DEMO_FRONTEND_PUBLIC_URL,
   [int]$PublicBadgeCheckTimeoutSec = 20,
   [int]$RootDescriptorCheckTimeoutSec = 20,
+  [int]$RootDescriptorCheckMaxAttempts = 3,
+  [int]$RootDescriptorCheckRetryBackoffSec = 2,
   [switch]$NoWait,
   [switch]$SkipFailureLogs,
   [int]$FailureLogLines = 120,
@@ -184,103 +186,137 @@ function Invoke-PublicBadgeCheck(
 function Invoke-GatewayRootDescriptorCheck(
   [string]$Endpoint,
   [string]$ExpectedUiUrl,
-  [int]$TimeoutSec
+  [int]$TimeoutSec,
+  [int]$MaxAttempts,
+  [int]$RetryBackoffSec
 ) {
   if ([string]::IsNullOrWhiteSpace($Endpoint)) {
     Write-Host "[railway-deploy] Effective public URL is empty; skipping gateway root descriptor check."
     return
   }
 
+  $attemptCount = if ($MaxAttempts -ge 1) { [math]::Floor($MaxAttempts) } else { 1 }
+  $retryBackoff = if ($RetryBackoffSec -ge 0) { [math]::Floor($RetryBackoffSec) } else { 0 }
   $target = [string]$Endpoint.TrimEnd("/")
-  Write-Host ("[railway-deploy] Running gateway root descriptor check: " + $target + "/")
+  Write-Host ("[railway-deploy] Running gateway root descriptor check: " + $target + "/ (attempts=" + [string]$attemptCount + ")")
 
-  try {
-    $response = Invoke-RestMethod -Method Get -Uri ($target + "/") -TimeoutSec $TimeoutSec -ErrorAction Stop
-  }
-  catch {
-    Fail ("Gateway root descriptor check failed for " + $target + "/ : " + $_.Exception.Message)
-  }
+  for ($attempt = 1; $attempt -le $attemptCount; $attempt++) {
+    try {
+      $response = Invoke-RestMethod -Method Get -Uri ($target + "/") -TimeoutSec $TimeoutSec -ErrorAction Stop
 
-  if ($null -eq $response -or $response.ok -ne $true) {
-    Fail "Gateway root descriptor check failed: expected payload.ok=true."
-  }
+      if ($null -eq $response -or $response.ok -ne $true) {
+        throw "expected payload.ok=true."
+      }
 
-  $serviceName = [string]$response.service
-  if ([string]::IsNullOrWhiteSpace($serviceName)) {
-    Fail "Gateway root descriptor check failed: response.service is missing."
-  }
-  if ($serviceName -ne "realtime-gateway") {
-    Fail ("Gateway root descriptor check failed: expected service 'realtime-gateway', actual '" + $serviceName + "'.")
-  }
+      $serviceName = [string]$response.service
+      if ([string]::IsNullOrWhiteSpace($serviceName)) {
+        throw "response.service is missing."
+      }
+      if ($serviceName -ne "realtime-gateway") {
+        throw ("expected service 'realtime-gateway', actual '" + $serviceName + "'.")
+      }
 
-  $message = [string]$response.message
-  if ($message -ne "realtime-gateway is online") {
-    Fail ("Gateway root descriptor check failed: unexpected message '" + $message + "'.")
-  }
+      $message = [string]$response.message
+      if ($message -ne "realtime-gateway is online") {
+        throw ("unexpected message '" + $message + "'.")
+      }
 
-  $routes = $response.routes
-  if ($null -eq $routes) {
-    Fail "Gateway root descriptor check failed: response.routes is missing."
-  }
+      $routes = $response.routes
+      if ($null -eq $routes) {
+        throw "response.routes is missing."
+      }
 
-  $expectedRoutes = [ordered]@{
-    websocket = "/realtime"
-    health = "/healthz"
-    status = "/status"
-    metrics = "/metrics"
-    badge = "/demo-e2e/badge.json"
-    badgeDetails = "/demo-e2e/badge-details.json"
-  }
+      $expectedRoutes = [ordered]@{
+        websocket = "/realtime"
+        health = "/healthz"
+        status = "/status"
+        metrics = "/metrics"
+        badge = "/demo-e2e/badge.json"
+        badgeDetails = "/demo-e2e/badge-details.json"
+      }
 
-  foreach ($routeKey in $expectedRoutes.Keys) {
-    $actualRoute = [string]$routes.$routeKey
-    if ([string]::IsNullOrWhiteSpace($actualRoute)) {
-      Fail ("Gateway root descriptor check failed: routes." + $routeKey + " is missing.")
+      foreach ($routeKey in $expectedRoutes.Keys) {
+        $actualRoute = [string]$routes.$routeKey
+        if ([string]::IsNullOrWhiteSpace($actualRoute)) {
+          throw ("routes." + $routeKey + " is missing.")
+        }
+        if ($actualRoute -ne [string]$expectedRoutes[$routeKey]) {
+          throw (
+            "routes." +
+            $routeKey +
+            " expected '" +
+            [string]$expectedRoutes[$routeKey] +
+            "', actual '" +
+            $actualRoute +
+            "'."
+          )
+        }
+      }
+
+      $reportedPublicUrl = [string]$response.publicUrl
+      if ([string]::IsNullOrWhiteSpace($reportedPublicUrl)) {
+        throw "response.publicUrl is missing."
+      }
+
+      $normalizedReportedPublicUrl = $reportedPublicUrl.TrimEnd("/")
+      if ($normalizedReportedPublicUrl -ne $target) {
+        Write-Warning (
+          "[railway-deploy] Gateway root descriptor publicUrl mismatch: expected '" +
+          $target +
+          "', actual '" +
+          $normalizedReportedPublicUrl +
+          "'."
+        )
+      }
+
+      if (-not [string]::IsNullOrWhiteSpace($ExpectedUiUrl)) {
+        $reportedUiUrl = [string]$response.uiUrl
+        if ([string]::IsNullOrWhiteSpace($reportedUiUrl)) {
+          throw "response.uiUrl is missing while expected UI URL was provided."
+        }
+        $normalizedExpectedUiUrl = [string]$ExpectedUiUrl.TrimEnd("/")
+        $normalizedReportedUiUrl = $reportedUiUrl.TrimEnd("/")
+        if ($normalizedReportedUiUrl -ne $normalizedExpectedUiUrl) {
+          throw (
+            "response.uiUrl mismatch (expected '" +
+            $normalizedExpectedUiUrl +
+            "', actual '" +
+            $normalizedReportedUiUrl +
+            "')."
+          )
+        }
+      }
+
+      if ($attempt -gt 1) {
+        Write-Host ("[railway-deploy] Gateway root descriptor check recovered on attempt " + [string]$attempt + ".")
+      }
+      return
     }
-    if ($actualRoute -ne [string]$expectedRoutes[$routeKey]) {
-      Fail (
-        "Gateway root descriptor check failed: routes." +
-        $routeKey +
-        " expected '" +
-        [string]$expectedRoutes[$routeKey] +
-        "', actual '" +
-        $actualRoute +
-        "'."
+    catch {
+      $reason = $_.Exception.Message
+      if ($attempt -ge $attemptCount) {
+        Fail (
+          "Gateway root descriptor check failed for " +
+          $target +
+          "/ after " +
+          [string]$attemptCount +
+          " attempt(s): " +
+          $reason
+        )
+      }
+
+      Write-Warning (
+        "[railway-deploy] Gateway root descriptor check attempt " +
+        [string]$attempt +
+        "/" +
+        [string]$attemptCount +
+        " failed: " +
+        $reason
       )
-    }
-  }
-
-  $reportedPublicUrl = [string]$response.publicUrl
-  if ([string]::IsNullOrWhiteSpace($reportedPublicUrl)) {
-    Fail "Gateway root descriptor check failed: response.publicUrl is missing."
-  }
-
-  $normalizedReportedPublicUrl = $reportedPublicUrl.TrimEnd("/")
-  if ($normalizedReportedPublicUrl -ne $target) {
-    Write-Warning (
-      "[railway-deploy] Gateway root descriptor publicUrl mismatch: expected '" +
-      $target +
-      "', actual '" +
-      $normalizedReportedPublicUrl +
-      "'."
-    )
-  }
-
-  if (-not [string]::IsNullOrWhiteSpace($ExpectedUiUrl)) {
-    $reportedUiUrl = [string]$response.uiUrl
-    if ([string]::IsNullOrWhiteSpace($reportedUiUrl)) {
-      Fail "Gateway root descriptor check failed: response.uiUrl is missing while expected UI URL was provided."
-    }
-    $normalizedExpectedUiUrl = [string]$ExpectedUiUrl.TrimEnd("/")
-    $normalizedReportedUiUrl = $reportedUiUrl.TrimEnd("/")
-    if ($normalizedReportedUiUrl -ne $normalizedExpectedUiUrl) {
-      Fail (
-        "Gateway root descriptor check failed: response.uiUrl mismatch (expected '" +
-        $normalizedExpectedUiUrl +
-        "', actual '" +
-        $normalizedReportedUiUrl +
-        "')."
-      )
+      if ($retryBackoff -gt 0) {
+        Write-Host ("[railway-deploy] Retrying gateway root descriptor check in " + [string]$retryBackoff + "s...")
+        Start-Sleep -Seconds $retryBackoff
+      }
     }
   }
 }
@@ -551,7 +587,7 @@ for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
       }
 
       if (-not $SkipRootDescriptorCheck) {
-        Invoke-GatewayRootDescriptorCheck -Endpoint $effectivePublicUrl -ExpectedUiUrl $DemoFrontendPublicUrl -TimeoutSec $RootDescriptorCheckTimeoutSec
+        Invoke-GatewayRootDescriptorCheck -Endpoint $effectivePublicUrl -ExpectedUiUrl $DemoFrontendPublicUrl -TimeoutSec $RootDescriptorCheckTimeoutSec -MaxAttempts $RootDescriptorCheckMaxAttempts -RetryBackoffSec $RootDescriptorCheckRetryBackoffSec
       }
       if (-not $SkipPublicBadgeCheck) {
         Invoke-PublicBadgeCheck -Endpoint $PublicBadgeEndpoint -DetailsEndpoint $PublicBadgeDetailsEndpoint -PublicUrl $effectivePublicUrl -TimeoutSec $PublicBadgeCheckTimeoutSec

@@ -22,6 +22,8 @@ test("railway deploy helper stays aligned across package, script, and docs", () 
   assert.match(scriptRaw, /PublicBadgeDetailsEndpoint/);
   assert.match(scriptRaw, /RailwayPublicUrl/);
   assert.match(scriptRaw, /DemoFrontendPublicUrl/);
+  assert.match(scriptRaw, /RootDescriptorCheckMaxAttempts/);
+  assert.match(scriptRaw, /RootDescriptorCheckRetryBackoffSec/);
   assert.match(scriptRaw, /Invoke-PublicBadgeCheck/);
   assert.match(scriptRaw, /Resolve-ServiceIdFromStatus/);
   assert.match(scriptRaw, /serviceInstances/);
@@ -35,6 +37,8 @@ test("railway deploy helper stays aligned across package, script, and docs", () 
   assert.match(readmeRaw, /npm run deploy:railway/);
   assert.match(readmeRaw, /-- -SkipReleaseVerification/);
   assert.match(readmeRaw, /-- -DemoFrontendPublicUrl <url>/);
+  assert.match(readmeRaw, /-- -RootDescriptorCheckMaxAttempts <n>/);
+  assert.match(readmeRaw, /-- -RootDescriptorCheckRetryBackoffSec <n>/);
   assert.match(readmeRaw, /-- -SkipPublicBadgeCheck/);
   assert.match(readmeRaw, /-- -PublicBadgeEndpoint <url>/);
   assert.match(readmeRaw, /-- -NoWait/);
