@@ -30,6 +30,10 @@ test("workflow dispatch dry-run previews railway deploy-all target command", () 
   assert.match(result.stdout, /"-GatewaySkipRootDescriptorCheck"/);
   assert.match(result.stdout, /"-GatewayDemoFrontendPublicUrl"/);
   assert.match(result.stdout, /"https:\/\/live-agent-frontend-production\.up\.railway\.app"/);
+  assert.match(result.stdout, /"-GatewayRootDescriptorCheckMaxAttempts"/);
+  assert.match(result.stdout, /"3"/);
+  assert.match(result.stdout, /"-GatewayRootDescriptorCheckRetryBackoffSec"/);
+  assert.match(result.stdout, /"2"/);
 });
 
 test("workflow dispatch dry-run previews release strict target command", () => {

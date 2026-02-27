@@ -9,6 +9,8 @@ param(
   [string]$RailwayEnvironment = "production",
   [string]$GatewayPublicUrl = "https://live-agent-production.up.railway.app",
   [string]$GatewayDemoFrontendPublicUrl = $env:DEMO_FRONTEND_PUBLIC_URL,
+  [int]$GatewayRootDescriptorCheckMaxAttempts = 3,
+  [int]$GatewayRootDescriptorCheckRetryBackoffSec = 2,
   [switch]$DeployToRailway,
   [switch]$SkipReleaseVerification,
   [switch]$SkipGatewayDeploy,
@@ -76,6 +78,12 @@ if (-not [string]::IsNullOrWhiteSpace($GatewayPublicUrl)) {
 }
 if (-not [string]::IsNullOrWhiteSpace($GatewayDemoFrontendPublicUrl)) {
   $dispatchArgs += @("-GatewayDemoFrontendPublicUrl", $GatewayDemoFrontendPublicUrl)
+}
+if ($GatewayRootDescriptorCheckMaxAttempts -gt 0) {
+  $dispatchArgs += @("-GatewayRootDescriptorCheckMaxAttempts", [string]$GatewayRootDescriptorCheckMaxAttempts)
+}
+if ($GatewayRootDescriptorCheckRetryBackoffSec -ge 0) {
+  $dispatchArgs += @("-GatewayRootDescriptorCheckRetryBackoffSec", [string]$GatewayRootDescriptorCheckRetryBackoffSec)
 }
 if ($NoWaitForRun) {
   $dispatchArgs += "-NoWaitForRun"

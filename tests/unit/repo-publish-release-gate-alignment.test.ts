@@ -25,6 +25,8 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /\[string\]\$RailwayPublicUrl = \$env:RAILWAY_PUBLIC_URL/);
   assert.match(source, /\[string\]\$RailwayDemoFrontendPublicUrl = \$env:DEMO_FRONTEND_PUBLIC_URL/);
   assert.match(source, /\[int\]\$RailwayPublicBadgeCheckTimeoutSec = 20/);
+  assert.match(source, /\[int\]\$RailwayRootDescriptorCheckMaxAttempts = 3/);
+  assert.match(source, /\[int\]\$RailwayRootDescriptorCheckRetryBackoffSec = 2/);
   assert.match(source, /\[switch\]\$DeployRailwayFrontend/);
   assert.match(source, /\[string\]\$RailwayFrontendService = \$\(/);
   assert.match(source, /\[string\]\$RailwayFrontendPath = "apps\/demo-frontend"/);
@@ -50,4 +52,6 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /\-RailwayPublicUrl/);
   assert.match(source, /\-DemoFrontendPublicUrl/);
   assert.match(source, /\-PublicBadgeCheckTimeoutSec/);
+  assert.match(source, /\-RootDescriptorCheckMaxAttempts/);
+  assert.match(source, /\-RootDescriptorCheckRetryBackoffSec/);
 });

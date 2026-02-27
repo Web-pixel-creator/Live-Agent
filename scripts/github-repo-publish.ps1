@@ -28,6 +28,8 @@ param(
   [string]$RailwayPublicUrl = $env:RAILWAY_PUBLIC_URL,
   [string]$RailwayDemoFrontendPublicUrl = $env:DEMO_FRONTEND_PUBLIC_URL,
   [int]$RailwayPublicBadgeCheckTimeoutSec = 20,
+  [int]$RailwayRootDescriptorCheckMaxAttempts = 3,
+  [int]$RailwayRootDescriptorCheckRetryBackoffSec = 2,
   [switch]$RailwayNoWait,
   [switch]$DeployRailwayFrontend,
   [string]$RailwayFrontendProjectId = $(if (-not [string]::IsNullOrWhiteSpace($env:RAILWAY_FRONTEND_PROJECT_ID)) { $env:RAILWAY_FRONTEND_PROJECT_ID } else { $env:RAILWAY_PROJECT_ID }),
@@ -290,6 +292,12 @@ if ($DeployRailway) {
   }
   if (-not [string]::IsNullOrWhiteSpace($RailwayDemoFrontendPublicUrl)) {
     $railwayArgs += @("-DemoFrontendPublicUrl", $RailwayDemoFrontendPublicUrl)
+  }
+  if ($RailwayRootDescriptorCheckMaxAttempts -gt 0) {
+    $railwayArgs += @("-RootDescriptorCheckMaxAttempts", [string]$RailwayRootDescriptorCheckMaxAttempts)
+  }
+  if ($RailwayRootDescriptorCheckRetryBackoffSec -ge 0) {
+    $railwayArgs += @("-RootDescriptorCheckRetryBackoffSec", [string]$RailwayRootDescriptorCheckRetryBackoffSec)
   }
   if ($RailwayPublicBadgeCheckTimeoutSec -gt 0) {
     $railwayArgs += @("-PublicBadgeCheckTimeoutSec", [string]$RailwayPublicBadgeCheckTimeoutSec)

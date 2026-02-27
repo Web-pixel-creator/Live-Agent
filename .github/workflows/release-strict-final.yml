@@ -20,6 +20,14 @@ on:
         description: "Expected demo frontend public URL for gateway root descriptor uiUrl validation"
         required: false
         default: ""
+      gateway_root_descriptor_check_max_attempts:
+        description: "Max attempts for gateway root descriptor check"
+        required: false
+        default: "3"
+      gateway_root_descriptor_check_retry_backoff_sec:
+        description: "Retry backoff seconds for gateway root descriptor check"
+        required: false
+        default: "2"
       skip_gateway_deploy:
         description: "Skip gateway deploy stage in combined helper"
         required: true
@@ -127,6 +135,12 @@ jobs:
 
           if (-not [string]::IsNullOrWhiteSpace("${{ inputs.gateway_demo_frontend_public_url }}")) {
             $args += @("-GatewayDemoFrontendPublicUrl", "${{ inputs.gateway_demo_frontend_public_url }}")
+          }
+          if (-not [string]::IsNullOrWhiteSpace("${{ inputs.gateway_root_descriptor_check_max_attempts }}")) {
+            $args += @("-GatewayRootDescriptorCheckMaxAttempts", "${{ inputs.gateway_root_descriptor_check_max_attempts }}")
+          }
+          if (-not [string]::IsNullOrWhiteSpace("${{ inputs.gateway_root_descriptor_check_retry_backoff_sec }}")) {
+            $args += @("-GatewayRootDescriptorCheckRetryBackoffSec", "${{ inputs.gateway_root_descriptor_check_retry_backoff_sec }}")
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:RAILWAY_FRONTEND_SERVICE_ID)) {

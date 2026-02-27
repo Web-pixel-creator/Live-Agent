@@ -19,6 +19,8 @@ test("railway combined deploy helper is wired across package script, script cont
   assert.match(source, /\[switch\]\$GatewaySkipRootDescriptorCheck/);
   assert.match(source, /\[string\]\$GatewayPublicUrl = \$env:RAILWAY_PUBLIC_URL/);
   assert.match(source, /\[string\]\$GatewayDemoFrontendPublicUrl = \$env:DEMO_FRONTEND_PUBLIC_URL/);
+  assert.match(source, /\[int\]\$GatewayRootDescriptorCheckMaxAttempts = 3/);
+  assert.match(source, /\[int\]\$GatewayRootDescriptorCheckRetryBackoffSec = 2/);
   assert.match(source, /\[string\]\$FrontendPath = "apps\/demo-frontend"/);
   assert.match(source, /\[string\]\$FrontendWsUrl = \$env:FRONTEND_WS_URL/);
   assert.match(source, /\[string\]\$FrontendApiBaseUrl = \$env:FRONTEND_API_BASE_URL/);
@@ -28,6 +30,14 @@ test("railway combined deploy helper is wired across package script, script cont
     /if \(-not \$SkipGatewayDeploy\)\s*\{[\s\S]*"-File", "\$PSScriptRoot\/railway-deploy\.ps1"/,
   );
   assert.match(source, /if \(-not \[string\]::IsNullOrWhiteSpace\(\$GatewayDemoFrontendPublicUrl\)\)\s*\{[\s\S]*"-DemoFrontendPublicUrl", \$GatewayDemoFrontendPublicUrl/);
+  assert.match(
+    source,
+    /if \(\$GatewayRootDescriptorCheckMaxAttempts -gt 0\)\s*\{[\s\S]*"-RootDescriptorCheckMaxAttempts", \[string\]\$GatewayRootDescriptorCheckMaxAttempts/,
+  );
+  assert.match(
+    source,
+    /if \(\$GatewayRootDescriptorCheckRetryBackoffSec -ge 0\)\s*\{[\s\S]*"-RootDescriptorCheckRetryBackoffSec", \[string\]\$GatewayRootDescriptorCheckRetryBackoffSec/,
+  );
   assert.match(source, /if \(\$GatewaySkipRootDescriptorCheck\)\s*\{[\s\S]*"-SkipRootDescriptorCheck"/);
   assert.match(
     source,

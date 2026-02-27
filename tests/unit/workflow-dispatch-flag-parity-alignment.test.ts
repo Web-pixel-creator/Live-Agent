@@ -31,6 +31,16 @@ test("workflow/release/railway dispatch scripts keep shared gateway flag parity"
     assert.match(railwaySource, token);
   }
 
+  const sharedIntDeclarations = [
+    /\[int\]\$GatewayRootDescriptorCheckMaxAttempts = 3/,
+    /\[int\]\$GatewayRootDescriptorCheckRetryBackoffSec = 2/,
+  ];
+  for (const token of sharedIntDeclarations) {
+    assert.match(workflowSource, token);
+    assert.match(releaseSource, token);
+    assert.match(railwaySource, token);
+  }
+
   assert.match(
     workflowSource,
     /if \(\$GatewaySkipRootDescriptorCheck\)\s*\{\s*\$dispatchArgs \+= "-GatewaySkipRootDescriptorCheck"/,
@@ -43,4 +53,10 @@ test("workflow/release/railway dispatch scripts keep shared gateway flag parity"
   );
   assert.match(releaseSource, /gateway_demo_frontend_public_url=/);
   assert.match(railwaySource, /gateway_demo_frontend_public_url=/);
+  assert.match(workflowSource, /-GatewayRootDescriptorCheckMaxAttempts/);
+  assert.match(workflowSource, /-GatewayRootDescriptorCheckRetryBackoffSec/);
+  assert.match(releaseSource, /gateway_root_descriptor_check_max_attempts=/);
+  assert.match(releaseSource, /gateway_root_descriptor_check_retry_backoff_sec=/);
+  assert.match(railwaySource, /gateway_root_descriptor_check_max_attempts=/);
+  assert.match(railwaySource, /gateway_root_descriptor_check_retry_backoff_sec=/);
 });

@@ -5,6 +5,8 @@ param(
   [string]$Environment = $env:RAILWAY_ENVIRONMENT,
   [string]$GatewayPublicUrl = $env:RAILWAY_PUBLIC_URL,
   [string]$GatewayDemoFrontendPublicUrl = $env:DEMO_FRONTEND_PUBLIC_URL,
+  [int]$GatewayRootDescriptorCheckMaxAttempts = 3,
+  [int]$GatewayRootDescriptorCheckRetryBackoffSec = 2,
   [switch]$SkipGatewayDeploy,
   [switch]$SkipFrontendDeploy,
   [switch]$SkipReleaseVerification,
@@ -86,6 +88,12 @@ if (-not $SkipGatewayDeploy) {
   }
   if (-not [string]::IsNullOrWhiteSpace($GatewayDemoFrontendPublicUrl)) {
     $gatewayArgs += @("-DemoFrontendPublicUrl", $GatewayDemoFrontendPublicUrl)
+  }
+  if ($GatewayRootDescriptorCheckMaxAttempts -gt 0) {
+    $gatewayArgs += @("-RootDescriptorCheckMaxAttempts", [string]$GatewayRootDescriptorCheckMaxAttempts)
+  }
+  if ($GatewayRootDescriptorCheckRetryBackoffSec -ge 0) {
+    $gatewayArgs += @("-RootDescriptorCheckRetryBackoffSec", [string]$GatewayRootDescriptorCheckRetryBackoffSec)
   }
   if ($SkipReleaseVerification) {
     $gatewayArgs += "-SkipReleaseVerification"

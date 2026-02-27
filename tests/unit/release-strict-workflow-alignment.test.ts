@@ -13,6 +13,8 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /railway_environment:/);
   assert.match(source, /gateway_public_url:/);
   assert.match(source, /gateway_demo_frontend_public_url:/);
+  assert.match(source, /gateway_root_descriptor_check_max_attempts:/);
+  assert.match(source, /gateway_root_descriptor_check_retry_backoff_sec:/);
   assert.match(source, /skip_gateway_deploy:/);
   assert.match(source, /skip_frontend_deploy:/);
   assert.match(source, /gateway_skip_root_descriptor_check:/);
@@ -33,6 +35,8 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /- name:\s*Deploy To Railway \(Gateway \+ Frontend\)/);
   assert.match(source, /npm run deploy:railway:all @args/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
+  assert.match(source, /-GatewayRootDescriptorCheckMaxAttempts/);
+  assert.match(source, /-GatewayRootDescriptorCheckRetryBackoffSec/);
   assert.match(source, /-SkipReleaseVerification/);
   assert.match(source, /-SkipGatewayDeploy/);
   assert.match(source, /-SkipFrontendDeploy/);

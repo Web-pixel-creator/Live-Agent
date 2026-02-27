@@ -8,6 +8,8 @@ param(
   [string]$RailwayEnvironment = "production",
   [string]$GatewayPublicUrl = "https://live-agent-production.up.railway.app",
   [string]$GatewayDemoFrontendPublicUrl = $env:DEMO_FRONTEND_PUBLIC_URL,
+  [int]$GatewayRootDescriptorCheckMaxAttempts = 3,
+  [int]$GatewayRootDescriptorCheckRetryBackoffSec = 2,
   [switch]$SkipGatewayDeploy,
   [switch]$SkipFrontendDeploy,
   [switch]$GatewaySkipRootDescriptorCheck,
@@ -153,6 +155,12 @@ $dispatchArgs = @(
 
 if (-not [string]::IsNullOrWhiteSpace($GatewayDemoFrontendPublicUrl)) {
   $dispatchArgs += @("-f", ("gateway_demo_frontend_public_url=" + $GatewayDemoFrontendPublicUrl))
+}
+if ($GatewayRootDescriptorCheckMaxAttempts -gt 0) {
+  $dispatchArgs += @("-f", ("gateway_root_descriptor_check_max_attempts=" + [string]$GatewayRootDescriptorCheckMaxAttempts))
+}
+if ($GatewayRootDescriptorCheckRetryBackoffSec -ge 0) {
+  $dispatchArgs += @("-f", ("gateway_root_descriptor_check_retry_backoff_sec=" + [string]$GatewayRootDescriptorCheckRetryBackoffSec))
 }
 
 Write-Host "[release-strict-dispatch] Dispatching release-strict-final workflow..."

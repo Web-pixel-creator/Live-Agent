@@ -17,6 +17,8 @@ test("workflow dispatch helper routes to release and railway dispatch scripts wi
   assert.match(source, /\[ValidateSet\("release_strict", "railway_deploy_all"\)\]/);
   assert.match(source, /\[string\]\$Workflow = "railway_deploy_all"/);
   assert.match(source, /\[string\]\$GatewayDemoFrontendPublicUrl = \$env:DEMO_FRONTEND_PUBLIC_URL/);
+  assert.match(source, /\[int\]\$GatewayRootDescriptorCheckMaxAttempts = 3/);
+  assert.match(source, /\[int\]\$GatewayRootDescriptorCheckRetryBackoffSec = 2/);
   assert.match(source, /"release-strict-dispatch\.ps1"/);
   assert.match(source, /"railway-deploy-all-dispatch\.ps1"/);
   assert.match(source, /if \(\$Workflow -eq "release_strict"\)/);
@@ -29,6 +31,14 @@ test("workflow dispatch helper routes to release and railway dispatch scripts wi
   assert.match(
     source,
     /if \(-not \[string\]::IsNullOrWhiteSpace\(\$GatewayDemoFrontendPublicUrl\)\)\s*\{\s*\$dispatchArgs \+= @\("-GatewayDemoFrontendPublicUrl", \$GatewayDemoFrontendPublicUrl\)/,
+  );
+  assert.match(
+    source,
+    /if \(\$GatewayRootDescriptorCheckMaxAttempts -gt 0\)\s*\{\s*\$dispatchArgs \+= @\("-GatewayRootDescriptorCheckMaxAttempts", \[string\]\$GatewayRootDescriptorCheckMaxAttempts\)/,
+  );
+  assert.match(
+    source,
+    /if \(\$GatewayRootDescriptorCheckRetryBackoffSec -ge 0\)\s*\{\s*\$dispatchArgs \+= @\("-GatewayRootDescriptorCheckRetryBackoffSec", \[string\]\$GatewayRootDescriptorCheckRetryBackoffSec\)/,
   );
   assert.match(
     source,
