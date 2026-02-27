@@ -22,6 +22,7 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /verify_only_fallback_on_auth_failure:/);
 
   assert.match(source, /RAILWAY_TOKEN:\s*\$\{\{\s*secrets\.RAILWAY_TOKEN\s*\}\}/);
+  assert.match(source, /RAILWAY_API_TOKEN:\s*\$\{\{\s*secrets\.RAILWAY_TOKEN\s*\}\}/);
   assert.match(source, /RAILWAY_PROJECT_ID:\s*\$\{\{\s*secrets\.RAILWAY_PROJECT_ID\s*\}\}/);
   assert.match(source, /RAILWAY_SERVICE_ID:\s*\$\{\{\s*secrets\.RAILWAY_SERVICE_ID\s*\}\}/);
   assert.match(source, /FRONTEND_PUBLIC_URL:\s*\$\{\{\s*vars\.FRONTEND_PUBLIC_URL\s*\}\}/);
