@@ -214,6 +214,9 @@
 183. Revalidated public runtime endpoints after combined deploy: gateway root descriptor `/` and `/status` are healthy with `uiUrl=https://live-agent-frontend-production.up.railway.app`, and frontend `/healthz` returns `ok=true`.
 184. Revalidated strict final release gate on `main` after Railway fallback hardening: `npm run verify:release:strict` is green with `Demo KPI Gate` pass (`218` checks, websocket roundtrip `36ms`) and perf policy pass (`15` checks, `0` violations).
 185. Synced refreshed strict-run badge artifacts into public endpoint payloads (`public/demo-e2e/badge.json`, `public/demo-e2e/badge-details.json`) so live Shields endpoint reflects the latest strict baseline.
+186. Extended `T-223` WebRTC V2 spike seam with runtime rollout governance telemetry in gateway config/status: added `GATEWAY_WEBRTC_ROLLOUT_STAGE`, `GATEWAY_WEBRTC_CANARY_PERCENT`, `GATEWAY_WEBRTC_ROLLBACK_READY` and exposed `runtime.transport.webrtc.rollout.{stage,canaryPercent,rollbackReady}` while preserving WebSocket-only active transport.
+187. Updated docs/spec operability for WebRTC V2 spike controls (`docs/webrtc-v2-spike.md`, `README.md`, `.env.example`) and aligned anti-drift coverage in `tests/unit/webrtc-spike-alignment.test.ts`.
+188. Revalidated baseline after WebRTC rollout telemetry update: `npm run test:unit` green (`420` tests, `0` failures) including updated gateway config parsing coverage and spike alignment guards.
 
 ## Current Focus Queue
 

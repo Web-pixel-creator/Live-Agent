@@ -64,6 +64,7 @@ Frontend `Intent Request` also supports optional `ui_task` grounding overrides (
 - Gateway websocket binding guardrails: each message carries correlation context (`userId/sessionId/runId`), and gateway rejects bound-socket mismatch (`GATEWAY_SESSION_MISMATCH`, `GATEWAY_USER_MISMATCH`).
 - WebSocket integration contract and error taxonomy: `docs/ws-protocol.md`.
 - WebRTC V2 transport spike plan (no MVP switch): `docs/webrtc-v2-spike.md`.
+- WebRTC rollout telemetry controls (status-only, no transport cutover): `GATEWAY_WEBRTC_ROLLOUT_STAGE=disabled|spike|shadow|canary`, `GATEWAY_WEBRTC_CANARY_PERCENT=0..100`, `GATEWAY_WEBRTC_ROLLBACK_READY=true|false`.
 - Gateway -> orchestrator request resilience: configure `GATEWAY_ORCHESTRATOR_TIMEOUT_MS`, `GATEWAY_ORCHESTRATOR_MAX_RETRIES`, `GATEWAY_ORCHESTRATOR_RETRY_BACKOFF_MS`.
 - Gateway orchestrator replay-dedupe tuning: `GATEWAY_ORCHESTRATOR_DEDUPE_TTL_MS` (idempotent response replay window for duplicate websocket requests).
 - API -> orchestrator request resilience: configure `API_ORCHESTRATOR_TIMEOUT_MS`, `API_ORCHESTRATOR_MAX_RETRIES`, `API_ORCHESTRATOR_RETRY_BACKOFF_MS`.

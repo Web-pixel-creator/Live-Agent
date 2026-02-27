@@ -47,10 +47,15 @@ Shared contracts to preserve:
    - `runtime.transport.activeMode`
    - `runtime.transport.fallbackActive`
    - `runtime.transport.webrtc.{enabled,ready,reason}`
-3. Current MVP behavior:
+   - `runtime.transport.webrtc.rollout.{stage,canaryPercent,rollbackReady}`
+3. Rollout governance env knobs (status telemetry only):
+   - `GATEWAY_WEBRTC_ROLLOUT_STAGE=disabled|spike|shadow|canary`
+   - `GATEWAY_WEBRTC_CANARY_PERCENT=0..100`
+   - `GATEWAY_WEBRTC_ROLLBACK_READY=true|false`
+4. Current MVP behavior:
    - `requestedMode=websocket` -> `activeMode=websocket`, `fallbackActive=false`
-   - `requestedMode=webrtc` -> `activeMode=websocket`, `fallbackActive=true`, reason=`webrtc_experimental_path_not_implemented`
-4. `demo:e2e` + `demo:e2e:policy` validate the transport baseline visibility and fallback semantics.
+   - `requestedMode=webrtc` -> `activeMode=websocket`, `fallbackActive=true`, reason=`webrtc_experimental_path_not_implemented` (or `webrtc_rollout_stage_disabled` when rollout stage is disabled)
+5. `demo:e2e` + `demo:e2e:policy` validate the transport baseline visibility and fallback semantics.
 
 ## Migration Plan (V2)
 

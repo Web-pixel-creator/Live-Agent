@@ -116,6 +116,11 @@ type GatewayTransportRuntimeState = {
     enabled: boolean;
     ready: boolean;
     reason: string | null;
+    rollout: {
+      stage: GatewayConfig["gatewayWebrtcRolloutStage"];
+      canaryPercent: number;
+      rollbackReady: boolean;
+    };
   };
 };
 
@@ -510,6 +515,15 @@ function attachTaskToResponse(response: OrchestratorResponse, task: TaskRecord):
 }
 
 function resolveGatewayTransportRuntimeState(currentConfig: GatewayConfig): GatewayTransportRuntimeState {
+  const requestedWebrtc = currentConfig.gatewayTransportMode === "webrtc";
+  const rolloutStage = requestedWebrtc ? currentConfig.gatewayWebrtcRolloutStage : "disabled";
+  const canaryPercent = requestedWebrtc ? currentConfig.gatewayWebrtcCanaryPercent : 0;
+  const rolloutState = {
+    stage: rolloutStage,
+    canaryPercent,
+    rollbackReady: currentConfig.gatewayWebrtcRollbackReady,
+  };
+
   if (currentConfig.gatewayTransportMode === "webrtc") {
     return {
       requestedMode: "webrtc",
@@ -518,7 +532,11 @@ function resolveGatewayTransportRuntimeState(currentConfig: GatewayConfig): Gate
       webrtc: {
         enabled: true,
         ready: false,
-        reason: "webrtc_experimental_path_not_implemented",
+        reason:
+          rolloutStage === "disabled"
+            ? "webrtc_rollout_stage_disabled"
+            : "webrtc_experimental_path_not_implemented",
+        rollout: rolloutState,
       },
     };
   }
@@ -531,6 +549,7 @@ function resolveGatewayTransportRuntimeState(currentConfig: GatewayConfig): Gate
       enabled: false,
       ready: false,
       reason: null,
+      rollout: rolloutState,
     },
   };
 }
@@ -1995,11 +2014,11 @@ server.listen(config.port, () => {
   console.log(`[realtime-gateway] websocket endpoint ws://localhost:${config.port}/realtime`);
   if (transportRuntimeState.fallbackActive) {
     console.warn(
-      `[realtime-gateway] transport fallback active: requested=${transportRuntimeState.requestedMode}, active=${transportRuntimeState.activeMode}, reason=${transportRuntimeState.webrtc.reason}`,
+      `[realtime-gateway] transport fallback active: requested=${transportRuntimeState.requestedMode}, active=${transportRuntimeState.activeMode}, reason=${transportRuntimeState.webrtc.reason}, stage=${transportRuntimeState.webrtc.rollout.stage}, canary=${transportRuntimeState.webrtc.rollout.canaryPercent}%`,
     );
   } else {
     console.log(
-      `[realtime-gateway] transport mode: requested=${transportRuntimeState.requestedMode}, active=${transportRuntimeState.activeMode}`,
+      `[realtime-gateway] transport mode: requested=${transportRuntimeState.requestedMode}, active=${transportRuntimeState.activeMode}, stage=${transportRuntimeState.webrtc.rollout.stage}, canary=${transportRuntimeState.webrtc.rollout.canaryPercent}%`,
     );
   }
 });

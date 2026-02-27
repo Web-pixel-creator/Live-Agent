@@ -1,5 +1,6 @@
 export type LiveApiProtocol = "gemini" | "passthrough";
 export type GatewayTransportMode = "websocket" | "webrtc";
+export type GatewayWebrtcRolloutStage = "disabled" | "spike" | "shadow" | "canary";
 
 export type LiveAuthProfile = {
   name: string;
@@ -10,6 +11,9 @@ export type LiveAuthProfile = {
 export type GatewayConfig = {
   port: number;
   gatewayTransportMode: GatewayTransportMode;
+  gatewayWebrtcRolloutStage: GatewayWebrtcRolloutStage;
+  gatewayWebrtcCanaryPercent: number;
+  gatewayWebrtcRollbackReady: boolean;
   orchestratorUrl: string;
   orchestratorTimeoutMs: number;
   orchestratorMaxRetries: number;
@@ -63,6 +67,23 @@ function parseGatewayTransportMode(value: string | undefined): GatewayTransportM
   return "websocket";
 }
 
+function parseGatewayWebrtcRolloutStage(value: string | undefined): GatewayWebrtcRolloutStage {
+  if (!value) {
+    return "spike";
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "disabled") {
+    return "disabled";
+  }
+  if (normalized === "shadow") {
+    return "shadow";
+  }
+  if (normalized === "canary") {
+    return "canary";
+  }
+  return "spike";
+}
+
 function parsePositiveInt(value: string | undefined, fallback: number): number {
   if (!value) {
     return fallback;
@@ -70,6 +91,23 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return fallback;
+  }
+  return Math.floor(parsed);
+}
+
+function parsePercentInt(value: string | undefined, fallback: number): number {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  if (parsed <= 0) {
+    return 0;
+  }
+  if (parsed >= 100) {
+    return 100;
   }
   return Math.floor(parsed);
 }
@@ -224,6 +262,9 @@ export function loadGatewayConfig(): GatewayConfig {
   return {
     port: Number(process.env.GATEWAY_PORT ?? 8080),
     gatewayTransportMode: parseGatewayTransportMode(process.env.GATEWAY_TRANSPORT_MODE),
+    gatewayWebrtcRolloutStage: parseGatewayWebrtcRolloutStage(process.env.GATEWAY_WEBRTC_ROLLOUT_STAGE),
+    gatewayWebrtcCanaryPercent: parsePercentInt(process.env.GATEWAY_WEBRTC_CANARY_PERCENT, 0),
+    gatewayWebrtcRollbackReady: parseBoolean(process.env.GATEWAY_WEBRTC_ROLLBACK_READY, true),
     orchestratorUrl: process.env.ORCHESTRATOR_URL ?? "http://localhost:8082/orchestrate",
     orchestratorTimeoutMs: parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_TIMEOUT_MS, 15000),
     orchestratorMaxRetries: parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_MAX_RETRIES, 1),
