@@ -14,6 +14,8 @@ $testFiles = @(
   "tests/unit/railway-deploy-frontend-alignment.test.ts",
   "tests/unit/railway-deploy-all-alignment.test.ts",
   "tests/unit/railway-deploy-all-workflow-alignment.test.ts",
+  "tests/unit/workflow-dispatch-alignment.test.ts",
+  "tests/unit/workflow-dispatch-defaults-alignment.test.ts",
   "tests/unit/railway-deploy-public-badge-flow-smoke.test.ts",
   "tests/unit/railway-runtime-start-command-alignment.test.ts",
   "tests/unit/repo-publish-release-gate-alignment.test.ts",
