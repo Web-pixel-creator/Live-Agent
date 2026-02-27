@@ -19,6 +19,8 @@ test("railway combined deploy helper is wired across package script, script cont
   assert.match(source, /\[switch\]\$GatewaySkipRootDescriptorCheck/);
   assert.match(source, /\[string\]\$GatewayPublicUrl = \$env:RAILWAY_PUBLIC_URL/);
   assert.match(source, /\[string\]\$GatewayDemoFrontendPublicUrl = \$env:DEMO_FRONTEND_PUBLIC_URL/);
+  assert.match(source, /\$resolvedGatewayDemoFrontendPublicUrl = \$GatewayDemoFrontendPublicUrl/);
+  assert.match(source, /if \(\[string\]::IsNullOrWhiteSpace\(\$resolvedGatewayDemoFrontendPublicUrl\) -and -not \[string\]::IsNullOrWhiteSpace\(\$env:FRONTEND_PUBLIC_URL\)\)/);
   assert.match(source, /\[int\]\$GatewayRootDescriptorCheckMaxAttempts = 3/);
   assert.match(source, /\[int\]\$GatewayRootDescriptorCheckRetryBackoffSec = 2/);
   assert.match(source, /if \(\$GatewayRootDescriptorCheckMaxAttempts -lt 1\)\s*\{[\s\S]*GatewayRootDescriptorCheckMaxAttempts must be >= 1\./);
@@ -31,7 +33,7 @@ test("railway combined deploy helper is wired across package script, script cont
     source,
     /if \(-not \$SkipGatewayDeploy\)\s*\{[\s\S]*"-File", "\$PSScriptRoot\/railway-deploy\.ps1"/,
   );
-  assert.match(source, /if \(-not \[string\]::IsNullOrWhiteSpace\(\$GatewayDemoFrontendPublicUrl\)\)\s*\{[\s\S]*"-DemoFrontendPublicUrl", \$GatewayDemoFrontendPublicUrl/);
+  assert.match(source, /if \(-not \[string\]::IsNullOrWhiteSpace\(\$resolvedGatewayDemoFrontendPublicUrl\)\)\s*\{[\s\S]*"-DemoFrontendPublicUrl", \$resolvedGatewayDemoFrontendPublicUrl/);
   assert.match(
     source,
     /if \(\$GatewayRootDescriptorCheckMaxAttempts -gt 0\)\s*\{[\s\S]*"-RootDescriptorCheckMaxAttempts", \[string\]\$GatewayRootDescriptorCheckMaxAttempts/,

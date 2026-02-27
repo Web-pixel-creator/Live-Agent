@@ -74,6 +74,12 @@ if ($GatewayRootDescriptorCheckRetryBackoffSec -lt 0) {
   Fail "GatewayRootDescriptorCheckRetryBackoffSec must be >= 0."
 }
 
+$resolvedGatewayDemoFrontendPublicUrl = $GatewayDemoFrontendPublicUrl
+if ([string]::IsNullOrWhiteSpace($resolvedGatewayDemoFrontendPublicUrl) -and -not [string]::IsNullOrWhiteSpace($env:FRONTEND_PUBLIC_URL)) {
+  $resolvedGatewayDemoFrontendPublicUrl = $env:FRONTEND_PUBLIC_URL.Trim().TrimEnd("/")
+  Write-Host ("[railway-deploy-all] Gateway demo frontend URL fallback from FRONTEND_PUBLIC_URL: " + $resolvedGatewayDemoFrontendPublicUrl)
+}
+
 if (-not $SkipGatewayDeploy) {
   Write-Host "[railway-deploy-all] Deploying gateway service..."
   $gatewayArgs = @(
@@ -94,8 +100,8 @@ if (-not $SkipGatewayDeploy) {
   if (-not [string]::IsNullOrWhiteSpace($GatewayPublicUrl)) {
     $gatewayArgs += @("-RailwayPublicUrl", $GatewayPublicUrl)
   }
-  if (-not [string]::IsNullOrWhiteSpace($GatewayDemoFrontendPublicUrl)) {
-    $gatewayArgs += @("-DemoFrontendPublicUrl", $GatewayDemoFrontendPublicUrl)
+  if (-not [string]::IsNullOrWhiteSpace($resolvedGatewayDemoFrontendPublicUrl)) {
+    $gatewayArgs += @("-DemoFrontendPublicUrl", $resolvedGatewayDemoFrontendPublicUrl)
   }
 if ($GatewayRootDescriptorCheckMaxAttempts -gt 0) {
   $gatewayArgs += @("-RootDescriptorCheckMaxAttempts", [string]$GatewayRootDescriptorCheckMaxAttempts)

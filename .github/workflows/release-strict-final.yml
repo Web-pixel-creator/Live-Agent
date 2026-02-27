@@ -149,8 +149,12 @@ jobs:
             "-SkipReleaseVerification"
           )
 
-          if (-not [string]::IsNullOrWhiteSpace("${{ inputs.gateway_demo_frontend_public_url }}")) {
-            $args += @("-GatewayDemoFrontendPublicUrl", "${{ inputs.gateway_demo_frontend_public_url }}")
+          $gatewayDemoFrontendPublicUrl = "${{ inputs.gateway_demo_frontend_public_url }}".Trim()
+          if ([string]::IsNullOrWhiteSpace($gatewayDemoFrontendPublicUrl) -and -not [string]::IsNullOrWhiteSpace($env:FRONTEND_PUBLIC_URL)) {
+            $gatewayDemoFrontendPublicUrl = $env:FRONTEND_PUBLIC_URL.Trim().TrimEnd("/")
+          }
+          if (-not [string]::IsNullOrWhiteSpace($gatewayDemoFrontendPublicUrl)) {
+            $args += @("-GatewayDemoFrontendPublicUrl", $gatewayDemoFrontendPublicUrl)
           }
           if (-not [string]::IsNullOrWhiteSpace("${{ inputs.gateway_root_descriptor_check_max_attempts }}")) {
             $args += @("-GatewayRootDescriptorCheckMaxAttempts", "${{ inputs.gateway_root_descriptor_check_max_attempts }}")
