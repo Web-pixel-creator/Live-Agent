@@ -18,6 +18,7 @@ test("railway combined deploy helper is wired across package script, script cont
   assert.match(source, /\[switch\]\$SkipFrontendDeploy/);
   assert.match(source, /\[switch\]\$GatewaySkipRootDescriptorCheck/);
   assert.match(source, /\[string\]\$GatewayPublicUrl = \$env:RAILWAY_PUBLIC_URL/);
+  assert.match(source, /\[string\]\$GatewayDemoFrontendPublicUrl = \$env:DEMO_FRONTEND_PUBLIC_URL/);
   assert.match(source, /\[string\]\$FrontendPath = "apps\/demo-frontend"/);
   assert.match(source, /\[string\]\$FrontendWsUrl = \$env:FRONTEND_WS_URL/);
   assert.match(source, /\[string\]\$FrontendApiBaseUrl = \$env:FRONTEND_API_BASE_URL/);
@@ -26,6 +27,7 @@ test("railway combined deploy helper is wired across package script, script cont
     source,
     /if \(-not \$SkipGatewayDeploy\)\s*\{[\s\S]*"-File", "\$PSScriptRoot\/railway-deploy\.ps1"/,
   );
+  assert.match(source, /if \(-not \[string\]::IsNullOrWhiteSpace\(\$GatewayDemoFrontendPublicUrl\)\)\s*\{[\s\S]*"-DemoFrontendPublicUrl", \$GatewayDemoFrontendPublicUrl/);
   assert.match(source, /if \(\$GatewaySkipRootDescriptorCheck\)\s*\{[\s\S]*"-SkipRootDescriptorCheck"/);
   assert.match(
     source,

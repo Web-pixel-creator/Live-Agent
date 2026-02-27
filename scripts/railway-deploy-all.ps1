@@ -4,6 +4,7 @@ param(
   [string]$GatewayServiceId = $env:RAILWAY_SERVICE_ID,
   [string]$Environment = $env:RAILWAY_ENVIRONMENT,
   [string]$GatewayPublicUrl = $env:RAILWAY_PUBLIC_URL,
+  [string]$GatewayDemoFrontendPublicUrl = $env:DEMO_FRONTEND_PUBLIC_URL,
   [switch]$SkipGatewayDeploy,
   [switch]$SkipFrontendDeploy,
   [switch]$SkipReleaseVerification,
@@ -82,6 +83,9 @@ if (-not $SkipGatewayDeploy) {
   }
   if (-not [string]::IsNullOrWhiteSpace($GatewayPublicUrl)) {
     $gatewayArgs += @("-RailwayPublicUrl", $GatewayPublicUrl)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($GatewayDemoFrontendPublicUrl)) {
+    $gatewayArgs += @("-DemoFrontendPublicUrl", $GatewayDemoFrontendPublicUrl)
   }
   if ($SkipReleaseVerification) {
     $gatewayArgs += "-SkipReleaseVerification"

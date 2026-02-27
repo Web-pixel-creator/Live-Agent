@@ -20,7 +20,9 @@ test("railway deploy success path runs badge check only when skip flag is disabl
   const scriptPath = resolve(process.cwd(), "scripts", "railway-deploy.ps1");
   const source = readFileSync(scriptPath, "utf8");
 
+  assert.match(source, /\[string\]\$DemoFrontendPublicUrl = \$env:DEMO_FRONTEND_PUBLIC_URL/);
   assert.match(source, /function Invoke-GatewayRootDescriptorCheck\(/);
+  assert.match(source, /\[string\]\$ExpectedUiUrl,/);
   assert.match(source, /\$message = \[string\]\$response\.message/);
   assert.match(source, /if \(\$message -ne "realtime-gateway is online"\)/);
   assert.match(source, /\$expectedRoutes = \[ordered\]@\{/);
@@ -33,9 +35,15 @@ test("railway deploy success path runs badge check only when skip flag is disabl
   assert.match(source, /\$reportedPublicUrl = \[string\]\$response\.publicUrl/);
   assert.match(source, /if \(\[string\]::IsNullOrWhiteSpace\(\$reportedPublicUrl\)\)/);
   assert.match(source, /Gateway root descriptor check failed: response\.publicUrl is missing\./);
+  assert.match(source, /if \(-not \[string\]::IsNullOrWhiteSpace\(\$ExpectedUiUrl\)\)/);
+  assert.match(source, /\$reportedUiUrl = \[string\]\$response\.uiUrl/);
   assert.match(
     source,
-    /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*if \(-not \$SkipRootDescriptorCheck\)\s*\{[\s\S]*Invoke-GatewayRootDescriptorCheck -Endpoint \$effectivePublicUrl -TimeoutSec \$RootDescriptorCheckTimeoutSec/,
+    /Gateway root descriptor check failed: response\.uiUrl is missing while expected UI URL was provided\./,
+  );
+  assert.match(
+    source,
+    /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*if \(-not \$SkipRootDescriptorCheck\)\s*\{[\s\S]*Invoke-GatewayRootDescriptorCheck -Endpoint \$effectivePublicUrl -ExpectedUiUrl \$DemoFrontendPublicUrl -TimeoutSec \$RootDescriptorCheckTimeoutSec/,
   );
   assert.match(
     source,

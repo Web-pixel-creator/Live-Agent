@@ -13,6 +13,7 @@ param(
   [string]$PublicBadgeEndpoint = $env:PUBLIC_BADGE_ENDPOINT,
   [string]$PublicBadgeDetailsEndpoint = $env:PUBLIC_BADGE_DETAILS_ENDPOINT,
   [string]$RailwayPublicUrl = $env:RAILWAY_PUBLIC_URL,
+  [string]$DemoFrontendPublicUrl = $env:DEMO_FRONTEND_PUBLIC_URL,
   [int]$PublicBadgeCheckTimeoutSec = 20,
   [int]$RootDescriptorCheckTimeoutSec = 20,
   [switch]$NoWait,
@@ -182,6 +183,7 @@ function Invoke-PublicBadgeCheck(
 
 function Invoke-GatewayRootDescriptorCheck(
   [string]$Endpoint,
+  [string]$ExpectedUiUrl,
   [int]$TimeoutSec
 ) {
   if ([string]::IsNullOrWhiteSpace($Endpoint)) {
@@ -262,6 +264,24 @@ function Invoke-GatewayRootDescriptorCheck(
       $normalizedReportedPublicUrl +
       "'."
     )
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($ExpectedUiUrl)) {
+    $reportedUiUrl = [string]$response.uiUrl
+    if ([string]::IsNullOrWhiteSpace($reportedUiUrl)) {
+      Fail "Gateway root descriptor check failed: response.uiUrl is missing while expected UI URL was provided."
+    }
+    $normalizedExpectedUiUrl = [string]$ExpectedUiUrl.TrimEnd("/")
+    $normalizedReportedUiUrl = $reportedUiUrl.TrimEnd("/")
+    if ($normalizedReportedUiUrl -ne $normalizedExpectedUiUrl) {
+      Fail (
+        "Gateway root descriptor check failed: response.uiUrl mismatch (expected '" +
+        $normalizedExpectedUiUrl +
+        "', actual '" +
+        $normalizedReportedUiUrl +
+        "')."
+      )
+    }
   }
 }
 
@@ -531,7 +551,7 @@ for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
       }
 
       if (-not $SkipRootDescriptorCheck) {
-        Invoke-GatewayRootDescriptorCheck -Endpoint $effectivePublicUrl -TimeoutSec $RootDescriptorCheckTimeoutSec
+        Invoke-GatewayRootDescriptorCheck -Endpoint $effectivePublicUrl -ExpectedUiUrl $DemoFrontendPublicUrl -TimeoutSec $RootDescriptorCheckTimeoutSec
       }
       if (-not $SkipPublicBadgeCheck) {
         Invoke-PublicBadgeCheck -Endpoint $PublicBadgeEndpoint -DetailsEndpoint $PublicBadgeDetailsEndpoint -PublicUrl $effectivePublicUrl -TimeoutSec $PublicBadgeCheckTimeoutSec

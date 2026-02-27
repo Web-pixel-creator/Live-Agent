@@ -26,6 +26,7 @@ param(
   [string]$RailwayPublicBadgeEndpoint = $env:PUBLIC_BADGE_ENDPOINT,
   [string]$RailwayPublicBadgeDetailsEndpoint = $env:PUBLIC_BADGE_DETAILS_ENDPOINT,
   [string]$RailwayPublicUrl = $env:RAILWAY_PUBLIC_URL,
+  [string]$RailwayDemoFrontendPublicUrl = $env:DEMO_FRONTEND_PUBLIC_URL,
   [int]$RailwayPublicBadgeCheckTimeoutSec = 20,
   [switch]$RailwayNoWait,
   [switch]$DeployRailwayFrontend,
@@ -286,6 +287,9 @@ if ($DeployRailway) {
   }
   if (-not [string]::IsNullOrWhiteSpace($RailwayPublicUrl)) {
     $railwayArgs += @("-RailwayPublicUrl", $RailwayPublicUrl)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($RailwayDemoFrontendPublicUrl)) {
+    $railwayArgs += @("-DemoFrontendPublicUrl", $RailwayDemoFrontendPublicUrl)
   }
   if ($RailwayPublicBadgeCheckTimeoutSec -gt 0) {
     $railwayArgs += @("-PublicBadgeCheckTimeoutSec", [string]$RailwayPublicBadgeCheckTimeoutSec)

@@ -500,6 +500,7 @@ Useful flags:
 - `-RailwaySkipPublicBadgeCheck` - skip Railway post-deploy public badge endpoint validation.
 - `-RailwayPublicBadgeEndpoint` / `-RailwayPublicBadgeDetailsEndpoint` - override Railway public badge endpoints passed to deploy helper.
 - `-RailwayPublicUrl` - Railway public base URL override passed to deploy helper (`/demo-e2e/badge*.json`).
+- `-RailwayDemoFrontendPublicUrl` - expected frontend public URL passed to gateway root descriptor validation (`uiUrl`).
 - `-RailwayPublicBadgeCheckTimeoutSec` - timeout (seconds) for Railway post-deploy public badge endpoint checks.
 - `-RailwayNoWait` - return after deploy trigger without waiting for terminal Railway status.
 - `-DeployRailwayFrontend` - trigger Railway frontend deploy after publish (calls `scripts/railway-deploy-frontend.ps1`).
@@ -562,13 +563,14 @@ Common flags:
 - `-- -ProjectId <id> -- -ServiceId <id>` - explicit Railway link target override for current run (must be provided as a pair).
 - `-- -SkipRootDescriptorCheck` - skip post-deploy gateway root descriptor check.
 - `-- -SkipPublicBadgeCheck` - skip post-deploy public badge endpoint check.
+- `-- -DemoFrontendPublicUrl <url>` - expected demo frontend URL for root descriptor validation (`uiUrl` contract).
 - `-- -SkipFailureLogs` - do not auto-fetch Railway build/deployment logs when deploy fails or times out.
 - `-- -SkipLink` - deploy using already linked Railway service.
 - `-- -NoWait` - return immediately after deploy trigger.
 - `-- -FailureLogLines <n>` - number of lines to fetch for failure diagnostics (`120` by default).
 - `-- -PublicBadgeEndpoint <url>` / `-- -PublicBadgeDetailsEndpoint <url>` - override public badge endpoints.
 - `-- -RailwayPublicUrl <url>` - set base URL used by badge checker (`/demo-e2e/badge*.json`).
-- Combined helper (`deploy:railway:all`) forwards gateway flags (`-SkipReleaseVerification`, `-StrictReleaseVerification`, `-GatewaySkipLink`, `-GatewaySkipRootDescriptorCheck`, `-GatewaySkipPublicBadgeCheck`, `-GatewayNoWait`) and frontend flags (`-FrontendNoWait`, `-FrontendSkipHealthCheck`), and derives frontend runtime URLs from `-GatewayPublicUrl` when explicit frontend URLs are not set.
+- Combined helper (`deploy:railway:all`) forwards gateway flags (`-SkipReleaseVerification`, `-StrictReleaseVerification`, `-GatewaySkipLink`, `-GatewaySkipRootDescriptorCheck`, `-GatewaySkipPublicBadgeCheck`, `-GatewayNoWait`, `-GatewayDemoFrontendPublicUrl`) and frontend flags (`-FrontendNoWait`, `-FrontendSkipHealthCheck`), and derives frontend runtime URLs from `-GatewayPublicUrl` when explicit frontend URLs are not set.
 
 ## Railway Frontend Service
 

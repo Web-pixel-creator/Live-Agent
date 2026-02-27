@@ -46,6 +46,10 @@ test("repo publish forwards railway deploy arguments with stable contract", () =
   );
   assert.match(
     source,
+    /if \(-not \[string\]::IsNullOrWhiteSpace\(\$RailwayDemoFrontendPublicUrl\)\)\s*\{\s*\$railwayArgs \+= @\("-DemoFrontendPublicUrl", \$RailwayDemoFrontendPublicUrl\)/,
+  );
+  assert.match(
+    source,
     /if \(\$RailwayPublicBadgeCheckTimeoutSec -gt 0\)\s*\{\s*\$railwayArgs \+= @\("-PublicBadgeCheckTimeoutSec", \[string\]\$RailwayPublicBadgeCheckTimeoutSec\)/,
   );
   assert.match(source, /if \(\$RailwayNoWait\)\s*\{\s*\$railwayArgs \+= "-NoWait"/);
