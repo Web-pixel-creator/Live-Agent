@@ -209,6 +209,9 @@
 178. Added Railway CLI token-compat env wiring in CI (`RAILWAY_API_TOKEN` mirrored from `RAILWAY_TOKEN`) for workspace/account-token compatibility in GitHub-hosted runners; workflow alignment tests now lock both token env mappings.
 179. Added gateway `uiUrl` fallback hardening in combined deploy helper: `scripts/railway-deploy-all.ps1` now resolves `GatewayDemoFrontendPublicUrl` from `FRONTEND_PUBLIC_URL` when explicit `-GatewayDemoFrontendPublicUrl` is omitted, and forwards the resolved URL to gateway deploy contract checks.
 180. Extended Railway CI deploy workflows to mirror the same fallback rule: both `.github/workflows/railway-deploy-all.yml` and `.github/workflows/release-strict-final.yml` now derive `-GatewayDemoFrontendPublicUrl` from `FRONTEND_PUBLIC_URL` when dispatch input is empty; README and unit alignment tests were updated to lock this behavior.
+181. Revalidated post-fallback baseline with full unit suite: `npm run test:unit` is green (`419` tests), including updated Railway deploy/workflow alignment checks and artifact/deploy smoke contracts.
+182. Executed real Railway combined deploy (`scripts/railway-deploy-all.ps1`) for production project `bbca2889-fd0d-48fe-bded-79802230e5a6`: gateway deploy `481f302e-73ac-4a99-a96b-75fd29751ead` and frontend deploy `d899f2b0-e945-46db-9d7f-e63b835b02d7` completed successfully with post-deploy checks enabled.
+183. Revalidated public runtime endpoints after combined deploy: gateway root descriptor `/` and `/status` are healthy with `uiUrl=https://live-agent-frontend-production.up.railway.app`, and frontend `/healthz` returns `ok=true`.
 
 ## Current Focus Queue
 
