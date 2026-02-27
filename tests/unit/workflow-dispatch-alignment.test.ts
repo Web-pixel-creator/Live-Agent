@@ -16,6 +16,7 @@ test("workflow dispatch helper routes to release and railway dispatch scripts wi
 
   assert.match(source, /\[ValidateSet\("release_strict", "railway_deploy_all"\)\]/);
   assert.match(source, /\[string\]\$Workflow = "railway_deploy_all"/);
+  assert.match(source, /\[string\]\$GatewayDemoFrontendPublicUrl = \$env:DEMO_FRONTEND_PUBLIC_URL/);
   assert.match(source, /"release-strict-dispatch\.ps1"/);
   assert.match(source, /"railway-deploy-all-dispatch\.ps1"/);
   assert.match(source, /if \(\$Workflow -eq "release_strict"\)/);
@@ -25,6 +26,10 @@ test("workflow dispatch helper routes to release and railway dispatch scripts wi
   assert.match(source, /if \(\$SkipReleaseVerification\)\s*\{\s*\$dispatchArgs \+= "-SkipReleaseVerification"/);
   assert.match(source, /if \(\$SkipGatewayDeploy\)\s*\{\s*\$dispatchArgs \+= "-SkipGatewayDeploy"/);
   assert.match(source, /if \(\$SkipFrontendDeploy\)\s*\{\s*\$dispatchArgs \+= "-SkipFrontendDeploy"/);
+  assert.match(
+    source,
+    /if \(-not \[string\]::IsNullOrWhiteSpace\(\$GatewayDemoFrontendPublicUrl\)\)\s*\{\s*\$dispatchArgs \+= @\("-GatewayDemoFrontendPublicUrl", \$GatewayDemoFrontendPublicUrl\)/,
+  );
   assert.match(
     source,
     /if \(\$GatewaySkipRootDescriptorCheck\)\s*\{\s*\$dispatchArgs \+= "-GatewaySkipRootDescriptorCheck"/,

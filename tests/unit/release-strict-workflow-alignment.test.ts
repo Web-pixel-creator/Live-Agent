@@ -12,6 +12,7 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /deploy_to_railway:/);
   assert.match(source, /railway_environment:/);
   assert.match(source, /gateway_public_url:/);
+  assert.match(source, /gateway_demo_frontend_public_url:/);
   assert.match(source, /skip_gateway_deploy:/);
   assert.match(source, /skip_frontend_deploy:/);
   assert.match(source, /gateway_skip_root_descriptor_check:/);
@@ -31,6 +32,7 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /Missing required repository secret: RAILWAY_TOKEN/);
   assert.match(source, /- name:\s*Deploy To Railway \(Gateway \+ Frontend\)/);
   assert.match(source, /npm run deploy:railway:all @args/);
+  assert.match(source, /-GatewayDemoFrontendPublicUrl/);
   assert.match(source, /-SkipReleaseVerification/);
   assert.match(source, /-SkipGatewayDeploy/);
   assert.match(source, /-SkipFrontendDeploy/);

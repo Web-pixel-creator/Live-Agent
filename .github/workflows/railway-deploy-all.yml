@@ -11,6 +11,10 @@ on:
         description: "Gateway public base URL for badge check and frontend runtime derivation"
         required: true
         default: "https://live-agent-production.up.railway.app"
+      gateway_demo_frontend_public_url:
+        description: "Expected demo frontend public URL for gateway root descriptor uiUrl validation"
+        required: false
+        default: ""
       skip_release_verification:
         description: "Skip local release gate before gateway deploy"
         required: true
@@ -99,6 +103,10 @@ jobs:
             "-Environment", "${{ inputs.environment }}",
             "-GatewayPublicUrl", "${{ inputs.gateway_public_url }}"
           )
+
+          if (-not [string]::IsNullOrWhiteSpace("${{ inputs.gateway_demo_frontend_public_url }}")) {
+            $args += @("-GatewayDemoFrontendPublicUrl", "${{ inputs.gateway_demo_frontend_public_url }}")
+          }
 
           if (-not [string]::IsNullOrWhiteSpace($env:RAILWAY_FRONTEND_SERVICE_ID)) {
             $args += @("-FrontendService", $env:RAILWAY_FRONTEND_SERVICE_ID)

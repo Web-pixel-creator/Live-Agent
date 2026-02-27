@@ -17,6 +17,7 @@ test("release strict dispatch helper is wired across package script, script cont
   assert.match(source, /\[switch\]\$DeployToRailway/);
   assert.match(source, /\[string\]\$RailwayEnvironment = "production"/);
   assert.match(source, /\[string\]\$GatewayPublicUrl = "https:\/\/live-agent-production\.up\.railway\.app"/);
+  assert.match(source, /\[string\]\$GatewayDemoFrontendPublicUrl = \$env:DEMO_FRONTEND_PUBLIC_URL/);
   assert.match(source, /\[switch\]\$SkipGatewayDeploy/);
   assert.match(source, /\[switch\]\$SkipFrontendDeploy/);
   assert.match(source, /\[switch\]\$GatewaySkipRootDescriptorCheck/);
@@ -31,6 +32,7 @@ test("release strict dispatch helper is wired across package script, script cont
   assert.match(source, /deploy_to_railway=/);
   assert.match(source, /railway_environment=/);
   assert.match(source, /gateway_public_url=/);
+  assert.match(source, /gateway_demo_frontend_public_url=/);
   assert.match(source, /skip_gateway_deploy=/);
   assert.match(source, /skip_frontend_deploy=/);
   assert.match(source, /gateway_skip_root_descriptor_check=/);

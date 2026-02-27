@@ -7,6 +7,7 @@ param(
   [switch]$DeployToRailway,
   [string]$RailwayEnvironment = "production",
   [string]$GatewayPublicUrl = "https://live-agent-production.up.railway.app",
+  [string]$GatewayDemoFrontendPublicUrl = $env:DEMO_FRONTEND_PUBLIC_URL,
   [switch]$SkipGatewayDeploy,
   [switch]$SkipFrontendDeploy,
   [switch]$GatewaySkipRootDescriptorCheck,
@@ -149,6 +150,10 @@ $dispatchArgs = @(
   "-f", ("frontend_no_wait=" + $frontendNoWaitValue),
   "-f", ("frontend_skip_health_check=" + $frontendSkipHealthCheckValue)
 )
+
+if (-not [string]::IsNullOrWhiteSpace($GatewayDemoFrontendPublicUrl)) {
+  $dispatchArgs += @("-f", ("gateway_demo_frontend_public_url=" + $GatewayDemoFrontendPublicUrl))
+}
 
 Write-Host "[release-strict-dispatch] Dispatching release-strict-final workflow..."
 & gh @dispatchArgs

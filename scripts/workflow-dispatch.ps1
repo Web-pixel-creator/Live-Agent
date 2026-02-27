@@ -8,6 +8,7 @@ param(
   [string]$Token = $(if (-not [string]::IsNullOrWhiteSpace($env:GH_TOKEN)) { $env:GH_TOKEN } elseif (-not [string]::IsNullOrWhiteSpace($env:GITHUB_TOKEN)) { $env:GITHUB_TOKEN } else { "" }),
   [string]$RailwayEnvironment = "production",
   [string]$GatewayPublicUrl = "https://live-agent-production.up.railway.app",
+  [string]$GatewayDemoFrontendPublicUrl = $env:DEMO_FRONTEND_PUBLIC_URL,
   [switch]$DeployToRailway,
   [switch]$SkipReleaseVerification,
   [switch]$SkipGatewayDeploy,
@@ -72,6 +73,9 @@ if (-not [string]::IsNullOrWhiteSpace($Token)) {
 }
 if (-not [string]::IsNullOrWhiteSpace($GatewayPublicUrl)) {
   $dispatchArgs += @("-GatewayPublicUrl", $GatewayPublicUrl)
+}
+if (-not [string]::IsNullOrWhiteSpace($GatewayDemoFrontendPublicUrl)) {
+  $dispatchArgs += @("-GatewayDemoFrontendPublicUrl", $GatewayDemoFrontendPublicUrl)
 }
 if ($NoWaitForRun) {
   $dispatchArgs += "-NoWaitForRun"

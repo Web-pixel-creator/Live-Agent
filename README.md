@@ -670,6 +670,8 @@ $env:GITHUB_REPO="Live-Agent"
 npm run workflow:dispatch -- -Workflow release_strict -DeployToRailway -RailwayEnvironment production -GatewayPublicUrl https://live-agent-production.up.railway.app
 ```
 
+Optional cross-workflow override: `-GatewayDemoFrontendPublicUrl https://live-agent-frontend-production.up.railway.app` (propagates to deploy helper root-descriptor `uiUrl` validation).
+
 Use `-DryRun` to validate argument routing without dispatching workflows:
 
 ```powershell

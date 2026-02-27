@@ -6,6 +6,7 @@ param(
   [string]$Token = $(if (-not [string]::IsNullOrWhiteSpace($env:GH_TOKEN)) { $env:GH_TOKEN } elseif (-not [string]::IsNullOrWhiteSpace($env:GITHUB_TOKEN)) { $env:GITHUB_TOKEN } else { "" }),
   [string]$Environment = "production",
   [string]$GatewayPublicUrl = "https://live-agent-production.up.railway.app",
+  [string]$GatewayDemoFrontendPublicUrl = $env:DEMO_FRONTEND_PUBLIC_URL,
   [switch]$SkipReleaseVerification,
   [switch]$SkipGatewayDeploy,
   [switch]$SkipFrontendDeploy,
@@ -149,6 +150,10 @@ $dispatchArgs = @(
   "-f", ("frontend_no_wait=" + $frontendNoWaitValue),
   "-f", ("frontend_skip_health_check=" + $frontendSkipHealthCheckValue)
 )
+
+if (-not [string]::IsNullOrWhiteSpace($GatewayDemoFrontendPublicUrl)) {
+  $dispatchArgs += @("-f", ("gateway_demo_frontend_public_url=" + $GatewayDemoFrontendPublicUrl))
+}
 
 Write-Host "[railway-deploy-all-dispatch] Dispatching railway-deploy-all workflow..."
 & gh @dispatchArgs

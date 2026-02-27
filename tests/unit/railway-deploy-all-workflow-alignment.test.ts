@@ -10,6 +10,7 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /name:\s*Railway Deploy All/);
   assert.match(source, /workflow_dispatch:/);
   assert.match(source, /skip_release_verification:/);
+  assert.match(source, /gateway_demo_frontend_public_url:/);
   assert.match(source, /skip_gateway_deploy:/);
   assert.match(source, /skip_frontend_deploy:/);
   assert.match(source, /gateway_skip_root_descriptor_check:/);
@@ -28,6 +29,7 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /- name:\s*Run Combined Railway Deploy/);
   assert.match(source, /npm run deploy:railway:all @args/);
   assert.match(source, /-SkipReleaseVerification/);
+  assert.match(source, /-GatewayDemoFrontendPublicUrl/);
   assert.match(source, /-SkipGatewayDeploy/);
   assert.match(source, /-SkipFrontendDeploy/);
   assert.match(source, /-GatewaySkipRootDescriptorCheck/);
