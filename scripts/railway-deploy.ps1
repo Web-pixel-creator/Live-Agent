@@ -32,6 +32,14 @@ function Fail([string]$Message) {
   exit 1
 }
 
+if ($RootDescriptorCheckMaxAttempts -lt 1) {
+  Fail "RootDescriptorCheckMaxAttempts must be >= 1."
+}
+
+if ($RootDescriptorCheckRetryBackoffSec -lt 0) {
+  Fail "RootDescriptorCheckRetryBackoffSec must be >= 0."
+}
+
 function Run-Cli([string[]]$CliArgs) {
   & railway @CliArgs
   if ($LASTEXITCODE -ne 0) {

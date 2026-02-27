@@ -23,6 +23,8 @@ test("railway deploy success path runs badge check only when skip flag is disabl
   assert.match(source, /\[string\]\$DemoFrontendPublicUrl = \$env:DEMO_FRONTEND_PUBLIC_URL/);
   assert.match(source, /\[int\]\$RootDescriptorCheckMaxAttempts = 3/);
   assert.match(source, /\[int\]\$RootDescriptorCheckRetryBackoffSec = 2/);
+  assert.match(source, /if \(\$RootDescriptorCheckMaxAttempts -lt 1\)\s*\{[\s\S]*RootDescriptorCheckMaxAttempts must be >= 1\./);
+  assert.match(source, /if \(\$RootDescriptorCheckRetryBackoffSec -lt 0\)\s*\{[\s\S]*RootDescriptorCheckRetryBackoffSec must be >= 0\./);
   assert.match(source, /function Invoke-GatewayRootDescriptorCheck\(/);
   assert.match(source, /\[string\]\$ExpectedUiUrl,/);
   assert.match(source, /\[int\]\$MaxAttempts,/);

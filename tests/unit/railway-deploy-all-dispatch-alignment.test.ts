@@ -19,6 +19,8 @@ test("railway deploy-all dispatch helper is wired across package script, script 
   assert.match(source, /\[string\]\$GatewayDemoFrontendPublicUrl = \$env:DEMO_FRONTEND_PUBLIC_URL/);
   assert.match(source, /\[int\]\$GatewayRootDescriptorCheckMaxAttempts = 3/);
   assert.match(source, /\[int\]\$GatewayRootDescriptorCheckRetryBackoffSec = 2/);
+  assert.match(source, /if \(\$GatewayRootDescriptorCheckMaxAttempts -lt 1\)\s*\{[\s\S]*GatewayRootDescriptorCheckMaxAttempts must be >= 1\./);
+  assert.match(source, /if \(\$GatewayRootDescriptorCheckRetryBackoffSec -lt 0\)\s*\{[\s\S]*GatewayRootDescriptorCheckRetryBackoffSec must be >= 0\./);
   assert.match(source, /\[switch\]\$SkipReleaseVerification/);
   assert.match(source, /\[switch\]\$SkipGatewayDeploy/);
   assert.match(source, /\[switch\]\$SkipFrontendDeploy/);

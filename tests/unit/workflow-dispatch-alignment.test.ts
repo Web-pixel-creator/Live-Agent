@@ -51,6 +51,8 @@ test("workflow dispatch helper routes to release and railway dispatch scripts wi
   assert.match(source, /if \(\$NoWaitForRun\)\s*\{\s*\$dispatchArgs \+= "-NoWaitForRun"/);
   assert.match(source, /\[int\]\$WaitTimeoutSec = 900/);
   assert.match(source, /\[int\]\$PollIntervalSec = 10/);
+  assert.match(source, /if \(\$GatewayRootDescriptorCheckMaxAttempts -lt 1\)\s*\{[\s\S]*GatewayRootDescriptorCheckMaxAttempts must be >= 1\./);
+  assert.match(source, /if \(\$GatewayRootDescriptorCheckRetryBackoffSec -lt 0\)\s*\{[\s\S]*GatewayRootDescriptorCheckRetryBackoffSec must be >= 0\./);
   assert.match(source, /\[workflow-dispatch\] DryRun enabled\. Command preview:/);
   assert.match(source, /if \(\$DryRun\)\s*\{[\s\S]*exit 0[\s\S]*\}/);
 });

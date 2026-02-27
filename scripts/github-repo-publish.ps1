@@ -143,6 +143,14 @@ if ([string]::IsNullOrWhiteSpace($RemoteUrl)) {
 
 Write-Host "[repo-publish] Remote URL: $RemoteUrl"
 
+if ($DeployRailway -and $RailwayRootDescriptorCheckMaxAttempts -lt 1) {
+  Fail "RailwayRootDescriptorCheckMaxAttempts must be >= 1 when -DeployRailway is enabled."
+}
+
+if ($DeployRailway -and $RailwayRootDescriptorCheckRetryBackoffSec -lt 0) {
+  Fail "RailwayRootDescriptorCheckRetryBackoffSec must be >= 0 when -DeployRailway is enabled."
+}
+
 if (-not (In-GitRepo)) {
   if ($SkipGitInit) {
     Fail "No git repository detected and -SkipGitInit is set."

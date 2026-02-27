@@ -54,6 +54,8 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /\-PublicBadgeCheckTimeoutSec/);
   assert.match(source, /\-RootDescriptorCheckMaxAttempts/);
   assert.match(source, /\-RootDescriptorCheckRetryBackoffSec/);
+  assert.match(source, /if \(\$DeployRailway -and \$RailwayRootDescriptorCheckMaxAttempts -lt 1\)\s*\{[\s\S]*RailwayRootDescriptorCheckMaxAttempts must be >= 1/);
+  assert.match(source, /if \(\$DeployRailway -and \$RailwayRootDescriptorCheckRetryBackoffSec -lt 0\)\s*\{[\s\S]*RailwayRootDescriptorCheckRetryBackoffSec must be >= 0/);
 
   const readmePath = resolve(process.cwd(), "README.md");
   const readme = readFileSync(readmePath, "utf8");

@@ -40,6 +40,14 @@ if ($PollIntervalSec -lt 1) {
   Fail "PollIntervalSec must be >= 1."
 }
 
+if ($GatewayRootDescriptorCheckMaxAttempts -lt 1) {
+  Fail "GatewayRootDescriptorCheckMaxAttempts must be >= 1."
+}
+
+if ($GatewayRootDescriptorCheckRetryBackoffSec -lt 0) {
+  Fail "GatewayRootDescriptorCheckRetryBackoffSec must be >= 0."
+}
+
 $targetScript = switch ($Workflow) {
   "release_strict" { "release-strict-dispatch.ps1" }
   "railway_deploy_all" { "railway-deploy-all-dispatch.ps1" }

@@ -66,6 +66,14 @@ if ([string]::IsNullOrWhiteSpace($Environment)) {
   $Environment = "production"
 }
 
+if ($GatewayRootDescriptorCheckMaxAttempts -lt 1) {
+  Fail "GatewayRootDescriptorCheckMaxAttempts must be >= 1."
+}
+
+if ($GatewayRootDescriptorCheckRetryBackoffSec -lt 0) {
+  Fail "GatewayRootDescriptorCheckRetryBackoffSec must be >= 0."
+}
+
 if (-not $SkipGatewayDeploy) {
   Write-Host "[railway-deploy-all] Deploying gateway service..."
   $gatewayArgs = @(
@@ -89,10 +97,10 @@ if (-not $SkipGatewayDeploy) {
   if (-not [string]::IsNullOrWhiteSpace($GatewayDemoFrontendPublicUrl)) {
     $gatewayArgs += @("-DemoFrontendPublicUrl", $GatewayDemoFrontendPublicUrl)
   }
-  if ($GatewayRootDescriptorCheckMaxAttempts -gt 0) {
-    $gatewayArgs += @("-RootDescriptorCheckMaxAttempts", [string]$GatewayRootDescriptorCheckMaxAttempts)
-  }
-  if ($GatewayRootDescriptorCheckRetryBackoffSec -ge 0) {
+if ($GatewayRootDescriptorCheckMaxAttempts -gt 0) {
+  $gatewayArgs += @("-RootDescriptorCheckMaxAttempts", [string]$GatewayRootDescriptorCheckMaxAttempts)
+}
+if ($GatewayRootDescriptorCheckRetryBackoffSec -ge 0) {
     $gatewayArgs += @("-RootDescriptorCheckRetryBackoffSec", [string]$GatewayRootDescriptorCheckRetryBackoffSec)
   }
   if ($SkipReleaseVerification) {

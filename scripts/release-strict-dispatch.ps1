@@ -102,6 +102,14 @@ if ($PollIntervalSec -lt 1) {
   Fail "PollIntervalSec must be >= 1."
 }
 
+if ($GatewayRootDescriptorCheckMaxAttempts -lt 1) {
+  Fail "GatewayRootDescriptorCheckMaxAttempts must be >= 1."
+}
+
+if ($GatewayRootDescriptorCheckRetryBackoffSec -lt 0) {
+  Fail "GatewayRootDescriptorCheckRetryBackoffSec must be >= 0."
+}
+
 $ghCli = Get-Command "gh" -ErrorAction SilentlyContinue
 if ($null -eq $ghCli) {
   Fail "GitHub CLI is not installed or unavailable in PATH."
