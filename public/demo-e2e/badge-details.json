@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-02-26T17:24:15.421Z",
+  "generatedAt": "2026-02-27T05:40:24.865Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 218,
   "violations": 0,
-  "roundTripMs": 37,
+  "roundTripMs": 35,
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-02-26T22:24:13.8317897+05:00",
+    "sourceSummaryGeneratedAt": "2026-02-27T10:40:24.0407644+05:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -15,7 +15,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-02-26T17:24:12.227Z",
+      "latestSeenAt": "2026-02-27T05:40:22.738Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -29,7 +29,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-02-26T17:24:12.346Z",
+      "latestSeenAt": "2026-02-27T05:40:22.890Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -63,7 +63,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-02-26T17:24:11.920Z",
+        "seenAt": "2026-02-27T05:40:22.411Z",
         "seenAtIsIso": true
       }
     }
@@ -71,7 +71,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 218 checks | 37ms ws",
+    "message": "pass | 218 checks | 35ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }

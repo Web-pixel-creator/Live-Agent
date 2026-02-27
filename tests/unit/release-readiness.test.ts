@@ -847,7 +847,7 @@ test(
     );
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
-    assert.match(output, /gatewayInterruptLatencyMs is missing and gatewayInterruptEventType is not live\.bridge/i);
+    assert.match(output, /gatewayInterruptLatencyMs is missing and gatewayInterruptEventType is not\s+live\.bridge/i);
     assert.match(output, /actual live\.interrupt\.requested/i);
   },
 );
@@ -1638,7 +1638,7 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /operatorLiveBridgeHealthState expected one of \[healthy, degraded, unknown\]/i);
-    assert.match(output, /actual of\s*fline/i);
+    assert.match(output, /actual\s+of\s*fline/i);
   },
 );
 
