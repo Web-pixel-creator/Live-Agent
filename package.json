@@ -33,6 +33,7 @@
     "verify:release:artifact-only:smoke:strict": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifact-only-smoke.ps1 -StrictFinalRun",
     "verify:release:artifact-only:smoke:keep-temp": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifact-only-smoke.ps1 -KeepTemp",
     "verify:release:artifact:revalidate": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-artifact-revalidate.ps1",
+    "release:strict:dispatch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-strict-dispatch.ps1",
     "verify:deploy:railway:dry": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-deploy-railway-dry.ps1",
     "repo:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-repo-publish.ps1",
     "deploy:railway": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy.ps1",
