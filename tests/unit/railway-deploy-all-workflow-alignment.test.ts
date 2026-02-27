@@ -40,6 +40,11 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /frontend fallback health check/i);
   assert.match(source, /- name:\s*Fail on Railway Auth Probe/);
   assert.match(source, /verify_only_fallback_on_auth_failure=false/);
+  assert.match(source, /- name:\s*Publish Railway Deploy Mode Summary/);
+  assert.match(source, /railway_deploy_mode=/);
+  assert.match(source, /real_deploy/);
+  assert.match(source, /verify_only_fallback/);
+  assert.match(source, /auth_failed_no_fallback/);
   assert.match(source, /-SkipReleaseVerification/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
   assert.match(source, /-GatewayRootDescriptorCheckMaxAttempts/);

@@ -198,3 +198,18 @@ jobs:
         shell: powershell
         run: |
           throw "Railway auth probe failed and verify_only_fallback_on_auth_failure=false."
+
+      - name: Publish Railway Deploy Mode Summary
+        if: always()
+        shell: powershell
+        run: |
+          $deployMode = if ("${{ steps.railway_auth_probe.outcome }}" -eq "success") {
+            "real_deploy"
+          } elseif ("${{ inputs.verify_only_fallback_on_auth_failure }}" -eq "true") {
+            "verify_only_fallback"
+          } else {
+            "auth_failed_no_fallback"
+          }
+
+          Write-Host ("railway_deploy_mode=" + $deployMode)
+          ("railway_deploy_mode=" + $deployMode) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

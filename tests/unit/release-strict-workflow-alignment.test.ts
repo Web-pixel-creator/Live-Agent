@@ -43,6 +43,12 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /npm run badge:public:check -- -RailwayPublicUrl/);
   assert.match(source, /- name:\s*Fail on Railway Auth Probe/);
   assert.match(source, /verify_only_fallback_on_auth_failure=false/);
+  assert.match(source, /- name:\s*Publish Railway Deploy Mode Summary/);
+  assert.match(source, /railway_deploy_mode=/);
+  assert.match(source, /not_requested/);
+  assert.match(source, /real_deploy/);
+  assert.match(source, /verify_only_fallback/);
+  assert.match(source, /auth_failed_no_fallback/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
   assert.match(source, /-GatewayRootDescriptorCheckMaxAttempts/);
   assert.match(source, /-GatewayRootDescriptorCheckRetryBackoffSec/);
