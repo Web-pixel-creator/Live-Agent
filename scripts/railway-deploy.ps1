@@ -210,6 +210,59 @@ function Invoke-GatewayRootDescriptorCheck(
   if ($serviceName -ne "realtime-gateway") {
     Fail ("Gateway root descriptor check failed: expected service 'realtime-gateway', actual '" + $serviceName + "'.")
   }
+
+  $message = [string]$response.message
+  if ($message -ne "realtime-gateway is online") {
+    Fail ("Gateway root descriptor check failed: unexpected message '" + $message + "'.")
+  }
+
+  $routes = $response.routes
+  if ($null -eq $routes) {
+    Fail "Gateway root descriptor check failed: response.routes is missing."
+  }
+
+  $expectedRoutes = [ordered]@{
+    websocket = "/realtime"
+    health = "/healthz"
+    status = "/status"
+    metrics = "/metrics"
+    badge = "/demo-e2e/badge.json"
+    badgeDetails = "/demo-e2e/badge-details.json"
+  }
+
+  foreach ($routeKey in $expectedRoutes.Keys) {
+    $actualRoute = [string]$routes.$routeKey
+    if ([string]::IsNullOrWhiteSpace($actualRoute)) {
+      Fail ("Gateway root descriptor check failed: routes." + $routeKey + " is missing.")
+    }
+    if ($actualRoute -ne [string]$expectedRoutes[$routeKey]) {
+      Fail (
+        "Gateway root descriptor check failed: routes." +
+        $routeKey +
+        " expected '" +
+        [string]$expectedRoutes[$routeKey] +
+        "', actual '" +
+        $actualRoute +
+        "'."
+      )
+    }
+  }
+
+  $reportedPublicUrl = [string]$response.publicUrl
+  if ([string]::IsNullOrWhiteSpace($reportedPublicUrl)) {
+    Fail "Gateway root descriptor check failed: response.publicUrl is missing."
+  }
+
+  $normalizedReportedPublicUrl = $reportedPublicUrl.TrimEnd("/")
+  if ($normalizedReportedPublicUrl -ne $target) {
+    Write-Warning (
+      "[railway-deploy] Gateway root descriptor publicUrl mismatch: expected '" +
+      $target +
+      "', actual '" +
+      $normalizedReportedPublicUrl +
+      "'."
+    )
+  }
 }
 
 function Show-DeploymentFailureDiagnostics(

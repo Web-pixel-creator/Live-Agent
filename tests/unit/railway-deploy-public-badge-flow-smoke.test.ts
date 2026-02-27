@@ -21,6 +21,18 @@ test("railway deploy success path runs badge check only when skip flag is disabl
   const source = readFileSync(scriptPath, "utf8");
 
   assert.match(source, /function Invoke-GatewayRootDescriptorCheck\(/);
+  assert.match(source, /\$message = \[string\]\$response\.message/);
+  assert.match(source, /if \(\$message -ne "realtime-gateway is online"\)/);
+  assert.match(source, /\$expectedRoutes = \[ordered\]@\{/);
+  assert.match(source, /websocket = "\/realtime"/);
+  assert.match(source, /health = "\/healthz"/);
+  assert.match(source, /status = "\/status"/);
+  assert.match(source, /metrics = "\/metrics"/);
+  assert.match(source, /badge = "\/demo-e2e\/badge\.json"/);
+  assert.match(source, /badgeDetails = "\/demo-e2e\/badge-details\.json"/);
+  assert.match(source, /\$reportedPublicUrl = \[string\]\$response\.publicUrl/);
+  assert.match(source, /if \(\[string\]::IsNullOrWhiteSpace\(\$reportedPublicUrl\)\)/);
+  assert.match(source, /Gateway root descriptor check failed: response\.publicUrl is missing\./);
   assert.match(
     source,
     /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*if \(-not \$SkipRootDescriptorCheck\)\s*\{[\s\S]*Invoke-GatewayRootDescriptorCheck -Endpoint \$effectivePublicUrl -TimeoutSec \$RootDescriptorCheckTimeoutSec/,
