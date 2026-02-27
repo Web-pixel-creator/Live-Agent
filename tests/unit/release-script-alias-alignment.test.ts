@@ -57,6 +57,7 @@ test("release script aliases stay aligned with release-readiness flags", () => {
   assert.match(releaseStrictDispatchScript, /release-strict-dispatch\.ps1/);
   assert.match(workflowDispatchDryScript, /workflow-dispatch-alignment\.test\.ts/);
   assert.match(workflowDispatchDryScript, /workflow-dispatch-defaults-alignment\.test\.ts/);
+  assert.match(workflowDispatchDryScript, /workflow-dispatch-flag-parity-alignment\.test\.ts/);
   assert.match(workflowDispatchDryScript, /workflow-dispatch-dry-run-smoke\.test\.ts/);
   assert.match(workflowDispatchScript, /workflow-dispatch\.ps1/);
 });

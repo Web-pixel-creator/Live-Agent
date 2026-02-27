@@ -19,6 +19,7 @@ $testFiles = @(
   "tests/unit/release-strict-workflow-alignment.test.ts",
   "tests/unit/workflow-dispatch-alignment.test.ts",
   "tests/unit/workflow-dispatch-defaults-alignment.test.ts",
+  "tests/unit/workflow-dispatch-flag-parity-alignment.test.ts",
   "tests/unit/workflow-dispatch-dry-run-smoke.test.ts",
   "tests/unit/railway-deploy-public-badge-flow-smoke.test.ts",
   "tests/unit/railway-runtime-start-command-alignment.test.ts",
