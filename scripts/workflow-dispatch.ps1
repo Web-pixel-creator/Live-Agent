@@ -12,6 +12,7 @@ param(
   [switch]$SkipReleaseVerification,
   [switch]$SkipGatewayDeploy,
   [switch]$SkipFrontendDeploy,
+  [switch]$GatewaySkipRootDescriptorCheck,
   [switch]$GatewayNoWait,
   [switch]$FrontendNoWait,
   [switch]$FrontendSkipHealthCheck,
@@ -104,6 +105,9 @@ if ($SkipGatewayDeploy) {
 }
 if ($SkipFrontendDeploy) {
   $dispatchArgs += "-SkipFrontendDeploy"
+}
+if ($GatewaySkipRootDescriptorCheck) {
+  $dispatchArgs += "-GatewaySkipRootDescriptorCheck"
 }
 if ($GatewayNoWait) {
   $dispatchArgs += "-GatewayNoWait"

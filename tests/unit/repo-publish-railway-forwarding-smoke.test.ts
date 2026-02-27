@@ -31,6 +31,7 @@ test("repo publish forwards railway deploy arguments with stable contract", () =
 
   assert.match(source, /if \(\$RailwaySkipLink\)\s*\{\s*\$railwayArgs \+= "-SkipLink"/);
   assert.match(source, /if \(\$RailwaySkipPublicBadgeCheck\)\s*\{\s*\$railwayArgs \+= "-SkipPublicBadgeCheck"/);
+  assert.match(source, /if \(\$RailwaySkipRootDescriptorCheck\)\s*\{\s*\$railwayArgs \+= "-SkipRootDescriptorCheck"/);
   assert.match(
     source,
     /if \(-not \[string\]::IsNullOrWhiteSpace\(\$RailwayPublicBadgeEndpoint\)\)\s*\{\s*\$railwayArgs \+= @\("-PublicBadgeEndpoint", \$RailwayPublicBadgeEndpoint\)/,

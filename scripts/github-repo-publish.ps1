@@ -22,6 +22,7 @@ param(
   [string]$RailwayWorkspace = $env:RAILWAY_WORKSPACE,
   [switch]$RailwaySkipLink,
   [switch]$RailwaySkipPublicBadgeCheck,
+  [switch]$RailwaySkipRootDescriptorCheck,
   [string]$RailwayPublicBadgeEndpoint = $env:PUBLIC_BADGE_ENDPOINT,
   [string]$RailwayPublicBadgeDetailsEndpoint = $env:PUBLIC_BADGE_DETAILS_ENDPOINT,
   [string]$RailwayPublicUrl = $env:RAILWAY_PUBLIC_URL,
@@ -273,6 +274,9 @@ if ($DeployRailway) {
   }
   if ($RailwaySkipPublicBadgeCheck) {
     $railwayArgs += "-SkipPublicBadgeCheck"
+  }
+  if ($RailwaySkipRootDescriptorCheck) {
+    $railwayArgs += "-SkipRootDescriptorCheck"
   }
   if (-not [string]::IsNullOrWhiteSpace($RailwayPublicBadgeEndpoint)) {
     $railwayArgs += @("-PublicBadgeEndpoint", $RailwayPublicBadgeEndpoint)

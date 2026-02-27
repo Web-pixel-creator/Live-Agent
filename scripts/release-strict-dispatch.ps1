@@ -9,6 +9,7 @@ param(
   [string]$GatewayPublicUrl = "https://live-agent-production.up.railway.app",
   [switch]$SkipGatewayDeploy,
   [switch]$SkipFrontendDeploy,
+  [switch]$GatewaySkipRootDescriptorCheck,
   [switch]$GatewayNoWait,
   [switch]$FrontendNoWait,
   [switch]$FrontendSkipHealthCheck,
@@ -127,6 +128,7 @@ $repoSlug = "$Owner/$Repo"
 $deployToRailwayValue = Resolve-BooleanString -Value $DeployToRailway.IsPresent
 $skipGatewayDeployValue = Resolve-BooleanString -Value $SkipGatewayDeploy.IsPresent
 $skipFrontendDeployValue = Resolve-BooleanString -Value $SkipFrontendDeploy.IsPresent
+$gatewaySkipRootDescriptorCheckValue = Resolve-BooleanString -Value $GatewaySkipRootDescriptorCheck.IsPresent
 $gatewayNoWaitValue = Resolve-BooleanString -Value $GatewayNoWait.IsPresent
 $frontendNoWaitValue = Resolve-BooleanString -Value $FrontendNoWait.IsPresent
 $frontendSkipHealthCheckValue = Resolve-BooleanString -Value $FrontendSkipHealthCheck.IsPresent
@@ -142,6 +144,7 @@ $dispatchArgs = @(
   "-f", ("gateway_public_url=" + $GatewayPublicUrl),
   "-f", ("skip_gateway_deploy=" + $skipGatewayDeployValue),
   "-f", ("skip_frontend_deploy=" + $skipFrontendDeployValue),
+  "-f", ("gateway_skip_root_descriptor_check=" + $gatewaySkipRootDescriptorCheckValue),
   "-f", ("gateway_no_wait=" + $gatewayNoWaitValue),
   "-f", ("frontend_no_wait=" + $frontendNoWaitValue),
   "-f", ("frontend_skip_health_check=" + $frontendSkipHealthCheckValue)

@@ -25,6 +25,10 @@ test("workflow dispatch helper routes to release and railway dispatch scripts wi
   assert.match(source, /if \(\$SkipReleaseVerification\)\s*\{\s*\$dispatchArgs \+= "-SkipReleaseVerification"/);
   assert.match(source, /if \(\$SkipGatewayDeploy\)\s*\{\s*\$dispatchArgs \+= "-SkipGatewayDeploy"/);
   assert.match(source, /if \(\$SkipFrontendDeploy\)\s*\{\s*\$dispatchArgs \+= "-SkipFrontendDeploy"/);
+  assert.match(
+    source,
+    /if \(\$GatewaySkipRootDescriptorCheck\)\s*\{\s*\$dispatchArgs \+= "-GatewaySkipRootDescriptorCheck"/,
+  );
   assert.match(source, /if \(\$GatewayNoWait\)\s*\{\s*\$dispatchArgs \+= "-GatewayNoWait"/);
   assert.match(source, /if \(\$FrontendNoWait\)\s*\{\s*\$dispatchArgs \+= "-FrontendNoWait"/);
   assert.match(source, /if \(\$FrontendSkipHealthCheck\)\s*\{\s*\$dispatchArgs \+= "-FrontendSkipHealthCheck"/);

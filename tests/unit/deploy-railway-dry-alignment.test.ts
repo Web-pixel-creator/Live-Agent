@@ -16,7 +16,10 @@ test("railway dry deploy verifier stays aligned across package, script, and docs
   assert.match(scriptRaw, /tests\/unit\/public-badge-check-alignment\.test\.ts/);
   assert.match(scriptRaw, /tests\/unit\/railway-deploy-alignment\.test\.ts/);
   assert.match(scriptRaw, /tests\/unit\/railway-deploy-all-alignment\.test\.ts/);
+  assert.match(scriptRaw, /tests\/unit\/railway-deploy-all-dispatch-alignment\.test\.ts/);
   assert.match(scriptRaw, /tests\/unit\/railway-deploy-all-workflow-alignment\.test\.ts/);
+  assert.match(scriptRaw, /tests\/unit\/release-strict-dispatch-alignment\.test\.ts/);
+  assert.match(scriptRaw, /tests\/unit\/release-strict-workflow-alignment\.test\.ts/);
   assert.match(scriptRaw, /tests\/unit\/workflow-dispatch-alignment\.test\.ts/);
   assert.match(scriptRaw, /tests\/unit\/workflow-dispatch-defaults-alignment\.test\.ts/);
   assert.match(scriptRaw, /tests\/unit\/workflow-dispatch-dry-run-smoke\.test\.ts/);

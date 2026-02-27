@@ -10,6 +10,7 @@ param(
   [switch]$StrictReleaseVerification,
   [switch]$GatewaySkipLink,
   [switch]$GatewaySkipPublicBadgeCheck,
+  [switch]$GatewaySkipRootDescriptorCheck,
   [string]$GatewayPublicBadgeEndpoint = $env:PUBLIC_BADGE_ENDPOINT,
   [string]$GatewayPublicBadgeDetailsEndpoint = $env:PUBLIC_BADGE_DETAILS_ENDPOINT,
   [int]$GatewayPublicBadgeCheckTimeoutSec = 20,
@@ -93,6 +94,9 @@ if (-not $SkipGatewayDeploy) {
   }
   if ($GatewaySkipPublicBadgeCheck) {
     $gatewayArgs += "-SkipPublicBadgeCheck"
+  }
+  if ($GatewaySkipRootDescriptorCheck) {
+    $gatewayArgs += "-SkipRootDescriptorCheck"
   }
   if (-not [string]::IsNullOrWhiteSpace($GatewayPublicBadgeEndpoint)) {
     $gatewayArgs += @("-PublicBadgeEndpoint", $GatewayPublicBadgeEndpoint)

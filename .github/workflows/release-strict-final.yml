@@ -26,6 +26,11 @@ on:
         required: true
         type: boolean
         default: false
+      gateway_skip_root_descriptor_check:
+        description: "Skip post-deploy gateway root descriptor check"
+        required: true
+        type: boolean
+        default: false
       gateway_no_wait:
         description: "Trigger gateway deploy without waiting"
         required: true
@@ -125,6 +130,9 @@ jobs:
           }
           if ("${{ inputs.skip_frontend_deploy }}" -eq "true") {
             $args += "-SkipFrontendDeploy"
+          }
+          if ("${{ inputs.gateway_skip_root_descriptor_check }}" -eq "true") {
+            $args += "-GatewaySkipRootDescriptorCheck"
           }
           if ("${{ inputs.gateway_no_wait }}" -eq "true") {
             $args += "-GatewayNoWait"

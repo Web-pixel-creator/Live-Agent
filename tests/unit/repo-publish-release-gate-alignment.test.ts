@@ -19,6 +19,7 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /\[string\]\$RailwayProjectId = \$env:RAILWAY_PROJECT_ID/);
   assert.match(source, /\[string\]\$RailwayServiceId = \$env:RAILWAY_SERVICE_ID/);
   assert.match(source, /\[switch\]\$RailwaySkipPublicBadgeCheck/);
+  assert.match(source, /\[switch\]\$RailwaySkipRootDescriptorCheck/);
   assert.match(source, /\[string\]\$RailwayPublicBadgeEndpoint = \$env:PUBLIC_BADGE_ENDPOINT/);
   assert.match(source, /\[string\]\$RailwayPublicBadgeDetailsEndpoint = \$env:PUBLIC_BADGE_DETAILS_ENDPOINT/);
   assert.match(source, /\[string\]\$RailwayPublicUrl = \$env:RAILWAY_PUBLIC_URL/);
@@ -42,6 +43,7 @@ test("repo publish script includes pre-publish release verification controls", (
   assert.match(source, /railway-deploy-frontend\.ps1/);
   assert.match(source, /\-SkipReleaseVerification/);
   assert.match(source, /\-SkipPublicBadgeCheck/);
+  assert.match(source, /\-SkipRootDescriptorCheck/);
   assert.match(source, /\-PublicBadgeEndpoint/);
   assert.match(source, /\-PublicBadgeDetailsEndpoint/);
   assert.match(source, /\-RailwayPublicUrl/);
