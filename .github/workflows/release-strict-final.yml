@@ -134,7 +134,9 @@ jobs:
         run: railway whoami
 
       - name: Deploy To Railway (Gateway + Frontend)
-        if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true && steps.railway_auth_probe.outcome == 'success'
+        id: combined_deploy
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true
+        continue-on-error: true
         shell: powershell
         run: |
           $args = @(
@@ -181,11 +183,12 @@ jobs:
 
           npm run deploy:railway:all @args
 
-      - name: Verify Public Endpoints Fallback (Auth Failure)
-        if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true && steps.railway_auth_probe.outcome != 'success' && inputs.verify_only_fallback_on_auth_failure == true
+      - name: Verify Public Endpoints Fallback (Deploy Failure)
+        id: verify_only_fallback
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true && steps.combined_deploy.outcome != 'success' && inputs.verify_only_fallback_on_auth_failure == true
         shell: powershell
         run: |
-          Write-Warning "Railway auth probe failed; running verify-only fallback."
+          Write-Warning "Railway deploy failed; running verify-only fallback."
 
           $gatewayPublicUrl = "${{ inputs.gateway_public_url }}".Trim().TrimEnd("/")
           if ([string]::IsNullOrWhiteSpace($gatewayPublicUrl)) {
@@ -211,11 +214,11 @@ jobs:
             Write-Host "Frontend fallback health check skipped by workflow inputs."
           }
 
-      - name: Fail on Railway Auth Probe
-        if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true && steps.railway_auth_probe.outcome != 'success' && inputs.verify_only_fallback_on_auth_failure != true
+      - name: Fail on Railway Deploy
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true && steps.combined_deploy.outcome != 'success' && inputs.verify_only_fallback_on_auth_failure != true
         shell: powershell
         run: |
-          throw "Railway auth probe failed and verify_only_fallback_on_auth_failure=false."
+          throw "Railway deploy failed and verify_only_fallback_on_auth_failure=false."
 
       - name: Publish Railway Deploy Mode Summary
         if: always()
@@ -223,12 +226,12 @@ jobs:
         run: |
           $deployMode = if ("${{ github.event_name }}" -ne "workflow_dispatch" -or "${{ inputs.deploy_to_railway }}" -ne "true") {
             "not_requested"
-          } elseif ("${{ steps.railway_auth_probe.outcome }}" -eq "success") {
+          } elseif ("${{ steps.combined_deploy.outcome }}" -eq "success") {
             "real_deploy"
-          } elseif ("${{ inputs.verify_only_fallback_on_auth_failure }}" -eq "true") {
+          } elseif ("${{ steps.verify_only_fallback.outcome }}" -eq "success") {
             "verify_only_fallback"
           } else {
-            "auth_failed_no_fallback"
+            "deploy_failed_no_fallback"
           }
 
           Write-Host ("railway_deploy_mode=" + $deployMode)
