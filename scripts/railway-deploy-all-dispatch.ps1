@@ -86,6 +86,47 @@ function Get-RunStatus([string]$RepoSlug, [string]$RunId) {
   return $json | ConvertFrom-Json
 }
 
+function Try-ResolveRunFromDispatchOutput(
+  [object[]]$OutputLines,
+  [string]$RepoSlug,
+  [string]$Branch
+) {
+  if ($null -eq $OutputLines -or $OutputLines.Count -eq 0) {
+    return $null
+  }
+
+  $runUrlPattern = "https:\/\/github\.com\/[^\/\s]+\/[^\/\s]+\/actions\/runs\/(\d+)"
+  foreach ($line in $OutputLines) {
+    $text = [string]$line
+    if ([string]::IsNullOrWhiteSpace($text)) {
+      continue
+    }
+
+    $match = [regex]::Match($text, $runUrlPattern)
+    if (-not $match.Success) {
+      continue
+    }
+
+    $runUrl = $match.Value.Trim()
+    $runId = [string]$match.Groups[1].Value
+    if ([string]::IsNullOrWhiteSpace($runId)) {
+      continue
+    }
+
+    return [pscustomobject]@{
+      databaseId = $runId
+      event = "workflow_dispatch"
+      headBranch = $Branch
+      status = "queued"
+      conclusion = $null
+      createdAt = [datetime]::UtcNow.ToString("o")
+      url = $runUrl
+    }
+  }
+
+  return $null
+}
+
 if ([string]::IsNullOrWhiteSpace($Owner)) {
   Fail "Missing owner. Set -Owner or env GITHUB_OWNER."
 }
@@ -172,7 +213,10 @@ if ($GatewayRootDescriptorCheckRetryBackoffSec -ge 0) {
 }
 
 Write-Host "[railway-deploy-all-dispatch] Dispatching railway-deploy-all workflow..."
-& gh @dispatchArgs
+$dispatchOutput = (& gh @dispatchArgs 2>&1)
+if ($dispatchOutput) {
+  $dispatchOutput | ForEach-Object { Write-Host $_ }
+}
 if ($LASTEXITCODE -ne 0) {
   Fail "Workflow dispatch failed."
 }
@@ -180,13 +224,17 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "[railway-deploy-all-dispatch] Workflow dispatch accepted."
 
 $runResolveDeadline = [datetime]::UtcNow.AddSeconds([math]::Min(120, $WaitTimeoutSec))
-$run = $null
-while ([datetime]::UtcNow -lt $runResolveDeadline) {
-  $run = Get-LatestRailwayDeployAllRun -RepoSlug $repoSlug -Branch $Ref
-  if ($null -ne $run -and -not [string]::IsNullOrWhiteSpace([string]$run.databaseId)) {
-    break
+$run = Try-ResolveRunFromDispatchOutput -OutputLines $dispatchOutput -RepoSlug $repoSlug -Branch $Ref
+if ($null -eq $run -or [string]::IsNullOrWhiteSpace([string]$run.databaseId)) {
+  while ([datetime]::UtcNow -lt $runResolveDeadline) {
+    $run = Get-LatestRailwayDeployAllRun -RepoSlug $repoSlug -Branch $Ref
+    if ($null -ne $run -and -not [string]::IsNullOrWhiteSpace([string]$run.databaseId)) {
+      break
+    }
+    Start-Sleep -Seconds 3
   }
-  Start-Sleep -Seconds 3
+} else {
+  Write-Host ("[railway-deploy-all-dispatch] Resolved run id from dispatch output: " + [string]$run.databaseId)
 }
 
 if ($null -eq $run -or [string]::IsNullOrWhiteSpace([string]$run.databaseId)) {
