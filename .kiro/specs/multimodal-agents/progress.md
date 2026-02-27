@@ -212,6 +212,8 @@
 181. Revalidated post-fallback baseline with full unit suite: `npm run test:unit` is green (`419` tests), including updated Railway deploy/workflow alignment checks and artifact/deploy smoke contracts.
 182. Executed real Railway combined deploy (`scripts/railway-deploy-all.ps1`) for production project `bbca2889-fd0d-48fe-bded-79802230e5a6`: gateway deploy `481f302e-73ac-4a99-a96b-75fd29751ead` and frontend deploy `d899f2b0-e945-46db-9d7f-e63b835b02d7` completed successfully with post-deploy checks enabled.
 183. Revalidated public runtime endpoints after combined deploy: gateway root descriptor `/` and `/status` are healthy with `uiUrl=https://live-agent-frontend-production.up.railway.app`, and frontend `/healthz` returns `ok=true`.
+184. Revalidated strict final release gate on `main` after Railway fallback hardening: `npm run verify:release:strict` is green with `Demo KPI Gate` pass (`218` checks, websocket roundtrip `36ms`) and perf policy pass (`15` checks, `0` violations).
+185. Synced refreshed strict-run badge artifacts into public endpoint payloads (`public/demo-e2e/badge.json`, `public/demo-e2e/badge-details.json`) so live Shields endpoint reflects the latest strict baseline.
 
 ## Current Focus Queue
 
