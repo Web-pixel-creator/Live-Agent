@@ -73,6 +73,26 @@ function Resolve-AbsolutePath([string]$PathValue) {
   return [System.IO.Path]::GetFullPath((Join-Path (Get-Location).Path $PathValue))
 }
 
+function Resolve-GhCli() {
+  $ghCli = Get-Command "gh" -ErrorAction SilentlyContinue
+  if ($null -ne $ghCli -and -not [string]::IsNullOrWhiteSpace($ghCli.Source)) {
+    return [string]$ghCli.Source
+  }
+
+  $fallbackCandidates = @(
+    (Join-Path $env:ProgramFiles "GitHub CLI\gh.exe"),
+    (Join-Path $env:LOCALAPPDATA "Programs\GitHub CLI\gh.exe")
+  )
+
+  foreach ($candidate in $fallbackCandidates) {
+    if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path $candidate)) {
+      return [string]$candidate
+    }
+  }
+
+  return $null
+}
+
 function Convert-ToUtcDateTime([object]$Value, [string]$ContextLabel) {
   if ($Value -is [datetime]) {
     return ([datetime]$Value).ToUniversalTime()
@@ -234,10 +254,10 @@ if ([string]::IsNullOrWhiteSpace($Repo)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($Token)) {
-  $ghCli = Get-Command "gh" -ErrorAction SilentlyContinue
-  if ($null -ne $ghCli) {
+  $ghCliPath = Resolve-GhCli
+  if (-not [string]::IsNullOrWhiteSpace($ghCliPath)) {
     try {
-      $ghToken = (& gh auth token 2>$null | Select-Object -First 1)
+      $ghToken = (& $ghCliPath auth token 2>$null | Select-Object -First 1)
       if (-not [string]::IsNullOrWhiteSpace($ghToken)) {
         $Token = $ghToken.Trim()
         Write-Host "[artifact-revalidate] Using token resolved from 'gh auth token'."

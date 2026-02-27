@@ -35,6 +35,26 @@ function Resolve-BooleanString([bool]$Value) {
   return "false"
 }
 
+function Resolve-GhCli() {
+  $ghCli = Get-Command "gh" -ErrorAction SilentlyContinue
+  if ($null -ne $ghCli -and -not [string]::IsNullOrWhiteSpace($ghCli.Source)) {
+    return [string]$ghCli.Source
+  }
+
+  $fallbackCandidates = @(
+    (Join-Path $env:ProgramFiles "GitHub CLI\gh.exe"),
+    (Join-Path $env:LOCALAPPDATA "Programs\GitHub CLI\gh.exe")
+  )
+
+  foreach ($candidate in $fallbackCandidates) {
+    if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path $candidate)) {
+      return [string]$candidate
+    }
+  }
+
+  return $null
+}
+
 function Get-LatestRailwayDeployAllRun([string]$RepoSlug, [string]$Branch) {
   $args = @(
     "run",
@@ -45,7 +65,7 @@ function Get-LatestRailwayDeployAllRun([string]$RepoSlug, [string]$Branch) {
     "--json", "databaseId,event,headBranch,status,conclusion,createdAt,url"
   )
 
-  $json = (& gh @args)
+  $json = (& $ghCliPath @args)
   if ($LASTEXITCODE -ne 0) {
     Fail "Failed to load GitHub Actions run list."
   }
@@ -79,7 +99,7 @@ function Get-RunStatus([string]$RepoSlug, [string]$RunId) {
     "--json", "status,conclusion,url,workflowName,createdAt,updatedAt"
   )
 
-  $json = (& gh @args)
+  $json = (& $ghCliPath @args)
   if ($LASTEXITCODE -ne 0) {
     Fail ("Failed to load workflow run status for run id " + $RunId + ".")
   }
@@ -151,14 +171,14 @@ if ($GatewayRootDescriptorCheckRetryBackoffSec -lt 0) {
   Fail "GatewayRootDescriptorCheckRetryBackoffSec must be >= 0."
 }
 
-$ghCli = Get-Command "gh" -ErrorAction SilentlyContinue
-if ($null -eq $ghCli) {
-  Fail "GitHub CLI is not installed or unavailable in PATH."
+$ghCliPath = Resolve-GhCli
+if ([string]::IsNullOrWhiteSpace($ghCliPath)) {
+  Fail "GitHub CLI was not found. Install it or ensure gh.exe is available in PATH (or default install path)."
 }
 
 if ([string]::IsNullOrWhiteSpace($Token)) {
   try {
-    $ghToken = (& gh auth token 2>$null | Select-Object -First 1)
+    $ghToken = (& $ghCliPath auth token 2>$null | Select-Object -First 1)
     if (-not [string]::IsNullOrWhiteSpace($ghToken)) {
       $Token = $ghToken.Trim()
       Write-Host "[railway-deploy-all-dispatch] Using token resolved from 'gh auth token'."
@@ -213,7 +233,7 @@ if ($GatewayRootDescriptorCheckRetryBackoffSec -ge 0) {
 }
 
 Write-Host "[railway-deploy-all-dispatch] Dispatching railway-deploy-all workflow..."
-$dispatchOutput = (& gh @dispatchArgs 2>&1)
+$dispatchOutput = (& $ghCliPath @dispatchArgs 2>&1)
 if ($dispatchOutput) {
   $dispatchOutput | ForEach-Object { Write-Host $_ }
 }

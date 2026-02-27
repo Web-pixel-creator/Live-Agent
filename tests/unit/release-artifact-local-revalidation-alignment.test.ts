@@ -18,6 +18,8 @@ test("local release artifact revalidation script keeps expected source and gate 
 
   assert.match(source, /\$env:GITHUB_TOKEN/);
   assert.match(source, /\$env:GH_TOKEN/);
+  assert.match(source, /function Resolve-GhCli\(\)/);
+  assert.match(source, /GitHub CLI\\gh\.exe/);
   assert.match(source, /gh auth token/);
   assert.match(source, /demo-e2e\.yml/);
   assert.match(source, /release-strict-final\.yml/);

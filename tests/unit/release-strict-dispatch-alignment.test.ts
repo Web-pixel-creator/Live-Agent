@@ -45,6 +45,10 @@ test("release strict dispatch helper is wired across package script, script cont
   assert.match(source, /gateway_no_wait=/);
   assert.match(source, /frontend_no_wait=/);
   assert.match(source, /frontend_skip_health_check=/);
+  assert.match(source, /function Resolve-GhCli\(\)/);
+  assert.match(source, /GitHub CLI\\gh\.exe/);
+  assert.match(source, /\$ghCliPath = Resolve-GhCli/);
+  assert.match(source, /& \$ghCliPath @dispatchArgs/);
   assert.match(source, /gh auth token/);
   assert.match(source, /Missing token\. Set -Token or env GITHUB_TOKEN\/GH_TOKEN/);
   assert.match(source, /Get-LatestReleaseStrictRun/);

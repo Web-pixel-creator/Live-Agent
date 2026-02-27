@@ -45,11 +45,14 @@ test("railway deploy-all dispatch helper is wired across package script, script 
   assert.match(source, /gateway_demo_frontend_public_url=/);
   assert.match(source, /gateway_root_descriptor_check_max_attempts=/);
   assert.match(source, /gateway_root_descriptor_check_retry_backoff_sec=/);
+  assert.match(source, /function Resolve-GhCli\(\)/);
+  assert.match(source, /GitHub CLI\\gh\.exe/);
+  assert.match(source, /\$ghCliPath = Resolve-GhCli/);
   assert.match(source, /gh auth token/);
   assert.match(source, /Try-ResolveRunFromDispatchOutput/);
   assert.match(source, /actions\\\/runs\\\//);
   assert.match(source, /match\.Groups\[1\]/);
-  assert.match(source, /\$dispatchOutput = \(& gh @dispatchArgs 2>&1\)/);
+  assert.match(source, /\$dispatchOutput = \(& \$ghCliPath @dispatchArgs 2>&1\)/);
   assert.match(source, /Resolved run id from dispatch output/);
   assert.match(source, /Get-LatestRailwayDeployAllRun/);
   assert.match(source, /Get-RunStatus/);
