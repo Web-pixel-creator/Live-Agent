@@ -27,7 +27,7 @@ test("railway deploy success path runs badge check only when skip flag is disabl
   );
   assert.match(
     source,
-    /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*if \(-not \$SkipPublicBadgeCheck\)\s*\{[\s\S]*Invoke-PublicBadgeCheck -Endpoint \$PublicBadgeEndpoint -DetailsEndpoint \$PublicBadgeDetailsEndpoint -PublicUrl \$RailwayPublicUrl -TimeoutSec \$PublicBadgeCheckTimeoutSec/,
+    /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*if \(-not \$SkipPublicBadgeCheck\)\s*\{[\s\S]*Invoke-PublicBadgeCheck -Endpoint \$PublicBadgeEndpoint -DetailsEndpoint \$PublicBadgeDetailsEndpoint -PublicUrl \$effectivePublicUrl -TimeoutSec \$PublicBadgeCheckTimeoutSec/,
   );
 });
 

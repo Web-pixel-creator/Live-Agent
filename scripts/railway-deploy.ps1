@@ -481,7 +481,7 @@ for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
         Invoke-GatewayRootDescriptorCheck -Endpoint $effectivePublicUrl -TimeoutSec $RootDescriptorCheckTimeoutSec
       }
       if (-not $SkipPublicBadgeCheck) {
-        Invoke-PublicBadgeCheck -Endpoint $PublicBadgeEndpoint -DetailsEndpoint $PublicBadgeDetailsEndpoint -PublicUrl $RailwayPublicUrl -TimeoutSec $PublicBadgeCheckTimeoutSec
+        Invoke-PublicBadgeCheck -Endpoint $PublicBadgeEndpoint -DetailsEndpoint $PublicBadgeDetailsEndpoint -PublicUrl $effectivePublicUrl -TimeoutSec $PublicBadgeCheckTimeoutSec
       }
       Write-Host ""
       Write-Host "Railway deployment completed successfully."
