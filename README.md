@@ -649,6 +649,20 @@ npm run release:strict:dispatch -- -DeployToRailway -RailwayEnvironment producti
 
 Helper auth uses `-Token`, then `GITHUB_TOKEN`/`GH_TOKEN`, then fallback `gh auth token`.
 
+Unified local dispatch entrypoint (single command for both workflow families):
+
+```powershell
+$env:GITHUB_OWNER="Web-pixel-creator"
+$env:GITHUB_REPO="Live-Agent"
+npm run workflow:dispatch -- -Workflow railway_deploy_all -RailwayEnvironment production -GatewayPublicUrl https://live-agent-production.up.railway.app -SkipReleaseVerification
+```
+
+```powershell
+$env:GITHUB_OWNER="Web-pixel-creator"
+$env:GITHUB_REPO="Live-Agent"
+npm run workflow:dispatch -- -Workflow release_strict -DeployToRailway -RailwayEnvironment production -GatewayPublicUrl https://live-agent-production.up.railway.app
+```
+
 - Artifact-only release revalidation workflow: `.github/workflows/release-artifact-revalidation.yml`
 - Triggered on manual dispatch.
 - Resolves latest successful `demo-e2e`/`release-strict-final` run (or uses provided `source_run_id`), downloads artifact bundle, and runs artifact-only release gate.

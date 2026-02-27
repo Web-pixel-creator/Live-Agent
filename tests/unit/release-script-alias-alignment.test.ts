@@ -16,6 +16,7 @@ test("release script aliases stay aligned with release-readiness flags", () => {
   const artifactOnlySmokeKeepTempScript = pkg.scripts?.["verify:release:artifact-only:smoke:keep-temp"] ?? "";
   const demoFastRetryScript = pkg.scripts?.["demo:e2e:fast:retry"] ?? "";
   const releaseStrictDispatchScript = pkg.scripts?.["release:strict:dispatch"] ?? "";
+  const workflowDispatchScript = pkg.scripts?.["workflow:dispatch"] ?? "";
 
   assert.match(strictScript, /release-readiness\.ps1/);
   assert.match(strictScript, /-StrictFinalRun/);
@@ -53,4 +54,5 @@ test("release script aliases stay aligned with release-readiness flags", () => {
   assert.match(demoFastRetryScript, /-UseFastDemoE2E/);
 
   assert.match(releaseStrictDispatchScript, /release-strict-dispatch\.ps1/);
+  assert.match(workflowDispatchScript, /workflow-dispatch\.ps1/);
 });
