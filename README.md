@@ -523,6 +523,16 @@ Deploy gateway + frontend in one command:
 npm run deploy:railway:all -- -ProjectId "bbca2889-fd0d-48fe-bded-79802230e5a6" -GatewayServiceId "b8c1a952-da24-4410-a53a-82b634b70f47" -FrontendService "Live-Agent-Frontend" -Environment production -SkipReleaseVerification -GatewayPublicUrl https://live-agent-production.up.railway.app
 ```
 
+Dispatch `railway-deploy-all.yml` workflow from local CLI (with optional wait for completion):
+
+```powershell
+$env:GITHUB_OWNER="Web-pixel-creator"
+$env:GITHUB_REPO="Live-Agent"
+npm run deploy:railway:all:dispatch -- -Environment production -GatewayPublicUrl https://live-agent-production.up.railway.app -SkipReleaseVerification
+```
+
+`deploy:railway:all:dispatch` auth uses `-Token`, then `GITHUB_TOKEN`/`GH_TOKEN`, then fallback `gh auth token`.
+
 Behavior:
 
 - Runs release verification before deploy (`verify:release` by default).
