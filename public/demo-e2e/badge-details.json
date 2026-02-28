@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-27T11:54:30.608Z",
+  "generatedAt": "2026-02-28T19:15:45.492Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
@@ -66,6 +66,20 @@
         "seenAt": "2026-02-27T11:54:27.776Z",
         "seenAtIsIso": true
       }
+    },
+    "governancePolicy": {
+      "status": "fail",
+      "validated": false,
+      "operatorActionSeen": false,
+      "overrideTenantSeen": false,
+      "idempotencyReplayOutcome": "",
+      "versionConflictCode": "",
+      "idempotencyConflictCode": "",
+      "tenantScopeForbiddenCode": "",
+      "summaryTemplateId": "",
+      "summarySource": "",
+      "complianceTemplate": "",
+      "overridesTotal": 0
     }
   },
   "badge": {

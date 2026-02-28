@@ -218,6 +218,57 @@ function buildOperatorDamageControlEvidence(kpis) {
   };
 }
 
+function buildGovernancePolicyEvidence(kpis) {
+  const validated = toBoolean(kpis.governancePolicyLifecycleValidated) === true;
+  const operatorActionSeen = toBoolean(kpis.governancePolicyOperatorActionSeen) === true;
+  const overrideTenantSeen = toBoolean(kpis.governancePolicyOverrideTenantSeen) === true;
+  const idempotencyReplayOutcome = toOptionalString(kpis.governancePolicyIdempotencyReplayOutcome);
+  const versionConflictCode = toOptionalString(kpis.governancePolicyVersionConflictCode);
+  const idempotencyConflictCode = toOptionalString(kpis.governancePolicyIdempotencyConflictCode);
+  const tenantScopeForbiddenCode = toOptionalString(kpis.governancePolicyTenantScopeForbiddenCode);
+  const summaryTemplateId = toOptionalString(kpis.governancePolicySummaryTemplateId);
+  const summarySource = toOptionalString(kpis.governancePolicySummarySource);
+  const complianceTemplate = toOptionalString(kpis.governancePolicyComplianceTemplate);
+  const overridesTotal = toNumber(kpis.governancePolicyOverridesTotal) ?? 0;
+  const idempotencyReplayOutcomeValue = idempotencyReplayOutcome ?? "";
+  const versionConflictCodeValue = versionConflictCode ?? "";
+  const idempotencyConflictCodeValue = idempotencyConflictCode ?? "";
+  const tenantScopeForbiddenCodeValue = tenantScopeForbiddenCode ?? "";
+  const summaryTemplateIdValue = summaryTemplateId ?? "";
+  const summarySourceValue = summarySource ?? "";
+  const complianceTemplateValue = complianceTemplate ?? "";
+
+  const status =
+    validated &&
+    operatorActionSeen &&
+    overrideTenantSeen &&
+    idempotencyReplayOutcomeValue === "idempotent_replay" &&
+    versionConflictCodeValue === "API_GOVERNANCE_POLICY_VERSION_CONFLICT" &&
+    idempotencyConflictCodeValue === "API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT" &&
+    tenantScopeForbiddenCodeValue === "API_TENANT_SCOPE_FORBIDDEN" &&
+    summaryTemplateIdValue === "strict" &&
+    summarySourceValue === "tenant_override" &&
+    complianceTemplateValue === "strict" &&
+    overridesTotal >= 1
+      ? "pass"
+      : "fail";
+
+  return {
+    status,
+    validated,
+    operatorActionSeen,
+    overrideTenantSeen,
+    idempotencyReplayOutcome: idempotencyReplayOutcomeValue,
+    versionConflictCode: versionConflictCodeValue,
+    idempotencyConflictCode: idempotencyConflictCodeValue,
+    tenantScopeForbiddenCode: tenantScopeForbiddenCodeValue,
+    summaryTemplateId: summaryTemplateIdValue,
+    summarySource: summarySourceValue,
+    complianceTemplate: complianceTemplateValue,
+    overridesTotal,
+  };
+}
+
 function fail(message, details) {
   process.stderr.write(
     `${JSON.stringify({
@@ -280,6 +331,7 @@ async function main() {
   });
   const damageControlEvidence = buildDamageControlEvidence(kpis);
   const operatorDamageControlEvidence = buildOperatorDamageControlEvidence(kpis);
+  const governancePolicyEvidence = buildGovernancePolicyEvidence(kpis);
 
   let color = "red";
   if (ok) {
@@ -315,6 +367,7 @@ async function main() {
       operatorTurnDelete: operatorTurnDeleteEvidence,
       damageControl: damageControlEvidence,
       operatorDamageControl: operatorDamageControlEvidence,
+      governancePolicy: governancePolicyEvidence,
     },
     badge,
   };

@@ -36,10 +36,12 @@ test("tracked public badge details embed badge payload", () => {
   const turnDelete = evidence.operatorTurnDelete as Record<string, unknown>;
   const damageControl = evidence.damageControl as Record<string, unknown>;
   const operatorDamageControl = evidence.operatorDamageControl as Record<string, unknown>;
+  const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
   assert.ok(turnTruncation && typeof turnTruncation === "object");
   assert.ok(turnDelete && typeof turnDelete === "object");
   assert.ok(damageControl && typeof damageControl === "object");
   assert.ok(operatorDamageControl && typeof operatorDamageControl === "object");
+  assert.ok(governancePolicy && typeof governancePolicy === "object");
 
   assert.equal(details.ok, true);
   assert.equal(typeof details.generatedAt, "string");
@@ -79,6 +81,18 @@ test("tracked public badge details embed badge payload", () => {
   assert.equal(typeof operatorDamageControlLatest.matchedRuleCount, "number");
   assert.equal(typeof operatorDamageControlLatest.seenAt, "string");
   assert.equal(typeof operatorDamageControlLatest.seenAtIsIso, "boolean");
+  assert.equal(typeof governancePolicy.status, "string");
+  assert.equal(typeof governancePolicy.validated, "boolean");
+  assert.equal(typeof governancePolicy.operatorActionSeen, "boolean");
+  assert.equal(typeof governancePolicy.overrideTenantSeen, "boolean");
+  assert.equal(typeof governancePolicy.idempotencyReplayOutcome, "string");
+  assert.equal(typeof governancePolicy.versionConflictCode, "string");
+  assert.equal(typeof governancePolicy.idempotencyConflictCode, "string");
+  assert.equal(typeof governancePolicy.tenantScopeForbiddenCode, "string");
+  assert.equal(typeof governancePolicy.summaryTemplateId, "string");
+  assert.equal(typeof governancePolicy.summarySource, "string");
+  assert.equal(typeof governancePolicy.complianceTemplate, "string");
+  assert.equal(typeof governancePolicy.overridesTotal, "number");
   assert.equal(typeof details.policyPath, "string");
   assert.equal(typeof details.summaryPath, "string");
   assert.equal(badge.schemaVersion, 1);

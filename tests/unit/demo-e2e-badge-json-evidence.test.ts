@@ -96,6 +96,17 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         operatorDamageControlLatestSource: "file",
         operatorDamageControlLatestMatchedRuleCount: 2,
         operatorDamageControlLatestSeenAt: "2026-02-26T00:00:00.000Z",
+        governancePolicyLifecycleValidated: true,
+        governancePolicyOperatorActionSeen: true,
+        governancePolicyOverrideTenantSeen: true,
+        governancePolicyIdempotencyReplayOutcome: "idempotent_replay",
+        governancePolicyVersionConflictCode: "API_GOVERNANCE_POLICY_VERSION_CONFLICT",
+        governancePolicyIdempotencyConflictCode: "API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT",
+        governancePolicyTenantScopeForbiddenCode: "API_TENANT_SCOPE_FORBIDDEN",
+        governancePolicySummaryTemplateId: "strict",
+        governancePolicySummarySource: "tenant_override",
+        governancePolicyComplianceTemplate: "strict",
+        governancePolicyOverridesTotal: 1,
       },
     },
   });
@@ -108,10 +119,12 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   const turnDelete = evidence.operatorTurnDelete as Record<string, unknown>;
   const damageControl = evidence.damageControl as Record<string, unknown>;
   const operatorDamageControl = evidence.operatorDamageControl as Record<string, unknown>;
+  const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
   assert.equal(turnTruncation.status, "pass");
   assert.equal(turnDelete.status, "pass");
   assert.equal(damageControl.status, "pass");
   assert.equal(operatorDamageControl.status, "pass");
+  assert.equal(governancePolicy.status, "pass");
   assert.equal(turnTruncation.latestTurnId, "turn-truncate-demo");
   assert.equal(turnDelete.latestTurnId, "turn-delete-demo");
   assert.equal(turnDelete.latestScope, "session_local");
@@ -121,6 +134,10 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   const operatorDamageControlLatest = operatorDamageControl.latest as Record<string, unknown>;
   assert.equal(operatorDamageControlLatest.verdict, "ask");
   assert.equal(operatorDamageControlLatest.source, "file");
+  assert.equal(governancePolicy.summaryTemplateId, "strict");
+  assert.equal(governancePolicy.summarySource, "tenant_override");
+  assert.equal(governancePolicy.complianceTemplate, "strict");
+  assert.equal(governancePolicy.overridesTotal, 1);
 });
 
 test("demo-e2e badge details marks operator turn delete evidence as failed when checkpoint is missing", () => {
@@ -154,6 +171,7 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   const turnDelete = evidence.operatorTurnDelete as Record<string, unknown>;
   const damageControl = evidence.damageControl as Record<string, unknown>;
   const operatorDamageControl = evidence.operatorDamageControl as Record<string, unknown>;
+  const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
   assert.equal(turnDelete.status, "fail");
   assert.equal(turnDelete.validated, false);
   assert.equal(turnDelete.total, 0);
@@ -164,4 +182,7 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   assert.equal(damageControl.matchedRuleCount, 0);
   assert.deepEqual(damageControl.matchedRuleIds, []);
   assert.equal(operatorDamageControl.status, "fail");
+  assert.equal(governancePolicy.status, "fail");
+  assert.equal(governancePolicy.validated, false);
+  assert.equal(governancePolicy.overridesTotal, 0);
 });
