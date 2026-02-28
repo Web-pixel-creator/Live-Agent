@@ -2936,6 +2936,153 @@ try {
   } | Out-Null
 
   Invoke-Scenario `
+    -Name "skills.registry.lifecycle" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    $skillsTenantId = "skills-demo-" + [Guid]::NewGuid().Guid
+    $skillsAdminHeaders = @{
+      "x-operator-role" = "admin"
+      "x-tenant-id" = $skillsTenantId
+      "x-operator-id" = "demo-skills-admin"
+    }
+    $skillsViewerHeaders = @{
+      "x-operator-role" = "viewer"
+      "x-tenant-id" = $skillsTenantId
+    }
+
+    $skillId = "demo-skill-" + [Guid]::NewGuid().Guid
+    $skillName = "Demo Skill " + (Get-Date).ToString("yyyyMMddHHmmss")
+    $skillPrompt = "Always include a one-line status summary."
+    $skillScope = @("live-agent", "ui-navigator-agent")
+
+    $indexBaselineResponse = Invoke-JsonRequest `
+      -Method GET `
+      -Uri "http://localhost:8081/v1/skills/index?scope=live-agent&includeDisabled=true&limit=200" `
+      -TimeoutSec $RequestTimeoutSec
+    $indexBaselineTotal = [int](Get-FieldValue -Object $indexBaselineResponse -Path @("total"))
+
+    $createBody = @{
+      skillId = $skillId
+      name = $skillName
+      description = "Demo skills registry lifecycle scenario"
+      prompt = $skillPrompt
+      scope = $skillScope
+      enabled = $true
+      trustLevel = "reviewed"
+      expectedVersion = 1
+      updatedBy = "demo-e2e"
+      metadata = @{
+        scenario = "skills.registry.lifecycle"
+      }
+    }
+    $createResponse = Invoke-JsonRequest `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/skills/registry" `
+      -Headers $skillsAdminHeaders `
+      -Body $createBody `
+      -TimeoutSec $RequestTimeoutSec
+    $createOutcome = [string](Get-FieldValue -Object $createResponse -Path @("meta", "outcome"))
+    $createdVersion = [int](Get-FieldValue -Object $createResponse -Path @("data", "version"))
+    Assert-Condition -Condition ($createOutcome -eq "created") -Message "Expected skills registry create outcome."
+    Assert-Condition -Condition ($createdVersion -ge 1) -Message "Expected skills registry created version >= 1."
+
+    $replayResponse = Invoke-JsonRequest `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/skills/registry" `
+      -Headers $skillsAdminHeaders `
+      -Body $createBody `
+      -TimeoutSec $RequestTimeoutSec
+    $replayOutcome = [string](Get-FieldValue -Object $replayResponse -Path @("meta", "outcome"))
+    Assert-Condition -Condition ($replayOutcome -eq "idempotent_replay") -Message "Expected skills registry idempotent replay outcome."
+
+    $versionConflictResponse = Invoke-JsonRequestExpectStatus `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/skills/registry" `
+      -Headers $skillsAdminHeaders `
+      -Body @{
+        skillId = $skillId
+        name = $skillName
+        prompt = ($skillPrompt + " v2")
+        scope = $skillScope
+        expectedVersion = ($createdVersion + 1)
+        updatedBy = "demo-e2e"
+      } `
+      -ExpectedStatusCode 409 `
+      -TimeoutSec $RequestTimeoutSec
+    $versionConflictCode = [string](Get-FieldValue -Object $versionConflictResponse -Path @("body", "error", "code"))
+    Assert-Condition -Condition ($versionConflictCode -eq "API_SKILL_REGISTRY_VERSION_CONFLICT") -Message "Expected skills registry version conflict code."
+
+    $invalidPermissionResponse = Invoke-JsonRequestExpectStatus `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/skills/registry" `
+      -Headers $skillsAdminHeaders `
+      -Body @{
+        skillId = ("demo-skill-invalid-permission-" + [Guid]::NewGuid().Guid)
+        name = "Invalid Permission Skill"
+        prompt = "Should fail due to plugin permission allowlist."
+        scope = @("live-agent")
+        expectedVersion = 1
+        pluginManifest = @{
+          permissions = @("live.conversation", "filesystem.delete")
+        }
+      } `
+      -ExpectedStatusCode 400 `
+      -TimeoutSec $RequestTimeoutSec
+    $invalidPermissionCode = [string](Get-FieldValue -Object $invalidPermissionResponse -Path @("body", "error", "code"))
+    Assert-Condition -Condition ($invalidPermissionCode -eq "API_SKILL_PLUGIN_PERMISSION_INVALID") -Message "Expected skills plugin invalid permission code."
+
+    $indexAfterResponse = Invoke-JsonRequest `
+      -Method GET `
+      -Uri "http://localhost:8081/v1/skills/index?scope=live-agent&includeDisabled=true&limit=200" `
+      -TimeoutSec $RequestTimeoutSec
+    $indexAfterTotal = [int](Get-FieldValue -Object $indexAfterResponse -Path @("total"))
+    $indexItems = @((Get-FieldValue -Object $indexAfterResponse -Path @("data")))
+    $indexHasSkill = @(
+      $indexItems | Where-Object { [string](Get-FieldValue -Object $_ -Path @("id")) -eq $skillId }
+    ).Count -ge 1
+    Assert-Condition -Condition $indexHasSkill -Message "Skills index should contain created skill."
+
+    $registryResponse = Invoke-JsonRequest `
+      -Method GET `
+      -Uri "http://localhost:8081/v1/skills/registry?scope=live-agent&includeDisabled=true&limit=200" `
+      -Headers $skillsViewerHeaders `
+      -TimeoutSec $RequestTimeoutSec
+    $registryTotal = [int](Get-FieldValue -Object $registryResponse -Path @("total"))
+    $registryItems = @((Get-FieldValue -Object $registryResponse -Path @("data")))
+    $registryHasSkill = @(
+      $registryItems | Where-Object { [string](Get-FieldValue -Object $_ -Path @("skillId")) -eq $skillId }
+    ).Count -ge 1
+    Assert-Condition -Condition $registryHasSkill -Message "Skills registry should contain created skill."
+
+    $lifecycleValidated = (
+      $createOutcome -eq "created" -and
+      $replayOutcome -eq "idempotent_replay" -and
+      $versionConflictCode -eq "API_SKILL_REGISTRY_VERSION_CONFLICT" -and
+      $invalidPermissionCode -eq "API_SKILL_PLUGIN_PERMISSION_INVALID" -and
+      $indexHasSkill -and
+      $registryHasSkill
+    )
+
+    return [ordered]@{
+      tenantId = $skillsTenantId
+      skillId = $skillId
+      baselineIndexTotal = $indexBaselineTotal
+      indexTotal = $indexAfterTotal
+      registryTotal = $registryTotal
+      createOutcome = $createOutcome
+      replayOutcome = $replayOutcome
+      createdVersion = $createdVersion
+      versionConflictCode = $versionConflictCode
+      invalidPermissionCode = $invalidPermissionCode
+      indexHasSkill = $indexHasSkill
+      registryHasSkill = $registryHasSkill
+      lifecycleValidated = $lifecycleValidated
+    }
+  } | Out-Null
+
+  Invoke-Scenario `
     -Name "api.sessions.versioning" `
     -MaxAttempts $ScenarioRetryMaxAttempts `
     -InitialBackoffMs $ScenarioRetryBackoffMs `
@@ -3289,6 +3436,7 @@ $operatorActionsData = Get-ScenarioData -Name "operator.console.actions"
 $approvalsListData = Get-ScenarioData -Name "api.approvals.list"
 $approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.invalid_intent"
 $governancePolicyData = Get-ScenarioData -Name "governance.policy.lifecycle"
+$skillsRegistryData = Get-ScenarioData -Name "skills.registry.lifecycle"
 $sessionVersioningData = Get-ScenarioData -Name "api.sessions.versioning"
 $runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
 $runtimeMetricsData = Get-ScenarioData -Name "runtime.metrics.endpoints"
@@ -3311,6 +3459,7 @@ $operatorDeviceNodesScenario = @($script:ScenarioResults | Where-Object { $_.nam
 $approvalsListScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.approvals.list" } | Select-Object -First 1)
 $approvalsInvalidIntentScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.approvals.resume.invalid_intent" } | Select-Object -First 1)
 $governancePolicyScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "governance.policy.lifecycle" } | Select-Object -First 1)
+$skillsRegistryScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "skills.registry.lifecycle" } | Select-Object -First 1)
 $sessionVersioningScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.sessions.versioning" } | Select-Object -First 1)
 $uiVisualTestingScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.visual_testing" } | Select-Object -First 1)
 $operatorActionsScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "operator.console.actions" } | Select-Object -First 1)
@@ -3499,6 +3648,7 @@ $summary = [ordered]@{
     approvalsListScenarioAttempts = if ($approvalsListScenario.Count -gt 0) { [int]$approvalsListScenario[0].attempts } else { $null }
     approvalsInvalidIntentScenarioAttempts = if ($approvalsInvalidIntentScenario.Count -gt 0) { [int]$approvalsInvalidIntentScenario[0].attempts } else { $null }
     governancePolicyScenarioAttempts = if ($governancePolicyScenario.Count -gt 0) { [int]$governancePolicyScenario[0].attempts } else { $null }
+    skillsRegistryScenarioAttempts = if ($skillsRegistryScenario.Count -gt 0) { [int]$skillsRegistryScenario[0].attempts } else { $null }
     sessionVersioningScenarioAttempts = if ($sessionVersioningScenario.Count -gt 0) { [int]$sessionVersioningScenario[0].attempts } else { $null }
     uiVisualTestingScenarioAttempts = if ($uiVisualTestingScenario.Count -gt 0) { [int]$uiVisualTestingScenario[0].attempts } else { $null }
     operatorConsoleActionsScenarioAttempts = if ($operatorActionsScenario.Count -gt 0) { [int]$operatorActionsScenario[0].attempts } else { $null }
@@ -3837,6 +3987,27 @@ $summary = [ordered]@{
       [string]$governancePolicyData.summarySource -eq "tenant_override" -and
       [bool]$governancePolicyData.summaryGovernanceActionSeen -eq $true -and
       [bool]$governancePolicyData.adminOverrideTenantSeen -eq $true
+    ) { $true } else { $false }
+    skillsRegistryTenantId = if ($null -ne $skillsRegistryData) { $skillsRegistryData.tenantId } else { $null }
+    skillsRegistrySkillId = if ($null -ne $skillsRegistryData) { $skillsRegistryData.skillId } else { $null }
+    skillsRegistryCreateOutcome = if ($null -ne $skillsRegistryData) { $skillsRegistryData.createOutcome } else { $null }
+    skillsRegistryReplayOutcome = if ($null -ne $skillsRegistryData) { $skillsRegistryData.replayOutcome } else { $null }
+    skillsRegistryVersion = if ($null -ne $skillsRegistryData) { $skillsRegistryData.createdVersion } else { $null }
+    skillsRegistryVersionConflictCode = if ($null -ne $skillsRegistryData) { $skillsRegistryData.versionConflictCode } else { $null }
+    skillsRegistryPluginInvalidPermissionCode = if ($null -ne $skillsRegistryData) { $skillsRegistryData.invalidPermissionCode } else { $null }
+    skillsRegistryIndexTotal = if ($null -ne $skillsRegistryData) { $skillsRegistryData.indexTotal } else { $null }
+    skillsRegistryTotal = if ($null -ne $skillsRegistryData) { $skillsRegistryData.registryTotal } else { $null }
+    skillsRegistryIndexHasSkill = if ($null -ne $skillsRegistryData) { $skillsRegistryData.indexHasSkill } else { $false }
+    skillsRegistryRegistryHasSkill = if ($null -ne $skillsRegistryData) { $skillsRegistryData.registryHasSkill } else { $false }
+    skillsRegistryLifecycleValidated = if (
+      $null -ne $skillsRegistryData -and
+      [bool]$skillsRegistryData.lifecycleValidated -eq $true -and
+      [string]$skillsRegistryData.createOutcome -eq "created" -and
+      [string]$skillsRegistryData.replayOutcome -eq "idempotent_replay" -and
+      [string]$skillsRegistryData.versionConflictCode -eq "API_SKILL_REGISTRY_VERSION_CONFLICT" -and
+      [string]$skillsRegistryData.invalidPermissionCode -eq "API_SKILL_PLUGIN_PERMISSION_INVALID" -and
+      [bool]$skillsRegistryData.indexHasSkill -eq $true -and
+      [bool]$skillsRegistryData.registryHasSkill -eq $true
     ) { $true } else { $false }
     sessionVersionConflictCode = if ($null -ne $sessionVersioningData) { $sessionVersioningData.versionConflictCode } else { $null }
     sessionIdempotencyReplayOutcome = if ($null -ne $sessionVersioningData) { $sessionVersioningData.idempotencyReplayOutcome } else { $null }

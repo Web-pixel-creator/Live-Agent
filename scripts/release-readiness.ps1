@@ -384,6 +384,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     "gateway.websocket.binding_mismatch",
     "gateway.websocket.draining_rejection",
     "governance.policy.lifecycle",
+    "skills.registry.lifecycle",
     "api.sessions.versioning"
   )
   foreach ($requiredScenario in $requiredSummaryScenarios) {
@@ -407,6 +408,9 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     governancePolicyLifecycleValidated = $true
     governancePolicyOperatorActionSeen = $true
     governancePolicyOverrideTenantSeen = $true
+    skillsRegistryLifecycleValidated = $true
+    skillsRegistryIndexHasSkill = $true
+    skillsRegistryRegistryHasSkill = $true
     sessionVersioningValidated = $true
     operatorTurnTruncationSummaryValidated = $true
     operatorTurnTruncationExpectedEventSeen = $true
@@ -467,6 +471,39 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $governancePolicyOverridesTotal = To-NumberOrNaN $summary.kpis.governancePolicyOverridesTotal
   if ([double]::IsNaN($governancePolicyOverridesTotal) -or $governancePolicyOverridesTotal -lt 1) {
     Fail ("Critical KPI check failed: governancePolicyOverridesTotal expected >= 1, actual " + $summary.kpis.governancePolicyOverridesTotal)
+  }
+
+  $skillsRegistryCreateOutcome = [string]$summary.kpis.skillsRegistryCreateOutcome
+  if ($skillsRegistryCreateOutcome -ne "created") {
+    Fail ("Critical KPI check failed: skillsRegistryCreateOutcome expected created, actual " + $skillsRegistryCreateOutcome)
+  }
+
+  $skillsRegistryReplayOutcome = [string]$summary.kpis.skillsRegistryReplayOutcome
+  if ($skillsRegistryReplayOutcome -ne "idempotent_replay") {
+    Fail ("Critical KPI check failed: skillsRegistryReplayOutcome expected idempotent_replay, actual " + $skillsRegistryReplayOutcome)
+  }
+
+  $skillsRegistryVersionConflictCode = [string]$summary.kpis.skillsRegistryVersionConflictCode
+  if ($skillsRegistryVersionConflictCode -ne "API_SKILL_REGISTRY_VERSION_CONFLICT") {
+    Fail ("Critical KPI check failed: skillsRegistryVersionConflictCode expected API_SKILL_REGISTRY_VERSION_CONFLICT, actual " + $skillsRegistryVersionConflictCode)
+  }
+
+  $skillsRegistryPluginInvalidPermissionCode = [string]$summary.kpis.skillsRegistryPluginInvalidPermissionCode
+  if ($skillsRegistryPluginInvalidPermissionCode -ne "API_SKILL_PLUGIN_PERMISSION_INVALID") {
+    Fail (
+      "Critical KPI check failed: skillsRegistryPluginInvalidPermissionCode expected API_SKILL_PLUGIN_PERMISSION_INVALID, actual " +
+      $skillsRegistryPluginInvalidPermissionCode
+    )
+  }
+
+  $skillsRegistryIndexTotal = To-NumberOrNaN $summary.kpis.skillsRegistryIndexTotal
+  if ([double]::IsNaN($skillsRegistryIndexTotal) -or $skillsRegistryIndexTotal -lt 1) {
+    Fail ("Critical KPI check failed: skillsRegistryIndexTotal expected >= 1, actual " + $summary.kpis.skillsRegistryIndexTotal)
+  }
+
+  $skillsRegistryTotal = To-NumberOrNaN $summary.kpis.skillsRegistryTotal
+  if ([double]::IsNaN($skillsRegistryTotal) -or $skillsRegistryTotal -lt 1) {
+    Fail ("Critical KPI check failed: skillsRegistryTotal expected >= 1, actual " + $summary.kpis.skillsRegistryTotal)
   }
 
   $taskQueuePressureLevel = [string]$summary.kpis.operatorTaskQueuePressureLevel
@@ -1001,6 +1038,20 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     )
   }
 
+  $skillsRegistryScenarioAttempts = To-NumberOrNaN $summary.kpis.skillsRegistryScenarioAttempts
+  if (
+    [double]::IsNaN($skillsRegistryScenarioAttempts) -or
+    $skillsRegistryScenarioAttempts -lt 1 -or
+    $skillsRegistryScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.skillsRegistryScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.skillsRegistryScenarioAttempts
+    )
+  }
+
   $sessionVersioningScenarioAttempts = To-NumberOrNaN $summary.kpis.sessionVersioningScenarioAttempts
   if (
     [double]::IsNaN($sessionVersioningScenarioAttempts) -or
@@ -1325,6 +1376,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $approvalsListAttempts = $summary.kpis.approvalsListScenarioAttempts
   $approvalsInvalidIntentAttempts = $summary.kpis.approvalsInvalidIntentScenarioAttempts
   $governancePolicyAttempts = $summary.kpis.governancePolicyScenarioAttempts
+  $skillsRegistryAttempts = $summary.kpis.skillsRegistryScenarioAttempts
   $sessionVersioningAttempts = $summary.kpis.sessionVersioningScenarioAttempts
   $uiVisualAttempts = $summary.kpis.uiVisualTestingScenarioAttempts
   $operatorActionsAttempts = $summary.kpis.operatorConsoleActionsScenarioAttempts
@@ -1353,6 +1405,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     $null -ne $approvalsListAttempts -or
     $null -ne $approvalsInvalidIntentAttempts -or
     $null -ne $governancePolicyAttempts -or
+    $null -ne $skillsRegistryAttempts -or
     $null -ne $sessionVersioningAttempts -or
     $null -ne $uiVisualAttempts -or
     $null -ne $operatorActionsAttempts -or
@@ -1383,6 +1436,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", api.approvals.list_attempts=" + $approvalsListAttempts +
       ", api.approvals.resume.invalid_intent_attempts=" + $approvalsInvalidIntentAttempts +
       ", governance.policy.lifecycle_attempts=" + $governancePolicyAttempts +
+      ", skills.registry.lifecycle_attempts=" + $skillsRegistryAttempts +
       ", api.sessions.versioning_attempts=" + $sessionVersioningAttempts +
       ", ui.visual_testing_attempts=" + $uiVisualAttempts +
       ", operator.console.actions_attempts=" + $operatorActionsAttempts +
@@ -1450,6 +1504,26 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", template=" + $governancePolicyTemplate +
       ", source=" + $governancePolicySource +
       ", operator_action_seen=" + $governancePolicyActionSeen
+    )
+  }
+  $skillsRegistryValidated = $summary.kpis.skillsRegistryLifecycleValidated
+  $skillsRegistryCreateOutcome = $summary.kpis.skillsRegistryCreateOutcome
+  $skillsRegistryReplayOutcome = $summary.kpis.skillsRegistryReplayOutcome
+  $skillsRegistryVersionConflictCode = $summary.kpis.skillsRegistryVersionConflictCode
+  $skillsRegistryInvalidPermissionCode = $summary.kpis.skillsRegistryPluginInvalidPermissionCode
+  if (
+    $null -ne $skillsRegistryValidated -or
+    $null -ne $skillsRegistryCreateOutcome -or
+    $null -ne $skillsRegistryReplayOutcome -or
+    $null -ne $skillsRegistryVersionConflictCode -or
+    $null -ne $skillsRegistryInvalidPermissionCode
+  ) {
+    Write-Host (
+      "skills.registry.lifecycle: validated=" + $skillsRegistryValidated +
+      ", create_outcome=" + $skillsRegistryCreateOutcome +
+      ", replay_outcome=" + $skillsRegistryReplayOutcome +
+      ", version_conflict_code=" + $skillsRegistryVersionConflictCode +
+      ", invalid_permission_code=" + $skillsRegistryInvalidPermissionCode
     )
   }
   $turnTruncationValidated = $summary.kpis.operatorTurnTruncationSummaryValidated

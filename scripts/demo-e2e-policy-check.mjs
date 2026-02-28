@@ -210,6 +210,7 @@ async function main() {
         "api.approvals.list",
         "api.approvals.resume.invalid_intent",
         "governance.policy.lifecycle",
+        "skills.registry.lifecycle",
         "api.sessions.versioning",
         "runtime.lifecycle.endpoints",
         "runtime.metrics.endpoints",
@@ -1011,6 +1012,60 @@ async function main() {
     ">= 1",
   );
   addCheck(
+    "kpi.skillsRegistryLifecycleValidated",
+    kpis.skillsRegistryLifecycleValidated === true,
+    kpis.skillsRegistryLifecycleValidated,
+    true,
+  );
+  addCheck(
+    "kpi.skillsRegistryCreateOutcome",
+    String(kpis.skillsRegistryCreateOutcome) === "created",
+    kpis.skillsRegistryCreateOutcome,
+    "created",
+  );
+  addCheck(
+    "kpi.skillsRegistryReplayOutcome",
+    String(kpis.skillsRegistryReplayOutcome) === "idempotent_replay",
+    kpis.skillsRegistryReplayOutcome,
+    "idempotent_replay",
+  );
+  addCheck(
+    "kpi.skillsRegistryVersionConflictCode",
+    String(kpis.skillsRegistryVersionConflictCode) === "API_SKILL_REGISTRY_VERSION_CONFLICT",
+    kpis.skillsRegistryVersionConflictCode,
+    "API_SKILL_REGISTRY_VERSION_CONFLICT",
+  );
+  addCheck(
+    "kpi.skillsRegistryPluginInvalidPermissionCode",
+    String(kpis.skillsRegistryPluginInvalidPermissionCode) === "API_SKILL_PLUGIN_PERMISSION_INVALID",
+    kpis.skillsRegistryPluginInvalidPermissionCode,
+    "API_SKILL_PLUGIN_PERMISSION_INVALID",
+  );
+  addCheck(
+    "kpi.skillsRegistryIndexHasSkill",
+    kpis.skillsRegistryIndexHasSkill === true,
+    kpis.skillsRegistryIndexHasSkill,
+    true,
+  );
+  addCheck(
+    "kpi.skillsRegistryRegistryHasSkill",
+    kpis.skillsRegistryRegistryHasSkill === true,
+    kpis.skillsRegistryRegistryHasSkill,
+    true,
+  );
+  addCheck(
+    "kpi.skillsRegistryIndexTotal",
+    toNumber(kpis.skillsRegistryIndexTotal) >= 1,
+    kpis.skillsRegistryIndexTotal,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.skillsRegistryTotal",
+    toNumber(kpis.skillsRegistryTotal) >= 1,
+    kpis.skillsRegistryTotal,
+    ">= 1",
+  );
+  addCheck(
     "kpi.sessionVersioningValidated",
     kpis.sessionVersioningValidated === true,
     kpis.sessionVersioningValidated,
@@ -1295,6 +1350,16 @@ async function main() {
       Number.isFinite(scenarioRetryMaxAttempts) &&
       governancePolicyScenarioAttempts <= scenarioRetryMaxAttempts,
     kpis.governancePolicyScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const skillsRegistryScenarioAttempts = toNumber(kpis.skillsRegistryScenarioAttempts);
+  addCheck(
+    "kpi.skillsRegistryScenarioAttempts",
+    Number.isFinite(skillsRegistryScenarioAttempts) &&
+      skillsRegistryScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      skillsRegistryScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.skillsRegistryScenarioAttempts,
     "1..options.scenarioRetryMaxAttempts",
   );
   const sessionVersioningScenarioAttempts = toNumber(kpis.sessionVersioningScenarioAttempts);

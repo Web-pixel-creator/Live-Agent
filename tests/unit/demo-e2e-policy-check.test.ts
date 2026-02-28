@@ -37,6 +37,7 @@ const requiredScenarioNames = [
   "api.approvals.list",
   "api.approvals.resume.invalid_intent",
   "governance.policy.lifecycle",
+  "skills.registry.lifecycle",
   "api.sessions.versioning",
   "runtime.lifecycle.endpoints",
   "runtime.metrics.endpoints",
@@ -182,6 +183,15 @@ function createPassingSummary(overrides?: {
     governancePolicyOperatorActionSeen: true,
     governancePolicyOverrideTenantSeen: true,
     governancePolicyOverridesTotal: 1,
+    skillsRegistryLifecycleValidated: true,
+    skillsRegistryCreateOutcome: "created",
+    skillsRegistryReplayOutcome: "idempotent_replay",
+    skillsRegistryVersionConflictCode: "API_SKILL_REGISTRY_VERSION_CONFLICT",
+    skillsRegistryPluginInvalidPermissionCode: "API_SKILL_PLUGIN_PERMISSION_INVALID",
+    skillsRegistryIndexHasSkill: true,
+    skillsRegistryRegistryHasSkill: true,
+    skillsRegistryIndexTotal: 1,
+    skillsRegistryTotal: 1,
     sessionVersioningValidated: true,
     sessionVersionConflictCode: "API_SESSION_VERSION_CONFLICT",
     sessionIdempotencyReplayOutcome: "idempotent_replay",
@@ -213,6 +223,7 @@ function createPassingSummary(overrides?: {
     approvalsListScenarioAttempts: 1,
     approvalsInvalidIntentScenarioAttempts: 1,
     governancePolicyScenarioAttempts: 1,
+    skillsRegistryScenarioAttempts: 1,
     sessionVersioningScenarioAttempts: 1,
     uiVisualTestingScenarioAttempts: 1,
     operatorConsoleActionsScenarioAttempts: 1,
@@ -314,7 +325,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 231);
+  assert.equal(result.payload.checks, 242);
 });
 
 test("demo-e2e policy check fails when gateway error correlation KPI is invalid", () => {
@@ -922,6 +933,25 @@ test("demo-e2e policy check fails when session versioning scenario attempts exce
   assert.ok(violations.some((item) => item.includes("kpi.sessionVersioningScenarioAttempts")));
 });
 
+test("demo-e2e policy check fails when skills registry scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        skillsRegistryScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.skillsRegistryScenarioAttempts")));
+});
+
 test("demo-e2e policy check fails when runtime lifecycle scenario attempts exceed configured retry max", () => {
   const result = runPolicyCheck(
     createPassingSummary({
@@ -975,6 +1005,21 @@ test("demo-e2e policy check fails when operator.device_nodes.lifecycle scenario 
   assert.ok(violations.some((item) => item.includes("scenario.operator.device_nodes.lifecycle")));
 });
 
+test("demo-e2e policy check fails when skills.registry.lifecycle scenario is missing", () => {
+  const summary = createPassingSummary();
+  summary.scenarios = (summary.scenarios as Array<Record<string, unknown>>).filter(
+    (item) => item.name !== "skills.registry.lifecycle",
+  );
+
+  const result = runPolicyCheck(summary);
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("scenario.skills.registry.lifecycle")));
+});
+
 test("demo-e2e policy check fails when session versioning KPI is invalid", () => {
   const result = runPolicyCheck(
     createPassingSummary({
@@ -989,6 +1034,22 @@ test("demo-e2e policy check fails when session versioning KPI is invalid", () =>
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.sessionVersioningValidated")));
+});
+
+test("demo-e2e policy check fails when skills registry lifecycle KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        skillsRegistryLifecycleValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.skillsRegistryLifecycleValidated")));
 });
 
 test("demo-e2e policy check fails when gateway websocket binding mismatch KPI is invalid", () => {

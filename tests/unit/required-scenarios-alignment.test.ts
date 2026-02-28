@@ -39,6 +39,7 @@ test("release required scenarios are aligned with policy required scenarios", ()
     "gateway.websocket.binding_mismatch",
     "gateway.websocket.draining_rejection",
     "governance.policy.lifecycle",
+    "skills.registry.lifecycle",
     "api.sessions.versioning",
   ];
 

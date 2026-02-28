@@ -175,6 +175,16 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `governancePolicySummaryTemplateId=strict`
   - `governancePolicySummarySource=tenant_override`
   - `governancePolicyOverridesTotal >= 1`
+- Managed skills registry reliability:
+  - `skillsRegistryLifecycleValidated=true`
+  - `skillsRegistryIndexHasSkill=true`
+  - `skillsRegistryRegistryHasSkill=true`
+  - `skillsRegistryCreateOutcome=created`
+  - `skillsRegistryReplayOutcome=idempotent_replay`
+  - `skillsRegistryVersionConflictCode=API_SKILL_REGISTRY_VERSION_CONFLICT`
+  - `skillsRegistryPluginInvalidPermissionCode=API_SKILL_PLUGIN_PERMISSION_INVALID`
+  - `skillsRegistryIndexTotal >= 1`
+  - `skillsRegistryTotal >= 1`
 - Telemetry split reliability:
   - `analyticsSplitTargetsValidated=true`
   - `analyticsBigQueryConfigValidated=true`
@@ -215,6 +225,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `kpi.approvalsListScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.approvalsInvalidIntentScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.governancePolicyScenarioAttempts <= options.scenarioRetryMaxAttempts`
+  - `kpi.skillsRegistryScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.sessionVersioningScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.uiVisualTestingScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.operatorConsoleActionsScenarioAttempts <= options.scenarioRetryMaxAttempts`

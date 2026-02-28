@@ -62,6 +62,7 @@ function createPassingSummary(
     approvalsListScenarioAttempts: number | string;
     approvalsInvalidIntentScenarioAttempts: number | string;
     governancePolicyScenarioAttempts: number | string;
+    skillsRegistryScenarioAttempts: number | string;
     governancePolicyLifecycleValidated: boolean | string;
     governancePolicyOperatorActionSeen: boolean | string;
     governancePolicyOverrideTenantSeen: boolean | string;
@@ -73,6 +74,15 @@ function createPassingSummary(
     governancePolicySummarySource: string;
     governancePolicyOverridesTotal: number | string;
     governancePolicyComplianceTemplate: string;
+    skillsRegistryLifecycleValidated: boolean | string;
+    skillsRegistryIndexHasSkill: boolean | string;
+    skillsRegistryRegistryHasSkill: boolean | string;
+    skillsRegistryCreateOutcome: string;
+    skillsRegistryReplayOutcome: string;
+    skillsRegistryVersionConflictCode: string;
+    skillsRegistryPluginInvalidPermissionCode: string;
+    skillsRegistryIndexTotal: number | string;
+    skillsRegistryTotal: number | string;
     sessionVersioningScenarioAttempts: number | string;
     liveTranslationScenarioAttempts: number | string;
     liveNegotiationScenarioAttempts: number | string;
@@ -147,6 +157,7 @@ function createPassingSummary(
       { name: "gateway.websocket.binding_mismatch", status: "passed" },
       { name: "gateway.websocket.draining_rejection", status: "passed" },
       { name: "governance.policy.lifecycle", status: "passed" },
+      { name: "skills.registry.lifecycle", status: "passed" },
       { name: "api.sessions.versioning", status: "passed" },
     ],
     kpis: {
@@ -400,6 +411,9 @@ function createPassingSummary(
       governancePolicyScenarioAttempts: hasOverride("governancePolicyScenarioAttempts")
         ? overrides.governancePolicyScenarioAttempts
         : 1,
+      skillsRegistryScenarioAttempts: hasOverride("skillsRegistryScenarioAttempts")
+        ? overrides.skillsRegistryScenarioAttempts
+        : 1,
       governancePolicyLifecycleValidated: hasOverride("governancePolicyLifecycleValidated")
         ? overrides.governancePolicyLifecycleValidated
         : true,
@@ -433,6 +447,29 @@ function createPassingSummary(
       governancePolicyComplianceTemplate: hasOverride("governancePolicyComplianceTemplate")
         ? overrides.governancePolicyComplianceTemplate
         : "strict",
+      skillsRegistryLifecycleValidated: hasOverride("skillsRegistryLifecycleValidated")
+        ? overrides.skillsRegistryLifecycleValidated
+        : true,
+      skillsRegistryIndexHasSkill: hasOverride("skillsRegistryIndexHasSkill")
+        ? overrides.skillsRegistryIndexHasSkill
+        : true,
+      skillsRegistryRegistryHasSkill: hasOverride("skillsRegistryRegistryHasSkill")
+        ? overrides.skillsRegistryRegistryHasSkill
+        : true,
+      skillsRegistryCreateOutcome: hasOverride("skillsRegistryCreateOutcome")
+        ? overrides.skillsRegistryCreateOutcome
+        : "created",
+      skillsRegistryReplayOutcome: hasOverride("skillsRegistryReplayOutcome")
+        ? overrides.skillsRegistryReplayOutcome
+        : "idempotent_replay",
+      skillsRegistryVersionConflictCode: hasOverride("skillsRegistryVersionConflictCode")
+        ? overrides.skillsRegistryVersionConflictCode
+        : "API_SKILL_REGISTRY_VERSION_CONFLICT",
+      skillsRegistryPluginInvalidPermissionCode: hasOverride("skillsRegistryPluginInvalidPermissionCode")
+        ? overrides.skillsRegistryPluginInvalidPermissionCode
+        : "API_SKILL_PLUGIN_PERMISSION_INVALID",
+      skillsRegistryIndexTotal: hasOverride("skillsRegistryIndexTotal") ? overrides.skillsRegistryIndexTotal : 1,
+      skillsRegistryTotal: hasOverride("skillsRegistryTotal") ? overrides.skillsRegistryTotal : 1,
       sessionVersioningScenarioAttempts: hasOverride("sessionVersioningScenarioAttempts")
         ? overrides.sessionVersioningScenarioAttempts
         : 1,
@@ -849,6 +886,36 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /governancePolicyLifecycleValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when skills registry lifecycle KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        skillsRegistryLifecycleValidated: false,
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /skillsRegistryLifecycleValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when skills registry replay outcome drifts",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        skillsRegistryReplayOutcome: "created",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /skillsRegistryReplayOutcome expected idempotent_replay, actual created/i);
   },
 );
 
@@ -1301,6 +1368,22 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /kpi\.sessionVersioningScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when skills registry scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        skillsRegistryScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.skillsRegistryScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 
