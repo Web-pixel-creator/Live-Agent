@@ -466,6 +466,41 @@
             </p>
           </article>
           <article class="operator-health-card">
+            <h3>Governance Policy Lifecycle</h3>
+            <p id="operatorGovernancePolicyStatus" class="status-pill status-neutral">no_data</p>
+            <p class="operator-health-row">
+              <strong>Total</strong>
+              <span id="operatorGovernancePolicyTotal">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Unique Tenants</strong>
+              <span id="operatorGovernancePolicyTenants">0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Outcomes</strong>
+              <span id="operatorGovernancePolicyOutcomes">ok=0 denied=0 failed=0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Lifecycle</strong>
+              <span id="operatorGovernancePolicyLifecycle">created=0 updated=0 replay=0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Conflicts</strong>
+              <span id="operatorGovernancePolicyConflicts">version=0 idempotency=0 tenant_scope=0</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Latest</strong>
+              <span id="operatorGovernancePolicyLatest">n/a</span>
+            </p>
+            <p class="operator-health-row">
+              <strong>Seen At</strong>
+              <span id="operatorGovernancePolicySeenAt">n/a</span>
+            </p>
+            <p id="operatorGovernancePolicyHint" class="operator-health-hint operator-health-hint-neutral">
+              Waiting for governance policy lifecycle evidence.
+            </p>
+          </article>
+          <article class="operator-health-card">
             <h3>Errors & Recovery</h3>
             <p class="operator-health-row"><strong>Degraded</strong><span id="operatorHealthDegraded">0</span></p>
             <p class="operator-health-row"><strong>Recovered</strong><span id="operatorHealthRecovered">0</span></p>

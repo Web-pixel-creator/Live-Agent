@@ -216,6 +216,15 @@ const el = {
   operatorSkillsRegistryLatest: document.getElementById("operatorSkillsRegistryLatest"),
   operatorSkillsRegistrySeenAt: document.getElementById("operatorSkillsRegistrySeenAt"),
   operatorSkillsRegistryHint: document.getElementById("operatorSkillsRegistryHint"),
+  operatorGovernancePolicyStatus: document.getElementById("operatorGovernancePolicyStatus"),
+  operatorGovernancePolicyTotal: document.getElementById("operatorGovernancePolicyTotal"),
+  operatorGovernancePolicyTenants: document.getElementById("operatorGovernancePolicyTenants"),
+  operatorGovernancePolicyOutcomes: document.getElementById("operatorGovernancePolicyOutcomes"),
+  operatorGovernancePolicyLifecycle: document.getElementById("operatorGovernancePolicyLifecycle"),
+  operatorGovernancePolicyConflicts: document.getElementById("operatorGovernancePolicyConflicts"),
+  operatorGovernancePolicyLatest: document.getElementById("operatorGovernancePolicyLatest"),
+  operatorGovernancePolicySeenAt: document.getElementById("operatorGovernancePolicySeenAt"),
+  operatorGovernancePolicyHint: document.getElementById("operatorGovernancePolicyHint"),
   operatorStartupStatus: document.getElementById("operatorStartupStatus"),
   operatorStartupTotal: document.getElementById("operatorStartupTotal"),
   operatorStartupBlocking: document.getElementById("operatorStartupBlocking"),
@@ -927,6 +936,27 @@ function setOperatorSkillsRegistryHint(text, variant = "neutral") {
   el.operatorSkillsRegistryHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorGovernancePolicyHint(text, variant = "neutral") {
+  if (!el.operatorGovernancePolicyHint) {
+    return;
+  }
+  el.operatorGovernancePolicyHint.textContent = text;
+  el.operatorGovernancePolicyHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorGovernancePolicyHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorGovernancePolicyHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorGovernancePolicyHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorGovernancePolicyHint.classList.add("operator-health-hint-neutral");
+}
+
 function setOperatorStartupHint(text, variant = "neutral") {
   if (!el.operatorStartupHint) {
     return;
@@ -1098,6 +1128,18 @@ function resetOperatorSkillsRegistryWidget(reason = "no_data") {
   setText(el.operatorSkillsRegistrySeenAt, "n/a");
   setOperatorSkillsRegistryHint("Waiting for skills registry lifecycle evidence.", "neutral");
   setStatusPill(el.operatorSkillsRegistryStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorGovernancePolicyWidget(reason = "no_data") {
+  setText(el.operatorGovernancePolicyTotal, "0");
+  setText(el.operatorGovernancePolicyTenants, "0");
+  setText(el.operatorGovernancePolicyOutcomes, "ok=0 denied=0 failed=0");
+  setText(el.operatorGovernancePolicyLifecycle, "created=0 updated=0 replay=0");
+  setText(el.operatorGovernancePolicyConflicts, "version=0 idempotency=0 tenant_scope=0");
+  setText(el.operatorGovernancePolicyLatest, "n/a");
+  setText(el.operatorGovernancePolicySeenAt, "n/a");
+  setOperatorGovernancePolicyHint("Waiting for governance policy lifecycle evidence.", "neutral");
+  setStatusPill(el.operatorGovernancePolicyStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function resetOperatorStartupWidget(reason = "no_data") {
@@ -1589,6 +1631,101 @@ function renderOperatorSkillsRegistryWidget(skillsRegistrySummary) {
     "neutral",
   );
   setOperatorSkillsRegistryHint(
+    `Lifecycle evidence partial. Missing checkpoints: ${missingText}.`,
+    "warn",
+  );
+}
+
+function renderOperatorGovernancePolicyWidget(governancePolicySummary) {
+  const summary =
+    governancePolicySummary && typeof governancePolicySummary === "object" ? governancePolicySummary : null;
+  if (!summary) {
+    resetOperatorGovernancePolicyWidget("no_data");
+    return;
+  }
+
+  const total = Math.max(0, Math.floor(Number(summary.total ?? 0) || 0));
+  const uniqueTenants = Math.max(0, Math.floor(Number(summary.uniqueTenants ?? 0) || 0));
+  const outcomes = summary.outcomes && typeof summary.outcomes === "object" ? summary.outcomes : {};
+  const lifecycle = summary.lifecycle && typeof summary.lifecycle === "object" ? summary.lifecycle : {};
+  const conflicts = summary.conflicts && typeof summary.conflicts === "object" ? summary.conflicts : {};
+  const latest = summary.latest && typeof summary.latest === "object" ? summary.latest : null;
+  const lifecycleValidated = summary.lifecycleValidated === true;
+
+  const succeeded = Math.max(0, Math.floor(Number(outcomes.succeeded ?? 0) || 0));
+  const denied = Math.max(0, Math.floor(Number(outcomes.denied ?? 0) || 0));
+  const failed = Math.max(0, Math.floor(Number(outcomes.failed ?? 0) || 0));
+  const created = Math.max(0, Math.floor(Number(lifecycle.created ?? 0) || 0));
+  const updated = Math.max(0, Math.floor(Number(lifecycle.updated ?? 0) || 0));
+  const replay = Math.max(0, Math.floor(Number(lifecycle.idempotentReplay ?? 0) || 0));
+  const versionConflict = Math.max(0, Math.floor(Number(conflicts.versionConflict ?? 0) || 0));
+  const idempotencyConflict = Math.max(0, Math.floor(Number(conflicts.idempotencyConflict ?? 0) || 0));
+  const tenantScopeForbidden = Math.max(0, Math.floor(Number(conflicts.tenantScopeForbidden ?? 0) || 0));
+
+  const latestOutcome = latest && typeof latest.outcome === "string" ? latest.outcome : "n/a";
+  const latestTenantId = latest && typeof latest.tenantId === "string" ? latest.tenantId : "n/a";
+  const latestTemplate = latest && typeof latest.complianceTemplate === "string" ? latest.complianceTemplate : "n/a";
+  const latestErrorCode = latest && typeof latest.errorCode === "string" ? latest.errorCode : "n/a";
+  const latestSeenAt = latest && typeof latest.createdAt === "string" ? latest.createdAt : "n/a";
+  const latestLabel =
+    latestErrorCode === "n/a"
+      ? `outcome=${latestOutcome} tenant=${latestTenantId} template=${latestTemplate}`
+      : `outcome=${latestOutcome} tenant=${latestTenantId} code=${latestErrorCode}`;
+
+  setText(el.operatorGovernancePolicyTotal, String(total));
+  setText(el.operatorGovernancePolicyTenants, String(uniqueTenants));
+  setText(el.operatorGovernancePolicyOutcomes, `ok=${succeeded} denied=${denied} failed=${failed}`);
+  setText(el.operatorGovernancePolicyLifecycle, `created=${created} updated=${updated} replay=${replay}`);
+  setText(
+    el.operatorGovernancePolicyConflicts,
+    `version=${versionConflict} idempotency=${idempotencyConflict} tenant_scope=${tenantScopeForbidden}`,
+  );
+  setText(el.operatorGovernancePolicyLatest, latestLabel);
+  setText(el.operatorGovernancePolicySeenAt, latestSeenAt);
+
+  if (total <= 0) {
+    setStatusPill(el.operatorGovernancePolicyStatus, "no_evidence", "neutral");
+    setOperatorGovernancePolicyHint(
+      "No governance policy lifecycle evidence observed yet. Run governance lifecycle scenario to populate it.",
+      "warn",
+    );
+    return;
+  }
+
+  const missingChecklist = [];
+  if (created <= 0) {
+    missingChecklist.push("created");
+  }
+  if (replay <= 0) {
+    missingChecklist.push("idempotent_replay");
+  }
+  if (versionConflict <= 0) {
+    missingChecklist.push("version_conflict");
+  }
+  if (idempotencyConflict <= 0) {
+    missingChecklist.push("idempotency_conflict");
+  }
+
+  if (lifecycleValidated) {
+    setStatusPill(
+      el.operatorGovernancePolicyStatus,
+      `validated total=${total} tenants=${uniqueTenants}`,
+      "ok",
+    );
+    setOperatorGovernancePolicyHint(
+      "Governance policy lifecycle evidence captured and ready for judge-facing release validation.",
+      "ok",
+    );
+    return;
+  }
+
+  const missingText = missingChecklist.length > 0 ? missingChecklist.join(",") : "none";
+  setStatusPill(
+    el.operatorGovernancePolicyStatus,
+    `partial total=${total} tenants=${uniqueTenants}`,
+    "neutral",
+  );
+  setOperatorGovernancePolicyHint(
     `Lifecycle evidence partial. Missing checkpoints: ${missingText}.`,
     "warn",
   );
@@ -2635,12 +2772,14 @@ function renderOperatorSummary(summary) {
   resetOperatorTurnDeleteWidget("no_data");
   resetOperatorDamageControlWidget("no_data");
   resetOperatorSkillsRegistryWidget("no_data");
+  resetOperatorGovernancePolicyWidget("no_data");
   resetOperatorStartupWidget("no_data");
   renderOperatorGatewayErrorWidget(state.operatorGatewayErrorSnapshot);
   renderOperatorTurnTruncationWidget(null, state.operatorTurnTruncationSnapshot);
   renderOperatorTurnDeleteWidget(null, state.operatorTurnDeleteSnapshot);
   renderOperatorDamageControlWidget(null, state.operatorDamageControlSnapshot);
   renderOperatorSkillsRegistryWidget(null);
+  renderOperatorGovernancePolicyWidget(null);
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -2839,6 +2978,64 @@ function renderOperatorSummary(summary) {
     }
   }
   renderOperatorSkillsRegistryWidget(skillsRegistryLifecycle);
+  const governancePolicyLifecycle =
+    summary.governancePolicyLifecycle && typeof summary.governancePolicyLifecycle === "object"
+      ? summary.governancePolicyLifecycle
+      : null;
+  if (governancePolicyLifecycle) {
+    const governanceTotal = Number(governancePolicyLifecycle.total ?? 0);
+    const governanceUniqueTenants = Number(governancePolicyLifecycle.uniqueTenants ?? 0);
+    const outcomes =
+      governancePolicyLifecycle.outcomes && typeof governancePolicyLifecycle.outcomes === "object"
+        ? governancePolicyLifecycle.outcomes
+        : {};
+    const lifecycle =
+      governancePolicyLifecycle.lifecycle && typeof governancePolicyLifecycle.lifecycle === "object"
+        ? governancePolicyLifecycle.lifecycle
+        : {};
+    const conflicts =
+      governancePolicyLifecycle.conflicts && typeof governancePolicyLifecycle.conflicts === "object"
+        ? governancePolicyLifecycle.conflicts
+        : {};
+    const succeeded = Math.max(0, Math.floor(Number(outcomes.succeeded ?? 0) || 0));
+    const denied = Math.max(0, Math.floor(Number(outcomes.denied ?? 0) || 0));
+    const failed = Math.max(0, Math.floor(Number(outcomes.failed ?? 0) || 0));
+    const created = Math.max(0, Math.floor(Number(lifecycle.created ?? 0) || 0));
+    const replay = Math.max(0, Math.floor(Number(lifecycle.idempotentReplay ?? 0) || 0));
+    const versionConflict = Math.max(0, Math.floor(Number(conflicts.versionConflict ?? 0) || 0));
+    const idempotencyConflict = Math.max(0, Math.floor(Number(conflicts.idempotencyConflict ?? 0) || 0));
+    const tenantScopeForbidden = Math.max(
+      0,
+      Math.floor(Number(conflicts.tenantScopeForbidden ?? 0) || 0),
+    );
+    appendEntry(
+      el.operatorSummary,
+      governancePolicyLifecycle.lifecycleValidated === true ? "system" : "error",
+      "governance_policy.lifecycle",
+      `total=${Math.max(0, Math.floor(governanceTotal))} unique_tenants=${Math.max(0, Math.floor(governanceUniqueTenants))} ok=${succeeded} denied=${denied} failed=${failed} created=${created} replay=${replay} version_conflict=${versionConflict} idempotency_conflict=${idempotencyConflict} tenant_scope_forbidden=${tenantScopeForbidden} validated=${governancePolicyLifecycle.lifecycleValidated === true}`,
+    );
+    const governanceLatest =
+      governancePolicyLifecycle.latest && typeof governancePolicyLifecycle.latest === "object"
+        ? governancePolicyLifecycle.latest
+        : null;
+    if (governanceLatest) {
+      const latestOutcome = typeof governanceLatest.outcome === "string" ? governanceLatest.outcome : "n/a";
+      const latestTenantId = typeof governanceLatest.tenantId === "string" ? governanceLatest.tenantId : "n/a";
+      const latestComplianceTemplate =
+        typeof governanceLatest.complianceTemplate === "string"
+          ? governanceLatest.complianceTemplate
+          : "n/a";
+      const latestErrorCode = typeof governanceLatest.errorCode === "string" ? governanceLatest.errorCode : "n/a";
+      const latestSeenAt = typeof governanceLatest.createdAt === "string" ? governanceLatest.createdAt : "n/a";
+      appendEntry(
+        el.operatorSummary,
+        "system",
+        "governance_policy.latest",
+        `outcome=${latestOutcome} tenant=${latestTenantId} template=${latestComplianceTemplate} code=${latestErrorCode} seen_at=${latestSeenAt}`,
+      );
+    }
+  }
+  renderOperatorGovernancePolicyWidget(governancePolicyLifecycle);
   renderOperatorApprovalsWidget(summary.approvals);
   renderOperatorTaskQueueWidget(taskQueueSummary);
   const startupFailures = summary.startupFailures && typeof summary.startupFailures === "object"
@@ -3067,6 +3264,7 @@ async function refreshOperatorSummary() {
       resetOperatorDamageControlWidget("summary_error");
     }
     resetOperatorSkillsRegistryWidget("summary_error");
+    resetOperatorGovernancePolicyWidget("summary_error");
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
 }

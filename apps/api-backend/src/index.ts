@@ -1985,6 +1985,146 @@ function buildSkillsRegistryLifecycleSummary(
   };
 }
 
+function buildGovernancePolicyLifecycleSummary(
+  operatorActions: OperatorActionRecord[],
+): Record<string, unknown> {
+  const relevant = operatorActions
+    .filter((item) => item.action === "update_governance_policy")
+    .map((item) => {
+      const details = isRecord(item.details) ? item.details : null;
+      const reason = toOptionalString(item.reason) ?? "";
+      const reasonLower = reason.toLowerCase();
+      const errorCode = toOptionalString(item.errorCode);
+      const tenantId = toOptionalString(details?.tenantId) ?? item.tenantId;
+      const outcomeTag = toOptionalString(details?.outcome);
+      const complianceTemplate = toOptionalString(details?.complianceTemplate);
+      const version = parseNonNegativeInt(details?.version);
+      return {
+        actionId: item.actionId,
+        tenantId,
+        actorRole: item.actorRole,
+        createdAt: item.createdAt,
+        outcome: item.outcome,
+        reason,
+        reasonLower,
+        errorCode,
+        outcomeTag,
+        complianceTemplate,
+        version,
+      };
+    })
+    .sort((left, right) => {
+      const leftTs = Date.parse(left.createdAt);
+      const rightTs = Date.parse(right.createdAt);
+      const leftValue = Number.isFinite(leftTs) ? leftTs : 0;
+      const rightValue = Number.isFinite(rightTs) ? rightTs : 0;
+      return rightValue - leftValue;
+    });
+
+  if (relevant.length <= 0) {
+    return {
+      status: "missing",
+      total: 0,
+      uniqueTenants: 0,
+      outcomes: {
+        succeeded: 0,
+        denied: 0,
+        failed: 0,
+      },
+      lifecycle: {
+        created: 0,
+        updated: 0,
+        idempotentReplay: 0,
+      },
+      conflicts: {
+        versionConflict: 0,
+        idempotencyConflict: 0,
+        tenantScopeForbidden: 0,
+      },
+      latest: null,
+      recent: [],
+      source: "operator_actions",
+      lifecycleValidated: false,
+      validated: false,
+    };
+  }
+
+  let succeeded = 0;
+  let denied = 0;
+  let failed = 0;
+  let created = 0;
+  let updated = 0;
+  let idempotentReplay = 0;
+  let versionConflict = 0;
+  let idempotencyConflict = 0;
+  let tenantScopeForbidden = 0;
+  const uniqueTenants = new Set<string>();
+
+  for (const item of relevant) {
+    if (item.outcome === "succeeded") {
+      succeeded += 1;
+    } else if (item.outcome === "denied") {
+      denied += 1;
+    } else if (item.outcome === "failed") {
+      failed += 1;
+    }
+
+    if (item.reasonLower.includes("governance policy created")) {
+      created += 1;
+    }
+    if (item.reasonLower.includes("governance policy updated")) {
+      updated += 1;
+    }
+    if (item.reasonLower.includes("idempotent_replay")) {
+      idempotentReplay += 1;
+    }
+    if (item.errorCode === "API_GOVERNANCE_POLICY_VERSION_CONFLICT") {
+      versionConflict += 1;
+    }
+    if (item.errorCode === "API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT") {
+      idempotencyConflict += 1;
+    }
+    if (item.errorCode === "API_TENANT_SCOPE_FORBIDDEN") {
+      tenantScopeForbidden += 1;
+    }
+    if (item.tenantId) {
+      uniqueTenants.add(item.tenantId);
+    }
+  }
+
+  const lifecycleValidated =
+    created > 0 &&
+    idempotentReplay > 0 &&
+    versionConflict > 0 &&
+    idempotencyConflict > 0;
+
+  return {
+    status: lifecycleValidated ? "observed" : "partial",
+    total: relevant.length,
+    uniqueTenants: uniqueTenants.size,
+    outcomes: {
+      succeeded,
+      denied,
+      failed,
+    },
+    lifecycle: {
+      created,
+      updated,
+      idempotentReplay,
+    },
+    conflicts: {
+      versionConflict,
+      idempotencyConflict,
+      tenantScopeForbidden,
+    },
+    latest: relevant[0],
+    recent: relevant.slice(0, 20),
+    source: "operator_actions",
+    lifecycleValidated,
+    validated: lifecycleValidated,
+  };
+}
+
 async function syncPendingApprovalsFromTasks(
   tasks: unknown[],
   options?: {
@@ -3723,6 +3863,7 @@ export const server = createServer(async (req, res) => {
       const turnDelete = buildTurnDeleteSummary(recentEvents, services);
       const damageControl = buildDamageControlSummary(recentEvents, services);
       const skillsRegistryLifecycle = buildSkillsRegistryLifecycleSummary(operatorActions);
+      const governancePolicyLifecycle = buildGovernancePolicyLifecycleSummary(operatorActions);
 
       writeJson(res, 200, {
         data: {
@@ -3753,6 +3894,7 @@ export const server = createServer(async (req, res) => {
           turnDelete,
           damageControl,
           skillsRegistryLifecycle,
+          governancePolicyLifecycle,
           deviceNodes: deviceNodeHealth,
           services,
           traces,
