@@ -17,6 +17,17 @@ test("managed skill registry supports versioned upsert with idempotent replay", 
     prompt: "Always restate hard constraints before proposing concessions.",
     scope: ["live-agent"],
     trustLevel: "reviewed",
+    pluginManifest: {
+      permissions: ["live.negotiation"],
+      signing: {
+        algorithm: "hmac-sha256",
+        keyId: "publisher-ci",
+        signature: "demo-signature",
+        payloadSha256: "demo-hash",
+        status: "verified",
+        verifiedAt: "2026-01-01T00:00:00.000Z",
+      },
+    },
     updatedBy: "unit-test",
     expectedVersion: 1,
   });
@@ -26,6 +37,8 @@ test("managed skill registry supports versioned upsert with idempotent replay", 
   }
   assert.equal(created.skill.version, 1);
   assert.equal(created.skill.trustLevel, "reviewed");
+  assert.deepEqual(created.skill.pluginManifest?.permissions, ["live.negotiation"]);
+  assert.equal(created.skill.pluginManifest?.signing.status, "verified");
 
   const replay = await upsertManagedSkill({
     skillId,
@@ -34,6 +47,17 @@ test("managed skill registry supports versioned upsert with idempotent replay", 
     prompt: "Always restate hard constraints before proposing concessions.",
     scope: ["live-agent"],
     trustLevel: "reviewed",
+    pluginManifest: {
+      permissions: ["live.negotiation"],
+      signing: {
+        algorithm: "hmac-sha256",
+        keyId: "publisher-ci",
+        signature: "demo-signature",
+        payloadSha256: "demo-hash",
+        status: "verified",
+        verifiedAt: "2026-01-01T00:00:00.000Z",
+      },
+    },
     updatedBy: "unit-test",
     expectedVersion: 1,
   });
@@ -50,6 +74,17 @@ test("managed skill registry supports versioned upsert with idempotent replay", 
     prompt: "Use strict negotiation policy and highlight fallback alternatives.",
     scope: ["live-agent"],
     trustLevel: "trusted",
+    pluginManifest: {
+      permissions: ["live.negotiation", "governance.read"],
+      signing: {
+        algorithm: "hmac-sha256",
+        keyId: "publisher-ci",
+        signature: "demo-signature-2",
+        payloadSha256: "demo-hash-2",
+        status: "verified",
+        verifiedAt: "2026-01-01T00:10:00.000Z",
+      },
+    },
     updatedBy: "unit-test",
     expectedVersion: 1,
   });
@@ -59,6 +94,7 @@ test("managed skill registry supports versioned upsert with idempotent replay", 
   }
   assert.equal(updated.skill.version, 2);
   assert.equal(updated.skill.trustLevel, "trusted");
+  assert.deepEqual(updated.skill.pluginManifest?.permissions, ["live.negotiation", "governance.read"]);
 
   const conflict = await upsertManagedSkill({
     skillId,

@@ -80,6 +80,7 @@ Frontend `Intent Request` also supports optional `ui_task` grounding overrides (
 - UI Navigator sandbox policy tuning: `UI_NAVIGATOR_SANDBOX_POLICY_MODE=off|non-main|all`, `UI_NAVIGATOR_SANDBOX_MAIN_SESSION_IDS`, `UI_NAVIGATOR_SANDBOX_MAX_STEPS`, `UI_NAVIGATOR_SANDBOX_ALLOWED_ACTIONS`, `UI_NAVIGATOR_SANDBOX_BLOCKED_CATEGORIES`, `UI_NAVIGATOR_SANDBOX_FORCE_EXECUTOR_MODE`.
 - UI Navigator damage-control policy: `UI_NAVIGATOR_DAMAGE_CONTROL_ENABLED`, `UI_NAVIGATOR_DAMAGE_CONTROL_RULES_PATH` (default `.kiro/policies/ui-damage-control.rules.json`), optional inline override `UI_NAVIGATOR_DAMAGE_CONTROL_RULES_JSON`.
 - Skills runtime tuning: `SKILLS_RUNTIME_ENABLED`, `SKILLS_SOURCE_PRECEDENCE=workspace,bundled,managed`, `SKILLS_ALLOWED_SOURCES`, `SKILLS_WORKSPACE_DIR`, `SKILLS_BUNDLED_DIR`, `SKILLS_MANAGED_INDEX_JSON`, `SKILLS_MANAGED_INDEX_URL`, `SKILLS_MANAGED_INDEX_AUTH_TOKEN`, `SKILLS_MANAGED_INDEX_TIMEOUT_MS`, `SKILLS_ENABLED_IDS`, `SKILLS_DISABLED_IDS`, `SKILLS_SECURITY_MODE=off|warn|enforce`, `SKILLS_MIN_TRUST_LEVEL=untrusted|reviewed|trusted`.
+- Plugin marketplace signing for managed skills: `SKILL_PLUGIN_REQUIRE_SIGNATURE=true|false`, `SKILL_PLUGIN_SIGNING_KEYS_JSON` (JSON map `{ "<keyId>": "<hmacSecret>" }`).
 - Remote UI executor service: run `npm run dev:ui-executor`; endpoint `/execute` is used when `UI_NAVIGATOR_EXECUTOR_MODE=remote_http`.
 - UI Executor device-node registry knobs: `UI_EXECUTOR_DEFAULT_DEVICE_NODE_ID`, `UI_EXECUTOR_DEVICE_NODES_JSON`.
 - Approval SLA tuning in API backend: `APPROVAL_SOFT_TIMEOUT_MS`, `APPROVAL_HARD_TIMEOUT_MS`, `APPROVAL_SWEEP_LIMIT`.
@@ -115,6 +116,10 @@ Session mutation concurrency controls:
 - `GET /v1/skills/index` -> public managed skills index for agent runtime (`managed` source).
 - `GET /v1/skills/registry` with `x-operator-role` -> operator catalog view (`limit`, `scope`, `includeDisabled`).
 - `POST /v1/skills/registry` with `x-operator-role: admin` -> versioned upsert (`expectedVersion` for optimistic locking).
+  - Supports plugin marketplace manifest:
+    - `pluginManifest.permissions[]` (validated against allowlist).
+    - `pluginManifest.signing.{algorithm,keyId,signature}` for `hmac-sha256` verification.
+  - Signature validation error contracts: `API_SKILL_PLUGIN_PERMISSION_INVALID`, `API_SKILL_PLUGIN_SIGNATURE_REQUIRED`, `API_SKILL_PLUGIN_SIGNATURE_INVALID`, `API_SKILL_PLUGIN_SIGNING_KEY_NOT_FOUND`.
 
 9. Device node registry APIs:
 - `GET /v1/device-nodes/index` -> public device-node index for runtime routing (`limit`, `kind`, `includeOffline`).

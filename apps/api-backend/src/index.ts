@@ -55,6 +55,10 @@ import {
 import { AnalyticsExporter } from "./analytics-export.js";
 import { buildOperatorTraceSummary } from "./operator-traces.js";
 import { buildDeviceNodeHealthSummary } from "./device-node-summary.js";
+import {
+  normalizeSkillPluginManifest,
+  parseSkillPluginSigningKeys,
+} from "./skill-plugin-marketplace.js";
 
 const port = Number(process.env.API_PORT ?? 8081);
 const apiBaseUrl = toBaseUrl(process.env.API_BASE_URL, `http://localhost:${port}`);
@@ -133,6 +137,10 @@ const configuredChannelAdapters = parseChannelAdapters(
 const allowCustomChannelAdapters = process.env.API_CHANNEL_ADAPTERS_ALLOW_CUSTOM === "true";
 const defaultTenantId = normalizeTenantId(process.env.API_DEFAULT_TENANT_ID);
 const requestedComplianceTemplate = toOptionalString(process.env.API_COMPLIANCE_TEMPLATE) ?? "baseline";
+const skillPluginRequireSignature = process.env.SKILL_PLUGIN_REQUIRE_SIGNATURE === "true";
+const skillPluginSigningKeysConfig = parseSkillPluginSigningKeys(
+  process.env.SKILL_PLUGIN_SIGNING_KEYS_JSON,
+);
 type ComplianceTemplateId = GovernanceComplianceTemplate;
 type RetentionPolicy = GovernanceRetentionPolicy;
 type ComplianceTemplateProfile = {
@@ -2699,6 +2707,7 @@ export const server = createServer(async (req, res) => {
         updatedBy?: unknown;
         publisher?: unknown;
         checksum?: unknown;
+        pluginManifest?: unknown;
         metadata?: unknown;
       };
 
@@ -2724,18 +2733,57 @@ export const server = createServer(async (req, res) => {
         return;
       }
 
+      const scope = parseSkillScope(parsed.scope);
+      const trustLevel = sanitizeManagedTrustLevel(parsed.trustLevel);
+      const publisher = toOptionalString(parsed.publisher);
+      const checksum = toOptionalString(parsed.checksum);
+      const pluginManifestResult = normalizeSkillPluginManifest({
+        raw: parsed.pluginManifest,
+        requireSignature: skillPluginRequireSignature,
+        signingKeys: skillPluginSigningKeysConfig.keys,
+        signingKeysConfigError: skillPluginSigningKeysConfig.configError,
+        nowIso: new Date().toISOString(),
+        skill: {
+          skillId,
+          name,
+          prompt,
+          scope,
+          trustLevel,
+          publisher,
+          checksum,
+        },
+      });
+      if (!pluginManifestResult.ok) {
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "skills_registry_upsert",
+          outcome: "denied",
+          reason: pluginManifestResult.message,
+          errorCode: pluginManifestResult.code,
+          details: pluginManifestResult.details,
+        });
+        writeApiError(res, 400, {
+          code: pluginManifestResult.code,
+          message: pluginManifestResult.message,
+          details: pluginManifestResult.details,
+        });
+        return;
+      }
+
       const upsertResult = await upsertManagedSkill({
         skillId,
         name,
         description: toOptionalString(parsed.description) ?? undefined,
         prompt,
-        scope: parseSkillScope(parsed.scope),
+        scope,
         enabled: parsed.enabled === undefined ? true : Boolean(parsed.enabled),
-        trustLevel: sanitizeManagedTrustLevel(parsed.trustLevel),
+        trustLevel,
+        pluginManifest: pluginManifestResult.manifest,
         expectedVersion: parseOptionalExpectedVersion(parsed.expectedVersion),
         updatedBy: toOptionalString(parsed.updatedBy) ?? role,
-        publisher: toOptionalString(parsed.publisher),
-        checksum: toOptionalString(parsed.checksum),
+        publisher,
+        checksum,
         metadata: parsed.metadata,
       });
 
@@ -2775,6 +2823,8 @@ export const server = createServer(async (req, res) => {
           skillId: upsertResult.skill.skillId,
           version: upsertResult.skill.version,
           trustLevel: upsertResult.skill.trustLevel,
+          pluginManifestStatus: upsertResult.skill.pluginManifest?.signing.status ?? "none",
+          pluginPermissionCount: upsertResult.skill.pluginManifest?.permissions.length ?? 0,
         },
       });
 

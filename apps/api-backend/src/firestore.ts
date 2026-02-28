@@ -170,6 +170,32 @@ export type TenantGovernancePolicyUpsertResult =
 
 export type ManagedSkillTrustLevel = "untrusted" | "reviewed" | "trusted";
 
+export type ManagedSkillPluginPermission =
+  | "live.conversation"
+  | "live.translation"
+  | "live.negotiation"
+  | "story.generate"
+  | "story.media"
+  | "ui.execute"
+  | "ui.visual_test"
+  | "governance.read"
+  | "governance.write"
+  | "operator.actions";
+
+export type ManagedSkillPluginSignatureStatus = "unsigned" | "verified";
+
+export type ManagedSkillPluginManifest = {
+  permissions: ManagedSkillPluginPermission[];
+  signing: {
+    algorithm: "hmac-sha256";
+    keyId: string | null;
+    signature: string | null;
+    payloadSha256: string | null;
+    status: ManagedSkillPluginSignatureStatus;
+    verifiedAt: string | null;
+  };
+};
+
 export type ManagedSkillRecord = {
   skillId: string;
   name: string;
@@ -182,6 +208,7 @@ export type ManagedSkillRecord = {
   updatedBy: string;
   publisher: string | null;
   checksum: string | null;
+  pluginManifest: ManagedSkillPluginManifest | null;
   createdAt: string;
   updatedAt: string;
   metadata?: unknown;
@@ -211,6 +238,7 @@ export type ManagedSkillIndexItem = {
   updatedAt: string;
   publisher: string | null;
   checksum: string | null;
+  pluginManifest: ManagedSkillPluginManifest | null;
 };
 
 export type DeviceNodeKind = "desktop" | "mobile";
@@ -704,6 +732,89 @@ function normalizeManagedTrustLevel(value: unknown): ManagedSkillTrustLevel {
   return "reviewed";
 }
 
+const MANAGED_SKILL_PLUGIN_PERMISSION_ALLOWLIST: ReadonlySet<ManagedSkillPluginPermission> = new Set([
+  "live.conversation",
+  "live.translation",
+  "live.negotiation",
+  "story.generate",
+  "story.media",
+  "ui.execute",
+  "ui.visual_test",
+  "governance.read",
+  "governance.write",
+  "operator.actions",
+]);
+
+function normalizeManagedSkillPluginPermission(value: unknown): ManagedSkillPluginPermission | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (MANAGED_SKILL_PLUGIN_PERMISSION_ALLOWLIST.has(normalized as ManagedSkillPluginPermission)) {
+    return normalized as ManagedSkillPluginPermission;
+  }
+  return null;
+}
+
+function normalizeManagedSkillPluginPermissions(value: unknown): ManagedSkillPluginPermission[] {
+  const entries = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(",")
+      : [];
+  const deduped: ManagedSkillPluginPermission[] = [];
+  const seen = new Set<ManagedSkillPluginPermission>();
+  for (const entry of entries) {
+    const normalized = normalizeManagedSkillPluginPermission(entry);
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    deduped.push(normalized);
+  }
+  return deduped;
+}
+
+function normalizeManagedSkillPluginSignatureStatus(value: unknown): ManagedSkillPluginSignatureStatus {
+  if (value === "verified" || value === "unsigned") {
+    return value;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "verified" || normalized === "unsigned") {
+      return normalized;
+    }
+  }
+  return "unsigned";
+}
+
+function mapManagedSkillPluginManifest(value: unknown): ManagedSkillPluginManifest | null {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+  const raw = value as Record<string, unknown>;
+  const permissions = normalizeManagedSkillPluginPermissions(raw.permissions);
+  const signingRaw =
+    typeof raw.signing === "object" && raw.signing !== null
+      ? (raw.signing as Record<string, unknown>)
+      : {};
+  const algorithm =
+    toNonEmptyString(signingRaw.algorithm)?.toLowerCase() === "hmac-sha256"
+      ? "hmac-sha256"
+      : "hmac-sha256";
+  return {
+    permissions,
+    signing: {
+      algorithm,
+      keyId: toNonEmptyString(signingRaw.keyId),
+      signature: toNonEmptyString(signingRaw.signature),
+      payloadSha256: toNonEmptyString(signingRaw.payloadSha256),
+      status: normalizeManagedSkillPluginSignatureStatus(signingRaw.status),
+      verifiedAt: signingRaw.verifiedAt ? toIso(signingRaw.verifiedAt) : null,
+    },
+  };
+}
+
 function normalizeScopeEntry(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -760,6 +871,7 @@ function mapManagedSkillRecord(docId: string, raw: Record<string, unknown>): Man
   const updatedBy = toNonEmptyString(raw.updatedBy) ?? "system";
   const publisher = toNonEmptyString(raw.publisher);
   const checksum = toNonEmptyString(raw.checksum);
+  const pluginManifest = mapManagedSkillPluginManifest(raw.pluginManifest);
   const createdAt = toIso(raw.createdAt);
   const updatedAt = toIso(raw.updatedAt ?? raw.createdAt);
 
@@ -775,6 +887,7 @@ function mapManagedSkillRecord(docId: string, raw: Record<string, unknown>): Man
     updatedBy,
     publisher,
     checksum,
+    pluginManifest,
     createdAt,
     updatedAt,
     metadata: raw.metadata,
@@ -791,6 +904,7 @@ function managedSkillContentSignature(skill: ManagedSkillRecord): string {
     trustLevel: skill.trustLevel,
     publisher: skill.publisher,
     checksum: skill.checksum,
+    pluginManifest: skill.pluginManifest,
     metadata: skill.metadata ?? null,
   });
 }
@@ -2229,6 +2343,7 @@ export async function upsertManagedSkill(params: {
   scope?: string[];
   enabled?: boolean;
   trustLevel?: ManagedSkillTrustLevel;
+  pluginManifest?: ManagedSkillPluginManifest | null;
   updatedBy?: string;
   publisher?: string | null;
   checksum?: string | null;
@@ -2258,6 +2373,7 @@ export async function upsertManagedSkill(params: {
     updatedBy: toNonEmptyString(params.updatedBy) ?? "operator",
     publisher: toNonEmptyString(params.publisher),
     checksum: toNonEmptyString(params.checksum),
+    pluginManifest: params.pluginManifest ? mapManagedSkillPluginManifest(params.pluginManifest) : null,
     createdAt: nowIso,
     updatedAt: nowIso,
     metadata: params.metadata,
@@ -2322,6 +2438,7 @@ export async function upsertManagedSkill(params: {
           updatedBy: baseRecord.updatedBy,
           publisher: baseRecord.publisher,
           checksum: baseRecord.checksum,
+          pluginManifest: baseRecord.pluginManifest,
           metadata: baseRecord.metadata ?? null,
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
@@ -2370,6 +2487,7 @@ export async function upsertManagedSkill(params: {
         updatedBy: candidate.updatedBy,
         publisher: candidate.publisher,
         checksum: candidate.checksum,
+        pluginManifest: candidate.pluginManifest,
         metadata: candidate.metadata ?? null,
         updatedAt: FieldValue.serverTimestamp(),
       },
@@ -2415,6 +2533,7 @@ export async function listManagedSkillIndex(params: {
     updatedAt: skill.updatedAt,
     publisher: skill.publisher,
     checksum: skill.checksum,
+    pluginManifest: skill.pluginManifest,
   }));
 }
 
