@@ -19,9 +19,12 @@ import {
   type DeviceNodeKind,
   type DeviceNodeStatus,
   type EventListItem,
+  getTenantGovernancePolicy,
   getChannelSessionBinding,
   getDeviceNodeById,
   getFirestoreState,
+  type GovernanceComplianceTemplate,
+  type GovernanceRetentionPolicy,
   listChannelSessionBindingIndex,
   listChannelSessionBindings,
   listDeviceNodeIndex,
@@ -32,6 +35,7 @@ import {
   listOperatorActions,
   listRuns,
   listSessions,
+  listTenantGovernancePolicies,
   listManagedSkillIndex,
   listManagedSkills,
   type ManagedSkillTrustLevel,
@@ -41,6 +45,7 @@ import {
   touchDeviceNodeHeartbeat,
   upsertChannelSessionBinding,
   upsertDeviceNode,
+  upsertTenantGovernancePolicy,
   upsertPendingApproval,
   upsertManagedSkill,
   updateSessionStatus,
@@ -128,16 +133,8 @@ const configuredChannelAdapters = parseChannelAdapters(
 const allowCustomChannelAdapters = process.env.API_CHANNEL_ADAPTERS_ALLOW_CUSTOM === "true";
 const defaultTenantId = normalizeTenantId(process.env.API_DEFAULT_TENANT_ID);
 const requestedComplianceTemplate = toOptionalString(process.env.API_COMPLIANCE_TEMPLATE) ?? "baseline";
-type ComplianceTemplateId = "baseline" | "strict" | "regulated";
-type RetentionPolicy = {
-  rawMediaDays: number;
-  auditLogsDays: number;
-  approvalsDays: number;
-  eventsDays: number;
-  operatorActionsDays: number;
-  metricsRollupsDays: number;
-  sessionsDays: number;
-};
+type ComplianceTemplateId = GovernanceComplianceTemplate;
+type RetentionPolicy = GovernanceRetentionPolicy;
 type ComplianceTemplateProfile = {
   id: ComplianceTemplateId;
   description: string;
@@ -391,6 +388,99 @@ function resolveGovernanceTenantScope(params: {
     scope: "tenant",
     effectiveTenantId: requestedTenantId,
     requestedTenantId,
+  };
+}
+
+type EffectiveGovernancePolicy = {
+  tenantId: string;
+  source: "template_default" | "tenant_override";
+  profile: ComplianceTemplateProfile;
+  overrideVersion: number | null;
+  overrideUpdatedAt: string | null;
+};
+
+function isComplianceTemplateId(value: unknown): value is ComplianceTemplateId {
+  return value === "baseline" || value === "strict" || value === "regulated";
+}
+
+function parseRetentionPolicyPatch(raw: unknown): {
+  patch: Partial<RetentionPolicy>;
+  invalidFields: string[];
+} {
+  if (!isRecord(raw)) {
+    return {
+      patch: {},
+      invalidFields: [],
+    };
+  }
+  const patch: Partial<RetentionPolicy> = {};
+  const invalidFields: string[] = [];
+  const assignField = (key: keyof RetentionPolicy) => {
+    const value = raw[key];
+    if (value === undefined) {
+      return;
+    }
+    const parsed = parseNonNegativeInt(value);
+    if (parsed === null || parsed < 1) {
+      invalidFields.push(String(key));
+      return;
+    }
+    patch[key] = Math.min(3650, parsed);
+  };
+  assignField("rawMediaDays");
+  assignField("auditLogsDays");
+  assignField("approvalsDays");
+  assignField("eventsDays");
+  assignField("operatorActionsDays");
+  assignField("metricsRollupsDays");
+  assignField("sessionsDays");
+  return {
+    patch,
+    invalidFields,
+  };
+}
+
+function applyRetentionPolicyPatch(
+  base: RetentionPolicy,
+  patch: Partial<RetentionPolicy>,
+): RetentionPolicy {
+  return {
+    rawMediaDays: patch.rawMediaDays ?? base.rawMediaDays,
+    auditLogsDays: patch.auditLogsDays ?? base.auditLogsDays,
+    approvalsDays: patch.approvalsDays ?? base.approvalsDays,
+    eventsDays: patch.eventsDays ?? base.eventsDays,
+    operatorActionsDays: patch.operatorActionsDays ?? base.operatorActionsDays,
+    metricsRollupsDays: patch.metricsRollupsDays ?? base.metricsRollupsDays,
+    sessionsDays: patch.sessionsDays ?? base.sessionsDays,
+  };
+}
+
+async function resolveEffectiveGovernancePolicyForTenant(tenantId: string): Promise<EffectiveGovernancePolicy> {
+  const normalizedTenantId = normalizeTenantId(tenantId);
+  const override = await getTenantGovernancePolicy({
+    tenantId: normalizedTenantId,
+  });
+  if (!override) {
+    return {
+      tenantId: normalizedTenantId,
+      source: "template_default",
+      profile: complianceTemplateProfile,
+      overrideVersion: null,
+      overrideUpdatedAt: null,
+    };
+  }
+  const template = complianceTemplateProfiles[override.complianceTemplate];
+  return {
+    tenantId: normalizedTenantId,
+    source: "tenant_override",
+    profile: {
+      ...template,
+      retentionPolicy: override.retentionPolicy,
+      requestedTemplateId: override.complianceTemplate,
+      fallbackApplied: false,
+    },
+    overrideVersion: override.version,
+    overrideUpdatedAt: override.updatedAt,
   };
 }
 
@@ -736,6 +826,9 @@ function normalizeOperationPath(pathname: string): string {
   }
   if (pathname.startsWith("/v1/channels/sessions/resolve")) {
     return "/v1/channels/sessions/resolve";
+  }
+  if (pathname.startsWith("/v1/governance/policy")) {
+    return "/v1/governance/policy";
   }
   return pathname;
 }
@@ -1989,13 +2082,16 @@ export const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === "/v1/governance/tenant" && req.method === "GET") {
+      const effectiveGovernance = await resolveEffectiveGovernancePolicyForTenant(requestTenant.tenantId);
       writeJson(res, 200, {
         data: {
           tenantId: requestTenant.tenantId,
           source: requestTenant.source,
-          complianceTemplate,
-          complianceTemplateRequested: complianceTemplateProfile.requestedTemplateId,
-          complianceTemplateFallbackApplied: complianceTemplateProfile.fallbackApplied,
+          complianceTemplate: effectiveGovernance.profile.id,
+          complianceTemplateRequested: effectiveGovernance.profile.requestedTemplateId,
+          complianceTemplateFallbackApplied: effectiveGovernance.profile.fallbackApplied,
+          complianceSource: effectiveGovernance.source,
+          retentionPolicy: effectiveGovernance.profile.retentionPolicy,
           defaultTenantId,
           headers: {
             tenantHeader: "x-tenant-id",
@@ -2006,9 +2102,12 @@ export const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === "/v1/governance/compliance-template" && req.method === "GET") {
+      const effectiveGovernance = await resolveEffectiveGovernancePolicyForTenant(requestTenant.tenantId);
       writeJson(res, 200, {
         data: {
-          active: complianceTemplateProfile,
+          active: effectiveGovernance.profile,
+          source: effectiveGovernance.source,
+          tenant: requestTenant,
           availableTemplates: Object.values(complianceTemplateProfiles).map((item) => ({
             id: item.id,
             description: item.description,
@@ -2019,12 +2118,237 @@ export const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === "/v1/governance/retention-policy" && req.method === "GET") {
+      const effectiveGovernance = await resolveEffectiveGovernancePolicyForTenant(requestTenant.tenantId);
       writeJson(res, 200, {
         data: {
           tenant: requestTenant,
-          templateId: complianceTemplateProfile.id,
-          requestedTemplateId: complianceTemplateProfile.requestedTemplateId,
-          policy: complianceTemplateProfile.retentionPolicy,
+          templateId: effectiveGovernance.profile.id,
+          requestedTemplateId: effectiveGovernance.profile.requestedTemplateId,
+          source: effectiveGovernance.source,
+          policy: effectiveGovernance.profile.retentionPolicy,
+        },
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/governance/policy" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const tenantScope = resolveGovernanceTenantScope({
+        requestedTenantRaw: url.searchParams.get("tenantId"),
+        requestTenant,
+        role,
+      });
+      if (tenantScope.scope === "all") {
+        const limit = parseBoundedInt(url.searchParams.get("limit"), 100, 1, 500);
+        const overrides = await listTenantGovernancePolicies({
+          limit,
+        });
+        writeJson(res, 200, {
+          data: {
+            role,
+            tenant: {
+              tenantId: "all",
+              requestTenantId: requestTenant.tenantId,
+              source: requestTenant.source,
+              scope: "all",
+            },
+            defaults: complianceTemplateProfile,
+            overrides: {
+              total: overrides.length,
+              recent: overrides.slice(0, 50),
+            },
+          },
+        });
+        return;
+      }
+
+      const tenantId = tenantScope.effectiveTenantId ?? requestTenant.tenantId;
+      const effective = await resolveEffectiveGovernancePolicyForTenant(tenantId);
+      writeJson(res, 200, {
+        data: {
+          role,
+          tenant: {
+            tenantId,
+            requestTenantId: requestTenant.tenantId,
+            source: requestTenant.source,
+            scope: "tenant",
+          },
+          source: effective.source,
+          policy: {
+            complianceTemplate: effective.profile.id,
+            retentionPolicy: effective.profile.retentionPolicy,
+          },
+          profile: effective.profile,
+          override: effective.overrideVersion === null
+            ? null
+            : {
+                version: effective.overrideVersion,
+                updatedAt: effective.overrideUpdatedAt,
+              },
+        },
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/governance/policy" && req.method === "POST") {
+      const role = assertOperatorRole(req, ["admin"]);
+      const raw = await readBody(req);
+      const parsed = parseJsonBody(raw) as {
+        tenantId?: unknown;
+        complianceTemplate?: unknown;
+        retentionPolicy?: unknown;
+        expectedVersion?: unknown;
+        idempotencyKey?: unknown;
+        metadata?: unknown;
+      };
+      const tenantId = normalizeTenantId(parsed.tenantId ?? requestTenant.tenantId);
+      const current = await resolveEffectiveGovernancePolicyForTenant(tenantId);
+      const requestedTemplateRaw = toOptionalString(parsed.complianceTemplate);
+      if (requestedTemplateRaw && !isComplianceTemplateId(requestedTemplateRaw)) {
+        await auditOperatorAction({
+          tenantId,
+          role,
+          action: "update_governance_policy",
+          outcome: "denied",
+          reason: "invalid complianceTemplate value",
+          errorCode: "API_INVALID_COMPLIANCE_TEMPLATE",
+          details: {
+            tenantId,
+            complianceTemplate: requestedTemplateRaw,
+          },
+        });
+        writeApiError(res, 400, {
+          code: "API_INVALID_COMPLIANCE_TEMPLATE",
+          message: "complianceTemplate must be one of baseline|strict|regulated",
+          details: {
+            receivedComplianceTemplate: requestedTemplateRaw,
+          },
+        });
+        return;
+      }
+      const nextTemplate: ComplianceTemplateId = requestedTemplateRaw && isComplianceTemplateId(requestedTemplateRaw)
+        ? requestedTemplateRaw
+        : current.profile.id;
+      const retentionPatchResult = parseRetentionPolicyPatch(parsed.retentionPolicy);
+      if (retentionPatchResult.invalidFields.length > 0) {
+        await auditOperatorAction({
+          tenantId,
+          role,
+          action: "update_governance_policy",
+          outcome: "denied",
+          reason: "invalid retention policy patch",
+          errorCode: "API_INVALID_RETENTION_POLICY",
+          details: {
+            tenantId,
+            invalidFields: retentionPatchResult.invalidFields,
+          },
+        });
+        writeApiError(res, 400, {
+          code: "API_INVALID_RETENTION_POLICY",
+          message: "retentionPolicy contains invalid day values",
+          details: {
+            invalidFields: retentionPatchResult.invalidFields,
+          },
+        });
+        return;
+      }
+      const nextRetentionPolicy = applyRetentionPolicyPatch(
+        current.profile.retentionPolicy,
+        retentionPatchResult.patch,
+      );
+      const idempotencyKey =
+        parseIdempotencyKey(parsed.idempotencyKey) ??
+        parseIdempotencyKey(headerValue(req, "x-idempotency-key"));
+      const expectedVersion = parseOptionalExpectedVersion(parsed.expectedVersion);
+      const updatedBy = toOptionalString(headerValue(req, "x-operator-id")) ?? `role:${role}`;
+      const update = await upsertTenantGovernancePolicy({
+        tenantId,
+        complianceTemplate: nextTemplate,
+        retentionPolicy: nextRetentionPolicy,
+        updatedBy,
+        expectedVersion,
+        idempotencyKey,
+        metadata: parsed.metadata,
+      });
+
+      if (update.outcome === "version_conflict") {
+        await auditOperatorAction({
+          tenantId,
+          role,
+          action: "update_governance_policy",
+          outcome: "denied",
+          reason: "governance policy version conflict",
+          errorCode: "API_GOVERNANCE_POLICY_VERSION_CONFLICT",
+          details: {
+            expectedVersion: update.expectedVersion,
+            actualVersion: update.actualVersion,
+          },
+        });
+        writeApiError(res, 409, {
+          code: "API_GOVERNANCE_POLICY_VERSION_CONFLICT",
+          message: "governance policy version conflict",
+          details: {
+            tenantId,
+            expectedVersion: update.expectedVersion,
+            actualVersion: update.actualVersion,
+          },
+        });
+        return;
+      }
+
+      if (update.outcome === "idempotency_conflict") {
+        await auditOperatorAction({
+          tenantId,
+          role,
+          action: "update_governance_policy",
+          outcome: "denied",
+          reason: "governance policy idempotency conflict",
+          errorCode: "API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT",
+          details: {
+            idempotencyKey: update.idempotencyKey,
+            actualVersion: update.policy.version,
+          },
+        });
+        writeApiError(res, 409, {
+          code: "API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT",
+          message: "governance policy idempotency conflict",
+          details: {
+            tenantId,
+            idempotencyKey: update.idempotencyKey,
+            actualVersion: update.policy.version,
+          },
+        });
+        return;
+      }
+
+      await auditOperatorAction({
+        tenantId,
+        role,
+        action: "update_governance_policy",
+        outcome: "succeeded",
+        reason: `governance policy ${update.outcome}`,
+        operation: "set_governance_policy",
+        details: {
+          tenantId,
+          outcome: update.outcome,
+          version: update.policy.version,
+          complianceTemplate: update.policy.complianceTemplate,
+        },
+      });
+
+      const effective = await resolveEffectiveGovernancePolicyForTenant(tenantId);
+      writeJson(res, update.outcome === "created" ? 201 : 200, {
+        data: {
+          tenant: {
+            tenantId,
+            requestTenantId: requestTenant.tenantId,
+            source: requestTenant.source,
+          },
+          outcome: update.outcome,
+          idempotencyKey,
+          expectedVersion,
+          policy: update.policy,
+          effective,
         },
       });
       return;
@@ -2068,7 +2392,17 @@ export const server = createServer(async (req, res) => {
       const approvalsLimit = parseBoundedInt(url.searchParams.get("approvalsLimit"), 200, 1, 1000);
       const sessionsLimit = parseBoundedInt(url.searchParams.get("sessionsLimit"), 200, 1, 1000);
       const bindingsLimit = parseBoundedInt(url.searchParams.get("bindingsLimit"), 200, 1, 1000);
-      const [operatorActions, approvals, sessions, channelBindings] = await Promise.all([
+      const governancePolicy =
+        tenantScope.scope === "tenant"
+          ? await resolveEffectiveGovernancePolicyForTenant(tenantScope.effectiveTenantId ?? requestTenant.tenantId)
+          : null;
+      const governanceOverridesPromise =
+        tenantScope.scope === "all"
+          ? listTenantGovernancePolicies({
+              limit: parseBoundedInt(url.searchParams.get("governanceOverridesLimit"), 100, 1, 500),
+            })
+          : Promise.resolve([]);
+      const [operatorActions, approvals, sessions, channelBindings, governanceOverrides] = await Promise.all([
         listOperatorActions(
           operatorActionsLimit,
           tenantScope.effectiveTenantId ? { tenantId: tenantScope.effectiveTenantId } : undefined,
@@ -2085,6 +2419,7 @@ export const server = createServer(async (req, res) => {
           limit: bindingsLimit,
           tenantId: tenantScope.effectiveTenantId ?? undefined,
         }),
+        governanceOverridesPromise,
       ]);
 
       const operatorActionOutcomeCounts = operatorActions.reduce(
@@ -2152,12 +2487,20 @@ export const server = createServer(async (req, res) => {
             scope: tenantScope.scope,
           },
           compliance: {
-            templateId: complianceTemplateProfile.id,
-            requestedTemplateId: complianceTemplateProfile.requestedTemplateId,
-            fallbackApplied: complianceTemplateProfile.fallbackApplied,
-            controls: complianceTemplateProfile.controls,
+            templateId: governancePolicy?.profile.id ?? complianceTemplateProfile.id,
+            requestedTemplateId: governancePolicy?.profile.requestedTemplateId ?? complianceTemplateProfile.requestedTemplateId,
+            fallbackApplied: governancePolicy?.profile.fallbackApplied ?? complianceTemplateProfile.fallbackApplied,
+            controls: governancePolicy?.profile.controls ?? complianceTemplateProfile.controls,
+            source: governancePolicy?.source ?? "template_default",
+            overrideVersion: governancePolicy?.overrideVersion ?? null,
           },
-          retentionPolicy: complianceTemplateProfile.retentionPolicy,
+          retentionPolicy: governancePolicy?.profile.retentionPolicy ?? complianceTemplateProfile.retentionPolicy,
+          governanceOverrides: tenantScope.scope === "all"
+            ? {
+                total: governanceOverrides.length,
+                recent: governanceOverrides.slice(0, 25),
+              }
+            : undefined,
           audit: {
             operatorActions: {
               total: operatorActions.length,

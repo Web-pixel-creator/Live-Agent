@@ -127,6 +127,47 @@ export type OperatorActionRecord = {
   details?: unknown;
 };
 
+export type GovernanceComplianceTemplate = "baseline" | "strict" | "regulated";
+
+export type GovernanceRetentionPolicy = {
+  rawMediaDays: number;
+  auditLogsDays: number;
+  approvalsDays: number;
+  eventsDays: number;
+  operatorActionsDays: number;
+  metricsRollupsDays: number;
+  sessionsDays: number;
+};
+
+export type TenantGovernancePolicyRecord = {
+  tenantId: string;
+  complianceTemplate: GovernanceComplianceTemplate;
+  retentionPolicy: GovernanceRetentionPolicy;
+  version: number;
+  lastMutationId: string | null;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: unknown;
+};
+
+export type TenantGovernancePolicyUpsertResult =
+  | {
+      outcome: "created" | "updated" | "idempotent_replay";
+      policy: TenantGovernancePolicyRecord;
+    }
+  | {
+      outcome: "version_conflict";
+      policy: TenantGovernancePolicyRecord;
+      expectedVersion: number;
+      actualVersion: number;
+    }
+  | {
+      outcome: "idempotency_conflict";
+      policy: TenantGovernancePolicyRecord;
+      idempotencyKey: string;
+    };
+
 export type ManagedSkillTrustLevel = "untrusted" | "reviewed" | "trusted";
 
 export type ManagedSkillRecord = {
@@ -274,12 +315,22 @@ let state: FirestoreState = {
 const inMemorySessions = new Map<string, SessionListItem>();
 const inMemoryApprovals = new Map<string, ApprovalRecord>();
 const inMemoryOperatorActions: OperatorActionRecord[] = [];
+const inMemoryTenantGovernancePolicies = new Map<string, TenantGovernancePolicyRecord>();
 const inMemoryManagedSkills = new Map<string, ManagedSkillRecord>();
 const inMemoryDeviceNodes = new Map<string, DeviceNodeRecord>();
 const inMemoryChannelSessionBindings = new Map<string, ChannelSessionBindingRecord>();
 const inMemoryWriteLanes = new Map<string, Promise<void>>();
 const DEFAULT_APPROVAL_SOFT_TIMEOUT_MS = 60 * 1000;
 const DEFAULT_APPROVAL_HARD_TIMEOUT_MS = 5 * 60 * 1000;
+const DEFAULT_GOVERNANCE_RETENTION_POLICY: GovernanceRetentionPolicy = {
+  rawMediaDays: 7,
+  auditLogsDays: 365,
+  approvalsDays: 365,
+  eventsDays: 365,
+  operatorActionsDays: 365,
+  metricsRollupsDays: 400,
+  sessionsDays: 90,
+};
 
 function shouldEnableFirestore(): boolean {
   if (process.env.FIRESTORE_ENABLED === "true") {
@@ -537,6 +588,81 @@ function normalizeTenantId(value: unknown): string {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
   return normalized.length > 0 ? normalized.slice(0, 64) : "public";
+}
+
+function normalizeGovernanceComplianceTemplate(raw: unknown): GovernanceComplianceTemplate {
+  if (raw === "strict" || raw === "regulated") {
+    return raw;
+  }
+  return "baseline";
+}
+
+function normalizeRetentionDays(raw: unknown, fallback: number): number {
+  const parsed = toNonNegativeInt(raw);
+  if (parsed === null || parsed < 1) {
+    return fallback;
+  }
+  return Math.min(3650, parsed);
+}
+
+function normalizeGovernanceRetentionPolicy(
+  raw: unknown,
+  fallback: GovernanceRetentionPolicy,
+): GovernanceRetentionPolicy {
+  const typed = asRecord(raw);
+  if (!typed) {
+    return {
+      ...fallback,
+    };
+  }
+  return {
+    rawMediaDays: normalizeRetentionDays(typed.rawMediaDays, fallback.rawMediaDays),
+    auditLogsDays: normalizeRetentionDays(typed.auditLogsDays, fallback.auditLogsDays),
+    approvalsDays: normalizeRetentionDays(typed.approvalsDays, fallback.approvalsDays),
+    eventsDays: normalizeRetentionDays(typed.eventsDays, fallback.eventsDays),
+    operatorActionsDays: normalizeRetentionDays(typed.operatorActionsDays, fallback.operatorActionsDays),
+    metricsRollupsDays: normalizeRetentionDays(typed.metricsRollupsDays, fallback.metricsRollupsDays),
+    sessionsDays: normalizeRetentionDays(typed.sessionsDays, fallback.sessionsDays),
+  };
+}
+
+function governancePolicySignature(policy: {
+  tenantId: string;
+  complianceTemplate: GovernanceComplianceTemplate;
+  retentionPolicy: GovernanceRetentionPolicy;
+  updatedBy: string;
+  metadata?: unknown;
+}): string {
+  return JSON.stringify({
+    tenantId: policy.tenantId,
+    complianceTemplate: policy.complianceTemplate,
+    retentionPolicy: policy.retentionPolicy,
+    updatedBy: policy.updatedBy,
+    metadata: policy.metadata,
+  });
+}
+
+function mapTenantGovernancePolicyRecord(
+  tenantId: string,
+  raw: Record<string, unknown>,
+): TenantGovernancePolicyRecord {
+  const normalizedTenantId = normalizeTenantId(raw.tenantId ?? tenantId);
+  const complianceTemplate = normalizeGovernanceComplianceTemplate(raw.complianceTemplate);
+  const retentionPolicy = normalizeGovernanceRetentionPolicy(
+    raw.retentionPolicy,
+    DEFAULT_GOVERNANCE_RETENTION_POLICY,
+  );
+  return {
+    tenantId: normalizedTenantId,
+    complianceTemplate,
+    retentionPolicy,
+    version: sanitizeVersion(raw.version),
+    lastMutationId: normalizeMutationId(raw.lastMutationId),
+    updatedBy: toNonEmptyString(raw.updatedBy) ?? "system",
+    createdAt: toIso(raw.createdAt),
+    updatedAt: toIso(raw.updatedAt),
+    metadata: raw.metadata,
+  };
 }
 
 function toNonNegativeInt(value: unknown): number | null {
@@ -1450,6 +1576,245 @@ export async function listOperatorActions(
     return records.slice(0, boundedLimit);
   }
   return records.filter((item) => item.tenantId === tenantId).slice(0, boundedLimit);
+}
+
+export async function getTenantGovernancePolicy(params: {
+  tenantId: string;
+}): Promise<TenantGovernancePolicyRecord | null> {
+  const tenantId = normalizeTenantId(params.tenantId);
+  const db = initFirestore();
+  if (!db) {
+    return inMemoryTenantGovernancePolicies.get(tenantId) ?? null;
+  }
+  const ref = db.collection("tenant_governance_policies").doc(tenantId);
+  const snapshot = await ref.get();
+  if (!snapshot.exists) {
+    return null;
+  }
+  return mapTenantGovernancePolicyRecord(ref.id, snapshot.data() as Record<string, unknown>);
+}
+
+export async function listTenantGovernancePolicies(params: {
+  limit: number;
+  tenantId?: string;
+}): Promise<TenantGovernancePolicyRecord[]> {
+  const limit = Math.max(1, Math.min(500, Math.floor(params.limit)));
+  const tenantId = params.tenantId ? normalizeTenantId(params.tenantId) : null;
+  const db = initFirestore();
+  if (!db) {
+    const values = Array.from(inMemoryTenantGovernancePolicies.values())
+      .filter((item) => (tenantId ? item.tenantId === tenantId : true))
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .slice(0, limit);
+    return values;
+  }
+
+  let query = db.collection("tenant_governance_policies").orderBy("updatedAt", "desc");
+  if (tenantId) {
+    query = query.where("tenantId", "==", tenantId);
+  }
+  const snapshot = await query.limit(limit).get();
+  return snapshot.docs.map((doc) =>
+    mapTenantGovernancePolicyRecord(doc.id, doc.data() as Record<string, unknown>),
+  );
+}
+
+export async function upsertTenantGovernancePolicy(params: {
+  tenantId: string;
+  complianceTemplate: GovernanceComplianceTemplate;
+  retentionPolicy: GovernanceRetentionPolicy;
+  updatedBy: string;
+  expectedVersion?: number | null;
+  idempotencyKey?: string | null;
+  metadata?: unknown;
+}): Promise<TenantGovernancePolicyUpsertResult> {
+  const tenantId = normalizeTenantId(params.tenantId);
+  const expectedVersion =
+    typeof params.expectedVersion === "number" &&
+    Number.isFinite(params.expectedVersion) &&
+    params.expectedVersion >= 1
+      ? Math.floor(params.expectedVersion)
+      : null;
+  const idempotencyKey = normalizeMutationId(params.idempotencyKey);
+  const nowIso = new Date().toISOString();
+  const complianceTemplate = normalizeGovernanceComplianceTemplate(params.complianceTemplate);
+  const retentionPolicy = normalizeGovernanceRetentionPolicy(
+    params.retentionPolicy,
+    DEFAULT_GOVERNANCE_RETENTION_POLICY,
+  );
+  const updatedBy = toNonEmptyString(params.updatedBy) ?? "admin";
+  const basePolicy: TenantGovernancePolicyRecord = {
+    tenantId,
+    complianceTemplate,
+    retentionPolicy,
+    version: 1,
+    lastMutationId: idempotencyKey,
+    updatedBy,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    metadata: params.metadata,
+  };
+  const db = initFirestore();
+
+  if (!db) {
+    return runInMemoryWriteLane(`tenant-governance:${tenantId}`, () => {
+      const existing = inMemoryTenantGovernancePolicies.get(tenantId) ?? null;
+      if (!existing) {
+        inMemoryTenantGovernancePolicies.set(tenantId, basePolicy);
+        return {
+          outcome: "created" as const,
+          policy: basePolicy,
+        };
+      }
+
+      const replayCandidate: TenantGovernancePolicyRecord = {
+        ...existing,
+        complianceTemplate: basePolicy.complianceTemplate,
+        retentionPolicy: basePolicy.retentionPolicy,
+        updatedBy: basePolicy.updatedBy,
+        metadata: basePolicy.metadata,
+      };
+      if (idempotencyKey && existing.lastMutationId === idempotencyKey) {
+        if (governancePolicySignature(existing) === governancePolicySignature(replayCandidate)) {
+          return {
+            outcome: "idempotent_replay" as const,
+            policy: existing,
+          };
+        }
+        return {
+          outcome: "idempotency_conflict" as const,
+          policy: existing,
+          idempotencyKey,
+        };
+      }
+      if (expectedVersion !== null && existing.version !== expectedVersion) {
+        return {
+          outcome: "version_conflict" as const,
+          policy: existing,
+          expectedVersion,
+          actualVersion: existing.version,
+        };
+      }
+      if (governancePolicySignature(existing) === governancePolicySignature(replayCandidate)) {
+        return {
+          outcome: "idempotent_replay" as const,
+          policy: existing,
+        };
+      }
+
+      const next: TenantGovernancePolicyRecord = {
+        ...existing,
+        complianceTemplate: basePolicy.complianceTemplate,
+        retentionPolicy: basePolicy.retentionPolicy,
+        version: existing.version + 1,
+        lastMutationId: idempotencyKey,
+        updatedBy: basePolicy.updatedBy,
+        updatedAt: nowIso,
+        metadata: basePolicy.metadata,
+      };
+      inMemoryTenantGovernancePolicies.set(tenantId, next);
+      return {
+        outcome: "updated" as const,
+        policy: next,
+      };
+    });
+  }
+
+  const ref = db.collection("tenant_governance_policies").doc(tenantId);
+  const transactionResult = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    if (!snapshot.exists) {
+      transaction.set(
+        ref,
+        {
+          tenantId: basePolicy.tenantId,
+          complianceTemplate: basePolicy.complianceTemplate,
+          retentionPolicy: basePolicy.retentionPolicy,
+          version: 1,
+          lastMutationId: idempotencyKey,
+          updatedBy: basePolicy.updatedBy,
+          metadata: basePolicy.metadata ?? null,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      return {
+        outcome: "created" as const,
+      };
+    }
+
+    const existing = mapTenantGovernancePolicyRecord(ref.id, snapshot.data() as Record<string, unknown>);
+    const replayCandidate: TenantGovernancePolicyRecord = {
+      ...existing,
+      complianceTemplate: basePolicy.complianceTemplate,
+      retentionPolicy: basePolicy.retentionPolicy,
+      updatedBy: basePolicy.updatedBy,
+      metadata: basePolicy.metadata,
+    };
+
+    if (idempotencyKey && existing.lastMutationId === idempotencyKey) {
+      if (governancePolicySignature(existing) === governancePolicySignature(replayCandidate)) {
+        return {
+          outcome: "idempotent_replay" as const,
+          policy: existing,
+        };
+      }
+      return {
+        outcome: "idempotency_conflict" as const,
+        policy: existing,
+        idempotencyKey,
+      };
+    }
+    if (expectedVersion !== null && existing.version !== expectedVersion) {
+      return {
+        outcome: "version_conflict" as const,
+        policy: existing,
+        expectedVersion,
+        actualVersion: existing.version,
+      };
+    }
+    if (governancePolicySignature(existing) === governancePolicySignature(replayCandidate)) {
+      return {
+        outcome: "idempotent_replay" as const,
+        policy: existing,
+      };
+    }
+
+    transaction.set(
+      ref,
+      {
+        complianceTemplate: basePolicy.complianceTemplate,
+        retentionPolicy: basePolicy.retentionPolicy,
+        version: existing.version + 1,
+        lastMutationId: idempotencyKey,
+        updatedBy: basePolicy.updatedBy,
+        metadata: basePolicy.metadata ?? null,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    return {
+      outcome: "updated" as const,
+    };
+  });
+
+  if (transactionResult.outcome === "idempotent_replay") {
+    return transactionResult;
+  }
+  if (transactionResult.outcome === "idempotency_conflict") {
+    return transactionResult;
+  }
+  if (transactionResult.outcome === "version_conflict") {
+    return transactionResult;
+  }
+
+  const stored = await ref.get();
+  const policy = mapTenantGovernancePolicyRecord(ref.id, (stored.data() ?? {}) as Record<string, unknown>);
+  return {
+    outcome: transactionResult.outcome,
+    policy,
+  };
 }
 
 export type ApprovalSweepResult = {

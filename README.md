@@ -144,6 +144,8 @@ Session mutation concurrency controls:
 - `GET /v1/governance/tenant` -> resolved tenant context (`tenantId`, source, compliance template).
 - `GET /v1/governance/compliance-template` -> active compliance template profile + available templates.
 - `GET /v1/governance/retention-policy` -> effective retention policy (template + env overrides).
+- `GET /v1/governance/policy` (`x-operator-role: viewer|operator|admin`) -> effective tenant policy; admin can query `tenantId=all` for overrides snapshot.
+- `POST /v1/governance/policy` (`x-operator-role: admin`) -> mutate tenant compliance/retention policy with optimistic versioning (`expectedVersion`) + idempotency key (`idempotencyKey` or `x-idempotency-key`); all mutations are audited via `operator_actions`.
 - `GET /v1/governance/audit/operator-actions` -> tenant-scoped operator audit stream (`viewer|operator|admin`); non-admin cross-tenant queries are rejected.
 - `GET /v1/governance/audit/summary` -> centralized tenant audit dashboard snapshot (operator actions, approvals, sessions, channel bindings). Admin can query `tenantId=all`.
 
