@@ -107,6 +107,15 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         governancePolicySummarySource: "tenant_override",
         governancePolicyComplianceTemplate: "strict",
         governancePolicyOverridesTotal: 1,
+        skillsRegistryLifecycleValidated: true,
+        skillsRegistryIndexHasSkill: true,
+        skillsRegistryRegistryHasSkill: true,
+        skillsRegistryCreateOutcome: "created",
+        skillsRegistryReplayOutcome: "idempotent_replay",
+        skillsRegistryVersionConflictCode: "API_SKILL_REGISTRY_VERSION_CONFLICT",
+        skillsRegistryPluginInvalidPermissionCode: "API_SKILL_PLUGIN_PERMISSION_INVALID",
+        skillsRegistryIndexTotal: 1,
+        skillsRegistryTotal: 1,
       },
     },
   });
@@ -120,11 +129,13 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   const damageControl = evidence.damageControl as Record<string, unknown>;
   const operatorDamageControl = evidence.operatorDamageControl as Record<string, unknown>;
   const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
+  const skillsRegistry = evidence.skillsRegistry as Record<string, unknown>;
   assert.equal(turnTruncation.status, "pass");
   assert.equal(turnDelete.status, "pass");
   assert.equal(damageControl.status, "pass");
   assert.equal(operatorDamageControl.status, "pass");
   assert.equal(governancePolicy.status, "pass");
+  assert.equal(skillsRegistry.status, "pass");
   assert.equal(turnTruncation.latestTurnId, "turn-truncate-demo");
   assert.equal(turnDelete.latestTurnId, "turn-delete-demo");
   assert.equal(turnDelete.latestScope, "session_local");
@@ -138,6 +149,10 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(governancePolicy.summarySource, "tenant_override");
   assert.equal(governancePolicy.complianceTemplate, "strict");
   assert.equal(governancePolicy.overridesTotal, 1);
+  assert.equal(skillsRegistry.createOutcome, "created");
+  assert.equal(skillsRegistry.replayOutcome, "idempotent_replay");
+  assert.equal(skillsRegistry.indexTotal, 1);
+  assert.equal(skillsRegistry.registryTotal, 1);
 });
 
 test("demo-e2e badge details marks operator turn delete evidence as failed when checkpoint is missing", () => {
@@ -172,6 +187,7 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   const damageControl = evidence.damageControl as Record<string, unknown>;
   const operatorDamageControl = evidence.operatorDamageControl as Record<string, unknown>;
   const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
+  const skillsRegistry = evidence.skillsRegistry as Record<string, unknown>;
   assert.equal(turnDelete.status, "fail");
   assert.equal(turnDelete.validated, false);
   assert.equal(turnDelete.total, 0);
@@ -185,4 +201,8 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   assert.equal(governancePolicy.status, "fail");
   assert.equal(governancePolicy.validated, false);
   assert.equal(governancePolicy.overridesTotal, 0);
+  assert.equal(skillsRegistry.status, "fail");
+  assert.equal(skillsRegistry.validated, false);
+  assert.equal(skillsRegistry.indexTotal, 0);
+  assert.equal(skillsRegistry.registryTotal, 0);
 });

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-28T19:15:45.492Z",
+  "generatedAt": "2026-02-28T19:22:26.228Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
@@ -80,6 +80,18 @@
       "summarySource": "",
       "complianceTemplate": "",
       "overridesTotal": 0
+    },
+    "skillsRegistry": {
+      "status": "fail",
+      "validated": false,
+      "indexHasSkill": false,
+      "registryHasSkill": false,
+      "createOutcome": "",
+      "replayOutcome": "",
+      "versionConflictCode": "",
+      "pluginInvalidPermissionCode": "",
+      "indexTotal": 0,
+      "registryTotal": 0
     }
   },
   "badge": {

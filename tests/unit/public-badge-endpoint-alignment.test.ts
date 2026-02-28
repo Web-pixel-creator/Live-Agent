@@ -37,11 +37,13 @@ test("tracked public badge details embed badge payload", () => {
   const damageControl = evidence.damageControl as Record<string, unknown>;
   const operatorDamageControl = evidence.operatorDamageControl as Record<string, unknown>;
   const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
+  const skillsRegistry = evidence.skillsRegistry as Record<string, unknown>;
   assert.ok(turnTruncation && typeof turnTruncation === "object");
   assert.ok(turnDelete && typeof turnDelete === "object");
   assert.ok(damageControl && typeof damageControl === "object");
   assert.ok(operatorDamageControl && typeof operatorDamageControl === "object");
   assert.ok(governancePolicy && typeof governancePolicy === "object");
+  assert.ok(skillsRegistry && typeof skillsRegistry === "object");
 
   assert.equal(details.ok, true);
   assert.equal(typeof details.generatedAt, "string");
@@ -93,6 +95,16 @@ test("tracked public badge details embed badge payload", () => {
   assert.equal(typeof governancePolicy.summarySource, "string");
   assert.equal(typeof governancePolicy.complianceTemplate, "string");
   assert.equal(typeof governancePolicy.overridesTotal, "number");
+  assert.equal(typeof skillsRegistry.status, "string");
+  assert.equal(typeof skillsRegistry.validated, "boolean");
+  assert.equal(typeof skillsRegistry.indexHasSkill, "boolean");
+  assert.equal(typeof skillsRegistry.registryHasSkill, "boolean");
+  assert.equal(typeof skillsRegistry.createOutcome, "string");
+  assert.equal(typeof skillsRegistry.replayOutcome, "string");
+  assert.equal(typeof skillsRegistry.versionConflictCode, "string");
+  assert.equal(typeof skillsRegistry.pluginInvalidPermissionCode, "string");
+  assert.equal(typeof skillsRegistry.indexTotal, "number");
+  assert.equal(typeof skillsRegistry.registryTotal, "number");
   assert.equal(typeof details.policyPath, "string");
   assert.equal(typeof details.summaryPath, "string");
   assert.equal(badge.schemaVersion, 1);

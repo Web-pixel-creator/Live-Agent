@@ -269,6 +269,48 @@ function buildGovernancePolicyEvidence(kpis) {
   };
 }
 
+function buildSkillsRegistryEvidence(kpis) {
+  const validated = toBoolean(kpis.skillsRegistryLifecycleValidated) === true;
+  const indexHasSkill = toBoolean(kpis.skillsRegistryIndexHasSkill) === true;
+  const registryHasSkill = toBoolean(kpis.skillsRegistryRegistryHasSkill) === true;
+  const createOutcome = toOptionalString(kpis.skillsRegistryCreateOutcome);
+  const replayOutcome = toOptionalString(kpis.skillsRegistryReplayOutcome);
+  const versionConflictCode = toOptionalString(kpis.skillsRegistryVersionConflictCode);
+  const pluginInvalidPermissionCode = toOptionalString(kpis.skillsRegistryPluginInvalidPermissionCode);
+  const indexTotal = toNumber(kpis.skillsRegistryIndexTotal) ?? 0;
+  const registryTotal = toNumber(kpis.skillsRegistryTotal) ?? 0;
+  const createOutcomeValue = createOutcome ?? "";
+  const replayOutcomeValue = replayOutcome ?? "";
+  const versionConflictCodeValue = versionConflictCode ?? "";
+  const pluginInvalidPermissionCodeValue = pluginInvalidPermissionCode ?? "";
+
+  const status =
+    validated &&
+    indexHasSkill &&
+    registryHasSkill &&
+    createOutcomeValue === "created" &&
+    replayOutcomeValue === "idempotent_replay" &&
+    versionConflictCodeValue === "API_SKILL_REGISTRY_VERSION_CONFLICT" &&
+    pluginInvalidPermissionCodeValue === "API_SKILL_PLUGIN_PERMISSION_INVALID" &&
+    indexTotal >= 1 &&
+    registryTotal >= 1
+      ? "pass"
+      : "fail";
+
+  return {
+    status,
+    validated,
+    indexHasSkill,
+    registryHasSkill,
+    createOutcome: createOutcomeValue,
+    replayOutcome: replayOutcomeValue,
+    versionConflictCode: versionConflictCodeValue,
+    pluginInvalidPermissionCode: pluginInvalidPermissionCodeValue,
+    indexTotal,
+    registryTotal,
+  };
+}
+
 function fail(message, details) {
   process.stderr.write(
     `${JSON.stringify({
@@ -332,6 +374,7 @@ async function main() {
   const damageControlEvidence = buildDamageControlEvidence(kpis);
   const operatorDamageControlEvidence = buildOperatorDamageControlEvidence(kpis);
   const governancePolicyEvidence = buildGovernancePolicyEvidence(kpis);
+  const skillsRegistryEvidence = buildSkillsRegistryEvidence(kpis);
 
   let color = "red";
   if (ok) {
@@ -368,6 +411,7 @@ async function main() {
       damageControl: damageControlEvidence,
       operatorDamageControl: operatorDamageControlEvidence,
       governancePolicy: governancePolicyEvidence,
+      skillsRegistry: skillsRegistryEvidence,
     },
     badge,
   };
