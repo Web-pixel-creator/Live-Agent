@@ -127,7 +127,94 @@ const configuredChannelAdapters = parseChannelAdapters(
 );
 const allowCustomChannelAdapters = process.env.API_CHANNEL_ADAPTERS_ALLOW_CUSTOM === "true";
 const defaultTenantId = normalizeTenantId(process.env.API_DEFAULT_TENANT_ID);
-const complianceTemplate = toOptionalString(process.env.API_COMPLIANCE_TEMPLATE) ?? "baseline";
+const requestedComplianceTemplate = toOptionalString(process.env.API_COMPLIANCE_TEMPLATE) ?? "baseline";
+type ComplianceTemplateId = "baseline" | "strict" | "regulated";
+type RetentionPolicy = {
+  rawMediaDays: number;
+  auditLogsDays: number;
+  approvalsDays: number;
+  eventsDays: number;
+  operatorActionsDays: number;
+  metricsRollupsDays: number;
+  sessionsDays: number;
+};
+type ComplianceTemplateProfile = {
+  id: ComplianceTemplateId;
+  description: string;
+  controls: {
+    piiRedactionLevel: "standard" | "high";
+    crossTenantAdminOnly: boolean;
+    approvalSlaEnforced: boolean;
+    auditTrailRequired: boolean;
+  };
+  retentionPolicy: RetentionPolicy;
+  requestedTemplateId: string;
+  fallbackApplied: boolean;
+};
+const complianceTemplateProfiles: Record<
+  ComplianceTemplateId,
+  Omit<ComplianceTemplateProfile, "requestedTemplateId" | "fallbackApplied">
+> = {
+  baseline: {
+    id: "baseline",
+    description: "Balanced defaults for product/demo operation.",
+    controls: {
+      piiRedactionLevel: "standard",
+      crossTenantAdminOnly: true,
+      approvalSlaEnforced: true,
+      auditTrailRequired: true,
+    },
+    retentionPolicy: {
+      rawMediaDays: 7,
+      auditLogsDays: 365,
+      approvalsDays: 365,
+      eventsDays: 365,
+      operatorActionsDays: 365,
+      metricsRollupsDays: 400,
+      sessionsDays: 90,
+    },
+  },
+  strict: {
+    id: "strict",
+    description: "Short raw data retention with longer compliance evidence.",
+    controls: {
+      piiRedactionLevel: "high",
+      crossTenantAdminOnly: true,
+      approvalSlaEnforced: true,
+      auditTrailRequired: true,
+    },
+    retentionPolicy: {
+      rawMediaDays: 3,
+      auditLogsDays: 540,
+      approvalsDays: 540,
+      eventsDays: 540,
+      operatorActionsDays: 540,
+      metricsRollupsDays: 730,
+      sessionsDays: 120,
+    },
+  },
+  regulated: {
+    id: "regulated",
+    description: "Compliance-first profile for strict audit-heavy environments.",
+    controls: {
+      piiRedactionLevel: "high",
+      crossTenantAdminOnly: true,
+      approvalSlaEnforced: true,
+      auditTrailRequired: true,
+    },
+    retentionPolicy: {
+      rawMediaDays: 1,
+      auditLogsDays: 1095,
+      approvalsDays: 1095,
+      eventsDays: 1095,
+      operatorActionsDays: 1095,
+      metricsRollupsDays: 1095,
+      sessionsDays: 180,
+    },
+  },
+};
+const complianceTemplateProfile = resolveComplianceTemplateProfile(requestedComplianceTemplate);
+const complianceTemplate = complianceTemplateProfile.id;
 
 function toBaseUrl(input: string | undefined, fallback: string): string {
   const candidate = typeof input === "string" && input.trim().length > 0 ? input.trim() : fallback;
@@ -184,6 +271,126 @@ function resolveRequestTenantContext(req: IncomingMessage, url: URL): {
   return {
     tenantId: defaultTenantId,
     source: "default",
+  };
+}
+
+function resolveComplianceTemplateProfile(rawTemplate: string): ComplianceTemplateProfile {
+  const requested = rawTemplate.trim().toLowerCase();
+  const resolvedId: ComplianceTemplateId =
+    requested === "strict" || requested === "regulated" || requested === "baseline"
+      ? requested
+      : "baseline";
+  const base = complianceTemplateProfiles[resolvedId];
+  const retentionPolicy: RetentionPolicy = {
+    rawMediaDays: parseBoundedInt(
+      process.env.API_RETENTION_RAW_MEDIA_DAYS ?? null,
+      base.retentionPolicy.rawMediaDays,
+      1,
+      3650,
+    ),
+    auditLogsDays: parseBoundedInt(
+      process.env.API_RETENTION_AUDIT_LOGS_DAYS ?? null,
+      base.retentionPolicy.auditLogsDays,
+      1,
+      3650,
+    ),
+    approvalsDays: parseBoundedInt(
+      process.env.API_RETENTION_APPROVALS_DAYS ?? null,
+      base.retentionPolicy.approvalsDays,
+      1,
+      3650,
+    ),
+    eventsDays: parseBoundedInt(
+      process.env.API_RETENTION_EVENTS_DAYS ?? null,
+      base.retentionPolicy.eventsDays,
+      1,
+      3650,
+    ),
+    operatorActionsDays: parseBoundedInt(
+      process.env.API_RETENTION_OPERATOR_ACTIONS_DAYS ?? null,
+      base.retentionPolicy.operatorActionsDays,
+      1,
+      3650,
+    ),
+    metricsRollupsDays: parseBoundedInt(
+      process.env.API_RETENTION_METRICS_ROLLUPS_DAYS ?? null,
+      base.retentionPolicy.metricsRollupsDays,
+      1,
+      3650,
+    ),
+    sessionsDays: parseBoundedInt(
+      process.env.API_RETENTION_SESSIONS_DAYS ?? null,
+      base.retentionPolicy.sessionsDays,
+      1,
+      3650,
+    ),
+  };
+  return {
+    ...base,
+    retentionPolicy,
+    requestedTemplateId: requested.length > 0 ? requested : "baseline",
+    fallbackApplied: requested.length > 0 && requested !== resolvedId,
+  };
+}
+
+function resolveGovernanceTenantScope(params: {
+  requestedTenantRaw: string | null;
+  requestTenant: {
+    tenantId: string;
+    source: "query" | "header" | "default";
+  };
+  role: OperatorRole;
+}): {
+  scope: "tenant" | "all";
+  effectiveTenantId: string | null;
+  requestedTenantId: string | null;
+} {
+  const requestedTenantRaw = params.requestedTenantRaw?.trim() ?? "";
+  if (requestedTenantRaw.length === 0) {
+    return {
+      scope: "tenant",
+      effectiveTenantId: params.requestTenant.tenantId,
+      requestedTenantId: null,
+    };
+  }
+
+  if (requestedTenantRaw.toLowerCase() === "all") {
+    if (params.role !== "admin") {
+      throw new ApiRequestError({
+        statusCode: 403,
+        code: "API_TENANT_SCOPE_FORBIDDEN",
+        message: "cross-tenant audit access requires admin role",
+        details: {
+          requestTenantId: params.requestTenant.tenantId,
+          requestedTenantId: "all",
+          role: params.role,
+        },
+      });
+    }
+    return {
+      scope: "all",
+      effectiveTenantId: null,
+      requestedTenantId: "all",
+    };
+  }
+
+  const requestedTenantId = normalizeTenantId(requestedTenantRaw);
+  if (params.role !== "admin" && requestedTenantId !== params.requestTenant.tenantId) {
+    throw new ApiRequestError({
+      statusCode: 403,
+      code: "API_TENANT_SCOPE_FORBIDDEN",
+      message: "cross-tenant audit access requires admin role",
+      details: {
+        requestTenantId: params.requestTenant.tenantId,
+        requestedTenantId,
+        role: params.role,
+      },
+    });
+  }
+  return {
+    scope: "tenant",
+    effectiveTenantId: requestedTenantId,
+    requestedTenantId,
   };
 }
 
@@ -549,6 +756,9 @@ function runtimeState(): Record<string, unknown> {
     governance: {
       defaultTenantId,
       complianceTemplate,
+      complianceTemplateRequested: complianceTemplateProfile.requestedTemplateId,
+      complianceTemplateFallbackApplied: complianceTemplateProfile.fallbackApplied,
+      retentionPolicy: complianceTemplateProfile.retentionPolicy,
       allowTenantHeaderOverride: true,
     },
     metrics: {
@@ -1536,7 +1746,13 @@ function buildDamageControlSummary(
   };
 }
 
-async function syncPendingApprovalsFromTasks(tasks: unknown[]): Promise<number> {
+async function syncPendingApprovalsFromTasks(
+  tasks: unknown[],
+  options?: {
+    tenantId?: string;
+  },
+): Promise<number> {
+  const scopedTenantId = options?.tenantId ? normalizeTenantId(options.tenantId) : null;
   let createdOrRefreshed = 0;
   for (const item of tasks) {
     if (!isRecord(item)) {
@@ -1550,11 +1766,16 @@ async function syncPendingApprovalsFromTasks(tasks: unknown[]): Promise<number> 
     if (!approvalId || !sessionId) {
       continue;
     }
+    const taskTenantId = normalizeTenantId(toTaskString(item.tenantId) ?? scopedTenantId ?? "public");
+    if (scopedTenantId && taskTenantId !== scopedTenantId) {
+      continue;
+    }
     const runId = toTaskString(item.runId) ?? approvalId.replace(/^approval-/, "run-unknown");
     const stage = toTaskString(item.stage) ?? "awaiting_approval";
     const updatedAt = toTaskString(item.updatedAt) ?? new Date().toISOString();
     await upsertPendingApproval({
       approvalId,
+      tenantId: taskTenantId,
       sessionId,
       runId,
       actionType: "ui_task",
@@ -1773,6 +1994,8 @@ export const server = createServer(async (req, res) => {
           tenantId: requestTenant.tenantId,
           source: requestTenant.source,
           complianceTemplate,
+          complianceTemplateRequested: complianceTemplateProfile.requestedTemplateId,
+          complianceTemplateFallbackApplied: complianceTemplateProfile.fallbackApplied,
           defaultTenantId,
           headers: {
             tenantHeader: "x-tenant-id",
@@ -1782,38 +2005,183 @@ export const server = createServer(async (req, res) => {
       return;
     }
 
+    if (url.pathname === "/v1/governance/compliance-template" && req.method === "GET") {
+      writeJson(res, 200, {
+        data: {
+          active: complianceTemplateProfile,
+          availableTemplates: Object.values(complianceTemplateProfiles).map((item) => ({
+            id: item.id,
+            description: item.description,
+          })),
+        },
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/governance/retention-policy" && req.method === "GET") {
+      writeJson(res, 200, {
+        data: {
+          tenant: requestTenant,
+          templateId: complianceTemplateProfile.id,
+          requestedTemplateId: complianceTemplateProfile.requestedTemplateId,
+          policy: complianceTemplateProfile.retentionPolicy,
+        },
+      });
+      return;
+    }
+
     if (url.pathname === "/v1/governance/audit/operator-actions" && req.method === "GET") {
       const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
       const limit = parseBoundedInt(url.searchParams.get("limit"), 50, 1, 500);
-      const requestedTenantRaw = url.searchParams.get("tenantId");
-      const requestedTenantId = requestedTenantRaw ? normalizeTenantId(requestedTenantRaw) : null;
-      const effectiveTenantId = requestedTenantId ?? requestTenant.tenantId;
-
-      if (requestedTenantId && role !== "admin" && requestedTenantId !== requestTenant.tenantId) {
-        writeApiError(res, 403, {
-          code: "API_TENANT_SCOPE_FORBIDDEN",
-          message: "cross-tenant audit access requires admin role",
-          details: {
-            requestTenantId: requestTenant.tenantId,
-            requestedTenantId,
-            role,
-          },
-        });
-        return;
-      }
-
-      const actions = await listOperatorActions(limit, {
-        tenantId: effectiveTenantId,
+      const tenantScope = resolveGovernanceTenantScope({
+        requestedTenantRaw: url.searchParams.get("tenantId"),
+        requestTenant,
+        role,
       });
+
+      const actions = await listOperatorActions(
+        limit,
+        tenantScope.effectiveTenantId ? { tenantId: tenantScope.effectiveTenantId } : undefined,
+      );
       writeJson(res, 200, {
         data: actions,
         total: actions.length,
         tenant: {
-          tenantId: effectiveTenantId,
+          tenantId: tenantScope.effectiveTenantId ?? "all",
           requestTenantId: requestTenant.tenantId,
           source: requestTenant.source,
+          scope: tenantScope.scope,
         },
         role,
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/governance/audit/summary" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const tenantScope = resolveGovernanceTenantScope({
+        requestedTenantRaw: url.searchParams.get("tenantId"),
+        requestTenant,
+        role,
+      });
+      const operatorActionsLimit = parseBoundedInt(url.searchParams.get("operatorActionsLimit"), 200, 1, 1000);
+      const approvalsLimit = parseBoundedInt(url.searchParams.get("approvalsLimit"), 200, 1, 1000);
+      const sessionsLimit = parseBoundedInt(url.searchParams.get("sessionsLimit"), 200, 1, 1000);
+      const bindingsLimit = parseBoundedInt(url.searchParams.get("bindingsLimit"), 200, 1, 1000);
+      const [operatorActions, approvals, sessions, channelBindings] = await Promise.all([
+        listOperatorActions(
+          operatorActionsLimit,
+          tenantScope.effectiveTenantId ? { tenantId: tenantScope.effectiveTenantId } : undefined,
+        ),
+        listApprovals({
+          limit: approvalsLimit,
+          tenantId: tenantScope.effectiveTenantId ?? undefined,
+        }),
+        listSessions(
+          sessionsLimit,
+          tenantScope.effectiveTenantId ? { tenantId: tenantScope.effectiveTenantId } : undefined,
+        ),
+        listChannelSessionBindings({
+          limit: bindingsLimit,
+          tenantId: tenantScope.effectiveTenantId ?? undefined,
+        }),
+      ]);
+
+      const operatorActionOutcomeCounts = operatorActions.reduce(
+        (acc, item) => {
+          acc[item.outcome] = (acc[item.outcome] ?? 0) + 1;
+          return acc;
+        },
+        {
+          succeeded: 0,
+          failed: 0,
+          denied: 0,
+        } satisfies Record<"succeeded" | "failed" | "denied", number>,
+      );
+      const approvalStatusCounts = approvals.reduce(
+        (acc, item) => {
+          acc[item.status] = (acc[item.status] ?? 0) + 1;
+          return acc;
+        },
+        {
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+          timeout: 0,
+        } satisfies Record<"pending" | "approved" | "rejected" | "timeout", number>,
+      );
+      const sessionModeCounts = sessions.reduce(
+        (acc, item) => {
+          acc[item.mode] = (acc[item.mode] ?? 0) + 1;
+          return acc;
+        },
+        {
+          live: 0,
+          story: 0,
+          ui: 0,
+          multi: 0,
+        } satisfies Record<"live" | "story" | "ui" | "multi", number>,
+      );
+      const sessionStatusCounts = sessions.reduce(
+        (acc, item) => {
+          acc[item.status] = (acc[item.status] ?? 0) + 1;
+          return acc;
+        },
+        {
+          active: 0,
+          paused: 0,
+          closed: 0,
+        } satisfies Record<"active" | "paused" | "closed", number>,
+      );
+      const channelAdapterCounts = channelBindings.reduce(
+        (acc, item) => {
+          acc[item.adapterId] = (acc[item.adapterId] ?? 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+
+      writeJson(res, 200, {
+        data: {
+          generatedAt: new Date().toISOString(),
+          role,
+          tenant: {
+            tenantId: tenantScope.effectiveTenantId ?? "all",
+            requestTenantId: requestTenant.tenantId,
+            source: requestTenant.source,
+            scope: tenantScope.scope,
+          },
+          compliance: {
+            templateId: complianceTemplateProfile.id,
+            requestedTemplateId: complianceTemplateProfile.requestedTemplateId,
+            fallbackApplied: complianceTemplateProfile.fallbackApplied,
+            controls: complianceTemplateProfile.controls,
+          },
+          retentionPolicy: complianceTemplateProfile.retentionPolicy,
+          audit: {
+            operatorActions: {
+              total: operatorActions.length,
+              outcomeCounts: operatorActionOutcomeCounts,
+              latest: operatorActions[0] ?? null,
+            },
+            approvals: {
+              total: approvals.length,
+              statusCounts: approvalStatusCounts,
+              latest: approvals[0] ?? null,
+            },
+            sessions: {
+              total: sessions.length,
+              modeCounts: sessionModeCounts,
+              statusCounts: sessionStatusCounts,
+              latest: sessions[0] ?? null,
+            },
+            channelBindings: {
+              total: channelBindings.length,
+              adapterCounts: channelAdapterCounts,
+              latest: channelBindings[0] ?? null,
+            },
+          },
+        },
       });
       return;
     }
@@ -2584,11 +2952,18 @@ export const server = createServer(async (req, res) => {
       const sessionId = url.searchParams.get("sessionId") ?? undefined;
       const sweep = await runApprovalSlaSweep();
       const activeTasks = await getGatewayActiveTasks(200);
-      const syncedFromTasks = await syncPendingApprovalsFromTasks(activeTasks);
-      const approvals = await listApprovals({ limit, sessionId });
+      const syncedFromTasks = await syncPendingApprovalsFromTasks(activeTasks, {
+        tenantId: requestTenant.tenantId,
+      });
+      const approvals = await listApprovals({
+        limit,
+        sessionId,
+        tenantId: requestTenant.tenantId,
+      });
       writeJson(res, 200, {
         data: approvals,
         total: approvals.length,
+        tenant: requestTenant,
         lifecycle: {
           syncedFromTasks,
           slaSweep: sweep,
@@ -2658,6 +3033,7 @@ export const server = createServer(async (req, res) => {
 
       const approval = await recordApprovalDecision({
         approvalId,
+        tenantId: requestTenant.tenantId,
         sessionId,
         runId,
         decision,
@@ -2756,9 +3132,11 @@ export const server = createServer(async (req, res) => {
           includeOffline: true,
         }),
       ]);
-      const syncedFromTasks = await syncPendingApprovalsFromTasks(activeTasks);
+      const syncedFromTasks = await syncPendingApprovalsFromTasks(activeTasks, {
+        tenantId: requestTenant.tenantId,
+      });
       const [approvals, operatorActions] = await Promise.all([
-        listApprovals({ limit: 100 }),
+        listApprovals({ limit: 100, tenantId: requestTenant.tenantId }),
         listOperatorActions(50, { tenantId: requestTenant.tenantId }),
       ]);
       const approvalStatusCounts = approvals.reduce(

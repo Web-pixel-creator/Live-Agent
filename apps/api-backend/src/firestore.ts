@@ -93,6 +93,7 @@ export type ApprovalAuditEntry = {
 
 export type ApprovalRecord = {
   approvalId: string;
+  tenantId: string;
   sessionId: string;
   runId: string;
   status: ApprovalStatus;
@@ -492,6 +493,7 @@ function mapApprovalRecord(docId: string, raw: Record<string, unknown>): Approva
 
   return {
     approvalId: docId,
+    tenantId: normalizeTenantId(raw.tenantId),
     sessionId: typeof raw.sessionId === "string" ? raw.sessionId : "unknown",
     runId: typeof raw.runId === "string" ? raw.runId : "unknown",
     status,
@@ -983,6 +985,7 @@ function mapOperatorActionRecord(
 function ensurePendingLifecycle(params: {
   existing: ApprovalRecord | null;
   approvalId: string;
+  tenantId?: string;
   sessionId: string;
   runId: string;
   metadata?: unknown;
@@ -1001,6 +1004,7 @@ function ensurePendingLifecycle(params: {
 
   return {
     approvalId: params.approvalId,
+    tenantId: params.existing?.tenantId ?? normalizeTenantId(params.tenantId),
     sessionId: params.sessionId,
     runId: params.runId,
     status: "pending",
@@ -1327,19 +1331,24 @@ export async function listRecentEvents(limit: number): Promise<EventListItem[]> 
 export async function listApprovals(params: {
   limit: number;
   sessionId?: string;
+  tenantId?: string;
 }): Promise<ApprovalRecord[]> {
+  const tenantId = params.tenantId ? normalizeTenantId(params.tenantId) : null;
   const db = initFirestore();
   if (!db) {
     const values = Array.from(inMemoryApprovals.values()).sort((a, b) =>
       b.updatedAt.localeCompare(a.updatedAt),
     );
-    if (!params.sessionId) {
-      return values.slice(0, params.limit);
-    }
-    return values.filter((item) => item.sessionId === params.sessionId).slice(0, params.limit);
+    return values
+      .filter((item) => (params.sessionId ? item.sessionId === params.sessionId : true))
+      .filter((item) => (tenantId ? item.tenantId === tenantId : true))
+      .slice(0, params.limit);
   }
 
   let query = db.collection("approvals").orderBy("updatedAt", "desc");
+  if (tenantId) {
+    query = query.where("tenantId", "==", tenantId);
+  }
   if (params.sessionId) {
     query = query.where("sessionId", "==", params.sessionId);
   }
@@ -1452,6 +1461,7 @@ export type ApprovalSweepResult = {
 
 export async function upsertPendingApproval(params: {
   approvalId: string;
+  tenantId?: string;
   sessionId: string;
   runId: string;
   actionType: string;
@@ -1475,6 +1485,7 @@ export async function upsertPendingApproval(params: {
       const pending = ensurePendingLifecycle({
         existing,
         approvalId: params.approvalId,
+        tenantId: params.tenantId,
         sessionId: params.sessionId,
         runId: params.runId,
         metadata: params.metadata,
@@ -1499,6 +1510,7 @@ export async function upsertPendingApproval(params: {
   const pending = ensurePendingLifecycle({
     existing,
     approvalId: params.approvalId,
+    tenantId: params.tenantId,
     sessionId: params.sessionId,
     runId: params.runId,
     metadata: params.metadata,
@@ -1512,6 +1524,7 @@ export async function upsertPendingApproval(params: {
   await ref.set(
     {
       approvalId: pending.approvalId,
+      tenantId: pending.tenantId,
       sessionId: pending.sessionId,
       runId: pending.runId,
       status: pending.status,
@@ -1537,6 +1550,7 @@ export async function upsertPendingApproval(params: {
 
 export async function recordApprovalDecision(params: {
   approvalId: string;
+  tenantId?: string;
   sessionId: string;
   runId: string;
   decision: ApprovalDecision;
@@ -1556,6 +1570,7 @@ export async function recordApprovalDecision(params: {
         : ensurePendingLifecycle({
             existing: null,
             approvalId: params.approvalId,
+            tenantId: params.tenantId,
             sessionId: params.sessionId,
             runId: params.runId,
             metadata: params.metadata,
@@ -1605,6 +1620,7 @@ export async function recordApprovalDecision(params: {
     ? mapApprovalRecord(ref.id, snapshot.data() as Record<string, unknown>)
     : await upsertPendingApproval({
         approvalId: params.approvalId,
+        tenantId: params.tenantId,
         sessionId: params.sessionId,
         runId: params.runId,
         actionType: "ui_task",
@@ -1633,6 +1649,7 @@ export async function recordApprovalDecision(params: {
   await ref.set(
     {
       approvalId: params.approvalId,
+      tenantId: pending.tenantId,
       sessionId: params.sessionId,
       runId: params.runId,
       status: params.decision,

@@ -140,9 +140,12 @@ Session mutation concurrency controls:
   - `action=failover` + `targetService` + `operation` (`drain|warmup`, admin only)
 - Summary response now includes `operatorActions.recent` audit trail for cancel/retry/failover operations (role, outcome, reason, target/task metadata).
 
-10.5 Governance baseline APIs (`T-304.1`):
+10.5 Governance APIs (`T-304.1` + `T-304.2` baseline):
 - `GET /v1/governance/tenant` -> resolved tenant context (`tenantId`, source, compliance template).
+- `GET /v1/governance/compliance-template` -> active compliance template profile + available templates.
+- `GET /v1/governance/retention-policy` -> effective retention policy (template + env overrides).
 - `GET /v1/governance/audit/operator-actions` -> tenant-scoped operator audit stream (`viewer|operator|admin`); non-admin cross-tenant queries are rejected.
+- `GET /v1/governance/audit/summary` -> centralized tenant audit dashboard snapshot (operator actions, approvals, sessions, channel bindings). Admin can query `tenantId=all`.
 
 11. Demo frontend includes an Operator Console panel for summary refresh and recovery actions.
 

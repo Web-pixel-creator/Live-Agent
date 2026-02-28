@@ -221,6 +221,7 @@
 190. Implemented `T-301` baseline (multi-channel adapters): added API backend channel adapter/session-binding endpoints (`/v1/channels/adapters`, `/v1/channels/sessions/index`, `/v1/channels/sessions`, `/v1/channels/sessions/resolve`, `/v1/channels/sessions/bind`) with Firestore/in-memory storage for versioned/idempotent channel-to-session bindings and unit coverage for conflict/resolve/index behavior.
 191. Implemented `T-304.1` baseline (tenant governance): added tenant context resolution (`x-tenant-id`/`tenantId` + defaults), tenant-aware session list/create payloads, tenant-scoped operator audit persistence/filtering, and governance endpoints (`/v1/governance/tenant`, `/v1/governance/audit/operator-actions`) with role-based cross-tenant guardrails.
 190. Synced refreshed strict-run public badge artifacts (`public/demo-e2e/badge.json`, `public/demo-e2e/badge-details.json`) and redeployed Railway gateway (`e2f2c8b3-cfaa-42b4-8200-838c852faf60`) so public badge endpoint reflects the latest strict baseline (`pass | 218 checks | 37ms ws`).
+192. Implemented `T-304.2` governance baseline: added compliance template profiles (`baseline|strict|regulated`) with env-overridable retention policy, new governance APIs (`/v1/governance/compliance-template`, `/v1/governance/retention-policy`, `/v1/governance/audit/summary` with admin-only `tenantId=all`), and tenant-scoped approval persistence/filtering in Firestore (`ApprovalRecord.tenantId`, list/upsert/decision flows), including dedicated unit coverage for approval tenant scoping.
 
 ## Current Focus Queue
 
