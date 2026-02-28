@@ -164,6 +164,17 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `gatewayErrorCorrelationClientEventType=orchestrator.request`
   - `gatewayErrorCorrelationConversation=none`
   - `gatewayErrorCorrelationLatencyMs in [0..5000]`
+- Governance reliability:
+  - `governancePolicyLifecycleValidated=true`
+  - `governancePolicyOperatorActionSeen=true`
+  - `governancePolicyOverrideTenantSeen=true`
+  - `governancePolicyIdempotencyReplayOutcome=idempotent_replay`
+  - `governancePolicyVersionConflictCode=API_GOVERNANCE_POLICY_VERSION_CONFLICT`
+  - `governancePolicyIdempotencyConflictCode=API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT`
+  - `governancePolicyTenantScopeForbiddenCode=API_TENANT_SCOPE_FORBIDDEN`
+  - `governancePolicySummaryTemplateId=strict`
+  - `governancePolicySummarySource=tenant_override`
+  - `governancePolicyOverridesTotal >= 1`
 - Telemetry split reliability:
   - `analyticsSplitTargetsValidated=true`
   - `analyticsBigQueryConfigValidated=true`
@@ -203,6 +214,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `kpi.operatorDeviceNodesLifecycleScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.approvalsListScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.approvalsInvalidIntentScenarioAttempts <= options.scenarioRetryMaxAttempts`
+  - `kpi.governancePolicyScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.sessionVersioningScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.uiVisualTestingScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.operatorConsoleActionsScenarioAttempts <= options.scenarioRetryMaxAttempts`
@@ -337,7 +349,8 @@ Manual shortcut:
 17. WebSocket drain behavior evidence: `gateway.websocket.draining_rejection=passed` with `kpi.gatewayWsDrainingCode=GATEWAY_DRAINING` and successful post-warmup recovery (`kpi.gatewayWsDrainingRecoveryStatus=completed`).
 18. WebSocket conversation-item truncate evidence: `gateway.websocket.item_truncate=passed` with `kpi.gatewayItemTruncateValidated=true`, `kpi.operatorTurnTruncationSummaryValidated=true`, session-local playback truncation event `live.turn.truncated`, and judge-facing Operator Console block `Turn Truncation Evidence` (`turnTruncation.total >= 1`).
 19. WebSocket conversation-item delete evidence: `gateway.websocket.item_delete=passed` with `kpi.gatewayItemDeleteValidated=true`, session-local cleanup event `live.turn.deleted`, and judge-facing Operator Console block `Turn Delete Evidence` (`turnDelete.total >= 1`).
-20. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings + `gate.evidenceSnapshot.operatorDamageControlSummaryValidated` / `gate.evidenceSnapshot.badgeEvidenceOperatorDamageControlStatus`).
+20. Governance policy lifecycle evidence: `governance.policy.lifecycle=passed` with `kpi.governancePolicyLifecycleValidated=true`, conflict guards (`API_GOVERNANCE_POLICY_VERSION_CONFLICT`, `API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT`), scope guard (`API_TENANT_SCOPE_FORBIDDEN`), and centralized summary proof (`kpi.governancePolicySummaryTemplateId=strict`, `kpi.governancePolicySummarySource=tenant_override`).
+21. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings + `gate.evidenceSnapshot.operatorDamageControlSummaryValidated` / `gate.evidenceSnapshot.badgeEvidenceOperatorDamageControlStatus`).
 
 ## Quick Observability Setup (for demo environment)
 

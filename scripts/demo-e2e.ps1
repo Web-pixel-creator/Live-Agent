@@ -2781,6 +2781,161 @@ try {
   } | Out-Null
 
   Invoke-Scenario `
+    -Name "governance.policy.lifecycle" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    $governanceTenantId = "governance-demo-" + [Guid]::NewGuid().Guid
+    $viewerHeaders = @{
+      "x-operator-role" = "viewer"
+      "x-tenant-id" = $governanceTenantId
+    }
+    $adminHeaders = @{
+      "x-operator-role" = "admin"
+      "x-tenant-id" = $governanceTenantId
+      "x-operator-id" = "demo-governance-admin"
+    }
+
+    $policyBaselineResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/governance/policy" -Headers $viewerHeaders -TimeoutSec $RequestTimeoutSec
+    $baselineTemplate = [string](Get-FieldValue -Object $policyBaselineResponse -Path @("data", "policy", "complianceTemplate"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($baselineTemplate)) -Message "Governance baseline policy complianceTemplate is missing."
+
+    $governanceIdempotencyKey = "demo-governance-policy-" + [Guid]::NewGuid().Guid
+    $governanceMutationBody = @{
+      tenantId = $governanceTenantId
+      complianceTemplate = "strict"
+      idempotencyKey = $governanceIdempotencyKey
+      retentionPolicy = @{
+        rawMediaDays = 2
+        sessionsDays = 45
+        eventsDays = 400
+      }
+    }
+    $policyMutationResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/governance/policy" -Headers $adminHeaders -Body $governanceMutationBody -TimeoutSec $RequestTimeoutSec
+    $mutationOutcome = [string](Get-FieldValue -Object $policyMutationResponse -Path @("data", "outcome"))
+    $policyVersion = [int](Get-FieldValue -Object $policyMutationResponse -Path @("data", "policy", "version"))
+    $mutatedTemplate = [string](Get-FieldValue -Object $policyMutationResponse -Path @("data", "policy", "complianceTemplate"))
+    Assert-Condition -Condition (@("created", "updated") -contains $mutationOutcome) -Message "Unexpected governance policy mutation outcome."
+    Assert-Condition -Condition ($policyVersion -ge 1) -Message "Governance policy version should be >= 1."
+    Assert-Condition -Condition ($mutatedTemplate -eq "strict") -Message "Governance policy complianceTemplate should be strict."
+
+    $policyReplayResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/governance/policy" -Headers $adminHeaders -Body $governanceMutationBody -TimeoutSec $RequestTimeoutSec
+    $replayOutcome = [string](Get-FieldValue -Object $policyReplayResponse -Path @("data", "outcome"))
+    Assert-Condition -Condition ($replayOutcome -eq "idempotent_replay") -Message "Governance policy replay should return idempotent_replay outcome."
+
+    $policyIdempotencyConflictResponse = Invoke-JsonRequestExpectStatus `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/governance/policy" `
+      -Headers $adminHeaders `
+      -Body @{
+        tenantId = $governanceTenantId
+        complianceTemplate = "regulated"
+        idempotencyKey = $governanceIdempotencyKey
+      } `
+      -ExpectedStatusCode 409 `
+      -TimeoutSec $RequestTimeoutSec
+    $idempotencyConflictCode = [string](Get-FieldValue -Object $policyIdempotencyConflictResponse -Path @("body", "error", "code"))
+    Assert-Condition -Condition ($idempotencyConflictCode -eq "API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT") -Message "Expected governance idempotency conflict code."
+
+    $policyVersionConflictResponse = Invoke-JsonRequestExpectStatus `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/governance/policy" `
+      -Headers $adminHeaders `
+      -Body @{
+        tenantId = $governanceTenantId
+        complianceTemplate = "strict"
+        expectedVersion = ($policyVersion + 7)
+        idempotencyKey = ("demo-governance-version-conflict-" + [Guid]::NewGuid().Guid)
+      } `
+      -ExpectedStatusCode 409 `
+      -TimeoutSec $RequestTimeoutSec
+    $versionConflictCode = [string](Get-FieldValue -Object $policyVersionConflictResponse -Path @("body", "error", "code"))
+    Assert-Condition -Condition ($versionConflictCode -eq "API_GOVERNANCE_POLICY_VERSION_CONFLICT") -Message "Expected governance version conflict code."
+
+    $policyEffectiveResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/governance/policy" -Headers $viewerHeaders -TimeoutSec $RequestTimeoutSec
+    $effectiveTemplate = [string](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "complianceTemplate"))
+    $effectiveRawMediaDays = [int](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "retentionPolicy", "rawMediaDays"))
+    $effectiveSessionsDays = [int](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "retentionPolicy", "sessionsDays"))
+    $effectiveEventsDays = [int](Get-FieldValue -Object $policyEffectiveResponse -Path @("data", "policy", "retentionPolicy", "eventsDays"))
+    Assert-Condition -Condition ($effectiveTemplate -eq "strict") -Message "Effective governance policy template should be strict."
+    Assert-Condition -Condition ($effectiveRawMediaDays -eq 2) -Message "Effective governance rawMediaDays should be 2."
+    Assert-Condition -Condition ($effectiveSessionsDays -eq 45) -Message "Effective governance sessionsDays should be 45."
+    Assert-Condition -Condition ($effectiveEventsDays -eq 400) -Message "Effective governance eventsDays should be 400."
+
+    $governanceSummaryResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/governance/audit/summary?tenantId=$([System.Uri]::EscapeDataString($governanceTenantId))&operatorActionsLimit=200&approvalsLimit=100&sessionsLimit=100&bindingsLimit=100" -Headers $adminHeaders -TimeoutSec $RequestTimeoutSec
+    $summaryTemplateId = [string](Get-FieldValue -Object $governanceSummaryResponse -Path @("data", "compliance", "templateId"))
+    $summarySource = [string](Get-FieldValue -Object $governanceSummaryResponse -Path @("data", "compliance", "source"))
+    $summaryOperatorActionsTotal = [int](Get-FieldValue -Object $governanceSummaryResponse -Path @("data", "audit", "operatorActions", "total"))
+    $summaryOperatorActionsRecent = @((Get-FieldValue -Object $governanceSummaryResponse -Path @("data", "audit", "operatorActions", "recent")))
+    $summaryGovernanceActionSeen = @(
+      $summaryOperatorActionsRecent | Where-Object {
+        [string](Get-FieldValue -Object $_ -Path @("action")) -eq "update_governance_policy" -and
+        [string](Get-FieldValue -Object $_ -Path @("outcome")) -eq "succeeded"
+      }
+    ).Count -ge 1
+    Assert-Condition -Condition ($summaryTemplateId -eq "strict") -Message "Governance summary templateId should be strict."
+    Assert-Condition -Condition ($summarySource -eq "tenant_override") -Message "Governance summary source should be tenant_override."
+    Assert-Condition -Condition ($summaryOperatorActionsTotal -ge 1) -Message "Governance summary operator actions total should be >= 1."
+    Assert-Condition -Condition $summaryGovernanceActionSeen -Message "Governance summary should include update_governance_policy action."
+
+    $adminOverridesResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/governance/policy?tenantId=all&limit=200" -Headers $adminHeaders -TimeoutSec $RequestTimeoutSec
+    $adminOverridesTotal = [int](Get-FieldValue -Object $adminOverridesResponse -Path @("data", "overrides", "total"))
+    $adminOverridesRecent = @((Get-FieldValue -Object $adminOverridesResponse -Path @("data", "overrides", "recent")))
+    $adminOverrideTenantSeen = @(
+      $adminOverridesRecent | Where-Object {
+        [string](Get-FieldValue -Object $_ -Path @("tenantId")) -eq $governanceTenantId
+      }
+    ).Count -ge 1
+    Assert-Condition -Condition ($adminOverridesTotal -ge 1) -Message "Governance admin override list total should be >= 1."
+    Assert-Condition -Condition $adminOverrideTenantSeen -Message "Governance admin override list should contain test tenant."
+
+    $tenantScopeForbiddenResponse = Invoke-JsonRequestExpectStatus `
+      -Method GET `
+      -Uri "http://localhost:8081/v1/governance/policy?tenantId=all" `
+      -Headers $viewerHeaders `
+      -ExpectedStatusCode 403 `
+      -TimeoutSec $RequestTimeoutSec
+    $tenantScopeForbiddenCode = [string](Get-FieldValue -Object $tenantScopeForbiddenResponse -Path @("body", "error", "code"))
+    Assert-Condition -Condition ($tenantScopeForbiddenCode -eq "API_TENANT_SCOPE_FORBIDDEN") -Message "Expected governance tenant scope forbidden code."
+
+    $lifecycleValidated = (
+      (@("created", "updated") -contains $mutationOutcome) -and
+      $replayOutcome -eq "idempotent_replay" -and
+      $versionConflictCode -eq "API_GOVERNANCE_POLICY_VERSION_CONFLICT" -and
+      $idempotencyConflictCode -eq "API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT" -and
+      $tenantScopeForbiddenCode -eq "API_TENANT_SCOPE_FORBIDDEN" -and
+      $effectiveTemplate -eq "strict" -and
+      $summaryTemplateId -eq "strict" -and
+      $summarySource -eq "tenant_override" -and
+      $summaryGovernanceActionSeen -and
+      $adminOverrideTenantSeen
+    )
+
+    return [ordered]@{
+      tenantId = $governanceTenantId
+      baselineTemplate = $baselineTemplate
+      mutationOutcome = $mutationOutcome
+      replayOutcome = $replayOutcome
+      policyVersion = $policyVersion
+      effectiveTemplate = $effectiveTemplate
+      effectiveRawMediaDays = $effectiveRawMediaDays
+      effectiveSessionsDays = $effectiveSessionsDays
+      effectiveEventsDays = $effectiveEventsDays
+      versionConflictCode = $versionConflictCode
+      idempotencyConflictCode = $idempotencyConflictCode
+      tenantScopeForbiddenCode = $tenantScopeForbiddenCode
+      summaryTemplateId = $summaryTemplateId
+      summarySource = $summarySource
+      summaryOperatorActionsTotal = $summaryOperatorActionsTotal
+      summaryGovernanceActionSeen = $summaryGovernanceActionSeen
+      adminOverridesTotal = $adminOverridesTotal
+      adminOverrideTenantSeen = $adminOverrideTenantSeen
+      lifecycleValidated = $lifecycleValidated
+    }
+  } | Out-Null
+
+  Invoke-Scenario `
     -Name "api.sessions.versioning" `
     -MaxAttempts $ScenarioRetryMaxAttempts `
     -InitialBackoffMs $ScenarioRetryBackoffMs `
@@ -3133,6 +3288,7 @@ $gatewayWsDrainingData = Get-ScenarioData -Name "gateway.websocket.draining_reje
 $operatorActionsData = Get-ScenarioData -Name "operator.console.actions"
 $approvalsListData = Get-ScenarioData -Name "api.approvals.list"
 $approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.invalid_intent"
+$governancePolicyData = Get-ScenarioData -Name "governance.policy.lifecycle"
 $sessionVersioningData = Get-ScenarioData -Name "api.sessions.versioning"
 $runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
 $runtimeMetricsData = Get-ScenarioData -Name "runtime.metrics.endpoints"
@@ -3154,6 +3310,7 @@ $delegationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "mu
 $operatorDeviceNodesScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "operator.device_nodes.lifecycle" } | Select-Object -First 1)
 $approvalsListScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.approvals.list" } | Select-Object -First 1)
 $approvalsInvalidIntentScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.approvals.resume.invalid_intent" } | Select-Object -First 1)
+$governancePolicyScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "governance.policy.lifecycle" } | Select-Object -First 1)
 $sessionVersioningScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.sessions.versioning" } | Select-Object -First 1)
 $uiVisualTestingScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.visual_testing" } | Select-Object -First 1)
 $operatorActionsScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "operator.console.actions" } | Select-Object -First 1)
@@ -3341,6 +3498,7 @@ $summary = [ordered]@{
     operatorDeviceNodesLifecycleScenarioAttempts = if ($operatorDeviceNodesScenario.Count -gt 0) { [int]$operatorDeviceNodesScenario[0].attempts } else { $null }
     approvalsListScenarioAttempts = if ($approvalsListScenario.Count -gt 0) { [int]$approvalsListScenario[0].attempts } else { $null }
     approvalsInvalidIntentScenarioAttempts = if ($approvalsInvalidIntentScenario.Count -gt 0) { [int]$approvalsInvalidIntentScenario[0].attempts } else { $null }
+    governancePolicyScenarioAttempts = if ($governancePolicyScenario.Count -gt 0) { [int]$governancePolicyScenario[0].attempts } else { $null }
     sessionVersioningScenarioAttempts = if ($sessionVersioningScenario.Count -gt 0) { [int]$sessionVersioningScenario[0].attempts } else { $null }
     uiVisualTestingScenarioAttempts = if ($uiVisualTestingScenario.Count -gt 0) { [int]$uiVisualTestingScenario[0].attempts } else { $null }
     operatorConsoleActionsScenarioAttempts = if ($operatorActionsScenario.Count -gt 0) { [int]$operatorActionsScenario[0].attempts } else { $null }
@@ -3650,6 +3808,36 @@ $summary = [ordered]@{
     approvalsInvalidIntentStatusCode = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.statusCode } else { $null }
     approvalsInvalidIntentCode = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.code } else { $null }
     approvalsInvalidIntentTraceId = if ($null -ne $approvalsInvalidIntentData) { $approvalsInvalidIntentData.traceId } else { $null }
+    governancePolicyTenantId = if ($null -ne $governancePolicyData) { $governancePolicyData.tenantId } else { $null }
+    governancePolicyBaselineTemplate = if ($null -ne $governancePolicyData) { $governancePolicyData.baselineTemplate } else { $null }
+    governancePolicyMutationOutcome = if ($null -ne $governancePolicyData) { $governancePolicyData.mutationOutcome } else { $null }
+    governancePolicyIdempotencyReplayOutcome = if ($null -ne $governancePolicyData) { $governancePolicyData.replayOutcome } else { $null }
+    governancePolicyVersion = if ($null -ne $governancePolicyData) { $governancePolicyData.policyVersion } else { $null }
+    governancePolicyComplianceTemplate = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveTemplate } else { $null }
+    governancePolicyRetentionRawMediaDays = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveRawMediaDays } else { $null }
+    governancePolicyRetentionSessionsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveSessionsDays } else { $null }
+    governancePolicyRetentionEventsDays = if ($null -ne $governancePolicyData) { $governancePolicyData.effectiveEventsDays } else { $null }
+    governancePolicyVersionConflictCode = if ($null -ne $governancePolicyData) { $governancePolicyData.versionConflictCode } else { $null }
+    governancePolicyIdempotencyConflictCode = if ($null -ne $governancePolicyData) { $governancePolicyData.idempotencyConflictCode } else { $null }
+    governancePolicyTenantScopeForbiddenCode = if ($null -ne $governancePolicyData) { $governancePolicyData.tenantScopeForbiddenCode } else { $null }
+    governancePolicySummaryTemplateId = if ($null -ne $governancePolicyData) { $governancePolicyData.summaryTemplateId } else { $null }
+    governancePolicySummarySource = if ($null -ne $governancePolicyData) { $governancePolicyData.summarySource } else { $null }
+    governancePolicySummaryOperatorActionsTotal = if ($null -ne $governancePolicyData) { $governancePolicyData.summaryOperatorActionsTotal } else { $null }
+    governancePolicyOperatorActionSeen = if ($null -ne $governancePolicyData) { $governancePolicyData.summaryGovernanceActionSeen } else { $false }
+    governancePolicyOverridesTotal = if ($null -ne $governancePolicyData) { $governancePolicyData.adminOverridesTotal } else { $null }
+    governancePolicyOverrideTenantSeen = if ($null -ne $governancePolicyData) { $governancePolicyData.adminOverrideTenantSeen } else { $false }
+    governancePolicyLifecycleValidated = if (
+      $null -ne $governancePolicyData -and
+      [bool]$governancePolicyData.lifecycleValidated -eq $true -and
+      [string]$governancePolicyData.replayOutcome -eq "idempotent_replay" -and
+      [string]$governancePolicyData.versionConflictCode -eq "API_GOVERNANCE_POLICY_VERSION_CONFLICT" -and
+      [string]$governancePolicyData.idempotencyConflictCode -eq "API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT" -and
+      [string]$governancePolicyData.tenantScopeForbiddenCode -eq "API_TENANT_SCOPE_FORBIDDEN" -and
+      [string]$governancePolicyData.summaryTemplateId -eq "strict" -and
+      [string]$governancePolicyData.summarySource -eq "tenant_override" -and
+      [bool]$governancePolicyData.summaryGovernanceActionSeen -eq $true -and
+      [bool]$governancePolicyData.adminOverrideTenantSeen -eq $true
+    ) { $true } else { $false }
     sessionVersionConflictCode = if ($null -ne $sessionVersioningData) { $sessionVersioningData.versionConflictCode } else { $null }
     sessionIdempotencyReplayOutcome = if ($null -ne $sessionVersioningData) { $sessionVersioningData.idempotencyReplayOutcome } else { $null }
     sessionIdempotencyConflictCode = if ($null -ne $sessionVersioningData) { $sessionVersioningData.idempotencyConflictCode } else { $null }

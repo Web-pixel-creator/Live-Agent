@@ -36,6 +36,7 @@ const requiredScenarioNames = [
   "operator.device_nodes.lifecycle",
   "api.approvals.list",
   "api.approvals.resume.invalid_intent",
+  "governance.policy.lifecycle",
   "api.sessions.versioning",
   "runtime.lifecycle.endpoints",
   "runtime.metrics.endpoints",
@@ -170,6 +171,17 @@ function createPassingSummary(overrides?: {
     approvalsInvalidIntentStatusCode: 400,
     approvalsInvalidIntentCode: "API_INVALID_INTENT",
     approvalsRecorded: 2,
+    governancePolicyLifecycleValidated: true,
+    governancePolicyIdempotencyReplayOutcome: "idempotent_replay",
+    governancePolicyVersionConflictCode: "API_GOVERNANCE_POLICY_VERSION_CONFLICT",
+    governancePolicyIdempotencyConflictCode: "API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT",
+    governancePolicyTenantScopeForbiddenCode: "API_TENANT_SCOPE_FORBIDDEN",
+    governancePolicyComplianceTemplate: "strict",
+    governancePolicySummaryTemplateId: "strict",
+    governancePolicySummarySource: "tenant_override",
+    governancePolicyOperatorActionSeen: true,
+    governancePolicyOverrideTenantSeen: true,
+    governancePolicyOverridesTotal: 1,
     sessionVersioningValidated: true,
     sessionVersionConflictCode: "API_SESSION_VERSION_CONFLICT",
     sessionIdempotencyReplayOutcome: "idempotent_replay",
@@ -200,6 +212,7 @@ function createPassingSummary(overrides?: {
     operatorDeviceNodesLifecycleScenarioAttempts: 1,
     approvalsListScenarioAttempts: 1,
     approvalsInvalidIntentScenarioAttempts: 1,
+    governancePolicyScenarioAttempts: 1,
     sessionVersioningScenarioAttempts: 1,
     uiVisualTestingScenarioAttempts: 1,
     operatorConsoleActionsScenarioAttempts: 1,
@@ -301,7 +314,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 218);
+  assert.equal(result.payload.checks, 231);
 });
 
 test("demo-e2e policy check fails when gateway error correlation KPI is invalid", () => {

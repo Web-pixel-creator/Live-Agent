@@ -209,6 +209,7 @@ async function main() {
         "operator.device_nodes.lifecycle",
         "api.approvals.list",
         "api.approvals.resume.invalid_intent",
+        "governance.policy.lifecycle",
         "api.sessions.versioning",
         "runtime.lifecycle.endpoints",
         "runtime.metrics.endpoints",
@@ -944,6 +945,72 @@ async function main() {
     `>= ${minApprovalsRecorded}`,
   );
   addCheck(
+    "kpi.governancePolicyLifecycleValidated",
+    kpis.governancePolicyLifecycleValidated === true,
+    kpis.governancePolicyLifecycleValidated,
+    true,
+  );
+  addCheck(
+    "kpi.governancePolicyIdempotencyReplayOutcome",
+    String(kpis.governancePolicyIdempotencyReplayOutcome) === "idempotent_replay",
+    kpis.governancePolicyIdempotencyReplayOutcome,
+    "idempotent_replay",
+  );
+  addCheck(
+    "kpi.governancePolicyVersionConflictCode",
+    String(kpis.governancePolicyVersionConflictCode) === "API_GOVERNANCE_POLICY_VERSION_CONFLICT",
+    kpis.governancePolicyVersionConflictCode,
+    "API_GOVERNANCE_POLICY_VERSION_CONFLICT",
+  );
+  addCheck(
+    "kpi.governancePolicyIdempotencyConflictCode",
+    String(kpis.governancePolicyIdempotencyConflictCode) === "API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT",
+    kpis.governancePolicyIdempotencyConflictCode,
+    "API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT",
+  );
+  addCheck(
+    "kpi.governancePolicyTenantScopeForbiddenCode",
+    String(kpis.governancePolicyTenantScopeForbiddenCode) === "API_TENANT_SCOPE_FORBIDDEN",
+    kpis.governancePolicyTenantScopeForbiddenCode,
+    "API_TENANT_SCOPE_FORBIDDEN",
+  );
+  addCheck(
+    "kpi.governancePolicyComplianceTemplate",
+    String(kpis.governancePolicyComplianceTemplate) === "strict",
+    kpis.governancePolicyComplianceTemplate,
+    "strict",
+  );
+  addCheck(
+    "kpi.governancePolicySummaryTemplateId",
+    String(kpis.governancePolicySummaryTemplateId) === "strict",
+    kpis.governancePolicySummaryTemplateId,
+    "strict",
+  );
+  addCheck(
+    "kpi.governancePolicySummarySource",
+    String(kpis.governancePolicySummarySource) === "tenant_override",
+    kpis.governancePolicySummarySource,
+    "tenant_override",
+  );
+  addCheck(
+    "kpi.governancePolicyOperatorActionSeen",
+    kpis.governancePolicyOperatorActionSeen === true,
+    kpis.governancePolicyOperatorActionSeen,
+    true,
+  );
+  addCheck(
+    "kpi.governancePolicyOverrideTenantSeen",
+    kpis.governancePolicyOverrideTenantSeen === true,
+    kpis.governancePolicyOverrideTenantSeen,
+    true,
+  );
+  addCheck(
+    "kpi.governancePolicyOverridesTotal",
+    toNumber(kpis.governancePolicyOverridesTotal) >= 1,
+    kpis.governancePolicyOverridesTotal,
+    ">= 1",
+  );
+  addCheck(
     "kpi.sessionVersioningValidated",
     kpis.sessionVersioningValidated === true,
     kpis.sessionVersioningValidated,
@@ -1218,6 +1285,16 @@ async function main() {
       Number.isFinite(scenarioRetryMaxAttempts) &&
       approvalsInvalidIntentScenarioAttempts <= scenarioRetryMaxAttempts,
     kpis.approvalsInvalidIntentScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
+  const governancePolicyScenarioAttempts = toNumber(kpis.governancePolicyScenarioAttempts);
+  addCheck(
+    "kpi.governancePolicyScenarioAttempts",
+    Number.isFinite(governancePolicyScenarioAttempts) &&
+      governancePolicyScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      governancePolicyScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.governancePolicyScenarioAttempts,
     "1..options.scenarioRetryMaxAttempts",
   );
   const sessionVersioningScenarioAttempts = toNumber(kpis.sessionVersioningScenarioAttempts);

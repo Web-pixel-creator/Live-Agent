@@ -192,6 +192,7 @@
 18. T-304.1 baseline (P2 governance lane, tenant context + tenant-scoped operator audit APIs) [Completed baseline]
 19. T-304.2 baseline (P2 governance lane, compliance templates + retention policy endpoints + centralized tenant audit summary) [Completed baseline]
 20. T-304.3 baseline (P2 governance lane, tenant policy mutation API with RBAC + version/idempotency + audit trail) [Completed baseline]
+21. T-304.4 baseline (P2 governance lane, demo/release evidence gates for governance policy lifecycle + tenant scope controls) [Completed baseline]
 
 ## Suggested Solo Execution (2-week MVP)
 

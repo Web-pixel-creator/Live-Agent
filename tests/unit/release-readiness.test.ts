@@ -61,6 +61,18 @@ function createPassingSummary(
     operatorDeviceNodesLifecycleScenarioAttempts: number | string;
     approvalsListScenarioAttempts: number | string;
     approvalsInvalidIntentScenarioAttempts: number | string;
+    governancePolicyScenarioAttempts: number | string;
+    governancePolicyLifecycleValidated: boolean | string;
+    governancePolicyOperatorActionSeen: boolean | string;
+    governancePolicyOverrideTenantSeen: boolean | string;
+    governancePolicyIdempotencyReplayOutcome: string;
+    governancePolicyVersionConflictCode: string;
+    governancePolicyIdempotencyConflictCode: string;
+    governancePolicyTenantScopeForbiddenCode: string;
+    governancePolicySummaryTemplateId: string;
+    governancePolicySummarySource: string;
+    governancePolicyOverridesTotal: number | string;
+    governancePolicyComplianceTemplate: string;
     sessionVersioningScenarioAttempts: number | string;
     liveTranslationScenarioAttempts: number | string;
     liveNegotiationScenarioAttempts: number | string;
@@ -134,6 +146,7 @@ function createPassingSummary(
       { name: "gateway.websocket.item_delete", status: "passed" },
       { name: "gateway.websocket.binding_mismatch", status: "passed" },
       { name: "gateway.websocket.draining_rejection", status: "passed" },
+      { name: "governance.policy.lifecycle", status: "passed" },
       { name: "api.sessions.versioning", status: "passed" },
     ],
     kpis: {
@@ -384,6 +397,42 @@ function createPassingSummary(
       approvalsInvalidIntentScenarioAttempts: hasOverride("approvalsInvalidIntentScenarioAttempts")
         ? overrides.approvalsInvalidIntentScenarioAttempts
         : 1,
+      governancePolicyScenarioAttempts: hasOverride("governancePolicyScenarioAttempts")
+        ? overrides.governancePolicyScenarioAttempts
+        : 1,
+      governancePolicyLifecycleValidated: hasOverride("governancePolicyLifecycleValidated")
+        ? overrides.governancePolicyLifecycleValidated
+        : true,
+      governancePolicyOperatorActionSeen: hasOverride("governancePolicyOperatorActionSeen")
+        ? overrides.governancePolicyOperatorActionSeen
+        : true,
+      governancePolicyOverrideTenantSeen: hasOverride("governancePolicyOverrideTenantSeen")
+        ? overrides.governancePolicyOverrideTenantSeen
+        : true,
+      governancePolicyIdempotencyReplayOutcome: hasOverride("governancePolicyIdempotencyReplayOutcome")
+        ? overrides.governancePolicyIdempotencyReplayOutcome
+        : "idempotent_replay",
+      governancePolicyVersionConflictCode: hasOverride("governancePolicyVersionConflictCode")
+        ? overrides.governancePolicyVersionConflictCode
+        : "API_GOVERNANCE_POLICY_VERSION_CONFLICT",
+      governancePolicyIdempotencyConflictCode: hasOverride("governancePolicyIdempotencyConflictCode")
+        ? overrides.governancePolicyIdempotencyConflictCode
+        : "API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT",
+      governancePolicyTenantScopeForbiddenCode: hasOverride("governancePolicyTenantScopeForbiddenCode")
+        ? overrides.governancePolicyTenantScopeForbiddenCode
+        : "API_TENANT_SCOPE_FORBIDDEN",
+      governancePolicySummaryTemplateId: hasOverride("governancePolicySummaryTemplateId")
+        ? overrides.governancePolicySummaryTemplateId
+        : "strict",
+      governancePolicySummarySource: hasOverride("governancePolicySummarySource")
+        ? overrides.governancePolicySummarySource
+        : "tenant_override",
+      governancePolicyOverridesTotal: hasOverride("governancePolicyOverridesTotal")
+        ? overrides.governancePolicyOverridesTotal
+        : 1,
+      governancePolicyComplianceTemplate: hasOverride("governancePolicyComplianceTemplate")
+        ? overrides.governancePolicyComplianceTemplate
+        : "strict",
       sessionVersioningScenarioAttempts: hasOverride("sessionVersioningScenarioAttempts")
         ? overrides.sessionVersioningScenarioAttempts
         : 1,
@@ -785,6 +834,21 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /Required scenario missing in summary:\s*gateway\.websocket\.item_truncate/i);
+  },
+);
+
+test(
+  "release-readiness fails when governance lifecycle KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        governancePolicyLifecycleValidated: false,
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /governancePolicyLifecycleValidated expected True, actual False/i);
   },
 );
 

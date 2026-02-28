@@ -383,6 +383,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     "gateway.websocket.item_delete",
     "gateway.websocket.binding_mismatch",
     "gateway.websocket.draining_rejection",
+    "governance.policy.lifecycle",
     "api.sessions.versioning"
   )
   foreach ($requiredScenario in $requiredSummaryScenarios) {
@@ -403,6 +404,9 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     gatewayErrorCorrelationValidated = $true
     assistantActivityLifecycleValidated = $true
     liveContextCompactionValidated = $true
+    governancePolicyLifecycleValidated = $true
+    governancePolicyOperatorActionSeen = $true
+    governancePolicyOverrideTenantSeen = $true
     sessionVersioningValidated = $true
     operatorTurnTruncationSummaryValidated = $true
     operatorTurnTruncationExpectedEventSeen = $true
@@ -428,6 +432,41 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     if ($actualValue -ne $expectedValue) {
       Fail ("Critical KPI check failed: " + $kpiName + " expected " + $expectedValue + ", actual " + $actualValue)
     }
+  }
+
+  $governancePolicyIdempotencyReplayOutcome = [string]$summary.kpis.governancePolicyIdempotencyReplayOutcome
+  if ($governancePolicyIdempotencyReplayOutcome -ne "idempotent_replay") {
+    Fail ("Critical KPI check failed: governancePolicyIdempotencyReplayOutcome expected idempotent_replay, actual " + $governancePolicyIdempotencyReplayOutcome)
+  }
+
+  $governancePolicyVersionConflictCode = [string]$summary.kpis.governancePolicyVersionConflictCode
+  if ($governancePolicyVersionConflictCode -ne "API_GOVERNANCE_POLICY_VERSION_CONFLICT") {
+    Fail ("Critical KPI check failed: governancePolicyVersionConflictCode expected API_GOVERNANCE_POLICY_VERSION_CONFLICT, actual " + $governancePolicyVersionConflictCode)
+  }
+
+  $governancePolicyIdempotencyConflictCode = [string]$summary.kpis.governancePolicyIdempotencyConflictCode
+  if ($governancePolicyIdempotencyConflictCode -ne "API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT") {
+    Fail ("Critical KPI check failed: governancePolicyIdempotencyConflictCode expected API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT, actual " + $governancePolicyIdempotencyConflictCode)
+  }
+
+  $governancePolicyTenantScopeForbiddenCode = [string]$summary.kpis.governancePolicyTenantScopeForbiddenCode
+  if ($governancePolicyTenantScopeForbiddenCode -ne "API_TENANT_SCOPE_FORBIDDEN") {
+    Fail ("Critical KPI check failed: governancePolicyTenantScopeForbiddenCode expected API_TENANT_SCOPE_FORBIDDEN, actual " + $governancePolicyTenantScopeForbiddenCode)
+  }
+
+  $governancePolicySummaryTemplateId = [string]$summary.kpis.governancePolicySummaryTemplateId
+  if ($governancePolicySummaryTemplateId -ne "strict") {
+    Fail ("Critical KPI check failed: governancePolicySummaryTemplateId expected strict, actual " + $governancePolicySummaryTemplateId)
+  }
+
+  $governancePolicySummarySource = [string]$summary.kpis.governancePolicySummarySource
+  if ($governancePolicySummarySource -ne "tenant_override") {
+    Fail ("Critical KPI check failed: governancePolicySummarySource expected tenant_override, actual " + $governancePolicySummarySource)
+  }
+
+  $governancePolicyOverridesTotal = To-NumberOrNaN $summary.kpis.governancePolicyOverridesTotal
+  if ([double]::IsNaN($governancePolicyOverridesTotal) -or $governancePolicyOverridesTotal -lt 1) {
+    Fail ("Critical KPI check failed: governancePolicyOverridesTotal expected >= 1, actual " + $summary.kpis.governancePolicyOverridesTotal)
   }
 
   $taskQueuePressureLevel = [string]$summary.kpis.operatorTaskQueuePressureLevel
@@ -948,6 +987,20 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     )
   }
 
+  $governancePolicyScenarioAttempts = To-NumberOrNaN $summary.kpis.governancePolicyScenarioAttempts
+  if (
+    [double]::IsNaN($governancePolicyScenarioAttempts) -or
+    $governancePolicyScenarioAttempts -lt 1 -or
+    $governancePolicyScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.governancePolicyScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.governancePolicyScenarioAttempts
+    )
+  }
+
   $sessionVersioningScenarioAttempts = To-NumberOrNaN $summary.kpis.sessionVersioningScenarioAttempts
   if (
     [double]::IsNaN($sessionVersioningScenarioAttempts) -or
@@ -1271,6 +1324,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $operatorDeviceNodesLifecycleAttempts = $summary.kpis.operatorDeviceNodesLifecycleScenarioAttempts
   $approvalsListAttempts = $summary.kpis.approvalsListScenarioAttempts
   $approvalsInvalidIntentAttempts = $summary.kpis.approvalsInvalidIntentScenarioAttempts
+  $governancePolicyAttempts = $summary.kpis.governancePolicyScenarioAttempts
   $sessionVersioningAttempts = $summary.kpis.sessionVersioningScenarioAttempts
   $uiVisualAttempts = $summary.kpis.uiVisualTestingScenarioAttempts
   $operatorActionsAttempts = $summary.kpis.operatorConsoleActionsScenarioAttempts
@@ -1298,6 +1352,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     $null -ne $operatorDeviceNodesLifecycleAttempts -or
     $null -ne $approvalsListAttempts -or
     $null -ne $approvalsInvalidIntentAttempts -or
+    $null -ne $governancePolicyAttempts -or
     $null -ne $sessionVersioningAttempts -or
     $null -ne $uiVisualAttempts -or
     $null -ne $operatorActionsAttempts -or
@@ -1327,6 +1382,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", operator.device_nodes.lifecycle_attempts=" + $operatorDeviceNodesLifecycleAttempts +
       ", api.approvals.list_attempts=" + $approvalsListAttempts +
       ", api.approvals.resume.invalid_intent_attempts=" + $approvalsInvalidIntentAttempts +
+      ", governance.policy.lifecycle_attempts=" + $governancePolicyAttempts +
       ", api.sessions.versioning_attempts=" + $sessionVersioningAttempts +
       ", ui.visual_testing_attempts=" + $uiVisualAttempts +
       ", operator.console.actions_attempts=" + $operatorActionsAttempts +
@@ -1378,6 +1434,23 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $sessionVersioningValidated = $summary.kpis.sessionVersioningValidated
   if ($null -ne $sessionVersioningValidated) {
     Write-Host ("api.sessions.versioning.validated: " + $sessionVersioningValidated)
+  }
+  $governancePolicyValidated = $summary.kpis.governancePolicyLifecycleValidated
+  $governancePolicyTemplate = $summary.kpis.governancePolicySummaryTemplateId
+  $governancePolicySource = $summary.kpis.governancePolicySummarySource
+  $governancePolicyActionSeen = $summary.kpis.governancePolicyOperatorActionSeen
+  if (
+    $null -ne $governancePolicyValidated -or
+    $null -ne $governancePolicyTemplate -or
+    $null -ne $governancePolicySource -or
+    $null -ne $governancePolicyActionSeen
+  ) {
+    Write-Host (
+      "governance.policy.lifecycle: validated=" + $governancePolicyValidated +
+      ", template=" + $governancePolicyTemplate +
+      ", source=" + $governancePolicySource +
+      ", operator_action_seen=" + $governancePolicyActionSeen
+    )
   }
   $turnTruncationValidated = $summary.kpis.operatorTurnTruncationSummaryValidated
   $turnTruncationTotal = $summary.kpis.operatorTurnTruncationTotal
