@@ -39,6 +39,7 @@ import {
   listManagedSkillIndex,
   listManagedSkills,
   type ManagedSkillTrustLevel,
+  type OperatorActionRecord,
   recordOperatorAction,
   recordApprovalDecision,
   sweepApprovalTimeouts,
@@ -1847,6 +1848,143 @@ function buildDamageControlSummary(
   };
 }
 
+function buildSkillsRegistryLifecycleSummary(
+  operatorActions: OperatorActionRecord[],
+): Record<string, unknown> {
+  const relevant = operatorActions
+    .filter((item) => item.action === "skills_registry_upsert")
+    .map((item) => {
+      const details = isRecord(item.details) ? item.details : null;
+      const reason = toOptionalString(item.reason) ?? "";
+      const reasonLower = reason.toLowerCase();
+      const errorCode = toOptionalString(item.errorCode);
+      const skillId = toOptionalString(details?.skillId);
+      const version = parseNonNegativeInt(details?.version);
+      const trustLevel = toOptionalString(details?.trustLevel);
+      const pluginManifestStatus = toOptionalString(details?.pluginManifestStatus);
+      const pluginPermissionCount = parseNonNegativeInt(details?.pluginPermissionCount);
+      return {
+        actionId: item.actionId,
+        tenantId: item.tenantId,
+        actorRole: item.actorRole,
+        createdAt: item.createdAt,
+        outcome: item.outcome,
+        reason,
+        reasonLower,
+        errorCode,
+        skillId,
+        version,
+        trustLevel,
+        pluginManifestStatus,
+        pluginPermissionCount,
+      };
+    })
+    .sort((left, right) => {
+      const leftTs = Date.parse(left.createdAt);
+      const rightTs = Date.parse(right.createdAt);
+      const leftValue = Number.isFinite(leftTs) ? leftTs : 0;
+      const rightValue = Number.isFinite(rightTs) ? rightTs : 0;
+      return rightValue - leftValue;
+    });
+
+  if (relevant.length <= 0) {
+    return {
+      status: "missing",
+      total: 0,
+      uniqueSkills: 0,
+      outcomes: {
+        succeeded: 0,
+        denied: 0,
+        failed: 0,
+      },
+      lifecycle: {
+        created: 0,
+        updated: 0,
+        idempotentReplay: 0,
+      },
+      conflicts: {
+        versionConflict: 0,
+        pluginInvalidPermission: 0,
+      },
+      latest: null,
+      recent: [],
+      source: "operator_actions",
+      lifecycleValidated: false,
+      validated: false,
+    };
+  }
+
+  let succeeded = 0;
+  let denied = 0;
+  let failed = 0;
+  let created = 0;
+  let updated = 0;
+  let idempotentReplay = 0;
+  let versionConflict = 0;
+  let pluginInvalidPermission = 0;
+  const uniqueSkills = new Set<string>();
+
+  for (const item of relevant) {
+    if (item.outcome === "succeeded") {
+      succeeded += 1;
+    } else if (item.outcome === "denied") {
+      denied += 1;
+    } else if (item.outcome === "failed") {
+      failed += 1;
+    }
+
+    if (item.reasonLower.includes("managed skill created")) {
+      created += 1;
+    }
+    if (item.reasonLower.includes("managed skill updated")) {
+      updated += 1;
+    }
+    if (item.reasonLower.includes("idempotent_replay")) {
+      idempotentReplay += 1;
+    }
+    if (item.errorCode === "API_SKILL_REGISTRY_VERSION_CONFLICT") {
+      versionConflict += 1;
+    }
+    if (item.errorCode === "API_SKILL_PLUGIN_PERMISSION_INVALID") {
+      pluginInvalidPermission += 1;
+    }
+    if (item.skillId) {
+      uniqueSkills.add(item.skillId);
+    }
+  }
+
+  const lifecycleValidated =
+    created > 0 &&
+    idempotentReplay > 0 &&
+    versionConflict > 0 &&
+    pluginInvalidPermission > 0;
+
+  return {
+    status: lifecycleValidated ? "observed" : "partial",
+    total: relevant.length,
+    uniqueSkills: uniqueSkills.size,
+    outcomes: {
+      succeeded,
+      denied,
+      failed,
+    },
+    lifecycle: {
+      created,
+      updated,
+      idempotentReplay,
+    },
+    conflicts: {
+      versionConflict,
+      pluginInvalidPermission,
+    },
+    latest: relevant[0],
+    recent: relevant.slice(0, 20),
+    source: "operator_actions",
+    lifecycleValidated,
+    validated: lifecycleValidated,
+  };
+}
+
 async function syncPendingApprovalsFromTasks(
   tasks: unknown[],
   options?: {
@@ -3584,6 +3722,7 @@ export const server = createServer(async (req, res) => {
       const turnTruncation = buildTurnTruncationSummary(recentEvents, services);
       const turnDelete = buildTurnDeleteSummary(recentEvents, services);
       const damageControl = buildDamageControlSummary(recentEvents, services);
+      const skillsRegistryLifecycle = buildSkillsRegistryLifecycleSummary(operatorActions);
 
       writeJson(res, 200, {
         data: {
@@ -3613,6 +3752,7 @@ export const server = createServer(async (req, res) => {
           turnTruncation,
           turnDelete,
           damageControl,
+          skillsRegistryLifecycle,
           deviceNodes: deviceNodeHealth,
           services,
           traces,

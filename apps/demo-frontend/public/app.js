@@ -207,6 +207,15 @@ const el = {
   operatorDamageControlRuleIds: document.getElementById("operatorDamageControlRuleIds"),
   operatorDamageControlSeenAt: document.getElementById("operatorDamageControlSeenAt"),
   operatorDamageControlHint: document.getElementById("operatorDamageControlHint"),
+  operatorSkillsRegistryStatus: document.getElementById("operatorSkillsRegistryStatus"),
+  operatorSkillsRegistryTotal: document.getElementById("operatorSkillsRegistryTotal"),
+  operatorSkillsRegistrySkills: document.getElementById("operatorSkillsRegistrySkills"),
+  operatorSkillsRegistryOutcomes: document.getElementById("operatorSkillsRegistryOutcomes"),
+  operatorSkillsRegistryLifecycle: document.getElementById("operatorSkillsRegistryLifecycle"),
+  operatorSkillsRegistryConflicts: document.getElementById("operatorSkillsRegistryConflicts"),
+  operatorSkillsRegistryLatest: document.getElementById("operatorSkillsRegistryLatest"),
+  operatorSkillsRegistrySeenAt: document.getElementById("operatorSkillsRegistrySeenAt"),
+  operatorSkillsRegistryHint: document.getElementById("operatorSkillsRegistryHint"),
   operatorStartupStatus: document.getElementById("operatorStartupStatus"),
   operatorStartupTotal: document.getElementById("operatorStartupTotal"),
   operatorStartupBlocking: document.getElementById("operatorStartupBlocking"),
@@ -897,6 +906,27 @@ function setOperatorDamageControlHint(text, variant = "neutral") {
   el.operatorDamageControlHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorSkillsRegistryHint(text, variant = "neutral") {
+  if (!el.operatorSkillsRegistryHint) {
+    return;
+  }
+  el.operatorSkillsRegistryHint.textContent = text;
+  el.operatorSkillsRegistryHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorSkillsRegistryHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorSkillsRegistryHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorSkillsRegistryHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorSkillsRegistryHint.classList.add("operator-health-hint-neutral");
+}
+
 function setOperatorStartupHint(text, variant = "neutral") {
   if (!el.operatorStartupHint) {
     return;
@@ -1056,6 +1086,18 @@ function resetOperatorDamageControlWidget(reason = "no_data") {
   setText(el.operatorDamageControlSeenAt, "n/a");
   setOperatorDamageControlHint("Waiting for damage-control decisions.", "neutral");
   setStatusPill(el.operatorDamageControlStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorSkillsRegistryWidget(reason = "no_data") {
+  setText(el.operatorSkillsRegistryTotal, "0");
+  setText(el.operatorSkillsRegistrySkills, "0");
+  setText(el.operatorSkillsRegistryOutcomes, "ok=0 denied=0 failed=0");
+  setText(el.operatorSkillsRegistryLifecycle, "created=0 updated=0 replay=0");
+  setText(el.operatorSkillsRegistryConflicts, "version=0 plugin_perm=0");
+  setText(el.operatorSkillsRegistryLatest, "n/a");
+  setText(el.operatorSkillsRegistrySeenAt, "n/a");
+  setOperatorSkillsRegistryHint("Waiting for skills registry lifecycle evidence.", "neutral");
+  setStatusPill(el.operatorSkillsRegistryStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function resetOperatorStartupWidget(reason = "no_data") {
@@ -1457,6 +1499,99 @@ function renderOperatorDamageControlWidget(damageControlSummary, snapshot = null
     : "Damage-control events observed, but latest payload is incomplete. Re-run ui.sandbox.policy_modes.";
   setStatusPill(el.operatorDamageControlStatus, statusText, statusVariant);
   setOperatorDamageControlHint(hint, hintVariant);
+}
+
+function renderOperatorSkillsRegistryWidget(skillsRegistrySummary) {
+  const summary =
+    skillsRegistrySummary && typeof skillsRegistrySummary === "object" ? skillsRegistrySummary : null;
+  if (!summary) {
+    resetOperatorSkillsRegistryWidget("no_data");
+    return;
+  }
+
+  const total = Math.max(0, Math.floor(Number(summary.total ?? 0) || 0));
+  const uniqueSkills = Math.max(0, Math.floor(Number(summary.uniqueSkills ?? 0) || 0));
+  const outcomes = summary.outcomes && typeof summary.outcomes === "object" ? summary.outcomes : {};
+  const lifecycle = summary.lifecycle && typeof summary.lifecycle === "object" ? summary.lifecycle : {};
+  const conflicts = summary.conflicts && typeof summary.conflicts === "object" ? summary.conflicts : {};
+  const latest = summary.latest && typeof summary.latest === "object" ? summary.latest : null;
+  const lifecycleValidated = summary.lifecycleValidated === true;
+
+  const succeeded = Math.max(0, Math.floor(Number(outcomes.succeeded ?? 0) || 0));
+  const denied = Math.max(0, Math.floor(Number(outcomes.denied ?? 0) || 0));
+  const failed = Math.max(0, Math.floor(Number(outcomes.failed ?? 0) || 0));
+  const created = Math.max(0, Math.floor(Number(lifecycle.created ?? 0) || 0));
+  const updated = Math.max(0, Math.floor(Number(lifecycle.updated ?? 0) || 0));
+  const replay = Math.max(0, Math.floor(Number(lifecycle.idempotentReplay ?? 0) || 0));
+  const versionConflict = Math.max(0, Math.floor(Number(conflicts.versionConflict ?? 0) || 0));
+  const pluginInvalidPermission = Math.max(0, Math.floor(Number(conflicts.pluginInvalidPermission ?? 0) || 0));
+
+  const latestOutcome = latest && typeof latest.outcome === "string" ? latest.outcome : "n/a";
+  const latestSkillId = latest && typeof latest.skillId === "string" ? latest.skillId : "n/a";
+  const latestErrorCode = latest && typeof latest.errorCode === "string" ? latest.errorCode : "n/a";
+  const latestSeenAt = latest && typeof latest.createdAt === "string" ? latest.createdAt : "n/a";
+  const latestLabel =
+    latestErrorCode === "n/a"
+      ? `outcome=${latestOutcome} skill=${latestSkillId}`
+      : `outcome=${latestOutcome} skill=${latestSkillId} code=${latestErrorCode}`;
+
+  setText(el.operatorSkillsRegistryTotal, String(total));
+  setText(el.operatorSkillsRegistrySkills, String(uniqueSkills));
+  setText(el.operatorSkillsRegistryOutcomes, `ok=${succeeded} denied=${denied} failed=${failed}`);
+  setText(el.operatorSkillsRegistryLifecycle, `created=${created} updated=${updated} replay=${replay}`);
+  setText(
+    el.operatorSkillsRegistryConflicts,
+    `version=${versionConflict} plugin_perm=${pluginInvalidPermission}`,
+  );
+  setText(el.operatorSkillsRegistryLatest, latestLabel);
+  setText(el.operatorSkillsRegistrySeenAt, latestSeenAt);
+
+  if (total <= 0) {
+    setStatusPill(el.operatorSkillsRegistryStatus, "no_evidence", "neutral");
+    setOperatorSkillsRegistryHint(
+      "No skills registry lifecycle evidence observed yet. Run managed-skills scenario to populate it.",
+      "warn",
+    );
+    return;
+  }
+
+  const missingChecklist = [];
+  if (created <= 0) {
+    missingChecklist.push("created");
+  }
+  if (replay <= 0) {
+    missingChecklist.push("idempotent_replay");
+  }
+  if (versionConflict <= 0) {
+    missingChecklist.push("version_conflict");
+  }
+  if (pluginInvalidPermission <= 0) {
+    missingChecklist.push("plugin_invalid_permission");
+  }
+
+  if (lifecycleValidated) {
+    setStatusPill(
+      el.operatorSkillsRegistryStatus,
+      `validated total=${total} skills=${uniqueSkills}`,
+      "ok",
+    );
+    setOperatorSkillsRegistryHint(
+      "Skills registry lifecycle evidence captured and ready for judge-facing release validation.",
+      "ok",
+    );
+    return;
+  }
+
+  const missingText = missingChecklist.length > 0 ? missingChecklist.join(",") : "none";
+  setStatusPill(
+    el.operatorSkillsRegistryStatus,
+    `partial total=${total} skills=${uniqueSkills}`,
+    "neutral",
+  );
+  setOperatorSkillsRegistryHint(
+    `Lifecycle evidence partial. Missing checkpoints: ${missingText}.`,
+    "warn",
+  );
 }
 
 function updateOperatorDamageControlWidgetFromResponse(event) {
@@ -2499,11 +2634,13 @@ function renderOperatorSummary(summary) {
   resetOperatorTurnTruncationWidget("no_data");
   resetOperatorTurnDeleteWidget("no_data");
   resetOperatorDamageControlWidget("no_data");
+  resetOperatorSkillsRegistryWidget("no_data");
   resetOperatorStartupWidget("no_data");
   renderOperatorGatewayErrorWidget(state.operatorGatewayErrorSnapshot);
   renderOperatorTurnTruncationWidget(null, state.operatorTurnTruncationSnapshot);
   renderOperatorTurnDeleteWidget(null, state.operatorTurnDeleteSnapshot);
   renderOperatorDamageControlWidget(null, state.operatorDamageControlSnapshot);
+  renderOperatorSkillsRegistryWidget(null);
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -2649,6 +2786,59 @@ function renderOperatorSummary(summary) {
     }
   }
   renderOperatorDamageControlWidget(damageControl, state.operatorDamageControlSnapshot);
+  const skillsRegistryLifecycle =
+    summary.skillsRegistryLifecycle && typeof summary.skillsRegistryLifecycle === "object"
+      ? summary.skillsRegistryLifecycle
+      : null;
+  if (skillsRegistryLifecycle) {
+    const skillsTotal = Number(skillsRegistryLifecycle.total ?? 0);
+    const skillsUnique = Number(skillsRegistryLifecycle.uniqueSkills ?? 0);
+    const outcomes =
+      skillsRegistryLifecycle.outcomes && typeof skillsRegistryLifecycle.outcomes === "object"
+        ? skillsRegistryLifecycle.outcomes
+        : {};
+    const lifecycle =
+      skillsRegistryLifecycle.lifecycle && typeof skillsRegistryLifecycle.lifecycle === "object"
+        ? skillsRegistryLifecycle.lifecycle
+        : {};
+    const conflicts =
+      skillsRegistryLifecycle.conflicts && typeof skillsRegistryLifecycle.conflicts === "object"
+        ? skillsRegistryLifecycle.conflicts
+        : {};
+    const succeeded = Math.max(0, Math.floor(Number(outcomes.succeeded ?? 0) || 0));
+    const denied = Math.max(0, Math.floor(Number(outcomes.denied ?? 0) || 0));
+    const failed = Math.max(0, Math.floor(Number(outcomes.failed ?? 0) || 0));
+    const created = Math.max(0, Math.floor(Number(lifecycle.created ?? 0) || 0));
+    const replay = Math.max(0, Math.floor(Number(lifecycle.idempotentReplay ?? 0) || 0));
+    const versionConflict = Math.max(0, Math.floor(Number(conflicts.versionConflict ?? 0) || 0));
+    const pluginInvalidPermission = Math.max(
+      0,
+      Math.floor(Number(conflicts.pluginInvalidPermission ?? 0) || 0),
+    );
+    appendEntry(
+      el.operatorSummary,
+      skillsRegistryLifecycle.lifecycleValidated === true ? "system" : "error",
+      "skills_registry.lifecycle",
+      `total=${Math.max(0, Math.floor(skillsTotal))} unique_skills=${Math.max(0, Math.floor(skillsUnique))} ok=${succeeded} denied=${denied} failed=${failed} created=${created} replay=${replay} version_conflict=${versionConflict} plugin_invalid_permission=${pluginInvalidPermission} validated=${skillsRegistryLifecycle.lifecycleValidated === true}`,
+    );
+    const skillsLatest =
+      skillsRegistryLifecycle.latest && typeof skillsRegistryLifecycle.latest === "object"
+        ? skillsRegistryLifecycle.latest
+        : null;
+    if (skillsLatest) {
+      const latestOutcome = typeof skillsLatest.outcome === "string" ? skillsLatest.outcome : "n/a";
+      const latestSkillId = typeof skillsLatest.skillId === "string" ? skillsLatest.skillId : "n/a";
+      const latestErrorCode = typeof skillsLatest.errorCode === "string" ? skillsLatest.errorCode : "n/a";
+      const latestSeenAt = typeof skillsLatest.createdAt === "string" ? skillsLatest.createdAt : "n/a";
+      appendEntry(
+        el.operatorSummary,
+        "system",
+        "skills_registry.latest",
+        `outcome=${latestOutcome} skill=${latestSkillId} code=${latestErrorCode} seen_at=${latestSeenAt}`,
+      );
+    }
+  }
+  renderOperatorSkillsRegistryWidget(skillsRegistryLifecycle);
   renderOperatorApprovalsWidget(summary.approvals);
   renderOperatorTaskQueueWidget(taskQueueSummary);
   const startupFailures = summary.startupFailures && typeof summary.startupFailures === "object"
@@ -2876,6 +3066,7 @@ async function refreshOperatorSummary() {
     } else {
       resetOperatorDamageControlWidget("summary_error");
     }
+    resetOperatorSkillsRegistryWidget("summary_error");
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
 }
