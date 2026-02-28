@@ -189,6 +189,7 @@
 15. T-238 (P0 resilience lane, UI damage-control policy layer) [Completed]
 16. T-223 remains V2 spike only (no MVP transport change)
 17. T-301 baseline (P2 ecosystem lane, multi-channel adapter/session binding APIs) [Completed baseline]
+18. T-304.1 baseline (P2 governance lane, tenant context + tenant-scoped operator audit APIs) [Completed baseline]
 
 ## Suggested Solo Execution (2-week MVP)
 

@@ -106,6 +106,10 @@ Session mutation concurrency controls:
 - `PATCH /v1/sessions/{sessionId}` accepts optional `expectedVersion` in body for optimistic concurrency.
 - `PATCH /v1/sessions/{sessionId}` accepts optional idempotency key via body `idempotencyKey` or header `x-idempotency-key`.
 - On stale version, API returns `409 API_SESSION_VERSION_CONFLICT`.
+- Tenant scope baseline:
+  - Set request tenant via header `x-tenant-id` (or query `tenantId`).
+  - Session list/create are tenant-scoped (`tenantId` returned in session payload).
+  - Configure defaults with `API_DEFAULT_TENANT_ID` and `API_COMPLIANCE_TEMPLATE`.
 
 8. Managed skills registry APIs:
 - `GET /v1/skills/index` -> public managed skills index for agent runtime (`managed` source).
@@ -135,6 +139,10 @@ Session mutation concurrency controls:
   - `action=retry_task` + `taskId`
   - `action=failover` + `targetService` + `operation` (`drain|warmup`, admin only)
 - Summary response now includes `operatorActions.recent` audit trail for cancel/retry/failover operations (role, outcome, reason, target/task metadata).
+
+10.5 Governance baseline APIs (`T-304.1`):
+- `GET /v1/governance/tenant` -> resolved tenant context (`tenantId`, source, compliance template).
+- `GET /v1/governance/audit/operator-actions` -> tenant-scoped operator audit stream (`viewer|operator|admin`); non-admin cross-tenant queries are rejected.
 
 11. Demo frontend includes an Operator Console panel for summary refresh and recovery actions.
 

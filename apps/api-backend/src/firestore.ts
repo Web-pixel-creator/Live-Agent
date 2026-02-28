@@ -11,6 +11,7 @@ export type SessionStatus = "active" | "paused" | "closed";
 
 export type SessionListItem = {
   sessionId: string;
+  tenantId: string;
   mode: SessionMode;
   status: SessionStatus;
   version: number;
@@ -112,6 +113,7 @@ export type OperatorActionOutcome = "succeeded" | "failed" | "denied";
 
 export type OperatorActionRecord = {
   actionId: string;
+  tenantId: string;
   actorRole: string;
   action: string;
   outcome: OperatorActionOutcome;
@@ -218,6 +220,7 @@ export type DeviceNodeIndexItem = {
 
 export type ChannelSessionBindingRecord = {
   bindingId: string;
+  tenantId: string;
   adapterId: string;
   externalSessionId: string;
   externalUserId: string | null;
@@ -249,6 +252,7 @@ export type ChannelSessionBindingUpsertResult =
 
 export type ChannelSessionBindingIndexItem = {
   bindingId: string;
+  tenantId: string;
   adapterId: string;
   externalSessionId: string;
   externalUserId: string | null;
@@ -523,6 +527,16 @@ function toNonEmptyString(value: unknown): string | null {
   return normalized;
 }
 
+function normalizeTenantId(value: unknown): string {
+  const source = toNonEmptyString(value) ?? "public";
+  const normalized = source
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return normalized.length > 0 ? normalized.slice(0, 64) : "public";
+}
+
 function toNonNegativeInt(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
     return Math.floor(value);
@@ -754,28 +768,38 @@ function normalizeExternalSessionId(value: unknown): string {
   return source.slice(0, 256);
 }
 
-function makeChannelSessionBindingMapKey(adapterId: string, externalSessionId: string): string {
-  return `${adapterId}::${externalSessionId}`;
+function makeChannelSessionBindingMapKey(
+  tenantId: string,
+  adapterId: string,
+  externalSessionId: string,
+): string {
+  return `${tenantId}::${adapterId}::${externalSessionId}`;
 }
 
-function makeChannelSessionBindingDocId(adapterId: string, externalSessionId: string): string {
-  const encoded = Buffer.from(`${adapterId}\u241f${externalSessionId}`, "utf8")
+function makeChannelSessionBindingDocId(
+  tenantId: string,
+  adapterId: string,
+  externalSessionId: string,
+): string {
+  const encoded = Buffer.from(`${tenantId}\u241f${adapterId}\u241f${externalSessionId}`, "utf8")
     .toString("base64url")
     .replace(/=+$/g, "");
   if (encoded.length > 0) {
     return encoded.slice(0, 256);
   }
-  return normalizeManagedSkillId(`${adapterId}-${externalSessionId}`, "channel-session");
+  return normalizeManagedSkillId(`${tenantId}-${adapterId}-${externalSessionId}`, "channel-session");
 }
 
 function mapChannelSessionBindingRecord(
   docId: string,
   raw: Record<string, unknown>,
 ): ChannelSessionBindingRecord {
+  const tenantId = normalizeTenantId(raw.tenantId);
   const adapterId = normalizeChannelAdapterId(raw.adapterId ?? raw.adapter);
   const externalSessionId = normalizeExternalSessionId(raw.externalSessionId);
   return {
     bindingId: toNonEmptyString(raw.bindingId) ?? docId,
+    tenantId,
     adapterId,
     externalSessionId,
     externalUserId: toNonEmptyString(raw.externalUserId),
@@ -791,6 +815,7 @@ function mapChannelSessionBindingRecord(
 
 function channelSessionBindingSignature(binding: ChannelSessionBindingRecord): string {
   return JSON.stringify({
+    tenantId: binding.tenantId,
     adapterId: binding.adapterId,
     externalSessionId: binding.externalSessionId,
     externalUserId: binding.externalUserId,
@@ -924,6 +949,7 @@ function mapOperatorActionRecord(
 
   const record: OperatorActionRecord = {
     actionId: toNonEmptyString(raw.actionId) ?? docId,
+    tenantId: normalizeTenantId(raw.tenantId),
     actorRole: role,
     action,
     outcome,
@@ -1003,6 +1029,7 @@ function ensurePendingLifecycle(params: {
 function mapSessionRecord(sessionId: string, raw: Record<string, unknown>): SessionListItem {
   return {
     sessionId,
+    tenantId: normalizeTenantId(raw.tenantId),
     mode: sanitizeMode(raw.mode),
     status: sanitizeStatus(raw.status),
     version: sanitizeVersion(raw.version),
@@ -1016,37 +1043,52 @@ export function getFirestoreState(): FirestoreState {
   return state;
 }
 
-export async function listSessions(limit: number): Promise<SessionListItem[]> {
+export async function listSessions(
+  limit: number,
+  options?: {
+    tenantId?: string;
+  },
+): Promise<SessionListItem[]> {
+  const boundedLimit = Math.max(1, Math.min(500, Math.floor(limit)));
+  const tenantId = options?.tenantId ? normalizeTenantId(options.tenantId) : null;
   const db = initFirestore();
   if (!db) {
     return Array.from(inMemorySessions.values())
+      .filter((session) => (tenantId ? session.tenantId === tenantId : true))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-      .slice(0, limit);
+      .slice(0, boundedLimit);
   }
 
+  const fetchLimit = tenantId ? Math.max(boundedLimit * 5, 500) : boundedLimit;
   const snapshot = await db
     .collection("sessions")
     .orderBy("updatedAt", "desc")
-    .limit(limit)
+    .limit(fetchLimit)
     .get();
 
-  return snapshot.docs.map((doc) => {
+  const records = snapshot.docs.map((doc) => {
     const data = doc.data();
     return mapSessionRecord(doc.id, data);
   });
+  return tenantId
+    ? records.filter((session) => session.tenantId === tenantId).slice(0, boundedLimit)
+    : records.slice(0, boundedLimit);
 }
 
 export async function createSession(params: {
   userId: string;
   mode: SessionMode;
+  tenantId?: string;
 }): Promise<SessionListItem> {
   const nowIso = new Date().toISOString();
   const db = initFirestore();
+  const tenantId = normalizeTenantId(params.tenantId);
 
   if (!db) {
-    const sessionId = `local-${Date.now()}`;
+    const sessionId = `local-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
     const created: SessionListItem = {
       sessionId,
+      tenantId,
       mode: params.mode,
       status: "active",
       version: 1,
@@ -1061,6 +1103,7 @@ export async function createSession(params: {
   await ref.set(
     {
       sessionId: ref.id,
+      tenantId,
       userId: params.userId,
       mode: params.mode,
       status: "active",
@@ -1078,6 +1121,7 @@ export async function createSession(params: {
 
   return {
     sessionId: ref.id,
+    tenantId,
     mode: params.mode,
     status: "active",
     version: 1,
@@ -1305,6 +1349,7 @@ export async function listApprovals(params: {
 }
 
 export async function recordOperatorAction(params: {
+  tenantId?: string;
   actorRole: string;
   action: string;
   outcome: OperatorActionOutcome;
@@ -1320,6 +1365,7 @@ export async function recordOperatorAction(params: {
 
   const actionRecord: OperatorActionRecord = {
     actionId: `op-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+    tenantId: normalizeTenantId(params.tenantId),
     actorRole: toNonEmptyString(params.actorRole) ?? "operator",
     action: toNonEmptyString(params.action) ?? "unknown",
     outcome: params.outcome,
@@ -1344,6 +1390,7 @@ export async function recordOperatorAction(params: {
   await ref.set(
     {
       actionId: actionRecord.actionId,
+      tenantId: actionRecord.tenantId,
       actorRole: actionRecord.actorRole,
       action: actionRecord.action,
       outcome: actionRecord.outcome,
@@ -1364,19 +1411,36 @@ export async function recordOperatorAction(params: {
   return mapOperatorActionRecord(ref.id, (stored.data() ?? {}) as Record<string, unknown>);
 }
 
-export async function listOperatorActions(limit: number): Promise<OperatorActionRecord[]> {
+export async function listOperatorActions(
+  limit: number,
+  options?: {
+    tenantId?: string;
+  },
+): Promise<OperatorActionRecord[]> {
+  const boundedLimit = Math.max(1, Math.min(500, Math.floor(limit)));
+  const tenantId = options?.tenantId ? normalizeTenantId(options.tenantId) : null;
   const db = initFirestore();
   if (!db) {
-    return inMemoryOperatorActions.slice(0, limit);
+    const records = tenantId
+      ? inMemoryOperatorActions.filter((item) => item.tenantId === tenantId)
+      : inMemoryOperatorActions;
+    return records.slice(0, boundedLimit);
   }
 
+  const fetchLimit = tenantId ? Math.max(boundedLimit * 5, 500) : boundedLimit;
   const snapshot = await db
     .collection("operator_actions")
     .orderBy("updatedAt", "desc")
-    .limit(limit)
+    .limit(fetchLimit)
     .get();
 
-  return snapshot.docs.map((doc) => mapOperatorActionRecord(doc.id, doc.data() as Record<string, unknown>));
+  const records = snapshot.docs.map((doc) =>
+    mapOperatorActionRecord(doc.id, doc.data() as Record<string, unknown>),
+  );
+  if (!tenantId) {
+    return records.slice(0, boundedLimit);
+  }
+  return records.filter((item) => item.tenantId === tenantId).slice(0, boundedLimit);
 }
 
 export type ApprovalSweepResult = {
@@ -2265,19 +2329,23 @@ export async function listDeviceNodeIndex(params: {
 }
 
 export async function getChannelSessionBinding(params: {
+  tenantId?: string;
   adapterId: string;
   externalSessionId: string;
 }): Promise<ChannelSessionBindingRecord | null> {
+  const tenantId = normalizeTenantId(params.tenantId);
   const adapterId = normalizeChannelAdapterId(params.adapterId);
   const externalSessionId = normalizeExternalSessionId(params.externalSessionId);
-  const mapKey = makeChannelSessionBindingMapKey(adapterId, externalSessionId);
+  const mapKey = makeChannelSessionBindingMapKey(tenantId, adapterId, externalSessionId);
   const db = initFirestore();
 
   if (!db) {
     return inMemoryChannelSessionBindings.get(mapKey) ?? null;
   }
 
-  const ref = db.collection("channel_sessions").doc(makeChannelSessionBindingDocId(adapterId, externalSessionId));
+  const ref = db
+    .collection("channel_sessions")
+    .doc(makeChannelSessionBindingDocId(tenantId, adapterId, externalSessionId));
   const snapshot = await ref.get();
   if (!snapshot.exists) {
     return null;
@@ -2287,12 +2355,14 @@ export async function getChannelSessionBinding(params: {
 
 export async function listChannelSessionBindings(params: {
   limit: number;
+  tenantId?: string;
   adapterId?: string;
   sessionId?: string;
   userId?: string;
   externalUserId?: string;
 }): Promise<ChannelSessionBindingRecord[]> {
   const limit = Math.max(1, Math.min(500, params.limit));
+  const tenantId = params.tenantId ? normalizeTenantId(params.tenantId) : null;
   const adapterId = toNonEmptyString(params.adapterId)
     ? normalizeChannelAdapterId(params.adapterId)
     : null;
@@ -2303,6 +2373,7 @@ export async function listChannelSessionBindings(params: {
 
   const filterRecords = (records: ChannelSessionBindingRecord[]): ChannelSessionBindingRecord[] =>
     records
+      .filter((record) => (tenantId ? record.tenantId === tenantId : true))
       .filter((record) => (adapterId ? record.adapterId === adapterId : true))
       .filter((record) => (sessionId ? record.sessionId === sessionId : true))
       .filter((record) => (userId ? record.userId === userId : true))
@@ -2328,6 +2399,7 @@ export async function listChannelSessionBindings(params: {
 
 export async function listChannelSessionBindingIndex(params: {
   limit: number;
+  tenantId?: string;
   adapterId?: string;
   sessionId?: string;
   userId?: string;
@@ -2336,6 +2408,7 @@ export async function listChannelSessionBindingIndex(params: {
   const records = await listChannelSessionBindings(params);
   return records.map((record) => ({
     bindingId: record.bindingId,
+    tenantId: record.tenantId,
     adapterId: record.adapterId,
     externalSessionId: record.externalSessionId,
     externalUserId: record.externalUserId,
@@ -2347,6 +2420,7 @@ export async function listChannelSessionBindingIndex(params: {
 }
 
 export async function upsertChannelSessionBinding(params: {
+  tenantId?: string;
   adapterId: string;
   externalSessionId: string;
   externalUserId?: string | null;
@@ -2356,10 +2430,11 @@ export async function upsertChannelSessionBinding(params: {
   expectedVersion?: number | null;
   idempotencyKey?: string | null;
 }): Promise<ChannelSessionBindingUpsertResult> {
+  const tenantId = normalizeTenantId(params.tenantId);
   const adapterId = normalizeChannelAdapterId(params.adapterId);
   const externalSessionId = normalizeExternalSessionId(params.externalSessionId);
-  const mapKey = makeChannelSessionBindingMapKey(adapterId, externalSessionId);
-  const bindingId = makeChannelSessionBindingDocId(adapterId, externalSessionId);
+  const mapKey = makeChannelSessionBindingMapKey(tenantId, adapterId, externalSessionId);
+  const bindingId = makeChannelSessionBindingDocId(tenantId, adapterId, externalSessionId);
   const nowIso = new Date().toISOString();
   const expectedVersion =
     typeof params.expectedVersion === "number" &&
@@ -2370,6 +2445,7 @@ export async function upsertChannelSessionBinding(params: {
   const idempotencyKey = normalizeMutationId(params.idempotencyKey);
   const baseBinding: ChannelSessionBindingRecord = {
     bindingId,
+    tenantId,
     adapterId,
     externalSessionId,
     externalUserId: toNonEmptyString(params.externalUserId),
@@ -2463,6 +2539,7 @@ export async function upsertChannelSessionBinding(params: {
         ref,
         {
           bindingId,
+          tenantId: baseBinding.tenantId,
           adapterId: baseBinding.adapterId,
           externalSessionId: baseBinding.externalSessionId,
           externalUserId: baseBinding.externalUserId,
@@ -2529,6 +2606,7 @@ export async function upsertChannelSessionBinding(params: {
     transaction.set(
       ref,
       {
+        tenantId: baseBinding.tenantId,
         adapterId: baseBinding.adapterId,
         externalSessionId: baseBinding.externalSessionId,
         externalUserId: baseBinding.externalUserId,

@@ -1,4 +1,4 @@
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+﻿import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import {
   applyRuntimeProfile,
@@ -126,6 +126,8 @@ const configuredChannelAdapters = parseChannelAdapters(
   process.env.API_CHANNEL_ADAPTERS ?? "webchat,telegram,slack",
 );
 const allowCustomChannelAdapters = process.env.API_CHANNEL_ADAPTERS_ALLOW_CUSTOM === "true";
+const defaultTenantId = normalizeTenantId(process.env.API_DEFAULT_TENANT_ID);
+const complianceTemplate = toOptionalString(process.env.API_COMPLIANCE_TEMPLATE) ?? "baseline";
 
 function toBaseUrl(input: string | undefined, fallback: string): string {
   const candidate = typeof input === "string" && input.trim().length > 0 ? input.trim() : fallback;
@@ -146,6 +148,43 @@ function parseChannelAdapters(raw: string): string[] {
     .filter((item) => item.length > 0);
   const deduped = Array.from(new Set(entries));
   return deduped.length > 0 ? deduped : ["webchat"];
+}
+
+function normalizeTenantId(raw: unknown): string {
+  const source = typeof raw === "string" ? raw.trim() : "";
+  const normalized = source
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  if (normalized.length === 0) {
+    return "public";
+  }
+  return normalized.slice(0, 64);
+}
+
+function resolveRequestTenantContext(req: IncomingMessage, url: URL): {
+  tenantId: string;
+  source: "query" | "header" | "default";
+} {
+  const queryTenant = normalizeTenantId(url.searchParams.get("tenantId"));
+  if (queryTenant !== "public" || (url.searchParams.get("tenantId") ?? "").trim().length > 0) {
+    return {
+      tenantId: queryTenant,
+      source: "query",
+    };
+  }
+  const headerTenant = normalizeTenantId(headerValue(req, "x-tenant-id"));
+  if (headerTenant !== "public" || (headerValue(req, "x-tenant-id") ?? "").trim().length > 0) {
+    return {
+      tenantId: headerTenant,
+      source: "header",
+    };
+  }
+  return {
+    tenantId: defaultTenantId,
+    source: "default",
+  };
 }
 
 function writeJson(res: ServerResponse, statusCode: number, body: unknown): void {
@@ -485,6 +524,12 @@ function normalizeOperationPath(pathname: string): string {
   if (pathname.startsWith("/v1/sessions/")) {
     return "/v1/sessions/:id";
   }
+  if (pathname.startsWith("/v1/device-nodes/")) {
+    return "/v1/device-nodes/:id";
+  }
+  if (pathname.startsWith("/v1/channels/sessions/resolve")) {
+    return "/v1/channels/sessions/resolve";
+  }
   return pathname;
 }
 
@@ -501,6 +546,11 @@ function runtimeState(): Record<string, unknown> {
     version: serviceVersion,
     profile: runtimeProfile,
     analytics: analytics.snapshot(),
+    governance: {
+      defaultTenantId,
+      complianceTemplate,
+      allowTenantHeaderOverride: true,
+    },
     metrics: {
       totalCount: summary.totalCount,
       totalErrors: summary.totalErrors,
@@ -1532,6 +1582,7 @@ async function runApprovalSlaSweep(): Promise<ApprovalSweepResult> {
 }
 
 async function auditOperatorAction(params: {
+  tenantId?: string;
   role: OperatorRole;
   action: string;
   outcome: "succeeded" | "failed" | "denied";
@@ -1544,6 +1595,7 @@ async function auditOperatorAction(params: {
 }): Promise<void> {
   try {
     await recordOperatorAction({
+      tenantId: normalizeTenantId(params.tenantId),
       actorRole: params.role,
       action: params.action,
       outcome: params.outcome,
@@ -1642,6 +1694,7 @@ export const server = createServer(async (req, res) => {
 
   try {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+    const requestTenant = resolveRequestTenantContext(req, url);
     operation = `${req.method ?? "UNKNOWN"} ${normalizeOperationPath(url.pathname)}`;
 
     if (url.pathname === "/healthz" && req.method === "GET") {
@@ -1714,10 +1767,65 @@ export const server = createServer(async (req, res) => {
       return;
     }
 
+    if (url.pathname === "/v1/governance/tenant" && req.method === "GET") {
+      writeJson(res, 200, {
+        data: {
+          tenantId: requestTenant.tenantId,
+          source: requestTenant.source,
+          complianceTemplate,
+          defaultTenantId,
+          headers: {
+            tenantHeader: "x-tenant-id",
+          },
+        },
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/governance/audit/operator-actions" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 50, 1, 500);
+      const requestedTenantRaw = url.searchParams.get("tenantId");
+      const requestedTenantId = requestedTenantRaw ? normalizeTenantId(requestedTenantRaw) : null;
+      const effectiveTenantId = requestedTenantId ?? requestTenant.tenantId;
+
+      if (requestedTenantId && role !== "admin" && requestedTenantId !== requestTenant.tenantId) {
+        writeApiError(res, 403, {
+          code: "API_TENANT_SCOPE_FORBIDDEN",
+          message: "cross-tenant audit access requires admin role",
+          details: {
+            requestTenantId: requestTenant.tenantId,
+            requestedTenantId,
+            role,
+          },
+        });
+        return;
+      }
+
+      const actions = await listOperatorActions(limit, {
+        tenantId: effectiveTenantId,
+      });
+      writeJson(res, 200, {
+        data: actions,
+        total: actions.length,
+        tenant: {
+          tenantId: effectiveTenantId,
+          requestTenantId: requestTenant.tenantId,
+          source: requestTenant.source,
+        },
+        role,
+      });
+      return;
+    }
+
     if (url.pathname === "/v1/sessions" && req.method === "GET") {
       const limit = parsePositiveInt(url.searchParams.get("limit"), 50);
-      const sessions = await listSessions(limit);
-      writeJson(res, 200, { data: sessions, total: sessions.length });
+      const sessions = await listSessions(limit, { tenantId: requestTenant.tenantId });
+      writeJson(res, 200, {
+        data: sessions,
+        total: sessions.length,
+        tenant: requestTenant,
+      });
       return;
     }
 
@@ -1727,8 +1835,15 @@ export const server = createServer(async (req, res) => {
       const userId =
         typeof parsed.userId === "string" && parsed.userId.length > 0 ? parsed.userId : "anonymous";
       const mode = sanitizeMode(parsed.mode);
-      const session = await createSession({ userId, mode });
-      writeJson(res, 201, { data: session });
+      const session = await createSession({
+        userId,
+        mode,
+        tenantId: requestTenant.tenantId,
+      });
+      writeJson(res, 201, {
+        data: session,
+        tenant: requestTenant,
+      });
       return;
     }
 
@@ -1881,6 +1996,7 @@ export const server = createServer(async (req, res) => {
       const prompt = toOptionalString(parsed.prompt);
       if (!skillId || !name || !prompt) {
         await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
           role,
           action: "skills_registry_upsert",
           outcome: "denied",
@@ -1914,6 +2030,7 @@ export const server = createServer(async (req, res) => {
 
       if (upsertResult.outcome === "version_conflict") {
         await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
           role,
           action: "skills_registry_upsert",
           outcome: "failed",
@@ -1938,6 +2055,7 @@ export const server = createServer(async (req, res) => {
       }
 
       await auditOperatorAction({
+        tenantId: requestTenant.tenantId,
         role,
         action: "skills_registry_upsert",
         outcome: "succeeded",
@@ -2052,6 +2170,7 @@ export const server = createServer(async (req, res) => {
       const displayName = toOptionalString(parsed.displayName);
       if (!nodeId || !displayName) {
         await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
           role,
           action: "device_node_upsert",
           outcome: "denied",
@@ -2084,6 +2203,7 @@ export const server = createServer(async (req, res) => {
 
       if (result.outcome === "version_conflict") {
         await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
           role,
           action: "device_node_upsert",
           outcome: "failed",
@@ -2108,6 +2228,7 @@ export const server = createServer(async (req, res) => {
       }
 
       await auditOperatorAction({
+        tenantId: requestTenant.tenantId,
         role,
         action: "device_node_upsert",
         outcome: "succeeded",
@@ -2139,6 +2260,7 @@ export const server = createServer(async (req, res) => {
       const nodeId = toOptionalString(parsed.nodeId);
       if (!nodeId) {
         await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
           role,
           action: "device_node_heartbeat",
           outcome: "denied",
@@ -2160,6 +2282,7 @@ export const server = createServer(async (req, res) => {
 
       if (!node) {
         await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
           role,
           action: "device_node_heartbeat",
           outcome: "failed",
@@ -2180,6 +2303,7 @@ export const server = createServer(async (req, res) => {
       }
 
       await auditOperatorAction({
+        tenantId: requestTenant.tenantId,
         role,
         action: "device_node_heartbeat",
         outcome: "succeeded",
@@ -2237,6 +2361,7 @@ export const server = createServer(async (req, res) => {
 
       const index = await listChannelSessionBindingIndex({
         limit,
+        tenantId: requestTenant.tenantId,
         adapterId,
         sessionId: url.searchParams.get("sessionId") ?? undefined,
         userId: url.searchParams.get("userId") ?? undefined,
@@ -2245,6 +2370,7 @@ export const server = createServer(async (req, res) => {
       writeJson(res, 200, {
         data: index,
         total: index.length,
+        tenant: requestTenant,
         source: "channel_session_bindings",
         generatedAt: new Date().toISOString(),
       });
@@ -2279,6 +2405,7 @@ export const server = createServer(async (req, res) => {
       }
       const bindings = await listChannelSessionBindings({
         limit,
+        tenantId: requestTenant.tenantId,
         adapterId,
         sessionId: url.searchParams.get("sessionId") ?? undefined,
         userId: url.searchParams.get("userId") ?? undefined,
@@ -2287,6 +2414,7 @@ export const server = createServer(async (req, res) => {
       writeJson(res, 200, {
         data: bindings,
         total: bindings.length,
+        tenant: requestTenant,
       });
       return;
     }
@@ -2319,6 +2447,7 @@ export const server = createServer(async (req, res) => {
         return;
       }
       const binding = await getChannelSessionBinding({
+        tenantId: requestTenant.tenantId,
         adapterId,
         externalSessionId,
       });
@@ -2335,6 +2464,7 @@ export const server = createServer(async (req, res) => {
       }
       writeJson(res, 200, {
         data: binding,
+        tenant: requestTenant,
       });
       return;
     }
@@ -2391,12 +2521,14 @@ export const server = createServer(async (req, res) => {
         const created = await createSession({
           userId: requestedUserId,
           mode: "multi",
+          tenantId: requestTenant.tenantId,
         });
         resolvedSessionId = created.sessionId;
         autoCreatedSession = created.sessionId;
       }
 
       const bindingResult = await upsertChannelSessionBinding({
+        tenantId: requestTenant.tenantId,
         adapterId,
         externalSessionId,
         externalUserId,
@@ -2442,6 +2574,7 @@ export const server = createServer(async (req, res) => {
           idempotencyKey,
           autoCreatedSessionId: autoCreatedSession,
         },
+        tenant: requestTenant,
       });
       return;
     }
@@ -2626,7 +2759,7 @@ export const server = createServer(async (req, res) => {
       const syncedFromTasks = await syncPendingApprovalsFromTasks(activeTasks);
       const [approvals, operatorActions] = await Promise.all([
         listApprovals({ limit: 100 }),
-        listOperatorActions(50),
+        listOperatorActions(50, { tenantId: requestTenant.tenantId }),
       ]);
       const approvalStatusCounts = approvals.reduce(
         (acc, approval) => {
@@ -2685,6 +2818,7 @@ export const server = createServer(async (req, res) => {
         data: {
           generatedAt: new Date().toISOString(),
           role,
+          tenant: requestTenant,
           activeTasks: {
             total: activeTasks.length,
             data: activeTasks,
@@ -2702,6 +2836,7 @@ export const server = createServer(async (req, res) => {
           operatorActions: {
             total: operatorActions.length,
             recent: operatorActions.slice(0, 25),
+            tenantId: requestTenant.tenantId,
           },
           startupFailures,
           turnTruncation,
@@ -2736,6 +2871,7 @@ export const server = createServer(async (req, res) => {
         const taskId = typeof parsed.taskId === "string" ? parsed.taskId.trim() : "";
         if (taskId.length === 0) {
           await auditOperatorAction({
+            tenantId: requestTenant.tenantId,
             role,
             action: "cancel_task",
             outcome: "denied",
@@ -2760,6 +2896,7 @@ export const server = createServer(async (req, res) => {
             defaultMessage: "operator cancel_task failed",
           });
           await auditOperatorAction({
+            tenantId: requestTenant.tenantId,
             role,
             action: "cancel_task",
             outcome: "failed",
@@ -2771,6 +2908,7 @@ export const server = createServer(async (req, res) => {
           throw error;
         }
         await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
           role,
           action: "cancel_task",
           outcome: "succeeded",
@@ -2791,6 +2929,7 @@ export const server = createServer(async (req, res) => {
         const taskId = typeof parsed.taskId === "string" ? parsed.taskId.trim() : "";
         if (taskId.length === 0) {
           await auditOperatorAction({
+            tenantId: requestTenant.tenantId,
             role,
             action: "retry_task",
             outcome: "denied",
@@ -2815,6 +2954,7 @@ export const server = createServer(async (req, res) => {
             defaultMessage: "operator retry_task failed",
           });
           await auditOperatorAction({
+            tenantId: requestTenant.tenantId,
             role,
             action: "retry_task",
             outcome: "failed",
@@ -2826,6 +2966,7 @@ export const server = createServer(async (req, res) => {
           throw error;
         }
         await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
           role,
           action: "retry_task",
           outcome: "succeeded",
@@ -2845,6 +2986,7 @@ export const server = createServer(async (req, res) => {
       if (action === "failover") {
         if (role !== "admin") {
           await auditOperatorAction({
+            tenantId: requestTenant.tenantId,
             role,
             action: "failover",
             outcome: "denied",
@@ -2865,6 +3007,7 @@ export const server = createServer(async (req, res) => {
 
         if (!targetService || !operation) {
           await auditOperatorAction({
+            tenantId: requestTenant.tenantId,
             role,
             action: "failover",
             outcome: "denied",
@@ -2893,6 +3036,7 @@ export const server = createServer(async (req, res) => {
             lastWarmupAt = new Date().toISOString();
           }
           await auditOperatorAction({
+            tenantId: requestTenant.tenantId,
             role,
             action: "failover",
             outcome: "succeeded",
@@ -2921,6 +3065,7 @@ export const server = createServer(async (req, res) => {
             defaultMessage: "operator failover action failed",
           });
           await auditOperatorAction({
+            tenantId: requestTenant.tenantId,
             role,
             action: "failover",
             outcome: "failed",
@@ -2933,6 +3078,7 @@ export const server = createServer(async (req, res) => {
           throw error;
         }
         await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
           role,
           action: "failover",
           outcome: "succeeded",
@@ -2952,6 +3098,7 @@ export const server = createServer(async (req, res) => {
       }
 
       await auditOperatorAction({
+        tenantId: requestTenant.tenantId,
         role,
         action: action.length > 0 ? action : "unknown",
         outcome: "denied",
@@ -3009,3 +3156,4 @@ export const server = createServer(async (req, res) => {
 server.listen(port, () => {
   console.log(`[api-backend] listening on :${port}`);
 });
+
