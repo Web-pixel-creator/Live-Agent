@@ -13,6 +13,8 @@ test("release-readiness emits artifact source-run evidence snapshot output contr
   assert.match(source, /operator_turn_delete_validated=/);
   assert.match(source, /operator_damage_control_validated=/);
   assert.match(source, /operator_damage_control_total=/);
+  assert.match(source, /turn_truncation_status=/);
+  assert.match(source, /turn_delete_status=/);
   assert.match(source, /operator_damage_control_status=/);
   assert.match(source, /governance_policy_status=/);
   assert.match(source, /skills_registry_status=/);
@@ -24,6 +26,8 @@ test("release-readiness emits artifact source-run evidence snapshot output contr
   assert.match(source, /evidenceSnapshot\.operatorTurnDeleteSummaryValidated expected true/);
   assert.match(source, /evidenceSnapshot\.operatorDamageControlSummaryValidated expected true/);
   assert.match(source, /evidenceSnapshot\.operatorDamageControlTotal expected >= 1/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceOperatorTurnTruncationStatus expected pass/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidenceOperatorTurnDeleteStatus expected pass/);
   assert.match(source, /evidenceSnapshot\.badgeEvidenceOperatorDamageControlStatus expected pass/);
   assert.match(source, /evidenceSnapshot\.badgeEvidenceGovernancePolicyStatus expected pass/);
   assert.match(source, /evidenceSnapshot\.badgeEvidenceSkillsRegistryStatus expected pass/);

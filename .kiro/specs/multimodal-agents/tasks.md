@@ -198,6 +198,7 @@
 24. Release strict summary evidence hardening (operatorDamageControl/governancePolicy/skillsRegistry badge statuses surfaced in strict CI job summary + anti-drift guard) [Completed]
 25. Device-nodes judge evidence hardening (public `badge-details` `deviceNodes` block + strict summary status + deployment guardrails + anti-drift tests) [Completed]
 26. Artifact-only provenance evidence hardening for `deviceNodes` (`badgeEvidenceDeviceNodesStatus` in local helper/workflow/source-run manifest/release gate + anti-drift coverage) [Completed]
+27. Artifact-only provenance evidence hardening for turn lifecycle badge statuses (`badgeEvidenceOperatorTurnTruncationStatus` + `badgeEvidenceOperatorTurnDeleteStatus` across helper/workflow/source-run manifest/release gate + anti-drift coverage) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

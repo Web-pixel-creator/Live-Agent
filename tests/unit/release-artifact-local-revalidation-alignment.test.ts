@@ -44,6 +44,8 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /source-run\.json/);
   assert.match(source, /evidenceSnapshot/);
   assert.match(source, /operatorDamageControlSummaryValidated/);
+  assert.match(source, /badgeEvidenceOperatorTurnTruncationStatus/);
+  assert.match(source, /badgeEvidenceOperatorTurnDeleteStatus/);
   assert.match(source, /badgeEvidenceOperatorDamageControlStatus/);
   assert.match(source, /badgeEvidenceGovernancePolicyStatus/);
   assert.match(source, /badgeEvidenceSkillsRegistryStatus/);
@@ -53,6 +55,8 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /source run manifest:/);
   assert.match(source, /requested perf gate mode/);
   assert.match(source, /effective perf gate mode/);
+  assert.match(source, /turn truncation status/);
+  assert.match(source, /turn delete status/);
   assert.match(source, /governance policy status/);
   assert.match(source, /skills registry status/);
   assert.match(source, /device nodes status/);

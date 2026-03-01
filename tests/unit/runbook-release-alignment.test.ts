@@ -97,6 +97,8 @@ test("runbook documents release perf artifact-only mode and critical evidence ke
     "`evidence.skillsRegistry`",
     "`evidence.deviceNodes`",
     "`gate.evidenceSnapshot.operatorDamageControlSummaryValidated`",
+    "`gate.evidenceSnapshot.badgeEvidenceOperatorTurnTruncationStatus`",
+    "`gate.evidenceSnapshot.badgeEvidenceOperatorTurnDeleteStatus`",
     "`gate.evidenceSnapshot.badgeEvidenceOperatorDamageControlStatus`",
     "`gate.evidenceSnapshot.badgeEvidenceGovernancePolicyStatus`",
     "`gate.evidenceSnapshot.badgeEvidenceSkillsRegistryStatus`",

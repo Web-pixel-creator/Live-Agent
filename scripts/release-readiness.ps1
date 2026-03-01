@@ -331,6 +331,24 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       )
     }
 
+    $manifestTurnTruncationStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceOperatorTurnTruncationStatus
+    $manifestTurnTruncationStatus = $manifestTurnTruncationStatusRaw.ToLowerInvariant()
+    if ($manifestTurnTruncationStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceOperatorTurnTruncationStatus expected pass, actual " +
+        $manifestTurnTruncationStatusRaw
+      )
+    }
+
+    $manifestTurnDeleteStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceOperatorTurnDeleteStatus
+    $manifestTurnDeleteStatus = $manifestTurnDeleteStatusRaw.ToLowerInvariant()
+    if ($manifestTurnDeleteStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceOperatorTurnDeleteStatus expected pass, actual " +
+        $manifestTurnDeleteStatusRaw
+      )
+    }
+
     $manifestDamageControlStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceOperatorDamageControlStatus
     $manifestDamageControlStatus = $manifestDamageControlStatusRaw.ToLowerInvariant()
     if ($manifestDamageControlStatus -ne "pass") {
@@ -1655,6 +1673,8 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     $manifestTurnDeleteValidated = [string]$manifestEvidenceSnapshot.operatorTurnDeleteSummaryValidated
     $manifestDamageControlValidated = [string]$manifestEvidenceSnapshot.operatorDamageControlSummaryValidated
     $manifestDamageControlTotal = [string]$manifestEvidenceSnapshot.operatorDamageControlTotal
+    $manifestTurnTruncationStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceOperatorTurnTruncationStatus
+    $manifestTurnDeleteStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceOperatorTurnDeleteStatus
     $manifestDamageControlStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceOperatorDamageControlStatus
     $manifestGovernancePolicyStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceGovernancePolicyStatus
     $manifestSkillsRegistryStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceSkillsRegistryStatus
@@ -1666,6 +1686,8 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       ", operator_turn_delete_validated=" + $manifestTurnDeleteValidated +
       ", operator_damage_control_validated=" + $manifestDamageControlValidated +
       ", operator_damage_control_total=" + $manifestDamageControlTotal +
+      ", turn_truncation_status=" + $manifestTurnTruncationStatus +
+      ", turn_delete_status=" + $manifestTurnDeleteStatus +
       ", operator_damage_control_status=" + $manifestDamageControlStatus +
       ", governance_policy_status=" + $manifestGovernancePolicyStatus +
       ", skills_registry_status=" + $manifestSkillsRegistryStatus +

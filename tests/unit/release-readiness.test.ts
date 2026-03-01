@@ -650,6 +650,8 @@ function createPassingSourceRunManifest(
     evidenceOperatorTurnDeleteValidated: boolean | string;
     evidenceOperatorDamageControlValidated: boolean | string;
     evidenceOperatorDamageControlTotal: number | string;
+    evidenceOperatorTurnTruncationStatus: string;
+    evidenceOperatorTurnDeleteStatus: string;
     evidenceOperatorDamageControlStatus: string;
     evidenceGovernancePolicyStatus: string;
     evidenceSkillsRegistryStatus: string;
@@ -704,6 +706,12 @@ function createPassingSourceRunManifest(
         operatorDamageControlTotal: hasOverride("evidenceOperatorDamageControlTotal")
           ? overrides.evidenceOperatorDamageControlTotal
           : 1,
+        badgeEvidenceOperatorTurnTruncationStatus: hasOverride("evidenceOperatorTurnTruncationStatus")
+          ? overrides.evidenceOperatorTurnTruncationStatus
+          : "pass",
+        badgeEvidenceOperatorTurnDeleteStatus: hasOverride("evidenceOperatorTurnDeleteStatus")
+          ? overrides.evidenceOperatorTurnDeleteStatus
+          : "pass",
         badgeEvidenceOperatorDamageControlStatus: hasOverride("evidenceOperatorDamageControlStatus")
           ? overrides.evidenceOperatorDamageControlStatus
           : "pass",
@@ -1951,6 +1959,8 @@ test(
     assert.match(output, /branch=main/i);
     assert.match(output, /artifact\.source_run_manifest\.evidence:/i);
     assert.match(output, /operator_damage_control_validated=true/i);
+    assert.match(output, /turn_truncation_status=pass/i);
+    assert.match(output, /turn_delete_status=pass/i);
     assert.match(output, /operator_damage_control_status=pass/i);
     assert.match(output, /governance_policy_status=pass/i);
     assert.match(output, /skills_registry_status=pass/i);
@@ -2049,6 +2059,38 @@ test(
     assert.match(
       output,
       /source run manifest evidenceSnapshot\.operatorDamageControlLatestSource expected one of \[default,\s*file,\s*env_json,\s*unknown\],\s*actual manual/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence turn truncation status is not pass",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceOperatorTurnTruncationStatus: "warn" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceOperatorTurnTruncationStatus expected pass, actual warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence turn delete status is not pass",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceOperatorTurnDeleteStatus: "warn" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceOperatorTurnDeleteStatus expected pass, actual warn/i,
     );
   },
 );

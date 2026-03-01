@@ -43,10 +43,14 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /effective_perf_mode/);
   assert.match(source, /requested_perf_mode/);
   assert.match(source, /strict_final_run/);
+  assert.match(source, /turn_truncation_status/);
+  assert.match(source, /turn_delete_status/);
   assert.match(source, /operator_damage_control_status/);
   assert.match(source, /governance_policy_status/);
   assert.match(source, /skills_registry_status/);
   assert.match(source, /device_nodes_status/);
+  assert.match(source, /Turn-truncation status \(badge evidence\):/);
+  assert.match(source, /Turn-delete status \(badge evidence\):/);
   assert.match(source, /Operator damage-control status \(badge evidence\):/);
   assert.match(source, /Governance policy status \(badge evidence\):/);
   assert.match(source, /Skills registry status \(badge evidence\):/);

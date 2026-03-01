@@ -23,6 +23,8 @@ const REQUIRED_EVIDENCE_SNAPSHOT_KEYS = [
   "operatorDamageControlLatestVerdict",
   "operatorDamageControlLatestSource",
   "operatorDamageControlLatestSeenAt",
+  "badgeEvidenceOperatorTurnTruncationStatus",
+  "badgeEvidenceOperatorTurnDeleteStatus",
   "badgeEvidenceOperatorDamageControlStatus",
   "badgeEvidenceGovernancePolicyStatus",
   "badgeEvidenceSkillsRegistryStatus",

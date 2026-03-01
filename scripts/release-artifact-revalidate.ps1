@@ -563,6 +563,14 @@ $badgeEvidenceOperatorDamageControlStatus = $null
 $badgeEvidenceGovernancePolicyStatus = $null
 $badgeEvidenceSkillsRegistryStatus = $null
 $badgeEvidenceDeviceNodesStatus = $null
+$badgeEvidenceOperatorTurnTruncationStatus = $null
+$badgeEvidenceOperatorTurnDeleteStatus = $null
+if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorTurnTruncation) {
+  $badgeEvidenceOperatorTurnTruncationStatus = $badgeDetails.evidence.operatorTurnTruncation.status
+}
+if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorTurnDelete) {
+  $badgeEvidenceOperatorTurnDeleteStatus = $badgeDetails.evidence.operatorTurnDelete.status
+}
 if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorDamageControl) {
   $badgeEvidenceOperatorDamageControlStatus = $badgeDetails.evidence.operatorDamageControl.status
 }
@@ -586,6 +594,8 @@ $gateEvidenceSnapshot = [ordered]@{
   operatorDamageControlLatestVerdict          = $operatorDamageControlLatestVerdict
   operatorDamageControlLatestSource           = $operatorDamageControlLatestSource
   operatorDamageControlLatestSeenAt           = $operatorDamageControlLatestSeenAt
+  badgeEvidenceOperatorTurnTruncationStatus   = $badgeEvidenceOperatorTurnTruncationStatus
+  badgeEvidenceOperatorTurnDeleteStatus       = $badgeEvidenceOperatorTurnDeleteStatus
   badgeEvidenceOperatorDamageControlStatus    = $badgeEvidenceOperatorDamageControlStatus
   badgeEvidenceGovernancePolicyStatus         = $badgeEvidenceGovernancePolicyStatus
   badgeEvidenceSkillsRegistryStatus           = $badgeEvidenceSkillsRegistryStatus
@@ -652,6 +662,8 @@ Write-Host ("- max source run age hours: " + $MaxSourceRunAgeHours)
 Write-Host ("- requested perf gate mode: " + $gateRequestedPerfMode)
 Write-Host ("- effective perf gate mode: " + $gateEffectivePerfMode)
 Write-Host ("- perf artifacts detected: " + $gateHasPerfArtifacts)
+Write-Host ("- evidence snapshot (turn truncation status): " + $badgeEvidenceOperatorTurnTruncationStatus)
+Write-Host ("- evidence snapshot (turn delete status): " + $badgeEvidenceOperatorTurnDeleteStatus)
 Write-Host ("- evidence snapshot (operator damage-control status): " + $badgeEvidenceOperatorDamageControlStatus)
 Write-Host ("- evidence snapshot (governance policy status): " + $badgeEvidenceGovernancePolicyStatus)
 Write-Host ("- evidence snapshot (skills registry status): " + $badgeEvidenceSkillsRegistryStatus)

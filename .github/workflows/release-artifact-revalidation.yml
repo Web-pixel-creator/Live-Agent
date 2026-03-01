@@ -544,6 +544,14 @@ jobs:
           $badgeEvidenceGovernancePolicyStatus = $null
           $badgeEvidenceSkillsRegistryStatus = $null
           $badgeEvidenceDeviceNodesStatus = $null
+          $badgeEvidenceOperatorTurnTruncationStatus = $null
+          $badgeEvidenceOperatorTurnDeleteStatus = $null
+          if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorTurnTruncation) {
+            $badgeEvidenceOperatorTurnTruncationStatus = $badgeDetails.evidence.operatorTurnTruncation.status
+          }
+          if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorTurnDelete) {
+            $badgeEvidenceOperatorTurnDeleteStatus = $badgeDetails.evidence.operatorTurnDelete.status
+          }
           if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorDamageControl) {
             $badgeEvidenceOperatorDamageControlStatus = $badgeDetails.evidence.operatorDamageControl.status
           }
@@ -567,6 +575,8 @@ jobs:
             operatorDamageControlLatestVerdict = $operatorDamageControlLatestVerdict
             operatorDamageControlLatestSource = $operatorDamageControlLatestSource
             operatorDamageControlLatestSeenAt = $operatorDamageControlLatestSeenAt
+            badgeEvidenceOperatorTurnTruncationStatus = $badgeEvidenceOperatorTurnTruncationStatus
+            badgeEvidenceOperatorTurnDeleteStatus = $badgeEvidenceOperatorTurnDeleteStatus
             badgeEvidenceOperatorDamageControlStatus = $badgeEvidenceOperatorDamageControlStatus
             badgeEvidenceGovernancePolicyStatus = $badgeEvidenceGovernancePolicyStatus
             badgeEvidenceSkillsRegistryStatus = $badgeEvidenceSkillsRegistryStatus
@@ -619,6 +629,8 @@ jobs:
           $manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $manifestPath -Encoding utf8
           $normalizedManifestPath = $manifestPath.Replace('\', '/')
           ("manifest_path=" + $normalizedManifestPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("turn_truncation_status=" + [string]$badgeEvidenceOperatorTurnTruncationStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("turn_delete_status=" + [string]$badgeEvidenceOperatorTurnDeleteStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("operator_damage_control_status=" + [string]$badgeEvidenceOperatorDamageControlStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("governance_policy_status=" + [string]$badgeEvidenceGovernancePolicyStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("skills_registry_status=" + [string]$badgeEvidenceSkillsRegistryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -671,6 +683,8 @@ jobs:
           ("GitHub API retry backoff ms: ${{ steps.resolve_source.outputs.github_api_retry_backoff_ms }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Perf artifacts detected: ${{ steps.inspect_artifacts.outputs.has_perf_artifacts }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Effective perf mode: ${{ steps.inspect_artifacts.outputs.effective_perf_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Turn-truncation status (badge evidence): ${{ steps.write_manifest.outputs.turn_truncation_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Turn-delete status (badge evidence): ${{ steps.write_manifest.outputs.turn_delete_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Operator damage-control status (badge evidence): ${{ steps.write_manifest.outputs.operator_damage_control_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Governance policy status (badge evidence): ${{ steps.write_manifest.outputs.governance_policy_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Skills registry status (badge evidence): ${{ steps.write_manifest.outputs.skills_registry_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
