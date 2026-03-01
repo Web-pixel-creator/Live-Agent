@@ -36,6 +36,14 @@ test("judge quickstart document includes core judge commands and categories", ()
     "Export Session JSON",
     "Export Session Audio (WAV)",
     "docs/challenge-demo-runbook.md",
+    "Demo Script by Minute (5-6 min)",
+    "00:00-00:45",
+    "00:45-02:15",
+    "02:15-03:30",
+    "03:30-04:45",
+    "04:45-05:30",
+    "npm run demo:e2e:visual:judge",
+    "artifacts/judge-visual-evidence/presentation.md",
   ];
   for (const token of requiredTokens) {
     assert.ok(source.includes(token), `judge quickstart missing token: ${token}`);
@@ -44,8 +52,11 @@ test("judge quickstart document includes core judge commands and categories", ()
 
 test("judge runbook alias includes quickstart in reading order", () => {
   const aliasPath = resolve(process.cwd(), "docs", "judge-runbook.md");
+  const runbookPath = resolve(process.cwd(), "docs", "challenge-demo-runbook.md");
   const source = readFileSync(aliasPath, "utf8");
+  const runbookSource = readFileSync(runbookPath, "utf8");
 
   assert.match(source, /docs\/judge-quickstart\.md/);
   assert.match(source, /docs\/challenge-demo-runbook\.md/);
+  assert.match(runbookSource, /Demo Script by Minute \(5-6 min\)/);
 });

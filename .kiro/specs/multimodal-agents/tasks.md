@@ -225,6 +225,7 @@
 51. Judge presentation bundle baseline (`scripts/judge-presentation-bundle.mjs` one-page summary from summary/policy/badge/release/visual artifacts + `demo:e2e:visual:bundle`/`demo:e2e:visual:judge` scripts + docs/alignment tests) [Completed]
 52. Railway auth token compatibility hardening (`RAILWAY_TOKEN` -> `RAILWAY_API_TOKEN` fallback + `railway whoami` preflight in deploy helpers + docs/alignment tests) [Completed]
 53. README judge snapshot polish (top-level challenge-coverage + fastest judge flow + direct evidence/runtime links without changing existing command contracts) [Completed]
+54. Judge quickstart minute-by-minute demo script (5-6 min timeline aligned with runbook + alignment tests) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

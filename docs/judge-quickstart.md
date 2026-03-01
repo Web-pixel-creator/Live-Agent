@@ -78,3 +78,26 @@ npm run verify:release
 2. `docs/operator-guide.md`
 3. `docs/ws-protocol.md`
 4. `docs/architecture.md`
+
+## 6) Demo Script by Minute (5-6 min)
+
+1. `00:00-00:45` Platform intro:
+   - Open `http://localhost:3000`.
+   - Show connection panel and assistant lifecycle (`idle/streaming/speaking`).
+   - Point to judge artifacts target: `artifacts/judge-visual-evidence/presentation.md`.
+2. `00:45-02:15` Live Agent category:
+   - Start mic, send live request, then trigger interruption.
+   - Show truncate/delete/gateway-correlation evidence in Operator Console.
+   - Mention roundtrip and interrupt KPI lanes in `artifacts/demo-e2e/badge-details.json`.
+3. `02:15-03:30` Creative Storyteller category:
+   - Send storyteller prompt.
+   - Open `Story Timeline` panel and scrub segments.
+   - Show image/video/audio refs and async media behavior.
+4. `03:30-04:45` UI Navigator category:
+   - Send `ui_task` intent with grounding fields.
+   - Show approval flow and damage-control verdict in Operator Console.
+   - Confirm safety gates before execution.
+5. `04:45-05:30` Evidence close:
+   - Run `npm run demo:e2e:visual:judge`.
+   - Open `artifacts/judge-visual-evidence/presentation.md`.
+   - Confirm all evidence lanes are `pass` in `artifacts/demo-e2e/badge-details.json`.

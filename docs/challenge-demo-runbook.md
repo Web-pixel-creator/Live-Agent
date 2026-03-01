@@ -2,6 +2,8 @@
 
 This runbook defines the judged-demo flow for all three categories with explicit interruption checkpoints and fallback actions.
 
+For a strict time-boxed pitch flow, use `docs/judge-quickstart.md` section `Demo Script by Minute (5-6 min)` as the operator script.
+
 ## Preconditions
 
 1. Run local release verification:
