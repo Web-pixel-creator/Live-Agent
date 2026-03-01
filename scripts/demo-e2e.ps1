@@ -2867,9 +2867,40 @@ try {
     $summaryTemplateId = [string](Get-FieldValue -Object $governanceSummaryResponse -Path @("data", "compliance", "templateId"))
     $summarySource = [string](Get-FieldValue -Object $governanceSummaryResponse -Path @("data", "compliance", "source"))
     $summaryOperatorActionsTotal = [int](Get-FieldValue -Object $governanceSummaryResponse -Path @("data", "audit", "operatorActions", "total"))
-    $summaryOperatorActionsRecent = @((Get-FieldValue -Object $governanceSummaryResponse -Path @("data", "audit", "operatorActions", "recent")))
+    $summaryOperatorActionsLatest = Get-FieldValue -Object $governanceSummaryResponse -Path @("data", "audit", "operatorActions", "latest")
+    $summaryLatestGovernanceActionSeen = (
+      $null -ne $summaryOperatorActionsLatest -and
+      [string](Get-FieldValue -Object $summaryOperatorActionsLatest -Path @("action")) -eq "update_governance_policy"
+    )
+    $summaryOperatorActionsRecentRaw = Get-FieldValue -Object $governanceSummaryResponse -Path @("data", "audit", "operatorActions", "recent")
+    if ($summaryOperatorActionsRecentRaw -is [System.Array]) {
+      $summaryOperatorActionsRecent = @($summaryOperatorActionsRecentRaw)
+    } elseif ($null -ne $summaryOperatorActionsRecentRaw) {
+      $summaryOperatorActionsRecent = @($summaryOperatorActionsRecentRaw)
+    } elseif ($null -ne $summaryOperatorActionsLatest) {
+      $summaryOperatorActionsRecent = @($summaryOperatorActionsLatest)
+    } else {
+      $summaryOperatorActionsRecent = @()
+    }
     $summaryGovernanceActionSeen = @(
       $summaryOperatorActionsRecent | Where-Object {
+        $null -ne $_ -and
+        [string](Get-FieldValue -Object $_ -Path @("action")) -eq "update_governance_policy" -and
+        [string](Get-FieldValue -Object $_ -Path @("outcome")) -eq "succeeded"
+      }
+    ).Count -ge 1
+    $governanceActionsResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/governance/audit/operator-actions?tenantId=$([System.Uri]::EscapeDataString($governanceTenantId))&limit=200" -Headers $adminHeaders -TimeoutSec $RequestTimeoutSec
+    $governanceActionsRaw = Get-FieldValue -Object $governanceActionsResponse -Path @("data")
+    if ($governanceActionsRaw -is [System.Array]) {
+      $governanceActions = @($governanceActionsRaw)
+    } elseif ($null -ne $governanceActionsRaw) {
+      $governanceActions = @($governanceActionsRaw)
+    } else {
+      $governanceActions = @()
+    }
+    $summaryGovernanceActionSeen = @(
+      $governanceActions | Where-Object {
+        $null -ne $_ -and
         [string](Get-FieldValue -Object $_ -Path @("action")) -eq "update_governance_policy" -and
         [string](Get-FieldValue -Object $_ -Path @("outcome")) -eq "succeeded"
       }
@@ -2877,13 +2908,15 @@ try {
     Assert-Condition -Condition ($summaryTemplateId -eq "strict") -Message "Governance summary templateId should be strict."
     Assert-Condition -Condition ($summarySource -eq "tenant_override") -Message "Governance summary source should be tenant_override."
     Assert-Condition -Condition ($summaryOperatorActionsTotal -ge 1) -Message "Governance summary operator actions total should be >= 1."
-    Assert-Condition -Condition $summaryGovernanceActionSeen -Message "Governance summary should include update_governance_policy action."
+    Assert-Condition -Condition $summaryLatestGovernanceActionSeen -Message "Governance summary latest action should be update_governance_policy."
+    Assert-Condition -Condition $summaryGovernanceActionSeen -Message "Governance operator action stream should include succeeded update_governance_policy action."
 
     $adminOverridesResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/governance/policy?tenantId=all&limit=200" -Headers $adminHeaders -TimeoutSec $RequestTimeoutSec
     $adminOverridesTotal = [int](Get-FieldValue -Object $adminOverridesResponse -Path @("data", "overrides", "total"))
     $adminOverridesRecent = @((Get-FieldValue -Object $adminOverridesResponse -Path @("data", "overrides", "recent")))
     $adminOverrideTenantSeen = @(
       $adminOverridesRecent | Where-Object {
+        $null -ne $_ -and
         [string](Get-FieldValue -Object $_ -Path @("tenantId")) -eq $governanceTenantId
       }
     ).Count -ge 1
