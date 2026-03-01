@@ -103,6 +103,7 @@ test("runbook documents release perf artifact-only mode and critical evidence ke
     "`gate.evidenceSnapshot.badgeEvidenceGovernancePolicyStatus`",
     "`gate.evidenceSnapshot.badgeEvidenceSkillsRegistryStatus`",
     "`gate.evidenceSnapshot.badgeEvidenceDeviceNodesStatus`",
+    "`gate.evidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus`",
     "`analyticsSplitTargetsValidated=true`",
     "`analyticsBigQueryConfigValidated=true`",
     "`kpi.analyticsServicesValidated >= 4`",

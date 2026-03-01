@@ -544,6 +544,7 @@ jobs:
           $badgeEvidenceGovernancePolicyStatus = $null
           $badgeEvidenceSkillsRegistryStatus = $null
           $badgeEvidenceDeviceNodesStatus = $null
+          $badgeEvidenceDeviceNodeUpdatesStatus = "unavailable"
           $badgeEvidenceOperatorTurnTruncationStatus = $null
           $badgeEvidenceOperatorTurnDeleteStatus = $null
           if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorTurnTruncation) {
@@ -563,6 +564,23 @@ jobs:
           }
           if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.deviceNodes) {
             $badgeEvidenceDeviceNodesStatus = $badgeDetails.evidence.deviceNodes.status
+            $updatesValidated = ($badgeDetails.evidence.deviceNodes.updatesValidated -eq $true)
+            $updatesHasUpsert = ($badgeDetails.evidence.deviceNodes.updatesHasUpsert -eq $true)
+            $updatesHasHeartbeat = ($badgeDetails.evidence.deviceNodes.updatesHasHeartbeat -eq $true)
+            $updatesApiValidated = ($badgeDetails.evidence.deviceNodes.updatesApiValidated -eq $true)
+            $updatesTotalRaw = $badgeDetails.evidence.deviceNodes.updatesTotal
+            $updatesTotal = 0
+            if ($null -ne $updatesTotalRaw) {
+              $updatesTotalParsed = 0
+              if ([int]::TryParse([string]$updatesTotalRaw, [ref]$updatesTotalParsed)) {
+                $updatesTotal = $updatesTotalParsed
+              }
+            }
+            if ($updatesValidated -and $updatesHasUpsert -and $updatesHasHeartbeat -and $updatesApiValidated -and $updatesTotal -ge 2) {
+              $badgeEvidenceDeviceNodeUpdatesStatus = "pass"
+            } elseif ($updatesTotal -gt 0 -or $updatesHasUpsert -or $updatesHasHeartbeat -or $updatesValidated -or $updatesApiValidated) {
+              $badgeEvidenceDeviceNodeUpdatesStatus = "fail"
+            }
           }
 
           $gateEvidenceSnapshot = [ordered]@{
@@ -581,6 +599,7 @@ jobs:
             badgeEvidenceGovernancePolicyStatus = $badgeEvidenceGovernancePolicyStatus
             badgeEvidenceSkillsRegistryStatus = $badgeEvidenceSkillsRegistryStatus
             badgeEvidenceDeviceNodesStatus = $badgeEvidenceDeviceNodesStatus
+            badgeEvidenceDeviceNodeUpdatesStatus = $badgeEvidenceDeviceNodeUpdatesStatus
           }
 
           $manifest = [ordered]@{
@@ -635,6 +654,7 @@ jobs:
           ("governance_policy_status=" + [string]$badgeEvidenceGovernancePolicyStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("skills_registry_status=" + [string]$badgeEvidenceSkillsRegistryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("device_nodes_status=" + [string]$badgeEvidenceDeviceNodesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("device_node_updates_status=" + [string]$badgeEvidenceDeviceNodeUpdatesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Host ("Source run manifest written: " + $manifestPath)
 
       - name: Run Artifact-Only Release Revalidation (With Perf Artifacts, Standard)
@@ -689,6 +709,7 @@ jobs:
           ("Governance policy status (badge evidence): ${{ steps.write_manifest.outputs.governance_policy_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Skills registry status (badge evidence): ${{ steps.write_manifest.outputs.skills_registry_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Device-nodes status (badge evidence): ${{ steps.write_manifest.outputs.device_nodes_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Device-node-updates status (badge evidence): ${{ steps.write_manifest.outputs.device_node_updates_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Source run manifest: ${{ steps.write_manifest.outputs.manifest_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           if (Test-Path "artifacts/demo-e2e/summary.md") {
             "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

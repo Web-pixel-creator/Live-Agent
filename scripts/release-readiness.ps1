@@ -385,6 +385,15 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       )
     }
 
+    $manifestDeviceNodeUpdatesStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus
+    $manifestDeviceNodeUpdatesStatus = $manifestDeviceNodeUpdatesStatusRaw.ToLowerInvariant()
+    if ($manifestDeviceNodeUpdatesStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus expected pass, actual " +
+        $manifestDeviceNodeUpdatesStatusRaw
+      )
+    }
+
     $manifestDamageControlLatestVerdictRaw = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestVerdict
     $manifestDamageControlLatestVerdict = $manifestDamageControlLatestVerdictRaw.ToLowerInvariant()
     $allowedOperatorDamageControlLatestVerdicts = @("allow", "ask", "block")
@@ -1679,6 +1688,7 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     $manifestGovernancePolicyStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceGovernancePolicyStatus
     $manifestSkillsRegistryStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceSkillsRegistryStatus
     $manifestDeviceNodesStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodesStatus
+    $manifestDeviceNodeUpdatesStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus
     $manifestDamageControlLatestVerdict = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestVerdict
     $manifestDamageControlLatestSource = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestSource
     Write-Host (
@@ -1692,6 +1702,7 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       ", governance_policy_status=" + $manifestGovernancePolicyStatus +
       ", skills_registry_status=" + $manifestSkillsRegistryStatus +
       ", device_nodes_status=" + $manifestDeviceNodesStatus +
+      ", device_node_updates_status=" + $manifestDeviceNodeUpdatesStatus +
       ", operator_damage_control_latest_verdict=" + $manifestDamageControlLatestVerdict +
       ", operator_damage_control_latest_source=" + $manifestDamageControlLatestSource
     )

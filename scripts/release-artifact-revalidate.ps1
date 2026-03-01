@@ -563,6 +563,7 @@ $badgeEvidenceOperatorDamageControlStatus = $null
 $badgeEvidenceGovernancePolicyStatus = $null
 $badgeEvidenceSkillsRegistryStatus = $null
 $badgeEvidenceDeviceNodesStatus = $null
+$badgeEvidenceDeviceNodeUpdatesStatus = "unavailable"
 $badgeEvidenceOperatorTurnTruncationStatus = $null
 $badgeEvidenceOperatorTurnDeleteStatus = $null
 if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorTurnTruncation) {
@@ -582,6 +583,24 @@ if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne
 }
 if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.deviceNodes) {
   $badgeEvidenceDeviceNodesStatus = $badgeDetails.evidence.deviceNodes.status
+  $updatesValidated = ($badgeDetails.evidence.deviceNodes.updatesValidated -eq $true)
+  $updatesHasUpsert = ($badgeDetails.evidence.deviceNodes.updatesHasUpsert -eq $true)
+  $updatesHasHeartbeat = ($badgeDetails.evidence.deviceNodes.updatesHasHeartbeat -eq $true)
+  $updatesApiValidated = ($badgeDetails.evidence.deviceNodes.updatesApiValidated -eq $true)
+  $updatesTotalRaw = $badgeDetails.evidence.deviceNodes.updatesTotal
+  $updatesTotal = 0
+  if ($null -ne $updatesTotalRaw) {
+    $updatesTotalParsed = 0
+    if ([int]::TryParse([string]$updatesTotalRaw, [ref]$updatesTotalParsed)) {
+      $updatesTotal = $updatesTotalParsed
+    }
+  }
+  if ($updatesValidated -and $updatesHasUpsert -and $updatesHasHeartbeat -and $updatesApiValidated -and $updatesTotal -ge 2) {
+    $badgeEvidenceDeviceNodeUpdatesStatus = "pass"
+  }
+  elseif ($updatesTotal -gt 0 -or $updatesHasUpsert -or $updatesHasHeartbeat -or $updatesValidated -or $updatesApiValidated) {
+    $badgeEvidenceDeviceNodeUpdatesStatus = "fail"
+  }
 }
 
 $gateEvidenceSnapshot = [ordered]@{
@@ -600,6 +619,7 @@ $gateEvidenceSnapshot = [ordered]@{
   badgeEvidenceGovernancePolicyStatus         = $badgeEvidenceGovernancePolicyStatus
   badgeEvidenceSkillsRegistryStatus           = $badgeEvidenceSkillsRegistryStatus
   badgeEvidenceDeviceNodesStatus              = $badgeEvidenceDeviceNodesStatus
+  badgeEvidenceDeviceNodeUpdatesStatus        = $badgeEvidenceDeviceNodeUpdatesStatus
 }
 
 $sourceRunManifest = [ordered]@{
@@ -668,6 +688,7 @@ Write-Host ("- evidence snapshot (operator damage-control status): " + $badgeEvi
 Write-Host ("- evidence snapshot (governance policy status): " + $badgeEvidenceGovernancePolicyStatus)
 Write-Host ("- evidence snapshot (skills registry status): " + $badgeEvidenceSkillsRegistryStatus)
 Write-Host ("- evidence snapshot (device nodes status): " + $badgeEvidenceDeviceNodesStatus)
+Write-Host ("- evidence snapshot (device node updates status): " + $badgeEvidenceDeviceNodeUpdatesStatus)
 Write-Host ("- source run manifest: " + $sourceRunManifestPath)
 
 if (-not $KeepTemp) {

@@ -29,6 +29,7 @@ const REQUIRED_EVIDENCE_SNAPSHOT_KEYS = [
   "badgeEvidenceGovernancePolicyStatus",
   "badgeEvidenceSkillsRegistryStatus",
   "badgeEvidenceDeviceNodesStatus",
+  "badgeEvidenceDeviceNodeUpdatesStatus",
 ];
 
 test("source-run manifest schema stays aligned between local helper and workflow", () => {

@@ -50,6 +50,7 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /badgeEvidenceGovernancePolicyStatus/);
   assert.match(source, /badgeEvidenceSkillsRegistryStatus/);
   assert.match(source, /badgeEvidenceDeviceNodesStatus/);
+  assert.match(source, /badgeEvidenceDeviceNodeUpdatesStatus/);
   assert.match(source, /retryableStatusCodes/);
   assert.match(source, /Source run manifest written/);
   assert.match(source, /source run manifest:/);
@@ -60,6 +61,7 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /governance policy status/);
   assert.match(source, /skills registry status/);
   assert.match(source, /device nodes status/);
+  assert.match(source, /device node updates status/);
 });
 
 test("local release artifact revalidation docs stay aligned with helper controls", () => {
