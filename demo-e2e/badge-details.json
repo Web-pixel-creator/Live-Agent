@@ -1,28 +1,28 @@
 {
-  "generatedAt": "2026-03-01T16:20:30.778Z",
+  "generatedAt": "2026-03-01T16:32:55.785Z",
   "ok": true,
   "policyPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 260,
   "violations": 0,
-  "roundTripMs": 49,
+  "roundTripMs": 53,
   "costEstimate": {
     "currency": "USD",
-    "geminiLiveUsd": 0.023755,
+    "geminiLiveUsd": 0.023756,
     "imagenUsd": 0.12,
     "veoUsd": 0.36,
     "ttsUsd": 0.024,
-    "totalUsd": 0.527755,
+    "totalUsd": 0.527756,
     "source": "runtime_estimate"
   },
   "tokensUsed": {
     "input": 2191,
-    "output": 16866,
-    "total": 19057,
+    "output": 16867,
+    "total": 19058,
     "source": "runtime_estimate"
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-03-01T16:20:29.0959249+00:00",
+    "sourceSummaryGeneratedAt": "2026-03-01T16:32:54.0993689+00:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -30,7 +30,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T16:20:27.932Z",
+      "latestSeenAt": "2026-03-01T16:32:52.897Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -44,7 +44,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T16:20:28.034Z",
+      "latestSeenAt": "2026-03-01T16:32:53.001Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -78,7 +78,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-03-01T16:20:27.594Z",
+        "seenAt": "2026-03-01T16:32:52.530Z",
         "seenAtIsIso": true
       }
     },
@@ -151,7 +151,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 260 checks | 49ms ws",
+    "message": "pass | 260 checks | 53ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }
