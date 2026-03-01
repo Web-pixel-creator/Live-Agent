@@ -32,6 +32,7 @@ npm run demo:e2e:badge
 npm run demo:e2e:visual-capture
 npm run demo:e2e:visual-pack
 npm run demo:e2e:visual:gallery
+npm run demo:e2e:visual:bundle
 ```
 
 Artifacts:
@@ -43,6 +44,7 @@ Artifacts:
 5. `artifacts/judge-visual-evidence/manifest.md`
 6. `artifacts/judge-visual-evidence/screenshots/_capture-manifest.json`
 7. `artifacts/judge-visual-evidence/gallery.md`
+8. `artifacts/judge-visual-evidence/presentation.md`
 
 ## 3) Validate Release Readiness
 

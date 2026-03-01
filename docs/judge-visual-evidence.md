@@ -34,6 +34,18 @@ Presentation shortcut (capture + strict pack + gallery):
 npm run demo:e2e:visual:present
 ```
 
+Build one-page judge presentation bundle:
+
+```bash
+npm run demo:e2e:visual:bundle
+```
+
+Full judge bundle shortcut:
+
+```bash
+npm run demo:e2e:visual:judge
+```
+
 Offline deterministic mode (no running frontend required):
 
 ```bash
@@ -73,6 +85,7 @@ Defaults used by `scripts/judge-visual-capture.mjs`:
 2. `artifacts/judge-visual-evidence/manifest.md`
 3. `artifacts/judge-visual-evidence/screenshots/_capture-manifest.json`
 4. `artifacts/judge-visual-evidence/gallery.md`
+5. `artifacts/judge-visual-evidence/presentation.md`
 
 ## Required Screenshot Filenames
 

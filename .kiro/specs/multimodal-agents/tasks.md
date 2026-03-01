@@ -222,6 +222,7 @@
 48. Demo frontend interactive Story Timeline panel (`Story Timeline` card + segment scrubber/selector + preview/list rendering from `output.story.timeline` + export snapshot/docs/alignment tests) [Completed]
 49. Judge visual auto-capture baseline (`scripts/judge-visual-capture.mjs` Playwright capture for required screenshot set + `demo:e2e:visual-capture`/`demo:e2e:visual:auto` scripts + docs/alignment tests) [Completed]
 50. Judge visual gallery baseline (`scripts/judge-visual-gallery.mjs` markdown gallery from capture/pack manifests + `demo:e2e:visual:gallery`/`demo:e2e:visual:present` scripts + docs/alignment tests) [Completed]
+51. Judge presentation bundle baseline (`scripts/judge-presentation-bundle.mjs` one-page summary from summary/policy/badge/release/visual artifacts + `demo:e2e:visual:bundle`/`demo:e2e:visual:judge` scripts + docs/alignment tests) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

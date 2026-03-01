@@ -104,6 +104,14 @@ Presentation shortcut (capture + strict pack + gallery):
 ```bash
 npm run demo:e2e:visual:present
 ```
+Build one-page judge presentation bundle from demo/policy/badge/visual artifacts:
+```bash
+npm run demo:e2e:visual:bundle
+```
+One-command judge bundle flow:
+```bash
+npm run demo:e2e:visual:judge
+```
 Offline deterministic capture (no running frontend):
 ```bash
 npm run demo:e2e:visual-capture -- --mockAll
@@ -113,6 +121,7 @@ Artifacts:
 - `artifacts/judge-visual-evidence/manifest.md`
 - `artifacts/judge-visual-evidence/screenshots/_capture-manifest.json`
 - `artifacts/judge-visual-evidence/gallery.md`
+- `artifacts/judge-visual-evidence/presentation.md`
 
 5. Optional runtime integrations:
 - Firestore adapter (orchestrator): set `FIRESTORE_ENABLED=true` and `GOOGLE_CLOUD_PROJECT`.
