@@ -346,7 +346,7 @@ Manual shortcut:
 3. Local artifact `artifacts/demo-e2e/policy-check.json`.
 4. Local artifact `artifacts/demo-e2e/policy-check.md`.
 5. Local artifact `artifacts/demo-e2e/badge.json`.
-6. Local artifact `artifacts/demo-e2e/badge-details.json` (must include `evidence.operatorTurnTruncation`, `evidence.operatorTurnDelete`, and `evidence.operatorDamageControl`).
+6. Local artifact `artifacts/demo-e2e/badge-details.json` (must include `evidence.operatorTurnTruncation`, `evidence.operatorTurnDelete`, `evidence.operatorDamageControl`, `evidence.governancePolicy`, and `evidence.skillsRegistry`).
 7. Observability screenshot: dashboard `MLA Telemetry KPI Overview` with latency and error widgets.
 8. Observability screenshot: alert policy `MLA Gateway P95 Latency High` enabled.
 9. Observability screenshot: alert policy `MLA Service Error Rate High` enabled.
@@ -361,7 +361,7 @@ Manual shortcut:
 18. WebSocket conversation-item truncate evidence: `gateway.websocket.item_truncate=passed` with `kpi.gatewayItemTruncateValidated=true`, `kpi.operatorTurnTruncationSummaryValidated=true`, session-local playback truncation event `live.turn.truncated`, and judge-facing Operator Console block `Turn Truncation Evidence` (`turnTruncation.total >= 1`).
 19. WebSocket conversation-item delete evidence: `gateway.websocket.item_delete=passed` with `kpi.gatewayItemDeleteValidated=true`, session-local cleanup event `live.turn.deleted`, and judge-facing Operator Console block `Turn Delete Evidence` (`turnDelete.total >= 1`).
 20. Governance policy lifecycle evidence: `governance.policy.lifecycle=passed` with `kpi.governancePolicyLifecycleValidated=true`, conflict guards (`API_GOVERNANCE_POLICY_VERSION_CONFLICT`, `API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT`), scope guard (`API_TENANT_SCOPE_FORBIDDEN`), and centralized summary proof (`kpi.governancePolicySummaryTemplateId=strict`, `kpi.governancePolicySummarySource=tenant_override`).
-21. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings + `gate.evidenceSnapshot.operatorDamageControlSummaryValidated` / `gate.evidenceSnapshot.badgeEvidenceOperatorDamageControlStatus`).
+21. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings + `gate.evidenceSnapshot.operatorDamageControlSummaryValidated` / `gate.evidenceSnapshot.badgeEvidenceOperatorDamageControlStatus` / `gate.evidenceSnapshot.badgeEvidenceGovernancePolicyStatus` / `gate.evidenceSnapshot.badgeEvidenceSkillsRegistryStatus`).
 
 ## Quick Observability Setup (for demo environment)
 
