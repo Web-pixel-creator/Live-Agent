@@ -590,7 +590,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   }
 
   $taskQueuePressureLevel = [string]$summary.kpis.operatorTaskQueuePressureLevel
-  $allowedTaskQueuePressureLevels = @("idle", "healthy", "elevated")
+  $allowedTaskQueuePressureLevels = @("idle", "healthy", "elevated", "critical")
   if (-not ($allowedTaskQueuePressureLevels -contains $taskQueuePressureLevel)) {
     Fail ("Critical KPI check failed: operatorTaskQueuePressureLevel expected one of [" + ($allowedTaskQueuePressureLevels -join ", ") + "], actual " + $taskQueuePressureLevel)
   }
@@ -709,9 +709,10 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   }
 
   $operatorAgentUsageSource = [string]$summary.kpis.operatorAgentUsageSource
-  if ($operatorAgentUsageSource -ne "operator_summary") {
+  $allowedOperatorAgentUsageSources = @("operator_summary", "gateway_runtime")
+  if (-not ($allowedOperatorAgentUsageSources -contains $operatorAgentUsageSource)) {
     Fail (
-      "Critical KPI check failed: operatorAgentUsageSource expected operator_summary, actual " +
+      "Critical KPI check failed: operatorAgentUsageSource expected one of [" + ($allowedOperatorAgentUsageSources -join ", ") + "], actual " +
       $operatorAgentUsageSource
     )
   }

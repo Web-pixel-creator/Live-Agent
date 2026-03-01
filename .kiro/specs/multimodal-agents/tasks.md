@@ -214,6 +214,7 @@
 40. Agent usage metadata propagation lane (`ReasoningTextResult` + per-model token accounting + `orchestrator.response.payload.output.usage` for Live/Story/UI agents, with unit and ws-protocol alignment) [Completed]
 41. Managed-skill signing developer baseline (`skill-plugin-sign` helper, calendar assistant managed-skill samples, canonical signing runbook + anti-drift tests) [Completed]
 42. Demo frontend session export controls (`Export Session Markdown/JSON`, evidence snapshot payload + operator docs + alignment tests) [Completed]
+43. Judge quickstart docs baseline (`docs/judge-quickstart.md` + README quick path + runbook alias + anti-drift test) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

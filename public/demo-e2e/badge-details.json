@@ -1,28 +1,28 @@
 {
-  "generatedAt": "2026-03-01T10:07:20.373Z",
+  "generatedAt": "2026-03-01T12:06:54.179Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
-  "checks": 242,
+  "checks": 260,
   "violations": 0,
-  "roundTripMs": 38,
+  "roundTripMs": 35,
   "costEstimate": {
     "currency": "USD",
-    "geminiLiveUsd": 0.022867,
+    "geminiLiveUsd": 0.023755,
     "imagenUsd": 0.12,
     "veoUsd": 0.36,
     "ttsUsd": 0.024,
-    "totalUsd": 0.526867,
+    "totalUsd": 0.527755,
     "source": "runtime_estimate"
   },
   "tokensUsed": {
     "input": 2191,
-    "output": 16208,
-    "total": 18399,
+    "output": 16866,
+    "total": 19057,
     "source": "runtime_estimate"
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-03-01T13:58:46.4002514+05:00",
+    "sourceSummaryGeneratedAt": "2026-03-01T17:06:53.2945962+05:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -30,7 +30,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T08:58:45.020Z",
+      "latestSeenAt": "2026-03-01T12:06:52.439Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -44,7 +44,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T08:58:45.111Z",
+      "latestSeenAt": "2026-03-01T12:06:52.568Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -78,7 +78,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-03-01T08:58:44.705Z",
+        "seenAt": "2026-03-01T12:06:52.173Z",
         "seenAtIsIso": true
       }
     },
@@ -132,23 +132,26 @@
     },
     "agentUsage": {
       "status": "fail",
-      "validated": false,
-      "total": 0,
-      "uniqueRuns": 0,
-      "uniqueSessions": 0,
+      "validated": true,
+      "total": 6,
+      "uniqueRuns": 5,
+      "uniqueSessions": 1,
       "totalCalls": 0,
       "inputTokens": 0,
       "outputTokens": 0,
       "totalTokens": 0,
-      "models": [],
-      "summarySource": "",
-      "summaryStatus": ""
+      "models": [
+        "fallback-dictionary",
+        "usage_metadata_unavailable"
+      ],
+      "summarySource": "gateway_runtime",
+      "summaryStatus": "observed"
     }
   },
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 242 checks | 38ms ws",
+    "message": "pass | 260 checks | 35ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }

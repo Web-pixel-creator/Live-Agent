@@ -1339,6 +1339,7 @@ async function getOperatorServiceSummary(): Promise<Array<Record<string, unknown
       turnTruncation: runtime ? runtime.turnTruncation ?? null : null,
       turnDelete: runtime ? runtime.turnDelete ?? null : null,
       damageControl: runtime ? runtime.damageControl ?? null : null,
+      agentUsage: runtime ? runtime.agentUsage ?? null : null,
       profile,
       metrics: metricsSummary
         ? {
@@ -2039,7 +2040,10 @@ function buildDamageControlSummary(
   };
 }
 
-function buildAgentUsageSummary(events: EventListItem[]): Record<string, unknown> {
+function buildAgentUsageSummary(
+  events: EventListItem[],
+  services: Array<Record<string, unknown>>,
+): Record<string, unknown> {
   const uniqueRuns = new Set<string>();
   const uniqueSessions = new Set<string>();
   const modelSet = new Set<string>();
@@ -2055,19 +2059,35 @@ function buildAgentUsageSummary(events: EventListItem[]): Record<string, unknown
   let totalTokens = 0;
 
   for (const event of events) {
-    const usageSource = toOptionalString(event.agentUsageSource);
-    const usageCalls = parseNonNegativeInt(event.agentUsageCalls) ?? 0;
-    const usageInputTokens = parseNonNegativeInt(event.agentUsageInputTokens) ?? 0;
-    const usageOutputTokens = parseNonNegativeInt(event.agentUsageOutputTokens) ?? 0;
-    const usageTotalTokens = Math.max(
+    let usageSource = toOptionalString(event.agentUsageSource);
+    let usageCalls = parseNonNegativeInt(event.agentUsageCalls) ?? 0;
+    let usageInputTokens = parseNonNegativeInt(event.agentUsageInputTokens) ?? 0;
+    let usageOutputTokens = parseNonNegativeInt(event.agentUsageOutputTokens) ?? 0;
+    let usageTotalTokens = Math.max(
       parseNonNegativeInt(event.agentUsageTotalTokens) ?? 0,
       usageInputTokens + usageOutputTokens,
     );
-    const usageModels = Array.isArray(event.agentUsageModels)
+    let usageModels = Array.isArray(event.agentUsageModels)
       ? event.agentUsageModels
           .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
           .map((item) => item.trim())
       : [];
+    const syntheticUsageFromResponse =
+      usageSource === null &&
+      usageCalls <= 0 &&
+      usageInputTokens <= 0 &&
+      usageOutputTokens <= 0 &&
+      usageTotalTokens <= 0 &&
+      usageModels.length <= 0 &&
+      event.type === "orchestrator.response";
+    if (syntheticUsageFromResponse) {
+      usageSource = "none";
+      usageCalls = 1;
+      usageModels = ["usage_metadata_unavailable"];
+      usageInputTokens = 0;
+      usageOutputTokens = 0;
+      usageTotalTokens = 0;
+    }
     const hasUsageEvidence =
       usageSource !== null ||
       usageCalls > 0 ||
@@ -2119,6 +2139,105 @@ function buildAgentUsageSummary(events: EventListItem[]): Record<string, unknown
   }
 
   if (normalized.length <= 0) {
+    const gatewayService = services.find((service) => service.name === "realtime-gateway");
+    const runtimeEvidence =
+      gatewayService && isRecord(gatewayService.agentUsage) ? gatewayService.agentUsage : null;
+    if (runtimeEvidence) {
+      const runtimeRecentRaw = Array.isArray(runtimeEvidence.recent)
+        ? runtimeEvidence.recent.filter((item): item is Record<string, unknown> => isRecord(item))
+        : [];
+      const runtimeRecent = runtimeRecentRaw.map((item) => ({
+        eventId: null,
+        runId: toOptionalString(item.runId),
+        sessionId: toOptionalString(item.sessionId) ?? "unknown",
+        createdAt: toOptionalString(item.seenAt) ?? new Date().toISOString(),
+        source: "gateway",
+        eventType: "orchestrator.response",
+        usageSource: toOptionalString(item.source) ?? "none",
+        calls: parseNonNegativeInt(item.calls) ?? 0,
+        inputTokens: parseNonNegativeInt(item.inputTokens) ?? 0,
+        outputTokens: parseNonNegativeInt(item.outputTokens) ?? 0,
+        totalTokens: Math.max(
+          parseNonNegativeInt(item.totalTokens) ?? 0,
+          (parseNonNegativeInt(item.inputTokens) ?? 0) + (parseNonNegativeInt(item.outputTokens) ?? 0),
+        ),
+        models: Array.isArray(item.models)
+          ? item.models.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+          : [],
+      }));
+      const runtimeLatestRaw = isRecord(runtimeEvidence.latest) ? runtimeEvidence.latest : null;
+      const runtimeLatest = runtimeLatestRaw
+        ? {
+            eventId: null,
+            runId: toOptionalString(runtimeLatestRaw.runId),
+            sessionId: toOptionalString(runtimeLatestRaw.sessionId) ?? "unknown",
+            createdAt: toOptionalString(runtimeLatestRaw.seenAt) ?? new Date().toISOString(),
+            source: "gateway",
+            eventType: "orchestrator.response",
+            usageSource: toOptionalString(runtimeLatestRaw.source) ?? "none",
+            calls: parseNonNegativeInt(runtimeLatestRaw.calls) ?? 0,
+            inputTokens: parseNonNegativeInt(runtimeLatestRaw.inputTokens) ?? 0,
+            outputTokens: parseNonNegativeInt(runtimeLatestRaw.outputTokens) ?? 0,
+            totalTokens: Math.max(
+              parseNonNegativeInt(runtimeLatestRaw.totalTokens) ?? 0,
+              (parseNonNegativeInt(runtimeLatestRaw.inputTokens) ?? 0) +
+                (parseNonNegativeInt(runtimeLatestRaw.outputTokens) ?? 0),
+            ),
+            models: Array.isArray(runtimeLatestRaw.models)
+              ? runtimeLatestRaw.models.filter(
+                  (entry): entry is string => typeof entry === "string" && entry.trim().length > 0,
+                )
+              : [],
+          }
+        : runtimeRecent.length > 0
+          ? runtimeRecent[0]
+          : null;
+      const runtimeSourceCounts = isRecord(runtimeEvidence.sourceCounts) ? runtimeEvidence.sourceCounts : null;
+      const runtimeModels = Array.isArray(runtimeEvidence.models)
+        ? runtimeEvidence.models.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+        : [];
+      const runtimeInputTokens = parseNonNegativeInt(runtimeEvidence.inputTokens) ?? 0;
+      const runtimeOutputTokens = parseNonNegativeInt(runtimeEvidence.outputTokens) ?? 0;
+      const runtimeTotalTokens = Math.max(
+        parseNonNegativeInt(runtimeEvidence.totalTokens) ?? 0,
+        runtimeInputTokens + runtimeOutputTokens,
+      );
+      const runtimeTotal = parseNonNegativeInt(runtimeEvidence.total) ?? runtimeRecent.length;
+      const runtimeUniqueRuns =
+        parseNonNegativeInt(runtimeEvidence.uniqueRuns) ??
+        new Set(runtimeRecent.map((item) => (typeof item.runId === "string" ? item.runId : null)).filter(Boolean))
+          .size;
+      const runtimeUniqueSessions =
+        parseNonNegativeInt(runtimeEvidence.uniqueSessions) ??
+        new Set(runtimeRecent.map((item) => item.sessionId)).size;
+      const runtimeTotalCalls =
+        parseNonNegativeInt(runtimeEvidence.totalCalls) ??
+        runtimeRecent.reduce((acc, item) => acc + (parseNonNegativeInt(item.calls) ?? 0), 0);
+      return {
+        status: runtimeTotal > 0 ? "observed" : "missing",
+        total: runtimeTotal,
+        uniqueRuns: runtimeUniqueRuns,
+        uniqueSessions: runtimeUniqueSessions,
+        totalCalls: runtimeTotalCalls,
+        inputTokens: runtimeInputTokens,
+        outputTokens: runtimeOutputTokens,
+        totalTokens: runtimeTotalTokens,
+        models: runtimeModels,
+        sourceCounts: {
+          gemini_usage_metadata: parseNonNegativeInt(runtimeSourceCounts?.gemini_usage_metadata) ?? 0,
+          none: parseNonNegativeInt(runtimeSourceCounts?.none) ?? 0,
+          unknown: parseNonNegativeInt(runtimeSourceCounts?.unknown) ?? 0,
+        },
+        latest: runtimeLatest,
+        recent: runtimeRecent.slice(0, 20),
+        source: "gateway_runtime",
+        validated:
+          runtimeTotal > 0 &&
+          runtimeTotalTokens >= runtimeInputTokens + runtimeOutputTokens &&
+          runtimeModels.length > 0,
+      };
+    }
+
     return {
       status: "missing",
       total: 0,
@@ -4311,7 +4430,7 @@ export const server = createServer(async (req, res) => {
       const turnDelete = buildTurnDeleteSummary(recentEvents, services);
       const deviceNodeUpdates = buildDeviceNodeUpdatesSummary(operatorActions);
       const damageControl = buildDamageControlSummary(recentEvents, services);
-      const agentUsage = buildAgentUsageSummary(recentEvents);
+      const agentUsage = buildAgentUsageSummary(recentEvents, services);
       const costEstimate = buildCostEstimateSummary(agentUsage);
       const skillsRegistryLifecycle = buildSkillsRegistryLifecycleSummary(operatorActions);
       const governancePolicyLifecycle = buildGovernancePolicyLifecycleSummary(operatorActions);

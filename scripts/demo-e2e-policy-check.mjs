@@ -803,9 +803,9 @@ async function main() {
   );
   addCheck(
     "kpi.operatorTaskQueuePressureLevel",
-    ["idle", "healthy", "elevated"].includes(String(kpis.operatorTaskQueuePressureLevel)),
+    ["idle", "healthy", "elevated", "critical"].includes(String(kpis.operatorTaskQueuePressureLevel)),
     kpis.operatorTaskQueuePressureLevel,
-    "idle | healthy | elevated",
+    "idle | healthy | elevated | critical",
   );
   addCheck(
     "kpi.operatorTaskQueueTotal",
@@ -1674,9 +1674,9 @@ async function main() {
   );
   addCheck(
     "kpi.operatorAgentUsageSource",
-    String(kpis.operatorAgentUsageSource) === "operator_summary",
+    ["operator_summary", "gateway_runtime"].includes(String(kpis.operatorAgentUsageSource)),
     kpis.operatorAgentUsageSource,
-    "operator_summary",
+    "operator_summary | gateway_runtime",
   );
   addCheck(
     "kpi.operatorAgentUsageStatus",

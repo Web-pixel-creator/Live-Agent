@@ -15,12 +15,16 @@ test("firestore event mapping exposes agent usage fields for operator summary", 
     "agentUsageTotalTokens?: number;",
     "agentUsageModels?: string[];",
     "const usage = output ? asRecord(output.usage) : null;",
-    "const agentUsageSource = toNonEmptyString(usage?.source) ?? undefined;",
+    "const fallbackUsageModels = [",
+    "const agentUsageSource = toNonEmptyString(usage?.source) ?? (output ? \"none\" : undefined);",
     "const agentUsageCalls = toNonNegativeInt(usage?.calls) ?? undefined;",
     "const agentUsageInputTokens = toNonNegativeInt(usage?.inputTokens) ?? undefined;",
     "const agentUsageOutputTokens = toNonNegativeInt(usage?.outputTokens) ?? undefined;",
     "const agentUsageTotalTokens = toNonNegativeInt(usage?.totalTokens) ?? undefined;",
-    "const agentUsageModels = Array.isArray(usage?.models)",
+    "const usageModels = Array.isArray(usage?.models)",
+    "const agentUsageModelSet = new Set<string>([",
+    "agentUsageModelSet.add(\"usage_metadata_unavailable\");",
+    "const agentUsageModels = Array.from(agentUsageModelSet);",
     "agentUsageSource,",
     "agentUsageCalls,",
     "agentUsageInputTokens,",
@@ -33,4 +37,3 @@ test("firestore event mapping exposes agent usage fields for operator summary", 
     assert.ok(source.includes(token), `firestore agent usage mapping missing token: ${token}`);
   }
 });
-

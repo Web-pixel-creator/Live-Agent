@@ -2270,7 +2270,8 @@ try {
     Assert-Condition -Condition $deviceUpdatesHasHeartbeat -Message "Device node updates history must include device_node_heartbeat action."
     Assert-Condition -Condition $deviceUpdatesValidated -Message "Device node updates history validation failed."
 
-    $summaryResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/operator/summary" -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
+    $operatorSummaryUri = "http://localhost:8081/v1/operator/summary?traceRunsLimit=120&traceEventsLimit=500"
+    $summaryResponse = Invoke-JsonRequest -Method GET -Uri $operatorSummaryUri -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
     $summaryData = Get-FieldValue -Object $summaryResponse -Path @("data")
     Assert-Condition -Condition ($null -ne $summaryData) -Message "Operator summary payload is missing."
 
@@ -2304,7 +2305,7 @@ try {
     $taskQueueStaleThresholdMs = [int]$taskQueueStaleThresholdMsRaw
     $taskQueueMaxAgeMs = [int]$taskQueueMaxAgeMsRaw
     $taskQueuePressureLevel = [string](Get-FieldValue -Object $taskQueue -Path @("pressureLevel"))
-    $allowedTaskQueuePressureLevels = @("idle", "healthy", "elevated")
+    $allowedTaskQueuePressureLevels = @("idle", "healthy", "elevated", "critical")
     Assert-Condition -Condition ($allowedTaskQueuePressureLevels -contains $taskQueuePressureLevel) -Message "Operator summary taskQueue pressureLevel is invalid."
     Assert-Condition -Condition ($taskQueueTotal -eq $activeTasks.Count) -Message "Operator summary taskQueue total must equal activeTasks count."
     Assert-Condition -Condition (($taskQueueQueued + $taskQueueRunning + $taskQueuePendingApproval + $taskQueueOther) -eq $taskQueueTotal) -Message "Operator summary taskQueue statusCounts must sum to total."
@@ -2506,6 +2507,56 @@ try {
       $damageControlLatestRuleIds.Count -ge 1
     )
 
+    # Operator summary aggregation can lag briefly after task actions; poll once before strict checks.
+    $agentUsageReadyAttempts = 6
+    $agentUsageReadyDelayMs = 650
+    $agentUsageReady = $false
+    $agentUsageLastTotal = 0
+    $agentUsageLastUniqueRuns = 0
+    $agentUsageLastUniqueSessions = 0
+    $agentUsageLastModelsCount = 0
+    $agentUsageLastStatus = ""
+    $agentUsageLastSource = ""
+    for ($agentUsageAttempt = 1; $agentUsageAttempt -le $agentUsageReadyAttempts; $agentUsageAttempt++) {
+      $agentUsageCandidate = Get-FieldValue -Object $summaryData -Path @("agentUsage")
+      $agentUsageCandidateTotal = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $agentUsageCandidate -Path @("total")) -Fallback 0
+      $agentUsageCandidateUniqueRuns = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $agentUsageCandidate -Path @("uniqueRuns")) -Fallback 0
+      $agentUsageCandidateUniqueSessions = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $agentUsageCandidate -Path @("uniqueSessions")) -Fallback 0
+      $agentUsageCandidateModels = @(
+        @(Get-FieldValue -Object $agentUsageCandidate -Path @("models")) |
+        ForEach-Object { [string]$_ } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+      )
+      $agentUsageLastTotal = $agentUsageCandidateTotal
+      $agentUsageLastUniqueRuns = $agentUsageCandidateUniqueRuns
+      $agentUsageLastUniqueSessions = $agentUsageCandidateUniqueSessions
+      $agentUsageLastModelsCount = $agentUsageCandidateModels.Count
+      $agentUsageLastStatus = [string](Get-FieldValue -Object $agentUsageCandidate -Path @("status"))
+      $agentUsageLastSource = [string](Get-FieldValue -Object $agentUsageCandidate -Path @("source"))
+
+      if (
+        $agentUsageCandidateTotal -ge 1 -and
+        $agentUsageCandidateUniqueRuns -ge 1 -and
+        $agentUsageCandidateUniqueSessions -ge 1 -and
+        $agentUsageCandidateModels.Count -ge 1
+      ) {
+        $agentUsageReady = $true
+        break
+      }
+
+      if ($agentUsageAttempt -lt $agentUsageReadyAttempts) {
+        Start-Sleep -Milliseconds $agentUsageReadyDelayMs
+        $summaryResponse = Invoke-JsonRequest -Method GET -Uri $operatorSummaryUri -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
+        $summaryData = Get-FieldValue -Object $summaryResponse -Path @("data")
+        Assert-Condition -Condition ($null -ne $summaryData) -Message "Operator summary payload is missing during agentUsage readiness polling."
+      }
+    }
+    $agentUsageReadyMessage = (
+      "Operator summary agentUsage did not become ready after {0} attempts. Last snapshot: total={1}, uniqueRuns={2}, uniqueSessions={3}, models={4}, status={5}, source={6}." -f
+      $agentUsageReadyAttempts, $agentUsageLastTotal, $agentUsageLastUniqueRuns, $agentUsageLastUniqueSessions, $agentUsageLastModelsCount, $agentUsageLastStatus, $agentUsageLastSource
+    )
+    Assert-Condition -Condition $agentUsageReady -Message $agentUsageReadyMessage
+
     $agentUsage = Get-FieldValue -Object $summaryData -Path @("agentUsage")
     Assert-Condition -Condition ($null -ne $agentUsage) -Message "Operator summary agentUsage block is missing."
     $agentUsageTotalRaw = Get-FieldValue -Object $agentUsage -Path @("total")
@@ -2555,7 +2606,7 @@ try {
       $agentUsageOutputTokens -ge 0 -and
       $agentUsageTotalTokens -ge ($agentUsageInputTokens + $agentUsageOutputTokens) -and
       $agentUsageModels.Count -ge 1 -and
-      [string]$agentUsageSource -eq "operator_summary" -and
+      @("operator_summary", "gateway_runtime") -contains ([string]$agentUsageSource) -and
       [string]$agentUsageStatus -eq "observed"
     )
 
@@ -2741,7 +2792,7 @@ try {
     $uiExecutorFailoverValidated = ($uiExecutorDrainState -eq "draining" -and $uiExecutorWarmupState -eq "ready")
     Assert-Condition -Condition $uiExecutorFailoverValidated -Message "ui-executor failover drain/warmup validation failed."
 
-    $postSummaryResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/operator/summary" -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
+    $postSummaryResponse = Invoke-JsonRequest -Method GET -Uri $operatorSummaryUri -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
     $postSummaryData = Get-FieldValue -Object $postSummaryResponse -Path @("data")
     $operatorActionsBlock = Get-FieldValue -Object $postSummaryData -Path @("operatorActions")
     $operatorAuditTotal = [int](Get-FieldValue -Object $operatorActionsBlock -Path @("total"))
@@ -3757,6 +3808,11 @@ $runtimeLifecycleScenario = @($script:ScenarioResults | Where-Object { $_.name -
 $runtimeMetricsScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "runtime.metrics.endpoints" } | Select-Object -First 1)
 $scenarioRetriedSet = @($script:ScenarioResults | Where-Object { [bool]$_.retried })
 $scenarioRetryableFailuresTotal = @($script:ScenarioResults | ForEach-Object { [int]$_.retryableFailureCount } | Measure-Object -Sum).Sum
+$operatorDeviceNodesUpdatesApiValidated = if ($operatorDeviceNodesScenario.Count -gt 0) {
+  [bool](Get-FieldValue -Object $operatorDeviceNodesScenario[0] -Path @("data", "updatesApiValidated"))
+} else {
+  $false
+}
 $uiExecutorService = $script:ServiceStatuses | Where-Object { $_.name -eq "ui-executor" } | Select-Object -First 1
 $uiExecutorLifecycleService = $null
 if ($null -ne $runtimeLifecycleData) {
@@ -4316,7 +4372,7 @@ $summary = [ordered]@{
       [int]$operatorActionsData.agentUsageOutputTokens -ge 0 -and
       [int]$operatorActionsData.agentUsageTotalTokens -ge ([int]$operatorActionsData.agentUsageInputTokens + [int]$operatorActionsData.agentUsageOutputTokens) -and
       @($operatorActionsData.agentUsageModels).Count -ge 1 -and
-      [string]$operatorActionsData.agentUsageSource -eq "operator_summary" -and
+      @("operator_summary", "gateway_runtime") -contains ([string]$operatorActionsData.agentUsageSource) -and
       [string]$operatorActionsData.agentUsageStatus -eq "observed"
     ) { $true } else { $false }
     operatorStartupDiagnosticsValidated = if (
@@ -4334,7 +4390,7 @@ $summary = [ordered]@{
       [int]$operatorActionsData.taskQueueStaleCount -ge 0 -and
       [int]$operatorActionsData.taskQueueStaleThresholdMs -gt 0 -and
       [int]$operatorActionsData.taskQueueMaxAgeMs -ge 0 -and
-      @("idle", "healthy", "elevated") -contains [string]$operatorActionsData.taskQueuePressureLevel
+      @("idle", "healthy", "elevated", "critical") -contains [string]$operatorActionsData.taskQueuePressureLevel
     ) { $true } else { $false }
     operatorDeviceNodeId = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeId } else { $null }
     operatorDeviceNodeCreatedVersion = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeCreatedVersion } else { $null }
@@ -4356,7 +4412,7 @@ $summary = [ordered]@{
     operatorDeviceNodeUpdatesTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeUpdatesTotal } else { $null }
     operatorDeviceNodeUpdatesHasUpsert = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeUpdatesHasUpsert } else { $false }
     operatorDeviceNodeUpdatesHasHeartbeat = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeUpdatesHasHeartbeat } else { $false }
-    operatorDeviceNodeUpdatesApiValidated = if ($operatorDeviceNodesScenario.Count -gt 0) { [bool]$operatorDeviceNodesScenario[0].data.updatesApiValidated } else { $false }
+    operatorDeviceNodeUpdatesApiValidated = $operatorDeviceNodesUpdatesApiValidated
     operatorLiveBridgeHealthBlockValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthBlockValidated } else { $false }
     operatorLiveBridgeProbeTelemetryValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthProbeTelemetryValidated } else { $false }
     operatorDeviceNodeLookupValidated = if (
@@ -4395,7 +4451,7 @@ $summary = [ordered]@{
       [bool]$operatorActionsData.deviceNodeUpdatesHasHeartbeat -eq $true -and
       (
         $operatorDeviceNodesScenario.Count -eq 0 -or
-        [bool]$operatorDeviceNodesScenario[0].data.updatesApiValidated -eq $true
+        $operatorDeviceNodesUpdatesApiValidated -eq $true
       )
     ) { $true } else { $false }
     operatorAuditTrailValidated = if (

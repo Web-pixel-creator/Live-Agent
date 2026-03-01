@@ -919,14 +919,15 @@ test(
 );
 
 test(
-  "release-readiness fails when operator task queue pressure is critical",
+  "release-readiness fails when operator task queue pressure level is invalid",
   { skip: skipIfNoPowerShell },
   () => {
-    const result = runReleaseReadiness(createPassingSummary({ pressureLevel: "critical" }));
+    const result = runReleaseReadiness(createPassingSummary({ pressureLevel: "panic" }));
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
-    assert.match(output, /operatorTaskQueuePressureLevel expected one of \[idle, healthy, elevated\]/i);
-    assert.match(output, /actual\s+crit\s*ical/i);
+    assert.match(output, /operatorTaskQueuePressureLevel expected one of \[idle, healthy, elevated, critical\]/i);
+    // PowerShell may wrap "actual" across lines ("a\r\nctual"), keep assertion robust.
+    assert.match(output, /a\s*ctual\s+panic/i);
   },
 );
 
@@ -1755,7 +1756,10 @@ test(
     const result = runReleaseReadiness(createPassingSummary({ operatorAgentUsageSource: "runtime" }));
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
-    assert.match(output, /operatorAgentUsageSource expected operator_summary, actual runtime/i);
+    assert.match(
+      output,
+      /operatorAgentUsageSource expected one of \[operator_summary,\s*gateway_runtime\],\s*actual\s*runtime/i,
+    );
   },
 );
 

@@ -15,6 +15,7 @@ Starter workspace for the "next-generation agents" spec:
 
 - Architecture: `docs/architecture.md`
 - Operator Guide: `docs/operator-guide.md`
+- Judge Quickstart: `docs/judge-quickstart.md`
 - Judge Runbook (alias): `docs/judge-runbook.md`
 - Canonical Challenge Runbook: `docs/challenge-demo-runbook.md`
 - Local Development: `docs/local-development.md`
@@ -27,6 +28,12 @@ Starter workspace for the "next-generation agents" spec:
 - Contribution Guide: `CONTRIBUTING.md`
 - Agent Guide: `AGENTS.md`
 - License: `LICENSE`
+
+## Judge Quick Path
+
+1. Read `docs/judge-quickstart.md` for a one-page evaluation flow.
+2. Run `npm run demo:e2e:fast && npm run demo:e2e:policy`.
+3. Open `artifacts/demo-e2e/badge-details.json` for judge-facing evidence lanes.
 
 ## Workspace Layout
 

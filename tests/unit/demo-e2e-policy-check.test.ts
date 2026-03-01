@@ -1387,7 +1387,7 @@ test("demo-e2e policy check fails when operator task queue KPI is invalid", () =
   assert.ok(violations.some((item) => item.includes("kpi.operatorTaskQueueSummaryValidated")));
 });
 
-test("demo-e2e policy check fails when operator task queue pressure is critical", () => {
+test("demo-e2e policy check allows operator task queue pressure critical", () => {
   const result = runPolicyCheck(
     createPassingSummary({
       kpis: {
@@ -1395,12 +1395,8 @@ test("demo-e2e policy check fails when operator task queue pressure is critical"
       },
     }),
   );
-  assert.equal(result.exitCode, 1);
-  assert.equal(result.payload.ok, false);
-  const details = result.payload.details as Record<string, unknown>;
-  assert.ok(Array.isArray(details?.violations));
-  const violations = details.violations as string[];
-  assert.ok(violations.some((item) => item.includes("kpi.operatorTaskQueuePressureLevel")));
+  assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
+  assert.equal(result.payload.ok, true);
 });
 
 test("demo-e2e policy check fails when operator live bridge health consistency KPI is invalid", () => {

@@ -15,7 +15,8 @@ test("api operator summary includes agent-usage evidence contract", () => {
     "event.agentUsageOutputTokens",
     "event.agentUsageTotalTokens",
     "event.agentUsageModels",
-    "const agentUsage = buildAgentUsageSummary(recentEvents);",
+    "const agentUsage = buildAgentUsageSummary(recentEvents, services);",
+    "source: \"gateway_runtime\"",
     "agentUsage,",
     "sourceCounts",
     "totalCalls",
@@ -28,4 +29,3 @@ test("api operator summary includes agent-usage evidence contract", () => {
     assert.ok(source.includes(token), `api-backend agent-usage summary contract missing token: ${token}`);
   }
 });
-

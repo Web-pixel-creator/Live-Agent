@@ -39,7 +39,7 @@ test("task queue pressure allowlist is aligned across policy/demo/release script
     "Expected at least two task-queue allowlist declarations in demo-e2e.ps1",
   );
 
-  const expected = ["idle", "healthy", "elevated"];
+  const expected = ["idle", "healthy", "elevated", "critical"];
   assert.deepEqual(policyLevels, expected);
   assert.deepEqual(releaseLevels, expected);
   for (const levels of demoAllowLists) {

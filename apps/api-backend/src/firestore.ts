@@ -1079,6 +1079,9 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
   const execution = output ? asRecord(output.execution) : null;
   const approval = output ? asRecord(output.approval) : null;
   const delegation = output ? asRecord(output.delegation) : null;
+  const translation = output ? asRecord(output.translation) : null;
+  const generation = output ? asRecord(output.generation) : null;
+  const planner = generation ? asRecord(generation.planner) : null;
   const visualTesting = output ? asRecord(output.visualTesting) : null;
   const damageControl = output ? asRecord(output.damageControl) : null;
   const usage = output ? asRecord(output.usage) : null;
@@ -1125,26 +1128,39 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
         .filter((item): item is string => item !== null),
     ),
   );
-  const agentUsageSource = toNonEmptyString(usage?.source) ?? undefined;
+  const fallbackUsageModels = [
+    toNonEmptyString(output?.model),
+    toNonEmptyString(translation?.model),
+    toNonEmptyString(planner?.model),
+    toNonEmptyString(execution?.model),
+  ].filter((entry): entry is string => entry !== null);
+  const fallbackUsageModelSet = new Set<string>(
+    fallbackUsageModels.map((entry) => entry.trim()).filter((entry) => entry.length > 0),
+  );
+  const agentUsageSource = toNonEmptyString(usage?.source) ?? (output ? "none" : undefined);
   const agentUsageCalls = toNonNegativeInt(usage?.calls) ?? undefined;
   const agentUsageInputTokens = toNonNegativeInt(usage?.inputTokens) ?? undefined;
   const agentUsageOutputTokens = toNonNegativeInt(usage?.outputTokens) ?? undefined;
   const agentUsageTotalTokens = toNonNegativeInt(usage?.totalTokens) ?? undefined;
-  const agentUsageModels = Array.isArray(usage?.models)
-    ? Array.from(
-        new Set(
-          usage.models
-            .map((entry) => {
-              if (typeof entry === "string") {
-                return toNonEmptyString(entry);
-              }
-              const record = asRecord(entry);
-              return toNonEmptyString(record?.model);
-            })
-            .filter((entry): entry is string => entry !== null),
-        ),
-      )
+  const usageModels = Array.isArray(usage?.models)
+    ? usage.models
+        .map((entry) => {
+          if (typeof entry === "string") {
+            return toNonEmptyString(entry);
+          }
+          const record = asRecord(entry);
+          return toNonEmptyString(record?.model);
+        })
+        .filter((entry): entry is string => entry !== null)
     : [];
+  const agentUsageModelSet = new Set<string>([
+    ...usageModels.map((entry) => entry.trim()).filter((entry) => entry.length > 0),
+    ...Array.from(fallbackUsageModelSet),
+  ]);
+  if (agentUsageModelSet.size <= 0 && output !== null) {
+    agentUsageModelSet.add("usage_metadata_unavailable");
+  }
+  const agentUsageModels = Array.from(agentUsageModelSet);
 
   let traceSteps: number | undefined;
   let screenshotRefs: number | undefined;

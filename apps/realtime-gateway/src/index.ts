@@ -157,6 +157,18 @@ type DamageControlSnapshot = {
   enabled: boolean | null;
 };
 
+type AgentUsageSnapshot = {
+  runId: string | null;
+  sessionId: string;
+  seenAt: string;
+  source: string;
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  models: string[];
+};
+
 function parsePositiveInt(raw: string | undefined, fallback: number): number {
   if (!raw) {
     return fallback;
@@ -558,6 +570,7 @@ const transportRuntimeState = resolveGatewayTransportRuntimeState(config);
 const turnTruncationRecentLimit = parsePositiveInt(process.env.GATEWAY_TURN_TRUNCATION_RECENT_LIMIT, 20);
 const turnDeleteRecentLimit = parsePositiveInt(process.env.GATEWAY_TURN_DELETE_RECENT_LIMIT, 20);
 const damageControlRecentLimit = parsePositiveInt(process.env.GATEWAY_DAMAGE_CONTROL_RECENT_LIMIT, 20);
+const agentUsageRecentLimit = parsePositiveInt(process.env.GATEWAY_AGENT_USAGE_RECENT_LIMIT, 20);
 const turnTruncationRuntime = {
   total: 0,
   uniqueRuns: new Set<string>(),
@@ -585,6 +598,19 @@ const damageControlRuntime = {
     block: 0,
   },
   sourceCounts: new Map<string, number>(),
+};
+const agentUsageRuntime = {
+  total: 0,
+  uniqueRuns: new Set<string>(),
+  uniqueSessions: new Set<string>(),
+  totalCalls: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  totalTokens: 0,
+  models: new Set<string>(),
+  sourceCounts: new Map<string, number>(),
+  latest: null as AgentUsageSnapshot | null,
+  recent: [] as AgentUsageSnapshot[],
 };
 
 function observeTurnTruncationEvidence(event: EventEnvelope): void {
@@ -703,6 +729,87 @@ function observeDamageControlEvidence(event: EventEnvelope): void {
   damageControlRuntime.sourceCounts.set(sourceKey, currentSourceCount + 1);
 }
 
+function observeAgentUsageEvidence(event: EventEnvelope): void {
+  if (event.type !== "orchestrator.response") {
+    return;
+  }
+  const payload = isObject(event.payload) ? event.payload : {};
+  const output = isObject(payload.output) ? payload.output : null;
+  if (!output) {
+    return;
+  }
+
+  const usage = isObject(output.usage) ? output.usage : null;
+  const source = toNonEmptyString(usage?.source) ?? "none";
+  const calls = toNonNegativeInt(usage?.calls) ?? 1;
+  const inputTokens = toNonNegativeInt(usage?.inputTokens) ?? 0;
+  const outputTokens = toNonNegativeInt(usage?.outputTokens) ?? 0;
+  const totalTokens = Math.max(toNonNegativeInt(usage?.totalTokens) ?? 0, inputTokens + outputTokens);
+  const usageModels = Array.isArray(usage?.models)
+    ? usage.models
+      .map((entry) => {
+        if (typeof entry === "string") {
+          return toNonEmptyString(entry);
+        }
+        if (isObject(entry)) {
+          return toNonEmptyString(entry.model);
+        }
+        return null;
+      })
+      .filter((entry): entry is string => entry !== null)
+    : [];
+  const translation = isObject(output.translation) ? output.translation : null;
+  const generation = isObject(output.generation) ? output.generation : null;
+  const planner = generation && isObject(generation.planner) ? generation.planner : null;
+  const fallbackModels = [
+    toNonEmptyString(output.model),
+    toNonEmptyString(translation?.model),
+    toNonEmptyString(planner?.model),
+  ].filter((entry): entry is string => entry !== null);
+  const modelSet = new Set<string>([
+    ...usageModels.map((entry) => entry.trim()).filter((entry) => entry.length > 0),
+    ...fallbackModels.map((entry) => entry.trim()).filter((entry) => entry.length > 0),
+  ]);
+  if (modelSet.size <= 0) {
+    modelSet.add("usage_metadata_unavailable");
+  }
+  const models = Array.from(modelSet).sort((left, right) => left.localeCompare(right));
+
+  const seenAt = new Date().toISOString();
+  const snapshot: AgentUsageSnapshot = {
+    runId: toNonEmptyString(event.runId),
+    sessionId: event.sessionId,
+    seenAt,
+    source,
+    calls,
+    inputTokens,
+    outputTokens,
+    totalTokens,
+    models,
+  };
+
+  agentUsageRuntime.total += 1;
+  if (snapshot.runId) {
+    agentUsageRuntime.uniqueRuns.add(snapshot.runId);
+  }
+  agentUsageRuntime.uniqueSessions.add(snapshot.sessionId);
+  agentUsageRuntime.totalCalls += calls;
+  agentUsageRuntime.inputTokens += inputTokens;
+  agentUsageRuntime.outputTokens += outputTokens;
+  agentUsageRuntime.totalTokens += totalTokens;
+  for (const model of models) {
+    agentUsageRuntime.models.add(model);
+  }
+  const sourceKey = source.trim().length > 0 ? source : "unknown";
+  const currentSourceCount = agentUsageRuntime.sourceCounts.get(sourceKey) ?? 0;
+  agentUsageRuntime.sourceCounts.set(sourceKey, currentSourceCount + 1);
+  agentUsageRuntime.latest = snapshot;
+  agentUsageRuntime.recent.unshift(snapshot);
+  if (agentUsageRuntime.recent.length > agentUsageRecentLimit) {
+    agentUsageRuntime.recent.length = agentUsageRecentLimit;
+  }
+}
+
 function runtimeState(): Record<string, unknown> {
   const summary = metrics.snapshot({ topOperations: 10 });
   return {
@@ -755,6 +862,32 @@ function runtimeState(): Record<string, unknown> {
           .reduce((acc, [, count]) => acc + count, 0),
       },
       validated: damageControlRuntime.total > 0,
+    },
+    agentUsage: {
+      total: agentUsageRuntime.total,
+      uniqueRuns: agentUsageRuntime.uniqueRuns.size,
+      uniqueSessions: agentUsageRuntime.uniqueSessions.size,
+      totalCalls: agentUsageRuntime.totalCalls,
+      inputTokens: agentUsageRuntime.inputTokens,
+      outputTokens: agentUsageRuntime.outputTokens,
+      totalTokens: Math.max(
+        agentUsageRuntime.totalTokens,
+        agentUsageRuntime.inputTokens + agentUsageRuntime.outputTokens,
+      ),
+      models: Array.from(agentUsageRuntime.models).sort((left, right) => left.localeCompare(right)),
+      sourceCounts: {
+        gemini_usage_metadata: agentUsageRuntime.sourceCounts.get("gemini_usage_metadata") ?? 0,
+        none: agentUsageRuntime.sourceCounts.get("none") ?? 0,
+        unknown: Array.from(agentUsageRuntime.sourceCounts.entries())
+          .filter(([key]) => key !== "gemini_usage_metadata" && key !== "none")
+          .reduce((acc, [, count]) => acc + count, 0),
+      },
+      latest: agentUsageRuntime.latest,
+      recent: agentUsageRuntime.recent.slice(0, agentUsageRecentLimit),
+      validated:
+        agentUsageRuntime.total > 0 &&
+        (agentUsageRuntime.totalTokens >= (agentUsageRuntime.inputTokens + agentUsageRuntime.outputTokens)) &&
+        agentUsageRuntime.models.size > 0,
     },
     metrics: {
       totalCount: summary.totalCount,
@@ -1370,6 +1503,7 @@ wss.on("connection", (ws) => {
     observeTurnTruncationEvidence(outboundEvent);
     observeTurnDeleteEvidence(outboundEvent);
     observeDamageControlEvidence(outboundEvent);
+    observeAgentUsageEvidence(outboundEvent);
     ws.send(JSON.stringify(outboundEvent));
     if (liveFunctionAutoInvokeEnabled && outboundEvent.type === "live.function_call") {
       messageLane = messageLane
