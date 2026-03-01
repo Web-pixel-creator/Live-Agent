@@ -108,12 +108,14 @@ if (-not $SkipDetails) {
     Fail "badge-details JSON field 'evidence' must be present."
   }
 
-  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl") -Payload $details.evidence -ScopeName "badge-details.evidence"
+  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl", "governancePolicy", "skillsRegistry") -Payload $details.evidence -ScopeName "badge-details.evidence"
 
   $truncationEvidence = $details.evidence.operatorTurnTruncation
   $deleteEvidence = $details.evidence.operatorTurnDelete
   $damageControlEvidence = $details.evidence.damageControl
   $operatorDamageControlEvidence = $details.evidence.operatorDamageControl
+  $governancePolicyEvidence = $details.evidence.governancePolicy
+  $skillsRegistryEvidence = $details.evidence.skillsRegistry
   if ($null -eq $truncationEvidence) {
     Fail "badge-details evidence is missing operatorTurnTruncation block."
   }
@@ -125,6 +127,12 @@ if (-not $SkipDetails) {
   }
   if ($null -eq $operatorDamageControlEvidence) {
     Fail "badge-details evidence is missing operatorDamageControl block."
+  }
+  if ($null -eq $governancePolicyEvidence) {
+    Fail "badge-details evidence is missing governancePolicy block."
+  }
+  if ($null -eq $skillsRegistryEvidence) {
+    Fail "badge-details evidence is missing skillsRegistry block."
   }
 
   $turnEvidenceRequired = @("status", "validated", "expectedEventSeen", "total", "uniqueRuns", "uniqueSessions", "latestSeenAt", "latestSeenAtIsIso")
@@ -162,6 +170,44 @@ if (-not $SkipDetails) {
   }
   Assert-RequiredFields -Required @("allow", "ask", "block", "total") -Payload $operatorDamageControlEvidence.verdictCounts -ScopeName "badge-details.evidence.operatorDamageControl.verdictCounts"
   Assert-RequiredFields -Required @("verdict", "source", "matchedRuleCount", "seenAt", "seenAtIsIso") -Payload $operatorDamageControlEvidence.latest -ScopeName "badge-details.evidence.operatorDamageControl.latest"
+
+  $governancePolicyEvidenceRequired = @(
+    "status",
+    "validated",
+    "operatorActionSeen",
+    "overrideTenantSeen",
+    "idempotencyReplayOutcome",
+    "versionConflictCode",
+    "idempotencyConflictCode",
+    "tenantScopeForbiddenCode",
+    "summaryTemplateId",
+    "summarySource",
+    "complianceTemplate",
+    "overridesTotal"
+  )
+  Assert-RequiredFields -Required $governancePolicyEvidenceRequired -Payload $governancePolicyEvidence -ScopeName "badge-details.evidence.governancePolicy"
+  $governancePolicyStatus = [string]$governancePolicyEvidence.status
+  if (-not ($allowedTurnEvidenceStatuses -contains $governancePolicyStatus)) {
+    Fail "badge-details evidence governancePolicy.status must be one of [pass, fail]."
+  }
+
+  $skillsRegistryEvidenceRequired = @(
+    "status",
+    "validated",
+    "indexHasSkill",
+    "registryHasSkill",
+    "createOutcome",
+    "replayOutcome",
+    "versionConflictCode",
+    "pluginInvalidPermissionCode",
+    "indexTotal",
+    "registryTotal"
+  )
+  Assert-RequiredFields -Required $skillsRegistryEvidenceRequired -Payload $skillsRegistryEvidence -ScopeName "badge-details.evidence.skillsRegistry"
+  $skillsRegistryStatus = [string]$skillsRegistryEvidence.status
+  if (-not ($allowedTurnEvidenceStatuses -contains $skillsRegistryStatus)) {
+    Fail "badge-details evidence skillsRegistry.status must be one of [pass, fail]."
+  }
 
   Assert-RequiredFields -Required @("schemaVersion", "label", "message", "color", "cacheSeconds") -Payload $details.badge -ScopeName "badge-details.badge"
 

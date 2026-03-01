@@ -448,6 +448,10 @@ npm run badge:public:check
 `badge-details.json` includes judge-facing operator evidence snapshots:
 - `evidence.operatorTurnTruncation`
 - `evidence.operatorTurnDelete`
+- `evidence.damageControl`
+- `evidence.operatorDamageControl`
+- `evidence.governancePolicy`
+- `evidence.skillsRegistry`
 
 ## Repository Publish Automation
 
