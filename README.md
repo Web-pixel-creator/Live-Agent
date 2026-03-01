@@ -455,6 +455,7 @@ npm run badge:public:check
 - `evidence.operatorDamageControl`
 - `evidence.governancePolicy`
 - `evidence.skillsRegistry`
+- `evidence.deviceNodes`
 
 ## Repository Publish Automation
 
@@ -694,7 +695,7 @@ Notes:
 - Manual dispatch supports optional deploy to Railway (`deploy_to_railway=true`) after strict gate passes using `npm run deploy:railway:all`.
 - For release-triggered deploy, configure repository secrets: `RAILWAY_API_TOKEN` (recommended), `RAILWAY_PROJECT_ID`, `RAILWAY_SERVICE_ID` (optional `RAILWAY_FRONTEND_SERVICE_ID`; legacy fallback `RAILWAY_TOKEN`; optional `RAILWAY_PROJECT_TOKEN`).
 - Same auth-resilience path is enabled for strict manual deploys: `verify_only_fallback_on_auth_failure=true` triggers verify-only public endpoint checks when Railway auth probe fails.
-- Job summary includes strict badge evidence statuses extracted from `artifacts/demo-e2e/badge-details.json`: `operatorDamageControl`, `governancePolicy`, and `skillsRegistry`.
+- Job summary includes strict badge evidence statuses extracted from `artifacts/demo-e2e/badge-details.json`: `operatorDamageControl`, `governancePolicy`, `skillsRegistry`, and `deviceNodes`.
 
 Local helper to dispatch the same strict workflow (and optionally wait for completion):
 

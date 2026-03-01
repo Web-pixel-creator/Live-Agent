@@ -61,10 +61,12 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /operator_damage_control_status=/);
   assert.match(source, /governance_policy_status=/);
   assert.match(source, /skills_registry_status=/);
+  assert.match(source, /device_nodes_status=/);
   assert.match(source, /Badge details present: \$\{\{\s*steps\.collect_badge_evidence\.outputs\.badge_details_present\s*\}\}/);
   assert.match(source, /Operator damage-control status \(badge evidence\): \$\{\{\s*steps\.collect_badge_evidence\.outputs\.operator_damage_control_status\s*\}\}/);
   assert.match(source, /Governance policy status \(badge evidence\): \$\{\{\s*steps\.collect_badge_evidence\.outputs\.governance_policy_status\s*\}\}/);
   assert.match(source, /Skills registry status \(badge evidence\): \$\{\{\s*steps\.collect_badge_evidence\.outputs\.skills_registry_status\s*\}\}/);
+  assert.match(source, /Device-nodes status \(badge evidence\): \$\{\{\s*steps\.collect_badge_evidence\.outputs\.device_nodes_status\s*\}\}/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
   assert.match(source, /-GatewayRootDescriptorCheckMaxAttempts/);
   assert.match(source, /-GatewayRootDescriptorCheckRetryBackoffSec/);
@@ -114,4 +116,5 @@ test("readme documents optional release-strict railway deploy path", () => {
   assert.match(readme, /operatorDamageControl/);
   assert.match(readme, /governancePolicy/);
   assert.match(readme, /skillsRegistry/);
+  assert.match(readme, /deviceNodes/);
 });

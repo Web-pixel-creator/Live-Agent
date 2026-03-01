@@ -27,12 +27,15 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /operatorDamageControl/);
   assert.match(scriptRaw, /governancePolicy/);
   assert.match(scriptRaw, /skillsRegistry/);
+  assert.match(scriptRaw, /deviceNodes/);
   assert.match(scriptRaw, /governancePolicyEvidenceRequired/);
   assert.match(scriptRaw, /skillsRegistryEvidenceRequired/);
+  assert.match(scriptRaw, /deviceNodesEvidenceRequired/);
   assert.match(scriptRaw, /must be 'pass' for deployment gate/);
   assert.match(scriptRaw, /operatorTurnTruncation must be validated and expectedEventSeen=true/);
   assert.match(scriptRaw, /governancePolicy must be validated with operatorActionSeen=true and overrideTenantSeen=true/);
   assert.match(scriptRaw, /skillsRegistry must be validated with indexHasSkill=true and registryHasSkill=true/);
+  assert.match(scriptRaw, /deviceNodes must be validated with lookup\/versionConflict\/healthSummary and summaryRecentContainsLookup=true/);
   assert.match(scriptRaw, /img\.shields\.io\/endpoint/);
 
   const readmePath = resolve(process.cwd(), "README.md");

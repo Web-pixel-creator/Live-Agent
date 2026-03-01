@@ -38,12 +38,14 @@ test("tracked public badge details embed badge payload", () => {
   const operatorDamageControl = evidence.operatorDamageControl as Record<string, unknown>;
   const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
   const skillsRegistry = evidence.skillsRegistry as Record<string, unknown>;
+  const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
   assert.ok(turnTruncation && typeof turnTruncation === "object");
   assert.ok(turnDelete && typeof turnDelete === "object");
   assert.ok(damageControl && typeof damageControl === "object");
   assert.ok(operatorDamageControl && typeof operatorDamageControl === "object");
   assert.ok(governancePolicy && typeof governancePolicy === "object");
   assert.ok(skillsRegistry && typeof skillsRegistry === "object");
+  assert.ok(deviceNodes && typeof deviceNodes === "object");
 
   assert.equal(details.ok, true);
   assert.equal(typeof details.generatedAt, "string");
@@ -105,6 +107,21 @@ test("tracked public badge details embed badge payload", () => {
   assert.equal(typeof skillsRegistry.pluginInvalidPermissionCode, "string");
   assert.equal(typeof skillsRegistry.indexTotal, "number");
   assert.equal(typeof skillsRegistry.registryTotal, "number");
+  assert.equal(typeof deviceNodes.status, "string");
+  assert.equal(typeof deviceNodes.validated, "boolean");
+  assert.equal(typeof deviceNodes.lookupValidated, "boolean");
+  assert.equal(typeof deviceNodes.versionConflictValidated, "boolean");
+  assert.equal(typeof deviceNodes.healthSummaryValidated, "boolean");
+  assert.equal(typeof deviceNodes.lookupStatus, "string");
+  assert.equal(typeof deviceNodes.lookupVersion, "number");
+  assert.equal(typeof deviceNodes.updatedVersion, "number");
+  assert.equal(typeof deviceNodes.versionConflictStatusCode, "number");
+  assert.equal(typeof deviceNodes.versionConflictCode, "string");
+  assert.equal(typeof deviceNodes.summaryTotal, "number");
+  assert.equal(typeof deviceNodes.summaryDegraded, "number");
+  assert.equal(typeof deviceNodes.summaryStale, "number");
+  assert.equal(typeof deviceNodes.summaryMissingHeartbeat, "number");
+  assert.equal(typeof deviceNodes.summaryRecentContainsLookup, "boolean");
   assert.equal(typeof details.policyPath, "string");
   assert.equal(typeof details.summaryPath, "string");
   assert.equal(badge.schemaVersion, 1);

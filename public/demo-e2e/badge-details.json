@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-01T03:51:08.806Z",
+  "generatedAt": "2026-03-01T04:27:04.587Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
@@ -92,6 +92,23 @@
       "pluginInvalidPermissionCode": "API_SKILL_PLUGIN_PERMISSION_INVALID",
       "indexTotal": 1,
       "registryTotal": 1
+    },
+    "deviceNodes": {
+      "status": "pass",
+      "validated": true,
+      "lookupValidated": true,
+      "versionConflictValidated": true,
+      "healthSummaryValidated": true,
+      "lookupStatus": "degraded",
+      "lookupVersion": 3,
+      "updatedVersion": 2,
+      "versionConflictStatusCode": 409,
+      "versionConflictCode": "API_DEVICE_NODE_VERSION_CONFLICT",
+      "summaryTotal": 1,
+      "summaryDegraded": 1,
+      "summaryStale": 0,
+      "summaryMissingHeartbeat": 0,
+      "summaryRecentContainsLookup": true
     }
   },
   "badge": {

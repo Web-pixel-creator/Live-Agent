@@ -196,6 +196,7 @@
 22. T-305 baseline (P2 ecosystem lane, managed skill plugin marketplace manifest + signing validation contracts) [Completed baseline]
 23. T-305.1 baseline (P2 ecosystem lane, demo/release evidence gates for skills registry lifecycle + plugin permission/version guard outcomes) [Completed baseline]
 24. Release strict summary evidence hardening (operatorDamageControl/governancePolicy/skillsRegistry badge statuses surfaced in strict CI job summary + anti-drift guard) [Completed]
+25. Device-nodes judge evidence hardening (public `badge-details` `deviceNodes` block + strict summary status + deployment guardrails + anti-drift tests) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

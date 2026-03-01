@@ -311,6 +311,58 @@ function buildSkillsRegistryEvidence(kpis) {
   };
 }
 
+function buildDeviceNodesEvidence(kpis) {
+  const lookupValidated = toBoolean(kpis.operatorDeviceNodeLookupValidated) === true;
+  const versionConflictValidated = toBoolean(kpis.operatorDeviceNodeVersionConflictValidated) === true;
+  const healthSummaryValidated = toBoolean(kpis.operatorDeviceNodeHealthSummaryValidated) === true;
+
+  const lookupStatus = toOptionalString(kpis.operatorDeviceNodeLookupStatus) ?? "";
+  const lookupVersion = toNumber(kpis.operatorDeviceNodeLookupVersion) ?? 0;
+  const updatedVersion = toNumber(kpis.operatorDeviceNodeUpdatedVersion) ?? 0;
+  const versionConflictStatusCode = toNumber(kpis.operatorDeviceNodeVersionConflictStatusCode) ?? 0;
+  const versionConflictCode = toOptionalString(kpis.operatorDeviceNodeVersionConflictCode) ?? "";
+  const summaryTotal = toNumber(kpis.operatorDeviceNodeSummaryTotal) ?? 0;
+  const summaryDegraded = toNumber(kpis.operatorDeviceNodeSummaryDegraded) ?? 0;
+  const summaryStale = toNumber(kpis.operatorDeviceNodeSummaryStale) ?? 0;
+  const summaryMissingHeartbeat = toNumber(kpis.operatorDeviceNodeSummaryMissingHeartbeat) ?? 0;
+  const summaryRecentContainsLookup = toBoolean(kpis.operatorDeviceNodeSummaryRecentContainsLookup) === true;
+
+  const validated = lookupValidated && versionConflictValidated && healthSummaryValidated;
+  const status =
+    validated &&
+    lookupStatus === "degraded" &&
+    lookupVersion >= 1 &&
+    updatedVersion >= 1 &&
+    lookupVersion >= updatedVersion &&
+    versionConflictStatusCode === 409 &&
+    versionConflictCode === "API_DEVICE_NODE_VERSION_CONFLICT" &&
+    summaryTotal >= 1 &&
+    summaryDegraded >= 1 &&
+    summaryStale >= 0 &&
+    summaryMissingHeartbeat >= 0 &&
+    summaryRecentContainsLookup
+      ? "pass"
+      : "fail";
+
+  return {
+    status,
+    validated,
+    lookupValidated,
+    versionConflictValidated,
+    healthSummaryValidated,
+    lookupStatus,
+    lookupVersion,
+    updatedVersion,
+    versionConflictStatusCode,
+    versionConflictCode,
+    summaryTotal,
+    summaryDegraded,
+    summaryStale,
+    summaryMissingHeartbeat,
+    summaryRecentContainsLookup,
+  };
+}
+
 function fail(message, details) {
   process.stderr.write(
     `${JSON.stringify({
@@ -375,6 +427,7 @@ async function main() {
   const operatorDamageControlEvidence = buildOperatorDamageControlEvidence(kpis);
   const governancePolicyEvidence = buildGovernancePolicyEvidence(kpis);
   const skillsRegistryEvidence = buildSkillsRegistryEvidence(kpis);
+  const deviceNodesEvidence = buildDeviceNodesEvidence(kpis);
 
   let color = "red";
   if (ok) {
@@ -412,6 +465,7 @@ async function main() {
       operatorDamageControl: operatorDamageControlEvidence,
       governancePolicy: governancePolicyEvidence,
       skillsRegistry: skillsRegistryEvidence,
+      deviceNodes: deviceNodesEvidence,
     },
     badge,
   };

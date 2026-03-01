@@ -116,6 +116,19 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         skillsRegistryPluginInvalidPermissionCode: "API_SKILL_PLUGIN_PERMISSION_INVALID",
         skillsRegistryIndexTotal: 1,
         skillsRegistryTotal: 1,
+        operatorDeviceNodeLookupValidated: true,
+        operatorDeviceNodeVersionConflictValidated: true,
+        operatorDeviceNodeHealthSummaryValidated: true,
+        operatorDeviceNodeLookupStatus: "degraded",
+        operatorDeviceNodeLookupVersion: 3,
+        operatorDeviceNodeUpdatedVersion: 2,
+        operatorDeviceNodeVersionConflictStatusCode: 409,
+        operatorDeviceNodeVersionConflictCode: "API_DEVICE_NODE_VERSION_CONFLICT",
+        operatorDeviceNodeSummaryTotal: 1,
+        operatorDeviceNodeSummaryDegraded: 1,
+        operatorDeviceNodeSummaryStale: 0,
+        operatorDeviceNodeSummaryMissingHeartbeat: 0,
+        operatorDeviceNodeSummaryRecentContainsLookup: true,
       },
     },
   });
@@ -130,12 +143,14 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   const operatorDamageControl = evidence.operatorDamageControl as Record<string, unknown>;
   const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
   const skillsRegistry = evidence.skillsRegistry as Record<string, unknown>;
+  const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
   assert.equal(turnTruncation.status, "pass");
   assert.equal(turnDelete.status, "pass");
   assert.equal(damageControl.status, "pass");
   assert.equal(operatorDamageControl.status, "pass");
   assert.equal(governancePolicy.status, "pass");
   assert.equal(skillsRegistry.status, "pass");
+  assert.equal(deviceNodes.status, "pass");
   assert.equal(turnTruncation.latestTurnId, "turn-truncate-demo");
   assert.equal(turnDelete.latestTurnId, "turn-delete-demo");
   assert.equal(turnDelete.latestScope, "session_local");
@@ -153,6 +168,14 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(skillsRegistry.replayOutcome, "idempotent_replay");
   assert.equal(skillsRegistry.indexTotal, 1);
   assert.equal(skillsRegistry.registryTotal, 1);
+  assert.equal(deviceNodes.lookupStatus, "degraded");
+  assert.equal(deviceNodes.lookupVersion, 3);
+  assert.equal(deviceNodes.updatedVersion, 2);
+  assert.equal(deviceNodes.versionConflictStatusCode, 409);
+  assert.equal(deviceNodes.versionConflictCode, "API_DEVICE_NODE_VERSION_CONFLICT");
+  assert.equal(deviceNodes.summaryTotal, 1);
+  assert.equal(deviceNodes.summaryDegraded, 1);
+  assert.equal(deviceNodes.summaryRecentContainsLookup, true);
 });
 
 test("demo-e2e badge details marks operator turn delete evidence as failed when checkpoint is missing", () => {
@@ -188,6 +211,7 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   const operatorDamageControl = evidence.operatorDamageControl as Record<string, unknown>;
   const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
   const skillsRegistry = evidence.skillsRegistry as Record<string, unknown>;
+  const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
   assert.equal(turnDelete.status, "fail");
   assert.equal(turnDelete.validated, false);
   assert.equal(turnDelete.total, 0);
@@ -205,4 +229,8 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   assert.equal(skillsRegistry.validated, false);
   assert.equal(skillsRegistry.indexTotal, 0);
   assert.equal(skillsRegistry.registryTotal, 0);
+  assert.equal(deviceNodes.status, "fail");
+  assert.equal(deviceNodes.validated, false);
+  assert.equal(deviceNodes.lookupStatus, "");
+  assert.equal(deviceNodes.summaryTotal, 0);
 });

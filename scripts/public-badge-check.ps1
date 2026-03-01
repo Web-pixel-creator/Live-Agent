@@ -109,7 +109,7 @@ if (-not $SkipDetails) {
     Fail "badge-details JSON field 'evidence' must be present."
   }
 
-  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl", "governancePolicy", "skillsRegistry") -Payload $details.evidence -ScopeName "badge-details.evidence"
+  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl", "governancePolicy", "skillsRegistry", "deviceNodes") -Payload $details.evidence -ScopeName "badge-details.evidence"
 
   $truncationEvidence = $details.evidence.operatorTurnTruncation
   $deleteEvidence = $details.evidence.operatorTurnDelete
@@ -117,6 +117,7 @@ if (-not $SkipDetails) {
   $operatorDamageControlEvidence = $details.evidence.operatorDamageControl
   $governancePolicyEvidence = $details.evidence.governancePolicy
   $skillsRegistryEvidence = $details.evidence.skillsRegistry
+  $deviceNodesEvidence = $details.evidence.deviceNodes
   if ($null -eq $truncationEvidence) {
     Fail "badge-details evidence is missing operatorTurnTruncation block."
   }
@@ -134,6 +135,9 @@ if (-not $SkipDetails) {
   }
   if ($null -eq $skillsRegistryEvidence) {
     Fail "badge-details evidence is missing skillsRegistry block."
+  }
+  if ($null -eq $deviceNodesEvidence) {
+    Fail "badge-details evidence is missing deviceNodes block."
   }
 
   $turnEvidenceRequired = @("status", "validated", "expectedEventSeen", "total", "uniqueRuns", "uniqueSessions", "latestSeenAt", "latestSeenAtIsIso")
@@ -210,6 +214,29 @@ if (-not $SkipDetails) {
     Fail "badge-details evidence skillsRegistry.status must be one of [pass, fail]."
   }
 
+  $deviceNodesEvidenceRequired = @(
+    "status",
+    "validated",
+    "lookupValidated",
+    "versionConflictValidated",
+    "healthSummaryValidated",
+    "lookupStatus",
+    "lookupVersion",
+    "updatedVersion",
+    "versionConflictStatusCode",
+    "versionConflictCode",
+    "summaryTotal",
+    "summaryDegraded",
+    "summaryStale",
+    "summaryMissingHeartbeat",
+    "summaryRecentContainsLookup"
+  )
+  Assert-RequiredFields -Required $deviceNodesEvidenceRequired -Payload $deviceNodesEvidence -ScopeName "badge-details.evidence.deviceNodes"
+  $deviceNodesStatus = [string]$deviceNodesEvidence.status
+  if (-not ($allowedTurnEvidenceStatuses -contains $deviceNodesStatus)) {
+    Fail "badge-details evidence deviceNodes.status must be one of [pass, fail]."
+  }
+
   Assert-RequiredFields -Required @("schemaVersion", "label", "message", "color", "cacheSeconds") -Payload $details.badge -ScopeName "badge-details.badge"
 
   if ($details.badge.schemaVersion -ne $ExpectedSchemaVersion) {
@@ -223,7 +250,8 @@ if (-not $SkipDetails) {
       @{ Name = "damageControl"; Status = $damageControlStatus },
       @{ Name = "operatorDamageControl"; Status = $operatorDamageControlStatus },
       @{ Name = "governancePolicy"; Status = $governancePolicyStatus },
-      @{ Name = "skillsRegistry"; Status = $skillsRegistryStatus }
+      @{ Name = "skillsRegistry"; Status = $skillsRegistryStatus },
+      @{ Name = "deviceNodes"; Status = $deviceNodesStatus }
     )
     foreach ($statusCheck in $statusChecks) {
       if ([string]$statusCheck.Status -ne "pass") {
@@ -256,6 +284,15 @@ if (-not $SkipDetails) {
       -not [bool]$skillsRegistryEvidence.registryHasSkill
     ) {
       Fail "badge-details evidence skillsRegistry must be validated with indexHasSkill=true and registryHasSkill=true."
+    }
+    if (
+      -not [bool]$deviceNodesEvidence.validated -or
+      -not [bool]$deviceNodesEvidence.lookupValidated -or
+      -not [bool]$deviceNodesEvidence.versionConflictValidated -or
+      -not [bool]$deviceNodesEvidence.healthSummaryValidated -or
+      -not [bool]$deviceNodesEvidence.summaryRecentContainsLookup
+    ) {
+      Fail "badge-details evidence deviceNodes must be validated with lookup/versionConflict/healthSummary and summaryRecentContainsLookup=true."
     }
   }
 }

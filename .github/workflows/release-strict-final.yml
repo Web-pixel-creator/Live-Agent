@@ -250,6 +250,7 @@ jobs:
           $operatorDamageControlStatus = "unavailable"
           $governancePolicyStatus = "unavailable"
           $skillsRegistryStatus = "unavailable"
+          $deviceNodesStatus = "unavailable"
           $badgeDetailsPresent = "false"
 
           if (Test-Path "artifacts/demo-e2e/badge-details.json") {
@@ -275,6 +276,12 @@ jobs:
                     $skillsRegistryStatus = $candidate
                   }
                 }
+                if ($null -ne $badgeDetails.evidence.deviceNodes) {
+                  $candidate = [string]$badgeDetails.evidence.deviceNodes.status
+                  if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+                    $deviceNodesStatus = $candidate
+                  }
+                }
               }
             } catch {
               Write-Host ("Failed to parse badge details for strict summary evidence: " + $_.Exception.Message)
@@ -285,6 +292,7 @@ jobs:
           ("operator_damage_control_status=" + $operatorDamageControlStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("governance_policy_status=" + $governancePolicyStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("skills_registry_status=" + $skillsRegistryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("device_nodes_status=" + $deviceNodesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Publish Release Report To Job Summary
         if: always()
@@ -317,6 +325,7 @@ jobs:
           ("Operator damage-control status (badge evidence): ${{ steps.collect_badge_evidence.outputs.operator_damage_control_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Governance policy status (badge evidence): ${{ steps.collect_badge_evidence.outputs.governance_policy_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Skills registry status (badge evidence): ${{ steps.collect_badge_evidence.outputs.skills_registry_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Device-nodes status (badge evidence): ${{ steps.collect_badge_evidence.outputs.device_nodes_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
       - name: Upload Release Strict Artifacts
         if: always()
