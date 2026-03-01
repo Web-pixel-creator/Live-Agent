@@ -340,6 +340,24 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       )
     }
 
+    $manifestGovernancePolicyStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceGovernancePolicyStatus
+    $manifestGovernancePolicyStatus = $manifestGovernancePolicyStatusRaw.ToLowerInvariant()
+    if ($manifestGovernancePolicyStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceGovernancePolicyStatus expected pass, actual " +
+        $manifestGovernancePolicyStatusRaw
+      )
+    }
+
+    $manifestSkillsRegistryStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceSkillsRegistryStatus
+    $manifestSkillsRegistryStatus = $manifestSkillsRegistryStatusRaw.ToLowerInvariant()
+    if ($manifestSkillsRegistryStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceSkillsRegistryStatus expected pass, actual " +
+        $manifestSkillsRegistryStatusRaw
+      )
+    }
+
     $manifestDamageControlLatestVerdictRaw = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestVerdict
     $manifestDamageControlLatestVerdict = $manifestDamageControlLatestVerdictRaw.ToLowerInvariant()
     $allowedOperatorDamageControlLatestVerdicts = @("allow", "ask", "block")
@@ -1629,6 +1647,8 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     $manifestDamageControlValidated = [string]$manifestEvidenceSnapshot.operatorDamageControlSummaryValidated
     $manifestDamageControlTotal = [string]$manifestEvidenceSnapshot.operatorDamageControlTotal
     $manifestDamageControlStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceOperatorDamageControlStatus
+    $manifestGovernancePolicyStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceGovernancePolicyStatus
+    $manifestSkillsRegistryStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceSkillsRegistryStatus
     $manifestDamageControlLatestVerdict = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestVerdict
     $manifestDamageControlLatestSource = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestSource
     Write-Host (
@@ -1637,6 +1657,8 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       ", operator_damage_control_validated=" + $manifestDamageControlValidated +
       ", operator_damage_control_total=" + $manifestDamageControlTotal +
       ", operator_damage_control_status=" + $manifestDamageControlStatus +
+      ", governance_policy_status=" + $manifestGovernancePolicyStatus +
+      ", skills_registry_status=" + $manifestSkillsRegistryStatus +
       ", operator_damage_control_latest_verdict=" + $manifestDamageControlLatestVerdict +
       ", operator_damage_control_latest_source=" + $manifestDamageControlLatestSource
     )

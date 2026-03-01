@@ -560,8 +560,16 @@ if ($null -ne $demoSummary -and $null -ne $demoSummary.kpis) {
 }
 
 $badgeEvidenceOperatorDamageControlStatus = $null
+$badgeEvidenceGovernancePolicyStatus = $null
+$badgeEvidenceSkillsRegistryStatus = $null
 if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorDamageControl) {
   $badgeEvidenceOperatorDamageControlStatus = $badgeDetails.evidence.operatorDamageControl.status
+}
+if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.governancePolicy) {
+  $badgeEvidenceGovernancePolicyStatus = $badgeDetails.evidence.governancePolicy.status
+}
+if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.skillsRegistry) {
+  $badgeEvidenceSkillsRegistryStatus = $badgeDetails.evidence.skillsRegistry.status
 }
 
 $gateEvidenceSnapshot = [ordered]@{
@@ -575,6 +583,8 @@ $gateEvidenceSnapshot = [ordered]@{
   operatorDamageControlLatestSource           = $operatorDamageControlLatestSource
   operatorDamageControlLatestSeenAt           = $operatorDamageControlLatestSeenAt
   badgeEvidenceOperatorDamageControlStatus    = $badgeEvidenceOperatorDamageControlStatus
+  badgeEvidenceGovernancePolicyStatus         = $badgeEvidenceGovernancePolicyStatus
+  badgeEvidenceSkillsRegistryStatus           = $badgeEvidenceSkillsRegistryStatus
 }
 
 $sourceRunManifest = [ordered]@{
@@ -638,6 +648,8 @@ Write-Host ("- requested perf gate mode: " + $gateRequestedPerfMode)
 Write-Host ("- effective perf gate mode: " + $gateEffectivePerfMode)
 Write-Host ("- perf artifacts detected: " + $gateHasPerfArtifacts)
 Write-Host ("- evidence snapshot (operator damage-control status): " + $badgeEvidenceOperatorDamageControlStatus)
+Write-Host ("- evidence snapshot (governance policy status): " + $badgeEvidenceGovernancePolicyStatus)
+Write-Host ("- evidence snapshot (skills registry status): " + $badgeEvidenceSkillsRegistryStatus)
 Write-Host ("- source run manifest: " + $sourceRunManifestPath)
 
 if (-not $KeepTemp) {

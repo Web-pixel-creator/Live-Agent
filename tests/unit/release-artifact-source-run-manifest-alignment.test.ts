@@ -24,6 +24,8 @@ const REQUIRED_EVIDENCE_SNAPSHOT_KEYS = [
   "operatorDamageControlLatestSource",
   "operatorDamageControlLatestSeenAt",
   "badgeEvidenceOperatorDamageControlStatus",
+  "badgeEvidenceGovernancePolicyStatus",
+  "badgeEvidenceSkillsRegistryStatus",
 ];
 
 test("source-run manifest schema stays aligned between local helper and workflow", () => {

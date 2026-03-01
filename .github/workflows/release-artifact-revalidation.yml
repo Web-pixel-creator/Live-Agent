@@ -541,8 +541,16 @@ jobs:
           }
 
           $badgeEvidenceOperatorDamageControlStatus = $null
+          $badgeEvidenceGovernancePolicyStatus = $null
+          $badgeEvidenceSkillsRegistryStatus = $null
           if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorDamageControl) {
             $badgeEvidenceOperatorDamageControlStatus = $badgeDetails.evidence.operatorDamageControl.status
+          }
+          if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.governancePolicy) {
+            $badgeEvidenceGovernancePolicyStatus = $badgeDetails.evidence.governancePolicy.status
+          }
+          if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.skillsRegistry) {
+            $badgeEvidenceSkillsRegistryStatus = $badgeDetails.evidence.skillsRegistry.status
           }
 
           $gateEvidenceSnapshot = [ordered]@{
@@ -556,6 +564,8 @@ jobs:
             operatorDamageControlLatestSource = $operatorDamageControlLatestSource
             operatorDamageControlLatestSeenAt = $operatorDamageControlLatestSeenAt
             badgeEvidenceOperatorDamageControlStatus = $badgeEvidenceOperatorDamageControlStatus
+            badgeEvidenceGovernancePolicyStatus = $badgeEvidenceGovernancePolicyStatus
+            badgeEvidenceSkillsRegistryStatus = $badgeEvidenceSkillsRegistryStatus
           }
 
           $manifest = [ordered]@{
@@ -605,6 +615,8 @@ jobs:
           $normalizedManifestPath = $manifestPath.Replace('\', '/')
           ("manifest_path=" + $normalizedManifestPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("operator_damage_control_status=" + [string]$badgeEvidenceOperatorDamageControlStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("governance_policy_status=" + [string]$badgeEvidenceGovernancePolicyStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("skills_registry_status=" + [string]$badgeEvidenceSkillsRegistryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Host ("Source run manifest written: " + $manifestPath)
 
       - name: Run Artifact-Only Release Revalidation (With Perf Artifacts, Standard)
@@ -654,6 +666,8 @@ jobs:
           ("Perf artifacts detected: ${{ steps.inspect_artifacts.outputs.has_perf_artifacts }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Effective perf mode: ${{ steps.inspect_artifacts.outputs.effective_perf_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Operator damage-control status (badge evidence): ${{ steps.write_manifest.outputs.operator_damage_control_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Governance policy status (badge evidence): ${{ steps.write_manifest.outputs.governance_policy_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Skills registry status (badge evidence): ${{ steps.write_manifest.outputs.skills_registry_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Source run manifest: ${{ steps.write_manifest.outputs.manifest_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           if (Test-Path "artifacts/demo-e2e/summary.md") {
             "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

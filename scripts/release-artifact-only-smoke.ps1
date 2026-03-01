@@ -169,6 +169,8 @@ $sourceRunManifest = [ordered]@{
       operatorDamageControlLatestSource = "default"
       operatorDamageControlLatestSeenAt = [datetime]::UtcNow.ToString("o")
       badgeEvidenceOperatorDamageControlStatus = "pass"
+      badgeEvidenceGovernancePolicyStatus = "pass"
+      badgeEvidenceSkillsRegistryStatus = "pass"
     }
   }
   retry = [ordered]@{

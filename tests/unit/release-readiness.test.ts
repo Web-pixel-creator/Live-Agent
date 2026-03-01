@@ -651,6 +651,8 @@ function createPassingSourceRunManifest(
     evidenceOperatorDamageControlValidated: boolean | string;
     evidenceOperatorDamageControlTotal: number | string;
     evidenceOperatorDamageControlStatus: string;
+    evidenceGovernancePolicyStatus: string;
+    evidenceSkillsRegistryStatus: string;
     evidenceOperatorDamageControlLatestVerdict: string;
     evidenceOperatorDamageControlLatestSource: string;
   }> = {},
@@ -703,6 +705,12 @@ function createPassingSourceRunManifest(
           : 1,
         badgeEvidenceOperatorDamageControlStatus: hasOverride("evidenceOperatorDamageControlStatus")
           ? overrides.evidenceOperatorDamageControlStatus
+          : "pass",
+        badgeEvidenceGovernancePolicyStatus: hasOverride("evidenceGovernancePolicyStatus")
+          ? overrides.evidenceGovernancePolicyStatus
+          : "pass",
+        badgeEvidenceSkillsRegistryStatus: hasOverride("evidenceSkillsRegistryStatus")
+          ? overrides.evidenceSkillsRegistryStatus
           : "pass",
         operatorDamageControlLatestVerdict: hasOverride("evidenceOperatorDamageControlLatestVerdict")
           ? overrides.evidenceOperatorDamageControlLatestVerdict
@@ -1940,6 +1948,8 @@ test(
     assert.match(output, /artifact\.source_run_manifest\.evidence:/i);
     assert.match(output, /operator_damage_control_validated=true/i);
     assert.match(output, /operator_damage_control_status=pass/i);
+    assert.match(output, /governance_policy_status=pass/i);
+    assert.match(output, /skills_registry_status=pass/i);
   },
 );
 
@@ -2050,6 +2060,38 @@ test(
     assert.match(
       output,
       /source run manifest evidenceSnapshot\.badgeEvidenceOperatorDamageControlStatus expected pass, actual warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence governance policy status is not pass",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceGovernancePolicyStatus: "warn" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceGovernancePolicyStatus expected pass, actual warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence skills registry status is not pass",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceSkillsRegistryStatus: "warn" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceSkillsRegistryStatus expected pass, actual warn/i,
     );
   },
 );

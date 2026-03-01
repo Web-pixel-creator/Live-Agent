@@ -45,11 +45,15 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /evidenceSnapshot/);
   assert.match(source, /operatorDamageControlSummaryValidated/);
   assert.match(source, /badgeEvidenceOperatorDamageControlStatus/);
+  assert.match(source, /badgeEvidenceGovernancePolicyStatus/);
+  assert.match(source, /badgeEvidenceSkillsRegistryStatus/);
   assert.match(source, /retryableStatusCodes/);
   assert.match(source, /Source run manifest written/);
   assert.match(source, /source run manifest:/);
   assert.match(source, /requested perf gate mode/);
   assert.match(source, /effective perf gate mode/);
+  assert.match(source, /governance policy status/);
+  assert.match(source, /skills registry status/);
 });
 
 test("local release artifact revalidation docs stay aligned with helper controls", () => {
