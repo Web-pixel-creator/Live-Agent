@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-03-01T17:12:14.360Z",
+  "generatedAt": "2026-03-01T17:15:53.441Z",
   "ok": true,
   "policyPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 260,
   "violations": 0,
-  "roundTripMs": 50,
+  "roundTripMs": 51,
   "costEstimate": {
     "currency": "USD",
     "geminiLiveUsd": 0.023755,
@@ -22,7 +22,7 @@
     "source": "runtime_estimate"
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-03-01T17:12:12.6948989+00:00",
+    "sourceSummaryGeneratedAt": "2026-03-01T17:15:51.7796948+00:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -30,7 +30,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T17:12:11.526Z",
+      "latestSeenAt": "2026-03-01T17:15:50.644Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -44,7 +44,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T17:12:11.628Z",
+      "latestSeenAt": "2026-03-01T17:15:50.745Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -78,7 +78,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-03-01T17:12:11.159Z",
+        "seenAt": "2026-03-01T17:15:50.296Z",
         "seenAtIsIso": true
       }
     },
@@ -151,7 +151,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 260 checks | 50ms ws",
+    "message": "pass | 260 checks | 51ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }
