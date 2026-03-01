@@ -23,13 +23,25 @@ export interface CapabilityAdapter<TKind extends CapabilityKind = CapabilityKind
 
 export interface LiveCapabilityAdapter extends CapabilityAdapter<"live"> {}
 
+export type ReasoningTextUsage = {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  raw?: Record<string, unknown>;
+};
+
+export type ReasoningTextResult = {
+  text: string;
+  usage?: ReasoningTextUsage;
+};
+
 export interface ReasoningCapabilityAdapter extends CapabilityAdapter<"reasoning"> {
   generateText(params: {
     model?: string;
     prompt: string;
     responseMimeType?: "application/json" | "text/plain";
     temperature?: number;
-  }): Promise<string | null>;
+  }): Promise<ReasoningTextResult | null>;
 }
 
 export interface TtsCapabilityAdapter extends CapabilityAdapter<"tts"> {}

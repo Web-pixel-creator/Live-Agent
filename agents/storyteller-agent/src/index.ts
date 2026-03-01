@@ -7,6 +7,8 @@ import {
   type CapabilityProfile,
   type ImageCapabilityAdapter,
   type ReasoningCapabilityAdapter,
+  type ReasoningTextResult,
+  type ReasoningTextUsage,
   type TtsCapabilityAdapter,
   type VideoCapabilityAdapter,
 } from "@mla/capabilities";
@@ -127,6 +129,22 @@ type StorytellerCapabilitySet = {
   profile: CapabilityProfile;
 };
 
+type AgentUsageModelTotals = {
+  model: string;
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+};
+
+type AgentUsageTotals = {
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  byModel: Map<string, AgentUsageModelTotals>;
+};
+
 const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
 const FALLBACK_PACK_PATH = join(CURRENT_DIR, "..", "fallback", "story-fallback-pack.json");
 let cachedFallbackPack: FallbackPack | null = null;
@@ -237,6 +255,65 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
     return fallback;
   }
   return Math.floor(parsed);
+}
+
+function toNonNegativeInt(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  const normalized = Math.trunc(parsed);
+  return normalized >= 0 ? normalized : null;
+}
+
+function createAgentUsageTotals(): AgentUsageTotals {
+  return {
+    calls: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    byModel: new Map<string, AgentUsageModelTotals>(),
+  };
+}
+
+function recordAgentUsage(totals: AgentUsageTotals, model: string, usage: ReasoningTextUsage | undefined): void {
+  if (!usage) {
+    return;
+  }
+
+  const inputTokens = toNonNegativeInt(usage.inputTokens) ?? 0;
+  const outputTokens = toNonNegativeInt(usage.outputTokens) ?? 0;
+  const totalTokens = Math.max(toNonNegativeInt(usage.totalTokens) ?? 0, inputTokens + outputTokens);
+
+  totals.calls += 1;
+  totals.inputTokens += inputTokens;
+  totals.outputTokens += outputTokens;
+  totals.totalTokens += totalTokens;
+
+  const current = totals.byModel.get(model) ?? {
+    model,
+    calls: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+  };
+  current.calls += 1;
+  current.inputTokens += inputTokens;
+  current.outputTokens += outputTokens;
+  current.totalTokens += totalTokens;
+  totals.byModel.set(model, current);
+}
+
+function buildAgentUsagePayload(totals: AgentUsageTotals): Record<string, unknown> {
+  const models = Array.from(totals.byModel.values()).sort((left, right) => left.model.localeCompare(right.model));
+  return {
+    source: totals.calls > 0 ? "gemini_usage_metadata" : "none",
+    calls: totals.calls,
+    inputTokens: totals.inputTokens,
+    outputTokens: totals.outputTokens,
+    totalTokens: totals.totalTokens,
+    models,
+  };
 }
 
 function getGeminiConfig(): GeminiConfig {
@@ -398,7 +475,7 @@ async function fetchGeminiText(params: {
   prompt: string;
   responseMimeType?: "application/json" | "text/plain";
   temperature?: number;
-}): Promise<string | null> {
+}): Promise<ReasoningTextResult | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), params.timeoutMs);
   const endpoint = `${params.baseUrl.replace(/\/+$/, "")}/models/${encodeURIComponent(params.model)}:generateContent?key=${encodeURIComponent(params.apiKey)}`;
@@ -455,7 +532,23 @@ async function fetchGeminiText(params: {
     if (parts.length === 0) {
       return null;
     }
-    return parts.join("\n").trim();
+    const usageRaw = isRecord(parsed.usageMetadata) ? parsed.usageMetadata : null;
+    const inputTokens = usageRaw ? toNonNegativeInt(usageRaw.promptTokenCount) : null;
+    const outputTokens = usageRaw ? toNonNegativeInt(usageRaw.candidatesTokenCount) : null;
+    const totalTokens = usageRaw ? toNonNegativeInt(usageRaw.totalTokenCount) : null;
+    const usage =
+      usageRaw && (inputTokens !== null || outputTokens !== null || totalTokens !== null)
+        ? {
+            inputTokens: inputTokens ?? undefined,
+            outputTokens: outputTokens ?? undefined,
+            totalTokens: totalTokens ?? undefined,
+            raw: usageRaw,
+          }
+        : undefined;
+    return {
+      text: parts.join("\n").trim(),
+      usage,
+    };
   } catch {
     return null;
   } finally {
@@ -466,6 +559,7 @@ async function fetchGeminiText(params: {
 function createStorytellerCapabilitySet(
   config: GeminiConfig,
   mediaModeOverride: "fallback" | "simulated",
+  usageTotals: AgentUsageTotals,
 ): StorytellerCapabilitySet {
   const reasoning: ReasoningCapabilityAdapter = {
     descriptor: {
@@ -479,15 +573,20 @@ function createStorytellerCapabilitySet(
       if (!config.apiKey || !config.plannerEnabled) {
         return null;
       }
-      return fetchGeminiText({
+      const model = params.model ?? config.plannerModel;
+      const result = await fetchGeminiText({
         apiKey: config.apiKey,
         baseUrl: config.baseUrl,
         timeoutMs: config.timeoutMs,
-        model: params.model ?? config.plannerModel,
+        model,
         prompt: params.prompt,
         responseMimeType: params.responseMimeType,
         temperature: params.temperature,
       });
+      if (result?.usage) {
+        recordAgentUsage(usageTotals, model, result.usage);
+      }
+      return result;
     },
   };
 
@@ -599,19 +698,19 @@ async function generateStoryPlan(
     .filter((item): item is string => Boolean(item))
     .join("\n");
 
-  const raw = await capabilities.reasoning.generateText({
+  const rawResult = await capabilities.reasoning.generateText({
     model: config.plannerModel,
     prompt,
     responseMimeType: "application/json",
     temperature: 0.4,
   });
 
-  if (!raw) {
+  if (!rawResult) {
     setInStoryCache("plan", cacheKey, fallbackPlan);
     return fallbackPlan;
   }
 
-  const parsed = parseJsonObject(raw);
+  const parsed = parseJsonObject(rawResult.text);
   if (!parsed) {
     setInStoryCache("plan", cacheKey, fallbackPlan);
     return fallbackPlan;
@@ -700,14 +799,14 @@ async function extendStoryBranch(params: {
     .filter((item): item is string => Boolean(item))
     .join("\n");
 
-  const raw = await capabilities.reasoning.generateText({
+  const rawResult = await capabilities.reasoning.generateText({
     model: config.branchModel,
     prompt,
     responseMimeType: "text/plain",
     temperature: 0.4,
   });
 
-  if (!raw) {
+  if (!rawResult) {
     const fallbackLine = `Branch path selected: ${input.branchChoice}. ${fallback.segments[fallback.segments.length - 1]}`;
     const fallbackBranch: {
       segments: string[];
@@ -727,7 +826,7 @@ async function extendStoryBranch(params: {
     branchProvider: "gemini" | "fallback";
     branchModel: string;
   } = {
-    segments: sliceToCount([...currentSegments, raw], input.segmentCount + 1),
+    segments: sliceToCount([...currentSegments, rawResult.text], input.segmentCount + 1),
     branchProvider: "gemini",
     branchModel: config.branchModel,
   };
@@ -1103,8 +1202,9 @@ export async function runStorytellerAgent(
   const runId = request.runId ?? request.id;
   const startedAt = Date.now();
   const config = getGeminiConfig();
+  const usageTotals = createAgentUsageTotals();
   let effectiveMediaMode: "fallback" | "simulated" = config.mediaMode;
-  let capabilities = createStorytellerCapabilitySet(config, effectiveMediaMode);
+  let capabilities = createStorytellerCapabilitySet(config, effectiveMediaMode, usageTotals);
   const skillsRuntime = await getSkillsRuntimeSnapshot({
     agentId: "storyteller-agent",
   });
@@ -1116,7 +1216,7 @@ export async function runStorytellerAgent(
   try {
     const input = normalizeStoryInput(request.payload.input);
     effectiveMediaMode = resolveMediaMode(input, config);
-    capabilities = createStorytellerCapabilitySet(config, effectiveMediaMode);
+    capabilities = createStorytellerCapabilitySet(config, effectiveMediaMode, usageTotals);
     ensureStoryCachePolicy({
       modelFingerprint: buildStoryCacheFingerprint(config),
       purgeToken: config.cachePurgeToken,
@@ -1208,6 +1308,7 @@ export async function runStorytellerAgent(
           handledIntent: request.payload.intent,
           traceId,
           latencyMs: Date.now() - startedAt,
+          usage: buildAgentUsagePayload(usageTotals),
           fallbackAsset,
           story: {
             title: plan.title,
@@ -1297,6 +1398,7 @@ export async function runStorytellerAgent(
         error: normalizedError,
         output: {
           handledIntent: request.payload.intent,
+          usage: buildAgentUsagePayload(usageTotals),
           generation: {
             cache: getStoryCacheSnapshot(),
             capabilityProfile: capabilities.profile,

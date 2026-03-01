@@ -4,6 +4,8 @@ import {
   type CapabilityProfile,
   type LiveCapabilityAdapter,
   type ReasoningCapabilityAdapter,
+  type ReasoningTextResult,
+  type ReasoningTextUsage,
 } from "@mla/capabilities";
 import {
   getSkillsRuntimeSnapshot,
@@ -74,6 +76,22 @@ type LiveAgentCapabilitySet = {
   profile: CapabilityProfile;
 };
 
+type AgentUsageModelTotals = {
+  model: string;
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+};
+
+type AgentUsageTotals = {
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  byModel: Map<string, AgentUsageModelTotals>;
+};
+
 type ConversationTurn = {
   role: "user" | "assistant";
   text: string;
@@ -141,6 +159,15 @@ function toNullableNumber(value: unknown): number | null {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+function toNonNegativeInt(value: unknown): number | null {
+  const parsed = toNullableNumber(value);
+  if (parsed === null) {
+    return null;
+  }
+  const normalized = Math.trunc(parsed);
+  return normalized >= 0 ? normalized : null;
 }
 
 function toPositiveInt(value: unknown, fallback: number): number {
@@ -479,6 +506,56 @@ function clipTailText(text: string, maxChars: number): string {
   return `...${text.slice(text.length - tailSize)}`;
 }
 
+function createAgentUsageTotals(): AgentUsageTotals {
+  return {
+    calls: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+    byModel: new Map<string, AgentUsageModelTotals>(),
+  };
+}
+
+function recordAgentUsage(totals: AgentUsageTotals, model: string, usage: ReasoningTextUsage | undefined): void {
+  if (!usage) {
+    return;
+  }
+
+  const inputTokens = toNonNegativeInt(usage.inputTokens) ?? 0;
+  const outputTokens = toNonNegativeInt(usage.outputTokens) ?? 0;
+  const totalTokens = Math.max(toNonNegativeInt(usage.totalTokens) ?? 0, inputTokens + outputTokens);
+
+  totals.calls += 1;
+  totals.inputTokens += inputTokens;
+  totals.outputTokens += outputTokens;
+  totals.totalTokens += totalTokens;
+
+  const current = totals.byModel.get(model) ?? {
+    model,
+    calls: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    totalTokens: 0,
+  };
+  current.calls += 1;
+  current.inputTokens += inputTokens;
+  current.outputTokens += outputTokens;
+  current.totalTokens += totalTokens;
+  totals.byModel.set(model, current);
+}
+
+function buildAgentUsagePayload(totals: AgentUsageTotals): Record<string, unknown> {
+  const models = Array.from(totals.byModel.values()).sort((left, right) => left.model.localeCompare(right.model));
+  return {
+    source: totals.calls > 0 ? "gemini_usage_metadata" : "none",
+    calls: totals.calls,
+    inputTokens: totals.inputTokens,
+    outputTokens: totals.outputTokens,
+    totalTokens: totals.totalTokens,
+    models,
+  };
+}
+
 function renderTurns(turns: ConversationTurn[], maxCharsPerTurn = 240): string {
   return turns
     .map((turn) => `${turn.role === "user" ? "USER" : "ASSISTANT"}: ${clipText(turn.text, maxCharsPerTurn)}`)
@@ -582,12 +659,13 @@ async function maybeCompactConversationContext(params: {
     turnsToCompact,
   });
 
-  let nextSummary = await params.capabilities.reasoning.generateText({
+  const nextSummaryResult = await params.capabilities.reasoning.generateText({
     model: params.contextConfig.summaryModel,
     prompt: summaryPrompt,
     responseMimeType: "text/plain",
     temperature: 0.1,
   });
+  let nextSummary = nextSummaryResult?.text ?? null;
 
   let reason: CompactionOutcome["reason"] = "compacted";
   if (!nextSummary || nextSummary.trim().length === 0) {
@@ -664,7 +742,7 @@ async function fetchGeminiText(params: {
   prompt: string;
   responseMimeType?: "application/json" | "text/plain";
   temperature?: number;
-}): Promise<string | null> {
+}): Promise<ReasoningTextResult | null> {
   const { config } = params;
   if (!config.apiKey) {
     return null;
@@ -736,7 +814,24 @@ async function fetchGeminiText(params: {
       return null;
     }
 
-    return parts.join("\n").trim();
+    const usageRaw = isRecord(parsed.usageMetadata) ? parsed.usageMetadata : null;
+    const inputTokens = usageRaw ? toNonNegativeInt(usageRaw.promptTokenCount) : null;
+    const outputTokens = usageRaw ? toNonNegativeInt(usageRaw.candidatesTokenCount) : null;
+    const totalTokens = usageRaw ? toNonNegativeInt(usageRaw.totalTokenCount) : null;
+    const usage =
+      usageRaw && (inputTokens !== null || outputTokens !== null || totalTokens !== null)
+        ? {
+            inputTokens: inputTokens ?? undefined,
+            outputTokens: outputTokens ?? undefined,
+            totalTokens: totalTokens ?? undefined,
+            raw: usageRaw,
+          }
+        : undefined;
+
+    return {
+      text: parts.join("\n").trim(),
+      usage,
+    };
   } catch {
     return null;
   } finally {
@@ -744,7 +839,7 @@ async function fetchGeminiText(params: {
   }
 }
 
-function createLiveAgentCapabilitySet(config: GeminiConfig): LiveAgentCapabilitySet {
+function createLiveAgentCapabilitySet(config: GeminiConfig, usageTotals: AgentUsageTotals): LiveAgentCapabilitySet {
   const reasoning: ReasoningCapabilityAdapter = {
     descriptor: {
       capability: "reasoning",
@@ -754,13 +849,18 @@ function createLiveAgentCapabilitySet(config: GeminiConfig): LiveAgentCapability
       mode: config.apiKey ? "default" : "fallback",
     },
     async generateText(params) {
-      return fetchGeminiText({
+      const model = params.model ?? config.conversationModel;
+      const result = await fetchGeminiText({
         config,
-        model: params.model ?? config.conversationModel,
+        model,
         prompt: params.prompt,
         responseMimeType: params.responseMimeType,
         temperature: params.temperature,
       });
+      if (result?.usage) {
+        recordAgentUsage(usageTotals, model, result.usage);
+      }
+      return result;
     },
   };
 
@@ -818,18 +918,18 @@ async function translateWithGemini(params: {
     .filter((item): item is string => Boolean(item))
     .join("\n");
 
-  const raw = await params.capabilities.reasoning.generateText({
+  const rawResult = await params.capabilities.reasoning.generateText({
     model: params.config.translationModel,
     prompt,
     responseMimeType: "application/json",
     temperature: 0.2,
   });
 
-  if (!raw) {
+  if (!rawResult) {
     return null;
   }
 
-  const parsed = tryParseJsonObject(raw);
+  const parsed = tryParseJsonObject(rawResult.text);
   if (!parsed) {
     return null;
   }
@@ -888,19 +988,19 @@ async function generateConversationReply(params: {
     .filter((item): item is string => Boolean(item))
     .join("\n");
 
-  const generated = await params.capabilities.reasoning.generateText({
+  const generatedResult = await params.capabilities.reasoning.generateText({
     model: params.config.conversationModel,
     prompt,
     responseMimeType: "text/plain",
     temperature: 0.2,
   });
 
-  if (!generated) {
+  if (!generatedResult) {
     return fallback;
   }
 
   return {
-    text: generated,
+    text: generatedResult.text,
     provider: "gemini",
     model: params.config.conversationModel,
   };
@@ -1164,7 +1264,8 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
   const runId = request.runId ?? request.id;
   const startedAt = Date.now();
   const config = getGeminiConfig();
-  const capabilities = createLiveAgentCapabilitySet(config);
+  const usageTotals = createAgentUsageTotals();
+  const capabilities = createLiveAgentCapabilitySet(config, usageTotals);
   const skillsRuntime = await getSkillsRuntimeSnapshot({
     agentId: "live-agent",
   });
@@ -1199,6 +1300,7 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
           ...result,
           handledIntent: intent,
           capabilityProfile: capabilities.profile,
+          usage: buildAgentUsagePayload(usageTotals),
           skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
           traceId,
           latencyMs: Date.now() - startedAt,
@@ -1222,6 +1324,7 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
         output: {
           handledIntent: request.payload.intent,
           capabilityProfile: capabilities.profile,
+          usage: buildAgentUsagePayload(usageTotals),
           skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
           traceId,
           latencyMs: Date.now() - startedAt,
