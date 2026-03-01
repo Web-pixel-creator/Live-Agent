@@ -1,28 +1,28 @@
 {
-  "generatedAt": "2026-03-01T12:06:54.179Z",
+  "generatedAt": "2026-03-01T17:11:42.903Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 260,
   "violations": 0,
-  "roundTripMs": 35,
+  "roundTripMs": 47,
   "costEstimate": {
     "currency": "USD",
-    "geminiLiveUsd": 0.023755,
+    "geminiLiveUsd": 0.023756,
     "imagenUsd": 0.12,
     "veoUsd": 0.36,
     "ttsUsd": 0.024,
-    "totalUsd": 0.527755,
+    "totalUsd": 0.527756,
     "source": "runtime_estimate"
   },
   "tokensUsed": {
     "input": 2191,
-    "output": 16866,
-    "total": 19057,
+    "output": 16867,
+    "total": 19058,
     "source": "runtime_estimate"
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-03-01T17:06:53.2945962+05:00",
+    "sourceSummaryGeneratedAt": "2026-03-01T22:11:41.4638451+05:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -30,7 +30,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T12:06:52.439Z",
+      "latestSeenAt": "2026-03-01T17:11:40.052Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -44,7 +44,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T12:06:52.568Z",
+      "latestSeenAt": "2026-03-01T17:11:40.145Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -78,7 +78,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-03-01T12:06:52.173Z",
+        "seenAt": "2026-03-01T17:11:39.747Z",
         "seenAtIsIso": true
       }
     },
@@ -131,7 +131,7 @@
       "summaryRecentContainsLookup": true
     },
     "agentUsage": {
-      "status": "fail",
+      "status": "pass",
       "validated": true,
       "total": 6,
       "uniqueRuns": 5,
@@ -151,7 +151,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 260 checks | 35ms ws",
+    "message": "pass | 260 checks | 47ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }
