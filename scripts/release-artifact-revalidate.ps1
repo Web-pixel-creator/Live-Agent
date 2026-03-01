@@ -515,6 +515,8 @@ $manifestDir = Join-Path $resolvedArtifactsDir "release-artifact-revalidation"
 New-Item -Path $manifestDir -ItemType Directory -Force | Out-Null
 $sourceRunManifestPath = Join-Path $manifestDir "source-run.json"
 $retryableStatusCodes = @(408, 429, 500, 502, 503, 504)
+$releaseEvidenceReportPath = Join-Path $resolvedArtifactsDir "release-evidence/report.json"
+$releaseEvidenceReportMarkdownPath = Join-Path $resolvedArtifactsDir "release-evidence/report.md"
 
 $demoSummaryPath = Join-Path $resolvedArtifactsDir "demo-e2e/summary.json"
 $badgeDetailsPath = Join-Path $resolvedArtifactsDir "demo-e2e/badge-details.json"
@@ -538,6 +540,19 @@ if ($badgeDetailsPresent) {
   }
   catch {
     Write-Host ("[artifact-revalidate] Failed to parse badge details for evidence snapshot: " + $_.Exception.Message)
+  }
+}
+
+if ($badgeDetailsPresent) {
+  $releaseEvidenceScriptPath = Join-Path $PSScriptRoot "release-evidence-report.ps1"
+  if (-not (Test-Path $releaseEvidenceScriptPath)) {
+    Fail ("Missing helper script: " + $releaseEvidenceScriptPath)
+  }
+
+  Write-Host "[artifact-revalidate] Build release evidence report"
+  & powershell -NoProfile -ExecutionPolicy Bypass -File $releaseEvidenceScriptPath -BadgeDetailsPath $badgeDetailsPath -OutputJsonPath $releaseEvidenceReportPath -OutputMarkdownPath $releaseEvidenceReportMarkdownPath
+  if ($LASTEXITCODE -ne 0) {
+    Fail "Build release evidence report failed."
   }
 }
 
@@ -689,6 +704,9 @@ Write-Host ("- evidence snapshot (governance policy status): " + $badgeEvidenceG
 Write-Host ("- evidence snapshot (skills registry status): " + $badgeEvidenceSkillsRegistryStatus)
 Write-Host ("- evidence snapshot (device nodes status): " + $badgeEvidenceDeviceNodesStatus)
 Write-Host ("- evidence snapshot (device node updates status): " + $badgeEvidenceDeviceNodeUpdatesStatus)
+if (Test-Path $releaseEvidenceReportPath) {
+  Write-Host ("- release evidence report: " + $releaseEvidenceReportPath)
+}
 Write-Host ("- source run manifest: " + $sourceRunManifestPath)
 
 if (-not $KeepTemp) {

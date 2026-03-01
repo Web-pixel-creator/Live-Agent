@@ -57,6 +57,13 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /deploy_failed_no_fallback/);
   assert.match(source, /- name:\s*Collect Badge Evidence Statuses/);
   assert.match(source, /id:\s*collect_badge_evidence/);
+  assert.match(source, /- name:\s*Build Release Evidence Report/);
+  assert.match(source, /id:\s*release_evidence_report/);
+  assert.match(source, /release-evidence-report\.ps1/);
+  assert.match(source, /report_json_path=/);
+  assert.match(source, /report_md_path=/);
+  assert.match(source, /release-evidence\/report\.json/);
+  assert.match(source, /release-evidence\/report\.md/);
   assert.match(source, /badge_details_present=/);
   assert.match(source, /turn_truncation_status=/);
   assert.match(source, /turn_delete_status=/);
@@ -78,6 +85,8 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /Skills registry status \(badge evidence\): \$\{\{\s*steps\.collect_badge_evidence\.outputs\.skills_registry_status\s*\}\}/);
   assert.match(source, /Device-nodes status \(badge evidence\): \$\{\{\s*steps\.collect_badge_evidence\.outputs\.device_nodes_status\s*\}\}/);
   assert.match(source, /Device-node-updates status \(badge evidence\): \$\{\{\s*steps\.collect_badge_evidence\.outputs\.device_node_updates_status\s*\}\}/);
+  assert.match(source, /Release evidence report JSON: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_json_path\s*\}\}/);
+  assert.match(source, /Release evidence report Markdown: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_md_path\s*\}\}/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
   assert.match(source, /-GatewayRootDescriptorCheckMaxAttempts/);
   assert.match(source, /-GatewayRootDescriptorCheckRetryBackoffSec/);
@@ -101,6 +110,8 @@ test("release strict workflow publishes release-critical artifacts", () => {
   assert.match(source, /artifacts\/demo-e2e\/badge\.json/);
   assert.match(source, /artifacts\/perf-load\/summary\.json/);
   assert.match(source, /artifacts\/perf-load\/policy-check\.json/);
+  assert.match(source, /artifacts\/release-evidence\/report\.json/);
+  assert.match(source, /artifacts\/release-evidence\/report\.md/);
 });
 
 test("strict release npm script stays aligned with release-readiness strict flag", () => {
@@ -130,4 +141,6 @@ test("readme documents optional release-strict railway deploy path", () => {
   assert.match(readme, /governancePolicy/);
   assert.match(readme, /skillsRegistry/);
   assert.match(readme, /deviceNodes/);
+  assert.match(readme, /artifacts\/release-evidence\/report\.json/);
+  assert.match(readme, /artifacts\/release-evidence\/report\.md/);
 });

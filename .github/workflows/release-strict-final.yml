@@ -329,6 +329,29 @@ jobs:
           ("device_nodes_status=" + $deviceNodesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("device_node_updates_status=" + $deviceNodeUpdatesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
+      - name: Build Release Evidence Report
+        id: release_evidence_report
+        if: always()
+        shell: powershell
+        run: |
+          $jsonPath = "artifacts/release-evidence/report.json"
+          $mdPath = "artifacts/release-evidence/report.md"
+          if (Test-Path "artifacts/demo-e2e/badge-details.json") {
+            powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-evidence-report.ps1 -BadgeDetailsPath "artifacts/demo-e2e/badge-details.json" -OutputJsonPath $jsonPath -OutputMarkdownPath $mdPath
+          } else {
+            Write-Host "Badge details artifact not found; skipping release evidence report."
+          }
+          if (Test-Path $jsonPath) {
+            ("report_json_path=" + $jsonPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            ("report_json_path=") | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+          if (Test-Path $mdPath) {
+            ("report_md_path=" + $mdPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            ("report_md_path=") | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+
       - name: Publish Release Report To Job Summary
         if: always()
         shell: powershell
@@ -364,6 +387,12 @@ jobs:
           ("Skills registry status (badge evidence): ${{ steps.collect_badge_evidence.outputs.skills_registry_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Device-nodes status (badge evidence): ${{ steps.collect_badge_evidence.outputs.device_nodes_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Device-node-updates status (badge evidence): ${{ steps.collect_badge_evidence.outputs.device_node_updates_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Release evidence report JSON: ${{ steps.release_evidence_report.outputs.report_json_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Release evidence report Markdown: ${{ steps.release_evidence_report.outputs.report_md_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          if (Test-Path "artifacts/release-evidence/report.md") {
+            "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            Get-Content "artifacts/release-evidence/report.md" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
 
       - name: Upload Release Strict Artifacts
         if: always()
@@ -377,6 +406,8 @@ jobs:
             artifacts/demo-e2e/policy-check.json
             artifacts/demo-e2e/badge.json
             artifacts/demo-e2e/badge-details.json
+            artifacts/release-evidence/report.json
+            artifacts/release-evidence/report.md
             artifacts/demo-e2e/logs
             artifacts/perf-load/summary.json
             artifacts/perf-load/summary.md

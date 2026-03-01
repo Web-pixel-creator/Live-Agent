@@ -90,6 +90,8 @@ test("runbook documents release perf artifact-only mode and critical evidence ke
     "`skillsRegistryIndexTotal >= 1`",
     "`skillsRegistryTotal >= 1`",
     "`artifacts/demo-e2e/badge-details.json`",
+    "`artifacts/release-evidence/report.json`",
+    "`artifacts/release-evidence/report.md`",
     "`evidence.operatorTurnDelete`",
     "`evidence.operatorTurnTruncation`",
     "`evidence.operatorDamageControl`",

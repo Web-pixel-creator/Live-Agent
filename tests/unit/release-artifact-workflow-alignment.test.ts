@@ -35,8 +35,13 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /Invoke-WebRequest/);
   assert.match(source, /id:\s*inspect_artifacts/);
   assert.match(source, /id:\s*write_manifest/);
+  assert.match(source, /id:\s*release_evidence_report/);
+  assert.match(source, /Build Release Evidence Report/);
   assert.match(source, /Write Source Run Manifest/);
   assert.match(source, /source-run\.json/);
+  assert.match(source, /release-evidence\/report\.json/);
+  assert.match(source, /release-evidence\/report\.md/);
+  assert.match(source, /release-evidence-report\.ps1/);
   assert.match(source, /retryableStatusCodes/);
   assert.match(source, /has_perf_artifacts/);
   assert.match(source, /run_with_perf/);
@@ -62,6 +67,8 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /Skills registry status \(badge evidence\):/);
   assert.match(source, /Device-nodes status \(badge evidence\):/);
   assert.match(source, /Device-node-updates status \(badge evidence\):/);
+  assert.match(source, /Release evidence report JSON:/);
+  assert.match(source, /Release evidence report Markdown:/);
   assert.match(source, /GitHub API retry attempts/);
   assert.match(source, /GitHub API retry backoff ms/);
   assert.match(source, /Source run workflow:/);
@@ -86,6 +93,8 @@ test("release artifact revalidation workflow publishes consolidated artifacts", 
   assert.match(source, /artifacts\/demo-e2e\/policy-check\.json/);
   assert.match(source, /artifacts\/perf-load\/summary\.json/);
   assert.match(source, /artifacts\/perf-load\/policy-check\.json/);
+  assert.match(source, /artifacts\/release-evidence\/report\.json/);
+  assert.match(source, /artifacts\/release-evidence\/report\.md/);
   assert.match(source, /artifacts\/release-artifact-revalidation\/source-run\.json/);
 });
 
@@ -101,5 +110,7 @@ test("workflow docs include retry-control inputs", () => {
     assert.match(content, /github_api_retry_backoff_ms/);
     assert.match(content, /max_source_run_age_hours/);
     assert.match(content, /allow_any_source_branch/);
+    assert.match(content, /artifacts\/release-evidence\/report\.json/);
+    assert.match(content, /artifacts\/release-evidence\/report\.md/);
   }
 });

@@ -42,6 +42,9 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /run age hours/);
   assert.match(source, /release-artifact-revalidation/);
   assert.match(source, /source-run\.json/);
+  assert.match(source, /release-evidence\/report\.json/);
+  assert.match(source, /release-evidence\/report\.md/);
+  assert.match(source, /release-evidence-report\.ps1/);
   assert.match(source, /evidenceSnapshot/);
   assert.match(source, /operatorDamageControlSummaryValidated/);
   assert.match(source, /badgeEvidenceOperatorTurnTruncationStatus/);
@@ -62,6 +65,7 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /skills registry status/);
   assert.match(source, /device nodes status/);
   assert.match(source, /device node updates status/);
+  assert.match(source, /release evidence report/);
 });
 
 test("local release artifact revalidation docs stay aligned with helper controls", () => {
@@ -80,5 +84,7 @@ test("local release artifact revalidation docs stay aligned with helper controls
     assert.match(content, /MaxSourceRunAgeHours/);
     assert.match(content, /AllowAnySourceBranch/);
     assert.match(content, /source-run\.json/);
+    assert.match(content, /artifacts\/release-evidence\/report\.json/);
+    assert.match(content, /artifacts\/release-evidence\/report\.md/);
   }
 });

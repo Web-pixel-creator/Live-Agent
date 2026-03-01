@@ -31,7 +31,9 @@ param(
   [string]$PublicBadgeDetailsPath = "public/demo-e2e/badge-details.json",
   [string]$PerfSummaryPath = "artifacts/perf-load/summary.json",
   [string]$PerfPolicyPath = "artifacts/perf-load/policy-check.json",
-  [string]$SourceRunManifestPath = "artifacts/release-artifact-revalidation/source-run.json"
+  [string]$SourceRunManifestPath = "artifacts/release-artifact-revalidation/source-run.json",
+  [string]$ReleaseEvidenceReportPath = "artifacts/release-evidence/report.json",
+  [string]$ReleaseEvidenceReportMarkdownPath = "artifacts/release-evidence/report.md"
 )
 
 $ErrorActionPreference = "Stop"
@@ -197,6 +199,19 @@ if (-not $SkipPerfLoad) {
   }
 }
 
+if (Test-Path $BadgeDetailsPath) {
+  $releaseEvidenceScriptPath = Join-Path $PSScriptRoot "release-evidence-report.ps1"
+  if (-not (Test-Path $releaseEvidenceScriptPath)) {
+    Fail ("Missing helper script: " + $releaseEvidenceScriptPath)
+  }
+
+  Write-Host "[release-check] Build release evidence report"
+  & powershell -NoProfile -ExecutionPolicy Bypass -File $releaseEvidenceScriptPath -BadgeDetailsPath $BadgeDetailsPath -OutputJsonPath $ReleaseEvidenceReportPath -OutputMarkdownPath $ReleaseEvidenceReportMarkdownPath
+  if ($LASTEXITCODE -ne 0) {
+    Fail "Step failed: Build release evidence report"
+  }
+}
+
 $requiredFiles = @()
 if (-not $SkipDemoE2E) {
   $requiredFiles += $SummaryPath
@@ -218,6 +233,10 @@ if (-not $SkipPerfLoad) {
 }
 if ($IsArtifactOnlyMode) {
   $requiredFiles += $SourceRunManifestPath
+}
+if (Test-Path $BadgeDetailsPath) {
+  $requiredFiles += $ReleaseEvidenceReportPath
+  $requiredFiles += $ReleaseEvidenceReportMarkdownPath
 }
 
 $missing = @($requiredFiles | Where-Object { -not (Test-Path $_) })
@@ -1663,6 +1682,9 @@ if ((-not $SkipPerfLoad) -and (Test-Path $PerfPolicyPath)) {
   $perfPolicy = Get-Content $PerfPolicyPath -Raw | ConvertFrom-Json
   $violationsCount = @($perfPolicy.violations).Count
   Write-Host ("perf.policy.ok: " + $perfPolicy.ok + " (" + $perfPolicy.checks + " checks, violations: " + $violationsCount + ")")
+}
+if (Test-Path $ReleaseEvidenceReportPath) {
+  Write-Host ("release.evidence.report: " + $ReleaseEvidenceReportPath)
 }
 if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
   $sourceRunManifest = Get-Content $SourceRunManifestPath -Raw | ConvertFrom-Json

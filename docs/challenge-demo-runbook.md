@@ -48,6 +48,7 @@ If `GITHUB_TOKEN`/`GH_TOKEN` is not set, helper tries `gh auth token` (requires 
 Optional flags: `-- -SourceRunId <id>`, `-- -ArtifactName <name>`, `-- -GithubApiMaxAttempts <n>`, `-- -GithubApiRetryBackoffMs <ms>`, `-- -MaxSourceRunAgeHours <n>`, `-- -AllowAnySourceBranch`, `-- -StrictFinalRun`, `-- -PerfGateMode auto|with_perf|without_perf`, `-- -SkipPerfLoadGate` (deprecated alias), `-- -SkipArtifactOnlyGate`.
 Helper behavior: if downloaded bundle does not contain `artifacts/perf-load/*`, perf checks are skipped automatically while demo/policy/badge artifact checks stay enforced.
 Provenance output: helper/workflow emit source-run manifest at `artifacts/release-artifact-revalidation/source-run.json`.
+Unified evidence output: helper/workflow also emit `artifacts/release-evidence/report.json` and `artifacts/release-evidence/report.md` derived from `badge-details.evidence.*` statuses.
 For flaky local runners you can increase demo retry tolerance:
 ```powershell
 npm run verify:release -- -DemoRunMaxAttempts 3 -DemoRunRetryBackoffMs 3000 -DemoScenarioRetryMaxAttempts 3 -DemoScenarioRetryBackoffMs 1200
@@ -364,6 +365,7 @@ Manual shortcut:
 19. WebSocket conversation-item delete evidence: `gateway.websocket.item_delete=passed` with `kpi.gatewayItemDeleteValidated=true`, session-local cleanup event `live.turn.deleted`, and judge-facing Operator Console block `Turn Delete Evidence` (`turnDelete.total >= 1`).
 20. Governance policy lifecycle evidence: `governance.policy.lifecycle=passed` with `kpi.governancePolicyLifecycleValidated=true`, conflict guards (`API_GOVERNANCE_POLICY_VERSION_CONFLICT`, `API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT`), scope guard (`API_TENANT_SCOPE_FORBIDDEN`), and centralized summary proof (`kpi.governancePolicySummaryTemplateId=strict`, `kpi.governancePolicySummarySource=tenant_override`).
 21. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings + `gate.evidenceSnapshot.operatorDamageControlSummaryValidated` / `gate.evidenceSnapshot.badgeEvidenceOperatorTurnTruncationStatus` / `gate.evidenceSnapshot.badgeEvidenceOperatorTurnDeleteStatus` / `gate.evidenceSnapshot.badgeEvidenceOperatorDamageControlStatus` / `gate.evidenceSnapshot.badgeEvidenceGovernancePolicyStatus` / `gate.evidenceSnapshot.badgeEvidenceSkillsRegistryStatus` / `gate.evidenceSnapshot.badgeEvidenceDeviceNodesStatus` / `gate.evidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus`).
+22. Unified release evidence report: `artifacts/release-evidence/report.json` + `artifacts/release-evidence/report.md` (single-source summary for strict/artifact/deploy evidence lanes, including derived `deviceNodeUpdatesStatus`).
 
 ## Quick Observability Setup (for demo environment)
 

@@ -207,6 +207,7 @@
 33. Strict release summary evidence lane for `device_node_updates_status` (derived from `badge-details.evidence.deviceNodes.*` updates fields and surfaced in CI job summary outputs with anti-drift guard) [Completed]
 34. Artifact revalidation provenance symmetry for `device_node_updates_status` (`badgeEvidenceDeviceNodeUpdatesStatus` propagated through local helper/workflow/source-run manifest/release gate + smoke fixture + job summary + anti-drift coverage) [Completed]
 35. Deploy/public-badge evidence symmetry for updates lane (`public-badge-check` derives/prints `Device-node-updates status (badge evidence)` and enforces `pass` in deploy gate, with anti-drift coverage) [Completed]
+36. Unified release-evidence report lane (`artifacts/release-evidence/report.json|report.md`) wired across strict workflow, artifact revalidation workflow, local artifact helper, and release-readiness with anti-drift coverage [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 
