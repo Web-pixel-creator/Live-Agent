@@ -11,6 +11,21 @@ Starter workspace for the "next-generation agents" spec:
 ![Release Strict Final Gate](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/release-strict-final.yml/badge.svg)
 ![Demo KPI Badge](https://img.shields.io/endpoint?url=https%3A%2F%2Flive-agent-production.up.railway.app%2Fdemo-e2e%2Fbadge.json)
 
+## Judge Snapshot
+
+- Challenge coverage:
+  - `Live Agent`: realtime conversation, interruption, translation, negotiation.
+  - `Creative Storyteller`: text+audio+image+video timeline pipeline.
+  - `UI Navigator`: Computer Use planning/execution with approval/damage-control.
+- Fastest judge flow:
+  1. `docs/judge-quickstart.md`
+  2. `npm run demo:e2e:visual:judge`
+  3. `artifacts/judge-visual-evidence/presentation.md`
+  4. `artifacts/demo-e2e/badge-details.json`
+- Public runtime status:
+  - Gateway descriptor: `https://live-agent-production.up.railway.app/`
+  - Public badge endpoint: `https://live-agent-production.up.railway.app/demo-e2e/badge.json`
+
 ## Documentation Index
 
 - Architecture: `docs/architecture.md`
