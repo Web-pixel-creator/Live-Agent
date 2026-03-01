@@ -543,6 +543,7 @@ jobs:
           $badgeEvidenceOperatorDamageControlStatus = $null
           $badgeEvidenceGovernancePolicyStatus = $null
           $badgeEvidenceSkillsRegistryStatus = $null
+          $badgeEvidenceDeviceNodesStatus = $null
           if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorDamageControl) {
             $badgeEvidenceOperatorDamageControlStatus = $badgeDetails.evidence.operatorDamageControl.status
           }
@@ -551,6 +552,9 @@ jobs:
           }
           if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.skillsRegistry) {
             $badgeEvidenceSkillsRegistryStatus = $badgeDetails.evidence.skillsRegistry.status
+          }
+          if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.deviceNodes) {
+            $badgeEvidenceDeviceNodesStatus = $badgeDetails.evidence.deviceNodes.status
           }
 
           $gateEvidenceSnapshot = [ordered]@{
@@ -566,6 +570,7 @@ jobs:
             badgeEvidenceOperatorDamageControlStatus = $badgeEvidenceOperatorDamageControlStatus
             badgeEvidenceGovernancePolicyStatus = $badgeEvidenceGovernancePolicyStatus
             badgeEvidenceSkillsRegistryStatus = $badgeEvidenceSkillsRegistryStatus
+            badgeEvidenceDeviceNodesStatus = $badgeEvidenceDeviceNodesStatus
           }
 
           $manifest = [ordered]@{
@@ -617,6 +622,7 @@ jobs:
           ("operator_damage_control_status=" + [string]$badgeEvidenceOperatorDamageControlStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("governance_policy_status=" + [string]$badgeEvidenceGovernancePolicyStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("skills_registry_status=" + [string]$badgeEvidenceSkillsRegistryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("device_nodes_status=" + [string]$badgeEvidenceDeviceNodesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Host ("Source run manifest written: " + $manifestPath)
 
       - name: Run Artifact-Only Release Revalidation (With Perf Artifacts, Standard)
@@ -668,6 +674,7 @@ jobs:
           ("Operator damage-control status (badge evidence): ${{ steps.write_manifest.outputs.operator_damage_control_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Governance policy status (badge evidence): ${{ steps.write_manifest.outputs.governance_policy_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Skills registry status (badge evidence): ${{ steps.write_manifest.outputs.skills_registry_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Device-nodes status (badge evidence): ${{ steps.write_manifest.outputs.device_nodes_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Source run manifest: ${{ steps.write_manifest.outputs.manifest_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           if (Test-Path "artifacts/demo-e2e/summary.md") {
             "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

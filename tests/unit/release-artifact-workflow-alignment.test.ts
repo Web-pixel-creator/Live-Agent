@@ -46,9 +46,11 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /operator_damage_control_status/);
   assert.match(source, /governance_policy_status/);
   assert.match(source, /skills_registry_status/);
+  assert.match(source, /device_nodes_status/);
   assert.match(source, /Operator damage-control status \(badge evidence\):/);
   assert.match(source, /Governance policy status \(badge evidence\):/);
   assert.match(source, /Skills registry status \(badge evidence\):/);
+  assert.match(source, /Device-nodes status \(badge evidence\):/);
   assert.match(source, /GitHub API retry attempts/);
   assert.match(source, /GitHub API retry backoff ms/);
   assert.match(source, /Source run workflow:/);

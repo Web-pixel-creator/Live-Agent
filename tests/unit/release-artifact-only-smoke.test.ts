@@ -41,6 +41,7 @@ test("artifact-only smoke script is wired to release-readiness with local artifa
   assert.match(source, /badgeEvidenceOperatorDamageControlStatus/);
   assert.match(source, /badgeEvidenceGovernancePolicyStatus/);
   assert.match(source, /badgeEvidenceSkillsRegistryStatus/);
+  assert.match(source, /badgeEvidenceDeviceNodesStatus/);
 });
 
 test(

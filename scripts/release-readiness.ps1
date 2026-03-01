@@ -358,6 +358,15 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       )
     }
 
+    $manifestDeviceNodesStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodesStatus
+    $manifestDeviceNodesStatus = $manifestDeviceNodesStatusRaw.ToLowerInvariant()
+    if ($manifestDeviceNodesStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceDeviceNodesStatus expected pass, actual " +
+        $manifestDeviceNodesStatusRaw
+      )
+    }
+
     $manifestDamageControlLatestVerdictRaw = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestVerdict
     $manifestDamageControlLatestVerdict = $manifestDamageControlLatestVerdictRaw.ToLowerInvariant()
     $allowedOperatorDamageControlLatestVerdicts = @("allow", "ask", "block")
@@ -1649,6 +1658,7 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     $manifestDamageControlStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceOperatorDamageControlStatus
     $manifestGovernancePolicyStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceGovernancePolicyStatus
     $manifestSkillsRegistryStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceSkillsRegistryStatus
+    $manifestDeviceNodesStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodesStatus
     $manifestDamageControlLatestVerdict = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestVerdict
     $manifestDamageControlLatestSource = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestSource
     Write-Host (
@@ -1659,6 +1669,7 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       ", operator_damage_control_status=" + $manifestDamageControlStatus +
       ", governance_policy_status=" + $manifestGovernancePolicyStatus +
       ", skills_registry_status=" + $manifestSkillsRegistryStatus +
+      ", device_nodes_status=" + $manifestDeviceNodesStatus +
       ", operator_damage_control_latest_verdict=" + $manifestDamageControlLatestVerdict +
       ", operator_damage_control_latest_source=" + $manifestDamageControlLatestSource
     )

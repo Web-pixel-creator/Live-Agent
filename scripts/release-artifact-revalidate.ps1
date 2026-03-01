@@ -562,6 +562,7 @@ if ($null -ne $demoSummary -and $null -ne $demoSummary.kpis) {
 $badgeEvidenceOperatorDamageControlStatus = $null
 $badgeEvidenceGovernancePolicyStatus = $null
 $badgeEvidenceSkillsRegistryStatus = $null
+$badgeEvidenceDeviceNodesStatus = $null
 if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorDamageControl) {
   $badgeEvidenceOperatorDamageControlStatus = $badgeDetails.evidence.operatorDamageControl.status
 }
@@ -570,6 +571,9 @@ if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne
 }
 if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.skillsRegistry) {
   $badgeEvidenceSkillsRegistryStatus = $badgeDetails.evidence.skillsRegistry.status
+}
+if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.deviceNodes) {
+  $badgeEvidenceDeviceNodesStatus = $badgeDetails.evidence.deviceNodes.status
 }
 
 $gateEvidenceSnapshot = [ordered]@{
@@ -585,6 +589,7 @@ $gateEvidenceSnapshot = [ordered]@{
   badgeEvidenceOperatorDamageControlStatus    = $badgeEvidenceOperatorDamageControlStatus
   badgeEvidenceGovernancePolicyStatus         = $badgeEvidenceGovernancePolicyStatus
   badgeEvidenceSkillsRegistryStatus           = $badgeEvidenceSkillsRegistryStatus
+  badgeEvidenceDeviceNodesStatus              = $badgeEvidenceDeviceNodesStatus
 }
 
 $sourceRunManifest = [ordered]@{
@@ -650,6 +655,7 @@ Write-Host ("- perf artifacts detected: " + $gateHasPerfArtifacts)
 Write-Host ("- evidence snapshot (operator damage-control status): " + $badgeEvidenceOperatorDamageControlStatus)
 Write-Host ("- evidence snapshot (governance policy status): " + $badgeEvidenceGovernancePolicyStatus)
 Write-Host ("- evidence snapshot (skills registry status): " + $badgeEvidenceSkillsRegistryStatus)
+Write-Host ("- evidence snapshot (device nodes status): " + $badgeEvidenceDeviceNodesStatus)
 Write-Host ("- source run manifest: " + $sourceRunManifestPath)
 
 if (-not $KeepTemp) {

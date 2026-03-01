@@ -653,6 +653,7 @@ function createPassingSourceRunManifest(
     evidenceOperatorDamageControlStatus: string;
     evidenceGovernancePolicyStatus: string;
     evidenceSkillsRegistryStatus: string;
+    evidenceDeviceNodesStatus: string;
     evidenceOperatorDamageControlLatestVerdict: string;
     evidenceOperatorDamageControlLatestSource: string;
   }> = {},
@@ -711,6 +712,9 @@ function createPassingSourceRunManifest(
           : "pass",
         badgeEvidenceSkillsRegistryStatus: hasOverride("evidenceSkillsRegistryStatus")
           ? overrides.evidenceSkillsRegistryStatus
+          : "pass",
+        badgeEvidenceDeviceNodesStatus: hasOverride("evidenceDeviceNodesStatus")
+          ? overrides.evidenceDeviceNodesStatus
           : "pass",
         operatorDamageControlLatestVerdict: hasOverride("evidenceOperatorDamageControlLatestVerdict")
           ? overrides.evidenceOperatorDamageControlLatestVerdict
@@ -1950,6 +1954,7 @@ test(
     assert.match(output, /operator_damage_control_status=pass/i);
     assert.match(output, /governance_policy_status=pass/i);
     assert.match(output, /skills_registry_status=pass/i);
+    assert.match(output, /device_nodes_status=pass/i);
   },
 );
 
@@ -2092,6 +2097,22 @@ test(
     assert.match(
       output,
       /source run manifest evidenceSnapshot\.badgeEvidenceSkillsRegistryStatus expected pass, actual warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence device nodes status is not pass",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceDeviceNodesStatus: "warn" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceDeviceNodesStatus expected pass, actual warn/i,
     );
   },
 );
