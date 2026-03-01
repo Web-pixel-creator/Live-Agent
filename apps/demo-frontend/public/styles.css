@@ -10,6 +10,36 @@
   --ok: #00c853;
   --card: rgba(15, 34, 41, 0.78);
   --border: rgba(230, 243, 240, 0.16);
+  --heading: #f3fdfa;
+  --heading-soft: #d9f8f4;
+  --status-neutral-fg: #c8dee1;
+  --status-ok-fg: #7dffc8;
+  --status-fail-fg: #ffb4b4;
+  --button-primary-fg: #051316;
+  --button-muted-fg: #07161a;
+  --button-warn-fg: #3b0a0a;
+}
+
+:root[data-theme="light"] {
+  --bg-0: #eef8f8;
+  --bg-1: #dcedef;
+  --bg-2: #c8dfe1;
+  --text: #112c31;
+  --muted: #3d6168;
+  --accent: #e77b12;
+  --accent-2: #0ea5a0;
+  --warn: #dc2626;
+  --ok: #15803d;
+  --card: rgba(255, 255, 255, 0.82);
+  --border: rgba(17, 44, 49, 0.18);
+  --heading: #10343a;
+  --heading-soft: #18454d;
+  --status-neutral-fg: #38545a;
+  --status-ok-fg: #16623b;
+  --status-fail-fg: #8c1e1e;
+  --button-primary-fg: #032225;
+  --button-muted-fg: #102c31;
+  --button-warn-fg: #4a0d0d;
 }
 
 * {
@@ -48,6 +78,13 @@ body {
   letter-spacing: 0.02em;
 }
 
+.hero-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .hero-sub {
   margin: 0;
   color: var(--muted);
@@ -64,7 +101,7 @@ body {
 .panel h2 {
   margin: 0 0 12px;
   font-size: 1.02rem;
-  color: #f3fdfa;
+  color: var(--heading);
 }
 
 .grid-2,
@@ -135,7 +172,7 @@ button {
   border-radius: 10px;
   padding: 9px 12px;
   background: linear-gradient(130deg, #2ec4b6, #2a9d8f);
-  color: #051316;
+  color: var(--button-primary-fg);
   font-weight: 600;
   cursor: pointer;
   transition: transform 140ms ease, filter 140ms ease;
@@ -148,12 +185,12 @@ button:hover {
 
 .button-muted {
   background: linear-gradient(130deg, #7d9fa8, #597982);
-  color: #07161a;
+  color: var(--button-muted-fg);
 }
 
 .button-warn {
   background: linear-gradient(130deg, #ff8a80, #ff6b6b);
-  color: #3b0a0a;
+  color: var(--button-warn-fg);
 }
 
 .meta-row {
@@ -182,7 +219,7 @@ button:hover {
 .kpi-card h3 {
   margin: 0 0 8px;
   font-size: 0.95rem;
-  color: #d9f8f4;
+  color: var(--heading-soft);
 }
 
 .kpi-card p {
@@ -207,7 +244,7 @@ button:hover {
 .operator-health-card h3 {
   margin: 0 0 8px;
   font-size: 0.95rem;
-  color: #d9f8f4;
+  color: var(--heading-soft);
 }
 
 .operator-health-card .status-pill {
@@ -225,12 +262,12 @@ button:hover {
 }
 
 .operator-health-row strong {
-  color: #c6e8e2;
+  color: var(--heading-soft);
   font-weight: 600;
 }
 
 .operator-health-row span {
-  color: #f2fffb;
+  color: var(--heading);
   font-family: "IBM Plex Mono", "Consolas", "SFMono-Regular", monospace;
   font-size: 0.83rem;
   text-align: right;
@@ -247,7 +284,7 @@ button:hover {
 
 .operator-health-hint-neutral {
   background: rgba(125, 159, 168, 0.14);
-  color: #c8dee1;
+  color: var(--status-neutral-fg);
 }
 
 .operator-health-hint-ok {
@@ -278,17 +315,17 @@ button:hover {
 
 .status-neutral {
   background: rgba(125, 159, 168, 0.22);
-  color: #c8dee1;
+  color: var(--status-neutral-fg);
 }
 
 .status-ok {
   background: rgba(0, 200, 83, 0.2);
-  color: #7dffc8;
+  color: var(--status-ok-fg);
 }
 
 .status-fail {
   background: rgba(255, 107, 107, 0.2);
-  color: #ffb4b4;
+  color: var(--status-fail-fg);
 }
 
 .transcript,
@@ -336,6 +373,11 @@ button:hover {
 }
 
 @media (max-width: 720px) {
+  .hero-headline {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .grid-2 {
     grid-template-columns: 1fr;
   }

@@ -23,7 +23,7 @@
         {
           "name": "Primary Foreground",
           "value": "#051316",
-          "sourceLiteral": "color: #051316;"
+          "sourceToken": "--button-primary-fg"
         }
       ]
     },
@@ -48,7 +48,7 @@
         {
           "name": "Accent Foreground",
           "value": "#07161a",
-          "sourceLiteral": "color: #07161a;"
+          "sourceToken": "--button-muted-fg"
         }
       ]
     },
@@ -72,8 +72,8 @@
         },
         {
           "name": "Popover Foreground",
-          "value": "#f2fffb",
-          "sourceLiteral": "color: #f2fffb;"
+          "value": "#f3fdfa",
+          "sourceToken": "--heading"
         },
         {
           "name": "Muted",
@@ -83,7 +83,7 @@
         {
           "name": "Muted Foreground",
           "value": "#c8dee1",
-          "sourceLiteral": "color: #c8dee1;"
+          "sourceToken": "--status-neutral-fg"
         }
       ]
     },
@@ -118,7 +118,7 @@
         {
           "name": "Destructive Foreground",
           "value": "#3b0a0a",
-          "sourceLiteral": "color: #3b0a0a;"
+          "sourceToken": "--button-warn-fg"
         },
         {
           "name": "Success",
@@ -128,7 +128,7 @@
         {
           "name": "Success Foreground",
           "value": "#7dffc8",
-          "sourceLiteral": "color: #7dffc8;"
+          "sourceToken": "--status-ok-fg"
         },
         {
           "name": "Warning",

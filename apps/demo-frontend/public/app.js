@@ -11,6 +11,7 @@ const state = {
   runId: null,
   sessionState: "-",
   mode: "voice",
+  themeMode: "dark",
   pttEnabled: false,
   pttPressed: false,
   fallbackAsset: false,
@@ -44,6 +45,7 @@ const state = {
 };
 
 const PENDING_CLIENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
+const THEME_STORAGE_KEY = "mla.demoFrontend.themeMode";
 
 const el = {
   wsUrl: document.getElementById("wsUrl"),
@@ -57,6 +59,7 @@ const el = {
   currentUserId: document.getElementById("currentUserId"),
   sessionState: document.getElementById("sessionState"),
   modeStatus: document.getElementById("modeStatus"),
+  themeToggleBtn: document.getElementById("themeToggleBtn"),
   exportMarkdownBtn: document.getElementById("exportMarkdownBtn"),
   exportJsonBtn: document.getElementById("exportJsonBtn"),
   exportStatus: document.getElementById("exportStatus"),
@@ -291,6 +294,46 @@ function makeId() {
     return window.crypto.randomUUID();
   }
   return `id-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+}
+
+function normalizeThemeMode(value) {
+  return value === "light" ? "light" : "dark";
+}
+
+function readStoredThemeMode() {
+  try {
+    const stored = window.localStorage?.getItem(THEME_STORAGE_KEY);
+    return normalizeThemeMode(stored);
+  } catch {
+    return "dark";
+  }
+}
+
+function applyThemeMode(themeMode, options = {}) {
+  const normalizedMode = normalizeThemeMode(themeMode);
+  const persist = options.persist === true;
+  const announce = options.announce === true;
+  state.themeMode = normalizedMode;
+  document.documentElement.setAttribute("data-theme", normalizedMode);
+  if (el.themeToggleBtn) {
+    el.themeToggleBtn.textContent =
+      normalizedMode === "dark" ? "Switch to Light Theme" : "Switch to Dark Theme";
+  }
+  if (persist) {
+    try {
+      window.localStorage?.setItem(THEME_STORAGE_KEY, normalizedMode);
+    } catch {
+      /* no-op on storage failures */
+    }
+  }
+  if (announce) {
+    appendTranscript("system", `Theme switched to ${normalizedMode}`);
+  }
+}
+
+function toggleThemeMode() {
+  const nextMode = state.themeMode === "dark" ? "light" : "dark";
+  applyThemeMode(nextMode, { persist: true, announce: true });
 }
 
 function toConversationScope(value) {
@@ -5596,6 +5639,9 @@ function bindEvents() {
   if (el.exportJsonBtn) {
     el.exportJsonBtn.addEventListener("click", exportSessionJson);
   }
+  if (el.themeToggleBtn) {
+    el.themeToggleBtn.addEventListener("click", toggleThemeMode);
+  }
   document.getElementById("startMicBtn").addEventListener("click", startMicStream);
   document.getElementById("stopMicBtn").addEventListener("click", stopMicStream);
   document.getElementById("pttToggleBtn").addEventListener("click", togglePushToTalkMode);
@@ -5818,6 +5864,7 @@ async function bootstrap() {
   state.sessionId = makeId();
   el.sessionId.value = state.sessionId;
   setSessionState("-");
+  applyThemeMode(readStoredThemeMode(), { persist: false, announce: false });
   setConnectionStatus("disconnected");
   setExportStatus("idle");
   updatePttUi();

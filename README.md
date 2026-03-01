@@ -78,6 +78,7 @@ Frontend `Intent Request -> Send Conversation Item` supports multimodal parts: t
 Frontend `Live Controls -> Apply Live Setup` can send runtime `live.setup` overrides (`model`, `voice`, `activityHandling`, `systemInstruction`).
 Frontend `Intent Request` also supports optional `ui_task` grounding overrides (`url`, `deviceNodeId`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`).
 Frontend `Connection` panel includes one-click export controls: `Export Session Markdown` / `Export Session JSON` (judge/operator evidence snapshot).
+Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
 
 5. Optional runtime integrations:
 - Firestore adapter (orchestrator): set `FIRESTORE_ENABLED=true` and `GOOGLE_CLOUD_PROJECT`.

@@ -216,6 +216,7 @@
 42. Demo frontend session export controls (`Export Session Markdown/JSON`, evidence snapshot payload + operator docs + alignment tests) [Completed]
 43. Judge quickstart docs baseline (`docs/judge-quickstart.md` + README quick path + runbook alias + anti-drift test) [Completed]
 44. Demo frontend design theme palette baseline (`apps/demo-frontend/public/theme-colors.json` + `docs/design-theme-colors.md` + anti-drift alignment tests) [Completed]
+45. Demo frontend theme toggle polish (`dark/light` runtime toggle + persistent `localStorage` mode + responsive hero layout + alignment tests) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 
