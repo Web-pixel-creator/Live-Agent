@@ -122,19 +122,19 @@ function Convert-ToNonNegativeDouble {
   )
 
   if ($null -eq $Value) {
-    return [Math]::Max(0, $Fallback)
+    return [Math]::Max(0.0, [double]$Fallback)
   }
 
   $parsed = 0.0
   if ([double]::TryParse([string]$Value, [System.Globalization.NumberStyles]::Any, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$parsed)) {
-    return [Math]::Max(0, $parsed)
+    return [Math]::Max(0.0, [double]$parsed)
   }
 
   if ([double]::TryParse([string]$Value, [ref]$parsed)) {
-    return [Math]::Max(0, $parsed)
+    return [Math]::Max(0.0, [double]$parsed)
   }
 
-  return [Math]::Max(0, $Fallback)
+  return [Math]::Max(0.0, [double]$Fallback)
 }
 
 function Convert-ToNonNegativeInt {
@@ -4268,7 +4268,7 @@ $summary = [ordered]@{
     operatorDeviceNodeUpdatesTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeUpdatesTotal } else { $null }
     operatorDeviceNodeUpdatesHasUpsert = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeUpdatesHasUpsert } else { $false }
     operatorDeviceNodeUpdatesHasHeartbeat = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeUpdatesHasHeartbeat } else { $false }
-    operatorDeviceNodeUpdatesApiValidated = if ($operatorDeviceNodesScenario.Count -gt 0) { [bool]$operatorDeviceNodesScenario[0].result.updatesApiValidated } else { $false }
+    operatorDeviceNodeUpdatesApiValidated = if ($operatorDeviceNodesScenario.Count -gt 0) { [bool]$operatorDeviceNodesScenario[0].data.updatesApiValidated } else { $false }
     operatorLiveBridgeHealthBlockValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthBlockValidated } else { $false }
     operatorLiveBridgeProbeTelemetryValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthProbeTelemetryValidated } else { $false }
     operatorDeviceNodeLookupValidated = if (
@@ -4307,7 +4307,7 @@ $summary = [ordered]@{
       [bool]$operatorActionsData.deviceNodeUpdatesHasHeartbeat -eq $true -and
       (
         $operatorDeviceNodesScenario.Count -eq 0 -or
-        [bool]$operatorDeviceNodesScenario[0].result.updatesApiValidated -eq $true
+        [bool]$operatorDeviceNodesScenario[0].data.updatesApiValidated -eq $true
       )
     ) { $true } else { $false }
     operatorAuditTrailValidated = if (
