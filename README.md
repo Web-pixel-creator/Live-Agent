@@ -26,6 +26,7 @@ Starter workspace for the "next-generation agents" spec:
 - Telemetry Split: `docs/telemetry-storage-split.md`
 - Managed Skill Signing Example: `docs/managed-skill-signing-example.md`
 - Design Theme Colors: `docs/design-theme-colors.md`
+- Judge Visual Evidence Pack: `docs/judge-visual-evidence.md`
 - Contribution Guide: `CONTRIBUTING.md`
 - Agent Guide: `AGENTS.md`
 - License: `LICENSE`
@@ -34,7 +35,8 @@ Starter workspace for the "next-generation agents" spec:
 
 1. Read `docs/judge-quickstart.md` for a one-page evaluation flow.
 2. Run `npm run demo:e2e:fast && npm run demo:e2e:policy`.
-3. Open `artifacts/demo-e2e/badge-details.json` for judge-facing evidence lanes.
+3. Run `npm run demo:e2e:visual-pack` for screenshot/badge visual pack.
+4. Open `artifacts/demo-e2e/badge-details.json` for judge-facing evidence lanes.
 
 ## Workspace Layout
 
@@ -79,6 +81,18 @@ Frontend `Live Controls -> Apply Live Setup` can send runtime `live.setup` overr
 Frontend `Intent Request` also supports optional `ui_task` grounding overrides (`url`, `deviceNodeId`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`).
 Frontend `Connection` panel includes one-click export controls: `Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)` (judge/operator evidence snapshot).
 Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
+
+Judge-facing visual evidence pack:
+```bash
+npm run demo:e2e:visual-pack
+```
+Strict mode (non-zero exit when required screenshots or critical badge lanes are missing):
+```bash
+npm run demo:e2e:visual-pack:strict
+```
+Artifacts:
+- `artifacts/judge-visual-evidence/manifest.json`
+- `artifacts/judge-visual-evidence/manifest.md`
 
 5. Optional runtime integrations:
 - Firestore adapter (orchestrator): set `FIRESTORE_ENABLED=true` and `GOOGLE_CLOUD_PROJECT`.

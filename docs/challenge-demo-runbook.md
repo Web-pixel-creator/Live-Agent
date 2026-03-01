@@ -398,6 +398,14 @@ pwsh ./infra/gcp/collect-observability-evidence.ps1 -ProjectId "<your-project-id
 ```powershell
 npm run infra:observability:report
 ```
-5. Optional CI collection path:
+5. Generate judge visual evidence pack (screenshot + badge lane checklist):
+```powershell
+npm run demo:e2e:visual-pack
+```
+Strict pack gate:
+```powershell
+npm run demo:e2e:visual-pack:strict
+```
+6. Optional CI collection path:
 - Run GitHub workflow `.github/workflows/observability-evidence.yml` with `collect_live=true`.
 - Provide `project_id` and ensure repository secret `GCP_CREDENTIALS_JSON` is configured.

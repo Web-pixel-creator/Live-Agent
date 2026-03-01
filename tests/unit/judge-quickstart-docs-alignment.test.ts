@@ -29,6 +29,7 @@ test("judge quickstart document includes core judge commands and categories", ()
     "npm run demo:e2e:fast",
     "npm run demo:e2e:policy",
     "npm run demo:e2e:badge",
+    "npm run demo:e2e:visual-pack",
     "npm run verify:release",
     "Export Session Markdown",
     "Export Session JSON",

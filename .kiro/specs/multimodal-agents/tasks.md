@@ -218,6 +218,7 @@
 44. Demo frontend design theme palette baseline (`apps/demo-frontend/public/theme-colors.json` + `docs/design-theme-colors.md` + anti-drift alignment tests) [Completed]
 45. Demo frontend theme toggle polish (`dark/light` runtime toggle + persistent `localStorage` mode + responsive hero layout + alignment tests) [Completed]
 46. Demo frontend session audio export baseline (`Export Session Audio (WAV)` + PCM16 capture buffer + audio snapshot metadata in markdown/json export + alignment tests/docs) [Completed]
+47. Judge visual evidence pack baseline (`scripts/judge-visual-evidence-pack.mjs` + `demo:e2e:visual-pack`/`demo:e2e:visual-pack:strict` + docs/checklist + script/alignment tests) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

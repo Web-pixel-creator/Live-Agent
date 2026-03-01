@@ -16,6 +16,8 @@
     "demo:e2e:fast:retry": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1 -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipPolicy -SkipBadge -SkipPerfLoad -UseFastDemoE2E",
     "demo:e2e:policy": "node ./scripts/demo-e2e-policy-check.mjs --input ./artifacts/demo-e2e/summary.json --output ./artifacts/demo-e2e/policy-check.md --jsonOutput ./artifacts/demo-e2e/policy-check.json",
     "demo:e2e:badge": "node ./scripts/demo-e2e-badge-json.mjs --policy ./artifacts/demo-e2e/policy-check.json --summary ./artifacts/demo-e2e/summary.json --output ./artifacts/demo-e2e/badge.json --detailsOutput ./artifacts/demo-e2e/badge-details.json",
+    "demo:e2e:visual-pack": "node ./scripts/judge-visual-evidence-pack.mjs",
+    "demo:e2e:visual-pack:strict": "node ./scripts/judge-visual-evidence-pack.mjs --strict",
     "perf:load": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/perf-load.ps1",
     "perf:load:fast": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/perf-load.ps1 -SkipBuild",
     "perf:profile": "node ./scripts/perf-load.mjs --output ./artifacts/perf-load/summary.json --markdownOutput ./artifacts/perf-load/summary.md",
