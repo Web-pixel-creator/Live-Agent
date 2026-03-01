@@ -222,6 +222,19 @@ Badge artifact generation:
 npm run demo:e2e:badge
 ```
 
+Runtime usage/cost behavior for `demo:e2e` summary:
+
+- By default, `tokensUsed` and `costEstimate` are derived from real scenario request/response payloads (`source=runtime_estimate`).
+- Optional explicit override (for accounting alignment in CI/release evidence):
+  - `DEMO_E2E_COST_ESTIMATE_JSON`
+  - `DEMO_E2E_TOKENS_USED_JSON`
+- Runtime cost model knobs (used when JSON override is absent):
+  - `DEMO_E2E_COST_INPUT_PER_1K_TOKENS_USD` (default `0.00045`)
+  - `DEMO_E2E_COST_OUTPUT_PER_1K_TOKENS_USD` (default `0.00135`)
+  - `DEMO_E2E_COST_IMAGEN_PER_ASSET_USD` (default `0.040`)
+  - `DEMO_E2E_COST_VEO_PER_JOB_USD` (default `0.120`)
+  - `DEMO_E2E_COST_TTS_PER_SEGMENT_USD` (default `0.008`)
+
 Single-command local quality gate (build + unit tests + profile smoke + demo e2e + policy + badge + perf load policy):
 
 ```powershell
