@@ -433,6 +433,9 @@ Runtime public endpoint validation (Railway-first default):
 npm run badge:public:check
 ```
 
+By default, `badge:public:check` is strict and requires judge-facing evidence blocks to report `status=pass`.
+Use `-- -AllowFailingEvidence` only for schema/debug checks when you intentionally do not want deployment gating.
+
 Optional endpoint overrides:
 
 ```powershell

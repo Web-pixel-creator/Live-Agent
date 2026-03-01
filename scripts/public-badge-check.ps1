@@ -5,7 +5,8 @@ param(
   [string]$RailwayPublicUrl = $env:RAILWAY_PUBLIC_URL,
   [int]$TimeoutSec = 20,
   [int]$ExpectedSchemaVersion = 1,
-  [switch]$SkipDetails
+  [switch]$SkipDetails,
+  [switch]$AllowFailingEvidence
 )
 
 $ErrorActionPreference = "Stop"
@@ -213,6 +214,49 @@ if (-not $SkipDetails) {
 
   if ($details.badge.schemaVersion -ne $ExpectedSchemaVersion) {
     Fail "Unexpected badge-details.badge schemaVersion=$($details.badge.schemaVersion). Expected $ExpectedSchemaVersion."
+  }
+
+  if (-not $AllowFailingEvidence) {
+    $statusChecks = @(
+      @{ Name = "operatorTurnTruncation"; Status = $truncationStatus },
+      @{ Name = "operatorTurnDelete"; Status = $deleteStatus },
+      @{ Name = "damageControl"; Status = $damageControlStatus },
+      @{ Name = "operatorDamageControl"; Status = $operatorDamageControlStatus },
+      @{ Name = "governancePolicy"; Status = $governancePolicyStatus },
+      @{ Name = "skillsRegistry"; Status = $skillsRegistryStatus }
+    )
+    foreach ($statusCheck in $statusChecks) {
+      if ([string]$statusCheck.Status -ne "pass") {
+        Fail ("badge-details evidence " + [string]$statusCheck.Name + ".status must be 'pass' for deployment gate.")
+      }
+    }
+
+    if (-not [bool]$truncationEvidence.validated -or -not [bool]$truncationEvidence.expectedEventSeen) {
+      Fail "badge-details evidence operatorTurnTruncation must be validated and expectedEventSeen=true."
+    }
+    if (-not [bool]$deleteEvidence.validated -or -not [bool]$deleteEvidence.expectedEventSeen) {
+      Fail "badge-details evidence operatorTurnDelete must be validated and expectedEventSeen=true."
+    }
+    if (-not [bool]$damageControlEvidence.diagnosticsValidated) {
+      Fail "badge-details evidence damageControl must be diagnosticsValidated=true."
+    }
+    if (-not [bool]$operatorDamageControlEvidence.validated) {
+      Fail "badge-details evidence operatorDamageControl must be validated=true."
+    }
+    if (
+      -not [bool]$governancePolicyEvidence.validated -or
+      -not [bool]$governancePolicyEvidence.operatorActionSeen -or
+      -not [bool]$governancePolicyEvidence.overrideTenantSeen
+    ) {
+      Fail "badge-details evidence governancePolicy must be validated with operatorActionSeen=true and overrideTenantSeen=true."
+    }
+    if (
+      -not [bool]$skillsRegistryEvidence.validated -or
+      -not [bool]$skillsRegistryEvidence.indexHasSkill -or
+      -not [bool]$skillsRegistryEvidence.registryHasSkill
+    ) {
+      Fail "badge-details evidence skillsRegistry must be validated with indexHasSkill=true and registryHasSkill=true."
+    }
   }
 }
 

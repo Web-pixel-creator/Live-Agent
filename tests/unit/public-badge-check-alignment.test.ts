@@ -16,6 +16,7 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /PUBLIC_BADGE_ENDPOINT/);
   assert.match(scriptRaw, /PUBLIC_BADGE_DETAILS_ENDPOINT/);
   assert.match(scriptRaw, /RAILWAY_PUBLIC_URL/);
+  assert.match(scriptRaw, /AllowFailingEvidence/);
   assert.match(scriptRaw, /live-agent-production\.up\.railway\.app/);
   assert.match(scriptRaw, /schemaVersion/);
   assert.match(scriptRaw, /badge-details\.json/);
@@ -28,6 +29,10 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /skillsRegistry/);
   assert.match(scriptRaw, /governancePolicyEvidenceRequired/);
   assert.match(scriptRaw, /skillsRegistryEvidenceRequired/);
+  assert.match(scriptRaw, /must be 'pass' for deployment gate/);
+  assert.match(scriptRaw, /operatorTurnTruncation must be validated and expectedEventSeen=true/);
+  assert.match(scriptRaw, /governancePolicy must be validated with operatorActionSeen=true and overrideTenantSeen=true/);
+  assert.match(scriptRaw, /skillsRegistry must be validated with indexHasSkill=true and registryHasSkill=true/);
   assert.match(scriptRaw, /img\.shields\.io\/endpoint/);
 
   const readmePath = resolve(process.cwd(), "README.md");
