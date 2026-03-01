@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-03-01T04:02:15.046Z",
+  "generatedAt": "2026-03-01T04:05:33.379Z",
   "ok": true,
   "policyPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 242,
   "violations": 0,
-  "roundTripMs": 61,
+  "roundTripMs": 49,
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-03-01T04:02:13.3280974+00:00",
+    "sourceSummaryGeneratedAt": "2026-03-01T04:05:31.7612697+00:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -15,7 +15,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T04:02:12.085Z",
+      "latestSeenAt": "2026-03-01T04:05:30.673Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -29,7 +29,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T04:02:12.196Z",
+      "latestSeenAt": "2026-03-01T04:05:30.773Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -63,7 +63,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-03-01T04:02:11.697Z",
+        "seenAt": "2026-03-01T04:05:30.325Z",
         "seenAtIsIso": true
       }
     },
@@ -97,7 +97,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 242 checks | 61ms ws",
+    "message": "pass | 242 checks | 49ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }
