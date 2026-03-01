@@ -1,13 +1,28 @@
 {
-  "generatedAt": "2026-03-01T05:37:10.554Z",
+  "generatedAt": "2026-03-01T09:04:20.442Z",
   "ok": true,
   "policyPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\summary.json",
-  "checks": 242,
+  "checks": 251,
   "violations": 0,
-  "roundTripMs": 49,
+  "roundTripMs": 47,
+  "costEstimate": {
+    "currency": "USD",
+    "geminiLiveUsd": 0.022867,
+    "imagenUsd": 0.12,
+    "veoUsd": 0.36,
+    "ttsUsd": 0.024,
+    "totalUsd": 0.526867,
+    "source": "runtime_estimate"
+  },
+  "tokensUsed": {
+    "input": 2191,
+    "output": 16208,
+    "total": 18399,
+    "source": "runtime_estimate"
+  },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-03-01T05:37:08.9630205+00:00",
+    "sourceSummaryGeneratedAt": "2026-03-01T09:04:18.6245503+00:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -15,7 +30,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T05:37:07.896Z",
+      "latestSeenAt": "2026-03-01T09:04:17.183Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -29,7 +44,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T05:37:07.999Z",
+      "latestSeenAt": "2026-03-01T09:04:17.284Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -63,7 +78,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-03-01T05:37:07.545Z",
+        "seenAt": "2026-03-01T09:04:16.828Z",
         "seenAtIsIso": true
       }
     },
@@ -99,11 +114,16 @@
       "lookupValidated": true,
       "versionConflictValidated": true,
       "healthSummaryValidated": true,
+      "updatesValidated": true,
+      "updatesHasUpsert": true,
+      "updatesHasHeartbeat": true,
+      "updatesApiValidated": true,
       "lookupStatus": "degraded",
       "lookupVersion": 3,
       "updatedVersion": 2,
       "versionConflictStatusCode": 409,
       "versionConflictCode": "API_DEVICE_NODE_VERSION_CONFLICT",
+      "updatesTotal": 4,
       "summaryTotal": 1,
       "summaryDegraded": 1,
       "summaryStale": 0,
@@ -114,7 +134,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 242 checks | 49ms ws",
+    "message": "pass | 251 checks | 47ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }
