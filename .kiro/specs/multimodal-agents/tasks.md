@@ -226,6 +226,7 @@
 52. Railway auth token compatibility hardening (`RAILWAY_TOKEN` -> `RAILWAY_API_TOKEN` fallback + `railway whoami` preflight in deploy helpers + docs/alignment tests) [Completed]
 53. README judge snapshot polish (top-level challenge-coverage + fastest judge flow + direct evidence/runtime links without changing existing command contracts) [Completed]
 54. Judge quickstart minute-by-minute demo script (5-6 min timeline aligned with runbook + alignment tests) [Completed]
+55. One-command judge epic flow (`demo:epic` orchestration script with artifact/evidence validation + docs/alignment sync) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

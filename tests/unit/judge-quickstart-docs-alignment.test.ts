@@ -29,6 +29,7 @@ test("judge quickstart document includes core judge commands and categories", ()
     "npm run demo:e2e:fast",
     "npm run demo:e2e:policy",
     "npm run demo:e2e:badge",
+    "npm run demo:epic",
     "npm run demo:e2e:visual-capture",
     "npm run demo:e2e:visual-pack",
     "npm run verify:release",
@@ -44,6 +45,7 @@ test("judge quickstart document includes core judge commands and categories", ()
     "04:45-05:30",
     "npm run demo:e2e:visual:judge",
     "artifacts/judge-visual-evidence/presentation.md",
+    "artifacts/demo-e2e/epic-summary.json",
   ];
   for (const token of requiredTokens) {
     assert.ok(source.includes(token), `judge quickstart missing token: ${token}`);

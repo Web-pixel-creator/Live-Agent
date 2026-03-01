@@ -22,6 +22,7 @@
     "demo:e2e:visual:present": "npm run demo:e2e:visual:auto && npm run demo:e2e:visual:gallery",
     "demo:e2e:visual:bundle": "node ./scripts/judge-presentation-bundle.mjs",
     "demo:e2e:visual:judge": "npm run demo:e2e:visual:present && npm run demo:e2e:visual:bundle",
+    "demo:epic": "node ./scripts/demo-epic.mjs",
     "demo:e2e:visual-pack": "node ./scripts/judge-visual-evidence-pack.mjs",
     "demo:e2e:visual-pack:strict": "node ./scripts/judge-visual-evidence-pack.mjs --strict",
     "perf:load": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/perf-load.ps1",

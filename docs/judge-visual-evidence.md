@@ -46,6 +46,12 @@ Full judge bundle shortcut:
 npm run demo:e2e:visual:judge
 ```
 
+Epic one-command judge pipeline (demo e2e + policy + badge + visual judge + artifact validation):
+
+```bash
+npm run demo:epic
+```
+
 Offline deterministic mode (no running frontend required):
 
 ```bash
@@ -86,6 +92,7 @@ Defaults used by `scripts/judge-visual-capture.mjs`:
 3. `artifacts/judge-visual-evidence/screenshots/_capture-manifest.json`
 4. `artifacts/judge-visual-evidence/gallery.md`
 5. `artifacts/judge-visual-evidence/presentation.md`
+6. `artifacts/demo-e2e/epic-summary.json`
 
 ## Required Screenshot Filenames
 

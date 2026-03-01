@@ -25,6 +25,14 @@ Open: `http://localhost:3000`
 
 ## 2) Run Judge-Evidence Automation
 
+One-command pipeline:
+
+```bash
+npm run demo:epic
+```
+
+Or run explicit steps:
+
 ```bash
 npm run demo:e2e:fast
 npm run demo:e2e:policy
@@ -45,6 +53,7 @@ Artifacts:
 6. `artifacts/judge-visual-evidence/screenshots/_capture-manifest.json`
 7. `artifacts/judge-visual-evidence/gallery.md`
 8. `artifacts/judge-visual-evidence/presentation.md`
+9. `artifacts/demo-e2e/epic-summary.json`
 
 ## 3) Validate Release Readiness
 
@@ -98,6 +107,6 @@ npm run verify:release
    - Show approval flow and damage-control verdict in Operator Console.
    - Confirm safety gates before execution.
 5. `04:45-05:30` Evidence close:
-   - Run `npm run demo:e2e:visual:judge`.
+   - Run `npm run demo:epic` (or fallback `npm run demo:e2e:visual:judge` if e2e/policy/badge were already executed).
    - Open `artifacts/judge-visual-evidence/presentation.md`.
    - Confirm all evidence lanes are `pass` in `artifacts/demo-e2e/badge-details.json`.

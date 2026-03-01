@@ -423,6 +423,10 @@ Judge full bundle shortcut:
 ```powershell
 npm run demo:e2e:visual:judge
 ```
+Epic one-command shortcut:
+```powershell
+npm run demo:epic
+```
 Offline fallback capture (when frontend is unavailable):
 ```powershell
 npm run demo:e2e:visual-capture -- --mockAll

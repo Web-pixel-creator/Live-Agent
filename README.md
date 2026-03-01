@@ -19,7 +19,7 @@ Starter workspace for the "next-generation agents" spec:
   - `UI Navigator`: Computer Use planning/execution with approval/damage-control.
 - Fastest judge flow:
   1. `docs/judge-quickstart.md`
-  2. `npm run demo:e2e:visual:judge`
+  2. `npm run demo:epic`
   3. `artifacts/judge-visual-evidence/presentation.md`
   4. `artifacts/demo-e2e/badge-details.json`
 - Public runtime status:
@@ -49,7 +49,7 @@ Starter workspace for the "next-generation agents" spec:
 ## Judge Quick Path
 
 1. Read `docs/judge-quickstart.md` for a one-page evaluation flow.
-2. Run `npm run demo:e2e:fast && npm run demo:e2e:policy`.
+2. Run `npm run demo:epic` (one-command judge pipeline) or `npm run demo:e2e:fast && npm run demo:e2e:policy`.
 3. Run `npm run demo:e2e:visual-pack` for screenshot/badge visual pack.
 4. Open `artifacts/demo-e2e/badge-details.json` for judge-facing evidence lanes.
 
@@ -127,6 +127,10 @@ One-command judge bundle flow:
 ```bash
 npm run demo:e2e:visual:judge
 ```
+One-command epic judge flow (e2e + policy + badge + visual judge + artifact validation):
+```bash
+npm run demo:epic
+```
 Offline deterministic capture (no running frontend):
 ```bash
 npm run demo:e2e:visual-capture -- --mockAll
@@ -137,6 +141,7 @@ Artifacts:
 - `artifacts/judge-visual-evidence/screenshots/_capture-manifest.json`
 - `artifacts/judge-visual-evidence/gallery.md`
 - `artifacts/judge-visual-evidence/presentation.md`
+- `artifacts/demo-e2e/epic-summary.json`
 
 5. Optional runtime integrations:
 - Firestore adapter (orchestrator): set `FIRESTORE_ENABLED=true` and `GOOGLE_CLOUD_PROJECT`.
