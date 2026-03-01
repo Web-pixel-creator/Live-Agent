@@ -203,6 +203,7 @@
 29. T-302 baseline extension (managed skills registry detail/history APIs: `/v1/skills/registry/{skillId}` + `/v1/skills/registry/{skillId}/updates` with tenant-aware operator audit filtering) [Completed baseline]
 30. T-303 baseline extension (device-node detail/history APIs: `/v1/device-nodes/{nodeId}` + `/v1/device-nodes/{nodeId}/updates` with tenant-aware operator audit filtering for upsert/heartbeat lifecycle) [Completed baseline]
 31. Device-nodes updates evidence hardening (demo/policy/badge/deploy gates now require `/v1/device-nodes/{nodeId}/updates` lifecycle proof for both `device_node_upsert` and `device_node_heartbeat`, including strict `updatesTotal>=2` and anti-drift tests) [Completed]
+32. Operator Console device-node updates evidence widget (judge-facing card + operator summary log lane for `/v1/operator/summary.deviceNodeUpdates` with strict validated status for upsert/heartbeat lifecycle) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

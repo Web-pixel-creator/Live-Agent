@@ -133,6 +133,14 @@ const el = {
   operatorDeviceNodesMissingHeartbeat: document.getElementById("operatorDeviceNodesMissingHeartbeat"),
   operatorDeviceNodesMaxAge: document.getElementById("operatorDeviceNodesMaxAge"),
   operatorDeviceNodesHint: document.getElementById("operatorDeviceNodesHint"),
+  operatorDeviceNodeUpdatesStatus: document.getElementById("operatorDeviceNodeUpdatesStatus"),
+  operatorDeviceNodeUpdatesTotal: document.getElementById("operatorDeviceNodeUpdatesTotal"),
+  operatorDeviceNodeUpdatesUpsert: document.getElementById("operatorDeviceNodeUpdatesUpsert"),
+  operatorDeviceNodeUpdatesHeartbeat: document.getElementById("operatorDeviceNodeUpdatesHeartbeat"),
+  operatorDeviceNodeUpdatesUniqueNodes: document.getElementById("operatorDeviceNodeUpdatesUniqueNodes"),
+  operatorDeviceNodeUpdatesLatest: document.getElementById("operatorDeviceNodeUpdatesLatest"),
+  operatorDeviceNodeUpdatesSeenAt: document.getElementById("operatorDeviceNodeUpdatesSeenAt"),
+  operatorDeviceNodeUpdatesHint: document.getElementById("operatorDeviceNodeUpdatesHint"),
   operatorTraceStatus: document.getElementById("operatorTraceStatus"),
   operatorTraceRuns: document.getElementById("operatorTraceRuns"),
   operatorTraceEvents: document.getElementById("operatorTraceEvents"),
@@ -747,6 +755,27 @@ function setOperatorDeviceNodesHint(text, variant = "neutral") {
   el.operatorDeviceNodesHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorDeviceNodeUpdatesHint(text, variant = "neutral") {
+  if (!el.operatorDeviceNodeUpdatesHint) {
+    return;
+  }
+  el.operatorDeviceNodeUpdatesHint.textContent = text;
+  el.operatorDeviceNodeUpdatesHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorDeviceNodeUpdatesHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorDeviceNodeUpdatesHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorDeviceNodeUpdatesHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorDeviceNodeUpdatesHint.classList.add("operator-health-hint-neutral");
+}
+
 function setOperatorTraceHint(text, variant = "neutral") {
   if (!el.operatorTraceHint) {
     return;
@@ -1018,6 +1047,17 @@ function resetOperatorDeviceNodesWidget(reason = "no_data") {
   setText(el.operatorDeviceNodesMaxAge, "n/a");
   setOperatorDeviceNodesHint("Refresh summary to inspect device-node fleet health.", "neutral");
   setStatusPill(el.operatorDeviceNodesStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorDeviceNodeUpdatesWidget(reason = "no_data") {
+  setText(el.operatorDeviceNodeUpdatesTotal, "0");
+  setText(el.operatorDeviceNodeUpdatesUpsert, "0");
+  setText(el.operatorDeviceNodeUpdatesHeartbeat, "0");
+  setText(el.operatorDeviceNodeUpdatesUniqueNodes, "0");
+  setText(el.operatorDeviceNodeUpdatesLatest, "n/a");
+  setText(el.operatorDeviceNodeUpdatesSeenAt, "n/a");
+  setOperatorDeviceNodeUpdatesHint("Refresh summary to inspect upsert/heartbeat updates proof.", "neutral");
+  setStatusPill(el.operatorDeviceNodeUpdatesStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function resetOperatorTraceWidget(reason = "no_data") {
@@ -1963,6 +2003,55 @@ function renderOperatorDeviceNodesWidget(deviceNodesSummary) {
   setOperatorDeviceNodesHint(hint, hintVariant);
 }
 
+function renderOperatorDeviceNodeUpdatesWidget(deviceNodeUpdatesSummary) {
+  if (!deviceNodeUpdatesSummary || typeof deviceNodeUpdatesSummary !== "object") {
+    resetOperatorDeviceNodeUpdatesWidget("no_data");
+    return;
+  }
+
+  const total = Math.max(0, Math.floor(Number(deviceNodeUpdatesSummary.total ?? 0) || 0));
+  const upsertTotal = Math.max(0, Math.floor(Number(deviceNodeUpdatesSummary.upsertTotal ?? 0) || 0));
+  const heartbeatTotal = Math.max(0, Math.floor(Number(deviceNodeUpdatesSummary.heartbeatTotal ?? 0) || 0));
+  const uniqueNodes = Math.max(0, Math.floor(Number(deviceNodeUpdatesSummary.uniqueNodes ?? 0) || 0));
+  const latest = deviceNodeUpdatesSummary.latest && typeof deviceNodeUpdatesSummary.latest === "object"
+    ? deviceNodeUpdatesSummary.latest
+    : null;
+  const latestAction = latest && typeof latest.action === "string" ? latest.action : "n/a";
+  const latestOutcome = latest && typeof latest.outcome === "string" ? latest.outcome : "n/a";
+  const latestNodeId = latest && typeof latest.nodeId === "string" ? latest.nodeId : "n/a";
+  const latestSeenAt = latest && typeof latest.createdAt === "string" ? latest.createdAt : "n/a";
+  const validated = deviceNodeUpdatesSummary.validated === true;
+  const hasUpsert = deviceNodeUpdatesSummary.hasUpsert === true;
+  const hasHeartbeat = deviceNodeUpdatesSummary.hasHeartbeat === true;
+
+  setText(el.operatorDeviceNodeUpdatesTotal, String(total));
+  setText(el.operatorDeviceNodeUpdatesUpsert, String(upsertTotal));
+  setText(el.operatorDeviceNodeUpdatesHeartbeat, String(heartbeatTotal));
+  setText(el.operatorDeviceNodeUpdatesUniqueNodes, String(uniqueNodes));
+  setText(el.operatorDeviceNodeUpdatesLatest, `${latestAction}/${latestOutcome} node=${latestNodeId}`);
+  setText(el.operatorDeviceNodeUpdatesSeenAt, latestSeenAt);
+
+  let statusVariant = "ok";
+  let statusText = "validated";
+  let hintVariant = "ok";
+  let hint = "Updates evidence is complete: both upsert and heartbeat lifecycle actions are visible.";
+
+  if (total <= 0) {
+    statusVariant = "neutral";
+    statusText = "no_evidence";
+    hintVariant = "warn";
+    hint = "No device-node updates evidence yet. Run create/update and heartbeat actions from Operator Console.";
+  } else if (!validated || !hasUpsert || !hasHeartbeat || total < 2) {
+    statusVariant = "neutral";
+    statusText = "partial";
+    hintVariant = "warn";
+    hint = "Partial updates evidence. Ensure both device_node_upsert and device_node_heartbeat are present.";
+  }
+
+  setStatusPill(el.operatorDeviceNodeUpdatesStatus, `${statusText} total=${total}`, statusVariant);
+  setOperatorDeviceNodeUpdatesHint(hint, hintVariant);
+}
+
 function extractTopCounterEntry(counters) {
   if (!counters || typeof counters !== "object") {
     return null;
@@ -2763,6 +2852,7 @@ function renderOperatorSummary(summary) {
   resetOperatorHealthWidget("no_data");
   resetOperatorUiExecutorWidget("no_data");
   resetOperatorDeviceNodesWidget("no_data");
+  resetOperatorDeviceNodeUpdatesWidget("no_data");
   resetOperatorTraceWidget("no_data");
   resetOperatorApprovalsWidget("no_data");
   resetOperatorLifecycleWidget("no_data");
@@ -2778,6 +2868,7 @@ function renderOperatorSummary(summary) {
   renderOperatorTurnTruncationWidget(null, state.operatorTurnTruncationSnapshot);
   renderOperatorTurnDeleteWidget(null, state.operatorTurnDeleteSnapshot);
   renderOperatorDamageControlWidget(null, state.operatorDamageControlSnapshot);
+  renderOperatorDeviceNodeUpdatesWidget(null);
   renderOperatorSkillsRegistryWidget(null);
   renderOperatorGovernancePolicyWidget(null);
   if (!summary || typeof summary !== "object") {
@@ -3108,6 +3199,38 @@ function renderOperatorSummary(summary) {
     }
   }
   renderOperatorDeviceNodesWidget(deviceNodes);
+  const deviceNodeUpdates = summary.deviceNodeUpdates && typeof summary.deviceNodeUpdates === "object"
+    ? summary.deviceNodeUpdates
+    : null;
+  if (deviceNodeUpdates) {
+    const updatesTotal = Math.max(0, Math.floor(Number(deviceNodeUpdates.total ?? 0) || 0));
+    const updatesUpsert = Math.max(0, Math.floor(Number(deviceNodeUpdates.upsertTotal ?? 0) || 0));
+    const updatesHeartbeat = Math.max(0, Math.floor(Number(deviceNodeUpdates.heartbeatTotal ?? 0) || 0));
+    const updatesUniqueNodes = Math.max(0, Math.floor(Number(deviceNodeUpdates.uniqueNodes ?? 0) || 0));
+    const updatesValidated = deviceNodeUpdates.validated === true;
+    appendEntry(
+      el.operatorSummary,
+      updatesValidated ? "system" : "error",
+      "device_nodes_updates",
+      `total=${updatesTotal} upsert=${updatesUpsert} heartbeat=${updatesHeartbeat} unique_nodes=${updatesUniqueNodes} validated=${updatesValidated}`,
+    );
+    const updatesLatest = deviceNodeUpdates.latest && typeof deviceNodeUpdates.latest === "object"
+      ? deviceNodeUpdates.latest
+      : null;
+    if (updatesLatest) {
+      const latestNodeId = typeof updatesLatest.nodeId === "string" ? updatesLatest.nodeId : "n/a";
+      const latestAction = typeof updatesLatest.action === "string" ? updatesLatest.action : "n/a";
+      const latestOutcome = typeof updatesLatest.outcome === "string" ? updatesLatest.outcome : "n/a";
+      const latestSeenAt = typeof updatesLatest.createdAt === "string" ? updatesLatest.createdAt : "n/a";
+      appendEntry(
+        el.operatorSummary,
+        "system",
+        "device_nodes_updates.latest",
+        `node=${latestNodeId} action=${latestAction} outcome=${latestOutcome} seen_at=${latestSeenAt}`,
+      );
+    }
+  }
+  renderOperatorDeviceNodeUpdatesWidget(deviceNodeUpdates);
 
   const operatorActions = summary.operatorActions && typeof summary.operatorActions === "object"
     ? summary.operatorActions
@@ -3243,6 +3366,7 @@ async function refreshOperatorSummary() {
     resetOperatorHealthWidget("summary_error");
     resetOperatorUiExecutorWidget("summary_error");
     resetOperatorDeviceNodesWidget("summary_error");
+    resetOperatorDeviceNodeUpdatesWidget("summary_error");
     resetOperatorTraceWidget("summary_error");
     resetOperatorApprovalsWidget("summary_error");
     resetOperatorLifecycleWidget("summary_error");
@@ -5180,6 +5304,7 @@ async function bootstrap() {
   setFallbackAsset(false);
   clearPendingApproval();
   resetOperatorHealthWidget("no_data");
+  resetOperatorDeviceNodeUpdatesWidget("no_data");
   resetOperatorGatewayErrorWidget("no_data");
   resetOperatorTurnTruncationWidget("no_data");
   resetOperatorTurnDeleteWidget("no_data");

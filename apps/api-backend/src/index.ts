@@ -1778,6 +1778,66 @@ function buildTurnDeleteSummary(
   };
 }
 
+function buildDeviceNodeUpdatesSummary(operatorActions: OperatorActionRecord[]): Record<string, unknown> {
+  const relevantActions = operatorActions
+    .filter((item) => item.action === "device_node_upsert" || item.action === "device_node_heartbeat")
+    .slice()
+    .sort((left, right) => {
+      const leftTs = Date.parse(left.createdAt);
+      const rightTs = Date.parse(right.createdAt);
+      const leftValue = Number.isFinite(leftTs) ? leftTs : 0;
+      const rightValue = Number.isFinite(rightTs) ? rightTs : 0;
+      return rightValue - leftValue;
+    });
+
+  const uniqueNodes = new Set<string>();
+  const normalized = relevantActions.map((item) => {
+    const details = isRecord(item.details) ? item.details : null;
+    const nodeId = toOptionalString(details?.nodeId);
+    if (nodeId) {
+      uniqueNodes.add(nodeId);
+    }
+    return {
+      actionId: item.actionId,
+      action: item.action,
+      outcome: item.outcome,
+      nodeId,
+      status: toOptionalString(details?.status),
+      version: parseNonNegativeInt(details?.version),
+      createdAt: item.createdAt,
+    };
+  });
+
+  const upsertTotal = normalized.reduce((acc, item) => acc + (item.action === "device_node_upsert" ? 1 : 0), 0);
+  const heartbeatTotal = normalized.reduce(
+    (acc, item) => acc + (item.action === "device_node_heartbeat" ? 1 : 0),
+    0,
+  );
+  const succeededTotal = normalized.reduce((acc, item) => acc + (item.outcome === "succeeded" ? 1 : 0), 0);
+  const failedTotal = normalized.reduce((acc, item) => acc + (item.outcome === "failed" ? 1 : 0), 0);
+  const deniedTotal = normalized.reduce((acc, item) => acc + (item.outcome === "denied" ? 1 : 0), 0);
+  const hasUpsert = upsertTotal > 0;
+  const hasHeartbeat = heartbeatTotal > 0;
+  const validated = hasUpsert && hasHeartbeat && normalized.length >= 2;
+
+  return {
+    status: normalized.length <= 0 ? "missing" : validated ? "validated" : "partial",
+    total: normalized.length,
+    upsertTotal,
+    heartbeatTotal,
+    uniqueNodes: uniqueNodes.size,
+    succeededTotal,
+    failedTotal,
+    deniedTotal,
+    hasUpsert,
+    hasHeartbeat,
+    latest: normalized.length > 0 ? normalized[0] : null,
+    recent: normalized.slice(0, 20),
+    source: "operator_actions",
+    validated,
+  };
+}
+
 function buildDamageControlSummary(
   events: EventListItem[],
   services: Array<Record<string, unknown>>,
@@ -4056,6 +4116,7 @@ export const server = createServer(async (req, res) => {
       const startupFailures = buildStartupFailureSummary(services);
       const turnTruncation = buildTurnTruncationSummary(recentEvents, services);
       const turnDelete = buildTurnDeleteSummary(recentEvents, services);
+      const deviceNodeUpdates = buildDeviceNodeUpdatesSummary(operatorActions);
       const damageControl = buildDamageControlSummary(recentEvents, services);
       const skillsRegistryLifecycle = buildSkillsRegistryLifecycleSummary(operatorActions);
       const governancePolicyLifecycle = buildGovernancePolicyLifecycleSummary(operatorActions);
@@ -4087,6 +4148,7 @@ export const server = createServer(async (req, res) => {
           startupFailures,
           turnTruncation,
           turnDelete,
+          deviceNodeUpdates,
           damageControl,
           skillsRegistryLifecycle,
           governancePolicyLifecycle,
