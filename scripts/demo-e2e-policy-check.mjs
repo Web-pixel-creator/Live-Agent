@@ -1616,6 +1616,75 @@ async function main() {
     "tokensUsedTotal >= tokensUsedInput + tokensUsedOutput (all >= 0)",
   );
   addCheck(
+    "kpi.operatorAgentUsageSummaryValidated",
+    kpis.operatorAgentUsageSummaryValidated === true,
+    kpis.operatorAgentUsageSummaryValidated,
+    true,
+  );
+  addCheck(
+    "kpi.operatorAgentUsageTotal",
+    toNumber(kpis.operatorAgentUsageTotal) >= 1,
+    kpis.operatorAgentUsageTotal,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorAgentUsageUniqueRuns",
+    toNumber(kpis.operatorAgentUsageUniqueRuns) >= 1,
+    kpis.operatorAgentUsageUniqueRuns,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorAgentUsageUniqueSessions",
+    toNumber(kpis.operatorAgentUsageUniqueSessions) >= 1,
+    kpis.operatorAgentUsageUniqueSessions,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorAgentUsageTotalCalls",
+    toNumber(kpis.operatorAgentUsageTotalCalls) >= 0,
+    kpis.operatorAgentUsageTotalCalls,
+    ">= 0",
+  );
+  const operatorAgentUsageInputTokens = toNumber(kpis.operatorAgentUsageInputTokens);
+  const operatorAgentUsageOutputTokens = toNumber(kpis.operatorAgentUsageOutputTokens);
+  const operatorAgentUsageTotalTokens = toNumber(kpis.operatorAgentUsageTotalTokens);
+  addCheck(
+    "kpi.operatorAgentUsageTokensConsistency",
+    Number.isFinite(operatorAgentUsageInputTokens) &&
+      Number.isFinite(operatorAgentUsageOutputTokens) &&
+      Number.isFinite(operatorAgentUsageTotalTokens) &&
+      operatorAgentUsageInputTokens >= 0 &&
+      operatorAgentUsageOutputTokens >= 0 &&
+      operatorAgentUsageTotalTokens >= operatorAgentUsageInputTokens + operatorAgentUsageOutputTokens,
+    {
+      total: kpis.operatorAgentUsageTotalTokens,
+      input: kpis.operatorAgentUsageInputTokens,
+      output: kpis.operatorAgentUsageOutputTokens,
+    },
+    "operatorAgentUsageTotalTokens >= operatorAgentUsageInputTokens + operatorAgentUsageOutputTokens (all >= 0)",
+  );
+  const operatorAgentUsageModels = Array.isArray(kpis.operatorAgentUsageModels)
+    ? kpis.operatorAgentUsageModels.filter((item) => typeof item === "string" && item.trim().length > 0)
+    : [];
+  addCheck(
+    "kpi.operatorAgentUsageModelsCoverage",
+    operatorAgentUsageModels.length >= 1,
+    kpis.operatorAgentUsageModels,
+    "array with >= 1 model",
+  );
+  addCheck(
+    "kpi.operatorAgentUsageSource",
+    String(kpis.operatorAgentUsageSource) === "operator_summary",
+    kpis.operatorAgentUsageSource,
+    "operator_summary",
+  );
+  addCheck(
+    "kpi.operatorAgentUsageStatus",
+    String(kpis.operatorAgentUsageStatus) === "observed",
+    kpis.operatorAgentUsageStatus,
+    "observed",
+  );
+  addCheck(
     "kpi.sessionRunBindingValidated",
     kpis.sessionRunBindingValidated === true,
     kpis.sessionRunBindingValidated,

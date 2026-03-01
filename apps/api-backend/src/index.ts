@@ -2020,6 +2020,122 @@ function buildDamageControlSummary(
   };
 }
 
+function buildAgentUsageSummary(events: EventListItem[]): Record<string, unknown> {
+  const uniqueRuns = new Set<string>();
+  const uniqueSessions = new Set<string>();
+  const modelSet = new Set<string>();
+  const sourceCounts: Record<string, number> = {
+    gemini_usage_metadata: 0,
+    none: 0,
+    unknown: 0,
+  };
+  const normalized: Array<Record<string, unknown>> = [];
+  let totalCalls = 0;
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let totalTokens = 0;
+
+  for (const event of events) {
+    const usageSource = toOptionalString(event.agentUsageSource);
+    const usageCalls = parseNonNegativeInt(event.agentUsageCalls) ?? 0;
+    const usageInputTokens = parseNonNegativeInt(event.agentUsageInputTokens) ?? 0;
+    const usageOutputTokens = parseNonNegativeInt(event.agentUsageOutputTokens) ?? 0;
+    const usageTotalTokens = Math.max(
+      parseNonNegativeInt(event.agentUsageTotalTokens) ?? 0,
+      usageInputTokens + usageOutputTokens,
+    );
+    const usageModels = Array.isArray(event.agentUsageModels)
+      ? event.agentUsageModels
+          .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+          .map((item) => item.trim())
+      : [];
+    const hasUsageEvidence =
+      usageSource !== null ||
+      usageCalls > 0 ||
+      usageInputTokens > 0 ||
+      usageOutputTokens > 0 ||
+      usageTotalTokens > 0 ||
+      usageModels.length > 0;
+    if (!hasUsageEvidence) {
+      continue;
+    }
+
+    if (typeof event.runId === "string" && event.runId.trim().length > 0) {
+      uniqueRuns.add(event.runId);
+    }
+    if (typeof event.sessionId === "string" && event.sessionId.trim().length > 0) {
+      uniqueSessions.add(event.sessionId);
+    }
+
+    totalCalls += usageCalls;
+    inputTokens += usageInputTokens;
+    outputTokens += usageOutputTokens;
+    totalTokens += usageTotalTokens;
+
+    for (const model of usageModels) {
+      modelSet.add(model);
+    }
+    if (usageSource === "gemini_usage_metadata") {
+      sourceCounts.gemini_usage_metadata += 1;
+    } else if (usageSource === "none") {
+      sourceCounts.none += 1;
+    } else {
+      sourceCounts.unknown += 1;
+    }
+
+    normalized.push({
+      eventId: event.eventId,
+      runId: event.runId ?? null,
+      sessionId: event.sessionId,
+      createdAt: event.createdAt,
+      source: event.source,
+      eventType: event.type,
+      usageSource,
+      calls: usageCalls,
+      inputTokens: usageInputTokens,
+      outputTokens: usageOutputTokens,
+      totalTokens: usageTotalTokens,
+      models: usageModels,
+    });
+  }
+
+  if (normalized.length <= 0) {
+    return {
+      status: "missing",
+      total: 0,
+      uniqueRuns: 0,
+      uniqueSessions: 0,
+      totalCalls: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      models: [],
+      sourceCounts,
+      latest: null,
+      recent: [],
+      source: "operator_summary",
+      validated: false,
+    };
+  }
+
+  return {
+    status: "observed",
+    total: normalized.length,
+    uniqueRuns: uniqueRuns.size,
+    uniqueSessions: uniqueSessions.size,
+    totalCalls,
+    inputTokens,
+    outputTokens,
+    totalTokens,
+    models: Array.from(modelSet).sort((left, right) => left.localeCompare(right)),
+    sourceCounts,
+    latest: normalized[0],
+    recent: normalized.slice(0, 20),
+    source: "operator_summary",
+    validated: totalTokens >= inputTokens + outputTokens,
+  };
+}
+
 function buildSkillsRegistryLifecycleSummary(
   operatorActions: OperatorActionRecord[],
 ): Record<string, unknown> {
@@ -4118,6 +4234,7 @@ export const server = createServer(async (req, res) => {
       const turnDelete = buildTurnDeleteSummary(recentEvents, services);
       const deviceNodeUpdates = buildDeviceNodeUpdatesSummary(operatorActions);
       const damageControl = buildDamageControlSummary(recentEvents, services);
+      const agentUsage = buildAgentUsageSummary(recentEvents);
       const skillsRegistryLifecycle = buildSkillsRegistryLifecycleSummary(operatorActions);
       const governancePolicyLifecycle = buildGovernancePolicyLifecycleSummary(operatorActions);
 
@@ -4150,6 +4267,7 @@ export const server = createServer(async (req, res) => {
           turnDelete,
           deviceNodeUpdates,
           damageControl,
+          agentUsage,
           skillsRegistryLifecycle,
           governancePolicyLifecycle,
           deviceNodes: deviceNodeHealth,

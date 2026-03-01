@@ -60,6 +60,7 @@ $report = [ordered]@{
     governancePolicyStatus = "unavailable"
     skillsRegistryStatus = "unavailable"
     deviceNodesStatus = "unavailable"
+    agentUsageStatus = "unavailable"
     deviceNodeUpdatesStatus = "unavailable"
   }
   deviceNodeUpdates = [ordered]@{
@@ -129,6 +130,9 @@ if (Test-Path $resolvedBadgeDetailsPath) {
           $report.statuses.deviceNodeUpdatesStatus = "fail"
         }
       }
+      if ($null -ne $badgeDetails.evidence.agentUsage) {
+        $report.statuses.agentUsageStatus = Get-StatusValueOrDefault -Value $badgeDetails.evidence.agentUsage.status -DefaultValue "unavailable"
+      }
     }
   }
   catch {
@@ -156,6 +160,7 @@ $markdown = @(
   "| governancePolicy | $($report.statuses.governancePolicyStatus) |",
   "| skillsRegistry | $($report.statuses.skillsRegistryStatus) |",
   "| deviceNodes | $($report.statuses.deviceNodesStatus) |",
+  "| agentUsage | $($report.statuses.agentUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",
   "## Device Node Updates Details",

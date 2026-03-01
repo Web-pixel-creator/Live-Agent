@@ -404,6 +404,15 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       )
     }
 
+    $manifestAgentUsageStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceAgentUsageStatus
+    $manifestAgentUsageStatus = $manifestAgentUsageStatusRaw.ToLowerInvariant()
+    if ($manifestAgentUsageStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceAgentUsageStatus expected pass, actual " +
+        $manifestAgentUsageStatusRaw
+      )
+    }
+
     $manifestDeviceNodeUpdatesStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus
     $manifestDeviceNodeUpdatesStatus = $manifestDeviceNodeUpdatesStatusRaw.ToLowerInvariant()
     if ($manifestDeviceNodeUpdatesStatus -ne "pass") {
@@ -489,6 +498,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     operatorTurnTruncationExpectedEventSeen = $true
     operatorTurnDeleteSummaryValidated = $true
     operatorTurnDeleteExpectedEventSeen = $true
+    operatorAgentUsageSummaryValidated = $true
     operatorDamageControlSummaryValidated = $true
     operatorTaskQueueSummaryValidated = $true
     operatorAuditTrailValidated = $true
@@ -631,6 +641,87 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $parsedTurnDeleteLatestSeenAt = [DateTimeOffset]::MinValue
   if (-not [DateTimeOffset]::TryParse($turnDeleteLatestSeenAt, [ref]$parsedTurnDeleteLatestSeenAt)) {
     Fail ("Critical KPI check failed: operatorTurnDeleteLatestSeenAt expected ISO timestamp, actual " + $turnDeleteLatestSeenAt)
+  }
+
+  $operatorAgentUsageTotal = To-NumberOrNaN $summary.kpis.operatorAgentUsageTotal
+  if ([double]::IsNaN($operatorAgentUsageTotal) -or $operatorAgentUsageTotal -lt 1) {
+    Fail ("Critical KPI check failed: operatorAgentUsageTotal expected >= 1, actual " + $summary.kpis.operatorAgentUsageTotal)
+  }
+
+  $operatorAgentUsageUniqueRuns = To-NumberOrNaN $summary.kpis.operatorAgentUsageUniqueRuns
+  if ([double]::IsNaN($operatorAgentUsageUniqueRuns) -or $operatorAgentUsageUniqueRuns -lt 1) {
+    Fail (
+      "Critical KPI check failed: operatorAgentUsageUniqueRuns expected >= 1, actual " +
+      $summary.kpis.operatorAgentUsageUniqueRuns
+    )
+  }
+
+  $operatorAgentUsageUniqueSessions = To-NumberOrNaN $summary.kpis.operatorAgentUsageUniqueSessions
+  if ([double]::IsNaN($operatorAgentUsageUniqueSessions) -or $operatorAgentUsageUniqueSessions -lt 1) {
+    Fail (
+      "Critical KPI check failed: operatorAgentUsageUniqueSessions expected >= 1, actual " +
+      $summary.kpis.operatorAgentUsageUniqueSessions
+    )
+  }
+
+  $operatorAgentUsageTotalCalls = To-NumberOrNaN $summary.kpis.operatorAgentUsageTotalCalls
+  if ([double]::IsNaN($operatorAgentUsageTotalCalls) -or $operatorAgentUsageTotalCalls -lt 0) {
+    Fail (
+      "Critical KPI check failed: operatorAgentUsageTotalCalls expected >= 0, actual " +
+      $summary.kpis.operatorAgentUsageTotalCalls
+    )
+  }
+
+  $operatorAgentUsageInputTokens = To-NumberOrNaN $summary.kpis.operatorAgentUsageInputTokens
+  if ([double]::IsNaN($operatorAgentUsageInputTokens) -or $operatorAgentUsageInputTokens -lt 0) {
+    Fail (
+      "Critical KPI check failed: operatorAgentUsageInputTokens expected >= 0, actual " +
+      $summary.kpis.operatorAgentUsageInputTokens
+    )
+  }
+
+  $operatorAgentUsageOutputTokens = To-NumberOrNaN $summary.kpis.operatorAgentUsageOutputTokens
+  if ([double]::IsNaN($operatorAgentUsageOutputTokens) -or $operatorAgentUsageOutputTokens -lt 0) {
+    Fail (
+      "Critical KPI check failed: operatorAgentUsageOutputTokens expected >= 0, actual " +
+      $summary.kpis.operatorAgentUsageOutputTokens
+    )
+  }
+
+  $operatorAgentUsageTotalTokens = To-NumberOrNaN $summary.kpis.operatorAgentUsageTotalTokens
+  if ([double]::IsNaN($operatorAgentUsageTotalTokens)) {
+    Fail "Critical KPI check failed: operatorAgentUsageTotalTokens is missing or invalid"
+  }
+  if ($operatorAgentUsageTotalTokens -lt ($operatorAgentUsageInputTokens + $operatorAgentUsageOutputTokens)) {
+    Fail (
+      "Critical KPI check failed: operatorAgentUsageTotalTokens expected >= operatorAgentUsageInputTokens + operatorAgentUsageOutputTokens, actual " +
+      $summary.kpis.operatorAgentUsageTotalTokens
+    )
+  }
+
+  $operatorAgentUsageModels = @(
+    @($summary.kpis.operatorAgentUsageModels) |
+      ForEach-Object { [string]$_ } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+  )
+  if ($operatorAgentUsageModels.Count -lt 1) {
+    Fail "Critical KPI check failed: operatorAgentUsageModels expected at least one non-empty model id"
+  }
+
+  $operatorAgentUsageSource = [string]$summary.kpis.operatorAgentUsageSource
+  if ($operatorAgentUsageSource -ne "operator_summary") {
+    Fail (
+      "Critical KPI check failed: operatorAgentUsageSource expected operator_summary, actual " +
+      $operatorAgentUsageSource
+    )
+  }
+
+  $operatorAgentUsageStatus = [string]$summary.kpis.operatorAgentUsageStatus
+  if ($operatorAgentUsageStatus -ne "observed") {
+    Fail (
+      "Critical KPI check failed: operatorAgentUsageStatus expected observed, actual " +
+      $operatorAgentUsageStatus
+    )
   }
 
   $operatorDamageControlTotal = [int]$summary.kpis.operatorDamageControlTotal
@@ -1631,6 +1722,32 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", latest_seen_at=" + $turnDeleteLatestSeenAt
     )
   }
+  $agentUsageValidated = $summary.kpis.operatorAgentUsageSummaryValidated
+  $agentUsageTotal = $summary.kpis.operatorAgentUsageTotal
+  $agentUsageUniqueRuns = $summary.kpis.operatorAgentUsageUniqueRuns
+  $agentUsageUniqueSessions = $summary.kpis.operatorAgentUsageUniqueSessions
+  $agentUsageTotalCalls = $summary.kpis.operatorAgentUsageTotalCalls
+  $agentUsageInputTokens = $summary.kpis.operatorAgentUsageInputTokens
+  $agentUsageOutputTokens = $summary.kpis.operatorAgentUsageOutputTokens
+  $agentUsageTotalTokens = $summary.kpis.operatorAgentUsageTotalTokens
+  $agentUsageModels = @($summary.kpis.operatorAgentUsageModels)
+  $agentUsageSource = $summary.kpis.operatorAgentUsageSource
+  $agentUsageStatus = $summary.kpis.operatorAgentUsageStatus
+  if ($null -ne $agentUsageValidated) {
+    Write-Host (
+      "operator.agent_usage: validated=" + $agentUsageValidated +
+      ", total=" + $agentUsageTotal +
+      ", unique_runs=" + $agentUsageUniqueRuns +
+      ", unique_sessions=" + $agentUsageUniqueSessions +
+      ", total_calls=" + $agentUsageTotalCalls +
+      ", input_tokens=" + $agentUsageInputTokens +
+      ", output_tokens=" + $agentUsageOutputTokens +
+      ", total_tokens=" + $agentUsageTotalTokens +
+      ", models=" + (@($agentUsageModels) -join ",") +
+      ", source=" + $agentUsageSource +
+      ", status=" + $agentUsageStatus
+    )
+  }
   $operatorDamageControlValidated = $summary.kpis.operatorDamageControlSummaryValidated
   $operatorDamageControlTotal = $summary.kpis.operatorDamageControlTotal
   $operatorDamageControlUniqueRuns = $summary.kpis.operatorDamageControlUniqueRuns
@@ -1710,6 +1827,7 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     $manifestGovernancePolicyStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceGovernancePolicyStatus
     $manifestSkillsRegistryStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceSkillsRegistryStatus
     $manifestDeviceNodesStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodesStatus
+    $manifestAgentUsageStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceAgentUsageStatus
     $manifestDeviceNodeUpdatesStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus
     $manifestDamageControlLatestVerdict = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestVerdict
     $manifestDamageControlLatestSource = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestSource
@@ -1724,6 +1842,7 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       ", governance_policy_status=" + $manifestGovernancePolicyStatus +
       ", skills_registry_status=" + $manifestSkillsRegistryStatus +
       ", device_nodes_status=" + $manifestDeviceNodesStatus +
+      ", agent_usage_status=" + $manifestAgentUsageStatus +
       ", device_node_updates_status=" + $manifestDeviceNodeUpdatesStatus +
       ", operator_damage_control_latest_verdict=" + $manifestDamageControlLatestVerdict +
       ", operator_damage_control_latest_source=" + $manifestDamageControlLatestSource

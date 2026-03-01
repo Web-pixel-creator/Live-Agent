@@ -71,6 +71,7 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /governance_policy_status=/);
   assert.match(source, /skills_registry_status=/);
   assert.match(source, /device_nodes_status=/);
+  assert.match(source, /agent_usage_status=/);
   assert.match(source, /device_node_updates_status=/);
   assert.match(source, /report\.statuses\.deviceNodeUpdatesStatus/);
   assert.match(source, /Badge details present: \$\{\{\s*steps\.collect_release_evidence\.outputs\.badge_details_present\s*\}\}/);
@@ -80,6 +81,7 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /Governance policy status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.governance_policy_status\s*\}\}/);
   assert.match(source, /Skills registry status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.skills_registry_status\s*\}\}/);
   assert.match(source, /Device-nodes status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.device_nodes_status\s*\}\}/);
+  assert.match(source, /Agent-usage status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.agent_usage_status\s*\}\}/);
   assert.match(source, /Device-node-updates status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.device_node_updates_status\s*\}\}/);
   assert.match(source, /Release evidence report JSON: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_json_path\s*\}\}/);
   assert.match(source, /Release evidence report Markdown: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_md_path\s*\}\}/);
@@ -137,6 +139,7 @@ test("readme documents optional release-strict railway deploy path", () => {
   assert.match(readme, /governancePolicy/);
   assert.match(readme, /skillsRegistry/);
   assert.match(readme, /deviceNodes/);
+  assert.match(readme, /agentUsage/);
   assert.match(readme, /artifacts\/release-evidence\/report\.json/);
   assert.match(readme, /artifacts\/release-evidence\/report\.md/);
 });

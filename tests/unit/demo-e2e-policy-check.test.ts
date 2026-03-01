@@ -259,6 +259,17 @@ function createPassingSummary(overrides?: {
     tokensUsedInput: 6200,
     tokensUsedOutput: 3100,
     tokensUsedTotal: 9300,
+    operatorAgentUsageSummaryValidated: true,
+    operatorAgentUsageTotal: 3,
+    operatorAgentUsageUniqueRuns: 3,
+    operatorAgentUsageUniqueSessions: 1,
+    operatorAgentUsageTotalCalls: 4,
+    operatorAgentUsageInputTokens: 6400,
+    operatorAgentUsageOutputTokens: 3200,
+    operatorAgentUsageTotalTokens: 9600,
+    operatorAgentUsageModels: ["gemini-3-flash", "gemini-3-pro"],
+    operatorAgentUsageSource: "operator_summary",
+    operatorAgentUsageStatus: "observed",
     tokensUsedSource: "env_json",
     sessionRunBindingValidated: true,
     sessionStateTransitionsObserved: 3,
@@ -340,7 +351,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 251);
+  assert.equal(result.payload.checks, 260);
 });
 
 test("demo-e2e policy check fails when cost estimate total is negative", () => {

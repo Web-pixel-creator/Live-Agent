@@ -578,6 +578,7 @@ $badgeEvidenceOperatorDamageControlStatus = $null
 $badgeEvidenceGovernancePolicyStatus = $null
 $badgeEvidenceSkillsRegistryStatus = $null
 $badgeEvidenceDeviceNodesStatus = $null
+$badgeEvidenceAgentUsageStatus = $null
 $badgeEvidenceDeviceNodeUpdatesStatus = "unavailable"
 $badgeEvidenceOperatorTurnTruncationStatus = $null
 $badgeEvidenceOperatorTurnDeleteStatus = $null
@@ -617,6 +618,9 @@ if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne
     $badgeEvidenceDeviceNodeUpdatesStatus = "fail"
   }
 }
+if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.agentUsage) {
+  $badgeEvidenceAgentUsageStatus = $badgeDetails.evidence.agentUsage.status
+}
 
 $gateEvidenceSnapshot = [ordered]@{
   demoSummaryPresent                          = [bool]$demoSummaryPresent
@@ -634,6 +638,7 @@ $gateEvidenceSnapshot = [ordered]@{
   badgeEvidenceGovernancePolicyStatus         = $badgeEvidenceGovernancePolicyStatus
   badgeEvidenceSkillsRegistryStatus           = $badgeEvidenceSkillsRegistryStatus
   badgeEvidenceDeviceNodesStatus              = $badgeEvidenceDeviceNodesStatus
+  badgeEvidenceAgentUsageStatus               = $badgeEvidenceAgentUsageStatus
   badgeEvidenceDeviceNodeUpdatesStatus        = $badgeEvidenceDeviceNodeUpdatesStatus
 }
 
@@ -703,6 +708,7 @@ Write-Host ("- evidence snapshot (operator damage-control status): " + $badgeEvi
 Write-Host ("- evidence snapshot (governance policy status): " + $badgeEvidenceGovernancePolicyStatus)
 Write-Host ("- evidence snapshot (skills registry status): " + $badgeEvidenceSkillsRegistryStatus)
 Write-Host ("- evidence snapshot (device nodes status): " + $badgeEvidenceDeviceNodesStatus)
+Write-Host ("- evidence snapshot (agent usage status): " + $badgeEvidenceAgentUsageStatus)
 Write-Host ("- evidence snapshot (device node updates status): " + $badgeEvidenceDeviceNodeUpdatesStatus)
 if (Test-Path $releaseEvidenceReportPath) {
   Write-Host ("- release evidence report: " + $releaseEvidenceReportPath)

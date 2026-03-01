@@ -77,6 +77,12 @@ export type EventListItem = {
   damageControlPath?: string;
   damageControlMatchedRuleCount?: number;
   damageControlMatchRuleIds?: string[];
+  agentUsageSource?: string;
+  agentUsageCalls?: number;
+  agentUsageInputTokens?: number;
+  agentUsageOutputTokens?: number;
+  agentUsageTotalTokens?: number;
+  agentUsageModels?: string[];
 };
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "timeout";
@@ -1075,6 +1081,7 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
   const delegation = output ? asRecord(output.delegation) : null;
   const visualTesting = output ? asRecord(output.visualTesting) : null;
   const damageControl = output ? asRecord(output.damageControl) : null;
+  const usage = output ? asRecord(output.usage) : null;
 
   const intent =
     toNonEmptyString(payload?.intent) ??
@@ -1118,6 +1125,26 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
         .filter((item): item is string => item !== null),
     ),
   );
+  const agentUsageSource = toNonEmptyString(usage?.source) ?? undefined;
+  const agentUsageCalls = toNonNegativeInt(usage?.calls) ?? undefined;
+  const agentUsageInputTokens = toNonNegativeInt(usage?.inputTokens) ?? undefined;
+  const agentUsageOutputTokens = toNonNegativeInt(usage?.outputTokens) ?? undefined;
+  const agentUsageTotalTokens = toNonNegativeInt(usage?.totalTokens) ?? undefined;
+  const agentUsageModels = Array.isArray(usage?.models)
+    ? Array.from(
+        new Set(
+          usage.models
+            .map((entry) => {
+              if (typeof entry === "string") {
+                return toNonEmptyString(entry);
+              }
+              const record = asRecord(entry);
+              return toNonEmptyString(record?.model);
+            })
+            .filter((entry): entry is string => entry !== null),
+        ),
+      )
+    : [];
 
   let traceSteps: number | undefined;
   let screenshotRefs: number | undefined;
@@ -1175,6 +1202,12 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
     damageControlPath,
     damageControlMatchedRuleCount,
     damageControlMatchRuleIds: damageControlMatchRuleIds.length > 0 ? damageControlMatchRuleIds : undefined,
+    agentUsageSource,
+    agentUsageCalls,
+    agentUsageInputTokens,
+    agentUsageOutputTokens,
+    agentUsageTotalTokens,
+    agentUsageModels: agentUsageModels.length > 0 ? agentUsageModels : undefined,
   };
 }
 

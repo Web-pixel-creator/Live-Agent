@@ -568,6 +568,7 @@ jobs:
           $badgeEvidenceGovernancePolicyStatus = "unavailable"
           $badgeEvidenceSkillsRegistryStatus = "unavailable"
           $badgeEvidenceDeviceNodesStatus = "unavailable"
+          $badgeEvidenceAgentUsageStatus = "unavailable"
           $badgeEvidenceDeviceNodeUpdatesStatus = "unavailable"
           $badgeEvidenceOperatorTurnTruncationStatus = "unavailable"
           $badgeEvidenceOperatorTurnDeleteStatus = "unavailable"
@@ -593,6 +594,9 @@ jobs:
             if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.deviceNodesStatus)) {
               $badgeEvidenceDeviceNodesStatus = [string]$releaseEvidenceReport.statuses.deviceNodesStatus
             }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.agentUsageStatus)) {
+              $badgeEvidenceAgentUsageStatus = [string]$releaseEvidenceReport.statuses.agentUsageStatus
+            }
             if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.deviceNodeUpdatesStatus)) {
               $badgeEvidenceDeviceNodeUpdatesStatus = [string]$releaseEvidenceReport.statuses.deviceNodeUpdatesStatus
             }
@@ -615,6 +619,7 @@ jobs:
             badgeEvidenceGovernancePolicyStatus = $badgeEvidenceGovernancePolicyStatus
             badgeEvidenceSkillsRegistryStatus = $badgeEvidenceSkillsRegistryStatus
             badgeEvidenceDeviceNodesStatus = $badgeEvidenceDeviceNodesStatus
+            badgeEvidenceAgentUsageStatus = $badgeEvidenceAgentUsageStatus
             badgeEvidenceDeviceNodeUpdatesStatus = $badgeEvidenceDeviceNodeUpdatesStatus
           }
 
@@ -670,6 +675,7 @@ jobs:
           ("governance_policy_status=" + [string]$badgeEvidenceGovernancePolicyStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("skills_registry_status=" + [string]$badgeEvidenceSkillsRegistryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("device_nodes_status=" + [string]$badgeEvidenceDeviceNodesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("agent_usage_status=" + [string]$badgeEvidenceAgentUsageStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("device_node_updates_status=" + [string]$badgeEvidenceDeviceNodeUpdatesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Host ("Source run manifest written: " + $manifestPath)
 
@@ -725,6 +731,7 @@ jobs:
           ("Governance policy status (badge evidence): ${{ steps.write_manifest.outputs.governance_policy_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Skills registry status (badge evidence): ${{ steps.write_manifest.outputs.skills_registry_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Device-nodes status (badge evidence): ${{ steps.write_manifest.outputs.device_nodes_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Agent-usage status (badge evidence): ${{ steps.write_manifest.outputs.agent_usage_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Device-node-updates status (badge evidence): ${{ steps.write_manifest.outputs.device_node_updates_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence report JSON: ${{ steps.release_evidence_report.outputs.report_json_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence report Markdown: ${{ steps.release_evidence_report.outputs.report_md_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

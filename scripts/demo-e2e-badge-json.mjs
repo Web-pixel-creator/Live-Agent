@@ -437,6 +437,50 @@ function buildDeviceNodesEvidence(kpis) {
   };
 }
 
+function buildAgentUsageEvidence(kpis) {
+  const validated = toBoolean(kpis.operatorAgentUsageSummaryValidated) === true;
+  const total = toNumber(kpis.operatorAgentUsageTotal) ?? 0;
+  const uniqueRuns = toNumber(kpis.operatorAgentUsageUniqueRuns) ?? 0;
+  const uniqueSessions = toNumber(kpis.operatorAgentUsageUniqueSessions) ?? 0;
+  const totalCalls = toNumber(kpis.operatorAgentUsageTotalCalls) ?? 0;
+  const inputTokens = toNumber(kpis.operatorAgentUsageInputTokens) ?? 0;
+  const outputTokens = toNumber(kpis.operatorAgentUsageOutputTokens) ?? 0;
+  const totalTokens = toNumber(kpis.operatorAgentUsageTotalTokens) ?? 0;
+  const models = toStringArray(kpis.operatorAgentUsageModels);
+  const summarySource = toOptionalString(kpis.operatorAgentUsageSource) ?? "";
+  const summaryStatus = toOptionalString(kpis.operatorAgentUsageStatus) ?? "";
+
+  const status =
+    validated &&
+    total >= 1 &&
+    uniqueRuns >= 1 &&
+    uniqueSessions >= 1 &&
+    totalCalls >= 0 &&
+    inputTokens >= 0 &&
+    outputTokens >= 0 &&
+    totalTokens >= inputTokens + outputTokens &&
+    models.length >= 1 &&
+    summarySource === "operator_summary" &&
+    summaryStatus === "observed"
+      ? "pass"
+      : "fail";
+
+  return {
+    status,
+    validated,
+    total,
+    uniqueRuns,
+    uniqueSessions,
+    totalCalls,
+    inputTokens,
+    outputTokens,
+    totalTokens,
+    models,
+    summarySource,
+    summaryStatus,
+  };
+}
+
 function fail(message, details) {
   process.stderr.write(
     `${JSON.stringify({
@@ -504,6 +548,7 @@ async function main() {
   const governancePolicyEvidence = buildGovernancePolicyEvidence(kpis);
   const skillsRegistryEvidence = buildSkillsRegistryEvidence(kpis);
   const deviceNodesEvidence = buildDeviceNodesEvidence(kpis);
+  const agentUsageEvidence = buildAgentUsageEvidence(kpis);
 
   let color = "red";
   if (ok) {
@@ -544,6 +589,7 @@ async function main() {
       governancePolicy: governancePolicyEvidence,
       skillsRegistry: skillsRegistryEvidence,
       deviceNodes: deviceNodesEvidence,
+      agentUsage: agentUsageEvidence,
     },
     badge,
   };

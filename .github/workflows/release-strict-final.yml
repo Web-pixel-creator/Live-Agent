@@ -277,6 +277,7 @@ jobs:
           $governancePolicyStatus = "unavailable"
           $skillsRegistryStatus = "unavailable"
           $deviceNodesStatus = "unavailable"
+          $agentUsageStatus = "unavailable"
           $deviceNodeUpdatesStatus = "unavailable"
           $reportPath = "artifacts/release-evidence/report.json"
 
@@ -293,6 +294,7 @@ jobs:
                 $governancePolicyStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.governancePolicyStatus)) { "unavailable" } else { [string]$report.statuses.governancePolicyStatus }
                 $skillsRegistryStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.skillsRegistryStatus)) { "unavailable" } else { [string]$report.statuses.skillsRegistryStatus }
                 $deviceNodesStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.deviceNodesStatus)) { "unavailable" } else { [string]$report.statuses.deviceNodesStatus }
+                $agentUsageStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.agentUsageStatus)) { "unavailable" } else { [string]$report.statuses.agentUsageStatus }
                 $deviceNodeUpdatesStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.deviceNodeUpdatesStatus)) { "unavailable" } else { [string]$report.statuses.deviceNodeUpdatesStatus }
               }
             } catch {
@@ -309,6 +311,7 @@ jobs:
           ("governance_policy_status=" + $governancePolicyStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("skills_registry_status=" + $skillsRegistryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("device_nodes_status=" + $deviceNodesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("agent_usage_status=" + $agentUsageStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("device_node_updates_status=" + $deviceNodeUpdatesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Publish Release Report To Job Summary
@@ -345,6 +348,7 @@ jobs:
           ("Governance policy status (badge evidence): ${{ steps.collect_release_evidence.outputs.governance_policy_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Skills registry status (badge evidence): ${{ steps.collect_release_evidence.outputs.skills_registry_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Device-nodes status (badge evidence): ${{ steps.collect_release_evidence.outputs.device_nodes_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Agent-usage status (badge evidence): ${{ steps.collect_release_evidence.outputs.agent_usage_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Device-node-updates status (badge evidence): ${{ steps.collect_release_evidence.outputs.device_node_updates_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence report JSON: ${{ steps.release_evidence_report.outputs.report_json_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence report Markdown: ${{ steps.release_evidence_report.outputs.report_md_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

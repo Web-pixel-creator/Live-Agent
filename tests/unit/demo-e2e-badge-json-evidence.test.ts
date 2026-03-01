@@ -145,6 +145,17 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         operatorDeviceNodeSummaryStale: 0,
         operatorDeviceNodeSummaryMissingHeartbeat: 0,
         operatorDeviceNodeSummaryRecentContainsLookup: true,
+        operatorAgentUsageSummaryValidated: true,
+        operatorAgentUsageTotal: 3,
+        operatorAgentUsageUniqueRuns: 3,
+        operatorAgentUsageUniqueSessions: 1,
+        operatorAgentUsageTotalCalls: 4,
+        operatorAgentUsageInputTokens: 6400,
+        operatorAgentUsageOutputTokens: 3200,
+        operatorAgentUsageTotalTokens: 9600,
+        operatorAgentUsageModels: ["gemini-3-flash", "gemini-3-pro"],
+        operatorAgentUsageSource: "operator_summary",
+        operatorAgentUsageStatus: "observed",
       },
     },
   });
@@ -169,6 +180,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
   const skillsRegistry = evidence.skillsRegistry as Record<string, unknown>;
   const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
+  const agentUsage = evidence.agentUsage as Record<string, unknown>;
   assert.equal(turnTruncation.status, "pass");
   assert.equal(turnDelete.status, "pass");
   assert.equal(damageControl.status, "pass");
@@ -176,6 +188,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(governancePolicy.status, "pass");
   assert.equal(skillsRegistry.status, "pass");
   assert.equal(deviceNodes.status, "pass");
+  assert.equal(agentUsage.status, "pass");
   assert.equal(turnTruncation.latestTurnId, "turn-truncate-demo");
   assert.equal(turnDelete.latestTurnId, "turn-delete-demo");
   assert.equal(turnDelete.latestScope, "session_local");
@@ -206,6 +219,12 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(deviceNodes.summaryTotal, 1);
   assert.equal(deviceNodes.summaryDegraded, 1);
   assert.equal(deviceNodes.summaryRecentContainsLookup, true);
+  assert.equal(agentUsage.total, 3);
+  assert.equal(agentUsage.totalCalls, 4);
+  assert.equal(agentUsage.totalTokens, 9600);
+  assert.deepEqual(agentUsage.models, ["gemini-3-flash", "gemini-3-pro"]);
+  assert.equal(agentUsage.summarySource, "operator_summary");
+  assert.equal(agentUsage.summaryStatus, "observed");
 });
 
 test("demo-e2e badge details marks operator turn delete evidence as failed when checkpoint is missing", () => {
@@ -249,6 +268,7 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
   const skillsRegistry = evidence.skillsRegistry as Record<string, unknown>;
   const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
+  const agentUsage = evidence.agentUsage as Record<string, unknown>;
   assert.equal(turnDelete.status, "fail");
   assert.equal(turnDelete.validated, false);
   assert.equal(turnDelete.total, 0);
@@ -270,4 +290,5 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   assert.equal(deviceNodes.validated, false);
   assert.equal(deviceNodes.lookupStatus, "");
   assert.equal(deviceNodes.summaryTotal, 0);
+  assert.equal(agentUsage.status, "fail");
 });

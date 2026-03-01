@@ -45,6 +45,7 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /releaseEvidenceReport\.statuses\.governancePolicyStatus/);
   assert.match(source, /releaseEvidenceReport\.statuses\.skillsRegistryStatus/);
   assert.match(source, /releaseEvidenceReport\.statuses\.deviceNodesStatus/);
+  assert.match(source, /releaseEvidenceReport\.statuses\.agentUsageStatus/);
   assert.match(source, /releaseEvidenceReport\.statuses\.deviceNodeUpdatesStatus/);
   assert.match(source, /source-run\.json/);
   assert.match(source, /release-evidence\/report\.json/);
@@ -62,6 +63,7 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /governance_policy_status/);
   assert.match(source, /skills_registry_status/);
   assert.match(source, /device_nodes_status/);
+  assert.match(source, /agent_usage_status/);
   assert.match(source, /device_node_updates_status/);
   assert.match(source, /Turn-truncation status \(badge evidence\):/);
   assert.match(source, /Turn-delete status \(badge evidence\):/);
@@ -69,6 +71,7 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /Governance policy status \(badge evidence\):/);
   assert.match(source, /Skills registry status \(badge evidence\):/);
   assert.match(source, /Device-nodes status \(badge evidence\):/);
+  assert.match(source, /Agent-usage status \(badge evidence\):/);
   assert.match(source, /Device-node-updates status \(badge evidence\):/);
   assert.match(source, /Release evidence report JSON:/);
   assert.match(source, /Release evidence report Markdown:/);

@@ -117,6 +117,17 @@ function createPassingSummary(
     operatorTurnDeleteUniqueRuns: number | string;
     operatorTurnDeleteUniqueSessions: number | string;
     operatorTurnDeleteLatestSeenAt: string;
+    operatorAgentUsageSummaryValidated: boolean | string;
+    operatorAgentUsageTotal: number | string;
+    operatorAgentUsageUniqueRuns: number | string;
+    operatorAgentUsageUniqueSessions: number | string;
+    operatorAgentUsageTotalCalls: number | string;
+    operatorAgentUsageInputTokens: number | string;
+    operatorAgentUsageOutputTokens: number | string;
+    operatorAgentUsageTotalTokens: number | string;
+    operatorAgentUsageModels: string[];
+    operatorAgentUsageSource: string;
+    operatorAgentUsageStatus: string;
     operatorDamageControlSummaryValidated: boolean | string;
     operatorDamageControlTotal: number | string;
     operatorDamageControlUniqueRuns: number | string;
@@ -239,6 +250,37 @@ function createPassingSummary(
       operatorTurnDeleteLatestSeenAt: hasOverride("operatorTurnDeleteLatestSeenAt")
         ? overrides.operatorTurnDeleteLatestSeenAt
         : "2026-02-26T00:00:00.000Z",
+      operatorAgentUsageSummaryValidated: hasOverride("operatorAgentUsageSummaryValidated")
+        ? overrides.operatorAgentUsageSummaryValidated
+        : true,
+      operatorAgentUsageTotal: hasOverride("operatorAgentUsageTotal") ? overrides.operatorAgentUsageTotal : 1,
+      operatorAgentUsageUniqueRuns: hasOverride("operatorAgentUsageUniqueRuns")
+        ? overrides.operatorAgentUsageUniqueRuns
+        : 1,
+      operatorAgentUsageUniqueSessions: hasOverride("operatorAgentUsageUniqueSessions")
+        ? overrides.operatorAgentUsageUniqueSessions
+        : 1,
+      operatorAgentUsageTotalCalls: hasOverride("operatorAgentUsageTotalCalls")
+        ? overrides.operatorAgentUsageTotalCalls
+        : 1,
+      operatorAgentUsageInputTokens: hasOverride("operatorAgentUsageInputTokens")
+        ? overrides.operatorAgentUsageInputTokens
+        : 6400,
+      operatorAgentUsageOutputTokens: hasOverride("operatorAgentUsageOutputTokens")
+        ? overrides.operatorAgentUsageOutputTokens
+        : 3200,
+      operatorAgentUsageTotalTokens: hasOverride("operatorAgentUsageTotalTokens")
+        ? overrides.operatorAgentUsageTotalTokens
+        : 9600,
+      operatorAgentUsageModels: hasOverride("operatorAgentUsageModels")
+        ? overrides.operatorAgentUsageModels
+        : ["gemini-3-flash"],
+      operatorAgentUsageSource: hasOverride("operatorAgentUsageSource")
+        ? overrides.operatorAgentUsageSource
+        : "operator_summary",
+      operatorAgentUsageStatus: hasOverride("operatorAgentUsageStatus")
+        ? overrides.operatorAgentUsageStatus
+        : "observed",
       operatorDamageControlSummaryValidated: hasOverride("operatorDamageControlSummaryValidated")
         ? overrides.operatorDamageControlSummaryValidated
         : true,
@@ -656,6 +698,7 @@ function createPassingSourceRunManifest(
     evidenceGovernancePolicyStatus: string;
     evidenceSkillsRegistryStatus: string;
     evidenceDeviceNodesStatus: string;
+    evidenceAgentUsageStatus: string;
     evidenceDeviceNodeUpdatesStatus: string;
     evidenceOperatorDamageControlLatestVerdict: string;
     evidenceOperatorDamageControlLatestSource: string;
@@ -724,6 +767,9 @@ function createPassingSourceRunManifest(
           : "pass",
         badgeEvidenceDeviceNodesStatus: hasOverride("evidenceDeviceNodesStatus")
           ? overrides.evidenceDeviceNodesStatus
+          : "pass",
+        badgeEvidenceAgentUsageStatus: hasOverride("evidenceAgentUsageStatus")
+          ? overrides.evidenceAgentUsageStatus
           : "pass",
         badgeEvidenceDeviceNodeUpdatesStatus: hasOverride("evidenceDeviceNodeUpdatesStatus")
           ? overrides.evidenceDeviceNodeUpdatesStatus
@@ -1681,6 +1727,39 @@ test(
 );
 
 test(
+  "release-readiness fails when operator agent-usage summary KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ operatorAgentUsageSummaryValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorAgentUsageSummaryValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator agent-usage total is below one",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ operatorAgentUsageTotal: 0 }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorAgentUsageTotal expected >= 1, actual 0/i);
+  },
+);
+
+test(
+  "release-readiness fails when operator agent-usage source is invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ operatorAgentUsageSource: "runtime" }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorAgentUsageSource expected operator_summary, actual runtime/i);
+  },
+);
+
+test(
   "release-readiness fails when operator damage-control summary KPI is not validated",
   { skip: skipIfNoPowerShell },
   () => {
@@ -1969,6 +2048,7 @@ test(
     assert.match(output, /governance_policy_status=pass/i);
     assert.match(output, /skills_registry_status=pass/i);
     assert.match(output, /device_nodes_status=pass/i);
+    assert.match(output, /agent_usage_status=pass/i);
   },
 );
 
@@ -2159,6 +2239,22 @@ test(
     assert.match(
       output,
       /source run manifest evidenceSnapshot\.badgeEvidenceDeviceNodesStatus expected pass, actual warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence agent-usage status is not pass",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceAgentUsageStatus: "warn" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceAgentUsageStatus expected pass, actual warn/i,
     );
   },
 );

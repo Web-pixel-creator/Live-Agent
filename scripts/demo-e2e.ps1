@@ -2506,6 +2506,59 @@ try {
       $damageControlLatestRuleIds.Count -ge 1
     )
 
+    $agentUsage = Get-FieldValue -Object $summaryData -Path @("agentUsage")
+    Assert-Condition -Condition ($null -ne $agentUsage) -Message "Operator summary agentUsage block is missing."
+    $agentUsageTotalRaw = Get-FieldValue -Object $agentUsage -Path @("total")
+    $agentUsageUniqueRunsRaw = Get-FieldValue -Object $agentUsage -Path @("uniqueRuns")
+    $agentUsageUniqueSessionsRaw = Get-FieldValue -Object $agentUsage -Path @("uniqueSessions")
+    $agentUsageTotalCallsRaw = Get-FieldValue -Object $agentUsage -Path @("totalCalls")
+    $agentUsageInputTokensRaw = Get-FieldValue -Object $agentUsage -Path @("inputTokens")
+    $agentUsageOutputTokensRaw = Get-FieldValue -Object $agentUsage -Path @("outputTokens")
+    $agentUsageTotalTokensRaw = Get-FieldValue -Object $agentUsage -Path @("totalTokens")
+    Assert-Condition -Condition ($null -ne $agentUsageTotalRaw) -Message "Operator summary agentUsage.total is missing."
+    Assert-Condition -Condition ($null -ne $agentUsageUniqueRunsRaw) -Message "Operator summary agentUsage.uniqueRuns is missing."
+    Assert-Condition -Condition ($null -ne $agentUsageUniqueSessionsRaw) -Message "Operator summary agentUsage.uniqueSessions is missing."
+    Assert-Condition -Condition ($null -ne $agentUsageTotalCallsRaw) -Message "Operator summary agentUsage.totalCalls is missing."
+    Assert-Condition -Condition ($null -ne $agentUsageInputTokensRaw) -Message "Operator summary agentUsage.inputTokens is missing."
+    Assert-Condition -Condition ($null -ne $agentUsageOutputTokensRaw) -Message "Operator summary agentUsage.outputTokens is missing."
+    Assert-Condition -Condition ($null -ne $agentUsageTotalTokensRaw) -Message "Operator summary agentUsage.totalTokens is missing."
+    $agentUsageTotal = [int]$agentUsageTotalRaw
+    $agentUsageUniqueRuns = [int]$agentUsageUniqueRunsRaw
+    $agentUsageUniqueSessions = [int]$agentUsageUniqueSessionsRaw
+    $agentUsageTotalCalls = [int]$agentUsageTotalCallsRaw
+    $agentUsageInputTokens = [int]$agentUsageInputTokensRaw
+    $agentUsageOutputTokens = [int]$agentUsageOutputTokensRaw
+    $agentUsageTotalTokens = [int]$agentUsageTotalTokensRaw
+    Assert-Condition -Condition ($agentUsageTotal -ge 1) -Message "Operator summary agentUsage.total should be >= 1."
+    Assert-Condition -Condition ($agentUsageUniqueRuns -ge 1) -Message "Operator summary agentUsage.uniqueRuns should be >= 1."
+    Assert-Condition -Condition ($agentUsageUniqueSessions -ge 1) -Message "Operator summary agentUsage.uniqueSessions should be >= 1."
+    Assert-Condition -Condition ($agentUsageTotalCalls -ge 0) -Message "Operator summary agentUsage.totalCalls must be >= 0."
+    Assert-Condition -Condition ($agentUsageInputTokens -ge 0) -Message "Operator summary agentUsage.inputTokens must be >= 0."
+    Assert-Condition -Condition ($agentUsageOutputTokens -ge 0) -Message "Operator summary agentUsage.outputTokens must be >= 0."
+    Assert-Condition -Condition ($agentUsageTotalTokens -ge ($agentUsageInputTokens + $agentUsageOutputTokens)) -Message "Operator summary agentUsage.totalTokens must be >= inputTokens + outputTokens."
+    $agentUsageModels = @(
+      @(Get-FieldValue -Object $agentUsage -Path @("models")) |
+      ForEach-Object { [string]$_ } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+    Assert-Condition -Condition ($agentUsageModels.Count -ge 1) -Message "Operator summary agentUsage.models should contain at least one model id."
+    $agentUsageSource = [string](Get-FieldValue -Object $agentUsage -Path @("source"))
+    $agentUsageStatus = [string](Get-FieldValue -Object $agentUsage -Path @("status"))
+    $agentUsageValidated = [bool](Get-FieldValue -Object $agentUsage -Path @("validated"))
+    $agentUsageSummaryValidated = (
+      $agentUsageValidated -and
+      $agentUsageTotal -ge 1 -and
+      $agentUsageUniqueRuns -ge 1 -and
+      $agentUsageUniqueSessions -ge 1 -and
+      $agentUsageTotalCalls -ge 0 -and
+      $agentUsageInputTokens -ge 0 -and
+      $agentUsageOutputTokens -ge 0 -and
+      $agentUsageTotalTokens -ge ($agentUsageInputTokens + $agentUsageOutputTokens) -and
+      $agentUsageModels.Count -ge 1 -and
+      [string]$agentUsageSource -eq "operator_summary" -and
+      [string]$agentUsageStatus -eq "observed"
+    )
+
     $deviceNodeHealth = Get-FieldValue -Object $summaryData -Path @("deviceNodes")
     Assert-Condition -Condition ($null -ne $deviceNodeHealth) -Message "Operator summary deviceNodes block is missing."
     $deviceNodeSummaryTotal = [int](Get-FieldValue -Object $deviceNodeHealth -Path @("total"))
@@ -2780,6 +2833,17 @@ try {
       damageControlExpectedVerdictObserved = $damageControlExpectedVerdictObserved
       damageControlExpectedSourceObserved = $damageControlExpectedSourceObserved
       damageControlSummaryValidated = $damageControlSummaryValidated
+      agentUsageTotal = $agentUsageTotal
+      agentUsageUniqueRuns = $agentUsageUniqueRuns
+      agentUsageUniqueSessions = $agentUsageUniqueSessions
+      agentUsageTotalCalls = $agentUsageTotalCalls
+      agentUsageInputTokens = $agentUsageInputTokens
+      agentUsageOutputTokens = $agentUsageOutputTokens
+      agentUsageTotalTokens = $agentUsageTotalTokens
+      agentUsageModels = $agentUsageModels
+      agentUsageSource = $agentUsageSource
+      agentUsageStatus = $agentUsageStatus
+      agentUsageSummaryValidated = $agentUsageSummaryValidated
       deviceNodeId = $deviceNodeId
       deviceNodeCreatedVersion = $deviceNodeCreatedVersion
       deviceNodeUpdatedVersion = $deviceNodeUpdatedVersion
@@ -4230,6 +4294,30 @@ $summary = [ordered]@{
       [int]$operatorActionsData.damageControlMatchedRuleCountTotal -ge 1 -and
       ([int]$operatorActionsData.damageControlAllowCount + [int]$operatorActionsData.damageControlAskCount + [int]$operatorActionsData.damageControlBlockCount) -eq [int]$operatorActionsData.damageControlTotal -and
       -not [string]::IsNullOrWhiteSpace([string]$operatorActionsData.damageControlLatestSeenAt)
+    ) { $true } else { $false }
+    operatorAgentUsageTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.agentUsageTotal } else { $null }
+    operatorAgentUsageUniqueRuns = if ($null -ne $operatorActionsData) { $operatorActionsData.agentUsageUniqueRuns } else { $null }
+    operatorAgentUsageUniqueSessions = if ($null -ne $operatorActionsData) { $operatorActionsData.agentUsageUniqueSessions } else { $null }
+    operatorAgentUsageTotalCalls = if ($null -ne $operatorActionsData) { $operatorActionsData.agentUsageTotalCalls } else { $null }
+    operatorAgentUsageInputTokens = if ($null -ne $operatorActionsData) { $operatorActionsData.agentUsageInputTokens } else { $null }
+    operatorAgentUsageOutputTokens = if ($null -ne $operatorActionsData) { $operatorActionsData.agentUsageOutputTokens } else { $null }
+    operatorAgentUsageTotalTokens = if ($null -ne $operatorActionsData) { $operatorActionsData.agentUsageTotalTokens } else { $null }
+    operatorAgentUsageModels = if ($null -ne $operatorActionsData) { $operatorActionsData.agentUsageModels } else { @() }
+    operatorAgentUsageSource = if ($null -ne $operatorActionsData) { $operatorActionsData.agentUsageSource } else { $null }
+    operatorAgentUsageStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.agentUsageStatus } else { $null }
+    operatorAgentUsageSummaryValidated = if (
+      $null -ne $operatorActionsData -and
+      [bool]$operatorActionsData.agentUsageSummaryValidated -eq $true -and
+      [int]$operatorActionsData.agentUsageTotal -ge 1 -and
+      [int]$operatorActionsData.agentUsageUniqueRuns -ge 1 -and
+      [int]$operatorActionsData.agentUsageUniqueSessions -ge 1 -and
+      [int]$operatorActionsData.agentUsageTotalCalls -ge 0 -and
+      [int]$operatorActionsData.agentUsageInputTokens -ge 0 -and
+      [int]$operatorActionsData.agentUsageOutputTokens -ge 0 -and
+      [int]$operatorActionsData.agentUsageTotalTokens -ge ([int]$operatorActionsData.agentUsageInputTokens + [int]$operatorActionsData.agentUsageOutputTokens) -and
+      @($operatorActionsData.agentUsageModels).Count -ge 1 -and
+      [string]$operatorActionsData.agentUsageSource -eq "operator_summary" -and
+      [string]$operatorActionsData.agentUsageStatus -eq "observed"
     ) { $true } else { $false }
     operatorStartupDiagnosticsValidated = if (
       $null -ne $operatorActionsData -and

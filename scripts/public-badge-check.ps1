@@ -173,7 +173,7 @@ if (-not $SkipDetails) {
     Fail "badge-details tokensUsed.total must be >= input + output."
   }
 
-  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl", "governancePolicy", "skillsRegistry", "deviceNodes") -Payload $details.evidence -ScopeName "badge-details.evidence"
+  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl", "governancePolicy", "skillsRegistry", "deviceNodes", "agentUsage") -Payload $details.evidence -ScopeName "badge-details.evidence"
 
   $truncationEvidence = $details.evidence.operatorTurnTruncation
   $deleteEvidence = $details.evidence.operatorTurnDelete
@@ -182,6 +182,7 @@ if (-not $SkipDetails) {
   $governancePolicyEvidence = $details.evidence.governancePolicy
   $skillsRegistryEvidence = $details.evidence.skillsRegistry
   $deviceNodesEvidence = $details.evidence.deviceNodes
+  $agentUsageEvidence = $details.evidence.agentUsage
   if ($null -eq $truncationEvidence) {
     Fail "badge-details evidence is missing operatorTurnTruncation block."
   }
@@ -202,6 +203,9 @@ if (-not $SkipDetails) {
   }
   if ($null -eq $deviceNodesEvidence) {
     Fail "badge-details evidence is missing deviceNodes block."
+  }
+  if ($null -eq $agentUsageEvidence) {
+    Fail "badge-details evidence is missing agentUsage block."
   }
 
   $turnEvidenceRequired = @("status", "validated", "expectedEventSeen", "total", "uniqueRuns", "uniqueSessions", "latestSeenAt", "latestSeenAtIsIso")
@@ -306,6 +310,26 @@ if (-not $SkipDetails) {
     Fail "badge-details evidence deviceNodes.status must be one of [pass, fail]."
   }
 
+  $agentUsageEvidenceRequired = @(
+    "status",
+    "validated",
+    "total",
+    "uniqueRuns",
+    "uniqueSessions",
+    "totalCalls",
+    "inputTokens",
+    "outputTokens",
+    "totalTokens",
+    "models",
+    "summarySource",
+    "summaryStatus"
+  )
+  Assert-RequiredFields -Required $agentUsageEvidenceRequired -Payload $agentUsageEvidence -ScopeName "badge-details.evidence.agentUsage"
+  $agentUsageStatus = [string]$agentUsageEvidence.status
+  if (-not ($allowedTurnEvidenceStatuses -contains $agentUsageStatus)) {
+    Fail "badge-details evidence agentUsage.status must be one of [pass, fail]."
+  }
+
   $deviceNodeUpdatesStatus = "unavailable"
   $updatesValidated = ($deviceNodesEvidence.updatesValidated -eq $true)
   $updatesHasUpsert = ($deviceNodesEvidence.updatesHasUpsert -eq $true)
@@ -340,7 +364,8 @@ if (-not $SkipDetails) {
       @{ Name = "operatorDamageControl"; Status = $operatorDamageControlStatus },
       @{ Name = "governancePolicy"; Status = $governancePolicyStatus },
       @{ Name = "skillsRegistry"; Status = $skillsRegistryStatus },
-      @{ Name = "deviceNodes"; Status = $deviceNodesStatus }
+      @{ Name = "deviceNodes"; Status = $deviceNodesStatus },
+      @{ Name = "agentUsage"; Status = $agentUsageStatus }
     )
     foreach ($statusCheck in $statusChecks) {
       if ([string]$statusCheck.Status -ne "pass") {
@@ -390,6 +415,21 @@ if (-not $SkipDetails) {
     }
     if ($deviceNodeUpdatesStatus -ne "pass") {
       Fail ("badge-details evidence deviceNodes updates lane must be 'pass' for deployment gate. actual=" + $deviceNodeUpdatesStatus)
+    }
+    if (
+      -not [bool]$agentUsageEvidence.validated -or
+      [int]$agentUsageEvidence.total -lt 1 -or
+      [int]$agentUsageEvidence.uniqueRuns -lt 1 -or
+      [int]$agentUsageEvidence.uniqueSessions -lt 1 -or
+      [int]$agentUsageEvidence.totalCalls -lt 0 -or
+      [int]$agentUsageEvidence.inputTokens -lt 0 -or
+      [int]$agentUsageEvidence.outputTokens -lt 0 -or
+      [int]$agentUsageEvidence.totalTokens -lt ([int]$agentUsageEvidence.inputTokens + [int]$agentUsageEvidence.outputTokens) -or
+      @($agentUsageEvidence.models).Count -lt 1 -or
+      [string]$agentUsageEvidence.summarySource -ne "operator_summary" -or
+      [string]$agentUsageEvidence.summaryStatus -ne "observed"
+    ) {
+      Fail "badge-details evidence agentUsage must be validated with total/unique/calls/tokens consistency, models>=1, summarySource=operator_summary, and summaryStatus=observed."
     }
   }
 

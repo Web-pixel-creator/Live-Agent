@@ -32,9 +32,11 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /governancePolicy/);
   assert.match(scriptRaw, /skillsRegistry/);
   assert.match(scriptRaw, /deviceNodes/);
+  assert.match(scriptRaw, /agentUsage/);
   assert.match(scriptRaw, /governancePolicyEvidenceRequired/);
   assert.match(scriptRaw, /skillsRegistryEvidenceRequired/);
   assert.match(scriptRaw, /deviceNodesEvidenceRequired/);
+  assert.match(scriptRaw, /agentUsageEvidenceRequired/);
   assert.match(scriptRaw, /updatesValidated/);
   assert.match(scriptRaw, /updatesHasUpsert/);
   assert.match(scriptRaw, /updatesHasHeartbeat/);
@@ -42,6 +44,7 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /updatesTotal/);
   assert.match(scriptRaw, /deviceNodeUpdatesStatus/);
   assert.match(scriptRaw, /Device-node-updates status \(badge evidence\):/);
+  assert.match(scriptRaw, /agentUsage must be validated with total\/unique\/calls\/tokens consistency, models>=1, summarySource=operator_summary, and summaryStatus=observed/);
   assert.match(scriptRaw, /updates lane must be 'pass' for deployment gate/);
   assert.match(scriptRaw, /must be 'pass' for deployment gate/);
   assert.match(scriptRaw, /operatorTurnTruncation must be validated and expectedEventSeen=true/);

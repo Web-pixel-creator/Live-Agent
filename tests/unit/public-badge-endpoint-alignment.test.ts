@@ -39,6 +39,7 @@ test("tracked public badge details embed badge payload", () => {
   const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
   const skillsRegistry = evidence.skillsRegistry as Record<string, unknown>;
   const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
+  const agentUsage = evidence.agentUsage as Record<string, unknown>;
   assert.ok(turnTruncation && typeof turnTruncation === "object");
   assert.ok(turnDelete && typeof turnDelete === "object");
   assert.ok(damageControl && typeof damageControl === "object");
@@ -46,6 +47,7 @@ test("tracked public badge details embed badge payload", () => {
   assert.ok(governancePolicy && typeof governancePolicy === "object");
   assert.ok(skillsRegistry && typeof skillsRegistry === "object");
   assert.ok(deviceNodes && typeof deviceNodes === "object");
+  assert.ok(agentUsage && typeof agentUsage === "object");
 
   assert.equal(details.ok, true);
   assert.equal(typeof details.generatedAt, "string");
@@ -139,6 +141,18 @@ test("tracked public badge details embed badge payload", () => {
   assert.equal(typeof deviceNodes.summaryStale, "number");
   assert.equal(typeof deviceNodes.summaryMissingHeartbeat, "number");
   assert.equal(typeof deviceNodes.summaryRecentContainsLookup, "boolean");
+  assert.equal(typeof agentUsage.status, "string");
+  assert.equal(typeof agentUsage.validated, "boolean");
+  assert.equal(typeof agentUsage.total, "number");
+  assert.equal(typeof agentUsage.uniqueRuns, "number");
+  assert.equal(typeof agentUsage.uniqueSessions, "number");
+  assert.equal(typeof agentUsage.totalCalls, "number");
+  assert.equal(typeof agentUsage.inputTokens, "number");
+  assert.equal(typeof agentUsage.outputTokens, "number");
+  assert.equal(typeof agentUsage.totalTokens, "number");
+  assert.equal(Array.isArray(agentUsage.models), true);
+  assert.equal(typeof agentUsage.summarySource, "string");
+  assert.equal(typeof agentUsage.summaryStatus, "string");
   assert.equal(typeof details.policyPath, "string");
   assert.equal(typeof details.summaryPath, "string");
   assert.equal(badge.schemaVersion, 1);

@@ -1,28 +1,28 @@
 {
-  "generatedAt": "2026-03-01T04:27:04.587Z",
+  "generatedAt": "2026-03-01T10:07:20.373Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 242,
   "violations": 0,
-  "roundTripMs": 44,
+  "roundTripMs": 38,
   "costEstimate": {
     "currency": "USD",
-    "geminiLiveUsd": 0,
-    "imagenUsd": 0,
-    "veoUsd": 0,
-    "ttsUsd": 0,
-    "totalUsd": 0,
-    "source": "not_configured"
+    "geminiLiveUsd": 0.022867,
+    "imagenUsd": 0.12,
+    "veoUsd": 0.36,
+    "ttsUsd": 0.024,
+    "totalUsd": 0.526867,
+    "source": "runtime_estimate"
   },
   "tokensUsed": {
-    "input": 0,
-    "output": 0,
-    "total": 0,
-    "source": "not_configured"
+    "input": 2191,
+    "output": 16208,
+    "total": 18399,
+    "source": "runtime_estimate"
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-03-01T08:51:07.9399100+05:00",
+    "sourceSummaryGeneratedAt": "2026-03-01T13:58:46.4002514+05:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -30,7 +30,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T03:51:07.032Z",
+      "latestSeenAt": "2026-03-01T08:58:45.020Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -44,7 +44,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T03:51:07.123Z",
+      "latestSeenAt": "2026-03-01T08:58:45.111Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -78,7 +78,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-03-01T03:51:06.725Z",
+        "seenAt": "2026-03-01T08:58:44.705Z",
         "seenAtIsIso": true
       }
     },
@@ -114,22 +114,41 @@
       "lookupValidated": true,
       "versionConflictValidated": true,
       "healthSummaryValidated": true,
+      "updatesValidated": true,
+      "updatesHasUpsert": true,
+      "updatesHasHeartbeat": true,
+      "updatesApiValidated": true,
       "lookupStatus": "degraded",
       "lookupVersion": 3,
       "updatedVersion": 2,
       "versionConflictStatusCode": 409,
       "versionConflictCode": "API_DEVICE_NODE_VERSION_CONFLICT",
+      "updatesTotal": 4,
       "summaryTotal": 1,
       "summaryDegraded": 1,
       "summaryStale": 0,
       "summaryMissingHeartbeat": 0,
       "summaryRecentContainsLookup": true
+    },
+    "agentUsage": {
+      "status": "fail",
+      "validated": false,
+      "total": 0,
+      "uniqueRuns": 0,
+      "uniqueSessions": 0,
+      "totalCalls": 0,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "models": [],
+      "summarySource": "",
+      "summaryStatus": ""
     }
   },
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 242 checks | 44ms ws",
+    "message": "pass | 242 checks | 38ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }

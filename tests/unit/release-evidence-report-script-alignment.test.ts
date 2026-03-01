@@ -18,6 +18,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /governancePolicyStatus/);
   assert.match(source, /skillsRegistryStatus/);
   assert.match(source, /deviceNodesStatus/);
+  assert.match(source, /agentUsageStatus/);
   assert.match(source, /deviceNodeUpdatesStatus/);
   assert.match(source, /updatesValidated/);
   assert.match(source, /updatesHasUpsert/);
@@ -29,4 +30,3 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /\[release-evidence-report\] JSON:/);
   assert.match(source, /\[release-evidence-report\] Markdown:/);
 });
-
