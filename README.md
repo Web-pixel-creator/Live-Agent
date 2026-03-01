@@ -25,6 +25,7 @@ Starter workspace for the "next-generation agents" spec:
 - Assistive Router: `docs/assistive-router.md`
 - Telemetry Split: `docs/telemetry-storage-split.md`
 - Managed Skill Signing Example: `docs/managed-skill-signing-example.md`
+- Design Theme Colors: `docs/design-theme-colors.md`
 - Contribution Guide: `CONTRIBUTING.md`
 - Agent Guide: `AGENTS.md`
 - License: `LICENSE`

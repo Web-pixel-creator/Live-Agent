@@ -1,0 +1,146 @@
+{
+  "schemaVersion": "1.0",
+  "source": "apps/demo-frontend/public/styles.css",
+  "groups": [
+    {
+      "title": "Primary Theme Colors",
+      "items": [
+        {
+          "name": "Background",
+          "value": "#07161a",
+          "sourceToken": "--bg-0"
+        },
+        {
+          "name": "Foreground",
+          "value": "#e6f3f0",
+          "sourceToken": "--text"
+        },
+        {
+          "name": "Primary",
+          "value": "#2ec4b6",
+          "sourceToken": "--accent-2"
+        },
+        {
+          "name": "Primary Foreground",
+          "value": "#051316",
+          "sourceLiteral": "color: #051316;"
+        }
+      ]
+    },
+    {
+      "title": "Secondary & Accent Colors",
+      "items": [
+        {
+          "name": "Secondary",
+          "value": "#0f2229",
+          "sourceToken": "--bg-1"
+        },
+        {
+          "name": "Secondary Foreground",
+          "value": "#96b3ac",
+          "sourceToken": "--muted"
+        },
+        {
+          "name": "Accent",
+          "value": "#ff9f43",
+          "sourceToken": "--accent"
+        },
+        {
+          "name": "Accent Foreground",
+          "value": "#07161a",
+          "sourceLiteral": "color: #07161a;"
+        }
+      ]
+    },
+    {
+      "title": "UI Component Colors",
+      "items": [
+        {
+          "name": "Card",
+          "value": "rgba(15, 34, 41, 0.78)",
+          "sourceToken": "--card"
+        },
+        {
+          "name": "Card Foreground",
+          "value": "#e6f3f0",
+          "sourceToken": "--text"
+        },
+        {
+          "name": "Popover",
+          "value": "rgba(7, 22, 26, 0.5)",
+          "sourceLiteral": "background: rgba(7, 22, 26, 0.5);"
+        },
+        {
+          "name": "Popover Foreground",
+          "value": "#f2fffb",
+          "sourceLiteral": "color: #f2fffb;"
+        },
+        {
+          "name": "Muted",
+          "value": "rgba(125, 159, 168, 0.22)",
+          "sourceLiteral": "background: rgba(125, 159, 168, 0.22);"
+        },
+        {
+          "name": "Muted Foreground",
+          "value": "#c8dee1",
+          "sourceLiteral": "color: #c8dee1;"
+        }
+      ]
+    },
+    {
+      "title": "Utility & Form Colors",
+      "items": [
+        {
+          "name": "Border",
+          "value": "rgba(230, 243, 240, 0.16)",
+          "sourceToken": "--border"
+        },
+        {
+          "name": "Input",
+          "value": "rgba(7, 22, 26, 0.68)",
+          "sourceLiteral": "background: rgba(7, 22, 26, 0.68);"
+        },
+        {
+          "name": "Ring",
+          "value": "#2ec4b6",
+          "sourceToken": "--accent-2"
+        }
+      ]
+    },
+    {
+      "title": "Status & Feedback Colors",
+      "items": [
+        {
+          "name": "Destructive",
+          "value": "#ff6b6b",
+          "sourceToken": "--warn"
+        },
+        {
+          "name": "Destructive Foreground",
+          "value": "#3b0a0a",
+          "sourceLiteral": "color: #3b0a0a;"
+        },
+        {
+          "name": "Success",
+          "value": "#00c853",
+          "sourceToken": "--ok"
+        },
+        {
+          "name": "Success Foreground",
+          "value": "#7dffc8",
+          "sourceLiteral": "color: #7dffc8;"
+        },
+        {
+          "name": "Warning",
+          "value": "#ff9f43",
+          "sourceToken": "--accent"
+        },
+        {
+          "name": "Warning Foreground",
+          "value": "#ffd9b0",
+          "sourceLiteral": "color: #ffd9b0;"
+        }
+      ]
+    }
+  ]
+}
