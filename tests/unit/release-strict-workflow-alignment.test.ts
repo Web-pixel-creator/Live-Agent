@@ -64,6 +64,12 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /governance_policy_status=/);
   assert.match(source, /skills_registry_status=/);
   assert.match(source, /device_nodes_status=/);
+  assert.match(source, /device_node_updates_status=/);
+  assert.match(source, /updatesValidated/);
+  assert.match(source, /updatesHasUpsert/);
+  assert.match(source, /updatesHasHeartbeat/);
+  assert.match(source, /updatesApiValidated/);
+  assert.match(source, /updatesTotal/);
   assert.match(source, /Badge details present: \$\{\{\s*steps\.collect_badge_evidence\.outputs\.badge_details_present\s*\}\}/);
   assert.match(source, /Turn-truncation status \(badge evidence\): \$\{\{\s*steps\.collect_badge_evidence\.outputs\.turn_truncation_status\s*\}\}/);
   assert.match(source, /Turn-delete status \(badge evidence\): \$\{\{\s*steps\.collect_badge_evidence\.outputs\.turn_delete_status\s*\}\}/);
@@ -71,6 +77,7 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /Governance policy status \(badge evidence\): \$\{\{\s*steps\.collect_badge_evidence\.outputs\.governance_policy_status\s*\}\}/);
   assert.match(source, /Skills registry status \(badge evidence\): \$\{\{\s*steps\.collect_badge_evidence\.outputs\.skills_registry_status\s*\}\}/);
   assert.match(source, /Device-nodes status \(badge evidence\): \$\{\{\s*steps\.collect_badge_evidence\.outputs\.device_nodes_status\s*\}\}/);
+  assert.match(source, /Device-node-updates status \(badge evidence\): \$\{\{\s*steps\.collect_badge_evidence\.outputs\.device_node_updates_status\s*\}\}/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
   assert.match(source, /-GatewayRootDescriptorCheckMaxAttempts/);
   assert.match(source, /-GatewayRootDescriptorCheckRetryBackoffSec/);
