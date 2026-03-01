@@ -35,6 +35,7 @@ The operator flow is used during live demos and production diagnostics to:
 2. Drain/warmup target service (failover controls)
 3. Create/update device node and send heartbeat
 4. Approve/reject pending UI-sensitive actions
+5. Export session evidence from frontend (`Export Session Markdown` / `Export Session JSON`)
 
 ## Safety Controls
 

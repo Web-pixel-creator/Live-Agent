@@ -57,6 +57,9 @@ const el = {
   currentUserId: document.getElementById("currentUserId"),
   sessionState: document.getElementById("sessionState"),
   modeStatus: document.getElementById("modeStatus"),
+  exportMarkdownBtn: document.getElementById("exportMarkdownBtn"),
+  exportJsonBtn: document.getElementById("exportJsonBtn"),
+  exportStatus: document.getElementById("exportStatus"),
   pttToggleBtn: document.getElementById("pttToggleBtn"),
   pttHoldBtn: document.getElementById("pttHoldBtn"),
   pttStatus: document.getElementById("pttStatus"),
@@ -596,6 +599,202 @@ function appendTranscript(role, text) {
 
 function appendEvent(type, text) {
   appendEntry(el.events, "system", type, text);
+}
+
+function setExportStatus(text) {
+  if (!el.exportStatus) {
+    return;
+  }
+  el.exportStatus.textContent = text;
+}
+
+function toNodeText(node, fallback = "") {
+  if (!node) {
+    return fallback;
+  }
+  const text = typeof node.textContent === "string" ? node.textContent.trim() : "";
+  return text.length > 0 ? text : fallback;
+}
+
+function sanitizeFileNamePart(value, fallback) {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return normalized.length > 0 ? normalized.slice(0, 64) : fallback;
+}
+
+function collectEntryLane(container, lane) {
+  if (!(container instanceof HTMLElement)) {
+    return [];
+  }
+  const rows = Array.from(container.querySelectorAll(".entry"));
+  const mapped = rows.map((entry) => {
+    const titleNode = entry.querySelector("small");
+    const bodyNode = entry.querySelector("div");
+    return {
+      lane,
+      title: toNodeText(titleNode, lane),
+      message: toNodeText(bodyNode, ""),
+    };
+  });
+  return mapped.reverse();
+}
+
+function toIsoNow() {
+  return new Date().toISOString();
+}
+
+function buildSessionExportPayload() {
+  return {
+    schemaVersion: 1,
+    generatedAt: toIsoNow(),
+    context: {
+      wsUrl: state.wsUrl,
+      apiBaseUrl: state.apiBaseUrl,
+      sessionId: state.sessionId,
+      runId: state.runId,
+      userId: state.userId,
+      mode: state.mode,
+      sessionState: state.sessionState,
+      connectionStatus: state.connectionStatus,
+      targetLanguage: toOptionalText(el.targetLanguage?.value) ?? null,
+    },
+    approvals: {
+      pendingApprovalId: state.pendingApproval?.approvalId ?? null,
+      pendingApprovalStatus: state.pendingApproval?.status ?? null,
+      approvalStatusText: toNodeText(el.approvalStatus, "idle"),
+    },
+    kpi: {
+      target: {
+        price: toNodeText(el.targetPrice, "-"),
+        delivery: toNodeText(el.targetDelivery, "-"),
+        sla: toNodeText(el.targetSla, "-"),
+      },
+      currentOffer: {
+        price: toNodeText(el.currentPrice, "-"),
+        delivery: toNodeText(el.currentDelivery, "-"),
+        sla: toNodeText(el.currentSla, "-"),
+      },
+      finalOffer: {
+        price: toNodeText(el.finalPrice, "-"),
+        delivery: toNodeText(el.finalDelivery, "-"),
+        sla: toNodeText(el.finalSla, "-"),
+      },
+      constraintStatus: toNodeText(el.constraintStatus, "-"),
+      fallbackAssetStatus: toNodeText(el.fallbackAssetStatus, "-"),
+    },
+    transcript: collectEntryLane(el.transcript, "transcript"),
+    events: collectEntryLane(el.events, "events"),
+    operatorSummary: collectEntryLane(el.operatorSummary, "operator_summary"),
+    tasks: collectEntryLane(el.tasks, "tasks"),
+  };
+}
+
+function toMarkdownExport(payload) {
+  const lines = [];
+  lines.push("# Live Agent Session Export");
+  lines.push("");
+  lines.push(`- generatedAt: ${payload.generatedAt}`);
+  lines.push(`- sessionId: ${payload.context.sessionId ?? "-"}`);
+  lines.push(`- runId: ${payload.context.runId ?? "-"}`);
+  lines.push(`- userId: ${payload.context.userId ?? "-"}`);
+  lines.push(`- mode: ${payload.context.mode ?? "-"}`);
+  lines.push(`- connectionStatus: ${payload.context.connectionStatus ?? "-"}`);
+  lines.push(`- sessionState: ${payload.context.sessionState ?? "-"}`);
+  lines.push(`- targetLanguage: ${payload.context.targetLanguage ?? "-"}`);
+  lines.push("");
+  lines.push("## KPI Snapshot");
+  lines.push("");
+  lines.push(`- target: price=${payload.kpi.target.price}, delivery=${payload.kpi.target.delivery}, sla=${payload.kpi.target.sla}`);
+  lines.push(
+    `- current: price=${payload.kpi.currentOffer.price}, delivery=${payload.kpi.currentOffer.delivery}, sla=${payload.kpi.currentOffer.sla}`,
+  );
+  lines.push(`- final: price=${payload.kpi.finalOffer.price}, delivery=${payload.kpi.finalOffer.delivery}, sla=${payload.kpi.finalOffer.sla}`);
+  lines.push(`- constraintStatus: ${payload.kpi.constraintStatus}`);
+  lines.push(`- fallbackAsset: ${payload.kpi.fallbackAssetStatus}`);
+  lines.push("");
+  lines.push("## Transcript");
+  lines.push("");
+  if (payload.transcript.length === 0) {
+    lines.push("- (empty)");
+  } else {
+    for (const row of payload.transcript) {
+      lines.push(`- ${row.title}: ${row.message}`);
+    }
+  }
+  lines.push("");
+  lines.push("## Events");
+  lines.push("");
+  if (payload.events.length === 0) {
+    lines.push("- (empty)");
+  } else {
+    for (const row of payload.events) {
+      lines.push(`- ${row.title}: ${row.message}`);
+    }
+  }
+  lines.push("");
+  lines.push("## Operator Summary");
+  lines.push("");
+  if (payload.operatorSummary.length === 0) {
+    lines.push("- (empty)");
+  } else {
+    for (const row of payload.operatorSummary) {
+      lines.push(`- ${row.title}: ${row.message}`);
+    }
+  }
+  lines.push("");
+  lines.push("## Notes");
+  lines.push("");
+  lines.push("- Audio is streamed realtime; this export captures transcript/evidence metadata.");
+  return lines.join("\n");
+}
+
+function triggerDownload(filename, contents, mimeType) {
+  const blob = new Blob([contents], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 0);
+}
+
+function buildSessionExportBaseName() {
+  const sessionPart = sanitizeFileNamePart(state.sessionId, "session");
+  const runPart = sanitizeFileNamePart(state.runId, "run");
+  const stamp = new Date()
+    .toISOString()
+    .replace(/[:.]/g, "-")
+    .replace("T", "_")
+    .replace("Z", "");
+  return `live-agent-${sessionPart}-${runPart}-${stamp}`;
+}
+
+function exportSessionMarkdown() {
+  const payload = buildSessionExportPayload();
+  const markdown = toMarkdownExport(payload);
+  const fileName = `${buildSessionExportBaseName()}.md`;
+  triggerDownload(fileName, markdown, "text/markdown;charset=utf-8");
+  setExportStatus(`markdown exported (${fileName})`);
+  appendTranscript("system", `Session markdown export downloaded: ${fileName}`);
+}
+
+function exportSessionJson() {
+  const payload = buildSessionExportPayload();
+  const fileName = `${buildSessionExportBaseName()}.json`;
+  triggerDownload(fileName, `${JSON.stringify(payload, null, 2)}\n`, "application/json;charset=utf-8");
+  setExportStatus(`json exported (${fileName})`);
+  appendTranscript("system", `Session JSON export downloaded: ${fileName}`);
 }
 
 function normalizeTaskRecord(value) {
@@ -5391,6 +5590,12 @@ function toggleFallbackMode() {
 function bindEvents() {
   document.getElementById("connectBtn").addEventListener("click", connectWebSocket);
   document.getElementById("disconnectBtn").addEventListener("click", disconnectWebSocket);
+  if (el.exportMarkdownBtn) {
+    el.exportMarkdownBtn.addEventListener("click", exportSessionMarkdown);
+  }
+  if (el.exportJsonBtn) {
+    el.exportJsonBtn.addEventListener("click", exportSessionJson);
+  }
   document.getElementById("startMicBtn").addEventListener("click", startMicStream);
   document.getElementById("stopMicBtn").addEventListener("click", stopMicStream);
   document.getElementById("pttToggleBtn").addEventListener("click", togglePushToTalkMode);
@@ -5614,6 +5819,7 @@ async function bootstrap() {
   el.sessionId.value = state.sessionId;
   setSessionState("-");
   setConnectionStatus("disconnected");
+  setExportStatus("idle");
   updatePttUi();
   setStatusPill(el.constraintStatus, "Waiting for offer", "neutral");
   setFallbackAsset(false);
