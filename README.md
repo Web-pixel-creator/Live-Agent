@@ -11,6 +11,22 @@ Starter workspace for the "next-generation agents" spec:
 ![Release Strict Final Gate](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/release-strict-final.yml/badge.svg)
 ![Demo KPI Badge](https://img.shields.io/endpoint?url=https%3A%2F%2Flive-agent-production.up.railway.app%2Fdemo-e2e%2Fbadge.json)
 
+## Documentation Index
+
+- Architecture: `docs/architecture.md`
+- Operator Guide: `docs/operator-guide.md`
+- Judge Runbook (alias): `docs/judge-runbook.md`
+- Canonical Challenge Runbook: `docs/challenge-demo-runbook.md`
+- Local Development: `docs/local-development.md`
+- Protocol Contract: `docs/ws-protocol.md`
+- Local-First Profile: `docs/local-first-profile.md`
+- WebRTC V2 Spike: `docs/webrtc-v2-spike.md`
+- Assistive Router: `docs/assistive-router.md`
+- Telemetry Split: `docs/telemetry-storage-split.md`
+- Contribution Guide: `CONTRIBUTING.md`
+- Agent Guide: `AGENTS.md`
+- License: `LICENSE`
+
 ## Workspace Layout
 
 - `apps/realtime-gateway` - realtime ingress/egress service
