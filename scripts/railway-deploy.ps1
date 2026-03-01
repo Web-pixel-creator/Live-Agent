@@ -58,6 +58,21 @@ function Run-CliCapture([string[]]$CliArgs) {
   return ,$output
 }
 
+function Ensure-RailwayAuthContext([string]$LogPrefix) {
+  if ([string]::IsNullOrWhiteSpace($env:RAILWAY_API_TOKEN) -and -not [string]::IsNullOrWhiteSpace($env:RAILWAY_TOKEN)) {
+    $env:RAILWAY_API_TOKEN = $env:RAILWAY_TOKEN
+    Write-Host ("[" + $LogPrefix + "] RAILWAY_API_TOKEN is empty; using RAILWAY_TOKEN fallback for CLI auth.")
+  }
+
+  $authProbe = (& railway whoami 2>&1 | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0) {
+    if (-not [string]::IsNullOrWhiteSpace($authProbe)) {
+      Write-Host $authProbe
+    }
+    Fail ("[" + $LogPrefix + "] Railway authentication failed. Set RAILWAY_API_TOKEN (recommended) or run 'railway login'.")
+  }
+}
+
 function Resolve-NpmCli() {
   if ($env:OS -eq "Windows_NT") {
     return "npm.cmd"
@@ -469,6 +484,8 @@ function Resolve-ServicePublicUrlFromStatus([object]$StatusPayload, [string]$Ser
 if ($LASTEXITCODE -ne 0) {
   Fail "Railway CLI is not installed or unavailable in PATH."
 }
+
+Ensure-RailwayAuthContext -LogPrefix "railway-deploy"
 
 if ([string]::IsNullOrWhiteSpace($Environment)) {
   $Environment = "production"
