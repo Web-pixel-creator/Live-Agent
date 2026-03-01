@@ -38,6 +38,14 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /id:\s*release_evidence_report/);
   assert.match(source, /Build Release Evidence Report/);
   assert.match(source, /Write Source Run Manifest/);
+  assert.match(source, /releaseEvidenceReportPresent/);
+  assert.match(source, /releaseEvidenceReport\.statuses\.turnTruncationStatus/);
+  assert.match(source, /releaseEvidenceReport\.statuses\.turnDeleteStatus/);
+  assert.match(source, /releaseEvidenceReport\.statuses\.operatorDamageControlStatus/);
+  assert.match(source, /releaseEvidenceReport\.statuses\.governancePolicyStatus/);
+  assert.match(source, /releaseEvidenceReport\.statuses\.skillsRegistryStatus/);
+  assert.match(source, /releaseEvidenceReport\.statuses\.deviceNodesStatus/);
+  assert.match(source, /releaseEvidenceReport\.statuses\.deviceNodeUpdatesStatus/);
   assert.match(source, /source-run\.json/);
   assert.match(source, /release-evidence\/report\.json/);
   assert.match(source, /release-evidence\/report\.md/);
@@ -55,11 +63,6 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /skills_registry_status/);
   assert.match(source, /device_nodes_status/);
   assert.match(source, /device_node_updates_status/);
-  assert.match(source, /updatesValidated/);
-  assert.match(source, /updatesHasUpsert/);
-  assert.match(source, /updatesHasHeartbeat/);
-  assert.match(source, /updatesApiValidated/);
-  assert.match(source, /updatesTotal/);
   assert.match(source, /Turn-truncation status \(badge evidence\):/);
   assert.match(source, /Turn-delete status \(badge evidence\):/);
   assert.match(source, /Operator damage-control status \(badge evidence\):/);
@@ -82,6 +85,15 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /npm run verify:release:artifact-only/);
   assert.match(source, /-SkipPerfLoad/);
   assert.match(source, /-StrictFinalRun/);
+
+  const buildEvidenceIndex = source.indexOf("- name: Build Release Evidence Report");
+  const writeManifestIndex = source.indexOf("- name: Write Source Run Manifest");
+  assert.notEqual(buildEvidenceIndex, -1);
+  assert.notEqual(writeManifestIndex, -1);
+  assert.ok(
+    buildEvidenceIndex < writeManifestIndex,
+    "Build Release Evidence Report must run before Write Source Run Manifest"
+  );
 });
 
 test("release artifact revalidation workflow publishes consolidated artifacts", () => {

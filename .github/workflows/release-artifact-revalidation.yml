@@ -492,6 +492,29 @@ jobs:
             Write-Host "Perf gate mode: $effectivePerfMode (requested=$requestedPerfMode, hasPerfArtifacts=$hasPerfArtifacts). strict_final_run=$requestedStrictMode. Running with -SkipPerfLoad."
           }
 
+      - name: Build Release Evidence Report
+        id: release_evidence_report
+        if: always()
+        shell: powershell
+        run: |
+          $jsonPath = "artifacts/release-evidence/report.json"
+          $mdPath = "artifacts/release-evidence/report.md"
+          if (Test-Path "artifacts/demo-e2e/badge-details.json") {
+            powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-evidence-report.ps1 -BadgeDetailsPath "artifacts/demo-e2e/badge-details.json" -OutputJsonPath $jsonPath -OutputMarkdownPath $mdPath
+          } else {
+            Write-Host "Badge details artifact not found; skipping release evidence report."
+          }
+          if (Test-Path $jsonPath) {
+            ("report_json_path=" + $jsonPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            ("report_json_path=") | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+          if (Test-Path $mdPath) {
+            ("report_md_path=" + $mdPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            ("report_md_path=") | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+
       - name: Write Source Run Manifest
         id: write_manifest
         shell: powershell
@@ -501,11 +524,12 @@ jobs:
           $manifestPath = Join-Path $manifestDir "source-run.json"
           $retryableStatusCodes = @(408, 429, 500, 502, 503, 504)
           $demoSummaryPath = "artifacts/demo-e2e/summary.json"
-          $badgeDetailsPath = "artifacts/demo-e2e/badge-details.json"
+          $releaseEvidenceReportPath = "artifacts/release-evidence/report.json"
           $demoSummaryPresent = Test-Path $demoSummaryPath
-          $badgeDetailsPresent = Test-Path $badgeDetailsPath
+          $releaseEvidenceReportPresent = Test-Path $releaseEvidenceReportPath
+          $badgeDetailsPresent = $false
           $demoSummary = $null
-          $badgeDetails = $null
+          $releaseEvidenceReport = $null
 
           if ($demoSummaryPresent) {
             try {
@@ -515,11 +539,11 @@ jobs:
             }
           }
 
-          if ($badgeDetailsPresent) {
+          if ($releaseEvidenceReportPresent) {
             try {
-              $badgeDetails = Get-Content $badgeDetailsPath -Raw | ConvertFrom-Json
+              $releaseEvidenceReport = Get-Content $releaseEvidenceReportPath -Raw | ConvertFrom-Json
             } catch {
-              Write-Host ("Failed to parse badge details for manifest evidence snapshot: " + $_.Exception.Message)
+              Write-Host ("Failed to parse release evidence report for manifest evidence snapshot: " + $_.Exception.Message)
             }
           }
 
@@ -540,52 +564,44 @@ jobs:
             $operatorDamageControlLatestSeenAt = $demoSummary.kpis.operatorDamageControlLatestSeenAt
           }
 
-          $badgeEvidenceOperatorDamageControlStatus = $null
-          $badgeEvidenceGovernancePolicyStatus = $null
-          $badgeEvidenceSkillsRegistryStatus = $null
-          $badgeEvidenceDeviceNodesStatus = $null
+          $badgeEvidenceOperatorDamageControlStatus = "unavailable"
+          $badgeEvidenceGovernancePolicyStatus = "unavailable"
+          $badgeEvidenceSkillsRegistryStatus = "unavailable"
+          $badgeEvidenceDeviceNodesStatus = "unavailable"
           $badgeEvidenceDeviceNodeUpdatesStatus = "unavailable"
-          $badgeEvidenceOperatorTurnTruncationStatus = $null
-          $badgeEvidenceOperatorTurnDeleteStatus = $null
-          if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorTurnTruncation) {
-            $badgeEvidenceOperatorTurnTruncationStatus = $badgeDetails.evidence.operatorTurnTruncation.status
+          $badgeEvidenceOperatorTurnTruncationStatus = "unavailable"
+          $badgeEvidenceOperatorTurnDeleteStatus = "unavailable"
+          if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.source -and $null -ne $releaseEvidenceReport.source.badgeDetailsPresent) {
+            $badgeDetailsPresent = ($releaseEvidenceReport.source.badgeDetailsPresent -eq $true)
           }
-          if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorTurnDelete) {
-            $badgeEvidenceOperatorTurnDeleteStatus = $badgeDetails.evidence.operatorTurnDelete.status
-          }
-          if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.operatorDamageControl) {
-            $badgeEvidenceOperatorDamageControlStatus = $badgeDetails.evidence.operatorDamageControl.status
-          }
-          if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.governancePolicy) {
-            $badgeEvidenceGovernancePolicyStatus = $badgeDetails.evidence.governancePolicy.status
-          }
-          if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.skillsRegistry) {
-            $badgeEvidenceSkillsRegistryStatus = $badgeDetails.evidence.skillsRegistry.status
-          }
-          if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.deviceNodes) {
-            $badgeEvidenceDeviceNodesStatus = $badgeDetails.evidence.deviceNodes.status
-            $updatesValidated = ($badgeDetails.evidence.deviceNodes.updatesValidated -eq $true)
-            $updatesHasUpsert = ($badgeDetails.evidence.deviceNodes.updatesHasUpsert -eq $true)
-            $updatesHasHeartbeat = ($badgeDetails.evidence.deviceNodes.updatesHasHeartbeat -eq $true)
-            $updatesApiValidated = ($badgeDetails.evidence.deviceNodes.updatesApiValidated -eq $true)
-            $updatesTotalRaw = $badgeDetails.evidence.deviceNodes.updatesTotal
-            $updatesTotal = 0
-            if ($null -ne $updatesTotalRaw) {
-              $updatesTotalParsed = 0
-              if ([int]::TryParse([string]$updatesTotalRaw, [ref]$updatesTotalParsed)) {
-                $updatesTotal = $updatesTotalParsed
-              }
+          if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.statuses) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.turnTruncationStatus)) {
+              $badgeEvidenceOperatorTurnTruncationStatus = [string]$releaseEvidenceReport.statuses.turnTruncationStatus
             }
-            if ($updatesValidated -and $updatesHasUpsert -and $updatesHasHeartbeat -and $updatesApiValidated -and $updatesTotal -ge 2) {
-              $badgeEvidenceDeviceNodeUpdatesStatus = "pass"
-            } elseif ($updatesTotal -gt 0 -or $updatesHasUpsert -or $updatesHasHeartbeat -or $updatesValidated -or $updatesApiValidated) {
-              $badgeEvidenceDeviceNodeUpdatesStatus = "fail"
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.turnDeleteStatus)) {
+              $badgeEvidenceOperatorTurnDeleteStatus = [string]$releaseEvidenceReport.statuses.turnDeleteStatus
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.operatorDamageControlStatus)) {
+              $badgeEvidenceOperatorDamageControlStatus = [string]$releaseEvidenceReport.statuses.operatorDamageControlStatus
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.governancePolicyStatus)) {
+              $badgeEvidenceGovernancePolicyStatus = [string]$releaseEvidenceReport.statuses.governancePolicyStatus
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.skillsRegistryStatus)) {
+              $badgeEvidenceSkillsRegistryStatus = [string]$releaseEvidenceReport.statuses.skillsRegistryStatus
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.deviceNodesStatus)) {
+              $badgeEvidenceDeviceNodesStatus = [string]$releaseEvidenceReport.statuses.deviceNodesStatus
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.deviceNodeUpdatesStatus)) {
+              $badgeEvidenceDeviceNodeUpdatesStatus = [string]$releaseEvidenceReport.statuses.deviceNodeUpdatesStatus
             }
           }
 
           $gateEvidenceSnapshot = [ordered]@{
             demoSummaryPresent = [bool]$demoSummaryPresent
             badgeDetailsPresent = [bool]$badgeDetailsPresent
+            releaseEvidenceReportPresent = [bool]$releaseEvidenceReportPresent
             operatorTurnTruncationSummaryValidated = $operatorTurnTruncationSummaryValidated
             operatorTurnDeleteSummaryValidated = $operatorTurnDeleteSummaryValidated
             operatorDamageControlSummaryValidated = $operatorDamageControlSummaryValidated
@@ -661,29 +677,6 @@ jobs:
         if: steps.inspect_artifacts.outputs.run_with_perf == 'true' && steps.inspect_artifacts.outputs.strict_final_run != 'true'
         run: npm run verify:release:artifact-only
         shell: powershell
-
-      - name: Build Release Evidence Report
-        id: release_evidence_report
-        if: always()
-        shell: powershell
-        run: |
-          $jsonPath = "artifacts/release-evidence/report.json"
-          $mdPath = "artifacts/release-evidence/report.md"
-          if (Test-Path "artifacts/demo-e2e/badge-details.json") {
-            powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-evidence-report.ps1 -BadgeDetailsPath "artifacts/demo-e2e/badge-details.json" -OutputJsonPath $jsonPath -OutputMarkdownPath $mdPath
-          } else {
-            Write-Host "Badge details artifact not found; skipping release evidence report."
-          }
-          if (Test-Path $jsonPath) {
-            ("report_json_path=" + $jsonPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          } else {
-            ("report_json_path=") | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          }
-          if (Test-Path $mdPath) {
-            ("report_md_path=" + $mdPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          } else {
-            ("report_md_path=") | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          }
 
       - name: Run Artifact-Only Release Revalidation (With Perf Artifacts, Strict)
         if: steps.inspect_artifacts.outputs.run_with_perf == 'true' && steps.inspect_artifacts.outputs.strict_final_run == 'true'
