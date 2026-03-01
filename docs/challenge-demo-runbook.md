@@ -402,6 +402,7 @@ npm run infra:observability:report
 ```powershell
 npm run demo:e2e:visual-capture
 npm run demo:e2e:visual-pack
+npm run demo:e2e:visual:gallery
 ```
 Strict pack gate:
 ```powershell
@@ -411,10 +412,15 @@ Combined shortcut:
 ```powershell
 npm run demo:e2e:visual:auto
 ```
+Presentation shortcut:
+```powershell
+npm run demo:e2e:visual:present
+```
 Offline fallback capture (when frontend is unavailable):
 ```powershell
 npm run demo:e2e:visual-capture -- --mockAll
 npm run demo:e2e:visual-pack:strict
+npm run demo:e2e:visual:gallery
 ```
 6. Optional CI collection path:
 - Run GitHub workflow `.github/workflows/observability-evidence.yml` with `collect_live=true`.

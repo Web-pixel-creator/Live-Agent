@@ -96,6 +96,14 @@ Combined shortcut:
 ```bash
 npm run demo:e2e:visual:auto
 ```
+Generate judge-facing gallery markdown with embedded screenshots:
+```bash
+npm run demo:e2e:visual:gallery
+```
+Presentation shortcut (capture + strict pack + gallery):
+```bash
+npm run demo:e2e:visual:present
+```
 Offline deterministic capture (no running frontend):
 ```bash
 npm run demo:e2e:visual-capture -- --mockAll
@@ -104,6 +112,7 @@ Artifacts:
 - `artifacts/judge-visual-evidence/manifest.json`
 - `artifacts/judge-visual-evidence/manifest.md`
 - `artifacts/judge-visual-evidence/screenshots/_capture-manifest.json`
+- `artifacts/judge-visual-evidence/gallery.md`
 
 5. Optional runtime integrations:
 - Firestore adapter (orchestrator): set `FIRESTORE_ENABLED=true` and `GOOGLE_CLOUD_PROJECT`.

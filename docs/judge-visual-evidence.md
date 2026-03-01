@@ -22,6 +22,18 @@ Auto mode (capture + strict pack in one command):
 npm run demo:e2e:visual:auto
 ```
 
+Generate judge-facing screenshot gallery (markdown with embedded captures):
+
+```bash
+npm run demo:e2e:visual:gallery
+```
+
+Presentation shortcut (capture + strict pack + gallery):
+
+```bash
+npm run demo:e2e:visual:present
+```
+
 Offline deterministic mode (no running frontend required):
 
 ```bash
@@ -60,6 +72,7 @@ Defaults used by `scripts/judge-visual-capture.mjs`:
 1. `artifacts/judge-visual-evidence/manifest.json`
 2. `artifacts/judge-visual-evidence/manifest.md`
 3. `artifacts/judge-visual-evidence/screenshots/_capture-manifest.json`
+4. `artifacts/judge-visual-evidence/gallery.md`
 
 ## Required Screenshot Filenames
 
