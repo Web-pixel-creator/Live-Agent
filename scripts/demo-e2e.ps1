@@ -2115,6 +2115,24 @@ try {
     Assert-Condition -Condition ($deviceLookupVersion -gt $deviceNodeUpdatedVersion) -Message "Device node status lookup version should increase after expected-version update + heartbeat."
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($deviceLookupLastSeenAt)) -Message "Device node status lookup should include lastSeenAt."
 
+    $deviceUpdatesResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/device-nodes/$([System.Uri]::EscapeDataString($deviceNodeId))/updates?limit=20" -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
+    $deviceUpdatesDataRaw = Get-FieldValue -Object $deviceUpdatesResponse -Path @("data")
+    if ($deviceUpdatesDataRaw -is [System.Array]) {
+      $deviceUpdatesData = @($deviceUpdatesDataRaw)
+    } elseif ($null -ne $deviceUpdatesDataRaw) {
+      $deviceUpdatesData = @($deviceUpdatesDataRaw)
+    } else {
+      $deviceUpdatesData = @()
+    }
+    $deviceUpdatesTotal = $deviceUpdatesData.Count
+    $deviceUpdatesHasUpsert = (@($deviceUpdatesData | Where-Object { [string](Get-FieldValue -Object $_ -Path @("action")) -eq "device_node_upsert" }).Count -ge 1)
+    $deviceUpdatesHasHeartbeat = (@($deviceUpdatesData | Where-Object { [string](Get-FieldValue -Object $_ -Path @("action")) -eq "device_node_heartbeat" }).Count -ge 1)
+    $deviceUpdatesValidated = ($deviceUpdatesTotal -ge 2 -and $deviceUpdatesHasUpsert -and $deviceUpdatesHasHeartbeat)
+    Assert-Condition -Condition ($deviceUpdatesTotal -ge 2) -Message "Device node updates history should contain at least upsert + heartbeat records."
+    Assert-Condition -Condition $deviceUpdatesHasUpsert -Message "Device node updates history must include device_node_upsert action."
+    Assert-Condition -Condition $deviceUpdatesHasHeartbeat -Message "Device node updates history must include device_node_heartbeat action."
+    Assert-Condition -Condition $deviceUpdatesValidated -Message "Device node updates history validation failed."
+
     $summaryResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/operator/summary" -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
     $summaryData = Get-FieldValue -Object $summaryResponse -Path @("data")
     Assert-Condition -Condition ($null -ne $summaryData) -Message "Operator summary payload is missing."
@@ -2634,6 +2652,10 @@ try {
       deviceNodeLookupVersion = $deviceLookupVersion
       deviceNodeLookupLastSeenAt = $deviceLookupLastSeenAt
       deviceNodeLookupValidated = $true
+      deviceNodeUpdatesTotal = $deviceUpdatesTotal
+      deviceNodeUpdatesHasUpsert = $deviceUpdatesHasUpsert
+      deviceNodeUpdatesHasHeartbeat = $deviceUpdatesHasHeartbeat
+      deviceNodeUpdatesValidated = $deviceUpdatesValidated
       deviceNodeVersionConflictStatusCode = $deviceVersionConflictStatusCode
       deviceNodeVersionConflictCode = $deviceVersionConflictCode
       deviceNodeVersionConflictExpectedVersion = $deviceVersionConflictExpectedVersion
@@ -2653,7 +2675,10 @@ try {
     -MaxAttempts $ScenarioRetryMaxAttempts `
     -InitialBackoffMs $ScenarioRetryBackoffMs `
     -RetryTransientFailures `
-    -Action {
+  -Action {
+    $operatorHeaders = @{
+      "x-operator-role" = "operator"
+    }
     $operatorActions = Get-ScenarioData -Name "operator.console.actions"
     Assert-Condition -Condition ($null -ne $operatorActions) -Message "operator.console.actions scenario must pass before operator.device_nodes.lifecycle."
 
@@ -2668,6 +2693,10 @@ try {
     $summaryTotal = [int](Get-FieldValue -Object $operatorActions -Path @("deviceNodeSummaryTotal"))
     $summaryDegraded = [int](Get-FieldValue -Object $operatorActions -Path @("deviceNodeSummaryDegraded"))
     $summaryRecentContainsLookup = [bool](Get-FieldValue -Object $operatorActions -Path @("deviceNodeSummaryRecentContainsLookup"))
+    $updatesTotal = [int](Get-FieldValue -Object $operatorActions -Path @("deviceNodeUpdatesTotal"))
+    $updatesHasUpsert = [bool](Get-FieldValue -Object $operatorActions -Path @("deviceNodeUpdatesHasUpsert"))
+    $updatesHasHeartbeat = [bool](Get-FieldValue -Object $operatorActions -Path @("deviceNodeUpdatesHasHeartbeat"))
+    $updatesValidated = [bool](Get-FieldValue -Object $operatorActions -Path @("deviceNodeUpdatesValidated"))
 
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($deviceNodeId)) -Message "Device node lifecycle proof is missing nodeId."
     Assert-Condition -Condition ($updatedVersion -gt $createdVersion) -Message "Device node update should increment version."
@@ -2679,6 +2708,25 @@ try {
     Assert-Condition -Condition ($summaryTotal -ge 1) -Message "Device node lifecycle proof requires summary total >= 1."
     Assert-Condition -Condition ($summaryDegraded -ge 1) -Message "Device node lifecycle proof requires summary degraded >= 1."
     Assert-Condition -Condition $summaryRecentContainsLookup -Message "Device node lifecycle proof requires recent lookup entry."
+    Assert-Condition -Condition ($updatesTotal -ge 2) -Message "Device node lifecycle proof requires updates total >= 2."
+    Assert-Condition -Condition $updatesHasUpsert -Message "Device node lifecycle proof requires updates history to include device_node_upsert."
+    Assert-Condition -Condition $updatesHasHeartbeat -Message "Device node lifecycle proof requires updates history to include device_node_heartbeat."
+    Assert-Condition -Condition $updatesValidated -Message "Device node lifecycle proof requires updates history validation."
+
+    $deviceUpdatesResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/device-nodes/$([System.Uri]::EscapeDataString($deviceNodeId))/updates?limit=20" -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
+    $deviceUpdatesDataRaw = Get-FieldValue -Object $deviceUpdatesResponse -Path @("data")
+    if ($deviceUpdatesDataRaw -is [System.Array]) {
+      $deviceUpdatesData = @($deviceUpdatesDataRaw)
+    } elseif ($null -ne $deviceUpdatesDataRaw) {
+      $deviceUpdatesData = @($deviceUpdatesDataRaw)
+    } else {
+      $deviceUpdatesData = @()
+    }
+    $updatesApiTotal = $deviceUpdatesData.Count
+    $updatesApiHasUpsert = (@($deviceUpdatesData | Where-Object { [string](Get-FieldValue -Object $_ -Path @("action")) -eq "device_node_upsert" }).Count -ge 1)
+    $updatesApiHasHeartbeat = (@($deviceUpdatesData | Where-Object { [string](Get-FieldValue -Object $_ -Path @("action")) -eq "device_node_heartbeat" }).Count -ge 1)
+    $updatesApiValidated = ($updatesApiTotal -ge 2 -and $updatesApiHasUpsert -and $updatesApiHasHeartbeat)
+    Assert-Condition -Condition $updatesApiValidated -Message "Device node lifecycle proof requires `/updates` endpoint to expose upsert + heartbeat actions."
 
     return [ordered]@{
       deviceNodeId = $deviceNodeId
@@ -2692,6 +2740,14 @@ try {
       summaryTotal = $summaryTotal
       summaryDegraded = $summaryDegraded
       summaryRecentContainsLookup = $summaryRecentContainsLookup
+      updatesTotal = $updatesTotal
+      updatesHasUpsert = $updatesHasUpsert
+      updatesHasHeartbeat = $updatesHasHeartbeat
+      updatesValidated = $updatesValidated
+      updatesApiTotal = $updatesApiTotal
+      updatesApiHasUpsert = $updatesApiHasUpsert
+      updatesApiHasHeartbeat = $updatesApiHasHeartbeat
+      updatesApiValidated = $updatesApiValidated
     }
   } | Out-Null
 
@@ -3939,6 +3995,10 @@ $summary = [ordered]@{
     operatorDeviceNodeSummaryStale = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeSummaryStale } else { $null }
     operatorDeviceNodeSummaryMissingHeartbeat = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeSummaryMissingHeartbeat } else { $null }
     operatorDeviceNodeSummaryRecentContainsLookup = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeSummaryRecentContainsLookup } else { $false }
+    operatorDeviceNodeUpdatesTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeUpdatesTotal } else { $null }
+    operatorDeviceNodeUpdatesHasUpsert = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeUpdatesHasUpsert } else { $false }
+    operatorDeviceNodeUpdatesHasHeartbeat = if ($null -ne $operatorActionsData) { $operatorActionsData.deviceNodeUpdatesHasHeartbeat } else { $false }
+    operatorDeviceNodeUpdatesApiValidated = if ($operatorDeviceNodesScenario.Count -gt 0) { [bool]$operatorDeviceNodesScenario[0].result.updatesApiValidated } else { $false }
     operatorLiveBridgeHealthBlockValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthBlockValidated } else { $false }
     operatorLiveBridgeProbeTelemetryValidated = if ($null -ne $operatorActionsData) { $operatorActionsData.liveBridgeHealthProbeTelemetryValidated } else { $false }
     operatorDeviceNodeLookupValidated = if (
@@ -3968,6 +4028,17 @@ $summary = [ordered]@{
       [int]$operatorActionsData.deviceNodeSummaryStale -ge 0 -and
       [int]$operatorActionsData.deviceNodeSummaryMissingHeartbeat -ge 0 -and
       [bool]$operatorActionsData.deviceNodeSummaryRecentContainsLookup -eq $true
+    ) { $true } else { $false }
+    operatorDeviceNodeUpdatesValidated = if (
+      $null -ne $operatorActionsData -and
+      [bool]$operatorActionsData.deviceNodeUpdatesValidated -eq $true -and
+      [int]$operatorActionsData.deviceNodeUpdatesTotal -ge 2 -and
+      [bool]$operatorActionsData.deviceNodeUpdatesHasUpsert -eq $true -and
+      [bool]$operatorActionsData.deviceNodeUpdatesHasHeartbeat -eq $true -and
+      (
+        $operatorDeviceNodesScenario.Count -eq 0 -or
+        [bool]$operatorDeviceNodesScenario[0].result.updatesApiValidated -eq $true
+      )
     ) { $true } else { $false }
     operatorAuditTrailValidated = if (
       $null -ne $operatorActionsData -and

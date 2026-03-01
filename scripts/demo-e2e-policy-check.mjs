@@ -928,6 +928,36 @@ async function main() {
     true,
   );
   addCheck(
+    "kpi.operatorDeviceNodeUpdatesTotal",
+    toNumber(kpis.operatorDeviceNodeUpdatesTotal) >= 2,
+    kpis.operatorDeviceNodeUpdatesTotal,
+    ">= 2",
+  );
+  addCheck(
+    "kpi.operatorDeviceNodeUpdatesHasUpsert",
+    kpis.operatorDeviceNodeUpdatesHasUpsert === true,
+    kpis.operatorDeviceNodeUpdatesHasUpsert,
+    true,
+  );
+  addCheck(
+    "kpi.operatorDeviceNodeUpdatesHasHeartbeat",
+    kpis.operatorDeviceNodeUpdatesHasHeartbeat === true,
+    kpis.operatorDeviceNodeUpdatesHasHeartbeat,
+    true,
+  );
+  addCheck(
+    "kpi.operatorDeviceNodeUpdatesApiValidated",
+    kpis.operatorDeviceNodeUpdatesApiValidated === true,
+    kpis.operatorDeviceNodeUpdatesApiValidated,
+    true,
+  );
+  addCheck(
+    "kpi.operatorDeviceNodeUpdatesValidated",
+    kpis.operatorDeviceNodeUpdatesValidated === true,
+    kpis.operatorDeviceNodeUpdatesValidated,
+    true,
+  );
+  addCheck(
     "kpi.approvalsInvalidIntentStatusCode",
     toNumber(kpis.approvalsInvalidIntentStatusCode) === 400,
     kpis.approvalsInvalidIntentStatusCode,

@@ -169,6 +169,11 @@ function createPassingSummary(overrides?: {
     operatorDeviceNodeSummaryTotal: 1,
     operatorDeviceNodeSummaryDegraded: 1,
     operatorDeviceNodeSummaryRecentContainsLookup: true,
+    operatorDeviceNodeUpdatesTotal: 2,
+    operatorDeviceNodeUpdatesHasUpsert: true,
+    operatorDeviceNodeUpdatesHasHeartbeat: true,
+    operatorDeviceNodeUpdatesApiValidated: true,
+    operatorDeviceNodeUpdatesValidated: true,
     approvalsInvalidIntentStatusCode: 400,
     approvalsInvalidIntentCode: "API_INVALID_INTENT",
     approvalsRecorded: 2,
@@ -325,7 +330,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 242);
+  assert.equal(result.payload.checks, 247);
 });
 
 test("demo-e2e policy check fails when gateway error correlation KPI is invalid", () => {

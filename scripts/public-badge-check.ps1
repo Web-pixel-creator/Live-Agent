@@ -220,11 +220,16 @@ if (-not $SkipDetails) {
     "lookupValidated",
     "versionConflictValidated",
     "healthSummaryValidated",
+    "updatesValidated",
+    "updatesHasUpsert",
+    "updatesHasHeartbeat",
+    "updatesApiValidated",
     "lookupStatus",
     "lookupVersion",
     "updatedVersion",
     "versionConflictStatusCode",
     "versionConflictCode",
+    "updatesTotal",
     "summaryTotal",
     "summaryDegraded",
     "summaryStale",
@@ -290,9 +295,14 @@ if (-not $SkipDetails) {
       -not [bool]$deviceNodesEvidence.lookupValidated -or
       -not [bool]$deviceNodesEvidence.versionConflictValidated -or
       -not [bool]$deviceNodesEvidence.healthSummaryValidated -or
+      -not [bool]$deviceNodesEvidence.updatesValidated -or
+      -not [bool]$deviceNodesEvidence.updatesHasUpsert -or
+      -not [bool]$deviceNodesEvidence.updatesHasHeartbeat -or
+      -not [bool]$deviceNodesEvidence.updatesApiValidated -or
+      [int]$deviceNodesEvidence.updatesTotal -lt 2 -or
       -not [bool]$deviceNodesEvidence.summaryRecentContainsLookup
     ) {
-      Fail "badge-details evidence deviceNodes must be validated with lookup/versionConflict/healthSummary and summaryRecentContainsLookup=true."
+      Fail "badge-details evidence deviceNodes must be validated with lookup/versionConflict/healthSummary + updates lane (upsert+heartbeat) and summaryRecentContainsLookup=true."
     }
   }
 }

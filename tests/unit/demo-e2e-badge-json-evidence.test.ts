@@ -124,6 +124,11 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         operatorDeviceNodeUpdatedVersion: 2,
         operatorDeviceNodeVersionConflictStatusCode: 409,
         operatorDeviceNodeVersionConflictCode: "API_DEVICE_NODE_VERSION_CONFLICT",
+        operatorDeviceNodeUpdatesTotal: 2,
+        operatorDeviceNodeUpdatesHasUpsert: true,
+        operatorDeviceNodeUpdatesHasHeartbeat: true,
+        operatorDeviceNodeUpdatesApiValidated: true,
+        operatorDeviceNodeUpdatesValidated: true,
         operatorDeviceNodeSummaryTotal: 1,
         operatorDeviceNodeSummaryDegraded: 1,
         operatorDeviceNodeSummaryStale: 0,
@@ -173,6 +178,11 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(deviceNodes.updatedVersion, 2);
   assert.equal(deviceNodes.versionConflictStatusCode, 409);
   assert.equal(deviceNodes.versionConflictCode, "API_DEVICE_NODE_VERSION_CONFLICT");
+  assert.equal(deviceNodes.updatesTotal, 2);
+  assert.equal(deviceNodes.updatesHasUpsert, true);
+  assert.equal(deviceNodes.updatesHasHeartbeat, true);
+  assert.equal(deviceNodes.updatesApiValidated, true);
+  assert.equal(deviceNodes.updatesValidated, true);
   assert.equal(deviceNodes.summaryTotal, 1);
   assert.equal(deviceNodes.summaryDegraded, 1);
   assert.equal(deviceNodes.summaryRecentContainsLookup, true);

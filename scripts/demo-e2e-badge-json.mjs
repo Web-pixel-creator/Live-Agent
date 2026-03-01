@@ -315,19 +315,29 @@ function buildDeviceNodesEvidence(kpis) {
   const lookupValidated = toBoolean(kpis.operatorDeviceNodeLookupValidated) === true;
   const versionConflictValidated = toBoolean(kpis.operatorDeviceNodeVersionConflictValidated) === true;
   const healthSummaryValidated = toBoolean(kpis.operatorDeviceNodeHealthSummaryValidated) === true;
+  const updatesValidated = toBoolean(kpis.operatorDeviceNodeUpdatesValidated) === true;
+  const updatesHasUpsert = toBoolean(kpis.operatorDeviceNodeUpdatesHasUpsert) === true;
+  const updatesHasHeartbeat = toBoolean(kpis.operatorDeviceNodeUpdatesHasHeartbeat) === true;
+  const updatesApiValidated = toBoolean(kpis.operatorDeviceNodeUpdatesApiValidated) === true;
 
   const lookupStatus = toOptionalString(kpis.operatorDeviceNodeLookupStatus) ?? "";
   const lookupVersion = toNumber(kpis.operatorDeviceNodeLookupVersion) ?? 0;
   const updatedVersion = toNumber(kpis.operatorDeviceNodeUpdatedVersion) ?? 0;
   const versionConflictStatusCode = toNumber(kpis.operatorDeviceNodeVersionConflictStatusCode) ?? 0;
   const versionConflictCode = toOptionalString(kpis.operatorDeviceNodeVersionConflictCode) ?? "";
+  const updatesTotal = toNumber(kpis.operatorDeviceNodeUpdatesTotal) ?? 0;
   const summaryTotal = toNumber(kpis.operatorDeviceNodeSummaryTotal) ?? 0;
   const summaryDegraded = toNumber(kpis.operatorDeviceNodeSummaryDegraded) ?? 0;
   const summaryStale = toNumber(kpis.operatorDeviceNodeSummaryStale) ?? 0;
   const summaryMissingHeartbeat = toNumber(kpis.operatorDeviceNodeSummaryMissingHeartbeat) ?? 0;
   const summaryRecentContainsLookup = toBoolean(kpis.operatorDeviceNodeSummaryRecentContainsLookup) === true;
 
-  const validated = lookupValidated && versionConflictValidated && healthSummaryValidated;
+  const validated =
+    lookupValidated &&
+    versionConflictValidated &&
+    healthSummaryValidated &&
+    updatesValidated &&
+    updatesApiValidated;
   const status =
     validated &&
     lookupStatus === "degraded" &&
@@ -340,6 +350,9 @@ function buildDeviceNodesEvidence(kpis) {
     summaryDegraded >= 1 &&
     summaryStale >= 0 &&
     summaryMissingHeartbeat >= 0 &&
+    updatesTotal >= 2 &&
+    updatesHasUpsert &&
+    updatesHasHeartbeat &&
     summaryRecentContainsLookup
       ? "pass"
       : "fail";
@@ -350,11 +363,16 @@ function buildDeviceNodesEvidence(kpis) {
     lookupValidated,
     versionConflictValidated,
     healthSummaryValidated,
+    updatesValidated,
+    updatesHasUpsert,
+    updatesHasHeartbeat,
+    updatesApiValidated,
     lookupStatus,
     lookupVersion,
     updatedVersion,
     versionConflictStatusCode,
     versionConflictCode,
+    updatesTotal,
     summaryTotal,
     summaryDegraded,
     summaryStale,

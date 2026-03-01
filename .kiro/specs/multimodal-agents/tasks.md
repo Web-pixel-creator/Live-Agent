@@ -202,6 +202,7 @@
 28. Strict-release summary evidence hardening for turn lifecycle statuses (`turn_truncation_status` + `turn_delete_status` surfaced in strict CI summary + anti-drift guard) [Completed]
 29. T-302 baseline extension (managed skills registry detail/history APIs: `/v1/skills/registry/{skillId}` + `/v1/skills/registry/{skillId}/updates` with tenant-aware operator audit filtering) [Completed baseline]
 30. T-303 baseline extension (device-node detail/history APIs: `/v1/device-nodes/{nodeId}` + `/v1/device-nodes/{nodeId}/updates` with tenant-aware operator audit filtering for upsert/heartbeat lifecycle) [Completed baseline]
+31. Device-nodes updates evidence hardening (demo/policy/badge/deploy gates now require `/v1/device-nodes/{nodeId}/updates` lifecycle proof for both `device_node_upsert` and `device_node_heartbeat`, including strict `updatesTotal>=2` and anti-drift tests) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 
