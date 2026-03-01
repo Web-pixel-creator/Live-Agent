@@ -711,6 +711,57 @@ function extractSkillIdFromOperatorAction(item: OperatorActionRecord): string | 
   return skillId ? skillId.toLowerCase() : null;
 }
 
+function parseDeviceNodePathSuffix(pathname: string): {
+  nodeId: string;
+  wantsUpdates: boolean;
+} | null {
+  const prefix = "/v1/device-nodes/";
+  if (!pathname.startsWith(prefix)) {
+    return null;
+  }
+
+  const suffix = pathname.slice(prefix.length).replace(/^\/+|\/+$/g, "");
+  if (suffix.length === 0 || suffix.toLowerCase() === "heartbeat" || suffix.toLowerCase() === "index") {
+    return null;
+  }
+
+  if (suffix.toLowerCase().endsWith("/updates")) {
+    const nodePart = suffix.slice(0, -"/updates".length).replace(/^\/+|\/+$/g, "");
+    if (nodePart.length === 0) {
+      return null;
+    }
+    let decodedNodeId: string;
+    try {
+      decodedNodeId = decodeURIComponent(nodePart);
+    } catch {
+      return null;
+    }
+    return {
+      nodeId: decodedNodeId,
+      wantsUpdates: true,
+    };
+  }
+
+  let decodedNodeId: string;
+  try {
+    decodedNodeId = decodeURIComponent(suffix);
+  } catch {
+    return null;
+  }
+  return {
+    nodeId: decodedNodeId,
+    wantsUpdates: false,
+  };
+}
+
+function extractDeviceNodeIdFromOperatorAction(item: OperatorActionRecord): string | null {
+  if (!isRecord(item.details)) {
+    return null;
+  }
+  const nodeId = toOptionalString(item.details.nodeId) ?? toOptionalString(item.details.deviceNodeId);
+  return nodeId ? nodeId.toLowerCase() : null;
+}
+
 function parseOptionalExpectedVersion(raw: unknown): number | null {
   if (typeof raw === "number" && Number.isFinite(raw) && raw >= 1) {
     return Math.floor(raw);
@@ -889,6 +940,9 @@ function normalizeOperationPath(pathname: string): string {
     return "/v1/skills/registry/:skillId";
   }
   if (pathname.startsWith("/v1/device-nodes/")) {
+    if (pathname.toLowerCase().endsWith("/updates")) {
+      return "/v1/device-nodes/:id/updates";
+    }
     return "/v1/device-nodes/:id";
   }
   if (pathname.startsWith("/v1/channels/sessions/resolve")) {
@@ -3247,31 +3301,63 @@ export const server = createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && url.pathname.startsWith("/v1/device-nodes/")) {
-      const rawNodeId = url.pathname.slice("/v1/device-nodes/".length);
-      if (
-        rawNodeId.length > 0 &&
-        rawNodeId !== "index" &&
-        rawNodeId !== "heartbeat"
-      ) {
-        const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
-        const decodedNodeId = decodeURIComponent(rawNodeId);
-        const node = await getDeviceNodeById(decodedNodeId);
-        if (!node) {
-          writeApiError(res, 404, {
-            code: "API_DEVICE_NODE_NOT_FOUND",
-            message: "Device node not found",
-            details: {
-              nodeId: decodedNodeId,
-            },
-          });
-          return;
-        }
-        writeJson(res, 200, {
-          data: node,
-          role,
-          source: "device_node_registry",
+      const lowerPath = url.pathname.toLowerCase();
+      if (lowerPath === "/v1/device-nodes/heartbeat" || lowerPath === "/v1/device-nodes/index") {
+        // Let unmatched GET heartbeat/index requests fall through to default 404 handler.
+      } else {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const pathDetails = parseDeviceNodePathSuffix(url.pathname);
+      if (!pathDetails || !pathDetails.nodeId) {
+        writeApiError(res, 400, {
+          code: "API_DEVICE_NODE_INVALID_PATH",
+          message: "nodeId path segment is required",
         });
         return;
+      }
+
+      if (pathDetails.wantsUpdates) {
+        const limit = parseBoundedInt(url.searchParams.get("limit"), 50, 1, 200);
+        const requestedTenant = toOptionalString(url.searchParams.get("tenantId"));
+        const tenantId =
+          role === "admin" && requestedTenant ? requestedTenant : requestTenant.tenantId;
+        const nodeIdLower = pathDetails.nodeId.toLowerCase();
+        const fetchLimit = Math.max(limit * 8, 500);
+        const auditItems = await listOperatorActions(fetchLimit, { tenantId });
+        const updates = auditItems
+          .filter(
+            (item) =>
+              item.action === "device_node_upsert" ||
+              item.action === "device_node_heartbeat",
+          )
+          .filter((item) => extractDeviceNodeIdFromOperatorAction(item) === nodeIdLower)
+          .slice(0, limit);
+        writeJson(res, 200, {
+          data: updates,
+          total: updates.length,
+          role,
+          nodeId: pathDetails.nodeId,
+          tenantId,
+        });
+        return;
+      }
+
+      const node = await getDeviceNodeById(pathDetails.nodeId);
+      if (!node) {
+        writeApiError(res, 404, {
+          code: "API_DEVICE_NODE_NOT_FOUND",
+          message: "Device node not found",
+          details: {
+            nodeId: pathDetails.nodeId,
+          },
+        });
+        return;
+      }
+      writeJson(res, 200, {
+        data: node,
+        role,
+        source: "device_node_registry",
+      });
+      return;
       }
     }
 

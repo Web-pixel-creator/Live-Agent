@@ -126,6 +126,8 @@ Session mutation concurrency controls:
 9. Device node registry APIs:
 - `GET /v1/device-nodes/index` -> public device-node index for runtime routing (`limit`, `kind`, `includeOffline`).
 - `GET /v1/device-nodes` with `x-operator-role` -> operator registry view.
+- `GET /v1/device-nodes/{nodeId}` with `x-operator-role` -> device-node detail (`404 API_DEVICE_NODE_NOT_FOUND` when absent).
+- `GET /v1/device-nodes/{nodeId}/updates` with `x-operator-role` -> tenant-scoped upsert/heartbeat audit history for this node (`limit`, optional `tenantId` for admin).
 - `POST /v1/device-nodes` with `x-operator-role: admin` -> versioned upsert (`expectedVersion` supported).
 - `POST /v1/device-nodes/heartbeat` with `x-operator-role: operator|admin` -> update node liveness/status.
 
