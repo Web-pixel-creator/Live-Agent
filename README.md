@@ -115,6 +115,8 @@ Session mutation concurrency controls:
 8. Managed skills registry APIs:
 - `GET /v1/skills/index` -> public managed skills index for agent runtime (`managed` source).
 - `GET /v1/skills/registry` with `x-operator-role` -> operator catalog view (`limit`, `scope`, `includeDisabled`).
+- `GET /v1/skills/registry/{skillId}` with `x-operator-role` -> managed skill detail (`404 API_SKILL_REGISTRY_NOT_FOUND` when absent).
+- `GET /v1/skills/registry/{skillId}/updates` with `x-operator-role` -> tenant-scoped upsert audit history for this skill (`limit`, optional `tenantId` for admin).
 - `POST /v1/skills/registry` with `x-operator-role: admin` -> versioned upsert (`expectedVersion` for optimistic locking).
   - Supports plugin marketplace manifest:
     - `pluginManifest.permissions[]` (validated against allowlist).

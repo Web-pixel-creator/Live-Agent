@@ -199,6 +199,8 @@
 25. Device-nodes judge evidence hardening (public `badge-details` `deviceNodes` block + strict summary status + deployment guardrails + anti-drift tests) [Completed]
 26. Artifact-only provenance evidence hardening for `deviceNodes` (`badgeEvidenceDeviceNodesStatus` in local helper/workflow/source-run manifest/release gate + anti-drift coverage) [Completed]
 27. Artifact-only provenance evidence hardening for turn lifecycle badge statuses (`badgeEvidenceOperatorTurnTruncationStatus` + `badgeEvidenceOperatorTurnDeleteStatus` across helper/workflow/source-run manifest/release gate + anti-drift coverage) [Completed]
+28. Strict-release summary evidence hardening for turn lifecycle statuses (`turn_truncation_status` + `turn_delete_status` surfaced in strict CI summary + anti-drift guard) [Completed]
+29. T-302 baseline extension (managed skills registry detail/history APIs: `/v1/skills/registry/{skillId}` + `/v1/skills/registry/{skillId}/updates` with tenant-aware operator audit filtering) [Completed baseline]
 
 ## Suggested Solo Execution (2-week MVP)
 

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  getManagedSkillById,
   listManagedSkillIndex,
   listManagedSkills,
   upsertManagedSkill,
@@ -151,4 +152,11 @@ test("managed skill registry list/index applies enabled and scope filtering", as
   });
   assert.ok(fullIndex.some((item) => item.id === sharedId));
   assert.ok(fullIndex.some((item) => item.id === uiDisabledId));
+
+  const sharedSkill = await getManagedSkillById(sharedId);
+  assert.ok(sharedSkill);
+  assert.equal(sharedSkill?.skillId, sharedId);
+
+  const missingSkill = await getManagedSkillById(`missing-${Date.now()}`);
+  assert.equal(missingSkill, null);
 });

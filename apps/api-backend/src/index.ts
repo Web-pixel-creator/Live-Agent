@@ -22,6 +22,7 @@ import {
   getTenantGovernancePolicy,
   getChannelSessionBinding,
   getDeviceNodeById,
+  getManagedSkillById,
   getFirestoreState,
   type GovernanceComplianceTemplate,
   type GovernanceRetentionPolicy,
@@ -659,6 +660,57 @@ function parseSkillScope(raw: unknown): string[] {
   return deduped;
 }
 
+function parseSkillRegistryPathSuffix(pathname: string): {
+  skillId: string;
+  wantsUpdates: boolean;
+} | null {
+  const prefix = "/v1/skills/registry/";
+  if (!pathname.startsWith(prefix)) {
+    return null;
+  }
+
+  const suffix = pathname.slice(prefix.length).replace(/^\/+|\/+$/g, "");
+  if (suffix.length === 0) {
+    return null;
+  }
+
+  if (suffix.toLowerCase().endsWith("/updates")) {
+    const skillPart = suffix.slice(0, -"/updates".length).replace(/^\/+|\/+$/g, "");
+    if (skillPart.length === 0) {
+      return null;
+    }
+    let decodedSkillId: string;
+    try {
+      decodedSkillId = decodeURIComponent(skillPart);
+    } catch {
+      return null;
+    }
+    return {
+      skillId: decodedSkillId,
+      wantsUpdates: true,
+    };
+  }
+
+  let decodedSkillId: string;
+  try {
+    decodedSkillId = decodeURIComponent(suffix);
+  } catch {
+    return null;
+  }
+  return {
+    skillId: decodedSkillId,
+    wantsUpdates: false,
+  };
+}
+
+function extractSkillIdFromOperatorAction(item: OperatorActionRecord): string | null {
+  if (!isRecord(item.details)) {
+    return null;
+  }
+  const skillId = toOptionalString(item.details.skillId);
+  return skillId ? skillId.toLowerCase() : null;
+}
+
 function parseOptionalExpectedVersion(raw: unknown): number | null {
   if (typeof raw === "number" && Number.isFinite(raw) && raw >= 1) {
     return Math.floor(raw);
@@ -829,6 +881,12 @@ function parseJsonBody(raw: string): Record<string, unknown> {
 function normalizeOperationPath(pathname: string): string {
   if (pathname.startsWith("/v1/sessions/")) {
     return "/v1/sessions/:id";
+  }
+  if (pathname.startsWith("/v1/skills/registry/")) {
+    if (pathname.toLowerCase().endsWith("/updates")) {
+      return "/v1/skills/registry/:skillId/updates";
+    }
+    return "/v1/skills/registry/:skillId";
   }
   if (pathname.startsWith("/v1/device-nodes/")) {
     return "/v1/device-nodes/:id";
@@ -2948,6 +3006,57 @@ export const server = createServer(async (req, res) => {
         total: indexItems.length,
         source: "managed_registry",
         generatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith("/v1/skills/registry/")) {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const pathDetails = parseSkillRegistryPathSuffix(url.pathname);
+      if (!pathDetails || !pathDetails.skillId) {
+        writeApiError(res, 400, {
+          code: "API_SKILL_REGISTRY_INVALID_PATH",
+          message: "skillId path segment is required",
+        });
+        return;
+      }
+
+      if (pathDetails.wantsUpdates) {
+        const limit = parseBoundedInt(url.searchParams.get("limit"), 50, 1, 200);
+        const requestedTenant = toOptionalString(url.searchParams.get("tenantId"));
+        const tenantId =
+          role === "admin" && requestedTenant ? requestedTenant : requestTenant.tenantId;
+        const skillIdLower = pathDetails.skillId.toLowerCase();
+        const fetchLimit = Math.max(limit * 8, 500);
+        const auditItems = await listOperatorActions(fetchLimit, { tenantId });
+        const updates = auditItems
+          .filter((item) => item.action === "skills_registry_upsert")
+          .filter((item) => extractSkillIdFromOperatorAction(item) === skillIdLower)
+          .slice(0, limit);
+        writeJson(res, 200, {
+          data: updates,
+          total: updates.length,
+          role,
+          skillId: pathDetails.skillId,
+          tenantId,
+        });
+        return;
+      }
+
+      const skill = await getManagedSkillById(pathDetails.skillId);
+      if (!skill) {
+        writeApiError(res, 404, {
+          code: "API_SKILL_REGISTRY_NOT_FOUND",
+          message: "Managed skill not found",
+          details: {
+            skillId: pathDetails.skillId,
+          },
+        });
+        return;
+      }
+      writeJson(res, 200, {
+        data: skill,
+        role,
       });
       return;
     }

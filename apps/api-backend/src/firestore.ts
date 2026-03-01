@@ -2335,6 +2335,25 @@ export async function listManagedSkills(params: {
     .filter((skill) => isScopeCompatible(skill.scope, scope));
 }
 
+export async function getManagedSkillById(skillIdInput: string): Promise<ManagedSkillRecord | null> {
+  const skillId = normalizeManagedSkillId(skillIdInput, "");
+  if (!skillId) {
+    return null;
+  }
+
+  const db = initFirestore();
+  if (!db) {
+    return inMemoryManagedSkills.get(skillId) ?? null;
+  }
+
+  const snapshot = await db.collection("skills_registry").doc(skillId).get();
+  if (!snapshot.exists) {
+    return null;
+  }
+
+  return mapManagedSkillRecord(snapshot.id, snapshot.data() as Record<string, unknown>);
+}
+
 export async function upsertManagedSkill(params: {
   skillId: string;
   name: string;
