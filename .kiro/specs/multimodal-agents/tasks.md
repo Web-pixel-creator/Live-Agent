@@ -220,6 +220,7 @@
 46. Demo frontend session audio export baseline (`Export Session Audio (WAV)` + PCM16 capture buffer + audio snapshot metadata in markdown/json export + alignment tests/docs) [Completed]
 47. Judge visual evidence pack baseline (`scripts/judge-visual-evidence-pack.mjs` + `demo:e2e:visual-pack`/`demo:e2e:visual-pack:strict` + docs/checklist + script/alignment tests) [Completed]
 48. Demo frontend interactive Story Timeline panel (`Story Timeline` card + segment scrubber/selector + preview/list rendering from `output.story.timeline` + export snapshot/docs/alignment tests) [Completed]
+49. Judge visual auto-capture baseline (`scripts/judge-visual-capture.mjs` Playwright capture for required screenshot set + `demo:e2e:visual-capture`/`demo:e2e:visual:auto` scripts + docs/alignment tests) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

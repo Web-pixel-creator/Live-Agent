@@ -85,15 +85,25 @@ Frontend includes an interactive `Story Timeline` panel (segment scrubber + sele
 
 Judge-facing visual evidence pack:
 ```bash
+npm run demo:e2e:visual-capture
 npm run demo:e2e:visual-pack
 ```
 Strict mode (non-zero exit when required screenshots or critical badge lanes are missing):
 ```bash
 npm run demo:e2e:visual-pack:strict
 ```
+Combined shortcut:
+```bash
+npm run demo:e2e:visual:auto
+```
+Offline deterministic capture (no running frontend):
+```bash
+npm run demo:e2e:visual-capture -- --mockAll
+```
 Artifacts:
 - `artifacts/judge-visual-evidence/manifest.json`
 - `artifacts/judge-visual-evidence/manifest.md`
+- `artifacts/judge-visual-evidence/screenshots/_capture-manifest.json`
 
 5. Optional runtime integrations:
 - Firestore adapter (orchestrator): set `FIRESTORE_ENABLED=true` and `GOOGLE_CLOUD_PROJECT`.

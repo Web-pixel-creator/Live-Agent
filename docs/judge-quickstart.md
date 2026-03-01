@@ -29,6 +29,7 @@ Open: `http://localhost:3000`
 npm run demo:e2e:fast
 npm run demo:e2e:policy
 npm run demo:e2e:badge
+npm run demo:e2e:visual-capture
 npm run demo:e2e:visual-pack
 ```
 
@@ -39,6 +40,7 @@ Artifacts:
 3. `artifacts/demo-e2e/badge-details.json`
 4. `artifacts/judge-visual-evidence/manifest.json`
 5. `artifacts/judge-visual-evidence/manifest.md`
+6. `artifacts/judge-visual-evidence/screenshots/_capture-manifest.json`
 
 ## 3) Validate Release Readiness
 

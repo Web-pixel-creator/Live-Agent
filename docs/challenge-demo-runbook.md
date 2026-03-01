@@ -400,10 +400,20 @@ npm run infra:observability:report
 ```
 5. Generate judge visual evidence pack (screenshot + badge lane checklist):
 ```powershell
+npm run demo:e2e:visual-capture
 npm run demo:e2e:visual-pack
 ```
 Strict pack gate:
 ```powershell
+npm run demo:e2e:visual-pack:strict
+```
+Combined shortcut:
+```powershell
+npm run demo:e2e:visual:auto
+```
+Offline fallback capture (when frontend is unavailable):
+```powershell
+npm run demo:e2e:visual-capture -- --mockAll
 npm run demo:e2e:visual-pack:strict
 ```
 6. Optional CI collection path:
