@@ -695,7 +695,7 @@ Notes:
 - Manual dispatch supports optional deploy to Railway (`deploy_to_railway=true`) after strict gate passes using `npm run deploy:railway:all`.
 - For release-triggered deploy, configure repository secrets: `RAILWAY_API_TOKEN` (recommended), `RAILWAY_PROJECT_ID`, `RAILWAY_SERVICE_ID` (optional `RAILWAY_FRONTEND_SERVICE_ID`; legacy fallback `RAILWAY_TOKEN`; optional `RAILWAY_PROJECT_TOKEN`).
 - Same auth-resilience path is enabled for strict manual deploys: `verify_only_fallback_on_auth_failure=true` triggers verify-only public endpoint checks when Railway auth probe fails.
-- Job summary includes strict badge evidence statuses extracted from `artifacts/demo-e2e/badge-details.json`: `operatorDamageControl`, `governancePolicy`, `skillsRegistry`, and `deviceNodes`.
+- Job summary includes strict badge evidence statuses extracted from `artifacts/demo-e2e/badge-details.json`: `operatorTurnTruncation`, `operatorTurnDelete`, `operatorDamageControl`, `governancePolicy`, `skillsRegistry`, and `deviceNodes`.
 
 Local helper to dispatch the same strict workflow (and optionally wait for completion):
 
@@ -742,7 +742,7 @@ npm run workflow:dispatch -- -Workflow railway_deploy_all -DryRun
   - `allow_any_source_branch=true|false` to allow non-`main/master` source runs (default `false`).
 - Workflow auto-detects presence of `artifacts/perf-load/*`: with perf artifacts it runs `npm run verify:release:artifact-only`; without perf artifacts (for example `pr-quality-artifacts`) it runs `release-readiness.ps1` with `-SkipPerfLoad`.
 - Workflow writes source provenance manifest to `artifacts/release-artifact-revalidation/source-run.json` and includes the path in job summary.
-- Job summary includes badge evidence statuses for `operatorDamageControl`, `governancePolicy`, and `skillsRegistry` from `badge-details.json`.
+- Job summary includes badge evidence statuses for `operatorTurnTruncation`, `operatorTurnDelete`, `operatorDamageControl`, `governancePolicy`, `skillsRegistry`, and `deviceNodes` from `badge-details.json`.
 - Local equivalent helper: `npm run verify:release:artifact:revalidate` (uses `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_TOKEN` or `GH_TOKEN`, then falls back to `gh auth token`; enforces `main/master` + source-run age guard by default, supports strict mode and auto-skip for missing perf artifacts).
 
 ## PR Gate

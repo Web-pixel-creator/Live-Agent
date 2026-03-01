@@ -247,6 +247,8 @@ jobs:
         if: always()
         shell: powershell
         run: |
+          $turnTruncationStatus = "unavailable"
+          $turnDeleteStatus = "unavailable"
           $operatorDamageControlStatus = "unavailable"
           $governancePolicyStatus = "unavailable"
           $skillsRegistryStatus = "unavailable"
@@ -258,6 +260,18 @@ jobs:
             try {
               $badgeDetails = Get-Content "artifacts/demo-e2e/badge-details.json" -Raw | ConvertFrom-Json
               if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence) {
+                if ($null -ne $badgeDetails.evidence.operatorTurnTruncation) {
+                  $candidate = [string]$badgeDetails.evidence.operatorTurnTruncation.status
+                  if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+                    $turnTruncationStatus = $candidate
+                  }
+                }
+                if ($null -ne $badgeDetails.evidence.operatorTurnDelete) {
+                  $candidate = [string]$badgeDetails.evidence.operatorTurnDelete.status
+                  if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+                    $turnDeleteStatus = $candidate
+                  }
+                }
                 if ($null -ne $badgeDetails.evidence.operatorDamageControl) {
                   $candidate = [string]$badgeDetails.evidence.operatorDamageControl.status
                   if (-not [string]::IsNullOrWhiteSpace($candidate)) {
@@ -289,6 +303,8 @@ jobs:
           }
 
           ("badge_details_present=" + $badgeDetailsPresent) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("turn_truncation_status=" + $turnTruncationStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("turn_delete_status=" + $turnDeleteStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("operator_damage_control_status=" + $operatorDamageControlStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("governance_policy_status=" + $governancePolicyStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("skills_registry_status=" + $skillsRegistryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -322,6 +338,8 @@ jobs:
             ("Perf policy gate: " + ($(if ($perf.ok) { "passed" } else { "failed" })) + " (" + $perf.checks + " checks)") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           }
           ("Badge details present: ${{ steps.collect_badge_evidence.outputs.badge_details_present }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Turn-truncation status (badge evidence): ${{ steps.collect_badge_evidence.outputs.turn_truncation_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Turn-delete status (badge evidence): ${{ steps.collect_badge_evidence.outputs.turn_delete_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Operator damage-control status (badge evidence): ${{ steps.collect_badge_evidence.outputs.operator_damage_control_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Governance policy status (badge evidence): ${{ steps.collect_badge_evidence.outputs.governance_policy_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Skills registry status (badge evidence): ${{ steps.collect_badge_evidence.outputs.skills_registry_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
