@@ -12,9 +12,11 @@ test("demo frontend wires session export controls and runtime helpers", () => {
   const requiredHtmlTokens = [
     'id="exportMarkdownBtn"',
     'id="exportJsonBtn"',
+    'id="exportAudioBtn"',
     'id="exportStatus"',
     "Export Session Markdown",
     "Export Session JSON",
+    "Export Session Audio (WAV)",
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `frontend html missing export control token: ${token}`);
@@ -26,12 +28,16 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "toMarkdownExport",
     "exportSessionMarkdown",
     "exportSessionJson",
+    "exportSessionAudio",
+    "buildPcm16WavBytes",
+    "recordAssistantAudioChunk",
+    "collectAssistantAudioBytes",
     "triggerDownload",
     "Session markdown export downloaded",
     "Session JSON export downloaded",
+    "Session audio export downloaded",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing export token: ${token}`);
   }
 });
-

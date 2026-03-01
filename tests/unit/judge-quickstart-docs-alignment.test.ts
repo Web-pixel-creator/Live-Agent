@@ -32,6 +32,7 @@ test("judge quickstart document includes core judge commands and categories", ()
     "npm run verify:release",
     "Export Session Markdown",
     "Export Session JSON",
+    "Export Session Audio (WAV)",
     "docs/challenge-demo-runbook.md",
   ];
   for (const token of requiredTokens) {
@@ -46,4 +47,3 @@ test("judge runbook alias includes quickstart in reading order", () => {
   assert.match(source, /docs\/judge-quickstart\.md/);
   assert.match(source, /docs\/challenge-demo-runbook\.md/);
 });
-

@@ -21,6 +21,10 @@ const state = {
   assistantPlaybackTurnId: null,
   assistantPlaybackStartedAtMs: null,
   assistantPlaybackScheduledMs: 0,
+  assistantAudioChunks: [],
+  assistantAudioBytesTotal: 0,
+  assistantAudioSampleRate: 16000,
+  assistantAudioTrimmed: false,
   micContext: null,
   micStream: null,
   micProcessor: null,
@@ -46,6 +50,7 @@ const state = {
 
 const PENDING_CLIENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
 const THEME_STORAGE_KEY = "mla.demoFrontend.themeMode";
+const MAX_ASSISTANT_AUDIO_EXPORT_BYTES = 32 * 1024 * 1024;
 
 const el = {
   wsUrl: document.getElementById("wsUrl"),
@@ -62,6 +67,7 @@ const el = {
   themeToggleBtn: document.getElementById("themeToggleBtn"),
   exportMarkdownBtn: document.getElementById("exportMarkdownBtn"),
   exportJsonBtn: document.getElementById("exportJsonBtn"),
+  exportAudioBtn: document.getElementById("exportAudioBtn"),
   exportStatus: document.getElementById("exportStatus"),
   pttToggleBtn: document.getElementById("pttToggleBtn"),
   pttHoldBtn: document.getElementById("pttHoldBtn"),
@@ -693,7 +699,142 @@ function toIsoNow() {
   return new Date().toISOString();
 }
 
+function resetAssistantAudioExport() {
+  state.assistantAudioChunks = [];
+  state.assistantAudioBytesTotal = 0;
+  state.assistantAudioSampleRate = 16000;
+  state.assistantAudioTrimmed = false;
+}
+
+function copyInt16Bytes(samples) {
+  if (!(samples instanceof Int16Array) || samples.length === 0) {
+    return new Uint8Array(0);
+  }
+  const start = samples.byteOffset;
+  const end = start + samples.byteLength;
+  return new Uint8Array(samples.buffer.slice(start, end));
+}
+
+function recordAssistantAudioChunk(samples, sampleRate = 16000, turnId = null) {
+  const bytes = copyInt16Bytes(samples);
+  if (bytes.byteLength === 0) {
+    return;
+  }
+  const normalizedSampleRate =
+    typeof sampleRate === "number" && Number.isFinite(sampleRate) && sampleRate > 0 ? Math.floor(sampleRate) : 16000;
+  if (state.assistantAudioChunks.length === 0) {
+    state.assistantAudioSampleRate = normalizedSampleRate;
+  }
+
+  state.assistantAudioChunks.push({
+    bytes,
+    turnId: typeof turnId === "string" && turnId.trim().length > 0 ? turnId.trim() : null,
+  });
+  state.assistantAudioBytesTotal += bytes.byteLength;
+
+  while (state.assistantAudioBytesTotal > MAX_ASSISTANT_AUDIO_EXPORT_BYTES && state.assistantAudioChunks.length > 1) {
+    const removed = state.assistantAudioChunks.shift();
+    if (removed && removed.bytes instanceof Uint8Array) {
+      state.assistantAudioBytesTotal = Math.max(0, state.assistantAudioBytesTotal - removed.bytes.byteLength);
+      state.assistantAudioTrimmed = true;
+    }
+  }
+}
+
+function collectAssistantAudioBytes() {
+  if (!Array.isArray(state.assistantAudioChunks) || state.assistantAudioChunks.length === 0) {
+    return new Uint8Array(0);
+  }
+  const totalBytes = state.assistantAudioChunks.reduce((sum, chunk) => {
+    if (!chunk || !(chunk.bytes instanceof Uint8Array)) {
+      return sum;
+    }
+    return sum + chunk.bytes.byteLength;
+  }, 0);
+  if (!Number.isFinite(totalBytes) || totalBytes <= 0) {
+    return new Uint8Array(0);
+  }
+  const merged = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of state.assistantAudioChunks) {
+    if (!chunk || !(chunk.bytes instanceof Uint8Array)) {
+      continue;
+    }
+    merged.set(chunk.bytes, offset);
+    offset += chunk.bytes.byteLength;
+  }
+  return merged;
+}
+
+function buildAssistantAudioSummary() {
+  const uniqueTurns = new Set();
+  for (const chunk of state.assistantAudioChunks) {
+    const turnId = chunk && typeof chunk.turnId === "string" ? chunk.turnId : null;
+    if (turnId) {
+      uniqueTurns.add(turnId);
+    }
+  }
+  return {
+    totalChunks: state.assistantAudioChunks.length,
+    totalBytes: state.assistantAudioBytesTotal,
+    sampleRate: state.assistantAudioSampleRate,
+    uniqueTurns: uniqueTurns.size,
+    trimmed: state.assistantAudioTrimmed === true,
+    maxBytes: MAX_ASSISTANT_AUDIO_EXPORT_BYTES,
+  };
+}
+
+function formatByteSize(bytes) {
+  if (typeof bytes !== "number" || !Number.isFinite(bytes) || bytes <= 0) {
+    return "0 B";
+  }
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function buildPcm16WavBytes(pcmBytes, sampleRate = 16000, channels = 1) {
+  const safePcm = pcmBytes instanceof Uint8Array ? pcmBytes : new Uint8Array(0);
+  const safeSampleRate =
+    typeof sampleRate === "number" && Number.isFinite(sampleRate) && sampleRate > 0 ? Math.floor(sampleRate) : 16000;
+  const safeChannels = channels === 2 ? 2 : 1;
+  const bitsPerSample = 16;
+  const blockAlign = (safeChannels * bitsPerSample) / 8;
+  const byteRate = safeSampleRate * blockAlign;
+  const dataSize = safePcm.byteLength;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const out = new Uint8Array(buffer);
+
+  function writeAscii(offset, text) {
+    for (let i = 0; i < text.length; i += 1) {
+      view.setUint8(offset + i, text.charCodeAt(i));
+    }
+  }
+
+  writeAscii(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeAscii(8, "WAVE");
+  writeAscii(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, safeChannels, true);
+  view.setUint32(24, safeSampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  writeAscii(36, "data");
+  view.setUint32(40, dataSize, true);
+  out.set(safePcm, 44);
+  return out;
+}
+
 function buildSessionExportPayload() {
+  const audioSummary = buildAssistantAudioSummary();
   return {
     schemaVersion: 1,
     generatedAt: toIsoNow(),
@@ -732,6 +873,10 @@ function buildSessionExportPayload() {
       constraintStatus: toNodeText(el.constraintStatus, "-"),
       fallbackAssetStatus: toNodeText(el.fallbackAssetStatus, "-"),
     },
+    audio: {
+      exportFormat: "pcm16-wav",
+      ...audioSummary,
+    },
     transcript: collectEntryLane(el.transcript, "transcript"),
     events: collectEntryLane(el.events, "events"),
     operatorSummary: collectEntryLane(el.operatorSummary, "operator_summary"),
@@ -761,6 +906,15 @@ function toMarkdownExport(payload) {
   lines.push(`- final: price=${payload.kpi.finalOffer.price}, delivery=${payload.kpi.finalOffer.delivery}, sla=${payload.kpi.finalOffer.sla}`);
   lines.push(`- constraintStatus: ${payload.kpi.constraintStatus}`);
   lines.push(`- fallbackAsset: ${payload.kpi.fallbackAssetStatus}`);
+  lines.push("");
+  lines.push("## Audio Export Snapshot");
+  lines.push("");
+  lines.push(`- format: ${payload.audio.exportFormat ?? "pcm16-wav"}`);
+  lines.push(`- sampleRate: ${payload.audio.sampleRate ?? 16000}`);
+  lines.push(`- totalChunks: ${payload.audio.totalChunks ?? 0}`);
+  lines.push(`- totalBytes: ${payload.audio.totalBytes ?? 0}`);
+  lines.push(`- uniqueTurns: ${payload.audio.uniqueTurns ?? 0}`);
+  lines.push(`- trimmed: ${payload.audio.trimmed === true}`);
   lines.push("");
   lines.push("## Transcript");
   lines.push("");
@@ -794,7 +948,8 @@ function toMarkdownExport(payload) {
   lines.push("");
   lines.push("## Notes");
   lines.push("");
-  lines.push("- Audio is streamed realtime; this export captures transcript/evidence metadata.");
+  lines.push("- Audio is streamed realtime; this export includes audio snapshot metadata.");
+  lines.push("- Use `Export Session Audio (WAV)` for downloadable assistant output audio.");
   return lines.join("\n");
 }
 
@@ -838,6 +993,25 @@ function exportSessionJson() {
   triggerDownload(fileName, `${JSON.stringify(payload, null, 2)}\n`, "application/json;charset=utf-8");
   setExportStatus(`json exported (${fileName})`);
   appendTranscript("system", `Session JSON export downloaded: ${fileName}`);
+}
+
+function exportSessionAudio() {
+  const pcmBytes = collectAssistantAudioBytes();
+  if (!(pcmBytes instanceof Uint8Array) || pcmBytes.byteLength === 0) {
+    setExportStatus("audio export skipped (no audio)");
+    appendTranscript("system", "Session audio export skipped: no assistant audio captured yet");
+    return;
+  }
+  const sampleRate =
+    typeof state.assistantAudioSampleRate === "number" && Number.isFinite(state.assistantAudioSampleRate)
+      ? Math.max(8000, Math.floor(state.assistantAudioSampleRate))
+      : 16000;
+  const wavBytes = buildPcm16WavBytes(pcmBytes, sampleRate, 1);
+  const fileName = `${buildSessionExportBaseName()}.wav`;
+  triggerDownload(fileName, wavBytes, "audio/wav");
+  const sizeText = formatByteSize(pcmBytes.byteLength);
+  setExportStatus(`audio exported (${fileName})`);
+  appendTranscript("system", `Session audio export downloaded: ${fileName} (${sizeText})`);
 }
 
 function normalizeTaskRecord(value) {
@@ -4328,6 +4502,7 @@ function ensureAudioContext() {
 }
 
 function playPcm16Chunk(samples, sampleRate = 16000, turnId = null) {
+  recordAssistantAudioChunk(samples, sampleRate, turnId);
   const audioContext = ensureAudioContext();
   const floatData = new Float32Array(samples.length);
   for (let i = 0; i < samples.length; i += 1) {
@@ -5639,6 +5814,9 @@ function bindEvents() {
   if (el.exportJsonBtn) {
     el.exportJsonBtn.addEventListener("click", exportSessionJson);
   }
+  if (el.exportAudioBtn) {
+    el.exportAudioBtn.addEventListener("click", exportSessionAudio);
+  }
   if (el.themeToggleBtn) {
     el.themeToggleBtn.addEventListener("click", toggleThemeMode);
   }
@@ -5812,6 +5990,7 @@ function bindEvents() {
     state.sessionId = makeId();
     el.sessionId.value = state.sessionId;
     state.runId = null;
+    resetAssistantAudioExport();
     el.runId.textContent = "-";
     setSessionState("-");
     clearPendingApproval();
@@ -5864,6 +6043,7 @@ async function bootstrap() {
   state.sessionId = makeId();
   el.sessionId.value = state.sessionId;
   setSessionState("-");
+  resetAssistantAudioExport();
   applyThemeMode(readStoredThemeMode(), { persist: false, announce: false });
   setConnectionStatus("disconnected");
   setExportStatus("idle");

@@ -77,7 +77,7 @@ Open `http://localhost:3000`.
 Frontend `Intent Request -> Send Conversation Item` supports multimodal parts: text + optional image + optional audio attachment.
 Frontend `Live Controls -> Apply Live Setup` can send runtime `live.setup` overrides (`model`, `voice`, `activityHandling`, `systemInstruction`).
 Frontend `Intent Request` also supports optional `ui_task` grounding overrides (`url`, `deviceNodeId`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`).
-Frontend `Connection` panel includes one-click export controls: `Export Session Markdown` / `Export Session JSON` (judge/operator evidence snapshot).
+Frontend `Connection` panel includes one-click export controls: `Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)` (judge/operator evidence snapshot).
 Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
 
 5. Optional runtime integrations:

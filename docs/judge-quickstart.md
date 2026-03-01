@@ -58,6 +58,7 @@ npm run verify:release
 4. Session export controls:
    - `Export Session Markdown`
    - `Export Session JSON`
+   - `Export Session Audio (WAV)`
 
 ## 5) Primary Docs (if deeper review is needed)
 
@@ -65,4 +66,3 @@ npm run verify:release
 2. `docs/operator-guide.md`
 3. `docs/ws-protocol.md`
 4. `docs/architecture.md`
-
