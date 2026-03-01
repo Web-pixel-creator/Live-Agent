@@ -233,6 +233,16 @@ const el = {
   operatorGovernancePolicyLatest: document.getElementById("operatorGovernancePolicyLatest"),
   operatorGovernancePolicySeenAt: document.getElementById("operatorGovernancePolicySeenAt"),
   operatorGovernancePolicyHint: document.getElementById("operatorGovernancePolicyHint"),
+  operatorAgentUsageStatus: document.getElementById("operatorAgentUsageStatus"),
+  operatorAgentUsageTotal: document.getElementById("operatorAgentUsageTotal"),
+  operatorAgentUsageRuns: document.getElementById("operatorAgentUsageRuns"),
+  operatorAgentUsageSessions: document.getElementById("operatorAgentUsageSessions"),
+  operatorAgentUsageCalls: document.getElementById("operatorAgentUsageCalls"),
+  operatorAgentUsageTokens: document.getElementById("operatorAgentUsageTokens"),
+  operatorAgentUsageModels: document.getElementById("operatorAgentUsageModels"),
+  operatorAgentUsageSource: document.getElementById("operatorAgentUsageSource"),
+  operatorAgentUsageSeenAt: document.getElementById("operatorAgentUsageSeenAt"),
+  operatorAgentUsageHint: document.getElementById("operatorAgentUsageHint"),
   operatorStartupStatus: document.getElementById("operatorStartupStatus"),
   operatorStartupTotal: document.getElementById("operatorStartupTotal"),
   operatorStartupBlocking: document.getElementById("operatorStartupBlocking"),
@@ -986,6 +996,27 @@ function setOperatorGovernancePolicyHint(text, variant = "neutral") {
   el.operatorGovernancePolicyHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorAgentUsageHint(text, variant = "neutral") {
+  if (!el.operatorAgentUsageHint) {
+    return;
+  }
+  el.operatorAgentUsageHint.textContent = text;
+  el.operatorAgentUsageHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorAgentUsageHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorAgentUsageHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorAgentUsageHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorAgentUsageHint.classList.add("operator-health-hint-neutral");
+}
+
 function setOperatorStartupHint(text, variant = "neutral") {
   if (!el.operatorStartupHint) {
     return;
@@ -1180,6 +1211,19 @@ function resetOperatorGovernancePolicyWidget(reason = "no_data") {
   setText(el.operatorGovernancePolicySeenAt, "n/a");
   setOperatorGovernancePolicyHint("Waiting for governance policy lifecycle evidence.", "neutral");
   setStatusPill(el.operatorGovernancePolicyStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorAgentUsageWidget(reason = "no_data") {
+  setText(el.operatorAgentUsageTotal, "0");
+  setText(el.operatorAgentUsageRuns, "0");
+  setText(el.operatorAgentUsageSessions, "0");
+  setText(el.operatorAgentUsageCalls, "0");
+  setText(el.operatorAgentUsageTokens, "0 (in=0 out=0)");
+  setText(el.operatorAgentUsageModels, "n/a");
+  setText(el.operatorAgentUsageSource, "n/a");
+  setText(el.operatorAgentUsageSeenAt, "n/a");
+  setOperatorAgentUsageHint("Waiting for agent usage evidence from operator summary.", "neutral");
+  setStatusPill(el.operatorAgentUsageStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function resetOperatorStartupWidget(reason = "no_data") {
@@ -1769,6 +1813,84 @@ function renderOperatorGovernancePolicyWidget(governancePolicySummary) {
     `Lifecycle evidence partial. Missing checkpoints: ${missingText}.`,
     "warn",
   );
+}
+
+function renderOperatorAgentUsageWidget(agentUsageSummary) {
+  const summary = agentUsageSummary && typeof agentUsageSummary === "object" ? agentUsageSummary : null;
+  if (!summary) {
+    resetOperatorAgentUsageWidget("no_data");
+    return;
+  }
+
+  const total = Math.max(0, Math.floor(Number(summary.total ?? 0) || 0));
+  const uniqueRuns = Math.max(0, Math.floor(Number(summary.uniqueRuns ?? 0) || 0));
+  const uniqueSessions = Math.max(0, Math.floor(Number(summary.uniqueSessions ?? 0) || 0));
+  const totalCalls = Math.max(0, Math.floor(Number(summary.totalCalls ?? 0) || 0));
+  const inputTokens = Math.max(0, Math.floor(Number(summary.inputTokens ?? 0) || 0));
+  const outputTokens = Math.max(0, Math.floor(Number(summary.outputTokens ?? 0) || 0));
+  const totalTokens = Math.max(
+    0,
+    Math.floor(Math.max(Number(summary.totalTokens ?? 0) || 0, inputTokens + outputTokens)),
+  );
+  const models = Array.isArray(summary.models)
+    ? summary.models
+        .filter((item) => typeof item === "string" && item.trim().length > 0)
+        .map((item) => item.trim())
+    : [];
+  const source = typeof summary.source === "string" ? summary.source : "unknown";
+  const status = typeof summary.status === "string" ? summary.status : total > 0 ? "observed" : "missing";
+  const latest = summary.latest && typeof summary.latest === "object" ? summary.latest : null;
+  const latestSeenAt = latest && typeof latest.createdAt === "string" ? latest.createdAt : "n/a";
+
+  setText(el.operatorAgentUsageTotal, String(total));
+  setText(el.operatorAgentUsageRuns, String(uniqueRuns));
+  setText(el.operatorAgentUsageSessions, String(uniqueSessions));
+  setText(el.operatorAgentUsageCalls, String(totalCalls));
+  setText(el.operatorAgentUsageTokens, `${totalTokens} (in=${inputTokens} out=${outputTokens})`);
+  setText(el.operatorAgentUsageModels, models.length > 0 ? models.join(", ") : "n/a");
+  setText(el.operatorAgentUsageSource, source);
+  setText(el.operatorAgentUsageSeenAt, latestSeenAt);
+
+  if (total <= 0) {
+    setStatusPill(el.operatorAgentUsageStatus, "no_evidence", "neutral");
+    setOperatorAgentUsageHint(
+      "No agent usage evidence yet. Run live/story/ui flows and refresh operator summary.",
+      "warn",
+    );
+    return;
+  }
+
+  const invariantValidated =
+    summary.validated === true &&
+    source === "operator_summary" &&
+    models.length > 0 &&
+    totalTokens >= inputTokens + outputTokens;
+
+  if (invariantValidated) {
+    setStatusPill(el.operatorAgentUsageStatus, `validated total=${total}`, "ok");
+    setOperatorAgentUsageHint(
+      "Agent usage evidence is complete and aligned with release policy (source/models/token totals).",
+      "ok",
+    );
+    return;
+  }
+
+  const missing = [];
+  if (summary.validated !== true) {
+    missing.push("validated_flag");
+  }
+  if (source !== "operator_summary") {
+    missing.push("source=operator_summary");
+  }
+  if (models.length <= 0) {
+    missing.push("models");
+  }
+  if (totalTokens < inputTokens + outputTokens) {
+    missing.push("token_consistency");
+  }
+  const missingText = missing.length > 0 ? missing.join(",") : "none";
+  setStatusPill(el.operatorAgentUsageStatus, `${status} total=${total}`, "neutral");
+  setOperatorAgentUsageHint(`Agent usage evidence partial. Missing checkpoints: ${missingText}.`, "warn");
 }
 
 function updateOperatorDamageControlWidgetFromResponse(event) {
@@ -2863,6 +2985,7 @@ function renderOperatorSummary(summary) {
   resetOperatorDamageControlWidget("no_data");
   resetOperatorSkillsRegistryWidget("no_data");
   resetOperatorGovernancePolicyWidget("no_data");
+  resetOperatorAgentUsageWidget("no_data");
   resetOperatorStartupWidget("no_data");
   renderOperatorGatewayErrorWidget(state.operatorGatewayErrorSnapshot);
   renderOperatorTurnTruncationWidget(null, state.operatorTurnTruncationSnapshot);
@@ -2871,6 +2994,7 @@ function renderOperatorSummary(summary) {
   renderOperatorDeviceNodeUpdatesWidget(null);
   renderOperatorSkillsRegistryWidget(null);
   renderOperatorGovernancePolicyWidget(null);
+  renderOperatorAgentUsageWidget(null);
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -3127,6 +3251,50 @@ function renderOperatorSummary(summary) {
     }
   }
   renderOperatorGovernancePolicyWidget(governancePolicyLifecycle);
+  const agentUsage = summary.agentUsage && typeof summary.agentUsage === "object"
+    ? summary.agentUsage
+    : null;
+  if (agentUsage) {
+    const usageTotal = Math.max(0, Math.floor(Number(agentUsage.total ?? 0) || 0));
+    const usageUniqueRuns = Math.max(0, Math.floor(Number(agentUsage.uniqueRuns ?? 0) || 0));
+    const usageUniqueSessions = Math.max(0, Math.floor(Number(agentUsage.uniqueSessions ?? 0) || 0));
+    const usageTotalCalls = Math.max(0, Math.floor(Number(agentUsage.totalCalls ?? 0) || 0));
+    const usageInputTokens = Math.max(0, Math.floor(Number(agentUsage.inputTokens ?? 0) || 0));
+    const usageOutputTokens = Math.max(0, Math.floor(Number(agentUsage.outputTokens ?? 0) || 0));
+    const usageTotalTokens = Math.max(
+      0,
+      Math.floor(Math.max(Number(agentUsage.totalTokens ?? 0) || 0, usageInputTokens + usageOutputTokens)),
+    );
+    const usageModels = Array.isArray(agentUsage.models)
+      ? agentUsage.models
+          .filter((item) => typeof item === "string" && item.trim().length > 0)
+          .map((item) => item.trim())
+      : [];
+    const usageSource = typeof agentUsage.source === "string" ? agentUsage.source : "n/a";
+    const usageValidated = agentUsage.validated === true;
+    appendEntry(
+      el.operatorSummary,
+      usageValidated ? "system" : "error",
+      "agent_usage",
+      `total=${usageTotal} unique_runs=${usageUniqueRuns} unique_sessions=${usageUniqueSessions} calls=${usageTotalCalls} input_tokens=${usageInputTokens} output_tokens=${usageOutputTokens} total_tokens=${usageTotalTokens} models=${usageModels.join(",") || "n/a"} source=${usageSource} validated=${usageValidated}`,
+    );
+    const usageLatest = agentUsage.latest && typeof agentUsage.latest === "object"
+      ? agentUsage.latest
+      : null;
+    if (usageLatest) {
+      const latestRunId = typeof usageLatest.runId === "string" ? usageLatest.runId : "n/a";
+      const latestSessionId = typeof usageLatest.sessionId === "string" ? usageLatest.sessionId : "n/a";
+      const latestUsageSource = typeof usageLatest.usageSource === "string" ? usageLatest.usageSource : "n/a";
+      const latestSeenAt = typeof usageLatest.createdAt === "string" ? usageLatest.createdAt : "n/a";
+      appendEntry(
+        el.operatorSummary,
+        "system",
+        "agent_usage.latest",
+        `run=${latestRunId} session=${latestSessionId} usage_source=${latestUsageSource} seen_at=${latestSeenAt}`,
+      );
+    }
+  }
+  renderOperatorAgentUsageWidget(agentUsage);
   renderOperatorApprovalsWidget(summary.approvals);
   renderOperatorTaskQueueWidget(taskQueueSummary);
   const startupFailures = summary.startupFailures && typeof summary.startupFailures === "object"
@@ -3389,6 +3557,7 @@ async function refreshOperatorSummary() {
     }
     resetOperatorSkillsRegistryWidget("summary_error");
     resetOperatorGovernancePolicyWidget("summary_error");
+    resetOperatorAgentUsageWidget("summary_error");
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
 }
