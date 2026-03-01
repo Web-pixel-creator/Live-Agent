@@ -36,6 +36,7 @@ The operator flow is used during live demos and production diagnostics to:
 3. Create/update device node and send heartbeat
 4. Approve/reject pending UI-sensitive actions
 5. Export session evidence from frontend (`Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)`)
+6. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
 
 ## Safety Controls
 

@@ -328,6 +328,16 @@ button:hover {
   color: var(--status-fail-fg);
 }
 
+.story-timeline-preview {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(7, 22, 26, 0.56);
+  padding: 10px;
+  min-height: 96px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 .transcript,
 .events {
   max-height: 240px;

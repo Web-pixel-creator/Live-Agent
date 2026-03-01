@@ -81,6 +81,7 @@ Frontend `Live Controls -> Apply Live Setup` can send runtime `live.setup` overr
 Frontend `Intent Request` also supports optional `ui_task` grounding overrides (`url`, `deviceNodeId`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`).
 Frontend `Connection` panel includes one-click export controls: `Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)` (judge/operator evidence snapshot).
 Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
+Frontend includes an interactive `Story Timeline` panel (segment scrubber + selector + preview + asset refs) fed directly from Storyteller outputs.
 
 Judge-facing visual evidence pack:
 ```bash

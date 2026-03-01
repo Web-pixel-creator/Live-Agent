@@ -15,6 +15,10 @@ const state = {
   pttEnabled: false,
   pttPressed: false,
   fallbackAsset: false,
+  storyTimelineTitle: null,
+  storyTimelineSegments: [],
+  storyTimelineSelectedIndex: 0,
+  storyTimelinePendingJobs: 0,
   pendingApproval: null,
   audioContext: null,
   nextPlayTime: 0,
@@ -106,6 +110,14 @@ const el = {
   finalSla: document.getElementById("finalSla"),
   constraintStatus: document.getElementById("constraintStatus"),
   fallbackAssetStatus: document.getElementById("fallbackAssetStatus"),
+  storyTimelineTitle: document.getElementById("storyTimelineTitle"),
+  storyTimelineCount: document.getElementById("storyTimelineCount"),
+  storyTimelinePendingJobs: document.getElementById("storyTimelinePendingJobs"),
+  storyTimelineScrubber: document.getElementById("storyTimelineScrubber"),
+  storyTimelineSelect: document.getElementById("storyTimelineSelect"),
+  storyTimelinePosition: document.getElementById("storyTimelinePosition"),
+  storyTimelinePreview: document.getElementById("storyTimelinePreview"),
+  storyTimelineList: document.getElementById("storyTimelineList"),
   activeTaskCount: document.getElementById("activeTaskCount"),
   tasks: document.getElementById("tasks"),
   operatorRole: document.getElementById("operatorRole"),
@@ -657,6 +669,173 @@ function setExportStatus(text) {
   el.exportStatus.textContent = text;
 }
 
+function normalizeStoryTimelineSegment(value, fallbackIndex) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const rawIndex =
+    typeof value.index === "number" && Number.isFinite(value.index) ? Math.floor(value.index) : fallbackIndex + 1;
+  const index = Math.max(1, rawIndex);
+  const text = toOptionalText(value.text) ?? "";
+  return {
+    index,
+    text,
+    imageRef: toOptionalText(value.imageRef),
+    videoRef: toOptionalText(value.videoRef),
+    videoStatus: toOptionalText(value.videoStatus),
+    audioRef: toOptionalText(value.audioRef),
+  };
+}
+
+function getStoryTimelineSelectedSegment() {
+  const count = state.storyTimelineSegments.length;
+  if (count === 0) {
+    return null;
+  }
+  const selected =
+    typeof state.storyTimelineSelectedIndex === "number" && Number.isFinite(state.storyTimelineSelectedIndex)
+      ? Math.max(1, Math.min(count, Math.floor(state.storyTimelineSelectedIndex)))
+      : 1;
+  state.storyTimelineSelectedIndex = selected;
+  return state.storyTimelineSegments[selected - 1] ?? null;
+}
+
+function renderStoryTimelinePreview(segment) {
+  if (!el.storyTimelinePreview) {
+    return;
+  }
+  if (!segment) {
+    el.storyTimelinePreview.textContent = "No story timeline yet. Run a `story` intent to populate segments.";
+    return;
+  }
+  const refs = [
+    segment.imageRef ? `image=${segment.imageRef}` : null,
+    segment.videoRef ? `video=${segment.videoRef}` : null,
+    segment.videoStatus ? `video_status=${segment.videoStatus}` : null,
+    segment.audioRef ? `audio=${segment.audioRef}` : null,
+  ]
+    .filter(Boolean)
+    .join(" | ");
+  const text = segment.text.length > 0 ? segment.text : "(empty segment text)";
+  const preview = refs.length > 0 ? `${text}\n\n${refs}` : text;
+  el.storyTimelinePreview.textContent = `Segment ${segment.index}\n${preview}`;
+}
+
+function renderStoryTimelineList() {
+  if (!el.storyTimelineList) {
+    return;
+  }
+  el.storyTimelineList.innerHTML = "";
+  const segments = state.storyTimelineSegments;
+  if (segments.length === 0) {
+    appendEntry(el.storyTimelineList, "system", "story.timeline", "No timeline segments yet");
+    return;
+  }
+  for (let idx = segments.length - 1; idx >= 0; idx -= 1) {
+    const segment = segments[idx];
+    const refs = [
+      segment.imageRef ? "image" : null,
+      segment.videoRef ? `video:${segment.videoStatus ?? "n/a"}` : null,
+      segment.audioRef ? "audio" : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    const text = segment.text.length > 0 ? segment.text : "(empty segment text)";
+    const compactText = text.length > 220 ? `${text.slice(0, 220)}...` : text;
+    const suffix = refs.length > 0 ? ` | assets=${refs}` : "";
+    appendEntry(el.storyTimelineList, "system", `segment-${segment.index}`, `${compactText}${suffix}`);
+  }
+}
+
+function renderStoryTimeline() {
+  const segments = state.storyTimelineSegments;
+  const count = segments.length;
+  setText(el.storyTimelineTitle, state.storyTimelineTitle ?? "-");
+  setText(el.storyTimelineCount, String(count));
+  setText(el.storyTimelinePendingJobs, String(Math.max(0, Math.floor(state.storyTimelinePendingJobs ?? 0))));
+
+  if (el.storyTimelineScrubber) {
+    el.storyTimelineScrubber.min = count > 0 ? "1" : "0";
+    el.storyTimelineScrubber.max = count > 0 ? String(count) : "0";
+    el.storyTimelineScrubber.value = count > 0 ? String(state.storyTimelineSelectedIndex) : "0";
+    el.storyTimelineScrubber.disabled = count === 0;
+  }
+
+  if (el.storyTimelineSelect) {
+    el.storyTimelineSelect.innerHTML = "";
+    if (count === 0) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "No segments";
+      el.storyTimelineSelect.append(option);
+      el.storyTimelineSelect.disabled = true;
+    } else {
+      el.storyTimelineSelect.disabled = false;
+      for (const segment of segments) {
+        const option = document.createElement("option");
+        option.value = String(segment.index);
+        const raw = segment.text.length > 0 ? segment.text : "(empty segment text)";
+        const compact = raw.length > 64 ? `${raw.slice(0, 64)}...` : raw;
+        option.textContent = `#${segment.index} ${compact}`;
+        if (segment.index === state.storyTimelineSelectedIndex) {
+          option.selected = true;
+        }
+        el.storyTimelineSelect.append(option);
+      }
+    }
+  }
+
+  if (el.storyTimelinePosition) {
+    const positionText = count === 0 ? "-" : `${state.storyTimelineSelectedIndex} / ${count}`;
+    el.storyTimelinePosition.textContent = positionText;
+  }
+
+  renderStoryTimelinePreview(getStoryTimelineSelectedSegment());
+  renderStoryTimelineList();
+}
+
+function updateStoryTimelineSelection(nextIndex) {
+  const total = state.storyTimelineSegments.length;
+  if (total === 0) {
+    state.storyTimelineSelectedIndex = 0;
+    renderStoryTimeline();
+    return;
+  }
+  const value =
+    typeof nextIndex === "number" && Number.isFinite(nextIndex) ? Math.floor(nextIndex) : state.storyTimelineSelectedIndex;
+  state.storyTimelineSelectedIndex = Math.min(Math.max(value, 1), total);
+  renderStoryTimeline();
+}
+
+function setStoryTimelineData({ title = null, timeline = [], pendingVideoJobs = null } = {}) {
+  const normalized = Array.isArray(timeline)
+    ? timeline
+        .map((segment, index) => normalizeStoryTimelineSegment(segment, index))
+        .filter(Boolean)
+        .sort((left, right) => left.index - right.index)
+    : [];
+  state.storyTimelineTitle = toOptionalText(title);
+  state.storyTimelineSegments = normalized;
+  const computedPending =
+    typeof pendingVideoJobs === "number" && Number.isFinite(pendingVideoJobs)
+      ? Math.max(0, Math.floor(pendingVideoJobs))
+      : 0;
+  state.storyTimelinePendingJobs = computedPending;
+
+  if (normalized.length === 0) {
+    state.storyTimelineSelectedIndex = 0;
+  } else if (
+    typeof state.storyTimelineSelectedIndex !== "number" ||
+    !Number.isFinite(state.storyTimelineSelectedIndex) ||
+    state.storyTimelineSelectedIndex < 1 ||
+    state.storyTimelineSelectedIndex > normalized.length
+  ) {
+    state.storyTimelineSelectedIndex = 1;
+  }
+
+  renderStoryTimeline();
+}
+
 function toNodeText(node, fallback = "") {
   if (!node) {
     return fallback;
@@ -835,6 +1014,7 @@ function buildPcm16WavBytes(pcmBytes, sampleRate = 16000, channels = 1) {
 
 function buildSessionExportPayload() {
   const audioSummary = buildAssistantAudioSummary();
+  const selectedStorySegment = getStoryTimelineSelectedSegment();
   return {
     schemaVersion: 1,
     generatedAt: toIsoNow(),
@@ -873,6 +1053,14 @@ function buildSessionExportPayload() {
       constraintStatus: toNodeText(el.constraintStatus, "-"),
       fallbackAssetStatus: toNodeText(el.fallbackAssetStatus, "-"),
     },
+    storyTimeline: {
+      title: state.storyTimelineTitle,
+      totalSegments: state.storyTimelineSegments.length,
+      selectedIndex: state.storyTimelineSelectedIndex > 0 ? state.storyTimelineSelectedIndex : null,
+      pendingVideoJobs: Math.max(0, Math.floor(state.storyTimelinePendingJobs ?? 0)),
+      selectedSegment: selectedStorySegment,
+      segments: state.storyTimelineSegments,
+    },
     audio: {
       exportFormat: "pcm16-wav",
       ...audioSummary,
@@ -906,6 +1094,23 @@ function toMarkdownExport(payload) {
   lines.push(`- final: price=${payload.kpi.finalOffer.price}, delivery=${payload.kpi.finalOffer.delivery}, sla=${payload.kpi.finalOffer.sla}`);
   lines.push(`- constraintStatus: ${payload.kpi.constraintStatus}`);
   lines.push(`- fallbackAsset: ${payload.kpi.fallbackAssetStatus}`);
+  lines.push("");
+  lines.push("## Story Timeline Snapshot");
+  lines.push("");
+  lines.push(`- title: ${payload.storyTimeline?.title ?? "-"}`);
+  lines.push(`- totalSegments: ${payload.storyTimeline?.totalSegments ?? 0}`);
+  lines.push(`- selectedIndex: ${payload.storyTimeline?.selectedIndex ?? "-"}`);
+  lines.push(`- pendingVideoJobs: ${payload.storyTimeline?.pendingVideoJobs ?? 0}`);
+  if (
+    payload.storyTimeline?.selectedSegment &&
+    typeof payload.storyTimeline.selectedSegment === "object" &&
+    typeof payload.storyTimeline.selectedSegment.index === "number"
+  ) {
+    const selectedSegment = payload.storyTimeline.selectedSegment;
+    lines.push(
+      `- selectedSegment: #${selectedSegment.index} ${toOptionalText(selectedSegment.text) ?? "(empty segment text)"}`,
+    );
+  }
   lines.push("");
   lines.push("## Audio Export Snapshot");
   lines.push("");
@@ -5069,17 +5274,26 @@ function handleGatewayEvent(event) {
     if (!isOutOfBandResponse && output?.story?.title) {
       appendTranscript("system", `Story title: ${output.story.title}`);
     }
-    if (!isOutOfBandResponse && Array.isArray(output?.story?.timeline)) {
-      appendTranscript("system", `Story timeline segments: ${output.story.timeline.length}`);
+    const storyTimeline = !isOutOfBandResponse && Array.isArray(output?.story?.timeline) ? output.story.timeline : [];
+    if (!isOutOfBandResponse && storyTimeline.length > 0) {
+      appendTranscript("system", `Story timeline segments: ${storyTimeline.length}`);
     }
-    if (!isOutOfBandResponse && Array.isArray(output?.mediaJobs?.video) && output.mediaJobs.video.length > 0) {
-      const pending = output.mediaJobs.video.filter(
-        (job) => job && typeof job === "object" && (job.status === "queued" || job.status === "running"),
-      ).length;
-      appendTranscript(
-        "system",
-        `Story video jobs: ${output.mediaJobs.video.length} total, ${pending} pending`,
-      );
+    const videoJobs = !isOutOfBandResponse && Array.isArray(output?.mediaJobs?.video) ? output.mediaJobs.video : [];
+    const pendingVideoJobs = videoJobs.filter(
+      (job) => job && typeof job === "object" && (job.status === "queued" || job.status === "running"),
+    ).length;
+    if (!isOutOfBandResponse && videoJobs.length > 0) {
+      appendTranscript("system", `Story video jobs: ${videoJobs.length} total, ${pendingVideoJobs} pending`);
+    }
+    if (!isOutOfBandResponse && (storyTimeline.length > 0 || output?.story?.title || videoJobs.length > 0)) {
+      setStoryTimelineData({
+        title: output?.story?.title ?? state.storyTimelineTitle,
+        timeline: storyTimeline,
+        pendingVideoJobs,
+      });
+      if (storyTimeline.length > 0) {
+        appendTranscript("system", "Story timeline ready: use scrubber/selector for segment preview.");
+      }
     }
     if (!isOutOfBandResponse && output?.delegation?.delegatedRoute) {
       appendTranscript(
@@ -5991,6 +6205,7 @@ function bindEvents() {
     el.sessionId.value = state.sessionId;
     state.runId = null;
     resetAssistantAudioExport();
+    setStoryTimelineData();
     el.runId.textContent = "-";
     setSessionState("-");
     clearPendingApproval();
@@ -6023,6 +6238,22 @@ function bindEvents() {
   [el.targetPrice, el.targetDelivery, el.targetSla].forEach((input) => {
     input.addEventListener("input", evaluateConstraints);
   });
+  if (el.storyTimelineScrubber) {
+    el.storyTimelineScrubber.addEventListener("input", () => {
+      const value = Number(el.storyTimelineScrubber.value);
+      if (Number.isFinite(value)) {
+        updateStoryTimelineSelection(value);
+      }
+    });
+  }
+  if (el.storyTimelineSelect) {
+    el.storyTimelineSelect.addEventListener("change", () => {
+      const value = Number(el.storyTimelineSelect.value);
+      if (Number.isFinite(value)) {
+        updateStoryTimelineSelection(value);
+      }
+    });
+  }
 }
 
 async function bootstrap() {
@@ -6050,6 +6281,7 @@ async function bootstrap() {
   updatePttUi();
   setStatusPill(el.constraintStatus, "Waiting for offer", "neutral");
   setFallbackAsset(false);
+  setStoryTimelineData();
   clearPendingApproval();
   resetOperatorHealthWidget("no_data");
   resetOperatorDeviceNodeUpdatesWidget("no_data");

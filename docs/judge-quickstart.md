@@ -62,6 +62,9 @@ npm run verify:release
    - `Export Session Markdown`
    - `Export Session JSON`
    - `Export Session Audio (WAV)`
+5. Story Timeline panel:
+   - Segment scrubber/selector reflects `output.story.timeline`
+   - Preview card shows segment text + `image/video/audio` refs
 
 ## 5) Primary Docs (if deeper review is needed)
 
