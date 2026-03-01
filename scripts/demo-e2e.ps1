@@ -156,6 +156,46 @@ function Convert-ToNonNegativeInt {
   return [Math]::Max(0, $Fallback)
 }
 
+function Estimate-ApproxTokensFromText {
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]$Text
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Text)) {
+    return 0
+  }
+
+  $normalized = $Text.Trim()
+  if ($normalized.Length -le 0) {
+    return 0
+  }
+
+  return [Math]::Max(0, [int][Math]::Ceiling([double]$normalized.Length / 4.0))
+}
+
+function Estimate-ApproxTokensFromObject {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return 0
+  }
+
+  if ($Value -is [string]) {
+    return Estimate-ApproxTokensFromText -Text ([string]$Value)
+  }
+
+  try {
+    $json = $Value | ConvertTo-Json -Depth 60 -Compress
+    return Estimate-ApproxTokensFromText -Text $json
+  } catch {
+    return Estimate-ApproxTokensFromText -Text ([string]$Value)
+  }
+}
+
 function Get-ExceptionPropertyValue {
   param(
     [Parameter(Mandatory = $false)]
@@ -1025,6 +1065,9 @@ try {
     Assert-Condition -Condition ($null -ne $liveCapability) -Message "Missing live capability adapter profile."
     Assert-Condition -Condition ($null -ne $reasoningCapability) -Message "Missing reasoning capability adapter profile."
 
+    $inputApproxTokens = Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $request -Path @("payload", "input"))
+    $outputApproxTokens = Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $response -Path @("payload", "output"))
+
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $response -Path @("runId"))
       status = $status
@@ -1035,6 +1078,8 @@ try {
       liveAdapterId = [string](Get-FieldValue -Object $liveCapability -Path @("adapterId"))
       reasoningAdapterId = [string](Get-FieldValue -Object $reasoningCapability -Path @("adapterId"))
       latencyMs = [int](Get-FieldValue -Object $response -Path @("payload", "output", "latencyMs"))
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
     }
   } | Out-Null
 
@@ -1076,12 +1121,21 @@ try {
     Assert-Condition -Condition $requiresUserConfirmation -Message "Final negotiation should require explicit user confirmation."
     Assert-Condition -Condition $allSatisfied -Message "Final negotiation constraints are not satisfied."
 
+    $inputApproxTokens =
+      (Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $request1 -Path @("payload", "input"))) +
+      (Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $request2 -Path @("payload", "input")))
+    $outputApproxTokens =
+      (Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $response1 -Path @("payload", "output"))) +
+      (Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $response2 -Path @("payload", "output")))
+
     return [ordered]@{
       finalRunId = [string](Get-FieldValue -Object $response2 -Path @("runId"))
       allSatisfied = $allSatisfied
       requiresUserConfirmation = $requiresUserConfirmation
       proposedOffer = Get-FieldValue -Object $response2 -Path @("payload", "output", "negotiation", "proposedOffer")
       latencyMs = [int](Get-FieldValue -Object $response2 -Path @("payload", "output", "latencyMs"))
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
     }
   } | Out-Null
 
@@ -1100,6 +1154,8 @@ try {
     $compactionReason = $null
     $targetReached = $false
     $lastCompactedAt = $null
+    $inputApproxTokens = 0
+    $outputApproxTokens = 0
 
     for ($index = 0; $index -lt 6; $index += 1) {
       $runId = "demo-context-compaction-" + $index + "-" + [Guid]::NewGuid().Guid
@@ -1110,6 +1166,8 @@ try {
       $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
       $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
       Assert-Condition -Condition ($status -eq "completed") -Message "Conversation compaction probe run failed."
+      $inputApproxTokens += Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $request -Path @("payload", "input"))
+      $outputApproxTokens += Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $response -Path @("payload", "output"))
 
       $context = Get-FieldValue -Object $response -Path @("payload", "output", "context")
       Assert-Condition -Condition ($null -ne $context) -Message "Conversation context diagnostics are missing."
@@ -1180,6 +1238,8 @@ try {
       compactionReason = $compactionReason
       targetReached = $targetReached
       lastCompactedAt = $lastCompactedAt
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
     }
   } | Out-Null
 
@@ -1286,6 +1346,13 @@ try {
     $cachePurgedEntries = [int](Get-FieldValue -Object $cachePurgeResponse -Path @("storytellerCache", "totals", "entries"))
     Assert-Condition -Condition ($cachePurgedEntries -eq 0) -Message "Story cache purge endpoint did not clear cache entries."
 
+    $inputApproxTokens =
+      (Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $request -Path @("payload", "input"))) +
+      (Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $cacheRequest -Path @("payload", "input")))
+    $outputApproxTokens =
+      (Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $response -Path @("payload", "output"))) +
+      (Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $cacheResponse -Path @("payload", "output")))
+
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $response -Path @("runId"))
       fallbackAsset = [bool](Get-FieldValue -Object $response -Path @("payload", "output", "fallbackAsset"))
@@ -1307,6 +1374,8 @@ try {
       imageAdapterId = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("image", "adapterId"))
       ttsAdapterId = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("tts", "adapterId"))
       latencyMs = [int](Get-FieldValue -Object $response -Path @("payload", "output", "latencyMs"))
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
     }
   } | Out-Null
 
@@ -1344,12 +1413,17 @@ try {
       }
     }
 
+    $inputApproxTokens = Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $request -Path @("payload", "input"))
+    $outputApproxTokens = Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $response -Path @("payload", "output"))
+
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $response -Path @("runId"))
       approvalId = $script:UiApprovalId
       status = $status
       approvalCategories = Get-FieldValue -Object $response -Path @("payload", "output", "approvalCategories")
       plannerProvider = [string](Get-FieldValue -Object $response -Path @("payload", "output", "planner", "provider"))
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
     }
   } | Out-Null
 
@@ -1381,8 +1455,7 @@ try {
   Invoke-Scenario -Name "ui.approval.approve_resume" -Action {
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($script:UiApprovalId)) -Message "Cannot approve/resume: approvalId is missing."
     $approveResumeTimeoutSec = [Math]::Max($RequestTimeoutSec, 60)
-
-    $resumeRequest = Invoke-JsonRequestWithRetry -Method POST -Uri "http://localhost:8081/v1/approvals/resume" -Body @{
+    $resumeBody = @{
       approvalId = $script:UiApprovalId
       sessionId = $sessionId
       runId = ("demo-ui-approve-" + [Guid]::NewGuid().Guid)
@@ -1390,7 +1463,9 @@ try {
       reason = "Approved from demo e2e script."
       intent = "ui_task"
       input = $script:UiResumeInput
-    } -TimeoutSec $approveResumeTimeoutSec -MaxAttempts 2 -InitialBackoffMs 1000
+    }
+
+    $resumeRequest = Invoke-JsonRequestWithRetry -Method POST -Uri "http://localhost:8081/v1/approvals/resume" -Body $resumeBody -TimeoutSec $approveResumeTimeoutSec -MaxAttempts 2 -InitialBackoffMs 1000
     $response = $resumeRequest.response
 
     $resumed = [bool](Get-FieldValue -Object $response -Path @("data", "resumed"))
@@ -1409,6 +1484,9 @@ try {
     Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $uiCapabilityProfile -Path @("reasoning"))) -Message "Missing UI reasoning capability."
     Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $uiCapabilityProfile -Path @("computer_use"))) -Message "Missing UI computer_use capability."
 
+    $inputApproxTokens = Estimate-ApproxTokensFromObject -Value $resumeBody
+    $outputApproxTokens = Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $orchestratorResponse -Path @("payload", "output"))
+
     return [ordered]@{
       approvalId = $script:UiApprovalId
       resumed = $resumed
@@ -1420,6 +1498,8 @@ try {
       timeoutSec = $approveResumeTimeoutSec
       requestAttempts = [int]$resumeRequest.attempts
       requestRetried = [bool]$resumeRequest.retried
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
     }
   } | Out-Null
 
@@ -1480,6 +1560,9 @@ try {
     $executionFinalStatus = [string](Get-FieldValue -Object $response -Path @("payload", "output", "execution", "finalStatus"))
     Assert-Condition -Condition ($executionFinalStatus -eq "failed_sandbox_policy") -Message "Sandbox blocked flow must expose failed_sandbox_policy execution status."
 
+    $inputApproxTokens = Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $request -Path @("payload", "input"))
+    $outputApproxTokens = Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $response -Path @("payload", "output"))
+
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $response -Path @("runId"))
       status = $status
@@ -1494,6 +1577,8 @@ try {
       damageControlMatchedRuleCount = $damageControlMatchedRuleCount
       damageControlMatchRuleIds = $damageControlMatchRuleIds
       executionFinalStatus = $executionFinalStatus
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
     }
   } | Out-Null
 
@@ -1561,6 +1646,9 @@ try {
     $adapterNotes = @((Get-FieldValue -Object $response -Path @("payload", "output", "execution", "adapterNotes")))
     $groundingAdapterNoteSeen = ($adapterNotes | Where-Object { [string]$_ -like "grounding_context*" } | Measure-Object).Count -ge 1
 
+    $inputApproxTokens = Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $request -Path @("payload", "input"))
+    $outputApproxTokens = Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $response -Path @("payload", "output"))
+
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $response -Path @("runId"))
       reportStatus = $visualStatus
@@ -1572,6 +1660,8 @@ try {
       groundingAccessibilitySeen = $a11ySeen
       groundingMarkHintsCount = $markHintsCount
       groundingAdapterNoteSeen = $groundingAdapterNoteSeen
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
     }
   } | Out-Null
 
@@ -1609,6 +1699,9 @@ try {
       Assert-Condition -Condition ($routingConfidence -ge 0 -and $routingConfidence -le 1) -Message "Routing confidence must be in [0..1] when present."
     }
 
+    $inputApproxTokens = Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $request -Path @("payload", "input"))
+    $outputApproxTokens = Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $response -Path @("payload", "output"))
+
     return [ordered]@{
       runId = [string](Get-FieldValue -Object $response -Path @("runId"))
       delegatedRoute = $delegatedRoute
@@ -1617,6 +1710,8 @@ try {
       routingReason = $routingReason
       routingRoute = $routingRoute
       routingConfidence = $routingConfidence
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
     }
   } | Out-Null
 
@@ -3604,14 +3699,75 @@ if ($null -ne $runtimeLifecycleData) {
   $uiExecutorLifecycleService = @($runtimeLifecycleData.services | Where-Object { $_.name -eq "ui-executor" }) | Select-Object -First 1
 }
 
+function Get-ScenarioApproxTokenTotal {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$FieldName
+  )
+
+  $total = 0
+  foreach ($scenario in $script:ScenarioResults) {
+    if ($null -eq $scenario) {
+      continue
+    }
+    if ([string]$scenario.status -ne "passed") {
+      continue
+    }
+
+    $data = Get-FieldValue -Object $scenario -Path @("data")
+    if ($null -eq $data) {
+      continue
+    }
+
+    $value = Get-FieldValue -Object $data -Path @($FieldName)
+    if ($null -eq $value) {
+      continue
+    }
+
+    $total += Convert-ToNonNegativeInt -Value $value
+  }
+
+  return $total
+}
+
+$runtimeInputTokens = Get-ScenarioApproxTokenTotal -FieldName "inputApproxTokens"
+$runtimeOutputTokens = Get-ScenarioApproxTokenTotal -FieldName "outputApproxTokens"
+$runtimeTotalTokens = [int]($runtimeInputTokens + $runtimeOutputTokens)
+$storyTimelineSegments = if ($null -ne $storyData) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $storyData -Path @("timelineSegments")) } else { 0 }
+$storyVideoJobsCount = if ($null -ne $storyData) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $storyData -Path @("videoJobsCount")) } else { 0 }
+$storyImageAssetsCount = if ($storyTimelineSegments -gt 0) { $storyTimelineSegments } else { 0 }
+$storyTtsSegmentsCount = if ($storyTimelineSegments -gt 0) { $storyTimelineSegments } else { 0 }
+
+$runtimeCostInputPer1kUsd = Convert-ToNonNegativeDouble -Value ([Environment]::GetEnvironmentVariable("DEMO_E2E_COST_INPUT_PER_1K_TOKENS_USD")) -Fallback 0.00045
+$runtimeCostOutputPer1kUsd = Convert-ToNonNegativeDouble -Value ([Environment]::GetEnvironmentVariable("DEMO_E2E_COST_OUTPUT_PER_1K_TOKENS_USD")) -Fallback 0.00135
+$runtimeCostImagenPerAssetUsd = Convert-ToNonNegativeDouble -Value ([Environment]::GetEnvironmentVariable("DEMO_E2E_COST_IMAGEN_PER_ASSET_USD")) -Fallback 0.040
+$runtimeCostVeoPerJobUsd = Convert-ToNonNegativeDouble -Value ([Environment]::GetEnvironmentVariable("DEMO_E2E_COST_VEO_PER_JOB_USD")) -Fallback 0.120
+$runtimeCostTtsPerSegmentUsd = Convert-ToNonNegativeDouble -Value ([Environment]::GetEnvironmentVariable("DEMO_E2E_COST_TTS_PER_SEGMENT_USD")) -Fallback 0.008
+
+$runtimeGeminiLiveUsd = [Math]::Round((($runtimeInputTokens / 1000.0) * $runtimeCostInputPer1kUsd) + (($runtimeOutputTokens / 1000.0) * $runtimeCostOutputPer1kUsd), 6)
+$runtimeImagenUsd = [Math]::Round(($storyImageAssetsCount * $runtimeCostImagenPerAssetUsd), 6)
+$runtimeVeoUsd = [Math]::Round(($storyVideoJobsCount * $runtimeCostVeoPerJobUsd), 6)
+$runtimeTtsUsd = [Math]::Round(($storyTtsSegmentsCount * $runtimeCostTtsPerSegmentUsd), 6)
+$runtimeTotalUsd = [Math]::Round(($runtimeGeminiLiveUsd + $runtimeImagenUsd + $runtimeVeoUsd + $runtimeTtsUsd), 6)
+$runtimeCostSource = if (
+  $runtimeTotalTokens -gt 0 -or
+  $storyImageAssetsCount -gt 0 -or
+  $storyVideoJobsCount -gt 0 -or
+  $storyTtsSegmentsCount -gt 0
+) {
+  "runtime_estimate"
+} else {
+  "runtime_estimate_zero"
+}
+
 $costEstimate = [ordered]@{
   currency = "USD"
-  geminiLiveUsd = 0.0
-  imagenUsd = 0.0
-  veoUsd = 0.0
-  ttsUsd = 0.0
-  totalUsd = 0.0
-  source = "not_configured"
+  geminiLiveUsd = $runtimeGeminiLiveUsd
+  imagenUsd = $runtimeImagenUsd
+  veoUsd = $runtimeVeoUsd
+  ttsUsd = $runtimeTtsUsd
+  totalUsd = $runtimeTotalUsd
+  source = $runtimeCostSource
 }
 $costEstimateJsonRaw = [Environment]::GetEnvironmentVariable("DEMO_E2E_COST_ESTIMATE_JSON")
 if (-not [string]::IsNullOrWhiteSpace($costEstimateJsonRaw)) {
@@ -3645,10 +3801,10 @@ if (-not [string]::IsNullOrWhiteSpace($costEstimateJsonRaw)) {
 }
 
 $tokensUsed = [ordered]@{
-  input = 0
-  output = 0
-  total = 0
-  source = "not_configured"
+  input = $runtimeInputTokens
+  output = $runtimeOutputTokens
+  total = $runtimeTotalTokens
+  source = if ($runtimeTotalTokens -gt 0) { "runtime_estimate" } else { "runtime_estimate_zero" }
 }
 $tokensUsedJsonRaw = [Environment]::GetEnvironmentVariable("DEMO_E2E_TOKENS_USED_JSON")
 if (-not [string]::IsNullOrWhiteSpace($tokensUsedJsonRaw)) {
