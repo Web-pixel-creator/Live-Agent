@@ -243,6 +243,17 @@ const el = {
   operatorAgentUsageSource: document.getElementById("operatorAgentUsageSource"),
   operatorAgentUsageSeenAt: document.getElementById("operatorAgentUsageSeenAt"),
   operatorAgentUsageHint: document.getElementById("operatorAgentUsageHint"),
+  operatorCostEstimateStatus: document.getElementById("operatorCostEstimateStatus"),
+  operatorCostEstimateCurrency: document.getElementById("operatorCostEstimateCurrency"),
+  operatorCostEstimateMode: document.getElementById("operatorCostEstimateMode"),
+  operatorCostEstimateSource: document.getElementById("operatorCostEstimateSource"),
+  operatorCostEstimateTokens: document.getElementById("operatorCostEstimateTokens"),
+  operatorCostEstimateInputUsd: document.getElementById("operatorCostEstimateInputUsd"),
+  operatorCostEstimateOutputUsd: document.getElementById("operatorCostEstimateOutputUsd"),
+  operatorCostEstimateTotalUsd: document.getElementById("operatorCostEstimateTotalUsd"),
+  operatorCostEstimateRates: document.getElementById("operatorCostEstimateRates"),
+  operatorCostEstimateSeenAt: document.getElementById("operatorCostEstimateSeenAt"),
+  operatorCostEstimateHint: document.getElementById("operatorCostEstimateHint"),
   operatorStartupStatus: document.getElementById("operatorStartupStatus"),
   operatorStartupTotal: document.getElementById("operatorStartupTotal"),
   operatorStartupBlocking: document.getElementById("operatorStartupBlocking"),
@@ -660,6 +671,13 @@ function formatMs(value) {
   return `${Math.round(value)}ms`;
 }
 
+function formatUsd(value) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return "n/a";
+  }
+  return `$${value.toFixed(6)}`;
+}
+
 function setStatusPill(node, text, variant) {
   if (!node) {
     return;
@@ -1017,6 +1035,27 @@ function setOperatorAgentUsageHint(text, variant = "neutral") {
   el.operatorAgentUsageHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorCostEstimateHint(text, variant = "neutral") {
+  if (!el.operatorCostEstimateHint) {
+    return;
+  }
+  el.operatorCostEstimateHint.textContent = text;
+  el.operatorCostEstimateHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorCostEstimateHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorCostEstimateHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorCostEstimateHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorCostEstimateHint.classList.add("operator-health-hint-neutral");
+}
+
 function setOperatorStartupHint(text, variant = "neutral") {
   if (!el.operatorStartupHint) {
     return;
@@ -1224,6 +1263,20 @@ function resetOperatorAgentUsageWidget(reason = "no_data") {
   setText(el.operatorAgentUsageSeenAt, "n/a");
   setOperatorAgentUsageHint("Waiting for agent usage evidence from operator summary.", "neutral");
   setStatusPill(el.operatorAgentUsageStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorCostEstimateWidget(reason = "no_data") {
+  setText(el.operatorCostEstimateCurrency, "USD");
+  setText(el.operatorCostEstimateMode, "tokens_only");
+  setText(el.operatorCostEstimateSource, "operator_summary");
+  setText(el.operatorCostEstimateTokens, "0 (in=0 out=0)");
+  setText(el.operatorCostEstimateInputUsd, "$0.000000");
+  setText(el.operatorCostEstimateOutputUsd, "$0.000000");
+  setText(el.operatorCostEstimateTotalUsd, "$0.000000");
+  setText(el.operatorCostEstimateRates, "in=0 out=0 (per 1k)");
+  setText(el.operatorCostEstimateSeenAt, "n/a");
+  setOperatorCostEstimateHint("Waiting for cost estimate evidence from operator summary.", "neutral");
+  setStatusPill(el.operatorCostEstimateStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function resetOperatorStartupWidget(reason = "no_data") {
@@ -1891,6 +1944,70 @@ function renderOperatorAgentUsageWidget(agentUsageSummary) {
   const missingText = missing.length > 0 ? missing.join(",") : "none";
   setStatusPill(el.operatorAgentUsageStatus, `${status} total=${total}`, "neutral");
   setOperatorAgentUsageHint(`Agent usage evidence partial. Missing checkpoints: ${missingText}.`, "warn");
+}
+
+function renderOperatorCostEstimateWidget(costEstimateSummary) {
+  const summary = costEstimateSummary && typeof costEstimateSummary === "object" ? costEstimateSummary : null;
+  if (!summary) {
+    resetOperatorCostEstimateWidget("no_data");
+    return;
+  }
+
+  const currency = typeof summary.currency === "string" ? summary.currency : "USD";
+  const estimationMode = typeof summary.estimationMode === "string" ? summary.estimationMode : "tokens_only";
+  const summarySource = typeof summary.summarySource === "string" ? summary.summarySource : "operator_summary";
+  const source = typeof summary.source === "string" ? summary.source : "operator_summary";
+  const status = typeof summary.status === "string" ? summary.status : "missing";
+  const pricingConfigured = summary.pricingConfigured === true;
+  const validated = summary.validated === true;
+
+  const inputTokens = Math.max(0, Math.floor(Number(summary.inputTokens ?? 0) || 0));
+  const outputTokens = Math.max(0, Math.floor(Number(summary.outputTokens ?? 0) || 0));
+  const totalTokens = Math.max(0, Math.floor(Number(summary.totalTokens ?? 0) || 0));
+  const inputUsd = Number(summary.inputUsd ?? 0);
+  const outputUsd = Number(summary.outputUsd ?? 0);
+  const totalUsd = Number(summary.totalUsd ?? 0);
+  const rateIn = Number(summary.pricePer1kInputUsd ?? 0);
+  const rateOut = Number(summary.pricePer1kOutputUsd ?? 0);
+  const latestSeenAt = typeof summary.latestSeenAt === "string" ? summary.latestSeenAt : "n/a";
+
+  setText(el.operatorCostEstimateCurrency, currency);
+  setText(el.operatorCostEstimateMode, estimationMode);
+  setText(el.operatorCostEstimateSource, `${source}/${summarySource}`);
+  setText(el.operatorCostEstimateTokens, `${totalTokens} (in=${inputTokens} out=${outputTokens})`);
+  setText(el.operatorCostEstimateInputUsd, formatUsd(inputUsd));
+  setText(el.operatorCostEstimateOutputUsd, formatUsd(outputUsd));
+  setText(el.operatorCostEstimateTotalUsd, formatUsd(totalUsd));
+  setText(el.operatorCostEstimateRates, `in=${rateIn.toFixed(6)} out=${rateOut.toFixed(6)} (per 1k)`);
+  setText(el.operatorCostEstimateSeenAt, latestSeenAt);
+
+  if (status === "missing" || totalTokens <= 0) {
+    setStatusPill(el.operatorCostEstimateStatus, "no_evidence", "neutral");
+    setOperatorCostEstimateHint("No token/cost evidence yet. Run flows and refresh operator summary.", "warn");
+    return;
+  }
+
+  const consistencyOk = totalTokens >= inputTokens + outputTokens;
+  if (validated && consistencyOk && summarySource === "operator_summary") {
+    setStatusPill(
+      el.operatorCostEstimateStatus,
+      pricingConfigured ? "validated_estimate" : "validated_tokens_only",
+      "ok",
+    );
+    setOperatorCostEstimateHint(
+      pricingConfigured
+        ? "Cost estimate is derived from token rates and operator summary usage evidence."
+        : "Token evidence is validated. Configure token rates to enable non-zero USD estimate.",
+      pricingConfigured ? "ok" : "warn",
+    );
+    return;
+  }
+
+  setStatusPill(el.operatorCostEstimateStatus, `partial ${status}`, "neutral");
+  setOperatorCostEstimateHint(
+    "Cost evidence is partial. Check operator summary source/consistency fields and token totals.",
+    "warn",
+  );
 }
 
 function updateOperatorDamageControlWidgetFromResponse(event) {
@@ -2986,6 +3103,7 @@ function renderOperatorSummary(summary) {
   resetOperatorSkillsRegistryWidget("no_data");
   resetOperatorGovernancePolicyWidget("no_data");
   resetOperatorAgentUsageWidget("no_data");
+  resetOperatorCostEstimateWidget("no_data");
   resetOperatorStartupWidget("no_data");
   renderOperatorGatewayErrorWidget(state.operatorGatewayErrorSnapshot);
   renderOperatorTurnTruncationWidget(null, state.operatorTurnTruncationSnapshot);
@@ -2995,6 +3113,7 @@ function renderOperatorSummary(summary) {
   renderOperatorSkillsRegistryWidget(null);
   renderOperatorGovernancePolicyWidget(null);
   renderOperatorAgentUsageWidget(null);
+  renderOperatorCostEstimateWidget(null);
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -3295,6 +3414,32 @@ function renderOperatorSummary(summary) {
     }
   }
   renderOperatorAgentUsageWidget(agentUsage);
+  const costEstimate = summary.costEstimate && typeof summary.costEstimate === "object"
+    ? summary.costEstimate
+    : null;
+  if (costEstimate) {
+    const costStatus = typeof costEstimate.status === "string" ? costEstimate.status : "missing";
+    const costCurrency = typeof costEstimate.currency === "string" ? costEstimate.currency : "USD";
+    const costMode = typeof costEstimate.estimationMode === "string" ? costEstimate.estimationMode : "tokens_only";
+    const costValidated = costEstimate.validated === true;
+    const costTokens = Math.max(0, Math.floor(Number(costEstimate.totalTokens ?? 0) || 0));
+    const costTotalUsd = Number(costEstimate.totalUsd ?? 0);
+    const costSource = typeof costEstimate.source === "string" ? costEstimate.source : "operator_summary";
+    appendEntry(
+      el.operatorSummary,
+      costValidated ? "system" : "error",
+      "cost_estimate",
+      `status=${costStatus} mode=${costMode} currency=${costCurrency} total_tokens=${costTokens} total_usd=${Number.isFinite(costTotalUsd) ? costTotalUsd.toFixed(6) : "n/a"} source=${costSource} validated=${costValidated}`,
+    );
+    const costSeenAt = typeof costEstimate.latestSeenAt === "string" ? costEstimate.latestSeenAt : "n/a";
+    appendEntry(
+      el.operatorSummary,
+      "system",
+      "cost_estimate.latest",
+      `seen_at=${costSeenAt} pricing_configured=${costEstimate.pricingConfigured === true}`,
+    );
+  }
+  renderOperatorCostEstimateWidget(costEstimate);
   renderOperatorApprovalsWidget(summary.approvals);
   renderOperatorTaskQueueWidget(taskQueueSummary);
   const startupFailures = summary.startupFailures && typeof summary.startupFailures === "object"
@@ -3558,6 +3703,7 @@ async function refreshOperatorSummary() {
     resetOperatorSkillsRegistryWidget("summary_error");
     resetOperatorGovernancePolicyWidget("summary_error");
     resetOperatorAgentUsageWidget("summary_error");
+    resetOperatorCostEstimateWidget("summary_error");
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   }
 }

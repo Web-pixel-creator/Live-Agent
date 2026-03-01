@@ -133,6 +133,14 @@ const operatorTaskQueuePendingApprovalWarnThreshold = parsePositiveInt(
   process.env.OPERATOR_TASK_QUEUE_PENDING_APPROVAL_WARN_THRESHOLD ?? null,
   2,
 );
+const operatorCostPer1kInputUsd = parseNonNegativeFloat(
+  process.env.OPERATOR_COST_PER_1K_INPUT_USD ?? null,
+  0,
+);
+const operatorCostPer1kOutputUsd = parseNonNegativeFloat(
+  process.env.OPERATOR_COST_PER_1K_OUTPUT_USD ?? null,
+  0,
+);
 const configuredChannelAdapters = parseChannelAdapters(
   process.env.API_CHANNEL_ADAPTERS ?? "webchat,telegram,slack",
 );
@@ -560,6 +568,17 @@ function parseBoundedInt(
   }
   if (parsed > maxValue) {
     return maxValue;
+  }
+  return parsed;
+}
+
+function parseNonNegativeFloat(value: string | null, fallback: number): number {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return fallback;
   }
   return parsed;
 }
@@ -2133,6 +2152,64 @@ function buildAgentUsageSummary(events: EventListItem[]): Record<string, unknown
     recent: normalized.slice(0, 20),
     source: "operator_summary",
     validated: totalTokens >= inputTokens + outputTokens,
+  };
+}
+
+function buildCostEstimateSummary(agentUsage: Record<string, unknown>): Record<string, unknown> {
+  const inputTokens = parseNonNegativeInt(agentUsage.inputTokens) ?? 0;
+  const outputTokens = parseNonNegativeInt(agentUsage.outputTokens) ?? 0;
+  const totalTokens = Math.max(parseNonNegativeInt(agentUsage.totalTokens) ?? 0, inputTokens + outputTokens);
+  const usageTotal = parseNonNegativeInt(agentUsage.total) ?? 0;
+  const usageSource = toOptionalString(agentUsage.source) ?? "operator_summary";
+  const usageStatus = toOptionalString(agentUsage.status) ?? (usageTotal > 0 ? "observed" : "missing");
+  const usageLatest = isRecord(agentUsage.latest) ? agentUsage.latest : null;
+  const usageLatestSeenAt = toOptionalString(usageLatest?.createdAt);
+  const usageModels = Array.isArray(agentUsage.models)
+    ? agentUsage.models
+        .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+        .map((item) => item.trim())
+    : [];
+  const sourceCounts =
+    agentUsage.sourceCounts && isRecord(agentUsage.sourceCounts) ? agentUsage.sourceCounts : null;
+  const usageUnknownSourceCount = parseNonNegativeInt(sourceCounts?.unknown) ?? 0;
+  const inputUsdRaw = (inputTokens / 1000) * operatorCostPer1kInputUsd;
+  const outputUsdRaw = (outputTokens / 1000) * operatorCostPer1kOutputUsd;
+  const totalUsdRaw = inputUsdRaw + outputUsdRaw;
+  const roundUsd = (value: number): number => {
+    if (!Number.isFinite(value) || value < 0) {
+      return 0;
+    }
+    return Math.round(value * 1000000) / 1000000;
+  };
+  const inputUsd = roundUsd(inputUsdRaw);
+  const outputUsd = roundUsd(outputUsdRaw);
+  const totalUsd = roundUsd(totalUsdRaw);
+  const pricingConfigured = operatorCostPer1kInputUsd > 0 || operatorCostPer1kOutputUsd > 0;
+  const tokenConsistency = totalTokens >= inputTokens + outputTokens;
+  const usdConsistency = totalUsd >= inputUsd + outputUsd - 0.000001;
+  const validated = tokenConsistency && usdConsistency && usageSource === "operator_summary";
+
+  return {
+    status: usageTotal > 0 ? "observed" : "missing",
+    source: "operator_summary",
+    summaryStatus: usageStatus,
+    summarySource: usageSource,
+    estimationMode: pricingConfigured ? "token_rate_estimate" : "tokens_only",
+    pricingConfigured,
+    currency: "USD",
+    inputTokens,
+    outputTokens,
+    totalTokens,
+    inputUsd,
+    outputUsd,
+    totalUsd,
+    pricePer1kInputUsd: roundUsd(operatorCostPer1kInputUsd),
+    pricePer1kOutputUsd: roundUsd(operatorCostPer1kOutputUsd),
+    models: usageModels,
+    uniqueModels: usageModels.length,
+    unknownSourceCount: usageUnknownSourceCount,
+    latestSeenAt: usageLatestSeenAt,
+    validated,
   };
 }
 
@@ -4235,6 +4312,7 @@ export const server = createServer(async (req, res) => {
       const deviceNodeUpdates = buildDeviceNodeUpdatesSummary(operatorActions);
       const damageControl = buildDamageControlSummary(recentEvents, services);
       const agentUsage = buildAgentUsageSummary(recentEvents);
+      const costEstimate = buildCostEstimateSummary(agentUsage);
       const skillsRegistryLifecycle = buildSkillsRegistryLifecycleSummary(operatorActions);
       const governancePolicyLifecycle = buildGovernancePolicyLifecycleSummary(operatorActions);
 
@@ -4268,6 +4346,7 @@ export const server = createServer(async (req, res) => {
           deviceNodeUpdates,
           damageControl,
           agentUsage,
+          costEstimate,
           skillsRegistryLifecycle,
           governancePolicyLifecycle,
           deviceNodes: deviceNodeHealth,

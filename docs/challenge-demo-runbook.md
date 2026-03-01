@@ -319,6 +319,7 @@ Checkpoint B (hard interruption) at ~01:40:
    - `Device Nodes Health` widget (`total/online/degraded/offline/stale/missing_heartbeat/max_age`).
    - `Device Node Updates Evidence` widget (`total/upsert/heartbeat/unique_nodes/latest/seen_at` + validated status).
    - `Agent Usage Evidence` widget (`total/unique_runs/unique_sessions/calls/tokens/models/source/seen_at` + validated status).
+   - `Cost & Tokens Evidence` widget (`currency/mode/source/tokens/input_usd/output_usd/total_usd/rates/seen_at` + validated status).
    - `Trace Coverage` widget (`runs/events/ui_runs/approval_linked/steps/screenshots + top_route/top_status`).
    - `Approvals Queue` widget (`total/pending/approved/rejected/timeout + pending_from_tasks + SLA soft/hard sweep`).
    - `Service Lifecycle` widget (`ready/draining/unknown + last lifecycle change + draining services list`).

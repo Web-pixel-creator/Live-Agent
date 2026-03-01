@@ -27,6 +27,7 @@ The operator flow is used during live demos and production diagnostics to:
 9. Governance Policy Lifecycle
 10. Skills Registry Lifecycle
 11. Agent Usage Evidence
+12. Cost & Tokens Evidence
 
 ## Standard Operator Actions
 
@@ -49,6 +50,7 @@ Operator walkthrough should end with:
 2. Device node lifecycle evidence visible,
 3. Governance + skills lifecycle evidence visible,
 4. Agent usage evidence visible (`source/models/token totals`),
-5. Health/failover diagnostics visible.
+5. Cost/token estimate evidence visible (`currency/mode/rates/totals`),
+6. Health/failover diagnostics visible.
 
 See full judged flow in `docs/judge-runbook.md`.
