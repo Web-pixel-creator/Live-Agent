@@ -114,6 +114,48 @@ function Assert-Condition {
   }
 }
 
+function Convert-ToNonNegativeDouble {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value,
+    [double]$Fallback = 0
+  )
+
+  if ($null -eq $Value) {
+    return [Math]::Max(0, $Fallback)
+  }
+
+  $parsed = 0.0
+  if ([double]::TryParse([string]$Value, [System.Globalization.NumberStyles]::Any, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$parsed)) {
+    return [Math]::Max(0, $parsed)
+  }
+
+  if ([double]::TryParse([string]$Value, [ref]$parsed)) {
+    return [Math]::Max(0, $parsed)
+  }
+
+  return [Math]::Max(0, $Fallback)
+}
+
+function Convert-ToNonNegativeInt {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value,
+    [int]$Fallback = 0
+  )
+
+  if ($null -eq $Value) {
+    return [Math]::Max(0, $Fallback)
+  }
+
+  $parsed = 0
+  if ([int]::TryParse([string]$Value, [ref]$parsed)) {
+    return [Math]::Max(0, $parsed)
+  }
+
+  return [Math]::Max(0, $Fallback)
+}
+
 function Get-ExceptionPropertyValue {
   param(
     [Parameter(Mandatory = $false)]
@@ -3562,6 +3604,76 @@ if ($null -ne $runtimeLifecycleData) {
   $uiExecutorLifecycleService = @($runtimeLifecycleData.services | Where-Object { $_.name -eq "ui-executor" }) | Select-Object -First 1
 }
 
+$costEstimate = [ordered]@{
+  currency = "USD"
+  geminiLiveUsd = 0.0
+  imagenUsd = 0.0
+  veoUsd = 0.0
+  ttsUsd = 0.0
+  totalUsd = 0.0
+  source = "not_configured"
+}
+$costEstimateJsonRaw = [Environment]::GetEnvironmentVariable("DEMO_E2E_COST_ESTIMATE_JSON")
+if (-not [string]::IsNullOrWhiteSpace($costEstimateJsonRaw)) {
+  try {
+    $costEstimateRaw = $costEstimateJsonRaw | ConvertFrom-Json -Depth 20
+    $costEstimateCurrency = [string](Get-FieldValue -Object $costEstimateRaw -Path @("currency"))
+    if (-not [string]::IsNullOrWhiteSpace($costEstimateCurrency)) {
+      $costEstimate.currency = $costEstimateCurrency.Trim()
+    }
+
+    $costEstimate.geminiLiveUsd = [Math]::Round((Convert-ToNonNegativeDouble -Value (Get-FieldValue -Object $costEstimateRaw -Path @("geminiLiveUsd"))), 6)
+    $costEstimate.imagenUsd = [Math]::Round((Convert-ToNonNegativeDouble -Value (Get-FieldValue -Object $costEstimateRaw -Path @("imagenUsd"))), 6)
+    $costEstimate.veoUsd = [Math]::Round((Convert-ToNonNegativeDouble -Value (Get-FieldValue -Object $costEstimateRaw -Path @("veoUsd"))), 6)
+    $costEstimate.ttsUsd = [Math]::Round((Convert-ToNonNegativeDouble -Value (Get-FieldValue -Object $costEstimateRaw -Path @("ttsUsd"))), 6)
+    $costPartsTotal = $costEstimate.geminiLiveUsd + $costEstimate.imagenUsd + $costEstimate.veoUsd + $costEstimate.ttsUsd
+    $costTotalCandidate = Convert-ToNonNegativeDouble -Value (Get-FieldValue -Object $costEstimateRaw -Path @("totalUsd")) -Fallback $costPartsTotal
+    if ($costTotalCandidate -lt $costPartsTotal) {
+      $costTotalCandidate = $costPartsTotal
+    }
+    $costEstimate.totalUsd = [Math]::Round($costTotalCandidate, 6)
+
+    $costEstimateSource = [string](Get-FieldValue -Object $costEstimateRaw -Path @("source"))
+    if (-not [string]::IsNullOrWhiteSpace($costEstimateSource)) {
+      $costEstimate.source = $costEstimateSource.Trim()
+    } else {
+      $costEstimate.source = "env_json"
+    }
+  } catch {
+    $costEstimate.source = "invalid_env_json_fallback_zero"
+  }
+}
+
+$tokensUsed = [ordered]@{
+  input = 0
+  output = 0
+  total = 0
+  source = "not_configured"
+}
+$tokensUsedJsonRaw = [Environment]::GetEnvironmentVariable("DEMO_E2E_TOKENS_USED_JSON")
+if (-not [string]::IsNullOrWhiteSpace($tokensUsedJsonRaw)) {
+  try {
+    $tokensUsedRaw = $tokensUsedJsonRaw | ConvertFrom-Json -Depth 20
+    $tokensUsed.input = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $tokensUsedRaw -Path @("input"))
+    $tokensUsed.output = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $tokensUsedRaw -Path @("output"))
+    $tokensPartsTotal = [int]($tokensUsed.input + $tokensUsed.output)
+    $tokensTotalCandidate = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $tokensUsedRaw -Path @("total")) -Fallback $tokensPartsTotal
+    if ($tokensTotalCandidate -lt $tokensPartsTotal) {
+      $tokensTotalCandidate = $tokensPartsTotal
+    }
+    $tokensUsed.total = $tokensTotalCandidate
+
+    $tokensSource = [string](Get-FieldValue -Object $tokensUsedRaw -Path @("source"))
+    if (-not [string]::IsNullOrWhiteSpace($tokensSource)) {
+      $tokensUsed.source = $tokensSource.Trim()
+    } else {
+      $tokensUsed.source = "env_json"
+    }
+  } catch {
+    $tokensUsed.source = "invalid_env_json_fallback_zero"
+  }
+}
+
 $summary = [ordered]@{
   generatedAt = (Get-Date).ToString("o")
   success = $overallSuccess
@@ -3588,6 +3700,8 @@ $summary = [ordered]@{
     sessionId = $sessionId
     createResponse = $sessionCreateResponse
   }
+  costEstimate = $costEstimate
+  tokensUsed = $tokensUsed
   services = $script:ServiceStatuses
   scenarios = $script:ScenarioResults
   kpis = [ordered]@{
@@ -4145,6 +4259,17 @@ $summary = [ordered]@{
     runtimeLocalFirstServices = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.localFirstServices } else { $null }
     metricsEndpointsValidated = if ($null -ne $runtimeMetricsData) { $true } else { $false }
     metricsServicesValidated = if ($null -ne $runtimeMetricsData) { $runtimeMetricsData.count } else { $null }
+    costEstimateCurrency = $costEstimate.currency
+    costEstimateGeminiLiveUsd = $costEstimate.geminiLiveUsd
+    costEstimateImagenUsd = $costEstimate.imagenUsd
+    costEstimateVeoUsd = $costEstimate.veoUsd
+    costEstimateTtsUsd = $costEstimate.ttsUsd
+    costEstimateTotalUsd = $costEstimate.totalUsd
+    costEstimateSource = $costEstimate.source
+    tokensUsedInput = $tokensUsed.input
+    tokensUsedOutput = $tokensUsed.output
+    tokensUsedTotal = $tokensUsed.total
+    tokensUsedSource = $tokensUsed.source
     capabilityAdaptersValidated = if (
       $null -ne $translationData -and
       -not [string]::IsNullOrWhiteSpace([string]$translationData.liveAdapterId) -and

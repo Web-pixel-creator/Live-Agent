@@ -1554,6 +1554,67 @@ async function main() {
     kpis.gatewayWsRoundTripMs,
     `<= ${maxGatewayWsRoundTripMs}`,
   );
+  const costEstimateGeminiLiveUsd = toNumber(kpis.costEstimateGeminiLiveUsd);
+  const costEstimateImagenUsd = toNumber(kpis.costEstimateImagenUsd);
+  const costEstimateVeoUsd = toNumber(kpis.costEstimateVeoUsd);
+  const costEstimateTtsUsd = toNumber(kpis.costEstimateTtsUsd);
+  const costEstimateTotalUsd = toNumber(kpis.costEstimateTotalUsd);
+  const costEstimatePartsTotal =
+    (Number.isFinite(costEstimateGeminiLiveUsd) ? costEstimateGeminiLiveUsd : Number.NaN) +
+    (Number.isFinite(costEstimateImagenUsd) ? costEstimateImagenUsd : Number.NaN) +
+    (Number.isFinite(costEstimateVeoUsd) ? costEstimateVeoUsd : Number.NaN) +
+    (Number.isFinite(costEstimateTtsUsd) ? costEstimateTtsUsd : Number.NaN);
+  addCheck(
+    "kpi.costEstimateTotalUsd",
+    Number.isFinite(costEstimateTotalUsd) && costEstimateTotalUsd >= 0,
+    kpis.costEstimateTotalUsd,
+    ">= 0",
+  );
+  addCheck(
+    "kpi.costEstimateBreakdownConsistency",
+    Number.isFinite(costEstimateGeminiLiveUsd) &&
+      Number.isFinite(costEstimateImagenUsd) &&
+      Number.isFinite(costEstimateVeoUsd) &&
+      Number.isFinite(costEstimateTtsUsd) &&
+      Number.isFinite(costEstimateTotalUsd) &&
+      costEstimateGeminiLiveUsd >= 0 &&
+      costEstimateImagenUsd >= 0 &&
+      costEstimateVeoUsd >= 0 &&
+      costEstimateTtsUsd >= 0 &&
+      costEstimateTotalUsd + 1e-9 >= costEstimatePartsTotal,
+    {
+      totalUsd: kpis.costEstimateTotalUsd,
+      geminiLiveUsd: kpis.costEstimateGeminiLiveUsd,
+      imagenUsd: kpis.costEstimateImagenUsd,
+      veoUsd: kpis.costEstimateVeoUsd,
+      ttsUsd: kpis.costEstimateTtsUsd,
+    },
+    "totalUsd >= geminiLiveUsd + imagenUsd + veoUsd + ttsUsd (all >= 0)",
+  );
+  const tokensUsedInput = toNumber(kpis.tokensUsedInput);
+  const tokensUsedOutput = toNumber(kpis.tokensUsedOutput);
+  const tokensUsedTotal = toNumber(kpis.tokensUsedTotal);
+  addCheck(
+    "kpi.tokensUsedTotal",
+    Number.isFinite(tokensUsedTotal) && tokensUsedTotal >= 0,
+    kpis.tokensUsedTotal,
+    ">= 0",
+  );
+  addCheck(
+    "kpi.tokensUsedConsistency",
+    Number.isFinite(tokensUsedInput) &&
+      Number.isFinite(tokensUsedOutput) &&
+      Number.isFinite(tokensUsedTotal) &&
+      tokensUsedInput >= 0 &&
+      tokensUsedOutput >= 0 &&
+      tokensUsedTotal >= tokensUsedInput + tokensUsedOutput,
+    {
+      total: kpis.tokensUsedTotal,
+      input: kpis.tokensUsedInput,
+      output: kpis.tokensUsedOutput,
+    },
+    "tokensUsedTotal >= tokensUsedInput + tokensUsedOutput (all >= 0)",
+  );
   addCheck(
     "kpi.sessionRunBindingValidated",
     kpis.sessionRunBindingValidated === true,

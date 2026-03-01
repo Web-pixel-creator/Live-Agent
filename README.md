@@ -469,6 +469,8 @@ npm run badge:public:check
 ```
 
 `badge-details.json` includes judge-facing operator evidence snapshots:
+- `costEstimate` (`currency`, `geminiLiveUsd`, `imagenUsd`, `veoUsd`, `ttsUsd`, `totalUsd`, `source`)
+- `tokensUsed` (`input`, `output`, `total`, `source`)
 - `evidence.operatorTurnTruncation`
 - `evidence.operatorTurnDelete`
 - `evidence.damageControl`

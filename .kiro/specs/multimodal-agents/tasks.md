@@ -210,6 +210,7 @@
 36. Unified release-evidence report lane (`artifacts/release-evidence/report.json|report.md`) wired across strict workflow, artifact revalidation workflow, local artifact helper, and release-readiness with anti-drift coverage [Completed]
 37. Release-workflow evidence status single-source refactor (strict/artifact summaries consume `artifacts/release-evidence/report.json` instead of duplicating `badge-details` parsing logic) [Completed]
 38. Judge-facing OSS packaging baseline (`LICENSE`, `CONTRIBUTING.md`, `AGENTS.md`, docs index pages for architecture/operator/local-dev/judge-runbook alias) [Completed]
+39. Cost/token transparency evidence lane (`summary.costEstimate` + `summary.tokensUsed`, `badge-details` projection, policy/release/deploy schema validation, anti-drift coverage) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

@@ -6,6 +6,21 @@
   "checks": 242,
   "violations": 0,
   "roundTripMs": 44,
+  "costEstimate": {
+    "currency": "USD",
+    "geminiLiveUsd": 0,
+    "imagenUsd": 0,
+    "veoUsd": 0,
+    "ttsUsd": 0,
+    "totalUsd": 0,
+    "source": "not_configured"
+  },
+  "tokensUsed": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "source": "not_configured"
+  },
   "evidence": {
     "sourceSummaryGeneratedAt": "2026-03-01T08:51:07.9399100+05:00",
     "operatorTurnTruncation": {

@@ -61,6 +61,17 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
       generatedAt: "2026-02-26T00:00:00.000Z",
       kpis: {
         gatewayWsRoundTripMs: 37,
+        costEstimateCurrency: "USD",
+        costEstimateGeminiLiveUsd: 0.12,
+        costEstimateImagenUsd: 0.35,
+        costEstimateVeoUsd: 0.2,
+        costEstimateTtsUsd: 0.04,
+        costEstimateTotalUsd: 0.71,
+        costEstimateSource: "env_json",
+        tokensUsedInput: 6200,
+        tokensUsedOutput: 3100,
+        tokensUsedTotal: 9300,
+        tokensUsedSource: "env_json",
         operatorTurnTruncationSummaryValidated: true,
         operatorTurnTruncationExpectedEventSeen: true,
         operatorTurnTruncationTotal: 1,
@@ -140,6 +151,15 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
 
   assert.equal(result.exitCode, 0);
   assert.equal(result.badge.message, "pass | 205 checks | 37ms ws");
+  const costEstimate = result.details.costEstimate as Record<string, unknown>;
+  const tokensUsed = result.details.tokensUsed as Record<string, unknown>;
+  assert.ok(costEstimate && typeof costEstimate === "object");
+  assert.ok(tokensUsed && typeof tokensUsed === "object");
+  assert.equal(costEstimate.currency, "USD");
+  assert.equal(costEstimate.totalUsd, 0.71);
+  assert.equal(tokensUsed.input, 6200);
+  assert.equal(tokensUsed.output, 3100);
+  assert.equal(tokensUsed.total, 9300);
   const evidence = result.details.evidence as Record<string, unknown>;
   assert.ok(evidence && typeof evidence === "object");
   const turnTruncation = evidence.operatorTurnTruncation as Record<string, unknown>;
@@ -215,6 +235,13 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
 
   assert.equal(result.exitCode, 0);
   assert.equal(result.badge.color, "red");
+  const costEstimate = result.details.costEstimate as Record<string, unknown>;
+  const tokensUsed = result.details.tokensUsed as Record<string, unknown>;
+  assert.equal(costEstimate.currency, "USD");
+  assert.equal(costEstimate.totalUsd, 0);
+  assert.equal(tokensUsed.input, 0);
+  assert.equal(tokensUsed.output, 0);
+  assert.equal(tokensUsed.total, 0);
   const evidence = result.details.evidence as Record<string, unknown>;
   const turnDelete = evidence.operatorTurnDelete as Record<string, unknown>;
   const damageControl = evidence.damageControl as Record<string, unknown>;

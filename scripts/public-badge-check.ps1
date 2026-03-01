@@ -99,14 +99,78 @@ if (-not $SkipDetails) {
     Fail "Public badge details endpoint is not reachable: $detailsEndpoint"
   }
 
-  Assert-RequiredFields -Required @("ok", "generatedAt", "checks", "violations", "roundTripMs", "evidence", "badge") -Payload $details -ScopeName "badge-details"
+  Assert-RequiredFields -Required @("ok", "generatedAt", "checks", "violations", "roundTripMs", "costEstimate", "tokensUsed", "evidence", "badge") -Payload $details -ScopeName "badge-details"
 
   if ($details.badge -eq $null) {
     Fail "badge-details JSON field 'badge' must be present."
   }
 
+  if ($details.costEstimate -eq $null) {
+    Fail "badge-details JSON field 'costEstimate' must be present."
+  }
+
+  if ($details.tokensUsed -eq $null) {
+    Fail "badge-details JSON field 'tokensUsed' must be present."
+  }
+
   if ($details.evidence -eq $null) {
     Fail "badge-details JSON field 'evidence' must be present."
+  }
+
+  Assert-RequiredFields -Required @("currency", "geminiLiveUsd", "imagenUsd", "veoUsd", "ttsUsd", "totalUsd", "source") -Payload $details.costEstimate -ScopeName "badge-details.costEstimate"
+  Assert-RequiredFields -Required @("input", "output", "total", "source") -Payload $details.tokensUsed -ScopeName "badge-details.tokensUsed"
+
+  $costGeminiLiveUsd = 0.0
+  $costImagenUsd = 0.0
+  $costVeoUsd = 0.0
+  $costTtsUsd = 0.0
+  $costTotalUsd = 0.0
+  if (-not [double]::TryParse([string]$details.costEstimate.geminiLiveUsd, [ref]$costGeminiLiveUsd)) {
+    Fail "badge-details costEstimate.geminiLiveUsd must be numeric."
+  }
+  if (-not [double]::TryParse([string]$details.costEstimate.imagenUsd, [ref]$costImagenUsd)) {
+    Fail "badge-details costEstimate.imagenUsd must be numeric."
+  }
+  if (-not [double]::TryParse([string]$details.costEstimate.veoUsd, [ref]$costVeoUsd)) {
+    Fail "badge-details costEstimate.veoUsd must be numeric."
+  }
+  if (-not [double]::TryParse([string]$details.costEstimate.ttsUsd, [ref]$costTtsUsd)) {
+    Fail "badge-details costEstimate.ttsUsd must be numeric."
+  }
+  if (-not [double]::TryParse([string]$details.costEstimate.totalUsd, [ref]$costTotalUsd)) {
+    Fail "badge-details costEstimate.totalUsd must be numeric."
+  }
+  if (
+    $costGeminiLiveUsd -lt 0 -or
+    $costImagenUsd -lt 0 -or
+    $costVeoUsd -lt 0 -or
+    $costTtsUsd -lt 0 -or
+    $costTotalUsd -lt 0
+  ) {
+    Fail "badge-details costEstimate values must be non-negative."
+  }
+  $costPartsTotal = $costGeminiLiveUsd + $costImagenUsd + $costVeoUsd + $costTtsUsd
+  if ($costTotalUsd + 0.000001 -lt $costPartsTotal) {
+    Fail "badge-details costEstimate.totalUsd must be >= sum of component costs."
+  }
+
+  $tokensInput = 0
+  $tokensOutput = 0
+  $tokensTotal = 0
+  if (-not [int]::TryParse([string]$details.tokensUsed.input, [ref]$tokensInput)) {
+    Fail "badge-details tokensUsed.input must be integer."
+  }
+  if (-not [int]::TryParse([string]$details.tokensUsed.output, [ref]$tokensOutput)) {
+    Fail "badge-details tokensUsed.output must be integer."
+  }
+  if (-not [int]::TryParse([string]$details.tokensUsed.total, [ref]$tokensTotal)) {
+    Fail "badge-details tokensUsed.total must be integer."
+  }
+  if ($tokensInput -lt 0 -or $tokensOutput -lt 0 -or $tokensTotal -lt 0) {
+    Fail "badge-details tokensUsed values must be non-negative."
+  }
+  if ($tokensTotal -lt ($tokensInput + $tokensOutput)) {
+    Fail "badge-details tokensUsed.total must be >= input + output."
   }
 
   Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl", "governancePolicy", "skillsRegistry", "deviceNodes") -Payload $details.evidence -ScopeName "badge-details.evidence"

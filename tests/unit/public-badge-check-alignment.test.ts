@@ -21,6 +21,10 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /schemaVersion/);
   assert.match(scriptRaw, /badge-details\.json/);
   assert.match(scriptRaw, /badge-details\.evidence/);
+  assert.match(scriptRaw, /costEstimate/);
+  assert.match(scriptRaw, /tokensUsed/);
+  assert.match(scriptRaw, /costEstimate\.totalUsd/);
+  assert.match(scriptRaw, /tokensUsed\.total/);
   assert.match(scriptRaw, /operatorTurnTruncation/);
   assert.match(scriptRaw, /operatorTurnDelete/);
   assert.match(scriptRaw, /damageControl/);

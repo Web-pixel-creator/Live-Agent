@@ -72,6 +72,62 @@ function toStringArray(value) {
   return [];
 }
 
+function roundNumber(value, digits = 6) {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
+function buildCostEstimate(summary, kpis) {
+  const summaryCost = isObject(summary.costEstimate) ? summary.costEstimate : {};
+  const currency = toOptionalString(summaryCost.currency) ?? toOptionalString(kpis.costEstimateCurrency) ?? "USD";
+  const geminiLiveUsd = Math.max(
+    0,
+    toNumber(summaryCost.geminiLiveUsd) ?? toNumber(kpis.costEstimateGeminiLiveUsd) ?? 0,
+  );
+  const imagenUsd = Math.max(0, toNumber(summaryCost.imagenUsd) ?? toNumber(kpis.costEstimateImagenUsd) ?? 0);
+  const veoUsd = Math.max(0, toNumber(summaryCost.veoUsd) ?? toNumber(kpis.costEstimateVeoUsd) ?? 0);
+  const ttsUsd = Math.max(0, toNumber(summaryCost.ttsUsd) ?? toNumber(kpis.costEstimateTtsUsd) ?? 0);
+  const partsTotal = geminiLiveUsd + imagenUsd + veoUsd + ttsUsd;
+  const totalCandidate = Math.max(
+    0,
+    toNumber(summaryCost.totalUsd) ?? toNumber(kpis.costEstimateTotalUsd) ?? partsTotal,
+  );
+  const totalUsd = totalCandidate >= partsTotal ? totalCandidate : partsTotal;
+  const source =
+    toOptionalString(summaryCost.source) ?? toOptionalString(kpis.costEstimateSource) ?? "summary_or_kpi_default";
+
+  return {
+    currency,
+    geminiLiveUsd: roundNumber(geminiLiveUsd),
+    imagenUsd: roundNumber(imagenUsd),
+    veoUsd: roundNumber(veoUsd),
+    ttsUsd: roundNumber(ttsUsd),
+    totalUsd: roundNumber(totalUsd),
+    source,
+  };
+}
+
+function buildTokensUsed(summary, kpis) {
+  const summaryTokens = isObject(summary.tokensUsed) ? summary.tokensUsed : {};
+  const input = Math.max(0, Math.trunc(toNumber(summaryTokens.input) ?? toNumber(kpis.tokensUsedInput) ?? 0));
+  const output = Math.max(0, Math.trunc(toNumber(summaryTokens.output) ?? toNumber(kpis.tokensUsedOutput) ?? 0));
+  const partsTotal = input + output;
+  const totalCandidate = Math.max(
+    0,
+    Math.trunc(toNumber(summaryTokens.total) ?? toNumber(kpis.tokensUsedTotal) ?? partsTotal),
+  );
+  const total = totalCandidate >= partsTotal ? totalCandidate : partsTotal;
+  const source =
+    toOptionalString(summaryTokens.source) ?? toOptionalString(kpis.tokensUsedSource) ?? "summary_or_kpi_default";
+
+  return {
+    input,
+    output,
+    total,
+    source,
+  };
+}
+
 function isIsoTimestamp(value) {
   if (typeof value !== "string" || value.trim().length === 0) {
     return false;
@@ -417,6 +473,8 @@ async function main() {
   const violations = Array.isArray(policy.violations) ? policy.violations.length : 0;
   const kpis = isObject(summary.kpis) ? summary.kpis : {};
   const roundTripMs = toNumber(kpis.gatewayWsRoundTripMs);
+  const costEstimate = buildCostEstimate(summary, kpis);
+  const tokensUsed = buildTokensUsed(summary, kpis);
 
   const operatorTurnTruncationEvidence = buildTurnEvidence(kpis, {
     validatedKey: "operatorTurnTruncationSummaryValidated",
@@ -475,6 +533,8 @@ async function main() {
     checks,
     violations,
     roundTripMs,
+    costEstimate,
+    tokensUsed,
     evidence: {
       sourceSummaryGeneratedAt: toOptionalString(summary.generatedAt),
       operatorTurnTruncation: operatorTurnTruncationEvidence,

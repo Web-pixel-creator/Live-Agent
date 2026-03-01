@@ -250,6 +250,16 @@ function createPassingSummary(overrides?: {
     uiGroundingAdapterNoteSeen: true,
     uiGroundingSignalsValidated: true,
     gatewayWsRoundTripMs: 120,
+    costEstimateGeminiLiveUsd: 0.12,
+    costEstimateImagenUsd: 0.35,
+    costEstimateVeoUsd: 0.2,
+    costEstimateTtsUsd: 0.04,
+    costEstimateTotalUsd: 0.71,
+    costEstimateSource: "env_json",
+    tokensUsedInput: 6200,
+    tokensUsedOutput: 3100,
+    tokensUsedTotal: 9300,
+    tokensUsedSource: "env_json",
     sessionRunBindingValidated: true,
     sessionStateTransitionsObserved: 3,
     taskProgressEventsObserved: 1,
@@ -330,7 +340,41 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 247);
+  assert.equal(result.payload.checks, 251);
+});
+
+test("demo-e2e policy check fails when cost estimate total is negative", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        costEstimateTotalUsd: -0.01,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.costEstimateTotalUsd")));
+});
+
+test("demo-e2e policy check fails when tokens total does not cover input+output", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        tokensUsedInput: 1200,
+        tokensUsedOutput: 300,
+        tokensUsedTotal: 1000,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.tokensUsedConsistency")));
 });
 
 test("demo-e2e policy check fails when gateway error correlation KPI is invalid", () => {

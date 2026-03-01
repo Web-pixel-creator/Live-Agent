@@ -349,7 +349,7 @@ Manual shortcut:
 3. Local artifact `artifacts/demo-e2e/policy-check.json`.
 4. Local artifact `artifacts/demo-e2e/policy-check.md`.
 5. Local artifact `artifacts/demo-e2e/badge.json`.
-6. Local artifact `artifacts/demo-e2e/badge-details.json` (must include `evidence.operatorTurnTruncation`, `evidence.operatorTurnDelete`, `evidence.operatorDamageControl`, `evidence.governancePolicy`, `evidence.skillsRegistry`, and `evidence.deviceNodes` where `deviceNodes` also validates updates lane: `updatesValidated`, `updatesHasUpsert`, `updatesHasHeartbeat`, `updatesApiValidated`, `updatesTotal>=2`).
+6. Local artifact `artifacts/demo-e2e/badge-details.json` (must include top-level `costEstimate` + `tokensUsed`, plus `evidence.operatorTurnTruncation`, `evidence.operatorTurnDelete`, `evidence.operatorDamageControl`, `evidence.governancePolicy`, `evidence.skillsRegistry`, and `evidence.deviceNodes` where `deviceNodes` also validates updates lane: `updatesValidated`, `updatesHasUpsert`, `updatesHasHeartbeat`, `updatesApiValidated`, `updatesTotal>=2`).
 7. Observability screenshot: dashboard `MLA Telemetry KPI Overview` with latency and error widgets.
 8. Observability screenshot: alert policy `MLA Gateway P95 Latency High` enabled.
 9. Observability screenshot: alert policy `MLA Service Error Rate High` enabled.
