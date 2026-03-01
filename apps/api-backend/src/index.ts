@@ -38,7 +38,13 @@ import {
   listSessions,
   listTenantGovernancePolicies,
   listManagedSkillIndex,
+  listManagedSkillInstallations,
   listManagedSkills,
+  getManagedSkillInstallation,
+  resolveManagedSkillInstallations,
+  upsertManagedSkillInstallation,
+  type ManagedSkillInstallPolicy,
+  type ManagedSkillInstallationStatus,
   type ManagedSkillTrustLevel,
   type OperatorActionRecord,
   recordOperatorAction,
@@ -653,6 +659,36 @@ function sanitizeManagedTrustLevel(raw: unknown): ManagedSkillTrustLevel {
   return "reviewed";
 }
 
+function sanitizeManagedInstallPolicy(raw: unknown): ManagedSkillInstallPolicy {
+  if (raw === "pinned" || raw === "track_latest") {
+    return raw;
+  }
+  if (typeof raw === "string" && raw.trim().toLowerCase() === "pinned") {
+    return "pinned";
+  }
+  return "track_latest";
+}
+
+function sanitizeManagedInstallationStatus(raw: unknown): ManagedSkillInstallationStatus {
+  if (raw === "installed" || raw === "disabled") {
+    return raw;
+  }
+  if (typeof raw === "string" && raw.trim().toLowerCase() === "disabled") {
+    return "disabled";
+  }
+  return "installed";
+}
+
+function sanitizeAgentId(raw: unknown): string {
+  const source = toOptionalString(raw) ?? "live-agent";
+  const normalized = source
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return normalized.length > 0 ? normalized.slice(0, 64) : "live-agent";
+}
+
 function toOptionalString(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -722,12 +758,65 @@ function parseSkillRegistryPathSuffix(pathname: string): {
   };
 }
 
+function parseSkillInstallationPathSuffix(pathname: string): {
+  agentId: string;
+  skillId: string;
+  wantsUpdates: boolean;
+} | null {
+  const prefix = "/v1/skills/installations/";
+  if (!pathname.startsWith(prefix)) {
+    return null;
+  }
+
+  const suffix = pathname.slice(prefix.length).replace(/^\/+|\/+$/g, "");
+  if (suffix.length === 0 || suffix.toLowerCase() === "resolve") {
+    return null;
+  }
+
+  const wantsUpdates = suffix.toLowerCase().endsWith("/updates");
+  const normalizedSuffix = wantsUpdates
+    ? suffix.slice(0, -"/updates".length).replace(/^\/+|\/+$/g, "")
+    : suffix;
+  const parts = normalizedSuffix.split("/").filter((item) => item.length > 0);
+  if (parts.length !== 2) {
+    return null;
+  }
+  let decodedAgentId = "";
+  let decodedSkillId = "";
+  try {
+    decodedAgentId = decodeURIComponent(parts[0] ?? "");
+    decodedSkillId = decodeURIComponent(parts[1] ?? "");
+  } catch {
+    return null;
+  }
+  if (decodedAgentId.trim().length === 0 || decodedSkillId.trim().length === 0) {
+    return null;
+  }
+  return {
+    agentId: decodedAgentId,
+    skillId: decodedSkillId,
+    wantsUpdates,
+  };
+}
+
 function extractSkillIdFromOperatorAction(item: OperatorActionRecord): string | null {
   if (!isRecord(item.details)) {
     return null;
   }
   const skillId = toOptionalString(item.details.skillId);
   return skillId ? skillId.toLowerCase() : null;
+}
+
+function extractSkillInstallationKeyFromOperatorAction(item: OperatorActionRecord): string | null {
+  if (!isRecord(item.details)) {
+    return null;
+  }
+  const agentId = toOptionalString(item.details.agentId);
+  const skillId = toOptionalString(item.details.skillId);
+  if (!agentId || !skillId) {
+    return null;
+  }
+  return `${agentId.toLowerCase()}:${skillId.toLowerCase()}`;
 }
 
 function parseDeviceNodePathSuffix(pathname: string): {
@@ -957,6 +1046,15 @@ function normalizeOperationPath(pathname: string): string {
       return "/v1/skills/registry/:skillId/updates";
     }
     return "/v1/skills/registry/:skillId";
+  }
+  if (pathname.startsWith("/v1/skills/installations/")) {
+    if (pathname.toLowerCase().startsWith("/v1/skills/installations/resolve")) {
+      return "/v1/skills/installations/resolve";
+    }
+    if (pathname.toLowerCase().endsWith("/updates")) {
+      return "/v1/skills/installations/:agentId/:skillId/updates";
+    }
+    return "/v1/skills/installations/:agentId/:skillId";
   }
   if (pathname.startsWith("/v1/device-nodes/")) {
     if (pathname.toLowerCase().endsWith("/updates")) {
@@ -3645,6 +3743,314 @@ export const server = createServer(async (req, res) => {
         data: upsertResult.skill,
         meta: {
           outcome: upsertResult.outcome,
+        },
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/skills/installations/resolve" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const requestedTenant = toOptionalString(url.searchParams.get("tenantId"));
+      const tenantId =
+        role === "admin" && requestedTenant ? requestedTenant : requestTenant.tenantId;
+      const agentIdRaw = toOptionalString(url.searchParams.get("agentId"));
+      if (!agentIdRaw) {
+        writeApiError(res, 400, {
+          code: "API_SKILL_INSTALLATION_AGENT_REQUIRED",
+          message: "agentId query param is required",
+          details: {
+            required: ["agentId"],
+          },
+        });
+        return;
+      }
+      const agentId = sanitizeAgentId(agentIdRaw);
+      const includeDisabled = url.searchParams.get("includeDisabled") === "true";
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 200, 1, 500);
+      const resolved = await resolveManagedSkillInstallations({
+        tenantId,
+        agentId,
+        includeDisabled,
+        limit,
+      });
+      const readyCount = resolved.filter((item) => item.resolveStatus === "ready").length;
+      writeJson(res, 200, {
+        data: resolved,
+        total: resolved.length,
+        readyCount,
+        blockedCount: Math.max(0, resolved.length - readyCount),
+        role,
+        tenantId,
+        agentId,
+        source: "managed_installations",
+      });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith("/v1/skills/installations/")) {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const pathDetails = parseSkillInstallationPathSuffix(url.pathname);
+      if (!pathDetails) {
+        writeApiError(res, 400, {
+          code: "API_SKILL_INSTALLATION_INVALID_PATH",
+          message: "agentId and skillId path segments are required",
+        });
+        return;
+      }
+      const requestedTenant = toOptionalString(url.searchParams.get("tenantId"));
+      const tenantId =
+        role === "admin" && requestedTenant ? requestedTenant : requestTenant.tenantId;
+      const agentId = sanitizeAgentId(pathDetails.agentId);
+      const skillId = pathDetails.skillId;
+      if (pathDetails.wantsUpdates) {
+        const limit = parseBoundedInt(url.searchParams.get("limit"), 50, 1, 200);
+        const lookupKey = `${agentId.toLowerCase()}:${skillId.toLowerCase()}`;
+        const fetchLimit = Math.max(limit * 8, 500);
+        const auditItems = await listOperatorActions(fetchLimit, { tenantId });
+        const updates = auditItems
+          .filter((item) => item.action === "skills_installation_upsert")
+          .filter((item) => extractSkillInstallationKeyFromOperatorAction(item) === lookupKey)
+          .slice(0, limit);
+        writeJson(res, 200, {
+          data: updates,
+          total: updates.length,
+          role,
+          tenantId,
+          agentId,
+          skillId,
+        });
+        return;
+      }
+
+      const installation = await getManagedSkillInstallation({
+        tenantId,
+        agentId,
+        skillId,
+      });
+      if (!installation) {
+        writeApiError(res, 404, {
+          code: "API_SKILL_INSTALLATION_NOT_FOUND",
+          message: "Managed skill installation not found",
+          details: {
+            tenantId,
+            agentId,
+            skillId,
+          },
+        });
+        return;
+      }
+      writeJson(res, 200, {
+        data: installation,
+        role,
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/skills/installations" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const requestedTenant = toOptionalString(url.searchParams.get("tenantId"));
+      const tenantId =
+        role === "admin" && requestedTenant ? requestedTenant : requestTenant.tenantId;
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 200, 1, 500);
+      const includeDisabled = url.searchParams.get("includeDisabled") === "true";
+      const agentId = toOptionalString(url.searchParams.get("agentId"));
+      const installations = await listManagedSkillInstallations({
+        tenantId,
+        agentId: agentId ? sanitizeAgentId(agentId) : undefined,
+        includeDisabled,
+        limit,
+      });
+      writeJson(res, 200, {
+        data: installations,
+        total: installations.length,
+        role,
+        tenantId,
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/skills/installations" && req.method === "POST") {
+      const role = assertOperatorRole(req, ["admin"]);
+      const raw = await readBody(req);
+      const parsed = parseJsonBody(raw) as {
+        tenantId?: unknown;
+        agentId?: unknown;
+        skillId?: unknown;
+        status?: unknown;
+        installPolicy?: unknown;
+        pinnedVersion?: unknown;
+        minTrustLevel?: unknown;
+        expectedVersion?: unknown;
+        idempotencyKey?: unknown;
+        updatedBy?: unknown;
+        metadata?: unknown;
+      };
+
+      const tenantId = role === "admin" ? toOptionalString(parsed.tenantId) ?? requestTenant.tenantId : requestTenant.tenantId;
+      const agentId = toOptionalString(parsed.agentId);
+      const skillId = toOptionalString(parsed.skillId);
+      if (!agentId || !skillId) {
+        await auditOperatorAction({
+          tenantId,
+          role,
+          action: "skills_installation_upsert",
+          outcome: "denied",
+          reason: "agentId and skillId are required",
+          errorCode: "API_SKILL_INSTALLATION_INVALID_INPUT",
+        });
+        writeApiError(res, 400, {
+          code: "API_SKILL_INSTALLATION_INVALID_INPUT",
+          message: "agentId and skillId are required",
+          details: {
+            required: ["agentId", "skillId"],
+          },
+        });
+        return;
+      }
+
+      const installPolicy = sanitizeManagedInstallPolicy(parsed.installPolicy);
+      const pinnedVersion = parseOptionalExpectedVersion(parsed.pinnedVersion);
+      if (installPolicy === "pinned" && pinnedVersion === null) {
+        await auditOperatorAction({
+          tenantId,
+          role,
+          action: "skills_installation_upsert",
+          outcome: "denied",
+          reason: "pinned install policy requires pinnedVersion",
+          errorCode: "API_SKILL_INSTALLATION_PINNED_VERSION_REQUIRED",
+        });
+        writeApiError(res, 400, {
+          code: "API_SKILL_INSTALLATION_PINNED_VERSION_REQUIRED",
+          message: "pinnedVersion is required when installPolicy is pinned",
+        });
+        return;
+      }
+
+      const managedSkill = await getManagedSkillById(skillId);
+      if (!managedSkill) {
+        await auditOperatorAction({
+          tenantId,
+          role,
+          action: "skills_installation_upsert",
+          outcome: "denied",
+          reason: "managed skill not found for installation",
+          errorCode: "API_SKILL_INSTALLATION_SKILL_NOT_FOUND",
+          details: {
+            skillId,
+          },
+        });
+        writeApiError(res, 404, {
+          code: "API_SKILL_INSTALLATION_SKILL_NOT_FOUND",
+          message: "Managed skill not found for installation",
+          details: {
+            skillId,
+          },
+        });
+        return;
+      }
+
+      const upsertResult = await upsertManagedSkillInstallation({
+        tenantId,
+        agentId,
+        skillId,
+        status: sanitizeManagedInstallationStatus(parsed.status),
+        installPolicy,
+        pinnedVersion,
+        minTrustLevel: sanitizeManagedTrustLevel(parsed.minTrustLevel),
+        expectedVersion: parseOptionalExpectedVersion(parsed.expectedVersion),
+        idempotencyKey: parseIdempotencyKey(parsed.idempotencyKey),
+        updatedBy: toOptionalString(parsed.updatedBy) ?? role,
+        metadata: parsed.metadata,
+      });
+
+      if (upsertResult.outcome === "version_conflict") {
+        await auditOperatorAction({
+          tenantId,
+          role,
+          action: "skills_installation_upsert",
+          outcome: "failed",
+          reason: "managed skill installation version conflict",
+          errorCode: "API_SKILL_INSTALLATION_VERSION_CONFLICT",
+          details: {
+            tenantId,
+            agentId: sanitizeAgentId(agentId),
+            skillId: skillId.toLowerCase(),
+            expectedVersion: upsertResult.expectedVersion,
+            actualVersion: upsertResult.actualVersion,
+          },
+        });
+        writeApiError(res, 409, {
+          code: "API_SKILL_INSTALLATION_VERSION_CONFLICT",
+          message: "Managed skill installation version conflict",
+          details: {
+            tenantId,
+            agentId: sanitizeAgentId(agentId),
+            skillId: skillId.toLowerCase(),
+            expectedVersion: upsertResult.expectedVersion,
+            actualVersion: upsertResult.actualVersion,
+          },
+        });
+        return;
+      }
+
+      if (upsertResult.outcome === "idempotency_conflict") {
+        await auditOperatorAction({
+          tenantId,
+          role,
+          action: "skills_installation_upsert",
+          outcome: "failed",
+          reason: "managed skill installation idempotency conflict",
+          errorCode: "API_SKILL_INSTALLATION_IDEMPOTENCY_CONFLICT",
+          details: {
+            tenantId,
+            agentId: sanitizeAgentId(agentId),
+            skillId: skillId.toLowerCase(),
+            idempotencyKey: upsertResult.idempotencyKey,
+          },
+        });
+        writeApiError(res, 409, {
+          code: "API_SKILL_INSTALLATION_IDEMPOTENCY_CONFLICT",
+          message: "Managed skill installation idempotency conflict",
+          details: {
+            tenantId,
+            agentId: sanitizeAgentId(agentId),
+            skillId: skillId.toLowerCase(),
+            idempotencyKey: upsertResult.idempotencyKey,
+          },
+        });
+        return;
+      }
+
+      await auditOperatorAction({
+        tenantId,
+        role,
+        action: "skills_installation_upsert",
+        outcome: "succeeded",
+        reason: `managed skill installation ${upsertResult.outcome}`,
+        details: {
+          tenantId,
+          agentId: upsertResult.installation.agentId,
+          skillId: upsertResult.installation.skillId,
+          installPolicy: upsertResult.installation.installPolicy,
+          pinnedVersion: upsertResult.installation.pinnedVersion,
+          minTrustLevel: upsertResult.installation.minTrustLevel,
+          status: upsertResult.installation.status,
+          version: upsertResult.installation.version,
+          registryVersion: managedSkill.version,
+          registryTrustLevel: managedSkill.trustLevel,
+          updateAvailable:
+            upsertResult.installation.installPolicy === "pinned" &&
+            typeof upsertResult.installation.pinnedVersion === "number" &&
+            managedSkill.version > upsertResult.installation.pinnedVersion,
+        },
+      });
+
+      writeJson(res, upsertResult.outcome === "created" ? 201 : 200, {
+        data: upsertResult.installation,
+        meta: {
+          outcome: upsertResult.outcome,
+          registrySkillVersion: managedSkill.version,
+          registrySkillTrustLevel: managedSkill.trustLevel,
         },
       });
       return;

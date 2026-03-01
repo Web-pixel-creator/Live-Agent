@@ -209,6 +209,11 @@ Session mutation concurrency controls:
 - `GET /v1/skills/registry/{skillId}` with `x-operator-role` -> managed skill detail (`404 API_SKILL_REGISTRY_NOT_FOUND` when absent).
 - `GET /v1/skills/registry/{skillId}/updates` with `x-operator-role` -> tenant-scoped upsert audit history for this skill (`limit`, optional `tenantId` for admin).
 - `POST /v1/skills/registry` with `x-operator-role: admin` -> versioned upsert (`expectedVersion` for optimistic locking).
+- `GET /v1/skills/installations` with `x-operator-role` -> tenant-scoped installation workflow view (`agentId`, `includeDisabled`, `limit`, optional `tenantId` for admin).
+- `GET /v1/skills/installations/resolve` with `x-operator-role` -> resolved installation state per `agentId` (`ready|skill_not_found|skill_disabled|scope_mismatch|trust_blocked|pinned_version_unavailable`).
+- `GET /v1/skills/installations/{agentId}/{skillId}` with `x-operator-role` -> installation detail for one agent/skill pair.
+- `GET /v1/skills/installations/{agentId}/{skillId}/updates` with `x-operator-role` -> tenant-scoped installation audit history (`skills_installation_upsert`).
+- `POST /v1/skills/installations` with `x-operator-role: admin` -> versioned/idempotent install-update mutation (`expectedVersion`, `idempotencyKey`, `installPolicy=track_latest|pinned`, `pinnedVersion`).
   - Supports plugin marketplace manifest:
     - `pluginManifest.permissions[]` (validated against allowlist).
     - `pluginManifest.signing.{algorithm,keyId,signature}` for `hmac-sha256` verification.

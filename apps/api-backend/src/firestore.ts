@@ -247,6 +247,68 @@ export type ManagedSkillIndexItem = {
   pluginManifest: ManagedSkillPluginManifest | null;
 };
 
+export type ManagedSkillInstallPolicy = "track_latest" | "pinned";
+
+export type ManagedSkillInstallationStatus = "installed" | "disabled";
+
+export type ManagedSkillInstallationRecord = {
+  installationId: string;
+  tenantId: string;
+  agentId: string;
+  skillId: string;
+  status: ManagedSkillInstallationStatus;
+  installPolicy: ManagedSkillInstallPolicy;
+  pinnedVersion: number | null;
+  minTrustLevel: ManagedSkillTrustLevel;
+  version: number;
+  lastMutationId: string | null;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  metadata?: unknown;
+};
+
+export type ManagedSkillInstallationUpsertResult =
+  | {
+      outcome: "created" | "updated" | "idempotent_replay";
+      installation: ManagedSkillInstallationRecord;
+    }
+  | {
+      outcome: "version_conflict";
+      installation: ManagedSkillInstallationRecord;
+      expectedVersion: number;
+      actualVersion: number;
+    }
+  | {
+      outcome: "idempotency_conflict";
+      installation: ManagedSkillInstallationRecord;
+      idempotencyKey: string;
+    };
+
+export type ManagedSkillInstallationResolveStatus =
+  | "ready"
+  | "skill_not_found"
+  | "skill_disabled"
+  | "scope_mismatch"
+  | "trust_blocked"
+  | "pinned_version_unavailable";
+
+export type ManagedSkillInstallationResolvedItem = {
+  installationId: string;
+  tenantId: string;
+  agentId: string;
+  skillId: string;
+  status: ManagedSkillInstallationStatus;
+  installPolicy: ManagedSkillInstallPolicy;
+  pinnedVersion: number | null;
+  minTrustLevel: ManagedSkillTrustLevel;
+  resolveStatus: ManagedSkillInstallationResolveStatus;
+  effectiveVersion: number | null;
+  updateAvailable: boolean;
+  skill: ManagedSkillRecord | null;
+  updatedAt: string;
+};
+
 export type DeviceNodeKind = "desktop" | "mobile";
 
 export type DeviceNodeStatus = "online" | "offline" | "degraded";
@@ -351,6 +413,7 @@ const inMemoryApprovals = new Map<string, ApprovalRecord>();
 const inMemoryOperatorActions: OperatorActionRecord[] = [];
 const inMemoryTenantGovernancePolicies = new Map<string, TenantGovernancePolicyRecord>();
 const inMemoryManagedSkills = new Map<string, ManagedSkillRecord>();
+const inMemoryManagedSkillInstallations = new Map<string, ManagedSkillInstallationRecord>();
 const inMemoryDeviceNodes = new Map<string, DeviceNodeRecord>();
 const inMemoryChannelSessionBindings = new Map<string, ChannelSessionBindingRecord>();
 const inMemoryWriteLanes = new Map<string, Promise<void>>();
@@ -738,6 +801,16 @@ function normalizeManagedTrustLevel(value: unknown): ManagedSkillTrustLevel {
   return "reviewed";
 }
 
+function managedTrustRank(value: ManagedSkillTrustLevel): number {
+  if (value === "trusted") {
+    return 3;
+  }
+  if (value === "reviewed") {
+    return 2;
+  }
+  return 1;
+}
+
 const MANAGED_SKILL_PLUGIN_PERMISSION_ALLOWLIST: ReadonlySet<ManagedSkillPluginPermission> = new Set([
   "live.conversation",
   "live.translation",
@@ -912,6 +985,108 @@ function managedSkillContentSignature(skill: ManagedSkillRecord): string {
     checksum: skill.checksum,
     pluginManifest: skill.pluginManifest,
     metadata: skill.metadata ?? null,
+  });
+}
+
+function normalizeSkillAgentId(value: unknown): string {
+  const source = toNonEmptyString(value) ?? "live-agent";
+  const normalized = source
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return normalized.length > 0 ? normalized.slice(0, 64) : "live-agent";
+}
+
+function normalizeManagedSkillInstallPolicy(value: unknown): ManagedSkillInstallPolicy {
+  if (value === "pinned" || value === "track_latest") {
+    return value;
+  }
+  if (typeof value === "string" && value.trim().toLowerCase() === "pinned") {
+    return "pinned";
+  }
+  return "track_latest";
+}
+
+function normalizeManagedSkillInstallationStatus(value: unknown): ManagedSkillInstallationStatus {
+  if (value === "installed" || value === "disabled") {
+    return value;
+  }
+  if (typeof value === "string" && value.trim().toLowerCase() === "disabled") {
+    return "disabled";
+  }
+  return "installed";
+}
+
+function normalizeOptionalVersion(value: unknown): number | null {
+  const parsed = toNonNegativeInt(value);
+  if (parsed === null || parsed < 1) {
+    return null;
+  }
+  return parsed;
+}
+
+function normalizeInstallationMapKey(params: {
+  tenantId: string;
+  agentId: string;
+  skillId: string;
+}): string {
+  return `${params.tenantId}:${params.agentId}:${params.skillId}`;
+}
+
+function normalizeManagedSkillInstallationId(params: {
+  tenantId: string;
+  agentId: string;
+  skillId: string;
+}): string {
+  const source = normalizeInstallationMapKey(params);
+  const normalized = source
+    .toLowerCase()
+    .replace(/[^a-z0-9:_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return normalized.length > 0 ? normalized.slice(0, 192) : `installation-${Date.now()}`;
+}
+
+function mapManagedSkillInstallationRecord(
+  docId: string,
+  raw: Record<string, unknown>,
+): ManagedSkillInstallationRecord {
+  const tenantId = normalizeTenantId(raw.tenantId);
+  const agentId = normalizeSkillAgentId(raw.agentId);
+  const skillId = normalizeManagedSkillId(raw.skillId, "managed-skill");
+  const normalizedInstallationId = normalizeManagedSkillInstallationId({
+    tenantId,
+    agentId,
+    skillId,
+  });
+  return {
+    installationId:
+      toNonEmptyString(raw.installationId) ??
+      (normalizedInstallationId.length > 0 ? normalizedInstallationId : docId),
+    tenantId,
+    agentId,
+    skillId,
+    status: normalizeManagedSkillInstallationStatus(raw.status),
+    installPolicy: normalizeManagedSkillInstallPolicy(raw.installPolicy),
+    pinnedVersion: normalizeOptionalVersion(raw.pinnedVersion),
+    minTrustLevel: normalizeManagedTrustLevel(raw.minTrustLevel),
+    version: normalizeManagedSkillVersion(raw.version),
+    lastMutationId: normalizeMutationId(raw.lastMutationId),
+    updatedBy: toNonEmptyString(raw.updatedBy) ?? "operator",
+    createdAt: toIso(raw.createdAt),
+    updatedAt: toIso(raw.updatedAt ?? raw.createdAt),
+    metadata: raw.metadata,
+  };
+}
+
+function managedSkillInstallationSignature(record: ManagedSkillInstallationRecord): string {
+  return JSON.stringify({
+    status: record.status,
+    installPolicy: record.installPolicy,
+    pinnedVersion: record.pinnedVersion,
+    minTrustLevel: record.minTrustLevel,
+    metadata: record.metadata ?? null,
   });
 }
 
@@ -2603,6 +2778,388 @@ export async function listManagedSkillIndex(params: {
     checksum: skill.checksum,
     pluginManifest: skill.pluginManifest,
   }));
+}
+
+export async function listManagedSkillInstallations(params: {
+  limit: number;
+  tenantId?: string;
+  agentId?: string;
+  includeDisabled?: boolean;
+}): Promise<ManagedSkillInstallationRecord[]> {
+  const limit = Math.max(1, Math.min(500, params.limit));
+  const tenantId = params.tenantId ? normalizeTenantId(params.tenantId) : null;
+  const agentId = params.agentId ? normalizeSkillAgentId(params.agentId) : null;
+  const includeDisabled = params.includeDisabled === true;
+  const db = initFirestore();
+
+  if (!db) {
+    return Array.from(inMemoryManagedSkillInstallations.values())
+      .filter((item) => (tenantId ? item.tenantId === tenantId : true))
+      .filter((item) => (agentId ? item.agentId === agentId : true))
+      .filter((item) => (includeDisabled ? true : item.status === "installed"))
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .slice(0, limit);
+  }
+
+  const fetchLimit = Math.max(limit * 5, 500);
+  const snapshot = await db
+    .collection("skill_installations")
+    .orderBy("updatedAt", "desc")
+    .limit(fetchLimit)
+    .get();
+  const records = snapshot.docs.map((doc) =>
+    mapManagedSkillInstallationRecord(doc.id, doc.data() as Record<string, unknown>),
+  );
+  return records
+    .filter((item) => (tenantId ? item.tenantId === tenantId : true))
+    .filter((item) => (agentId ? item.agentId === agentId : true))
+    .filter((item) => (includeDisabled ? true : item.status === "installed"))
+    .slice(0, limit);
+}
+
+export async function getManagedSkillInstallation(params: {
+  tenantId?: string;
+  agentId: string;
+  skillId: string;
+}): Promise<ManagedSkillInstallationRecord | null> {
+  const tenantId = normalizeTenantId(params.tenantId);
+  const agentId = normalizeSkillAgentId(params.agentId);
+  const skillId = normalizeManagedSkillId(params.skillId, "");
+  if (!skillId) {
+    return null;
+  }
+  const mapKey = normalizeInstallationMapKey({
+    tenantId,
+    agentId,
+    skillId,
+  });
+
+  const db = initFirestore();
+  if (!db) {
+    return inMemoryManagedSkillInstallations.get(mapKey) ?? null;
+  }
+
+  const installationId = normalizeManagedSkillInstallationId({
+    tenantId,
+    agentId,
+    skillId,
+  });
+  const snapshot = await db.collection("skill_installations").doc(installationId).get();
+  if (!snapshot.exists) {
+    return null;
+  }
+  return mapManagedSkillInstallationRecord(snapshot.id, snapshot.data() as Record<string, unknown>);
+}
+
+export async function upsertManagedSkillInstallation(params: {
+  tenantId?: string;
+  agentId: string;
+  skillId: string;
+  status?: ManagedSkillInstallationStatus;
+  installPolicy?: ManagedSkillInstallPolicy;
+  pinnedVersion?: number | null;
+  minTrustLevel?: ManagedSkillTrustLevel;
+  metadata?: unknown;
+  updatedBy?: string;
+  expectedVersion?: number | null;
+  idempotencyKey?: string | null;
+}): Promise<ManagedSkillInstallationUpsertResult> {
+  const tenantId = normalizeTenantId(params.tenantId);
+  const agentId = normalizeSkillAgentId(params.agentId);
+  const skillId = normalizeManagedSkillId(params.skillId, "managed-skill");
+  const status = normalizeManagedSkillInstallationStatus(params.status);
+  const installPolicy = normalizeManagedSkillInstallPolicy(params.installPolicy);
+  const pinnedVersion =
+    installPolicy === "pinned" ? normalizeOptionalVersion(params.pinnedVersion) : null;
+  const minTrustLevel = normalizeManagedTrustLevel(params.minTrustLevel);
+  const updatedBy = toNonEmptyString(params.updatedBy) ?? "operator";
+  const expectedVersion =
+    typeof params.expectedVersion === "number" &&
+    Number.isFinite(params.expectedVersion) &&
+    params.expectedVersion >= 1
+      ? Math.floor(params.expectedVersion)
+      : null;
+  const idempotencyKey = normalizeMutationId(params.idempotencyKey);
+  const nowIso = new Date().toISOString();
+  const mapKey = normalizeInstallationMapKey({
+    tenantId,
+    agentId,
+    skillId,
+  });
+  const installationId = normalizeManagedSkillInstallationId({
+    tenantId,
+    agentId,
+    skillId,
+  });
+  const baseRecord: ManagedSkillInstallationRecord = {
+    installationId,
+    tenantId,
+    agentId,
+    skillId,
+    status,
+    installPolicy,
+    pinnedVersion,
+    minTrustLevel,
+    version: 1,
+    lastMutationId: idempotencyKey,
+    updatedBy,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    metadata: params.metadata,
+  };
+
+  const db = initFirestore();
+  if (!db) {
+    return runInMemoryWriteLane(`skill-installation:${mapKey}`, () => {
+      const existing = inMemoryManagedSkillInstallations.get(mapKey) ?? null;
+      if (!existing) {
+        inMemoryManagedSkillInstallations.set(mapKey, baseRecord);
+        return {
+          outcome: "created",
+          installation: baseRecord,
+        };
+      }
+
+      if (idempotencyKey && existing.lastMutationId === idempotencyKey) {
+        if (managedSkillInstallationSignature(existing) === managedSkillInstallationSignature(baseRecord)) {
+          return {
+            outcome: "idempotent_replay",
+            installation: existing,
+          };
+        }
+        return {
+          outcome: "idempotency_conflict",
+          installation: existing,
+          idempotencyKey,
+        };
+      }
+
+      if (expectedVersion !== null && existing.version !== expectedVersion) {
+        return {
+          outcome: "version_conflict",
+          installation: existing,
+          expectedVersion,
+          actualVersion: existing.version,
+        };
+      }
+
+      const candidate: ManagedSkillInstallationRecord = {
+        ...baseRecord,
+        version: existing.version + 1,
+        createdAt: existing.createdAt,
+        updatedAt: nowIso,
+      };
+
+      if (managedSkillInstallationSignature(existing) === managedSkillInstallationSignature(candidate)) {
+        return {
+          outcome: "idempotent_replay",
+          installation: existing,
+        };
+      }
+
+      inMemoryManagedSkillInstallations.set(mapKey, candidate);
+      return {
+        outcome: "updated",
+        installation: candidate,
+      };
+    });
+  }
+
+  const ref = db.collection("skill_installations").doc(installationId);
+  const transactionResult = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    if (!snapshot.exists) {
+      transaction.set(
+        ref,
+        {
+          installationId: baseRecord.installationId,
+          tenantId: baseRecord.tenantId,
+          agentId: baseRecord.agentId,
+          skillId: baseRecord.skillId,
+          status: baseRecord.status,
+          installPolicy: baseRecord.installPolicy,
+          pinnedVersion: baseRecord.pinnedVersion,
+          minTrustLevel: baseRecord.minTrustLevel,
+          version: 1,
+          lastMutationId: baseRecord.lastMutationId,
+          updatedBy: baseRecord.updatedBy,
+          metadata: baseRecord.metadata ?? null,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      return {
+        outcome: "created" as const,
+      };
+    }
+
+    const existing = mapManagedSkillInstallationRecord(
+      ref.id,
+      (snapshot.data() ?? {}) as Record<string, unknown>,
+    );
+
+    if (idempotencyKey && existing.lastMutationId === idempotencyKey) {
+      if (managedSkillInstallationSignature(existing) === managedSkillInstallationSignature(baseRecord)) {
+        return {
+          outcome: "idempotent_replay" as const,
+          installation: existing,
+        };
+      }
+      return {
+        outcome: "idempotency_conflict" as const,
+        installation: existing,
+        idempotencyKey,
+      };
+    }
+
+    if (expectedVersion !== null && existing.version !== expectedVersion) {
+      return {
+        outcome: "version_conflict" as const,
+        installation: existing,
+        expectedVersion,
+        actualVersion: existing.version,
+      };
+    }
+
+    const candidate: ManagedSkillInstallationRecord = {
+      ...baseRecord,
+      version: existing.version + 1,
+      createdAt: existing.createdAt,
+      updatedAt: nowIso,
+    };
+    if (managedSkillInstallationSignature(existing) === managedSkillInstallationSignature(candidate)) {
+      return {
+        outcome: "idempotent_replay" as const,
+        installation: existing,
+      };
+    }
+
+    transaction.set(
+      ref,
+      {
+        installationId: candidate.installationId,
+        tenantId: candidate.tenantId,
+        agentId: candidate.agentId,
+        skillId: candidate.skillId,
+        status: candidate.status,
+        installPolicy: candidate.installPolicy,
+        pinnedVersion: candidate.pinnedVersion,
+        minTrustLevel: candidate.minTrustLevel,
+        version: candidate.version,
+        lastMutationId: candidate.lastMutationId,
+        updatedBy: candidate.updatedBy,
+        metadata: candidate.metadata ?? null,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    return {
+      outcome: "updated" as const,
+    };
+  });
+
+  if (
+    transactionResult.outcome === "version_conflict" ||
+    transactionResult.outcome === "idempotent_replay" ||
+    transactionResult.outcome === "idempotency_conflict"
+  ) {
+    return transactionResult;
+  }
+
+  const stored = await ref.get();
+  const installation = mapManagedSkillInstallationRecord(
+    ref.id,
+    (stored.data() ?? {}) as Record<string, unknown>,
+  );
+  return {
+    outcome: transactionResult.outcome,
+    installation,
+  };
+}
+
+export async function resolveManagedSkillInstallations(params: {
+  tenantId?: string;
+  agentId: string;
+  limit?: number;
+  includeDisabled?: boolean;
+}): Promise<ManagedSkillInstallationResolvedItem[]> {
+  const agentId = normalizeSkillAgentId(params.agentId);
+  const tenantId = normalizeTenantId(params.tenantId);
+  const includeDisabled = params.includeDisabled === true;
+  const limit = Math.max(1, Math.min(500, params.limit ?? 200));
+  const [installations, skills] = await Promise.all([
+    listManagedSkillInstallations({
+      tenantId,
+      agentId,
+      limit,
+      includeDisabled: true,
+    }),
+    listManagedSkills({
+      limit: 500,
+      includeDisabled: true,
+      scope: agentId,
+    }),
+  ]);
+  const skillMap = new Map<string, ManagedSkillRecord>();
+  for (const skill of skills) {
+    skillMap.set(skill.skillId, skill);
+  }
+
+  const resolved: ManagedSkillInstallationResolvedItem[] = [];
+  for (const installation of installations) {
+    if (!includeDisabled && installation.status !== "installed") {
+      continue;
+    }
+    const skill = skillMap.get(installation.skillId) ?? null;
+    let resolveStatus: ManagedSkillInstallationResolveStatus = "ready";
+    let effectiveVersion: number | null = null;
+    let updateAvailable = false;
+
+    if (!skill) {
+      resolveStatus = "skill_not_found";
+    } else if (installation.status !== "installed") {
+      resolveStatus = "skill_disabled";
+    } else if (!skill.enabled) {
+      resolveStatus = "skill_disabled";
+    } else if (!isScopeCompatible(skill.scope, installation.agentId)) {
+      resolveStatus = "scope_mismatch";
+    } else if (managedTrustRank(skill.trustLevel) < managedTrustRank(installation.minTrustLevel)) {
+      resolveStatus = "trust_blocked";
+    } else if (installation.installPolicy === "pinned") {
+      if (!installation.pinnedVersion || skill.version < installation.pinnedVersion) {
+        resolveStatus = "pinned_version_unavailable";
+      } else {
+        effectiveVersion = installation.pinnedVersion;
+        updateAvailable = skill.version > installation.pinnedVersion;
+      }
+    } else {
+      effectiveVersion = skill.version;
+    }
+
+    if (resolveStatus !== "ready") {
+      effectiveVersion = null;
+    }
+
+    resolved.push({
+      installationId: installation.installationId,
+      tenantId: installation.tenantId,
+      agentId: installation.agentId,
+      skillId: installation.skillId,
+      status: installation.status,
+      installPolicy: installation.installPolicy,
+      pinnedVersion: installation.pinnedVersion,
+      minTrustLevel: installation.minTrustLevel,
+      resolveStatus,
+      effectiveVersion,
+      updateAvailable,
+      skill,
+      updatedAt: installation.updatedAt,
+    });
+  }
+
+  return resolved.slice(0, limit);
 }
 
 export async function listDeviceNodes(params: {
