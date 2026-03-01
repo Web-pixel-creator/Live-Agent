@@ -242,6 +242,50 @@ jobs:
           Write-Host ("railway_deploy_mode=" + $deployMode)
           ("railway_deploy_mode=" + $deployMode) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
+      - name: Collect Badge Evidence Statuses
+        id: collect_badge_evidence
+        if: always()
+        shell: powershell
+        run: |
+          $operatorDamageControlStatus = "unavailable"
+          $governancePolicyStatus = "unavailable"
+          $skillsRegistryStatus = "unavailable"
+          $badgeDetailsPresent = "false"
+
+          if (Test-Path "artifacts/demo-e2e/badge-details.json") {
+            $badgeDetailsPresent = "true"
+            try {
+              $badgeDetails = Get-Content "artifacts/demo-e2e/badge-details.json" -Raw | ConvertFrom-Json
+              if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence) {
+                if ($null -ne $badgeDetails.evidence.operatorDamageControl) {
+                  $candidate = [string]$badgeDetails.evidence.operatorDamageControl.status
+                  if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+                    $operatorDamageControlStatus = $candidate
+                  }
+                }
+                if ($null -ne $badgeDetails.evidence.governancePolicy) {
+                  $candidate = [string]$badgeDetails.evidence.governancePolicy.status
+                  if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+                    $governancePolicyStatus = $candidate
+                  }
+                }
+                if ($null -ne $badgeDetails.evidence.skillsRegistry) {
+                  $candidate = [string]$badgeDetails.evidence.skillsRegistry.status
+                  if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+                    $skillsRegistryStatus = $candidate
+                  }
+                }
+              }
+            } catch {
+              Write-Host ("Failed to parse badge details for strict summary evidence: " + $_.Exception.Message)
+            }
+          }
+
+          ("badge_details_present=" + $badgeDetailsPresent) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("operator_damage_control_status=" + $operatorDamageControlStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("governance_policy_status=" + $governancePolicyStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("skills_registry_status=" + $skillsRegistryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
       - name: Publish Release Report To Job Summary
         if: always()
         shell: powershell
@@ -269,6 +313,10 @@ jobs:
             $perf = Get-Content "artifacts/perf-load/policy-check.json" -Raw | ConvertFrom-Json
             ("Perf policy gate: " + ($(if ($perf.ok) { "passed" } else { "failed" })) + " (" + $perf.checks + " checks)") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           }
+          ("Badge details present: ${{ steps.collect_badge_evidence.outputs.badge_details_present }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Operator damage-control status (badge evidence): ${{ steps.collect_badge_evidence.outputs.operator_damage_control_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Governance policy status (badge evidence): ${{ steps.collect_badge_evidence.outputs.governance_policy_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Skills registry status (badge evidence): ${{ steps.collect_badge_evidence.outputs.skills_registry_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
       - name: Upload Release Strict Artifacts
         if: always()

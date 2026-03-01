@@ -195,6 +195,7 @@
 21. T-304.4 baseline (P2 governance lane, demo/release evidence gates for governance policy lifecycle + tenant scope controls) [Completed baseline]
 22. T-305 baseline (P2 ecosystem lane, managed skill plugin marketplace manifest + signing validation contracts) [Completed baseline]
 23. T-305.1 baseline (P2 ecosystem lane, demo/release evidence gates for skills registry lifecycle + plugin permission/version guard outcomes) [Completed baseline]
+24. Release strict summary evidence hardening (operatorDamageControl/governancePolicy/skillsRegistry badge statuses surfaced in strict CI job summary + anti-drift guard) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 
