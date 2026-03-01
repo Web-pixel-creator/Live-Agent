@@ -416,6 +416,7 @@ if (-not $SkipDetails) {
     if ($deviceNodeUpdatesStatus -ne "pass") {
       Fail ("badge-details evidence deviceNodes updates lane must be 'pass' for deployment gate. actual=" + $deviceNodeUpdatesStatus)
     }
+    $allowedAgentUsageSummarySources = @("operator_summary", "gateway_runtime")
     if (
       -not [bool]$agentUsageEvidence.validated -or
       [int]$agentUsageEvidence.total -lt 1 -or
@@ -426,10 +427,10 @@ if (-not $SkipDetails) {
       [int]$agentUsageEvidence.outputTokens -lt 0 -or
       [int]$agentUsageEvidence.totalTokens -lt ([int]$agentUsageEvidence.inputTokens + [int]$agentUsageEvidence.outputTokens) -or
       @($agentUsageEvidence.models).Count -lt 1 -or
-      [string]$agentUsageEvidence.summarySource -ne "operator_summary" -or
+      -not ($allowedAgentUsageSummarySources -contains [string]$agentUsageEvidence.summarySource) -or
       [string]$agentUsageEvidence.summaryStatus -ne "observed"
     ) {
-      Fail "badge-details evidence agentUsage must be validated with total/unique/calls/tokens consistency, models>=1, summarySource=operator_summary, and summaryStatus=observed."
+      Fail "badge-details evidence agentUsage must be validated with total/unique/calls/tokens consistency, models>=1, summarySource in [operator_summary,gateway_runtime], and summaryStatus=observed."
     }
   }
 

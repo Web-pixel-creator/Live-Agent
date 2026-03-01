@@ -449,6 +449,7 @@ function buildAgentUsageEvidence(kpis) {
   const models = toStringArray(kpis.operatorAgentUsageModels);
   const summarySource = toOptionalString(kpis.operatorAgentUsageSource) ?? "";
   const summaryStatus = toOptionalString(kpis.operatorAgentUsageStatus) ?? "";
+  const allowedSummarySources = new Set(["operator_summary", "gateway_runtime"]);
 
   const status =
     validated &&
@@ -460,7 +461,7 @@ function buildAgentUsageEvidence(kpis) {
     outputTokens >= 0 &&
     totalTokens >= inputTokens + outputTokens &&
     models.length >= 1 &&
-    summarySource === "operator_summary" &&
+    allowedSummarySources.has(summarySource) &&
     summaryStatus === "observed"
       ? "pass"
       : "fail";

@@ -151,7 +151,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `operatorAgentUsageOutputTokens >= 0`
   - `operatorAgentUsageTotalTokens >= operatorAgentUsageInputTokens + operatorAgentUsageOutputTokens`
   - `operatorAgentUsageModels` has at least one model id
-  - `operatorAgentUsageSource=operator_summary`
+  - `operatorAgentUsageSource in {operator_summary,gateway_runtime}`
   - `operatorAgentUsageStatus=observed`
   - `operatorDamageControlSummaryValidated=true`
   - `operatorDamageControlTotal >= 1`

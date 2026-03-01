@@ -154,7 +154,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         operatorAgentUsageOutputTokens: 3200,
         operatorAgentUsageTotalTokens: 9600,
         operatorAgentUsageModels: ["gemini-3-flash", "gemini-3-pro"],
-        operatorAgentUsageSource: "operator_summary",
+        operatorAgentUsageSource: "gateway_runtime",
         operatorAgentUsageStatus: "observed",
       },
     },
@@ -223,7 +223,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(agentUsage.totalCalls, 4);
   assert.equal(agentUsage.totalTokens, 9600);
   assert.deepEqual(agentUsage.models, ["gemini-3-flash", "gemini-3-pro"]);
-  assert.equal(agentUsage.summarySource, "operator_summary");
+  assert.equal(agentUsage.summarySource, "gateway_runtime");
   assert.equal(agentUsage.summaryStatus, "observed");
 });
 
