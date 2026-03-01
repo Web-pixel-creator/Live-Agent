@@ -110,6 +110,18 @@ Out-of-band behavior (`conversation=none`):
 2. `orchestrator.response.metadata` includes `oob=true` and `parentEventId` for correlation.
 3. Task lifecycle events (`task.*`) are emitted only for default conversation lane.
 
+Agent usage metadata (`orchestrator.response.payload.output.usage`):
+
+1. Domain agents MAY include `usage` in `payload.output` for reasoning-token telemetry.
+2. Current structure:
+   1. `source`: `gemini_usage_metadata | none`
+   2. `calls`: integer >= 0
+   3. `inputTokens`: integer >= 0
+   4. `outputTokens`: integer >= 0
+   5. `totalTokens`: integer >= 0
+   6. `models`: array of `{ model, calls, inputTokens, outputTokens, totalTokens }`
+3. `source=none` means no model usage metadata was reported for the run (for example fallback path or planner disabled).
+
 ### Live Bridge Output and Metrics
 
 1. `live.output`
