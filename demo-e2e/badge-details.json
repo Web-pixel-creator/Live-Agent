@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-01T09:32:30.401Z",
+  "generatedAt": "2026-03-01T09:34:53.016Z",
   "ok": true,
   "policyPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\summary.json",
@@ -22,7 +22,7 @@
     "source": "runtime_estimate"
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-03-01T09:32:28.8159184+00:00",
+    "sourceSummaryGeneratedAt": "2026-03-01T09:34:51.3890469+00:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -30,7 +30,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T09:32:27.714Z",
+      "latestSeenAt": "2026-03-01T09:34:50.302Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -44,7 +44,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T09:32:27.814Z",
+      "latestSeenAt": "2026-03-01T09:34:50.403Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -78,7 +78,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-03-01T09:32:27.365Z",
+        "seenAt": "2026-03-01T09:34:49.959Z",
         "seenAtIsIso": true
       }
     },
