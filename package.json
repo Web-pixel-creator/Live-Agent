@@ -45,6 +45,7 @@
     "badge:pages:enable": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-pages-enable.ps1",
     "badge:pages:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-pages-badge-check.ps1",
     "badge:public:check": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/public-badge-check.ps1",
+    "skills:plugin:sign": "node ./scripts/skill-plugin-sign.mjs",
     "dev:frontend": "npm run dev -w @mla/demo-frontend",
     "dev:gateway": "npm run dev -w @mla/realtime-gateway",
     "dev:live-mock": "npm run dev -w @mla/live-api-echo-mock",

@@ -23,6 +23,7 @@ Starter workspace for the "next-generation agents" spec:
 - WebRTC V2 Spike: `docs/webrtc-v2-spike.md`
 - Assistive Router: `docs/assistive-router.md`
 - Telemetry Split: `docs/telemetry-storage-split.md`
+- Managed Skill Signing Example: `docs/managed-skill-signing-example.md`
 - Contribution Guide: `CONTRIBUTING.md`
 - Agent Guide: `AGENTS.md`
 - License: `LICENSE`
@@ -97,6 +98,7 @@ Frontend `Intent Request` also supports optional `ui_task` grounding overrides (
 - UI Navigator damage-control policy: `UI_NAVIGATOR_DAMAGE_CONTROL_ENABLED`, `UI_NAVIGATOR_DAMAGE_CONTROL_RULES_PATH` (default `.kiro/policies/ui-damage-control.rules.json`), optional inline override `UI_NAVIGATOR_DAMAGE_CONTROL_RULES_JSON`.
 - Skills runtime tuning: `SKILLS_RUNTIME_ENABLED`, `SKILLS_SOURCE_PRECEDENCE=workspace,bundled,managed`, `SKILLS_ALLOWED_SOURCES`, `SKILLS_WORKSPACE_DIR`, `SKILLS_BUNDLED_DIR`, `SKILLS_MANAGED_INDEX_JSON`, `SKILLS_MANAGED_INDEX_URL`, `SKILLS_MANAGED_INDEX_AUTH_TOKEN`, `SKILLS_MANAGED_INDEX_TIMEOUT_MS`, `SKILLS_ENABLED_IDS`, `SKILLS_DISABLED_IDS`, `SKILLS_SECURITY_MODE=off|warn|enforce`, `SKILLS_MIN_TRUST_LEVEL=untrusted|reviewed|trusted`.
 - Plugin marketplace signing for managed skills: `SKILL_PLUGIN_REQUIRE_SIGNATURE=true|false`, `SKILL_PLUGIN_SIGNING_KEYS_JSON` (JSON map `{ "<keyId>": "<hmacSecret>" }`).
+- Managed-skill signature helper: `npm run skills:plugin:sign -- --input skills/workspace/calendar-assistant/managed-skill-signing-input.sample.json --secret <secret>`.
 - Remote UI executor service: run `npm run dev:ui-executor`; endpoint `/execute` is used when `UI_NAVIGATOR_EXECUTOR_MODE=remote_http`.
 - UI Executor device-node registry knobs: `UI_EXECUTOR_DEFAULT_DEVICE_NODE_ID`, `UI_EXECUTOR_DEVICE_NODES_JSON`.
 - Approval SLA tuning in API backend: `APPROVAL_SOFT_TIMEOUT_MS`, `APPROVAL_HARD_TIMEOUT_MS`, `APPROVAL_SWEEP_LIMIT`.

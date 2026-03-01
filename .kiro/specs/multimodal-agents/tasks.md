@@ -212,6 +212,7 @@
 38. Judge-facing OSS packaging baseline (`LICENSE`, `CONTRIBUTING.md`, `AGENTS.md`, docs index pages for architecture/operator/local-dev/judge-runbook alias) [Completed]
 39. Cost/token transparency evidence lane (`summary.costEstimate` + `summary.tokensUsed`, `badge-details` projection, policy/release/deploy schema validation, anti-drift coverage) [Completed]
 40. Agent usage metadata propagation lane (`ReasoningTextResult` + per-model token accounting + `orchestrator.response.payload.output.usage` for Live/Story/UI agents, with unit and ws-protocol alignment) [Completed]
+41. Managed-skill signing developer baseline (`skill-plugin-sign` helper, calendar assistant managed-skill samples, canonical signing runbook + anti-drift tests) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

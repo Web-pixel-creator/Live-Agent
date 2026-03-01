@@ -1,0 +1,18 @@
+{
+  "skillId": "calendar-managed-demo",
+  "name": "Calendar Managed Demo",
+  "description": "Managed calendar skill with signed plugin permissions.",
+  "prompt": "Prioritize scheduling clarity and conflict resolution.",
+  "scope": ["live", "ui_task", "multi"],
+  "enabled": true,
+  "trustLevel": "reviewed",
+  "version": 1,
+  "pluginManifest": {
+    "permissions": ["ui.execute", "operator.actions"],
+    "signing": {
+      "algorithm": "hmac-sha256",
+      "keyId": "demo-key",
+      "signature": "<replace-with-signature-from-scripts/skill-plugin-sign.mjs>"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "skillId": "calendar-managed-demo",
+  "name": "Calendar Managed Demo",
+  "prompt": "Prioritize scheduling clarity and conflict resolution.",
+  "scope": ["live", "ui_task", "multi"],
+  "trustLevel": "reviewed",
+  "publisher": "web-pixel-creator",
+  "checksum": null,
+  "permissions": ["ui.execute", "operator.actions"],
+  "keyId": "demo-key"
+}
