@@ -36,6 +36,9 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /updatesHasHeartbeat/);
   assert.match(scriptRaw, /updatesApiValidated/);
   assert.match(scriptRaw, /updatesTotal/);
+  assert.match(scriptRaw, /deviceNodeUpdatesStatus/);
+  assert.match(scriptRaw, /Device-node-updates status \(badge evidence\):/);
+  assert.match(scriptRaw, /updates lane must be 'pass' for deployment gate/);
   assert.match(scriptRaw, /must be 'pass' for deployment gate/);
   assert.match(scriptRaw, /operatorTurnTruncation must be validated and expectedEventSeen=true/);
   assert.match(scriptRaw, /governancePolicy must be validated with operatorActionSeen=true and overrideTenantSeen=true/);

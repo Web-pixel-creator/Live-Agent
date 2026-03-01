@@ -242,6 +242,26 @@ if (-not $SkipDetails) {
     Fail "badge-details evidence deviceNodes.status must be one of [pass, fail]."
   }
 
+  $deviceNodeUpdatesStatus = "unavailable"
+  $updatesValidated = ($deviceNodesEvidence.updatesValidated -eq $true)
+  $updatesHasUpsert = ($deviceNodesEvidence.updatesHasUpsert -eq $true)
+  $updatesHasHeartbeat = ($deviceNodesEvidence.updatesHasHeartbeat -eq $true)
+  $updatesApiValidated = ($deviceNodesEvidence.updatesApiValidated -eq $true)
+  $updatesTotalRaw = $deviceNodesEvidence.updatesTotal
+  $updatesTotal = 0
+  if ($null -ne $updatesTotalRaw) {
+    $updatesTotalParsed = 0
+    if ([int]::TryParse([string]$updatesTotalRaw, [ref]$updatesTotalParsed)) {
+      $updatesTotal = $updatesTotalParsed
+    }
+  }
+  if ($updatesValidated -and $updatesHasUpsert -and $updatesHasHeartbeat -and $updatesApiValidated -and $updatesTotal -ge 2) {
+    $deviceNodeUpdatesStatus = "pass"
+  }
+  elseif ($updatesTotal -gt 0 -or $updatesHasUpsert -or $updatesHasHeartbeat -or $updatesValidated -or $updatesApiValidated) {
+    $deviceNodeUpdatesStatus = "fail"
+  }
+
   Assert-RequiredFields -Required @("schemaVersion", "label", "message", "color", "cacheSeconds") -Payload $details.badge -ScopeName "badge-details.badge"
 
   if ($details.badge.schemaVersion -ne $ExpectedSchemaVersion) {
@@ -304,7 +324,12 @@ if (-not $SkipDetails) {
     ) {
       Fail "badge-details evidence deviceNodes must be validated with lookup/versionConflict/healthSummary + updates lane (upsert+heartbeat) and summaryRecentContainsLookup=true."
     }
+    if ($deviceNodeUpdatesStatus -ne "pass") {
+      Fail ("badge-details evidence deviceNodes updates lane must be 'pass' for deployment gate. actual=" + $deviceNodeUpdatesStatus)
+    }
   }
+
+  Write-Host ("Device-node-updates status (badge evidence): " + $deviceNodeUpdatesStatus)
 }
 
 Write-Host "Public badge endpoint is valid."
