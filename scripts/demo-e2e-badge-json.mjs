@@ -367,6 +367,103 @@ function buildSkillsRegistryEvidence(kpis) {
   };
 }
 
+function buildPluginMarketplaceEvidence(kpis) {
+  const validated = toBoolean(kpis.operatorPluginMarketplaceLifecycleValidated) === true;
+  const summaryStatus = toOptionalString(kpis.operatorPluginMarketplaceStatus) ?? "";
+  const total = toNumber(kpis.operatorPluginMarketplaceTotal) ?? 0;
+  const uniquePlugins = toNumber(kpis.operatorPluginMarketplaceUniquePlugins) ?? 0;
+  const outcomeSucceeded = toNumber(kpis.operatorPluginMarketplaceOutcomeSucceeded) ?? 0;
+  const outcomeDenied = toNumber(kpis.operatorPluginMarketplaceOutcomeDenied) ?? 0;
+  const outcomeFailed = toNumber(kpis.operatorPluginMarketplaceOutcomeFailed) ?? 0;
+  const lifecycleCreated = toNumber(kpis.operatorPluginMarketplaceLifecycleCreated) ?? 0;
+  const lifecycleUpdated = toNumber(kpis.operatorPluginMarketplaceLifecycleUpdated) ?? 0;
+  const lifecycleIdempotentReplay = toNumber(kpis.operatorPluginMarketplaceLifecycleIdempotentReplay) ?? 0;
+  const conflictVersionConflict = toNumber(kpis.operatorPluginMarketplaceConflictVersionConflict) ?? 0;
+  const conflictPluginInvalidPermission =
+    toNumber(kpis.operatorPluginMarketplaceConflictPluginInvalidPermission) ?? 0;
+  const signingVerified = toNumber(kpis.operatorPluginMarketplaceSigningVerified) ?? 0;
+  const signingUnsigned = toNumber(kpis.operatorPluginMarketplaceSigningUnsigned) ?? 0;
+  const signingNone = toNumber(kpis.operatorPluginMarketplaceSigningNone) ?? 0;
+  const signingEvidenceObserved = toBoolean(kpis.operatorPluginMarketplaceSigningEvidenceObserved) === true;
+  const permissionTotal = toNumber(kpis.operatorPluginMarketplacePermissionTotal) ?? 0;
+  const permissionEntriesWithPermissions =
+    toNumber(kpis.operatorPluginMarketplacePermissionEntriesWithPermissions) ?? 0;
+  const latestOutcome = toOptionalString(kpis.operatorPluginMarketplaceLatestOutcome) ?? "";
+  const latestPluginId = toOptionalString(kpis.operatorPluginMarketplaceLatestPluginId) ?? "";
+  const latestVersion = toNumber(kpis.operatorPluginMarketplaceLatestVersion) ?? 0;
+  const latestSigningStatus = toOptionalString(kpis.operatorPluginMarketplaceLatestSigningStatus) ?? "";
+  const latestSeenAt = toOptionalString(kpis.operatorPluginMarketplaceLatestSeenAt);
+  const latestSeenAtIsIso = latestSeenAt !== null && isIsoTimestamp(latestSeenAt);
+  const outcomeTotal = outcomeSucceeded + outcomeDenied + outcomeFailed;
+  const signingTotal = signingVerified + signingUnsigned + signingNone;
+
+  const status =
+    validated &&
+    summaryStatus === "observed" &&
+    total >= 1 &&
+    uniquePlugins >= 1 &&
+    outcomeTotal === total &&
+    lifecycleCreated >= 1 &&
+    lifecycleIdempotentReplay >= 1 &&
+    conflictVersionConflict >= 1 &&
+    conflictPluginInvalidPermission >= 1 &&
+    signingTotal === total &&
+    signingEvidenceObserved &&
+    signingVerified + signingUnsigned >= 1 &&
+    permissionTotal >= 0 &&
+    permissionEntriesWithPermissions >= 0 &&
+    permissionEntriesWithPermissions <= total &&
+    ["succeeded", "denied", "failed"].includes(latestOutcome) &&
+    ["verified", "unsigned", "none"].includes(latestSigningStatus) &&
+    latestPluginId.length > 0 &&
+    latestVersion >= 1 &&
+    latestSeenAtIsIso
+      ? "pass"
+      : "fail";
+
+  return {
+    status,
+    validated,
+    summaryStatus,
+    total,
+    uniquePlugins,
+    outcomes: {
+      succeeded: outcomeSucceeded,
+      denied: outcomeDenied,
+      failed: outcomeFailed,
+      total: outcomeTotal,
+    },
+    lifecycle: {
+      created: lifecycleCreated,
+      updated: lifecycleUpdated,
+      idempotentReplay: lifecycleIdempotentReplay,
+    },
+    conflicts: {
+      versionConflict: conflictVersionConflict,
+      pluginInvalidPermission: conflictPluginInvalidPermission,
+    },
+    signingStatusCounts: {
+      verified: signingVerified,
+      unsigned: signingUnsigned,
+      none: signingNone,
+      total: signingTotal,
+    },
+    signingEvidenceObserved,
+    permissionTotals: {
+      totalPermissions: permissionTotal,
+      entriesWithPermissions: permissionEntriesWithPermissions,
+    },
+    latest: {
+      outcome: latestOutcome,
+      pluginId: latestPluginId,
+      version: latestVersion,
+      signingStatus: latestSigningStatus,
+      seenAt: latestSeenAt,
+      seenAtIsIso: latestSeenAtIsIso,
+    },
+  };
+}
+
 function buildDeviceNodesEvidence(kpis) {
   const lookupValidated = toBoolean(kpis.operatorDeviceNodeLookupValidated) === true;
   const versionConflictValidated = toBoolean(kpis.operatorDeviceNodeVersionConflictValidated) === true;
@@ -548,6 +645,7 @@ async function main() {
   const operatorDamageControlEvidence = buildOperatorDamageControlEvidence(kpis);
   const governancePolicyEvidence = buildGovernancePolicyEvidence(kpis);
   const skillsRegistryEvidence = buildSkillsRegistryEvidence(kpis);
+  const pluginMarketplaceEvidence = buildPluginMarketplaceEvidence(kpis);
   const deviceNodesEvidence = buildDeviceNodesEvidence(kpis);
   const agentUsageEvidence = buildAgentUsageEvidence(kpis);
 
@@ -589,6 +687,7 @@ async function main() {
       operatorDamageControl: operatorDamageControlEvidence,
       governancePolicy: governancePolicyEvidence,
       skillsRegistry: skillsRegistryEvidence,
+      pluginMarketplace: pluginMarketplaceEvidence,
       deviceNodes: deviceNodesEvidence,
       agentUsage: agentUsageEvidence,
     },

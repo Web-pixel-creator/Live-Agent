@@ -70,9 +70,11 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /operator_damage_control_status=/);
   assert.match(source, /governance_policy_status=/);
   assert.match(source, /skills_registry_status=/);
+  assert.match(source, /plugin_marketplace_status=/);
   assert.match(source, /device_nodes_status=/);
   assert.match(source, /agent_usage_status=/);
   assert.match(source, /device_node_updates_status=/);
+  assert.match(source, /report\.statuses\.pluginMarketplaceStatus/);
   assert.match(source, /report\.statuses\.deviceNodeUpdatesStatus/);
   assert.match(source, /Badge details present: \$\{\{\s*steps\.collect_release_evidence\.outputs\.badge_details_present\s*\}\}/);
   assert.match(source, /Turn-truncation status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.turn_truncation_status\s*\}\}/);
@@ -80,6 +82,7 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /Operator damage-control status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.operator_damage_control_status\s*\}\}/);
   assert.match(source, /Governance policy status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.governance_policy_status\s*\}\}/);
   assert.match(source, /Skills registry status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.skills_registry_status\s*\}\}/);
+  assert.match(source, /Plugin-marketplace status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.plugin_marketplace_status\s*\}\}/);
   assert.match(source, /Device-nodes status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.device_nodes_status\s*\}\}/);
   assert.match(source, /Agent-usage status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.agent_usage_status\s*\}\}/);
   assert.match(source, /Device-node-updates status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.device_node_updates_status\s*\}\}/);
@@ -138,6 +141,7 @@ test("readme documents optional release-strict railway deploy path", () => {
   assert.match(readme, /operatorDamageControl/);
   assert.match(readme, /governancePolicy/);
   assert.match(readme, /skillsRegistry/);
+  assert.match(readme, /pluginMarketplace/);
   assert.match(readme, /deviceNodes/);
   assert.match(readme, /agentUsage/);
   assert.match(readme, /artifacts\/release-evidence\/report\.json/);

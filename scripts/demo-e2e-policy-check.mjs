@@ -1095,6 +1095,162 @@ async function main() {
     kpis.skillsRegistryTotal,
     ">= 1",
   );
+  const operatorPluginMarketplaceTotal = toNumber(kpis.operatorPluginMarketplaceTotal);
+  const operatorPluginMarketplaceOutcomeSucceeded = toNumber(kpis.operatorPluginMarketplaceOutcomeSucceeded);
+  const operatorPluginMarketplaceOutcomeDenied = toNumber(kpis.operatorPluginMarketplaceOutcomeDenied);
+  const operatorPluginMarketplaceOutcomeFailed = toNumber(kpis.operatorPluginMarketplaceOutcomeFailed);
+  const operatorPluginMarketplaceOutcomeTotal =
+    operatorPluginMarketplaceOutcomeSucceeded +
+    operatorPluginMarketplaceOutcomeDenied +
+    operatorPluginMarketplaceOutcomeFailed;
+  const operatorPluginMarketplaceSigningVerified = toNumber(kpis.operatorPluginMarketplaceSigningVerified);
+  const operatorPluginMarketplaceSigningUnsigned = toNumber(kpis.operatorPluginMarketplaceSigningUnsigned);
+  const operatorPluginMarketplaceSigningNone = toNumber(kpis.operatorPluginMarketplaceSigningNone);
+  const operatorPluginMarketplaceSigningTotal =
+    operatorPluginMarketplaceSigningVerified +
+    operatorPluginMarketplaceSigningUnsigned +
+    operatorPluginMarketplaceSigningNone;
+  addCheck(
+    "kpi.operatorPluginMarketplaceLifecycleValidated",
+    kpis.operatorPluginMarketplaceLifecycleValidated === true,
+    kpis.operatorPluginMarketplaceLifecycleValidated,
+    true,
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceStatus",
+    String(kpis.operatorPluginMarketplaceStatus) === "observed",
+    kpis.operatorPluginMarketplaceStatus,
+    "observed",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceTotal",
+    Number.isFinite(operatorPluginMarketplaceTotal) && operatorPluginMarketplaceTotal >= 1,
+    kpis.operatorPluginMarketplaceTotal,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceUniquePlugins",
+    toNumber(kpis.operatorPluginMarketplaceUniquePlugins) >= 1,
+    kpis.operatorPluginMarketplaceUniquePlugins,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceOutcomeCounts",
+    Number.isFinite(operatorPluginMarketplaceOutcomeSucceeded) &&
+      Number.isFinite(operatorPluginMarketplaceOutcomeDenied) &&
+      Number.isFinite(operatorPluginMarketplaceOutcomeFailed) &&
+      Number.isFinite(operatorPluginMarketplaceTotal) &&
+      operatorPluginMarketplaceOutcomeSucceeded >= 0 &&
+      operatorPluginMarketplaceOutcomeDenied >= 0 &&
+      operatorPluginMarketplaceOutcomeFailed >= 0 &&
+      operatorPluginMarketplaceOutcomeTotal === operatorPluginMarketplaceTotal,
+    {
+      total: kpis.operatorPluginMarketplaceTotal,
+      succeeded: kpis.operatorPluginMarketplaceOutcomeSucceeded,
+      denied: kpis.operatorPluginMarketplaceOutcomeDenied,
+      failed: kpis.operatorPluginMarketplaceOutcomeFailed,
+    },
+    "succeeded+denied+failed == total (all >= 0)",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceLifecycleCreated",
+    toNumber(kpis.operatorPluginMarketplaceLifecycleCreated) >= 1,
+    kpis.operatorPluginMarketplaceLifecycleCreated,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceLifecycleIdempotentReplay",
+    toNumber(kpis.operatorPluginMarketplaceLifecycleIdempotentReplay) >= 1,
+    kpis.operatorPluginMarketplaceLifecycleIdempotentReplay,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceConflictVersionConflict",
+    toNumber(kpis.operatorPluginMarketplaceConflictVersionConflict) >= 1,
+    kpis.operatorPluginMarketplaceConflictVersionConflict,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceConflictPluginInvalidPermission",
+    toNumber(kpis.operatorPluginMarketplaceConflictPluginInvalidPermission) >= 1,
+    kpis.operatorPluginMarketplaceConflictPluginInvalidPermission,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceSigningCounts",
+    Number.isFinite(operatorPluginMarketplaceSigningVerified) &&
+      Number.isFinite(operatorPluginMarketplaceSigningUnsigned) &&
+      Number.isFinite(operatorPluginMarketplaceSigningNone) &&
+      Number.isFinite(operatorPluginMarketplaceTotal) &&
+      operatorPluginMarketplaceSigningVerified >= 0 &&
+      operatorPluginMarketplaceSigningUnsigned >= 0 &&
+      operatorPluginMarketplaceSigningNone >= 0 &&
+      operatorPluginMarketplaceSigningTotal === operatorPluginMarketplaceTotal,
+    {
+      total: kpis.operatorPluginMarketplaceTotal,
+      verified: kpis.operatorPluginMarketplaceSigningVerified,
+      unsigned: kpis.operatorPluginMarketplaceSigningUnsigned,
+      none: kpis.operatorPluginMarketplaceSigningNone,
+    },
+    "verified+unsigned+none == total (all >= 0)",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceSigningEvidenceObserved",
+    kpis.operatorPluginMarketplaceSigningEvidenceObserved === true &&
+      operatorPluginMarketplaceSigningVerified + operatorPluginMarketplaceSigningUnsigned >= 1,
+    {
+      observed: kpis.operatorPluginMarketplaceSigningEvidenceObserved,
+      verified: kpis.operatorPluginMarketplaceSigningVerified,
+      unsigned: kpis.operatorPluginMarketplaceSigningUnsigned,
+    },
+    "true and (verified+unsigned >= 1)",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplacePermissionTotal",
+    toNumber(kpis.operatorPluginMarketplacePermissionTotal) >= 0,
+    kpis.operatorPluginMarketplacePermissionTotal,
+    ">= 0",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplacePermissionEntriesWithPermissions",
+    Number.isFinite(toNumber(kpis.operatorPluginMarketplacePermissionEntriesWithPermissions)) &&
+      Number.isFinite(operatorPluginMarketplaceTotal) &&
+      toNumber(kpis.operatorPluginMarketplacePermissionEntriesWithPermissions) >= 0 &&
+      toNumber(kpis.operatorPluginMarketplacePermissionEntriesWithPermissions) <= operatorPluginMarketplaceTotal,
+    kpis.operatorPluginMarketplacePermissionEntriesWithPermissions,
+    "0..operatorPluginMarketplaceTotal",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceLatestOutcome",
+    ["succeeded", "denied", "failed"].includes(String(kpis.operatorPluginMarketplaceLatestOutcome)),
+    kpis.operatorPluginMarketplaceLatestOutcome,
+    "succeeded | denied | failed",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceLatestSigningStatus",
+    ["verified", "unsigned", "none"].includes(String(kpis.operatorPluginMarketplaceLatestSigningStatus)),
+    kpis.operatorPluginMarketplaceLatestSigningStatus,
+    "verified | unsigned | none",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceLatestPluginId",
+    typeof kpis.operatorPluginMarketplaceLatestPluginId === "string" &&
+      String(kpis.operatorPluginMarketplaceLatestPluginId).trim().length > 0,
+    kpis.operatorPluginMarketplaceLatestPluginId,
+    "non-empty plugin id",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceLatestVersion",
+    toNumber(kpis.operatorPluginMarketplaceLatestVersion) >= 1,
+    kpis.operatorPluginMarketplaceLatestVersion,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.operatorPluginMarketplaceLatestSeenAt",
+    isIsoUtcTimestamp(kpis.operatorPluginMarketplaceLatestSeenAt),
+    kpis.operatorPluginMarketplaceLatestSeenAt,
+    "ISO UTC timestamp",
+  );
   addCheck(
     "kpi.sessionVersioningValidated",
     kpis.sessionVersioningValidated === true,

@@ -28,6 +28,7 @@ const REQUIRED_EVIDENCE_SNAPSHOT_KEYS = [
   "badgeEvidenceOperatorDamageControlStatus",
   "badgeEvidenceGovernancePolicyStatus",
   "badgeEvidenceSkillsRegistryStatus",
+  "badgeEvidencePluginMarketplaceStatus",
   "badgeEvidenceDeviceNodesStatus",
   "badgeEvidenceAgentUsageStatus",
   "badgeEvidenceDeviceNodeUpdatesStatus",

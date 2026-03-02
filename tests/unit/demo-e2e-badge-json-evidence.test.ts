@@ -127,6 +127,29 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         skillsRegistryPluginInvalidPermissionCode: "API_SKILL_PLUGIN_PERMISSION_INVALID",
         skillsRegistryIndexTotal: 1,
         skillsRegistryTotal: 1,
+        operatorPluginMarketplaceLifecycleValidated: true,
+        operatorPluginMarketplaceStatus: "observed",
+        operatorPluginMarketplaceTotal: 4,
+        operatorPluginMarketplaceUniquePlugins: 2,
+        operatorPluginMarketplaceOutcomeSucceeded: 2,
+        operatorPluginMarketplaceOutcomeDenied: 1,
+        operatorPluginMarketplaceOutcomeFailed: 1,
+        operatorPluginMarketplaceLifecycleCreated: 1,
+        operatorPluginMarketplaceLifecycleUpdated: 1,
+        operatorPluginMarketplaceLifecycleIdempotentReplay: 1,
+        operatorPluginMarketplaceConflictVersionConflict: 1,
+        operatorPluginMarketplaceConflictPluginInvalidPermission: 1,
+        operatorPluginMarketplaceSigningVerified: 1,
+        operatorPluginMarketplaceSigningUnsigned: 1,
+        operatorPluginMarketplaceSigningNone: 2,
+        operatorPluginMarketplaceSigningEvidenceObserved: true,
+        operatorPluginMarketplacePermissionTotal: 2,
+        operatorPluginMarketplacePermissionEntriesWithPermissions: 1,
+        operatorPluginMarketplaceLatestOutcome: "denied",
+        operatorPluginMarketplaceLatestPluginId: "demo-plugin-1",
+        operatorPluginMarketplaceLatestVersion: 1,
+        operatorPluginMarketplaceLatestSigningStatus: "unsigned",
+        operatorPluginMarketplaceLatestSeenAt: "2026-02-26T00:00:00.000Z",
         operatorDeviceNodeLookupValidated: true,
         operatorDeviceNodeVersionConflictValidated: true,
         operatorDeviceNodeHealthSummaryValidated: true,
@@ -179,6 +202,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   const operatorDamageControl = evidence.operatorDamageControl as Record<string, unknown>;
   const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
   const skillsRegistry = evidence.skillsRegistry as Record<string, unknown>;
+  const pluginMarketplace = evidence.pluginMarketplace as Record<string, unknown>;
   const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
   const agentUsage = evidence.agentUsage as Record<string, unknown>;
   assert.equal(turnTruncation.status, "pass");
@@ -187,6 +211,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(operatorDamageControl.status, "pass");
   assert.equal(governancePolicy.status, "pass");
   assert.equal(skillsRegistry.status, "pass");
+  assert.equal(pluginMarketplace.status, "pass");
   assert.equal(deviceNodes.status, "pass");
   assert.equal(agentUsage.status, "pass");
   assert.equal(turnTruncation.latestTurnId, "turn-truncate-demo");
@@ -206,6 +231,13 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(skillsRegistry.replayOutcome, "idempotent_replay");
   assert.equal(skillsRegistry.indexTotal, 1);
   assert.equal(skillsRegistry.registryTotal, 1);
+  assert.equal(pluginMarketplace.summaryStatus, "observed");
+  assert.equal(pluginMarketplace.total, 4);
+  assert.equal(pluginMarketplace.uniquePlugins, 2);
+  const pluginMarketplaceLatest = pluginMarketplace.latest as Record<string, unknown>;
+  assert.equal(pluginMarketplaceLatest.pluginId, "demo-plugin-1");
+  assert.equal(pluginMarketplaceLatest.signingStatus, "unsigned");
+  assert.equal(pluginMarketplaceLatest.seenAtIsIso, true);
   assert.equal(deviceNodes.lookupStatus, "degraded");
   assert.equal(deviceNodes.lookupVersion, 3);
   assert.equal(deviceNodes.updatedVersion, 2);
@@ -267,6 +299,7 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   const operatorDamageControl = evidence.operatorDamageControl as Record<string, unknown>;
   const governancePolicy = evidence.governancePolicy as Record<string, unknown>;
   const skillsRegistry = evidence.skillsRegistry as Record<string, unknown>;
+  const pluginMarketplace = evidence.pluginMarketplace as Record<string, unknown>;
   const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
   const agentUsage = evidence.agentUsage as Record<string, unknown>;
   assert.equal(turnDelete.status, "fail");
@@ -286,6 +319,9 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   assert.equal(skillsRegistry.validated, false);
   assert.equal(skillsRegistry.indexTotal, 0);
   assert.equal(skillsRegistry.registryTotal, 0);
+  assert.equal(pluginMarketplace.status, "fail");
+  assert.equal(pluginMarketplace.validated, false);
+  assert.equal(pluginMarketplace.total, 0);
   assert.equal(deviceNodes.status, "fail");
   assert.equal(deviceNodes.validated, false);
   assert.equal(deviceNodes.lookupStatus, "");

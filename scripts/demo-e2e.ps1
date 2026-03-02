@@ -2610,6 +2610,71 @@ try {
       [string]$agentUsageStatus -eq "observed"
     )
 
+    $pluginMarketplaceLifecycle = Get-FieldValue -Object $summaryData -Path @("pluginMarketplaceLifecycle")
+    Assert-Condition -Condition ($null -ne $pluginMarketplaceLifecycle) -Message "Operator summary pluginMarketplaceLifecycle block is missing."
+    $pluginMarketplaceStatus = [string](Get-FieldValue -Object $pluginMarketplaceLifecycle -Path @("status"))
+    $pluginMarketplaceTotalRaw = Get-FieldValue -Object $pluginMarketplaceLifecycle -Path @("total")
+    $pluginMarketplaceUniquePluginsRaw = Get-FieldValue -Object $pluginMarketplaceLifecycle -Path @("uniquePlugins")
+    $pluginMarketplaceOutcomes = Get-FieldValue -Object $pluginMarketplaceLifecycle -Path @("outcomes")
+    $pluginMarketplaceLifecycleCounters = Get-FieldValue -Object $pluginMarketplaceLifecycle -Path @("lifecycle")
+    $pluginMarketplaceConflicts = Get-FieldValue -Object $pluginMarketplaceLifecycle -Path @("conflicts")
+    $pluginMarketplaceSigningStatusCounts = Get-FieldValue -Object $pluginMarketplaceLifecycle -Path @("signingStatusCounts")
+    $pluginMarketplacePermissionTotals = Get-FieldValue -Object $pluginMarketplaceLifecycle -Path @("permissionTotals")
+    $pluginMarketplaceLatest = Get-FieldValue -Object $pluginMarketplaceLifecycle -Path @("latest")
+    $pluginMarketplaceLifecycleValidated = [bool](Get-FieldValue -Object $pluginMarketplaceLifecycle -Path @("lifecycleValidated"))
+    Assert-Condition -Condition ($null -ne $pluginMarketplaceTotalRaw) -Message "Operator summary pluginMarketplaceLifecycle.total is missing."
+    Assert-Condition -Condition ($null -ne $pluginMarketplaceUniquePluginsRaw) -Message "Operator summary pluginMarketplaceLifecycle.uniquePlugins is missing."
+    Assert-Condition -Condition ($null -ne $pluginMarketplaceOutcomes) -Message "Operator summary pluginMarketplaceLifecycle.outcomes is missing."
+    Assert-Condition -Condition ($null -ne $pluginMarketplaceLifecycleCounters) -Message "Operator summary pluginMarketplaceLifecycle.lifecycle is missing."
+    Assert-Condition -Condition ($null -ne $pluginMarketplaceConflicts) -Message "Operator summary pluginMarketplaceLifecycle.conflicts is missing."
+    Assert-Condition -Condition ($null -ne $pluginMarketplaceSigningStatusCounts) -Message "Operator summary pluginMarketplaceLifecycle.signingStatusCounts is missing."
+    Assert-Condition -Condition ($null -ne $pluginMarketplacePermissionTotals) -Message "Operator summary pluginMarketplaceLifecycle.permissionTotals is missing."
+    Assert-Condition -Condition ($null -ne $pluginMarketplaceLatest) -Message "Operator summary pluginMarketplaceLifecycle.latest is missing."
+    $pluginMarketplaceTotal = [int]$pluginMarketplaceTotalRaw
+    $pluginMarketplaceUniquePlugins = [int]$pluginMarketplaceUniquePluginsRaw
+    $pluginMarketplaceOutcomeSucceeded = [int](Get-FieldValue -Object $pluginMarketplaceOutcomes -Path @("succeeded"))
+    $pluginMarketplaceOutcomeDenied = [int](Get-FieldValue -Object $pluginMarketplaceOutcomes -Path @("denied"))
+    $pluginMarketplaceOutcomeFailed = [int](Get-FieldValue -Object $pluginMarketplaceOutcomes -Path @("failed"))
+    $pluginMarketplaceLifecycleCreated = [int](Get-FieldValue -Object $pluginMarketplaceLifecycleCounters -Path @("created"))
+    $pluginMarketplaceLifecycleUpdated = [int](Get-FieldValue -Object $pluginMarketplaceLifecycleCounters -Path @("updated"))
+    $pluginMarketplaceLifecycleIdempotentReplay = [int](Get-FieldValue -Object $pluginMarketplaceLifecycleCounters -Path @("idempotentReplay"))
+    $pluginMarketplaceConflictVersionConflict = [int](Get-FieldValue -Object $pluginMarketplaceConflicts -Path @("versionConflict"))
+    $pluginMarketplaceConflictPluginInvalidPermission = [int](Get-FieldValue -Object $pluginMarketplaceConflicts -Path @("pluginInvalidPermission"))
+    $pluginMarketplaceSigningVerified = [int](Get-FieldValue -Object $pluginMarketplaceSigningStatusCounts -Path @("verified"))
+    $pluginMarketplaceSigningUnsigned = [int](Get-FieldValue -Object $pluginMarketplaceSigningStatusCounts -Path @("unsigned"))
+    $pluginMarketplaceSigningNone = [int](Get-FieldValue -Object $pluginMarketplaceSigningStatusCounts -Path @("none"))
+    $pluginMarketplacePermissionTotal = [int](Get-FieldValue -Object $pluginMarketplacePermissionTotals -Path @("totalPermissions"))
+    $pluginMarketplacePermissionEntriesWithPermissions = [int](Get-FieldValue -Object $pluginMarketplacePermissionTotals -Path @("entriesWithPermissions"))
+    $pluginMarketplaceLatestOutcome = [string](Get-FieldValue -Object $pluginMarketplaceLatest -Path @("outcome"))
+    $pluginMarketplaceLatestPluginId = [string](Get-FieldValue -Object $pluginMarketplaceLatest -Path @("pluginId"))
+    $pluginMarketplaceLatestVersion = [int](Get-FieldValue -Object $pluginMarketplaceLatest -Path @("version"))
+    $pluginMarketplaceLatestSigningStatus = [string](Get-FieldValue -Object $pluginMarketplaceLatest -Path @("signingStatus"))
+    $pluginMarketplaceLatestSeenAt = [string](Get-FieldValue -Object $pluginMarketplaceLatest -Path @("createdAt"))
+    $parsedPluginMarketplaceLatestSeenAt = [DateTimeOffset]::MinValue
+    $pluginMarketplaceLatestSeenAtIsIso = [DateTimeOffset]::TryParse($pluginMarketplaceLatestSeenAt, [ref]$parsedPluginMarketplaceLatestSeenAt)
+    $pluginMarketplaceOutcomeTotal = $pluginMarketplaceOutcomeSucceeded + $pluginMarketplaceOutcomeDenied + $pluginMarketplaceOutcomeFailed
+    $pluginMarketplaceSigningTotal = $pluginMarketplaceSigningVerified + $pluginMarketplaceSigningUnsigned + $pluginMarketplaceSigningNone
+    $pluginMarketplaceSigningEvidenceObserved = ($pluginMarketplaceSigningVerified + $pluginMarketplaceSigningUnsigned) -ge 1
+    Assert-Condition -Condition ($pluginMarketplaceStatus -eq "observed") -Message "Operator summary pluginMarketplaceLifecycle.status should be observed."
+    Assert-Condition -Condition ($pluginMarketplaceTotal -ge 1) -Message "Operator summary pluginMarketplaceLifecycle.total should be >= 1."
+    Assert-Condition -Condition ($pluginMarketplaceUniquePlugins -ge 1) -Message "Operator summary pluginMarketplaceLifecycle.uniquePlugins should be >= 1."
+    Assert-Condition -Condition ($pluginMarketplaceOutcomeTotal -eq $pluginMarketplaceTotal) -Message "Operator summary pluginMarketplaceLifecycle.outcomes must sum to total."
+    Assert-Condition -Condition ($pluginMarketplaceLifecycleCreated -ge 1) -Message "Operator summary pluginMarketplaceLifecycle.lifecycle.created should be >= 1."
+    Assert-Condition -Condition ($pluginMarketplaceLifecycleIdempotentReplay -ge 1) -Message "Operator summary pluginMarketplaceLifecycle.lifecycle.idempotentReplay should be >= 1."
+    Assert-Condition -Condition ($pluginMarketplaceConflictVersionConflict -ge 1) -Message "Operator summary pluginMarketplaceLifecycle.conflicts.versionConflict should be >= 1."
+    Assert-Condition -Condition ($pluginMarketplaceConflictPluginInvalidPermission -ge 1) -Message "Operator summary pluginMarketplaceLifecycle.conflicts.pluginInvalidPermission should be >= 1."
+    Assert-Condition -Condition ($pluginMarketplaceSigningTotal -eq $pluginMarketplaceTotal) -Message "Operator summary pluginMarketplaceLifecycle.signingStatusCounts must sum to total."
+    Assert-Condition -Condition $pluginMarketplaceSigningEvidenceObserved -Message "Operator summary pluginMarketplaceLifecycle requires verified/unsigned signing evidence."
+    Assert-Condition -Condition ($pluginMarketplacePermissionTotal -ge 0) -Message "Operator summary pluginMarketplaceLifecycle.permissionTotals.totalPermissions must be >= 0."
+    Assert-Condition -Condition ($pluginMarketplacePermissionEntriesWithPermissions -ge 0) -Message "Operator summary pluginMarketplaceLifecycle.permissionTotals.entriesWithPermissions must be >= 0."
+    Assert-Condition -Condition ($pluginMarketplacePermissionEntriesWithPermissions -le $pluginMarketplaceTotal) -Message "Operator summary pluginMarketplaceLifecycle.permissionTotals.entriesWithPermissions must be <= total."
+    Assert-Condition -Condition $pluginMarketplaceLatestSeenAtIsIso -Message "Operator summary pluginMarketplaceLifecycle.latest.createdAt must be ISO timestamp."
+    Assert-Condition -Condition (@("succeeded", "denied", "failed") -contains $pluginMarketplaceLatestOutcome) -Message "Operator summary pluginMarketplaceLifecycle.latest.outcome is invalid."
+    Assert-Condition -Condition (@("verified", "unsigned", "none") -contains $pluginMarketplaceLatestSigningStatus) -Message "Operator summary pluginMarketplaceLifecycle.latest.signingStatus is invalid."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($pluginMarketplaceLatestPluginId)) -Message "Operator summary pluginMarketplaceLifecycle.latest.pluginId is missing."
+    Assert-Condition -Condition ($pluginMarketplaceLatestVersion -ge 1) -Message "Operator summary pluginMarketplaceLifecycle.latest.version should be >= 1."
+    Assert-Condition -Condition $pluginMarketplaceLifecycleValidated -Message "Operator summary pluginMarketplaceLifecycle.lifecycleValidated should be true."
+
     $deviceNodeHealth = Get-FieldValue -Object $summaryData -Path @("deviceNodes")
     Assert-Condition -Condition ($null -ne $deviceNodeHealth) -Message "Operator summary deviceNodes block is missing."
     $deviceNodeSummaryTotal = [int](Get-FieldValue -Object $deviceNodeHealth -Path @("total"))
@@ -2895,6 +2960,29 @@ try {
       agentUsageSource = $agentUsageSource
       agentUsageStatus = $agentUsageStatus
       agentUsageSummaryValidated = $agentUsageSummaryValidated
+      pluginMarketplaceStatus = $pluginMarketplaceStatus
+      pluginMarketplaceTotal = $pluginMarketplaceTotal
+      pluginMarketplaceUniquePlugins = $pluginMarketplaceUniquePlugins
+      pluginMarketplaceOutcomeSucceeded = $pluginMarketplaceOutcomeSucceeded
+      pluginMarketplaceOutcomeDenied = $pluginMarketplaceOutcomeDenied
+      pluginMarketplaceOutcomeFailed = $pluginMarketplaceOutcomeFailed
+      pluginMarketplaceLifecycleCreated = $pluginMarketplaceLifecycleCreated
+      pluginMarketplaceLifecycleUpdated = $pluginMarketplaceLifecycleUpdated
+      pluginMarketplaceLifecycleIdempotentReplay = $pluginMarketplaceLifecycleIdempotentReplay
+      pluginMarketplaceConflictVersionConflict = $pluginMarketplaceConflictVersionConflict
+      pluginMarketplaceConflictPluginInvalidPermission = $pluginMarketplaceConflictPluginInvalidPermission
+      pluginMarketplaceSigningVerified = $pluginMarketplaceSigningVerified
+      pluginMarketplaceSigningUnsigned = $pluginMarketplaceSigningUnsigned
+      pluginMarketplaceSigningNone = $pluginMarketplaceSigningNone
+      pluginMarketplaceSigningEvidenceObserved = $pluginMarketplaceSigningEvidenceObserved
+      pluginMarketplacePermissionTotal = $pluginMarketplacePermissionTotal
+      pluginMarketplacePermissionEntriesWithPermissions = $pluginMarketplacePermissionEntriesWithPermissions
+      pluginMarketplaceLatestOutcome = $pluginMarketplaceLatestOutcome
+      pluginMarketplaceLatestPluginId = $pluginMarketplaceLatestPluginId
+      pluginMarketplaceLatestVersion = $pluginMarketplaceLatestVersion
+      pluginMarketplaceLatestSigningStatus = $pluginMarketplaceLatestSigningStatus
+      pluginMarketplaceLatestSeenAt = $pluginMarketplaceLatestSeenAt
+      pluginMarketplaceLifecycleValidated = $pluginMarketplaceLifecycleValidated
       deviceNodeId = $deviceNodeId
       deviceNodeCreatedVersion = $deviceNodeCreatedVersion
       deviceNodeUpdatedVersion = $deviceNodeUpdatedVersion
@@ -4374,6 +4462,50 @@ $summary = [ordered]@{
       @($operatorActionsData.agentUsageModels).Count -ge 1 -and
       @("operator_summary", "gateway_runtime") -contains ([string]$operatorActionsData.agentUsageSource) -and
       [string]$operatorActionsData.agentUsageStatus -eq "observed"
+    ) { $true } else { $false }
+    operatorPluginMarketplaceStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceStatus } else { $null }
+    operatorPluginMarketplaceTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceTotal } else { $null }
+    operatorPluginMarketplaceUniquePlugins = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceUniquePlugins } else { $null }
+    operatorPluginMarketplaceOutcomeSucceeded = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceOutcomeSucceeded } else { $null }
+    operatorPluginMarketplaceOutcomeDenied = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceOutcomeDenied } else { $null }
+    operatorPluginMarketplaceOutcomeFailed = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceOutcomeFailed } else { $null }
+    operatorPluginMarketplaceLifecycleCreated = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceLifecycleCreated } else { $null }
+    operatorPluginMarketplaceLifecycleUpdated = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceLifecycleUpdated } else { $null }
+    operatorPluginMarketplaceLifecycleIdempotentReplay = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceLifecycleIdempotentReplay } else { $null }
+    operatorPluginMarketplaceConflictVersionConflict = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceConflictVersionConflict } else { $null }
+    operatorPluginMarketplaceConflictPluginInvalidPermission = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceConflictPluginInvalidPermission } else { $null }
+    operatorPluginMarketplaceSigningVerified = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceSigningVerified } else { $null }
+    operatorPluginMarketplaceSigningUnsigned = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceSigningUnsigned } else { $null }
+    operatorPluginMarketplaceSigningNone = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceSigningNone } else { $null }
+    operatorPluginMarketplaceSigningEvidenceObserved = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceSigningEvidenceObserved } else { $false }
+    operatorPluginMarketplacePermissionTotal = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplacePermissionTotal } else { $null }
+    operatorPluginMarketplacePermissionEntriesWithPermissions = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplacePermissionEntriesWithPermissions } else { $null }
+    operatorPluginMarketplaceLatestOutcome = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceLatestOutcome } else { $null }
+    operatorPluginMarketplaceLatestPluginId = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceLatestPluginId } else { $null }
+    operatorPluginMarketplaceLatestVersion = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceLatestVersion } else { $null }
+    operatorPluginMarketplaceLatestSigningStatus = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceLatestSigningStatus } else { $null }
+    operatorPluginMarketplaceLatestSeenAt = if ($null -ne $operatorActionsData) { $operatorActionsData.pluginMarketplaceLatestSeenAt } else { $null }
+    operatorPluginMarketplaceLifecycleValidated = if (
+      $null -ne $operatorActionsData -and
+      [bool]$operatorActionsData.pluginMarketplaceLifecycleValidated -eq $true -and
+      [string]$operatorActionsData.pluginMarketplaceStatus -eq "observed" -and
+      [int]$operatorActionsData.pluginMarketplaceTotal -ge 1 -and
+      [int]$operatorActionsData.pluginMarketplaceUniquePlugins -ge 1 -and
+      ([int]$operatorActionsData.pluginMarketplaceOutcomeSucceeded + [int]$operatorActionsData.pluginMarketplaceOutcomeDenied + [int]$operatorActionsData.pluginMarketplaceOutcomeFailed) -eq [int]$operatorActionsData.pluginMarketplaceTotal -and
+      [int]$operatorActionsData.pluginMarketplaceLifecycleCreated -ge 1 -and
+      [int]$operatorActionsData.pluginMarketplaceLifecycleIdempotentReplay -ge 1 -and
+      [int]$operatorActionsData.pluginMarketplaceConflictVersionConflict -ge 1 -and
+      [int]$operatorActionsData.pluginMarketplaceConflictPluginInvalidPermission -ge 1 -and
+      ([int]$operatorActionsData.pluginMarketplaceSigningVerified + [int]$operatorActionsData.pluginMarketplaceSigningUnsigned + [int]$operatorActionsData.pluginMarketplaceSigningNone) -eq [int]$operatorActionsData.pluginMarketplaceTotal -and
+      ([int]$operatorActionsData.pluginMarketplaceSigningVerified + [int]$operatorActionsData.pluginMarketplaceSigningUnsigned) -ge 1 -and
+      [int]$operatorActionsData.pluginMarketplacePermissionTotal -ge 0 -and
+      [int]$operatorActionsData.pluginMarketplacePermissionEntriesWithPermissions -ge 0 -and
+      [int]$operatorActionsData.pluginMarketplacePermissionEntriesWithPermissions -le [int]$operatorActionsData.pluginMarketplaceTotal -and
+      @("succeeded", "denied", "failed") -contains [string]$operatorActionsData.pluginMarketplaceLatestOutcome -and
+      @("verified", "unsigned", "none") -contains [string]$operatorActionsData.pluginMarketplaceLatestSigningStatus -and
+      -not [string]::IsNullOrWhiteSpace([string]$operatorActionsData.pluginMarketplaceLatestPluginId) -and
+      [int]$operatorActionsData.pluginMarketplaceLatestVersion -ge 1 -and
+      -not [string]::IsNullOrWhiteSpace([string]$operatorActionsData.pluginMarketplaceLatestSeenAt)
     ) { $true } else { $false }
     operatorStartupDiagnosticsValidated = if (
       $null -ne $operatorActionsData -and

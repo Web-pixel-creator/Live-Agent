@@ -52,6 +52,7 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /badgeEvidenceOperatorDamageControlStatus/);
   assert.match(source, /badgeEvidenceGovernancePolicyStatus/);
   assert.match(source, /badgeEvidenceSkillsRegistryStatus/);
+  assert.match(source, /badgeEvidencePluginMarketplaceStatus/);
   assert.match(source, /badgeEvidenceDeviceNodesStatus/);
   assert.match(source, /badgeEvidenceDeviceNodeUpdatesStatus/);
   assert.match(source, /retryableStatusCodes/);
@@ -63,6 +64,7 @@ test("local release artifact revalidation script keeps expected source and gate 
   assert.match(source, /turn delete status/);
   assert.match(source, /governance policy status/);
   assert.match(source, /skills registry status/);
+  assert.match(source, /plugin marketplace status/);
   assert.match(source, /device nodes status/);
   assert.match(source, /device node updates status/);
   assert.match(source, /release evidence report/);

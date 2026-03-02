@@ -395,6 +395,15 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       )
     }
 
+    $manifestPluginMarketplaceStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidencePluginMarketplaceStatus
+    $manifestPluginMarketplaceStatus = $manifestPluginMarketplaceStatusRaw.ToLowerInvariant()
+    if ($manifestPluginMarketplaceStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidencePluginMarketplaceStatus expected pass, actual " +
+        $manifestPluginMarketplaceStatusRaw
+      )
+    }
+
     $manifestDeviceNodesStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodesStatus
     $manifestDeviceNodesStatus = $manifestDeviceNodesStatusRaw.ToLowerInvariant()
     if ($manifestDeviceNodesStatus -ne "pass") {
@@ -493,6 +502,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     skillsRegistryLifecycleValidated = $true
     skillsRegistryIndexHasSkill = $true
     skillsRegistryRegistryHasSkill = $true
+    operatorPluginMarketplaceLifecycleValidated = $true
     sessionVersioningValidated = $true
     operatorTurnTruncationSummaryValidated = $true
     operatorTurnTruncationExpectedEventSeen = $true
@@ -587,6 +597,160 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $skillsRegistryTotal = To-NumberOrNaN $summary.kpis.skillsRegistryTotal
   if ([double]::IsNaN($skillsRegistryTotal) -or $skillsRegistryTotal -lt 1) {
     Fail ("Critical KPI check failed: skillsRegistryTotal expected >= 1, actual " + $summary.kpis.skillsRegistryTotal)
+  }
+
+  $pluginMarketplaceStatus = [string]$summary.kpis.operatorPluginMarketplaceStatus
+  if ($pluginMarketplaceStatus -ne "observed") {
+    Fail ("Critical KPI check failed: operatorPluginMarketplaceStatus expected observed, actual " + $pluginMarketplaceStatus)
+  }
+
+  $pluginMarketplaceTotal = To-NumberOrNaN $summary.kpis.operatorPluginMarketplaceTotal
+  if ([double]::IsNaN($pluginMarketplaceTotal) -or $pluginMarketplaceTotal -lt 1) {
+    Fail ("Critical KPI check failed: operatorPluginMarketplaceTotal expected >= 1, actual " + $summary.kpis.operatorPluginMarketplaceTotal)
+  }
+
+  $pluginMarketplaceUniquePlugins = To-NumberOrNaN $summary.kpis.operatorPluginMarketplaceUniquePlugins
+  if ([double]::IsNaN($pluginMarketplaceUniquePlugins) -or $pluginMarketplaceUniquePlugins -lt 1) {
+    Fail (
+      "Critical KPI check failed: operatorPluginMarketplaceUniquePlugins expected >= 1, actual " +
+      $summary.kpis.operatorPluginMarketplaceUniquePlugins
+    )
+  }
+
+  $pluginMarketplaceOutcomeSucceeded = To-NumberOrNaN $summary.kpis.operatorPluginMarketplaceOutcomeSucceeded
+  $pluginMarketplaceOutcomeDenied = To-NumberOrNaN $summary.kpis.operatorPluginMarketplaceOutcomeDenied
+  $pluginMarketplaceOutcomeFailed = To-NumberOrNaN $summary.kpis.operatorPluginMarketplaceOutcomeFailed
+  if (
+    [double]::IsNaN($pluginMarketplaceOutcomeSucceeded) -or
+    [double]::IsNaN($pluginMarketplaceOutcomeDenied) -or
+    [double]::IsNaN($pluginMarketplaceOutcomeFailed) -or
+    $pluginMarketplaceOutcomeSucceeded -lt 0 -or
+    $pluginMarketplaceOutcomeDenied -lt 0 -or
+    $pluginMarketplaceOutcomeFailed -lt 0
+  ) {
+    Fail "Critical KPI check failed: operatorPluginMarketplace outcome counters must be non-negative numbers"
+  }
+  if (($pluginMarketplaceOutcomeSucceeded + $pluginMarketplaceOutcomeDenied + $pluginMarketplaceOutcomeFailed) -ne $pluginMarketplaceTotal) {
+    Fail (
+      "Critical KPI check failed: operatorPluginMarketplace outcomes sum expected operatorPluginMarketplaceTotal, actual " +
+      ($pluginMarketplaceOutcomeSucceeded + $pluginMarketplaceOutcomeDenied + $pluginMarketplaceOutcomeFailed) +
+      " vs " +
+      $pluginMarketplaceTotal
+    )
+  }
+
+  $pluginMarketplaceLifecycleCreated = To-NumberOrNaN $summary.kpis.operatorPluginMarketplaceLifecycleCreated
+  if ([double]::IsNaN($pluginMarketplaceLifecycleCreated) -or $pluginMarketplaceLifecycleCreated -lt 1) {
+    Fail (
+      "Critical KPI check failed: operatorPluginMarketplaceLifecycleCreated expected >= 1, actual " +
+      $summary.kpis.operatorPluginMarketplaceLifecycleCreated
+    )
+  }
+
+  $pluginMarketplaceLifecycleIdempotentReplay = To-NumberOrNaN $summary.kpis.operatorPluginMarketplaceLifecycleIdempotentReplay
+  if ([double]::IsNaN($pluginMarketplaceLifecycleIdempotentReplay) -or $pluginMarketplaceLifecycleIdempotentReplay -lt 1) {
+    Fail (
+      "Critical KPI check failed: operatorPluginMarketplaceLifecycleIdempotentReplay expected >= 1, actual " +
+      $summary.kpis.operatorPluginMarketplaceLifecycleIdempotentReplay
+    )
+  }
+
+  $pluginMarketplaceConflictVersionConflict = To-NumberOrNaN $summary.kpis.operatorPluginMarketplaceConflictVersionConflict
+  if ([double]::IsNaN($pluginMarketplaceConflictVersionConflict) -or $pluginMarketplaceConflictVersionConflict -lt 1) {
+    Fail (
+      "Critical KPI check failed: operatorPluginMarketplaceConflictVersionConflict expected >= 1, actual " +
+      $summary.kpis.operatorPluginMarketplaceConflictVersionConflict
+    )
+  }
+
+  $pluginMarketplaceConflictPluginInvalidPermission = To-NumberOrNaN $summary.kpis.operatorPluginMarketplaceConflictPluginInvalidPermission
+  if ([double]::IsNaN($pluginMarketplaceConflictPluginInvalidPermission) -or $pluginMarketplaceConflictPluginInvalidPermission -lt 1) {
+    Fail (
+      "Critical KPI check failed: operatorPluginMarketplaceConflictPluginInvalidPermission expected >= 1, actual " +
+      $summary.kpis.operatorPluginMarketplaceConflictPluginInvalidPermission
+    )
+  }
+
+  $pluginMarketplaceSigningVerified = To-NumberOrNaN $summary.kpis.operatorPluginMarketplaceSigningVerified
+  $pluginMarketplaceSigningUnsigned = To-NumberOrNaN $summary.kpis.operatorPluginMarketplaceSigningUnsigned
+  $pluginMarketplaceSigningNone = To-NumberOrNaN $summary.kpis.operatorPluginMarketplaceSigningNone
+  if (
+    [double]::IsNaN($pluginMarketplaceSigningVerified) -or
+    [double]::IsNaN($pluginMarketplaceSigningUnsigned) -or
+    [double]::IsNaN($pluginMarketplaceSigningNone) -or
+    $pluginMarketplaceSigningVerified -lt 0 -or
+    $pluginMarketplaceSigningUnsigned -lt 0 -or
+    $pluginMarketplaceSigningNone -lt 0
+  ) {
+    Fail "Critical KPI check failed: operatorPluginMarketplace signing counters must be non-negative numbers"
+  }
+  if (($pluginMarketplaceSigningVerified + $pluginMarketplaceSigningUnsigned + $pluginMarketplaceSigningNone) -ne $pluginMarketplaceTotal) {
+    Fail (
+      "Critical KPI check failed: operatorPluginMarketplace signing counters sum expected operatorPluginMarketplaceTotal, actual " +
+      ($pluginMarketplaceSigningVerified + $pluginMarketplaceSigningUnsigned + $pluginMarketplaceSigningNone) +
+      " vs " +
+      $pluginMarketplaceTotal
+    )
+  }
+  $pluginMarketplaceSigningEvidenceObserved = To-BoolOrNull $summary.kpis.operatorPluginMarketplaceSigningEvidenceObserved
+  if ($pluginMarketplaceSigningEvidenceObserved -ne $true -or ($pluginMarketplaceSigningVerified + $pluginMarketplaceSigningUnsigned) -lt 1) {
+    Fail "Critical KPI check failed: operatorPluginMarketplaceSigningEvidenceObserved expected true with verified|unsigned evidence"
+  }
+
+  $pluginMarketplacePermissionTotal = To-NumberOrNaN $summary.kpis.operatorPluginMarketplacePermissionTotal
+  if ([double]::IsNaN($pluginMarketplacePermissionTotal) -or $pluginMarketplacePermissionTotal -lt 0) {
+    Fail (
+      "Critical KPI check failed: operatorPluginMarketplacePermissionTotal expected >= 0, actual " +
+      $summary.kpis.operatorPluginMarketplacePermissionTotal
+    )
+  }
+  $pluginMarketplacePermissionEntriesWithPermissions = To-NumberOrNaN $summary.kpis.operatorPluginMarketplacePermissionEntriesWithPermissions
+  if (
+    [double]::IsNaN($pluginMarketplacePermissionEntriesWithPermissions) -or
+    $pluginMarketplacePermissionEntriesWithPermissions -lt 0 -or
+    $pluginMarketplacePermissionEntriesWithPermissions -gt $pluginMarketplaceTotal
+  ) {
+    Fail (
+      "Critical KPI check failed: operatorPluginMarketplacePermissionEntriesWithPermissions expected 0..operatorPluginMarketplaceTotal, actual " +
+      $summary.kpis.operatorPluginMarketplacePermissionEntriesWithPermissions
+    )
+  }
+
+  $pluginMarketplaceLatestOutcome = [string]$summary.kpis.operatorPluginMarketplaceLatestOutcome
+  if (@("succeeded", "denied", "failed") -notcontains $pluginMarketplaceLatestOutcome) {
+    Fail (
+      "Critical KPI check failed: operatorPluginMarketplaceLatestOutcome expected succeeded|denied|failed, actual " +
+      $pluginMarketplaceLatestOutcome
+    )
+  }
+  $pluginMarketplaceLatestSigningStatus = [string]$summary.kpis.operatorPluginMarketplaceLatestSigningStatus
+  if (@("verified", "unsigned", "none") -notcontains $pluginMarketplaceLatestSigningStatus) {
+    Fail (
+      "Critical KPI check failed: operatorPluginMarketplaceLatestSigningStatus expected verified|unsigned|none, actual " +
+      $pluginMarketplaceLatestSigningStatus
+    )
+  }
+  $pluginMarketplaceLatestPluginId = [string]$summary.kpis.operatorPluginMarketplaceLatestPluginId
+  if ([string]::IsNullOrWhiteSpace($pluginMarketplaceLatestPluginId)) {
+    Fail "Critical KPI check failed: operatorPluginMarketplaceLatestPluginId is missing"
+  }
+  $pluginMarketplaceLatestVersion = To-NumberOrNaN $summary.kpis.operatorPluginMarketplaceLatestVersion
+  if ([double]::IsNaN($pluginMarketplaceLatestVersion) -or $pluginMarketplaceLatestVersion -lt 1) {
+    Fail (
+      "Critical KPI check failed: operatorPluginMarketplaceLatestVersion expected >= 1, actual " +
+      $summary.kpis.operatorPluginMarketplaceLatestVersion
+    )
+  }
+  $pluginMarketplaceLatestSeenAt = [string]$summary.kpis.operatorPluginMarketplaceLatestSeenAt
+  if ([string]::IsNullOrWhiteSpace($pluginMarketplaceLatestSeenAt)) {
+    Fail "Critical KPI check failed: operatorPluginMarketplaceLatestSeenAt is missing"
+  }
+  $parsedPluginMarketplaceLatestSeenAt = [DateTimeOffset]::MinValue
+  if (-not [DateTimeOffset]::TryParse($pluginMarketplaceLatestSeenAt, [ref]$parsedPluginMarketplaceLatestSeenAt)) {
+    Fail (
+      "Critical KPI check failed: operatorPluginMarketplaceLatestSeenAt expected ISO timestamp, actual " +
+      $pluginMarketplaceLatestSeenAt
+    )
   }
 
   $taskQueuePressureLevel = [string]$summary.kpis.operatorTaskQueuePressureLevel
@@ -1691,6 +1855,32 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", invalid_permission_code=" + $skillsRegistryInvalidPermissionCode
     )
   }
+  $pluginMarketplaceValidated = $summary.kpis.operatorPluginMarketplaceLifecycleValidated
+  $pluginMarketplaceStatus = $summary.kpis.operatorPluginMarketplaceStatus
+  $pluginMarketplaceTotal = $summary.kpis.operatorPluginMarketplaceTotal
+  $pluginMarketplaceUniquePlugins = $summary.kpis.operatorPluginMarketplaceUniquePlugins
+  $pluginMarketplaceLifecycleCreated = $summary.kpis.operatorPluginMarketplaceLifecycleCreated
+  $pluginMarketplaceLifecycleIdempotentReplay = $summary.kpis.operatorPluginMarketplaceLifecycleIdempotentReplay
+  $pluginMarketplaceConflictVersionConflict = $summary.kpis.operatorPluginMarketplaceConflictVersionConflict
+  $pluginMarketplaceConflictPluginInvalidPermission = $summary.kpis.operatorPluginMarketplaceConflictPluginInvalidPermission
+  $pluginMarketplaceSigningVerified = $summary.kpis.operatorPluginMarketplaceSigningVerified
+  $pluginMarketplaceSigningUnsigned = $summary.kpis.operatorPluginMarketplaceSigningUnsigned
+  $pluginMarketplacePermissionTotal = $summary.kpis.operatorPluginMarketplacePermissionTotal
+  if ($null -ne $pluginMarketplaceValidated -or $null -ne $pluginMarketplaceStatus) {
+    Write-Host (
+      "operator.plugin_marketplace: validated=" + $pluginMarketplaceValidated +
+      ", status=" + $pluginMarketplaceStatus +
+      ", total=" + $pluginMarketplaceTotal +
+      ", unique_plugins=" + $pluginMarketplaceUniquePlugins +
+      ", created=" + $pluginMarketplaceLifecycleCreated +
+      ", idempotent_replay=" + $pluginMarketplaceLifecycleIdempotentReplay +
+      ", version_conflict=" + $pluginMarketplaceConflictVersionConflict +
+      ", plugin_invalid_permission=" + $pluginMarketplaceConflictPluginInvalidPermission +
+      ", signing_verified=" + $pluginMarketplaceSigningVerified +
+      ", signing_unsigned=" + $pluginMarketplaceSigningUnsigned +
+      ", total_permissions=" + $pluginMarketplacePermissionTotal
+    )
+  }
   $turnTruncationValidated = $summary.kpis.operatorTurnTruncationSummaryValidated
   $turnTruncationTotal = $summary.kpis.operatorTurnTruncationTotal
   $turnTruncationUniqueRuns = $summary.kpis.operatorTurnTruncationUniqueRuns
@@ -1827,6 +2017,7 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     $manifestDamageControlStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceOperatorDamageControlStatus
     $manifestGovernancePolicyStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceGovernancePolicyStatus
     $manifestSkillsRegistryStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceSkillsRegistryStatus
+    $manifestPluginMarketplaceStatus = [string]$manifestEvidenceSnapshot.badgeEvidencePluginMarketplaceStatus
     $manifestDeviceNodesStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodesStatus
     $manifestAgentUsageStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceAgentUsageStatus
     $manifestDeviceNodeUpdatesStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus
@@ -1842,6 +2033,7 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       ", operator_damage_control_status=" + $manifestDamageControlStatus +
       ", governance_policy_status=" + $manifestGovernancePolicyStatus +
       ", skills_registry_status=" + $manifestSkillsRegistryStatus +
+      ", plugin_marketplace_status=" + $manifestPluginMarketplaceStatus +
       ", device_nodes_status=" + $manifestDeviceNodesStatus +
       ", agent_usage_status=" + $manifestAgentUsageStatus +
       ", device_node_updates_status=" + $manifestDeviceNodeUpdatesStatus +

@@ -197,6 +197,29 @@ function createPassingSummary(overrides?: {
     skillsRegistryRegistryHasSkill: true,
     skillsRegistryIndexTotal: 1,
     skillsRegistryTotal: 1,
+    operatorPluginMarketplaceLifecycleValidated: true,
+    operatorPluginMarketplaceStatus: "observed",
+    operatorPluginMarketplaceTotal: 4,
+    operatorPluginMarketplaceUniquePlugins: 2,
+    operatorPluginMarketplaceOutcomeSucceeded: 2,
+    operatorPluginMarketplaceOutcomeDenied: 1,
+    operatorPluginMarketplaceOutcomeFailed: 1,
+    operatorPluginMarketplaceLifecycleCreated: 1,
+    operatorPluginMarketplaceLifecycleUpdated: 1,
+    operatorPluginMarketplaceLifecycleIdempotentReplay: 1,
+    operatorPluginMarketplaceConflictVersionConflict: 1,
+    operatorPluginMarketplaceConflictPluginInvalidPermission: 1,
+    operatorPluginMarketplaceSigningVerified: 1,
+    operatorPluginMarketplaceSigningUnsigned: 1,
+    operatorPluginMarketplaceSigningNone: 2,
+    operatorPluginMarketplaceSigningEvidenceObserved: true,
+    operatorPluginMarketplacePermissionTotal: 2,
+    operatorPluginMarketplacePermissionEntriesWithPermissions: 1,
+    operatorPluginMarketplaceLatestOutcome: "denied",
+    operatorPluginMarketplaceLatestPluginId: "demo-plugin-1",
+    operatorPluginMarketplaceLatestVersion: 1,
+    operatorPluginMarketplaceLatestSigningStatus: "unsigned",
+    operatorPluginMarketplaceLatestSeenAt: "2026-02-26T00:00:00.000Z",
     sessionVersioningValidated: true,
     sessionVersionConflictCode: "API_SESSION_VERSION_CONFLICT",
     sessionIdempotencyReplayOutcome: "idempotent_replay",
@@ -351,7 +374,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 260);
+  assert.equal(result.payload.checks, 278);
 });
 
 test("demo-e2e policy check fails when cost estimate total is negative", () => {
@@ -1110,6 +1133,22 @@ test("demo-e2e policy check fails when skills registry lifecycle KPI is invalid"
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.skillsRegistryLifecycleValidated")));
+});
+
+test("demo-e2e policy check fails when plugin marketplace lifecycle KPI is invalid", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        operatorPluginMarketplaceLifecycleValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.operatorPluginMarketplaceLifecycleValidated")));
 });
 
 test("demo-e2e policy check fails when gateway websocket binding mismatch KPI is invalid", () => {

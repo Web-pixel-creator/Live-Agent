@@ -567,6 +567,7 @@ jobs:
           $badgeEvidenceOperatorDamageControlStatus = "unavailable"
           $badgeEvidenceGovernancePolicyStatus = "unavailable"
           $badgeEvidenceSkillsRegistryStatus = "unavailable"
+          $badgeEvidencePluginMarketplaceStatus = "unavailable"
           $badgeEvidenceDeviceNodesStatus = "unavailable"
           $badgeEvidenceAgentUsageStatus = "unavailable"
           $badgeEvidenceDeviceNodeUpdatesStatus = "unavailable"
@@ -590,6 +591,9 @@ jobs:
             }
             if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.skillsRegistryStatus)) {
               $badgeEvidenceSkillsRegistryStatus = [string]$releaseEvidenceReport.statuses.skillsRegistryStatus
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.pluginMarketplaceStatus)) {
+              $badgeEvidencePluginMarketplaceStatus = [string]$releaseEvidenceReport.statuses.pluginMarketplaceStatus
             }
             if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.deviceNodesStatus)) {
               $badgeEvidenceDeviceNodesStatus = [string]$releaseEvidenceReport.statuses.deviceNodesStatus
@@ -618,6 +622,7 @@ jobs:
             badgeEvidenceOperatorDamageControlStatus = $badgeEvidenceOperatorDamageControlStatus
             badgeEvidenceGovernancePolicyStatus = $badgeEvidenceGovernancePolicyStatus
             badgeEvidenceSkillsRegistryStatus = $badgeEvidenceSkillsRegistryStatus
+            badgeEvidencePluginMarketplaceStatus = $badgeEvidencePluginMarketplaceStatus
             badgeEvidenceDeviceNodesStatus = $badgeEvidenceDeviceNodesStatus
             badgeEvidenceAgentUsageStatus = $badgeEvidenceAgentUsageStatus
             badgeEvidenceDeviceNodeUpdatesStatus = $badgeEvidenceDeviceNodeUpdatesStatus
@@ -674,6 +679,7 @@ jobs:
           ("operator_damage_control_status=" + [string]$badgeEvidenceOperatorDamageControlStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("governance_policy_status=" + [string]$badgeEvidenceGovernancePolicyStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("skills_registry_status=" + [string]$badgeEvidenceSkillsRegistryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("plugin_marketplace_status=" + [string]$badgeEvidencePluginMarketplaceStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("device_nodes_status=" + [string]$badgeEvidenceDeviceNodesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("agent_usage_status=" + [string]$badgeEvidenceAgentUsageStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("device_node_updates_status=" + [string]$badgeEvidenceDeviceNodeUpdatesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -730,6 +736,7 @@ jobs:
           ("Operator damage-control status (badge evidence): ${{ steps.write_manifest.outputs.operator_damage_control_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Governance policy status (badge evidence): ${{ steps.write_manifest.outputs.governance_policy_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Skills registry status (badge evidence): ${{ steps.write_manifest.outputs.skills_registry_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Plugin-marketplace status (badge evidence): ${{ steps.write_manifest.outputs.plugin_marketplace_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Device-nodes status (badge evidence): ${{ steps.write_manifest.outputs.device_nodes_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Agent-usage status (badge evidence): ${{ steps.write_manifest.outputs.agent_usage_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Device-node-updates status (badge evidence): ${{ steps.write_manifest.outputs.device_node_updates_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

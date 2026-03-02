@@ -18,6 +18,7 @@ test("release-readiness emits artifact source-run evidence snapshot output contr
   assert.match(source, /operator_damage_control_status=/);
   assert.match(source, /governance_policy_status=/);
   assert.match(source, /skills_registry_status=/);
+  assert.match(source, /plugin_marketplace_status=/);
   assert.match(source, /device_nodes_status=/);
   assert.match(source, /agent_usage_status=/);
   assert.match(source, /device_node_updates_status=/);
@@ -33,6 +34,7 @@ test("release-readiness emits artifact source-run evidence snapshot output contr
   assert.match(source, /evidenceSnapshot\.badgeEvidenceOperatorDamageControlStatus expected pass/);
   assert.match(source, /evidenceSnapshot\.badgeEvidenceGovernancePolicyStatus expected pass/);
   assert.match(source, /evidenceSnapshot\.badgeEvidenceSkillsRegistryStatus expected pass/);
+  assert.match(source, /evidenceSnapshot\.badgeEvidencePluginMarketplaceStatus expected pass/);
   assert.match(source, /evidenceSnapshot\.badgeEvidenceDeviceNodesStatus expected pass/);
   assert.match(source, /evidenceSnapshot\.badgeEvidenceAgentUsageStatus expected pass/);
   assert.match(source, /evidenceSnapshot\.badgeEvidenceDeviceNodeUpdatesStatus expected pass/);

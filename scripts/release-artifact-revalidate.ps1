@@ -577,6 +577,7 @@ if ($null -ne $demoSummary -and $null -ne $demoSummary.kpis) {
 $badgeEvidenceOperatorDamageControlStatus = $null
 $badgeEvidenceGovernancePolicyStatus = $null
 $badgeEvidenceSkillsRegistryStatus = $null
+$badgeEvidencePluginMarketplaceStatus = $null
 $badgeEvidenceDeviceNodesStatus = $null
 $badgeEvidenceAgentUsageStatus = $null
 $badgeEvidenceDeviceNodeUpdatesStatus = "unavailable"
@@ -596,6 +597,9 @@ if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne
 }
 if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.skillsRegistry) {
   $badgeEvidenceSkillsRegistryStatus = $badgeDetails.evidence.skillsRegistry.status
+}
+if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.pluginMarketplace) {
+  $badgeEvidencePluginMarketplaceStatus = $badgeDetails.evidence.pluginMarketplace.status
 }
 if ($null -ne $badgeDetails -and $null -ne $badgeDetails.evidence -and $null -ne $badgeDetails.evidence.deviceNodes) {
   $badgeEvidenceDeviceNodesStatus = $badgeDetails.evidence.deviceNodes.status
@@ -637,6 +641,7 @@ $gateEvidenceSnapshot = [ordered]@{
   badgeEvidenceOperatorDamageControlStatus    = $badgeEvidenceOperatorDamageControlStatus
   badgeEvidenceGovernancePolicyStatus         = $badgeEvidenceGovernancePolicyStatus
   badgeEvidenceSkillsRegistryStatus           = $badgeEvidenceSkillsRegistryStatus
+  badgeEvidencePluginMarketplaceStatus        = $badgeEvidencePluginMarketplaceStatus
   badgeEvidenceDeviceNodesStatus              = $badgeEvidenceDeviceNodesStatus
   badgeEvidenceAgentUsageStatus               = $badgeEvidenceAgentUsageStatus
   badgeEvidenceDeviceNodeUpdatesStatus        = $badgeEvidenceDeviceNodeUpdatesStatus
@@ -707,6 +712,7 @@ Write-Host ("- evidence snapshot (turn delete status): " + $badgeEvidenceOperato
 Write-Host ("- evidence snapshot (operator damage-control status): " + $badgeEvidenceOperatorDamageControlStatus)
 Write-Host ("- evidence snapshot (governance policy status): " + $badgeEvidenceGovernancePolicyStatus)
 Write-Host ("- evidence snapshot (skills registry status): " + $badgeEvidenceSkillsRegistryStatus)
+Write-Host ("- evidence snapshot (plugin marketplace status): " + $badgeEvidencePluginMarketplaceStatus)
 Write-Host ("- evidence snapshot (device nodes status): " + $badgeEvidenceDeviceNodesStatus)
 Write-Host ("- evidence snapshot (agent usage status): " + $badgeEvidenceAgentUsageStatus)
 Write-Host ("- evidence snapshot (device node updates status): " + $badgeEvidenceDeviceNodeUpdatesStatus)

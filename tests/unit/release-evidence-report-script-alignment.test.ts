@@ -17,6 +17,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /operatorDamageControlStatus/);
   assert.match(source, /governancePolicyStatus/);
   assert.match(source, /skillsRegistryStatus/);
+  assert.match(source, /pluginMarketplaceStatus/);
   assert.match(source, /deviceNodesStatus/);
   assert.match(source, /agentUsageStatus/);
   assert.match(source, /deviceNodeUpdatesStatus/);

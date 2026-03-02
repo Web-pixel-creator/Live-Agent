@@ -173,6 +173,7 @@ $sourceRunManifest = [ordered]@{
       badgeEvidenceOperatorDamageControlStatus = "pass"
       badgeEvidenceGovernancePolicyStatus = "pass"
       badgeEvidenceSkillsRegistryStatus = "pass"
+      badgeEvidencePluginMarketplaceStatus = "pass"
       badgeEvidenceDeviceNodesStatus = "pass"
       badgeEvidenceAgentUsageStatus = "pass"
       badgeEvidenceDeviceNodeUpdatesStatus = "pass"

@@ -83,6 +83,29 @@ function createPassingSummary(
     skillsRegistryPluginInvalidPermissionCode: string;
     skillsRegistryIndexTotal: number | string;
     skillsRegistryTotal: number | string;
+    operatorPluginMarketplaceLifecycleValidated: boolean | string;
+    operatorPluginMarketplaceStatus: string;
+    operatorPluginMarketplaceTotal: number | string;
+    operatorPluginMarketplaceUniquePlugins: number | string;
+    operatorPluginMarketplaceOutcomeSucceeded: number | string;
+    operatorPluginMarketplaceOutcomeDenied: number | string;
+    operatorPluginMarketplaceOutcomeFailed: number | string;
+    operatorPluginMarketplaceLifecycleCreated: number | string;
+    operatorPluginMarketplaceLifecycleUpdated: number | string;
+    operatorPluginMarketplaceLifecycleIdempotentReplay: number | string;
+    operatorPluginMarketplaceConflictVersionConflict: number | string;
+    operatorPluginMarketplaceConflictPluginInvalidPermission: number | string;
+    operatorPluginMarketplaceSigningVerified: number | string;
+    operatorPluginMarketplaceSigningUnsigned: number | string;
+    operatorPluginMarketplaceSigningNone: number | string;
+    operatorPluginMarketplaceSigningEvidenceObserved: boolean | string;
+    operatorPluginMarketplacePermissionTotal: number | string;
+    operatorPluginMarketplacePermissionEntriesWithPermissions: number | string;
+    operatorPluginMarketplaceLatestOutcome: string;
+    operatorPluginMarketplaceLatestPluginId: string;
+    operatorPluginMarketplaceLatestVersion: number | string;
+    operatorPluginMarketplaceLatestSigningStatus: string;
+    operatorPluginMarketplaceLatestSeenAt: string;
     sessionVersioningScenarioAttempts: number | string;
     liveTranslationScenarioAttempts: number | string;
     liveNegotiationScenarioAttempts: number | string;
@@ -512,6 +535,75 @@ function createPassingSummary(
         : "API_SKILL_PLUGIN_PERMISSION_INVALID",
       skillsRegistryIndexTotal: hasOverride("skillsRegistryIndexTotal") ? overrides.skillsRegistryIndexTotal : 1,
       skillsRegistryTotal: hasOverride("skillsRegistryTotal") ? overrides.skillsRegistryTotal : 1,
+      operatorPluginMarketplaceLifecycleValidated: hasOverride("operatorPluginMarketplaceLifecycleValidated")
+        ? overrides.operatorPluginMarketplaceLifecycleValidated
+        : true,
+      operatorPluginMarketplaceStatus: hasOverride("operatorPluginMarketplaceStatus")
+        ? overrides.operatorPluginMarketplaceStatus
+        : "observed",
+      operatorPluginMarketplaceTotal: hasOverride("operatorPluginMarketplaceTotal")
+        ? overrides.operatorPluginMarketplaceTotal
+        : 4,
+      operatorPluginMarketplaceUniquePlugins: hasOverride("operatorPluginMarketplaceUniquePlugins")
+        ? overrides.operatorPluginMarketplaceUniquePlugins
+        : 1,
+      operatorPluginMarketplaceOutcomeSucceeded: hasOverride("operatorPluginMarketplaceOutcomeSucceeded")
+        ? overrides.operatorPluginMarketplaceOutcomeSucceeded
+        : 2,
+      operatorPluginMarketplaceOutcomeDenied: hasOverride("operatorPluginMarketplaceOutcomeDenied")
+        ? overrides.operatorPluginMarketplaceOutcomeDenied
+        : 1,
+      operatorPluginMarketplaceOutcomeFailed: hasOverride("operatorPluginMarketplaceOutcomeFailed")
+        ? overrides.operatorPluginMarketplaceOutcomeFailed
+        : 1,
+      operatorPluginMarketplaceLifecycleCreated: hasOverride("operatorPluginMarketplaceLifecycleCreated")
+        ? overrides.operatorPluginMarketplaceLifecycleCreated
+        : 1,
+      operatorPluginMarketplaceLifecycleUpdated: hasOverride("operatorPluginMarketplaceLifecycleUpdated")
+        ? overrides.operatorPluginMarketplaceLifecycleUpdated
+        : 1,
+      operatorPluginMarketplaceLifecycleIdempotentReplay: hasOverride("operatorPluginMarketplaceLifecycleIdempotentReplay")
+        ? overrides.operatorPluginMarketplaceLifecycleIdempotentReplay
+        : 1,
+      operatorPluginMarketplaceConflictVersionConflict: hasOverride("operatorPluginMarketplaceConflictVersionConflict")
+        ? overrides.operatorPluginMarketplaceConflictVersionConflict
+        : 1,
+      operatorPluginMarketplaceConflictPluginInvalidPermission: hasOverride("operatorPluginMarketplaceConflictPluginInvalidPermission")
+        ? overrides.operatorPluginMarketplaceConflictPluginInvalidPermission
+        : 1,
+      operatorPluginMarketplaceSigningVerified: hasOverride("operatorPluginMarketplaceSigningVerified")
+        ? overrides.operatorPluginMarketplaceSigningVerified
+        : 1,
+      operatorPluginMarketplaceSigningUnsigned: hasOverride("operatorPluginMarketplaceSigningUnsigned")
+        ? overrides.operatorPluginMarketplaceSigningUnsigned
+        : 1,
+      operatorPluginMarketplaceSigningNone: hasOverride("operatorPluginMarketplaceSigningNone")
+        ? overrides.operatorPluginMarketplaceSigningNone
+        : 2,
+      operatorPluginMarketplaceSigningEvidenceObserved: hasOverride("operatorPluginMarketplaceSigningEvidenceObserved")
+        ? overrides.operatorPluginMarketplaceSigningEvidenceObserved
+        : true,
+      operatorPluginMarketplacePermissionTotal: hasOverride("operatorPluginMarketplacePermissionTotal")
+        ? overrides.operatorPluginMarketplacePermissionTotal
+        : 2,
+      operatorPluginMarketplacePermissionEntriesWithPermissions: hasOverride("operatorPluginMarketplacePermissionEntriesWithPermissions")
+        ? overrides.operatorPluginMarketplacePermissionEntriesWithPermissions
+        : 1,
+      operatorPluginMarketplaceLatestOutcome: hasOverride("operatorPluginMarketplaceLatestOutcome")
+        ? overrides.operatorPluginMarketplaceLatestOutcome
+        : "denied",
+      operatorPluginMarketplaceLatestPluginId: hasOverride("operatorPluginMarketplaceLatestPluginId")
+        ? overrides.operatorPluginMarketplaceLatestPluginId
+        : "demo-skill-plugin-1",
+      operatorPluginMarketplaceLatestVersion: hasOverride("operatorPluginMarketplaceLatestVersion")
+        ? overrides.operatorPluginMarketplaceLatestVersion
+        : 1,
+      operatorPluginMarketplaceLatestSigningStatus: hasOverride("operatorPluginMarketplaceLatestSigningStatus")
+        ? overrides.operatorPluginMarketplaceLatestSigningStatus
+        : "unsigned",
+      operatorPluginMarketplaceLatestSeenAt: hasOverride("operatorPluginMarketplaceLatestSeenAt")
+        ? overrides.operatorPluginMarketplaceLatestSeenAt
+        : "2026-02-26T00:00:00.000Z",
       sessionVersioningScenarioAttempts: hasOverride("sessionVersioningScenarioAttempts")
         ? overrides.sessionVersioningScenarioAttempts
         : 1,
@@ -697,6 +789,7 @@ function createPassingSourceRunManifest(
     evidenceOperatorDamageControlStatus: string;
     evidenceGovernancePolicyStatus: string;
     evidenceSkillsRegistryStatus: string;
+    evidencePluginMarketplaceStatus: string;
     evidenceDeviceNodesStatus: string;
     evidenceAgentUsageStatus: string;
     evidenceDeviceNodeUpdatesStatus: string;
@@ -764,6 +857,9 @@ function createPassingSourceRunManifest(
           : "pass",
         badgeEvidenceSkillsRegistryStatus: hasOverride("evidenceSkillsRegistryStatus")
           ? overrides.evidenceSkillsRegistryStatus
+          : "pass",
+        badgeEvidencePluginMarketplaceStatus: hasOverride("evidencePluginMarketplaceStatus")
+          ? overrides.evidencePluginMarketplaceStatus
           : "pass",
         badgeEvidenceDeviceNodesStatus: hasOverride("evidenceDeviceNodesStatus")
           ? overrides.evidenceDeviceNodesStatus
@@ -972,6 +1068,21 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /skillsRegistryLifecycleValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when plugin marketplace lifecycle KPI is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        operatorPluginMarketplaceLifecycleValidated: false,
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /operatorPluginMarketplaceLifecycleValidated expected True, actual False/i);
   },
 );
 
@@ -2051,6 +2162,7 @@ test(
     assert.match(output, /operator_damage_control_status=pass/i);
     assert.match(output, /governance_policy_status=pass/i);
     assert.match(output, /skills_registry_status=pass/i);
+    assert.match(output, /plugin_marketplace_status=pass/i);
     assert.match(output, /device_nodes_status=pass/i);
     assert.match(output, /agent_usage_status=pass/i);
   },
@@ -2227,6 +2339,22 @@ test(
     assert.match(
       output,
       /source run manifest evidenceSnapshot\.badgeEvidenceSkillsRegistryStatus expected pass, actual warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence plugin marketplace status is not pass",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidencePluginMarketplaceStatus: "warn" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidencePluginMarketplaceStatus expected pass, actual warn/i,
     );
   },
 );

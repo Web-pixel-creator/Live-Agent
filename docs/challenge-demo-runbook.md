@@ -199,6 +199,14 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `skillsRegistryPluginInvalidPermissionCode=API_SKILL_PLUGIN_PERMISSION_INVALID`
   - `skillsRegistryIndexTotal >= 1`
   - `skillsRegistryTotal >= 1`
+- Plugin marketplace lifecycle reliability:
+  - `operatorPluginMarketplaceLifecycleValidated=true`
+  - `operatorPluginMarketplaceStatus=observed`
+  - `operatorPluginMarketplaceTotal >= 1`
+  - `operatorPluginMarketplaceUniquePlugins >= 1`
+  - `operatorPluginMarketplaceConflictVersionConflict >= 1`
+  - `operatorPluginMarketplaceConflictPluginInvalidPermission >= 1`
+  - `operatorPluginMarketplaceSigningEvidenceObserved=true`
 - Telemetry split reliability:
   - `analyticsSplitTargetsValidated=true`
   - `analyticsBigQueryConfigValidated=true`
@@ -365,7 +373,7 @@ Manual shortcut:
 3. Local artifact `artifacts/demo-e2e/policy-check.json`.
 4. Local artifact `artifacts/demo-e2e/policy-check.md`.
 5. Local artifact `artifacts/demo-e2e/badge.json`.
-6. Local artifact `artifacts/demo-e2e/badge-details.json` (must include top-level `costEstimate` + `tokensUsed`, plus `evidence.operatorTurnTruncation`, `evidence.operatorTurnDelete`, `evidence.operatorDamageControl`, `evidence.governancePolicy`, `evidence.skillsRegistry`, `evidence.deviceNodes`, and `evidence.agentUsage` where `deviceNodes` also validates updates lane: `updatesValidated`, `updatesHasUpsert`, `updatesHasHeartbeat`, `updatesApiValidated`, `updatesTotal>=2`).
+6. Local artifact `artifacts/demo-e2e/badge-details.json` (must include top-level `costEstimate` + `tokensUsed`, plus `evidence.operatorTurnTruncation`, `evidence.operatorTurnDelete`, `evidence.operatorDamageControl`, `evidence.governancePolicy`, `evidence.skillsRegistry`, `evidence.pluginMarketplace`, `evidence.deviceNodes`, and `evidence.agentUsage` where `deviceNodes` also validates updates lane: `updatesValidated`, `updatesHasUpsert`, `updatesHasHeartbeat`, `updatesApiValidated`, `updatesTotal>=2`).
 7. Observability screenshot: dashboard `MLA Telemetry KPI Overview` with latency and error widgets.
 8. Observability screenshot: alert policy `MLA Gateway P95 Latency High` enabled.
 9. Observability screenshot: alert policy `MLA Service Error Rate High` enabled.
@@ -380,8 +388,8 @@ Manual shortcut:
 18. WebSocket conversation-item truncate evidence: `gateway.websocket.item_truncate=passed` with `kpi.gatewayItemTruncateValidated=true`, `kpi.operatorTurnTruncationSummaryValidated=true`, session-local playback truncation event `live.turn.truncated`, and judge-facing Operator Console block `Turn Truncation Evidence` (`turnTruncation.total >= 1`).
 19. WebSocket conversation-item delete evidence: `gateway.websocket.item_delete=passed` with `kpi.gatewayItemDeleteValidated=true`, session-local cleanup event `live.turn.deleted`, and judge-facing Operator Console block `Turn Delete Evidence` (`turnDelete.total >= 1`).
 20. Governance policy lifecycle evidence: `governance.policy.lifecycle=passed` with `kpi.governancePolicyLifecycleValidated=true`, conflict guards (`API_GOVERNANCE_POLICY_VERSION_CONFLICT`, `API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT`), scope guard (`API_TENANT_SCOPE_FORBIDDEN`), and centralized summary proof (`kpi.governancePolicySummaryTemplateId=strict`, `kpi.governancePolicySummarySource=tenant_override`).
-21. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings + `gate.evidenceSnapshot.operatorDamageControlSummaryValidated` / `gate.evidenceSnapshot.badgeEvidenceOperatorTurnTruncationStatus` / `gate.evidenceSnapshot.badgeEvidenceOperatorTurnDeleteStatus` / `gate.evidenceSnapshot.badgeEvidenceOperatorDamageControlStatus` / `gate.evidenceSnapshot.badgeEvidenceGovernancePolicyStatus` / `gate.evidenceSnapshot.badgeEvidenceSkillsRegistryStatus` / `gate.evidenceSnapshot.badgeEvidenceDeviceNodesStatus` / `gate.evidenceSnapshot.badgeEvidenceAgentUsageStatus` / `gate.evidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus`).
-22. Unified release evidence report: `artifacts/release-evidence/report.json` + `artifacts/release-evidence/report.md` (single-source summary for strict/artifact/deploy evidence lanes, including `agentUsageStatus` and derived `deviceNodeUpdatesStatus`).
+21. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings + `gate.evidenceSnapshot.operatorDamageControlSummaryValidated` / `gate.evidenceSnapshot.badgeEvidenceOperatorTurnTruncationStatus` / `gate.evidenceSnapshot.badgeEvidenceOperatorTurnDeleteStatus` / `gate.evidenceSnapshot.badgeEvidenceOperatorDamageControlStatus` / `gate.evidenceSnapshot.badgeEvidenceGovernancePolicyStatus` / `gate.evidenceSnapshot.badgeEvidenceSkillsRegistryStatus` / `gate.evidenceSnapshot.badgeEvidencePluginMarketplaceStatus` / `gate.evidenceSnapshot.badgeEvidenceDeviceNodesStatus` / `gate.evidenceSnapshot.badgeEvidenceAgentUsageStatus` / `gate.evidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus`).
+22. Unified release evidence report: `artifacts/release-evidence/report.json` + `artifacts/release-evidence/report.md` (single-source summary for strict/artifact/deploy evidence lanes, including `pluginMarketplaceStatus`, `agentUsageStatus`, and derived `deviceNodeUpdatesStatus`).
 
 ## Quick Observability Setup (for demo environment)
 

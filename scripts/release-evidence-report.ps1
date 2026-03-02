@@ -59,6 +59,7 @@ $report = [ordered]@{
     operatorDamageControlStatus = "unavailable"
     governancePolicyStatus = "unavailable"
     skillsRegistryStatus = "unavailable"
+    pluginMarketplaceStatus = "unavailable"
     deviceNodesStatus = "unavailable"
     agentUsageStatus = "unavailable"
     deviceNodeUpdatesStatus = "unavailable"
@@ -93,6 +94,9 @@ if (Test-Path $resolvedBadgeDetailsPath) {
       }
       if ($null -ne $badgeDetails.evidence.skillsRegistry) {
         $report.statuses.skillsRegistryStatus = Get-StatusValueOrDefault -Value $badgeDetails.evidence.skillsRegistry.status -DefaultValue "unavailable"
+      }
+      if ($null -ne $badgeDetails.evidence.pluginMarketplace) {
+        $report.statuses.pluginMarketplaceStatus = Get-StatusValueOrDefault -Value $badgeDetails.evidence.pluginMarketplace.status -DefaultValue "unavailable"
       }
       if ($null -ne $badgeDetails.evidence.deviceNodes) {
         $report.statuses.deviceNodesStatus = Get-StatusValueOrDefault -Value $badgeDetails.evidence.deviceNodes.status -DefaultValue "unavailable"
@@ -159,6 +163,7 @@ $markdown = @(
   "| operatorDamageControl | $($report.statuses.operatorDamageControlStatus) |",
   "| governancePolicy | $($report.statuses.governancePolicyStatus) |",
   "| skillsRegistry | $($report.statuses.skillsRegistryStatus) |",
+  "| pluginMarketplace | $($report.statuses.pluginMarketplaceStatus) |",
   "| deviceNodes | $($report.statuses.deviceNodesStatus) |",
   "| agentUsage | $($report.statuses.agentUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
