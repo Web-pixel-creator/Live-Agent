@@ -433,6 +433,18 @@ jobs:
             }
           }
           if (-not (Test-Path $artifactsRoot)) {
+            $flatBundleRoot = "artifact-bundle"
+            $hasFlatBundleShape = (
+              (Test-Path (Join-Path $flatBundleRoot "demo-e2e")) -or
+              (Test-Path (Join-Path $flatBundleRoot "perf-load")) -or
+              (Test-Path (Join-Path $flatBundleRoot "release-evidence"))
+            )
+            if ($hasFlatBundleShape) {
+              $artifactsRoot = $flatBundleRoot
+              Write-Host ("Using flat artifact root: " + $artifactsRoot)
+            }
+          }
+          if (-not (Test-Path $artifactsRoot)) {
             Write-Host "Downloaded artifact tree (depth 3):"
             Get-ChildItem -Path "artifact-bundle" -Recurse | Select-Object -First 200 | ForEach-Object {
               Write-Host (" - " + $_.FullName)
