@@ -64,6 +64,30 @@ function Assert-RequiredFields {
   }
 }
 
+function Try-ParseDecimalValue {
+  param(
+    [object]$RawValue,
+    [ref]$Parsed
+  )
+
+  $valueText = [string]$RawValue
+  $styles = [System.Globalization.NumberStyles]::Float
+  $invariantCulture = [System.Globalization.CultureInfo]::InvariantCulture
+  $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture
+  $parsedValue = 0.0
+
+  if ([double]::TryParse($valueText, $styles, $invariantCulture, [ref]$parsedValue)) {
+    $Parsed.Value = $parsedValue
+    return $true
+  }
+  if ([double]::TryParse($valueText, $styles, $currentCulture, [ref]$parsedValue)) {
+    $Parsed.Value = $parsedValue
+    return $true
+  }
+
+  return $false
+}
+
 $badgeEndpoint = Resolve-BadgeEndpoint -ExplicitEndpoint $BadgeEndpoint -RailwayUrl $RailwayPublicUrl
 $detailsEndpoint = Resolve-DetailsEndpoint -ExplicitEndpoint $DetailsEndpoint -ResolvedBadgeEndpoint $badgeEndpoint
 $shield = "https://img.shields.io/endpoint?url=$([System.Uri]::EscapeDataString($badgeEndpoint))"
@@ -125,19 +149,19 @@ if (-not $SkipDetails) {
   $costVeoUsd = 0.0
   $costTtsUsd = 0.0
   $costTotalUsd = 0.0
-  if (-not [double]::TryParse([string]$details.costEstimate.geminiLiveUsd, [ref]$costGeminiLiveUsd)) {
+  if (-not (Try-ParseDecimalValue -RawValue $details.costEstimate.geminiLiveUsd -Parsed ([ref]$costGeminiLiveUsd))) {
     Fail "badge-details costEstimate.geminiLiveUsd must be numeric."
   }
-  if (-not [double]::TryParse([string]$details.costEstimate.imagenUsd, [ref]$costImagenUsd)) {
+  if (-not (Try-ParseDecimalValue -RawValue $details.costEstimate.imagenUsd -Parsed ([ref]$costImagenUsd))) {
     Fail "badge-details costEstimate.imagenUsd must be numeric."
   }
-  if (-not [double]::TryParse([string]$details.costEstimate.veoUsd, [ref]$costVeoUsd)) {
+  if (-not (Try-ParseDecimalValue -RawValue $details.costEstimate.veoUsd -Parsed ([ref]$costVeoUsd))) {
     Fail "badge-details costEstimate.veoUsd must be numeric."
   }
-  if (-not [double]::TryParse([string]$details.costEstimate.ttsUsd, [ref]$costTtsUsd)) {
+  if (-not (Try-ParseDecimalValue -RawValue $details.costEstimate.ttsUsd -Parsed ([ref]$costTtsUsd))) {
     Fail "badge-details costEstimate.ttsUsd must be numeric."
   }
-  if (-not [double]::TryParse([string]$details.costEstimate.totalUsd, [ref]$costTotalUsd)) {
+  if (-not (Try-ParseDecimalValue -RawValue $details.costEstimate.totalUsd -Parsed ([ref]$costTotalUsd))) {
     Fail "badge-details costEstimate.totalUsd must be numeric."
   }
   if (
