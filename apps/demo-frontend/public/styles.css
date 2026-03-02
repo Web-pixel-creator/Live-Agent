@@ -41,7 +41,7 @@
   --tracking-normal: -0.025em;
   --spacing: 0.27rem;
 
-  /* Backward-compatible aliases for existing frontend styles/tests */
+  /* Semantic aliases consumed by existing frontend layouts/tests */
   --bg-0: var(--background);
   --bg-1: color-mix(in oklch, var(--card) 88%, var(--background));
   --bg-2: color-mix(in oklch, var(--secondary) 90%, var(--background));
@@ -138,20 +138,20 @@
 body {
   margin: 0;
   min-height: 100vh;
-  color: var(--text);
+  color: var(--foreground);
   font-family: var(--font-sans);
   letter-spacing: var(--tracking-normal);
   background:
     radial-gradient(1200px 700px at 10% -20%, var(--primary-soft), transparent 60%),
     radial-gradient(1100px 700px at 90% -10%, var(--accent-soft), transparent 58%),
-    linear-gradient(155deg, var(--bg-0), var(--bg-1) 50%, var(--bg-2));
+    linear-gradient(155deg, var(--background), var(--bg-1) 50%, var(--bg-2));
 }
 
 .layout {
-  width: min(1200px, calc(100vw - 32px));
-  margin: 20px auto 40px;
+  width: min(1320px, calc(100vw - 56px));
+  margin: 28px auto 64px;
   display: grid;
-  gap: 14px;
+  gap: 24px;
   overflow-x: hidden;
 }
 
@@ -159,14 +159,14 @@ body {
   background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft));
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 18px 18px 16px;
+  padding: 28px;
   backdrop-filter: blur(6px);
   box-shadow: var(--shadow-ui);
 }
 
 .hero h1 {
-  margin: 0 0 6px;
-  font-size: clamp(1.3rem, 2.4vw, 1.75rem);
+  margin: 0 0 10px;
+  font-size: clamp(1.45rem, 2.4vw, 1.95rem);
   letter-spacing: 0.02em;
   font-family: var(--font-serif);
 }
@@ -180,14 +180,16 @@ body {
 
 .hero-sub {
   margin: 0;
-  color: var(--muted);
+  color: var(--muted-foreground);
+  max-width: 72ch;
+  line-height: 1.45;
 }
 
 .tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 6px;
+  gap: 10px;
+  padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface-glass);
@@ -197,10 +199,10 @@ body {
 
 .tab-btn {
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 4px);
-  padding: 8px 12px;
+  border-radius: calc(var(--radius) - 5px);
+  padding: 12px 16px;
   background: var(--surface-muted);
-  color: var(--text);
+  color: var(--foreground);
   font-weight: 600;
   transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
 }
@@ -213,7 +215,7 @@ body {
 
 .tab-content {
   display: none;
-  gap: 14px;
+  gap: 22px;
 }
 
 .tab-content.active {
@@ -222,33 +224,33 @@ body {
 
 .live-negotiator-main {
   display: grid;
-  gap: 14px;
+  gap: 22px;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
 }
 
 .live-negotiator-primary,
 .live-negotiator-secondary {
   display: grid;
-  gap: 14px;
+  gap: 20px;
 }
 
 .panel {
   background: var(--surface-card-strong);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: 24px;
   backdrop-filter: blur(4px);
   box-shadow: var(--shadow-ui);
 }
 
 .panel h2 {
-  margin: 0 0 12px;
+  margin: 0 0 18px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  font-size: 1.02rem;
-  color: var(--heading);
+  gap: 10px;
+  font-size: 1.08rem;
+  color: var(--foreground);
 }
 
 .section-badge {
@@ -257,17 +259,17 @@ body {
   border: 1px solid color-mix(in oklch, var(--primary) 52%, var(--border));
   border-radius: 999px;
   padding: 2px 8px;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent-2);
+  color: var(--primary);
   background: var(--primary-soft);
 }
 
 .grid-2,
 .grid-3 {
   display: grid;
-  gap: 10px;
+  gap: 16px;
 }
 
 .grid-2 {
@@ -280,23 +282,23 @@ body {
 
 .field {
   display: grid;
-  gap: 6px;
+  gap: 9px;
 }
 
 .field span {
-  color: var(--muted);
-  font-size: 0.87rem;
+  color: var(--muted-foreground);
+  font-size: 0.95rem;
 }
 
 .meta-box {
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 4px);
   background: var(--surface-popover);
-  color: var(--muted);
+  color: var(--muted-foreground);
   min-height: 82px;
-  padding: 10px;
-  font-size: 0.88rem;
-  line-height: 1.4;
+  padding: 13px 14px;
+  font-size: 0.93rem;
+  line-height: 1.5;
 }
 
 input,
@@ -312,8 +314,8 @@ textarea {
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 4px);
   background: var(--surface-input);
-  color: var(--text);
-  padding: 9px 10px;
+  color: var(--foreground);
+  padding: 13px 14px;
   box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ring) 12%, transparent);
 }
 
@@ -322,16 +324,16 @@ textarea {
 }
 
 .actions {
-  margin-top: 10px;
+  margin-top: 16px;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
 }
 
 button {
   border: 0;
   border-radius: calc(var(--radius) - 4px);
-  padding: 9px 12px;
+  padding: 11px 14px;
   background: linear-gradient(130deg, var(--primary), color-mix(in oklch, var(--primary) 72%, var(--accent-foreground)));
   color: var(--button-primary-fg);
   font-weight: 600;
@@ -360,12 +362,12 @@ button:hover {
 }
 
 .meta-row {
-  margin-top: 10px;
+  margin-top: 16px;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  color: var(--muted);
-  font-size: 0.92rem;
+  gap: 18px;
+  color: var(--muted-foreground);
+  font-size: 0.95rem;
   overflow-wrap: anywhere;
 }
 
@@ -378,9 +380,9 @@ button:hover {
 }
 
 .kpi-board {
-  margin-top: 10px;
+  margin-top: 16px;
   display: grid;
-  gap: 10px;
+  gap: 14px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -391,19 +393,19 @@ button:hover {
 .kpi-card {
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 2px);
-  padding: 10px;
+  padding: 14px;
   background: var(--surface-popover);
 }
 
 .kpi-card h3 {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   font-size: 0.95rem;
-  color: var(--heading-soft);
+  color: color-mix(in oklch, var(--foreground) 84%, var(--accent-foreground));
 }
 
 .kpi-card p {
-  margin: 0 0 4px;
-  color: var(--muted);
+  margin: 0 0 6px;
+  color: var(--muted-foreground);
 }
 
 .kpi-card-offer {
@@ -426,18 +428,18 @@ button:hover {
   gap: 10px;
   border: 1px solid var(--border-soft);
   border-radius: calc(var(--radius) - 4px);
-  padding: 8px 9px;
+  padding: 11px 12px;
   background: color-mix(in oklch, var(--card) 85%, transparent);
 }
 
 .kpi-label {
-  color: var(--muted);
-  font-size: 0.82rem;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
 }
 
 .kpi-value {
-  color: var(--heading);
-  font-size: 1.2rem;
+  color: var(--foreground);
+  font-size: 1.28rem;
   font-weight: 700;
   line-height: 1;
   font-family: var(--font-mono);
@@ -456,20 +458,20 @@ button:hover {
 }
 
 .kpi-card-status .status-pill {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .kpi-status-note {
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: 0.8rem;
-  line-height: 1.35;
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 
 .kpi-signal-grid {
-  margin-top: 10px;
+  margin-top: 14px;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .kpi-signal {
@@ -477,9 +479,9 @@ button:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 0.81rem;
+  gap: 10px;
+  color: var(--muted-foreground);
+  font-size: 0.87rem;
 }
 
 .kpi-delta {
@@ -487,8 +489,8 @@ button:hover {
   align-items: center;
   border: 1px solid transparent;
   border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 0.75rem;
+  padding: 4px 10px;
+  font-size: 0.78rem;
   letter-spacing: 0.01em;
   white-space: nowrap;
 }
@@ -512,15 +514,15 @@ button:hover {
 }
 
 .operator-health-board {
-  margin-top: 10px;
+  margin-top: 16px;
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .operator-health-group {
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 2px);
-  padding: 10px;
+  padding: 14px;
   background: color-mix(in oklch, var(--card) 84%, transparent);
 }
 
@@ -532,24 +534,24 @@ button:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
 
 .operator-health-group-head h3 {
   margin: 0;
-  color: var(--heading-soft);
+  color: color-mix(in oklch, var(--foreground) 84%, var(--accent-foreground));
   font-size: 0.92rem;
 }
 
 .operator-group-toggle {
-  padding: 6px 10px;
+  padding: 8px 12px;
   font-size: 0.8rem;
 }
 
 .operator-health-group-body {
-  margin-top: 10px;
+  margin-top: 14px;
   display: grid;
-  gap: 10px;
+  gap: 12px;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
@@ -564,7 +566,7 @@ button:hover {
 .operator-health-card {
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 2px);
-  padding: 10px;
+  padding: 13px;
   background: var(--surface-popover);
 }
 
@@ -573,44 +575,44 @@ button:hover {
 }
 
 .operator-health-card h3 {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   font-size: 0.95rem;
-  color: var(--heading-soft);
+  color: color-mix(in oklch, var(--foreground) 84%, var(--accent-foreground));
 }
 
 .operator-health-card .status-pill {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .operator-health-row {
-  margin: 0 0 4px;
+  margin: 0 0 8px;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
-  color: var(--muted);
+  gap: 10px;
+  color: var(--muted-foreground);
   font-size: 0.89rem;
 }
 
 .operator-health-row strong {
-  color: var(--heading-soft);
+  color: color-mix(in oklch, var(--foreground) 84%, var(--accent-foreground));
   font-weight: 600;
 }
 
 .operator-health-row span {
-  color: var(--heading);
+  color: var(--foreground);
   font-family: var(--font-mono);
   font-size: 0.83rem;
   text-align: right;
 }
 
 .operator-health-hint {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 4px);
-  padding: 8px 9px;
-  font-size: 0.83rem;
-  line-height: 1.35;
+  padding: 10px 11px;
+  font-size: 0.87rem;
+  line-height: 1.45;
 }
 
 .operator-health-hint-neutral {
@@ -639,8 +641,8 @@ button:hover {
 .status-pill {
   display: inline-block;
   border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 0.82rem;
+  padding: 7px 12px;
+  font-size: 0.84rem;
   font-weight: 700;
 }
 
@@ -663,25 +665,25 @@ button:hover {
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 4px);
   background: color-mix(in oklch, var(--card) 86%, transparent);
-  padding: 10px;
-  min-height: 96px;
-  line-height: 1.45;
+  padding: 13px 14px;
+  min-height: 108px;
+  line-height: 1.55;
   white-space: pre-wrap;
 }
 
 .story-progress {
-  margin-top: 10px;
+  margin-top: 16px;
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .story-progress-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  color: var(--muted);
-  font-size: 0.83rem;
+  gap: 12px;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
 }
 
 .story-progress-track {
@@ -723,10 +725,10 @@ button:hover {
 }
 
 .story-status-row {
-  margin-top: 8px;
+  margin-top: 14px;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .story-timeline-preview-empty {
@@ -753,7 +755,7 @@ button:hover {
 }
 
 .panel-transcript .transcript {
-  min-height: 320px;
+  min-height: 360px;
   max-height: 520px;
 }
 
@@ -764,17 +766,17 @@ button:hover {
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 4px);
   background: color-mix(in oklch, var(--card) 86%, transparent);
-  padding: 10px;
+  padding: 14px;
   display: grid;
-  gap: 6px;
+  gap: 10px;
 }
 
 .entry {
   border-left: 3px solid color-mix(in oklch, var(--primary) 76%, white);
   background: color-mix(in oklch, var(--primary) 12%, transparent);
   border-radius: calc(var(--radius) - 8px);
-  padding: 6px 8px;
-  font-size: 0.9rem;
+  padding: 9px 11px;
+  font-size: 0.94rem;
 }
 
 .entry.system {
@@ -789,7 +791,7 @@ button:hover {
 
 .entry small {
   display: block;
-  color: var(--muted);
+  color: var(--muted-foreground);
   margin-bottom: 2px;
 }
 
