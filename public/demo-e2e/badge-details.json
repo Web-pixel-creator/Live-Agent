@@ -1,28 +1,28 @@
 {
-  "generatedAt": "2026-03-01T17:11:42.903Z",
+  "generatedAt": "2026-03-02T07:24:23.023Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
-  "checks": 260,
+  "checks": 278,
   "violations": 0,
-  "roundTripMs": 47,
+  "roundTripMs": 36,
   "costEstimate": {
     "currency": "USD",
-    "geminiLiveUsd": 0.023756,
+    "geminiLiveUsd": 0.023902,
     "imagenUsd": 0.12,
     "veoUsd": 0.36,
     "ttsUsd": 0.024,
-    "totalUsd": 0.527756,
+    "totalUsd": 0.527902,
     "source": "runtime_estimate"
   },
   "tokensUsed": {
-    "input": 2191,
-    "output": 16867,
-    "total": 19058,
+    "input": 2218,
+    "output": 16966,
+    "total": 19184,
     "source": "runtime_estimate"
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-03-01T22:11:41.4638451+05:00",
+    "sourceSummaryGeneratedAt": "2026-03-02T12:24:22.0945061+05:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -30,7 +30,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T17:11:40.052Z",
+      "latestSeenAt": "2026-03-02T07:24:21.262Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -44,7 +44,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-01T17:11:40.145Z",
+      "latestSeenAt": "2026-03-02T07:24:21.347Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -78,7 +78,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-03-01T17:11:39.747Z",
+        "seenAt": "2026-03-02T07:24:20.956Z",
         "seenAtIsIso": true
       }
     },
@@ -105,8 +105,49 @@
       "replayOutcome": "idempotent_replay",
       "versionConflictCode": "API_SKILL_REGISTRY_VERSION_CONFLICT",
       "pluginInvalidPermissionCode": "API_SKILL_PLUGIN_PERMISSION_INVALID",
-      "indexTotal": 1,
-      "registryTotal": 1
+      "indexTotal": 2,
+      "registryTotal": 2
+    },
+    "pluginMarketplace": {
+      "status": "pass",
+      "validated": true,
+      "summaryStatus": "observed",
+      "total": 4,
+      "uniquePlugins": 1,
+      "outcomes": {
+        "succeeded": 2,
+        "denied": 1,
+        "failed": 1,
+        "total": 4
+      },
+      "lifecycle": {
+        "created": 1,
+        "updated": 0,
+        "idempotentReplay": 1
+      },
+      "conflicts": {
+        "versionConflict": 1,
+        "pluginInvalidPermission": 1
+      },
+      "signingStatusCounts": {
+        "verified": 0,
+        "unsigned": 2,
+        "none": 2,
+        "total": 4
+      },
+      "signingEvidenceObserved": true,
+      "permissionTotals": {
+        "totalPermissions": 2,
+        "entriesWithPermissions": 2
+      },
+      "latest": {
+        "outcome": "succeeded",
+        "pluginId": "demo-plugin-skill-93db9f96-cb55-45dc-b9f3-996f7f48aa2b",
+        "version": 1,
+        "signingStatus": "unsigned",
+        "seenAt": "2026-03-02T07:24:21.717Z",
+        "seenAtIsIso": true
+      }
     },
     "deviceNodes": {
       "status": "pass",
@@ -151,7 +192,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 260 checks | 47ms ws",
+    "message": "pass | 278 checks | 36ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }
