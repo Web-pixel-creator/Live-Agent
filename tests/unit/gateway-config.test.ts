@@ -94,3 +94,32 @@ test("gateway config clamps invalid webrtc canary percent values to safe bounds"
     },
   );
 });
+
+test("gateway config parses transcript replacement rules from LIVE_TRANSCRIPT_REPLACEMENTS_JSON", { concurrency: false }, async () => {
+  await withEnv(
+    {
+      LIVE_TRANSCRIPT_REPLACEMENTS_JSON: "{\"wisper\":\"Whisper\",\"wisper ai\":\"Wisper AI\",\" \":\"skip\",\"bad\":12}",
+    },
+    () => {
+      const config = loadGatewayConfig();
+      assert.deepEqual(config.liveTranscriptReplacements, [
+        { source: "wisper ai", target: "Wisper AI" },
+        { source: "wisper", target: "Whisper" },
+      ]);
+    },
+  );
+});
+
+test("gateway config falls back to empty transcript replacement rules when LIVE_TRANSCRIPT_REPLACEMENTS_JSON is invalid", {
+  concurrency: false,
+}, async () => {
+  await withEnv(
+    {
+      LIVE_TRANSCRIPT_REPLACEMENTS_JSON: "{not-json}",
+    },
+    () => {
+      const config = loadGatewayConfig();
+      assert.deepEqual(config.liveTranscriptReplacements, []);
+    },
+  );
+});

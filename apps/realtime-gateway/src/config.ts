@@ -8,6 +8,11 @@ export type LiveAuthProfile = {
   authHeader?: string;
 };
 
+export type TranscriptReplacementRule = {
+  source: string;
+  target: string;
+};
+
 export type GatewayConfig = {
   port: number;
   gatewayTransportMode: GatewayTransportMode;
@@ -26,6 +31,7 @@ export type GatewayConfig = {
   liveApiProtocol: LiveApiProtocol;
   liveModelId: string;
   liveModelFallbackIds: string[];
+  liveTranscriptReplacements: TranscriptReplacementRule[];
   liveAudioMimeType: string;
   liveVideoMimeType: string;
   liveAutoSetup: boolean;
@@ -160,6 +166,60 @@ function parseOptionalJsonObject(value: string | undefined): Record<string, unkn
   }
 }
 
+function parseTranscriptReplacements(value: string | undefined): TranscriptReplacementRule[] {
+  const normalized = parseOptionalString(value);
+  if (!normalized) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(normalized) as unknown;
+    const rules: TranscriptReplacementRule[] = [];
+
+    if (Array.isArray(parsed)) {
+      for (const item of parsed) {
+        if (typeof item !== "object" || item === null) {
+          continue;
+        }
+        const typed = item as { source?: unknown; target?: unknown };
+        if (typeof typed.source !== "string" || typeof typed.target !== "string") {
+          continue;
+        }
+        const source = typed.source.trim();
+        const target = typed.target.trim();
+        if (source.length === 0 || target.length === 0) {
+          continue;
+        }
+        rules.push({ source, target });
+      }
+    } else if (typeof parsed === "object" && parsed !== null) {
+      for (const [sourceRaw, targetRaw] of Object.entries(parsed as Record<string, unknown>)) {
+        if (typeof targetRaw !== "string") {
+          continue;
+        }
+        const source = sourceRaw.trim();
+        const target = targetRaw.trim();
+        if (source.length === 0 || target.length === 0) {
+          continue;
+        }
+        rules.push({ source, target });
+      }
+    }
+
+    const deduped = new Map<string, TranscriptReplacementRule>();
+    for (const rule of rules) {
+      const dedupeKey = rule.source.toLowerCase();
+      if (!deduped.has(dedupeKey)) {
+        deduped.set(dedupeKey, rule);
+      }
+    }
+
+    return Array.from(deduped.values()).sort((left, right) => right.source.length - left.source.length);
+  } catch {
+    return [];
+  }
+}
+
 function parseAuthProfilesJson(value: string | undefined): LiveAuthProfile[] {
   if (!value) {
     return [];
@@ -277,6 +337,7 @@ export function loadGatewayConfig(): GatewayConfig {
     liveApiProtocol: parseLiveApiProtocol(process.env.LIVE_API_PROTOCOL),
     liveModelId: process.env.LIVE_MODEL_ID ?? "gemini-live-2.5-flash-native-audio",
     liveModelFallbackIds: parseCsv(process.env.LIVE_MODEL_FALLBACK_IDS),
+    liveTranscriptReplacements: parseTranscriptReplacements(process.env.LIVE_TRANSCRIPT_REPLACEMENTS_JSON),
     liveAudioMimeType: process.env.LIVE_AUDIO_MIME_TYPE ?? "audio/pcm;rate=16000",
     liveVideoMimeType: process.env.LIVE_VIDEO_MIME_TYPE ?? "image/jpeg",
     liveAutoSetup: process.env.LIVE_AUTO_SETUP !== "false",

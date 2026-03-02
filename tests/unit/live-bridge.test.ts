@@ -22,6 +22,7 @@ function createGatewayConfig(overrides: Partial<GatewayConfig>): GatewayConfig {
     liveApiProtocol: "gemini",
     liveModelId: "model-primary",
     liveModelFallbackIds: [],
+    liveTranscriptReplacements: [],
     liveAudioMimeType: "audio/pcm;rate=16000",
     liveVideoMimeType: "image/jpeg",
     liveAutoSetup: true,
@@ -698,6 +699,92 @@ test("live bridge emits text deltas when upstream transcript frames are cumulati
       transcriptDeltaEvents.every((item) => typeof item.turnId === "string" && item.turnId.length > 0),
       true,
     );
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
+});
+
+test("live bridge applies transcript replacements before transcript delta and turn completion events", async () => {
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+  const port = (wss.address() as AddressInfo).port;
+
+  wss.on("connection", (ws) => {
+    ws.on("message", (raw) => {
+      const parsed = JSON.parse(raw.toString("utf8")) as Record<string, unknown>;
+      if (!parsed.clientContent) {
+        return;
+      }
+      ws.send(
+        JSON.stringify({
+          serverContent: {
+            modelTurn: {
+              parts: [{ text: "helo wisper ai" }],
+            },
+          },
+        }),
+      );
+      ws.send(
+        JSON.stringify({
+          serverContent: {
+            outputTranscript: "helo wisper ai rocks",
+          },
+        }),
+      );
+      ws.send(
+        JSON.stringify({
+          serverContent: {
+            outputTranscript: "helo wisper ai rocks",
+            turnComplete: true,
+          },
+        }),
+      );
+    });
+  });
+
+  const emitted: EventEnvelope[] = [];
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveConnectMaxAttempts: 1,
+      liveConnectRetryMs: 20,
+      liveTranscriptReplacements: [
+        { source: "wisper", target: "Whisper" },
+        { source: "wisper ai", target: "Wisper AI" },
+        { source: "helo", target: "hello" },
+      ],
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: (event) => emitted.push(event),
+  });
+
+  try {
+    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "replacement test" } }));
+    await waitFor(() => emitted.some((event) => event.type === "live.turn.completed"), 3000);
+
+    const transcriptDeltaEvents = emitted
+      .filter((event) => event.type === "live.output.transcript.delta")
+      .map((event) => event.payload as { text?: string; turnId?: string });
+    assert.deepEqual(
+      transcriptDeltaEvents.map((item) => item.text),
+      ["hello Wisper AI", " rocks"],
+    );
+    assert.equal(
+      transcriptDeltaEvents.every((item) => typeof item.turnId === "string" && item.turnId.length > 0),
+      true,
+    );
+
+    const turnCompletedEvent = emitted.find((event) => event.type === "live.turn.completed");
+    assert.ok(turnCompletedEvent, "expected live.turn.completed event");
+    const turnCompletedPayload = turnCompletedEvent?.payload as {
+      text?: string | null;
+      textChars?: number;
+    };
+    assert.equal(turnCompletedPayload.text, "hello Wisper AI rocks");
+    assert.equal(turnCompletedPayload.textChars, "hello Wisper AI rocks".length);
   } finally {
     bridge.close();
     await closeWss(wss);

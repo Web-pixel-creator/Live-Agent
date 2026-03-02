@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import WebSocket from "ws";
 import { createEnvelope, type EventEnvelope } from "@mla/contracts";
-import type { GatewayConfig, LiveApiProtocol, LiveAuthProfile } from "./config.js";
+import type { GatewayConfig, LiveApiProtocol, LiveAuthProfile, TranscriptReplacementRule } from "./config.js";
 
 type SendFn = (event: EventEnvelope) => void;
 type LiveModality = "audio" | "video" | "image" | "text";
@@ -22,6 +22,12 @@ type ModelState = {
   cooldownUntilMs: number;
   disabledUntilMs: number;
   failureCount: number;
+};
+
+type CompiledTranscriptReplacementRule = {
+  source: string;
+  target: string;
+  pattern: RegExp;
 };
 
 type FailoverReasonClass = "transient" | "rate_limit" | "auth" | "billing";
@@ -82,6 +88,52 @@ function parseHeaderSpec(value: string | undefined): { name: string; value: stri
     name,
     value: headerValue,
   };
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildTranscriptReplacementPattern(source: string): RegExp {
+  const escaped = escapeRegExp(source);
+  const tokenLikePattern = /^[\p{L}\p{N}_-]+$/u;
+  if (tokenLikePattern.test(source)) {
+    return new RegExp(`(?<![\\p{L}\\p{N}_-])${escaped}(?![\\p{L}\\p{N}_-])`, "giu");
+  }
+  return new RegExp(escaped, "giu");
+}
+
+function compileTranscriptReplacementRules(rules: TranscriptReplacementRule[]): CompiledTranscriptReplacementRule[] {
+  const compiled: CompiledTranscriptReplacementRule[] = [];
+  const orderedRules = [...rules].sort((left, right) => right.source.length - left.source.length);
+  for (const rule of orderedRules) {
+    if (rule.source.length === 0 || rule.target.length === 0) {
+      continue;
+    }
+    compiled.push({
+      source: rule.source,
+      target: rule.target,
+      pattern: buildTranscriptReplacementPattern(rule.source),
+    });
+  }
+  return compiled;
+}
+
+function applyTranscriptReplacementRules(text: string, rules: CompiledTranscriptReplacementRule[]): string {
+  if (text.length === 0 || rules.length === 0) {
+    return text;
+  }
+  let updated = text;
+  const placeholders: Array<{ token: string; target: string }> = [];
+  for (const rule of rules) {
+    const token = `\uE000mla_tr_${placeholders.length}\uE001`;
+    placeholders.push({ token, target: rule.target });
+    updated = updated.replace(rule.pattern, token);
+  }
+  for (const placeholder of placeholders) {
+    updated = updated.split(placeholder.token).join(placeholder.target);
+  }
+  return updated;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -716,6 +768,7 @@ export class LiveApiBridge {
   private currentTurnTextCombined = "";
   private lastFunctionCallFingerprint: string | null = null;
   private readonly modelStates: ModelState[];
+  private readonly transcriptReplacementRules: CompiledTranscriptReplacementRule[];
   private currentModelIndex = 0;
   private readonly authProfiles: AuthProfileState[];
   private currentAuthProfileIndex = 0;
@@ -738,6 +791,7 @@ export class LiveApiBridge {
     this.activeRunId = params.runId;
     this.send = params.send;
     this.modelStates = buildModelState(params.config);
+    this.transcriptReplacementRules = compileTranscriptReplacementRules(params.config.liveTranscriptReplacements);
     this.authProfiles = buildAuthProfileState(params.config);
   }
 
@@ -1382,7 +1436,8 @@ export class LiveApiBridge {
     const nowMs = Date.now();
     let normalizedTextDelta: string | null = null;
     if (typeof normalized.text === "string") {
-      normalizedTextDelta = this.toStreamingTextDelta(normalized.text);
+      const normalizedText = applyTranscriptReplacementRules(normalized.text, this.transcriptReplacementRules);
+      normalizedTextDelta = this.toStreamingTextDelta(normalizedText);
       if (normalizedTextDelta === null) {
         delete normalized.text;
       } else {

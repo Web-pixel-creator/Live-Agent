@@ -147,6 +147,7 @@ Granular output guidance:
 
 1. `live.output.audio.delta` and `live.output.transcript.delta` are the preferred low-latency rendering events for realtime UI.
 2. `live.output` remains as compatibility envelope and may include `normalized.granular=true` when granular deltas were already emitted.
+3. If `LIVE_TRANSCRIPT_REPLACEMENTS_JSON` is configured, gateway may normalize outgoing transcript text before emitting `live.output.transcript.delta` and `live.turn.completed`.
 
 Realtime function-call auto-dispatch behavior:
 
