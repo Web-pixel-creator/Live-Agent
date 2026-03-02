@@ -86,7 +86,7 @@
             <button id="exportJsonBtn" class="button-muted">Export Session JSON</button>
             <button id="exportAudioBtn" class="button-muted">Export Session Audio (WAV)</button>
           </div>
-          <div class="meta-row">
+          <div class="meta-row meta-row-status">
             <div><strong>Status:</strong> <span id="connectionStatus">disconnected</span></div>
             <div><strong>Assistant:</strong> <span id="assistantStreamStatus" class="status-pill status-neutral">idle</span></div>
             <div><strong>Run ID:</strong> <span id="runId">-</span></div>
@@ -108,13 +108,16 @@
             <button id="interruptBtn" class="button-warn">Interrupt Assistant</button>
             <button id="fallbackBtn" class="button-muted">Switch To Text Fallback</button>
           </div>
-          <div class="grid-2">
-            <label class="field">
-              <span>Still Image Input</span>
-              <input id="imageInput" type="file" accept="image/*" />
-            </label>
-            <div class="actions">
-              <button id="sendImageBtn" class="button-muted">Send Image Frame</button>
+          <div class="field media-upload-field">
+            <span>Still Image Input</span>
+            <div class="media-upload-row">
+              <label class="field media-upload-input">
+                <span class="sr-only">Still Image Input</span>
+                <input id="imageInput" type="file" accept="image/*" />
+              </label>
+              <div class="actions media-upload-actions">
+                <button id="sendImageBtn" class="button-muted">Send Image Frame</button>
+              </div>
             </div>
           </div>
           <div class="grid-3">
