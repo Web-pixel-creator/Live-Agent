@@ -16,7 +16,7 @@ test("railway deploy helpers normalize auth env and support project-token fallba
       source,
       /if \(\[string\]::IsNullOrWhiteSpace\(\$env:RAILWAY_API_TOKEN\) -and \$hasProjectToken\)\s*\{[\s\S]*\$env:RAILWAY_API_TOKEN = \$env:RAILWAY_TOKEN/,
     );
-    assert.match(source, /\$authProbe = \(& railway whoami 2>&1 \| Out-String\)\.Trim\(\)/);
+    assert.match(source, /try\s*\{[\s\S]*\$authProbe = \(& railway whoami 2>&1 \| Out-String\)\.Trim\(\)[\s\S]*\$authProbeExitCode = \$LASTEXITCODE[\s\S]*\}\s*catch/);
     assert.match(source, /railway whoami failed; forcing RAILWAY_TOKEN project-token mode \(RAILWAY_TOKEN -> RAILWAY_API_TOKEN\)\./);
     assert.match(source, /railway whoami failed; continuing with RAILWAY_TOKEN project-token mode\./);
     assert.match(

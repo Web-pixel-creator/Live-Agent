@@ -47,8 +47,23 @@ function Ensure-RailwayAuthContext([string]$LogPrefix) {
     Write-Host ("[" + $LogPrefix + "] RAILWAY_API_TOKEN is empty; using RAILWAY_TOKEN fallback for CLI auth.")
   }
 
-  $authProbe = (& railway whoami 2>&1 | Out-String).Trim()
-  if ($LASTEXITCODE -eq 0) {
+  $authProbe = ""
+  $authProbeExitCode = 1
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = "Continue"
+    $authProbe = (& railway whoami 2>&1 | Out-String).Trim()
+    $authProbeExitCode = $LASTEXITCODE
+  }
+  catch {
+    $authProbe = [string]$_.Exception.Message
+    $authProbeExitCode = 1
+  }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+
+  if ($authProbeExitCode -eq 0) {
     return
   }
 
