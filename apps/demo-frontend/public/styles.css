@@ -2,6 +2,7 @@
 
 :root {
   /* Violet Bloom (dark, default) */
+  color-scheme: dark;
   --background: oklch(0.2223 0.0060 271.1393);
   --foreground: oklch(0.9551 0 0);
   --card: oklch(0.2568 0.0076 274.6528);
@@ -81,6 +82,7 @@
 
 :root[data-theme="light"] {
   /* Violet Bloom (light) */
+  color-scheme: light;
   --background: oklch(0.9940 0 0);
   --foreground: oklch(0 0 0);
   --card: oklch(0.9940 0 0);
@@ -300,6 +302,10 @@ body::before {
   color: var(--foreground);
 }
 
+.panel > :is(.grid-2, .grid-3, .field, .actions, .meta-row, .kpi-board, .operator-health-board, .events, .transcript, .story-status-row, .story-progress, .story-timeline-preview):not(:first-child) {
+  margin-top: 22px;
+}
+
 .section-badge {
   display: inline-flex;
   align-items: center;
@@ -321,10 +327,12 @@ body::before {
 
 .grid-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
 }
 
 .grid-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
 }
 
 .field {
@@ -337,6 +345,28 @@ body::before {
   font-size: 0.94rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+.intent-grid-primary {
+  gap: 22px;
+}
+
+.intent-grid-advanced {
+  gap: 22px;
+}
+
+.intent-grid-advanced textarea {
+  min-height: 126px;
+}
+
+.field-audio {
+  width: 100%;
+  max-width: min(560px, 100%);
+}
+
+.intent-grid-primary #intent,
+.intent-grid-primary #message {
+  min-height: 136px;
 }
 
 .meta-box {
@@ -374,13 +404,103 @@ textarea {
     0 1px 2px color-mix(in oklch, black 20%, transparent);
 }
 
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 42px;
+  --select-surface-start: var(--surface-control);
+  --select-surface-end: var(--surface-panel-2);
+  background:
+    linear-gradient(45deg, transparent 50%, color-mix(in oklch, var(--foreground) 62%, var(--muted-foreground)) 50%) calc(100% - 24px) calc(50% - 1px) / 7px 7px no-repeat,
+    linear-gradient(135deg, color-mix(in oklch, var(--foreground) 62%, var(--muted-foreground)) 50%, transparent 50%) calc(100% - 17px) calc(50% - 1px) / 7px 7px no-repeat,
+    linear-gradient(180deg, var(--select-surface-start), var(--select-surface-end));
+}
+
+select:hover {
+  --select-surface-start: var(--surface-control-hover);
+}
+
+select option {
+  color: var(--foreground) !important;
+  background-color: color-mix(in oklch, var(--card) 88%, var(--background)) !important;
+}
+
+select option:checked {
+  color: color-mix(in oklch, var(--foreground) 96%, white) !important;
+  background-color: color-mix(in oklch, var(--primary) 34%, var(--card)) !important;
+}
+
+select optgroup {
+  color: color-mix(in oklch, var(--foreground) 88%, var(--muted-foreground)) !important;
+  background-color: color-mix(in oklch, var(--card) 88%, var(--background)) !important;
+}
+
+@supports (appearance: base-select) {
+  select {
+    appearance: base-select;
+  }
+
+  select::picker-icon {
+    color: color-mix(in oklch, var(--foreground) 62%, var(--muted-foreground));
+    transition: rotate 140ms ease;
+  }
+
+  select:open::picker-icon {
+    rotate: 180deg;
+  }
+
+  select::picker(select) {
+    border: 1px solid var(--border-soft);
+    border-radius: calc(var(--radius) - 2px);
+    padding: 8px;
+    background: linear-gradient(180deg, var(--surface-panel), var(--surface-panel-2));
+    box-shadow:
+      var(--shadow-lg),
+      inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent);
+  }
+
+  select option {
+    border: 1px solid transparent;
+    border-radius: calc(var(--radius) - 5px);
+    padding: 10px 12px;
+  }
+
+  select option:hover,
+  select option:focus-visible {
+    background: color-mix(in oklch, var(--primary) 16%, var(--card)) !important;
+    border-color: color-mix(in oklch, var(--primary) 32%, var(--border));
+  }
+
+  select option:checked {
+    background: color-mix(in oklch, var(--primary) 26%, var(--card)) !important;
+    border-color: color-mix(in oklch, var(--primary) 46%, var(--border));
+    color: color-mix(in oklch, var(--foreground) 98%, white) !important;
+  }
+}
+
+input[type="file"] {
+  padding: 9px 11px;
+  min-height: 58px;
+}
+
+input[type="file"]::file-selector-button {
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) - 6px);
+  padding: 8px 12px;
+  margin-right: 12px;
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
+  color: var(--foreground);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent);
+  cursor: pointer;
+}
+
 input::placeholder,
 textarea::placeholder {
   color: color-mix(in oklch, var(--muted-foreground) 80%, transparent);
 }
 
 input:hover,
-select:hover,
 textarea:hover {
   background: linear-gradient(180deg, var(--surface-control-hover), var(--surface-panel-2));
 }

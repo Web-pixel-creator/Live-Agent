@@ -148,7 +148,7 @@
           <div class="live-negotiator-primary">
             <section class="panel">
               <h2><span class="section-badge">Input</span>Intent Request</h2>
-              <div class="grid-2">
+              <div class="grid-2 intent-grid-primary">
                 <label class="field">
                   <span>Intent</span>
                   <select id="intent">
@@ -163,12 +163,12 @@
                   <span>User Message</span>
                   <textarea id="message" rows="3">Negotiate: price=97, delivery=10, sla=99</textarea>
                 </label>
-                <label class="field">
-                  <span>Conversation Audio (optional)</span>
-                  <input id="audioInput" type="file" accept="audio/*" />
-                </label>
               </div>
-              <div id="uiTaskFields" class="grid-3">
+              <label class="field field-audio">
+                <span>Conversation Audio (optional)</span>
+                <input id="audioInput" type="file" accept="audio/*" />
+              </label>
+              <div id="uiTaskFields" class="grid-3 intent-grid-advanced">
                 <label class="field">
                   <span>UI Task URL (optional)</span>
                   <input id="uiTaskUrl" type="text" placeholder="https://example.com/dashboard" />
