@@ -63,6 +63,7 @@ function createPassingSummary(
     approvalsInvalidIntentScenarioAttempts: number | string;
     governancePolicyScenarioAttempts: number | string;
     skillsRegistryScenarioAttempts: number | string;
+    pluginMarketplaceScenarioAttempts: number | string;
     governancePolicyLifecycleValidated: boolean | string;
     governancePolicyOperatorActionSeen: boolean | string;
     governancePolicyOverrideTenantSeen: boolean | string;
@@ -478,6 +479,9 @@ function createPassingSummary(
         : 1,
       skillsRegistryScenarioAttempts: hasOverride("skillsRegistryScenarioAttempts")
         ? overrides.skillsRegistryScenarioAttempts
+        : 1,
+      pluginMarketplaceScenarioAttempts: hasOverride("pluginMarketplaceScenarioAttempts")
+        ? overrides.pluginMarketplaceScenarioAttempts
         : 1,
       governancePolicyLifecycleValidated: hasOverride("governancePolicyLifecycleValidated")
         ? overrides.governancePolicyLifecycleValidated
@@ -1566,6 +1570,22 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /kpi\.skillsRegistryScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when plugin marketplace scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        pluginMarketplaceScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.pluginMarketplaceScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 

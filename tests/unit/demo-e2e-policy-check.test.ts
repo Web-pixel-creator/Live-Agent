@@ -252,6 +252,7 @@ function createPassingSummary(overrides?: {
     approvalsInvalidIntentScenarioAttempts: 1,
     governancePolicyScenarioAttempts: 1,
     skillsRegistryScenarioAttempts: 1,
+    pluginMarketplaceScenarioAttempts: 1,
     sessionVersioningScenarioAttempts: 1,
     uiVisualTestingScenarioAttempts: 1,
     operatorConsoleActionsScenarioAttempts: 1,
@@ -374,7 +375,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 278);
+  assert.equal(result.payload.checks, 279);
 });
 
 test("demo-e2e policy check fails when cost estimate total is negative", () => {
@@ -1033,6 +1034,25 @@ test("demo-e2e policy check fails when skills registry scenario attempts exceed 
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.skillsRegistryScenarioAttempts")));
+});
+
+test("demo-e2e policy check fails when plugin marketplace scenario attempts exceed configured retry max", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        pluginMarketplaceScenarioAttempts: 3,
+      },
+      options: {
+        scenarioRetryMaxAttempts: 2,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.pluginMarketplaceScenarioAttempts")));
 });
 
 test("demo-e2e policy check fails when runtime lifecycle scenario attempts exceed configured retry max", () => {

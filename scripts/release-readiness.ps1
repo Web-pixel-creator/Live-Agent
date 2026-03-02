@@ -1381,6 +1381,20 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     )
   }
 
+  $pluginMarketplaceScenarioAttempts = To-NumberOrNaN $summary.kpis.pluginMarketplaceScenarioAttempts
+  if (
+    [double]::IsNaN($pluginMarketplaceScenarioAttempts) -or
+    $pluginMarketplaceScenarioAttempts -lt 1 -or
+    $pluginMarketplaceScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.pluginMarketplaceScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.pluginMarketplaceScenarioAttempts
+    )
+  }
+
   $sessionVersioningScenarioAttempts = To-NumberOrNaN $summary.kpis.sessionVersioningScenarioAttempts
   if (
     [double]::IsNaN($sessionVersioningScenarioAttempts) -or
@@ -1706,6 +1720,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $approvalsInvalidIntentAttempts = $summary.kpis.approvalsInvalidIntentScenarioAttempts
   $governancePolicyAttempts = $summary.kpis.governancePolicyScenarioAttempts
   $skillsRegistryAttempts = $summary.kpis.skillsRegistryScenarioAttempts
+  $pluginMarketplaceAttempts = $summary.kpis.pluginMarketplaceScenarioAttempts
   $sessionVersioningAttempts = $summary.kpis.sessionVersioningScenarioAttempts
   $uiVisualAttempts = $summary.kpis.uiVisualTestingScenarioAttempts
   $operatorActionsAttempts = $summary.kpis.operatorConsoleActionsScenarioAttempts
@@ -1735,6 +1750,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     $null -ne $approvalsInvalidIntentAttempts -or
     $null -ne $governancePolicyAttempts -or
     $null -ne $skillsRegistryAttempts -or
+    $null -ne $pluginMarketplaceAttempts -or
     $null -ne $sessionVersioningAttempts -or
     $null -ne $uiVisualAttempts -or
     $null -ne $operatorActionsAttempts -or
@@ -1766,6 +1782,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", api.approvals.resume.invalid_intent_attempts=" + $approvalsInvalidIntentAttempts +
       ", governance.policy.lifecycle_attempts=" + $governancePolicyAttempts +
       ", skills.registry.lifecycle_attempts=" + $skillsRegistryAttempts +
+      ", operator.plugin_marketplace.lifecycle_attempts=" + $pluginMarketplaceAttempts +
       ", api.sessions.versioning_attempts=" + $sessionVersioningAttempts +
       ", ui.visual_testing_attempts=" + $uiVisualAttempts +
       ", operator.console.actions_attempts=" + $operatorActionsAttempts +

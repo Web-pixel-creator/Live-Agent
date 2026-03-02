@@ -160,6 +160,7 @@ test("runbook documents release perf artifact-only mode and critical evidence ke
     "`kpi.approvalsInvalidIntentScenarioAttempts <= options.scenarioRetryMaxAttempts`",
     "`kpi.governancePolicyScenarioAttempts <= options.scenarioRetryMaxAttempts`",
     "`kpi.skillsRegistryScenarioAttempts <= options.scenarioRetryMaxAttempts`",
+    "`kpi.pluginMarketplaceScenarioAttempts <= options.scenarioRetryMaxAttempts`",
     "`kpi.sessionVersioningScenarioAttempts <= options.scenarioRetryMaxAttempts`",
     "`kpi.uiVisualTestingScenarioAttempts <= options.scenarioRetryMaxAttempts`",
     "`kpi.operatorConsoleActionsScenarioAttempts <= options.scenarioRetryMaxAttempts`",

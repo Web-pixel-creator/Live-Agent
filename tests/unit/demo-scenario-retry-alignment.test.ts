@@ -151,6 +151,7 @@ test("demo-e2e applies transient retry to flaky operator/ui/runtime scenarios", 
   assert.match(source, /approvalsListScenarioAttempts/);
   assert.match(source, /approvalsInvalidIntentScenarioAttempts/);
   assert.match(source, /skillsRegistryScenarioAttempts/);
+  assert.match(source, /pluginMarketplaceScenarioAttempts/);
   assert.match(source, /sessionVersioningScenarioAttempts/);
   assert.match(source, /uiVisualTestingScenarioAttempts/);
   assert.match(source, /operatorConsoleActionsScenarioAttempts/);

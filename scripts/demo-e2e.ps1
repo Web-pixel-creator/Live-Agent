@@ -4298,6 +4298,7 @@ $summary = [ordered]@{
     approvalsInvalidIntentScenarioAttempts = if ($approvalsInvalidIntentScenario.Count -gt 0) { [int]$approvalsInvalidIntentScenario[0].attempts } else { $null }
     governancePolicyScenarioAttempts = if ($governancePolicyScenario.Count -gt 0) { [int]$governancePolicyScenario[0].attempts } else { $null }
     skillsRegistryScenarioAttempts = if ($skillsRegistryScenario.Count -gt 0) { [int]$skillsRegistryScenario[0].attempts } else { $null }
+    pluginMarketplaceScenarioAttempts = if ($operatorActionsScenario.Count -gt 0) { [int]$operatorActionsScenario[0].attempts } else { $null }
     sessionVersioningScenarioAttempts = if ($sessionVersioningScenario.Count -gt 0) { [int]$sessionVersioningScenario[0].attempts } else { $null }
     uiVisualTestingScenarioAttempts = if ($uiVisualTestingScenario.Count -gt 0) { [int]$uiVisualTestingScenario[0].attempts } else { $null }
     operatorConsoleActionsScenarioAttempts = if ($operatorActionsScenario.Count -gt 0) { [int]$operatorActionsScenario[0].attempts } else { $null }

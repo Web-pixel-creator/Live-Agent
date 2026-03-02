@@ -1548,6 +1548,16 @@ async function main() {
     kpis.skillsRegistryScenarioAttempts,
     "1..options.scenarioRetryMaxAttempts",
   );
+  const pluginMarketplaceScenarioAttempts = toNumber(kpis.pluginMarketplaceScenarioAttempts);
+  addCheck(
+    "kpi.pluginMarketplaceScenarioAttempts",
+    Number.isFinite(pluginMarketplaceScenarioAttempts) &&
+      pluginMarketplaceScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      pluginMarketplaceScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.pluginMarketplaceScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
   const sessionVersioningScenarioAttempts = toNumber(kpis.sessionVersioningScenarioAttempts);
   addCheck(
     "kpi.sessionVersioningScenarioAttempts",
