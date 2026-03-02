@@ -18,14 +18,15 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
 
   const requiredHtmlTokens = [
     "class=\"tabs\"",
-    'data-tab-target="live"',
-    'data-tab-target="kpi"',
+    'data-tab-target="live-negotiator"',
+    'data-tab-target="storyteller"',
     'data-tab-target="operator"',
-    'data-tab-target="events"',
-    'id="tab-live"',
-    'id="tab-kpi"',
+    'data-tab-target="device-nodes"',
+    'id="tab-live-negotiator"',
+    'id="tab-storyteller"',
     'id="tab-operator"',
-    'id="tab-events"',
+    'id="tab-device-nodes"',
+    'id="tab-operator-events"',
     "class=\"tab-content active\"",
   ];
   for (const token of requiredHtmlTokens) {
@@ -35,7 +36,7 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
   const requiredRuntimeTokens = [
     "const tabButtons = Array.from(document.querySelectorAll(\".tab-btn[data-tab-target]\"));",
     "const tabContents = Array.from(document.querySelectorAll(\".tab-content[data-tab]\"));",
-    "const DEFAULT_TAB_ID = \"live\";",
+    "const DEFAULT_TAB_ID = \"live-negotiator\";",
     "function setActiveTab(tabId)",
     "setActiveTab(DEFAULT_TAB_ID);",
   ];
@@ -57,5 +58,7 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
   }
 
   assert.ok(readmeSource.includes("Frontend is grouped into tabs"), "README missing tabbed-layout note");
+  assert.ok(readmeSource.includes("Live Negotiator"), "README missing updated tab names");
   assert.ok(operatorGuideSource.includes("## Frontend Tabs"), "Operator guide missing tabbed-layout section");
+  assert.ok(operatorGuideSource.includes("Storyteller"), "Operator guide missing storyteller tab note");
 });

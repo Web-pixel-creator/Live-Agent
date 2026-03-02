@@ -279,11 +279,24 @@ button:hover {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.operator-health-board.is-collapsed .operator-health-row,
+.operator-health-board.is-collapsed .operator-health-hint {
+  display: none;
+}
+
+.operator-health-board.is-collapsed .operator-health-card {
+  padding-bottom: 8px;
+}
+
 .operator-health-card {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px;
   background: rgba(7, 22, 26, 0.5);
+}
+
+.operator-health-card-hidden {
+  display: none;
 }
 
 .operator-health-card h3 {

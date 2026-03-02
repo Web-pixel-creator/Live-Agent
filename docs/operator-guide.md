@@ -16,10 +16,10 @@ The operator flow is used during live demos and production diagnostics to:
 
 ## Frontend Tabs
 
-1. `Live Chat` (default): connection, live controls, intent request, transcript
-2. `KPI & Approvals`: approval controls, KPI constraints, active tasks, story timeline
-3. `Operator Console`: health/evidence cards and operator actions, plus device-node controls
-4. `Event Log`: raw event stream for troubleshooting
+1. `Live Negotiator` (default): connection, live controls, intent request, approvals/KPI, transcript
+2. `Storyteller`: story timeline and segment/asset preview controls
+3. `Operator Console`: health/evidence cards, operator actions, and raw event log
+4. `Device Nodes`: device-node create/update/heartbeat controls and list
 
 ## Key Panels (Demo Frontend)
 
@@ -39,12 +39,13 @@ The operator flow is used during live demos and production diagnostics to:
 ## Standard Operator Actions
 
 1. Refresh summary (`Refresh Summary`)
-2. Drain/warmup target service (failover controls)
-3. Create/update device node and send heartbeat
-4. Approve/reject pending UI-sensitive actions
-5. Export session evidence from frontend (`Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)`)
-6. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
-7. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task`
+2. Collapse/expand operator evidence cards (`Collapse All` / `Expand All`)
+3. Drain/warmup target service (failover controls)
+4. Create/update device node and send heartbeat
+5. Approve/reject pending UI-sensitive actions
+6. Export session evidence from frontend (`Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)`)
+7. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
+8. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task`
 
 ## Safety Controls
 

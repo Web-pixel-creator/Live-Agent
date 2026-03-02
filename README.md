@@ -94,7 +94,7 @@ Open `http://localhost:3000`.
 Frontend `Intent Request -> Send Conversation Item` supports multimodal parts: text + optional image + optional audio attachment.
 Frontend `Live Controls -> Apply Live Setup` can send runtime `live.setup` overrides (`model`, `voice`, `activityHandling`, `systemInstruction`).
 Frontend `Intent Request` also supports optional `ui_task` grounding overrides (`url`, `deviceNodeId`, `deviceNodeKind`, `deviceNodePlatform`, `deviceNodeCapabilities`, `deviceNodeMinTrustLevel`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`).
-Frontend is grouped into tabs (`Live Chat`, `KPI & Approvals`, `Operator Console`, `Event Log`) with `Live Chat` opened by default for faster demo entry.
+Frontend is grouped into tabs (`Live Negotiator`, `Storyteller`, `Operator Console`, `Device Nodes`) with `Live Negotiator` opened by default for faster demo entry.
 Frontend `Intent Request` shows `ui_task` grounding fields only when `intent=ui_task`.
 Frontend `Connection` panel includes one-click export controls: `Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)` (judge/operator evidence snapshot).
 Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
@@ -263,7 +263,7 @@ Session mutation concurrency controls:
 - `GET /v1/governance/audit/operator-actions` -> tenant-scoped operator audit stream (`viewer|operator|admin`); non-admin cross-tenant queries are rejected.
 - `GET /v1/governance/audit/summary` -> centralized tenant audit dashboard snapshot (operator actions, approvals, sessions, channel bindings). Admin can query `tenantId=all`.
 
-11. Demo frontend includes tabbed panels (`Live Chat`, `KPI & Approvals`, `Operator Console`, `Event Log`) for summary refresh and recovery actions without single-screen overload.
+11. Demo frontend includes tabbed panels (`Live Negotiator`, `Storyteller`, `Operator Console`, `Device Nodes`) plus in-console `Collapse All/Expand All` controls for operator evidence cards.
 
 12. Real Playwright remote-http run (no simulation fallback):
 - Install runtime once: `npm i -D playwright && npx playwright install chromium`

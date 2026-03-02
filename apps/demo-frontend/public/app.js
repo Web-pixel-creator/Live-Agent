@@ -50,6 +50,8 @@ const state = {
   operatorTurnTruncationSnapshot: null,
   operatorTurnDeleteSnapshot: null,
   operatorDamageControlSnapshot: null,
+  operatorCardsCollapsed: false,
+  operatorSummaryUserRefreshed: false,
 };
 
 const PENDING_CLIENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
@@ -124,6 +126,9 @@ const el = {
   operatorRole: document.getElementById("operatorRole"),
   operatorTaskId: document.getElementById("operatorTaskId"),
   operatorTargetService: document.getElementById("operatorTargetService"),
+  operatorCollapseAllBtn: document.getElementById("operatorCollapseAllBtn"),
+  operatorExpandAllBtn: document.getElementById("operatorExpandAllBtn"),
+  operatorHealthBoard: document.getElementById("operatorHealthBoard"),
   operatorSummary: document.getElementById("operatorSummary"),
   operatorHealthStatus: document.getElementById("operatorHealthStatus"),
   operatorHealthState: document.getElementById("operatorHealthState"),
@@ -317,7 +322,7 @@ const el = {
 
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn[data-tab-target]"));
 const tabContents = Array.from(document.querySelectorAll(".tab-content[data-tab]"));
-const DEFAULT_TAB_ID = "live";
+const DEFAULT_TAB_ID = "live-negotiator";
 
 function nowLabel() {
   return new Date().toLocaleTimeString();
@@ -397,6 +402,49 @@ function setUiTaskFieldsVisibility() {
   const isUiTaskIntent = el.intent.value === "ui_task";
   el.uiTaskFields.hidden = !isUiTaskIntent;
   el.uiTaskFields.setAttribute("aria-hidden", isUiTaskIntent ? "false" : "true");
+}
+
+function setOperatorCardsCollapsed(collapsed) {
+  state.operatorCardsCollapsed = collapsed === true;
+  if (el.operatorHealthBoard) {
+    el.operatorHealthBoard.classList.toggle("is-collapsed", state.operatorCardsCollapsed);
+  }
+  if (el.operatorCollapseAllBtn) {
+    el.operatorCollapseAllBtn.disabled = state.operatorCardsCollapsed;
+  }
+  if (el.operatorExpandAllBtn) {
+    el.operatorExpandAllBtn.disabled = !state.operatorCardsCollapsed;
+  }
+}
+
+function isOperatorPlaceholderStatusText(value) {
+  if (typeof value !== "string") {
+    return false;
+  }
+  const normalized = value.trim().toLowerCase();
+  return normalized === "no_data" || normalized === "summary_error";
+}
+
+function applyOperatorCardVisibility(card) {
+  if (!card) {
+    return;
+  }
+  const statusNode = card.querySelector(".status-pill");
+  if (!statusNode) {
+    card.classList.remove("operator-health-card-hidden");
+    return;
+  }
+  const shouldHide =
+    state.operatorSummaryUserRefreshed !== true &&
+    isOperatorPlaceholderStatusText(statusNode.textContent ?? "");
+  card.classList.toggle("operator-health-card-hidden", shouldHide);
+}
+
+function applyOperatorCardsVisibility() {
+  const cards = document.querySelectorAll(".operator-health-card");
+  for (const card of cards) {
+    applyOperatorCardVisibility(card);
+  }
 }
 
 function toConversationScope(value) {
@@ -1348,17 +1396,27 @@ function setStatusPill(node, text, variant) {
   if (!node) {
     return;
   }
+  const operatorCard = typeof node.closest === "function" ? node.closest(".operator-health-card") : null;
   node.textContent = text;
   node.className = "status-pill";
   if (variant === "ok") {
     node.classList.add("status-ok");
+    if (operatorCard) {
+      applyOperatorCardVisibility(operatorCard);
+    }
     return;
   }
   if (variant === "fail") {
     node.classList.add("status-fail");
+    if (operatorCard) {
+      applyOperatorCardVisibility(operatorCard);
+    }
     return;
   }
   node.classList.add("status-neutral");
+  if (operatorCard) {
+    applyOperatorCardVisibility(operatorCard);
+  }
 }
 
 function renderAssistantActivityStatus() {
@@ -4565,7 +4623,12 @@ function renderOperatorSummary(summary) {
   renderOperatorUiExecutorWidget(uiExecutorService, uiExecutorLastFailoverAction);
 }
 
-async function refreshOperatorSummary() {
+async function refreshOperatorSummary(options = {}) {
+  const markUserRefresh = options?.markUserRefresh === true;
+  if (markUserRefresh && state.operatorSummaryUserRefreshed !== true) {
+    state.operatorSummaryUserRefreshed = true;
+    applyOperatorCardsVisibility();
+  }
   try {
     const response = await fetch(`${state.apiBaseUrl}/v1/operator/summary`, {
       method: "GET",
@@ -4610,6 +4673,8 @@ async function refreshOperatorSummary() {
     resetOperatorAgentUsageWidget("summary_error");
     resetOperatorCostEstimateWidget("summary_error");
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
+  } finally {
+    applyOperatorCardsVisibility();
   }
 }
 
@@ -4632,7 +4697,7 @@ async function runOperatorAction(action, data = {}) {
     if (payload?.data?.taskId && typeof payload.data.taskId === "string") {
       el.operatorTaskId.value = payload.data.taskId;
     }
-    await refreshOperatorSummary();
+    await refreshOperatorSummary({ markUserRefresh: true });
   } catch (error) {
     appendTranscript("error", `Operator action failed (${action}): ${String(error)}`);
   }
@@ -6367,7 +6432,19 @@ function bindEvents() {
   document.getElementById("interruptBtn").addEventListener("click", interruptAssistant);
   document.getElementById("fallbackBtn").addEventListener("click", toggleFallbackMode);
   document.getElementById("refreshTasksBtn").addEventListener("click", refreshActiveTasks);
-  document.getElementById("operatorRefreshBtn").addEventListener("click", refreshOperatorSummary);
+  document.getElementById("operatorRefreshBtn").addEventListener("click", () => {
+    void refreshOperatorSummary({ markUserRefresh: true });
+  });
+  if (el.operatorCollapseAllBtn) {
+    el.operatorCollapseAllBtn.addEventListener("click", () => {
+      setOperatorCardsCollapsed(true);
+    });
+  }
+  if (el.operatorExpandAllBtn) {
+    el.operatorExpandAllBtn.addEventListener("click", () => {
+      setOperatorCardsCollapsed(false);
+    });
+  }
   document.getElementById("operatorCancelBtn").addEventListener("click", () => {
     const taskId = el.operatorTaskId.value.trim();
     if (!taskId) {
@@ -6581,6 +6658,8 @@ async function bootstrap() {
   resetOperatorTurnTruncationWidget("no_data");
   resetOperatorTurnDeleteWidget("no_data");
   resetOperatorDamageControlWidget("no_data");
+  setOperatorCardsCollapsed(false);
+  applyOperatorCardsVisibility();
   renderTaskList();
   evaluateConstraints();
   setActiveTab(DEFAULT_TAB_ID);
