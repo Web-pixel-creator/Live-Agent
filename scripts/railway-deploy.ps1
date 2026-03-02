@@ -542,7 +542,34 @@ if (-not $SkipLink) {
       $linkArgs += @("-w", $Workspace)
     }
     Write-Host "[railway-deploy] Linking workspace to Railway service..."
-    Run-Cli -CliArgs $linkArgs
+    $linkOutput = @()
+    $linkExitCode = 1
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+      $ErrorActionPreference = "Continue"
+      $linkOutput = (& railway @linkArgs 2>&1)
+      $linkExitCode = $LASTEXITCODE
+    }
+    catch {
+      $linkOutput = @([string]$_.Exception.Message)
+      $linkExitCode = 1
+    }
+    finally {
+      $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($linkExitCode -ne 0) {
+      if ($linkOutput) {
+        $linkOutput | ForEach-Object { Write-Host $_ }
+      }
+
+      if (-not [string]::IsNullOrWhiteSpace($env:RAILWAY_TOKEN)) {
+        Write-Warning "[railway-deploy] railway link failed; continuing with direct project/service flags in project-token mode."
+      }
+      else {
+        Fail ("railway command failed: railway " + ($linkArgs -join " "))
+      }
+    }
   }
   elseif (-not $hasProjectId -and -not $hasServiceId) {
     Write-Host "[railway-deploy] -ProjectId/-ServiceId are not set; using existing linked Railway context."
@@ -552,13 +579,49 @@ if (-not $SkipLink) {
   }
 }
 
-$statusJson = (& railway status --json)
-if ($LASTEXITCODE -ne 0) {
-  Fail "Unable to resolve linked Railway project/service status."
-}
-$status = $statusJson | ConvertFrom-Json
+$status = $null
+$resolvedService = if (-not [string]::IsNullOrWhiteSpace($ServiceId)) { $ServiceId } else { $null }
+$needsStatusForServiceResolution = [string]::IsNullOrWhiteSpace($resolvedService)
+$needsStatusForPublicUrlResolution = [string]::IsNullOrWhiteSpace($RailwayPublicUrl)
+$shouldLoadStatus = $needsStatusForServiceResolution -or $needsStatusForPublicUrlResolution
 
-$resolvedService = if (-not [string]::IsNullOrWhiteSpace($ServiceId)) { $ServiceId } else { Resolve-ServiceIdFromStatus -StatusPayload $status -TargetEnvironment $Environment }
+if ($shouldLoadStatus) {
+  $statusOutput = @()
+  $statusExitCode = 1
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = "Continue"
+    $statusOutput = (& railway status --json 2>&1)
+    $statusExitCode = $LASTEXITCODE
+  }
+  catch {
+    $statusOutput = @([string]$_.Exception.Message)
+    $statusExitCode = 1
+  }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+
+  if ($statusExitCode -ne 0) {
+    if ($statusOutput) {
+      $statusOutput | ForEach-Object { Write-Host $_ }
+    }
+
+    if ($needsStatusForServiceResolution) {
+      Fail "Unable to resolve linked Railway project/service status."
+    }
+
+    Write-Warning "[railway-deploy] Unable to resolve Railway status payload; continuing with explicit -ServiceId/-RailwayPublicUrl inputs."
+  }
+  else {
+    $statusJson = [string]::Join("`n", $statusOutput)
+    $status = $statusJson | ConvertFrom-Json
+  }
+}
+
+if ([string]::IsNullOrWhiteSpace($resolvedService) -and $null -ne $status) {
+  $resolvedService = Resolve-ServiceIdFromStatus -StatusPayload $status -TargetEnvironment $Environment
+}
 if ([string]::IsNullOrWhiteSpace($resolvedService)) {
   Fail "No Railway service resolved. Link a service first or provide -ServiceId."
 }
