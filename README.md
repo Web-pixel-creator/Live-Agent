@@ -702,7 +702,7 @@ npm run deploy:railway:all:dispatch -- -Environment production -GatewayPublicUrl
 Behavior:
 
 - Runs release verification before deploy (`verify:release` by default).
-- Runs auth preflight (`railway whoami`) before deploy; if `RAILWAY_API_TOKEN` is empty and `RAILWAY_TOKEN` is set, helper scripts mirror `RAILWAY_TOKEN -> RAILWAY_API_TOKEN` for CLI compatibility.
+- Runs auth preflight (`railway whoami`) before deploy; if `RAILWAY_API_TOKEN` is empty and `RAILWAY_TOKEN` is set, helper scripts mirror `RAILWAY_TOKEN -> RAILWAY_API_TOKEN` for CLI compatibility. If account-scope auth probe fails but `RAILWAY_TOKEN` is present, helper scripts continue in project-token mode for project-scoped Railway CLI commands.
 - Links local directory to Railway project/service when both `-ProjectId` and `-ServiceId` are provided.
 - If `-ProjectId/-ServiceId` are omitted, reuses existing Railway linked context for this workspace.
 - Triggers deployment (`railway up`) and waits until terminal status.

@@ -40,18 +40,34 @@ function Run-CliCapture([string[]]$CliArgs) {
 }
 
 function Ensure-RailwayAuthContext([string]$LogPrefix) {
-  if ([string]::IsNullOrWhiteSpace($env:RAILWAY_API_TOKEN) -and -not [string]::IsNullOrWhiteSpace($env:RAILWAY_TOKEN)) {
+  $hasProjectToken = -not [string]::IsNullOrWhiteSpace($env:RAILWAY_TOKEN)
+
+  if ([string]::IsNullOrWhiteSpace($env:RAILWAY_API_TOKEN) -and $hasProjectToken) {
     $env:RAILWAY_API_TOKEN = $env:RAILWAY_TOKEN
     Write-Host ("[" + $LogPrefix + "] RAILWAY_API_TOKEN is empty; using RAILWAY_TOKEN fallback for CLI auth.")
   }
 
   $authProbe = (& railway whoami 2>&1 | Out-String).Trim()
-  if ($LASTEXITCODE -ne 0) {
-    if (-not [string]::IsNullOrWhiteSpace($authProbe)) {
-      Write-Host $authProbe
-    }
-    Fail ("[" + $LogPrefix + "] Railway authentication failed. Set RAILWAY_API_TOKEN (recommended) or run 'railway login'.")
+  if ($LASTEXITCODE -eq 0) {
+    return
   }
+
+  if (-not [string]::IsNullOrWhiteSpace($authProbe)) {
+    Write-Host $authProbe
+  }
+
+  if ($hasProjectToken) {
+    if ($env:RAILWAY_API_TOKEN -ne $env:RAILWAY_TOKEN) {
+      $env:RAILWAY_API_TOKEN = $env:RAILWAY_TOKEN
+      Write-Warning ("[" + $LogPrefix + "] railway whoami failed; forcing RAILWAY_TOKEN project-token mode (RAILWAY_TOKEN -> RAILWAY_API_TOKEN).")
+    }
+    else {
+      Write-Warning ("[" + $LogPrefix + "] railway whoami failed; continuing with RAILWAY_TOKEN project-token mode.")
+    }
+    return
+  }
+
+  Fail ("[" + $LogPrefix + "] Railway authentication failed. Set RAILWAY_API_TOKEN (account token), or set RAILWAY_TOKEN (project token), or run 'railway login'.")
 }
 
 function Get-LatestDeployment([string]$TargetService, [string]$TargetEnvironment) {
