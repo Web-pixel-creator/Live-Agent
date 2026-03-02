@@ -424,12 +424,24 @@ jobs:
       - name: Prepare Local Artifact Paths
         shell: powershell
         run: |
-          if (-not (Test-Path "artifact-bundle/artifacts")) {
+          $artifactsRoot = "artifact-bundle/artifacts"
+          if (-not (Test-Path $artifactsRoot)) {
+            $nestedArtifacts = Get-ChildItem -Path "artifact-bundle" -Directory -Recurse -Filter "artifacts" | Select-Object -First 1
+            if ($null -ne $nestedArtifacts) {
+              $artifactsRoot = [string]$nestedArtifacts.FullName
+              Write-Host ("Resolved nested artifacts directory: " + $artifactsRoot)
+            }
+          }
+          if (-not (Test-Path $artifactsRoot)) {
+            Write-Host "Downloaded artifact tree (depth 3):"
+            Get-ChildItem -Path "artifact-bundle" -Recurse | Select-Object -First 200 | ForEach-Object {
+              Write-Host (" - " + $_.FullName)
+            }
             Write-Error "Downloaded artifact does not contain expected artifacts/ directory."
             exit 1
           }
           New-Item -Path "artifacts" -ItemType Directory -Force | Out-Null
-          Copy-Item -Path "artifact-bundle/artifacts/*" -Destination "artifacts/" -Recurse -Force
+          Copy-Item -Path (Join-Path $artifactsRoot "*") -Destination "artifacts/" -Recurse -Force
 
       - name: Inspect Restored Artifact Set
         id: inspect_artifacts

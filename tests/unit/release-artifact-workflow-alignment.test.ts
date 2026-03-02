@@ -33,6 +33,8 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /source_run_branch/);
   assert.match(source, /source_run_age_hours/);
   assert.match(source, /Invoke-WebRequest/);
+  assert.match(source, /Get-ChildItem -Path "artifact-bundle" -Directory -Recurse -Filter "artifacts"/);
+  assert.match(source, /Resolved nested artifacts directory:/);
   assert.match(source, /id:\s*inspect_artifacts/);
   assert.match(source, /id:\s*write_manifest/);
   assert.match(source, /id:\s*release_evidence_report/);
