@@ -407,17 +407,65 @@ function setUiTaskFieldsVisibility() {
   el.uiTaskFields.setAttribute("aria-hidden", isUiTaskIntent ? "false" : "true");
 }
 
+function setOperatorGroupCollapsed(group, collapsed) {
+  if (!(group instanceof HTMLElement)) {
+    return;
+  }
+  const isCollapsed = collapsed === true;
+  group.classList.toggle("is-collapsed", isCollapsed);
+  const toggle = group.querySelector("[data-operator-group-toggle]");
+  if (toggle instanceof HTMLButtonElement) {
+    toggle.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
+    toggle.textContent = isCollapsed ? "Expand" : "Collapse";
+  }
+}
+
+function syncOperatorCollapseActionButtons() {
+  const groups = Array.from(document.querySelectorAll(".operator-health-group")).filter(
+    (group) => !group.classList.contains("operator-health-group-hidden"),
+  );
+  if (groups.length === 0) {
+    state.operatorCardsCollapsed = false;
+    if (el.operatorHealthBoard) {
+      el.operatorHealthBoard.classList.remove("is-collapsed");
+    }
+    if (el.operatorCollapseAllBtn) {
+      el.operatorCollapseAllBtn.disabled = true;
+    }
+    if (el.operatorExpandAllBtn) {
+      el.operatorExpandAllBtn.disabled = true;
+    }
+    return;
+  }
+
+  const allCollapsed = groups.every((group) => group.classList.contains("is-collapsed"));
+  const allExpanded = groups.every((group) => !group.classList.contains("is-collapsed"));
+  state.operatorCardsCollapsed = allCollapsed;
+  if (el.operatorHealthBoard) {
+    el.operatorHealthBoard.classList.toggle("is-collapsed", state.operatorCardsCollapsed);
+  }
+  if (el.operatorCollapseAllBtn) {
+    el.operatorCollapseAllBtn.disabled = allCollapsed;
+  }
+  if (el.operatorExpandAllBtn) {
+    el.operatorExpandAllBtn.disabled = allExpanded;
+  }
+}
+
+function setAllOperatorGroupsCollapsed(collapsed) {
+  const groups = document.querySelectorAll(".operator-health-group");
+  for (const group of groups) {
+    setOperatorGroupCollapsed(group, collapsed);
+  }
+}
+
 function setOperatorCardsCollapsed(collapsed) {
   state.operatorCardsCollapsed = collapsed === true;
   if (el.operatorHealthBoard) {
     el.operatorHealthBoard.classList.toggle("is-collapsed", state.operatorCardsCollapsed);
   }
-  if (el.operatorCollapseAllBtn) {
-    el.operatorCollapseAllBtn.disabled = state.operatorCardsCollapsed;
-  }
-  if (el.operatorExpandAllBtn) {
-    el.operatorExpandAllBtn.disabled = !state.operatorCardsCollapsed;
-  }
+  setAllOperatorGroupsCollapsed(state.operatorCardsCollapsed);
+  syncOperatorCollapseActionButtons();
 }
 
 function isOperatorPlaceholderStatusText(value) {
@@ -443,11 +491,25 @@ function applyOperatorCardVisibility(card) {
   card.classList.toggle("operator-health-card-hidden", shouldHide);
 }
 
+function applyOperatorGroupVisibility(group) {
+  if (!group) {
+    return;
+  }
+  const cards = Array.from(group.querySelectorAll(".operator-health-card"));
+  const hasVisibleCards = cards.some((card) => !card.classList.contains("operator-health-card-hidden"));
+  group.classList.toggle("operator-health-group-hidden", !hasVisibleCards);
+}
+
 function applyOperatorCardsVisibility() {
   const cards = document.querySelectorAll(".operator-health-card");
   for (const card of cards) {
     applyOperatorCardVisibility(card);
   }
+  const groups = document.querySelectorAll(".operator-health-group");
+  for (const group of groups) {
+    applyOperatorGroupVisibility(group);
+  }
+  syncOperatorCollapseActionButtons();
 }
 
 function toConversationScope(value) {
@@ -6508,6 +6570,18 @@ function bindEvents() {
   if (el.operatorExpandAllBtn) {
     el.operatorExpandAllBtn.addEventListener("click", () => {
       setOperatorCardsCollapsed(false);
+    });
+  }
+  const operatorGroupToggles = document.querySelectorAll("[data-operator-group-toggle]");
+  for (const toggle of operatorGroupToggles) {
+    toggle.addEventListener("click", () => {
+      const group = toggle.closest(".operator-health-group");
+      if (!(group instanceof HTMLElement)) {
+        return;
+      }
+      const shouldCollapse = !group.classList.contains("is-collapsed");
+      setOperatorGroupCollapsed(group, shouldCollapse);
+      syncOperatorCollapseActionButtons();
     });
   }
   document.getElementById("operatorCancelBtn").addEventListener("click", () => {

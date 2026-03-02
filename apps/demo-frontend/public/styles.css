@@ -368,17 +368,51 @@ button:hover {
 .operator-health-board {
   margin-top: 10px;
   display: grid;
+  gap: 12px;
+}
+
+.operator-health-group {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(7, 22, 26, 0.42);
+}
+
+.operator-health-group-hidden {
+  display: none;
+}
+
+.operator-health-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.operator-health-group-head h3 {
+  margin: 0;
+  color: var(--heading-soft);
+  font-size: 0.92rem;
+}
+
+.operator-group-toggle {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+
+.operator-health-group-body {
+  margin-top: 10px;
+  display: grid;
   gap: 10px;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
-.operator-health-board.is-collapsed .operator-health-row,
-.operator-health-board.is-collapsed .operator-health-hint {
+.operator-health-group.is-collapsed .operator-health-group-body {
   display: none;
 }
 
-.operator-health-board.is-collapsed .operator-health-card {
-  padding-bottom: 8px;
+.operator-health-group.is-collapsed .operator-group-toggle {
+  filter: saturate(0.75);
 }
 
 .operator-health-card {
@@ -565,7 +599,7 @@ button:hover {
 @media (max-width: 980px) {
   .grid-3,
   .kpi-board,
-  .operator-health-board {
+  .operator-health-group-body {
     grid-template-columns: 1fr;
   }
 

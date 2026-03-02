@@ -264,7 +264,7 @@ Session mutation concurrency controls:
 - `GET /v1/governance/audit/operator-actions` -> tenant-scoped operator audit stream (`viewer|operator|admin`); non-admin cross-tenant queries are rejected.
 - `GET /v1/governance/audit/summary` -> centralized tenant audit dashboard snapshot (operator actions, approvals, sessions, channel bindings). Admin can query `tenantId=all`.
 
-11. Demo frontend includes tabbed panels (`Live Negotiator`, `Storyteller`, `Operator Console`, `Device Nodes`) plus in-console `Collapse All/Expand All` controls for operator evidence cards.
+11. Demo frontend includes tabbed panels (`Live Negotiator`, `Storyteller`, `Operator Console`, `Device Nodes`) plus grouped Operator Console accordion lanes with `Collapse All/Expand All` controls.
 
 12. Real Playwright remote-http run (no simulation fallback):
 - Install runtime once: `npm i -D playwright && npx playwright install chromium`
