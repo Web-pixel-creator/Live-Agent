@@ -71,6 +71,12 @@
   --warn-soft: color-mix(in oklch, var(--destructive) 22%, transparent);
   --danger-soft: color-mix(in oklch, var(--destructive) 28%, transparent);
   --shadow-ui: var(--shadow-md);
+  --surface-panel: color-mix(in oklch, var(--card) 88%, var(--background));
+  --surface-panel-2: color-mix(in oklch, var(--card) 78%, var(--background));
+  --surface-control: color-mix(in oklch, var(--input) 86%, transparent);
+  --surface-control-hover: color-mix(in oklch, var(--input) 72%, transparent);
+  --surface-control-strong: color-mix(in oklch, var(--secondary) 70%, var(--background));
+  --focus-ring-soft: color-mix(in oklch, var(--ring) 26%, transparent);
 }
 
 :root[data-theme="light"] {
@@ -129,6 +135,12 @@
   --warn-soft: color-mix(in oklch, var(--destructive) 14%, transparent);
   --danger-soft: color-mix(in oklch, var(--destructive) 18%, transparent);
   --shadow-ui: var(--shadow-sm);
+  --surface-panel: color-mix(in oklch, var(--card) 96%, white);
+  --surface-panel-2: color-mix(in oklch, var(--secondary) 74%, white);
+  --surface-control: color-mix(in oklch, var(--input) 94%, white);
+  --surface-control-hover: color-mix(in oklch, var(--input) 84%, white);
+  --surface-control-strong: color-mix(in oklch, var(--secondary) 84%, white);
+  --focus-ring-soft: color-mix(in oklch, var(--ring) 16%, transparent);
 }
 
 * {
@@ -141,32 +153,62 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   letter-spacing: var(--tracking-normal);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   background:
-    radial-gradient(1200px 700px at 10% -20%, var(--primary-soft), transparent 60%),
-    radial-gradient(1100px 700px at 90% -10%, var(--accent-soft), transparent 58%),
-    linear-gradient(155deg, var(--background), var(--bg-1) 50%, var(--bg-2));
+    radial-gradient(1200px 700px at 8% -18%, var(--primary-soft), transparent 62%),
+    radial-gradient(1000px 660px at 94% -12%, var(--accent-soft), transparent 58%),
+    linear-gradient(165deg, var(--background), color-mix(in oklch, var(--background) 80%, var(--secondary)) 56%, var(--bg-1));
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in oklch, var(--border) 18%, transparent),
+      color-mix(in oklch, var(--border) 18%, transparent) 1px,
+      transparent 1px,
+      transparent 42px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in oklch, var(--border) 10%, transparent),
+      color-mix(in oklch, var(--border) 10%, transparent) 1px,
+      transparent 1px,
+      transparent 42px
+    );
+  opacity: 0.16;
+  z-index: -1;
 }
 
 .layout {
-  width: min(1320px, calc(100vw - 56px));
-  margin: 28px auto 64px;
+  width: min(1420px, calc(100vw - 72px));
+  margin: 34px auto 84px;
   display: grid;
-  gap: 24px;
+  gap: 28px;
   overflow-x: hidden;
 }
 
 .hero {
-  background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft));
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 28px;
-  backdrop-filter: blur(6px);
-  box-shadow: var(--shadow-ui);
+  background: linear-gradient(180deg, var(--surface-panel), var(--surface-panel-2));
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) + 2px);
+  padding: 30px;
+  backdrop-filter: blur(10px);
+  box-shadow:
+    var(--shadow-lg),
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent);
 }
 
 .hero h1 {
-  margin: 0 0 10px;
-  font-size: clamp(1.45rem, 2.4vw, 1.95rem);
+  margin: 0 0 12px;
+  font-size: clamp(1.5rem, 2.5vw, 2.06rem);
+  font-weight: 700;
   letter-spacing: 0.02em;
   font-family: var(--font-serif);
 }
@@ -181,41 +223,44 @@ body {
 .hero-sub {
   margin: 0;
   color: var(--muted-foreground);
-  max-width: 72ch;
-  line-height: 1.45;
+  max-width: 75ch;
+  line-height: 1.6;
 }
 
 .tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-glass);
-  backdrop-filter: blur(6px);
-  box-shadow: var(--shadow-xs);
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) + 2px);
+  background: linear-gradient(180deg, var(--surface-panel), var(--surface-panel-2));
+  backdrop-filter: blur(8px);
+  box-shadow:
+    var(--shadow-md),
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent);
 }
 
 .tab-btn {
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 5px);
-  padding: 12px 16px;
-  background: var(--surface-muted);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: transparent;
   color: var(--foreground);
   font-weight: 600;
-  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease, color 120ms ease;
 }
 
 .tab-btn.active {
-  background: linear-gradient(130deg, var(--primary), color-mix(in oklch, var(--primary) 75%, var(--accent-foreground)));
-  color: var(--button-primary-fg);
-  border-color: color-mix(in oklch, var(--primary) 62%, var(--border));
+  background: var(--surface-control-strong);
+  color: var(--foreground);
+  border-color: var(--border-soft);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 8%, transparent);
 }
 
 .tab-content {
   display: none;
-  gap: 22px;
+  gap: 26px;
 }
 
 .tab-content.active {
@@ -224,52 +269,54 @@ body {
 
 .live-negotiator-main {
   display: grid;
-  gap: 22px;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
 }
 
 .live-negotiator-primary,
 .live-negotiator-secondary {
   display: grid;
-  gap: 20px;
+  gap: 22px;
 }
 
 .panel {
-  background: var(--surface-card-strong);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 24px;
-  backdrop-filter: blur(4px);
-  box-shadow: var(--shadow-ui);
+  background: linear-gradient(180deg, var(--surface-panel), var(--surface-panel-2));
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) + 2px);
+  padding: 28px;
+  backdrop-filter: blur(10px);
+  box-shadow:
+    var(--shadow-lg),
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent);
 }
 
 .panel h2 {
-  margin: 0 0 18px;
+  margin: 0 0 22px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  font-size: 1.08rem;
+  gap: 12px;
+  font-size: 1.2rem;
   color: var(--foreground);
 }
 
 .section-badge {
   display: inline-flex;
   align-items: center;
-  border: 1px solid color-mix(in oklch, var(--primary) 52%, var(--border));
+  border: 1px solid color-mix(in oklch, var(--primary) 48%, var(--border));
   border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 0.7rem;
+  padding: 3px 10px;
+  font-size: 0.68rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--primary);
-  background: var(--primary-soft);
+  background: color-mix(in oklch, var(--primary) 18%, transparent);
 }
 
 .grid-2,
 .grid-3 {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .grid-2 {
@@ -282,23 +329,28 @@ body {
 
 .field {
   display: grid;
-  gap: 9px;
+  gap: 10px;
 }
 
 .field span {
-  color: var(--muted-foreground);
-  font-size: 0.95rem;
+  color: color-mix(in oklch, var(--foreground) 88%, var(--muted-foreground));
+  font-size: 0.94rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .meta-box {
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 4px);
-  background: var(--surface-popover);
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) - 1px);
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
   color: var(--muted-foreground);
-  min-height: 82px;
-  padding: 13px 14px;
+  min-height: 90px;
+  padding: 14px 16px;
   font-size: 0.93rem;
-  line-height: 1.5;
+  line-height: 1.58;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent),
+    var(--shadow-2xs);
 }
 
 input,
@@ -311,64 +363,112 @@ button {
 input,
 select,
 textarea {
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 4px);
-  background: var(--surface-input);
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) + 2px);
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
   color: var(--foreground);
-  padding: 13px 14px;
-  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ring) 12%, transparent);
+  min-height: 50px;
+  padding: 13px 16px;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent),
+    0 1px 2px color-mix(in oklch, black 20%, transparent);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in oklch, var(--muted-foreground) 80%, transparent);
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  background: linear-gradient(180deg, var(--surface-control-hover), var(--surface-panel-2));
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: color-mix(in oklch, var(--ring) 56%, var(--border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent),
+    0 0 0 3px var(--focus-ring-soft);
 }
 
 textarea {
   resize: vertical;
+  min-height: 108px;
 }
 
 .actions {
-  margin-top: 16px;
+  margin-top: 18px;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
 }
 
 button {
-  border: 0;
-  border-radius: calc(var(--radius) - 4px);
-  padding: 11px 14px;
-  background: linear-gradient(130deg, var(--primary), color-mix(in oklch, var(--primary) 72%, var(--accent-foreground)));
+  border: 1px solid color-mix(in oklch, var(--primary) 48%, var(--border));
+  border-radius: 999px;
+  padding: 11px 17px;
+  background: linear-gradient(130deg, var(--primary), color-mix(in oklch, var(--primary) 74%, var(--accent-foreground)));
   color: var(--button-primary-fg);
   font-weight: 600;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  transition: transform 140ms ease, filter 140ms ease;
-  box-shadow: var(--shadow-sm);
+  transition: transform 140ms ease, filter 140ms ease, background 140ms ease, border-color 140ms ease;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, white 18%, transparent),
+    var(--shadow-sm);
 }
 
 button:hover {
   transform: translateY(-1px);
-  filter: brightness(1.04);
+  filter: brightness(1.06);
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, white 18%, transparent),
+    0 0 0 3px var(--focus-ring-soft);
 }
 
 .button-muted {
-  background: linear-gradient(
-    130deg,
-    color-mix(in oklch, var(--secondary) 78%, var(--muted-foreground)),
-    color-mix(in oklch, var(--secondary) 95%, var(--background))
-  );
-  color: var(--button-muted-fg);
+  border-color: var(--border-soft);
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
+  color: var(--foreground);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 8%, transparent),
+    var(--shadow-xs);
 }
 
 .button-warn {
+  border-color: color-mix(in oklch, var(--destructive) 62%, var(--border));
   background: linear-gradient(130deg, color-mix(in oklch, var(--destructive) 80%, white), var(--destructive));
   color: var(--button-warn-fg);
 }
 
 .meta-row {
-  margin-top: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
   color: var(--muted-foreground);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   overflow-wrap: anywhere;
+}
+
+.meta-row > div {
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) - 2px);
+  padding: 10px 12px;
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent);
+}
+
+.meta-row strong {
+  color: color-mix(in oklch, var(--foreground) 90%, var(--muted-foreground));
 }
 
 .meta-row > div,
@@ -380,9 +480,9 @@ button:hover {
 }
 
 .kpi-board {
-  margin-top: 16px;
+  margin-top: 18px;
   display: grid;
-  gap: 14px;
+  gap: 16px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -391,20 +491,23 @@ button:hover {
 }
 
 .kpi-card {
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 2px);
-  padding: 14px;
-  background: var(--surface-popover);
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) + 1px);
+  padding: 18px;
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent),
+    var(--shadow-xs);
 }
 
 .kpi-card h3 {
-  margin: 0 0 10px;
-  font-size: 0.95rem;
+  margin: 0 0 12px;
+  font-size: 1rem;
   color: color-mix(in oklch, var(--foreground) 84%, var(--accent-foreground));
 }
 
 .kpi-card p {
-  margin: 0 0 6px;
+  margin: 0 0 7px;
   color: var(--muted-foreground);
 }
 
@@ -427,9 +530,9 @@ button:hover {
   justify-content: space-between;
   gap: 10px;
   border: 1px solid var(--border-soft);
-  border-radius: calc(var(--radius) - 4px);
-  padding: 11px 12px;
-  background: color-mix(in oklch, var(--card) 85%, transparent);
+  border-radius: calc(var(--radius) - 1px);
+  padding: 12px 13px;
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
 }
 
 .kpi-label {
@@ -439,7 +542,7 @@ button:hover {
 
 .kpi-value {
   color: var(--foreground);
-  font-size: 1.28rem;
+  font-size: 1.36rem;
   font-weight: 700;
   line-height: 1;
   font-family: var(--font-mono);
@@ -462,10 +565,10 @@ button:hover {
 }
 
 .kpi-status-note {
-  margin: 8px 0 0;
+  margin: 9px 0 0;
   color: var(--muted-foreground);
   font-size: 0.88rem;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .kpi-signal-grid {
@@ -514,16 +617,19 @@ button:hover {
 }
 
 .operator-health-board {
-  margin-top: 16px;
+  margin-top: 18px;
   display: grid;
-  gap: 14px;
+  gap: 18px;
 }
 
 .operator-health-group {
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 2px);
-  padding: 14px;
-  background: color-mix(in oklch, var(--card) 84%, transparent);
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) + 1px);
+  padding: 18px;
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent),
+    var(--shadow-xs);
 }
 
 .operator-health-group-hidden {
@@ -540,7 +646,7 @@ button:hover {
 .operator-health-group-head h3 {
   margin: 0;
   color: color-mix(in oklch, var(--foreground) 84%, var(--accent-foreground));
-  font-size: 0.92rem;
+  font-size: 1.01rem;
 }
 
 .operator-group-toggle {
@@ -549,10 +655,10 @@ button:hover {
 }
 
 .operator-health-group-body {
-  margin-top: 14px;
+  margin-top: 16px;
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 .operator-health-group.is-collapsed .operator-health-group-body {
@@ -564,10 +670,13 @@ button:hover {
 }
 
 .operator-health-card {
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 2px);
-  padding: 13px;
-  background: var(--surface-popover);
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) - 1px);
+  padding: 15px;
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent),
+    var(--shadow-2xs);
 }
 
 .operator-health-card-hidden {
@@ -575,8 +684,8 @@ button:hover {
 }
 
 .operator-health-card h3 {
-  margin: 0 0 10px;
-  font-size: 0.95rem;
+  margin: 0 0 12px;
+  font-size: 1rem;
   color: color-mix(in oklch, var(--foreground) 84%, var(--accent-foreground));
 }
 
@@ -585,13 +694,13 @@ button:hover {
 }
 
 .operator-health-row {
-  margin: 0 0 8px;
+  margin: 0 0 9px;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
   color: var(--muted-foreground);
-  font-size: 0.89rem;
+  font-size: 0.9rem;
 }
 
 .operator-health-row strong {
@@ -602,17 +711,17 @@ button:hover {
 .operator-health-row span {
   color: var(--foreground);
   font-family: var(--font-mono);
-  font-size: 0.83rem;
+  font-size: 0.85rem;
   text-align: right;
 }
 
 .operator-health-hint {
-  margin: 10px 0 0;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 4px);
-  padding: 10px 11px;
+  margin: 12px 0 0;
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) - 2px);
+  padding: 11px 12px;
   font-size: 0.87rem;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .operator-health-hint-neutral {
@@ -640,41 +749,46 @@ button:hover {
 
 .status-pill {
   display: inline-block;
+  border: 1px solid transparent;
   border-radius: 999px;
-  padding: 7px 12px;
+  padding: 6px 11px;
   font-size: 0.84rem;
   font-weight: 700;
 }
 
 .status-neutral {
-  background: color-mix(in oklch, var(--muted-ui) 76%, transparent);
+  border-color: color-mix(in oklch, var(--muted-foreground) 26%, transparent);
+  background: color-mix(in oklch, var(--surface-control) 95%, transparent);
   color: var(--status-neutral-fg);
 }
 
 .status-ok {
+  border-color: color-mix(in oklch, var(--chart-1) 44%, transparent);
   background: var(--ok-soft);
   color: var(--status-ok-fg);
 }
 
 .status-fail {
+  border-color: color-mix(in oklch, var(--destructive) 42%, transparent);
   background: var(--warn-soft);
   color: var(--status-fail-fg);
 }
 
 .story-timeline-preview {
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 4px);
-  background: color-mix(in oklch, var(--card) 86%, transparent);
-  padding: 13px 14px;
-  min-height: 108px;
-  line-height: 1.55;
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) - 1px);
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
+  padding: 15px 16px;
+  min-height: 116px;
+  line-height: 1.6;
   white-space: pre-wrap;
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent);
 }
 
 .story-progress {
-  margin-top: 16px;
+  margin-top: 18px;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .story-progress-head {
@@ -689,10 +803,10 @@ button:hover {
 .story-progress-track {
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-soft);
   border-radius: 999px;
-  height: 10px;
-  background: color-mix(in oklch, var(--card) 85%, transparent);
+  height: 12px;
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
 }
 
 .story-progress-track.is-empty {
@@ -725,10 +839,10 @@ button:hover {
 }
 
 .story-status-row {
-  margin-top: 14px;
+  margin-top: 16px;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .story-timeline-preview-empty {
@@ -755,47 +869,61 @@ button:hover {
 }
 
 .panel-transcript .transcript {
-  min-height: 360px;
-  max-height: 520px;
+  min-height: 420px;
+  max-height: 560px;
 }
 
 .transcript,
 .events {
-  max-height: 240px;
+  max-height: 300px;
   overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 4px);
-  background: color-mix(in oklch, var(--card) 86%, transparent);
-  padding: 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) - 1px);
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
+  padding: 14px 14px;
   display: grid;
-  gap: 10px;
+  gap: 11px;
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent);
 }
 
 .entry {
-  border-left: 3px solid color-mix(in oklch, var(--primary) 76%, white);
-  background: color-mix(in oklch, var(--primary) 12%, transparent);
-  border-radius: calc(var(--radius) - 8px);
-  padding: 9px 11px;
-  font-size: 0.94rem;
+  border: 1px solid color-mix(in oklch, var(--primary) 35%, var(--border));
+  background: color-mix(in oklch, var(--primary) 10%, transparent);
+  border-radius: calc(var(--radius) - 4px);
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent);
 }
 
 .entry.system {
-  border-left-color: color-mix(in oklch, var(--accent-foreground) 78%, white);
+  border-color: color-mix(in oklch, var(--accent-foreground) 36%, var(--border));
   background: color-mix(in oklch, var(--accent-foreground) 14%, transparent);
 }
 
 .entry.error {
-  border-left-color: color-mix(in oklch, var(--destructive) 88%, white);
+  border-color: color-mix(in oklch, var(--destructive) 38%, var(--border));
   background: color-mix(in oklch, var(--destructive) 14%, transparent);
 }
 
 .entry small {
   display: block;
   color: var(--muted-foreground);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
+  font-size: 0.8rem;
 }
 
 @media (max-width: 980px) {
+  .layout {
+    width: min(1280px, calc(100vw - 36px));
+    margin: 20px auto 40px;
+    gap: 18px;
+  }
+
+  .panel,
+  .hero {
+    padding: 22px;
+  }
+
   .grid-3,
   .kpi-board,
   .operator-health-group-body {
@@ -808,17 +936,32 @@ button:hover {
 }
 
 @media (max-width: 720px) {
+  .layout {
+    width: min(1280px, calc(100vw - 24px));
+    margin: 14px auto 26px;
+    gap: 14px;
+  }
+
+  .panel,
+  .hero {
+    padding: 18px;
+  }
+
   .hero-headline {
     align-items: flex-start;
     flex-direction: column;
   }
 
   .tabs {
-    gap: 6px;
+    gap: 5px;
+    padding: 6px;
   }
 
   .tab-btn {
     flex: 1 1 calc(50% - 6px);
+    justify-content: center;
+    padding: 9px 11px;
+    font-size: 0.86rem;
   }
 
   .grid-2 {
@@ -826,7 +969,7 @@ button:hover {
   }
 
   .operator-health-group {
-    padding: 8px;
+    padding: 10px;
   }
 
   .operator-health-group-head {
@@ -846,17 +989,17 @@ button:hover {
   }
 
   .operator-group-toggle {
-    padding: 5px 9px;
+    padding: 6px 10px;
     font-size: 0.76rem;
   }
 
   .operator-health-group-body {
-    gap: 8px;
-    margin-top: 8px;
+    gap: 9px;
+    margin-top: 10px;
   }
 
   .operator-health-card {
-    padding: 8px;
+    padding: 10px;
   }
 
   .operator-health-row {
@@ -873,5 +1016,9 @@ button:hover {
 
   .operator-health-hint {
     font-size: 0.78rem;
+  }
+
+  .meta-row {
+    grid-template-columns: 1fr;
   }
 }
