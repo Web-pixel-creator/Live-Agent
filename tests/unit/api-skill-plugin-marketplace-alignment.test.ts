@@ -16,8 +16,24 @@ test("api backend skill registry route wires plugin manifest validation and erro
   assert.match(apiSource, /SKILL_PLUGIN_REQUIRE_SIGNATURE/);
   assert.match(apiSource, /SKILL_PLUGIN_SIGNING_KEYS_JSON/);
   assert.match(apiSource, /pluginManifest:\s*pluginManifestResult\.manifest/);
+  assert.match(apiSource, /\/v1\/skills\/plugins/);
+  assert.match(apiSource, /\/v1\/skills\/plugins\/:pluginId/);
+  assert.match(apiSource, /\/v1\/skills\/plugins\/:pluginId\/updates/);
+  assert.match(apiSource, /parseSkillPluginPathSuffix/);
+  assert.match(apiSource, /toSkillPluginMarketplaceItem/);
+  assert.match(apiSource, /API_SKILL_PLUGIN_INVALID_PATH/);
+  assert.match(apiSource, /API_SKILL_PLUGIN_NOT_FOUND/);
+  assert.match(apiSource, /API_SKILL_PLUGIN_INVALID_FILTER/);
+  assert.match(apiSource, /source:\s*"plugin_marketplace"/);
   assert.match(marketplaceSource, /API_SKILL_PLUGIN_PERMISSION_INVALID/);
   assert.match(marketplaceSource, /API_SKILL_PLUGIN_SIGNATURE_REQUIRED/);
   assert.match(marketplaceSource, /API_SKILL_PLUGIN_SIGNATURE_INVALID/);
   assert.match(marketplaceSource, /API_SKILL_PLUGIN_SIGNING_KEY_NOT_FOUND/);
+});
+
+test("readme documents plugin marketplace routes", () => {
+  const readme = readFileSync(join(process.cwd(), "README.md"), "utf8");
+  assert.match(readme, /GET \/v1\/skills\/plugins/);
+  assert.match(readme, /GET \/v1\/skills\/plugins\/\{pluginId\}/);
+  assert.match(readme, /GET \/v1\/skills\/plugins\/\{pluginId\}\/updates/);
 });

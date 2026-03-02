@@ -209,6 +209,9 @@ Session mutation concurrency controls:
 - `GET /v1/skills/registry/{skillId}` with `x-operator-role` -> managed skill detail (`404 API_SKILL_REGISTRY_NOT_FOUND` when absent).
 - `GET /v1/skills/registry/{skillId}/updates` with `x-operator-role` -> tenant-scoped upsert audit history for this skill (`limit`, optional `tenantId` for admin).
 - `POST /v1/skills/registry` with `x-operator-role: admin` -> versioned upsert (`expectedVersion` for optimistic locking).
+- `GET /v1/skills/plugins` with `x-operator-role` -> plugin marketplace view (`limit`, `scope`, `includeDisabled`, `permissions`, `signingStatus=verified|unsigned|none`).
+- `GET /v1/skills/plugins/{pluginId}` with `x-operator-role` -> plugin marketplace detail (`404 API_SKILL_PLUGIN_NOT_FOUND` when plugin manifest is missing).
+- `GET /v1/skills/plugins/{pluginId}/updates` with `x-operator-role` -> tenant-scoped plugin update history (`skills_registry_upsert`, `limit`, optional `tenantId` for admin).
 - `GET /v1/skills/installations` with `x-operator-role` -> tenant-scoped installation workflow view (`agentId`, `includeDisabled`, `limit`, optional `tenantId` for admin).
 - `GET /v1/skills/installations/resolve` with `x-operator-role` -> resolved installation state per `agentId` (`ready|skill_not_found|skill_disabled|scope_mismatch|trust_blocked|pinned_version_unavailable`).
 - `GET /v1/skills/installations/{agentId}/{skillId}` with `x-operator-role` -> installation detail for one agent/skill pair.

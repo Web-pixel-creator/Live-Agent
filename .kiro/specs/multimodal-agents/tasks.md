@@ -230,6 +230,7 @@
 56. T-302 full workflow extension (managed skill installations API + tenant/agent install/update/resolve lifecycle with trust/pinned-version gates + audit/update history + alignment coverage) [Completed]
 57. T-303 full workflow extension (deterministic device-node resolver API `GET /v1/device-nodes/resolve` + ui-navigator auto-routing by node criteria `deviceNodeKind/deviceNodePlatform/deviceNodeCapabilities/deviceNodeMinTrustLevel` + docs/alignment/unit coverage) [Completed]
 58. T-304 full workflow extension (governance policy detail/history APIs: `GET /v1/governance/policy/{tenantId}` + `GET /v1/governance/policy/{tenantId}/updates` with tenant-scope enforcement and audit update lane) [Completed]
+59. T-305 full workflow extension (plugin marketplace APIs: `GET /v1/skills/plugins`, `GET /v1/skills/plugins/{pluginId}`, `GET /v1/skills/plugins/{pluginId}/updates` with signing/permission filters, tenant-scoped update history, and docs/alignment coverage) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

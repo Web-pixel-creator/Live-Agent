@@ -41,6 +41,7 @@ import {
   listManagedSkillInstallations,
   listManagedSkills,
   getManagedSkillInstallation,
+  type ManagedSkillRecord,
   resolveManagedSkillInstallations,
   upsertManagedSkillInstallation,
   type ManagedSkillInstallPolicy,
@@ -726,6 +727,116 @@ function parseSkillScope(raw: unknown): string[] {
   return deduped;
 }
 
+type SkillPluginSigningStatusFilter = "verified" | "unsigned" | "none";
+
+function parseSkillPluginPathSuffix(pathname: string): {
+  pluginId: string;
+  wantsUpdates: boolean;
+} | null {
+  const prefix = "/v1/skills/plugins/";
+  if (!pathname.startsWith(prefix)) {
+    return null;
+  }
+
+  const suffix = pathname.slice(prefix.length).replace(/^\/+|\/+$/g, "");
+  if (suffix.length === 0) {
+    return null;
+  }
+
+  if (suffix.toLowerCase().endsWith("/updates")) {
+    const pluginPart = suffix.slice(0, -"/updates".length).replace(/^\/+|\/+$/g, "");
+    if (pluginPart.length === 0) {
+      return null;
+    }
+    let decodedPluginId = "";
+    try {
+      decodedPluginId = decodeURIComponent(pluginPart);
+    } catch {
+      return null;
+    }
+    return {
+      pluginId: decodedPluginId,
+      wantsUpdates: true,
+    };
+  }
+
+  let decodedPluginId = "";
+  try {
+    decodedPluginId = decodeURIComponent(suffix);
+  } catch {
+    return null;
+  }
+  return {
+    pluginId: decodedPluginId,
+    wantsUpdates: false,
+  };
+}
+
+function resolveSkillPluginSigningStatus(skill: ManagedSkillRecord): SkillPluginSigningStatusFilter {
+  const status = skill.pluginManifest?.signing.status;
+  if (status === "verified" || status === "unsigned") {
+    return status;
+  }
+  return "none";
+}
+
+function parseSkillPluginSigningStatusFilter(
+  raw: unknown,
+): SkillPluginSigningStatusFilter | "invalid" | null {
+  const normalized = toOptionalString(raw)?.toLowerCase() ?? null;
+  if (!normalized) {
+    return null;
+  }
+  if (normalized === "verified" || normalized === "unsigned" || normalized === "none") {
+    return normalized;
+  }
+  return "invalid";
+}
+
+function hasRequiredSkillPluginPermissions(skill: ManagedSkillRecord, required: string[]): boolean {
+  if (required.length === 0) {
+    return true;
+  }
+  const available = new Set(
+    (skill.pluginManifest?.permissions ?? []).map((permission) => permission.toLowerCase()),
+  );
+  for (const permission of required) {
+    if (!available.has(permission)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function toSkillPluginMarketplaceItem(skill: ManagedSkillRecord): Record<string, unknown> {
+  const pluginManifest = skill.pluginManifest;
+  return {
+    pluginId: skill.skillId,
+    skillId: skill.skillId,
+    name: skill.name,
+    description: skill.description,
+    scope: skill.scope,
+    enabled: skill.enabled,
+    trustLevel: skill.trustLevel,
+    version: skill.version,
+    publisher: skill.publisher,
+    checksum: skill.checksum,
+    createdAt: skill.createdAt,
+    updatedAt: skill.updatedAt,
+    pluginManifest: pluginManifest
+      ? {
+          permissions: pluginManifest.permissions,
+          signing: {
+            ...pluginManifest.signing,
+            status: resolveSkillPluginSigningStatus(skill),
+          },
+        }
+      : null,
+    signingStatus: resolveSkillPluginSigningStatus(skill),
+    permissionCount: pluginManifest?.permissions.length ?? 0,
+  };
+}
+
 function parseSkillRegistryPathSuffix(pathname: string): {
   skillId: string;
   wantsUpdates: boolean;
@@ -1099,6 +1210,12 @@ function parseJsonBody(raw: string): Record<string, unknown> {
 function normalizeOperationPath(pathname: string): string {
   if (pathname.startsWith("/v1/sessions/")) {
     return "/v1/sessions/:id";
+  }
+  if (pathname.startsWith("/v1/skills/plugins/")) {
+    if (pathname.toLowerCase().endsWith("/updates")) {
+      return "/v1/skills/plugins/:pluginId/updates";
+    }
+    return "/v1/skills/plugins/:pluginId";
   }
   if (pathname.startsWith("/v1/skills/registry/")) {
     if (pathname.toLowerCase().endsWith("/updates")) {
@@ -3675,6 +3792,132 @@ export const server = createServer(async (req, res) => {
         total: indexItems.length,
         source: "managed_registry",
         generatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith("/v1/skills/plugins/")) {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const pathDetails = parseSkillPluginPathSuffix(url.pathname);
+      if (!pathDetails || !pathDetails.pluginId) {
+        writeApiError(res, 400, {
+          code: "API_SKILL_PLUGIN_INVALID_PATH",
+          message: "pluginId path segment is required",
+        });
+        return;
+      }
+
+      if (pathDetails.wantsUpdates) {
+        const limit = parseBoundedInt(url.searchParams.get("limit"), 50, 1, 200);
+        const requestedTenant = toOptionalString(url.searchParams.get("tenantId"));
+        const tenantId =
+          role === "admin" && requestedTenant ? requestedTenant : requestTenant.tenantId;
+        const pluginIdLower = pathDetails.pluginId.toLowerCase();
+        const fetchLimit = Math.max(limit * 8, 500);
+        const auditItems = await listOperatorActions(fetchLimit, { tenantId });
+        const updates = auditItems
+          .filter((item) => item.action === "skills_registry_upsert")
+          .filter((item) => extractSkillIdFromOperatorAction(item) === pluginIdLower)
+          .slice(0, limit);
+        writeJson(res, 200, {
+          data: updates,
+          total: updates.length,
+          role,
+          pluginId: pathDetails.pluginId,
+          tenantId,
+          source: "plugin_marketplace",
+        });
+        return;
+      }
+
+      const pluginSkill = await getManagedSkillById(pathDetails.pluginId);
+      if (!pluginSkill || !pluginSkill.pluginManifest) {
+        writeApiError(res, 404, {
+          code: "API_SKILL_PLUGIN_NOT_FOUND",
+          message: "Plugin marketplace entry not found",
+          details: {
+            pluginId: pathDetails.pluginId,
+          },
+        });
+        return;
+      }
+
+      writeJson(res, 200, {
+        data: toSkillPluginMarketplaceItem(pluginSkill),
+        role,
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/skills/plugins" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 200, 1, 500);
+      const fetchLimit = Math.max(limit, Math.min(500, limit * 4));
+      const scope = url.searchParams.get("scope") ?? undefined;
+      const includeDisabled = url.searchParams.get("includeDisabled") === "true";
+      const requiredPermissions = parseSkillScope(url.searchParams.get("permissions"));
+      const signingStatusFilter = parseSkillPluginSigningStatusFilter(
+        url.searchParams.get("signingStatus"),
+      );
+      if (signingStatusFilter === "invalid") {
+        writeApiError(res, 400, {
+          code: "API_SKILL_PLUGIN_INVALID_FILTER",
+          message: "signingStatus must be one of verified, unsigned, none",
+          details: {
+            signingStatus: url.searchParams.get("signingStatus"),
+            allowed: ["verified", "unsigned", "none"],
+          },
+        });
+        return;
+      }
+
+      const skillRecords = await listManagedSkills({
+        limit: fetchLimit,
+        includeDisabled,
+        scope,
+      });
+      const pluginSkills = skillRecords
+        .filter((skill) => skill.pluginManifest !== null)
+        .filter((skill) =>
+          signingStatusFilter === null
+            ? true
+            : resolveSkillPluginSigningStatus(skill) === signingStatusFilter,
+        )
+        .filter((skill) => hasRequiredSkillPluginPermissions(skill, requiredPermissions));
+      const items = pluginSkills
+        .slice(0, limit)
+        .map((skill) => toSkillPluginMarketplaceItem(skill));
+      const summary: {
+        verified: number;
+        unsigned: number;
+        none: number;
+      } = {
+        verified: 0,
+        unsigned: 0,
+        none: 0,
+      };
+      for (const entry of items) {
+        const status = toOptionalString((entry as Record<string, unknown>).signingStatus) ?? "none";
+        if (status === "verified") {
+          summary.verified += 1;
+        } else if (status === "unsigned") {
+          summary.unsigned += 1;
+        } else {
+          summary.none += 1;
+        }
+      }
+      writeJson(res, 200, {
+        data: items,
+        total: items.length,
+        role,
+        filters: {
+          scope,
+          includeDisabled,
+          signingStatus: signingStatusFilter,
+          permissions: requiredPermissions,
+        },
+        summary,
+        source: "plugin_marketplace",
       });
       return;
     }
