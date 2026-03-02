@@ -24,4 +24,10 @@ test("api operator summary includes plugin marketplace lifecycle contract", () =
   for (const token of requiredTokens) {
     assert.ok(source.includes(token), `api-backend plugin marketplace summary contract missing token: ${token}`);
   }
+
+  assert.match(
+    source,
+    /const latest =[\s\S]*relevant\.find\(\(item\) =>[\s\S]*item\.pluginId[\s\S]*item\.version[\s\S]*\)\s*\?\?\s*relevant\[0\]/,
+  );
+  assert.match(source, /latest,/);
 });

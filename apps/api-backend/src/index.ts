@@ -2892,6 +2892,13 @@ function buildPluginMarketplaceLifecycleSummary(
     versionConflict > 0 &&
     pluginInvalidPermission > 0;
   const signingEvidenceObserved = signingVerified + signingUnsigned > 0;
+  const latest =
+    relevant.find((item) =>
+      typeof item.pluginId === "string" &&
+      item.pluginId.trim().length > 0 &&
+      typeof item.version === "number" &&
+      item.version >= 1
+    ) ?? relevant[0];
 
   return {
     status: lifecycleValidated && signingEvidenceObserved ? "observed" : "partial",
@@ -2920,7 +2927,7 @@ function buildPluginMarketplaceLifecycleSummary(
       totalPermissions,
       entriesWithPermissions,
     },
-    latest: relevant[0],
+    latest,
     recent: relevant.slice(0, 20),
     source: "operator_actions",
     lifecycleValidated: lifecycleValidated && signingEvidenceObserved,

@@ -2270,6 +2270,88 @@ try {
     Assert-Condition -Condition $deviceUpdatesHasHeartbeat -Message "Device node updates history must include device_node_heartbeat action."
     Assert-Condition -Condition $deviceUpdatesValidated -Message "Device node updates history validation failed."
 
+    # Prime plugin marketplace lifecycle in the public tenant before collecting operator summary.
+    $pluginSkillId = "demo-plugin-skill-" + [Guid]::NewGuid().Guid
+    $pluginSkillName = "Demo Plugin Skill " + (Get-Date).ToString("yyyyMMddHHmmss")
+    $pluginSkillPrompt = "Always include a one-line plugin execution status."
+    $pluginSkillScope = @("live-agent")
+    $pluginCreateBody = @{
+      skillId = $pluginSkillId
+      name = $pluginSkillName
+      description = "Demo plugin marketplace lifecycle probe"
+      prompt = $pluginSkillPrompt
+      scope = $pluginSkillScope
+      enabled = $true
+      trustLevel = "reviewed"
+      expectedVersion = 1
+      updatedBy = "demo-e2e-operator-actions"
+      pluginManifest = @{
+        permissions = @("live.conversation")
+      }
+      metadata = @{
+        scenario = "operator.console.actions"
+      }
+    }
+    $pluginCreateResponse = Invoke-JsonRequest `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/skills/registry" `
+      -Headers $adminHeaders `
+      -Body $pluginCreateBody `
+      -TimeoutSec $RequestTimeoutSec
+    $pluginCreateOutcome = [string](Get-FieldValue -Object $pluginCreateResponse -Path @("meta", "outcome"))
+    $pluginCreatedVersion = [int](Get-FieldValue -Object $pluginCreateResponse -Path @("data", "version"))
+    Assert-Condition -Condition ($pluginCreateOutcome -eq "created") -Message "Expected plugin marketplace probe create outcome."
+    Assert-Condition -Condition ($pluginCreatedVersion -ge 1) -Message "Expected plugin marketplace probe version >= 1."
+
+    $pluginReplayResponse = Invoke-JsonRequest `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/skills/registry" `
+      -Headers $adminHeaders `
+      -Body $pluginCreateBody `
+      -TimeoutSec $RequestTimeoutSec
+    $pluginReplayOutcome = [string](Get-FieldValue -Object $pluginReplayResponse -Path @("meta", "outcome"))
+    Assert-Condition -Condition ($pluginReplayOutcome -eq "idempotent_replay") -Message "Expected plugin marketplace probe replay outcome."
+
+    $pluginVersionConflictResponse = Invoke-JsonRequestExpectStatus `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/skills/registry" `
+      -Headers $adminHeaders `
+      -Body @{
+        skillId = $pluginSkillId
+        name = $pluginSkillName
+        prompt = ($pluginSkillPrompt + " v2")
+        scope = $pluginSkillScope
+        expectedVersion = ($pluginCreatedVersion + 1)
+        updatedBy = "demo-e2e-operator-actions"
+        pluginManifest = @{
+          permissions = @("live.conversation")
+        }
+      } `
+      -ExpectedStatusCode 409 `
+      -TimeoutSec $RequestTimeoutSec
+    $pluginVersionConflictCode = [string](Get-FieldValue -Object $pluginVersionConflictResponse -Path @("body", "error", "code"))
+    Assert-Condition -Condition ($pluginVersionConflictCode -eq "API_SKILL_REGISTRY_VERSION_CONFLICT") -Message "Expected plugin marketplace probe version conflict code."
+
+    $pluginInvalidPermissionResponse = Invoke-JsonRequestExpectStatus `
+      -Method POST `
+      -Uri "http://localhost:8081/v1/skills/registry" `
+      -Headers $adminHeaders `
+      -Body @{
+        skillId = ("demo-plugin-invalid-permission-" + [Guid]::NewGuid().Guid)
+        name = "Demo Plugin Invalid Permission"
+        prompt = "Should fail due to plugin permission allowlist."
+        scope = @("live-agent")
+        expectedVersion = 1
+        updatedBy = "demo-e2e-operator-actions"
+        pluginManifest = @{
+          permissions = @("live.conversation", "filesystem.delete")
+        }
+      } `
+      -ExpectedStatusCode 400 `
+      -TimeoutSec $RequestTimeoutSec
+    $pluginInvalidPermissionCode = [string](Get-FieldValue -Object $pluginInvalidPermissionResponse -Path @("body", "error", "code"))
+    Assert-Condition -Condition ($pluginInvalidPermissionCode -eq "API_SKILL_PLUGIN_PERMISSION_INVALID") -Message "Expected plugin marketplace probe invalid permission code."
+
     $operatorSummaryUri = "http://localhost:8081/v1/operator/summary?traceRunsLimit=120&traceEventsLimit=500"
     $summaryResponse = Invoke-JsonRequest -Method GET -Uri $operatorSummaryUri -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
     $summaryData = Get-FieldValue -Object $summaryResponse -Path @("data")
