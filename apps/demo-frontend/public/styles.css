@@ -762,6 +762,23 @@ button:focus-visible {
   border-color: color-mix(in oklch, var(--destructive) 62%, var(--border));
   background: linear-gradient(130deg, color-mix(in oklch, var(--destructive) 80%, white), var(--destructive));
   color: var(--button-warn-fg);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, white 18%, transparent),
+    0 12px 30px -14px color-mix(in oklch, oklch(0.79 0.19 356) 82%, transparent),
+    var(--shadow-sm);
+}
+
+.button-warn:hover {
+  border-color: color-mix(in oklch, var(--destructive) 74%, var(--border));
+  background: linear-gradient(
+    130deg,
+    color-mix(in oklch, var(--destructive) 88%, oklch(0.92 0.05 8)),
+    color-mix(in oklch, var(--destructive) 84%, oklch(0.76 0.18 356))
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, white 18%, transparent),
+    0 14px 34px -14px color-mix(in oklch, oklch(0.79 0.19 356) 88%, transparent),
+    var(--shadow-sm);
 }
 
 .meta-row {
@@ -777,6 +794,45 @@ button:focus-visible {
 .meta-row-status {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
+}
+
+.meta-row-status > div {
+  display: grid;
+  gap: 9px;
+  align-content: start;
+}
+
+.meta-row-status strong {
+  font-size: 0.93rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: color-mix(in oklch, var(--foreground) 94%, var(--muted-foreground));
+}
+
+.meta-row-status > div > span {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.meta-row-status > div > span:not(.status-pill) {
+  display: block;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 78%, transparent);
+  border-radius: calc(var(--radius) - 5px);
+  padding: 7px 10px;
+  background: color-mix(in oklch, var(--surface-control) 93%, transparent);
+  color: color-mix(in oklch, var(--foreground) 90%, var(--muted-foreground));
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.meta-row-status .status-pill {
+  align-self: start;
+  padding: 7px 12px;
+  font-size: 0.82rem;
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 10%, transparent);
 }
 
 .meta-row > div {
