@@ -62,6 +62,7 @@ body {
   margin: 20px auto 40px;
   display: grid;
   gap: 14px;
+  overflow-x: hidden;
 }
 
 .hero {
@@ -88,6 +89,41 @@ body {
 .hero-sub {
   margin: 0;
   color: var(--muted);
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(7, 22, 26, 0.4);
+  backdrop-filter: blur(6px);
+}
+
+.tab-btn {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: rgba(125, 159, 168, 0.2);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.tab-btn.active {
+  background: linear-gradient(130deg, #2ec4b6, #2a9d8f);
+  color: var(--button-primary-fg);
+  border-color: rgba(46, 196, 182, 0.48);
+}
+
+.tab-content {
+  display: none;
+  gap: 14px;
+}
+
+.tab-content.active {
+  display: grid;
 }
 
 .panel {
@@ -200,6 +236,15 @@ button:hover {
   gap: 12px;
   color: var(--muted);
   font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+
+.meta-row > div,
+.meta-row span {
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .kpi-board {
@@ -386,6 +431,14 @@ button:hover {
   .hero-headline {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .tabs {
+    gap: 6px;
+  }
+
+  .tab-btn {
+    flex: 1 1 calc(50% - 6px);
   }
 
   .grid-2 {

@@ -14,6 +14,13 @@ The operator flow is used during live demos and production diagnostics to:
 2. API summary: `GET /v1/operator/summary`
 3. Operator actions: `POST /v1/operator/actions`
 
+## Frontend Tabs
+
+1. `Live Chat` (default): connection, live controls, intent request, transcript
+2. `KPI & Approvals`: approval controls, KPI constraints, active tasks, story timeline
+3. `Operator Console`: health/evidence cards and operator actions, plus device-node controls
+4. `Event Log`: raw event stream for troubleshooting
+
 ## Key Panels (Demo Frontend)
 
 1. Live Bridge Status
@@ -37,6 +44,7 @@ The operator flow is used during live demos and production diagnostics to:
 4. Approve/reject pending UI-sensitive actions
 5. Export session evidence from frontend (`Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)`)
 6. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
+7. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task`
 
 ## Safety Controls
 

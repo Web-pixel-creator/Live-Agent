@@ -95,6 +95,7 @@ const el = {
   uiTaskDomSnapshot: document.getElementById("uiTaskDomSnapshot"),
   uiTaskAccessibilityTree: document.getElementById("uiTaskAccessibilityTree"),
   uiTaskMarkHints: document.getElementById("uiTaskMarkHints"),
+  uiTaskFields: document.getElementById("uiTaskFields"),
   sendConversationItemBtn: document.getElementById("sendConversationItemBtn"),
   sendConversationDeleteBtn: document.getElementById("sendConversationDeleteBtn"),
   transcript: document.getElementById("transcript"),
@@ -314,6 +315,10 @@ const el = {
   deviceNodeList: document.getElementById("deviceNodeList"),
 };
 
+const tabButtons = Array.from(document.querySelectorAll(".tab-btn[data-tab-target]"));
+const tabContents = Array.from(document.querySelectorAll(".tab-content[data-tab]"));
+const DEFAULT_TAB_ID = "live";
+
 function nowLabel() {
   return new Date().toLocaleTimeString();
 }
@@ -363,6 +368,35 @@ function applyThemeMode(themeMode, options = {}) {
 function toggleThemeMode() {
   const nextMode = state.themeMode === "dark" ? "light" : "dark";
   applyThemeMode(nextMode, { persist: true, announce: true });
+}
+
+function setActiveTab(tabId) {
+  const requestedTabId = typeof tabId === "string" ? tabId.trim() : "";
+  const resolvedTabId = tabContents.some((section) => section.dataset.tab === requestedTabId)
+    ? requestedTabId
+    : DEFAULT_TAB_ID;
+
+  for (const section of tabContents) {
+    const isActive = section.dataset.tab === resolvedTabId;
+    section.classList.toggle("active", isActive);
+    section.setAttribute("aria-hidden", isActive ? "false" : "true");
+  }
+
+  for (const button of tabButtons) {
+    const isActive = (button.dataset.tabTarget ?? "") === resolvedTabId;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-selected", isActive ? "true" : "false");
+    button.setAttribute("tabindex", isActive ? "0" : "-1");
+  }
+}
+
+function setUiTaskFieldsVisibility() {
+  if (!el.uiTaskFields || !el.intent) {
+    return;
+  }
+  const isUiTaskIntent = el.intent.value === "ui_task";
+  el.uiTaskFields.hidden = !isUiTaskIntent;
+  el.uiTaskFields.setAttribute("aria-hidden", isUiTaskIntent ? "false" : "true");
 }
 
 function toConversationScope(value) {
@@ -6045,7 +6079,7 @@ function sendIntentRequest(options = {}) {
       minSla: targetSla,
     },
   };
-  if (intent === "ui_task" || Object.keys(uiTaskOverrides).length > 0) {
+  if (intent === "ui_task") {
     Object.assign(input, uiTaskOverrides);
   }
 
@@ -6270,6 +6304,11 @@ function toggleFallbackMode() {
 }
 
 function bindEvents() {
+  for (const button of tabButtons) {
+    button.addEventListener("click", () => {
+      setActiveTab(button.dataset.tabTarget ?? DEFAULT_TAB_ID);
+    });
+  }
   document.getElementById("connectBtn").addEventListener("click", connectWebSocket);
   document.getElementById("disconnectBtn").addEventListener("click", disconnectWebSocket);
   if (el.exportMarkdownBtn) {
@@ -6488,6 +6527,9 @@ function bindEvents() {
   [el.targetPrice, el.targetDelivery, el.targetSla].forEach((input) => {
     input.addEventListener("input", evaluateConstraints);
   });
+  if (el.intent) {
+    el.intent.addEventListener("change", setUiTaskFieldsVisibility);
+  }
   if (el.storyTimelineScrubber) {
     el.storyTimelineScrubber.addEventListener("input", () => {
       const value = Number(el.storyTimelineScrubber.value);
@@ -6541,6 +6583,8 @@ async function bootstrap() {
   resetOperatorDamageControlWidget("no_data");
   renderTaskList();
   evaluateConstraints();
+  setActiveTab(DEFAULT_TAB_ID);
+  setUiTaskFieldsVisibility();
   bindEvents();
   refreshOperatorSummary().catch(() => {
     appendTranscript("error", "Initial operator summary fetch failed");

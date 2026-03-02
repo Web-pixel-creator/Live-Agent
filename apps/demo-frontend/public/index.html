@@ -18,6 +18,47 @@
         </p>
       </header>
 
+      <nav class="tabs" aria-label="Demo Frontend Sections">
+        <button
+          type="button"
+          class="tab-btn active"
+          data-tab-target="live"
+          aria-controls="tab-live"
+          aria-selected="true"
+        >
+          Live Chat
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          data-tab-target="kpi"
+          aria-controls="tab-kpi"
+          aria-selected="false"
+        >
+          KPI &amp; Approvals
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          data-tab-target="operator"
+          aria-controls="tab-operator"
+          aria-selected="false"
+        >
+          Operator Console
+        </button>
+        <button
+          type="button"
+          class="tab-btn"
+          data-tab-target="events"
+          aria-controls="tab-events"
+          aria-selected="false"
+        >
+          Event Log
+        </button>
+      </nav>
+
+      <div id="tab-live" class="tab-content active" data-tab="live">
+
       <section class="panel">
         <h2>Connection</h2>
         <div class="grid-3">
@@ -126,7 +167,7 @@
             <input id="audioInput" type="file" accept="audio/*" />
           </label>
         </div>
-        <div class="grid-3">
+        <div id="uiTaskFields" class="grid-3">
           <label class="field">
             <span>UI Task URL (optional)</span>
             <input id="uiTaskUrl" type="text" placeholder="https://example.com/dashboard" />
@@ -163,6 +204,14 @@
           <button id="sendOobBtn" class="button-muted">Send OOB Request</button>
         </div>
       </section>
+
+      <section class="panel">
+        <h2>Transcript</h2>
+        <div id="transcript" class="transcript"></div>
+      </section>
+      </div>
+
+      <div id="tab-kpi" class="tab-content" data-tab="kpi">
 
       <section class="panel">
         <h2>Approval Control</h2>
@@ -265,6 +314,9 @@
         </div>
         <div id="tasks" class="events"></div>
       </section>
+      </div>
+
+      <div id="tab-operator" class="tab-content" data-tab="operator">
 
       <section class="panel">
         <h2>Operator Console</h2>
@@ -1033,16 +1085,15 @@
         </div>
         <div id="deviceNodeList" class="events"></div>
       </section>
+      </div>
 
-      <section class="panel">
-        <h2>Transcript</h2>
-        <div id="transcript" class="transcript"></div>
-      </section>
+      <div id="tab-events" class="tab-content" data-tab="events">
 
       <section class="panel">
         <h2>Event Log</h2>
         <div id="events" class="events"></div>
       </section>
+      </div>
     </main>
 
     <script type="module" src="/app.js"></script>

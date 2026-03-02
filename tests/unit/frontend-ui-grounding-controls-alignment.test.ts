@@ -10,6 +10,7 @@ test("demo frontend wires ui_task grounding controls into intent request payload
   const appSource = readFileSync(appPath, "utf8");
 
   const requiredHtmlIds = [
+    'id="uiTaskFields"',
     'id="uiTaskUrl"',
     'id="uiTaskDeviceNodeId"',
     'id="uiTaskScreenshotRef"',
@@ -25,6 +26,10 @@ test("demo frontend wires ui_task grounding controls into intent request payload
     "parseMarkHintsInput",
     "collectUiTaskOverrides",
     "uiTaskOverrides",
+    "setUiTaskFieldsVisibility",
+    "el.intent.addEventListener(\"change\", setUiTaskFieldsVisibility)",
+    "el.uiTaskFields.hidden = !isUiTaskIntent;",
+    "if (intent === \"ui_task\") {",
     "payload.domSnapshot",
     "payload.accessibilityTree",
     "payload.markHints",
