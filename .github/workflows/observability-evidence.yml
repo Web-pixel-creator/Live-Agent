@@ -63,6 +63,7 @@ jobs:
       DATASET_ID: ${{ inputs.dataset_id }}
       LOOKBACK_HOURS: ${{ inputs.lookback_hours }}
       MAX_ROWS: ${{ inputs.max_rows }}
+      GCP_CREDENTIALS_JSON: ${{ secrets.GCP_CREDENTIALS_JSON }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -85,26 +86,26 @@ jobs:
           }
 
       - name: Validate GCP Credentials Secret
-        if: ${{ secrets.GCP_CREDENTIALS_JSON == '' }}
+        if: ${{ env.GCP_CREDENTIALS_JSON == '' }}
         shell: pwsh
         run: |
           Write-Error "Missing required secret: GCP_CREDENTIALS_JSON"
           exit 1
 
       - name: Authenticate to Google Cloud
-        if: ${{ secrets.GCP_CREDENTIALS_JSON != '' }}
+        if: ${{ env.GCP_CREDENTIALS_JSON != '' }}
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
+          credentials_json: ${{ env.GCP_CREDENTIALS_JSON }}
 
       - name: Setup gcloud SDK
-        if: ${{ secrets.GCP_CREDENTIALS_JSON != '' }}
+        if: ${{ env.GCP_CREDENTIALS_JSON != '' }}
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ env.PROJECT_ID }}
 
       - name: Collect Observability Evidence
-        if: ${{ secrets.GCP_CREDENTIALS_JSON != '' }}
+        if: ${{ env.GCP_CREDENTIALS_JSON != '' }}
         shell: pwsh
         run: |
           ./infra/gcp/collect-observability-evidence.ps1 `
@@ -114,11 +115,11 @@ jobs:
             -MaxRows ${{ env.MAX_ROWS }}
 
       - name: Generate Judge Observability Report
-        if: ${{ secrets.GCP_CREDENTIALS_JSON != '' }}
+        if: ${{ env.GCP_CREDENTIALS_JSON != '' }}
         run: npm run infra:observability:report
 
       - name: Validate Observability Artifacts
-        if: ${{ secrets.GCP_CREDENTIALS_JSON != '' }}
+        if: ${{ env.GCP_CREDENTIALS_JSON != '' }}
         run: npm run infra:observability:check
 
       - name: Publish Observability Report To Job Summary
