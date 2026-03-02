@@ -295,6 +295,21 @@
                   <h3>Constraint Status</h3>
                   <p id="constraintStatus" class="status-pill status-neutral">Waiting for offer</p>
                   <p id="fallbackAssetStatus" class="status-pill status-neutral">fallback_asset=false</p>
+                  <div class="kpi-signal-grid">
+                    <p class="kpi-signal">
+                      <span>Price vs target</span>
+                      <span id="kpiPriceDelta" class="kpi-delta kpi-delta-neutral">n/a</span>
+                    </p>
+                    <p class="kpi-signal">
+                      <span>Delivery vs target</span>
+                      <span id="kpiDeliveryDelta" class="kpi-delta kpi-delta-neutral">n/a</span>
+                    </p>
+                    <p class="kpi-signal">
+                      <span>SLA vs target</span>
+                      <span id="kpiSlaDelta" class="kpi-delta kpi-delta-neutral">n/a</span>
+                    </p>
+                  </div>
+                  <p id="kpiConstraintSource" class="kpi-status-note">Evaluating source: none</p>
                   <p class="kpi-status-note">Targets are checked against final offer first, then current offer.</p>
                 </article>
               </div>
@@ -316,6 +331,11 @@
           <div><strong>Story Title:</strong> <span id="storyTimelineTitle">-</span></div>
           <div><strong>Segments:</strong> <span id="storyTimelineCount">0</span></div>
           <div><strong>Pending Video Jobs:</strong> <span id="storyTimelinePendingJobs">0</span></div>
+        </div>
+        <div class="story-status-row">
+          <p id="storyTimelineMode" class="status-pill status-neutral">timeline_idle</p>
+          <p id="storyTimelineAssetMix" class="status-pill status-neutral">assets=none</p>
+          <p id="storyTimelineProgressHint" class="status-pill status-neutral">0/0 segments</p>
         </div>
         <div class="story-progress">
           <div class="story-progress-head">

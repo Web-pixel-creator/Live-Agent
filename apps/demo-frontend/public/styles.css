@@ -365,6 +365,51 @@ button:hover {
   line-height: 1.35;
 }
 
+.kpi-signal-grid {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.kpi-signal {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.81rem;
+}
+
+.kpi-delta {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.kpi-delta-neutral {
+  border-color: rgba(125, 159, 168, 0.42);
+  background: rgba(125, 159, 168, 0.16);
+  color: var(--status-neutral-fg);
+}
+
+.kpi-delta-ok {
+  border-color: rgba(0, 200, 83, 0.45);
+  background: rgba(0, 200, 83, 0.18);
+  color: var(--status-ok-fg);
+}
+
+.kpi-delta-fail {
+  border-color: rgba(255, 107, 107, 0.45);
+  background: rgba(255, 107, 107, 0.18);
+  color: var(--status-fail-fg);
+}
+
 .operator-health-board {
   margin-top: 10px;
   display: grid;
@@ -547,12 +592,63 @@ button:hover {
   background: rgba(7, 22, 26, 0.56);
 }
 
+.story-progress-track.is-empty {
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(125, 159, 168, 0.2),
+      rgba(125, 159, 168, 0.2) 10px,
+      rgba(125, 159, 168, 0.1) 10px,
+      rgba(125, 159, 168, 0.1) 20px
+    ),
+    rgba(7, 22, 26, 0.56);
+}
+
 .story-progress-fill {
   height: 100%;
   width: 0%;
   border-radius: inherit;
   background: linear-gradient(130deg, #2ec4b6, #ff9f43);
   transition: width 160ms ease;
+}
+
+.story-progress-track.is-active .story-progress-fill {
+  background: linear-gradient(130deg, #2ec4b6, #ff9f43);
+}
+
+.story-progress-track.is-pending .story-progress-fill {
+  background: linear-gradient(130deg, #ff9f43, #ff6b6b);
+  animation: story-progress-pulse 1.2s ease-in-out infinite;
+}
+
+.story-status-row {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.story-timeline-preview-empty {
+  border-style: dashed;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(125, 159, 168, 0.12),
+      rgba(125, 159, 168, 0.12) 10px,
+      rgba(125, 159, 168, 0.06) 10px,
+      rgba(125, 159, 168, 0.06) 20px
+    ),
+    rgba(7, 22, 26, 0.56);
+}
+
+@keyframes story-progress-pulse {
+  0%,
+  100% {
+    filter: saturate(0.95);
+  }
+  50% {
+    filter: saturate(1.2);
+  }
 }
 
 .panel-transcript .transcript {

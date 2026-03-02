@@ -98,10 +98,11 @@ Frontend is grouped into tabs (`Live Negotiator`, `Storyteller`, `Operator Conso
 `Live Negotiator` uses a compact top section plus a split middle layout (intent/approval/tasks on the left, KPI cards on the right) and keeps transcript as the main bottom panel.
 `Operator Console` uses grouped accordion lanes; before the first manual `Refresh Summary`, only `Live Bridge & Turn Safety` stays expanded by default.
 `Operator Console` hides placeholder cards (`no_data` / `summary_error`) until the first manual `Refresh Summary`, so judges/operators see only populated evidence by default.
+`KPI Constraints` includes per-metric delta badges (`price/delivery/sla`) plus explicit source attribution (`final_offer/current_offer/mixed_offer`) for quick judge scan.
 Frontend `Intent Request` shows `ui_task` grounding fields only when `intent=ui_task`.
 Frontend `Connection` panel includes one-click export controls: `Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)` (judge/operator evidence snapshot).
 Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
-Frontend includes an interactive `Story Timeline` panel (progress bar + segment scrubber + selector + preview + asset refs) fed directly from Storyteller outputs.
+Frontend includes an interactive `Story Timeline` panel (progress bar + segment scrubber + selector + preview + asset refs) fed directly from Storyteller outputs, with explicit `timeline mode`, `asset mix`, and `segment progress` pills.
 
 Judge-facing visual evidence pack:
 ```bash

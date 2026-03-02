@@ -112,10 +112,17 @@ const el = {
   finalDelivery: document.getElementById("finalDelivery"),
   finalSla: document.getElementById("finalSla"),
   constraintStatus: document.getElementById("constraintStatus"),
+  kpiPriceDelta: document.getElementById("kpiPriceDelta"),
+  kpiDeliveryDelta: document.getElementById("kpiDeliveryDelta"),
+  kpiSlaDelta: document.getElementById("kpiSlaDelta"),
+  kpiConstraintSource: document.getElementById("kpiConstraintSource"),
   fallbackAssetStatus: document.getElementById("fallbackAssetStatus"),
   storyTimelineTitle: document.getElementById("storyTimelineTitle"),
   storyTimelineCount: document.getElementById("storyTimelineCount"),
   storyTimelinePendingJobs: document.getElementById("storyTimelinePendingJobs"),
+  storyTimelineMode: document.getElementById("storyTimelineMode"),
+  storyTimelineAssetMix: document.getElementById("storyTimelineAssetMix"),
+  storyTimelineProgressHint: document.getElementById("storyTimelineProgressHint"),
   storyTimelineProgressLabel: document.getElementById("storyTimelineProgressLabel"),
   storyTimelineProgressTrack: document.getElementById("storyTimelineProgressTrack"),
   storyTimelineProgressBar: document.getElementById("storyTimelineProgressBar"),
@@ -883,8 +890,10 @@ function renderStoryTimelinePreview(segment) {
   }
   if (!segment) {
     el.storyTimelinePreview.textContent = "No story timeline yet. Run a `story` intent to populate segments.";
+    el.storyTimelinePreview.classList.add("story-timeline-preview-empty");
     return;
   }
+  el.storyTimelinePreview.classList.remove("story-timeline-preview-empty");
   const refs = [
     segment.imageRef ? `image=${segment.imageRef}` : null,
     segment.videoRef ? `video=${segment.videoRef}` : null,
@@ -903,6 +912,7 @@ function renderStoryTimelineProgress(count, selectedIndex) {
   const safeIndex = Math.max(0, Math.floor(selectedIndex));
   const resolvedIndex = safeCount > 0 ? Math.min(Math.max(safeIndex, 1), safeCount) : 0;
   const progressPercent = safeCount > 0 ? Math.round((resolvedIndex / safeCount) * 100) : 0;
+  const hasPendingVideoJobs = Math.max(0, Math.floor(state.storyTimelinePendingJobs ?? 0)) > 0;
 
   if (el.storyTimelineProgressLabel) {
     el.storyTimelineProgressLabel.textContent = `${progressPercent}%`;
@@ -914,6 +924,14 @@ function renderStoryTimelineProgress(count, selectedIndex) {
     el.storyTimelineProgressTrack.setAttribute("aria-valuenow", String(progressPercent));
     const valueText = safeCount > 0 ? `${resolvedIndex}/${safeCount}` : "0/0";
     el.storyTimelineProgressTrack.setAttribute("aria-valuetext", valueText);
+    el.storyTimelineProgressTrack.classList.toggle("is-empty", safeCount === 0);
+    el.storyTimelineProgressTrack.classList.toggle("is-pending", safeCount > 0 && hasPendingVideoJobs);
+    el.storyTimelineProgressTrack.classList.toggle("is-active", safeCount > 0 && !hasPendingVideoJobs);
+  }
+  if (el.storyTimelineProgressHint) {
+    const hintText = safeCount > 0 ? `${resolvedIndex}/${safeCount} segments` : "0/0 segments";
+    const hintVariant = safeCount === 0 ? "neutral" : hasPendingVideoJobs ? "neutral" : "ok";
+    setStatusPill(el.storyTimelineProgressHint, hintText, hintVariant);
   }
 }
 
@@ -946,9 +964,29 @@ function renderStoryTimelineList() {
 function renderStoryTimeline() {
   const segments = state.storyTimelineSegments;
   const count = segments.length;
+  const pendingJobs = Math.max(0, Math.floor(state.storyTimelinePendingJobs ?? 0));
+  const imageAssetCount = segments.filter((segment) => typeof segment.imageRef === "string").length;
+  const videoAssetCount = segments.filter((segment) => typeof segment.videoRef === "string").length;
+  const audioAssetCount = segments.filter((segment) => typeof segment.audioRef === "string").length;
   setText(el.storyTimelineTitle, state.storyTimelineTitle ?? "-");
   setText(el.storyTimelineCount, String(count));
-  setText(el.storyTimelinePendingJobs, String(Math.max(0, Math.floor(state.storyTimelinePendingJobs ?? 0))));
+  setText(el.storyTimelinePendingJobs, String(pendingJobs));
+
+  if (count === 0) {
+    setStatusPill(el.storyTimelineMode, "timeline_idle", "neutral");
+  } else if (pendingJobs > 0) {
+    setStatusPill(el.storyTimelineMode, "timeline_pending_video", "neutral");
+  } else {
+    setStatusPill(el.storyTimelineMode, "timeline_ready", "ok");
+  }
+
+  if (count === 0) {
+    setStatusPill(el.storyTimelineAssetMix, "assets=none", "neutral");
+  } else {
+    const assetText = `assets=i${imageAssetCount}/v${videoAssetCount}/a${audioAssetCount}`;
+    const hasAnyAssets = imageAssetCount + videoAssetCount + audioAssetCount > 0;
+    setStatusPill(el.storyTimelineAssetMix, assetText, hasAnyAssets ? "ok" : "neutral");
+  }
 
   if (el.storyTimelineScrubber) {
     el.storyTimelineScrubber.min = count > 0 ? "1" : "0";
@@ -3925,6 +3963,53 @@ function parseDisplayedNumber(node) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function formatCompactNumber(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "-";
+  }
+  const normalized = Number.isInteger(value) ? String(value) : value.toFixed(2);
+  return normalized.replace(/\.?0+$/, "");
+}
+
+function setKpiDeltaBadge(node, text, variant = "neutral") {
+  if (!(node instanceof HTMLElement)) {
+    return;
+  }
+  node.textContent = text;
+  node.className = "kpi-delta";
+  if (variant === "ok") {
+    node.classList.add("kpi-delta-ok");
+    return;
+  }
+  if (variant === "fail") {
+    node.classList.add("kpi-delta-fail");
+    return;
+  }
+  node.classList.add("kpi-delta-neutral");
+}
+
+function setKpiConstraintDelta(node, value, target, comparator, unitSuffix = "") {
+  if (value === null || target === null) {
+    setKpiDeltaBadge(node, "n/a", "neutral");
+    return;
+  }
+  const deltaRaw = value - target;
+  let delta = Number.isFinite(deltaRaw) ? Number(deltaRaw.toFixed(2)) : 0;
+  if (Object.is(delta, -0)) {
+    delta = 0;
+  }
+  const deltaText = `${delta >= 0 ? "+" : ""}${formatCompactNumber(delta)}${unitSuffix}`;
+  const passed = comparator === "min" ? value >= target : value <= target;
+  setKpiDeltaBadge(node, `delta ${deltaText}`, passed ? "ok" : "fail");
+}
+
+function setKpiConstraintSourceLabel(text) {
+  if (!el.kpiConstraintSource) {
+    return;
+  }
+  el.kpiConstraintSource.textContent = text;
+}
+
 function evaluateConstraints() {
   const targetPrice = getNumeric(el.targetPrice);
   const targetDelivery = getNumeric(el.targetDelivery);
@@ -3940,19 +4025,35 @@ function evaluateConstraints() {
   const price = finalPrice ?? currentPrice;
   const delivery = finalDelivery ?? currentDelivery;
   const sla = finalSla ?? currentSla;
+  const usingFinalPrice = finalPrice !== null;
+  const usingFinalDelivery = finalDelivery !== null;
+  const usingFinalSla = finalSla !== null;
   const priceNode = finalPrice !== null ? el.finalPrice : el.currentPrice;
   const deliveryNode = finalDelivery !== null ? el.finalDelivery : el.currentDelivery;
   const slaNode = finalSla !== null ? el.finalSla : el.currentSla;
 
   resetKpiMetricVariants();
+  setKpiConstraintDelta(el.kpiPriceDelta, price, targetPrice, "max");
+  setKpiConstraintDelta(el.kpiDeliveryDelta, delivery, targetDelivery, "max", "d");
+  setKpiConstraintDelta(el.kpiSlaDelta, sla, targetSla, "min", "pp");
   if (price === null || delivery === null || sla === null) {
     setStatusPill(el.constraintStatus, "Waiting for complete offer", "neutral");
+    setKpiConstraintSourceLabel("Evaluating source: none");
     return;
   }
 
   const okPrice = targetPrice === null ? true : price <= targetPrice;
   const okDelivery = targetDelivery === null ? true : delivery <= targetDelivery;
   const okSla = targetSla === null ? true : sla >= targetSla;
+
+  if (usingFinalPrice && usingFinalDelivery && usingFinalSla) {
+    setKpiConstraintSourceLabel("Evaluating source: final_offer");
+  } else if (!usingFinalPrice && !usingFinalDelivery && !usingFinalSla) {
+    setKpiConstraintSourceLabel("Evaluating source: current_offer");
+  } else {
+    setKpiConstraintSourceLabel("Evaluating source: mixed_offer");
+  }
+
   setKpiMetricVariant(priceNode, okPrice ? "ok" : "fail");
   setKpiMetricVariant(deliveryNode, okDelivery ? "ok" : "fail");
   setKpiMetricVariant(slaNode, okSla ? "ok" : "fail");
