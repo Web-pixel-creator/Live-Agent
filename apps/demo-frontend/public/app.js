@@ -116,6 +116,9 @@ const el = {
   storyTimelineTitle: document.getElementById("storyTimelineTitle"),
   storyTimelineCount: document.getElementById("storyTimelineCount"),
   storyTimelinePendingJobs: document.getElementById("storyTimelinePendingJobs"),
+  storyTimelineProgressLabel: document.getElementById("storyTimelineProgressLabel"),
+  storyTimelineProgressTrack: document.getElementById("storyTimelineProgressTrack"),
+  storyTimelineProgressBar: document.getElementById("storyTimelineProgressBar"),
   storyTimelineScrubber: document.getElementById("storyTimelineScrubber"),
   storyTimelineSelect: document.getElementById("storyTimelineSelect"),
   storyTimelinePosition: document.getElementById("storyTimelinePosition"),
@@ -814,6 +817,25 @@ function renderStoryTimelinePreview(segment) {
   el.storyTimelinePreview.textContent = `Segment ${segment.index}\n${preview}`;
 }
 
+function renderStoryTimelineProgress(count, selectedIndex) {
+  const safeCount = Math.max(0, Math.floor(count));
+  const safeIndex = Math.max(0, Math.floor(selectedIndex));
+  const resolvedIndex = safeCount > 0 ? Math.min(Math.max(safeIndex, 1), safeCount) : 0;
+  const progressPercent = safeCount > 0 ? Math.round((resolvedIndex / safeCount) * 100) : 0;
+
+  if (el.storyTimelineProgressLabel) {
+    el.storyTimelineProgressLabel.textContent = `${progressPercent}%`;
+  }
+  if (el.storyTimelineProgressBar) {
+    el.storyTimelineProgressBar.style.width = `${progressPercent}%`;
+  }
+  if (el.storyTimelineProgressTrack) {
+    el.storyTimelineProgressTrack.setAttribute("aria-valuenow", String(progressPercent));
+    const valueText = safeCount > 0 ? `${resolvedIndex}/${safeCount}` : "0/0";
+    el.storyTimelineProgressTrack.setAttribute("aria-valuetext", valueText);
+  }
+}
+
 function renderStoryTimelineList() {
   if (!el.storyTimelineList) {
     return;
@@ -883,6 +905,7 @@ function renderStoryTimeline() {
     el.storyTimelinePosition.textContent = positionText;
   }
 
+  renderStoryTimelineProgress(count, state.storyTimelineSelectedIndex);
   renderStoryTimelinePreview(getStoryTimelineSelectedSegment());
   renderStoryTimelineList();
 }
@@ -3784,7 +3807,35 @@ function updateOfferFromText(text, isFinal = false) {
   }
 }
 
+function setKpiMetricVariant(node, variant = "neutral") {
+  if (!(node instanceof HTMLElement)) {
+    return;
+  }
+  node.classList.remove("kpi-value-neutral", "kpi-value-ok", "kpi-value-fail");
+  if (variant === "ok") {
+    node.classList.add("kpi-value-ok");
+    return;
+  }
+  if (variant === "fail") {
+    node.classList.add("kpi-value-fail");
+    return;
+  }
+  node.classList.add("kpi-value-neutral");
+}
+
+function resetKpiMetricVariants() {
+  setKpiMetricVariant(el.currentPrice, "neutral");
+  setKpiMetricVariant(el.currentDelivery, "neutral");
+  setKpiMetricVariant(el.currentSla, "neutral");
+  setKpiMetricVariant(el.finalPrice, "neutral");
+  setKpiMetricVariant(el.finalDelivery, "neutral");
+  setKpiMetricVariant(el.finalSla, "neutral");
+}
+
 function parseDisplayedNumber(node) {
+  if (!node || typeof node.textContent !== "string") {
+    return null;
+  }
   const cleaned = node.textContent.replace("%", "").trim();
   if (cleaned === "-" || cleaned.length === 0) {
     return null;
@@ -3798,10 +3849,21 @@ function evaluateConstraints() {
   const targetDelivery = getNumeric(el.targetDelivery);
   const targetSla = getNumeric(el.targetSla);
 
-  const price = parseDisplayedNumber(el.finalPrice) ?? parseDisplayedNumber(el.currentPrice);
-  const delivery = parseDisplayedNumber(el.finalDelivery) ?? parseDisplayedNumber(el.currentDelivery);
-  const sla = parseDisplayedNumber(el.finalSla) ?? parseDisplayedNumber(el.currentSla);
+  const currentPrice = parseDisplayedNumber(el.currentPrice);
+  const currentDelivery = parseDisplayedNumber(el.currentDelivery);
+  const currentSla = parseDisplayedNumber(el.currentSla);
+  const finalPrice = parseDisplayedNumber(el.finalPrice);
+  const finalDelivery = parseDisplayedNumber(el.finalDelivery);
+  const finalSla = parseDisplayedNumber(el.finalSla);
 
+  const price = finalPrice ?? currentPrice;
+  const delivery = finalDelivery ?? currentDelivery;
+  const sla = finalSla ?? currentSla;
+  const priceNode = finalPrice !== null ? el.finalPrice : el.currentPrice;
+  const deliveryNode = finalDelivery !== null ? el.finalDelivery : el.currentDelivery;
+  const slaNode = finalSla !== null ? el.finalSla : el.currentSla;
+
+  resetKpiMetricVariants();
   if (price === null || delivery === null || sla === null) {
     setStatusPill(el.constraintStatus, "Waiting for complete offer", "neutral");
     return;
@@ -3810,6 +3872,9 @@ function evaluateConstraints() {
   const okPrice = targetPrice === null ? true : price <= targetPrice;
   const okDelivery = targetDelivery === null ? true : delivery <= targetDelivery;
   const okSla = targetSla === null ? true : sla >= targetSla;
+  setKpiMetricVariant(priceNode, okPrice ? "ok" : "fail");
+  setKpiMetricVariant(deliveryNode, okDelivery ? "ok" : "fail");
+  setKpiMetricVariant(slaNode, okSla ? "ok" : "fail");
 
   if (okPrice && okDelivery && okSla) {
     setStatusPill(el.constraintStatus, "Constraints satisfied", "ok");

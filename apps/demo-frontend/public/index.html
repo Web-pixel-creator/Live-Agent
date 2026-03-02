@@ -58,232 +58,281 @@
       </nav>
 
       <div id="tab-live-negotiator" class="tab-content active" data-tab="live-negotiator">
-
-      <section class="panel">
-        <h2>Connection</h2>
-        <div class="grid-3">
-          <label class="field">
-            <span>Gateway WebSocket URL</span>
-            <input id="wsUrl" type="text" value="ws://localhost:8080/realtime" />
-          </label>
-          <label class="field">
-            <span>Session ID</span>
-            <input id="sessionId" type="text" />
-          </label>
-          <label class="field">
-            <span>User ID</span>
-            <input id="userId" type="text" />
-          </label>
-          <label class="field">
-            <span>Target Language</span>
-            <input id="targetLanguage" type="text" value="ru" />
-          </label>
-        </div>
-        <div class="actions">
-          <button id="connectBtn">Connect</button>
-          <button id="disconnectBtn" class="button-muted">Disconnect</button>
-          <button id="newSessionBtn" class="button-muted">New Session ID</button>
-          <button id="exportMarkdownBtn" class="button-muted">Export Session Markdown</button>
-          <button id="exportJsonBtn" class="button-muted">Export Session JSON</button>
-          <button id="exportAudioBtn" class="button-muted">Export Session Audio (WAV)</button>
-        </div>
-        <div class="meta-row">
-          <div><strong>Status:</strong> <span id="connectionStatus">disconnected</span></div>
-          <div><strong>Assistant:</strong> <span id="assistantStreamStatus" class="status-pill status-neutral">idle</span></div>
-          <div><strong>Run ID:</strong> <span id="runId">-</span></div>
-          <div><strong>User ID:</strong> <span id="currentUserId">-</span></div>
-          <div><strong>Session State:</strong> <span id="sessionState">-</span></div>
-          <div><strong>Mode:</strong> <span id="modeStatus">voice</span></div>
-          <div><strong>PTT:</strong> <span id="pttStatus" class="status-pill status-neutral">ptt=off</span></div>
-          <div><strong>Export:</strong> <span id="exportStatus">idle</span></div>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Live Controls</h2>
-        <div class="actions">
-          <button id="startMicBtn">Start Mic Stream</button>
-          <button id="stopMicBtn" class="button-muted">Stop Mic</button>
-          <button id="pttToggleBtn" class="button-muted">Enable Push-to-Talk</button>
-          <button id="pttHoldBtn" class="button-muted" disabled>Hold to Talk</button>
-          <button id="interruptBtn" class="button-warn">Interrupt Assistant</button>
-          <button id="fallbackBtn" class="button-muted">Switch To Text Fallback</button>
-        </div>
-        <div class="grid-2">
-          <label class="field">
-            <span>Still Image Input</span>
-            <input id="imageInput" type="file" accept="image/*" />
-          </label>
+        <section class="panel panel-live-top">
+          <h2><span class="section-badge">Live</span>Connection</h2>
+          <div class="grid-3">
+            <label class="field">
+              <span>Gateway WebSocket URL</span>
+              <input id="wsUrl" type="text" value="ws://localhost:8080/realtime" />
+            </label>
+            <label class="field">
+              <span>Session ID</span>
+              <input id="sessionId" type="text" />
+            </label>
+            <label class="field">
+              <span>User ID</span>
+              <input id="userId" type="text" />
+            </label>
+            <label class="field">
+              <span>Target Language</span>
+              <input id="targetLanguage" type="text" value="ru" />
+            </label>
+          </div>
           <div class="actions">
-            <button id="sendImageBtn" class="button-muted">Send Image Frame</button>
+            <button id="connectBtn">Connect</button>
+            <button id="disconnectBtn" class="button-muted">Disconnect</button>
+            <button id="newSessionBtn" class="button-muted">New Session ID</button>
+            <button id="exportMarkdownBtn" class="button-muted">Export Session Markdown</button>
+            <button id="exportJsonBtn" class="button-muted">Export Session JSON</button>
+            <button id="exportAudioBtn" class="button-muted">Export Session Audio (WAV)</button>
+          </div>
+          <div class="meta-row">
+            <div><strong>Status:</strong> <span id="connectionStatus">disconnected</span></div>
+            <div><strong>Assistant:</strong> <span id="assistantStreamStatus" class="status-pill status-neutral">idle</span></div>
+            <div><strong>Run ID:</strong> <span id="runId">-</span></div>
+            <div><strong>User ID:</strong> <span id="currentUserId">-</span></div>
+            <div><strong>Session State:</strong> <span id="sessionState">-</span></div>
+            <div><strong>Mode:</strong> <span id="modeStatus">voice</span></div>
+            <div><strong>PTT:</strong> <span id="pttStatus" class="status-pill status-neutral">ptt=off</span></div>
+            <div><strong>Export:</strong> <span id="exportStatus">idle</span></div>
+          </div>
+        </section>
+
+        <section class="panel panel-live-top">
+          <h2><span class="section-badge">Control</span>Live Controls</h2>
+          <div class="actions">
+            <button id="startMicBtn">Start Mic Stream</button>
+            <button id="stopMicBtn" class="button-muted">Stop Mic</button>
+            <button id="pttToggleBtn" class="button-muted">Enable Push-to-Talk</button>
+            <button id="pttHoldBtn" class="button-muted" disabled>Hold to Talk</button>
+            <button id="interruptBtn" class="button-warn">Interrupt Assistant</button>
+            <button id="fallbackBtn" class="button-muted">Switch To Text Fallback</button>
+          </div>
+          <div class="grid-2">
+            <label class="field">
+              <span>Still Image Input</span>
+              <input id="imageInput" type="file" accept="image/*" />
+            </label>
+            <div class="actions">
+              <button id="sendImageBtn" class="button-muted">Send Image Frame</button>
+            </div>
+          </div>
+          <div class="grid-3">
+            <label class="field">
+              <span>Live Setup Model (optional)</span>
+              <input id="liveSetupModel" type="text" placeholder="models/gemini-live-2.5-flash-native-audio" />
+            </label>
+            <label class="field">
+              <span>Live Setup Voice (optional)</span>
+              <input id="liveSetupVoice" type="text" value="Aoede" />
+            </label>
+            <label class="field">
+              <span>Activity Handling</span>
+              <select id="liveSetupActivityHandling">
+                <option value="" selected>keep default</option>
+                <option value="INTERRUPT_AND_RESUME">INTERRUPT_AND_RESUME</option>
+                <option value="NO_INTERRUPTION">NO_INTERRUPTION</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Live System Instruction (optional)</span>
+              <textarea id="liveSetupInstruction" rows="3" placeholder="Speak clearly and briefly."></textarea>
+            </label>
+          </div>
+          <div class="actions">
+            <button id="applyLiveSetupBtn" class="button-muted">Apply Live Setup</button>
+          </div>
+        </section>
+
+        <div class="live-negotiator-main">
+          <div class="live-negotiator-primary">
+            <section class="panel">
+              <h2><span class="section-badge">Input</span>Intent Request</h2>
+              <div class="grid-2">
+                <label class="field">
+                  <span>Intent</span>
+                  <select id="intent">
+                    <option value="negotiation" selected>negotiation</option>
+                    <option value="translation">translation</option>
+                    <option value="conversation">conversation</option>
+                    <option value="story">story</option>
+                    <option value="ui_task">ui_task</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>User Message</span>
+                  <textarea id="message" rows="3">Negotiate: price=97, delivery=10, sla=99</textarea>
+                </label>
+                <label class="field">
+                  <span>Conversation Audio (optional)</span>
+                  <input id="audioInput" type="file" accept="audio/*" />
+                </label>
+              </div>
+              <div id="uiTaskFields" class="grid-3">
+                <label class="field">
+                  <span>UI Task URL (optional)</span>
+                  <input id="uiTaskUrl" type="text" placeholder="https://example.com/dashboard" />
+                </label>
+                <label class="field">
+                  <span>UI Device Node ID (optional)</span>
+                  <input id="uiTaskDeviceNodeId" type="text" placeholder="desktop-main" />
+                </label>
+                <label class="field">
+                  <span>UI Screenshot Ref (optional)</span>
+                  <input id="uiTaskScreenshotRef" type="text" placeholder="ui://session/screenshot-001.png" />
+                </label>
+                <label class="field">
+                  <span>UI DOM Snapshot (optional)</span>
+                  <textarea id="uiTaskDomSnapshot" rows="3" placeholder="<main>...</main>"></textarea>
+                </label>
+                <label class="field">
+                  <span>UI Accessibility Tree (optional)</span>
+                  <textarea
+                    id="uiTaskAccessibilityTree"
+                    rows="3"
+                    placeholder="main > button[name=Submit]"
+                  ></textarea>
+                </label>
+                <label class="field">
+                  <span>UI Mark Hints (optional, one per line)</span>
+                  <textarea id="uiTaskMarkHints" rows="3" placeholder="submit_button@(520,620)"></textarea>
+                </label>
+              </div>
+              <div class="actions">
+                <button id="sendBtn">Send Request</button>
+                <button id="sendConversationItemBtn" class="button-muted">Send Conversation Item</button>
+                <button id="sendConversationDeleteBtn" class="button-muted">Delete Active Turn</button>
+                <button id="sendOobBtn" class="button-muted">Send OOB Request</button>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2><span class="section-badge">Approval</span>Approval Control</h2>
+              <div class="grid-3">
+                <label class="field">
+                  <span>API Backend URL</span>
+                  <input id="apiBaseUrl" type="text" value="http://localhost:8081" />
+                </label>
+                <label class="field">
+                  <span>Pending Approval ID</span>
+                  <input id="approvalId" type="text" value="-" readonly />
+                </label>
+                <label class="field">
+                  <span>Approval Reason</span>
+                  <input id="approvalReason" type="text" value="Approved from demo frontend" />
+                </label>
+              </div>
+              <div class="actions">
+                <button id="approveResumeBtn">Approve &amp; Resume</button>
+                <button id="rejectResumeBtn" class="button-warn">Reject</button>
+              </div>
+              <div class="meta-row">
+                <div><strong>Approval State:</strong> <span id="approvalStatus">idle</span></div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2><span class="section-badge">Queue</span>Active Tasks</h2>
+              <div class="actions">
+                <button id="refreshTasksBtn" class="button-muted">Refresh Active Tasks</button>
+              </div>
+              <div class="meta-row">
+                <div><strong>Active count:</strong> <span id="activeTaskCount">0</span></div>
+              </div>
+              <div id="tasks" class="events"></div>
+            </section>
+          </div>
+
+          <div class="live-negotiator-secondary">
+            <section class="panel kpi-panel">
+              <h2><span class="section-badge">KPI</span>KPI Constraints</h2>
+              <div class="grid-3">
+                <label class="field">
+                  <span>Target max price</span>
+                  <input id="targetPrice" type="number" value="100" />
+                </label>
+                <label class="field">
+                  <span>Target max delivery (days)</span>
+                  <input id="targetDelivery" type="number" value="14" />
+                </label>
+                <label class="field">
+                  <span>Target min SLA (%)</span>
+                  <input id="targetSla" type="number" value="98" />
+                </label>
+              </div>
+              <div class="kpi-board kpi-board-featured">
+                <article class="kpi-card kpi-card-offer">
+                  <h3>Current Offer</h3>
+                  <p class="kpi-metric">
+                    <span class="kpi-label">Price</span>
+                    <span id="currentPrice" class="kpi-value">-</span>
+                  </p>
+                  <p class="kpi-metric">
+                    <span class="kpi-label">Delivery</span>
+                    <span id="currentDelivery" class="kpi-value">-</span>
+                  </p>
+                  <p class="kpi-metric">
+                    <span class="kpi-label">SLA</span>
+                    <span id="currentSla" class="kpi-value">-</span>
+                  </p>
+                </article>
+                <article class="kpi-card kpi-card-offer">
+                  <h3>Final Offer</h3>
+                  <p class="kpi-metric">
+                    <span class="kpi-label">Price</span>
+                    <span id="finalPrice" class="kpi-value">-</span>
+                  </p>
+                  <p class="kpi-metric">
+                    <span class="kpi-label">Delivery</span>
+                    <span id="finalDelivery" class="kpi-value">-</span>
+                  </p>
+                  <p class="kpi-metric">
+                    <span class="kpi-label">SLA</span>
+                    <span id="finalSla" class="kpi-value">-</span>
+                  </p>
+                </article>
+                <article class="kpi-card kpi-card-status">
+                  <h3>Constraint Status</h3>
+                  <p id="constraintStatus" class="status-pill status-neutral">Waiting for offer</p>
+                  <p id="fallbackAssetStatus" class="status-pill status-neutral">fallback_asset=false</p>
+                  <p class="kpi-status-note">Targets are checked against final offer first, then current offer.</p>
+                </article>
+              </div>
+            </section>
           </div>
         </div>
-        <div class="grid-3">
-          <label class="field">
-            <span>Live Setup Model (optional)</span>
-            <input id="liveSetupModel" type="text" placeholder="models/gemini-live-2.5-flash-native-audio" />
-          </label>
-          <label class="field">
-            <span>Live Setup Voice (optional)</span>
-            <input id="liveSetupVoice" type="text" value="Aoede" />
-          </label>
-          <label class="field">
-            <span>Activity Handling</span>
-            <select id="liveSetupActivityHandling">
-              <option value="" selected>keep default</option>
-              <option value="INTERRUPT_AND_RESUME">INTERRUPT_AND_RESUME</option>
-              <option value="NO_INTERRUPTION">NO_INTERRUPTION</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Live System Instruction (optional)</span>
-            <textarea id="liveSetupInstruction" rows="3" placeholder="Speak clearly and briefly."></textarea>
-          </label>
-        </div>
-        <div class="actions">
-          <button id="applyLiveSetupBtn" class="button-muted">Apply Live Setup</button>
-        </div>
-      </section>
 
-      <section class="panel">
-        <h2>Intent Request</h2>
-        <div class="grid-2">
-          <label class="field">
-            <span>Intent</span>
-            <select id="intent">
-              <option value="negotiation" selected>negotiation</option>
-              <option value="translation">translation</option>
-              <option value="conversation">conversation</option>
-              <option value="story">story</option>
-              <option value="ui_task">ui_task</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>User Message</span>
-            <textarea id="message" rows="3">Negotiate: price=97, delivery=10, sla=99</textarea>
-          </label>
-          <label class="field">
-            <span>Conversation Audio (optional)</span>
-            <input id="audioInput" type="file" accept="audio/*" />
-          </label>
-        </div>
-        <div id="uiTaskFields" class="grid-3">
-          <label class="field">
-            <span>UI Task URL (optional)</span>
-            <input id="uiTaskUrl" type="text" placeholder="https://example.com/dashboard" />
-          </label>
-          <label class="field">
-            <span>UI Device Node ID (optional)</span>
-            <input id="uiTaskDeviceNodeId" type="text" placeholder="desktop-main" />
-          </label>
-          <label class="field">
-            <span>UI Screenshot Ref (optional)</span>
-            <input id="uiTaskScreenshotRef" type="text" placeholder="ui://session/screenshot-001.png" />
-          </label>
-          <label class="field">
-            <span>UI DOM Snapshot (optional)</span>
-            <textarea id="uiTaskDomSnapshot" rows="3" placeholder="<main>...</main>"></textarea>
-          </label>
-          <label class="field">
-            <span>UI Accessibility Tree (optional)</span>
-            <textarea
-              id="uiTaskAccessibilityTree"
-              rows="3"
-              placeholder="main > button[name=Submit]"
-            ></textarea>
-          </label>
-          <label class="field">
-            <span>UI Mark Hints (optional, one per line)</span>
-            <textarea id="uiTaskMarkHints" rows="3" placeholder="submit_button@(520,620)"></textarea>
-          </label>
-        </div>
-        <div class="actions">
-          <button id="sendBtn">Send Request</button>
-          <button id="sendConversationItemBtn" class="button-muted">Send Conversation Item</button>
-          <button id="sendConversationDeleteBtn" class="button-muted">Delete Active Turn</button>
-          <button id="sendOobBtn" class="button-muted">Send OOB Request</button>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Transcript</h2>
-        <div id="transcript" class="transcript"></div>
-      </section>
-      </div>
-
-      <div id="tab-live-negotiator-details" class="tab-content" data-tab="live-negotiator">
-
-      <section class="panel">
-        <h2>Approval Control</h2>
-        <div class="grid-3">
-          <label class="field">
-            <span>API Backend URL</span>
-            <input id="apiBaseUrl" type="text" value="http://localhost:8081" />
-          </label>
-          <label class="field">
-            <span>Pending Approval ID</span>
-            <input id="approvalId" type="text" value="-" readonly />
-          </label>
-          <label class="field">
-            <span>Approval Reason</span>
-            <input id="approvalReason" type="text" value="Approved from demo frontend" />
-          </label>
-        </div>
-        <div class="actions">
-          <button id="approveResumeBtn">Approve &amp; Resume</button>
-          <button id="rejectResumeBtn" class="button-warn">Reject</button>
-        </div>
-        <div class="meta-row">
-          <div><strong>Approval State:</strong> <span id="approvalStatus">idle</span></div>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>KPI Constraints</h2>
-        <div class="grid-3">
-          <label class="field">
-            <span>Target max price</span>
-            <input id="targetPrice" type="number" value="100" />
-          </label>
-          <label class="field">
-            <span>Target max delivery (days)</span>
-            <input id="targetDelivery" type="number" value="14" />
-          </label>
-          <label class="field">
-            <span>Target min SLA (%)</span>
-            <input id="targetSla" type="number" value="98" />
-          </label>
-        </div>
-        <div class="kpi-board">
-          <article class="kpi-card">
-            <h3>Current Offer</h3>
-            <p>Price: <span id="currentPrice">-</span></p>
-            <p>Delivery: <span id="currentDelivery">-</span></p>
-            <p>SLA: <span id="currentSla">-</span></p>
-          </article>
-          <article class="kpi-card">
-            <h3>Final Offer</h3>
-            <p>Price: <span id="finalPrice">-</span></p>
-            <p>Delivery: <span id="finalDelivery">-</span></p>
-            <p>SLA: <span id="finalSla">-</span></p>
-          </article>
-          <article class="kpi-card">
-            <h3>Constraint Status</h3>
-            <p id="constraintStatus" class="status-pill status-neutral">Waiting for offer</p>
-            <p id="fallbackAssetStatus" class="status-pill status-neutral">fallback_asset=false</p>
-          </article>
-        </div>
-      </section>
+        <section class="panel panel-transcript">
+          <h2><span class="section-badge">Live</span>Transcript</h2>
+          <div id="transcript" class="transcript"></div>
+        </section>
       </div>
 
       <div id="tab-storyteller" class="tab-content" data-tab="storyteller">
 
       <section class="panel">
-        <h2>Story Timeline</h2>
+        <h2><span class="section-badge">Story</span>Story Timeline</h2>
         <div class="meta-row">
           <div><strong>Story Title:</strong> <span id="storyTimelineTitle">-</span></div>
           <div><strong>Segments:</strong> <span id="storyTimelineCount">0</span></div>
           <div><strong>Pending Video Jobs:</strong> <span id="storyTimelinePendingJobs">0</span></div>
+        </div>
+        <div class="story-progress">
+          <div class="story-progress-head">
+            <span>Timeline Progress</span>
+            <span id="storyTimelineProgressLabel">0%</span>
+          </div>
+          <div
+            id="storyTimelineProgressTrack"
+            class="story-progress-track"
+            role="progressbar"
+            aria-label="Story timeline progress"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <div id="storyTimelineProgressBar" class="story-progress-fill"></div>
+          </div>
         </div>
         <div class="grid-3">
           <label class="field">

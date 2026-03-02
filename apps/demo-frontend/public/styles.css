@@ -126,6 +126,18 @@ body {
   display: grid;
 }
 
+.live-negotiator-main {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+}
+
+.live-negotiator-primary,
+.live-negotiator-secondary {
+  display: grid;
+  gap: 14px;
+}
+
 .panel {
   background: var(--card);
   border: 1px solid var(--border);
@@ -136,8 +148,25 @@ body {
 
 .panel h2 {
   margin: 0 0 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   font-size: 1.02rem;
   color: var(--heading);
+}
+
+.section-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(46, 196, 182, 0.5);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  background: rgba(46, 196, 182, 0.16);
 }
 
 .grid-2,
@@ -254,6 +283,10 @@ button:hover {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.kpi-board-featured {
+  grid-template-columns: 1fr;
+}
+
 .kpi-card {
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -270,6 +303,66 @@ button:hover {
 .kpi-card p {
   margin: 0 0 4px;
   color: var(--muted);
+}
+
+.kpi-card-offer {
+  background:
+    radial-gradient(400px 160px at 15% -10%, rgba(46, 196, 182, 0.18), transparent 70%),
+    rgba(7, 22, 26, 0.58);
+}
+
+.kpi-card-status {
+  background:
+    radial-gradient(420px 200px at 100% -10%, rgba(255, 159, 67, 0.18), transparent 70%),
+    rgba(7, 22, 26, 0.58);
+}
+
+.kpi-metric {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(230, 243, 240, 0.1);
+  border-radius: 10px;
+  padding: 8px 9px;
+  background: rgba(7, 22, 26, 0.5);
+}
+
+.kpi-label {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.kpi-value {
+  color: var(--heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  font-family: "IBM Plex Mono", "Consolas", "SFMono-Regular", monospace;
+}
+
+.kpi-value-neutral {
+  color: var(--status-neutral-fg);
+}
+
+.kpi-value-ok {
+  color: var(--status-ok-fg);
+}
+
+.kpi-value-fail {
+  color: var(--status-fail-fg);
+}
+
+.kpi-card-status .status-pill {
+  margin-bottom: 8px;
+}
+
+.kpi-status-note {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
 }
 
 .operator-health-board {
@@ -396,6 +489,43 @@ button:hover {
   white-space: pre-wrap;
 }
 
+.story-progress {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.story-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.83rem;
+}
+
+.story-progress-track {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  height: 10px;
+  background: rgba(7, 22, 26, 0.56);
+}
+
+.story-progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(130deg, #2ec4b6, #ff9f43);
+  transition: width 160ms ease;
+}
+
+.panel-transcript .transcript {
+  min-height: 320px;
+  max-height: 520px;
+}
+
 .transcript,
 .events {
   max-height: 240px;
@@ -436,6 +566,10 @@ button:hover {
   .grid-3,
   .kpi-board,
   .operator-health-board {
+    grid-template-columns: 1fr;
+  }
+
+  .live-negotiator-main {
     grid-template-columns: 1fr;
   }
 }

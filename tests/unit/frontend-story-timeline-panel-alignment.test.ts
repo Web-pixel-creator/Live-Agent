@@ -17,10 +17,13 @@ test("demo frontend wires interactive story timeline panel across UI/runtime/doc
   const operatorGuide = readFileSync(operatorGuidePath, "utf8");
 
   const requiredHtmlTokens = [
-    "<h2>Story Timeline</h2>",
+    '<span class="section-badge">Story</span>Story Timeline',
     'id="storyTimelineTitle"',
     'id="storyTimelineCount"',
     'id="storyTimelinePendingJobs"',
+    'id="storyTimelineProgressLabel"',
+    'id="storyTimelineProgressTrack"',
+    'id="storyTimelineProgressBar"',
     'id="storyTimelineScrubber"',
     'id="storyTimelineSelect"',
     'id="storyTimelinePosition"',
@@ -36,6 +39,10 @@ test("demo frontend wires interactive story timeline panel across UI/runtime/doc
     "storyTimelineSegments: []",
     "storyTimelineSelectedIndex: 0",
     "storyTimelinePendingJobs: 0",
+    "storyTimelineProgressLabel: document.getElementById(\"storyTimelineProgressLabel\")",
+    "storyTimelineProgressTrack: document.getElementById(\"storyTimelineProgressTrack\")",
+    "storyTimelineProgressBar: document.getElementById(\"storyTimelineProgressBar\")",
+    "renderStoryTimelineProgress",
     "normalizeStoryTimelineSegment",
     "setStoryTimelineData",
     "renderStoryTimeline",
@@ -61,4 +68,3 @@ test("demo frontend wires interactive story timeline panel across UI/runtime/doc
     "operator guide missing Story Timeline instruction",
   );
 });
-

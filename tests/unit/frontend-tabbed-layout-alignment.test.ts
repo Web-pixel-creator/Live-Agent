@@ -27,6 +27,10 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
     'id="tab-operator"',
     'id="tab-device-nodes"',
     'id="tab-operator-events"',
+    'class="live-negotiator-main"',
+    'id="storyTimelineProgressLabel"',
+    'id="storyTimelineProgressTrack"',
+    'id="storyTimelineProgressBar"',
     "class=\"tab-content active\"",
   ];
   for (const token of requiredHtmlTokens) {
@@ -37,6 +41,10 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
     "const tabButtons = Array.from(document.querySelectorAll(\".tab-btn[data-tab-target]\"));",
     "const tabContents = Array.from(document.querySelectorAll(\".tab-content[data-tab]\"));",
     "const DEFAULT_TAB_ID = \"live-negotiator\";",
+    "storyTimelineProgressLabel: document.getElementById(\"storyTimelineProgressLabel\")",
+    "storyTimelineProgressTrack: document.getElementById(\"storyTimelineProgressTrack\")",
+    "storyTimelineProgressBar: document.getElementById(\"storyTimelineProgressBar\")",
+    "function renderStoryTimelineProgress(count, selectedIndex)",
     "function setActiveTab(tabId)",
     "setActiveTab(DEFAULT_TAB_ID);",
   ];
@@ -50,6 +58,11 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
     ".tab-btn.active {",
     ".tab-content {",
     ".tab-content.active {",
+    ".live-negotiator-main {",
+    ".section-badge {",
+    ".kpi-value-ok {",
+    ".story-progress-track {",
+    ".story-progress-fill {",
     "overflow-x: hidden;",
     "overflow-wrap: anywhere;",
   ];

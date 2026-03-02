@@ -95,10 +95,11 @@ Frontend `Intent Request -> Send Conversation Item` supports multimodal parts: t
 Frontend `Live Controls -> Apply Live Setup` can send runtime `live.setup` overrides (`model`, `voice`, `activityHandling`, `systemInstruction`).
 Frontend `Intent Request` also supports optional `ui_task` grounding overrides (`url`, `deviceNodeId`, `deviceNodeKind`, `deviceNodePlatform`, `deviceNodeCapabilities`, `deviceNodeMinTrustLevel`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`).
 Frontend is grouped into tabs (`Live Negotiator`, `Storyteller`, `Operator Console`, `Device Nodes`) with `Live Negotiator` opened by default for faster demo entry.
+`Live Negotiator` uses a compact top section plus a split middle layout (intent/approval/tasks on the left, KPI cards on the right) and keeps transcript as the main bottom panel.
 Frontend `Intent Request` shows `ui_task` grounding fields only when `intent=ui_task`.
 Frontend `Connection` panel includes one-click export controls: `Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)` (judge/operator evidence snapshot).
 Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
-Frontend includes an interactive `Story Timeline` panel (segment scrubber + selector + preview + asset refs) fed directly from Storyteller outputs.
+Frontend includes an interactive `Story Timeline` panel (progress bar + segment scrubber + selector + preview + asset refs) fed directly from Storyteller outputs.
 
 Judge-facing visual evidence pack:
 ```bash
