@@ -878,6 +878,49 @@ function parseDeviceNodePathSuffix(pathname: string): {
   };
 }
 
+function parseGovernancePolicyPathSuffix(pathname: string): {
+  tenantId: string;
+  wantsUpdates: boolean;
+} | null {
+  const prefix = "/v1/governance/policy/";
+  if (!pathname.startsWith(prefix)) {
+    return null;
+  }
+
+  const suffix = pathname.slice(prefix.length).replace(/^\/+|\/+$/g, "");
+  if (suffix.length === 0) {
+    return null;
+  }
+
+  if (suffix.toLowerCase().endsWith("/updates")) {
+    const tenantPart = suffix.slice(0, -"/updates".length).replace(/^\/+|\/+$/g, "");
+    if (tenantPart.length === 0) {
+      return null;
+    }
+    let decodedTenantId: string;
+    try {
+      decodedTenantId = decodeURIComponent(tenantPart);
+    } catch {
+      return null;
+    }
+    return {
+      tenantId: decodedTenantId,
+      wantsUpdates: true,
+    };
+  }
+
+  let decodedTenantId: string;
+  try {
+    decodedTenantId = decodeURIComponent(suffix);
+  } catch {
+    return null;
+  }
+  return {
+    tenantId: decodedTenantId,
+    wantsUpdates: false,
+  };
+}
+
 function extractDeviceNodeIdFromOperatorAction(item: OperatorActionRecord): string | null {
   if (!isRecord(item.details)) {
     return null;
@@ -1085,6 +1128,12 @@ function normalizeOperationPath(pathname: string): string {
     return "/v1/channels/sessions/resolve";
   }
   if (pathname.startsWith("/v1/governance/policy")) {
+    if (pathname.toLowerCase().endsWith("/updates")) {
+      return "/v1/governance/policy/:tenantId/updates";
+    }
+    if (pathname.toLowerCase() !== "/v1/governance/policy") {
+      return "/v1/governance/policy/:tenantId";
+    }
     return "/v1/governance/policy";
   }
   return pathname;
@@ -3013,6 +3062,83 @@ export const server = createServer(async (req, res) => {
           requestedTemplateId: effectiveGovernance.profile.requestedTemplateId,
           source: effectiveGovernance.source,
           policy: effectiveGovernance.profile.retentionPolicy,
+        },
+      });
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith("/v1/governance/policy/")) {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const pathDetails = parseGovernancePolicyPathSuffix(url.pathname);
+      if (!pathDetails) {
+        writeApiError(res, 400, {
+          code: "API_GOVERNANCE_POLICY_INVALID_PATH",
+          message: "tenantId path segment is required",
+        });
+        return;
+      }
+      if (pathDetails.tenantId.trim().toLowerCase() === "all") {
+        writeApiError(res, 400, {
+          code: "API_GOVERNANCE_POLICY_INVALID_PATH",
+          message: "tenant-specific governance path does not accept tenantId=all",
+          details: {
+            tenantId: pathDetails.tenantId,
+          },
+        });
+        return;
+      }
+
+      const tenantScope = resolveGovernanceTenantScope({
+        requestedTenantRaw: pathDetails.tenantId,
+        requestTenant,
+        role,
+      });
+      const tenantId = tenantScope.effectiveTenantId ?? requestTenant.tenantId;
+
+      if (pathDetails.wantsUpdates) {
+        const limit = parseBoundedInt(url.searchParams.get("limit"), 50, 1, 200);
+        const fetchLimit = Math.max(limit * 4, 200);
+        const auditItems = await listOperatorActions(fetchLimit, { tenantId });
+        const updates = auditItems
+          .filter((item) => item.action === "update_governance_policy")
+          .slice(0, limit);
+        writeJson(res, 200, {
+          data: updates,
+          total: updates.length,
+          role,
+          tenant: {
+            tenantId,
+            requestTenantId: requestTenant.tenantId,
+            source: requestTenant.source,
+            scope: "tenant",
+          },
+        });
+        return;
+      }
+
+      const policy = await getTenantGovernancePolicy({ tenantId });
+      if (!policy) {
+        writeApiError(res, 404, {
+          code: "API_GOVERNANCE_POLICY_NOT_FOUND",
+          message: "governance policy override not found for tenant",
+          details: {
+            tenantId,
+          },
+        });
+        return;
+      }
+      const effective = await resolveEffectiveGovernancePolicyForTenant(tenantId);
+      writeJson(res, 200, {
+        data: {
+          role,
+          tenant: {
+            tenantId,
+            requestTenantId: requestTenant.tenantId,
+            source: requestTenant.source,
+            scope: "tenant",
+          },
+          policy,
+          effective,
         },
       });
       return;

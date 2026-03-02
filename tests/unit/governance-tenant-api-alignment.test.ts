@@ -19,6 +19,11 @@ test("api backend exposes tenant governance routes with compliance/retention/aud
     "/v1/governance/compliance-template",
     "/v1/governance/retention-policy",
     "/v1/governance/policy",
+    "/v1/governance/policy/:tenantId",
+    "/v1/governance/policy/:tenantId/updates",
+    "parseGovernancePolicyPathSuffix",
+    "API_GOVERNANCE_POLICY_INVALID_PATH",
+    "API_GOVERNANCE_POLICY_NOT_FOUND",
     "/v1/governance/audit/operator-actions",
     "/v1/governance/audit/summary",
     "API_TENANT_SCOPE_FORBIDDEN",
@@ -37,4 +42,12 @@ test("api backend exposes tenant governance routes with compliance/retention/aud
   for (const token of requiredTokens) {
     assert.ok(source.includes(token), `tenant governance API contract missing token: ${token}`);
   }
+});
+
+test("readme documents governance detail and update-history routes", () => {
+  const readmePath = resolve(process.cwd(), "README.md");
+  const readme = readFileSync(readmePath, "utf8");
+
+  assert.match(readme, /GET \/v1\/governance\/policy\/\{tenantId\}/);
+  assert.match(readme, /GET \/v1\/governance\/policy\/\{tenantId\}\/updates/);
 });

@@ -229,6 +229,7 @@
 55. One-command judge epic flow (`demo:epic` orchestration script with artifact/evidence validation + docs/alignment sync) [Completed]
 56. T-302 full workflow extension (managed skill installations API + tenant/agent install/update/resolve lifecycle with trust/pinned-version gates + audit/update history + alignment coverage) [Completed]
 57. T-303 full workflow extension (deterministic device-node resolver API `GET /v1/device-nodes/resolve` + ui-navigator auto-routing by node criteria `deviceNodeKind/deviceNodePlatform/deviceNodeCapabilities/deviceNodeMinTrustLevel` + docs/alignment/unit coverage) [Completed]
+58. T-304 full workflow extension (governance policy detail/history APIs: `GET /v1/governance/policy/{tenantId}` + `GET /v1/governance/policy/{tenantId}/updates` with tenant-scope enforcement and audit update lane) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 
