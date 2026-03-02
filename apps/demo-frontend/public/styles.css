@@ -625,4 +625,54 @@ button:hover {
   .grid-2 {
     grid-template-columns: 1fr;
   }
+
+  .operator-health-group {
+    padding: 8px;
+  }
+
+  .operator-health-group-head {
+    position: sticky;
+    top: 8px;
+    z-index: 2;
+    margin: -2px -2px 0;
+    padding: 6px 8px;
+    border: 1px solid rgba(230, 243, 240, 0.14);
+    border-radius: 10px;
+    background: rgba(7, 22, 26, 0.86);
+    backdrop-filter: blur(6px);
+  }
+
+  .operator-health-group-head h3 {
+    font-size: 0.86rem;
+  }
+
+  .operator-group-toggle {
+    padding: 5px 9px;
+    font-size: 0.76rem;
+  }
+
+  .operator-health-group-body {
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .operator-health-card {
+    padding: 8px;
+  }
+
+  .operator-health-row {
+    gap: 6px;
+    font-size: 0.82rem;
+  }
+
+  .operator-health-row span {
+    max-width: 60%;
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .operator-health-hint {
+    font-size: 0.78rem;
+  }
 }

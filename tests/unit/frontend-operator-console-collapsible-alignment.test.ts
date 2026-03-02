@@ -34,6 +34,8 @@ test("operator console exposes collapse controls and pristine-card visibility ga
     "operatorHealthBoard: document.getElementById(\"operatorHealthBoard\")",
     "function setOperatorGroupCollapsed(group, collapsed)",
     "function setAllOperatorGroupsCollapsed(collapsed)",
+    "function getVisibleOperatorGroups()",
+    "function applyOperatorDefaultGroupFocus()",
     "function applyOperatorGroupVisibility(group)",
     "function syncOperatorCollapseActionButtons()",
     "function setOperatorCardsCollapsed(collapsed)",
@@ -42,6 +44,7 @@ test("operator console exposes collapse controls and pristine-card visibility ga
     "isOperatorPlaceholderStatusText",
     "const operatorGroupToggles = document.querySelectorAll(\"[data-operator-group-toggle]\")",
     "setOperatorGroupCollapsed(group, shouldCollapse);",
+    "key !== \"bridge-safety\"",
     "markUserRefresh: true",
     "setOperatorCardsCollapsed(false);",
     "applyOperatorCardsVisibility();",
@@ -57,6 +60,9 @@ test("operator console exposes collapse controls and pristine-card visibility ga
     ".operator-health-group.is-collapsed .operator-health-group-body",
     ".operator-health-group-hidden",
     ".operator-health-card-hidden",
+    "position: sticky;",
+    "top: 8px;",
+    "max-width: 60%;",
   ];
   for (const token of requiredStyleTokens) {
     assert.ok(sourceStyles.includes(token), `frontend styles missing operator-collapsible token: ${token}`);

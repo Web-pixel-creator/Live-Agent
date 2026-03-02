@@ -420,10 +420,28 @@ function setOperatorGroupCollapsed(group, collapsed) {
   }
 }
 
-function syncOperatorCollapseActionButtons() {
-  const groups = Array.from(document.querySelectorAll(".operator-health-group")).filter(
+function getVisibleOperatorGroups() {
+  return Array.from(document.querySelectorAll(".operator-health-group")).filter(
     (group) => !group.classList.contains("operator-health-group-hidden"),
   );
+}
+
+function applyOperatorDefaultGroupFocus() {
+  if (state.operatorSummaryUserRefreshed === true) {
+    return;
+  }
+  const visibleGroups = getVisibleOperatorGroups();
+  if (visibleGroups.length === 0) {
+    return;
+  }
+  for (const group of visibleGroups) {
+    const key = group.getAttribute("data-operator-group");
+    setOperatorGroupCollapsed(group, key !== "bridge-safety");
+  }
+}
+
+function syncOperatorCollapseActionButtons() {
+  const groups = getVisibleOperatorGroups();
   if (groups.length === 0) {
     state.operatorCardsCollapsed = false;
     if (el.operatorHealthBoard) {
@@ -509,6 +527,7 @@ function applyOperatorCardsVisibility() {
   for (const group of groups) {
     applyOperatorGroupVisibility(group);
   }
+  applyOperatorDefaultGroupFocus();
   syncOperatorCollapseActionButtons();
 }
 
@@ -4754,6 +4773,7 @@ async function refreshOperatorSummary(options = {}) {
   const markUserRefresh = options?.markUserRefresh === true;
   if (markUserRefresh && state.operatorSummaryUserRefreshed !== true) {
     state.operatorSummaryUserRefreshed = true;
+    setOperatorCardsCollapsed(false);
     applyOperatorCardsVisibility();
   }
   try {

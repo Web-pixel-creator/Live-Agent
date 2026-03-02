@@ -39,7 +39,7 @@ The operator flow is used during live demos and production diagnostics to:
 ## Standard Operator Actions
 
 1. Refresh summary (`Refresh Summary`)
-2. Collapse/expand operator evidence cards (`Collapse All` / `Expand All`)
+2. Collapse/expand operator evidence cards (`Collapse All` / `Expand All`); before first manual refresh the UI keeps only `Live Bridge & Turn Safety` expanded by default
 3. Drain/warmup target service (failover controls)
 4. Create/update device node and send heartbeat
 5. Approve/reject pending UI-sensitive actions
