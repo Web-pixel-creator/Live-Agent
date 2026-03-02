@@ -242,7 +242,7 @@ Session mutation concurrency controls:
   - `API_CHANNEL_ADAPTERS_ALLOW_CUSTOM=true|false`
 
 10. Operator console APIs (RBAC via `x-operator-role: viewer|operator|admin`):
-- `GET /v1/operator/summary` -> active tasks, approvals snapshot, service runtime/health summary, and execution trace rollup (runs/events/tool steps/screenshots/approval links).
+- `GET /v1/operator/summary` -> active tasks, approvals snapshot, service runtime/health summary, execution trace rollup, and judge-facing lifecycle evidence lanes (`skillsRegistryLifecycle`, `pluginMarketplaceLifecycle`, `governancePolicyLifecycle`, `deviceNodeUpdates`, `agentUsage`, `costEstimate`).
 - `POST /v1/operator/actions` with:
   - `action=cancel_task` + `taskId`
   - `action=retry_task` + `taskId`

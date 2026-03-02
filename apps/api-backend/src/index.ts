@@ -2752,6 +2752,182 @@ function buildSkillsRegistryLifecycleSummary(
   };
 }
 
+function buildPluginMarketplaceLifecycleSummary(
+  operatorActions: OperatorActionRecord[],
+): Record<string, unknown> {
+  const relevant = operatorActions
+    .filter((item) => item.action === "skills_registry_upsert")
+    .map((item) => {
+      const details = isRecord(item.details) ? item.details : null;
+      const reason = toOptionalString(item.reason) ?? "";
+      const reasonLower = reason.toLowerCase();
+      const errorCode = toOptionalString(item.errorCode);
+      const pluginId = toOptionalString(details?.skillId);
+      const version = parseNonNegativeInt(details?.version);
+      const signingStatusRaw = toOptionalString(details?.pluginManifestStatus)?.toLowerCase() ?? "none";
+      const signingStatus =
+        signingStatusRaw === "verified" || signingStatusRaw === "unsigned" ? signingStatusRaw : "none";
+      const permissionCount = parseNonNegativeInt(details?.pluginPermissionCount);
+      return {
+        actionId: item.actionId,
+        tenantId: item.tenantId,
+        actorRole: item.actorRole,
+        createdAt: item.createdAt,
+        outcome: item.outcome,
+        reason,
+        reasonLower,
+        errorCode,
+        pluginId,
+        version,
+        signingStatus,
+        permissionCount,
+      };
+    })
+    .sort((left, right) => {
+      const leftTs = Date.parse(left.createdAt);
+      const rightTs = Date.parse(right.createdAt);
+      const leftValue = Number.isFinite(leftTs) ? leftTs : 0;
+      const rightValue = Number.isFinite(rightTs) ? rightTs : 0;
+      return rightValue - leftValue;
+    });
+
+  if (relevant.length <= 0) {
+    return {
+      status: "missing",
+      total: 0,
+      uniquePlugins: 0,
+      outcomes: {
+        succeeded: 0,
+        denied: 0,
+        failed: 0,
+      },
+      lifecycle: {
+        created: 0,
+        updated: 0,
+        idempotentReplay: 0,
+      },
+      conflicts: {
+        versionConflict: 0,
+        pluginInvalidPermission: 0,
+      },
+      signingStatusCounts: {
+        verified: 0,
+        unsigned: 0,
+        none: 0,
+      },
+      permissionTotals: {
+        totalPermissions: 0,
+        entriesWithPermissions: 0,
+      },
+      latest: null,
+      recent: [],
+      source: "operator_actions",
+      lifecycleValidated: false,
+      validated: false,
+    };
+  }
+
+  let succeeded = 0;
+  let denied = 0;
+  let failed = 0;
+  let created = 0;
+  let updated = 0;
+  let idempotentReplay = 0;
+  let versionConflict = 0;
+  let pluginInvalidPermission = 0;
+  let signingVerified = 0;
+  let signingUnsigned = 0;
+  let signingNone = 0;
+  let totalPermissions = 0;
+  let entriesWithPermissions = 0;
+  const uniquePlugins = new Set<string>();
+
+  for (const item of relevant) {
+    if (item.outcome === "succeeded") {
+      succeeded += 1;
+    } else if (item.outcome === "denied") {
+      denied += 1;
+    } else if (item.outcome === "failed") {
+      failed += 1;
+    }
+
+    if (item.reasonLower.includes("managed skill created")) {
+      created += 1;
+    }
+    if (item.reasonLower.includes("managed skill updated")) {
+      updated += 1;
+    }
+    if (item.reasonLower.includes("idempotent_replay")) {
+      idempotentReplay += 1;
+    }
+    if (item.errorCode === "API_SKILL_REGISTRY_VERSION_CONFLICT") {
+      versionConflict += 1;
+    }
+    if (item.errorCode === "API_SKILL_PLUGIN_PERMISSION_INVALID") {
+      pluginInvalidPermission += 1;
+    }
+
+    if (item.signingStatus === "verified") {
+      signingVerified += 1;
+    } else if (item.signingStatus === "unsigned") {
+      signingUnsigned += 1;
+    } else {
+      signingNone += 1;
+    }
+
+    if (typeof item.permissionCount === "number") {
+      totalPermissions += Math.max(0, item.permissionCount);
+      if (item.permissionCount > 0) {
+        entriesWithPermissions += 1;
+      }
+    }
+    if (item.pluginId) {
+      uniquePlugins.add(item.pluginId);
+    }
+  }
+
+  const lifecycleValidated =
+    created > 0 &&
+    idempotentReplay > 0 &&
+    versionConflict > 0 &&
+    pluginInvalidPermission > 0;
+  const signingEvidenceObserved = signingVerified + signingUnsigned > 0;
+
+  return {
+    status: lifecycleValidated && signingEvidenceObserved ? "observed" : "partial",
+    total: relevant.length,
+    uniquePlugins: uniquePlugins.size,
+    outcomes: {
+      succeeded,
+      denied,
+      failed,
+    },
+    lifecycle: {
+      created,
+      updated,
+      idempotentReplay,
+    },
+    conflicts: {
+      versionConflict,
+      pluginInvalidPermission,
+    },
+    signingStatusCounts: {
+      verified: signingVerified,
+      unsigned: signingUnsigned,
+      none: signingNone,
+    },
+    permissionTotals: {
+      totalPermissions,
+      entriesWithPermissions,
+    },
+    latest: relevant[0],
+    recent: relevant.slice(0, 20),
+    source: "operator_actions",
+    lifecycleValidated: lifecycleValidated && signingEvidenceObserved,
+    validated: lifecycleValidated && signingEvidenceObserved,
+  };
+}
+
 function buildGovernancePolicyLifecycleSummary(
   operatorActions: OperatorActionRecord[],
 ): Record<string, unknown> {
@@ -5279,6 +5455,7 @@ export const server = createServer(async (req, res) => {
       const agentUsage = buildAgentUsageSummary(recentEvents, services);
       const costEstimate = buildCostEstimateSummary(agentUsage);
       const skillsRegistryLifecycle = buildSkillsRegistryLifecycleSummary(operatorActions);
+      const pluginMarketplaceLifecycle = buildPluginMarketplaceLifecycleSummary(operatorActions);
       const governancePolicyLifecycle = buildGovernancePolicyLifecycleSummary(operatorActions);
 
       writeJson(res, 200, {
@@ -5313,6 +5490,7 @@ export const server = createServer(async (req, res) => {
           agentUsage,
           costEstimate,
           skillsRegistryLifecycle,
+          pluginMarketplaceLifecycle,
           governancePolicyLifecycle,
           deviceNodes: deviceNodeHealth,
           services,

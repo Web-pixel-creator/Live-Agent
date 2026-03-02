@@ -248,6 +248,17 @@ const el = {
   operatorSkillsRegistryLatest: document.getElementById("operatorSkillsRegistryLatest"),
   operatorSkillsRegistrySeenAt: document.getElementById("operatorSkillsRegistrySeenAt"),
   operatorSkillsRegistryHint: document.getElementById("operatorSkillsRegistryHint"),
+  operatorPluginMarketplaceStatus: document.getElementById("operatorPluginMarketplaceStatus"),
+  operatorPluginMarketplaceTotal: document.getElementById("operatorPluginMarketplaceTotal"),
+  operatorPluginMarketplacePlugins: document.getElementById("operatorPluginMarketplacePlugins"),
+  operatorPluginMarketplaceOutcomes: document.getElementById("operatorPluginMarketplaceOutcomes"),
+  operatorPluginMarketplaceSigning: document.getElementById("operatorPluginMarketplaceSigning"),
+  operatorPluginMarketplacePermissions: document.getElementById("operatorPluginMarketplacePermissions"),
+  operatorPluginMarketplaceLifecycle: document.getElementById("operatorPluginMarketplaceLifecycle"),
+  operatorPluginMarketplaceConflicts: document.getElementById("operatorPluginMarketplaceConflicts"),
+  operatorPluginMarketplaceLatest: document.getElementById("operatorPluginMarketplaceLatest"),
+  operatorPluginMarketplaceSeenAt: document.getElementById("operatorPluginMarketplaceSeenAt"),
+  operatorPluginMarketplaceHint: document.getElementById("operatorPluginMarketplaceHint"),
   operatorGovernancePolicyStatus: document.getElementById("operatorGovernancePolicyStatus"),
   operatorGovernancePolicyTotal: document.getElementById("operatorGovernancePolicyTotal"),
   operatorGovernancePolicyTenants: document.getElementById("operatorGovernancePolicyTenants"),
@@ -1614,6 +1625,27 @@ function setOperatorSkillsRegistryHint(text, variant = "neutral") {
   el.operatorSkillsRegistryHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorPluginMarketplaceHint(text, variant = "neutral") {
+  if (!el.operatorPluginMarketplaceHint) {
+    return;
+  }
+  el.operatorPluginMarketplaceHint.textContent = text;
+  el.operatorPluginMarketplaceHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorPluginMarketplaceHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorPluginMarketplaceHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorPluginMarketplaceHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorPluginMarketplaceHint.classList.add("operator-health-hint-neutral");
+}
+
 function setOperatorGovernancePolicyHint(text, variant = "neutral") {
   if (!el.operatorGovernancePolicyHint) {
     return;
@@ -1859,6 +1891,20 @@ function resetOperatorSkillsRegistryWidget(reason = "no_data") {
   setText(el.operatorSkillsRegistrySeenAt, "n/a");
   setOperatorSkillsRegistryHint("Waiting for skills registry lifecycle evidence.", "neutral");
   setStatusPill(el.operatorSkillsRegistryStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorPluginMarketplaceWidget(reason = "no_data") {
+  setText(el.operatorPluginMarketplaceTotal, "0");
+  setText(el.operatorPluginMarketplacePlugins, "0");
+  setText(el.operatorPluginMarketplaceOutcomes, "ok=0 denied=0 failed=0");
+  setText(el.operatorPluginMarketplaceSigning, "verified=0 unsigned=0 none=0");
+  setText(el.operatorPluginMarketplacePermissions, "total=0 entries=0");
+  setText(el.operatorPluginMarketplaceLifecycle, "created=0 updated=0 replay=0");
+  setText(el.operatorPluginMarketplaceConflicts, "version=0 plugin_perm=0");
+  setText(el.operatorPluginMarketplaceLatest, "n/a");
+  setText(el.operatorPluginMarketplaceSeenAt, "n/a");
+  setOperatorPluginMarketplaceHint("Waiting for plugin marketplace lifecycle evidence.", "neutral");
+  setStatusPill(el.operatorPluginMarketplaceStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function resetOperatorGovernancePolicyWidget(reason = "no_data") {
@@ -2389,6 +2435,128 @@ function renderOperatorSkillsRegistryWidget(skillsRegistrySummary) {
     "neutral",
   );
   setOperatorSkillsRegistryHint(
+    `Lifecycle evidence partial. Missing checkpoints: ${missingText}.`,
+    "warn",
+  );
+}
+
+function renderOperatorPluginMarketplaceWidget(pluginMarketplaceSummary) {
+  const summary =
+    pluginMarketplaceSummary && typeof pluginMarketplaceSummary === "object"
+      ? pluginMarketplaceSummary
+      : null;
+  if (!summary) {
+    resetOperatorPluginMarketplaceWidget("no_data");
+    return;
+  }
+
+  const total = Math.max(0, Math.floor(Number(summary.total ?? 0) || 0));
+  const uniquePlugins = Math.max(0, Math.floor(Number(summary.uniquePlugins ?? 0) || 0));
+  const outcomes = summary.outcomes && typeof summary.outcomes === "object" ? summary.outcomes : {};
+  const lifecycle = summary.lifecycle && typeof summary.lifecycle === "object" ? summary.lifecycle : {};
+  const conflicts = summary.conflicts && typeof summary.conflicts === "object" ? summary.conflicts : {};
+  const signingStatusCounts =
+    summary.signingStatusCounts && typeof summary.signingStatusCounts === "object"
+      ? summary.signingStatusCounts
+      : {};
+  const permissionTotals =
+    summary.permissionTotals && typeof summary.permissionTotals === "object"
+      ? summary.permissionTotals
+      : {};
+  const latest = summary.latest && typeof summary.latest === "object" ? summary.latest : null;
+  const lifecycleValidated = summary.lifecycleValidated === true;
+
+  const succeeded = Math.max(0, Math.floor(Number(outcomes.succeeded ?? 0) || 0));
+  const denied = Math.max(0, Math.floor(Number(outcomes.denied ?? 0) || 0));
+  const failed = Math.max(0, Math.floor(Number(outcomes.failed ?? 0) || 0));
+  const created = Math.max(0, Math.floor(Number(lifecycle.created ?? 0) || 0));
+  const updated = Math.max(0, Math.floor(Number(lifecycle.updated ?? 0) || 0));
+  const replay = Math.max(0, Math.floor(Number(lifecycle.idempotentReplay ?? 0) || 0));
+  const versionConflict = Math.max(0, Math.floor(Number(conflicts.versionConflict ?? 0) || 0));
+  const pluginInvalidPermission = Math.max(0, Math.floor(Number(conflicts.pluginInvalidPermission ?? 0) || 0));
+  const signingVerified = Math.max(0, Math.floor(Number(signingStatusCounts.verified ?? 0) || 0));
+  const signingUnsigned = Math.max(0, Math.floor(Number(signingStatusCounts.unsigned ?? 0) || 0));
+  const signingNone = Math.max(0, Math.floor(Number(signingStatusCounts.none ?? 0) || 0));
+  const totalPermissions = Math.max(0, Math.floor(Number(permissionTotals.totalPermissions ?? 0) || 0));
+  const entriesWithPermissions = Math.max(
+    0,
+    Math.floor(Number(permissionTotals.entriesWithPermissions ?? 0) || 0),
+  );
+  const latestOutcome = latest && typeof latest.outcome === "string" ? latest.outcome : "n/a";
+  const latestPluginId = latest && typeof latest.pluginId === "string" ? latest.pluginId : "n/a";
+  const latestSigning = latest && typeof latest.signingStatus === "string" ? latest.signingStatus : "n/a";
+  const latestErrorCode = latest && typeof latest.errorCode === "string" ? latest.errorCode : "n/a";
+  const latestSeenAt = latest && typeof latest.createdAt === "string" ? latest.createdAt : "n/a";
+  const latestLabel =
+    latestErrorCode === "n/a"
+      ? `outcome=${latestOutcome} plugin=${latestPluginId} signing=${latestSigning}`
+      : `outcome=${latestOutcome} plugin=${latestPluginId} code=${latestErrorCode}`;
+
+  setText(el.operatorPluginMarketplaceTotal, String(total));
+  setText(el.operatorPluginMarketplacePlugins, String(uniquePlugins));
+  setText(el.operatorPluginMarketplaceOutcomes, `ok=${succeeded} denied=${denied} failed=${failed}`);
+  setText(
+    el.operatorPluginMarketplaceSigning,
+    `verified=${signingVerified} unsigned=${signingUnsigned} none=${signingNone}`,
+  );
+  setText(
+    el.operatorPluginMarketplacePermissions,
+    `total=${totalPermissions} entries=${entriesWithPermissions}`,
+  );
+  setText(el.operatorPluginMarketplaceLifecycle, `created=${created} updated=${updated} replay=${replay}`);
+  setText(
+    el.operatorPluginMarketplaceConflicts,
+    `version=${versionConflict} plugin_perm=${pluginInvalidPermission}`,
+  );
+  setText(el.operatorPluginMarketplaceLatest, latestLabel);
+  setText(el.operatorPluginMarketplaceSeenAt, latestSeenAt);
+
+  if (total <= 0) {
+    setStatusPill(el.operatorPluginMarketplaceStatus, "no_evidence", "neutral");
+    setOperatorPluginMarketplaceHint(
+      "No plugin marketplace lifecycle evidence observed yet. Run managed-skills scenario to populate it.",
+      "warn",
+    );
+    return;
+  }
+
+  const missingChecklist = [];
+  if (created <= 0) {
+    missingChecklist.push("created");
+  }
+  if (replay <= 0) {
+    missingChecklist.push("idempotent_replay");
+  }
+  if (versionConflict <= 0) {
+    missingChecklist.push("version_conflict");
+  }
+  if (pluginInvalidPermission <= 0) {
+    missingChecklist.push("plugin_invalid_permission");
+  }
+  if (signingVerified + signingUnsigned <= 0) {
+    missingChecklist.push("signing_status");
+  }
+
+  if (lifecycleValidated) {
+    setStatusPill(
+      el.operatorPluginMarketplaceStatus,
+      `validated total=${total} plugins=${uniquePlugins}`,
+      "ok",
+    );
+    setOperatorPluginMarketplaceHint(
+      "Plugin marketplace lifecycle evidence captured and ready for judge-facing release validation.",
+      "ok",
+    );
+    return;
+  }
+
+  const missingText = missingChecklist.length > 0 ? missingChecklist.join(",") : "none";
+  setStatusPill(
+    el.operatorPluginMarketplaceStatus,
+    `partial total=${total} plugins=${uniquePlugins}`,
+    "neutral",
+  );
+  setOperatorPluginMarketplaceHint(
     `Lifecycle evidence partial. Missing checkpoints: ${missingText}.`,
     "warn",
   );
@@ -3722,6 +3890,7 @@ function renderOperatorSummary(summary) {
   resetOperatorTurnDeleteWidget("no_data");
   resetOperatorDamageControlWidget("no_data");
   resetOperatorSkillsRegistryWidget("no_data");
+  resetOperatorPluginMarketplaceWidget("no_data");
   resetOperatorGovernancePolicyWidget("no_data");
   resetOperatorAgentUsageWidget("no_data");
   resetOperatorCostEstimateWidget("no_data");
@@ -3732,6 +3901,7 @@ function renderOperatorSummary(summary) {
   renderOperatorDamageControlWidget(null, state.operatorDamageControlSnapshot);
   renderOperatorDeviceNodeUpdatesWidget(null);
   renderOperatorSkillsRegistryWidget(null);
+  renderOperatorPluginMarketplaceWidget(null);
   renderOperatorGovernancePolicyWidget(null);
   renderOperatorAgentUsageWidget(null);
   renderOperatorCostEstimateWidget(null);
@@ -3933,6 +4103,85 @@ function renderOperatorSummary(summary) {
     }
   }
   renderOperatorSkillsRegistryWidget(skillsRegistryLifecycle);
+  const pluginMarketplaceLifecycle =
+    summary.pluginMarketplaceLifecycle && typeof summary.pluginMarketplaceLifecycle === "object"
+      ? summary.pluginMarketplaceLifecycle
+      : null;
+  if (pluginMarketplaceLifecycle) {
+    const pluginsTotal = Number(pluginMarketplaceLifecycle.total ?? 0);
+    const pluginsUnique = Number(pluginMarketplaceLifecycle.uniquePlugins ?? 0);
+    const outcomes =
+      pluginMarketplaceLifecycle.outcomes && typeof pluginMarketplaceLifecycle.outcomes === "object"
+        ? pluginMarketplaceLifecycle.outcomes
+        : {};
+    const lifecycle =
+      pluginMarketplaceLifecycle.lifecycle && typeof pluginMarketplaceLifecycle.lifecycle === "object"
+        ? pluginMarketplaceLifecycle.lifecycle
+        : {};
+    const conflicts =
+      pluginMarketplaceLifecycle.conflicts && typeof pluginMarketplaceLifecycle.conflicts === "object"
+        ? pluginMarketplaceLifecycle.conflicts
+        : {};
+    const signingStatusCounts =
+      pluginMarketplaceLifecycle.signingStatusCounts &&
+      typeof pluginMarketplaceLifecycle.signingStatusCounts === "object"
+        ? pluginMarketplaceLifecycle.signingStatusCounts
+        : {};
+    const permissionTotals =
+      pluginMarketplaceLifecycle.permissionTotals &&
+      typeof pluginMarketplaceLifecycle.permissionTotals === "object"
+        ? pluginMarketplaceLifecycle.permissionTotals
+        : {};
+    const succeeded = Math.max(0, Math.floor(Number(outcomes.succeeded ?? 0) || 0));
+    const denied = Math.max(0, Math.floor(Number(outcomes.denied ?? 0) || 0));
+    const failed = Math.max(0, Math.floor(Number(outcomes.failed ?? 0) || 0));
+    const created = Math.max(0, Math.floor(Number(lifecycle.created ?? 0) || 0));
+    const replay = Math.max(0, Math.floor(Number(lifecycle.idempotentReplay ?? 0) || 0));
+    const versionConflict = Math.max(0, Math.floor(Number(conflicts.versionConflict ?? 0) || 0));
+    const pluginInvalidPermission = Math.max(
+      0,
+      Math.floor(Number(conflicts.pluginInvalidPermission ?? 0) || 0),
+    );
+    const signingVerified = Math.max(
+      0,
+      Math.floor(Number(signingStatusCounts.verified ?? 0) || 0),
+    );
+    const signingUnsigned = Math.max(
+      0,
+      Math.floor(Number(signingStatusCounts.unsigned ?? 0) || 0),
+    );
+    const signingNone = Math.max(0, Math.floor(Number(signingStatusCounts.none ?? 0) || 0));
+    const totalPermissions = Math.max(0, Math.floor(Number(permissionTotals.totalPermissions ?? 0) || 0));
+    const entriesWithPermissions = Math.max(
+      0,
+      Math.floor(Number(permissionTotals.entriesWithPermissions ?? 0) || 0),
+    );
+    appendEntry(
+      el.operatorSummary,
+      pluginMarketplaceLifecycle.lifecycleValidated === true ? "system" : "error",
+      "plugin_marketplace.lifecycle",
+      `total=${Math.max(0, Math.floor(pluginsTotal))} unique_plugins=${Math.max(0, Math.floor(pluginsUnique))} ok=${succeeded} denied=${denied} failed=${failed} created=${created} replay=${replay} version_conflict=${versionConflict} plugin_invalid_permission=${pluginInvalidPermission} signing_verified=${signingVerified} signing_unsigned=${signingUnsigned} signing_none=${signingNone} total_permissions=${totalPermissions} entries_with_permissions=${entriesWithPermissions} validated=${pluginMarketplaceLifecycle.lifecycleValidated === true}`,
+    );
+    const pluginLatest =
+      pluginMarketplaceLifecycle.latest && typeof pluginMarketplaceLifecycle.latest === "object"
+        ? pluginMarketplaceLifecycle.latest
+        : null;
+    if (pluginLatest) {
+      const latestOutcome = typeof pluginLatest.outcome === "string" ? pluginLatest.outcome : "n/a";
+      const latestPluginId = typeof pluginLatest.pluginId === "string" ? pluginLatest.pluginId : "n/a";
+      const latestSigningStatus =
+        typeof pluginLatest.signingStatus === "string" ? pluginLatest.signingStatus : "n/a";
+      const latestErrorCode = typeof pluginLatest.errorCode === "string" ? pluginLatest.errorCode : "n/a";
+      const latestSeenAt = typeof pluginLatest.createdAt === "string" ? pluginLatest.createdAt : "n/a";
+      appendEntry(
+        el.operatorSummary,
+        "system",
+        "plugin_marketplace.latest",
+        `outcome=${latestOutcome} plugin=${latestPluginId} signing=${latestSigningStatus} code=${latestErrorCode} seen_at=${latestSeenAt}`,
+      );
+    }
+  }
+  renderOperatorPluginMarketplaceWidget(pluginMarketplaceLifecycle);
   const governancePolicyLifecycle =
     summary.governancePolicyLifecycle && typeof summary.governancePolicyLifecycle === "object"
       ? summary.governancePolicyLifecycle
@@ -4322,6 +4571,7 @@ async function refreshOperatorSummary() {
       resetOperatorDamageControlWidget("summary_error");
     }
     resetOperatorSkillsRegistryWidget("summary_error");
+    resetOperatorPluginMarketplaceWidget("summary_error");
     resetOperatorGovernancePolicyWidget("summary_error");
     resetOperatorAgentUsageWidget("summary_error");
     resetOperatorCostEstimateWidget("summary_error");

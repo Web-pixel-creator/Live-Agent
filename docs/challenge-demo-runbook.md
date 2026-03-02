@@ -320,6 +320,7 @@ Checkpoint B (hard interruption) at ~01:40:
    - `UI Executor Failover` widget (`state/healthy/profile/version + last_action/last_outcome`).
    - `Device Nodes Health` widget (`total/online/degraded/offline/stale/missing_heartbeat/max_age`).
    - `Device Node Updates Evidence` widget (`total/upsert/heartbeat/unique_nodes/latest/seen_at` + validated status).
+   - `Plugin Marketplace Lifecycle` widget (`total/unique_plugins/outcomes/signing/permissions/lifecycle/conflicts/latest/seen_at` + validated status).
    - `Agent Usage Evidence` widget (`total/unique_runs/unique_sessions/calls/tokens/models/source/seen_at` + validated status).
    - `Cost & Tokens Evidence` widget (`currency/mode/source/tokens/input_usd/output_usd/total_usd/rates/seen_at` + validated status).
    - `Trace Coverage` widget (`runs/events/ui_runs/approval_linked/steps/screenshots + top_route/top_status`).
