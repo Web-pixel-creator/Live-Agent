@@ -228,6 +228,7 @@
 54. Judge quickstart minute-by-minute demo script (5-6 min timeline aligned with runbook + alignment tests) [Completed]
 55. One-command judge epic flow (`demo:epic` orchestration script with artifact/evidence validation + docs/alignment sync) [Completed]
 56. T-302 full workflow extension (managed skill installations API + tenant/agent install/update/resolve lifecycle with trust/pinned-version gates + audit/update history + alignment coverage) [Completed]
+57. T-303 full workflow extension (deterministic device-node resolver API `GET /v1/device-nodes/resolve` + ui-navigator auto-routing by node criteria `deviceNodeKind/deviceNodePlatform/deviceNodeCapabilities/deviceNodeMinTrustLevel` + docs/alignment/unit coverage) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

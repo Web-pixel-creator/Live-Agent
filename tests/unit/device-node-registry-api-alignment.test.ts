@@ -8,9 +8,11 @@ test("api backend exposes device-node detail and update-history routes", () => {
   const source = readFileSync(sourcePath, "utf8");
 
   const requiredTokens = [
+    "/v1/device-nodes/resolve",
     "/v1/device-nodes/:id",
     "/v1/device-nodes/:id/updates",
     "parseDeviceNodePathSuffix",
+    "resolveDeviceNode",
     "API_DEVICE_NODE_INVALID_PATH",
     "API_DEVICE_NODE_NOT_FOUND",
     "device_node_upsert",
@@ -27,7 +29,7 @@ test("readme documents device-node detail and update-history APIs", () => {
   const readmePath = resolve(process.cwd(), "README.md");
   const readme = readFileSync(readmePath, "utf8");
 
+  assert.match(readme, /GET \/v1\/device-nodes\/resolve/);
   assert.match(readme, /GET \/v1\/device-nodes\/\{nodeId\}/);
   assert.match(readme, /GET \/v1\/device-nodes\/\{nodeId\}\/updates/);
 });
-

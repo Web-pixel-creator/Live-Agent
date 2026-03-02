@@ -356,6 +356,28 @@ export type DeviceNodeIndexItem = {
   updatedAt: string;
 };
 
+export type DeviceNodeResolveParams = {
+  nodeId?: string;
+  kind?: DeviceNodeKind;
+  platform?: string;
+  requiredCapabilities?: string[];
+  minTrustLevel?: ManagedSkillTrustLevel;
+  includeOffline?: boolean;
+  includeDegraded?: boolean;
+  limit?: number;
+};
+
+export type DeviceNodeResolveResult = {
+  selected: DeviceNodeRecord | null;
+  candidates: DeviceNodeRecord[];
+  considered: number;
+  reason:
+    | "selected"
+    | "node_not_found"
+    | "node_filtered"
+    | "no_candidates";
+};
+
 export type ChannelSessionBindingRecord = {
   bindingId: string;
   tenantId: string;
@@ -1173,6 +1195,61 @@ function deviceNodeSignature(node: DeviceNodeRecord): string {
     capabilities: node.capabilities,
     trustLevel: node.trustLevel,
     metadata: node.metadata ?? null,
+  });
+}
+
+function normalizeDeviceNodePlatformFilter(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().toLowerCase();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeDeviceNodeResolveLimit(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.max(1, Math.min(100, Math.floor(value)));
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return Math.max(1, Math.min(100, Math.floor(parsed)));
+    }
+  }
+  return 20;
+}
+
+function statusRank(status: DeviceNodeStatus): number {
+  if (status === "online") {
+    return 3;
+  }
+  if (status === "degraded") {
+    return 2;
+  }
+  return 1;
+}
+
+function sortResolvedDeviceNodes(nodes: DeviceNodeRecord[]): DeviceNodeRecord[] {
+  return [...nodes].sort((left, right) => {
+    const statusDelta = statusRank(right.status) - statusRank(left.status);
+    if (statusDelta !== 0) {
+      return statusDelta;
+    }
+    const trustDelta = managedTrustRank(right.trustLevel) - managedTrustRank(left.trustLevel);
+    if (trustDelta !== 0) {
+      return trustDelta;
+    }
+    const seenLeft = left.lastSeenAt ?? left.updatedAt;
+    const seenRight = right.lastSeenAt ?? right.updatedAt;
+    const seenDelta = seenRight.localeCompare(seenLeft);
+    if (seenDelta !== 0) {
+      return seenDelta;
+    }
+    const versionDelta = right.version - left.version;
+    if (versionDelta !== 0) {
+      return versionDelta;
+    }
+    return left.nodeId.localeCompare(right.nodeId);
   });
 }
 
@@ -3452,6 +3529,65 @@ export async function listDeviceNodeIndex(params: {
     lastSeenAt: node.lastSeenAt,
     updatedAt: node.updatedAt,
   }));
+}
+
+export async function resolveDeviceNode(params: DeviceNodeResolveParams): Promise<DeviceNodeResolveResult> {
+  const requestedNodeId = normalizeManagedSkillId(params.nodeId, "");
+  const kind = params.kind;
+  const platform = normalizeDeviceNodePlatformFilter(params.platform);
+  const requiredCapabilities = normalizeCapabilityList(params.requiredCapabilities);
+  const minTrustLevel = params.minTrustLevel ? normalizeManagedTrustLevel(params.minTrustLevel) : null;
+  const includeOffline = params.includeOffline === true;
+  const includeDegraded = params.includeDegraded !== false;
+  const limit = normalizeDeviceNodeResolveLimit(params.limit);
+
+  const allNodes = await listDeviceNodes({
+    limit: 500,
+    includeOffline: true,
+  });
+
+  const byNodeId = requestedNodeId
+    ? allNodes.filter((node) => node.nodeId === requestedNodeId)
+    : allNodes;
+  if (requestedNodeId && byNodeId.length === 0) {
+    return {
+      selected: null,
+      candidates: [],
+      considered: 0,
+      reason: "node_not_found",
+    };
+  }
+
+  const filtered = byNodeId
+    .filter((node) => (includeOffline ? true : node.status !== "offline"))
+    .filter((node) => (includeDegraded ? true : node.status !== "degraded"))
+    .filter((node) => (kind ? node.kind === kind : true))
+    .filter((node) => (platform ? node.platform.toLowerCase() === platform : true))
+    .filter((node) => {
+      if (requiredCapabilities.length === 0) {
+        return true;
+      }
+      const nodeCapabilities = normalizeCapabilityList(node.capabilities);
+      return requiredCapabilities.every((requiredCapability) => nodeCapabilities.includes(requiredCapability));
+    })
+    .filter((node) => (minTrustLevel ? managedTrustRank(node.trustLevel) >= managedTrustRank(minTrustLevel) : true));
+
+  if (filtered.length === 0) {
+    return {
+      selected: null,
+      candidates: [],
+      considered: byNodeId.length,
+      reason: requestedNodeId ? "node_filtered" : "no_candidates",
+    };
+  }
+
+  const sorted = sortResolvedDeviceNodes(filtered);
+  return {
+    selected: sorted[0] ?? null,
+    candidates: sorted.slice(0, limit),
+    considered: byNodeId.length,
+    reason: "selected",
+  };
 }
 
 export async function getChannelSessionBinding(params: {

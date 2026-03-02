@@ -93,7 +93,7 @@ npm run dev:frontend
 Open `http://localhost:3000`.
 Frontend `Intent Request -> Send Conversation Item` supports multimodal parts: text + optional image + optional audio attachment.
 Frontend `Live Controls -> Apply Live Setup` can send runtime `live.setup` overrides (`model`, `voice`, `activityHandling`, `systemInstruction`).
-Frontend `Intent Request` also supports optional `ui_task` grounding overrides (`url`, `deviceNodeId`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`).
+Frontend `Intent Request` also supports optional `ui_task` grounding overrides (`url`, `deviceNodeId`, `deviceNodeKind`, `deviceNodePlatform`, `deviceNodeCapabilities`, `deviceNodeMinTrustLevel`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`).
 Frontend `Connection` panel includes one-click export controls: `Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)` (judge/operator evidence snapshot).
 Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
 Frontend includes an interactive `Story Timeline` panel (segment scrubber + selector + preview + asset refs) fed directly from Storyteller outputs.
@@ -221,6 +221,7 @@ Session mutation concurrency controls:
 
 9. Device node registry APIs:
 - `GET /v1/device-nodes/index` -> public device-node index for runtime routing (`limit`, `kind`, `includeOffline`).
+- `GET /v1/device-nodes/resolve` -> deterministic node resolver for runtime execution (`nodeId`, `kind`, `platform`, `capabilities`, `minTrustLevel`, `includeOffline`, `includeDegraded`, `limit`).
 - `GET /v1/device-nodes` with `x-operator-role` -> operator registry view.
 - `GET /v1/device-nodes/{nodeId}` with `x-operator-role` -> device-node detail (`404 API_DEVICE_NODE_NOT_FOUND` when absent).
 - `GET /v1/device-nodes/{nodeId}/updates` with `x-operator-role` -> tenant-scoped upsert/heartbeat audit history for this node (`limit`, optional `tenantId` for admin).

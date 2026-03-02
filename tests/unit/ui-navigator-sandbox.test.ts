@@ -255,6 +255,139 @@ test("ui navigator routes remote executor calls to requested device node", async
   }
 });
 
+test("ui navigator auto-selects device node by criteria when deviceNodeId is omitted", async () => {
+  let observedNodeHeader = "";
+  let observedNodeContext = "";
+  const server = createServer(async (req, res) => {
+    if (req.url === "/execute" && req.method === "POST") {
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+      const bodyRaw = Buffer.concat(chunks).toString("utf8");
+      const parsed = bodyRaw.length > 0 ? (JSON.parse(bodyRaw) as unknown) : {};
+      const asObj = asObject(parsed);
+      const context = asObject(asObj.context);
+      observedNodeHeader = typeof req.headers["x-device-node-id"] === "string" ? req.headers["x-device-node-id"] : "";
+      observedNodeContext = typeof context.deviceNodeId === "string" ? context.deviceNodeId : "";
+
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.end(
+        JSON.stringify({
+          trace: [
+            {
+              index: 1,
+              actionId: "remote-step-criteria-1",
+              actionType: "verify",
+              target: "criteria-routed",
+              status: "ok",
+              screenshotRef: "ui://criteria-routed/step-1.png",
+              notes: "criteria routed",
+            },
+          ],
+          finalStatus: "completed",
+          retries: 0,
+          deviceNode: {
+            nodeId: "mobile-a",
+            displayName: "Mobile A",
+            kind: "mobile",
+            platform: "android",
+            status: "online",
+          },
+        }),
+      );
+      return;
+    }
+    res.statusCode = 404;
+    res.end("not found");
+  });
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, "127.0.0.1", () => resolve());
+  });
+
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const executorUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    await withEnv(
+      {
+        UI_NAVIGATOR_USE_GEMINI_PLANNER: "false",
+        UI_NAVIGATOR_EXECUTOR_MODE: "remote_http",
+        UI_NAVIGATOR_EXECUTOR_URL: "http://127.0.0.1:65532",
+        UI_NAVIGATOR_DEVICE_NODES_JSON: JSON.stringify([
+          {
+            nodeId: "desktop-a",
+            displayName: "Desktop A",
+            kind: "desktop",
+            platform: "windows",
+            status: "online",
+            executorUrl,
+            capabilities: ["screen", "keyboard"],
+            trustLevel: "trusted",
+            version: 2,
+          },
+          {
+            nodeId: "mobile-a",
+            displayName: "Mobile A",
+            kind: "mobile",
+            platform: "android",
+            status: "online",
+            executorUrl,
+            capabilities: ["screen", "touch"],
+            trustLevel: "trusted",
+            version: 3,
+          },
+        ]),
+        UI_NAVIGATOR_SANDBOX_POLICY_MODE: "off",
+      },
+      async () => {
+        const request = createEnvelope({
+          userId: "node-user",
+          sessionId: "node-session-criteria",
+          runId: "node-run-criteria",
+          type: "orchestrator.request",
+          source: "frontend",
+          payload: {
+            intent: "ui_task",
+            input: {
+              goal: "Open page and verify mobile controls",
+              url: "https://example.com/mobile",
+              deviceNodeKind: "mobile",
+              deviceNodePlatform: "android",
+              deviceNodeCapabilities: ["touch"],
+              deviceNodeMinTrustLevel: "reviewed",
+            },
+          },
+        }) as OrchestratorRequest;
+
+        const response = await runUiNavigatorAgent(request);
+        assert.equal(response.payload.status, "completed");
+        assert.equal(observedNodeHeader, "mobile-a");
+        assert.equal(observedNodeContext, "mobile-a");
+
+        const output = asObject(response.payload.output);
+        const execution = asObject(output.execution);
+        const node = asObject(execution.deviceNode);
+        const routing = asObject(output.deviceNodeRouting);
+        const requestedCriteria = asObject(routing.requestedCriteria);
+        const notes = Array.isArray(routing.notes) ? routing.notes : [];
+        assert.equal(node.nodeId, "mobile-a");
+        assert.equal(execution.adapterMode, "remote_http");
+        assert.equal(requestedCriteria.kind, "mobile");
+        assert.equal(requestedCriteria.platform, "android");
+        assert.ok(notes.some((note) => String(note).toLowerCase().includes("auto-selected")));
+      },
+    );
+  } finally {
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+  }
+});
+
 test("ui navigator approval resume template preserves grounding context", async () => {
   await withEnv(
     {
@@ -340,6 +473,56 @@ test("ui navigator fails when requested device node is missing", async () => {
       assert.equal(response.payload.status, "failed");
       const output = asObject(response.payload.output);
       assert.match(String(output.message ?? ""), /Requested device node/i);
+      const execution = asObject(output.execution);
+      assert.equal(execution.finalStatus, "failed_device_node");
+    },
+  );
+});
+
+test("ui navigator fails when no device node matches requested criteria", async () => {
+  await withEnv(
+    {
+      UI_NAVIGATOR_USE_GEMINI_PLANNER: "false",
+      UI_NAVIGATOR_EXECUTOR_MODE: "remote_http",
+      UI_NAVIGATOR_EXECUTOR_URL: "http://127.0.0.1:65530",
+      UI_NAVIGATOR_DEVICE_NODES_JSON: JSON.stringify([
+        {
+          nodeId: "desktop-only",
+          displayName: "Desktop Only",
+          kind: "desktop",
+          platform: "windows",
+          status: "online",
+          executorUrl: "http://127.0.0.1:65530",
+          capabilities: ["screen", "keyboard"],
+          trustLevel: "reviewed",
+          version: 1,
+        },
+      ]),
+      UI_NAVIGATOR_SANDBOX_POLICY_MODE: "off",
+    },
+    async () => {
+      const request = createEnvelope({
+        userId: "node-user",
+        sessionId: "node-session-criteria-miss",
+        runId: "node-run-criteria-miss",
+        type: "orchestrator.request",
+        source: "frontend",
+        payload: {
+          intent: "ui_task",
+          input: {
+            goal: "Open mobile app and verify touch flow",
+            url: "https://example.com/mobile",
+            deviceNodeKind: "mobile",
+            deviceNodeCapabilities: ["touch"],
+            deviceNodeMinTrustLevel: "trusted",
+          },
+        },
+      }) as OrchestratorRequest;
+
+      const response = await runUiNavigatorAgent(request);
+      assert.equal(response.payload.status, "failed");
+      const output = asObject(response.payload.output);
+      assert.match(String(output.message ?? ""), /matches requested routing criteria/i);
       const execution = asObject(output.execution);
       assert.equal(execution.finalStatus, "failed_device_node");
     },

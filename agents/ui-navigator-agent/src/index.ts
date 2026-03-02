@@ -25,6 +25,10 @@ type UiTaskInput = {
   goal: string;
   url: string | null;
   deviceNodeId: string | null;
+  deviceNodeKind: DeviceNodeKind | null;
+  deviceNodePlatform: string | null;
+  deviceNodeCapabilities: string[];
+  deviceNodeMinTrustLevel: DeviceNodeRuntimeRecord["trustLevel"] | null;
   screenshotRef: string | null;
   domSnapshot: string | null;
   accessibilityTree: string | null;
@@ -241,6 +245,12 @@ type DeviceNodeRuntimeRecord = {
 
 type DeviceNodeResolution = {
   requestedNodeId: string | null;
+  requestedCriteria: {
+    kind: DeviceNodeKind | null;
+    platform: string | null;
+    requiredCapabilities: string[];
+    minTrustLevel: DeviceNodeRuntimeRecord["trustLevel"] | null;
+  };
   selectedNode: DeviceNodeRuntimeRecord | null;
   executorUrl: string | null;
   source: "none" | "inline_json" | "remote_index";
@@ -772,6 +782,65 @@ function parseTrustLevel(raw: unknown): DeviceNodeRuntimeRecord["trustLevel"] {
   return "reviewed";
 }
 
+function parseOptionalDeviceNodeKind(raw: unknown): DeviceNodeKind | null {
+  if (raw === undefined || raw === null) {
+    return null;
+  }
+  if (typeof raw === "string" && raw.trim().length === 0) {
+    return null;
+  }
+  return parseDeviceNodeKind(raw);
+}
+
+function parseOptionalTrustLevel(raw: unknown): DeviceNodeRuntimeRecord["trustLevel"] | null {
+  if (raw === undefined || raw === null) {
+    return null;
+  }
+  if (typeof raw === "string" && raw.trim().length === 0) {
+    return null;
+  }
+  return parseTrustLevel(raw);
+}
+
+function normalizeCapabilityHints(raw: unknown): string[] {
+  const entries = Array.isArray(raw)
+    ? raw
+    : typeof raw === "string"
+      ? raw.split(",")
+      : [];
+  const deduped: string[] = [];
+  const seen = new Set<string>();
+  for (const entry of entries) {
+    const normalized = toNonEmptyString(entry, "").toLowerCase();
+    if (normalized.length === 0 || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    deduped.push(normalized);
+  }
+  return deduped;
+}
+
+function trustLevelRank(value: DeviceNodeRuntimeRecord["trustLevel"]): number {
+  if (value === "trusted") {
+    return 3;
+  }
+  if (value === "reviewed") {
+    return 2;
+  }
+  return 1;
+}
+
+function nodeStatusRank(value: DeviceNodeStatus): number {
+  if (value === "online") {
+    return 3;
+  }
+  if (value === "degraded") {
+    return 2;
+  }
+  return 1;
+}
+
 function parseVersion(raw: unknown): number {
   const parsed = typeof raw === "number" ? raw : Number(raw);
   if (!Number.isFinite(parsed) || parsed < 1) {
@@ -865,16 +934,56 @@ async function loadDeviceNodesFromRemote(config: PlannerConfig): Promise<DeviceN
   }
 }
 
+function hasDeviceNodeResolveCriteria(input: UiTaskInput): boolean {
+  return (
+    input.deviceNodeKind !== null ||
+    input.deviceNodePlatform !== null ||
+    input.deviceNodeCapabilities.length > 0 ||
+    input.deviceNodeMinTrustLevel !== null
+  );
+}
+
+function sortDeviceNodeCandidates(nodes: DeviceNodeRuntimeRecord[]): DeviceNodeRuntimeRecord[] {
+  return [...nodes].sort((left, right) => {
+    const statusDelta = nodeStatusRank(right.status) - nodeStatusRank(left.status);
+    if (statusDelta !== 0) {
+      return statusDelta;
+    }
+    const trustDelta = trustLevelRank(right.trustLevel) - trustLevelRank(left.trustLevel);
+    if (trustDelta !== 0) {
+      return trustDelta;
+    }
+    const leftSeen = left.updatedAt ?? "";
+    const rightSeen = right.updatedAt ?? "";
+    const seenDelta = rightSeen.localeCompare(leftSeen);
+    if (seenDelta !== 0) {
+      return seenDelta;
+    }
+    const versionDelta = right.version - left.version;
+    if (versionDelta !== 0) {
+      return versionDelta;
+    }
+    return left.nodeId.localeCompare(right.nodeId);
+  });
+}
+
 async function resolveDeviceNodeRouting(params: {
   input: UiTaskInput;
   config: PlannerConfig;
 }): Promise<DeviceNodeResolution> {
   const requestedNodeId = params.input.deviceNodeId?.trim().toLowerCase() ?? null;
+  const requestedCriteria: DeviceNodeResolution["requestedCriteria"] = {
+    kind: params.input.deviceNodeKind,
+    platform: params.input.deviceNodePlatform,
+    requiredCapabilities: [...params.input.deviceNodeCapabilities],
+    minTrustLevel: params.input.deviceNodeMinTrustLevel,
+  };
   const notes: string[] = [];
 
-  if (!requestedNodeId) {
+  if (!requestedNodeId && !hasDeviceNodeResolveCriteria(params.input)) {
     return {
       requestedNodeId: null,
+      requestedCriteria,
       selectedNode: null,
       executorUrl: params.config.executorUrl,
       source: "none",
@@ -891,44 +1000,93 @@ async function resolveDeviceNodeRouting(params: {
   }
 
   const node = nodes.find((item) => item.nodeId === requestedNodeId) ?? null;
-  if (!node) {
+  if (requestedNodeId && !node) {
     return {
       requestedNodeId,
+      requestedCriteria,
       selectedNode: null,
       executorUrl: null,
       source,
       notes: [`Requested node '${requestedNodeId}' is not present in ${source}.`],
     };
   }
-  if (node.status === "offline") {
+
+  const filtered = (requestedNodeId ? [node] : nodes)
+    .filter((item): item is DeviceNodeRuntimeRecord => Boolean(item))
+    .filter((item) => item.status !== "offline")
+    .filter((item) => (requestedCriteria.kind ? item.kind === requestedCriteria.kind : true))
+    .filter((item) =>
+      requestedCriteria.platform ? item.platform.toLowerCase() === requestedCriteria.platform : true,
+    )
+    .filter((item) =>
+      requestedCriteria.requiredCapabilities.every((capability) => item.capabilities.includes(capability)),
+    )
+    .filter((item) =>
+      requestedCriteria.minTrustLevel
+        ? trustLevelRank(item.trustLevel) >= trustLevelRank(requestedCriteria.minTrustLevel)
+        : true,
+    );
+
+  if (filtered.length === 0) {
+    const criteriaNotes = hasDeviceNodeResolveCriteria(params.input)
+      ? [
+          `No available node matches criteria (kind=${requestedCriteria.kind ?? "any"}, platform=${requestedCriteria.platform ?? "any"}, capabilities=${
+            requestedCriteria.requiredCapabilities.join(",") || "any"
+          }, minTrustLevel=${requestedCriteria.minTrustLevel ?? "any"}).`,
+        ]
+      : [];
     return {
       requestedNodeId,
-      selectedNode: node,
+      requestedCriteria,
+      selectedNode: null,
       executorUrl: null,
       source,
-      notes: [`Requested node '${requestedNodeId}' is offline.`],
+      notes: requestedNodeId
+        ? [`Requested node '${requestedNodeId}' is offline or filtered by criteria.`]
+        : criteriaNotes,
     };
   }
 
-  const executorUrl = node.executorUrl ?? params.config.executorUrl;
+  const selectedNode = sortDeviceNodeCandidates(filtered)[0] ?? null;
+  if (!selectedNode) {
+    return {
+      requestedNodeId,
+      requestedCriteria,
+      selectedNode: null,
+      executorUrl: null,
+      source,
+      notes: ["No available device node found after candidate ranking."],
+    };
+  }
+
+  const executorUrl = selectedNode.executorUrl ?? params.config.executorUrl;
   if (!executorUrl) {
     return {
       requestedNodeId,
-      selectedNode: node,
+      requestedCriteria,
+      selectedNode,
       executorUrl: null,
       source,
-      notes: [`Requested node '${requestedNodeId}' has no executorUrl and default executor is not configured.`],
+      notes: [
+        requestedNodeId
+          ? `Requested node '${requestedNodeId}' has no executorUrl and default executor is not configured.`
+          : "Resolved device node has no executorUrl and default executor is not configured.",
+      ],
     };
   }
 
   notes.push(
-    node.executorUrl
+    selectedNode.executorUrl
       ? `Routed to node-specific executorUrl from ${source}.`
-      : "Node has no executorUrl; fell back to default executorUrl.",
+      : "Resolved node has no executorUrl; fell back to default executorUrl.",
   );
+  if (!requestedNodeId && hasDeviceNodeResolveCriteria(params.input)) {
+    notes.push(`Auto-selected node '${selectedNode.nodeId}' using requested routing criteria.`);
+  }
   return {
     requestedNodeId,
-    selectedNode: node,
+    requestedCriteria,
+    selectedNode,
     executorUrl,
     source,
     notes,
@@ -1063,6 +1221,15 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
       formData[normalizedKey] = normalizedValue;
     }
   }
+  const deviceNodeKind = parseOptionalDeviceNodeKind(raw.deviceNodeKind ?? deviceNodeRaw.kind);
+  const deviceNodePlatformRaw = toNullableString(raw.deviceNodePlatform ?? deviceNodeRaw.platform);
+  const deviceNodePlatform = deviceNodePlatformRaw ? deviceNodePlatformRaw.toLowerCase() : null;
+  const deviceNodeCapabilities = normalizeCapabilityHints(
+    raw.deviceNodeCapabilities ?? raw.requiredCapabilities ?? deviceNodeRaw.capabilities,
+  );
+  const deviceNodeMinTrustLevel = parseOptionalTrustLevel(
+    raw.deviceNodeMinTrustLevel ?? raw.deviceNodeTrustLevel ?? deviceNodeRaw.minTrustLevel ?? deviceNodeRaw.trustLevel,
+  );
 
   const sandboxPolicyModeRaw = toNonEmptyString(raw.sandboxPolicyMode, "").toLowerCase();
   const sandboxPolicyMode: UiTaskInput["sandboxPolicyMode"] =
@@ -1085,6 +1252,10 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
       "Open the page and complete the requested UI flow safely.",
     url: toNullableString(raw.url),
     deviceNodeId: toNullableString(raw.deviceNodeId ?? deviceNodeRaw.nodeId ?? raw.targetNodeId),
+    deviceNodeKind,
+    deviceNodePlatform,
+    deviceNodeCapabilities,
+    deviceNodeMinTrustLevel,
     screenshotRef,
     domSnapshot,
     accessibilityTree,
@@ -2872,8 +3043,9 @@ export async function runUiNavigatorAgent(
       input,
       config: executionConfig,
     });
+    const deviceRoutingRequested = input.deviceNodeId !== null || hasDeviceNodeResolveCriteria(input);
 
-    if (input.deviceNodeId && !deviceNodeRouting.selectedNode) {
+    if (deviceRoutingRequested && !deviceNodeRouting.selectedNode) {
       return createEnvelopeWithUsage({
         userId: request.userId,
         sessionId: request.sessionId,
@@ -2885,7 +3057,10 @@ export async function runUiNavigatorAgent(
           status: "failed",
           traceId,
           output: {
-            message: `Requested device node '${input.deviceNodeId}' is unavailable.`,
+            message:
+              input.deviceNodeId !== null
+                ? `Requested device node '${input.deviceNodeId}' is unavailable.`
+                : "No available device node matches requested routing criteria.",
             handledIntent: request.payload.intent,
             traceId,
             latencyMs: Date.now() - startedAt,
@@ -2913,7 +3088,7 @@ export async function runUiNavigatorAgent(
     }
 
     if (
-      input.deviceNodeId &&
+      deviceRoutingRequested &&
       executionConfig.executorMode === "remote_http" &&
       !deviceNodeRouting.executorUrl
     ) {
@@ -2928,7 +3103,10 @@ export async function runUiNavigatorAgent(
           status: "failed",
           traceId,
           output: {
-            message: "Requested device node cannot be routed to an executor URL.",
+            message:
+              input.deviceNodeId !== null
+                ? "Requested device node cannot be routed to an executor URL."
+                : "Resolved device node cannot be routed to an executor URL.",
             handledIntent: request.payload.intent,
             traceId,
             latencyMs: Date.now() - startedAt,
@@ -3073,6 +3251,10 @@ export async function runUiNavigatorAgent(
                 goal: input.goal,
                 url: input.url,
                 deviceNodeId: input.deviceNodeId,
+                deviceNodeKind: input.deviceNodeKind,
+                deviceNodePlatform: input.deviceNodePlatform,
+                deviceNodeCapabilities: input.deviceNodeCapabilities,
+                deviceNodeMinTrustLevel: input.deviceNodeMinTrustLevel,
                 screenshotRef: input.screenshotRef,
                 domSnapshot: input.domSnapshot,
                 accessibilityTree: input.accessibilityTree,

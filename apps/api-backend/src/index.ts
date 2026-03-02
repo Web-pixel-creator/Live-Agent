@@ -49,6 +49,7 @@ import {
   type OperatorActionRecord,
   recordOperatorAction,
   recordApprovalDecision,
+  resolveDeviceNode,
   sweepApprovalTimeouts,
   touchDeviceNodeHeartbeat,
   upsertChannelSessionBinding,
@@ -659,6 +660,16 @@ function sanitizeManagedTrustLevel(raw: unknown): ManagedSkillTrustLevel {
   return "reviewed";
 }
 
+function parseOptionalManagedTrustLevel(raw: unknown): ManagedSkillTrustLevel | undefined {
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+  if (typeof raw === "string" && raw.trim().length === 0) {
+    return undefined;
+  }
+  return sanitizeManagedTrustLevel(raw);
+}
+
 function sanitizeManagedInstallPolicy(raw: unknown): ManagedSkillInstallPolicy {
   if (raw === "pinned" || raw === "track_latest") {
     return raw;
@@ -829,7 +840,12 @@ function parseDeviceNodePathSuffix(pathname: string): {
   }
 
   const suffix = pathname.slice(prefix.length).replace(/^\/+|\/+$/g, "");
-  if (suffix.length === 0 || suffix.toLowerCase() === "heartbeat" || suffix.toLowerCase() === "index") {
+  if (
+    suffix.length === 0 ||
+    suffix.toLowerCase() === "heartbeat" ||
+    suffix.toLowerCase() === "index" ||
+    suffix.toLowerCase() === "resolve"
+  ) {
     return null;
   }
 
@@ -1057,6 +1073,9 @@ function normalizeOperationPath(pathname: string): string {
     return "/v1/skills/installations/:agentId/:skillId";
   }
   if (pathname.startsWith("/v1/device-nodes/")) {
+    if (pathname.toLowerCase().startsWith("/v1/device-nodes/resolve")) {
+      return "/v1/device-nodes/resolve";
+    }
     if (pathname.toLowerCase().endsWith("/updates")) {
       return "/v1/device-nodes/:id/updates";
     }
@@ -4078,9 +4097,61 @@ export const server = createServer(async (req, res) => {
       return;
     }
 
+    if (url.pathname === "/v1/device-nodes/resolve" && req.method === "GET") {
+      const nodeId = toOptionalString(url.searchParams.get("nodeId"));
+      const kindRaw = url.searchParams.get("kind");
+      const kind =
+        kindRaw && (kindRaw === "desktop" || kindRaw === "mobile")
+          ? sanitizeDeviceNodeKind(kindRaw)
+          : undefined;
+      const platform = toOptionalString(url.searchParams.get("platform"));
+      const requiredCapabilities = parseCapabilities(url.searchParams.get("capabilities"));
+      const minTrustLevel = parseOptionalManagedTrustLevel(url.searchParams.get("minTrustLevel"));
+      const includeOffline = url.searchParams.get("includeOffline") === "true";
+      const includeDegraded = url.searchParams.get("includeDegraded") !== "false";
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 20, 1, 100);
+
+      const result = await resolveDeviceNode({
+        nodeId: nodeId ?? undefined,
+        kind,
+        platform: platform ?? undefined,
+        requiredCapabilities,
+        minTrustLevel,
+        includeOffline,
+        includeDegraded,
+        limit,
+      });
+
+      writeJson(res, 200, {
+        data: {
+          selected: result.selected,
+          candidates: result.candidates,
+          considered: result.considered,
+          reason: result.reason,
+          filters: {
+            nodeId,
+            kind: kind ?? null,
+            platform,
+            requiredCapabilities,
+            minTrustLevel: minTrustLevel ?? null,
+            includeOffline,
+            includeDegraded,
+            limit,
+          },
+        },
+        source: "device_node_registry",
+        generatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
     if (req.method === "GET" && url.pathname.startsWith("/v1/device-nodes/")) {
       const lowerPath = url.pathname.toLowerCase();
-      if (lowerPath === "/v1/device-nodes/heartbeat" || lowerPath === "/v1/device-nodes/index") {
+      if (
+        lowerPath === "/v1/device-nodes/heartbeat" ||
+        lowerPath === "/v1/device-nodes/index" ||
+        lowerPath === "/v1/device-nodes/resolve"
+      ) {
         // Let unmatched GET heartbeat/index requests fall through to default 404 handler.
       } else {
       const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
