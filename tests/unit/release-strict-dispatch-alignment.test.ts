@@ -53,6 +53,9 @@ test("release strict dispatch helper is wired across package script, script cont
   assert.match(source, /Missing token\. Set -Token or env GITHUB_TOKEN\/GH_TOKEN/);
   assert.match(source, /Get-LatestReleaseStrictRun/);
   assert.match(source, /Get-RunStatus/);
+  assert.match(source, /Try-ResolveRunFromDispatchOutput/);
+  assert.match(source, /\$dispatchOutput = \(& \$ghCliPath @dispatchArgs 2>&1\)/);
+  assert.match(source, /Resolved run id from dispatch output/);
 
   const readmePath = resolve(process.cwd(), "README.md");
   const readme = readFileSync(readmePath, "utf8");
