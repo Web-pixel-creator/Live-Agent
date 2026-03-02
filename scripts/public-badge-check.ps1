@@ -173,7 +173,7 @@ if (-not $SkipDetails) {
     Fail "badge-details tokensUsed.total must be >= input + output."
   }
 
-  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl", "governancePolicy", "skillsRegistry", "deviceNodes", "agentUsage") -Payload $details.evidence -ScopeName "badge-details.evidence"
+  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl", "governancePolicy", "skillsRegistry", "pluginMarketplace", "deviceNodes", "agentUsage") -Payload $details.evidence -ScopeName "badge-details.evidence"
 
   $truncationEvidence = $details.evidence.operatorTurnTruncation
   $deleteEvidence = $details.evidence.operatorTurnDelete
@@ -181,6 +181,7 @@ if (-not $SkipDetails) {
   $operatorDamageControlEvidence = $details.evidence.operatorDamageControl
   $governancePolicyEvidence = $details.evidence.governancePolicy
   $skillsRegistryEvidence = $details.evidence.skillsRegistry
+  $pluginMarketplaceEvidence = $details.evidence.pluginMarketplace
   $deviceNodesEvidence = $details.evidence.deviceNodes
   $agentUsageEvidence = $details.evidence.agentUsage
   if ($null -eq $truncationEvidence) {
@@ -200,6 +201,9 @@ if (-not $SkipDetails) {
   }
   if ($null -eq $skillsRegistryEvidence) {
     Fail "badge-details evidence is missing skillsRegistry block."
+  }
+  if ($null -eq $pluginMarketplaceEvidence) {
+    Fail "badge-details evidence is missing pluginMarketplace block."
   }
   if ($null -eq $deviceNodesEvidence) {
     Fail "badge-details evidence is missing deviceNodes block."
@@ -281,6 +285,32 @@ if (-not $SkipDetails) {
   if (-not ($allowedTurnEvidenceStatuses -contains $skillsRegistryStatus)) {
     Fail "badge-details evidence skillsRegistry.status must be one of [pass, fail]."
   }
+
+  $pluginMarketplaceEvidenceRequired = @(
+    "status",
+    "validated",
+    "summaryStatus",
+    "total",
+    "uniquePlugins",
+    "outcomes",
+    "lifecycle",
+    "conflicts",
+    "signingStatusCounts",
+    "signingEvidenceObserved",
+    "permissionTotals",
+    "latest"
+  )
+  Assert-RequiredFields -Required $pluginMarketplaceEvidenceRequired -Payload $pluginMarketplaceEvidence -ScopeName "badge-details.evidence.pluginMarketplace"
+  $pluginMarketplaceStatus = [string]$pluginMarketplaceEvidence.status
+  if (-not ($allowedTurnEvidenceStatuses -contains $pluginMarketplaceStatus)) {
+    Fail "badge-details evidence pluginMarketplace.status must be one of [pass, fail]."
+  }
+  Assert-RequiredFields -Required @("succeeded", "denied", "failed", "total") -Payload $pluginMarketplaceEvidence.outcomes -ScopeName "badge-details.evidence.pluginMarketplace.outcomes"
+  Assert-RequiredFields -Required @("created", "updated", "idempotentReplay") -Payload $pluginMarketplaceEvidence.lifecycle -ScopeName "badge-details.evidence.pluginMarketplace.lifecycle"
+  Assert-RequiredFields -Required @("versionConflict", "pluginInvalidPermission") -Payload $pluginMarketplaceEvidence.conflicts -ScopeName "badge-details.evidence.pluginMarketplace.conflicts"
+  Assert-RequiredFields -Required @("verified", "unsigned", "none", "total") -Payload $pluginMarketplaceEvidence.signingStatusCounts -ScopeName "badge-details.evidence.pluginMarketplace.signingStatusCounts"
+  Assert-RequiredFields -Required @("totalPermissions", "entriesWithPermissions") -Payload $pluginMarketplaceEvidence.permissionTotals -ScopeName "badge-details.evidence.pluginMarketplace.permissionTotals"
+  Assert-RequiredFields -Required @("outcome", "pluginId", "version", "signingStatus", "seenAt", "seenAtIsIso") -Payload $pluginMarketplaceEvidence.latest -ScopeName "badge-details.evidence.pluginMarketplace.latest"
 
   $deviceNodesEvidenceRequired = @(
     "status",
@@ -364,6 +394,7 @@ if (-not $SkipDetails) {
       @{ Name = "operatorDamageControl"; Status = $operatorDamageControlStatus },
       @{ Name = "governancePolicy"; Status = $governancePolicyStatus },
       @{ Name = "skillsRegistry"; Status = $skillsRegistryStatus },
+      @{ Name = "pluginMarketplace"; Status = $pluginMarketplaceStatus },
       @{ Name = "deviceNodes"; Status = $deviceNodesStatus },
       @{ Name = "agentUsage"; Status = $agentUsageStatus }
     )
@@ -398,6 +429,40 @@ if (-not $SkipDetails) {
       -not [bool]$skillsRegistryEvidence.registryHasSkill
     ) {
       Fail "badge-details evidence skillsRegistry must be validated with indexHasSkill=true and registryHasSkill=true."
+    }
+    if (
+      -not [bool]$pluginMarketplaceEvidence.validated -or
+      [string]$pluginMarketplaceEvidence.summaryStatus -ne "observed" -or
+      [int]$pluginMarketplaceEvidence.total -lt 1 -or
+      [int]$pluginMarketplaceEvidence.uniquePlugins -lt 1 -or
+      [int]$pluginMarketplaceEvidence.outcomes.succeeded -lt 0 -or
+      [int]$pluginMarketplaceEvidence.outcomes.denied -lt 0 -or
+      [int]$pluginMarketplaceEvidence.outcomes.failed -lt 0 -or
+      [int]$pluginMarketplaceEvidence.outcomes.total -lt 0 -or
+      ([int]$pluginMarketplaceEvidence.outcomes.succeeded + [int]$pluginMarketplaceEvidence.outcomes.denied + [int]$pluginMarketplaceEvidence.outcomes.failed) -ne [int]$pluginMarketplaceEvidence.total -or
+      [int]$pluginMarketplaceEvidence.outcomes.total -ne [int]$pluginMarketplaceEvidence.total -or
+      [int]$pluginMarketplaceEvidence.lifecycle.created -lt 1 -or
+      [int]$pluginMarketplaceEvidence.lifecycle.idempotentReplay -lt 1 -or
+      [int]$pluginMarketplaceEvidence.conflicts.versionConflict -lt 1 -or
+      [int]$pluginMarketplaceEvidence.conflicts.pluginInvalidPermission -lt 1 -or
+      [int]$pluginMarketplaceEvidence.signingStatusCounts.verified -lt 0 -or
+      [int]$pluginMarketplaceEvidence.signingStatusCounts.unsigned -lt 0 -or
+      [int]$pluginMarketplaceEvidence.signingStatusCounts.none -lt 0 -or
+      [int]$pluginMarketplaceEvidence.signingStatusCounts.total -lt 0 -or
+      ([int]$pluginMarketplaceEvidence.signingStatusCounts.verified + [int]$pluginMarketplaceEvidence.signingStatusCounts.unsigned + [int]$pluginMarketplaceEvidence.signingStatusCounts.none) -ne [int]$pluginMarketplaceEvidence.total -or
+      [int]$pluginMarketplaceEvidence.signingStatusCounts.total -ne [int]$pluginMarketplaceEvidence.total -or
+      -not [bool]$pluginMarketplaceEvidence.signingEvidenceObserved -or
+      ([int]$pluginMarketplaceEvidence.signingStatusCounts.verified + [int]$pluginMarketplaceEvidence.signingStatusCounts.unsigned) -lt 1 -or
+      [int]$pluginMarketplaceEvidence.permissionTotals.totalPermissions -lt 0 -or
+      [int]$pluginMarketplaceEvidence.permissionTotals.entriesWithPermissions -lt 0 -or
+      [int]$pluginMarketplaceEvidence.permissionTotals.entriesWithPermissions -gt [int]$pluginMarketplaceEvidence.total -or
+      @("succeeded", "denied", "failed") -notcontains [string]$pluginMarketplaceEvidence.latest.outcome -or
+      @("verified", "unsigned", "none") -notcontains [string]$pluginMarketplaceEvidence.latest.signingStatus -or
+      [string]::IsNullOrWhiteSpace([string]$pluginMarketplaceEvidence.latest.pluginId) -or
+      [int]$pluginMarketplaceEvidence.latest.version -lt 1 -or
+      [bool]$pluginMarketplaceEvidence.latest.seenAtIsIso -ne $true
+    ) {
+      Fail "badge-details evidence pluginMarketplace must be validated with observed status, totals/lifecycle/conflicts/signing consistency, permission bounds, and latest plugin/signing/ISO fields."
     }
     if (
       -not [bool]$deviceNodesEvidence.validated -or
