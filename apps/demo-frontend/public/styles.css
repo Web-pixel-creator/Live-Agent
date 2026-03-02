@@ -341,10 +341,14 @@ body::before {
 }
 
 .field span {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   color: color-mix(in oklch, var(--foreground) 88%, var(--muted-foreground));
   font-size: 0.94rem;
   font-weight: 600;
   letter-spacing: -0.01em;
+  line-height: 1.35;
 }
 
 .intent-grid-primary {
@@ -479,6 +483,136 @@ select optgroup {
   }
 }
 
+.select-shell {
+  position: relative;
+  width: 100%;
+}
+
+.select-native-enhanced {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.select-trigger {
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) + 2px);
+  width: 100%;
+  min-height: 50px;
+  padding: 13px 42px 13px 16px;
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
+  color: var(--foreground);
+  text-align: left;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  position: relative;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent),
+    0 1px 2px color-mix(in oklch, black 20%, transparent);
+}
+
+.select-trigger::after {
+  content: "";
+  position: absolute;
+  right: 17px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid color-mix(in oklch, var(--foreground) 62%, var(--muted-foreground));
+  border-bottom: 2px solid color-mix(in oklch, var(--foreground) 62%, var(--muted-foreground));
+  transform: translateY(-65%) rotate(45deg);
+  transition: transform 120ms ease;
+}
+
+.select-trigger:hover {
+  transform: none;
+  filter: none;
+  background: linear-gradient(180deg, var(--surface-control-hover), var(--surface-panel-2));
+}
+
+.select-shell.is-open .select-trigger {
+  border-color: color-mix(in oklch, var(--ring) 56%, var(--border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent),
+    0 0 0 3px var(--focus-ring-soft);
+}
+
+.select-shell.is-open .select-trigger::after {
+  transform: translateY(-35%) rotate(-135deg);
+}
+
+.select-menu {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 60;
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) - 1px);
+  background: linear-gradient(180deg, var(--surface-panel), var(--surface-panel-2));
+  padding: 8px;
+  box-shadow:
+    var(--shadow-lg),
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent);
+  max-height: 260px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.select-shell.is-open .select-menu {
+  display: grid;
+  gap: 4px;
+}
+
+.select-option {
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 5px);
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--foreground);
+  text-align: left;
+  font-size: 0.97rem;
+  line-height: 1.35;
+  display: grid;
+  gap: 2px;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.select-option .select-option-label {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.select-option small {
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+}
+
+.select-option:hover,
+.select-option:focus-visible {
+  transform: none;
+  filter: none;
+  border-color: color-mix(in oklch, var(--primary) 35%, var(--border));
+  background: color-mix(in oklch, var(--primary) 14%, var(--card));
+  outline: none;
+}
+
+.select-option.is-selected {
+  border-color: color-mix(in oklch, var(--primary) 46%, var(--border));
+  background: color-mix(in oklch, var(--primary) 26%, var(--card));
+  color: color-mix(in oklch, var(--foreground) 98%, white);
+}
+
+.select-option.is-selected small {
+  color: color-mix(in oklch, var(--foreground) 80%, var(--accent-foreground));
+}
+
 input[type="file"] {
   padding: 9px 11px;
   min-height: 58px;
@@ -604,6 +738,11 @@ button:focus-visible {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.kpi-panel > .grid-3 {
+  grid-template-columns: 1fr;
+  gap: 14px;
 }
 
 .kpi-board-featured {
