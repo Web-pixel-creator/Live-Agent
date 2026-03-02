@@ -1,45 +1,134 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Lora:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
+
 :root {
-  --bg-0: #07161a;
-  --bg-1: #0f2229;
-  --bg-2: #17363f;
-  --text: #e6f3f0;
-  --muted: #96b3ac;
-  --accent: #ff9f43;
-  --accent-2: #2ec4b6;
-  --warn: #ff6b6b;
-  --ok: #00c853;
-  --card: rgba(15, 34, 41, 0.78);
-  --border: rgba(230, 243, 240, 0.16);
-  --heading: #f3fdfa;
-  --heading-soft: #d9f8f4;
-  --status-neutral-fg: #c8dee1;
-  --status-ok-fg: #7dffc8;
-  --status-fail-fg: #ffb4b4;
-  --button-primary-fg: #051316;
-  --button-muted-fg: #07161a;
-  --button-warn-fg: #3b0a0a;
+  /* Violet Bloom (dark, default) */
+  --background: oklch(0.2223 0.0060 271.1393);
+  --foreground: oklch(0.9551 0 0);
+  --card: oklch(0.2568 0.0076 274.6528);
+  --card-foreground: oklch(0.9551 0 0);
+  --popover: oklch(0.2568 0.0076 274.6528);
+  --popover-foreground: oklch(0.9551 0 0);
+  --primary: oklch(0.6132 0.2294 291.7437);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.2940 0.0130 272.9312);
+  --secondary-foreground: oklch(0.9551 0 0);
+  --muted-ui: oklch(0.2940 0.0130 272.9312);
+  --muted-foreground: oklch(0.7058 0 0);
+  --accent-ui: oklch(0.2795 0.0368 260.0310);
+  --accent-foreground: oklch(0.7857 0.1153 246.6596);
+  --destructive: oklch(0.7106 0.1661 22.2162);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.3289 0.0092 268.3843);
+  --input: oklch(0.3289 0.0092 268.3843);
+  --ring: oklch(0.6132 0.2294 291.7437);
+  --chart-1: oklch(0.8003 0.1821 151.7110);
+  --chart-2: oklch(0.6132 0.2294 291.7437);
+  --chart-3: oklch(0.8077 0.1035 19.5706);
+  --chart-4: oklch(0.6691 0.1569 260.1063);
+  --chart-5: oklch(0.7058 0 0);
+  --font-sans: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+  --font-serif: "Lora", Georgia, serif;
+  --font-mono: "IBM Plex Mono", "Consolas", "SFMono-Regular", monospace;
+  --radius: 1.4rem;
+  --shadow-2xs: 0px 2px 3px 0px hsl(0 0% 0% / 0.08);
+  --shadow-xs: 0px 2px 3px 0px hsl(0 0% 0% / 0.08);
+  --shadow-sm: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 1px 2px -1px hsl(0 0% 0% / 0.16);
+  --shadow: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 1px 2px -1px hsl(0 0% 0% / 0.16);
+  --shadow-md: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 2px 4px -1px hsl(0 0% 0% / 0.16);
+  --shadow-lg: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 4px 6px -1px hsl(0 0% 0% / 0.16);
+  --shadow-xl: 0px 2px 3px 0px hsl(0 0% 0% / 0.16), 0px 8px 10px -1px hsl(0 0% 0% / 0.16);
+  --shadow-2xl: 0px 2px 3px 0px hsl(0 0% 0% / 0.4);
+  --tracking-normal: -0.025em;
+  --spacing: 0.27rem;
+
+  /* Backward-compatible aliases for existing frontend styles/tests */
+  --bg-0: var(--background);
+  --bg-1: color-mix(in oklch, var(--card) 88%, var(--background));
+  --bg-2: color-mix(in oklch, var(--secondary) 90%, var(--background));
+  --text: var(--foreground);
+  --muted: var(--muted-foreground);
+  --accent: var(--accent-foreground);
+  --accent-2: var(--primary);
+  --warn: var(--destructive);
+  --ok: var(--chart-1);
+  --heading: var(--foreground);
+  --heading-soft: color-mix(in oklch, var(--foreground) 88%, var(--accent-foreground));
+  --status-neutral-fg: var(--muted-foreground);
+  --status-ok-fg: color-mix(in oklch, var(--chart-1) 78%, white);
+  --status-fail-fg: color-mix(in oklch, var(--destructive) 70%, white);
+  --button-primary-fg: var(--primary-foreground);
+  --button-muted-fg: var(--secondary-foreground);
+  --button-warn-fg: var(--destructive-foreground);
+  --surface-glass: color-mix(in oklch, var(--background) 82%, transparent);
+  --surface-popover: color-mix(in oklch, var(--popover) 90%, transparent);
+  --surface-input: color-mix(in oklch, var(--input) 88%, transparent);
+  --surface-muted: color-mix(in oklch, var(--secondary) 86%, transparent);
+  --surface-card-strong: color-mix(in oklch, var(--card) 92%, transparent);
+  --border-soft: color-mix(in oklch, var(--border) 76%, transparent);
+  --primary-soft: color-mix(in oklch, var(--primary) 24%, transparent);
+  --accent-soft: color-mix(in oklch, var(--accent-foreground) 20%, transparent);
+  --ok-soft: color-mix(in oklch, var(--chart-1) 23%, transparent);
+  --warn-soft: color-mix(in oklch, var(--destructive) 22%, transparent);
+  --danger-soft: color-mix(in oklch, var(--destructive) 28%, transparent);
+  --shadow-ui: var(--shadow-md);
 }
 
 :root[data-theme="light"] {
-  --bg-0: #eef8f8;
-  --bg-1: #dcedef;
-  --bg-2: #c8dfe1;
-  --text: #112c31;
-  --muted: #3d6168;
-  --accent: #e77b12;
-  --accent-2: #0ea5a0;
-  --warn: #dc2626;
-  --ok: #15803d;
-  --card: rgba(255, 255, 255, 0.82);
-  --border: rgba(17, 44, 49, 0.18);
-  --heading: #10343a;
-  --heading-soft: #18454d;
-  --status-neutral-fg: #38545a;
-  --status-ok-fg: #16623b;
-  --status-fail-fg: #8c1e1e;
-  --button-primary-fg: #032225;
-  --button-muted-fg: #102c31;
-  --button-warn-fg: #4a0d0d;
+  /* Violet Bloom (light) */
+  --background: oklch(0.9940 0 0);
+  --foreground: oklch(0 0 0);
+  --card: oklch(0.9940 0 0);
+  --card-foreground: oklch(0 0 0);
+  --popover: oklch(0.9911 0 0);
+  --popover-foreground: oklch(0 0 0);
+  --primary: oklch(0.5393 0.2713 286.7462);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.9540 0.0063 255.4755);
+  --secondary-foreground: oklch(0.1344 0 0);
+  --muted-ui: oklch(0.9702 0 0);
+  --muted-foreground: oklch(0.4386 0 0);
+  --accent-ui: oklch(0.9393 0.0288 266.3680);
+  --accent-foreground: oklch(0.5445 0.1903 259.4848);
+  --destructive: oklch(0.6290 0.1902 23.0704);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.9300 0.0094 286.2156);
+  --input: oklch(0.9401 0 0);
+  --ring: oklch(0 0 0);
+  --chart-1: oklch(0.7459 0.1483 156.4499);
+  --chart-2: oklch(0.5393 0.2713 286.7462);
+  --chart-3: oklch(0.7336 0.1758 50.5517);
+  --chart-4: oklch(0.5828 0.1809 259.7276);
+  --chart-5: oklch(0.5590 0 0);
+
+  --bg-0: var(--background);
+  --bg-1: color-mix(in oklch, var(--card) 90%, var(--secondary));
+  --bg-2: color-mix(in oklch, var(--secondary) 76%, var(--accent-ui));
+  --text: var(--foreground);
+  --muted: var(--muted-foreground);
+  --accent: var(--accent-foreground);
+  --accent-2: var(--primary);
+  --warn: var(--destructive);
+  --ok: var(--chart-1);
+  --heading: var(--foreground);
+  --heading-soft: color-mix(in oklch, var(--foreground) 86%, var(--accent-foreground));
+  --status-neutral-fg: var(--muted-foreground);
+  --status-ok-fg: color-mix(in oklch, var(--chart-1) 64%, black);
+  --status-fail-fg: color-mix(in oklch, var(--destructive) 66%, black);
+  --button-primary-fg: var(--primary-foreground);
+  --button-muted-fg: var(--secondary-foreground);
+  --button-warn-fg: var(--destructive-foreground);
+  --surface-glass: color-mix(in oklch, var(--background) 92%, transparent);
+  --surface-popover: color-mix(in oklch, var(--popover) 94%, transparent);
+  --surface-input: color-mix(in oklch, var(--input) 92%, transparent);
+  --surface-muted: color-mix(in oklch, var(--secondary) 96%, transparent);
+  --surface-card-strong: color-mix(in oklch, var(--card) 96%, transparent);
+  --border-soft: color-mix(in oklch, var(--border) 82%, transparent);
+  --primary-soft: color-mix(in oklch, var(--primary) 16%, transparent);
+  --accent-soft: color-mix(in oklch, var(--accent-foreground) 14%, transparent);
+  --ok-soft: color-mix(in oklch, var(--chart-1) 16%, transparent);
+  --warn-soft: color-mix(in oklch, var(--destructive) 14%, transparent);
+  --danger-soft: color-mix(in oklch, var(--destructive) 18%, transparent);
+  --shadow-ui: var(--shadow-sm);
 }
 
 * {
@@ -50,10 +139,11 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--text);
-  font-family: "Space Grotesk", "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
+  letter-spacing: var(--tracking-normal);
   background:
-    radial-gradient(1200px 700px at 10% -20%, rgba(46, 196, 182, 0.22), transparent 60%),
-    radial-gradient(1100px 700px at 90% -10%, rgba(255, 159, 67, 0.18), transparent 58%),
+    radial-gradient(1200px 700px at 10% -20%, var(--primary-soft), transparent 60%),
+    radial-gradient(1100px 700px at 90% -10%, var(--accent-soft), transparent 58%),
     linear-gradient(155deg, var(--bg-0), var(--bg-1) 50%, var(--bg-2));
 }
 
@@ -66,17 +156,19 @@ body {
 }
 
 .hero {
-  background: linear-gradient(135deg, rgba(46, 196, 182, 0.16), rgba(255, 159, 67, 0.14));
+  background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft));
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: 18px 18px 16px;
   backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-ui);
 }
 
 .hero h1 {
   margin: 0 0 6px;
   font-size: clamp(1.3rem, 2.4vw, 1.75rem);
   letter-spacing: 0.02em;
+  font-family: var(--font-serif);
 }
 
 .hero-headline {
@@ -97,24 +189,26 @@ body {
   gap: 8px;
   padding: 6px;
   border: 1px solid var(--border);
-  border-radius: 14px;
-  background: rgba(7, 22, 26, 0.4);
+  border-radius: var(--radius);
+  background: var(--surface-glass);
   backdrop-filter: blur(6px);
+  box-shadow: var(--shadow-xs);
 }
 
 .tab-btn {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: calc(var(--radius) - 4px);
   padding: 8px 12px;
-  background: rgba(125, 159, 168, 0.2);
+  background: var(--surface-muted);
   color: var(--text);
   font-weight: 600;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
 }
 
 .tab-btn.active {
-  background: linear-gradient(130deg, #2ec4b6, #2a9d8f);
+  background: linear-gradient(130deg, var(--primary), color-mix(in oklch, var(--primary) 75%, var(--accent-foreground)));
   color: var(--button-primary-fg);
-  border-color: rgba(46, 196, 182, 0.48);
+  border-color: color-mix(in oklch, var(--primary) 62%, var(--border));
 }
 
 .tab-content {
@@ -139,11 +233,12 @@ body {
 }
 
 .panel {
-  background: var(--card);
+  background: var(--surface-card-strong);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: 14px;
   backdrop-filter: blur(4px);
+  box-shadow: var(--shadow-ui);
 }
 
 .panel h2 {
@@ -159,14 +254,14 @@ body {
 .section-badge {
   display: inline-flex;
   align-items: center;
-  border: 1px solid rgba(46, 196, 182, 0.5);
+  border: 1px solid color-mix(in oklch, var(--primary) 52%, var(--border));
   border-radius: 999px;
   padding: 2px 8px;
   font-size: 0.72rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--accent-2);
-  background: rgba(46, 196, 182, 0.16);
+  background: var(--primary-soft);
 }
 
 .grid-2,
@@ -195,8 +290,8 @@ body {
 
 .meta-box {
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: rgba(7, 22, 26, 0.5);
+  border-radius: calc(var(--radius) - 4px);
+  background: var(--surface-popover);
   color: var(--muted);
   min-height: 82px;
   padding: 10px;
@@ -215,10 +310,11 @@ input,
 select,
 textarea {
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: rgba(7, 22, 26, 0.68);
+  border-radius: calc(var(--radius) - 4px);
+  background: var(--surface-input);
   color: var(--text);
   padding: 9px 10px;
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ring) 12%, transparent);
 }
 
 textarea {
@@ -234,13 +330,14 @@ textarea {
 
 button {
   border: 0;
-  border-radius: 10px;
+  border-radius: calc(var(--radius) - 4px);
   padding: 9px 12px;
-  background: linear-gradient(130deg, #2ec4b6, #2a9d8f);
+  background: linear-gradient(130deg, var(--primary), color-mix(in oklch, var(--primary) 72%, var(--accent-foreground)));
   color: var(--button-primary-fg);
   font-weight: 600;
   cursor: pointer;
   transition: transform 140ms ease, filter 140ms ease;
+  box-shadow: var(--shadow-sm);
 }
 
 button:hover {
@@ -249,12 +346,16 @@ button:hover {
 }
 
 .button-muted {
-  background: linear-gradient(130deg, #7d9fa8, #597982);
+  background: linear-gradient(
+    130deg,
+    color-mix(in oklch, var(--secondary) 78%, var(--muted-foreground)),
+    color-mix(in oklch, var(--secondary) 95%, var(--background))
+  );
   color: var(--button-muted-fg);
 }
 
 .button-warn {
-  background: linear-gradient(130deg, #ff8a80, #ff6b6b);
+  background: linear-gradient(130deg, color-mix(in oklch, var(--destructive) 80%, white), var(--destructive));
   color: var(--button-warn-fg);
 }
 
@@ -289,9 +390,9 @@ button:hover {
 
 .kpi-card {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: calc(var(--radius) - 2px);
   padding: 10px;
-  background: rgba(7, 22, 26, 0.5);
+  background: var(--surface-popover);
 }
 
 .kpi-card h3 {
@@ -307,14 +408,14 @@ button:hover {
 
 .kpi-card-offer {
   background:
-    radial-gradient(400px 160px at 15% -10%, rgba(46, 196, 182, 0.18), transparent 70%),
-    rgba(7, 22, 26, 0.58);
+    radial-gradient(400px 160px at 15% -10%, var(--primary-soft), transparent 70%),
+    color-mix(in oklch, var(--card) 88%, transparent);
 }
 
 .kpi-card-status {
   background:
-    radial-gradient(420px 200px at 100% -10%, rgba(255, 159, 67, 0.18), transparent 70%),
-    rgba(7, 22, 26, 0.58);
+    radial-gradient(420px 200px at 100% -10%, var(--accent-soft), transparent 70%),
+    color-mix(in oklch, var(--card) 88%, transparent);
 }
 
 .kpi-metric {
@@ -323,10 +424,10 @@ button:hover {
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  border: 1px solid rgba(230, 243, 240, 0.1);
-  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) - 4px);
   padding: 8px 9px;
-  background: rgba(7, 22, 26, 0.5);
+  background: color-mix(in oklch, var(--card) 85%, transparent);
 }
 
 .kpi-label {
@@ -339,7 +440,7 @@ button:hover {
   font-size: 1.2rem;
   font-weight: 700;
   line-height: 1;
-  font-family: "IBM Plex Mono", "Consolas", "SFMono-Regular", monospace;
+  font-family: var(--font-mono);
 }
 
 .kpi-value-neutral {
@@ -393,20 +494,20 @@ button:hover {
 }
 
 .kpi-delta-neutral {
-  border-color: rgba(125, 159, 168, 0.42);
-  background: rgba(125, 159, 168, 0.16);
+  border-color: color-mix(in oklch, var(--muted-foreground) 38%, transparent);
+  background: color-mix(in oklch, var(--muted-ui) 74%, transparent);
   color: var(--status-neutral-fg);
 }
 
 .kpi-delta-ok {
-  border-color: rgba(0, 200, 83, 0.45);
-  background: rgba(0, 200, 83, 0.18);
+  border-color: color-mix(in oklch, var(--chart-1) 40%, transparent);
+  background: var(--ok-soft);
   color: var(--status-ok-fg);
 }
 
 .kpi-delta-fail {
-  border-color: rgba(255, 107, 107, 0.45);
-  background: rgba(255, 107, 107, 0.18);
+  border-color: color-mix(in oklch, var(--destructive) 40%, transparent);
+  background: var(--warn-soft);
   color: var(--status-fail-fg);
 }
 
@@ -418,9 +519,9 @@ button:hover {
 
 .operator-health-group {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: calc(var(--radius) - 2px);
   padding: 10px;
-  background: rgba(7, 22, 26, 0.42);
+  background: color-mix(in oklch, var(--card) 84%, transparent);
 }
 
 .operator-health-group-hidden {
@@ -462,9 +563,9 @@ button:hover {
 
 .operator-health-card {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: calc(var(--radius) - 2px);
   padding: 10px;
-  background: rgba(7, 22, 26, 0.5);
+  background: var(--surface-popover);
 }
 
 .operator-health-card-hidden {
@@ -498,7 +599,7 @@ button:hover {
 
 .operator-health-row span {
   color: var(--heading);
-  font-family: "IBM Plex Mono", "Consolas", "SFMono-Regular", monospace;
+  font-family: var(--font-mono);
   font-size: 0.83rem;
   text-align: right;
 }
@@ -506,33 +607,33 @@ button:hover {
 .operator-health-hint {
   margin: 8px 0 0;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: calc(var(--radius) - 4px);
   padding: 8px 9px;
   font-size: 0.83rem;
   line-height: 1.35;
 }
 
 .operator-health-hint-neutral {
-  background: rgba(125, 159, 168, 0.14);
+  background: color-mix(in oklch, var(--muted-ui) 72%, transparent);
   color: var(--status-neutral-fg);
 }
 
 .operator-health-hint-ok {
-  background: rgba(0, 200, 83, 0.12);
-  border-color: rgba(0, 200, 83, 0.32);
-  color: #a7ffd8;
+  background: var(--ok-soft);
+  border-color: color-mix(in oklch, var(--chart-1) 38%, transparent);
+  color: var(--status-ok-fg);
 }
 
 .operator-health-hint-warn {
-  background: rgba(255, 159, 67, 0.12);
-  border-color: rgba(255, 159, 67, 0.34);
-  color: #ffd9b0;
+  background: var(--accent-soft);
+  border-color: color-mix(in oklch, var(--accent-foreground) 40%, transparent);
+  color: color-mix(in oklch, var(--accent-foreground) 80%, white);
 }
 
 .operator-health-hint-fail {
-  background: rgba(255, 107, 107, 0.14);
-  border-color: rgba(255, 107, 107, 0.36);
-  color: #ffc2c2;
+  background: var(--danger-soft);
+  border-color: color-mix(in oklch, var(--destructive) 44%, transparent);
+  color: var(--status-fail-fg);
 }
 
 .status-pill {
@@ -544,24 +645,24 @@ button:hover {
 }
 
 .status-neutral {
-  background: rgba(125, 159, 168, 0.22);
+  background: color-mix(in oklch, var(--muted-ui) 76%, transparent);
   color: var(--status-neutral-fg);
 }
 
 .status-ok {
-  background: rgba(0, 200, 83, 0.2);
+  background: var(--ok-soft);
   color: var(--status-ok-fg);
 }
 
 .status-fail {
-  background: rgba(255, 107, 107, 0.2);
+  background: var(--warn-soft);
   color: var(--status-fail-fg);
 }
 
 .story-timeline-preview {
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: rgba(7, 22, 26, 0.56);
+  border-radius: calc(var(--radius) - 4px);
+  background: color-mix(in oklch, var(--card) 86%, transparent);
   padding: 10px;
   min-height: 96px;
   line-height: 1.45;
@@ -589,35 +690,35 @@ button:hover {
   border: 1px solid var(--border);
   border-radius: 999px;
   height: 10px;
-  background: rgba(7, 22, 26, 0.56);
+  background: color-mix(in oklch, var(--card) 85%, transparent);
 }
 
 .story-progress-track.is-empty {
   background:
     repeating-linear-gradient(
       -45deg,
-      rgba(125, 159, 168, 0.2),
-      rgba(125, 159, 168, 0.2) 10px,
-      rgba(125, 159, 168, 0.1) 10px,
-      rgba(125, 159, 168, 0.1) 20px
+      color-mix(in oklch, var(--muted-ui) 85%, transparent),
+      color-mix(in oklch, var(--muted-ui) 85%, transparent) 10px,
+      color-mix(in oklch, var(--muted-ui) 55%, transparent) 10px,
+      color-mix(in oklch, var(--muted-ui) 55%, transparent) 20px
     ),
-    rgba(7, 22, 26, 0.56);
+    color-mix(in oklch, var(--card) 85%, transparent);
 }
 
 .story-progress-fill {
   height: 100%;
   width: 0%;
   border-radius: inherit;
-  background: linear-gradient(130deg, #2ec4b6, #ff9f43);
+  background: linear-gradient(130deg, var(--primary), var(--accent-foreground));
   transition: width 160ms ease;
 }
 
 .story-progress-track.is-active .story-progress-fill {
-  background: linear-gradient(130deg, #2ec4b6, #ff9f43);
+  background: linear-gradient(130deg, var(--primary), var(--accent-foreground));
 }
 
 .story-progress-track.is-pending .story-progress-fill {
-  background: linear-gradient(130deg, #ff9f43, #ff6b6b);
+  background: linear-gradient(130deg, var(--accent-foreground), var(--destructive));
   animation: story-progress-pulse 1.2s ease-in-out infinite;
 }
 
@@ -633,12 +734,12 @@ button:hover {
   background:
     repeating-linear-gradient(
       -45deg,
-      rgba(125, 159, 168, 0.12),
-      rgba(125, 159, 168, 0.12) 10px,
-      rgba(125, 159, 168, 0.06) 10px,
-      rgba(125, 159, 168, 0.06) 20px
+      color-mix(in oklch, var(--muted-ui) 70%, transparent),
+      color-mix(in oklch, var(--muted-ui) 70%, transparent) 10px,
+      color-mix(in oklch, var(--muted-ui) 45%, transparent) 10px,
+      color-mix(in oklch, var(--muted-ui) 45%, transparent) 20px
     ),
-    rgba(7, 22, 26, 0.56);
+    color-mix(in oklch, var(--card) 85%, transparent);
 }
 
 @keyframes story-progress-pulse {
@@ -661,29 +762,29 @@ button:hover {
   max-height: 240px;
   overflow: auto;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: rgba(7, 22, 26, 0.56);
+  border-radius: calc(var(--radius) - 4px);
+  background: color-mix(in oklch, var(--card) 86%, transparent);
   padding: 10px;
   display: grid;
   gap: 6px;
 }
 
 .entry {
-  border-left: 3px solid rgba(46, 196, 182, 0.7);
-  background: rgba(46, 196, 182, 0.06);
-  border-radius: 6px;
+  border-left: 3px solid color-mix(in oklch, var(--primary) 76%, white);
+  background: color-mix(in oklch, var(--primary) 12%, transparent);
+  border-radius: calc(var(--radius) - 8px);
   padding: 6px 8px;
   font-size: 0.9rem;
 }
 
 .entry.system {
-  border-left-color: rgba(255, 159, 67, 0.78);
-  background: rgba(255, 159, 67, 0.08);
+  border-left-color: color-mix(in oklch, var(--accent-foreground) 78%, white);
+  background: color-mix(in oklch, var(--accent-foreground) 14%, transparent);
 }
 
 .entry.error {
-  border-left-color: rgba(255, 107, 107, 0.9);
-  background: rgba(255, 107, 107, 0.1);
+  border-left-color: color-mix(in oklch, var(--destructive) 88%, white);
+  background: color-mix(in oklch, var(--destructive) 14%, transparent);
 }
 
 .entry small {
@@ -732,9 +833,9 @@ button:hover {
     z-index: 2;
     margin: -2px -2px 0;
     padding: 6px 8px;
-    border: 1px solid rgba(230, 243, 240, 0.14);
-    border-radius: 10px;
-    background: rgba(7, 22, 26, 0.86);
+    border: 1px solid var(--border-soft);
+    border-radius: calc(var(--radius) - 4px);
+    background: color-mix(in oklch, var(--card) 90%, transparent);
     backdrop-filter: blur(6px);
   }
 

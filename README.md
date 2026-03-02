@@ -102,6 +102,7 @@ Frontend is grouped into tabs (`Live Negotiator`, `Storyteller`, `Operator Conso
 Frontend `Intent Request` shows `ui_task` grounding fields only when `intent=ui_task`.
 Frontend `Connection` panel includes one-click export controls: `Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)` (judge/operator evidence snapshot).
 Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
+Frontend visual system uses `Violet Bloom` dashboard tokens (colors/radius/shadows/typography) in `apps/demo-frontend/public/styles.css`.
 Frontend includes an interactive `Story Timeline` panel (progress bar + segment scrubber + selector + preview + asset refs) fed directly from Storyteller outputs, with explicit `timeline mode`, `asset mix`, and `segment progress` pills.
 
 Judge-facing visual evidence pack:

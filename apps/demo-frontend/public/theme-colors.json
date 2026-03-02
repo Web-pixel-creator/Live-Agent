@@ -7,23 +7,23 @@
       "items": [
         {
           "name": "Background",
-          "value": "#07161a",
-          "sourceToken": "--bg-0"
+          "value": "oklch(0.2223 0.0060 271.1393)",
+          "sourceToken": "--background"
         },
         {
           "name": "Foreground",
-          "value": "#e6f3f0",
-          "sourceToken": "--text"
+          "value": "oklch(0.9551 0 0)",
+          "sourceToken": "--foreground"
         },
         {
           "name": "Primary",
-          "value": "#2ec4b6",
-          "sourceToken": "--accent-2"
+          "value": "oklch(0.6132 0.2294 291.7437)",
+          "sourceToken": "--primary"
         },
         {
           "name": "Primary Foreground",
-          "value": "#051316",
-          "sourceToken": "--button-primary-fg"
+          "value": "oklch(1 0 0)",
+          "sourceToken": "--primary-foreground"
         }
       ]
     },
@@ -32,23 +32,23 @@
       "items": [
         {
           "name": "Secondary",
-          "value": "#0f2229",
-          "sourceToken": "--bg-1"
+          "value": "oklch(0.2940 0.0130 272.9312)",
+          "sourceToken": "--secondary"
         },
         {
           "name": "Secondary Foreground",
-          "value": "#96b3ac",
-          "sourceToken": "--muted"
+          "value": "oklch(0.9551 0 0)",
+          "sourceToken": "--secondary-foreground"
         },
         {
           "name": "Accent",
-          "value": "#ff9f43",
-          "sourceToken": "--accent"
+          "value": "oklch(0.2795 0.0368 260.0310)",
+          "sourceToken": "--accent-ui"
         },
         {
           "name": "Accent Foreground",
-          "value": "#07161a",
-          "sourceToken": "--button-muted-fg"
+          "value": "oklch(0.7857 0.1153 246.6596)",
+          "sourceToken": "--accent-foreground"
         }
       ]
     },
@@ -57,33 +57,33 @@
       "items": [
         {
           "name": "Card",
-          "value": "rgba(15, 34, 41, 0.78)",
+          "value": "oklch(0.2568 0.0076 274.6528)",
           "sourceToken": "--card"
         },
         {
           "name": "Card Foreground",
-          "value": "#e6f3f0",
-          "sourceToken": "--text"
+          "value": "oklch(0.9551 0 0)",
+          "sourceToken": "--card-foreground"
         },
         {
           "name": "Popover",
-          "value": "rgba(7, 22, 26, 0.5)",
-          "sourceLiteral": "background: rgba(7, 22, 26, 0.5);"
+          "value": "oklch(0.2568 0.0076 274.6528)",
+          "sourceToken": "--popover"
         },
         {
           "name": "Popover Foreground",
-          "value": "#f3fdfa",
-          "sourceToken": "--heading"
+          "value": "oklch(0.9551 0 0)",
+          "sourceToken": "--popover-foreground"
         },
         {
           "name": "Muted",
-          "value": "rgba(125, 159, 168, 0.22)",
-          "sourceLiteral": "background: rgba(125, 159, 168, 0.22);"
+          "value": "oklch(0.2940 0.0130 272.9312)",
+          "sourceToken": "--muted-ui"
         },
         {
           "name": "Muted Foreground",
-          "value": "#c8dee1",
-          "sourceToken": "--status-neutral-fg"
+          "value": "oklch(0.7058 0 0)",
+          "sourceToken": "--muted-foreground"
         }
       ]
     },
@@ -92,18 +92,18 @@
       "items": [
         {
           "name": "Border",
-          "value": "rgba(230, 243, 240, 0.16)",
+          "value": "oklch(0.3289 0.0092 268.3843)",
           "sourceToken": "--border"
         },
         {
           "name": "Input",
-          "value": "rgba(7, 22, 26, 0.68)",
-          "sourceLiteral": "background: rgba(7, 22, 26, 0.68);"
+          "value": "oklch(0.3289 0.0092 268.3843)",
+          "sourceToken": "--input"
         },
         {
           "name": "Ring",
-          "value": "#2ec4b6",
-          "sourceToken": "--accent-2"
+          "value": "oklch(0.6132 0.2294 291.7437)",
+          "sourceToken": "--ring"
         }
       ]
     },
@@ -112,33 +112,33 @@
       "items": [
         {
           "name": "Destructive",
-          "value": "#ff6b6b",
-          "sourceToken": "--warn"
+          "value": "oklch(0.7106 0.1661 22.2162)",
+          "sourceToken": "--destructive"
         },
         {
           "name": "Destructive Foreground",
-          "value": "#3b0a0a",
-          "sourceToken": "--button-warn-fg"
+          "value": "oklch(1 0 0)",
+          "sourceToken": "--destructive-foreground"
         },
         {
           "name": "Success",
-          "value": "#00c853",
-          "sourceToken": "--ok"
+          "value": "oklch(0.8003 0.1821 151.7110)",
+          "sourceToken": "--chart-1"
         },
         {
           "name": "Success Foreground",
-          "value": "#7dffc8",
+          "value": "color-mix(in oklch, var(--chart-1) 78%, white)",
           "sourceToken": "--status-ok-fg"
         },
         {
           "name": "Warning",
-          "value": "#ff9f43",
-          "sourceToken": "--accent"
+          "value": "oklch(0.8077 0.1035 19.5706)",
+          "sourceToken": "--chart-3"
         },
         {
           "name": "Warning Foreground",
-          "value": "#ffd9b0",
-          "sourceLiteral": "color: #ffd9b0;"
+          "value": "oklch(0.7857 0.1153 246.6596)",
+          "sourceToken": "--accent-foreground"
         }
       ]
     }

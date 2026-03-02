@@ -1,6 +1,6 @@
 # Demo Frontend Theme Colors
 
-Theme palette used by the demo/operator UI:
+Theme palette used by the demo/operator UI (`Violet Bloom`, tweakcn/shadcn style tokens):
 
 - Source CSS: `apps/demo-frontend/public/styles.css`
 - Structured palette JSON: `apps/demo-frontend/public/theme-colors.json`
@@ -10,46 +10,46 @@ Theme palette used by the demo/operator UI:
 
 | Name | Value | Source |
 | --- | --- | --- |
-| Background | `#07161a` | `--bg-0` |
-| Foreground | `#e6f3f0` | `--text` |
-| Primary | `#2ec4b6` | `--accent-2` |
-| Primary Foreground | `#051316` | `--button-primary-fg` |
+| Background | `oklch(0.2223 0.0060 271.1393)` | `--background` |
+| Foreground | `oklch(0.9551 0 0)` | `--foreground` |
+| Primary | `oklch(0.6132 0.2294 291.7437)` | `--primary` |
+| Primary Foreground | `oklch(1 0 0)` | `--primary-foreground` |
 
 ## Secondary & Accent Colors
 
 | Name | Value | Source |
 | --- | --- | --- |
-| Secondary | `#0f2229` | `--bg-1` |
-| Secondary Foreground | `#96b3ac` | `--muted` |
-| Accent | `#ff9f43` | `--accent` |
-| Accent Foreground | `#07161a` | `--button-muted-fg` |
+| Secondary | `oklch(0.2940 0.0130 272.9312)` | `--secondary` |
+| Secondary Foreground | `oklch(0.9551 0 0)` | `--secondary-foreground` |
+| Accent | `oklch(0.2795 0.0368 260.0310)` | `--accent-ui` |
+| Accent Foreground | `oklch(0.7857 0.1153 246.6596)` | `--accent-foreground` |
 
 ## UI Component Colors
 
 | Name | Value | Source |
 | --- | --- | --- |
-| Card | `rgba(15, 34, 41, 0.78)` | `--card` |
-| Card Foreground | `#e6f3f0` | `--text` |
-| Popover | `rgba(7, 22, 26, 0.5)` | panel/meta blocks |
-| Popover Foreground | `#f3fdfa` | `--heading` |
-| Muted | `rgba(125, 159, 168, 0.22)` | neutral status chip background |
-| Muted Foreground | `#c8dee1` | `--status-neutral-fg` |
+| Card | `oklch(0.2568 0.0076 274.6528)` | `--card` |
+| Card Foreground | `oklch(0.9551 0 0)` | `--card-foreground` |
+| Popover | `oklch(0.2568 0.0076 274.6528)` | `--popover` |
+| Popover Foreground | `oklch(0.9551 0 0)` | `--popover-foreground` |
+| Muted | `oklch(0.2940 0.0130 272.9312)` | `--muted-ui` |
+| Muted Foreground | `oklch(0.7058 0 0)` | `--muted-foreground` |
 
 ## Utility & Form Colors
 
 | Name | Value | Source |
 | --- | --- | --- |
-| Border | `rgba(230, 243, 240, 0.16)` | `--border` |
-| Input | `rgba(7, 22, 26, 0.68)` | input/select/textarea background |
-| Ring | `#2ec4b6` | `--accent-2` |
+| Border | `oklch(0.3289 0.0092 268.3843)` | `--border` |
+| Input | `oklch(0.3289 0.0092 268.3843)` | `--input` |
+| Ring | `oklch(0.6132 0.2294 291.7437)` | `--ring` |
 
 ## Status & Feedback Colors
 
 | Name | Value | Source |
 | --- | --- | --- |
-| Destructive | `#ff6b6b` | `--warn` |
-| Destructive Foreground | `#3b0a0a` | `--button-warn-fg` |
-| Success | `#00c853` | `--ok` |
-| Success Foreground | `#7dffc8` | `--status-ok-fg` |
-| Warning | `#ff9f43` | `--accent` |
-| Warning Foreground | `#ffd9b0` | warning hint text |
+| Destructive | `oklch(0.7106 0.1661 22.2162)` | `--destructive` |
+| Destructive Foreground | `oklch(1 0 0)` | `--destructive-foreground` |
+| Success | `oklch(0.8003 0.1821 151.7110)` | `--chart-1` |
+| Success Foreground | `color-mix(in oklch, var(--chart-1) 78%, white)` | `--status-ok-fg` |
+| Warning | `oklch(0.8077 0.1035 19.5706)` | `--chart-3` |
+| Warning Foreground | `oklch(0.7857 0.1153 246.6596)` | `--accent-foreground` |
