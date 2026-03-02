@@ -50,6 +50,7 @@ test("judge visual gallery script is wired across package scripts and docs", () 
     "Judge Visual Gallery",
     "_capture-manifest.json",
     "manifest.json",
+    "pluginMarketplace",
     "deviceNodeUpdates",
     "operatorTurnTruncation",
     "Screenshot Gallery",

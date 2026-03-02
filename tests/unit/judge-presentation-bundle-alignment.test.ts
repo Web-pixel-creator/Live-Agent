@@ -52,6 +52,7 @@ test("judge presentation bundle script is wired across package scripts and docs"
     "release-evidence/report.json",
     "manifest.json",
     "gallery.md",
+    "pluginMarketplace",
     "deviceNodeUpdates",
   ];
   for (const token of scriptTokens) {

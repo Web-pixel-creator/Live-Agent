@@ -117,6 +117,7 @@ Pack marks these as critical:
 3. `operatorDamageControl`
 4. `governancePolicy`
 5. `skillsRegistry`
-6. `deviceNodes`
-7. `agentUsage`
-8. `deviceNodeUpdates` (derived from `deviceNodes` updates fields)
+6. `pluginMarketplace`
+7. `deviceNodes`
+8. `agentUsage`
+9. `deviceNodeUpdates` (derived from `deviceNodes` updates fields)

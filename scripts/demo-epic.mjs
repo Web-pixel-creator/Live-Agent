@@ -142,6 +142,7 @@ function main() {
     operatorDamageControl: toStatus(evidence?.operatorDamageControl?.status),
     governancePolicy: toStatus(evidence?.governancePolicy?.status),
     skillsRegistry: toStatus(evidence?.skillsRegistry?.status),
+    pluginMarketplace: toStatus(evidence?.pluginMarketplace?.status),
     deviceNodes: toStatus(evidence?.deviceNodes?.status),
     agentUsage: toStatus(evidence?.agentUsage?.status),
     deviceNodeUpdates: deriveDeviceNodeUpdatesStatus(evidence?.deviceNodes),

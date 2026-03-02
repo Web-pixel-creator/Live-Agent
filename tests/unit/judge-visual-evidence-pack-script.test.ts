@@ -24,6 +24,7 @@ function makeBadgeDetails(statusOverrides = {}) {
     operatorDamageControl: "pass",
     governancePolicy: "pass",
     skillsRegistry: "pass",
+    pluginMarketplace: "pass",
     deviceNodes: "pass",
     agentUsage: "pass",
     ...statusOverrides,
@@ -36,6 +37,7 @@ function makeBadgeDetails(statusOverrides = {}) {
       operatorDamageControl: { status: laneStatus.operatorDamageControl },
       governancePolicy: { status: laneStatus.governancePolicy },
       skillsRegistry: { status: laneStatus.skillsRegistry },
+      pluginMarketplace: { status: laneStatus.pluginMarketplace },
       deviceNodes: {
         status: laneStatus.deviceNodes,
         updatesValidated: true,
@@ -99,6 +101,7 @@ test("judge visual evidence pack strict mode passes when required captures and b
   assert.equal(manifest.overallStatus, "pass");
   assert.equal(manifest.summary.missingRequiredCaptures, 0);
   assert.equal(manifest.summary.missingCriticalBadgeEvidence, 0);
+  assert.equal(manifest.badgeEvidence.pluginMarketplace, "pass");
   assert.equal(manifest.badgeEvidence.deviceNodeUpdates, "pass");
 });
 

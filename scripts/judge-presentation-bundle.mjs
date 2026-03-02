@@ -250,6 +250,7 @@ function main() {
     { lane: "operatorDamageControl", status: toStatus(badgeDetails?.evidence?.operatorDamageControl?.status) },
     { lane: "governancePolicy", status: toStatus(badgeDetails?.evidence?.governancePolicy?.status) },
     { lane: "skillsRegistry", status: toStatus(badgeDetails?.evidence?.skillsRegistry?.status) },
+    { lane: "pluginMarketplace", status: toStatus(badgeDetails?.evidence?.pluginMarketplace?.status) },
     { lane: "deviceNodes", status: toStatus(badgeDetails?.evidence?.deviceNodes?.status) },
     { lane: "agentUsage", status: toStatus(badgeDetails?.evidence?.agentUsage?.status) },
     { lane: "deviceNodeUpdates", status: deriveDeviceNodeUpdatesStatus(visualManifest, badgeDetails) },

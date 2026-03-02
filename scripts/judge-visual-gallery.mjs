@@ -70,6 +70,7 @@ function collectLaneRows(packManifest) {
     { lane: "operatorDamageControl", status: toStatus(evidence.operatorDamageControl) },
     { lane: "governancePolicy", status: toStatus(evidence.governancePolicy) },
     { lane: "skillsRegistry", status: toStatus(evidence.skillsRegistry) },
+    { lane: "pluginMarketplace", status: toStatus(evidence.pluginMarketplace) },
     { lane: "deviceNodes", status: toStatus(evidence.deviceNodes) },
     { lane: "agentUsage", status: toStatus(evidence.agentUsage) },
     { lane: "deviceNodeUpdates", status: toStatus(evidence.deviceNodeUpdates) },

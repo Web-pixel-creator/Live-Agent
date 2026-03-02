@@ -63,6 +63,7 @@ test("judge visual evidence pack is wired across package scripts, docs, and runb
     "operator-console-evidence.png",
     "observability-dashboard.png",
     "operatorTurnTruncation",
+    "pluginMarketplace",
     "deviceNodeUpdates",
   ];
   for (const token of requiredVisualDocTokens) {
@@ -74,6 +75,7 @@ test("judge visual evidence pack is wired across package scripts, docs, and runb
     "overallStatus",
     "screenshotChecklist",
     "criticalBadgeLanes",
+    "pluginMarketplace",
     "deviceNodeUpdates",
     "costEstimatePresent",
     "tokensUsedPresent",

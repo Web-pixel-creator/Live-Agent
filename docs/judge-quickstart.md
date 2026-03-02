@@ -71,6 +71,7 @@ npm run verify:release
    - Device Nodes Health / Updates
    - Governance Policy Lifecycle
    - Skills Registry Lifecycle
+   - Plugin Marketplace Lifecycle
    - Agent Usage Evidence
    - Cost & Tokens Evidence
 4. Session export controls:

@@ -34,6 +34,7 @@ test("demo:epic script is wired across package and judge docs", () => {
     "demo:e2e:visual:judge",
     "policy-check.json",
     "badge-details.json",
+    "pluginMarketplace",
     "deviceNodeUpdates",
     "epic-summary.json",
   ];
