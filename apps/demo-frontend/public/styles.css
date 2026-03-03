@@ -183,7 +183,6 @@ body {
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  background-color: var(--bg-canvas);
   background:
     radial-gradient(
       1200px 700px at 8% -18%,
@@ -201,6 +200,7 @@ body {
       color-mix(in srgb, var(--bg-canvas) 90%, var(--bg-1)) 56%,
       color-mix(in srgb, var(--bg-canvas) 84%, var(--bg-1))
     );
+  background-color: var(--bg-canvas);
 }
 
 body::before {
