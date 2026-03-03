@@ -54,6 +54,7 @@ The operator flow is used during live demos and production diagnostics to:
 14. Export session evidence from frontend via the `Export Session` dropdown (`Markdown` / `JSON` / `Audio (WAV)`)
 15. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
 16. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
+17. Live Negotiator status strip (`Status/Assistant/Run ID/User ID/Session State/Mode/PTT/Export`) uses high-contrast neutral text to stay readable during dark-theme judged demos
 
 ## Safety Controls
 

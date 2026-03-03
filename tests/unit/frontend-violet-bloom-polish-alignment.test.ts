@@ -8,6 +8,7 @@ test("demo frontend applies violet-bloom polish for spacing, dropdown checks, an
   const stylesSource = readFileSync(stylesPath, "utf8");
 
   const requiredTokens = [
+    "--status-neutral-fg: color-mix(in oklch, var(--foreground) 76%, var(--muted-foreground));",
     ".media-upload-row {",
     "grid-template-columns: minmax(0, 1fr) minmax(196px, auto);",
     ".media-upload-actions {",
@@ -26,6 +27,9 @@ test("demo frontend applies violet-bloom polish for spacing, dropdown checks, an
     "flex-wrap: wrap;",
     ".meta-row-status > div {",
     "align-items: center;",
+    "radial-gradient(200px 80px at 0% -18%, color-mix(in oklch, var(--primary) 11%, transparent), transparent 72%)",
+    ".meta-row-status > div > span:not(.status-pill) {",
+    "font-size: 0.84rem;",
     ".kpi-panel > .grid-3 {",
     "grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));",
   ];

@@ -112,6 +112,7 @@ Signal strip cards are clickable and jump to the corresponding evidence widget, 
 Frontend `Intent Request` shows `ui_task` grounding fields only when `intent=ui_task`.
 Frontend `Connection` panel uses a compact `Export Session` dropdown with `Markdown` / `JSON` / `Audio (WAV)` evidence exports.
 Connection status metadata is rendered as a compact inline status strip (`Status`, `Assistant`, `Run ID`, `User ID`, `Session State`, `Mode`, `PTT`, `Export`) for faster scan and less vertical noise.
+Status strip readability is tuned for judge demos with higher neutral-text contrast and stronger card separation against the dark canvas.
 Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
 Frontend supports a subtle animated background video (`apps/demo-frontend/public/bg-video.mp4`) with loop-transition smoothing and `prefers-reduced-motion` fallback.
 Frontend visual system uses `Violet Bloom` dashboard tokens (colors/radius/shadows/typography) in `apps/demo-frontend/public/styles.css`.

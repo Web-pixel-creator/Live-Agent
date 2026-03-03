@@ -54,7 +54,7 @@
   --ok: var(--chart-1);
   --heading: var(--foreground);
   --heading-soft: color-mix(in oklch, var(--foreground) 88%, var(--accent-foreground));
-  --status-neutral-fg: var(--muted-foreground);
+  --status-neutral-fg: color-mix(in oklch, var(--foreground) 76%, var(--muted-foreground));
   --status-ok-fg: color-mix(in oklch, var(--chart-1) 78%, white);
   --status-fail-fg: color-mix(in oklch, var(--destructive) 70%, white);
   --button-primary-fg: var(--primary-foreground);
@@ -124,7 +124,7 @@
   --ok: var(--chart-1);
   --heading: var(--foreground);
   --heading-soft: color-mix(in oklch, var(--foreground) 86%, var(--accent-foreground));
-  --status-neutral-fg: var(--muted-foreground);
+  --status-neutral-fg: color-mix(in oklch, var(--foreground) 58%, var(--muted-foreground));
   --status-ok-fg: color-mix(in oklch, var(--chart-1) 64%, black);
   --status-fail-fg: color-mix(in oklch, var(--destructive) 66%, black);
   --button-primary-fg: var(--primary-foreground);
@@ -1379,22 +1379,24 @@ button:focus-visible {
 .meta-row-status > div {
   flex: 1 1 140px;
   min-width: 0;
-  min-height: 46px;
+  min-height: 50px;
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 11px;
-  border: 1px solid color-mix(in oklch, var(--border-soft) 78%, transparent);
+  gap: 9px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 94%, transparent);
   border-radius: calc(var(--radius) - 5px);
-  background: color-mix(in oklch, var(--surface-control) 92%, transparent);
+  background:
+    radial-gradient(200px 80px at 0% -18%, color-mix(in oklch, var(--primary) 11%, transparent), transparent 72%),
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 90%, transparent), var(--surface-panel-2));
   box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent);
 }
 
 .meta-row-status strong {
-  font-size: 0.85rem;
+  font-size: 0.86rem;
   font-weight: 700;
   letter-spacing: -0.005em;
-  color: color-mix(in oklch, var(--foreground) 94%, var(--muted-foreground));
+  color: color-mix(in oklch, var(--foreground) 97%, var(--muted-foreground));
   white-space: nowrap;
 }
 
@@ -1407,9 +1409,10 @@ button:focus-visible {
 }
 
 .meta-row-status > div > span:not(.status-pill) {
-  color: color-mix(in oklch, var(--foreground) 90%, var(--muted-foreground));
+  color: color-mix(in oklch, var(--foreground) 95%, var(--muted-foreground));
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.84rem;
+  font-weight: 500;
   line-height: 1.28;
   overflow-wrap: anywhere;
   word-break: break-word;
