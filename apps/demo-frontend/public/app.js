@@ -66,6 +66,7 @@ const BG_VIDEO_LOOP_RESET_SECONDS = 0.3;
 const BG_VIDEO_LOOP_TRANSITION_CLASS = "bg-video-loop-transition";
 const OPERATOR_SIGNAL_FLASH_MS = 1200;
 const EXPORT_HISTORY_LIMIT = 3;
+const DEVICE_NODE_STALE_AGE_MS = 5 * 60 * 1000;
 const STORY_EMPTY_STATE_PROMPT =
   "story: Build a 4-scene launch-day narrative with one hero image cue, one short video cue, and concise voiceover.";
 
@@ -360,6 +361,15 @@ const el = {
   deviceNodeMetadata: document.getElementById("deviceNodeMetadata"),
   deviceNodeConflictBtn: document.getElementById("deviceNodeConflictBtn"),
   deviceNodeCount: document.getElementById("deviceNodeCount"),
+  deviceNodeFleetTotal: document.getElementById("deviceNodeFleetTotal"),
+  deviceNodeFleetOnline: document.getElementById("deviceNodeFleetOnline"),
+  deviceNodeFleetOnlinePct: document.getElementById("deviceNodeFleetOnlinePct"),
+  deviceNodeFleetDegraded: document.getElementById("deviceNodeFleetDegraded"),
+  deviceNodeFleetDegradedPct: document.getElementById("deviceNodeFleetDegradedPct"),
+  deviceNodeFleetOffline: document.getElementById("deviceNodeFleetOffline"),
+  deviceNodeFleetOfflinePct: document.getElementById("deviceNodeFleetOfflinePct"),
+  deviceNodeFleetStale: document.getElementById("deviceNodeFleetStale"),
+  deviceNodeFleetStalePct: document.getElementById("deviceNodeFleetStalePct"),
   deviceNodeSelectedStatus: document.getElementById("deviceNodeSelectedStatus"),
   deviceNodeSelectedVersion: document.getElementById("deviceNodeSelectedVersion"),
   deviceNodeSelectedLastSeen: document.getElementById("deviceNodeSelectedLastSeen"),
@@ -6134,6 +6144,77 @@ function setDeviceNodeListHint(text) {
   el.deviceNodeListHint.textContent = normalized;
 }
 
+function parseIsoTimestampMs(value) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return Number.NaN;
+  }
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
+}
+
+function formatDeviceNodeFleetPercent(part, total) {
+  if (!Number.isFinite(total) || total <= 0) {
+    return "0%";
+  }
+  const safePart = Number.isFinite(part) ? Math.max(0, Math.floor(part)) : 0;
+  return `${Math.round((safePart / total) * 100)}%`;
+}
+
+function renderDeviceNodeFleetSummary(nodes) {
+  const list = Array.isArray(nodes) ? nodes : [];
+  const total = list.length;
+  let online = 0;
+  let degraded = 0;
+  let offline = 0;
+  let stale = 0;
+  const nowMs = Date.now();
+
+  for (const node of list) {
+    const status = typeof node?.status === "string" ? node.status.trim().toLowerCase() : "unknown";
+    if (status === "online") {
+      online += 1;
+    } else if (status === "degraded") {
+      degraded += 1;
+    } else if (status === "offline") {
+      offline += 1;
+    }
+
+    const lastSeenMs = parseIsoTimestampMs(node?.lastSeenAt);
+    const isStale = !Number.isFinite(lastSeenMs) || nowMs - lastSeenMs > DEVICE_NODE_STALE_AGE_MS;
+    if (isStale) {
+      stale += 1;
+    }
+  }
+
+  if (el.deviceNodeFleetTotal) {
+    el.deviceNodeFleetTotal.textContent = String(total);
+  }
+  if (el.deviceNodeFleetOnline) {
+    el.deviceNodeFleetOnline.textContent = String(online);
+  }
+  if (el.deviceNodeFleetOnlinePct) {
+    el.deviceNodeFleetOnlinePct.textContent = formatDeviceNodeFleetPercent(online, total);
+  }
+  if (el.deviceNodeFleetDegraded) {
+    el.deviceNodeFleetDegraded.textContent = String(degraded);
+  }
+  if (el.deviceNodeFleetDegradedPct) {
+    el.deviceNodeFleetDegradedPct.textContent = formatDeviceNodeFleetPercent(degraded, total);
+  }
+  if (el.deviceNodeFleetOffline) {
+    el.deviceNodeFleetOffline.textContent = String(offline);
+  }
+  if (el.deviceNodeFleetOfflinePct) {
+    el.deviceNodeFleetOfflinePct.textContent = formatDeviceNodeFleetPercent(offline, total);
+  }
+  if (el.deviceNodeFleetStale) {
+    el.deviceNodeFleetStale.textContent = String(stale);
+  }
+  if (el.deviceNodeFleetStalePct) {
+    el.deviceNodeFleetStalePct.textContent = formatDeviceNodeFleetPercent(stale, total);
+  }
+}
+
 function normalizeDeviceNodeStatusVariant(status) {
   const normalized = typeof status === "string" ? status.trim().toLowerCase() : "unknown";
   if (normalized === "online") {
@@ -6308,6 +6389,7 @@ function renderDeviceNodeList(nodes) {
   for (const node of normalizedNodes) {
     state.deviceNodes.set(node.nodeId.toLowerCase(), node);
   }
+  renderDeviceNodeFleetSummary(normalizedNodes);
   el.deviceNodeCount.textContent = String(normalizedNodes.length);
   el.deviceNodeList.innerHTML = "";
 

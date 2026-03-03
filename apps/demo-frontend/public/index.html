@@ -1383,7 +1383,7 @@
 
       <div id="tab-device-nodes" class="tab-content" data-tab="device-nodes">
       <section class="panel">
-        <h2>Device Nodes</h2>
+        <h2><span class="section-badge">Nodes</span>Device Nodes</h2>
         <div class="grid-3">
           <label class="field">
             <span>Node ID</span>
@@ -1451,6 +1451,33 @@
           <button id="deviceNodeConflictBtn" class="button-muted">Probe Stale Conflict</button>
           <button id="deviceNodeHeartbeatBtn" class="button-muted">Send Heartbeat</button>
           <button id="deviceNodeStatusBtn" class="button-muted">Check Status</button>
+        </div>
+        <div id="deviceNodeFleetSummary" class="device-node-fleet-summary" role="status" aria-live="polite">
+          <article class="device-node-fleet-card is-total">
+            <h3>Total</h3>
+            <p id="deviceNodeFleetTotal">0</p>
+            <span class="device-node-fleet-note">registered</span>
+          </article>
+          <article class="device-node-fleet-card is-online">
+            <h3>Online</h3>
+            <p id="deviceNodeFleetOnline">0</p>
+            <span id="deviceNodeFleetOnlinePct" class="device-node-fleet-note">0%</span>
+          </article>
+          <article class="device-node-fleet-card is-degraded">
+            <h3>Degraded</h3>
+            <p id="deviceNodeFleetDegraded">0</p>
+            <span id="deviceNodeFleetDegradedPct" class="device-node-fleet-note">0%</span>
+          </article>
+          <article class="device-node-fleet-card is-offline">
+            <h3>Offline</h3>
+            <p id="deviceNodeFleetOffline">0</p>
+            <span id="deviceNodeFleetOfflinePct" class="device-node-fleet-note">0%</span>
+          </article>
+          <article class="device-node-fleet-card is-stale">
+            <h3>Stale</h3>
+            <p id="deviceNodeFleetStale">0</p>
+            <span id="deviceNodeFleetStalePct" class="device-node-fleet-note">0%</span>
+          </article>
         </div>
         <div class="meta-row">
           <div><strong>Total Nodes:</strong> <span id="deviceNodeCount">0</span></div>

@@ -16,13 +16,27 @@ test("demo frontend presents device nodes as selectable cards with guided empty 
   const readmeSource = readFileSync(readmePath, "utf8");
   const operatorGuideSource = readFileSync(operatorGuidePath, "utf8");
 
-  const requiredHtmlTokens = ['id="deviceNodeListHint"', 'class="events device-node-list"', 'id="deviceNodeList"'];
+  const requiredHtmlTokens = [
+    'id="deviceNodeFleetSummary"',
+    'id="deviceNodeFleetTotal"',
+    'id="deviceNodeFleetOnline"',
+    'id="deviceNodeFleetDegraded"',
+    'id="deviceNodeFleetOffline"',
+    'id="deviceNodeFleetStale"',
+    'id="deviceNodeListHint"',
+    'class="events device-node-list"',
+    'id="deviceNodeList"',
+  ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `frontend html missing device-node list token: ${token}`);
   }
 
   const requiredRuntimeTokens = [
     'deviceNodeListHint: document.getElementById("deviceNodeListHint")',
+    'deviceNodeFleetTotal: document.getElementById("deviceNodeFleetTotal")',
+    "DEVICE_NODE_STALE_AGE_MS",
+    "function renderDeviceNodeFleetSummary(nodes)",
+    "function formatDeviceNodeFleetPercent(part, total)",
     "function setDeviceNodeListHint(text)",
     "function renderDeviceNodeEmptyState()",
     "function createDeviceNodeCard(node, isSelected)",
@@ -39,6 +53,9 @@ test("demo frontend presents device nodes as selectable cards with guided empty 
 
   const requiredStyleTokens = [
     ".device-node-list-hint {",
+    ".device-node-fleet-summary {",
+    ".device-node-fleet-card {",
+    ".device-node-fleet-card.is-online {",
     ".device-node-list {",
     ".device-node-empty-state {",
     ".device-node-empty-action {",
@@ -52,7 +69,7 @@ test("demo frontend presents device nodes as selectable cards with guided empty 
   }
 
   assert.ok(
-    readmeSource.includes("`Device Nodes` tab renders registered nodes as selectable status cards"),
+    readmeSource.includes("`Device Nodes` tab shows a compact fleet summary"),
     "README missing device-node card list note",
   );
   assert.ok(

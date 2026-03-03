@@ -19,7 +19,7 @@ The operator flow is used during live demos and production diagnostics to:
 1. `Live Negotiator` (default): connection/live controls at top, split middle layout (`intent + approval + tasks` left, sticky `KPI + Transcript` rail right); technical fields are tucked into `Advanced Settings` (`Advanced Session Settings`, `Live Setup`, `Advanced Approval Settings`, `Advanced UI Task Settings`) to reduce cognitive load during demos; KPI card includes per-metric delta badges and source attribution (`final/current/mixed`)
 2. `Storyteller`: story timeline workspace with progress bar, segment scrubber/selector, selectable segment cards, asset preview controls, status pills (`timeline mode`, `asset mix`, `segment progress`), and empty-state actions `Open Live Negotiator` / `Use Story Prompt Template` for fast story-intent handoff
 3. `Operator Console`: health/evidence cards grouped into collapsible lanes (`Live Bridge & Turn Safety`, `Governance/Skills/Cost`, `Runtime/UI Executor/Device Nodes`, `Approvals/Queue/Startup`), operator actions, and raw event log
-4. `Device Nodes`: device-node create/update/heartbeat controls plus selectable node cards with status pills; when empty, `Use Demo Template` helps bootstrap the first node quickly
+4. `Device Nodes`: device-node create/update/heartbeat controls, compact fleet summary (`total/online/degraded/offline/stale`), and selectable node cards with status pills; when empty, `Use Demo Template` helps bootstrap the first node quickly
 
 ## Key Panels (Demo Frontend)
 
