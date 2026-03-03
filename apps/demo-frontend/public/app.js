@@ -355,6 +355,7 @@ const el = {
   deviceNodeSelectedStatus: document.getElementById("deviceNodeSelectedStatus"),
   deviceNodeSelectedVersion: document.getElementById("deviceNodeSelectedVersion"),
   deviceNodeSelectedLastSeen: document.getElementById("deviceNodeSelectedLastSeen"),
+  deviceNodeListHint: document.getElementById("deviceNodeListHint"),
   deviceNodeList: document.getElementById("deviceNodeList"),
 };
 
@@ -5834,6 +5835,184 @@ function applyDeviceNodeToForm(node) {
   updateDeviceNodeSelectionMeta(node);
 }
 
+function setDeviceNodeListHint(text) {
+  if (!(el.deviceNodeListHint instanceof HTMLElement)) {
+    return;
+  }
+  const normalized = typeof text === "string" && text.trim().length > 0
+    ? text.trim()
+    : "Device list is empty until the first refresh or node registration.";
+  el.deviceNodeListHint.textContent = normalized;
+}
+
+function normalizeDeviceNodeStatusVariant(status) {
+  const normalized = typeof status === "string" ? status.trim().toLowerCase() : "unknown";
+  if (normalized === "online") {
+    return "ok";
+  }
+  if (normalized === "offline") {
+    return "fail";
+  }
+  return "neutral";
+}
+
+function createDeviceNodeStatusPill(status) {
+  const normalized = typeof status === "string" ? status.trim().toLowerCase() : "unknown";
+  const variant = normalizeDeviceNodeStatusVariant(normalized);
+  const pill = document.createElement("span");
+  pill.className = "status-pill";
+  pill.classList.add(variant === "ok" ? "status-ok" : variant === "fail" ? "status-fail" : "status-neutral");
+  pill.textContent = normalized.length > 0 ? normalized : "unknown";
+  return pill;
+}
+
+function applyDemoDeviceNodeTemplate() {
+  if (el.deviceNodeId && !toOptionalText(el.deviceNodeId.value)) {
+    el.deviceNodeId.value = "desktop-main";
+  }
+  if (el.deviceNodeDisplayName && !toOptionalText(el.deviceNodeDisplayName.value)) {
+    el.deviceNodeDisplayName.value = "Desktop Main";
+  }
+  if (el.deviceNodePlatform && !toOptionalText(el.deviceNodePlatform.value)) {
+    el.deviceNodePlatform.value = "windows-11";
+  }
+  if (el.deviceNodeCapabilities && !toOptionalText(el.deviceNodeCapabilities.value)) {
+    el.deviceNodeCapabilities.value = "screen,click,type,scroll";
+  }
+  if (el.deviceNodeExecutorUrl && !toOptionalText(el.deviceNodeExecutorUrl.value)) {
+    el.deviceNodeExecutorUrl.value = "http://localhost:8090/execute";
+  }
+  if (el.deviceNodeStatus) {
+    el.deviceNodeStatus.value = "online";
+    syncCustomSelectControl(el.deviceNodeStatus);
+  }
+  if (el.deviceNodeKind) {
+    el.deviceNodeKind.value = "desktop";
+    syncCustomSelectControl(el.deviceNodeKind);
+  }
+  if (el.deviceNodeTrustLevel) {
+    el.deviceNodeTrustLevel.value = "reviewed";
+    syncCustomSelectControl(el.deviceNodeTrustLevel);
+  }
+  if (el.deviceNodeId instanceof HTMLElement) {
+    el.deviceNodeId.focus();
+  }
+}
+
+function renderDeviceNodeEmptyState() {
+  if (!(el.deviceNodeList instanceof HTMLElement)) {
+    return;
+  }
+  const wrapper = document.createElement("div");
+  wrapper.className = "device-node-empty-state";
+
+  const icon = document.createElement("span");
+  icon.className = "device-node-empty-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = "Nodes";
+
+  const title = document.createElement("p");
+  title.className = "device-node-empty-title";
+  title.textContent = "No registered device nodes";
+
+  const hint = document.createElement("p");
+  hint.className = "device-node-empty-hint";
+  hint.textContent = "Use the template below to register your first execution node for UI demos.";
+
+  const action = document.createElement("button");
+  action.type = "button";
+  action.className = "button-muted device-node-empty-action";
+  action.textContent = "Use Demo Template";
+  action.addEventListener("click", applyDemoDeviceNodeTemplate);
+
+  wrapper.append(icon, title, hint, action);
+  el.deviceNodeList.append(wrapper);
+}
+
+function createDeviceNodeCard(node, isSelected) {
+  const status = toOptionalText(node.status) ?? "unknown";
+  const capabilities = Array.isArray(node.capabilities) && node.capabilities.length > 0 ? node.capabilities : [];
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "device-node-card";
+  card.dataset.nodeId = node.nodeId.toLowerCase();
+  card.setAttribute("aria-label", `Select device node ${node.nodeId}`);
+  if (isSelected) {
+    card.classList.add("is-selected");
+  }
+
+  const head = document.createElement("div");
+  head.className = "device-node-card-head";
+
+  const titleWrap = document.createElement("div");
+  titleWrap.className = "device-node-card-title";
+
+  const displayName = document.createElement("strong");
+  displayName.textContent = node.displayName ?? node.nodeId;
+  const nodeId = document.createElement("span");
+  nodeId.textContent = node.nodeId;
+  titleWrap.append(displayName, nodeId);
+
+  head.append(titleWrap, createDeviceNodeStatusPill(status));
+
+  const meta = document.createElement("div");
+  meta.className = "device-node-card-meta";
+  const metaItems = [
+    ["Kind", node.kind ?? "unknown"],
+    ["Platform", node.platform ?? "unknown"],
+    [
+      "Version",
+      typeof node.version === "number" && Number.isFinite(node.version) ? String(Math.floor(node.version)) : "n/a",
+    ],
+    ["Trust", node.trustLevel ?? "reviewed"],
+    ["Executor", node.executorUrl ?? "n/a"],
+    ["Last Seen", node.lastSeenAt ?? "n/a"],
+  ];
+  for (const [label, value] of metaItems) {
+    const row = document.createElement("p");
+    row.className = "device-node-card-row";
+    const key = document.createElement("span");
+    key.className = "device-node-card-key";
+    key.textContent = `${label}:`;
+    const val = document.createElement("span");
+    val.className = "device-node-card-value";
+    val.textContent = value;
+    row.append(key, val);
+    meta.append(row);
+  }
+
+  const caps = document.createElement("div");
+  caps.className = "device-node-card-caps";
+  if (capabilities.length === 0) {
+    const emptyCap = document.createElement("span");
+    emptyCap.className = "device-node-cap-pill is-empty";
+    emptyCap.textContent = "no capabilities";
+    caps.append(emptyCap);
+  } else {
+    for (const cap of capabilities) {
+      const capPill = document.createElement("span");
+      capPill.className = "device-node-cap-pill";
+      capPill.textContent = cap;
+      caps.append(capPill);
+    }
+  }
+
+  card.append(head, meta, caps);
+  card.addEventListener("click", () => {
+    applyDeviceNodeToForm(node);
+    if (!(el.deviceNodeList instanceof HTMLElement)) {
+      return;
+    }
+    const cards = Array.from(el.deviceNodeList.querySelectorAll(".device-node-card"));
+    for (const candidate of cards) {
+      const matches = (candidate.dataset.nodeId ?? "") === node.nodeId.toLowerCase();
+      candidate.classList.toggle("is-selected", matches);
+    }
+  });
+
+  return card;
+}
+
 function renderDeviceNodeList(nodes) {
   const normalizedNodes = Array.isArray(nodes) ? nodes.map(normalizeDeviceNode).filter(Boolean) : [];
   state.deviceNodes.clear();
@@ -5844,37 +6023,21 @@ function renderDeviceNodeList(nodes) {
   el.deviceNodeList.innerHTML = "";
 
   if (normalizedNodes.length === 0) {
-    appendEntry(el.deviceNodeList, "system", "device_nodes", "No registered device nodes");
+    setDeviceNodeListHint("No nodes yet. Use Demo Template and Create / Update Node to bootstrap the lane.");
+    renderDeviceNodeEmptyState();
     updateDeviceNodeSelectionMeta(null);
     return;
   }
 
+  setDeviceNodeListHint("Click any node card to load it into the form and run status/heartbeat actions.");
   const selected = state.selectedDeviceNodeId
     ? state.deviceNodes.get(state.selectedDeviceNodeId.toLowerCase()) ?? normalizedNodes[0]
     : normalizedNodes[0];
   applyDeviceNodeToForm(selected);
 
   for (const node of normalizedNodes) {
-    const status = toOptionalText(node.status) ?? "unknown";
-    const capabilities = Array.isArray(node.capabilities) && node.capabilities.length > 0
-      ? node.capabilities.join(",")
-      : "none";
-    const executor = node.executorUrl ?? "n/a";
-    const version = typeof node.version === "number" ? node.version : "n/a";
-    const message = [
-      `name=${node.displayName}`,
-      `kind=${node.kind}`,
-      `status=${status}`,
-      `platform=${node.platform ?? "unknown"}`,
-      `version=${version}`,
-      `trust=${node.trustLevel ?? "reviewed"}`,
-      `caps=${capabilities}`,
-      `executor=${executor}`,
-      node.lastSeenAt ? `last_seen=${node.lastSeenAt}` : null,
-    ]
-      .filter(Boolean)
-      .join(" | ");
-    appendEntry(el.deviceNodeList, "system", node.nodeId, message);
+    const isSelected = selected?.nodeId?.toLowerCase() === node.nodeId.toLowerCase();
+    el.deviceNodeList.append(createDeviceNodeCard(node, isSelected));
   }
 }
 
