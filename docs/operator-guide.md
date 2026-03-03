@@ -41,12 +41,13 @@ The operator flow is used during live demos and production diagnostics to:
 1. Refresh summary (`Refresh Summary`)
 2. Collapse/expand operator evidence cards (`Collapse All` / `Expand All`); before first manual refresh the UI keeps only `Live Bridge & Turn Safety` expanded by default
 3. Placeholder cards (`no_data` / `summary_error`) stay hidden until the first manual `Refresh Summary` to reduce visual noise during judge-facing walkthrough
-4. Drain/warmup target service (failover controls)
-5. Create/update device node and send heartbeat
-6. Approve/reject pending UI-sensitive actions
-7. Export session evidence from frontend (`Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)`)
-8. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
-9. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
+4. `Focus Critical` (default) keeps only critical cards visible and mirrors key status pills in the top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); click again (`Show All Cards`) for full board
+5. Drain/warmup target service (failover controls)
+6. Create/update device node and send heartbeat
+7. Approve/reject pending UI-sensitive actions
+8. Export session evidence from frontend (`Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)`)
+9. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
+10. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
 
 ## Safety Controls
 

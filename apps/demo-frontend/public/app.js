@@ -51,6 +51,7 @@ const state = {
   operatorTurnDeleteSnapshot: null,
   operatorDamageControlSnapshot: null,
   operatorCardsCollapsed: false,
+  operatorFocusCriticalOnly: false,
   operatorSummaryUserRefreshed: false,
 };
 
@@ -141,8 +142,15 @@ const el = {
   operatorRole: document.getElementById("operatorRole"),
   operatorTaskId: document.getElementById("operatorTaskId"),
   operatorTargetService: document.getElementById("operatorTargetService"),
+  operatorFocusCriticalBtn: document.getElementById("operatorFocusCriticalBtn"),
   operatorCollapseAllBtn: document.getElementById("operatorCollapseAllBtn"),
   operatorExpandAllBtn: document.getElementById("operatorExpandAllBtn"),
+  operatorSignalBridge: document.getElementById("operatorSignalBridge"),
+  operatorSignalQueue: document.getElementById("operatorSignalQueue"),
+  operatorSignalApprovals: document.getElementById("operatorSignalApprovals"),
+  operatorSignalStartup: document.getElementById("operatorSignalStartup"),
+  operatorSignalUiExecutor: document.getElementById("operatorSignalUiExecutor"),
+  operatorSignalDeviceNodes: document.getElementById("operatorSignalDeviceNodes"),
   operatorHealthBoard: document.getElementById("operatorHealthBoard"),
   operatorSummary: document.getElementById("operatorSummary"),
   operatorHealthStatus: document.getElementById("operatorHealthStatus"),
@@ -372,6 +380,15 @@ const CUSTOM_SELECT_OPTION_DESCRIPTIONS = {
     trusted: "High-trust node for critical actions.",
     untrusted: "Restricted node, additional guardrails apply.",
   },
+};
+
+const OPERATOR_SIGNAL_STATUS_MIRROR_IDS = {
+  operatorHealthStatus: "operatorSignalBridge",
+  operatorTaskQueueStatus: "operatorSignalQueue",
+  operatorApprovalsStatus: "operatorSignalApprovals",
+  operatorStartupStatus: "operatorSignalStartup",
+  operatorUiExecutorStatus: "operatorSignalUiExecutor",
+  operatorDeviceNodesStatus: "operatorSignalDeviceNodes",
 };
 
 function nowLabel() {
@@ -855,6 +872,23 @@ function setOperatorCardsCollapsed(collapsed) {
   syncOperatorCollapseActionButtons();
 }
 
+function isOperatorCriticalCard(card) {
+  return card instanceof HTMLElement && card.hasAttribute("data-operator-critical");
+}
+
+function setOperatorFocusCriticalMode(enabled) {
+  state.operatorFocusCriticalOnly = enabled === true;
+  if (el.operatorHealthBoard) {
+    el.operatorHealthBoard.classList.toggle("is-focus-critical", state.operatorFocusCriticalOnly);
+  }
+  if (el.operatorFocusCriticalBtn) {
+    el.operatorFocusCriticalBtn.classList.toggle("is-active", state.operatorFocusCriticalOnly);
+    el.operatorFocusCriticalBtn.setAttribute("aria-pressed", state.operatorFocusCriticalOnly ? "true" : "false");
+    el.operatorFocusCriticalBtn.textContent = state.operatorFocusCriticalOnly ? "Show All Cards" : "Focus Critical";
+  }
+  applyOperatorCardsVisibility();
+}
+
 function isOperatorPlaceholderStatusText(value) {
   if (typeof value !== "string") {
     return false;
@@ -875,6 +909,10 @@ function applyOperatorCardVisibility(card) {
   const shouldHide =
     state.operatorSummaryUserRefreshed !== true &&
     isOperatorPlaceholderStatusText(statusNode.textContent ?? "");
+  if (state.operatorFocusCriticalOnly === true && !isOperatorCriticalCard(card)) {
+    card.classList.toggle("operator-health-card-hidden", true);
+    return;
+  }
   card.classList.toggle("operator-health-card-hidden", shouldHide);
 }
 
@@ -2009,6 +2047,22 @@ function formatUsd(value) {
   return `$${value.toFixed(6)}`;
 }
 
+function syncOperatorSignalFromStatus(node) {
+  if (!(node instanceof HTMLElement)) {
+    return;
+  }
+  const mirrorId = OPERATOR_SIGNAL_STATUS_MIRROR_IDS[node.id];
+  if (typeof mirrorId !== "string") {
+    return;
+  }
+  const mirrorNode = el[mirrorId];
+  if (!(mirrorNode instanceof HTMLElement)) {
+    return;
+  }
+  mirrorNode.textContent = node.textContent ?? "no_data";
+  mirrorNode.className = node.className;
+}
+
 function setStatusPill(node, text, variant) {
   if (!node) {
     return;
@@ -2021,6 +2075,7 @@ function setStatusPill(node, text, variant) {
     if (operatorCard) {
       applyOperatorCardVisibility(operatorCard);
     }
+    syncOperatorSignalFromStatus(node);
     return;
   }
   if (variant === "fail") {
@@ -2028,12 +2083,14 @@ function setStatusPill(node, text, variant) {
     if (operatorCard) {
       applyOperatorCardVisibility(operatorCard);
     }
+    syncOperatorSignalFromStatus(node);
     return;
   }
   node.classList.add("status-neutral");
   if (operatorCard) {
     applyOperatorCardVisibility(operatorCard);
   }
+  syncOperatorSignalFromStatus(node);
 }
 
 function renderAssistantActivityStatus() {
@@ -7161,6 +7218,11 @@ function bindEvents() {
   document.getElementById("operatorRefreshBtn").addEventListener("click", () => {
     void refreshOperatorSummary({ markUserRefresh: true });
   });
+  if (el.operatorFocusCriticalBtn) {
+    el.operatorFocusCriticalBtn.addEventListener("click", () => {
+      setOperatorFocusCriticalMode(!state.operatorFocusCriticalOnly);
+    });
+  }
   if (el.operatorCollapseAllBtn) {
     el.operatorCollapseAllBtn.addEventListener("click", () => {
       setOperatorCardsCollapsed(true);
@@ -7397,7 +7459,7 @@ async function bootstrap() {
   resetOperatorTurnDeleteWidget("no_data");
   resetOperatorDamageControlWidget("no_data");
   setOperatorCardsCollapsed(false);
-  applyOperatorCardsVisibility();
+  setOperatorFocusCriticalMode(true);
   renderTaskList();
   evaluateConstraints();
   setActiveTab(DEFAULT_TAB_ID);

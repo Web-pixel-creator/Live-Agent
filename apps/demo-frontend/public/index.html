@@ -466,12 +466,39 @@
         </div>
         <div class="actions">
           <button id="operatorRefreshBtn" class="button-muted">Refresh Summary</button>
+          <button id="operatorFocusCriticalBtn" class="button-muted" aria-pressed="false">Focus Critical</button>
           <button id="operatorCollapseAllBtn" class="button-muted">Collapse All</button>
           <button id="operatorExpandAllBtn" class="button-muted">Expand All</button>
           <button id="operatorCancelBtn" class="button-warn">Cancel Task</button>
           <button id="operatorRetryBtn" class="button-muted">Retry Task</button>
           <button id="operatorDrainBtn" class="button-warn">Failover Drain</button>
           <button id="operatorWarmupBtn" class="button-muted">Failover Warmup</button>
+        </div>
+        <div class="operator-signal-strip">
+          <article class="operator-signal-card">
+            <h3>Bridge</h3>
+            <p id="operatorSignalBridge" class="status-pill status-neutral">no_data</p>
+          </article>
+          <article class="operator-signal-card">
+            <h3>Queue</h3>
+            <p id="operatorSignalQueue" class="status-pill status-neutral">no_data</p>
+          </article>
+          <article class="operator-signal-card">
+            <h3>Approvals</h3>
+            <p id="operatorSignalApprovals" class="status-pill status-neutral">no_data</p>
+          </article>
+          <article class="operator-signal-card">
+            <h3>Startup</h3>
+            <p id="operatorSignalStartup" class="status-pill status-neutral">no_data</p>
+          </article>
+          <article class="operator-signal-card">
+            <h3>UI Executor</h3>
+            <p id="operatorSignalUiExecutor" class="status-pill status-neutral">no_data</p>
+          </article>
+          <article class="operator-signal-card">
+            <h3>Device Nodes</h3>
+            <p id="operatorSignalDeviceNodes" class="status-pill status-neutral">no_data</p>
+          </article>
         </div>
         <div id="operatorHealthBoard" class="operator-health-board">
           <section class="operator-health-group" data-operator-group="bridge-safety">
@@ -488,7 +515,7 @@
               </button>
             </header>
             <div id="operator-group-bridge-safety-body" class="operator-health-group-body">
-<article class="operator-health-card">
+<article class="operator-health-card" data-operator-critical>
             <h3>Live Bridge Status</h3>
             <p id="operatorHealthStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
@@ -507,7 +534,7 @@
               Refresh summary to evaluate recovery actions.
             </p>
           </article>
-<article class="operator-health-card">
+<article class="operator-health-card" data-operator-critical>
             <h3>Gateway Error Correlation</h3>
             <p id="operatorGatewayErrorStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
@@ -620,7 +647,7 @@
               Waiting for live.turn.deleted evidence.
             </p>
           </article>
-<article class="operator-health-card">
+<article class="operator-health-card" data-operator-critical>
             <h3>Damage-Control Timeline</h3>
             <p id="operatorDamageControlStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
@@ -908,7 +935,7 @@
               <span id="operatorHealthProbeSuccess">n/a</span>
             </p>
           </article>
-<article class="operator-health-card">
+<article class="operator-health-card" data-operator-critical>
             <h3>UI Executor Failover</h3>
             <p id="operatorUiExecutorStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
@@ -939,7 +966,7 @@
               Refresh summary to inspect ui-executor failover state.
             </p>
           </article>
-<article class="operator-health-card">
+<article class="operator-health-card" data-operator-critical>
             <h3>Device Nodes Health</h3>
             <p id="operatorDeviceNodesStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
@@ -1060,7 +1087,7 @@
               </button>
             </header>
             <div id="operator-group-queue-lifecycle-body" class="operator-health-group-body">
-<article class="operator-health-card">
+<article class="operator-health-card" data-operator-critical>
             <h3>Approvals Queue</h3>
             <p id="operatorApprovalsStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
@@ -1099,7 +1126,7 @@
               Refresh summary to inspect approval backlog and SLA timeouts.
             </p>
           </article>
-<article class="operator-health-card">
+<article class="operator-health-card" data-operator-critical>
             <h3>Service Lifecycle</h3>
             <p id="operatorLifecycleStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
@@ -1126,7 +1153,7 @@
               Refresh summary to inspect runtime lifecycle states.
             </p>
           </article>
-<article class="operator-health-card">
+<article class="operator-health-card" data-operator-critical>
             <h3>Task Queue Pressure</h3>
             <p id="operatorTaskQueueStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
@@ -1161,7 +1188,7 @@
               Refresh summary to inspect active task queue pressure.
             </p>
           </article>
-<article class="operator-health-card">
+<article class="operator-health-card" data-operator-critical>
             <h3>Startup Failures</h3>
             <p id="operatorStartupStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
