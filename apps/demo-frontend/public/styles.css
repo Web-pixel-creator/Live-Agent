@@ -275,6 +275,8 @@ body.bg-video-loop-transition .background-video-fade {
 }
 
 .hero {
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(180deg, var(--surface-panel), var(--surface-panel-2));
   border: 1px solid var(--border-soft);
   border-radius: calc(var(--radius) + 2px);
@@ -283,6 +285,41 @@ body.bg-video-loop-transition .background-video-fade {
   box-shadow:
     var(--shadow-lg),
     inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+
+.hero::before,
+.hero::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  top: -138px;
+  width: 520px;
+  height: 280px;
+  opacity: 0.56;
+  z-index: 0;
+}
+
+.hero::before {
+  left: -140px;
+  background: radial-gradient(
+    circle at center,
+    color-mix(in oklch, var(--primary) 26%, transparent),
+    transparent 72%
+  );
+}
+
+.hero::after {
+  right: -160px;
+  background: radial-gradient(
+    circle at center,
+    color-mix(in oklch, var(--accent-foreground) 24%, transparent),
+    transparent 74%
+  );
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
 }
 
 .hero h1 {
