@@ -1587,6 +1587,30 @@ function resolveExportMenuSummaryIcon(statusText) {
   return "DL";
 }
 
+function resolveExportStatusStripLabel(statusText) {
+  const kind = resolveExportStatusKind(statusText);
+  if (kind === "markdown") {
+    return "exported markdown";
+  }
+  if (kind === "json") {
+    return "exported json";
+  }
+  if (kind === "audio") {
+    return "exported audio";
+  }
+  if (kind === "skipped") {
+    return "no audio";
+  }
+  if (kind === "idle") {
+    return "idle";
+  }
+  const normalized = typeof statusText === "string" ? statusText.trim() : "";
+  if (normalized.length === 0) {
+    return "idle";
+  }
+  return normalized.length > 42 ? `${normalized.slice(0, 39)}...` : normalized;
+}
+
 function shouldTrackExportStatus(statusText) {
   const kind = resolveExportStatusKind(statusText);
   return kind === "markdown" || kind === "json" || kind === "audio" || kind === "skipped";
@@ -1693,12 +1717,14 @@ function setExportStatus(text) {
   if (!el.exportStatus) {
     return;
   }
+  const stripLabel = resolveExportStatusStripLabel(normalized);
   let variant = "neutral";
   const exportKind = resolveExportStatusKind(normalized);
   if (exportKind === "markdown" || exportKind === "json" || exportKind === "audio") {
     variant = "ok";
   }
-  setStatusPill(el.exportStatus, normalized, variant);
+  setStatusPill(el.exportStatus, stripLabel, variant);
+  el.exportStatus.title = normalized;
   if (el.exportMenuSummaryIcon) {
     el.exportMenuSummaryIcon.textContent = resolveExportMenuSummaryIcon(normalized);
     el.exportMenuSummaryIcon.setAttribute("data-export-kind", exportKind);

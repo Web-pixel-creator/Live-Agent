@@ -31,6 +31,7 @@ test("demo frontend wires session export controls and runtime helpers", () => {
   const requiredRuntimeTokens = [
     "setExportStatus",
     "resolveExportStatusKind",
+    "resolveExportStatusStripLabel",
     "resolveExportMenuSummaryIcon",
     "resolveExportMenuSummaryLabel",
     "renderExportMenuHistory",
@@ -50,6 +51,8 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "Session audio export downloaded",
     "Last export:",
     "Export Session - Markdown",
+    "exported markdown",
+    "no audio",
     "No exports yet",
     "EXPORT_HISTORY_LIMIT",
   ];
