@@ -99,6 +99,7 @@ Frontend is grouped into tabs (`Live Negotiator`, `Storyteller`, `Operator Conso
 Technical controls are collapsed into `Advanced Settings` blocks (`Advanced Session Settings`, `Live Setup`, `Advanced Approval Settings`, and `Advanced UI Task Settings`) to reduce default screen density.
 `Operator Console` uses grouped accordion lanes; before the first manual `Refresh Summary`, only `Live Bridge & Turn Safety` stays expanded by default.
 `Operator Console` hides placeholder cards (`no_data` / `summary_error`) until the first manual `Refresh Summary`, so judges/operators see only populated evidence by default.
+When placeholder states are visible, the UI renders judge-friendly labels (`awaiting_refresh` / `refresh_failed`) while preserving internal placeholder codes for board filtering.
 `Operator Console` includes explicit mode toggles: `Demo View` (default, critical-first) and `Full Ops View` (full board expansion for deep diagnostics).
 `Operator Console` shows a guided pre-refresh banner before the first manual refresh, with a one-click `Refresh Summary` action and mode-specific hinting (`Demo` vs `Full Ops`).
 In `Demo View`, the board keeps six judge-facing cards visible by default (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`) while still surfacing any new `fail` cards outside that set.

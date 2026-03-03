@@ -1163,6 +1163,20 @@ function isOperatorPlaceholderStatusText(value) {
   return normalized === "no_data" || normalized === "summary_error";
 }
 
+function resolveStatusPillDisplayText(value) {
+  if (typeof value !== "string") {
+    return value;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "no_data") {
+    return "awaiting_refresh";
+  }
+  if (normalized === "summary_error") {
+    return "refresh_failed";
+  }
+  return value;
+}
+
 function isOperatorDemoEssentialCard(card) {
   return card instanceof HTMLElement && card.hasAttribute("data-operator-demo-essential");
 }
@@ -1178,7 +1192,9 @@ function applyOperatorCardVisibility(card) {
   }
   const shouldHide =
     state.operatorSummaryUserRefreshed !== true &&
-    isOperatorPlaceholderStatusText(statusNode.textContent ?? "");
+    isOperatorPlaceholderStatusText(
+      statusNode instanceof HTMLElement ? (statusNode.dataset.statusCode ?? statusNode.textContent ?? "") : statusNode.textContent ?? "",
+    );
   if (state.operatorFocusCriticalOnly === true && !isOperatorCriticalCard(card)) {
     card.classList.toggle("operator-health-card-hidden", true);
     return;
@@ -2704,7 +2720,11 @@ function setStatusPill(node, text, variant) {
     return;
   }
   const operatorCard = typeof node.closest === "function" ? node.closest(".operator-health-card") : null;
-  node.textContent = text;
+  const statusCode = typeof text === "string" ? text : String(text ?? "");
+  if (node instanceof HTMLElement) {
+    node.dataset.statusCode = statusCode;
+  }
+  node.textContent = resolveStatusPillDisplayText(statusCode);
   node.className = "status-pill";
   if (variant === "ok") {
     node.classList.add("status-ok");
@@ -2770,6 +2790,10 @@ function setMaybeValue(node, value, suffix = "") {
 
 function setText(node, value) {
   if (!node) {
+    return;
+  }
+  if (typeof value === "string" && value.trim().toLowerCase() === "n/a") {
+    node.textContent = "pending";
     return;
   }
   node.textContent = value;
