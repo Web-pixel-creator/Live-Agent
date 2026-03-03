@@ -1205,6 +1205,43 @@ textarea {
   transition: transform 140ms ease, filter 140ms ease, border-color 120ms ease, background 120ms ease;
 }
 
+.export-menu-summary-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--primary) 42%, var(--border));
+  background: color-mix(in oklch, var(--primary) 18%, transparent);
+  color: color-mix(in oklch, var(--foreground) 98%, var(--primary-foreground));
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.export-menu-summary-icon[data-export-kind="audio"] {
+  border-color: color-mix(in oklch, var(--chart-4) 44%, var(--border));
+  background: color-mix(in oklch, var(--chart-4) 22%, transparent);
+}
+
+.export-menu-summary-icon[data-export-kind="json"] {
+  border-color: color-mix(in oklch, var(--chart-2) 42%, var(--border));
+  background: color-mix(in oklch, var(--chart-2) 24%, transparent);
+}
+
+.export-menu-summary-icon[data-export-kind="markdown"] {
+  border-color: color-mix(in oklch, var(--chart-1) 44%, var(--border));
+  background: color-mix(in oklch, var(--chart-1) 20%, transparent);
+}
+
+.export-menu-summary-icon[data-export-kind="skipped"] {
+  border-color: color-mix(in oklch, var(--destructive) 48%, var(--border));
+  background: color-mix(in oklch, var(--destructive) 22%, transparent);
+}
+
 .export-menu > summary::-webkit-details-marker {
   display: none;
 }
@@ -1263,10 +1300,157 @@ textarea {
 
 .export-menu-item {
   width: 100%;
-  min-height: 44px;
+  min-height: 52px;
   justify-content: flex-start;
   text-align: left;
-  padding-inline: 14px;
+  gap: 10px;
+  padding: 9px 12px;
+}
+
+.export-menu-item-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  min-height: 30px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--primary) 34%, var(--border));
+  background: color-mix(in oklch, var(--accent) 26%, transparent);
+  color: color-mix(in oklch, var(--foreground) 98%, var(--accent-foreground));
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.export-menu-item-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.export-menu-item-label {
+  font-size: 0.88rem;
+  font-weight: 640;
+  color: color-mix(in oklch, var(--foreground) 97%, var(--muted-foreground));
+}
+
+.export-menu-item-hint {
+  font-size: 0.76rem;
+  color: color-mix(in oklch, var(--muted-foreground) 93%, var(--foreground));
+}
+
+.export-menu-history {
+  margin-top: 4px;
+  padding: 8px 6px 4px;
+  border-top: 1px solid color-mix(in oklch, var(--border-soft) 84%, transparent);
+  display: grid;
+  gap: 8px;
+}
+
+.export-menu-history-title {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: color-mix(in oklch, var(--muted-foreground) 92%, var(--foreground));
+}
+
+.export-menu-history-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.export-menu-history-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  padding: 5px 6px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);
+  border-radius: calc(var(--radius) - 7px);
+  background: color-mix(in oklch, var(--surface-control) 86%, transparent);
+}
+
+.export-menu-history-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--primary) 34%, var(--border));
+  background: color-mix(in oklch, var(--accent) 24%, transparent);
+  color: color-mix(in oklch, var(--foreground) 97%, var(--accent-foreground));
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.export-menu-history-item.is-audio .export-menu-history-badge {
+  border-color: color-mix(in oklch, var(--chart-4) 44%, var(--border));
+  background: color-mix(in oklch, var(--chart-4) 22%, transparent);
+}
+
+.export-menu-history-item.is-json .export-menu-history-badge {
+  border-color: color-mix(in oklch, var(--chart-2) 42%, var(--border));
+  background: color-mix(in oklch, var(--chart-2) 22%, transparent);
+}
+
+.export-menu-history-item.is-markdown .export-menu-history-badge {
+  border-color: color-mix(in oklch, var(--chart-1) 45%, var(--border));
+  background: color-mix(in oklch, var(--chart-1) 18%, transparent);
+}
+
+.export-menu-history-item.is-skipped .export-menu-history-badge {
+  border-color: color-mix(in oklch, var(--destructive) 44%, var(--border));
+  background: color-mix(in oklch, var(--destructive) 18%, transparent);
+}
+
+.export-menu-history-main {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.export-menu-history-file {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: color-mix(in oklch, var(--foreground) 96%, var(--muted-foreground));
+  font-size: 0.77rem;
+  font-family: var(--font-mono);
+}
+
+.export-menu-history-time {
+  flex: 0 0 auto;
+  color: color-mix(in oklch, var(--muted-foreground) 88%, var(--foreground));
+  font-size: 0.71rem;
+  font-family: var(--font-mono);
+}
+
+.export-menu-history-empty {
+  padding: 8px 6px;
+  border: 1px dashed color-mix(in oklch, var(--border-soft) 86%, transparent);
+  border-radius: calc(var(--radius) - 7px);
+  color: color-mix(in oklch, var(--muted-foreground) 90%, var(--foreground));
+  font-size: 0.77rem;
+  text-align: center;
+  background: color-mix(in oklch, var(--surface-control) 82%, transparent);
 }
 
 button {

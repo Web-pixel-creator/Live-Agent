@@ -55,6 +55,7 @@ const state = {
   operatorFocusCriticalOnly: false,
   operatorIssuesOnly: false,
   operatorSummaryUserRefreshed: false,
+  exportHistory: [],
 };
 
 const PENDING_CLIENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
@@ -64,6 +65,7 @@ const BG_VIDEO_LOOP_BLEND_SECONDS = 1.2;
 const BG_VIDEO_LOOP_RESET_SECONDS = 0.3;
 const BG_VIDEO_LOOP_TRANSITION_CLASS = "bg-video-loop-transition";
 const OPERATOR_SIGNAL_FLASH_MS = 1200;
+const EXPORT_HISTORY_LIMIT = 3;
 
 const el = {
   backgroundVideo: document.getElementById("backgroundVideo"),
@@ -80,8 +82,10 @@ const el = {
   modeStatus: document.getElementById("modeStatus"),
   themeToggleBtn: document.getElementById("themeToggleBtn"),
   exportMenu: document.getElementById("exportMenu"),
+  exportMenuSummaryIcon: document.getElementById("exportMenuSummaryIcon"),
   exportMenuSummaryLabel: document.getElementById("exportMenuSummaryLabel"),
   exportMenuMeta: document.getElementById("exportMenuMeta"),
+  exportMenuHistory: document.getElementById("exportMenuHistory"),
   exportMarkdownBtn: document.getElementById("exportMarkdownBtn"),
   exportJsonBtn: document.getElementById("exportJsonBtn"),
   exportAudioBtn: document.getElementById("exportAudioBtn"),
@@ -1488,18 +1492,159 @@ function appendEvent(type, text) {
   appendEntry(el.events, "system", type, text);
 }
 
-function resolveExportMenuSummaryLabel(statusText) {
+function resolveExportStatusKind(statusText) {
   const normalized = typeof statusText === "string" ? statusText.trim().toLowerCase() : "";
   if (normalized.startsWith("markdown exported")) {
-    return "Export Session · Markdown";
+    return "markdown";
   }
   if (normalized.startsWith("json exported")) {
-    return "Export Session · JSON";
+    return "json";
   }
   if (normalized.startsWith("audio exported")) {
-    return "Export Session · Audio";
+    return "audio";
+  }
+  if (normalized.startsWith("audio export skipped")) {
+    return "skipped";
+  }
+  if (normalized === "idle") {
+    return "idle";
+  }
+  return "other";
+}
+
+function resolveExportMenuSummaryLabel(statusText) {
+  const kind = resolveExportStatusKind(statusText);
+  if (kind === "markdown") {
+    return "Export Session - Markdown";
+  }
+  if (kind === "json") {
+    return "Export Session - JSON";
+  }
+  if (kind === "audio") {
+    return "Export Session - Audio";
+  }
+  if (kind === "skipped") {
+    return "Export Session - No Audio";
   }
   return "Export Session";
+}
+
+function resolveExportMenuSummaryIcon(statusText) {
+  const kind = resolveExportStatusKind(statusText);
+  if (kind === "markdown") {
+    return "MD";
+  }
+  if (kind === "json") {
+    return "JS";
+  }
+  if (kind === "audio") {
+    return "WAV";
+  }
+  if (kind === "skipped") {
+    return "SKIP";
+  }
+  return "DL";
+}
+
+function shouldTrackExportStatus(statusText) {
+  const kind = resolveExportStatusKind(statusText);
+  return kind === "markdown" || kind === "json" || kind === "audio" || kind === "skipped";
+}
+
+function extractExportHistoryFileLabel(statusText) {
+  if (typeof statusText !== "string") {
+    return "";
+  }
+  const match = statusText.match(/\(([^()]+)\)\s*$/);
+  if (!match || typeof match[1] !== "string") {
+    return "";
+  }
+  return match[1].trim();
+}
+
+function formatExportHistoryTime(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (!(date instanceof Date) || !Number.isFinite(date.getTime())) {
+    return "--:--:--";
+  }
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
+function renderExportMenuHistory() {
+  if (!(el.exportMenuHistory instanceof HTMLElement)) {
+    return;
+  }
+  el.exportMenuHistory.innerHTML = "";
+  const history = Array.isArray(state.exportHistory) ? state.exportHistory : [];
+  if (history.length === 0) {
+    const emptyItem = document.createElement("li");
+    emptyItem.className = "export-menu-history-empty";
+    emptyItem.textContent = "No exports yet";
+    el.exportMenuHistory.appendChild(emptyItem);
+    return;
+  }
+  for (const item of history.slice(0, EXPORT_HISTORY_LIMIT)) {
+    const historyItem = document.createElement("li");
+    historyItem.className = "export-menu-history-item";
+    if (typeof item.kind === "string" && item.kind.trim().length > 0) {
+      historyItem.classList.add("is-" + item.kind);
+    }
+
+    const badge = document.createElement("span");
+    badge.className = "export-menu-history-badge";
+    badge.textContent = typeof item.badge === "string" && item.badge.trim().length > 0 ? item.badge : "LOG";
+    historyItem.appendChild(badge);
+
+    const main = document.createElement("div");
+    main.className = "export-menu-history-main";
+
+    const fileLabel = document.createElement("span");
+    fileLabel.className = "export-menu-history-file";
+    fileLabel.textContent =
+      typeof item.label === "string" && item.label.trim().length > 0 ? item.label : "export status updated";
+
+    const timeLabel = document.createElement("span");
+    timeLabel.className = "export-menu-history-time";
+    timeLabel.textContent = formatExportHistoryTime(item.recordedAt);
+
+    main.append(fileLabel, timeLabel);
+    historyItem.appendChild(main);
+    el.exportMenuHistory.appendChild(historyItem);
+  }
+}
+
+function pushExportHistory(statusText) {
+  if (!shouldTrackExportStatus(statusText)) {
+    return;
+  }
+  const normalized = typeof statusText === "string" ? statusText.trim() : "";
+  if (normalized.length === 0) {
+    return;
+  }
+  const last = Array.isArray(state.exportHistory) && state.exportHistory.length > 0 ? state.exportHistory[0] : null;
+  if (last && typeof last.status === "string" && last.status === normalized) {
+    return;
+  }
+  const kind = resolveExportStatusKind(normalized);
+  const badge =
+    kind === "markdown" ? "MD" : kind === "json" ? "JS" : kind === "audio" ? "WAV" : kind === "skipped" ? "SKIP" : "LOG";
+  const label = extractExportHistoryFileLabel(normalized) || normalized;
+  state.exportHistory = [
+    {
+      kind,
+      badge,
+      label,
+      status: normalized,
+      recordedAt: Date.now(),
+    },
+    ...state.exportHistory,
+  ].slice(0, EXPORT_HISTORY_LIMIT);
+  renderExportMenuHistory();
 }
 
 function setExportStatus(text) {
@@ -1508,12 +1653,17 @@ function setExportStatus(text) {
     return;
   }
   el.exportStatus.textContent = normalized;
+  if (el.exportMenuSummaryIcon) {
+    el.exportMenuSummaryIcon.textContent = resolveExportMenuSummaryIcon(normalized);
+    el.exportMenuSummaryIcon.setAttribute("data-export-kind", resolveExportStatusKind(normalized));
+  }
   if (el.exportMenuSummaryLabel) {
     el.exportMenuSummaryLabel.textContent = resolveExportMenuSummaryLabel(normalized);
   }
   if (el.exportMenuMeta) {
-    el.exportMenuMeta.textContent = `Last export: ${normalized}`;
+    el.exportMenuMeta.textContent = "Last export: " + normalized;
   }
+  pushExportHistory(normalized);
 }
 
 function normalizeStoryTimelineSegment(value, fallbackIndex) {
