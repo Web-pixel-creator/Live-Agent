@@ -144,6 +144,7 @@ const el = {
   operatorRole: document.getElementById("operatorRole"),
   operatorTaskId: document.getElementById("operatorTaskId"),
   operatorTargetService: document.getElementById("operatorTargetService"),
+  operatorResetViewBtn: document.getElementById("operatorResetViewBtn"),
   operatorFocusCriticalBtn: document.getElementById("operatorFocusCriticalBtn"),
   operatorIssuesOnlyBtn: document.getElementById("operatorIssuesOnlyBtn"),
   operatorCollapseAllBtn: document.getElementById("operatorCollapseAllBtn"),
@@ -899,6 +900,13 @@ function setOperatorIssuesOnlyMode(enabled) {
     el.operatorIssuesOnlyBtn.setAttribute("aria-pressed", state.operatorIssuesOnly ? "true" : "false");
     el.operatorIssuesOnlyBtn.textContent = state.operatorIssuesOnly ? "Show All Statuses" : "Issues Only";
   }
+  applyOperatorCardsVisibility();
+}
+
+function resetOperatorBoardView() {
+  setOperatorCardsCollapsed(false);
+  setOperatorIssuesOnlyMode(false);
+  setOperatorFocusCriticalMode(true);
   applyOperatorCardsVisibility();
 }
 
@@ -7268,6 +7276,11 @@ function bindEvents() {
   document.getElementById("operatorRefreshBtn").addEventListener("click", () => {
     void refreshOperatorSummary({ markUserRefresh: true });
   });
+  if (el.operatorResetViewBtn) {
+    el.operatorResetViewBtn.addEventListener("click", () => {
+      resetOperatorBoardView();
+    });
+  }
   if (el.operatorFocusCriticalBtn) {
     el.operatorFocusCriticalBtn.addEventListener("click", () => {
       setOperatorFocusCriticalMode(!state.operatorFocusCriticalOnly);
@@ -7520,9 +7533,7 @@ async function bootstrap() {
   resetOperatorTurnTruncationWidget("no_data");
   resetOperatorTurnDeleteWidget("no_data");
   resetOperatorDamageControlWidget("no_data");
-  setOperatorCardsCollapsed(false);
-  setOperatorIssuesOnlyMode(false);
-  setOperatorFocusCriticalMode(true);
+  resetOperatorBoardView();
   renderTaskList();
   evaluateConstraints();
   setActiveTab(DEFAULT_TAB_ID);

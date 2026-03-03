@@ -43,13 +43,14 @@ The operator flow is used during live demos and production diagnostics to:
 3. Placeholder cards (`no_data` / `summary_error`) stay hidden until the first manual `Refresh Summary` to reduce visual noise during judge-facing walkthrough
 4. `Focus Critical` (default) keeps only critical cards visible and mirrors key status pills in the top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); click again (`Show All Cards`) for full board
 5. `Issues Only` hides cards already marked `ok` and keeps neutral/fail evidence visible for incident triage
-6. Signal strip cards are clickable jump-links: they auto-expand the target group, scroll to the matching evidence card, and flash it for fast triage
-7. Secondary controls are under collapsed `Advanced Actions` (`Retry Task`, `Failover Drain`, `Failover Warmup`)
-8. Create/update device node and send heartbeat
-9. Approve/reject pending UI-sensitive actions
-10. Export session evidence from frontend (`Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)`)
-11. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
-12. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
+6. `Reset View` restores default triage layout (`Focus Critical` on, `Issues Only` off, default group visibility)
+7. Signal strip cards are clickable jump-links: they auto-expand the target group, scroll to the matching evidence card, and flash it for fast triage
+8. Secondary controls are under collapsed `Advanced Actions` (`Retry Task`, `Failover Drain`, `Failover Warmup`)
+9. Create/update device node and send heartbeat
+10. Approve/reject pending UI-sensitive actions
+11. Export session evidence from frontend (`Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)`)
+12. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
+13. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
 
 ## Safety Controls
 
