@@ -227,6 +227,26 @@ body::before {
   z-index: -1;
 }
 
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      560px 250px at 8% -8%,
+      color-mix(in oklch, var(--primary) 24%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      620px 280px at 94% -10%,
+      color-mix(in oklch, var(--accent-foreground) 21%, transparent),
+      transparent 74%
+    );
+  opacity: 0.72;
+  z-index: -1;
+}
+
 .background-video {
   position: fixed;
   inset: 0;
