@@ -632,7 +632,7 @@ npm run repo:publish -- -DeployRailway -DeployRailwayFrontend -SkipPages -SkipBa
 ```
 
 When `-DeployRailwayFrontend` is enabled and frontend URLs are not passed explicitly, `repo:publish` derives:
-- `FRONTEND_API_BASE_URL` from `-RailwayPublicUrl`
+- `FRONTEND_API_BASE_URL` from `-RailwayPublicUrl` (recommended override: `-RailwayFrontendApiBaseUrl <api-backend-url>`)
 - `FRONTEND_WS_URL` as `<ws(s)://host>/realtime`
 
 Safe dry-run style (no push/pages/badge):
@@ -694,7 +694,7 @@ npm run deploy:railway
 Deploy gateway + frontend in one command:
 
 ```powershell
-npm run deploy:railway:all -- -ProjectId "bbca2889-fd0d-48fe-bded-79802230e5a6" -GatewayServiceId "b8c1a952-da24-4410-a53a-82b634b70f47" -FrontendService "Live-Agent-Frontend" -Environment production -SkipReleaseVerification -GatewayPublicUrl https://live-agent-production.up.railway.app
+npm run deploy:railway:all -- -ProjectId "bbca2889-fd0d-48fe-bded-79802230e5a6" -GatewayServiceId "b8c1a952-da24-4410-a53a-82b634b70f47" -FrontendService "Live-Agent-Frontend" -Environment production -SkipReleaseVerification -GatewayPublicUrl https://live-agent-production.up.railway.app -FrontendApiBaseUrl https://live-agent-api-production.up.railway.app
 ```
 
 Dispatch `railway-deploy-all.yml` workflow from local CLI (with optional wait for completion):
@@ -773,7 +773,7 @@ Recommended frontend runtime variables for this project:
 
 ```powershell
 railway variable set -s "Live-Agent-Frontend" -e production --skip-deploys "FRONTEND_WS_URL=wss://live-agent-production.up.railway.app/realtime"
-railway variable set -s "Live-Agent-Frontend" -e production --skip-deploys "FRONTEND_API_BASE_URL=https://live-agent-production.up.railway.app"
+railway variable set -s "Live-Agent-Frontend" -e production --skip-deploys "FRONTEND_API_BASE_URL=https://live-agent-api-production.up.railway.app"
 ```
 
 Notes:
@@ -782,6 +782,26 @@ Notes:
 - Frontend service health endpoint: `GET /healthz`.
 - Frontend service config-as-code is at `apps/demo-frontend/railway.json`.
 - Helper flags: `-NoWait`, `-SkipHealthCheck`, `-StatusPollMaxAttempts`, `-StatusPollIntervalSec`.
+
+## Railway API Backend Service
+
+Deploy `apps/api-backend` as a standalone Railway service:
+
+```powershell
+railway up apps/api-backend --path-as-root -s "Live-Agent-API" -e production -p "bbca2889-fd0d-48fe-bded-79802230e5a6" -d
+```
+
+Recommended API runtime variables:
+
+```powershell
+railway variable set -s "Live-Agent-API" -e production --skip-deploys "API_CORS_ALLOWED_ORIGINS=https://live-agent-frontend-production.up.railway.app"
+```
+
+Notes:
+
+- API service config-as-code is at `apps/api-backend/railway.json`.
+- API service health endpoint: `GET /healthz`.
+- Frontend should point `FRONTEND_API_BASE_URL` to this API service URL, not to gateway URL.
 
 ## CI Workflow
 

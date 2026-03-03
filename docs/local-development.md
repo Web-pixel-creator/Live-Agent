@@ -18,6 +18,17 @@ npm run dev:frontend
 
 Frontend: `http://localhost:3000`
 
+## API CORS for Frontend
+
+`api-backend` now serves CORS headers for cross-origin frontend requests.
+
+1. Default behavior allows all origins (`API_CORS_ALLOWED_ORIGINS=*`).
+2. To lock it down, set explicit origins as comma-separated values:
+
+```bash
+API_CORS_ALLOWED_ORIGINS=http://localhost:3000,https://live-agent-frontend-production.up.railway.app
+```
+
 ## Local-First Profile
 
 Use local-first profile for offline development and lower cloud dependency risk:

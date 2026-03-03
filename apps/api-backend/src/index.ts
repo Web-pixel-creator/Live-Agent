@@ -10,7 +10,7 @@ import {
   type NormalizedError,
   type OrchestratorRequest,
   type OrchestratorResponse,
-} from "@mla/contracts";
+} from "./contracts/index.js";
 import {
   type ApprovalDecision,
   type ApprovalSweepResult,
@@ -70,7 +70,7 @@ import {
   parseSkillPluginSigningKeys,
 } from "./skill-plugin-marketplace.js";
 
-const port = Number(process.env.API_PORT ?? 8081);
+const port = Number(process.env.PORT ?? process.env.API_PORT ?? 8081);
 const apiBaseUrl = toBaseUrl(process.env.API_BASE_URL, `http://localhost:${port}`);
 const gatewayBaseUrl = toBaseUrl(process.env.API_GATEWAY_BASE_URL, "http://localhost:8080");
 const orchestratorBaseUrl = toBaseUrl(
@@ -88,6 +88,21 @@ const orchestratorMaxRetries = parsePositiveInt(process.env.API_ORCHESTRATOR_MAX
 const orchestratorRetryBackoffMs = parsePositiveInt(
   process.env.API_ORCHESTRATOR_RETRY_BACKOFF_MS ?? null,
   300,
+);
+const corsAllowedMethods = "GET,POST,PUT,PATCH,DELETE,OPTIONS";
+const corsDefaultAllowedHeaders = [
+  "Content-Type",
+  "Authorization",
+  "X-Operator-Role",
+  "X-Tenant-Id",
+  "X-Idempotency-Key",
+  "X-Operator-Id",
+].join(", ");
+const corsPolicy = parseCorsPolicy(
+  process.env.API_CORS_ALLOWED_ORIGINS ??
+    process.env.FRONTEND_PUBLIC_URL ??
+    process.env.DEMO_FRONTEND_PUBLIC_URL ??
+    "*",
 );
 const serviceName = "api-backend";
 const runtimeProfile = applyRuntimeProfile(serviceName);
@@ -271,6 +286,54 @@ function normalizeTenantId(raw: unknown): string {
     return "public";
   }
   return normalized.slice(0, 64);
+}
+
+type CorsPolicy = {
+  allowAny: boolean;
+  allowedOrigins: Set<string>;
+};
+
+function normalizeCorsOrigin(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  if (trimmed === "null") {
+    return "null";
+  }
+  try {
+    return new URL(trimmed).origin;
+  } catch {
+    return null;
+  }
+}
+
+function parseCorsPolicy(raw: string): CorsPolicy {
+  const entries = raw
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  const allowAny = entries.includes("*");
+  const allowedOrigins = new Set<string>();
+  for (const entry of entries) {
+    if (entry === "*") {
+      continue;
+    }
+    const normalized = normalizeCorsOrigin(entry);
+    if (normalized) {
+      allowedOrigins.add(normalized);
+    }
+  }
+  if (!allowAny && allowedOrigins.size === 0) {
+    return {
+      allowAny: true,
+      allowedOrigins: new Set(),
+    };
+  }
+  return {
+    allowAny,
+    allowedOrigins,
+  };
 }
 
 function resolveRequestTenantContext(req: IncomingMessage, url: URL): {
@@ -642,6 +705,66 @@ function headerValue(req: IncomingMessage, name: string): string | null {
     return typeof value[0] === "string" ? value[0] : null;
   }
   return typeof value === "string" ? value : null;
+}
+
+function appendVaryHeader(res: ServerResponse, key: string): void {
+  const existing = res.getHeader("Vary");
+  const items = new Set<string>();
+  const append = (value: string) => {
+    for (const item of value.split(",")) {
+      const normalized = item.trim();
+      if (normalized.length > 0) {
+        items.add(normalized);
+      }
+    }
+  };
+  if (typeof existing === "string") {
+    append(existing);
+  } else if (Array.isArray(existing)) {
+    for (const value of existing) {
+      if (typeof value === "string") {
+        append(value);
+      }
+    }
+  }
+  append(key);
+  res.setHeader("Vary", Array.from(items).join(", "));
+}
+
+function resolveAllowedCorsOrigin(req: IncomingMessage): string | null {
+  const origin = headerValue(req, "origin");
+  if (!origin) {
+    return null;
+  }
+  if (corsPolicy.allowAny) {
+    return "*";
+  }
+  const normalizedOrigin = normalizeCorsOrigin(origin);
+  if (!normalizedOrigin) {
+    return null;
+  }
+  return corsPolicy.allowedOrigins.has(normalizedOrigin) ? normalizedOrigin : null;
+}
+
+function applyCorsHeaders(req: IncomingMessage, res: ServerResponse): string | null {
+  const allowedOrigin = resolveAllowedCorsOrigin(req);
+  if (!allowedOrigin) {
+    return null;
+  }
+  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+  if (allowedOrigin !== "*") {
+    appendVaryHeader(res, "Origin");
+  }
+  res.setHeader("Access-Control-Allow-Methods", corsAllowedMethods);
+  const requestedHeaders = headerValue(req, "access-control-request-headers");
+  if (requestedHeaders && requestedHeaders.trim().length > 0) {
+    res.setHeader("Access-Control-Allow-Headers", requestedHeaders);
+    appendVaryHeader(res, "Access-Control-Request-Headers");
+  } else {
+    res.setHeader("Access-Control-Allow-Headers", corsDefaultAllowedHeaders);
+  }
+  res.setHeader("Access-Control-Max-Age", "600");
+  return allowedOrigin;
 }
 
 function sanitizeDecision(raw: unknown): ApprovalDecision {
@@ -3244,6 +3367,18 @@ export const server = createServer(async (req, res) => {
 
   try {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+    const requestOrigin = headerValue(req, "origin");
+    const allowedCorsOrigin = applyCorsHeaders(req, res);
+    if (req.method === "OPTIONS") {
+      if (requestOrigin && !allowedCorsOrigin) {
+        res.statusCode = 403;
+        res.end("CORS origin is not allowed");
+        return;
+      }
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
     const requestTenant = resolveRequestTenantContext(req, url);
     operation = `${req.method ?? "UNKNOWN"} ${normalizeOperationPath(url.pathname)}`;
 
