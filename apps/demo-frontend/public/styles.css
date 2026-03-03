@@ -1693,6 +1693,41 @@ button:focus-visible {
     0 0 0 1px color-mix(in oklch, var(--border-soft) 72%, transparent);
 }
 
+.panel-live-top .meta-row-status > div {
+  border-color: color-mix(in oklch, var(--border) 90%, color-mix(in oklch, var(--foreground) 16%, transparent));
+  background:
+    radial-gradient(240px 96px at 6% -16%, color-mix(in oklch, var(--primary) 12%, transparent), transparent 72%),
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--surface-control) 86%, transparent),
+      color-mix(in oklch, var(--surface-panel-2) 95%, black 5%)
+    );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 10%, transparent),
+    0 8px 20px -18px color-mix(in oklch, var(--primary) 34%, transparent),
+    var(--shadow-2xs);
+}
+
+.panel-live-top .meta-row-status strong {
+  color: color-mix(in oklch, var(--foreground) 98%, var(--accent-foreground));
+}
+
+.panel-live-top .meta-row-status > div > span:not(.status-pill) {
+  border-color: color-mix(in oklch, var(--border-soft) 92%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--surface-control) 88%, transparent),
+    color-mix(in oklch, var(--surface-panel-2) 94%, transparent)
+  );
+  color: color-mix(in oklch, var(--foreground) 99%, white);
+}
+
+.panel-live-top .meta-row-status .status-neutral {
+  border-color: color-mix(in oklch, var(--muted-foreground) 36%, transparent);
+  background: color-mix(in oklch, var(--surface-control) 98%, transparent);
+  color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
+}
+
 .meta-row > div {
   border: 1px solid var(--border-soft);
   border-radius: calc(var(--radius) - 2px);
@@ -3053,6 +3088,17 @@ button:focus-visible {
 
   .meta-row {
     grid-template-columns: 1fr;
+  }
+
+  .meta-row-status {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .meta-row-status > div {
+    min-height: 52px;
+    padding: 10px 12px;
+    gap: 10px;
   }
 
   .story-workspace {
