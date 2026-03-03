@@ -20,6 +20,8 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'id="operatorDemoViewBtn"',
     'id="operatorFullOpsViewBtn"',
     'id="operatorBoardModeHint"',
+    'id="operatorSummaryGuide"',
+    'id="operatorSummaryGuideRefreshBtn"',
     "data-operator-demo-essential",
     "Demo View",
     "Full Ops View",
@@ -34,8 +36,11 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'operatorDemoViewBtn: document.getElementById("operatorDemoViewBtn")',
     'operatorFullOpsViewBtn: document.getElementById("operatorFullOpsViewBtn")',
     'operatorBoardModeHint: document.getElementById("operatorBoardModeHint")',
+    'operatorSummaryGuide: document.getElementById("operatorSummaryGuide")',
+    'operatorSummaryGuideRefreshBtn: document.getElementById("operatorSummaryGuideRefreshBtn")',
     "function normalizeOperatorBoardMode(value)",
     "function syncOperatorBoardModeButtons()",
+    "function syncOperatorSummaryGuide()",
     "function setOperatorBoardMode(mode, options = {})",
     "function isOperatorDemoEssentialCard(card)",
     "state.operatorBoardMode === \"demo\" && state.operatorFocusCriticalOnly === true && !isOperatorDemoEssentialCard(card)",
@@ -44,6 +49,8 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "setOperatorBoardMode(\"demo\");",
     "el.operatorFullOpsViewBtn.addEventListener(\"click\", () => {",
     "setOperatorBoardMode(\"full\");",
+    "el.operatorSummaryGuideRefreshBtn.addEventListener(\"click\", () => {",
+    "void refreshOperatorSummary({ markUserRefresh: true });",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing operator-board-mode token: ${token}`);
@@ -53,6 +60,8 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     ".operator-view-mode-actions {",
     ".operator-view-mode-actions .button-muted {",
     ".operator-board-mode-hint {",
+    ".operator-summary-guide {",
+    ".operator-summary-guide.is-hidden {",
     ".operator-health-board.is-demo-view .operator-health-card[data-operator-demo-essential] {",
   ];
   for (const token of requiredStyleTokens) {
@@ -68,11 +77,19 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "README missing operator demo essential-cards note",
   );
   assert.ok(
+    readmeSource.includes("guided pre-refresh banner"),
+    "README missing operator summary guide note",
+  );
+  assert.ok(
     operatorGuideSource.includes("`Demo View` (default) keeps Operator Console in critical-first mode"),
     "operator guide missing operator board-mode note",
   );
   assert.ok(
     operatorGuideSource.includes("prioritizes six cards (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`)"),
     "operator guide missing operator demo essential-cards note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("guided pre-refresh banner"),
+    "operator guide missing operator summary guide note",
   );
 });

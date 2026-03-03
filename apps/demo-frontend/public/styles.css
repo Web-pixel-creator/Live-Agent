@@ -967,6 +967,66 @@ textarea {
   line-height: 1.5;
 }
 
+.operator-summary-guide {
+  margin-top: 12px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);
+  border-radius: calc(var(--radius) - 4px);
+  padding: 11px 12px;
+  background:
+    radial-gradient(260px 90px at 0% -18%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 72%),
+    linear-gradient(
+      160deg,
+      color-mix(in oklch, var(--surface-control) 90%, var(--surface-panel)),
+      color-mix(in oklch, var(--surface-panel-2) 94%, var(--surface-control))
+    );
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.operator-summary-guide.is-full-ops {
+  border-color: color-mix(in oklch, var(--accent-foreground) 36%, var(--border-soft));
+  background:
+    radial-gradient(240px 90px at 0% -18%, color-mix(in oklch, var(--accent-foreground) 10%, transparent), transparent 74%),
+    linear-gradient(
+      160deg,
+      color-mix(in oklch, var(--surface-control) 90%, var(--surface-panel)),
+      color-mix(in oklch, var(--surface-panel-2) 94%, var(--surface-control))
+    );
+}
+
+.operator-summary-guide.is-hidden {
+  display: none;
+}
+
+.operator-summary-guide-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.operator-summary-guide-title {
+  margin: 0;
+  color: color-mix(in oklch, var(--foreground) 96%, var(--accent-foreground));
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.operator-summary-guide-hint {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.operator-summary-guide-action {
+  flex: 0 0 auto;
+  min-width: 152px;
+}
+
 .operator-triage-summary {
   margin-top: 12px;
   display: grid;
@@ -2906,6 +2966,16 @@ button:focus-visible {
   .actions-priority,
   .action-group {
     gap: 8px;
+  }
+
+  .operator-summary-guide {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .operator-summary-guide-action {
+    width: 100%;
+    min-width: 0;
   }
 
   .operator-health-group {

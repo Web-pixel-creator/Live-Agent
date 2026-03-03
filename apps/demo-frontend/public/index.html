@@ -546,6 +546,17 @@
         <p id="operatorBoardModeHint" class="operator-board-mode-hint">
           Demo View keeps six judge-facing cards visible by default and still surfaces new failures.
         </p>
+        <div id="operatorSummaryGuide" class="operator-summary-guide" role="status" aria-live="polite">
+          <div class="operator-summary-guide-copy">
+            <p id="operatorSummaryGuideTitle" class="operator-summary-guide-title">Ready for first evidence refresh</p>
+            <p id="operatorSummaryGuideHint" class="operator-summary-guide-hint">
+              Click `Refresh Summary` once to hydrate diagnostics cards and unlock full triage context.
+            </p>
+          </div>
+          <button id="operatorSummaryGuideRefreshBtn" type="button" class="button-muted operator-summary-guide-action">
+            Refresh Summary
+          </button>
+        </div>
         <div class="operator-triage-summary" role="status" aria-live="polite">
           <article class="operator-triage-stat">
             <h3>Total</h3>

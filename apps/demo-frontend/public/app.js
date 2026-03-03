@@ -158,6 +158,10 @@ const el = {
   operatorDemoViewBtn: document.getElementById("operatorDemoViewBtn"),
   operatorFullOpsViewBtn: document.getElementById("operatorFullOpsViewBtn"),
   operatorBoardModeHint: document.getElementById("operatorBoardModeHint"),
+  operatorSummaryGuide: document.getElementById("operatorSummaryGuide"),
+  operatorSummaryGuideTitle: document.getElementById("operatorSummaryGuideTitle"),
+  operatorSummaryGuideHint: document.getElementById("operatorSummaryGuideHint"),
+  operatorSummaryGuideRefreshBtn: document.getElementById("operatorSummaryGuideRefreshBtn"),
   operatorResetViewBtn: document.getElementById("operatorResetViewBtn"),
   operatorFocusCriticalBtn: document.getElementById("operatorFocusCriticalBtn"),
   operatorIssuesOnlyBtn: document.getElementById("operatorIssuesOnlyBtn"),
@@ -956,6 +960,29 @@ function syncOperatorBoardModeButtons() {
     el.operatorBoardModeHint.textContent = isDemo
       ? "Demo View keeps six judge-facing cards visible by default and still surfaces new failures."
       : "Full Ops View shows the full diagnostics board (all cards and lanes).";
+  }
+  syncOperatorSummaryGuide();
+}
+
+function syncOperatorSummaryGuide() {
+  if (!(el.operatorSummaryGuide instanceof HTMLElement)) {
+    return;
+  }
+  const isDemo = normalizeOperatorBoardMode(state.operatorBoardMode) === "demo";
+  const hasManualRefresh = state.operatorSummaryUserRefreshed === true;
+
+  el.operatorSummaryGuide.classList.toggle("is-hidden", hasManualRefresh);
+  el.operatorSummaryGuide.classList.toggle("is-full-ops", !isDemo);
+
+  if (el.operatorSummaryGuideTitle) {
+    el.operatorSummaryGuideTitle.textContent = isDemo
+      ? "Ready for first evidence refresh"
+      : "Diagnostics board is waiting for first refresh";
+  }
+  if (el.operatorSummaryGuideHint) {
+    el.operatorSummaryGuideHint.textContent = isDemo
+      ? "Click `Refresh Summary` once to hydrate diagnostics cards and unlock full triage context."
+      : "Run one refresh to hydrate all ops widgets before deep triage in Full Ops View.";
   }
 }
 
@@ -6023,6 +6050,7 @@ async function refreshOperatorSummary(options = {}) {
     setOperatorCardsCollapsed(false);
     applyOperatorCardsVisibility();
   }
+  syncOperatorSummaryGuide();
   try {
     const response = await fetch(`${state.apiBaseUrl}/v1/operator/summary`, {
       method: "GET",
@@ -6069,6 +6097,7 @@ async function refreshOperatorSummary(options = {}) {
     appendTranscript("error", `Operator summary refresh failed: ${String(error)}`);
   } finally {
     applyOperatorCardsVisibility();
+    syncOperatorSummaryGuide();
   }
 }
 
@@ -8091,6 +8120,11 @@ function bindEvents() {
   document.getElementById("operatorRefreshBtn").addEventListener("click", () => {
     void refreshOperatorSummary({ markUserRefresh: true });
   });
+  if (el.operatorSummaryGuideRefreshBtn) {
+    el.operatorSummaryGuideRefreshBtn.addEventListener("click", () => {
+      void refreshOperatorSummary({ markUserRefresh: true });
+    });
+  }
   if (el.operatorDemoViewBtn) {
     el.operatorDemoViewBtn.addEventListener("click", () => {
       setOperatorBoardMode("demo");

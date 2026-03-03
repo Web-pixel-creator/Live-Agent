@@ -40,22 +40,23 @@ The operator flow is used during live demos and production diagnostics to:
 
 1. Refresh summary (`Refresh Summary`)
 2. `Demo View` (default) keeps Operator Console in critical-first mode for judge walkthroughs and prioritizes six cards (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`) while still surfacing new `fail` cards; `Full Ops View` opens the full board for deep diagnostics
-3. Collapse/expand operator evidence cards (`Collapse All` / `Expand All`); before first manual refresh the UI keeps only `Live Bridge & Turn Safety` expanded by default
-4. Placeholder cards (`no_data` / `summary_error`) stay hidden until the first manual `Refresh Summary` to reduce visual noise during judge-facing walkthrough
-5. `Focus Critical` keeps only critical cards visible and mirrors key status pills in the top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); click again (`Show All Cards`) for full board
-6. `Issues Only` hides cards already marked `ok` and keeps neutral/fail evidence visible for incident triage
-7. `Reset View` restores default triage layout (`Demo View`, `Focus Critical` on, `Issues Only` off, default group visibility)
-8. `Triage Summary` shows live counters (`total`, `visible`, `fail`, `neutral`, `ok`, `hidden`) and updates as filters/statuses change
-9. Each lane header shows live mini-counters (`visible/fail/neutral/ok/hidden`) for quick group-level prioritization
-10. Signal strip cards are clickable jump-links: they auto-expand the target group, scroll to the matching evidence card, and flash it for fast triage
-11. Secondary controls are under collapsed `Advanced Actions` (`Retry Task`, `Failover Drain`, `Failover Warmup`)
-12. Create/update device node and send heartbeat
-13. Approve/reject pending UI-sensitive actions
-14. Export session evidence from frontend via the `Export Session` dropdown (`Markdown` / `JSON` / `Audio (WAV)`)
-15. Export dropdown keeps `Last export` metadata, format badges (`MD/JS/WAV`), and a `Recent exports` list (last 3 downloads)
-16. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
-17. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
-18. Live Negotiator status strip (`Status/Assistant/Run ID/User ID/Session State/Mode/PTT/Export`) uses high-contrast text, pill-state color mapping, concise export labels (`exported markdown/json/audio`), and fixed desktop grid (`4x2`) for quick judge/operator scan
+3. Before the first manual refresh, a guided pre-refresh banner is shown with one-click `Refresh Summary` and mode-specific hint text (`Demo` vs `Full Ops`)
+4. Collapse/expand operator evidence cards (`Collapse All` / `Expand All`); before first manual refresh the UI keeps only `Live Bridge & Turn Safety` expanded by default
+5. Placeholder cards (`no_data` / `summary_error`) stay hidden until the first manual `Refresh Summary` to reduce visual noise during judge-facing walkthrough
+6. `Focus Critical` keeps only critical cards visible and mirrors key status pills in the top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); click again (`Show All Cards`) for full board
+7. `Issues Only` hides cards already marked `ok` and keeps neutral/fail evidence visible for incident triage
+8. `Reset View` restores default triage layout (`Demo View`, `Focus Critical` on, `Issues Only` off, default group visibility)
+9. `Triage Summary` shows live counters (`total`, `visible`, `fail`, `neutral`, `ok`, `hidden`) and updates as filters/statuses change
+10. Each lane header shows live mini-counters (`visible/fail/neutral/ok/hidden`) for quick group-level prioritization
+11. Signal strip cards are clickable jump-links: they auto-expand the target group, scroll to the matching evidence card, and flash it for fast triage
+12. Secondary controls are under collapsed `Advanced Actions` (`Retry Task`, `Failover Drain`, `Failover Warmup`)
+13. Create/update device node and send heartbeat
+14. Approve/reject pending UI-sensitive actions
+15. Export session evidence from frontend via the `Export Session` dropdown (`Markdown` / `JSON` / `Audio (WAV)`)
+16. Export dropdown keeps `Last export` metadata, format badges (`MD/JS/WAV`), and a `Recent exports` list (last 3 downloads)
+17. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
+18. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
+19. Live Negotiator status strip (`Status/Assistant/Run ID/User ID/Session State/Mode/PTT/Export`) uses high-contrast text, pill-state color mapping, concise export labels (`exported markdown/json/audio`), and fixed desktop grid (`4x2`) for quick judge/operator scan
 
 ## Safety Controls
 
