@@ -532,6 +532,18 @@ body.bg-video-loop-transition .background-video-fade {
   margin-top: 14px;
 }
 
+.connection-url-field {
+  max-width: min(980px, 100%);
+}
+
+.advanced-connection-settings {
+  max-width: 100%;
+}
+
+.connection-advanced-grid {
+  gap: 18px;
+}
+
 .grid-2,
 .grid-3 {
   display: grid;

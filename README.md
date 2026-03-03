@@ -96,7 +96,7 @@ Frontend `Live Controls -> Apply Live Setup` can send runtime `live.setup` overr
 Frontend `Intent Request` also supports optional `ui_task` grounding overrides (`url`, `deviceNodeId`, `deviceNodeKind`, `deviceNodePlatform`, `deviceNodeCapabilities`, `deviceNodeMinTrustLevel`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`).
 Frontend is grouped into tabs (`Live Negotiator`, `Storyteller`, `Operator Console`, `Device Nodes`) with `Live Negotiator` opened by default for faster demo entry.
 `Live Negotiator` uses a compact top section plus a split middle layout (intent/approval/tasks on the left, sticky KPI+Transcript rail on the right) so negotiation state stays visible while operating controls.
-Technical controls are collapsed into `Advanced Settings` blocks (`Live Setup` and `Advanced UI Task Settings`) to reduce default screen density.
+Technical controls are collapsed into `Advanced Settings` blocks (`Advanced Session Settings`, `Live Setup`, and `Advanced UI Task Settings`) to reduce default screen density.
 `Operator Console` uses grouped accordion lanes; before the first manual `Refresh Summary`, only `Live Bridge & Turn Safety` stays expanded by default.
 `Operator Console` hides placeholder cards (`no_data` / `summary_error`) until the first manual `Refresh Summary`, so judges/operators see only populated evidence by default.
 `Operator Console` starts in `Focus Critical` mode with a top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); use `Show All Cards` to inspect the full evidence set.

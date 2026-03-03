@@ -74,24 +74,30 @@
       <div id="tab-live-negotiator" class="tab-content active" data-tab="live-negotiator">
         <section class="panel panel-live-top">
           <h2><span class="section-badge">Live</span>Connection</h2>
-          <div class="grid-3">
-            <label class="field">
-              <span>Gateway WebSocket URL</span>
-              <input id="wsUrl" type="text" value="ws://localhost:8080/realtime" />
-            </label>
-            <label class="field">
-              <span>Session ID</span>
-              <input id="sessionId" type="text" />
-            </label>
-            <label class="field">
-              <span>User ID</span>
-              <input id="userId" type="text" />
-            </label>
-            <label class="field">
-              <span>Target Language</span>
-              <input id="targetLanguage" type="text" value="ru" />
-            </label>
-          </div>
+          <label class="field connection-url-field">
+            <span>Gateway WebSocket URL</span>
+            <input id="wsUrl" type="text" value="ws://localhost:8080/realtime" />
+          </label>
+          <details id="connectionAdvancedSection" class="advanced-settings advanced-connection-settings">
+            <summary>
+              <span class="advanced-title">Advanced Session Settings</span>
+              <span class="advanced-hint">Session ID, user identity, and language routing controls</span>
+            </summary>
+            <div class="grid-3 connection-advanced-grid">
+              <label class="field">
+                <span>Session ID</span>
+                <input id="sessionId" type="text" />
+              </label>
+              <label class="field">
+                <span>User ID</span>
+                <input id="userId" type="text" />
+              </label>
+              <label class="field">
+                <span>Target Language</span>
+                <input id="targetLanguage" type="text" value="ru" />
+              </label>
+            </div>
+          </details>
           <div class="actions actions-priority">
             <div class="action-group action-group-primary">
               <button id="connectBtn">Connect</button>

@@ -13,6 +13,7 @@ test("demo frontend keeps live negotiator UX guardrails for advanced controls an
   const stylesSource = readFileSync(stylesPath, "utf8");
 
   const requiredHtmlTokens = [
+    'id="connectionAdvancedSection"',
     'id="liveSetupAdvanced"',
     'id="uiTaskAdvancedSection"',
     "class=\"actions actions-priority\"",
@@ -40,6 +41,7 @@ test("demo frontend keeps live negotiator UX guardrails for advanced controls an
 
   const requiredStyleTokens = [
     ".advanced-settings {",
+    ".advanced-connection-settings {",
     ".live-negotiator-secondary {",
     "position: sticky;",
     ".actions-priority {",
