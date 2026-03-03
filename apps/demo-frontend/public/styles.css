@@ -79,7 +79,7 @@
   --surface-control-strong: color-mix(in oklch, var(--secondary) 70%, var(--background));
   --focus-ring-soft: color-mix(in oklch, var(--ring) 26%, transparent);
   --bg-video-opacity: 0.08;
-  --bg-video-transition-opacity: 0.03;
+  --bg-video-transition-opacity: 0.064;
   --bg-video-loop-duration: 15s;
 }
 
@@ -147,7 +147,7 @@
   --surface-control-strong: color-mix(in oklch, var(--secondary) 84%, white);
   --focus-ring-soft: color-mix(in oklch, var(--ring) 16%, transparent);
   --bg-video-opacity: 0.06;
-  --bg-video-transition-opacity: 0.022;
+  --bg-video-transition-opacity: 0.05;
 }
 
 * {
@@ -243,11 +243,11 @@ body::before {
 
 body.bg-video-loop-transition .background-video {
   opacity: var(--bg-video-transition-opacity);
-  filter: blur(0.9px) saturate(0.72) contrast(1.06);
+  filter: blur(0.45px) saturate(0.85) contrast(1.03);
 }
 
 body.bg-video-loop-transition .background-video-fade {
-  opacity: 0.14;
+  opacity: 0.08;
 }
 
 .layout {

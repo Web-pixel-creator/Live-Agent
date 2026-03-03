@@ -57,8 +57,8 @@ const state = {
 const PENDING_CLIENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
 const THEME_STORAGE_KEY = "mla.demoFrontend.themeMode";
 const MAX_ASSISTANT_AUDIO_EXPORT_BYTES = 32 * 1024 * 1024;
-const BG_VIDEO_LOOP_BLEND_SECONDS = 0.42;
-const BG_VIDEO_LOOP_RESET_SECONDS = 0.12;
+const BG_VIDEO_LOOP_BLEND_SECONDS = 0.9;
+const BG_VIDEO_LOOP_RESET_SECONDS = 0.2;
 const BG_VIDEO_LOOP_TRANSITION_CLASS = "bg-video-loop-transition";
 
 const el = {
