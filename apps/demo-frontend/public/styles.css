@@ -1252,6 +1252,15 @@ textarea {
     inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent);
 }
 
+.export-menu-meta {
+  margin: 0;
+  padding: 2px 6px 8px;
+  border-bottom: 1px solid color-mix(in oklch, var(--border-soft) 84%, transparent);
+  color: color-mix(in oklch, var(--muted-foreground) 92%, var(--foreground));
+  font-size: 0.79rem;
+  font-family: var(--font-mono);
+}
+
 .export-menu-item {
   width: 100%;
   min-height: 44px;

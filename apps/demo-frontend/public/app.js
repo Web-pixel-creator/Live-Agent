@@ -80,6 +80,8 @@ const el = {
   modeStatus: document.getElementById("modeStatus"),
   themeToggleBtn: document.getElementById("themeToggleBtn"),
   exportMenu: document.getElementById("exportMenu"),
+  exportMenuSummaryLabel: document.getElementById("exportMenuSummaryLabel"),
+  exportMenuMeta: document.getElementById("exportMenuMeta"),
   exportMarkdownBtn: document.getElementById("exportMarkdownBtn"),
   exportJsonBtn: document.getElementById("exportJsonBtn"),
   exportAudioBtn: document.getElementById("exportAudioBtn"),
@@ -1486,11 +1488,32 @@ function appendEvent(type, text) {
   appendEntry(el.events, "system", type, text);
 }
 
+function resolveExportMenuSummaryLabel(statusText) {
+  const normalized = typeof statusText === "string" ? statusText.trim().toLowerCase() : "";
+  if (normalized.startsWith("markdown exported")) {
+    return "Export Session · Markdown";
+  }
+  if (normalized.startsWith("json exported")) {
+    return "Export Session · JSON";
+  }
+  if (normalized.startsWith("audio exported")) {
+    return "Export Session · Audio";
+  }
+  return "Export Session";
+}
+
 function setExportStatus(text) {
+  const normalized = typeof text === "string" && text.trim().length > 0 ? text.trim() : "idle";
   if (!el.exportStatus) {
     return;
   }
-  el.exportStatus.textContent = text;
+  el.exportStatus.textContent = normalized;
+  if (el.exportMenuSummaryLabel) {
+    el.exportMenuSummaryLabel.textContent = resolveExportMenuSummaryLabel(normalized);
+  }
+  if (el.exportMenuMeta) {
+    el.exportMenuMeta.textContent = `Last export: ${normalized}`;
+  }
 }
 
 function normalizeStoryTimelineSegment(value, fallbackIndex) {

@@ -11,6 +11,8 @@ test("demo frontend wires session export controls and runtime helpers", () => {
 
   const requiredHtmlTokens = [
     'id="exportMenu"',
+    'id="exportMenuSummaryLabel"',
+    'id="exportMenuMeta"',
     'id="exportMarkdownBtn"',
     'id="exportJsonBtn"',
     'id="exportAudioBtn"',
@@ -25,6 +27,7 @@ test("demo frontend wires session export controls and runtime helpers", () => {
 
   const requiredRuntimeTokens = [
     "setExportStatus",
+    "resolveExportMenuSummaryLabel",
     "closeExportMenu",
     "buildSessionExportPayload",
     "toMarkdownExport",
@@ -38,6 +41,8 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "Session markdown export downloaded",
     "Session JSON export downloaded",
     "Session audio export downloaded",
+    "Last export:",
+    "Export Session · Markdown",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing export token: ${token}`);

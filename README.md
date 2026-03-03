@@ -111,6 +111,7 @@ Signal strip cards are clickable and jump to the corresponding evidence widget, 
 `KPI Constraints` includes per-metric delta badges (`price/delivery/sla`) plus explicit source attribution (`final_offer/current_offer/mixed_offer`) for quick judge scan.
 Frontend `Intent Request` shows `ui_task` grounding fields only when `intent=ui_task`.
 Frontend `Connection` panel uses a compact `Export Session` dropdown with `Markdown` / `JSON` / `Audio (WAV)` evidence exports.
+`Export Session` dropdown keeps a live `Last export` line and updates the summary label (`Export Session · Markdown/JSON/Audio`) after each successful export.
 Connection status metadata is rendered as a compact inline status strip (`Status`, `Assistant`, `Run ID`, `User ID`, `Session State`, `Mode`, `PTT`, `Export`) for faster scan and less vertical noise.
 Status strip readability is tuned for judge demos with higher neutral-text contrast and stronger card separation against the dark canvas.
 Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
