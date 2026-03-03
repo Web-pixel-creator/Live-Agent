@@ -483,30 +483,60 @@
           </div>
         </details>
         <div class="operator-signal-strip">
-          <article class="operator-signal-card">
+          <button
+            type="button"
+            class="operator-signal-card operator-signal-jump"
+            data-operator-signal-target="operatorHealthStatus"
+            aria-label="Jump to Live Bridge Status card"
+          >
             <h3>Bridge</h3>
             <p id="operatorSignalBridge" class="status-pill status-neutral">no_data</p>
-          </article>
-          <article class="operator-signal-card">
+          </button>
+          <button
+            type="button"
+            class="operator-signal-card operator-signal-jump"
+            data-operator-signal-target="operatorTaskQueueStatus"
+            aria-label="Jump to Task Queue Pressure card"
+          >
             <h3>Queue</h3>
             <p id="operatorSignalQueue" class="status-pill status-neutral">no_data</p>
-          </article>
-          <article class="operator-signal-card">
+          </button>
+          <button
+            type="button"
+            class="operator-signal-card operator-signal-jump"
+            data-operator-signal-target="operatorApprovalsStatus"
+            aria-label="Jump to Approvals Queue card"
+          >
             <h3>Approvals</h3>
             <p id="operatorSignalApprovals" class="status-pill status-neutral">no_data</p>
-          </article>
-          <article class="operator-signal-card">
+          </button>
+          <button
+            type="button"
+            class="operator-signal-card operator-signal-jump"
+            data-operator-signal-target="operatorStartupStatus"
+            aria-label="Jump to Startup Failures card"
+          >
             <h3>Startup</h3>
             <p id="operatorSignalStartup" class="status-pill status-neutral">no_data</p>
-          </article>
-          <article class="operator-signal-card">
+          </button>
+          <button
+            type="button"
+            class="operator-signal-card operator-signal-jump"
+            data-operator-signal-target="operatorUiExecutorStatus"
+            aria-label="Jump to UI Executor Failover card"
+          >
             <h3>UI Executor</h3>
             <p id="operatorSignalUiExecutor" class="status-pill status-neutral">no_data</p>
-          </article>
-          <article class="operator-signal-card">
+          </button>
+          <button
+            type="button"
+            class="operator-signal-card operator-signal-jump"
+            data-operator-signal-target="operatorDeviceNodesStatus"
+            aria-label="Jump to Device Nodes Health card"
+          >
             <h3>Device Nodes</h3>
             <p id="operatorSignalDeviceNodes" class="status-pill status-neutral">no_data</p>
-          </article>
+          </button>
         </div>
         <div id="operatorHealthBoard" class="operator-health-board">
           <section class="operator-health-group" data-operator-group="bridge-safety">

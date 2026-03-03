@@ -997,6 +997,8 @@ textarea {
 .operator-signal-card {
   border: 1px solid color-mix(in oklch, var(--border-soft) 90%, transparent);
   border-radius: calc(var(--radius) - 5px);
+  width: 100%;
+  min-height: 0;
   padding: 11px 12px;
   background: linear-gradient(
     160deg,
@@ -1006,6 +1008,27 @@ textarea {
   box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent);
   display: grid;
   gap: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 130ms ease, background 130ms ease, box-shadow 130ms ease;
+}
+
+.operator-signal-card:hover {
+  transform: none;
+  filter: none;
+  border-color: color-mix(in oklch, var(--primary) 40%, var(--border));
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklch, var(--surface-control-hover) 90%, var(--surface-panel)),
+    color-mix(in oklch, var(--surface-panel-2) 94%, var(--surface-control))
+  );
+}
+
+.operator-signal-card:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent),
+    0 0 0 3px var(--focus-ring-soft);
 }
 
 .operator-signal-card h3 {
@@ -1018,6 +1041,15 @@ textarea {
 
 .operator-signal-card .status-pill {
   justify-self: start;
+}
+
+.operator-health-card-flash {
+  border-color: color-mix(in oklch, var(--primary) 56%, var(--border-soft)) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent),
+    0 0 0 3px color-mix(in oklch, var(--primary) 20%, transparent),
+    var(--shadow-md) !important;
+  transition: box-shadow 260ms ease, border-color 260ms ease;
 }
 
 .actions-priority {

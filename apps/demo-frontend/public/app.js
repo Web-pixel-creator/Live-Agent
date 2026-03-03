@@ -61,6 +61,7 @@ const MAX_ASSISTANT_AUDIO_EXPORT_BYTES = 32 * 1024 * 1024;
 const BG_VIDEO_LOOP_BLEND_SECONDS = 1.2;
 const BG_VIDEO_LOOP_RESET_SECONDS = 0.3;
 const BG_VIDEO_LOOP_TRANSITION_CLASS = "bg-video-loop-transition";
+const OPERATOR_SIGNAL_FLASH_MS = 1200;
 
 const el = {
   backgroundVideo: document.getElementById("backgroundVideo"),
@@ -887,6 +888,36 @@ function setOperatorFocusCriticalMode(enabled) {
     el.operatorFocusCriticalBtn.textContent = state.operatorFocusCriticalOnly ? "Show All Cards" : "Focus Critical";
   }
   applyOperatorCardsVisibility();
+}
+
+function getOperatorCardByStatusId(statusId) {
+  if (typeof statusId !== "string" || statusId.trim().length === 0) {
+    return null;
+  }
+  const statusNode = document.getElementById(statusId.trim());
+  if (!(statusNode instanceof HTMLElement)) {
+    return null;
+  }
+  const card = statusNode.closest(".operator-health-card");
+  return card instanceof HTMLElement ? card : null;
+}
+
+function jumpToOperatorStatusCard(statusId) {
+  const card = getOperatorCardByStatusId(statusId);
+  if (!(card instanceof HTMLElement)) {
+    return;
+  }
+  const group = card.closest(".operator-health-group");
+  if (group instanceof HTMLElement) {
+    setOperatorGroupCollapsed(group, false);
+    syncOperatorCollapseActionButtons();
+  }
+  card.classList.remove("operator-health-card-flash");
+  card.classList.add("operator-health-card-flash");
+  setTimeout(() => {
+    card.classList.remove("operator-health-card-flash");
+  }, OPERATOR_SIGNAL_FLASH_MS);
+  card.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
 }
 
 function isOperatorPlaceholderStatusText(value) {
@@ -7243,6 +7274,13 @@ function bindEvents() {
       const shouldCollapse = !group.classList.contains("is-collapsed");
       setOperatorGroupCollapsed(group, shouldCollapse);
       syncOperatorCollapseActionButtons();
+    });
+  }
+  const operatorSignalJumps = document.querySelectorAll("[data-operator-signal-target]");
+  for (const jumpButton of operatorSignalJumps) {
+    jumpButton.addEventListener("click", () => {
+      const statusId = jumpButton.getAttribute("data-operator-signal-target");
+      jumpToOperatorStatusCard(statusId ?? "");
     });
   }
   document.getElementById("operatorCancelBtn").addEventListener("click", () => {
