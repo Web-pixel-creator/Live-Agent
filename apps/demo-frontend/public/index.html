@@ -473,6 +473,32 @@
           <button id="operatorExpandAllBtn" class="button-muted">Expand All</button>
           <button id="operatorCancelBtn" class="button-warn">Cancel Task</button>
         </div>
+        <div class="operator-triage-summary" role="status" aria-live="polite">
+          <article class="operator-triage-stat">
+            <h3>Total</h3>
+            <p id="operatorTriageTotal">0</p>
+          </article>
+          <article class="operator-triage-stat">
+            <h3>Visible</h3>
+            <p id="operatorTriageVisible">0</p>
+          </article>
+          <article class="operator-triage-stat operator-triage-stat-fail">
+            <h3>Fail</h3>
+            <p id="operatorTriageFail">0</p>
+          </article>
+          <article class="operator-triage-stat operator-triage-stat-neutral">
+            <h3>Neutral</h3>
+            <p id="operatorTriageNeutral">0</p>
+          </article>
+          <article class="operator-triage-stat operator-triage-stat-ok">
+            <h3>Ok</h3>
+            <p id="operatorTriageOk">0</p>
+          </article>
+          <article class="operator-triage-stat">
+            <h3>Hidden</h3>
+            <p id="operatorTriageHidden">0</p>
+          </article>
+        </div>
         <details id="operatorAdvancedActions" class="operator-advanced-actions">
           <summary>Advanced Actions</summary>
           <p class="operator-advanced-actions-hint">

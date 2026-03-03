@@ -932,6 +932,69 @@ textarea {
   gap: 10px;
 }
 
+.operator-triage-summary {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.operator-triage-stat {
+  border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);
+  border-radius: calc(var(--radius) - 6px);
+  padding: 10px 11px;
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklch, var(--surface-control) 90%, var(--surface-panel)),
+    color-mix(in oklch, var(--surface-panel-2) 94%, var(--surface-control))
+  );
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent);
+  display: grid;
+  gap: 5px;
+}
+
+.operator-triage-stat h3 {
+  margin: 0;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: color-mix(in oklch, var(--muted-foreground) 82%, var(--foreground));
+}
+
+.operator-triage-stat p {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: color-mix(in oklch, var(--foreground) 96%, var(--accent-foreground));
+}
+
+.operator-triage-stat-fail {
+  border-color: color-mix(in oklch, var(--destructive) 42%, var(--border-soft));
+  background:
+    radial-gradient(160px 65px at 0% -10%, color-mix(in oklch, var(--destructive) 10%, transparent), transparent 72%),
+    linear-gradient(
+      160deg,
+      color-mix(in oklch, var(--surface-control) 90%, var(--surface-panel)),
+      color-mix(in oklch, var(--surface-panel-2) 94%, var(--surface-control))
+    );
+}
+
+.operator-triage-stat-neutral {
+  border-color: color-mix(in oklch, var(--muted-foreground) 30%, var(--border-soft));
+}
+
+.operator-triage-stat-ok {
+  border-color: color-mix(in oklch, var(--chart-1) 38%, var(--border-soft));
+  background:
+    radial-gradient(160px 65px at 0% -10%, color-mix(in oklch, var(--chart-1) 10%, transparent), transparent 72%),
+    linear-gradient(
+      160deg,
+      color-mix(in oklch, var(--surface-control) 90%, var(--surface-panel)),
+      color-mix(in oklch, var(--surface-panel-2) 94%, var(--surface-control))
+    );
+}
+
 .operator-advanced-actions {
   margin-top: 12px;
   border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);

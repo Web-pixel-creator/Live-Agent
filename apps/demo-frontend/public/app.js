@@ -149,6 +149,12 @@ const el = {
   operatorIssuesOnlyBtn: document.getElementById("operatorIssuesOnlyBtn"),
   operatorCollapseAllBtn: document.getElementById("operatorCollapseAllBtn"),
   operatorExpandAllBtn: document.getElementById("operatorExpandAllBtn"),
+  operatorTriageTotal: document.getElementById("operatorTriageTotal"),
+  operatorTriageVisible: document.getElementById("operatorTriageVisible"),
+  operatorTriageFail: document.getElementById("operatorTriageFail"),
+  operatorTriageNeutral: document.getElementById("operatorTriageNeutral"),
+  operatorTriageOk: document.getElementById("operatorTriageOk"),
+  operatorTriageHidden: document.getElementById("operatorTriageHidden"),
   operatorSignalBridge: document.getElementById("operatorSignalBridge"),
   operatorSignalQueue: document.getElementById("operatorSignalQueue"),
   operatorSignalApprovals: document.getElementById("operatorSignalApprovals"),
@@ -903,6 +909,58 @@ function setOperatorIssuesOnlyMode(enabled) {
   applyOperatorCardsVisibility();
 }
 
+function readOperatorStatusVariant(statusNode) {
+  if (!(statusNode instanceof HTMLElement)) {
+    return "neutral";
+  }
+  if (statusNode.classList.contains("status-fail")) {
+    return "fail";
+  }
+  if (statusNode.classList.contains("status-ok")) {
+    return "ok";
+  }
+  return "neutral";
+}
+
+function refreshOperatorTriageSummary() {
+  const cards = Array.from(document.querySelectorAll(".operator-health-card"));
+  let visible = 0;
+  let hidden = 0;
+  let fail = 0;
+  let neutral = 0;
+  let ok = 0;
+
+  for (const card of cards) {
+    const group = card.closest(".operator-health-group");
+    const isGroupHidden = group instanceof HTMLElement && group.classList.contains("operator-health-group-hidden");
+    const isHidden = card.classList.contains("operator-health-card-hidden") || isGroupHidden;
+    if (isHidden) {
+      hidden += 1;
+      continue;
+    }
+
+    visible += 1;
+    const statusNode = card.querySelector(".status-pill");
+    const variant = readOperatorStatusVariant(statusNode);
+    if (variant === "fail") {
+      fail += 1;
+      continue;
+    }
+    if (variant === "ok") {
+      ok += 1;
+      continue;
+    }
+    neutral += 1;
+  }
+
+  setText(el.operatorTriageTotal, String(cards.length));
+  setText(el.operatorTriageVisible, String(visible));
+  setText(el.operatorTriageFail, String(fail));
+  setText(el.operatorTriageNeutral, String(neutral));
+  setText(el.operatorTriageOk, String(ok));
+  setText(el.operatorTriageHidden, String(hidden));
+}
+
 function resetOperatorBoardView() {
   setOperatorCardsCollapsed(false);
   setOperatorIssuesOnlyMode(false);
@@ -994,6 +1052,7 @@ function applyOperatorCardsVisibility() {
   }
   applyOperatorDefaultGroupFocus();
   syncOperatorCollapseActionButtons();
+  refreshOperatorTriageSummary();
 }
 
 function toConversationScope(value) {
@@ -2132,6 +2191,12 @@ function setStatusPill(node, text, variant) {
     node.classList.add("status-ok");
     if (operatorCard) {
       applyOperatorCardVisibility(operatorCard);
+      const group = operatorCard.closest(".operator-health-group");
+      if (group instanceof HTMLElement) {
+        applyOperatorGroupVisibility(group);
+      }
+      syncOperatorCollapseActionButtons();
+      refreshOperatorTriageSummary();
     }
     syncOperatorSignalFromStatus(node);
     return;
@@ -2140,6 +2205,12 @@ function setStatusPill(node, text, variant) {
     node.classList.add("status-fail");
     if (operatorCard) {
       applyOperatorCardVisibility(operatorCard);
+      const group = operatorCard.closest(".operator-health-group");
+      if (group instanceof HTMLElement) {
+        applyOperatorGroupVisibility(group);
+      }
+      syncOperatorCollapseActionButtons();
+      refreshOperatorTriageSummary();
     }
     syncOperatorSignalFromStatus(node);
     return;
@@ -2147,6 +2218,12 @@ function setStatusPill(node, text, variant) {
   node.classList.add("status-neutral");
   if (operatorCard) {
     applyOperatorCardVisibility(operatorCard);
+    const group = operatorCard.closest(".operator-health-group");
+    if (group instanceof HTMLElement) {
+      applyOperatorGroupVisibility(group);
+    }
+    syncOperatorCollapseActionButtons();
+    refreshOperatorTriageSummary();
   }
   syncOperatorSignalFromStatus(node);
 }
