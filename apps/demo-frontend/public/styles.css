@@ -1484,10 +1484,34 @@ button:focus-visible {
   gap: 12px;
 }
 
+.operator-health-group-title-row {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
 .operator-health-group-head h3 {
   margin: 0;
   color: color-mix(in oklch, var(--foreground) 84%, var(--accent-foreground));
   font-size: 1.01rem;
+}
+
+.operator-group-metrics {
+  margin: 0;
+  font-size: 0.79rem;
+  color: var(--muted-foreground);
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.operator-group-metrics.is-has-fail {
+  color: color-mix(in oklch, var(--destructive) 74%, var(--foreground));
+}
+
+.operator-group-metrics.is-all-ok {
+  color: color-mix(in oklch, var(--chart-1) 74%, var(--foreground));
 }
 
 .operator-group-toggle {

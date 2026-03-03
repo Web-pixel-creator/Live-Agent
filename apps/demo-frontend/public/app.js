@@ -961,6 +961,48 @@ function refreshOperatorTriageSummary() {
   setText(el.operatorTriageHidden, String(hidden));
 }
 
+function refreshOperatorGroupMetrics() {
+  const groups = Array.from(document.querySelectorAll(".operator-health-group"));
+  for (const group of groups) {
+    const metricsNode = group.querySelector("[data-operator-group-metrics]");
+    if (!(metricsNode instanceof HTMLElement)) {
+      continue;
+    }
+
+    const cards = Array.from(group.querySelectorAll(".operator-health-card"));
+    const isGroupHidden = group.classList.contains("operator-health-group-hidden");
+    let visible = 0;
+    let hidden = 0;
+    let fail = 0;
+    let neutral = 0;
+    let ok = 0;
+
+    for (const card of cards) {
+      const isHidden = isGroupHidden || card.classList.contains("operator-health-card-hidden");
+      if (isHidden) {
+        hidden += 1;
+        continue;
+      }
+      visible += 1;
+      const statusNode = card.querySelector(".status-pill");
+      const variant = readOperatorStatusVariant(statusNode);
+      if (variant === "fail") {
+        fail += 1;
+        continue;
+      }
+      if (variant === "ok") {
+        ok += 1;
+        continue;
+      }
+      neutral += 1;
+    }
+
+    metricsNode.textContent = `visible ${visible} | fail ${fail} | neutral ${neutral} | ok ${ok} | hidden ${hidden}`;
+    metricsNode.classList.toggle("is-has-fail", fail > 0);
+    metricsNode.classList.toggle("is-all-ok", fail === 0 && neutral === 0 && ok > 0);
+  }
+}
+
 function resetOperatorBoardView() {
   setOperatorCardsCollapsed(false);
   setOperatorIssuesOnlyMode(false);
@@ -1053,6 +1095,7 @@ function applyOperatorCardsVisibility() {
   applyOperatorDefaultGroupFocus();
   syncOperatorCollapseActionButtons();
   refreshOperatorTriageSummary();
+  refreshOperatorGroupMetrics();
 }
 
 function toConversationScope(value) {
@@ -2197,6 +2240,7 @@ function setStatusPill(node, text, variant) {
       }
       syncOperatorCollapseActionButtons();
       refreshOperatorTriageSummary();
+      refreshOperatorGroupMetrics();
     }
     syncOperatorSignalFromStatus(node);
     return;
@@ -2211,6 +2255,7 @@ function setStatusPill(node, text, variant) {
       }
       syncOperatorCollapseActionButtons();
       refreshOperatorTriageSummary();
+      refreshOperatorGroupMetrics();
     }
     syncOperatorSignalFromStatus(node);
     return;
@@ -2224,6 +2269,7 @@ function setStatusPill(node, text, variant) {
     }
     syncOperatorCollapseActionButtons();
     refreshOperatorTriageSummary();
+    refreshOperatorGroupMetrics();
   }
   syncOperatorSignalFromStatus(node);
 }

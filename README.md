@@ -103,6 +103,7 @@ Technical controls are collapsed into `Advanced Settings` blocks (`Live Setup` a
 `Issues Only` toggle hides cards already in `ok` state, so triage stays focused on neutral/fail evidence.
 `Reset View` returns Operator Console to default triage layout (`Focus Critical` on, `Issues Only` off, default group visibility).
 `Triage Summary` shows live counters (`total`, `visible`, `fail`, `neutral`, `ok`, `hidden`) that update with filters/status changes.
+Each operator lane header now includes live mini-counters (`visible/fail/neutral/ok/hidden`) for instant group-level triage.
 Secondary operator controls (`Retry Task`, `Failover Drain`, `Failover Warmup`) are grouped under collapsed `Advanced Actions` to keep the default toolbar focused.
 Signal strip cards are clickable and jump to the corresponding evidence widget, auto-expanding its group and flashing the target card.
 `KPI Constraints` includes per-metric delta badges (`price/delivery/sla`) plus explicit source attribution (`final_offer/current_offer/mixed_offer`) for quick judge scan.
