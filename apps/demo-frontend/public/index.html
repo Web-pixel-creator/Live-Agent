@@ -602,7 +602,7 @@
             aria-label="Jump to Live Bridge Status card"
           >
             <h3>Bridge</h3>
-            <p id="operatorSignalBridge" class="status-pill status-neutral">no_data</p>
+            <p id="operatorSignalBridge" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
           </button>
           <button
             type="button"
@@ -611,7 +611,7 @@
             aria-label="Jump to Task Queue Pressure card"
           >
             <h3>Queue</h3>
-            <p id="operatorSignalQueue" class="status-pill status-neutral">no_data</p>
+            <p id="operatorSignalQueue" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
           </button>
           <button
             type="button"
@@ -620,7 +620,7 @@
             aria-label="Jump to Approvals Queue card"
           >
             <h3>Approvals</h3>
-            <p id="operatorSignalApprovals" class="status-pill status-neutral">no_data</p>
+            <p id="operatorSignalApprovals" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
           </button>
           <button
             type="button"
@@ -629,7 +629,7 @@
             aria-label="Jump to Startup Failures card"
           >
             <h3>Startup</h3>
-            <p id="operatorSignalStartup" class="status-pill status-neutral">no_data</p>
+            <p id="operatorSignalStartup" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
           </button>
           <button
             type="button"
@@ -638,7 +638,7 @@
             aria-label="Jump to UI Executor Failover card"
           >
             <h3>UI Executor</h3>
-            <p id="operatorSignalUiExecutor" class="status-pill status-neutral">no_data</p>
+            <p id="operatorSignalUiExecutor" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
           </button>
           <button
             type="button"
@@ -647,7 +647,7 @@
             aria-label="Jump to Device Nodes Health card"
           >
             <h3>Device Nodes</h3>
-            <p id="operatorSignalDeviceNodes" class="status-pill status-neutral">no_data</p>
+            <p id="operatorSignalDeviceNodes" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
           </button>
         </div>
         <div id="operatorHealthBoard" class="operator-health-board">
@@ -672,7 +672,7 @@
             <div id="operator-group-bridge-safety-body" class="operator-health-group-body">
 <article class="operator-health-card" data-operator-critical data-operator-demo-essential>
             <h3>Live Bridge Status</h3>
-            <p id="operatorHealthStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorHealthStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>State</strong>
               <span id="operatorHealthState">unknown</span>
@@ -691,46 +691,46 @@
           </article>
 <article class="operator-health-card" data-operator-critical>
             <h3>Gateway Error Correlation</h3>
-            <p id="operatorGatewayErrorStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorGatewayErrorStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Source</strong>
-              <span id="operatorGatewayErrorSource">n/a</span>
+              <span id="operatorGatewayErrorSource">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Code</strong>
-              <span id="operatorGatewayErrorCode">n/a</span>
+              <span id="operatorGatewayErrorCode">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Trace ID</strong>
-              <span id="operatorGatewayErrorTraceId">n/a</span>
+              <span id="operatorGatewayErrorTraceId">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Client Event ID</strong>
-              <span id="operatorGatewayErrorClientEventId">n/a</span>
+              <span id="operatorGatewayErrorClientEventId">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Client Event Type</strong>
-              <span id="operatorGatewayErrorClientEventType">n/a</span>
+              <span id="operatorGatewayErrorClientEventType">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Conversation</strong>
-              <span id="operatorGatewayErrorConversation">n/a</span>
+              <span id="operatorGatewayErrorConversation">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Latency</strong>
-              <span id="operatorGatewayErrorLatency">n/a</span>
+              <span id="operatorGatewayErrorLatency">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Seen At</strong>
-              <span id="operatorGatewayErrorSeenAt">n/a</span>
+              <span id="operatorGatewayErrorSeenAt">pending</span>
             </p>
             <p id="operatorGatewayErrorHint" class="operator-health-hint operator-health-hint-neutral">
-              Waiting for gateway/orchestrator error events.
+              No gateway errors captured yet. Run flow probes or refresh summary to validate correlation lane.
             </p>
           </article>
 <article class="operator-health-card">
             <h3>Turn Truncation Evidence</h3>
-            <p id="operatorTurnTruncationStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorTurnTruncationStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Total</strong>
               <span id="operatorTurnTruncationTotal">0</span>
@@ -745,23 +745,23 @@
             </p>
             <p class="operator-health-row">
               <strong>Last Turn ID</strong>
-              <span id="operatorTurnTruncationTurnId">n/a</span>
+              <span id="operatorTurnTruncationTurnId">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Last Reason</strong>
-              <span id="operatorTurnTruncationReason">n/a</span>
+              <span id="operatorTurnTruncationReason">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Audio End</strong>
-              <span id="operatorTurnTruncationAudioEndMs">n/a</span>
+              <span id="operatorTurnTruncationAudioEndMs">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Content Index</strong>
-              <span id="operatorTurnTruncationContentIndex">n/a</span>
+              <span id="operatorTurnTruncationContentIndex">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Seen At</strong>
-              <span id="operatorTurnTruncationSeenAt">n/a</span>
+              <span id="operatorTurnTruncationSeenAt">pending</span>
             </p>
             <p id="operatorTurnTruncationHint" class="operator-health-hint operator-health-hint-neutral">
               No turn-truncation evidence yet. Trigger interruption/truncate flow in Live Negotiator, then refresh summary.
@@ -769,7 +769,7 @@
           </article>
 <article class="operator-health-card">
             <h3>Turn Delete Evidence</h3>
-            <p id="operatorTurnDeleteStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorTurnDeleteStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Total</strong>
               <span id="operatorTurnDeleteTotal">0</span>
@@ -784,19 +784,19 @@
             </p>
             <p class="operator-health-row">
               <strong>Last Turn ID</strong>
-              <span id="operatorTurnDeleteTurnId">n/a</span>
+              <span id="operatorTurnDeleteTurnId">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Last Reason</strong>
-              <span id="operatorTurnDeleteReason">n/a</span>
+              <span id="operatorTurnDeleteReason">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Last Scope</strong>
-              <span id="operatorTurnDeleteScope">n/a</span>
+              <span id="operatorTurnDeleteScope">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Seen At</strong>
-              <span id="operatorTurnDeleteSeenAt">n/a</span>
+              <span id="operatorTurnDeleteSeenAt">pending</span>
             </p>
             <p id="operatorTurnDeleteHint" class="operator-health-hint operator-health-hint-neutral">
               No turn-delete evidence yet. Run delete action in Live Controls, then refresh summary.
@@ -804,7 +804,7 @@
           </article>
 <article class="operator-health-card" data-operator-critical>
             <h3>Damage-Control Timeline</h3>
-            <p id="operatorDamageControlStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorDamageControlStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Total</strong>
               <span id="operatorDamageControlTotal">0</span>
@@ -823,18 +823,18 @@
             </p>
             <p class="operator-health-row">
               <strong>Latest</strong>
-              <span id="operatorDamageControlLatest">n/a</span>
+              <span id="operatorDamageControlLatest">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Last Rule IDs</strong>
-              <span id="operatorDamageControlRuleIds">n/a</span>
+              <span id="operatorDamageControlRuleIds">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Seen At</strong>
-              <span id="operatorDamageControlSeenAt">n/a</span>
+              <span id="operatorDamageControlSeenAt">pending</span>
             </p>
             <p id="operatorDamageControlHint" class="operator-health-hint operator-health-hint-neutral">
-              Waiting for damage-control decisions.
+              No damage-control decisions observed yet. Run a UI sandbox flow to populate this lane.
             </p>
           </article>
             </div>
@@ -860,7 +860,7 @@
             <div id="operator-group-governance-evidence-body" class="operator-health-group-body">
 <article class="operator-health-card">
             <h3>Skills Registry Lifecycle</h3>
-            <p id="operatorSkillsRegistryStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorSkillsRegistryStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Total</strong>
               <span id="operatorSkillsRegistryTotal">0</span>
@@ -883,11 +883,11 @@
             </p>
             <p class="operator-health-row">
               <strong>Latest</strong>
-              <span id="operatorSkillsRegistryLatest">n/a</span>
+              <span id="operatorSkillsRegistryLatest">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Seen At</strong>
-              <span id="operatorSkillsRegistrySeenAt">n/a</span>
+              <span id="operatorSkillsRegistrySeenAt">pending</span>
             </p>
             <p id="operatorSkillsRegistryHint" class="operator-health-hint operator-health-hint-neutral">
               No skills-registry lifecycle evidence yet. Run a skills scenario and refresh summary.
@@ -895,7 +895,7 @@
           </article>
 <article class="operator-health-card">
             <h3>Plugin Marketplace Lifecycle</h3>
-            <p id="operatorPluginMarketplaceStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorPluginMarketplaceStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Total</strong>
               <span id="operatorPluginMarketplaceTotal">0</span>
@@ -926,11 +926,11 @@
             </p>
             <p class="operator-health-row">
               <strong>Latest</strong>
-              <span id="operatorPluginMarketplaceLatest">n/a</span>
+              <span id="operatorPluginMarketplaceLatest">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Seen At</strong>
-              <span id="operatorPluginMarketplaceSeenAt">n/a</span>
+              <span id="operatorPluginMarketplaceSeenAt">pending</span>
             </p>
             <p id="operatorPluginMarketplaceHint" class="operator-health-hint operator-health-hint-neutral">
               No plugin-marketplace lifecycle evidence yet. Run plugin scenario and refresh summary.
@@ -938,7 +938,7 @@
           </article>
 <article class="operator-health-card">
             <h3>Governance Policy Lifecycle</h3>
-            <p id="operatorGovernancePolicyStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorGovernancePolicyStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Total</strong>
               <span id="operatorGovernancePolicyTotal">0</span>
@@ -961,11 +961,11 @@
             </p>
             <p class="operator-health-row">
               <strong>Latest</strong>
-              <span id="operatorGovernancePolicyLatest">n/a</span>
+              <span id="operatorGovernancePolicyLatest">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Seen At</strong>
-              <span id="operatorGovernancePolicySeenAt">n/a</span>
+              <span id="operatorGovernancePolicySeenAt">pending</span>
             </p>
             <p id="operatorGovernancePolicyHint" class="operator-health-hint operator-health-hint-neutral">
               No governance-policy lifecycle evidence yet. Run governance update/replay and refresh summary.
@@ -973,7 +973,7 @@
           </article>
 <article class="operator-health-card">
             <h3>Agent Usage Evidence</h3>
-            <p id="operatorAgentUsageStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorAgentUsageStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Total</strong>
               <span id="operatorAgentUsageTotal">0</span>
@@ -996,15 +996,15 @@
             </p>
             <p class="operator-health-row">
               <strong>Models</strong>
-              <span id="operatorAgentUsageModels">n/a</span>
+              <span id="operatorAgentUsageModels">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Source</strong>
-              <span id="operatorAgentUsageSource">n/a</span>
+              <span id="operatorAgentUsageSource">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Seen At</strong>
-              <span id="operatorAgentUsageSeenAt">n/a</span>
+              <span id="operatorAgentUsageSeenAt">pending</span>
             </p>
             <p id="operatorAgentUsageHint" class="operator-health-hint operator-health-hint-neutral">
               No agent-usage evidence yet. Run one live/story exchange, then refresh summary.
@@ -1012,7 +1012,7 @@
           </article>
 <article class="operator-health-card">
             <h3>Cost &amp; Tokens Evidence</h3>
-            <p id="operatorCostEstimateStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorCostEstimateStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Currency</strong>
               <span id="operatorCostEstimateCurrency">USD</span>
@@ -1047,7 +1047,7 @@
             </p>
             <p class="operator-health-row">
               <strong>Seen At</strong>
-              <span id="operatorCostEstimateSeenAt">n/a</span>
+              <span id="operatorCostEstimateSeenAt">pending</span>
             </p>
             <p id="operatorCostEstimateHint" class="operator-health-hint operator-health-hint-neutral">
               No cost-estimate evidence yet. Run one exchange and refresh summary to recalculate tokens/USD.
@@ -1097,12 +1097,12 @@
             <p class="operator-health-row"><strong>Ping Errors</strong><span id="operatorHealthPingErrors">0</span></p>
             <p class="operator-health-row">
               <strong>Probe Success</strong>
-              <span id="operatorHealthProbeSuccess">n/a</span>
+              <span id="operatorHealthProbeSuccess">pending</span>
             </p>
           </article>
 <article class="operator-health-card" data-operator-critical data-operator-demo-essential>
             <h3>UI Executor Failover</h3>
-            <p id="operatorUiExecutorStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorUiExecutorStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>State</strong>
               <span id="operatorUiExecutorState">unknown</span>
@@ -1113,11 +1113,11 @@
             </p>
             <p class="operator-health-row">
               <strong>Profile</strong>
-              <span id="operatorUiExecutorProfile">n/a</span>
+              <span id="operatorUiExecutorProfile">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Version</strong>
-              <span id="operatorUiExecutorVersion">n/a</span>
+              <span id="operatorUiExecutorVersion">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Last Action</strong>
@@ -1133,7 +1133,7 @@
           </article>
 <article class="operator-health-card" data-operator-critical data-operator-demo-essential>
             <h3>Device Nodes Health</h3>
-            <p id="operatorDeviceNodesStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorDeviceNodesStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Total</strong>
               <span id="operatorDeviceNodesTotal">0</span>
@@ -1160,7 +1160,7 @@
             </p>
             <p class="operator-health-row">
               <strong>Max Age</strong>
-              <span id="operatorDeviceNodesMaxAge">n/a</span>
+              <span id="operatorDeviceNodesMaxAge">pending</span>
             </p>
             <p id="operatorDeviceNodesHint" class="operator-health-hint operator-health-hint-neutral">
               Refresh summary to inspect device-node fleet health.
@@ -1168,7 +1168,7 @@
           </article>
 <article class="operator-health-card">
             <h3>Device Node Updates Evidence</h3>
-            <p id="operatorDeviceNodeUpdatesStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorDeviceNodeUpdatesStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Total</strong>
               <span id="operatorDeviceNodeUpdatesTotal">0</span>
@@ -1187,11 +1187,11 @@
             </p>
             <p class="operator-health-row">
               <strong>Latest</strong>
-              <span id="operatorDeviceNodeUpdatesLatest">n/a</span>
+              <span id="operatorDeviceNodeUpdatesLatest">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Seen At</strong>
-              <span id="operatorDeviceNodeUpdatesSeenAt">n/a</span>
+              <span id="operatorDeviceNodeUpdatesSeenAt">pending</span>
             </p>
             <p id="operatorDeviceNodeUpdatesHint" class="operator-health-hint operator-health-hint-neutral">
               Refresh summary to inspect upsert/heartbeat updates proof.
@@ -1199,7 +1199,7 @@
           </article>
 <article class="operator-health-card">
             <h3>Trace Coverage</h3>
-            <p id="operatorTraceStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorTraceStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Runs</strong>
               <span id="operatorTraceRuns">0</span>
@@ -1226,11 +1226,11 @@
             </p>
             <p class="operator-health-row">
               <strong>Top Route</strong>
-              <span id="operatorTraceTopRoute">n/a</span>
+              <span id="operatorTraceTopRoute">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Top Status</strong>
-              <span id="operatorTraceTopStatus">n/a</span>
+              <span id="operatorTraceTopStatus">pending</span>
             </p>
             <p id="operatorTraceHint" class="operator-health-hint operator-health-hint-neutral">
               Refresh summary to inspect operator trace coverage.
@@ -1259,7 +1259,7 @@
             <div id="operator-group-queue-lifecycle-body" class="operator-health-group-body">
 <article class="operator-health-card" data-operator-critical data-operator-demo-essential>
             <h3>Approvals Queue</h3>
-            <p id="operatorApprovalsStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorApprovalsStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Total</strong>
               <span id="operatorApprovalsTotal">0</span>
@@ -1290,7 +1290,7 @@
             </p>
             <p class="operator-health-row">
               <strong>Latest</strong>
-              <span id="operatorApprovalsLatest">n/a</span>
+              <span id="operatorApprovalsLatest">pending</span>
             </p>
             <p id="operatorApprovalsHint" class="operator-health-hint operator-health-hint-neutral">
               Refresh summary to inspect approval backlog and SLA timeouts.
@@ -1298,7 +1298,7 @@
           </article>
 <article class="operator-health-card" data-operator-critical>
             <h3>Service Lifecycle</h3>
-            <p id="operatorLifecycleStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorLifecycleStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Ready</strong>
               <span id="operatorLifecycleReady">0</span>
@@ -1313,7 +1313,7 @@
             </p>
             <p class="operator-health-row">
               <strong>Last Change</strong>
-              <span id="operatorLifecycleLastChange">n/a</span>
+              <span id="operatorLifecycleLastChange">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Draining Services</strong>
@@ -1325,7 +1325,7 @@
           </article>
 <article class="operator-health-card" data-operator-critical data-operator-demo-essential>
             <h3>Task Queue Pressure</h3>
-            <p id="operatorTaskQueueStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorTaskQueueStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Total Active</strong>
               <span id="operatorTaskQueueTotal">0</span>
@@ -1348,11 +1348,11 @@
             </p>
             <p class="operator-health-row">
               <strong>Max Age</strong>
-              <span id="operatorTaskQueueMaxAge">n/a</span>
+              <span id="operatorTaskQueueMaxAge">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Oldest Task</strong>
-              <span id="operatorTaskQueueOldest">n/a</span>
+              <span id="operatorTaskQueueOldest">pending</span>
             </p>
             <p id="operatorTaskQueueHint" class="operator-health-hint operator-health-hint-neutral">
               Refresh summary to inspect active task queue pressure.
@@ -1360,7 +1360,7 @@
           </article>
 <article class="operator-health-card" data-operator-critical data-operator-demo-essential>
             <h3>Startup Failures</h3>
-            <p id="operatorStartupStatus" class="status-pill status-neutral">no_data</p>
+            <p id="operatorStartupStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
             <p class="operator-health-row">
               <strong>Total</strong>
               <span id="operatorStartupTotal">0</span>
@@ -1371,15 +1371,15 @@
             </p>
             <p class="operator-health-row">
               <strong>Last Type</strong>
-              <span id="operatorStartupLastType">n/a</span>
+              <span id="operatorStartupLastType">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Last Service</strong>
-              <span id="operatorStartupLastService">n/a</span>
+              <span id="operatorStartupLastService">pending</span>
             </p>
             <p class="operator-health-row">
               <strong>Last Checked</strong>
-              <span id="operatorStartupLastCheckedAt">n/a</span>
+              <span id="operatorStartupLastCheckedAt">pending</span>
             </p>
             <p id="operatorStartupHint" class="operator-health-hint operator-health-hint-neutral">
               Refresh summary to inspect startup diagnostics from service probes.
