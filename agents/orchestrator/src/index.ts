@@ -18,7 +18,7 @@ import { getFirestoreState } from "./services/firestore.js";
 import { buildStoryCacheMetricRecords } from "./story-cache-telemetry.js";
 import { buildStoryQueueMetricRecords } from "./story-queue-telemetry.js";
 
-const port = Number(process.env.ORCHESTRATOR_PORT ?? 8082);
+const port = Number(process.env.PORT ?? process.env.ORCHESTRATOR_PORT ?? 8082);
 const serviceName = "orchestrator";
 const runtimeProfile = applyRuntimeProfile(serviceName);
 const serviceVersion = process.env.ORCHESTRATOR_VERSION ?? process.env.SERVICE_VERSION ?? "0.1.0";

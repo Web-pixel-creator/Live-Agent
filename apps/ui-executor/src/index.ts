@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
-import { applyRuntimeProfile, RollingMetrics } from "@mla/contracts";
+import { applyRuntimeProfile, RollingMetrics } from "./contracts/index.js";
 
 type ActionType = "navigate" | "click" | "type" | "scroll" | "hotkey" | "wait" | "verify";
 
@@ -128,7 +128,7 @@ function parseDeviceNodes(raw: string | undefined): Map<string, DeviceNodeDescri
 }
 
 function loadConfig(): ExecutorConfig {
-  const portRaw = Number(process.env.UI_EXECUTOR_PORT ?? 8090);
+  const portRaw = Number(process.env.PORT ?? process.env.UI_EXECUTOR_PORT ?? 8090);
   const timeoutRaw = Number(process.env.UI_EXECUTOR_ACTION_TIMEOUT_MS ?? 2500);
   const deviceNodes = parseDeviceNodes(process.env.UI_EXECUTOR_DEVICE_NODES_JSON);
   const defaultDeviceNodeId = toNonEmptyString(process.env.UI_EXECUTOR_DEFAULT_DEVICE_NODE_ID, "");
