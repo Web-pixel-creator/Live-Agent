@@ -7,7 +7,7 @@
       "items": [
         {
           "name": "Background",
-          "value": "oklch(0.2223 0.0060 271.1393)",
+          "value": "#0e0f11",
           "sourceToken": "--background"
         },
         {

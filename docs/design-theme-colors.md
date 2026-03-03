@@ -10,7 +10,7 @@ Theme palette used by the demo/operator UI (`Violet Bloom`, tweakcn/shadcn style
 
 | Name | Value | Source |
 | --- | --- | --- |
-| Background | `oklch(0.2223 0.0060 271.1393)` | `--background` |
+| Background | `#0e0f11` | `--background` |
 | Foreground | `oklch(0.9551 0 0)` | `--foreground` |
 | Primary | `oklch(0.6132 0.2294 291.7437)` | `--primary` |
 | Primary Foreground | `oklch(1 0 0)` | `--primary-foreground` |

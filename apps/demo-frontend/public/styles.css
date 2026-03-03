@@ -3,7 +3,7 @@
 :root {
   /* Violet Bloom (dark, default) */
   color-scheme: dark;
-  --background: oklch(0.2223 0.0060 271.1393);
+  --background: #0e0f11;
   --foreground: oklch(0.9551 0 0);
   --card: oklch(0.2568 0.0076 274.6528);
   --card-foreground: oklch(0.9551 0 0);
@@ -79,7 +79,9 @@
   --surface-control-strong: color-mix(in oklch, var(--secondary) 70%, var(--background));
   --focus-ring-soft: color-mix(in oklch, var(--ring) 26%, transparent);
   --bg-video-opacity: 0.08;
-  --bg-video-transition-opacity: 0.064;
+  --bg-video-transition-opacity: 0.008;
+  --bg-canvas: #0e0f11;
+  --bg-video-seam-color: #0e0f11;
   --bg-video-loop-duration: 15s;
 }
 
@@ -147,7 +149,9 @@
   --surface-control-strong: color-mix(in oklch, var(--secondary) 84%, white);
   --focus-ring-soft: color-mix(in oklch, var(--ring) 16%, transparent);
   --bg-video-opacity: 0.06;
-  --bg-video-transition-opacity: 0.05;
+  --bg-video-transition-opacity: 0.006;
+  --bg-canvas: #0e0f11;
+  --bg-video-seam-color: #0e0f11;
 }
 
 * {
@@ -179,10 +183,24 @@ body {
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  background-color: var(--bg-canvas);
   background:
-    radial-gradient(1200px 700px at 8% -18%, var(--primary-soft), transparent 62%),
-    radial-gradient(1000px 660px at 94% -12%, var(--accent-soft), transparent 58%),
-    linear-gradient(165deg, var(--background), color-mix(in oklch, var(--background) 80%, var(--secondary)) 56%, var(--bg-1));
+    radial-gradient(
+      1200px 700px at 8% -18%,
+      color-mix(in oklch, var(--primary) 8%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      1000px 660px at 94% -12%,
+      color-mix(in oklch, var(--accent-foreground) 6%, transparent),
+      transparent 68%
+    ),
+    linear-gradient(
+      165deg,
+      var(--bg-canvas),
+      color-mix(in srgb, var(--bg-canvas) 90%, var(--bg-1)) 56%,
+      color-mix(in srgb, var(--bg-canvas) 84%, var(--bg-1))
+    );
 }
 
 body::before {
@@ -221,8 +239,8 @@ body::before {
   filter: saturate(0.84) contrast(1.03);
   will-change: opacity, filter;
   transition:
-    opacity 360ms ease,
-    filter 360ms ease;
+    opacity 680ms ease-in-out,
+    filter 680ms ease-in-out;
 }
 
 .background-video-fade {
@@ -231,23 +249,21 @@ body::before {
   z-index: -2;
   pointer-events: none;
   opacity: 0;
-  background:
-    radial-gradient(120% 70% at 50% 12%, color-mix(in oklch, var(--primary) 18%, transparent), transparent 72%),
-    linear-gradient(
-      180deg,
-      color-mix(in oklch, var(--background) 58%, transparent),
-      color-mix(in oklch, var(--background) 92%, transparent)
-    );
-  transition: opacity 300ms ease;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg-video-seam-color) 78%, transparent),
+    color-mix(in srgb, var(--bg-video-seam-color) 96%, transparent)
+  );
+  transition: opacity 680ms ease-in-out;
 }
 
 body.bg-video-loop-transition .background-video {
   opacity: var(--bg-video-transition-opacity);
-  filter: blur(0.45px) saturate(0.85) contrast(1.03);
+  filter: blur(0.2px) saturate(0.82) contrast(1.02);
 }
 
 body.bg-video-loop-transition .background-video-fade {
-  opacity: 0.08;
+  opacity: 0.22;
 }
 
 .layout {
