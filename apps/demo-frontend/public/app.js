@@ -1234,14 +1234,49 @@ function setConnectionStatus(text) {
   renderAssistantActivityStatus();
 }
 
+function resolveSessionStateVariant(text) {
+  const normalized = typeof text === "string" ? text.trim().toLowerCase() : "";
+  if (!normalized || normalized === "-" || normalized === "idle" || normalized === "unknown") {
+    return "neutral";
+  }
+  if (
+    normalized.includes("ready") ||
+    normalized.includes("active") ||
+    normalized.includes("running") ||
+    normalized.includes("connected")
+  ) {
+    return "ok";
+  }
+  if (
+    normalized.includes("error") ||
+    normalized.includes("fail") ||
+    normalized.includes("disconnect") ||
+    normalized.includes("timeout") ||
+    normalized.includes("drain")
+  ) {
+    return "fail";
+  }
+  return "neutral";
+}
+
 function setSessionState(text) {
-  state.sessionState = text;
-  el.sessionState.textContent = text;
+  const normalized = typeof text === "string" && text.trim().length > 0 ? text.trim() : "-";
+  state.sessionState = normalized;
+  setStatusPill(el.sessionState, normalized, resolveSessionStateVariant(normalized));
+}
+
+function resolveModeStatusVariant(mode) {
+  const normalized = typeof mode === "string" ? mode.trim().toLowerCase() : "";
+  if (normalized === "voice") {
+    return "ok";
+  }
+  return "neutral";
 }
 
 function setMode(mode) {
-  state.mode = mode;
-  el.modeStatus.textContent = mode;
+  const normalized = typeof mode === "string" && mode.trim().length > 0 ? mode.trim() : "voice";
+  state.mode = normalized;
+  setStatusPill(el.modeStatus, normalized, resolveModeStatusVariant(normalized));
 }
 
 function setPttStatus(text, variant = "neutral") {
