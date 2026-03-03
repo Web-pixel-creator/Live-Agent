@@ -1730,6 +1730,17 @@ button:focus-visible {
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
 }
 
+.kpi-panel > .kpi-target-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.kpi-panel > .kpi-target-grid .field > span {
+  min-height: 2.75em;
+  display: flex;
+  align-items: flex-end;
+}
+
 .kpi-board-featured {
   grid-template-columns: 1fr;
 }
@@ -2834,6 +2845,10 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .kpi-panel > .kpi-target-grid .field > span {
+    min-height: 0;
+  }
+
   .story-head-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2876,6 +2891,14 @@ button:focus-visible {
 
   .actions-priority {
     gap: 10px;
+  }
+
+  .kpi-panel > .kpi-target-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpi-panel > .kpi-target-grid .field > span {
+    min-height: 0;
   }
 }
 
