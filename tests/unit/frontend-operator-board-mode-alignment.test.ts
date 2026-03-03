@@ -19,6 +19,8 @@ test("operator console exposes demo/full board mode toggles with runtime presets
   const requiredHtmlTokens = [
     'id="operatorDemoViewBtn"',
     'id="operatorFullOpsViewBtn"',
+    'id="operatorBoardModeHint"',
+    "data-operator-demo-essential",
     "Demo View",
     "Full Ops View",
     'class="action-group operator-view-mode-actions"',
@@ -31,9 +33,12 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'operatorBoardMode: "demo"',
     'operatorDemoViewBtn: document.getElementById("operatorDemoViewBtn")',
     'operatorFullOpsViewBtn: document.getElementById("operatorFullOpsViewBtn")',
+    'operatorBoardModeHint: document.getElementById("operatorBoardModeHint")',
     "function normalizeOperatorBoardMode(value)",
     "function syncOperatorBoardModeButtons()",
     "function setOperatorBoardMode(mode, options = {})",
+    "function isOperatorDemoEssentialCard(card)",
+    "state.operatorBoardMode === \"demo\" && state.operatorFocusCriticalOnly === true && !isOperatorDemoEssentialCard(card)",
     'setOperatorBoardMode("demo", { syncPresets: false });',
     "el.operatorDemoViewBtn.addEventListener(\"click\", () => {",
     "setOperatorBoardMode(\"demo\");",
@@ -47,6 +52,8 @@ test("operator console exposes demo/full board mode toggles with runtime presets
   const requiredStyleTokens = [
     ".operator-view-mode-actions {",
     ".operator-view-mode-actions .button-muted {",
+    ".operator-board-mode-hint {",
+    ".operator-health-board.is-demo-view .operator-health-card[data-operator-demo-essential] {",
   ];
   for (const token of requiredStyleTokens) {
     assert.ok(stylesSource.includes(token), `frontend styles missing operator-board-mode token: ${token}`);
@@ -57,7 +64,15 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "README missing operator board-mode note",
   );
   assert.ok(
+    readmeSource.includes("keeps six judge-facing cards visible by default"),
+    "README missing operator demo essential-cards note",
+  );
+  assert.ok(
     operatorGuideSource.includes("`Demo View` (default) keeps Operator Console in critical-first mode"),
     "operator guide missing operator board-mode note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("prioritizes six cards (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`)"),
+    "operator guide missing operator demo essential-cards note",
   );
 });

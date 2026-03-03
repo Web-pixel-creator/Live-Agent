@@ -455,11 +455,14 @@
             <h3>Segment Preview</h3>
             <div id="storyTimelinePreview" class="story-timeline-preview story-timeline-preview-empty">
               <div class="story-empty-state">
-                <span class="story-empty-icon" aria-hidden="true">Story</span>
+                <span class="story-empty-icon" aria-hidden="true">Timeline</span>
                 <p class="story-empty-title">No segments yet</p>
                 <p class="story-empty-hint">
                   Run a <code>story</code> intent in Live Negotiator to populate timeline previews and media assets.
                 </p>
+                <button id="storyTimelineOpenLiveBtn" type="button" class="button-muted story-empty-action">
+                  Open Live Negotiator
+                </button>
               </div>
             </div>
           </aside>
@@ -508,6 +511,9 @@
           <button id="operatorExpandAllBtn" class="button-muted">Expand All</button>
           <button id="operatorCancelBtn" class="button-warn">Cancel Task</button>
         </div>
+        <p id="operatorBoardModeHint" class="operator-board-mode-hint">
+          Demo View keeps six judge-facing cards visible by default and still surfaces new failures.
+        </p>
         <div class="operator-triage-summary" role="status" aria-live="polite">
           <article class="operator-triage-stat">
             <h3>Total</h3>
@@ -621,7 +627,7 @@
               </button>
             </header>
             <div id="operator-group-bridge-safety-body" class="operator-health-group-body">
-<article class="operator-health-card" data-operator-critical>
+<article class="operator-health-card" data-operator-critical data-operator-demo-essential>
             <h3>Live Bridge Status</h3>
             <p id="operatorHealthStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
@@ -1051,7 +1057,7 @@
               <span id="operatorHealthProbeSuccess">n/a</span>
             </p>
           </article>
-<article class="operator-health-card" data-operator-critical>
+<article class="operator-health-card" data-operator-critical data-operator-demo-essential>
             <h3>UI Executor Failover</h3>
             <p id="operatorUiExecutorStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
@@ -1082,7 +1088,7 @@
               Refresh summary to inspect ui-executor failover state.
             </p>
           </article>
-<article class="operator-health-card" data-operator-critical>
+<article class="operator-health-card" data-operator-critical data-operator-demo-essential>
             <h3>Device Nodes Health</h3>
             <p id="operatorDeviceNodesStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
@@ -1208,7 +1214,7 @@
               </button>
             </header>
             <div id="operator-group-queue-lifecycle-body" class="operator-health-group-body">
-<article class="operator-health-card" data-operator-critical>
+<article class="operator-health-card" data-operator-critical data-operator-demo-essential>
             <h3>Approvals Queue</h3>
             <p id="operatorApprovalsStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
@@ -1274,7 +1280,7 @@
               Refresh summary to inspect runtime lifecycle states.
             </p>
           </article>
-<article class="operator-health-card" data-operator-critical>
+<article class="operator-health-card" data-operator-critical data-operator-demo-essential>
             <h3>Task Queue Pressure</h3>
             <p id="operatorTaskQueueStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">
@@ -1309,7 +1315,7 @@
               Refresh summary to inspect active task queue pressure.
             </p>
           </article>
-<article class="operator-health-card" data-operator-critical>
+<article class="operator-health-card" data-operator-critical data-operator-demo-essential>
             <h3>Startup Failures</h3>
             <p id="operatorStartupStatus" class="status-pill status-neutral">no_data</p>
             <p class="operator-health-row">

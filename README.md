@@ -100,6 +100,7 @@ Technical controls are collapsed into `Advanced Settings` blocks (`Advanced Sess
 `Operator Console` uses grouped accordion lanes; before the first manual `Refresh Summary`, only `Live Bridge & Turn Safety` stays expanded by default.
 `Operator Console` hides placeholder cards (`no_data` / `summary_error`) until the first manual `Refresh Summary`, so judges/operators see only populated evidence by default.
 `Operator Console` includes explicit mode toggles: `Demo View` (default, critical-first) and `Full Ops View` (full board expansion for deep diagnostics).
+In `Demo View`, the board keeps six judge-facing cards visible by default (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`) while still surfacing any new `fail` cards outside that set.
 `Operator Console` starts in `Focus Critical` mode with a top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); use `Show All Cards` to inspect the full evidence set.
 `Issues Only` toggle hides cards already in `ok` state, so triage stays focused on neutral/fail evidence.
 `Reset View` returns Operator Console to default triage layout (`Focus Critical` on, `Issues Only` off, default group visibility).
@@ -115,6 +116,7 @@ Frontend header includes a persisted `dark/light` theme toggle for judge/operato
 Frontend supports a subtle animated background video (`apps/demo-frontend/public/bg-video.mp4`) with loop-transition smoothing and `prefers-reduced-motion` fallback.
 Frontend visual system uses `Violet Bloom` dashboard tokens (colors/radius/shadows/typography) in `apps/demo-frontend/public/styles.css`.
 Frontend includes an interactive `Story Timeline` panel/workspace (progress bar + segment scrubber + selector + preview + asset refs + selectable segment cards) fed directly from Storyteller outputs, with explicit `timeline mode`, `asset mix`, and `segment progress` pills.
+`Story Timeline` empty state includes a direct `Open Live Negotiator` action that switches back to the live tab and preselects `intent=story`.
 
 Judge-facing visual evidence pack:
 ```bash

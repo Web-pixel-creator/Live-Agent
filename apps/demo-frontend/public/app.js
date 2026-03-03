@@ -148,6 +148,7 @@ const el = {
   operatorTargetService: document.getElementById("operatorTargetService"),
   operatorDemoViewBtn: document.getElementById("operatorDemoViewBtn"),
   operatorFullOpsViewBtn: document.getElementById("operatorFullOpsViewBtn"),
+  operatorBoardModeHint: document.getElementById("operatorBoardModeHint"),
   operatorResetViewBtn: document.getElementById("operatorResetViewBtn"),
   operatorFocusCriticalBtn: document.getElementById("operatorFocusCriticalBtn"),
   operatorIssuesOnlyBtn: document.getElementById("operatorIssuesOnlyBtn"),
@@ -932,6 +933,11 @@ function syncOperatorBoardModeButtons() {
     el.operatorHealthBoard.classList.toggle("is-demo-view", isDemo);
     el.operatorHealthBoard.classList.toggle("is-full-ops-view", !isDemo);
   }
+  if (el.operatorBoardModeHint) {
+    el.operatorBoardModeHint.textContent = isDemo
+      ? "Demo View keeps six judge-facing cards visible by default and still surfaces new failures."
+      : "Full Ops View shows the full diagnostics board (all cards and lanes).";
+  }
 }
 
 function setOperatorBoardMode(mode, options = {}) {
@@ -1111,6 +1117,10 @@ function isOperatorPlaceholderStatusText(value) {
   return normalized === "no_data" || normalized === "summary_error";
 }
 
+function isOperatorDemoEssentialCard(card) {
+  return card instanceof HTMLElement && card.hasAttribute("data-operator-demo-essential");
+}
+
 function applyOperatorCardVisibility(card) {
   if (!card) {
     return;
@@ -1131,6 +1141,15 @@ function applyOperatorCardVisibility(card) {
     card.classList.toggle("operator-health-card-hidden", true);
     return;
   }
+
+  if (state.operatorBoardMode === "demo" && state.operatorFocusCriticalOnly === true && !isOperatorDemoEssentialCard(card)) {
+    const variant = readOperatorStatusVariant(statusNode);
+    if (variant !== "fail") {
+      card.classList.toggle("operator-health-card-hidden", true);
+      return;
+    }
+  }
+
   card.classList.toggle("operator-health-card-hidden", shouldHide);
 }
 
@@ -1540,6 +1559,20 @@ function resolveStoryVideoStatusVariant(videoStatus) {
   return "status-neutral";
 }
 
+function openLiveNegotiatorFromStoryEmptyState() {
+  setActiveTab("live-negotiator");
+  if (el.intent) {
+    el.intent.value = "story";
+    syncCustomSelectControl(el.intent);
+    setUiTaskFieldsVisibility();
+  }
+  if (el.message instanceof HTMLElement) {
+    window.requestAnimationFrame(() => {
+      el.message.focus();
+    });
+  }
+}
+
 function renderStoryTimelinePreviewEmptyState() {
   if (!el.storyTimelinePreview) {
     return;
@@ -1551,7 +1584,7 @@ function renderStoryTimelinePreviewEmptyState() {
   const icon = document.createElement("span");
   icon.className = "story-empty-icon";
   icon.setAttribute("aria-hidden", "true");
-  icon.textContent = "Story";
+  icon.textContent = "Timeline";
 
   const title = document.createElement("p");
   title.className = "story-empty-title";
@@ -1561,10 +1594,17 @@ function renderStoryTimelinePreviewEmptyState() {
   hint.className = "story-empty-hint";
   hint.append("Run a ");
   const code = document.createElement("code");
-  code.textContent = "story";
+  code.textContent = "story:";
   hint.append(code, " intent in Live Negotiator to populate timeline previews and media assets.");
 
-  wrapper.append(icon, title, hint);
+  const action = document.createElement("button");
+  action.id = "storyTimelineOpenLiveBtn";
+  action.type = "button";
+  action.className = "button-muted story-empty-action";
+  action.textContent = "Open Live Negotiator";
+  action.addEventListener("click", openLiveNegotiatorFromStoryEmptyState);
+
+  wrapper.append(icon, title, hint, action);
   el.storyTimelinePreview.append(wrapper);
 }
 

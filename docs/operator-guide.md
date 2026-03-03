@@ -17,7 +17,7 @@ The operator flow is used during live demos and production diagnostics to:
 ## Frontend Tabs
 
 1. `Live Negotiator` (default): connection/live controls at top, split middle layout (`intent + approval + tasks` left, sticky `KPI + Transcript` rail right); technical fields are tucked into `Advanced Settings` (`Advanced Session Settings`, `Live Setup`, `Advanced Approval Settings`, `Advanced UI Task Settings`) to reduce cognitive load during demos; KPI card includes per-metric delta badges and source attribution (`final/current/mixed`)
-2. `Storyteller`: story timeline workspace with progress bar, segment scrubber/selector, selectable segment cards, asset preview controls, and status pills (`timeline mode`, `asset mix`, `segment progress`)
+2. `Storyteller`: story timeline workspace with progress bar, segment scrubber/selector, selectable segment cards, asset preview controls, status pills (`timeline mode`, `asset mix`, `segment progress`), and empty-state action `Open Live Negotiator` for fast jump back to live story intent
 3. `Operator Console`: health/evidence cards grouped into collapsible lanes (`Live Bridge & Turn Safety`, `Governance/Skills/Cost`, `Runtime/UI Executor/Device Nodes`, `Approvals/Queue/Startup`), operator actions, and raw event log
 4. `Device Nodes`: device-node create/update/heartbeat controls and list
 
@@ -39,7 +39,7 @@ The operator flow is used during live demos and production diagnostics to:
 ## Standard Operator Actions
 
 1. Refresh summary (`Refresh Summary`)
-2. `Demo View` (default) keeps Operator Console in critical-first mode for judge walkthroughs; `Full Ops View` opens the full board for deep diagnostics
+2. `Demo View` (default) keeps Operator Console in critical-first mode for judge walkthroughs and prioritizes six cards (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`) while still surfacing new `fail` cards; `Full Ops View` opens the full board for deep diagnostics
 3. Collapse/expand operator evidence cards (`Collapse All` / `Expand All`); before first manual refresh the UI keeps only `Live Bridge & Turn Safety` expanded by default
 4. Placeholder cards (`no_data` / `summary_error`) stay hidden until the first manual `Refresh Summary` to reduce visual noise during judge-facing walkthrough
 5. `Focus Critical` keeps only critical cards visible and mirrors key status pills in the top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); click again (`Show All Cards`) for full board
