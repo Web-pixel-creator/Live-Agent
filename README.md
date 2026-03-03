@@ -119,7 +119,7 @@ Frontend header includes a persisted `dark/light` theme toggle for judge/operato
 Frontend supports a subtle animated background video (`apps/demo-frontend/public/bg-video.mp4`) with loop-transition smoothing and `prefers-reduced-motion` fallback.
 Frontend visual system uses `Violet Bloom` dashboard tokens (colors/radius/shadows/typography) in `apps/demo-frontend/public/styles.css`.
 Frontend includes an interactive `Story Timeline` panel/workspace (progress bar + segment scrubber + selector + preview + asset refs + selectable segment cards) fed directly from Storyteller outputs, with explicit `timeline mode`, `asset mix`, and `segment progress` pills.
-`Story Timeline` empty state includes a direct `Open Live Negotiator` action that switches back to the live tab and preselects `intent=story`.
+`Story Timeline` empty state includes direct `Open Live Negotiator` and `Use Story Prompt Template` actions: the first jumps to live tab with `intent=story`, the second also seeds a ready-to-run story prompt.
 `Device Nodes` tab renders registered nodes as selectable status cards and includes a guided empty-state action (`Use Demo Template`) to bootstrap the first node.
 
 Judge-facing visual evidence pack:

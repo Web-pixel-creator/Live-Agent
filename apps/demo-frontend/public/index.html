@@ -477,14 +477,24 @@
             <h3>Segment Preview</h3>
             <div id="storyTimelinePreview" class="story-timeline-preview story-timeline-preview-empty">
               <div class="story-empty-state">
-                <span class="story-empty-icon" aria-hidden="true">Timeline</span>
-                <p class="story-empty-title">No segments yet</p>
+                <span class="story-empty-icon" aria-hidden="true">Storyboard</span>
+                <p class="story-empty-title">No timeline yet</p>
                 <p class="story-empty-hint">
-                  Run a <code>story</code> intent in Live Negotiator to populate timeline previews and media assets.
+                  Run a <code>story:</code> intent in Live Negotiator to generate segments, asset refs, and progress data.
                 </p>
-                <button id="storyTimelineOpenLiveBtn" type="button" class="button-muted story-empty-action">
-                  Open Live Negotiator
-                </button>
+                <ul class="story-empty-checklist" aria-label="Story timeline readiness checklist">
+                  <li>Segment cards with scrubber and selector</li>
+                  <li>Image, audio, and video asset references</li>
+                  <li>Timeline progress and pending video jobs</li>
+                </ul>
+                <div class="story-empty-actions">
+                  <button id="storyTimelineOpenLiveBtn" type="button" class="story-empty-action">
+                    Open Live Negotiator
+                  </button>
+                  <button id="storyTimelineApplyTemplateBtn" type="button" class="button-muted story-empty-action story-empty-action-template">
+                    Use Story Prompt Template
+                  </button>
+                </div>
               </div>
             </div>
           </aside>

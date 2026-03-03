@@ -66,6 +66,8 @@ const BG_VIDEO_LOOP_RESET_SECONDS = 0.3;
 const BG_VIDEO_LOOP_TRANSITION_CLASS = "bg-video-loop-transition";
 const OPERATOR_SIGNAL_FLASH_MS = 1200;
 const EXPORT_HISTORY_LIMIT = 3;
+const STORY_EMPTY_STATE_PROMPT =
+  "story: Build a 4-scene launch-day narrative with one hero image cue, one short video cue, and concise voiceover.";
 
 const el = {
   backgroundVideo: document.getElementById("backgroundVideo"),
@@ -1819,6 +1821,23 @@ function openLiveNegotiatorFromStoryEmptyState() {
   }
 }
 
+function applyStoryPromptTemplateFromStoryEmptyState() {
+  setActiveTab("live-negotiator");
+  if (el.intent) {
+    el.intent.value = "story";
+    syncCustomSelectControl(el.intent);
+    setUiTaskFieldsVisibility();
+  }
+  if (el.message instanceof HTMLTextAreaElement) {
+    el.message.value = STORY_EMPTY_STATE_PROMPT;
+    window.requestAnimationFrame(() => {
+      el.message.focus();
+      const caret = el.message.value.length;
+      el.message.setSelectionRange(caret, caret);
+    });
+  }
+}
+
 function renderStoryTimelinePreviewEmptyState() {
   if (!el.storyTimelinePreview) {
     return;
@@ -1830,27 +1849,52 @@ function renderStoryTimelinePreviewEmptyState() {
   const icon = document.createElement("span");
   icon.className = "story-empty-icon";
   icon.setAttribute("aria-hidden", "true");
-  icon.textContent = "Timeline";
+  icon.textContent = "Storyboard";
 
   const title = document.createElement("p");
   title.className = "story-empty-title";
-  title.textContent = "No segments yet";
+  title.textContent = "No timeline yet";
 
   const hint = document.createElement("p");
   hint.className = "story-empty-hint";
   hint.append("Run a ");
   const code = document.createElement("code");
   code.textContent = "story:";
-  hint.append(code, " intent in Live Negotiator to populate timeline previews and media assets.");
+  hint.append(code, " intent in Live Negotiator to generate segments, asset refs, and progress data.");
+
+  const checklist = document.createElement("ul");
+  checklist.className = "story-empty-checklist";
+  checklist.setAttribute("aria-label", "Story timeline readiness checklist");
+  const checklistItems = [
+    "Segment cards with scrubber and selector",
+    "Image, audio, and video asset references",
+    "Timeline progress and pending video jobs",
+  ];
+  for (const itemText of checklistItems) {
+    const item = document.createElement("li");
+    item.textContent = itemText;
+    checklist.append(item);
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "story-empty-actions";
 
   const action = document.createElement("button");
   action.id = "storyTimelineOpenLiveBtn";
   action.type = "button";
-  action.className = "button-muted story-empty-action";
+  action.className = "story-empty-action";
   action.textContent = "Open Live Negotiator";
   action.addEventListener("click", openLiveNegotiatorFromStoryEmptyState);
 
-  wrapper.append(icon, title, hint, action);
+  const actionTemplate = document.createElement("button");
+  actionTemplate.id = "storyTimelineApplyTemplateBtn";
+  actionTemplate.type = "button";
+  actionTemplate.className = "button-muted story-empty-action story-empty-action-template";
+  actionTemplate.textContent = "Use Story Prompt Template";
+  actionTemplate.addEventListener("click", applyStoryPromptTemplateFromStoryEmptyState);
+
+  actions.append(action, actionTemplate);
+  wrapper.append(icon, title, hint, checklist, actions);
   el.storyTimelinePreview.append(wrapper);
 }
 

@@ -2287,9 +2287,60 @@ button:focus-visible {
   color: color-mix(in oklch, var(--foreground) 90%, white);
 }
 
+.story-empty-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: min(420px, 100%);
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+.story-empty-checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 84%, transparent);
+  border-radius: calc(var(--radius) - 8px);
+  padding: 7px 10px;
+  font-size: 0.81rem;
+  line-height: 1.45;
+  color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--surface-control) 90%, transparent),
+    color-mix(in oklch, var(--surface-panel-2) 95%, transparent)
+  );
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent);
+}
+
+.story-empty-checklist li::before {
+  content: "";
+  margin-top: 7px;
+  flex: 0 0 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--accent-foreground) 82%, var(--primary));
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 22%, transparent);
+}
+
+.story-empty-actions {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
 .story-empty-action {
-  margin-top: 4px;
+  margin-top: 2px;
   min-width: 210px;
+}
+
+.story-empty-action-template {
+  min-width: 220px;
 }
 
 .story-timeline-list {
@@ -2997,6 +3048,25 @@ button:focus-visible {
 
   .story-preview-text {
     font-size: 0.9rem;
+  }
+
+  .story-empty-checklist {
+    width: 100%;
+    gap: 7px;
+  }
+
+  .story-empty-checklist li {
+    padding: 7px 9px;
+    font-size: 0.79rem;
+  }
+
+  .story-empty-actions {
+    gap: 8px;
+  }
+
+  .story-empty-actions .story-empty-action {
+    width: 100%;
+    min-width: 0;
   }
 
   .story-asset-pill {

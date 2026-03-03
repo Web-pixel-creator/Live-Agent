@@ -34,8 +34,11 @@ test("demo frontend wires interactive story timeline panel across UI/runtime/doc
     'id="storyTimelineList"',
     'class="story-empty-state"',
     'class="story-empty-icon"',
+    'class="story-empty-checklist"',
     'id="storyTimelineOpenLiveBtn"',
+    'id="storyTimelineApplyTemplateBtn"',
     "Open Live Negotiator",
+    "Use Story Prompt Template",
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(html.includes(token), `frontend html missing story timeline token: ${token}`);
@@ -59,9 +62,15 @@ test("demo frontend wires interactive story timeline panel across UI/runtime/doc
     "updateStoryTimelineSelection",
     "renderStoryTimelinePreviewEmptyState",
     "function openLiveNegotiatorFromStoryEmptyState()",
+    "function applyStoryPromptTemplateFromStoryEmptyState()",
+    "STORY_EMPTY_STATE_PROMPT",
     "setActiveTab(\"live-negotiator\");",
     "el.intent.value = \"story\";",
+    "el.message.value = STORY_EMPTY_STATE_PROMPT;",
     "action.textContent = \"Open Live Negotiator\";",
+    "actionTemplate.id = \"storyTimelineApplyTemplateBtn\";",
+    "actionTemplate.textContent = \"Use Story Prompt Template\";",
+    "checklist.className = \"story-empty-checklist\";",
     "storyTimelinePreview.classList.add(\"story-timeline-preview-empty\")",
     "storyTimelineProgressTrack.classList.toggle(\"is-pending\", safeCount > 0 && hasPendingVideoJobs);",
     "setStatusPill(el.storyTimelineMode, \"timeline_pending_video\", \"neutral\");",
