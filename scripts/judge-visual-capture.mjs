@@ -303,6 +303,18 @@ async function screenshotElement(page, selector, outputPath, waitMs = 0) {
   await locator.screenshot({ path: outputPath });
 }
 
+async function switchTab(page, tabId, waitMs = 80) {
+  const tabButton = page.locator(`.tab-btn[data-tab-target="${tabId}"]`).first();
+  if ((await tabButton.count()) === 0) {
+    return;
+  }
+  await tabButton.click();
+  await page.locator(`.tab-content.active[data-tab="${tabId}"]`).first().waitFor({ state: "visible", timeout: 20000 });
+  if (waitMs > 0) {
+    await sleep(waitMs);
+  }
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const outputDir = toAbsolutePath(options.outputDir);
@@ -354,15 +366,21 @@ async function main() {
         await sleep(options.waitMs);
       }
 
+      await switchTab(page, "live-negotiator");
       await page.screenshot({ path: output.liveConsoleMain });
+
+      await switchTab(page, "operator");
       await screenshotElement(
         page,
         "section.panel:has(h2:text-is('Operator Console'))",
         output.operatorConsoleEvidence,
         200,
       );
+
+      await switchTab(page, "storyteller");
       await screenshotElement(page, "section.panel:has(h2:text-is('Story Timeline'))", output.storytellerTimeline, 120);
 
+      await switchTab(page, "live-negotiator");
       await page.evaluate(() => {
         const status = document.getElementById("approvalStatus");
         const approvalId = document.getElementById("approvalId");
