@@ -2455,12 +2455,35 @@ button:focus-visible {
 }
 
 .story-timeline-list-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
   border: 1px dashed color-mix(in oklch, var(--border-soft) 85%, transparent);
   border-radius: calc(var(--radius) - 2px);
   padding: 14px;
-  color: var(--muted-foreground);
+  color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
   text-align: center;
   background: color-mix(in oklch, var(--surface-control) 92%, transparent);
+}
+
+.story-timeline-list-empty-title {
+  margin: 0;
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: color-mix(in oklch, var(--foreground) 96%, var(--accent-foreground));
+}
+
+.story-timeline-list-empty-hint {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: color-mix(in oklch, var(--foreground) 80%, var(--muted-foreground));
+}
+
+.story-timeline-list-empty-action {
+  margin-top: 2px;
+  min-width: 210px;
 }
 
 .story-segment-card {
@@ -3260,6 +3283,11 @@ button:focus-visible {
   }
 
   .story-empty-actions .story-empty-action {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .story-timeline-list-empty-action {
     width: 100%;
     min-width: 0;
   }

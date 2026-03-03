@@ -2023,7 +2023,23 @@ function renderStoryTimelineList() {
   if (segments.length === 0) {
     const empty = document.createElement("div");
     empty.className = "story-timeline-list-empty";
-    empty.textContent = "No timeline segments yet. Send a story intent from Live Negotiator.";
+    const title = document.createElement("p");
+    title.className = "story-timeline-list-empty-title";
+    title.textContent = "No timeline segments yet";
+
+    const hint = document.createElement("p");
+    hint.className = "story-timeline-list-empty-hint";
+    hint.textContent = "Send a story intent from Live Negotiator to populate segment cards, asset refs, and progress.";
+
+    const action = document.createElement("button");
+    action.type = "button";
+    action.className = "button-muted story-timeline-list-empty-action";
+    action.textContent = "Open Live Negotiator";
+    action.addEventListener("click", () => {
+      openLiveNegotiatorFromStoryEmptyState();
+    });
+
+    empty.append(title, hint, action);
     el.storyTimelineList.append(empty);
     return;
   }
