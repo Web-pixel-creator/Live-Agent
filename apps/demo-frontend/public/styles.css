@@ -223,7 +223,7 @@ body::before {
       transparent 1px,
       transparent 42px
     );
-  opacity: 0.16;
+  opacity: 0.24;
   z-index: -1;
 }
 
