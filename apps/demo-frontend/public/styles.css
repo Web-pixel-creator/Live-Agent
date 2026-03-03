@@ -2020,9 +2020,11 @@ button:focus-visible {
 
 .story-timeline-preview-empty {
   border-style: dashed;
+  border-color: color-mix(in oklch, var(--primary) 32%, var(--border-soft));
   display: block;
   color: var(--muted-foreground);
   background:
+    radial-gradient(240px 140px at 14% -12%, color-mix(in oklch, var(--primary) 15%, transparent), transparent 74%),
     repeating-linear-gradient(
       -45deg,
       color-mix(in oklch, var(--muted-ui) 70%, transparent),
@@ -2031,13 +2033,17 @@ button:focus-visible {
       color-mix(in oklch, var(--muted-ui) 45%, transparent) 20px
     ),
     color-mix(in oklch, var(--card) 85%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 8%, transparent),
+    0 18px 28px -26px color-mix(in oklch, var(--primary) 45%, transparent);
 }
 
 .story-empty-state {
   min-height: 100%;
   display: grid;
   place-items: center;
-  gap: 10px;
+  gap: 14px;
+  padding: 28px 20px;
   text-align: center;
 }
 
@@ -2045,32 +2051,35 @@ button:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 74px;
-  min-height: 28px;
+  min-width: 84px;
+  min-height: 30px;
   border: 1px solid color-mix(in oklch, var(--primary) 44%, var(--border));
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 4px 12px;
   color: color-mix(in oklch, var(--foreground) 92%, var(--accent-foreground));
   background: color-mix(in oklch, var(--primary) 16%, transparent);
-  font-size: 0.74rem;
-  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 12%, transparent),
+    0 10px 20px -18px color-mix(in oklch, var(--primary) 58%, transparent);
 }
 
 .story-empty-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.08rem;
   font-weight: 700;
-  color: color-mix(in oklch, var(--foreground) 94%, white);
+  color: color-mix(in oklch, var(--foreground) 98%, white);
 }
 
 .story-empty-hint {
   margin: 0;
   max-width: 42ch;
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   line-height: 1.55;
-  color: color-mix(in oklch, var(--muted-foreground) 96%, var(--foreground));
+  color: color-mix(in oklch, var(--muted-foreground) 92%, var(--foreground));
 }
 
 .story-empty-hint code {
@@ -2084,7 +2093,7 @@ button:focus-visible {
 }
 
 .story-empty-action {
-  margin-top: 2px;
+  margin-top: 4px;
   min-width: 210px;
 }
 
