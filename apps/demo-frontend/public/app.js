@@ -1224,7 +1224,13 @@ function toEnvelopeOptions(runOrOptions) {
 function setConnectionStatus(text) {
   const normalized = typeof text === "string" ? text : "disconnected";
   state.connectionStatus = normalized;
-  el.connectionStatus.textContent = normalized;
+  let variant = "neutral";
+  if (normalized === "connected") {
+    variant = "ok";
+  } else if (normalized === "disconnected" || normalized === "error") {
+    variant = "fail";
+  }
+  setStatusPill(el.connectionStatus, normalized, variant);
   renderAssistantActivityStatus();
 }
 
@@ -1652,10 +1658,15 @@ function setExportStatus(text) {
   if (!el.exportStatus) {
     return;
   }
-  el.exportStatus.textContent = normalized;
+  let variant = "neutral";
+  const exportKind = resolveExportStatusKind(normalized);
+  if (exportKind === "markdown" || exportKind === "json" || exportKind === "audio") {
+    variant = "ok";
+  }
+  setStatusPill(el.exportStatus, normalized, variant);
   if (el.exportMenuSummaryIcon) {
     el.exportMenuSummaryIcon.textContent = resolveExportMenuSummaryIcon(normalized);
-    el.exportMenuSummaryIcon.setAttribute("data-export-kind", resolveExportStatusKind(normalized));
+    el.exportMenuSummaryIcon.setAttribute("data-export-kind", exportKind);
   }
   if (el.exportMenuSummaryLabel) {
     el.exportMenuSummaryLabel.textContent = resolveExportMenuSummaryLabel(normalized);
