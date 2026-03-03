@@ -52,6 +52,7 @@ const state = {
   operatorDamageControlSnapshot: null,
   operatorCardsCollapsed: false,
   operatorFocusCriticalOnly: false,
+  operatorIssuesOnly: false,
   operatorSummaryUserRefreshed: false,
 };
 
@@ -144,6 +145,7 @@ const el = {
   operatorTaskId: document.getElementById("operatorTaskId"),
   operatorTargetService: document.getElementById("operatorTargetService"),
   operatorFocusCriticalBtn: document.getElementById("operatorFocusCriticalBtn"),
+  operatorIssuesOnlyBtn: document.getElementById("operatorIssuesOnlyBtn"),
   operatorCollapseAllBtn: document.getElementById("operatorCollapseAllBtn"),
   operatorExpandAllBtn: document.getElementById("operatorExpandAllBtn"),
   operatorSignalBridge: document.getElementById("operatorSignalBridge"),
@@ -890,6 +892,16 @@ function setOperatorFocusCriticalMode(enabled) {
   applyOperatorCardsVisibility();
 }
 
+function setOperatorIssuesOnlyMode(enabled) {
+  state.operatorIssuesOnly = enabled === true;
+  if (el.operatorIssuesOnlyBtn) {
+    el.operatorIssuesOnlyBtn.classList.toggle("is-active", state.operatorIssuesOnly);
+    el.operatorIssuesOnlyBtn.setAttribute("aria-pressed", state.operatorIssuesOnly ? "true" : "false");
+    el.operatorIssuesOnlyBtn.textContent = state.operatorIssuesOnly ? "Show All Statuses" : "Issues Only";
+  }
+  applyOperatorCardsVisibility();
+}
+
 function getOperatorCardByStatusId(statusId) {
   if (typeof statusId !== "string" || statusId.trim().length === 0) {
     return null;
@@ -906,6 +918,9 @@ function jumpToOperatorStatusCard(statusId) {
   const card = getOperatorCardByStatusId(statusId);
   if (!(card instanceof HTMLElement)) {
     return;
+  }
+  if (state.operatorIssuesOnly) {
+    setOperatorIssuesOnlyMode(false);
   }
   const group = card.closest(".operator-health-group");
   if (group instanceof HTMLElement) {
@@ -941,6 +956,10 @@ function applyOperatorCardVisibility(card) {
     state.operatorSummaryUserRefreshed !== true &&
     isOperatorPlaceholderStatusText(statusNode.textContent ?? "");
   if (state.operatorFocusCriticalOnly === true && !isOperatorCriticalCard(card)) {
+    card.classList.toggle("operator-health-card-hidden", true);
+    return;
+  }
+  if (state.operatorIssuesOnly && statusNode.classList.contains("status-ok")) {
     card.classList.toggle("operator-health-card-hidden", true);
     return;
   }
@@ -7254,6 +7273,11 @@ function bindEvents() {
       setOperatorFocusCriticalMode(!state.operatorFocusCriticalOnly);
     });
   }
+  if (el.operatorIssuesOnlyBtn) {
+    el.operatorIssuesOnlyBtn.addEventListener("click", () => {
+      setOperatorIssuesOnlyMode(!state.operatorIssuesOnly);
+    });
+  }
   if (el.operatorCollapseAllBtn) {
     el.operatorCollapseAllBtn.addEventListener("click", () => {
       setOperatorCardsCollapsed(true);
@@ -7497,6 +7521,7 @@ async function bootstrap() {
   resetOperatorTurnDeleteWidget("no_data");
   resetOperatorDamageControlWidget("no_data");
   setOperatorCardsCollapsed(false);
+  setOperatorIssuesOnlyMode(false);
   setOperatorFocusCriticalMode(true);
   renderTaskList();
   evaluateConstraints();
