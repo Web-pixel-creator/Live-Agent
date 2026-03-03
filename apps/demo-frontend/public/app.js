@@ -57,8 +57,12 @@ const state = {
 const PENDING_CLIENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
 const THEME_STORAGE_KEY = "mla.demoFrontend.themeMode";
 const MAX_ASSISTANT_AUDIO_EXPORT_BYTES = 32 * 1024 * 1024;
+const BG_VIDEO_LOOP_BLEND_SECONDS = 0.42;
+const BG_VIDEO_LOOP_RESET_SECONDS = 0.12;
+const BG_VIDEO_LOOP_TRANSITION_CLASS = "bg-video-loop-transition";
 
 const el = {
+  backgroundVideo: document.getElementById("backgroundVideo"),
   wsUrl: document.getElementById("wsUrl"),
   apiBaseUrl: document.getElementById("apiBaseUrl"),
   userId: document.getElementById("userId"),
@@ -418,6 +422,95 @@ function applyThemeMode(themeMode, options = {}) {
 function toggleThemeMode() {
   const nextMode = state.themeMode === "dark" ? "light" : "dark";
   applyThemeMode(nextMode, { persist: true, announce: true });
+}
+
+function initBackgroundVideoLoopBlend() {
+  const backgroundVideo = el.backgroundVideo;
+  if (!(backgroundVideo instanceof HTMLVideoElement)) {
+    return;
+  }
+
+  let transitionActive = false;
+  let transitionExitTimer = null;
+
+  const clearTransitionExitTimer = () => {
+    if (transitionExitTimer !== null) {
+      window.clearTimeout(transitionExitTimer);
+      transitionExitTimer = null;
+    }
+  };
+
+  const leaveTransition = () => {
+    transitionActive = false;
+    document.body.classList.remove(BG_VIDEO_LOOP_TRANSITION_CLASS);
+  };
+
+  const scheduleTransitionExit = (delayMs = 120) => {
+    clearTransitionExitTimer();
+    transitionExitTimer = window.setTimeout(() => {
+      leaveTransition();
+    }, delayMs);
+  };
+
+  const enterTransition = () => {
+    if (transitionActive) {
+      return;
+    }
+    transitionActive = true;
+    clearTransitionExitTimer();
+    document.body.classList.add(BG_VIDEO_LOOP_TRANSITION_CLASS);
+  };
+
+  const syncLoopDurationVariable = () => {
+    const loopDurationSeconds = Number(backgroundVideo.duration);
+    if (!Number.isFinite(loopDurationSeconds) || loopDurationSeconds <= 0) {
+      return;
+    }
+    const normalizedDuration = Math.max(1, loopDurationSeconds).toFixed(3);
+    document.documentElement.style.setProperty("--bg-video-loop-duration", `${normalizedDuration}s`);
+  };
+
+  const handleVideoTimeUpdate = () => {
+    const loopDurationSeconds = Number(backgroundVideo.duration);
+    const currentTimeSeconds = Number(backgroundVideo.currentTime);
+    if (
+      !Number.isFinite(loopDurationSeconds) ||
+      loopDurationSeconds <= 0 ||
+      !Number.isFinite(currentTimeSeconds)
+    ) {
+      return;
+    }
+
+    const remainingSeconds = loopDurationSeconds - currentTimeSeconds;
+    if (remainingSeconds <= BG_VIDEO_LOOP_BLEND_SECONDS && remainingSeconds >= 0) {
+      enterTransition();
+      return;
+    }
+
+    if (transitionActive && currentTimeSeconds <= BG_VIDEO_LOOP_RESET_SECONDS) {
+      scheduleTransitionExit(90);
+      return;
+    }
+
+    if (transitionActive && remainingSeconds > BG_VIDEO_LOOP_BLEND_SECONDS) {
+      scheduleTransitionExit(120);
+    }
+  };
+
+  backgroundVideo.addEventListener("loadedmetadata", syncLoopDurationVariable);
+  backgroundVideo.addEventListener("timeupdate", handleVideoTimeUpdate);
+  backgroundVideo.addEventListener("seeked", () => {
+    scheduleTransitionExit(120);
+  });
+  backgroundVideo.addEventListener("playing", () => {
+    scheduleTransitionExit(140);
+  });
+  backgroundVideo.addEventListener("pause", () => {
+    clearTransitionExitTimer();
+    leaveTransition();
+  });
+
+  syncLoopDurationVariable();
 }
 
 function setActiveTab(tabId) {
@@ -7190,6 +7283,7 @@ async function bootstrap() {
   evaluateConstraints();
   setActiveTab(DEFAULT_TAB_ID);
   setUiTaskFieldsVisibility();
+  initBackgroundVideoLoopBlend();
   enhanceSelectControls();
   bindEvents();
   refreshOperatorSummary().catch(() => {

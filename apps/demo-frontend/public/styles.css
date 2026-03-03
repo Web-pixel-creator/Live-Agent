@@ -78,6 +78,9 @@
   --surface-control-hover: color-mix(in oklch, var(--input) 72%, transparent);
   --surface-control-strong: color-mix(in oklch, var(--secondary) 70%, var(--background));
   --focus-ring-soft: color-mix(in oklch, var(--ring) 26%, transparent);
+  --bg-video-opacity: 0.08;
+  --bg-video-transition-opacity: 0.03;
+  --bg-video-loop-duration: 15s;
 }
 
 :root[data-theme="light"] {
@@ -143,6 +146,8 @@
   --surface-control-hover: color-mix(in oklch, var(--input) 84%, white);
   --surface-control-strong: color-mix(in oklch, var(--secondary) 84%, white);
   --focus-ring-soft: color-mix(in oklch, var(--ring) 16%, transparent);
+  --bg-video-opacity: 0.06;
+  --bg-video-transition-opacity: 0.022;
 }
 
 * {
@@ -159,6 +164,10 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 body {
@@ -198,6 +207,47 @@ body::before {
     );
   opacity: 0.16;
   z-index: -1;
+}
+
+.background-video {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  z-index: -3;
+  pointer-events: none;
+  opacity: var(--bg-video-opacity);
+  filter: saturate(0.84) contrast(1.03);
+  will-change: opacity, filter;
+  transition:
+    opacity 360ms ease,
+    filter 360ms ease;
+}
+
+.background-video-fade {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(120% 70% at 50% 12%, color-mix(in oklch, var(--primary) 18%, transparent), transparent 72%),
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--background) 58%, transparent),
+      color-mix(in oklch, var(--background) 92%, transparent)
+    );
+  transition: opacity 300ms ease;
+}
+
+body.bg-video-loop-transition .background-video {
+  opacity: var(--bg-video-transition-opacity);
+  filter: blur(0.9px) saturate(0.72) contrast(1.06);
+}
+
+body.bg-video-loop-transition .background-video-fade {
+  opacity: 0.14;
 }
 
 .layout {
@@ -1457,5 +1507,12 @@ button:focus-visible {
 
   .meta-row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .background-video,
+  .background-video-fade {
+    display: none;
   }
 }
