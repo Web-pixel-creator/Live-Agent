@@ -204,7 +204,7 @@ body::before {
   width: min(1420px, calc(100vw - 72px));
   margin: 34px auto 84px;
   display: grid;
-  gap: 28px;
+  gap: 32px;
   overflow-x: hidden;
 }
 
@@ -297,7 +297,7 @@ body::before {
   background: linear-gradient(180deg, var(--surface-panel), var(--surface-panel-2));
   border: 1px solid var(--border-soft);
   border-radius: calc(var(--radius) + 2px);
-  padding: 28px;
+  padding: 30px;
   backdrop-filter: blur(10px);
   box-shadow:
     var(--shadow-lg),
@@ -334,7 +334,7 @@ body::before {
 .grid-2,
 .grid-3 {
   display: grid;
-  gap: 18px;
+  gap: 20px;
 }
 
 .grid-2 {
@@ -349,7 +349,7 @@ body::before {
 
 .field {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .field span {
@@ -369,9 +369,9 @@ body::before {
 
 .media-upload-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) minmax(196px, auto);
+  gap: 12px;
+  align-items: stretch;
 }
 
 .media-upload-input {
@@ -380,11 +380,14 @@ body::before {
 
 .media-upload-actions {
   margin-top: 0;
-  align-self: end;
+  align-self: stretch;
+  display: flex;
 }
 
 .media-upload-actions button {
-  min-width: 198px;
+  min-width: 0;
+  width: 100%;
+  min-height: 58px;
   white-space: nowrap;
 }
 
@@ -434,13 +437,19 @@ button {
 input,
 select,
 textarea {
-  border: 1px solid color-mix(in oklch, var(--border-soft) 88%, black);
-  border-radius: calc(var(--radius) - 1px);
-  background: linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 94%, transparent), var(--surface-panel-2));
+  border: 1px solid color-mix(in oklch, var(--border-soft) 82%, black);
+  border-radius: calc(var(--radius) - 4px);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--surface-control) 86%, transparent),
+    color-mix(in oklch, var(--surface-panel-2) 96%, transparent)
+  );
   color: var(--foreground);
-  min-height: 50px;
+  min-height: 52px;
   padding: 13px 16px;
-  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent),
+    inset 0 0 0 1px color-mix(in oklch, var(--background) 12%, transparent);
 }
 
 input,
@@ -612,7 +621,7 @@ select optgroup {
   border: 1px solid transparent;
   border-radius: calc(var(--radius) - 5px);
   width: 100%;
-  padding: 10px 12px;
+  padding: 10px 34px 10px 12px;
   background: transparent;
   color: var(--foreground);
   text-align: left;
@@ -622,6 +631,22 @@ select optgroup {
   gap: 2px;
   cursor: pointer;
   box-shadow: none;
+  position: relative;
+}
+
+.select-option::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid color-mix(in oklch, var(--foreground) 94%, var(--accent-foreground));
+  border-bottom: 2px solid color-mix(in oklch, var(--foreground) 94%, var(--accent-foreground));
+  transform: translateY(-62%) rotate(-45deg) scale(0.82);
+  transform-origin: center;
+  opacity: 0;
+  transition: opacity 120ms ease, transform 120ms ease;
 }
 
 .select-option .select-option-label {
@@ -647,6 +672,11 @@ select optgroup {
   border-color: color-mix(in oklch, var(--primary) 46%, var(--border));
   background: color-mix(in oklch, var(--primary) 26%, var(--card));
   color: color-mix(in oklch, var(--foreground) 98%, white);
+}
+
+.select-option.is-selected::after {
+  opacity: 1;
+  transform: translateY(-62%) rotate(-45deg) scale(1);
 }
 
 .select-option.is-selected small {
@@ -702,11 +732,11 @@ textarea {
 }
 
 button {
-  border: 1px solid color-mix(in oklch, var(--primary) 48%, var(--border));
+  border: 1px solid color-mix(in oklch, var(--primary) 56%, var(--border));
   border-radius: 999px;
-  min-height: 50px;
-  padding: 11px 19px;
-  background: linear-gradient(130deg, var(--primary), color-mix(in oklch, var(--primary) 74%, var(--accent-foreground)));
+  min-height: 52px;
+  padding: 11px 20px;
+  background: linear-gradient(135deg, var(--primary), color-mix(in oklch, var(--primary) 78%, var(--accent-foreground)));
   color: var(--button-primary-fg);
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -714,7 +744,7 @@ button {
   transition: transform 140ms ease, filter 140ms ease, background 140ms ease, border-color 140ms ease;
   box-shadow:
     inset 0 1px 0 color-mix(in oklch, white 18%, transparent),
-    0 9px 22px -16px color-mix(in oklch, var(--primary) 90%, transparent),
+    0 10px 24px -18px color-mix(in oklch, var(--primary) 72%, transparent),
     var(--shadow-sm);
 }
 
@@ -736,40 +766,40 @@ button:focus-visible {
 }
 
 .button-muted {
-  border-color: color-mix(in oklch, var(--primary) 26%, var(--border));
+  border-color: color-mix(in oklch, var(--primary) 18%, var(--border));
   background: linear-gradient(
     180deg,
-    color-mix(in oklch, var(--secondary) 76%, var(--surface-control)),
-    color-mix(in oklch, var(--surface-panel-2) 90%, var(--surface-control))
+    color-mix(in oklch, var(--secondary) 82%, var(--surface-control)),
+    color-mix(in oklch, var(--surface-panel-2) 92%, var(--surface-control))
   );
   color: color-mix(in oklch, var(--foreground) 96%, var(--accent-foreground));
   box-shadow:
     inset 0 1px 0 color-mix(in oklch, var(--foreground) 8%, transparent),
-    0 7px 18px -16px color-mix(in oklch, var(--primary) 90%, transparent),
+    0 6px 16px -18px color-mix(in oklch, var(--primary) 62%, transparent),
     var(--shadow-xs);
 }
 
 .button-muted:hover {
-  border-color: color-mix(in oklch, var(--primary) 42%, var(--border));
+  border-color: color-mix(in oklch, var(--primary) 34%, var(--border));
   background: linear-gradient(
     180deg,
-    color-mix(in oklch, var(--secondary) 68%, var(--surface-control-hover)),
-    color-mix(in oklch, var(--surface-panel-2) 86%, var(--surface-control))
+    color-mix(in oklch, var(--secondary) 74%, var(--surface-control-hover)),
+    color-mix(in oklch, var(--surface-panel-2) 88%, var(--surface-control))
   );
 }
 
 .button-warn {
-  border-color: color-mix(in oklch, var(--destructive) 90%, oklch(0.93 0.03 18));
+  border-color: color-mix(in oklch, var(--destructive) 74%, var(--border));
   background: linear-gradient(130deg, color-mix(in oklch, var(--destructive) 80%, white), var(--destructive));
   color: var(--button-warn-fg);
   box-shadow:
     inset 0 1px 0 color-mix(in oklch, white 18%, transparent),
-    0 10px 24px -17px color-mix(in oklch, oklch(0.79 0.19 356) 44%, transparent),
+    0 10px 20px -20px color-mix(in oklch, var(--destructive) 52%, transparent),
     var(--shadow-sm);
 }
 
 .button-warn:hover {
-  border-color: color-mix(in oklch, var(--destructive) 96%, oklch(0.96 0.02 18));
+  border-color: color-mix(in oklch, var(--destructive) 80%, var(--border));
   background: linear-gradient(
     130deg,
     color-mix(in oklch, var(--destructive) 88%, oklch(0.92 0.05 8)),
@@ -777,7 +807,7 @@ button:focus-visible {
   );
   box-shadow:
     inset 0 1px 0 color-mix(in oklch, white 18%, transparent),
-    0 12px 28px -16px color-mix(in oklch, oklch(0.79 0.19 356) 54%, transparent),
+    0 12px 22px -20px color-mix(in oklch, var(--destructive) 58%, transparent),
     var(--shadow-sm);
 }
 
@@ -786,7 +816,7 @@ button:focus-visible {
   box-shadow:
     inset 0 1px 0 color-mix(in oklch, white 18%, transparent),
     0 0 0 3px color-mix(in oklch, var(--destructive) 28%, transparent),
-    0 10px 24px -17px color-mix(in oklch, oklch(0.79 0.19 356) 44%, transparent),
+    0 10px 20px -20px color-mix(in oklch, var(--destructive) 52%, transparent),
     var(--shadow-sm);
 }
 
@@ -794,7 +824,7 @@ button:focus-visible {
   margin-top: 18px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  gap: 14px;
   color: var(--muted-foreground);
   font-size: 0.9rem;
   overflow-wrap: anywhere;
@@ -802,7 +832,8 @@ button:focus-visible {
 
 .meta-row-status {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  gap: 16px;
+  align-items: stretch;
 }
 
 .meta-row-status > div {
@@ -828,6 +859,7 @@ button:focus-visible {
   border: 1px solid color-mix(in oklch, var(--border-soft) 78%, transparent);
   border-radius: calc(var(--radius) - 5px);
   padding: 7px 10px;
+  min-height: 34px;
   background: color-mix(in oklch, var(--surface-control) 93%, transparent);
   color: color-mix(in oklch, var(--foreground) 90%, var(--muted-foreground));
   font-family: var(--font-mono);
@@ -839,6 +871,7 @@ button:focus-visible {
 
 .meta-row-status .status-pill {
   align-self: start;
+  margin-top: 2px;
   padding: 7px 12px;
   font-size: 0.82rem;
   box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 10%, transparent);
@@ -868,13 +901,13 @@ button:focus-visible {
 .kpi-board {
   margin-top: 18px;
   display: grid;
-  gap: 16px;
+  gap: 18px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .kpi-panel > .grid-3 {
-  grid-template-columns: 1fr;
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
 }
 
 .kpi-board-featured {
