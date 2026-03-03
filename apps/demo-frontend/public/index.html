@@ -366,12 +366,24 @@
 
       <div id="tab-storyteller" class="tab-content" data-tab="storyteller">
 
-      <section class="panel">
+      <section class="panel panel-story-timeline">
         <h2><span class="section-badge">Story</span>Story Timeline</h2>
-        <div class="meta-row">
-          <div><strong>Story Title:</strong> <span id="storyTimelineTitle">-</span></div>
-          <div><strong>Segments:</strong> <span id="storyTimelineCount">0</span></div>
-          <div><strong>Pending Video Jobs:</strong> <span id="storyTimelinePendingJobs">0</span></div>
+        <p class="story-intro">
+          Review generated narrative segments, scrub selected scene, and track pending video jobs in one lane.
+        </p>
+        <div class="story-head-grid">
+          <article class="story-stat-card">
+            <span class="story-stat-label">Story Title</span>
+            <strong id="storyTimelineTitle" class="story-stat-value">-</strong>
+          </article>
+          <article class="story-stat-card">
+            <span class="story-stat-label">Segments</span>
+            <strong id="storyTimelineCount" class="story-stat-value">0</strong>
+          </article>
+          <article class="story-stat-card">
+            <span class="story-stat-label">Pending Video Jobs</span>
+            <strong id="storyTimelinePendingJobs" class="story-stat-value">0</strong>
+          </article>
         </div>
         <div class="story-status-row">
           <p id="storyTimelineMode" class="status-pill status-neutral">timeline_idle</p>
@@ -395,26 +407,33 @@
             <div id="storyTimelineProgressBar" class="story-progress-fill"></div>
           </div>
         </div>
-        <div class="grid-3">
-          <label class="field">
-            <span>Segment Scrubber</span>
-            <input id="storyTimelineScrubber" type="range" min="1" max="1" value="1" disabled />
-          </label>
-          <label class="field">
-            <span>Segment Selector</span>
-            <select id="storyTimelineSelect" disabled>
-              <option value="">No segments</option>
-            </select>
-          </label>
-          <div class="field">
-            <span>Current Position</span>
-            <div id="storyTimelinePosition" class="meta-box">-</div>
+        <div class="story-workspace">
+          <div class="story-controls">
+            <div class="grid-3 story-controls-grid">
+              <label class="field">
+                <span>Segment Scrubber</span>
+                <input id="storyTimelineScrubber" type="range" min="1" max="1" value="1" disabled />
+              </label>
+              <label class="field">
+                <span>Segment Selector</span>
+                <select id="storyTimelineSelect" disabled>
+                  <option value="">No segments</option>
+                </select>
+              </label>
+              <div class="field">
+                <span>Current Position</span>
+                <div id="storyTimelinePosition" class="meta-box">-</div>
+              </div>
+            </div>
           </div>
+          <aside class="story-preview-column">
+            <h3>Segment Preview</h3>
+            <div id="storyTimelinePreview" class="story-timeline-preview">
+              No story timeline yet. Run a `story` intent to populate segments.
+            </div>
+          </aside>
         </div>
-        <div id="storyTimelinePreview" class="story-timeline-preview">
-          No story timeline yet. Run a `story` intent to populate segments.
-        </div>
-        <div id="storyTimelineList" class="events"></div>
+        <div id="storyTimelineList" class="events story-timeline-list"></div>
       </section>
       </div>
 

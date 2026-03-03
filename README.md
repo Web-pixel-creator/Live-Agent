@@ -105,7 +105,7 @@ Frontend `Connection` panel includes one-click export controls: `Export Session 
 Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
 Frontend supports a subtle animated background video (`apps/demo-frontend/public/bg-video.mp4`) with loop-transition smoothing and `prefers-reduced-motion` fallback.
 Frontend visual system uses `Violet Bloom` dashboard tokens (colors/radius/shadows/typography) in `apps/demo-frontend/public/styles.css`.
-Frontend includes an interactive `Story Timeline` panel (progress bar + segment scrubber + selector + preview + asset refs) fed directly from Storyteller outputs, with explicit `timeline mode`, `asset mix`, and `segment progress` pills.
+Frontend includes an interactive `Story Timeline` panel/workspace (progress bar + segment scrubber + selector + preview + asset refs + selectable segment cards) fed directly from Storyteller outputs, with explicit `timeline mode`, `asset mix`, and `segment progress` pills.
 
 Judge-facing visual evidence pack:
 ```bash

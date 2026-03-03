@@ -1246,27 +1246,92 @@ function getStoryTimelineSelectedSegment() {
   return state.storyTimelineSegments[selected - 1] ?? null;
 }
 
+function compactStoryAssetRef(ref) {
+  if (typeof ref !== "string") {
+    return "";
+  }
+  const value = ref.trim();
+  if (value.length <= 42) {
+    return value;
+  }
+  return `${value.slice(0, 39)}...`;
+}
+
+function buildStoryAssetPill(text, toneClass) {
+  const pill = document.createElement("span");
+  pill.className = "story-asset-pill";
+  if (typeof toneClass === "string" && toneClass.trim().length > 0) {
+    pill.classList.add(toneClass.trim());
+  }
+  pill.textContent = text;
+  return pill;
+}
+
+function resolveStoryVideoStatusVariant(videoStatus) {
+  const value = toOptionalText(videoStatus);
+  if (!value) {
+    return "status-neutral";
+  }
+  const lowered = value.toLowerCase();
+  if (lowered.includes("ready") || lowered.includes("complete") || lowered.includes("done")) {
+    return "status-ok";
+  }
+  if (lowered.includes("fail") || lowered.includes("error")) {
+    return "status-fail";
+  }
+  return "status-neutral";
+}
+
 function renderStoryTimelinePreview(segment) {
   if (!el.storyTimelinePreview) {
     return;
   }
   if (!segment) {
-    el.storyTimelinePreview.textContent = "No story timeline yet. Run a `story` intent to populate segments.";
+    el.storyTimelinePreview.textContent =
+      "No story timeline yet. Run a `story` intent to populate segments and preview assets here.";
     el.storyTimelinePreview.classList.add("story-timeline-preview-empty");
     return;
   }
   el.storyTimelinePreview.classList.remove("story-timeline-preview-empty");
-  const refs = [
-    segment.imageRef ? `image=${segment.imageRef}` : null,
-    segment.videoRef ? `video=${segment.videoRef}` : null,
-    segment.videoStatus ? `video_status=${segment.videoStatus}` : null,
-    segment.audioRef ? `audio=${segment.audioRef}` : null,
-  ]
-    .filter(Boolean)
-    .join(" | ");
+  el.storyTimelinePreview.innerHTML = "";
+
+  const head = document.createElement("div");
+  head.className = "story-preview-head";
+
+  const indexPill = document.createElement("span");
+  indexPill.className = "story-preview-index";
+  indexPill.textContent = `Segment #${segment.index}`;
+  head.appendChild(indexPill);
+
+  if (segment.videoStatus) {
+    const statusPill = document.createElement("span");
+    statusPill.className = `status-pill story-preview-status ${resolveStoryVideoStatusVariant(segment.videoStatus)}`;
+    statusPill.textContent = `video:${segment.videoStatus}`;
+    head.appendChild(statusPill);
+  }
+
   const text = segment.text.length > 0 ? segment.text : "(empty segment text)";
-  const preview = refs.length > 0 ? `${text}\n\n${refs}` : text;
-  el.storyTimelinePreview.textContent = `Segment ${segment.index}\n${preview}`;
+  const textNode = document.createElement("p");
+  textNode.className = "story-preview-text";
+  textNode.textContent = text;
+
+  const assets = document.createElement("div");
+  assets.className = "story-preview-assets";
+
+  if (segment.imageRef) {
+    assets.appendChild(buildStoryAssetPill(`image:${compactStoryAssetRef(segment.imageRef)}`, "is-image"));
+  }
+  if (segment.videoRef) {
+    assets.appendChild(buildStoryAssetPill(`video:${compactStoryAssetRef(segment.videoRef)}`, "is-video"));
+  }
+  if (segment.audioRef) {
+    assets.appendChild(buildStoryAssetPill(`audio:${compactStoryAssetRef(segment.audioRef)}`, "is-audio"));
+  }
+  if (assets.childElementCount === 0) {
+    assets.appendChild(buildStoryAssetPill("no assets yet", "is-empty"));
+  }
+
+  el.storyTimelinePreview.append(head, textNode, assets);
 }
 
 function renderStoryTimelineProgress(count, selectedIndex) {
@@ -1304,22 +1369,70 @@ function renderStoryTimelineList() {
   el.storyTimelineList.innerHTML = "";
   const segments = state.storyTimelineSegments;
   if (segments.length === 0) {
-    appendEntry(el.storyTimelineList, "system", "story.timeline", "No timeline segments yet");
+    const empty = document.createElement("div");
+    empty.className = "story-timeline-list-empty";
+    empty.textContent = "No timeline segments yet";
+    el.storyTimelineList.append(empty);
     return;
   }
+  const selectedIndex = state.storyTimelineSelectedIndex;
   for (let idx = segments.length - 1; idx >= 0; idx -= 1) {
     const segment = segments[idx];
-    const refs = [
-      segment.imageRef ? "image" : null,
-      segment.videoRef ? `video:${segment.videoStatus ?? "n/a"}` : null,
-      segment.audioRef ? "audio" : null,
-    ]
-      .filter(Boolean)
-      .join(", ");
     const text = segment.text.length > 0 ? segment.text : "(empty segment text)";
-    const compactText = text.length > 220 ? `${text.slice(0, 220)}...` : text;
-    const suffix = refs.length > 0 ? ` | assets=${refs}` : "";
-    appendEntry(el.storyTimelineList, "system", `segment-${segment.index}`, `${compactText}${suffix}`);
+    const compactText = text.length > 180 ? `${text.slice(0, 180)}...` : text;
+
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "story-segment-card";
+    card.setAttribute("aria-label", `Select segment ${segment.index}`);
+    card.dataset.segmentIndex = String(segment.index);
+    if (segment.index === selectedIndex) {
+      card.classList.add("is-selected");
+    }
+    card.addEventListener("click", () => {
+      updateStoryTimelineSelection(segment.index);
+    });
+
+    const head = document.createElement("div");
+    head.className = "story-segment-head";
+
+    const index = document.createElement("span");
+    index.className = "story-segment-index";
+    index.textContent = `Segment #${segment.index}`;
+    head.appendChild(index);
+
+    const statePill = document.createElement("span");
+    statePill.className = "status-pill story-segment-state";
+    if (segment.videoStatus) {
+      statePill.classList.add(resolveStoryVideoStatusVariant(segment.videoStatus));
+      statePill.textContent = `video:${segment.videoStatus}`;
+    } else {
+      statePill.classList.add("status-neutral");
+      statePill.textContent = "video:n/a";
+    }
+    head.appendChild(statePill);
+
+    const body = document.createElement("p");
+    body.className = "story-segment-text";
+    body.textContent = compactText;
+
+    const assetRow = document.createElement("div");
+    assetRow.className = "story-segment-assets";
+    if (segment.imageRef) {
+      assetRow.appendChild(buildStoryAssetPill("image", "is-image"));
+    }
+    if (segment.videoRef) {
+      assetRow.appendChild(buildStoryAssetPill("video", "is-video"));
+    }
+    if (segment.audioRef) {
+      assetRow.appendChild(buildStoryAssetPill("audio", "is-audio"));
+    }
+    if (assetRow.childElementCount === 0) {
+      assetRow.appendChild(buildStoryAssetPill("no assets", "is-empty"));
+    }
+
+    card.append(head, body, assetRow);
+    el.storyTimelineList.append(card);
   }
 }
 
