@@ -3300,7 +3300,10 @@ function resetOperatorTurnTruncationWidget(reason = "no_data") {
   setText(el.operatorTurnTruncationAudioEndMs, "n/a");
   setText(el.operatorTurnTruncationContentIndex, "n/a");
   setText(el.operatorTurnTruncationSeenAt, "n/a");
-  setOperatorTurnTruncationHint("Waiting for live.turn.truncated evidence.", "neutral");
+  setOperatorTurnTruncationHint(
+    "No turn-truncation evidence yet. Trigger interruption/truncate flow in Live Negotiator, then refresh summary.",
+    "neutral",
+  );
   setStatusPill(el.operatorTurnTruncationStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -3312,7 +3315,10 @@ function resetOperatorTurnDeleteWidget(reason = "no_data") {
   setText(el.operatorTurnDeleteReason, "n/a");
   setText(el.operatorTurnDeleteScope, "n/a");
   setText(el.operatorTurnDeleteSeenAt, "n/a");
-  setOperatorTurnDeleteHint("Waiting for live.turn.deleted evidence.", "neutral");
+  setOperatorTurnDeleteHint(
+    "No turn-delete evidence yet. Run delete action in Live Controls, then refresh summary.",
+    "neutral",
+  );
   setStatusPill(el.operatorTurnDeleteStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -3336,7 +3342,10 @@ function resetOperatorSkillsRegistryWidget(reason = "no_data") {
   setText(el.operatorSkillsRegistryConflicts, "version=0 plugin_perm=0");
   setText(el.operatorSkillsRegistryLatest, "n/a");
   setText(el.operatorSkillsRegistrySeenAt, "n/a");
-  setOperatorSkillsRegistryHint("Waiting for skills registry lifecycle evidence.", "neutral");
+  setOperatorSkillsRegistryHint(
+    "No skills-registry lifecycle evidence yet. Run a skills scenario and refresh summary.",
+    "neutral",
+  );
   setStatusPill(el.operatorSkillsRegistryStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -3350,7 +3359,10 @@ function resetOperatorPluginMarketplaceWidget(reason = "no_data") {
   setText(el.operatorPluginMarketplaceConflicts, "version=0 plugin_perm=0");
   setText(el.operatorPluginMarketplaceLatest, "n/a");
   setText(el.operatorPluginMarketplaceSeenAt, "n/a");
-  setOperatorPluginMarketplaceHint("Waiting for plugin marketplace lifecycle evidence.", "neutral");
+  setOperatorPluginMarketplaceHint(
+    "No plugin-marketplace lifecycle evidence yet. Run plugin scenario and refresh summary.",
+    "neutral",
+  );
   setStatusPill(el.operatorPluginMarketplaceStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -3362,7 +3374,10 @@ function resetOperatorGovernancePolicyWidget(reason = "no_data") {
   setText(el.operatorGovernancePolicyConflicts, "version=0 idempotency=0 tenant_scope=0");
   setText(el.operatorGovernancePolicyLatest, "n/a");
   setText(el.operatorGovernancePolicySeenAt, "n/a");
-  setOperatorGovernancePolicyHint("Waiting for governance policy lifecycle evidence.", "neutral");
+  setOperatorGovernancePolicyHint(
+    "No governance-policy lifecycle evidence yet. Run governance update/replay and refresh summary.",
+    "neutral",
+  );
   setStatusPill(el.operatorGovernancePolicyStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -3375,7 +3390,10 @@ function resetOperatorAgentUsageWidget(reason = "no_data") {
   setText(el.operatorAgentUsageModels, "n/a");
   setText(el.operatorAgentUsageSource, "n/a");
   setText(el.operatorAgentUsageSeenAt, "n/a");
-  setOperatorAgentUsageHint("Waiting for agent usage evidence from operator summary.", "neutral");
+  setOperatorAgentUsageHint(
+    "No agent-usage evidence yet. Run one live/story exchange, then refresh summary.",
+    "neutral",
+  );
   setStatusPill(el.operatorAgentUsageStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -3389,7 +3407,10 @@ function resetOperatorCostEstimateWidget(reason = "no_data") {
   setText(el.operatorCostEstimateTotalUsd, "$0.000000");
   setText(el.operatorCostEstimateRates, "in=0 out=0 (per 1k)");
   setText(el.operatorCostEstimateSeenAt, "n/a");
-  setOperatorCostEstimateHint("Waiting for cost estimate evidence from operator summary.", "neutral");
+  setOperatorCostEstimateHint(
+    "No cost-estimate evidence yet. Run one exchange and refresh summary to recalculate tokens/USD.",
+    "neutral",
+  );
   setStatusPill(el.operatorCostEstimateStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
