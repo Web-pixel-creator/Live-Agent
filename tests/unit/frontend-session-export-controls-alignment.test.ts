@@ -10,6 +10,7 @@ test("demo frontend wires session export controls and runtime helpers", () => {
   const appSource = readFileSync(appPath, "utf8");
 
   const requiredHtmlTokens = [
+    'id="exportMenu"',
     'id="exportMarkdownBtn"',
     'id="exportJsonBtn"',
     'id="exportAudioBtn"',
@@ -24,6 +25,7 @@ test("demo frontend wires session export controls and runtime helpers", () => {
 
   const requiredRuntimeTokens = [
     "setExportStatus",
+    "closeExportMenu",
     "buildSessionExportPayload",
     "toMarkdownExport",
     "exportSessionMarkdown",

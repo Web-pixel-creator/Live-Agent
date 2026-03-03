@@ -22,7 +22,10 @@ test("demo frontend applies violet-bloom polish for spacing, dropdown checks, an
     "border-color: color-mix(in oklch, var(--destructive) 74%, var(--border));",
     ".button-warn:hover {",
     ".meta-row-status {",
-    "grid-template-columns: repeat(4, minmax(0, 1fr));",
+    "display: flex;",
+    "flex-wrap: wrap;",
+    ".meta-row-status > div {",
+    "align-items: center;",
     ".kpi-panel > .grid-3 {",
     "grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));",
   ];

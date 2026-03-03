@@ -78,6 +78,7 @@ const el = {
   sessionState: document.getElementById("sessionState"),
   modeStatus: document.getElementById("modeStatus"),
   themeToggleBtn: document.getElementById("themeToggleBtn"),
+  exportMenu: document.getElementById("exportMenu"),
   exportMarkdownBtn: document.getElementById("exportMarkdownBtn"),
   exportJsonBtn: document.getElementById("exportJsonBtn"),
   exportAudioBtn: document.getElementById("exportAudioBtn"),
@@ -1480,14 +1481,41 @@ function resolveStoryVideoStatusVariant(videoStatus) {
   return "status-neutral";
 }
 
+function renderStoryTimelinePreviewEmptyState() {
+  if (!el.storyTimelinePreview) {
+    return;
+  }
+  el.storyTimelinePreview.innerHTML = "";
+  const wrapper = document.createElement("div");
+  wrapper.className = "story-empty-state";
+
+  const icon = document.createElement("span");
+  icon.className = "story-empty-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = "Story";
+
+  const title = document.createElement("p");
+  title.className = "story-empty-title";
+  title.textContent = "No segments yet";
+
+  const hint = document.createElement("p");
+  hint.className = "story-empty-hint";
+  hint.append("Run a ");
+  const code = document.createElement("code");
+  code.textContent = "story";
+  hint.append(code, " intent in Live Negotiator to populate timeline previews and media assets.");
+
+  wrapper.append(icon, title, hint);
+  el.storyTimelinePreview.append(wrapper);
+}
+
 function renderStoryTimelinePreview(segment) {
   if (!el.storyTimelinePreview) {
     return;
   }
   if (!segment) {
-    el.storyTimelinePreview.textContent =
-      "No story timeline yet. Run a `story` intent to populate segments and preview assets here.";
     el.storyTimelinePreview.classList.add("story-timeline-preview-empty");
+    renderStoryTimelinePreviewEmptyState();
     return;
   }
   el.storyTimelinePreview.classList.remove("story-timeline-preview-empty");
@@ -1569,7 +1597,7 @@ function renderStoryTimelineList() {
   if (segments.length === 0) {
     const empty = document.createElement("div");
     empty.className = "story-timeline-list-empty";
-    empty.textContent = "No timeline segments yet";
+    empty.textContent = "No timeline segments yet. Send a story intent from Live Negotiator.";
     el.storyTimelineList.append(empty);
     return;
   }
@@ -2089,6 +2117,12 @@ function buildSessionExportBaseName() {
     .replace("T", "_")
     .replace("Z", "");
   return `live-agent-${sessionPart}-${runPart}-${stamp}`;
+}
+
+function closeExportMenu() {
+  if (el.exportMenu instanceof HTMLDetailsElement) {
+    el.exportMenu.open = false;
+  }
 }
 
 function exportSessionMarkdown() {
@@ -7341,13 +7375,38 @@ function bindEvents() {
   document.getElementById("connectBtn").addEventListener("click", connectWebSocket);
   document.getElementById("disconnectBtn").addEventListener("click", disconnectWebSocket);
   if (el.exportMarkdownBtn) {
-    el.exportMarkdownBtn.addEventListener("click", exportSessionMarkdown);
+    el.exportMarkdownBtn.addEventListener("click", () => {
+      exportSessionMarkdown();
+      closeExportMenu();
+    });
   }
   if (el.exportJsonBtn) {
-    el.exportJsonBtn.addEventListener("click", exportSessionJson);
+    el.exportJsonBtn.addEventListener("click", () => {
+      exportSessionJson();
+      closeExportMenu();
+    });
   }
   if (el.exportAudioBtn) {
-    el.exportAudioBtn.addEventListener("click", exportSessionAudio);
+    el.exportAudioBtn.addEventListener("click", () => {
+      exportSessionAudio();
+      closeExportMenu();
+    });
+  }
+  if (el.exportMenu instanceof HTMLDetailsElement) {
+    document.addEventListener("click", (event) => {
+      if (!el.exportMenu?.open) {
+        return;
+      }
+      const target = event.target;
+      if (target instanceof Node && !el.exportMenu.contains(target)) {
+        el.exportMenu.open = false;
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && el.exportMenu?.open) {
+        el.exportMenu.open = false;
+      }
+    });
   }
   if (el.themeToggleBtn) {
     el.themeToggleBtn.addEventListener("click", toggleThemeMode);

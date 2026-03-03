@@ -32,6 +32,8 @@ test("demo frontend wires interactive story timeline panel across UI/runtime/doc
     'id="storyTimelinePosition"',
     'id="storyTimelinePreview"',
     'id="storyTimelineList"',
+    'class="story-empty-state"',
+    'class="story-empty-icon"',
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(html.includes(token), `frontend html missing story timeline token: ${token}`);
@@ -53,6 +55,7 @@ test("demo frontend wires interactive story timeline panel across UI/runtime/doc
     "setStoryTimelineData",
     "renderStoryTimeline",
     "updateStoryTimelineSelection",
+    "renderStoryTimelinePreviewEmptyState",
     "storyTimelinePreview.classList.add(\"story-timeline-preview-empty\")",
     "storyTimelineProgressTrack.classList.toggle(\"is-pending\", safeCount > 0 && hasPendingVideoJobs);",
     "setStatusPill(el.storyTimelineMode, \"timeline_pending_video\", \"neutral\");",

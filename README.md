@@ -96,7 +96,7 @@ Frontend `Live Controls -> Apply Live Setup` can send runtime `live.setup` overr
 Frontend `Intent Request` also supports optional `ui_task` grounding overrides (`url`, `deviceNodeId`, `deviceNodeKind`, `deviceNodePlatform`, `deviceNodeCapabilities`, `deviceNodeMinTrustLevel`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`).
 Frontend is grouped into tabs (`Live Negotiator`, `Storyteller`, `Operator Console`, `Device Nodes`) with `Live Negotiator` opened by default for faster demo entry.
 `Live Negotiator` uses a compact top section plus a split middle layout (intent/approval/tasks on the left, sticky KPI+Transcript rail on the right) so negotiation state stays visible while operating controls.
-Technical controls are collapsed into `Advanced Settings` blocks (`Advanced Session Settings`, `Live Setup`, and `Advanced UI Task Settings`) to reduce default screen density.
+Technical controls are collapsed into `Advanced Settings` blocks (`Advanced Session Settings`, `Live Setup`, `Advanced Approval Settings`, and `Advanced UI Task Settings`) to reduce default screen density.
 `Operator Console` uses grouped accordion lanes; before the first manual `Refresh Summary`, only `Live Bridge & Turn Safety` stays expanded by default.
 `Operator Console` hides placeholder cards (`no_data` / `summary_error`) until the first manual `Refresh Summary`, so judges/operators see only populated evidence by default.
 `Operator Console` starts in `Focus Critical` mode with a top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); use `Show All Cards` to inspect the full evidence set.
@@ -108,7 +108,8 @@ Secondary operator controls (`Retry Task`, `Failover Drain`, `Failover Warmup`) 
 Signal strip cards are clickable and jump to the corresponding evidence widget, auto-expanding its group and flashing the target card.
 `KPI Constraints` includes per-metric delta badges (`price/delivery/sla`) plus explicit source attribution (`final_offer/current_offer/mixed_offer`) for quick judge scan.
 Frontend `Intent Request` shows `ui_task` grounding fields only when `intent=ui_task`.
-Frontend `Connection` panel includes one-click export controls: `Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)` (judge/operator evidence snapshot).
+Frontend `Connection` panel uses a compact `Export Session` dropdown with `Markdown` / `JSON` / `Audio (WAV)` evidence exports.
+Connection status metadata is rendered as a compact inline status strip (`Status`, `Assistant`, `Run ID`, `User ID`, `Session State`, `Mode`, `PTT`, `Export`) for faster scan and less vertical noise.
 Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
 Frontend supports a subtle animated background video (`apps/demo-frontend/public/bg-video.mp4`) with loop-transition smoothing and `prefers-reduced-motion` fallback.
 Frontend visual system uses `Violet Bloom` dashboard tokens (colors/radius/shadows/typography) in `apps/demo-frontend/public/styles.css`.

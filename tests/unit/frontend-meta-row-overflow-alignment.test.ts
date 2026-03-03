@@ -10,7 +10,7 @@ test("frontend keeps long meta/status values wrapped without horizontal layout s
   const htmlSource = readFileSync(htmlPath, "utf8");
   const stylesSource = readFileSync(stylesPath, "utf8");
 
-  const requiredHtmlTokens = ['class="layout"', 'class="meta-row"'];
+  const requiredHtmlTokens = ['class="layout"', 'class="meta-row"', 'class="meta-row meta-row-status"'];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `frontend html missing overflow-guard token: ${token}`);
   }
@@ -19,8 +19,12 @@ test("frontend keeps long meta/status values wrapped without horizontal layout s
     ".layout {",
     "overflow-x: hidden;",
     ".meta-row {",
+    ".meta-row-status {",
     "display: flex;",
     "flex-wrap: wrap;",
+    ".meta-row-status > div {",
+    "min-width: 0;",
+    ".meta-row-status > div > span:not(.status-pill) {",
     "overflow-wrap: anywhere;",
     ".meta-row > div,",
     "max-width: 100%;",

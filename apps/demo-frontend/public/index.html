@@ -104,10 +104,21 @@
               <button id="disconnectBtn" class="button-muted">Disconnect</button>
               <button id="newSessionBtn" class="button-muted">New Session ID</button>
             </div>
-            <div class="action-group action-group-secondary">
-              <button id="exportMarkdownBtn" class="button-muted">Export Session Markdown</button>
-              <button id="exportJsonBtn" class="button-muted">Export Session JSON</button>
-              <button id="exportAudioBtn" class="button-muted">Export Session Audio (WAV)</button>
+            <div class="action-group action-group-secondary action-group-export">
+              <details id="exportMenu" class="export-menu">
+                <summary class="button-muted">Export Session</summary>
+                <div class="export-menu-list" role="menu" aria-label="Session export options">
+                  <button id="exportMarkdownBtn" type="button" class="button-muted export-menu-item" role="menuitem">
+                    Export Session Markdown
+                  </button>
+                  <button id="exportJsonBtn" type="button" class="button-muted export-menu-item" role="menuitem">
+                    Export Session JSON
+                  </button>
+                  <button id="exportAudioBtn" type="button" class="button-muted export-menu-item" role="menuitem">
+                    Export Session Audio (WAV)
+                  </button>
+                </div>
+              </details>
             </div>
           </div>
           <div class="meta-row meta-row-status">
@@ -257,18 +268,26 @@
               <h2><span class="section-badge">Approval</span>Approval Control</h2>
               <div class="grid-3">
                 <label class="field">
-                  <span>API Backend URL</span>
-                  <input id="apiBaseUrl" type="text" value="http://localhost:8081" />
-                </label>
-                <label class="field">
                   <span>Pending Approval ID</span>
                   <input id="approvalId" type="text" value="-" readonly />
                 </label>
-                <label class="field">
-                  <span>Approval Reason</span>
-                  <input id="approvalReason" type="text" value="Approved from demo frontend" />
-                </label>
               </div>
+              <details id="approvalAdvancedSection" class="advanced-settings approval-advanced-settings">
+                <summary>
+                  <span class="advanced-title">Advanced Approval Settings</span>
+                  <span class="advanced-hint">API endpoint and decision note for operator governance flow</span>
+                </summary>
+                <div class="grid-2 approval-advanced-grid">
+                  <label class="field">
+                    <span>API Backend URL</span>
+                    <input id="apiBaseUrl" type="text" value="http://localhost:8081" />
+                  </label>
+                  <label class="field">
+                    <span>Approval Reason</span>
+                    <input id="approvalReason" type="text" value="Approved from demo frontend" />
+                  </label>
+                </div>
+              </details>
               <div class="actions">
                 <button id="approveResumeBtn">Approve &amp; Resume</button>
                 <button id="rejectResumeBtn" class="button-warn">Reject</button>
@@ -434,8 +453,14 @@
           </div>
           <aside class="story-preview-column">
             <h3>Segment Preview</h3>
-            <div id="storyTimelinePreview" class="story-timeline-preview">
-              No story timeline yet. Run a `story` intent to populate segments.
+            <div id="storyTimelinePreview" class="story-timeline-preview story-timeline-preview-empty">
+              <div class="story-empty-state">
+                <span class="story-empty-icon" aria-hidden="true">Story</span>
+                <p class="story-empty-title">No segments yet</p>
+                <p class="story-empty-hint">
+                  Run a <code>story</code> intent in Live Negotiator to populate timeline previews and media assets.
+                </p>
+              </div>
             </div>
           </aside>
         </div>
@@ -446,7 +471,7 @@
       <div id="tab-operator" class="tab-content" data-tab="operator">
 
       <section class="panel">
-        <h2>Operator Console</h2>
+        <h2><span class="section-badge">Ops</span>Operator Console</h2>
         <div class="grid-3">
           <label class="field">
             <span>Operator Role</span>

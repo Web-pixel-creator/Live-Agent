@@ -372,7 +372,7 @@ async function main() {
       await switchTab(page, "operator");
       await screenshotElement(
         page,
-        "section.panel:has(h2:text-is('Operator Console'))",
+        "section.panel:has(h2:has-text('Operator Console'))",
         output.operatorConsoleEvidence,
         200,
       );

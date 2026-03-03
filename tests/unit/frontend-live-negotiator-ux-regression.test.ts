@@ -15,7 +15,9 @@ test("demo frontend keeps live negotiator UX guardrails for advanced controls an
   const requiredHtmlTokens = [
     'id="connectionAdvancedSection"',
     'id="liveSetupAdvanced"',
+    'id="approvalAdvancedSection"',
     'id="uiTaskAdvancedSection"',
+    'id="exportMenu"',
     "class=\"actions actions-priority\"",
     "class=\"action-group action-group-primary\"",
     "class=\"action-group action-group-secondary\"",
