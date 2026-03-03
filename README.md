@@ -95,7 +95,8 @@ Frontend `Intent Request -> Send Conversation Item` supports multimodal parts: t
 Frontend `Live Controls -> Apply Live Setup` can send runtime `live.setup` overrides (`model`, `voice`, `activityHandling`, `systemInstruction`).
 Frontend `Intent Request` also supports optional `ui_task` grounding overrides (`url`, `deviceNodeId`, `deviceNodeKind`, `deviceNodePlatform`, `deviceNodeCapabilities`, `deviceNodeMinTrustLevel`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`).
 Frontend is grouped into tabs (`Live Negotiator`, `Storyteller`, `Operator Console`, `Device Nodes`) with `Live Negotiator` opened by default for faster demo entry.
-`Live Negotiator` uses a compact top section plus a split middle layout (intent/approval/tasks on the left, KPI cards on the right) and keeps transcript as the main bottom panel.
+`Live Negotiator` uses a compact top section plus a split middle layout (intent/approval/tasks on the left, sticky KPI+Transcript rail on the right) so negotiation state stays visible while operating controls.
+Technical controls are collapsed into `Advanced Settings` blocks (`Live Setup` and `Advanced UI Task Settings`) to reduce default screen density.
 `Operator Console` uses grouped accordion lanes; before the first manual `Refresh Summary`, only `Live Bridge & Turn Safety` stays expanded by default.
 `Operator Console` hides placeholder cards (`no_data` / `summary_error`) until the first manual `Refresh Summary`, so judges/operators see only populated evidence by default.
 `KPI Constraints` includes per-metric delta badges (`price/delivery/sla`) plus explicit source attribution (`final_offer/current_offer/mixed_offer`) for quick judge scan.

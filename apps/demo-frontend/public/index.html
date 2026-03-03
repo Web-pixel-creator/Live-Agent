@@ -92,13 +92,17 @@
               <input id="targetLanguage" type="text" value="ru" />
             </label>
           </div>
-          <div class="actions">
-            <button id="connectBtn">Connect</button>
-            <button id="disconnectBtn" class="button-muted">Disconnect</button>
-            <button id="newSessionBtn" class="button-muted">New Session ID</button>
-            <button id="exportMarkdownBtn" class="button-muted">Export Session Markdown</button>
-            <button id="exportJsonBtn" class="button-muted">Export Session JSON</button>
-            <button id="exportAudioBtn" class="button-muted">Export Session Audio (WAV)</button>
+          <div class="actions actions-priority">
+            <div class="action-group action-group-primary">
+              <button id="connectBtn">Connect</button>
+              <button id="disconnectBtn" class="button-muted">Disconnect</button>
+              <button id="newSessionBtn" class="button-muted">New Session ID</button>
+            </div>
+            <div class="action-group action-group-secondary">
+              <button id="exportMarkdownBtn" class="button-muted">Export Session Markdown</button>
+              <button id="exportJsonBtn" class="button-muted">Export Session JSON</button>
+              <button id="exportAudioBtn" class="button-muted">Export Session Audio (WAV)</button>
+            </div>
           </div>
           <div class="meta-row meta-row-status">
             <div><strong>Status:</strong> <span id="connectionStatus">disconnected</span></div>
@@ -114,13 +118,17 @@
 
         <section class="panel panel-live-top">
           <h2><span class="section-badge">Control</span>Live Controls</h2>
-          <div class="actions">
-            <button id="startMicBtn">Start Mic Stream</button>
-            <button id="stopMicBtn" class="button-muted">Stop Mic</button>
-            <button id="pttToggleBtn" class="button-muted">Enable Push-to-Talk</button>
-            <button id="pttHoldBtn" class="button-muted" disabled>Hold to Talk</button>
-            <button id="interruptBtn" class="button-warn">Interrupt Assistant</button>
-            <button id="fallbackBtn" class="button-muted">Switch To Text Fallback</button>
+          <div class="actions actions-priority">
+            <div class="action-group action-group-primary">
+              <button id="startMicBtn">Start Mic Stream</button>
+              <button id="stopMicBtn" class="button-muted">Stop Mic</button>
+              <button id="pttToggleBtn" class="button-muted">Enable Push-to-Talk</button>
+              <button id="pttHoldBtn" class="button-muted" disabled>Hold to Talk</button>
+            </div>
+            <div class="action-group action-group-secondary">
+              <button id="interruptBtn" class="button-warn">Interrupt Assistant</button>
+              <button id="fallbackBtn" class="button-muted">Switch To Text Fallback</button>
+            </div>
           </div>
           <div class="field media-upload-field">
             <span>Still Image Input</span>
@@ -134,31 +142,37 @@
               </div>
             </div>
           </div>
-          <div class="grid-3">
-            <label class="field">
-              <span>Live Setup Model (optional)</span>
-              <input id="liveSetupModel" type="text" placeholder="models/gemini-live-2.5-flash-native-audio" />
-            </label>
-            <label class="field">
-              <span>Live Setup Voice (optional)</span>
-              <input id="liveSetupVoice" type="text" value="Aoede" />
-            </label>
-            <label class="field">
-              <span>Activity Handling</span>
-              <select id="liveSetupActivityHandling">
-                <option value="" selected>keep default</option>
-                <option value="INTERRUPT_AND_RESUME">INTERRUPT_AND_RESUME</option>
-                <option value="NO_INTERRUPTION">NO_INTERRUPTION</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>Live System Instruction (optional)</span>
-              <textarea id="liveSetupInstruction" rows="3" placeholder="Speak clearly and briefly."></textarea>
-            </label>
-          </div>
-          <div class="actions">
-            <button id="applyLiveSetupBtn" class="button-muted">Apply Live Setup</button>
-          </div>
+          <details id="liveSetupAdvanced" class="advanced-settings">
+            <summary>
+              <span class="advanced-title">Advanced Settings</span>
+              <span class="advanced-hint">Live setup model, voice and activity strategy</span>
+            </summary>
+            <div class="grid-3">
+              <label class="field">
+                <span>Live Setup Model (optional)</span>
+                <input id="liveSetupModel" type="text" placeholder="models/gemini-live-2.5-flash-native-audio" />
+              </label>
+              <label class="field">
+                <span>Live Setup Voice (optional)</span>
+                <input id="liveSetupVoice" type="text" value="Aoede" />
+              </label>
+              <label class="field">
+                <span>Activity Handling</span>
+                <select id="liveSetupActivityHandling">
+                  <option value="" selected>keep default</option>
+                  <option value="INTERRUPT_AND_RESUME">INTERRUPT_AND_RESUME</option>
+                  <option value="NO_INTERRUPTION">NO_INTERRUPTION</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Live System Instruction (optional)</span>
+                <textarea id="liveSetupInstruction" rows="3" placeholder="Speak clearly and briefly."></textarea>
+              </label>
+            </div>
+            <div class="actions">
+              <button id="applyLiveSetupBtn" class="button-muted">Apply Live Setup</button>
+            </div>
+          </details>
         </section>
 
         <div class="live-negotiator-main">
@@ -185,41 +199,51 @@
                 <span>Conversation Audio (optional)</span>
                 <input id="audioInput" type="file" accept="audio/*" />
               </label>
-              <div id="uiTaskFields" class="grid-3 intent-grid-advanced">
-                <label class="field">
-                  <span>UI Task URL (optional)</span>
-                  <input id="uiTaskUrl" type="text" placeholder="https://example.com/dashboard" />
-                </label>
-                <label class="field">
-                  <span>UI Device Node ID (optional)</span>
-                  <input id="uiTaskDeviceNodeId" type="text" placeholder="desktop-main" />
-                </label>
-                <label class="field">
-                  <span>UI Screenshot Ref (optional)</span>
-                  <input id="uiTaskScreenshotRef" type="text" placeholder="ui://session/screenshot-001.png" />
-                </label>
-                <label class="field">
-                  <span>UI DOM Snapshot (optional)</span>
-                  <textarea id="uiTaskDomSnapshot" rows="3" placeholder="<main>...</main>"></textarea>
-                </label>
-                <label class="field">
-                  <span>UI Accessibility Tree (optional)</span>
-                  <textarea
-                    id="uiTaskAccessibilityTree"
-                    rows="3"
-                    placeholder="main > button[name=Submit]"
-                  ></textarea>
-                </label>
-                <label class="field">
-                  <span>UI Mark Hints (optional, one per line)</span>
-                  <textarea id="uiTaskMarkHints" rows="3" placeholder="submit_button@(520,620)"></textarea>
-                </label>
-              </div>
-              <div class="actions">
-                <button id="sendBtn">Send Request</button>
-                <button id="sendConversationItemBtn" class="button-muted">Send Conversation Item</button>
-                <button id="sendConversationDeleteBtn" class="button-muted">Delete Active Turn</button>
-                <button id="sendOobBtn" class="button-muted">Send OOB Request</button>
+              <details id="uiTaskAdvancedSection" class="advanced-settings advanced-intent-settings" hidden>
+                <summary>
+                  <span class="advanced-title">Advanced UI Task Settings</span>
+                  <span class="advanced-hint">Grounding fields for browser automation and replay evidence</span>
+                </summary>
+                <div id="uiTaskFields" class="grid-3 intent-grid-advanced">
+                  <label class="field">
+                    <span>UI Task URL (optional)</span>
+                    <input id="uiTaskUrl" type="text" placeholder="https://example.com/dashboard" />
+                  </label>
+                  <label class="field">
+                    <span>UI Device Node ID (optional)</span>
+                    <input id="uiTaskDeviceNodeId" type="text" placeholder="desktop-main" />
+                  </label>
+                  <label class="field">
+                    <span>UI Screenshot Ref (optional)</span>
+                    <input id="uiTaskScreenshotRef" type="text" placeholder="ui://session/screenshot-001.png" />
+                  </label>
+                  <label class="field">
+                    <span>UI DOM Snapshot (optional)</span>
+                    <textarea id="uiTaskDomSnapshot" rows="3" placeholder="<main>...</main>"></textarea>
+                  </label>
+                  <label class="field">
+                    <span>UI Accessibility Tree (optional)</span>
+                    <textarea
+                      id="uiTaskAccessibilityTree"
+                      rows="3"
+                      placeholder="main > button[name=Submit]"
+                    ></textarea>
+                  </label>
+                  <label class="field">
+                    <span>UI Mark Hints (optional, one per line)</span>
+                    <textarea id="uiTaskMarkHints" rows="3" placeholder="submit_button@(520,620)"></textarea>
+                  </label>
+                </div>
+              </details>
+              <div class="actions actions-priority">
+                <div class="action-group action-group-primary">
+                  <button id="sendBtn">Send Request</button>
+                </div>
+                <div class="action-group action-group-secondary">
+                  <button id="sendConversationItemBtn" class="button-muted">Send Conversation Item</button>
+                  <button id="sendConversationDeleteBtn" class="button-muted">Delete Active Turn</button>
+                  <button id="sendOobBtn" class="button-muted">Send OOB Request</button>
+                </div>
               </div>
             </section>
 
@@ -331,13 +355,13 @@
                 </article>
               </div>
             </section>
+
+            <section class="panel panel-transcript panel-transcript-live">
+              <h2><span class="section-badge">Live</span>Transcript</h2>
+              <div id="transcript" class="transcript"></div>
+            </section>
           </div>
         </div>
-
-        <section class="panel panel-transcript">
-          <h2><span class="section-badge">Live</span>Transcript</h2>
-          <div id="transcript" class="transcript"></div>
-        </section>
       </div>
 
       <div id="tab-storyteller" class="tab-content" data-tab="storyteller">

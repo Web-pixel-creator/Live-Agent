@@ -16,7 +16,7 @@ The operator flow is used during live demos and production diagnostics to:
 
 ## Frontend Tabs
 
-1. `Live Negotiator` (default): connection/live controls at top, split middle layout (`intent + approval + tasks` and `KPI`), transcript at bottom; KPI card includes per-metric delta badges and source attribution (`final/current/mixed`)
+1. `Live Negotiator` (default): connection/live controls at top, split middle layout (`intent + approval + tasks` left, sticky `KPI + Transcript` rail right); technical fields are tucked into `Advanced Settings` to reduce cognitive load during demos; KPI card includes per-metric delta badges and source attribution (`final/current/mixed`)
 2. `Storyteller`: story timeline with progress bar, segment scrubber/selector, asset preview controls, and status pills (`timeline mode`, `asset mix`, `segment progress`)
 3. `Operator Console`: health/evidence cards grouped into collapsible lanes (`Live Bridge & Turn Safety`, `Governance/Skills/Cost`, `Runtime/UI Executor/Device Nodes`, `Approvals/Queue/Startup`), operator actions, and raw event log
 4. `Device Nodes`: device-node create/update/heartbeat controls and list
@@ -46,7 +46,7 @@ The operator flow is used during live demos and production diagnostics to:
 6. Approve/reject pending UI-sensitive actions
 7. Export session evidence from frontend (`Export Session Markdown` / `Export Session JSON` / `Export Session Audio (WAV)`)
 8. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
-9. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task`
+9. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
 
 ## Safety Controls
 

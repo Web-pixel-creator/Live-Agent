@@ -102,6 +102,7 @@ const el = {
   uiTaskAccessibilityTree: document.getElementById("uiTaskAccessibilityTree"),
   uiTaskMarkHints: document.getElementById("uiTaskMarkHints"),
   uiTaskFields: document.getElementById("uiTaskFields"),
+  uiTaskAdvancedSection: document.getElementById("uiTaskAdvancedSection"),
   sendConversationItemBtn: document.getElementById("sendConversationItemBtn"),
   sendConversationDeleteBtn: document.getElementById("sendConversationDeleteBtn"),
   transcript: document.getElementById("transcript"),
@@ -542,6 +543,11 @@ function setUiTaskFieldsVisibility() {
   const isUiTaskIntent = el.intent.value === "ui_task";
   el.uiTaskFields.hidden = !isUiTaskIntent;
   el.uiTaskFields.setAttribute("aria-hidden", isUiTaskIntent ? "false" : "true");
+  if (el.uiTaskAdvancedSection) {
+    el.uiTaskAdvancedSection.hidden = !isUiTaskIntent;
+    el.uiTaskAdvancedSection.setAttribute("aria-hidden", isUiTaskIntent ? "false" : "true");
+    el.uiTaskAdvancedSection.open = isUiTaskIntent;
+  }
 }
 
 function closeAllCustomSelectMenus(exceptShell = null) {

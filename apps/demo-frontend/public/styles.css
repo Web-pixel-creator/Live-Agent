@@ -410,10 +410,30 @@ body.bg-video-loop-transition .background-video-fade {
   grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
 }
 
-.live-negotiator-primary,
+.live-negotiator-primary {
+  display: grid;
+  gap: 22px;
+}
+
 .live-negotiator-secondary {
   display: grid;
   gap: 22px;
+  align-content: start;
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+
+.live-negotiator-secondary::-webkit-scrollbar {
+  width: 8px;
+}
+
+.live-negotiator-secondary::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--primary) 28%, var(--border));
 }
 
 .panel {
@@ -452,6 +472,64 @@ body.bg-video-loop-transition .background-video-fade {
   text-transform: uppercase;
   color: var(--primary);
   background: color-mix(in oklch, var(--primary) 18%, transparent);
+}
+
+.advanced-settings {
+  margin-top: 22px;
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--radius) - 2px);
+  padding: 10px 14px 16px;
+  background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+
+.advanced-settings > summary {
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  padding: 4px 2px;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 32px;
+}
+
+.advanced-settings > summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-settings > summary::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid color-mix(in oklch, var(--foreground) 62%, var(--muted-foreground));
+  border-bottom: 2px solid color-mix(in oklch, var(--foreground) 62%, var(--muted-foreground));
+  transform: translateY(-68%) rotate(45deg);
+  transition: transform 120ms ease;
+}
+
+.advanced-settings[open] > summary::after {
+  transform: translateY(-40%) rotate(-135deg);
+}
+
+.advanced-title {
+  color: color-mix(in oklch, var(--foreground) 94%, var(--accent-foreground));
+  font-size: 0.96rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.advanced-hint {
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  letter-spacing: 0;
+}
+
+.advanced-settings > :not(summary) {
+  margin-top: 14px;
 }
 
 .grid-2,
@@ -854,6 +932,25 @@ textarea {
   gap: 10px;
 }
 
+.actions-priority {
+  display: grid;
+  gap: 12px;
+}
+
+.action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.action-group-secondary > button {
+  border-color: color-mix(in oklch, var(--primary) 24%, var(--border));
+}
+
+.action-group-secondary > .button-warn {
+  border-color: color-mix(in oklch, var(--destructive) 74%, var(--border));
+}
+
 button {
   border: 1px solid color-mix(in oklch, var(--primary) 56%, var(--border));
   border-radius: 999px;
@@ -1031,6 +1128,10 @@ button:focus-visible {
 .kpi-panel > .grid-3 {
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 16px;
+}
+
+.live-negotiator-secondary .kpi-panel > .grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
 }
 
 .kpi-board-featured {
@@ -1420,6 +1521,11 @@ button:focus-visible {
   max-height: 560px;
 }
 
+.panel-transcript-live .transcript {
+  min-height: 320px;
+  max-height: min(56vh, 520px);
+}
+
 .transcript,
 .events {
   max-height: 300px;
@@ -1481,6 +1587,14 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .live-negotiator-secondary {
+    position: static;
+    top: auto;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
   .meta-row-status {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1492,6 +1606,14 @@ button:focus-visible {
   .media-upload-actions button {
     min-width: 0;
     width: 100%;
+  }
+
+  .actions-priority {
+    gap: 10px;
+  }
+
+  .kpi-panel > .grid-3 {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1526,6 +1648,11 @@ button:focus-visible {
 
   .grid-2 {
     grid-template-columns: 1fr;
+  }
+
+  .actions-priority,
+  .action-group {
+    gap: 8px;
   }
 
   .operator-health-group {
