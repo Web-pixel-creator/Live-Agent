@@ -470,10 +470,18 @@
           <button id="operatorCollapseAllBtn" class="button-muted">Collapse All</button>
           <button id="operatorExpandAllBtn" class="button-muted">Expand All</button>
           <button id="operatorCancelBtn" class="button-warn">Cancel Task</button>
-          <button id="operatorRetryBtn" class="button-muted">Retry Task</button>
-          <button id="operatorDrainBtn" class="button-warn">Failover Drain</button>
-          <button id="operatorWarmupBtn" class="button-muted">Failover Warmup</button>
         </div>
+        <details id="operatorAdvancedActions" class="operator-advanced-actions">
+          <summary>Advanced Actions</summary>
+          <p class="operator-advanced-actions-hint">
+            Retry and failover controls for incident handling and runtime recovery.
+          </p>
+          <div class="actions operator-advanced-actions-row">
+            <button id="operatorRetryBtn" class="button-muted">Retry Task</button>
+            <button id="operatorDrainBtn" class="button-warn">Failover Drain</button>
+            <button id="operatorWarmupBtn" class="button-muted">Failover Warmup</button>
+          </div>
+        </details>
         <div class="operator-signal-strip">
           <article class="operator-signal-card">
             <h3>Bridge</h3>
