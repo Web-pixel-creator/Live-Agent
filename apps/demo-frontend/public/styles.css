@@ -952,6 +952,14 @@ textarea {
   gap: 10px;
 }
 
+.operator-view-mode-actions {
+  margin-right: 6px;
+}
+
+.operator-view-mode-actions .button-muted {
+  min-width: 130px;
+}
+
 .operator-triage-summary {
   margin-top: 12px;
   display: grid;

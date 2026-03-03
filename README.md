@@ -99,6 +99,7 @@ Frontend is grouped into tabs (`Live Negotiator`, `Storyteller`, `Operator Conso
 Technical controls are collapsed into `Advanced Settings` blocks (`Advanced Session Settings`, `Live Setup`, `Advanced Approval Settings`, and `Advanced UI Task Settings`) to reduce default screen density.
 `Operator Console` uses grouped accordion lanes; before the first manual `Refresh Summary`, only `Live Bridge & Turn Safety` stays expanded by default.
 `Operator Console` hides placeholder cards (`no_data` / `summary_error`) until the first manual `Refresh Summary`, so judges/operators see only populated evidence by default.
+`Operator Console` includes explicit mode toggles: `Demo View` (default, critical-first) and `Full Ops View` (full board expansion for deep diagnostics).
 `Operator Console` starts in `Focus Critical` mode with a top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); use `Show All Cards` to inspect the full evidence set.
 `Issues Only` toggle hides cards already in `ok` state, so triage stays focused on neutral/fail evidence.
 `Reset View` returns Operator Console to default triage layout (`Focus Critical` on, `Issues Only` off, default group visibility).

@@ -51,6 +51,7 @@ const state = {
   operatorTurnDeleteSnapshot: null,
   operatorDamageControlSnapshot: null,
   operatorCardsCollapsed: false,
+  operatorBoardMode: "demo",
   operatorFocusCriticalOnly: false,
   operatorIssuesOnly: false,
   operatorSummaryUserRefreshed: false,
@@ -145,6 +146,8 @@ const el = {
   operatorRole: document.getElementById("operatorRole"),
   operatorTaskId: document.getElementById("operatorTaskId"),
   operatorTargetService: document.getElementById("operatorTargetService"),
+  operatorDemoViewBtn: document.getElementById("operatorDemoViewBtn"),
+  operatorFullOpsViewBtn: document.getElementById("operatorFullOpsViewBtn"),
   operatorResetViewBtn: document.getElementById("operatorResetViewBtn"),
   operatorFocusCriticalBtn: document.getElementById("operatorFocusCriticalBtn"),
   operatorIssuesOnlyBtn: document.getElementById("operatorIssuesOnlyBtn"),
@@ -910,6 +913,55 @@ function setOperatorIssuesOnlyMode(enabled) {
   applyOperatorCardsVisibility();
 }
 
+function normalizeOperatorBoardMode(value) {
+  return value === "full" ? "full" : "demo";
+}
+
+function syncOperatorBoardModeButtons() {
+  const mode = normalizeOperatorBoardMode(state.operatorBoardMode);
+  const isDemo = mode === "demo";
+  if (el.operatorDemoViewBtn) {
+    el.operatorDemoViewBtn.classList.toggle("is-active", isDemo);
+    el.operatorDemoViewBtn.setAttribute("aria-pressed", isDemo ? "true" : "false");
+  }
+  if (el.operatorFullOpsViewBtn) {
+    el.operatorFullOpsViewBtn.classList.toggle("is-active", !isDemo);
+    el.operatorFullOpsViewBtn.setAttribute("aria-pressed", !isDemo ? "true" : "false");
+  }
+  if (el.operatorHealthBoard) {
+    el.operatorHealthBoard.classList.toggle("is-demo-view", isDemo);
+    el.operatorHealthBoard.classList.toggle("is-full-ops-view", !isDemo);
+  }
+}
+
+function setOperatorBoardMode(mode, options = {}) {
+  const nextMode = normalizeOperatorBoardMode(mode);
+  const syncPresets = options && options.syncPresets === false ? false : true;
+  state.operatorBoardMode = nextMode;
+  syncOperatorBoardModeButtons();
+
+  if (!syncPresets) {
+    return;
+  }
+
+  setOperatorCardsCollapsed(false);
+  setOperatorIssuesOnlyMode(false);
+  setOperatorFocusCriticalMode(nextMode === "demo");
+
+  if (nextMode === "demo") {
+    const groups = Array.from(document.querySelectorAll(".operator-health-group"));
+    for (const group of groups) {
+      const key = group.getAttribute("data-operator-group");
+      setOperatorGroupCollapsed(group, key !== "bridge-safety");
+    }
+    syncOperatorCollapseActionButtons();
+  } else {
+    setAllOperatorGroupsCollapsed(false);
+    syncOperatorCollapseActionButtons();
+  }
+  applyOperatorCardsVisibility();
+}
+
 function readOperatorStatusVariant(statusNode) {
   if (!(statusNode instanceof HTMLElement)) {
     return "neutral";
@@ -1005,9 +1057,16 @@ function refreshOperatorGroupMetrics() {
 }
 
 function resetOperatorBoardView() {
+  setOperatorBoardMode("demo", { syncPresets: false });
   setOperatorCardsCollapsed(false);
   setOperatorIssuesOnlyMode(false);
   setOperatorFocusCriticalMode(true);
+  const groups = Array.from(document.querySelectorAll(".operator-health-group"));
+  for (const group of groups) {
+    const key = group.getAttribute("data-operator-group");
+    setOperatorGroupCollapsed(group, key !== "bridge-safety");
+  }
+  syncOperatorCollapseActionButtons();
   applyOperatorCardsVisibility();
 }
 
@@ -2726,7 +2785,7 @@ function resetOperatorHealthWidget(reason = "no_data") {
   setText(el.operatorHealthPongs, "0");
   setText(el.operatorHealthPingErrors, "0");
   setText(el.operatorHealthProbeSuccess, "n/a");
-  setOperatorHealthHint("Refresh summary to evaluate recovery actions.", "neutral");
+  setOperatorHealthHint("Live bridge not initialized yet. Click Refresh Summary after opening a live session.", "neutral");
   setStatusPill(el.operatorHealthStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -2749,7 +2808,7 @@ function resetOperatorDeviceNodesWidget(reason = "no_data") {
   setText(el.operatorDeviceNodesStale, "0");
   setText(el.operatorDeviceNodesMissingHeartbeat, "0");
   setText(el.operatorDeviceNodesMaxAge, "n/a");
-  setOperatorDeviceNodesHint("Refresh summary to inspect device-node fleet health.", "neutral");
+  setOperatorDeviceNodesHint("No device nodes registered yet. Add at least one node in Device Nodes tab, then refresh.", "neutral");
   setStatusPill(el.operatorDeviceNodesStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -2808,7 +2867,7 @@ function resetOperatorTaskQueueWidget(reason = "no_data") {
   setText(el.operatorTaskQueueStale, "0");
   setText(el.operatorTaskQueueMaxAge, "n/a");
   setText(el.operatorTaskQueueOldest, "n/a");
-  setOperatorTaskQueueHint("Refresh summary to inspect active task queue pressure.", "neutral");
+  setOperatorTaskQueueHint("No task pressure signal yet. Run one intent and click Refresh Summary.", "neutral");
   setStatusPill(el.operatorTaskQueueStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -2821,7 +2880,7 @@ function resetOperatorGatewayErrorWidget(reason = "no_data") {
   setText(el.operatorGatewayErrorConversation, "n/a");
   setText(el.operatorGatewayErrorLatency, "n/a");
   setText(el.operatorGatewayErrorSeenAt, "n/a");
-  setOperatorGatewayErrorHint("Waiting for gateway/orchestrator error events.", "neutral");
+  setOperatorGatewayErrorHint("No gateway errors captured yet. Run flow probes or refresh summary to validate correlation lane.", "neutral");
   setStatusPill(el.operatorGatewayErrorStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -2858,7 +2917,7 @@ function resetOperatorDamageControlWidget(reason = "no_data") {
   setText(el.operatorDamageControlLatest, "n/a");
   setText(el.operatorDamageControlRuleIds, "n/a");
   setText(el.operatorDamageControlSeenAt, "n/a");
-  setOperatorDamageControlHint("Waiting for damage-control decisions.", "neutral");
+  setOperatorDamageControlHint("No damage-control decisions observed yet. Run a UI sandbox flow to populate this lane.", "neutral");
   setStatusPill(el.operatorDamageControlStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -2933,7 +2992,7 @@ function resetOperatorStartupWidget(reason = "no_data") {
   setText(el.operatorStartupLastType, "n/a");
   setText(el.operatorStartupLastService, "n/a");
   setText(el.operatorStartupLastCheckedAt, "n/a");
-  setOperatorStartupHint("Refresh summary to inspect startup diagnostics from service probes.", "neutral");
+  setOperatorStartupHint("Startup diagnostics not sampled yet. Refresh Summary to pull probe evidence.", "neutral");
   setStatusPill(el.operatorStartupStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
@@ -7458,6 +7517,16 @@ function bindEvents() {
   document.getElementById("operatorRefreshBtn").addEventListener("click", () => {
     void refreshOperatorSummary({ markUserRefresh: true });
   });
+  if (el.operatorDemoViewBtn) {
+    el.operatorDemoViewBtn.addEventListener("click", () => {
+      setOperatorBoardMode("demo");
+    });
+  }
+  if (el.operatorFullOpsViewBtn) {
+    el.operatorFullOpsViewBtn.addEventListener("click", () => {
+      setOperatorBoardMode("full");
+    });
+  }
   if (el.operatorResetViewBtn) {
     el.operatorResetViewBtn.addEventListener("click", () => {
       resetOperatorBoardView();
