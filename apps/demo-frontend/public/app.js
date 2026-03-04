@@ -170,6 +170,13 @@ const el = {
   operatorModeBanner: document.getElementById("operatorModeBanner"),
   operatorModeBadge: document.getElementById("operatorModeBadge"),
   operatorModeCopy: document.getElementById("operatorModeCopy"),
+  operatorDemoSummaryStrip: document.getElementById("operatorDemoSummaryStrip"),
+  operatorDemoSummaryBridge: document.getElementById("operatorDemoSummaryBridge"),
+  operatorDemoSummaryQueue: document.getElementById("operatorDemoSummaryQueue"),
+  operatorDemoSummaryApprovals: document.getElementById("operatorDemoSummaryApprovals"),
+  operatorDemoSummaryStartup: document.getElementById("operatorDemoSummaryStartup"),
+  operatorDemoSummaryUiExecutor: document.getElementById("operatorDemoSummaryUiExecutor"),
+  operatorDemoSummaryDeviceNodes: document.getElementById("operatorDemoSummaryDeviceNodes"),
   operatorSummaryGuide: document.getElementById("operatorSummaryGuide"),
   operatorSummaryGuideTitle: document.getElementById("operatorSummaryGuideTitle"),
   operatorSummaryGuideHint: document.getElementById("operatorSummaryGuideHint"),
@@ -456,6 +463,15 @@ const OPERATOR_SIGNAL_STATUS_MIRROR_IDS = {
   operatorStartupStatus: "operatorSignalStartup",
   operatorUiExecutorStatus: "operatorSignalUiExecutor",
   operatorDeviceNodesStatus: "operatorSignalDeviceNodes",
+};
+
+const OPERATOR_DEMO_SUMMARY_STATUS_MIRROR_IDS = {
+  operatorHealthStatus: "operatorDemoSummaryBridge",
+  operatorTaskQueueStatus: "operatorDemoSummaryQueue",
+  operatorApprovalsStatus: "operatorDemoSummaryApprovals",
+  operatorStartupStatus: "operatorDemoSummaryStartup",
+  operatorUiExecutorStatus: "operatorDemoSummaryUiExecutor",
+  operatorDeviceNodesStatus: "operatorDemoSummaryDeviceNodes",
 };
 
 function nowLabel() {
@@ -993,6 +1009,9 @@ function syncOperatorBoardModeButtons() {
   if (el.operatorModeBanner) {
     el.operatorModeBanner.classList.toggle("is-demo", isDemo);
     el.operatorModeBanner.classList.toggle("is-full-ops", !isDemo);
+  }
+  if (el.operatorDemoSummaryStrip) {
+    el.operatorDemoSummaryStrip.classList.toggle("is-hidden", !isDemo);
   }
   setStatusPill(el.operatorModeBadge, isDemo ? "demo_view" : "full_ops_view", isDemo ? "ok" : "neutral");
   if (el.operatorModeCopy) {
@@ -3225,16 +3244,24 @@ function syncOperatorSignalFromStatus(node) {
   if (!(node instanceof HTMLElement)) {
     return;
   }
-  const mirrorId = OPERATOR_SIGNAL_STATUS_MIRROR_IDS[node.id];
-  if (typeof mirrorId !== "string") {
-    return;
+  const mirrorIds = [
+    OPERATOR_SIGNAL_STATUS_MIRROR_IDS[node.id],
+    OPERATOR_DEMO_SUMMARY_STATUS_MIRROR_IDS[node.id],
+  ];
+  for (const mirrorId of mirrorIds) {
+    if (typeof mirrorId !== "string") {
+      continue;
+    }
+    const mirrorNode = el[mirrorId];
+    if (!(mirrorNode instanceof HTMLElement)) {
+      continue;
+    }
+    mirrorNode.textContent = node.textContent ?? "no_data";
+    mirrorNode.className = node.className;
+    if (typeof node.dataset.statusCode === "string") {
+      mirrorNode.dataset.statusCode = node.dataset.statusCode;
+    }
   }
-  const mirrorNode = el[mirrorId];
-  if (!(mirrorNode instanceof HTMLElement)) {
-    return;
-  }
-  mirrorNode.textContent = node.textContent ?? "no_data";
-  mirrorNode.className = node.className;
 }
 
 function setStatusPill(node, text, variant) {

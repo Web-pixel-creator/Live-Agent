@@ -103,6 +103,7 @@ Technical controls are collapsed into `Advanced Settings` blocks (`Advanced Sess
 When placeholder states are visible, the UI renders judge-friendly labels (`awaiting_refresh` / `refresh_failed`) while preserving internal placeholder codes for board filtering.
 `Operator Console` includes explicit mode toggles: `Demo View` (default, critical-first) and `Full Ops View` (full board expansion for deep diagnostics).
 `Operator Console` now shows a mode banner (`demo_view` / `full_ops_view`) with inline guidance, so the active triage scope is visible at a glance.
+`Operator Console` now includes a `Demo Summary` strip in `Demo View` (Realtime Gateway, Queue, Approvals, Startup, UI Executor, Device Nodes) with large mirrored status pills and one-click jump-to-card navigation.
 `Operator Console` shows a guided pre-refresh banner before the first manual refresh, with a one-click `Refresh Summary` action and mode-specific hinting (`Demo` vs `Full Ops`).
 Operator empty-state hints are action-oriented (which scenario/action to run next, then `Refresh Summary`) to avoid dead-looking `Waiting for ...` states.
 Operator status cards now render demo-friendly placeholders directly in static HTML (`awaiting_refresh` / `pending`) before JS hydration.

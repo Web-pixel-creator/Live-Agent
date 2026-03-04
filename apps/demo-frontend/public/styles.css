@@ -1027,6 +1027,82 @@ textarea {
   line-height: 1.45;
 }
 
+.operator-demo-summary-strip {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(182px, 1fr));
+  gap: 10px;
+}
+
+.operator-demo-summary-strip.is-hidden {
+  display: none;
+}
+
+.operator-demo-summary-card {
+  border: 1px solid color-mix(in oklch, var(--primary) 20%, var(--border-soft));
+  border-radius: calc(var(--radius) - 6px);
+  min-height: 0;
+  width: 100%;
+  padding: 11px 12px;
+  background:
+    radial-gradient(240px 88px at 0% -18%, color-mix(in oklch, var(--primary) 12%, transparent), transparent 72%),
+    linear-gradient(
+      160deg,
+      color-mix(in oklch, var(--surface-control) 90%, var(--surface-panel)),
+      color-mix(in oklch, var(--surface-panel-2) 94%, var(--surface-control))
+    );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent),
+    0 8px 16px -18px color-mix(in oklch, var(--primary) 40%, transparent);
+  display: grid;
+  gap: 7px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 130ms ease, box-shadow 130ms ease, background 130ms ease;
+}
+
+.operator-demo-summary-card:hover {
+  transform: none;
+  filter: none;
+  border-color: color-mix(in oklch, var(--primary) 44%, var(--border));
+  background:
+    radial-gradient(240px 88px at 0% -18%, color-mix(in oklch, var(--primary) 16%, transparent), transparent 72%),
+    linear-gradient(
+      160deg,
+      color-mix(in oklch, var(--surface-control-hover) 90%, var(--surface-panel)),
+      color-mix(in oklch, var(--surface-panel-2) 94%, var(--surface-control))
+    );
+}
+
+.operator-demo-summary-card:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent),
+    0 0 0 3px var(--focus-ring-soft);
+}
+
+.operator-demo-summary-title {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: color-mix(in oklch, var(--muted-foreground) 84%, var(--foreground));
+}
+
+.operator-demo-summary-card .status-pill {
+  justify-self: start;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.operator-demo-summary-copy {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.42;
+  color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
+}
+
 .operator-summary-guide {
   margin-top: 12px;
   border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);
@@ -3672,6 +3748,10 @@ button:focus-visible {
     flex-direction: column;
   }
 
+  .operator-demo-summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .operator-mode-banner {
     align-items: flex-start;
     flex-direction: column;
@@ -3830,6 +3910,10 @@ button:focus-visible {
     flex: 1 1 100%;
     padding: 8px 10px;
     font-size: 0.82rem;
+  }
+
+  .operator-demo-summary-strip {
+    grid-template-columns: 1fr;
   }
 
   .field {

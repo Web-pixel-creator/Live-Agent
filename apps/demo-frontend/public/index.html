@@ -600,6 +600,68 @@
           <span id="operatorModeBadge" class="status-pill status-ok">demo_view</span>
           <p id="operatorModeCopy" class="operator-mode-copy">Critical-first board for judge walkthroughs.</p>
         </div>
+        <div id="operatorDemoSummaryStrip" class="operator-demo-summary-strip" role="status" aria-live="polite">
+          <button
+            type="button"
+            class="operator-demo-summary-card operator-signal-jump"
+            data-operator-signal-target="operatorHealthStatus"
+            aria-label="Jump to Realtime Gateway status card"
+          >
+            <p class="operator-demo-summary-title">Realtime Gateway</p>
+            <p id="operatorDemoSummaryBridge" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
+            <p class="operator-demo-summary-copy">Live bridge and websocket recovery health.</p>
+          </button>
+          <button
+            type="button"
+            class="operator-demo-summary-card operator-signal-jump"
+            data-operator-signal-target="operatorTaskQueueStatus"
+            aria-label="Jump to Task Queue status card"
+          >
+            <p class="operator-demo-summary-title">Task Queue</p>
+            <p id="operatorDemoSummaryQueue" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
+            <p class="operator-demo-summary-copy">Runtime pressure and pending queue depth.</p>
+          </button>
+          <button
+            type="button"
+            class="operator-demo-summary-card operator-signal-jump"
+            data-operator-signal-target="operatorApprovalsStatus"
+            aria-label="Jump to Approvals status card"
+          >
+            <p class="operator-demo-summary-title">Approvals</p>
+            <p id="operatorDemoSummaryApprovals" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
+            <p class="operator-demo-summary-copy">Pending approvals and SLA decision health.</p>
+          </button>
+          <button
+            type="button"
+            class="operator-demo-summary-card operator-signal-jump"
+            data-operator-signal-target="operatorStartupStatus"
+            aria-label="Jump to Startup status card"
+          >
+            <p class="operator-demo-summary-title">Startup</p>
+            <p id="operatorDemoSummaryStartup" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
+            <p class="operator-demo-summary-copy">Service readiness and bootstrap failures.</p>
+          </button>
+          <button
+            type="button"
+            class="operator-demo-summary-card operator-signal-jump"
+            data-operator-signal-target="operatorUiExecutorStatus"
+            aria-label="Jump to UI Executor status card"
+          >
+            <p class="operator-demo-summary-title">UI Executor</p>
+            <p id="operatorDemoSummaryUiExecutor" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
+            <p class="operator-demo-summary-copy">Failover profile, runtime state, and actions.</p>
+          </button>
+          <button
+            type="button"
+            class="operator-demo-summary-card operator-signal-jump"
+            data-operator-signal-target="operatorDeviceNodesStatus"
+            aria-label="Jump to Device Nodes status card"
+          >
+            <p class="operator-demo-summary-title">Device Nodes</p>
+            <p id="operatorDemoSummaryDeviceNodes" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
+            <p class="operator-demo-summary-copy">Node fleet health, stale heartbeats, and drift.</p>
+          </button>
+        </div>
         <div id="operatorSummaryGuide" class="operator-summary-guide" role="status" aria-live="polite">
           <div class="operator-summary-guide-copy">
             <p id="operatorSummaryGuideTitle" class="operator-summary-guide-title">Ready for first evidence refresh</p>
