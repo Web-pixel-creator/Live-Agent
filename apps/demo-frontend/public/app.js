@@ -177,6 +177,12 @@ const el = {
   operatorDemoSummaryStartup: document.getElementById("operatorDemoSummaryStartup"),
   operatorDemoSummaryUiExecutor: document.getElementById("operatorDemoSummaryUiExecutor"),
   operatorDemoSummaryDeviceNodes: document.getElementById("operatorDemoSummaryDeviceNodes"),
+  operatorDemoSummaryBridgeKpi: document.getElementById("operatorDemoSummaryBridgeKpi"),
+  operatorDemoSummaryQueueKpi: document.getElementById("operatorDemoSummaryQueueKpi"),
+  operatorDemoSummaryApprovalsKpi: document.getElementById("operatorDemoSummaryApprovalsKpi"),
+  operatorDemoSummaryStartupKpi: document.getElementById("operatorDemoSummaryStartupKpi"),
+  operatorDemoSummaryUiExecutorKpi: document.getElementById("operatorDemoSummaryUiExecutorKpi"),
+  operatorDemoSummaryDeviceNodesKpi: document.getElementById("operatorDemoSummaryDeviceNodesKpi"),
   operatorSummaryGuide: document.getElementById("operatorSummaryGuide"),
   operatorSummaryGuideTitle: document.getElementById("operatorSummaryGuideTitle"),
   operatorSummaryGuideHint: document.getElementById("operatorSummaryGuideHint"),
@@ -472,6 +478,15 @@ const OPERATOR_DEMO_SUMMARY_STATUS_MIRROR_IDS = {
   operatorStartupStatus: "operatorDemoSummaryStartup",
   operatorUiExecutorStatus: "operatorDemoSummaryUiExecutor",
   operatorDeviceNodesStatus: "operatorDemoSummaryDeviceNodes",
+};
+
+const OPERATOR_DEMO_SUMMARY_KPI_IDS = {
+  operatorHealthStatus: "operatorDemoSummaryBridgeKpi",
+  operatorTaskQueueStatus: "operatorDemoSummaryQueueKpi",
+  operatorApprovalsStatus: "operatorDemoSummaryApprovalsKpi",
+  operatorStartupStatus: "operatorDemoSummaryStartupKpi",
+  operatorUiExecutorStatus: "operatorDemoSummaryUiExecutorKpi",
+  operatorDeviceNodesStatus: "operatorDemoSummaryDeviceNodesKpi",
 };
 
 function nowLabel() {
@@ -1085,6 +1100,67 @@ function readOperatorStatusVariant(statusNode) {
   return "neutral";
 }
 
+function formatOperatorDemoSummaryKpi(fail, neutral, ok) {
+  return `F ${fail} · N ${neutral} · O ${ok}`;
+}
+
+function syncOperatorDemoSummaryKpi(statusNode) {
+  if (!(statusNode instanceof HTMLElement)) {
+    return;
+  }
+  const kpiId = OPERATOR_DEMO_SUMMARY_KPI_IDS[statusNode.id];
+  if (typeof kpiId !== "string") {
+    return;
+  }
+  const kpiNode = el[kpiId];
+  if (!(kpiNode instanceof HTMLElement)) {
+    return;
+  }
+
+  const sourceCard = statusNode.closest(".operator-health-card");
+  const sourceGroup = sourceCard instanceof HTMLElement ? sourceCard.closest(".operator-health-group") : null;
+
+  let fail = 0;
+  let neutral = 0;
+  let ok = 0;
+
+  if (sourceGroup instanceof HTMLElement) {
+    const groupCards = Array.from(sourceGroup.querySelectorAll(".operator-health-card"));
+    const visibleCards = groupCards.filter((card) => !card.classList.contains("operator-health-card-hidden"));
+    for (const card of visibleCards) {
+      const cardStatus = card.querySelector(".status-pill");
+      const variant = readOperatorStatusVariant(cardStatus);
+      if (variant === "fail") {
+        fail += 1;
+      } else if (variant === "ok") {
+        ok += 1;
+      } else {
+        neutral += 1;
+      }
+    }
+  } else {
+    const variant = readOperatorStatusVariant(statusNode);
+    if (variant === "fail") {
+      fail = 1;
+    } else if (variant === "ok") {
+      ok = 1;
+    } else {
+      neutral = 1;
+    }
+  }
+
+  kpiNode.textContent = formatOperatorDemoSummaryKpi(fail, neutral, ok);
+}
+
+function refreshOperatorDemoSummaryKpis() {
+  for (const sourceStatusId of Object.keys(OPERATOR_DEMO_SUMMARY_KPI_IDS)) {
+    const statusNode = document.getElementById(sourceStatusId);
+    if (statusNode instanceof HTMLElement) {
+      syncOperatorDemoSummaryKpi(statusNode);
+    }
+  }
+}
+
 function refreshOperatorTriageSummary() {
   const cards = Array.from(document.querySelectorAll(".operator-health-card"));
   let visible = 0;
@@ -1346,6 +1422,7 @@ function applyOperatorCardsVisibility() {
   syncOperatorCollapseActionButtons();
   refreshOperatorTriageSummary();
   refreshOperatorGroupMetrics();
+  refreshOperatorDemoSummaryKpis();
 }
 
 function toConversationScope(value) {
@@ -3262,6 +3339,7 @@ function syncOperatorSignalFromStatus(node) {
       mirrorNode.dataset.statusCode = node.dataset.statusCode;
     }
   }
+  syncOperatorDemoSummaryKpi(node);
 }
 
 function setStatusPill(node, text, variant) {

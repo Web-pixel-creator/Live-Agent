@@ -1096,6 +1096,15 @@ textarea {
   font-size: 0.8rem;
 }
 
+.operator-demo-summary-kpi {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+  color: color-mix(in oklch, var(--foreground) 82%, var(--muted-foreground));
+}
+
 .operator-demo-summary-copy {
   margin: 0;
   font-size: 0.78rem;
