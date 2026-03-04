@@ -9548,9 +9548,51 @@ function toggleFallbackMode() {
 }
 
 function bindEvents() {
+  const orderedTabButtons = tabButtons.filter((button) => {
+    const target = button.dataset.tabTarget ?? "";
+    return target.length > 0 && tabContents.some((section) => section.dataset.tab === target);
+  });
+
+  const resolveTabButtonIndex = (button) => orderedTabButtons.findIndex((candidate) => candidate === button);
+
   for (const button of tabButtons) {
     button.addEventListener("click", () => {
       setActiveTab(button.dataset.tabTarget ?? DEFAULT_TAB_ID);
+    });
+    button.addEventListener("keydown", (event) => {
+      if (orderedTabButtons.length === 0) {
+        return;
+      }
+
+      const currentIndex = resolveTabButtonIndex(button);
+      if (currentIndex < 0) {
+        return;
+      }
+
+      let nextIndex = currentIndex;
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        nextIndex = (currentIndex + 1) % orderedTabButtons.length;
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        nextIndex = (currentIndex - 1 + orderedTabButtons.length) % orderedTabButtons.length;
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        nextIndex = 0;
+      } else if (event.key === "End") {
+        event.preventDefault();
+        nextIndex = orderedTabButtons.length - 1;
+      } else if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        setActiveTab(button.dataset.tabTarget ?? DEFAULT_TAB_ID);
+        return;
+      } else {
+        return;
+      }
+
+      const nextButton = orderedTabButtons[nextIndex];
+      nextButton.focus();
+      setActiveTab(nextButton.dataset.tabTarget ?? DEFAULT_TAB_ID);
     });
   }
   window.addEventListener("hashchange", () => {

@@ -98,6 +98,7 @@ Frontend is grouped into tabs (`Live Negotiator`, `Storyteller`, `Operator Conso
 Frontend remembers the last active tab (`mla.demoFrontend.activeTab`) and restores it on reload for faster multi-panel iteration.
 Frontend tab state is also deep-linkable via URL hash (`#tab=live-negotiator|storyteller|operator|device-nodes`) and reacts to `hashchange` so reviewers can share direct tab links.
 Tabs stay sticky while scrolling and active tab switches use a short panel fade/slide transition (with `prefers-reduced-motion` fallback) so navigation context is preserved in long judge sessions.
+Tabs also support keyboard-first navigation (`ArrowLeft/ArrowRight/Home/End` with `Enter/Space` activation) for faster judge/operator walkthroughs without pointer input.
 `Live Negotiator` uses a compact top section plus a split middle layout (intent/approval/tasks on the left, sticky KPI+Transcript rail on the right) so negotiation state stays visible while operating controls.
 Live control toolbars are separated into `primary` and `secondary` action lanes to reduce button/input ambiguity and keep destructive/secondary actions visually distinct.
 Technical controls are collapsed into `Advanced Settings` blocks (`Advanced Session Settings`, `Live Setup`, `Advanced Approval Settings`, and `Advanced UI Task Settings`) to reduce default screen density.
