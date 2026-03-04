@@ -69,6 +69,7 @@ The operator flow is used during live demos and production diagnostics to:
 28. Custom dropdown controls support keyboard navigation (`ArrowUp/ArrowDown/Home/End`, `Enter/Space`, `Escape`) and combobox/listbox ARIA semantics (`aria-controls`, `aria-expanded`, `aria-activedescendant`) so operators/judges can complete flows without pointer-only input
 29. Operator Console secondary operator copy (`mode hints`, quick-start helper text, lane playbook notes, triage micro-labels, and health metadata rows) uses elevated neutral contrast to remain legible over layered gradients/video
 30. In `Demo View`, remaining neutral/uninitialized demo-essential cards are rendered in compact mode (`title + status + hint`) until evidence arrives, reducing pre-refresh visual noise without hiding critical-failure cards
+31. Compact operator empty cards include inline recovery CTAs (`Run Negotiation` / `Run UI Task` / `Open Device Nodes` + `Refresh Summary`) so empty evidence lanes can be populated without leaving the card context
 
 ## Safety Controls
 

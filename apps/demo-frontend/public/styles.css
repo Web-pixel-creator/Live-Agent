@@ -2558,6 +2558,48 @@ button:focus-visible {
   font-size: 0.83rem;
 }
 
+.operator-health-card.operator-health-card-empty {
+  border-color: color-mix(in oklch, var(--primary) 36%, var(--border-soft));
+}
+
+.operator-health-empty-actions {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.operator-health-empty-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 90%, var(--muted-foreground));
+}
+
+.operator-health-empty-cue::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--primary) 70%, var(--accent-foreground));
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--primary) 22%, transparent);
+}
+
+.operator-health-empty-action {
+  flex: 1 1 152px;
+  min-width: 0;
+}
+
+.operator-health-empty-action-refresh {
+  flex: 0 0 auto;
+  min-width: 136px;
+}
+
 .operator-health-row {
   margin: 0 0 9px;
   display: flex;

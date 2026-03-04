@@ -19,6 +19,13 @@ test("operator demo view suppresses uninitialized neutral noise in demo modes", 
     "function isOperatorUninitializedStatusText(value)",
     "function shouldHideOperatorDemoNeutralCard(card, statusNode)",
     "function shouldCondenseOperatorDemoNeutralCard(card, statusNode)",
+    "const OPERATOR_EMPTY_STATE_ACTIONS = {",
+    "operatorDeviceNodesStatus: { action: \"open_device_nodes\", label: \"Open Device Nodes\" },",
+    "function runOperatorEmptyStateAction(actionId)",
+    "function ensureOperatorCardEmptyActions(card, statusNode)",
+    "runOperatorEmptyStateAction(\"refresh_summary\");",
+    "runOperatorEmptyStateAction(actionId);",
+    "ensureOperatorCardEmptyActions(card, statusNode);",
     "normalizeOperatorBoardMode(state.operatorBoardMode) !== \"demo\"",
     "statusNode.classList.contains(\"status-neutral\")",
     "!isOperatorUninitializedStatusText(getOperatorStatusCode(statusNode))",
@@ -37,6 +44,11 @@ test("operator demo view suppresses uninitialized neutral noise in demo modes", 
     ".operator-health-card.operator-health-card-condensed .operator-health-row {",
     ".operator-health-card.operator-health-card-condensed .status-pill {",
     ".operator-health-card.operator-health-card-condensed .operator-health-hint {",
+    ".operator-health-card.operator-health-card-empty {",
+    ".operator-health-empty-actions {",
+    ".operator-health-empty-cue {",
+    ".operator-health-empty-action {",
+    ".operator-health-empty-action-refresh {",
   ];
   for (const token of requiredStyleTokens) {
     assert.ok(stylesSource.includes(token), `frontend styles missing operator demo-noise token: ${token}`);
@@ -51,11 +63,19 @@ test("operator demo view suppresses uninitialized neutral noise in demo modes", 
     "README missing operator demo compact neutral-card note",
   );
   assert.ok(
+    readmeSource.includes("inline next-step CTAs (`Run Negotiation` / `Run UI Task` / `Open Device Nodes` + `Refresh Summary`)"),
+    "README missing operator demo inline CTA note",
+  );
+  assert.ok(
     operatorGuideSource.includes("uninitialized neutral noise cards"),
     "operator guide missing operator demo uninitialized-neutral visibility note",
   );
   assert.ok(
     operatorGuideSource.includes("compact mode (`title + status + hint`)"),
     "operator guide missing operator demo compact neutral-card note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("inline recovery CTAs"),
+    "operator guide missing operator demo inline CTA note",
   );
 });

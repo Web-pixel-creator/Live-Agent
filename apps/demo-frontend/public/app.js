@@ -76,6 +76,17 @@ const STORY_EMPTY_STATE_PROMPT =
 const ACTIVE_TASK_NEGOTIATION_PROMPT = "Negotiate: price=96, delivery=9, sla=99, include one concession path.";
 const ACTIVE_TASK_UI_TASK_PROMPT =
   "ui_task: Open the billing page, verify the invoices table loads, and report one safe next action.";
+const OPERATOR_EMPTY_STATE_ACTIONS = {
+  operatorHealthStatus: { action: "run_negotiation", label: "Run Negotiation" },
+  operatorTaskQueueStatus: { action: "run_negotiation", label: "Run Negotiation" },
+  operatorApprovalsStatus: { action: "run_ui_task", label: "Run UI Task" },
+  operatorStartupStatus: { action: "run_negotiation", label: "Run Negotiation" },
+  operatorUiExecutorStatus: { action: "run_ui_task", label: "Run UI Task" },
+  operatorDeviceNodesStatus: { action: "open_device_nodes", label: "Open Device Nodes" },
+  operatorDeviceNodeUpdatesStatus: { action: "open_device_nodes", label: "Open Device Nodes" },
+  operatorDamageControlStatus: { action: "run_ui_task", label: "Run UI Task" },
+  operatorTraceStatus: { action: "run_ui_task", label: "Run UI Task" },
+};
 
 const el = {
   backgroundVideo: document.getElementById("backgroundVideo"),
@@ -1587,6 +1598,84 @@ function shouldCondenseOperatorDemoNeutralCard(card, statusNode) {
   return isOperatorUninitializedStatusText(getOperatorStatusCode(statusNode));
 }
 
+function runOperatorEmptyStateAction(actionId) {
+  if (actionId === "refresh_summary") {
+    void refreshOperatorSummary({ markUserRefresh: true });
+    return;
+  }
+  switch (actionId) {
+    case "run_negotiation":
+      applyIntentTemplateFromActiveTasks("negotiation", ACTIVE_TASK_NEGOTIATION_PROMPT);
+      return;
+    case "run_story":
+      applyIntentTemplateFromActiveTasks("story", STORY_EMPTY_STATE_PROMPT);
+      return;
+    case "run_ui_task":
+      applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_UI_TASK_PROMPT);
+      return;
+    case "open_device_nodes":
+      openDeviceNodesFromOperatorQuickStart();
+      return;
+    default:
+      return;
+  }
+}
+
+function ensureOperatorCardEmptyActions(card, statusNode) {
+  if (!(card instanceof HTMLElement) || !(statusNode instanceof HTMLElement)) {
+    return;
+  }
+  const cardStatusId = typeof statusNode.id === "string" ? statusNode.id : "";
+  const actionConfig = OPERATOR_EMPTY_STATE_ACTIONS[cardStatusId];
+  const shouldShowActions = shouldCondenseOperatorDemoNeutralCard(card, statusNode) && Boolean(actionConfig);
+  let actionRow = card.querySelector(".operator-health-empty-actions");
+  if (!shouldShowActions) {
+    card.classList.remove("operator-health-card-empty");
+    if (actionRow instanceof HTMLElement) {
+      actionRow.remove();
+    }
+    return;
+  }
+
+  card.classList.add("operator-health-card-empty");
+  if (!(actionRow instanceof HTMLElement)) {
+    actionRow = document.createElement("div");
+    actionRow.className = "operator-health-empty-actions";
+
+    const cue = document.createElement("span");
+    cue.className = "operator-health-empty-cue";
+    cue.textContent = "Next step";
+
+    const primaryButton = document.createElement("button");
+    primaryButton.type = "button";
+    primaryButton.className = "button-muted operator-health-empty-action";
+    primaryButton.dataset.emptyActionRole = "primary";
+    primaryButton.addEventListener("click", () => {
+      const actionId = primaryButton.dataset.emptyActionId;
+      if (typeof actionId === "string" && actionId.length > 0) {
+        runOperatorEmptyStateAction(actionId);
+      }
+    });
+
+    const refreshButton = document.createElement("button");
+    refreshButton.type = "button";
+    refreshButton.className = "button-muted operator-health-empty-action operator-health-empty-action-refresh";
+    refreshButton.textContent = "Refresh Summary";
+    refreshButton.addEventListener("click", () => {
+      runOperatorEmptyStateAction("refresh_summary");
+    });
+
+    actionRow.append(cue, primaryButton, refreshButton);
+    card.append(actionRow);
+  }
+
+  const primaryButton = actionRow.querySelector("[data-empty-action-role='primary']");
+  if (primaryButton instanceof HTMLButtonElement && actionConfig) {
+    primaryButton.dataset.emptyActionId = actionConfig.action;
+    primaryButton.textContent = actionConfig.label;
+  }
+}
+
 function resolveStatusPillDisplayText(value) {
   if (typeof value !== "string") {
     return value;
@@ -1617,6 +1706,7 @@ function applyOperatorCardVisibility(card) {
   }
   const shouldCondense = shouldCondenseOperatorDemoNeutralCard(card, statusNode);
   card.classList.toggle("operator-health-card-condensed", shouldCondense);
+  ensureOperatorCardEmptyActions(card, statusNode);
   const shouldHide =
     state.operatorSummaryUserRefreshed !== true &&
     isOperatorPlaceholderStatusText(
