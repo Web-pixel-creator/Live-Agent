@@ -1460,6 +1460,29 @@ textarea {
   padding: 9px 12px;
 }
 
+.export-menu-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.64;
+  border-color: color-mix(in oklch, var(--border-soft) 92%, transparent);
+  background: color-mix(in oklch, var(--surface-control) 90%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 3%, transparent);
+}
+
+.export-menu-item:disabled .export-menu-item-icon {
+  border-style: dashed;
+  border-color: color-mix(in oklch, var(--border-soft) 88%, transparent);
+  background: color-mix(in oklch, var(--surface-control) 86%, transparent);
+  color: color-mix(in oklch, var(--muted-foreground) 92%, var(--foreground));
+}
+
+.export-menu-item:disabled .export-menu-item-label {
+  color: color-mix(in oklch, var(--muted-foreground) 94%, var(--foreground));
+}
+
+.export-menu-item:disabled .export-menu-item-hint {
+  color: color-mix(in oklch, var(--muted-foreground) 88%, var(--foreground));
+}
+
 .export-menu-item-icon {
   flex: 0 0 auto;
   display: inline-flex;

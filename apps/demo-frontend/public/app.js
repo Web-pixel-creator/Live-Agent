@@ -97,6 +97,7 @@ const el = {
   exportMarkdownBtn: document.getElementById("exportMarkdownBtn"),
   exportJsonBtn: document.getElementById("exportJsonBtn"),
   exportAudioBtn: document.getElementById("exportAudioBtn"),
+  exportAudioHint: document.getElementById("exportAudioHint"),
   exportStatus: document.getElementById("exportStatus"),
   pttToggleBtn: document.getElementById("pttToggleBtn"),
   pttHoldBtn: document.getElementById("pttHoldBtn"),
@@ -2389,11 +2390,29 @@ function toIsoNow() {
   return new Date().toISOString();
 }
 
+function syncExportControlAvailability() {
+  const hasAudioEvidence =
+    state.assistantAudioBytesTotal > 0 &&
+    Array.isArray(state.assistantAudioChunks) &&
+    state.assistantAudioChunks.length > 0;
+  if (el.exportAudioBtn instanceof HTMLButtonElement) {
+    el.exportAudioBtn.disabled = !hasAudioEvidence;
+    el.exportAudioBtn.setAttribute("aria-disabled", hasAudioEvidence ? "false" : "true");
+    el.exportAudioBtn.title = hasAudioEvidence ? "" : "Assistant audio is not available yet";
+  }
+  if (el.exportAudioHint instanceof HTMLElement) {
+    el.exportAudioHint.textContent = hasAudioEvidence
+      ? "Assistant playback evidence"
+      : "Assistant playback evidence (capture required)";
+  }
+}
+
 function resetAssistantAudioExport() {
   state.assistantAudioChunks = [];
   state.assistantAudioBytesTotal = 0;
   state.assistantAudioSampleRate = 16000;
   state.assistantAudioTrimmed = false;
+  syncExportControlAvailability();
 }
 
 function copyInt16Bytes(samples) {
@@ -2429,6 +2448,7 @@ function recordAssistantAudioChunk(samples, sampleRate = 16000, turnId = null) {
       state.assistantAudioTrimmed = true;
     }
   }
+  syncExportControlAvailability();
 }
 
 function collectAssistantAudioBytes() {
