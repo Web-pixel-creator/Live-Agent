@@ -1084,6 +1084,66 @@ function enhanceSelectControls() {
   }
 }
 
+function initFilePickerControl(input, options = {}) {
+  if (!(input instanceof HTMLInputElement) || input.type !== "file" || !input.id) {
+    return;
+  }
+
+  const shell = document.querySelector(`[data-file-picker-for="${input.id}"]`);
+  if (!(shell instanceof HTMLElement)) {
+    return;
+  }
+
+  const trigger = shell.querySelector("[data-file-picker-trigger]");
+  const nameNode = shell.querySelector("[data-file-picker-name]");
+  if (!(trigger instanceof HTMLButtonElement) || !(nameNode instanceof HTMLElement)) {
+    return;
+  }
+
+  const emptyLabel = typeof options.emptyLabel === "string" && options.emptyLabel.trim()
+    ? options.emptyLabel.trim()
+    : "No file selected";
+  const buttonLabel = typeof options.buttonLabel === "string" && options.buttonLabel.trim()
+    ? options.buttonLabel.trim()
+    : "Choose file";
+
+  trigger.textContent = buttonLabel;
+  trigger.setAttribute("aria-controls", input.id);
+
+  const syncFilePicker = () => {
+    const file = input.files && input.files.length > 0 ? input.files[0] : null;
+    if (file) {
+      nameNode.textContent = file.name;
+      nameNode.classList.remove("is-empty");
+    } else {
+      nameNode.textContent = emptyLabel;
+      nameNode.classList.add("is-empty");
+    }
+    trigger.disabled = input.disabled;
+  };
+
+  trigger.addEventListener("click", () => {
+    if (!input.disabled) {
+      input.click();
+    }
+  });
+
+  input.addEventListener("change", syncFilePicker);
+  input.addEventListener("input", syncFilePicker);
+  syncFilePicker();
+}
+
+function initFilePickerControls() {
+  initFilePickerControl(el.imageInput, {
+    buttonLabel: "Choose image",
+    emptyLabel: "No image selected",
+  });
+  initFilePickerControl(el.audioInput, {
+    buttonLabel: "Choose audio",
+    emptyLabel: "No audio selected",
+  });
+}
+
 function setOperatorGroupCollapsed(group, collapsed) {
   if (!(group instanceof HTMLElement)) {
     return;
@@ -9859,6 +9919,7 @@ async function bootstrap() {
   setUiTaskFieldsVisibility();
   initBackgroundVideoLoopBlend();
   enhanceSelectControls();
+  initFilePickerControls();
   state.deviceNodeListFilter = normalizeDeviceNodeListFilter(
     el.deviceNodeListFilter ? el.deviceNodeListFilter.value : state.deviceNodeListFilter,
   );

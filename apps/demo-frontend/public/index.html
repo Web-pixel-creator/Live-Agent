@@ -172,7 +172,11 @@
             <div class="media-upload-row">
               <label class="field media-upload-input">
                 <span class="sr-only">Still Image Input</span>
-                <input id="imageInput" type="file" accept="image/*" />
+                <div class="file-picker" data-file-picker-for="imageInput">
+                  <button type="button" class="file-picker-button" data-file-picker-trigger>Choose file</button>
+                  <span class="file-picker-name" data-file-picker-name>No file selected</span>
+                </div>
+                <input id="imageInput" class="file-picker-native" type="file" accept="image/*" />
               </label>
               <div class="actions media-upload-actions">
                 <button id="sendImageBtn" class="button-muted">Send Image Frame</button>
@@ -234,7 +238,11 @@
               </div>
               <label class="field field-audio">
                 <span>Conversation Audio (optional)</span>
-                <input id="audioInput" type="file" accept="audio/*" />
+                <div class="file-picker" data-file-picker-for="audioInput">
+                  <button type="button" class="file-picker-button" data-file-picker-trigger>Choose file</button>
+                  <span class="file-picker-name" data-file-picker-name>No file selected</span>
+                </div>
+                <input id="audioInput" class="file-picker-native" type="file" accept="audio/*" />
               </label>
               <details id="uiTaskAdvancedSection" class="advanced-settings advanced-intent-settings" hidden>
                 <summary>

@@ -639,7 +639,6 @@ body.bg-video-loop-transition .background-video-fade {
   max-width: min(560px, 100%);
 }
 
-.intent-grid-primary #intent,
 .intent-grid-primary #message {
   min-height: 136px;
 }
@@ -871,20 +870,78 @@ select optgroup {
   color: color-mix(in oklch, var(--foreground) 80%, var(--accent-foreground));
 }
 
-input[type="file"] {
-  padding: 9px 11px;
+.file-picker {
+  border: 1px solid color-mix(in oklch, var(--border-soft) 82%, black);
+  border-radius: calc(var(--radius) - 4px);
   min-height: 58px;
+  padding: 8px 10px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--surface-control) 86%, transparent),
+    color-mix(in oklch, var(--surface-panel-2) 96%, transparent)
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent),
+    inset 0 0 0 1px color-mix(in oklch, var(--background) 12%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-input[type="file"]::file-selector-button {
+.file-picker-button {
+  flex: 0 0 auto;
   border: 1px solid var(--border-soft);
-  border-radius: calc(var(--radius) - 6px);
-  padding: 8px 12px;
-  margin-right: 12px;
+  border-radius: calc(var(--radius) - 7px);
+  min-height: 38px;
+  padding: 0 14px;
   background: linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
-  color: var(--foreground);
-  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent);
+  color: color-mix(in oklch, var(--foreground) 95%, var(--accent-foreground));
+  font-size: 0.9rem;
+  font-weight: 640;
   cursor: pointer;
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent);
+}
+
+.file-picker-button:hover {
+  transform: none;
+  filter: none;
+  border-color: color-mix(in oklch, var(--primary) 34%, var(--border));
+  background: linear-gradient(180deg, var(--surface-control-hover), var(--surface-panel-2));
+}
+
+.file-picker-button:focus-visible {
+  outline: none;
+  border-color: color-mix(in oklch, var(--ring) 56%, var(--border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 6%, transparent),
+    0 0 0 3px var(--focus-ring-soft);
+}
+
+.file-picker-name {
+  min-width: 0;
+  color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
+  font-size: 0.92rem;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-picker-name.is-empty {
+  color: color-mix(in oklch, var(--muted-foreground) 88%, transparent);
+}
+
+.file-picker-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
 }
 
 input::placeholder,
