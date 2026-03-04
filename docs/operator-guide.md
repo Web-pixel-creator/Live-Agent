@@ -67,9 +67,10 @@ The operator flow is used during live demos and production diagnostics to:
 26. Live Negotiator status strip (`Status/Assistant/Run ID/User ID/Session State/Mode/PTT/Export`) uses high-contrast text, pill-state color mapping, dedicated value chips for `Run ID`/`User ID`, concise export labels (`exported markdown/json/audio`), and lane-level `ok/neutral/fail` accents in a compact `4-column` matrix (2 rows on desktop) for faster scan and lower visual density; on narrower screens, items wrap to 2-column/1-column naturally without horizontal overflow
 27. KPI secondary text (`labels`, `status notes`, and context hints) uses elevated contrast to stay readable over gradient/video backgrounds during fast judge walkthroughs
 28. Custom dropdown controls support keyboard navigation (`ArrowUp/ArrowDown/Home/End`, `Enter/Space`, `Escape`) and combobox/listbox ARIA semantics (`aria-controls`, `aria-expanded`, `aria-activedescendant`) so operators/judges can complete flows without pointer-only input
-29. Operator Console secondary operator copy (`mode hints`, quick-start helper text, lane playbook notes, triage micro-labels, and health metadata rows) uses elevated neutral contrast to remain legible over layered gradients/video
-30. In `Demo View`, remaining neutral/uninitialized demo-essential cards are rendered in compact mode (`title + status + hint`) until evidence arrives, reducing pre-refresh visual noise without hiding critical-failure cards
-31. Compact operator empty cards include inline recovery CTAs (`Run Negotiation` / `Run UI Task` / `Open Device Nodes` + `Refresh Summary`) so empty evidence lanes can be populated without leaving the card context
+29. Image/audio uploads use themed file pickers (`Choose image` / `Choose audio` + inline filename chips) to keep Live Controls and Intent Request visually consistent with the rest of the dashboard controls
+30. Operator Console secondary operator copy (`mode hints`, quick-start helper text, lane playbook notes, triage micro-labels, and health metadata rows) uses elevated neutral contrast to remain legible over layered gradients/video
+31. In `Demo View`, remaining neutral/uninitialized demo-essential cards are rendered in compact mode (`title + status + hint`) until evidence arrives, reducing pre-refresh visual noise without hiding critical-failure cards
+32. Compact operator empty cards include inline recovery CTAs (`Run Negotiation` / `Run UI Task` / `Open Device Nodes` + `Refresh Summary`) so empty evidence lanes can be populated without leaving the card context
 
 ## Safety Controls
 

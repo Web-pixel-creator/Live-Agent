@@ -16,6 +16,13 @@ test("demo frontend applies violet-bloom polish for spacing, dropdown checks, wa
     "display: flex;",
     ".media-upload-actions button {",
     "width: 100%;",
+    ".file-picker {",
+    "display: flex;",
+    ".file-picker-button {",
+    "min-height: 38px;",
+    ".file-picker-name.is-empty {",
+    ".file-picker-native {",
+    "clip-path: inset(50%);",
     ".select-option::after {",
     "border-left: 2px solid",
     ".select-option.is-selected::after {",
@@ -52,4 +59,13 @@ test("demo frontend applies violet-bloom polish for spacing, dropdown checks, wa
   for (const token of requiredTokens) {
     assert.ok(stylesSource.includes(token), `frontend styles missing violet-bloom polish token: ${token}`);
   }
+
+  assert.ok(
+    stylesSource.includes(".intent-grid-primary #message {"),
+    "frontend styles missing intent message height guard",
+  );
+  assert.ok(
+    !stylesSource.includes(".intent-grid-primary #intent,"),
+    "frontend styles still force tall native intent select fallback height",
+  );
 });
