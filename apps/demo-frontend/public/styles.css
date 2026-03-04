@@ -1844,7 +1844,7 @@ button:focus-visible {
 
 .meta-row-status-live {
   margin-top: 16px;
-  padding: 7px;
+  padding: 9px;
   border: 1px solid color-mix(in oklch, var(--border-soft) 92%, transparent);
   border-radius: calc(var(--radius) - 3px);
   background:
@@ -1854,36 +1854,55 @@ button:focus-visible {
     inset 0 1px 0 color-mix(in oklch, var(--foreground) 7%, transparent),
     0 10px 20px -22px color-mix(in oklch, var(--primary) 46%, transparent),
     var(--shadow-2xs);
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  overflow: visible;
 }
 
 .meta-row-status-live > div {
-  flex: 0 0 auto;
-  min-height: 44px;
-  padding: 8px 13px;
+  min-height: 58px;
+  padding: 10px 12px;
+  border-radius: calc(var(--radius) - 8px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 7px;
   border-color: color-mix(in oklch, var(--border) 88%, color-mix(in oklch, var(--foreground) 14%, transparent));
 }
 
 .meta-row-status-live .status-item-wide {
-  flex: 0 0 min(340px, 40vw);
+  min-width: 0;
 }
 
 .meta-row-status-live .status-item-wide > span:not(.status-pill) {
+  width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .meta-row-status-live strong {
-  color: color-mix(in oklch, var(--foreground) 99%, var(--accent-foreground));
+  color: color-mix(in oklch, var(--foreground) 98%, var(--accent-foreground));
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .meta-row-status-live > div > span:not(.status-pill) {
   color: color-mix(in oklch, var(--foreground) 99%, white);
-  font-size: 0.84rem;
+  font-size: 0.89rem;
+  font-weight: 620;
+}
+
+.meta-row-status-live .status-pill {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 12%, transparent),
+    0 0 0 1px color-mix(in oklch, var(--border-soft) 74%, transparent);
 }
 
 .meta-row > div {
@@ -3362,12 +3381,11 @@ button:focus-visible {
 
 @media (max-width: 1320px) and (min-width: 981px) {
   .meta-row-status-live {
-    flex-wrap: wrap;
-    overflow-x: visible;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .meta-row-status-live .status-item-wide {
-    flex: 1 1 300px;
+    min-width: 0;
   }
 }
 
@@ -3406,17 +3424,16 @@ button:focus-visible {
   }
 
   .meta-row-status-live {
-    padding: 6px;
-    flex-wrap: wrap;
-    overflow-x: visible;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 8px;
   }
 
   .meta-row-status-live > div {
-    min-height: 42px;
+    min-height: 52px;
   }
 
-  .meta-row-status .status-item-wide {
-    flex-basis: 100%;
+  .meta-row-status-live .status-item-wide {
+    grid-column: span 2;
   }
 
   .media-upload-row {
@@ -3682,6 +3699,28 @@ button:focus-visible {
     justify-content: flex-end;
     text-align: right;
     max-width: 64%;
+  }
+
+  .meta-row-status-live {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .meta-row-status-live > div {
+    width: auto;
+    min-height: 50px;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .meta-row-status-live > div > span {
+    max-width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .meta-row-status-live .status-item-wide {
+    grid-column: span 1;
   }
 
   .story-workspace {

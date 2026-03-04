@@ -119,8 +119,8 @@ Frontend `Intent Request` shows `ui_task` grounding fields only when `intent=ui_
 Frontend `Connection` panel uses a compact `Export Session` dropdown with `Markdown` / `JSON` / `Audio (WAV)` evidence exports.
 `Export Session` dropdown keeps a live `Last export` line, format icon badges (`MD/JS/WAV`), and a rolling `Recent exports` history (last 3 items).
 Live status strip renders a concise export pill label (`exported markdown/json/audio`, `no audio`) while preserving the full export status in dropdown metadata/history.
-Connection status metadata is rendered as a compact inline status strip (`Status`, `Assistant`, `Run ID`, `User ID`, `Session State`, `Mode`, `PTT`, `Export`) for faster scan and less vertical noise.
-Status strip readability is tuned for judge demos with higher neutral-text contrast, pill-state color mapping for `Status`, `Session State`, `Mode`, `PTT`, and `Export`, plus a compact inline wrap layout (wide `Run ID`/`User ID` chips + stacked fallback on mobile).
+Connection status metadata is rendered as a compact status grid (`Status`, `Assistant`, `Run ID`, `User ID`, `Session State`, `Mode`, `PTT`, `Export`) for faster scan and less vertical noise.
+Status strip readability is tuned for judge demos with higher neutral-text contrast, pill-state color mapping for `Status`, `Session State`, `Mode`, `PTT`, and `Export`, plus a `2x4` desktop layout with adaptive `2-column`/`1-column` fallback on narrower screens.
 Frontend header includes a persisted `dark/light` theme toggle for judge/operator readability.
 Frontend supports a subtle animated background video (`apps/demo-frontend/public/bg-video.mp4`) with loop-transition smoothing and `prefers-reduced-motion` fallback.
 Frontend visual system uses `Violet Bloom` dashboard tokens (colors/radius/shadows/typography) in `apps/demo-frontend/public/styles.css`.
