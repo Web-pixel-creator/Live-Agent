@@ -158,6 +158,9 @@ const el = {
   operatorDemoViewBtn: document.getElementById("operatorDemoViewBtn"),
   operatorFullOpsViewBtn: document.getElementById("operatorFullOpsViewBtn"),
   operatorBoardModeHint: document.getElementById("operatorBoardModeHint"),
+  operatorModeBanner: document.getElementById("operatorModeBanner"),
+  operatorModeBadge: document.getElementById("operatorModeBadge"),
+  operatorModeCopy: document.getElementById("operatorModeCopy"),
   operatorSummaryGuide: document.getElementById("operatorSummaryGuide"),
   operatorSummaryGuideTitle: document.getElementById("operatorSummaryGuideTitle"),
   operatorSummaryGuideHint: document.getElementById("operatorSummaryGuideHint"),
@@ -960,6 +963,16 @@ function syncOperatorBoardModeButtons() {
     el.operatorBoardModeHint.textContent = isDemo
       ? "Demo View keeps six judge-facing cards visible by default and still surfaces new failures."
       : "Full Ops View shows the full diagnostics board (all cards and lanes).";
+  }
+  if (el.operatorModeBanner) {
+    el.operatorModeBanner.classList.toggle("is-demo", isDemo);
+    el.operatorModeBanner.classList.toggle("is-full-ops", !isDemo);
+  }
+  setStatusPill(el.operatorModeBadge, isDemo ? "demo_view" : "full_ops_view", isDemo ? "ok" : "neutral");
+  if (el.operatorModeCopy) {
+    el.operatorModeCopy.textContent = isDemo
+      ? "Critical-first board for judge walkthroughs."
+      : "Full diagnostics board with all lanes and evidence cards visible.";
   }
   syncOperatorSummaryGuide();
 }

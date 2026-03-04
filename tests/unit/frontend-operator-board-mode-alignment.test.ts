@@ -20,6 +20,9 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'id="operatorDemoViewBtn"',
     'id="operatorFullOpsViewBtn"',
     'id="operatorBoardModeHint"',
+    'id="operatorModeBanner"',
+    'id="operatorModeBadge"',
+    'id="operatorModeCopy"',
     'id="operatorSummaryGuide"',
     'id="operatorSummaryGuideRefreshBtn"',
     "data-operator-demo-essential",
@@ -36,12 +39,18 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'operatorDemoViewBtn: document.getElementById("operatorDemoViewBtn")',
     'operatorFullOpsViewBtn: document.getElementById("operatorFullOpsViewBtn")',
     'operatorBoardModeHint: document.getElementById("operatorBoardModeHint")',
+    'operatorModeBanner: document.getElementById("operatorModeBanner")',
+    'operatorModeBadge: document.getElementById("operatorModeBadge")',
+    'operatorModeCopy: document.getElementById("operatorModeCopy")',
     'operatorSummaryGuide: document.getElementById("operatorSummaryGuide")',
     'operatorSummaryGuideRefreshBtn: document.getElementById("operatorSummaryGuideRefreshBtn")',
     "function normalizeOperatorBoardMode(value)",
     "function syncOperatorBoardModeButtons()",
     "function syncOperatorSummaryGuide()",
     "function setOperatorBoardMode(mode, options = {})",
+    "el.operatorModeBanner.classList.toggle(\"is-demo\", isDemo);",
+    "el.operatorModeBanner.classList.toggle(\"is-full-ops\", !isDemo);",
+    "setStatusPill(el.operatorModeBadge, isDemo ? \"demo_view\" : \"full_ops_view\", isDemo ? \"ok\" : \"neutral\");",
     "function isOperatorDemoEssentialCard(card)",
     "state.operatorBoardMode === \"demo\" && state.operatorFocusCriticalOnly === true && !isOperatorDemoEssentialCard(card)",
     'setOperatorBoardMode("demo", { syncPresets: false });',
@@ -60,6 +69,9 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     ".operator-view-mode-actions {",
     ".operator-view-mode-actions .button-muted {",
     ".operator-board-mode-hint {",
+    ".operator-mode-banner {",
+    ".operator-mode-banner.is-full-ops {",
+    ".operator-mode-copy {",
     ".operator-summary-guide {",
     ".operator-summary-guide.is-hidden {",
     ".operator-health-board.is-demo-view .operator-health-card[data-operator-demo-essential] {",
@@ -81,6 +93,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "README missing operator summary guide note",
   );
   assert.ok(
+    readmeSource.includes("mode banner (`demo_view` / `full_ops_view`)"),
+    "README missing operator mode-banner note",
+  );
+  assert.ok(
     operatorGuideSource.includes("`Demo View` (default) keeps Operator Console in critical-first mode"),
     "operator guide missing operator board-mode note",
   );
@@ -91,5 +107,9 @@ test("operator console exposes demo/full board mode toggles with runtime presets
   assert.ok(
     operatorGuideSource.includes("guided pre-refresh banner"),
     "operator guide missing operator summary guide note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("mode banner (`demo_view` / `full_ops_view`) confirms active triage scope"),
+    "operator guide missing operator mode-banner note",
   );
 });
