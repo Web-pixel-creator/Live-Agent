@@ -66,7 +66,9 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
     "window.localStorage?.setItem(TAB_STORAGE_KEY, resolvedTabId);",
     "window.addEventListener(\"hashchange\", () => {",
     "setActiveTab(hashTabId, { syncHash: false });",
-    "setActiveTab(readStoredTabId());",
+    "const initialTabId = readTabIdFromHash() ?? readStoredTabId();",
+    "setActiveTab(initialTabId, { syncHash: false });",
+    "setActiveTab(readStoredTabId(), { syncHash: false });",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing tab token: ${token}`);
