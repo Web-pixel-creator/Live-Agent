@@ -2595,9 +2595,27 @@ button:focus-visible {
   color: color-mix(in oklch, var(--foreground) 80%, var(--muted-foreground));
 }
 
+.story-timeline-list-empty-actions {
+  width: min(100%, 540px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
 .story-timeline-list-empty-action {
-  margin-top: 2px;
+  margin-top: 0;
   min-width: 210px;
+  flex: 1 1 210px;
+}
+
+.story-timeline-list-empty-action-template {
+  border-color: color-mix(in oklch, var(--accent-foreground) 42%, var(--border));
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--accent-foreground) 18%, var(--surface-control)),
+    color-mix(in oklch, var(--surface-panel-2) 92%, var(--surface-control))
+  );
 }
 
 .story-segment-card {
@@ -3432,6 +3450,10 @@ button:focus-visible {
   .story-timeline-list-empty-action {
     width: 100%;
     min-width: 0;
+  }
+
+  .story-timeline-list-empty-actions {
+    width: 100%;
   }
 
   .story-asset-pill {

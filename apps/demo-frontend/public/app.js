@@ -2073,7 +2073,20 @@ function renderStoryTimelineList() {
       openLiveNegotiatorFromStoryEmptyState();
     });
 
-    empty.append(icon, title, hint, action);
+    const actions = document.createElement("div");
+    actions.className = "story-timeline-list-empty-actions";
+
+    const actionTemplate = document.createElement("button");
+    actionTemplate.type = "button";
+    actionTemplate.className = "button-muted story-timeline-list-empty-action story-timeline-list-empty-action-template";
+    actionTemplate.textContent = "Use Story Prompt Template";
+    actionTemplate.addEventListener("click", () => {
+      applyStoryPromptTemplateFromStoryEmptyState();
+    });
+
+    actions.append(action, actionTemplate);
+
+    empty.append(icon, title, hint, actions);
     el.storyTimelineList.append(empty);
     return;
   }
