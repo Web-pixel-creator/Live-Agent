@@ -1326,6 +1326,21 @@ textarea {
   align-items: stretch;
 }
 
+.export-split {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
+
+.export-quick-btn {
+  min-width: 214px;
+  justify-content: flex-start;
+  gap: 8px;
+  white-space: nowrap;
+  padding: 11px 16px;
+}
+
 .export-menu {
   position: relative;
 }
@@ -1356,6 +1371,11 @@ textarea {
   cursor: pointer;
   user-select: none;
   transition: transform 140ms ease, filter 140ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.export-menu-formats > summary {
+  min-width: 126px;
+  padding-inline: 14px;
 }
 
 .export-menu-summary-icon {
@@ -3527,8 +3547,31 @@ button:focus-visible {
     width: 100%;
   }
 
+  .action-group > .export-split {
+    width: 100%;
+  }
+
+  .export-split {
+    width: 100%;
+    flex-wrap: nowrap;
+  }
+
+  .export-quick-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .export-menu-formats {
+    flex: 0 0 auto;
+  }
+
   .export-menu > summary {
     width: 100%;
+  }
+
+  .export-menu-formats > summary {
+    min-width: 86px;
+    padding-inline: 14px;
   }
 
   .export-menu-list {

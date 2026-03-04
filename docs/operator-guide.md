@@ -55,8 +55,8 @@ The operator flow is used during live demos and production diagnostics to:
 15. Secondary controls are under collapsed `Advanced Actions` (`Retry Task`, `Failover Drain`, `Failover Warmup`)
 16. Create/update device node and send heartbeat
 17. Approve/reject pending UI-sensitive actions
-18. Export session evidence from frontend via the `Export Session` dropdown (`Markdown` / `JSON` / `Audio (WAV)`); audio export is enabled only after assistant audio chunks are captured and the menu hint shows live capture metadata (`turns`, `size`, `trimmed` when rolling-window cap applies)
-19. Export dropdown keeps `Last export` metadata, format badges (`MD/JS/WAV`), and a `Recent exports` list (last 3 downloads)
+18. Export session evidence from frontend via split controls: `Quick Export` (last successful format) + `Formats` dropdown (`Markdown` / `JSON` / `Audio (WAV)`); quick export falls back to Markdown if audio is not captured yet
+19. Export dropdown keeps `Last export` metadata, format badges (`MD/JS/WAV`), and a `Recent exports` list (last 3 downloads); audio export is enabled only after assistant audio chunks are captured and the menu hint shows live capture metadata (`turns`, `size`, `trimmed` when rolling-window cap applies)
 20. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
 21. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
 22. Live Negotiator status strip (`Status/Assistant/Run ID/User ID/Session State/Mode/PTT/Export`) uses high-contrast text, pill-state color mapping, concise export labels (`exported markdown/json/audio`), and a 2x4 status grid on desktop with adaptive 2-column/1-column fallback on narrower screens for quick judge/operator scan

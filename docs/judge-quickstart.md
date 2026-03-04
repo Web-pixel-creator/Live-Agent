@@ -75,9 +75,10 @@ npm run verify:release
    - Agent Usage Evidence
    - Cost & Tokens Evidence
 4. Session export controls:
-   - `Export Session Markdown`
-   - `Export Session JSON`
-   - `Export Session Audio (WAV)`
+   - `Quick Export` (last successful format, fallback to Markdown until audio evidence is available)
+   - `Formats -> Export Markdown`
+   - `Formats -> Export JSON`
+   - `Formats -> Export Audio (WAV)`
 5. Story Timeline panel:
    - Segment scrubber/selector reflects `output.story.timeline`
    - Preview card shows segment text + `image/video/audio` refs
