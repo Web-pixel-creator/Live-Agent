@@ -40,6 +40,9 @@ test("demo frontend keeps live negotiator UX guardrails for advanced controls an
     "el.uiTaskAdvancedSection.hidden = !isUiTaskIntent;",
     'el.uiTaskAdvancedSection.setAttribute("aria-hidden", isUiTaskIntent ? "false" : "true");',
     "el.uiTaskAdvancedSection.open = isUiTaskIntent;",
+    "function renderActiveTaskEmptyState() {",
+    "applyIntentTemplateFromActiveTasks(scenario.intent, scenario.template);",
+    "renderActiveTaskEmptyState();",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing live-negotiator ux token: ${token}`);
@@ -56,6 +59,9 @@ test("demo frontend keeps live negotiator UX guardrails for advanced controls an
     ".action-group {",
     ".panel-transcript-live .transcript {",
     "position: static;",
+    ".active-task-empty-state {",
+    ".active-task-empty-actions {",
+    ".active-task-empty-action-refresh {",
   ];
   for (const token of requiredStyleTokens) {
     assert.ok(stylesSource.includes(token), `frontend styles missing live-negotiator ux token: ${token}`);
@@ -68,5 +74,9 @@ test("demo frontend keeps live negotiator UX guardrails for advanced controls an
   assert.ok(
     operatorGuideSource.includes("top toolbars separate `primary` and `secondary` action lanes"),
     "operator guide missing action-lane hierarchy note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("`Active Tasks` empty state offers one-click quick starts"),
+    "operator guide missing active task empty-state quick starts note",
   );
 });

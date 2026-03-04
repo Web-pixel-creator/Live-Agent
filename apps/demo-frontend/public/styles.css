@@ -2808,6 +2808,81 @@ button:focus-visible {
   font-size: 0.8rem;
 }
 
+.active-task-empty-state {
+  border: 1px dashed color-mix(in oklch, var(--border-soft) 84%, transparent);
+  border-radius: calc(var(--radius) - 2px);
+  padding: 18px;
+  background:
+    radial-gradient(250px 120px at 0% -20%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 74%),
+    repeating-linear-gradient(
+      -45deg,
+      color-mix(in oklch, var(--muted-ui) 72%, transparent),
+      color-mix(in oklch, var(--muted-ui) 72%, transparent) 11px,
+      color-mix(in oklch, var(--muted-ui) 48%, transparent) 11px,
+      color-mix(in oklch, var(--muted-ui) 48%, transparent) 22px
+    ),
+    color-mix(in oklch, var(--card) 84%, transparent);
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+}
+
+.active-task-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  min-height: 28px;
+  border: 1px solid color-mix(in oklch, var(--primary) 42%, var(--border));
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: color-mix(in oklch, var(--primary) 14%, transparent);
+  color: color-mix(in oklch, var(--foreground) 92%, var(--accent-foreground));
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.active-task-empty-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: color-mix(in oklch, var(--foreground) 95%, white);
+}
+
+.active-task-empty-hint {
+  margin: 0;
+  max-width: 44ch;
+  color: color-mix(in oklch, var(--muted-foreground) 96%, var(--foreground));
+  font-size: 0.87rem;
+  line-height: 1.55;
+}
+
+.active-task-empty-actions {
+  margin-top: 2px;
+  width: min(720px, 100%);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  justify-content: center;
+}
+
+.active-task-empty-action {
+  min-width: 166px;
+}
+
+.active-task-empty-action-primary {
+  box-shadow:
+    0 8px 18px -12px color-mix(in oklch, var(--primary) 68%, transparent),
+    inset 0 1px 0 color-mix(in oklch, white 22%, transparent);
+}
+
+.active-task-empty-action-refresh {
+  min-width: 204px;
+}
+
 .device-node-list-hint {
   margin: 12px 0 0;
   color: var(--muted-foreground);
@@ -3608,6 +3683,20 @@ button:focus-visible {
   }
 
   .story-empty-actions .story-empty-action {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .active-task-empty-state {
+    padding: 14px;
+  }
+
+  .active-task-empty-actions {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .active-task-empty-action {
     width: 100%;
     min-width: 0;
   }

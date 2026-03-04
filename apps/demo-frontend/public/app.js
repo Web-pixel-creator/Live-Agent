@@ -71,6 +71,9 @@ const EXPORT_HISTORY_LIMIT = 3;
 const DEVICE_NODE_STALE_AGE_MS = 5 * 60 * 1000;
 const STORY_EMPTY_STATE_PROMPT =
   "story: Build a 4-scene launch-day narrative with one hero image cue, one short video cue, and concise voiceover.";
+const ACTIVE_TASK_NEGOTIATION_PROMPT = "Negotiate: price=96, delivery=9, sla=99, include one concession path.";
+const ACTIVE_TASK_UI_TASK_PROMPT =
+  "ui_task: Open the billing page, verify the invoices table loads, and report one safe next action.";
 
 const el = {
   backgroundVideo: document.getElementById("backgroundVideo"),
@@ -2746,6 +2749,95 @@ function normalizeTaskRecord(value) {
   };
 }
 
+function applyIntentTemplateFromActiveTasks(intentValue, messageTemplate) {
+  setActiveTab("live-negotiator");
+  if (el.intent instanceof HTMLSelectElement && typeof intentValue === "string" && intentValue.trim().length > 0) {
+    el.intent.value = intentValue.trim();
+    syncCustomSelectControl(el.intent);
+    setUiTaskFieldsVisibility();
+  }
+  if (el.message instanceof HTMLTextAreaElement && typeof messageTemplate === "string" && messageTemplate.trim().length > 0) {
+    el.message.value = messageTemplate.trim();
+  }
+  if (el.message instanceof HTMLTextAreaElement) {
+    window.requestAnimationFrame(() => {
+      el.message.focus();
+      const caret = el.message.value.length;
+      el.message.setSelectionRange(caret, caret);
+    });
+  }
+}
+
+function renderActiveTaskEmptyState() {
+  if (!(el.tasks instanceof HTMLElement)) {
+    return;
+  }
+  const wrapper = document.createElement("div");
+  wrapper.className = "active-task-empty-state";
+
+  const icon = document.createElement("span");
+  icon.className = "active-task-empty-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = "Queue";
+
+  const title = document.createElement("p");
+  title.className = "active-task-empty-title";
+  title.textContent = "No active tasks right now";
+
+  const hint = document.createElement("p");
+  hint.className = "active-task-empty-hint";
+  hint.textContent = "Kick off one scenario to populate queue evidence and keep operator status lanes warm.";
+
+  const actions = document.createElement("div");
+  actions.className = "active-task-empty-actions";
+
+  const quickScenarios = [
+    {
+      label: "Run Negotiation",
+      intent: "negotiation",
+      template: ACTIVE_TASK_NEGOTIATION_PROMPT,
+      className: "active-task-empty-action-primary",
+    },
+    {
+      label: "Run Story",
+      intent: "story",
+      template: STORY_EMPTY_STATE_PROMPT,
+      className: "button-muted",
+    },
+    {
+      label: "Run UI Task",
+      intent: "ui_task",
+      template: ACTIVE_TASK_UI_TASK_PROMPT,
+      className: "button-muted",
+    },
+  ];
+
+  for (const scenario of quickScenarios) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `active-task-empty-action ${scenario.className}`.trim();
+    button.textContent = scenario.label;
+    button.addEventListener("click", () => {
+      applyIntentTemplateFromActiveTasks(scenario.intent, scenario.template);
+    });
+    actions.append(button);
+  }
+
+  const refreshButton = document.createElement("button");
+  refreshButton.type = "button";
+  refreshButton.className = "button-muted active-task-empty-action active-task-empty-action-refresh";
+  refreshButton.textContent = "Refresh Active Tasks";
+  refreshButton.addEventListener("click", () => {
+    refreshActiveTasks().catch(() => {
+      appendTranscript("error", "Active task refresh failed");
+    });
+  });
+  actions.append(refreshButton);
+
+  wrapper.append(icon, title, hint, actions);
+  el.tasks.append(wrapper);
+}
+
 function renderTaskList() {
   const records = [...state.taskRecords.values()].sort((left, right) =>
     String(right.updatedAt).localeCompare(String(left.updatedAt)),
@@ -2754,7 +2846,7 @@ function renderTaskList() {
   el.tasks.innerHTML = "";
 
   if (records.length === 0) {
-    appendEntry(el.tasks, "system", "task", "No active tasks");
+    renderActiveTaskEmptyState();
     return;
   }
 
