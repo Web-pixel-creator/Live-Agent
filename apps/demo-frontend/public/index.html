@@ -487,25 +487,30 @@
                 <p class="story-empty-hint">
                   Run a <code>story:</code> intent in Live Negotiator to generate segments, asset refs, and progress data.
                 </p>
-                <ul class="story-empty-checklist" aria-label="Story timeline readiness checklist">
-                  <li>Segment cards with scrubber and selector</li>
-                  <li>Image, audio, and video asset references</li>
-                  <li>Timeline progress and pending video jobs</li>
-                </ul>
-                <ol class="story-empty-arc" aria-label="Example story arc">
-                  <li>
-                    <strong>Hook</strong>
-                    <span>Setup the protagonist and goal in one scene.</span>
-                  </li>
-                  <li>
-                    <strong>Conflict</strong>
-                    <span>Add tension and one decision point for the timeline.</span>
-                  </li>
-                  <li>
-                    <strong>Resolution</strong>
-                    <span>Close with outcome, callback, and final narration beat.</span>
-                  </li>
-                </ol>
+                <details class="story-empty-details">
+                  <summary class="story-empty-details-summary">Preview story arc and expected outputs</summary>
+                  <div class="story-empty-details-body">
+                    <ul class="story-empty-checklist" aria-label="Story timeline readiness checklist">
+                      <li>Segment cards with scrubber and selector</li>
+                      <li>Image, audio, and video asset references</li>
+                      <li>Timeline progress and pending video jobs</li>
+                    </ul>
+                    <ol class="story-empty-arc" aria-label="Example story arc">
+                      <li>
+                        <strong>Hook</strong>
+                        <span>Setup the protagonist and goal in one scene.</span>
+                      </li>
+                      <li>
+                        <strong>Conflict</strong>
+                        <span>Add tension and one decision point for the timeline.</span>
+                      </li>
+                      <li>
+                        <strong>Resolution</strong>
+                        <span>Close with outcome, callback, and final narration beat.</span>
+                      </li>
+                    </ol>
+                  </div>
+                </details>
                 <div class="story-empty-actions">
                   <button id="storyTimelineOpenLiveBtn" type="button" class="story-empty-action">
                     Open Live Negotiator
@@ -530,20 +535,23 @@
               <span class="status-pill status-neutral">assets=none</span>
               <span class="status-pill status-neutral">progress=0%</span>
             </div>
-            <div class="story-timeline-list-empty-preview" aria-hidden="true">
-              <article class="story-timeline-list-empty-card">
-                <strong>Segment #1</strong>
-                <span>Hook scene - image cue</span>
-              </article>
-              <article class="story-timeline-list-empty-card">
-                <strong>Segment #2</strong>
-                <span>Conflict beat - narration cue</span>
-              </article>
-              <article class="story-timeline-list-empty-card">
-                <strong>Segment #3</strong>
-                <span>Resolution beat - video render</span>
-              </article>
-            </div>
+            <details class="story-timeline-list-empty-details">
+              <summary class="story-timeline-list-empty-details-summary">Preview example segment cards</summary>
+              <div class="story-timeline-list-empty-preview" aria-hidden="true">
+                <article class="story-timeline-list-empty-card">
+                  <strong>Segment #1</strong>
+                  <span>Hook scene - image cue</span>
+                </article>
+                <article class="story-timeline-list-empty-card">
+                  <strong>Segment #2</strong>
+                  <span>Conflict beat - narration cue</span>
+                </article>
+                <article class="story-timeline-list-empty-card">
+                  <strong>Segment #3</strong>
+                  <span>Resolution beat - video render</span>
+                </article>
+              </div>
+            </details>
             <div class="story-timeline-list-empty-actions">
               <button type="button" class="button-muted story-timeline-list-empty-action">Open Live Negotiator</button>
               <button type="button" class="button-muted story-timeline-list-empty-action story-timeline-list-empty-action-template">Use Story Prompt Template</button>
@@ -594,7 +602,7 @@
           <button id="operatorCancelBtn" class="button-warn">Cancel Task</button>
         </div>
         <p id="operatorBoardModeHint" class="operator-board-mode-hint">
-          Demo View keeps six judge-facing cards visible by default and still surfaces new failures.
+          Demo View keeps six judge-facing cards visible by default, keeps Live Bridge lane expanded, and still surfaces new failures.
         </p>
         <div id="operatorModeBanner" class="operator-mode-banner is-demo" role="status" aria-live="polite">
           <span id="operatorModeBadge" class="status-pill status-ok">demo_view</span>

@@ -47,6 +47,7 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "function normalizeOperatorBoardMode(value)",
     "function syncOperatorBoardModeButtons()",
     "function syncOperatorSummaryGuide()",
+    "function applyOperatorDemoGroupPreset()",
     "function setOperatorBoardMode(mode, options = {})",
     "el.operatorModeBanner.classList.toggle(\"is-demo\", isDemo);",
     "el.operatorModeBanner.classList.toggle(\"is-full-ops\", !isDemo);",
@@ -89,6 +90,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "README missing operator demo essential-cards note",
   );
   assert.ok(
+    readmeSource.includes("keeps `Live Bridge & Turn Safety` lane expanded by default"),
+    "README missing operator demo default-expanded lane note",
+  );
+  assert.ok(
     readmeSource.includes("guided pre-refresh banner"),
     "README missing operator summary guide note",
   );
@@ -103,6 +108,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
   assert.ok(
     operatorGuideSource.includes("prioritizes six cards (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`)"),
     "operator guide missing operator demo essential-cards note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("keeps `Live Bridge & Turn Safety` expanded by default"),
+    "operator guide missing operator demo default-expanded lane note",
   );
   assert.ok(
     operatorGuideSource.includes("guided pre-refresh banner"),

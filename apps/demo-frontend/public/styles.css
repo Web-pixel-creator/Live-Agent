@@ -2898,6 +2898,49 @@ button:focus-visible {
   gap: 10px;
 }
 
+.story-empty-details {
+  width: min(420px, 100%);
+  border: 1px solid color-mix(in oklch, var(--border-soft) 84%, transparent);
+  border-radius: calc(var(--radius) - 6px);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--surface-control) 90%, transparent),
+      color-mix(in oklch, var(--surface-panel-2) 96%, transparent)
+    );
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent);
+}
+
+.story-empty-details-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 9px 12px;
+  font-size: 0.8rem;
+  font-weight: 620;
+  color: color-mix(in oklch, var(--foreground) 88%, var(--muted-foreground));
+}
+
+.story-empty-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.story-empty-details-summary::after {
+  content: "+";
+  float: right;
+  color: color-mix(in oklch, var(--accent-foreground) 78%, var(--primary));
+  font-weight: 700;
+}
+
+.story-empty-details[open] .story-empty-details-summary::after {
+  content: "-";
+}
+
+.story-empty-details-body {
+  display: grid;
+  gap: 8px;
+  padding: 0 10px 10px;
+}
+
 .story-empty-action {
   margin-top: 2px;
   min-width: 210px;
@@ -2978,6 +3021,45 @@ button:focus-visible {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  margin-top: 9px;
+}
+
+.story-timeline-list-empty-details {
+  width: min(100%, 560px);
+  border: 1px solid color-mix(in oklch, var(--border-soft) 84%, transparent);
+  border-radius: calc(var(--radius) - 6px);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--surface-control) 90%, transparent),
+      color-mix(in oklch, var(--surface-panel-2) 96%, transparent)
+    );
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent);
+}
+
+.story-timeline-list-empty-details-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 0.79rem;
+  font-weight: 620;
+  color: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));
+}
+
+.story-timeline-list-empty-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.story-timeline-list-empty-details-summary::after {
+  content: "+";
+  float: right;
+  color: color-mix(in oklch, var(--accent-foreground) 76%, var(--primary));
+  font-weight: 700;
+}
+
+.story-timeline-list-empty-details[open] .story-timeline-list-empty-details-summary::after {
+  content: "-";
 }
 
 .story-timeline-list-empty-card {

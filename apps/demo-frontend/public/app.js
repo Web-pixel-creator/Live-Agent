@@ -1065,6 +1065,15 @@ function applyOperatorDefaultGroupFocus() {
   }
 }
 
+function applyOperatorDemoGroupPreset() {
+  const groups = Array.from(document.querySelectorAll(".operator-health-group"));
+  for (const group of groups) {
+    const key = group.getAttribute("data-operator-group");
+    setOperatorGroupCollapsed(group, key !== "bridge-safety");
+  }
+  syncOperatorCollapseActionButtons();
+}
+
 function syncOperatorCollapseActionButtons() {
   const groups = getVisibleOperatorGroups();
   if (groups.length === 0) {
@@ -1126,6 +1135,9 @@ function setOperatorFocusCriticalMode(enabled) {
     el.operatorFocusCriticalBtn.textContent = state.operatorFocusCriticalOnly ? "Show All Cards" : "Focus Critical";
   }
   applyOperatorCardsVisibility();
+  if (state.operatorFocusCriticalOnly && normalizeOperatorBoardMode(state.operatorBoardMode) === "demo") {
+    applyOperatorDemoGroupPreset();
+  }
 }
 
 function setOperatorIssuesOnlyMode(enabled) {
@@ -1159,7 +1171,7 @@ function syncOperatorBoardModeButtons() {
   }
   if (el.operatorBoardModeHint) {
     el.operatorBoardModeHint.textContent = isDemo
-      ? "Demo View keeps six judge-facing cards visible, auto-hides neutral noise outside key tiles, and still surfaces new failures."
+      ? "Demo View keeps six judge-facing cards visible, auto-hides neutral noise outside key tiles, keeps Live Bridge lane expanded by default, and still surfaces new failures."
       : "Full Ops View shows the full diagnostics board (all cards and lanes).";
   }
   if (el.operatorModeBanner) {
@@ -1215,12 +1227,7 @@ function setOperatorBoardMode(mode, options = {}) {
   setOperatorFocusCriticalMode(nextMode === "demo");
 
   if (nextMode === "demo") {
-    const groups = Array.from(document.querySelectorAll(".operator-health-group"));
-    for (const group of groups) {
-      const key = group.getAttribute("data-operator-group");
-      setOperatorGroupCollapsed(group, key !== "bridge-safety");
-    }
-    syncOperatorCollapseActionButtons();
+    applyOperatorDemoGroupPreset();
   } else {
     setAllOperatorGroupsCollapsed(false);
     syncOperatorCollapseActionButtons();
@@ -1416,12 +1423,7 @@ function resetOperatorBoardView() {
   setOperatorCardsCollapsed(false);
   setOperatorIssuesOnlyMode(false);
   setOperatorFocusCriticalMode(true);
-  const groups = Array.from(document.querySelectorAll(".operator-health-group"));
-  for (const group of groups) {
-    const key = group.getAttribute("data-operator-group");
-    setOperatorGroupCollapsed(group, key !== "bridge-safety");
-  }
-  syncOperatorCollapseActionButtons();
+  applyOperatorDemoGroupPreset();
   applyOperatorCardsVisibility();
 }
 
@@ -2313,6 +2315,17 @@ function renderStoryTimelinePreviewEmptyState() {
   code.textContent = "story:";
   hint.append(code, " intent in Live Negotiator to generate segments, asset refs, and progress data.");
 
+  const details = document.createElement("details");
+  details.className = "story-empty-details";
+
+  const summary = document.createElement("summary");
+  summary.className = "story-empty-details-summary";
+  summary.textContent = "Preview story arc and expected outputs";
+  details.append(summary);
+
+  const detailsBody = document.createElement("div");
+  detailsBody.className = "story-empty-details-body";
+
   const checklist = document.createElement("ul");
   checklist.className = "story-empty-checklist";
   checklist.setAttribute("aria-label", "Story timeline readiness checklist");
@@ -2353,6 +2366,8 @@ function renderStoryTimelinePreviewEmptyState() {
     arcEntry.append(arcTitle, arcHint);
     arc.append(arcEntry);
   }
+  detailsBody.append(checklist, arc);
+  details.append(detailsBody);
 
   const actions = document.createElement("div");
   actions.className = "story-empty-actions";
@@ -2372,7 +2387,7 @@ function renderStoryTimelinePreviewEmptyState() {
   actionTemplate.addEventListener("click", applyStoryPromptTemplateFromStoryEmptyState);
 
   actions.append(action, actionTemplate);
-  wrapper.append(icon, title, hint, checklist, arc, actions);
+  wrapper.append(icon, title, hint, details, actions);
   el.storyTimelinePreview.append(wrapper);
 }
 
@@ -2514,6 +2529,13 @@ function renderStoryTimelineList() {
       preview.append(card);
     }
 
+    const previewDetails = document.createElement("details");
+    previewDetails.className = "story-timeline-list-empty-details";
+    const previewSummary = document.createElement("summary");
+    previewSummary.className = "story-timeline-list-empty-details-summary";
+    previewSummary.textContent = "Preview example segment cards";
+    previewDetails.append(previewSummary, preview);
+
     const action = document.createElement("button");
     action.type = "button";
     action.className = "button-muted story-timeline-list-empty-action";
@@ -2535,7 +2557,7 @@ function renderStoryTimelineList() {
 
     actions.append(action, actionTemplate);
 
-    empty.append(icon, title, hint, status, preview, actions);
+    empty.append(icon, title, hint, status, previewDetails, actions);
     el.storyTimelineList.append(empty);
     return;
   }
