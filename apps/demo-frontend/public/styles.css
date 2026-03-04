@@ -1716,33 +1716,43 @@ button:focus-visible {
 }
 
 .meta-row-status {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  align-items: stretch;
+  align-items: center;
 }
 
 .meta-row-status > div {
   min-width: 0;
-  min-height: 60px;
-  display: flex;
+  min-height: 0;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 8px;
+  padding: 8px 12px;
   border: 1px solid color-mix(in oklch, var(--border) 84%, color-mix(in oklch, var(--foreground) 10%, transparent));
-  border-radius: calc(var(--radius) - 5px);
+  border-radius: 999px;
+  flex: 0 1 auto;
   background:
-    radial-gradient(220px 90px at 0% -20%, color-mix(in oklch, var(--primary) 8%, transparent), transparent 74%),
-    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 90%, transparent), color-mix(in oklch, var(--surface-panel-2) 96%, black 6%));
+    radial-gradient(180px 70px at 0% -40%, color-mix(in oklch, var(--primary) 9%, transparent), transparent 72%),
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--surface-control) 90%, transparent),
+      color-mix(in oklch, var(--surface-panel-2) 95%, black 5%)
+    );
   box-shadow:
     inset 0 1px 0 color-mix(in oklch, var(--foreground) 7%, transparent),
     var(--shadow-2xs);
 }
 
+.meta-row-status .status-item-wide {
+  flex: 1 1 290px;
+  border-radius: calc(var(--radius) - 6px);
+}
+
 .meta-row-status strong {
-  font-size: 0.83rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: -0.005em;
+  letter-spacing: 0;
   color: color-mix(in oklch, var(--foreground) 96%, var(--muted-foreground));
   white-space: nowrap;
 }
@@ -1750,26 +1760,20 @@ button:focus-visible {
 .meta-row-status > div > span {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
-  flex: 0 1 auto;
-  margin-left: auto;
-  max-width: 72%;
-  text-align: right;
+  justify-content: flex-start;
+  flex: 1 1 auto;
+  max-width: 100%;
+  text-align: left;
   min-width: 0;
 }
 
 .meta-row-status > div > span:not(.status-pill) {
-  padding: 6px 10px;
-  border: 1px solid color-mix(in oklch, var(--border-soft) 92%, transparent);
-  border-radius: 999px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--surface-control) 88%, transparent),
-    color-mix(in oklch, var(--surface-panel-2) 92%, transparent)
-  );
-  color: color-mix(in oklch, var(--foreground) 99%, white);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: color-mix(in oklch, var(--foreground) 98%, white);
   font-family: var(--font-mono);
-  font-size: 0.86rem;
+  font-size: 0.83rem;
   font-weight: 560;
   line-height: 1.3;
   overflow-wrap: anywhere;
@@ -1778,8 +1782,8 @@ button:focus-visible {
 
 .meta-row-status .status-pill {
   margin-top: 0;
-  margin-left: auto;
-  padding: 4px 11px;
+  margin-left: 0;
+  padding: 4px 10px;
   font-size: 0.79rem;
   box-shadow:
     inset 0 1px 0 color-mix(in oklch, var(--foreground) 10%, transparent),
@@ -1789,7 +1793,7 @@ button:focus-visible {
 .panel-live-top .meta-row-status > div {
   border-color: color-mix(in oklch, var(--border) 90%, color-mix(in oklch, var(--foreground) 16%, transparent));
   background:
-    radial-gradient(240px 96px at 6% -16%, color-mix(in oklch, var(--primary) 12%, transparent), transparent 72%),
+    radial-gradient(200px 80px at 8% -24%, color-mix(in oklch, var(--primary) 13%, transparent), transparent 72%),
     linear-gradient(
       180deg,
       color-mix(in oklch, var(--surface-control) 86%, transparent),
@@ -1806,12 +1810,6 @@ button:focus-visible {
 }
 
 .panel-live-top .meta-row-status > div > span:not(.status-pill) {
-  border-color: color-mix(in oklch, var(--border-soft) 92%, transparent);
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--surface-control) 88%, transparent),
-    color-mix(in oklch, var(--surface-panel-2) 94%, transparent)
-  );
   color: color-mix(in oklch, var(--foreground) 99%, white);
 }
 
@@ -3057,13 +3055,11 @@ button:focus-visible {
   }
 
   .meta-row-status {
-    gap: 9px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
 
-  .meta-row-status > div > span {
-    flex: 1 1 auto;
-    max-width: 100%;
+  .meta-row-status .status-item-wide {
+    flex-basis: 100%;
   }
 
   .media-upload-row {
@@ -3128,7 +3124,6 @@ button:focus-visible {
 
   .meta-row-status {
     gap: 9px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .actions-priority {
@@ -3178,7 +3173,6 @@ button:focus-visible {
 
   .meta-row-status {
     gap: 8px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .panel-transcript-live .transcript {
@@ -3313,14 +3307,24 @@ button:focus-visible {
   }
 
   .meta-row-status {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
     gap: 9px;
   }
 
   .meta-row-status > div {
-    min-height: 52px;
+    width: 100%;
+    min-height: 46px;
     padding: 10px 12px;
     gap: 10px;
+    justify-content: space-between;
+    border-radius: calc(var(--radius) - 6px);
+  }
+
+  .meta-row-status > div > span {
+    justify-content: flex-end;
+    text-align: right;
+    max-width: 64%;
   }
 
   .story-workspace {
@@ -3424,7 +3428,7 @@ button:focus-visible {
 
   .meta-row-status {
     gap: 8px;
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .kpi-metric {

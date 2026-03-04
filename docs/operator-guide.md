@@ -59,7 +59,7 @@ The operator flow is used during live demos and production diagnostics to:
 19. Export dropdown keeps `Last export` metadata, format badges (`MD/JS/WAV`), and a `Recent exports` list (last 3 downloads)
 20. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
 21. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
-22. Live Negotiator status strip (`Status/Assistant/Run ID/User ID/Session State/Mode/PTT/Export`) uses high-contrast text, pill-state color mapping, concise export labels (`exported markdown/json/audio`), and fixed desktop grid (`4x2`) for quick judge/operator scan
+22. Live Negotiator status strip (`Status/Assistant/Run ID/User ID/Session State/Mode/PTT/Export`) uses high-contrast text, pill-state color mapping, concise export labels (`exported markdown/json/audio`), and compact inline wrap chips (with stacked fallback on narrow screens) for quick judge/operator scan
 
 ## Safety Controls
 
