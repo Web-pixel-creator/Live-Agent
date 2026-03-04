@@ -1764,11 +1764,11 @@ textarea {
 }
 
 .panel-live-connection .export-menu[open] {
-  z-index: 240;
+  z-index: 520;
 }
 
 .panel-live-connection .export-menu-list {
-  z-index: 260;
+  z-index: 540;
 }
 
 .action-group {

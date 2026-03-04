@@ -83,7 +83,10 @@ test("demo frontend wires session export controls and runtime helpers", () => {
   const requiredStyleTokens = [
     ".panel-live-connection {",
     ".panel-live-connection .action-group-primary > .export-menu {",
+    ".panel-live-connection .export-menu[open] {",
+    "z-index: 520;",
     ".panel-live-connection .export-menu-list {",
+    "z-index: 540;",
     ".export-menu[open] {",
     ".export-menu-list {",
     "z-index: 460;",
