@@ -39,7 +39,7 @@ The operator flow is used during live demos and production diagnostics to:
 ## Standard Operator Actions
 
 1. Refresh summary (`Refresh Summary`)
-2. `Demo View` (default) keeps Operator Console in critical-first mode for judge walkthroughs and prioritizes six cards (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`) while still surfacing new `fail` cards; `Full Ops View` opens the full board for deep diagnostics; mode banner (`demo_view` / `full_ops_view`) confirms active triage scope
+2. `Demo View` (default) keeps Operator Console in critical-first mode for judge walkthroughs and prioritizes six cards (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`) while still surfacing new `fail` cards; in `Demo View + Focus Critical`, uninitialized neutral cards (`unknown` / `pending` / `n/a` / `awaiting_refresh`) are auto-hidden; `Full Ops View` opens the full board for deep diagnostics; mode banner (`demo_view` / `full_ops_view`) confirms active triage scope
 3. Before the first manual refresh, a guided pre-refresh banner is shown with one-click `Refresh Summary` and mode-specific hint text (`Demo` vs `Full Ops`)
 4. Collapse/expand operator evidence cards (`Collapse All` / `Expand All`); before first manual refresh the UI keeps only `Live Bridge & Turn Safety` expanded by default
 5. Placeholder cards (`no_data` / `summary_error`) stay hidden until the first manual `Refresh Summary` to reduce visual noise during judge-facing walkthrough

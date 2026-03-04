@@ -107,6 +107,7 @@ When placeholder states are visible, the UI renders judge-friendly labels (`awai
 Operator empty-state hints are action-oriented (which scenario/action to run next, then `Refresh Summary`) to avoid dead-looking `Waiting for ...` states.
 Operator status cards now render demo-friendly placeholders directly in static HTML (`awaiting_refresh` / `pending`) before JS hydration.
 In `Demo View`, the board keeps six judge-facing cards visible by default (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`) while still surfacing any new `fail` cards outside that set.
+`Demo View + Focus Critical` now auto-hides uninitialized neutral cards (`unknown` / `pending` / `n/a` / `awaiting_refresh`) inside the six-card lane, so judges land on actionable states first.
 `Operator Console` starts in `Focus Critical` mode with a top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); use `Show All Cards` to inspect the full evidence set.
 `Issues Only` toggle hides cards already in `ok` state, so triage stays focused on neutral/fail evidence.
 `Reset View` returns Operator Console to default triage layout (`Focus Critical` on, `Issues Only` off, default group visibility).

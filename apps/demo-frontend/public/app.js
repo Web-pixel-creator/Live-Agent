@@ -1206,6 +1206,52 @@ function isOperatorPlaceholderStatusText(value) {
   return normalized === "no_data" || normalized === "summary_error";
 }
 
+function getOperatorStatusCode(statusNode) {
+  if (!(statusNode instanceof HTMLElement)) {
+    return "";
+  }
+  const raw = typeof statusNode.dataset.statusCode === "string" && statusNode.dataset.statusCode.trim().length > 0
+    ? statusNode.dataset.statusCode
+    : statusNode.textContent ?? "";
+  return typeof raw === "string" ? raw.trim().toLowerCase() : "";
+}
+
+function isOperatorUninitializedStatusText(value) {
+  if (typeof value !== "string") {
+    return false;
+  }
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === "no_data" ||
+    normalized === "summary_error" ||
+    normalized === "awaiting_refresh" ||
+    normalized === "refresh_failed" ||
+    normalized === "unknown" ||
+    normalized === "pending" ||
+    normalized === "n/a" ||
+    normalized === "-"
+  );
+}
+
+function shouldHideOperatorDemoNeutralCard(card, statusNode) {
+  if (!(card instanceof HTMLElement) || !(statusNode instanceof HTMLElement)) {
+    return false;
+  }
+  if (normalizeOperatorBoardMode(state.operatorBoardMode) !== "demo") {
+    return false;
+  }
+  if (state.operatorFocusCriticalOnly !== true) {
+    return false;
+  }
+  if (!isOperatorDemoEssentialCard(card)) {
+    return false;
+  }
+  if (!statusNode.classList.contains("status-neutral")) {
+    return false;
+  }
+  return isOperatorUninitializedStatusText(getOperatorStatusCode(statusNode));
+}
+
 function resolveStatusPillDisplayText(value) {
   if (typeof value !== "string") {
     return value;
@@ -1243,6 +1289,11 @@ function applyOperatorCardVisibility(card) {
     return;
   }
   if (state.operatorIssuesOnly && statusNode.classList.contains("status-ok")) {
+    card.classList.toggle("operator-health-card-hidden", true);
+    return;
+  }
+
+  if (shouldHideOperatorDemoNeutralCard(card, statusNode)) {
     card.classList.toggle("operator-health-card-hidden", true);
     return;
   }
