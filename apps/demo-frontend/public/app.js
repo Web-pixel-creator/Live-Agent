@@ -1376,6 +1376,15 @@ function setPttStatus(text, variant = "neutral") {
   setStatusPill(el.pttStatus, text, variant);
 }
 
+function setStatusTextValue(node, text, fallback = "-") {
+  if (!(node instanceof HTMLElement)) {
+    return;
+  }
+  const normalized = typeof text === "string" && text.trim().length > 0 ? text.trim() : fallback;
+  node.textContent = normalized;
+  node.title = normalized === fallback ? "" : normalized;
+}
+
 function resetPlaybackTracking() {
   state.assistantPlaybackTurnId = null;
   state.assistantPlaybackStartedAtMs = null;
@@ -7468,13 +7477,13 @@ function handleGatewayEvent(event) {
 
   if (typeof event.userId === "string" && event.userId.trim().length > 0) {
     state.userId = event.userId;
-    el.currentUserId.textContent = event.userId;
+    setStatusTextValue(el.currentUserId, event.userId, "-");
     el.userId.value = event.userId;
   }
 
   if (typeof event.runId === "string") {
     state.runId = event.runId;
-    el.runId.textContent = event.runId;
+    setStatusTextValue(el.runId, event.runId, "-");
   }
 
   appendEvent(event.type ?? "event", JSON.stringify(event.payload ?? {}, null, 0));
@@ -8091,7 +8100,7 @@ function sendLiveSetupOverride() {
 
   const requestRunId = makeId();
   state.runId = requestRunId;
-  el.runId.textContent = requestRunId;
+  setStatusTextValue(el.runId, requestRunId, "-");
 
   sendEnvelope("live.setup", payload, "frontend", requestRunId);
   const details = summary.length > 0 ? summary.join(", ") : "override";
@@ -8247,7 +8256,7 @@ function sendIntentRequest(options = {}) {
 
   const requestRunId = makeId();
   state.runId = requestRunId;
-  el.runId.textContent = requestRunId;
+  setStatusTextValue(el.runId, requestRunId, "-");
 
   sendEnvelope("orchestrator.request", { intent, input }, "frontend", {
     runId: requestRunId,
@@ -8319,7 +8328,7 @@ async function sendConversationItemCreate() {
 
   const requestRunId = makeId();
   state.runId = requestRunId;
-  el.runId.textContent = requestRunId;
+  setStatusTextValue(el.runId, requestRunId, "-");
 
   sendEnvelope(
     "conversation.item.create",
@@ -8739,7 +8748,7 @@ function bindEvents() {
     state.runId = null;
     resetAssistantAudioExport();
     setStoryTimelineData();
-    el.runId.textContent = "-";
+    setStatusTextValue(el.runId, "-", "-");
     setSessionState("-");
     clearPendingApproval();
     state.taskRecords.clear();
@@ -8749,7 +8758,7 @@ function bindEvents() {
   el.userId.addEventListener("input", () => {
     state.userId = el.userId.value.trim() || "demo-user";
     el.userId.value = state.userId;
-    el.currentUserId.textContent = state.userId;
+    setStatusTextValue(el.currentUserId, state.userId, "-");
   });
   el.sessionId.addEventListener("input", () => {
     state.sessionId = el.sessionId.value.trim() || makeId();
@@ -8822,7 +8831,7 @@ async function bootstrap() {
   el.apiBaseUrl.value = state.apiBaseUrl;
   state.userId = "demo-user";
   el.userId.value = state.userId;
-  el.currentUserId.textContent = state.userId;
+  setStatusTextValue(el.currentUserId, state.userId, "-");
   state.sessionId = makeId();
   el.sessionId.value = state.sessionId;
   setSessionState("-");

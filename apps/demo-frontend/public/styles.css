@@ -1819,6 +1819,50 @@ button:focus-visible {
   color: color-mix(in oklch, var(--foreground) 93%, var(--muted-foreground));
 }
 
+.meta-row-status-live {
+  margin-top: 16px;
+  padding: 7px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 92%, transparent);
+  border-radius: calc(var(--radius) - 3px);
+  background:
+    radial-gradient(340px 120px at 3% -30%, color-mix(in oklch, var(--primary) 12%, transparent), transparent 72%),
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 92%, transparent), var(--surface-panel-2));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 7%, transparent),
+    0 10px 20px -22px color-mix(in oklch, var(--primary) 46%, transparent),
+    var(--shadow-2xs);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.meta-row-status-live > div {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 8px 13px;
+  border-color: color-mix(in oklch, var(--border) 88%, color-mix(in oklch, var(--foreground) 14%, transparent));
+}
+
+.meta-row-status-live .status-item-wide {
+  flex: 0 0 min(340px, 40vw);
+}
+
+.meta-row-status-live .status-item-wide > span:not(.status-pill) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta-row-status-live strong {
+  color: color-mix(in oklch, var(--foreground) 99%, var(--accent-foreground));
+}
+
+.meta-row-status-live > div > span:not(.status-pill) {
+  color: color-mix(in oklch, var(--foreground) 99%, white);
+  font-size: 0.84rem;
+}
+
 .meta-row > div {
   border: 1px solid var(--border-soft);
   border-radius: calc(var(--radius) - 2px);
@@ -3178,6 +3222,17 @@ button:focus-visible {
   color: var(--muted-foreground);
 }
 
+@media (max-width: 1320px) and (min-width: 981px) {
+  .meta-row-status-live {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .meta-row-status-live .status-item-wide {
+    flex: 1 1 300px;
+  }
+}
+
 @media (max-width: 980px) {
   .layout {
     width: min(1280px, calc(100vw - 36px));
@@ -3210,6 +3265,16 @@ button:focus-visible {
 
   .meta-row-status {
     gap: 8px;
+  }
+
+  .meta-row-status-live {
+    padding: 6px;
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .meta-row-status-live > div {
+    min-height: 42px;
   }
 
   .meta-row-status .status-item-wide {
