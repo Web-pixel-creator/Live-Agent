@@ -447,6 +447,7 @@ const el = {
 const tabButtons = Array.from(document.querySelectorAll(".tab-btn[data-tab-target]"));
 const tabContents = Array.from(document.querySelectorAll(".tab-content[data-tab]"));
 const DEFAULT_TAB_ID = "live-negotiator";
+const TAB_HASH_PREFIX = "tab=";
 const customSelectShells = new Set();
 let customSelectObserver = null;
 const CUSTOM_SELECT_EXCLUDE_IDS = new Set();
@@ -548,11 +549,68 @@ function readStoredThemeMode() {
   }
 }
 
+function resolveTabId(value) {
+  const requested = typeof value === "string" ? value.trim() : "";
+  if (!requested) {
+    return DEFAULT_TAB_ID;
+  }
+  return tabContents.some((section) => section.dataset.tab === requested) ? requested : DEFAULT_TAB_ID;
+}
+
+function readTabIdFromHash() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  const rawHash = window.location.hash.startsWith("#")
+    ? window.location.hash.slice(1).trim()
+    : window.location.hash.trim();
+  if (!rawHash) {
+    return "";
+  }
+  if (rawHash.startsWith(TAB_HASH_PREFIX)) {
+    const encodedTab = rawHash.slice(TAB_HASH_PREFIX.length).trim();
+    if (!encodedTab) {
+      return "";
+    }
+    try {
+      return decodeURIComponent(encodedTab);
+    } catch {
+      return encodedTab;
+    }
+  }
+  return rawHash;
+}
+
+function writeTabIdToHash(tabId) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const normalizedTabId = resolveTabId(tabId);
+  const nextHashValue = `${TAB_HASH_PREFIX}${encodeURIComponent(normalizedTabId)}`;
+  const currentHash = window.location.hash.startsWith("#")
+    ? window.location.hash.slice(1)
+    : window.location.hash;
+  if (currentHash === nextHashValue) {
+    return;
+  }
+  if (window.history?.replaceState) {
+    const nextUrl = new URL(window.location.href);
+    nextUrl.hash = nextHashValue;
+    window.history.replaceState(null, "", nextUrl.toString());
+    return;
+  }
+  window.location.hash = nextHashValue;
+}
+
 function readStoredTabId() {
+  const hashTabId = readTabIdFromHash();
+  if (hashTabId) {
+    return resolveTabId(hashTabId);
+  }
   try {
     const stored = window.localStorage?.getItem(TAB_STORAGE_KEY);
     if (typeof stored === "string" && stored.trim().length > 0) {
-      return stored.trim();
+      return resolveTabId(stored);
     }
   } catch {
     /* no-op on storage failures */
@@ -676,13 +734,11 @@ function initBackgroundVideoLoopBlend() {
   syncLoopDurationVariable();
 }
 
-function setActiveTab(tabId) {
+function setActiveTab(tabId, options = {}) {
   closeAllCustomSelectMenus();
 
-  const requestedTabId = typeof tabId === "string" ? tabId.trim() : "";
-  const resolvedTabId = tabContents.some((section) => section.dataset.tab === requestedTabId)
-    ? requestedTabId
-    : DEFAULT_TAB_ID;
+  const resolvedTabId = resolveTabId(tabId);
+  const syncHash = options.syncHash !== false;
 
   for (const section of tabContents) {
     const isActive = section.dataset.tab === resolvedTabId;
@@ -701,6 +757,10 @@ function setActiveTab(tabId) {
     window.localStorage?.setItem(TAB_STORAGE_KEY, resolvedTabId);
   } catch {
     /* no-op on storage failures */
+  }
+
+  if (syncHash) {
+    writeTabIdToHash(resolvedTabId);
   }
 }
 
@@ -9493,6 +9553,13 @@ function bindEvents() {
       setActiveTab(button.dataset.tabTarget ?? DEFAULT_TAB_ID);
     });
   }
+  window.addEventListener("hashchange", () => {
+    const hashTabId = readTabIdFromHash();
+    if (!hashTabId) {
+      return;
+    }
+    setActiveTab(hashTabId, { syncHash: false });
+  });
   document.getElementById("connectBtn").addEventListener("click", connectWebSocket);
   document.getElementById("disconnectBtn").addEventListener("click", disconnectWebSocket);
   if (el.exportMarkdownBtn) {

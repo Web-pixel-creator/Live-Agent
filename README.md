@@ -96,6 +96,7 @@ Frontend `Live Controls -> Apply Live Setup` can send runtime `live.setup` overr
 Frontend `Intent Request` also supports optional `ui_task` grounding overrides (`url`, `deviceNodeId`, `deviceNodeKind`, `deviceNodePlatform`, `deviceNodeCapabilities`, `deviceNodeMinTrustLevel`, `screenshotRef`, `domSnapshot`, `accessibilityTree`, `markHints`).
 Frontend is grouped into tabs (`Live Negotiator`, `Storyteller`, `Operator Console`, `Device Nodes`) with `Live Negotiator` opened by default for faster demo entry.
 Frontend remembers the last active tab (`mla.demoFrontend.activeTab`) and restores it on reload for faster multi-panel iteration.
+Frontend tab state is also deep-linkable via URL hash (`#tab=live-negotiator|storyteller|operator|device-nodes`) and reacts to `hashchange` so reviewers can share direct tab links.
 Tabs stay sticky while scrolling and active tab switches use a short panel fade/slide transition (with `prefers-reduced-motion` fallback) so navigation context is preserved in long judge sessions.
 `Live Negotiator` uses a compact top section plus a split middle layout (intent/approval/tasks on the left, sticky KPI+Transcript rail on the right) so negotiation state stays visible while operating controls.
 Live control toolbars are separated into `primary` and `secondary` action lanes to reduce button/input ambiguity and keep destructive/secondary actions visually distinct.
