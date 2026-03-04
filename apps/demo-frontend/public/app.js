@@ -782,6 +782,69 @@ function createCustomSelect(select) {
   trigger.setAttribute("aria-controls", menuId);
   shell.appendChild(menu);
 
+  const getEnabledOptionButtons = () =>
+    Array.from(menu.querySelectorAll(".select-option")).filter(
+      (node) => node instanceof HTMLButtonElement && !node.disabled,
+    );
+
+  const focusCustomSelectOptionByIndex = (index) => {
+    const options = getEnabledOptionButtons();
+    if (options.length === 0) {
+      return;
+    }
+    const boundedIndex = Math.max(0, Math.min(options.length - 1, index));
+    options[boundedIndex].focus();
+  };
+
+  const focusCustomSelectOptionByOffset = (currentOption, offset) => {
+    const options = getEnabledOptionButtons();
+    if (options.length === 0) {
+      return;
+    }
+    const currentIndex = options.findIndex((option) => option === currentOption);
+    if (currentIndex < 0) {
+      focusCustomSelectOptionByIndex(offset >= 0 ? 0 : options.length - 1);
+      return;
+    }
+    const nextIndex = (currentIndex + offset + options.length) % options.length;
+    options[nextIndex].focus();
+  };
+
+  const focusSelectedCustomSelectOption = (fallbackEdge = "start") => {
+    const options = getEnabledOptionButtons();
+    if (options.length === 0) {
+      return;
+    }
+    const selectedOption = options.find((option) => option.classList.contains("is-selected"));
+    if (selectedOption instanceof HTMLButtonElement) {
+      selectedOption.focus();
+      return;
+    }
+    if (fallbackEdge === "end") {
+      options[options.length - 1].focus();
+      return;
+    }
+    options[0].focus();
+  };
+
+  const closeCustomSelectMenu = (restoreTriggerFocus = false) => {
+    shell.classList.remove("is-open");
+    trigger.setAttribute("aria-expanded", "false");
+    if (restoreTriggerFocus) {
+      trigger.focus();
+    }
+  };
+
+  const openCustomSelectMenu = (focusEdge = "start") => {
+    if (trigger.disabled) {
+      return;
+    }
+    closeAllCustomSelectMenus(shell);
+    shell.classList.add("is-open");
+    trigger.setAttribute("aria-expanded", "true");
+    focusSelectedCustomSelectOption(focusEdge);
+  };
+
   const syncCustomSelect = () => {
     const selectedOption = select.options[select.selectedIndex] ?? null;
     const selectedText =
@@ -825,7 +888,39 @@ function createCustomSelect(select) {
         select.value = option.value;
         select.dispatchEvent(new Event("change", { bubbles: true }));
         syncCustomSelect();
-        closeAllCustomSelectMenus();
+        closeCustomSelectMenu();
+      });
+
+      optionButton.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          focusCustomSelectOptionByOffset(optionButton, 1);
+          return;
+        }
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          focusCustomSelectOptionByOffset(optionButton, -1);
+          return;
+        }
+        if (event.key === "Home") {
+          event.preventDefault();
+          focusCustomSelectOptionByIndex(0);
+          return;
+        }
+        if (event.key === "End") {
+          event.preventDefault();
+          const options = getEnabledOptionButtons();
+          focusCustomSelectOptionByIndex(Math.max(0, options.length - 1));
+          return;
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeCustomSelectMenu(true);
+          return;
+        }
+        if (event.key === "Tab") {
+          closeCustomSelectMenu();
+        }
       });
 
       menu.appendChild(optionButton);
@@ -834,26 +929,37 @@ function createCustomSelect(select) {
 
   trigger.addEventListener("click", (event) => {
     event.preventDefault();
-    if (trigger.disabled) {
+    const willOpen = !shell.classList.contains("is-open");
+    if (willOpen) {
+      openCustomSelectMenu("start");
       return;
     }
-    const willOpen = !shell.classList.contains("is-open");
-    closeAllCustomSelectMenus(willOpen ? shell : null);
-    shell.classList.toggle("is-open", willOpen);
-    trigger.setAttribute("aria-expanded", willOpen ? "true" : "false");
-
-    if (willOpen) {
-      const selectedOptionNode = menu.querySelector(".select-option.is-selected");
-      if (selectedOptionNode instanceof HTMLButtonElement) {
-        selectedOptionNode.focus();
-      }
-    }
+    closeCustomSelectMenu();
   });
 
   trigger.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
+    if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      trigger.click();
+      if (shell.classList.contains("is-open")) {
+        closeCustomSelectMenu();
+        return;
+      }
+      openCustomSelectMenu("start");
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      openCustomSelectMenu("start");
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      openCustomSelectMenu("end");
+      return;
+    }
+    if (event.key === "Escape" && shell.classList.contains("is-open")) {
+      event.preventDefault();
+      closeCustomSelectMenu();
     }
   });
 
@@ -871,8 +977,7 @@ function createCustomSelect(select) {
 
   shell.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
-      closeAllCustomSelectMenus();
-      trigger.focus();
+      closeCustomSelectMenu(true);
     }
   });
 
