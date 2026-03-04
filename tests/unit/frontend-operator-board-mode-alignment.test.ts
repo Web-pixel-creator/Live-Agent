@@ -35,6 +35,7 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'id="operatorQuickStartOpenDeviceNodesBtn"',
     'id="operatorQuickStartRefreshBtn"',
     'class="operator-quick-start-actions"',
+    '<details id="operatorQuickStart" class="operator-quick-start operator-support-panel"',
     'id="operatorPlaybookRunNegotiationBtn"',
     'id="operatorPlaybookRefreshBridgeBtn"',
     'id="operatorPlaybookRunStoryBtn"',
@@ -43,7 +44,9 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'id="operatorPlaybookRefreshUiBtn"',
     'id="operatorPlaybookOpenDeviceNodesBtn"',
     'id="operatorPlaybookRefreshDeviceNodesBtn"',
-    'class="operator-lane-playbook"',
+    '<details id="operatorLanePlaybook" class="operator-lane-playbook operator-support-panel"',
+    'class="operator-support-summary-title"',
+    'class="operator-support-summary-hint"',
     "data-operator-demo-essential",
     "Demo View",
     "Full Ops View",
@@ -138,8 +141,14 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     ".operator-summary-guide {",
     ".operator-summary-guide-actions {",
     ".operator-quick-start {",
+    ".operator-support-panel {",
+    ".operator-support-panel > summary {",
+    ".operator-support-summary-title {",
+    ".operator-support-summary-hint {",
+    ".operator-quick-start-body {",
     ".operator-quick-start-actions {",
     ".operator-lane-playbook {",
+    ".operator-lane-playbook-body {",
     ".operator-lane-playbook-card {",
     ".operator-summary-guide.is-hidden {",
     ".operator-health-board.is-demo-view .operator-health-card[data-operator-demo-essential] {",
@@ -169,11 +178,11 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "README missing operator summary guide quick-start actions note",
   );
   assert.ok(
-    readmeSource.includes("persistent `Operator Quick Start` rail"),
+    readmeSource.includes("collapsible `Operator Quick Start` rail"),
     "README missing operator quick-start rail note",
   );
   assert.ok(
-    readmeSource.includes("`Lane Recovery Playbook` cards"),
+    readmeSource.includes("collapsible `Lane Recovery Playbook` cards"),
     "README missing operator lane playbook note",
   );
   assert.ok(
@@ -205,11 +214,11 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "operator guide missing operator summary guide quick-start actions note",
   );
   assert.ok(
-    operatorGuideSource.includes("persistent `Operator Quick Start` rail"),
+    operatorGuideSource.includes("collapsible `Operator Quick Start` rail"),
     "operator guide missing operator quick-start rail note",
   );
   assert.ok(
-    operatorGuideSource.includes("`Lane Recovery Playbook` cards"),
+    operatorGuideSource.includes("Collapsible `Lane Recovery Playbook` cards"),
     "operator guide missing operator lane playbook note",
   );
   assert.ok(

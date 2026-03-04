@@ -44,8 +44,8 @@ The operator flow is used during live demos and production diagnostics to:
 3. Operator board mode choice (`Demo` vs `Full Ops`) persists across reload (`mla.demoFrontend.operatorBoardMode`) until changed or manually reset
 4. `Demo View` adds a top `Demo Summary` strip (Realtime Gateway, Queue, Approvals, Startup, UI Executor, Device Nodes) with large mirrored status pills, per-lane mini-KPI (`F/N/O`), and one-click jump-to-card navigation
 5. Before the first manual refresh, a guided pre-refresh banner is shown with one-click `Refresh Summary`, quick-start actions (`Run Negotiation`, `Run Story`, `Run UI Task`), and mode-specific hint text (`Demo` vs `Full Ops`)
-6. Operator Console also keeps a persistent `Operator Quick Start` rail (`Run Negotiation`, `Run Story`, `Run UI Task`, `Open Device Nodes`, `Refresh Summary`) so empty lanes can be repopulated at any point
-7. `Lane Recovery Playbook` cards (Realtime/Story/UI Safety/Device Nodes) provide direct run + refresh controls so `awaiting_refresh` lanes can be recovered without scanning the full board
+6. Operator Console keeps a collapsible `Operator Quick Start` rail (`Run Negotiation`, `Run Story`, `Run UI Task`, `Open Device Nodes`, `Refresh Summary`) so empty lanes can be repopulated at any point without keeping extra controls always expanded
+7. Collapsible `Lane Recovery Playbook` cards (Realtime/Story/UI Safety/Device Nodes) provide direct run + refresh controls so `awaiting_refresh` lanes can be recovered without scanning the full board
 8. Collapse/expand operator evidence cards (`Collapse All` / `Expand All`); before first manual refresh the UI keeps only `Live Bridge & Turn Safety` expanded by default
 9. Placeholder cards (`no_data` / `summary_error`) stay hidden until the first manual `Refresh Summary` to reduce visual noise during judge-facing walkthrough
 10. When placeholder statuses are shown, labels are rendered as `awaiting_refresh` / `refresh_failed` (internal placeholder codes remain unchanged for filtering logic)
