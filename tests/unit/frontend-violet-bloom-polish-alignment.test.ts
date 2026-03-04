@@ -8,7 +8,7 @@ test("demo frontend applies violet-bloom polish for spacing, dropdown checks, an
   const stylesSource = readFileSync(stylesPath, "utf8");
 
   const requiredTokens = [
-    "--status-neutral-fg: color-mix(in oklch, var(--foreground) 76%, var(--muted-foreground));",
+    "--status-neutral-fg: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));",
     ".media-upload-row {",
     "grid-template-columns: minmax(0, 1fr) minmax(196px, auto);",
     ".media-upload-actions {",

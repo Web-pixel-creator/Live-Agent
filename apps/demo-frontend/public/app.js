@@ -2039,6 +2039,11 @@ function renderStoryTimelineList() {
   if (segments.length === 0) {
     const empty = document.createElement("div");
     empty.className = "story-timeline-list-empty";
+    const icon = document.createElement("span");
+    icon.className = "story-timeline-list-empty-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "Timeline";
+
     const title = document.createElement("p");
     title.className = "story-timeline-list-empty-title";
     title.textContent = "No timeline segments yet";
@@ -2055,7 +2060,7 @@ function renderStoryTimelineList() {
       openLiveNegotiatorFromStoryEmptyState();
     });
 
-    empty.append(title, hint, action);
+    empty.append(icon, title, hint, action);
     el.storyTimelineList.append(empty);
     return;
   }

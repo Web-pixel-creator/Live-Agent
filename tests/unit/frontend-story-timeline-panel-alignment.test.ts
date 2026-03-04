@@ -68,6 +68,8 @@ test("demo frontend wires interactive story timeline panel across UI/runtime/doc
     "el.intent.value = \"story\";",
     "el.message.value = STORY_EMPTY_STATE_PROMPT;",
     "action.textContent = \"Open Live Negotiator\";",
+    "icon.className = \"story-timeline-list-empty-icon\";",
+    "icon.textContent = \"Timeline\";",
     "actionTemplate.id = \"storyTimelineApplyTemplateBtn\";",
     "actionTemplate.textContent = \"Use Story Prompt Template\";",
     "checklist.className = \"story-empty-checklist\";",
