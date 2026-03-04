@@ -41,12 +41,16 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
     "const tabButtons = Array.from(document.querySelectorAll(\".tab-btn[data-tab-target]\"));",
     "const tabContents = Array.from(document.querySelectorAll(\".tab-content[data-tab]\"));",
     "const DEFAULT_TAB_ID = \"live-negotiator\";",
+    "TAB_STORAGE_KEY",
+    "readStoredTabId",
+    "mla.demoFrontend.activeTab",
     "storyTimelineProgressLabel: document.getElementById(\"storyTimelineProgressLabel\")",
     "storyTimelineProgressTrack: document.getElementById(\"storyTimelineProgressTrack\")",
     "storyTimelineProgressBar: document.getElementById(\"storyTimelineProgressBar\")",
     "function renderStoryTimelineProgress(count, selectedIndex)",
     "function setActiveTab(tabId)",
-    "setActiveTab(DEFAULT_TAB_ID);",
+    "window.localStorage?.setItem(TAB_STORAGE_KEY, resolvedTabId);",
+    "setActiveTab(readStoredTabId());",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing tab token: ${token}`);
@@ -71,7 +75,9 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
   }
 
   assert.ok(readmeSource.includes("Frontend is grouped into tabs"), "README missing tabbed-layout note");
+  assert.ok(readmeSource.includes("remembers the last active tab"), "README missing active-tab persistence note");
   assert.ok(readmeSource.includes("Live Negotiator"), "README missing updated tab names");
   assert.ok(operatorGuideSource.includes("## Frontend Tabs"), "Operator guide missing tabbed-layout section");
+  assert.ok(operatorGuideSource.includes("remembers last active tab"), "Operator guide missing active-tab persistence note");
   assert.ok(operatorGuideSource.includes("Storyteller"), "Operator guide missing storyteller tab note");
 });

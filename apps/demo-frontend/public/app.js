@@ -62,6 +62,8 @@ const state = {
 
 const PENDING_CLIENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
 const THEME_STORAGE_KEY = "mla.demoFrontend.themeMode";
+const TAB_STORAGE_KEY = "mla.demoFrontend.activeTab";
+const OPERATOR_BOARD_MODE_STORAGE_KEY = "mla.demoFrontend.operatorBoardMode";
 const MAX_ASSISTANT_AUDIO_EXPORT_BYTES = 32 * 1024 * 1024;
 const BG_VIDEO_LOOP_BLEND_SECONDS = 1.2;
 const BG_VIDEO_LOOP_RESET_SECONDS = 0.3;
@@ -529,6 +531,18 @@ function readStoredThemeMode() {
   }
 }
 
+function readStoredTabId() {
+  try {
+    const stored = window.localStorage?.getItem(TAB_STORAGE_KEY);
+    if (typeof stored === "string" && stored.trim().length > 0) {
+      return stored.trim();
+    }
+  } catch {
+    /* no-op on storage failures */
+  }
+  return DEFAULT_TAB_ID;
+}
+
 function applyThemeMode(themeMode, options = {}) {
   const normalizedMode = normalizeThemeMode(themeMode);
   const persist = options.persist === true;
@@ -664,6 +678,12 @@ function setActiveTab(tabId) {
     button.classList.toggle("active", isActive);
     button.setAttribute("aria-selected", isActive ? "true" : "false");
     button.setAttribute("tabindex", isActive ? "0" : "-1");
+  }
+
+  try {
+    window.localStorage?.setItem(TAB_STORAGE_KEY, resolvedTabId);
+  } catch {
+    /* no-op on storage failures */
   }
 }
 
@@ -1170,6 +1190,15 @@ function normalizeOperatorBoardMode(value) {
   return value === "full" ? "full" : "demo";
 }
 
+function readStoredOperatorBoardMode() {
+  try {
+    const stored = window.localStorage?.getItem(OPERATOR_BOARD_MODE_STORAGE_KEY);
+    return normalizeOperatorBoardMode(stored);
+  } catch {
+    return "demo";
+  }
+}
+
 function syncOperatorBoardModeButtons() {
   const mode = normalizeOperatorBoardMode(state.operatorBoardMode);
   const isDemo = mode === "demo";
@@ -1231,7 +1260,15 @@ function syncOperatorSummaryGuide() {
 function setOperatorBoardMode(mode, options = {}) {
   const nextMode = normalizeOperatorBoardMode(mode);
   const syncPresets = options && options.syncPresets === false ? false : true;
+  const persist = options && options.persist === false ? false : true;
   state.operatorBoardMode = nextMode;
+  if (persist) {
+    try {
+      window.localStorage?.setItem(OPERATOR_BOARD_MODE_STORAGE_KEY, nextMode);
+    } catch {
+      /* no-op on storage failures */
+    }
+  }
   syncOperatorBoardModeButtons();
 
   if (!syncPresets) {
@@ -1434,12 +1471,19 @@ function refreshOperatorGroupMetrics() {
   }
 }
 
-function resetOperatorBoardView() {
-  setOperatorBoardMode("demo", { syncPresets: false });
+function resetOperatorBoardView(options = {}) {
+  const requestedMode = normalizeOperatorBoardMode(options.mode);
+  const persistMode = options && options.persistMode === false ? false : true;
+  setOperatorBoardMode(requestedMode, { syncPresets: false, persist: persistMode });
   setOperatorCardsCollapsed(false);
   setOperatorIssuesOnlyMode(false);
-  setOperatorFocusCriticalMode(true);
-  applyOperatorDemoGroupPreset();
+  setOperatorFocusCriticalMode(requestedMode === "demo");
+  if (requestedMode === "demo") {
+    applyOperatorDemoGroupPreset();
+  } else {
+    setAllOperatorGroupsCollapsed(false);
+    syncOperatorCollapseActionButtons();
+  }
   applyOperatorCardsVisibility();
 }
 
@@ -9605,10 +9649,10 @@ async function bootstrap() {
   resetOperatorTurnTruncationWidget("no_data");
   resetOperatorTurnDeleteWidget("no_data");
   resetOperatorDamageControlWidget("no_data");
-  resetOperatorBoardView();
+  resetOperatorBoardView({ mode: readStoredOperatorBoardMode(), persistMode: false });
   renderTaskList();
   evaluateConstraints();
-  setActiveTab(DEFAULT_TAB_ID);
+  setActiveTab(readStoredTabId());
   setUiTaskFieldsVisibility();
   initBackgroundVideoLoopBlend();
   enhanceSelectControls();

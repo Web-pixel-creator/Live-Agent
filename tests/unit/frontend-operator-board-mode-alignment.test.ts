@@ -55,6 +55,9 @@ test("operator console exposes demo/full board mode toggles with runtime presets
 
   const requiredRuntimeTokens = [
     'operatorBoardMode: "demo"',
+    "OPERATOR_BOARD_MODE_STORAGE_KEY",
+    "readStoredOperatorBoardMode",
+    "mla.demoFrontend.operatorBoardMode",
     'operatorDemoViewBtn: document.getElementById("operatorDemoViewBtn")',
     'operatorFullOpsViewBtn: document.getElementById("operatorFullOpsViewBtn")',
     'operatorBoardModeHint: document.getElementById("operatorBoardModeHint")',
@@ -85,12 +88,14 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "function syncOperatorSummaryGuide()",
     "function applyOperatorDemoGroupPreset()",
     "function setOperatorBoardMode(mode, options = {})",
+    "window.localStorage?.setItem(OPERATOR_BOARD_MODE_STORAGE_KEY, nextMode);",
     "el.operatorModeBanner.classList.toggle(\"is-demo\", isDemo);",
     "el.operatorModeBanner.classList.toggle(\"is-full-ops\", !isDemo);",
     "setStatusPill(el.operatorModeBadge, isDemo ? \"demo_view\" : \"full_ops_view\", isDemo ? \"ok\" : \"neutral\");",
     "function isOperatorDemoEssentialCard(card)",
     "state.operatorBoardMode === \"demo\" && state.operatorFocusCriticalOnly === true && !isOperatorDemoEssentialCard(card)",
-    'setOperatorBoardMode("demo", { syncPresets: false });',
+    'setOperatorBoardMode(requestedMode, { syncPresets: false, persist: persistMode });',
+    "resetOperatorBoardView({ mode: readStoredOperatorBoardMode(), persistMode: false });",
     "el.operatorDemoViewBtn.addEventListener(\"click\", () => {",
     "setOperatorBoardMode(\"demo\");",
     "el.operatorFullOpsViewBtn.addEventListener(\"click\", () => {",
@@ -176,6 +181,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "README missing operator mode-banner note",
   );
   assert.ok(
+    readmeSource.includes("mla.demoFrontend.operatorBoardMode"),
+    "README missing operator board-mode persistence note",
+  );
+  assert.ok(
     operatorGuideSource.includes("`Demo View` (default) keeps Operator Console in critical-first mode"),
     "operator guide missing operator board-mode note",
   );
@@ -206,5 +215,9 @@ test("operator console exposes demo/full board mode toggles with runtime presets
   assert.ok(
     operatorGuideSource.includes("mode banner (`demo_view` / `full_ops_view`) confirms active triage scope"),
     "operator guide missing operator mode-banner note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("mla.demoFrontend.operatorBoardMode"),
+    "operator guide missing operator board-mode persistence note",
   );
 });

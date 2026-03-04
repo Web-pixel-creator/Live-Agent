@@ -39,7 +39,7 @@ test("operator console supports focus-critical mode with mirrored signal strip",
     "card.classList.toggle(\"operator-health-card-hidden\", shouldHide);",
     "el.operatorFocusCriticalBtn.addEventListener(\"click\", () => {",
     "setOperatorFocusCriticalMode(!state.operatorFocusCriticalOnly);",
-    "setOperatorFocusCriticalMode(true);",
+    "setOperatorFocusCriticalMode(requestedMode === \"demo\");",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing operator-focus token: ${token}`);

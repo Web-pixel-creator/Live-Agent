@@ -24,10 +24,13 @@ test("operator console exposes reset-view control for triage defaults", () => {
 
   const requiredRuntimeTokens = [
     "operatorResetViewBtn: document.getElementById(\"operatorResetViewBtn\")",
-    "function resetOperatorBoardView()",
+    "function resetOperatorBoardView(options = {})",
+    "const requestedMode = normalizeOperatorBoardMode(options.mode);",
+    "const persistMode = options && options.persistMode === false ? false : true;",
+    "setOperatorBoardMode(requestedMode, { syncPresets: false, persist: persistMode });",
     "setOperatorCardsCollapsed(false);",
     "setOperatorIssuesOnlyMode(false);",
-    "setOperatorFocusCriticalMode(true);",
+    "setOperatorFocusCriticalMode(requestedMode === \"demo\");",
     "if (el.operatorResetViewBtn) {",
     "el.operatorResetViewBtn.addEventListener(\"click\", () => {",
     "resetOperatorBoardView();",
