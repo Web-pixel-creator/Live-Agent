@@ -2166,7 +2166,7 @@ button:focus-visible {
 
 .kpi-card p {
   margin: 0 0 7px;
-  color: var(--muted-foreground);
+  color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
 }
 
 .kpi-card-offer {
@@ -2194,7 +2194,7 @@ button:focus-visible {
 }
 
 .kpi-label {
-  color: var(--muted-foreground);
+  color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
   font-size: 0.9rem;
 }
 
@@ -2224,7 +2224,7 @@ button:focus-visible {
 
 .kpi-status-note {
   margin: 9px 0 0;
-  color: var(--muted-foreground);
+  color: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));
   font-size: 0.88rem;
   line-height: 1.5;
 }
@@ -2241,7 +2241,7 @@ button:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  color: var(--muted-foreground);
+  color: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));
   font-size: 0.87rem;
 }
 
@@ -3644,6 +3644,12 @@ button:focus-visible {
 
   .live-negotiator-main {
     grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .live-negotiator-primary,
+  .live-negotiator-secondary {
+    gap: 18px;
   }
 
   .live-negotiator-secondary {
@@ -3660,11 +3666,14 @@ button:focus-visible {
 
   .meta-row-status-live {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    padding: 8px;
+    padding: 10px;
+    gap: 10px;
   }
 
   .meta-row-status-live > div {
-    min-height: 52px;
+    min-height: 56px;
+    padding: 11px 12px 12px;
+    gap: 7px;
   }
 
   .meta-row-status-live .status-item-wide {
@@ -3942,20 +3951,32 @@ button:focus-visible {
 
   .meta-row-status-live {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 10px;
+    padding: 10px;
   }
 
   .meta-row-status-live > div {
     width: auto;
-    min-height: 50px;
+    min-height: 58px;
+    padding: 12px 13px;
     justify-content: center;
-    gap: 6px;
+    gap: 7px;
+  }
+
+  .meta-row-status-live strong {
+    font-size: 0.78rem;
+    line-height: 1.3;
   }
 
   .meta-row-status-live > div > span {
     max-width: 100%;
     justify-content: flex-start;
     text-align: left;
+  }
+
+  .meta-row-status-live > div > span:not(.status-pill) {
+    font-size: 0.92rem;
+    line-height: 1.28;
   }
 
   .meta-row-status-live .status-item-wide {
@@ -4068,6 +4089,20 @@ button:focus-visible {
   .meta-row-status {
     gap: 8px;
     flex-direction: column;
+  }
+
+  .meta-row-status-live {
+    gap: 9px;
+    padding: 10px;
+  }
+
+  .meta-row-status-live > div {
+    min-height: 58px;
+    padding: 11px 12px;
+  }
+
+  .meta-row-status-live > div > span:not(.status-pill) {
+    font-size: 0.88rem;
   }
 
   .kpi-metric {

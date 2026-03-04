@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("demo frontend applies violet-bloom polish for spacing, dropdown checks, and warn-button contrast", () => {
+test("demo frontend applies violet-bloom polish for spacing, dropdown checks, warn-button contrast, and mobile readability", () => {
   const stylesPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "styles.css");
   const stylesSource = readFileSync(stylesPath, "utf8");
 
@@ -35,8 +35,18 @@ test("demo frontend applies violet-bloom polish for spacing, dropdown checks, an
     ".meta-row-status > div > span:not(.status-pill) {",
     "background: transparent;",
     "font-size: 0.83rem;",
+    "@media (max-width: 980px) {",
+    ".live-negotiator-main {",
+    "gap: 18px;",
+    ".meta-row-status-live {",
+    "padding: 10px;",
+    "gap: 10px;",
     ".kpi-panel > .grid-3 {",
     "grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));",
+    ".kpi-label {",
+    "color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));",
+    ".kpi-status-note {",
+    "color: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));",
   ];
 
   for (const token of requiredTokens) {
