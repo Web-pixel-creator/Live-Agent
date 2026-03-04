@@ -23,6 +23,9 @@ test("demo frontend presents device nodes as selectable cards with guided empty 
     'id="deviceNodeFleetDegraded"',
     'id="deviceNodeFleetOffline"',
     'id="deviceNodeFleetStale"',
+    'id="deviceNodeListFilter"',
+    'id="deviceNodeListVisibleCount"',
+    'id="deviceNodeListTotalCount"',
     'id="deviceNodeListHint"',
     'class="events device-node-list"',
     'id="deviceNodeList"',
@@ -33,19 +36,30 @@ test("demo frontend presents device nodes as selectable cards with guided empty 
 
   const requiredRuntimeTokens = [
     'deviceNodeListHint: document.getElementById("deviceNodeListHint")',
+    'deviceNodeListFilter: document.getElementById("deviceNodeListFilter")',
+    'deviceNodeListVisibleCount: document.getElementById("deviceNodeListVisibleCount")',
+    'deviceNodeListTotalCount: document.getElementById("deviceNodeListTotalCount")',
     'deviceNodeFleetTotal: document.getElementById("deviceNodeFleetTotal")',
     "DEVICE_NODE_STALE_AGE_MS",
+    "function setDeviceNodeListStats(visibleCount, totalCount)",
+    "function normalizeDeviceNodeListFilter(value)",
+    "function isDeviceNodeStale(node, nowMs = Date.now())",
+    "function filterDeviceNodesForList(nodes, filterValue)",
     "function renderDeviceNodeFleetSummary(nodes)",
     "function formatDeviceNodeFleetPercent(part, total)",
     "function setDeviceNodeListHint(text)",
     "function renderDeviceNodeEmptyState()",
+    "function renderDeviceNodeFilteredEmptyState(filterValue)",
     "function createDeviceNodeCard(node, isSelected)",
     "Use Demo Template",
+    "Show All Nodes",
     "applyDemoDeviceNodeTemplate",
     "setDeviceNodeListHint(\"No nodes yet. Use Demo Template and Create / Update Node to bootstrap the lane.\");",
+    "setDeviceNodeListHint(\"No nodes match the selected filter. Use Show All Nodes or change List Filter.\");",
     "setDeviceNodeListHint(\"Click any node card to load it into the form and run status/heartbeat actions.\");",
     "card.className = \"device-node-card\";",
     "card.classList.add(\"is-selected\");",
+    "el.deviceNodeListFilter.addEventListener(\"change\", () => {",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing device-node list token: ${token}`);
@@ -54,11 +68,16 @@ test("demo frontend presents device nodes as selectable cards with guided empty 
   const requiredStyleTokens = [
     ".device-node-list-hint {",
     ".device-node-fleet-summary {",
+    ".device-node-list-toolbar {",
+    ".device-node-filter-field {",
+    ".device-node-list-stats {",
     ".device-node-fleet-card {",
     ".device-node-fleet-card.is-online {",
     ".device-node-list {",
     ".device-node-empty-state {",
+    ".device-node-empty-state-filtered {",
     ".device-node-empty-action {",
+    ".device-node-empty-action-clear {",
     ".device-node-card {",
     ".device-node-card.is-selected {",
     ".device-node-card-meta {",
@@ -69,11 +88,11 @@ test("demo frontend presents device nodes as selectable cards with guided empty 
   }
 
   assert.ok(
-    readmeSource.includes("`Device Nodes` tab shows a compact fleet summary"),
+    readmeSource.includes("`List Filter` (`all/online/degraded/offline/stale`) with live `Showing X of Y` counters"),
     "README missing device-node card list note",
   );
   assert.ok(
-    operatorGuideSource.includes("selectable node cards with status pills"),
+    operatorGuideSource.includes("`List Filter` (`all/online/degraded/offline/stale`) with live `Showing X of Y` counters"),
     "operator guide missing device-node card list note",
   );
 });

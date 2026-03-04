@@ -45,6 +45,7 @@ const state = {
   taskRecords: new Map(),
   deviceNodes: new Map(),
   selectedDeviceNodeId: null,
+  deviceNodeListFilter: "all",
   pendingClientEvents: new Map(),
   operatorGatewayErrorSnapshot: null,
   operatorTurnTruncationSnapshot: null,
@@ -368,6 +369,9 @@ const el = {
   deviceNodeMetadata: document.getElementById("deviceNodeMetadata"),
   deviceNodeConflictBtn: document.getElementById("deviceNodeConflictBtn"),
   deviceNodeCount: document.getElementById("deviceNodeCount"),
+  deviceNodeListFilter: document.getElementById("deviceNodeListFilter"),
+  deviceNodeListVisibleCount: document.getElementById("deviceNodeListVisibleCount"),
+  deviceNodeListTotalCount: document.getElementById("deviceNodeListTotalCount"),
   deviceNodeFleetTotal: document.getElementById("deviceNodeFleetTotal"),
   deviceNodeFleetOnline: document.getElementById("deviceNodeFleetOnline"),
   deviceNodeFleetOnlinePct: document.getElementById("deviceNodeFleetOnlinePct"),
@@ -420,6 +424,13 @@ const CUSTOM_SELECT_OPTION_DESCRIPTIONS = {
     reviewed: "Reviewed node with standard trust level.",
     trusted: "High-trust node for critical actions.",
     untrusted: "Restricted node, additional guardrails apply.",
+  },
+  deviceNodeListFilter: {
+    all: "Show every registered node.",
+    online: "Only nodes currently marked online.",
+    degraded: "Only nodes currently marked degraded.",
+    offline: "Only nodes currently marked offline.",
+    stale: "Only nodes with stale or missing heartbeat.",
   },
 };
 
@@ -6265,12 +6276,52 @@ function setDeviceNodeListHint(text) {
   el.deviceNodeListHint.textContent = normalized;
 }
 
+function setDeviceNodeListStats(visibleCount, totalCount) {
+  if (el.deviceNodeListVisibleCount) {
+    const visible = Number.isFinite(visibleCount) ? Math.max(0, Math.floor(visibleCount)) : 0;
+    el.deviceNodeListVisibleCount.textContent = String(visible);
+  }
+  if (el.deviceNodeListTotalCount) {
+    const total = Number.isFinite(totalCount) ? Math.max(0, Math.floor(totalCount)) : 0;
+    el.deviceNodeListTotalCount.textContent = String(total);
+  }
+}
+
+function normalizeDeviceNodeListFilter(value) {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (normalized === "online" || normalized === "degraded" || normalized === "offline" || normalized === "stale") {
+    return normalized;
+  }
+  return "all";
+}
+
 function parseIsoTimestampMs(value) {
   if (typeof value !== "string" || value.trim().length === 0) {
     return Number.NaN;
   }
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : Number.NaN;
+}
+
+function isDeviceNodeStale(node, nowMs = Date.now()) {
+  const lastSeenMs = parseIsoTimestampMs(node?.lastSeenAt);
+  return !Number.isFinite(lastSeenMs) || nowMs - lastSeenMs > DEVICE_NODE_STALE_AGE_MS;
+}
+
+function filterDeviceNodesForList(nodes, filterValue) {
+  const list = Array.isArray(nodes) ? nodes : [];
+  const filter = normalizeDeviceNodeListFilter(filterValue);
+  if (filter === "all") {
+    return list;
+  }
+  if (filter === "stale") {
+    const nowMs = Date.now();
+    return list.filter((node) => isDeviceNodeStale(node, nowMs));
+  }
+  return list.filter((node) => {
+    const status = typeof node?.status === "string" ? node.status.trim().toLowerCase() : "unknown";
+    return status === filter;
+  });
 }
 
 function formatDeviceNodeFleetPercent(part, total) {
@@ -6288,8 +6339,6 @@ function renderDeviceNodeFleetSummary(nodes) {
   let degraded = 0;
   let offline = 0;
   let stale = 0;
-  const nowMs = Date.now();
-
   for (const node of list) {
     const status = typeof node?.status === "string" ? node.status.trim().toLowerCase() : "unknown";
     if (status === "online") {
@@ -6300,9 +6349,7 @@ function renderDeviceNodeFleetSummary(nodes) {
       offline += 1;
     }
 
-    const lastSeenMs = parseIsoTimestampMs(node?.lastSeenAt);
-    const isStale = !Number.isFinite(lastSeenMs) || nowMs - lastSeenMs > DEVICE_NODE_STALE_AGE_MS;
-    if (isStale) {
+    if (isDeviceNodeStale(node)) {
       stale += 1;
     }
   }
@@ -6420,6 +6467,44 @@ function renderDeviceNodeEmptyState() {
   el.deviceNodeList.append(wrapper);
 }
 
+function renderDeviceNodeFilteredEmptyState(filterValue) {
+  if (!(el.deviceNodeList instanceof HTMLElement)) {
+    return;
+  }
+  const filter = normalizeDeviceNodeListFilter(filterValue);
+  const wrapper = document.createElement("div");
+  wrapper.className = "device-node-empty-state device-node-empty-state-filtered";
+
+  const icon = document.createElement("span");
+  icon.className = "device-node-empty-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = "Filter";
+
+  const title = document.createElement("p");
+  title.className = "device-node-empty-title";
+  title.textContent = "No nodes match the current filter";
+
+  const hint = document.createElement("p");
+  hint.className = "device-node-empty-hint";
+  hint.textContent = `Filter \`${filter}\` returned no nodes. Show all nodes or refresh to re-check latest status.`;
+
+  const action = document.createElement("button");
+  action.type = "button";
+  action.className = "button-muted device-node-empty-action device-node-empty-action-clear";
+  action.textContent = "Show All Nodes";
+  action.addEventListener("click", () => {
+    state.deviceNodeListFilter = "all";
+    if (el.deviceNodeListFilter) {
+      el.deviceNodeListFilter.value = "all";
+      syncCustomSelectControl(el.deviceNodeListFilter);
+    }
+    renderDeviceNodeList(Array.from(state.deviceNodes.values()));
+  });
+
+  wrapper.append(icon, title, hint, action);
+  el.deviceNodeList.append(wrapper);
+}
+
 function createDeviceNodeCard(node, isSelected) {
   const status = toOptionalText(node.status) ?? "unknown";
   const capabilities = Array.isArray(node.capabilities) && node.capabilities.length > 0 ? node.capabilities : [];
@@ -6510,7 +6595,16 @@ function renderDeviceNodeList(nodes) {
   for (const node of normalizedNodes) {
     state.deviceNodes.set(node.nodeId.toLowerCase(), node);
   }
+  const requestedFilter = el.deviceNodeListFilter ? el.deviceNodeListFilter.value : state.deviceNodeListFilter;
+  state.deviceNodeListFilter = normalizeDeviceNodeListFilter(requestedFilter);
+  if (el.deviceNodeListFilter && el.deviceNodeListFilter.value !== state.deviceNodeListFilter) {
+    el.deviceNodeListFilter.value = state.deviceNodeListFilter;
+    syncCustomSelectControl(el.deviceNodeListFilter);
+  }
+
+  const visibleNodes = filterDeviceNodesForList(normalizedNodes, state.deviceNodeListFilter);
   renderDeviceNodeFleetSummary(normalizedNodes);
+  setDeviceNodeListStats(visibleNodes.length, normalizedNodes.length);
   el.deviceNodeCount.textContent = String(normalizedNodes.length);
   el.deviceNodeList.innerHTML = "";
 
@@ -6521,13 +6615,25 @@ function renderDeviceNodeList(nodes) {
     return;
   }
 
+  const currentSelected = state.selectedDeviceNodeId
+    ? state.deviceNodes.get(state.selectedDeviceNodeId.toLowerCase()) ?? null
+    : null;
+
+  if (visibleNodes.length === 0) {
+    setDeviceNodeListHint("No nodes match the selected filter. Use Show All Nodes or change List Filter.");
+    renderDeviceNodeFilteredEmptyState(state.deviceNodeListFilter);
+    updateDeviceNodeSelectionMeta(currentSelected ?? normalizedNodes[0] ?? null);
+    return;
+  }
+
   setDeviceNodeListHint("Click any node card to load it into the form and run status/heartbeat actions.");
-  const selected = state.selectedDeviceNodeId
-    ? state.deviceNodes.get(state.selectedDeviceNodeId.toLowerCase()) ?? normalizedNodes[0]
-    : normalizedNodes[0];
+  const selected =
+    (currentSelected &&
+      visibleNodes.find((node) => node.nodeId.toLowerCase() === currentSelected.nodeId.toLowerCase())) ||
+    visibleNodes[0];
   applyDeviceNodeToForm(selected);
 
-  for (const node of normalizedNodes) {
+  for (const node of visibleNodes) {
     const isSelected = selected?.nodeId?.toLowerCase() === node.nodeId.toLowerCase();
     el.deviceNodeList.append(createDeviceNodeCard(node, isSelected));
   }
@@ -8427,6 +8533,14 @@ function bindEvents() {
       applyDeviceNodeToForm(node);
     }
   });
+  if (el.deviceNodeListFilter) {
+    el.deviceNodeListFilter.addEventListener("change", () => {
+      state.deviceNodeListFilter = normalizeDeviceNodeListFilter(el.deviceNodeListFilter.value);
+      el.deviceNodeListFilter.value = state.deviceNodeListFilter;
+      syncCustomSelectControl(el.deviceNodeListFilter);
+      renderDeviceNodeList(Array.from(state.deviceNodes.values()));
+    });
+  }
   [el.targetPrice, el.targetDelivery, el.targetSla].forEach((input) => {
     input.addEventListener("input", evaluateConstraints);
   });
@@ -8491,6 +8605,14 @@ async function bootstrap() {
   setUiTaskFieldsVisibility();
   initBackgroundVideoLoopBlend();
   enhanceSelectControls();
+  state.deviceNodeListFilter = normalizeDeviceNodeListFilter(
+    el.deviceNodeListFilter ? el.deviceNodeListFilter.value : state.deviceNodeListFilter,
+  );
+  if (el.deviceNodeListFilter) {
+    el.deviceNodeListFilter.value = state.deviceNodeListFilter;
+    syncCustomSelectControl(el.deviceNodeListFilter);
+  }
+  setDeviceNodeListStats(0, 0);
   bindEvents();
   refreshOperatorSummary().catch(() => {
     appendTranscript("error", "Initial operator summary fetch failed");
