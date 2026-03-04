@@ -487,6 +487,20 @@
                   <li>Image, audio, and video asset references</li>
                   <li>Timeline progress and pending video jobs</li>
                 </ul>
+                <ol class="story-empty-arc" aria-label="Example story arc">
+                  <li>
+                    <strong>Hook</strong>
+                    <span>Setup the protagonist and goal in one scene.</span>
+                  </li>
+                  <li>
+                    <strong>Conflict</strong>
+                    <span>Add tension and one decision point for the timeline.</span>
+                  </li>
+                  <li>
+                    <strong>Resolution</strong>
+                    <span>Close with outcome, callback, and final narration beat.</span>
+                  </li>
+                </ol>
                 <div class="story-empty-actions">
                   <button id="storyTimelineOpenLiveBtn" type="button" class="story-empty-action">
                     Open Live Negotiator
@@ -499,7 +513,33 @@
             </div>
           </aside>
         </div>
-        <div id="storyTimelineList" class="events story-timeline-list"></div>
+        <div id="storyTimelineList" class="events story-timeline-list">
+          <div class="story-timeline-list-empty">
+            <span class="story-timeline-list-empty-icon" aria-hidden="true">Timeline</span>
+            <p class="story-timeline-list-empty-title">No timeline segments yet</p>
+            <p class="story-timeline-list-empty-hint">
+              Send a story intent from Live Negotiator to populate segment cards, asset refs, and progress.
+            </p>
+            <div class="story-timeline-list-empty-preview" aria-hidden="true">
+              <article class="story-timeline-list-empty-card">
+                <strong>Segment #1</strong>
+                <span>Hook scene · image cue</span>
+              </article>
+              <article class="story-timeline-list-empty-card">
+                <strong>Segment #2</strong>
+                <span>Conflict beat · narration cue</span>
+              </article>
+              <article class="story-timeline-list-empty-card">
+                <strong>Segment #3</strong>
+                <span>Resolution beat · video render</span>
+              </article>
+            </div>
+            <div class="story-timeline-list-empty-actions">
+              <button type="button" class="button-muted story-timeline-list-empty-action">Open Live Negotiator</button>
+              <button type="button" class="button-muted story-timeline-list-empty-action story-timeline-list-empty-action-template">Use Story Prompt Template</button>
+            </div>
+          </div>
+        </div>
       </section>
       </div>
 

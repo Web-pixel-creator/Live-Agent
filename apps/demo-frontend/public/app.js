@@ -1961,6 +1961,33 @@ function renderStoryTimelinePreviewEmptyState() {
     checklist.append(item);
   }
 
+  const arc = document.createElement("ol");
+  arc.className = "story-empty-arc";
+  arc.setAttribute("aria-label", "Example story arc");
+  const arcItems = [
+    {
+      title: "Hook",
+      hint: "Setup the protagonist and goal in one scene.",
+    },
+    {
+      title: "Conflict",
+      hint: "Add tension and one decision point for the timeline.",
+    },
+    {
+      title: "Resolution",
+      hint: "Close with outcome, callback, and final narration beat.",
+    },
+  ];
+  for (const arcItem of arcItems) {
+    const arcEntry = document.createElement("li");
+    const arcTitle = document.createElement("strong");
+    arcTitle.textContent = arcItem.title;
+    const arcHint = document.createElement("span");
+    arcHint.textContent = arcItem.hint;
+    arcEntry.append(arcTitle, arcHint);
+    arc.append(arcEntry);
+  }
+
   const actions = document.createElement("div");
   actions.className = "story-empty-actions";
 
@@ -1979,7 +2006,7 @@ function renderStoryTimelinePreviewEmptyState() {
   actionTemplate.addEventListener("click", applyStoryPromptTemplateFromStoryEmptyState);
 
   actions.append(action, actionTemplate);
-  wrapper.append(icon, title, hint, checklist, actions);
+  wrapper.append(icon, title, hint, checklist, arc, actions);
   el.storyTimelinePreview.append(wrapper);
 }
 
@@ -2084,6 +2111,34 @@ function renderStoryTimelineList() {
     hint.className = "story-timeline-list-empty-hint";
     hint.textContent = "Send a story intent from Live Negotiator to populate segment cards, asset refs, and progress.";
 
+    const preview = document.createElement("div");
+    preview.className = "story-timeline-list-empty-preview";
+    preview.setAttribute("aria-hidden", "true");
+    const sampleCards = [
+      {
+        title: "Segment #1",
+        hint: "Hook scene - image cue",
+      },
+      {
+        title: "Segment #2",
+        hint: "Conflict beat - narration cue",
+      },
+      {
+        title: "Segment #3",
+        hint: "Resolution beat - video render",
+      },
+    ];
+    for (const sampleCard of sampleCards) {
+      const card = document.createElement("article");
+      card.className = "story-timeline-list-empty-card";
+      const cardTitle = document.createElement("strong");
+      cardTitle.textContent = sampleCard.title;
+      const cardHint = document.createElement("span");
+      cardHint.textContent = sampleCard.hint;
+      card.append(cardTitle, cardHint);
+      preview.append(card);
+    }
+
     const action = document.createElement("button");
     action.type = "button";
     action.className = "button-muted story-timeline-list-empty-action";
@@ -2105,7 +2160,7 @@ function renderStoryTimelineList() {
 
     actions.append(action, actionTemplate);
 
-    empty.append(icon, title, hint, actions);
+    empty.append(icon, title, hint, preview, actions);
     el.storyTimelineList.append(empty);
     return;
   }
