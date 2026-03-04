@@ -63,6 +63,10 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "EXPORT_HISTORY_LIMIT",
     "el.exportAudioBtn.disabled = !hasAudioEvidence;",
     "Assistant playback evidence (capture required)",
+    "const turnsLabel = uniqueTurns === 1 ? \"1 turn\" : `${uniqueTurns} turns`;",
+    "const sizeLabel = formatByteSize(totalBytes);",
+    "Assistant audio ready:",
+    "trimmed",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing export token: ${token}`);

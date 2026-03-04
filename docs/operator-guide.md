@@ -55,7 +55,7 @@ The operator flow is used during live demos and production diagnostics to:
 15. Secondary controls are under collapsed `Advanced Actions` (`Retry Task`, `Failover Drain`, `Failover Warmup`)
 16. Create/update device node and send heartbeat
 17. Approve/reject pending UI-sensitive actions
-18. Export session evidence from frontend via the `Export Session` dropdown (`Markdown` / `JSON` / `Audio (WAV)`); audio export is enabled only after assistant audio chunks are captured
+18. Export session evidence from frontend via the `Export Session` dropdown (`Markdown` / `JSON` / `Audio (WAV)`); audio export is enabled only after assistant audio chunks are captured and the menu hint shows live capture metadata (`turns`, `size`, `trimmed` when rolling-window cap applies)
 19. Export dropdown keeps `Last export` metadata, format badges (`MD/JS/WAV`), and a `Recent exports` list (last 3 downloads)
 20. Inspect Story Timeline panel to verify Storyteller segment sequencing and asset references during demo
 21. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`

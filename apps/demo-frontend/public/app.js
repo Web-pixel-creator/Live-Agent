@@ -2391,19 +2391,39 @@ function toIsoNow() {
 }
 
 function syncExportControlAvailability() {
+  const chunks = Array.isArray(state.assistantAudioChunks) ? state.assistantAudioChunks : [];
+  const totalBytes = typeof state.assistantAudioBytesTotal === "number" && Number.isFinite(state.assistantAudioBytesTotal)
+    ? Math.max(0, state.assistantAudioBytesTotal)
+    : 0;
+  const uniqueTurns = new Set(
+    chunks
+      .map((chunk) => (chunk && typeof chunk.turnId === "string" ? chunk.turnId.trim() : ""))
+      .filter((turnId) => turnId.length > 0),
+  ).size;
   const hasAudioEvidence =
-    state.assistantAudioBytesTotal > 0 &&
-    Array.isArray(state.assistantAudioChunks) &&
-    state.assistantAudioChunks.length > 0;
+    totalBytes > 0 &&
+    chunks.length > 0;
   if (el.exportAudioBtn instanceof HTMLButtonElement) {
     el.exportAudioBtn.disabled = !hasAudioEvidence;
     el.exportAudioBtn.setAttribute("aria-disabled", hasAudioEvidence ? "false" : "true");
-    el.exportAudioBtn.title = hasAudioEvidence ? "" : "Assistant audio is not available yet";
+    if (!hasAudioEvidence) {
+      el.exportAudioBtn.title = "Assistant audio is not available yet";
+    } else {
+      const turnsLabel = uniqueTurns === 1 ? "1 turn" : `${uniqueTurns} turns`;
+      const sizeLabel = formatByteSize(totalBytes);
+      const trimLabel = state.assistantAudioTrimmed === true ? ", trimmed" : "";
+      el.exportAudioBtn.title = `Assistant audio ready: ${turnsLabel}, ${sizeLabel}${trimLabel}`;
+    }
   }
   if (el.exportAudioHint instanceof HTMLElement) {
-    el.exportAudioHint.textContent = hasAudioEvidence
-      ? "Assistant playback evidence"
-      : "Assistant playback evidence (capture required)";
+    if (!hasAudioEvidence) {
+      el.exportAudioHint.textContent = "Assistant playback evidence (capture required)";
+    } else {
+      const turnsLabel = uniqueTurns === 1 ? "1 turn" : `${uniqueTurns} turns`;
+      const sizeLabel = formatByteSize(totalBytes);
+      const trimLabel = state.assistantAudioTrimmed === true ? ", trimmed" : "";
+      el.exportAudioHint.textContent = `Assistant playback evidence (${turnsLabel}, ${sizeLabel}${trimLabel})`;
+    }
   }
 }
 
