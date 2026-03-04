@@ -677,6 +677,7 @@ function closeAllCustomSelectMenus(exceptShell = null) {
     const trigger = shell.querySelector(".select-trigger");
     if (trigger instanceof HTMLButtonElement) {
       trigger.setAttribute("aria-expanded", "false");
+      trigger.removeAttribute("aria-activedescendant");
     }
   }
 }
@@ -770,8 +771,18 @@ function createCustomSelect(select) {
   const trigger = document.createElement("button");
   trigger.type = "button";
   trigger.className = "select-trigger";
+  trigger.setAttribute("role", "combobox");
   trigger.setAttribute("aria-haspopup", "listbox");
+  trigger.setAttribute("aria-autocomplete", "none");
   trigger.setAttribute("aria-expanded", "false");
+  const triggerId = select.id ? `${select.id}-trigger` : `select-trigger-${makeId()}`;
+  trigger.id = triggerId;
+  const fieldLabel = select.closest(".field")?.querySelector(":scope > span");
+  if (fieldLabel instanceof HTMLElement) {
+    const labelId = fieldLabel.id || `${triggerId}-label`;
+    fieldLabel.id = labelId;
+    trigger.setAttribute("aria-labelledby", labelId);
+  }
   shell.appendChild(trigger);
 
   const menu = document.createElement("div");
@@ -780,7 +791,16 @@ function createCustomSelect(select) {
   const menuId = `${select.id || `select-${makeId()}`}-menu`;
   menu.id = menuId;
   trigger.setAttribute("aria-controls", menuId);
+  menu.setAttribute("aria-labelledby", triggerId);
   shell.appendChild(menu);
+
+  const setCustomSelectActiveDescendant = (optionButton = null) => {
+    if (optionButton instanceof HTMLButtonElement && optionButton.id) {
+      trigger.setAttribute("aria-activedescendant", optionButton.id);
+      return;
+    }
+    trigger.removeAttribute("aria-activedescendant");
+  };
 
   const getEnabledOptionButtons = () =>
     Array.from(menu.querySelectorAll(".select-option")).filter(
@@ -793,7 +813,9 @@ function createCustomSelect(select) {
       return;
     }
     const boundedIndex = Math.max(0, Math.min(options.length - 1, index));
-    options[boundedIndex].focus();
+    const nextOption = options[boundedIndex];
+    setCustomSelectActiveDescendant(nextOption);
+    nextOption.focus();
   };
 
   const focusCustomSelectOptionByOffset = (currentOption, offset) => {
@@ -817,19 +839,25 @@ function createCustomSelect(select) {
     }
     const selectedOption = options.find((option) => option.classList.contains("is-selected"));
     if (selectedOption instanceof HTMLButtonElement) {
+      setCustomSelectActiveDescendant(selectedOption);
       selectedOption.focus();
       return;
     }
     if (fallbackEdge === "end") {
-      options[options.length - 1].focus();
+      const option = options[options.length - 1];
+      setCustomSelectActiveDescendant(option);
+      option.focus();
       return;
     }
-    options[0].focus();
+    const option = options[0];
+    setCustomSelectActiveDescendant(option);
+    option.focus();
   };
 
   const closeCustomSelectMenu = (restoreTriggerFocus = false) => {
     shell.classList.remove("is-open");
     trigger.setAttribute("aria-expanded", "false");
+    setCustomSelectActiveDescendant();
     if (restoreTriggerFocus) {
       trigger.focus();
     }
@@ -856,14 +884,18 @@ function createCustomSelect(select) {
     trigger.disabled = select.disabled;
     trigger.setAttribute("aria-disabled", select.disabled ? "true" : "false");
 
+    setCustomSelectActiveDescendant();
     menu.innerHTML = "";
+    const optionIdRoot = select.id ? `${select.id}-option` : `select-option-${makeId()}`;
     for (const option of Array.from(select.options)) {
       const optionButton = document.createElement("button");
       optionButton.type = "button";
       optionButton.className = "select-option";
       optionButton.setAttribute("role", "option");
       optionButton.dataset.value = option.value;
+      optionButton.id = `${optionIdRoot}-${menu.childElementCount}`;
       optionButton.setAttribute("aria-selected", option.selected ? "true" : "false");
+      optionButton.setAttribute("aria-disabled", option.disabled ? "true" : "false");
       optionButton.disabled = option.disabled;
       if (option.selected) {
         optionButton.classList.add("is-selected");
@@ -921,6 +953,10 @@ function createCustomSelect(select) {
         if (event.key === "Tab") {
           closeCustomSelectMenu();
         }
+      });
+
+      optionButton.addEventListener("focus", () => {
+        setCustomSelectActiveDescendant(optionButton);
       });
 
       menu.appendChild(optionButton);

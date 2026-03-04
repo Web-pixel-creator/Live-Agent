@@ -62,7 +62,7 @@ The operator flow is used during live demos and production diagnostics to:
 22. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
 23. Live Negotiator status strip (`Status/Assistant/Run ID/User ID/Session State/Mode/PTT/Export`) uses high-contrast text, pill-state color mapping, concise export labels (`exported markdown/json/audio`), lane-level `ok/neutral/fail` card accents for faster scan, and extra mobile spacing (larger status-tile padding/gaps); desktop keeps a 2x4 status grid on desktop with adaptive 2-column/1-column fallback on narrower screens for quick judge/operator scan
 24. KPI secondary text (`labels`, `status notes`, and context hints) uses elevated contrast to stay readable over gradient/video backgrounds during fast judge walkthroughs
-25. Custom dropdown controls support keyboard navigation (`ArrowUp/ArrowDown/Home/End`, `Enter/Space`, `Escape`) so operators/judges can complete flows without pointer-only input
+25. Custom dropdown controls support keyboard navigation (`ArrowUp/ArrowDown/Home/End`, `Enter/Space`, `Escape`) and combobox/listbox ARIA semantics (`aria-controls`, `aria-expanded`, `aria-activedescendant`) so operators/judges can complete flows without pointer-only input
 
 ## Safety Controls
 

@@ -121,7 +121,7 @@ Signal strip cards are clickable and jump to the corresponding evidence widget, 
 Frontend `Intent Request` shows `ui_task` grounding fields only when `intent=ui_task`.
 Frontend `Connection` panel uses a single `Export Session` dropdown with `Markdown` / `JSON` / `Audio (WAV)` evidence exports.
 `Export Session` dropdown keeps a live `Last export` line, format icon badges (`MD/JS/WAV`), and a rolling `Recent exports` history (last 3 items); audio export is enabled only when assistant audio evidence is available.
-Custom dropdown controls support keyboard navigation (`ArrowUp/ArrowDown/Home/End`, `Enter/Space`, `Escape`) for judge/operator accessibility.
+Custom dropdown controls support keyboard navigation (`ArrowUp/ArrowDown/Home/End`, `Enter/Space`, `Escape`) and combobox/listbox ARIA semantics (`aria-controls`, `aria-expanded`, `aria-activedescendant`) for judge/operator accessibility.
 Live status strip renders a concise export pill label (`exported markdown/json/audio`, `no audio`) while preserving the full export status in dropdown metadata/history.
 Connection status metadata is rendered as a compact status grid (`Status`, `Assistant`, `Run ID`, `User ID`, `Session State`, `Mode`, `PTT`, `Export`) for faster scan and less vertical noise.
 Status strip readability is tuned for judge demos with higher neutral-text contrast, pill-state color mapping for `Status`, `Session State`, `Mode`, `PTT`, and `Export`, lane-level `ok/neutral/fail` card accents, and extra mobile breathing room (larger tile padding/gaps); desktop keeps a `2x4` layout with adaptive `2-column`/`1-column` fallback on narrower screens.
