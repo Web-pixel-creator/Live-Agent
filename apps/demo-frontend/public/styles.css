@@ -690,6 +690,7 @@ textarea {
 select {
   appearance: none;
   -webkit-appearance: none;
+  -moz-appearance: none;
   cursor: pointer;
   padding-right: 42px;
   --select-surface-start: var(--surface-control);
@@ -725,12 +726,7 @@ select optgroup {
 }
 
 .select-native-enhanced {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  pointer-events: none;
+  display: none;
 }
 
 .select-trigger {
@@ -1688,11 +1684,13 @@ textarea {
 
 .panel-live-connection {
   position: relative;
-  z-index: 8;
+  z-index: 28;
   overflow: visible;
 }
 
 .panel-live-connection .actions-priority {
+  position: relative;
+  z-index: 36;
   overflow: visible;
 }
 
@@ -1707,14 +1705,15 @@ textarea {
 .panel-live-connection .action-group-primary > .export-menu {
   margin-left: auto;
   align-self: stretch;
+  z-index: 220;
 }
 
 .panel-live-connection .export-menu[open] {
-  z-index: 140;
+  z-index: 240;
 }
 
 .panel-live-connection .export-menu-list {
-  z-index: 180;
+  z-index: 260;
 }
 
 .action-group {

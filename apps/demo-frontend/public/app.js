@@ -448,6 +448,7 @@ const tabButtons = Array.from(document.querySelectorAll(".tab-btn[data-tab-targe
 const tabContents = Array.from(document.querySelectorAll(".tab-content[data-tab]"));
 const DEFAULT_TAB_ID = "live-negotiator";
 const customSelectShells = new Set();
+let customSelectObserver = null;
 const CUSTOM_SELECT_EXCLUDE_IDS = new Set();
 const CUSTOM_SELECT_OPTION_DESCRIPTIONS = {
   intent: {
@@ -809,6 +810,11 @@ function createCustomSelect(select) {
 
   select.dataset.customSelectEnhanced = "true";
   select.classList.add("select-native-enhanced");
+  select.setAttribute("aria-hidden", "true");
+  select.tabIndex = -1;
+  select.addEventListener("mousedown", (event) => {
+    event.preventDefault();
+  });
 
   const parent = select.parentElement;
   if (!parent) {
@@ -1082,6 +1088,41 @@ function enhanceSelectControls() {
       createCustomSelect(node);
     }
   }
+}
+
+function observeCustomSelectControls() {
+  if (customSelectObserver instanceof MutationObserver) {
+    return;
+  }
+
+  if (!(document.body instanceof HTMLElement)) {
+    return;
+  }
+
+  customSelectObserver = new MutationObserver((entries) => {
+    for (const entry of entries) {
+      for (const node of entry.addedNodes) {
+        if (node instanceof HTMLSelectElement) {
+          createCustomSelect(node);
+          continue;
+        }
+        if (!(node instanceof HTMLElement)) {
+          continue;
+        }
+        const nestedSelects = node.querySelectorAll("select");
+        for (const nestedSelect of nestedSelects) {
+          if (nestedSelect instanceof HTMLSelectElement) {
+            createCustomSelect(nestedSelect);
+          }
+        }
+      }
+    }
+  });
+
+  customSelectObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
 }
 
 function initFilePickerControl(input, options = {}) {
@@ -9919,6 +9960,7 @@ async function bootstrap() {
   setUiTaskFieldsVisibility();
   initBackgroundVideoLoopBlend();
   enhanceSelectControls();
+  observeCustomSelectControls();
   initFilePickerControls();
   state.deviceNodeListFilter = normalizeDeviceNodeListFilter(
     el.deviceNodeListFilter ? el.deviceNodeListFilter.value : state.deviceNodeListFilter,

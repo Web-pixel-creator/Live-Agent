@@ -14,7 +14,12 @@ test("demo frontend custom dropdowns keep keyboard and screen-reader accessibili
 
   const requiredRuntimeTokens = [
     "const CUSTOM_SELECT_EXCLUDE_IDS = new Set();",
+    "let customSelectObserver = null;",
     "function createCustomSelect(select) {",
+    "select.setAttribute(\"aria-hidden\", \"true\");",
+    "select.tabIndex = -1;",
+    "select.addEventListener(\"mousedown\", (event) => {",
+    "event.preventDefault();",
     "trigger.setAttribute(\"role\", \"combobox\");",
     "trigger.setAttribute(\"aria-haspopup\", \"listbox\");",
     "trigger.setAttribute(\"aria-autocomplete\", \"none\");",
@@ -45,6 +50,9 @@ test("demo frontend custom dropdowns keep keyboard and screen-reader accessibili
     "optionButton.addEventListener(\"focus\", () => {",
     "setCustomSelectActiveDescendant(optionButton);",
     "closeCustomSelectMenu(true);",
+    "function observeCustomSelectControls() {",
+    "customSelectObserver.observe(document.body, {",
+    "observeCustomSelectControls();",
   ];
 
   for (const token of requiredRuntimeTokens) {
