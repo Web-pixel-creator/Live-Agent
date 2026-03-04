@@ -365,6 +365,9 @@ body.bg-video-loop-transition .background-video-fade {
 }
 
 .tabs {
+  position: sticky;
+  top: 12px;
+  z-index: 40;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -384,16 +387,37 @@ body.bg-video-loop-transition .background-video-fade {
   min-height: 42px;
   padding: 10px 16px;
   background: transparent;
-  color: var(--foreground);
+  color: color-mix(in oklch, var(--foreground) 92%, var(--muted-foreground));
   font-weight: 600;
-  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease, color 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    transform 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.tab-btn:hover {
+  border-color: color-mix(in oklch, var(--primary) 34%, var(--border));
+  background: color-mix(in oklch, var(--primary) 10%, transparent);
+  color: color-mix(in oklch, var(--foreground) 98%, white);
+}
+
+.tab-btn:focus-visible {
+  outline: none;
+  border-color: color-mix(in oklch, var(--ring) 52%, var(--border));
+  box-shadow: 0 0 0 3px var(--focus-ring-soft);
 }
 
 .tab-btn.active {
-  background: var(--surface-control-strong);
-  color: var(--foreground);
-  border-color: var(--border-soft);
-  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 8%, transparent);
+  background:
+    radial-gradient(180px 70px at 10% -45%, color-mix(in oklch, var(--primary) 20%, transparent), transparent 74%),
+    var(--surface-control-strong);
+  color: color-mix(in oklch, var(--foreground) 99%, white);
+  border-color: color-mix(in oklch, var(--primary) 36%, var(--border));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 8%, transparent),
+    0 8px 18px -18px color-mix(in oklch, var(--primary) 74%, transparent);
 }
 
 .tab-content {
@@ -403,6 +427,29 @@ body.bg-video-loop-transition .background-video-fade {
 
 .tab-content.active {
   display: grid;
+}
+
+@keyframes panel-fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-content.active > .panel {
+  animation: panel-fade-slide-in 240ms ease both;
+}
+
+.tab-content.active > .panel:nth-of-type(2) {
+  animation-delay: 45ms;
+}
+
+.tab-content.active > .panel:nth-of-type(3) {
+  animation-delay: 90ms;
 }
 
 .live-negotiator-main {
@@ -677,6 +724,9 @@ textarea {
   color: var(--foreground);
   min-height: 52px;
   padding: 13px 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
   box-shadow:
     inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent),
     inset 0 0 0 1px color-mix(in oklch, var(--background) 12%, transparent);
@@ -3878,6 +3928,14 @@ button:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .tab-btn {
+    transition: none !important;
+  }
+
+  .tab-content.active > .panel {
+    animation: none !important;
+  }
+
   .story-empty-icon,
   .story-timeline-list-empty-icon,
   .story-empty-state::before,

@@ -60,10 +60,16 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
 
   const requiredStylesTokens = [
     ".tabs {",
+    "position: sticky;",
+    "top: 12px;",
     ".tab-btn {",
+    ".tab-btn:hover {",
+    ".tab-btn:focus-visible {",
     ".tab-btn.active {",
     ".tab-content {",
     ".tab-content.active {",
+    "@keyframes panel-fade-slide-in {",
+    ".tab-content.active > .panel {",
     ".operator-event-log-settings {",
     ".live-negotiator-main {",
     ".section-badge {",
