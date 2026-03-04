@@ -25,6 +25,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'id="operatorModeCopy"',
     'id="operatorSummaryGuide"',
     'id="operatorSummaryGuideRefreshBtn"',
+    'id="operatorSummaryGuideRunNegotiationBtn"',
+    'id="operatorSummaryGuideRunStoryBtn"',
+    'id="operatorSummaryGuideRunUiTaskBtn"',
+    'class="operator-summary-guide-actions"',
     "data-operator-demo-essential",
     "Demo View",
     "Full Ops View",
@@ -44,6 +48,9 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'operatorModeCopy: document.getElementById("operatorModeCopy")',
     'operatorSummaryGuide: document.getElementById("operatorSummaryGuide")',
     'operatorSummaryGuideRefreshBtn: document.getElementById("operatorSummaryGuideRefreshBtn")',
+    'operatorSummaryGuideRunNegotiationBtn: document.getElementById("operatorSummaryGuideRunNegotiationBtn")',
+    'operatorSummaryGuideRunStoryBtn: document.getElementById("operatorSummaryGuideRunStoryBtn")',
+    'operatorSummaryGuideRunUiTaskBtn: document.getElementById("operatorSummaryGuideRunUiTaskBtn")',
     "function normalizeOperatorBoardMode(value)",
     "function syncOperatorBoardModeButtons()",
     "function syncOperatorSummaryGuide()",
@@ -61,6 +68,12 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "setOperatorBoardMode(\"full\");",
     "el.operatorSummaryGuideRefreshBtn.addEventListener(\"click\", () => {",
     "void refreshOperatorSummary({ markUserRefresh: true });",
+    "el.operatorSummaryGuideRunNegotiationBtn.addEventListener(\"click\", () => {",
+    "applyIntentTemplateFromActiveTasks(\"negotiation\", ACTIVE_TASK_NEGOTIATION_PROMPT);",
+    "el.operatorSummaryGuideRunStoryBtn.addEventListener(\"click\", () => {",
+    "applyIntentTemplateFromActiveTasks(\"story\", STORY_EMPTY_STATE_PROMPT);",
+    "el.operatorSummaryGuideRunUiTaskBtn.addEventListener(\"click\", () => {",
+    "applyIntentTemplateFromActiveTasks(\"ui_task\", ACTIVE_TASK_UI_TASK_PROMPT);",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing operator-board-mode token: ${token}`);
@@ -74,6 +87,7 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     ".operator-mode-banner.is-full-ops {",
     ".operator-mode-copy {",
     ".operator-summary-guide {",
+    ".operator-summary-guide-actions {",
     ".operator-summary-guide.is-hidden {",
     ".operator-health-board.is-demo-view .operator-health-card[data-operator-demo-essential] {",
   ];
@@ -98,6 +112,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "README missing operator summary guide note",
   );
   assert.ok(
+    readmeSource.includes("quick-start actions (`Run Negotiation`, `Run Story`, `Run UI Task`)"),
+    "README missing operator summary guide quick-start actions note",
+  );
+  assert.ok(
     readmeSource.includes("mode banner (`demo_view` / `full_ops_view`)"),
     "README missing operator mode-banner note",
   );
@@ -116,6 +134,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
   assert.ok(
     operatorGuideSource.includes("guided pre-refresh banner"),
     "operator guide missing operator summary guide note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("quick-start actions (`Run Negotiation`, `Run Story`, `Run UI Task`)"),
+    "operator guide missing operator summary guide quick-start actions note",
   );
   assert.ok(
     operatorGuideSource.includes("mode banner (`demo_view` / `full_ops_view`) confirms active triage scope"),

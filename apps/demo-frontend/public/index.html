@@ -707,9 +707,32 @@
               Click `Refresh Summary` once to hydrate diagnostics cards and unlock full triage context.
             </p>
           </div>
-          <button id="operatorSummaryGuideRefreshBtn" type="button" class="button-muted operator-summary-guide-action">
-            Refresh Summary
-          </button>
+          <div class="operator-summary-guide-actions">
+            <button id="operatorSummaryGuideRefreshBtn" type="button" class="operator-summary-guide-action">
+              Refresh Summary
+            </button>
+            <button
+              id="operatorSummaryGuideRunNegotiationBtn"
+              type="button"
+              class="button-muted operator-summary-guide-action-secondary"
+            >
+              Run Negotiation
+            </button>
+            <button
+              id="operatorSummaryGuideRunStoryBtn"
+              type="button"
+              class="button-muted operator-summary-guide-action-secondary"
+            >
+              Run Story
+            </button>
+            <button
+              id="operatorSummaryGuideRunUiTaskBtn"
+              type="button"
+              class="button-muted operator-summary-guide-action-secondary"
+            >
+              Run UI Task
+            </button>
+          </div>
         </div>
         <div class="operator-triage-summary" role="status" aria-live="polite">
           <article class="operator-triage-stat">

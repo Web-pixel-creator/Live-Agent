@@ -187,6 +187,9 @@ const el = {
   operatorSummaryGuideTitle: document.getElementById("operatorSummaryGuideTitle"),
   operatorSummaryGuideHint: document.getElementById("operatorSummaryGuideHint"),
   operatorSummaryGuideRefreshBtn: document.getElementById("operatorSummaryGuideRefreshBtn"),
+  operatorSummaryGuideRunNegotiationBtn: document.getElementById("operatorSummaryGuideRunNegotiationBtn"),
+  operatorSummaryGuideRunStoryBtn: document.getElementById("operatorSummaryGuideRunStoryBtn"),
+  operatorSummaryGuideRunUiTaskBtn: document.getElementById("operatorSummaryGuideRunUiTaskBtn"),
   operatorResetViewBtn: document.getElementById("operatorResetViewBtn"),
   operatorFocusCriticalBtn: document.getElementById("operatorFocusCriticalBtn"),
   operatorIssuesOnlyBtn: document.getElementById("operatorIssuesOnlyBtn"),
@@ -1207,8 +1210,8 @@ function syncOperatorSummaryGuide() {
   }
   if (el.operatorSummaryGuideHint) {
     el.operatorSummaryGuideHint.textContent = isDemo
-      ? "Click `Refresh Summary` once to hydrate diagnostics cards and unlock full triage context."
-      : "Run one refresh to hydrate all ops widgets before deep triage in Full Ops View.";
+      ? "Click `Refresh Summary` once to hydrate diagnostics cards or run a quick-start scenario below to populate placeholder lanes."
+      : "Run one refresh to hydrate all ops widgets before deep triage in Full Ops View, or seed evidence with quick-start intents.";
   }
 }
 
@@ -9193,6 +9196,21 @@ function bindEvents() {
   if (el.operatorSummaryGuideRefreshBtn) {
     el.operatorSummaryGuideRefreshBtn.addEventListener("click", () => {
       void refreshOperatorSummary({ markUserRefresh: true });
+    });
+  }
+  if (el.operatorSummaryGuideRunNegotiationBtn) {
+    el.operatorSummaryGuideRunNegotiationBtn.addEventListener("click", () => {
+      applyIntentTemplateFromActiveTasks("negotiation", ACTIVE_TASK_NEGOTIATION_PROMPT);
+    });
+  }
+  if (el.operatorSummaryGuideRunStoryBtn) {
+    el.operatorSummaryGuideRunStoryBtn.addEventListener("click", () => {
+      applyIntentTemplateFromActiveTasks("story", STORY_EMPTY_STATE_PROMPT);
+    });
+  }
+  if (el.operatorSummaryGuideRunUiTaskBtn) {
+    el.operatorSummaryGuideRunUiTaskBtn.addEventListener("click", () => {
+      applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_UI_TASK_PROMPT);
     });
   }
   if (el.operatorDemoViewBtn) {

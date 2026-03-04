@@ -381,6 +381,7 @@ body.bg-video-loop-transition .background-video-fade {
 .tab-btn {
   border: 1px solid transparent;
   border-radius: 999px;
+  min-height: 42px;
   padding: 10px 16px;
   background: transparent;
   color: var(--foreground);
@@ -1220,6 +1221,18 @@ textarea {
 .operator-summary-guide-action {
   flex: 0 0 auto;
   min-width: 152px;
+}
+
+.operator-summary-guide-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.operator-summary-guide-action-secondary {
+  flex: 0 0 auto;
+  min-width: 126px;
 }
 
 .operator-triage-summary {
@@ -2914,6 +2927,9 @@ button:focus-visible {
 .story-empty-details-summary {
   list-style: none;
   cursor: pointer;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
   padding: 9px 12px;
   font-size: 0.8rem;
   font-weight: 620;
@@ -3040,6 +3056,9 @@ button:focus-visible {
 .story-timeline-list-empty-details-summary {
   list-style: none;
   cursor: pointer;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
   padding: 8px 12px;
   text-align: left;
   font-size: 0.79rem;
@@ -3941,7 +3960,8 @@ button:focus-visible {
   .tab-btn {
     flex: 1 1 calc(50% - 6px);
     justify-content: center;
-    padding: 9px 11px;
+    min-height: 44px;
+    padding: 10px 12px;
     font-size: 0.86rem;
   }
 
@@ -3968,6 +3988,13 @@ button:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .operator-demo-summary-card,
+  .operator-signal-card {
+    min-height: 120px;
+    padding: 12px;
+    gap: 8px;
+  }
+
   .operator-mode-banner {
     align-items: flex-start;
     flex-direction: column;
@@ -3975,8 +4002,22 @@ button:focus-visible {
   }
 
   .operator-summary-guide-action {
-    width: 100%;
+    width: auto;
     min-width: 0;
+  }
+
+  .operator-summary-guide-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .operator-summary-guide-actions > button {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
+  }
+
+  .operator-summary-guide-actions > button:first-child {
+    flex-basis: 100%;
   }
 
   .operator-health-group {
@@ -3996,7 +4037,7 @@ button:focus-visible {
   }
 
   .operator-health-group-head h3 {
-    font-size: 0.86rem;
+    font-size: 0.88rem;
   }
 
   .operator-group-toggle {
@@ -4105,6 +4146,23 @@ button:focus-visible {
     max-height: 280px;
     padding: 10px;
   }
+
+  .story-empty-state {
+    padding: 22px 16px;
+    gap: 12px;
+  }
+
+  .story-timeline-list-empty {
+    padding: 14px 12px;
+    gap: 9px;
+  }
+
+  .story-empty-details-summary,
+  .story-timeline-list-empty-details-summary {
+    min-height: 42px;
+    padding: 10px 12px;
+    font-size: 0.82rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -4136,12 +4194,19 @@ button:focus-visible {
 
   .tab-btn {
     flex: 1 1 100%;
-    padding: 8px 10px;
+    min-height: 46px;
+    padding: 10px 12px;
     font-size: 0.82rem;
   }
 
   .operator-demo-summary-strip {
     grid-template-columns: 1fr;
+  }
+
+  .operator-demo-summary-card,
+  .operator-signal-card {
+    min-height: 112px;
+    padding: 11px;
   }
 
   .field {
@@ -4310,6 +4375,18 @@ button:focus-visible {
   .story-empty-actions .story-empty-action {
     width: 100%;
     min-width: 0;
+  }
+
+  .story-empty-state {
+    padding: 18px 12px;
+    gap: 11px;
+  }
+
+  .story-empty-details-summary,
+  .story-timeline-list-empty-details-summary {
+    min-height: 44px;
+    padding: 10px 11px;
+    font-size: 0.8rem;
   }
 
   .active-task-empty-state {

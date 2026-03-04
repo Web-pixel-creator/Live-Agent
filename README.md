@@ -105,6 +105,7 @@ When placeholder states are visible, the UI renders judge-friendly labels (`awai
 `Operator Console` now shows a mode banner (`demo_view` / `full_ops_view`) with inline guidance, so the active triage scope is visible at a glance.
 `Operator Console` now includes a `Demo Summary` strip in `Demo View` (Realtime Gateway, Queue, Approvals, Startup, UI Executor, Device Nodes) with large mirrored status pills, per-lane mini-KPI (`F/N/O`), and one-click jump-to-card navigation.
 `Operator Console` shows a guided pre-refresh banner before the first manual refresh, with a one-click `Refresh Summary` action and mode-specific hinting (`Demo` vs `Full Ops`).
+Pre-refresh banner also includes quick-start actions (`Run Negotiation`, `Run Story`, `Run UI Task`) to seed evidence lanes before the first summary refresh.
 Operator empty-state hints are action-oriented (which scenario/action to run next, then `Refresh Summary`) to avoid dead-looking `Waiting for ...` states.
 Operator status cards now render demo-friendly placeholders directly in static HTML (`awaiting_refresh` / `pending`) before JS hydration.
 In `Demo View`, the board keeps six judge-facing cards visible by default (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`), keeps `Live Bridge & Turn Safety` lane expanded by default, and still surfaces any new `fail` cards outside that set.
