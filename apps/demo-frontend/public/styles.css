@@ -2545,6 +2545,19 @@ button:focus-visible {
   margin-bottom: 10px;
 }
 
+.operator-health-card.operator-health-card-condensed .operator-health-row {
+  display: none;
+}
+
+.operator-health-card.operator-health-card-condensed .status-pill {
+  margin-bottom: 6px;
+}
+
+.operator-health-card.operator-health-card-condensed .operator-health-hint {
+  margin-top: 8px;
+  font-size: 0.83rem;
+}
+
 .operator-health-row {
   margin: 0 0 9px;
   display: flex;

@@ -1574,6 +1574,19 @@ function shouldHideOperatorDemoNeutralCard(card, statusNode) {
   return !isOperatorDemoEssentialCard(card);
 }
 
+function shouldCondenseOperatorDemoNeutralCard(card, statusNode) {
+  if (!(card instanceof HTMLElement) || !(statusNode instanceof HTMLElement)) {
+    return false;
+  }
+  if (normalizeOperatorBoardMode(state.operatorBoardMode) !== "demo") {
+    return false;
+  }
+  if (!statusNode.classList.contains("status-neutral")) {
+    return false;
+  }
+  return isOperatorUninitializedStatusText(getOperatorStatusCode(statusNode));
+}
+
 function resolveStatusPillDisplayText(value) {
   if (typeof value !== "string") {
     return value;
@@ -1599,8 +1612,11 @@ function applyOperatorCardVisibility(card) {
   const statusNode = card.querySelector(".status-pill");
   if (!statusNode) {
     card.classList.remove("operator-health-card-hidden");
+    card.classList.remove("operator-health-card-condensed");
     return;
   }
+  const shouldCondense = shouldCondenseOperatorDemoNeutralCard(card, statusNode);
+  card.classList.toggle("operator-health-card-condensed", shouldCondense);
   const shouldHide =
     state.operatorSummaryUserRefreshed !== true &&
     isOperatorPlaceholderStatusText(

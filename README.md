@@ -115,6 +115,7 @@ Operator empty-state hints are action-oriented (which scenario/action to run nex
 Operator status cards now render demo-friendly placeholders directly in static HTML (`awaiting_refresh` / `pending`) before JS hydration.
 In `Demo View`, the board keeps six judge-facing cards visible by default (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`), keeps `Live Bridge & Turn Safety` lane expanded by default, and still surfaces any new `fail` cards outside that set.
 `Demo View` now auto-hides uninitialized neutral noise cards (`unknown` / `pending` / `n/a` / `awaiting_refresh`) outside the six-card lane, so `Show All Cards` stays readable while keeping failures visible.
+For remaining demo-essential cards that are still neutral/uninitialized, `Demo View` now uses a compact render (`title + status + hint`) until live evidence arrives.
 `Demo View + Focus Critical` further auto-hides uninitialized neutral cards inside the six-card lane, so judges land on actionable states first.
 `Operator Console` starts in `Focus Critical` mode with a top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); use `Show All Cards` to inspect broader evidence without demo-noise placeholders.
 `Issues Only` toggle hides cards already in `ok` state, so triage stays focused on neutral/fail evidence.
