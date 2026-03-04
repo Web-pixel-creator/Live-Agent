@@ -29,6 +29,12 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'id="operatorSummaryGuideRunStoryBtn"',
     'id="operatorSummaryGuideRunUiTaskBtn"',
     'class="operator-summary-guide-actions"',
+    'id="operatorQuickStartRunNegotiationBtn"',
+    'id="operatorQuickStartRunStoryBtn"',
+    'id="operatorQuickStartRunUiTaskBtn"',
+    'id="operatorQuickStartOpenDeviceNodesBtn"',
+    'id="operatorQuickStartRefreshBtn"',
+    'class="operator-quick-start-actions"',
     "data-operator-demo-essential",
     "Demo View",
     "Full Ops View",
@@ -51,6 +57,12 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'operatorSummaryGuideRunNegotiationBtn: document.getElementById("operatorSummaryGuideRunNegotiationBtn")',
     'operatorSummaryGuideRunStoryBtn: document.getElementById("operatorSummaryGuideRunStoryBtn")',
     'operatorSummaryGuideRunUiTaskBtn: document.getElementById("operatorSummaryGuideRunUiTaskBtn")',
+    'operatorQuickStartRunNegotiationBtn: document.getElementById("operatorQuickStartRunNegotiationBtn")',
+    'operatorQuickStartRunStoryBtn: document.getElementById("operatorQuickStartRunStoryBtn")',
+    'operatorQuickStartRunUiTaskBtn: document.getElementById("operatorQuickStartRunUiTaskBtn")',
+    'operatorQuickStartOpenDeviceNodesBtn: document.getElementById("operatorQuickStartOpenDeviceNodesBtn")',
+    'operatorQuickStartRefreshBtn: document.getElementById("operatorQuickStartRefreshBtn")',
+    "function openDeviceNodesFromOperatorQuickStart()",
     "function normalizeOperatorBoardMode(value)",
     "function syncOperatorBoardModeButtons()",
     "function syncOperatorSummaryGuide()",
@@ -74,6 +86,13 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "applyIntentTemplateFromActiveTasks(\"story\", STORY_EMPTY_STATE_PROMPT);",
     "el.operatorSummaryGuideRunUiTaskBtn.addEventListener(\"click\", () => {",
     "applyIntentTemplateFromActiveTasks(\"ui_task\", ACTIVE_TASK_UI_TASK_PROMPT);",
+    "el.operatorQuickStartRunNegotiationBtn.addEventListener(\"click\", () => {",
+    "el.operatorQuickStartRunStoryBtn.addEventListener(\"click\", () => {",
+    "el.operatorQuickStartRunUiTaskBtn.addEventListener(\"click\", () => {",
+    "el.operatorQuickStartOpenDeviceNodesBtn.addEventListener(\"click\", () => {",
+    "openDeviceNodesFromOperatorQuickStart();",
+    "setActiveTab(\"device-nodes\");",
+    "el.operatorQuickStartRefreshBtn.addEventListener(\"click\", () => {",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing operator-board-mode token: ${token}`);
@@ -88,6 +107,8 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     ".operator-mode-copy {",
     ".operator-summary-guide {",
     ".operator-summary-guide-actions {",
+    ".operator-quick-start {",
+    ".operator-quick-start-actions {",
     ".operator-summary-guide.is-hidden {",
     ".operator-health-board.is-demo-view .operator-health-card[data-operator-demo-essential] {",
   ];
@@ -116,6 +137,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "README missing operator summary guide quick-start actions note",
   );
   assert.ok(
+    readmeSource.includes("persistent `Operator Quick Start` rail"),
+    "README missing operator quick-start rail note",
+  );
+  assert.ok(
     readmeSource.includes("mode banner (`demo_view` / `full_ops_view`)"),
     "README missing operator mode-banner note",
   );
@@ -138,6 +163,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
   assert.ok(
     operatorGuideSource.includes("quick-start actions (`Run Negotiation`, `Run Story`, `Run UI Task`)"),
     "operator guide missing operator summary guide quick-start actions note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("persistent `Operator Quick Start` rail"),
+    "operator guide missing operator quick-start rail note",
   );
   assert.ok(
     operatorGuideSource.includes("mode banner (`demo_view` / `full_ops_view`) confirms active triage scope"),

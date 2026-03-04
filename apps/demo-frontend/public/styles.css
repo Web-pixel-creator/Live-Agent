@@ -1235,6 +1235,65 @@ textarea {
   min-width: 126px;
 }
 
+.operator-quick-start {
+  margin-top: 10px;
+  border: 1px solid color-mix(in oklch, var(--accent-foreground) 28%, var(--border-soft));
+  border-radius: calc(var(--radius) - 4px);
+  padding: 11px 12px;
+  background:
+    radial-gradient(280px 96px at 0% -20%, color-mix(in oklch, var(--accent-foreground) 11%, transparent), transparent 72%),
+    linear-gradient(
+      160deg,
+      color-mix(in oklch, var(--surface-control) 90%, var(--surface-panel)),
+      color-mix(in oklch, var(--surface-panel-2) 94%, var(--surface-control))
+    );
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent);
+  display: grid;
+  gap: 10px;
+}
+
+.operator-quick-start-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.operator-quick-start-title {
+  margin: 0;
+  color: color-mix(in oklch, var(--foreground) 95%, var(--accent-foreground));
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.operator-quick-start-hint {
+  margin: 0;
+  color: color-mix(in oklch, var(--muted-foreground) 92%, var(--foreground));
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.operator-quick-start-hint code {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 84%, transparent);
+  background: color-mix(in oklch, var(--surface-control) 94%, transparent);
+  color: color-mix(in oklch, var(--foreground) 90%, white);
+}
+
+.operator-quick-start-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.operator-quick-start-action {
+  flex: 1 1 168px;
+  min-width: 0;
+}
+
 .operator-triage-summary {
   margin-top: 12px;
   display: grid;
@@ -2012,7 +2071,7 @@ button:focus-visible {
 }
 
 .meta-row-status-live > div {
-  min-height: 64px;
+  min-height: 68px;
   padding: 11px 13px 12px;
   border-radius: calc(var(--radius) - 8px);
   display: flex;
@@ -2088,16 +2147,17 @@ button:focus-visible {
 }
 
 .meta-row-status-live strong {
-  color: color-mix(in oklch, var(--foreground) 99%, white);
-  font-size: 0.78rem;
+  color: color-mix(in oklch, white 96%, var(--foreground));
+  font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.045em;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 0 color-mix(in oklch, black 30%, transparent);
 }
 
 .meta-row-status-live > div > span:not(.status-pill) {
-  color: color-mix(in oklch, var(--foreground) 98%, white);
-  font-size: 0.92rem;
-  font-weight: 640;
+  color: color-mix(in oklch, white 98%, var(--foreground));
+  font-size: 0.94rem;
+  font-weight: 660;
 }
 
 .meta-row-status-live .status-pill {
@@ -2116,20 +2176,22 @@ button:focus-visible {
   max-width: 100%;
   padding: 6px 11px;
   border-radius: 999px;
-  border: 1px solid color-mix(in oklch, var(--border-soft) 86%, transparent);
+  border: 1px solid color-mix(in oklch, var(--primary) 28%, var(--border-soft));
   background:
     radial-gradient(160px 64px at 12% -34%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 72%),
     linear-gradient(
       180deg,
-      color-mix(in oklch, var(--surface-control) 92%, transparent),
+      color-mix(in oklch, var(--surface-control) 90%, transparent),
       color-mix(in oklch, var(--surface-panel-2) 96%, transparent)
     );
-  color: color-mix(in oklch, var(--foreground) 96%, white);
+  color: color-mix(in oklch, white 97%, var(--foreground));
   font-family: var(--font-mono);
   font-size: 0.83rem;
   font-weight: 620;
   line-height: 1;
-  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 8%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 10%, transparent),
+    0 0 0 1px color-mix(in oklch, var(--primary) 12%, transparent);
 }
 
 .meta-row > div {
@@ -2826,6 +2888,45 @@ button:focus-visible {
   border: 1px solid color-mix(in oklch, var(--border-soft) 85%, transparent);
   background: color-mix(in oklch, var(--surface-control) 94%, transparent);
   color: color-mix(in oklch, var(--foreground) 90%, white);
+}
+
+.story-empty-kpis {
+  width: min(420px, 100%);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.story-empty-kpi {
+  border: 1px solid color-mix(in oklch, var(--border-soft) 84%, transparent);
+  border-radius: calc(var(--radius) - 8px);
+  padding: 8px 9px;
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  background:
+    radial-gradient(160px 64px at 0% -24%, color-mix(in oklch, var(--accent-foreground) 10%, transparent), transparent 74%),
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--surface-control) 90%, transparent),
+      color-mix(in oklch, var(--surface-panel-2) 96%, transparent)
+    );
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent);
+}
+
+.story-empty-kpi-label {
+  color: color-mix(in oklch, var(--foreground) 76%, var(--muted-foreground));
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.story-empty-kpi-value {
+  color: color-mix(in oklch, var(--foreground) 96%, white);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .story-empty-checklist {
@@ -4020,6 +4121,18 @@ button:focus-visible {
     flex-basis: 100%;
   }
 
+  .operator-quick-start {
+    gap: 9px;
+  }
+
+  .operator-quick-start-actions > button {
+    flex: 1 1 calc(50% - 8px);
+  }
+
+  .operator-quick-start-actions > button:last-child {
+    flex-basis: 100%;
+  }
+
   .operator-health-group {
     padding: 10px;
   }
@@ -4152,6 +4265,11 @@ button:focus-visible {
     gap: 12px;
   }
 
+  .story-empty-kpis {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .story-timeline-list-empty {
     padding: 14px 12px;
     gap: 9px;
@@ -4207,6 +4325,10 @@ button:focus-visible {
   .operator-signal-card {
     min-height: 112px;
     padding: 11px;
+  }
+
+  .operator-quick-start-actions > button {
+    flex: 1 1 100%;
   }
 
   .field {
@@ -4326,6 +4448,11 @@ button:focus-visible {
 
   .story-empty-checklist {
     width: 100%;
+    gap: 7px;
+  }
+
+  .story-empty-kpis {
+    grid-template-columns: 1fr;
     gap: 7px;
   }
 

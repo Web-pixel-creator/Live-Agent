@@ -487,6 +487,20 @@
                 <p class="story-empty-hint">
                   Run a <code>story:</code> intent in Live Negotiator to generate segments, asset refs, and progress data.
                 </p>
+                <div class="story-empty-kpis" aria-label="Story timeline expected outputs">
+                  <article class="story-empty-kpi">
+                    <span class="story-empty-kpi-label">Segments</span>
+                    <strong class="story-empty-kpi-value">3+</strong>
+                  </article>
+                  <article class="story-empty-kpi">
+                    <span class="story-empty-kpi-label">Asset Mix</span>
+                    <strong class="story-empty-kpi-value">img/audio/video</strong>
+                  </article>
+                  <article class="story-empty-kpi">
+                    <span class="story-empty-kpi-label">First Render</span>
+                    <strong class="story-empty-kpi-value">&lt; 60s target</strong>
+                  </article>
+                </div>
                 <details class="story-empty-details">
                   <summary class="story-empty-details-summary">Preview story arc and expected outputs</summary>
                   <div class="story-empty-details-body">
@@ -731,6 +745,31 @@
               class="button-muted operator-summary-guide-action-secondary"
             >
               Run UI Task
+            </button>
+          </div>
+        </div>
+        <div id="operatorQuickStart" class="operator-quick-start" role="region" aria-label="Operator quick start scenarios">
+          <div class="operator-quick-start-copy">
+            <p class="operator-quick-start-title">Quick Start Scenarios</p>
+            <p class="operator-quick-start-hint">
+              If a lane still shows <code>awaiting_refresh</code> or <code>pending</code>, run one scenario below and refresh summary.
+            </p>
+          </div>
+          <div class="operator-quick-start-actions">
+            <button id="operatorQuickStartRunNegotiationBtn" type="button" class="operator-quick-start-action">
+              Run Negotiation
+            </button>
+            <button id="operatorQuickStartRunStoryBtn" type="button" class="button-muted operator-quick-start-action">
+              Run Story
+            </button>
+            <button id="operatorQuickStartRunUiTaskBtn" type="button" class="button-muted operator-quick-start-action">
+              Run UI Task
+            </button>
+            <button id="operatorQuickStartOpenDeviceNodesBtn" type="button" class="button-muted operator-quick-start-action">
+              Open Device Nodes
+            </button>
+            <button id="operatorQuickStartRefreshBtn" type="button" class="button-muted operator-quick-start-action">
+              Refresh Summary
             </button>
           </div>
         </div>

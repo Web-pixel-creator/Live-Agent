@@ -190,6 +190,11 @@ const el = {
   operatorSummaryGuideRunNegotiationBtn: document.getElementById("operatorSummaryGuideRunNegotiationBtn"),
   operatorSummaryGuideRunStoryBtn: document.getElementById("operatorSummaryGuideRunStoryBtn"),
   operatorSummaryGuideRunUiTaskBtn: document.getElementById("operatorSummaryGuideRunUiTaskBtn"),
+  operatorQuickStartRunNegotiationBtn: document.getElementById("operatorQuickStartRunNegotiationBtn"),
+  operatorQuickStartRunStoryBtn: document.getElementById("operatorQuickStartRunStoryBtn"),
+  operatorQuickStartRunUiTaskBtn: document.getElementById("operatorQuickStartRunUiTaskBtn"),
+  operatorQuickStartOpenDeviceNodesBtn: document.getElementById("operatorQuickStartOpenDeviceNodesBtn"),
+  operatorQuickStartRefreshBtn: document.getElementById("operatorQuickStartRefreshBtn"),
   operatorResetViewBtn: document.getElementById("operatorResetViewBtn"),
   operatorFocusCriticalBtn: document.getElementById("operatorFocusCriticalBtn"),
   operatorIssuesOnlyBtn: document.getElementById("operatorIssuesOnlyBtn"),
@@ -2294,6 +2299,15 @@ function applyStoryPromptTemplateFromStoryEmptyState() {
   }
 }
 
+function openDeviceNodesFromOperatorQuickStart() {
+  setActiveTab("device-nodes");
+  if (el.deviceNodeId instanceof HTMLInputElement) {
+    window.requestAnimationFrame(() => {
+      el.deviceNodeId.focus();
+    });
+  }
+}
+
 function renderStoryTimelinePreviewEmptyState() {
   if (!el.storyTimelinePreview) {
     return;
@@ -2317,6 +2331,28 @@ function renderStoryTimelinePreviewEmptyState() {
   const code = document.createElement("code");
   code.textContent = "story:";
   hint.append(code, " intent in Live Negotiator to generate segments, asset refs, and progress data.");
+
+  const kpis = document.createElement("div");
+  kpis.className = "story-empty-kpis";
+  kpis.setAttribute("aria-label", "Story timeline expected outputs");
+
+  const kpiItems = [
+    { label: "Segments", value: "3+" },
+    { label: "Asset Mix", value: "img/audio/video" },
+    { label: "First Render", value: "< 60s target" },
+  ];
+  for (const kpiItem of kpiItems) {
+    const card = document.createElement("article");
+    card.className = "story-empty-kpi";
+    const cardLabel = document.createElement("span");
+    cardLabel.className = "story-empty-kpi-label";
+    cardLabel.textContent = kpiItem.label;
+    const cardValue = document.createElement("strong");
+    cardValue.className = "story-empty-kpi-value";
+    cardValue.textContent = kpiItem.value;
+    card.append(cardLabel, cardValue);
+    kpis.append(card);
+  }
 
   const details = document.createElement("details");
   details.className = "story-empty-details";
@@ -2390,7 +2426,7 @@ function renderStoryTimelinePreviewEmptyState() {
   actionTemplate.addEventListener("click", applyStoryPromptTemplateFromStoryEmptyState);
 
   actions.append(action, actionTemplate);
-  wrapper.append(icon, title, hint, details, actions);
+  wrapper.append(icon, title, hint, kpis, details, actions);
   el.storyTimelinePreview.append(wrapper);
 }
 
@@ -9211,6 +9247,31 @@ function bindEvents() {
   if (el.operatorSummaryGuideRunUiTaskBtn) {
     el.operatorSummaryGuideRunUiTaskBtn.addEventListener("click", () => {
       applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_UI_TASK_PROMPT);
+    });
+  }
+  if (el.operatorQuickStartRunNegotiationBtn) {
+    el.operatorQuickStartRunNegotiationBtn.addEventListener("click", () => {
+      applyIntentTemplateFromActiveTasks("negotiation", ACTIVE_TASK_NEGOTIATION_PROMPT);
+    });
+  }
+  if (el.operatorQuickStartRunStoryBtn) {
+    el.operatorQuickStartRunStoryBtn.addEventListener("click", () => {
+      applyIntentTemplateFromActiveTasks("story", STORY_EMPTY_STATE_PROMPT);
+    });
+  }
+  if (el.operatorQuickStartRunUiTaskBtn) {
+    el.operatorQuickStartRunUiTaskBtn.addEventListener("click", () => {
+      applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_UI_TASK_PROMPT);
+    });
+  }
+  if (el.operatorQuickStartOpenDeviceNodesBtn) {
+    el.operatorQuickStartOpenDeviceNodesBtn.addEventListener("click", () => {
+      openDeviceNodesFromOperatorQuickStart();
+    });
+  }
+  if (el.operatorQuickStartRefreshBtn) {
+    el.operatorQuickStartRefreshBtn.addEventListener("click", () => {
+      void refreshOperatorSummary({ markUserRefresh: true });
     });
   }
   if (el.operatorDemoViewBtn) {
