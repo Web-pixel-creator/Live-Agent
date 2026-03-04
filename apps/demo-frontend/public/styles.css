@@ -462,6 +462,15 @@ body.bg-video-loop-transition .background-video-fade {
   margin-top: 22px;
 }
 
+.operator-event-log-settings {
+  margin-top: 0;
+}
+
+.operator-event-log-settings .events {
+  max-height: 320px;
+  overflow: auto;
+}
+
 .section-badge {
   display: inline-flex;
   align-items: center;

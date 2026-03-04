@@ -1688,6 +1688,16 @@
         </div>
         <div id="operatorSummary" class="events"></div>
       </section>
+      <section class="panel panel-operator-event-log">
+        <h2><span class="section-badge">Log</span>Event Log</h2>
+        <details id="operatorEventLogSection" class="advanced-settings operator-event-log-settings">
+          <summary>
+            <span class="advanced-title">Debug Event Stream</span>
+            <span class="advanced-hint">Open for low-level websocket envelopes and operator action tracing.</span>
+          </summary>
+          <div id="events" class="events"></div>
+        </details>
+      </section>
       </div>
 
       <div id="tab-device-nodes" class="tab-content" data-tab="device-nodes">
@@ -1824,14 +1834,6 @@
           Device list is empty until the first refresh or node registration.
         </p>
         <div id="deviceNodeList" class="events device-node-list"></div>
-      </section>
-      </div>
-
-      <div id="tab-operator-events" class="tab-content" data-tab="operator">
-
-      <section class="panel">
-        <h2>Event Log</h2>
-        <div id="events" class="events"></div>
       </section>
       </div>
     </main>

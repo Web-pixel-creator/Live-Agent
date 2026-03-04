@@ -106,6 +106,7 @@ When placeholder states are visible, the UI renders judge-friendly labels (`awai
 Operator board mode selection is persisted (`mla.demoFrontend.operatorBoardMode`) so the last `Demo/Full Ops` choice is restored after reload.
 `Operator Console` now shows a mode banner (`demo_view` / `full_ops_view`) with inline guidance, so the active triage scope is visible at a glance.
 `Operator Console` now includes a `Demo Summary` strip in `Demo View` (Realtime Gateway, Queue, Approvals, Startup, UI Executor, Device Nodes) with large mirrored status pills, per-lane mini-KPI (`F/N/O`), and one-click jump-to-card navigation.
+`Operator Console` keeps `Event Log` under a collapsed `Debug Event Stream` block by default, so low-level tracing stays available without overloading the primary board.
 `Operator Console` shows a guided pre-refresh banner before the first manual refresh, with a one-click `Refresh Summary` action and mode-specific hinting (`Demo` vs `Full Ops`).
 Pre-refresh banner also includes quick-start actions (`Run Negotiation`, `Run Story`, `Run UI Task`) to seed evidence lanes before the first summary refresh.
 Operator Console keeps a persistent `Operator Quick Start` rail (`Run Negotiation`, `Run Story`, `Run UI Task`, `Open Device Nodes`, `Refresh Summary`) so empty lanes can be repopulated without hunting controls.
