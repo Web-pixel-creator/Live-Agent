@@ -52,6 +52,7 @@ test("demo frontend keeps live status strip states mapped to pill variants", () 
     ".meta-row-status-live {",
     "display: grid;",
     "grid-template-columns: repeat(auto-fit, minmax(162px, 1fr));",
+    "grid-template-columns: repeat(4, minmax(0, 1fr));",
     ".meta-row-status-live > div {",
     "display: inline-flex;",
     "align-items: center;",
@@ -74,7 +75,7 @@ test("demo frontend keeps live status strip states mapped to pill variants", () 
   }
 
   assert.ok(
-    operatorGuideSource.includes("compact inline wrap-row"),
-    "operator guide missing live status strip inline-row note",
+    operatorGuideSource.includes("compact `4-column` matrix"),
+    "operator guide missing live status strip 4-column matrix note",
   );
 });

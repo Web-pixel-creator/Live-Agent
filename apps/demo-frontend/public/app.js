@@ -448,7 +448,7 @@ const tabButtons = Array.from(document.querySelectorAll(".tab-btn[data-tab-targe
 const tabContents = Array.from(document.querySelectorAll(".tab-content[data-tab]"));
 const DEFAULT_TAB_ID = "live-negotiator";
 const customSelectShells = new Set();
-const CUSTOM_SELECT_EXCLUDE_IDS = new Set(["storyTimelineSelect"]);
+const CUSTOM_SELECT_EXCLUDE_IDS = new Set();
 const CUSTOM_SELECT_OPTION_DESCRIPTIONS = {
   intent: {
     negotiation: "Price, delivery and SLA negotiation flow.",

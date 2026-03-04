@@ -13,6 +13,7 @@ test("demo frontend custom dropdowns keep keyboard and screen-reader accessibili
   const operatorGuideSource = readFileSync(operatorGuidePath, "utf8");
 
   const requiredRuntimeTokens = [
+    "const CUSTOM_SELECT_EXCLUDE_IDS = new Set();",
     "function createCustomSelect(select) {",
     "trigger.setAttribute(\"role\", \"combobox\");",
     "trigger.setAttribute(\"aria-haspopup\", \"listbox\");",
@@ -49,6 +50,10 @@ test("demo frontend custom dropdowns keep keyboard and screen-reader accessibili
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing custom select accessibility token: ${token}`);
   }
+  assert.ok(
+    !appSource.includes("const CUSTOM_SELECT_EXCLUDE_IDS = new Set([\"storyTimelineSelect\"]);"),
+    "frontend runtime still excludes storyTimelineSelect from custom dropdown styling",
+  );
 
   assert.ok(
     readmeSource.includes("Custom dropdown controls support keyboard navigation"),

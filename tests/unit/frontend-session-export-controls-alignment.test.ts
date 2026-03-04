@@ -14,6 +14,8 @@ test("demo frontend wires session export controls and runtime helpers", () => {
   const operatorGuideSource = readFileSync(operatorGuidePath, "utf8");
 
   const requiredHtmlTokens = [
+    'class="panel panel-live-top panel-live-connection"',
+    'class="action-group action-group-primary"',
     'id="exportMenu"',
     'id="exportMenuSummaryIcon"',
     'id="exportMenuSummaryLabel"',
@@ -33,6 +35,10 @@ test("demo frontend wires session export controls and runtime helpers", () => {
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `frontend html missing export control token: ${token}`);
   }
+  assert.ok(
+    !htmlSource.includes('class="action-group action-group-secondary action-group-export"'),
+    "frontend html still keeps export controls in detached secondary lane",
+  );
 
   const requiredRuntimeTokens = [
     "setExportStatus",
@@ -75,6 +81,11 @@ test("demo frontend wires session export controls and runtime helpers", () => {
   }
 
   const requiredStyleTokens = [
+    ".panel-live-connection {",
+    ".panel-live-connection .action-group-primary > .export-menu {",
+    ".panel-live-connection .export-menu-list {",
+    ".export-menu-list {",
+    "z-index: 120;",
     ".export-menu-item:disabled {",
     "cursor: not-allowed;",
     ".export-menu-item:disabled .export-menu-item-icon {",

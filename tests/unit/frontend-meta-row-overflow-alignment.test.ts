@@ -33,6 +33,7 @@ test("frontend keeps long meta/status values wrapped without horizontal layout s
     ".meta-row-status-live {",
     "display: grid;",
     "grid-template-columns: repeat(auto-fit, minmax(162px, 1fr));",
+    "grid-template-columns: repeat(4, minmax(0, 1fr));",
     ".meta-row-status-live > div {",
     "display: inline-flex;",
     ".meta-row-status-live .status-item-wide > span:not(.status-pill) {",
