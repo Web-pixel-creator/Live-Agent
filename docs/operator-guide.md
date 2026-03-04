@@ -43,27 +43,28 @@ The operator flow is used during live demos and production diagnostics to:
 3. `Demo View` adds a top `Demo Summary` strip (Realtime Gateway, Queue, Approvals, Startup, UI Executor, Device Nodes) with large mirrored status pills, per-lane mini-KPI (`F/N/O`), and one-click jump-to-card navigation
 4. Before the first manual refresh, a guided pre-refresh banner is shown with one-click `Refresh Summary`, quick-start actions (`Run Negotiation`, `Run Story`, `Run UI Task`), and mode-specific hint text (`Demo` vs `Full Ops`)
 5. Operator Console also keeps a persistent `Operator Quick Start` rail (`Run Negotiation`, `Run Story`, `Run UI Task`, `Open Device Nodes`, `Refresh Summary`) so empty lanes can be repopulated at any point
-6. Collapse/expand operator evidence cards (`Collapse All` / `Expand All`); before first manual refresh the UI keeps only `Live Bridge & Turn Safety` expanded by default
-7. Placeholder cards (`no_data` / `summary_error`) stay hidden until the first manual `Refresh Summary` to reduce visual noise during judge-facing walkthrough
-8. When placeholder statuses are shown, labels are rendered as `awaiting_refresh` / `refresh_failed` (internal placeholder codes remain unchanged for filtering logic)
-9. Empty-state hints are action-oriented and point to the next scenario/action to run before `Refresh Summary`
-10. Static HTML placeholders are also demo-friendly (`awaiting_refresh` / `pending`) before frontend JS hydration
-11. `Focus Critical` keeps only critical cards visible and mirrors key status pills in the top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); click again (`Show All Cards`) for broader board context without demo-noise placeholders
-12. `Issues Only` hides cards already marked `ok` and keeps neutral/fail evidence visible for incident triage
-13. `Reset View` restores default triage layout (`Demo View`, `Focus Critical` on, `Issues Only` off, default group visibility)
-14. `Triage Summary` shows live counters (`total`, `visible`, `fail`, `neutral`, `ok`, `hidden`) and updates as filters/statuses change
-15. Each lane header shows live mini-counters (`visible/fail/neutral/ok/hidden`) for quick group-level prioritization
-16. Signal strip cards are clickable jump-links: they auto-expand the target group, scroll to the matching evidence card, and flash it for fast triage
-17. Secondary controls are under collapsed `Advanced Actions` (`Retry Task`, `Failover Drain`, `Failover Warmup`)
-18. Create/update device node and send heartbeat
-19. Approve/reject pending UI-sensitive actions
-20. Export session evidence from frontend via single `Export Session` dropdown (`Markdown` / `JSON` / `Audio (WAV)`)
-21. Export dropdown keeps `Last export` metadata, format badges (`MD/JS/WAV`), and a `Recent exports` list (last 3 downloads); audio export is enabled only after assistant audio chunks are captured and the menu hint shows live capture metadata (`turns`, `size`, `trimmed` when rolling-window cap applies)
-22. Inspect Story Timeline panel to verify Storyteller segment sequencing, `Timeline State` KPI, and asset references during demo
-23. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
-24. Live Negotiator status strip (`Status/Assistant/Run ID/User ID/Session State/Mode/PTT/Export`) uses high-contrast text, pill-state color mapping, dedicated value chips for `Run ID`/`User ID`, concise export labels (`exported markdown/json/audio`), lane-level `ok/neutral/fail` card accents for faster scan, and extra mobile spacing (larger status-tile padding/gaps); desktop keeps a 2x4 status grid on desktop with adaptive 2-column/1-column fallback on narrower screens for quick judge/operator scan
-25. KPI secondary text (`labels`, `status notes`, and context hints) uses elevated contrast to stay readable over gradient/video backgrounds during fast judge walkthroughs
-26. Custom dropdown controls support keyboard navigation (`ArrowUp/ArrowDown/Home/End`, `Enter/Space`, `Escape`) and combobox/listbox ARIA semantics (`aria-controls`, `aria-expanded`, `aria-activedescendant`) so operators/judges can complete flows without pointer-only input
+6. `Lane Recovery Playbook` cards (Realtime/Story/UI Safety/Device Nodes) provide direct run + refresh controls so `awaiting_refresh` lanes can be recovered without scanning the full board
+7. Collapse/expand operator evidence cards (`Collapse All` / `Expand All`); before first manual refresh the UI keeps only `Live Bridge & Turn Safety` expanded by default
+8. Placeholder cards (`no_data` / `summary_error`) stay hidden until the first manual `Refresh Summary` to reduce visual noise during judge-facing walkthrough
+9. When placeholder statuses are shown, labels are rendered as `awaiting_refresh` / `refresh_failed` (internal placeholder codes remain unchanged for filtering logic)
+10. Empty-state hints are action-oriented and point to the next scenario/action to run before `Refresh Summary`
+11. Static HTML placeholders are also demo-friendly (`awaiting_refresh` / `pending`) before frontend JS hydration
+12. `Focus Critical` keeps only critical cards visible and mirrors key status pills in the top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); click again (`Show All Cards`) for broader board context without demo-noise placeholders
+13. `Issues Only` hides cards already marked `ok` and keeps neutral/fail evidence visible for incident triage
+14. `Reset View` restores default triage layout (`Demo View`, `Focus Critical` on, `Issues Only` off, default group visibility)
+15. `Triage Summary` shows live counters (`total`, `visible`, `fail`, `neutral`, `ok`, `hidden`) and updates as filters/statuses change
+16. Each lane header shows live mini-counters (`visible/fail/neutral/ok/hidden`) for quick group-level prioritization
+17. Signal strip cards are clickable jump-links: they auto-expand the target group, scroll to the matching evidence card, and flash it for fast triage
+18. Secondary controls are under collapsed `Advanced Actions` (`Retry Task`, `Failover Drain`, `Failover Warmup`)
+19. Create/update device node and send heartbeat
+20. Approve/reject pending UI-sensitive actions
+21. Export session evidence from frontend via single `Export Session` dropdown (`Markdown` / `JSON` / `Audio (WAV)`)
+22. Export dropdown keeps `Last export` metadata, format badges (`MD/JS/WAV`), and a `Recent exports` list (last 3 downloads); audio export is enabled only after assistant audio chunks are captured and the menu hint shows live capture metadata (`turns`, `size`, `trimmed` when rolling-window cap applies)
+23. Inspect Story Timeline panel to verify Storyteller segment sequencing, `Timeline State` KPI, and asset references during demo
+24. For `Intent=Request`, UI grounding fields are visible only when `intent=ui_task` and are grouped under `Advanced UI Task Settings`
+25. Live Negotiator status strip (`Status/Assistant/Run ID/User ID/Session State/Mode/PTT/Export`) uses high-contrast text, pill-state color mapping, dedicated value chips for `Run ID`/`User ID`, concise export labels (`exported markdown/json/audio`), lane-level `ok/neutral/fail` card accents for faster scan, and extra mobile spacing (larger status-tile padding/gaps); desktop keeps a 2x4 status grid on desktop with adaptive 2-column/1-column fallback on narrower screens for quick judge/operator scan
+26. KPI secondary text (`labels`, `status notes`, and context hints) uses elevated contrast to stay readable over gradient/video backgrounds during fast judge walkthroughs
+27. Custom dropdown controls support keyboard navigation (`ArrowUp/ArrowDown/Home/End`, `Enter/Space`, `Escape`) and combobox/listbox ARIA semantics (`aria-controls`, `aria-expanded`, `aria-activedescendant`) so operators/judges can complete flows without pointer-only input
 
 ## Safety Controls
 

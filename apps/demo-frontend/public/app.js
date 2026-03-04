@@ -195,6 +195,14 @@ const el = {
   operatorQuickStartRunUiTaskBtn: document.getElementById("operatorQuickStartRunUiTaskBtn"),
   operatorQuickStartOpenDeviceNodesBtn: document.getElementById("operatorQuickStartOpenDeviceNodesBtn"),
   operatorQuickStartRefreshBtn: document.getElementById("operatorQuickStartRefreshBtn"),
+  operatorPlaybookRunNegotiationBtn: document.getElementById("operatorPlaybookRunNegotiationBtn"),
+  operatorPlaybookRefreshBridgeBtn: document.getElementById("operatorPlaybookRefreshBridgeBtn"),
+  operatorPlaybookRunStoryBtn: document.getElementById("operatorPlaybookRunStoryBtn"),
+  operatorPlaybookRefreshStoryBtn: document.getElementById("operatorPlaybookRefreshStoryBtn"),
+  operatorPlaybookRunUiTaskBtn: document.getElementById("operatorPlaybookRunUiTaskBtn"),
+  operatorPlaybookRefreshUiBtn: document.getElementById("operatorPlaybookRefreshUiBtn"),
+  operatorPlaybookOpenDeviceNodesBtn: document.getElementById("operatorPlaybookOpenDeviceNodesBtn"),
+  operatorPlaybookRefreshDeviceNodesBtn: document.getElementById("operatorPlaybookRefreshDeviceNodesBtn"),
   operatorResetViewBtn: document.getElementById("operatorResetViewBtn"),
   operatorFocusCriticalBtn: document.getElementById("operatorFocusCriticalBtn"),
   operatorIssuesOnlyBtn: document.getElementById("operatorIssuesOnlyBtn"),
@@ -9271,6 +9279,46 @@ function bindEvents() {
   }
   if (el.operatorQuickStartRefreshBtn) {
     el.operatorQuickStartRefreshBtn.addEventListener("click", () => {
+      void refreshOperatorSummary({ markUserRefresh: true });
+    });
+  }
+  if (el.operatorPlaybookRunNegotiationBtn) {
+    el.operatorPlaybookRunNegotiationBtn.addEventListener("click", () => {
+      applyIntentTemplateFromActiveTasks("negotiation", ACTIVE_TASK_NEGOTIATION_PROMPT);
+    });
+  }
+  if (el.operatorPlaybookRefreshBridgeBtn) {
+    el.operatorPlaybookRefreshBridgeBtn.addEventListener("click", () => {
+      void refreshOperatorSummary({ markUserRefresh: true });
+    });
+  }
+  if (el.operatorPlaybookRunStoryBtn) {
+    el.operatorPlaybookRunStoryBtn.addEventListener("click", () => {
+      applyIntentTemplateFromActiveTasks("story", STORY_EMPTY_STATE_PROMPT);
+    });
+  }
+  if (el.operatorPlaybookRefreshStoryBtn) {
+    el.operatorPlaybookRefreshStoryBtn.addEventListener("click", () => {
+      void refreshOperatorSummary({ markUserRefresh: true });
+    });
+  }
+  if (el.operatorPlaybookRunUiTaskBtn) {
+    el.operatorPlaybookRunUiTaskBtn.addEventListener("click", () => {
+      applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_UI_TASK_PROMPT);
+    });
+  }
+  if (el.operatorPlaybookRefreshUiBtn) {
+    el.operatorPlaybookRefreshUiBtn.addEventListener("click", () => {
+      void refreshOperatorSummary({ markUserRefresh: true });
+    });
+  }
+  if (el.operatorPlaybookOpenDeviceNodesBtn) {
+    el.operatorPlaybookOpenDeviceNodesBtn.addEventListener("click", () => {
+      openDeviceNodesFromOperatorQuickStart();
+    });
+  }
+  if (el.operatorPlaybookRefreshDeviceNodesBtn) {
+    el.operatorPlaybookRefreshDeviceNodesBtn.addEventListener("click", () => {
       void refreshOperatorSummary({ markUserRefresh: true });
     });
   }

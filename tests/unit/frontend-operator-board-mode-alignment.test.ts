@@ -35,6 +35,15 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'id="operatorQuickStartOpenDeviceNodesBtn"',
     'id="operatorQuickStartRefreshBtn"',
     'class="operator-quick-start-actions"',
+    'id="operatorPlaybookRunNegotiationBtn"',
+    'id="operatorPlaybookRefreshBridgeBtn"',
+    'id="operatorPlaybookRunStoryBtn"',
+    'id="operatorPlaybookRefreshStoryBtn"',
+    'id="operatorPlaybookRunUiTaskBtn"',
+    'id="operatorPlaybookRefreshUiBtn"',
+    'id="operatorPlaybookOpenDeviceNodesBtn"',
+    'id="operatorPlaybookRefreshDeviceNodesBtn"',
+    'class="operator-lane-playbook"',
     "data-operator-demo-essential",
     "Demo View",
     "Full Ops View",
@@ -62,6 +71,14 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'operatorQuickStartRunUiTaskBtn: document.getElementById("operatorQuickStartRunUiTaskBtn")',
     'operatorQuickStartOpenDeviceNodesBtn: document.getElementById("operatorQuickStartOpenDeviceNodesBtn")',
     'operatorQuickStartRefreshBtn: document.getElementById("operatorQuickStartRefreshBtn")',
+    'operatorPlaybookRunNegotiationBtn: document.getElementById("operatorPlaybookRunNegotiationBtn")',
+    'operatorPlaybookRefreshBridgeBtn: document.getElementById("operatorPlaybookRefreshBridgeBtn")',
+    'operatorPlaybookRunStoryBtn: document.getElementById("operatorPlaybookRunStoryBtn")',
+    'operatorPlaybookRefreshStoryBtn: document.getElementById("operatorPlaybookRefreshStoryBtn")',
+    'operatorPlaybookRunUiTaskBtn: document.getElementById("operatorPlaybookRunUiTaskBtn")',
+    'operatorPlaybookRefreshUiBtn: document.getElementById("operatorPlaybookRefreshUiBtn")',
+    'operatorPlaybookOpenDeviceNodesBtn: document.getElementById("operatorPlaybookOpenDeviceNodesBtn")',
+    'operatorPlaybookRefreshDeviceNodesBtn: document.getElementById("operatorPlaybookRefreshDeviceNodesBtn")',
     "function openDeviceNodesFromOperatorQuickStart()",
     "function normalizeOperatorBoardMode(value)",
     "function syncOperatorBoardModeButtons()",
@@ -93,6 +110,14 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "openDeviceNodesFromOperatorQuickStart();",
     "setActiveTab(\"device-nodes\");",
     "el.operatorQuickStartRefreshBtn.addEventListener(\"click\", () => {",
+    "el.operatorPlaybookRunNegotiationBtn.addEventListener(\"click\", () => {",
+    "el.operatorPlaybookRefreshBridgeBtn.addEventListener(\"click\", () => {",
+    "el.operatorPlaybookRunStoryBtn.addEventListener(\"click\", () => {",
+    "el.operatorPlaybookRefreshStoryBtn.addEventListener(\"click\", () => {",
+    "el.operatorPlaybookRunUiTaskBtn.addEventListener(\"click\", () => {",
+    "el.operatorPlaybookRefreshUiBtn.addEventListener(\"click\", () => {",
+    "el.operatorPlaybookOpenDeviceNodesBtn.addEventListener(\"click\", () => {",
+    "el.operatorPlaybookRefreshDeviceNodesBtn.addEventListener(\"click\", () => {",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing operator-board-mode token: ${token}`);
@@ -109,6 +134,8 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     ".operator-summary-guide-actions {",
     ".operator-quick-start {",
     ".operator-quick-start-actions {",
+    ".operator-lane-playbook {",
+    ".operator-lane-playbook-card {",
     ".operator-summary-guide.is-hidden {",
     ".operator-health-board.is-demo-view .operator-health-card[data-operator-demo-essential] {",
   ];
@@ -141,6 +168,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "README missing operator quick-start rail note",
   );
   assert.ok(
+    readmeSource.includes("`Lane Recovery Playbook` cards"),
+    "README missing operator lane playbook note",
+  );
+  assert.ok(
     readmeSource.includes("mode banner (`demo_view` / `full_ops_view`)"),
     "README missing operator mode-banner note",
   );
@@ -167,6 +198,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
   assert.ok(
     operatorGuideSource.includes("persistent `Operator Quick Start` rail"),
     "operator guide missing operator quick-start rail note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("`Lane Recovery Playbook` cards"),
+    "operator guide missing operator lane playbook note",
   );
   assert.ok(
     operatorGuideSource.includes("mode banner (`demo_view` / `full_ops_view`) confirms active triage scope"),

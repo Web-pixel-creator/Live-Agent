@@ -773,6 +773,56 @@
             </button>
           </div>
         </div>
+        <div id="operatorLanePlaybook" class="operator-lane-playbook" role="region" aria-label="Operator lane recovery playbook">
+          <article class="operator-lane-playbook-card">
+            <h3>Realtime &amp; Queue</h3>
+            <p>Run live negotiation traffic to populate bridge, queue, and approval signals.</p>
+            <div class="operator-lane-playbook-actions">
+              <button id="operatorPlaybookRunNegotiationBtn" type="button" class="operator-lane-playbook-action">
+                Run Negotiation
+              </button>
+              <button id="operatorPlaybookRefreshBridgeBtn" type="button" class="button-muted operator-lane-playbook-action">
+                Refresh Summary
+              </button>
+            </div>
+          </article>
+          <article class="operator-lane-playbook-card">
+            <h3>Story Timeline</h3>
+            <p>Kick off storyteller flow to populate media timeline and agent-usage evidence.</p>
+            <div class="operator-lane-playbook-actions">
+              <button id="operatorPlaybookRunStoryBtn" type="button" class="operator-lane-playbook-action">
+                Run Story
+              </button>
+              <button id="operatorPlaybookRefreshStoryBtn" type="button" class="button-muted operator-lane-playbook-action">
+                Refresh Summary
+              </button>
+            </div>
+          </article>
+          <article class="operator-lane-playbook-card">
+            <h3>UI Safety &amp; Damage Control</h3>
+            <p>Run one grounded ui_task to populate approvals, damage-control, and ui-executor lanes.</p>
+            <div class="operator-lane-playbook-actions">
+              <button id="operatorPlaybookRunUiTaskBtn" type="button" class="operator-lane-playbook-action">
+                Run UI Task
+              </button>
+              <button id="operatorPlaybookRefreshUiBtn" type="button" class="button-muted operator-lane-playbook-action">
+                Refresh Summary
+              </button>
+            </div>
+          </article>
+          <article class="operator-lane-playbook-card">
+            <h3>Device Nodes</h3>
+            <p>Open Device Nodes tab to register heartbeat traffic, then refresh operator evidence.</p>
+            <div class="operator-lane-playbook-actions">
+              <button id="operatorPlaybookOpenDeviceNodesBtn" type="button" class="button-muted operator-lane-playbook-action">
+                Open Device Nodes
+              </button>
+              <button id="operatorPlaybookRefreshDeviceNodesBtn" type="button" class="button-muted operator-lane-playbook-action">
+                Refresh Summary
+              </button>
+            </div>
+          </article>
+        </div>
         <div class="operator-triage-summary" role="status" aria-live="polite">
           <article class="operator-triage-stat">
             <h3>Total</h3>
