@@ -2104,45 +2104,43 @@ button:focus-visible {
 }
 
 .meta-row-status-live {
-  margin-top: 16px;
-  padding: 10px;
-  border: 1px solid color-mix(in oklch, var(--primary) 22%, var(--border-soft));
-  border-radius: calc(var(--radius) - 3px);
+  margin-top: 14px;
+  padding: 8px;
+  border: 1px solid color-mix(in oklch, var(--primary) 20%, var(--border-soft));
+  border-radius: calc(var(--radius) - 4px);
   background:
-    radial-gradient(360px 130px at 3% -28%, color-mix(in oklch, var(--primary) 16%, transparent), transparent 72%),
-    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 88%, transparent), var(--surface-panel-2));
+    radial-gradient(360px 130px at 3% -28%, color-mix(in oklch, var(--primary) 14%, transparent), transparent 72%),
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 90%, transparent), var(--surface-panel-2));
   box-shadow:
     inset 0 1px 0 color-mix(in oklch, var(--foreground) 11%, transparent),
-    0 10px 20px -22px color-mix(in oklch, var(--primary) 52%, transparent),
+    0 10px 20px -22px color-mix(in oklch, var(--primary) 44%, transparent),
     var(--shadow-2xs);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(162px, 1fr));
+  gap: 8px;
   overflow: visible;
 }
 
 .meta-row-status-live > div {
   min-width: 0;
-  min-height: 50px;
-  padding: 8px 12px;
-  border-radius: 999px;
+  min-height: 40px;
+  padding: 7px 10px;
+  border-radius: calc(var(--radius) - 10px);
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  flex: 1 1 220px;
-  gap: 8px;
-  border-color: color-mix(in oklch, var(--primary) 20%, var(--border));
+  gap: 6px;
+  border-color: color-mix(in oklch, var(--primary) 24%, var(--border));
   background:
-    radial-gradient(220px 80px at 8% -24%, color-mix(in oklch, var(--primary) 11%, transparent), transparent 72%),
+    radial-gradient(220px 80px at 8% -24%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 72%),
     linear-gradient(
       180deg,
-      color-mix(in oklch, var(--surface-control) 84%, transparent),
-      color-mix(in oklch, var(--surface-panel-2) 96%, black 4%)
+      color-mix(in oklch, var(--surface-control) 88%, transparent),
+      color-mix(in oklch, var(--surface-panel-2) 97%, black 3%)
     );
   box-shadow:
     inset 0 1px 0 color-mix(in oklch, var(--foreground) 11%, transparent),
-    0 8px 16px -18px color-mix(in oklch, var(--primary) 46%, transparent);
+    0 8px 16px -18px color-mix(in oklch, var(--primary) 34%, transparent);
   transition:
     border-color 150ms ease,
     box-shadow 150ms ease,
@@ -2189,36 +2187,36 @@ button:focus-visible {
 }
 
 .meta-row-status-live .status-item-wide {
-  flex: 1 1 310px;
+  grid-column: span 2;
   min-width: 0;
 }
 
 .meta-row-status-live .status-item-wide > span:not(.status-pill) {
-  width: auto;
+  width: 100%;
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .meta-row-status-live strong {
-  color: color-mix(in oklch, white 97%, var(--foreground));
-  font-size: 0.79rem;
+  color: color-mix(in oklch, white 98%, var(--foreground));
+  font-size: 0.74rem;
   text-transform: none;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.015em;
   white-space: nowrap;
   text-shadow: 0 1px 0 color-mix(in oklch, black 30%, transparent);
 }
 
 .meta-row-status-live > div > span:not(.status-pill) {
-  color: color-mix(in oklch, white 99%, var(--foreground));
-  font-size: 0.86rem;
+  color: color-mix(in oklch, white 99.5%, var(--foreground));
+  font-size: 0.82rem;
   font-weight: 650;
-  line-height: 1.2;
+  line-height: 1.28;
 }
 
 .meta-row-status-live .status-pill {
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.012em;
   box-shadow:
@@ -2231,7 +2229,7 @@ button:focus-visible {
   align-items: center;
   min-height: 0;
   max-width: 100%;
-  padding: 4px 10px;
+  padding: 4px 9px;
   border-radius: 999px;
   border: 1px solid color-mix(in oklch, var(--primary) 32%, var(--border-soft));
   background:
@@ -2243,7 +2241,7 @@ button:focus-visible {
     );
   color: color-mix(in oklch, white 99%, var(--foreground));
   font-family: var(--font-mono);
-  font-size: 0.79rem;
+  font-size: 0.75rem;
   font-weight: 650;
   line-height: 1;
   box-shadow:
@@ -4206,11 +4204,11 @@ button:focus-visible {
 
 @media (max-width: 1320px) and (min-width: 981px) {
   .meta-row-status-live > div {
-    flex: 1 1 240px;
+    min-height: 42px;
   }
 
   .meta-row-status-live .status-item-wide {
-    flex-basis: 320px;
+    grid-column: span 2;
   }
 }
 
@@ -4255,19 +4253,19 @@ button:focus-visible {
   }
 
   .meta-row-status-live {
-    padding: 10px;
-    gap: 10px;
+    padding: 8px;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .meta-row-status-live > div {
-    min-height: 48px;
-    padding: 9px 11px;
-    gap: 7px;
-    flex: 1 1 calc(50% - 10px);
+    min-height: 42px;
+    padding: 8px 10px;
+    gap: 6px;
   }
 
   .meta-row-status-live .status-item-wide {
-    flex-basis: 100%;
+    grid-column: span 2;
   }
 
   .media-upload-row {
@@ -4578,17 +4576,17 @@ button:focus-visible {
   }
 
   .meta-row-status-live {
-    gap: 10px;
-    padding: 10px;
+    gap: 8px;
+    padding: 8px;
+    grid-template-columns: 1fr;
   }
 
   .meta-row-status-live > div {
     width: 100%;
-    min-height: 52px;
-    padding: 12px 13px;
-    justify-content: center;
+    min-height: 40px;
+    padding: 8px 10px;
+    justify-content: flex-start;
     gap: 7px;
-    flex: 1 1 100%;
   }
 
   .meta-row-status-live strong {
@@ -4603,12 +4601,12 @@ button:focus-visible {
   }
 
   .meta-row-status-live > div > span:not(.status-pill) {
-    font-size: 0.92rem;
-    line-height: 1.28;
+    font-size: 0.82rem;
+    line-height: 1.3;
   }
 
   .meta-row-status-live .status-item-wide {
-    flex-basis: 100%;
+    grid-column: span 1;
   }
 
   .story-workspace {
@@ -4786,17 +4784,17 @@ button:focus-visible {
   }
 
   .meta-row-status-live {
-    gap: 9px;
-    padding: 10px;
+    gap: 8px;
+    padding: 8px;
   }
 
   .meta-row-status-live > div {
-    min-height: 58px;
-    padding: 11px 12px;
+    min-height: 40px;
+    padding: 8px 9px;
   }
 
   .meta-row-status-live > div > span:not(.status-pill) {
-    font-size: 0.88rem;
+    font-size: 0.8rem;
   }
 
   .kpi-metric {

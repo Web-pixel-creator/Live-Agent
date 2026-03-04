@@ -50,8 +50,8 @@ test("demo frontend keeps live status strip states mapped to pill variants", () 
 
   const requiredStyleTokens = [
     ".meta-row-status-live {",
-    "display: flex;",
-    "flex-wrap: wrap;",
+    "display: grid;",
+    "grid-template-columns: repeat(auto-fit, minmax(162px, 1fr));",
     ".meta-row-status-live > div {",
     "display: inline-flex;",
     "align-items: center;",
@@ -61,13 +61,13 @@ test("demo frontend keeps live status strip states mapped to pill variants", () 
     ".meta-row-status-live > div.status-item-variant-fail {",
     ".meta-row-status-live .status-value {",
     ".meta-row-status-live .status-item-wide {",
-    "flex: 1 1 310px;",
+    "grid-column: span 2;",
     "@media (max-width: 980px)",
-    "flex: 1 1 calc(50% - 10px);",
+    "grid-template-columns: repeat(2, minmax(0, 1fr));",
     "@media (max-width: 720px)",
-    "flex: 1 1 100%;",
+    "grid-template-columns: 1fr;",
     ".meta-row-status-live .status-item-wide > span:not(.status-pill) {",
-    "text-overflow: ellipsis;",
+    "overflow-wrap: anywhere;",
   ];
   for (const token of requiredStyleTokens) {
     assert.ok(stylesSource.includes(token), `frontend styles missing live status strip token: ${token}`);
