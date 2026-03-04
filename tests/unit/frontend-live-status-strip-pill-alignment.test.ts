@@ -17,6 +17,8 @@ test("demo frontend keeps live status strip states mapped to pill variants", () 
   const requiredHtmlTokens = [
     "class=\"meta-row meta-row-status meta-row-status-live\"",
     'id="connectionStatus" class="status-pill status-neutral"',
+    'id="runId" class="status-value"',
+    'id="currentUserId" class="status-value"',
     'id="sessionState" class="status-pill status-neutral"',
     'id="modeStatus" class="status-pill status-neutral"',
     'id="pttStatus" class="status-pill status-neutral"',
@@ -55,6 +57,7 @@ test("demo frontend keeps live status strip states mapped to pill variants", () 
     ".meta-row-status-live > div.status-item-variant-neutral {",
     ".meta-row-status-live > div.status-item-variant-ok {",
     ".meta-row-status-live > div.status-item-variant-fail {",
+    ".meta-row-status-live .status-value {",
     "flex-direction: column;",
     "@media (max-width: 980px)",
     "grid-template-columns: repeat(2, minmax(0, 1fr));",
