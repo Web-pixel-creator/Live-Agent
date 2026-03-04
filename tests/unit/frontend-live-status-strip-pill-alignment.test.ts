@@ -50,17 +50,22 @@ test("demo frontend keeps live status strip states mapped to pill variants", () 
 
   const requiredStyleTokens = [
     ".meta-row-status-live {",
-    "display: grid;",
-    "grid-template-columns: repeat(4, minmax(0, 1fr));",
+    "display: flex;",
+    "flex-wrap: wrap;",
     ".meta-row-status-live > div {",
+    "display: inline-flex;",
+    "align-items: center;",
     "transition:",
     ".meta-row-status-live > div.status-item-variant-neutral {",
     ".meta-row-status-live > div.status-item-variant-ok {",
     ".meta-row-status-live > div.status-item-variant-fail {",
     ".meta-row-status-live .status-value {",
-    "flex-direction: column;",
+    ".meta-row-status-live .status-item-wide {",
+    "flex: 1 1 310px;",
     "@media (max-width: 980px)",
-    "grid-template-columns: repeat(2, minmax(0, 1fr));",
+    "flex: 1 1 calc(50% - 10px);",
+    "@media (max-width: 720px)",
+    "flex: 1 1 100%;",
     ".meta-row-status-live .status-item-wide > span:not(.status-pill) {",
     "text-overflow: ellipsis;",
   ];
@@ -69,7 +74,7 @@ test("demo frontend keeps live status strip states mapped to pill variants", () 
   }
 
   assert.ok(
-    operatorGuideSource.includes("2x4 status grid on desktop"),
-    "operator guide missing live status strip 2x4 desktop grid note",
+    operatorGuideSource.includes("compact inline wrap-row"),
+    "operator guide missing live status strip inline-row note",
   );
 });
