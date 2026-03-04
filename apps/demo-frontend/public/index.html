@@ -642,19 +642,27 @@
             </select>
           </label>
         </div>
-        <div class="actions">
+        <div class="actions operator-toolbar">
           <div class="action-group operator-view-mode-actions">
             <button id="operatorDemoViewBtn" class="button-muted" aria-pressed="true">Demo View</button>
             <button id="operatorFullOpsViewBtn" class="button-muted" aria-pressed="false">Full Ops View</button>
           </div>
           <button id="operatorRefreshBtn" class="button-muted">Refresh Summary</button>
-          <button id="operatorResetViewBtn" class="button-muted">Reset View</button>
           <button id="operatorFocusCriticalBtn" class="button-muted" aria-pressed="false">Focus Critical</button>
           <button id="operatorIssuesOnlyBtn" class="button-muted" aria-pressed="false">Issues Only</button>
-          <button id="operatorCollapseAllBtn" class="button-muted">Collapse All</button>
-          <button id="operatorExpandAllBtn" class="button-muted">Expand All</button>
-          <button id="operatorCancelBtn" class="button-warn">Cancel Task</button>
         </div>
+        <details id="operatorBoardActions" class="operator-advanced-actions operator-board-actions">
+          <summary>Board Actions</summary>
+          <p class="operator-advanced-actions-hint">
+            Reset layout, collapse lanes, and task cancellation controls.
+          </p>
+          <div class="actions operator-advanced-actions-row operator-board-actions-row">
+            <button id="operatorResetViewBtn" class="button-muted">Reset View</button>
+            <button id="operatorCollapseAllBtn" class="button-muted">Collapse All</button>
+            <button id="operatorExpandAllBtn" class="button-muted">Expand All</button>
+            <button id="operatorCancelBtn" class="button-warn">Cancel Task</button>
+          </div>
+        </details>
         <p id="operatorBoardModeHint" class="operator-board-mode-hint">
           Demo View keeps six judge-facing cards visible by default, keeps Live Bridge lane expanded, and still surfaces new failures.
         </p>

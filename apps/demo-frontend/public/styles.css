@@ -976,6 +976,14 @@ textarea {
   gap: 12px;
 }
 
+.operator-toolbar {
+  align-items: center;
+}
+
+.operator-toolbar > .button-muted {
+  flex: 0 0 auto;
+}
+
 .operator-view-mode-actions {
   margin-right: 6px;
   padding: 6px;
@@ -991,6 +999,22 @@ textarea {
 
 .operator-view-mode-actions .button-muted {
   min-width: 130px;
+}
+
+.operator-board-actions {
+  margin-top: 10px;
+}
+
+.operator-board-actions-row {
+  margin-top: 8px;
+}
+
+.operator-board-actions-row > button {
+  flex: 0 0 auto;
+}
+
+.operator-board-actions-row .button-warn {
+  margin-left: auto;
 }
 
 .operator-board-mode-hint {
@@ -4681,6 +4705,16 @@ button:focus-visible {
     flex-basis: 100%;
   }
 
+  .operator-board-actions-row > button {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
+  }
+
+  .operator-board-actions-row .button-warn {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+
   .operator-support-panel > summary {
     padding: 11px 12px;
   }
@@ -4925,6 +4959,10 @@ button:focus-visible {
   }
 
   .operator-quick-start-actions > button {
+    flex: 1 1 100%;
+  }
+
+  .operator-board-actions-row > button {
     flex: 1 1 100%;
   }
 

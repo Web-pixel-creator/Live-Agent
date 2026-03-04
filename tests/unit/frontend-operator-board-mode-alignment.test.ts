@@ -47,6 +47,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     '<details id="operatorLanePlaybook" class="operator-lane-playbook operator-support-panel"',
     'class="operator-support-summary-title"',
     'class="operator-support-summary-hint"',
+    'class="actions operator-toolbar"',
+    'id="operatorBoardActions"',
+    "Board Actions",
+    'class="actions operator-advanced-actions-row operator-board-actions-row"',
     "data-operator-demo-essential",
     "Demo View",
     "Full Ops View",
@@ -133,6 +137,9 @@ test("operator console exposes demo/full board mode toggles with runtime presets
 
   const requiredStyleTokens = [
     ".operator-view-mode-actions {",
+    ".operator-toolbar {",
+    ".operator-board-actions {",
+    ".operator-board-actions-row {",
     ".operator-view-mode-actions .button-muted {",
     ".operator-board-mode-hint {",
     ".operator-mode-banner {",
@@ -182,6 +189,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "README missing operator quick-start rail note",
   );
   assert.ok(
+    readmeSource.includes("collapsed `Board Actions` block"),
+    "README missing operator board-actions compacting note",
+  );
+  assert.ok(
     readmeSource.includes("collapsible `Lane Recovery Playbook` cards"),
     "README missing operator lane playbook note",
   );
@@ -216,6 +227,10 @@ test("operator console exposes demo/full board mode toggles with runtime presets
   assert.ok(
     operatorGuideSource.includes("collapsible `Operator Quick Start` rail"),
     "operator guide missing operator quick-start rail note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("collapsed `Board Actions` block"),
+    "operator guide missing operator board-actions compacting note",
   );
   assert.ok(
     operatorGuideSource.includes("Collapsible `Lane Recovery Playbook` cards"),
