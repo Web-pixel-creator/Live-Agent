@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-04T08:09:01.418Z",
+  "generatedAt": "2026-03-04T08:22:28.828Z",
   "ok": true,
   "policyPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\summary.json",
@@ -22,7 +22,7 @@
     "source": "runtime_estimate"
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-03-04T08:08:59.7317280+00:00",
+    "sourceSummaryGeneratedAt": "2026-03-04T08:22:27.1756517+00:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -30,7 +30,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-04T08:08:58.563Z",
+      "latestSeenAt": "2026-03-04T08:22:26.061Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -44,7 +44,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-04T08:08:58.667Z",
+      "latestSeenAt": "2026-03-04T08:22:26.159Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -78,7 +78,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-03-04T08:08:58.215Z",
+        "seenAt": "2026-03-04T08:22:25.717Z",
         "seenAtIsIso": true
       }
     },
@@ -142,10 +142,10 @@
       },
       "latest": {
         "outcome": "succeeded",
-        "pluginId": "demo-plugin-skill-999b57ea-74f5-483e-bb0e-b0797f2c41fa",
+        "pluginId": "demo-plugin-skill-e112c3b5-9937-4ca6-a801-0f0ecc9dcda2",
         "version": 1,
         "signingStatus": "unsigned",
-        "seenAt": "2026-03-04T08:08:59.235Z",
+        "seenAt": "2026-03-04T08:22:26.644Z",
         "seenAtIsIso": true
       }
     },
