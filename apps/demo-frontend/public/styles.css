@@ -949,7 +949,7 @@ textarea {
   margin-top: 18px;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .operator-view-mode-actions {
@@ -1212,7 +1212,40 @@ textarea {
 
 .actions-priority {
   display: grid;
-  gap: 12px;
+  gap: 14px;
+  align-items: start;
+}
+
+.actions-priority .action-group {
+  border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);
+  border-radius: calc(var(--radius) - 6px);
+  padding: 10px;
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklch, var(--surface-control) 88%, var(--surface-panel)),
+    color-mix(in oklch, var(--surface-panel-2) 93%, var(--surface-control))
+  );
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent);
+}
+
+.actions-priority .action-group-primary {
+  border-color: color-mix(in oklch, var(--primary) 26%, var(--border-soft));
+  background:
+    radial-gradient(220px 90px at 0% -20%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 74%),
+    linear-gradient(
+      160deg,
+      color-mix(in oklch, var(--surface-control) 88%, var(--surface-panel)),
+      color-mix(in oklch, var(--surface-panel-2) 93%, var(--surface-control))
+    );
+}
+
+.actions-priority .action-group-secondary {
+  border-color: color-mix(in oklch, var(--muted-foreground) 32%, var(--border-soft));
+}
+
+.actions-priority .action-group-secondary.action-group-export {
+  justify-content: flex-end;
+  border-color: color-mix(in oklch, var(--primary) 22%, var(--border-soft));
 }
 
 .action-group {
@@ -2917,7 +2950,11 @@ button:focus-visible {
   }
 
   .actions-priority {
-    gap: 10px;
+    gap: 11px;
+  }
+
+  .actions-priority .action-group {
+    padding: 9px;
   }
 
   .kpi-panel > .grid-3 {
@@ -3036,7 +3073,7 @@ button:focus-visible {
   .layout {
     width: min(1280px, calc(100vw - 24px));
     margin: 14px auto 26px;
-    gap: 14px;
+    gap: 16px;
   }
 
   .panel,
@@ -3047,6 +3084,10 @@ button:focus-visible {
   .hero-headline {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .tab-content {
+    gap: 18px;
   }
 
   .tabs {
@@ -3067,7 +3108,12 @@ button:focus-visible {
 
   .actions-priority,
   .action-group {
-    gap: 8px;
+    gap: 9px;
+  }
+
+  .actions-priority .action-group {
+    padding: 8px;
+    border-radius: calc(var(--radius) - 8px);
   }
 
   .operator-summary-guide {
@@ -3168,12 +3214,16 @@ button:focus-visible {
   .layout {
     width: min(1280px, calc(100vw - 16px));
     margin: 10px auto 20px;
-    gap: 10px;
+    gap: 12px;
   }
 
   .panel,
   .hero {
     padding: 14px;
+  }
+
+  .tab-content {
+    gap: 14px;
   }
 
   .panel h2 {
@@ -3224,6 +3274,11 @@ button:focus-visible {
   .actions {
     margin-top: 14px;
     gap: 8px;
+  }
+
+  .actions-priority .action-group {
+    padding: 7px;
+    border-radius: calc(var(--radius) - 9px);
   }
 
   .advanced-settings {

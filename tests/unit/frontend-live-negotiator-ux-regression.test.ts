@@ -7,10 +7,14 @@ test("demo frontend keeps live negotiator UX guardrails for advanced controls an
   const htmlPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "index.html");
   const appPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js");
   const stylesPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "styles.css");
+  const readmePath = resolve(process.cwd(), "README.md");
+  const operatorGuidePath = resolve(process.cwd(), "docs", "operator-guide.md");
 
   const htmlSource = readFileSync(htmlPath, "utf8");
   const appSource = readFileSync(appPath, "utf8");
   const stylesSource = readFileSync(stylesPath, "utf8");
+  const readmeSource = readFileSync(readmePath, "utf8");
+  const operatorGuideSource = readFileSync(operatorGuidePath, "utf8");
 
   const requiredHtmlTokens = [
     'id="connectionAdvancedSection"',
@@ -47,6 +51,8 @@ test("demo frontend keeps live negotiator UX guardrails for advanced controls an
     ".live-negotiator-secondary {",
     "position: sticky;",
     ".actions-priority {",
+    ".actions-priority .action-group-primary {",
+    ".actions-priority .action-group-secondary.action-group-export {",
     ".action-group {",
     ".panel-transcript-live .transcript {",
     "position: static;",
@@ -54,4 +60,13 @@ test("demo frontend keeps live negotiator UX guardrails for advanced controls an
   for (const token of requiredStyleTokens) {
     assert.ok(stylesSource.includes(token), `frontend styles missing live-negotiator ux token: ${token}`);
   }
+
+  assert.ok(
+    readmeSource.includes("primary` and `secondary` action lanes"),
+    "README missing action-lane hierarchy note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("top toolbars separate `primary` and `secondary` action lanes"),
+    "operator guide missing action-lane hierarchy note",
+  );
 });
