@@ -31,7 +31,9 @@ test("operator console exposes demo summary strip with mirrored status pills and
     'id="operatorDemoSummaryUiExecutorKpi"',
     'id="operatorDemoSummaryDeviceNodesKpi"',
     'class="operator-demo-summary-card operator-signal-jump"',
-    "F 0 · N 0 · O 0",
+    'class="operator-demo-summary-kpi-token operator-demo-summary-kpi-fail"',
+    'class="operator-demo-summary-kpi-token operator-demo-summary-kpi-neutral"',
+    'class="operator-demo-summary-kpi-token operator-demo-summary-kpi-ok"',
     "Realtime Gateway",
   ];
   for (const token of requiredHtmlTokens) {
@@ -67,8 +69,13 @@ test("operator console exposes demo summary strip with mirrored status pills and
     'operatorUiExecutorStatus: "operatorDemoSummaryUiExecutorKpi"',
     'operatorDeviceNodesStatus: "operatorDemoSummaryDeviceNodesKpi"',
     "function formatOperatorDemoSummaryKpi(fail, neutral, ok)",
+    "function formatOperatorDemoSummaryKpiMarkup(fail, neutral, ok)",
+    "function animateOperatorDemoSummaryKpi(kpiNode)",
     "function syncOperatorDemoSummaryKpi(statusNode)",
     "function refreshOperatorDemoSummaryKpis()",
+    "kpiNode.dataset.kpiLabel = nextLabel;",
+    "kpiNode.innerHTML = formatOperatorDemoSummaryKpiMarkup(fail, neutral, ok);",
+    "animateOperatorDemoSummaryKpi(kpiNode);",
     "syncOperatorDemoSummaryKpi(node);",
     "refreshOperatorDemoSummaryKpis();",
     "el.operatorDemoSummaryStrip.classList.toggle(\"is-hidden\", !isDemo);",
@@ -84,6 +91,12 @@ test("operator console exposes demo summary strip with mirrored status pills and
     ".operator-demo-summary-card {",
     ".operator-demo-summary-title {",
     ".operator-demo-summary-kpi {",
+    ".operator-demo-summary-kpi-token {",
+    ".operator-demo-summary-kpi-fail {",
+    ".operator-demo-summary-kpi-neutral {",
+    ".operator-demo-summary-kpi-ok {",
+    ".operator-demo-summary-kpi.is-updated .operator-demo-summary-kpi-token {",
+    "@keyframes operatorDemoSummaryKpiPulse {",
     ".operator-demo-summary-copy {",
   ];
   for (const token of requiredStyleTokens) {

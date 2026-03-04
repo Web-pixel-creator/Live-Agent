@@ -1098,11 +1098,61 @@ textarea {
 
 .operator-demo-summary-kpi {
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.operator-demo-summary-kpi-token {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  padding: 2px 8px;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.69rem;
   font-weight: 650;
-  letter-spacing: 0.015em;
-  color: color-mix(in oklch, var(--foreground) 82%, var(--muted-foreground));
+  letter-spacing: 0.01em;
+  line-height: 1.28;
+  transition:
+    border-color 130ms ease,
+    color 130ms ease,
+    background-color 130ms ease;
+}
+
+.operator-demo-summary-kpi-fail {
+  border-color: color-mix(in oklch, var(--destructive) 38%, var(--border-soft));
+  color: color-mix(in oklch, var(--status-fail-fg) 86%, var(--destructive-foreground));
+  background: color-mix(in oklch, var(--destructive) 18%, transparent);
+}
+
+.operator-demo-summary-kpi-neutral {
+  border-color: color-mix(in oklch, var(--muted-foreground) 38%, var(--border-soft));
+  color: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));
+  background: color-mix(in oklch, var(--surface-control) 84%, transparent);
+}
+
+.operator-demo-summary-kpi-ok {
+  border-color: color-mix(in oklch, var(--chart-1) 38%, var(--border-soft));
+  color: color-mix(in oklch, var(--status-ok-fg) 84%, var(--foreground));
+  background: color-mix(in oklch, var(--chart-1) 18%, transparent);
+}
+
+.operator-demo-summary-kpi.is-updated .operator-demo-summary-kpi-token {
+  animation: operatorDemoSummaryKpiPulse 260ms ease-out;
+}
+
+@keyframes operatorDemoSummaryKpiPulse {
+  0% {
+    transform: translateY(0.5px) scale(0.96);
+    filter: brightness(0.9);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    filter: brightness(1);
+  }
 }
 
 .operator-demo-summary-copy {

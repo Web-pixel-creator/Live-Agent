@@ -1101,7 +1101,25 @@ function readOperatorStatusVariant(statusNode) {
 }
 
 function formatOperatorDemoSummaryKpi(fail, neutral, ok) {
-  return `F ${fail} · N ${neutral} · O ${ok}`;
+  return `F ${fail} | N ${neutral} | O ${ok}`;
+}
+
+function formatOperatorDemoSummaryKpiMarkup(fail, neutral, ok) {
+  return [
+    `<span class="operator-demo-summary-kpi-token operator-demo-summary-kpi-fail">F ${fail}</span>`,
+    `<span class="operator-demo-summary-kpi-token operator-demo-summary-kpi-neutral">N ${neutral}</span>`,
+    `<span class="operator-demo-summary-kpi-token operator-demo-summary-kpi-ok">O ${ok}</span>`,
+  ].join("");
+}
+
+function animateOperatorDemoSummaryKpi(kpiNode) {
+  if (!(kpiNode instanceof HTMLElement)) {
+    return;
+  }
+  kpiNode.classList.remove("is-updated");
+  // Force reflow so repeated summary updates can retrigger the pulse.
+  void kpiNode.offsetWidth;
+  kpiNode.classList.add("is-updated");
 }
 
 function syncOperatorDemoSummaryKpi(statusNode) {
@@ -1149,7 +1167,17 @@ function syncOperatorDemoSummaryKpi(statusNode) {
     }
   }
 
-  kpiNode.textContent = formatOperatorDemoSummaryKpi(fail, neutral, ok);
+  const nextLabel = formatOperatorDemoSummaryKpi(fail, neutral, ok);
+  const isAlreadyRendered = kpiNode.querySelector(".operator-demo-summary-kpi-token") !== null;
+  if (kpiNode.dataset.kpiLabel === nextLabel && isAlreadyRendered) {
+    return;
+  }
+
+  kpiNode.dataset.kpiLabel = nextLabel;
+  kpiNode.setAttribute("aria-label", `Fail ${fail}, Neutral ${neutral}, Ok ${ok}`);
+  kpiNode.title = nextLabel;
+  kpiNode.innerHTML = formatOperatorDemoSummaryKpiMarkup(fail, neutral, ok);
+  animateOperatorDemoSummaryKpi(kpiNode);
 }
 
 function refreshOperatorDemoSummaryKpis() {
