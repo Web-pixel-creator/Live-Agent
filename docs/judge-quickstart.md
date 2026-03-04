@@ -80,6 +80,7 @@ npm run verify:release
    - `Formats -> Export JSON`
    - `Formats -> Export Audio (WAV)`
 5. Story Timeline panel:
+   - Confirm `Timeline State` KPI transitions (`0%` idle -> ready/pending) as story output arrives.
    - Segment scrubber/selector reflects `output.story.timeline`
    - Preview card shows segment text + `image/video/audio` refs
 

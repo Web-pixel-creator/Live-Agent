@@ -2313,7 +2313,7 @@ button:focus-visible {
 
 .story-head-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -2342,6 +2342,33 @@ button:focus-visible {
   font-size: 1.03rem;
   line-height: 1.35;
   overflow-wrap: anywhere;
+}
+
+.story-stat-note {
+  color: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));
+  font-size: 0.78rem;
+  line-height: 1.42;
+}
+
+.story-stat-card-state.is-idle {
+  border-color: color-mix(in oklch, var(--muted-foreground) 32%, var(--border-soft));
+  background:
+    radial-gradient(220px 90px at 10% -10%, color-mix(in oklch, var(--muted-foreground) 10%, transparent), transparent 72%),
+    linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
+}
+
+.story-stat-card-state.is-pending {
+  border-color: color-mix(in oklch, var(--accent-foreground) 42%, var(--border-soft));
+  background:
+    radial-gradient(220px 90px at 10% -10%, color-mix(in oklch, var(--accent-foreground) 15%, transparent), transparent 72%),
+    linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
+}
+
+.story-stat-card-state.is-ready {
+  border-color: color-mix(in oklch, var(--chart-1) 42%, var(--border-soft));
+  background:
+    radial-gradient(220px 90px at 10% -10%, color-mix(in oklch, var(--chart-1) 16%, transparent), transparent 72%),
+    linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
 }
 
 .story-workspace {
@@ -2733,6 +2760,19 @@ button:focus-visible {
   font-size: 0.85rem;
   line-height: 1.5;
   color: color-mix(in oklch, var(--foreground) 80%, var(--muted-foreground));
+}
+
+.story-timeline-list-empty-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.story-timeline-list-empty-status .status-pill {
+  margin: 0;
+  font-size: 0.75rem;
+  padding: 5px 10px;
 }
 
 .story-timeline-list-empty-preview {

@@ -149,6 +149,9 @@ const el = {
   storyTimelineTitle: document.getElementById("storyTimelineTitle"),
   storyTimelineCount: document.getElementById("storyTimelineCount"),
   storyTimelinePendingJobs: document.getElementById("storyTimelinePendingJobs"),
+  storyTimelineStateCard: document.getElementById("storyTimelineStateCard"),
+  storyTimelineProgressKpi: document.getElementById("storyTimelineProgressKpi"),
+  storyTimelineNextCue: document.getElementById("storyTimelineNextCue"),
   storyTimelineMode: document.getElementById("storyTimelineMode"),
   storyTimelineAssetMix: document.getElementById("storyTimelineAssetMix"),
   storyTimelineProgressHint: document.getElementById("storyTimelineProgressHint"),
@@ -1954,6 +1957,43 @@ function resolveStoryVideoStatusVariant(videoStatus) {
   return "status-neutral";
 }
 
+function createStoryTimelineEmptyStatusPill(text, variant = "neutral") {
+  const pill = document.createElement("span");
+  pill.className = "status-pill";
+  pill.classList.add(variant === "ok" ? "status-ok" : variant === "fail" ? "status-fail" : "status-neutral");
+  pill.textContent = text;
+  return pill;
+}
+
+function renderStoryTimelineStateCard(count, pendingJobs, progressPercent) {
+  if (el.storyTimelineProgressKpi) {
+    el.storyTimelineProgressKpi.textContent = `${Math.max(0, Math.floor(progressPercent))}%`;
+  }
+  if (el.storyTimelineNextCue) {
+    if (count === 0) {
+      el.storyTimelineNextCue.textContent = "Run story intent to initialize timeline";
+    } else if (pendingJobs > 0) {
+      const jobsLabel = pendingJobs === 1 ? "1 video job pending" : `${pendingJobs} video jobs pending`;
+      el.storyTimelineNextCue.textContent = jobsLabel;
+    } else {
+      el.storyTimelineNextCue.textContent = "Timeline ready for review";
+    }
+  }
+  if (!(el.storyTimelineStateCard instanceof HTMLElement)) {
+    return;
+  }
+  el.storyTimelineStateCard.classList.remove("is-idle", "is-pending", "is-ready");
+  if (count === 0) {
+    el.storyTimelineStateCard.classList.add("is-idle");
+    return;
+  }
+  if (pendingJobs > 0) {
+    el.storyTimelineStateCard.classList.add("is-pending");
+    return;
+  }
+  el.storyTimelineStateCard.classList.add("is-ready");
+}
+
 function openLiveNegotiatorFromStoryEmptyState() {
   setActiveTab("live-negotiator");
   if (el.intent) {
@@ -2149,6 +2189,7 @@ function renderStoryTimelineProgress(count, selectedIndex) {
     const hintVariant = safeCount === 0 ? "neutral" : hasPendingVideoJobs ? "neutral" : "ok";
     setStatusPill(el.storyTimelineProgressHint, hintText, hintVariant);
   }
+  return progressPercent;
 }
 
 function renderStoryTimelineList() {
@@ -2172,6 +2213,14 @@ function renderStoryTimelineList() {
     const hint = document.createElement("p");
     hint.className = "story-timeline-list-empty-hint";
     hint.textContent = "Send a story intent from Live Negotiator to populate segment cards, asset refs, and progress.";
+
+    const status = document.createElement("div");
+    status.className = "story-timeline-list-empty-status";
+    status.append(
+      createStoryTimelineEmptyStatusPill("timeline_idle"),
+      createStoryTimelineEmptyStatusPill("assets=none"),
+      createStoryTimelineEmptyStatusPill("progress=0%"),
+    );
 
     const preview = document.createElement("div");
     preview.className = "story-timeline-list-empty-preview";
@@ -2222,7 +2271,7 @@ function renderStoryTimelineList() {
 
     actions.append(action, actionTemplate);
 
-    empty.append(icon, title, hint, preview, actions);
+    empty.append(icon, title, hint, status, preview, actions);
     el.storyTimelineList.append(empty);
     return;
   }
@@ -2294,9 +2343,12 @@ function renderStoryTimeline() {
   const imageAssetCount = segments.filter((segment) => typeof segment.imageRef === "string").length;
   const videoAssetCount = segments.filter((segment) => typeof segment.videoRef === "string").length;
   const audioAssetCount = segments.filter((segment) => typeof segment.audioRef === "string").length;
+  const selectedForProgress = count > 0 ? state.storyTimelineSelectedIndex : 0;
+  const progressPercent = count > 0 ? Math.round((Math.min(Math.max(selectedForProgress, 1), count) / count) * 100) : 0;
   setText(el.storyTimelineTitle, state.storyTimelineTitle ?? "-");
   setText(el.storyTimelineCount, String(count));
   setText(el.storyTimelinePendingJobs, String(pendingJobs));
+  renderStoryTimelineStateCard(count, pendingJobs, progressPercent);
 
   if (count === 0) {
     setStatusPill(el.storyTimelineMode, "timeline_idle", "neutral");

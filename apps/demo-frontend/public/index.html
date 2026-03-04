@@ -422,7 +422,7 @@
       <section class="panel panel-story-timeline">
         <h2><span class="section-badge">Story</span>Story Timeline</h2>
         <p class="story-intro">
-          Review generated narrative segments, scrub selected scene, and track pending video jobs in one lane.
+          Review generated narrative segments, scrub selected scene, and track readiness/progress in one lane.
         </p>
         <div class="story-head-grid">
           <article class="story-stat-card">
@@ -436,6 +436,11 @@
           <article class="story-stat-card">
             <span class="story-stat-label">Pending Video Jobs</span>
             <strong id="storyTimelinePendingJobs" class="story-stat-value">0</strong>
+          </article>
+          <article id="storyTimelineStateCard" class="story-stat-card story-stat-card-state is-idle">
+            <span class="story-stat-label">Timeline State</span>
+            <strong id="storyTimelineProgressKpi" class="story-stat-value">0%</strong>
+            <span id="storyTimelineNextCue" class="story-stat-note">Run story intent to initialize timeline</span>
           </article>
         </div>
         <div class="story-status-row">
@@ -526,18 +531,23 @@
             <p class="story-timeline-list-empty-hint">
               Send a story intent from Live Negotiator to populate segment cards, asset refs, and progress.
             </p>
+            <div class="story-timeline-list-empty-status">
+              <span class="status-pill status-neutral">timeline_idle</span>
+              <span class="status-pill status-neutral">assets=none</span>
+              <span class="status-pill status-neutral">progress=0%</span>
+            </div>
             <div class="story-timeline-list-empty-preview" aria-hidden="true">
               <article class="story-timeline-list-empty-card">
                 <strong>Segment #1</strong>
-                <span>Hook scene · image cue</span>
+                <span>Hook scene - image cue</span>
               </article>
               <article class="story-timeline-list-empty-card">
                 <strong>Segment #2</strong>
-                <span>Conflict beat · narration cue</span>
+                <span>Conflict beat - narration cue</span>
               </article>
               <article class="story-timeline-list-empty-card">
                 <strong>Segment #3</strong>
-                <span>Resolution beat · video render</span>
+                <span>Resolution beat - video render</span>
               </article>
             </div>
             <div class="story-timeline-list-empty-actions">
