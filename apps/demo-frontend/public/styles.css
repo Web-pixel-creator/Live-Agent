@@ -3061,6 +3061,11 @@ button:focus-visible {
   isolation: isolate;
 }
 
+.story-empty-state.is-pending {
+  border-radius: calc(var(--radius) - 5px);
+  background: color-mix(in oklch, var(--accent-foreground) 7%, transparent);
+}
+
 .story-empty-state::before {
   content: "";
   position: absolute;
@@ -3074,6 +3079,13 @@ button:focus-visible {
   pointer-events: none;
   z-index: 0;
   animation: story-empty-sheen 7.5s linear infinite;
+}
+
+.story-empty-state.is-pending::before {
+  background:
+    radial-gradient(280px 120px at 15% 50%, color-mix(in oklch, var(--accent-foreground) 22%, transparent), transparent 72%),
+    radial-gradient(260px 120px at 85% 45%, color-mix(in oklch, var(--primary) 14%, transparent), transparent 74%);
+  opacity: 0.86;
 }
 
 .story-empty-state > * {
@@ -3103,6 +3115,15 @@ button:focus-visible {
   animation: story-empty-float 4.8s ease-in-out infinite;
 }
 
+.story-empty-icon.is-pending {
+  border-color: color-mix(in oklch, var(--accent-foreground) 50%, var(--border));
+  background: color-mix(in oklch, var(--accent-foreground) 20%, transparent);
+  color: color-mix(in oklch, var(--foreground) 96%, var(--accent-foreground));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 14%, transparent),
+    0 10px 20px -18px color-mix(in oklch, var(--accent-foreground) 62%, transparent);
+}
+
 .story-empty-icon-glyph {
   width: 20px;
   height: 20px;
@@ -3116,6 +3137,13 @@ button:focus-visible {
   box-shadow:
     0 0 0 1px color-mix(in oklch, var(--primary) 44%, transparent),
     0 0 18px -12px color-mix(in oklch, var(--primary) 80%, transparent);
+}
+
+.story-empty-icon.is-pending .story-empty-icon-glyph {
+  background: color-mix(in oklch, var(--accent-foreground) 34%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--accent-foreground) 44%, transparent),
+    0 0 18px -12px color-mix(in oklch, var(--accent-foreground) 82%, transparent);
 }
 
 .story-empty-icon-label {
@@ -3364,6 +3392,14 @@ button:focus-visible {
   overflow: hidden;
 }
 
+.story-timeline-list-empty.is-pending {
+  border-style: solid;
+  border-color: color-mix(in oklch, var(--accent-foreground) 42%, var(--border-soft));
+  background:
+    radial-gradient(300px 130px at 12% -10%, color-mix(in oklch, var(--accent-foreground) 14%, transparent), transparent 74%),
+    color-mix(in oklch, var(--surface-control) 92%, transparent);
+}
+
 .story-timeline-list-empty::before {
   content: "";
   position: absolute;
@@ -3377,6 +3413,12 @@ button:focus-visible {
   pointer-events: none;
   z-index: 0;
   animation: story-empty-sheen 8s linear infinite;
+}
+
+.story-timeline-list-empty.is-pending::before {
+  background:
+    radial-gradient(240px 90px at 18% 54%, color-mix(in oklch, var(--accent-foreground) 22%, transparent), transparent 72%),
+    radial-gradient(220px 90px at 82% 44%, color-mix(in oklch, var(--primary) 16%, transparent), transparent 74%);
 }
 
 .story-timeline-list-empty > * {
@@ -3407,6 +3449,16 @@ button:focus-visible {
   animation: story-empty-float 5.4s ease-in-out infinite;
 }
 
+.story-timeline-list-empty-icon.is-pending {
+  border-color: color-mix(in oklch, var(--accent-foreground) 50%, transparent);
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in oklch, var(--accent-foreground) 30%, transparent),
+      color-mix(in oklch, var(--primary) 10%, transparent)
+    );
+}
+
 .story-timeline-list-empty-icon-glyph {
   width: 18px;
   height: 18px;
@@ -3420,6 +3472,13 @@ button:focus-visible {
   box-shadow:
     0 0 0 1px color-mix(in oklch, var(--primary) 42%, transparent),
     0 0 16px -10px color-mix(in oklch, var(--primary) 78%, transparent);
+}
+
+.story-timeline-list-empty-icon.is-pending .story-timeline-list-empty-icon-glyph {
+  background: color-mix(in oklch, var(--accent-foreground) 34%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--accent-foreground) 42%, transparent),
+    0 0 16px -10px color-mix(in oklch, var(--accent-foreground) 76%, transparent);
 }
 
 .story-timeline-list-empty-icon-label {

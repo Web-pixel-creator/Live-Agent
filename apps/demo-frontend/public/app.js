@@ -2407,7 +2407,9 @@ function renderStoryTimelineStateCard(count, pendingJobs, progressPercent) {
     el.storyTimelineProgressKpi.textContent = `${Math.max(0, Math.floor(progressPercent))}%`;
   }
   if (el.storyTimelineNextCue) {
-    if (count === 0) {
+    if (count === 0 && pendingJobs > 0) {
+      el.storyTimelineNextCue.textContent = "Queue active: waiting for first segment";
+    } else if (count === 0) {
       el.storyTimelineNextCue.textContent = "Run story intent to initialize timeline";
     } else if (pendingJobs > 0) {
       const jobsLabel = pendingJobs === 1 ? "1 video job pending" : `${pendingJobs} video jobs pending`;
@@ -2420,6 +2422,10 @@ function renderStoryTimelineStateCard(count, pendingJobs, progressPercent) {
     return;
   }
   el.storyTimelineStateCard.classList.remove("is-idle", "is-pending", "is-ready");
+  if (count === 0 && pendingJobs > 0) {
+    el.storyTimelineStateCard.classList.add("is-pending");
+    return;
+  }
   if (count === 0) {
     el.storyTimelineStateCard.classList.add("is-idle");
     return;
@@ -2471,48 +2477,60 @@ function openDeviceNodesFromOperatorQuickStart() {
   }
 }
 
-function renderStoryTimelinePreviewEmptyState() {
+function renderStoryTimelinePreviewEmptyState(pendingJobs = 0) {
   if (!el.storyTimelinePreview) {
     return;
   }
+  const hasPendingJobs = Number.isFinite(pendingJobs) && pendingJobs > 0;
   el.storyTimelinePreview.innerHTML = "";
   const wrapper = document.createElement("div");
   wrapper.className = "story-empty-state";
+  wrapper.classList.toggle("is-pending", hasPendingJobs);
 
   const icon = document.createElement("span");
   icon.className = "story-empty-icon";
+  if (hasPendingJobs) {
+    icon.classList.add("is-pending");
+  }
   icon.setAttribute("aria-hidden", "true");
   const iconGlyph = document.createElement("span");
   iconGlyph.className = "story-empty-icon-glyph";
-  iconGlyph.textContent = "✦";
+  iconGlyph.textContent = hasPendingJobs ? "..." : "ST";
   const iconLabel = document.createElement("span");
   iconLabel.className = "story-empty-icon-label";
-  iconLabel.textContent = "Storyboard";
+  iconLabel.textContent = hasPendingJobs ? "Rendering" : "Storyboard";
   icon.append(iconGlyph, iconLabel);
 
   const title = document.createElement("p");
   title.className = "story-empty-title";
-  title.textContent = "No timeline yet";
+  title.textContent = hasPendingJobs ? "Generating first timeline segments" : "No timeline yet";
 
   const lead = document.createElement("p");
   lead.className = "story-empty-lead";
-  lead.textContent = "Generate your first narrative run to unlock timeline, segment cards, and asset previews.";
+  lead.textContent = hasPendingJobs
+    ? "Story jobs are running. Timeline cards and asset previews will appear automatically."
+    : "Generate your first narrative run to unlock timeline, segment cards, and asset previews.";
 
   const hint = document.createElement("p");
   hint.className = "story-empty-hint";
-  hint.append("Run a ");
+  hint.append(hasPendingJobs ? "Keep this tab open or adjust prompt in " : "Run a ");
   const code = document.createElement("code");
-  code.textContent = "story:";
-  hint.append(code, " intent in Live Negotiator to generate segments, asset refs, and progress data.");
+  code.textContent = hasPendingJobs ? "Live Negotiator" : "story:";
+  hint.append(
+    code,
+    hasPendingJobs
+      ? " while the queue is processing. New segments will stream in here."
+      : " intent in Live Negotiator to generate segments, asset refs, and progress data.",
+  );
 
   const kpis = document.createElement("div");
   kpis.className = "story-empty-kpis";
   kpis.setAttribute("aria-label", "Story timeline expected outputs");
 
   const kpiItems = [
-    { label: "Segments", value: "3+" },
-    { label: "Asset Mix", value: "img/audio/video" },
-    { label: "First Render", value: "< 60s target" },
+    { label: "Segments", value: hasPendingJobs ? "queued" : "3+" },
+    { label: "Asset Mix", value: hasPendingJobs ? "warming up" : "img/audio/video" },
+    { label: "First Render", value: hasPendingJobs ? "queue active" : "< 60s target" },
   ];
   for (const kpiItem of kpiItems) {
     const card = document.createElement("article");
@@ -2532,7 +2550,7 @@ function renderStoryTimelinePreviewEmptyState() {
 
   const summary = document.createElement("summary");
   summary.className = "story-empty-details-summary";
-  summary.textContent = "Preview story arc and expected outputs";
+  summary.textContent = hasPendingJobs ? "Queue timeline checkpoints" : "Preview story arc and expected outputs";
   details.append(summary);
 
   const detailsBody = document.createElement("div");
@@ -2542,9 +2560,9 @@ function renderStoryTimelinePreviewEmptyState() {
   checklist.className = "story-empty-checklist";
   checklist.setAttribute("aria-label", "Story timeline readiness checklist");
   const checklistItems = [
-    "Segment cards with scrubber and selector",
-    "Image, audio, and video asset references",
-    "Timeline progress and pending video jobs",
+    hasPendingJobs ? "Waiting for first segment payload from storyteller" : "Segment cards with scrubber and selector",
+    hasPendingJobs ? "Queue is preparing image/audio/video references" : "Image, audio, and video asset references",
+    hasPendingJobs ? "Timeline progress will unlock after first segment" : "Timeline progress and pending video jobs",
   ];
   for (const itemText of checklistItems) {
     const item = document.createElement("li");
@@ -2600,7 +2618,9 @@ function renderStoryTimelinePreviewEmptyState() {
 
   const ctaNote = document.createElement("p");
   ctaNote.className = "story-empty-cta-note";
-  ctaNote.textContent = "Tip: start with template for a judge-friendly Hook -> Conflict -> Resolution arc.";
+  ctaNote.textContent = hasPendingJobs
+    ? "Queue is active. You can still refine prompt while processing continues."
+    : "Tip: start with template for a judge-friendly Hook -> Conflict -> Resolution arc.";
 
   actions.append(action, actionTemplate);
   wrapper.append(icon, title, lead, hint, kpis, details, actions, ctaNote);
@@ -2613,7 +2633,7 @@ function renderStoryTimelinePreview(segment) {
   }
   if (!segment) {
     el.storyTimelinePreview.classList.add("story-timeline-preview-empty");
-    renderStoryTimelinePreviewEmptyState();
+    renderStoryTimelinePreviewEmptyState(state.storyTimelinePendingJobs);
     return;
   }
   el.storyTimelinePreview.classList.remove("story-timeline-preview-empty");
@@ -2680,7 +2700,12 @@ function renderStoryTimelineProgress(count, selectedIndex) {
     el.storyTimelineProgressTrack.classList.toggle("is-active", safeCount > 0 && !hasPendingVideoJobs);
   }
   if (el.storyTimelineProgressHint) {
-    const hintText = safeCount > 0 ? `${resolvedIndex}/${safeCount} segments` : "0/0 segments";
+    const hintText =
+      safeCount > 0
+        ? `${resolvedIndex}/${safeCount} segments`
+        : hasPendingVideoJobs
+          ? "queueing first segment"
+          : "0/0 segments";
     const hintVariant = safeCount === 0 ? "neutral" : hasPendingVideoJobs ? "neutral" : "ok";
     setStatusPill(el.storyTimelineProgressHint, hintText, hintVariant);
   }
@@ -2719,35 +2744,51 @@ function renderStoryTimelineList() {
   }
   el.storyTimelineList.innerHTML = "";
   const segments = state.storyTimelineSegments;
+  const pendingJobs = Math.max(0, Math.floor(state.storyTimelinePendingJobs ?? 0));
+  const hasPendingJobs = pendingJobs > 0;
   if (segments.length === 0) {
     const empty = document.createElement("div");
     empty.className = "story-timeline-list-empty";
+    empty.classList.toggle("is-pending", hasPendingJobs);
     const icon = document.createElement("span");
     icon.className = "story-timeline-list-empty-icon";
+    if (hasPendingJobs) {
+      icon.classList.add("is-pending");
+    }
     icon.setAttribute("aria-hidden", "true");
     const iconGlyph = document.createElement("span");
     iconGlyph.className = "story-timeline-list-empty-icon-glyph";
-    iconGlyph.textContent = "◉";
+    iconGlyph.textContent = hasPendingJobs ? "..." : "TL";
     const iconLabel = document.createElement("span");
     iconLabel.className = "story-timeline-list-empty-icon-label";
-    iconLabel.textContent = "Timeline";
+    iconLabel.textContent = hasPendingJobs ? "Rendering" : "Timeline";
     icon.append(iconGlyph, iconLabel);
 
     const title = document.createElement("p");
     title.className = "story-timeline-list-empty-title";
-    title.textContent = "No timeline segments yet";
+    title.textContent = hasPendingJobs ? "Timeline generation in progress" : "No timeline segments yet";
 
     const hint = document.createElement("p");
     hint.className = "story-timeline-list-empty-hint";
-    hint.textContent = "Send a story intent from Live Negotiator to populate segment cards, asset refs, and progress.";
+    hint.textContent = hasPendingJobs
+      ? "Story queue is active. Segment cards will appear here as soon as the first payload arrives."
+      : "Send a story intent from Live Negotiator to populate segment cards, asset refs, and progress.";
 
     const status = document.createElement("div");
     status.className = "story-timeline-list-empty-status";
-    status.append(
-      createStoryTimelineEmptyStatusPill("timeline_idle"),
-      createStoryTimelineEmptyStatusPill("assets=none"),
-      createStoryTimelineEmptyStatusPill("progress=0%"),
-    );
+    if (hasPendingJobs) {
+      status.append(
+        createStoryTimelineEmptyStatusPill("timeline_pending_video"),
+        createStoryTimelineEmptyStatusPill("assets=queueing"),
+        createStoryTimelineEmptyStatusPill("progress=queued"),
+      );
+    } else {
+      status.append(
+        createStoryTimelineEmptyStatusPill("timeline_idle"),
+        createStoryTimelineEmptyStatusPill("assets=none"),
+        createStoryTimelineEmptyStatusPill("progress=0%"),
+      );
+    }
 
     const preview = document.createElement("div");
     preview.className = "story-timeline-list-empty-preview";
@@ -2807,7 +2848,9 @@ function renderStoryTimelineList() {
 
     const ctaNote = document.createElement("p");
     ctaNote.className = "story-timeline-list-empty-cta";
-    ctaNote.textContent = "Start a story run to replace placeholders with live segment evidence.";
+    ctaNote.textContent = hasPendingJobs
+      ? "Processing is active. This list will auto-populate with live segment evidence."
+      : "Start a story run to replace placeholders with live segment evidence.";
 
     empty.append(icon, title, hint, status, previewDetails, actions, ctaNote);
     el.storyTimelineList.append(empty);
@@ -2889,16 +2932,16 @@ function renderStoryTimeline() {
   syncStoryTimelineGuidance(count, pendingJobs);
   renderStoryTimelineStateCard(count, pendingJobs, progressPercent);
 
-  if (count === 0) {
-    setStatusPill(el.storyTimelineMode, "timeline_idle", "neutral");
-  } else if (pendingJobs > 0) {
+  if (pendingJobs > 0) {
     setStatusPill(el.storyTimelineMode, "timeline_pending_video", "neutral");
+  } else if (count === 0) {
+    setStatusPill(el.storyTimelineMode, "timeline_idle", "neutral");
   } else {
     setStatusPill(el.storyTimelineMode, "timeline_ready", "ok");
   }
 
   if (count === 0) {
-    setStatusPill(el.storyTimelineAssetMix, "assets=none", "neutral");
+    setStatusPill(el.storyTimelineAssetMix, pendingJobs > 0 ? "assets=queueing" : "assets=none", "neutral");
   } else {
     const assetText = `assets=i${imageAssetCount}/v${videoAssetCount}/a${audioAssetCount}`;
     const hasAnyAssets = imageAssetCount + videoAssetCount + audioAssetCount > 0;
