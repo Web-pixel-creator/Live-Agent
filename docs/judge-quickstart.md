@@ -75,10 +75,9 @@ npm run verify:release
    - Agent Usage Evidence
    - Cost & Tokens Evidence
 4. Session export controls:
-   - `Quick Export` (last successful format, fallback to Markdown until audio evidence is available)
-   - `Formats -> Export Markdown`
-   - `Formats -> Export JSON`
-   - `Formats -> Export Audio (WAV)`
+   - `Export Session -> Export Markdown`
+   - `Export Session -> Export JSON`
+   - `Export Session -> Export Audio (WAV)`
 5. Story Timeline panel:
    - Confirm `Timeline State` KPI transitions (`0%` idle -> ready/pending) as story output arrives.
    - Segment scrubber/selector reflects `output.story.timeline`

@@ -58,7 +58,6 @@ const state = {
   operatorIssuesOnly: false,
   operatorSummaryUserRefreshed: false,
   exportHistory: [],
-  exportQuickKind: "markdown",
 };
 
 const PENDING_CLIENT_EVENT_MAX_AGE_MS = 2 * 60 * 1000;
@@ -90,9 +89,6 @@ const el = {
   sessionState: document.getElementById("sessionState"),
   modeStatus: document.getElementById("modeStatus"),
   themeToggleBtn: document.getElementById("themeToggleBtn"),
-  exportQuickBtn: document.getElementById("exportQuickBtn"),
-  exportQuickIcon: document.getElementById("exportQuickIcon"),
-  exportQuickLabel: document.getElementById("exportQuickLabel"),
   exportMenu: document.getElementById("exportMenu"),
   exportMenuSummaryIcon: document.getElementById("exportMenuSummaryIcon"),
   exportMenuSummaryLabel: document.getElementById("exportMenuSummaryLabel"),
@@ -1712,8 +1708,17 @@ function resolveExportStatusKind(statusText) {
 }
 
 function resolveExportMenuSummaryLabel(statusText) {
-  void statusText;
-  return "Formats";
+  const kind = resolveExportStatusKind(statusText);
+  if (kind === "markdown") {
+    return "Export Session (MD)";
+  }
+  if (kind === "json") {
+    return "Export Session (JSON)";
+  }
+  if (kind === "audio") {
+    return "Export Session (WAV)";
+  }
+  return "Export Session";
 }
 
 function resolveExportMenuSummaryIcon(statusText) {
@@ -1731,63 +1736,6 @@ function resolveExportMenuSummaryIcon(statusText) {
     return "SKIP";
   }
   return "DL";
-}
-
-function normalizeExportQuickKind(value) {
-  if (typeof value !== "string") {
-    return "markdown";
-  }
-  if (value === "markdown" || value === "json" || value === "audio") {
-    return value;
-  }
-  return "markdown";
-}
-
-function resolveExportQuickLabel(kind) {
-  if (kind === "json") {
-    return "Quick Export JSON";
-  }
-  if (kind === "audio") {
-    return "Quick Export Audio";
-  }
-  return "Quick Export Markdown";
-}
-
-function resolveExportQuickIcon(kind) {
-  if (kind === "json") {
-    return "JS";
-  }
-  if (kind === "audio") {
-    return "WAV";
-  }
-  return "MD";
-}
-
-function syncExportQuickButton(hasAudioEvidence = false) {
-  if (!(el.exportQuickBtn instanceof HTMLButtonElement)) {
-    return;
-  }
-  const preferredKind = normalizeExportQuickKind(state.exportQuickKind);
-  const effectiveKind = preferredKind === "audio" && !hasAudioEvidence ? "markdown" : preferredKind;
-  if (el.exportQuickIcon instanceof HTMLElement) {
-    el.exportQuickIcon.textContent = resolveExportQuickIcon(effectiveKind);
-    el.exportQuickIcon.setAttribute("data-export-kind", effectiveKind);
-  }
-  if (el.exportQuickLabel instanceof HTMLElement) {
-    el.exportQuickLabel.textContent = resolveExportQuickLabel(effectiveKind);
-  }
-  if (preferredKind === "audio" && !hasAudioEvidence) {
-    el.exportQuickBtn.title = "Quick export falls back to Markdown until assistant audio is captured";
-  } else if (effectiveKind === "audio") {
-    el.exportQuickBtn.title = "Quick export will download assistant audio evidence";
-  } else {
-    el.exportQuickBtn.title = `Quick export will download ${effectiveKind}`;
-  }
-}
-
-function setExportQuickKind(kind) {
-  state.exportQuickKind = normalizeExportQuickKind(kind);
-  syncExportControlAvailability();
 }
 
 function resolveExportStatusStripLabel(statusText) {
@@ -2579,7 +2527,6 @@ function syncExportControlAvailability() {
       el.exportAudioHint.textContent = `Assistant playback evidence (${turnsLabel}, ${sizeLabel}${trimLabel})`;
     }
   }
-  syncExportQuickButton(hasAudioEvidence);
 }
 
 function resetAssistantAudioExport() {
@@ -2895,34 +2842,12 @@ function closeExportMenu() {
   }
 }
 
-function runQuickSessionExport() {
-  const preferredKind = normalizeExportQuickKind(state.exportQuickKind);
-  const hasAudioEvidence =
-    Array.isArray(state.assistantAudioChunks) &&
-    state.assistantAudioChunks.length > 0 &&
-    Number.isFinite(state.assistantAudioBytesTotal) &&
-    state.assistantAudioBytesTotal > 0;
-  if (preferredKind === "json") {
-    exportSessionJson();
-    return;
-  }
-  if (preferredKind === "audio") {
-    if (hasAudioEvidence) {
-      exportSessionAudio();
-      return;
-    }
-    appendTranscript("system", "Quick export fallback: audio evidence not ready, exporting markdown");
-  }
-  exportSessionMarkdown();
-}
-
 function exportSessionMarkdown() {
   const payload = buildSessionExportPayload();
   const markdown = toMarkdownExport(payload);
   const fileName = `${buildSessionExportBaseName()}.md`;
   triggerDownload(fileName, markdown, "text/markdown;charset=utf-8");
   setExportStatus(`markdown exported (${fileName})`);
-  setExportQuickKind("markdown");
   appendTranscript("system", `Session markdown export downloaded: ${fileName}`);
 }
 
@@ -2931,7 +2856,6 @@ function exportSessionJson() {
   const fileName = `${buildSessionExportBaseName()}.json`;
   triggerDownload(fileName, `${JSON.stringify(payload, null, 2)}\n`, "application/json;charset=utf-8");
   setExportStatus(`json exported (${fileName})`);
-  setExportQuickKind("json");
   appendTranscript("system", `Session JSON export downloaded: ${fileName}`);
 }
 
@@ -2951,7 +2875,6 @@ function exportSessionAudio() {
   triggerDownload(fileName, wavBytes, "audio/wav");
   const sizeText = formatByteSize(pcmBytes.byteLength);
   setExportStatus(`audio exported (${fileName})`);
-  setExportQuickKind("audio");
   appendTranscript("system", `Session audio export downloaded: ${fileName} (${sizeText})`);
 }
 
@@ -8871,12 +8794,6 @@ function bindEvents() {
   }
   document.getElementById("connectBtn").addEventListener("click", connectWebSocket);
   document.getElementById("disconnectBtn").addEventListener("click", disconnectWebSocket);
-  if (el.exportQuickBtn) {
-    el.exportQuickBtn.addEventListener("click", () => {
-      runQuickSessionExport();
-      closeExportMenu();
-    });
-  }
   if (el.exportMarkdownBtn) {
     el.exportMarkdownBtn.addEventListener("click", () => {
       exportSessionMarkdown();

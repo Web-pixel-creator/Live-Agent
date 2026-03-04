@@ -14,9 +14,6 @@ test("demo frontend wires session export controls and runtime helpers", () => {
   const operatorGuideSource = readFileSync(operatorGuidePath, "utf8");
 
   const requiredHtmlTokens = [
-    'id="exportQuickBtn"',
-    'id="exportQuickIcon"',
-    'id="exportQuickLabel"',
     'id="exportMenu"',
     'id="exportMenuSummaryIcon"',
     'id="exportMenuSummaryLabel"',
@@ -27,8 +24,7 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     'id="exportAudioBtn"',
     'id="exportAudioHint"',
     'id="exportStatus"',
-    "Quick Export Markdown",
-    "Formats",
+    "Export Session",
     "Export Markdown",
     "Export JSON",
     "Export Audio (WAV)",
@@ -44,10 +40,6 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "resolveExportStatusStripLabel",
     "resolveExportMenuSummaryIcon",
     "resolveExportMenuSummaryLabel",
-    "normalizeExportQuickKind",
-    "syncExportQuickButton",
-    "setExportQuickKind",
-    "runQuickSessionExport",
     "renderExportMenuHistory",
     "pushExportHistory",
     "syncExportControlAvailability",
@@ -64,10 +56,9 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "Session markdown export downloaded",
     "Session JSON export downloaded",
     "Session audio export downloaded",
-    "Quick export fallback: audio evidence not ready, exporting markdown",
     "Last export:",
-    "Quick Export Markdown",
-    "Formats",
+    "Export Session",
+    "Export Session (WAV)",
     "exported markdown",
     "no audio",
     "No exports yet",
@@ -94,7 +85,7 @@ test("demo frontend wires session export controls and runtime helpers", () => {
   }
 
   assert.ok(
-    operatorGuideSource.includes("Quick Export"),
-    "operator guide missing split export controls note",
+    operatorGuideSource.includes("single `Export Session` dropdown"),
+    "operator guide missing single export dropdown note",
   );
 });

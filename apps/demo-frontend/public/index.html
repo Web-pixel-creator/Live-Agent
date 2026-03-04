@@ -105,48 +105,42 @@
               <button id="newSessionBtn" class="button-muted">New Session ID</button>
             </div>
             <div class="action-group action-group-secondary action-group-export">
-              <div class="export-split">
-                <button id="exportQuickBtn" type="button" class="button-muted export-quick-btn">
-                  <span id="exportQuickIcon" class="export-menu-summary-icon" aria-hidden="true" data-export-kind="markdown">MD</span>
-                  <span id="exportQuickLabel">Quick Export Markdown</span>
-                </button>
-                <details id="exportMenu" class="export-menu export-menu-formats">
-                  <summary class="button-muted">
-                    <span id="exportMenuSummaryIcon" class="export-menu-summary-icon" aria-hidden="true">DL</span>
-                    <span id="exportMenuSummaryLabel">Formats</span>
-                  </summary>
-                  <div class="export-menu-list" role="menu" aria-label="Session export options">
-                    <p id="exportMenuMeta" class="export-menu-meta">Last export: idle</p>
-                    <button id="exportMarkdownBtn" type="button" class="button-muted export-menu-item" role="menuitem">
-                      <span class="export-menu-item-icon" aria-hidden="true">MD</span>
-                      <span class="export-menu-item-copy">
-                        <span class="export-menu-item-label">Export Markdown</span>
-                        <span class="export-menu-item-hint">Judge-ready narrative transcript</span>
-                      </span>
-                    </button>
-                    <button id="exportJsonBtn" type="button" class="button-muted export-menu-item" role="menuitem">
-                      <span class="export-menu-item-icon" aria-hidden="true">JS</span>
-                      <span class="export-menu-item-copy">
-                        <span class="export-menu-item-label">Export JSON</span>
-                        <span class="export-menu-item-hint">Structured telemetry payload</span>
-                      </span>
-                    </button>
-                    <button id="exportAudioBtn" type="button" class="button-muted export-menu-item" role="menuitem">
-                      <span class="export-menu-item-icon" aria-hidden="true">WAV</span>
-                      <span class="export-menu-item-copy">
-                        <span class="export-menu-item-label">Export Audio (WAV)</span>
-                        <span id="exportAudioHint" class="export-menu-item-hint">Assistant playback evidence (capture required)</span>
-                      </span>
-                    </button>
-                    <div class="export-menu-history">
-                      <p class="export-menu-history-title">Recent exports</p>
-                      <ol id="exportMenuHistory" class="export-menu-history-list">
-                        <li class="export-menu-history-empty">No exports yet</li>
-                      </ol>
-                    </div>
+              <details id="exportMenu" class="export-menu">
+                <summary class="button-muted">
+                  <span id="exportMenuSummaryIcon" class="export-menu-summary-icon" aria-hidden="true" data-export-kind="idle">DL</span>
+                  <span id="exportMenuSummaryLabel">Export Session</span>
+                </summary>
+                <div class="export-menu-list" role="menu" aria-label="Session export options">
+                  <p id="exportMenuMeta" class="export-menu-meta">Last export: idle</p>
+                  <button id="exportMarkdownBtn" type="button" class="button-muted export-menu-item" role="menuitem">
+                    <span class="export-menu-item-icon" aria-hidden="true">MD</span>
+                    <span class="export-menu-item-copy">
+                      <span class="export-menu-item-label">Export Markdown</span>
+                      <span class="export-menu-item-hint">Judge-ready narrative transcript</span>
+                    </span>
+                  </button>
+                  <button id="exportJsonBtn" type="button" class="button-muted export-menu-item" role="menuitem">
+                    <span class="export-menu-item-icon" aria-hidden="true">JS</span>
+                    <span class="export-menu-item-copy">
+                      <span class="export-menu-item-label">Export JSON</span>
+                      <span class="export-menu-item-hint">Structured telemetry payload</span>
+                    </span>
+                  </button>
+                  <button id="exportAudioBtn" type="button" class="button-muted export-menu-item" role="menuitem">
+                    <span class="export-menu-item-icon" aria-hidden="true">WAV</span>
+                    <span class="export-menu-item-copy">
+                      <span class="export-menu-item-label">Export Audio (WAV)</span>
+                      <span id="exportAudioHint" class="export-menu-item-hint">Assistant playback evidence (capture required)</span>
+                    </span>
+                  </button>
+                  <div class="export-menu-history">
+                    <p class="export-menu-history-title">Recent exports</p>
+                    <ol id="exportMenuHistory" class="export-menu-history-list">
+                      <li class="export-menu-history-empty">No exports yet</li>
+                    </ol>
                   </div>
-                </details>
-              </div>
+                </div>
+              </details>
             </div>
           </div>
           <div class="meta-row meta-row-status meta-row-status-live">
