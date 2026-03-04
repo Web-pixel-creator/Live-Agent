@@ -2018,6 +2018,49 @@ button:focus-visible {
   box-shadow:
     inset 0 1px 0 color-mix(in oklch, var(--foreground) 11%, transparent),
     0 8px 16px -18px color-mix(in oklch, var(--primary) 46%, transparent);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background 150ms ease;
+}
+
+.meta-row-status-live > div.status-item-variant-neutral {
+  border-color: color-mix(in oklch, var(--primary) 20%, var(--border));
+  background:
+    radial-gradient(220px 80px at 8% -24%, color-mix(in oklch, var(--primary) 11%, transparent), transparent 72%),
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--surface-control) 84%, transparent),
+      color-mix(in oklch, var(--surface-panel-2) 96%, black 4%)
+    );
+}
+
+.meta-row-status-live > div.status-item-variant-ok {
+  border-color: color-mix(in oklch, var(--chart-1) 34%, var(--border));
+  background:
+    radial-gradient(220px 80px at 8% -24%, color-mix(in oklch, var(--chart-1) 14%, transparent), transparent 72%),
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--surface-control) 84%, transparent),
+      color-mix(in oklch, var(--surface-panel-2) 96%, black 4%)
+    );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 11%, transparent),
+    0 8px 16px -18px color-mix(in oklch, var(--chart-1) 44%, transparent);
+}
+
+.meta-row-status-live > div.status-item-variant-fail {
+  border-color: color-mix(in oklch, var(--destructive) 34%, var(--border));
+  background:
+    radial-gradient(220px 80px at 8% -24%, color-mix(in oklch, var(--destructive) 13%, transparent), transparent 72%),
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--surface-control) 84%, transparent),
+      color-mix(in oklch, var(--surface-panel-2) 96%, black 4%)
+    );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--foreground) 11%, transparent),
+    0 8px 16px -18px color-mix(in oklch, var(--destructive) 44%, transparent);
 }
 
 .meta-row-status-live .status-item-wide {

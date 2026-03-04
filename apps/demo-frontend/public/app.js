@@ -3370,6 +3370,20 @@ function syncOperatorSignalFromStatus(node) {
   syncOperatorDemoSummaryKpi(node);
 }
 
+function syncLiveStatusItemVariant(node, variant) {
+  if (!(node instanceof HTMLElement)) {
+    return;
+  }
+  const statusItem = node.closest(".meta-row-status-live .status-item");
+  if (!(statusItem instanceof HTMLElement)) {
+    return;
+  }
+
+  statusItem.classList.remove("status-item-variant-neutral", "status-item-variant-ok", "status-item-variant-fail");
+  const normalizedVariant = variant === "ok" || variant === "fail" ? variant : "neutral";
+  statusItem.classList.add(`status-item-variant-${normalizedVariant}`);
+}
+
 function setStatusPill(node, text, variant) {
   if (!node) {
     return;
@@ -3381,7 +3395,9 @@ function setStatusPill(node, text, variant) {
   }
   node.textContent = resolveStatusPillDisplayText(statusCode);
   node.className = "status-pill";
-  if (variant === "ok") {
+  const normalizedVariant = variant === "ok" || variant === "fail" ? variant : "neutral";
+  syncLiveStatusItemVariant(node, normalizedVariant);
+  if (normalizedVariant === "ok") {
     node.classList.add("status-ok");
     if (operatorCard) {
       applyOperatorCardVisibility(operatorCard);
@@ -3396,7 +3412,7 @@ function setStatusPill(node, text, variant) {
     syncOperatorSignalFromStatus(node);
     return;
   }
-  if (variant === "fail") {
+  if (normalizedVariant === "fail") {
     node.classList.add("status-fail");
     if (operatorCard) {
       applyOperatorCardVisibility(operatorCard);
