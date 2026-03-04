@@ -1,28 +1,28 @@
 {
-  "generatedAt": "2026-03-04T05:55:36.141Z",
+  "generatedAt": "2026-03-04T06:13:28.517Z",
   "ok": true,
   "policyPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 279,
   "violations": 0,
-  "roundTripMs": 52,
+  "roundTripMs": 65,
   "costEstimate": {
     "currency": "USD",
-    "geminiLiveUsd": 0.023902,
+    "geminiLiveUsd": 0.023904,
     "imagenUsd": 0.12,
     "veoUsd": 0.36,
     "ttsUsd": 0.024,
-    "totalUsd": 0.527902,
+    "totalUsd": 0.527904,
     "source": "runtime_estimate"
   },
   "tokensUsed": {
     "input": 2218,
-    "output": 16966,
-    "total": 19184,
+    "output": 16967,
+    "total": 19185,
     "source": "runtime_estimate"
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-03-04T05:55:34.4570634+00:00",
+    "sourceSummaryGeneratedAt": "2026-03-04T06:13:26.5783211+00:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -30,7 +30,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-04T05:55:33.298Z",
+      "latestSeenAt": "2026-03-04T06:13:24.947Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -44,7 +44,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-04T05:55:33.399Z",
+      "latestSeenAt": "2026-03-04T06:13:25.068Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -78,7 +78,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-03-04T05:55:32.953Z",
+        "seenAt": "2026-03-04T06:13:24.548Z",
         "seenAtIsIso": true
       }
     },
@@ -142,10 +142,10 @@
       },
       "latest": {
         "outcome": "succeeded",
-        "pluginId": "demo-plugin-skill-da357d06-36f7-4ce6-9b92-598281a13cf7",
+        "pluginId": "demo-plugin-skill-acd5e303-479b-4f1a-aafa-ed1097165e83",
         "version": 1,
         "signingStatus": "unsigned",
-        "seenAt": "2026-03-04T05:55:33.905Z",
+        "seenAt": "2026-03-04T06:13:25.780Z",
         "seenAtIsIso": true
       }
     },
@@ -192,7 +192,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 279 checks | 52ms ws",
+    "message": "pass | 279 checks | 65ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }
