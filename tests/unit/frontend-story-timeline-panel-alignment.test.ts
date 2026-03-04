@@ -171,6 +171,12 @@ test("demo frontend wires interactive story timeline panel across UI/runtime/doc
   const requiredStyleTokens = [
     ".story-head-grid {",
     "grid-template-columns: repeat(4, minmax(0, 1fr));",
+    ".story-workspace {",
+    "grid-template-columns: 1fr;",
+    ".story-controls-grid {",
+    "grid-template-columns: repeat(3, minmax(0, 1fr));",
+    ".story-preview-column {",
+    "grid-column: 1 / -1;",
     ".story-stat-note {",
     ".story-stat-card-state.is-idle {",
     ".story-stat-card-state.is-pending {",

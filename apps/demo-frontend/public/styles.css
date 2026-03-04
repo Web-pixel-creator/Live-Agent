@@ -2913,7 +2913,7 @@ button:focus-visible {
 
 .story-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+  grid-template-columns: 1fr;
   gap: 18px;
   align-items: start;
 }
@@ -2924,11 +2924,13 @@ button:focus-visible {
 }
 
 .story-controls-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
 .story-preview-column {
   display: grid;
+  grid-column: 1 / -1;
   gap: 10px;
 }
 
