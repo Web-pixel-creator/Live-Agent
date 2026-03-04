@@ -7391,14 +7391,6 @@ function normalizeDeviceNodeListSort(value) {
   return "heartbeat_desc";
 }
 
-function parseIsoTimestampMs(value) {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    return Number.NaN;
-  }
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? parsed : Number.NaN;
-}
-
 function isDeviceNodeStale(node, nowMs = Date.now()) {
   const lastSeenMs = parseIsoTimestampMs(node?.lastSeenAt);
   return !Number.isFinite(lastSeenMs) || nowMs - lastSeenMs > DEVICE_NODE_STALE_AGE_MS;
