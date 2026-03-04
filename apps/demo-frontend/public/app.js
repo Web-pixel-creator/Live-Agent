@@ -2376,7 +2376,9 @@ function collectEntryLane(container, lane) {
   const rows = Array.from(container.querySelectorAll(".entry"));
   const mapped = rows.map((entry) => {
     const titleNode = entry.querySelector("small");
-    const bodyNode = entry.querySelector("div");
+    const bodyNode = entry.classList.contains("task-entry")
+      ? entry.querySelector(".task-entry-export")
+      : entry.querySelector("div");
     return {
       lane,
       title: toNodeText(titleNode, lane),
@@ -2887,6 +2889,85 @@ function renderActiveTaskEmptyState() {
   el.tasks.append(wrapper);
 }
 
+function toTaskText(value, fallback = "n/a") {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : fallback;
+}
+
+function normalizeTaskProgress(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function resolveTaskStatusVariant(status) {
+  const normalized = toTaskText(status, "running").toLowerCase();
+  if (
+    normalized.includes("fail") ||
+    normalized.includes("error") ||
+    normalized.includes("cancel") ||
+    normalized.includes("timeout") ||
+    normalized.includes("reject")
+  ) {
+    return "fail";
+  }
+  if (
+    normalized.includes("complete") ||
+    normalized.includes("success") ||
+    normalized.includes("done") ||
+    normalized.includes("running") ||
+    normalized.includes("active") ||
+    normalized.includes("progress")
+  ) {
+    return "ok";
+  }
+  return "neutral";
+}
+
+function formatTaskUpdatedAt(value) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "updated n/a";
+  }
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) {
+    return "updated n/a";
+  }
+  return `updated ${parsed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}`;
+}
+
+function createTaskStatusPill(statusText) {
+  const pill = document.createElement("span");
+  pill.className = "status-pill";
+  const variant = resolveTaskStatusVariant(statusText);
+  if (variant === "ok") {
+    pill.classList.add("status-ok");
+  } else if (variant === "fail") {
+    pill.classList.add("status-fail");
+  } else {
+    pill.classList.add("status-neutral");
+  }
+  pill.textContent = toTaskText(statusText, "running");
+  return pill;
+}
+
+function createTaskMetaChip(label, value) {
+  const chip = document.createElement("span");
+  chip.className = "task-entry-chip";
+
+  const key = document.createElement("strong");
+  key.textContent = `${label}:`;
+
+  const text = document.createElement("span");
+  text.textContent = value;
+
+  chip.append(key, text);
+  return chip;
+}
+
 function renderTaskList() {
   const records = [...state.taskRecords.values()].sort((left, right) =>
     String(right.updatedAt).localeCompare(String(left.updatedAt)),
@@ -2900,17 +2981,112 @@ function renderTaskList() {
   }
 
   for (const task of records) {
+    const statusText = toTaskText(task.status, "running");
+    const progressPct = normalizeTaskProgress(task.progressPct);
+    const stageText = toTaskText(task.stage, "unknown");
+    const intentText = toTaskText(task.intent, "n/a");
+    const routeText = toTaskText(task.route, "n/a");
+    const runIdText = toTaskText(task.runId, "n/a");
+    const sessionIdText = toTaskText(task.sessionId, "n/a");
+    const updatedText = formatTaskUpdatedAt(task.updatedAt);
+
     const summary = [
-      `status=${task.status}`,
-      `progress=${typeof task.progressPct === "number" ? task.progressPct : 0}%`,
-      `stage=${task.stage ?? "unknown"}`,
-      task.intent ? `intent=${task.intent}` : null,
-      task.route ? `route=${task.route}` : null,
-      task.error ? `error=${task.error}` : null,
+      `status=${statusText}`,
+      `progress=${progressPct}%`,
+      `stage=${stageText}`,
+      `intent=${intentText}`,
+      `route=${routeText}`,
+      `runId=${runIdText}`,
+      `sessionId=${sessionIdText}`,
+      updatedText,
+      task.error ? `error=${toTaskText(task.error, "unknown_error")}` : null,
     ]
       .filter(Boolean)
       .join(" | ");
-    appendEntry(el.tasks, "system", task.taskId, summary);
+
+    const entry = document.createElement("div");
+    entry.className = "entry system task-entry";
+    entry.dataset.taskStatus = statusText.toLowerCase();
+
+    const head = document.createElement("div");
+    head.className = "task-entry-head";
+
+    const title = document.createElement("small");
+    title.className = "task-entry-id";
+    title.textContent = task.taskId;
+
+    head.append(title, createTaskStatusPill(statusText));
+
+    const meta = document.createElement("div");
+    meta.className = "task-entry-meta";
+    meta.append(
+      createTaskMetaChip("stage", stageText),
+      createTaskMetaChip("intent", intentText),
+      createTaskMetaChip("route", routeText),
+    );
+
+    const progressRow = document.createElement("div");
+    progressRow.className = "task-entry-progress-row";
+    const progressLabel = document.createElement("span");
+    progressLabel.textContent = "Progress";
+    const progressValue = document.createElement("span");
+    progressValue.textContent = `${progressPct}%`;
+    progressRow.append(progressLabel, progressValue);
+
+    const progressTrack = document.createElement("div");
+    progressTrack.className = "task-entry-progress-track";
+    progressTrack.setAttribute("role", "progressbar");
+    progressTrack.setAttribute("aria-label", `Task ${task.taskId} progress`);
+    progressTrack.setAttribute("aria-valuemin", "0");
+    progressTrack.setAttribute("aria-valuemax", "100");
+    progressTrack.setAttribute("aria-valuenow", String(progressPct));
+    const progressFill = document.createElement("div");
+    progressFill.className = "task-entry-progress-fill";
+    progressFill.style.width = `${progressPct}%`;
+    progressTrack.append(progressFill);
+
+    const foot = document.createElement("div");
+    foot.className = "task-entry-foot";
+
+    const runRef = document.createElement("span");
+    runRef.className = "task-entry-foot-item";
+    const runKey = document.createElement("strong");
+    runKey.textContent = "run:";
+    const runCode = document.createElement("code");
+    runCode.textContent = runIdText;
+    runCode.title = runIdText === "n/a" ? "" : runIdText;
+    runRef.append(runKey, runCode);
+
+    const sessionRef = document.createElement("span");
+    sessionRef.className = "task-entry-foot-item";
+    const sessionKey = document.createElement("strong");
+    sessionKey.textContent = "session:";
+    const sessionCode = document.createElement("code");
+    sessionCode.textContent = sessionIdText;
+    sessionCode.title = sessionIdText === "n/a" ? "" : sessionIdText;
+    sessionRef.append(sessionKey, sessionCode);
+
+    const updatedRef = document.createElement("span");
+    updatedRef.className = "task-entry-foot-item";
+    updatedRef.textContent = updatedText;
+
+    foot.append(runRef, sessionRef, updatedRef);
+
+    entry.append(head, meta, progressRow, progressTrack, foot);
+
+    if (typeof task.error === "string" && task.error.trim().length > 0) {
+      const error = document.createElement("p");
+      error.className = "task-entry-error";
+      error.textContent = `error: ${task.error.trim()}`;
+      entry.append(error);
+    }
+
+    const exportNode = document.createElement("div");
+    exportNode.className = "task-entry-export sr-only";
+    exportNode.textContent = summary;
+    entry.append(exportNode);
+
+    el.tasks.append(entry);
   }
 }
 

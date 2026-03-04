@@ -2950,6 +2950,121 @@ button:focus-visible {
   min-width: 204px;
 }
 
+.task-entry {
+  border-color: color-mix(in oklch, var(--primary) 32%, var(--border));
+  background:
+    radial-gradient(260px 96px at 0% -30%, color-mix(in oklch, var(--primary) 16%, transparent), transparent 72%),
+    linear-gradient(180deg, var(--surface-control), var(--surface-panel-2));
+  display: grid;
+  gap: 9px;
+}
+
+.task-entry-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.task-entry-id {
+  margin: 0;
+  color: color-mix(in oklch, var(--foreground) 96%, var(--muted-foreground));
+  font-family: var(--font-mono);
+  font-size: 0.79rem;
+  letter-spacing: 0.01em;
+}
+
+.task-entry-head .status-pill {
+  margin-top: 0;
+  font-size: 0.76rem;
+  padding: 3px 9px;
+}
+
+.task-entry-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.task-entry-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 24px;
+  padding: 4px 9px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--surface-control) 92%, transparent);
+  color: color-mix(in oklch, var(--foreground) 91%, var(--muted-foreground));
+  font-size: 0.75rem;
+}
+
+.task-entry-chip strong {
+  color: color-mix(in oklch, var(--foreground) 97%, var(--accent-foreground));
+  font-weight: 650;
+}
+
+.task-entry-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.74rem;
+  color: color-mix(in oklch, var(--muted-foreground) 94%, var(--foreground));
+}
+
+.task-entry-progress-track {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 90%, transparent);
+  background: color-mix(in oklch, var(--surface-control) 86%, transparent);
+  overflow: hidden;
+}
+
+.task-entry-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--primary) 88%, var(--accent-foreground)),
+    color-mix(in oklch, var(--chart-4) 72%, var(--primary))
+  );
+  box-shadow: 0 0 10px -6px color-mix(in oklch, var(--primary) 72%, transparent);
+}
+
+.task-entry-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: color-mix(in oklch, var(--muted-foreground) 95%, var(--foreground));
+  font-size: 0.73rem;
+}
+
+.task-entry-foot-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.task-entry-foot-item code {
+  display: inline-block;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: color-mix(in oklch, var(--foreground) 98%, white);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.task-entry-error {
+  margin: 0;
+  color: color-mix(in oklch, var(--destructive) 90%, white);
+  font-size: 0.76rem;
+}
+
 .device-node-list-hint {
   margin: 12px 0 0;
   color: var(--muted-foreground);
@@ -3787,6 +3902,28 @@ button:focus-visible {
   .active-task-empty-action {
     width: 100%;
     min-width: 0;
+  }
+
+  .task-entry {
+    gap: 8px;
+  }
+
+  .task-entry-chip {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .task-entry-foot {
+    gap: 5px;
+  }
+
+  .task-entry-foot-item {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .task-entry-foot-item code {
+    max-width: 68%;
   }
 
   .story-timeline-list-empty-action {
