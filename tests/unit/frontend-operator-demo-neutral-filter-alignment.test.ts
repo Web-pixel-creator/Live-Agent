@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("operator demo view hides uninitialized neutral cards in focus-critical mode", () => {
+test("operator demo view suppresses uninitialized neutral noise in demo modes", () => {
   const appPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js");
   const readmePath = resolve(process.cwd(), "README.md");
   const operatorGuidePath = resolve(process.cwd(), "docs", "operator-guide.md");
@@ -17,10 +17,11 @@ test("operator demo view hides uninitialized neutral cards in focus-critical mod
     "function isOperatorUninitializedStatusText(value)",
     "function shouldHideOperatorDemoNeutralCard(card, statusNode)",
     "normalizeOperatorBoardMode(state.operatorBoardMode) !== \"demo\"",
-    "state.operatorFocusCriticalOnly !== true",
-    "isOperatorDemoEssentialCard(card)",
     "statusNode.classList.contains(\"status-neutral\")",
-    "isOperatorUninitializedStatusText(getOperatorStatusCode(statusNode));",
+    "!isOperatorUninitializedStatusText(getOperatorStatusCode(statusNode))",
+    "if (state.operatorFocusCriticalOnly === true) {",
+    "return !isOperatorDemoEssentialCard(card);",
+    "isOperatorUninitializedStatusText(getOperatorStatusCode(statusNode))",
     "if (shouldHideOperatorDemoNeutralCard(card, statusNode)) {",
   ];
   for (const token of requiredRuntimeTokens) {
@@ -28,11 +29,11 @@ test("operator demo view hides uninitialized neutral cards in focus-critical mod
   }
 
   assert.ok(
-    readmeSource.includes("auto-hides uninitialized neutral cards"),
+    readmeSource.includes("auto-hides uninitialized neutral noise cards"),
     "README missing operator demo uninitialized-neutral visibility note",
   );
   assert.ok(
-    operatorGuideSource.includes("uninitialized neutral cards"),
+    operatorGuideSource.includes("uninitialized neutral noise cards"),
     "operator guide missing operator demo uninitialized-neutral visibility note",
   );
 });

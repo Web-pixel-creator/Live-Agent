@@ -39,7 +39,7 @@ The operator flow is used during live demos and production diagnostics to:
 ## Standard Operator Actions
 
 1. Refresh summary (`Refresh Summary`)
-2. `Demo View` (default) keeps Operator Console in critical-first mode for judge walkthroughs and prioritizes six cards (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`) while still surfacing new `fail` cards; in `Demo View + Focus Critical`, uninitialized neutral cards (`unknown` / `pending` / `n/a` / `awaiting_refresh`) are auto-hidden; `Full Ops View` opens the full board for deep diagnostics; mode banner (`demo_view` / `full_ops_view`) confirms active triage scope
+2. `Demo View` (default) keeps Operator Console in critical-first mode for judge walkthroughs and prioritizes six cards (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`) while still surfacing new `fail` cards; in `Demo View`, uninitialized neutral noise cards (`unknown` / `pending` / `n/a` / `awaiting_refresh`) are auto-hidden outside the six-card lane, and in `Demo View + Focus Critical` the same neutral noise is also auto-hidden inside the six-card lane; `Full Ops View` opens the full board for deep diagnostics; mode banner (`demo_view` / `full_ops_view`) confirms active triage scope
 3. `Demo View` adds a top `Demo Summary` strip (Realtime Gateway, Queue, Approvals, Startup, UI Executor, Device Nodes) with large mirrored status pills and one-click jump-to-card navigation
 4. Before the first manual refresh, a guided pre-refresh banner is shown with one-click `Refresh Summary` and mode-specific hint text (`Demo` vs `Full Ops`)
 5. Collapse/expand operator evidence cards (`Collapse All` / `Expand All`); before first manual refresh the UI keeps only `Live Bridge & Turn Safety` expanded by default
@@ -47,7 +47,7 @@ The operator flow is used during live demos and production diagnostics to:
 7. When placeholder statuses are shown, labels are rendered as `awaiting_refresh` / `refresh_failed` (internal placeholder codes remain unchanged for filtering logic)
 8. Empty-state hints are action-oriented and point to the next scenario/action to run before `Refresh Summary`
 9. Static HTML placeholders are also demo-friendly (`awaiting_refresh` / `pending`) before frontend JS hydration
-10. `Focus Critical` keeps only critical cards visible and mirrors key status pills in the top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); click again (`Show All Cards`) for full board
+10. `Focus Critical` keeps only critical cards visible and mirrors key status pills in the top signal strip (`Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`); click again (`Show All Cards`) for broader board context without demo-noise placeholders
 11. `Issues Only` hides cards already marked `ok` and keeps neutral/fail evidence visible for incident triage
 12. `Reset View` restores default triage layout (`Demo View`, `Focus Critical` on, `Issues Only` off, default group visibility)
 13. `Triage Summary` shows live counters (`total`, `visible`, `fail`, `neutral`, `ok`, `hidden`) and updates as filters/statuses change

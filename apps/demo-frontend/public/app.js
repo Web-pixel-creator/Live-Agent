@@ -1003,7 +1003,7 @@ function syncOperatorBoardModeButtons() {
   }
   if (el.operatorBoardModeHint) {
     el.operatorBoardModeHint.textContent = isDemo
-      ? "Demo View keeps six judge-facing cards visible by default and still surfaces new failures."
+      ? "Demo View keeps six judge-facing cards visible, auto-hides neutral noise outside key tiles, and still surfaces new failures."
       : "Full Ops View shows the full diagnostics board (all cards and lanes).";
   }
   if (el.operatorModeBanner) {
@@ -1255,16 +1255,16 @@ function shouldHideOperatorDemoNeutralCard(card, statusNode) {
   if (normalizeOperatorBoardMode(state.operatorBoardMode) !== "demo") {
     return false;
   }
-  if (state.operatorFocusCriticalOnly !== true) {
-    return false;
-  }
-  if (!isOperatorDemoEssentialCard(card)) {
-    return false;
-  }
   if (!statusNode.classList.contains("status-neutral")) {
     return false;
   }
-  return isOperatorUninitializedStatusText(getOperatorStatusCode(statusNode));
+  if (!isOperatorUninitializedStatusText(getOperatorStatusCode(statusNode))) {
+    return false;
+  }
+  if (state.operatorFocusCriticalOnly === true) {
+    return true;
+  }
+  return !isOperatorDemoEssentialCard(card);
 }
 
 function resolveStatusPillDisplayText(value) {
