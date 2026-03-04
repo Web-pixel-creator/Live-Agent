@@ -164,6 +164,11 @@ const el = {
   storyTimelineMode: document.getElementById("storyTimelineMode"),
   storyTimelineAssetMix: document.getElementById("storyTimelineAssetMix"),
   storyTimelineProgressHint: document.getElementById("storyTimelineProgressHint"),
+  storyTimelineGuidance: document.getElementById("storyTimelineGuidance"),
+  storyTimelineGuidanceTitle: document.getElementById("storyTimelineGuidanceTitle"),
+  storyTimelineGuidanceHint: document.getElementById("storyTimelineGuidanceHint"),
+  storyTimelineGuideOpenLiveBtn: document.getElementById("storyTimelineGuideOpenLiveBtn"),
+  storyTimelineGuideTemplateBtn: document.getElementById("storyTimelineGuideTemplateBtn"),
   storyTimelineProgressLabel: document.getElementById("storyTimelineProgressLabel"),
   storyTimelineProgressTrack: document.getElementById("storyTimelineProgressTrack"),
   storyTimelineProgressBar: document.getElementById("storyTimelineProgressBar"),
@@ -2682,6 +2687,32 @@ function renderStoryTimelineProgress(count, selectedIndex) {
   return progressPercent;
 }
 
+function syncStoryTimelineGuidance(count, pendingJobs) {
+  if (!(el.storyTimelineGuidance instanceof HTMLElement)) {
+    return;
+  }
+  const safeCount = Math.max(0, Number.isFinite(count) ? Math.floor(count) : 0);
+  const safePending = Math.max(0, Number.isFinite(pendingJobs) ? Math.floor(pendingJobs) : 0);
+  const isEmpty = safeCount === 0;
+  el.storyTimelineGuidance.classList.toggle("is-hidden", !isEmpty);
+  if (!isEmpty) {
+    return;
+  }
+  const isPending = safePending > 0;
+  el.storyTimelineGuidance.classList.toggle("is-idle", !isPending);
+  el.storyTimelineGuidance.classList.toggle("is-pending", isPending);
+  if (el.storyTimelineGuidanceTitle) {
+    el.storyTimelineGuidanceTitle.textContent = isPending
+      ? "Generating first timeline segments"
+      : "Timeline is idle";
+  }
+  if (el.storyTimelineGuidanceHint) {
+    el.storyTimelineGuidanceHint.innerHTML = isPending
+      ? "Story jobs are queued. Wait for first segment payload, or open Live Negotiator to adjust the prompt."
+      : "Run a <code>story:</code> intent from Live Negotiator to initialize segments, assets, and timeline progress.";
+  }
+}
+
 function renderStoryTimelineList() {
   if (!el.storyTimelineList) {
     return;
@@ -2855,6 +2886,7 @@ function renderStoryTimeline() {
   setText(el.storyTimelineTitle, state.storyTimelineTitle ?? "-");
   setText(el.storyTimelineCount, String(count));
   setText(el.storyTimelinePendingJobs, String(pendingJobs));
+  syncStoryTimelineGuidance(count, pendingJobs);
   renderStoryTimelineStateCard(count, pendingJobs, progressPercent);
 
   if (count === 0) {
@@ -9743,6 +9775,12 @@ function bindEvents() {
         updateStoryTimelineSelection(value);
       }
     });
+  }
+  if (el.storyTimelineGuideOpenLiveBtn) {
+    el.storyTimelineGuideOpenLiveBtn.addEventListener("click", openLiveNegotiatorFromStoryEmptyState);
+  }
+  if (el.storyTimelineGuideTemplateBtn) {
+    el.storyTimelineGuideTemplateBtn.addEventListener("click", applyStoryPromptTemplateFromStoryEmptyState);
   }
 }
 

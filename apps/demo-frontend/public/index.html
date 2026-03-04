@@ -442,6 +442,27 @@
           <p id="storyTimelineAssetMix" class="status-pill status-neutral">assets=none</p>
           <p id="storyTimelineProgressHint" class="status-pill status-neutral">0/0 segments</p>
         </div>
+        <div id="storyTimelineGuidance" class="story-guidance is-idle" role="status" aria-live="polite">
+          <div class="story-guidance-copy">
+            <span class="story-guidance-chip">Story Guidance</span>
+            <p id="storyTimelineGuidanceTitle" class="story-guidance-title">Timeline is idle</p>
+            <p id="storyTimelineGuidanceHint" class="story-guidance-hint">
+              Run a <code>story:</code> intent from Live Negotiator to initialize segments, assets, and timeline progress.
+            </p>
+          </div>
+          <div class="story-guidance-actions">
+            <button id="storyTimelineGuideOpenLiveBtn" type="button" class="story-guidance-action">
+              Open Live Negotiator
+            </button>
+            <button
+              id="storyTimelineGuideTemplateBtn"
+              type="button"
+              class="button-muted story-guidance-action story-guidance-action-template"
+            >
+              Use Story Prompt Template
+            </button>
+          </div>
+        </div>
         <div class="story-progress">
           <div class="story-progress-head">
             <span>Timeline Progress</span>
