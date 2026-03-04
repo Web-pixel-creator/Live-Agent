@@ -482,8 +482,14 @@
             <h3>Segment Preview</h3>
             <div id="storyTimelinePreview" class="story-timeline-preview story-timeline-preview-empty">
               <div class="story-empty-state">
-                <span class="story-empty-icon" aria-hidden="true">Storyboard</span>
+                <span class="story-empty-icon" aria-hidden="true">
+                  <span class="story-empty-icon-glyph">✦</span>
+                  <span class="story-empty-icon-label">Storyboard</span>
+                </span>
                 <p class="story-empty-title">No timeline yet</p>
+                <p class="story-empty-lead">
+                  Generate your first narrative run to unlock timeline, segment cards, and asset previews.
+                </p>
                 <p class="story-empty-hint">
                   Run a <code>story:</code> intent in Live Negotiator to generate segments, asset refs, and progress data.
                 </p>
@@ -533,13 +539,19 @@
                     Use Story Prompt Template
                   </button>
                 </div>
+                <p class="story-empty-cta-note">
+                  Tip: start with template for a judge-friendly Hook -> Conflict -> Resolution arc.
+                </p>
               </div>
             </div>
           </aside>
         </div>
         <div id="storyTimelineList" class="events story-timeline-list">
           <div class="story-timeline-list-empty">
-            <span class="story-timeline-list-empty-icon" aria-hidden="true">Timeline</span>
+            <span class="story-timeline-list-empty-icon" aria-hidden="true">
+              <span class="story-timeline-list-empty-icon-glyph">◉</span>
+              <span class="story-timeline-list-empty-icon-label">Timeline</span>
+            </span>
             <p class="story-timeline-list-empty-title">No timeline segments yet</p>
             <p class="story-timeline-list-empty-hint">
               Send a story intent from Live Negotiator to populate segment cards, asset refs, and progress.
@@ -567,9 +579,10 @@
               </div>
             </details>
             <div class="story-timeline-list-empty-actions">
-              <button type="button" class="button-muted story-timeline-list-empty-action">Open Live Negotiator</button>
+              <button type="button" class="story-timeline-list-empty-action">Open Live Negotiator</button>
               <button type="button" class="button-muted story-timeline-list-empty-action story-timeline-list-empty-action-template">Use Story Prompt Template</button>
             </div>
+            <p class="story-timeline-list-empty-cta">Start a story run to replace placeholders with live segment evidence.</p>
           </div>
         </div>
       </section>

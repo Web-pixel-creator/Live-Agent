@@ -2371,11 +2371,21 @@ function renderStoryTimelinePreviewEmptyState() {
   const icon = document.createElement("span");
   icon.className = "story-empty-icon";
   icon.setAttribute("aria-hidden", "true");
-  icon.textContent = "Storyboard";
+  const iconGlyph = document.createElement("span");
+  iconGlyph.className = "story-empty-icon-glyph";
+  iconGlyph.textContent = "✦";
+  const iconLabel = document.createElement("span");
+  iconLabel.className = "story-empty-icon-label";
+  iconLabel.textContent = "Storyboard";
+  icon.append(iconGlyph, iconLabel);
 
   const title = document.createElement("p");
   title.className = "story-empty-title";
   title.textContent = "No timeline yet";
+
+  const lead = document.createElement("p");
+  lead.className = "story-empty-lead";
+  lead.textContent = "Generate your first narrative run to unlock timeline, segment cards, and asset previews.";
 
   const hint = document.createElement("p");
   hint.className = "story-empty-hint";
@@ -2477,8 +2487,12 @@ function renderStoryTimelinePreviewEmptyState() {
   actionTemplate.textContent = "Use Story Prompt Template";
   actionTemplate.addEventListener("click", applyStoryPromptTemplateFromStoryEmptyState);
 
+  const ctaNote = document.createElement("p");
+  ctaNote.className = "story-empty-cta-note";
+  ctaNote.textContent = "Tip: start with template for a judge-friendly Hook -> Conflict -> Resolution arc.";
+
   actions.append(action, actionTemplate);
-  wrapper.append(icon, title, hint, kpis, details, actions);
+  wrapper.append(icon, title, lead, hint, kpis, details, actions, ctaNote);
   el.storyTimelinePreview.append(wrapper);
 }
 
@@ -2574,7 +2588,13 @@ function renderStoryTimelineList() {
     const icon = document.createElement("span");
     icon.className = "story-timeline-list-empty-icon";
     icon.setAttribute("aria-hidden", "true");
-    icon.textContent = "Timeline";
+    const iconGlyph = document.createElement("span");
+    iconGlyph.className = "story-timeline-list-empty-icon-glyph";
+    iconGlyph.textContent = "◉";
+    const iconLabel = document.createElement("span");
+    iconLabel.className = "story-timeline-list-empty-icon-label";
+    iconLabel.textContent = "Timeline";
+    icon.append(iconGlyph, iconLabel);
 
     const title = document.createElement("p");
     title.className = "story-timeline-list-empty-title";
@@ -2629,7 +2649,7 @@ function renderStoryTimelineList() {
 
     const action = document.createElement("button");
     action.type = "button";
-    action.className = "button-muted story-timeline-list-empty-action";
+    action.className = "story-timeline-list-empty-action";
     action.textContent = "Open Live Negotiator";
     action.addEventListener("click", () => {
       openLiveNegotiatorFromStoryEmptyState();
@@ -2648,7 +2668,11 @@ function renderStoryTimelineList() {
 
     actions.append(action, actionTemplate);
 
-    empty.append(icon, title, hint, status, previewDetails, actions);
+    const ctaNote = document.createElement("p");
+    ctaNote.className = "story-timeline-list-empty-cta";
+    ctaNote.textContent = "Start a story run to replace placeholders with live segment evidence.";
+
+    empty.append(icon, title, hint, status, previewDetails, actions, ctaNote);
     el.storyTimelineList.append(empty);
     return;
   }

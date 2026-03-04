@@ -2900,17 +2900,41 @@ button:focus-visible {
   gap: 14px;
   padding: 28px 20px;
   text-align: center;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.story-empty-state::before {
+  content: "";
+  position: absolute;
+  inset: -20% -8% auto;
+  height: 150px;
+  background:
+    radial-gradient(280px 120px at 15% 50%, color-mix(in oklch, var(--primary) 22%, transparent), transparent 72%),
+    radial-gradient(260px 120px at 85% 45%, color-mix(in oklch, var(--accent-foreground) 16%, transparent), transparent 74%);
+  opacity: 0.72;
+  filter: blur(8px);
+  pointer-events: none;
+  z-index: 0;
+  animation: story-empty-sheen 7.5s linear infinite;
+}
+
+.story-empty-state > * {
+  position: relative;
+  z-index: 1;
 }
 
 .story-empty-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 84px;
-  min-height: 30px;
+  gap: 8px;
+  min-width: 120px;
+  min-height: 34px;
   border: 1px solid color-mix(in oklch, var(--primary) 44%, var(--border));
   border-radius: 999px;
-  padding: 4px 12px;
+  padding: 4px 14px;
   color: color-mix(in oklch, var(--foreground) 92%, var(--accent-foreground));
   background: color-mix(in oklch, var(--primary) 16%, transparent);
   font-size: 0.72rem;
@@ -2920,6 +2944,26 @@ button:focus-visible {
   box-shadow:
     inset 0 1px 0 color-mix(in oklch, var(--foreground) 12%, transparent),
     0 10px 20px -18px color-mix(in oklch, var(--primary) 58%, transparent);
+  animation: story-empty-float 4.8s ease-in-out infinite;
+}
+
+.story-empty-icon-glyph {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  line-height: 1;
+  background: color-mix(in oklch, var(--primary) 28%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--primary) 44%, transparent),
+    0 0 18px -12px color-mix(in oklch, var(--primary) 80%, transparent);
+}
+
+.story-empty-icon-label {
+  line-height: 1;
 }
 
 .story-empty-title {
@@ -2927,6 +2971,14 @@ button:focus-visible {
   font-size: 1.08rem;
   font-weight: 700;
   color: color-mix(in oklch, var(--foreground) 98%, white);
+}
+
+.story-empty-lead {
+  margin: 0;
+  max-width: 44ch;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: color-mix(in oklch, var(--foreground) 90%, white);
 }
 
 .story-empty-hint {
@@ -3118,10 +3170,21 @@ button:focus-visible {
 .story-empty-action {
   margin-top: 2px;
   min-width: 210px;
+  box-shadow:
+    0 10px 20px -18px color-mix(in oklch, var(--primary) 62%, transparent),
+    var(--shadow-xs);
 }
 
 .story-empty-action-template {
   min-width: 220px;
+}
+
+.story-empty-cta-note {
+  margin: 2px 0 0;
+  max-width: 54ch;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: color-mix(in oklch, var(--foreground) 78%, var(--muted-foreground));
 }
 
 .story-timeline-list {
@@ -3138,14 +3201,39 @@ button:focus-visible {
   padding: 18px 16px;
   color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
   text-align: center;
-  background: color-mix(in oklch, var(--surface-control) 92%, transparent);
+  background:
+    radial-gradient(300px 130px at 12% -10%, color-mix(in oklch, var(--primary) 12%, transparent), transparent 74%),
+    color-mix(in oklch, var(--surface-control) 92%, transparent);
+  position: relative;
+  overflow: hidden;
+}
+
+.story-timeline-list-empty::before {
+  content: "";
+  position: absolute;
+  inset: -24% -10% auto;
+  height: 120px;
+  background:
+    radial-gradient(240px 90px at 18% 54%, color-mix(in oklch, var(--primary) 20%, transparent), transparent 72%),
+    radial-gradient(220px 90px at 82% 44%, color-mix(in oklch, var(--accent-foreground) 14%, transparent), transparent 74%);
+  opacity: 0.62;
+  filter: blur(7px);
+  pointer-events: none;
+  z-index: 0;
+  animation: story-empty-sheen 8s linear infinite;
+}
+
+.story-timeline-list-empty > * {
+  position: relative;
+  z-index: 1;
 }
 
 .story-timeline-list-empty-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 88px;
+  gap: 8px;
+  min-width: 118px;
   padding: 5px 12px;
   border-radius: 999px;
   border: 1px solid color-mix(in oklch, var(--primary) 34%, transparent);
@@ -3160,6 +3248,26 @@ button:focus-visible {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  animation: story-empty-float 5.4s ease-in-out infinite;
+}
+
+.story-timeline-list-empty-icon-glyph {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  line-height: 1;
+  background: color-mix(in oklch, var(--primary) 30%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--primary) 42%, transparent),
+    0 0 16px -10px color-mix(in oklch, var(--primary) 78%, transparent);
+}
+
+.story-timeline-list-empty-icon-label {
+  line-height: 1;
 }
 
 .story-timeline-list-empty-title {
@@ -3275,6 +3383,9 @@ button:focus-visible {
   margin-top: 0;
   min-width: 210px;
   flex: 1 1 210px;
+  box-shadow:
+    0 10px 18px -18px color-mix(in oklch, var(--primary) 58%, transparent),
+    var(--shadow-xs);
 }
 
 .story-timeline-list-empty-action-template {
@@ -3284,6 +3395,14 @@ button:focus-visible {
     color-mix(in oklch, var(--accent-foreground) 18%, var(--surface-control)),
     color-mix(in oklch, var(--surface-panel-2) 92%, var(--surface-control))
   );
+}
+
+.story-timeline-list-empty-cta {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 0.77rem;
+  line-height: 1.45;
+  color: color-mix(in oklch, var(--foreground) 78%, var(--muted-foreground));
 }
 
 .story-segment-card {
@@ -3359,6 +3478,37 @@ button:focus-visible {
   }
   50% {
     filter: saturate(1.2);
+  }
+}
+
+@keyframes story-empty-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+
+@keyframes story-empty-sheen {
+  0% {
+    transform: translateX(-3%);
+  }
+  50% {
+    transform: translateX(3%);
+  }
+  100% {
+    transform: translateX(-3%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-empty-icon,
+  .story-timeline-list-empty-icon,
+  .story-empty-state::before,
+  .story-timeline-list-empty::before {
+    animation: none !important;
   }
 }
 
@@ -4326,6 +4476,18 @@ button:focus-visible {
     gap: 12px;
   }
 
+  .story-empty-lead,
+  .story-empty-cta-note,
+  .story-timeline-list-empty-cta {
+    max-width: 100%;
+  }
+
+  .story-empty-icon,
+  .story-timeline-list-empty-icon {
+    min-width: 106px;
+    gap: 7px;
+  }
+
   .story-empty-kpis {
     width: 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4545,6 +4707,15 @@ button:focus-visible {
 
   .story-empty-arc li span {
     font-size: 0.75rem;
+  }
+
+  .story-empty-lead {
+    font-size: 0.84rem;
+  }
+
+  .story-empty-cta-note,
+  .story-timeline-list-empty-cta {
+    font-size: 0.74rem;
   }
 
   .story-timeline-list-empty-preview {
