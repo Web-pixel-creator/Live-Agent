@@ -24,6 +24,7 @@ test("demo frontend presents device nodes as selectable cards with guided empty 
     'id="deviceNodeFleetOffline"',
     'id="deviceNodeFleetStale"',
     'id="deviceNodeListFilter"',
+    'id="deviceNodeListSort"',
     'id="deviceNodeListVisibleCount"',
     'id="deviceNodeListTotalCount"',
     'id="deviceNodeListHint"',
@@ -37,14 +38,17 @@ test("demo frontend presents device nodes as selectable cards with guided empty 
   const requiredRuntimeTokens = [
     'deviceNodeListHint: document.getElementById("deviceNodeListHint")',
     'deviceNodeListFilter: document.getElementById("deviceNodeListFilter")',
+    'deviceNodeListSort: document.getElementById("deviceNodeListSort")',
     'deviceNodeListVisibleCount: document.getElementById("deviceNodeListVisibleCount")',
     'deviceNodeListTotalCount: document.getElementById("deviceNodeListTotalCount")',
     'deviceNodeFleetTotal: document.getElementById("deviceNodeFleetTotal")',
     "DEVICE_NODE_STALE_AGE_MS",
     "function setDeviceNodeListStats(visibleCount, totalCount)",
     "function normalizeDeviceNodeListFilter(value)",
+    "function normalizeDeviceNodeListSort(value)",
     "function isDeviceNodeStale(node, nowMs = Date.now())",
     "function filterDeviceNodesForList(nodes, filterValue)",
+    "function sortDeviceNodesForList(nodes, sortValue)",
     "function renderDeviceNodeFleetSummary(nodes)",
     "function formatDeviceNodeFleetPercent(part, total)",
     "function setDeviceNodeListHint(text)",
@@ -60,6 +64,7 @@ test("demo frontend presents device nodes as selectable cards with guided empty 
     "card.className = \"device-node-card\";",
     "card.classList.add(\"is-selected\");",
     "el.deviceNodeListFilter.addEventListener(\"change\", () => {",
+    "el.deviceNodeListSort.addEventListener(\"change\", () => {",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing device-node list token: ${token}`);
@@ -69,7 +74,9 @@ test("demo frontend presents device nodes as selectable cards with guided empty 
     ".device-node-list-hint {",
     ".device-node-fleet-summary {",
     ".device-node-list-toolbar {",
+    ".device-node-toolbar-controls {",
     ".device-node-filter-field {",
+    ".device-node-sort-field {",
     ".device-node-list-stats {",
     ".device-node-fleet-card {",
     ".device-node-fleet-card.is-online {",
@@ -88,11 +95,11 @@ test("demo frontend presents device nodes as selectable cards with guided empty 
   }
 
   assert.ok(
-    readmeSource.includes("`List Filter` (`all/online/degraded/offline/stale`) with live `Showing X of Y` counters"),
+    readmeSource.includes("`List Sort` (`last heartbeat/status priority/name A-Z/name Z-A`)"),
     "README missing device-node card list note",
   );
   assert.ok(
-    operatorGuideSource.includes("`List Filter` (`all/online/degraded/offline/stale`) with live `Showing X of Y` counters"),
+    operatorGuideSource.includes("`List Sort` (`last heartbeat/status priority/name A-Z/name Z-A`)"),
     "operator guide missing device-node card list note",
   );
 });

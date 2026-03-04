@@ -46,6 +46,7 @@ const state = {
   deviceNodes: new Map(),
   selectedDeviceNodeId: null,
   deviceNodeListFilter: "all",
+  deviceNodeListSort: "heartbeat_desc",
   pendingClientEvents: new Map(),
   operatorGatewayErrorSnapshot: null,
   operatorTurnTruncationSnapshot: null,
@@ -370,6 +371,7 @@ const el = {
   deviceNodeConflictBtn: document.getElementById("deviceNodeConflictBtn"),
   deviceNodeCount: document.getElementById("deviceNodeCount"),
   deviceNodeListFilter: document.getElementById("deviceNodeListFilter"),
+  deviceNodeListSort: document.getElementById("deviceNodeListSort"),
   deviceNodeListVisibleCount: document.getElementById("deviceNodeListVisibleCount"),
   deviceNodeListTotalCount: document.getElementById("deviceNodeListTotalCount"),
   deviceNodeFleetTotal: document.getElementById("deviceNodeFleetTotal"),
@@ -431,6 +433,12 @@ const CUSTOM_SELECT_OPTION_DESCRIPTIONS = {
     degraded: "Only nodes currently marked degraded.",
     offline: "Only nodes currently marked offline.",
     stale: "Only nodes with stale or missing heartbeat.",
+  },
+  deviceNodeListSort: {
+    heartbeat_desc: "Most recently seen nodes first.",
+    status_priority: "Show offline/degraded nodes before healthy nodes.",
+    name_asc: "Sort display names alphabetically A-Z.",
+    name_desc: "Sort display names alphabetically Z-A.",
   },
 };
 
@@ -6295,6 +6303,14 @@ function normalizeDeviceNodeListFilter(value) {
   return "all";
 }
 
+function normalizeDeviceNodeListSort(value) {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (normalized === "status_priority" || normalized === "name_asc" || normalized === "name_desc") {
+    return normalized;
+  }
+  return "heartbeat_desc";
+}
+
 function parseIsoTimestampMs(value) {
   if (typeof value !== "string" || value.trim().length === 0) {
     return Number.NaN;
@@ -6321,6 +6337,71 @@ function filterDeviceNodesForList(nodes, filterValue) {
   return list.filter((node) => {
     const status = typeof node?.status === "string" ? node.status.trim().toLowerCase() : "unknown";
     return status === filter;
+  });
+}
+
+function resolveDeviceNodeSortName(node) {
+  const rawName = toOptionalText(node?.displayName) ?? toOptionalText(node?.nodeId) ?? "";
+  return rawName.toLocaleLowerCase();
+}
+
+function resolveDeviceNodeStatusPriority(node) {
+  const status = typeof node?.status === "string" ? node.status.trim().toLowerCase() : "";
+  if (status === "offline") {
+    return 0;
+  }
+  if (status === "degraded") {
+    return 1;
+  }
+  if (status === "online") {
+    return 2;
+  }
+  return 3;
+}
+
+function sortDeviceNodesForList(nodes, sortValue) {
+  const list = Array.isArray(nodes) ? [...nodes] : [];
+  const sort = normalizeDeviceNodeListSort(sortValue);
+  if (sort === "status_priority") {
+    return list.sort((left, right) => {
+      const leftPriority = resolveDeviceNodeStatusPriority(left);
+      const rightPriority = resolveDeviceNodeStatusPriority(right);
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+      const leftSeen = parseIsoTimestampMs(left?.lastSeenAt);
+      const rightSeen = parseIsoTimestampMs(right?.lastSeenAt);
+      const safeLeftSeen = Number.isFinite(leftSeen) ? leftSeen : Number.NEGATIVE_INFINITY;
+      const safeRightSeen = Number.isFinite(rightSeen) ? rightSeen : Number.NEGATIVE_INFINITY;
+      if (safeLeftSeen !== safeRightSeen) {
+        return safeRightSeen - safeLeftSeen;
+      }
+      return resolveDeviceNodeSortName(left).localeCompare(resolveDeviceNodeSortName(right));
+    });
+  }
+  if (sort === "name_asc" || sort === "name_desc") {
+    const direction = sort === "name_desc" ? -1 : 1;
+    return list.sort((left, right) => {
+      const compared = resolveDeviceNodeSortName(left).localeCompare(resolveDeviceNodeSortName(right));
+      if (compared !== 0) {
+        return compared * direction;
+      }
+      const leftSeen = parseIsoTimestampMs(left?.lastSeenAt);
+      const rightSeen = parseIsoTimestampMs(right?.lastSeenAt);
+      const safeLeftSeen = Number.isFinite(leftSeen) ? leftSeen : Number.NEGATIVE_INFINITY;
+      const safeRightSeen = Number.isFinite(rightSeen) ? rightSeen : Number.NEGATIVE_INFINITY;
+      return safeRightSeen - safeLeftSeen;
+    });
+  }
+  return list.sort((left, right) => {
+    const leftSeen = parseIsoTimestampMs(left?.lastSeenAt);
+    const rightSeen = parseIsoTimestampMs(right?.lastSeenAt);
+    const safeLeftSeen = Number.isFinite(leftSeen) ? leftSeen : Number.NEGATIVE_INFINITY;
+    const safeRightSeen = Number.isFinite(rightSeen) ? rightSeen : Number.NEGATIVE_INFINITY;
+    if (safeLeftSeen !== safeRightSeen) {
+      return safeRightSeen - safeLeftSeen;
+    }
+    return resolveDeviceNodeSortName(left).localeCompare(resolveDeviceNodeSortName(right));
   });
 }
 
@@ -6601,10 +6682,17 @@ function renderDeviceNodeList(nodes) {
     el.deviceNodeListFilter.value = state.deviceNodeListFilter;
     syncCustomSelectControl(el.deviceNodeListFilter);
   }
+  const requestedSort = el.deviceNodeListSort ? el.deviceNodeListSort.value : state.deviceNodeListSort;
+  state.deviceNodeListSort = normalizeDeviceNodeListSort(requestedSort);
+  if (el.deviceNodeListSort && el.deviceNodeListSort.value !== state.deviceNodeListSort) {
+    el.deviceNodeListSort.value = state.deviceNodeListSort;
+    syncCustomSelectControl(el.deviceNodeListSort);
+  }
 
   const visibleNodes = filterDeviceNodesForList(normalizedNodes, state.deviceNodeListFilter);
+  const orderedVisibleNodes = sortDeviceNodesForList(visibleNodes, state.deviceNodeListSort);
   renderDeviceNodeFleetSummary(normalizedNodes);
-  setDeviceNodeListStats(visibleNodes.length, normalizedNodes.length);
+  setDeviceNodeListStats(orderedVisibleNodes.length, normalizedNodes.length);
   el.deviceNodeCount.textContent = String(normalizedNodes.length);
   el.deviceNodeList.innerHTML = "";
 
@@ -6619,7 +6707,7 @@ function renderDeviceNodeList(nodes) {
     ? state.deviceNodes.get(state.selectedDeviceNodeId.toLowerCase()) ?? null
     : null;
 
-  if (visibleNodes.length === 0) {
+  if (orderedVisibleNodes.length === 0) {
     setDeviceNodeListHint("No nodes match the selected filter. Use Show All Nodes or change List Filter.");
     renderDeviceNodeFilteredEmptyState(state.deviceNodeListFilter);
     updateDeviceNodeSelectionMeta(currentSelected ?? normalizedNodes[0] ?? null);
@@ -6629,11 +6717,11 @@ function renderDeviceNodeList(nodes) {
   setDeviceNodeListHint("Click any node card to load it into the form and run status/heartbeat actions.");
   const selected =
     (currentSelected &&
-      visibleNodes.find((node) => node.nodeId.toLowerCase() === currentSelected.nodeId.toLowerCase())) ||
-    visibleNodes[0];
+      orderedVisibleNodes.find((node) => node.nodeId.toLowerCase() === currentSelected.nodeId.toLowerCase())) ||
+    orderedVisibleNodes[0];
   applyDeviceNodeToForm(selected);
 
-  for (const node of visibleNodes) {
+  for (const node of orderedVisibleNodes) {
     const isSelected = selected?.nodeId?.toLowerCase() === node.nodeId.toLowerCase();
     el.deviceNodeList.append(createDeviceNodeCard(node, isSelected));
   }
@@ -8541,6 +8629,14 @@ function bindEvents() {
       renderDeviceNodeList(Array.from(state.deviceNodes.values()));
     });
   }
+  if (el.deviceNodeListSort) {
+    el.deviceNodeListSort.addEventListener("change", () => {
+      state.deviceNodeListSort = normalizeDeviceNodeListSort(el.deviceNodeListSort.value);
+      el.deviceNodeListSort.value = state.deviceNodeListSort;
+      syncCustomSelectControl(el.deviceNodeListSort);
+      renderDeviceNodeList(Array.from(state.deviceNodes.values()));
+    });
+  }
   [el.targetPrice, el.targetDelivery, el.targetSla].forEach((input) => {
     input.addEventListener("input", evaluateConstraints);
   });
@@ -8611,6 +8707,13 @@ async function bootstrap() {
   if (el.deviceNodeListFilter) {
     el.deviceNodeListFilter.value = state.deviceNodeListFilter;
     syncCustomSelectControl(el.deviceNodeListFilter);
+  }
+  state.deviceNodeListSort = normalizeDeviceNodeListSort(
+    el.deviceNodeListSort ? el.deviceNodeListSort.value : state.deviceNodeListSort,
+  );
+  if (el.deviceNodeListSort) {
+    el.deviceNodeListSort.value = state.deviceNodeListSort;
+    syncCustomSelectControl(el.deviceNodeListSort);
   }
   setDeviceNodeListStats(0, 0);
   bindEvents();

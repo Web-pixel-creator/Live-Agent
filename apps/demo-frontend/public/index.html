@@ -1495,16 +1495,27 @@
           </article>
         </div>
         <div class="device-node-list-toolbar">
-          <label class="field device-node-filter-field">
-            <span>List Filter</span>
-            <select id="deviceNodeListFilter">
-              <option value="all" selected>all nodes</option>
-              <option value="online">status: online</option>
-              <option value="degraded">status: degraded</option>
-              <option value="offline">status: offline</option>
-              <option value="stale">stale heartbeat</option>
-            </select>
-          </label>
+          <div class="device-node-toolbar-controls">
+            <label class="field device-node-filter-field">
+              <span>List Filter</span>
+              <select id="deviceNodeListFilter">
+                <option value="all" selected>all nodes</option>
+                <option value="online">status: online</option>
+                <option value="degraded">status: degraded</option>
+                <option value="offline">status: offline</option>
+                <option value="stale">stale heartbeat</option>
+              </select>
+            </label>
+            <label class="field device-node-sort-field">
+              <span>List Sort</span>
+              <select id="deviceNodeListSort">
+                <option value="heartbeat_desc" selected>last heartbeat</option>
+                <option value="status_priority">status priority</option>
+                <option value="name_asc">name A-Z</option>
+                <option value="name_desc">name Z-A</option>
+              </select>
+            </label>
+          </div>
           <p class="device-node-list-stats" role="status" aria-live="polite">
             Showing <strong id="deviceNodeListVisibleCount">0</strong> of <strong id="deviceNodeListTotalCount">0</strong> nodes
           </p>

@@ -2764,9 +2764,21 @@ button:focus-visible {
   gap: 12px 16px;
 }
 
+.device-node-toolbar-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  width: min(680px, 100%);
+}
+
 .device-node-filter-field {
   margin: 0;
-  width: min(320px, 100%);
+  width: 100%;
+}
+
+.device-node-sort-field {
+  margin: 0;
+  width: 100%;
 }
 
 .device-node-list-stats {
@@ -3531,7 +3543,17 @@ button:focus-visible {
     gap: 10px;
   }
 
+  .device-node-toolbar-controls {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
   .device-node-filter-field {
+    width: 100%;
+  }
+
+  .device-node-sort-field {
     width: 100%;
   }
 
