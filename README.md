@@ -110,6 +110,7 @@ Operator board mode selection is persisted (`mla.demoFrontend.operatorBoardMode`
 Pre-refresh banner also includes quick-start actions (`Run Negotiation`, `Run Story`, `Run UI Task`) to seed evidence lanes before the first summary refresh.
 Operator Console keeps a persistent `Operator Quick Start` rail (`Run Negotiation`, `Run Story`, `Run UI Task`, `Open Device Nodes`, `Refresh Summary`) so empty lanes can be repopulated without hunting controls.
 Operator Console now includes `Lane Recovery Playbook` cards (Realtime/Story/UI Safety/Device Nodes), each with direct run + refresh actions to recover `awaiting_refresh` evidence lanes faster.
+Operator Console secondary copy (mode hints, quick-start helper text, lane playbook notes, and health metadata labels) now uses elevated contrast for judge-facing readability over gradient/video backgrounds.
 Operator empty-state hints are action-oriented (which scenario/action to run next, then `Refresh Summary`) to avoid dead-looking `Waiting for ...` states.
 Operator status cards now render demo-friendly placeholders directly in static HTML (`awaiting_refresh` / `pending`) before JS hydration.
 In `Demo View`, the board keeps six judge-facing cards visible by default (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`), keeps `Live Bridge & Turn Safety` lane expanded by default, and still surfaces any new `fail` cards outside that set.

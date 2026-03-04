@@ -67,6 +67,7 @@ The operator flow is used during live demos and production diagnostics to:
 26. Live Negotiator status strip (`Status/Assistant/Run ID/User ID/Session State/Mode/PTT/Export`) uses high-contrast text, pill-state color mapping, dedicated value chips for `Run ID`/`User ID`, concise export labels (`exported markdown/json/audio`), and lane-level `ok/neutral/fail` accents in a compact inline wrap-row (instead of large tiles) for faster scan and lower visual density; on narrower screens, items wrap to 2-column/1-column naturally without horizontal overflow
 27. KPI secondary text (`labels`, `status notes`, and context hints) uses elevated contrast to stay readable over gradient/video backgrounds during fast judge walkthroughs
 28. Custom dropdown controls support keyboard navigation (`ArrowUp/ArrowDown/Home/End`, `Enter/Space`, `Escape`) and combobox/listbox ARIA semantics (`aria-controls`, `aria-expanded`, `aria-activedescendant`) so operators/judges can complete flows without pointer-only input
+29. Operator Console secondary operator copy (`mode hints`, quick-start helper text, lane playbook notes, triage micro-labels, and health metadata rows) uses elevated neutral contrast to remain legible over layered gradients/video
 
 ## Safety Controls
 

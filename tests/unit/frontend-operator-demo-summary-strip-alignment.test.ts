@@ -98,6 +98,15 @@ test("operator console exposes demo summary strip with mirrored status pills and
     ".operator-demo-summary-kpi.is-updated .operator-demo-summary-kpi-token {",
     "@keyframes operatorDemoSummaryKpiPulse {",
     ".operator-demo-summary-copy {",
+    ".operator-board-mode-hint {",
+    "color: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));",
+    ".operator-mode-copy {",
+    "color: color-mix(in oklch, var(--foreground) 94%, var(--muted-foreground));",
+    ".operator-group-metrics {",
+    ".operator-health-row {",
+    "color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));",
+    ".operator-health-hint-neutral {",
+    "color: color-mix(in oklch, var(--foreground) 90%, var(--status-neutral-fg));",
   ];
   for (const token of requiredStyleTokens) {
     assert.ok(stylesSource.includes(token), `frontend styles missing operator demo-summary token: ${token}`);
@@ -112,11 +121,19 @@ test("operator console exposes demo summary strip with mirrored status pills and
     "README missing operator demo-summary mini-kpi note",
   );
   assert.ok(
+    readmeSource.includes("Operator Console secondary copy"),
+    "README missing operator secondary copy contrast note",
+  );
+  assert.ok(
     operatorGuideSource.includes("`Demo Summary` strip"),
     "operator guide missing operator demo-summary strip note",
   );
   assert.ok(
     operatorGuideSource.includes("mini-KPI"),
     "operator guide missing operator demo-summary mini-kpi note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("secondary operator copy"),
+    "operator guide missing operator secondary copy contrast note",
   );
 });

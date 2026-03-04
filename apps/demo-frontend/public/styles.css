@@ -972,7 +972,7 @@ textarea {
 
 .operator-board-mode-hint {
   margin: 12px 0 0;
-  color: var(--muted-foreground);
+  color: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));
   font-size: 0.86rem;
   line-height: 1.5;
 }
@@ -1023,7 +1023,7 @@ textarea {
 
 .operator-mode-copy {
   margin: 0;
-  color: color-mix(in oklch, var(--foreground) 90%, var(--muted-foreground));
+  color: color-mix(in oklch, var(--foreground) 94%, var(--muted-foreground));
   font-size: 0.84rem;
   line-height: 1.45;
 }
@@ -1088,7 +1088,7 @@ textarea {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: color-mix(in oklch, var(--muted-foreground) 84%, var(--foreground));
+  color: color-mix(in oklch, var(--foreground) 91%, var(--muted-foreground));
 }
 
 .operator-demo-summary-card .status-pill {
@@ -1131,7 +1131,7 @@ textarea {
 
 .operator-demo-summary-kpi-neutral {
   border-color: color-mix(in oklch, var(--muted-foreground) 38%, var(--border-soft));
-  color: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));
+  color: color-mix(in oklch, var(--foreground) 90%, var(--muted-foreground));
   background: color-mix(in oklch, var(--surface-control) 84%, transparent);
 }
 
@@ -1160,7 +1160,7 @@ textarea {
   margin: 0;
   font-size: 0.78rem;
   line-height: 1.42;
-  color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
+  color: color-mix(in oklch, var(--foreground) 91%, var(--muted-foreground));
 }
 
 .operator-summary-guide {
@@ -1213,7 +1213,7 @@ textarea {
 
 .operator-summary-guide-hint {
   margin: 0;
-  color: var(--muted-foreground);
+  color: color-mix(in oklch, var(--foreground) 88%, var(--muted-foreground));
   font-size: 0.82rem;
   line-height: 1.45;
 }
@@ -1268,7 +1268,7 @@ textarea {
 
 .operator-quick-start-hint {
   margin: 0;
-  color: color-mix(in oklch, var(--muted-foreground) 92%, var(--foreground));
+  color: color-mix(in oklch, var(--foreground) 88%, var(--muted-foreground));
   font-size: 0.8rem;
   line-height: 1.45;
 }
@@ -1329,7 +1329,7 @@ textarea {
 
 .operator-lane-playbook-card p {
   margin: 0;
-  color: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));
+  color: color-mix(in oklch, var(--foreground) 89%, var(--muted-foreground));
   font-size: 0.78rem;
   line-height: 1.45;
 }
@@ -1371,7 +1371,7 @@ textarea {
   font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: color-mix(in oklch, var(--muted-foreground) 82%, var(--foreground));
+  color: color-mix(in oklch, var(--foreground) 88%, var(--muted-foreground));
 }
 
 .operator-triage-stat p {
@@ -1454,7 +1454,7 @@ textarea {
 
 .operator-advanced-actions-hint {
   margin: 8px 0 0;
-  color: var(--muted-foreground);
+  color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
   font-size: 0.86rem;
   line-height: 1.5;
 }
@@ -1512,7 +1512,7 @@ textarea {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: color-mix(in oklch, var(--muted-foreground) 86%, var(--foreground));
+  color: color-mix(in oklch, var(--foreground) 90%, var(--muted-foreground));
 }
 
 .operator-signal-card .status-pill {
@@ -2464,14 +2464,14 @@ button:focus-visible {
 
 .operator-health-group-head h3 {
   margin: 0;
-  color: color-mix(in oklch, var(--foreground) 84%, var(--accent-foreground));
+  color: color-mix(in oklch, var(--foreground) 91%, var(--accent-foreground));
   font-size: 1.01rem;
 }
 
 .operator-group-metrics {
   margin: 0;
   font-size: 0.79rem;
-  color: var(--muted-foreground);
+  color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
   letter-spacing: 0.005em;
   white-space: nowrap;
   overflow: hidden;
@@ -2538,7 +2538,7 @@ button:focus-visible {
 .operator-health-card h3 {
   margin: 0 0 12px;
   font-size: 1rem;
-  color: color-mix(in oklch, var(--foreground) 84%, var(--accent-foreground));
+  color: color-mix(in oklch, var(--foreground) 90%, var(--accent-foreground));
 }
 
 .operator-health-card .status-pill {
@@ -2551,12 +2551,12 @@ button:focus-visible {
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  color: var(--muted-foreground);
+  color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
   font-size: 0.9rem;
 }
 
 .operator-health-row strong {
-  color: color-mix(in oklch, var(--foreground) 84%, var(--accent-foreground));
+  color: color-mix(in oklch, var(--foreground) 90%, var(--accent-foreground));
   font-weight: 600;
 }
 
@@ -2578,7 +2578,7 @@ button:focus-visible {
 
 .operator-health-hint-neutral {
   background: color-mix(in oklch, var(--muted-ui) 72%, transparent);
-  color: var(--status-neutral-fg);
+  color: color-mix(in oklch, var(--foreground) 90%, var(--status-neutral-fg));
 }
 
 .operator-health-hint-ok {
@@ -2590,7 +2590,7 @@ button:focus-visible {
 .operator-health-hint-warn {
   background: var(--accent-soft);
   border-color: color-mix(in oklch, var(--accent-foreground) 40%, transparent);
-  color: color-mix(in oklch, var(--accent-foreground) 80%, white);
+  color: color-mix(in oklch, var(--accent-foreground) 88%, white);
 }
 
 .operator-health-hint-fail {
