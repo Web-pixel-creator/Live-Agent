@@ -6,7 +6,7 @@ Fast, judge-facing entry point for a 5-10 minute evaluation run.
 
 This project covers all three challenge categories in one platform:
 
-1. Live Agent (realtime speech, interruption, translation, negotiation)
+1. Live Agent (realtime speech, interruption, translation, negotiation, grounded research)
 2. Creative Storyteller (text + audio + image + video narrative flow)
 3. UI Navigator (computer-use style UI planning/execution with approval guardrails)
 
@@ -55,6 +55,8 @@ Artifacts:
 8. `artifacts/judge-visual-evidence/presentation.md`
 9. `artifacts/demo-e2e/epic-summary.json`
 
+If deploy/publish artifacts are present, `manifest.md` and `presentation.md` also surface compact deploy/publish provenance from `artifacts/deploy/railway-deploy-summary.json` and `artifacts/deploy/repo-publish-summary.json`. Ordinary local judge flows omit that section, and raw deploy/publish JSON is not embedded into the judge-facing markdown.
+
 ## 3) Validate Release Readiness
 
 ```bash
@@ -64,21 +66,30 @@ npm run verify:release
 ## 4) What Judges Should See in UI
 
 1. Connection + assistant lifecycle (`idle/streaming/speaking`).
-2. Live interruption, truncate/delete evidence, and gateway error correlation.
+2. Live interruption, truncate/delete evidence, gateway error correlation, and optional `research` citations/source URLs.
 3. Operator Console panels:
    - Live Bridge Status
    - Approvals Queue
+   - Workflow Runtime / Runtime Guardrails
    - Device Nodes Health / Updates
+   - Bootstrap Doctor / Browser Workers
    - Governance Policy Lifecycle
    - Skills Registry Lifecycle
    - Plugin Marketplace Lifecycle
    - Agent Usage Evidence
    - Cost & Tokens Evidence
-4. Session export controls:
+4. Operator support panels:
+   - `Runtime Drill Runner` for repo-owned dry-run/live recovery drills and `followUpContext` handoff.
+   - `Workflow Control Panel` for redacted assistive-router/runtime override posture.
+   - `Operator Session Ops` for saved `operatorPurpose`, session replay, and cross-agent discovery.
+   - `Bootstrap Doctor & Auth Profiles` for provider/auth-profile/device/fallback posture.
+   - `Browser Worker Control` for queue/checkpoint posture on long-running UI jobs.
+5. Session export controls:
    - `Export Session -> Export Markdown`
    - `Export Session -> Export JSON`
    - `Export Session -> Export Audio (WAV)`
-5. Story Timeline panel:
+   - Confirm exported Markdown/JSON include `runtimeGuardrailsSignalPaths`, `operatorPurpose`, `operatorSessionReplay`, and `operatorDiscovery`.
+6. Story Timeline panel:
    - Confirm `Timeline State` KPI transitions (`0%` idle -> ready/pending) as story output arrives.
    - Segment scrubber/selector reflects `output.story.timeline`
    - Preview card shows segment text + `image/video/audio` refs
@@ -100,6 +111,7 @@ npm run verify:release
    - Start mic, send live request, then trigger interruption.
    - Show truncate/delete/gateway-correlation evidence in Operator Console.
    - Mention roundtrip and interrupt KPI lanes in `artifacts/demo-e2e/badge-details.json`.
+   - If judges ask for grounded-research proof, switch to `intent=research` once and show citation-bearing `answer`, `citations`, and `sourceUrls`.
 3. `02:15-03:30` Creative Storyteller category:
    - Send storyteller prompt.
    - Open `Story Timeline` panel and scrub segments.
@@ -107,8 +119,10 @@ npm run verify:release
 4. `03:30-04:45` UI Navigator category:
    - Send `ui_task` intent with grounding fields.
    - Show approval flow and damage-control verdict in Operator Console.
+   - Save a short purpose in `Operator Session Ops`, then open `Bootstrap Doctor & Auth Profiles` and `Browser Worker Control` once to show runtime posture before execution.
    - Confirm safety gates before execution.
 5. `04:45-05:30` Evidence close:
    - Run `npm run demo:epic` (or fallback `npm run demo:e2e:visual:judge` if e2e/policy/badge were already executed).
    - Open `artifacts/judge-visual-evidence/presentation.md`.
    - Confirm all evidence lanes are `pass` in `artifacts/demo-e2e/badge-details.json`.
+   - Export session `JSON` or `Markdown` and confirm `runtimeGuardrailsSignalPaths`, `operatorPurpose`, `operatorSessionReplay`, and `operatorDiscovery`.

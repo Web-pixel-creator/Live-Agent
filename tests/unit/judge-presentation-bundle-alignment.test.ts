@@ -33,11 +33,17 @@ test("judge presentation bundle script is wired across package scripts and docs"
     "npm run demo:e2e:visual:bundle",
     "npm run demo:e2e:visual:judge",
     "presentation.md",
+    "railway-deploy-summary.json",
+    "repo-publish-summary.json",
   ];
   for (const token of docTokens) {
     assert.ok(readme.includes(token), `README missing presentation token: ${token}`);
     assert.ok(visualDoc.includes(token), `judge visual evidence doc missing presentation token: ${token}`);
   }
+  assert.ok(
+    visualDoc.includes("compact deploy/publish provenance"),
+    "judge visual evidence doc missing compact provenance wording",
+  );
   assert.ok(
     quickstart.includes("npm run demo:e2e:visual:bundle"),
     "judge quickstart missing visual bundle command",
@@ -49,9 +55,20 @@ test("judge presentation bundle script is wired across package scripts and docs"
     "Judge Presentation Bundle",
     "Challenge Category Coverage",
     "Critical Evidence Lanes",
+    "Runtime Guardrails Snapshot",
+    "Provider Adapter Snapshot",
+    "Deploy / Publish Provenance",
     "release-evidence/report.json",
+    "railway-deploy-summary.json",
+    "repo-publish-summary.json",
     "manifest.json",
     "gallery.md",
+    "runtimeGuardrailsSignalPaths",
+    "providerUsage",
+    "railwayDeploySummary",
+    "repoPublishSummary",
+    "sanitizeDeployProvenanceRows",
+    "buildDeployProvenanceRows",
     "pluginMarketplace",
     "deviceNodeUpdates",
   ];

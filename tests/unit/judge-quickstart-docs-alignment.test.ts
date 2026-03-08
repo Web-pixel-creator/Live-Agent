@@ -12,6 +12,7 @@ test("readme exposes judge quick path and quickstart doc link", () => {
     "## Judge Quick Path",
     "npm run demo:e2e:fast && npm run demo:e2e:policy",
     "artifacts/demo-e2e/badge-details.json",
+    "Frontend `Intent Request` also supports `intent=research`",
   ];
   for (const token of requiredTokens) {
     assert.ok(source.includes(token), `README missing judge quick path token: ${token}`);
@@ -36,6 +37,17 @@ test("judge quickstart document includes core judge commands and categories", ()
     "Export Session -> Export Markdown",
     "Export Session -> Export JSON",
     "Export Session -> Export Audio (WAV)",
+    "Operator Session Ops",
+    "Bootstrap Doctor & Auth Profiles",
+    "Browser Worker Control",
+    "Runtime Drill Runner",
+    "Workflow Control Panel",
+    "operatorPurpose",
+    "operatorSessionReplay",
+    "operatorDiscovery",
+    "runtimeGuardrailsSignalPaths",
+    "intent=research",
+    "sourceUrls",
     "docs/challenge-demo-runbook.md",
     "Demo Script by Minute (5-6 min)",
     "00:00-00:45",

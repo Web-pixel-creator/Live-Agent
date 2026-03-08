@@ -9,6 +9,8 @@ function parseArgs(argv) {
     badge: "artifacts/demo-e2e/badge.json",
     badgeDetails: "artifacts/demo-e2e/badge-details.json",
     releaseEvidence: "artifacts/release-evidence/report.json",
+    railwayDeploySummary: "artifacts/deploy/railway-deploy-summary.json",
+    repoPublishSummary: "artifacts/deploy/repo-publish-summary.json",
     visualManifest: "artifacts/judge-visual-evidence/manifest.json",
     visualGallery: "artifacts/judge-visual-evidence/gallery.md",
   };
@@ -37,6 +39,14 @@ function parseArgs(argv) {
     }
     if (arg === "--releaseEvidence") {
       options.releaseEvidence = String(argv[++index] ?? options.releaseEvidence);
+      continue;
+    }
+    if (arg === "--railwayDeploySummary") {
+      options.railwayDeploySummary = String(argv[++index] ?? options.railwayDeploySummary);
+      continue;
+    }
+    if (arg === "--repoPublishSummary") {
+      options.repoPublishSummary = String(argv[++index] ?? options.repoPublishSummary);
       continue;
     }
     if (arg === "--visualManifest") {
@@ -89,6 +99,24 @@ function toStatus(value) {
   return "unavailable";
 }
 
+function toOptionalText(value) {
+  if (typeof value !== "string") {
+    return "unavailable";
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : "unavailable";
+}
+
+function toEnabledLabel(value) {
+  if (value === true) {
+    return "enabled";
+  }
+  if (value === false) {
+    return "disabled";
+  }
+  return "n/a";
+}
+
 function toRelativePath(fromFile, toFile) {
   const raw = relative(dirname(fromFile), toFile);
   return raw.split(sep).join("/");
@@ -137,6 +165,131 @@ function deriveDeviceNodeUpdatesStatus(visualManifest, badgeDetails) {
   return "unavailable";
 }
 
+function toProviderEntrySummary(entry) {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+
+  return {
+    route: String(entry.route ?? "n/a"),
+    capability: String(entry.capability ?? "n/a"),
+    selectedProvider: String(entry.selectedProvider ?? "n/a"),
+    selectedModel: String(entry.selectedModel ?? "n/a"),
+    defaultProvider: String(entry.defaultProvider ?? "n/a"),
+    selectionReason: String(entry.selectionReason ?? "n/a"),
+    secondaryActive: entry.secondaryActive === true ? "yes" : "no",
+  };
+}
+
+function summarizePrimaryPath(primaryPath) {
+  if (!primaryPath || typeof primaryPath !== "object") {
+    return "n/a";
+  }
+
+  const title = String(primaryPath.title ?? "n/a");
+  const kind = String(primaryPath.kind ?? "n/a");
+  const phase = String(primaryPath.phase ?? "n/a");
+  return `${title} (${kind} / ${phase})`;
+}
+
+function sanitizeDeployProvenanceRows(rows) {
+  if (!Array.isArray(rows)) {
+    return [];
+  }
+  return rows
+    .map((row) => ({
+      id: String(row?.id ?? "").trim(),
+      title: String(row?.title ?? "").trim(),
+      summary: String(row?.summary ?? "").trim(),
+    }))
+    .filter((row) => row.title.length > 0 && row.summary.length > 0);
+}
+
+function buildDeployProvenanceRows(deployProvenance) {
+  const rows = [];
+  const railwayDeploy = deployProvenance.railwayDeploy;
+  const repoPublish = deployProvenance.repoPublish;
+
+  if (railwayDeploy.present) {
+    rows.push({
+      id: "railwayDeploy",
+      title: "Railway deploy",
+      summary: `status ${railwayDeploy.status}; deployment ${railwayDeploy.deploymentId}; public URL ${railwayDeploy.effectivePublicUrl}`,
+    });
+
+    const badgeParts = [];
+    if (railwayDeploy.badgeEndpoint !== "unavailable") {
+      badgeParts.push(`badge ${railwayDeploy.badgeEndpoint}`);
+    }
+    if (railwayDeploy.badgeDetailsEndpoint !== "unavailable") {
+      badgeParts.push(`badge-details ${railwayDeploy.badgeDetailsEndpoint}`);
+    }
+    if (badgeParts.length > 0) {
+      rows.push({
+        id: "railwayBadge",
+        title: "Public badge",
+        summary: badgeParts.join("; "),
+      });
+    }
+  }
+
+  if (repoPublish.present) {
+    rows.push({
+      id: "repoPublish",
+      title: "Repo publish",
+      summary: [
+        `verification ${repoPublish.verificationScript}`,
+        repoPublish.releaseEvidenceValidated === "true"
+          ? "release evidence validated"
+          : "release evidence not validated",
+        `Railway deploy ${repoPublish.railwayDeployEnabledLabel}`,
+        `frontend deploy ${repoPublish.railwayFrontendDeployEnabledLabel}`,
+      ].join("; "),
+    });
+  }
+
+  return rows;
+}
+
+function summarizeDeployProvenance(visualManifest, railwayDeploySummaryRead, repoPublishSummaryRead) {
+  const railwayDeploySummary =
+    railwayDeploySummaryRead.present && railwayDeploySummaryRead.parsed ? railwayDeploySummaryRead.value : null;
+  const repoPublishSummary =
+    repoPublishSummaryRead.present && repoPublishSummaryRead.parsed ? repoPublishSummaryRead.value : null;
+  const railwayPublicBadge = railwayDeploySummary?.checks?.publicBadge ?? {};
+  const repoPublishVerification = repoPublishSummary?.verification ?? {};
+  const repoPublishSteps = repoPublishSummary?.steps ?? {};
+
+  const deployProvenance = {
+    available: Boolean(railwayDeploySummary || repoPublishSummary),
+    rows: [],
+    railwayDeploy: {
+      present: railwayDeploySummaryRead.present && railwayDeploySummaryRead.parsed,
+      status: toOptionalText(railwayDeploySummary?.status),
+      deploymentId: toOptionalText(railwayDeploySummary?.deploymentId),
+      effectivePublicUrl: toOptionalText(railwayDeploySummary?.effectivePublicUrl),
+      badgeEndpoint: toOptionalText(railwayPublicBadge?.badgeEndpoint),
+      badgeDetailsEndpoint: toOptionalText(railwayPublicBadge?.badgeDetailsEndpoint),
+    },
+    repoPublish: {
+      present: repoPublishSummaryRead.present && repoPublishSummaryRead.parsed,
+      verificationScript: toOptionalText(repoPublishVerification?.script),
+      releaseEvidenceValidated: repoPublishVerification?.releaseEvidenceArtifactsValidated === true ? "true" : "false",
+      railwayDeployEnabled: repoPublishSteps?.railwayDeployEnabled === true ? "true" : "false",
+      railwayFrontendDeployEnabled: repoPublishSteps?.railwayFrontendDeployEnabled === true ? "true" : "false",
+      railwayDeployEnabledLabel: toEnabledLabel(repoPublishSteps?.railwayDeployEnabled),
+      railwayFrontendDeployEnabledLabel: toEnabledLabel(repoPublishSteps?.railwayFrontendDeployEnabled),
+    },
+  };
+
+  const rowsFromVisualManifest = sanitizeDeployProvenanceRows(visualManifest?.deployProvenance?.rows);
+  deployProvenance.rows =
+    rowsFromVisualManifest.length > 0 ? rowsFromVisualManifest : buildDeployProvenanceRows(deployProvenance);
+  deployProvenance.available = deployProvenance.rows.length > 0 || deployProvenance.available;
+
+  return deployProvenance;
+}
+
 function toMarkdown(bundle) {
   const lines = [];
   lines.push("# Judge Presentation Bundle");
@@ -174,6 +327,37 @@ function toMarkdown(bundle) {
   lines.push(`- Tokens used total: ${bundle.tokensUsedTotal}`);
   lines.push("");
 
+  lines.push("## Runtime Guardrails Snapshot");
+  lines.push("");
+  lines.push(`- Status: ${bundle.runtimeGuardrails.status}`);
+  lines.push(`- Summary: ${bundle.runtimeGuardrails.summaryStatus}`);
+  lines.push(`- Total paths: ${bundle.runtimeGuardrails.totalPaths}`);
+  lines.push(`- Primary path: ${bundle.runtimeGuardrails.primaryPathSummary}`);
+  lines.push("");
+
+  lines.push("## Provider Adapter Snapshot");
+  lines.push("");
+  lines.push(`- Status: ${bundle.providerUsage.status}`);
+  lines.push(`- Active secondary providers: ${bundle.providerUsage.activeSecondaryProviders}`);
+  lines.push("");
+  lines.push("| Route | Capability | Provider | Model | Default Provider | Selection Reason | Secondary Active |");
+  lines.push("|---|---|---|---|---|---|---|");
+  for (const row of bundle.providerUsage.entries) {
+    lines.push(
+      `| ${row.route} | ${row.capability} | ${row.selectedProvider} | ${row.selectedModel} | ${row.defaultProvider} | ${row.selectionReason} | ${row.secondaryActive} |`,
+    );
+  }
+
+  if (bundle.deployProvenance.rows.length > 0) {
+    lines.push("");
+    lines.push("## Deploy / Publish Provenance");
+    lines.push("");
+    for (const row of bundle.deployProvenance.rows) {
+      lines.push(`- ${row.title}: ${row.summary}`);
+    }
+  }
+  lines.push("");
+
   lines.push("## Visual Assets");
   lines.push("");
   lines.push(`- Visual manifest: [manifest.json](${bundle.artifacts.visualManifestRel})`);
@@ -209,6 +393,8 @@ function main() {
   const badgePath = toAbsolutePath(options.badge);
   const badgeDetailsPath = toAbsolutePath(options.badgeDetails);
   const releaseEvidencePath = toAbsolutePath(options.releaseEvidence);
+  const railwayDeploySummaryPath = toAbsolutePath(options.railwayDeploySummary);
+  const repoPublishSummaryPath = toAbsolutePath(options.repoPublishSummary);
   const visualManifestPath = toAbsolutePath(options.visualManifest);
   const visualGalleryPath = toAbsolutePath(options.visualGallery);
 
@@ -217,6 +403,8 @@ function main() {
   const badgeRead = readJsonIfExists(badgePath);
   const badgeDetailsRead = readJsonIfExists(badgeDetailsPath);
   const releaseEvidenceRead = readJsonIfExists(releaseEvidencePath);
+  const railwayDeploySummaryRead = readJsonIfExists(railwayDeploySummaryPath);
+  const repoPublishSummaryRead = readJsonIfExists(repoPublishSummaryPath);
   const visualManifestRead = readJsonIfExists(visualManifestPath);
 
   const summary = summaryRead.value ?? {};
@@ -225,6 +413,13 @@ function main() {
   const badgeDetails = badgeDetailsRead.value ?? {};
   const visualManifest = visualManifestRead.value ?? {};
   const releaseEvidence = releaseEvidenceRead.value ?? {};
+  const runtimeGuardrails = badgeDetails?.evidence?.runtimeGuardrailsSignalPaths ?? {};
+  const providerUsage = badgeDetails?.providerUsage ?? releaseEvidence?.providerUsage ?? {};
+  const deployProvenance = summarizeDeployProvenance(
+    visualManifest,
+    railwayDeploySummaryRead,
+    repoPublishSummaryRead,
+  );
 
   const categories = [
     {
@@ -253,6 +448,8 @@ function main() {
     { lane: "pluginMarketplace", status: toStatus(badgeDetails?.evidence?.pluginMarketplace?.status) },
     { lane: "deviceNodes", status: toStatus(badgeDetails?.evidence?.deviceNodes?.status) },
     { lane: "agentUsage", status: toStatus(badgeDetails?.evidence?.agentUsage?.status) },
+    { lane: "runtimeGuardrailsSignalPaths", status: toStatus(runtimeGuardrails?.status) },
+    { lane: "providerUsage", status: toStatus(providerUsage?.status) },
     { lane: "deviceNodeUpdates", status: deriveDeviceNodeUpdatesStatus(visualManifest, badgeDetails) },
   ];
 
@@ -263,15 +460,19 @@ function main() {
 
   const notes = [];
   for (const source of [
-    { name: "summary", read: summaryRead },
-    { name: "policy", read: policyRead },
-    { name: "badge", read: badgeRead },
-    { name: "badgeDetails", read: badgeDetailsRead },
-    { name: "releaseEvidence", read: releaseEvidenceRead },
-    { name: "visualManifest", read: visualManifestRead },
+    { name: "summary", read: summaryRead, optional: false },
+    { name: "policy", read: policyRead, optional: false },
+    { name: "badge", read: badgeRead, optional: false },
+    { name: "badgeDetails", read: badgeDetailsRead, optional: false },
+    { name: "releaseEvidence", read: releaseEvidenceRead, optional: false },
+    { name: "railwayDeploySummary", read: railwayDeploySummaryRead, optional: true },
+    { name: "repoPublishSummary", read: repoPublishSummaryRead, optional: true },
+    { name: "visualManifest", read: visualManifestRead, optional: false },
   ]) {
     if (!source.read.present) {
-      notes.push(`${source.name} source is missing`);
+      if (!source.optional) {
+        notes.push(`${source.name} source is missing`);
+      }
       continue;
     }
     if (!source.read.parsed) {
@@ -294,6 +495,20 @@ function main() {
     gatewayRoundTripMs: Number(summary?.kpis?.gatewayWsRoundTripMs ?? 0),
     costTotalUsd: Number(badgeDetails?.costEstimate?.totalUsd ?? summary?.costEstimate?.totalUsd ?? 0),
     tokensUsedTotal: Number(badgeDetails?.tokensUsed?.total ?? summary?.tokensUsed?.total ?? 0),
+    runtimeGuardrails: {
+      status: toStatus(runtimeGuardrails?.status),
+      summaryStatus: String(runtimeGuardrails?.summaryStatus ?? "n/a"),
+      totalPaths: Number(runtimeGuardrails?.totalPaths ?? 0),
+      primaryPathSummary: summarizePrimaryPath(runtimeGuardrails?.primaryPath),
+    },
+    providerUsage: {
+      status: toStatus(providerUsage?.status),
+      activeSecondaryProviders: Number(providerUsage?.activeSecondaryProviders ?? 0),
+      entries: Array.isArray(providerUsage?.entries)
+        ? providerUsage.entries.map(toProviderEntrySummary).filter(Boolean)
+        : [],
+    },
+    deployProvenance,
     categories,
     evidenceLanes,
     artifacts: {
@@ -301,6 +516,8 @@ function main() {
       policyRel: toRelativePath(outputMarkdownPath, policyPath),
       badgeDetailsRel: toRelativePath(outputMarkdownPath, badgeDetailsPath),
       releaseEvidenceRel: toRelativePath(outputMarkdownPath, releaseEvidencePath),
+      railwayDeploySummaryRel: toRelativePath(outputMarkdownPath, railwayDeploySummaryPath),
+      repoPublishSummaryRel: toRelativePath(outputMarkdownPath, repoPublishSummaryPath),
       visualManifestRel: toRelativePath(outputMarkdownPath, visualManifestPath),
       visualChecklistRel: toRelativePath(
         outputMarkdownPath,

@@ -5,8 +5,9 @@
 Create one reproducible visual bundle for judges:
 
 1. Screenshot checklist status (present/missing).
-2. Critical badge-evidence lane status (`pass/fail/unavailable`).
+2. Critical badge-evidence lane status (`pass/fail/unavailable`), including runtime guardrails and provider provenance.
 3. Single manifest for quick go/no-go before submission.
+4. One-page presentation bundle with runtime guardrails snapshot, provider adapter snapshot, and compact deploy/publish provenance when optional Railway/repo-publish artifacts are available.
 
 ## Commands
 
@@ -76,7 +77,9 @@ Defaults used by `scripts/judge-visual-evidence-pack.mjs`:
 
 1. Badge details: `artifacts/demo-e2e/badge-details.json`
 2. Demo summary: `artifacts/demo-e2e/summary.json`
-3. Screenshot directory: `artifacts/judge-visual-evidence/screenshots`
+3. Optional Railway deploy summary: `artifacts/deploy/railway-deploy-summary.json`
+4. Optional repo publish summary: `artifacts/deploy/repo-publish-summary.json`
+5. Screenshot directory: `artifacts/judge-visual-evidence/screenshots`
 
 Defaults used by `scripts/judge-visual-capture.mjs`:
 
@@ -93,6 +96,8 @@ Defaults used by `scripts/judge-visual-capture.mjs`:
 4. `artifacts/judge-visual-evidence/gallery.md`
 5. `artifacts/judge-visual-evidence/presentation.md`
 6. `artifacts/demo-e2e/epic-summary.json`
+
+`manifest.md` and `presentation.md` surface compact deploy/publish provenance from `railway-deploy-summary.json` / `repo-publish-summary.json` when those optional files are present. Ordinary local judge flows omit that section instead of filling the page with `unavailable` placeholders, and raw deploy/publish JSON is not embedded into the judge-facing markdown.
 
 ## Required Screenshot Filenames
 
@@ -120,4 +125,6 @@ Pack marks these as critical:
 6. `pluginMarketplace`
 7. `deviceNodes`
 8. `agentUsage`
-9. `deviceNodeUpdates` (derived from `deviceNodes` updates fields)
+9. `runtimeGuardrailsSignalPaths`
+10. `providerUsage`
+11. `deviceNodeUpdates` (derived from `deviceNodes` updates fields)

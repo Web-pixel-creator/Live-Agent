@@ -7,6 +7,8 @@ function parseArgs(argv) {
     outputMarkdown: "artifacts/judge-visual-evidence/manifest.md",
     badgeDetails: "artifacts/demo-e2e/badge-details.json",
     summary: "artifacts/demo-e2e/summary.json",
+    railwayDeploySummary: "artifacts/deploy/railway-deploy-summary.json",
+    repoPublishSummary: "artifacts/deploy/repo-publish-summary.json",
     screenshotDir: "artifacts/judge-visual-evidence/screenshots",
     strict: false,
   };
@@ -31,6 +33,14 @@ function parseArgs(argv) {
     }
     if (arg === "--summary") {
       options.summary = argv[++i];
+      continue;
+    }
+    if (arg === "--railwayDeploySummary") {
+      options.railwayDeploySummary = argv[++i];
+      continue;
+    }
+    if (arg === "--repoPublishSummary") {
+      options.repoPublishSummary = argv[++i];
       continue;
     }
     if (arg === "--screenshotDir") {
@@ -83,6 +93,24 @@ function toStatusValue(value) {
   return "unavailable";
 }
 
+function toOptionalText(value) {
+  if (typeof value !== "string") {
+    return "unavailable";
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : "unavailable";
+}
+
+function toEnabledLabel(value) {
+  if (value === true) {
+    return "enabled";
+  }
+  if (value === false) {
+    return "disabled";
+  }
+  return "n/a";
+}
+
 function deriveDeviceNodeUpdatesStatus(deviceNodesEvidence) {
   if (!deviceNodesEvidence || typeof deviceNodesEvidence !== "object") {
     return "unavailable";
@@ -103,11 +131,93 @@ function deriveDeviceNodeUpdatesStatus(deviceNodesEvidence) {
   return "unavailable";
 }
 
+function buildDeployProvenanceRows(deployProvenance) {
+  const rows = [];
+  const railwayDeploy = deployProvenance.railwayDeploy;
+  const repoPublish = deployProvenance.repoPublish;
+
+  if (railwayDeploy.available) {
+    rows.push({
+      id: "railwayDeploy",
+      title: "Railway deploy",
+      summary: `status ${railwayDeploy.status}; deployment ${railwayDeploy.deploymentId}; public URL ${railwayDeploy.effectivePublicUrl}`,
+    });
+
+    const badgeParts = [];
+    if (railwayDeploy.badgeEndpoint !== "unavailable") {
+      badgeParts.push(`badge ${railwayDeploy.badgeEndpoint}`);
+    }
+    if (railwayDeploy.badgeDetailsEndpoint !== "unavailable") {
+      badgeParts.push(`badge-details ${railwayDeploy.badgeDetailsEndpoint}`);
+    }
+    if (badgeParts.length > 0) {
+      rows.push({
+        id: "railwayBadge",
+        title: "Public badge",
+        summary: badgeParts.join("; "),
+      });
+    }
+  }
+
+  if (repoPublish.available) {
+    rows.push({
+      id: "repoPublish",
+      title: "Repo publish",
+      summary: [
+        `verification ${repoPublish.verificationScript}`,
+        repoPublish.releaseEvidenceValidated ? "release evidence validated" : "release evidence not validated",
+        `Railway deploy ${repoPublish.railwayDeployEnabledLabel}`,
+        `frontend deploy ${repoPublish.railwayFrontendDeployEnabledLabel}`,
+      ].join("; "),
+    });
+  }
+
+  return rows;
+}
+
+function collectDeployProvenance(railwayDeploySummaryRead, repoPublishSummaryRead) {
+  const railwayDeploySummary =
+    railwayDeploySummaryRead.present && railwayDeploySummaryRead.parsed ? railwayDeploySummaryRead.value : null;
+  const repoPublishSummary =
+    repoPublishSummaryRead.present && repoPublishSummaryRead.parsed ? repoPublishSummaryRead.value : null;
+  const railwayChecks = railwayDeploySummary?.checks?.publicBadge ?? {};
+  const repoPublishVerification = repoPublishSummary?.verification ?? {};
+  const repoPublishSteps = repoPublishSummary?.steps ?? {};
+
+  const deployProvenance = {
+    available: Boolean(railwayDeploySummary || repoPublishSummary),
+    rows: [],
+    railwayDeploy: {
+      available: railwayDeploySummaryRead.present && railwayDeploySummaryRead.parsed,
+      status: toOptionalText(railwayDeploySummary?.status),
+      deploymentId: toOptionalText(railwayDeploySummary?.deploymentId),
+      effectivePublicUrl: toOptionalText(railwayDeploySummary?.effectivePublicUrl),
+      badgeEndpoint: toOptionalText(railwayChecks?.badgeEndpoint),
+      badgeDetailsEndpoint: toOptionalText(railwayChecks?.badgeDetailsEndpoint),
+    },
+    repoPublish: {
+      available: repoPublishSummaryRead.present && repoPublishSummaryRead.parsed,
+      verificationScript: toOptionalText(repoPublishVerification?.script),
+      releaseEvidenceValidated: repoPublishVerification?.releaseEvidenceArtifactsValidated === true,
+      railwayDeployEnabled: repoPublishSteps?.railwayDeployEnabled === true,
+      railwayFrontendDeployEnabled: repoPublishSteps?.railwayFrontendDeployEnabled === true,
+      railwayDeployEnabledLabel: toEnabledLabel(repoPublishSteps?.railwayDeployEnabled),
+      railwayFrontendDeployEnabledLabel: toEnabledLabel(repoPublishSteps?.railwayFrontendDeployEnabled),
+    },
+  };
+
+  deployProvenance.rows = buildDeployProvenanceRows(deployProvenance);
+  return deployProvenance;
+}
+
 function collectBadgeEvidence(badgeDetailsJson) {
   const evidence = badgeDetailsJson?.evidence && typeof badgeDetailsJson.evidence === "object"
     ? badgeDetailsJson.evidence
     : {};
   const deviceNodesEvidence = evidence.deviceNodes && typeof evidence.deviceNodes === "object" ? evidence.deviceNodes : {};
+  const providerUsage = badgeDetailsJson?.providerUsage && typeof badgeDetailsJson.providerUsage === "object"
+    ? badgeDetailsJson.providerUsage
+    : {};
 
   return {
     operatorTurnTruncation: toStatusValue(evidence.operatorTurnTruncation?.status),
@@ -118,6 +228,8 @@ function collectBadgeEvidence(badgeDetailsJson) {
     pluginMarketplace: toStatusValue(evidence.pluginMarketplace?.status),
     deviceNodes: toStatusValue(evidence.deviceNodes?.status),
     agentUsage: toStatusValue(evidence.agentUsage?.status),
+    runtimeGuardrailsSignalPaths: toStatusValue(evidence.runtimeGuardrailsSignalPaths?.status),
+    providerUsage: toStatusValue(providerUsage.status),
     deviceNodeUpdates: deriveDeviceNodeUpdatesStatus(deviceNodesEvidence),
     costEstimatePresent: badgeDetailsJson?.costEstimate && typeof badgeDetailsJson.costEstimate === "object",
     tokensUsedPresent: badgeDetailsJson?.tokensUsed && typeof badgeDetailsJson.tokensUsed === "object",
@@ -239,6 +351,15 @@ function toMarkdown(manifest) {
   }
   lines.push(`| costEstimatePresent | ${manifest.badgeEvidence.costEstimatePresent} |`);
   lines.push(`| tokensUsedPresent | ${manifest.badgeEvidence.tokensUsedPresent} |`);
+
+  if (manifest.deployProvenance.rows.length > 0) {
+    lines.push("");
+    lines.push("## Deploy / Publish Provenance");
+    lines.push("");
+    for (const row of manifest.deployProvenance.rows) {
+      lines.push(`- ${row.title}: ${row.summary}`);
+    }
+  }
   return lines.join("\n");
 }
 
@@ -247,13 +368,18 @@ function main() {
 
   const badgeDetailsPath = toAbsolutePath(options.badgeDetails);
   const summaryPath = toAbsolutePath(options.summary);
+  const railwayDeploySummaryPath = toAbsolutePath(options.railwayDeploySummary);
+  const repoPublishSummaryPath = toAbsolutePath(options.repoPublishSummary);
   const screenshotDir = toAbsolutePath(options.screenshotDir);
   const outputJsonPath = toAbsolutePath(options.outputJson);
   const outputMarkdownPath = toAbsolutePath(options.outputMarkdown);
 
   const badgeDetailsRead = readJsonIfExists(badgeDetailsPath);
   const summaryRead = readJsonIfExists(summaryPath);
+  const railwayDeploySummaryRead = readJsonIfExists(railwayDeploySummaryPath);
+  const repoPublishSummaryRead = readJsonIfExists(repoPublishSummaryPath);
   const badgeEvidence = collectBadgeEvidence(badgeDetailsRead.value ?? {});
+  const deployProvenance = collectDeployProvenance(railwayDeploySummaryRead, repoPublishSummaryRead);
 
   const checklist = evaluateChecklist(screenshotDir, buildChecklist());
   const missingRequiredCaptures = checklist.filter((item) => item.present !== true).length;
@@ -267,6 +393,8 @@ function main() {
     "pluginMarketplace",
     "deviceNodes",
     "agentUsage",
+    "runtimeGuardrailsSignalPaths",
+    "providerUsage",
     "deviceNodeUpdates",
   ];
 
@@ -290,17 +418,27 @@ function main() {
       summaryPresent: summaryRead.present,
       summaryParsed: summaryRead.parsed,
       summaryParseError: summaryRead.parseError,
+      railwayDeploySummaryPath,
+      railwayDeploySummaryPresent: railwayDeploySummaryRead.present,
+      railwayDeploySummaryParsed: railwayDeploySummaryRead.parsed,
+      railwayDeploySummaryParseError: railwayDeploySummaryRead.parseError,
+      repoPublishSummaryPath,
+      repoPublishSummaryPresent: repoPublishSummaryRead.present,
+      repoPublishSummaryParsed: repoPublishSummaryRead.parsed,
+      repoPublishSummaryParseError: repoPublishSummaryRead.parseError,
       screenshotDir,
     },
     strictMode: options.strict === true,
     criticalBadgeLanes,
     badgeEvidence,
+    deployProvenance,
     screenshotChecklist: checklist,
     summary: {
       requiredCaptures: checklist.length,
       presentCaptures: checklist.length - missingRequiredCaptures,
       missingRequiredCaptures,
       missingCriticalBadgeEvidence,
+      deployProvenanceRows: deployProvenance.rows.length,
     },
     overallStatus,
   };

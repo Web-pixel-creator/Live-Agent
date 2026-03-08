@@ -33,7 +33,9 @@ param(
   [string]$PerfPolicyPath = "artifacts/perf-load/policy-check.json",
   [string]$SourceRunManifestPath = "artifacts/release-artifact-revalidation/source-run.json",
   [string]$ReleaseEvidenceReportPath = "artifacts/release-evidence/report.json",
-  [string]$ReleaseEvidenceReportMarkdownPath = "artifacts/release-evidence/report.md"
+  [string]$ReleaseEvidenceReportMarkdownPath = "artifacts/release-evidence/report.md",
+  [string]$ReleaseEvidenceManifestPath = "artifacts/release-evidence/manifest.json",
+  [string]$ReleaseEvidenceManifestMarkdownPath = "artifacts/release-evidence/manifest.md"
 )
 
 $ErrorActionPreference = "Stop"
@@ -96,6 +98,95 @@ function To-BoolOrNull([object]$Value) {
     return $false
   }
   return $null
+}
+
+function Get-ObjectPropertyValue {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Object,
+    [Parameter(Mandatory = $true)]
+    [string]$Name
+  )
+
+  if ($null -eq $Object) {
+    return $null
+  }
+
+  $property = $Object.PSObject.Properties[$Name]
+  if ($null -eq $property) {
+    return $null
+  }
+
+  return $property.Value
+}
+
+function Get-OptionalNonEmptyStringPropertyValue {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Object,
+    [Parameter(Mandatory = $true)]
+    [string]$Name,
+    [Parameter(Mandatory = $true)]
+    [string]$ContextLabel
+  )
+
+  $value = Get-ObjectPropertyValue -Object $Object -Name $Name
+  if ($null -eq $value) {
+    return $null
+  }
+
+  $stringValue = [string]$value
+  if ([string]::IsNullOrWhiteSpace($stringValue)) {
+    Fail ($ContextLabel + "." + $Name + " expected non-empty string when provided")
+  }
+
+  return $stringValue
+}
+
+function Get-OptionalBooleanPropertyValue {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Object,
+    [Parameter(Mandatory = $true)]
+    [string]$Name,
+    [Parameter(Mandatory = $true)]
+    [string]$ContextLabel
+  )
+
+  $value = Get-ObjectPropertyValue -Object $Object -Name $Name
+  if ($null -eq $value) {
+    return $null
+  }
+
+  $boolValue = To-BoolOrNull $value
+  if ($null -eq $boolValue) {
+    Fail ($ContextLabel + "." + $Name + " expected boolean when provided")
+  }
+
+  return $boolValue
+}
+
+function Get-OptionalNonNegativeNumberPropertyValue {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Object,
+    [Parameter(Mandatory = $true)]
+    [string]$Name,
+    [Parameter(Mandatory = $true)]
+    [string]$ContextLabel
+  )
+
+  $value = Get-ObjectPropertyValue -Object $Object -Name $Name
+  if ($null -eq $value) {
+    return [double]::NaN
+  }
+
+  $numberValue = To-NumberOrNaN $value
+  if ([double]::IsNaN($numberValue) -or $numberValue -lt 0) {
+    Fail ($ContextLabel + "." + $Name + " expected >= 0 when provided")
+  }
+
+  return $numberValue
 }
 
 function Fail([string]$Message) {
@@ -168,10 +259,11 @@ if (-not $SkipProfileSmoke) {
 if ((-not $SkipDemoE2E) -and (-not $SkipDemoRun)) {
   $runFastDemo = $UseFastDemoE2E -or (-not $SkipBuild)
   $scenarioRetryArgs = "-ScenarioRetryMaxAttempts $DemoScenarioRetryMaxAttempts -ScenarioRetryBackoffMs $DemoScenarioRetryBackoffMs"
+  $serviceRestartArgs = "-RestartHealthyServices"
   $demoCommand = if ($runFastDemo) {
-    "npm run demo:e2e:fast -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs"
+    "npm run demo:e2e:fast -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs"
   } else {
-    "npm run demo:e2e -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs"
+    "npm run demo:e2e -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs"
   }
   Run-StepWithRetry "Run demo e2e" $demoCommand $DemoRunMaxAttempts $DemoRunRetryBackoffMs
 }
@@ -206,7 +298,7 @@ if (Test-Path $BadgeDetailsPath) {
   }
 
   Write-Host "[release-check] Build release evidence report"
-  & powershell -NoProfile -ExecutionPolicy Bypass -File $releaseEvidenceScriptPath -BadgeDetailsPath $BadgeDetailsPath -OutputJsonPath $ReleaseEvidenceReportPath -OutputMarkdownPath $ReleaseEvidenceReportMarkdownPath
+  & powershell -NoProfile -ExecutionPolicy Bypass -File $releaseEvidenceScriptPath -BadgeDetailsPath $BadgeDetailsPath -OutputJsonPath $ReleaseEvidenceReportPath -OutputMarkdownPath $ReleaseEvidenceReportMarkdownPath -OutputManifestJsonPath $ReleaseEvidenceManifestPath -OutputManifestMarkdownPath $ReleaseEvidenceManifestMarkdownPath
   if ($LASTEXITCODE -ne 0) {
     Fail "Step failed: Build release evidence report"
   }
@@ -237,6 +329,8 @@ if ($IsArtifactOnlyMode) {
 if (Test-Path $BadgeDetailsPath) {
   $requiredFiles += $ReleaseEvidenceReportPath
   $requiredFiles += $ReleaseEvidenceReportMarkdownPath
+  $requiredFiles += $ReleaseEvidenceManifestPath
+  $requiredFiles += $ReleaseEvidenceManifestMarkdownPath
 }
 
 $missing = @($requiredFiles | Where-Object { -not (Test-Path $_) })
@@ -422,6 +516,105 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       )
     }
 
+    $manifestRuntimeGuardrailsSignalPathsStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsStatus
+    $manifestRuntimeGuardrailsSignalPathsStatus = $manifestRuntimeGuardrailsSignalPathsStatusRaw.ToLowerInvariant()
+    if ($manifestRuntimeGuardrailsSignalPathsStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsStatus expected pass, actual " +
+        $manifestRuntimeGuardrailsSignalPathsStatusRaw
+      )
+    }
+
+    $manifestRuntimeGuardrailsSignalPathsSummaryStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus
+    if ([string]::IsNullOrWhiteSpace($manifestRuntimeGuardrailsSignalPathsSummaryStatus)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus is required")
+    }
+
+    $manifestRuntimeGuardrailsSignalPathsTotalPaths = To-NumberOrNaN $manifestEvidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths
+    if ([double]::IsNaN($manifestRuntimeGuardrailsSignalPathsTotalPaths) -or $manifestRuntimeGuardrailsSignalPathsTotalPaths -lt 0) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths expected >= 0, actual " +
+        $manifestEvidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths
+      )
+    }
+
+    $manifestRuntimeGuardrailsSignalPathsPrimaryPath = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath"
+    if ($manifestRuntimeGuardrailsSignalPathsTotalPaths -eq 0) {
+      if ($null -ne $manifestRuntimeGuardrailsSignalPathsPrimaryPath) {
+        Fail ("source run manifest evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath expected null when totalPaths=0")
+      }
+    }
+    else {
+      if ($null -eq $manifestRuntimeGuardrailsSignalPathsPrimaryPath) {
+        Fail ("source run manifest evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath is required when totalPaths > 0")
+      }
+
+      $manifestRuntimeGuardrailsSignalPathsPrimaryPathTitle = [string](Get-ObjectPropertyValue -Object $manifestRuntimeGuardrailsSignalPathsPrimaryPath -Name "title")
+      $manifestRuntimeGuardrailsSignalPathsPrimaryPathKind = [string](Get-ObjectPropertyValue -Object $manifestRuntimeGuardrailsSignalPathsPrimaryPath -Name "kind")
+      $manifestRuntimeGuardrailsSignalPathsPrimaryPathSummaryText = [string](Get-ObjectPropertyValue -Object $manifestRuntimeGuardrailsSignalPathsPrimaryPath -Name "summaryText")
+      if (
+        [string]::IsNullOrWhiteSpace($manifestRuntimeGuardrailsSignalPathsPrimaryPathTitle) -or
+        [string]::IsNullOrWhiteSpace($manifestRuntimeGuardrailsSignalPathsPrimaryPathKind) -or
+        [string]::IsNullOrWhiteSpace($manifestRuntimeGuardrailsSignalPathsPrimaryPathSummaryText)
+      ) {
+        Fail (
+          "source run manifest evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath expected title/kind/summaryText when totalPaths > 0"
+        )
+      }
+    }
+
+    $manifestProviderUsageStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageStatus
+    $manifestProviderUsageStatus = $manifestProviderUsageStatusRaw.ToLowerInvariant()
+    if ($manifestProviderUsageStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceProviderUsageStatus expected pass, actual " +
+        $manifestProviderUsageStatusRaw
+      )
+    }
+
+    $manifestProviderUsageValidated = [bool]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageValidated
+    if (-not $manifestProviderUsageValidated) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceProviderUsageValidated expected true")
+    }
+
+    $manifestProviderUsageActiveSecondaryProviders = To-NumberOrNaN $manifestEvidenceSnapshot.badgeEvidenceProviderUsageActiveSecondaryProviders
+    if ([double]::IsNaN($manifestProviderUsageActiveSecondaryProviders) -or $manifestProviderUsageActiveSecondaryProviders -lt 0) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceProviderUsageActiveSecondaryProviders expected >= 0, actual " +
+        $manifestEvidenceSnapshot.badgeEvidenceProviderUsageActiveSecondaryProviders
+      )
+    }
+
+    $manifestProviderUsageEntriesCount = To-NumberOrNaN $manifestEvidenceSnapshot.badgeEvidenceProviderUsageEntriesCount
+    if ([double]::IsNaN($manifestProviderUsageEntriesCount) -or $manifestProviderUsageEntriesCount -lt 1) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceProviderUsageEntriesCount expected >= 1, actual " +
+        $manifestEvidenceSnapshot.badgeEvidenceProviderUsageEntriesCount
+      )
+    }
+
+    $manifestProviderUsagePrimaryEntry = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceProviderUsagePrimaryEntry"
+    if ($null -eq $manifestProviderUsagePrimaryEntry) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceProviderUsagePrimaryEntry is required when entriesCount > 0")
+    }
+
+    $manifestProviderUsagePrimaryEntryRoute = [string](Get-ObjectPropertyValue -Object $manifestProviderUsagePrimaryEntry -Name "route")
+    $manifestProviderUsagePrimaryEntryCapability = [string](Get-ObjectPropertyValue -Object $manifestProviderUsagePrimaryEntry -Name "capability")
+    $manifestProviderUsagePrimaryEntrySelectedProvider = [string](Get-ObjectPropertyValue -Object $manifestProviderUsagePrimaryEntry -Name "selectedProvider")
+    $manifestProviderUsagePrimaryEntrySelectedModel = [string](Get-ObjectPropertyValue -Object $manifestProviderUsagePrimaryEntry -Name "selectedModel")
+    $manifestProviderUsagePrimaryEntrySelectionReason = [string](Get-ObjectPropertyValue -Object $manifestProviderUsagePrimaryEntry -Name "selectionReason")
+    if (
+      [string]::IsNullOrWhiteSpace($manifestProviderUsagePrimaryEntryRoute) -or
+      [string]::IsNullOrWhiteSpace($manifestProviderUsagePrimaryEntryCapability) -or
+      [string]::IsNullOrWhiteSpace($manifestProviderUsagePrimaryEntrySelectedProvider) -or
+      [string]::IsNullOrWhiteSpace($manifestProviderUsagePrimaryEntrySelectedModel) -or
+      [string]::IsNullOrWhiteSpace($manifestProviderUsagePrimaryEntrySelectionReason)
+    ) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceProviderUsagePrimaryEntry expected route/capability/selectedProvider/selectedModel/selectionReason when entriesCount > 0"
+      )
+    }
+
     $manifestDeviceNodeUpdatesStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus
     $manifestDeviceNodeUpdatesStatus = $manifestDeviceNodeUpdatesStatusRaw.ToLowerInvariant()
     if ($manifestDeviceNodeUpdatesStatus -ne "pass") {
@@ -429,6 +622,105 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
         "source run manifest evidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus expected pass, actual " +
         $manifestDeviceNodeUpdatesStatusRaw
       )
+    }
+
+    $manifestRailwayDeploySummaryPresent = To-BoolOrNull $manifestEvidenceSnapshot.railwayDeploySummaryPresent
+    if ($null -eq $manifestRailwayDeploySummaryPresent) {
+      $manifestRailwayDeploySummaryPresent = $false
+    }
+    if ($manifestRailwayDeploySummaryPresent) {
+      $manifestEvidenceContextLabel = "source run manifest evidenceSnapshot"
+      $manifestRailwayDeploySummaryStatus = [string]$manifestEvidenceSnapshot.railwayDeploySummaryStatus
+      if ([string]::IsNullOrWhiteSpace($manifestRailwayDeploySummaryStatus)) {
+        Fail ("source run manifest evidenceSnapshot.railwayDeploySummaryStatus is required when railwayDeploySummaryPresent=true")
+      }
+
+      $manifestRailwayDeploySummaryDeploymentId = [string]$manifestEvidenceSnapshot.railwayDeploySummaryDeploymentId
+      if ([string]::IsNullOrWhiteSpace($manifestRailwayDeploySummaryDeploymentId)) {
+        Fail ("source run manifest evidenceSnapshot.railwayDeploySummaryDeploymentId is required when railwayDeploySummaryPresent=true")
+      }
+
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryEffectivePublicUrl" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryBadgeEndpoint" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryBadgeDetailsEndpoint" -ContextLabel $manifestEvidenceContextLabel
+      # Contract: source run manifest evidenceSnapshot.railwayDeploySummaryProjectId expected non-empty string when provided
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryProjectId" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryService" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryEnvironment" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryEffectiveStartCommand" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryConfigSource" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryRootDescriptorExpectedUiUrl" -ContextLabel $manifestEvidenceContextLabel
+
+      # Contract: source run manifest evidenceSnapshot.railwayDeploySummaryRootDescriptorAttempted expected boolean when provided
+      $manifestRailwayDeploySummaryRootDescriptorAttempted = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryRootDescriptorAttempted" -ContextLabel $manifestEvidenceContextLabel
+      $manifestRailwayDeploySummaryRootDescriptorSkipped = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryRootDescriptorSkipped" -ContextLabel $manifestEvidenceContextLabel
+      if (
+        ($null -ne $manifestRailwayDeploySummaryRootDescriptorAttempted) -and
+        ($null -ne $manifestRailwayDeploySummaryRootDescriptorSkipped) -and
+        $manifestRailwayDeploySummaryRootDescriptorAttempted -and
+        $manifestRailwayDeploySummaryRootDescriptorSkipped
+      ) {
+        Fail ("source run manifest evidenceSnapshot.railwayDeploySummaryRootDescriptorAttempted and railwayDeploySummaryRootDescriptorSkipped cannot both be true")
+      }
+
+      $manifestRailwayDeploySummaryPublicBadgeAttempted = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryPublicBadgeAttempted" -ContextLabel $manifestEvidenceContextLabel
+      $manifestRailwayDeploySummaryPublicBadgeSkipped = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryPublicBadgeSkipped" -ContextLabel $manifestEvidenceContextLabel
+      if (
+        ($null -ne $manifestRailwayDeploySummaryPublicBadgeAttempted) -and
+        ($null -ne $manifestRailwayDeploySummaryPublicBadgeSkipped) -and
+        $manifestRailwayDeploySummaryPublicBadgeAttempted -and
+        $manifestRailwayDeploySummaryPublicBadgeSkipped
+      ) {
+        Fail ("source run manifest evidenceSnapshot.railwayDeploySummaryPublicBadgeAttempted and railwayDeploySummaryPublicBadgeSkipped cannot both be true")
+      }
+    }
+
+    $manifestRepoPublishSummaryPresent = To-BoolOrNull $manifestEvidenceSnapshot.repoPublishSummaryPresent
+    if ($null -eq $manifestRepoPublishSummaryPresent) {
+      $manifestRepoPublishSummaryPresent = $false
+    }
+    if ($manifestRepoPublishSummaryPresent) {
+      $manifestRepoPublishSummaryVerificationScript = [string]$manifestEvidenceSnapshot.repoPublishSummaryVerificationScript
+      if ([string]::IsNullOrWhiteSpace($manifestRepoPublishSummaryVerificationScript)) {
+        Fail ("source run manifest evidenceSnapshot.repoPublishSummaryVerificationScript is required when repoPublishSummaryPresent=true")
+      }
+
+      $manifestRepoPublishSummaryReleaseEvidenceValidated = To-BoolOrNull $manifestEvidenceSnapshot.repoPublishSummaryReleaseEvidenceValidated
+      if ($manifestRepoPublishSummaryReleaseEvidenceValidated -ne $true) {
+        Fail ("source run manifest evidenceSnapshot.repoPublishSummaryReleaseEvidenceValidated expected true when repoPublishSummaryPresent=true")
+      }
+
+      $manifestRepoPublishSummaryRailwayDeployEnabled = To-BoolOrNull $manifestEvidenceSnapshot.repoPublishSummaryRailwayDeployEnabled
+      if ($null -eq $manifestRepoPublishSummaryRailwayDeployEnabled) {
+        Fail ("source run manifest evidenceSnapshot.repoPublishSummaryRailwayDeployEnabled is required when repoPublishSummaryPresent=true")
+      }
+
+      $manifestRepoPublishSummaryRailwayFrontendDeployEnabled = To-BoolOrNull $manifestEvidenceSnapshot.repoPublishSummaryRailwayFrontendDeployEnabled
+      if ($null -eq $manifestRepoPublishSummaryRailwayFrontendDeployEnabled) {
+        Fail ("source run manifest evidenceSnapshot.repoPublishSummaryRailwayFrontendDeployEnabled is required when repoPublishSummaryPresent=true")
+      }
+
+      $manifestEvidenceContextLabel = "source run manifest evidenceSnapshot"
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryBranch" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryRemoteName" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryRuntimeRailwayPublicUrl" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryArtifactSelf" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryArtifactRailwayDeploySummary" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryArtifactReleaseEvidenceReportJson" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryArtifactReleaseEvidenceManifestJson" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalNonEmptyStringPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryArtifactBadgeDetailsJson" -ContextLabel $manifestEvidenceContextLabel
+
+      $null = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryVerificationSkipped" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryVerificationStrict" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryCommitEnabled" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryPushEnabled" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryPagesEnabled" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryBadgeCheckEnabled" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryRuntimeRailwayNoWait" -ContextLabel $manifestEvidenceContextLabel
+      $null = Get-OptionalBooleanPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryRuntimeRailwayFrontendNoWait" -ContextLabel $manifestEvidenceContextLabel
+      # Contract: source run manifest evidenceSnapshot.repoPublishSummaryReleaseEvidenceArtifactsCount expected >= 0 when provided
+      $null = Get-OptionalNonNegativeNumberPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryReleaseEvidenceArtifactsCount" -ContextLabel $manifestEvidenceContextLabel
     }
 
     $manifestDamageControlLatestVerdictRaw = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestVerdict
@@ -1523,6 +1815,16 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     Fail ("Critical KPI check failed: assistiveRouterMode expected deterministic|assistive_override|assistive_match|assistive_fallback, actual " + $assistiveRouterMode)
   }
 
+  $assistiveRouterProviderMetadataValidated = To-BoolOrNull $summary.kpis.assistiveRouterProviderMetadataValidated
+  if ($assistiveRouterProviderMetadataValidated -ne $true) {
+    Fail ("Critical KPI check failed: assistiveRouterProviderMetadataValidated expected True, actual " + $summary.kpis.assistiveRouterProviderMetadataValidated)
+  }
+
+  $assistiveRouterProvider = [string]$summary.kpis.assistiveRouterProvider
+  if (@("gemini_api", "openai", "anthropic", "deepseek", "moonshot") -notcontains $assistiveRouterProvider) {
+    Fail ("Critical KPI check failed: assistiveRouterProvider expected gemini_api|openai|anthropic|deepseek|moonshot, actual " + $assistiveRouterProvider)
+  }
+
   $transportModeValidated = To-BoolOrNull $summary.kpis.transportModeValidated
   if ($transportModeValidated -ne $true) {
     Fail ("Critical KPI check failed: transportModeValidated expected True, actual " + $summary.kpis.transportModeValidated)
@@ -2037,7 +2339,60 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     $manifestPluginMarketplaceStatus = [string]$manifestEvidenceSnapshot.badgeEvidencePluginMarketplaceStatus
     $manifestDeviceNodesStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodesStatus
     $manifestAgentUsageStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceAgentUsageStatus
+    $manifestRuntimeGuardrailsSignalPathsStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsStatus
+    $manifestRuntimeGuardrailsSignalPathsSummaryStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus
+    $manifestRuntimeGuardrailsSignalPathsTotalPaths = [string]$manifestEvidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths
+    $manifestRuntimeGuardrailsSignalPathsPrimaryPath = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath"
+    $manifestRuntimeGuardrailsSignalPathsPrimaryPathTitle = if ($null -ne $manifestRuntimeGuardrailsSignalPathsPrimaryPath) { [string](Get-ObjectPropertyValue -Object $manifestRuntimeGuardrailsSignalPathsPrimaryPath -Name "title") } else { "" }
+    $manifestProviderUsageStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageStatus
+    $manifestProviderUsageValidated = if ([bool]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageValidated) { "true" } else { "false" }
+    $manifestProviderUsageActiveSecondaryProviders = [string]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageActiveSecondaryProviders
+    $manifestProviderUsageEntriesCount = [string]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageEntriesCount
+    $manifestProviderUsagePrimaryEntry = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceProviderUsagePrimaryEntry"
+    $manifestProviderUsagePrimaryEntryRoute = if ($null -ne $manifestProviderUsagePrimaryEntry) { [string](Get-ObjectPropertyValue -Object $manifestProviderUsagePrimaryEntry -Name "route") } else { "" }
+    $manifestProviderUsagePrimaryEntryCapability = if ($null -ne $manifestProviderUsagePrimaryEntry) { [string](Get-ObjectPropertyValue -Object $manifestProviderUsagePrimaryEntry -Name "capability") } else { "" }
+    $manifestProviderUsagePrimaryEntrySelectedProvider = if ($null -ne $manifestProviderUsagePrimaryEntry) { [string](Get-ObjectPropertyValue -Object $manifestProviderUsagePrimaryEntry -Name "selectedProvider") } else { "" }
+    $manifestProviderUsagePrimaryEntrySelectedModel = if ($null -ne $manifestProviderUsagePrimaryEntry) { [string](Get-ObjectPropertyValue -Object $manifestProviderUsagePrimaryEntry -Name "selectedModel") } else { "" }
     $manifestDeviceNodeUpdatesStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus
+    $manifestRailwayDeploySummaryPresent = if ((To-BoolOrNull $manifestEvidenceSnapshot.railwayDeploySummaryPresent) -eq $true) { "true" } else { "false" }
+    $manifestRailwayDeploySummaryStatus = [string]$manifestEvidenceSnapshot.railwayDeploySummaryStatus
+    $manifestRailwayDeploySummaryDeploymentId = [string]$manifestEvidenceSnapshot.railwayDeploySummaryDeploymentId
+    $manifestRailwayDeploySummaryEffectivePublicUrl = [string]$manifestEvidenceSnapshot.railwayDeploySummaryEffectivePublicUrl
+    $manifestRailwayDeploySummaryBadgeEndpoint = [string]$manifestEvidenceSnapshot.railwayDeploySummaryBadgeEndpoint
+    $manifestRailwayDeploySummaryBadgeDetailsEndpoint = [string]$manifestEvidenceSnapshot.railwayDeploySummaryBadgeDetailsEndpoint
+    $manifestRailwayDeploySummaryProjectId = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryProjectId")
+    $manifestRailwayDeploySummaryService = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryService")
+    $manifestRailwayDeploySummaryEnvironment = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryEnvironment")
+    $manifestRailwayDeploySummaryEffectiveStartCommand = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryEffectiveStartCommand")
+    $manifestRailwayDeploySummaryConfigSource = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryConfigSource")
+    $manifestRailwayDeploySummaryRootDescriptorAttempted = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryRootDescriptorAttempted"
+    $manifestRailwayDeploySummaryRootDescriptorSkipped = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryRootDescriptorSkipped"
+    $manifestRailwayDeploySummaryRootDescriptorExpectedUiUrl = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryRootDescriptorExpectedUiUrl")
+    $manifestRailwayDeploySummaryPublicBadgeAttempted = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryPublicBadgeAttempted"
+    $manifestRailwayDeploySummaryPublicBadgeSkipped = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "railwayDeploySummaryPublicBadgeSkipped"
+    $manifestRepoPublishSummaryPresent = if ((To-BoolOrNull $manifestEvidenceSnapshot.repoPublishSummaryPresent) -eq $true) { "true" } else { "false" }
+    $manifestRepoPublishSummaryBranch = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryBranch")
+    $manifestRepoPublishSummaryRemoteName = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryRemoteName")
+    $manifestRepoPublishSummaryVerificationScript = [string]$manifestEvidenceSnapshot.repoPublishSummaryVerificationScript
+    $manifestRepoPublishSummaryVerificationSkipped = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryVerificationSkipped"
+    $manifestRepoPublishSummaryVerificationStrict = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryVerificationStrict"
+    $manifestRepoPublishSummaryReleaseEvidenceValidated = if ((To-BoolOrNull $manifestEvidenceSnapshot.repoPublishSummaryReleaseEvidenceValidated) -eq $true) { "true" } else { "false" }
+    $manifestRepoPublishSummaryReleaseEvidenceArtifactsCount = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryReleaseEvidenceArtifactsCount")
+    $manifestRepoPublishSummaryCommitEnabled = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryCommitEnabled"
+    $manifestRepoPublishSummaryPushEnabled = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryPushEnabled"
+    $manifestRepoPublishSummaryPagesEnabled = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryPagesEnabled"
+    $manifestRepoPublishSummaryBadgeCheckEnabled = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryBadgeCheckEnabled"
+    $manifestRepoPublishSummaryRailwayDeployEnabled = if ((To-BoolOrNull $manifestEvidenceSnapshot.repoPublishSummaryRailwayDeployEnabled) -eq $true) { "true" } else { "false" }
+    $manifestRepoPublishSummaryRailwayFrontendDeployEnabled = if ((To-BoolOrNull $manifestEvidenceSnapshot.repoPublishSummaryRailwayFrontendDeployEnabled) -eq $true) { "true" } else { "false" }
+    $manifestRepoPublishSummaryRuntimeRailwayPublicUrl = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryRuntimeRailwayPublicUrl")
+    $manifestRepoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl")
+    $manifestRepoPublishSummaryRuntimeRailwayNoWait = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryRuntimeRailwayNoWait"
+    $manifestRepoPublishSummaryRuntimeRailwayFrontendNoWait = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryRuntimeRailwayFrontendNoWait"
+    $manifestRepoPublishSummaryArtifactSelf = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryArtifactSelf")
+    $manifestRepoPublishSummaryArtifactRailwayDeploySummary = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryArtifactRailwayDeploySummary")
+    $manifestRepoPublishSummaryArtifactReleaseEvidenceReportJson = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryArtifactReleaseEvidenceReportJson")
+    $manifestRepoPublishSummaryArtifactReleaseEvidenceManifestJson = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryArtifactReleaseEvidenceManifestJson")
+    $manifestRepoPublishSummaryArtifactBadgeDetailsJson = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "repoPublishSummaryArtifactBadgeDetailsJson")
     $manifestDamageControlLatestVerdict = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestVerdict
     $manifestDamageControlLatestSource = [string]$manifestEvidenceSnapshot.operatorDamageControlLatestSource
     Write-Host (
@@ -2053,9 +2408,62 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       ", plugin_marketplace_status=" + $manifestPluginMarketplaceStatus +
       ", device_nodes_status=" + $manifestDeviceNodesStatus +
       ", agent_usage_status=" + $manifestAgentUsageStatus +
+      ", runtime_guardrails_signal_paths_status=" + $manifestRuntimeGuardrailsSignalPathsStatus +
+      ", runtime_guardrails_signal_paths_summary_status=" + $manifestRuntimeGuardrailsSignalPathsSummaryStatus +
+      ", runtime_guardrails_signal_paths_total_paths=" + $manifestRuntimeGuardrailsSignalPathsTotalPaths +
+      ", runtime_guardrails_signal_paths_primary_path_title=" + $manifestRuntimeGuardrailsSignalPathsPrimaryPathTitle +
+      ", provider_usage_status=" + $manifestProviderUsageStatus +
+      ", provider_usage_validated=" + $manifestProviderUsageValidated +
+      ", provider_usage_active_secondary_providers=" + $manifestProviderUsageActiveSecondaryProviders +
+      ", provider_usage_entries_count=" + $manifestProviderUsageEntriesCount +
+      ", provider_usage_primary_entry_route=" + $manifestProviderUsagePrimaryEntryRoute +
+      ", provider_usage_primary_entry_capability=" + $manifestProviderUsagePrimaryEntryCapability +
+      ", provider_usage_primary_entry_selected_provider=" + $manifestProviderUsagePrimaryEntrySelectedProvider +
+      ", provider_usage_primary_entry_selected_model=" + $manifestProviderUsagePrimaryEntrySelectedModel +
       ", device_node_updates_status=" + $manifestDeviceNodeUpdatesStatus +
+      ", railway_deploy_summary_present=" + $manifestRailwayDeploySummaryPresent +
+      ", railway_deploy_summary_status=" + $manifestRailwayDeploySummaryStatus +
+      ", railway_deploy_summary_deployment_id=" + $manifestRailwayDeploySummaryDeploymentId +
+      ", railway_deploy_summary_public_url=" + $manifestRailwayDeploySummaryEffectivePublicUrl +
+      ", railway_deploy_summary_badge_endpoint=" + $manifestRailwayDeploySummaryBadgeEndpoint +
+      ", railway_deploy_summary_badge_details_endpoint=" + $manifestRailwayDeploySummaryBadgeDetailsEndpoint +
+      ", railway_deploy_summary_project_id=" + $manifestRailwayDeploySummaryProjectId +
+      ", railway_deploy_summary_service=" + $manifestRailwayDeploySummaryService +
+      ", railway_deploy_summary_environment=" + $manifestRailwayDeploySummaryEnvironment +
+      ", railway_deploy_summary_effective_start_command=" + $manifestRailwayDeploySummaryEffectiveStartCommand +
+      ", railway_deploy_summary_config_source=" + $manifestRailwayDeploySummaryConfigSource +
+      ", railway_deploy_summary_root_descriptor_attempted=" + $(if ($null -ne $manifestRailwayDeploySummaryRootDescriptorAttempted) { [string]$manifestRailwayDeploySummaryRootDescriptorAttempted } else { "" }) +
+      ", railway_deploy_summary_root_descriptor_skipped=" + $(if ($null -ne $manifestRailwayDeploySummaryRootDescriptorSkipped) { [string]$manifestRailwayDeploySummaryRootDescriptorSkipped } else { "" }) +
+      ", railway_deploy_summary_expected_ui_url=" + $manifestRailwayDeploySummaryRootDescriptorExpectedUiUrl +
+      ", railway_deploy_summary_public_badge_attempted=" + $(if ($null -ne $manifestRailwayDeploySummaryPublicBadgeAttempted) { [string]$manifestRailwayDeploySummaryPublicBadgeAttempted } else { "" }) +
+      ", railway_deploy_summary_public_badge_skipped=" + $(if ($null -ne $manifestRailwayDeploySummaryPublicBadgeSkipped) { [string]$manifestRailwayDeploySummaryPublicBadgeSkipped } else { "" }) +
+      ", repo_publish_summary_present=" + $manifestRepoPublishSummaryPresent +
+      ", repo_publish_summary_branch=" + $manifestRepoPublishSummaryBranch +
+      ", repo_publish_summary_remote_name=" + $manifestRepoPublishSummaryRemoteName +
+      ", repo_publish_summary_verification_script=" + $manifestRepoPublishSummaryVerificationScript +
+      ", repo_publish_summary_verification_skipped=" + $(if ($null -ne $manifestRepoPublishSummaryVerificationSkipped) { [string]$manifestRepoPublishSummaryVerificationSkipped } else { "" }) +
+      ", repo_publish_summary_verification_strict=" + $(if ($null -ne $manifestRepoPublishSummaryVerificationStrict) { [string]$manifestRepoPublishSummaryVerificationStrict } else { "" }) +
+      ", repo_publish_summary_release_evidence_validated=" + $manifestRepoPublishSummaryReleaseEvidenceValidated +
+      ", repo_publish_summary_release_evidence_artifacts_count=" + $manifestRepoPublishSummaryReleaseEvidenceArtifactsCount +
+      ", repo_publish_summary_commit_enabled=" + $(if ($null -ne $manifestRepoPublishSummaryCommitEnabled) { [string]$manifestRepoPublishSummaryCommitEnabled } else { "" }) +
+      ", repo_publish_summary_push_enabled=" + $(if ($null -ne $manifestRepoPublishSummaryPushEnabled) { [string]$manifestRepoPublishSummaryPushEnabled } else { "" }) +
+      ", repo_publish_summary_pages_enabled=" + $(if ($null -ne $manifestRepoPublishSummaryPagesEnabled) { [string]$manifestRepoPublishSummaryPagesEnabled } else { "" }) +
+      ", repo_publish_summary_badge_check_enabled=" + $(if ($null -ne $manifestRepoPublishSummaryBadgeCheckEnabled) { [string]$manifestRepoPublishSummaryBadgeCheckEnabled } else { "" }) +
+      ", repo_publish_summary_railway_deploy_enabled=" + $manifestRepoPublishSummaryRailwayDeployEnabled +
+      ", repo_publish_summary_railway_frontend_deploy_enabled=" + $manifestRepoPublishSummaryRailwayFrontendDeployEnabled +
+      ", repo_publish_summary_runtime_railway_public_url=" + $manifestRepoPublishSummaryRuntimeRailwayPublicUrl +
+      ", repo_publish_summary_runtime_railway_frontend_public_url=" + $manifestRepoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl +
+      ", repo_publish_summary_runtime_railway_no_wait=" + $(if ($null -ne $manifestRepoPublishSummaryRuntimeRailwayNoWait) { [string]$manifestRepoPublishSummaryRuntimeRailwayNoWait } else { "" }) +
+      ", repo_publish_summary_runtime_railway_frontend_no_wait=" + $(if ($null -ne $manifestRepoPublishSummaryRuntimeRailwayFrontendNoWait) { [string]$manifestRepoPublishSummaryRuntimeRailwayFrontendNoWait } else { "" }) +
+      ", repo_publish_summary_artifact_self=" + $manifestRepoPublishSummaryArtifactSelf +
+      ", repo_publish_summary_artifact_railway_deploy_summary=" + $manifestRepoPublishSummaryArtifactRailwayDeploySummary +
+      ", repo_publish_summary_artifact_release_evidence_report_json=" + $manifestRepoPublishSummaryArtifactReleaseEvidenceReportJson +
+      ", repo_publish_summary_artifact_release_evidence_manifest_json=" + $manifestRepoPublishSummaryArtifactReleaseEvidenceManifestJson +
+      ", repo_publish_summary_artifact_badge_details_json=" + $manifestRepoPublishSummaryArtifactBadgeDetailsJson +
       ", operator_damage_control_latest_verdict=" + $manifestDamageControlLatestVerdict +
       ", operator_damage_control_latest_source=" + $manifestDamageControlLatestSource
     )
   }
 }
+
+
