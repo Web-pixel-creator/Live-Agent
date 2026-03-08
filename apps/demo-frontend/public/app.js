@@ -10030,6 +10030,9 @@ function bindEvents() {
 }
 
 async function bootstrap() {
+  const initialTabId = readTabIdFromHash() ?? readStoredTabId();
+  setActiveTab(initialTabId, { syncHash: false });
+
   const runtimeConfig = await loadRuntimeConfig();
   if (runtimeConfig?.wsUrl) {
     el.wsUrl.value = runtimeConfig.wsUrl;
@@ -10065,7 +10068,7 @@ async function bootstrap() {
   resetOperatorBoardView({ mode: readStoredOperatorBoardMode(), persistMode: false });
   renderTaskList();
   evaluateConstraints();
-  setActiveTab(readStoredTabId());
+  setActiveTab(readStoredTabId(), { syncHash: false });
   setUiTaskFieldsVisibility();
   initBackgroundVideoLoopBlend();
   enhanceSelectControls();

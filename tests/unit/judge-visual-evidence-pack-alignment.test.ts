@@ -63,6 +63,11 @@ test("judge visual evidence pack is wired across package scripts, docs, and runb
     "operator-console-evidence.png",
     "observability-dashboard.png",
     "operatorTurnTruncation",
+    "runtimeGuardrailsSignalPaths",
+    "providerUsage",
+    "railway-deploy-summary.json",
+    "repo-publish-summary.json",
+    "compact deploy/publish provenance",
     "pluginMarketplace",
     "deviceNodeUpdates",
   ];
@@ -75,10 +80,17 @@ test("judge visual evidence pack is wired across package scripts, docs, and runb
     "overallStatus",
     "screenshotChecklist",
     "criticalBadgeLanes",
+    "runtimeGuardrailsSignalPaths",
+    "providerUsage",
+    "railwayDeploySummary",
+    "repoPublishSummary",
+    "buildDeployProvenanceRows",
+    "Deploy / Publish Provenance",
     "pluginMarketplace",
     "deviceNodeUpdates",
     "costEstimatePresent",
     "tokensUsedPresent",
+    "deployProvenanceRows",
   ];
   for (const token of requiredScriptTokens) {
     assert.ok(script.includes(token), `judge visual evidence script missing token: ${token}`);

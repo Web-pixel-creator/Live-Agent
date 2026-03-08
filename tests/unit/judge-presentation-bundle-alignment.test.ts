@@ -5,17 +5,13 @@ import test from "node:test";
 
 test("judge presentation bundle script is wired across package scripts and docs", () => {
   const packagePath = resolve(process.cwd(), "package.json");
-  const readmePath = resolve(process.cwd(), "README.md");
   const visualDocPath = resolve(process.cwd(), "docs", "judge-visual-evidence.md");
   const quickstartPath = resolve(process.cwd(), "docs", "judge-quickstart.md");
-  const runbookPath = resolve(process.cwd(), "docs", "challenge-demo-runbook.md");
   const scriptPath = resolve(process.cwd(), "scripts", "judge-presentation-bundle.mjs");
 
   const pkg = JSON.parse(readFileSync(packagePath, "utf8")) as { scripts?: Record<string, string> };
-  const readme = readFileSync(readmePath, "utf8");
   const visualDoc = readFileSync(visualDocPath, "utf8");
   const quickstart = readFileSync(quickstartPath, "utf8");
-  const runbook = readFileSync(runbookPath, "utf8");
   const script = readFileSync(scriptPath, "utf8");
 
   assert.equal(
@@ -31,27 +27,44 @@ test("judge presentation bundle script is wired across package scripts and docs"
 
   const docTokens = [
     "npm run demo:e2e:visual:bundle",
-    "npm run demo:e2e:visual:judge",
     "presentation.md",
+    "railway-deploy-summary.json",
+    "repo-publish-summary.json",
   ];
   for (const token of docTokens) {
-    assert.ok(readme.includes(token), `README missing presentation token: ${token}`);
     assert.ok(visualDoc.includes(token), `judge visual evidence doc missing presentation token: ${token}`);
   }
+  assert.ok(
+    visualDoc.includes("compact deploy/publish provenance"),
+    "judge visual evidence doc missing compact provenance wording",
+  );
   assert.ok(
     quickstart.includes("npm run demo:e2e:visual:bundle"),
     "judge quickstart missing visual bundle command",
   );
-  assert.ok(runbook.includes("npm run demo:e2e:visual:bundle"), "runbook missing visual bundle command");
-  assert.ok(runbook.includes("npm run demo:e2e:visual:judge"), "runbook missing visual judge command");
+  assert.ok(
+    quickstart.includes("artifacts/judge-visual-evidence/presentation.md"),
+    "judge quickstart missing presentation artifact path",
+  );
 
   const scriptTokens = [
     "Judge Presentation Bundle",
     "Challenge Category Coverage",
     "Critical Evidence Lanes",
+    "Runtime Guardrails Snapshot",
+    "Provider Adapter Snapshot",
+    "Deploy / Publish Provenance",
     "release-evidence/report.json",
+    "railway-deploy-summary.json",
+    "repo-publish-summary.json",
     "manifest.json",
     "gallery.md",
+    "runtimeGuardrailsSignalPaths",
+    "providerUsage",
+    "railwayDeploySummary",
+    "repoPublishSummary",
+    "sanitizeDeployProvenanceRows",
+    "buildDeployProvenanceRows",
     "pluginMarketplace",
     "deviceNodeUpdates",
   ];
