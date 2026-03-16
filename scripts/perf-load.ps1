@@ -76,15 +76,12 @@ function Write-Step {
   Write-Host ("[perf-load] " + $Message)
 }
 
-function Set-EnvDefault {
+function Set-EnvValue {
   param(
     [string]$Name,
     [string]$Value
   )
-  $existing = [Environment]::GetEnvironmentVariable($Name)
-  if ([string]::IsNullOrWhiteSpace($existing)) {
-    Set-Item -Path ("Env:" + $Name) -Value $Value
-  }
+  Set-Item -Path ("Env:" + $Name) -Value $Value
 }
 
 function Resolve-OutputPath {
@@ -102,6 +99,92 @@ function Try-GetHealth {
   } catch {
     return $null
   }
+}
+
+function Get-ObjectPropertyValue {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Object,
+    [Parameter(Mandatory = $true)]
+    [string]$Name
+  )
+
+  if ($null -eq $Object) {
+    return $null
+  }
+
+  $property = $Object.PSObject.Properties[$Name]
+  if ($null -eq $property) {
+    return $null
+  }
+
+  return $property.Value
+}
+
+function Confirm-UiNavigatorRemoteHttpReadiness {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$OrchestratorUrl,
+    [Parameter(Mandatory = $true)]
+    [string]$ExpectedAdapterMode,
+    [Parameter(Mandatory = $false)]
+    [int]$MaxAttempts = 6,
+    [Parameter(Mandatory = $false)]
+    [int]$RetryBackoffMs = 500
+  )
+
+  $attemptCount = if ($MaxAttempts -ge 1) { $MaxAttempts } else { 1 }
+  $lastFailure = "unknown readiness failure"
+
+  for ($attempt = 1; $attempt -le $attemptCount; $attempt += 1) {
+    $runId = "perf-load-readiness-" + [guid]::NewGuid().ToString()
+    $requestBody = @{
+      id = [guid]::NewGuid().ToString()
+      userId = "perf-load-readiness-user"
+      sessionId = "perf-load-readiness-session"
+      runId = $runId
+      type = "orchestrator.request"
+      source = "frontend"
+      ts = (Get-Date).ToUniversalTime().ToString("o")
+      payload = @{
+        intent = "ui_task"
+        input = @{
+          goal = "Open a page and verify the visible header."
+          url = "https://example.com"
+          screenshotRef = "ui://perf-load/readiness/" + $runId
+          maxSteps = 4
+          visualTesting = @{
+            enabled = $false
+          }
+        }
+      }
+    } | ConvertTo-Json -Depth 8 -Compress
+
+    try {
+      $response = Invoke-RestMethod -Method POST -Uri $OrchestratorUrl -ContentType "application/json" -Body $requestBody -TimeoutSec 15
+      $payload = Get-ObjectPropertyValue -Object $response -Name "payload"
+      $route = [string](Get-ObjectPropertyValue -Object $payload -Name "route")
+      $status = [string](Get-ObjectPropertyValue -Object $payload -Name "status")
+      $output = Get-ObjectPropertyValue -Object $payload -Name "output"
+      $execution = Get-ObjectPropertyValue -Object $output -Name "execution"
+      $adapterMode = [string](Get-ObjectPropertyValue -Object $execution -Name "adapterMode")
+
+      if ($status -eq "completed" -and $route -eq "ui-navigator-agent" -and $adapterMode -eq $ExpectedAdapterMode) {
+        Write-Step ("UI adapter readiness confirmed on attempt " + $attempt + ".")
+        return
+      }
+
+      $lastFailure = "unexpected readiness payload status=" + $status + " route=" + $route + " adapterMode=" + $adapterMode
+    } catch {
+      $lastFailure = $_.Exception.Message
+    }
+
+    if ($attempt -lt $attemptCount -and $RetryBackoffMs -gt 0) {
+      Start-Sleep -Milliseconds $RetryBackoffMs
+    }
+  }
+
+  throw "UI navigator remote_http readiness check failed: $lastFailure"
 }
 
 function Wait-ForHealth {
@@ -210,16 +293,17 @@ foreach ($path in @($resolvedOutputPath, $resolvedMarkdownPath, $resolvedPolicyO
 try {
   Set-Location $script:RepoRoot
 
-  Set-EnvDefault -Name "FIRESTORE_ENABLED" -Value "false"
-  Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_MODE" -Value "remote_http"
-  Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_URL" -Value "http://localhost:8090"
-  Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_TIMEOUT_MS" -Value "15000"
-  Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_MAX_RETRIES" -Value "1"
-  Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS" -Value "300"
-  Set-EnvDefault -Name "UI_EXECUTOR_STRICT_PLAYWRIGHT" -Value "false"
-  Set-EnvDefault -Name "UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE" -Value "true"
-  Set-EnvDefault -Name "UI_EXECUTOR_FORCE_SIMULATION" -Value "true"
-  Set-EnvDefault -Name "ORCHESTRATOR_URL" -Value "http://127.0.0.1:8082/orchestrate"
+  Set-EnvValue -Name "FIRESTORE_ENABLED" -Value "false"
+  Set-EnvValue -Name "UI_NAVIGATOR_EXECUTOR_MODE" -Value "remote_http"
+  Set-EnvValue -Name "UI_NAVIGATOR_EXECUTOR_URL" -Value "http://localhost:8090"
+  Set-EnvValue -Name "UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE" -Value "failed"
+  Set-EnvValue -Name "UI_NAVIGATOR_EXECUTOR_TIMEOUT_MS" -Value "15000"
+  Set-EnvValue -Name "UI_NAVIGATOR_EXECUTOR_MAX_RETRIES" -Value "1"
+  Set-EnvValue -Name "UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS" -Value "300"
+  Set-EnvValue -Name "UI_EXECUTOR_STRICT_PLAYWRIGHT" -Value "false"
+  Set-EnvValue -Name "UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE" -Value "true"
+  Set-EnvValue -Name "UI_EXECUTOR_FORCE_SIMULATION" -Value "true"
+  Set-EnvValue -Name "ORCHESTRATOR_URL" -Value "http://127.0.0.1:8082/orchestrate"
 
   if (-not $SkipBuild) {
     Write-Step "Running workspace build..."
@@ -239,6 +323,11 @@ try {
     Start-ManagedService -Name "realtime-gateway" -HealthUrl "http://localhost:8080/healthz" -NodeArgs @("--import", "tsx", "apps/realtime-gateway/src/index.ts")
   } else {
     Write-Step "Skipping service startup by request."
+  }
+
+  if ($RequiredUiAdapterMode -eq "remote_http") {
+    Write-Step "Confirming UI remote_http adapter readiness..."
+    Confirm-UiNavigatorRemoteHttpReadiness -OrchestratorUrl "http://127.0.0.1:8082/orchestrate" -ExpectedAdapterMode $RequiredUiAdapterMode
   }
 
   Write-Step "Running perf-load profile..."

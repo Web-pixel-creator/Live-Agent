@@ -7,9 +7,13 @@ test("railway deploy no-wait mode skips post-deploy badge check flow", () => {
   const scriptPath = resolve(process.cwd(), "scripts", "railway-deploy.ps1");
   const source = readFileSync(scriptPath, "utf8");
 
+  assert.match(source, /function Write-Utf8NoBomFile\(/);
+  assert.match(source, /function Write-RailwayDeploySummary\(/);
+  assert.match(source, /function Publish-RailwayDeployOutputs\(/);
+  assert.match(source, /artifacts\\deploy\\railway-deploy-summary\.json/);
   assert.match(
     source,
-    /if \(\$NoWait\)\s*\{[\s\S]*if \(-not \$SkipPublicBadgeCheck\)\s*\{[\s\S]*Skipping public badge endpoint check in no-wait mode\.[\s\S]*No-wait mode enabled\. Exiting after trigger\.[\s\S]*exit 0[\s\S]*\}/,
+    /if \(\$NoWait\)\s*\{[\s\S]*if \(-not \$SkipPublicBadgeCheck\)\s*\{[\s\S]*Skipping public badge endpoint check in no-wait mode\.[\s\S]*verification = \$railwayVerificationSummary[\s\S]*artifacts = \[ordered\]@\{[\s\S]*badgeDetailsJson = "artifacts\/demo-e2e\/badge-details\.json"[\s\S]*releaseEvidenceSnapshot = \$releaseEvidenceSnapshot[\s\S]*Summary artifact:[\s\S]*Publish-RailwayDeployOutputs -SummaryRelativePath "artifacts\/deploy\/railway-deploy-summary\.json" -Summary \$noWaitSummary[\s\S]*No-wait mode enabled\. Exiting after trigger\.[\s\S]*exit 0[\s\S]*\}/,
   );
 
   assert.match(source, /if \(\$NoWait\)\s*\{[\s\S]*Skipping gateway root descriptor check in no-wait mode\./);
@@ -20,6 +24,8 @@ test("railway deploy success path runs badge check only when skip flag is disabl
   const scriptPath = resolve(process.cwd(), "scripts", "railway-deploy.ps1");
   const source = readFileSync(scriptPath, "utf8");
 
+  assert.match(source, /function Resolve-PublicBadgeEndpoint\(/);
+  assert.match(source, /function Resolve-PublicBadgeDetailsEndpoint\(/);
   assert.match(source, /\[string\]\$DemoFrontendPublicUrl = \$env:DEMO_FRONTEND_PUBLIC_URL/);
   assert.match(source, /\[int\]\$RootDescriptorCheckMaxAttempts = 3/);
   assert.match(source, /\[int\]\$RootDescriptorCheckRetryBackoffSec = 2/);
@@ -54,8 +60,13 @@ test("railway deploy success path runs badge check only when skip flag is disabl
   );
   assert.match(
     source,
-    /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*if \(-not \$SkipPublicBadgeCheck\)\s*\{[\s\S]*Invoke-PublicBadgeCheck -Endpoint \$PublicBadgeEndpoint -DetailsEndpoint \$PublicBadgeDetailsEndpoint -PublicUrl \$effectivePublicUrl -TimeoutSec \$PublicBadgeCheckTimeoutSec/,
+    /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*if \(-not \$SkipPublicBadgeCheck\)\s*\{[\s\S]*\$badgeCheckResult = Invoke-PublicBadgeCheck -Endpoint \$PublicBadgeEndpoint -DetailsEndpoint \$PublicBadgeDetailsEndpoint -PublicUrl \$effectivePublicUrl -TimeoutSec \$PublicBadgeCheckTimeoutSec[\s\S]*Public badge verification completed:/,
   );
+  assert.match(source, /Effective public badge URL:/);
+  assert.match(source, /Effective public badge details URL:/);
+  assert.match(source, /Public badge details verification completed:/);
+  assert.match(source, /if \(\$state -eq "SUCCESS"\)\s*\{[\s\S]*verification = \$railwayVerificationSummary[\s\S]*artifacts = \[ordered\]@\{[\s\S]*badgeDetailsJson = "artifacts\/demo-e2e\/badge-details\.json"[\s\S]*releaseEvidenceSnapshot = \$releaseEvidenceSnapshot[\s\S]*Publish-RailwayDeployOutputs -SummaryRelativePath "artifacts\/deploy\/railway-deploy-summary\.json" -Summary \$deploySummary/);
+  assert.match(source, /Summary artifact:/);
 });
 
 test("railway deploy pre-deploy gate selects strict/default verification script when not skipped", () => {
@@ -137,6 +148,8 @@ test("railway deploy docs mention no-wait badge-check skip behavior", () => {
     /In `-- -NoWait` mode, post-deploy gateway root descriptor and badge endpoint checks are not executed/,
   );
   assert.match(readme, /Runs gateway root descriptor check \(`GET \/`\) after successful deploy/);
+  assert.match(readme, /prints effective public badge and badge-details URLs after successful verification/);
+  assert.match(readme, /artifacts\/deploy\/railway-deploy-summary\.json/);
   assert.match(readme, /`-- -SkipRootDescriptorCheck` - skip post-deploy gateway root descriptor check/);
   assert.match(readme, /If `-ProjectId\/-ServiceId` are omitted, reuses existing Railway linked context/);
   assert.match(readme, /effective runtime metadata after successful deploy/);

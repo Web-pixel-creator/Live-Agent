@@ -33,7 +33,7 @@
 | T-009 | Включить минимальный observability слой (logging/metrics/alerts) | P0 | 0.5 day | T-001, T-002 | R15 | Есть `/metrics` endpoints для gateway/api/orchestrator c p50/p95/p99 и error rate, а также автоматическая e2e-проверка метрик (`runtime.metrics.endpoints`) |
 | T-010 | Добавить единый реестр активных задач и realtime-прогресс событий | P1 | 0.5 day | T-004, T-005 | R10, R12, R14, R15 | Для долгих операций выдается `taskId`, есть `/tasks/active` + `/tasks/{taskId}`, прогресс стримится событиями `task.started/task.progress/task.completed/task.failed` в UI, финальный `task.status` сохраняется в Firestore |
 | T-011 | Реализовать lifecycle endpoints рантайма (status, warmup, drain, health, version) | P1 | 0.5 day | T-001, T-002 | R10, R11, R14, R15 | Операционные endpoints (`/status`, `/warmup`, `/drain`, `/healthz`, `/version`) доступны для gateway/api/orchestrator; drain-mode блокирует новые бизнес-запросы; runtime profile/version фиксируются в ответах |
-| T-012 | Ввести границу capability-адаптеров (live, reasoning, tts, image, video, computer_use) | P1 | 1 day | T-004 | R0, R10, R11 | Бизнес-логика использует единый internal interface (`@mla/capabilities`), Gemini/Vertex adapters заданы по умолчанию, а e2e policy проверяет `kpi.capabilityAdaptersValidated=true` |
+| T-012 | Ввести границу capability-адаптеров (live, reasoning, tts, image, image_edit, video, computer_use, research) | P1 | 1 day | T-004 | R0, R10, R11 | Бизнес-логика использует единый internal interface (`@mla/capabilities`), Gemini/Vertex adapters заданы по умолчанию, а e2e policy проверяет `kpi.capabilityAdaptersValidated=true` |
 | T-013 | Усилить remote execution split и session/run binding между FE/Gateway/Orchestrator | P0 | 0.5 day | T-005 | R10, R12, R13, R14 | Gateway вводит websocket session/user binding (mismatch protection), UI получает явные `session.state` transitions, а e2e policy проверяет `sessionRunBindingValidated=true` и `sessionStateTransitionsObserved>=3` |
 | T-014 | Внедрить минимальную дисциплину API-контрактов (contracts + normalized errors) | P0 | 0.5 day | T-001, T-005, T-013 | R14, R15 | Контракты обновлены и ошибки в API/WS возвращаются в едином формате с traceId |
 | T-015 | Добавить CI workflow для demo e2e и публикации отчетных артефактов | P0 | 0.5 day | T-000, T-014 | R14, R15 | CI запускает `demo:e2e`, публикует `summary.json`, `summary.md` и service logs как artifacts |
@@ -124,6 +124,13 @@
 | T-236 | Frontend gateway.error correlation context for pending client events | P1 | 0.25 week | T-224 | R14, R15 | Frontend связывает `details.clientEventId` с локальным pending-event буфером и показывает `clientEventType/conversation/latencyMs`; добавлены TTL-prune/cleanup hooks и unit alignment tests |
 | T-237 | Operator Console gateway error-correlation widget | P1 | 0.25 week | T-236, T-210 | R14, R15 | Operator Console показывает отдельный виджет `Gateway Error Correlation` (`source/code/traceId/clientEventId/clientEventType/conversation/latency/seenAt`), обновляет его из `gateway.error`/`orchestrator.error`, и anti-drift unit test фиксирует HTML/runtime wiring |
 | T-238 | UI Navigator damage-control policy layer (rule-driven block/ask verdicts) | P0 | 0.25 week | T-204, T-212 | R6, R7, R13, R15 | UI Navigator загружает rule-set (env/file), рассчитывает verdict `allow/ask/block`, блокирует критичные сценарии до execution и публикует damage-control diagnostics в orchestrator output/evidence; demo policy подтверждает `damageControlDiagnosticsValidated=true` |
+| T-239 | Secondary TTS adapter pack (Gemini default + Deepgram Aura-2 fallback) | P1 | 0.5 week | T-012, T-104 | R2, R10, R14, R15 | Capability profile поддерживает Gemini-first `tts` с fallback на Deepgram Aura-2; provider/model metadata попадает в audit, operator summary и release artifacts |
+| T-240 | Story image edit/post-production adapter using `fal-ai/nano-banana-2/edit` | P1 | 0.5 week | T-102, T-207 | R4, R10, R15 | Story pipeline поддерживает continuity/edit pass по существующим asset refs (prompt/reference-guided edit) без замены Imagen как default first-pass generator |
+| T-241 | Grounded research adapter with citation contract (Perplexity Sonar baseline) | P1 | 0.5 week | T-012, T-205 | R10, R14, R15 | Новый capability `research` возвращает answer + citations + source URLs + provider/model metadata; operator/release evidence lanes не теряют происхождение фактов |
+| T-242 | Secondary reasoning adapter pack (GPT-5.4 / Claude 4 family / DeepSeek V3.1 / Kimi watchlist) for non-judged and batch flows | P1 | 1 week | T-012, T-222 | R0, R10, R14, R15 | Gemini остаётся judged default path, а background/operator flows могут routeиться в provider-pinned adapters с budget policy, prompt caching strategy и auditable provider metadata |
+| T-243 | Async browser-worker orchestration for long-horizon UI jobs (Manus-inspired pattern) | P2 | 1 week | T-010, T-106, T-210 | R7, R10, R16 | Долгие browser jobs выполняются как resumable background tasks с artifact trail, operator checkpoints и repo-owned control plane вместо скрытого hosted runtime |
+| T-244 | Onboarding wizard + doctor + auth-profile rotation for provider/device/runtime bootstrap (OpenClaw-inspired) | P2 | 0.5 week | T-011, T-210 | R10, R13, R15 | Репозиторий получает guided setup/doctor surface: проверка provider credentials, runtime profile posture, device-node readiness и безопасных fallback paths |
+| T-245 | Developer/operator ergonomics pack inspired by `pi-vs-claude-code` (purpose gate, session replay, cross-agent discovery) | P2 | 0.5 week | T-210, T-244 | R15, R16 | Operator/dev workflows получают явный purpose gate, replayable session timeline и controlled discovery of specialist agents/personas without affecting judged end-user UX |
 
 ### M3 Detailed Implementation Checklist (T-207..T-210)
 
@@ -152,10 +159,10 @@
 | ID | Task | Priority | Estimate | Dependencies | Related Requirements | Definition of Done |
 | --- | --- | --- | --- | --- | --- | --- |
 | T-301 | Добавить multi-channel adapters (например Telegram/Slack/WebChat) | P2 | 2 weeks | T-004, T-205 | Future Scope V3 | Один workflow доступен из нескольких каналов с единым session state |
-| T-302 | Реализовать managed skill registry (versioning, trust metadata, updates) | P2 | 2 weeks | T-202, T-203 | Future Scope V3 | Есть каталог навыков, обновления версий и проверка доверия |
-| T-303 | Добавить device-node execution (desktop/mobile nodes) | P2 | 2 weeks | T-204 | Future Scope V3 | Системные действия можно делегировать на привязанные device nodes |
-| T-304 | Добавить org governance (tenancy, compliance templates, central audit) | P2 | 2 weeks | T-205 | Future Scope V3 | Мульти-tenant управление, политики хранения и централизованный аудит |
-| T-305 | Добавить plugin marketplace с permission manifests и signing | P2 | 2 weeks | T-302 | Future Scope V3 | Плагины подписываются, права явно декларируются и валидируются |
+| T-302 | Расширить managed skill registry beyond current repo-owned baseline | P2 | 2 weeks | T-202, T-203 | Future Scope V3 | Текущий repo-owned registry расширен в сторону federation/distribution flows без ломки version/trust contracts |
+| T-303 | Расширить device-node execution beyond current repo-owned baseline | P2 | 2 weeks | T-204 | Future Scope V3 | Текущий repo-owned device-node baseline расширен в сторону broader fleet routing и distributed execution flows |
+| T-304 | Расширить org governance beyond current tenant/compliance baseline | P2 | 2 weeks | T-205 | Future Scope V3 | Текущий baseline tenant/compliance/policy surfaces расширен до более широких org-level dashboards и governance automation |
+| T-305 | Расширить plugin marketplace beyond current signed repo-owned baseline | P2 | 2 weeks | T-302 | Future Scope V3 | Текущий signed plugin marketplace baseline расширен в сторону broader curation/distribution/review flows без ломки permission/signing contracts |
 
 ## Critical Path for Challenge Submission
 
@@ -232,6 +239,14 @@
 58. T-304 full workflow extension (governance policy detail/history APIs: `GET /v1/governance/policy/{tenantId}` + `GET /v1/governance/policy/{tenantId}/updates` with tenant-scope enforcement and audit update lane) [Completed]
 59. T-305 full workflow extension (plugin marketplace APIs: `GET /v1/skills/plugins`, `GET /v1/skills/plugins/{pluginId}`, `GET /v1/skills/plugins/{pluginId}/updates` with signing/permission filters, tenant-scoped update history, and docs/alignment coverage) [Completed]
 60. T-305 operator evidence extension (judge-facing `pluginMarketplaceLifecycle` in `/v1/operator/summary` + Operator Console widget + docs/alignment coverage) [Completed]
+61. T-239 secondary TTS adapter pack (`Gemini` default + `Deepgram Aura-2` fallback metadata in storyteller runtime, artifacts, and operator docs) [Completed]
+62. T-240 story image-edit adapter (`fal-ai/nano-banana-2/edit` continuity/post-production lane with lineage + artifact provenance) [Completed]
+63. T-241 grounded research adapter (`research` capability with citations/source URLs/provider metadata in live-agent, frontend intent, and release artifacts) [Completed]
+64. T-242 secondary reasoning adapter pack (assistive-router provider support for `openai` / `anthropic` / `deepseek` / `moonshot`, auditable `routing_reasoning` provenance, and watchlist gating) [Completed]
+65. T-243 async browser-worker orchestration (repo-owned resumable `ui-executor` browser jobs + operator control plane + queue/checkpoint evidence) [Completed]
+66. T-244 onboarding/bootstrap doctor + auth-profile rotation (repo-owned provider/device/runtime bootstrap posture, auth-profile control plane, and operator surfaces) [Completed]
+67. T-245 developer/operator ergonomics pack (`Operator Session Ops` purpose gate, session replay, cross-agent discovery, export/audit propagation) [Completed]
+68. Runtime recovery control-plane baseline (`GET /v1/runtime/workflow-config`, `POST /v1/runtime/workflow-control-plane-override`, `GET /v1/runtime/fault-profiles`, `POST /v1/runtime/fault-profiles/execute`, operator surfaces `Workflow Control Panel` + `Runtime Drill Runner`) [Completed]
 
 ## Suggested Solo Execution (2-week MVP)
 

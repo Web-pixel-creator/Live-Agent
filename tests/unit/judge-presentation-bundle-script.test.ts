@@ -20,6 +20,9 @@ test("judge presentation bundle includes runtime guardrails and provider adapter
   const badgePath = join(baseDir, "badge.json");
   const badgeDetailsPath = join(baseDir, "badge-details.json");
   const releaseEvidencePath = join(baseDir, "report.json");
+  const gcpCloudRunSummaryPath = join(baseDir, "gcp-cloud-run-summary.json");
+  const gcpRuntimeProofPath = join(baseDir, "gcp-runtime-proof.json");
+  const submissionRefreshStatusPath = join(baseDir, "submission-refresh-status.json");
   const railwayDeploySummaryPath = join(baseDir, "railway-deploy-summary.json");
   const repoPublishSummaryPath = join(baseDir, "repo-publish-summary.json");
   const visualManifestPath = join(baseDir, "manifest.json");
@@ -133,6 +136,53 @@ test("judge presentation bundle includes runtime guardrails and provider adapter
     ),
   );
   writeFileSync(
+    gcpCloudRunSummaryPath,
+    JSON.stringify(
+      {
+        status: "success",
+        serviceCount: 3,
+        gatewayUrl: "https://gateway.example.test",
+        apiUrl: "https://api.example.test",
+        orchestratorUrl: "https://orchestrator.example.test",
+      },
+      null,
+      2,
+    ),
+  );
+  writeFileSync(
+    gcpRuntimeProofPath,
+    JSON.stringify(
+      {
+        status: "success",
+        submissionSafeSummaryGate: {
+          liveApiEnabled: true,
+          translationProvider: "not_fallback",
+          storytellerMediaMode: "not_simulated",
+          uiExecutorForceSimulation: false,
+        },
+        judgeProof: {
+          cloudRunUrlProof: true,
+          firestoreProof: true,
+          bigQueryRowsProof: true,
+          observabilityScreenshotsProof: true,
+        },
+      },
+      null,
+      2,
+    ),
+  );
+  writeFileSync(
+    submissionRefreshStatusPath,
+    JSON.stringify(
+      {
+        status: "success",
+        blockingReason: "none",
+      },
+      null,
+      2,
+    ),
+  );
+  writeFileSync(
     railwayDeploySummaryPath,
     JSON.stringify(
       {
@@ -193,6 +243,12 @@ test("judge presentation bundle includes runtime guardrails and provider adapter
     badgeDetailsPath,
     "--releaseEvidence",
     releaseEvidencePath,
+    "--gcpCloudRunSummary",
+    gcpCloudRunSummaryPath,
+    "--gcpRuntimeProof",
+    gcpRuntimeProofPath,
+    "--submissionRefreshStatus",
+    submissionRefreshStatusPath,
     "--railwayDeploySummary",
     railwayDeploySummaryPath,
     "--repoPublishSummary",
@@ -212,6 +268,19 @@ test("judge presentation bundle includes runtime guardrails and provider adapter
     "Runtime Guardrails Snapshot",
     "Provider Adapter Snapshot",
     "Deploy / Publish Provenance",
+    "GCP Cloud Run: status success; services 3; gateway https://gateway.example.test; api https://api.example.test; orchestrator https://orchestrator.example.test",
+    "GCP runtime proof: status success; Cloud Run URL proof true; Firestore proof true; BigQuery rows proof true; observability screenshots proof true",
+    "Submission Follow-Up",
+    "cloud-proof-checklist.md",
+    "gcp-runtime-proof.md",
+    "submission-refresh-status.md",
+    "Submission refresh: status success; blocker none",
+    "Submission refresh state: `success`",
+    "video-shot-list.md",
+    "video-script-4min.md",
+    "screen-checklist.md",
+    "liveApiEnabled=true",
+    "translationProvider=not_fallback",
     "runtimeGuardrailsSignalPaths",
     "providerUsage",
     "critical signals=2",
@@ -253,6 +322,9 @@ test("judge presentation bundle reuses compact deploy provenance from visual man
   const visualManifestPath = join(baseDir, "manifest.json");
   const visualGalleryPath = join(baseDir, "gallery.md");
   const outputMarkdownPath = join(baseDir, "presentation.md");
+  const missingGcpCloudRunSummaryPath = join(baseDir, "missing-gcp-cloud-run-summary.json");
+  const missingGcpRuntimeProofPath = join(baseDir, "missing-gcp-runtime-proof.json");
+  const missingSubmissionRefreshStatusPath = join(baseDir, "missing-submission-refresh-status.json");
 
   writeFileSync(
     summaryPath,
@@ -349,6 +421,12 @@ test("judge presentation bundle reuses compact deploy provenance from visual man
     badgeDetailsPath,
     "--releaseEvidence",
     releaseEvidencePath,
+    "--gcpCloudRunSummary",
+    missingGcpCloudRunSummaryPath,
+    "--gcpRuntimeProof",
+    missingGcpRuntimeProofPath,
+    "--submissionRefreshStatus",
+    missingSubmissionRefreshStatusPath,
     "--visualManifest",
     visualManifestPath,
     "--visualGallery",
@@ -379,6 +457,9 @@ test("judge presentation bundle omits optional provenance section for ordinary l
   const visualManifestPath = join(baseDir, "manifest.json");
   const visualGalleryPath = join(baseDir, "gallery.md");
   const outputMarkdownPath = join(baseDir, "presentation.md");
+  const missingGcpCloudRunSummaryPath = join(baseDir, "missing-gcp-cloud-run-summary.json");
+  const missingGcpRuntimeProofPath = join(baseDir, "missing-gcp-runtime-proof.json");
+  const missingSubmissionRefreshStatusPath = join(baseDir, "missing-submission-refresh-status.json");
 
   writeFileSync(
     summaryPath,
@@ -474,6 +555,12 @@ test("judge presentation bundle omits optional provenance section for ordinary l
     badgeDetailsPath,
     "--releaseEvidence",
     releaseEvidencePath,
+    "--gcpCloudRunSummary",
+    missingGcpCloudRunSummaryPath,
+    "--gcpRuntimeProof",
+    missingGcpRuntimeProofPath,
+    "--submissionRefreshStatus",
+    missingSubmissionRefreshStatusPath,
     "--visualManifest",
     visualManifestPath,
     "--visualGallery",

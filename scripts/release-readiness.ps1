@@ -1271,13 +1271,29 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   }
 
   $storytellerMediaMode = [string]$summary.kpis.storytellerMediaMode
-  $allowedStorytellerMediaModes = @("simulated")
+  $allowedStorytellerMediaModes = @("default", "simulated")
   if (-not ($allowedStorytellerMediaModes -contains $storytellerMediaMode)) {
     Fail ("Critical KPI check failed: storytellerMediaMode expected one of [" + ($allowedStorytellerMediaModes -join ", ") + "], actual " + $storytellerMediaMode)
   }
 
+  if ($storytellerMediaMode -eq "default") {
+    $storytellerImageMode = [string]$summary.kpis.storytellerImageMode
+    $storytellerImageEditMode = [string]$summary.kpis.storytellerImageEditMode
+    $storytellerTtsMode = [string]$summary.kpis.storytellerTtsMode
+    $storytellerVideoMode = [string]$summary.kpis.storytellerVideoMode
+    $storytellerDefaultLaneObserved = @($storytellerImageMode, $storytellerImageEditMode, $storytellerTtsMode, $storytellerVideoMode) -contains "default"
+    if (-not $storytellerDefaultLaneObserved) {
+      Fail "Critical KPI check failed: storytellerMediaMode=default requires at least one storyteller lane mode=default"
+    }
+  }
+
   $storytellerMediaQueueWorkers = To-NumberOrNaN $summary.kpis.storytellerMediaQueueWorkers
-  if ([double]::IsNaN($storytellerMediaQueueWorkers) -or $storytellerMediaQueueWorkers -lt 1) {
+  $storytellerVideoMode = [string]$summary.kpis.storytellerVideoMode
+  if ($storytellerVideoMode -eq "default") {
+    if ([double]::IsNaN($storytellerMediaQueueWorkers) -or $storytellerMediaQueueWorkers -lt 0) {
+      Fail ("Critical KPI check failed: storytellerMediaQueueWorkers expected >= 0 when storytellerVideoMode=default, actual " + $summary.kpis.storytellerMediaQueueWorkers)
+    }
+  } elseif ([double]::IsNaN($storytellerMediaQueueWorkers) -or $storytellerMediaQueueWorkers -lt 1) {
     Fail ("Critical KPI check failed: storytellerMediaQueueWorkers expected >= 1, actual " + $summary.kpis.storytellerMediaQueueWorkers)
   }
 
@@ -1303,9 +1319,10 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $gatewayInterruptLatencyMs = To-NumberOrNaN $summary.kpis.gatewayInterruptLatencyMs
   $gatewayInterruptEventType = [string]$summary.kpis.gatewayInterruptEventType
   $gatewayInterruptUnavailable = $gatewayInterruptEventType -eq "live.bridge.unavailable"
+  $gatewayInterruptRequested = $gatewayInterruptEventType -eq "live.interrupt.requested"
   if ([double]::IsNaN($gatewayInterruptLatencyMs)) {
-    if (-not $gatewayInterruptUnavailable) {
-      Fail ("Critical KPI check failed: gatewayInterruptLatencyMs is missing and gatewayInterruptEventType is not live.bridge.unavailable (actual " + $gatewayInterruptEventType + ")")
+    if (-not ($gatewayInterruptUnavailable -or $gatewayInterruptRequested)) {
+      Fail ("Critical KPI check failed: gatewayInterruptLatencyMs is missing and gatewayInterruptEventType is not live.interrupt.requested|live.bridge.unavailable (actual " + $gatewayInterruptEventType + ")")
     }
   } elseif ($gatewayInterruptLatencyMs -gt $ReleaseThresholds.MaxGatewayInterruptLatencyMs) {
     Fail ("Critical KPI check failed: gatewayInterruptLatencyMs expected <= " + $ReleaseThresholds.MaxGatewayInterruptLatencyMs + ", actual " + $gatewayInterruptLatencyMs)

@@ -7,10 +7,12 @@ test("demo frontend wires session export controls and runtime helpers", () => {
   const htmlPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "index.html");
   const appPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js");
   const stylesPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "styles.css");
+  const readmePath = resolve(process.cwd(), "README.md");
   const operatorGuidePath = resolve(process.cwd(), "docs", "operator-guide.md");
   const htmlSource = readFileSync(htmlPath, "utf8");
   const appSource = readFileSync(appPath, "utf8");
   const stylesSource = readFileSync(stylesPath, "utf8");
+  const readmeSource = readFileSync(readmePath, "utf8");
   const operatorGuideSource = readFileSync(operatorGuidePath, "utf8");
 
   const requiredHtmlTokens = [
@@ -51,6 +53,8 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "syncExportControlAvailability",
     "closeExportMenu",
     "buildSessionExportPayload",
+    "buildSessionExportRuntimeGuardrailsEvidence",
+    "buildOperatorRuntimeGuardrailExportPath",
     "toMarkdownExport",
     "exportSessionMarkdown",
     "exportSessionJson",
@@ -65,16 +69,27 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "Last export:",
     "Export Session",
     "Export Session (WAV)",
+    "runtimeGuardrailsSignalPaths",
+    "## Runtime Guardrails Signal Paths",
+    "operatorPurpose",
+    "operatorSessionReplay",
+    "operatorDiscovery",
+    "## Operator Purpose",
+    "## Session Replay",
+    "## Cross-Agent Discovery",
+    "historyStatus:",
+    "lifecycleCounts:",
     "exported markdown",
     "no audio",
     "No exports yet",
     "EXPORT_HISTORY_LIMIT",
     "el.exportAudioBtn.disabled = !hasAudioEvidence;",
     "Assistant playback evidence (capture required)",
-    "const turnsLabel = uniqueTurns === 1 ? \"1 turn\" : `${uniqueTurns} turns`;",
+    "formatLocalizedTurnCount",
     "const sizeLabel = formatByteSize(totalBytes);",
-    "Assistant audio ready:",
-    "trimmed",
+    't("export.audio.ready"',
+    't("export.audio.evidence"',
+    't("export.audio.trimmed")',
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing export token: ${token}`);
@@ -103,4 +118,17 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     operatorGuideSource.includes("single `Export Session` dropdown"),
     "operator guide missing single export dropdown note",
   );
+  assert.ok(
+    operatorGuideSource.includes("`runtimeGuardrailsSignalPaths`"),
+    "operator guide missing runtime guardrails session export note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("`operatorPurpose`"),
+    "operator guide missing operator purpose export note",
+  );
+  assert.ok(
+    readmeSource.includes("`runtimeGuardrailsSignalPaths`"),
+    "README missing runtime guardrails session export note",
+  );
+  assert.ok(readmeSource.includes("`operatorPurpose`"), "README missing operator purpose export note");
 });

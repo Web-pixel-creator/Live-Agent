@@ -15,10 +15,11 @@ test("demo frontend keeps connection advanced session settings grouped under det
   const requiredHtmlTokens = [
     'id="connectionAdvancedSection"',
     'class="advanced-settings advanced-connection-settings"',
-    "<span class=\"advanced-title\">Advanced Session Settings</span>",
+    'data-i18n="live.connection.advancedTitle"',
     'id="wsUrl"',
     'id="sessionId"',
     'id="userId"',
+    'class="meta-row meta-row-status meta-row-status-connection-advanced"',
     'id="targetLanguage"',
   ];
   for (const token of requiredHtmlTokens) {
@@ -33,14 +34,15 @@ test("demo frontend keeps connection advanced session settings grouped under det
     "connection fields should exist in html",
   );
   assert.ok(
-    wsUrlPosition < advancedSectionPosition && sessionIdPosition > advancedSectionPosition,
-    "wsUrl should stay visible while session fields remain inside advanced section",
+    wsUrlPosition > advancedSectionPosition && sessionIdPosition > advancedSectionPosition,
+    "connection identity and gateway fields should stay grouped inside advanced section",
   );
 
   const requiredStyleTokens = [
     ".connection-url-field {",
     ".advanced-connection-settings {",
     ".connection-advanced-grid {",
+    ".meta-row-status-connection-advanced {",
   ];
   for (const token of requiredStyleTokens) {
     assert.ok(stylesSource.includes(token), `frontend styles missing connection-advanced token: ${token}`);

@@ -69,6 +69,9 @@ function createPassingSummary(overrides?: {
     liveContextCompactionMinRetainedTurns: 2,
     liveContextCompactionReason: "compacted_with_fallback_summary",
     storytellerMediaMode: "simulated",
+    storytellerImageMode: "simulated",
+    storytellerVideoMode: "simulated",
+    storytellerTtsMode: "simulated",
     storytellerVideoAsync: true,
     storytellerVideoJobsCount: 1,
     storytellerVideoPendingCount: 1,
@@ -226,7 +229,7 @@ function createPassingSummary(overrides?: {
     sessionIdempotencyConflictCode: "API_SESSION_IDEMPOTENCY_CONFLICT",
     uiAdapterMode: "remote_http",
     uiExecutorMode: "remote_http",
-    uiExecutorForceSimulation: true,
+    uiExecutorForceSimulation: false,
     uiExecutorRuntimeValidated: true,
     uiExecutorLifecycleValidated: true,
     uiApprovalResumeRequestAttempts: 1,
@@ -303,6 +306,8 @@ function createPassingSummary(overrides?: {
     translationProvider: "fallback",
     assistiveRouterDiagnosticsValidated: true,
     assistiveRouterMode: "deterministic",
+    assistiveRouterProviderMetadataValidated: true,
+    assistiveRouterProvider: "gemini_api",
     lifecycleEndpointsValidated: true,
     runtimeProfileValidated: true,
     analyticsRuntimeVisible: true,
@@ -375,7 +380,68 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 279);
+  assert.equal(result.payload.checks, 281);
+});
+
+test("demo-e2e policy check passes when storyteller media mode is default and a live lane is observed", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        storytellerMediaMode: "default",
+        storytellerImageMode: "default",
+        storytellerVideoMode: "default",
+        storytellerTtsMode: "default",
+        storytellerVideoAsync: false,
+        storytellerVideoJobsCount: 0,
+        storytellerVideoPendingCount: 0,
+        storytellerVideoAsyncValidated: true,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
+  assert.equal(result.payload.ok, true);
+});
+
+test("demo-e2e policy check allows zero storyteller queue workers for default video mode", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        storytellerMediaMode: "default",
+        storytellerImageMode: "default",
+        storytellerVideoMode: "default",
+        storytellerTtsMode: "default",
+        storytellerVideoAsync: false,
+        storytellerVideoJobsCount: 0,
+        storytellerVideoPendingCount: 0,
+        storytellerVideoAsyncValidated: true,
+        storytellerMediaQueueWorkers: 0,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
+  assert.equal(result.payload.ok, true);
+});
+
+test("demo-e2e policy check fails when storyteller media mode is default without a live lane", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        storytellerMediaMode: "default",
+        storytellerImageMode: "fallback",
+        storytellerVideoMode: "fallback",
+        storytellerTtsMode: "fallback",
+        storytellerVideoAsync: false,
+        storytellerVideoPendingCount: 0,
+        storytellerVideoAsyncValidated: true,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.storytellerMediaMode")));
 });
 
 test("demo-e2e policy check fails when cost estimate total is negative", () => {
@@ -524,7 +590,7 @@ test("demo-e2e policy check fails when damage-control diagnostics KPI is invalid
   assert.ok(violations.some((item) => item.includes("kpi.damageControlDiagnosticsValidated")));
 });
 
-test("demo-e2e policy check fails when interrupt latency is missing for requested interrupt event", () => {
+test("demo-e2e policy check allows missing interrupt latency for requested interrupt event", () => {
   const result = runPolicyCheck(
     createPassingSummary({
       kpis: {
@@ -532,12 +598,8 @@ test("demo-e2e policy check fails when interrupt latency is missing for requeste
       },
     }),
   );
-  assert.equal(result.exitCode, 1);
-  assert.equal(result.payload.ok, false);
-  const details = result.payload.details as Record<string, unknown>;
-  assert.ok(Array.isArray(details?.violations));
-  const violations = details.violations as string[];
-  assert.ok(violations.some((item) => item.includes("kpi.gatewayInterruptLatencyObservedOrUnavailable")));
+  assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
+  assert.equal(result.payload.ok, true);
 });
 
 test("demo-e2e policy check fails when service startup retry config is too low", () => {

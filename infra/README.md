@@ -30,21 +30,34 @@ Infrastructure is intentionally lightweight in this scaffold.
    - Creates service accounts.
    - Applies baseline IAM roles.
    - Creates core secrets in Secret Manager.
-2. `infra/gcp/setup-analytics-sinks.ps1`
+2. `infra/gcp/ensure-firestore.ps1`
+   - Creates Firestore Native database when missing.
+   - Applies repo-owned indexes and TTL via `infra/firestore/apply.ps1`.
+   - Emits `artifacts/deploy/gcp-firestore-summary.{json,md}` for judge/runtime proof.
+3. `infra/gcp/deploy-cloud-run.ps1`
+   - Reads `infra/cloud-run/services.yaml`.
+   - Deploys `orchestrator -> realtime-gateway -> api-backend` to Cloud Run.
+   - Emits `artifacts/deploy/gcp-cloud-run-summary.{json,md}` with public URL proof.
+4. `infra/gcp/setup-analytics-sinks.ps1`
    - Creates BigQuery dataset for analytics export.
    - Creates/updates Cloud Logging sink for structured analytics logs.
    - Creates/updates log-based metric extraction path for Cloud Monitoring dashboards/alerts.
    - Grants baseline IAM for sink writer.
-3. `infra/gcp/setup-monitoring-baseline.ps1`
+5. `infra/gcp/setup-monitoring-baseline.ps1`
    - Ensures log-based metrics for analytics/error/event streams.
    - Creates/replaces Cloud Monitoring dashboard with core KPI widgets.
    - Creates/replaces baseline alert policies (latency, service errors, persistence failures).
-4. `infra/gcp/setup-observability.ps1`
+6. `infra/gcp/setup-observability.ps1`
    - One-command wrapper for bootstrap + analytics sinks + monitoring baseline.
-5. `infra/firestore/firestore.indexes.json`
+7. `infra/gcp/collect-runtime-proof.ps1`
+   - Aggregates Cloud Run, Firestore, BigQuery, and observability proof.
+   - Emits `artifacts/release-evidence/gcp-runtime-proof.{json,md}`.
+8. `infra/gcp/prepare-judge-runtime.ps1`
+   - End-to-end wrapper for bootstrap -> Firestore -> observability -> Cloud Run -> proof collection.
+9. `infra/firestore/firestore.indexes.json`
    - Composite indexes for sessions/events/runs/logs/assets.
    - Field overrides with TTL on `expireAt`.
-6. `infra/firestore/apply.ps1`
+10. `infra/firestore/apply.ps1`
    - Applies indexes and TTL policies using `gcloud`.
-7. `infra/monitoring/*`
+11. `infra/monitoring/*`
    - Dashboard/alert policy templates used by monitoring baseline setup.

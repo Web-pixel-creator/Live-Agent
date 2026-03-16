@@ -19,6 +19,9 @@ test("demo frontend wires ui_task grounding controls into intent request payload
     'id="uiTaskDomSnapshot"',
     'id="uiTaskAccessibilityTree"',
     'id="uiTaskMarkHints"',
+    'id="uiTaskBrowserWorkerEnabled"',
+    'id="uiTaskBrowserWorkerCheckpointEverySteps"',
+    'id="uiTaskBrowserWorkerPauseAfterStep"',
   ];
   for (const token of requiredHtmlIds) {
     assert.ok(htmlSource.includes(token), `frontend html missing ui grounding control: ${token}`);
@@ -35,6 +38,10 @@ test("demo frontend wires ui_task grounding controls into intent request payload
     "payload.domSnapshot",
     "payload.accessibilityTree",
     "payload.markHints",
+    "payload.browserWorker",
+    "uiTaskBrowserWorkerEnabled",
+    "uiTaskBrowserWorkerCheckpointEverySteps",
+    "uiTaskBrowserWorkerPauseAfterStep",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing ui grounding wiring token: ${token}`);

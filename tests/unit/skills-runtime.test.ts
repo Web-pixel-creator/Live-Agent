@@ -4,7 +4,12 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { getSkillsRuntimeSnapshot, renderSkillsPrompt } from "../../shared/skills/src/index.js";
+import {
+  getSkillsRuntimeSnapshot,
+  renderSkillsPrompt,
+  rotateAuthProfile,
+  upsertCredentialStoreEntry,
+} from "../../shared/skills/src/index.js";
 
 async function writeSkill(params: {
   rootDir: string;
@@ -311,6 +316,170 @@ test("skills runtime falls back to managed JSON when managed URL is unavailable"
     assert.equal(snapshot.activeSkills[0]?.id, "managed-fallback-skill");
     assert.equal(snapshot.activeSkills[0]?.version, 2);
   } finally {
+    await rm(rootDir, { recursive: true, force: true });
+  }
+});
+
+test("skills runtime can read managed index auth token from credential store", async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), "mla-skills-managed-credential-"));
+  let observedAuthorization = "";
+  const server = createServer((req, res) => {
+    observedAuthorization = typeof req.headers.authorization === "string" ? req.headers.authorization : "";
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        data: [
+          {
+            id: "managed-credential-skill",
+            name: "Managed Credential Skill",
+            description: "Remote catalog skill with credential-store auth",
+            prompt: "Use managed credential-backed instructions.",
+            scope: ["live-agent"],
+            trustLevel: "reviewed",
+            version: 1,
+            enabled: true,
+          },
+        ],
+      }),
+      "utf8",
+    );
+  });
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, "127.0.0.1", () => resolve());
+  });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const managedUrl = `http://127.0.0.1:${address.port}/v1/skills/index`;
+
+  try {
+    const env: NodeJS.ProcessEnv = {
+      CREDENTIAL_STORE_FILE: "credentials/store.json",
+      CREDENTIAL_STORE_MASTER_KEY: "credential-master",
+      SKILLS_RUNTIME_ENABLED: "true",
+      SKILLS_SOURCE_PRECEDENCE: "managed",
+      SKILLS_ALLOWED_SOURCES: "managed",
+      SKILLS_MANAGED_INDEX_URL: managedUrl,
+      SKILLS_MANAGED_INDEX_AUTH_CREDENTIAL: "managed-index-token",
+    };
+
+    upsertCredentialStoreEntry(
+      {
+        namespace: "skills.managed_index.auth_token",
+        name: "managed-index-token",
+        secretValue: "skills-secret-token",
+        metadata: {
+          service: "skills",
+          target: "managed-index",
+        },
+      },
+      {
+        env,
+        cwd: rootDir,
+      },
+    );
+
+    const snapshot = await getSkillsRuntimeSnapshot({
+      agentId: "live-agent",
+      cwd: rootDir,
+      env,
+    });
+
+    assert.equal(snapshot.activeSkills.length, 1);
+    assert.equal(snapshot.activeSkills[0]?.id, "managed-credential-skill");
+    assert.equal(observedAuthorization, "Bearer skills-secret-token");
+  } finally {
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+    await rm(rootDir, { recursive: true, force: true });
+  }
+});
+
+test("skills runtime can read managed index auth token from auth profile rotation", async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), "mla-skills-managed-auth-profile-"));
+  let observedAuthorization = "";
+  const server = createServer((req, res) => {
+    observedAuthorization = typeof req.headers.authorization === "string" ? req.headers.authorization : "";
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        data: [
+          {
+            id: "managed-auth-profile-skill",
+            name: "Managed Auth Profile Skill",
+            description: "Remote catalog skill with auth-profile-backed credential routing",
+            prompt: "Use auth-profile backed instructions.",
+            scope: ["live-agent"],
+            trustLevel: "reviewed",
+            version: 1,
+            enabled: true,
+          },
+        ],
+      }),
+      "utf8",
+    );
+  });
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, "127.0.0.1", () => resolve());
+  });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const managedUrl = `http://127.0.0.1:${address.port}/v1/skills/index`;
+
+  try {
+    const env: NodeJS.ProcessEnv = {
+      CREDENTIAL_STORE_FILE: "credentials/store.json",
+      CREDENTIAL_STORE_MASTER_KEY: "credential-master",
+      AUTH_PROFILE_STORE_FILE: "credentials/auth-profiles.json",
+      SKILLS_RUNTIME_ENABLED: "true",
+      SKILLS_SOURCE_PRECEDENCE: "managed",
+      SKILLS_ALLOWED_SOURCES: "managed",
+      SKILLS_MANAGED_INDEX_URL: managedUrl,
+      SKILLS_MANAGED_INDEX_AUTH_PROFILE: "skills-managed-index",
+    };
+
+    upsertCredentialStoreEntry(
+      {
+        namespace: "skills.managed_index.auth_token",
+        name: "managed-index-profile-token",
+        secretValue: "skills-profile-secret",
+        metadata: {
+          service: "skills",
+          target: "managed-index",
+        },
+      },
+      {
+        env,
+        cwd: rootDir,
+      },
+    );
+    rotateAuthProfile(
+      {
+        profileId: "skills-managed-index",
+      },
+      {
+        env,
+        cwd: rootDir,
+      },
+    );
+
+    const snapshot = await getSkillsRuntimeSnapshot({
+      agentId: "live-agent",
+      cwd: rootDir,
+      env,
+    });
+
+    assert.equal(snapshot.activeSkills.length, 1);
+    assert.equal(snapshot.activeSkills[0]?.id, "managed-auth-profile-skill");
+    assert.equal(observedAuthorization, "Bearer skills-profile-secret");
+  } finally {
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
     await rm(rootDir, { recursive: true, force: true });
   }
 });

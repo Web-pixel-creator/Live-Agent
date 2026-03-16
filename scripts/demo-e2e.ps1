@@ -6,6 +6,9 @@ param(
   [switch]$SkipServiceStart,
 
   [Parameter(Mandatory = $false)]
+  [switch]$RestartHealthyServices,
+
+  [Parameter(Mandatory = $false)]
   [switch]$IncludeFrontend,
 
   [Parameter(Mandatory = $false)]
@@ -53,6 +56,15 @@ function Set-EnvDefault {
   if ([string]::IsNullOrWhiteSpace($existing)) {
     Set-Item -Path ("Env:" + $Name) -Value $Value
   }
+}
+
+function Set-EnvValue {
+  param(
+    [string]$Name,
+    [string]$Value
+  )
+
+  Set-Item -Path ("Env:" + $Name) -Value $Value
 }
 
 function Write-Utf8NoBomFile {
@@ -112,6 +124,26 @@ function Assert-Condition {
   if (-not $Condition) {
     throw $Message
   }
+}
+
+function Get-StorytellerDemoMediaMode {
+  $requestedMediaMode = [string][Environment]::GetEnvironmentVariable("DEMO_E2E_STORYTELLER_MEDIA_MODE")
+  if (@("default", "fallback", "simulated") -contains $requestedMediaMode) {
+    return $requestedMediaMode
+  }
+
+  $runtimeMediaMode = [string][Environment]::GetEnvironmentVariable("STORYTELLER_MEDIA_MODE")
+  if (@("default", "fallback", "simulated") -contains $runtimeMediaMode) {
+    return $runtimeMediaMode
+  }
+
+  $storytellerKey = [string][Environment]::GetEnvironmentVariable("STORYTELLER_GEMINI_API_KEY")
+  $geminiKey = [string][Environment]::GetEnvironmentVariable("GEMINI_API_KEY")
+  if (-not [string]::IsNullOrWhiteSpace($storytellerKey) -or -not [string]::IsNullOrWhiteSpace($geminiKey)) {
+    return "default"
+  }
+
+  return "fallback"
 }
 
 function Convert-ToNonNegativeDouble {
@@ -193,6 +225,63 @@ function Estimate-ApproxTokensFromObject {
     return Estimate-ApproxTokensFromText -Text $json
   } catch {
     return Estimate-ApproxTokensFromText -Text ([string]$Value)
+  }
+}
+
+function Read-DotEnvValues {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path
+  )
+
+  $values = @{}
+  if (-not (Test-Path $Path)) {
+    return $values
+  }
+
+  foreach ($line in (Get-Content $Path)) {
+    if ([string]::IsNullOrWhiteSpace($line)) {
+      continue
+    }
+
+    $trimmed = $line.Trim()
+    if ($trimmed.StartsWith("#")) {
+      continue
+    }
+
+    if ($trimmed -notmatch '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') {
+      continue
+    }
+
+    $name = [string]$matches[1]
+    $value = [string]$matches[2]
+    if (
+      $value.Length -ge 2 -and (
+        ($value.StartsWith('"') -and $value.EndsWith('"')) -or
+        ($value.StartsWith("'") -and $value.EndsWith("'"))
+      )
+    ) {
+      $value = $value.Substring(1, $value.Length - 2)
+    }
+
+    $values[$name] = $value
+  }
+
+  return $values
+}
+
+function Import-DotEnvIntoProcess {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Path
+  )
+
+  $values = Read-DotEnvValues -Path $Path
+  foreach ($entry in $values.GetEnumerator()) {
+    $existing = [Environment]::GetEnvironmentVariable([string]$entry.Key)
+    if ([string]::IsNullOrWhiteSpace([string]$existing)) {
+      Set-Item -Path ("Env:" + [string]$entry.Key) -Value ([string]$entry.Value)
+    }
   }
 }
 
@@ -595,6 +684,165 @@ function Get-LogTail {
   }
 }
 
+function Get-PortListenerMetadata {
+  param(
+    [Parameter(Mandatory = $true)]
+    [int]$Port
+  )
+
+  if ($Port -le 0) {
+    return $null
+  }
+
+  $listeners = @(Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
+  if ($listeners.Count -eq 0) {
+    return $null
+  }
+
+  $listener = $listeners[0]
+  $owningProcessId = [int](Get-FieldValue -Object $listener -Path @("OwningProcess"))
+  $processName = "unknown"
+  $processCommandLine = "n/a"
+
+  if ($owningProcessId -gt 0) {
+    $proc = Get-Process -Id $owningProcessId -ErrorAction SilentlyContinue
+    if ($null -ne $proc -and -not [string]::IsNullOrWhiteSpace([string]$proc.ProcessName)) {
+      $processName = [string]$proc.ProcessName
+    }
+
+    try {
+      $procMeta = Get-CimInstance Win32_Process -Filter ("ProcessId={0}" -f $owningProcessId)
+      $rawCommandLine = [string](Get-FieldValue -Object $procMeta -Path @("CommandLine"))
+      if (-not [string]::IsNullOrWhiteSpace($rawCommandLine)) {
+        $processCommandLine = $rawCommandLine
+      }
+    } catch {
+      # Best-effort diagnostics only.
+    }
+  }
+
+  return [ordered]@{
+    port = $Port
+    owningProcessId = $owningProcessId
+    processName = $processName
+    processCommandLine = $processCommandLine
+  }
+}
+
+function Stop-HealthyManagedServiceForRestart {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Name,
+    [Parameter(Mandatory = $true)]
+    [string]$HealthUrl
+  )
+
+  $healthUri = [Uri]$HealthUrl
+  $port = [int]$healthUri.Port
+  $listener = Get-PortListenerMetadata -Port $port
+  if ($null -eq $listener) {
+    throw ("Unable to restart healthy {0}: no listener was found on :{1} even though {2} responded healthy." -f $Name, $port, $HealthUrl)
+  }
+
+  $owningProcessId = [int]$listener.owningProcessId
+  $processName = [string]$listener.processName
+  $processCommandLine = [string]$listener.processCommandLine
+  if ($owningProcessId -le 0) {
+    throw ("Unable to restart healthy {0}: listener on :{1} did not expose a valid owning process id." -f $Name, $port)
+  }
+
+  Write-Step ("RestartHealthyServices enabled; replacing healthy {0} on :{1} (pid={2}, process={3})." -f $Name, $port, $owningProcessId, $processName)
+  try {
+    Stop-Process -Id $owningProcessId -Force -ErrorAction Stop
+  } catch {
+    $processAfterStopFailure = Get-Process -Id $owningProcessId -ErrorAction SilentlyContinue
+    $healthAfterStopFailure = Try-GetHealth -Url $HealthUrl
+    if ($null -eq $processAfterStopFailure -and $null -eq $healthAfterStopFailure) {
+      Write-Step ("Healthy {0} instance on :{1} exited before forced restart completed; continuing." -f $Name, $port)
+      return
+    }
+    throw ("Failed to stop healthy {0} instance on :{1} (pid={2}, process={3}). Command: {4}. Error: {5}" -f $Name, $port, $owningProcessId, $processName, $processCommandLine, $_.Exception.Message)
+  }
+
+  for ($attempt = 1; $attempt -le 20; $attempt += 1) {
+    Start-Sleep -Milliseconds 250
+    $healthAfterStop = Try-GetHealth -Url $HealthUrl
+    if ($null -eq $healthAfterStop) {
+      return
+    }
+  }
+
+  throw ("Healthy {0} instance on :{1} remained reachable after forced restart request." -f $Name, $port)
+}
+
+function Get-DemoManagedServiceReuseMismatchReason {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Name,
+    [Parameter(Mandatory = $true)]
+    [object]$HealthPayload
+  )
+
+  $runtime = Get-FieldValue -Object $HealthPayload -Path @("runtime")
+  if ($null -eq $runtime) {
+    return "runtime snapshot missing"
+  }
+
+  $analytics = Get-FieldValue -Object $runtime -Path @("analytics")
+  if ($null -eq $analytics) {
+    return "runtime analytics snapshot missing"
+  }
+
+  $analyticsRequestedEnabled = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $analytics -Path @("requestedEnabled"))
+  if ($analyticsRequestedEnabled -ne $true) {
+    return "analytics.requestedEnabled=false"
+  }
+
+  $analyticsEnabled = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $analytics -Path @("enabled"))
+  if ($analyticsEnabled -ne $true) {
+    return "analytics.enabled=false"
+  }
+
+  $analyticsSplitValid = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $analytics -Path @("splitValid"))
+  if ($analyticsSplitValid -ne $true) {
+    return "analytics.splitValid=false"
+  }
+
+  $analyticsBigQueryConfigValid = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $analytics -Path @("bigQueryConfigValid"))
+  if ($analyticsBigQueryConfigValid -ne $true) {
+    return "analytics.bigQueryConfigValid=false"
+  }
+
+  $analyticsBigQueryDataset = [string](Get-FieldValue -Object $analytics -Path @("bigQueryDataset"))
+  if ([string]::IsNullOrWhiteSpace($analyticsBigQueryDataset)) {
+    return "analytics.bigQueryDataset missing"
+  }
+
+  $analyticsBigQueryTable = [string](Get-FieldValue -Object $analytics -Path @("bigQueryTable"))
+  if ([string]::IsNullOrWhiteSpace($analyticsBigQueryTable)) {
+    return "analytics.bigQueryTable missing"
+  }
+
+  if ($Name -eq "ui-executor") {
+    $strictPlaywright = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $HealthPayload -Path @("strictPlaywright"))
+    if ($strictPlaywright -ne $true) {
+      return "strictPlaywright=false"
+    }
+
+    $simulateIfUnavailable = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $HealthPayload -Path @("simulateIfUnavailable"))
+    if ($simulateIfUnavailable -ne $false) {
+      return "simulateIfUnavailable=true"
+    }
+
+    $forceSimulation = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $HealthPayload -Path @("forceSimulation"))
+    if ($forceSimulation -ne $false) {
+      return "forceSimulation=true"
+    }
+  }
+
+  return $null
+}
+
 function Start-ManagedService {
   param(
     [Parameter(Mandatory = $true)]
@@ -602,21 +850,37 @@ function Start-ManagedService {
     [Parameter(Mandatory = $true)]
     [string]$HealthUrl,
     [Parameter(Mandatory = $true)]
-    [string[]]$NodeArgs
+    [string[]]$NodeArgs,
+    [Parameter(Mandatory = $false)]
+    [switch]$RestartHealthyServices
   )
 
   $existingHealth = Try-GetHealth -Url $HealthUrl
   if ($null -ne $existingHealth) {
-    Write-Step "$Name already healthy at $HealthUrl, reusing existing service."
-    $script:ServiceStatuses += [ordered]@{
-      name = $Name
-      healthUrl = $HealthUrl
-      reused = $true
-      pid = $null
-      health = $existingHealth
-      logs = $null
+    $existingServiceName = [string](Get-FieldValue -Object $existingHealth -Path @("service"))
+    if (-not [string]::IsNullOrWhiteSpace($existingServiceName) -and $existingServiceName -ne $Name) {
+      throw ("Health check {0} responded with unexpected service={1}; expected {2}." -f $HealthUrl, $existingServiceName, $Name)
     }
-    return
+    if ($RestartHealthyServices) {
+      Stop-HealthyManagedServiceForRestart -Name $Name -HealthUrl $HealthUrl
+    } else {
+      $reuseMismatchReason = Get-DemoManagedServiceReuseMismatchReason -Name $Name -HealthPayload $existingHealth
+      if (-not [string]::IsNullOrWhiteSpace($reuseMismatchReason)) {
+        Write-Step ("{0} already healthy at {1}, but runtime alignment mismatch ({2}); restarting." -f $Name, $HealthUrl, $reuseMismatchReason)
+        Stop-HealthyManagedServiceForRestart -Name $Name -HealthUrl $HealthUrl
+      } else {
+        Write-Step "$Name already healthy at $HealthUrl, reusing existing service."
+        $script:ServiceStatuses += [ordered]@{
+          name = $Name
+          healthUrl = $HealthUrl
+          reused = $true
+          pid = $null
+          health = $existingHealth
+          logs = $null
+        }
+        return
+      }
+    }
   }
 
   $maxAttemptsRaw = [Environment]::GetEnvironmentVariable("DEMO_E2E_SERVICE_START_MAX_ATTEMPTS")
@@ -737,6 +1001,7 @@ function Assert-ManagedServicePortsAvailable {
     $serviceName = [string](Get-FieldValue -Object $service -Path @("name"))
     $healthUrl = [string](Get-FieldValue -Object $service -Path @("healthUrl"))
     $port = [int](Get-FieldValue -Object $service -Path @("port"))
+    $expectedCommandFragment = [string](Get-FieldValue -Object $service -Path @("expectedCommandFragment"))
 
     if ($port -le 0 -or [string]::IsNullOrWhiteSpace($healthUrl)) {
       continue
@@ -747,31 +1012,22 @@ function Assert-ManagedServicePortsAvailable {
       continue
     }
 
-    $listeners = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
-    if ($listeners.Count -eq 0) {
+    $listener = Get-PortListenerMetadata -Port $port
+    if ($null -eq $listener) {
       continue
     }
 
-    $listener = $listeners[0]
-    $owningProcessId = [int](Get-FieldValue -Object $listener -Path @("OwningProcess"))
-    $processName = "unknown"
-    $processCommandLine = "n/a"
+    $owningProcessId = [int]$listener.owningProcessId
+    $processName = [string]$listener.processName
+    $processCommandLine = [string]$listener.processCommandLine
 
-    if ($owningProcessId -gt 0) {
-      $proc = Get-Process -Id $owningProcessId -ErrorAction SilentlyContinue
-      if ($null -ne $proc -and -not [string]::IsNullOrWhiteSpace([string]$proc.ProcessName)) {
-        $processName = [string]$proc.ProcessName
-      }
-
-      try {
-        $procMeta = Get-CimInstance Win32_Process -Filter ("ProcessId={0}" -f $owningProcessId)
-        $rawCommandLine = [string](Get-FieldValue -Object $procMeta -Path @("CommandLine"))
-        if (-not [string]::IsNullOrWhiteSpace($rawCommandLine)) {
-          $processCommandLine = $rawCommandLine
-        }
-      } catch {
-        # Best-effort diagnostics only.
-      }
+    if (
+      -not [string]::IsNullOrWhiteSpace($expectedCommandFragment) -and
+      -not [string]::IsNullOrWhiteSpace($processCommandLine) -and
+      $processCommandLine.IndexOf($expectedCommandFragment, [System.StringComparison]::OrdinalIgnoreCase) -ge 0
+    ) {
+      Write-Step ("Port preflight for {0} detected expected managed command on :{1}; deferring to startup retry/health reuse." -f $serviceName, $port)
+      continue
     }
 
     throw (
@@ -949,6 +1205,602 @@ function Resolve-OutputPath {
   return Join-Path $script:RepoRoot $Candidate
 }
 
+function Convert-ToBooleanOrNull {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($Value -is [bool]) {
+    return [bool]$Value
+  }
+
+  if ($Value -isnot [string]) {
+    return $null
+  }
+
+  switch ($Value.Trim().ToLowerInvariant()) {
+    "true" { return $true }
+    "false" { return $false }
+    default { return $null }
+  }
+}
+
+function Convert-ToStringList {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($Value -is [System.Array]) {
+    $items = @($Value)
+  }
+  elseif ($null -ne $Value) {
+    $items = @($Value)
+  }
+  else {
+    $items = @()
+  }
+
+  $normalized = New-Object System.Collections.Generic.List[string]
+  $seen = @{}
+  foreach ($item in $items) {
+    if ($item -isnot [string]) {
+      continue
+    }
+
+    $trimmed = $item.Trim()
+    if ($trimmed.Length -eq 0) {
+      continue
+    }
+
+    $key = $trimmed.ToLowerInvariant()
+    if ($seen.ContainsKey($key)) {
+      continue
+    }
+
+    $seen[$key] = $true
+    [void]$normalized.Add($trimmed)
+  }
+
+  Write-Output -NoEnumerate ($normalized.ToArray())
+}
+
+function Get-RuntimeFaultProfileById {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object[]]$Profiles,
+    [Parameter(Mandatory = $false)]
+    [string]$ProfileId
+  )
+
+  if ([string]::IsNullOrWhiteSpace($ProfileId)) {
+    return $null
+  }
+
+  foreach ($profile in @($Profiles)) {
+    $candidateId = [string](Get-FieldValue -Object $profile -Path @("id"))
+    if ($candidateId -eq $ProfileId) {
+      return $profile
+    }
+  }
+
+  return $null
+}
+
+function Find-RuntimeFaultProfileByExpectedSignal {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object[]]$Profiles,
+    [Parameter(Mandatory = $false)]
+    [string]$SignalKey,
+    [Parameter(Mandatory = $false)]
+    [string]$ProfileIdHint
+  )
+
+  $profileByHint = Get-RuntimeFaultProfileById -Profiles $Profiles -ProfileId $ProfileIdHint
+  if ($null -ne $profileByHint) {
+    return $profileByHint
+  }
+
+  foreach ($profile in @($Profiles)) {
+    $expectedSignals = Convert-ToStringList -Value (Get-FieldValue -Object $profile -Path @("expectedSignals"))
+    if ($expectedSignals -contains $SignalKey) {
+      return $profile
+    }
+  }
+
+  return $null
+}
+
+function Build-RuntimeGuardrailActionFingerprint {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Action
+  )
+
+  if ($null -eq $Action) {
+    return $null
+  }
+
+  $kind = [string](Get-FieldValue -Object $Action -Path @("kind"))
+  switch ($kind) {
+    "runtime_drill" {
+      return "runtime_drill:{0}:{1}" -f `
+        ([string](Get-FieldValue -Object $Action -Path @("profileId"))), `
+        ([string](Get-FieldValue -Object $Action -Path @("phase")))
+    }
+    "workflow_control" {
+      return "workflow_control:{0}" -f ([string](Get-FieldValue -Object $Action -Path @("signalKey")))
+    }
+    "jump_card" {
+      return "jump_card:{0}" -f ([string](Get-FieldValue -Object $Action -Path @("targetStatusId")))
+    }
+    default {
+      return "unknown:{0}" -f ([string](Get-FieldValue -Object $Action -Path @("signalKey")))
+    }
+  }
+}
+
+function Build-RuntimeGuardrailActionTitle {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Action
+  )
+
+  if ($null -eq $Action) {
+    return "Recovery path"
+  }
+
+  $kind = [string](Get-FieldValue -Object $Action -Path @("kind"))
+  if ($kind -eq "runtime_drill") {
+    $profileId = [string](Get-FieldValue -Object $Action -Path @("profileId"))
+    if ([string]::IsNullOrWhiteSpace($profileId)) {
+      $profileId = "runtime-profile"
+    }
+    return "Recovery drill - $profileId"
+  }
+
+  switch ($kind) {
+    "workflow_control" { return "Workflow clear path" }
+    "jump_card" { return "Manual triage path" }
+    default { return "Recovery path" }
+  }
+}
+
+function New-RuntimeGuardrailDrillAction {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Signal,
+    [Parameter(Mandatory = $false)]
+    [object[]]$FaultProfiles
+  )
+
+  $signalKey = [string](Get-FieldValue -Object $Signal -Path @("key"))
+  if ([string]::IsNullOrWhiteSpace($signalKey)) {
+    return $null
+  }
+
+  $profileHints = @{
+    service_draining                 = "gateway-drain-rejection"
+    workflow_last_known_good         = "orchestrator-last-known-good"
+    assistive_router_missing_api_key = "assistive-router-missing-key"
+    ui_executor_force_simulation     = "ui-executor-force-simulation"
+    ui_executor_sandbox_not_enforce  = "ui-executor-sandbox-audit"
+    ui_executor_sandbox_setup_marker = "ui-executor-sandbox-audit"
+  }
+
+  $profileIdHint = if ($profileHints.ContainsKey($signalKey)) {
+    [string]$profileHints[$signalKey]
+  }
+  else {
+    $null
+  }
+
+  $profile = Find-RuntimeFaultProfileByExpectedSignal -Profiles $FaultProfiles -SignalKey $signalKey -ProfileIdHint $profileIdHint
+  if ($null -eq $profile) {
+    return $null
+  }
+
+  $recoveryPlan = Get-FieldValue -Object $profile -Path @("execution", "recovery")
+  if ($null -eq $recoveryPlan) {
+    return $null
+  }
+
+  $supported = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $recoveryPlan -Path @("supported"))
+  $support = [string](Get-FieldValue -Object $recoveryPlan -Path @("support"))
+  if ($supported -ne $true -or $support -eq "manual") {
+    return $null
+  }
+
+  $signalService = [string](Get-FieldValue -Object $Signal -Path @("service"))
+  if ([string]::IsNullOrWhiteSpace($signalService)) {
+    $signalService = "runtime"
+  }
+
+  $signalSeverity = [string](Get-FieldValue -Object $Signal -Path @("severity"))
+  if ([string]::IsNullOrWhiteSpace($signalSeverity)) {
+    $signalSeverity = "info"
+  }
+
+  $profileId = [string](Get-FieldValue -Object $profile -Path @("id"))
+  if ([string]::IsNullOrWhiteSpace($profileId)) {
+    $profileId = $profileIdHint
+  }
+
+  $profileTitle = [string](Get-FieldValue -Object $profile -Path @("title"))
+  if ([string]::IsNullOrWhiteSpace($profileTitle)) {
+    $profileTitle = $profileId
+  }
+
+  return [ordered]@{
+    kind              = "runtime_drill"
+    signalKey         = $signalKey
+    signalService     = $signalService
+    signalKeys        = @($signalKey)
+    signalDescriptors = @("$signalSeverity $signalKey@$signalService")
+    profileId         = $profileId
+    phase             = "recovery"
+    targetStatusId    = $null
+    summaryText       = "Recovery drill: $profileTitle ($profileId/recovery) for $signalKey@$signalService."
+    buttonLabel       = "Plan Recovery Drill"
+  }
+}
+
+function New-RuntimeGuardrailAction {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Signal,
+    [Parameter(Mandatory = $false)]
+    [object[]]$FaultProfiles
+  )
+
+  $signalKey = [string](Get-FieldValue -Object $Signal -Path @("key"))
+  if ([string]::IsNullOrWhiteSpace($signalKey)) {
+    return $null
+  }
+
+  $signalService = [string](Get-FieldValue -Object $Signal -Path @("service"))
+  if ([string]::IsNullOrWhiteSpace($signalService)) {
+    $signalService = "runtime"
+  }
+
+  $signalSeverity = [string](Get-FieldValue -Object $Signal -Path @("severity"))
+  if ([string]::IsNullOrWhiteSpace($signalSeverity)) {
+    $signalSeverity = "info"
+  }
+
+  $drillAction = New-RuntimeGuardrailDrillAction -Signal $Signal -FaultProfiles $FaultProfiles
+  if ($null -ne $drillAction) {
+    return $drillAction
+  }
+
+  switch ($signalKey) {
+    "workflow_control_plane_override_active" {
+      return [ordered]@{
+        kind              = "workflow_control"
+        signalKey         = $signalKey
+        signalService     = $signalService
+        signalKeys        = @($signalKey)
+        signalDescriptors = @("$signalSeverity $signalKey@$signalService")
+        targetStatusId    = $null
+        summaryText       = "Recovery surface: Workflow Control Panel -> Clear Override for $signalKey@$signalService."
+        buttonLabel       = "Open Workflow Clear Path"
+      }
+    }
+    "startup_failures_present" {
+      return [ordered]@{
+        kind              = "jump_card"
+        signalKey         = $signalKey
+        signalService     = $signalService
+        signalKeys        = @($signalKey)
+        signalDescriptors = @("$signalSeverity $signalKey@$signalService")
+        targetStatusId    = "operatorStartupStatus"
+        summaryText       = "Manual triage: inspect startup failures on $signalService in the Startup card."
+        buttonLabel       = "Jump to Startup"
+      }
+    }
+    "skills_catalog_warnings" {
+      return [ordered]@{
+        kind              = "jump_card"
+        signalKey         = $signalKey
+        signalService     = $signalService
+        signalKeys        = @($signalKey)
+        signalDescriptors = @("$signalSeverity $signalKey@$signalService")
+        targetStatusId    = "operatorSkillsRegistryStatus"
+        summaryText       = "Manual triage: inspect repo-owned skills warnings in the Skills Registry evidence lane."
+        buttonLabel       = "Jump to Skills Registry"
+      }
+    }
+    "gateway_transport_fallback" {
+      return [ordered]@{
+        kind              = "jump_card"
+        signalKey         = $signalKey
+        signalService     = $signalService
+        signalKeys        = @($signalKey)
+        signalDescriptors = @("$signalSeverity $signalKey@$signalService")
+        targetStatusId    = "operatorHealthStatus"
+        summaryText       = "Manual triage: gateway transport fallback is active. Inspect live bridge diagnostics before judged flow."
+        buttonLabel       = "Jump to Live Bridge"
+      }
+    }
+    default {
+      return $null
+    }
+  }
+}
+
+function Resolve-RuntimeGuardrailActions {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object[]]$Signals,
+    [Parameter(Mandatory = $false)]
+    [object[]]$FaultProfiles
+  )
+
+  $merged = New-Object System.Collections.Generic.List[object]
+  $actionIndexByFingerprint = @{}
+  foreach ($signal in @($Signals)) {
+    $action = New-RuntimeGuardrailAction -Signal $signal -FaultProfiles $FaultProfiles
+    if ($null -eq $action) {
+      continue
+    }
+
+    $fingerprint = Build-RuntimeGuardrailActionFingerprint -Action $action
+    if ([string]::IsNullOrWhiteSpace($fingerprint)) {
+      $fingerprint = "signal:{0}" -f $merged.Count
+    }
+
+    if ($actionIndexByFingerprint.ContainsKey($fingerprint)) {
+      $existingIndex = [int]$actionIndexByFingerprint[$fingerprint]
+      $existing = $merged[$existingIndex]
+      $existing.signalKeys = Convert-ToStringList -Value (@((Get-FieldValue -Object $existing -Path @("signalKeys"))) + @((Get-FieldValue -Object $action -Path @("signalKeys"))))
+      $existing.signalDescriptors = Convert-ToStringList -Value (@((Get-FieldValue -Object $existing -Path @("signalDescriptors"))) + @((Get-FieldValue -Object $action -Path @("signalDescriptors"))))
+      continue
+    }
+
+    $actionIndexByFingerprint[$fingerprint] = $merged.Count
+    [void]$merged.Add($action)
+  }
+
+  return @($merged | Select-Object -First 4)
+}
+
+function New-RuntimeGuardrailExportPath {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Action,
+    [Parameter(Mandatory = $false)]
+    [string]$UpdatedAt,
+    [Parameter(Mandatory = $false)]
+    [string]$DetailText = "Repo-generated active signal path from runtime diagnostics summary."
+  )
+
+  if ($null -eq $Action) {
+    return $null
+  }
+
+  return [ordered]@{
+    title             = Build-RuntimeGuardrailActionTitle -Action $Action
+    kind              = [string](Get-FieldValue -Object $Action -Path @("kind"))
+    signalKey         = [string](Get-FieldValue -Object $Action -Path @("signalKey"))
+    signalService     = [string](Get-FieldValue -Object $Action -Path @("signalService"))
+    signalKeys        = Convert-ToStringList -Value (Get-FieldValue -Object $Action -Path @("signalKeys"))
+    signalDescriptors = Convert-ToStringList -Value (Get-FieldValue -Object $Action -Path @("signalDescriptors"))
+    profileId         = [string](Get-FieldValue -Object $Action -Path @("profileId"))
+    phase             = [string](Get-FieldValue -Object $Action -Path @("phase"))
+    targetStatusId    = [string](Get-FieldValue -Object $Action -Path @("targetStatusId"))
+    summaryText       = [string](Get-FieldValue -Object $Action -Path @("summaryText"))
+    buttonLabel       = [string](Get-FieldValue -Object $Action -Path @("buttonLabel"))
+    lifecycle         = [ordered]@{
+      statusCode = "active"
+      statusText = "active"
+      detailText = $DetailText
+      updatedAt  = $UpdatedAt
+    }
+  }
+}
+
+function Build-RuntimeGuardrailsSignalPathsEvidence {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$RuntimeDiagnostics,
+    [Parameter(Mandatory = $false)]
+    [object[]]$FaultProfiles,
+    [Parameter(Mandatory = $false)]
+    [string]$GeneratedAt = ((Get-Date).ToString("o"))
+  )
+
+  $runtimeStatus = [string](Get-FieldValue -Object $RuntimeDiagnostics -Path @("status"))
+  if ([string]::IsNullOrWhiteSpace($runtimeStatus)) {
+    $runtimeStatus = "healthy"
+  }
+  $runtimeStatus = $runtimeStatus.Trim().ToLowerInvariant()
+  $validated = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $RuntimeDiagnostics -Path @("validated"))
+
+  $activeSignalsRaw = Get-FieldValue -Object $RuntimeDiagnostics -Path @("activeSignals")
+  if ($activeSignalsRaw -is [System.Array]) {
+    $activeSignals = @($activeSignalsRaw | Where-Object { $null -ne $_ })
+  }
+  elseif ($null -ne $activeSignalsRaw) {
+    $activeSignals = @($activeSignalsRaw)
+  }
+  else {
+    $activeSignals = @()
+  }
+
+  $criticalSignals = @($activeSignals | Where-Object { [string](Get-FieldValue -Object $_ -Path @("severity")) -eq "critical" })
+  $warnSignals = @($activeSignals | Where-Object { [string](Get-FieldValue -Object $_ -Path @("severity")) -eq "warn" })
+  $infoSignals = @($activeSignals | Where-Object { [string](Get-FieldValue -Object $_ -Path @("severity")) -eq "info" })
+  $topSignal = if ($criticalSignals.Count -gt 0) {
+    $criticalSignals[0]
+  }
+  elseif ($warnSignals.Count -gt 0) {
+    $warnSignals[0]
+  }
+  elseif ($infoSignals.Count -gt 0) {
+    $infoSignals[0]
+  }
+  elseif ($activeSignals.Count -gt 0) {
+    $activeSignals[0]
+  }
+  else {
+    $null
+  }
+
+  $coverage = Get-FieldValue -Object $RuntimeDiagnostics -Path @("servicesCoverage")
+  $coverageTotal = if ($null -ne $coverage) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $coverage -Path @("total")) } else { 0 }
+  $coverageHealthy = if ($null -ne $coverage) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $coverage -Path @("healthy")) } else { 0 }
+  $coverageReady = if ($null -ne $coverage) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $coverage -Path @("ready")) } else { 0 }
+  $coverageRuntimeVisible = if ($null -ne $coverage) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $coverage -Path @("runtimeVisible")) } else { 0 }
+  $coverageMetricsVisible = if ($null -ne $coverage) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $coverage -Path @("metricsVisible")) } else { 0 }
+  $coverageStartupFailures = if ($null -ne $coverage) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $coverage -Path @("startupFailureServices")) } else { 0 }
+  $coverageStartupBlocking = if ($null -ne $coverage) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $coverage -Path @("startupBlockingServices")) } else { 0 }
+
+  $uiExecutorRuntime = Get-FieldValue -Object $RuntimeDiagnostics -Path @("uiExecutor")
+  $sandboxMode = if ($null -ne $uiExecutorRuntime) { [string](Get-FieldValue -Object $uiExecutorRuntime -Path @("sandboxMode")) } else { "" }
+  if ([string]::IsNullOrWhiteSpace($sandboxMode)) {
+    $sandboxMode = "n/a"
+  }
+  $sandboxNetworkPolicy = if ($null -ne $uiExecutorRuntime) { [string](Get-FieldValue -Object $uiExecutorRuntime -Path @("sandboxNetworkPolicy")) } else { "" }
+  if ([string]::IsNullOrWhiteSpace($sandboxNetworkPolicy)) {
+    $sandboxNetworkPolicy = "n/a"
+  }
+  $sandboxSetupStatus = if ($null -ne $uiExecutorRuntime) { [string](Get-FieldValue -Object $uiExecutorRuntime -Path @("sandboxSetupStatus")) } else { "" }
+  if ([string]::IsNullOrWhiteSpace($sandboxSetupStatus)) {
+    $sandboxSetupStatus = "n/a"
+  }
+  $sandboxWarnings = if ($null -ne $uiExecutorRuntime) {
+    Convert-ToStringList -Value (Get-FieldValue -Object $uiExecutorRuntime -Path @("sandboxWarnings"))
+  }
+  else {
+    @()
+  }
+
+  $skillsCatalog = Get-FieldValue -Object $RuntimeDiagnostics -Path @("skillsCatalog")
+  $skillsCatalogSource = if ($null -ne $skillsCatalog) { [string](Get-FieldValue -Object $skillsCatalog -Path @("source")) } else { "" }
+  if ([string]::IsNullOrWhiteSpace($skillsCatalogSource)) {
+    $skillsCatalogSource = "n/a"
+  }
+  $skillsCatalogWarnings = if ($null -ne $skillsCatalog) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $skillsCatalog -Path @("warnings")) } else { 0 }
+  $skillsPersonas = if ($null -ne $skillsCatalog) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $skillsCatalog -Path @("personas")) } else { 0 }
+  $skillsRecipes = if ($null -ne $skillsCatalog) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $skillsCatalog -Path @("recipes")) } else { 0 }
+  $skillsReadyPersonas = if ($null -ne $skillsCatalog) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $skillsCatalog -Path @("readyPersonas")) } else { 0 }
+  $skillsReadyRecipes = if ($null -ne $skillsCatalog) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $skillsCatalog -Path @("readyRecipes")) } else { 0 }
+
+  $skillsRuntime = Get-FieldValue -Object $RuntimeDiagnostics -Path @("skillsRuntime")
+  $skillsRuntimeEnabled = if ($null -ne $skillsRuntime) { Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $skillsRuntime -Path @("enabled")) } else { $false }
+  $skillsRuntimeActiveCount = if ($null -ne $skillsRuntime) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $skillsRuntime -Path @("activeCount")) } else { 0 }
+  $skillsRuntimeSkippedCount = if ($null -ne $skillsRuntime) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $skillsRuntime -Path @("skippedCount")) } else { 0 }
+  $skillsRuntimeSecurityBlocked = if ($null -ne $skillsRuntime) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $skillsRuntime -Path @("securityBlockedCount")) } else { 0 }
+  $skillsRuntimeTrustBlocked = if ($null -ne $skillsRuntime) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $skillsRuntime -Path @("trustBlockedCount")) } else { 0 }
+  $skillsRuntimeBlocked = $skillsRuntimeSecurityBlocked + $skillsRuntimeTrustBlocked
+
+  $topSignalSeverity = if ($null -ne $topSignal) { [string](Get-FieldValue -Object $topSignal -Path @("severity")) } else { "" }
+  if ([string]::IsNullOrWhiteSpace($topSignalSeverity)) {
+    $topSignalSeverity = "info"
+  }
+  $topSignalKey = if ($null -ne $topSignal) { [string](Get-FieldValue -Object $topSignal -Path @("key")) } else { "" }
+  if ([string]::IsNullOrWhiteSpace($topSignalKey)) {
+    $topSignalKey = "baseline"
+  }
+  $topSignalService = if ($null -ne $topSignal) { [string](Get-FieldValue -Object $topSignal -Path @("service")) } else { "" }
+  if ([string]::IsNullOrWhiteSpace($topSignalService)) {
+    $topSignalService = "runtime"
+  }
+  $topSignalValueRaw = if ($null -ne $topSignal) { Get-FieldValue -Object $topSignal -Path @("value") } else { $null }
+  $topSignalValue = if ($null -ne $topSignalValueRaw) { [string]$topSignalValueRaw } else { "n/a" }
+  $topSignalMessage = if ($null -ne $topSignal) { [string](Get-FieldValue -Object $topSignal -Path @("message")) } else { "" }
+  if ([string]::IsNullOrWhiteSpace($topSignalMessage)) {
+    $topSignalMessage = "No active runtime guardrail signal."
+  }
+
+  $signalsSummary = "total={0} | critical={1} | warn={2} | info={3}" -f $activeSignals.Count, $criticalSignals.Count, $warnSignals.Count, $infoSignals.Count
+  $coverageSummary = "healthy={0}/{1} | ready={2}/{1} | runtime={3}/{1} | metrics={4}/{1} | startup={5}/{6}" -f `
+    $coverageHealthy, $coverageTotal, $coverageReady, $coverageRuntimeVisible, $coverageMetricsVisible, $coverageStartupFailures, $coverageStartupBlocking
+  $sandboxSummary = "mode={0} | network={1} | setup={2} | warnings={3}" -f $sandboxMode, $sandboxNetworkPolicy, $sandboxSetupStatus, $sandboxWarnings.Count
+  $skillsSummary = "catalog={0}/{1}w | personas={2}/{3} | recipes={4}/{5} | runtime={6} active={7} skipped={8} blocked={9}" -f `
+    $skillsCatalogSource, $skillsCatalogWarnings, $skillsReadyPersonas, $skillsPersonas, $skillsReadyRecipes, $skillsRecipes, `
+    $(if ($skillsRuntimeEnabled -eq $true) { "on" } else { "off" }), $skillsRuntimeActiveCount, $skillsRuntimeSkippedCount, $skillsRuntimeBlocked
+  $topSignalText = if ($activeSignals.Count -gt 0) {
+    "{0} {1}@{2} | value={3} | {4}" -f $topSignalSeverity, $topSignalKey, $topSignalService, $topSignalValue, $topSignalMessage
+  }
+  elseif ($sandboxWarnings.Count -gt 0) {
+    "warn sandbox_warning@ui-executor | value={0} | {1}" -f $sandboxWarnings.Count, $sandboxWarnings[0]
+  }
+  else {
+    "baseline"
+  }
+
+  $prioritizedSignals = @($criticalSignals + $warnSignals + $infoSignals)
+  $actions = Resolve-RuntimeGuardrailActions -Signals $prioritizedSignals -FaultProfiles $FaultProfiles
+  $paths = @()
+  foreach ($action in @($actions)) {
+    $path = New-RuntimeGuardrailExportPath -Action $action -UpdatedAt $GeneratedAt
+    if ($null -ne $path) {
+      $paths += $path
+    }
+  }
+
+  $lifecycleCounts = [ordered]@{
+    active   = $paths.Count
+    staged   = 0
+    opened   = 0
+    focused  = 0
+    planned  = 0
+    executed = 0
+    cleared  = 0
+    failed   = 0
+  }
+  $lifecycleSummary = if ($paths.Count -gt 0) { "active=$($paths.Count)" } else { "none" }
+  $historyStatus = if ($paths.Count -gt 0) {
+    "Signal paths are sourced from the current runtime summary. Release artifacts exclude browser-local lifecycle history."
+  }
+  else {
+    "Signal paths are sourced from the current runtime summary. No active repo-owned signal paths are currently exposed."
+  }
+
+  $statusText = "healthy signals=$($activeSignals.Count)"
+  if ($validated -ne $true) {
+    $statusText = "coverage_incomplete"
+  }
+  elseif ($runtimeStatus -eq "critical" -or $criticalSignals.Count -gt 0) {
+    $statusText = "critical signals=$($activeSignals.Count)"
+  }
+  elseif ($runtimeStatus -eq "degraded" -or $warnSignals.Count -gt 0 -or $sandboxWarnings.Count -gt 0 -or $skillsRuntimeBlocked -gt 0) {
+    $statusText = "degraded signals=$($activeSignals.Count)"
+  }
+
+  $snapshotValidated = (
+    $validated -eq $true -and
+    -not [string]::IsNullOrWhiteSpace($statusText) -and
+    -not [string]::IsNullOrWhiteSpace($signalsSummary) -and
+    -not [string]::IsNullOrWhiteSpace($coverageSummary) -and
+    -not [string]::IsNullOrWhiteSpace($sandboxSummary) -and
+    -not [string]::IsNullOrWhiteSpace($skillsSummary) -and
+    -not [string]::IsNullOrWhiteSpace($topSignalText) -and
+    -not [string]::IsNullOrWhiteSpace($historyStatus) -and
+    $paths.Count -le 4 -and
+    $lifecycleCounts.active -eq $paths.Count
+  )
+
+  return [ordered]@{
+    status           = $statusText
+    validated        = $snapshotValidated
+    signalsSummary   = $signalsSummary
+    coverageSummary  = $coverageSummary
+    sandboxSummary   = $sandboxSummary
+    skillsSummary    = $skillsSummary
+    topSignal        = $topSignalText
+    historyStatus    = $historyStatus
+    totalPaths       = $paths.Count
+    lifecycleCounts  = $lifecycleCounts
+    lifecycleSummary = $lifecycleSummary
+    primaryPath      = if ($paths.Count -gt 0) { $paths[0] } else { $null }
+    paths            = $paths
+  }
+}
+
 New-Item -ItemType Directory -Force -Path $script:LogDir | Out-Null
 
 $resolvedOutputPath = Resolve-OutputPath -Candidate $OutputPath
@@ -970,6 +1822,8 @@ $nodeVersion = $null
 try {
   Set-Location $script:RepoRoot
 
+  Import-DotEnvIntoProcess -Path (Join-Path $script:RepoRoot ".env")
+
   $nodeVersion = (& node --version) -join ""
 
   Set-EnvDefault -Name "FIRESTORE_ENABLED" -Value "false"
@@ -985,20 +1839,58 @@ try {
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_TIMEOUT_MS" -Value "15000"
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_MAX_RETRIES" -Value "1"
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS" -Value "300"
-  Set-EnvDefault -Name "UI_EXECUTOR_STRICT_PLAYWRIGHT" -Value "false"
-  Set-EnvDefault -Name "UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE" -Value "true"
-  Set-EnvDefault -Name "UI_EXECUTOR_FORCE_SIMULATION" -Value "true"
+  Set-EnvValue -Name "UI_NAVIGATOR_GEMINI_TIMEOUT_MS" -Value "60000"
+  Set-EnvDefault -Name "UI_EXECUTOR_STRICT_PLAYWRIGHT" -Value "true"
+  Set-EnvDefault -Name "UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE" -Value "false"
+  Set-EnvDefault -Name "UI_EXECUTOR_FORCE_SIMULATION" -Value "false"
   Set-EnvDefault -Name "DEMO_E2E_SERVICE_START_MAX_ATTEMPTS" -Value "2"
   Set-EnvDefault -Name "DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS" -Value "1200"
-  Set-EnvDefault -Name "ANALYTICS_EXPORT_ENABLED" -Value "true"
-  Set-EnvDefault -Name "ANALYTICS_EXPORT_METRICS_TARGET" -Value "cloud_monitoring"
-  Set-EnvDefault -Name "ANALYTICS_EXPORT_EVENTS_TARGET" -Value "bigquery"
-  Set-EnvDefault -Name "ANALYTICS_BIGQUERY_DATASET" -Value "agent_analytics"
-  Set-EnvDefault -Name "ANALYTICS_BIGQUERY_TABLE" -Value "analytics_event_rollups"
+  Set-EnvValue -Name "ANALYTICS_EXPORT_ENABLED" -Value "true"
+  Set-EnvValue -Name "ANALYTICS_EXPORT_METRICS_TARGET" -Value "cloud_monitoring"
+  Set-EnvValue -Name "ANALYTICS_EXPORT_EVENTS_TARGET" -Value "bigquery"
+  Set-EnvValue -Name "ANALYTICS_BIGQUERY_DATASET" -Value "agent_analytics"
+  Set-EnvValue -Name "ANALYTICS_BIGQUERY_TABLE" -Value "analytics_event_rollups"
   Set-EnvDefault -Name "LIVE_AGENT_CONTEXT_COMPACTION_ENABLED" -Value "true"
   Set-EnvDefault -Name "LIVE_AGENT_CONTEXT_MAX_TOKENS" -Value "120"
   Set-EnvDefault -Name "LIVE_AGENT_CONTEXT_TARGET_TOKENS" -Value "60"
   Set-EnvDefault -Name "LIVE_AGENT_CONTEXT_KEEP_RECENT_TURNS" -Value "2"
+  Set-EnvDefault -Name "LIVE_AGENT_RESEARCH_MODEL" -Value "sonar-pro"
+  $researchMockResponse = [ordered]@{
+    model = "sonar-pro"
+    choices = @(
+      [ordered]@{
+        message = [ordered]@{
+          content = "Port logistics risk remains elevated when weather disruption, canal constraints, and labor bottlenecks stack together. Operators should track dwell time, buffer berth windows, and monitor carrier schedule reliability against independent shipping and infrastructure reports."
+        }
+      }
+    )
+    citations = @(
+      "https://unctad.org/publication/review-maritime-transport-2024",
+      "https://www.worldbank.org/en/topic/transport/brief/ports-and-waterways"
+    )
+    search_results = @(
+      [ordered]@{
+        title = "Review of Maritime Transport 2024"
+        url = "https://unctad.org/publication/review-maritime-transport-2024"
+        date = "2024-10-22"
+        snippet = "UNCTAD tracks shipping disruptions, port performance pressure, and schedule reliability risk."
+        source = "web"
+      },
+      [ordered]@{
+        title = "Ports and waterways overview"
+        url = "https://www.worldbank.org/en/topic/transport/brief/ports-and-waterways"
+        date = "2024-06-14"
+        snippet = "World Bank guidance highlights congestion, resilience, and infrastructure planning across port systems."
+        source = "web"
+      }
+    )
+    usage = [ordered]@{
+      prompt_tokens = 180
+      completion_tokens = 90
+      total_tokens = 270
+    }
+  }
+  Set-EnvDefault -Name "LIVE_AGENT_RESEARCH_MOCK_RESPONSE_JSON" -Value (($researchMockResponse | ConvertTo-Json -Depth 8 -Compress))
 
   if (-not $SkipBuild) {
     Write-Step "Running workspace build..."
@@ -1012,22 +1904,25 @@ try {
 
   if (-not $SkipServiceStart) {
     Write-Step "Ensuring local services are running..."
+    if ($RestartHealthyServices) {
+      Write-Step "RestartHealthyServices is enabled; release verification will replace healthy managed services on demo ports."
+    }
     $servicePortChecks = @(
-      [ordered]@{ name = "ui-executor"; port = 8090; healthUrl = "http://localhost:8090/healthz" },
-      [ordered]@{ name = "orchestrator"; port = 8082; healthUrl = "http://localhost:8082/healthz" },
-      [ordered]@{ name = "api-backend"; port = 8081; healthUrl = "http://localhost:8081/healthz" },
-      [ordered]@{ name = "realtime-gateway"; port = 8080; healthUrl = "http://localhost:8080/healthz" }
+      [ordered]@{ name = "ui-executor"; port = 8090; healthUrl = "http://localhost:8090/healthz"; expectedCommandFragment = "apps/ui-executor/src/index.ts" },
+      [ordered]@{ name = "orchestrator"; port = 8082; healthUrl = "http://localhost:8082/healthz"; expectedCommandFragment = "agents/orchestrator/src/index.ts" },
+      [ordered]@{ name = "api-backend"; port = 8081; healthUrl = "http://localhost:8081/healthz"; expectedCommandFragment = "apps/api-backend/src/index.ts" },
+      [ordered]@{ name = "realtime-gateway"; port = 8080; healthUrl = "http://localhost:8080/healthz"; expectedCommandFragment = "apps/realtime-gateway/src/index.ts" }
     )
     if ($IncludeFrontend) {
-      $servicePortChecks += [ordered]@{ name = "demo-frontend"; port = 3000; healthUrl = "http://localhost:3000/healthz" }
+      $servicePortChecks += [ordered]@{ name = "demo-frontend"; port = 3000; healthUrl = "http://localhost:3000/healthz"; expectedCommandFragment = "apps/demo-frontend/src/server.ts" }
     }
     Assert-ManagedServicePortsAvailable -Services $servicePortChecks
-    Start-ManagedService -Name "ui-executor" -HealthUrl "http://localhost:8090/healthz" -NodeArgs @("--import", "tsx", "apps/ui-executor/src/index.ts")
-    Start-ManagedService -Name "orchestrator" -HealthUrl "http://localhost:8082/healthz" -NodeArgs @("--import", "tsx", "agents/orchestrator/src/index.ts")
-    Start-ManagedService -Name "api-backend" -HealthUrl "http://localhost:8081/healthz" -NodeArgs @("--import", "tsx", "apps/api-backend/src/index.ts")
-    Start-ManagedService -Name "realtime-gateway" -HealthUrl "http://localhost:8080/healthz" -NodeArgs @("--import", "tsx", "apps/realtime-gateway/src/index.ts")
+    Start-ManagedService -Name "ui-executor" -HealthUrl "http://localhost:8090/healthz" -NodeArgs @("--import", "tsx", "apps/ui-executor/src/index.ts") -RestartHealthyServices:$RestartHealthyServices
+    Start-ManagedService -Name "orchestrator" -HealthUrl "http://localhost:8082/healthz" -NodeArgs @("--import", "tsx", "agents/orchestrator/src/index.ts") -RestartHealthyServices:$RestartHealthyServices
+    Start-ManagedService -Name "api-backend" -HealthUrl "http://localhost:8081/healthz" -NodeArgs @("--import", "tsx", "apps/api-backend/src/index.ts") -RestartHealthyServices:$RestartHealthyServices
+    Start-ManagedService -Name "realtime-gateway" -HealthUrl "http://localhost:8080/healthz" -NodeArgs @("--import", "tsx", "apps/realtime-gateway/src/index.ts") -RestartHealthyServices:$RestartHealthyServices
     if ($IncludeFrontend) {
-      Start-ManagedService -Name "demo-frontend" -HealthUrl "http://localhost:3000/healthz" -NodeArgs @("--import", "tsx", "apps/demo-frontend/src/server.ts")
+      Start-ManagedService -Name "demo-frontend" -HealthUrl "http://localhost:3000/healthz" -NodeArgs @("--import", "tsx", "apps/demo-frontend/src/server.ts") -RestartHealthyServices:$RestartHealthyServices
     }
   } else {
     Write-Step "Skipping service startup by request."
@@ -1077,6 +1972,55 @@ try {
       targetLanguage = [string](Get-FieldValue -Object $translation -Path @("targetLanguage"))
       liveAdapterId = [string](Get-FieldValue -Object $liveCapability -Path @("adapterId"))
       reasoningAdapterId = [string](Get-FieldValue -Object $reasoningCapability -Path @("adapterId"))
+      latencyMs = [int](Get-FieldValue -Object $response -Path @("payload", "output", "latencyMs"))
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
+    }
+  } | Out-Null
+
+  Invoke-Scenario `
+    -Name "live.research" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    $runId = "demo-research-" + [Guid]::NewGuid().Guid
+    $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "research" -RequestInput @{
+      query = "What are the main operational risks that drive port congestion and schedule delays?"
+      maxCitations = 3
+    }
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
+
+    $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
+    Assert-Condition -Condition ($status -eq "completed") -Message "Research run did not complete."
+
+    $research = Get-FieldValue -Object $response -Path @("payload", "output", "research")
+    Assert-Condition -Condition ($null -ne $research) -Message "Research payload is missing."
+    $researchCapability = Get-FieldValue -Object $response -Path @("payload", "output", "capabilityProfile", "research")
+    Assert-Condition -Condition ($null -ne $researchCapability) -Message "Missing research capability adapter profile."
+
+    $citations = @(Get-FieldValue -Object $research -Path @("citations")) | Where-Object { $null -ne $_ }
+    $sourceUrls = @(Get-FieldValue -Object $research -Path @("sourceUrls")) | Where-Object { $null -ne $_ }
+    $citationCount = @($citations).Count
+    $sourceUrlCount = @($sourceUrls).Count
+    Assert-Condition -Condition ($citationCount -ge 2) -Message "Research response must include at least two citations."
+    Assert-Condition -Condition ($sourceUrlCount -ge 2) -Message "Research response must include at least two source URLs."
+
+    $inputApproxTokens = Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $request -Path @("payload", "input"))
+    $outputApproxTokens = Estimate-ApproxTokensFromObject -Value (Get-FieldValue -Object $response -Path @("payload", "output"))
+
+    return [ordered]@{
+      runId = [string](Get-FieldValue -Object $response -Path @("runId"))
+      status = $status
+      researchAdapterId = [string](Get-FieldValue -Object $researchCapability -Path @("adapterId"))
+      provider = [string](Get-FieldValue -Object $research -Path @("provider"))
+      model = [string](Get-FieldValue -Object $research -Path @("model"))
+      defaultProvider = [string](Get-FieldValue -Object $researchCapability -Path @("selection", "defaultProvider"))
+      defaultModel = [string](Get-FieldValue -Object $researchCapability -Path @("selection", "defaultModel"))
+      selectionReason = [string](Get-FieldValue -Object $research -Path @("selectionReason"))
+      citationCount = $citationCount
+      sourceUrlCount = $sourceUrlCount
+      answerChars = ([string](Get-FieldValue -Object $research -Path @("answer"))).Length
       latencyMs = [int](Get-FieldValue -Object $response -Path @("payload", "output", "latencyMs"))
       inputApproxTokens = $inputApproxTokens
       outputApproxTokens = $outputApproxTokens
@@ -1252,19 +2196,23 @@ try {
     $runId = "demo-story-" + [Guid]::NewGuid().Guid
     $storyPromptSeed = [Guid]::NewGuid().Guid
     $storyPrompt = "Create a short interactive story about a port logistics negotiation. seed:" + $storyPromptSeed
+    $storytellerScenarioMediaMode = Get-StorytellerDemoMediaMode
+    $storyIncludeImages = if ($storytellerScenarioMediaMode -eq "default") { $false } else { $true }
+    $storySegmentCount = if ($storytellerScenarioMediaMode -eq "default") { 1 } else { 3 }
+    $storyRequestTimeoutSec = if ($storytellerScenarioMediaMode -eq "default") { [Math]::Max($RequestTimeoutSec, 120) } else { $RequestTimeoutSec }
     $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "story" -RequestInput @{
       prompt = $storyPrompt
       audience = "judges"
       style = "cinematic"
       language = "en"
-      includeImages = $true
+      includeImages = $storyIncludeImages
       includeVideo = $true
-      mediaMode = "simulated"
+      mediaMode = $storytellerScenarioMediaMode
       videoFailureRate = 0
-      segmentCount = 3
+      segmentCount = $storySegmentCount
       voiceStyle = "excited storyteller voice, podcast style"
     }
-    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $storyRequestTimeoutSec
     $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
     Assert-Condition -Condition ($status -eq "completed") -Message "Storyteller run did not complete."
 
@@ -1275,33 +2223,63 @@ try {
     Assert-Condition -Condition ($null -ne $storyCapabilityProfile) -Message "Missing storyteller capability profile."
     Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $storyCapabilityProfile -Path @("reasoning"))) -Message "Missing storyteller reasoning capability."
     Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $storyCapabilityProfile -Path @("image"))) -Message "Missing storyteller image capability."
+    Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $storyCapabilityProfile -Path @("image_edit"))) -Message "Missing storyteller image_edit capability."
     Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $storyCapabilityProfile -Path @("video"))) -Message "Missing storyteller video capability."
     Assert-Condition -Condition ($null -ne (Get-FieldValue -Object $storyCapabilityProfile -Path @("tts"))) -Message "Missing storyteller tts capability."
+    $imageEditGeneration = Get-FieldValue -Object $response -Path @("payload", "output", "generation", "imageEdit")
+    Assert-Condition -Condition ($null -ne $imageEditGeneration) -Message "Missing storyteller imageEdit generation summary."
+
+    $imageCapability = Get-FieldValue -Object $storyCapabilityProfile -Path @("image")
+    $videoCapability = Get-FieldValue -Object $storyCapabilityProfile -Path @("video")
+    $ttsCapability = Get-FieldValue -Object $storyCapabilityProfile -Path @("tts")
+    $storyImageMode = [string](Get-FieldValue -Object $imageCapability -Path @("mode"))
+    $storyVideoMode = [string](Get-FieldValue -Object $videoCapability -Path @("mode"))
+    $storyTtsMode = [string](Get-FieldValue -Object $ttsCapability -Path @("mode"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($storyImageMode)) -Message "Missing storyteller image mode."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($storyVideoMode)) -Message "Missing storyteller video mode."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($storyTtsMode)) -Message "Missing storyteller tts mode."
 
     $generationMediaMode = [string](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "mediaMode"))
-    Assert-Condition -Condition ($generationMediaMode -eq "simulated") -Message "Storyteller mediaMode should be simulated for async video pipeline test."
+    Assert-Condition -Condition ($generationMediaMode -eq $storytellerScenarioMediaMode) -Message ("Storyteller mediaMode should match requested mode " + $storytellerScenarioMediaMode + ".")
     $videoAsync = [bool](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "videoAsync"))
-    Assert-Condition -Condition $videoAsync -Message "Expected generation.videoAsync=true."
+    $expectedVideoAsync = ($storyVideoMode -eq "simulated")
+    Assert-Condition -Condition ($videoAsync -eq $expectedVideoAsync) -Message ("Expected generation.videoAsync=" + $expectedVideoAsync + " for storyteller video mode " + $storyVideoMode + ".")
 
     $assets = @(Get-FieldValue -Object $response -Path @("payload", "output", "assets"))
     $videoAssets = @($assets | Where-Object { $_.kind -eq "video" })
     Assert-Condition -Condition ($videoAssets.Count -ge 2) -Message "Expected at least two video assets."
     $pendingVideoAssets = @($videoAssets | Where-Object { $_.status -eq "pending" })
-    Assert-Condition -Condition ($pendingVideoAssets.Count -ge 1) -Message "Expected pending video assets for async pipeline."
-    $videoAssetsWithJobId = @($videoAssets | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.jobId) })
-    Assert-Condition -Condition ($videoAssetsWithJobId.Count -eq $videoAssets.Count) -Message "Each video asset must be linked to media job id."
-
+    if ($expectedVideoAsync) {
+      Assert-Condition -Condition ($pendingVideoAssets.Count -ge 1) -Message "Expected pending video assets for async pipeline."
+    } else {
+      Assert-Condition -Condition ($pendingVideoAssets.Count -eq 0) -Message "Expected ready video assets for non-async storyteller video lane."
+    }
     $videoJobs = @(Get-FieldValue -Object $response -Path @("payload", "output", "mediaJobs", "video"))
-    Assert-Condition -Condition ($videoJobs.Count -eq $videoAssets.Count) -Message "Video job count must match video asset count."
+    $videoAssetsWithJobId = @($videoAssets | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.jobId) })
+    if ($expectedVideoAsync) {
+      Assert-Condition -Condition ($videoAssetsWithJobId.Count -eq $videoAssets.Count) -Message "Each async video asset must be linked to media job id."
+      Assert-Condition -Condition ($videoJobs.Count -eq $videoAssets.Count) -Message "Async video job count must match video asset count."
+    } elseif ($videoJobs.Count -eq 0) {
+      Assert-Condition -Condition ($videoAssetsWithJobId.Count -eq 0) -Message "Sync storyteller video assets should omit media job ids when no media jobs are emitted."
+    } else {
+      Assert-Condition -Condition ($videoAssetsWithJobId.Count -eq $videoAssets.Count) -Message "Fallback storyteller video assets with media jobs must expose job ids on each asset."
+      Assert-Condition -Condition ($videoJobs.Count -eq $videoAssets.Count) -Message "Fallback storyteller video job count must match video asset count."
+    }
     $jobsWithIds = @($videoJobs | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.jobId) -and -not [string]::IsNullOrWhiteSpace([string]$_.assetId) })
-    Assert-Condition -Condition ($jobsWithIds.Count -eq $videoJobs.Count) -Message "Each video job must contain jobId and assetId."
+    if ($videoJobs.Count -gt 0) {
+      Assert-Condition -Condition ($jobsWithIds.Count -eq $videoJobs.Count) -Message "Each emitted video job must contain jobId and assetId."
+    }
 
     $mediaQueue = Get-FieldValue -Object $response -Path @("payload", "output", "mediaJobs", "queue")
     Assert-Condition -Condition ($null -ne $mediaQueue) -Message "Missing storyteller media job queue snapshot."
     $queueBacklog = [int](Get-FieldValue -Object $mediaQueue -Path @("queue", "backlog"))
     Assert-Condition -Condition ($queueBacklog -ge 0) -Message "Invalid storyteller queue backlog."
     $queueWorkers = @(Get-FieldValue -Object $mediaQueue -Path @("workers"))
-    Assert-Condition -Condition ($queueWorkers.Count -ge 1) -Message "Storyteller media workers are not visible in queue snapshot."
+    if ($storyVideoMode -eq "default") {
+      Assert-Condition -Condition ($queueWorkers.Count -ge 0) -Message "Storyteller queue workers snapshot is invalid for live default video mode."
+    } else {
+      Assert-Condition -Condition ($queueWorkers.Count -ge 1) -Message "Storyteller media workers are not visible in queue snapshot."
+    }
     $queueRuntimeEnabled = [bool](Get-FieldValue -Object $mediaQueue -Path @("runtime", "enabled"))
     Assert-Condition -Condition $queueRuntimeEnabled -Message "Storyteller media worker runtime should be enabled for dedicated worker mode."
     $queueQuotas = @(Get-FieldValue -Object $mediaQueue -Path @("quotas"))
@@ -1323,11 +2301,11 @@ try {
       audience = "judges"
       style = "cinematic"
       language = "en"
-      includeImages = $true
-      includeVideo = $true
-      mediaMode = "simulated"
+      includeImages = $false
+      includeVideo = $false
+      mediaMode = "fallback"
       videoFailureRate = 0
-      segmentCount = 3
+      segmentCount = $storySegmentCount
       voiceStyle = "excited storyteller voice, podcast style"
     }
     $cacheResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $cacheRequest -TimeoutSec $RequestTimeoutSec
@@ -1358,7 +2336,11 @@ try {
       fallbackAsset = [bool](Get-FieldValue -Object $response -Path @("payload", "output", "fallbackAsset"))
       timelineSegments = [int]$timeline.Count
       plannerProvider = [string](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "planner", "provider"))
+      requestedMediaMode = $storytellerScenarioMediaMode
       mediaMode = $generationMediaMode
+      imageMode = $storyImageMode
+      videoMode = $storyVideoMode
+      ttsMode = $storyTtsMode
       videoAsync = $videoAsync
       videoJobsCount = $videoJobs.Count
       videoPendingCount = $pendingVideoAssets.Count
@@ -1372,7 +2354,24 @@ try {
       cacheEntries = $cacheEntries
       cacheInvalidationValidated = ($cachePurgedEntries -eq 0)
       imageAdapterId = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("image", "adapterId"))
+      imageEditAdapterId = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("image_edit", "adapterId"))
+      imageEditProvider = [string](Get-FieldValue -Object $imageEditGeneration -Path @("provider"))
+      imageEditModel = [string](Get-FieldValue -Object $imageEditGeneration -Path @("model"))
+      imageEditDefaultProvider = [string](Get-FieldValue -Object $imageEditGeneration -Path @("defaultProvider"))
+      imageEditDefaultModel = [string](Get-FieldValue -Object $imageEditGeneration -Path @("defaultModel"))
+      imageEditMode = [string](Get-FieldValue -Object $imageEditGeneration -Path @("mode"))
+      imageEditSelectionReason = [string](Get-FieldValue -Object $imageEditGeneration -Path @("selectionReason"))
+      imageEditRequested = [bool](Get-FieldValue -Object $imageEditGeneration -Path @("requested"))
+      imageEditApplied = [bool](Get-FieldValue -Object $imageEditGeneration -Path @("applied"))
+      imageEditEditedAssetCount = [int](Get-FieldValue -Object $imageEditGeneration -Path @("editedAssetCount"))
       ttsAdapterId = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("tts", "adapterId"))
+      ttsProvider = [string](Get-FieldValue -Object $storyCapabilityProfile -Path @("tts", "provider"))
+      ttsModel = [string](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "ttsModel"))
+      ttsDefaultProvider = [string](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "ttsDefaultProvider"))
+      ttsDefaultModel = [string](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "ttsDefaultModel"))
+      ttsSelectionReason = [string](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "ttsSelectionReason"))
+      ttsSecondaryProvider = [string](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "ttsSecondaryProvider"))
+      ttsSecondaryModel = [string](Get-FieldValue -Object $response -Path @("payload", "output", "generation", "ttsSecondaryModel"))
       latencyMs = [int](Get-FieldValue -Object $response -Path @("payload", "output", "latencyMs"))
       inputApproxTokens = $inputApproxTokens
       outputApproxTokens = $outputApproxTokens
@@ -1380,18 +2379,26 @@ try {
   } | Out-Null
 
   Invoke-Scenario -Name "ui.approval.request" -Action {
+    $uiHeavyRequestTimeoutSec = [Math]::Max($RequestTimeoutSec, 90)
     $script:UiApprovalRunId = "demo-ui-approval-" + [Guid]::NewGuid().Guid
     $request = New-OrchestratorRequest -SessionId $sessionId -RunId $script:UiApprovalRunId -Intent "ui_task" -RequestInput @{
       goal = "Open a payment page and submit order with card details."
       url = "https://example.com"
       screenshotRef = "ui://demo/start"
+      domSnapshot = "<main><form id='checkout'><input id='email' name='email' /><textarea id='note' name='note'></textarea><button id='submit-order' type='submit'>Submit order</button></form></main>"
+      accessibilityTree = "main > form[name=Checkout] > textbox[name=email]; main > form[name=Checkout] > textbox[name=note]; main > form > button[name=Submit order]"
+      markHints = @(
+        "email_field@(420,280)"
+        "note_field@(420,360)"
+        "submit_order@(620,520)"
+      )
       formData = @{
         email = "buyer@example.com"
         note = "Order request from automated e2e"
       }
       maxSteps = 6
     }
-    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $uiHeavyRequestTimeoutSec
     $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
     Assert-Condition -Condition ($status -eq "accepted") -Message "UI approval flow should return accepted."
 
@@ -1422,6 +2429,7 @@ try {
       status = $status
       approvalCategories = Get-FieldValue -Object $response -Path @("payload", "output", "approvalCategories")
       plannerProvider = [string](Get-FieldValue -Object $response -Path @("payload", "output", "planner", "provider"))
+      timeoutSec = $uiHeavyRequestTimeoutSec
       inputApproxTokens = $inputApproxTokens
       outputApproxTokens = $outputApproxTokens
     }
@@ -1509,6 +2517,7 @@ try {
     -InitialBackoffMs $ScenarioRetryBackoffMs `
     -RetryTransientFailures `
     -Action {
+    $uiHeavyRequestTimeoutSec = [Math]::Max($RequestTimeoutSec, 90)
     $runId = "demo-ui-sandbox-" + [Guid]::NewGuid().Guid
     $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "ui_task" -RequestInput @{
       goal = "Delete account and remove billing profile permanently."
@@ -1522,7 +2531,7 @@ try {
       sessionRole = "secondary"
     }
 
-    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $uiHeavyRequestTimeoutSec
     $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
     Assert-Condition -Condition ($status -eq "failed") -Message "Sandbox policy scenario should fail in strict mode."
 
@@ -1577,6 +2586,7 @@ try {
       damageControlMatchedRuleCount = $damageControlMatchedRuleCount
       damageControlMatchRuleIds = $damageControlMatchRuleIds
       executionFinalStatus = $executionFinalStatus
+      timeoutSec = $uiHeavyRequestTimeoutSec
       inputApproxTokens = $inputApproxTokens
       outputApproxTokens = $outputApproxTokens
     }
@@ -1588,6 +2598,7 @@ try {
     -InitialBackoffMs $ScenarioRetryBackoffMs `
     -RetryTransientFailures `
     -Action {
+    $uiHeavyRequestTimeoutSec = [Math]::Max($RequestTimeoutSec, 90)
     $runId = "demo-ui-visual-" + [Guid]::NewGuid().Guid
     $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "ui_task" -RequestInput @{
       goal = "Open the page and verify dashboard layout/content/interaction checkpoints."
@@ -1612,7 +2623,7 @@ try {
       }
     }
 
-    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $uiHeavyRequestTimeoutSec
     $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
     Assert-Condition -Condition ($status -eq "completed") -Message "UI visual testing run did not complete."
 
@@ -1660,6 +2671,7 @@ try {
       groundingAccessibilitySeen = $a11ySeen
       groundingMarkHintsCount = $markHintsCount
       groundingAdapterNoteSeen = $groundingAdapterNoteSeen
+      timeoutSec = $uiHeavyRequestTimeoutSec
       inputApproxTokens = $inputApproxTokens
       outputApproxTokens = $outputApproxTokens
     }
@@ -1671,11 +2683,12 @@ try {
     -InitialBackoffMs $ScenarioRetryBackoffMs `
     -RetryTransientFailures `
     -Action {
+    $delegationRequestTimeoutSec = [Math]::Max($RequestTimeoutSec, 120)
     $runId = "demo-delegation-" + [Guid]::NewGuid().Guid
     $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "conversation" -RequestInput @{
-      text = "delegate story: write a short branch about a final contract handshake."
+      text = "delegate story: write a short branch about a final contract handshake. text only. no images. no video. 2 scenes."
     }
-    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $RequestTimeoutSec
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $delegationRequestTimeoutSec
 
     $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
     Assert-Condition -Condition ($status -eq "completed") -Message "Delegation request did not complete."
@@ -1687,6 +2700,14 @@ try {
     $routingMode = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "mode"))
     $routingReason = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "reason"))
     $routingRoute = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "route"))
+    $routingProvider = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "provider"))
+    $routingDefaultProvider = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "defaultProvider"))
+    $routingModel = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "model"))
+    $routingDefaultModel = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "defaultModel"))
+    $routingSelectionReason = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "selectionReason"))
+    $routingBudgetPolicy = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "budgetPolicy"))
+    $routingPromptCaching = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "promptCaching"))
+    $routingWatchlistEnabled = Get-FieldValue -Object $response -Path @("payload", "output", "routing", "watchlistEnabled")
     $routingConfidenceRaw = Get-FieldValue -Object $response -Path @("payload", "output", "routing", "confidence")
     $routingConfidence = $null
     if ($null -ne $routingConfidenceRaw -and -not [string]::IsNullOrWhiteSpace([string]$routingConfidenceRaw)) {
@@ -1695,6 +2716,15 @@ try {
     Assert-Condition -Condition (@("deterministic", "assistive_override", "assistive_match", "assistive_fallback") -contains $routingMode) -Message "Routing mode is invalid for delegation scenario."
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($routingReason)) -Message "Routing reason is missing for delegation scenario."
     Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($routingRoute)) -Message "Routing route is missing for delegation scenario."
+    Assert-Condition -Condition (@("gemini_api", "openai", "anthropic", "deepseek", "moonshot") -contains $routingProvider) -Message "Routing provider is invalid for delegation scenario."
+    Assert-Condition -Condition (@("gemini_api", "openai", "anthropic", "deepseek", "moonshot") -contains $routingDefaultProvider) -Message "Routing default provider is invalid for delegation scenario."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($routingModel)) -Message "Routing model is missing for delegation scenario."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($routingDefaultModel)) -Message "Routing default model is missing for delegation scenario."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($routingSelectionReason)) -Message "Routing selection reason is missing for delegation scenario."
+    Assert-Condition -Condition (@("judged_default", "provider_override", "watchlist_override", "watchlist_disabled") -contains $routingSelectionReason) -Message "Routing selection reason is invalid for delegation scenario."
+    Assert-Condition -Condition (@("judged_default", "long_context_operator", "cost_sensitive_batch", "watchlist_experimental") -contains $routingBudgetPolicy) -Message "Routing budget policy is invalid for delegation scenario."
+    Assert-Condition -Condition (@("none", "provider_default", "provider_prompt_cache", "watchlist_only") -contains $routingPromptCaching) -Message "Routing prompt caching is invalid for delegation scenario."
+    Assert-Condition -Condition ($null -ne $routingWatchlistEnabled) -Message "Routing watchlist posture is missing for delegation scenario."
     if ($null -ne $routingConfidence) {
       Assert-Condition -Condition ($routingConfidence -ge 0 -and $routingConfidence -le 1) -Message "Routing confidence must be in [0..1] when present."
     }
@@ -1709,7 +2739,16 @@ try {
       routingMode = $routingMode
       routingReason = $routingReason
       routingRoute = $routingRoute
+      routingProvider = $routingProvider
+      routingDefaultProvider = $routingDefaultProvider
+      routingModel = $routingModel
+      routingDefaultModel = $routingDefaultModel
+      routingSelectionReason = $routingSelectionReason
+      routingBudgetPolicy = $routingBudgetPolicy
+      routingPromptCaching = $routingPromptCaching
+      routingWatchlistEnabled = [bool]$routingWatchlistEnabled
       routingConfidence = $routingConfidence
+      timeoutSec = $delegationRequestTimeoutSec
       inputApproxTokens = $inputApproxTokens
       outputApproxTokens = $outputApproxTokens
     }
@@ -1723,6 +2762,20 @@ try {
     -Action {
     $runId = "demo-gateway-ws-" + [Guid]::NewGuid().Guid
     $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
+    $warmupRunId = $runId + "-warmup"
+    Invoke-NodeJsonCommand -Args @(
+      "scripts/gateway-ws-check.mjs",
+      "--url",
+      "ws://localhost:8080/realtime",
+      "--sessionId",
+      $sessionId,
+      "--runId",
+      $warmupRunId,
+      "--userId",
+      $script:DemoUserId,
+      "--timeoutMs",
+      [string]$timeoutMs
+    ) | Out-Null
     $result = Invoke-NodeJsonCommand -Args @(
       "scripts/gateway-ws-check.mjs",
       "--url",
@@ -1772,7 +2825,8 @@ try {
     -RetryTransientFailures `
     -Action {
     $runId = "demo-gateway-ws-task-" + [Guid]::NewGuid().Guid
-    $timeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
+    $uiHeavyRequestTimeoutSec = [Math]::Max($RequestTimeoutSec, 90)
+    $timeoutMs = [Math]::Max(4000, $uiHeavyRequestTimeoutSec * 1000)
     $result = Invoke-NodeJsonCommand -Args @(
       "scripts/gateway-ws-task-progress-check.mjs",
       "--url",
@@ -1811,6 +2865,7 @@ try {
       taskStatus = $taskStatus
       taskProgressCount = $taskProgressCount
       activeTaskCount = $activeTaskCount
+      timeoutSec = $uiHeavyRequestTimeoutSec
       eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
     }
   } | Out-Null
@@ -2356,6 +3411,20 @@ try {
     $summaryResponse = Invoke-JsonRequest -Method GET -Uri $operatorSummaryUri -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
     $summaryData = Get-FieldValue -Object $summaryResponse -Path @("data")
     Assert-Condition -Condition ($null -ne $summaryData) -Message "Operator summary payload is missing."
+    $runtimeFaultProfilesResponse = Invoke-JsonRequest -Method GET -Uri "http://localhost:8081/v1/runtime/fault-profiles" -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
+    $runtimeFaultProfilesData = Get-FieldValue -Object $runtimeFaultProfilesResponse -Path @("data")
+    Assert-Condition -Condition ($null -ne $runtimeFaultProfilesData) -Message "Runtime fault profile catalog payload is missing."
+    $runtimeFaultProfilesRaw = Get-FieldValue -Object $runtimeFaultProfilesData -Path @("profiles")
+    if ($runtimeFaultProfilesRaw -is [System.Array]) {
+      $runtimeFaultProfiles = @($runtimeFaultProfilesRaw)
+    }
+    elseif ($null -ne $runtimeFaultProfilesRaw) {
+      $runtimeFaultProfiles = @($runtimeFaultProfilesRaw)
+    }
+    else {
+      $runtimeFaultProfiles = @()
+    }
+    Assert-Condition -Condition ($runtimeFaultProfiles.Count -ge 1) -Message "Runtime fault profile catalog should expose at least one repo-owned profile."
 
     $activeTasks = @(Get-FieldValue -Object $summaryData -Path @("activeTasks", "data"))
     Assert-Condition -Condition ($activeTasks.Count -ge 1) -Message "Operator summary should include at least one active task."
@@ -2946,6 +4015,31 @@ try {
     $operatorAuditRecent = @(Get-FieldValue -Object $operatorActionsBlock -Path @("recent"))
     Assert-Condition -Condition ($operatorAuditTotal -ge 4) -Message "Operator audit trail should include recent operator actions."
     Assert-Condition -Condition ($operatorAuditRecent.Count -ge 1) -Message "Operator audit trail recent entries should not be empty."
+    $runtimeDiagnosticsSummary = Get-FieldValue -Object $postSummaryData -Path @("runtimeDiagnostics")
+    if ($null -eq $runtimeDiagnosticsSummary) {
+      $runtimeDiagnosticsSummary = Get-FieldValue -Object $summaryData -Path @("runtimeDiagnostics")
+    }
+    Assert-Condition -Condition ($null -ne $runtimeDiagnosticsSummary) -Message "Operator summary runtimeDiagnostics block is missing."
+    $runtimeDiagnosticsActiveSignalsRaw = Get-FieldValue -Object $runtimeDiagnosticsSummary -Path @("activeSignals")
+    if ($runtimeDiagnosticsActiveSignalsRaw -is [System.Array]) {
+      $runtimeDiagnosticsActiveSignals = @($runtimeDiagnosticsActiveSignalsRaw)
+    }
+    elseif ($null -ne $runtimeDiagnosticsActiveSignalsRaw) {
+      $runtimeDiagnosticsActiveSignals = @($runtimeDiagnosticsActiveSignalsRaw)
+    }
+    else {
+      $runtimeDiagnosticsActiveSignals = @()
+    }
+    $runtimeGuardrailsSignalPaths = Build-RuntimeGuardrailsSignalPathsEvidence `
+      -RuntimeDiagnostics $runtimeDiagnosticsSummary `
+      -FaultProfiles $runtimeFaultProfiles `
+      -GeneratedAt ((Get-Date).ToString("o"))
+    $runtimeGuardrailsSignalPathsValidated = [bool](Get-FieldValue -Object $runtimeGuardrailsSignalPaths -Path @("validated"))
+    $runtimeGuardrailsSignalPathsTotal = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $runtimeGuardrailsSignalPaths -Path @("totalPaths"))
+    Assert-Condition -Condition $runtimeGuardrailsSignalPathsValidated -Message "Runtime guardrails signal-path evidence snapshot is invalid."
+    if ($runtimeDiagnosticsActiveSignals.Count -gt 0) {
+      Assert-Condition -Condition ($runtimeGuardrailsSignalPathsTotal -ge 1) -Message "Runtime guardrails signal-path evidence should expose at least one repo-owned path when active signals are present."
+    }
 
     return [ordered]@{
       taskId = $taskId
@@ -3089,6 +4183,8 @@ try {
       deviceNodeSummaryMissingHeartbeat = $deviceNodeSummaryMissingHeartbeat
       deviceNodeSummaryRecentContainsLookup = ($recentLookup.Count -ge 1)
       deviceNodeHealthSummaryValidated = $true
+      runtimeGuardrailsSignalPaths = $runtimeGuardrailsSignalPaths
+      runtimeGuardrailsSignalPathsValidated = $runtimeGuardrailsSignalPathsValidated
     }
   } | Out-Null
 
@@ -3927,6 +5023,7 @@ try {
 }
 
 $translationData = Get-ScenarioData -Name "live.translation"
+$researchData = Get-ScenarioData -Name "live.research"
 $negotiationData = Get-ScenarioData -Name "live.negotiation"
 $contextCompactionData = Get-ScenarioData -Name "live.context_compaction"
 $storyData = Get-ScenarioData -Name "storyteller.pipeline"
@@ -3952,6 +5049,7 @@ $sessionVersioningData = Get-ScenarioData -Name "api.sessions.versioning"
 $runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
 $runtimeMetricsData = Get-ScenarioData -Name "runtime.metrics.endpoints"
 $translationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.translation" } | Select-Object -First 1)
+$researchScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.research" } | Select-Object -First 1)
 $negotiationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.negotiation" } | Select-Object -First 1)
 $contextCompactionScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.context_compaction" } | Select-Object -First 1)
 $storytellerScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "storyteller.pipeline" } | Select-Object -First 1)
@@ -4152,6 +5250,25 @@ $summary = [ordered]@{
   scenarios = $script:ScenarioResults
   kpis = [ordered]@{
     translationProvider = if ($null -ne $translationData) { $translationData.provider } else { $null }
+    researchProvider = if ($null -ne $researchData) { $researchData.provider } else { $null }
+    researchModel = if ($null -ne $researchData) { $researchData.model } else { $null }
+    researchDefaultProvider = if ($null -ne $researchData) { $researchData.defaultProvider } else { $null }
+    researchDefaultModel = if ($null -ne $researchData) { $researchData.defaultModel } else { $null }
+    researchSelectionReason = if ($null -ne $researchData) { $researchData.selectionReason } else { $null }
+    researchCitationCount = if ($null -ne $researchData) { $researchData.citationCount } else { $null }
+    researchSourceUrlCount = if ($null -ne $researchData) { $researchData.sourceUrlCount } else { $null }
+    researchMetadataValidated = if (
+      $null -ne $researchData -and
+      -not [string]::IsNullOrWhiteSpace([string]$researchData.researchAdapterId) -and
+      -not [string]::IsNullOrWhiteSpace([string]$researchData.provider) -and
+      -not [string]::IsNullOrWhiteSpace([string]$researchData.model) -and
+      -not [string]::IsNullOrWhiteSpace([string]$researchData.defaultProvider) -and
+      -not [string]::IsNullOrWhiteSpace([string]$researchData.defaultModel) -and
+      -not [string]::IsNullOrWhiteSpace([string]$researchData.selectionReason) -and
+      [int]$researchData.citationCount -ge 2 -and
+      [int]$researchData.sourceUrlCount -ge 2 -and
+      [int]$researchData.answerChars -ge 40
+    ) { $true } else { $false }
     negotiationConstraintsSatisfied = if ($null -ne $negotiationData) { $negotiationData.allSatisfied } else { $null }
     negotiationRequiresUserConfirmation = if ($null -ne $negotiationData) { $negotiationData.requiresUserConfirmation } else { $null }
     liveContextCompactionObserved = if ($null -ne $contextCompactionData) { $contextCompactionData.compactionObserved } else { $null }
@@ -4173,7 +5290,11 @@ $summary = [ordered]@{
       @("compacted", "compacted_with_fallback_summary") -contains [string]$contextCompactionData.compactionReason
     ) { $true } else { $false }
     storytellerFallbackAsset = if ($null -ne $storyData) { $storyData.fallbackAsset } else { $null }
+    storytellerRequestedMediaMode = if ($null -ne $storyData) { $storyData.requestedMediaMode } else { $null }
     storytellerMediaMode = if ($null -ne $storyData) { $storyData.mediaMode } else { $null }
+    storytellerImageMode = if ($null -ne $storyData) { $storyData.imageMode } else { $null }
+    storytellerVideoMode = if ($null -ne $storyData) { $storyData.videoMode } else { $null }
+    storytellerTtsMode = if ($null -ne $storyData) { $storyData.ttsMode } else { $null }
     storytellerVideoAsync = if ($null -ne $storyData) { $storyData.videoAsync } else { $null }
     storytellerVideoJobsCount = if ($null -ne $storyData) { $storyData.videoJobsCount } else { $null }
     storytellerVideoPendingCount = if ($null -ne $storyData) { $storyData.videoPendingCount } else { $null }
@@ -4185,7 +5306,16 @@ $summary = [ordered]@{
     storytellerMediaQueueVisible = if (
       $null -ne $storyData -and
       [int]$storyData.mediaQueueBacklog -ge 0 -and
-      [int]$storyData.mediaQueueWorkers -ge 1 -and
+      (
+        (
+          [string]$storyData.videoMode -eq "default" -and
+          [int]$storyData.mediaQueueWorkers -ge 0
+        ) -or
+        (
+          [string]$storyData.videoMode -ne "default" -and
+          [int]$storyData.mediaQueueWorkers -ge 1
+        )
+      ) -and
       $storyData.mediaQueueRuntimeEnabled -eq $true
     ) { $true } else { $false }
     storytellerMediaQueueQuotaValidated = if (
@@ -4203,12 +5333,72 @@ $summary = [ordered]@{
       [int]$storyData.cacheHits -ge 1 -and
       [int]$storyData.cacheEntries -ge 1
     ) { $true } else { $false }
+    storytellerImageEditProvider = if ($null -ne $storyData) { $storyData.imageEditProvider } else { $null }
+    storytellerImageEditModel = if ($null -ne $storyData) { $storyData.imageEditModel } else { $null }
+    storytellerImageEditDefaultProvider = if ($null -ne $storyData) { $storyData.imageEditDefaultProvider } else { $null }
+    storytellerImageEditDefaultModel = if ($null -ne $storyData) { $storyData.imageEditDefaultModel } else { $null }
+    storytellerImageEditMode = if ($null -ne $storyData) { $storyData.imageEditMode } else { $null }
+    storytellerImageEditSelectionReason = if ($null -ne $storyData) { $storyData.imageEditSelectionReason } else { $null }
+    storytellerImageEditRequested = if ($null -ne $storyData) { $storyData.imageEditRequested } else { $null }
+    storytellerImageEditApplied = if ($null -ne $storyData) { $storyData.imageEditApplied } else { $null }
+    storytellerImageEditEditedAssetCount = if ($null -ne $storyData) { $storyData.imageEditEditedAssetCount } else { $null }
+    storytellerImageEditContractValidated = if (
+      $null -ne $storyData -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.imageEditAdapterId) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.imageEditProvider) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.imageEditModel) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.imageEditDefaultProvider) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.imageEditDefaultModel) -and
+      @("disabled", "default", "fallback", "simulated") -contains [string]$storyData.imageEditMode -and
+      $null -ne $storyData.imageEditRequested -and
+      $null -ne $storyData.imageEditApplied
+    ) { $true } else { $false }
+    storytellerImageEditMetadataValidated = if (
+      $null -ne $storyData -and
+      $storyData.imageEditRequested -eq $true -and
+      $storyData.imageEditApplied -eq $true -and
+      [int]$storyData.imageEditEditedAssetCount -ge 1 -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.imageEditSelectionReason) -and
+      $storyData.imageEditProvider -eq $storyData.imageEditDefaultProvider -and
+      $storyData.imageEditModel -eq $storyData.imageEditDefaultModel
+    ) { $true } else { $false }
+    storytellerTtsProvider = if ($null -ne $storyData) { $storyData.ttsProvider } else { $null }
+    storytellerTtsModel = if ($null -ne $storyData) { $storyData.ttsModel } else { $null }
+    storytellerTtsDefaultProvider = if ($null -ne $storyData) { $storyData.ttsDefaultProvider } else { $null }
+    storytellerTtsDefaultModel = if ($null -ne $storyData) { $storyData.ttsDefaultModel } else { $null }
+    storytellerTtsSelectionReason = if ($null -ne $storyData) { $storyData.ttsSelectionReason } else { $null }
+    storytellerTtsSecondaryProvider = if ($null -ne $storyData) { $storyData.ttsSecondaryProvider } else { $null }
+    storytellerTtsSecondaryModel = if ($null -ne $storyData) { $storyData.ttsSecondaryModel } else { $null }
+    storytellerTtsMetadataValidated = if (
+      $null -ne $storyData -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.ttsProvider) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.ttsModel) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.ttsDefaultProvider) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.ttsDefaultModel) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.ttsSelectionReason)
+    ) { $true } else { $false }
     storytellerVideoAsyncValidated = if (
       $null -ne $storyData -and
-      $storyData.mediaMode -eq "simulated" -and
-      $storyData.videoAsync -eq $true -and
-      [int]$storyData.videoJobsCount -ge 1 -and
-      [int]$storyData.videoPendingCount -ge 1
+      (
+        (
+          [string]$storyData.videoMode -eq "simulated" -and
+          $storyData.videoAsync -eq $true -and
+          [int]$storyData.videoPendingCount -ge 1 -and
+          [int]$storyData.videoJobsCount -ge 1
+        ) -or
+        (
+          [string]$storyData.videoMode -eq "fallback" -and
+          $storyData.videoAsync -eq $false -and
+          [int]$storyData.videoPendingCount -eq 0 -and
+          [int]$storyData.videoJobsCount -ge 1
+        ) -or
+        (
+          [string]$storyData.videoMode -eq "default" -and
+          $storyData.videoAsync -eq $false -and
+          [int]$storyData.videoPendingCount -eq 0 -and
+          [int]$storyData.videoJobsCount -ge 0
+        )
+      )
     ) { $true } else { $false }
     uiAdapterMode = if ($null -ne $uiApproveData) { $uiApproveData.adapterMode } else { $null }
     uiAdapterRetries = if ($null -ne $uiApproveData) { $uiApproveData.retries } else { $null }
@@ -4217,7 +5407,9 @@ $summary = [ordered]@{
     uiExecutorRuntimeValidated = if (
       $null -ne $uiExecutorService -and
       [string](Get-FieldValue -Object $uiExecutorService -Path @("health", "mode")) -eq "remote_http" -and
-      [bool](Get-FieldValue -Object $uiExecutorService -Path @("health", "forceSimulation")) -eq $true
+      [bool](Get-FieldValue -Object $uiExecutorService -Path @("health", "forceSimulation")) -eq $false -and
+      [bool](Get-FieldValue -Object $uiExecutorService -Path @("health", "strictPlaywright")) -eq $true -and
+      [bool](Get-FieldValue -Object $uiExecutorService -Path @("health", "simulateIfUnavailable")) -eq $false
     ) { $true } else { $false }
     uiExecutorLifecycleValidated = if (
       $null -ne $uiExecutorLifecycleService -and
@@ -4279,6 +5471,7 @@ $summary = [ordered]@{
     scenarioRetriesUsedNames = @($scenarioRetriedSet | ForEach-Object { [string]$_.name })
     scenarioRetryableFailuresTotal = [int]$scenarioRetryableFailuresTotal
     liveTranslationScenarioAttempts = if ($translationScenario.Count -gt 0) { [int]$translationScenario[0].attempts } else { $null }
+    liveResearchScenarioAttempts = if ($researchScenario.Count -gt 0) { [int]$researchScenario[0].attempts } else { $null }
     liveNegotiationScenarioAttempts = if ($negotiationScenario.Count -gt 0) { [int]$negotiationScenario[0].attempts } else { $null }
     liveContextCompactionScenarioAttempts = if ($contextCompactionScenario.Count -gt 0) { [int]$contextCompactionScenario[0].attempts } else { $null }
     storytellerPipelineScenarioAttempts = if ($storytellerScenario.Count -gt 0) { [int]$storytellerScenario[0].attempts } else { $null }
@@ -4308,6 +5501,14 @@ $summary = [ordered]@{
     assistiveRouterMode = if ($null -ne $delegationData) { $delegationData.routingMode } else { $null }
     assistiveRouterReason = if ($null -ne $delegationData) { $delegationData.routingReason } else { $null }
     assistiveRouterRoute = if ($null -ne $delegationData) { $delegationData.routingRoute } else { $null }
+    assistiveRouterProvider = if ($null -ne $delegationData) { $delegationData.routingProvider } else { $null }
+    assistiveRouterDefaultProvider = if ($null -ne $delegationData) { $delegationData.routingDefaultProvider } else { $null }
+    assistiveRouterModel = if ($null -ne $delegationData) { $delegationData.routingModel } else { $null }
+    assistiveRouterDefaultModel = if ($null -ne $delegationData) { $delegationData.routingDefaultModel } else { $null }
+    assistiveRouterSelectionReason = if ($null -ne $delegationData) { $delegationData.routingSelectionReason } else { $null }
+    assistiveRouterBudgetPolicy = if ($null -ne $delegationData) { $delegationData.routingBudgetPolicy } else { $null }
+    assistiveRouterPromptCaching = if ($null -ne $delegationData) { $delegationData.routingPromptCaching } else { $null }
+    assistiveRouterWatchlistEnabled = if ($null -ne $delegationData) { $delegationData.routingWatchlistEnabled } else { $null }
     assistiveRouterConfidence = if ($null -ne $delegationData) { $delegationData.routingConfidence } else { $null }
     assistiveRouterDiagnosticsValidated = if (
       $null -ne $delegationData -and
@@ -4321,6 +5522,17 @@ $summary = [ordered]@{
           [double]$delegationData.routingConfidence -le 1
         )
       )
+    ) { $true } else { $false }
+    assistiveRouterProviderMetadataValidated = if (
+      $null -ne $delegationData -and
+      @("gemini_api", "openai", "anthropic", "deepseek", "moonshot") -contains [string]$delegationData.routingProvider -and
+      @("gemini_api", "openai", "anthropic", "deepseek", "moonshot") -contains [string]$delegationData.routingDefaultProvider -and
+      -not [string]::IsNullOrWhiteSpace([string]$delegationData.routingModel) -and
+      -not [string]::IsNullOrWhiteSpace([string]$delegationData.routingDefaultModel) -and
+      @("judged_default", "provider_override", "watchlist_override", "watchlist_disabled") -contains [string]$delegationData.routingSelectionReason -and
+      @("judged_default", "long_context_operator", "cost_sensitive_batch", "watchlist_experimental") -contains [string]$delegationData.routingBudgetPolicy -and
+      @("none", "provider_default", "provider_prompt_cache", "watchlist_only") -contains [string]$delegationData.routingPromptCaching -and
+      $null -ne $delegationData.routingWatchlistEnabled
     ) { $true } else { $false }
     gatewayWsRoundTripMs = if ($null -ne $gatewayWsData) { $gatewayWsData.roundTripMs } else { $null }
     gatewayWsResponseStatus = if ($null -ne $gatewayWsData) { $gatewayWsData.responseStatus } else { $null }
@@ -4669,6 +5881,20 @@ $summary = [ordered]@{
         $operatorDeviceNodesUpdatesApiValidated -eq $true
       )
     ) { $true } else { $false }
+    operatorRuntimeGuardrailsSignalPaths = if ($null -ne $operatorActionsData) { $operatorActionsData.runtimeGuardrailsSignalPaths } else { $null }
+    operatorRuntimeGuardrailsSignalPathsValidated = if (
+      $null -ne $operatorActionsData -and
+      [bool]$operatorActionsData.runtimeGuardrailsSignalPathsValidated -eq $true -and
+      $null -ne $operatorActionsData.runtimeGuardrailsSignalPaths -and
+      -not [string]::IsNullOrWhiteSpace([string](Get-FieldValue -Object $operatorActionsData.runtimeGuardrailsSignalPaths -Path @("status"))) -and
+      -not [string]::IsNullOrWhiteSpace([string](Get-FieldValue -Object $operatorActionsData.runtimeGuardrailsSignalPaths -Path @("signalsSummary"))) -and
+      -not [string]::IsNullOrWhiteSpace([string](Get-FieldValue -Object $operatorActionsData.runtimeGuardrailsSignalPaths -Path @("coverageSummary"))) -and
+      -not [string]::IsNullOrWhiteSpace([string](Get-FieldValue -Object $operatorActionsData.runtimeGuardrailsSignalPaths -Path @("sandboxSummary"))) -and
+      -not [string]::IsNullOrWhiteSpace([string](Get-FieldValue -Object $operatorActionsData.runtimeGuardrailsSignalPaths -Path @("skillsSummary"))) -and
+      -not [string]::IsNullOrWhiteSpace([string](Get-FieldValue -Object $operatorActionsData.runtimeGuardrailsSignalPaths -Path @("topSignal"))) -and
+      -not [string]::IsNullOrWhiteSpace([string](Get-FieldValue -Object $operatorActionsData.runtimeGuardrailsSignalPaths -Path @("historyStatus"))) -and
+      [int](Get-FieldValue -Object $operatorActionsData.runtimeGuardrailsSignalPaths -Path @("totalPaths")) -ge 0
+    ) { $true } else { $false }
     operatorAuditTrailValidated = if (
       $null -ne $operatorActionsData -and
       [int]$operatorActionsData.operatorAuditTotal -ge 4
@@ -4789,9 +6015,31 @@ $summary = [ordered]@{
       $null -ne $translationData -and
       -not [string]::IsNullOrWhiteSpace([string]$translationData.liveAdapterId) -and
       -not [string]::IsNullOrWhiteSpace([string]$translationData.reasoningAdapterId) -and
+      $null -ne $researchData -and
+      -not [string]::IsNullOrWhiteSpace([string]$researchData.researchAdapterId) -and
+      -not [string]::IsNullOrWhiteSpace([string]$researchData.provider) -and
+      -not [string]::IsNullOrWhiteSpace([string]$researchData.model) -and
+      -not [string]::IsNullOrWhiteSpace([string]$researchData.defaultProvider) -and
+      -not [string]::IsNullOrWhiteSpace([string]$researchData.defaultModel) -and
+      -not [string]::IsNullOrWhiteSpace([string]$researchData.selectionReason) -and
+      [int]$researchData.citationCount -ge 2 -and
+      [int]$researchData.sourceUrlCount -ge 2 -and
       $null -ne $storyData -and
       -not [string]::IsNullOrWhiteSpace([string]$storyData.imageAdapterId) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.imageEditAdapterId) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.imageEditProvider) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.imageEditModel) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.imageEditDefaultProvider) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.imageEditDefaultModel) -and
+      @("disabled", "default", "fallback", "simulated") -contains [string]$storyData.imageEditMode -and
+      $null -ne $storyData.imageEditRequested -and
+      $null -ne $storyData.imageEditApplied -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.imageMode) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.videoMode) -and
       -not [string]::IsNullOrWhiteSpace([string]$storyData.ttsAdapterId) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.ttsMode) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.ttsProvider) -and
+      -not [string]::IsNullOrWhiteSpace([string]$storyData.ttsModel) -and
       $null -ne $uiApproveData -and
       -not [string]::IsNullOrWhiteSpace([string]$uiApproveData.computerUseAdapterId)
     ) { $true } else { $false }

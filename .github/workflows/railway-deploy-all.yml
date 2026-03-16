@@ -220,3 +220,31 @@ jobs:
 
           Write-Host ("railway_deploy_mode=" + $deployMode)
           ("railway_deploy_mode=" + $deployMode) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
+      - name: Publish Railway Deploy Provenance Summary
+        if: always()
+        shell: powershell
+        run: |
+          $summaryPath = "artifacts/deploy/railway-deploy-summary.json"
+          if (Test-Path $summaryPath) {
+            $summary = Get-Content $summaryPath -Raw | ConvertFrom-Json
+            ("Railway deploy summary path: " + $summaryPath) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Railway deploy summary status: " + [string]$summary.status) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Railway deploy summary deployment id: " + [string]$summary.deploymentId) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Railway deploy summary public URL: " + [string]$summary.effectivePublicUrl) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            if ($null -ne $summary.checks -and $null -ne $summary.checks.publicBadge) {
+              ("Railway deploy summary badge URL: " + [string]$summary.checks.publicBadge.badgeEndpoint) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+              ("Railway deploy summary badge-details URL: " + [string]$summary.checks.publicBadge.badgeDetailsEndpoint) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            }
+          } else {
+            "Railway deploy summary was not generated." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+
+      - name: Upload Railway Deploy Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: railway-deploy-all-artifacts
+          path: |
+            artifacts/deploy/railway-deploy-summary.json
+          if-no-files-found: warn

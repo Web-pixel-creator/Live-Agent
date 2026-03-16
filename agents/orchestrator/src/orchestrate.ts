@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import {
   createEnvelope,
   createNormalizedError,
+  normalizeUnknownError,
   type OrchestratorIntent,
   type OrchestratorRequest,
   type OrchestratorResponse,
@@ -10,8 +11,13 @@ import { runLiveAgent } from "@mla/live-agent";
 import { runStorytellerAgent } from "@mla/storyteller-agent";
 import { runUiNavigatorAgent } from "@mla/ui-navigator-agent";
 import { resolveAssistiveRoute, type AssistiveRoutingDecision } from "./assistive-router.js";
+import {
+  buildOrchestratorExecutionError,
+  OrchestratorExecutionError,
+} from "./retry-classification.js";
 import { routeIntent } from "./router.js";
 import { persistEvent } from "./services/firestore.js";
+import { getOrchestratorWorkflowConfig } from "./workflow-store.js";
 
 type CachedOrchestrationResult = {
   response: OrchestratorResponse;
@@ -26,18 +32,6 @@ type InFlightOrchestrationEntry = {
 
 const inFlightOrchestration = new Map<string, InFlightOrchestrationEntry>();
 const completedOrchestration = new Map<string, CachedOrchestrationResult>();
-const ORCHESTRATOR_IDEMPOTENCY_TTL_MS = parsePositiveInt(process.env.ORCHESTRATOR_IDEMPOTENCY_TTL_MS, 120_000);
-
-function parsePositiveInt(raw: string | undefined, fallback: number): number {
-  if (!raw) {
-    return fallback;
-  }
-  const parsed = Number(raw);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return fallback;
-  }
-  return Math.floor(parsed);
-}
 
 function ensureRunId(request: OrchestratorRequest): OrchestratorRequest {
   if (request.runId) {
@@ -224,6 +218,28 @@ async function persistTaskStatus(params: {
   await persistEvent(event);
 }
 
+async function persistRouteExecutionError(params: {
+  request: OrchestratorRequest;
+  route: string;
+  phase: "primary_route" | "delegated_route";
+  executionError: OrchestratorExecutionError;
+}): Promise<void> {
+  const event = createEnvelope({
+    userId: params.request.userId,
+    sessionId: params.request.sessionId,
+    runId: params.request.runId,
+    type: "orchestrator.error",
+    source: "orchestrator",
+    payload: {
+      route: params.route,
+      phase: params.phase,
+      status: "failed",
+      error: params.executionError.normalizedError,
+    },
+  });
+  await persistEvent(event);
+}
+
 type DelegationRequest = {
   intent: "story" | "ui_task";
   input: unknown;
@@ -270,6 +286,35 @@ async function runByRoute(
       return runUiNavigatorAgent(request);
     default:
       return runLiveAgent(request);
+  }
+}
+
+async function executeRoute(params: {
+  route: "live-agent" | "storyteller-agent" | "ui-navigator-agent";
+  request: OrchestratorRequest;
+  phase: "primary_route" | "delegated_route";
+  taskId: string | null;
+}): Promise<OrchestratorResponse> {
+  const workflow = getOrchestratorWorkflowConfig();
+  try {
+    return await runByRoute(params.route, params.request);
+  } catch (error) {
+    const executionError = buildOrchestratorExecutionError({
+      error,
+      route: params.route,
+      phase: params.phase,
+      runId: params.request.runId,
+      sessionId: params.request.sessionId,
+      taskId: params.taskId,
+      retryPolicy: workflow.retryPolicy,
+    });
+    await persistRouteExecutionError({
+      request: params.request,
+      route: params.route,
+      phase: params.phase,
+      executionError,
+    });
+    throw executionError;
   }
 }
 
@@ -333,7 +378,14 @@ function withRoutingMetadata(
           mode: routing.mode,
           reason: routing.reason,
           confidence: routing.confidence,
+          provider: routing.provider,
+          defaultProvider: routing.defaultProvider,
           model: routing.model,
+          defaultModel: routing.defaultModel,
+          selectionReason: routing.selectionReason,
+          budgetPolicy: routing.budgetPolicy,
+          promptCaching: routing.promptCaching,
+          watchlistEnabled: routing.watchlistEnabled,
         },
       },
     },
@@ -358,7 +410,8 @@ function withRoutedIntent(
 
 async function orchestrateCore(request: OrchestratorRequest): Promise<OrchestratorResponse> {
   const baseRequest = ensureRunId(request);
-  const routing = await resolveAssistiveRoute(baseRequest);
+  const workflow = getOrchestratorWorkflowConfig();
+  const routing = await resolveAssistiveRoute(baseRequest, workflow.assistiveRouter);
   const normalizedRequest = withRoutedIntent(baseRequest, routing.routedIntent);
 
   await persistEvent(normalizedRequest);
@@ -373,7 +426,38 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
   }
 
   const route = routing.route;
-  let response = await runByRoute(route, normalizedRequest);
+  let response: OrchestratorResponse;
+  try {
+    response = await executeRoute({
+      route,
+      request: normalizedRequest,
+      phase: "primary_route",
+      taskId: taskContext?.taskId ?? null,
+    });
+  } catch (error) {
+    if (taskContext) {
+      const normalized =
+        error instanceof OrchestratorExecutionError
+          ? error.normalizedError
+          : normalizeUnknownError(error, {
+              defaultCode: "ORCHESTRATOR_ROUTE_FAILURE",
+              defaultMessage: "route execution failed",
+            });
+      const stage =
+        error instanceof OrchestratorExecutionError &&
+        error.retryDecision.classification === "continuation"
+          ? "orchestrator.awaiting_retry"
+          : "orchestrator.failed";
+      await persistTaskStatus({
+        request: normalizedRequest,
+        taskId: taskContext.taskId,
+        status: "failed",
+        stage,
+        error: normalized,
+      });
+    }
+    throw error;
+  }
   response = withRoutingMetadata(response, routing);
 
   const delegation = extractDelegationRequest(response);
@@ -393,7 +477,38 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
     await persistEvent(delegatedRequest);
 
     const delegatedRoute = routeIntent(delegatedRequest.payload.intent);
-    const delegatedResponse = await runByRoute(delegatedRoute, delegatedRequest);
+    let delegatedResponse: OrchestratorResponse;
+    try {
+      delegatedResponse = await executeRoute({
+        route: delegatedRoute,
+        request: delegatedRequest,
+        phase: "delegated_route",
+        taskId: taskContext?.taskId ?? null,
+      });
+    } catch (error) {
+      if (taskContext) {
+        const normalized =
+          error instanceof OrchestratorExecutionError
+            ? error.normalizedError
+            : normalizeUnknownError(error, {
+                defaultCode: "ORCHESTRATOR_ROUTE_FAILURE",
+                defaultMessage: "delegated route execution failed",
+              });
+        const stage =
+          error instanceof OrchestratorExecutionError &&
+          error.retryDecision.classification === "continuation"
+            ? "orchestrator.awaiting_retry"
+            : "orchestrator.failed";
+        await persistTaskStatus({
+          request: normalizedRequest,
+          taskId: taskContext.taskId,
+          status: "failed",
+          stage,
+          error: normalized,
+        });
+      }
+      throw error;
+    }
     await persistEvent(delegatedResponse);
 
     response = mergeDelegationResult(response, delegatedResponse, delegation, delegatedRoute);
@@ -426,6 +541,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
 
 export async function orchestrate(request: OrchestratorRequest): Promise<OrchestratorResponse> {
   const normalizedRequest = ensureRunId(request);
+  const workflow = getOrchestratorWorkflowConfig();
   const key = buildOrchestrationKey(normalizedRequest);
   const fingerprint = buildOrchestrationFingerprint(normalizedRequest);
   const nowMs = Date.now();
@@ -463,7 +579,7 @@ export async function orchestrate(request: OrchestratorRequest): Promise<Orchest
       completedOrchestration.set(key, {
         response: cloneResponse(response),
         fingerprint,
-        expiresAtMs: Date.now() + ORCHESTRATOR_IDEMPOTENCY_TTL_MS,
+        expiresAtMs: Date.now() + workflow.idempotencyTtlMs,
       });
       return response;
     })

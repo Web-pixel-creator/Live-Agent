@@ -23,6 +23,7 @@ import { loadGatewayConfig, type GatewayConfig } from "./config.js";
 import { LiveApiBridge } from "./live-bridge.js";
 import { sendToOrchestrator } from "./orchestrator-client.js";
 import { buildReplayFingerprint, buildReplayKey } from "./request-replay.js";
+import { sendWsJson } from "./socket-send.js";
 import { TaskRegistry, type TaskRecord } from "./task-registry.js";
 
 const serviceName = "realtime-gateway";
@@ -415,6 +416,10 @@ function extractRequestIntent(request: OrchestratorRequest): string | null {
     return null;
   }
   return toNonEmptyString(request.payload.intent);
+}
+
+function resolveOrchestratorRequestTimeoutMs(config: GatewayConfig, request: OrchestratorRequest): number {
+  return extractRequestIntent(request) === "story" ? config.orchestratorStoryTimeoutMs : config.orchestratorTimeoutMs;
 }
 
 function extractRequestTaskId(request: OrchestratorRequest): string | null {
@@ -1154,17 +1159,16 @@ wss.on("connection", (ws) => {
         runtime: runtimeState(),
       },
     });
-    ws.send(
-      JSON.stringify(
-        createEnvelope({
-          userId: "system",
-          sessionId: "system",
-          runId: normalized.traceId,
-          type: "gateway.error",
-          source: "gateway",
-          payload: normalized,
-        }),
-      ),
+    sendWsJson(
+      ws,
+      createEnvelope({
+        userId: "system",
+        sessionId: "system",
+        runId: normalized.traceId,
+        type: "gateway.error",
+        source: "gateway",
+        payload: normalized,
+      }),
     );
     ws.close(1013, "gateway draining");
     return;
@@ -1418,7 +1422,7 @@ wss.on("connection", (ws) => {
       }) as OrchestratorRequest;
 
       let response = await sendToOrchestrator(config.orchestratorUrl, request, {
-        timeoutMs: config.orchestratorTimeoutMs,
+        timeoutMs: resolveOrchestratorRequestTimeoutMs(config, request),
         maxRetries: config.orchestratorMaxRetries,
         retryBackoffMs: config.orchestratorRetryBackoffMs,
       });
@@ -1504,7 +1508,15 @@ wss.on("connection", (ws) => {
     observeTurnDeleteEvidence(outboundEvent);
     observeDamageControlEvidence(outboundEvent);
     observeAgentUsageEvidence(outboundEvent);
-    ws.send(JSON.stringify(outboundEvent));
+    const sendResult = sendWsJson(ws, outboundEvent);
+    if (!sendResult.sent) {
+      if (sendResult.reason === "send_failed" && sendResult.error) {
+        console.warn(
+          `[realtime-gateway] websocket send failed for ${outboundEvent.type}: ${sendResult.error}`,
+        );
+      }
+      return;
+    }
     if (liveFunctionAutoInvokeEnabled && outboundEvent.type === "live.function_call") {
       messageLane = messageLane
         .then(async () => {
@@ -1928,7 +1940,7 @@ wss.on("connection", (ws) => {
       }
       orchestratorCallStartedAt = Date.now();
       let response = await sendToOrchestrator(config.orchestratorUrl, request, {
-        timeoutMs: config.orchestratorTimeoutMs,
+        timeoutMs: resolveOrchestratorRequestTimeoutMs(config, request),
         maxRetries: config.orchestratorMaxRetries,
         retryBackoffMs: config.orchestratorRetryBackoffMs,
       });
@@ -2138,6 +2150,15 @@ wss.on("connection", (ws) => {
 
   ws.on("close", () => {
     metrics.record("ws.connection.closed", 0, true);
+    liveBridge?.close();
+    liveBridge = null;
+  });
+
+  ws.on("error", (error) => {
+    metrics.record("ws.connection.error", 0, false);
+    console.warn(
+      `[realtime-gateway] websocket connection error: ${error instanceof Error ? error.message : String(error)}`,
+    );
     liveBridge?.close();
     liveBridge = null;
   });

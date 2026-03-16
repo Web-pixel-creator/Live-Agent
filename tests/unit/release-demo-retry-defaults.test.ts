@@ -52,4 +52,5 @@ test("release-readiness uses demo and scenario retry defaults and retry runner",
   assert.match(source, /demo:e2e:policy -- --maxScenarioRetriesUsedCount \$MaxAllowedScenarioRetriesUsedCount/);
   assert.match(source, /-ScenarioRetryMaxAttempts\s+\$DemoScenarioRetryMaxAttempts/);
   assert.match(source, /-ScenarioRetryBackoffMs\s+\$DemoScenarioRetryBackoffMs/);
+  assert.match(source, /-RestartHealthyServices/);
 });

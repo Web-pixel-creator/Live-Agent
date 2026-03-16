@@ -47,7 +47,13 @@ export type SessionRecord = {
   updatedAt: string;
 };
 
-export type OrchestratorIntent = "conversation" | "translation" | "negotiation" | "story" | "ui_task";
+export type OrchestratorIntent =
+  | "conversation"
+  | "translation"
+  | "negotiation"
+  | "research"
+  | "story"
+  | "ui_task";
 
 export type TaskLifecycleStatus =
   | "queued"

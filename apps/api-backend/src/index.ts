@@ -1,5 +1,13 @@
-﻿import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { promisify } from "node:util";
+import {
+  getSkillsCatalogSnapshot,
+  getSkillsRuntimeCatalogSnapshot,
+  listAuthProfileSnapshots,
+  rotateAuthProfile,
+} from "@mla/skills";
 import {
   applyRuntimeProfile,
   createApiErrorResponse,
@@ -64,10 +72,25 @@ import {
 } from "./firestore.js";
 import { AnalyticsExporter } from "./analytics-export.js";
 import { buildOperatorTraceSummary } from "./operator-traces.js";
+import { summarizeAgentUsage } from "./agent-usage-summary.js";
 import { buildDeviceNodeHealthSummary } from "./device-node-summary.js";
+import {
+  buildRuntimeFaultProfileExecutionPlan,
+  extractRuntimeFaultProfileExecutionFollowUpContext,
+  normalizeRuntimeFaultProfileExecutionPhase,
+  resolveRuntimeFaultProfileExecution,
+} from "./runtime-fault-profile-actions.js";
+import { buildRuntimeDiagnosticsSummary } from "./runtime-diagnostics-summary.js";
+import { buildRuntimeBootstrapDoctorSnapshot } from "./runtime-bootstrap-doctor.js";
+import { getRuntimeFaultProfilesSnapshot } from "./runtime-fault-profiles.js";
+import {
+  buildRuntimeWorkflowControlPlaneSnapshot,
+  summarizeRuntimeWorkflowControlPlaneOverrideInput,
+} from "./runtime-workflow-control-plane.js";
 import {
   normalizeSkillPluginManifest,
   parseSkillPluginSigningKeys,
+  resolveSkillPluginSigningKeysRaw,
 } from "./skill-plugin-marketplace.js";
 
 const port = Number(process.env.PORT ?? process.env.API_PORT ?? 8081);
@@ -172,7 +195,7 @@ const defaultTenantId = normalizeTenantId(process.env.API_DEFAULT_TENANT_ID);
 const requestedComplianceTemplate = toOptionalString(process.env.API_COMPLIANCE_TEMPLATE) ?? "baseline";
 const skillPluginRequireSignature = process.env.SKILL_PLUGIN_REQUIRE_SIGNATURE === "true";
 const skillPluginSigningKeysConfig = parseSkillPluginSigningKeys(
-  process.env.SKILL_PLUGIN_SIGNING_KEYS_JSON,
+  resolveSkillPluginSigningKeysRaw(process.env, process.cwd()),
 );
 type ComplianceTemplateId = GovernanceComplianceTemplate;
 type RetentionPolicy = GovernanceRetentionPolicy;
@@ -253,6 +276,7 @@ const complianceTemplateProfiles: Record<
 };
 const complianceTemplateProfile = resolveComplianceTemplateProfile(requestedComplianceTemplate);
 const complianceTemplate = complianceTemplateProfile.id;
+const execFileAsync = promisify(execFile);
 
 function toBaseUrl(input: string | undefined, fallback: string): string {
   const candidate = typeof input === "string" && input.trim().length > 0 ? input.trim() : fallback;
@@ -832,6 +856,23 @@ function toOptionalString(value: unknown): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
+function toNullableInt(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.trunc(value);
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim();
+    if (normalized.length === 0) {
+      return null;
+    }
+    const parsed = Number(normalized);
+    if (Number.isFinite(parsed)) {
+      return Math.trunc(parsed);
+    }
+  }
+  return null;
+}
+
 function parseSkillScope(raw: unknown): string[] {
   const entries = Array.isArray(raw) ? raw : typeof raw === "string" ? raw.split(",") : [];
   const deduped: string[] = [];
@@ -1334,6 +1375,48 @@ function normalizeOperationPath(pathname: string): string {
   if (pathname.startsWith("/v1/sessions/")) {
     return "/v1/sessions/:id";
   }
+  if (pathname === "/v1/runtime/diagnostics") {
+    return "/v1/runtime/diagnostics";
+  }
+  if (pathname === "/v1/runtime/bootstrap-status") {
+    return "/v1/runtime/bootstrap-status";
+  }
+  if (pathname === "/v1/runtime/auth-profiles") {
+    return "/v1/runtime/auth-profiles";
+  }
+  if (pathname === "/v1/runtime/auth-profiles/rotate") {
+    return "/v1/runtime/auth-profiles/rotate";
+  }
+  if (pathname === "/v1/runtime/workflow-config") {
+    return "/v1/runtime/workflow-config";
+  }
+  if (pathname === "/v1/runtime/workflow-control-plane-override") {
+    return "/v1/runtime/workflow-control-plane-override";
+  }
+  if (pathname === "/v1/runtime/browser-jobs") {
+    return "/v1/runtime/browser-jobs";
+  }
+  if (pathname.startsWith("/v1/runtime/browser-jobs/")) {
+    if (pathname.toLowerCase().endsWith("/resume") || pathname.toLowerCase().endsWith("/cancel")) {
+      return "/v1/runtime/browser-jobs/:jobId/action";
+    }
+    return "/v1/runtime/browser-jobs/:jobId";
+  }
+  if (pathname === "/v1/runtime/fault-profiles/execute") {
+    return "/v1/runtime/fault-profiles/execute";
+  }
+  if (pathname === "/v1/runtime/fault-profiles") {
+    return "/v1/runtime/fault-profiles";
+  }
+  if (pathname === "/v1/skills/catalog") {
+    return "/v1/skills/catalog";
+  }
+  if (pathname === "/v1/skills/personas") {
+    return "/v1/skills/personas";
+  }
+  if (pathname === "/v1/skills/recipes") {
+    return "/v1/skills/recipes";
+  }
   if (pathname.startsWith("/v1/skills/plugins/")) {
     if (pathname.toLowerCase().endsWith("/updates")) {
       return "/v1/skills/plugins/:pluginId/updates";
@@ -1598,7 +1681,26 @@ async function probeJsonWithTimeout(url: string, timeoutMs: number): Promise<Ser
   }
 }
 
-async function postJsonWithTimeout(url: string, body: unknown, timeoutMs: number): Promise<unknown> {
+function buildRuntimeFaultActionBody(value: string | null): unknown {
+  const raw = toOptionalString(value);
+  if (!raw) {
+    return {};
+  }
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return {
+      value: raw,
+    };
+  }
+}
+
+async function postJsonWithTimeout(
+  url: string,
+  body: unknown,
+  timeoutMs: number,
+  extraHeaders: Record<string, string> = {},
+): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -1606,6 +1708,7 @@ async function postJsonWithTimeout(url: string, body: unknown, timeoutMs: number
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...extraHeaders,
       },
       body: JSON.stringify(body),
       signal: controller.signal,
@@ -1641,6 +1744,70 @@ async function postJsonWithTimeout(url: string, body: unknown, timeoutMs: number
   }
 }
 
+async function runNodeJsonCommandWithTimeout(
+  scriptPath: string,
+  args: string[],
+  timeoutMs: number,
+): Promise<unknown> {
+  try {
+    const result = await execFileAsync(process.execPath, [scriptPath, ...args], {
+      cwd: process.cwd(),
+      timeout: timeoutMs,
+      windowsHide: true,
+      maxBuffer: 1024 * 1024,
+    });
+    const outputText = `${result.stdout ?? ""}`.trim();
+    const lines = outputText
+      .split(/\r?\n/u)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    if (lines.length === 0) {
+      throw new ApiRequestError({
+        statusCode: 502,
+        code: "API_RUNTIME_FAULT_PROFILE_SCRIPT_EMPTY_OUTPUT",
+        message: "runtime fault profile script produced empty output",
+        details: {
+          scriptPath,
+          args,
+        },
+      });
+    }
+    try {
+      return JSON.parse(lines[lines.length - 1]) as unknown;
+    } catch (error) {
+      throw new ApiRequestError({
+        statusCode: 502,
+        code: "API_RUNTIME_FAULT_PROFILE_SCRIPT_INVALID_OUTPUT",
+        message: "runtime fault profile script did not return a final JSON line",
+        details: {
+          scriptPath,
+          args,
+          outputTail: outputText.slice(-2000),
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
+    }
+  } catch (error) {
+    if (error instanceof ApiRequestError) {
+      throw error;
+    }
+    const stdout =
+      error && typeof error === "object" && "stdout" in error ? String(error.stdout ?? "") : "";
+    const stderr =
+      error && typeof error === "object" && "stderr" in error ? String(error.stderr ?? "") : "";
+    throw new ApiRequestError({
+      statusCode: 502,
+      code: "API_RUNTIME_FAULT_PROFILE_SCRIPT_FAILED",
+      message: "runtime fault profile script execution failed",
+      details: {
+        scriptPath,
+        args,
+        stdoutTail: stdout.trim().slice(-2000),
+        stderrTail: stderr.trim().slice(-2000),
+      },
+    });
+  }
+}
 function normalizeServiceName(
   input: unknown,
 ): "realtime-gateway" | "api-backend" | "orchestrator" | "ui-executor" | null {
@@ -1734,6 +1901,9 @@ async function getOperatorServiceSummary(): Promise<Array<Record<string, unknown
       name: service.name,
       baseUrl: service.baseUrl,
       healthy: isRecord(health) ? health.ok === true : false,
+      mode:
+        (isRecord(status) ? toOptionalString(status.mode) : null) ??
+        (isRecord(health) ? toOptionalString(health.mode) : null),
       state: runtime ? runtime.state ?? null : null,
       ready: runtime ? runtime.ready ?? null : null,
       draining: runtime ? runtime.draining ?? null : null,
@@ -1746,7 +1916,27 @@ async function getOperatorServiceSummary(): Promise<Array<Record<string, unknown
       turnDelete: runtime ? runtime.turnDelete ?? null : null,
       damageControl: runtime ? runtime.damageControl ?? null : null,
       agentUsage: runtime ? runtime.agentUsage ?? null : null,
+      transport: runtime ? runtime.transport ?? null : null,
+      workflow: runtime ? runtime.workflow ?? null : null,
+      sandbox: runtime ? runtime.sandbox ?? null : null,
+      browserWorkers: runtime ? runtime.browserWorkers ?? null : null,
+      analytics: runtime ? runtime.analytics ?? null : null,
+      governance: runtime ? runtime.governance ?? null : null,
       profile,
+      strictPlaywright:
+        (isRecord(status) ? status.strictPlaywright ?? null : null) ??
+        (isRecord(health) ? health.strictPlaywright ?? null : null),
+      simulateIfUnavailable:
+        (isRecord(status) ? status.simulateIfUnavailable ?? null : null) ??
+        (isRecord(health) ? health.simulateIfUnavailable ?? null : null),
+      forceSimulation:
+        (isRecord(status) ? status.forceSimulation ?? null : null) ??
+        (isRecord(health) ? health.forceSimulation ?? null : null),
+      playwrightAvailable: isRecord(health) ? health.playwrightAvailable ?? null : null,
+      registeredDeviceNodes:
+        (isRecord(status) ? status.registeredDeviceNodes ?? null : null) ??
+        (isRecord(health) ? health.registeredDeviceNodes ?? null : null),
+      storage: isRecord(health) ? health.storage ?? null : null,
       metrics: metricsSummary
         ? {
             totalCount: metricsSummary.totalCount ?? null,
@@ -1773,6 +1963,82 @@ async function getGatewayActiveTasks(limit = 100): Promise<unknown[]> {
     return [];
   }
   return response.data;
+}
+
+async function getUiExecutorBrowserJobs(limit = 20): Promise<Record<string, unknown>> {
+  const response = await fetchJsonWithTimeout(
+    `${uiExecutorBaseUrl}/browser-jobs?limit=${encodeURIComponent(String(limit))}`,
+    5000,
+  );
+  if (!isRecord(response) || !isRecord(response.data)) {
+    return buildUnavailableBrowserWorkerControlPlaneSnapshot(
+      "ui-executor browser worker control plane is unavailable",
+      "/browser-jobs",
+    );
+  }
+  return response.data;
+}
+
+function buildUnavailableRuntimeWorkflowControlPlaneSnapshot(message: string, endpoint: string): Record<string, unknown> {
+  return buildRuntimeWorkflowControlPlaneSnapshot({
+    ok: false,
+    service: "orchestrator",
+    action: "unavailable",
+    store: {
+      loadedAt: null,
+      lastAttemptAt: new Date().toISOString(),
+      sourceKind: "unavailable",
+      sourcePath: endpoint,
+      fingerprint: null,
+      usingLastKnownGood: false,
+      lastError: message,
+      assistiveRouter: null,
+      idempotencyTtlMs: null,
+      controlPlaneOverride: {
+        active: false,
+        updatedAt: null,
+        reason: null,
+      },
+    },
+  }) as unknown as Record<string, unknown>;
+}
+
+function buildUnavailableBrowserWorkerControlPlaneSnapshot(message: string, endpoint: string): Record<string, unknown> {
+  return {
+    status: "unavailable",
+    validated: false,
+    runtime: {
+      enabled: false,
+      started: false,
+      startedAt: null,
+      concurrency: null,
+      pollMs: null,
+      retentionMs: null,
+    },
+    queue: {
+      total: 0,
+      queued: 0,
+      running: 0,
+      paused: 0,
+      completed: 0,
+      failed: 0,
+      cancelled: 0,
+      backlog: 0,
+      checkpointReady: 0,
+      oldestQueuedAgeMs: null,
+    },
+    latestJobId: null,
+    latestPausedJobId: null,
+    latestUpdatedAt: null,
+    jobs: [],
+    recent: [],
+    error: {
+      code: "API_RUNTIME_BROWSER_JOBS_UNAVAILABLE",
+      message,
+      endpoint,
+      targetService: "ui-executor",
+    },
+  };
 }
 
 function toTaskString(value: unknown): string | null {
@@ -1894,6 +2160,122 @@ function buildTaskQueueSummary(tasks: unknown[]): Record<string, unknown> {
       criticalActive: operatorTaskQueueCriticalActiveThreshold,
       pendingApprovalWarn: operatorTaskQueuePendingApprovalWarnThreshold,
     },
+  };
+}
+
+function normalizeBrowserWorkerStatus(value: unknown): "queued" | "running" | "paused" | "completed" | "failed" | "cancelled" | "other" {
+  if (typeof value !== "string") {
+    return "other";
+  }
+  const normalized = value.trim().toLowerCase();
+  if (
+    normalized === "queued" ||
+    normalized === "running" ||
+    normalized === "paused" ||
+    normalized === "completed" ||
+    normalized === "failed" ||
+    normalized === "cancelled"
+  ) {
+    return normalized;
+  }
+  return "other";
+}
+
+function buildBrowserWorkersSummary(snapshot: unknown): Record<string, unknown> {
+  const typed = isRecord(snapshot) ? snapshot : {};
+  const runtime = isRecord(typed.runtime) ? typed.runtime : {};
+  const queue = isRecord(typed.queue) ? typed.queue : {};
+  const jobs = Array.isArray(typed.jobs) ? typed.jobs.filter((item): item is Record<string, unknown> => isRecord(item)) : [];
+  const recent = jobs.slice(0, 10).map((job) => ({
+    jobId: toOptionalString(job.jobId),
+    status: toOptionalString(job.status),
+    sessionId: toOptionalString(job.sessionId),
+    runId: toOptionalString(job.runId),
+    taskId: toOptionalString(job.taskId),
+    label: toOptionalString(job.label),
+    updatedAt: toOptionalString(job.updatedAt),
+    executedSteps: toNullableInt(job.executedSteps),
+    totalSteps: toNullableInt(job.totalSteps),
+    nextCheckpointStep: toNullableInt(job.nextCheckpointStep),
+    lastCheckpointAt: toOptionalString(job.lastCheckpointAt),
+    currentWorkerId: toOptionalString(job.currentWorkerId),
+    error: toOptionalString(job.error),
+  }));
+  const statusCounts = {
+    queued: 0,
+    running: 0,
+    paused: 0,
+    completed: 0,
+    failed: 0,
+    cancelled: 0,
+    other: 0,
+  };
+  let latestJobId: string | null = null;
+  let latestUpdatedAt: string | null = null;
+  let latestPausedJobId: string | null = null;
+
+  for (const item of recent) {
+    const status = normalizeBrowserWorkerStatus(item.status);
+    statusCounts[status] += 1;
+    if (item.updatedAt && (!latestUpdatedAt || Date.parse(item.updatedAt) > Date.parse(latestUpdatedAt))) {
+      latestUpdatedAt = item.updatedAt;
+      latestJobId = item.jobId ?? null;
+    }
+    if (!latestPausedJobId && status === "paused" && item.jobId) {
+      latestPausedJobId = item.jobId;
+    }
+  }
+
+  const runtimeEnabled = runtime.enabled === true;
+  const queuePaused = toNullableInt(queue.paused) ?? statusCounts.paused;
+  const queueFailed = toNullableInt(queue.failed) ?? statusCounts.failed;
+  const queueRunning = toNullableInt(queue.running) ?? statusCounts.running;
+  const queueQueued = toNullableInt(queue.queued) ?? statusCounts.queued;
+  const queueTotal = toNullableInt(queue.total) ?? jobs.length;
+  const checkpointReady = toNullableInt(queue.checkpointReady) ?? queuePaused;
+  const explicitStatus = toOptionalString(typed.status);
+  const status =
+    explicitStatus === "unavailable"
+      ? "unavailable"
+      : !runtimeEnabled
+      ? "disabled"
+      : queueFailed > 0
+        ? "failed"
+        : checkpointReady > 0
+          ? "paused"
+          : queueRunning > 0 || queueQueued > 0
+            ? "active"
+            : queueTotal > 0
+              ? "completed"
+              : "idle";
+
+  return {
+    status,
+    validated: runtimeEnabled && isRecord(runtime) && isRecord(queue),
+    runtime: {
+      enabled: runtimeEnabled,
+      started: runtime.started === true,
+      startedAt: toOptionalString(runtime.startedAt),
+      concurrency: toNullableInt(runtime.concurrency),
+      pollMs: toNullableInt(runtime.pollMs),
+      retentionMs: toNullableInt(runtime.retentionMs),
+    },
+    queue: {
+      total: queueTotal,
+      queued: queueQueued,
+      running: queueRunning,
+      paused: queuePaused,
+      completed: toNullableInt(queue.completed) ?? statusCounts.completed,
+      failed: queueFailed,
+      cancelled: toNullableInt(queue.cancelled) ?? statusCounts.cancelled,
+      backlog: toNullableInt(queue.backlog) ?? queueQueued + queuePaused,
+      checkpointReady,
+      oldestQueuedAgeMs: toNullableInt(queue.oldestQueuedAgeMs),
+    },
+    latestJobId,
+    latestPausedJobId,
+    latestUpdatedAt,
+    recent,
   };
 }
 
@@ -2450,243 +2832,20 @@ function buildAgentUsageSummary(
   events: EventListItem[],
   services: Array<Record<string, unknown>>,
 ): Record<string, unknown> {
-  const uniqueRuns = new Set<string>();
-  const uniqueSessions = new Set<string>();
-  const modelSet = new Set<string>();
-  const sourceCounts: Record<string, number> = {
-    gemini_usage_metadata: 0,
-    none: 0,
-    unknown: 0,
-  };
-  const normalized: Array<Record<string, unknown>> = [];
-  let totalCalls = 0;
-  let inputTokens = 0;
-  let outputTokens = 0;
-  let totalTokens = 0;
-
-  for (const event of events) {
-    let usageSource = toOptionalString(event.agentUsageSource);
-    let usageCalls = parseNonNegativeInt(event.agentUsageCalls) ?? 0;
-    let usageInputTokens = parseNonNegativeInt(event.agentUsageInputTokens) ?? 0;
-    let usageOutputTokens = parseNonNegativeInt(event.agentUsageOutputTokens) ?? 0;
-    let usageTotalTokens = Math.max(
-      parseNonNegativeInt(event.agentUsageTotalTokens) ?? 0,
-      usageInputTokens + usageOutputTokens,
-    );
-    let usageModels = Array.isArray(event.agentUsageModels)
-      ? event.agentUsageModels
-          .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-          .map((item) => item.trim())
-      : [];
-    const syntheticUsageFromResponse =
-      usageSource === null &&
-      usageCalls <= 0 &&
-      usageInputTokens <= 0 &&
-      usageOutputTokens <= 0 &&
-      usageTotalTokens <= 0 &&
-      usageModels.length <= 0 &&
-      event.type === "orchestrator.response";
-    if (syntheticUsageFromResponse) {
-      usageSource = "none";
-      usageCalls = 1;
-      usageModels = ["usage_metadata_unavailable"];
-      usageInputTokens = 0;
-      usageOutputTokens = 0;
-      usageTotalTokens = 0;
-    }
-    const hasUsageEvidence =
-      usageSource !== null ||
-      usageCalls > 0 ||
-      usageInputTokens > 0 ||
-      usageOutputTokens > 0 ||
-      usageTotalTokens > 0 ||
-      usageModels.length > 0;
-    if (!hasUsageEvidence) {
-      continue;
-    }
-
-    if (typeof event.runId === "string" && event.runId.trim().length > 0) {
-      uniqueRuns.add(event.runId);
-    }
-    if (typeof event.sessionId === "string" && event.sessionId.trim().length > 0) {
-      uniqueSessions.add(event.sessionId);
-    }
-
-    totalCalls += usageCalls;
-    inputTokens += usageInputTokens;
-    outputTokens += usageOutputTokens;
-    totalTokens += usageTotalTokens;
-
-    for (const model of usageModels) {
-      modelSet.add(model);
-    }
-    if (usageSource === "gemini_usage_metadata") {
-      sourceCounts.gemini_usage_metadata += 1;
-    } else if (usageSource === "none") {
-      sourceCounts.none += 1;
-    } else {
-      sourceCounts.unknown += 1;
-    }
-
-    normalized.push({
-      eventId: event.eventId,
-      runId: event.runId ?? null,
-      sessionId: event.sessionId,
-      createdAt: event.createdAt,
-      source: event.source,
-      eventType: event.type,
-      usageSource,
-      calls: usageCalls,
-      inputTokens: usageInputTokens,
-      outputTokens: usageOutputTokens,
-      totalTokens: usageTotalTokens,
-      models: usageModels,
-    });
-  }
-
-  if (normalized.length <= 0) {
-    const gatewayService = services.find((service) => service.name === "realtime-gateway");
-    const runtimeEvidence =
-      gatewayService && isRecord(gatewayService.agentUsage) ? gatewayService.agentUsage : null;
-    if (runtimeEvidence) {
-      const runtimeRecentRaw = Array.isArray(runtimeEvidence.recent)
-        ? runtimeEvidence.recent.filter((item): item is Record<string, unknown> => isRecord(item))
-        : [];
-      const runtimeRecent = runtimeRecentRaw.map((item) => ({
-        eventId: null,
-        runId: toOptionalString(item.runId),
-        sessionId: toOptionalString(item.sessionId) ?? "unknown",
-        createdAt: toOptionalString(item.seenAt) ?? new Date().toISOString(),
-        source: "gateway",
-        eventType: "orchestrator.response",
-        usageSource: toOptionalString(item.source) ?? "none",
-        calls: parseNonNegativeInt(item.calls) ?? 0,
-        inputTokens: parseNonNegativeInt(item.inputTokens) ?? 0,
-        outputTokens: parseNonNegativeInt(item.outputTokens) ?? 0,
-        totalTokens: Math.max(
-          parseNonNegativeInt(item.totalTokens) ?? 0,
-          (parseNonNegativeInt(item.inputTokens) ?? 0) + (parseNonNegativeInt(item.outputTokens) ?? 0),
-        ),
-        models: Array.isArray(item.models)
-          ? item.models.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
-          : [],
-      }));
-      const runtimeLatestRaw = isRecord(runtimeEvidence.latest) ? runtimeEvidence.latest : null;
-      const runtimeLatest = runtimeLatestRaw
-        ? {
-            eventId: null,
-            runId: toOptionalString(runtimeLatestRaw.runId),
-            sessionId: toOptionalString(runtimeLatestRaw.sessionId) ?? "unknown",
-            createdAt: toOptionalString(runtimeLatestRaw.seenAt) ?? new Date().toISOString(),
-            source: "gateway",
-            eventType: "orchestrator.response",
-            usageSource: toOptionalString(runtimeLatestRaw.source) ?? "none",
-            calls: parseNonNegativeInt(runtimeLatestRaw.calls) ?? 0,
-            inputTokens: parseNonNegativeInt(runtimeLatestRaw.inputTokens) ?? 0,
-            outputTokens: parseNonNegativeInt(runtimeLatestRaw.outputTokens) ?? 0,
-            totalTokens: Math.max(
-              parseNonNegativeInt(runtimeLatestRaw.totalTokens) ?? 0,
-              (parseNonNegativeInt(runtimeLatestRaw.inputTokens) ?? 0) +
-                (parseNonNegativeInt(runtimeLatestRaw.outputTokens) ?? 0),
-            ),
-            models: Array.isArray(runtimeLatestRaw.models)
-              ? runtimeLatestRaw.models.filter(
-                  (entry): entry is string => typeof entry === "string" && entry.trim().length > 0,
-                )
-              : [],
-          }
-        : runtimeRecent.length > 0
-          ? runtimeRecent[0]
-          : null;
-      const runtimeSourceCounts = isRecord(runtimeEvidence.sourceCounts) ? runtimeEvidence.sourceCounts : null;
-      const runtimeModels = Array.isArray(runtimeEvidence.models)
-        ? runtimeEvidence.models.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
-        : [];
-      const runtimeInputTokens = parseNonNegativeInt(runtimeEvidence.inputTokens) ?? 0;
-      const runtimeOutputTokens = parseNonNegativeInt(runtimeEvidence.outputTokens) ?? 0;
-      const runtimeTotalTokens = Math.max(
-        parseNonNegativeInt(runtimeEvidence.totalTokens) ?? 0,
-        runtimeInputTokens + runtimeOutputTokens,
-      );
-      const runtimeTotal = parseNonNegativeInt(runtimeEvidence.total) ?? runtimeRecent.length;
-      const runtimeUniqueRuns =
-        parseNonNegativeInt(runtimeEvidence.uniqueRuns) ??
-        new Set(runtimeRecent.map((item) => (typeof item.runId === "string" ? item.runId : null)).filter(Boolean))
-          .size;
-      const runtimeUniqueSessions =
-        parseNonNegativeInt(runtimeEvidence.uniqueSessions) ??
-        new Set(runtimeRecent.map((item) => item.sessionId)).size;
-      const runtimeTotalCalls =
-        parseNonNegativeInt(runtimeEvidence.totalCalls) ??
-        runtimeRecent.reduce((acc, item) => acc + (parseNonNegativeInt(item.calls) ?? 0), 0);
-      return {
-        status: runtimeTotal > 0 ? "observed" : "missing",
-        total: runtimeTotal,
-        uniqueRuns: runtimeUniqueRuns,
-        uniqueSessions: runtimeUniqueSessions,
-        totalCalls: runtimeTotalCalls,
-        inputTokens: runtimeInputTokens,
-        outputTokens: runtimeOutputTokens,
-        totalTokens: runtimeTotalTokens,
-        models: runtimeModels,
-        sourceCounts: {
-          gemini_usage_metadata: parseNonNegativeInt(runtimeSourceCounts?.gemini_usage_metadata) ?? 0,
-          none: parseNonNegativeInt(runtimeSourceCounts?.none) ?? 0,
-          unknown: parseNonNegativeInt(runtimeSourceCounts?.unknown) ?? 0,
-        },
-        latest: runtimeLatest,
-        recent: runtimeRecent.slice(0, 20),
-        source: "gateway_runtime",
-        validated:
-          runtimeTotal > 0 &&
-          runtimeTotalTokens >= runtimeInputTokens + runtimeOutputTokens &&
-          runtimeModels.length > 0,
-      };
-    }
-
-    return {
-      status: "missing",
-      total: 0,
-      uniqueRuns: 0,
-      uniqueSessions: 0,
-      totalCalls: 0,
-      inputTokens: 0,
-      outputTokens: 0,
-      totalTokens: 0,
-      models: [],
-      sourceCounts,
-      latest: null,
-      recent: [],
-      source: "operator_summary",
-      validated: false,
-    };
-  }
-
-  return {
-    status: "observed",
-    total: normalized.length,
-    uniqueRuns: uniqueRuns.size,
-    uniqueSessions: uniqueSessions.size,
-    totalCalls,
-    inputTokens,
-    outputTokens,
-    totalTokens,
-    models: Array.from(modelSet).sort((left, right) => left.localeCompare(right)),
-    sourceCounts,
-    latest: normalized[0],
-    recent: normalized.slice(0, 20),
-    source: "operator_summary",
-    validated: totalTokens >= inputTokens + outputTokens,
-  };
+  return summarizeAgentUsage(events, services);
 }
 
 function buildCostEstimateSummary(agentUsage: Record<string, unknown>): Record<string, unknown> {
   const inputTokens = parseNonNegativeInt(agentUsage.inputTokens) ?? 0;
   const outputTokens = parseNonNegativeInt(agentUsage.outputTokens) ?? 0;
-  const totalTokens = Math.max(parseNonNegativeInt(agentUsage.totalTokens) ?? 0, inputTokens + outputTokens);
+  const derivedTotalTokens =
+    parseNonNegativeInt(agentUsage.derivedTotalTokens) ?? inputTokens + outputTokens;
+  const totalTokens = parseNonNegativeInt(agentUsage.totalTokens) ?? derivedTotalTokens;
   const usageTotal = parseNonNegativeInt(agentUsage.total) ?? 0;
   const usageSource = toOptionalString(agentUsage.source) ?? "operator_summary";
   const usageStatus = toOptionalString(agentUsage.status) ?? (usageTotal > 0 ? "observed" : "missing");
+  const usageAuthority = toOptionalString(agentUsage.authority) ?? "missing";
+  const usageAggregationMode = toOptionalString(agentUsage.aggregationMode) ?? "high_water_by_run";
   const usageLatest = isRecord(agentUsage.latest) ? agentUsage.latest : null;
   const usageLatestSeenAt = toOptionalString(usageLatest?.createdAt);
   const usageModels = Array.isArray(agentUsage.models)
@@ -2710,7 +2869,7 @@ function buildCostEstimateSummary(agentUsage: Record<string, unknown>): Record<s
   const outputUsd = roundUsd(outputUsdRaw);
   const totalUsd = roundUsd(totalUsdRaw);
   const pricingConfigured = operatorCostPer1kInputUsd > 0 || operatorCostPer1kOutputUsd > 0;
-  const tokenConsistency = totalTokens >= inputTokens + outputTokens;
+  const tokenConsistency = totalTokens >= derivedTotalTokens;
   const usdConsistency = totalUsd >= inputUsd + outputUsd - 0.000001;
   const validated = tokenConsistency && usdConsistency && usageSource === "operator_summary";
 
@@ -2719,12 +2878,17 @@ function buildCostEstimateSummary(agentUsage: Record<string, unknown>): Record<s
     source: "operator_summary",
     summaryStatus: usageStatus,
     summarySource: usageSource,
+    summaryAuthority: usageAuthority,
+    aggregationMode: usageAggregationMode,
     estimationMode: pricingConfigured ? "token_rate_estimate" : "tokens_only",
     pricingConfigured,
     currency: "USD",
     inputTokens,
     outputTokens,
+    derivedTotalTokens,
     totalTokens,
+    tokenConsistency,
+    tokenDriftTokens: Math.max(0, derivedTotalTokens - totalTokens),
     inputUsd,
     outputUsd,
     totalUsd,
@@ -3252,6 +3416,68 @@ async function runApprovalSlaSweep(): Promise<ApprovalSweepResult> {
     nowIso: new Date().toISOString(),
     limit: approvalSweepLimit,
   });
+}
+
+function normalizeOperatorPurposeCategory(
+  value: unknown,
+): "judge_prep" | "incident_triage" | "release_validation" | "provider_bootstrap" | "ops_discovery" | "other" {
+  const normalized = toOptionalString(value)?.toLowerCase() ?? "other";
+  if (
+    normalized === "judge_prep" ||
+    normalized === "incident_triage" ||
+    normalized === "release_validation" ||
+    normalized === "provider_bootstrap" ||
+    normalized === "ops_discovery"
+  ) {
+    return normalized;
+  }
+  return "other";
+}
+
+function extractOperatorPurposeDetails(value: unknown): Record<string, unknown> | null {
+  if (typeof value === "string") {
+    const purpose = toOptionalString(value);
+    return purpose
+      ? {
+          category: "other",
+          purpose,
+          declaredAt: null,
+        }
+      : null;
+  }
+  if (!isRecord(value)) {
+    return null;
+  }
+  const purpose = toOptionalString(value.purpose);
+  if (!purpose) {
+    return null;
+  }
+  return {
+    category: normalizeOperatorPurposeCategory(value.category),
+    purpose,
+    declaredAt: toOptionalString(value.declaredAt),
+  };
+}
+
+function withOperatorPurposeDetails(details: unknown, operatorPurpose: Record<string, unknown> | null): unknown {
+  if (!operatorPurpose) {
+    return details;
+  }
+  if (isRecord(details)) {
+    return {
+      ...details,
+      operatorPurpose,
+    };
+  }
+  if (details === undefined) {
+    return {
+      operatorPurpose,
+    };
+  }
+  return {
+    details,
+    operatorPurpose,
+  };
 }
 
 async function auditOperatorAction(params: {
@@ -4110,6 +4336,947 @@ export const server = createServer(async (req, res) => {
         total: indexItems.length,
         source: "managed_registry",
         generatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/diagnostics" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const agentId = toOptionalString(url.searchParams.get("agentId"));
+      const services = await getOperatorServiceSummary();
+      const skillsRuntimeCatalog = agentId
+        ? await getSkillsRuntimeCatalogSnapshot({
+            agentId: sanitizeAgentId(agentId),
+            env: process.env,
+            cwd: process.cwd(),
+          })
+        : null;
+      const skillsCatalog = skillsRuntimeCatalog
+        ? skillsRuntimeCatalog.catalog
+        : await getSkillsCatalogSnapshot({
+            env: process.env,
+            cwd: process.cwd(),
+          });
+      const runtimeDiagnostics = buildRuntimeDiagnosticsSummary({
+        services,
+        skillsCatalog,
+        skillsRuntimeSummary: skillsRuntimeCatalog?.runtimeSummary ?? null,
+      });
+      writeJson(res, 200, {
+        data: runtimeDiagnostics,
+        role,
+        source: "operator_runtime_diagnostics",
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/bootstrap-status" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const services = await getOperatorServiceSummary();
+      const deviceNodes = await listDeviceNodes({
+        limit: operatorDeviceNodeSummaryLimit,
+        includeOffline: true,
+      });
+      const bootstrapDoctor = buildRuntimeBootstrapDoctorSnapshot({
+        env: process.env,
+        cwd: process.cwd(),
+        services,
+        deviceNodes,
+      });
+      writeJson(res, 200, {
+        data: bootstrapDoctor,
+        role,
+        source: "repo_owned_bootstrap_doctor",
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/auth-profiles" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const authProfiles = listAuthProfileSnapshots({
+        env: process.env,
+        cwd: process.cwd(),
+      });
+      writeJson(res, 200, {
+        data: {
+          total: authProfiles.length,
+          profiles: authProfiles.map((profile) => ({
+            profileId: profile.profileId,
+            namespace: profile.namespace,
+            label: profile.label,
+            category: profile.category,
+            directValueConfigured: profile.directValueConfigured,
+            explicitCredentialName: profile.explicitCredentialName,
+            configuredProfileId: profile.configuredProfileId,
+            storedActiveCredentialName: profile.storedProfile?.activeCredentialName ?? null,
+            activeCredentialName: profile.activeCredentialName,
+            effectiveSource: profile.effectiveResolution.selectionSource,
+            effectiveResolved: profile.effectiveResolution.source !== "missing",
+            availableCredentialNames: profile.availableCredentials.map((item) => item.name),
+            availableCredentials: profile.availableCredentials,
+            rotation: profile.rotation,
+            warnings: profile.warnings,
+          })),
+        },
+        role,
+        source: "repo_owned_auth_profile_control_plane",
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/auth-profiles/rotate" && req.method === "POST") {
+      const role = assertOperatorRole(req, ["admin"]);
+      const raw = await readBody(req);
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = parseJsonBody(raw);
+      } catch {
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "runtime_auth_profile_rotate",
+          outcome: "denied",
+          reason: "runtime auth profile rotate invalid json",
+          errorCode: "API_RUNTIME_AUTH_PROFILE_INVALID_JSON",
+        });
+        writeApiError(res, 400, {
+          code: "API_RUNTIME_AUTH_PROFILE_INVALID_JSON",
+          message: "runtime auth-profile rotation body must be valid JSON",
+        });
+        return;
+      }
+      const profileId = toOptionalString(parsed.profileId);
+      const nextCredentialName = toOptionalString(parsed.nextCredentialName);
+      const reason = toOptionalString(parsed.reason) ?? "runtime auth profile rotate";
+      const operatorPurpose = extractOperatorPurposeDetails(parsed.operatorPurpose);
+
+      if (!profileId) {
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "runtime_auth_profile_rotate",
+          outcome: "denied",
+          reason,
+          errorCode: "API_RUNTIME_AUTH_PROFILE_ID_REQUIRED",
+          details: withOperatorPurposeDetails(undefined, operatorPurpose),
+        });
+        writeApiError(res, 400, {
+          code: "API_RUNTIME_AUTH_PROFILE_ID_REQUIRED",
+          message: "profileId is required for auth-profile rotation",
+        });
+        return;
+      }
+
+      try {
+        const rotation = rotateAuthProfile(
+          {
+            profileId,
+            nextCredentialName,
+          },
+          {
+            env: process.env,
+            cwd: process.cwd(),
+          },
+        );
+        const updatedProfile =
+          listAuthProfileSnapshots({
+            env: process.env,
+            cwd: process.cwd(),
+          }).find((item) => item.profileId === rotation.profile.profileId) ?? null;
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "runtime_auth_profile_rotate",
+          outcome: "succeeded",
+          reason,
+          details: withOperatorPurposeDetails(
+            {
+              profileId: rotation.profile.profileId,
+              namespace: rotation.profile.namespace,
+              selectedCredentialName: rotation.selectedCredentialName,
+              availableCredentialNames: rotation.availableCredentialNames,
+              storePath: rotation.path,
+            },
+            operatorPurpose,
+          ),
+        });
+        writeJson(res, 200, {
+          data: {
+            profileId: rotation.profile.profileId,
+            namespace: rotation.profile.namespace,
+            selectedCredentialName: rotation.selectedCredentialName,
+            availableCredentialNames: rotation.availableCredentialNames,
+            storePath: rotation.path,
+            profile: updatedProfile
+              ? {
+                  profileId: updatedProfile.profileId,
+                  namespace: updatedProfile.namespace,
+                  label: updatedProfile.label,
+                  category: updatedProfile.category,
+                  directValueConfigured: updatedProfile.directValueConfigured,
+                  explicitCredentialName: updatedProfile.explicitCredentialName,
+                  configuredProfileId: updatedProfile.configuredProfileId,
+                  storedActiveCredentialName: updatedProfile.storedProfile?.activeCredentialName ?? null,
+                  activeCredentialName: updatedProfile.activeCredentialName,
+                  effectiveSource: updatedProfile.effectiveResolution.selectionSource,
+                  effectiveResolved: updatedProfile.effectiveResolution.source !== "missing",
+                  availableCredentialNames: updatedProfile.availableCredentials.map((item) => item.name),
+                  availableCredentials: updatedProfile.availableCredentials,
+                  rotation: updatedProfile.rotation,
+                  warnings: updatedProfile.warnings,
+                }
+              : null,
+          },
+          role,
+          source: "repo_owned_auth_profile_control_plane",
+        });
+        return;
+      } catch (error) {
+        const normalized = normalizeUnknownError(error, {
+          defaultCode: "API_RUNTIME_AUTH_PROFILE_ROTATION_FAILED",
+          defaultMessage: "runtime auth-profile rotation failed",
+        });
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "runtime_auth_profile_rotate",
+          outcome: "failed",
+          reason,
+          errorCode: normalized.code,
+          details: withOperatorPurposeDetails(
+            {
+              profileId,
+              nextCredentialName,
+              error: normalized,
+            },
+            operatorPurpose,
+          ),
+        });
+        writeApiError(res, 400, {
+          code: normalized.code,
+          message: normalized.message,
+          details: normalized.details,
+        });
+        return;
+      }
+    }
+
+    if (url.pathname === "/v1/runtime/workflow-config" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const upstream = await fetchJsonWithTimeout(`${orchestratorBaseUrl}/workflow/config`, 8000);
+      if (!isRecord(upstream)) {
+        writeJson(res, 200, {
+          data: buildUnavailableRuntimeWorkflowControlPlaneSnapshot(
+            "orchestrator workflow control plane is unavailable",
+            "/workflow/config",
+          ),
+          role,
+          source: "repo_owned_workflow_control_plane",
+          generatedAt: new Date().toISOString(),
+          degraded: true,
+          details: {
+            code: "API_RUNTIME_WORKFLOW_UNAVAILABLE",
+            targetService: "orchestrator",
+            endpoint: "/workflow/config",
+          },
+        });
+        return;
+      }
+      const workflowControlPlane = buildRuntimeWorkflowControlPlaneSnapshot(upstream);
+      writeJson(res, 200, {
+        data: workflowControlPlane,
+        role,
+        source: "repo_owned_workflow_control_plane",
+        generatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/workflow-control-plane-override" && req.method === "POST") {
+      const role = assertOperatorRole(req, ["admin"]);
+      const raw = await readBody(req);
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = parseJsonBody(raw);
+      } catch {
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "workflow_control_plane_override",
+          outcome: "denied",
+          reason: "workflow control-plane override invalid json",
+          targetService: "orchestrator",
+          operation: "set",
+          errorCode: "API_RUNTIME_WORKFLOW_OVERRIDE_INVALID_JSON",
+          details: {
+            inputMode: "invalid_json",
+          },
+        });
+        writeApiError(res, 400, {
+          code: "API_RUNTIME_WORKFLOW_OVERRIDE_INVALID_JSON",
+          message: "workflow control-plane override body must be a valid JSON object",
+        });
+        return;
+      }
+
+      const clear = parsed.clear === true;
+      const reason =
+        toOptionalString(parsed.reason) ??
+        (clear ? "clear orchestrator workflow control-plane override" : "set orchestrator workflow control-plane override");
+      const operatorPurpose = extractOperatorPurposeDetails(parsed.operatorPurpose);
+      const inputSummary = summarizeRuntimeWorkflowControlPlaneOverrideInput(parsed);
+      const upstreamBody = clear
+        ? {
+            clear: true,
+            reason,
+          }
+        : typeof parsed.rawJson === "string" && parsed.rawJson.trim().length > 0
+          ? {
+              rawJson: parsed.rawJson,
+              reason,
+            }
+          : isRecord(parsed.workflow)
+            ? {
+                workflow: parsed.workflow,
+                reason,
+              }
+            : null;
+
+      if (!upstreamBody) {
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "workflow_control_plane_override",
+          outcome: "denied",
+          reason,
+          targetService: "orchestrator",
+          operation: clear ? "clear" : "set",
+          errorCode: "API_RUNTIME_WORKFLOW_OVERRIDE_INVALID",
+          details: withOperatorPurposeDetails(inputSummary, operatorPurpose),
+        });
+        writeApiError(res, 400, {
+          code: "API_RUNTIME_WORKFLOW_OVERRIDE_INVALID",
+          message: "workflow control-plane override requires rawJson, workflow, or clear=true",
+          details: {
+            allowedInputs: ["rawJson", "workflow", "clear"],
+          },
+        });
+        return;
+      }
+
+      try {
+        const upstream = await postJsonWithTimeout(
+          `${orchestratorBaseUrl}/workflow/control-plane-override`,
+          upstreamBody,
+          8000,
+        );
+        if (!isRecord(upstream)) {
+          throw new ApiRequestError({
+            statusCode: 502,
+            code: "API_RUNTIME_WORKFLOW_UNAVAILABLE",
+            message: "orchestrator workflow control plane returned an invalid response",
+          });
+        }
+        const workflowControlPlane = buildRuntimeWorkflowControlPlaneSnapshot(upstream);
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "workflow_control_plane_override",
+          outcome: "succeeded",
+          reason,
+          targetService: "orchestrator",
+          operation: clear ? "clear" : "set",
+          details: withOperatorPurposeDetails(
+            {
+              request: inputSummary,
+              response: {
+                action: workflowControlPlane.action,
+                summary: workflowControlPlane.summary,
+              },
+            },
+            operatorPurpose,
+          ),
+        });
+        writeJson(res, 200, {
+          data: workflowControlPlane,
+          role,
+          source: "repo_owned_workflow_control_plane",
+          generatedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        const normalized = normalizeUnknownError(error, {
+          defaultCode: "API_RUNTIME_WORKFLOW_OVERRIDE_FAILED",
+          defaultMessage: "workflow control-plane override failed",
+        });
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "workflow_control_plane_override",
+          outcome: "failed",
+          reason,
+          targetService: "orchestrator",
+          operation: clear ? "clear" : "set",
+          errorCode: normalized.code,
+          details: withOperatorPurposeDetails(
+            {
+              request: inputSummary,
+              error: {
+                code: normalized.code,
+                message: normalized.message,
+                traceId: normalized.traceId,
+              },
+            },
+            operatorPurpose,
+          ),
+        });
+        throw error;
+      }
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/browser-jobs" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const limit = parseBoundedInt(url.searchParams.get("limit"), 20, 1, 100);
+      const status = toOptionalString(url.searchParams.get("status"));
+      const upstreamUrl = new URL(`${uiExecutorBaseUrl}/browser-jobs`);
+      upstreamUrl.searchParams.set("limit", String(limit));
+      if (status) {
+        upstreamUrl.searchParams.set("status", status);
+      }
+      const upstream = await fetchJsonWithTimeout(upstreamUrl.toString(), 8000);
+      if (!isRecord(upstream) || !isRecord(upstream.data)) {
+        writeJson(res, 200, {
+          data: buildUnavailableBrowserWorkerControlPlaneSnapshot(
+            "ui-executor browser worker control plane is unavailable",
+            "/browser-jobs",
+          ),
+          role,
+          source: "repo_owned_browser_worker_control_plane",
+          generatedAt: new Date().toISOString(),
+          degraded: true,
+          details: {
+            code: "API_RUNTIME_BROWSER_JOBS_UNAVAILABLE",
+            targetService: "ui-executor",
+            endpoint: "/browser-jobs",
+          },
+        });
+        return;
+      }
+      writeJson(res, 200, {
+        data: upstream.data,
+        role,
+        source: "repo_owned_browser_worker_control_plane",
+        generatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const runtimeBrowserJobDetailMatch = url.pathname.match(/^\/v1\/runtime\/browser-jobs\/([^/]+)$/);
+    if (runtimeBrowserJobDetailMatch && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const jobId = decodeURIComponent(runtimeBrowserJobDetailMatch[1] ?? "").trim();
+      if (jobId.length === 0) {
+        writeApiError(res, 400, {
+          code: "API_RUNTIME_BROWSER_JOB_ID_REQUIRED",
+          message: "browser worker jobId is required",
+        });
+        return;
+      }
+      const upstream = await fetchJsonWithTimeout(`${uiExecutorBaseUrl}/browser-jobs/${encodeURIComponent(jobId)}`, 8000);
+      if (!isRecord(upstream) || !isRecord(upstream.data)) {
+        writeApiError(res, 502, {
+          code: "API_RUNTIME_BROWSER_JOBS_UNAVAILABLE",
+          message: "ui-executor browser worker detail is unavailable",
+          details: {
+            targetService: "ui-executor",
+            endpoint: `/browser-jobs/${jobId}`,
+          },
+        });
+        return;
+      }
+      writeJson(res, 200, {
+        data: upstream.data,
+        role,
+        source: "repo_owned_browser_worker_control_plane",
+        generatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const runtimeBrowserJobActionMatch = url.pathname.match(/^\/v1\/runtime\/browser-jobs\/([^/]+)\/(resume|cancel)$/);
+    if (runtimeBrowserJobActionMatch && req.method === "POST") {
+      const role = assertOperatorRole(req, ["operator", "admin"]);
+      const jobId = decodeURIComponent(runtimeBrowserJobActionMatch[1] ?? "").trim();
+      const action = runtimeBrowserJobActionMatch[2];
+      const auditAction = action === "resume" ? "browser_worker_resume" : "browser_worker_cancel";
+      const raw = await readBody(req);
+      const parsed = parseJsonBody(raw);
+      const reason = toOptionalString(parsed.reason) ?? `browser worker ${action}`;
+      const operatorPurpose = extractOperatorPurposeDetails(parsed.operatorPurpose);
+      try {
+        const upstream = await postJsonWithTimeout(
+          `${uiExecutorBaseUrl}/browser-jobs/${encodeURIComponent(jobId)}/${action}`,
+          { reason },
+          8000,
+        );
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: auditAction,
+          outcome: "succeeded",
+          reason,
+          targetService: "ui-executor",
+          operation: action,
+          details: withOperatorPurposeDetails(
+            {
+              jobId,
+            },
+            operatorPurpose,
+          ),
+        });
+        writeJson(res, 200, {
+          data: isRecord(upstream) ? upstream.data ?? upstream : upstream,
+          role,
+          source: "repo_owned_browser_worker_control_plane",
+          generatedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        const normalized = normalizeUnknownError(error, {
+          defaultCode: "API_RUNTIME_BROWSER_JOB_ACTION_FAILED",
+          defaultMessage: `browser worker ${action} failed`,
+        });
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: auditAction,
+          outcome: "failed",
+          reason,
+          targetService: "ui-executor",
+          operation: action,
+          errorCode: normalized.code,
+          details: withOperatorPurposeDetails(
+            {
+              jobId,
+              error: normalized,
+            },
+            operatorPurpose,
+          ),
+        });
+        throw error;
+      }
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/fault-profiles" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const service = toOptionalString(url.searchParams.get("service"))?.toLowerCase() ?? null;
+      const category = toOptionalString(url.searchParams.get("category"))?.toLowerCase() ?? null;
+      const snapshot = await getRuntimeFaultProfilesSnapshot({
+        env: process.env,
+        cwd: process.cwd(),
+      });
+      const profiles = snapshot.profiles
+        .filter((item) => {
+          if (service && item.service !== service) {
+            return false;
+          }
+          if (category && item.category !== category) {
+            return false;
+          }
+          return true;
+        })
+        .map((item) => {
+          const activation = buildRuntimeFaultProfileExecutionPlan(item, "activation");
+          const recovery = buildRuntimeFaultProfileExecutionPlan(item, "recovery");
+          return {
+            ...item,
+            execution: {
+              activation,
+              recovery,
+              apiExecutable: activation.supported || recovery.supported,
+            },
+          };
+        });
+      const apiExecutableProfiles = profiles.filter((item) => item.execution.apiExecutable).length;
+      writeJson(res, 200, {
+        data: {
+          ...snapshot,
+          profiles,
+          summary: {
+            totalProfiles: profiles.length,
+            apiExecutableProfiles,
+            manualOnlyProfiles: Math.max(0, profiles.length - apiExecutableProfiles),
+            services: Array.from(new Set(profiles.map((item) => item.service))).sort(),
+            categories: Array.from(new Set(profiles.map((item) => item.category))).sort(),
+          },
+        },
+        role,
+        totalProfiles: profiles.length,
+        source: "repo_owned_fault_profiles",
+        generatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/fault-profiles/execute" && req.method === "POST") {
+      const role = assertOperatorRole(req, ["admin"]);
+      const raw = await readBody(req);
+      const parsed = parseJsonBody(raw);
+      const profileId = toOptionalString(parsed.profileId)?.toLowerCase() ?? null;
+      const phase = normalizeRuntimeFaultProfileExecutionPhase(parsed.phase);
+      const dryRun = parsed.dryRun === true;
+      const context = isRecord(parsed.context) ? parsed.context : {};
+      const reason =
+        toOptionalString(parsed.reason) ??
+        `runtime fault profile ${profileId ?? "unknown"} ${phase ?? "unknown"}`;
+      const operatorPurpose = extractOperatorPurposeDetails(parsed.operatorPurpose);
+
+      if (!profileId) {
+        writeApiError(res, 400, {
+          code: "API_RUNTIME_FAULT_PROFILE_ID_REQUIRED",
+          message: "profileId is required",
+          details: {
+            receivedProfileId: parsed.profileId,
+          },
+        });
+        return;
+      }
+
+      if (!phase) {
+        writeApiError(res, 400, {
+          code: "API_RUNTIME_FAULT_PROFILE_PHASE_INVALID",
+          message: "phase must be activation|recovery",
+          details: {
+            receivedPhase: parsed.phase,
+            allowedPhases: ["activation", "recovery"],
+          },
+        });
+        return;
+      }
+
+      const snapshot = await getRuntimeFaultProfilesSnapshot({
+        env: process.env,
+        cwd: process.cwd(),
+      });
+      const profile = snapshot.profiles.find((item) => item.id === profileId) ?? null;
+
+      if (!profile) {
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "fault_profile_execute",
+          outcome: "denied",
+          reason,
+          errorCode: "API_RUNTIME_FAULT_PROFILE_NOT_FOUND",
+          details: withOperatorPurposeDetails(
+            {
+              profileId,
+              phase,
+              dryRun,
+            },
+            operatorPurpose,
+          ),
+        });
+        writeApiError(res, 404, {
+          code: "API_RUNTIME_FAULT_PROFILE_NOT_FOUND",
+          message: "runtime fault profile was not found",
+          details: {
+            profileId,
+          },
+        });
+        return;
+      }
+
+      const execution = resolveRuntimeFaultProfileExecution(profile, phase, context);
+      const plan = execution.plan;
+      const upstreamUrl = execution.request
+        ? `${resolveServiceBaseUrl(execution.request.executableService)}${execution.request.path}`
+        : null;
+      const readyToExecute =
+        plan.support === "noop" ||
+        (plan.supported && execution.missingContext.length === 0 && (execution.request !== null || execution.script !== null));
+
+      if (dryRun || plan.support === "noop") {
+        writeJson(res, 200, {
+          data: {
+            profileId: profile.id,
+            title: profile.title,
+            service: profile.service,
+            category: profile.category,
+            phase,
+            dryRun,
+            status: plan.support === "noop" ? "noop" : "planned",
+            executed: false,
+            readyToExecute,
+            missingContext: execution.missingContext,
+            plan,
+            upstreamUrl,
+            expectedSignals: profile.expectedSignals,
+            expectedScenarios: profile.expectedScenarios,
+            expectedArtifacts: profile.expectedArtifacts,
+          },
+          role,
+          source: "repo_owned_fault_profile_execution",
+          generatedAt: new Date().toISOString(),
+        });
+        return;
+      }
+
+      if (!plan.supported) {
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "fault_profile_execute",
+          outcome: "denied",
+          reason,
+          targetService: profile.service,
+          operation: phase,
+          errorCode: "API_RUNTIME_FAULT_PROFILE_EXECUTION_UNSUPPORTED",
+          details: withOperatorPurposeDetails(
+            {
+              profileId: profile.id,
+              phase,
+              plan,
+              missingContext: execution.missingContext,
+            },
+            operatorPurpose,
+          ),
+        });
+        writeApiError(res, 409, {
+          code: "API_RUNTIME_FAULT_PROFILE_EXECUTION_UNSUPPORTED",
+          message: "runtime fault profile requires manual execution",
+          details: {
+            profileId: profile.id,
+            phase,
+            plan,
+            missingContext: execution.missingContext,
+          },
+        });
+        return;
+      }
+
+      if (execution.missingContext.length > 0) {
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "fault_profile_execute",
+          outcome: "denied",
+          reason,
+          targetService: profile.service,
+          operation: phase,
+          errorCode: "API_RUNTIME_FAULT_PROFILE_CONTEXT_REQUIRED",
+          details: withOperatorPurposeDetails(
+            {
+              profileId: profile.id,
+              phase,
+              missingContext: execution.missingContext,
+              plan,
+            },
+            operatorPurpose,
+          ),
+        });
+        writeApiError(res, 400, {
+          code: "API_RUNTIME_FAULT_PROFILE_CONTEXT_REQUIRED",
+          message: "runtime fault profile execution requires additional context",
+          details: {
+            profileId: profile.id,
+            phase,
+            missingContext: execution.missingContext,
+            plan,
+          },
+        });
+        return;
+      }
+
+      if (!execution.request && !execution.script) {
+        writeApiError(res, 500, {
+          code: "API_RUNTIME_FAULT_PROFILE_EXECUTION_MISCONFIGURED",
+          message: "runtime fault profile has no executable request or script",
+          details: {
+            profileId: profile.id,
+            phase,
+            plan,
+          },
+        });
+        return;
+      }
+
+      let upstream: unknown;
+      const executionMode = execution.request ? "request" : "script";
+      try {
+        if (execution.request && upstreamUrl) {
+          upstream = await postJsonWithTimeout(upstreamUrl, execution.request.body, 8000, {
+            "X-Tenant-Id": requestTenant.tenantId,
+          });
+        } else if (execution.script) {
+          upstream = await runNodeJsonCommandWithTimeout(execution.script.path, execution.script.args, 20000);
+        }
+      } catch (error) {
+        const normalized = normalizeUnknownError(error, {
+          defaultCode: "API_RUNTIME_FAULT_PROFILE_EXECUTION_FAILED",
+          defaultMessage: "runtime fault profile execution failed",
+        });
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "fault_profile_execute",
+          outcome: "failed",
+          reason,
+          targetService: profile.service,
+          operation: phase,
+          errorCode: normalized.code,
+          details: withOperatorPurposeDetails(
+            {
+              profileId: profile.id,
+              phase,
+              upstreamUrl,
+              executionMode,
+              plan,
+              missingContext: execution.missingContext,
+              error: normalized,
+            },
+            operatorPurpose,
+          ),
+        });
+        throw error;
+      }
+
+      const followUpContext = extractRuntimeFaultProfileExecutionFollowUpContext(profile, phase, execution, upstream);
+      await auditOperatorAction({
+        tenantId: requestTenant.tenantId,
+        role,
+        action: "fault_profile_execute",
+        outcome: "succeeded",
+        reason,
+        targetService: profile.service,
+        operation: phase,
+        details: withOperatorPurposeDetails(
+          {
+            profileId: profile.id,
+            phase,
+            upstreamUrl,
+            executionMode,
+            plan,
+            followUpContext,
+          },
+          operatorPurpose,
+        ),
+      });
+      writeJson(res, 200, {
+        data: {
+          profileId: profile.id,
+          title: profile.title,
+          service: profile.service,
+          category: profile.category,
+          phase,
+          dryRun: false,
+          status: "executed",
+          executed: true,
+          readyToExecute: true,
+          missingContext: execution.missingContext,
+          executionMode,
+          plan,
+          upstreamUrl,
+          upstream,
+          followUpContext,
+          expectedSignals: profile.expectedSignals,
+          expectedScenarios: profile.expectedScenarios,
+          expectedArtifacts: profile.expectedArtifacts,
+        },
+        role,
+        source: "repo_owned_fault_profile_execution",
+        generatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/skills/catalog" && req.method === "GET") {
+      const agentId = toOptionalString(url.searchParams.get("agentId"));
+      const snapshot = agentId
+        ? await getSkillsRuntimeCatalogSnapshot({
+            agentId: sanitizeAgentId(agentId),
+            env: process.env,
+            cwd: process.cwd(),
+          })
+        : null;
+      const catalog = snapshot
+        ? snapshot.catalog
+        : await getSkillsCatalogSnapshot({
+            env: process.env,
+            cwd: process.cwd(),
+          });
+      writeJson(res, 200, {
+        data: {
+          ...catalog,
+          runtimeSummary: snapshot?.runtimeSummary ?? null,
+        },
+        totalPersonas: catalog.personas.length,
+        totalRecipes: catalog.recipes.length,
+        source: "repo_owned_catalog",
+        generatedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/skills/personas" && req.method === "GET") {
+      const agentId = toOptionalString(url.searchParams.get("agentId"));
+      const snapshot = agentId
+        ? await getSkillsRuntimeCatalogSnapshot({
+            agentId: sanitizeAgentId(agentId),
+            env: process.env,
+            cwd: process.cwd(),
+          })
+        : null;
+      const catalog = snapshot
+        ? snapshot.catalog
+        : await getSkillsCatalogSnapshot({
+            env: process.env,
+            cwd: process.cwd(),
+          });
+      writeJson(res, 200, {
+        data: catalog.personas,
+        total: catalog.personas.length,
+        agentId: catalog.agentId,
+        activeSkillIds: catalog.activeSkillIds,
+        runtimeSummary: snapshot?.runtimeSummary ?? null,
+        source: "repo_owned_catalog",
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/skills/recipes" && req.method === "GET") {
+      const agentId = toOptionalString(url.searchParams.get("agentId"));
+      const personaId = toOptionalString(url.searchParams.get("personaId"));
+      const intent = toOptionalString(url.searchParams.get("intent"))?.toLowerCase() ?? null;
+      const snapshot = agentId
+        ? await getSkillsRuntimeCatalogSnapshot({
+            agentId: sanitizeAgentId(agentId),
+            env: process.env,
+            cwd: process.cwd(),
+          })
+        : null;
+      const catalog = snapshot
+        ? snapshot.catalog
+        : await getSkillsCatalogSnapshot({
+            env: process.env,
+            cwd: process.cwd(),
+          });
+      const recipes = catalog.recipes.filter((item) => {
+        if (personaId && item.personaId !== personaId.toLowerCase()) {
+          return false;
+        }
+        if (intent && (item.intent ?? "").toLowerCase() !== intent) {
+          return false;
+        }
+        return true;
+      });
+      writeJson(res, 200, {
+        data: recipes,
+        total: recipes.length,
+        agentId: catalog.agentId,
+        activeSkillIds: catalog.activeSkillIds,
+        runtimeSummary: snapshot?.runtimeSummary ?? null,
+        source: "repo_owned_catalog",
       });
       return;
     }
@@ -5524,7 +6691,7 @@ export const server = createServer(async (req, res) => {
       const traceRunsLimit = parseBoundedInt(url.searchParams.get("traceRunsLimit"), 40, 10, 200);
       const traceEventsLimit = parseBoundedInt(url.searchParams.get("traceEventsLimit"), 120, 20, 500);
       const sweep = await runApprovalSlaSweep();
-      const [activeTasks, services, runs, recentEvents, deviceNodes] = await Promise.all([
+      const [activeTasks, services, runs, recentEvents, deviceNodes, browserJobs] = await Promise.all([
         getGatewayActiveTasks(100),
         getOperatorServiceSummary(),
         listRuns(Math.max(traceRunsLimit, 100)),
@@ -5533,6 +6700,7 @@ export const server = createServer(async (req, res) => {
           limit: operatorDeviceNodeSummaryLimit,
           includeOffline: true,
         }),
+        getUiExecutorBrowserJobs(20),
       ]);
       const syncedFromTasks = await syncPendingApprovalsFromTasks(activeTasks, {
         tenantId: requestTenant.tenantId,
@@ -5593,12 +6761,27 @@ export const server = createServer(async (req, res) => {
       const turnTruncation = buildTurnTruncationSummary(recentEvents, services);
       const turnDelete = buildTurnDeleteSummary(recentEvents, services);
       const deviceNodeUpdates = buildDeviceNodeUpdatesSummary(operatorActions);
+      const browserWorkers = buildBrowserWorkersSummary(browserJobs);
       const damageControl = buildDamageControlSummary(recentEvents, services);
       const agentUsage = buildAgentUsageSummary(recentEvents, services);
       const costEstimate = buildCostEstimateSummary(agentUsage);
       const skillsRegistryLifecycle = buildSkillsRegistryLifecycleSummary(operatorActions);
       const pluginMarketplaceLifecycle = buildPluginMarketplaceLifecycleSummary(operatorActions);
       const governancePolicyLifecycle = buildGovernancePolicyLifecycleSummary(operatorActions);
+      const bootstrapDoctor = buildRuntimeBootstrapDoctorSnapshot({
+        env: process.env,
+        cwd: process.cwd(),
+        services,
+        deviceNodes,
+      });
+      const skillsCatalog = await getSkillsCatalogSnapshot({
+        env: process.env,
+        cwd: process.cwd(),
+      });
+      const runtimeDiagnostics = buildRuntimeDiagnosticsSummary({
+        services,
+        skillsCatalog,
+      });
 
       writeJson(res, 200, {
         data: {
@@ -5610,6 +6793,7 @@ export const server = createServer(async (req, res) => {
             data: activeTasks,
           },
           taskQueue,
+          browserWorkers,
           approvals: {
             total: approvals.length,
             recent: approvals.slice(0, 25),
@@ -5634,6 +6818,8 @@ export const server = createServer(async (req, res) => {
           skillsRegistryLifecycle,
           pluginMarketplaceLifecycle,
           governancePolicyLifecycle,
+          bootstrapDoctor,
+          runtimeDiagnostics,
           deviceNodes: deviceNodeHealth,
           services,
           traces,
@@ -5651,6 +6837,7 @@ export const server = createServer(async (req, res) => {
         reason?: unknown;
         targetService?: unknown;
         operation?: unknown;
+        operatorPurpose?: unknown;
       };
 
       const action = typeof parsed.action === "string" ? parsed.action.trim().toLowerCase() : "";
@@ -5658,6 +6845,7 @@ export const server = createServer(async (req, res) => {
         typeof parsed.reason === "string" && parsed.reason.trim().length > 0
           ? parsed.reason.trim()
           : "operator action";
+      const operatorPurpose = extractOperatorPurposeDetails(parsed.operatorPurpose);
 
       if (action === "cancel_task") {
         const taskId = typeof parsed.taskId === "string" ? parsed.taskId.trim() : "";
@@ -5669,6 +6857,7 @@ export const server = createServer(async (req, res) => {
             outcome: "denied",
             reason,
             errorCode: "API_OPERATOR_TASK_ID_REQUIRED",
+            details: withOperatorPurposeDetails(undefined, operatorPurpose),
           });
           writeApiError(res, 400, {
             code: "API_OPERATOR_TASK_ID_REQUIRED",
@@ -5695,7 +6884,7 @@ export const server = createServer(async (req, res) => {
             reason,
             taskId,
             errorCode: normalized.code,
-            details: normalized,
+            details: withOperatorPurposeDetails(normalized, operatorPurpose),
           });
           throw error;
         }
@@ -5706,6 +6895,7 @@ export const server = createServer(async (req, res) => {
           outcome: "succeeded",
           reason,
           taskId,
+          details: withOperatorPurposeDetails(undefined, operatorPurpose),
         });
         writeJson(res, 200, {
           data: {
@@ -5727,6 +6917,7 @@ export const server = createServer(async (req, res) => {
             outcome: "denied",
             reason,
             errorCode: "API_OPERATOR_TASK_ID_REQUIRED",
+            details: withOperatorPurposeDetails(undefined, operatorPurpose),
           });
           writeApiError(res, 400, {
             code: "API_OPERATOR_TASK_ID_REQUIRED",
@@ -5753,7 +6944,7 @@ export const server = createServer(async (req, res) => {
             reason,
             taskId,
             errorCode: normalized.code,
-            details: normalized,
+            details: withOperatorPurposeDetails(normalized, operatorPurpose),
           });
           throw error;
         }
@@ -5764,6 +6955,7 @@ export const server = createServer(async (req, res) => {
           outcome: "succeeded",
           reason,
           taskId,
+          details: withOperatorPurposeDetails(undefined, operatorPurpose),
         });
         writeJson(res, 200, {
           data: {
@@ -5784,6 +6976,7 @@ export const server = createServer(async (req, res) => {
             outcome: "denied",
             reason,
             errorCode: "API_OPERATOR_ADMIN_REQUIRED",
+            details: withOperatorPurposeDetails(undefined, operatorPurpose),
           });
           writeApiError(res, 403, {
             code: "API_OPERATOR_ADMIN_REQUIRED",
@@ -5807,6 +7000,13 @@ export const server = createServer(async (req, res) => {
             targetService: typeof parsed.targetService === "string" ? parsed.targetService : undefined,
             operation: typeof parsed.operation === "string" ? parsed.operation : undefined,
             errorCode: "API_OPERATOR_FAILOVER_INVALID_INPUT",
+            details: withOperatorPurposeDetails(
+              {
+                targetService: typeof parsed.targetService === "string" ? parsed.targetService : undefined,
+                operation: typeof parsed.operation === "string" ? parsed.operation : undefined,
+              },
+              operatorPurpose,
+            ),
           });
           writeApiError(res, 400, {
             code: "API_OPERATOR_FAILOVER_INVALID_INPUT",
@@ -5835,6 +7035,7 @@ export const server = createServer(async (req, res) => {
             reason,
             targetService,
             operation,
+            details: withOperatorPurposeDetails(undefined, operatorPurpose),
           });
           writeJson(res, 200, {
             data: {
@@ -5865,7 +7066,7 @@ export const server = createServer(async (req, res) => {
             targetService,
             operation,
             errorCode: normalized.code,
-            details: normalized,
+            details: withOperatorPurposeDetails(normalized, operatorPurpose),
           });
           throw error;
         }
@@ -5877,6 +7078,7 @@ export const server = createServer(async (req, res) => {
           reason,
           targetService,
           operation,
+          details: withOperatorPurposeDetails(undefined, operatorPurpose),
         });
         writeJson(res, 200, {
           data: {
@@ -5896,10 +7098,13 @@ export const server = createServer(async (req, res) => {
         outcome: "denied",
         reason,
         errorCode: "API_OPERATOR_ACTION_INVALID",
-        details: {
-          action: parsed.action,
-          allowedActions: ["cancel_task", "retry_task", "failover"],
-        },
+        details: withOperatorPurposeDetails(
+          {
+            action: parsed.action,
+            allowedActions: ["cancel_task", "retry_task", "failover"],
+          },
+          operatorPurpose,
+        ),
       });
       writeApiError(res, 400, {
         code: "API_OPERATOR_ACTION_INVALID",
@@ -5948,4 +7153,7 @@ export const server = createServer(async (req, res) => {
 server.listen(port, () => {
   console.log(`[api-backend] listening on :${port}`);
 });
+
+
+
 

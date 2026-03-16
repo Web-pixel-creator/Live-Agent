@@ -21,21 +21,28 @@ Provide a single production-style platform for multimodal agents that can:
 3. `apps/api-backend`
    - REST control plane
    - Operator summary and governance APIs
+   - Operator-facing workflow control-plane proxy for orchestrator/runtime surfaces, with redacted `apiKeyConfigured` exposure instead of raw assistive-router secrets and provider-aware assistive-router posture (`provider`, `model`, `budgetPolicy`, `promptCaching`, `watchlistEnabled`)
+   - Operator-facing bootstrap doctor/auth-profile proxy for repo-owned provider posture, device bootstrap readiness, fallback coverage, and credential rotation state (`/v1/runtime/bootstrap-status`, `/v1/runtime/auth-profiles`, `/v1/runtime/auth-profiles/rotate`)
+   - Operator-facing browser worker control-plane proxy for repo-owned `ui-executor` background jobs (`/v1/runtime/browser-jobs`, inspect, resume, cancel) with audit-safe operator actions
    - Session/device/skills/approval management
 4. Domain agents
    - `agents/live-agent`
-   - `agents/storyteller-agent`
+   - `agents/storyteller-agent` with repo-owned runtime media-mode override and `image_edit` continuity posture surfaced through orchestrator control plane
    - `agents/ui-navigator-agent`
+   - `apps/ui-executor` as remote HTTP execution adapter with independent runtime sandbox preflight (origin/path policy + setup marker guard), repo-owned runtime control-plane override for deterministic force-simulation/sandbox drills, and resumable background browser worker orchestration for long-horizon UI jobs
+   - `shared/skills` as the repo-owned skill runtime/catalog layer (`workspace`, `bundled`, `managed`, plus curated `personas` and `recipes`)
 5. Frontend
    - `apps/demo-frontend` for judged demo and operator visibility
+   - `Operator Session Ops` support lane for purpose-gated high-risk actions, session replay, and cross-agent discovery snapshots
 
 ## Category Mapping
 
 1. Live Agent
-   - Realtime voice path, interruption, translation, negotiation
+   - Realtime voice path, interruption, translation, negotiation, grounded research
    - Context compaction and truncation/delete controls
 2. Creative Storyteller
    - Planner + branch + media jobs (image/video/tts)
+   - Gemini-first TTS path with provider-pinned Deepgram fallback metadata for audit and release evidence
    - Cache/fallback strategy for deterministic demos
 3. UI Navigator
    - Computer-use planning with action execution
@@ -49,7 +56,13 @@ Provide a single production-style platform for multimodal agents that can:
    - `artifacts/demo-e2e/summary.json`
    - `artifacts/demo-e2e/badge-details.json`
    - `artifacts/release-evidence/report.json`
-4. CI release gates and artifact revalidation workflows
+   - `artifacts/release-evidence/manifest.json`
+4. Repo-owned controlled fault profiles (`configs/runtime.fault-profiles.json`) for drain/fallback/sandbox/approval drills, with explicit execution plans, request templates, script templates, and chained follow-up context for API-executable recovery flows
+5. Repo-owned workflow control-plane contracts for assistive-router / workflow-store runtime state, exposed locally by orchestrator and operator-facing through `api-backend` with secret-safe redaction and multi-provider reasoning defaults (`Gemini` judged-default, `OpenAI` / `Anthropic` / `DeepSeek` secondary non-judged lanes, `Moonshot` watchlist)
+6. Repo-owned bootstrap doctor/auth-profile contract for runtime bootstrap: provider readiness, auth-profile routing, device bootstrap readiness, and fallback posture are inspectable and operator-rotatable without exposing raw secrets
+7. Repo-owned async browser worker contract in `ui-executor`, including checkpoints, traces, resumable/cancelable control-plane actions, and operator-facing queue summaries for long-running browser tasks
+8. Repo-owned operator session-ops contract in the frontend + API audit lane: purpose declarations, session replay, and cross-agent discovery are exportable and attach to high-risk operator audit records
+9. CI release gates and artifact revalidation workflows
 
 ## Source Docs
 
@@ -57,3 +70,4 @@ Provide a single production-style platform for multimodal agents that can:
 2. Demo runbook: `docs/judge-runbook.md`
 3. Local profile: `docs/local-development.md`
 4. Transport V2 spike: `docs/webrtc-v2-spike.md`
+

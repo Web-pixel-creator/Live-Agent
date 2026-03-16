@@ -1,0 +1,267 @@
+{
+    "version":  1,
+    "updatedAt":  "2026-03-06T00:00:00Z",
+    "profiles":  [
+                     {
+                         "id":  "gateway-drain-rejection",
+                         "title":  "Gateway drain rejection",
+                         "description":  "Put realtime-gateway into draining mode and validate that new websocket work is rejected until warmup completes.",
+                         "service":  "realtime-gateway",
+                         "category":  "transport",
+                         "activation":  {
+                                            "mode":  "http_post",
+                                            "target":  "/drain",
+                                            "value":  null
+                                        },
+                         "recovery":  {
+                                          "mode":  "http_post",
+                                          "target":  "/warmup",
+                                          "value":  null
+                                      },
+                         "expectedSignals":  [
+                                                 "service_draining"
+                                             ],
+                         "expectedScenarios":  [
+                                                   "gateway.websocket.draining_rejection"
+                                               ],
+                         "expectedArtifacts":  [
+                                                   "artifacts/demo-e2e/summary.json",
+                                                   "artifacts/release-evidence/report.json"
+                                               ],
+                         "tags":  [
+                                      "ws",
+                                      "drain",
+                                      "failover"
+                                  ]
+                     },
+                     {
+                         "id":  "gateway-binding-mismatch",
+                         "title":  "Gateway binding mismatch",
+                         "description":  "Send mismatched session or user binding metadata and validate deterministic websocket contract rejection.",
+                         "service":  "realtime-gateway",
+                         "category":  "transport",
+                         "activation":  {
+                                            "mode":  "payload_flag",
+                                            "target":  "orchestrator.request.sessionId/userId",
+                                            "value":  "mismatch"
+                                        },
+                         "recovery":  {
+                                          "mode":  "none",
+                                          "target":  "stateless",
+                                          "value":  null
+                                      },
+                         "expectedSignals":  [
+
+                                             ],
+                         "expectedScenarios":  [
+                                                   "gateway.websocket.binding_mismatch"
+                                               ],
+                         "expectedArtifacts":  [
+                                                   "artifacts/demo-e2e/summary.json",
+                                                   "artifacts/demo-e2e/policy-check.json"
+                                               ],
+                         "tags":  [
+                                      "ws",
+                                      "binding",
+                                      "contract"
+                                  ]
+                     },
+                     {
+                         "id":  "orchestrator-last-known-good",
+                         "title":  "Workflow last-known-good fallback",
+                         "description":  "Inject invalid workflow config and validate that orchestrator falls back to the stored last-known-good snapshot.",
+                         "service":  "orchestrator",
+                         "category":  "workflow",
+                         "activation":  {
+                                            "mode":  "http_post",
+                                            "target":  "/workflow/control-plane-override",
+                                            "value":  "{\"rawJson\":\"{ invalid-json\",\"reason\":\"fault_profile:orchestrator-last-known-good\"}"
+                                        },
+                         "recovery":  {
+                                          "mode":  "http_post",
+                                          "target":  "/workflow/control-plane-override",
+                                          "value":  "{\"clear\":true,\"reason\":\"fault_profile:orchestrator-last-known-good\"}"
+                                      },
+                         "expectedSignals":  [
+                                                 "workflow_last_known_good"
+                                             ],
+                         "expectedScenarios":  [
+                                                   "runtime.lifecycle.endpoints"
+                                               ],
+                         "expectedArtifacts":  [
+                                                   "artifacts/demo-e2e/summary.json",
+                                                   "artifacts/release-evidence/report.json"
+                                               ],
+                         "tags":  [
+                                      "workflow",
+                                      "reload",
+                                      "fallback"
+                                  ]
+                     },
+                     {
+                         "id":  "assistive-router-missing-key",
+                         "title":  "Assistive router deterministic fallback",
+                         "description":  "Enable assistive router without a key and validate deterministic fallback plus diagnostics visibility.",
+                         "service":  "orchestrator",
+                         "category":  "workflow",
+                         "activation":  {
+                                            "mode":  "http_post",
+                                            "target":  "/workflow/control-plane-override",
+                                            "value":  "{\"workflow\":{\"assistiveRouter\":{\"enabled\":true,\"apiKey\":null}},\"reason\":\"fault_profile:assistive-router-missing-key\"}"
+                                        },
+                         "recovery":  {
+                                          "mode":  "http_post",
+                                          "target":  "/workflow/control-plane-override",
+                                          "value":  "{\"clear\":true,\"reason\":\"fault_profile:assistive-router-missing-key\"}"
+                                      },
+                         "expectedSignals":  [
+                                                 "assistive_router_missing_api_key"
+                                             ],
+                         "expectedScenarios":  [
+                                                   "multi_agent.delegation",
+                                                   "runtime.lifecycle.endpoints"
+                                               ],
+                         "expectedArtifacts":  [
+                                                   "artifacts/demo-e2e/summary.json",
+                                                   "artifacts/release-evidence/report.json"
+                                               ],
+                         "tags":  [
+                                      "assistive-router",
+                                      "fallback",
+                                      "diagnostics"
+                                  ]
+                     },
+                     {
+                         "id":  "ui-executor-force-simulation",
+                         "title":  "UI executor forced simulation",
+                         "description":  "Force ui-executor into simulation mode and validate that runtime diagnostics and judge evidence remain explicit about the fallback.",
+                         "service":  "ui-executor",
+                         "category":  "sandbox",
+                         "activation":  {
+                                            "mode":  "http_post",
+                                            "target":  "/runtime/control-plane-override",
+                                            "value":  "{\"runtime\":{\"forceSimulation\":true},\"reason\":\"fault_profile:ui-executor-force-simulation\"}"
+                                        },
+                         "recovery":  {
+                                          "mode":  "http_post",
+                                          "target":  "/runtime/control-plane-override",
+                                          "value":  "{\"clear\":true,\"reason\":\"fault_profile:ui-executor-force-simulation\"}"
+                                      },
+                         "expectedSignals":  [
+                                                 "ui_executor_force_simulation"
+                                             ],
+                         "expectedScenarios":  [
+                                                   "ui.sandbox.policy_modes",
+                                                   "ui.visual_testing"
+                                               ],
+                         "expectedArtifacts":  [
+                                                   "artifacts/demo-e2e/summary.json",
+                                                   "artifacts/release-evidence/report.json"
+                                               ],
+                         "tags":  [
+                                      "ui",
+                                      "simulation",
+                                      "fallback"
+                                  ]
+                     },
+                     {
+                         "id":  "ui-executor-sandbox-audit",
+                         "title":  "UI executor sandbox audit mode",
+                         "description":  "Lower the ui-executor sandbox to audit mode and validate that guardrails are surfaced as degradation signals before release.",
+                         "service":  "ui-executor",
+                         "category":  "sandbox",
+                         "activation":  {
+                                            "mode":  "http_post",
+                                            "target":  "/runtime/control-plane-override",
+                                            "value":  "{\"runtime\":{\"sandboxPolicy\":{\"mode\":\"audit\"}},\"reason\":\"fault_profile:ui-executor-sandbox-audit\"}"
+                                        },
+                         "recovery":  {
+                                          "mode":  "http_post",
+                                          "target":  "/runtime/control-plane-override",
+                                          "value":  "{\"clear\":true,\"reason\":\"fault_profile:ui-executor-sandbox-audit\"}"
+                                      },
+                         "expectedSignals":  [
+                                                 "ui_executor_sandbox_not_enforce",
+                                                 "ui_executor_sandbox_setup_marker"
+                                             ],
+                         "expectedScenarios":  [
+                                                   "ui.sandbox.policy_modes",
+                                                   "runtime.metrics.endpoints"
+                                               ],
+                         "expectedArtifacts":  [
+                                                   "artifacts/demo-e2e/summary.json",
+                                                   "artifacts/release-evidence/report.json"
+                                               ],
+                         "tags":  [
+                                      "ui",
+                                      "sandbox",
+                                      "audit"
+                                  ]
+                     },
+                     {
+                         "id":  "ui-approval-resume",
+                         "title":  "UI approval resume",
+                         "description":  "Trigger an ask verdict in damage-control and validate approval-resume evidence across API, operator summary, and badge details.",
+                         "service":  "ui-navigator-agent",
+                         "category":  "approval",
+                         "activation":  {
+                                            "mode":  "payload_flag",
+                                            "target":  "ui_task sensitive action",
+                                            "value":  "approval_required"
+                                        },
+                         "recovery":  {
+                                          "mode":  "operator_action",
+                                          "target":  "approval_control.approve_resume",
+                                          "value":  "approved"
+                                      },
+                         "expectedSignals":  [
+
+                                             ],
+                         "expectedScenarios":  [
+                                                   "ui.approval.approve_resume"
+                                               ],
+                         "expectedArtifacts":  [
+                                                   "artifacts/demo-e2e/summary.json",
+                                                   "artifacts/demo-e2e/badge-details.json",
+                                                   "artifacts/release-evidence/report.json"
+                                               ],
+                         "tags":  [
+                                      "ui",
+                                      "approval",
+                                      "damage-control"
+                                  ]
+                     },
+                     {
+                         "id":  "storyteller-simulated-media",
+                         "title":  "Storyteller simulated media pipeline",
+                         "description":  "Keep storyteller media jobs in deterministic simulated mode and validate queue, cache, and render evidence without live media dependencies.",
+                         "service":  "storyteller-agent",
+                         "category":  "media",
+                         "activation":  {
+                                            "mode":  "http_post",
+                                            "target":  "/story/runtime/control-plane-override",
+                                            "value":  "{\"runtime\":{\"mediaMode\":\"simulated\"},\"reason\":\"fault_profile:storyteller-simulated-media\"}"
+                                        },
+                         "recovery":  {
+                                          "mode":  "http_post",
+                                          "target":  "/story/runtime/control-plane-override",
+                                          "value":  "{\"clear\":true,\"reason\":\"fault_profile:storyteller-simulated-media\"}"
+                                      },
+                         "expectedSignals":  [
+
+                                             ],
+                         "expectedScenarios":  [
+                                                   "storyteller.pipeline"
+                                               ],
+                         "expectedArtifacts":  [
+                                                   "artifacts/demo-e2e/summary.json",
+                                                   "artifacts/perf-load/summary.json"
+                                               ],
+                         "tags":  [
+                                      "storyteller",
+                                      "media",
+                                      "simulated"
+                                  ]
+                     }
+                 ]
+}

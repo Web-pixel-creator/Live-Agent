@@ -23,6 +23,7 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /badge-details\.evidence/);
   assert.match(scriptRaw, /costEstimate/);
   assert.match(scriptRaw, /tokensUsed/);
+  assert.match(scriptRaw, /providerUsage/);
   assert.match(scriptRaw, /costEstimate\.totalUsd/);
   assert.match(scriptRaw, /tokensUsed\.total/);
   assert.match(scriptRaw, /operatorTurnTruncation/);
@@ -34,6 +35,7 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /pluginMarketplace/);
   assert.match(scriptRaw, /deviceNodes/);
   assert.match(scriptRaw, /agentUsage/);
+  assert.match(scriptRaw, /providerUsageEvidenceRequired/);
   assert.match(scriptRaw, /governancePolicyEvidenceRequired/);
   assert.match(scriptRaw, /skillsRegistryEvidenceRequired/);
   assert.match(scriptRaw, /pluginMarketplaceEvidenceRequired/);
@@ -46,7 +48,11 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /updatesTotal/);
   assert.match(scriptRaw, /deviceNodeUpdatesStatus/);
   assert.match(scriptRaw, /Device-node-updates status \(badge evidence\):/);
+  assert.match(scriptRaw, /Provider-usage status \(badge evidence\):/);
+  assert.match(scriptRaw, /Provider-usage active secondary providers \(badge evidence\):/);
+  assert.match(scriptRaw, /Provider-usage primary entry \(badge evidence\):/);
   assert.match(scriptRaw, /agentUsage must be validated with total\/unique\/calls\/tokens consistency, models>=1, summarySource in \[operator_summary,gateway_runtime\], and summaryStatus=observed/);
+  assert.match(scriptRaw, /providerUsage must be validated with entries>=1 and activeSecondaryProviders>=0/);
   assert.match(scriptRaw, /updates lane must be 'pass' for deployment gate/);
   assert.match(scriptRaw, /must be 'pass' for deployment gate/);
   assert.match(scriptRaw, /operatorTurnTruncation must be validated and expectedEventSeen=true/);

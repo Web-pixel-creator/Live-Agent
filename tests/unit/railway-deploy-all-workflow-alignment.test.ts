@@ -51,6 +51,14 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /real_deploy/);
   assert.match(source, /verify_only_fallback/);
   assert.match(source, /deploy_failed_no_fallback/);
+  assert.match(source, /- name:\s*Publish Railway Deploy Provenance Summary/);
+  assert.match(source, /artifacts\/deploy\/railway-deploy-summary\.json/);
+  assert.match(source, /Railway deploy summary path:/);
+  assert.match(source, /Railway deploy summary status:/);
+  assert.match(source, /Railway deploy summary badge-details URL:/);
+  assert.match(source, /Railway deploy summary was not generated\./);
+  assert.match(source, /- name:\s*Upload Railway Deploy Artifacts/);
+  assert.match(source, /name:\s*railway-deploy-all-artifacts/);
   assert.match(source, /-SkipReleaseVerification/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
   assert.match(source, /-GatewayRootDescriptorCheckMaxAttempts/);
@@ -72,4 +80,6 @@ test("readme documents deploy-all workflow and required secrets", () => {
   assert.match(readme, /RAILWAY_TOKEN/);
   assert.match(readme, /RAILWAY_PROJECT_ID/);
   assert.match(readme, /RAILWAY_SERVICE_ID/);
+  assert.match(readme, /artifacts\/deploy\/railway-deploy-summary\.json/);
+  assert.match(readme, /railway-deploy-all-artifacts/);
 });

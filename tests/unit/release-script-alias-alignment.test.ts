@@ -14,6 +14,7 @@ test("release script aliases stay aligned with release-readiness flags", () => {
   const artifactOnlySmokeScript = pkg.scripts?.["verify:release:artifact-only:smoke"] ?? "";
   const artifactOnlySmokeStrictScript = pkg.scripts?.["verify:release:artifact-only:smoke:strict"] ?? "";
   const artifactOnlySmokeKeepTempScript = pkg.scripts?.["verify:release:artifact-only:smoke:keep-temp"] ?? "";
+  const artifactLocalSourceRefreshScript = pkg.scripts?.["verify:release:artifact:refresh-local-source"] ?? "";
   const demoFastRetryScript = pkg.scripts?.["demo:e2e:fast:retry"] ?? "";
   const releaseStrictDispatchScript = pkg.scripts?.["release:strict:dispatch"] ?? "";
   const workflowDispatchDryScript = pkg.scripts?.["verify:workflow:dispatch:dry"] ?? "";
@@ -43,6 +44,8 @@ test("release script aliases stay aligned with release-readiness flags", () => {
 
   assert.match(artifactOnlySmokeKeepTempScript, /release-artifact-only-smoke\.ps1/);
   assert.match(artifactOnlySmokeKeepTempScript, /-KeepTemp/);
+
+  assert.match(artifactLocalSourceRefreshScript, /release-artifact-local-source-refresh\.ps1/);
 
   assert.match(demoFastRetryScript, /release-readiness\.ps1/);
   assert.match(demoFastRetryScript, /-SkipBuild/);

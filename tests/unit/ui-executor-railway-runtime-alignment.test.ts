@@ -5,8 +5,12 @@ import test from "node:test";
 
 test("ui executor supports Railway dynamic PORT and standalone start script", () => {
   const sourcePath = resolve(process.cwd(), "apps", "ui-executor", "src", "index.ts");
+  const storePath = resolve(process.cwd(), "apps", "ui-executor", "src", "runtime-config-store.ts");
   const source = readFileSync(sourcePath, "utf8");
-  assert.match(source, /process\.env\.PORT \?\? process\.env\.UI_EXECUTOR_PORT \?\? 8090/);
+  const storeSource = readFileSync(storePath, "utf8");
+  assert.match(storeSource, /env\.PORT \?\? env\.UI_EXECUTOR_PORT \?\? 8090/);
+  assert.match(storeSource, /UI_EXECUTOR_FORCE_SIMULATION/);
+  assert.match(source, /from "\.\/runtime-config-store\.js"/);
   assert.match(source, /from "\.\/contracts\/index\.js"/);
 
   const packagePath = resolve(process.cwd(), "apps", "ui-executor", "package.json");

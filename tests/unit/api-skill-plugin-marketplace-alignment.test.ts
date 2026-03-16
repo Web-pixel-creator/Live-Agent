@@ -14,7 +14,7 @@ test("api backend skill registry route wires plugin manifest validation and erro
   );
   assert.match(apiSource, /normalizeSkillPluginManifest\(/);
   assert.match(apiSource, /SKILL_PLUGIN_REQUIRE_SIGNATURE/);
-  assert.match(apiSource, /SKILL_PLUGIN_SIGNING_KEYS_JSON/);
+  assert.match(apiSource, /resolveSkillPluginSigningKeysRaw\(/);
   assert.match(apiSource, /pluginManifest:\s*pluginManifestResult\.manifest/);
   assert.match(apiSource, /\/v1\/skills\/plugins/);
   assert.match(apiSource, /\/v1\/skills\/plugins\/:pluginId/);
@@ -29,6 +29,8 @@ test("api backend skill registry route wires plugin manifest validation and erro
   assert.match(marketplaceSource, /API_SKILL_PLUGIN_SIGNATURE_REQUIRED/);
   assert.match(marketplaceSource, /API_SKILL_PLUGIN_SIGNATURE_INVALID/);
   assert.match(marketplaceSource, /API_SKILL_PLUGIN_SIGNING_KEY_NOT_FOUND/);
+  assert.match(marketplaceSource, /SKILL_PLUGIN_SIGNING_KEYS_JSON/);
+  assert.match(marketplaceSource, /SKILL_PLUGIN_SIGNING_KEYS_CREDENTIAL/);
 });
 
 test("readme documents plugin marketplace routes", () => {

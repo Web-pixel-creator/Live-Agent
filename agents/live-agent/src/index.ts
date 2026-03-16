@@ -1,9 +1,13 @@
 import { randomUUID } from "node:crypto";
 import {
   buildCapabilityProfile,
+  generateGoogleGenAiText,
   type CapabilityProfile,
   type LiveCapabilityAdapter,
   type ReasoningCapabilityAdapter,
+  type ResearchCapabilityAdapter,
+  type ResearchCitation,
+  type ResearchResult,
   type ReasoningTextResult,
   type ReasoningTextUsage,
 } from "@mla/capabilities";
@@ -29,6 +33,8 @@ type NegotiationConstraints = {
 
 type NormalizedLiveInput = {
   text: string;
+  query: string;
+  maxCitations: number;
   targetLanguage: string | null;
   constraints: NegotiationConstraints;
 };
@@ -46,20 +52,33 @@ type EvaluationResult = {
   allSatisfied: boolean;
 };
 
+type LiveAgentTextProvider = "gemini_api" | "moonshot";
+
 type GeminiConfig = {
+  textProvider: LiveAgentTextProvider;
   apiKey: string | null;
   baseUrl: string;
+  moonshotApiKey: string | null;
+  moonshotBaseUrl: string;
+  moonshotTemperature: number;
+  moonshotTimeoutMs: number;
   timeoutMs: number;
   liveModel: string;
   translationModel: string;
   conversationModel: string;
+  moonshotTranslationModel: string;
+  moonshotConversationModel: string;
+  researchApiKey: string | null;
+  researchBaseUrl: string;
+  researchModel: string;
+  researchMockResponseJson: string | null;
 };
 
 type TranslationResult = {
   translatedText: string;
   sourceLanguage: string;
   targetLanguage: string;
-  provider: "gemini" | "fallback";
+  provider: "gemini" | "moonshot" | "google_translate" | "fallback";
   model: string;
   confidence: number | null;
 };
@@ -70,11 +89,21 @@ type DelegationRequest = {
   reason: string;
 };
 
+type DelegatedStoryDirectives = {
+  prompt: string;
+  includeImages?: boolean;
+  includeVideo?: boolean;
+  segmentCount?: number;
+};
+
 type LiveAgentCapabilitySet = {
   live: LiveCapabilityAdapter;
   reasoning: ReasoningCapabilityAdapter;
+  research: ResearchCapabilityAdapter;
   profile: CapabilityProfile;
 };
+
+type LiveAgentResearchSelectionReason = "api_live" | "mock_response" | "fallback_pack";
 
 type AgentUsageModelTotals = {
   model: string;
@@ -213,9 +242,17 @@ function normalizeForbiddenActions(rawConstraints: Record<string, unknown>): str
 function normalizeInput(input: unknown): NormalizedLiveInput {
   const payload = isRecord(input) ? input : {};
   const rawConstraints = isRecord(payload.constraints) ? payload.constraints : {};
+  const text =
+    toNonEmptyString(payload.text) ??
+    toNonEmptyString(payload.query) ??
+    toNonEmptyString(payload.message) ??
+    "";
+  const maxCitations = Math.max(1, Math.min(8, toPositiveInt(payload.maxCitations, 3)));
 
   return {
-    text: toNonEmptyString(payload.text) ?? "",
+    text,
+    query: toNonEmptyString(payload.query) ?? text,
+    maxCitations,
     targetLanguage: normalizeLanguageTag(payload.targetLanguage),
     constraints: {
       maxPrice: toNullableNumber(rawConstraints.maxPrice),
@@ -333,6 +370,115 @@ function detectLanguage(text: string): string {
   return "unknown";
 }
 
+function normalizeLooseLookupText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/\u0451/g, "\u0435")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenizeLooseLookupText(text: string): string[] {
+  return normalizeLooseLookupText(text)
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((token) => token.length > 0);
+}
+
+function isAmbiguousKeyResearchQuery(query: string): boolean {
+  const normalized = normalizeLooseLookupText(query);
+  if (normalized.length === 0 || normalized.length > 96) {
+    return false;
+  }
+
+  const tokens = tokenizeLooseLookupText(normalized);
+  if (tokens.length === 0 || tokens.length > 8) {
+    return false;
+  }
+
+  const hasAmbiguousKeyToken = tokens.some((token) =>
+    ["key", "keys", "\u043a\u043b\u044e\u0447", "\u043a\u043b\u044e\u0447\u044c", "\u043a\u043b\u044e\u0447\u0438"].includes(token),
+  );
+  if (!hasAmbiguousKeyToken) {
+    return false;
+  }
+
+  const disambiguationHints = [
+    "api",
+    "ssh",
+    "gpg",
+    "pgp",
+    "windows",
+    "product key",
+    "license",
+    "licence",
+    "\u043b\u0438\u0446\u0435\u043d\u0437",
+    "\u0430\u043a\u0442\u0438\u0432\u0430\u0446",
+    "\u043e\u0442 \u043a\u0432\u0430\u0440\u0442\u0438\u0440",
+    "\u043e\u0442 \u0434\u043e\u043c",
+    "\u043e\u0442 \u0434\u0432\u0435\u0440",
+    "\u043e\u0442 \u043c\u0430\u0448\u0438\u043d",
+    "\u043e\u0442 \u0430\u0432\u0442\u043e",
+    "\u043e\u0442 \u0433\u0430\u0440\u0430\u0436",
+    "\u043e\u0442 \u0434\u043e\u043c\u043e\u0444\u043e\u043d",
+    "\u043e\u0442 \u0441\u0435\u0439\u0444",
+    "\u0434\u043e\u043c\u043e\u0444\u043e\u043d",
+    "\u0430\u0432\u0442\u043e",
+    "\u043c\u0430\u0448\u0438\u043d",
+    "\u043a\u0432\u0430\u0440\u0442\u0438\u0440",
+    "\u0434\u0432\u0435\u0440",
+    "\u0433\u0430\u0440\u0430\u0436",
+    "\u0441\u0435\u0439\u0444",
+    "\u043a\u0440\u0438\u043f\u0442",
+    "\u043a\u043e\u0448\u0435\u043b",
+    "\u043f\u0430\u0440\u043e\u043b",
+    "crypto",
+    "wallet",
+    "car",
+    "door",
+    "house",
+    "apartment",
+    "office",
+    "garage",
+    "intercom",
+    "safe",
+  ];
+
+  return !disambiguationHints.some((hint) => normalized.includes(hint));
+}
+
+function buildResearchClarificationPrompt(query: string): string {
+  const language = detectLanguage(query);
+  if (language === "ru") {
+    return "\u0423\u0442\u043e\u0447\u043d\u0438, \u043a\u0430\u043a\u043e\u0439 \u0438\u043c\u0435\u043d\u043d\u043e \u043a\u043b\u044e\u0447 \u0442\u044b \u0438\u0449\u0435\u0448\u044c: \u043e\u0442 \u043a\u0432\u0430\u0440\u0442\u0438\u0440\u044b/\u0434\u043e\u043c\u0430, \u043e\u0442 \u043c\u0430\u0448\u0438\u043d\u044b, \u0434\u043e\u043c\u043e\u0444\u043e\u043d\u0430, API-\u043a\u043b\u044e\u0447, \u043a\u043b\u044e\u0447 Windows \u0438\u043b\u0438 \u043a\u0440\u0438\u043f\u0442\u043e\u0433\u0440\u0430\u0444\u0438\u0447\u0435\u0441\u043a\u0438\u0439 \u043a\u043b\u044e\u0447? \u041f\u043e\u0441\u043b\u0435 \u0443\u0442\u043e\u0447\u043d\u0435\u043d\u0438\u044f \u0434\u0430\u043c \u0442\u043e\u0447\u043d\u044b\u0439 \u043e\u0442\u0432\u0435\u0442.";
+  }
+  return "Clarify which key you mean: house/apartment, car, intercom, API key, Windows product key, or cryptographic key. Then I can give a precise answer.";
+}
+
+function buildResearchDisplayText(answer: string): string {
+  const normalized = normalizeResearchText(answer) ?? answer.trim();
+  const withoutMarkdownLinks = normalized.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, "$1");
+  const withoutInlineCitations = withoutMarkdownLinks.replace(/\[(\d+)\]/g, "");
+  const withoutHeadings = withoutInlineCitations.replace(/^#{1,6}\s+/gm, "");
+  const withoutBold = withoutHeadings.replace(/\*\*([^*]+)\*\*/g, "$1").replace(/__([^_]+)__/g, "$1");
+  const withoutInlineCode = withoutBold.replace(/`([^`]+)`/g, "$1");
+  const normalizedBullets = withoutInlineCode.replace(/^\s*[-*]\s+/gm, "- ");
+  const compacted = normalizedBullets.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  return compacted.length > 0 ? compacted : answer.trim();
+}
+
+function buildResearchDebugSummary(params: {
+  provider: string;
+  model: string;
+  citationCount: number;
+  sourceUrlCount: number;
+  clarificationRequired?: boolean;
+}): string {
+  if (params.clarificationRequired === true) {
+    return `Research clarification required before grounding (${params.provider}/${params.model})`;
+  }
+  return `Research sources: ${params.provider}/${params.model} · citations=${params.citationCount} · urls=${params.sourceUrlCount}`;
+}
+
 function isLikelyFinalAgreement(text: string): boolean {
   return /(?:^|\b)(agree|agreed|accepted|accept|confirm|final|deal|закрываем|подтверждаю)(?:\b|$)/i.test(text);
 }
@@ -351,30 +497,130 @@ function replaceDictionary(text: string, dictionary: Record<string, string>): st
 }
 
 function fallbackTranslate(text: string, sourceLanguage: string, targetLanguage: string): TranslationResult {
-  const ruToEn: Record<string, string> = {
+  const ruToEnPhrases: Record<string, string> = {
+    "как дела": "how are you",
+    "как дела?": "how are you?",
+    "доброе утро": "good morning",
+    "добрый день": "good afternoon",
+    "добрый вечер": "good evening",
+    "спокойной ночи": "good night",
+    "до свидания": "goodbye",
+    "до встречи": "see you",
+    "всего хорошего": "all the best",
+    "я согласен": "I agree",
+    "я не согласен": "I disagree",
+    "конечно": "of course",
+    "хорошо": "okay",
+    "нет проблем": "no problem",
+    "не за что": "you're welcome",
+    "извините": "sorry",
+    "мне нужна помощь": "I need help",
+    "что это": "what is this",
+    "сколько стоит": "how much does it cost",
+    "можно скидку": "can I get a discount",
+    "когда доставка": "when is the delivery",
+    "давайте обсудим": "let's discuss",
+    "я понял": "I understand",
+    "повторите пожалуйста": "please repeat",
+    "отлично": "excellent",
+    "плохо": "bad",
+    "большое спасибо": "thank you very much",
+  };
+  const ruToEnWords: Record<string, string> = {
     привет: "hello",
+    здравствуйте: "hello",
     пожалуйста: "please",
+    спасибо: "thank you",
+    да: "yes",
+    нет: "no",
     цена: "price",
     доставка: "delivery",
     сделка: "deal",
     подтвердите: "confirm",
-    спасибо: "thank you",
+    помощь: "help",
+    вопрос: "question",
+    ответ: "answer",
+    время: "time",
+    деньги: "money",
+    работа: "work",
+    проблема: "problem",
+    решение: "solution",
+    договор: "contract",
+    условия: "terms",
+    оплата: "payment",
+    скидка: "discount",
+    качество: "quality",
+    количество: "quantity",
   };
-  const enToRu: Record<string, string> = {
+  const enToRuPhrases: Record<string, string> = {
+    "how are you": "как дела",
+    "how are you?": "как дела?",
+    "good morning": "доброе утро",
+    "good afternoon": "добрый день",
+    "good evening": "добрый вечер",
+    "good night": "спокойной ночи",
+    "see you": "до встречи",
+    "all the best": "всего хорошего",
+    "i agree": "я согласен",
+    "i disagree": "я не согласен",
+    "of course": "конечно",
+    "no problem": "нет проблем",
+    "you're welcome": "не за что",
+    "i need help": "мне нужна помощь",
+    "how much": "сколько стоит",
+    "let's discuss": "давайте обсудим",
+    "i understand": "я понял",
+    "please repeat": "повторите пожалуйста",
+    "thank you very much": "большое спасибо",
+  };
+  const enToRuWords: Record<string, string> = {
     hello: "привет",
+    hi: "привет",
     please: "пожалуйста",
+    thanks: "спасибо",
+    yes: "да",
+    no: "нет",
     price: "цена",
     delivery: "доставка",
     deal: "сделка",
     confirm: "подтвердите",
-    thanks: "спасибо",
+    goodbye: "до свидания",
+    sorry: "извините",
+    help: "помощь",
+    question: "вопрос",
+    answer: "ответ",
+    time: "время",
+    money: "деньги",
+    work: "работа",
+    problem: "проблема",
+    solution: "решение",
+    contract: "договор",
+    terms: "условия",
+    payment: "оплата",
+    discount: "скидка",
+    quality: "качество",
+    okay: "хорошо",
+    excellent: "отлично",
+    bad: "плохо",
   };
 
   let translatedText = text;
+  const lowerText = text.trim().toLowerCase().replace(/[?!.,]+$/, "");
+
   if (sourceLanguage.startsWith("ru") && targetLanguage.startsWith("en")) {
-    translatedText = replaceDictionary(text, ruToEn);
+    const phraseMatch = ruToEnPhrases[lowerText] ?? ruToEnPhrases[text.trim().toLowerCase()];
+    if (phraseMatch) {
+      translatedText = text.endsWith("?") ? phraseMatch.replace(/\??$/, "?") : phraseMatch;
+    } else {
+      translatedText = replaceDictionary(text, ruToEnWords);
+    }
   } else if (sourceLanguage.startsWith("en") && targetLanguage.startsWith("ru")) {
-    translatedText = replaceDictionary(text, enToRu);
+    const phraseMatch = enToRuPhrases[lowerText] ?? enToRuPhrases[text.trim().toLowerCase()];
+    if (phraseMatch) {
+      translatedText = text.endsWith("?") ? phraseMatch.replace(/\??$/, "?") : phraseMatch;
+    } else {
+      translatedText = replaceDictionary(text, enToRuWords);
+    }
   }
 
   if (translatedText === text) {
@@ -391,18 +637,95 @@ function fallbackTranslate(text: string, sourceLanguage: string, targetLanguage:
   };
 }
 
+function normalizeLiveAgentTextProvider(value: unknown): LiveAgentTextProvider | null {
+  const normalized = toNonEmptyString(value)?.toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  if (normalized === "gemini" || normalized === "gemini_api" || normalized === "default") {
+    return "gemini_api";
+  }
+  if (normalized === "moonshot" || normalized === "kimi" || normalized === "kimi-k2.5") {
+    return "moonshot";
+  }
+  return null;
+}
+
+function resolveReasoningProvider(config: GeminiConfig): LiveAgentTextProvider | "fallback" {
+  if (config.textProvider === "moonshot") {
+    if (config.moonshotApiKey) {
+      return "moonshot";
+    }
+    if (config.apiKey) {
+      return "gemini_api";
+    }
+    return "fallback";
+  }
+  if (config.apiKey) {
+    return "gemini_api";
+  }
+  if (config.moonshotApiKey) {
+    return "moonshot";
+  }
+  return "fallback";
+}
+
+function getReasoningModel(config: GeminiConfig, lane: "translation" | "conversation"): string {
+  const provider = resolveReasoningProvider(config);
+  if (provider === "moonshot") {
+    return lane === "translation" ? config.moonshotTranslationModel : config.moonshotConversationModel;
+  }
+  return lane === "translation" ? config.translationModel : config.conversationModel;
+}
+
+function getReasoningSelectionReason(config: GeminiConfig, provider: LiveAgentTextProvider | "fallback"): string {
+  if (provider === "moonshot") {
+    return config.textProvider === "moonshot" ? "provider_override" : "secondary_provider_fallback";
+  }
+  if (provider === "gemini_api") {
+    return config.textProvider === "moonshot" && !config.moonshotApiKey ? "missing_override_key" : "judged_default";
+  }
+  return "fallback";
+}
+
+function normalizeMoonshotTemperature(model: string, requested: number | undefined, fallback: number): number {
+  const normalizedModel = model.trim().toLowerCase();
+  const candidate = typeof requested === "number" && Number.isFinite(requested) ? requested : fallback;
+  if (normalizedModel === "kimi-k2.5" || normalizedModel.startsWith("kimi-k2.5-")) {
+    return 1;
+  }
+  return candidate;
+}
+
 function getGeminiConfig(): GeminiConfig {
   const defaultBaseUrl = "https://generativelanguage.googleapis.com/v1beta";
-  const timeoutMs = toNullableNumber(process.env.LIVE_AGENT_GEMINI_TIMEOUT_MS) ?? 8000;
+  const defaultMoonshotBaseUrl = "https://api.moonshot.ai/v1";
+  const timeoutMs = toNullableNumber(process.env.LIVE_AGENT_GEMINI_TIMEOUT_MS) ?? 12000;
 
   return {
+    textProvider: normalizeLiveAgentTextProvider(process.env.LIVE_AGENT_TEXT_PROVIDER) ?? "gemini_api",
     apiKey:
       toNonEmptyString(process.env.LIVE_AGENT_GEMINI_API_KEY) ?? toNonEmptyString(process.env.GEMINI_API_KEY),
     baseUrl: toNonEmptyString(process.env.GEMINI_API_BASE_URL) ?? defaultBaseUrl,
+    moonshotApiKey:
+      toNonEmptyString(process.env.LIVE_AGENT_MOONSHOT_API_KEY) ?? toNonEmptyString(process.env.MOONSHOT_API_KEY),
+    moonshotBaseUrl:
+      toNonEmptyString(process.env.LIVE_AGENT_MOONSHOT_BASE_URL) ??
+      toNonEmptyString(process.env.MOONSHOT_BASE_URL) ??
+      defaultMoonshotBaseUrl,
+    moonshotTemperature: toNullableNumber(process.env.LIVE_AGENT_MOONSHOT_TEMPERATURE) ?? 1,
+    moonshotTimeoutMs: toNullableNumber(process.env.LIVE_AGENT_MOONSHOT_TIMEOUT_MS) ?? Math.max(timeoutMs, 15000),
     timeoutMs,
     liveModel: toNonEmptyString(process.env.LIVE_AGENT_LIVE_MODEL) ?? "gemini-live-2.5-flash-native-audio",
-    translationModel: toNonEmptyString(process.env.LIVE_AGENT_TRANSLATION_MODEL) ?? "gemini-3-flash",
-    conversationModel: toNonEmptyString(process.env.LIVE_AGENT_CONVERSATION_MODEL) ?? "gemini-3-flash",
+    translationModel: toNonEmptyString(process.env.LIVE_AGENT_TRANSLATION_MODEL) ?? "gemini-3.1-flash-lite-preview",
+    conversationModel: toNonEmptyString(process.env.LIVE_AGENT_CONVERSATION_MODEL) ?? "gemini-3.1-flash-lite-preview",
+    moonshotTranslationModel: toNonEmptyString(process.env.LIVE_AGENT_MOONSHOT_TRANSLATION_MODEL) ?? "kimi-k2.5",
+    moonshotConversationModel: toNonEmptyString(process.env.LIVE_AGENT_MOONSHOT_CONVERSATION_MODEL) ?? "kimi-k2.5",
+    researchApiKey:
+      toNonEmptyString(process.env.LIVE_AGENT_RESEARCH_API_KEY) ?? toNonEmptyString(process.env.PERPLEXITY_API_KEY),
+    researchBaseUrl: toNonEmptyString(process.env.LIVE_AGENT_RESEARCH_BASE_URL) ?? "https://api.perplexity.ai",
+    researchModel: toNonEmptyString(process.env.LIVE_AGENT_RESEARCH_MODEL) ?? "sonar-pro",
+    researchMockResponseJson: toNonEmptyString(process.env.LIVE_AGENT_RESEARCH_MOCK_RESPONSE_JSON),
   };
 }
 
@@ -415,7 +738,7 @@ function getConversationContextConfig(config: GeminiConfig): ConversationContext
     targetTokens: Math.min(targetTokens, maxTokens),
     keepRecentTurns: toPositiveInt(process.env.LIVE_AGENT_CONTEXT_KEEP_RECENT_TURNS, 8),
     maxSessions: toPositiveInt(process.env.LIVE_AGENT_CONTEXT_MAX_SESSIONS, 200),
-    summaryModel: toNonEmptyString(process.env.LIVE_AGENT_CONTEXT_SUMMARY_MODEL) ?? config.conversationModel,
+    summaryModel: toNonEmptyString(process.env.LIVE_AGENT_CONTEXT_SUMMARY_MODEL) ?? getReasoningModel(config, "conversation"),
   };
 }
 
@@ -743,94 +1066,135 @@ async function fetchGeminiText(params: {
   responseMimeType?: "application/json" | "text/plain";
   temperature?: number;
 }): Promise<ReasoningTextResult | null> {
-  const { config } = params;
-  if (!config.apiKey) {
+  if (!params.config.apiKey) {
+    return null;
+  }
+  return generateGoogleGenAiText({
+    apiKey: params.config.apiKey,
+    baseUrl: params.config.baseUrl,
+    timeoutMs: params.config.timeoutMs,
+    model: params.model,
+    prompt: params.prompt,
+    responseMimeType: params.responseMimeType,
+    temperature: params.temperature,
+  });
+}
+
+function extractOpenAiCompatibleText(payload: unknown): string | null {
+  if (!isRecord(payload)) {
+    return null;
+  }
+  const choices = Array.isArray(payload.choices) ? payload.choices : [];
+  const firstChoice = choices.find((value) => isRecord(value) && isRecord(value.message));
+  if (!firstChoice || !isRecord(firstChoice) || !isRecord(firstChoice.message)) {
+    return null;
+  }
+  const content = firstChoice.message.content;
+  if (typeof content === "string" && content.trim().length > 0) {
+    return content.trim();
+  }
+  if (!Array.isArray(content)) {
+    return null;
+  }
+  const parts: string[] = [];
+  for (const part of content) {
+    if (!isRecord(part) || typeof part.text !== "string") {
+      continue;
+    }
+    parts.push(part.text);
+  }
+  return parts.length > 0 ? parts.join("\n").trim() : null;
+}
+
+function parseOpenAiCompatibleUsage(payload: Record<string, unknown>): ReasoningTextUsage | undefined {
+  if (!isRecord(payload.usage)) {
+    return undefined;
+  }
+  const inputTokens = toNonNegativeInt(payload.usage.prompt_tokens);
+  const outputTokens = toNonNegativeInt(payload.usage.completion_tokens);
+  const totalTokens = toNonNegativeInt(payload.usage.total_tokens);
+  if (inputTokens === null && outputTokens === null && totalTokens === null) {
+    return undefined;
+  }
+  return {
+    inputTokens: inputTokens ?? undefined,
+    outputTokens: outputTokens ?? undefined,
+    totalTokens: totalTokens ?? undefined,
+    raw: payload.usage,
+  };
+}
+
+async function fetchMoonshotText(params: {
+  config: GeminiConfig;
+  model: string;
+  prompt: string;
+  systemPrompt?: string;
+  responseMimeType?: "application/json" | "text/plain";
+  temperature?: number;
+}): Promise<ReasoningTextResult | null> {
+  if (!params.config.moonshotApiKey) {
     return null;
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
-  const baseUrl = config.baseUrl.replace(/\/+$/, "");
-  const endpoint = `${baseUrl}/models/${encodeURIComponent(params.model)}:generateContent?key=${encodeURIComponent(
-    config.apiKey,
-  )}`;
+  const timeout = setTimeout(() => controller.abort(), params.config.moonshotTimeoutMs);
+  const baseUrl = params.config.moonshotBaseUrl.replace(/\/+$/, "");
+  const endpoint = `${baseUrl}/chat/completions`;
 
   try {
     const body: Record<string, unknown> = {
-      contents: [
+      model: params.model,
+      temperature: normalizeMoonshotTemperature(
+        params.model,
+        params.temperature,
+        params.config.moonshotTemperature,
+      ),
+      messages: [
+        {
+          role: "system",
+          content: params.systemPrompt ?? "You are a concise multimodal assistant. Follow the user instructions exactly.",
+        },
         {
           role: "user",
-          parts: [{ text: params.prompt }],
+          content: params.prompt,
         },
       ],
-      generationConfig: {
-        temperature: params.temperature ?? 0.2,
-      },
     };
 
-    if (params.responseMimeType) {
-      body.generationConfig = {
-        ...(isRecord(body.generationConfig) ? body.generationConfig : {}),
-        responseMimeType: params.responseMimeType,
+    if (params.responseMimeType === "application/json") {
+      body.response_format = {
+        type: "json_object",
       };
     }
 
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${params.config.moonshotApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
       signal: controller.signal,
     });
-
     if (!response.ok) {
+      const errorBody = await response.text().catch(() => "(unreadable)");
+      console.error(
+        `[live-agent] Moonshot translation failed: HTTP ${response.status} ${response.statusText}`,
+        { model: params.model, endpoint, errorBody: errorBody.slice(0, 300) },
+      );
       return null;
     }
-
     const parsed = (await response.json()) as unknown;
-    if (!isRecord(parsed) || !Array.isArray(parsed.candidates)) {
+    if (!isRecord(parsed)) {
       return null;
     }
-
-    const parts: string[] = [];
-    for (const candidate of parsed.candidates) {
-      if (!isRecord(candidate)) {
-        continue;
-      }
-      const content = candidate.content;
-      if (!isRecord(content) || !Array.isArray(content.parts)) {
-        continue;
-      }
-      for (const part of content.parts) {
-        if (!isRecord(part) || typeof part.text !== "string") {
-          continue;
-        }
-        parts.push(part.text);
-      }
-    }
-
-    if (parts.length === 0) {
+    const text = extractOpenAiCompatibleText(parsed);
+    if (!text) {
       return null;
     }
-
-    const usageRaw = isRecord(parsed.usageMetadata) ? parsed.usageMetadata : null;
-    const inputTokens = usageRaw ? toNonNegativeInt(usageRaw.promptTokenCount) : null;
-    const outputTokens = usageRaw ? toNonNegativeInt(usageRaw.candidatesTokenCount) : null;
-    const totalTokens = usageRaw ? toNonNegativeInt(usageRaw.totalTokenCount) : null;
-    const usage =
-      usageRaw && (inputTokens !== null || outputTokens !== null || totalTokens !== null)
-        ? {
-            inputTokens: inputTokens ?? undefined,
-            outputTokens: outputTokens ?? undefined,
-            totalTokens: totalTokens ?? undefined,
-            raw: usageRaw,
-          }
-        : undefined;
-
     return {
-      text: parts.join("\n").trim(),
-      usage,
+      text,
+      usage: parseOpenAiCompatibleUsage(parsed),
     };
   } catch {
     return null;
@@ -839,24 +1203,313 @@ async function fetchGeminiText(params: {
   }
 }
 
+function parseJsonValue(raw: string): unknown | null {
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeResearchText(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const withoutThinking = value.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  return withoutThinking.length > 0 ? withoutThinking : null;
+}
+
+function toUrlString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return null;
+  }
+  try {
+    return new URL(normalized).toString();
+  } catch {
+    return null;
+  }
+}
+
+function extractDomain(url: string): string | null {
+  try {
+    return new URL(url).hostname || null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeResearchCitation(value: unknown): ResearchCitation | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const url =
+    toUrlString(value.url) ??
+    toUrlString(value.link) ??
+    toUrlString(value.uri) ??
+    toUrlString(value.source_url);
+  if (!url) {
+    return null;
+  }
+  return {
+    title: toNonEmptyString(value.title) ?? extractDomain(url) ?? "source",
+    url,
+    domain: toNonEmptyString(value.domain) ?? extractDomain(url),
+    snippet: toNonEmptyString(value.snippet) ?? toNonEmptyString(value.summary) ?? null,
+    publishedAt:
+      toNonEmptyString(value.publishedAt) ??
+      toNonEmptyString(value.published_at) ??
+      toNonEmptyString(value.date) ??
+      toNonEmptyString(value.last_updated) ??
+      null,
+    source: toNonEmptyString(value.source) ?? toNonEmptyString(value.provider) ?? null,
+  };
+}
+
+function buildResearchCitations(payload: Record<string, unknown>, maxCitations: number): ResearchCitation[] {
+  const searchResults = Array.isArray(payload.search_results) ? payload.search_results : [];
+  const normalizedSearchResults = searchResults
+    .map((value) => normalizeResearchCitation(value))
+    .filter((value): value is ResearchCitation => value !== null);
+  const byUrl = new Map(normalizedSearchResults.map((item) => [item.url, item]));
+
+  const citations: ResearchCitation[] = [];
+  const seen = new Set<string>();
+  const citationUrls = Array.isArray(payload.citations) ? payload.citations : [];
+  for (const value of citationUrls) {
+    const url = toUrlString(value);
+    if (!url || seen.has(url)) {
+      continue;
+    }
+    const mapped = byUrl.get(url);
+    citations.push(
+      mapped ?? {
+        title: extractDomain(url) ?? "source",
+        url,
+        domain: extractDomain(url),
+        snippet: null,
+        publishedAt: null,
+        source: null,
+      },
+    );
+    seen.add(url);
+    if (citations.length >= maxCitations) {
+      return citations;
+    }
+  }
+
+  for (const item of normalizedSearchResults) {
+    if (seen.has(item.url)) {
+      continue;
+    }
+    citations.push(item);
+    seen.add(item.url);
+    if (citations.length >= maxCitations) {
+      break;
+    }
+  }
+
+  return citations;
+}
+
+function parseResearchUsage(payload: Record<string, unknown>): ReasoningTextUsage | undefined {
+  if (!isRecord(payload.usage)) {
+    return undefined;
+  }
+  const inputTokens = toNonNegativeInt(payload.usage.prompt_tokens);
+  const outputTokens = toNonNegativeInt(payload.usage.completion_tokens);
+  const totalTokens = toNonNegativeInt(payload.usage.total_tokens);
+  if (inputTokens === null && outputTokens === null && totalTokens === null) {
+    return undefined;
+  }
+  return {
+    inputTokens: inputTokens ?? undefined,
+    outputTokens: outputTokens ?? undefined,
+    totalTokens: totalTokens ?? undefined,
+    raw: payload.usage,
+  };
+}
+
+function parsePerplexityResearchPayload(params: {
+  payload: Record<string, unknown>;
+  query: string;
+  maxCitations: number;
+  provider: "perplexity";
+  model: string;
+}): ResearchResult | null {
+  const choices = Array.isArray(params.payload.choices) ? params.payload.choices : [];
+  const firstChoice = choices.find((value) => isRecord(value) && isRecord(value.message));
+  const answer =
+    normalizeResearchText(
+      firstChoice && isRecord(firstChoice)
+        ? isRecord(firstChoice.message)
+          ? firstChoice.message.content
+          : null
+        : null,
+    ) ??
+    normalizeResearchText(params.payload.answer) ??
+    normalizeResearchText(params.payload.output);
+  if (!answer) {
+    return null;
+  }
+
+  const citations = buildResearchCitations(params.payload, params.maxCitations);
+  return {
+    answer,
+    citations,
+    sourceUrls: citations.map((item) => item.url),
+    usage: parseResearchUsage(params.payload),
+    raw: {
+      provider: params.provider,
+      model: params.model,
+      query: params.query,
+    },
+  };
+}
+
+function buildFallbackResearchResult(params: { query: string; maxCitations: number }): ResearchResult {
+  return {
+    answer: `Grounded research provider unavailable. Returning deterministic fallback summary for query: ${params.query}`,
+    citations: [],
+    sourceUrls: [],
+    raw: {
+      provider: "fallback",
+      model: "fallback-research-pack",
+      query: params.query,
+    },
+  };
+}
+
+async function queryPerplexityResearch(params: {
+  config: GeminiConfig;
+  query: string;
+  maxCitations: number;
+}): Promise<ResearchResult | null> {
+  if (params.config.researchMockResponseJson) {
+    const parsed = parseJsonValue(params.config.researchMockResponseJson);
+    if (isRecord(parsed)) {
+      return parsePerplexityResearchPayload({
+        payload: parsed,
+        query: params.query,
+        maxCitations: params.maxCitations,
+        provider: "perplexity",
+        model: params.config.researchModel,
+      });
+    }
+  }
+
+  if (!params.config.researchApiKey) {
+    return null;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), params.config.timeoutMs);
+  const baseUrl = params.config.researchBaseUrl.replace(/\/+$/, "");
+  const endpoint = `${baseUrl}/chat/completions`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${params.config.researchApiKey}`,
+      },
+      body: JSON.stringify({
+        model: params.config.researchModel,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a concise grounded research assistant. Answer directly and rely on the provider citation/search results for provenance.",
+          },
+          {
+            role: "user",
+            content: params.query,
+          },
+        ],
+        temperature: 0.2,
+      }),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const parsed = (await response.json()) as unknown;
+    if (!isRecord(parsed)) {
+      return null;
+    }
+    return parsePerplexityResearchPayload({
+      payload: parsed,
+      query: params.query,
+      maxCitations: params.maxCitations,
+      provider: "perplexity",
+      model: params.config.researchModel,
+    });
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function createLiveAgentCapabilitySet(config: GeminiConfig, usageTotals: AgentUsageTotals): LiveAgentCapabilitySet {
+  const reasoningProvider = resolveReasoningProvider(config);
+  const reasoningModel = getReasoningModel(config, "conversation");
+  const reasoningSelectionReason = getReasoningSelectionReason(config, reasoningProvider);
+
+  console.info("[live-agent] capability init", {
+    textProvider: config.textProvider,
+    reasoningProvider,
+    reasoningModel,
+    hasMoonshotKey: Boolean(config.moonshotApiKey),
+    hasGeminiKey: Boolean(config.apiKey),
+  });
+
   const reasoning: ReasoningCapabilityAdapter = {
     descriptor: {
       capability: "reasoning",
-      adapterId: config.apiKey ? "gemini-reasoning" : "fallback-reasoning",
-      provider: config.apiKey ? "gemini_api" : "fallback",
-      model: config.conversationModel,
-      mode: config.apiKey ? "default" : "fallback",
+      adapterId:
+        reasoningProvider === "moonshot"
+          ? "moonshot-kimi-k2_5-reasoning"
+          : reasoningProvider === "gemini_api"
+            ? "google-genai-sdk-reasoning"
+            : "fallback-reasoning",
+      provider: reasoningProvider === "fallback" ? "fallback" : reasoningProvider,
+      model: reasoningModel,
+      mode: reasoningProvider === "fallback" ? "fallback" : "default",
+      selection: {
+        defaultProvider: "gemini_api",
+        defaultModel: config.conversationModel,
+        secondaryProvider: config.moonshotApiKey ? "moonshot" : null,
+        secondaryModel: config.moonshotApiKey ? config.moonshotConversationModel : null,
+        selectionReason: reasoningSelectionReason,
+      },
     },
     async generateText(params) {
-      const model = params.model ?? config.conversationModel;
-      const result = await fetchGeminiText({
-        config,
-        model,
-        prompt: params.prompt,
-        responseMimeType: params.responseMimeType,
-        temperature: params.temperature,
-      });
+      const model = params.model ?? reasoningModel;
+      const result =
+        reasoningProvider === "moonshot"
+          ? await fetchMoonshotText({
+              config,
+              model,
+              prompt: params.prompt,
+              responseMimeType: params.responseMimeType,
+              temperature: params.temperature,
+              systemPrompt:
+                "You are a concise real-time reasoning assistant. Follow the prompt exactly and return only the requested content.",
+            })
+          : reasoningProvider === "gemini_api"
+            ? await fetchGeminiText({
+                config,
+                model,
+                prompt: params.prompt,
+                responseMimeType: params.responseMimeType,
+                temperature: params.temperature,
+              })
+            : null;
       if (result?.usage) {
         recordAgentUsage(usageTotals, model, result.usage);
       }
@@ -874,10 +1527,48 @@ function createLiveAgentCapabilitySet(config: GeminiConfig, usageTotals: AgentUs
     },
   };
 
+  const researchSelectionReason: LiveAgentResearchSelectionReason = config.researchMockResponseJson
+    ? "mock_response"
+    : config.researchApiKey
+      ? "api_live"
+      : "fallback_pack";
+  const research: ResearchCapabilityAdapter = {
+    descriptor: {
+      capability: "research",
+      adapterId: config.researchMockResponseJson
+        ? "perplexity-sonar-mock"
+        : config.researchApiKey
+          ? "perplexity-sonar-live"
+          : "fallback-research-pack",
+      provider: config.researchMockResponseJson || config.researchApiKey ? "perplexity" : "fallback",
+      model: config.researchMockResponseJson || config.researchApiKey ? config.researchModel : "fallback-research-pack",
+      mode: config.researchMockResponseJson ? "simulated" : config.researchApiKey ? "default" : "fallback",
+      selection: {
+        defaultProvider: "perplexity",
+        defaultModel: config.researchModel,
+        selectionReason: researchSelectionReason,
+      },
+    },
+    async query(params) {
+      const query = params.query.trim();
+      if (query.length === 0) {
+        return null;
+      }
+      const maxCitations = Math.max(1, Math.min(8, params.maxCitations ?? 3));
+      const result = await queryPerplexityResearch({
+        config,
+        query,
+        maxCitations,
+      });
+      return result ?? buildFallbackResearchResult({ query, maxCitations });
+    },
+  };
+
   return {
     live,
     reasoning,
-    profile: buildCapabilityProfile([live, reasoning]),
+    research,
+    profile: buildCapabilityProfile([live, reasoning, research]),
   };
 }
 
@@ -895,7 +1586,7 @@ function tryParseJsonObject(value: string): Record<string, unknown> | null {
   }
 }
 
-async function translateWithGemini(params: {
+async function translateWithConfiguredProvider(params: {
   text: string;
   sourceLanguage: string;
   targetLanguage: string;
@@ -903,7 +1594,7 @@ async function translateWithGemini(params: {
   capabilities: LiveAgentCapabilitySet;
   skillsPrompt: string | null;
 }): Promise<TranslationResult | null> {
-  if (!params.config.apiKey) {
+  if (params.capabilities.reasoning.descriptor.provider === "fallback") {
     return null;
   }
 
@@ -918,9 +1609,95 @@ async function translateWithGemini(params: {
     .filter((item): item is string => Boolean(item))
     .join("\n");
 
-  const rawResult = await params.capabilities.reasoning.generateText({
-    model: params.config.translationModel,
+  /* Try primary provider first */
+  const primaryModel = getReasoningModel(params.config, "translation");
+  const primaryResult = await tryTranslationCall({
+    capabilities: params.capabilities,
+    model: primaryModel,
     prompt,
+    provider: params.capabilities.reasoning.descriptor.provider === "moonshot" ? "moonshot" : "gemini",
+    sourceLanguage: params.sourceLanguage,
+    targetLanguage: params.targetLanguage,
+  });
+  if (primaryResult) {
+    return primaryResult;
+  }
+
+  /* Secondary provider fallback: if Moonshot failed, try Gemini and vice versa */
+  const secondaryProvider = params.capabilities.reasoning.descriptor.provider === "moonshot" && params.config.apiKey
+    ? "gemini_api"
+    : params.capabilities.reasoning.descriptor.provider !== "moonshot" && params.config.moonshotApiKey
+      ? "moonshot"
+      : null;
+
+  if (secondaryProvider) {
+    console.warn(
+      `[live-agent] Primary translation provider failed, trying secondary: ${secondaryProvider}`,
+    );
+    const secondaryModel = secondaryProvider === "moonshot"
+      ? params.config.moonshotTranslationModel
+      : params.config.translationModel;
+    const secondaryResult = secondaryProvider === "moonshot"
+      ? await fetchMoonshotText({
+          config: params.config,
+          model: secondaryModel,
+          prompt,
+          responseMimeType: "application/json",
+          temperature: 0.2,
+        })
+      : await fetchGeminiText({
+          config: params.config,
+          model: secondaryModel,
+          prompt,
+          responseMimeType: "application/json",
+          temperature: 0.2,
+        });
+    if (secondaryResult) {
+      const parsed = tryParseJsonObject(secondaryResult.text);
+      const translatedText = parsed ? toNonEmptyString(parsed.translatedText) : null;
+      if (translatedText) {
+        return {
+          translatedText,
+          sourceLanguage: (parsed && normalizeLanguageTag(parsed.sourceLanguage)) ?? params.sourceLanguage,
+          targetLanguage: (parsed && normalizeLanguageTag(parsed.targetLanguage)) ?? params.targetLanguage,
+          provider: secondaryProvider === "moonshot" ? "moonshot" : "gemini",
+          model: secondaryModel,
+          confidence: parsed ? toNullableNumber(parsed.confidence) : null,
+        };
+      }
+    }
+  }
+
+  /* Google Translate free endpoint fallback */
+  const googleResult = await fetchGoogleTranslate({
+    text: params.text,
+    sourceLanguage: params.sourceLanguage,
+    targetLanguage: params.targetLanguage,
+  });
+  if (googleResult) {
+    console.info(
+      `[live-agent] Google Translate fallback succeeded for: "${params.text.slice(0, 40)}"`,
+    );
+    return googleResult;
+  }
+
+  console.warn(
+    `[live-agent] All translation providers (incl. Google Translate) failed for: "${params.text.slice(0, 80)}" (${params.sourceLanguage} -> ${params.targetLanguage}). Falling back to dictionary.`,
+  );
+  return null;
+}
+
+async function tryTranslationCall(params: {
+  capabilities: LiveAgentCapabilitySet;
+  model: string;
+  prompt: string;
+  provider: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+}): Promise<TranslationResult | null> {
+  const rawResult = await params.capabilities.reasoning.generateText({
+    model: params.model,
+    prompt: params.prompt,
     responseMimeType: "application/json",
     temperature: 0.2,
   });
@@ -939,18 +1716,70 @@ async function translateWithGemini(params: {
     return null;
   }
 
-  const sourceLanguage = normalizeLanguageTag(parsed.sourceLanguage) ?? params.sourceLanguage;
-  const targetLanguage = normalizeLanguageTag(parsed.targetLanguage) ?? params.targetLanguage;
-  const confidence = toNullableNumber(parsed.confidence);
-
   return {
     translatedText,
-    sourceLanguage,
-    targetLanguage,
-    provider: "gemini",
-    model: params.config.translationModel,
-    confidence,
+    sourceLanguage: normalizeLanguageTag(parsed.sourceLanguage) ?? params.sourceLanguage,
+    targetLanguage: normalizeLanguageTag(parsed.targetLanguage) ?? params.targetLanguage,
+    provider: params.provider === "moonshot" ? "moonshot" : "gemini",
+    model: params.model,
+    confidence: toNullableNumber(parsed.confidence),
   };
+}
+
+async function fetchGoogleTranslate(params: {
+  text: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+}): Promise<TranslationResult | null> {
+  const sl = params.sourceLanguage.startsWith("ru") ? "ru" : params.sourceLanguage.startsWith("en") ? "en" : params.sourceLanguage;
+  const tl = params.targetLanguage.startsWith("ru") ? "ru" : params.targetLanguage.startsWith("en") ? "en" : params.targetLanguage;
+
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(params.text)}`;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(url, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      console.error(`[live-agent] Google Translate failed: HTTP ${response.status}`);
+      return null;
+    }
+
+    const data = (await response.json()) as unknown;
+    if (!Array.isArray(data) || !Array.isArray(data[0])) {
+      return null;
+    }
+
+    /* Google Translate returns [[['translated text','original text',...], ...], ...] */
+    const segments = data[0] as unknown[];
+    const translatedParts: string[] = [];
+    for (const segment of segments) {
+      if (Array.isArray(segment) && typeof segment[0] === "string") {
+        translatedParts.push(segment[0]);
+      }
+    }
+    const translatedText = translatedParts.join("").trim();
+    if (!translatedText || translatedText === params.text) {
+      return null;
+    }
+
+    return {
+      translatedText,
+      sourceLanguage: sl,
+      targetLanguage: tl,
+      provider: "google_translate",
+      model: "google-translate-free",
+      confidence: 0.85,
+    };
+  } catch (err) {
+    console.error(`[live-agent] Google Translate error:`, err instanceof Error ? err.message : String(err));
+    return null;
+  }
 }
 
 async function generateConversationReply(params: {
@@ -963,20 +1792,24 @@ async function generateConversationReply(params: {
   const inputText = params.inputText;
   const fallback = {
     text: inputText.length > 0
-      ? `Received: "${inputText}". I can continue the dialogue, translate this message, or switch to negotiation mode.`
+      ? `Received: "${inputText}". I can continue the dialogue, translate this message, run grounded research, or switch to negotiation mode.`
       : "Ready for live conversation. Send text or voice and I will respond in real time.",
     provider: "fallback",
     model: "fallback-rule",
   };
 
-  if (process.env.LIVE_AGENT_USE_GEMINI_CHAT === "false") {
+  if (
+    process.env.LIVE_AGENT_USE_GEMINI_CHAT === "false" &&
+    params.capabilities.reasoning.descriptor.provider === "gemini_api"
+  ) {
     return fallback;
   }
 
-  if (!params.config.apiKey) {
+  if (params.capabilities.reasoning.descriptor.provider === "fallback") {
     return fallback;
   }
 
+  const model = getReasoningModel(params.config, "conversation");
   const prompt = [
     "You are a concise real-time voice assistant.",
     "Respond in at most 2 short sentences.",
@@ -989,11 +1822,16 @@ async function generateConversationReply(params: {
     .join("\n");
 
   const generatedResult = await params.capabilities.reasoning.generateText({
-    model: params.config.conversationModel,
+    model,
     prompt,
     responseMimeType: "text/plain",
     temperature: 0.2,
   });
+
+  console.info(
+    `[live-agent] conversation generateText result: ${generatedResult ? `"${generatedResult.text.slice(0, 80)}"` : "null"}`,
+    { model, provider: params.capabilities.reasoning.descriptor.provider },
+  );
 
   if (!generatedResult) {
     return fallback;
@@ -1001,8 +1839,32 @@ async function generateConversationReply(params: {
 
   return {
     text: generatedResult.text,
-    provider: "gemini",
-    model: params.config.conversationModel,
+    provider: params.capabilities.reasoning.descriptor.provider,
+    model,
+  };
+}
+
+function parseDelegatedStoryDirectives(rawPrompt: string): DelegatedStoryDirectives {
+  let prompt = rawPrompt.trim();
+  const textOnly = /\btext\s+only\b/i.test(prompt);
+  const noImages = /\bno\s+images?\b/i.test(prompt);
+  const noVideo = /\bno\s+videos?\b/i.test(prompt);
+  const segmentMatch = prompt.match(/\b([2-6])\s*(?:scene|scenes|segment|segments)\b/i);
+
+  prompt = prompt
+    .replace(/\btext\s+only\b[\s.!,-]*/gi, " ")
+    .replace(/\bno\s+images?\b[\s.!,-]*/gi, " ")
+    .replace(/\bno\s+videos?\b[\s.!,-]*/gi, " ")
+    .replace(/\b[2-6]\s*(?:scene|scenes|segment|segments)\b[\s.!,-]*/gi, " ")
+    .replace(/\s+/g, " ")
+    .replace(/^[,.;:\-\s]+|[,.;:\-\s]+$/g, "")
+    .trim();
+
+  return {
+    prompt: prompt.length > 0 ? prompt : rawPrompt.trim(),
+    includeImages: textOnly ? false : noImages ? false : undefined,
+    includeVideo: textOnly ? false : noVideo ? false : undefined,
+    segmentCount: segmentMatch ? Number.parseInt(segmentMatch[1] ?? "", 10) : undefined,
   };
 }
 
@@ -1025,10 +1887,14 @@ function detectDelegationRequest(text: string): DelegationRequest | null {
 
   const storyMatch = trimmed.match(/(?:^|\b)delegate\s+story\s*[:\-]\s*(.+)$/i);
   if (storyMatch && storyMatch[1]) {
+    const directives = parseDelegatedStoryDirectives(storyMatch[1]);
     return {
       intent: "story",
       input: {
-        prompt: storyMatch[1].trim(),
+        prompt: directives.prompt,
+        ...(typeof directives.includeImages === "boolean" ? { includeImages: directives.includeImages } : {}),
+        ...(typeof directives.includeVideo === "boolean" ? { includeVideo: directives.includeVideo } : {}),
+        ...(typeof directives.segmentCount === "number" ? { segmentCount: directives.segmentCount } : {}),
       },
       reason: "User requested storytelling delegation from live conversation.",
     };
@@ -1131,8 +1997,10 @@ async function handleTranslation(params: {
   const targetLanguage = input.targetLanguage ?? (sourceLanguage === "ru" ? "en" : "ru");
 
   if (input.text.length === 0) {
+    const readyText = "Translation mode is ready. Provide text or voice input.";
     return {
-      message: "Translation mode is ready. Provide text or voice input.",
+      text: readyText,
+      message: readyText,
       mode: "translation",
       translation: {
         sourceLanguage,
@@ -1141,20 +2009,131 @@ async function handleTranslation(params: {
     };
   }
 
+  /* Translation cascade: LLM providers → Google Translate → dictionary fallback */
+  const llmResult = await translateWithConfiguredProvider({
+    text: input.text,
+    sourceLanguage,
+    targetLanguage,
+    config: params.config,
+    capabilities: params.capabilities,
+    skillsPrompt: params.skillsPrompt,
+  });
+
   const translation =
-    (await translateWithGemini({
-      text: input.text,
-      sourceLanguage,
-      targetLanguage,
-      config: params.config,
-      capabilities: params.capabilities,
-      skillsPrompt: params.skillsPrompt,
-    })) ?? fallbackTranslate(input.text, sourceLanguage, targetLanguage);
+    llmResult ??
+    (await fetchGoogleTranslate({ text: input.text, sourceLanguage, targetLanguage })) ??
+    fallbackTranslate(input.text, sourceLanguage, targetLanguage);
 
   return {
+    text: translation.translatedText,
     message: `Translation (${translation.sourceLanguage} -> ${translation.targetLanguage}): ${translation.translatedText}`,
     mode: "translation",
     translation,
+  };
+}
+
+async function handleResearch(params: {
+  input: NormalizedLiveInput;
+  capabilities: LiveAgentCapabilitySet;
+  skillsPrompt: string | null;
+}): Promise<Record<string, unknown>> {
+  const query = params.input.query.trim();
+  if (query.length === 0) {
+    const readyText = "Research mode is ready. Provide a query to return answer and citations.";
+    return {
+      text: readyText,
+      message: readyText,
+      mode: "research",
+      research: {
+        query: "",
+        answer: readyText,
+        displayText: readyText,
+        debugSummary: buildResearchDebugSummary({
+          provider: params.capabilities.research.descriptor.provider,
+          model: params.capabilities.research.descriptor.model,
+          citationCount: 0,
+          sourceUrlCount: 0,
+        }),
+        provider: params.capabilities.research.descriptor.provider,
+        model: params.capabilities.research.descriptor.model,
+        selectionReason: params.capabilities.research.descriptor.selection?.selectionReason ?? null,
+        citations: [],
+        citationCount: 0,
+        sourceUrls: [],
+        sourceUrlCount: 0,
+      },
+    };
+  }
+
+  if (isAmbiguousKeyResearchQuery(query)) {
+    const clarification = buildResearchClarificationPrompt(query);
+    return {
+      text: clarification,
+      message: clarification,
+      mode: "research",
+      research: {
+        query,
+        answer: clarification,
+        displayText: clarification,
+        debugSummary: buildResearchDebugSummary({
+          provider: params.capabilities.research.descriptor.provider,
+          model: params.capabilities.research.descriptor.model,
+          citationCount: 0,
+          sourceUrlCount: 0,
+          clarificationRequired: true,
+        }),
+        clarificationRequired: true,
+        provider: params.capabilities.research.descriptor.provider,
+        model: params.capabilities.research.descriptor.model,
+        selectionReason: params.capabilities.research.descriptor.selection?.selectionReason ?? null,
+        citations: [],
+        citationCount: 0,
+        sourceUrls: [],
+        sourceUrlCount: 0,
+      },
+    };
+  }
+
+  const researchQuery = [
+    params.skillsPrompt ? `Skill directives:\n${params.skillsPrompt}` : null,
+    query,
+  ]
+    .filter((item): item is string => Boolean(item))
+    .join("\n\n");
+
+  const result = await params.capabilities.research.query({
+    query: researchQuery,
+    contextPrompt: params.skillsPrompt,
+    maxCitations: params.input.maxCitations,
+  });
+  const answer = result?.answer ?? `Research adapter returned no grounded answer for query: ${query}`;
+  const displayText = buildResearchDisplayText(answer);
+  const citations = Array.isArray(result?.citations) ? result.citations : [];
+  const sourceUrls = Array.isArray(result?.sourceUrls) ? result.sourceUrls : [];
+  const debugSummary = buildResearchDebugSummary({
+    provider: params.capabilities.research.descriptor.provider,
+    model: params.capabilities.research.descriptor.model,
+    citationCount: citations.length,
+    sourceUrlCount: sourceUrls.length,
+  });
+
+  return {
+    text: displayText,
+    message: answer,
+    mode: "research",
+    research: {
+      query,
+      answer,
+      displayText,
+      debugSummary,
+      provider: params.capabilities.research.descriptor.provider,
+      model: params.capabilities.research.descriptor.model,
+      selectionReason: params.capabilities.research.descriptor.selection?.selectionReason ?? null,
+      citations,
+      citationCount: citations.length,
+      sourceUrls,
+      sourceUrlCount: sourceUrls.length,
+    },
   };
 }
 
@@ -1190,13 +2169,28 @@ function handleNegotiation(input: NormalizedLiveInput): Record<string, unknown> 
     rationale.push("Offer already aligns with current constraints.");
   }
 
+  /* Evaluate the RAW client offer against constraints (not the adjusted one) */
+  const rawEvaluation = evaluateOffer(sourceOffer, input.constraints);
+
   const messageParts = [
-    `Negotiation update: price ${formatNumber(proposedOffer.price)}, delivery ${formatNumber(proposedOffer.deliveryDays)} days, sla ${formatNumber(proposedOffer.sla)}.`,
-    evaluation.allSatisfied ? "Constraints satisfied." : "Constraints still need adjustment.",
-    requiresUserConfirmation
-      ? "Final agreement detected. Explicit user confirmation is required before commit."
-      : "Continue negotiation until both sides confirm.",
+    `Client offer: price ${formatNumber(sourceOffer.price)}, delivery ${formatNumber(sourceOffer.deliveryDays)} days, sla ${formatNumber(sourceOffer.sla)}.`,
   ];
+
+  if (!rawEvaluation.allSatisfied) {
+    const violations: string[] = [];
+    if (!rawEvaluation.priceOk) violations.push(`price ${formatNumber(sourceOffer.price)} > max ${formatNumber(input.constraints.maxPrice)}`);
+    if (!rawEvaluation.deliveryOk) violations.push(`delivery ${formatNumber(sourceOffer.deliveryDays)}d > max ${formatNumber(input.constraints.maxDeliveryDays)}d`);
+    if (!rawEvaluation.slaOk) violations.push(`sla ${formatNumber(sourceOffer.sla)}% < min ${formatNumber(input.constraints.minSla)}%`);
+    messageParts.push(`❌ Constraints violated: ${violations.join("; ")}.`);
+    messageParts.push(`Counter-offer: price ${formatNumber(proposedOffer.price)}, delivery ${formatNumber(proposedOffer.deliveryDays)} days, sla ${formatNumber(proposedOffer.sla)}.`);
+  } else {
+    messageParts.push("✅ All constraints satisfied.");
+    messageParts.push(
+      requiresUserConfirmation
+        ? "Final agreement detected. Explicit user confirmation is required before commit."
+        : "Continue negotiation until both sides confirm.",
+    );
+  }
 
   return {
     message: messageParts.join(" "),
@@ -1245,6 +2239,12 @@ async function handleByIntent(params: {
         capabilities,
         skillsPrompt,
       });
+    case "research":
+      return handleResearch({
+        input,
+        capabilities,
+        skillsPrompt,
+      });
     case "negotiation":
       return handleNegotiation(input);
     case "conversation":
@@ -1266,6 +2266,16 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
   const config = getGeminiConfig();
   const usageTotals = createAgentUsageTotals();
   const capabilities = createLiveAgentCapabilitySet(config, usageTotals);
+
+  console.info("[live-agent] runLiveAgent env check", {
+    intent: request.payload.intent,
+    textProvider: config.textProvider,
+    hasMoonshotKey: Boolean(config.moonshotApiKey),
+    moonshotKeyPrefix: config.moonshotApiKey ? `${config.moonshotApiKey.slice(0, 8)}...` : "MISSING",
+    hasGeminiKey: Boolean(config.apiKey),
+    reasoningProvider: capabilities.reasoning.descriptor.provider,
+    reasoningModel: capabilities.reasoning.descriptor.model,
+  });
   const skillsRuntime = await getSkillsRuntimeSnapshot({
     agentId: "live-agent",
   });

@@ -106,7 +106,7 @@ async function withMockBadgeServer(
 }
 
 test(
-  "public-badge-check passes when tracked badge details include valid plugin marketplace evidence",
+  "public-badge-check passes when tracked badge details include valid plugin marketplace and provider usage evidence",
   { skip: skipIfNoPowerShell },
   async () => {
     const badge = JSON.parse(readFileSync(trackedBadgePath, "utf8")) as Record<string, unknown>;
@@ -117,6 +117,7 @@ test(
       assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
       assert.match(result.stdout, /Public badge endpoint is valid\./);
       assert.match(result.stdout, /Device-node-updates status \(badge evidence\): pass/);
+      assert.match(result.stdout, /Provider-usage status \(badge evidence\): pass/);
     });
   },
 );
@@ -142,6 +143,26 @@ test(
         output,
         /pluginMarketplace must be validated with observed status,\s*totals\/lifecycle\/conflicts\/sign\s*ing consistency,\s*permission bounds,\s*and latest plugin\/signing\/ISO fields\./,
       );
+    });
+  },
+);
+
+test(
+  "public-badge-check fails when provider usage validation is false",
+  { skip: skipIfNoPowerShell },
+  async () => {
+    const badge = JSON.parse(readFileSync(trackedBadgePath, "utf8")) as Record<string, unknown>;
+    const details = JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>;
+    const failingDetails = JSON.parse(JSON.stringify(details)) as Record<string, unknown>;
+
+    const providerUsage = failingDetails.providerUsage as Record<string, unknown>;
+    providerUsage.validated = false;
+
+    await withMockBadgeServer(badge, failingDetails, async ({ badgeEndpoint, detailsEndpoint }) => {
+      const result = await runPublicBadgeCheck({ badgeEndpoint, detailsEndpoint });
+      assert.equal(result.status, 1, `${result.stderr}\n${result.stdout}`);
+      const output = `${result.stderr}\n${result.stdout}`;
+      assert.match(output, /providerUsage must be validated with entries>=1 and activeSecondaryProviders>=0\./);
     });
   },
 );

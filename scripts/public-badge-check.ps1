@@ -123,7 +123,7 @@ if (-not $SkipDetails) {
     Fail "Public badge details endpoint is not reachable: $detailsEndpoint"
   }
 
-  Assert-RequiredFields -Required @("ok", "generatedAt", "checks", "violations", "roundTripMs", "costEstimate", "tokensUsed", "evidence", "badge") -Payload $details -ScopeName "badge-details"
+  Assert-RequiredFields -Required @("ok", "generatedAt", "checks", "violations", "roundTripMs", "costEstimate", "tokensUsed", "evidence", "providerUsage", "badge") -Payload $details -ScopeName "badge-details"
 
   if ($details.badge -eq $null) {
     Fail "badge-details JSON field 'badge' must be present."
@@ -139,6 +139,10 @@ if (-not $SkipDetails) {
 
   if ($details.evidence -eq $null) {
     Fail "badge-details JSON field 'evidence' must be present."
+  }
+
+  if ($details.providerUsage -eq $null) {
+    Fail "badge-details JSON field 'providerUsage' must be present."
   }
 
   Assert-RequiredFields -Required @("currency", "geminiLiveUsd", "imagenUsd", "veoUsd", "ttsUsd", "totalUsd", "source") -Payload $details.costEstimate -ScopeName "badge-details.costEstimate"
@@ -208,6 +212,7 @@ if (-not $SkipDetails) {
   $pluginMarketplaceEvidence = $details.evidence.pluginMarketplace
   $deviceNodesEvidence = $details.evidence.deviceNodes
   $agentUsageEvidence = $details.evidence.agentUsage
+  $providerUsageEvidence = $details.providerUsage
   if ($null -eq $truncationEvidence) {
     Fail "badge-details evidence is missing operatorTurnTruncation block."
   }
@@ -234,6 +239,9 @@ if (-not $SkipDetails) {
   }
   if ($null -eq $agentUsageEvidence) {
     Fail "badge-details evidence is missing agentUsage block."
+  }
+  if ($null -eq $providerUsageEvidence) {
+    Fail "badge-details providerUsage block must be present."
   }
 
   $turnEvidenceRequired = @("status", "validated", "expectedEventSeen", "total", "uniqueRuns", "uniqueSessions", "latestSeenAt", "latestSeenAtIsIso")
@@ -384,6 +392,35 @@ if (-not $SkipDetails) {
     Fail "badge-details evidence agentUsage.status must be one of [pass, fail]."
   }
 
+  $providerUsageEvidenceRequired = @("status", "validated", "activeSecondaryProviders", "entries")
+  Assert-RequiredFields -Required $providerUsageEvidenceRequired -Payload $providerUsageEvidence -ScopeName "badge-details.providerUsage"
+  $providerUsageStatus = [string]$providerUsageEvidence.status
+  if (-not ($allowedTurnEvidenceStatuses -contains $providerUsageStatus)) {
+    Fail "badge-details providerUsage.status must be one of [pass, fail]."
+  }
+  $providerUsageActiveSecondaryProviders = 0
+  if (-not [int]::TryParse([string]$providerUsageEvidence.activeSecondaryProviders, [ref]$providerUsageActiveSecondaryProviders) -or $providerUsageActiveSecondaryProviders -lt 0) {
+    Fail "badge-details providerUsage.activeSecondaryProviders must be a non-negative integer."
+  }
+  $providerUsageEntries = @($providerUsageEvidence.entries)
+  if ($providerUsageEntries.Count -lt 1) {
+    Fail "badge-details providerUsage.entries must contain at least one provenance entry."
+  }
+  $providerUsagePrimaryEntry = $providerUsageEntries[0]
+  if ($null -eq $providerUsagePrimaryEntry) {
+    Fail "badge-details providerUsage primary entry must be present."
+  }
+  Assert-RequiredFields -Required @("route", "capability", "selectedProvider", "selectedModel", "selectionReason") -Payload $providerUsagePrimaryEntry -ScopeName "badge-details.providerUsage.primaryEntry"
+  if (
+    [string]::IsNullOrWhiteSpace([string]$providerUsagePrimaryEntry.route) -or
+    [string]::IsNullOrWhiteSpace([string]$providerUsagePrimaryEntry.capability) -or
+    [string]::IsNullOrWhiteSpace([string]$providerUsagePrimaryEntry.selectedProvider) -or
+    [string]::IsNullOrWhiteSpace([string]$providerUsagePrimaryEntry.selectedModel) -or
+    [string]::IsNullOrWhiteSpace([string]$providerUsagePrimaryEntry.selectionReason)
+  ) {
+    Fail "badge-details providerUsage primary entry must include route/capability/selectedProvider/selectedModel/selectionReason."
+  }
+
   $deviceNodeUpdatesStatus = "unavailable"
   $updatesValidated = ($deviceNodesEvidence.updatesValidated -eq $true)
   $updatesHasUpsert = ($deviceNodesEvidence.updatesHasUpsert -eq $true)
@@ -420,7 +457,8 @@ if (-not $SkipDetails) {
       @{ Name = "skillsRegistry"; Status = $skillsRegistryStatus },
       @{ Name = "pluginMarketplace"; Status = $pluginMarketplaceStatus },
       @{ Name = "deviceNodes"; Status = $deviceNodesStatus },
-      @{ Name = "agentUsage"; Status = $agentUsageStatus }
+      @{ Name = "agentUsage"; Status = $agentUsageStatus },
+      @{ Name = "providerUsage"; Status = $providerUsageStatus }
     )
     foreach ($statusCheck in $statusChecks) {
       if ([string]$statusCheck.Status -ne "pass") {
@@ -521,9 +559,19 @@ if (-not $SkipDetails) {
     ) {
       Fail "badge-details evidence agentUsage must be validated with total/unique/calls/tokens consistency, models>=1, summarySource in [operator_summary,gateway_runtime], and summaryStatus=observed."
     }
+    if (
+      -not [bool]$providerUsageEvidence.validated -or
+      $providerUsageEntries.Count -lt 1 -or
+      $providerUsageActiveSecondaryProviders -lt 0
+    ) {
+      Fail "badge-details providerUsage must be validated with entries>=1 and activeSecondaryProviders>=0."
+    }
   }
 
   Write-Host ("Device-node-updates status (badge evidence): " + $deviceNodeUpdatesStatus)
+  Write-Host ("Provider-usage status (badge evidence): " + $providerUsageStatus)
+  Write-Host ("Provider-usage active secondary providers (badge evidence): " + $providerUsageActiveSecondaryProviders)
+  Write-Host ("Provider-usage primary entry (badge evidence): " + [string]$providerUsagePrimaryEntry.route + "/" + [string]$providerUsagePrimaryEntry.capability + " -> " + [string]$providerUsagePrimaryEntry.selectedProvider + "/" + [string]$providerUsagePrimaryEntry.selectedModel)
 }
 
 Write-Host "Public badge endpoint is valid."

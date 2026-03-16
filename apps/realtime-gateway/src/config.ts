@@ -1,3 +1,8 @@
+import {
+  parseLiveGatewayAuthProfileConfigs,
+  resolveCredentialValueWithProfile,
+} from "@mla/skills";
+
 export type LiveApiProtocol = "gemini" | "passthrough";
 export type GatewayTransportMode = "websocket" | "webrtc";
 export type GatewayWebrtcRolloutStage = "disabled" | "spike" | "shadow" | "canary";
@@ -21,6 +26,7 @@ export type GatewayConfig = {
   gatewayWebrtcRollbackReady: boolean;
   orchestratorUrl: string;
   orchestratorTimeoutMs: number;
+  orchestratorStoryTimeoutMs: number;
   orchestratorMaxRetries: number;
   orchestratorRetryBackoffMs: number;
   liveApiEnabled: boolean;
@@ -54,6 +60,9 @@ export type GatewayConfig = {
   liveHealthProbeGraceMs: number;
   liveMaxStaleChunkMs: number;
 };
+
+const DEFAULT_GEMINI_LIVE_API_WS_URL =
+  "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
 
 function parseLiveApiProtocol(value: string | undefined): LiveApiProtocol {
   if (value === "passthrough") {
@@ -166,6 +175,25 @@ function parseOptionalJsonObject(value: string | undefined): Record<string, unkn
   }
 }
 
+function resolveLiveApiApiKey(env: NodeJS.ProcessEnv): string | undefined {
+  return (
+    parseOptionalString(env.LIVE_API_API_KEY) ??
+    parseOptionalString(env.LIVE_AGENT_GEMINI_API_KEY) ??
+    parseOptionalString(env.GEMINI_API_KEY)
+  );
+}
+
+function resolveLiveApiWsUrl(env: NodeJS.ProcessEnv, protocol: LiveApiProtocol): string | undefined {
+  const explicit = parseOptionalString(env.LIVE_API_WS_URL);
+  if (explicit) {
+    return explicit;
+  }
+  if (protocol === "gemini") {
+    return DEFAULT_GEMINI_LIVE_API_WS_URL;
+  }
+  return undefined;
+}
+
 function parseTranscriptReplacements(value: string | undefined): TranscriptReplacementRule[] {
   const normalized = parseOptionalString(value);
   if (!normalized) {
@@ -220,48 +248,43 @@ function parseTranscriptReplacements(value: string | undefined): TranscriptRepla
   }
 }
 
-function parseAuthProfilesJson(value: string | undefined): LiveAuthProfile[] {
-  if (!value) {
-    return [];
-  }
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    if (!Array.isArray(parsed)) {
-      return [];
+function parseAuthProfilesJson(params: {
+  env: NodeJS.ProcessEnv;
+  cwd: string;
+}): LiveAuthProfile[] {
+  const profiles: LiveAuthProfile[] = [];
+  for (const profile of parseLiveGatewayAuthProfileConfigs(params.env)) {
+    const apiKey = resolveCredentialValueWithProfile({
+      namespace: `live.gateway.auth_profiles.${profile.name}.api_key`,
+      profileId: profile.apiKeyProfileId,
+      directValue: profile.apiKey,
+      credentialName: profile.apiKeyCredential,
+      env: params.env,
+      cwd: params.cwd,
+    }).value;
+    const authHeader = resolveCredentialValueWithProfile({
+      namespace: `live.gateway.auth_profiles.${profile.name}.auth_header`,
+      profileId: profile.authHeaderProfileId,
+      directValue: profile.authHeader,
+      credentialName: profile.authHeaderCredential,
+      env: params.env,
+      cwd: params.cwd,
+    }).value;
+    if (!apiKey && !authHeader) {
+      continue;
     }
-    const profiles: LiveAuthProfile[] = [];
-    for (let index = 0; index < parsed.length; index += 1) {
-      const item = parsed[index];
-      if (typeof item !== "object" || item === null) {
-        continue;
-      }
-      const typed = item as {
-        name?: unknown;
-        apiKey?: unknown;
-        authHeader?: unknown;
-      };
-      const apiKey = typeof typed.apiKey === "string" && typed.apiKey.trim().length > 0 ? typed.apiKey.trim() : undefined;
-      const authHeader =
-        typeof typed.authHeader === "string" && typed.authHeader.trim().length > 0
-          ? typed.authHeader.trim()
-          : undefined;
-      if (!apiKey && !authHeader) {
-        continue;
-      }
-      const name =
-        typeof typed.name === "string" && typed.name.trim().length > 0
-          ? typed.name.trim()
-          : `json-${index + 1}`;
-      profiles.push({
-        name,
-        apiKey,
-        authHeader,
-      });
+    const normalizedProfile: LiveAuthProfile = {
+      name: profile.displayName,
+    };
+    if (apiKey) {
+      normalizedProfile.apiKey = apiKey;
     }
-    return profiles;
-  } catch {
-    return [];
+    if (authHeader) {
+      normalizedProfile.authHeader = authHeader;
+    }
+    profiles.push(normalizedProfile);
   }
+  return profiles;
 }
 
 function buildAuthProfiles(params: {
@@ -274,11 +297,16 @@ function buildAuthProfiles(params: {
   const combined: LiveAuthProfile[] = [];
 
   if (params.primaryApiKey || params.primaryAuthHeader) {
-    combined.push({
+    const primaryProfile: LiveAuthProfile = {
       name: "primary",
-      apiKey: params.primaryApiKey,
-      authHeader: params.primaryAuthHeader,
-    });
+    };
+    if (params.primaryApiKey) {
+      primaryProfile.apiKey = params.primaryApiKey;
+    }
+    if (params.primaryAuthHeader) {
+      primaryProfile.authHeader = params.primaryAuthHeader;
+    }
+    combined.push(primaryProfile);
   }
 
   for (let index = 0; index < params.fallbackApiKeys.length; index += 1) {
@@ -286,11 +314,15 @@ function buildAuthProfiles(params: {
     if (!apiKey) {
       continue;
     }
-    combined.push({
+    const fallbackProfile: LiveAuthProfile = {
       name: `fallback-${index + 1}`,
       apiKey,
-      authHeader: params.fallbackAuthHeaders[index],
-    });
+    };
+    const fallbackAuthHeader = params.fallbackAuthHeaders[index];
+    if (fallbackAuthHeader) {
+      fallbackProfile.authHeader = fallbackAuthHeader;
+    }
+    combined.push(fallbackProfile);
   }
 
   combined.push(...params.jsonProfiles);
@@ -308,56 +340,69 @@ function buildAuthProfiles(params: {
   return deduped;
 }
 
-export function loadGatewayConfig(): GatewayConfig {
-  const liveApiApiKey = parseOptionalString(process.env.LIVE_API_API_KEY);
-  const liveApiAuthHeader = parseOptionalString(process.env.LIVE_API_AUTH_HEADER);
+export function loadGatewayConfig(options?: {
+  env?: NodeJS.ProcessEnv;
+  cwd?: string;
+}): GatewayConfig {
+  const env = options?.env ?? process.env;
+  const cwd = options?.cwd ?? process.cwd();
+  const liveApiProtocol = parseLiveApiProtocol(env.LIVE_API_PROTOCOL);
+  const orchestratorTimeoutMs = parsePositiveInt(env.GATEWAY_ORCHESTRATOR_TIMEOUT_MS, 35000);
+  const orchestratorStoryTimeoutMs = parsePositiveInt(
+    env.GATEWAY_ORCHESTRATOR_STORY_TIMEOUT_MS,
+    Math.max(orchestratorTimeoutMs, 90000),
+  );
+  const liveApiApiKey = resolveLiveApiApiKey(env);
+  const liveApiAuthHeader = parseOptionalString(env.LIVE_API_AUTH_HEADER);
+  const liveApiWsUrl = resolveLiveApiWsUrl(env, liveApiProtocol);
   const liveAuthProfiles = buildAuthProfiles({
     primaryApiKey: liveApiApiKey,
     primaryAuthHeader: liveApiAuthHeader,
-    fallbackApiKeys: parseCsv(process.env.LIVE_API_FALLBACK_KEYS),
-    fallbackAuthHeaders: parseCsv(process.env.LIVE_API_FALLBACK_HEADERS),
-    jsonProfiles: parseAuthProfilesJson(process.env.LIVE_API_AUTH_PROFILES_JSON),
+    fallbackApiKeys: parseCsv(env.LIVE_API_FALLBACK_KEYS),
+    fallbackAuthHeaders: parseCsv(env.LIVE_API_FALLBACK_HEADERS),
+    jsonProfiles: parseAuthProfilesJson({ env, cwd }),
   });
 
   return {
-    port: Number(process.env.GATEWAY_PORT ?? 8080),
-    gatewayTransportMode: parseGatewayTransportMode(process.env.GATEWAY_TRANSPORT_MODE),
-    gatewayWebrtcRolloutStage: parseGatewayWebrtcRolloutStage(process.env.GATEWAY_WEBRTC_ROLLOUT_STAGE),
-    gatewayWebrtcCanaryPercent: parsePercentInt(process.env.GATEWAY_WEBRTC_CANARY_PERCENT, 0),
-    gatewayWebrtcRollbackReady: parseBoolean(process.env.GATEWAY_WEBRTC_ROLLBACK_READY, true),
-    orchestratorUrl: process.env.ORCHESTRATOR_URL ?? "http://localhost:8082/orchestrate",
-    orchestratorTimeoutMs: parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_TIMEOUT_MS, 15000),
-    orchestratorMaxRetries: parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_MAX_RETRIES, 1),
-    orchestratorRetryBackoffMs: parsePositiveInt(process.env.GATEWAY_ORCHESTRATOR_RETRY_BACKOFF_MS, 300),
-    liveApiEnabled: process.env.LIVE_API_ENABLED === "true",
-    liveApiWsUrl: process.env.LIVE_API_WS_URL,
+    port: Number(env.GATEWAY_PORT ?? 8080),
+    gatewayTransportMode: parseGatewayTransportMode(env.GATEWAY_TRANSPORT_MODE),
+    gatewayWebrtcRolloutStage: parseGatewayWebrtcRolloutStage(env.GATEWAY_WEBRTC_ROLLOUT_STAGE),
+    gatewayWebrtcCanaryPercent: parsePercentInt(env.GATEWAY_WEBRTC_CANARY_PERCENT, 0),
+    gatewayWebrtcRollbackReady: parseBoolean(env.GATEWAY_WEBRTC_ROLLBACK_READY, true),
+    orchestratorUrl: env.ORCHESTRATOR_URL ?? "http://localhost:8082/orchestrate",
+    orchestratorTimeoutMs,
+    orchestratorStoryTimeoutMs,
+    orchestratorMaxRetries: parsePositiveInt(env.GATEWAY_ORCHESTRATOR_MAX_RETRIES, 1),
+    orchestratorRetryBackoffMs: parsePositiveInt(env.GATEWAY_ORCHESTRATOR_RETRY_BACKOFF_MS, 300),
+    liveApiEnabled: env.LIVE_API_ENABLED === "true",
+    liveApiWsUrl,
     liveApiApiKey,
     liveApiAuthHeader,
     liveAuthProfiles,
-    liveApiProtocol: parseLiveApiProtocol(process.env.LIVE_API_PROTOCOL),
-    liveModelId: process.env.LIVE_MODEL_ID ?? "gemini-live-2.5-flash-native-audio",
-    liveModelFallbackIds: parseCsv(process.env.LIVE_MODEL_FALLBACK_IDS),
-    liveTranscriptReplacements: parseTranscriptReplacements(process.env.LIVE_TRANSCRIPT_REPLACEMENTS_JSON),
-    liveAudioMimeType: process.env.LIVE_AUDIO_MIME_TYPE ?? "audio/pcm;rate=16000",
-    liveVideoMimeType: process.env.LIVE_VIDEO_MIME_TYPE ?? "image/jpeg",
-    liveAutoSetup: process.env.LIVE_AUTO_SETUP !== "false",
-    liveSetupVoiceName: process.env.LIVE_SETUP_VOICE_NAME ?? "Aoede",
-    liveSystemInstruction: parseOptionalString(process.env.LIVE_SYSTEM_INSTRUCTION),
-    liveSetupPatch: parseOptionalJsonObject(process.env.LIVE_SETUP_PATCH_JSON),
-    liveRealtimeActivityHandling: process.env.LIVE_REALTIME_ACTIVITY_HANDLING ?? "INTERRUPT_AND_RESUME",
-    liveEnableInputAudioTranscription: parseBoolean(process.env.LIVE_ENABLE_INPUT_AUDIO_TRANSCRIPTION, true),
-    liveEnableOutputAudioTranscription: parseBoolean(process.env.LIVE_ENABLE_OUTPUT_AUDIO_TRANSCRIPTION, true),
-    liveConnectAttemptTimeoutMs: parsePositiveInt(process.env.LIVE_CONNECT_ATTEMPT_TIMEOUT_MS, 5000),
-    liveConnectRetryMs: parsePositiveInt(process.env.LIVE_CONNECT_RETRY_MS, 500),
-    liveConnectMaxAttempts: parsePositiveInt(process.env.LIVE_CONNECT_MAX_ATTEMPTS, 2),
-    liveFailoverCooldownMs: parsePositiveInt(process.env.LIVE_FAILOVER_COOLDOWN_MS, 15000),
-    liveFailoverRateLimitCooldownMs: parsePositiveInt(process.env.LIVE_FAILOVER_RATE_LIMIT_COOLDOWN_MS, 30000),
-    liveFailoverAuthDisableMs: parsePositiveInt(process.env.LIVE_FAILOVER_AUTH_DISABLE_MS, 120000),
-    liveFailoverBillingDisableMs: parsePositiveInt(process.env.LIVE_FAILOVER_BILLING_DISABLE_MS, 300000),
-    liveHealthCheckIntervalMs: parsePositiveInt(process.env.LIVE_HEALTH_CHECK_INTERVAL_MS, 2000),
-    liveHealthSilenceMs: parsePositiveInt(process.env.LIVE_HEALTH_SILENCE_MS, 12000),
-    liveHealthPingEnabled: parseBoolean(process.env.LIVE_HEALTH_PING_ENABLED, true),
-    liveHealthProbeGraceMs: parsePositiveInt(process.env.LIVE_HEALTH_PROBE_GRACE_MS, 1500),
-    liveMaxStaleChunkMs: parsePositiveInt(process.env.LIVE_MAX_STALE_CHUNK_MS, 2500),
+    liveApiProtocol,
+    liveModelId: env.LIVE_MODEL_ID ?? "gemini-live-2.5-flash-native-audio",
+    liveModelFallbackIds: parseCsv(env.LIVE_MODEL_FALLBACK_IDS),
+    liveTranscriptReplacements: parseTranscriptReplacements(env.LIVE_TRANSCRIPT_REPLACEMENTS_JSON),
+    liveAudioMimeType: env.LIVE_AUDIO_MIME_TYPE ?? "audio/pcm;rate=16000",
+    liveVideoMimeType: env.LIVE_VIDEO_MIME_TYPE ?? "image/jpeg",
+    liveAutoSetup: env.LIVE_AUTO_SETUP !== "false",
+    liveSetupVoiceName: env.LIVE_SETUP_VOICE_NAME ?? "Aoede",
+    liveSystemInstruction: parseOptionalString(env.LIVE_SYSTEM_INSTRUCTION),
+    liveSetupPatch: parseOptionalJsonObject(env.LIVE_SETUP_PATCH_JSON),
+    liveRealtimeActivityHandling: env.LIVE_REALTIME_ACTIVITY_HANDLING ?? "INTERRUPT_AND_RESUME",
+    liveEnableInputAudioTranscription: parseBoolean(env.LIVE_ENABLE_INPUT_AUDIO_TRANSCRIPTION, true),
+    liveEnableOutputAudioTranscription: parseBoolean(env.LIVE_ENABLE_OUTPUT_AUDIO_TRANSCRIPTION, true),
+    liveConnectAttemptTimeoutMs: parsePositiveInt(env.LIVE_CONNECT_ATTEMPT_TIMEOUT_MS, 5000),
+    liveConnectRetryMs: parsePositiveInt(env.LIVE_CONNECT_RETRY_MS, 500),
+    liveConnectMaxAttempts: parsePositiveInt(env.LIVE_CONNECT_MAX_ATTEMPTS, 2),
+    liveFailoverCooldownMs: parsePositiveInt(env.LIVE_FAILOVER_COOLDOWN_MS, 15000),
+    liveFailoverRateLimitCooldownMs: parsePositiveInt(env.LIVE_FAILOVER_RATE_LIMIT_COOLDOWN_MS, 30000),
+    liveFailoverAuthDisableMs: parsePositiveInt(env.LIVE_FAILOVER_AUTH_DISABLE_MS, 120000),
+    liveFailoverBillingDisableMs: parsePositiveInt(env.LIVE_FAILOVER_BILLING_DISABLE_MS, 300000),
+    liveHealthCheckIntervalMs: parsePositiveInt(env.LIVE_HEALTH_CHECK_INTERVAL_MS, 2000),
+    liveHealthSilenceMs: parsePositiveInt(env.LIVE_HEALTH_SILENCE_MS, 12000),
+    liveHealthPingEnabled: parseBoolean(env.LIVE_HEALTH_PING_ENABLED, true),
+    liveHealthProbeGraceMs: parsePositiveInt(env.LIVE_HEALTH_PROBE_GRACE_MS, 1500),
+    liveMaxStaleChunkMs: parsePositiveInt(env.LIVE_MAX_STALE_CHUNK_MS, 2500),
   };
 }

@@ -52,6 +52,245 @@ function Fail([string]$Message) {
   exit 1
 }
 
+function Write-Utf8NoBomFile([string]$Path, [string]$Content) {
+  $directory = Split-Path -Parent $Path
+  if (-not [string]::IsNullOrWhiteSpace($directory) -and -not (Test-Path $directory)) {
+    New-Item -ItemType Directory -Force -Path $directory | Out-Null
+  }
+
+  $encoding = New-Object System.Text.UTF8Encoding($false)
+  [System.IO.File]::WriteAllText($Path, $Content, $encoding)
+}
+
+function Write-RepoPublishSummary([object]$Summary) {
+  $summaryPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\artifacts\deploy\repo-publish-summary.json"))
+  $summaryJson = $Summary | ConvertTo-Json -Depth 10
+  Write-Utf8NoBomFile -Path $summaryPath -Content $summaryJson
+  return $summaryPath
+}
+
+function Write-GitHubOutputValue([string]$Name, [string]$Value) {
+  if ([string]::IsNullOrWhiteSpace($env:GITHUB_OUTPUT)) {
+    return
+  }
+
+  $line = $Name + "=" + $Value
+  $line | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+}
+
+function Write-GitHubStepSummaryLine([string]$Line) {
+  if ([string]::IsNullOrWhiteSpace($env:GITHUB_STEP_SUMMARY)) {
+    return
+  }
+
+  $Line | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+}
+
+function Read-JsonArtifactIfPresent([string]$RelativePath, [string]$Label) {
+  $resolvedPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ("..\" + $RelativePath)))
+  if (-not (Test-Path $resolvedPath)) {
+    return $null
+  }
+
+  try {
+    return Get-Content -Path $resolvedPath -Raw | ConvertFrom-Json
+  }
+  catch {
+    Write-Warning ("[repo-publish] Failed to parse " + $Label + ": " + $_.Exception.Message)
+    return $null
+  }
+}
+
+function Convert-ToNullableString([object]$Value) {
+  if ($null -eq $Value) {
+    return $null
+  }
+
+  $text = [string]$Value
+  if ([string]::IsNullOrWhiteSpace($text)) {
+    return $null
+  }
+
+  return $text
+}
+
+function Convert-ToNullableInt([object]$Value) {
+  if ($null -eq $Value) {
+    return $null
+  }
+
+  $parsed = 0
+  if ([int]::TryParse([string]$Value, [ref]$parsed)) {
+    return $parsed
+  }
+
+  return $null
+}
+
+function Convert-ToNullableDouble([object]$Value) {
+  if ($null -eq $Value) {
+    return $null
+  }
+
+  $parsed = [double]0
+  if ([double]::TryParse([string]$Value, [System.Globalization.NumberStyles]::Float, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$parsed)) {
+    return $parsed
+  }
+
+  return $null
+}
+
+function Get-CompactRuntimeGuardrailsPrimaryPath([object]$Value) {
+  if ($null -eq $Value) {
+    return $null
+  }
+
+  $title = Convert-ToNullableString -Value $Value.title
+  $kind = Convert-ToNullableString -Value $Value.kind
+  $summaryText = Convert-ToNullableString -Value $Value.summaryText
+  if ([string]::IsNullOrWhiteSpace($title) -and [string]::IsNullOrWhiteSpace($kind) -and [string]::IsNullOrWhiteSpace($summaryText)) {
+    return $null
+  }
+
+  return [ordered]@{
+    title = $title
+    kind = $kind
+    profileId = Convert-ToNullableString -Value $Value.profileId
+    phase = Convert-ToNullableString -Value $Value.phase
+    buttonLabel = Convert-ToNullableString -Value $Value.buttonLabel
+    summaryText = $summaryText
+    lifecycleStatus = Convert-ToNullableString -Value $Value.lifecycleStatus
+  }
+}
+
+function Get-CompactProviderUsagePrimaryEntry([object]$Value) {
+  if ($null -eq $Value) {
+    return $null
+  }
+
+  $route = Convert-ToNullableString -Value $Value.route
+  $capability = Convert-ToNullableString -Value $Value.capability
+  $selectedProvider = Convert-ToNullableString -Value $Value.selectedProvider
+  $selectedModel = Convert-ToNullableString -Value $Value.selectedModel
+  $selectionReason = Convert-ToNullableString -Value $Value.selectionReason
+  if (
+    [string]::IsNullOrWhiteSpace($route) -and
+    [string]::IsNullOrWhiteSpace($capability) -and
+    [string]::IsNullOrWhiteSpace($selectedProvider) -and
+    [string]::IsNullOrWhiteSpace($selectedModel) -and
+    [string]::IsNullOrWhiteSpace($selectionReason)
+  ) {
+    return $null
+  }
+
+  return [ordered]@{
+    route = $route
+    capability = $capability
+    selectedProvider = $selectedProvider
+    selectedModel = $selectedModel
+    selectionReason = $selectionReason
+  }
+}
+
+function Get-ReleaseEvidenceSnapshot([bool]$ValidatedInThisRun) {
+  $report = Read-JsonArtifactIfPresent -RelativePath "artifacts/release-evidence/report.json" -Label "release evidence report"
+  $manifest = Read-JsonArtifactIfPresent -RelativePath "artifacts/release-evidence/manifest.json" -Label "release evidence manifest"
+  $badgeDetails = Read-JsonArtifactIfPresent -RelativePath "artifacts/demo-e2e/badge-details.json" -Label "demo badge-details"
+
+  $runtimeGuardrailsSource = if ($null -ne $report -and $null -ne $report.runtimeGuardrailsSignalPaths) {
+    $report.runtimeGuardrailsSignalPaths
+  }
+  else {
+    $badgeDetails.evidence.runtimeGuardrailsSignalPaths
+  }
+  $providerUsageSource = if ($null -ne $report -and $null -ne $report.providerUsage) {
+    $report.providerUsage
+  }
+  else {
+    $badgeDetails.providerUsage
+  }
+  $deviceNodeUpdatesSource = if ($null -ne $report -and $null -ne $report.deviceNodeUpdates) {
+    $report.deviceNodeUpdates
+  }
+  else {
+    $badgeDetails.evidence.deviceNodes
+  }
+
+  $criticalEvidenceStatuses = $null
+  if ($null -ne $manifest -and $null -ne $manifest.criticalEvidenceStatuses) {
+    $criticalEvidenceStatuses = $manifest.criticalEvidenceStatuses
+  }
+  elseif ($null -ne $report -and $null -ne $report.statuses) {
+    $criticalEvidenceStatuses = $report.statuses
+  }
+
+  return [ordered]@{
+    available = (($null -ne $report) -or ($null -ne $manifest) -or ($null -ne $badgeDetails))
+    validatedInThisRun = $ValidatedInThisRun
+    reportGeneratedAt = Convert-ToNullableString -Value $report.generatedAt
+    manifestGeneratedAt = Convert-ToNullableString -Value $manifest.generatedAt
+    badgeDetailsGeneratedAt = Convert-ToNullableString -Value $badgeDetails.generatedAt
+    manifestInventory = if ($null -ne $manifest -and $null -ne $manifest.inventory) {
+      [ordered]@{
+        total = Convert-ToNullableInt -Value $manifest.inventory.total
+        present = Convert-ToNullableInt -Value $manifest.inventory.present
+        missingRequired = Convert-ToNullableInt -Value $manifest.inventory.missingRequired
+      }
+    }
+    else {
+      $null
+    }
+    criticalEvidenceStatuses = $criticalEvidenceStatuses
+    deviceNodeUpdates = if ($null -ne $deviceNodeUpdatesSource) {
+      [ordered]@{
+        updatesValidated = ($deviceNodeUpdatesSource.updatesValidated -eq $true)
+        updatesHasUpsert = ($deviceNodeUpdatesSource.updatesHasUpsert -eq $true)
+        updatesHasHeartbeat = ($deviceNodeUpdatesSource.updatesHasHeartbeat -eq $true)
+        updatesApiValidated = ($deviceNodeUpdatesSource.updatesApiValidated -eq $true)
+        updatesTotal = Convert-ToNullableInt -Value $deviceNodeUpdatesSource.updatesTotal
+      }
+    }
+    else {
+      $null
+    }
+    runtimeGuardrails = if ($null -ne $runtimeGuardrailsSource) {
+      [ordered]@{
+        status = Convert-ToNullableString -Value $(if ($null -ne $report -and $null -ne $report.statuses) { $report.statuses.runtimeGuardrailsSignalPathsStatus } else { $runtimeGuardrailsSource.status })
+        summaryStatus = Convert-ToNullableString -Value $runtimeGuardrailsSource.summaryStatus
+        totalPaths = Convert-ToNullableInt -Value $runtimeGuardrailsSource.totalPaths
+        primaryPath = Get-CompactRuntimeGuardrailsPrimaryPath -Value $runtimeGuardrailsSource.primaryPath
+      }
+    }
+    else {
+      $null
+    }
+    providerUsage = if ($null -ne $providerUsageSource) {
+      [ordered]@{
+        status = Convert-ToNullableString -Value $providerUsageSource.status
+        validated = ($providerUsageSource.validated -eq $true)
+        activeSecondaryProviders = Convert-ToNullableInt -Value $providerUsageSource.activeSecondaryProviders
+        entriesCount = Convert-ToNullableInt -Value $(if ($null -ne $providerUsageSource.entriesCount) { $providerUsageSource.entriesCount } elseif ($null -ne $providerUsageSource.entries) { @($providerUsageSource.entries).Count } else { $null })
+        primaryEntry = Get-CompactProviderUsagePrimaryEntry -Value $(if ($null -ne $providerUsageSource.primaryEntry) { $providerUsageSource.primaryEntry } elseif ($null -ne $providerUsageSource.entries) { @($providerUsageSource.entries)[0] } else { $null })
+      }
+    }
+    else {
+      $null
+    }
+    badgeDetails = if ($null -ne $badgeDetails) {
+      [ordered]@{
+        checks = Convert-ToNullableInt -Value $badgeDetails.checks
+        violations = Convert-ToNullableInt -Value $badgeDetails.violations
+        roundTripMs = Convert-ToNullableInt -Value $badgeDetails.roundTripMs
+        costTotalUsd = Convert-ToNullableDouble -Value $badgeDetails.costEstimate.totalUsd
+        tokensTotal = Convert-ToNullableInt -Value $badgeDetails.tokensUsed.total
+      }
+    }
+    else {
+      $null
+    }
+  }
+}
+
 function Run-Git([string[]]$CliArgs) {
   & git @CliArgs
   if ($LASTEXITCODE -ne 0) {
@@ -124,6 +363,38 @@ function Convert-ToWebSocketBaseUrl([string]$HttpBaseUrl) {
   return ("wss://" + $trimmed)
 }
 
+function Get-RequiredReleaseEvidenceArtifacts() {
+  return @(
+    "artifacts/release-evidence/report.json",
+    "artifacts/release-evidence/report.md",
+    "artifacts/release-evidence/manifest.json",
+    "artifacts/release-evidence/manifest.md",
+    "artifacts/demo-e2e/badge-details.json"
+  )
+}
+
+function Assert-ReleaseEvidenceArtifactsPresent() {
+  $requiredArtifacts = Get-RequiredReleaseEvidenceArtifacts
+
+  $missingArtifacts = @()
+  foreach ($artifact in $requiredArtifacts) {
+    if (-not (Test-Path $artifact)) {
+      $missingArtifacts += $artifact
+    }
+  }
+
+  if ($missingArtifacts.Count -gt 0) {
+    Fail ("Pre-publish release evidence artifacts are missing: " + ($missingArtifacts -join ", "))
+  }
+
+  Write-Host "[repo-publish] Release evidence artifacts:"
+  foreach ($artifact in $requiredArtifacts) {
+    Write-Host (" - " + [System.IO.Path]::GetFullPath($artifact))
+  }
+
+  return ,$requiredArtifacts
+}
+
 & git --version *> $null
 if ($LASTEXITCODE -ne 0) {
   Fail "git is not installed or unavailable in PATH."
@@ -142,6 +413,10 @@ if ([string]::IsNullOrWhiteSpace($RemoteUrl)) {
 }
 
 Write-Host "[repo-publish] Remote URL: $RemoteUrl"
+
+$verificationScript = $null
+$releaseEvidenceArtifacts = @()
+$releaseEvidenceSnapshot = $null
 
 if ($DeployRailway -and $RailwayRootDescriptorCheckMaxAttempts -lt 1) {
   Fail "RailwayRootDescriptorCheckMaxAttempts must be >= 1 when -DeployRailway is enabled."
@@ -194,7 +469,10 @@ if (-not $SkipReleaseVerification) {
   if ($LASTEXITCODE -ne 0) {
     Fail "Pre-publish quality gate failed: npm run $verificationScript"
   }
+  $releaseEvidenceArtifacts = @(Assert-ReleaseEvidenceArtifactsPresent)
 }
+
+$releaseEvidenceSnapshot = Get-ReleaseEvidenceSnapshot -ValidatedInThisRun (-not $SkipReleaseVerification)
 
 if (-not $SkipCommit) {
   $gitName = (& git config user.name)
@@ -374,6 +652,109 @@ if ($DeployRailwayFrontend) {
   if ($LASTEXITCODE -ne 0) {
     Fail "Railway frontend deploy failed."
   }
+}
+
+$repoPublishSummary = [ordered]@{
+  schemaVersion = 1
+  generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+  branch = $Branch
+  remoteName = $RemoteName
+  remoteUrl = $RemoteUrl
+  owner = $Owner
+  repo = $Repo
+  verification = [ordered]@{
+    skipped = [bool]$SkipReleaseVerification
+    script = $verificationScript
+    strict = [bool]$StrictReleaseVerification
+    releaseEvidenceArtifactsValidated = (-not $SkipReleaseVerification)
+    releaseEvidenceArtifacts = if ($releaseEvidenceArtifacts.Count -gt 0) { $releaseEvidenceArtifacts } else { Get-RequiredReleaseEvidenceArtifacts }
+    releaseEvidenceArtifactsCount = @(if ($releaseEvidenceArtifacts.Count -gt 0) { $releaseEvidenceArtifacts } else { Get-RequiredReleaseEvidenceArtifacts }).Count
+  }
+  steps = [ordered]@{
+    commitEnabled = (-not $SkipCommit)
+    pushEnabled = (-not $SkipPush)
+    pagesEnabled = (-not $SkipPages)
+    badgeCheckEnabled = (-not $SkipBadgeCheck)
+    railwayDeployEnabled = [bool]$DeployRailway
+    railwayFrontendDeployEnabled = [bool]$DeployRailwayFrontend
+  }
+  runtime = [ordered]@{
+    railwayPublicUrl = if ([string]::IsNullOrWhiteSpace($RailwayPublicUrl)) { $null } else { $RailwayPublicUrl }
+    railwayDemoFrontendPublicUrl = if ([string]::IsNullOrWhiteSpace($RailwayDemoFrontendPublicUrl)) { $null } else { $RailwayDemoFrontendPublicUrl }
+    railwayNoWait = [bool]$RailwayNoWait
+    railwayFrontendNoWait = [bool]$RailwayFrontendNoWait
+  }
+  releaseEvidenceSnapshot = $releaseEvidenceSnapshot
+  artifacts = [ordered]@{
+    self = "artifacts/deploy/repo-publish-summary.json"
+    railwayDeploySummary = if ($DeployRailway) { "artifacts/deploy/railway-deploy-summary.json" } else { $null }
+    releaseEvidenceReportJson = "artifacts/release-evidence/report.json"
+    releaseEvidenceManifestJson = "artifacts/release-evidence/manifest.json"
+    badgeDetailsJson = "artifacts/demo-e2e/badge-details.json"
+  }
+}
+$repoPublishSummaryPath = Write-RepoPublishSummary -Summary $repoPublishSummary
+Write-Host ("[repo-publish] Summary artifact: " + $repoPublishSummaryPath)
+
+$repoPublishSummaryRelativePath = "artifacts/deploy/repo-publish-summary.json"
+$railwayDeploySummaryRelativePath = if ($DeployRailway) { "artifacts/deploy/railway-deploy-summary.json" } else { "" }
+$repoPublishVerificationLabel = if ($SkipReleaseVerification) { "skipped" } elseif (-not [string]::IsNullOrWhiteSpace($verificationScript)) { $verificationScript } else { "verify:release" }
+$repoPublishVerificationSkipped = if ($SkipReleaseVerification) { "true" } else { "false" }
+$repoPublishVerificationStrict = if ($StrictReleaseVerification) { "true" } else { "false" }
+$repoPublishReleaseEvidenceValidated = if ($SkipReleaseVerification) { "false" } else { "true" }
+$repoPublishRailwayDeployEnabled = if ($DeployRailway) { "true" } else { "false" }
+$repoPublishRailwayFrontendDeployEnabled = if ($DeployRailwayFrontend) { "true" } else { "false" }
+$repoPublishReleaseEvidenceArtifactsCount = [string]@(if ($releaseEvidenceArtifacts.Count -gt 0) { $releaseEvidenceArtifacts } else { Get-RequiredReleaseEvidenceArtifacts }).Count
+$repoPublishReleaseEvidenceSnapshotAvailable = if ($null -ne $releaseEvidenceSnapshot -and $releaseEvidenceSnapshot.available -eq $true) { "true" } else { "false" }
+$repoPublishReleaseEvidenceMissingRequired = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.manifestInventory -and $null -ne $releaseEvidenceSnapshot.manifestInventory.missingRequired) { [string]$releaseEvidenceSnapshot.manifestInventory.missingRequired } else { "" }
+$repoPublishReleaseEvidenceBadgeChecks = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.badgeDetails -and $null -ne $releaseEvidenceSnapshot.badgeDetails.checks) { [string]$releaseEvidenceSnapshot.badgeDetails.checks } else { "" }
+$repoPublishReleaseEvidenceRuntimeGuardrailsSummaryStatus = if ($null -ne $releaseEvidenceSnapshot -and $null -ne $releaseEvidenceSnapshot.runtimeGuardrails) { [string](Convert-ToNullableString -Value $releaseEvidenceSnapshot.runtimeGuardrails.summaryStatus) } else { "" }
+$repoPublishReleaseEvidenceReportPath = [string]$repoPublishSummary.artifacts.releaseEvidenceReportJson
+$repoPublishReleaseEvidenceManifestPath = [string]$repoPublishSummary.artifacts.releaseEvidenceManifestJson
+$repoPublishBadgeDetailsPath = [string]$repoPublishSummary.artifacts.badgeDetailsJson
+
+Write-GitHubOutputValue -Name "repo_publish_summary_path" -Value $repoPublishSummaryRelativePath
+Write-GitHubOutputValue -Name "repo_publish_verification_script" -Value $repoPublishVerificationLabel
+Write-GitHubOutputValue -Name "repo_publish_verification_skipped" -Value $repoPublishVerificationSkipped
+Write-GitHubOutputValue -Name "repo_publish_verification_strict" -Value $repoPublishVerificationStrict
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_validated" -Value $repoPublishReleaseEvidenceValidated
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_artifacts_count" -Value $repoPublishReleaseEvidenceArtifactsCount
+Write-GitHubOutputValue -Name "repo_publish_railway_deploy_enabled" -Value $repoPublishRailwayDeployEnabled
+Write-GitHubOutputValue -Name "repo_publish_railway_frontend_deploy_enabled" -Value $repoPublishRailwayFrontendDeployEnabled
+Write-GitHubOutputValue -Name "repo_publish_railway_summary_path" -Value $railwayDeploySummaryRelativePath
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_snapshot_available" -Value $repoPublishReleaseEvidenceSnapshotAvailable
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_missing_required" -Value $repoPublishReleaseEvidenceMissingRequired
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_badge_checks" -Value $repoPublishReleaseEvidenceBadgeChecks
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_runtime_guardrails_summary_status" -Value $repoPublishReleaseEvidenceRuntimeGuardrailsSummaryStatus
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_report_path" -Value $repoPublishReleaseEvidenceReportPath
+Write-GitHubOutputValue -Name "repo_publish_release_evidence_manifest_path" -Value $repoPublishReleaseEvidenceManifestPath
+Write-GitHubOutputValue -Name "repo_publish_badge_details_path" -Value $repoPublishBadgeDetailsPath
+
+Write-GitHubStepSummaryLine ("Repo publish summary artifact: " + $repoPublishSummaryRelativePath)
+Write-GitHubStepSummaryLine ("Repo publish verification script: " + $repoPublishVerificationLabel)
+Write-GitHubStepSummaryLine ("Repo publish verification skipped: " + $repoPublishVerificationSkipped)
+Write-GitHubStepSummaryLine ("Repo publish verification strict: " + $repoPublishVerificationStrict)
+Write-GitHubStepSummaryLine ("Repo publish release-evidence validated: " + $repoPublishReleaseEvidenceValidated)
+Write-GitHubStepSummaryLine ("Repo publish release-evidence artifacts count: " + $repoPublishReleaseEvidenceArtifactsCount)
+Write-GitHubStepSummaryLine ("Repo publish Railway deploy enabled: " + $repoPublishRailwayDeployEnabled)
+Write-GitHubStepSummaryLine ("Repo publish Railway frontend deploy enabled: " + $repoPublishRailwayFrontendDeployEnabled)
+Write-GitHubStepSummaryLine ("Repo publish release-evidence snapshot available: " + $repoPublishReleaseEvidenceSnapshotAvailable)
+if (-not [string]::IsNullOrWhiteSpace($repoPublishReleaseEvidenceMissingRequired)) {
+  Write-GitHubStepSummaryLine ("Repo publish release-evidence missing required artifacts: " + $repoPublishReleaseEvidenceMissingRequired)
+}
+if (-not [string]::IsNullOrWhiteSpace($repoPublishReleaseEvidenceBadgeChecks)) {
+  Write-GitHubStepSummaryLine ("Repo publish release-evidence badge checks: " + $repoPublishReleaseEvidenceBadgeChecks)
+}
+if (-not [string]::IsNullOrWhiteSpace($repoPublishReleaseEvidenceRuntimeGuardrailsSummaryStatus)) {
+  Write-GitHubStepSummaryLine ("Repo publish release-evidence runtime guardrails: " + $repoPublishReleaseEvidenceRuntimeGuardrailsSummaryStatus)
+}
+if ($repoPublishReleaseEvidenceValidated -eq "true" -or $repoPublishReleaseEvidenceSnapshotAvailable -eq "true") {
+  Write-GitHubStepSummaryLine ("Repo publish release-evidence report artifact: " + $repoPublishReleaseEvidenceReportPath)
+  Write-GitHubStepSummaryLine ("Repo publish release-evidence manifest artifact: " + $repoPublishReleaseEvidenceManifestPath)
+  Write-GitHubStepSummaryLine ("Repo publish badge-details artifact: " + $repoPublishBadgeDetailsPath)
+}
+if (-not [string]::IsNullOrWhiteSpace($railwayDeploySummaryRelativePath)) {
+  Write-GitHubStepSummaryLine ("Repo publish Railway deploy summary artifact: " + $railwayDeploySummaryRelativePath)
 }
 
 Write-Host ""

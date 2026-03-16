@@ -160,6 +160,39 @@ test("live bridge sends rich Gemini setup payload", async () => {
   }
 });
 
+test("live bridge uses x-goog-api-key for Gemini websocket auth", async () => {
+  const seenHeaders: Record<string, string | string[] | undefined>[] = [];
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise<void>((resolve) => wss.on("listening", () => resolve()));
+
+  wss.on("connection", (_ws, request) => {
+    seenHeaders.push(request.headers);
+  });
+
+  const port = (wss.address() as AddressInfo).port;
+  const bridge = new LiveApiBridge({
+    config: createGatewayConfig({
+      liveApiWsUrl: `ws://127.0.0.1:${port}/realtime`,
+      liveApiApiKey: "gemini-live-key",
+      liveApiProtocol: "gemini",
+    }),
+    sessionId: "unit-session",
+    userId: "unit-user",
+    runId: "unit-run",
+    send: () => undefined,
+  });
+
+  try {
+    await bridge.forwardFromClient(createClientEvent({ type: "live.text", payload: { text: "hello" } }));
+    await waitFor(() => seenHeaders.length === 1, 2000);
+    assert.equal(seenHeaders[0]?.["x-goog-api-key"], "gemini-live-key");
+    assert.equal(seenHeaders[0]?.authorization, undefined);
+  } finally {
+    bridge.close();
+    await closeWss(wss);
+  }
+});
+
 test("live bridge applies env setup patch for tools while preserving base generation config", async () => {
   const inboundFrames: Array<Record<string, unknown>> = [];
   const wss = new WebSocketServer({ port: 0 });

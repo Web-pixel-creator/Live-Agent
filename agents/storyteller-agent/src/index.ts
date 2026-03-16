@@ -4,8 +4,14 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   buildCapabilityProfile,
+  generateGoogleGenAiImage,
+  generateGoogleGenAiSpeech,
+  generateGoogleGenAiText,
+  pollGoogleGenAiVideoOperation,
+  startGoogleGenAiVideoOperation,
   type CapabilityProfile,
   type ImageCapabilityAdapter,
+  type ImageEditCapabilityAdapter,
   type ReasoningCapabilityAdapter,
   type ReasoningTextResult,
   type ReasoningTextUsage,
@@ -42,6 +48,8 @@ import {
 export { getMediaJobQueueSnapshot } from "./media-jobs.js";
 export { getStoryCacheSnapshot, purgeStoryCache } from "./story-cache.js";
 
+type StoryMediaMode = "default" | "fallback" | "simulated";
+
 type StoryInput = {
   prompt: string;
   audience: string;
@@ -51,8 +59,11 @@ type StoryInput = {
   branchChoice: string | null;
   includeImages: boolean;
   includeVideo: boolean;
+  imageEditRequested: boolean;
+  imageEditPrompt: string | null;
+  imageEditReferenceRef: string | null;
   segmentCount: number;
-  mediaMode: "fallback" | "simulated" | null;
+  mediaMode: StoryMediaMode | null;
   videoFailureRate: number;
 };
 
@@ -76,6 +87,9 @@ type StoryAsset = {
   segmentIndex: number;
   mimeType: string;
   jobId: string | null;
+  sourceRef: string | null;
+  sourceProvider: string | null;
+  sourceModel: string | null;
   meta: Record<string, unknown>;
 };
 
@@ -113,19 +127,108 @@ type GeminiConfig = {
   branchModel: string;
   timeoutMs: number;
   plannerEnabled: boolean;
-  mediaMode: "fallback" | "simulated";
+  mediaMode: StoryMediaMode;
   imageModel: string;
+  imageEditEnabled: boolean;
+  imageEditModel: string;
   videoModel: string;
+  videoPollMs: number;
+  videoMaxWaitMs: number;
   ttsModel: string;
+  ttsProviderOverride: StorytellerTtsProvider | null;
+  ttsSecondaryEnabled: boolean;
+  ttsSecondaryModel: string;
+  ttsSecondaryLocales: string[];
   cacheVersion: string;
   cachePurgeToken: string | null;
+  deepgramApiKey: string | null;
+  deepgramBaseUrl: string;
+  deepgramTimeoutMs: number;
+  falApiKey: string | null;
+  falBaseUrl: string;
+  falTimeoutMs: number;
+};
+
+type StorytellerTtsProvider = "gemini_api" | "deepgram";
+
+type StorytellerTtsSelectionReason = "default_primary" | "locale_fallback" | "provider_override";
+
+type StorytellerTtsSelection = {
+  provider: StorytellerTtsProvider;
+  model: string;
+  adapterId: string;
+  mode: StoryMediaMode;
+  selectionReason: StorytellerTtsSelectionReason;
+  defaultProvider: StorytellerTtsProvider;
+  defaultModel: string;
+  secondaryProvider: StorytellerTtsProvider | null;
+  secondaryModel: string | null;
+  language: string;
+};
+
+type StorytellerImageEditSelectionReason = "config_enabled" | "request_input" | "config_and_request";
+
+type StorytellerImageEditSelection = {
+  provider: "fal";
+  model: string;
+  adapterId: string;
+  mode: "disabled" | StoryMediaMode;
+  requested: boolean;
+  applied: boolean;
+  selectionReason: StorytellerImageEditSelectionReason | null;
+  defaultProvider: "fal";
+  defaultModel: string;
+};
+
+type StorytellerRuntimeConfigSourceKind = "env" | "control_plane_json";
+
+type StorytellerRuntimeConfigOverride = {
+  mediaMode?: StoryMediaMode;
+  ttsProvider?: StorytellerTtsProvider;
+  imageEditEnabled?: boolean;
+};
+
+type StorytellerRuntimeControlPlaneOverrideState = {
+  rawJson: string;
+  updatedAt: string;
+  reason: string | null;
+};
+
+export type StorytellerRuntimeConfigSnapshot = {
+  sourceKind: StorytellerRuntimeConfigSourceKind;
+  mediaMode: GeminiConfig["mediaMode"];
+  imageEdit: {
+    enabled: boolean;
+    provider: "fal";
+    model: string;
+    effectiveMode: "disabled" | StoryMediaMode;
+  };
+  tts: {
+    defaultProvider: StorytellerTtsProvider;
+    defaultModel: string;
+    providerOverride: StorytellerTtsProvider | null;
+    secondaryEnabled: boolean;
+    secondaryProvider: StorytellerTtsProvider | null;
+    secondaryModel: string | null;
+    secondaryLocales: string[];
+    effectiveProvider: StorytellerTtsProvider;
+    effectiveModel: string;
+  };
+  controlPlaneOverride: {
+    active: boolean;
+    updatedAt: string | null;
+    reason: string | null;
+  };
 };
 
 type StorytellerCapabilitySet = {
   reasoning: ReasoningCapabilityAdapter;
   image: ImageCapabilityAdapter;
+  imageEdit: ImageEditCapabilityAdapter;
   video: VideoCapabilityAdapter;
   tts: TtsCapabilityAdapter;
+  imageEditSelection: StorytellerImageEditSelection;
+  ttsSelection: StorytellerTtsSelection;
   profile: CapabilityProfile;
 };
 
@@ -148,6 +251,7 @@ type AgentUsageTotals = {
 const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
 const FALLBACK_PACK_PATH = join(CURRENT_DIR, "..", "fallback", "story-fallback-pack.json");
 let cachedFallbackPack: FallbackPack | null = null;
+let storytellerRuntimeControlPlaneOverride: StorytellerRuntimeControlPlaneOverrideState | null = null;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -203,11 +307,14 @@ function toNumberInRange(value: unknown, fallback: number, min: number, max: num
   return parsed;
 }
 
-function normalizeMediaMode(value: unknown): "fallback" | "simulated" | null {
+function normalizeMediaMode(value: unknown): StoryMediaMode | null {
   if (typeof value !== "string") {
     return null;
   }
   const normalized = value.trim().toLowerCase();
+  if (normalized === "default" || normalized === "live") {
+    return "default";
+  }
   if (normalized === "fallback") {
     return "fallback";
   }
@@ -217,11 +324,232 @@ function normalizeMediaMode(value: unknown): "fallback" | "simulated" | null {
   return null;
 }
 
+function normalizeStorytellerTtsProvider(value: unknown): StorytellerTtsProvider | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "gemini" || normalized === "gemini_api" || normalized === "default") {
+    return "gemini_api";
+  }
+  if (normalized === "deepgram") {
+    return "deepgram";
+  }
+  return null;
+}
+
+function parseBooleanEnv(value: string | undefined, fallback: boolean): boolean {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true" || normalized === "1" || normalized === "yes") {
+    return true;
+  }
+  if (normalized === "false" || normalized === "0" || normalized === "no") {
+    return false;
+  }
+  return fallback;
+}
+
+function parseStringList(value: string | undefined): string[] {
+  if (typeof value !== "string") {
+    return [];
+  }
+  return Array.from(
+    new Set(
+      value
+        .split(",")
+        .map((item) => item.trim().toLowerCase())
+        .filter((item) => item.length > 0),
+    ),
+  );
+}
+
+function normalizeLanguageTag(language: string): string {
+  const normalized = toNonEmptyString(language, "").trim().toLowerCase();
+  if (normalized.length === 0) {
+    return "en";
+  }
+  const [baseLanguage] = normalized.split(/[-_]/, 1);
+  return baseLanguage.length > 0 ? baseLanguage : normalized;
+}
+
+function buildStorytellerTtsSelection(params: {
+  config: GeminiConfig;
+  inputLanguage: string;
+  mediaModeOverride: StoryMediaMode;
+}): StorytellerTtsSelection {
+  const defaultProvider: StorytellerTtsProvider = "gemini_api";
+  const defaultModel = params.config.ttsModel;
+  const language = normalizeLanguageTag(params.inputLanguage);
+  const secondaryProvider: StorytellerTtsProvider | null = params.config.ttsSecondaryEnabled ? "deepgram" : null;
+  const secondaryModel =
+    params.config.ttsSecondaryEnabled && params.config.ttsSecondaryModel.length > 0
+      ? params.config.ttsSecondaryModel
+      : null;
+  const localeMatchedFallback =
+    secondaryProvider === "deepgram" &&
+    secondaryModel !== null &&
+    params.config.ttsSecondaryLocales.includes(language);
+
+  let provider: StorytellerTtsProvider = defaultProvider;
+  let model = defaultModel;
+  let selectionReason: StorytellerTtsSelectionReason = "default_primary";
+
+  if (params.config.ttsProviderOverride === "deepgram" && secondaryProvider === "deepgram" && secondaryModel !== null) {
+    provider = "deepgram";
+    model = secondaryModel;
+    selectionReason = "provider_override";
+  } else if (params.config.ttsProviderOverride === "gemini_api") {
+    selectionReason = "provider_override";
+  } else if (localeMatchedFallback) {
+    provider = "deepgram";
+    model = secondaryModel!;
+    selectionReason = "locale_fallback";
+  }
+
+  const liveProviderReady =
+    params.mediaModeOverride === "default" &&
+    ((provider === "gemini_api" && Boolean(params.config.apiKey)) ||
+      (provider === "deepgram" && Boolean(params.config.deepgramApiKey)));
+  const mode: StoryMediaMode =
+    params.mediaModeOverride === "simulated" ? "simulated" : liveProviderReady ? "default" : "fallback";
+  const adapterId =
+    provider === "deepgram"
+      ? mode === "default"
+        ? "deepgram-aura-2-live"
+        : mode === "simulated"
+        ? "deepgram-aura-2-simulated"
+        : "deepgram-aura-2-fallback-pack"
+      : mode === "default"
+        ? "google-genai-sdk-tts"
+        : mode === "simulated"
+        ? "gemini-tts-simulated"
+        : "gemini-tts-fallback-pack";
+
+  return {
+    provider,
+    model,
+    adapterId,
+    mode,
+    selectionReason,
+    defaultProvider,
+    defaultModel,
+    secondaryProvider,
+    secondaryModel,
+    language,
+  };
+}
+
+function buildStorytellerImageEditSelection(params: {
+  config: GeminiConfig;
+  mediaModeOverride: StoryMediaMode;
+  includeImages: boolean;
+  imageEditRequested: boolean;
+}): StorytellerImageEditSelection {
+  const defaultProvider: "fal" = "fal";
+  const defaultModel = params.config.imageEditModel;
+  const requested = params.config.imageEditEnabled || params.imageEditRequested;
+  const applied = requested && params.includeImages;
+  let selectionReason: StorytellerImageEditSelectionReason | null = null;
+
+  if (params.config.imageEditEnabled && params.imageEditRequested) {
+    selectionReason = "config_and_request";
+  } else if (params.imageEditRequested) {
+    selectionReason = "request_input";
+  } else if (params.config.imageEditEnabled) {
+    selectionReason = "config_enabled";
+  }
+
+  const mode: StorytellerImageEditSelection["mode"] = !applied
+    ? "disabled"
+    : params.mediaModeOverride === "simulated"
+      ? "simulated"
+      : params.mediaModeOverride === "default" && Boolean(params.config.falApiKey)
+        ? "default"
+      : "fallback";
+  const adapterId =
+    mode === "default"
+      ? "fal-nano-banana-2-edit-live"
+      : mode === "simulated"
+      ? "fal-nano-banana-2-edit-simulated"
+      : mode === "fallback"
+        ? "fal-nano-banana-2-edit-fallback-pack"
+        : "fal-nano-banana-2-edit-disabled";
+
+  return {
+    provider: defaultProvider,
+    model: defaultModel,
+    adapterId,
+    mode,
+    requested,
+    applied,
+    selectionReason,
+    defaultProvider,
+    defaultModel,
+  };
+}
+
 function sliceToCount<T>(values: T[], count: number): T[] {
   if (values.length <= count) {
     return values;
   }
   return values.slice(0, count);
+}
+
+function buildFallbackContinuationSegment(params: {
+  input: StoryInput;
+  fallback: FallbackScenario;
+  sceneNumber: number;
+  existingSegments: string[];
+}): string {
+  const { input, fallback, sceneNumber, existingSegments } = params;
+  const isRu = input.language.trim().toLowerCase().startsWith("ru");
+  const decisionPoints = Array.isArray(fallback.decisionPoints) ? fallback.decisionPoints : [];
+  const focus = decisionPoints.length > 0
+    ? decisionPoints[(sceneNumber - 1) % decisionPoints.length]
+    : fallback.logline;
+  const previousBeat = existingSegments.length > 0 ? existingSegments[existingSegments.length - 1] : fallback.logline;
+
+  if (isRu) {
+    return `Сцена ${sceneNumber}: после "${compactStoryContinuationCue(previousBeat)}" напряжение смещается к выбору "${focus}", и герой делает следующий необратимый шаг к развязке.`;
+  }
+
+  return `Scene ${sceneNumber}: after "${compactStoryContinuationCue(previousBeat)}", the pressure shifts toward "${focus}", and the protagonist commits to the next irreversible move.`;
+}
+
+function compactStoryContinuationCue(value: string, maxLength = 88): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+  return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
+}
+
+function fitStorySegmentsToCount(params: {
+  segments: string[];
+  count: number;
+  input: StoryInput;
+  fallback: FallbackScenario;
+}): string[] {
+  const trimmed = params.segments.map((segment) => toNonEmptyString(segment, "")).filter(Boolean);
+  const limited = sliceToCount(trimmed, params.count);
+  if (limited.length === 0) {
+    return limited;
+  }
+  const padded = [...limited];
+  while (padded.length < params.count) {
+    padded.push(
+      buildFallbackContinuationSegment({
+        input: params.input,
+        fallback: params.fallback,
+        sceneNumber: padded.length + 1,
+        existingSegments: padded,
+      }),
+    );
+  }
+  return padded;
 }
 
 function normalizeStoryInput(input: unknown): StoryInput {
@@ -240,9 +568,253 @@ function normalizeStoryInput(input: unknown): StoryInput {
     branchChoice: toNullableString(raw.branchChoice),
     includeImages: toBoolean(raw.includeImages, true),
     includeVideo: toBoolean(raw.includeVideo, false),
+    imageEditRequested: toBoolean(raw.imageEditRequested ?? raw.includeImageEdit ?? raw.imageEdit, false),
+    imageEditPrompt: toNullableString(raw.imageEditPrompt),
+    imageEditReferenceRef: toNullableString(raw.imageEditReferenceRef),
     segmentCount: toIntInRange(raw.segmentCount, 3, 2, 6),
     mediaMode: normalizeMediaMode(raw.mediaMode),
     videoFailureRate: toNumberInRange(raw.videoFailureRate, 0, 0, 1),
+  };
+}
+
+function normalizePromptWhitespace(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function capitalizeStoryText(value: string): string {
+  if (!value) {
+    return value;
+  }
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
+function extractStoryDirectiveValue(prompt: string, patterns: RegExp[]): string | null {
+  for (const pattern of patterns) {
+    const match = pattern.exec(prompt);
+    const value = toNullableString(match?.[1]);
+    if (value) {
+      return normalizePromptWhitespace(value.replace(/^["'«»]+|["'«»]+$/g, ""));
+    }
+  }
+  return null;
+}
+
+function extractStoryHeroFromPrompt(prompt: string): string | null {
+  return extractStoryDirectiveValue(prompt, [
+    /(?:главн(?:ый|ая)\s+герой|герой)\s*:\s*([^\n.!?]+)/iu,
+    /(?:main\s+hero|hero|protagonist)\s*:\s*([^\n.!?]+)/iu,
+  ]);
+}
+
+function extractStoryToneFromPrompt(prompt: string): string | null {
+  return extractStoryDirectiveValue(prompt, [
+    /(?:тон|настроение)\s*:\s*([^\n.!?]+)/iu,
+    /(?:tone|mood)\s*:\s*([^\n.!?]+)/iu,
+  ]);
+}
+
+function extractStorySubjectFromPrompt(prompt: string): string | null {
+  const direct = extractStoryDirectiveValue(prompt, [
+    /(?:истори(?:ю|я|и|й)|сюжет)\s+про\s+([^\n.!?]+)/iu,
+    /(?:story|narrative)\s+about\s+([^\n.!?]+)/iu,
+  ]);
+  if (direct) {
+    return direct;
+  }
+
+  const firstSentence = normalizePromptWhitespace(prompt.split(/[\n.!?]+/u, 1)[0] ?? "");
+  const normalized = firstSentence
+    .replace(/^(?:собери|создай|напиши|придумай|сделай)\s+/iu, "")
+    .replace(/^\d+\s*[- ]?(?:сцен\w*|scene\w*)\s+/iu, "")
+    .replace(/^(?:истори(?:ю|я|и|й)|story)\s+/iu, "")
+    .replace(/^(?:про|about)\s+/iu, "");
+  const subject = toNullableString(normalized);
+  return subject ? capitalizeStoryText(subject) : null;
+}
+
+function isTechLaunchPrompt(prompt: string, hero: string | null, subject: string | null): boolean {
+  const source = `${prompt} ${hero ?? ""} ${subject ?? ""}`.toLowerCase();
+  return /(?:\bai\b|startup|start-up|product|launch|release|demo|founder|saas|platform|model|стартап|продукт|запуск|релиз|демо|основател|платформ|ии)/iu.test(
+    source,
+  );
+}
+
+function toFallbackSlug(value: string, fallback: string): string {
+  const normalized = value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+  return normalized.length > 0 ? normalized.slice(0, 48) : fallback;
+}
+
+function buildAdaptiveDecisionPoints(
+  input: StoryInput,
+  baseScenario: FallbackScenario,
+  hero: string | null,
+  subject: string | null,
+  techLaunch: boolean,
+): string[] {
+  const isRu = input.language.trim().toLowerCase().startsWith("ru");
+  if (techLaunch) {
+    return isRu
+      ? [
+          "Выпустить продукт в срок или отложить ради надежности",
+          "Открыть публичный доступ сразу или начать с закрытого пилота",
+          "Показать амбициозное видение или зафиксировать понятную пользу для первых клиентов",
+        ]
+      : [
+          "Ship on schedule or delay for reliability",
+          "Open with a public launch or start with a private pilot",
+          "Lead with bold vision or with clear proof for early customers",
+        ];
+  }
+
+  if (baseScenario.decisionPoints.length > 0) {
+    return baseScenario.decisionPoints;
+  }
+
+  const safeHero = hero ?? (isRu ? "герой" : "the protagonist");
+  const safeSubject = subject ?? (isRu ? "главную цель истории" : "the central objective");
+  return isRu
+    ? [
+        `Поставить ${safeSubject} выше личной безопасности ${safeHero}`,
+        `Сделать ставку на рискованный ход или сохранить контроль`,
+        "Открыть правду окружающим сейчас или удержать ее до финала",
+      ]
+    : [
+        `Put ${safeSubject} ahead of ${safeHero}'s personal safety`,
+        "Choose the risky move or preserve control",
+        "Reveal the truth now or hold it for the ending",
+      ];
+}
+
+function buildAdaptiveSegments(
+  input: StoryInput,
+  hero: string | null,
+  subject: string | null,
+  tone: string | null,
+  techLaunch: boolean,
+): string[] {
+  const isRu = input.language.trim().toLowerCase().startsWith("ru");
+  const safeHero = techLaunch
+    ? (hero ?? (isRu ? "основатель стартапа" : "the startup founder"))
+    : (hero ?? (isRu ? "главный герой" : "the protagonist"));
+  const safeSubject = techLaunch
+    ? (subject ?? (isRu ? "запуск нового AI-продукта" : "the launch of a new AI product"))
+    : (subject ?? (isRu ? "главную цель истории" : "the central objective"));
+  const safeTone = techLaunch
+    ? (tone ?? (isRu ? "кинематографичный, но понятный" : "cinematic but clear"))
+    : (tone ?? input.style);
+
+  if (techLaunch) {
+    const scenes = isRu
+      ? [
+          `За ночь до того, как состоится ${safeSubject}, ${safeHero} остается в полутемном war room, где обратный отсчет, свечение дашбордов и лица команды сразу задают ${safeTone} ритм истории.`,
+          `Во время последнего прогона демо продукт отвечает неидеально, и ${safeHero} понимает, что цена запуска измеряется не только дедлайном, но и доверием первых пользователей.`,
+          `На публичной презентации ${safeHero} переводит сложную AI-идею в один ясный сценарий, а сильный визуальный образ держит кадр: один экран, на котором живая метрика впервые идет вверх.`,
+          `После нажатия кнопки релиза первые регистрации и тихая реакция команды показывают, что ${safeSubject} стал реальностью, а короткая финальная озвучка фиксирует цену риска и масштаб следующего шага.`,
+          `Уже после запуска ${safeHero} проходит через первые отзывы клиентов, и история показывает, как продукт превращается из обещания в работающий инструмент на глазах у команды.`,
+          `В финальном послевкусии ${safeHero} выходит из офиса к рассвету, а единый визуальный образ города и экрана с живыми метриками закрывает историю уверенной, но честной нотой.`,
+        ]
+      : [
+          `On the eve of ${safeSubject}, ${safeHero} stands alone in a dim war room where countdown clocks, glass reflections, and glowing dashboards set a ${safeTone} rhythm immediately.`,
+          `During the last demo rehearsal, the product misfires in one visible way, and ${safeHero} realizes the launch is really a choice between deadline pressure and earned user trust.`,
+          `At the public reveal, ${safeHero} reduces the AI idea to one clear human use case, anchored by a single strong image: one live metric climbing on the main screen for the first time.`,
+          `After the launch button is pressed, the first signups and the team's silent reaction confirm that ${safeSubject} is finally real, and a short closing voiceover captures the cost of the risk.`,
+          `In the first hour after release, ${safeHero} faces real customer feedback and the story shows the product shifting from pitch to living system in full view of the team.`,
+          `In the epilogue, ${safeHero} steps into dawn while the city and the still-glowing metrics wall merge into one final image of scale, relief, and unfinished ambition.`,
+        ];
+    return scenes.slice(0, input.segmentCount);
+  }
+
+  const scenes = isRu
+    ? [
+        `${safeHero} впервые выходит к цели "${safeSubject}", и история открывается одним сильным визуальным образом, который сразу задает ${safeTone} настроение.`,
+        `Во второй сцене давление растет: путь к "${safeSubject}" начинает требовать от ${safeHero} цены, которую уже нельзя игнорировать.`,
+        `К середине истории ${safeHero} получает шанс изменить ход событий, но каждый вариант делает "${safeSubject}" либо ближе, либо опаснее.`,
+        `В кульминации ${safeHero} совершает необратимый выбор, и визуальный образ сцены превращает внутреннее решение в ясное действие.`,
+        `Последствия выбора сразу меняют масштаб истории, заставляя ${safeHero} увидеть настоящую цену цели "${safeSubject}".`,
+        `В финале история собирает все мотивы вместе и оставляет один чистый образ, который закрепляет, кем стал ${safeHero} после пути к "${safeSubject}".`,
+      ]
+    : [
+        `${safeHero} first steps toward "${safeSubject}", and the story opens on one strong visual image that locks in the ${safeTone} tone immediately.`,
+        `The second scene raises pressure as the path toward "${safeSubject}" starts demanding a cost ${safeHero} can no longer ignore.`,
+        `By the midpoint, ${safeHero} gets one chance to redirect events, but every option makes "${safeSubject}" either closer or more dangerous.`,
+        `At the climax, ${safeHero} commits to an irreversible choice, and the scene's central image turns the internal decision into visible action.`,
+        `The aftermath changes the scale of the story and forces ${safeHero} to see the real price of chasing "${safeSubject}".`,
+        `In the ending, the story gathers every thread into one clean image that shows who ${safeHero} became on the road to "${safeSubject}".`,
+      ];
+  return scenes.slice(0, input.segmentCount);
+}
+
+function buildAdaptiveFallbackScenario(baseScenario: FallbackScenario, input: StoryInput, keywordScore: number): FallbackScenario {
+  const normalizedPrompt = normalizePromptWhitespace(input.prompt);
+  const hero = extractStoryHeroFromPrompt(normalizedPrompt);
+  const tone = extractStoryToneFromPrompt(normalizedPrompt);
+  const subject = extractStorySubjectFromPrompt(normalizedPrompt);
+  const techLaunch = isTechLaunchPrompt(normalizedPrompt, hero, subject);
+  const shouldAdapt = techLaunch || Boolean(hero) || Boolean(tone) || keywordScore <= 0;
+
+  if (!shouldAdapt) {
+    return baseScenario;
+  }
+
+  const isRu = input.language.trim().toLowerCase().startsWith("ru");
+  const safeHero = techLaunch
+    ? (hero ?? (isRu ? "основатель стартапа" : "the startup founder"))
+    : (hero ?? (isRu ? "главный герой" : "the protagonist"));
+  const safeSubject = techLaunch
+    ? (subject ?? (isRu ? "запуск AI-продукта" : "AI product launch"))
+    : (subject ?? (isRu ? "Новая история" : "New Story"));
+  const title = capitalizeStoryText(
+    techLaunch
+      ? (isRu ? "Запуск AI-продукта" : "AI Product Launch")
+      : safeSubject,
+  );
+  const logline = techLaunch
+    ? (
+        isRu
+          ? `${safeHero} ведет ${safeSubject.toLowerCase()} через ночь сомнений, финальное демо и публичный релиз, чтобы доказать, что продукт готов к реальным пользователям.`
+          : `${safeHero} guides ${safeSubject.toLowerCase()} through one night of doubt, one final demo, and one public release to prove the product is ready for real users.`
+      )
+    : (
+        isRu
+          ? `${safeHero} проходит путь к "${safeSubject}" через растущее давление, ясный выбор и один решающий визуальный образ в каждой сцене.`
+          : `${safeHero} moves toward "${safeSubject}" through mounting pressure, one clear choice, and one decisive visual image in every scene.`
+      );
+  const assetSlug = techLaunch
+    ? "ai-product-launch"
+    : toFallbackSlug(`${safeSubject} ${safeHero}`, baseScenario.id);
+  const assetLabel = techLaunch ? "AI Product Launch" : title;
+  const keywords = Array.from(
+    new Set([
+      ...baseScenario.keywords,
+      ...tokenize(normalizedPrompt),
+      ...tokenize(safeSubject),
+      ...tokenize(safeHero),
+      ...tokenize(tone ?? input.style),
+    ]),
+  );
+  const segments = buildAdaptiveSegments(input, hero, subject, tone, techLaunch);
+  const decisionPoints = buildAdaptiveDecisionPoints(input, baseScenario, hero, subject, techLaunch);
+  const sceneCount = Math.max(2, input.segmentCount);
+
+  return {
+    id: assetSlug,
+    title,
+    logline,
+    keywords,
+    segments,
+    decisionPoints,
+    images: Array.from(
+      { length: sceneCount },
+      (_, index) => `https://placehold.co/1024x1024/png?text=${encodeURIComponent(`${assetLabel} Scene ${index + 1}`)}`,
+    ),
+    videos: Array.from({ length: sceneCount }, (_, index) => `fallback://story/${assetSlug}/scene-${index + 1}.mp4`),
+    narrations: Array.from({ length: sceneCount }, (_, index) => `fallback://story/${assetSlug}/scene-${index + 1}.wav`),
   };
 }
 
@@ -255,6 +827,12 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
     return fallback;
   }
   return Math.floor(parsed);
+}
+
+function sleepMs(durationMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, Math.max(1, Math.floor(durationMs)));
+  });
 }
 
 function toNonNegativeInt(value: unknown): number | null {
@@ -316,21 +894,161 @@ function buildAgentUsagePayload(totals: AgentUsageTotals): Record<string, unknow
   };
 }
 
-function getGeminiConfig(): GeminiConfig {
+function parseStorytellerRuntimeControlPlaneOverride(rawJson: string): StorytellerRuntimeConfigOverride {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawJson) as unknown;
+  } catch (error) {
+    throw new Error(
+      `storyteller runtime control-plane override must be valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  if (!isRecord(parsed)) {
+    throw new Error("storyteller runtime control-plane override must be a JSON object");
+  }
+
+  const override: StorytellerRuntimeConfigOverride = {};
+  if (Object.prototype.hasOwnProperty.call(parsed, "mediaMode")) {
+    const mediaMode = normalizeMediaMode(parsed.mediaMode);
+    if (!mediaMode) {
+      throw new Error("storyteller runtime control-plane override mediaMode must be default|fallback|simulated");
+    }
+    override.mediaMode = mediaMode;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(parsed, "ttsProvider")) {
+    const ttsProvider = normalizeStorytellerTtsProvider(parsed.ttsProvider);
+    if (!ttsProvider) {
+      throw new Error("storyteller runtime control-plane override ttsProvider must be gemini_api|deepgram");
+    }
+    override.ttsProvider = ttsProvider;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(parsed, "imageEditEnabled")) {
+    if (typeof parsed.imageEditEnabled !== "boolean") {
+      throw new Error("storyteller runtime control-plane override imageEditEnabled must be boolean");
+    }
+    override.imageEditEnabled = parsed.imageEditEnabled;
+  }
+
+  if (Object.keys(override).length === 0) {
+    throw new Error("storyteller runtime control-plane override must include at least one supported field");
+  }
+
+  return override;
+}
+
+export function getStorytellerRuntimeConfig(): StorytellerRuntimeConfigSnapshot {
+  const config = getGeminiConfig();
+  const imageEditSelection = buildStorytellerImageEditSelection({
+    config,
+    mediaModeOverride: config.mediaMode,
+    includeImages: true,
+    imageEditRequested: false,
+  });
+  const ttsSelection = buildStorytellerTtsSelection({
+    config,
+    inputLanguage: "en",
+    mediaModeOverride: config.mediaMode,
+  });
   return {
+    sourceKind: storytellerRuntimeControlPlaneOverride ? "control_plane_json" : "env",
+    mediaMode: config.mediaMode,
+    imageEdit: {
+      enabled: config.imageEditEnabled,
+      provider: imageEditSelection.defaultProvider,
+      model: imageEditSelection.defaultModel,
+      effectiveMode: imageEditSelection.mode,
+    },
+    tts: {
+      defaultProvider: ttsSelection.defaultProvider,
+      defaultModel: ttsSelection.defaultModel,
+      providerOverride: config.ttsProviderOverride,
+      secondaryEnabled: config.ttsSecondaryEnabled,
+      secondaryProvider: ttsSelection.secondaryProvider,
+      secondaryModel: ttsSelection.secondaryModel,
+      secondaryLocales: [...config.ttsSecondaryLocales],
+      effectiveProvider: ttsSelection.provider,
+      effectiveModel: ttsSelection.model,
+    },
+    controlPlaneOverride: {
+      active: storytellerRuntimeControlPlaneOverride !== null,
+      updatedAt: storytellerRuntimeControlPlaneOverride?.updatedAt ?? null,
+      reason: storytellerRuntimeControlPlaneOverride?.reason ?? null,
+    },
+  };
+}
+
+export function setStorytellerRuntimeControlPlaneOverride(params: {
+  rawJson: string;
+  reason?: string | null;
+}): StorytellerRuntimeConfigSnapshot {
+  const rawJson = toNullableString(params.rawJson);
+  if (!rawJson) {
+    throw new Error("storyteller runtime control-plane override requires rawJson");
+  }
+  parseStorytellerRuntimeControlPlaneOverride(rawJson);
+  storytellerRuntimeControlPlaneOverride = {
+    rawJson,
+    updatedAt: new Date().toISOString(),
+    reason: params.reason ?? null,
+  };
+  return getStorytellerRuntimeConfig();
+}
+
+export function clearStorytellerRuntimeControlPlaneOverride(): void {
+  storytellerRuntimeControlPlaneOverride = null;
+}
+
+export function resetStorytellerRuntimeControlPlaneOverrideForTests(): void {
+  storytellerRuntimeControlPlaneOverride = null;
+}
+
+function getGeminiConfig(): GeminiConfig {
+  const config: GeminiConfig = {
     apiKey:
       toNullableString(process.env.STORYTELLER_GEMINI_API_KEY) ?? toNullableString(process.env.GEMINI_API_KEY),
     baseUrl: toNonEmptyString(process.env.GEMINI_API_BASE_URL, "https://generativelanguage.googleapis.com/v1beta"),
-    plannerModel: toNonEmptyString(process.env.STORYTELLER_PLANNER_MODEL, "gemini-3-pro"),
-    branchModel: toNonEmptyString(process.env.STORYTELLER_BRANCH_MODEL, "gemini-3-flash"),
+    plannerModel: toNonEmptyString(process.env.STORYTELLER_PLANNER_MODEL, "gemini-3.1-pro-preview"),
+    branchModel: toNonEmptyString(process.env.STORYTELLER_BRANCH_MODEL, "gemini-3.1-flash-lite-preview"),
     timeoutMs: parsePositiveInt(process.env.STORYTELLER_GEMINI_TIMEOUT_MS, 12000),
     plannerEnabled: process.env.STORYTELLER_USE_GEMINI_PLANNER !== "false",
-    mediaMode: process.env.STORYTELLER_MEDIA_MODE === "simulated" ? "simulated" : "fallback",
+    mediaMode:
+      normalizeMediaMode(process.env.STORYTELLER_MEDIA_MODE) ??
+      (toNullableString(process.env.STORYTELLER_GEMINI_API_KEY) ?? toNullableString(process.env.GEMINI_API_KEY)
+        ? "default"
+        : "fallback"),
     imageModel: toNonEmptyString(process.env.STORYTELLER_IMAGE_MODEL, "imagen-4"),
+    imageEditEnabled: parseBooleanEnv(process.env.STORYTELLER_IMAGE_EDIT_ENABLED, false),
+    imageEditModel: toNonEmptyString(process.env.STORYTELLER_IMAGE_EDIT_MODEL, "fal-ai/nano-banana-2/edit"),
     videoModel: toNonEmptyString(process.env.STORYTELLER_VIDEO_MODEL, "veo-3.1"),
-    ttsModel: toNonEmptyString(process.env.STORYTELLER_TTS_MODEL, "gemini-tts"),
+    videoPollMs: parsePositiveInt(process.env.STORYTELLER_VIDEO_POLL_MS, 5000),
+    videoMaxWaitMs: parsePositiveInt(process.env.STORYTELLER_VIDEO_MAX_WAIT_MS, 90000),
+    ttsModel: toNonEmptyString(process.env.STORYTELLER_TTS_MODEL, "gemini-2.5-flash-preview-tts"),
+    ttsProviderOverride: normalizeStorytellerTtsProvider(process.env.STORYTELLER_TTS_PROVIDER_OVERRIDE),
+    ttsSecondaryEnabled: parseBooleanEnv(process.env.STORYTELLER_TTS_SECONDARY_ENABLED, true),
+    ttsSecondaryModel: toNonEmptyString(process.env.STORYTELLER_TTS_SECONDARY_MODEL, "aura-2"),
+    ttsSecondaryLocales: parseStringList(process.env.STORYTELLER_TTS_SECONDARY_LOCALES),
     cacheVersion: toNonEmptyString(process.env.STORYTELLER_CACHE_VERSION, "story-cache-v1"),
     cachePurgeToken: toNullableString(process.env.STORYTELLER_CACHE_PURGE_TOKEN),
+    deepgramApiKey: toNullableString(process.env.DEEPGRAM_API_KEY),
+    deepgramBaseUrl: toNonEmptyString(process.env.DEEPGRAM_BASE_URL, "https://api.deepgram.com"),
+    deepgramTimeoutMs: parsePositiveInt(process.env.DEEPGRAM_TIMEOUT_MS, 15000),
+    falApiKey: toNullableString(process.env.FAL_KEY) ?? toNullableString(process.env.FAL_API_KEY),
+    falBaseUrl: toNonEmptyString(process.env.FAL_BASE_URL, "https://fal.run"),
+    falTimeoutMs: parsePositiveInt(process.env.FAL_TIMEOUT_MS, 60000),
+  };
+
+  if (!storytellerRuntimeControlPlaneOverride) {
+    return config;
+  }
+
+  const override = parseStorytellerRuntimeControlPlaneOverride(storytellerRuntimeControlPlaneOverride.rawJson);
+  return {
+    ...config,
+    mediaMode: override.mediaMode ?? config.mediaMode,
+    imageEditEnabled: override.imageEditEnabled ?? config.imageEditEnabled,
+    ttsProviderOverride: override.ttsProvider ?? config.ttsProviderOverride,
   };
 }
 
@@ -339,8 +1057,14 @@ function buildStoryCacheFingerprint(config: GeminiConfig): string {
     `planner:${config.plannerModel}`,
     `branch:${config.branchModel}`,
     `image:${config.imageModel}`,
+    `imageEdit:${config.imageEditEnabled ? "enabled" : "disabled"}`,
+    `imageEditModel:${config.imageEditModel}`,
     `video:${config.videoModel}`,
     `tts:${config.ttsModel}`,
+    `ttsOverride:${config.ttsProviderOverride ?? "none"}`,
+    `ttsSecondary:${config.ttsSecondaryEnabled ? "deepgram" : "disabled"}`,
+    `ttsSecondaryModel:${config.ttsSecondaryModel}`,
+    `ttsSecondaryLocales:${config.ttsSecondaryLocales.join(",") || "none"}`,
     `version:${config.cacheVersion}`,
   ].join("|");
 }
@@ -416,9 +1140,9 @@ async function loadFallbackPack(): Promise<FallbackPack> {
             "Force entry into the submerged chamber",
           ],
           images: [
-            "fallback://story/generic/scene-1-image.jpg",
-            "fallback://story/generic/scene-2-image.jpg",
-            "fallback://story/generic/scene-3-image.jpg",
+            "https://placehold.co/1024x1024/png?text=Echo+Harbor+Scene+1",
+            "https://placehold.co/1024x1024/png?text=Echo+Harbor+Scene+2",
+            "https://placehold.co/1024x1024/png?text=Echo+Harbor+Scene+3",
           ],
           videos: [
             "fallback://story/generic/scene-1-video.mp4",
@@ -440,7 +1164,9 @@ async function loadFallbackPack(): Promise<FallbackPack> {
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
-    .split(/[^a-z0-9]+/g)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^\p{L}\p{N}]+/gu)
     .map((token) => token.trim())
     .filter((token) => token.length >= 3);
 }
@@ -458,13 +1184,13 @@ function selectFallbackScenario(pack: FallbackPack, input: StoryInput): Fallback
         score += 1;
       }
     }
-    if (score > bestScore) {
-      bestScore = score;
-      best = scenario;
+      if (score > bestScore) {
+        bestScore = score;
+        best = scenario;
+      }
     }
-  }
 
-  return best ?? pack.scenarios[0];
+  return buildAdaptiveFallbackScenario(best ?? pack.scenarios[0], input, bestScore);
 }
 
 async function fetchGeminiText(params: {
@@ -476,78 +1202,290 @@ async function fetchGeminiText(params: {
   responseMimeType?: "application/json" | "text/plain";
   temperature?: number;
 }): Promise<ReasoningTextResult | null> {
+  return generateGoogleGenAiText({
+    apiKey: params.apiKey,
+    baseUrl: params.baseUrl,
+    timeoutMs: params.timeoutMs,
+    model: params.model,
+    prompt: params.prompt,
+    responseMimeType: params.responseMimeType,
+    temperature: params.temperature,
+  });
+}
+
+type DeepgramTtsResult = {
+  audioRef: string;
+  mimeType: string;
+  provider: string;
+  model: string;
+  durationMs: number | null;
+};
+
+type GeminiTtsResult = {
+  audioRef: string;
+  mimeType: string;
+  provider: string;
+  model: string;
+  durationMs: number | null;
+};
+
+type GeminiImageResult = {
+  imageRef: string;
+  mimeType: string;
+  provider: string;
+  model: string;
+};
+
+type GeminiVideoResult = {
+  videoRef: string;
+  mimeType: string;
+  provider: string;
+  model: string;
+  operationName: string;
+  polled: boolean;
+};
+
+function resolveStorytellerTtsModel(model: string): string {
+  const normalized = model.trim().toLowerCase();
+  return normalized === "gemini-tts" ? "gemini-2.5-flash-preview-tts" : model;
+}
+
+async function fetchGeminiTts(params: {
+  config: GeminiConfig;
+  text: string;
+  model?: string;
+  languageCode?: string | null;
+}): Promise<GeminiTtsResult | null> {
+  if (!params.config.apiKey) {
+    return null;
+  }
+
+  const model = resolveStorytellerTtsModel(params.model ?? params.config.ttsModel);
+  const result = await generateGoogleGenAiSpeech({
+    apiKey: params.config.apiKey,
+    baseUrl: params.config.baseUrl,
+    timeoutMs: params.config.timeoutMs,
+    model,
+    text: params.text,
+    languageCode: params.languageCode,
+    temperature: 0.6,
+  });
+  if (!result) {
+    return null;
+  }
+  return {
+    audioRef: `data:${result.mimeType};base64,${result.audioData}`,
+    mimeType: result.mimeType,
+    provider: "gemini_api",
+    model,
+    durationMs: null,
+  };
+}
+
+async function fetchGeminiImage(params: {
+  config: GeminiConfig;
+  prompt: string;
+  model?: string;
+}): Promise<GeminiImageResult | null> {
+  if (!params.config.apiKey) {
+    return null;
+  }
+
+  const model = params.model ?? params.config.imageModel;
+  const result = await generateGoogleGenAiImage({
+    apiKey: params.config.apiKey,
+    baseUrl: params.config.baseUrl,
+    timeoutMs: params.config.timeoutMs,
+    model,
+    prompt: params.prompt,
+    numberOfImages: 1,
+    outputMimeType: "image/png",
+    aspectRatio: "1:1",
+  });
+  if (!result) {
+    return null;
+  }
+  return {
+    imageRef: result.imageRef,
+    mimeType: result.mimeType,
+    provider: "google_cloud",
+    model,
+  };
+}
+
+async function fetchGeminiVideo(params: {
+  config: GeminiConfig;
+  prompt: string;
+  model?: string;
+}): Promise<GeminiVideoResult | null> {
+  if (!params.config.apiKey) {
+    return null;
+  }
+
+  const model = params.model ?? params.config.videoModel;
+  let operation = await startGoogleGenAiVideoOperation({
+    apiKey: params.config.apiKey,
+    baseUrl: params.config.baseUrl,
+    timeoutMs: params.config.timeoutMs,
+    model,
+    prompt: params.prompt,
+    numberOfVideos: 1,
+    aspectRatio: "16:9",
+    durationSeconds: 8,
+  });
+  if (!operation) {
+    return null;
+  }
+
+  const deadlineMs = Date.now() + Math.max(params.config.videoPollMs, params.config.videoMaxWaitMs);
+  let polled = false;
+  while (!operation.done && Date.now() < deadlineMs) {
+    polled = true;
+    await sleepMs(params.config.videoPollMs);
+    const updated = await pollGoogleGenAiVideoOperation({
+      apiKey: params.config.apiKey,
+      baseUrl: params.config.baseUrl,
+      timeoutMs: params.config.timeoutMs,
+      operationName: operation.operationName,
+    });
+    if (!updated) {
+      return null;
+    }
+    operation = updated;
+  }
+
+  if (!operation.done || !operation.videoRef) {
+    return null;
+  }
+
+  return {
+    videoRef: operation.videoRef,
+    mimeType: operation.mimeType ?? "video/mp4",
+    provider: "google_cloud",
+    model,
+    operationName: operation.operationName,
+    polled,
+  };
+}
+
+async function fetchDeepgramTts(params: {
+  config: GeminiConfig;
+  text: string;
+  model?: string;
+}): Promise<DeepgramTtsResult | null> {
+  if (!params.config.deepgramApiKey) {
+    return null;
+  }
+
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), params.timeoutMs);
-  const endpoint = `${params.baseUrl.replace(/\/+$/, "")}/models/${encodeURIComponent(params.model)}:generateContent?key=${encodeURIComponent(params.apiKey)}`;
+  const timeout = setTimeout(() => controller.abort(), params.config.deepgramTimeoutMs);
+  const baseUrl = params.config.deepgramBaseUrl.replace(/\/+$/, "");
+  const model = params.model ?? "aura-2-thalia-en";
+  const endpoint = `${baseUrl}/v1/speak?model=${encodeURIComponent(model)}`;
 
   try {
-    const body: Record<string, unknown> = {
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: params.prompt }],
-        },
-      ],
-      generationConfig: {
-        temperature: params.temperature ?? 0.4,
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${params.config.deepgramApiKey}`,
+        "Content-Type": "application/json",
       },
-    };
-    if (params.responseMimeType) {
-      body.generationConfig = {
-        ...(isRecord(body.generationConfig) ? body.generationConfig : {}),
-        responseMimeType: params.responseMimeType,
-      };
+      body: JSON.stringify({ text: params.text }),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      return null;
     }
+
+    const audioBuffer = await response.arrayBuffer();
+    if (audioBuffer.byteLength === 0) {
+      return null;
+    }
+
+    const base64Audio = Buffer.from(audioBuffer).toString("base64");
+    const contentType = response.headers.get("content-type") ?? "audio/mpeg";
+    const audioRef = `data:${contentType};base64,${base64Audio}`;
+
+    const durationHeader = response.headers.get("x-dg-duration");
+    const durationMs = durationHeader ? Math.round(Number(durationHeader) * 1000) : null;
+
+    return {
+      audioRef,
+      mimeType: contentType,
+      provider: "deepgram",
+      model,
+      durationMs: Number.isFinite(durationMs) ? durationMs : null,
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+type FalImageEditResult = {
+  imageRef: string;
+  mimeType: string;
+  provider: string;
+  model: string;
+  description: string | null;
+};
+
+async function fetchFalImageEdit(params: {
+  config: GeminiConfig;
+  prompt: string;
+  imageUrls: string[];
+  model?: string;
+}): Promise<FalImageEditResult | null> {
+  if (!params.config.falApiKey) {
+    return null;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), params.config.falTimeoutMs);
+  const baseUrl = params.config.falBaseUrl.replace(/\/+$/, "");
+  const model = params.model ?? "fal-ai/nano-banana-2/edit";
+  const endpoint = `${baseUrl}/${model}`;
+
+  try {
+    const body = {
+      prompt: params.prompt,
+      image_urls: params.imageUrls,
+      num_images: 1,
+      output_format: "png",
+      resolution: "1K",
+      limit_generations: true,
+    };
 
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
+        Authorization: `Key ${params.config.falApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
       signal: controller.signal,
     });
-
     if (!response.ok) {
       return null;
     }
 
     const parsed = (await response.json()) as unknown;
-    if (!isRecord(parsed) || !Array.isArray(parsed.candidates)) {
+    if (!isRecord(parsed) || !Array.isArray(parsed.images) || parsed.images.length === 0) {
       return null;
     }
 
-    const parts: string[] = [];
-    for (const candidate of parsed.candidates) {
-      if (!isRecord(candidate) || !isRecord(candidate.content) || !Array.isArray(candidate.content.parts)) {
-        continue;
-      }
-      for (const part of candidate.content.parts) {
-        if (isRecord(part) && typeof part.text === "string") {
-          parts.push(part.text);
-        }
-      }
-    }
-
-    if (parts.length === 0) {
+    const firstImage = parsed.images[0];
+    if (!isRecord(firstImage) || typeof firstImage.url !== "string") {
       return null;
     }
-    const usageRaw = isRecord(parsed.usageMetadata) ? parsed.usageMetadata : null;
-    const inputTokens = usageRaw ? toNonNegativeInt(usageRaw.promptTokenCount) : null;
-    const outputTokens = usageRaw ? toNonNegativeInt(usageRaw.candidatesTokenCount) : null;
-    const totalTokens = usageRaw ? toNonNegativeInt(usageRaw.totalTokenCount) : null;
-    const usage =
-      usageRaw && (inputTokens !== null || outputTokens !== null || totalTokens !== null)
-        ? {
-            inputTokens: inputTokens ?? undefined,
-            outputTokens: outputTokens ?? undefined,
-            totalTokens: totalTokens ?? undefined,
-            raw: usageRaw,
-          }
-        : undefined;
+
     return {
-      text: parts.join("\n").trim(),
-      usage,
+      imageRef: firstImage.url as string,
+      mimeType: (typeof firstImage.content_type === "string" ? firstImage.content_type : null) ?? "image/png",
+      provider: "fal",
+      model,
+      description: typeof parsed.description === "string" ? parsed.description : null,
     };
   } catch {
     return null;
@@ -558,13 +1496,18 @@ async function fetchGeminiText(params: {
 
 function createStorytellerCapabilitySet(
   config: GeminiConfig,
-  mediaModeOverride: "fallback" | "simulated",
+  mediaModeOverride: StoryMediaMode,
+  params: {
+    inputLanguage: string;
+    includeImages: boolean;
+    imageEditRequested: boolean;
+  },
   usageTotals: AgentUsageTotals,
 ): StorytellerCapabilitySet {
   const reasoning: ReasoningCapabilityAdapter = {
     descriptor: {
       capability: "reasoning",
-      adapterId: config.apiKey ? "gemini-story-reasoning" : "fallback-story-reasoning",
+      adapterId: config.apiKey ? "google-genai-sdk-story-reasoning" : "fallback-story-reasoning",
       provider: config.apiKey ? "gemini_api" : "fallback",
       model: config.plannerModel,
       mode: config.apiKey && config.plannerEnabled ? "default" : "fallback",
@@ -590,46 +1533,107 @@ function createStorytellerCapabilitySet(
     },
   };
 
-  const mediaMode: "default" | "fallback" | "simulated" =
-    mediaModeOverride === "simulated" ? "simulated" : "fallback";
-  const mediaProvider = mediaModeOverride === "simulated" ? "simulated" : "google_cloud";
+  const imageMode: StoryMediaMode =
+    mediaModeOverride === "simulated" ? "simulated" : config.apiKey && mediaModeOverride === "default" ? "default" : "fallback";
+  const imageProvider = imageMode === "simulated" ? "simulated" : "google_cloud";
+  const videoMode: StoryMediaMode =
+    mediaModeOverride === "simulated" ? "simulated" : config.apiKey && mediaModeOverride === "default" ? "default" : "fallback";
+  const videoProvider = videoMode === "simulated" ? "simulated" : "google_cloud";
+  const imageEditSelection = buildStorytellerImageEditSelection({
+    config,
+    mediaModeOverride,
+    includeImages: params.includeImages,
+    imageEditRequested: params.imageEditRequested,
+  });
+  const ttsSelection = buildStorytellerTtsSelection({
+    config,
+    inputLanguage: params.inputLanguage,
+    mediaModeOverride,
+  });
 
   const image: ImageCapabilityAdapter = {
     descriptor: {
       capability: "image",
-      adapterId: mediaModeOverride === "simulated" ? "imagen-simulated" : "imagen-fallback-pack",
-      provider: mediaProvider,
+      adapterId:
+        imageMode === "default"
+          ? config.imageModel.toLowerCase().includes("imagen")
+            ? "google-genai-sdk-imagen"
+            : "google-genai-sdk-image"
+          : imageMode === "simulated"
+            ? "imagen-simulated"
+            : "imagen-fallback-pack",
+      provider: imageProvider,
       model: config.imageModel,
-      mode: mediaMode,
+      mode: imageMode,
+      selection: {
+        defaultProvider: "google_cloud",
+        defaultModel: config.imageModel,
+        selectionReason: imageMode === "default" ? "google_genai_sdk" : "fallback_pack",
+      },
     },
   };
 
   const video: VideoCapabilityAdapter = {
     descriptor: {
       capability: "video",
-      adapterId: mediaModeOverride === "simulated" ? "veo-simulated" : "veo-fallback-pack",
-      provider: mediaProvider,
+      adapterId:
+        videoMode === "default"
+          ? "google-genai-sdk-veo"
+          : videoMode === "simulated"
+            ? "veo-simulated"
+            : "veo-fallback-pack",
+      provider: videoProvider,
       model: config.videoModel,
-      mode: mediaMode,
+      mode: videoMode,
+      selection: {
+        defaultProvider: "google_cloud",
+        defaultModel: config.videoModel,
+        selectionReason: videoMode === "default" ? "google_genai_sdk" : videoMode === "simulated" ? "simulated" : "fallback_pack",
+      },
+    },
+  };
+
+  const imageEdit: ImageEditCapabilityAdapter = {
+    descriptor: {
+      capability: "image_edit",
+      adapterId: imageEditSelection.adapterId,
+      provider: imageEditSelection.provider,
+      model: imageEditSelection.model,
+      mode: imageEditSelection.mode,
+      selection: {
+        defaultProvider: imageEditSelection.defaultProvider,
+        defaultModel: imageEditSelection.defaultModel,
+        selectionReason: imageEditSelection.selectionReason,
+      },
     },
   };
 
   const tts: TtsCapabilityAdapter = {
     descriptor: {
       capability: "tts",
-      adapterId: mediaModeOverride === "simulated" ? "gemini-tts-simulated" : "gemini-tts-fallback-pack",
-      provider: mediaProvider,
-      model: config.ttsModel,
-      mode: mediaMode,
+      adapterId: ttsSelection.adapterId,
+      provider: ttsSelection.provider,
+      model: ttsSelection.model,
+      mode: ttsSelection.mode,
+      selection: {
+        defaultProvider: ttsSelection.defaultProvider,
+        defaultModel: ttsSelection.defaultModel,
+        secondaryProvider: ttsSelection.secondaryProvider,
+        secondaryModel: ttsSelection.secondaryModel,
+        selectionReason: ttsSelection.selectionReason,
+      },
     },
   };
 
   return {
     reasoning,
     image,
+    imageEdit,
     video,
     tts,
-    profile: buildCapabilityProfile([reasoning, image, video, tts]),
+    imageEditSelection,
+    ttsSelection,
+    profile: buildCapabilityProfile([reasoning, image, imageEdit, video, tts]),
   };
 }
 
@@ -673,7 +1677,12 @@ async function generateStoryPlan(
   const fallbackPlan: StoryPlan = {
     title: fallback.title,
     logline: fallback.logline,
-    segments: sliceToCount(fallback.segments, input.segmentCount),
+    segments: fitStorySegmentsToCount({
+      segments: fallback.segments,
+      count: input.segmentCount,
+      input,
+      fallback,
+    }),
     decisionPoints: fallback.decisionPoints,
     plannerProvider: "fallback",
     plannerModel: "fallback-pack",
@@ -731,7 +1740,12 @@ async function generateStoryPlan(
   const planned: StoryPlan = {
     title: toNonEmptyString(parsed.title, fallback.title),
     logline: toNonEmptyString(parsed.logline, fallback.logline),
-    segments: sliceToCount(segments, input.segmentCount),
+    segments: fitStorySegmentsToCount({
+      segments,
+      count: input.segmentCount,
+      input,
+      fallback,
+    }),
     decisionPoints: decisionPoints.length > 0 ? decisionPoints : fallback.decisionPoints,
     plannerProvider: "gemini",
     plannerModel: config.plannerModel,
@@ -882,12 +1896,49 @@ function resolveCachedAssetDescriptor(params: {
   return created;
 }
 
-function createImageAsset(params: {
+async function createImageAsset(params: {
   segmentText: string;
   segmentIndex: number;
   fallback: FallbackScenario;
   adapter: ImageCapabilityAdapter;
-}): StoryAsset {
+  config: GeminiConfig;
+}): Promise<StoryAsset> {
+  const prompt = `Illustration for segment ${params.segmentIndex + 1}: ${params.segmentText}`;
+  const isLiveGeminiImage =
+    params.adapter.descriptor.mode === "default" &&
+    params.adapter.descriptor.provider === "google_cloud" &&
+    Boolean(params.config.apiKey);
+
+  if (isLiveGeminiImage) {
+    const liveResult = await fetchGeminiImage({
+      config: params.config,
+      prompt,
+      model: params.adapter.descriptor.model || undefined,
+    });
+    if (liveResult) {
+      return {
+        id: buildAssetId("image", params.segmentIndex),
+        kind: "image",
+        ref: liveResult.imageRef,
+        provider: liveResult.provider,
+        model: liveResult.model,
+        status: "ready",
+        fallbackAsset: false,
+        segmentIndex: params.segmentIndex,
+        mimeType: liveResult.mimeType,
+        jobId: null,
+        sourceRef: null,
+        sourceProvider: null,
+        sourceModel: null,
+        meta: {
+          prompt,
+          adapterMode: "default",
+          liveApi: true,
+        },
+      };
+    }
+  }
+
   const adapterMode = params.adapter.descriptor.mode === "simulated" ? "simulated" : "fallback";
   const fallbackRef = pickFallbackRef(params.fallback.images, params.segmentIndex);
   const cached = resolveCachedAssetDescriptor({
@@ -926,7 +1977,7 @@ function createImageAsset(params: {
         fallbackAsset,
         mimeType: "image/jpeg",
         meta: {
-          prompt: `Illustration for segment ${params.segmentIndex + 1}: ${params.segmentText}`,
+          prompt,
           adapterMode,
         },
       };
@@ -944,16 +1995,198 @@ function createImageAsset(params: {
     segmentIndex: params.segmentIndex,
     mimeType: cached.mimeType,
     jobId: null,
+    sourceRef: null,
+    sourceProvider: null,
+    sourceModel: null,
     meta: cached.meta,
   };
 }
 
-function createVideoAsset(params: {
+async function applyImageEditPass(params: {
+  images: StoryAsset[];
+  segments: string[];
+  fallback: FallbackScenario;
+  adapter: ImageEditCapabilityAdapter;
+  imageEditPrompt: string | null;
+  imageEditReferenceRef: string | null;
+  config: GeminiConfig;
+}): Promise<{ images: StoryAsset[]; editedAssetCount: number; edits: Array<Record<string, unknown>> }> {
+  const adapterMode = params.adapter.descriptor.mode;
+  if (adapterMode === "disabled" || params.images.length === 0) {
+    return {
+      images: params.images,
+      editedAssetCount: 0,
+      edits: [],
+    };
+  }
+
+  const isLiveFal = adapterMode === "default" && params.adapter.descriptor.provider === "fal" && params.config.falApiKey;
+
+  const editedImages: StoryAsset[] = [];
+  for (const asset of params.images) {
+    const segmentText = params.segments[asset.segmentIndex] ?? "";
+    const prompt =
+      params.imageEditPrompt ??
+      `Continuity edit for segment ${asset.segmentIndex + 1}: preserve scene identity and refine ${segmentText}`;
+
+    if (isLiveFal) {
+      const imageUrls = [asset.ref];
+      if (params.imageEditReferenceRef) {
+        imageUrls.push(params.imageEditReferenceRef);
+      }
+      const liveResult = await fetchFalImageEdit({
+        config: params.config,
+        prompt,
+        imageUrls,
+        model: params.adapter.descriptor.model || undefined,
+      });
+      if (liveResult) {
+        editedImages.push({
+          ...asset,
+          ref: liveResult.imageRef,
+          provider: liveResult.provider,
+          model: liveResult.model,
+          status: "ready",
+          fallbackAsset: false,
+          sourceRef: asset.ref,
+          sourceProvider: asset.provider,
+          sourceModel: asset.model,
+          meta: {
+            ...asset.meta,
+            operation: "continuity_post_process",
+            adapterMode: "default",
+            prompt,
+            referenceRef: params.imageEditReferenceRef,
+            sourceRef: asset.ref,
+            sourceProvider: asset.provider,
+            sourceModel: asset.model,
+            description: liveResult.description,
+            liveApi: true,
+          },
+        });
+        continue;
+      }
+    }
+
+    const cached = resolveCachedAssetDescriptor({
+      namespace: "story.asset.image_edit",
+      cachePayload: {
+        scenarioId: params.fallback.id,
+        segmentIndex: asset.segmentIndex,
+        segmentText,
+        sourceRef: asset.ref,
+        sourceProvider: asset.provider,
+        sourceModel: asset.model,
+        adapterMode,
+        provider: params.adapter.descriptor.provider,
+        model: params.adapter.descriptor.model,
+        prompt,
+        imageEditReferenceRef: params.imageEditReferenceRef,
+      },
+      create: () => ({
+        ref:
+          adapterMode === "fallback"
+            ? `fallback://story/${params.fallback.id}/segment-${asset.segmentIndex + 1}-image-edit.jpg`
+            : buildSimulatedRef({
+                kind: "image",
+                scenarioId: params.fallback.id,
+                segmentIndex: asset.segmentIndex,
+                extension: "image-edit.jpg",
+              }),
+        provider: params.adapter.descriptor.provider,
+        model: params.adapter.descriptor.model,
+        status: "ready",
+        fallbackAsset: adapterMode === "fallback",
+        mimeType: asset.mimeType,
+        meta: {
+          operation: "continuity_post_process",
+          adapterMode,
+          prompt,
+          referenceRef: params.imageEditReferenceRef,
+          sourceRef: asset.ref,
+          sourceProvider: asset.provider,
+          sourceModel: asset.model,
+        },
+      }),
+    });
+
+    editedImages.push({
+      ...asset,
+      ref: cached.ref,
+      provider: cached.provider,
+      model: cached.model,
+      status: cached.status,
+      fallbackAsset: asset.fallbackAsset || cached.fallbackAsset,
+      sourceRef: asset.ref,
+      sourceProvider: asset.provider,
+      sourceModel: asset.model,
+      meta: {
+        ...asset.meta,
+        ...cached.meta,
+      },
+    });
+  }
+
+  return {
+    images: editedImages,
+    editedAssetCount: editedImages.length,
+    edits: editedImages.map((asset) => ({
+      segmentIndex: asset.segmentIndex,
+      sourceRef: asset.sourceRef,
+      editedRef: asset.ref,
+      sourceProvider: asset.sourceProvider,
+      sourceModel: asset.sourceModel,
+      selectedProvider: asset.provider,
+      selectedModel: asset.model,
+    })),
+  };
+}
+
+async function createVideoAsset(params: {
   segmentText: string;
   segmentIndex: number;
   fallback: FallbackScenario;
   adapter: VideoCapabilityAdapter;
-}): StoryAsset {
+  config: GeminiConfig;
+}): Promise<StoryAsset> {
+  const prompt = `Video scene for segment ${params.segmentIndex + 1}: ${params.segmentText}`;
+  const isLiveGeminiVideo =
+    params.adapter.descriptor.mode === "default" &&
+    params.adapter.descriptor.provider === "google_cloud" &&
+    Boolean(params.config.apiKey);
+
+  if (isLiveGeminiVideo) {
+    const liveResult = await fetchGeminiVideo({
+      config: params.config,
+      prompt,
+      model: params.adapter.descriptor.model || undefined,
+    });
+    if (liveResult) {
+      return {
+        id: buildAssetId("video", params.segmentIndex),
+        kind: "video",
+        ref: liveResult.videoRef,
+        provider: liveResult.provider,
+        model: liveResult.model,
+        status: "ready",
+        fallbackAsset: false,
+        segmentIndex: params.segmentIndex,
+        mimeType: liveResult.mimeType,
+        jobId: null,
+        sourceRef: null,
+        sourceProvider: null,
+        sourceModel: null,
+        meta: {
+          prompt,
+          adapterMode: "default",
+          liveApi: true,
+          operationName: liveResult.operationName,
+          polled: liveResult.polled,
+        },
+      };
+    }
+  }
+
   const adapterMode = params.adapter.descriptor.mode === "simulated" ? "simulated" : "fallback";
   const fallbackRef = pickFallbackRef(params.fallback.videos, params.segmentIndex);
   const cached = resolveCachedAssetDescriptor({
@@ -993,7 +2226,7 @@ function createVideoAsset(params: {
         fallbackAsset,
         mimeType: "video/mp4",
         meta: {
-          prompt: `Video scene for segment ${params.segmentIndex + 1}: ${params.segmentText}`,
+          prompt,
           adapterMode,
           notes: adapterMode === "fallback" ? "pre-generated fallback clip" : "queued for async generation",
         },
@@ -1012,17 +2245,96 @@ function createVideoAsset(params: {
     segmentIndex: params.segmentIndex,
     mimeType: cached.mimeType,
     jobId: null,
+    sourceRef: null,
+    sourceProvider: null,
+    sourceModel: null,
     meta: cached.meta,
   };
 }
 
-function createNarrationAsset(params: {
+async function createNarrationAsset(params: {
   segmentText: string;
   segmentIndex: number;
   voiceStyle: string;
+  language: string;
   fallback: FallbackScenario;
   adapter: TtsCapabilityAdapter;
-}): StoryAsset {
+  config: GeminiConfig;
+}): Promise<StoryAsset> {
+  const isLiveGeminiTts =
+    params.adapter.descriptor.mode === "default" &&
+    params.adapter.descriptor.provider === "gemini_api" &&
+    Boolean(params.config.apiKey);
+  const isLiveDeepgram = params.adapter.descriptor.mode === "default" && params.adapter.descriptor.provider === "deepgram" && params.config.deepgramApiKey;
+
+  if (isLiveGeminiTts) {
+    const liveResult = await fetchGeminiTts({
+      config: params.config,
+      text: params.segmentText,
+      model: params.adapter.descriptor.model || undefined,
+      languageCode: normalizeLanguageTag(params.language),
+    });
+    if (liveResult) {
+      return {
+        id: buildAssetId("audio", params.segmentIndex),
+        kind: "audio",
+        ref: liveResult.audioRef,
+        provider: liveResult.provider,
+        model: liveResult.model,
+        status: "ready",
+        fallbackAsset: false,
+        segmentIndex: params.segmentIndex,
+        mimeType: liveResult.mimeType,
+        jobId: null,
+        sourceRef: null,
+        sourceProvider: null,
+        sourceModel: null,
+        meta: {
+          text: params.segmentText,
+          voiceStyle: params.voiceStyle,
+          adapterMode: "default",
+          selectionReason: params.adapter.descriptor.selection?.selectionReason ?? null,
+          durationMs: liveResult.durationMs,
+          liveApi: true,
+        },
+      };
+    }
+  }
+
+  if (isLiveDeepgram) {
+    const ttsModel = params.adapter.descriptor.model || "aura-2-thalia-en";
+    const liveResult = await fetchDeepgramTts({
+      config: params.config,
+      text: params.segmentText,
+      model: ttsModel,
+    });
+    if (liveResult) {
+      return {
+        id: buildAssetId("audio", params.segmentIndex),
+        kind: "audio",
+        ref: liveResult.audioRef,
+        provider: liveResult.provider,
+        model: liveResult.model,
+        status: "ready",
+        fallbackAsset: false,
+        segmentIndex: params.segmentIndex,
+        mimeType: liveResult.mimeType,
+        jobId: null,
+        sourceRef: null,
+        sourceProvider: null,
+        sourceModel: null,
+        meta: {
+          text: params.segmentText,
+          voiceStyle: params.voiceStyle,
+          adapterMode: "default",
+          selectionReason: params.adapter.descriptor.selection?.selectionReason ?? null,
+          durationMs: liveResult.durationMs,
+          liveApi: true,
+        },
+      };
+    }
+  }
+
   const adapterMode = params.adapter.descriptor.mode === "simulated" ? "simulated" : "fallback";
   const fallbackRef = pickFallbackRef(params.fallback.narrations, params.segmentIndex);
   const cached = resolveCachedAssetDescriptor({
@@ -1065,6 +2377,7 @@ function createNarrationAsset(params: {
           text: params.segmentText,
           voiceStyle: params.voiceStyle,
           adapterMode,
+          selectionReason: params.adapter.descriptor.selection?.selectionReason ?? null,
         },
       };
     },
@@ -1081,6 +2394,9 @@ function createNarrationAsset(params: {
     segmentIndex: params.segmentIndex,
     mimeType: cached.mimeType,
     jobId: null,
+    sourceRef: null,
+    sourceProvider: null,
+    sourceModel: null,
     meta: cached.meta,
   };
 }
@@ -1116,7 +2432,7 @@ function anyFallback(assets: StoryAsset[]): boolean {
   return assets.some((asset) => asset.fallbackAsset);
 }
 
-function resolveMediaMode(input: StoryInput, config: GeminiConfig): "fallback" | "simulated" {
+function resolveMediaMode(input: StoryInput, config: GeminiConfig): StoryMediaMode {
   return input.mediaMode ?? config.mediaMode;
 }
 
@@ -1203,8 +2519,17 @@ export async function runStorytellerAgent(
   const startedAt = Date.now();
   const config = getGeminiConfig();
   const usageTotals = createAgentUsageTotals();
-  let effectiveMediaMode: "fallback" | "simulated" = config.mediaMode;
-  let capabilities = createStorytellerCapabilitySet(config, effectiveMediaMode, usageTotals);
+  let effectiveMediaMode: StoryMediaMode = config.mediaMode;
+  let capabilities = createStorytellerCapabilitySet(
+    config,
+    effectiveMediaMode,
+    {
+      inputLanguage: "en",
+      includeImages: true,
+      imageEditRequested: false,
+    },
+    usageTotals,
+  );
   const skillsRuntime = await getSkillsRuntimeSnapshot({
     agentId: "storyteller-agent",
   });
@@ -1215,8 +2540,19 @@ export async function runStorytellerAgent(
 
   try {
     const input = normalizeStoryInput(request.payload.input);
+    const imageEditRequested =
+      input.imageEditRequested || input.imageEditPrompt !== null || input.imageEditReferenceRef !== null;
     effectiveMediaMode = resolveMediaMode(input, config);
-    capabilities = createStorytellerCapabilitySet(config, effectiveMediaMode, usageTotals);
+    capabilities = createStorytellerCapabilitySet(
+      config,
+      effectiveMediaMode,
+      {
+        inputLanguage: input.language,
+        includeImages: input.includeImages,
+        imageEditRequested,
+      },
+      usageTotals,
+    );
     ensureStoryCachePolicy({
       modelFingerprint: buildStoryCacheFingerprint(config),
       purgeToken: config.cachePurgeToken,
@@ -1236,45 +2572,65 @@ export async function runStorytellerAgent(
     });
 
     const finalSegments = branch.segments;
-    const imageAssets = input.includeImages
-      ? finalSegments.map((segmentText, segmentIndex) =>
-          createImageAsset({
-            segmentText,
-            segmentIndex,
-            fallback: fallbackScenario,
-            adapter: capabilities.image,
-          }),
+    const baseImageAssets = input.includeImages
+      ? await Promise.all(
+          finalSegments.map((segmentText, segmentIndex) =>
+            createImageAsset({
+              segmentText,
+              segmentIndex,
+              fallback: fallbackScenario,
+              adapter: capabilities.image,
+              config,
+            }),
+          ),
         )
       : [];
+    const imageEditPass = await applyImageEditPass({
+      images: baseImageAssets,
+      segments: finalSegments,
+      fallback: fallbackScenario,
+      adapter: capabilities.imageEdit,
+      imageEditPrompt: input.imageEditPrompt,
+      imageEditReferenceRef: input.imageEditReferenceRef,
+      config,
+    });
+    const imageAssets = imageEditPass.images;
 
     const videoAssets = input.includeVideo
-      ? finalSegments.map((segmentText, segmentIndex) =>
-          createVideoAsset({
-            segmentText,
-            segmentIndex,
-            fallback: fallbackScenario,
-            adapter: capabilities.video,
-          }),
+      ? await Promise.all(
+          finalSegments.map((segmentText, segmentIndex) =>
+            createVideoAsset({
+              segmentText,
+              segmentIndex,
+              fallback: fallbackScenario,
+              adapter: capabilities.video,
+              config,
+            }),
+          ),
         )
       : [];
-    const videoJobs = input.includeVideo
+    const videoJobs = input.includeVideo && capabilities.video.descriptor.mode !== "default"
       ? createVideoMediaJobs({
           request,
           runId,
           videoAssets,
-          mediaMode: effectiveMediaMode,
+          mediaMode: capabilities.video.descriptor.mode === "simulated" ? "simulated" : "fallback",
           failureRate: videoFailureRate,
         })
       : [];
 
-    const narrationAssets = finalSegments.map((segmentText, segmentIndex) =>
-      createNarrationAsset({
-        segmentText,
-        segmentIndex,
-        voiceStyle: input.voiceStyle,
-        fallback: fallbackScenario,
-        adapter: capabilities.tts,
-      }),
+    const narrationAssets = await Promise.all(
+      finalSegments.map((segmentText, segmentIndex) =>
+        createNarrationAsset({
+          segmentText,
+          segmentIndex,
+          voiceStyle: input.voiceStyle,
+          language: input.language,
+          fallback: fallbackScenario,
+          adapter: capabilities.tts,
+          config,
+        }),
+      ),
     );
 
     const allAssets = [...imageAssets, ...videoAssets, ...narrationAssets];
@@ -1330,6 +2686,9 @@ export async function runStorytellerAgent(
             model: asset.model,
             fallbackAsset: asset.fallbackAsset,
             jobId: asset.jobId,
+            sourceRef: asset.sourceRef,
+            sourceProvider: asset.sourceProvider,
+            sourceModel: asset.sourceModel,
           })),
           mediaJobs: {
             video: videoJobs.map((job) => ({
@@ -1366,10 +2725,30 @@ export async function runStorytellerAgent(
               model: branch.branchModel,
             },
             imageModel: config.imageModel,
+            imageEdit: {
+              requested: capabilities.imageEditSelection.requested,
+              applied: capabilities.imageEditSelection.applied && imageEditPass.editedAssetCount > 0,
+              defaultProvider: capabilities.imageEditSelection.defaultProvider,
+              defaultModel: capabilities.imageEditSelection.defaultModel,
+              provider: capabilities.imageEdit.descriptor.provider,
+              model: capabilities.imageEdit.descriptor.model,
+              mode: capabilities.imageEdit.descriptor.mode,
+              selectionReason: capabilities.imageEditSelection.selectionReason,
+              referenceRef: input.imageEditReferenceRef,
+              prompt: input.imageEditPrompt,
+              editedAssetCount: imageEditPass.editedAssetCount,
+              edits: imageEditPass.edits,
+            },
             videoModel: input.includeVideo ? config.videoModel : null,
-            ttsModel: config.ttsModel,
+            ttsProvider: capabilities.tts.descriptor.provider,
+            ttsModel: capabilities.tts.descriptor.model,
+            ttsDefaultProvider: capabilities.ttsSelection.defaultProvider,
+            ttsDefaultModel: capabilities.ttsSelection.defaultModel,
+            ttsSelectionReason: capabilities.ttsSelection.selectionReason,
+            ttsSecondaryProvider: capabilities.ttsSelection.secondaryProvider,
+            ttsSecondaryModel: capabilities.ttsSelection.secondaryModel,
             mediaMode: effectiveMediaMode,
-            videoAsync: input.includeVideo && effectiveMediaMode === "simulated",
+            videoAsync: input.includeVideo && capabilities.video.descriptor.mode === "simulated",
             videoFailureRate,
             mediaWorkerRuntime: mediaQueue.runtime,
             cache: cacheSnapshot,

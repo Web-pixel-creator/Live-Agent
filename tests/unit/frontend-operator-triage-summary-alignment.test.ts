@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("operator console exposes triage summary counters for fast board scan", () => {
+test("operator console exposes an active queue with quieter board-visibility counters", () => {
   const htmlPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "index.html");
   const appPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js");
   const stylesPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "styles.css");
@@ -18,6 +18,10 @@ test("operator console exposes triage summary counters for fast board scan", () 
 
   const requiredHtmlTokens = [
     'class="operator-triage-summary"',
+    'id="operatorPriorityQueueList"',
+    'class="operator-priority-queue-list"',
+    'class="operator-triage-stat-label"',
+    'class="operator-triage-stat-value"',
     'id="operatorTriageTotal"',
     'id="operatorTriageVisible"',
     'id="operatorTriageFail"',
@@ -36,7 +40,10 @@ test("operator console exposes triage summary counters for fast board scan", () 
     "operatorTriageNeutral: document.getElementById(\"operatorTriageNeutral\")",
     "operatorTriageOk: document.getElementById(\"operatorTriageOk\")",
     "operatorTriageHidden: document.getElementById(\"operatorTriageHidden\")",
+    "operatorPriorityQueueList: document.getElementById(\"operatorPriorityQueueList\")",
     "function readOperatorStatusVariant(statusNode)",
+    "function syncOperatorPriorityQueue() {",
+    "function createOperatorPriorityQueueSignalEntry(signal) {",
     "function refreshOperatorTriageSummary()",
     "setText(el.operatorTriageTotal, String(cards.length));",
     "setText(el.operatorTriageVisible, String(visible));",
@@ -44,6 +51,7 @@ test("operator console exposes triage summary counters for fast board scan", () 
     "setText(el.operatorTriageNeutral, String(neutral));",
     "setText(el.operatorTriageOk, String(ok));",
     "setText(el.operatorTriageHidden, String(hidden));",
+    "syncOperatorPriorityQueue();",
     "refreshOperatorTriageSummary();",
   ];
   for (const token of requiredRuntimeTokens) {
@@ -52,7 +60,12 @@ test("operator console exposes triage summary counters for fast board scan", () 
 
   const requiredStyleTokens = [
     ".operator-triage-summary {",
+    ".operator-priority-queue-list {",
+    ".operator-priority-queue-item {",
+    ".operator-triage-summary-foot {",
     ".operator-triage-stat {",
+    ".operator-triage-stat-label {",
+    ".operator-triage-stat-value {",
     ".operator-triage-stat-fail {",
     ".operator-triage-stat-neutral {",
     ".operator-triage-stat-ok {",
@@ -62,11 +75,19 @@ test("operator console exposes triage summary counters for fast board scan", () 
   }
 
   assert.ok(
-    readmeSource.includes("`Triage Summary` shows live counters"),
+    readmeSource.includes("`Triage Summary` now behaves like an `Active Queue`"),
     "README missing operator triage summary note",
   );
   assert.ok(
-    operatorGuideSource.includes("`Triage Summary` shows live counters"),
+    readmeSource.includes("compact chip ledger"),
+    "README missing compact board-visibility ledger note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("`Triage Summary` now behaves like an `Active Queue`"),
     "operator guide missing operator triage summary note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("compact chip ledger"),
+    "operator guide missing compact board-visibility ledger note",
   );
 });

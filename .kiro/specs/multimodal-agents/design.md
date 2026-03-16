@@ -465,16 +465,17 @@ flowchart TB
 5. Demo-time media degradation (Imagen/Veo unavailable or slow):
    - switch to pre-generated media fallback pack with explicit UI marker (`fallback_asset=true`).
 
-## Skills Runtime (V2-Oriented Extension Point)
+## Skills Runtime (Repo-Owned Baseline + Extension Point)
 
-MVP хранит это как extension point без полной реализации registry:
+Текущий baseline уже включает repo-owned skills runtime без вынесения его в внешний обязательный control plane:
 
-1. `skills/` directory in workspace.
-2. `SKILL.md` metadata parsing for eligibility and policy.
-3. optional install-time scanners.
-4. controlled env injection via policy allowlist.
+1. `workspace` / `bundled` / `managed` skill sources with runtime precedence and policy gating.
+2. `SKILL.md` metadata parsing for eligibility, scope, and audit-safe skill activation.
+3. managed registry/install/update/resolve APIs plus signing-aware plugin marketplace surfaces.
+4. install-time scanners and trust gates for managed and third-party skill inputs.
+5. controlled env injection via policy allowlist and auth-profile-backed runtime posture where required.
 
-Это позволяет позже подключить managed registry без изменения core архитектуры.
+Это оставляет путь для дальнейшей федерации/дистрибуции без переписывания core архитектуры.
 
 ## Borrowed Patterns from OpenClaw (Adapted, Not Copied)
 
@@ -545,7 +546,7 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
    - Expose runtime profile in traces for reproducibility.
 
 3. Provider-style adapter boundary (within Google stack)
-   - Define an internal adapter interface per capability (`live`, `reasoning`, `tts`, `image`, `video`, `computer_use`).
+   - Define an internal adapter interface per capability (`live`, `reasoning`, `tts`, `image`, `image_edit`, `video`, `computer_use`, `research`).
    - Keep Gemini/Vertex implementations as default adapters.
    - Use adapter boundary to support safe profile switching and fallback without changing business logic.
    - Current baseline implementation uses `@mla/capabilities` (`shared/capabilities`) and propagates `capabilityProfile` in orchestrator responses for audit/debug.
@@ -579,6 +580,8 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 4. Rich operational console
    - Baseline implemented: operator summary APIs for active tasks, approval queue snapshots, per-service health/runtime profile status, startup failure diagnostics (`startupFailures`), and execution trace rollups (runs/events/tool steps/screenshots/approval links).
    - Baseline implemented: role-gated recovery actions (`cancel_task`, `retry_task`, `failover drain/warmup`) with operator action audit trail visible in console summary.
+   - Baseline implemented: repo-owned runtime support panels for `Runtime Drill Runner`, `Workflow Control Panel`, `Bootstrap Doctor & Auth Profiles`, `Browser Worker Control`, and `Operator Session Ops`.
+   - Baseline implemented: `Operator Session Ops` stores purpose declarations for high-risk actions, refreshes session replay from `/v1/sessions` + `/v1/events`, refreshes cross-agent discovery from `/v1/skills/personas` + `/v1/skills/recipes`, and pushes the same evidence into frontend session exports.
    - Next step: add full UI audit timeline and richer incident automation controls.
 
 5. Sandbox policy modes for UI execution
@@ -598,6 +601,125 @@ Reference: `https://github.com/jamiepine/voicebox` (MIT license).
 2. Replacing Gemini/Live API with non-Gemini primary models for core challenge flows.
 3. Shipping unauthenticated public APIs (local-only assumptions are not valid for production deployment).
 4. Importing third-party code paths without security review, policy checks, and license attribution.
+
+## Borrowed Patterns from pi-vs-cc (Developer/Ops Ergonomics)
+
+This section captures practical patterns from the local `external/pi-vs-claude-code` clone
+and adapts them as repo-owned operator/developer ergonomics rather than end-user product UX.
+
+Reference: `external/pi-vs-claude-code` (local clone).
+
+### Adopted / Recommended
+
+1. Purpose-gate style intent declaration
+   - Require explicit run purpose for high-risk operator or release sessions.
+   - Surface the declared purpose in operator audit metadata and session exports.
+
+2. Damage-control interception hooks
+   - Keep pre-execution command/path policy checks at the tool boundary.
+   - Reuse this pattern for admin/operator scripts, not only UI actions.
+
+3. Session replay and timeline overlays
+   - Treat long operator/release sessions as replayable evidence streams.
+   - Preserve timeline view for audit, not just chat transcript text.
+
+4. Cross-agent/persona discovery
+   - Keep a repo-owned registry for specialist agents/personas/skills.
+   - Allow discovery and controlled loading without mixing user-facing runtime personas with developer-only helpers.
+
+5. Team/chain orchestration as ops tooling
+   - Use multi-agent team/chain patterns for internal workflows (release prep, regression triage, evidence synthesis).
+   - Keep judged user flows on the product orchestrator, not on ad hoc coding-agent UX.
+
+### Repo-Owned Implementation Baseline
+
+1. `Operator Session Ops` is the concrete repo-owned implementation of these borrowed ergonomics:
+   - purpose-gated high-risk operator actions,
+   - replayable session timeline overlays,
+   - controlled cross-agent/persona discovery.
+2. Backend audit paths preserve optional `operatorPurpose` metadata for runtime auth-profile rotation, workflow overrides, runtime drill execution, browser-worker resume/cancel, and generic operator actions.
+3. Frontend session exports preserve `operatorPurpose`, `operatorSessionReplay`, and `operatorDiscovery` alongside runtime guardrail evidence so the ergonomics lane produces durable artifacts rather than in-memory state only.
+
+### Explicitly Out of Baseline Scope
+
+1. Turning the product UX into a terminal-first coding-agent shell.
+2. Making Pi-specific extension runtime a required production dependency.
+
+## 2026 External Provider Surface Map (Gemini-First, Adapter-Ready)
+
+The project should remain Gemini-first for judged challenge flows, but the capability boundary
+should stop pretending the rest of the market does not exist. The correct move is not a rewrite;
+it is a provider-aware adapter strategy with clear workload ownership.
+
+Official references used for this update:
+
+1. Google Gemini Live API: `https://ai.google.dev/gemini-api/docs/live`
+2. OpenAI GPT-5.4: `https://platform.openai.com/docs/models/gpt-5.4`
+3. Anthropic Claude models / MCP docs: `https://docs.anthropic.com/en/docs/about-claude/models`, `https://docs.anthropic.com/en/docs/claude-code/mcp`
+4. fal image editing: `https://fal.ai/models/fal-ai/nano-banana-2/edit`
+5. Deepgram TTS surfaces: `https://developers.deepgram.com/docs/tts-models`
+6. DeepSeek pricing / model entrypoint: `https://api-docs.deepseek.com/quick_start/pricing/`
+7. Moonshot/Kimi platform docs: `https://platform.moonshot.ai/docs/guide/models`
+8. Perplexity API docs: `https://docs.perplexity.ai/`
+9. Manus API overview: `https://docs.manus.im/api-overview/introduction`
+
+### Adopt Now
+
+1. Deepgram Aura-2 as secondary `tts` adapter
+   - Use for low-latency, locale-specific, or voice-style fallback when Gemini native TTS is not the best operational fit.
+   - Keep Gemini TTS as default judged path; record provider/model metadata whenever Deepgram is used.
+
+2. `fal-ai/nano-banana-2/edit` as `image_edit` adapter
+   - Use for post-generation continuity edits, prompt-guided revisions, and art-direction passes on existing story assets.
+   - Do not replace Imagen as the default first-pass illustration generator.
+
+3. Perplexity Sonar as `research` adapter
+   - Use for web-grounded research, evidence synthesis, and citation-bearing operator/release flows.
+   - Keep citations/source URLs as first-class artifact data, not free-form text.
+
+4. OpenAI GPT-5.4 as long-context `reasoning` adapter for non-judged flows
+   - Use for engineering/release analysis, large-context synthesis, and tool-heavy ops workflows.
+   - Do not route judged live voice turns away from Gemini.
+
+5. Claude 4 family as long-context + MCP-heavy `reasoning` adapter
+   - Use where prompt caching, MCP-rich tool ecosystems, or long-context planning make it operationally useful.
+   - Keep provider routing explicit and auditable.
+
+6. DeepSeek V3.1 class adapters for cost-sensitive batch reasoning
+   - Use for nightly analysis, offline summarization, and non-user-facing cost-sensitive jobs.
+   - Keep it out of safety-critical, user-facing judged loops.
+
+### Watch / Feature-Flag Only
+
+1. Kimi-class adapters
+   - Treat as watchlist for long-context research/planning lanes.
+   - Add only behind explicit feature flag and provider policy until the operational fit is proven for this repo.
+
+2. Manus-inspired async browser-worker pattern
+   - Borrow the artifact-first, resumable background browser task pattern.
+   - Do not make hosted Manus runtime a hard dependency of the product.
+
+### Borrowed from Local Clones
+
+1. `external/openclaw`
+   - Take onboarding/doctor/auth-profile rotation patterns, multi-channel expansion ideas, local-first gateway discipline, device-node thinking, and model failover posture.
+   - Do not import OpenClaw runtime code 1:1 into judged core flows.
+
+2. `external/voicebox`
+   - Take local-first voice asset management, voice profile lifecycle, timeline/editor patterns, and API-first media tooling ideas.
+   - Use as inspiration for storyteller audio tooling and fallback studio workflows.
+
+3. `external/pi-vs-claude-code`
+   - Take purpose gate, damage-control interception, session replay, and cross-agent discovery for operator/developer ergonomics.
+   - Keep this separate from end-user product runtime.
+
+### What to Correct in This Project
+
+1. Stop treating `tts` as a single-provider lane; baseline should be Gemini-first with Deepgram fallback.
+2. Stop treating `image` as generation-only; add explicit `image_edit` lane for story continuity and revisions.
+3. Add `research` as a first-class capability instead of burying web-grounded work inside generic reasoning prompts.
+4. Keep Gemini as judged default, but stop banning secondary providers in non-judged and batch lanes.
+5. Distinguish between direct runtime dependencies and borrowed architecture patterns; Manus/OpenClaw/Voicebox/pi-vs-cc should mostly influence control-plane and workflow design, not be copied into core runtime.
 
 ## Resolved Decisions (ADR)
 

@@ -41,6 +41,8 @@ test("tracked public badge details embed badge payload", () => {
   const pluginMarketplace = evidence.pluginMarketplace as Record<string, unknown>;
   const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
   const agentUsage = evidence.agentUsage as Record<string, unknown>;
+  const runtimeGuardrailsSignalPaths = evidence.runtimeGuardrailsSignalPaths as Record<string, unknown>;
+  const providerUsage = details.providerUsage as Record<string, unknown>;
   assert.ok(turnTruncation && typeof turnTruncation === "object");
   assert.ok(turnDelete && typeof turnDelete === "object");
   assert.ok(damageControl && typeof damageControl === "object");
@@ -50,6 +52,8 @@ test("tracked public badge details embed badge payload", () => {
   assert.ok(pluginMarketplace && typeof pluginMarketplace === "object");
   assert.ok(deviceNodes && typeof deviceNodes === "object");
   assert.ok(agentUsage && typeof agentUsage === "object");
+  assert.ok(runtimeGuardrailsSignalPaths && typeof runtimeGuardrailsSignalPaths === "object");
+  assert.ok(providerUsage && typeof providerUsage === "object");
 
   assert.equal(details.ok, true);
   assert.equal(typeof details.generatedAt, "string");
@@ -74,6 +78,17 @@ test("tracked public badge details embed badge payload", () => {
   assert.equal(typeof tokensUsed.output, "number");
   assert.equal(typeof tokensUsed.total, "number");
   assert.equal(typeof tokensUsed.source, "string");
+  assert.equal(typeof providerUsage.status, "string");
+  assert.equal(typeof providerUsage.validated, "boolean");
+  assert.equal(typeof providerUsage.activeSecondaryProviders, "number");
+  assert.equal(Array.isArray(providerUsage.entries), true);
+  const providerUsageEntries = providerUsage.entries as Record<string, unknown>[];
+  assert.ok(providerUsageEntries.length >= 1);
+  assert.equal(typeof providerUsageEntries[0]?.route, "string");
+  assert.equal(typeof providerUsageEntries[0]?.capability, "string");
+  assert.equal(typeof providerUsageEntries[0]?.selectedProvider, "string");
+  assert.equal(typeof providerUsageEntries[0]?.selectedModel, "string");
+  assert.equal(typeof providerUsageEntries[0]?.selectionReason, "string");
   assert.equal(typeof turnTruncation.status, "string");
   assert.equal(typeof turnDelete.status, "string");
   assert.equal(typeof turnTruncation.validated, "boolean");
@@ -194,6 +209,29 @@ test("tracked public badge details embed badge payload", () => {
   assert.equal(Array.isArray(agentUsage.models), true);
   assert.equal(typeof agentUsage.summarySource, "string");
   assert.equal(typeof agentUsage.summaryStatus, "string");
+  assert.equal(typeof runtimeGuardrailsSignalPaths.status, "string");
+  assert.equal(typeof runtimeGuardrailsSignalPaths.validated, "boolean");
+  assert.equal(typeof runtimeGuardrailsSignalPaths.summaryStatus, "string");
+  assert.equal(typeof runtimeGuardrailsSignalPaths.signalsSummary, "string");
+  assert.equal(typeof runtimeGuardrailsSignalPaths.coverageSummary, "string");
+  assert.equal(typeof runtimeGuardrailsSignalPaths.sandboxSummary, "string");
+  assert.equal(typeof runtimeGuardrailsSignalPaths.skillsSummary, "string");
+  assert.equal(typeof runtimeGuardrailsSignalPaths.topSignal, "string");
+  assert.equal(typeof runtimeGuardrailsSignalPaths.historyStatus, "string");
+  assert.equal(typeof runtimeGuardrailsSignalPaths.totalPaths, "number");
+  assert.equal(typeof runtimeGuardrailsSignalPaths.lifecycleSummary, "string");
+  assert.equal(Array.isArray(runtimeGuardrailsSignalPaths.paths), true);
+  const runtimeGuardrailsLifecycleCounts = runtimeGuardrailsSignalPaths.lifecycleCounts as Record<string, unknown>;
+  assert.ok(runtimeGuardrailsLifecycleCounts && typeof runtimeGuardrailsLifecycleCounts === "object");
+  assert.equal(typeof runtimeGuardrailsLifecycleCounts.active, "number");
+  assert.equal(typeof runtimeGuardrailsLifecycleCounts.failed, "number");
+  const runtimeGuardrailsPrimaryPath = runtimeGuardrailsSignalPaths.primaryPath as Record<string, unknown> | null;
+  if ((runtimeGuardrailsSignalPaths.totalPaths as number) > 0) {
+    assert.ok(runtimeGuardrailsPrimaryPath && typeof runtimeGuardrailsPrimaryPath === "object");
+    assert.equal(typeof runtimeGuardrailsPrimaryPath.title, "string");
+    assert.equal(typeof runtimeGuardrailsPrimaryPath.kind, "string");
+    assert.equal(typeof runtimeGuardrailsPrimaryPath.summaryText, "string");
+  }
   assert.equal(typeof details.policyPath, "string");
   assert.equal(typeof details.summaryPath, "string");
   assert.equal(badge.schemaVersion, 1);

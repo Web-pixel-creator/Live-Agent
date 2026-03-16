@@ -33,6 +33,10 @@
 - **Audio_Stream**: Поток аудиоданных в реальном времени.
 - **Video_Stream**: Поток видеоданных в реальном времени.
 
+- **Image_Edit_Adapter**: Provider-backed image editing/post-production adapter for continuity retouch, reference-guided edits, and prompt-based scene changes.
+- **Secondary_TTS_Adapter**: Provider-backed speech synthesis adapter used when native Gemini voice quality, locale coverage, or latency constraints require a fallback path.
+- **Grounded_Research_Adapter**: Provider-backed web-grounded answer/citation adapter for operator, release, and knowledge workflows.
+
 ## Requirements
 
 ### Requirement 0: Core Technology Stack
@@ -48,6 +52,7 @@
 5. THE System SHALL use at least one Google Cloud service, with recommended baseline: Vertex AI, Firestore, Cloud Run.
 6. THE System SHALL pin model IDs and API versions in configuration to ensure reproducibility.
 7. THE System SHALL support both Gemini API and Vertex AI endpoints via environment configuration.
+8. THE System SHALL keep Gemini/Google as the default judged path while allowing provider-pinned secondary adapters for non-judged, batch, or fallback workloads through the capability configuration layer.
 
 ### Requirement 1: Live Agent - Real-Time Communication
 
@@ -82,6 +87,7 @@
 4. THE Live_Agent SHALL support all real-time voice languages available in the selected Gemini_Live_Model profile and SHALL support at least 20 languages in production configuration.
 5. WHERE target language is unsupported for native voice output, THE Live_Agent SHALL fall back to text translation and optional secondary TTS path.
 6. THE Live_Agent SHALL allow per-session language pair configuration.
+7. THE Live_Agent SHALL support a provider-pinned Secondary_TTS_Adapter fallback path (for example, Deepgram Aura-2) when native voice quality, locale coverage, or latency constraints require it, and SHALL record provider/model metadata in audit output.
 
 ### Requirement 3: Live Agent - Negotiation Capabilities
 
@@ -109,6 +115,7 @@
 6. THE Story_Generator SHALL generate narration with Gemini_TTS and style controls.
 7. THE Creative_Storyteller SHALL produce a synchronized Multimodal_Content stream (text + audio + image/video).
 8. THE Creative_Storyteller SHALL store generated assets metadata and references in Firestore.
+9. THE Creative_Storyteller SHALL support prompt-guided post-generation image edits and continuity passes through an Image_Edit_Adapter (for example, `fal-ai/nano-banana-2/edit`) without replacing Imagen as the default first-pass illustration path.
 
 ### Requirement 5: Creative Storyteller - Interactive Story Flow
 
@@ -188,7 +195,7 @@
 3. THE System SHALL support Cloud_Run deployment for custom runtimes and gateway services.
 4. THE System SHALL support Agent_Engine_Sessions and Memory_Bank for persistent context.
 5. THE System SHALL support environment-based promotion flows (dev, staging, production).
-6. THE System SHALL define an internal capability adapter interface (`live`, `reasoning`, `tts`, `image`, `video`, `computer_use`) with Gemini/Vertex defaults and auditable profile metadata per run.
+6. THE System SHALL define an internal capability adapter interface (`live`, `reasoning`, `tts`, `image`, `image_edit`, `video`, `computer_use`, `research`) with Gemini/Vertex defaults and auditable profile metadata per run.
 7. THE System SHALL support a `local-first` runtime profile for offline/non-production development iterations.
 8. THE System SHALL block `local-first` startup in staging/production environments and SHALL expose applied runtime profile metadata in runtime endpoints.
 
@@ -261,6 +268,7 @@
 12. THE System SHALL preserve out-of-band response correlation metadata (`oob=true`, `parentEventId`) when processing websocket requests with `conversation=none`.
 13. THE System SHALL document websocket function-calling event contracts (`live.function_call`, `live.function_call_output`, `live.function_call_output.sent`) in `docs/ws-protocol.md` and keep docs aligned with runtime event emitters.
 14. THE System SHALL document websocket granular output contracts (`live.output.audio.delta`, `live.output.transcript.delta`) in `docs/ws-protocol.md` and keep docs aligned with runtime event emitters.
+15. WHERE external grounded research providers are used, THE System SHALL preserve citations, source URLs, and provider/model metadata in API and artifact outputs.
 
 ### Requirement 15: Monitoring and Observability
 
@@ -284,6 +292,10 @@
 14. THE System SHALL include assistant activity lifecycle proof in demo KPI artifacts and release gates (`assistantActivityLifecycleValidated=true`).
 15. THE System SHALL expose operator startup diagnostics in `/v1/operator/summary` via structured `startupFailures` (`status=healthy|degraded|critical`, `total`, `blockingServices`, `recent[]`) and SHALL prove this in demo KPI artifacts (`operatorStartupDiagnosticsValidated=true`).
 16. THE System SHALL include UI damage-control policy proof in demo KPI artifacts (`damageControlDiagnosticsValidated=true`) with at least one matched rule in the sandbox policy scenario.
+17. THE System SHALL surface provider/model metadata for secondary adapters in operator and release artifacts whenever non-default providers are used for `tts`, `image_edit`, `reasoning`, or `research` workloads.
+18. THE System SHALL require an explicit operator purpose declaration for high-risk recovery and control-plane actions, and SHALL persist that purpose in audit-safe operator metadata plus frontend session exports.
+19. THE System SHALL expose operator session replay and cross-agent discovery surfaces through repo-owned session/event and personas/recipes APIs, without changing the judged end-user UX contract.
+20. THE System SHALL expose repo-owned bootstrap doctor/auth-profile rotation, workflow control, fault-profile drill, and background browser-worker control surfaces for provider/device/runtime posture, controlled recovery, and resumable UI-job operations.
 
 ### Requirement 16: Multi-Agent Collaboration
 
@@ -298,6 +310,8 @@
 5. THE System SHALL support human-in-the-loop approval gates for high-risk delegated actions.
 6. THE System SHALL expose an end-to-end trace of delegated workflows for audit and debugging.
 7. THE System SHALL support realtime function-call delegation as multi-agent side-lane workflows, preserving `callId` correlation and approval/sandbox diagnostics across gateway-orchestrator-agent boundaries.
+8. THE System SHALL expose controlled discovery of specialist agents, personas, and recipes for operator/developer workflows without altering judged default routing behavior.
+9. THE System SHALL make long operator and release sessions replayable from session/event history for audit, recovery, and evidence synthesis workflows.
 
 ## Technology Mapping
 
@@ -308,7 +322,7 @@
 | UI Navigator | Computer_Use_Tool + Action_Executor + browser automation | Gemini-supported Computer Use profile + Gemini_3 reasoning | Cloud Run, Firestore, Vertex AI |
 | Platform | Agent orchestration, session management, monitoring | Configurable per workload | Vertex_AI_Agent_Engine, Cloud Monitoring, Cloud Logging |
 
-## Recommended Model Profiles (as of 2026-02-19)
+## Recommended Model Profiles (as of 2026-03-06)
 
 | Workload | Recommended Model |
 | --- | --- |
@@ -317,12 +331,32 @@
 | Deep reasoning and planning | `gemini-3-pro` |
 | Computer Use | `gemini-3-flash-preview` or `gemini-3-pro-preview` (fallback: `gemini-2.5-computer-use-preview-10-2025`) |
 | Image generation | Imagen 4 family (latest stable endpoint in target region) |
+| Image edit / post-production | `Image_Edit_Adapter` with prompt-guided edit surface (approved example: `fal-ai/nano-banana-2/edit`) |
 | Video generation | Veo 3.1 family (latest stable endpoint in target region) |
 | Speech synthesis | Gemini native TTS profile selected per locale/style |
+| Secondary TTS fallback | `Secondary_TTS_Adapter` (approved example: Deepgram Aura-2) |
+| Grounded web research | `Grounded_Research_Adapter` (approved baseline: Perplexity Sonar with citations) |
+| Long-context non-judged reasoning | Gemini default, with approved secondary adapters such as GPT-5.4 and Claude 4 family when provider policy explicitly routes the workload |
+| Cost-sensitive batch reasoning | DeepSeek V3.1 class adapters for offline or nightly workloads only |
+| Watchlist long-context research | Kimi-class adapters behind explicit feature flag and provider policy |
+
+## Secondary Provider Surface Map (as of 2026-03-06)
+
+| Workload | Gemini-first default | Approved secondary adapters / examples |
+| --- | --- | --- |
+| Real-time voice/video | Gemini Live native audio profiles | Keep external providers out of the judged default path |
+| Speech synthesis fallback | Gemini native TTS | Deepgram Aura-2 |
+| Story image generation | Imagen 4 family | Keep first-pass generation on Google stack |
+| Story image edit / continuity | Imagen-derived revision when available | `fal-ai/nano-banana-2/edit` |
+| Grounded web research | Repo-owned research lane with deterministic fallback and Perplexity Sonar baseline | Perplexity Sonar |
+| Long-context operator / engineering reasoning | Gemini reasoning profiles | GPT-5.4, Claude 4 family |
+| Cost-sensitive batch reasoning | Gemini batch where acceptable | DeepSeek V3.1 |
+| Watchlist research / planning | Gemini reasoning profiles | Kimi-class adapters behind feature flag |
+| Async browser-worker pattern | Repo-owned UI executor + Playwright | Manus-inspired orchestration pattern, not direct hosted dependency |
 
 ## Future Scope (V2/V3)
 
-Этот раздел фиксирует расширения, которые **не обязательны для MVP/челленджа**, но рекомендуются для развития продукта после первичного релиза.
+Этот раздел фиксирует расширения, которые **не обязательны для MVP/челленджа**, но остаются допустимым направлением развития после текущего baseline.
 
 ### V2: Product Hardening and Reliability
 
@@ -336,14 +370,15 @@
 ### V3: Ecosystem and Platform Expansion
 
 1. THE System MAY support multi-channel communication surfaces (for example, Telegram, Slack, Discord, and WebChat).
-2. THE System MAY provide a managed skill registry with versioning, discovery, install/update workflows, and trust metadata.
-3. THE System MAY support device nodes (desktop/mobile) for distributed execution of camera/screen/system actions.
-4. THE System MAY add organization-level governance features, including tenancy, compliance templates, and centralized audit dashboards.
-5. THE System MAY add plugin marketplace capabilities with signed extensions and permission manifests.
+2. THE System MAY expand the current repo-owned managed skills baseline with broader federation, discovery, and distribution flows without breaking existing version/trust contracts.
+3. THE System MAY expand the current repo-owned device-node baseline with broader desktop/mobile fleet execution and routing flows.
+4. THE System MAY expand the current tenant/compliance/governance baseline with organization-wide dashboards, controls, and audit automation.
+5. THE System MAY expand the current signed plugin marketplace baseline with broader curation, distribution, and permission-review flows.
 6. THE System MAY add long-horizon automation flows that combine Live_Agent, UI_Navigator, and Creative_Storyteller across scheduled jobs.
 
 ### Deferred by Design (Not a Baseline)
 
-1. Provider-specific Anthropic-first defaults are explicitly out of baseline scope for this project.
+1. Anthropic/OpenAI/Perplexity/DeepSeek/Kimi/Deepgram/fal secondary adapters are allowed behind capability policy, but replacing Gemini/Live API as the judged default path is explicitly out of baseline scope for this project.
 2. Replacing ADK orchestration with non-ADK runtime cores is out of baseline scope.
 3. Full monolithic multi-channel gateway architecture is deferred unless justified by product goals and team capacity.
+4. Direct dependency on hosted Manus runtime is not baseline scope; only architecture patterns may be borrowed into repo-owned workers and control planes.

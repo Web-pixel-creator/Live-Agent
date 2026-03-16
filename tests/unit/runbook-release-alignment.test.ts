@@ -118,6 +118,7 @@ test("runbook documents release perf artifact-only mode and critical evidence ke
     "`evidence.pluginMarketplace`",
     "`evidence.deviceNodes`",
     "`evidence.agentUsage`",
+    "`evidence.runtimeGuardrailsSignalPaths`",
     "`gate.evidenceSnapshot.operatorDamageControlSummaryValidated`",
     "`gate.evidenceSnapshot.badgeEvidenceOperatorTurnTruncationStatus`",
     "`gate.evidenceSnapshot.badgeEvidenceOperatorTurnDeleteStatus`",
@@ -127,7 +128,12 @@ test("runbook documents release perf artifact-only mode and critical evidence ke
     "`gate.evidenceSnapshot.badgeEvidencePluginMarketplaceStatus`",
     "`gate.evidenceSnapshot.badgeEvidenceDeviceNodesStatus`",
     "`gate.evidenceSnapshot.badgeEvidenceAgentUsageStatus`",
+    "`gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsStatus`",
+    "`gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus`",
+    "`gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths`",
+    "`gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath`",
     "`gate.evidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus`",
+    "`runtimeGuardrailsSignalPathsStatus`",
     "`analyticsSplitTargetsValidated=true`",
     "`analyticsBigQueryConfigValidated=true`",
     "`kpi.analyticsServicesValidated >= 4`",
@@ -249,3 +255,4 @@ test("runbook critical evidence list is aligned with release-readiness checks", 
     assert.ok(runbookSource.includes(`\`${checkName}\``), `runbook missing perf policy check doc: ${checkName}`);
   }
 });
+

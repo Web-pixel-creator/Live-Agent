@@ -28,6 +28,7 @@ const KNOWN_INTENTS: readonly OrchestratorIntent[] = [
   "conversation",
   "translation",
   "negotiation",
+  "research",
   "story",
   "ui_task",
 ];

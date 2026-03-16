@@ -10,7 +10,11 @@ test("frontend keeps long meta/status values wrapped without horizontal layout s
   const htmlSource = readFileSync(htmlPath, "utf8");
   const stylesSource = readFileSync(stylesPath, "utf8");
 
-  const requiredHtmlTokens = ['class="layout"', 'class="meta-row"', 'class="meta-row meta-row-status meta-row-status-live"'];
+  const requiredHtmlTokens = [
+    'class="layout"',
+    'class="meta-row"',
+    'class="meta-row meta-row-status meta-row-status-live live-session-strip"',
+  ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `frontend html missing overflow-guard token: ${token}`);
   }

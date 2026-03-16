@@ -55,6 +55,15 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /real_deploy/);
   assert.match(source, /verify_only_fallback/);
   assert.match(source, /deploy_failed_no_fallback/);
+  assert.match(source, /- name:\s*Collect Railway Deploy Provenance/);
+  assert.match(source, /id:\s*collect_railway_deploy_summary/);
+  assert.match(source, /artifacts\/deploy\/railway-deploy-summary\.json/);
+  assert.match(source, /railway_deploy_summary_present=/);
+  assert.match(source, /railway_deploy_summary_status=/);
+  assert.match(source, /railway_deploy_summary_deployment_id=/);
+  assert.match(source, /railway_deploy_summary_public_url=/);
+  assert.match(source, /railway_deploy_summary_badge_endpoint=/);
+  assert.match(source, /railway_deploy_summary_badge_details_endpoint=/);
   assert.match(source, /- name:\s*Build Release Evidence Report/);
   assert.match(source, /id:\s*release_evidence_report/);
   assert.match(source, /- name:\s*Collect Release Evidence Statuses/);
@@ -73,9 +82,14 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /plugin_marketplace_status=/);
   assert.match(source, /device_nodes_status=/);
   assert.match(source, /agent_usage_status=/);
+  assert.match(source, /provider_usage_status=/);
+  assert.match(source, /provider_usage_active_secondary_providers=/);
+  assert.match(source, /provider_usage_entries_count=/);
+  assert.match(source, /provider_usage_primary_entry_label=/);
   assert.match(source, /device_node_updates_status=/);
   assert.match(source, /report\.statuses\.pluginMarketplaceStatus/);
   assert.match(source, /report\.statuses\.deviceNodeUpdatesStatus/);
+  assert.match(source, /report\.statuses\.providerUsageStatus/);
   assert.match(source, /Badge details present: \$\{\{\s*steps\.collect_release_evidence\.outputs\.badge_details_present\s*\}\}/);
   assert.match(source, /Turn-truncation status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.turn_truncation_status\s*\}\}/);
   assert.match(source, /Turn-delete status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.turn_delete_status\s*\}\}/);
@@ -85,7 +99,17 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /Plugin-marketplace status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.plugin_marketplace_status\s*\}\}/);
   assert.match(source, /Device-nodes status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.device_nodes_status\s*\}\}/);
   assert.match(source, /Agent-usage status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.agent_usage_status\s*\}\}/);
+  assert.match(source, /Provider-usage status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.provider_usage_status\s*\}\}/);
+  assert.match(source, /Provider-usage active secondary providers \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.provider_usage_active_secondary_providers\s*\}\}/);
+  assert.match(source, /Provider-usage entries count \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.provider_usage_entries_count\s*\}\}/);
+  assert.match(source, /Provider-usage primary entry \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.provider_usage_primary_entry_label\s*\}\}/);
   assert.match(source, /Device-node-updates status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.device_node_updates_status\s*\}\}/);
+  assert.match(source, /Railway deploy summary present: \$\{\{\s*steps\.collect_railway_deploy_summary\.outputs\.railway_deploy_summary_present\s*\}\}/);
+  assert.match(source, /Railway deploy summary status: \$\{\{\s*steps\.collect_railway_deploy_summary\.outputs\.railway_deploy_summary_status\s*\}\}/);
+  assert.match(source, /Railway deploy summary deployment id: \$\{\{\s*steps\.collect_railway_deploy_summary\.outputs\.railway_deploy_summary_deployment_id\s*\}\}/);
+  assert.match(source, /Railway deploy summary public URL: \$\{\{\s*steps\.collect_railway_deploy_summary\.outputs\.railway_deploy_summary_public_url\s*\}\}/);
+  assert.match(source, /Railway deploy summary badge URL: \$\{\{\s*steps\.collect_railway_deploy_summary\.outputs\.railway_deploy_summary_badge_endpoint\s*\}\}/);
+  assert.match(source, /Railway deploy summary badge-details URL: \$\{\{\s*steps\.collect_railway_deploy_summary\.outputs\.railway_deploy_summary_badge_details_endpoint\s*\}\}/);
   assert.match(source, /Release evidence report JSON: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_json_path\s*\}\}/);
   assert.match(source, /Release evidence report Markdown: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_md_path\s*\}\}/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
@@ -111,6 +135,7 @@ test("release strict workflow publishes release-critical artifacts", () => {
   assert.match(source, /artifacts\/demo-e2e\/badge\.json/);
   assert.match(source, /artifacts\/perf-load\/summary\.json/);
   assert.match(source, /artifacts\/perf-load\/policy-check\.json/);
+  assert.match(source, /artifacts\/deploy\/railway-deploy-summary\.json/);
   assert.match(source, /artifacts\/release-evidence\/report\.json/);
   assert.match(source, /artifacts\/release-evidence\/report\.md/);
 });
@@ -144,6 +169,8 @@ test("readme documents optional release-strict railway deploy path", () => {
   assert.match(readme, /pluginMarketplace/);
   assert.match(readme, /deviceNodes/);
   assert.match(readme, /agentUsage/);
+  assert.match(readme, /artifacts\/deploy\/railway-deploy-summary\.json/);
   assert.match(readme, /artifacts\/release-evidence\/report\.json/);
   assert.match(readme, /artifacts\/release-evidence\/report\.md/);
 });
+

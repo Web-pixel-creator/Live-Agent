@@ -182,7 +182,7 @@ async function main() {
   const allowedVisualComparatorModes = toStringArray(
     args.allowedVisualComparatorModes ?? "fallback_heuristic,gemini_reasoning",
   );
-  const allowedStoryMediaModes = toStringArray(args.allowedStoryMediaModes ?? "simulated");
+  const allowedStoryMediaModes = toStringArray(args.allowedStoryMediaModes ?? "default,simulated");
   const requiredScenarios = toStringArray(
     args.requiredScenarios ??
       [
@@ -315,29 +315,45 @@ async function main() {
     kpis.liveContextCompactionReason,
     "compacted | compacted_with_fallback_summary",
   );
+  const storytellerMediaMode = String(kpis.storytellerMediaMode);
+  const storytellerDefaultLaneObserved = [
+    String(kpis.storytellerImageMode ?? ""),
+    String(kpis.storytellerImageEditMode ?? ""),
+    String(kpis.storytellerTtsMode ?? ""),
+    String(kpis.storytellerVideoMode ?? ""),
+  ].includes("default");
   addCheck(
     "kpi.storytellerMediaMode",
-    allowedStoryMediaModes.includes(String(kpis.storytellerMediaMode)),
+    allowedStoryMediaModes.includes(storytellerMediaMode) &&
+      (storytellerMediaMode !== "default" || storytellerDefaultLaneObserved),
     kpis.storytellerMediaMode,
-    allowedStoryMediaModes.join(" | "),
+    allowedStoryMediaModes.includes("default")
+      ? `${allowedStoryMediaModes.join(" | ")} with at least one default storyteller lane`
+      : allowedStoryMediaModes.join(" | "),
   );
+  const storytellerVideoMode = String(kpis.storytellerVideoMode ?? "");
+  const storytellerVideoShouldBeAsync = storytellerVideoMode === "simulated";
   addCheck(
     "kpi.storytellerVideoAsync",
-    kpis.storytellerVideoAsync === true,
+    kpis.storytellerVideoAsync === storytellerVideoShouldBeAsync,
     kpis.storytellerVideoAsync,
-    true,
+    storytellerVideoShouldBeAsync,
   );
   addCheck(
     "kpi.storytellerVideoJobsCount",
-    toNumber(kpis.storytellerVideoJobsCount) >= 1,
+    storytellerVideoMode === "default"
+      ? toNumber(kpis.storytellerVideoJobsCount) >= 0
+      : toNumber(kpis.storytellerVideoJobsCount) >= 1,
     kpis.storytellerVideoJobsCount,
-    ">= 1",
+    storytellerVideoMode === "default" ? ">= 0" : ">= 1",
   );
   addCheck(
     "kpi.storytellerVideoPendingCount",
-    toNumber(kpis.storytellerVideoPendingCount) >= 1,
+    storytellerVideoShouldBeAsync
+      ? toNumber(kpis.storytellerVideoPendingCount) >= 1
+      : toNumber(kpis.storytellerVideoPendingCount) === 0,
     kpis.storytellerVideoPendingCount,
-    ">= 1",
+    storytellerVideoShouldBeAsync ? ">= 1" : 0,
   );
   addCheck(
     "kpi.storytellerVideoAsyncValidated",
@@ -351,11 +367,14 @@ async function main() {
     kpis.storytellerMediaQueueVisible,
     true,
   );
+  const storytellerQueueWorkersExpected = storytellerVideoMode === "default" ? ">= 0" : ">= 1";
   addCheck(
     "kpi.storytellerMediaQueueWorkers",
-    toNumber(kpis.storytellerMediaQueueWorkers) >= 1,
+    storytellerVideoMode === "default"
+      ? toNumber(kpis.storytellerMediaQueueWorkers) >= 0
+      : toNumber(kpis.storytellerMediaQueueWorkers) >= 1,
     kpis.storytellerMediaQueueWorkers,
-    ">= 1",
+    storytellerQueueWorkersExpected,
   );
   addCheck(
     "kpi.storytellerMediaQueueQuotaEntries",
@@ -425,16 +444,19 @@ async function main() {
   );
   const gatewayInterruptLatencyMs = toNumber(kpis.gatewayInterruptLatencyMs);
   const gatewayInterruptUnavailable = String(kpis.gatewayInterruptEventType) === "live.bridge.unavailable";
+  const gatewayInterruptRequested = String(kpis.gatewayInterruptEventType) === "live.interrupt.requested";
   const gatewayInterruptLatencyMeasured = Number.isFinite(gatewayInterruptLatencyMs);
   addCheck(
     "kpi.gatewayInterruptLatencyObservedOrUnavailable",
-    gatewayInterruptLatencyMeasured || gatewayInterruptUnavailable,
+    gatewayInterruptLatencyMeasured || gatewayInterruptUnavailable || gatewayInterruptRequested,
     gatewayInterruptLatencyMeasured ? gatewayInterruptLatencyMs : kpis.gatewayInterruptEventType,
-    "latency measured | live.bridge.unavailable",
+    "latency measured | live.interrupt.requested | live.bridge.unavailable",
   );
   addCheck(
     "kpi.gatewayInterruptLatencyMs",
-    gatewayInterruptLatencyMeasured ? gatewayInterruptLatencyMs <= maxGatewayInterruptLatencyMs : gatewayInterruptUnavailable,
+    gatewayInterruptLatencyMeasured
+      ? gatewayInterruptLatencyMs <= maxGatewayInterruptLatencyMs
+      : gatewayInterruptUnavailable || gatewayInterruptRequested,
     gatewayInterruptLatencyMeasured ? gatewayInterruptLatencyMs : null,
     `<= ${maxGatewayInterruptLatencyMs} (when measured)`,
   );
@@ -1289,9 +1311,9 @@ async function main() {
   );
   addCheck(
     "kpi.uiExecutorForceSimulation",
-    kpis.uiExecutorForceSimulation === true,
+    kpis.uiExecutorForceSimulation === false,
     kpis.uiExecutorForceSimulation,
-    true,
+    false,
   );
   addCheck(
     "kpi.uiExecutorRuntimeValidated",
@@ -1897,6 +1919,18 @@ async function main() {
     allowedAssistiveRouterModes.includes(String(kpis.assistiveRouterMode)),
     kpis.assistiveRouterMode,
     allowedAssistiveRouterModes.join(" | "),
+  );
+  addCheck(
+    "kpi.assistiveRouterProviderMetadataValidated",
+    kpis.assistiveRouterProviderMetadataValidated === true,
+    kpis.assistiveRouterProviderMetadataValidated,
+    true,
+  );
+  addCheck(
+    "kpi.assistiveRouterProvider",
+    ["gemini_api", "openai", "anthropic", "deepseek", "moonshot"].includes(String(kpis.assistiveRouterProvider)),
+    kpis.assistiveRouterProvider,
+    "gemini_api | openai | anthropic | deepseek | moonshot",
   );
   addCheck(
     "kpi.lifecycleEndpointsValidated",

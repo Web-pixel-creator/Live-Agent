@@ -49,12 +49,16 @@ if ([string]::IsNullOrWhiteSpace($resolvedPowerShell)) {
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("mla-artifact-only-smoke-" + [guid]::NewGuid().ToString("N"))
 $artifactsDir = Join-Path $tempRoot "artifacts"
 $perfDir = Join-Path $artifactsDir "perf-load"
+$deployDir = Join-Path $artifactsDir "deploy"
 $manifestDir = Join-Path $artifactsDir "release-artifact-revalidation"
 New-Item -Path $perfDir -ItemType Directory -Force | Out-Null
+New-Item -Path $deployDir -ItemType Directory -Force | Out-Null
 New-Item -Path $manifestDir -ItemType Directory -Force | Out-Null
 
 $perfSummaryPath = Join-Path $perfDir "summary.json"
 $perfPolicyPath = Join-Path $perfDir "policy-check.json"
+$railwayDeploySummaryPath = Join-Path $deployDir "railway-deploy-summary.json"
+$repoPublishSummaryPath = Join-Path $deployDir "repo-publish-summary.json"
 $sourceRunManifestPath = Join-Path $manifestDir "source-run.json"
 
 $perfSummary = [ordered]@{
@@ -126,6 +130,75 @@ $perfPolicy = [ordered]@{
 $perfPolicyJson = $perfPolicy | ConvertTo-Json -Depth 8
 Write-Utf8NoBomFile -Path $perfPolicyPath -Content $perfPolicyJson
 
+$railwayDeploySummary = [ordered]@{
+  schemaVersion = 1
+  generatedAt = [datetime]::UtcNow.ToString("o")
+  status = "success"
+  deploymentId = "railway-smoke-deploy-1"
+  projectId = "railway-smoke-project"
+  service = "gateway"
+  environment = "production"
+  effectiveStartCommand = "npm run start:gateway"
+  configSource = "railway.toml"
+  effectivePublicUrl = "https://live-agent.example.test"
+  checks = [ordered]@{
+    rootDescriptor = [ordered]@{
+      attempted = $true
+      skipped = $false
+      expectedUiUrl = "https://demo.live-agent.example.test"
+    }
+    publicBadge = [ordered]@{
+      attempted = $true
+      skipped = $false
+      badgeEndpoint = "https://live-agent.example.test/demo-e2e/badge.json"
+      badgeDetailsEndpoint = "https://live-agent.example.test/demo-e2e/badge-details.json"
+    }
+  }
+}
+$railwayDeploySummaryJson = $railwayDeploySummary | ConvertTo-Json -Depth 8
+Write-Utf8NoBomFile -Path $railwayDeploySummaryPath -Content $railwayDeploySummaryJson
+
+$repoPublishSummary = [ordered]@{
+  schemaVersion = 1
+  generatedAt = [datetime]::UtcNow.ToString("o")
+  branch = "main"
+  remoteName = "origin"
+  verification = [ordered]@{
+    skipped = $false
+    script = "verify:release"
+    strict = [bool]$StrictFinalRun
+    releaseEvidenceArtifactsValidated = $true
+    releaseEvidenceArtifacts = @(
+      "artifacts/release-evidence/report.json",
+      "artifacts/release-evidence/manifest.json",
+      "artifacts/demo-e2e/badge-details.json"
+    )
+  }
+  steps = [ordered]@{
+    commitEnabled = $true
+    pushEnabled = $true
+    pagesEnabled = $true
+    badgeCheckEnabled = $true
+    railwayDeployEnabled = $true
+    railwayFrontendDeployEnabled = $false
+  }
+  runtime = [ordered]@{
+    railwayPublicUrl = "https://live-agent.example.test"
+    railwayDemoFrontendPublicUrl = "https://demo.live-agent.example.test"
+    railwayNoWait = $false
+    railwayFrontendNoWait = $false
+  }
+  artifacts = [ordered]@{
+    self = "artifacts/deploy/repo-publish-summary.json"
+    railwayDeploySummary = "artifacts/deploy/railway-deploy-summary.json"
+    releaseEvidenceReportJson = "artifacts/release-evidence/report.json"
+    releaseEvidenceManifestJson = "artifacts/release-evidence/manifest.json"
+    badgeDetailsJson = "artifacts/demo-e2e/badge-details.json"
+  }
+}
+$repoPublishSummaryJson = $repoPublishSummary | ConvertTo-Json -Depth 8
+Write-Utf8NoBomFile -Path $repoPublishSummaryPath -Content $repoPublishSummaryJson
+
 $sourceRunManifest = [ordered]@{
   schemaVersion = "1.0"
   generatedAt   = [datetime]::UtcNow.ToString("o")
@@ -161,6 +234,45 @@ $sourceRunManifest = [ordered]@{
     evidenceSnapshot     = [ordered]@{
       demoSummaryPresent = $false
       badgeDetailsPresent = $false
+      railwayDeploySummaryPresent = $true
+      railwayDeploySummaryStatus = "success"
+      railwayDeploySummaryDeploymentId = "railway-smoke-deploy-1"
+      railwayDeploySummaryEffectivePublicUrl = "https://live-agent.example.test"
+      railwayDeploySummaryBadgeEndpoint = "https://live-agent.example.test/demo-e2e/badge.json"
+      railwayDeploySummaryBadgeDetailsEndpoint = "https://live-agent.example.test/demo-e2e/badge-details.json"
+      railwayDeploySummaryProjectId = "railway-smoke-project"
+      railwayDeploySummaryService = "gateway"
+      railwayDeploySummaryEnvironment = "production"
+      railwayDeploySummaryEffectiveStartCommand = "npm run start:gateway"
+      railwayDeploySummaryConfigSource = "railway.toml"
+      railwayDeploySummaryRootDescriptorAttempted = $true
+      railwayDeploySummaryRootDescriptorSkipped = $false
+      railwayDeploySummaryRootDescriptorExpectedUiUrl = "https://demo.live-agent.example.test"
+      railwayDeploySummaryPublicBadgeAttempted = $true
+      railwayDeploySummaryPublicBadgeSkipped = $false
+      repoPublishSummaryPresent = $true
+      repoPublishSummaryBranch = "main"
+      repoPublishSummaryRemoteName = "origin"
+      repoPublishSummaryVerificationScript = "verify:release"
+      repoPublishSummaryVerificationSkipped = $false
+      repoPublishSummaryVerificationStrict = [bool]$StrictFinalRun
+      repoPublishSummaryReleaseEvidenceValidated = $true
+      repoPublishSummaryReleaseEvidenceArtifactsCount = 3
+      repoPublishSummaryCommitEnabled = $true
+      repoPublishSummaryPushEnabled = $true
+      repoPublishSummaryPagesEnabled = $true
+      repoPublishSummaryBadgeCheckEnabled = $true
+      repoPublishSummaryRailwayDeployEnabled = $true
+      repoPublishSummaryRailwayFrontendDeployEnabled = $false
+      repoPublishSummaryRuntimeRailwayPublicUrl = "https://live-agent.example.test"
+      repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl = "https://demo.live-agent.example.test"
+      repoPublishSummaryRuntimeRailwayNoWait = $false
+      repoPublishSummaryRuntimeRailwayFrontendNoWait = $false
+      repoPublishSummaryArtifactSelf = "artifacts/deploy/repo-publish-summary.json"
+      repoPublishSummaryArtifactRailwayDeploySummary = "artifacts/deploy/railway-deploy-summary.json"
+      repoPublishSummaryArtifactReleaseEvidenceReportJson = "artifacts/release-evidence/report.json"
+      repoPublishSummaryArtifactReleaseEvidenceManifestJson = "artifacts/release-evidence/manifest.json"
+      repoPublishSummaryArtifactBadgeDetailsJson = "artifacts/demo-e2e/badge-details.json"
       operatorTurnTruncationSummaryValidated = $true
       operatorTurnDeleteSummaryValidated = $true
       operatorDamageControlSummaryValidated = $true
@@ -176,6 +288,29 @@ $sourceRunManifest = [ordered]@{
       badgeEvidencePluginMarketplaceStatus = "pass"
       badgeEvidenceDeviceNodesStatus = "pass"
       badgeEvidenceAgentUsageStatus = "pass"
+      badgeEvidenceRuntimeGuardrailsSignalPathsStatus = "pass"
+      badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = "critical signals=2"
+      badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = 2
+      badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = [ordered]@{
+        title = "Recovery drill - ui-executor-sandbox-audit"
+        kind = "runtime_drill"
+        profileId = "ui-executor-sandbox-audit"
+        phase = "recovery"
+        buttonLabel = "Plan Recovery Drill"
+        summaryText = "Recovery drill: UI executor sandbox audit mode for ui_executor_sandbox_not_enforce@ui-executor."
+        lifecycleStatus = "active"
+      }
+      badgeEvidenceProviderUsageStatus = "pass"
+      badgeEvidenceProviderUsageValidated = $true
+      badgeEvidenceProviderUsageActiveSecondaryProviders = 0
+      badgeEvidenceProviderUsageEntriesCount = 3
+      badgeEvidenceProviderUsagePrimaryEntry = [ordered]@{
+        route = "storyteller-agent"
+        capability = "tts"
+        selectedProvider = "gemini_api"
+        selectedModel = "gemini-tts"
+        selectionReason = "default_primary"
+      }
       badgeEvidenceDeviceNodeUpdatesStatus = "pass"
     }
   }

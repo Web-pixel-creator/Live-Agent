@@ -1,6 +1,8 @@
 import { constants } from "node:fs";
 import { access, readFile, readdir } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
+import { getSkillsCatalogSnapshot, type SkillsCatalogSnapshot } from "./catalog.js";
+import { resolveCredentialValueWithProfile } from "./auth-profiles.js";
 
 export type SkillSource = "workspace" | "bundled" | "managed";
 
@@ -86,6 +88,12 @@ export type SkillsRuntimeSummary = {
   loadedAt: string;
 };
 
+export type SkillsRuntimeCatalogSnapshot = {
+  runtime: SkillsRuntimeSnapshot;
+  runtimeSummary: SkillsRuntimeSummary;
+  catalog: SkillsCatalogSnapshot;
+};
+
 type SkillCandidate = {
   id: string;
   name: string;
@@ -119,6 +127,10 @@ type RuntimeConfig = {
   securityMode: SkillSecurityMode;
   minTrustLevel: SkillTrustLevel;
 };
+
+export * from "./credential-store.js";
+export * from "./catalog.js";
+export * from "./auth-profiles.js";
 
 const ALL_SOURCES: SkillSource[] = ["workspace", "bundled", "managed"];
 
@@ -343,13 +355,21 @@ function extractSection(content: string, sectionNames: string[]): string | null 
   return section.length > 0 ? section : null;
 }
 
-function buildRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
+function buildRuntimeConfig(env: NodeJS.ProcessEnv, cwd: string): RuntimeConfig {
   const sourcePrecedence = parseSourceList(env.SKILLS_SOURCE_PRECEDENCE, ["workspace", "bundled", "managed"]);
   const allowedSources = new Set(parseSourceList(env.SKILLS_ALLOWED_SOURCES, sourcePrecedence));
   const enabledIds = parseIdList(env.SKILLS_ENABLED_IDS);
   const disabledIds = parseIdList(env.SKILLS_DISABLED_IDS) ?? new Set<string>();
   const securityMode = parseSkillSecurityMode(env.SKILLS_SECURITY_MODE);
   const minTrustLevel = parseTrustLevel(env.SKILLS_MIN_TRUST_LEVEL, "untrusted");
+  const managedAuthToken = resolveCredentialValueWithProfile({
+    namespace: "skills.managed_index.auth_token",
+    profileId: toNonEmptyString(env.SKILLS_MANAGED_INDEX_AUTH_PROFILE) ?? "skills-managed-index",
+    directValue: env.SKILLS_MANAGED_INDEX_AUTH_TOKEN,
+    credentialName: env.SKILLS_MANAGED_INDEX_AUTH_CREDENTIAL,
+    env,
+    cwd,
+  });
 
   return {
     enabled: toBooleanFlag(env.SKILLS_RUNTIME_ENABLED, true),
@@ -359,7 +379,7 @@ function buildRuntimeConfig(env: NodeJS.ProcessEnv): RuntimeConfig {
     bundledDir: toNonEmptyString(env.SKILLS_BUNDLED_DIR) ?? "skills/bundled",
     managedJson: toNonEmptyString(env.SKILLS_MANAGED_INDEX_JSON),
     managedUrl: toNonEmptyString(env.SKILLS_MANAGED_INDEX_URL),
-    managedAuthToken: toNonEmptyString(env.SKILLS_MANAGED_INDEX_AUTH_TOKEN),
+    managedAuthToken: managedAuthToken.value,
     managedTimeoutMs: parsePositiveInt(env.SKILLS_MANAGED_INDEX_TIMEOUT_MS, 2500),
     enabledIds,
     disabledIds,
@@ -703,7 +723,7 @@ export async function getSkillsRuntimeSnapshot(params: {
 }): Promise<SkillsRuntimeSnapshot> {
   const env = params.env ?? process.env;
   const cwd = params.cwd ?? process.cwd();
-  const config = buildRuntimeConfig(env);
+  const config = buildRuntimeConfig(env, cwd);
   const loadedAt = new Date().toISOString();
 
   if (!config.enabled) {
@@ -887,6 +907,25 @@ export function toSkillsRuntimeSummary(snapshot: SkillsRuntimeSnapshot): SkillsR
     securityBlockedCount,
     trustBlockedCount,
     loadedAt: snapshot.loadedAt,
+  };
+}
+
+export async function getSkillsRuntimeCatalogSnapshot(params: {
+  agentId: string;
+  env?: NodeJS.ProcessEnv;
+  cwd?: string;
+}): Promise<SkillsRuntimeCatalogSnapshot> {
+  const runtime = await getSkillsRuntimeSnapshot(params);
+  const catalog = await getSkillsCatalogSnapshot({
+    agentId: params.agentId,
+    env: params.env,
+    cwd: params.cwd,
+    activeSkillIds: runtime.activeSkills.map((skill) => skill.id),
+  });
+  return {
+    runtime,
+    runtimeSummary: toSkillsRuntimeSummary(runtime),
+    catalog,
   };
 }
 

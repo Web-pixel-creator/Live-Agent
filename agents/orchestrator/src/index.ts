@@ -1,3 +1,22 @@
+/* Load root .env before anything else — works regardless of cwd */
+import { existsSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __orch_dir = dirname(fileURLToPath(import.meta.url));
+const envCandidates = [
+  resolve(__orch_dir, "..", "..", "..", ".env"),   // from dist/src/ or src/
+  resolve(__orch_dir, "..", "..", ".env"),          // from agents/orchestrator/src/
+  resolve(process.cwd(), ".env"),                  // fallback: cwd
+];
+for (const envPath of envCandidates) {
+  if (existsSync(envPath)) {
+    process.loadEnvFile(envPath);
+    console.log(`[orchestrator] loaded env from ${envPath}`);
+    break;
+  }
+}
+
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import {
@@ -8,15 +27,25 @@ import {
   RollingMetrics,
 } from "@mla/contracts";
 import {
+  clearStorytellerRuntimeControlPlaneOverride,
   getMediaJobQueueSnapshot,
   getStoryCacheSnapshot,
+  getStorytellerRuntimeConfig,
   purgeStoryCache,
+  setStorytellerRuntimeControlPlaneOverride,
 } from "@mla/storyteller-agent";
 import { orchestrate } from "./orchestrate.js";
+import { OrchestratorExecutionError } from "./retry-classification.js";
 import { AnalyticsExporter } from "./services/analytics-export.js";
 import { getFirestoreState } from "./services/firestore.js";
 import { buildStoryCacheMetricRecords } from "./story-cache-telemetry.js";
 import { buildStoryQueueMetricRecords } from "./story-queue-telemetry.js";
+import {
+  clearOrchestratorWorkflowControlPlaneOverride,
+  getOrchestratorWorkflowConfig,
+  getOrchestratorWorkflowStoreStatus,
+  setOrchestratorWorkflowControlPlaneOverride,
+} from "./workflow-store.js";
 
 const port = Number(process.env.PORT ?? process.env.ORCHESTRATOR_PORT ?? 8082);
 const serviceName = "orchestrator";
@@ -69,6 +98,29 @@ function parseBoolean(value: string | undefined, fallback: boolean): boolean {
     return false;
   }
   return fallback;
+}
+
+function toOptionalString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function parseJsonObjectBody(raw: string): Record<string, unknown> {
+  if (raw.trim().length === 0) {
+    return {};
+  }
+  const parsed = JSON.parse(raw) as unknown;
+  if (!isRecord(parsed)) {
+    throw new Error("request body must be a JSON object");
+  }
+  return parsed;
 }
 
 function emitStoryQueueTelemetrySample(trigger: "interval" | "metrics_endpoint" | "startup"): void {
@@ -158,6 +210,8 @@ function runtimeState(): Record<string, unknown> {
       errorRatePct: summary.errorRatePct,
       p95Ms: summary.latencyMs.p95,
     },
+    workflow: getOrchestratorWorkflowStoreStatus(),
+    storyteller: getStorytellerRuntimeConfig(),
   };
 }
 
@@ -232,12 +286,156 @@ export const server = createServer(async (req, res) => {
       return;
     }
 
+    if (url.pathname === "/story/runtime/config" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        storyteller: getStorytellerRuntimeConfig(),
+        storytellerMediaJobs: getMediaJobQueueSnapshot(),
+        storytellerCache: getStoryCacheSnapshot(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/workflow/config" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        workflow: getOrchestratorWorkflowConfig(),
+        store: getOrchestratorWorkflowStoreStatus(),
+      });
+      return;
+    }
+
     if (url.pathname === "/story/cache/purge" && req.method === "POST") {
       const reason = url.searchParams.get("reason") ?? "orchestrator.manual_cache_purge";
       writeJson(res, 200, {
         ok: true,
         service: serviceName,
         storytellerCache: purgeStoryCache(reason),
+      });
+      return;
+    }
+
+    if (url.pathname === "/story/runtime/control-plane-override" && req.method === "POST") {
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = parseJsonObjectBody(await readBody(req));
+      } catch {
+        writeHttpError(res, 400, {
+          code: "ORCHESTRATOR_STORYTELLER_RUNTIME_OVERRIDE_INVALID_JSON",
+          message: "storyteller runtime override body must be valid JSON object",
+        });
+        return;
+      }
+      const reason = toOptionalString(parsed.reason);
+      const clear = parsed.clear === true;
+
+      if (clear) {
+        clearStorytellerRuntimeControlPlaneOverride();
+        writeJson(res, 200, {
+          ok: true,
+          service: serviceName,
+          action: "clear",
+          storyteller: getStorytellerRuntimeConfig(),
+        });
+        return;
+      }
+
+      const rawJson =
+        typeof parsed.rawJson === "string" && parsed.rawJson.trim().length > 0
+          ? parsed.rawJson
+          : isRecord(parsed.runtime)
+            ? JSON.stringify(parsed.runtime)
+            : null;
+
+      if (!rawJson) {
+        writeHttpError(res, 400, {
+          code: "ORCHESTRATOR_STORYTELLER_RUNTIME_OVERRIDE_INVALID",
+          message: "storyteller runtime override requires rawJson string, runtime object, or clear=true",
+          details: {
+            allowedInputs: ["rawJson", "runtime", "clear"],
+          },
+        });
+        return;
+      }
+
+      try {
+        setStorytellerRuntimeControlPlaneOverride({
+          rawJson,
+          reason,
+        });
+      } catch (error) {
+        writeHttpError(res, 400, {
+          code: "ORCHESTRATOR_STORYTELLER_RUNTIME_OVERRIDE_INVALID",
+          message: error instanceof Error ? error.message : "invalid storyteller runtime override",
+        });
+        return;
+      }
+
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        action: "set",
+        storyteller: getStorytellerRuntimeConfig(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/workflow/control-plane-override" && req.method === "POST") {
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = parseJsonObjectBody(await readBody(req));
+      } catch {
+        writeHttpError(res, 400, {
+          code: "ORCHESTRATOR_WORKFLOW_OVERRIDE_INVALID_JSON",
+          message: "workflow override body must be valid JSON object",
+        });
+        return;
+      }
+      const reason = toOptionalString(parsed.reason);
+      const clear = parsed.clear === true;
+
+      if (clear) {
+        clearOrchestratorWorkflowControlPlaneOverride();
+        writeJson(res, 200, {
+          ok: true,
+          service: serviceName,
+          action: "clear",
+          workflow: getOrchestratorWorkflowConfig(),
+          store: getOrchestratorWorkflowStoreStatus(),
+        });
+        return;
+      }
+
+      const rawJson =
+        typeof parsed.rawJson === "string" && parsed.rawJson.trim().length > 0
+          ? parsed.rawJson
+          : isRecord(parsed.workflow)
+            ? JSON.stringify(parsed.workflow)
+            : null;
+
+      if (!rawJson) {
+        writeHttpError(res, 400, {
+          code: "ORCHESTRATOR_WORKFLOW_OVERRIDE_INVALID",
+          message: "workflow override requires rawJson string, workflow object, or clear=true",
+          details: {
+            allowedInputs: ["rawJson", "workflow", "clear"],
+          },
+        });
+        return;
+      }
+
+      setOrchestratorWorkflowControlPlaneOverride({
+        rawJson,
+        reason,
+      });
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        action: "set",
+        workflow: getOrchestratorWorkflowConfig(),
+        store: getOrchestratorWorkflowStoreStatus(),
       });
       return;
     }
@@ -313,13 +511,17 @@ export const server = createServer(async (req, res) => {
       },
     });
   } catch (error) {
-    const normalized = normalizeUnknownError(error, {
-      defaultCode: "ORCHESTRATOR_HTTP_INTERNAL_ERROR",
-      defaultMessage: "orchestrator request failed",
-    });
+    const statusCode = error instanceof OrchestratorExecutionError ? error.statusCode : 500;
+    const normalized =
+      error instanceof OrchestratorExecutionError
+        ? error.normalizedError
+        : normalizeUnknownError(error, {
+            defaultCode: "ORCHESTRATOR_HTTP_INTERNAL_ERROR",
+            defaultMessage: "orchestrator request failed",
+          });
     writeJson(
       res,
-      500,
+      statusCode,
       createApiErrorResponse({
         error: normalized,
         service: serviceName,

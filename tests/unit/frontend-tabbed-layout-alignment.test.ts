@@ -17,7 +17,7 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
   const operatorGuideSource = readFileSync(operatorGuidePath, "utf8");
 
   const requiredHtmlTokens = [
-    "class=\"tabs\"",
+    "class=\"tabs dashboard-nav\"",
     'data-tab-target="live-negotiator"',
     'data-tab-target="storyteller"',
     'data-tab-target="operator"',
@@ -54,7 +54,14 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
     "storyTimelineProgressTrack: document.getElementById(\"storyTimelineProgressTrack\")",
     "storyTimelineProgressBar: document.getElementById(\"storyTimelineProgressBar\")",
     "function renderStoryTimelineProgress(count, selectedIndex)",
+    "function initFilePickerControl(input, options = {}) {",
+    "const syncFilePicker = () => {",
+    "nameNode.textContent = emptyLabel;",
+    "nameNode.classList.add(\"is-empty\");",
+    "trigger.disabled = input.disabled;",
     "function setActiveTab(tabId, options = {})",
+    "section.hidden = !isActive;",
+    "section.toggleAttribute(\"inert\", !isActive);",
     "const orderedTabButtons = tabButtons.filter((button) => {",
     "button.addEventListener(\"keydown\", (event) => {",
     "if (event.key === \"ArrowRight\") {",
@@ -73,6 +80,11 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing tab token: ${token}`);
   }
+
+  assert.ok(
+    !appSource.includes("} else if (isErrorStory && errorPresentation) {"),
+    "frontend runtime should not leak story error rendering into file-picker bootstrap",
+  );
 
   const requiredStylesTokens = [
     ".tabs {",
@@ -100,9 +112,17 @@ test("demo frontend groups panels into tabbed layout with live tab default", () 
   }
 
   assert.ok(readmeSource.includes("Frontend is grouped into tabs"), "README missing tabbed-layout note");
+  assert.ok(
+    readmeSource.includes("file pickers stay isolated from Storyteller output rendering"),
+    "README missing file-picker bootstrap isolation note",
+  );
   assert.ok(readmeSource.includes("remembers the last active tab"), "README missing active-tab persistence note");
   assert.ok(readmeSource.includes("Live Negotiator"), "README missing updated tab names");
   assert.ok(operatorGuideSource.includes("## Frontend Tabs"), "Operator guide missing tabbed-layout section");
+  assert.ok(
+    operatorGuideSource.includes("file pickers stay isolated from Storyteller output rendering"),
+    "Operator guide missing file-picker bootstrap isolation note",
+  );
   assert.ok(operatorGuideSource.includes("remembers last active tab"), "Operator guide missing active-tab persistence note");
   assert.ok(operatorGuideSource.includes("Storyteller"), "Operator guide missing storyteller tab note");
 });

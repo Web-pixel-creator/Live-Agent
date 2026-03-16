@@ -10,6 +10,11 @@ This folder provides an idempotent baseline for:
 ## Files
 
 - `bootstrap.ps1` - baseline bootstrap script (Windows PowerShell).
+- `ensure-firestore.ps1` - Firestore Native bootstrap + index/TTL apply + summary artifact.
+- `deploy-cloud-run.ps1` - deploys `orchestrator`, `realtime-gateway`, and `api-backend` from `infra/cloud-run/services.yaml`.
+- `collect-runtime-proof.ps1` - aggregates Cloud Run, Firestore, BigQuery, and observability proof into `artifacts/release-evidence`.
+- `prepare-judge-runtime.ps1` - wrapper for bootstrap + Firestore + observability + Cloud Run + runtime proof.
+- `refresh-submission-pack.ps1` - post-deploy judged refresh wrapper for `demo/policy/badge/visual pack` with Google-first env overrides, release-style demo retries/restarts, local provenance refresh, `.env` secret resolution, and Google Live key/header auto-derivation from the Gemini key when separate `LIVE_API_*` values are not present.
 - `setup-analytics-sinks.ps1` - analytics routing baseline (Cloud Logging -> BigQuery sink + log-based metric for Cloud Monitoring dashboards/alerts).
 - `setup-monitoring-baseline.ps1` - Cloud Monitoring baseline (log-based metrics + KPI dashboard + alert policies).
 - `setup-observability.ps1` - one-shot wrapper (`bootstrap` + `setup-analytics-sinks` + `setup-monitoring-baseline`).
@@ -19,6 +24,18 @@ This folder provides an idempotent baseline for:
 
 ```powershell
 pwsh ./infra/gcp/bootstrap.ps1 -ProjectId "<your-project-id>" -Region "us-central1"
+```
+
+Firestore bootstrap:
+
+```powershell
+pwsh ./infra/gcp/ensure-firestore.ps1 -ProjectId "<your-project-id>" -Location "nam5"
+```
+
+Cloud Run deploy from `infra/cloud-run/services.yaml`:
+
+```powershell
+pwsh ./infra/gcp/deploy-cloud-run.ps1 -ProjectId "<your-project-id>" -Region "us-central1" -ImageTag "<release-tag>"
 ```
 
 Analytics sink setup:
@@ -56,6 +73,43 @@ Evidence collection (after setup and traffic):
 pwsh ./infra/gcp/collect-observability-evidence.ps1 -ProjectId "<your-project-id>" -DatasetId "agent_analytics" -LookbackHours 24
 ```
 
+Runtime proof collection (after Firestore + Cloud Run + observability + screenshot capture):
+
+```powershell
+pwsh ./infra/gcp/collect-runtime-proof.ps1 -ProjectId "<your-project-id>" -Region "us-central1" -DatasetId "agent_analytics"
+```
+
+End-to-end judge runtime bootstrap:
+
+```powershell
+pwsh ./infra/gcp/prepare-judge-runtime.ps1 -ProjectId "<your-project-id>" `
+  -Region "us-central1" `
+  -FirestoreLocation "nam5" `
+  -DatasetId "agent_analytics" `
+  -ImageTag "<release-tag>"
+```
+
+Post-deploy judged evidence refresh:
+
+```powershell
+pwsh ./infra/gcp/refresh-submission-pack.ps1 -ProjectId "<your-project-id>" `
+  -Region "us-central1" `
+  -DatasetId "agent_analytics" `
+  -ImageTag "<release-tag>"
+```
+
+If the current shell does not have `gcloud`, either keep the keys in repo-local `.env` or provide them directly:
+
+```powershell
+pwsh ./infra/gcp/refresh-submission-pack.ps1 `
+  -SkipPrepareRuntime `
+  -GoogleGenAiApiKey "<google-genai-key>" `
+  -LiveApiApiKey "<live-api-key>" `
+  -LiveApiAuthHeader "x-goog-api-key"
+```
+
+When `.env` contains only Gemini-style keys such as `GEMINI_API_KEY` / `LIVE_AGENT_GEMINI_API_KEY` / `STORYTELLER_GEMINI_API_KEY` / `UI_NAVIGATOR_GEMINI_API_KEY`, `refresh-submission-pack.ps1` now reuses that value for `LIVE_API_API_KEY` and defaults `LIVE_API_AUTH_HEADER` to `x-goog-api-key`.
+
 Judge report generation from collected evidence (repo root):
 
 ```powershell
@@ -79,6 +133,10 @@ Optional flags:
 - `-GatewaySaName` default: `mla-gateway-sa`
 - `-ApiSaName` default: `mla-api-sa`
 - `-OrchestratorSaName` default: `mla-orchestrator-sa`
+- `deploy-cloud-run.ps1 -DryRun` prints the exact `gcloud run deploy` commands without mutating Cloud Run.
+- `prepare-judge-runtime.ps1` supports `-Skip*` switches for partial reruns (for example, only Cloud Run redeploy or only proof collection).
+- `refresh-submission-pack.ps1` writes `artifacts/release-evidence/submission-refresh-status.json` and `.md` so the post-deploy judged refresh can be reviewed even when the summary is still pending follow-up.
+- `refresh-submission-pack.ps1` runs `demo-e2e.ps1` with the same retry/restart posture as `verify:release`, resolves secrets from env, repo-local `.env`, or Secret Manager, and pushes Storyteller media timeout knobs (`STORYTELLER_GEMINI_TIMEOUT_MS`, `STORYTELLER_VIDEO_POLL_MS`, `STORYTELLER_VIDEO_MAX_WAIT_MS`) into the judged run.
 
 ## What It Configures
 
@@ -103,6 +161,10 @@ Optional flags:
    - `LIVE_API_API_KEY`
    - `LIVE_API_AUTH_HEADER`
    - `GOOGLE_GENAI_API_KEY`
+5. Deploy path assumptions:
+   - Artifact Registry images already exist for the three Cloud Run services.
+   - `infra/cloud-run/services.yaml` remains the single editable manifest for service-level env/secret wiring.
+   - Firestore and observability proof are written into repo-owned artifacts before submission packaging.
 
 ## Security Notes
 
@@ -111,3 +173,4 @@ Optional flags:
 3. Rotate secret values after bootstrap if test placeholders were used.
 4. `setup-analytics-sinks.ps1` grants sink writer project-level `roles/bigquery.dataEditor` as a baseline. For production, scope access to dataset-level IAM only.
 5. Alert policies can be created without notification channels, but production should always attach channels and on-call routing.
+6. `deploy-cloud-run.ps1` validates only secret names, not secret payload freshness; rotate and pin versions before a judged submission run.

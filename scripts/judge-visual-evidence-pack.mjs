@@ -7,6 +7,9 @@ function parseArgs(argv) {
     outputMarkdown: "artifacts/judge-visual-evidence/manifest.md",
     badgeDetails: "artifacts/demo-e2e/badge-details.json",
     summary: "artifacts/demo-e2e/summary.json",
+    gcpCloudRunSummary: "artifacts/deploy/gcp-cloud-run-summary.json",
+    gcpRuntimeProof: "artifacts/release-evidence/gcp-runtime-proof.json",
+    submissionRefreshStatus: "artifacts/release-evidence/submission-refresh-status.json",
     railwayDeploySummary: "artifacts/deploy/railway-deploy-summary.json",
     repoPublishSummary: "artifacts/deploy/repo-publish-summary.json",
     screenshotDir: "artifacts/judge-visual-evidence/screenshots",
@@ -33,6 +36,18 @@ function parseArgs(argv) {
     }
     if (arg === "--summary") {
       options.summary = argv[++i];
+      continue;
+    }
+    if (arg === "--gcpCloudRunSummary") {
+      options.gcpCloudRunSummary = argv[++i];
+      continue;
+    }
+    if (arg === "--gcpRuntimeProof") {
+      options.gcpRuntimeProof = argv[++i];
+      continue;
+    }
+    if (arg === "--submissionRefreshStatus") {
+      options.submissionRefreshStatus = argv[++i];
       continue;
     }
     if (arg === "--railwayDeploySummary") {
@@ -133,8 +148,35 @@ function deriveDeviceNodeUpdatesStatus(deviceNodesEvidence) {
 
 function buildDeployProvenanceRows(deployProvenance) {
   const rows = [];
+  const gcpCloudRun = deployProvenance.gcpCloudRun;
+  const gcpRuntimeProof = deployProvenance.gcpRuntimeProof;
+  const submissionRefreshStatus = deployProvenance.submissionRefreshStatus;
   const railwayDeploy = deployProvenance.railwayDeploy;
   const repoPublish = deployProvenance.repoPublish;
+
+  if (gcpCloudRun.available) {
+    rows.push({
+      id: "gcpCloudRun",
+      title: "GCP Cloud Run",
+      summary: `status ${gcpCloudRun.status}; services ${gcpCloudRun.serviceCount}; gateway ${gcpCloudRun.gatewayUrl}; api ${gcpCloudRun.apiUrl}; orchestrator ${gcpCloudRun.orchestratorUrl}`,
+    });
+  }
+
+  if (gcpRuntimeProof.available) {
+    rows.push({
+      id: "gcpRuntimeProof",
+      title: "GCP runtime proof",
+      summary: `status ${gcpRuntimeProof.status}; Cloud Run URL proof ${gcpRuntimeProof.cloudRunUrlProof}; Firestore proof ${gcpRuntimeProof.firestoreProof}; BigQuery rows proof ${gcpRuntimeProof.bigQueryRowsProof}; observability screenshots proof ${gcpRuntimeProof.observabilityScreenshotsProof}`,
+    });
+  }
+
+  if (submissionRefreshStatus.available) {
+    rows.push({
+      id: "submissionRefreshStatus",
+      title: "Submission refresh",
+      summary: `status ${submissionRefreshStatus.status}; blocker ${submissionRefreshStatus.blockingReason}`,
+    });
+  }
 
   if (railwayDeploy.available) {
     rows.push({
@@ -175,7 +217,19 @@ function buildDeployProvenanceRows(deployProvenance) {
   return rows;
 }
 
-function collectDeployProvenance(railwayDeploySummaryRead, repoPublishSummaryRead) {
+function collectDeployProvenance(
+  gcpCloudRunSummaryRead,
+  gcpRuntimeProofRead,
+  submissionRefreshStatusRead,
+  railwayDeploySummaryRead,
+  repoPublishSummaryRead,
+) {
+  const gcpCloudRunSummary =
+    gcpCloudRunSummaryRead.present && gcpCloudRunSummaryRead.parsed ? gcpCloudRunSummaryRead.value : null;
+  const gcpRuntimeProof =
+    gcpRuntimeProofRead.present && gcpRuntimeProofRead.parsed ? gcpRuntimeProofRead.value : null;
+  const submissionRefreshStatus =
+    submissionRefreshStatusRead.present && submissionRefreshStatusRead.parsed ? submissionRefreshStatusRead.value : null;
   const railwayDeploySummary =
     railwayDeploySummaryRead.present && railwayDeploySummaryRead.parsed ? railwayDeploySummaryRead.value : null;
   const repoPublishSummary =
@@ -185,8 +239,32 @@ function collectDeployProvenance(railwayDeploySummaryRead, repoPublishSummaryRea
   const repoPublishSteps = repoPublishSummary?.steps ?? {};
 
   const deployProvenance = {
-    available: Boolean(railwayDeploySummary || repoPublishSummary),
+    available: Boolean(
+      gcpCloudRunSummary || gcpRuntimeProof || submissionRefreshStatus || railwayDeploySummary || repoPublishSummary,
+    ),
     rows: [],
+    gcpCloudRun: {
+      available: gcpCloudRunSummaryRead.present && gcpCloudRunSummaryRead.parsed,
+      status: toOptionalText(gcpCloudRunSummary?.status),
+      serviceCount: Number(gcpCloudRunSummary?.serviceCount ?? 0),
+      gatewayUrl: toOptionalText(gcpCloudRunSummary?.gatewayUrl),
+      apiUrl: toOptionalText(gcpCloudRunSummary?.apiUrl),
+      orchestratorUrl: toOptionalText(gcpCloudRunSummary?.orchestratorUrl),
+    },
+    gcpRuntimeProof: {
+      available: gcpRuntimeProofRead.present && gcpRuntimeProofRead.parsed,
+      status: toOptionalText(gcpRuntimeProof?.status),
+      blockingReason: toOptionalText(gcpRuntimeProof?.blockingReason),
+      cloudRunUrlProof: gcpRuntimeProof?.judgeProof?.cloudRunUrlProof === true,
+      firestoreProof: gcpRuntimeProof?.judgeProof?.firestoreProof === true,
+      bigQueryRowsProof: gcpRuntimeProof?.judgeProof?.bigQueryRowsProof === true,
+      observabilityScreenshotsProof: gcpRuntimeProof?.judgeProof?.observabilityScreenshotsProof === true,
+    },
+    submissionRefreshStatus: {
+      available: submissionRefreshStatusRead.present && submissionRefreshStatusRead.parsed,
+      status: toOptionalText(submissionRefreshStatus?.status),
+      blockingReason: toOptionalText(submissionRefreshStatus?.blockingReason),
+    },
     railwayDeploy: {
       available: railwayDeploySummaryRead.present && railwayDeploySummaryRead.parsed,
       status: toOptionalText(railwayDeploySummary?.status),
@@ -360,6 +438,22 @@ function toMarkdown(manifest) {
       lines.push(`- ${row.title}: ${row.summary}`);
     }
   }
+
+  lines.push("");
+  lines.push("## Submission Follow-Up");
+  lines.push("");
+  lines.push(`- GCP cloud proof checklist: \`artifacts/judge-visual-evidence/cloud-proof-checklist.md\``);
+  lines.push(`- Cloud Run proof target: \`artifacts/deploy/gcp-cloud-run-summary.json\``);
+  lines.push(`- Runtime proof target: \`artifacts/release-evidence/gcp-runtime-proof.md\``);
+  lines.push(`- Submission refresh target: \`artifacts/release-evidence/submission-refresh-status.json\``);
+  lines.push(`- Submission refresh state: \`${manifest.submissionFollowUp.submissionRefreshStatus}\``);
+  lines.push(`- Submission refresh blocker: ${manifest.submissionFollowUp.submissionRefreshBlockingReason}`);
+  lines.push(
+    `- This visual pack should be regenerated after the GCP deploy so the screenshots and badge evidence match the deployed runtime instead of the current local/stale mix.`,
+  );
+  lines.push(
+    `- The refreshed judged pack should also confirm \`liveApiEnabled=${manifest.submissionFollowUp.submissionSafeSummaryGate.liveApiEnabled}\`, \`translationProvider=${manifest.submissionFollowUp.submissionSafeSummaryGate.translationProvider}\`, \`storytellerMediaMode=${manifest.submissionFollowUp.submissionSafeSummaryGate.storytellerMediaMode}\`, and \`uiExecutorForceSimulation=${manifest.submissionFollowUp.submissionSafeSummaryGate.uiExecutorForceSimulation}\`.`,
+  );
   return lines.join("\n");
 }
 
@@ -368,6 +462,9 @@ function main() {
 
   const badgeDetailsPath = toAbsolutePath(options.badgeDetails);
   const summaryPath = toAbsolutePath(options.summary);
+  const gcpCloudRunSummaryPath = toAbsolutePath(options.gcpCloudRunSummary);
+  const gcpRuntimeProofPath = toAbsolutePath(options.gcpRuntimeProof);
+  const submissionRefreshStatusPath = toAbsolutePath(options.submissionRefreshStatus);
   const railwayDeploySummaryPath = toAbsolutePath(options.railwayDeploySummary);
   const repoPublishSummaryPath = toAbsolutePath(options.repoPublishSummary);
   const screenshotDir = toAbsolutePath(options.screenshotDir);
@@ -376,10 +473,33 @@ function main() {
 
   const badgeDetailsRead = readJsonIfExists(badgeDetailsPath);
   const summaryRead = readJsonIfExists(summaryPath);
+  const gcpCloudRunSummaryRead = readJsonIfExists(gcpCloudRunSummaryPath);
+  const gcpRuntimeProofRead = readJsonIfExists(gcpRuntimeProofPath);
+  const submissionRefreshStatusRead = readJsonIfExists(submissionRefreshStatusPath);
   const railwayDeploySummaryRead = readJsonIfExists(railwayDeploySummaryPath);
   const repoPublishSummaryRead = readJsonIfExists(repoPublishSummaryPath);
   const badgeEvidence = collectBadgeEvidence(badgeDetailsRead.value ?? {});
-  const deployProvenance = collectDeployProvenance(railwayDeploySummaryRead, repoPublishSummaryRead);
+  const deployProvenance = collectDeployProvenance(
+    gcpCloudRunSummaryRead,
+    gcpRuntimeProofRead,
+    submissionRefreshStatusRead,
+    railwayDeploySummaryRead,
+    repoPublishSummaryRead,
+  );
+  const gcpRuntimeProof = gcpRuntimeProofRead.value ?? {};
+  const submissionSafeSummaryGate = gcpRuntimeProof?.submissionSafeSummaryGate && typeof gcpRuntimeProof.submissionSafeSummaryGate === "object"
+    ? {
+        liveApiEnabled: gcpRuntimeProof.submissionSafeSummaryGate.liveApiEnabled === true,
+        translationProvider: String(gcpRuntimeProof.submissionSafeSummaryGate.translationProvider ?? "not_fallback"),
+        storytellerMediaMode: String(gcpRuntimeProof.submissionSafeSummaryGate.storytellerMediaMode ?? "not_simulated"),
+        uiExecutorForceSimulation: gcpRuntimeProof.submissionSafeSummaryGate.uiExecutorForceSimulation === true,
+      }
+    : {
+        liveApiEnabled: true,
+        translationProvider: "not_fallback",
+        storytellerMediaMode: "not_simulated",
+        uiExecutorForceSimulation: false,
+      };
 
   const checklist = evaluateChecklist(screenshotDir, buildChecklist());
   const missingRequiredCaptures = checklist.filter((item) => item.present !== true).length;
@@ -418,6 +538,18 @@ function main() {
       summaryPresent: summaryRead.present,
       summaryParsed: summaryRead.parsed,
       summaryParseError: summaryRead.parseError,
+      gcpCloudRunSummaryPath,
+      gcpCloudRunSummaryPresent: gcpCloudRunSummaryRead.present,
+      gcpCloudRunSummaryParsed: gcpCloudRunSummaryRead.parsed,
+      gcpCloudRunSummaryParseError: gcpCloudRunSummaryRead.parseError,
+      gcpRuntimeProofPath,
+      gcpRuntimeProofPresent: gcpRuntimeProofRead.present,
+      gcpRuntimeProofParsed: gcpRuntimeProofRead.parsed,
+      gcpRuntimeProofParseError: gcpRuntimeProofRead.parseError,
+      submissionRefreshStatusPath,
+      submissionRefreshStatusPresent: submissionRefreshStatusRead.present,
+      submissionRefreshStatusParsed: submissionRefreshStatusRead.parsed,
+      submissionRefreshStatusParseError: submissionRefreshStatusRead.parseError,
       railwayDeploySummaryPath,
       railwayDeploySummaryPresent: railwayDeploySummaryRead.present,
       railwayDeploySummaryParsed: railwayDeploySummaryRead.parsed,
@@ -433,6 +565,21 @@ function main() {
     badgeEvidence,
     deployProvenance,
     screenshotChecklist: checklist,
+    submissionFollowUp: {
+      cloudRunProofPath: gcpCloudRunSummaryPath,
+      runtimeProofPath: gcpRuntimeProofPath,
+      submissionRefreshStatusPath,
+      submissionRefreshStatus:
+        submissionRefreshStatusRead.present && submissionRefreshStatusRead.parsed
+          ? toOptionalText(submissionRefreshStatusRead.value?.status)
+          : "missing",
+      submissionRefreshBlockingReason:
+        submissionRefreshStatusRead.present && submissionRefreshStatusRead.parsed
+          ? toOptionalText(submissionRefreshStatusRead.value?.blockingReason)
+          : "submission refresh wrapper has not been run yet.",
+      cloudProofChecklistPath: resolve(process.cwd(), "artifacts/judge-visual-evidence/cloud-proof-checklist.md"),
+      submissionSafeSummaryGate,
+    },
     summary: {
       requiredCaptures: checklist.length,
       presentCaptures: checklist.length - missingRequiredCaptures,

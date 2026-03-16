@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.0",
+  "name": "runtime-perf",
+  "cwd": ".",
+  "runCommand": "npm run perf:profile",
+  "budgetSeconds": 240,
+  "defaultDescription": "baseline",
+  "metric": {
+    "label": "live_voice_translation.p95",
+    "artifactPath": "artifacts/perf-load/summary.json",
+    "path": [
+      "workloads",
+      {
+        "where": {
+          "name": "live_voice_translation"
+        }
+      },
+      "latencyMs",
+      "p95"
+    ],
+    "objective": "minimize",
+    "unit": "ms"
+  },
+  "guardrails": [
+    {
+      "label": "aggregate.errorRatePct",
+      "path": [
+        "aggregate",
+        "errorRatePct"
+      ],
+      "op": "<=",
+      "value": 0
+    },
+    {
+      "label": "ui_navigation_execution.adapterModes.remote_http",
+      "path": [
+        "workloads",
+        {
+          "where": {
+            "name": "ui_navigation_execution"
+          }
+        },
+        "adapterModes",
+        "remote_http"
+      ],
+      "op": ">=",
+      "value": 1
+    },
+    {
+      "label": "gateway_ws_request_replay.contract.responseIdReusedAll",
+      "path": [
+        "workloads",
+        {
+          "where": {
+            "name": "gateway_ws_request_replay"
+          }
+        },
+        "contract",
+        "responseIdReusedAll"
+      ],
+      "op": "==",
+      "value": true
+    },
+    {
+      "label": "gateway_ws_request_replay.contract.taskStartedExactlyOneAll",
+      "path": [
+        "workloads",
+        {
+          "where": {
+            "name": "gateway_ws_request_replay"
+          }
+        },
+        "contract",
+        "taskStartedExactlyOneAll"
+      ],
+      "op": "==",
+      "value": true
+    }
+  ],
+  "resultsPath": "artifacts/autoresearch/runtime-perf/results.tsv",
+  "logPath": "artifacts/autoresearch/runtime-perf/run.log",
+  "reportPath": "artifacts/autoresearch/runtime-perf/last-run.json"
+}

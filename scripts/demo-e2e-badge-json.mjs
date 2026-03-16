@@ -579,6 +579,323 @@ function buildAgentUsageEvidence(kpis) {
   };
 }
 
+function normalizeRuntimeGuardrailsLifecycleCounts(value) {
+  const source = isObject(value) ? value : {};
+  return {
+    active: Math.max(0, Math.trunc(toNumber(source.active) ?? 0)),
+    staged: Math.max(0, Math.trunc(toNumber(source.staged) ?? 0)),
+    opened: Math.max(0, Math.trunc(toNumber(source.opened) ?? 0)),
+    focused: Math.max(0, Math.trunc(toNumber(source.focused) ?? 0)),
+    planned: Math.max(0, Math.trunc(toNumber(source.planned) ?? 0)),
+    executed: Math.max(0, Math.trunc(toNumber(source.executed) ?? 0)),
+    cleared: Math.max(0, Math.trunc(toNumber(source.cleared) ?? 0)),
+    failed: Math.max(0, Math.trunc(toNumber(source.failed) ?? 0)),
+  };
+}
+
+function buildRuntimeGuardrailsPath(value) {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  const lifecycle = isObject(value.lifecycle) ? value.lifecycle : {};
+  const lifecycleUpdatedAt = toOptionalString(lifecycle.updatedAt);
+  const lifecycleUpdatedAtIsIso = lifecycleUpdatedAt !== null && isIsoTimestamp(lifecycleUpdatedAt);
+  const title = toOptionalString(value.title);
+  const kind = toOptionalString(value.kind);
+  const signalKey = toOptionalString(value.signalKey);
+  const signalService = toOptionalString(value.signalService);
+  const summaryText = toOptionalString(value.summaryText);
+  const buttonLabel = toOptionalString(value.buttonLabel);
+  const lifecycleStatusCode = toOptionalString(lifecycle.statusCode);
+  const lifecycleStatusText = toOptionalString(lifecycle.statusText);
+  const lifecycleDetailText = toOptionalString(lifecycle.detailText);
+
+  return {
+    title,
+    kind,
+    signalKey,
+    signalService,
+    signalKeys: toStringArray(value.signalKeys),
+    signalDescriptors: toStringArray(value.signalDescriptors),
+    profileId: toOptionalString(value.profileId),
+    phase: toOptionalString(value.phase),
+    targetStatusId: toOptionalString(value.targetStatusId),
+    summaryText,
+    buttonLabel,
+    lifecycle: {
+      statusCode: lifecycleStatusCode,
+      statusText: lifecycleStatusText,
+      detailText: lifecycleDetailText,
+      updatedAt: lifecycleUpdatedAt,
+      updatedAtIsIso: lifecycleUpdatedAtIsIso,
+    },
+  };
+}
+
+function buildRuntimeGuardrailsSignalPathsEvidence(kpis) {
+  const snapshot = isObject(kpis.operatorRuntimeGuardrailsSignalPaths) ? kpis.operatorRuntimeGuardrailsSignalPaths : {};
+  const summaryStatus = toOptionalString(snapshot.status) ?? "coverage_incomplete";
+  const signalsSummary = toOptionalString(snapshot.signalsSummary) ?? "n/a";
+  const coverageSummary = toOptionalString(snapshot.coverageSummary) ?? "n/a";
+  const sandboxSummary = toOptionalString(snapshot.sandboxSummary) ?? "n/a";
+  const skillsSummary = toOptionalString(snapshot.skillsSummary) ?? "n/a";
+  const topSignal = toOptionalString(snapshot.topSignal) ?? "n/a";
+  const historyStatus = toOptionalString(snapshot.historyStatus) ?? "n/a";
+  const lifecycleCounts = normalizeRuntimeGuardrailsLifecycleCounts(snapshot.lifecycleCounts);
+  const lifecycleSummary = toOptionalString(snapshot.lifecycleSummary) ?? "none";
+  const paths = Array.isArray(snapshot.paths)
+    ? snapshot.paths.map((entry) => buildRuntimeGuardrailsPath(entry)).filter((entry) => entry !== null)
+    : [];
+  const totalPaths = Math.max(0, Math.trunc(toNumber(snapshot.totalPaths) ?? paths.length));
+  const primaryPath = buildRuntimeGuardrailsPath(snapshot.primaryPath);
+
+  const lifecycleCountsConsistent =
+    lifecycleCounts.active === totalPaths &&
+    lifecycleCounts.staged >= 0 &&
+    lifecycleCounts.opened >= 0 &&
+    lifecycleCounts.focused >= 0 &&
+    lifecycleCounts.planned >= 0 &&
+    lifecycleCounts.executed >= 0 &&
+    lifecycleCounts.cleared >= 0 &&
+    lifecycleCounts.failed >= 0;
+  const pathShapesValid = paths.every(
+    (entry) =>
+      entry.title !== null &&
+      entry.kind !== null &&
+      entry.summaryText !== null &&
+      entry.buttonLabel !== null &&
+      entry.lifecycle.statusCode !== null &&
+      entry.lifecycle.statusText !== null &&
+      entry.lifecycle.detailText !== null &&
+      (entry.lifecycle.updatedAt === null || entry.lifecycle.updatedAtIsIso),
+  );
+  const primaryPathValid = totalPaths === 0 ? primaryPath === null : primaryPath !== null;
+  const rawValidated =
+    toBoolean(kpis.operatorRuntimeGuardrailsSignalPathsValidated) === true || toBoolean(snapshot.validated) === true;
+  const validated =
+    rawValidated &&
+    summaryStatus.length > 0 &&
+    signalsSummary.length > 0 &&
+    coverageSummary.length > 0 &&
+    sandboxSummary.length > 0 &&
+    skillsSummary.length > 0 &&
+    topSignal.length > 0 &&
+    historyStatus.length > 0 &&
+    totalPaths === paths.length &&
+    totalPaths <= 4 &&
+    lifecycleCountsConsistent &&
+    pathShapesValid &&
+    primaryPathValid;
+
+  return {
+    status: validated ? "pass" : "fail",
+    validated,
+    summaryStatus,
+    signalsSummary,
+    coverageSummary,
+    sandboxSummary,
+    skillsSummary,
+    topSignal,
+    historyStatus,
+    totalPaths,
+    lifecycleCounts,
+    lifecycleSummary,
+    primaryPath,
+    paths,
+  };
+}
+
+function buildProviderUsage(kpis) {
+  const entries = [];
+  let validated = true;
+  let observed = false;
+
+  function registerEntry(params) {
+    if (!params.observed) {
+      return;
+    }
+    observed = true;
+    if (!params.valid) {
+      validated = false;
+      return;
+    }
+    entries.push(params.entry);
+  }
+
+  const storytellerTtsProvider = toOptionalString(kpis.storytellerTtsProvider);
+  const storytellerTtsModel = toOptionalString(kpis.storytellerTtsModel);
+  const storytellerTtsDefaultProvider = toOptionalString(kpis.storytellerTtsDefaultProvider);
+  const storytellerTtsDefaultModel = toOptionalString(kpis.storytellerTtsDefaultModel);
+  const storytellerTtsSelectionReason = toOptionalString(kpis.storytellerTtsSelectionReason);
+  const storytellerTtsSecondaryProvider = toOptionalString(kpis.storytellerTtsSecondaryProvider);
+  const storytellerTtsSecondaryModel = toOptionalString(kpis.storytellerTtsSecondaryModel);
+  const storytellerTtsMetadataValidated = toBoolean(kpis.storytellerTtsMetadataValidated) === true;
+
+  const hasStorytellerTtsMetadata =
+    storytellerTtsProvider !== null &&
+    storytellerTtsModel !== null &&
+    storytellerTtsDefaultProvider !== null &&
+    storytellerTtsDefaultModel !== null &&
+    storytellerTtsSelectionReason !== null;
+  const storytellerTtsObserved =
+    hasStorytellerTtsMetadata ||
+    storytellerTtsMetadataValidated ||
+    storytellerTtsSecondaryProvider !== null ||
+    storytellerTtsSecondaryModel !== null;
+  const storytellerTtsSecondaryActive =
+    hasStorytellerTtsMetadata && storytellerTtsProvider !== storytellerTtsDefaultProvider;
+  registerEntry({
+    observed: storytellerTtsObserved,
+    valid: storytellerTtsMetadataValidated && hasStorytellerTtsMetadata,
+    entry: {
+      route: "storyteller-agent",
+      capability: "tts",
+      defaultProvider: storytellerTtsDefaultProvider,
+      defaultModel: storytellerTtsDefaultModel,
+      selectedProvider: storytellerTtsProvider,
+      selectedModel: storytellerTtsModel,
+      selectionReason: storytellerTtsSelectionReason,
+      secondaryProvider: storytellerTtsSecondaryProvider,
+      secondaryModel: storytellerTtsSecondaryModel,
+      secondaryActive: storytellerTtsSecondaryActive,
+    },
+  });
+
+  const storytellerImageEditProvider = toOptionalString(kpis.storytellerImageEditProvider);
+  const storytellerImageEditModel = toOptionalString(kpis.storytellerImageEditModel);
+  const storytellerImageEditDefaultProvider = toOptionalString(kpis.storytellerImageEditDefaultProvider);
+  const storytellerImageEditDefaultModel = toOptionalString(kpis.storytellerImageEditDefaultModel);
+  const storytellerImageEditMode = toOptionalString(kpis.storytellerImageEditMode);
+  const storytellerImageEditSelectionReason = toOptionalString(kpis.storytellerImageEditSelectionReason);
+  const storytellerImageEditRequested = toBoolean(kpis.storytellerImageEditRequested);
+  const storytellerImageEditApplied = toBoolean(kpis.storytellerImageEditApplied);
+  const storytellerImageEditMetadataValidated = toBoolean(kpis.storytellerImageEditMetadataValidated) === true;
+  const hasStorytellerImageEditMetadata =
+    storytellerImageEditProvider !== null &&
+    storytellerImageEditModel !== null &&
+    storytellerImageEditDefaultProvider !== null &&
+    storytellerImageEditDefaultModel !== null &&
+    storytellerImageEditSelectionReason !== null &&
+    storytellerImageEditRequested === true &&
+    storytellerImageEditApplied === true;
+  const storytellerImageEditDisabled = storytellerImageEditMode === "disabled";
+  const storytellerImageEditObserved =
+    (storytellerImageEditRequested === true && !storytellerImageEditDisabled) ||
+    storytellerImageEditApplied === true ||
+    storytellerImageEditMetadataValidated;
+
+  registerEntry({
+    observed: storytellerImageEditObserved,
+    valid: storytellerImageEditMetadataValidated && hasStorytellerImageEditMetadata,
+    entry: {
+      route: "storyteller-agent",
+      capability: "image_edit",
+      defaultProvider: storytellerImageEditDefaultProvider,
+      defaultModel: storytellerImageEditDefaultModel,
+      selectedProvider: storytellerImageEditProvider,
+      selectedModel: storytellerImageEditModel,
+      selectionReason: storytellerImageEditSelectionReason,
+      secondaryProvider: null,
+      secondaryModel: null,
+      secondaryActive: false,
+    },
+  });
+
+  const researchProvider = toOptionalString(kpis.researchProvider);
+  const researchModel = toOptionalString(kpis.researchModel);
+  const researchDefaultProvider = toOptionalString(kpis.researchDefaultProvider);
+  const researchDefaultModel = toOptionalString(kpis.researchDefaultModel);
+  const researchSelectionReason = toOptionalString(kpis.researchSelectionReason);
+  const researchCitationCount = Math.max(0, Math.trunc(toNumber(kpis.researchCitationCount) ?? 0));
+  const researchSourceUrlCount = Math.max(0, Math.trunc(toNumber(kpis.researchSourceUrlCount) ?? 0));
+  const researchMetadataValidated = toBoolean(kpis.researchMetadataValidated) === true;
+  const hasResearchMetadata =
+    researchProvider !== null &&
+    researchModel !== null &&
+    researchDefaultProvider !== null &&
+    researchDefaultModel !== null &&
+    researchSelectionReason !== null &&
+    researchCitationCount >= 2 &&
+    researchSourceUrlCount >= 2;
+  const researchObserved =
+    hasResearchMetadata || researchMetadataValidated || researchCitationCount >= 1 || researchSourceUrlCount >= 1;
+  registerEntry({
+    observed: researchObserved,
+    valid: researchMetadataValidated && hasResearchMetadata,
+    entry: {
+      route: "live-agent",
+      capability: "research",
+      defaultProvider: researchDefaultProvider,
+      defaultModel: researchDefaultModel,
+      selectedProvider: researchProvider,
+      selectedModel: researchModel,
+      selectionReason: researchSelectionReason,
+      secondaryProvider: null,
+      secondaryModel: null,
+      secondaryActive: false,
+      citationCount: researchCitationCount,
+      sourceUrlCount: researchSourceUrlCount,
+    },
+  });
+
+  const assistiveRouterProvider = toOptionalString(kpis.assistiveRouterProvider);
+  const assistiveRouterModel = toOptionalString(kpis.assistiveRouterModel);
+  const assistiveRouterDefaultProvider = toOptionalString(kpis.assistiveRouterDefaultProvider);
+  const assistiveRouterDefaultModel = toOptionalString(kpis.assistiveRouterDefaultModel);
+  const assistiveRouterSelectionReason = toOptionalString(kpis.assistiveRouterSelectionReason);
+  const assistiveRouterBudgetPolicy = toOptionalString(kpis.assistiveRouterBudgetPolicy);
+  const assistiveRouterPromptCaching = toOptionalString(kpis.assistiveRouterPromptCaching);
+  const assistiveRouterWatchlistEnabled = toBoolean(kpis.assistiveRouterWatchlistEnabled);
+  const assistiveRouterProviderMetadataValidated = toBoolean(kpis.assistiveRouterProviderMetadataValidated) === true;
+  const hasAssistiveRouterMetadata =
+    assistiveRouterProvider !== null &&
+    assistiveRouterModel !== null &&
+    assistiveRouterDefaultProvider !== null &&
+    assistiveRouterDefaultModel !== null &&
+    assistiveRouterSelectionReason !== null &&
+    assistiveRouterBudgetPolicy !== null &&
+    assistiveRouterPromptCaching !== null &&
+    assistiveRouterWatchlistEnabled !== null;
+  const assistiveRouterObserved =
+    hasAssistiveRouterMetadata ||
+    assistiveRouterProviderMetadataValidated ||
+    assistiveRouterProvider !== null ||
+    assistiveRouterModel !== null;
+
+  registerEntry({
+    observed: assistiveRouterObserved,
+    valid: assistiveRouterProviderMetadataValidated && hasAssistiveRouterMetadata,
+    entry: {
+      route: "orchestrator",
+      capability: "routing_reasoning",
+      defaultProvider: assistiveRouterDefaultProvider,
+      defaultModel: assistiveRouterDefaultModel,
+      selectedProvider: assistiveRouterProvider,
+      selectedModel: assistiveRouterModel,
+      selectionReason: assistiveRouterSelectionReason,
+      budgetPolicy: assistiveRouterBudgetPolicy,
+      promptCaching: assistiveRouterPromptCaching,
+      watchlistEnabled: assistiveRouterWatchlistEnabled,
+      secondaryProvider: null,
+      secondaryModel: null,
+      secondaryActive:
+        assistiveRouterProvider !== null &&
+        assistiveRouterDefaultProvider !== null &&
+        assistiveRouterProvider !== assistiveRouterDefaultProvider,
+    },
+  });
+
+  const activeSecondaryProviders = entries.filter((entry) => entry.secondaryActive === true).length;
+
+  return {
+    status: observed && validated && entries.length > 0 ? "pass" : "fail",
+    validated: observed && validated && entries.length > 0,
+    activeSecondaryProviders,
+    entries,
+  };
+}
+
 function fail(message, details) {
   process.stderr.write(
     `${JSON.stringify({
@@ -648,6 +965,8 @@ async function main() {
   const pluginMarketplaceEvidence = buildPluginMarketplaceEvidence(kpis);
   const deviceNodesEvidence = buildDeviceNodesEvidence(kpis);
   const agentUsageEvidence = buildAgentUsageEvidence(kpis);
+  const runtimeGuardrailsSignalPathsEvidence = buildRuntimeGuardrailsSignalPathsEvidence(kpis);
+  const providerUsage = buildProviderUsage(kpis);
 
   let color = "red";
   if (ok) {
@@ -679,6 +998,7 @@ async function main() {
     roundTripMs,
     costEstimate,
     tokensUsed,
+    providerUsage,
     evidence: {
       sourceSummaryGeneratedAt: toOptionalString(summary.generatedAt),
       operatorTurnTruncation: operatorTurnTruncationEvidence,
@@ -690,6 +1010,7 @@ async function main() {
       pluginMarketplace: pluginMarketplaceEvidence,
       deviceNodes: deviceNodesEvidence,
       agentUsage: agentUsageEvidence,
+      runtimeGuardrailsSignalPaths: runtimeGuardrailsSignalPathsEvidence,
     },
     badge,
   };

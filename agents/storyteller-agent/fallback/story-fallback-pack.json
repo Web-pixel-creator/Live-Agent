@@ -18,9 +18,9 @@
         "Prioritize schools and hospitals in the emergency pact"
       ],
       "images": [
-        "fallback://story/city-negotiator/scene-1.jpg",
-        "fallback://story/city-negotiator/scene-2.jpg",
-        "fallback://story/city-negotiator/scene-3.jpg"
+        "https://placehold.co/1024x1024/png?text=City+Negotiator+Scene+1",
+        "https://placehold.co/1024x1024/png?text=City+Negotiator+Scene+2",
+        "https://placehold.co/1024x1024/png?text=City+Negotiator+Scene+3"
       ],
       "videos": [
         "fallback://story/city-negotiator/scene-1.mp4",
@@ -49,9 +49,9 @@
         "Split the archive into two risky transfer runs"
       ],
       "images": [
-        "fallback://story/space-archive/scene-1.jpg",
-        "fallback://story/space-archive/scene-2.jpg",
-        "fallback://story/space-archive/scene-3.jpg"
+        "https://placehold.co/1024x1024/png?text=Space+Archive+Scene+1",
+        "https://placehold.co/1024x1024/png?text=Space+Archive+Scene+2",
+        "https://placehold.co/1024x1024/png?text=Space+Archive+Scene+3"
       ],
       "videos": [
         "fallback://story/space-archive/scene-1.mp4",
@@ -80,9 +80,9 @@
         "Request aerial support and delay ground teams"
       ],
       "images": [
-        "fallback://story/forest-code/scene-1.jpg",
-        "fallback://story/forest-code/scene-2.jpg",
-        "fallback://story/forest-code/scene-3.jpg"
+        "https://placehold.co/1024x1024/png?text=Forest+Code+Scene+1",
+        "https://placehold.co/1024x1024/png?text=Forest+Code+Scene+2",
+        "https://placehold.co/1024x1024/png?text=Forest+Code+Scene+3"
       ],
       "videos": [
         "fallback://story/forest-code/scene-1.mp4",

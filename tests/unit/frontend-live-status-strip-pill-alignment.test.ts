@@ -15,7 +15,7 @@ test("demo frontend keeps live status strip states mapped to pill variants", () 
   const operatorGuideSource = readFileSync(operatorGuidePath, "utf8");
 
   const requiredHtmlTokens = [
-    "class=\"meta-row meta-row-status meta-row-status-live\"",
+    "class=\"meta-row meta-row-status meta-row-status-live live-session-strip\"",
     'id="connectionStatus" class="status-pill status-neutral"',
     'id="runId" class="status-value"',
     'id="currentUserId" class="status-value"',

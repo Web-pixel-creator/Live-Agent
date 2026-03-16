@@ -1,6 +1,31 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import { applyRuntimeProfile, RollingMetrics } from "./contracts/index.js";
+import {
+  clearUiExecutorRuntimeControlPlaneOverride,
+  getUiExecutorRuntimeConfig,
+  getUiExecutorRuntimeConfigStoreStatus,
+  setUiExecutorRuntimeControlPlaneOverride,
+  type DeviceNodeDescriptor,
+  type ExecutorConfig,
+} from "./runtime-config-store.js";
+import {
+  evaluateUiExecutorSandboxRequest,
+  sandboxPolicyRuntimeSnapshot,
+  type UiExecutorSandboxEvaluation,
+  type UiExecutorSandboxPolicy,
+} from "./sandbox-policy.js";
+import {
+  cancelBrowserJob,
+  getBrowserJob,
+  getBrowserJobListSnapshot,
+  getBrowserJobRuntimeSnapshot,
+  resumeBrowserJob,
+  setBrowserJobRunner,
+  submitBrowserJob,
+  type BrowserJobExecutionResult,
+} from "./browser-jobs.js";
+import { resolveGroundingObservation } from "./grounding.js";
 
 type ActionType = "navigate" | "click" | "type" | "scroll" | "hotkey" | "wait" | "verify";
 
@@ -26,17 +51,16 @@ type ExecuteRequest = {
   };
 };
 
-type DeviceNodeKind = "desktop" | "mobile";
-
-type DeviceNodeStatus = "online" | "offline" | "degraded";
-
-type DeviceNodeDescriptor = {
-  nodeId: string;
-  displayName: string;
-  kind: DeviceNodeKind;
-  platform: string;
-  status: DeviceNodeStatus;
-  capabilities: string[];
+type BrowserJobSubmitRequest = ExecuteRequest & {
+  sessionId?: string;
+  runId?: string;
+  taskId?: string;
+  options?: {
+    label?: string | null;
+    reason?: string | null;
+    checkpointEverySteps?: number | null;
+    pauseAfterStep?: number | null;
+  };
 };
 
 type TraceStep = {
@@ -47,6 +71,7 @@ type TraceStep = {
   status: "ok" | "retry" | "failed";
   screenshotRef: string;
   notes: string;
+  observation?: string | null;
 };
 
 type ExecuteResponse = {
@@ -57,18 +82,21 @@ type ExecuteResponse = {
   adapterMode: "remote_http";
   adapterNotes: string[];
   deviceNode: DeviceNodeDescriptor | null;
+  sandbox: {
+    mode: UiExecutorSandboxPolicy["mode"];
+    decision: UiExecutorSandboxEvaluation["decision"];
+    violations: string[];
+    warnings: string[];
+    setupMarkerStatus: UiExecutorSandboxEvaluation["setupMarkerStatus"];
+  };
 };
 
-type ExecutorConfig = {
-  port: number;
-  defaultNavigationUrl: string;
-  strictPlaywright: boolean;
-  simulateIfUnavailable: boolean;
-  forceSimulation: boolean;
-  actionTimeoutMs: number;
-  defaultDeviceNodeId: string | null;
-  deviceNodes: Map<string, DeviceNodeDescriptor>;
+type DeviceNodeResolutionResult = {
+  selectedNode: DeviceNodeDescriptor | null;
+  errorResponse: Record<string, unknown> | null;
+  errorStatusCode: number | null;
 };
+
 
 type AnalyticsTarget = "disabled" | "cloud_monitoring" | "bigquery";
 
@@ -85,64 +113,6 @@ type RuntimeAnalyticsSnapshot = {
   bigQueryTable: string | null;
 };
 
-function parseDeviceNodes(raw: string | undefined): Map<string, DeviceNodeDescriptor> {
-  const nodes = new Map<string, DeviceNodeDescriptor>();
-  if (!raw || raw.trim().length === 0) {
-    return nodes;
-  }
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) {
-      return nodes;
-    }
-    for (const item of parsed) {
-      if (!isRecord(item)) {
-        continue;
-      }
-      const nodeId = toNonEmptyString(item.nodeId ?? item.id, "").toLowerCase();
-      if (!nodeId) {
-        continue;
-      }
-      const kind = toNonEmptyString(item.kind, "desktop") === "mobile" ? "mobile" : "desktop";
-      const statusRaw = toNonEmptyString(item.status, "online").toLowerCase();
-      const status: DeviceNodeStatus =
-        statusRaw === "offline" || statusRaw === "degraded" ? statusRaw : "online";
-      const capabilitiesRaw = Array.isArray(item.capabilities) ? item.capabilities : [];
-      const capabilities = capabilitiesRaw
-        .map((capability) => toNonEmptyString(capability, "").toLowerCase())
-        .filter((capability) => capability.length > 0);
-
-      nodes.set(nodeId, {
-        nodeId,
-        displayName: toNonEmptyString(item.displayName ?? item.name, nodeId),
-        kind,
-        platform: toNonEmptyString(item.platform, "unknown"),
-        status,
-        capabilities,
-      });
-    }
-    return nodes;
-  } catch {
-    return nodes;
-  }
-}
-
-function loadConfig(): ExecutorConfig {
-  const portRaw = Number(process.env.PORT ?? process.env.UI_EXECUTOR_PORT ?? 8090);
-  const timeoutRaw = Number(process.env.UI_EXECUTOR_ACTION_TIMEOUT_MS ?? 2500);
-  const deviceNodes = parseDeviceNodes(process.env.UI_EXECUTOR_DEVICE_NODES_JSON);
-  const defaultDeviceNodeId = toNonEmptyString(process.env.UI_EXECUTOR_DEFAULT_DEVICE_NODE_ID, "");
-  return {
-    port: Number.isFinite(portRaw) && portRaw > 0 ? Math.floor(portRaw) : 8090,
-    defaultNavigationUrl: process.env.UI_EXECUTOR_DEFAULT_URL ?? "https://example.com",
-    strictPlaywright: process.env.UI_EXECUTOR_STRICT_PLAYWRIGHT === "true",
-    simulateIfUnavailable: process.env.UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE !== "false",
-    forceSimulation: process.env.UI_EXECUTOR_FORCE_SIMULATION === "true",
-    actionTimeoutMs: Number.isFinite(timeoutRaw) && timeoutRaw > 0 ? Math.floor(timeoutRaw) : 2500,
-    defaultDeviceNodeId: defaultDeviceNodeId.length > 0 ? defaultDeviceNodeId.toLowerCase() : null,
-    deviceNodes,
-  };
-}
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
   if (!value) {
@@ -250,9 +220,35 @@ const runtimeAnalytics = createRuntimeAnalyticsSnapshot();
 const metrics = new RollingMetrics({
   maxSamplesPerBucket: parsePositiveInt(process.env.UI_EXECUTOR_METRICS_MAX_SAMPLES, 2000),
 });
-const config = loadConfig();
+
+function currentConfig(): ExecutorConfig {
+  return getUiExecutorRuntimeConfig({
+    env: process.env,
+    cwd: process.cwd(),
+  });
+}
+
+function runtimeConfigPayload(): Record<string, unknown> {
+  const config = currentConfig();
+  return {
+    sourceKind: config.sourceKind,
+    defaultNavigationUrl: config.defaultNavigationUrl,
+    strictPlaywright: config.strictPlaywright,
+    simulateIfUnavailable: config.simulateIfUnavailable,
+    forceSimulation: config.forceSimulation,
+    actionTimeoutMs: config.actionTimeoutMs,
+    defaultDeviceNodeId: config.defaultDeviceNodeId,
+    registeredDeviceNodes: config.deviceNodes.size,
+    sandbox: sandboxPolicyRuntimeSnapshot(config.sandboxPolicy),
+  };
+}
 
 function runtimeState(): Record<string, unknown> {
+  const config = currentConfig();
+  const store = getUiExecutorRuntimeConfigStoreStatus({
+    env: process.env,
+    cwd: process.cwd(),
+  });
   const summary = metrics.snapshot({ topOperations: 10 });
   return {
     state: draining ? "draining" : "ready",
@@ -264,7 +260,11 @@ function runtimeState(): Record<string, unknown> {
     lastDrainAt,
     version: serviceVersion,
     profile: runtimeProfile,
+    configSourceKind: config.sourceKind,
+    controlPlaneOverride: store.controlPlaneOverride,
     analytics: runtimeAnalytics,
+    sandbox: sandboxPolicyRuntimeSnapshot(config.sandboxPolicy),
+    browserWorkers: getBrowserJobRuntimeSnapshot(),
     metrics: {
       totalCount: summary.totalCount,
       totalErrors: summary.totalErrors,
@@ -293,7 +293,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function normalizeOperationPath(pathname: string): string {
-  return pathname === "/execute" ? "/execute" : pathname;
+  if (pathname === "/execute") {
+    return "/execute";
+  }
+  if (pathname === "/browser-jobs") {
+    return "/browser-jobs";
+  }
+  if (parseBrowserJobDetailPath(pathname)) {
+    return "/browser-jobs/:jobId";
+  }
+  if (parseBrowserJobActionPath(pathname)) {
+    return "/browser-jobs/:jobId/action";
+  }
+  return pathname;
 }
 
 function toNonEmptyString(value: unknown, fallback = ""): string {
@@ -302,6 +314,38 @@ function toNonEmptyString(value: unknown, fallback = ""): string {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : fallback;
+}
+
+function toOptionalString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function toOptionalPositiveInt(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return Math.floor(value);
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return Math.floor(parsed);
+    }
+  }
+  return null;
+}
+
+function parseJsonObjectBody(raw: string): Record<string, unknown> {
+  if (raw.trim().length === 0) {
+    return {};
+  }
+  const parsed = JSON.parse(raw) as unknown;
+  if (!isRecord(parsed)) {
+    throw new Error("ui-executor control-plane override body must be a JSON object");
+  }
+  return parsed;
 }
 
 function normalizeAction(raw: unknown): UiAction | null {
@@ -362,10 +406,112 @@ function normalizeRequest(input: unknown): ExecuteRequest {
   };
 }
 
+function normalizeBrowserJobSubmitRequest(input: unknown): BrowserJobSubmitRequest {
+  const request = normalizeRequest(input);
+  const parsed = isRecord(input) ? input : {};
+  const optionsRaw = isRecord(parsed.options) ? parsed.options : {};
+  return {
+    ...request,
+    sessionId: toOptionalString(parsed.sessionId) ?? undefined,
+    runId: toOptionalString(parsed.runId) ?? undefined,
+    taskId: toOptionalString(parsed.taskId) ?? undefined,
+    options: {
+      label: toOptionalString(optionsRaw.label),
+      reason: toOptionalString(optionsRaw.reason),
+      checkpointEverySteps: toOptionalPositiveInt(optionsRaw.checkpointEverySteps),
+      pauseAfterStep: toOptionalPositiveInt(optionsRaw.pauseAfterStep),
+    },
+  };
+}
+
+function sandboxResponse(evaluation: UiExecutorSandboxEvaluation): ExecuteResponse["sandbox"] {
+  return {
+    mode: evaluation.mode,
+    decision: evaluation.decision,
+    violations: [...evaluation.violations],
+    warnings: [...evaluation.warnings],
+    setupMarkerStatus: evaluation.setupMarkerStatus,
+  };
+}
+
+function parseBrowserJobActionPath(pathname: string): { jobId: string; action: "resume" | "cancel" } | null {
+  const match = pathname.match(/^\/browser-jobs\/([^/]+)\/(resume|cancel)$/);
+  if (!match) {
+    return null;
+  }
+  const jobId = decodeURIComponent(match[1] ?? "").trim();
+  const action = match[2];
+  if (!jobId || (action !== "resume" && action !== "cancel")) {
+    return null;
+  }
+  return {
+    jobId,
+    action,
+  };
+}
+
+function parseBrowserJobDetailPath(pathname: string): string | null {
+  const match = pathname.match(/^\/browser-jobs\/([^/]+)$/);
+  if (!match) {
+    return null;
+  }
+  const jobId = decodeURIComponent(match[1] ?? "").trim();
+  return jobId.length > 0 ? jobId : null;
+}
+
+function resolveSelectedDeviceNode(
+  config: ExecutorConfig,
+  request: ExecuteRequest,
+  headerNodeId: string,
+): DeviceNodeResolutionResult {
+  const requestedNodeId = headerNodeId || toNonEmptyString(request.context?.deviceNodeId, "").toLowerCase();
+  const hasNodeRegistry = config.deviceNodes.size > 0;
+
+  let selectedNode: DeviceNodeDescriptor | null = null;
+  if (hasNodeRegistry) {
+    if (requestedNodeId.length > 0) {
+      selectedNode = config.deviceNodes.get(requestedNodeId) ?? null;
+      if (!selectedNode) {
+        return {
+          selectedNode: null,
+          errorStatusCode: 404,
+          errorResponse: {
+            error: "requested device node is not registered",
+            nodeId: requestedNodeId,
+          },
+        };
+      }
+    } else if (config.defaultDeviceNodeId) {
+      selectedNode = config.deviceNodes.get(config.defaultDeviceNodeId) ?? null;
+    } else {
+      selectedNode = Array.from(config.deviceNodes.values()).find((node) => node.status !== "offline") ?? null;
+    }
+  }
+
+  if (selectedNode && selectedNode.status === "offline") {
+    return {
+      selectedNode: null,
+      errorStatusCode: 409,
+      errorResponse: {
+        error: "requested device node is offline",
+        nodeId: selectedNode.nodeId,
+        status: selectedNode.status,
+      },
+    };
+  }
+
+  return {
+    selectedNode,
+    errorStatusCode: null,
+    errorResponse: null,
+  };
+}
+
 function simulateExecution(
   request: ExecuteRequest,
   note: string,
   deviceNode: DeviceNodeDescriptor | null,
+  sandbox: UiExecutorSandboxEvaluation,
 ): ExecuteResponse {
   const screenshotSeed = request.context?.screenshotRef || `ui://executor/${Date.now()}`;
   const trace: TraceStep[] = request.actions.map((action, idx) => ({
@@ -383,15 +529,148 @@ function simulateExecution(
     retries: 0,
     executor: "ui-executor-service",
     adapterMode: "remote_http",
-    adapterNotes: [note],
+    adapterNotes: [
+      note,
+      sandbox.decision === "audit"
+        ? `Sandbox audit noted ${sandbox.violations.length} findings`
+        : `Sandbox policy ${sandbox.mode}`,
+    ],
     deviceNode,
+    sandbox: sandboxResponse(sandbox),
   };
+}
+
+async function executeRequestWithConfiguredAdapter(params: {
+  config: ExecutorConfig;
+  request: ExecuteRequest;
+  selectedNode: DeviceNodeDescriptor | null;
+  sandbox: UiExecutorSandboxEvaluation;
+}): Promise<ExecuteResponse> {
+  if (params.config.forceSimulation) {
+    return simulateExecution(
+      params.request,
+      "Forced simulation mode (UI_EXECUTOR_FORCE_SIMULATION=true)",
+      params.selectedNode,
+      params.sandbox,
+    );
+  }
+
+  const played = await executeWithPlaywright(params.request, params.selectedNode, params.sandbox);
+  if (played) {
+    return played;
+  }
+
+  if (params.config.strictPlaywright && !params.config.simulateIfUnavailable) {
+    throw new Error("Playwright is unavailable in ui-executor environment. Install playwright or disable strict mode.");
+  }
+
+  return simulateExecution(
+    params.request,
+    "Playwright unavailable in ui-executor, simulation fallback used",
+    params.selectedNode,
+    params.sandbox,
+  );
+}
+
+function detectVerifyObservationKind(
+  target: string,
+): "table" | "button" | "heading" | "submit-disabled" | "submit-enabled" | null {
+  if (!target.startsWith("css:")) {
+    return null;
+  }
+  const selector = target.slice(4).toLowerCase();
+  if (
+    selector.includes('button[type="submit"]:disabled') ||
+    selector.includes('input[type="submit"]:disabled')
+  ) {
+    return "submit-disabled";
+  }
+  if (
+    selector.includes('button[type="submit"]:not(:disabled)') ||
+    selector.includes('input[type="submit"]:not(:disabled)')
+  ) {
+    return "submit-enabled";
+  }
+  if (selector.includes("table") || selector.includes('[role="table"]') || selector.includes('[role="grid"]')) {
+    return "table";
+  }
+  if (selector.includes("button") || selector.includes('[role="button"]')) {
+    return "button";
+  }
+  if (selector.includes("h1") || selector.includes("h2") || selector.includes('[role="heading"]')) {
+    return "heading";
+  }
+  return null;
+}
+
+async function collectVerifyObservation(
+  page: {
+    evaluate: <TReturn, TArg>(callback: (arg: TArg) => TReturn, arg: TArg) => Promise<TReturn>;
+  },
+  target: string,
+): Promise<string | null> {
+  const kind = detectVerifyObservationKind(target);
+  if (!kind) {
+    return null;
+  }
+  const selector = target.slice(4);
+  try {
+    return await page.evaluate(
+      ({ selector: selectorValue, kind: observationKind }) => {
+        const visibleElements = Array.from(document.querySelectorAll(selectorValue)).filter((element) => {
+          if (!(element instanceof HTMLElement)) {
+            return false;
+          }
+          const style = window.getComputedStyle(element);
+          const rect = element.getBoundingClientRect();
+          return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+        });
+
+        if (observationKind === "submit-disabled") {
+          return visibleElements.length > 0 ? "submit state=disabled" : null;
+        }
+
+        if (observationKind === "submit-enabled") {
+          return visibleElements.length > 0 ? "submit state=enabled" : null;
+        }
+
+        if (observationKind === "table") {
+          const first = visibleElements[0];
+          if (!(first instanceof HTMLElement)) {
+            return null;
+          }
+          const rowCount = first.querySelectorAll("tbody tr,[role='row']").length;
+          return `table rows=${rowCount}`;
+        }
+
+        const labels = visibleElements
+          .map((element) => element.textContent?.replace(/\s+/g, " ").trim() ?? "")
+          .filter((text) => text.length > 0)
+          .slice(0, 3);
+
+        if (observationKind === "button") {
+          return labels.length > 0 ? `buttons=${labels.join("|")}` : `buttons=`;
+        }
+
+        if (observationKind === "heading") {
+          return labels.length > 0 ? `headings=${labels.join("|")}` : null;
+        }
+
+        return null;
+      },
+      { selector, kind },
+    );
+  } catch {
+    return null;
+  }
 }
 
 async function executeWithPlaywright(
   request: ExecuteRequest,
   deviceNode: DeviceNodeDescriptor | null,
+  sandbox: UiExecutorSandboxEvaluation,
 ): Promise<ExecuteResponse | null> {
+  const config = currentConfig();
   const dynamicImport = new Function(
     "specifier",
     "return import(specifier)",
@@ -415,7 +694,14 @@ async function executeWithPlaywright(
         click: (selector: string, options?: { timeout?: number }) => Promise<void>;
         fill: (selector: string, value: string, options?: { timeout?: number }) => Promise<void>;
         press: (selector: string, key: string, options?: { timeout?: number }) => Promise<void>;
-        evaluate: (callback: () => void) => Promise<void>;
+        waitForSelector: (
+          selector: string,
+          options?: { timeout?: number; state?: "attached" | "detached" | "visible" | "hidden" },
+        ) => Promise<void>;
+        evaluate: {
+          <TReturn>(callback: () => TReturn): Promise<TReturn>;
+          <TReturn, TArg>(callback: (arg: TArg) => TReturn, arg: TArg): Promise<TReturn>;
+        };
         waitForTimeout: (ms: number) => Promise<void>;
       }>;
       close: () => Promise<void>;
@@ -430,50 +716,73 @@ async function executeWithPlaywright(
   let retries = 0;
   let finalStatus: "completed" | "failed" = "completed";
 
+  const runAction = async (action: UiAction): Promise<string | null> => {
+    let observation: string | null = null;
+    try {
+      if (action.type === "navigate") {
+        const navigateTarget =
+          action.target.startsWith("http://") || action.target.startsWith("https://")
+            ? action.target
+            : config.defaultNavigationUrl;
+        await page.goto(navigateTarget, { waitUntil: "domcontentloaded", timeout: 15000 });
+      } else if (action.type === "click") {
+        if (action.target.startsWith("css:")) {
+          await page.click(action.target.slice(4), { timeout: config.actionTimeoutMs });
+        } else if (action.target.startsWith("field:")) {
+          const field = action.target.slice("field:".length);
+          await page.click(`[name="${field}"],#${field}`, { timeout: config.actionTimeoutMs });
+        } else if (action.target === "button:submit") {
+          await page.click('button[type="submit"],input[type="submit"]', { timeout: config.actionTimeoutMs });
+        } else {
+          await page.click(action.target, { timeout: config.actionTimeoutMs });
+        }
+      } else if (action.type === "type") {
+        const value = action.text ?? "";
+        if (action.target.startsWith("css:")) {
+          await page.fill(action.target.slice(4), value, { timeout: config.actionTimeoutMs });
+        } else if (action.target.startsWith("field:")) {
+          const field = action.target.slice("field:".length);
+          await page.fill(`[name="${field}"],#${field}`, value, { timeout: config.actionTimeoutMs });
+        } else {
+          await page.fill(action.target, value, { timeout: config.actionTimeoutMs });
+        }
+      } else if (action.type === "scroll") {
+        await page.evaluate(() => {
+          window.scrollBy(0, Math.floor(window.innerHeight * 0.6));
+        });
+      } else if (action.type === "hotkey") {
+        await page.press("body", action.text ?? "Enter", { timeout: config.actionTimeoutMs });
+      } else if (action.type === "wait") {
+        await page.waitForTimeout(300);
+      } else if (action.type === "verify") {
+        if (action.target.startsWith("css:")) {
+          await page.waitForSelector(action.target.slice(4), {
+            timeout: config.actionTimeoutMs,
+            state: "visible",
+          });
+          observation = await collectVerifyObservation(page, action.target);
+        } else {
+          await page.waitForTimeout(120);
+        }
+      }
+      return observation;
+    } catch (error) {
+      const groundingObservation = resolveGroundingObservation(action.target, request.context);
+      if (groundingObservation) {
+        return groundingObservation;
+      } else {
+        throw error;
+      }
+    }
+  };
+
   try {
     for (let index = 0; index < request.actions.length; index += 1) {
       const action = request.actions[index];
       const stepIndex = index + 1;
       const screenshotRef = `${screenshotSeed}/pw-step-${stepIndex}.png`;
       try {
-        if (action.type === "navigate") {
-          const navigateTarget =
-            action.target.startsWith("http://") || action.target.startsWith("https://")
-              ? action.target
-              : config.defaultNavigationUrl;
-          await page.goto(navigateTarget, { waitUntil: "domcontentloaded", timeout: 15000 });
-        } else if (action.type === "click") {
-          if (action.target.startsWith("css:")) {
-            await page.click(action.target.slice(4), { timeout: config.actionTimeoutMs });
-          } else if (action.target.startsWith("field:")) {
-            const field = action.target.slice("field:".length);
-            await page.click(`[name="${field}"],#${field}`, { timeout: config.actionTimeoutMs });
-          } else if (action.target === "button:submit") {
-            await page.click('button[type="submit"],input[type="submit"]', { timeout: config.actionTimeoutMs });
-          } else {
-            await page.click(action.target, { timeout: config.actionTimeoutMs });
-          }
-        } else if (action.type === "type") {
-          const value = action.text ?? "";
-          if (action.target.startsWith("css:")) {
-            await page.fill(action.target.slice(4), value, { timeout: config.actionTimeoutMs });
-          } else if (action.target.startsWith("field:")) {
-            const field = action.target.slice("field:".length);
-            await page.fill(`[name="${field}"],#${field}`, value, { timeout: config.actionTimeoutMs });
-          } else {
-            await page.fill(action.target, value, { timeout: config.actionTimeoutMs });
-          }
-        } else if (action.type === "scroll") {
-          await page.evaluate(() => {
-            window.scrollBy(0, Math.floor(window.innerHeight * 0.6));
-          });
-        } else if (action.type === "hotkey") {
-          await page.press("body", action.text ?? "Enter", { timeout: config.actionTimeoutMs });
-        } else if (action.type === "wait") {
-          await page.waitForTimeout(300);
-        } else if (action.type === "verify") {
-          await page.waitForTimeout(120);
-        }
+        const observation = await runAction(action);
 
         trace.push({
           index: stepIndex,
@@ -483,6 +792,7 @@ async function executeWithPlaywright(
           status: "ok",
           screenshotRef,
           notes: "Executed by ui-executor playwright mode.",
+          observation,
         });
       } catch (error) {
         retries += 1;
@@ -494,10 +804,12 @@ async function executeWithPlaywright(
           status: "retry",
           screenshotRef,
           notes: `Playwright retry: ${error instanceof Error ? error.message : String(error)}`,
+          observation: null,
         });
 
         try {
           await page.waitForTimeout(220);
+          const retryObservation = await runAction(action);
           trace.push({
             index: stepIndex,
             actionId: action.id,
@@ -506,6 +818,7 @@ async function executeWithPlaywright(
             status: "ok",
             screenshotRef: `${screenshotSeed}/pw-step-${stepIndex}-retry.png`,
             notes: "Retry passed in ui-executor playwright mode.",
+            observation: retryObservation,
           });
         } catch (retryError) {
           trace.push({
@@ -516,6 +829,7 @@ async function executeWithPlaywright(
             status: "failed",
             screenshotRef: `${screenshotSeed}/pw-step-${stepIndex}-retry.png`,
             notes: `Retry failed: ${retryError instanceof Error ? retryError.message : String(retryError)}`,
+            observation: null,
           });
           finalStatus = "failed";
           break;
@@ -532,8 +846,14 @@ async function executeWithPlaywright(
     retries,
     executor: "ui-executor-service",
     adapterMode: "remote_http",
-    adapterNotes: ["Executed via ui-executor playwright mode"],
+    adapterNotes: [
+      "Executed via ui-executor playwright mode",
+      sandbox.decision === "audit"
+        ? `Sandbox audit noted ${sandbox.violations.length} findings`
+        : `Sandbox policy ${sandbox.mode}`,
+    ],
     deviceNode,
+    sandbox: sandboxResponse(sandbox),
   };
 }
 
@@ -550,6 +870,88 @@ async function canUsePlaywright(): Promise<boolean> {
   }
 }
 
+setBrowserJobRunner(async (input): Promise<BrowserJobExecutionResult> => {
+  const config = currentConfig();
+  const request: ExecuteRequest = {
+    actions: input.actions.map((action) => ({
+      id: action.id,
+      type: action.type,
+      target: action.target,
+      text: action.text ?? null,
+      coordinates: action.coordinates ? { ...action.coordinates } : null,
+    })),
+    context: {
+      goal: toNonEmptyString(input.context.goal, ""),
+      url: toNonEmptyString(input.context.url, ""),
+      screenshotRef: input.screenshotSeed,
+      domSnapshot: toNonEmptyString(input.context.domSnapshot, ""),
+      accessibilityTree: toNonEmptyString(input.context.accessibilityTree, ""),
+      markHints: Array.isArray(input.context.markHints) ? [...input.context.markHints] : [],
+      deviceNodeId: toNonEmptyString(input.deviceNode?.nodeId ?? input.context.deviceNodeId, "").toLowerCase(),
+      cursor:
+        input.context.cursor &&
+        typeof input.context.cursor.x === "number" &&
+        typeof input.context.cursor.y === "number"
+          ? { x: input.context.cursor.x, y: input.context.cursor.y }
+          : undefined,
+    },
+  };
+  const sandbox: UiExecutorSandboxEvaluation = {
+    allowed: true,
+    mode: input.sandbox?.mode === "audit" ? "audit" : input.sandbox?.mode === "enforce" ? "enforce" : "off",
+    decision: input.sandbox?.decision === "audit" ? "audit" : "allow",
+    violations: Array.isArray(input.sandbox?.violations) ? [...input.sandbox.violations] : [],
+    warnings: Array.isArray(input.sandbox?.warnings) ? [...input.sandbox.warnings] : [],
+    networkPolicy: "allow_all",
+    inspectedTargets: input.actions.map((action) => action.target),
+    inspectedPaths: [],
+    setupMarkerStatus:
+      input.sandbox?.setupMarkerStatus === "ready" ||
+      input.sandbox?.setupMarkerStatus === "missing" ||
+      input.sandbox?.setupMarkerStatus === "stale"
+        ? input.sandbox.setupMarkerStatus === "ready"
+          ? "current"
+          : input.sandbox.setupMarkerStatus
+        : "current",
+  };
+  const selectedNode = input.deviceNode
+    ? {
+        nodeId: input.deviceNode.nodeId,
+        displayName: input.deviceNode.displayName,
+        kind: input.deviceNode.kind,
+        platform: input.deviceNode.platform,
+        status: input.deviceNode.status,
+        capabilities: Array.isArray(input.deviceNode.capabilities) ? [...input.deviceNode.capabilities] : [],
+      }
+    : null;
+  const response = await executeRequestWithConfiguredAdapter({
+    config,
+    request,
+    selectedNode,
+    sandbox,
+  });
+  return {
+    trace: response.trace.map((step) => ({ ...step })),
+    finalStatus: response.finalStatus,
+    retries: response.retries,
+    executor: response.executor,
+    adapterMode: "remote_http",
+    adapterNotes: [...response.adapterNotes],
+    deviceNode: response.deviceNode
+      ? {
+          nodeId: response.deviceNode.nodeId,
+          displayName: response.deviceNode.displayName,
+          kind: response.deviceNode.kind,
+          platform: response.deviceNode.platform,
+          status: response.deviceNode.status,
+          capabilities: Array.isArray(response.deviceNode.capabilities)
+            ? [...response.deviceNode.capabilities]
+            : [],
+        }
+      : null,
+  };
+});
+
 export const server = createServer(async (req, res) => {
   const startedAt = Date.now();
   let operation = `${req.method ?? "UNKNOWN"} /unknown`;
@@ -562,6 +964,7 @@ export const server = createServer(async (req, res) => {
     operation = `${req.method ?? "UNKNOWN"} ${normalizeOperationPath(url.pathname)}`;
 
     if (url.pathname === "/healthz" && req.method === "GET") {
+      const config = currentConfig();
       const playwrightAvailable = await canUsePlaywright();
       writeJson(res, 200, {
         ok: true,
@@ -578,12 +981,90 @@ export const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === "/status" && req.method === "GET") {
+      const config = currentConfig();
       writeJson(res, 200, {
         ok: true,
         service: serviceName,
         mode: "remote_http",
         forceSimulation: config.forceSimulation,
         runtime: runtimeState(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/runtime/config" && req.method === "GET") {
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        runtime: runtimeConfigPayload(),
+        store: getUiExecutorRuntimeConfigStoreStatus({
+          env: process.env,
+          cwd: process.cwd(),
+        }),
+      });
+      return;
+    }
+
+    if (url.pathname === "/runtime/control-plane-override" && req.method === "POST") {
+      let body: Record<string, unknown>;
+      try {
+        body = parseJsonObjectBody(await readBody(req));
+      } catch (error) {
+        writeJson(res, 400, {
+          error: error instanceof Error ? error.message : "invalid ui-executor control-plane override JSON",
+          code: "UI_EXECUTOR_RUNTIME_OVERRIDE_INVALID_JSON",
+        });
+        return;
+      }
+
+      if (body.clear === true) {
+        clearUiExecutorRuntimeControlPlaneOverride();
+        writeJson(res, 200, {
+          ok: true,
+          service: serviceName,
+          action: "clear",
+          runtime: runtimeConfigPayload(),
+          store: getUiExecutorRuntimeConfigStoreStatus({
+            env: process.env,
+            cwd: process.cwd(),
+          }),
+        });
+        return;
+      }
+
+      const rawJson = toOptionalString(body.rawJson) ?? (isRecord(body.runtime) ? JSON.stringify(body.runtime) : null);
+      if (!rawJson) {
+        writeJson(res, 400, {
+          error: "rawJson or runtime object is required",
+          code: "UI_EXECUTOR_RUNTIME_OVERRIDE_INVALID",
+        });
+        return;
+      }
+
+      try {
+        setUiExecutorRuntimeControlPlaneOverride({
+          rawJson,
+          reason: toOptionalString(body.reason),
+          env: process.env,
+          cwd: process.cwd(),
+        });
+      } catch (error) {
+        writeJson(res, 400, {
+          error: error instanceof Error ? error.message : "invalid ui-executor control-plane override",
+          code: "UI_EXECUTOR_RUNTIME_OVERRIDE_INVALID",
+        });
+        return;
+      }
+
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        action: "set",
+        runtime: runtimeConfigPayload(),
+        store: getUiExecutorRuntimeConfigStoreStatus({
+          env: process.env,
+          cwd: process.cwd(),
+        }),
       });
       return;
     }
@@ -638,6 +1119,7 @@ export const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === "/execute" && req.method === "POST") {
+      const config = currentConfig();
       const raw = await readBody(req);
       const request = normalizeRequest(raw ? JSON.parse(raw) : {});
       if (request.actions.length === 0) {
@@ -645,67 +1127,221 @@ export const server = createServer(async (req, res) => {
         return;
       }
 
-      const headerNodeId = toNonEmptyString(req.headers["x-device-node-id"], "").toLowerCase();
-      const requestedNodeId = headerNodeId || toNonEmptyString(request.context?.deviceNodeId, "").toLowerCase();
-      const hasNodeRegistry = config.deviceNodes.size > 0;
-
-      let selectedNode: DeviceNodeDescriptor | null = null;
-      if (hasNodeRegistry) {
-        if (requestedNodeId.length > 0) {
-          selectedNode = config.deviceNodes.get(requestedNodeId) ?? null;
-          if (!selectedNode) {
-            writeJson(res, 404, {
-              error: "requested device node is not registered",
-              nodeId: requestedNodeId,
-            });
-            return;
-          }
-        } else if (config.defaultDeviceNodeId) {
-          selectedNode = config.deviceNodes.get(config.defaultDeviceNodeId) ?? null;
-        } else {
-          selectedNode = Array.from(config.deviceNodes.values()).find((node) => node.status !== "offline") ?? null;
-        }
-      }
-
-      if (selectedNode && selectedNode.status === "offline") {
-        writeJson(res, 409, {
-          error: "requested device node is offline",
-          nodeId: selectedNode.nodeId,
-          status: selectedNode.status,
-        });
-        return;
-      }
-
-      if (config.forceSimulation) {
-        const simulated = simulateExecution(
-          request,
-          "Forced simulation mode (UI_EXECUTOR_FORCE_SIMULATION=true)",
-          selectedNode,
-        );
-        writeJson(res, 200, simulated);
-        return;
-      }
-
-      const played = await executeWithPlaywright(request, selectedNode);
-      if (played) {
-        writeJson(res, 200, played);
-        return;
-      }
-
-      if (config.strictPlaywright && !config.simulateIfUnavailable) {
-        writeJson(res, 503, {
-          error:
-            "Playwright is unavailable in ui-executor environment. Install playwright or disable strict mode.",
-        });
-        return;
-      }
-
-      const simulated = simulateExecution(
+      const sandbox = evaluateUiExecutorSandboxRequest({
+        policy: config.sandboxPolicy,
         request,
-        "Playwright unavailable in ui-executor, simulation fallback used",
-        selectedNode,
-      );
-      writeJson(res, 200, simulated);
+        defaultNavigationUrl: config.defaultNavigationUrl,
+      });
+      if (!sandbox.allowed) {
+        writeJson(res, 403, {
+          error: "ui-executor request is blocked by sandbox policy",
+          code: "UI_EXECUTOR_SANDBOX_POLICY_BLOCKED",
+          sandbox,
+        });
+        return;
+      }
+
+      const headerNodeId = toNonEmptyString(req.headers["x-device-node-id"], "").toLowerCase();
+      const nodeResolution = resolveSelectedDeviceNode(config, request, headerNodeId);
+      if (nodeResolution.errorResponse) {
+        writeJson(res, nodeResolution.errorStatusCode ?? 400, nodeResolution.errorResponse);
+        return;
+      }
+
+      try {
+        const result = await executeRequestWithConfiguredAdapter({
+          config,
+          request,
+          selectedNode: nodeResolution.selectedNode,
+          sandbox,
+        });
+        writeJson(res, 200, result);
+      } catch (error) {
+        writeJson(res, 503, {
+          error: error instanceof Error ? error.message : "ui-executor adapter unavailable",
+          code: "UI_EXECUTOR_PLAYWRIGHT_UNAVAILABLE",
+        });
+      }
+      return;
+    }
+
+    if (draining && url.pathname === "/browser-jobs" && req.method === "POST") {
+      writeJson(res, 503, {
+        error: "ui-executor is draining and does not accept new browser jobs",
+        code: "UI_EXECUTOR_DRAINING",
+        runtime: runtimeState(),
+      });
+      return;
+    }
+
+    if (url.pathname === "/browser-jobs" && req.method === "GET") {
+      const limit = toOptionalPositiveInt(url.searchParams.get("limit")) ?? 20;
+      const statusRaw = toOptionalString(url.searchParams.get("status"));
+      const status =
+        statusRaw === "queued" ||
+        statusRaw === "running" ||
+        statusRaw === "paused" ||
+        statusRaw === "completed" ||
+        statusRaw === "failed" ||
+        statusRaw === "cancelled"
+          ? statusRaw
+          : null;
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        data: getBrowserJobListSnapshot({
+          limit,
+          status,
+        }),
+      });
+      return;
+    }
+
+    if (url.pathname === "/browser-jobs" && req.method === "POST") {
+      const config = currentConfig();
+      if (getBrowserJobRuntimeSnapshot().runtime.enabled !== true) {
+        writeJson(res, 503, {
+          error: "ui-executor browser worker runtime is disabled",
+          code: "UI_EXECUTOR_BROWSER_WORKER_DISABLED",
+          runtime: runtimeState(),
+        });
+        return;
+      }
+      const raw = await readBody(req);
+      const request = normalizeBrowserJobSubmitRequest(raw ? JSON.parse(raw) : {});
+      if (request.actions.length === 0) {
+        writeJson(res, 400, {
+          error: "actions array is required",
+          code: "UI_EXECUTOR_BROWSER_JOB_INVALID",
+        });
+        return;
+      }
+
+      const sandbox = evaluateUiExecutorSandboxRequest({
+        policy: config.sandboxPolicy,
+        request,
+        defaultNavigationUrl: config.defaultNavigationUrl,
+      });
+      if (!sandbox.allowed) {
+        writeJson(res, 403, {
+          error: "ui-executor browser job is blocked by sandbox policy",
+          code: "UI_EXECUTOR_SANDBOX_POLICY_BLOCKED",
+          sandbox,
+        });
+        return;
+      }
+
+      const headerNodeId = toNonEmptyString(req.headers["x-device-node-id"], "").toLowerCase();
+      const nodeResolution = resolveSelectedDeviceNode(config, request, headerNodeId);
+      if (nodeResolution.errorResponse) {
+        writeJson(res, nodeResolution.errorStatusCode ?? 400, nodeResolution.errorResponse);
+        return;
+      }
+
+      const job = submitBrowserJob({
+        sessionId: request.sessionId ?? `browser-session-${randomUUID()}`,
+        runId: request.runId ?? null,
+        taskId: request.taskId ?? null,
+        label: request.options?.label ?? request.context?.goal ?? null,
+        reason: request.options?.reason ?? "repo_owned_browser_worker",
+        actions: request.actions.map((action) => ({
+          id: action.id,
+          type: action.type,
+          target: action.target,
+          text: action.text ?? null,
+          coordinates: action.coordinates ? { ...action.coordinates } : null,
+        })),
+        context: {
+          goal: request.context?.goal,
+          url: request.context?.url,
+          screenshotRef: request.context?.screenshotRef,
+          domSnapshot: request.context?.domSnapshot,
+          accessibilityTree: request.context?.accessibilityTree,
+          markHints: Array.isArray(request.context?.markHints) ? [...request.context.markHints] : [],
+          deviceNodeId: nodeResolution.selectedNode?.nodeId ?? request.context?.deviceNodeId,
+          cursor: request.context?.cursor ? { ...request.context.cursor } : null,
+        },
+        deviceNode: nodeResolution.selectedNode
+          ? {
+              nodeId: nodeResolution.selectedNode.nodeId,
+              displayName: nodeResolution.selectedNode.displayName,
+              kind: nodeResolution.selectedNode.kind,
+              platform: nodeResolution.selectedNode.platform,
+              status: nodeResolution.selectedNode.status,
+              capabilities: [...nodeResolution.selectedNode.capabilities],
+            }
+          : null,
+        checkpointEverySteps: request.options?.checkpointEverySteps ?? null,
+        pauseAfterStep: request.options?.pauseAfterStep ?? null,
+        sandbox: {
+          mode: sandbox.mode,
+          decision: sandbox.decision,
+          violations: [...sandbox.violations],
+          warnings: [...sandbox.warnings],
+          setupMarkerStatus: sandbox.setupMarkerStatus,
+        },
+      });
+      writeJson(res, 202, {
+        ok: true,
+        service: serviceName,
+        action: "submit",
+        data: {
+          job,
+          runtime: getBrowserJobRuntimeSnapshot(),
+        },
+      });
+      return;
+    }
+
+    const browserJobDetailId = parseBrowserJobDetailPath(url.pathname);
+    if (browserJobDetailId && req.method === "GET") {
+      const job = getBrowserJob(browserJobDetailId);
+      if (!job) {
+        writeJson(res, 404, {
+          error: "browser job not found",
+          code: "UI_EXECUTOR_BROWSER_JOB_NOT_FOUND",
+          jobId: browserJobDetailId,
+        });
+        return;
+      }
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        data: {
+          job,
+          runtime: getBrowserJobRuntimeSnapshot(),
+        },
+      });
+      return;
+    }
+
+    const browserJobAction = parseBrowserJobActionPath(url.pathname);
+    if (browserJobAction && req.method === "POST") {
+      const raw = await readBody(req);
+      const body = raw.trim().length > 0 ? parseJsonObjectBody(raw) : {};
+      const reason = toOptionalString(body.reason) ?? `browser job ${browserJobAction.action}`;
+      const job =
+        browserJobAction.action === "resume"
+          ? resumeBrowserJob(browserJobAction.jobId, reason)
+          : cancelBrowserJob(browserJobAction.jobId, reason);
+      if (!job) {
+        writeJson(res, 404, {
+          error: "browser job not found or action is invalid for current state",
+          code: "UI_EXECUTOR_BROWSER_JOB_ACTION_INVALID",
+          jobId: browserJobAction.jobId,
+          action: browserJobAction.action,
+        });
+        return;
+      }
+      writeJson(res, 200, {
+        ok: true,
+        service: serviceName,
+        action: browserJobAction.action,
+        data: {
+          job,
+          runtime: getBrowserJobRuntimeSnapshot(),
+        },
+      });
       return;
     }
 
@@ -717,6 +1353,8 @@ export const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(config.port, () => {
-  console.log(`[ui-executor] listening on :${config.port}`);
+const startupConfig = currentConfig();
+
+server.listen(startupConfig.port, () => {
+  console.log(`[ui-executor] listening on :${startupConfig.port}`);
 });

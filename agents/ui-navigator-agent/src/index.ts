@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
 import {
   buildCapabilityProfile,
+  generateGoogleGenAiText,
   type CapabilityProfile,
   type ComputerUseCapabilityAdapter,
   type ReasoningCapabilityAdapter,
@@ -12,6 +13,7 @@ import {
 import {
   getSkillsRuntimeSnapshot,
   renderSkillsPrompt,
+  resolveCredentialValueWithProfile,
   toSkillsRuntimeSummary,
 } from "@mla/skills";
 import {
@@ -43,7 +45,15 @@ type UiTaskInput = {
   approvalId: string | null;
   sandboxPolicyMode: "off" | "non-main" | "all" | null;
   sessionRole: "main" | "secondary" | null;
+  browserWorker: BrowserWorkerInput;
   visualTesting: VisualTestingInput;
+};
+
+type BrowserWorkerInput = {
+  enabled: boolean;
+  checkpointEverySteps: number | null;
+  pauseAfterStep: number | null;
+  label: string | null;
 };
 
 type GroundingSignalSummary = {
@@ -115,6 +125,7 @@ type UiTraceStep = {
   status: "ok" | "retry" | "failed" | "blocked";
   screenshotRef: string;
   notes: string;
+  observation?: string | null;
 };
 
 type ExecutorMode = "simulated" | "playwright_preview" | "remote_http";
@@ -277,6 +288,15 @@ function toNullableString(value: unknown): string | null {
 function toNullableInt(value: unknown): number | null {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? Math.floor(parsed) : null;
+}
+
+function toPositiveInt(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  const normalized = Math.floor(parsed);
+  return normalized > 0 ? normalized : null;
 }
 
 function toNonNegativeInt(value: unknown): number | null {
@@ -1159,12 +1179,23 @@ function getPlannerConfig(): PlannerConfig {
     ["destructive_operation"],
   );
 
+  const deviceNodeIndexAuthToken = resolveCredentialValueWithProfile({
+    namespace: "ui_navigator.device_node_index.auth_token",
+    profileId:
+      toNullableString(process.env.UI_NAVIGATOR_DEVICE_NODE_INDEX_AUTH_PROFILE) ??
+      "ui-navigator-device-index",
+    directValue: process.env.UI_NAVIGATOR_DEVICE_NODE_INDEX_AUTH_TOKEN,
+    credentialName: process.env.UI_NAVIGATOR_DEVICE_NODE_INDEX_AUTH_CREDENTIAL,
+    env: process.env,
+    cwd: process.cwd(),
+  });
+
   return {
     apiKey:
       toNullableString(process.env.UI_NAVIGATOR_GEMINI_API_KEY) ?? toNullableString(process.env.GEMINI_API_KEY),
     baseUrl: toNonEmptyString(process.env.GEMINI_API_BASE_URL, "https://generativelanguage.googleapis.com/v1beta"),
-    plannerModel: toNonEmptyString(process.env.UI_NAVIGATOR_PLANNER_MODEL, "gemini-3-pro-preview"),
-    timeoutMs: parsePositiveInt(process.env.UI_NAVIGATOR_GEMINI_TIMEOUT_MS, 10000),
+    plannerModel: toNonEmptyString(process.env.UI_NAVIGATOR_PLANNER_MODEL, "gemini-3.1-pro-preview"),
+    timeoutMs: parsePositiveInt(process.env.UI_NAVIGATOR_GEMINI_TIMEOUT_MS, 20000),
     executorTimeoutMs: parsePositiveInt(process.env.UI_NAVIGATOR_EXECUTOR_TIMEOUT_MS, 15000),
     executorRequestMaxRetries: parsePositiveInt(process.env.UI_NAVIGATOR_EXECUTOR_MAX_RETRIES, 1),
     executorRetryBackoffMs: parsePositiveInt(process.env.UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS, 300),
@@ -1175,7 +1206,7 @@ function getPlannerConfig(): PlannerConfig {
     remoteHttpFallbackMode: parseRemoteHttpFallbackMode(process.env.UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE),
     executorUrl: toNullableString(process.env.UI_NAVIGATOR_EXECUTOR_URL),
     deviceNodeIndexUrl: toNullableString(process.env.UI_NAVIGATOR_DEVICE_NODE_INDEX_URL),
-    deviceNodeIndexAuthToken: toNullableString(process.env.UI_NAVIGATOR_DEVICE_NODE_INDEX_AUTH_TOKEN),
+    deviceNodeIndexAuthToken: deviceNodeIndexAuthToken.value,
     deviceNodeIndexTimeoutMs: parsePositiveInt(process.env.UI_NAVIGATOR_DEVICE_NODE_INDEX_TIMEOUT_MS, 2500),
     deviceNodesJson: toNullableString(process.env.UI_NAVIGATOR_DEVICE_NODES_JSON),
     loopDetectionEnabled: process.env.UI_NAVIGATOR_LOOP_DETECTION_ENABLED !== "false",
@@ -1201,6 +1232,7 @@ function getPlannerConfig(): PlannerConfig {
 function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInput {
   const raw = isRecord(input) ? input : {};
   const deviceNodeRaw = isRecord(raw.deviceNode) ? raw.deviceNode : {};
+  const browserWorkerRaw = isRecord(raw.browserWorker) ? raw.browserWorker : {};
   const cursor = isRecord(raw.cursor)
     ? {
         x: toNullableInt(raw.cursor.x) ?? 0,
@@ -1243,6 +1275,19 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
   const sessionRoleRaw = toNonEmptyString(raw.sessionRole, "").toLowerCase();
   const sessionRole: UiTaskInput["sessionRole"] =
     sessionRoleRaw === "main" ? "main" : sessionRoleRaw === "secondary" ? "secondary" : null;
+  const browserWorkerEnabled =
+    raw.asyncExecution === true ||
+    raw.backgroundExecution === true ||
+    raw.executionMode === "background" ||
+    raw.executionMode === "browser_worker" ||
+    browserWorkerRaw.enabled === true;
+  const browserWorkerCheckpointEverySteps =
+    toPositiveInt(browserWorkerRaw.checkpointEverySteps) ??
+    toPositiveInt(raw.browserWorkerCheckpointEverySteps) ??
+    null;
+  const browserWorkerPauseAfterStep =
+    toPositiveInt(browserWorkerRaw.pauseAfterStep) ?? toPositiveInt(raw.browserWorkerPauseAfterStep) ?? null;
+  const browserWorkerLabel = toNullableString(browserWorkerRaw.label ?? raw.browserWorkerLabel);
 
   return {
     goal:
@@ -1276,6 +1321,12 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
     approvalId: toNullableString(raw.approvalId),
     sandboxPolicyMode,
     sessionRole,
+    browserWorker: {
+      enabled: browserWorkerEnabled,
+      checkpointEverySteps: browserWorkerCheckpointEverySteps,
+      pauseAfterStep: browserWorkerPauseAfterStep,
+      label: browserWorkerLabel,
+    },
     visualTesting: normalizeVisualTestingInput(raw, screenshotRef),
   };
 }
@@ -1382,6 +1433,204 @@ function makeAction(params: {
   };
 }
 
+function buildRuleBasedGoalVerificationActions(goal: string): UiAction[] {
+  const normalized = goal.toLowerCase();
+  const actions: UiAction[] = [];
+  const seenTargets = new Set<string>();
+
+  const pushVerify = (target: string, rationale: string) => {
+    if (seenTargets.has(target)) {
+      return;
+    }
+    seenTargets.add(target);
+    actions.push(
+      makeAction({
+        type: "verify",
+        target,
+        rationale,
+      }),
+    );
+  };
+
+  if (/(invoice|invoices|table|grid)/.test(normalized)) {
+    pushVerify(
+      'css:table,[role="table"],[role="grid"],#invoices-table,[data-testid="invoices-table"]',
+      "Verify that the requested table or grid is visible after navigation.",
+    );
+  } else if (/(list|rows|items)/.test(normalized)) {
+    pushVerify(
+      'css:table,[role="table"],[role="grid"],[role="list"],ul,ol',
+      "Verify that a list-like result surface is visible after navigation.",
+    );
+  }
+
+  if (/(button|cta|action|submit)/.test(normalized)) {
+    pushVerify(
+      'css:button,[role="button"],input[type="button"],input[type="submit"]',
+      "Verify that the expected action surface is visible.",
+    );
+  }
+
+  if (/(form|field|input|email)/.test(normalized)) {
+    pushVerify(
+      'css:form,input,textarea,select,[role="textbox"]',
+      "Verify that the requested form controls are visible.",
+    );
+  }
+
+  if (/(dialog|modal|popup)/.test(normalized)) {
+    pushVerify(
+      'css:dialog,[role="dialog"],[aria-modal="true"]',
+      "Verify that the requested dialog surface is visible.",
+    );
+  }
+
+  if (/(heading|title|headline)/.test(normalized)) {
+    pushVerify(
+      'css:h1,h2,[role="heading"]',
+      "Verify that a page heading is visible after navigation.",
+    );
+  }
+
+  return actions;
+}
+
+function goalRequestsEmailSubmitUnlock(goal: string): boolean {
+  const normalized = goal.toLowerCase();
+  return (
+    /\bsubmit\b/.test(normalized) &&
+    /\b(disabled|disable|stays|remains)\b/.test(normalized) &&
+    /\bemail\b/.test(normalized) &&
+    /\b(fill|filled|until|before)\b/.test(normalized)
+  );
+}
+
+function detectVerifyObservationKind(
+  target: string,
+): "table" | "button" | "heading" | "submit-disabled" | "submit-enabled" | null {
+  if (!target.startsWith("css:")) {
+    return null;
+  }
+  const selector = target.slice(4).toLowerCase();
+  if (
+    selector.includes('button[type="submit"]:disabled') ||
+    selector.includes('input[type="submit"]:disabled')
+  ) {
+    return "submit-disabled";
+  }
+  if (
+    selector.includes('button[type="submit"]:not(:disabled)') ||
+    selector.includes('input[type="submit"]:not(:disabled)')
+  ) {
+    return "submit-enabled";
+  }
+  if (selector.includes("table") || selector.includes('[role="table"]') || selector.includes('[role="grid"]')) {
+    return "table";
+  }
+  if (selector.includes("button") || selector.includes('[role="button"]')) {
+    return "button";
+  }
+  if (selector.includes("h1") || selector.includes("h2") || selector.includes('[role="heading"]')) {
+    return "heading";
+  }
+  return null;
+}
+
+async function collectVerifyObservation(
+  page: {
+    evaluate: {
+      <TReturn>(callback: () => TReturn): Promise<TReturn>;
+      <TReturn, TArg>(callback: (arg: TArg) => TReturn, arg: TArg): Promise<TReturn>;
+    };
+  },
+  target: string,
+): Promise<string | null> {
+  const kind = detectVerifyObservationKind(target);
+  if (!kind) {
+    return null;
+  }
+  const selector = target.slice(4);
+  try {
+    return await page.evaluate(
+      ({ selector: selectorValue, kind: observationKind }) => {
+        const visibleElements = Array.from(document.querySelectorAll(selectorValue)).filter((element) => {
+          if (!(element instanceof HTMLElement)) {
+            return false;
+          }
+          const style = window.getComputedStyle(element);
+          const rect = element.getBoundingClientRect();
+          return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+        });
+
+        if (observationKind === "submit-disabled") {
+          return visibleElements.length > 0 ? "submit state=disabled" : null;
+        }
+
+        if (observationKind === "submit-enabled") {
+          return visibleElements.length > 0 ? "submit state=enabled" : null;
+        }
+
+        if (observationKind === "table") {
+          const first = visibleElements[0];
+          if (!(first instanceof HTMLElement)) {
+            return null;
+          }
+          const rowCount = first.querySelectorAll("tbody tr,[role='row']").length;
+          return `table rows=${rowCount}`;
+        }
+
+        const labels = visibleElements
+          .map((element) => element.textContent?.replace(/\s+/g, " ").trim() ?? "")
+          .filter((text) => text.length > 0)
+          .slice(0, 3);
+
+        if (observationKind === "button") {
+          return labels.length > 0 ? `buttons=${labels.join("|")}` : "buttons=";
+        }
+
+        if (observationKind === "heading") {
+          return labels.length > 0 ? `headings=${labels.join("|")}` : null;
+        }
+
+        return null;
+      },
+      { selector, kind },
+    );
+  } catch {
+    return null;
+  }
+}
+
+function hasConcreteUiGrounding(input: UiTaskInput): boolean {
+  return Boolean(
+    input.url ||
+      input.screenshotRef ||
+      input.domSnapshot ||
+      input.accessibilityTree ||
+      input.markHints.length > 0 ||
+      Object.keys(input.formData).length > 0,
+  );
+}
+
+function shouldAutoSubmit(goal: string, input: UiTaskInput): boolean {
+  if (!hasConcreteUiGrounding(input)) {
+    return false;
+  }
+
+  const referencesSubmit = /\bsubmit\b/.test(goal);
+  const referencesButtonState =
+    referencesSubmit && /\b(disabled|disable|enabled|stays|remains|until|before)\b/.test(goal);
+  if (referencesButtonState) {
+    return false;
+  }
+
+  if (referencesSubmit) {
+    return true;
+  }
+
+  return /\b(send|confirm)\b/.test(goal);
+}
+
 function buildRuleBasedPlan(input: UiTaskInput): UiAction[] {
   const actions: UiAction[] = [];
   const goal = input.goal.toLowerCase();
@@ -1404,6 +1653,45 @@ function buildRuleBasedPlan(input: UiTaskInput): UiAction[] {
         rationale: "Validate initial visual state before interacting with UI.",
       }),
     );
+  }
+
+  if (input.url || input.screenshotRef || input.domSnapshot || input.accessibilityTree || input.markHints.length > 0) {
+    if (goalRequestsEmailSubmitUnlock(goal) && hasConcreteUiGrounding(input)) {
+      const emailValue =
+        typeof input.formData.email === "string" && input.formData.email.trim().length > 0
+          ? input.formData.email.trim()
+          : "designer@example.com";
+      actions.push(
+        makeAction({
+          type: "verify",
+          target: 'css:button[type="submit"]:disabled,input[type="submit"]:disabled',
+          rationale: "Confirm that the submit control is disabled before email entry.",
+        }),
+      );
+      actions.push(
+        makeAction({
+          type: "click",
+          target: "field:email",
+          rationale: "Focus the email field before typing a sample address.",
+        }),
+      );
+      actions.push(
+        makeAction({
+          type: "type",
+          target: "field:email",
+          text: emailValue,
+          rationale: "Fill the email field to verify the submit-state change.",
+        }),
+      );
+      actions.push(
+        makeAction({
+          type: "verify",
+          target: 'css:button[type="submit"]:not(:disabled),input[type="submit"]:not(:disabled)',
+          rationale: "Confirm that the submit control becomes enabled after email entry.",
+        }),
+      );
+    }
+    actions.push(...buildRuleBasedGoalVerificationActions(goal));
   }
 
   if (goal.includes("scroll")) {
@@ -1436,7 +1724,7 @@ function buildRuleBasedPlan(input: UiTaskInput): UiAction[] {
     );
   }
 
-  if (goal.includes("submit") || goal.includes("send") || goal.includes("confirm")) {
+  if (shouldAutoSubmit(goal, input)) {
     actions.push(
       makeAction({
         type: "click",
@@ -1466,88 +1754,22 @@ async function fetchGeminiText(params: {
   responseMimeType?: "application/json" | "text/plain";
   temperature?: number;
 }): Promise<ReasoningTextResult | null> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), params.timeoutMs);
-  const endpoint = `${params.baseUrl.replace(/\/+$/, "")}/models/${encodeURIComponent(params.model)}:generateContent?key=${encodeURIComponent(params.apiKey)}`;
-
-  try {
-    const body: Record<string, unknown> = {
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: params.prompt }],
-        },
-      ],
-      generationConfig: {
-        temperature: params.temperature ?? 0.1,
-      },
-    };
-    if (params.responseMimeType) {
-      body.generationConfig = {
-        ...(isRecord(body.generationConfig) ? body.generationConfig : {}),
-        responseMimeType: params.responseMimeType,
-      };
-    }
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-    const parsed = (await response.json()) as unknown;
-    if (!isRecord(parsed) || !Array.isArray(parsed.candidates)) {
-      return null;
-    }
-
-    const parts: string[] = [];
-    for (const candidate of parsed.candidates) {
-      if (!isRecord(candidate) || !isRecord(candidate.content) || !Array.isArray(candidate.content.parts)) {
-        continue;
-      }
-      for (const part of candidate.content.parts) {
-        if (isRecord(part) && typeof part.text === "string") {
-          parts.push(part.text);
-        }
-      }
-    }
-    const usageRaw = isRecord(parsed.usageMetadata) ? parsed.usageMetadata : null;
-    const inputTokens = usageRaw ? toNonNegativeInt(usageRaw.promptTokenCount) : null;
-    const outputTokens = usageRaw ? toNonNegativeInt(usageRaw.candidatesTokenCount) : null;
-    const totalTokens = usageRaw ? toNonNegativeInt(usageRaw.totalTokenCount) : null;
-    const usage: ReasoningTextUsage | undefined =
-      inputTokens !== null || outputTokens !== null || totalTokens !== null
-        ? {
-            inputTokens: inputTokens ?? undefined,
-            outputTokens: outputTokens ?? undefined,
-            totalTokens: totalTokens ?? undefined,
-          }
-        : undefined;
-
-    const text = parts.length > 0 ? parts.join("\n").trim() : null;
-    if (!text) {
-      return null;
-    }
-
-    return { text, usage };
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return generateGoogleGenAiText({
+    apiKey: params.apiKey,
+    baseUrl: params.baseUrl,
+    timeoutMs: params.timeoutMs,
+    model: params.model,
+    prompt: params.prompt,
+    responseMimeType: params.responseMimeType,
+    temperature: params.temperature,
+  });
 }
 
 function createUiNavigatorCapabilitySet(config: PlannerConfig, usageTotals: AgentUsageTotals): UiNavigatorCapabilitySet {
   const reasoning: ReasoningCapabilityAdapter = {
     descriptor: {
       capability: "reasoning",
-      adapterId: config.apiKey ? "gemini-ui-reasoning" : "fallback-ui-reasoning",
+      adapterId: config.apiKey ? "google-genai-sdk-ui-reasoning" : "fallback-ui-reasoning",
       provider: config.apiKey ? "gemini_api" : "fallback",
       model: config.plannerModel,
       mode: config.apiKey && config.plannerEnabled ? "default" : "fallback",
@@ -1576,7 +1798,7 @@ function createUiNavigatorCapabilitySet(config: PlannerConfig, usageTotals: Agen
   const computerUse: ComputerUseCapabilityAdapter = {
     descriptor: {
       capability: "computer_use",
-      adapterId: config.apiKey ? "gemini-computer-use-compatible" : "rule-based-computer-use",
+      adapterId: config.apiKey ? "google-genai-sdk-computer-use-compatible" : "rule-based-computer-use",
       provider: config.apiKey ? "gemini_api" : "fallback",
       model: config.plannerModel,
       mode: config.apiKey && config.plannerEnabled ? "default" : "fallback",
@@ -2077,6 +2299,7 @@ async function executeWithRemoteHttpAdapter(params: {
         body: JSON.stringify({
           actions: params.actions,
           context: {
+            url: params.input.url,
             screenshotRef: params.input.screenshotRef,
             domSnapshot: params.input.domSnapshot,
             accessibilityTree: params.input.accessibilityTree,
@@ -2120,6 +2343,7 @@ async function executeWithRemoteHttpAdapter(params: {
               `${params.screenshotSeed}/remote-${trace.length + 1}.png`,
             ),
             notes: toNonEmptyString(item.notes, "remote executor step"),
+            observation: toNullableString(item.observation),
           });
         }
 
@@ -2196,7 +2420,14 @@ async function executeWithPlaywrightPreview(params: {
         click: (selector: string, options?: { timeout?: number }) => Promise<void>;
         fill: (selector: string, value: string, options?: { timeout?: number }) => Promise<void>;
         press: (selector: string, key: string, options?: { timeout?: number }) => Promise<void>;
-        evaluate: (callback: () => void) => Promise<void>;
+        waitForSelector: (
+          selector: string,
+          options?: { timeout?: number; state?: "attached" | "detached" | "visible" | "hidden" },
+        ) => Promise<void>;
+        evaluate: {
+          <TReturn>(callback: () => TReturn): Promise<TReturn>;
+          <TReturn, TArg>(callback: (arg: TArg) => TReturn, arg: TArg): Promise<TReturn>;
+        };
         waitForTimeout: (ms: number) => Promise<void>;
       }>;
       close: () => Promise<void>;
@@ -2209,47 +2440,58 @@ async function executeWithPlaywrightPreview(params: {
   let retries = 0;
   let finalStatus: "completed" | "failed" = "completed";
 
+  const runAction = async (action: UiAction): Promise<string | null> => {
+    let observation: string | null = null;
+    if (action.type === "navigate") {
+      await page.goto(action.target, { waitUntil: "domcontentloaded", timeout: 15000 });
+    } else if (action.type === "click") {
+      if (action.target.startsWith("css:")) {
+        await page.click(action.target.slice(4), { timeout: 2500 });
+      } else if (action.target.startsWith("field:")) {
+        const field = action.target.slice("field:".length);
+        await page.click(`[name="${field}"],#${field}`, { timeout: 2500 });
+      } else if (action.target === "button:submit") {
+        await page.click('button[type="submit"],input[type="submit"]', { timeout: 2500 });
+      } else {
+        await page.click(action.target, { timeout: 2500 });
+      }
+    } else if (action.type === "type") {
+      const value = action.text ?? "";
+      if (action.target.startsWith("field:")) {
+        const field = action.target.slice("field:".length);
+        await page.fill(`[name="${field}"],#${field}`, value, { timeout: 2500 });
+      } else if (action.target.startsWith("css:")) {
+        await page.fill(action.target.slice(4), value, { timeout: 2500 });
+      } else {
+        await page.fill(action.target, value, { timeout: 2500 });
+      }
+    } else if (action.type === "scroll") {
+      await page.evaluate(() => {
+        window.scrollBy(0, Math.floor(window.innerHeight * 0.6));
+      });
+    } else if (action.type === "hotkey") {
+      const key = action.text ?? "Enter";
+      await page.press("body", key, { timeout: 2500 });
+    } else if (action.type === "wait") {
+      await page.waitForTimeout(350);
+    } else if (action.type === "verify") {
+      if (action.target.startsWith("css:")) {
+        await page.waitForSelector(action.target.slice(4), { timeout: 2500, state: "visible" });
+        observation = await collectVerifyObservation(page, action.target);
+      } else {
+        await page.waitForTimeout(150);
+      }
+    }
+    return observation;
+  };
+
   try {
     for (let index = 0; index < params.actions.length; index += 1) {
       const action = params.actions[index];
       const stepIndex = index + 1;
       const screenshotRef = `${params.screenshotSeed}/playwright-step-${stepIndex}.png`;
       try {
-        if (action.type === "navigate") {
-          await page.goto(action.target, { waitUntil: "domcontentloaded", timeout: 15000 });
-        } else if (action.type === "click") {
-          if (action.target.startsWith("css:")) {
-            await page.click(action.target.slice(4), { timeout: 2500 });
-          } else if (action.target.startsWith("field:")) {
-            const field = action.target.slice("field:".length);
-            await page.click(`[name="${field}"],#${field}`, { timeout: 2500 });
-          } else if (action.target === "button:submit") {
-            await page.click('button[type="submit"],input[type="submit"]', { timeout: 2500 });
-          } else {
-            await page.click(action.target, { timeout: 2500 });
-          }
-        } else if (action.type === "type") {
-          const value = action.text ?? "";
-          if (action.target.startsWith("field:")) {
-            const field = action.target.slice("field:".length);
-            await page.fill(`[name="${field}"],#${field}`, value, { timeout: 2500 });
-          } else if (action.target.startsWith("css:")) {
-            await page.fill(action.target.slice(4), value, { timeout: 2500 });
-          } else {
-            await page.fill(action.target, value, { timeout: 2500 });
-          }
-        } else if (action.type === "scroll") {
-          await page.evaluate(() => {
-            window.scrollBy(0, Math.floor(window.innerHeight * 0.6));
-          });
-        } else if (action.type === "hotkey") {
-          const key = action.text ?? "Enter";
-          await page.press("body", key, { timeout: 2500 });
-        } else if (action.type === "wait") {
-          await page.waitForTimeout(350);
-        } else if (action.type === "verify") {
-          await page.waitForTimeout(150);
-        }
+        const observation = await runAction(action);
 
         trace.push({
           index: stepIndex,
@@ -2259,6 +2501,7 @@ async function executeWithPlaywrightPreview(params: {
           status: "ok",
           screenshotRef,
           notes: "Executed by playwright preview adapter.",
+          observation,
         });
       } catch (error) {
         retries += 1;
@@ -2270,17 +2513,11 @@ async function executeWithPlaywrightPreview(params: {
           status: "retry",
           screenshotRef,
           notes: `Playwright retry after error: ${error instanceof Error ? error.message : String(error)}`,
+          observation: null,
         });
         try {
-          if (action.type === "wait" || action.type === "verify") {
-            await page.waitForTimeout(250);
-          } else if (action.type === "scroll") {
-            await page.evaluate(() => {
-              window.scrollBy(0, Math.floor(window.innerHeight * 0.4));
-            });
-          } else {
-            await page.waitForTimeout(250);
-          }
+          await page.waitForTimeout(250);
+          const retryObservation = await runAction(action);
           trace.push({
             index: stepIndex,
             actionId: action.id,
@@ -2289,6 +2526,7 @@ async function executeWithPlaywrightPreview(params: {
             status: "ok",
             screenshotRef: `${params.screenshotSeed}/playwright-step-${stepIndex}-retry.png`,
             notes: "Retry passed in playwright preview mode.",
+            observation: retryObservation,
           });
         } catch (retryError) {
           trace.push({
@@ -2299,6 +2537,7 @@ async function executeWithPlaywrightPreview(params: {
             status: "failed",
             screenshotRef: `${params.screenshotSeed}/playwright-step-${stepIndex}-retry.png`,
             notes: `Retry failed: ${retryError instanceof Error ? retryError.message : String(retryError)}`,
+            observation: null,
           });
           finalStatus = "failed";
           break;
@@ -2458,6 +2697,80 @@ async function executeActionPlan(params: {
   });
 }
 
+async function submitBrowserWorkerJob(params: {
+  config: PlannerConfig;
+  input: UiTaskInput;
+  actions: UiAction[];
+  request: OrchestratorRequest;
+  runId: string;
+  routing: DeviceNodeResolution;
+}): Promise<{ job: Record<string, unknown>; runtime: Record<string, unknown> | null }> {
+  if (!params.routing.executorUrl) {
+    throw new Error("background browser worker requires repo-owned executorUrl");
+  }
+
+  const endpoint = `${params.routing.executorUrl.replace(/\/+$/, "")}/browser-jobs`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), params.config.executorTimeoutMs);
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(params.routing.selectedNode ? { "x-device-node-id": params.routing.selectedNode.nodeId } : {}),
+      },
+      body: JSON.stringify({
+        sessionId: params.request.sessionId,
+        runId: params.runId,
+        taskId:
+          isRecord(params.request.payload) && isRecord(params.request.payload.task)
+            ? toNullableString(params.request.payload.task.taskId)
+            : null,
+        actions: params.actions,
+        context: {
+          screenshotRef: params.input.screenshotRef,
+          domSnapshot: params.input.domSnapshot,
+          accessibilityTree: params.input.accessibilityTree,
+          markHints: params.input.markHints,
+          cursor: params.input.cursor,
+          goal: params.input.goal,
+          url: params.input.url,
+          deviceNodeId: params.routing.selectedNode?.nodeId ?? params.input.deviceNodeId,
+        },
+        options: {
+          label: params.input.browserWorker.label ?? params.input.goal,
+          reason: "ui_navigator_background_browser_worker",
+          checkpointEverySteps: params.input.browserWorker.checkpointEverySteps,
+          pauseAfterStep: params.input.browserWorker.pauseAfterStep,
+        },
+      }),
+      signal: controller.signal,
+    });
+
+    const parsed = (await response.json()) as unknown;
+    if (!response.ok) {
+      if (isRecord(parsed) && typeof parsed.error === "string") {
+        throw new Error(parsed.error);
+      }
+      throw new Error(`background browser worker failed with ${response.status}`);
+    }
+    if (!isRecord(parsed) || !isRecord(parsed.data) || !isRecord(parsed.data.job)) {
+      throw new Error("background browser worker returned invalid payload");
+    }
+    return {
+      job: parsed.data.job,
+      runtime: isRecord(parsed.data.runtime) ? parsed.data.runtime : null,
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`background browser worker timed out after ${params.config.executorTimeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function buildApprovalCategories(signals: string[]): string[] {
   const categories = new Set<string>();
   for (const signal of signals) {
@@ -2472,6 +2785,326 @@ function buildApprovalCategories(signals: string[]): string[] {
     }
   }
   return Array.from(categories);
+}
+
+function compactUiTaskDisplayText(value: string, maxLength = 72): string {
+  const normalized = toNonEmptyString(value, "").replace(/\s+/g, " ");
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+  return `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}...`;
+}
+
+function humanizeUiTaskTarget(target: string): string {
+  const normalized = toNonEmptyString(target, "UI target");
+  if (normalized.startsWith("css:")) {
+    const selector = normalized.slice(4).toLowerCase();
+    if (selector.includes("table") || selector.includes('[role="table"]') || selector.includes('[role="grid"]')) {
+      return "a table or grid";
+    }
+    if (selector.includes("button") || selector.includes('[role="button"]')) {
+      return "a button";
+    }
+    if (selector.includes("form") || selector.includes("input") || selector.includes("textarea")) {
+      return "a form or input field";
+    }
+    if (selector.includes("dialog") || selector.includes('[role="dialog"]') || selector.includes("[aria-modal")) {
+      return "a dialog";
+    }
+    if (selector.includes("h1") || selector.includes("h2") || selector.includes('[role="heading"]')) {
+      return "a page heading";
+    }
+    return "a UI element matched by the selector";
+  }
+  if (normalized === "initial-screen") {
+    return "the initial screen";
+  }
+  if (normalized === "post-action-screen") {
+    return "the resulting screen";
+  }
+  if (normalized === "main-content") {
+    return "the main content";
+  }
+  if (/^https?:\/\//i.test(normalized)) {
+    return normalized;
+  }
+  return compactUiTaskDisplayText(
+    normalized
+      .replace(/\s+\(retry\)$/i, "")
+      .replace(/^(field|button|page|dialog|section|table):/i, "$1 ")
+      .replace(/[._-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim(),
+    64,
+  );
+}
+
+function describeUiStepForDisplay(
+  type: UiAction["type"],
+  targetValue: string,
+  textValue: string | null = null,
+): string {
+  const target = humanizeUiTaskTarget(targetValue);
+  switch (type) {
+    case "navigate":
+      return `open ${target}`;
+    case "click":
+      return `click ${target}`;
+    case "type": {
+      const typedText = toNullableString(textValue);
+      return typedText
+        ? `enter "${compactUiTaskDisplayText(typedText, 24)}" in ${target}`
+        : `type in ${target}`;
+    }
+    case "scroll":
+      return target === "the main content" ? "scroll the page" : `scroll ${target}`;
+    case "hotkey":
+      return `press ${target}`;
+    case "wait":
+      return `wait for ${target}`;
+    case "verify":
+    default:
+      return `check ${target}`;
+  }
+}
+
+function describeUiActionForDisplay(action: UiAction): string {
+  return describeUiStepForDisplay(action.type, action.target, action.text ?? null);
+}
+
+function buildUiTaskStepPreview(actions: UiAction[], limit = 3): string {
+  if (actions.length === 0) {
+    return "";
+  }
+  const preview = actions
+    .slice(0, limit)
+    .map((action, index) => `${index + 1}. ${describeUiActionForDisplay(action)}`);
+  const remaining = actions.length - preview.length;
+  return remaining > 0
+    ? `Planned steps: ${preview.join("; ")}; + ${remaining} more.`
+    : `${actions.length === 1 ? "Planned step" : "Planned steps"}: ${preview.join("; ")}.`;
+}
+
+function buildUiTaskExecutionPreview(trace: UiTraceStep[], limit = 3): string {
+  if (trace.length === 0) {
+    return "";
+  }
+  const canonicalSteps = new Map<number, UiTraceStep>();
+  for (const step of trace) {
+    const current = canonicalSteps.get(step.index);
+    if (!current) {
+      canonicalSteps.set(step.index, step);
+      continue;
+    }
+    if (current.status === "retry" && step.status !== "retry") {
+      canonicalSteps.set(step.index, step);
+      continue;
+    }
+    if (step.status === "failed") {
+      canonicalSteps.set(step.index, step);
+    }
+  }
+
+  const steps = Array.from(canonicalSteps.values())
+    .sort((left, right) => left.index - right.index)
+    .slice(0, limit);
+  if (steps.length === 0) {
+    return "";
+  }
+
+  const preview = steps.map((step, index) => {
+    const description = describeUiStepForDisplay(step.actionType, step.target);
+    return `${index + 1}. ${step.status === "failed" ? `failed to ${description}` : description}`;
+  });
+  const remaining = canonicalSteps.size - steps.length;
+  return remaining > 0
+    ? `Executed steps: ${preview.join("; ")}; + ${remaining} more.`
+    : `${canonicalSteps.size === 1 ? "Executed step" : "Executed steps"}: ${preview.join("; ")}.`;
+}
+
+function humanizeUiObservation(observation: string): string | null {
+  const normalized = toNonEmptyString(observation, "");
+  if (!normalized) {
+    return null;
+  }
+
+  const tableMatch = /^table rows=(\d+)$/i.exec(normalized);
+  if (tableMatch) {
+    const rowCount = Number(tableMatch[1]);
+    if (Number.isFinite(rowCount)) {
+      return `Observed a table or grid with ${Math.max(0, Math.floor(rowCount))} visible rows.`;
+    }
+  }
+
+  const buttonsMatch = /^buttons=(.*)$/i.exec(normalized);
+  if (buttonsMatch) {
+    const labels = buttonsMatch[1]
+      .split("|")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0)
+      .slice(0, 3);
+    if (labels.length > 0) {
+      return `Observed action buttons: ${labels.join("; ")}.`;
+    }
+  }
+
+  const submitStateMatch = /^submit state=(disabled|enabled)$/i.exec(normalized);
+  if (submitStateMatch) {
+    return submitStateMatch[1].toLowerCase() === "disabled"
+      ? "Observed the Submit button disabled before email entry."
+      : "Observed the Submit button enabled after email entry.";
+  }
+
+  const headingsMatch = /^headings=(.*)$/i.exec(normalized);
+  if (headingsMatch) {
+    const labels = headingsMatch[1]
+      .split("|")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0)
+      .slice(0, 2);
+    if (labels.length > 0) {
+      return `Observed heading: ${labels.join("; ")}.`;
+    }
+  }
+
+  return null;
+}
+
+function buildUiTaskObservationPreview(trace: UiTraceStep[], limit = 3): string {
+  const previews: string[] = [];
+  const seen = new Set<string>();
+  for (const step of trace) {
+    if (step.status !== "ok" || typeof step.observation !== "string") {
+      continue;
+    }
+    const preview = humanizeUiObservation(step.observation);
+    if (!preview || seen.has(preview)) {
+      continue;
+    }
+    seen.add(preview);
+    previews.push(preview);
+    if (previews.length >= limit) {
+      break;
+    }
+  }
+  return previews.join(" ");
+}
+
+function extractSafeNextActionLabel(trace: UiTraceStep[]): string | null {
+  const blockedPattern = /\b(delete|remove|submit|purchase|pay|transfer|wire|cancel|destroy|drop)\b/i;
+  for (const step of trace) {
+    if (step.status !== "ok" || typeof step.observation !== "string") {
+      continue;
+    }
+    const match = /^buttons=(.*)$/i.exec(step.observation);
+    if (!match) {
+      continue;
+    }
+    const labels = match[1]
+      .split("|")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+    const safeLabel = labels.find((label) => !blockedPattern.test(label));
+    if (safeLabel) {
+      return compactUiTaskDisplayText(safeLabel, 80);
+    }
+  }
+  return null;
+}
+
+function isGenericVerificationOnlyPlan(actions: UiAction[]): boolean {
+  return (
+    actions.length === 1 &&
+    actions[0]?.type === "verify" &&
+    (actions[0].target === "post-action-screen" || actions[0].target === "initial-screen")
+  );
+}
+
+function buildUiTaskDisplayText(params: {
+  input: UiTaskInput;
+  actions: UiAction[];
+  execution: ExecutionResult;
+  overallStatus: "completed" | "failed";
+}): string {
+  const parts: string[] = [];
+  const noGrounding =
+    params.input.url === null &&
+    params.input.screenshotRef === null &&
+    params.input.domSnapshot === null &&
+    params.input.accessibilityTree === null &&
+    params.input.markHints.length === 0;
+  const genericVerificationOnly = isGenericVerificationOnlyPlan(params.actions);
+  const executionPreview = buildUiTaskExecutionPreview(params.execution.trace);
+  const observationPreview = buildUiTaskObservationPreview(params.execution.trace);
+  const safeNextAction = extractSafeNextActionLabel(params.execution.trace);
+  const stepPreview = buildUiTaskStepPreview(params.actions);
+
+  if (params.overallStatus === "completed") {
+    if (params.execution.adapterMode === "simulated") {
+      parts.push("UI task finished in simulation mode. No real browser actions were performed.");
+    } else if (params.execution.adapterMode === "playwright_preview") {
+      parts.push("UI task finished in a separate test browser. This page did not visibly change.");
+    } else {
+      parts.push("UI task finished in a separate test browser. This page did not visibly change.");
+    }
+
+    if (params.execution.deviceNode?.displayName) {
+      parts.push(`Execution target: ${params.execution.deviceNode.displayName}.`);
+    }
+
+    if (params.input.url) {
+      parts.push(`Target page: ${params.input.url}.`);
+    } else if (genericVerificationOnly && noGrounding) {
+      parts.push(
+        "I couldn't open a specific page because you didn't provide a page link or page details.",
+      );
+      parts.push("So I only ran a generic check and did not verify your real page yet.");
+    }
+
+    if (executionPreview && !(genericVerificationOnly && noGrounding)) {
+      parts.push(executionPreview);
+    } else if (stepPreview && !(genericVerificationOnly && noGrounding)) {
+      parts.push(stepPreview);
+    }
+
+    if (observationPreview) {
+      parts.push(observationPreview);
+    }
+
+    if (safeNextAction) {
+      parts.push(`Safe next action: "${safeNextAction}".`);
+    }
+
+    if (params.execution.retries > 0) {
+      parts.push(`Retries used: ${params.execution.retries}.`);
+    }
+
+    if (params.execution.adapterMode === "simulated") {
+      parts.push(
+        noGrounding
+          ? "Next time, add the page link on the left if you want a real page check."
+          : "Switch to a real executor if you want visible browser actions instead of a dry run.",
+      );
+    } else if (genericVerificationOnly && noGrounding) {
+      parts.push("Add the page link on the left and run it again.");
+    }
+
+    return parts.join(" ");
+  }
+
+  parts.push("UI task failed before it produced a reliable UI result.");
+  if (params.execution.adapterMode !== "simulated") {
+    parts.push("The run happened in a separate test browser, so this page stayed unchanged.");
+  }
+  if (executionPreview) {
+    parts.push(executionPreview);
+  } else if (stepPreview) {
+    parts.push(stepPreview);
+  }
+  if (observationPreview) {
+    parts.push(observationPreview);
+  }
+  return parts.join(" ");
 }
 
 function inferVisualCategory(assertion: string): VisualCategory {
@@ -3292,6 +3925,146 @@ export async function runUiNavigatorAgent(
       });
     }
 
+    if (input.browserWorker.enabled) {
+      try {
+        const submission = await submitBrowserWorkerJob({
+          config: executionConfig,
+          input,
+          actions,
+          request,
+          runId,
+          routing: deviceNodeRouting,
+        });
+        const job = submission.job;
+        const jobStatus = toNonEmptyString(job.status, "queued") ?? "queued";
+        const jobId = toNonEmptyString(job.jobId);
+        const jobExecutedSteps = toNonNegativeInt(job.executedSteps) ?? 0;
+        const jobTotalSteps = toNonNegativeInt(job.totalSteps) ?? actions.length;
+        const checkpoints = Array.isArray(job.checkpoints) ? job.checkpoints : [];
+        const latestCheckpoint =
+          checkpoints.length > 0 && isRecord(checkpoints[checkpoints.length - 1]) ? checkpoints[checkpoints.length - 1] : null;
+
+        return createEnvelopeWithUsage({
+          userId: request.userId,
+          sessionId: request.sessionId,
+          runId,
+          type: "orchestrator.response",
+          source: "ui-navigator-agent",
+          payload: {
+            route: "ui-navigator-agent",
+            status: "completed",
+            traceId,
+            output: {
+              message: `UI task was staged as a background browser worker (${jobId ?? "pending job"}).`,
+              handledIntent: request.payload.intent,
+              traceId,
+              latencyMs: Date.now() - startedAt,
+              approvalRequired: false,
+              planner: {
+                provider: planResult.plannerProvider,
+                model: planResult.plannerModel,
+              },
+              sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+              damageControl: buildDamageControlPayload(damageControl),
+              capabilityProfile: capabilities.profile,
+              skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
+              deviceNodeRouting,
+              actionPlan: actions,
+              execution: {
+                finalStatus: "background_submitted",
+                retries: 0,
+                trace: [],
+                verifyLoopEnabled: true,
+                sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+                executor: "repo-owned-browser-worker",
+                adapterMode: "remote_http",
+                adapterNotes: [
+                  `background browser worker jobId=${jobId ?? "unknown"}`,
+                  `checkpointEverySteps=${input.browserWorker.checkpointEverySteps ?? "none"}`,
+                  `pauseAfterStep=${input.browserWorker.pauseAfterStep ?? "none"}`,
+                ],
+                deviceNode: deviceNodeRouting.selectedNode
+                  ? {
+                      nodeId: deviceNodeRouting.selectedNode.nodeId,
+                      displayName: deviceNodeRouting.selectedNode.displayName,
+                      kind: deviceNodeRouting.selectedNode.kind,
+                      platform: deviceNodeRouting.selectedNode.platform,
+                      status: deviceNodeRouting.selectedNode.status,
+                    }
+                  : null,
+                computerUseProfile: capabilities.computerUse.descriptor.adapterId,
+              },
+              browserWorker: {
+                enabled: true,
+                jobId,
+                status: jobStatus,
+                executedSteps: jobExecutedSteps,
+                totalSteps: jobTotalSteps,
+                checkpointEverySteps: input.browserWorker.checkpointEverySteps,
+                pauseAfterStep: input.browserWorker.pauseAfterStep,
+                latestCheckpoint: latestCheckpoint
+                  ? {
+                      checkpointId: toNonEmptyString(latestCheckpoint.checkpointId),
+                      stepIndex: toNonNegativeInt(latestCheckpoint.stepIndex),
+                      status: toNonEmptyString(latestCheckpoint.status),
+                      artifactRef: toNonEmptyString(latestCheckpoint.artifactRef),
+                    }
+                  : null,
+                runtime: submission.runtime,
+                operatorControl: {
+                  apiListPath: "/v1/runtime/browser-jobs",
+                  apiDetailPath: jobId ? `/v1/runtime/browser-jobs/${jobId}` : null,
+                  resumePath: jobId ? `/v1/runtime/browser-jobs/${jobId}/resume` : null,
+                  cancelPath: jobId ? `/v1/runtime/browser-jobs/${jobId}/cancel` : null,
+                },
+              },
+            },
+          },
+        });
+      } catch (error) {
+        return createEnvelopeWithUsage({
+          userId: request.userId,
+          sessionId: request.sessionId,
+          runId,
+          type: "orchestrator.response",
+          source: "ui-navigator-agent",
+          payload: {
+            route: "ui-navigator-agent",
+            status: "failed",
+            traceId,
+            output: {
+              message: `Background browser worker submission failed: ${error instanceof Error ? error.message : String(error)}`,
+              handledIntent: request.payload.intent,
+              traceId,
+              latencyMs: Date.now() - startedAt,
+              approvalRequired: false,
+              planner: {
+                provider: planResult.plannerProvider,
+                model: planResult.plannerModel,
+              },
+              sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
+              damageControl: buildDamageControlPayload(damageControl),
+              capabilityProfile: capabilities.profile,
+              skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
+              deviceNodeRouting,
+              actionPlan: actions,
+              browserWorker: {
+                enabled: true,
+                error: error instanceof Error ? error.message : String(error),
+              },
+              execution: {
+                finalStatus: "failed_background_submission",
+                retries: 0,
+                trace: [],
+                verifyLoopEnabled: true,
+                sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+              },
+            },
+          },
+        });
+      }
+    }
+
     const screenshotSeed = input.screenshotRef ?? `ui://trace/${runId}`;
     const execution = await executeActionPlan({
       config: executionConfig,
@@ -3321,6 +4094,12 @@ export async function runUiNavigatorAgent(
     const loopProtectionSummary = runtimeLoop.detected
       ? ` Loop protection triggered at trace step ${runtimeLoop.atIndex ?? "unknown"} (duplicateCount=${runtimeLoop.duplicateCount}).`
       : "";
+    const displayText = buildUiTaskDisplayText({
+      input,
+      actions,
+      execution,
+      overallStatus,
+    });
 
     return createEnvelopeWithUsage({
       userId: request.userId,
@@ -3333,6 +4112,7 @@ export async function runUiNavigatorAgent(
         status: overallStatus,
         traceId,
         output: {
+          text: displayText,
           message:
             overallStatus === "completed"
               ? `UI task completed with ${actions.length} planned steps and ${execution.retries} retries.${visualTestingSummary}`

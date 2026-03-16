@@ -1,4 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { resolveCredentialValue } from "@mla/skills";
 import type {
   ManagedSkillPluginManifest,
   ManagedSkillPluginPermission,
@@ -102,6 +103,19 @@ export function parseSkillPluginSigningKeys(raw: string | undefined | null): {
       configError: "SKILL_PLUGIN_SIGNING_KEYS_JSON is not valid JSON",
     };
   }
+}
+
+export function resolveSkillPluginSigningKeysRaw(
+  env: NodeJS.ProcessEnv = process.env,
+  cwd = process.cwd(),
+): string | null {
+  return resolveCredentialValue({
+    namespace: "api.skill_plugin.signing_keys",
+    directValue: env.SKILL_PLUGIN_SIGNING_KEYS_JSON,
+    credentialName: env.SKILL_PLUGIN_SIGNING_KEYS_CREDENTIAL,
+    env,
+    cwd,
+  }).value;
 }
 
 type SkillPluginManifestValidationInput = {
@@ -309,4 +323,3 @@ export function normalizeSkillPluginManifest(
     },
   };
 }
-

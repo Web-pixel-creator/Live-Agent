@@ -7,7 +7,7 @@ Create one reproducible visual bundle for judges:
 1. Screenshot checklist status (present/missing).
 2. Critical badge-evidence lane status (`pass/fail/unavailable`), including runtime guardrails and provider provenance.
 3. Single manifest for quick go/no-go before submission.
-4. One-page presentation bundle with runtime guardrails snapshot, provider adapter snapshot, and compact deploy/publish provenance when optional Railway/repo-publish artifacts are available.
+4. One-page presentation bundle with runtime guardrails snapshot, provider adapter snapshot, and compact deploy/publish provenance when GCP Cloud Run / runtime-proof artifacts or optional Railway/repo-publish artifacts are available.
 
 ## Commands
 
@@ -77,9 +77,12 @@ Defaults used by `scripts/judge-visual-evidence-pack.mjs`:
 
 1. Badge details: `artifacts/demo-e2e/badge-details.json`
 2. Demo summary: `artifacts/demo-e2e/summary.json`
-3. Optional Railway deploy summary: `artifacts/deploy/railway-deploy-summary.json`
-4. Optional repo publish summary: `artifacts/deploy/repo-publish-summary.json`
-5. Screenshot directory: `artifacts/judge-visual-evidence/screenshots`
+3. Optional GCP Cloud Run summary: `artifacts/deploy/gcp-cloud-run-summary.json`
+4. Optional GCP runtime proof: `artifacts/release-evidence/gcp-runtime-proof.json`
+5. Optional submission refresh status: `artifacts/release-evidence/submission-refresh-status.json`
+6. Optional Railway deploy summary: `artifacts/deploy/railway-deploy-summary.json`
+7. Optional repo publish summary: `artifacts/deploy/repo-publish-summary.json`
+8. Screenshot directory: `artifacts/judge-visual-evidence/screenshots`
 
 Defaults used by `scripts/judge-visual-capture.mjs`:
 
@@ -97,7 +100,9 @@ Defaults used by `scripts/judge-visual-capture.mjs`:
 5. `artifacts/judge-visual-evidence/presentation.md`
 6. `artifacts/demo-e2e/epic-summary.json`
 
-`manifest.md` and `presentation.md` surface compact deploy/publish provenance from `railway-deploy-summary.json` / `repo-publish-summary.json` when those optional files are present. Ordinary local judge flows omit that section instead of filling the page with `unavailable` placeholders, and raw deploy/publish JSON is not embedded into the judge-facing markdown.
+`manifest.md` and `presentation.md` surface compact deploy/publish provenance from `gcp-cloud-run-summary.json`, `gcp-runtime-proof.json`, `submission-refresh-status.json`, `railway-deploy-summary.json`, and `repo-publish-summary.json` when those optional files are present. Ordinary local judge flows omit optional provenance instead of filling the page with `unavailable` placeholders, and raw deploy/publish JSON is not embedded into the judge-facing markdown.
+
+The same generated markdown now also carries a submission follow-up block for the judged refresh gate and the post-deploy refresh wrapper state: `liveApiEnabled=true`, `translationProvider=not_fallback`, `storytellerMediaMode=not_simulated`, `uiExecutorForceSimulation=false`, plus the latest `submission-refresh-status.md` status/blocker summary.
 
 ## Required Screenshot Filenames
 

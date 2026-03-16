@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "updatedAt": "2026-03-06T00:00:00.000Z",
+  "personas": [
+    {
+      "id": "live-negotiator",
+      "name": "Live Negotiator",
+      "description": "Realtime judge-demo persona focused on interruption-safe negotiation, translation handoff, and KPI-aware offers.",
+      "agentIds": ["live-agent"],
+      "recommendedSkillIds": [],
+      "tags": ["judge-demo", "live", "negotiation"],
+      "defaultIntent": "conversation",
+      "defaultRecipeId": "live-negotiation-judge-demo"
+    },
+    {
+      "id": "story-director",
+      "name": "Story Director",
+      "description": "Creative storyteller persona for fast Hook -> Conflict -> Resolution narratives with multimodal asset planning.",
+      "agentIds": ["storyteller-agent"],
+      "recommendedSkillIds": [],
+      "tags": ["judge-demo", "story", "creative"],
+      "defaultIntent": "story",
+      "defaultRecipeId": "story-hook-conflict-resolution"
+    },
+    {
+      "id": "ui-operator",
+      "name": "UI Operator",
+      "description": "UI navigation persona for approval-aware screen automation, replayable execution, and sandbox-safe recovery.",
+      "agentIds": ["ui-navigator-agent"],
+      "recommendedSkillIds": [],
+      "tags": ["judge-demo", "ui", "ops"],
+      "defaultIntent": "ui_task",
+      "defaultRecipeId": "ui-sandbox-form-review"
+    },
+    {
+      "id": "calendar-automation-publisher",
+      "name": "Calendar Automation Publisher",
+      "description": "Managed-skill and plugin-marketplace persona for calendar workflows, signing demos, and install/resolve validation.",
+      "agentIds": ["live-agent", "ui-navigator-agent"],
+      "recommendedSkillIds": ["calendar-assistant", "calendar-managed-demo"],
+      "tags": ["skills", "plugin-marketplace", "calendar"],
+      "defaultIntent": "conversation",
+      "defaultRecipeId": "calendar-managed-skill-lifecycle"
+    }
+  ],
+  "recipes": [
+    {
+      "id": "live-negotiation-judge-demo",
+      "personaId": "live-negotiator",
+      "name": "Live Negotiation Judge Demo",
+      "description": "Show realtime negotiation with explicit constraints, interruption handling, and a fallback offer.",
+      "agentId": "live-agent",
+      "intent": "conversation",
+      "promptTemplate": "Negotiate a delivery contract with hard constraints on price, delivery, and SLA. Restate the constraints first, keep the exchange concise, and finish with a primary offer plus one fallback option.",
+      "recommendedSkillIds": [],
+      "tags": ["judge-demo", "live", "kpi"],
+      "judgeCategory": "live_agent"
+    },
+    {
+      "id": "story-hook-conflict-resolution",
+      "personaId": "story-director",
+      "name": "Story Hook Conflict Resolution",
+      "description": "Generate a short narrative with a clear hook, conflict, and resolution lane for timeline preview.",
+      "agentId": "storyteller-agent",
+      "intent": "story",
+      "promptTemplate": "Create a short three-part story arc with a memorable hook, a visible conflict, and a satisfying resolution. Include image, audio, and video-friendly moments for each segment.",
+      "recommendedSkillIds": [],
+      "tags": ["judge-demo", "story", "timeline"],
+      "judgeCategory": "creative_storyteller"
+    },
+    {
+      "id": "ui-sandbox-form-review",
+      "personaId": "ui-operator",
+      "name": "UI Sandbox Form Review",
+      "description": "Run a sandbox-safe form inspection flow with approval gates and concise execution notes.",
+      "agentId": "ui-navigator-agent",
+      "intent": "ui_task",
+      "promptTemplate": "Inspect a web form, summarize the intended clicks and typed fields before execution, and stop for approval before any submit action. Prefer sandbox-safe read/preview steps first.",
+      "recommendedSkillIds": [],
+      "tags": ["judge-demo", "ui", "approval"],
+      "judgeCategory": "ui_navigator"
+    },
+    {
+      "id": "calendar-managed-skill-lifecycle",
+      "personaId": "calendar-automation-publisher",
+      "name": "Calendar Managed Skill Lifecycle",
+      "description": "Validate signed managed-skill publish, install, and resolve lanes using the calendar sample skill.",
+      "agentId": "live-agent",
+      "intent": "conversation",
+      "promptTemplate": "Use the calendar automation flow to validate managed skill registry lifecycle, plugin signing, installation resolve state, and operator evidence lanes.",
+      "recommendedSkillIds": ["calendar-assistant", "calendar-managed-demo"],
+      "tags": ["skills", "registry", "plugin-marketplace"],
+      "judgeCategory": "live_agent"
+    }
+  ]
+}

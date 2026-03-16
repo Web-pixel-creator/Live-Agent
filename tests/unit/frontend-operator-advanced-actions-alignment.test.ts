@@ -21,6 +21,7 @@ test("operator console keeps secondary controls in collapsed advanced actions se
     'class="operator-advanced-actions"',
     "Advanced Actions",
     'class="operator-advanced-actions-hint"',
+    "Rare retry and failover controls.",
     'class="actions operator-advanced-actions-row"',
     'id="operatorRetryBtn"',
     'id="operatorDrainBtn"',
@@ -43,6 +44,7 @@ test("operator console keeps secondary controls in collapsed advanced actions se
     ".operator-advanced-actions {",
     ".operator-advanced-actions > summary {",
     ".operator-advanced-actions[open] > summary::after {",
+    ".panel-operator-console .operator-advanced-actions:not([open]) > summary {",
     ".operator-advanced-actions-row {",
   ];
   for (const token of requiredStyleTokens) {
@@ -56,5 +58,13 @@ test("operator console keeps secondary controls in collapsed advanced actions se
   assert.ok(
     operatorGuideSource.includes("Secondary controls are under collapsed `Advanced Actions`"),
     "operator guide missing operator advanced actions note",
+  );
+  assert.ok(
+    readmeSource.includes("quiet utility-toggle shell"),
+    "README missing advanced actions utility-toggle note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("quiet utility-toggle shell"),
+    "operator guide missing advanced actions utility-toggle note",
   );
 });

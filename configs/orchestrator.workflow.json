@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "idempotency": {
+    "ttlMs": 120000
+  },
+  "assistiveRouter": {
+    "enabled": false,
+    "provider": "gemini_api",
+    "model": "gemini-3-flash",
+    "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+    "timeoutMs": 2500,
+    "minConfidence": 0.75,
+    "allowIntents": ["conversation", "translation", "negotiation", "research"],
+    "budgetPolicy": "judged_default",
+    "promptCaching": "none",
+    "watchlistEnabled": false
+  },
+  "retryPolicy": {
+    "continuationStatusCode": 503,
+    "continuationBackoffMs": 1200,
+    "transientErrorCodes": [
+      "abort_error",
+      "etimedout",
+      "econnreset",
+      "econnrefused",
+      "eai_again",
+      "rate_limit",
+      "service_unavailable",
+      "unavailable",
+      "upstream_unavailable"
+    ],
+    "transientErrorPatterns": [
+      "timed out",
+      "timeout",
+      "rate limit",
+      "temporarily unavailable",
+      "service unavailable",
+      "fetch failed",
+      "econnreset",
+      "econnrefused",
+      "eai_again",
+      "503",
+      "502",
+      "504",
+      "429"
+    ],
+    "terminalErrorCodes": [
+      "invalid_argument",
+      "invalid_payload",
+      "syntax_error",
+      "forbidden",
+      "unauthorized",
+      "not_found"
+    ],
+    "terminalErrorPatterns": [
+      "invalid payload",
+      "invalid json",
+      "syntaxerror",
+      "unsupported",
+      "forbidden",
+      "permission denied",
+      "unauthorized",
+      "not found"
+    ]
+  }
+}

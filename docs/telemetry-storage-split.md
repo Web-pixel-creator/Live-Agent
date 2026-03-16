@@ -32,6 +32,8 @@ Services (`realtime-gateway`, `api-backend`, `orchestrator`) now emit:
    - entries / hit_rate_pct / hits_total / misses_total / evictions_total / invalidations_total
    - scope-level distribution (`storyteller.cache.scope_entries`, labels: `scope=plan|branch|asset`)
 
+`ui-executor` does not emit the same analytics stdout stream today; instead it exposes the same split/config posture in its runtime lifecycle summary so release/demo gates can still count four analytics-aware runtime services.
+
 Runtime gate alignment:
 
 1. `runtime.lifecycle.endpoints` validates telemetry split targets and BigQuery config for all runtime services:

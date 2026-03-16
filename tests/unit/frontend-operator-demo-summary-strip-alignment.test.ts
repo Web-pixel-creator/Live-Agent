@@ -31,6 +31,7 @@ test("operator console exposes demo summary strip with mirrored status pills and
     'id="operatorDemoSummaryUiExecutorKpi"',
     'id="operatorDemoSummaryDeviceNodesKpi"',
     'class="operator-demo-summary-card operator-signal-jump"',
+    'class="operator-demo-summary-ledger"',
     'class="operator-demo-summary-kpi-token operator-demo-summary-kpi-fail"',
     'class="operator-demo-summary-kpi-token operator-demo-summary-kpi-neutral"',
     'class="operator-demo-summary-kpi-token operator-demo-summary-kpi-ok"',
@@ -89,6 +90,8 @@ test("operator console exposes demo summary strip with mirrored status pills and
     ".operator-demo-summary-strip {",
     ".operator-demo-summary-strip.is-hidden {",
     ".operator-demo-summary-card {",
+    ".operator-demo-summary-ledger {",
+    "grid-template-columns: minmax(0, 1fr) auto;",
     ".operator-demo-summary-title {",
     ".operator-demo-summary-kpi {",
     ".operator-demo-summary-kpi-token {",
@@ -98,6 +101,7 @@ test("operator console exposes demo summary strip with mirrored status pills and
     ".operator-demo-summary-kpi.is-updated .operator-demo-summary-kpi-token {",
     "@keyframes operatorDemoSummaryKpiPulse {",
     ".operator-demo-summary-copy {",
+    "-webkit-line-clamp: 2;",
     ".operator-board-mode-hint {",
     "color: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));",
     ".operator-mode-copy {",
@@ -121,6 +125,10 @@ test("operator console exposes demo summary strip with mirrored status pills and
     "README missing operator demo-summary mini-kpi note",
   );
   assert.ok(
+    readmeSource.includes("short health ledger"),
+    "README missing operator demo-summary ledger note",
+  );
+  assert.ok(
     readmeSource.includes("Operator Console secondary copy"),
     "README missing operator secondary copy contrast note",
   );
@@ -131,6 +139,10 @@ test("operator console exposes demo summary strip with mirrored status pills and
   assert.ok(
     operatorGuideSource.includes("mini-KPI"),
     "operator guide missing operator demo-summary mini-kpi note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("short health ledger"),
+    "operator guide missing operator demo-summary ledger note",
   );
   assert.ok(
     operatorGuideSource.includes("secondary operator copy"),

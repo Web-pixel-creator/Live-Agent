@@ -850,7 +850,11 @@ export class LiveApiBridge {
     const profile = this.getActiveAuthProfile();
     const apiKey = profile?.apiKey ?? this.config.liveApiApiKey;
     if (apiKey) {
-      headers.Authorization = `Bearer ${apiKey}`;
+      if (this.config.liveApiProtocol === "gemini") {
+        headers["x-goog-api-key"] = apiKey;
+      } else {
+        headers.Authorization = `Bearer ${apiKey}`;
+      }
     }
     const authHeader = profile?.authHeader ?? this.config.liveApiAuthHeader;
     const parsedHeader = parseHeaderSpec(authHeader);

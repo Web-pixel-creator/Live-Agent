@@ -523,8 +523,10 @@ jobs:
         run: |
           $jsonPath = "artifacts/release-evidence/report.json"
           $mdPath = "artifacts/release-evidence/report.md"
+          $manifestJsonPath = "artifacts/release-evidence/manifest.json"
+          $manifestMdPath = "artifacts/release-evidence/manifest.md"
           if (Test-Path "artifacts/demo-e2e/badge-details.json") {
-            powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-evidence-report.ps1 -BadgeDetailsPath "artifacts/demo-e2e/badge-details.json" -OutputJsonPath $jsonPath -OutputMarkdownPath $mdPath
+            powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-evidence-report.ps1 -BadgeDetailsPath "artifacts/demo-e2e/badge-details.json" -OutputJsonPath $jsonPath -OutputMarkdownPath $mdPath -OutputManifestJsonPath $manifestJsonPath -OutputManifestMarkdownPath $manifestMdPath
           } else {
             Write-Host "Badge details artifact not found; skipping release evidence report."
           }
@@ -538,22 +540,58 @@ jobs:
           } else {
             ("report_md_path=") | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           }
+          if (Test-Path $manifestJsonPath) {
+            ("report_manifest_json_path=" + $manifestJsonPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            ("report_manifest_json_path=") | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+          if (Test-Path $manifestMdPath) {
+            ("report_manifest_md_path=" + $manifestMdPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            ("report_manifest_md_path=") | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
 
       - name: Write Source Run Manifest
         id: write_manifest
         shell: powershell
         run: |
+          function Get-ObjectPropertyValue {
+            param(
+              [Parameter(Mandatory = $false)]
+              [object]$Object,
+              [Parameter(Mandatory = $true)]
+              [string]$Name
+            )
+
+            if ($null -eq $Object) {
+              return $null
+            }
+
+            $property = $Object.PSObject.Properties[$Name]
+            if ($null -eq $property) {
+              return $null
+            }
+
+            return $property.Value
+          }
+
           $manifestDir = "artifacts/release-artifact-revalidation"
           New-Item -Path $manifestDir -ItemType Directory -Force | Out-Null
           $manifestPath = Join-Path $manifestDir "source-run.json"
           $retryableStatusCodes = @(408, 429, 500, 502, 503, 504)
           $demoSummaryPath = "artifacts/demo-e2e/summary.json"
           $releaseEvidenceReportPath = "artifacts/release-evidence/report.json"
+          $railwayDeploySummaryPath = "artifacts/deploy/railway-deploy-summary.json"
+          $repoPublishSummaryPath = "artifacts/deploy/repo-publish-summary.json"
           $demoSummaryPresent = Test-Path $demoSummaryPath
           $releaseEvidenceReportPresent = Test-Path $releaseEvidenceReportPath
+          $railwayDeploySummaryPresent = Test-Path $railwayDeploySummaryPath
+          $repoPublishSummaryPresent = Test-Path $repoPublishSummaryPath
           $badgeDetailsPresent = $false
           $demoSummary = $null
           $releaseEvidenceReport = $null
+          $railwayDeploySummary = $null
+          $repoPublishSummary = $null
 
           if ($demoSummaryPresent) {
             try {
@@ -568,6 +606,22 @@ jobs:
               $releaseEvidenceReport = Get-Content $releaseEvidenceReportPath -Raw | ConvertFrom-Json
             } catch {
               Write-Host ("Failed to parse release evidence report for manifest evidence snapshot: " + $_.Exception.Message)
+            }
+          }
+
+          if ($railwayDeploySummaryPresent) {
+            try {
+              $railwayDeploySummary = Get-Content $railwayDeploySummaryPath -Raw | ConvertFrom-Json
+            } catch {
+              Write-Host ("Failed to parse railway deploy summary for manifest evidence snapshot: " + $_.Exception.Message)
+            }
+          }
+
+          if ($repoPublishSummaryPresent) {
+            try {
+              $repoPublishSummary = Get-Content $repoPublishSummaryPath -Raw | ConvertFrom-Json
+            } catch {
+              Write-Host ("Failed to parse repo publish summary for manifest evidence snapshot: " + $_.Exception.Message)
             }
           }
 
@@ -594,7 +648,53 @@ jobs:
           $badgeEvidencePluginMarketplaceStatus = "unavailable"
           $badgeEvidenceDeviceNodesStatus = "unavailable"
           $badgeEvidenceAgentUsageStatus = "unavailable"
+          $badgeEvidenceRuntimeGuardrailsSignalPathsStatus = "unavailable"
+          $badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = "unavailable"
+          $badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = 0
+          $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $null
+          $badgeEvidenceProviderUsageStatus = "unavailable"
+          $badgeEvidenceProviderUsageValidated = $false
+          $badgeEvidenceProviderUsageActiveSecondaryProviders = 0
+          $badgeEvidenceProviderUsageEntriesCount = 0
+          $badgeEvidenceProviderUsagePrimaryEntry = $null
           $badgeEvidenceDeviceNodeUpdatesStatus = "unavailable"
+          $railwayDeploySummaryStatus = "unavailable"
+          $railwayDeploySummaryDeploymentId = $null
+          $railwayDeploySummaryEffectivePublicUrl = $null
+          $railwayDeploySummaryBadgeEndpoint = $null
+          $railwayDeploySummaryBadgeDetailsEndpoint = $null
+          $railwayDeploySummaryProjectId = $null
+          $railwayDeploySummaryService = $null
+          $railwayDeploySummaryEnvironment = $null
+          $railwayDeploySummaryEffectiveStartCommand = $null
+          $railwayDeploySummaryConfigSource = $null
+          $railwayDeploySummaryRootDescriptorAttempted = $null
+          $railwayDeploySummaryRootDescriptorSkipped = $null
+          $railwayDeploySummaryRootDescriptorExpectedUiUrl = $null
+          $railwayDeploySummaryPublicBadgeAttempted = $null
+          $railwayDeploySummaryPublicBadgeSkipped = $null
+          $repoPublishSummaryBranch = $null
+          $repoPublishSummaryRemoteName = $null
+          $repoPublishSummaryVerificationScript = $null
+          $repoPublishSummaryVerificationSkipped = $null
+          $repoPublishSummaryVerificationStrict = $null
+          $repoPublishSummaryReleaseEvidenceValidated = $false
+          $repoPublishSummaryReleaseEvidenceArtifactsCount = $null
+          $repoPublishSummaryCommitEnabled = $null
+          $repoPublishSummaryPushEnabled = $null
+          $repoPublishSummaryPagesEnabled = $null
+          $repoPublishSummaryBadgeCheckEnabled = $null
+          $repoPublishSummaryRailwayDeployEnabled = $false
+          $repoPublishSummaryRailwayFrontendDeployEnabled = $false
+          $repoPublishSummaryRuntimeRailwayPublicUrl = $null
+          $repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl = $null
+          $repoPublishSummaryRuntimeRailwayNoWait = $null
+          $repoPublishSummaryRuntimeRailwayFrontendNoWait = $null
+          $repoPublishSummaryArtifactSelf = $null
+          $repoPublishSummaryArtifactRailwayDeploySummary = $null
+          $repoPublishSummaryArtifactReleaseEvidenceReportJson = $null
+          $repoPublishSummaryArtifactReleaseEvidenceManifestJson = $null
+          $repoPublishSummaryArtifactBadgeDetailsJson = $null
           $badgeEvidenceOperatorTurnTruncationStatus = "unavailable"
           $badgeEvidenceOperatorTurnDeleteStatus = "unavailable"
           if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.source -and $null -ne $releaseEvidenceReport.source.badgeDetailsPresent) {
@@ -625,8 +725,145 @@ jobs:
             if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.agentUsageStatus)) {
               $badgeEvidenceAgentUsageStatus = [string]$releaseEvidenceReport.statuses.agentUsageStatus
             }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.runtimeGuardrailsSignalPathsStatus)) {
+              $badgeEvidenceRuntimeGuardrailsSignalPathsStatus = [string]$releaseEvidenceReport.statuses.runtimeGuardrailsSignalPathsStatus
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.providerUsageStatus)) {
+              $badgeEvidenceProviderUsageStatus = [string]$releaseEvidenceReport.statuses.providerUsageStatus
+            }
             if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.deviceNodeUpdatesStatus)) {
               $badgeEvidenceDeviceNodeUpdatesStatus = [string]$releaseEvidenceReport.statuses.deviceNodeUpdatesStatus
+            }
+          }
+          if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.runtimeGuardrailsSignalPaths) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.runtimeGuardrailsSignalPaths.summaryStatus)) {
+              $badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = [string]$releaseEvidenceReport.runtimeGuardrailsSignalPaths.summaryStatus
+            }
+            if ($null -ne $releaseEvidenceReport.runtimeGuardrailsSignalPaths.totalPaths) {
+              $badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = $releaseEvidenceReport.runtimeGuardrailsSignalPaths.totalPaths
+            }
+            if ($null -ne $releaseEvidenceReport.runtimeGuardrailsSignalPaths.primaryPath) {
+              $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $releaseEvidenceReport.runtimeGuardrailsSignalPaths.primaryPath
+            }
+          }
+          if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.providerUsage) {
+            $badgeEvidenceProviderUsageValidated = ($releaseEvidenceReport.providerUsage.validated -eq $true)
+            if ($null -ne $releaseEvidenceReport.providerUsage.activeSecondaryProviders) {
+              $providerUsageActiveSecondaryProviders = 0
+              if ([int]::TryParse([string]$releaseEvidenceReport.providerUsage.activeSecondaryProviders, [ref]$providerUsageActiveSecondaryProviders) -and $providerUsageActiveSecondaryProviders -ge 0) {
+                $badgeEvidenceProviderUsageActiveSecondaryProviders = $providerUsageActiveSecondaryProviders
+              }
+            }
+            if ($null -ne $releaseEvidenceReport.providerUsage.entriesCount) {
+              $providerUsageEntriesCount = 0
+              if ([int]::TryParse([string]$releaseEvidenceReport.providerUsage.entriesCount, [ref]$providerUsageEntriesCount) -and $providerUsageEntriesCount -ge 0) {
+                $badgeEvidenceProviderUsageEntriesCount = $providerUsageEntriesCount
+              }
+            } elseif ($null -ne $releaseEvidenceReport.providerUsage.entries) {
+              $badgeEvidenceProviderUsageEntriesCount = @($releaseEvidenceReport.providerUsage.entries).Count
+            }
+            if ($null -ne $releaseEvidenceReport.providerUsage.primaryEntry) {
+              $badgeEvidenceProviderUsagePrimaryEntry = $releaseEvidenceReport.providerUsage.primaryEntry
+            }
+          }
+          if ($null -ne $railwayDeploySummary) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.status)) {
+              $railwayDeploySummaryStatus = [string]$railwayDeploySummary.status
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.deploymentId)) {
+              $railwayDeploySummaryDeploymentId = [string]$railwayDeploySummary.deploymentId
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.effectivePublicUrl)) {
+              $railwayDeploySummaryEffectivePublicUrl = [string]$railwayDeploySummary.effectivePublicUrl
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.projectId)) {
+              $railwayDeploySummaryProjectId = [string]$railwayDeploySummary.projectId
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.service)) {
+              $railwayDeploySummaryService = [string]$railwayDeploySummary.service
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.environment)) {
+              $railwayDeploySummaryEnvironment = [string]$railwayDeploySummary.environment
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.effectiveStartCommand)) {
+              $railwayDeploySummaryEffectiveStartCommand = [string]$railwayDeploySummary.effectiveStartCommand
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.configSource)) {
+              $railwayDeploySummaryConfigSource = [string]$railwayDeploySummary.configSource
+            }
+            $railwayRootDescriptorSummary = Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $railwayDeploySummary -Name "checks") -Name "rootDescriptor"
+            if ($null -ne $railwayRootDescriptorSummary) {
+              $railwayDeploySummaryRootDescriptorAttempted = Get-ObjectPropertyValue -Object $railwayRootDescriptorSummary -Name "attempted"
+              $railwayDeploySummaryRootDescriptorSkipped = Get-ObjectPropertyValue -Object $railwayRootDescriptorSummary -Name "skipped"
+              $railwayRootDescriptorExpectedUiUrl = [string](Get-ObjectPropertyValue -Object $railwayRootDescriptorSummary -Name "expectedUiUrl")
+              if (-not [string]::IsNullOrWhiteSpace($railwayRootDescriptorExpectedUiUrl)) {
+                $railwayDeploySummaryRootDescriptorExpectedUiUrl = $railwayRootDescriptorExpectedUiUrl
+              }
+            }
+            if ($null -ne $railwayDeploySummary.checks -and $null -ne $railwayDeploySummary.checks.publicBadge) {
+              $railwayDeploySummaryPublicBadgeAttempted = Get-ObjectPropertyValue -Object $railwayDeploySummary.checks.publicBadge -Name "attempted"
+              $railwayDeploySummaryPublicBadgeSkipped = Get-ObjectPropertyValue -Object $railwayDeploySummary.checks.publicBadge -Name "skipped"
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.checks.publicBadge.badgeEndpoint)) {
+                $railwayDeploySummaryBadgeEndpoint = [string]$railwayDeploySummary.checks.publicBadge.badgeEndpoint
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$railwayDeploySummary.checks.publicBadge.badgeDetailsEndpoint)) {
+                $railwayDeploySummaryBadgeDetailsEndpoint = [string]$railwayDeploySummary.checks.publicBadge.badgeDetailsEndpoint
+              }
+            }
+          }
+          if ($null -ne $repoPublishSummary) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.branch)) {
+              $repoPublishSummaryBranch = [string]$repoPublishSummary.branch
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.remoteName)) {
+              $repoPublishSummaryRemoteName = [string]$repoPublishSummary.remoteName
+            }
+            if ($null -ne $repoPublishSummary.verification) {
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.verification.script)) {
+                $repoPublishSummaryVerificationScript = [string]$repoPublishSummary.verification.script
+              }
+              $repoPublishSummaryVerificationSkipped = Get-ObjectPropertyValue -Object $repoPublishSummary.verification -Name "skipped"
+              $repoPublishSummaryVerificationStrict = Get-ObjectPropertyValue -Object $repoPublishSummary.verification -Name "strict"
+              $repoPublishSummaryReleaseEvidenceValidated = ($repoPublishSummary.verification.releaseEvidenceArtifactsValidated -eq $true)
+              $releaseEvidenceArtifacts = Get-ObjectPropertyValue -Object $repoPublishSummary.verification -Name "releaseEvidenceArtifacts"
+              if ($null -ne $releaseEvidenceArtifacts) {
+                $repoPublishSummaryReleaseEvidenceArtifactsCount = @($releaseEvidenceArtifacts).Count
+              }
+            }
+            if ($null -ne $repoPublishSummary.steps) {
+              $repoPublishSummaryCommitEnabled = Get-ObjectPropertyValue -Object $repoPublishSummary.steps -Name "commitEnabled"
+              $repoPublishSummaryPushEnabled = Get-ObjectPropertyValue -Object $repoPublishSummary.steps -Name "pushEnabled"
+              $repoPublishSummaryPagesEnabled = Get-ObjectPropertyValue -Object $repoPublishSummary.steps -Name "pagesEnabled"
+              $repoPublishSummaryBadgeCheckEnabled = Get-ObjectPropertyValue -Object $repoPublishSummary.steps -Name "badgeCheckEnabled"
+              $repoPublishSummaryRailwayDeployEnabled = ($repoPublishSummary.steps.railwayDeployEnabled -eq $true)
+              $repoPublishSummaryRailwayFrontendDeployEnabled = ($repoPublishSummary.steps.railwayFrontendDeployEnabled -eq $true)
+            }
+            if ($null -ne $repoPublishSummary.runtime) {
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.runtime.railwayPublicUrl)) {
+                $repoPublishSummaryRuntimeRailwayPublicUrl = [string]$repoPublishSummary.runtime.railwayPublicUrl
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.runtime.railwayDemoFrontendPublicUrl)) {
+                $repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl = [string]$repoPublishSummary.runtime.railwayDemoFrontendPublicUrl
+              }
+              $repoPublishSummaryRuntimeRailwayNoWait = Get-ObjectPropertyValue -Object $repoPublishSummary.runtime -Name "railwayNoWait"
+              $repoPublishSummaryRuntimeRailwayFrontendNoWait = Get-ObjectPropertyValue -Object $repoPublishSummary.runtime -Name "railwayFrontendNoWait"
+            }
+            if ($null -ne $repoPublishSummary.artifacts) {
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.artifacts.self)) {
+                $repoPublishSummaryArtifactSelf = [string]$repoPublishSummary.artifacts.self
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.artifacts.railwayDeploySummary)) {
+                $repoPublishSummaryArtifactRailwayDeploySummary = [string]$repoPublishSummary.artifacts.railwayDeploySummary
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.artifacts.releaseEvidenceReportJson)) {
+                $repoPublishSummaryArtifactReleaseEvidenceReportJson = [string]$repoPublishSummary.artifacts.releaseEvidenceReportJson
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.artifacts.releaseEvidenceManifestJson)) {
+                $repoPublishSummaryArtifactReleaseEvidenceManifestJson = [string]$repoPublishSummary.artifacts.releaseEvidenceManifestJson
+              }
+              if (-not [string]::IsNullOrWhiteSpace([string]$repoPublishSummary.artifacts.badgeDetailsJson)) {
+                $repoPublishSummaryArtifactBadgeDetailsJson = [string]$repoPublishSummary.artifacts.badgeDetailsJson
+              }
             }
           }
 
@@ -634,6 +871,45 @@ jobs:
             demoSummaryPresent = [bool]$demoSummaryPresent
             badgeDetailsPresent = [bool]$badgeDetailsPresent
             releaseEvidenceReportPresent = [bool]$releaseEvidenceReportPresent
+            railwayDeploySummaryPresent = [bool]$railwayDeploySummaryPresent
+            railwayDeploySummaryStatus = $railwayDeploySummaryStatus
+            railwayDeploySummaryDeploymentId = $railwayDeploySummaryDeploymentId
+            railwayDeploySummaryEffectivePublicUrl = $railwayDeploySummaryEffectivePublicUrl
+            railwayDeploySummaryBadgeEndpoint = $railwayDeploySummaryBadgeEndpoint
+            railwayDeploySummaryBadgeDetailsEndpoint = $railwayDeploySummaryBadgeDetailsEndpoint
+            railwayDeploySummaryProjectId = $railwayDeploySummaryProjectId
+            railwayDeploySummaryService = $railwayDeploySummaryService
+            railwayDeploySummaryEnvironment = $railwayDeploySummaryEnvironment
+            railwayDeploySummaryEffectiveStartCommand = $railwayDeploySummaryEffectiveStartCommand
+            railwayDeploySummaryConfigSource = $railwayDeploySummaryConfigSource
+            railwayDeploySummaryRootDescriptorAttempted = $railwayDeploySummaryRootDescriptorAttempted
+            railwayDeploySummaryRootDescriptorSkipped = $railwayDeploySummaryRootDescriptorSkipped
+            railwayDeploySummaryRootDescriptorExpectedUiUrl = $railwayDeploySummaryRootDescriptorExpectedUiUrl
+            railwayDeploySummaryPublicBadgeAttempted = $railwayDeploySummaryPublicBadgeAttempted
+            railwayDeploySummaryPublicBadgeSkipped = $railwayDeploySummaryPublicBadgeSkipped
+            repoPublishSummaryPresent = [bool]$repoPublishSummaryPresent
+            repoPublishSummaryBranch = $repoPublishSummaryBranch
+            repoPublishSummaryRemoteName = $repoPublishSummaryRemoteName
+            repoPublishSummaryVerificationScript = $repoPublishSummaryVerificationScript
+            repoPublishSummaryVerificationSkipped = $repoPublishSummaryVerificationSkipped
+            repoPublishSummaryVerificationStrict = $repoPublishSummaryVerificationStrict
+            repoPublishSummaryReleaseEvidenceValidated = $repoPublishSummaryReleaseEvidenceValidated
+            repoPublishSummaryReleaseEvidenceArtifactsCount = $repoPublishSummaryReleaseEvidenceArtifactsCount
+            repoPublishSummaryCommitEnabled = $repoPublishSummaryCommitEnabled
+            repoPublishSummaryPushEnabled = $repoPublishSummaryPushEnabled
+            repoPublishSummaryPagesEnabled = $repoPublishSummaryPagesEnabled
+            repoPublishSummaryBadgeCheckEnabled = $repoPublishSummaryBadgeCheckEnabled
+            repoPublishSummaryRailwayDeployEnabled = $repoPublishSummaryRailwayDeployEnabled
+            repoPublishSummaryRailwayFrontendDeployEnabled = $repoPublishSummaryRailwayFrontendDeployEnabled
+            repoPublishSummaryRuntimeRailwayPublicUrl = $repoPublishSummaryRuntimeRailwayPublicUrl
+            repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl = $repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl
+            repoPublishSummaryRuntimeRailwayNoWait = $repoPublishSummaryRuntimeRailwayNoWait
+            repoPublishSummaryRuntimeRailwayFrontendNoWait = $repoPublishSummaryRuntimeRailwayFrontendNoWait
+            repoPublishSummaryArtifactSelf = $repoPublishSummaryArtifactSelf
+            repoPublishSummaryArtifactRailwayDeploySummary = $repoPublishSummaryArtifactRailwayDeploySummary
+            repoPublishSummaryArtifactReleaseEvidenceReportJson = $repoPublishSummaryArtifactReleaseEvidenceReportJson
+            repoPublishSummaryArtifactReleaseEvidenceManifestJson = $repoPublishSummaryArtifactReleaseEvidenceManifestJson
+            repoPublishSummaryArtifactBadgeDetailsJson = $repoPublishSummaryArtifactBadgeDetailsJson
             operatorTurnTruncationSummaryValidated = $operatorTurnTruncationSummaryValidated
             operatorTurnDeleteSummaryValidated = $operatorTurnDeleteSummaryValidated
             operatorDamageControlSummaryValidated = $operatorDamageControlSummaryValidated
@@ -649,6 +925,15 @@ jobs:
             badgeEvidencePluginMarketplaceStatus = $badgeEvidencePluginMarketplaceStatus
             badgeEvidenceDeviceNodesStatus = $badgeEvidenceDeviceNodesStatus
             badgeEvidenceAgentUsageStatus = $badgeEvidenceAgentUsageStatus
+            badgeEvidenceRuntimeGuardrailsSignalPathsStatus = $badgeEvidenceRuntimeGuardrailsSignalPathsStatus
+            badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = $badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus
+            badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = $badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths
+            badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath
+            badgeEvidenceProviderUsageStatus = $badgeEvidenceProviderUsageStatus
+            badgeEvidenceProviderUsageValidated = $badgeEvidenceProviderUsageValidated
+            badgeEvidenceProviderUsageActiveSecondaryProviders = $badgeEvidenceProviderUsageActiveSecondaryProviders
+            badgeEvidenceProviderUsageEntriesCount = $badgeEvidenceProviderUsageEntriesCount
+            badgeEvidenceProviderUsagePrimaryEntry = $badgeEvidenceProviderUsagePrimaryEntry
             badgeEvidenceDeviceNodeUpdatesStatus = $badgeEvidenceDeviceNodeUpdatesStatus
           }
 
@@ -706,7 +991,55 @@ jobs:
           ("plugin_marketplace_status=" + [string]$badgeEvidencePluginMarketplaceStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("device_nodes_status=" + [string]$badgeEvidenceDeviceNodesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("agent_usage_status=" + [string]$badgeEvidenceAgentUsageStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("runtime_guardrails_signal_paths_status=" + [string]$badgeEvidenceRuntimeGuardrailsSignalPathsStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("runtime_guardrails_signal_paths_summary_status=" + [string]$badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("runtime_guardrails_signal_paths_total_paths=" + [string]$badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("runtime_guardrails_signal_paths_primary_path_title=" + $(if ($null -ne $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath) { [string]$badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath.title } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("provider_usage_status=" + [string]$badgeEvidenceProviderUsageStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("provider_usage_validated=" + $(if ($badgeEvidenceProviderUsageValidated) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("provider_usage_active_secondary_providers=" + [string]$badgeEvidenceProviderUsageActiveSecondaryProviders) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("provider_usage_entries_count=" + [string]$badgeEvidenceProviderUsageEntriesCount) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("provider_usage_primary_entry_label=" + $(if ($null -ne $badgeEvidenceProviderUsagePrimaryEntry) { [string]$badgeEvidenceProviderUsagePrimaryEntry.route + "/" + [string]$badgeEvidenceProviderUsagePrimaryEntry.capability + " -> " + [string]$badgeEvidenceProviderUsagePrimaryEntry.selectedProvider + "/" + [string]$badgeEvidenceProviderUsagePrimaryEntry.selectedModel } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("device_node_updates_status=" + [string]$badgeEvidenceDeviceNodeUpdatesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_present=" + $(if ($railwayDeploySummaryPresent) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_status=" + [string]$railwayDeploySummaryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_deployment_id=" + $(if ($null -ne $railwayDeploySummaryDeploymentId) { [string]$railwayDeploySummaryDeploymentId } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_public_url=" + $(if ($null -ne $railwayDeploySummaryEffectivePublicUrl) { [string]$railwayDeploySummaryEffectivePublicUrl } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_badge_endpoint=" + $(if ($null -ne $railwayDeploySummaryBadgeEndpoint) { [string]$railwayDeploySummaryBadgeEndpoint } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_badge_details_endpoint=" + $(if ($null -ne $railwayDeploySummaryBadgeDetailsEndpoint) { [string]$railwayDeploySummaryBadgeDetailsEndpoint } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_project_id=" + $(if ($null -ne $railwayDeploySummaryProjectId) { [string]$railwayDeploySummaryProjectId } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_service=" + $(if ($null -ne $railwayDeploySummaryService) { [string]$railwayDeploySummaryService } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_environment=" + $(if ($null -ne $railwayDeploySummaryEnvironment) { [string]$railwayDeploySummaryEnvironment } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_effective_start_command=" + $(if ($null -ne $railwayDeploySummaryEffectiveStartCommand) { [string]$railwayDeploySummaryEffectiveStartCommand } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_config_source=" + $(if ($null -ne $railwayDeploySummaryConfigSource) { [string]$railwayDeploySummaryConfigSource } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_root_descriptor_attempted=" + $(if ($null -ne $railwayDeploySummaryRootDescriptorAttempted) { [string]$railwayDeploySummaryRootDescriptorAttempted } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_root_descriptor_skipped=" + $(if ($null -ne $railwayDeploySummaryRootDescriptorSkipped) { [string]$railwayDeploySummaryRootDescriptorSkipped } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_expected_ui_url=" + $(if ($null -ne $railwayDeploySummaryRootDescriptorExpectedUiUrl) { [string]$railwayDeploySummaryRootDescriptorExpectedUiUrl } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_public_badge_attempted=" + $(if ($null -ne $railwayDeploySummaryPublicBadgeAttempted) { [string]$railwayDeploySummaryPublicBadgeAttempted } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_public_badge_skipped=" + $(if ($null -ne $railwayDeploySummaryPublicBadgeSkipped) { [string]$railwayDeploySummaryPublicBadgeSkipped } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_present=" + $(if ($repoPublishSummaryPresent) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_branch=" + $(if ($null -ne $repoPublishSummaryBranch) { [string]$repoPublishSummaryBranch } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_remote_name=" + $(if ($null -ne $repoPublishSummaryRemoteName) { [string]$repoPublishSummaryRemoteName } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_verification_script=" + $(if ($null -ne $repoPublishSummaryVerificationScript) { [string]$repoPublishSummaryVerificationScript } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_verification_skipped=" + $(if ($null -ne $repoPublishSummaryVerificationSkipped) { [string]$repoPublishSummaryVerificationSkipped } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_verification_strict=" + $(if ($null -ne $repoPublishSummaryVerificationStrict) { [string]$repoPublishSummaryVerificationStrict } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_release_evidence_validated=" + $(if ($repoPublishSummaryReleaseEvidenceValidated) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_release_evidence_artifacts_count=" + $(if ($null -ne $repoPublishSummaryReleaseEvidenceArtifactsCount) { [string]$repoPublishSummaryReleaseEvidenceArtifactsCount } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_commit_enabled=" + $(if ($null -ne $repoPublishSummaryCommitEnabled) { [string]$repoPublishSummaryCommitEnabled } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_push_enabled=" + $(if ($null -ne $repoPublishSummaryPushEnabled) { [string]$repoPublishSummaryPushEnabled } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_pages_enabled=" + $(if ($null -ne $repoPublishSummaryPagesEnabled) { [string]$repoPublishSummaryPagesEnabled } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_badge_check_enabled=" + $(if ($null -ne $repoPublishSummaryBadgeCheckEnabled) { [string]$repoPublishSummaryBadgeCheckEnabled } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_railway_deploy_enabled=" + $(if ($repoPublishSummaryRailwayDeployEnabled) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_railway_frontend_deploy_enabled=" + $(if ($repoPublishSummaryRailwayFrontendDeployEnabled) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_runtime_railway_public_url=" + $(if ($null -ne $repoPublishSummaryRuntimeRailwayPublicUrl) { [string]$repoPublishSummaryRuntimeRailwayPublicUrl } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_runtime_railway_frontend_public_url=" + $(if ($null -ne $repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl) { [string]$repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_runtime_railway_no_wait=" + $(if ($null -ne $repoPublishSummaryRuntimeRailwayNoWait) { [string]$repoPublishSummaryRuntimeRailwayNoWait } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_runtime_railway_frontend_no_wait=" + $(if ($null -ne $repoPublishSummaryRuntimeRailwayFrontendNoWait) { [string]$repoPublishSummaryRuntimeRailwayFrontendNoWait } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_artifact_self=" + $(if ($null -ne $repoPublishSummaryArtifactSelf) { [string]$repoPublishSummaryArtifactSelf } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_artifact_railway_deploy_summary=" + $(if ($null -ne $repoPublishSummaryArtifactRailwayDeploySummary) { [string]$repoPublishSummaryArtifactRailwayDeploySummary } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_artifact_release_evidence_report_json=" + $(if ($null -ne $repoPublishSummaryArtifactReleaseEvidenceReportJson) { [string]$repoPublishSummaryArtifactReleaseEvidenceReportJson } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_artifact_release_evidence_manifest_json=" + $(if ($null -ne $repoPublishSummaryArtifactReleaseEvidenceManifestJson) { [string]$repoPublishSummaryArtifactReleaseEvidenceManifestJson } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("repo_publish_summary_artifact_badge_details_json=" + $(if ($null -ne $repoPublishSummaryArtifactBadgeDetailsJson) { [string]$repoPublishSummaryArtifactBadgeDetailsJson } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Host ("Source run manifest written: " + $manifestPath)
 
       - name: Run Artifact-Only Release Revalidation (With Perf Artifacts, Standard)
@@ -763,9 +1096,59 @@ jobs:
           ("Plugin-marketplace status (badge evidence): ${{ steps.write_manifest.outputs.plugin_marketplace_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Device-nodes status (badge evidence): ${{ steps.write_manifest.outputs.device_nodes_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Agent-usage status (badge evidence): ${{ steps.write_manifest.outputs.agent_usage_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Runtime-guardrails-signal-paths status (badge evidence): ${{ steps.write_manifest.outputs.runtime_guardrails_signal_paths_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Runtime-guardrails-signal-paths summary status (badge evidence): ${{ steps.write_manifest.outputs.runtime_guardrails_signal_paths_summary_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Runtime-guardrails-signal-paths total paths (badge evidence): ${{ steps.write_manifest.outputs.runtime_guardrails_signal_paths_total_paths }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Runtime-guardrails-signal-paths primary path title (badge evidence): ${{ steps.write_manifest.outputs.runtime_guardrails_signal_paths_primary_path_title }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Provider-usage status (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Provider-usage validated (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_validated }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Provider-usage active secondary providers (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_active_secondary_providers }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Provider-usage entries count (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_entries_count }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Provider-usage primary entry (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_primary_entry_label }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Device-node-updates status (badge evidence): ${{ steps.write_manifest.outputs.device_node_updates_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary present: ${{ steps.write_manifest.outputs.railway_deploy_summary_present }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary status: ${{ steps.write_manifest.outputs.railway_deploy_summary_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary deployment id: ${{ steps.write_manifest.outputs.railway_deploy_summary_deployment_id }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary public URL: ${{ steps.write_manifest.outputs.railway_deploy_summary_public_url }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary badge endpoint: ${{ steps.write_manifest.outputs.railway_deploy_summary_badge_endpoint }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary badge-details endpoint: ${{ steps.write_manifest.outputs.railway_deploy_summary_badge_details_endpoint }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary project id: ${{ steps.write_manifest.outputs.railway_deploy_summary_project_id }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary service: ${{ steps.write_manifest.outputs.railway_deploy_summary_service }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary environment: ${{ steps.write_manifest.outputs.railway_deploy_summary_environment }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary effective start command: ${{ steps.write_manifest.outputs.railway_deploy_summary_effective_start_command }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary config source: ${{ steps.write_manifest.outputs.railway_deploy_summary_config_source }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary root-descriptor attempted: ${{ steps.write_manifest.outputs.railway_deploy_summary_root_descriptor_attempted }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary root-descriptor skipped: ${{ steps.write_manifest.outputs.railway_deploy_summary_root_descriptor_skipped }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary expected UI URL: ${{ steps.write_manifest.outputs.railway_deploy_summary_expected_ui_url }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary public-badge attempted: ${{ steps.write_manifest.outputs.railway_deploy_summary_public_badge_attempted }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary public-badge skipped: ${{ steps.write_manifest.outputs.railway_deploy_summary_public_badge_skipped }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary present: ${{ steps.write_manifest.outputs.repo_publish_summary_present }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary branch: ${{ steps.write_manifest.outputs.repo_publish_summary_branch }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary remote name: ${{ steps.write_manifest.outputs.repo_publish_summary_remote_name }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary verification script: ${{ steps.write_manifest.outputs.repo_publish_summary_verification_script }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary verification skipped: ${{ steps.write_manifest.outputs.repo_publish_summary_verification_skipped }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary verification strict: ${{ steps.write_manifest.outputs.repo_publish_summary_verification_strict }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary release-evidence validated: ${{ steps.write_manifest.outputs.repo_publish_summary_release_evidence_validated }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary release-evidence artifacts count: ${{ steps.write_manifest.outputs.repo_publish_summary_release_evidence_artifacts_count }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary commit enabled: ${{ steps.write_manifest.outputs.repo_publish_summary_commit_enabled }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary push enabled: ${{ steps.write_manifest.outputs.repo_publish_summary_push_enabled }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary pages enabled: ${{ steps.write_manifest.outputs.repo_publish_summary_pages_enabled }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary badge-check enabled: ${{ steps.write_manifest.outputs.repo_publish_summary_badge_check_enabled }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary Railway deploy enabled: ${{ steps.write_manifest.outputs.repo_publish_summary_railway_deploy_enabled }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary Railway frontend deploy enabled: ${{ steps.write_manifest.outputs.repo_publish_summary_railway_frontend_deploy_enabled }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary runtime Railway public URL: ${{ steps.write_manifest.outputs.repo_publish_summary_runtime_railway_public_url }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary runtime Railway frontend URL: ${{ steps.write_manifest.outputs.repo_publish_summary_runtime_railway_frontend_public_url }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary runtime Railway no-wait: ${{ steps.write_manifest.outputs.repo_publish_summary_runtime_railway_no_wait }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary runtime Railway frontend no-wait: ${{ steps.write_manifest.outputs.repo_publish_summary_runtime_railway_frontend_no_wait }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary artifact self: ${{ steps.write_manifest.outputs.repo_publish_summary_artifact_self }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary artifact Railway deploy summary: ${{ steps.write_manifest.outputs.repo_publish_summary_artifact_railway_deploy_summary }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary artifact release-evidence report JSON: ${{ steps.write_manifest.outputs.repo_publish_summary_artifact_release_evidence_report_json }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary artifact release-evidence manifest JSON: ${{ steps.write_manifest.outputs.repo_publish_summary_artifact_release_evidence_manifest_json }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Repo publish summary artifact badge-details JSON: ${{ steps.write_manifest.outputs.repo_publish_summary_artifact_badge_details_json }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence report JSON: ${{ steps.release_evidence_report.outputs.report_json_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence report Markdown: ${{ steps.release_evidence_report.outputs.report_md_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Release evidence manifest JSON: ${{ steps.release_evidence_report.outputs.report_manifest_json_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Release evidence manifest Markdown: ${{ steps.release_evidence_report.outputs.report_manifest_md_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Source run manifest: ${{ steps.write_manifest.outputs.manifest_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           if (Test-Path "artifacts/release-evidence/report.md") {
             "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
@@ -802,5 +1185,10 @@ jobs:
             artifacts/perf-load/policy-check.md
             artifacts/release-evidence/report.json
             artifacts/release-evidence/report.md
+            artifacts/release-evidence/manifest.json
+            artifacts/release-evidence/manifest.md
+            artifacts/deploy/railway-deploy-summary.json
+            artifacts/deploy/repo-publish-summary.json
             artifacts/release-artifact-revalidation/source-run.json
           if-no-files-found: warn
+

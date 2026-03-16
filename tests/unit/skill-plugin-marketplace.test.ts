@@ -1,9 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash, createHmac } from "node:crypto";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { upsertCredentialStoreEntry } from "../../shared/skills/src/index.js";
 import {
   normalizeSkillPluginManifest,
   parseSkillPluginSigningKeys,
+  resolveSkillPluginSigningKeysRaw,
 } from "../../apps/api-backend/src/skill-plugin-marketplace.js";
 
 function canonicalPayloadHash(): string {
@@ -157,3 +162,37 @@ test("skill plugin manifest normalizer rejects invalid signature", () => {
   assert.equal(result.code, "API_SKILL_PLUGIN_SIGNATURE_INVALID");
 });
 
+test("skill plugin signing keys can be resolved from credential store", () => {
+  const rootDir = mkdtempSync(join(tmpdir(), "mla-plugin-signing-store-"));
+  try {
+    const env: NodeJS.ProcessEnv = {
+      CREDENTIAL_STORE_FILE: "credentials/store.json",
+      CREDENTIAL_STORE_MASTER_KEY: "plugin-master-key",
+      SKILL_PLUGIN_SIGNING_KEYS_CREDENTIAL: "plugin-signing-main",
+    };
+
+    upsertCredentialStoreEntry(
+      {
+        namespace: "api.skill_plugin.signing_keys",
+        name: "plugin-signing-main",
+        secretValue: JSON.stringify({
+          publisher_main: "secret-1",
+        }),
+        metadata: {
+          keySet: "publisher_main",
+        },
+      },
+      {
+        env,
+        cwd: rootDir,
+      },
+    );
+
+    const raw = resolveSkillPluginSigningKeysRaw(env, rootDir);
+    const parsed = parseSkillPluginSigningKeys(raw);
+    assert.equal(parsed.configError, null);
+    assert.equal(parsed.keys.get("publisher_main"), "secret-1");
+  } finally {
+    rmSync(rootDir, { recursive: true, force: true });
+  }
+});

@@ -23,11 +23,11 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'id="operatorModeBanner"',
     'id="operatorModeBadge"',
     'id="operatorModeCopy"',
+    'class="operator-mode-copy-block"',
     'id="operatorSummaryGuide"',
     'id="operatorSummaryGuideRefreshBtn"',
     'id="operatorSummaryGuideRunNegotiationBtn"',
     'id="operatorSummaryGuideRunStoryBtn"',
-    'id="operatorSummaryGuideRunUiTaskBtn"',
     'class="operator-summary-guide-actions"',
     'id="operatorQuickStartRunNegotiationBtn"',
     'id="operatorQuickStartRunStoryBtn"',
@@ -36,6 +36,8 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'id="operatorQuickStartRefreshBtn"',
     'class="operator-quick-start-actions"',
     '<details id="operatorQuickStart" class="operator-quick-start operator-support-panel"',
+    '<details id="operatorAdvancedControlSurfaces" class="operator-control-surfaces operator-support-panel"',
+    '<details id="operatorScopeControls" class="operator-scope-controls operator-support-panel"',
     'id="operatorPlaybookRunNegotiationBtn"',
     'id="operatorPlaybookRefreshBridgeBtn"',
     'id="operatorPlaybookRunStoryBtn"',
@@ -75,7 +77,7 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'operatorSummaryGuideRefreshBtn: document.getElementById("operatorSummaryGuideRefreshBtn")',
     'operatorSummaryGuideRunNegotiationBtn: document.getElementById("operatorSummaryGuideRunNegotiationBtn")',
     'operatorSummaryGuideRunStoryBtn: document.getElementById("operatorSummaryGuideRunStoryBtn")',
-    'operatorSummaryGuideRunUiTaskBtn: document.getElementById("operatorSummaryGuideRunUiTaskBtn")',
+    'operatorAdvancedControlSurfaces: document.getElementById("operatorAdvancedControlSurfaces")',
     'operatorQuickStartRunNegotiationBtn: document.getElementById("operatorQuickStartRunNegotiationBtn")',
     'operatorQuickStartRunStoryBtn: document.getElementById("operatorQuickStartRunStoryBtn")',
     'operatorQuickStartRunUiTaskBtn: document.getElementById("operatorQuickStartRunUiTaskBtn")',
@@ -90,6 +92,7 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     'operatorPlaybookOpenDeviceNodesBtn: document.getElementById("operatorPlaybookOpenDeviceNodesBtn")',
     'operatorPlaybookRefreshDeviceNodesBtn: document.getElementById("operatorPlaybookRefreshDeviceNodesBtn")',
     "function openDeviceNodesFromOperatorQuickStart()",
+    "const parentControlSurfaces = panel.closest(\".operator-control-surfaces-body\")?.parentElement;",
     "function normalizeOperatorBoardMode(value)",
     "function syncOperatorBoardModeButtons()",
     "function syncOperatorSummaryGuide()",
@@ -98,7 +101,7 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "window.localStorage?.setItem(OPERATOR_BOARD_MODE_STORAGE_KEY, nextMode);",
     "el.operatorModeBanner.classList.toggle(\"is-demo\", isDemo);",
     "el.operatorModeBanner.classList.toggle(\"is-full-ops\", !isDemo);",
-    "setStatusPill(el.operatorModeBadge, isDemo ? \"demo_view\" : \"full_ops_view\", isDemo ? \"ok\" : \"neutral\");",
+    "setStatusPill(el.operatorModeBadge, isDemo ? \"Demo view\" : \"Full ops\", isDemo ? \"ok\" : \"neutral\");",
     "function isOperatorDemoEssentialCard(card)",
     "state.operatorBoardMode === \"demo\" && state.operatorFocusCriticalOnly === true && !isOperatorDemoEssentialCard(card)",
     'setOperatorBoardMode(requestedMode, { syncPresets: false, persist: persistMode });',
@@ -110,11 +113,9 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "el.operatorSummaryGuideRefreshBtn.addEventListener(\"click\", () => {",
     "void refreshOperatorSummary({ markUserRefresh: true });",
     "el.operatorSummaryGuideRunNegotiationBtn.addEventListener(\"click\", () => {",
-    "applyIntentTemplateFromActiveTasks(\"negotiation\", ACTIVE_TASK_NEGOTIATION_PROMPT);",
+    "openOperatorSupportPanel(el.operatorQuickStart, el.operatorQuickStartRunNegotiationBtn);",
     "el.operatorSummaryGuideRunStoryBtn.addEventListener(\"click\", () => {",
-    "applyIntentTemplateFromActiveTasks(\"story\", STORY_EMPTY_STATE_PROMPT);",
-    "el.operatorSummaryGuideRunUiTaskBtn.addEventListener(\"click\", () => {",
-    "applyIntentTemplateFromActiveTasks(\"ui_task\", ACTIVE_TASK_UI_TASK_PROMPT);",
+    "openOperatorSupportPanel(el.operatorLanePlaybook, el.operatorPlaybookRunNegotiationBtn);",
     "el.operatorQuickStartRunNegotiationBtn.addEventListener(\"click\", () => {",
     "el.operatorQuickStartRunStoryBtn.addEventListener(\"click\", () => {",
     "el.operatorQuickStartRunUiTaskBtn.addEventListener(\"click\", () => {",
@@ -142,11 +143,18 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     ".operator-board-actions-row {",
     ".operator-view-mode-actions .button-muted {",
     ".operator-board-mode-hint {",
+    ".operator-mode-copy-block {",
     ".operator-mode-banner {",
     ".operator-mode-banner.is-full-ops {",
     ".operator-mode-copy {",
     ".operator-summary-guide {",
     ".operator-summary-guide-actions {",
+    ".operator-status-strip {",
+    "grid-template-columns: minmax(178px, auto) minmax(0, 1fr);",
+    ".panel-operator-console .operator-mode-banner .status-pill {",
+    ".operator-control-surfaces {",
+    ".operator-control-surfaces-body {",
+    ".operator-scope-controls-body {",
     ".operator-quick-start {",
     ".operator-support-panel {",
     ".operator-support-panel > summary {",
@@ -164,12 +172,20 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     assert.ok(stylesSource.includes(token), `frontend styles missing operator-board-mode token: ${token}`);
   }
 
+  assert.ok(!stylesSource.includes('"boardhint boardhint"'), "frontend styles still keep a separate boardhint row");
+  assert.ok(!stylesSource.includes('grid-area: boardhint;'), "frontend styles still assign a dedicated boardhint area");
+  assert.match(
+    stylesSource,
+    /@media \(max-width: 620px\)\s*\{[\s\S]*?\.panel-operator-console \.operator-mode-copy-block \{\s*display: none;/,
+    "frontend styles missing mobile operator mode-banner compaction",
+  );
+
   assert.ok(
     readmeSource.includes("`Demo View` (default, critical-first) and `Full Ops View`"),
     "README missing operator board-mode note",
   );
   assert.ok(
-    readmeSource.includes("keeps six judge-facing cards visible by default"),
+    readmeSource.includes("keeps eight judge-facing cards visible by default"),
     "README missing operator demo essential-cards note",
   );
   assert.ok(
@@ -181,24 +197,38 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "README missing operator summary guide note",
   );
   assert.ok(
-    readmeSource.includes("quick-start actions (`Run Negotiation`, `Run Story`, `Run UI Task`)"),
-    "README missing operator summary guide quick-start actions note",
+    readmeSource.includes("one primary refresh CTA plus calmer handoff buttons (`Open Quick Start`, `Recovery Playbook`)"),
+    "README missing operator summary guide handoff note",
   );
-  assert.ok(
-    readmeSource.includes("collapsible `Operator Quick Start` rail"),
-    "README missing operator quick-start rail note",
-  );
+  assert.ok(readmeSource.includes("collapsible `Quick Start` rail"), "README missing operator quick-start rail note");
   assert.ok(
     readmeSource.includes("collapsed `Board Actions` block"),
     "README missing operator board-actions compacting note",
   );
+  assert.ok(readmeSource.includes("collapsible `Recovery Playbook` cards"), "README missing operator lane playbook note");
   assert.ok(
-    readmeSource.includes("collapsible `Lane Recovery Playbook` cards"),
-    "README missing operator lane playbook note",
+    readmeSource.includes("collapsible `Advanced Controls` drawer"),
+    "README missing advanced controls drawer note",
   );
   assert.ok(
-    readmeSource.includes("mode banner (`demo_view` / `full_ops_view`)"),
+    readmeSource.includes("collapsible `Scope & Access` panel"),
+    "README missing operator scope-and-access note",
+  );
+  assert.ok(
+    readmeSource.includes("mode banner (`Demo view` / `Full ops`)"),
     "README missing operator mode-banner note",
+  );
+  assert.ok(
+    readmeSource.includes("same compact status shell as `Last refresh`"),
+    "README missing compact status-shell note",
+  );
+  assert.ok(
+    readmeSource.includes("status shell now flattens further into a shorter incident line"),
+    "README missing desktop status-line compaction note",
+  );
+  assert.ok(
+    readmeSource.includes("mode banner collapses to the status badge"),
+    "README missing mobile mode-banner compaction note",
   );
   assert.ok(
     readmeSource.includes("mla.demoFrontend.operatorBoardMode"),
@@ -209,7 +239,17 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "operator guide missing operator board-mode note",
   );
   assert.ok(
-    operatorGuideSource.includes("prioritizes six cards (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Device Nodes`)"),
+    operatorGuideSource.includes("same compact status shell as `Last refresh`"),
+    "operator guide missing compact status-shell note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("mode banner collapses to the status badge"),
+    "operator guide missing mobile mode-banner compaction note",
+  );
+  assert.ok(
+    operatorGuideSource.includes(
+      "prioritizes eight cards (`Live Bridge`, `Queue`, `Approvals`, `Startup`, `UI Executor`, `Workflow Runtime`, `Runtime Guardrails`, `Device Nodes`)",
+    ),
     "operator guide missing operator demo essential-cards note",
   );
   assert.ok(
@@ -221,11 +261,11 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "operator guide missing operator summary guide note",
   );
   assert.ok(
-    operatorGuideSource.includes("quick-start actions (`Run Negotiation`, `Run Story`, `Run UI Task`)"),
-    "operator guide missing operator summary guide quick-start actions note",
+    operatorGuideSource.includes("one-click `Refresh Summary`, calmer handoff buttons (`Open Quick Start`, `Recovery Playbook`)"),
+    "operator guide missing operator summary guide handoff note",
   );
   assert.ok(
-    operatorGuideSource.includes("collapsible `Operator Quick Start` rail"),
+    operatorGuideSource.includes("collapsible `Quick Start` rail"),
     "operator guide missing operator quick-start rail note",
   );
   assert.ok(
@@ -233,12 +273,24 @@ test("operator console exposes demo/full board mode toggles with runtime presets
     "operator guide missing operator board-actions compacting note",
   );
   assert.ok(
-    operatorGuideSource.includes("Collapsible `Lane Recovery Playbook` cards"),
+    operatorGuideSource.includes("collapsible `Recovery Playbook` cards"),
     "operator guide missing operator lane playbook note",
   );
   assert.ok(
-    operatorGuideSource.includes("mode banner (`demo_view` / `full_ops_view`) confirms active triage scope"),
+    operatorGuideSource.includes("collapsible `Advanced Controls` drawer"),
+    "operator guide missing advanced controls drawer note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("collapsible `Scope & Access` keeps `Operator Role`, `Task ID`, and `Target Service`"),
+    "operator guide missing operator scope-and-access note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("mode banner (`Demo view` / `Full ops`) now shares the same compact status shell as `Last refresh`"),
     "operator guide missing operator mode-banner note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("status shell flattens again into a shorter incident line"),
+    "operator guide missing desktop status-line compaction note",
   );
   assert.ok(
     operatorGuideSource.includes("mla.demoFrontend.operatorBoardMode"),

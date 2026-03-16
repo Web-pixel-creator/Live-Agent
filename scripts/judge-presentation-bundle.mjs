@@ -9,6 +9,9 @@ function parseArgs(argv) {
     badge: "artifacts/demo-e2e/badge.json",
     badgeDetails: "artifacts/demo-e2e/badge-details.json",
     releaseEvidence: "artifacts/release-evidence/report.json",
+    gcpCloudRunSummary: "artifacts/deploy/gcp-cloud-run-summary.json",
+    gcpRuntimeProof: "artifacts/release-evidence/gcp-runtime-proof.json",
+    submissionRefreshStatus: "artifacts/release-evidence/submission-refresh-status.json",
     railwayDeploySummary: "artifacts/deploy/railway-deploy-summary.json",
     repoPublishSummary: "artifacts/deploy/repo-publish-summary.json",
     visualManifest: "artifacts/judge-visual-evidence/manifest.json",
@@ -39,6 +42,18 @@ function parseArgs(argv) {
     }
     if (arg === "--releaseEvidence") {
       options.releaseEvidence = String(argv[++index] ?? options.releaseEvidence);
+      continue;
+    }
+    if (arg === "--gcpCloudRunSummary") {
+      options.gcpCloudRunSummary = String(argv[++index] ?? options.gcpCloudRunSummary);
+      continue;
+    }
+    if (arg === "--gcpRuntimeProof") {
+      options.gcpRuntimeProof = String(argv[++index] ?? options.gcpRuntimeProof);
+      continue;
+    }
+    if (arg === "--submissionRefreshStatus") {
+      options.submissionRefreshStatus = String(argv[++index] ?? options.submissionRefreshStatus);
       continue;
     }
     if (arg === "--railwayDeploySummary") {
@@ -207,8 +222,35 @@ function sanitizeDeployProvenanceRows(rows) {
 
 function buildDeployProvenanceRows(deployProvenance) {
   const rows = [];
+  const gcpCloudRun = deployProvenance.gcpCloudRun;
+  const gcpRuntimeProof = deployProvenance.gcpRuntimeProof;
+  const submissionRefreshStatus = deployProvenance.submissionRefreshStatus;
   const railwayDeploy = deployProvenance.railwayDeploy;
   const repoPublish = deployProvenance.repoPublish;
+
+  if (gcpCloudRun.present) {
+    rows.push({
+      id: "gcpCloudRun",
+      title: "GCP Cloud Run",
+      summary: `status ${gcpCloudRun.status}; services ${gcpCloudRun.serviceCount}; gateway ${gcpCloudRun.gatewayUrl}; api ${gcpCloudRun.apiUrl}; orchestrator ${gcpCloudRun.orchestratorUrl}`,
+    });
+  }
+
+  if (gcpRuntimeProof.present) {
+    rows.push({
+      id: "gcpRuntimeProof",
+      title: "GCP runtime proof",
+      summary: `status ${gcpRuntimeProof.status}; Cloud Run URL proof ${gcpRuntimeProof.cloudRunUrlProof}; Firestore proof ${gcpRuntimeProof.firestoreProof}; BigQuery rows proof ${gcpRuntimeProof.bigQueryRowsProof}; observability screenshots proof ${gcpRuntimeProof.observabilityScreenshotsProof}`,
+    });
+  }
+
+  if (submissionRefreshStatus.present) {
+    rows.push({
+      id: "submissionRefreshStatus",
+      title: "Submission refresh",
+      summary: `status ${submissionRefreshStatus.status}; blocker ${submissionRefreshStatus.blockingReason}`,
+    });
+  }
 
   if (railwayDeploy.present) {
     rows.push({
@@ -251,7 +293,20 @@ function buildDeployProvenanceRows(deployProvenance) {
   return rows;
 }
 
-function summarizeDeployProvenance(visualManifest, railwayDeploySummaryRead, repoPublishSummaryRead) {
+function summarizeDeployProvenance(
+  visualManifest,
+  gcpCloudRunSummaryRead,
+  gcpRuntimeProofRead,
+  submissionRefreshStatusRead,
+  railwayDeploySummaryRead,
+  repoPublishSummaryRead,
+) {
+  const gcpCloudRunSummary =
+    gcpCloudRunSummaryRead.present && gcpCloudRunSummaryRead.parsed ? gcpCloudRunSummaryRead.value : null;
+  const gcpRuntimeProof =
+    gcpRuntimeProofRead.present && gcpRuntimeProofRead.parsed ? gcpRuntimeProofRead.value : null;
+  const submissionRefreshStatus =
+    submissionRefreshStatusRead.present && submissionRefreshStatusRead.parsed ? submissionRefreshStatusRead.value : null;
   const railwayDeploySummary =
     railwayDeploySummaryRead.present && railwayDeploySummaryRead.parsed ? railwayDeploySummaryRead.value : null;
   const repoPublishSummary =
@@ -261,8 +316,32 @@ function summarizeDeployProvenance(visualManifest, railwayDeploySummaryRead, rep
   const repoPublishSteps = repoPublishSummary?.steps ?? {};
 
   const deployProvenance = {
-    available: Boolean(railwayDeploySummary || repoPublishSummary),
+    available: Boolean(
+      gcpCloudRunSummary || gcpRuntimeProof || submissionRefreshStatus || railwayDeploySummary || repoPublishSummary,
+    ),
     rows: [],
+    gcpCloudRun: {
+      present: gcpCloudRunSummaryRead.present && gcpCloudRunSummaryRead.parsed,
+      status: toOptionalText(gcpCloudRunSummary?.status),
+      serviceCount: Number(gcpCloudRunSummary?.serviceCount ?? 0),
+      gatewayUrl: toOptionalText(gcpCloudRunSummary?.gatewayUrl),
+      apiUrl: toOptionalText(gcpCloudRunSummary?.apiUrl),
+      orchestratorUrl: toOptionalText(gcpCloudRunSummary?.orchestratorUrl),
+    },
+    gcpRuntimeProof: {
+      present: gcpRuntimeProofRead.present && gcpRuntimeProofRead.parsed,
+      status: toOptionalText(gcpRuntimeProof?.status),
+      blockingReason: toOptionalText(gcpRuntimeProof?.blockingReason),
+      cloudRunUrlProof: gcpRuntimeProof?.judgeProof?.cloudRunUrlProof === true,
+      firestoreProof: gcpRuntimeProof?.judgeProof?.firestoreProof === true,
+      bigQueryRowsProof: gcpRuntimeProof?.judgeProof?.bigQueryRowsProof === true,
+      observabilityScreenshotsProof: gcpRuntimeProof?.judgeProof?.observabilityScreenshotsProof === true,
+    },
+    submissionRefreshStatus: {
+      present: submissionRefreshStatusRead.present && submissionRefreshStatusRead.parsed,
+      status: toOptionalText(submissionRefreshStatus?.status),
+      blockingReason: toOptionalText(submissionRefreshStatus?.blockingReason),
+    },
     railwayDeploy: {
       present: railwayDeploySummaryRead.present && railwayDeploySummaryRead.parsed,
       status: toOptionalText(railwayDeploySummary?.status),
@@ -373,6 +452,21 @@ function toMarkdown(bundle) {
   lines.push(`- Release evidence report: [report.json](${bundle.artifacts.releaseEvidenceRel})`);
   lines.push("");
 
+  lines.push("## Submission Follow-Up");
+  lines.push("");
+  lines.push(`- GCP cloud proof checklist: [cloud-proof-checklist.md](${bundle.artifacts.cloudProofChecklistRel})`);
+  lines.push(`- Runtime proof placeholder: [gcp-runtime-proof.md](${bundle.artifacts.gcpRuntimeProofMarkdownRel})`);
+  lines.push(`- Submission refresh status: [submission-refresh-status.md](${bundle.artifacts.submissionRefreshStatusRel})`);
+  lines.push(`- Submission refresh state: \`${bundle.submissionFollowUp.submissionRefreshStatus}\``);
+  lines.push(`- Submission refresh blocker: ${bundle.submissionFollowUp.submissionRefreshBlockingReason}`);
+  lines.push(`- Video shot list: [video-shot-list.md](${bundle.artifacts.videoShotListRel})`);
+  lines.push(`- 4-minute script: [video-script-4min.md](${bundle.artifacts.videoScriptRel})`);
+  lines.push(`- Screen checklist: [screen-checklist.md](${bundle.artifacts.screenChecklistRel})`);
+  lines.push(
+    `- Submission-safe summary gate: \`liveApiEnabled=${bundle.submissionFollowUp.submissionSafeSummaryGate.liveApiEnabled}\`, \`translationProvider=${bundle.submissionFollowUp.submissionSafeSummaryGate.translationProvider}\`, \`storytellerMediaMode=${bundle.submissionFollowUp.submissionSafeSummaryGate.storytellerMediaMode}\`, \`uiExecutorForceSimulation=${bundle.submissionFollowUp.submissionSafeSummaryGate.uiExecutorForceSimulation}\``,
+  );
+  lines.push("");
+
   if (bundle.notes.length > 0) {
     lines.push("## Notes");
     lines.push("");
@@ -393,6 +487,9 @@ function main() {
   const badgePath = toAbsolutePath(options.badge);
   const badgeDetailsPath = toAbsolutePath(options.badgeDetails);
   const releaseEvidencePath = toAbsolutePath(options.releaseEvidence);
+  const gcpCloudRunSummaryPath = toAbsolutePath(options.gcpCloudRunSummary);
+  const gcpRuntimeProofPath = toAbsolutePath(options.gcpRuntimeProof);
+  const submissionRefreshStatusPath = toAbsolutePath(options.submissionRefreshStatus);
   const railwayDeploySummaryPath = toAbsolutePath(options.railwayDeploySummary);
   const repoPublishSummaryPath = toAbsolutePath(options.repoPublishSummary);
   const visualManifestPath = toAbsolutePath(options.visualManifest);
@@ -403,6 +500,9 @@ function main() {
   const badgeRead = readJsonIfExists(badgePath);
   const badgeDetailsRead = readJsonIfExists(badgeDetailsPath);
   const releaseEvidenceRead = readJsonIfExists(releaseEvidencePath);
+  const gcpCloudRunSummaryRead = readJsonIfExists(gcpCloudRunSummaryPath);
+  const gcpRuntimeProofRead = readJsonIfExists(gcpRuntimeProofPath);
+  const submissionRefreshStatusRead = readJsonIfExists(submissionRefreshStatusPath);
   const railwayDeploySummaryRead = readJsonIfExists(railwayDeploySummaryPath);
   const repoPublishSummaryRead = readJsonIfExists(repoPublishSummaryPath);
   const visualManifestRead = readJsonIfExists(visualManifestPath);
@@ -417,9 +517,27 @@ function main() {
   const providerUsage = badgeDetails?.providerUsage ?? releaseEvidence?.providerUsage ?? {};
   const deployProvenance = summarizeDeployProvenance(
     visualManifest,
+    gcpCloudRunSummaryRead,
+    gcpRuntimeProofRead,
+    submissionRefreshStatusRead,
     railwayDeploySummaryRead,
     repoPublishSummaryRead,
   );
+  const gcpRuntimeProof = gcpRuntimeProofRead.value ?? {};
+  const submissionSafeSummaryGate =
+    gcpRuntimeProof?.submissionSafeSummaryGate && typeof gcpRuntimeProof.submissionSafeSummaryGate === "object"
+      ? {
+          liveApiEnabled: gcpRuntimeProof.submissionSafeSummaryGate.liveApiEnabled === true,
+          translationProvider: String(gcpRuntimeProof.submissionSafeSummaryGate.translationProvider ?? "not_fallback"),
+          storytellerMediaMode: String(gcpRuntimeProof.submissionSafeSummaryGate.storytellerMediaMode ?? "not_simulated"),
+          uiExecutorForceSimulation: gcpRuntimeProof.submissionSafeSummaryGate.uiExecutorForceSimulation === true,
+        }
+      : {
+          liveApiEnabled: true,
+          translationProvider: "not_fallback",
+          storytellerMediaMode: "not_simulated",
+          uiExecutorForceSimulation: false,
+        };
 
   const categories = [
     {
@@ -465,6 +583,9 @@ function main() {
     { name: "badge", read: badgeRead, optional: false },
     { name: "badgeDetails", read: badgeDetailsRead, optional: false },
     { name: "releaseEvidence", read: releaseEvidenceRead, optional: false },
+    { name: "gcpCloudRunSummary", read: gcpCloudRunSummaryRead, optional: true },
+    { name: "gcpRuntimeProof", read: gcpRuntimeProofRead, optional: true },
+    { name: "submissionRefreshStatus", read: submissionRefreshStatusRead, optional: true },
     { name: "railwayDeploySummary", read: railwayDeploySummaryRead, optional: true },
     { name: "repoPublishSummary", read: repoPublishSummaryRead, optional: true },
     { name: "visualManifest", read: visualManifestRead, optional: false },
@@ -509,6 +630,17 @@ function main() {
         : [],
     },
     deployProvenance,
+    submissionFollowUp: {
+      submissionSafeSummaryGate,
+      submissionRefreshStatus:
+        submissionRefreshStatusRead.present && submissionRefreshStatusRead.parsed
+          ? toOptionalText(submissionRefreshStatusRead.value?.status)
+          : "missing",
+      submissionRefreshBlockingReason:
+        submissionRefreshStatusRead.present && submissionRefreshStatusRead.parsed
+          ? toOptionalText(submissionRefreshStatusRead.value?.blockingReason)
+          : "submission refresh wrapper has not been run yet.",
+    },
     categories,
     evidenceLanes,
     artifacts: {
@@ -516,6 +648,30 @@ function main() {
       policyRel: toRelativePath(outputMarkdownPath, policyPath),
       badgeDetailsRel: toRelativePath(outputMarkdownPath, badgeDetailsPath),
       releaseEvidenceRel: toRelativePath(outputMarkdownPath, releaseEvidencePath),
+      cloudProofChecklistRel: toRelativePath(
+        outputMarkdownPath,
+        resolve(process.cwd(), "artifacts/judge-visual-evidence/cloud-proof-checklist.md"),
+      ),
+      gcpRuntimeProofMarkdownRel: toRelativePath(
+        outputMarkdownPath,
+        resolve(process.cwd(), "artifacts/release-evidence/gcp-runtime-proof.md"),
+      ),
+      submissionRefreshStatusRel: toRelativePath(
+        outputMarkdownPath,
+        resolve(process.cwd(), "artifacts/release-evidence/submission-refresh-status.md"),
+      ),
+      videoShotListRel: toRelativePath(
+        outputMarkdownPath,
+        resolve(process.cwd(), "artifacts/release-evidence/video-shot-list.md"),
+      ),
+      videoScriptRel: toRelativePath(
+        outputMarkdownPath,
+        resolve(process.cwd(), "artifacts/release-evidence/video-script-4min.md"),
+      ),
+      screenChecklistRel: toRelativePath(
+        outputMarkdownPath,
+        resolve(process.cwd(), "artifacts/release-evidence/screen-checklist.md"),
+      ),
       railwayDeploySummaryRel: toRelativePath(outputMarkdownPath, railwayDeploySummaryPath),
       repoPublishSummaryRel: toRelativePath(outputMarkdownPath, repoPublishSummaryPath),
       visualManifestRel: toRelativePath(outputMarkdownPath, visualManifestPath),

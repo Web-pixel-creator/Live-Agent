@@ -6,11 +6,47 @@ For a strict time-boxed pitch flow, use `docs/judge-quickstart.md` section `Demo
 
 ## Preconditions
 
-1. Run local release verification:
+1. Submission path is `GCP-first`, not Railway-first.
+   - Deploy `orchestrator`, `realtime-gateway`, and `api-backend` to Cloud Run.
+   - Enable Firestore and analytics export to BigQuery.
+   - Collect GCP observability and runtime proof before regenerating the judged artifacts.
+   - Submission-safe judged runs must show:
+     - `liveApiEnabled=true`
+     - `translationProvider != fallback`
+     - `storytellerMediaMode != simulated`
+     - `uiExecutorForceSimulation=false`
+   - Primary artifacts for judge proof:
+     - `artifacts/deploy/gcp-cloud-run-summary.json`
+     - `artifacts/deploy/gcp-firestore-summary.json`
+     - `artifacts/release-evidence/gcp-runtime-proof.json`
+     - `artifacts/release-evidence/gcp-runtime-proof.md`
+2. Bootstrap the GCP judge runtime:
+```powershell
+pwsh ./infra/gcp/prepare-judge-runtime.ps1 -ProjectId "<your-project-id>" `
+  -Region "us-central1" `
+  -FirestoreLocation "nam5" `
+  -DatasetId "agent_analytics" `
+  -ImageTag "<release-tag>"
+```
+Then regenerate the judged submission pack with:
+```powershell
+pwsh ./infra/gcp/refresh-submission-pack.ps1 -ProjectId "<your-project-id>" `
+  -Region "us-central1" `
+  -DatasetId "agent_analytics" `
+  -ImageTag "<release-tag>"
+```
+This wrapper resolves `GOOGLE_GENAI_API_KEY`, `LIVE_API_API_KEY`, and `LIVE_API_AUTH_HEADER` from env or Secret Manager when available, enforces the Google-first judged env overrides, regenerates `demo/policy/badge`, refreshes local artifact provenance, and rewrites the visual pack. If `gcloud` is unavailable in the current shell, pass `-GoogleGenAiApiKey`, `-LiveApiApiKey`, and `-LiveApiAuthHeader` directly.
+If runtime code has changed since the last demo pack, use this wrapper after the deploy so `artifacts/demo-e2e/summary.json` and `artifacts/demo-e2e/badge-details.json` reflect the current runtime instead of stale evidence.
+The fast demo wrapper also widens heavy UI planner lanes to a 90-second request budget, and widens delegated storyteller requests to 120 seconds, so approval, sandbox, visual-testing, task-progress, and multi-agent delegation scenarios do not time out before the orchestrator returns a real run.
+3. Run local release verification:
 ```powershell
 npm run verify:release
 ```
 This gate validates build, unit tests, runtime profile smoke, demo e2e policy, badge artifact, and perf-load policy.
+For the post-deploy submission refresh status, inspect:
+```powershell
+Get-Content ./artifacts/release-evidence/submission-refresh-status.md
+```
 For PR/deploy contract drift check (without full demo gate), run:
 ```powershell
 npm run verify:deploy:railway:dry
@@ -22,6 +58,11 @@ npm run verify:release:artifact-only
 ```
 This alias maps to `verify:release -- -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipDemoE2E -SkipPolicy -SkipBadge -SkipPerfRun`.
 Artifact-only gate expects provenance manifest `artifacts/release-artifact-revalidation/source-run.json`; use helper/workflow paths below to generate it automatically.
+If that manifest is stale and GitHub API access is unavailable, rebuild it directly from the current local artifacts first:
+```powershell
+npm run verify:release:artifact:refresh-local-source
+npm run verify:release:artifact-only
+```
 For local self-contained sanity check (without GitHub API calls), run:
 ```powershell
 npm run verify:release:artifact-only:smoke
@@ -50,7 +91,8 @@ If `GITHUB_TOKEN`/`GH_TOKEN` is not set, helper tries `gh auth token` (requires 
 Optional flags: `-- -SourceRunId <id>`, `-- -ArtifactName <name>`, `-- -GithubApiMaxAttempts <n>`, `-- -GithubApiRetryBackoffMs <ms>`, `-- -MaxSourceRunAgeHours <n>`, `-- -AllowAnySourceBranch`, `-- -StrictFinalRun`, `-- -PerfGateMode auto|with_perf|without_perf`, `-- -SkipPerfLoadGate` (deprecated alias), `-- -SkipArtifactOnlyGate`.
 Helper behavior: if downloaded bundle does not contain `artifacts/perf-load/*`, perf checks are skipped automatically while demo/policy/badge artifact checks stay enforced.
 Provenance output: helper/workflow emit source-run manifest at `artifacts/release-artifact-revalidation/source-run.json`.
-Unified evidence output: helper/workflow also emit `artifacts/release-evidence/report.json` and `artifacts/release-evidence/report.md` derived from `badge-details.evidence.*` statuses.
+That manifest now also carries optional compact deploy/publish provenance snapshot fields (`railwayDeploySummary*`, `repoPublishSummary*`) whenever the downloaded artifact bundle contains `artifacts/deploy/railway-deploy-summary.json` and/or `artifacts/deploy/repo-publish-summary.json`.
+Unified evidence output: helper/workflow also emit `artifacts/release-evidence/report.json`, `artifacts/release-evidence/report.md`, `artifacts/release-evidence/manifest.json`, and `artifacts/release-evidence/manifest.md` derived from `badge-details.evidence.*` statuses (including `runtimeGuardrailsSignalPaths`) plus artifact inventory; `report.json` now also carries compact runtime-guardrails snapshot fields `summaryStatus`, `totalPaths`, and `primaryPath`, plus provider snapshot fields `validated`, `activeSecondaryProviders`, `entriesCount`, and `primaryEntry`.
 For flaky local runners you can increase demo retry tolerance:
 ```powershell
 npm run verify:release -- -DemoRunMaxAttempts 3 -DemoRunRetryBackoffMs 3000 -DemoScenarioRetryMaxAttempts 3 -DemoScenarioRetryBackoffMs 1200
@@ -59,6 +101,7 @@ For demo-only retry (without unit/policy/badge/perf gates), use:
 ```powershell
 npm run demo:e2e:fast:retry
 ```
+`demo:e2e:fast` imports the repo-local `.env` before it resolves runtime defaults, then force-enables the demo analytics split required by the release gates while preserving the repo-local UI/Storyteller planner model selections instead of pinning a separate fast-lane planner model. It follows the current Storyteller runtime media mode unless `DEMO_E2E_STORYTELLER_MEDIA_MODE` is set explicitly, and when `storytellerVideoMode=default` it runs a compact video-first Storyteller footprint (`includeImages=false`, shorter scene count, longer timeout) so live Veo proof stays reproducible in the automated lane. Story cache verification is routed through a lightweight fallback lane so cache/purge evidence stays deterministic without inflating the judged summary with inline media blobs. The same fast path also restarts stale healthy `ui-executor` processes when their runtime analytics or Playwright flags drift from submission-safe defaults.
 For final pre-submission validation, enforce strict no-retry discipline:
 ```powershell
 npm run verify:release:strict
@@ -69,6 +112,7 @@ If perf artifacts are already present and you only want to skip rerunning perf p
 npm run verify:release:strict:skip-perf-run
 ```
 Optional CI equivalent: run GitHub workflow `.github/workflows/release-strict-final.yml` (manual `workflow_dispatch`) for the same strict gate + artifact bundle.
+If that strict workflow also runs a real Railway deploy, its job summary now surfaces `artifacts/deploy/railway-deploy-summary.json` fields and the uploaded artifact bundle carries that deploy summary alongside release evidence.
 Optional one-command publish + Railway deploy flow:
 ```powershell
 $env:GITHUB_OWNER="Web-pixel-creator"
@@ -78,6 +122,8 @@ $env:RAILWAY_SERVICE_ID="b8c1a952-da24-4410-a53a-82b634b70f47"
 $env:RAILWAY_ENVIRONMENT="production"
 npm run repo:publish -- -DeployRailway -SkipPages -SkipBadgeCheck
 ```
+This flow now surfaces local `artifacts/release-evidence/report.*` and `artifacts/release-evidence/manifest.*` paths immediately after the pre-publish verification gate, then prints effective hosted `badge.json` / `badge-details.json` URLs after Railway deploy verification.
+It also emits `artifacts/deploy/repo-publish-summary.json` and `artifacts/deploy/railway-deploy-summary.json` so the publish/deploy provenance can be inspected without re-reading terminal output.
 If you need to refresh hosted Railway environment before demo, run:
 ```powershell
 $env:RAILWAY_PROJECT_ID="bbca2889-fd0d-48fe-bded-79802230e5a6"
@@ -85,7 +131,7 @@ $env:RAILWAY_SERVICE_ID="b8c1a952-da24-4410-a53a-82b634b70f47"
 $env:RAILWAY_ENVIRONMENT="production"
 npm run deploy:railway -- -SkipReleaseVerification
 ```
-2. Start services for live walkthrough:
+4. Start services for live walkthrough:
 ```powershell
 npm run dev:ui-executor
 npm run dev:orchestrator
@@ -100,10 +146,15 @@ npm run dev:live-mock
 and configure gateway env:
 - `LIVE_API_ENABLED=true`
 - `LIVE_API_PROTOCOL=gemini`
-- `LIVE_API_WS_URL=ws://localhost:8091/live`
+- `LIVE_API_WS_URL=wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent` for Gemini Live, or `ws://localhost:8091/live` when intentionally demoing the local mock
 
 Recommended UI executor safety setting for judged demo:
 - `UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE=failed` (fail-fast instead of silent simulated fallback when remote executor is unavailable).
+
+Recommended runtime drill workflow when validating controlled degradations:
+- Review `GET /v1/runtime/fault-profiles` first to confirm expected signals/scenarios/artifacts.
+- Use `POST /v1/runtime/fault-profiles/execute` with `dryRun=true` before a live activation/recovery step.
+- Control-plane drills execute directly through the API, request-scoped drills expose repo-owned request/script templates, and `ui-approval-resume` activation can return `followUpContext` for the recovery step.
 
 Optional startup reliability knobs for local/CI runs:
 - `DEMO_E2E_SERVICE_START_MAX_ATTEMPTS=2` (or higher for unstable runners).
@@ -220,16 +271,18 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `storytellerCacheEnabled=true`
   - `storytellerCacheHitValidated=true`
   - `storytellerCacheInvalidationValidated=true`
-  - `storytellerMediaMode=simulated`
-  - `storytellerMediaQueueWorkers >= 1`
+  - `storytellerMediaMode != simulated` for submission runs
+- `storytellerMediaQueueWorkers >= 1` for fallback/simulated video lanes
+- `storytellerMediaQueueWorkers >= 0` when `storytellerVideoMode=default`
   - `storytellerCacheHits >= 1`
 - Demo e2e scenario retry discipline:
   - `options.scenarioRetryMaxAttempts >= 2`
   - `options.scenarioRetryBackoffMs >= 500`
   - `kpi.scenarioRetriesUsedCount <= 2`
   - strict final run (`npm run verify:release:strict`) enforces `kpi.scenarioRetriesUsedCount = 0`
-  - `kpi.liveTranslationScenarioAttempts <= options.scenarioRetryMaxAttempts`
-  - `kpi.liveNegotiationScenarioAttempts <= options.scenarioRetryMaxAttempts`
+- `kpi.liveTranslationScenarioAttempts <= options.scenarioRetryMaxAttempts`
+- `kpi.liveResearchScenarioAttempts <= options.scenarioRetryMaxAttempts`
+- `kpi.liveNegotiationScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.liveContextCompactionScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.storytellerPipelineScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.uiSandboxPolicyModesScenarioAttempts <= options.scenarioRetryMaxAttempts`
@@ -276,7 +329,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
 
 ### 00:00-02:20 Live Agent (primary category)
 
-1. Connect WebSocket and start mic stream.
+1. Click `Connect` first, then start mic stream. The live lane no longer auto-connects on first paint. For `translation`, read the setup as `From -> To`: choose the source phrase language on the left and the answer language on the right before pressing `Start mic`. After a short speech pause the phrase now auto-submits and the mic stops, while `Stop mic` remains the manual fallback. Watch the inline mic-status row move through `Listening -> Recognized -> Sent/Error` so the operator can confirm the spoken phrase was actually dispatched.
 2. Validate `Assistant` status pill lifecycle in the header before negotiation:
    - `waiting_connection` while websocket is opening,
    - `idle` after websocket is connected and no active output,
@@ -286,6 +339,8 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
    - `delivery <= 14`
    - `SLA >= 98`
 4. Show KPI panel updates in real time.
+   - `Current Offer` should reflect the client offer.
+   - `Final Offer` should reflect the latest agent counter-offer/proposed compliant terms.
 
 Checkpoint A (soft interruption) at ~00:55:
 1. Click `Interrupt Assistant` once while assistant is speaking.
@@ -304,28 +359,37 @@ Checkpoint B (hard interruption) at ~01:40:
    - policy evidence confirms assistant status lifecycle contract: `assistantActivityLifecycleValidated=true`.
    - policy evidence keeps interrupt latency guard green: `kpi.gatewayInterruptLatencyMs <= 300` when measured (or explicit `live.bridge.unavailable` fallback path).
 
+Optional grounded-research proof:
+1. Switch intent to `research`.
+2. Send a short factual query and confirm the response or export surfaces `answer`, `citations`, and `sourceUrls`.
+
 ### 02:20-03:40 Creative Storyteller
 
 1. Switch intent to `story`.
 2. Send prompt for short branching story.
-3. Show generated timeline and fallback marker (`fallback_asset=true`) when pre-generated assets are used.
-4. For async video mode (`mediaMode=simulated`), show linked `mediaJobs.video` entries (`jobId`, `assetId`, `status=queued/running/completed`).
+3. Show the generated timeline plus provider/media metadata from the live model-backed path.
+4. For async video generation, show linked `mediaJobs.video` entries (`jobId`, `assetId`, `status=queued/running/completed`) from the live runtime, not a simulated placeholder.
 
 ### 03:40-05:20 UI Navigator
 
-1. In `Operator Console`, switch role to `admin` and create one node in `Device Nodes`:
+1. In `Operator Console`, switch role to `admin`, open `Operator Session Ops`, save a purpose declaration such as `judge_prep -> judged ui/runtime walkthrough`, then click `Refresh Replay` and `Refresh Discovery` once to confirm replayable session/event history and curated personas/recipes are visible before high-risk actions.
+2. Open `Bootstrap Doctor & Auth Profiles`, click `Refresh Doctor`, and confirm the top posture summary shows provider readiness, auth-profile coverage, device readiness, and fallback coverage before mutating runtime surfaces.
+3. Open `Workflow Control Panel`, click `Refresh Runtime`, and confirm redacted assistive-router/workflow posture is visible (`provider/model/budgetPolicy/promptCaching/watchlistEnabled`, `apiKeyConfigured`, override state) without exposing raw secrets.
+4. Optional controlled-recovery proof: open `Runtime Drill Runner`, click `Refresh Catalog`, plan one `dryRun` profile, and confirm expected signals/artifacts plus any returned `followUpContext` before a live execute.
+5. Create one node in `Device Nodes`:
    - `nodeId=desktop-main`, `kind=desktop`, `status=online`, capabilities include `screen,click,type`.
    - For mutating actions (`Create/Update`, `Heartbeat`, `Failover`), accept the confirmation dialog before request submission.
-2. Still as `admin`, run one update with `expectedVersion` from the created node and confirm version increments.
-3. Switch role to `operator` and send one heartbeat for the same node (optionally with `status=degraded` then back to `online`).
-4. Click `Check Status` for the same `nodeId` and confirm point-lookup returns current `status`, `version`, and `lastSeenAt`.
-5. Optional resilience proof: click `Probe Stale Conflict` (or send stale `expectedVersion`) and show guarded `409 API_DEVICE_NODE_VERSION_CONFLICT`.
-6. Confirm `Device Nodes` list updates with latest `status`, `version`, and `lastSeenAt`.
-7. Click `Refresh Summary` in `Operator Console` and show `Live Bridge Status` widget:
+6. Still as `admin`, run one update with `expectedVersion` from the created node and confirm version increments.
+7. Switch role to `operator` and send one heartbeat for the same node (optionally with `status=degraded` then back to `online`).
+8. Click `Check Status` for the same `nodeId` and confirm point-lookup returns current `status`, `version`, and `lastSeenAt`.
+9. Optional resilience proof: click `Probe Stale Conflict` (or send stale `expectedVersion`) and show guarded `409 API_DEVICE_NODE_VERSION_CONFLICT`.
+10. Confirm `Device Nodes` list updates with latest `status`, `version`, and `lastSeenAt`.
+11. Click `Refresh Summary` in `Operator Console` and show `Live Bridge Status` widget:
    - status badge (`state=<healthy|degraded|unknown>`, probe success when available),
    - counters (`degraded/recovered/watchdog_reconnect/errors/unavailable/connect_timeouts`),
    - probe telemetry (`probes/ping_sent/pongs/ping_errors`),
    - last health event marker (`lastEventType`, `lastEventAt`).
+   - `Bootstrap Doctor` widget (`providers/auth_profiles/device_readiness/fallback_paths/top_check`).
    - `UI Executor Failover` widget (`state/healthy/profile/version + last_action/last_outcome`).
    - `Device Nodes Health` widget (`total/online/degraded/offline/stale/missing_heartbeat/max_age`).
    - `Device Node Updates Evidence` widget (`total/upsert/heartbeat/unique_nodes/latest/seen_at` + validated status).
@@ -340,22 +404,24 @@ Checkpoint B (hard interruption) at ~01:40:
    - `device_nodes_health` summary line (`total/online/degraded/offline/stale/missing_heartbeat`) and `device.<nodeId>` recent entry.
    - `device.<nodeId>.updates` evidence lane confirms both lifecycle events (`device_node_upsert` + `device_node_heartbeat`) through `/v1/device-nodes/{nodeId}/updates`.
    - policy evidence includes explicit scenario `operator.device_nodes.lifecycle=passed` and queue KPIs (`operatorTaskQueueSummaryValidated=true`, `operatorTaskQueuePressureLevel`) in `summary.json`.
-8. Show admin failover proof for `ui-executor`:
+12. Show admin failover proof for `ui-executor`:
    - set `Target Service=ui-executor`,
    - click `Failover Drain` and confirm widget state switches to `draining`,
    - click `Failover Warmup` and confirm widget state returns to `ready`.
    - policy evidence in `summary.json`: `operatorFailoverUiExecutorDrainState=draining`, `operatorFailoverUiExecutorWarmupState=ready`, `operatorFailoverUiExecutorValidated=true`.
-9. Switch intent to `ui_task` with sensitive action phrase.
-10. Show `Approval Control` with pending `approvalId`.
-11. Execute both decisions:
+13. Open `Browser Worker Control`, click `Refresh Runtime`, and confirm the queue/checkpoint posture is visible for long-horizon UI jobs even if no paused job needs recovery in this judge run.
+14. Switch intent to `ui_task` with sensitive action phrase.
+15. Show `Approval Control` with pending `approvalId`.
+16. Execute both decisions:
    - `Reject` (must not resume run),
    - `Approve & Resume` (must resume and complete).
    - Check KPI evidence in `summary.json`: `uiApprovalResumeRequestAttempts` is `1..2` and scenario `ui.approval.approve_resume.elapsedMs <= 60000`.
-12. Run one safe `ui_task` in visual testing mode (`visualTesting.enabled=true`) and show:
+17. Run one safe `ui_task` in visual testing mode (`visualTesting.enabled=true`) and show:
    - structured visual report with `checks` and severity labels,
    - `status=passed|failed`,
    - artifact refs (`baseline`, `actual`, `diff`),
    - execution grounding summary (`domSnapshotProvided`, `accessibilityTreeProvided`, `markHintsCount`).
+18. Optional operator evidence proof: export session `JSON` or `Markdown` from the frontend and confirm the payload includes `runtimeGuardrailsSignalPaths`, `operatorPurpose`, `operatorSessionReplay`, and `operatorDiscovery`.
 
 ## Stage Fallback Procedure (text mode)
 
@@ -374,23 +440,28 @@ Manual shortcut:
 3. Local artifact `artifacts/demo-e2e/policy-check.json`.
 4. Local artifact `artifacts/demo-e2e/policy-check.md`.
 5. Local artifact `artifacts/demo-e2e/badge.json`.
-6. Local artifact `artifacts/demo-e2e/badge-details.json` (must include top-level `costEstimate` + `tokensUsed`, plus `evidence.operatorTurnTruncation`, `evidence.operatorTurnDelete`, `evidence.operatorDamageControl`, `evidence.governancePolicy`, `evidence.skillsRegistry`, `evidence.pluginMarketplace`, `evidence.deviceNodes`, and `evidence.agentUsage` where `deviceNodes` also validates updates lane: `updatesValidated`, `updatesHasUpsert`, `updatesHasHeartbeat`, `updatesApiValidated`, `updatesTotal>=2`).
+6. Local artifact `artifacts/demo-e2e/badge-details.json` (must include top-level `costEstimate` + `tokensUsed`, top-level `providerUsage` for adapter provenance including storyteller `tts`, optional `image_edit` continuity passes, and live-agent `research` citation/source-url counts, plus `evidence.operatorTurnTruncation`, `evidence.operatorTurnDelete`, `evidence.operatorDamageControl`, `evidence.governancePolicy`, `evidence.skillsRegistry`, `evidence.pluginMarketplace`, `evidence.deviceNodes`, `evidence.agentUsage`, and `evidence.runtimeGuardrailsSignalPaths` where `deviceNodes` also validates updates lane: `updatesValidated`, `updatesHasUpsert`, `updatesHasHeartbeat`, `updatesApiValidated`, `updatesTotal>=2`).
 7. Observability screenshot: dashboard `MLA Telemetry KPI Overview` with latency and error widgets.
 8. Observability screenshot: alert policy `MLA Gateway P95 Latency High` enabled.
 9. Observability screenshot: alert policy `MLA Service Error Rate High` enabled.
 10. Observability screenshot: alert policy `MLA Orchestrator Persistence Failures` enabled.
 11. BigQuery evidence: dataset `agent_analytics` has recent `analytics_event` rows.
-12. Public status URL: `https://live-agent-production.up.railway.app/demo-e2e/badge.json`.
-13. Public details URL: `https://live-agent-production.up.railway.app/demo-e2e/badge-details.json`.
-14. Public shield URL: `https://img.shields.io/endpoint?url=https%3A%2F%2Flive-agent-production.up.railway.app%2Fdemo-e2e%2Fbadge.json`.
-15. API reliability evidence: `api.sessions.versioning=passed` with `kpi.sessionVersioningValidated=true`, `API_SESSION_VERSION_CONFLICT`, `API_SESSION_IDEMPOTENCY_CONFLICT`.
-16. WebSocket contract evidence: `gateway.websocket.binding_mismatch=passed` with `kpi.gatewayWsSessionMismatchCode=GATEWAY_SESSION_MISMATCH`, `kpi.gatewayWsUserMismatchCode=GATEWAY_USER_MISMATCH`.
-17. WebSocket drain behavior evidence: `gateway.websocket.draining_rejection=passed` with `kpi.gatewayWsDrainingCode=GATEWAY_DRAINING` and successful post-warmup recovery (`kpi.gatewayWsDrainingRecoveryStatus=completed`).
-18. WebSocket conversation-item truncate evidence: `gateway.websocket.item_truncate=passed` with `kpi.gatewayItemTruncateValidated=true`, `kpi.operatorTurnTruncationSummaryValidated=true`, session-local playback truncation event `live.turn.truncated`, and judge-facing Operator Console block `Turn Truncation Evidence` (`turnTruncation.total >= 1`).
-19. WebSocket conversation-item delete evidence: `gateway.websocket.item_delete=passed` with `kpi.gatewayItemDeleteValidated=true`, session-local cleanup event `live.turn.deleted`, and judge-facing Operator Console block `Turn Delete Evidence` (`turnDelete.total >= 1`).
-20. Governance policy lifecycle evidence: `governance.policy.lifecycle=passed` with `kpi.governancePolicyLifecycleValidated=true`, conflict guards (`API_GOVERNANCE_POLICY_VERSION_CONFLICT`, `API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT`), scope guard (`API_TENANT_SCOPE_FORBIDDEN`), and centralized summary proof (`kpi.governancePolicySummaryTemplateId=strict`, `kpi.governancePolicySummarySource=tenant_override`).
-21. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings + `gate.evidenceSnapshot.operatorDamageControlSummaryValidated` / `gate.evidenceSnapshot.badgeEvidenceOperatorTurnTruncationStatus` / `gate.evidenceSnapshot.badgeEvidenceOperatorTurnDeleteStatus` / `gate.evidenceSnapshot.badgeEvidenceOperatorDamageControlStatus` / `gate.evidenceSnapshot.badgeEvidenceGovernancePolicyStatus` / `gate.evidenceSnapshot.badgeEvidenceSkillsRegistryStatus` / `gate.evidenceSnapshot.badgeEvidencePluginMarketplaceStatus` / `gate.evidenceSnapshot.badgeEvidenceDeviceNodesStatus` / `gate.evidenceSnapshot.badgeEvidenceAgentUsageStatus` / `gate.evidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus`).
-22. Unified release evidence report: `artifacts/release-evidence/report.json` + `artifacts/release-evidence/report.md` (single-source summary for strict/artifact/deploy evidence lanes, including `pluginMarketplaceStatus`, `agentUsageStatus`, and derived `deviceNodeUpdatesStatus`).
+12. Cloud Run deployment proof: `artifacts/deploy/gcp-cloud-run-summary.json` (service URLs, revisions, and runtime env proof).
+13. Firestore proof: `artifacts/deploy/gcp-firestore-summary.json`.
+14. GCP runtime proof: `artifacts/release-evidence/gcp-runtime-proof.json` and `artifacts/release-evidence/gcp-runtime-proof.md`.
+15. Legacy public Railway badge URL remains optional fallback only: `https://live-agent-production.up.railway.app/demo-e2e/badge.json`.
+16. Legacy public Railway details URL remains optional fallback only: `https://live-agent-production.up.railway.app/demo-e2e/badge-details.json`.
+17. Legacy public Railway shield URL remains optional fallback only: `https://img.shields.io/endpoint?url=https%3A%2F%2Flive-agent-production.up.railway.app%2Fdemo-e2e%2Fbadge.json`.
+18. API reliability evidence: `api.sessions.versioning=passed` with `kpi.sessionVersioningValidated=true`, `API_SESSION_VERSION_CONFLICT`, `API_SESSION_IDEMPOTENCY_CONFLICT`.
+19. WebSocket contract evidence: `gateway.websocket.binding_mismatch=passed` with `kpi.gatewayWsSessionMismatchCode=GATEWAY_SESSION_MISMATCH`, `kpi.gatewayWsUserMismatchCode=GATEWAY_USER_MISMATCH`.
+20. WebSocket drain behavior evidence: `gateway.websocket.draining_rejection=passed` with `kpi.gatewayWsDrainingCode=GATEWAY_DRAINING` and successful post-warmup recovery (`kpi.gatewayWsDrainingRecoveryStatus=completed`).
+21. WebSocket conversation-item truncate evidence: `gateway.websocket.item_truncate=passed` with `kpi.gatewayItemTruncateValidated=true`, `kpi.operatorTurnTruncationSummaryValidated=true`, session-local playback truncation event `live.turn.truncated`, and judge-facing Operator Console block `Turn Truncation Evidence` (`turnTruncation.total >= 1`).
+22. WebSocket conversation-item delete evidence: `gateway.websocket.item_delete=passed` with `kpi.gatewayItemDeleteValidated=true`, session-local cleanup event `live.turn.deleted`, and judge-facing Operator Console block `Turn Delete Evidence` (`turnDelete.total >= 1`).
+23. Governance policy lifecycle evidence: `governance.policy.lifecycle=passed` with `kpi.governancePolicyLifecycleValidated=true`, conflict guards (`API_GOVERNANCE_POLICY_VERSION_CONFLICT`, `API_GOVERNANCE_POLICY_IDEMPOTENCY_CONFLICT`), scope guard (`API_TENANT_SCOPE_FORBIDDEN`), and centralized summary proof (`kpi.governancePolicySummaryTemplateId=strict`, `kpi.governancePolicySummarySource=tenant_override`).
+24. Artifact provenance evidence: `artifacts/release-artifact-revalidation/source-run.json` (source run id/branch/age/guardrails/retry settings + `gate.evidenceSnapshot.operatorDamageControlSummaryValidated` / `gate.evidenceSnapshot.badgeEvidenceOperatorTurnTruncationStatus` / `gate.evidenceSnapshot.badgeEvidenceOperatorTurnDeleteStatus` / `gate.evidenceSnapshot.badgeEvidenceOperatorDamageControlStatus` / `gate.evidenceSnapshot.badgeEvidenceGovernancePolicyStatus` / `gate.evidenceSnapshot.badgeEvidenceSkillsRegistryStatus` / `gate.evidenceSnapshot.badgeEvidencePluginMarketplaceStatus` / `gate.evidenceSnapshot.badgeEvidenceDeviceNodesStatus` / `gate.evidenceSnapshot.badgeEvidenceAgentUsageStatus` / `gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsStatus` / `gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus` / `gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths` / `gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath` / `gate.evidenceSnapshot.badgeEvidenceProviderUsageStatus` / `gate.evidenceSnapshot.badgeEvidenceProviderUsageValidated` / `gate.evidenceSnapshot.badgeEvidenceProviderUsageActiveSecondaryProviders` / `gate.evidenceSnapshot.badgeEvidenceProviderUsageEntriesCount` / `gate.evidenceSnapshot.badgeEvidenceProviderUsagePrimaryEntry` / `gate.evidenceSnapshot.badgeEvidenceDeviceNodeUpdatesStatus`, plus optional `gate.evidenceSnapshot.railwayDeploySummary*` / `gate.evidenceSnapshot.repoPublishSummary*` when deploy or publish summaries were bundled with the source run).
+25. Unified release evidence report: `artifacts/release-evidence/report.json` + `artifacts/release-evidence/report.md` (single-source summary for strict/artifact/deploy evidence lanes, including `pluginMarketplaceStatus`, `agentUsageStatus`, `runtimeGuardrailsSignalPathsStatus`, compact runtime-guardrails snapshot fields `summaryStatus` / `totalPaths` / `primaryPath`, derived `deviceNodeUpdatesStatus`, and `providerUsage` for adapter provenance such as storyteller `tts`, optional `image_edit` continuity passes, and live-agent `research` citation-bearing provenance, plus compact provider snapshot fields `validated` / `activeSecondaryProviders` / `entriesCount` / `primaryEntry`, and optional GCP runtime proof snapshot fields after Cloud Run deploy).
+26. Unified release evidence manifest: `artifacts/release-evidence/manifest.json` + `artifacts/release-evidence/manifest.md` (artifact inventory for demo/perf/provenance/report outputs with required/present state and copied critical evidence statuses).
+27. Optional frontend export evidence: downloaded session `JSON` or `Markdown` from `Export Session` includes `runtimeGuardrailsSignalPaths`, `operatorPurpose`, `operatorSessionReplay`, and `operatorDiscovery`.
 
 ## Quick Observability Setup (for demo environment)
 
@@ -398,25 +469,34 @@ Manual shortcut:
 ```powershell
 npm run infra:monitoring:validate
 ```
-2. Apply GCP observability baseline:
+2. Apply GCP judge runtime baseline:
+```powershell
+pwsh ./infra/gcp/prepare-judge-runtime.ps1 -ProjectId "<your-project-id>" -Region "us-central1" -FirestoreLocation "nam5" -DatasetId "agent_analytics" -ImageTag "<release-tag>"
+```
+3. Apply only the GCP observability baseline when deploy/runtime is already up:
 ```powershell
 pwsh ./infra/gcp/setup-observability.ps1 -ProjectId "<your-project-id>" -Region "us-central1" -Location "US" -DatasetId "agent_analytics"
 ```
-3. Collect evidence package:
+4. Collect evidence package:
 ```powershell
 pwsh ./infra/gcp/collect-observability-evidence.ps1 -ProjectId "<your-project-id>" -DatasetId "agent_analytics" -LookbackHours 24
 ```
-4. Generate judge-ready report:
+5. Collect GCP runtime proof:
+```powershell
+pwsh ./infra/gcp/collect-runtime-proof.ps1 -ProjectId "<your-project-id>" -Region "us-central1" -DatasetId "agent_analytics"
+```
+6. Generate judge-ready report:
 ```powershell
 npm run infra:observability:report
 ```
-5. Generate judge visual evidence pack (screenshot + badge lane checklist):
+7. Generate judge visual evidence pack (screenshot + badge lane checklist):
 ```powershell
 npm run demo:e2e:visual-capture
 npm run demo:e2e:visual-pack
 npm run demo:e2e:visual:gallery
 npm run demo:e2e:visual:bundle
 ```
+If `artifacts/deploy/railway-deploy-summary.json` or `artifacts/deploy/repo-publish-summary.json` already exist, the same `presentation.md` bundle will also include a compact deploy provenance snapshot for judge-facing closeout.
 Strict pack gate:
 ```powershell
 npm run demo:e2e:visual-pack:strict
@@ -444,6 +524,7 @@ npm run demo:e2e:visual-pack:strict
 npm run demo:e2e:visual:gallery
 npm run demo:e2e:visual:bundle
 ```
-6. Optional CI collection path:
+8. Optional CI collection path:
 - Run GitHub workflow `.github/workflows/observability-evidence.yml` with `collect_live=true`.
 - Provide `project_id` and ensure repository secret `GCP_CREDENTIALS_JSON` is configured.
+

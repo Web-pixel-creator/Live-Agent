@@ -15,8 +15,7 @@ test("operator console supports issues-only filter for triage", () => {
   const operatorGuideSource = readFileSync(operatorGuidePath, "utf8");
 
   const requiredHtmlTokens = [
-    'id="operatorIssuesOnlyBtn"',
-    "Issues Only",
+    'id="operatorIssuesOnlyBtn" class="button-muted" aria-pressed="false" aria-label="Issues Only" title="Issues Only">Issues<',
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `frontend html missing operator-issues-only token: ${token}`);
@@ -27,7 +26,9 @@ test("operator console supports issues-only filter for triage", () => {
     "operatorIssuesOnlyBtn: document.getElementById(\"operatorIssuesOnlyBtn\")",
     "function setOperatorIssuesOnlyMode(enabled)",
     "el.operatorIssuesOnlyBtn.classList.toggle(\"is-active\", state.operatorIssuesOnly);",
-    "el.operatorIssuesOnlyBtn.textContent = state.operatorIssuesOnly ? \"Show All Statuses\" : \"Issues Only\";",
+    "el.operatorIssuesOnlyBtn.setAttribute(\"aria-label\", issuesOnlyLabel);",
+    "el.operatorIssuesOnlyBtn.title = issuesOnlyLabel;",
+    "el.operatorIssuesOnlyBtn.textContent = state.operatorIssuesOnly ? \"All Statuses\" : \"Issues\";",
     "if (state.operatorIssuesOnly && statusNode.classList.contains(\"status-ok\")) {",
     "el.operatorIssuesOnlyBtn.addEventListener(\"click\", () => {",
     "setOperatorIssuesOnlyMode(!state.operatorIssuesOnly);",

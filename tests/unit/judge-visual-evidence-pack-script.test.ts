@@ -91,6 +91,9 @@ function runVisualPack(args) {
 test("judge visual evidence pack strict mode passes when required captures and badge lanes are present", () => {
   const baseDir = mkdtempSync(join(tmpdir(), "mla-visual-pack-pass-"));
   const screenshotsDir = join(baseDir, "screenshots");
+  const gcpCloudRunSummaryPath = join(baseDir, "gcp-cloud-run-summary.json");
+  const gcpRuntimeProofPath = join(baseDir, "gcp-runtime-proof.json");
+  const submissionRefreshStatusPath = join(baseDir, "submission-refresh-status.json");
   const railwayDeploySummaryPath = join(baseDir, "railway-deploy-summary.json");
   const repoPublishSummaryPath = join(baseDir, "repo-publish-summary.json");
   mkdirSync(screenshotsDir, { recursive: true });
@@ -103,9 +106,59 @@ test("judge visual evidence pack strict mode passes when required captures and b
   const summaryPath = join(baseDir, "summary.json");
   const outJson = join(baseDir, "manifest.json");
   const outMd = join(baseDir, "manifest.md");
+  const missingGcpCloudRunSummaryPath = join(baseDir, "missing-gcp-cloud-run-summary.json");
+  const missingGcpRuntimeProofPath = join(baseDir, "missing-gcp-runtime-proof.json");
+  const missingSubmissionRefreshStatusPath = join(baseDir, "missing-submission-refresh-status.json");
 
   writeFileSync(badgePath, JSON.stringify(makeBadgeDetails(), null, 2));
   writeFileSync(summaryPath, JSON.stringify({ ok: true }, null, 2));
+  writeFileSync(
+    gcpCloudRunSummaryPath,
+    JSON.stringify(
+      {
+        status: "success",
+        serviceCount: 3,
+        gatewayUrl: "https://gateway.example.test",
+        apiUrl: "https://api.example.test",
+        orchestratorUrl: "https://orchestrator.example.test",
+      },
+      null,
+      2,
+    ),
+  );
+  writeFileSync(
+    gcpRuntimeProofPath,
+    JSON.stringify(
+      {
+        status: "success",
+        submissionSafeSummaryGate: {
+          liveApiEnabled: true,
+          translationProvider: "not_fallback",
+          storytellerMediaMode: "not_simulated",
+          uiExecutorForceSimulation: false,
+        },
+        judgeProof: {
+          cloudRunUrlProof: true,
+          firestoreProof: true,
+          bigQueryRowsProof: true,
+          observabilityScreenshotsProof: true,
+        },
+      },
+      null,
+      2,
+    ),
+  );
+  writeFileSync(
+    submissionRefreshStatusPath,
+    JSON.stringify(
+      {
+        status: "success",
+        blockingReason: "none",
+      },
+      null,
+      2,
+    ),
+  );
   writeFileSync(
     railwayDeploySummaryPath,
     JSON.stringify(
@@ -148,6 +201,12 @@ test("judge visual evidence pack strict mode passes when required captures and b
     badgePath,
     "--summary",
     summaryPath,
+    "--gcpCloudRunSummary",
+    gcpCloudRunSummaryPath,
+    "--gcpRuntimeProof",
+    gcpRuntimeProofPath,
+    "--submissionRefreshStatus",
+    submissionRefreshStatusPath,
     "--railwayDeploySummary",
     railwayDeploySummaryPath,
     "--repoPublishSummary",
@@ -170,19 +229,32 @@ test("judge visual evidence pack strict mode passes when required captures and b
   assert.equal(manifest.badgeEvidence.providerUsage, "pass");
   assert.equal(manifest.badgeEvidence.deviceNodeUpdates, "pass");
   assert.equal(manifest.deployProvenance.railwayDeploy.status, "success");
+  assert.equal(manifest.deployProvenance.gcpCloudRun.status, "success");
+  assert.equal(manifest.deployProvenance.gcpRuntimeProof.status, "success");
+  assert.equal(manifest.deployProvenance.submissionRefreshStatus.status, "success");
   assert.equal(manifest.deployProvenance.railwayDeploy.available, true);
   assert.equal(manifest.deployProvenance.railwayDeploy.deploymentId, "railway-deploy-123");
   assert.equal(manifest.deployProvenance.repoPublish.verificationScript, "verify:release");
   assert.equal(manifest.deployProvenance.repoPublish.available, true);
   assert.equal(manifest.deployProvenance.repoPublish.releaseEvidenceValidated, true);
-  assert.equal(manifest.summary.deployProvenanceRows, 3);
+  assert.equal(manifest.summary.deployProvenanceRows, 6);
+  assert.equal(manifest.submissionFollowUp.submissionRefreshStatus, "success");
+  assert.equal(manifest.submissionFollowUp.submissionSafeSummaryGate.liveApiEnabled, true);
+  assert.equal(manifest.submissionFollowUp.submissionSafeSummaryGate.translationProvider, "not_fallback");
 
   const markdown = readFileSync(outMd, "utf8");
   for (const token of [
     "## Deploy / Publish Provenance",
+    "GCP Cloud Run: status success; services 3; gateway https://gateway.example.test; api https://api.example.test; orchestrator https://orchestrator.example.test",
+    "GCP runtime proof: status success; Cloud Run URL proof true; Firestore proof true; BigQuery rows proof true; observability screenshots proof true",
     "Railway deploy: status success; deployment railway-deploy-123; public URL https://live-agent.example.test",
     "Public badge: badge https://live-agent.example.test/demo-e2e/badge.json; badge-details https://live-agent.example.test/demo-e2e/badge-details.json",
     "Repo publish: verification verify:release; release evidence validated; Railway deploy enabled; frontend deploy disabled",
+    "## Submission Follow-Up",
+    "Submission refresh: status success; blocker none",
+    "Submission refresh state: `success`",
+    "liveApiEnabled=true",
+    "translationProvider=not_fallback",
   ]) {
     assert.ok(markdown.includes(token), `visual pack markdown missing token: ${token}`);
   }
@@ -192,6 +264,9 @@ test("judge visual evidence pack strict mode passes when required captures and b
 test("judge visual evidence pack strict mode fails when captures are missing", () => {
   const baseDir = mkdtempSync(join(tmpdir(), "mla-visual-pack-fail-"));
   const screenshotsDir = join(baseDir, "screenshots");
+  const missingGcpCloudRunSummaryPath = join(baseDir, "missing-gcp-cloud-run-summary.json");
+  const missingGcpRuntimeProofPath = join(baseDir, "missing-gcp-runtime-proof.json");
+  const missingSubmissionRefreshStatusPath = join(baseDir, "missing-submission-refresh-status.json");
   mkdirSync(screenshotsDir, { recursive: true });
 
   for (const fileName of REQUIRED_SCREENSHOTS.slice(0, REQUIRED_SCREENSHOTS.length - 1)) {
@@ -212,6 +287,12 @@ test("judge visual evidence pack strict mode fails when captures are missing", (
     badgePath,
     "--summary",
     summaryPath,
+    "--gcpCloudRunSummary",
+    missingGcpCloudRunSummaryPath,
+    "--gcpRuntimeProof",
+    missingGcpRuntimeProofPath,
+    "--submissionRefreshStatus",
+    missingSubmissionRefreshStatusPath,
     "--screenshotDir",
     screenshotsDir,
     "--outputJson",
@@ -229,6 +310,9 @@ test("judge visual evidence pack strict mode fails when captures are missing", (
 test("judge visual evidence pack keeps deploy provenance optional for local strict flows", () => {
   const baseDir = mkdtempSync(join(tmpdir(), "mla-visual-pack-optional-"));
   const screenshotsDir = join(baseDir, "screenshots");
+  const missingGcpCloudRunSummaryPath = join(baseDir, "missing-gcp-cloud-run-summary.json");
+  const missingGcpRuntimeProofPath = join(baseDir, "missing-gcp-runtime-proof.json");
+  const missingSubmissionRefreshStatusPath = join(baseDir, "missing-submission-refresh-status.json");
   mkdirSync(screenshotsDir, { recursive: true });
 
   for (const fileName of REQUIRED_SCREENSHOTS) {
@@ -249,6 +333,12 @@ test("judge visual evidence pack keeps deploy provenance optional for local stri
     badgePath,
     "--summary",
     summaryPath,
+    "--gcpCloudRunSummary",
+    missingGcpCloudRunSummaryPath,
+    "--gcpRuntimeProof",
+    missingGcpRuntimeProofPath,
+    "--submissionRefreshStatus",
+    missingSubmissionRefreshStatusPath,
     "--screenshotDir",
     screenshotsDir,
     "--outputJson",

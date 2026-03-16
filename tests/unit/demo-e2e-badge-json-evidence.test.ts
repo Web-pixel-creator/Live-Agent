@@ -72,6 +72,39 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         tokensUsedOutput: 3100,
         tokensUsedTotal: 9300,
         tokensUsedSource: "env_json",
+        storytellerTtsProvider: "deepgram",
+        storytellerTtsModel: "aura-2",
+        storytellerTtsDefaultProvider: "gemini_api",
+        storytellerTtsDefaultModel: "gemini-tts",
+        storytellerTtsSelectionReason: "provider_override",
+        storytellerTtsSecondaryProvider: "deepgram",
+        storytellerTtsSecondaryModel: "aura-2",
+        storytellerTtsMetadataValidated: true,
+        storytellerImageEditProvider: "fal",
+        storytellerImageEditModel: "fal-ai/nano-banana-2/edit",
+        storytellerImageEditDefaultProvider: "fal",
+        storytellerImageEditDefaultModel: "fal-ai/nano-banana-2/edit",
+        storytellerImageEditSelectionReason: "request_input",
+        storytellerImageEditRequested: true,
+        storytellerImageEditApplied: true,
+        storytellerImageEditMetadataValidated: true,
+        researchProvider: "perplexity",
+        researchModel: "sonar-pro",
+        researchDefaultProvider: "perplexity",
+        researchDefaultModel: "sonar-pro",
+        researchSelectionReason: "mock_response",
+        researchCitationCount: 2,
+        researchSourceUrlCount: 2,
+        researchMetadataValidated: true,
+        assistiveRouterProvider: "openai",
+        assistiveRouterModel: "gpt-5.4",
+        assistiveRouterDefaultProvider: "gemini_api",
+        assistiveRouterDefaultModel: "gemini-3-flash",
+        assistiveRouterSelectionReason: "provider_override",
+        assistiveRouterBudgetPolicy: "long_context_operator",
+        assistiveRouterPromptCaching: "provider_default",
+        assistiveRouterWatchlistEnabled: false,
+        assistiveRouterProviderMetadataValidated: true,
         operatorTurnTruncationSummaryValidated: true,
         operatorTurnTruncationExpectedEventSeen: true,
         operatorTurnTruncationTotal: 1,
@@ -179,6 +212,112 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         operatorAgentUsageModels: ["gemini-3-flash", "gemini-3-pro"],
         operatorAgentUsageSource: "gateway_runtime",
         operatorAgentUsageStatus: "observed",
+        operatorRuntimeGuardrailsSignalPathsValidated: true,
+        operatorRuntimeGuardrailsSignalPaths: {
+          status: "critical signals=3",
+          signalsSummary: "total=3 | critical=1 | warn=2 | info=0",
+          coverageSummary: "healthy=4/4 | ready=4/4 | runtime=4/4 | metrics=4/4 | startup=0/0",
+          sandboxSummary: "mode=audit | network=allow_all | setup=present | warnings=1",
+          skillsSummary: "catalog=path/1w | personas=2/2 | recipes=1/1 | runtime=off active=0 skipped=0 blocked=0",
+          topSignal:
+            "critical assistive_router_missing_api_key@orchestrator | value=false | Assistive router is enabled but API key is not configured.",
+          historyStatus:
+            "Signal paths are sourced from the current runtime summary. Release artifacts exclude browser-local lifecycle history.",
+          totalPaths: 3,
+          lifecycleCounts: {
+            active: 3,
+            staged: 0,
+            opened: 0,
+            focused: 0,
+            planned: 0,
+            executed: 0,
+            cleared: 0,
+            failed: 0,
+          },
+          lifecycleSummary: "active=3",
+          primaryPath: {
+            title: "Recovery drill - assistive-router-missing-key",
+            kind: "runtime_drill",
+            signalKey: "assistive_router_missing_api_key",
+            signalService: "orchestrator",
+            signalKeys: ["assistive_router_missing_api_key"],
+            signalDescriptors: ["critical assistive_router_missing_api_key@orchestrator"],
+            profileId: "assistive-router-missing-key",
+            phase: "recovery",
+            targetStatusId: null,
+            summaryText:
+              "Recovery drill: Assistive router deterministic fallback (assistive-router-missing-key/recovery) for assistive_router_missing_api_key@orchestrator.",
+            buttonLabel: "Plan Recovery Drill",
+            lifecycle: {
+              statusCode: "active",
+              statusText: "active",
+              detailText: "Repo-generated active signal path from runtime diagnostics summary.",
+              updatedAt: "2026-02-26T00:00:00.000Z",
+            },
+          },
+          paths: [
+            {
+              title: "Recovery drill - assistive-router-missing-key",
+              kind: "runtime_drill",
+              signalKey: "assistive_router_missing_api_key",
+              signalService: "orchestrator",
+              signalKeys: ["assistive_router_missing_api_key"],
+              signalDescriptors: ["critical assistive_router_missing_api_key@orchestrator"],
+              profileId: "assistive-router-missing-key",
+              phase: "recovery",
+              targetStatusId: null,
+              summaryText:
+                "Recovery drill: Assistive router deterministic fallback (assistive-router-missing-key/recovery) for assistive_router_missing_api_key@orchestrator.",
+              buttonLabel: "Plan Recovery Drill",
+              lifecycle: {
+                statusCode: "active",
+                statusText: "active",
+                detailText: "Repo-generated active signal path from runtime diagnostics summary.",
+                updatedAt: "2026-02-26T00:00:00.000Z",
+              },
+            },
+            {
+              title: "Recovery drill - ui-executor-force-simulation",
+              kind: "runtime_drill",
+              signalKey: "ui_executor_force_simulation",
+              signalService: "ui-executor",
+              signalKeys: ["ui_executor_force_simulation"],
+              signalDescriptors: ["warn ui_executor_force_simulation@ui-executor"],
+              profileId: "ui-executor-force-simulation",
+              phase: "recovery",
+              targetStatusId: null,
+              summaryText:
+                "Recovery drill: UI executor forced simulation (ui-executor-force-simulation/recovery) for ui_executor_force_simulation@ui-executor.",
+              buttonLabel: "Plan Recovery Drill",
+              lifecycle: {
+                statusCode: "active",
+                statusText: "active",
+                detailText: "Repo-generated active signal path from runtime diagnostics summary.",
+                updatedAt: "2026-02-26T00:00:00.000Z",
+              },
+            },
+            {
+              title: "Workflow clear path",
+              kind: "workflow_control",
+              signalKey: "workflow_control_plane_override_active",
+              signalService: "orchestrator",
+              signalKeys: ["workflow_control_plane_override_active"],
+              signalDescriptors: ["warn workflow_control_plane_override_active@orchestrator"],
+              profileId: null,
+              phase: null,
+              targetStatusId: null,
+              summaryText:
+                "Recovery surface: Workflow Control Panel -> Clear Override for workflow_control_plane_override_active@orchestrator.",
+              buttonLabel: "Open Workflow Clear Path",
+              lifecycle: {
+                statusCode: "active",
+                statusText: "active",
+                detailText: "Repo-generated active signal path from runtime diagnostics summary.",
+                updatedAt: "2026-02-26T00:00:00.000Z",
+              },
+            },
+          ],
+        },
       },
     },
   });
@@ -187,13 +326,44 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(result.badge.message, "pass | 205 checks | 37ms ws");
   const costEstimate = result.details.costEstimate as Record<string, unknown>;
   const tokensUsed = result.details.tokensUsed as Record<string, unknown>;
+  const providerUsage = result.details.providerUsage as Record<string, unknown>;
   assert.ok(costEstimate && typeof costEstimate === "object");
   assert.ok(tokensUsed && typeof tokensUsed === "object");
+  assert.ok(providerUsage && typeof providerUsage === "object");
   assert.equal(costEstimate.currency, "USD");
   assert.equal(costEstimate.totalUsd, 0.71);
   assert.equal(tokensUsed.input, 6200);
   assert.equal(tokensUsed.output, 3100);
   assert.equal(tokensUsed.total, 9300);
+  assert.equal(providerUsage.status, "pass");
+  assert.equal(providerUsage.validated, true);
+  assert.equal(providerUsage.activeSecondaryProviders, 2);
+  const providerUsageEntries = providerUsage.entries as Record<string, unknown>[];
+  assert.equal(providerUsageEntries.length, 4);
+  assert.equal(providerUsageEntries[0]?.capability, "tts");
+  assert.equal(providerUsageEntries[0]?.selectedProvider, "deepgram");
+  assert.equal(providerUsageEntries[0]?.defaultProvider, "gemini_api");
+  assert.equal(providerUsageEntries[0]?.selectionReason, "provider_override");
+  assert.equal(providerUsageEntries[1]?.capability, "image_edit");
+  assert.equal(providerUsageEntries[1]?.selectedProvider, "fal");
+  assert.equal(providerUsageEntries[1]?.defaultProvider, "fal");
+  assert.equal(providerUsageEntries[1]?.selectionReason, "request_input");
+  assert.equal(providerUsageEntries[1]?.secondaryActive, false);
+  assert.equal(providerUsageEntries[2]?.capability, "research");
+  assert.equal(providerUsageEntries[2]?.selectedProvider, "perplexity");
+  assert.equal(providerUsageEntries[2]?.defaultProvider, "perplexity");
+  assert.equal(providerUsageEntries[2]?.selectionReason, "mock_response");
+  assert.equal(providerUsageEntries[2]?.citationCount, 2);
+  assert.equal(providerUsageEntries[2]?.sourceUrlCount, 2);
+  assert.equal(providerUsageEntries[3]?.route, "orchestrator");
+  assert.equal(providerUsageEntries[3]?.capability, "routing_reasoning");
+  assert.equal(providerUsageEntries[3]?.selectedProvider, "openai");
+  assert.equal(providerUsageEntries[3]?.defaultProvider, "gemini_api");
+  assert.equal(providerUsageEntries[3]?.selectionReason, "provider_override");
+  assert.equal(providerUsageEntries[3]?.budgetPolicy, "long_context_operator");
+  assert.equal(providerUsageEntries[3]?.promptCaching, "provider_default");
+  assert.equal(providerUsageEntries[3]?.watchlistEnabled, false);
+  assert.equal(providerUsageEntries[3]?.secondaryActive, true);
   const evidence = result.details.evidence as Record<string, unknown>;
   assert.ok(evidence && typeof evidence === "object");
   const turnTruncation = evidence.operatorTurnTruncation as Record<string, unknown>;
@@ -205,6 +375,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   const pluginMarketplace = evidence.pluginMarketplace as Record<string, unknown>;
   const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
   const agentUsage = evidence.agentUsage as Record<string, unknown>;
+  const runtimeGuardrailsSignalPaths = evidence.runtimeGuardrailsSignalPaths as Record<string, unknown>;
   assert.equal(turnTruncation.status, "pass");
   assert.equal(turnDelete.status, "pass");
   assert.equal(damageControl.status, "pass");
@@ -214,6 +385,8 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(pluginMarketplace.status, "pass");
   assert.equal(deviceNodes.status, "pass");
   assert.equal(agentUsage.status, "pass");
+  assert.equal(runtimeGuardrailsSignalPaths.status, "pass");
+  assert.equal(runtimeGuardrailsSignalPaths.validated, true);
   assert.equal(turnTruncation.latestTurnId, "turn-truncate-demo");
   assert.equal(turnDelete.latestTurnId, "turn-delete-demo");
   assert.equal(turnDelete.latestScope, "session_local");
@@ -257,6 +430,82 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.deepEqual(agentUsage.models, ["gemini-3-flash", "gemini-3-pro"]);
   assert.equal(agentUsage.summarySource, "gateway_runtime");
   assert.equal(agentUsage.summaryStatus, "observed");
+  assert.equal(runtimeGuardrailsSignalPaths.summaryStatus, "critical signals=3");
+  assert.equal(runtimeGuardrailsSignalPaths.totalPaths, 3);
+  assert.equal(runtimeGuardrailsSignalPaths.lifecycleSummary, "active=3");
+  const runtimeGuardrailsCounts = runtimeGuardrailsSignalPaths.lifecycleCounts as Record<string, unknown>;
+  const runtimeGuardrailsPrimaryPath = runtimeGuardrailsSignalPaths.primaryPath as Record<string, unknown>;
+  const runtimeGuardrailsPaths = runtimeGuardrailsSignalPaths.paths as Record<string, unknown>[];
+  assert.equal(runtimeGuardrailsCounts.active, 3);
+  assert.equal(runtimeGuardrailsPrimaryPath.kind, "runtime_drill");
+  assert.equal(runtimeGuardrailsPrimaryPath.profileId, "assistive-router-missing-key");
+  assert.equal(runtimeGuardrailsPrimaryPath.buttonLabel, "Plan Recovery Drill");
+  assert.equal(runtimeGuardrailsPaths.length, 3);
+  assert.equal(runtimeGuardrailsPaths[2]?.kind, "workflow_control");
+  assert.equal(runtimeGuardrailsPaths[2]?.buttonLabel, "Open Workflow Clear Path");
+});
+
+test("demo-e2e badge provider usage ignores disabled storyteller image-edit requests", () => {
+  const result = runBadgeGenerator({
+    policy: {
+      ok: true,
+      checks: 205,
+      violations: [],
+    },
+    summary: {
+      generatedAt: "2026-02-26T00:00:00.000Z",
+      kpis: {
+        gatewayWsRoundTripMs: 37,
+        storytellerTtsProvider: "gemini_api",
+        storytellerTtsModel: "gemini-2.5-pro-preview-tts",
+        storytellerTtsDefaultProvider: "gemini_api",
+        storytellerTtsDefaultModel: "gemini-2.5-pro-preview-tts",
+        storytellerTtsSelectionReason: "provider_override",
+        storytellerTtsSecondaryProvider: "deepgram",
+        storytellerTtsSecondaryModel: "aura-2-thalia-en",
+        storytellerTtsMetadataValidated: true,
+        storytellerImageEditProvider: "fal",
+        storytellerImageEditModel: "fal-ai/nano-banana-2/edit",
+        storytellerImageEditDefaultProvider: "fal",
+        storytellerImageEditDefaultModel: "fal-ai/nano-banana-2/edit",
+        storytellerImageEditMode: "disabled",
+        storytellerImageEditSelectionReason: "config_enabled",
+        storytellerImageEditRequested: true,
+        storytellerImageEditApplied: false,
+        storytellerImageEditContractValidated: true,
+        storytellerImageEditMetadataValidated: false,
+        researchProvider: "perplexity",
+        researchModel: "sonar-pro",
+        researchDefaultProvider: "perplexity",
+        researchDefaultModel: "sonar-pro",
+        researchSelectionReason: "mock_response",
+        researchCitationCount: 2,
+        researchSourceUrlCount: 2,
+        researchMetadataValidated: true,
+        assistiveRouterProvider: "gemini_api",
+        assistiveRouterModel: "gemini-3.1-flash-lite-preview",
+        assistiveRouterDefaultProvider: "gemini_api",
+        assistiveRouterDefaultModel: "gemini-3.1-flash-lite-preview",
+        assistiveRouterSelectionReason: "judged_default",
+        assistiveRouterBudgetPolicy: "judged_default",
+        assistiveRouterPromptCaching: "none",
+        assistiveRouterWatchlistEnabled: false,
+        assistiveRouterProviderMetadataValidated: true,
+      },
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  const providerUsage = result.details.providerUsage as Record<string, unknown>;
+  assert.equal(providerUsage.status, "pass");
+  assert.equal(providerUsage.validated, true);
+  assert.equal(providerUsage.activeSecondaryProviders, 0);
+  const providerUsageEntries = providerUsage.entries as Record<string, unknown>[];
+  assert.equal(providerUsageEntries.length, 3);
+  assert.deepEqual(
+    providerUsageEntries.map((entry) => `${entry.route}/${entry.capability}`),
+    ["storyteller-agent/tts", "live-agent/research", "orchestrator/routing_reasoning"],
+  );
 });
 
 test("demo-e2e badge details marks operator turn delete evidence as failed when checkpoint is missing", () => {
@@ -288,11 +537,16 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   assert.equal(result.badge.color, "red");
   const costEstimate = result.details.costEstimate as Record<string, unknown>;
   const tokensUsed = result.details.tokensUsed as Record<string, unknown>;
+  const providerUsage = result.details.providerUsage as Record<string, unknown>;
   assert.equal(costEstimate.currency, "USD");
   assert.equal(costEstimate.totalUsd, 0);
   assert.equal(tokensUsed.input, 0);
   assert.equal(tokensUsed.output, 0);
   assert.equal(tokensUsed.total, 0);
+  assert.equal(providerUsage.status, "fail");
+  assert.equal(providerUsage.validated, false);
+  assert.equal(providerUsage.activeSecondaryProviders, 0);
+  assert.deepEqual(providerUsage.entries, []);
   const evidence = result.details.evidence as Record<string, unknown>;
   const turnDelete = evidence.operatorTurnDelete as Record<string, unknown>;
   const damageControl = evidence.damageControl as Record<string, unknown>;
@@ -302,6 +556,7 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   const pluginMarketplace = evidence.pluginMarketplace as Record<string, unknown>;
   const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
   const agentUsage = evidence.agentUsage as Record<string, unknown>;
+  const runtimeGuardrailsSignalPaths = evidence.runtimeGuardrailsSignalPaths as Record<string, unknown>;
   assert.equal(turnDelete.status, "fail");
   assert.equal(turnDelete.validated, false);
   assert.equal(turnDelete.total, 0);
@@ -327,4 +582,7 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   assert.equal(deviceNodes.lookupStatus, "");
   assert.equal(deviceNodes.summaryTotal, 0);
   assert.equal(agentUsage.status, "fail");
+  assert.equal(runtimeGuardrailsSignalPaths.status, "fail");
+  assert.equal(runtimeGuardrailsSignalPaths.validated, false);
+  assert.equal(runtimeGuardrailsSignalPaths.totalPaths, 0);
 });

@@ -7,6 +7,7 @@ export function routeIntent(intent: OrchestratorIntent): AgentRoute {
     case "conversation":
     case "translation":
     case "negotiation":
+    case "research":
       return "live-agent";
     case "story":
       return "storyteller-agent";
@@ -16,4 +17,3 @@ export function routeIntent(intent: OrchestratorIntent): AgentRoute {
       return "live-agent";
   }
 }
-

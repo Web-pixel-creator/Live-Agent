@@ -242,6 +242,52 @@ jobs:
           Write-Host ("railway_deploy_mode=" + $deployMode)
           ("railway_deploy_mode=" + $deployMode) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
+      - name: Collect Railway Deploy Provenance
+        id: collect_railway_deploy_summary
+        if: always()
+        shell: powershell
+        run: |
+          $summaryPresent = "false"
+          $summaryStatus = "unavailable"
+          $summaryDeploymentId = ""
+          $summaryPublicUrl = ""
+          $summaryBadgeEndpoint = ""
+          $summaryBadgeDetailsEndpoint = ""
+          $summaryPath = "artifacts/deploy/railway-deploy-summary.json"
+
+          if (Test-Path $summaryPath) {
+            try {
+              $summary = Get-Content $summaryPath -Raw | ConvertFrom-Json
+              $summaryPresent = "true"
+              if ($null -ne $summary -and -not [string]::IsNullOrWhiteSpace([string]$summary.status)) {
+                $summaryStatus = [string]$summary.status
+              }
+              if ($null -ne $summary -and -not [string]::IsNullOrWhiteSpace([string]$summary.deploymentId)) {
+                $summaryDeploymentId = [string]$summary.deploymentId
+              }
+              if ($null -ne $summary -and -not [string]::IsNullOrWhiteSpace([string]$summary.effectivePublicUrl)) {
+                $summaryPublicUrl = [string]$summary.effectivePublicUrl
+              }
+              if ($null -ne $summary -and $null -ne $summary.checks -and $null -ne $summary.checks.publicBadge) {
+                if (-not [string]::IsNullOrWhiteSpace([string]$summary.checks.publicBadge.badgeEndpoint)) {
+                  $summaryBadgeEndpoint = [string]$summary.checks.publicBadge.badgeEndpoint
+                }
+                if (-not [string]::IsNullOrWhiteSpace([string]$summary.checks.publicBadge.badgeDetailsEndpoint)) {
+                  $summaryBadgeDetailsEndpoint = [string]$summary.checks.publicBadge.badgeDetailsEndpoint
+                }
+              }
+            } catch {
+              Write-Host ("Failed to parse railway deploy summary artifact: " + $_.Exception.Message)
+            }
+          }
+
+          ("railway_deploy_summary_present=" + $summaryPresent) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_status=" + $summaryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_deployment_id=" + $summaryDeploymentId) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_public_url=" + $summaryPublicUrl) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_badge_endpoint=" + $summaryBadgeEndpoint) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("railway_deploy_summary_badge_details_endpoint=" + $summaryBadgeDetailsEndpoint) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
       - name: Build Release Evidence Report
         id: release_evidence_report
         if: always()
@@ -249,8 +295,10 @@ jobs:
         run: |
           $jsonPath = "artifacts/release-evidence/report.json"
           $mdPath = "artifacts/release-evidence/report.md"
+          $manifestJsonPath = "artifacts/release-evidence/manifest.json"
+          $manifestMdPath = "artifacts/release-evidence/manifest.md"
           if (Test-Path "artifacts/demo-e2e/badge-details.json") {
-            powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-evidence-report.ps1 -BadgeDetailsPath "artifacts/demo-e2e/badge-details.json" -OutputJsonPath $jsonPath -OutputMarkdownPath $mdPath
+            powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-evidence-report.ps1 -BadgeDetailsPath "artifacts/demo-e2e/badge-details.json" -OutputJsonPath $jsonPath -OutputMarkdownPath $mdPath -OutputManifestJsonPath $manifestJsonPath -OutputManifestMarkdownPath $manifestMdPath
           } else {
             Write-Host "Badge details artifact not found; skipping release evidence report."
           }
@@ -263,6 +311,16 @@ jobs:
             ("report_md_path=" + $mdPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           } else {
             ("report_md_path=") | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+          if (Test-Path $manifestJsonPath) {
+            ("report_manifest_json_path=" + $manifestJsonPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            ("report_manifest_json_path=") | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+          if (Test-Path $manifestMdPath) {
+            ("report_manifest_md_path=" + $manifestMdPath) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            ("report_manifest_md_path=") | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           }
 
       - name: Collect Release Evidence Statuses
@@ -279,6 +337,10 @@ jobs:
           $pluginMarketplaceStatus = "unavailable"
           $deviceNodesStatus = "unavailable"
           $agentUsageStatus = "unavailable"
+          $providerUsageStatus = "unavailable"
+          $providerUsageActiveSecondaryProviders = "0"
+          $providerUsageEntriesCount = "0"
+          $providerUsagePrimaryEntryLabel = ""
           $deviceNodeUpdatesStatus = "unavailable"
           $reportPath = "artifacts/release-evidence/report.json"
 
@@ -297,7 +359,21 @@ jobs:
                 $pluginMarketplaceStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.pluginMarketplaceStatus)) { "unavailable" } else { [string]$report.statuses.pluginMarketplaceStatus }
                 $deviceNodesStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.deviceNodesStatus)) { "unavailable" } else { [string]$report.statuses.deviceNodesStatus }
                 $agentUsageStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.agentUsageStatus)) { "unavailable" } else { [string]$report.statuses.agentUsageStatus }
+                $providerUsageStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.providerUsageStatus)) { "unavailable" } else { [string]$report.statuses.providerUsageStatus }
                 $deviceNodeUpdatesStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.deviceNodeUpdatesStatus)) { "unavailable" } else { [string]$report.statuses.deviceNodeUpdatesStatus }
+              }
+              if ($null -ne $report -and $null -ne $report.providerUsage) {
+                if ($null -ne $report.providerUsage.activeSecondaryProviders) {
+                  $providerUsageActiveSecondaryProviders = [string]$report.providerUsage.activeSecondaryProviders
+                }
+                if ($null -ne $report.providerUsage.entriesCount) {
+                  $providerUsageEntriesCount = [string]$report.providerUsage.entriesCount
+                } elseif ($null -ne $report.providerUsage.entries) {
+                  $providerUsageEntriesCount = [string]@($report.providerUsage.entries).Count
+                }
+                if ($null -ne $report.providerUsage.primaryEntry) {
+                  $providerUsagePrimaryEntryLabel = [string]$report.providerUsage.primaryEntry.route + "/" + [string]$report.providerUsage.primaryEntry.capability + " -> " + [string]$report.providerUsage.primaryEntry.selectedProvider + "/" + [string]$report.providerUsage.primaryEntry.selectedModel
+                }
               }
             } catch {
               Write-Host ("Failed to parse release evidence report for strict summary evidence: " + $_.Exception.Message)
@@ -315,6 +391,10 @@ jobs:
           ("plugin_marketplace_status=" + $pluginMarketplaceStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("device_nodes_status=" + $deviceNodesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("agent_usage_status=" + $agentUsageStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("provider_usage_status=" + $providerUsageStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("provider_usage_active_secondary_providers=" + $providerUsageActiveSecondaryProviders) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("provider_usage_entries_count=" + $providerUsageEntriesCount) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("provider_usage_primary_entry_label=" + $providerUsagePrimaryEntryLabel) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("device_node_updates_status=" + $deviceNodeUpdatesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Publish Release Report To Job Summary
@@ -353,9 +433,21 @@ jobs:
           ("Plugin-marketplace status (badge evidence): ${{ steps.collect_release_evidence.outputs.plugin_marketplace_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Device-nodes status (badge evidence): ${{ steps.collect_release_evidence.outputs.device_nodes_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Agent-usage status (badge evidence): ${{ steps.collect_release_evidence.outputs.agent_usage_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Provider-usage status (badge evidence): ${{ steps.collect_release_evidence.outputs.provider_usage_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Provider-usage active secondary providers (badge evidence): ${{ steps.collect_release_evidence.outputs.provider_usage_active_secondary_providers }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Provider-usage entries count (badge evidence): ${{ steps.collect_release_evidence.outputs.provider_usage_entries_count }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Provider-usage primary entry (badge evidence): ${{ steps.collect_release_evidence.outputs.provider_usage_primary_entry_label }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Device-node-updates status (badge evidence): ${{ steps.collect_release_evidence.outputs.device_node_updates_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary present: ${{ steps.collect_railway_deploy_summary.outputs.railway_deploy_summary_present }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary status: ${{ steps.collect_railway_deploy_summary.outputs.railway_deploy_summary_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary deployment id: ${{ steps.collect_railway_deploy_summary.outputs.railway_deploy_summary_deployment_id }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary public URL: ${{ steps.collect_railway_deploy_summary.outputs.railway_deploy_summary_public_url }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary badge URL: ${{ steps.collect_railway_deploy_summary.outputs.railway_deploy_summary_badge_endpoint }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Railway deploy summary badge-details URL: ${{ steps.collect_railway_deploy_summary.outputs.railway_deploy_summary_badge_details_endpoint }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence report JSON: ${{ steps.release_evidence_report.outputs.report_json_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Release evidence report Markdown: ${{ steps.release_evidence_report.outputs.report_md_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Release evidence manifest JSON: ${{ steps.release_evidence_report.outputs.report_manifest_json_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Release evidence manifest Markdown: ${{ steps.release_evidence_report.outputs.report_manifest_md_path }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           if (Test-Path "artifacts/release-evidence/report.md") {
             "" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             Get-Content "artifacts/release-evidence/report.md" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
@@ -373,8 +465,11 @@ jobs:
             artifacts/demo-e2e/policy-check.json
             artifacts/demo-e2e/badge.json
             artifacts/demo-e2e/badge-details.json
+            artifacts/deploy/railway-deploy-summary.json
             artifacts/release-evidence/report.json
             artifacts/release-evidence/report.md
+            artifacts/release-evidence/manifest.json
+            artifacts/release-evidence/manifest.md
             artifacts/demo-e2e/logs
             artifacts/perf-load/summary.json
             artifacts/perf-load/summary.md
@@ -382,3 +477,4 @@ jobs:
             artifacts/perf-load/policy-check.md
             artifacts/perf-load/logs
           if-no-files-found: warn
+

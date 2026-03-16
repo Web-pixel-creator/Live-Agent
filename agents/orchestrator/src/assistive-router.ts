@@ -1,5 +1,9 @@
 import type { OrchestratorIntent, OrchestratorRequest } from "@mla/contracts";
 import { routeIntent, type AgentRoute } from "./router.js";
+import type {
+  AssistiveRouterProvider,
+  AssistiveRouterRuntimeConfig,
+} from "./workflow-store.js";
 
 type AssistiveRouterMode =
   | "deterministic"
@@ -14,17 +18,14 @@ export type AssistiveRoutingDecision = {
   mode: AssistiveRouterMode;
   reason: string;
   confidence: number | null;
+  provider: AssistiveRouterProvider;
+  defaultProvider: AssistiveRouterProvider;
   model: string | null;
-};
-
-type AssistiveRouterConfig = {
-  enabled: boolean;
-  model: string;
-  apiKey: string | null;
-  baseUrl: string;
-  timeoutMs: number;
-  minConfidence: number;
-  allowIntents: Set<OrchestratorIntent>;
+  defaultModel: string;
+  selectionReason: string;
+  budgetPolicy: AssistiveRouterRuntimeConfig["budgetPolicy"];
+  promptCaching: AssistiveRouterRuntimeConfig["promptCaching"];
+  watchlistEnabled: boolean;
 };
 
 type AssistiveRouterCandidate = {
@@ -37,81 +38,12 @@ const ALL_INTENTS: readonly OrchestratorIntent[] = [
   "conversation",
   "translation",
   "negotiation",
+  "research",
   "story",
   "ui_task",
 ];
-const DEFAULT_ASSISTIVE_INTENTS: readonly OrchestratorIntent[] = ["conversation", "translation", "negotiation"];
-
-function parseBool(value: string | undefined, fallback: boolean): boolean {
-  if (!value) {
-    return fallback;
-  }
-  const normalized = value.trim().toLowerCase();
-  if (normalized === "true" || normalized === "1" || normalized === "yes") {
-    return true;
-  }
-  if (normalized === "false" || normalized === "0" || normalized === "no") {
-    return false;
-  }
-  return fallback;
-}
-
-function parsePositiveInt(value: string | undefined, fallback: number): number {
-  if (!value) {
-    return fallback;
-  }
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return fallback;
-  }
-  return Math.floor(parsed);
-}
-
-function parseConfidence(value: string | undefined, fallback: number): number {
-  if (!value) {
-    return fallback;
-  }
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-  return Math.max(0, Math.min(1, parsed));
-}
-
-function parseIntentSet(value: string | undefined, fallback: readonly OrchestratorIntent[]): Set<OrchestratorIntent> {
-  if (!value || value.trim().length === 0) {
-    return new Set(fallback);
-  }
-  const intents = new Set<OrchestratorIntent>();
-  for (const raw of value.split(",")) {
-    const normalized = raw.trim();
-    if ((ALL_INTENTS as readonly string[]).includes(normalized)) {
-      intents.add(normalized as OrchestratorIntent);
-    }
-  }
-  if (intents.size === 0) {
-    return new Set(fallback);
-  }
-  return intents;
-}
-
-function loadConfig(): AssistiveRouterConfig {
-  const baseUrlRaw = process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL ?? process.env.GEMINI_API_BASE_URL;
-  const baseUrl = (baseUrlRaw && baseUrlRaw.trim().length > 0 ? baseUrlRaw : "https://generativelanguage.googleapis.com/v1beta").replace(/\/+$/, "");
-  const apiKey = process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY ?? process.env.GEMINI_API_KEY ?? null;
-  return {
-    enabled: parseBool(process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED, false),
-    model: process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_MODEL ?? "gemini-3-flash",
-    apiKey: typeof apiKey === "string" && apiKey.trim().length > 0 ? apiKey.trim() : null,
-    baseUrl,
-    timeoutMs: parsePositiveInt(process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_TIMEOUT_MS, 2500),
-    minConfidence: parseConfidence(process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE, 0.75),
-    allowIntents: parseIntentSet(
-      process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_ALLOW_INTENTS,
-      DEFAULT_ASSISTIVE_INTENTS,
-    ),
-  };
-}
+const DEFAULT_ASSISTIVE_ROUTER_PROVIDER: AssistiveRouterProvider = "gemini_api";
+const DEFAULT_ASSISTIVE_ROUTER_MODEL = "gemini-3.1-flash-lite-preview";
 
 function extractText(value: unknown): string | null {
   if (typeof value === "string") {
@@ -225,31 +157,135 @@ function extractGeminiText(payload: unknown): string | null {
   return null;
 }
 
-function deterministicDecision(request: OrchestratorRequest, reason: string): AssistiveRoutingDecision {
+function extractOpenAiCompatibleText(payload: unknown): string | null {
+  if (typeof payload !== "object" || payload === null) {
+    return null;
+  }
+  const root = payload as Record<string, unknown>;
+  const choices = Array.isArray(root.choices) ? root.choices : [];
+  if (choices.length === 0) {
+    return null;
+  }
+  const firstChoice = choices[0];
+  if (typeof firstChoice !== "object" || firstChoice === null) {
+    return null;
+  }
+  const message = (firstChoice as Record<string, unknown>).message;
+  if (typeof message !== "object" || message === null) {
+    return null;
+  }
+  const content = (message as Record<string, unknown>).content;
+  if (typeof content === "string" && content.trim().length > 0) {
+    return content;
+  }
+  if (!Array.isArray(content)) {
+    return null;
+  }
+  for (const part of content) {
+    if (typeof part !== "object" || part === null) {
+      continue;
+    }
+    const text = (part as Record<string, unknown>).text;
+    if (typeof text === "string" && text.trim().length > 0) {
+      return text;
+    }
+  }
+  return null;
+}
+
+function extractAnthropicText(payload: unknown): string | null {
+  if (typeof payload !== "object" || payload === null) {
+    return null;
+  }
+  const root = payload as Record<string, unknown>;
+  const content = Array.isArray(root.content) ? root.content : [];
+  for (const part of content) {
+    if (typeof part !== "object" || part === null) {
+      continue;
+    }
+    const record = part as Record<string, unknown>;
+    if (record.type !== "text") {
+      continue;
+    }
+    const text = record.text;
+    if (typeof text === "string" && text.trim().length > 0) {
+      return text;
+    }
+  }
+  return null;
+}
+
+function buildSelectionReason(config: AssistiveRouterRuntimeConfig): string {
+  if (config.provider === "moonshot") {
+    return config.watchlistEnabled ? "watchlist_override" : "watchlist_disabled";
+  }
+  if (config.provider !== DEFAULT_ASSISTIVE_ROUTER_PROVIDER) {
+    return "provider_override";
+  }
+  return "judged_default";
+}
+
+function baseDecision(
+  request: OrchestratorRequest,
+  config: AssistiveRouterRuntimeConfig,
+  params: {
+    routedIntent?: OrchestratorIntent;
+    route?: AgentRoute;
+    mode: AssistiveRouterMode;
+    reason: string;
+    confidence: number | null;
+    model: string | null;
+  },
+): AssistiveRoutingDecision {
+  const routedIntent = params.routedIntent ?? request.payload.intent;
   return {
     requestedIntent: request.payload.intent,
-    routedIntent: request.payload.intent,
-    route: routeIntent(request.payload.intent),
-    mode: "deterministic",
-    reason,
-    confidence: null,
-    model: null,
+    routedIntent,
+    route: params.route ?? routeIntent(routedIntent),
+    mode: params.mode,
+    reason: params.reason,
+    confidence: params.confidence,
+    provider: config.provider,
+    defaultProvider: DEFAULT_ASSISTIVE_ROUTER_PROVIDER,
+    model: params.model,
+    defaultModel: DEFAULT_ASSISTIVE_ROUTER_MODEL,
+    selectionReason: buildSelectionReason(config),
+    budgetPolicy: config.budgetPolicy,
+    promptCaching: config.promptCaching,
+    watchlistEnabled: config.watchlistEnabled,
   };
 }
 
+function deterministicDecision(
+  request: OrchestratorRequest,
+  config: AssistiveRouterRuntimeConfig,
+  reason: string,
+): AssistiveRoutingDecision {
+  return baseDecision(request, config, {
+    mode: "deterministic",
+    reason,
+    confidence: null,
+    model: config.model,
+  });
+}
+
+function buildClassifierPrompt(request: OrchestratorRequest, text: string): string {
+  return [
+    "You classify intent for an orchestrator router.",
+    `Current intent: ${request.payload.intent}`,
+    `User input: ${text}`,
+    "Return strict JSON with keys: intent, confidence, reason.",
+    "intent must be one of: conversation, translation, negotiation, research, story, ui_task.",
+    "confidence is a number from 0 to 1.",
+  ].join("\n");
+}
+
 async function classifyWithGemini(params: {
-  config: AssistiveRouterConfig;
+  config: AssistiveRouterRuntimeConfig;
   request: OrchestratorRequest;
   text: string;
 }): Promise<AssistiveRouterCandidate | null> {
-  const prompt = [
-    "You classify intent for an orchestrator router.",
-    `Current intent: ${params.request.payload.intent}`,
-    `User input: ${params.text}`,
-    "Return strict JSON with keys: intent, confidence, reason.",
-    "intent must be one of: conversation, translation, negotiation, story, ui_task.",
-    "confidence is a number from 0 to 1.",
-  ].join("\n");
+  const prompt = buildClassifierPrompt(params.request, params.text);
 
   const body = {
     contents: [
@@ -293,64 +329,186 @@ async function classifyWithGemini(params: {
   }
 }
 
-export async function resolveAssistiveRoute(request: OrchestratorRequest): Promise<AssistiveRoutingDecision> {
-  const config = loadConfig();
+async function classifyWithOpenAiCompatible(params: {
+  config: AssistiveRouterRuntimeConfig;
+  request: OrchestratorRequest;
+  text: string;
+}): Promise<AssistiveRouterCandidate | null> {
+  const prompt = buildClassifierPrompt(params.request, params.text);
+  const body = {
+    model: params.config.model,
+    temperature: 0,
+    response_format: {
+      type: "json_object",
+    },
+    messages: [
+      {
+        role: "system",
+        content: "You are an intent classifier for an orchestrator router.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+  };
+  const endpoint = `${params.config.baseUrl}/chat/completions`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), params.config.timeoutMs);
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${params.config.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const payload = (await response.json()) as unknown;
+    const text = extractOpenAiCompatibleText(payload);
+    if (!text) {
+      return null;
+    }
+    const parsed = extractJsonObject(text);
+    return parsed ? parseCandidate(parsed) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function classifyWithAnthropic(params: {
+  config: AssistiveRouterRuntimeConfig;
+  request: OrchestratorRequest;
+  text: string;
+}): Promise<AssistiveRouterCandidate | null> {
+  const prompt = buildClassifierPrompt(params.request, params.text);
+  const body = {
+    model: params.config.model,
+    max_tokens: 256,
+    temperature: 0,
+    system: "You are an intent classifier for an orchestrator router. Return strict JSON only.",
+    messages: [
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+  };
+  const endpoint = `${params.config.baseUrl}/messages`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), params.config.timeoutMs);
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
+        "x-api-key": params.config.apiKey ?? "",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const payload = (await response.json()) as unknown;
+    const text = extractAnthropicText(payload);
+    if (!text) {
+      return null;
+    }
+    const parsed = extractJsonObject(text);
+    return parsed ? parseCandidate(parsed) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function classifyAssistiveRoute(params: {
+  config: AssistiveRouterRuntimeConfig;
+  request: OrchestratorRequest;
+  text: string;
+}): Promise<AssistiveRouterCandidate | null> {
+  switch (params.config.provider) {
+    case "openai":
+    case "deepseek":
+    case "moonshot":
+      return classifyWithOpenAiCompatible(params);
+    case "anthropic":
+      return classifyWithAnthropic(params);
+    case "gemini_api":
+    default:
+      return classifyWithGemini(params);
+  }
+}
+
+export async function resolveAssistiveRoute(
+  request: OrchestratorRequest,
+  config: AssistiveRouterRuntimeConfig,
+): Promise<AssistiveRoutingDecision> {
   if (!config.enabled) {
-    return deterministicDecision(request, "assistive_router_disabled");
+    return deterministicDecision(request, config, "assistive_router_disabled");
+  }
+  if (config.provider === "moonshot" && config.watchlistEnabled !== true) {
+    return deterministicDecision(request, config, "assistive_router_watchlist_disabled");
   }
   if (!config.apiKey) {
-    return deterministicDecision(request, "assistive_router_missing_api_key");
+    return deterministicDecision(request, config, "assistive_router_missing_api_key");
   }
-  if (!config.allowIntents.has(request.payload.intent)) {
-    return deterministicDecision(request, "assistive_router_intent_not_eligible");
+  if (!config.allowIntents.includes(request.payload.intent)) {
+    return deterministicDecision(request, config, "assistive_router_intent_not_eligible");
   }
 
   const text = extractText(request.payload.input);
   if (!text) {
-    return deterministicDecision(request, "assistive_router_missing_text_input");
+    return deterministicDecision(request, config, "assistive_router_missing_text_input");
   }
 
-  const candidate = await classifyWithGemini({
+  const candidate = await classifyAssistiveRoute({
     config,
     request,
     text,
   });
   if (!candidate) {
-    return deterministicDecision(request, "assistive_router_no_candidate");
+    return deterministicDecision(request, config, "assistive_router_no_candidate");
   }
 
   if (candidate.confidence < config.minConfidence) {
-    return {
-      requestedIntent: request.payload.intent,
-      routedIntent: request.payload.intent,
-      route: routeIntent(request.payload.intent),
+    return baseDecision(request, config, {
       mode: "assistive_fallback",
       reason: `assistive_low_confidence:${candidate.confidence.toFixed(3)}`,
       confidence: candidate.confidence,
       model: config.model,
-    };
+    });
   }
 
   const suggestedRoute = routeIntent(candidate.intent);
   if (candidate.intent === request.payload.intent) {
-    return {
-      requestedIntent: request.payload.intent,
+    return baseDecision(request, config, {
       routedIntent: request.payload.intent,
       route: suggestedRoute,
       mode: "assistive_match",
       reason: candidate.reason,
       confidence: candidate.confidence,
       model: config.model,
-    };
+    });
   }
 
-  return {
-    requestedIntent: request.payload.intent,
+  return baseDecision(request, config, {
     routedIntent: candidate.intent,
     route: suggestedRoute,
     mode: "assistive_override",
     reason: candidate.reason,
     confidence: candidate.confidence,
     model: config.model,
-  };
+  });
 }

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UI Task Billing Demo</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #101116;
+        --panel: #191c24;
+        --panel-border: rgba(151, 135, 255, 0.28);
+        --text: #f4f6fb;
+        --muted: #b7bfd6;
+        --accent: #7c6cff;
+        --accent-soft: rgba(124, 108, 255, 0.14);
+        --ok: #50d890;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(124, 108, 255, 0.2), transparent 30%),
+          linear-gradient(180deg, #11131a 0%, var(--bg) 100%);
+        color: var(--text);
+      }
+
+      main {
+        width: min(1040px, calc(100% - 48px));
+        margin: 48px auto;
+        padding: 32px;
+        border: 1px solid var(--panel-border);
+        border-radius: 28px;
+        background: rgba(25, 28, 36, 0.92);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.25);
+      }
+
+      .eyebrow {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: #d9d2ff;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 18px 0 8px;
+        font-size: clamp(32px, 4vw, 48px);
+        line-height: 1.04;
+      }
+
+      p {
+        color: var(--muted);
+        max-width: 70ch;
+      }
+
+      .summary-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin: 28px 0;
+      }
+
+      .summary-card {
+        padding: 18px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .summary-card strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 28px;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      th,
+      td {
+        padding: 16px 18px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      th {
+        color: #dcd6ff;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .status-paid {
+        color: var(--ok);
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .primary {
+        background: var(--accent);
+        color: white;
+      }
+
+      .secondary {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span class="eyebrow">UI task fixture</span>
+      <h1>Billing dashboard</h1>
+      <p>
+        Stable local page for testing UI task navigation, table checks, and safe read-only follow-up actions.
+      </p>
+
+      <section class="summary-row" aria-label="Billing summary">
+        <article class="summary-card">
+          Monthly revenue
+          <strong>$48,240</strong>
+        </article>
+        <article class="summary-card">
+          Open invoices
+          <strong>4</strong>
+        </article>
+        <article class="summary-card">
+          Collection risk
+          <strong>Low</strong>
+        </article>
+      </section>
+
+      <div class="table-wrap">
+        <table id="invoices-table" data-testid="invoices-table" aria-label="Invoices">
+          <thead>
+            <tr>
+              <th scope="col">Invoice</th>
+              <th scope="col">Customer</th>
+              <th scope="col">Amount</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>INV-001</td>
+              <td>Northwind Studio</td>
+              <td>$3,200</td>
+              <td class="status-paid">Paid</td>
+            </tr>
+            <tr>
+              <td>INV-002</td>
+              <td>Summit Health</td>
+              <td>$7,980</td>
+              <td>Pending</td>
+            </tr>
+            <tr>
+              <td>INV-003</td>
+              <td>Atlas Retail</td>
+              <td>$1,540</td>
+              <td>Pending</td>
+            </tr>
+            <tr>
+              <td>INV-004</td>
+              <td>Blue Harbor</td>
+              <td>$5,610</td>
+              <td>Review</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="actions" aria-label="Safe next actions">
+        <button class="primary" type="button">Review invoice INV-004</button>
+        <button class="secondary" type="button">Export invoice CSV</button>
+      </div>
+    </main>
+  </body>
+</html>

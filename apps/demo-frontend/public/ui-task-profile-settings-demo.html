@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UI Task Profile Settings Demo</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0f1218;
+        --panel: #181d26;
+        --panel-border: rgba(124, 108, 255, 0.26);
+        --text: #f5f7fc;
+        --muted: #b8bfd4;
+        --accent: #7c6cff;
+        --accent-soft: rgba(124, 108, 255, 0.14);
+        --ok: #52d68d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background:
+          radial-gradient(circle at top right, rgba(124, 108, 255, 0.18), transparent 28%),
+          linear-gradient(180deg, #10131a 0%, var(--bg) 100%);
+        color: var(--text);
+      }
+
+      main {
+        width: min(920px, calc(100% - 48px));
+        margin: 48px auto;
+        padding: 32px;
+        border: 1px solid var(--panel-border);
+        border-radius: 28px;
+        background: rgba(24, 29, 38, 0.94);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+      }
+
+      .eyebrow {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: #ddd6ff;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 18px 0 10px;
+        font-size: clamp(32px, 4vw, 46px);
+        line-height: 1.04;
+      }
+
+      p {
+        color: var(--muted);
+        max-width: 66ch;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.9fr);
+        gap: 24px;
+        margin-top: 28px;
+      }
+
+      .panel {
+        padding: 22px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .panel h2 {
+        margin: 0 0 10px;
+        font-size: 22px;
+      }
+
+      form {
+        display: grid;
+        gap: 16px;
+      }
+
+      label {
+        display: grid;
+        gap: 8px;
+        font-weight: 600;
+      }
+
+      input {
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        font: inherit;
+      }
+
+      .helper {
+        margin: 0;
+        font-size: 14px;
+      }
+
+      .status {
+        margin: 4px 0 0;
+        min-height: 22px;
+        color: var(--muted);
+      }
+
+      .status.is-ready {
+        color: var(--ok);
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font: inherit;
+        font-weight: 600;
+      }
+
+      button[type="submit"] {
+        background: var(--accent);
+        color: white;
+      }
+
+      button[type="submit"]:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .secondary {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--muted);
+      }
+
+      li + li {
+        margin-top: 10px;
+      }
+
+      @media (max-width: 880px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span class="eyebrow">UI task fixture</span>
+      <h1>Profile settings</h1>
+      <p>
+        Stable local form for testing email-gated submit behavior in UI tasks. The submit button stays disabled
+        until the email field is filled.
+      </p>
+
+      <section class="layout">
+        <div class="panel">
+          <h2>Account contact</h2>
+          <form id="profile-form" aria-label="Profile settings form">
+            <label for="email">
+              Email
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                placeholder="name@example.com"
+              />
+            </label>
+            <p class="helper">Fill the email field to unlock the primary save action.</p>
+            <p id="form-status" class="status" aria-live="polite">Submit is disabled until the email field is filled.</p>
+            <div class="actions" aria-label="Profile actions">
+              <button id="submit-profile" type="submit" disabled>Submit changes</button>
+              <button id="preview-card" class="secondary" type="button">Preview profile card</button>
+            </div>
+          </form>
+        </div>
+
+        <aside class="panel">
+          <h2>What to verify</h2>
+          <ul>
+            <li>The email field is visible and editable.</li>
+            <li>The Submit button starts disabled.</li>
+            <li>Typing any email enables the Submit button.</li>
+            <li>`Preview profile card` is a safe read-only next action.</li>
+          </ul>
+        </aside>
+      </section>
+    </main>
+
+    <script>
+      const emailInput = document.getElementById("email");
+      const submitButton = document.getElementById("submit-profile");
+      const previewButton = document.getElementById("preview-card");
+      const status = document.getElementById("form-status");
+      const form = document.getElementById("profile-form");
+
+      function syncSubmitState() {
+        const hasEmail = typeof emailInput.value === "string" && emailInput.value.trim().length > 0;
+        submitButton.disabled = !hasEmail;
+        status.textContent = hasEmail
+          ? "Email captured. Submit is now enabled."
+          : "Submit is disabled until the email field is filled.";
+        status.classList.toggle("is-ready", hasEmail);
+      }
+
+      emailInput.addEventListener("input", syncSubmitState);
+      previewButton.addEventListener("click", () => {
+        status.textContent = "Preview opened in read-only mode.";
+        status.classList.add("is-ready");
+      });
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        status.textContent = "Profile changes are ready to save.";
+        status.classList.add("is-ready");
+      });
+
+      syncSubmitState();
+    </script>
+  </body>
+</html>

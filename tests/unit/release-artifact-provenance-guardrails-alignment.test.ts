@@ -17,6 +17,20 @@ test("artifact provenance guardrails stay aligned across readiness gate and mani
   assert.match(readinessSource, /sourceRun\.branch not in allowlist/i);
   assert.match(readinessSource, /sourceRun\.ageHours expected <=/i);
   assert.match(readinessSource, /maxSourceRunAgeHours/i);
+  assert.match(readinessSource, /railwayDeploySummaryStatus is required when railwayDeploySummaryPresent=true/i);
+  assert.match(
+    readinessSource,
+    /Get-OptionalNonEmptyStringPropertyValue -Object \$manifestEvidenceSnapshot -Name "railwayDeploySummaryProjectId"/i,
+  );
+  assert.match(
+    readinessSource,
+    /Get-OptionalBooleanPropertyValue -Object \$manifestEvidenceSnapshot -Name "railwayDeploySummaryRootDescriptorAttempted"/i,
+  );
+  assert.match(readinessSource, /repoPublishSummaryReleaseEvidenceValidated expected true when repoPublishSummaryPresent=true/i);
+  assert.match(
+    readinessSource,
+    /Get-OptionalNonNegativeNumberPropertyValue -Object \$manifestEvidenceSnapshot -Name "repoPublishSummaryReleaseEvidenceArtifactsCount"/i,
+  );
 
   assert.match(helperSource, /conclusion\s*=\s*\$resolvedRunConclusion/);
   assert.match(helperSource, /allowAnySourceBranch\s*=\s*\[bool\]\$AllowAnySourceBranch/);
@@ -24,6 +38,12 @@ test("artifact provenance guardrails stay aligned across readiness gate and mani
   assert.match(helperSource, /maxSourceRunAgeHours\s*=\s*\$MaxSourceRunAgeHours/);
   assert.match(helperSource, /branch\s*=\s*\$resolvedRunBranch/);
   assert.match(helperSource, /ageHours\s*=\s*\$runAgeHoursRounded/);
+  assert.match(helperSource, /railwayDeploySummaryPresent\s*=\s*\[bool\]\$railwayDeploySummaryPresent/);
+  assert.match(helperSource, /railwayDeploySummaryProjectId\s*=\s*\$railwayDeploySummaryProjectId/);
+  assert.match(helperSource, /railwayDeploySummaryRootDescriptorAttempted\s*=\s*\$railwayDeploySummaryRootDescriptorAttempted/);
+  assert.match(helperSource, /repoPublishSummaryPresent\s*=\s*\[bool\]\$repoPublishSummaryPresent/);
+  assert.match(helperSource, /repoPublishSummaryBranch\s*=\s*\$repoPublishSummaryBranch/);
+  assert.match(helperSource, /repoPublishSummaryReleaseEvidenceArtifactsCount\s*=\s*\$repoPublishSummaryReleaseEvidenceArtifactsCount/);
 
   assert.match(workflowSource, /core\.setOutput\("source_run_conclusion"/);
   assert.match(workflowSource, /conclusion\s*=\s*"\$\{\{\s*steps\.resolve_source\.outputs\.source_run_conclusion\s*\}\}"/);
@@ -32,4 +52,10 @@ test("artifact provenance guardrails stay aligned across readiness gate and mani
   assert.match(workflowSource, /maxSourceRunAgeHours\s*=\s*"\$\{\{\s*steps\.resolve_source\.outputs\.max_source_run_age_hours\s*\}\}"/);
   assert.match(workflowSource, /branch\s*=\s*"\$\{\{\s*steps\.resolve_source\.outputs\.source_run_branch\s*\}\}"/);
   assert.match(workflowSource, /ageHours\s*=\s*"\$\{\{\s*steps\.resolve_source\.outputs\.source_run_age_hours\s*\}\}"/);
+  assert.match(workflowSource, /railwayDeploySummaryPresent\s*=\s*\[bool\]\$railwayDeploySummaryPresent/);
+  assert.match(workflowSource, /railwayDeploySummaryProjectId\s*=\s*\$railwayDeploySummaryProjectId/);
+  assert.match(workflowSource, /railwayDeploySummaryRootDescriptorAttempted\s*=\s*\$railwayDeploySummaryRootDescriptorAttempted/);
+  assert.match(workflowSource, /repoPublishSummaryPresent\s*=\s*\[bool\]\$repoPublishSummaryPresent/);
+  assert.match(workflowSource, /repoPublishSummaryBranch\s*=\s*\$repoPublishSummaryBranch/);
+  assert.match(workflowSource, /repoPublishSummaryReleaseEvidenceArtifactsCount\s*=\s*\$repoPublishSummaryReleaseEvidenceArtifactsCount/);
 });

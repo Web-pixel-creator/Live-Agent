@@ -125,6 +125,8 @@ function createPassingSummary(
     analyticsEnabledServices: number | string;
     assistiveRouterDiagnosticsValidated: boolean | string;
     assistiveRouterMode: string;
+    assistiveRouterProviderMetadataValidated: boolean | string;
+    assistiveRouterProvider: string;
     transportModeValidated: boolean | string;
     gatewayTransportRequestedMode: string;
     gatewayTransportActiveMode: string;
@@ -179,6 +181,10 @@ function createPassingSummary(
     storytellerCacheHitValidated: boolean | string;
     storytellerCacheInvalidationValidated: boolean | string;
     storytellerMediaMode: string;
+    storytellerImageMode: string;
+    storytellerVideoMode: string;
+    storytellerTtsMode: string;
+    storytellerImageEditMode: string;
     storytellerMediaQueueWorkers: number | string;
     storytellerCacheHits: number | string;
   }> = {},
@@ -366,6 +372,12 @@ function createPassingSummary(
         ? overrides.assistiveRouterDiagnosticsValidated
         : true,
       assistiveRouterMode: hasOverride("assistiveRouterMode") ? overrides.assistiveRouterMode : "deterministic",
+      assistiveRouterProviderMetadataValidated: hasOverride("assistiveRouterProviderMetadataValidated")
+        ? overrides.assistiveRouterProviderMetadataValidated
+        : true,
+      assistiveRouterProvider: hasOverride("assistiveRouterProvider")
+        ? overrides.assistiveRouterProvider
+        : "gemini_api",
       transportModeValidated: hasOverride("transportModeValidated") ? overrides.transportModeValidated : true,
       gatewayTransportRequestedMode: hasOverride("gatewayTransportRequestedMode")
         ? overrides.gatewayTransportRequestedMode
@@ -414,6 +426,18 @@ function createPassingSummary(
         : true,
       storytellerMediaMode: hasOverride("storytellerMediaMode")
         ? overrides.storytellerMediaMode
+        : "simulated",
+      storytellerImageMode: hasOverride("storytellerImageMode")
+        ? overrides.storytellerImageMode
+        : "simulated",
+      storytellerVideoMode: hasOverride("storytellerVideoMode")
+        ? overrides.storytellerVideoMode
+        : "simulated",
+      storytellerTtsMode: hasOverride("storytellerTtsMode")
+        ? overrides.storytellerTtsMode
+        : "simulated",
+      storytellerImageEditMode: hasOverride("storytellerImageEditMode")
+        ? overrides.storytellerImageEditMode
         : "simulated",
       storytellerMediaQueueWorkers: hasOverride("storytellerMediaQueueWorkers")
         ? overrides.storytellerMediaQueueWorkers
@@ -651,6 +675,10 @@ function runReleaseReadiness(
   const tempDir = mkdtempSync(join(tmpdir(), "mla-release-readiness-"));
   try {
     const summaryPath = join(tempDir, "summary.json");
+    const releaseEvidenceReportPath = join(tempDir, "release-evidence", "report.json");
+    const releaseEvidenceReportMarkdownPath = join(tempDir, "release-evidence", "report.md");
+    const releaseEvidenceManifestPath = join(tempDir, "release-evidence", "manifest.json");
+    const releaseEvidenceManifestMarkdownPath = join(tempDir, "release-evidence", "manifest.md");
     writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
 
     const args = [
@@ -669,6 +697,14 @@ function runReleaseReadiness(
       "-SkipDemoRun",
       "-SummaryPath",
       summaryPath,
+      "-ReleaseEvidenceReportPath",
+      releaseEvidenceReportPath,
+      "-ReleaseEvidenceReportMarkdownPath",
+      releaseEvidenceReportMarkdownPath,
+      "-ReleaseEvidenceManifestPath",
+      releaseEvidenceManifestPath,
+      "-ReleaseEvidenceManifestMarkdownPath",
+      releaseEvidenceManifestMarkdownPath,
     ];
     if (options?.strictFinalRun) {
       args.push("-StrictFinalRun");
@@ -796,7 +832,55 @@ function createPassingSourceRunManifest(
     evidencePluginMarketplaceStatus: string;
     evidenceDeviceNodesStatus: string;
     evidenceAgentUsageStatus: string;
+    evidenceRuntimeGuardrailsSignalPathsStatus: string;
+    evidenceRuntimeGuardrailsSignalPathsSummaryStatus: string;
+    evidenceRuntimeGuardrailsSignalPathsTotalPaths: number | string;
+    evidenceRuntimeGuardrailsSignalPathsPrimaryPath: Record<string, unknown> | null;
+    evidenceProviderUsageStatus: string;
+    evidenceProviderUsageValidated: boolean;
+    evidenceProviderUsageActiveSecondaryProviders: number | string;
+    evidenceProviderUsageEntriesCount: number | string;
+    evidenceProviderUsagePrimaryEntry: Record<string, unknown> | null;
     evidenceDeviceNodeUpdatesStatus: string;
+    railwayDeploySummaryPresent: boolean | string;
+    railwayDeploySummaryStatus: string;
+    railwayDeploySummaryDeploymentId: string;
+    railwayDeploySummaryEffectivePublicUrl: string;
+    railwayDeploySummaryBadgeEndpoint: string;
+    railwayDeploySummaryBadgeDetailsEndpoint: string;
+    railwayDeploySummaryProjectId: string;
+    railwayDeploySummaryService: string;
+    railwayDeploySummaryEnvironment: string;
+    railwayDeploySummaryEffectiveStartCommand: string;
+    railwayDeploySummaryConfigSource: string;
+    railwayDeploySummaryRootDescriptorAttempted: boolean | string;
+    railwayDeploySummaryRootDescriptorSkipped: boolean | string;
+    railwayDeploySummaryRootDescriptorExpectedUiUrl: string;
+    railwayDeploySummaryPublicBadgeAttempted: boolean | string;
+    railwayDeploySummaryPublicBadgeSkipped: boolean | string;
+    repoPublishSummaryPresent: boolean | string;
+    repoPublishSummaryBranch: string;
+    repoPublishSummaryRemoteName: string;
+    repoPublishSummaryVerificationScript: string;
+    repoPublishSummaryVerificationSkipped: boolean | string;
+    repoPublishSummaryVerificationStrict: boolean | string;
+    repoPublishSummaryReleaseEvidenceValidated: boolean | string;
+    repoPublishSummaryReleaseEvidenceArtifactsCount: number | string;
+    repoPublishSummaryCommitEnabled: boolean | string;
+    repoPublishSummaryPushEnabled: boolean | string;
+    repoPublishSummaryPagesEnabled: boolean | string;
+    repoPublishSummaryBadgeCheckEnabled: boolean | string;
+    repoPublishSummaryRailwayDeployEnabled: boolean | string;
+    repoPublishSummaryRailwayFrontendDeployEnabled: boolean | string;
+    repoPublishSummaryRuntimeRailwayPublicUrl: string;
+    repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl: string;
+    repoPublishSummaryRuntimeRailwayNoWait: boolean | string;
+    repoPublishSummaryRuntimeRailwayFrontendNoWait: boolean | string;
+    repoPublishSummaryArtifactSelf: string;
+    repoPublishSummaryArtifactRailwayDeploySummary: string;
+    repoPublishSummaryArtifactReleaseEvidenceReportJson: string;
+    repoPublishSummaryArtifactReleaseEvidenceManifestJson: string;
+    repoPublishSummaryArtifactBadgeDetailsJson: string;
     evidenceOperatorDamageControlLatestVerdict: string;
     evidenceOperatorDamageControlLatestSource: string;
   }> = {},
@@ -835,6 +919,123 @@ function createPassingSourceRunManifest(
       effectivePerfMode: hasOverride("effectivePerfMode") ? overrides.effectivePerfMode : "without_perf",
       perfArtifactsDetected: "false",
       evidenceSnapshot: {
+        railwayDeploySummaryPresent: hasOverride("railwayDeploySummaryPresent")
+          ? overrides.railwayDeploySummaryPresent
+          : true,
+        railwayDeploySummaryStatus: hasOverride("railwayDeploySummaryStatus")
+          ? overrides.railwayDeploySummaryStatus
+          : "success",
+        railwayDeploySummaryDeploymentId: hasOverride("railwayDeploySummaryDeploymentId")
+          ? overrides.railwayDeploySummaryDeploymentId
+          : "railway-smoke-deploy-1",
+        railwayDeploySummaryEffectivePublicUrl: hasOverride("railwayDeploySummaryEffectivePublicUrl")
+          ? overrides.railwayDeploySummaryEffectivePublicUrl
+          : "https://live-agent.example.test",
+        railwayDeploySummaryBadgeEndpoint: hasOverride("railwayDeploySummaryBadgeEndpoint")
+          ? overrides.railwayDeploySummaryBadgeEndpoint
+          : "https://live-agent.example.test/demo-e2e/badge.json",
+        railwayDeploySummaryBadgeDetailsEndpoint: hasOverride("railwayDeploySummaryBadgeDetailsEndpoint")
+          ? overrides.railwayDeploySummaryBadgeDetailsEndpoint
+          : "https://live-agent.example.test/demo-e2e/badge-details.json",
+        railwayDeploySummaryProjectId: hasOverride("railwayDeploySummaryProjectId")
+          ? overrides.railwayDeploySummaryProjectId
+          : "railway-smoke-project",
+        railwayDeploySummaryService: hasOverride("railwayDeploySummaryService")
+          ? overrides.railwayDeploySummaryService
+          : "gateway",
+        railwayDeploySummaryEnvironment: hasOverride("railwayDeploySummaryEnvironment")
+          ? overrides.railwayDeploySummaryEnvironment
+          : "production",
+        railwayDeploySummaryEffectiveStartCommand: hasOverride("railwayDeploySummaryEffectiveStartCommand")
+          ? overrides.railwayDeploySummaryEffectiveStartCommand
+          : "npm run start:gateway",
+        railwayDeploySummaryConfigSource: hasOverride("railwayDeploySummaryConfigSource")
+          ? overrides.railwayDeploySummaryConfigSource
+          : "railway.toml",
+        railwayDeploySummaryRootDescriptorAttempted: hasOverride("railwayDeploySummaryRootDescriptorAttempted")
+          ? overrides.railwayDeploySummaryRootDescriptorAttempted
+          : true,
+        railwayDeploySummaryRootDescriptorSkipped: hasOverride("railwayDeploySummaryRootDescriptorSkipped")
+          ? overrides.railwayDeploySummaryRootDescriptorSkipped
+          : false,
+        railwayDeploySummaryRootDescriptorExpectedUiUrl: hasOverride("railwayDeploySummaryRootDescriptorExpectedUiUrl")
+          ? overrides.railwayDeploySummaryRootDescriptorExpectedUiUrl
+          : "https://demo.live-agent.example.test",
+        railwayDeploySummaryPublicBadgeAttempted: hasOverride("railwayDeploySummaryPublicBadgeAttempted")
+          ? overrides.railwayDeploySummaryPublicBadgeAttempted
+          : true,
+        railwayDeploySummaryPublicBadgeSkipped: hasOverride("railwayDeploySummaryPublicBadgeSkipped")
+          ? overrides.railwayDeploySummaryPublicBadgeSkipped
+          : false,
+        repoPublishSummaryPresent: hasOverride("repoPublishSummaryPresent")
+          ? overrides.repoPublishSummaryPresent
+          : true,
+        repoPublishSummaryBranch: hasOverride("repoPublishSummaryBranch")
+          ? overrides.repoPublishSummaryBranch
+          : "main",
+        repoPublishSummaryRemoteName: hasOverride("repoPublishSummaryRemoteName")
+          ? overrides.repoPublishSummaryRemoteName
+          : "origin",
+        repoPublishSummaryVerificationScript: hasOverride("repoPublishSummaryVerificationScript")
+          ? overrides.repoPublishSummaryVerificationScript
+          : "verify:release",
+        repoPublishSummaryVerificationSkipped: hasOverride("repoPublishSummaryVerificationSkipped")
+          ? overrides.repoPublishSummaryVerificationSkipped
+          : false,
+        repoPublishSummaryVerificationStrict: hasOverride("repoPublishSummaryVerificationStrict")
+          ? overrides.repoPublishSummaryVerificationStrict
+          : false,
+        repoPublishSummaryReleaseEvidenceValidated: hasOverride("repoPublishSummaryReleaseEvidenceValidated")
+          ? overrides.repoPublishSummaryReleaseEvidenceValidated
+          : true,
+        repoPublishSummaryReleaseEvidenceArtifactsCount: hasOverride("repoPublishSummaryReleaseEvidenceArtifactsCount")
+          ? overrides.repoPublishSummaryReleaseEvidenceArtifactsCount
+          : 3,
+        repoPublishSummaryCommitEnabled: hasOverride("repoPublishSummaryCommitEnabled")
+          ? overrides.repoPublishSummaryCommitEnabled
+          : true,
+        repoPublishSummaryPushEnabled: hasOverride("repoPublishSummaryPushEnabled")
+          ? overrides.repoPublishSummaryPushEnabled
+          : true,
+        repoPublishSummaryPagesEnabled: hasOverride("repoPublishSummaryPagesEnabled")
+          ? overrides.repoPublishSummaryPagesEnabled
+          : true,
+        repoPublishSummaryBadgeCheckEnabled: hasOverride("repoPublishSummaryBadgeCheckEnabled")
+          ? overrides.repoPublishSummaryBadgeCheckEnabled
+          : true,
+        repoPublishSummaryRailwayDeployEnabled: hasOverride("repoPublishSummaryRailwayDeployEnabled")
+          ? overrides.repoPublishSummaryRailwayDeployEnabled
+          : true,
+        repoPublishSummaryRailwayFrontendDeployEnabled: hasOverride("repoPublishSummaryRailwayFrontendDeployEnabled")
+          ? overrides.repoPublishSummaryRailwayFrontendDeployEnabled
+          : false,
+        repoPublishSummaryRuntimeRailwayPublicUrl: hasOverride("repoPublishSummaryRuntimeRailwayPublicUrl")
+          ? overrides.repoPublishSummaryRuntimeRailwayPublicUrl
+          : "https://live-agent.example.test",
+        repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl: hasOverride("repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl")
+          ? overrides.repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl
+          : "https://demo.live-agent.example.test",
+        repoPublishSummaryRuntimeRailwayNoWait: hasOverride("repoPublishSummaryRuntimeRailwayNoWait")
+          ? overrides.repoPublishSummaryRuntimeRailwayNoWait
+          : false,
+        repoPublishSummaryRuntimeRailwayFrontendNoWait: hasOverride("repoPublishSummaryRuntimeRailwayFrontendNoWait")
+          ? overrides.repoPublishSummaryRuntimeRailwayFrontendNoWait
+          : false,
+        repoPublishSummaryArtifactSelf: hasOverride("repoPublishSummaryArtifactSelf")
+          ? overrides.repoPublishSummaryArtifactSelf
+          : "artifacts/deploy/repo-publish-summary.json",
+        repoPublishSummaryArtifactRailwayDeploySummary: hasOverride("repoPublishSummaryArtifactRailwayDeploySummary")
+          ? overrides.repoPublishSummaryArtifactRailwayDeploySummary
+          : "artifacts/deploy/railway-deploy-summary.json",
+        repoPublishSummaryArtifactReleaseEvidenceReportJson: hasOverride("repoPublishSummaryArtifactReleaseEvidenceReportJson")
+          ? overrides.repoPublishSummaryArtifactReleaseEvidenceReportJson
+          : "artifacts/release-evidence/report.json",
+        repoPublishSummaryArtifactReleaseEvidenceManifestJson: hasOverride("repoPublishSummaryArtifactReleaseEvidenceManifestJson")
+          ? overrides.repoPublishSummaryArtifactReleaseEvidenceManifestJson
+          : "artifacts/release-evidence/manifest.json",
+        repoPublishSummaryArtifactBadgeDetailsJson: hasOverride("repoPublishSummaryArtifactBadgeDetailsJson")
+          ? overrides.repoPublishSummaryArtifactBadgeDetailsJson
+          : "artifacts/demo-e2e/badge-details.json",
         operatorTurnTruncationSummaryValidated: hasOverride("evidenceOperatorTurnTruncationValidated")
           ? overrides.evidenceOperatorTurnTruncationValidated
           : true,
@@ -871,6 +1072,48 @@ function createPassingSourceRunManifest(
         badgeEvidenceAgentUsageStatus: hasOverride("evidenceAgentUsageStatus")
           ? overrides.evidenceAgentUsageStatus
           : "pass",
+        badgeEvidenceRuntimeGuardrailsSignalPathsStatus: hasOverride("evidenceRuntimeGuardrailsSignalPathsStatus")
+          ? overrides.evidenceRuntimeGuardrailsSignalPathsStatus
+          : "pass",
+        badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus: hasOverride("evidenceRuntimeGuardrailsSignalPathsSummaryStatus")
+          ? overrides.evidenceRuntimeGuardrailsSignalPathsSummaryStatus
+          : "critical signals=2",
+        badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths: hasOverride("evidenceRuntimeGuardrailsSignalPathsTotalPaths")
+          ? overrides.evidenceRuntimeGuardrailsSignalPathsTotalPaths
+          : 2,
+        badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath: hasOverride("evidenceRuntimeGuardrailsSignalPathsPrimaryPath")
+          ? overrides.evidenceRuntimeGuardrailsSignalPathsPrimaryPath
+          : {
+              title: "Recovery drill - ui-executor-sandbox-audit",
+              kind: "runtime_drill",
+              profileId: "ui-executor-sandbox-audit",
+              phase: "recovery",
+              buttonLabel: "Plan Recovery Drill",
+              summaryText:
+                "Recovery drill: UI executor sandbox audit mode for ui_executor_sandbox_not_enforce@ui-executor.",
+              lifecycleStatus: "active",
+            },
+        badgeEvidenceProviderUsageStatus: hasOverride("evidenceProviderUsageStatus")
+          ? overrides.evidenceProviderUsageStatus
+          : "pass",
+        badgeEvidenceProviderUsageValidated: hasOverride("evidenceProviderUsageValidated")
+          ? overrides.evidenceProviderUsageValidated
+          : true,
+        badgeEvidenceProviderUsageActiveSecondaryProviders: hasOverride("evidenceProviderUsageActiveSecondaryProviders")
+          ? overrides.evidenceProviderUsageActiveSecondaryProviders
+          : 0,
+        badgeEvidenceProviderUsageEntriesCount: hasOverride("evidenceProviderUsageEntriesCount")
+          ? overrides.evidenceProviderUsageEntriesCount
+          : 3,
+        badgeEvidenceProviderUsagePrimaryEntry: hasOverride("evidenceProviderUsagePrimaryEntry")
+          ? overrides.evidenceProviderUsagePrimaryEntry
+          : {
+              route: "storyteller-agent",
+              capability: "tts",
+              selectedProvider: "gemini_api",
+              selectedModel: "gemini-tts",
+              selectionReason: "default_primary",
+            },
         badgeEvidenceDeviceNodeUpdatesStatus: hasOverride("evidenceDeviceNodeUpdatesStatus")
           ? overrides.evidenceDeviceNodeUpdatesStatus
           : "pass",
@@ -904,6 +1147,10 @@ function runReleaseReadinessWithPerfArtifacts(
     const summaryPath = join(tempDir, "summary.json");
     const perfSummaryPath = join(tempDir, "perf-summary.json");
     const perfPolicyPath = join(tempDir, "perf-policy.json");
+    const releaseEvidenceReportPath = join(tempDir, "release-evidence", "report.json");
+    const releaseEvidenceReportMarkdownPath = join(tempDir, "release-evidence", "report.md");
+    const releaseEvidenceManifestPath = join(tempDir, "release-evidence", "manifest.json");
+    const releaseEvidenceManifestMarkdownPath = join(tempDir, "release-evidence", "manifest.md");
     writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
     writeFileSync(perfSummaryPath, `${JSON.stringify(perfSummary, null, 2)}\n`, "utf8");
     writeFileSync(perfPolicyPath, `${JSON.stringify(perfPolicy, null, 2)}\n`, "utf8");
@@ -930,6 +1177,14 @@ function runReleaseReadinessWithPerfArtifacts(
         perfSummaryPath,
         "-PerfPolicyPath",
         perfPolicyPath,
+        "-ReleaseEvidenceReportPath",
+        releaseEvidenceReportPath,
+        "-ReleaseEvidenceReportMarkdownPath",
+        releaseEvidenceReportMarkdownPath,
+        "-ReleaseEvidenceManifestPath",
+        releaseEvidenceManifestPath,
+        "-ReleaseEvidenceManifestMarkdownPath",
+        releaseEvidenceManifestMarkdownPath,
       ],
       {
         encoding: "utf8",
@@ -1153,7 +1408,7 @@ test(
 );
 
 test(
-  "release-readiness fails when interrupt latency is missing for non-unavailable event",
+  "release-readiness allows missing interrupt latency for requested interrupt event",
   { skip: skipIfNoPowerShell },
   () => {
     const result = runReleaseReadiness(
@@ -1162,10 +1417,7 @@ test(
         gatewayInterruptEventType: "live.interrupt.requested",
       }),
     );
-    assert.equal(result.exitCode, 1);
-    const output = `${result.stderr}\n${result.stdout}`;
-    assert.match(output, /gatewayInterruptLatencyMs is missing and gatewayInterruptEventType is not\s+live\.bridge/i);
-    assert.match(output, /actual live\.interrupt\.requested/i);
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
   },
 );
 
@@ -1700,6 +1952,28 @@ test(
 );
 
 test(
+  "release-readiness fails when assistive router provider metadata is not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ assistiveRouterProviderMetadataValidated: false }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /assistiveRouterProviderMetadataValidated expected True, actual False/i);
+  },
+);
+
+test(
+  "release-readiness fails when assistive router provider is invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary({ assistiveRouterProvider: "invalid" }));
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /assistiveRouterProvider expected gemini_api\|openai\|anthropic\|deepseek\|moonshot, actua\s*l invalid/i);
+  },
+);
+
+test(
   "release-readiness fails when transport mode KPI is not validated",
   { skip: skipIfNoPowerShell },
   () => {
@@ -2039,13 +2313,67 @@ test(
 );
 
 test(
-  "release-readiness fails when storyteller media mode is not simulated",
+  "release-readiness allows storyteller media mode default when a live lane is observed",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        storytellerMediaMode: "default",
+        storytellerImageMode: "default",
+        storytellerVideoMode: "fallback",
+        storytellerTtsMode: "default",
+        storytellerImageEditMode: "default",
+      }),
+    );
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+  },
+);
+
+test(
+  "release-readiness allows zero storyteller queue workers when storyteller video mode is default",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        storytellerMediaMode: "default",
+        storytellerImageMode: "default",
+        storytellerVideoMode: "default",
+        storytellerTtsMode: "default",
+        storytellerImageEditMode: "default",
+        storytellerMediaQueueWorkers: 0,
+      }),
+    );
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+  },
+);
+
+test(
+  "release-readiness fails when storyteller media mode is invalid",
   { skip: skipIfNoPowerShell },
   () => {
     const result = runReleaseReadiness(createPassingSummary({ storytellerMediaMode: "live_api" }));
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
-    assert.match(output, /storytellerMediaMode expected one of \[simulated\], actual live_api/i);
+    assert.match(output, /storytellerMediaMode expected one of \[default, simulated\], actual live_api/i);
+  },
+);
+
+test(
+  "release-readiness fails when storyteller media mode default has no live lane",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        storytellerMediaMode: "default",
+        storytellerImageMode: "fallback",
+        storytellerVideoMode: "fallback",
+        storytellerTtsMode: "fallback",
+        storytellerImageEditMode: "fallback",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /storytellerMediaMode=default requires at least one storyteller lane mode=default/i);
   },
 );
 
@@ -2185,6 +2513,85 @@ test(
     assert.match(output, /plugin_marketplace_status=pass/i);
     assert.match(output, /device_nodes_status=pass/i);
     assert.match(output, /agent_usage_status=pass/i);
+    assert.match(output, /railway_deploy_summary_present=true/i);
+    assert.match(output, /railway_deploy_summary_status=success/i);
+    assert.match(output, /railway_deploy_summary_project_id=railway-smoke-project/i);
+    assert.match(output, /railway_deploy_summary_service=gateway/i);
+    assert.match(output, /railway_deploy_summary_environment=production/i);
+    assert.match(output, /railway_deploy_summary_effective_start_command=npm run start:gateway/i);
+    assert.match(output, /railway_deploy_summary_config_source=railway\.toml/i);
+    assert.match(output, /railway_deploy_summary_root_descriptor_attempted=true/i);
+    assert.match(output, /railway_deploy_summary_root_descriptor_skipped=false/i);
+    assert.match(output, /railway_deploy_summary_expected_ui_url=https:\/\/demo\.live-agent\.example\.test/i);
+    assert.match(output, /railway_deploy_summary_public_badge_attempted=true/i);
+    assert.match(output, /railway_deploy_summary_public_badge_skipped=false/i);
+    assert.match(output, /repo_publish_summary_present=true/i);
+    assert.match(output, /repo_publish_summary_branch=main/i);
+    assert.match(output, /repo_publish_summary_remote_name=origin/i);
+    assert.match(output, /repo_publish_summary_verification_script=verify:release/i);
+    assert.match(output, /repo_publish_summary_verification_skipped=false/i);
+    assert.match(output, /repo_publish_summary_verification_strict=false/i);
+    assert.match(output, /repo_publish_summary_release_evidence_validated=true/i);
+    assert.match(output, /repo_publish_summary_release_evidence_artifacts_count=3/i);
+    assert.match(output, /repo_publish_summary_commit_enabled=true/i);
+    assert.match(output, /repo_publish_summary_push_enabled=true/i);
+    assert.match(output, /repo_publish_summary_pages_enabled=true/i);
+    assert.match(output, /repo_publish_summary_badge_check_enabled=true/i);
+    assert.match(output, /repo_publish_summary_runtime_railway_public_url=https:\/\/live-agent\.example\.test/i);
+    assert.match(output, /repo_publish_summary_runtime_railway_frontend_public_url=https:\/\/demo\.live-agent\.example\.test/i);
+    assert.match(output, /repo_publish_summary_runtime_railway_no_wait=false/i);
+    assert.match(output, /repo_publish_summary_runtime_railway_frontend_no_wait=false/i);
+    assert.match(output, /repo_publish_summary_artifact_self=artifacts\/deploy\/repo-publish-summary\.json/i);
+    assert.match(output, /repo_publish_summary_artifact_railway_deploy_summary=artifacts\/deploy\/railway-deploy-summary\.json/i);
+    assert.match(output, /repo_publish_summary_artifact_release_evidence_report_json=artifacts\/release-evidence\/report\.json/i);
+    assert.match(output, /repo_publish_summary_artifact_release_evidence_manifest_json=artifacts\/release-evidence\/manifest\.json/i);
+    assert.match(output, /repo_publish_summary_artifact_badge_details_json=artifacts\/demo-e2e\/badge-details\.json/i);
+  },
+);
+
+test(
+  "release-readiness artifact-only mode remains compatible when new deploy and publish compact fields are absent",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const manifest = createPassingSourceRunManifest();
+    const evidence = (
+      (manifest.gate as Record<string, unknown>).evidenceSnapshot as Record<string, unknown>
+    );
+    for (const key of [
+      "railwayDeploySummaryProjectId",
+      "railwayDeploySummaryService",
+      "railwayDeploySummaryEnvironment",
+      "railwayDeploySummaryEffectiveStartCommand",
+      "railwayDeploySummaryConfigSource",
+      "railwayDeploySummaryRootDescriptorAttempted",
+      "railwayDeploySummaryRootDescriptorSkipped",
+      "railwayDeploySummaryRootDescriptorExpectedUiUrl",
+      "railwayDeploySummaryPublicBadgeAttempted",
+      "railwayDeploySummaryPublicBadgeSkipped",
+      "repoPublishSummaryBranch",
+      "repoPublishSummaryRemoteName",
+      "repoPublishSummaryVerificationSkipped",
+      "repoPublishSummaryVerificationStrict",
+      "repoPublishSummaryReleaseEvidenceArtifactsCount",
+      "repoPublishSummaryCommitEnabled",
+      "repoPublishSummaryPushEnabled",
+      "repoPublishSummaryPagesEnabled",
+      "repoPublishSummaryBadgeCheckEnabled",
+      "repoPublishSummaryRuntimeRailwayPublicUrl",
+      "repoPublishSummaryRuntimeRailwayDemoFrontendPublicUrl",
+      "repoPublishSummaryRuntimeRailwayNoWait",
+      "repoPublishSummaryRuntimeRailwayFrontendNoWait",
+      "repoPublishSummaryArtifactSelf",
+      "repoPublishSummaryArtifactRailwayDeploySummary",
+      "repoPublishSummaryArtifactReleaseEvidenceReportJson",
+      "repoPublishSummaryArtifactReleaseEvidenceManifestJson",
+      "repoPublishSummaryArtifactBadgeDetailsJson",
+    ]) {
+      delete evidence[key];
+    }
+
+    const result = runReleaseReadinessArtifactOnly({ manifest });
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
   },
 );
 
@@ -2200,6 +2607,24 @@ test(
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /artifact\.source_run_manifest: schema=1\.0/i);
     assert.doesNotMatch(output, /artifact\.source_run_manifest\.evidence:/i);
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when optional repo publish artifact count is invalid",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({
+        repoPublishSummaryReleaseEvidenceArtifactsCount: -1,
+      }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.repoPublishSummaryReleaseEvidenceArtifactsCount expected >= 0 when provided/i,
+    );
   },
 );
 
@@ -2247,6 +2672,44 @@ test(
     assert.match(
       output,
       /source run manifest evidenceSnapshot\.operatorDamageControlSummaryValidated expected true, actual False/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when railway deploy summary is marked present but deployment id is missing",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({
+        railwayDeploySummaryPresent: true,
+        railwayDeploySummaryDeploymentId: "",
+      }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.railwayDeploySummaryDeploymentId is required when railwayDeploySummaryPrese\s*nt=true/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when repo publish summary is marked present but release evidence was not validated",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({
+        repoPublishSummaryPresent: true,
+        repoPublishSummaryReleaseEvidenceValidated: false,
+      }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.repoPublishSummaryReleaseEvidenceValidated expected true when repoPublishSu\s*mmaryPresent=true/i,
     );
   },
 );
@@ -2407,6 +2870,124 @@ test(
     assert.match(
       output,
       /source run manifest evidenceSnapshot\.badgeEvidenceAgentUsageStatus expected pass, actual warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence runtime guardrails signal-paths status is not pass",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceRuntimeGuardrailsSignalPathsStatus: "warn" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceRuntimeGuardrailsSignalPathsStatus expected pass, actual warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence runtime guardrails summary status is missing",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceRuntimeGuardrailsSignalPathsSummaryStatus: "" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus is required/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence runtime guardrails primary path is missing while paths are present",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({
+        evidenceRuntimeGuardrailsSignalPathsTotalPaths: 2,
+        evidenceRuntimeGuardrailsSignalPathsPrimaryPath: null,
+      }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath is required when total\s*Paths > 0/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence provider-usage status is not pass",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceProviderUsageStatus: "warn" }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceProviderUsageStatus expected pass, actual warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence provider-usage validated flag is false",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceProviderUsageValidated: false }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceProviderUsageValidated expected true/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence provider-usage entries count is below one",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceProviderUsageEntriesCount: 0 }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceProviderUsageEntriesCount expected >= 1, actual 0/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence provider-usage primary entry is missing",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({
+        evidenceProviderUsageEntriesCount: 2,
+        evidenceProviderUsagePrimaryEntry: null,
+      }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceProviderUsagePrimaryEntry is required when entriesCount > 0/i,
     );
   },
 );
