@@ -13309,9 +13309,11 @@ function teardownMicStreamResources() {
 function syncLiveControlButtonStates() {
   const socketConnected = isRealtimeSocketConnected();
   const micActive = Boolean(state.micProcessor);
+  const micIntent = state.micCaptureIntent ?? getCurrentLiveIntentValue();
+  const translationMicCapture = shouldUseMicTranslationCapture(micIntent);
 
   if (el.startMicBtn instanceof HTMLButtonElement) {
-    el.startMicBtn.disabled = !socketConnected || micActive;
+    el.startMicBtn.disabled = micActive || (!socketConnected && !translationMicCapture);
     el.startMicBtn.classList.toggle("is-active", micActive);
   }
 
@@ -25101,10 +25103,72 @@ function extractNumber(text, regex) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function extractOfferMetrics(text) {
+  return {
+    price: extractNumber(text, /price\D{0,10}(\d+(?:[.,]\d+)?)/i),
+    delivery: extractNumber(text, /delivery\D{0,10}(\d+(?:[.,]\d+)?)/i),
+    sla: extractNumber(text, /sla\D{0,10}(\d+(?:[.,]\d+)?)/i),
+  };
+}
+
+function hasOfferMetrics(metrics) {
+  return Boolean(
+    metrics &&
+      typeof metrics === "object" &&
+      (metrics.price !== null || metrics.delivery !== null || metrics.sla !== null),
+  );
+}
+
+function extractNegotiationOfferSegment(text, offerType = "current") {
+  if (typeof text !== "string") {
+    return null;
+  }
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (normalized.length === 0) {
+    return null;
+  }
+  const patterns = offerType === "final"
+    ? [
+        /(?:counter|final|proposed)\s*-?\s*offer\b[:\s-]*([^.!?\n]+)/iu,
+        /(?:встречн(?:ое|ый)\s+предложение|финальн(?:ое|ый)\s+предложение|предлагаем(?:ое|ый)\s+предложение)\b[:\s-]*([^.!?\n]+)/iu,
+      ]
+    : [
+        /(?:client|current|source)\s+offer\b[:\s-]*([^.!?\n]+)/iu,
+        /(?:предложение\s+клиента|текущ(?:ее|ий)\s+предложение|исходн(?:ое|ый)\s+предложение)\b[:\s-]*([^.!?\n]+)/iu,
+      ];
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern);
+    if (match && typeof match[1] === "string") {
+      const segment = match[1].trim();
+      if (segment.length > 0) {
+        return segment;
+      }
+    }
+  }
+  return null;
+}
+
+function extractNegotiationOfferMetrics(text, offerType = "current") {
+  const targetedSegment = extractNegotiationOfferSegment(text, offerType);
+  const targetedMetrics = targetedSegment ? extractOfferMetrics(targetedSegment) : null;
+  if (hasOfferMetrics(targetedMetrics)) {
+    return targetedMetrics;
+  }
+  if (offerType === "final" && extractNegotiationOfferSegment(text, "current")) {
+    return {
+      price: null,
+      delivery: null,
+      sla: null,
+    };
+  }
+  return extractOfferMetrics(text);
+}
+
 function updateOfferFromText(text, isFinal = false) {
-  const price = extractNumber(text, /price\D{0,10}(\d+(?:[.,]\d+)?)/i);
-  const delivery = extractNumber(text, /delivery\D{0,10}(\d+(?:[.,]\d+)?)/i);
-  const sla = extractNumber(text, /sla\D{0,10}(\d+(?:[.,]\d+)?)/i);
+  const metrics = extractNegotiationOfferMetrics(text, isFinal ? "final" : "current");
+  const price = metrics.price;
+  const delivery = metrics.delivery;
+  const sla = metrics.sla;
 
   if (isFinal) {
     if (price !== null) {
@@ -25144,13 +25208,43 @@ function toNegotiationOfferMetricValue(value) {
   return null;
 }
 
+function isNegotiationOfferLike(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  return (
+    Object.prototype.hasOwnProperty.call(value, "price") ||
+    Object.prototype.hasOwnProperty.call(value, "deliveryDays") ||
+    Object.prototype.hasOwnProperty.call(value, "delivery") ||
+    Object.prototype.hasOwnProperty.call(value, "sla") ||
+    Object.prototype.hasOwnProperty.call(value, "slaPct") ||
+    Object.prototype.hasOwnProperty.call(value, "slaPercent")
+  );
+}
+
+function resolveNegotiationOfferRecord(container, keys = [], options = {}) {
+  if (!container || typeof container !== "object" || Array.isArray(container)) {
+    return null;
+  }
+  for (const key of keys) {
+    const candidate = container[key];
+    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
+      return candidate;
+    }
+  }
+  if (options.fallbackToSelf === true && isNegotiationOfferLike(container)) {
+    return container;
+  }
+  return null;
+}
+
 function setNegotiationOfferMetrics(offer, fields) {
   if (!offer || typeof offer !== "object" || !fields || typeof fields !== "object") {
     return false;
   }
   const price = toNegotiationOfferMetricValue(offer.price);
-  const delivery = toNegotiationOfferMetricValue(offer.deliveryDays);
-  const sla = toNegotiationOfferMetricValue(offer.sla);
+  const delivery = toNegotiationOfferMetricValue(offer.deliveryDays ?? offer.delivery ?? offer.delivery_days);
+  const sla = toNegotiationOfferMetricValue(offer.sla ?? offer.slaPct ?? offer.slaPercent);
   const hasAnyMetric = price !== null || delivery !== null || sla !== null;
   if (!hasAnyMetric) {
     return false;
@@ -25186,8 +25280,15 @@ function applyNegotiationOutputToKpi(negotiation) {
     sla: el.finalSla,
   };
 
-  const appliedCurrent = setNegotiationOfferMetrics(negotiation.sourceOffer, currentFields);
-  const appliedFinal = setNegotiationOfferMetrics(negotiation.proposedOffer, finalFields);
+  const currentOffer = resolveNegotiationOfferRecord(negotiation, ["sourceOffer", "currentOffer", "clientOffer"]);
+  const finalOffer = resolveNegotiationOfferRecord(
+    negotiation,
+    ["proposedOffer", "finalOffer", "counterOffer", "compliantOffer", "offer"],
+    { fallbackToSelf: true },
+  );
+
+  const appliedCurrent = setNegotiationOfferMetrics(currentOffer, currentFields);
+  const appliedFinal = setNegotiationOfferMetrics(finalOffer, finalFields);
 
   if (!appliedFinal) {
     clearNegotiationOfferMetrics(finalFields);
@@ -30339,7 +30440,7 @@ function handleGatewayEvent(event) {
       appendTranscript("assistant", text, { intent: responseIntent });
     }
     const appliedStructuredNegotiationKpi =
-      responseIntent === "negotiation" ? applyNegotiationOutputToKpi(output?.negotiation) : false;
+      responseIntent === "negotiation" ? applyNegotiationOutputToKpi(output?.negotiation ?? output) : false;
     if (!appliedStructuredNegotiationKpi) {
       updateOfferFromText(text, false);
       if (event.payload?.status === "completed") {
@@ -30784,14 +30885,16 @@ async function startMicStream() {
     return;
   }
 
-  if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+  const micCaptureIntent = getCurrentLiveIntentValue();
+  const translationMicCapture = shouldUseMicTranslationCapture(micCaptureIntent);
+
+  if ((!state.ws || state.ws.readyState !== WebSocket.OPEN) && !translationMicCapture) {
     appendTranscript("error", "Connect WebSocket before starting mic stream");
     syncLiveControlButtonStates();
     return;
   }
 
   try {
-    const micCaptureIntent = getCurrentLiveIntentValue();
     const micCaptureTargetLanguage = getLiveTargetLanguageValue();
     const micCaptureSpeechLanguage = getLiveSpeechLanguageValue();
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -30832,13 +30935,21 @@ async function startMicStream() {
     state.micStream = stream;
     state.micProcessor = processor;
     state.micGain = gain;
-    if (!state.pttEnabled) {
-      beginMicSpeechCapture({
+    if (!state.pttEnabled && translationMicCapture) {
+      const speechCaptureStarted = beginMicSpeechCapture({
         intent: state.micCaptureIntent,
         targetLanguage: state.micCaptureTargetLanguage,
         speechLanguage: state.micCaptureSpeechLanguage,
         source: "mic",
       });
+      if (!speechCaptureStarted) {
+        teardownMicStreamResources();
+        state.micCaptureIntent = null;
+        state.micCaptureTargetLanguage = null;
+        state.micCaptureSpeechLanguage = null;
+        syncLiveControlButtonStates();
+        return;
+      }
     }
 
     syncLiveControlButtonStates();

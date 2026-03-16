@@ -329,7 +329,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
 
 ### 00:00-02:20 Live Agent (primary category)
 
-1. Click `Connect` first, then start mic stream. The live lane no longer auto-connects on first paint. For `translation`, read the setup as `From -> To`: choose the source phrase language on the left and the answer language on the right before pressing `Start mic`. After a short speech pause the phrase now auto-submits and the mic stops, while `Stop mic` remains the manual fallback. Watch the inline mic-status row move through `Listening -> Recognized -> Sent/Error` so the operator can confirm the spoken phrase was actually dispatched.
+1. Click `Connect` first for live conversation or PTT. The live lane no longer auto-connects on first paint. For `translation`, `Start mic` can also begin before `Connect` because that browser speech-recognition path stays local until dispatch; read the setup as `From -> To`: choose the source phrase language on the left and the answer language on the right before pressing `Start mic`. After a short speech pause the phrase now auto-submits and the mic stops, while `Stop mic` remains the manual fallback. Watch the inline mic-status row move through `Listening -> Recognized -> Sent/Error` so the operator can confirm the spoken phrase was actually dispatched.
 2. Validate `Assistant` status pill lifecycle in the header before negotiation:
    - `waiting_connection` while websocket is opening,
    - `idle` after websocket is connected and no active output,
@@ -340,7 +340,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
    - `SLA >= 98`
 4. Show KPI panel updates in real time.
    - `Current Offer` should reflect the client offer.
-   - `Final Offer` should reflect the latest agent counter-offer/proposed compliant terms.
+- `Final Offer` should reflect the latest agent counter-offer/proposed compliant terms. Fallback parsing from labeled `Client offer` / `Counter-offer` text should keep that card populated even when structured negotiation payload is missing.
 
 Checkpoint A (soft interruption) at ~00:55:
 1. Click `Interrupt Assistant` once while assistant is speaking.
