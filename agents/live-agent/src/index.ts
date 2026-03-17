@@ -1782,10 +1782,36 @@ async function fetchGoogleTranslate(params: {
   }
 }
 
+async function fetchConversationTextWithProvider(params: {
+  config: GeminiConfig;
+  provider: LiveAgentTextProvider;
+  model: string;
+  prompt: string;
+}): Promise<ReasoningTextResult | null> {
+  if (params.provider === "moonshot") {
+    return fetchMoonshotText({
+      config: params.config,
+      model: params.model,
+      prompt: params.prompt,
+      temperature: 0.2,
+      systemPrompt:
+        "You are a concise real-time voice assistant. Follow the prompt exactly and return only the requested reply.",
+    });
+  }
+  return fetchGeminiText({
+    config: params.config,
+    model: params.model,
+    prompt: params.prompt,
+    responseMimeType: "text/plain",
+    temperature: 0.2,
+  });
+}
+
 async function generateConversationReply(params: {
   inputText: string;
   config: GeminiConfig;
   capabilities: LiveAgentCapabilitySet;
+  usageTotals: AgentUsageTotals;
   contextPrompt?: string | null;
   skillsPrompt: string | null;
 }): Promise<{ text: string; provider: string; model: string }> {
@@ -1798,18 +1824,14 @@ async function generateConversationReply(params: {
     model: "fallback-rule",
   };
 
-  if (
-    process.env.LIVE_AGENT_USE_GEMINI_CHAT === "false" &&
-    params.capabilities.reasoning.descriptor.provider === "gemini_api"
-  ) {
-    return fallback;
-  }
-
   if (params.capabilities.reasoning.descriptor.provider === "fallback") {
     return fallback;
   }
 
-  const model = getReasoningModel(params.config, "conversation");
+  const primaryProvider = params.capabilities.reasoning.descriptor.provider;
+  const primaryModel = getReasoningModel(params.config, "conversation");
+  const geminiConversationDisabled =
+    process.env.LIVE_AGENT_USE_GEMINI_CHAT === "false" && primaryProvider === "gemini_api";
   const prompt = [
     "You are a concise real-time voice assistant.",
     "Respond in at most 2 short sentences.",
@@ -1821,16 +1843,56 @@ async function generateConversationReply(params: {
     .filter((item): item is string => Boolean(item))
     .join("\n");
 
-  const generatedResult = await params.capabilities.reasoning.generateText({
-    model,
-    prompt,
-    responseMimeType: "text/plain",
-    temperature: 0.2,
-  });
+  let generatedResult: ReasoningTextResult | null = null;
+  let resolvedProvider: string = primaryProvider;
+  let resolvedModel = primaryModel;
+
+  if (!geminiConversationDisabled) {
+    generatedResult = await params.capabilities.reasoning.generateText({
+      model: primaryModel,
+      prompt,
+      responseMimeType: "text/plain",
+      temperature: 0.2,
+    });
+  }
+
+  if (!generatedResult) {
+    const secondaryProvider =
+      primaryProvider === "moonshot" && params.config.apiKey
+        ? "gemini_api"
+        : primaryProvider !== "moonshot" && params.config.moonshotApiKey
+          ? "moonshot"
+          : null;
+    const secondaryAllowed = !(secondaryProvider === "gemini_api" && process.env.LIVE_AGENT_USE_GEMINI_CHAT === "false");
+    if (secondaryProvider && secondaryAllowed) {
+      const secondaryModel =
+        secondaryProvider === "moonshot" ? params.config.moonshotConversationModel : params.config.conversationModel;
+      const secondaryResult = await fetchConversationTextWithProvider({
+        config: params.config,
+        provider: secondaryProvider,
+        model: secondaryModel,
+        prompt,
+      });
+      if (secondaryResult?.usage) {
+        recordAgentUsage(params.usageTotals, secondaryModel, secondaryResult.usage);
+      }
+      if (secondaryResult) {
+        generatedResult = secondaryResult;
+        resolvedProvider = secondaryProvider;
+        resolvedModel = secondaryModel;
+      }
+    }
+  }
 
   console.info(
     `[live-agent] conversation generateText result: ${generatedResult ? `"${generatedResult.text.slice(0, 80)}"` : "null"}`,
-    { model, provider: params.capabilities.reasoning.descriptor.provider },
+    {
+      model: resolvedModel,
+      provider: resolvedProvider,
+      primaryProvider,
+      primaryModel,
+      geminiConversationDisabled,
+    },
   );
 
   if (!generatedResult) {
@@ -1839,8 +1901,59 @@ async function generateConversationReply(params: {
 
   return {
     text: generatedResult.text,
-    provider: params.capabilities.reasoning.descriptor.provider,
+    provider: resolvedProvider,
+    model: resolvedModel,
+  };
+}
+
+async function generateResearchReasoningFallback(params: {
+  query: string;
+  config: GeminiConfig;
+  capabilities: LiveAgentCapabilitySet;
+  skillsPrompt: string | null;
+}): Promise<ResearchResult | null> {
+  if (params.capabilities.reasoning.descriptor.provider === "fallback") {
+    return null;
+  }
+
+  const model = getReasoningModel(params.config, "conversation");
+  const prompt = [
+    "The grounded research provider is unavailable.",
+    "Answer the user's question directly using general knowledge only.",
+    "Do not invent citations or claim live web access.",
+    "Keep the answer concise and useful.",
+    params.skillsPrompt ? `Skill directives:\n${params.skillsPrompt}` : null,
+    `User research query: ${params.query}`,
+  ]
+    .filter((item): item is string => Boolean(item))
+    .join("\n");
+
+  const generatedResult = await params.capabilities.reasoning.generateText({
     model,
+    prompt,
+    responseMimeType: "text/plain",
+    temperature: 0.2,
+  });
+  if (!generatedResult) {
+    return null;
+  }
+
+  const answer = normalizeResearchText(generatedResult.text);
+  if (!answer) {
+    return null;
+  }
+
+  return {
+    answer,
+    citations: [],
+    sourceUrls: [],
+    usage: generatedResult.usage,
+    raw: {
+      provider: params.capabilities.reasoning.descriptor.provider,
+      model,
+      query: params.query,
+      selectionReason: "reasoning_fallback",
+    },
   };
 }
 
@@ -1908,6 +2021,7 @@ async function handleConversation(params: {
   input: NormalizedLiveInput;
   config: GeminiConfig;
   capabilities: LiveAgentCapabilitySet;
+  usageTotals: AgentUsageTotals;
   skillsPrompt: string | null;
 }): Promise<Record<string, unknown>> {
   const { input } = params;
@@ -1957,6 +2071,7 @@ async function handleConversation(params: {
     inputText: input.text,
     config: params.config,
     capabilities: params.capabilities,
+    usageTotals: params.usageTotals,
     contextPrompt: buildConversationContextPrompt(sessionContext),
     skillsPrompt: params.skillsPrompt,
   });
@@ -2034,6 +2149,7 @@ async function handleTranslation(params: {
 
 async function handleResearch(params: {
   input: NormalizedLiveInput;
+  config: GeminiConfig;
   capabilities: LiveAgentCapabilitySet;
   skillsPrompt: string | null;
 }): Promise<Record<string, unknown>> {
@@ -2094,25 +2210,36 @@ async function handleResearch(params: {
     };
   }
 
-  const researchQuery = [
-    params.skillsPrompt ? `Skill directives:\n${params.skillsPrompt}` : null,
+  const primaryResearchResult = await params.capabilities.research.query({
     query,
-  ]
-    .filter((item): item is string => Boolean(item))
-    .join("\n\n");
-
-  const result = await params.capabilities.research.query({
-    query: researchQuery,
     contextPrompt: params.skillsPrompt,
     maxCitations: params.input.maxCitations,
   });
-  const answer = result?.answer ?? `Research adapter returned no grounded answer for query: ${query}`;
+  const primaryResearchProvider =
+    toNonEmptyString(primaryResearchResult?.raw?.provider) ?? params.capabilities.research.descriptor.provider;
+  const result =
+    (primaryResearchResult && primaryResearchProvider !== "fallback" ? primaryResearchResult : null) ??
+    (await generateResearchReasoningFallback({
+      query,
+      config: params.config,
+      capabilities: params.capabilities,
+      skillsPrompt: params.skillsPrompt,
+    })) ??
+    primaryResearchResult ??
+    buildFallbackResearchResult({ query, maxCitations: params.input.maxCitations });
+  const answer = result.answer;
   const displayText = buildResearchDisplayText(answer);
-  const citations = Array.isArray(result?.citations) ? result.citations : [];
-  const sourceUrls = Array.isArray(result?.sourceUrls) ? result.sourceUrls : [];
+  const citations = Array.isArray(result.citations) ? result.citations : [];
+  const sourceUrls = Array.isArray(result.sourceUrls) ? result.sourceUrls : [];
+  const provider = toNonEmptyString(result.raw?.provider) ?? params.capabilities.research.descriptor.provider;
+  const model = toNonEmptyString(result.raw?.model) ?? params.capabilities.research.descriptor.model;
+  const selectionReason =
+    toNonEmptyString(result.raw?.selectionReason) ??
+    params.capabilities.research.descriptor.selection?.selectionReason ??
+    null;
   const debugSummary = buildResearchDebugSummary({
-    provider: params.capabilities.research.descriptor.provider,
-    model: params.capabilities.research.descriptor.model,
+    provider,
+    model,
     citationCount: citations.length,
     sourceUrlCount: sourceUrls.length,
   });
@@ -2126,9 +2253,9 @@ async function handleResearch(params: {
       answer,
       displayText,
       debugSummary,
-      provider: params.capabilities.research.descriptor.provider,
-      model: params.capabilities.research.descriptor.model,
-      selectionReason: params.capabilities.research.descriptor.selection?.selectionReason ?? null,
+      provider,
+      model,
+      selectionReason,
       citations,
       citationCount: citations.length,
       sourceUrls,
@@ -2228,9 +2355,10 @@ async function handleByIntent(params: {
   input: NormalizedLiveInput;
   config: GeminiConfig;
   capabilities: LiveAgentCapabilitySet;
+  usageTotals: AgentUsageTotals;
   skillsPrompt: string | null;
 }): Promise<Record<string, unknown>> {
-  const { intent, input, config, capabilities, sessionId, skillsPrompt } = params;
+  const { intent, input, config, capabilities, sessionId, usageTotals, skillsPrompt } = params;
   switch (intent) {
     case "translation":
       return handleTranslation({
@@ -2242,6 +2370,7 @@ async function handleByIntent(params: {
     case "research":
       return handleResearch({
         input,
+        config,
         capabilities,
         skillsPrompt,
       });
@@ -2254,6 +2383,7 @@ async function handleByIntent(params: {
         input,
         config,
         capabilities,
+        usageTotals,
         skillsPrompt,
       });
   }
@@ -2293,6 +2423,7 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
       input,
       config,
       capabilities,
+      usageTotals,
       skillsPrompt,
     });
 

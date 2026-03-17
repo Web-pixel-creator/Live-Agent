@@ -87,6 +87,10 @@ To test live-agent `translation` or `conversation` with Moonshot/Kimi 2.5 instea
 
 Gemini remains the judged-default provider. If Moonshot is selected but no Moonshot key is configured, the live-agent falls back to Gemini when a Gemini key is present, and to repo-owned fallback responses when neither provider is configured. The repo-owned adapter also pins `temperature=1` for `kimi-k2.5`, matching the current Moonshot runtime contract.
 
+For local `Discuss` runs, the conversation lane now also uses Moonshot as the secondary provider when `LIVE_AGENT_USE_GEMINI_CHAT=false` but a Moonshot key is available, instead of degrading straight to the repo echo fallback.
+
+For local `Research` runs, skill directives stay in provider context instead of being prepended to the user query. If the grounded research provider is unavailable but the reasoning adapter is still live, the agent returns a concise answer without citations before it falls back to the deterministic offline message.
+
 ## Storyteller Secondary Media Paths
 
 The primary Gemini reasoning path now uses the official Google `@google/genai` SDK, and storyteller can also run the primary image/video/TTS lanes in `STORYTELLER_MEDIA_MODE=default` when Gemini credentials are present. For Gemini image models, `STORYTELLER_IMAGE_MODEL=gemini-3.1-flash-image-preview` selects `Nano Banana 2`, while Imagen-family IDs continue to use the Imagen predict path. `Nano Banana 2` image generations can take longer than the repo's old `12s` baseline, so raise `STORYTELLER_GEMINI_TIMEOUT_MS` when you enable the Gemini image lane locally. Use `STORYTELLER_VIDEO_POLL_MS` and `STORYTELLER_VIDEO_MAX_WAIT_MS` to control how long the runtime waits for the live Veo operation before it degrades to repo-owned fallback assets.
