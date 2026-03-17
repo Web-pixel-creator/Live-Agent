@@ -152,6 +152,7 @@ Optional flags:
 - `prepare-judge-runtime.ps1` now also supports `-SkipSecretSync` and `-SkipCloudRunBuild` when credentials or images are already in place.
 - `refresh-submission-pack.ps1` writes `artifacts/release-evidence/submission-refresh-status.json` and `.md` so the post-deploy judged refresh can be reviewed even when the summary is still pending follow-up.
 - `refresh-submission-pack.ps1` runs `demo-e2e.ps1` with the same retry/restart posture as `verify:release`, resolves secrets from env, repo-local `.env`, or Secret Manager, and pushes Storyteller media timeout knobs (`STORYTELLER_GEMINI_TIMEOUT_MS`, `STORYTELLER_VIDEO_POLL_MS`, `STORYTELLER_VIDEO_MAX_WAIT_MS`) into the judged run.
+- The judged Cloud Run manifest pins `ANALYTICS_BIGQUERY_TABLE=multimodal_analytics` so runtime `/status` diagnostics stay aligned with the BigQuery sink used for submission proof.
 
 ## What It Configures
 

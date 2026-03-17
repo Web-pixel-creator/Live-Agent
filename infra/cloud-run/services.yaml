@@ -36,6 +36,7 @@ services:
       ANALYTICS_EXPORT_METRICS_TARGET: "cloud_monitoring"
       ANALYTICS_EXPORT_EVENTS_TARGET: "bigquery"
       ANALYTICS_BIGQUERY_DATASET: "agent_analytics"
+      ANALYTICS_BIGQUERY_TABLE: "multimodal_analytics"
       ANALYTICS_LOG_NAME: "multimodal_analytics"
       ORCHESTRATOR_STORY_QUEUE_TELEMETRY_ENABLED: "true"
       ORCHESTRATOR_STORY_QUEUE_TELEMETRY_POLL_MS: "30000"
@@ -67,6 +68,7 @@ services:
       ANALYTICS_EXPORT_METRICS_TARGET: "cloud_monitoring"
       ANALYTICS_EXPORT_EVENTS_TARGET: "bigquery"
       ANALYTICS_BIGQUERY_DATASET: "agent_analytics"
+      ANALYTICS_BIGQUERY_TABLE: "multimodal_analytics"
       ANALYTICS_LOG_NAME: "multimodal_analytics"
     secretEnv:
       LIVE_API_API_KEY: LIVE_API_API_KEY:latest
@@ -101,6 +103,7 @@ services:
       ANALYTICS_EXPORT_METRICS_TARGET: "cloud_monitoring"
       ANALYTICS_EXPORT_EVENTS_TARGET: "bigquery"
       ANALYTICS_BIGQUERY_DATASET: "agent_analytics"
+      ANALYTICS_BIGQUERY_TABLE: "multimodal_analytics"
       ANALYTICS_LOG_NAME: "multimodal_analytics"
       API_CORS_ALLOWED_ORIGINS: "*"
     secretEnv:
