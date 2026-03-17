@@ -11,9 +11,11 @@ This folder provides an idempotent baseline for:
 
 - `bootstrap.ps1` - baseline bootstrap script (Windows PowerShell).
 - `ensure-firestore.ps1` - Firestore Native bootstrap + index/TTL apply + summary artifact.
+- `sync-runtime-secrets.ps1` - resolves Gemini / Live API credentials from env or repo-local `.env` and adds fresh Secret Manager versions required by Cloud Run.
+- `build-cloud-run-images.ps1` - creates the Artifact Registry repository if needed and builds `orchestrator`, `realtime-gateway`, and `api-backend` images through Cloud Build.
 - `deploy-cloud-run.ps1` - deploys `orchestrator`, `realtime-gateway`, and `api-backend` from `infra/cloud-run/services.yaml`.
 - `collect-runtime-proof.ps1` - aggregates Cloud Run, Firestore, BigQuery, and observability proof into `artifacts/release-evidence`.
-- `prepare-judge-runtime.ps1` - wrapper for bootstrap + Firestore + observability + Cloud Run + runtime proof.
+- `prepare-judge-runtime.ps1` - wrapper for bootstrap + Firestore + observability + secret sync + Cloud Build image publish + Cloud Run + runtime proof.
 - `refresh-submission-pack.ps1` - post-deploy judged refresh wrapper for `demo/policy/badge/visual pack` with Google-first env overrides, release-style demo retries/restarts, local provenance refresh, `.env` secret resolution, and Google Live key/header auto-derivation from the Gemini key when separate `LIVE_API_*` values are not present.
 - `setup-analytics-sinks.ps1` - analytics routing baseline (Cloud Logging -> BigQuery sink + log-based metric for Cloud Monitoring dashboards/alerts).
 - `setup-monitoring-baseline.ps1` - Cloud Monitoring baseline (log-based metrics + KPI dashboard + alert policies).
@@ -36,6 +38,18 @@ Cloud Run deploy from `infra/cloud-run/services.yaml`:
 
 ```powershell
 pwsh ./infra/gcp/deploy-cloud-run.ps1 -ProjectId "<your-project-id>" -Region "us-central1" -ImageTag "<release-tag>"
+```
+
+Image build from source into Artifact Registry:
+
+```powershell
+pwsh ./infra/gcp/build-cloud-run-images.ps1 -ProjectId "<your-project-id>" -Region "us-central1" -ImageTag "<release-tag>"
+```
+
+Secret sync from env / `.env` into Secret Manager:
+
+```powershell
+pwsh ./infra/gcp/sync-runtime-secrets.ps1 -ProjectId "<your-project-id>"
 ```
 
 Analytics sink setup:
@@ -135,6 +149,7 @@ Optional flags:
 - `-OrchestratorSaName` default: `mla-orchestrator-sa`
 - `deploy-cloud-run.ps1 -DryRun` prints the exact `gcloud run deploy` commands without mutating Cloud Run.
 - `prepare-judge-runtime.ps1` supports `-Skip*` switches for partial reruns (for example, only Cloud Run redeploy or only proof collection).
+- `prepare-judge-runtime.ps1` now also supports `-SkipSecretSync` and `-SkipCloudRunBuild` when credentials or images are already in place.
 - `refresh-submission-pack.ps1` writes `artifacts/release-evidence/submission-refresh-status.json` and `.md` so the post-deploy judged refresh can be reviewed even when the summary is still pending follow-up.
 - `refresh-submission-pack.ps1` runs `demo-e2e.ps1` with the same retry/restart posture as `verify:release`, resolves secrets from env, repo-local `.env`, or Secret Manager, and pushes Storyteller media timeout knobs (`STORYTELLER_GEMINI_TIMEOUT_MS`, `STORYTELLER_VIDEO_POLL_MS`, `STORYTELLER_VIDEO_MAX_WAIT_MS`) into the judged run.
 
@@ -162,7 +177,7 @@ Optional flags:
    - `LIVE_API_AUTH_HEADER`
    - `GOOGLE_GENAI_API_KEY`
 5. Deploy path assumptions:
-   - Artifact Registry images already exist for the three Cloud Run services.
+   - Source build path uses `infra/cloud-run/Dockerfile.*` plus `build-cloud-run-images.ps1` to create the three Cloud Run images when they do not already exist.
    - `infra/cloud-run/services.yaml` remains the single editable manifest for service-level env/secret wiring.
    - Firestore and observability proof are written into repo-owned artifacts before submission packaging.
 

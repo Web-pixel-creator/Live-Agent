@@ -235,9 +235,9 @@ function Resolve-SecretValue {
   }
 
   if (-not [string]::IsNullOrWhiteSpace($SecretName) -and -not [string]::IsNullOrWhiteSpace($ProjectId)) {
-    $gcloud = Get-Command gcloud -ErrorAction SilentlyContinue
+    $gcloud = Get-Command "gcloud.cmd" -ErrorAction SilentlyContinue
     if ($null -ne $gcloud) {
-      $raw = & gcloud secrets versions access latest --secret $SecretName --project $ProjectId 2>$null
+      $raw = & $gcloud.Source secrets versions access latest --secret $SecretName --project $ProjectId 2>$null
       if ($LASTEXITCODE -eq 0) {
         $secretValue = [string]$raw
         if (-not [string]::IsNullOrWhiteSpace($secretValue)) {
@@ -459,13 +459,20 @@ try {
     )
 
     Invoke-RecordedStep -Name "Prepare GCP judge runtime" -Artifacts $prepareArtifacts -Action {
-      & powershell -NoProfile -ExecutionPolicy Bypass -File $prepareRuntimeScript `
-        -ProjectId $ProjectId `
-        -Region $Region `
-        -FirestoreLocation $FirestoreLocation `
-        -DatasetId $DatasetId `
-        -ImageTag $ImageTag `
-        -DryRun:$DryRun
+      $prepareArgs = @(
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", $prepareRuntimeScript,
+        "-ProjectId", $ProjectId,
+        "-Region", $Region,
+        "-FirestoreLocation", $FirestoreLocation,
+        "-DatasetId", $DatasetId,
+        "-ImageTag", $ImageTag
+      )
+      if ($DryRun.IsPresent) {
+        $prepareArgs += "-DryRun"
+      }
+      & powershell @prepareArgs
     }
   }
 

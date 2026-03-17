@@ -17,7 +17,8 @@ Primary submission path is `GCP-first`: Cloud Run for `orchestrator`, `realtime-
 Prerequisites:
 
 1. Install Google Cloud SDK (`gcloud`) and BigQuery CLI (`bq`).
-2. Authenticate with a project that already contains runtime image tags in Artifact Registry.
+2. Authenticate with a project where you can enable `Cloud Run`, `Artifact Registry`, `Cloud Build`, `Firestore`, and `BigQuery`.
+3. Keep repo-local `.env` populated with Gemini credentials, or pass keys explicitly to the wrapper. `prepare-judge-runtime.ps1` now syncs runtime secrets into Secret Manager and builds the three Cloud Run images into Artifact Registry before deploy.
 3. Capture dashboard and alert screenshots into `artifacts/judge-visual-evidence/screenshots`.
 
 One-shot path:
@@ -29,6 +30,16 @@ pwsh ./infra/gcp/prepare-judge-runtime.ps1 -ProjectId "<your-project-id>" `
   -DatasetId "agent_analytics" `
   -ImageTag "<release-tag>"
 ```
+
+This wrapper now performs:
+
+1. `bootstrap.ps1`
+2. `ensure-firestore.ps1`
+3. `setup-observability.ps1`
+4. `sync-runtime-secrets.ps1`
+5. `build-cloud-run-images.ps1`
+6. `deploy-cloud-run.ps1`
+7. proof/evidence collection
 
 Then regenerate the judged evidence pack with the GCP-first wrapper:
 

@@ -52,7 +52,9 @@ function Write-JsonFile {
 
 function Invoke-BqJsonQuery {
   param([string]$Sql)
-  $Output = & bq query --nouse_legacy_sql --format=json $Sql
+
+  $NormalizedSql = (($Sql -split "(`r`n|`n|`r)") | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join " "
+  $Output = & bq query --nouse_legacy_sql --format=json $NormalizedSql
   if ($LASTEXITCODE -ne 0) {
     throw "bq query failed."
   }
@@ -63,7 +65,18 @@ function Invoke-BqJsonQuery {
 }
 
 function Get-AccessToken {
-  $Token = (& gcloud auth print-access-token).Trim()
+  $gcloudCandidates = @(
+    "C:\Users\user\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
+    "C:\Program Files\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+  )
+  $gcloudCli = $gcloudCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+  if (-not $gcloudCli) {
+    $command = Get-Command "gcloud.cmd" -ErrorAction SilentlyContinue
+    if ($null -ne $command) {
+      $gcloudCli = $command.Source
+    }
+  }
+  $Token = (& $gcloudCli auth print-access-token).Trim()
   if (-not $Token) {
     throw "Could not acquire access token via gcloud auth print-access-token."
   }
@@ -94,7 +107,7 @@ function Get-PagedMonitoringResources {
   $Results = @()
   $PageToken = ""
   do {
-    $Url = "$BaseUrl?pageSize=100"
+    $Url = "${BaseUrl}?pageSize=100"
     if ($PageToken) {
       $Url = "$Url&pageToken=$([System.Uri]::EscapeDataString($PageToken))"
     }
@@ -103,7 +116,7 @@ function Get-PagedMonitoringResources {
     if ($Current) {
       $Results += $Current
     }
-    $PageToken = [string]($Response.nextPageToken)
+    $PageToken = if ($Response.PSObject.Properties.Name -contains "nextPageToken") { [string]$Response.nextPageToken } else { "" }
   } while ($PageToken)
 
   return $Results
@@ -193,7 +206,7 @@ if (-not $SkipBigQuery) {
 
     & bq --project_id $ProjectId show --format=none "$ProjectId`:$DatasetId" *> $null
     if ($LASTEXITCODE -ne 0) {
-      throw "BigQuery dataset '$ProjectId:$DatasetId' was not found."
+      throw "BigQuery dataset '${ProjectId}:$DatasetId' was not found."
     }
 
     $Summary.bigQuery.datasetExists = $true
@@ -202,7 +215,7 @@ if (-not $SkipBigQuery) {
 SELECT
   table_name,
   creation_time
-FROM `$ProjectId.$DatasetId.INFORMATION_SCHEMA.TABLES`
+FROM ``${ProjectId}.${DatasetId}.INFORMATION_SCHEMA.TABLES``
 ORDER BY creation_time DESC
 "@
     $Tables = @()
@@ -231,11 +244,11 @@ SELECT
   resource.type AS resource_type,
   jsonPayload.category AS category,
   jsonPayload.service AS service,
-  jsonPayload.eventType AS event_type,
-  jsonPayload.metricType AS metric_type
-FROM `$ProjectId.$DatasetId.$SampleTable`
+  jsonPayload.eventtype AS event_type,
+  jsonPayload.metrictype AS metric_type
+FROM ``${ProjectId}.${DatasetId}.${SampleTable}``
 WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL $Hours HOUR)
-  AND (jsonPayload.category = "analytics_event" OR jsonPayload.category = "analytics_metric")
+  AND (jsonPayload.category = 'analytics_event' OR jsonPayload.category = 'analytics_metric')
 ORDER BY timestamp DESC
 LIMIT $RowsLimit
 "@

@@ -1,7 +1,7 @@
 {
   "displayName": "MLA Story Cache Health",
   "documentation": {
-    "content": "Story cache is degraded (low hit rate or elevated eviction pressure). Inspect storyteller cache policy/versioning and cache limits (`STORYTELLER_CACHE_*`).",
+    "content": "Story cache signal disappeared or cache churn became abnormally high. Inspect storyteller cache policy/versioning and cache limits.",
     "mimeType": "text/markdown"
   },
   "combiner": "OR",
@@ -12,39 +12,33 @@
   },
   "conditions": [
     {
-      "displayName": "Story cache hit-rate below 40%",
+      "displayName": "Story cache metric rate <= 0",
       "conditionThreshold": {
-        "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.cache.hit_rate_pct\"",
+        "filter": "resource.type=\"global\" AND metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\"",
         "aggregations": [
           {
             "alignmentPeriod": "60s",
-            "perSeriesAligner": "ALIGN_MEAN",
-            "crossSeriesReducer": "REDUCE_MEAN",
-            "groupByFields": [
-              "metric.labels.service"
-            ]
+            "perSeriesAligner": "ALIGN_RATE",
+            "crossSeriesReducer": "REDUCE_SUM"
           }
         ],
         "comparison": "COMPARISON_LT",
-        "thresholdValue": 40,
-        "duration": "600s",
+        "thresholdValue": 0.0001,
+        "duration": "300s",
         "trigger": {
           "count": 1
         }
       }
     },
     {
-      "displayName": "Story cache evictions delta > 10",
+      "displayName": "Story cache metric rate > 10/sec",
       "conditionThreshold": {
-        "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.cache.evictions_total\"",
+        "filter": "resource.type=\"global\" AND metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\"",
         "aggregations": [
           {
-            "alignmentPeriod": "300s",
-            "perSeriesAligner": "ALIGN_DELTA",
-            "crossSeriesReducer": "REDUCE_SUM",
-            "groupByFields": [
-              "metric.labels.service"
-            ]
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_RATE",
+            "crossSeriesReducer": "REDUCE_SUM"
           }
         ],
         "comparison": "COMPARISON_GT",

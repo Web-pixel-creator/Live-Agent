@@ -17,9 +17,20 @@ param(
   [Parameter(Mandatory = $false)]
   [string[]]$NotificationChannels = @(),
 
+  [Parameter(Mandatory = $false)]
+  [string]$GoogleGenAiApiKey,
+
+  [Parameter(Mandatory = $false)]
+  [string]$LiveApiApiKey,
+
+  [Parameter(Mandatory = $false)]
+  [string]$LiveApiAuthHeader = "x-goog-api-key",
+
   [switch]$SkipBootstrap,
   [switch]$SkipFirestore,
   [switch]$SkipObservability,
+  [switch]$SkipSecretSync,
+  [switch]$SkipCloudRunBuild,
   [switch]$SkipCloudRunDeploy,
   [switch]$SkipObservabilityEvidence,
   [switch]$SkipRuntimeProof,
@@ -43,6 +54,8 @@ $scriptDir = Split-Path -Parent $PSCommandPath
 $bootstrapScript = Join-Path $scriptDir "bootstrap.ps1"
 $firestoreScript = Join-Path $scriptDir "ensure-firestore.ps1"
 $observabilityScript = Join-Path $scriptDir "setup-observability.ps1"
+$syncSecretsScript = Join-Path $scriptDir "sync-runtime-secrets.ps1"
+$buildCloudRunImagesScript = Join-Path $scriptDir "build-cloud-run-images.ps1"
 $collectObservabilityScript = Join-Path $scriptDir "collect-observability-evidence.ps1"
 $deployCloudRunScript = Join-Path $scriptDir "deploy-cloud-run.ps1"
 $collectRuntimeProofScript = Join-Path $scriptDir "collect-runtime-proof.ps1"
@@ -62,6 +75,18 @@ if (-not $SkipFirestore) {
 if (-not $SkipObservability) {
   Invoke-Step -Name "Apply observability baseline" -Action {
     & $observabilityScript -ProjectId $ProjectId -Region $Region -DatasetId $DatasetId -NotificationChannels $NotificationChannels
+  }
+}
+
+if (-not $SkipSecretSync) {
+  Invoke-Step -Name "Sync runtime secrets into Secret Manager" -Action {
+    & $syncSecretsScript -ProjectId $ProjectId -GoogleGenAiApiKey $GoogleGenAiApiKey -LiveApiApiKey $LiveApiApiKey -LiveApiAuthHeader $LiveApiAuthHeader -DryRun:$DryRun
+  }
+}
+
+if (-not $SkipCloudRunBuild) {
+  Invoke-Step -Name "Build Cloud Run images in Artifact Registry" -Action {
+    & $buildCloudRunImagesScript -ProjectId $ProjectId -Region $Region -ImageTag $ImageTag -DryRun:$DryRun
   }
 }
 

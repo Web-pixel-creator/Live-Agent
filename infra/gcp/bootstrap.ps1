@@ -18,10 +18,30 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Resolve-GcloudCli {
+  $candidates = @(
+    "C:\Users\user\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
+    "C:\Program Files\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+  )
+  $resolved = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+  if (-not $resolved) {
+    $command = Get-Command "gcloud.cmd" -ErrorAction SilentlyContinue
+    if ($null -ne $command) {
+      $resolved = $command.Source
+    }
+  }
+  if (-not $resolved) {
+    throw "gcloud.cmd was not found in PATH."
+  }
+  return $resolved
+}
+
+$script:GcloudCli = Resolve-GcloudCli
+
 function Invoke-Gcloud {
-  param([string[]]$Args)
-  Write-Host ("gcloud " + ($Args -join " "))
-  & gcloud @Args
+  param([string[]]$CommandArgs)
+  Write-Host ("gcloud " + ($CommandArgs -join " "))
+  & $script:GcloudCli @CommandArgs
 }
 
 function Ensure-ServiceAccount {
@@ -30,9 +50,9 @@ function Ensure-ServiceAccount {
     [string]$DisplayName
   )
   $Email = "$Name@$ProjectId.iam.gserviceaccount.com"
-  $Exists = & gcloud iam service-accounts list --project $ProjectId --filter "email:$Email" --format "value(email)"
+  $Exists = & $script:GcloudCli iam service-accounts list --project $ProjectId --filter "email:$Email" --format "value(email)"
   if (-not $Exists) {
-    Invoke-Gcloud @("iam", "service-accounts", "create", $Name, "--project", $ProjectId, "--display-name", $DisplayName)
+    Invoke-Gcloud -CommandArgs @("iam", "service-accounts", "create", $Name, "--project", $ProjectId, "--display-name", $DisplayName)
   }
   return $Email
 }
@@ -42,7 +62,7 @@ function Ensure-ProjectBinding {
     [string]$Member,
     [string]$Role
   )
-  Invoke-Gcloud @(
+  Invoke-Gcloud -CommandArgs @(
     "projects", "add-iam-policy-binding", $ProjectId,
     "--member", $Member,
     "--role", $Role,
@@ -52,17 +72,17 @@ function Ensure-ProjectBinding {
 
 function Ensure-Secret {
   param([string]$Name)
-  $Exists = & gcloud secrets list --project $ProjectId --filter "name:$Name" --format "value(name)"
+  $Exists = & $script:GcloudCli secrets list --project $ProjectId --filter "name:$Name" --format "value(name)"
   if (-not $Exists) {
-    Invoke-Gcloud @("secrets", "create", $Name, "--project", $ProjectId, "--replication-policy", "automatic")
+    Invoke-Gcloud -CommandArgs @("secrets", "create", $Name, "--project", $ProjectId, "--replication-policy", "automatic")
   }
 }
 
 Write-Host "==> Setting active project"
-Invoke-Gcloud @("config", "set", "project", $ProjectId)
+Invoke-Gcloud -CommandArgs @("config", "set", "project", $ProjectId)
 
 Write-Host "==> Enabling required services"
-Invoke-Gcloud @(
+Invoke-Gcloud -CommandArgs @(
   "services", "enable",
   "run.googleapis.com",
   "artifactregistry.googleapis.com",

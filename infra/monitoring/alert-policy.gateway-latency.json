@@ -1,7 +1,7 @@
 {
-  "displayName": "MLA Gateway P95 Latency High",
+  "displayName": "MLA Gateway Telemetry Rate Missing",
   "documentation": {
-    "content": "Gateway p95 latency crossed 1800ms for 5 minutes. Check realtime-gateway health, upstream Live API status, and reconnect/failover diagnostics.",
+    "content": "Gateway-side analytics telemetry disappeared or dropped below the expected baseline. Check realtime-gateway health, upstream Live API status, and reconnect/failover diagnostics.",
     "mimeType": "text/markdown"
   },
   "combiner": "OR",
@@ -12,21 +12,18 @@
   },
   "conditions": [
     {
-      "displayName": "Gateway duration p95 > 1800ms",
+      "displayName": "Analytics metric rate <= 0",
       "conditionThreshold": {
-        "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"gateway.operation.duration_ms\"",
+        "filter": "resource.type=\"global\" AND metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\"",
         "aggregations": [
           {
             "alignmentPeriod": "60s",
-            "perSeriesAligner": "ALIGN_PERCENTILE_95",
-            "crossSeriesReducer": "REDUCE_MEAN",
-            "groupByFields": [
-              "metric.labels.service"
-            ]
+            "perSeriesAligner": "ALIGN_RATE",
+            "crossSeriesReducer": "REDUCE_SUM"
           }
         ],
-        "comparison": "COMPARISON_GT",
-        "thresholdValue": 1800,
+        "comparison": "COMPARISON_LT",
+        "thresholdValue": 0.0001,
         "duration": "300s",
         "trigger": {
           "count": 1

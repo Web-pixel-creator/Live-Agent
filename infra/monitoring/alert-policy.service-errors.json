@@ -14,15 +14,12 @@
     {
       "displayName": "Service analytics error rate > 0.05/sec",
       "conditionThreshold": {
-        "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_error_count\"",
+        "filter": "resource.type=\"global\" AND metric.type=\"logging.googleapis.com/user/mla_analytics_error_count\"",
         "aggregations": [
           {
             "alignmentPeriod": "60s",
             "perSeriesAligner": "ALIGN_RATE",
-            "crossSeriesReducer": "REDUCE_SUM",
-            "groupByFields": [
-              "metric.labels.service"
-            ]
+            "crossSeriesReducer": "REDUCE_SUM"
           }
         ],
         "comparison": "COMPARISON_GT",

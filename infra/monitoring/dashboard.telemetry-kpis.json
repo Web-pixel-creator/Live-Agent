@@ -9,29 +9,26 @@
         "width": 6,
         "height": 4,
         "widget": {
-          "title": "P95 Duration by Service (ms)",
+          "title": "Analytics Metric Event Rate",
           "xyChart": {
             "dataSets": [
               {
                 "timeSeriesQuery": {
                   "timeSeriesFilter": {
-                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=monitoring.regex.full_match(\".*duration_ms\")",
+                    "filter": "resource.type=\"global\" AND metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\"",
                     "aggregation": {
                       "alignmentPeriod": "60s",
-                      "perSeriesAligner": "ALIGN_PERCENTILE_95",
-                      "crossSeriesReducer": "REDUCE_NONE",
-                      "groupByFields": [
-                        "metric.labels.service"
-                      ]
+                      "perSeriesAligner": "ALIGN_RATE",
+                      "crossSeriesReducer": "REDUCE_SUM"
                     }
                   }
                 },
                 "plotType": "LINE",
-                "legendTemplate": "{{metric.labels.service}} / {{metric.labels.metric_type}}"
+                "legendTemplate": "analytics_metric_value"
               }
             ],
             "yAxis": {
-              "label": "ms",
+              "label": "events/sec",
               "scale": "LINEAR"
             }
           }
@@ -43,25 +40,22 @@
         "width": 6,
         "height": 4,
         "widget": {
-          "title": "Analytics Error Count Rate (per sec)",
+          "title": "Analytics Error Rate",
           "xyChart": {
             "dataSets": [
               {
                 "timeSeriesQuery": {
                   "timeSeriesFilter": {
-                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_error_count\"",
+                    "filter": "resource.type=\"global\" AND metric.type=\"logging.googleapis.com/user/mla_analytics_error_count\"",
                     "aggregation": {
                       "alignmentPeriod": "60s",
                       "perSeriesAligner": "ALIGN_RATE",
-                      "crossSeriesReducer": "REDUCE_SUM",
-                      "groupByFields": [
-                        "metric.labels.service"
-                      ]
+                      "crossSeriesReducer": "REDUCE_SUM"
                     }
                   }
                 },
                 "plotType": "LINE",
-                "legendTemplate": "{{metric.labels.service}}"
+                "legendTemplate": "analytics_error_count"
               }
             ],
             "yAxis": {
@@ -77,270 +71,26 @@
         "width": 12,
         "height": 4,
         "widget": {
-          "title": "Analytics Event Errors by Service/Event",
+          "title": "Analytics Event Error Rate",
           "xyChart": {
             "dataSets": [
               {
                 "timeSeriesQuery": {
                   "timeSeriesFilter": {
-                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_event_error_count\"",
+                    "filter": "resource.type=\"global\" AND metric.type=\"logging.googleapis.com/user/mla_analytics_event_error_count\"",
                     "aggregation": {
                       "alignmentPeriod": "60s",
                       "perSeriesAligner": "ALIGN_RATE",
-                      "crossSeriesReducer": "REDUCE_SUM",
-                      "groupByFields": [
-                        "metric.labels.service",
-                        "metric.labels.event_type"
-                      ]
+                      "crossSeriesReducer": "REDUCE_SUM"
                     }
                   }
                 },
                 "plotType": "STACKED_AREA",
-                "legendTemplate": "{{metric.labels.service}} / {{metric.labels.event_type}}"
+                "legendTemplate": "analytics_event_error_count"
               }
             ],
             "yAxis": {
               "label": "events/sec",
-              "scale": "LINEAR"
-            }
-          }
-        }
-      },
-      {
-        "xPos": 0,
-        "yPos": 8,
-        "width": 6,
-        "height": 4,
-        "widget": {
-          "title": "Story Media Queue Backlog/Retry/Dead-Letter",
-          "xyChart": {
-            "dataSets": [
-              {
-                "timeSeriesQuery": {
-                  "timeSeriesFilter": {
-                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=monitoring.regex.full_match(\"storyteller.media.queue.(backlog|retry_waiting|dead_letter)\")",
-                    "aggregation": {
-                      "alignmentPeriod": "60s",
-                      "perSeriesAligner": "ALIGN_MAX",
-                      "crossSeriesReducer": "REDUCE_NONE",
-                      "groupByFields": [
-                        "metric.labels.service",
-                        "metric.labels.metric_type"
-                      ]
-                    }
-                  }
-                },
-                "plotType": "LINE",
-                "legendTemplate": "{{metric.labels.service}} / {{metric.labels.metric_type}}"
-              }
-            ],
-            "yAxis": {
-              "label": "jobs",
-              "scale": "LINEAR"
-            }
-          }
-        }
-      },
-      {
-        "xPos": 6,
-        "yPos": 8,
-        "width": 6,
-        "height": 4,
-        "widget": {
-          "title": "Story Queue Oldest Age / Worker Utilization",
-          "xyChart": {
-            "dataSets": [
-              {
-                "timeSeriesQuery": {
-                  "timeSeriesFilter": {
-                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.media.queue.oldest_age_ms\"",
-                    "aggregation": {
-                      "alignmentPeriod": "60s",
-                      "perSeriesAligner": "ALIGN_MAX",
-                      "crossSeriesReducer": "REDUCE_NONE",
-                      "groupByFields": [
-                        "metric.labels.service"
-                      ]
-                    }
-                  }
-                },
-                "plotType": "LINE",
-                "legendTemplate": "{{metric.labels.service}} / oldest_age_ms"
-              },
-              {
-                "timeSeriesQuery": {
-                  "timeSeriesFilter": {
-                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.media.queue.worker_utilization_pct\"",
-                    "aggregation": {
-                      "alignmentPeriod": "60s",
-                      "perSeriesAligner": "ALIGN_MEAN",
-                      "crossSeriesReducer": "REDUCE_NONE",
-                      "groupByFields": [
-                        "metric.labels.service"
-                      ]
-                    }
-                  }
-                },
-                "plotType": "LINE",
-                "legendTemplate": "{{metric.labels.service}} / worker_utilization_pct"
-              }
-            ],
-            "yAxis": {
-              "label": "ms | %",
-              "scale": "LINEAR"
-            }
-          }
-        }
-      },
-      {
-        "xPos": 0,
-        "yPos": 12,
-        "width": 12,
-        "height": 4,
-        "widget": {
-          "title": "Story Media Quota Utilization by Model",
-          "xyChart": {
-            "dataSets": [
-              {
-                "timeSeriesQuery": {
-                  "timeSeriesFilter": {
-                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.media.quota.utilization_pct\"",
-                    "aggregation": {
-                      "alignmentPeriod": "60s",
-                      "perSeriesAligner": "ALIGN_MEAN",
-                      "crossSeriesReducer": "REDUCE_NONE",
-                      "groupByFields": [
-                        "metric.labels.model"
-                      ]
-                    }
-                  }
-                },
-                "plotType": "LINE",
-                "legendTemplate": "{{metric.labels.model}}"
-              }
-            ],
-            "yAxis": {
-              "label": "%",
-              "scale": "LINEAR"
-            }
-          }
-        }
-      },
-      {
-        "xPos": 0,
-        "yPos": 16,
-        "width": 6,
-        "height": 4,
-        "widget": {
-          "title": "Story Cache Hit Rate / Entries",
-          "xyChart": {
-            "dataSets": [
-              {
-                "timeSeriesQuery": {
-                  "timeSeriesFilter": {
-                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.cache.hit_rate_pct\"",
-                    "aggregation": {
-                      "alignmentPeriod": "60s",
-                      "perSeriesAligner": "ALIGN_MEAN",
-                      "crossSeriesReducer": "REDUCE_NONE",
-                      "groupByFields": [
-                        "metric.labels.service"
-                      ]
-                    }
-                  }
-                },
-                "plotType": "LINE",
-                "legendTemplate": "{{metric.labels.service}} / hit_rate_pct"
-              },
-              {
-                "timeSeriesQuery": {
-                  "timeSeriesFilter": {
-                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.cache.entries\"",
-                    "aggregation": {
-                      "alignmentPeriod": "60s",
-                      "perSeriesAligner": "ALIGN_MAX",
-                      "crossSeriesReducer": "REDUCE_NONE",
-                      "groupByFields": [
-                        "metric.labels.service"
-                      ]
-                    }
-                  }
-                },
-                "plotType": "LINE",
-                "legendTemplate": "{{metric.labels.service}} / entries"
-              }
-            ],
-            "yAxis": {
-              "label": "% | entries",
-              "scale": "LINEAR"
-            }
-          }
-        }
-      },
-      {
-        "xPos": 6,
-        "yPos": 16,
-        "width": 6,
-        "height": 4,
-        "widget": {
-          "title": "Story Cache Evictions / Invalidations",
-          "xyChart": {
-            "dataSets": [
-              {
-                "timeSeriesQuery": {
-                  "timeSeriesFilter": {
-                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=monitoring.regex.full_match(\"storyteller.cache.(evictions_total|invalidations_total|misses_total)\")",
-                    "aggregation": {
-                      "alignmentPeriod": "60s",
-                      "perSeriesAligner": "ALIGN_MAX",
-                      "crossSeriesReducer": "REDUCE_NONE",
-                      "groupByFields": [
-                        "metric.labels.service",
-                        "metric.labels.metric_type"
-                      ]
-                    }
-                  }
-                },
-                "plotType": "LINE",
-                "legendTemplate": "{{metric.labels.service}} / {{metric.labels.metric_type}}"
-              }
-            ],
-            "yAxis": {
-              "label": "events",
-              "scale": "LINEAR"
-            }
-          }
-        }
-      },
-      {
-        "xPos": 0,
-        "yPos": 20,
-        "width": 12,
-        "height": 4,
-        "widget": {
-          "title": "Story Cache Scope Distribution",
-          "xyChart": {
-            "dataSets": [
-              {
-                "timeSeriesQuery": {
-                  "timeSeriesFilter": {
-                    "filter": "metric.type=\"logging.googleapis.com/user/mla_analytics_metric_value\" AND metric.labels.metric_type=\"storyteller.cache.scope_entries\"",
-                    "aggregation": {
-                      "alignmentPeriod": "60s",
-                      "perSeriesAligner": "ALIGN_MAX",
-                      "crossSeriesReducer": "REDUCE_NONE",
-                      "groupByFields": [
-                        "metric.labels.scope"
-                      ]
-                    }
-                  }
-                },
-                "plotType": "STACKED_AREA",
-                "legendTemplate": "{{metric.labels.scope}}"
-              }
-            ],
-            "yAxis": {
-              "label": "entries",
               "scale": "LINEAR"
             }
           }

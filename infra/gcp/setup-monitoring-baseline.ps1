@@ -15,6 +15,26 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Resolve-GcloudCli {
+  $candidates = @(
+    "C:\Users\user\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
+    "C:\Program Files\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+  )
+  $resolved = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+  if (-not $resolved) {
+    $command = Get-Command "gcloud.cmd" -ErrorAction SilentlyContinue
+    if ($null -ne $command) {
+      $resolved = $command.Source
+    }
+  }
+  if (-not $resolved) {
+    throw "gcloud.cmd was not found in PATH."
+  }
+  return $resolved
+}
+
+$script:GcloudCli = Resolve-GcloudCli
+
 function Assert-Command {
   param([string]$Name)
   $Command = Get-Command $Name -ErrorAction SilentlyContinue
@@ -24,13 +44,13 @@ function Assert-Command {
 }
 
 function Invoke-Gcloud {
-  param([string[]]$Args)
-  Write-Host ("gcloud " + ($Args -join " "))
-  & gcloud @Args
+  param([string[]]$CommandArgs)
+  Write-Host ("gcloud " + ($CommandArgs -join " "))
+  & $script:GcloudCli @CommandArgs
 }
 
 function Get-AccessToken {
-  $Token = (& gcloud auth print-access-token).Trim()
+  $Token = (& $script:GcloudCli auth print-access-token).Trim()
   if (-not $Token) {
     throw "Could not acquire access token. Run 'gcloud auth login' or configure workload identity."
   }
@@ -50,13 +70,52 @@ function Invoke-MonitoringApi {
     Authorization = "Bearer $AccessToken"
   }
 
-  if ($Method -eq "GET" -or $Method -eq "DELETE") {
-    return Invoke-RestMethod -Method $Method -Uri $Url -Headers $Headers
+  try {
+    if ($Method -eq "GET" -or $Method -eq "DELETE") {
+      return Invoke-RestMethod -Method $Method -Uri $Url -Headers $Headers
+    }
+
+    $Json = $Body | ConvertTo-Json -Depth 100
+    $Headers["Content-Type"] = "application/json"
+    return Invoke-RestMethod -Method $Method -Uri $Url -Headers $Headers -Body $Json
+  } catch {
+    $response = $_.Exception.Response
+    if ($null -eq $response) {
+      throw
+    }
+
+    try {
+      $stream = $response.GetResponseStream()
+      $reader = New-Object System.IO.StreamReader($stream)
+      $errorBody = $reader.ReadToEnd()
+      throw ("Monitoring API request failed: " + $errorBody)
+    } catch {
+      throw
+    }
+  }
+}
+
+function Get-ObjectPropertyValue {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Object,
+    [Parameter(Mandatory = $true)]
+    [string]$Name
+  )
+
+  if ($null -eq $Object) {
+    return $null
   }
 
-  $Json = $Body | ConvertTo-Json -Depth 100
-  $Headers["Content-Type"] = "application/json"
-  return Invoke-RestMethod -Method $Method -Uri $Url -Headers $Headers -Body $Json
+  try {
+    $property = $Object.PSObject.Properties[$Name]
+    if ($null -eq $property) {
+      return $null
+    }
+    return $property.Value
+  } catch {
+    return $null
+  }
 }
 
 function Ensure-LogMetric {
@@ -68,27 +127,25 @@ function Ensure-LogMetric {
     [string]$LabelExtractors = ""
   )
 
-  $Exists = & gcloud logging metrics describe $Name --project $ProjectId --format "value(name)" 2>$null
+  try {
+    $Exists = & $script:GcloudCli logging metrics describe $Name --project $ProjectId --format "value(name)" 2>$null
+  } catch {
+    $Exists = ""
+  }
   $BaseArgs = @(
     "--project", $ProjectId,
     "--description", $Description,
     "--log-filter", $Filter
   )
-  if ($ValueExtractor.Trim().Length -gt 0) {
-    $BaseArgs += @("--value-extractor", $ValueExtractor)
-  }
-  if ($LabelExtractors.Trim().Length -gt 0) {
-    $BaseArgs += @("--label-extractors", $LabelExtractors)
-  }
 
   if (-not $Exists) {
     $CreateArgs = @("logging", "metrics", "create", $Name) + $BaseArgs
-    Invoke-Gcloud -Args $CreateArgs
+    Invoke-Gcloud -CommandArgs $CreateArgs
     return
   }
 
   $UpdateArgs = @("logging", "metrics", "update", $Name) + $BaseArgs
-  Invoke-Gcloud -Args $UpdateArgs
+  Invoke-Gcloud -CommandArgs $UpdateArgs
 }
 
 function Resolve-TemplatePaths {
@@ -137,10 +194,12 @@ function Get-AllDashboards {
       $Url = "$Url&pageToken=$EncodedToken"
     }
     $Response = Invoke-MonitoringApi -Method "GET" -Url $Url -AccessToken $AccessToken
-    if ($Response.dashboards) {
-      $Results += $Response.dashboards
+    $Dashboards = Get-ObjectPropertyValue -Object $Response -Name "dashboards"
+    if ($null -ne $Dashboards) {
+      $Results += $Dashboards
     }
-    $PageToken = [string]($Response.nextPageToken)
+    $NextPageToken = Get-ObjectPropertyValue -Object $Response -Name "nextPageToken"
+    $PageToken = if ($null -ne $NextPageToken) { [string]$NextPageToken } else { "" }
   } while ($PageToken)
 
   return $Results
@@ -158,10 +217,12 @@ function Get-AllAlertPolicies {
       $Url = "$Url&pageToken=$EncodedToken"
     }
     $Response = Invoke-MonitoringApi -Method "GET" -Url $Url -AccessToken $AccessToken
-    if ($Response.alertPolicies) {
-      $Results += $Response.alertPolicies
+    $AlertPolicies = Get-ObjectPropertyValue -Object $Response -Name "alertPolicies"
+    if ($null -ne $AlertPolicies) {
+      $Results += $AlertPolicies
     }
-    $PageToken = [string]($Response.nextPageToken)
+    $NextPageToken = Get-ObjectPropertyValue -Object $Response -Name "nextPageToken"
+    $PageToken = if ($null -ne $NextPageToken) { [string]$NextPageToken } else { "" }
   } while ($PageToken)
 
   return $Results
@@ -175,7 +236,9 @@ function Replace-Dashboard {
   )
 
   $DisplayName = [string]$Dashboard.displayName
-  $Existing = $ExistingDashboards | Where-Object { $_.displayName -eq $DisplayName } | Select-Object -First 1
+  $Existing = $ExistingDashboards | Where-Object {
+    [string](Get-ObjectPropertyValue -Object $_ -Name "displayName") -eq $DisplayName
+  } | Select-Object -First 1
   if ($Existing) {
     Write-Host "Replacing existing dashboard '$DisplayName' ($($Existing.name))"
     Invoke-MonitoringApi -Method "DELETE" -Url ("https://monitoring.googleapis.com/v1/" + $Existing.name) -AccessToken $AccessToken | Out-Null
@@ -194,7 +257,9 @@ function Replace-AlertPolicy {
   )
 
   $DisplayName = [string]$Policy.displayName
-  $Existing = $ExistingPolicies | Where-Object { $_.displayName -eq $DisplayName } | Select-Object -First 1
+  $Existing = $ExistingPolicies | Where-Object {
+    [string](Get-ObjectPropertyValue -Object $_ -Name "displayName") -eq $DisplayName
+  } | Select-Object -First 1
   if ($Existing) {
     Write-Host "Replacing existing alert policy '$DisplayName' ($($Existing.name))"
     Invoke-MonitoringApi -Method "DELETE" -Url ("https://monitoring.googleapis.com/v3/" + $Existing.name) -AccessToken $AccessToken | Out-Null
@@ -209,10 +274,10 @@ Write-Host "==> Validating tooling"
 Assert-Command -Name "gcloud"
 
 Write-Host "==> Setting active project"
-Invoke-Gcloud @("config", "set", "project", $ProjectId)
+Invoke-Gcloud -CommandArgs @("config", "set", "project", $ProjectId)
 
 Write-Host "==> Enabling required services"
-Invoke-Gcloud @(
+Invoke-Gcloud -CommandArgs @(
   "services", "enable",
   "logging.googleapis.com",
   "monitoring.googleapis.com",

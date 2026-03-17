@@ -17,6 +17,26 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Resolve-GcloudCli {
+  $candidates = @(
+    "C:\Users\user\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
+    "C:\Program Files\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+  )
+  $resolved = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+  if (-not $resolved) {
+    $command = Get-Command "gcloud.cmd" -ErrorAction SilentlyContinue
+    if ($null -ne $command) {
+      $resolved = $command.Source
+    }
+  }
+  if (-not $resolved) {
+    throw "gcloud.cmd was not found in PATH."
+  }
+  return $resolved
+}
+
+$script:GcloudCli = Resolve-GcloudCli
+
 function Assert-Command {
   param([string]$Name)
   if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
@@ -25,9 +45,9 @@ function Assert-Command {
 }
 
 function Invoke-Gcloud {
-  param([string[]]$Args)
-  Write-Host ("gcloud " + ($Args -join " "))
-  & gcloud @Args
+  param([string[]]$CommandArgs)
+  Write-Host ("gcloud " + ($CommandArgs -join " "))
+  & $script:GcloudCli @CommandArgs
 }
 
 function Write-Utf8NoBomFile {
@@ -46,7 +66,11 @@ function Write-Utf8NoBomFile {
 }
 
 function Get-DatabaseState {
-  $raw = & gcloud firestore databases describe --project $ProjectId --database $Database --format json 2>$null
+  try {
+    $raw = & $script:GcloudCli firestore databases describe --project $ProjectId --database $Database --format json 2>$null
+  } catch {
+    return $null
+  }
   if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$raw)) {
     return $null
   }
@@ -66,12 +90,12 @@ $firestoreApplyScript = Join-Path $repoRoot "infra\firestore\apply.ps1"
 Assert-Command -Name "gcloud"
 
 Write-Host "==> Setting active project"
-Invoke-Gcloud @("config", "set", "project", $ProjectId)
+Invoke-Gcloud -CommandArgs @("config", "set", "project", $ProjectId)
 
 $databaseState = Get-DatabaseState
 if ($null -eq $databaseState) {
   Write-Host "==> Creating Firestore database '$Database' in location '$Location'"
-  Invoke-Gcloud @(
+  Invoke-Gcloud -CommandArgs @(
     "firestore", "databases", "create",
     "--project", $ProjectId,
     "--database", $Database,

@@ -106,7 +106,8 @@ function Read-JsonIfExists {
 function Invoke-BqJsonQuery {
   param([string]$Sql)
 
-  $raw = & bq query --nouse_legacy_sql --format=json $Sql
+  $normalizedSql = (($Sql -split "(`r`n|`n|`r)") | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join " "
+  $raw = & bq query --nouse_legacy_sql --format=json $normalizedSql
   if ($LASTEXITCODE -ne 0) {
     throw "bq query failed"
   }
@@ -136,7 +137,7 @@ $tableQuery = @"
 SELECT
   table_name,
   creation_time
-FROM `$ProjectId.$DatasetId.INFORMATION_SCHEMA.TABLES`
+FROM ``${ProjectId}.${DatasetId}.INFORMATION_SCHEMA.TABLES``
 ORDER BY creation_time DESC
 "@
 $tables = @()
@@ -155,7 +156,7 @@ SELECT
   jsonPayload.category AS category,
   jsonPayload.service AS service,
   jsonPayload.eventType AS event_type
-FROM `$ProjectId.$DatasetId.$sampleTable`
+FROM ``${ProjectId}.${DatasetId}.${sampleTable}``
 WHERE timestamp >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
 ORDER BY timestamp DESC
 LIMIT 25

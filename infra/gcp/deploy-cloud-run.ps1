@@ -20,6 +20,26 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Resolve-GcloudCli {
+  $candidates = @(
+    "C:\Users\user\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
+    "C:\Program Files\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+  )
+  $resolved = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+  if (-not $resolved) {
+    $command = Get-Command "gcloud.cmd" -ErrorAction SilentlyContinue
+    if ($null -ne $command) {
+      $resolved = $command.Source
+    }
+  }
+  if (-not $resolved) {
+    throw "gcloud.cmd was not found in PATH."
+  }
+  return $resolved
+}
+
+$script:GcloudCli = Resolve-GcloudCli
+
 function Assert-Command {
   param([string]$Name)
   if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
@@ -28,9 +48,9 @@ function Assert-Command {
 }
 
 function Invoke-Gcloud {
-  param([string[]]$Args)
-  Write-Host ("gcloud " + ($Args -join " "))
-  & gcloud @Args
+  param([string[]]$CommandArgs)
+  Write-Host ("gcloud " + ($CommandArgs -join " "))
+  & $script:GcloudCli @CommandArgs
 }
 
 function Write-Utf8NoBomFile {
@@ -230,10 +250,29 @@ function ConvertTo-EnvArg {
   return (($Map.GetEnumerator() | ForEach-Object { "{0}={1}" -f $_.Key, $_.Value }) -join ",")
 }
 
+function Remove-ReservedCloudRunEnv {
+  param([hashtable]$Map)
+
+  if ($null -eq $Map -or $Map.Count -eq 0) {
+    return [ordered]@{}
+  }
+
+  $reservedNames = @("PORT", "K_SERVICE", "K_REVISION", "K_CONFIGURATION")
+  $filtered = [ordered]@{}
+  foreach ($entry in $Map.GetEnumerator()) {
+    if ($reservedNames -contains [string]$entry.Key) {
+      continue
+    }
+    $filtered[$entry.Key] = $entry.Value
+  }
+
+  return $filtered
+}
+
 function Ensure-SecretExists {
   param([string]$SecretName)
 
-  $raw = & gcloud secrets describe $SecretName --project $ProjectId --format "value(name)" 2>$null
+  $raw = & $script:GcloudCli secrets describe $SecretName --project $ProjectId --format "value(name)" 2>$null
   if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$raw)) {
     throw "Required secret '$SecretName' does not exist in project '$ProjectId'."
   }
@@ -242,7 +281,7 @@ function Ensure-SecretExists {
 function Get-ServiceDescribeJson {
   param([string]$ServiceName)
 
-  $raw = & gcloud run services describe $ServiceName --project $ProjectId --region $Region --format json
+  $raw = & $script:GcloudCli run services describe $ServiceName --project $ProjectId --region $Region --format json
   if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace([string]$raw)) {
     throw "Could not describe Cloud Run service '$ServiceName'."
   }
@@ -298,7 +337,7 @@ if ($DryRun) {
   Write-Host "==> Dry run mode: skipping gcloud project selection and secret validation"
 } else {
   Write-Host "==> Setting active project"
-  Invoke-Gcloud @("config", "set", "project", $ProjectId)
+  Invoke-Gcloud -CommandArgs @("config", "set", "project", $ProjectId)
 }
 
 $deployedServices = @()
@@ -337,7 +376,8 @@ foreach ($serviceDefinition in $serviceDefinitions) {
     $deployArgs += "--no-allow-unauthenticated"
   }
 
-  $envArg = ConvertTo-EnvArg -Map $service.env
+  $runtimeEnv = Remove-ReservedCloudRunEnv -Map $service.env
+  $envArg = ConvertTo-EnvArg -Map $runtimeEnv
   if (-not [string]::IsNullOrWhiteSpace($envArg)) {
     $deployArgs += @("--set-env-vars", $envArg)
   }
@@ -370,7 +410,7 @@ foreach ($serviceDefinition in $serviceDefinitions) {
     }
   } else {
     Write-Host "==> Deploying Cloud Run service '$serviceName'"
-    Invoke-Gcloud $deployArgs
+    Invoke-Gcloud -CommandArgs $deployArgs
     $describeJson = Get-ServiceDescribeJson -ServiceName $serviceName
   }
 

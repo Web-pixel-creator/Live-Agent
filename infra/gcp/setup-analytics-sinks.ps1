@@ -24,6 +24,26 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Resolve-GcloudCli {
+  $candidates = @(
+    "C:\Users\user\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd",
+    "C:\Program Files\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+  )
+  $resolved = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+  if (-not $resolved) {
+    $command = Get-Command "gcloud.cmd" -ErrorAction SilentlyContinue
+    if ($null -ne $command) {
+      $resolved = $command.Source
+    }
+  }
+  if (-not $resolved) {
+    throw "gcloud.cmd was not found in PATH."
+  }
+  return $resolved
+}
+
+$script:GcloudCli = Resolve-GcloudCli
+
 function Assert-Command {
   param([string]$Name)
   $Command = Get-Command $Name -ErrorAction SilentlyContinue
@@ -33,15 +53,15 @@ function Assert-Command {
 }
 
 function Invoke-Gcloud {
-  param([string[]]$Args)
-  Write-Host ("gcloud " + ($Args -join " "))
-  & gcloud @Args
+  param([string[]]$CommandArgs)
+  Write-Host ("gcloud " + ($CommandArgs -join " "))
+  & $script:GcloudCli @CommandArgs
 }
 
 function Invoke-Bq {
-  param([string[]]$Args)
-  Write-Host ("bq " + ($Args -join " "))
-  & bq @Args
+  param([string[]]$CommandArgs)
+  Write-Host ("bq " + ($CommandArgs -join " "))
+  & bq @CommandArgs
 }
 
 function Ensure-BigQueryDataset {
@@ -58,7 +78,7 @@ function Ensure-BigQueryDataset {
     return
   }
 
-  Invoke-Bq @(
+  Invoke-Bq -CommandArgs @(
     "--project_id", $Project,
     "--location", $Region,
     "mk",
@@ -78,10 +98,14 @@ function Ensure-LoggingSink {
 
   $SinkFilter = "jsonPayload.category=`"analytics_event`" OR (jsonPayload.category=`"analytics_metric`" AND jsonPayload.logName=`"$AnalyticsLogName`")"
   $Destination = "bigquery.googleapis.com/projects/$Project/datasets/$Dataset"
-  $Existing = & gcloud logging sinks describe $Name --project $Project --format "value(name)" 2>$null
+  try {
+    $Existing = & $script:GcloudCli logging sinks describe $Name --project $Project --format "value(name)" 2>$null
+  } catch {
+    $Existing = ""
+  }
 
   if (-not $Existing) {
-    Invoke-Gcloud @(
+    Invoke-Gcloud -CommandArgs @(
       "logging", "sinks", "create", $Name, $Destination,
       "--project", $Project,
       "--description", "Exports structured analytics logs to BigQuery dataset",
@@ -90,20 +114,20 @@ function Ensure-LoggingSink {
     )
   } else {
     Write-Host "Sink '$Name' already exists; ensuring destination/filter are up to date."
-    Invoke-Gcloud @(
+    Invoke-Gcloud -CommandArgs @(
       "logging", "sinks", "update", $Name, $Destination,
       "--project", $Project,
       "--log-filter", $SinkFilter
     )
   }
 
-  $WriterIdentity = & gcloud logging sinks describe $Name --project $Project --format "value(writerIdentity)"
+  $WriterIdentity = & $script:GcloudCli logging sinks describe $Name --project $Project --format "value(writerIdentity)"
   if (-not $WriterIdentity) {
     throw "Could not resolve sink writer identity for '$Name'."
   }
 
   Write-Host "Granting sink writer BigQuery editor role at project scope (baseline)."
-  Invoke-Gcloud @(
+  Invoke-Gcloud -CommandArgs @(
     "projects", "add-iam-policy-binding", $Project,
     "--member", $WriterIdentity,
     "--role", "roles/bigquery.dataEditor",
@@ -118,23 +142,25 @@ function Ensure-LogMetric {
   )
 
   $Filter = "jsonPayload.category=`"analytics_metric`" AND jsonPayload.value:*"
-  $MetricExists = & gcloud logging metrics describe $MetricName --project $Project --format "value(name)" 2>$null
+  try {
+    $MetricExists = & $script:GcloudCli logging metrics describe $MetricName --project $Project --format "value(name)" 2>$null
+  } catch {
+    $MetricExists = ""
+  }
   $CommonArgs = @(
     "--project", $Project,
     "--description", "Extracted metric values from structured analytics logs",
-    "--log-filter", $Filter,
-    "--value-extractor", "EXTRACT(jsonPayload.value)",
-    "--label-extractors", "service=EXTRACT(jsonPayload.service),metric_type=EXTRACT(jsonPayload.metricType),operation=EXTRACT(jsonPayload.labels.operation),ok=EXTRACT(jsonPayload.labels.ok),model=EXTRACT(jsonPayload.labels.model),signal=EXTRACT(jsonPayload.labels.signal),scope=EXTRACT(jsonPayload.labels.scope)"
+    "--log-filter", $Filter
   )
 
   if (-not $MetricExists) {
     $Args = @("logging", "metrics", "create", $MetricName) + $CommonArgs
-    Invoke-Gcloud -Args $Args
+    Invoke-Gcloud -CommandArgs $Args
     return
   }
 
   $UpdateArgs = @("logging", "metrics", "update", $MetricName) + $CommonArgs
-  Invoke-Gcloud -Args $UpdateArgs
+  Invoke-Gcloud -CommandArgs $UpdateArgs
 }
 
 Write-Host "==> Validating tooling"
@@ -142,10 +168,10 @@ Assert-Command -Name "gcloud"
 Assert-Command -Name "bq"
 
 Write-Host "==> Setting active project"
-Invoke-Gcloud @("config", "set", "project", $ProjectId)
+Invoke-Gcloud -CommandArgs @("config", "set", "project", $ProjectId)
 
 Write-Host "==> Enabling required APIs"
-Invoke-Gcloud @(
+Invoke-Gcloud -CommandArgs @(
   "services", "enable",
   "logging.googleapis.com",
   "monitoring.googleapis.com",
