@@ -416,6 +416,152 @@ function Resolve-NpmCli() {
   return "npm"
 }
 
+function Resolve-ServiceNameFromStatus([object]$StatusPayload, [string]$Service, [string]$TargetEnvironment) {
+  if ($null -eq $StatusPayload) {
+    return $null
+  }
+
+  if ($StatusPayload.PSObject.Properties.Name -contains "environments") {
+    $envEdges = $StatusPayload.environments.edges
+    if ($null -ne $envEdges) {
+      foreach ($envEdge in $envEdges) {
+        $envNode = $envEdge.node
+        if ($null -eq $envNode) {
+          continue
+        }
+        if (-not [string]::IsNullOrWhiteSpace($TargetEnvironment) -and $envNode.name -ne $TargetEnvironment) {
+          continue
+        }
+
+        $instanceEdges = $envNode.serviceInstances.edges
+        if ($null -eq $instanceEdges) {
+          continue
+        }
+
+        foreach ($instanceEdge in $instanceEdges) {
+          $instance = $instanceEdge.node
+          if ($null -eq $instance) {
+            continue
+          }
+          $serviceId = [string]$instance.serviceId
+          $serviceName = [string]$instance.serviceName
+          if (
+            (-not [string]::IsNullOrWhiteSpace($Service)) -and
+            $serviceId -ne $Service -and
+            $serviceName -ne $Service
+          ) {
+            continue
+          }
+          if (-not [string]::IsNullOrWhiteSpace($serviceName)) {
+            return $serviceName
+          }
+        }
+      }
+    }
+  }
+
+  if ($StatusPayload.PSObject.Properties.Name -contains "services") {
+    $serviceEdges = $StatusPayload.services.edges
+    if ($null -ne $serviceEdges) {
+      foreach ($edge in $serviceEdges) {
+        $serviceNode = $edge.node
+        if ($null -eq $serviceNode) {
+          continue
+        }
+        $serviceId = [string]$serviceNode.id
+        $serviceName = [string]$serviceNode.name
+        if (
+          (-not [string]::IsNullOrWhiteSpace($Service)) -and
+          $serviceId -ne $Service -and
+          $serviceName -ne $Service
+        ) {
+          continue
+        }
+        if (-not [string]::IsNullOrWhiteSpace($serviceName)) {
+          return $serviceName
+        }
+      }
+    }
+  }
+
+  return $null
+}
+
+function Resolve-RailwayServiceManifestTemplatePath([string]$RepoRoot, [string]$ServiceName) {
+  if ([string]::IsNullOrWhiteSpace($ServiceName)) {
+    return $null
+  }
+
+  $candidate = switch ($ServiceName) {
+    "Live-Agent-Orchestrator" { Join-Path $RepoRoot "infra\railway\manifests\orchestrator.railway.json" }
+    default { $null }
+  }
+
+  if ([string]::IsNullOrWhiteSpace($candidate) -or -not (Test-Path $candidate)) {
+    return $null
+  }
+
+  return [System.IO.Path]::GetFullPath($candidate)
+}
+
+function New-RailwayDeployWorkspace([string]$RepoRoot, [string]$ManifestTemplatePath) {
+  $workspacePath = Join-Path $env:TEMP ("mla-railway-deploy-" + [guid]::NewGuid().ToString())
+  $gitArgs = @("-C", $RepoRoot, "worktree", "add", "--detach", $workspacePath, "HEAD")
+  $gitOutput = @()
+  $gitExitCode = 1
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = "Continue"
+    $gitOutput = (& git @gitArgs 2>&1)
+    $gitExitCode = $LASTEXITCODE
+  }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+  if ($gitOutput) {
+    $gitOutput | ForEach-Object { Write-Host $_ }
+  }
+  if ($gitExitCode -ne 0) {
+    Fail "Unable to create clean Railway deploy worktree."
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($ManifestTemplatePath)) {
+    $targetManifestPath = Join-Path $workspacePath "railway.json"
+    Copy-Item -LiteralPath $ManifestTemplatePath -Destination $targetManifestPath -Force
+    Write-Host ("[railway-deploy] Applied service-specific Railway manifest template: " + $ManifestTemplatePath)
+  }
+  else {
+    Write-Host "[railway-deploy] Using repository root Railway manifest in clean deploy worktree."
+  }
+
+  return $workspacePath
+}
+
+function Remove-RailwayDeployWorkspace([string]$RepoRoot, [string]$WorkspacePath) {
+  if ([string]::IsNullOrWhiteSpace($WorkspacePath) -or -not (Test-Path $WorkspacePath)) {
+    return
+  }
+
+  $gitArgs = @("-C", $RepoRoot, "worktree", "remove", "--force", $WorkspacePath)
+  $gitOutput = @()
+  $gitExitCode = 1
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = "Continue"
+    $gitOutput = (& git @gitArgs 2>&1)
+    $gitExitCode = $LASTEXITCODE
+  }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+  if ($gitOutput) {
+    $gitOutput | ForEach-Object { Write-Host $_ }
+  }
+  if ($gitExitCode -ne 0) {
+    Write-Warning ("[railway-deploy] Failed to remove temporary deploy worktree: " + $WorkspacePath)
+  }
+}
+
 function Get-LatestDeployment([string]$Service, [string]$Env) {
   $args = @("deployment", "list", "--limit", "20", "--json")
   if (-not [string]::IsNullOrWhiteSpace($Service)) {
@@ -993,182 +1139,130 @@ if ([string]::IsNullOrWhiteSpace($resolvedService)) {
   Fail "No Railway service resolved. Link a service first or provide -ServiceId."
 }
 
-if (-not [string]::IsNullOrWhiteSpace($DemoFrontendPublicUrl)) {
-  Write-Host "[railway-deploy] Setting DEMO_FRONTEND_PUBLIC_URL on gateway service..."
-  Run-Cli -CliArgs @("variable", "set", "-s", $resolvedService, "-e", $Environment, "--skip-deploys", ("DEMO_FRONTEND_PUBLIC_URL=" + $DemoFrontendPublicUrl))
+if ([string]::IsNullOrWhiteSpace($ProjectId) -and $null -ne $status -and -not [string]::IsNullOrWhiteSpace([string]$status.id)) {
+  $ProjectId = [string]$status.id
 }
 
-if ([string]::IsNullOrWhiteSpace($DeployMessage)) {
-  $commit = (& git rev-parse --short HEAD 2>$null)
-  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commit)) {
-    $commit = "unknown"
+$repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+$resolvedServiceName = Resolve-ServiceNameFromStatus -StatusPayload $status -Service $resolvedService -TargetEnvironment $Environment
+$serviceManifestTemplatePath = Resolve-RailwayServiceManifestTemplatePath -RepoRoot $repoRoot -ServiceName $resolvedServiceName
+$deployWorkspacePath = New-RailwayDeployWorkspace -RepoRoot $repoRoot -ManifestTemplatePath $serviceManifestTemplatePath
+
+try {
+  Push-Location $deployWorkspacePath
+
+  if (-not [string]::IsNullOrWhiteSpace($resolvedServiceName)) {
+    Write-Host ("[railway-deploy] Target Railway service: " + $resolvedServiceName)
   }
-  $DeployMessage = "deploy: $commit"
-}
 
-$deployArgs = @("up", "-d", "-m", $DeployMessage, "-s", $resolvedService, "-e", $Environment)
-if (-not [string]::IsNullOrWhiteSpace($ProjectId)) {
-  $deployArgs += @("-p", $ProjectId)
-}
-
-Write-Host "[railway-deploy] Triggering deployment..."
-$deployOutput = Run-CliCapture -CliArgs $deployArgs
-$deployText = [string]::Join("`n", $deployOutput)
-
-$deploymentId = $null
-$idMatch = [regex]::Match($deployText, "id=([0-9a-fA-F-]{36})")
-if ($idMatch.Success) {
-  $deploymentId = $idMatch.Groups[1].Value
-}
-
-if (-not $idMatch.Success -and $deployText -match "Usage:\s*railway\s+\[COMMAND\]") {
-  Fail "Railway CLI returned global help output instead of deployment logs. Check deploy arguments/service link."
-}
-
-if ([string]::IsNullOrWhiteSpace($deploymentId)) {
-  $latest = Get-LatestDeployment -Service $resolvedService -Env $Environment
-  if ($null -ne $latest) {
-    $deploymentId = [string]$latest.id
-  }
-}
-
-if ([string]::IsNullOrWhiteSpace($deploymentId)) {
-  Fail "Deployment created but deployment ID could not be resolved."
-}
-
-Write-Host "[railway-deploy] Deployment ID: $deploymentId"
-
-if ($NoWait) {
-  $noWaitEffectivePublicUrl = if (-not [string]::IsNullOrWhiteSpace($RailwayPublicUrl)) {
-    [string]$RailwayPublicUrl.TrimEnd("/")
-  }
-  else {
-    $null
-  }
-  $noWaitBadgeEndpoint = Resolve-PublicBadgeEndpoint -ExplicitEndpoint $PublicBadgeEndpoint -PublicUrl $noWaitEffectivePublicUrl
-  $noWaitBadgeDetailsEndpoint = Resolve-PublicBadgeDetailsEndpoint -ExplicitEndpoint $PublicBadgeDetailsEndpoint -ResolvedBadgeEndpoint $noWaitBadgeEndpoint
-  if (-not $SkipRootDescriptorCheck) {
-    Write-Host "[railway-deploy] Skipping gateway root descriptor check in no-wait mode."
-  }
-  if (-not $SkipPublicBadgeCheck) {
-    Write-Host "[railway-deploy] Skipping public badge endpoint check in no-wait mode."
-  }
-  $noWaitSummary = [ordered]@{
-    schemaVersion = 1
-    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
-    status = "triggered_no_wait"
-    deploymentId = $deploymentId
-    projectId = $ProjectId
-    service = $resolvedService
-    environment = $Environment
-    effectivePublicUrl = $noWaitEffectivePublicUrl
-    verification = $railwayVerificationSummary
-    checks = [ordered]@{
-      rootDescriptor = [ordered]@{
-        attempted = $false
-        skipped = $true
-        skipReason = "no_wait"
-        expectedUiUrl = if ([string]::IsNullOrWhiteSpace($DemoFrontendPublicUrl)) { $null } else { $DemoFrontendPublicUrl }
-      }
-      publicBadge = [ordered]@{
-        attempted = $false
-        skipped = $true
-        skipReason = "no_wait"
-        badgeEndpoint = $noWaitBadgeEndpoint
-        badgeDetailsEndpoint = $noWaitBadgeDetailsEndpoint
-      }
+  if (-not [string]::IsNullOrWhiteSpace($ProjectId) -and -not [string]::IsNullOrWhiteSpace($resolvedService)) {
+    $workspaceLinkArgs = @("link", "-p", $ProjectId, "-s", $resolvedService, "-e", $Environment)
+    if (-not [string]::IsNullOrWhiteSpace($Workspace)) {
+      $workspaceLinkArgs += @("-w", $Workspace)
     }
-    artifacts = [ordered]@{
-      self = "artifacts/deploy/railway-deploy-summary.json"
-      releaseEvidenceReportJson = "artifacts/release-evidence/report.json"
-      releaseEvidenceManifestJson = "artifacts/release-evidence/manifest.json"
-      badgeDetailsJson = "artifacts/demo-e2e/badge-details.json"
+    Write-Host "[railway-deploy] Linking clean deploy worktree to Railway service..."
+    $workspaceLinkOutput = @()
+    $workspaceLinkExitCode = 1
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+      $ErrorActionPreference = "Continue"
+      $workspaceLinkOutput = (& railway @workspaceLinkArgs 2>&1)
+      $workspaceLinkExitCode = $LASTEXITCODE
     }
-    releaseEvidenceSnapshot = $releaseEvidenceSnapshot
+    finally {
+      $ErrorActionPreference = $previousErrorActionPreference
+    }
+    if ($workspaceLinkOutput) {
+      $workspaceLinkOutput | ForEach-Object { Write-Host $_ }
+    }
+    if ($workspaceLinkExitCode -ne 0) {
+      Fail "Unable to link clean Railway deploy worktree."
+    }
   }
-  $noWaitSummaryPath = Write-RailwayDeploySummary -Summary $noWaitSummary
-  Write-Host ("[railway-deploy] Summary artifact: " + $noWaitSummaryPath)
-  Publish-RailwayDeployOutputs -SummaryRelativePath "artifacts/deploy/railway-deploy-summary.json" -Summary $noWaitSummary
-  Write-Host "[railway-deploy] No-wait mode enabled. Exiting after trigger."
-  exit 0
-}
 
-$pending = @("QUEUED", "INITIALIZING", "BUILDING", "DEPLOYING")
-for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
-  $deployment = Get-DeploymentById -DeploymentId $deploymentId -Service $resolvedService -Env $Environment
-  if ($null -eq $deployment) {
-    Write-Host "[railway-deploy] Waiting for deployment metadata ($attempt/$StatusPollMaxAttempts)..."
+  if (-not [string]::IsNullOrWhiteSpace($DemoFrontendPublicUrl)) {
+    Write-Host "[railway-deploy] Setting DEMO_FRONTEND_PUBLIC_URL on gateway service..."
+    Run-Cli -CliArgs @("variable", "set", "-s", $resolvedService, "-e", $Environment, "--skip-deploys", ("DEMO_FRONTEND_PUBLIC_URL=" + $DemoFrontendPublicUrl))
   }
-  else {
-    $state = [string]$deployment.status
-    Write-Host "[railway-deploy] Status ($attempt/$StatusPollMaxAttempts): $state"
-    if ($state -eq "SUCCESS") {
-      $effectiveStartCommand = Resolve-DeploymentStartCommand -Deployment $deployment
-      if (-not [string]::IsNullOrWhiteSpace($effectiveStartCommand)) {
-        Write-Host ("[railway-deploy] Effective start command: " + $effectiveStartCommand)
-      }
 
-      $configSource = [string]$deployment.meta.configFile
-      if (-not [string]::IsNullOrWhiteSpace($configSource)) {
-        Write-Host ("[railway-deploy] Config-as-code source: " + $configSource)
-      }
+  if ([string]::IsNullOrWhiteSpace($DeployMessage)) {
+    $commit = (& git rev-parse --short HEAD 2>$null)
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commit)) {
+      $commit = "unknown"
+    }
+    $DeployMessage = "deploy: $commit"
+  }
 
-      $effectivePublicUrl = if (-not [string]::IsNullOrWhiteSpace($RailwayPublicUrl)) {
-        [string]$RailwayPublicUrl.TrimEnd("/")
-      }
-      else {
-        Resolve-ServicePublicUrlFromStatus -StatusPayload $status -Service $resolvedService -TargetEnvironment $Environment
-      }
-      if (-not [string]::IsNullOrWhiteSpace($effectivePublicUrl)) {
-        Write-Host ("[railway-deploy] Effective public URL: " + $effectivePublicUrl)
-      }
+  $deployArgs = @("up", "-d", "-m", $DeployMessage, "-s", $resolvedService, "-e", $Environment)
+  if (-not [string]::IsNullOrWhiteSpace($ProjectId)) {
+    $deployArgs += @("-p", $ProjectId)
+  }
 
-      $badgeCheckResult = $null
-      if (-not $SkipRootDescriptorCheck) {
-        Invoke-GatewayRootDescriptorCheck -Endpoint $effectivePublicUrl -ExpectedUiUrl $DemoFrontendPublicUrl -TimeoutSec $RootDescriptorCheckTimeoutSec -MaxAttempts $RootDescriptorCheckMaxAttempts -RetryBackoffSec $RootDescriptorCheckRetryBackoffSec
-      }
-      if (-not $SkipPublicBadgeCheck) {
-        $badgeCheckResult = Invoke-PublicBadgeCheck -Endpoint $PublicBadgeEndpoint -DetailsEndpoint $PublicBadgeDetailsEndpoint -PublicUrl $effectivePublicUrl -TimeoutSec $PublicBadgeCheckTimeoutSec
-        if ($null -ne $badgeCheckResult) {
-          Write-Host ("[railway-deploy] Public badge verification completed: " + [string]$badgeCheckResult.badgeEndpoint)
-          Write-Host ("[railway-deploy] Public badge details verification completed: " + [string]$badgeCheckResult.badgeDetailsEndpoint)
-        }
-      }
-      $summaryBadgeEndpoint = if ($null -ne $badgeCheckResult) {
-        [string]$badgeCheckResult.badgeEndpoint
-      }
-      else {
-        Resolve-PublicBadgeEndpoint -ExplicitEndpoint $PublicBadgeEndpoint -PublicUrl $effectivePublicUrl
-      }
-      $summaryBadgeDetailsEndpoint = if ($null -ne $badgeCheckResult) {
-        [string]$badgeCheckResult.badgeDetailsEndpoint
-      }
-      else {
-        Resolve-PublicBadgeDetailsEndpoint -ExplicitEndpoint $PublicBadgeDetailsEndpoint -ResolvedBadgeEndpoint $summaryBadgeEndpoint
-      }
-      $deploySummary = [ordered]@{
-        schemaVersion = 1
-        generatedAt = (Get-Date).ToUniversalTime().ToString("o")
-        status = "success"
-        deploymentId = $deploymentId
-        projectId = $ProjectId
-        service = $resolvedService
-        environment = $Environment
-        effectiveStartCommand = $effectiveStartCommand
-        configSource = if ([string]::IsNullOrWhiteSpace($configSource)) { $null } else { $configSource }
-        effectivePublicUrl = if ([string]::IsNullOrWhiteSpace($effectivePublicUrl)) { $null } else { $effectivePublicUrl }
-        verification = $railwayVerificationSummary
+  Write-Host "[railway-deploy] Triggering deployment..."
+  $deployOutput = Run-CliCapture -CliArgs $deployArgs
+  $deployText = [string]::Join("`n", $deployOutput)
+
+  $deploymentId = $null
+  $idMatch = [regex]::Match($deployText, "id=([0-9a-fA-F-]{36})")
+  if ($idMatch.Success) {
+    $deploymentId = $idMatch.Groups[1].Value
+  }
+
+  if (-not $idMatch.Success -and $deployText -match "Usage:\s*railway\s+\[COMMAND\]") {
+    Fail "Railway CLI returned global help output instead of deployment logs. Check deploy arguments/service link."
+  }
+
+  if ([string]::IsNullOrWhiteSpace($deploymentId)) {
+    $latest = Get-LatestDeployment -Service $resolvedService -Env $Environment
+    if ($null -ne $latest) {
+      $deploymentId = [string]$latest.id
+    }
+  }
+
+  if ([string]::IsNullOrWhiteSpace($deploymentId)) {
+    Fail "Deployment created but deployment ID could not be resolved."
+  }
+
+  Write-Host "[railway-deploy] Deployment ID: $deploymentId"
+
+  if ($NoWait) {
+    $noWaitEffectivePublicUrl = if (-not [string]::IsNullOrWhiteSpace($RailwayPublicUrl)) {
+      [string]$RailwayPublicUrl.TrimEnd("/")
+    }
+    else {
+      $null
+    }
+    $noWaitBadgeEndpoint = Resolve-PublicBadgeEndpoint -ExplicitEndpoint $PublicBadgeEndpoint -PublicUrl $noWaitEffectivePublicUrl
+    $noWaitBadgeDetailsEndpoint = Resolve-PublicBadgeDetailsEndpoint -ExplicitEndpoint $PublicBadgeDetailsEndpoint -ResolvedBadgeEndpoint $noWaitBadgeEndpoint
+    if (-not $SkipRootDescriptorCheck) {
+      Write-Host "[railway-deploy] Skipping gateway root descriptor check in no-wait mode."
+    }
+    if (-not $SkipPublicBadgeCheck) {
+      Write-Host "[railway-deploy] Skipping public badge endpoint check in no-wait mode."
+    }
+    $noWaitSummary = [ordered]@{
+      schemaVersion = 1
+      generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+      status = "triggered_no_wait"
+      deploymentId = $deploymentId
+      projectId = $ProjectId
+      service = $resolvedService
+      environment = $Environment
+      effectivePublicUrl = $noWaitEffectivePublicUrl
+      verification = $railwayVerificationSummary
       checks = [ordered]@{
         rootDescriptor = [ordered]@{
-          attempted = (-not $SkipRootDescriptorCheck)
-          skipped = [bool]$SkipRootDescriptorCheck
-            expectedUiUrl = if ([string]::IsNullOrWhiteSpace($DemoFrontendPublicUrl)) { $null } else { $DemoFrontendPublicUrl }
-          }
-          publicBadge = [ordered]@{
-            attempted = (-not $SkipPublicBadgeCheck)
-            skipped = [bool]$SkipPublicBadgeCheck
-            badgeEndpoint = $summaryBadgeEndpoint
-          badgeDetailsEndpoint = $summaryBadgeDetailsEndpoint
+          attempted = $false
+          skipped = $true
+          skipReason = "no_wait"
+          expectedUiUrl = if ([string]::IsNullOrWhiteSpace($DemoFrontendPublicUrl)) { $null } else { $DemoFrontendPublicUrl }
+        }
+        publicBadge = [ordered]@{
+          attempted = $false
+          skipped = $true
+          skipReason = "no_wait"
+          badgeEndpoint = $noWaitBadgeEndpoint
+          badgeDetailsEndpoint = $noWaitBadgeDetailsEndpoint
         }
       }
       artifacts = [ordered]@{
@@ -1179,24 +1273,122 @@ for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
       }
       releaseEvidenceSnapshot = $releaseEvidenceSnapshot
     }
-      $deploySummaryPath = Write-RailwayDeploySummary -Summary $deploySummary
-      Write-Host ("[railway-deploy] Summary artifact: " + $deploySummaryPath)
-      Publish-RailwayDeployOutputs -SummaryRelativePath "artifacts/deploy/railway-deploy-summary.json" -Summary $deploySummary
-      Write-Host ""
-      Write-Host "Railway deployment completed successfully."
-      Write-Host "Deployment ID: $deploymentId"
-      exit 0
+    $noWaitSummaryPath = Write-RailwayDeploySummary -Summary $noWaitSummary
+    Write-Host ("[railway-deploy] Summary artifact: " + $noWaitSummaryPath)
+    Publish-RailwayDeployOutputs -SummaryRelativePath "artifacts/deploy/railway-deploy-summary.json" -Summary $noWaitSummary
+    Write-Host "[railway-deploy] No-wait mode enabled. Exiting after trigger."
+    exit 0
+  }
+
+  $pending = @("QUEUED", "INITIALIZING", "BUILDING", "DEPLOYING")
+  for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
+    $deployment = Get-DeploymentById -DeploymentId $deploymentId -Service $resolvedService -Env $Environment
+    if ($null -eq $deployment) {
+      Write-Host "[railway-deploy] Waiting for deployment metadata ($attempt/$StatusPollMaxAttempts)..."
     }
-    if ($pending -notcontains $state) {
-      Show-DeploymentFailureDiagnostics -DeploymentId $deploymentId -Service $resolvedService -Env $Environment -Lines $FailureLogLines
-      Fail "Railway deployment finished with non-success status: $state (deploymentId=$deploymentId)"
+    else {
+      $state = [string]$deployment.status
+      Write-Host "[railway-deploy] Status ($attempt/$StatusPollMaxAttempts): $state"
+      if ($state -eq "SUCCESS") {
+        $effectiveStartCommand = Resolve-DeploymentStartCommand -Deployment $deployment
+        if (-not [string]::IsNullOrWhiteSpace($effectiveStartCommand)) {
+          Write-Host ("[railway-deploy] Effective start command: " + $effectiveStartCommand)
+        }
+
+        $configSource = [string]$deployment.meta.configFile
+        if (-not [string]::IsNullOrWhiteSpace($configSource)) {
+          Write-Host ("[railway-deploy] Config-as-code source: " + $configSource)
+        }
+
+        $effectivePublicUrl = if (-not [string]::IsNullOrWhiteSpace($RailwayPublicUrl)) {
+          [string]$RailwayPublicUrl.TrimEnd("/")
+        }
+        else {
+          Resolve-ServicePublicUrlFromStatus -StatusPayload $status -Service $resolvedService -TargetEnvironment $Environment
+        }
+        if (-not [string]::IsNullOrWhiteSpace($effectivePublicUrl)) {
+          Write-Host ("[railway-deploy] Effective public URL: " + $effectivePublicUrl)
+        }
+
+        $badgeCheckResult = $null
+        if (-not $SkipRootDescriptorCheck) {
+          Invoke-GatewayRootDescriptorCheck -Endpoint $effectivePublicUrl -ExpectedUiUrl $DemoFrontendPublicUrl -TimeoutSec $RootDescriptorCheckTimeoutSec -MaxAttempts $RootDescriptorCheckMaxAttempts -RetryBackoffSec $RootDescriptorCheckRetryBackoffSec
+        }
+        if (-not $SkipPublicBadgeCheck) {
+          $badgeCheckResult = Invoke-PublicBadgeCheck -Endpoint $PublicBadgeEndpoint -DetailsEndpoint $PublicBadgeDetailsEndpoint -PublicUrl $effectivePublicUrl -TimeoutSec $PublicBadgeCheckTimeoutSec
+          if ($null -ne $badgeCheckResult) {
+            Write-Host ("[railway-deploy] Public badge verification completed: " + [string]$badgeCheckResult.badgeEndpoint)
+            Write-Host ("[railway-deploy] Public badge details verification completed: " + [string]$badgeCheckResult.badgeDetailsEndpoint)
+          }
+        }
+        $summaryBadgeEndpoint = if ($null -ne $badgeCheckResult) {
+          [string]$badgeCheckResult.badgeEndpoint
+        }
+        else {
+          Resolve-PublicBadgeEndpoint -ExplicitEndpoint $PublicBadgeEndpoint -PublicUrl $effectivePublicUrl
+        }
+        $summaryBadgeDetailsEndpoint = if ($null -ne $badgeCheckResult) {
+          [string]$badgeCheckResult.badgeDetailsEndpoint
+        }
+        else {
+          Resolve-PublicBadgeDetailsEndpoint -ExplicitEndpoint $PublicBadgeDetailsEndpoint -ResolvedBadgeEndpoint $summaryBadgeEndpoint
+        }
+        $deploySummary = [ordered]@{
+          schemaVersion = 1
+          generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+          status = "success"
+          deploymentId = $deploymentId
+          projectId = $ProjectId
+          service = $resolvedService
+          environment = $Environment
+          effectiveStartCommand = $effectiveStartCommand
+          configSource = if ([string]::IsNullOrWhiteSpace($configSource)) { $null } else { $configSource }
+          effectivePublicUrl = if ([string]::IsNullOrWhiteSpace($effectivePublicUrl)) { $null } else { $effectivePublicUrl }
+          verification = $railwayVerificationSummary
+          checks = [ordered]@{
+            rootDescriptor = [ordered]@{
+              attempted = (-not $SkipRootDescriptorCheck)
+              skipped = [bool]$SkipRootDescriptorCheck
+              expectedUiUrl = if ([string]::IsNullOrWhiteSpace($DemoFrontendPublicUrl)) { $null } else { $DemoFrontendPublicUrl }
+            }
+            publicBadge = [ordered]@{
+              attempted = (-not $SkipPublicBadgeCheck)
+              skipped = [bool]$SkipPublicBadgeCheck
+              badgeEndpoint = $summaryBadgeEndpoint
+              badgeDetailsEndpoint = $summaryBadgeDetailsEndpoint
+            }
+          }
+          artifacts = [ordered]@{
+            self = "artifacts/deploy/railway-deploy-summary.json"
+            releaseEvidenceReportJson = "artifacts/release-evidence/report.json"
+            releaseEvidenceManifestJson = "artifacts/release-evidence/manifest.json"
+            badgeDetailsJson = "artifacts/demo-e2e/badge-details.json"
+          }
+          releaseEvidenceSnapshot = $releaseEvidenceSnapshot
+        }
+        $deploySummaryPath = Write-RailwayDeploySummary -Summary $deploySummary
+        Write-Host ("[railway-deploy] Summary artifact: " + $deploySummaryPath)
+        Publish-RailwayDeployOutputs -SummaryRelativePath "artifacts/deploy/railway-deploy-summary.json" -Summary $deploySummary
+        Write-Host ""
+        Write-Host "Railway deployment completed successfully."
+        Write-Host "Deployment ID: $deploymentId"
+        exit 0
+      }
+      if ($pending -notcontains $state) {
+        Show-DeploymentFailureDiagnostics -DeploymentId $deploymentId -Service $resolvedService -Env $Environment -Lines $FailureLogLines
+        Fail "Railway deployment finished with non-success status: $state (deploymentId=$deploymentId)"
+      }
+    }
+
+    if ($attempt -lt $StatusPollMaxAttempts) {
+      Start-Sleep -Seconds $StatusPollIntervalSec
     }
   }
 
-  if ($attempt -lt $StatusPollMaxAttempts) {
-    Start-Sleep -Seconds $StatusPollIntervalSec
-  }
+  Show-DeploymentFailureDiagnostics -DeploymentId $deploymentId -Service $resolvedService -Env $Environment -Lines $FailureLogLines
+  Fail "Timed out waiting for Railway deployment completion (deploymentId=$deploymentId)."
 }
-
-Show-DeploymentFailureDiagnostics -DeploymentId $deploymentId -Service $resolvedService -Env $Environment -Lines $FailureLogLines
-Fail "Timed out waiting for Railway deployment completion (deploymentId=$deploymentId)."
+finally {
+  Pop-Location
+  Remove-RailwayDeployWorkspace -RepoRoot $repoRoot -WorkspacePath $deployWorkspacePath
+}

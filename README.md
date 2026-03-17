@@ -1141,6 +1141,8 @@ npm run deploy:railway:all:dispatch -- -Environment production -GatewayPublicUrl
 Behavior:
 
 - Runs release verification before deploy (`verify:release` by default).
+- Railway deploy helper now stages uploads from a temporary clean git worktree, so local `.tmp/`, `output/`, `_external/`, and other untracked artifacts do not bloat or break the upload.
+- When the target service resolves to `Live-Agent-Orchestrator`, the helper automatically applies the service-specific manifest template from `infra/railway/manifests/orchestrator.railway.json` so the service keeps the orchestrator start command instead of falling back to the root gateway manifest.
 - repo publish surfaces local release-evidence report/manifest paths after pre-publish verification so the validated artifact set is explicit before any push/deploy step.
 - repo publish also emits `artifacts/deploy/repo-publish-summary.json` with the verified artifact set and enabled publish/deploy steps.
 - In automation contexts, repo publish also writes `repo_publish_summary_path` and related provenance flags to `GITHUB_OUTPUT`, and appends the same high-level state to `GITHUB_STEP_SUMMARY`.

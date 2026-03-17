@@ -131,6 +131,7 @@ $env:RAILWAY_SERVICE_ID="b8c1a952-da24-4410-a53a-82b634b70f47"
 $env:RAILWAY_ENVIRONMENT="production"
 npm run deploy:railway -- -SkipReleaseVerification
 ```
+`deploy:railway` now uploads from a clean temporary git worktree, so large local artifact folders do not get bundled into Railway deploys. If the target service is `Live-Agent-Orchestrator`, the helper also applies `infra/railway/manifests/orchestrator.railway.json` automatically before upload.
 4. Start services for live walkthrough:
 ```powershell
 npm run dev:ui-executor
