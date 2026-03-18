@@ -126,9 +126,16 @@ test("worker roles and eval docs are linked from the repository", () => {
   assert.match(readme, /docs\/evals\.md/);
   assert.match(readme, /skills\/bundled\/lead-qualification/);
   assert.match(readme, /npm run eval:promptfoo/);
+  assert.match(readme, /npm run eval:promptfoo:red-team/);
+  assert.match(readme, /verify:release.*red-team summary/i);
 
   const rolesDoc = readFileSync(resolve(repoRoot, "docs", "worker-roles.md"), "utf8");
   assert.match(rolesDoc, /Playbook Architect/);
   assert.match(rolesDoc, /Eval Plane Engineer/);
   assert.match(rolesDoc, /Red Team Guardian/);
+
+  const evalsDoc = readFileSync(resolve(repoRoot, "docs", "evals.md"), "utf8");
+  assert.match(evalsDoc, /verify:release/);
+  assert.match(evalsDoc, /non-dry-run/i);
+  assert.match(evalsDoc, /red-team/i);
 });

@@ -666,6 +666,7 @@ function runReleaseReadiness(
   summary: Record<string, unknown>,
   options?: Partial<{
     strictFinalRun: boolean;
+    promptfooEvalSummary: Record<string, unknown> | null;
   }>,
 ): { exitCode: number; stdout: string; stderr: string } {
   if (!powershellBin) {
@@ -675,11 +676,19 @@ function runReleaseReadiness(
   const tempDir = mkdtempSync(join(tmpdir(), "mla-release-readiness-"));
   try {
     const summaryPath = join(tempDir, "summary.json");
+    const promptfooEvalSummaryPath = join(tempDir, "evals", "latest-run.json");
     const releaseEvidenceReportPath = join(tempDir, "release-evidence", "report.json");
     const releaseEvidenceReportMarkdownPath = join(tempDir, "release-evidence", "report.md");
     const releaseEvidenceManifestPath = join(tempDir, "release-evidence", "manifest.json");
     const releaseEvidenceManifestMarkdownPath = join(tempDir, "release-evidence", "manifest.md");
     writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
+    const promptfooEvalSummary = Object.prototype.hasOwnProperty.call(options ?? {}, "promptfooEvalSummary")
+      ? options?.promptfooEvalSummary
+      : createPassingPromptfooEvalSummary();
+    if (promptfooEvalSummary !== null && promptfooEvalSummary !== undefined) {
+      mkdirSync(dirname(promptfooEvalSummaryPath), { recursive: true });
+      writeFileSync(promptfooEvalSummaryPath, `${JSON.stringify(promptfooEvalSummary, null, 2)}\n`, "utf8");
+    }
 
     const args = [
       "-NoProfile",
@@ -695,6 +704,8 @@ function runReleaseReadiness(
       "-SkipBadge",
       "-SkipPerfLoad",
       "-SkipDemoRun",
+      "-PromptfooEvalSummaryPath",
+      promptfooEvalSummaryPath,
       "-SummaryPath",
       summaryPath,
       "-ReleaseEvidenceReportPath",
@@ -1133,6 +1144,52 @@ function createPassingSourceRunManifest(
   };
 }
 
+function createPassingPromptfooEvalSummary(
+  overrides: Partial<{
+    dryRun: boolean;
+    suiteSelection: string;
+    redTeamPresent: boolean;
+    redTeamPassed: boolean;
+    redTeamExitCode: number;
+    redTeamDryRun: boolean;
+  }> = {},
+): Record<string, unknown> {
+  const hasOverride = (key: string): boolean => Object.prototype.hasOwnProperty.call(overrides, key);
+  const suites = [];
+  if (hasOverride("redTeamPresent") ? overrides.redTeamPresent !== false : true) {
+    suites.push({
+      id: "red-team",
+      name: "Red Team Bundle",
+      configPath: "C:\\temp\\red-team.promptfooconfig.yaml",
+      outputPath: "C:\\temp\\red-team.results.json",
+      command: "npx.cmd -y promptfoo@latest eval -c red-team.promptfooconfig.yaml -o red-team.results.json --no-cache",
+      exitCode: hasOverride("redTeamExitCode") ? overrides.redTeamExitCode : 0,
+      passed: hasOverride("redTeamPassed") ? overrides.redTeamPassed : true,
+      dryRun: hasOverride("redTeamDryRun") ? overrides.redTeamDryRun : false,
+    });
+  } else {
+    suites.push({
+      id: "translation",
+      name: "Translation Playbook",
+      configPath: "C:\\temp\\translation.promptfooconfig.yaml",
+      outputPath: "C:\\temp\\translation.results.json",
+      command: "npx.cmd -y promptfoo@latest eval -c translation.promptfooconfig.yaml -o translation.results.json --no-cache",
+      exitCode: 0,
+      passed: true,
+      dryRun: false,
+    });
+  }
+
+  return {
+    generatedAt: "2026-03-18T00:00:00.000Z",
+    manifestPath: "C:\\Gemini_Live_Agent\\configs\\evals\\eval-manifest.json",
+    suiteSelection: hasOverride("suiteSelection") ? overrides.suiteSelection : "red-team",
+    gate: true,
+    dryRun: hasOverride("dryRun") ? overrides.dryRun : false,
+    suites,
+  };
+}
+
 function runReleaseReadinessWithPerfArtifacts(
   summary: Record<string, unknown>,
   perfSummary: Record<string, unknown>,
@@ -1147,6 +1204,7 @@ function runReleaseReadinessWithPerfArtifacts(
     const summaryPath = join(tempDir, "summary.json");
     const perfSummaryPath = join(tempDir, "perf-summary.json");
     const perfPolicyPath = join(tempDir, "perf-policy.json");
+    const promptfooEvalSummaryPath = join(tempDir, "evals", "latest-run.json");
     const releaseEvidenceReportPath = join(tempDir, "release-evidence", "report.json");
     const releaseEvidenceReportMarkdownPath = join(tempDir, "release-evidence", "report.md");
     const releaseEvidenceManifestPath = join(tempDir, "release-evidence", "manifest.json");
@@ -1154,6 +1212,12 @@ function runReleaseReadinessWithPerfArtifacts(
     writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
     writeFileSync(perfSummaryPath, `${JSON.stringify(perfSummary, null, 2)}\n`, "utf8");
     writeFileSync(perfPolicyPath, `${JSON.stringify(perfPolicy, null, 2)}\n`, "utf8");
+    mkdirSync(dirname(promptfooEvalSummaryPath), { recursive: true });
+    writeFileSync(
+      promptfooEvalSummaryPath,
+      `${JSON.stringify(createPassingPromptfooEvalSummary(), null, 2)}\n`,
+      "utf8",
+    );
 
     const result = spawnSync(
       powershellBin,
@@ -1171,6 +1235,8 @@ function runReleaseReadinessWithPerfArtifacts(
         "-SkipBadge",
         "-SkipDemoRun",
         "-SkipPerfRun",
+        "-PromptfooEvalSummaryPath",
+        promptfooEvalSummaryPath,
         "-SummaryPath",
         summaryPath,
         "-PerfSummaryPath",
@@ -1205,6 +1271,7 @@ function runReleaseReadinessArtifactOnly(
   options?: Partial<{
     manifest: Record<string, unknown> | null;
     manifestRaw: string | null;
+    promptfooEvalSummary: Record<string, unknown> | null;
   }>,
 ): { exitCode: number; stdout: string; stderr: string } {
   if (!powershellBin) {
@@ -1214,12 +1281,16 @@ function runReleaseReadinessArtifactOnly(
   const tempDir = mkdtempSync(join(tmpdir(), "mla-release-readiness-artifact-only-"));
   try {
     const manifestPath = join(tempDir, "release-artifact-revalidation", "source-run.json");
+    const promptfooEvalSummaryPath = join(tempDir, "evals", "latest-run.json");
     const manifest = Object.prototype.hasOwnProperty.call(options ?? {}, "manifest")
       ? options?.manifest
       : createPassingSourceRunManifest();
     const manifestRaw = Object.prototype.hasOwnProperty.call(options ?? {}, "manifestRaw")
       ? options?.manifestRaw
       : null;
+    const promptfooEvalSummary = Object.prototype.hasOwnProperty.call(options ?? {}, "promptfooEvalSummary")
+      ? options?.promptfooEvalSummary
+      : createPassingPromptfooEvalSummary();
 
     if (manifestRaw !== null) {
       mkdirSync(dirname(manifestPath), { recursive: true });
@@ -1227,6 +1298,10 @@ function runReleaseReadinessArtifactOnly(
     } else if (manifest !== null && manifest !== undefined) {
       mkdirSync(dirname(manifestPath), { recursive: true });
       writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+    }
+    if (promptfooEvalSummary !== null && promptfooEvalSummary !== undefined) {
+      mkdirSync(dirname(promptfooEvalSummaryPath), { recursive: true });
+      writeFileSync(promptfooEvalSummaryPath, `${JSON.stringify(promptfooEvalSummary, null, 2)}\n`, "utf8");
     }
 
     const result = spawnSync(
@@ -1246,6 +1321,8 @@ function runReleaseReadinessArtifactOnly(
         "-SkipBadge",
         "-SkipPerfLoad",
         "-SkipDemoRun",
+        "-PromptfooEvalSummaryPath",
+        promptfooEvalSummaryPath,
         "-SourceRunManifestPath",
         manifestPath,
       ],
@@ -1270,6 +1347,61 @@ test(
   () => {
     const result = runReleaseReadiness(createPassingSummary());
     assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+  },
+);
+
+test(
+  "release-readiness fails when promptfoo red-team proof is missing",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary(), {
+      promptfooEvalSummary: null,
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /promptfoo red-team proof missing/i);
+  },
+);
+
+test(
+  "release-readiness fails when promptfoo red-team summary is a dry run",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary(), {
+      promptfooEvalSummary: createPassingPromptfooEvalSummary({ dryRun: true }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /promptfoo red-team summary must be a real run, not dry-run/i);
+  },
+);
+
+test(
+  "release-readiness fails when promptfoo red-team suite is missing from the eval summary",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary(), {
+      promptfooEvalSummary: createPassingPromptfooEvalSummary({ redTeamPresent: false }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /promptfoo red-team suite missing from summary/i);
+  },
+);
+
+test(
+  "release-readiness fails when promptfoo red-team suite did not pass",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(createPassingSummary(), {
+      promptfooEvalSummary: createPassingPromptfooEvalSummary({
+        redTeamPassed: false,
+        redTeamExitCode: 1,
+      }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /promptfoo red-team suite expected passed=true and exitCode=0/i);
   },
 );
 

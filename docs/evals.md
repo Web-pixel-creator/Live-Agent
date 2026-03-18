@@ -41,3 +41,13 @@ The repo now has a promptfoo-based eval scaffold for the product wedge:
 
 `npm run eval:promptfoo:gate` is the release-facing entry point. It fails if any
 suite exits non-zero, so regressions can be caught before release.
+
+`npm run verify:release` also validates Promptfoo red-team proof. The release
+gate accepts either:
+
+- a fresh `npm run eval:promptfoo:red-team` run when `GEMINI_API_KEY` or
+  `GOOGLE_API_KEY` is available, or
+- an existing non-dry-run `artifacts/evals/latest-run.json` that contains a
+  passing `red-team` suite result.
+
+Dry-run eval artifacts are not accepted as release proof.

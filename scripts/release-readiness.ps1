@@ -31,6 +31,8 @@ param(
   [string]$PublicBadgeDetailsPath = "public/demo-e2e/badge-details.json",
   [string]$PerfSummaryPath = "artifacts/perf-load/summary.json",
   [string]$PerfPolicyPath = "artifacts/perf-load/policy-check.json",
+  [switch]$SkipPromptfooRedTeam,
+  [string]$PromptfooEvalSummaryPath = "artifacts/evals/latest-run.json",
   [string]$SourceRunManifestPath = "artifacts/release-artifact-revalidation/source-run.json",
   [string]$ReleaseEvidenceReportPath = "artifacts/release-evidence/report.json",
   [string]$ReleaseEvidenceReportMarkdownPath = "artifacts/release-evidence/report.md",
@@ -229,6 +231,81 @@ function Run-StepWithRetry(
   Fail "Step failed after retries: $Name"
 }
 
+function Get-FirstNonEmptyEnvironmentVariableValue([string[]]$Names) {
+  foreach ($name in $Names) {
+    $value = [Environment]::GetEnvironmentVariable($name)
+    if (-not [string]::IsNullOrWhiteSpace($value)) {
+      return $value
+    }
+  }
+
+  return ""
+}
+
+function Get-FullPathString([string]$Path) {
+  try {
+    return [System.IO.Path]::GetFullPath($Path)
+  } catch {
+    return $Path
+  }
+}
+
+function Assert-PromptfooRedTeamSummary([string]$Path) {
+  if (-not (Test-Path $Path)) {
+    Fail ("Promptfoo red-team summary missing: " + $Path)
+  }
+
+  $summary = $null
+  try {
+    $summary = Get-Content $Path -Raw | ConvertFrom-Json
+  } catch {
+    Fail ("Invalid promptfoo eval summary JSON: " + $Path)
+  }
+
+  if ((To-BoolOrNull $summary.dryRun) -eq $true) {
+    Fail ("Promptfoo red-team summary must be a real run, not dry-run: " + $Path)
+  }
+
+  $suites = @($summary.suites)
+  if ($suites.Count -lt 1) {
+    Fail ("Promptfoo eval summary missing suites: " + $Path)
+  }
+
+  $redTeamSuite = $null
+  foreach ($suite in $suites) {
+    if ([string](Get-ObjectPropertyValue -Object $suite -Name "id") -eq "red-team") {
+      $redTeamSuite = $suite
+      break
+    }
+  }
+
+  if ($null -eq $redTeamSuite) {
+    Fail ("Promptfoo red-team suite missing from summary: " + $Path)
+  }
+
+  if ((To-BoolOrNull (Get-ObjectPropertyValue -Object $redTeamSuite -Name "dryRun")) -eq $true) {
+    Fail ("Promptfoo red-team suite must be a real run, not dry-run: " + $Path)
+  }
+
+  $passed = To-BoolOrNull (Get-ObjectPropertyValue -Object $redTeamSuite -Name "passed")
+  $exitCode = To-NumberOrNaN (Get-ObjectPropertyValue -Object $redTeamSuite -Name "exitCode")
+  if (($passed -ne $true) -or ([double]::IsNaN($exitCode)) -or ($exitCode -ne 0)) {
+    Fail (
+      "Promptfoo red-team suite expected passed=true and exitCode=0, actual passed=" +
+      (Get-ObjectPropertyValue -Object $redTeamSuite -Name "passed") +
+      ", exitCode=" +
+      (Get-ObjectPropertyValue -Object $redTeamSuite -Name "exitCode")
+    )
+  }
+
+  $suiteName = [string](Get-ObjectPropertyValue -Object $redTeamSuite -Name "name")
+  Write-Host (
+    "promptfoo.red_team: passed=true" +
+    ", suite=" + $suiteName +
+    ", summary=" + $Path
+  )
+}
+
 function Sync-PublicBadgeArtifacts([string]$SourcePath, [string]$TargetPath) {
   if (-not (Test-Path $SourcePath)) {
     Fail ("Badge sync source missing: " + $SourcePath)
@@ -246,6 +323,44 @@ if (-not $SkipBuild) {
 
 if (-not $SkipUnitTests) {
   Run-Step "Run unit tests" "npm run test:unit"
+}
+
+if (-not $SkipPromptfooRedTeam) {
+  $defaultPromptfooEvalSummaryPath = Join-Path $PSScriptRoot "..\artifacts\evals\latest-run.json"
+  $hasPromptfooApiKey = -not [string]::IsNullOrWhiteSpace(
+    (Get-FirstNonEmptyEnvironmentVariableValue @(
+      "GOOGLE_API_KEY",
+      "GEMINI_API_KEY",
+      "GOOGLE_GENERATIVE_AI_API_KEY",
+      "GOOGLE_GENAI_API_KEY"
+    ))
+  )
+
+  if ($hasPromptfooApiKey) {
+    Run-Step "Run promptfoo red-team gate" "npm run eval:promptfoo:red-team"
+    $targetPromptfooEvalSummaryPath = Get-FullPathString $PromptfooEvalSummaryPath
+    $defaultPromptfooEvalSummaryPath = Get-FullPathString $defaultPromptfooEvalSummaryPath
+    if (
+      ($targetPromptfooEvalSummaryPath -ne $defaultPromptfooEvalSummaryPath) -and
+      (Test-Path $defaultPromptfooEvalSummaryPath)
+    ) {
+      $targetDirectory = Split-Path -Parent $targetPromptfooEvalSummaryPath
+      if (-not [string]::IsNullOrWhiteSpace($targetDirectory)) {
+        New-Item -ItemType Directory -Force -Path $targetDirectory | Out-Null
+      }
+      Copy-Item -Path $defaultPromptfooEvalSummaryPath -Destination $targetPromptfooEvalSummaryPath -Force
+    }
+  } elseif (-not (Test-Path $PromptfooEvalSummaryPath)) {
+    Fail (
+      "Promptfoo red-team proof missing: " +
+      $PromptfooEvalSummaryPath +
+      ". Set GEMINI_API_KEY/GOOGLE_API_KEY or provide an existing non-dry-run summary, or pass -SkipPromptfooRedTeam."
+    )
+  } else {
+    Write-Host "[release-check] No Gemini eval key detected; validating existing promptfoo red-team summary"
+  }
+
+  Assert-PromptfooRedTeamSummary -Path $PromptfooEvalSummaryPath
 }
 
 if (-not $SkipMonitoringTemplates) {
@@ -322,6 +437,9 @@ if (-not $SkipBadge) {
 if (-not $SkipPerfLoad) {
   $requiredFiles += $PerfSummaryPath
   $requiredFiles += $PerfPolicyPath
+}
+if (-not $SkipPromptfooRedTeam) {
+  $requiredFiles += $PromptfooEvalSummaryPath
 }
 if ($IsArtifactOnlyMode) {
   $requiredFiles += $SourceRunManifestPath

@@ -50,15 +50,18 @@ $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("mla-artifact-only-smok
 $artifactsDir = Join-Path $tempRoot "artifacts"
 $perfDir = Join-Path $artifactsDir "perf-load"
 $deployDir = Join-Path $artifactsDir "deploy"
+$evalsDir = Join-Path $artifactsDir "evals"
 $manifestDir = Join-Path $artifactsDir "release-artifact-revalidation"
 New-Item -Path $perfDir -ItemType Directory -Force | Out-Null
 New-Item -Path $deployDir -ItemType Directory -Force | Out-Null
+New-Item -Path $evalsDir -ItemType Directory -Force | Out-Null
 New-Item -Path $manifestDir -ItemType Directory -Force | Out-Null
 
 $perfSummaryPath = Join-Path $perfDir "summary.json"
 $perfPolicyPath = Join-Path $perfDir "policy-check.json"
 $railwayDeploySummaryPath = Join-Path $deployDir "railway-deploy-summary.json"
 $repoPublishSummaryPath = Join-Path $deployDir "repo-publish-summary.json"
+$promptfooEvalSummaryPath = Join-Path $evalsDir "latest-run.json"
 $sourceRunManifestPath = Join-Path $manifestDir "source-run.json"
 
 $perfSummary = [ordered]@{
@@ -198,6 +201,29 @@ $repoPublishSummary = [ordered]@{
 }
 $repoPublishSummaryJson = $repoPublishSummary | ConvertTo-Json -Depth 8
 Write-Utf8NoBomFile -Path $repoPublishSummaryPath -Content $repoPublishSummaryJson
+
+$promptfooEvalSummary = [ordered]@{
+  generatedAt = [datetime]::UtcNow.ToString("o")
+  manifestPath = "configs/evals/eval-manifest.json"
+  suiteSelection = "red-team"
+  gate = $true
+  dryRun = $false
+  suites = @(
+    [ordered]@{
+      id = "red-team"
+      name = "Red Team Bundle"
+      configPath = "configs/evals/promptfoo/red-team.promptfooconfig.yaml"
+      outputPath = "artifacts/evals/red-team.results.json"
+      command = "npx -y promptfoo@latest eval -c configs/evals/promptfoo/red-team.promptfooconfig.yaml -o artifacts/evals/red-team.results.json --no-cache"
+      durationMs = 1
+      exitCode = 0
+      signal = $null
+      passed = $true
+    }
+  )
+}
+$promptfooEvalSummaryJson = $promptfooEvalSummary | ConvertTo-Json -Depth 8
+Write-Utf8NoBomFile -Path $promptfooEvalSummaryPath -Content $promptfooEvalSummaryJson
 
 $sourceRunManifest = [ordered]@{
   schemaVersion = "1.0"
@@ -341,6 +367,8 @@ $args = @(
   $perfSummaryPath,
   "-PerfPolicyPath",
   $perfPolicyPath,
+  "-PromptfooEvalSummaryPath",
+  $promptfooEvalSummaryPath,
   "-SourceRunManifestPath",
   $sourceRunManifestPath
 )
