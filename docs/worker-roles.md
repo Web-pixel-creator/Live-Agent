@@ -83,6 +83,22 @@ Deliverables:
 - internal QA/review templates
 - better evidence handoff
 
+### Internal Review Factory Lead
+
+Owns:
+
+- `P1.4 Internal Review Factory`
+- `docs/internal-review-factory/`
+- `scripts/internal-review-factory-check.mjs`
+
+Deliverables:
+
+- product rethink prompt pack
+- engineering review prompt pack
+- QA review prompt pack
+- release doc update prompt pack
+- repo-native validation script for the prompt pack
+
 ## P2 Roles
 
 ### Expansion Planner
