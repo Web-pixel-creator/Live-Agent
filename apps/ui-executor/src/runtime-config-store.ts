@@ -27,6 +27,8 @@ export type ExecutorConfig = {
   simulateIfUnavailable: boolean;
   forceSimulation: boolean;
   actionTimeoutMs: number;
+  persistentBrowserSessions: boolean;
+  browserSessionTtlMs: number;
   defaultDeviceNodeId: string | null;
   deviceNodes: Map<string, DeviceNodeDescriptor>;
   sandboxPolicy: UiExecutorSandboxPolicy;
@@ -58,6 +60,8 @@ type UiExecutorRuntimeOverride = {
   simulateIfUnavailable?: boolean;
   forceSimulation?: boolean;
   actionTimeoutMs?: number;
+  persistentBrowserSessions?: boolean;
+  browserSessionTtlMs?: number;
   defaultDeviceNodeId?: string | null;
   sandboxPolicy?: UiExecutorSandboxPolicyOverride;
 };
@@ -219,6 +223,7 @@ function loadBaseConfig(options: StoreOptions = {}): BaseExecutorConfig {
   const cwd = options.cwd ?? process.cwd();
   const portRaw = Number(env.PORT ?? env.UI_EXECUTOR_PORT ?? 8090);
   const timeoutRaw = Number(env.UI_EXECUTOR_ACTION_TIMEOUT_MS ?? 2500);
+  const browserSessionTtlRaw = Number(env.UI_EXECUTOR_BROWSER_SESSION_TTL_MS ?? 5 * 60 * 1000);
   const deviceNodes = parseDeviceNodes(env.UI_EXECUTOR_DEVICE_NODES_JSON);
   const defaultDeviceNodeId = toOptionalString(env.UI_EXECUTOR_DEFAULT_DEVICE_NODE_ID)?.toLowerCase() ?? null;
   const defaultNavigationUrl = env.UI_EXECUTOR_DEFAULT_URL ?? "https://example.com";
@@ -229,6 +234,10 @@ function loadBaseConfig(options: StoreOptions = {}): BaseExecutorConfig {
     simulateIfUnavailable: env.UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE !== "false",
     forceSimulation: env.UI_EXECUTOR_FORCE_SIMULATION === "true",
     actionTimeoutMs: Number.isFinite(timeoutRaw) && timeoutRaw > 0 ? Math.floor(timeoutRaw) : 2500,
+    persistentBrowserSessions: env.UI_EXECUTOR_PERSISTENT_BROWSER_SESSIONS !== "false",
+    browserSessionTtlMs: Number.isFinite(browserSessionTtlRaw) && browserSessionTtlRaw > 0
+      ? Math.floor(browserSessionTtlRaw)
+      : 5 * 60 * 1000,
     defaultDeviceNodeId,
     deviceNodes,
     sandboxPolicy: loadUiExecutorSandboxPolicy({
@@ -332,6 +341,14 @@ function parseRuntimeOverride(rawJson: string): UiExecutorRuntimeOverride {
   if (typeof actionTimeoutMs !== "undefined") {
     override.actionTimeoutMs = actionTimeoutMs;
   }
+  const persistentBrowserSessions = toOptionalBoolean(parsed.persistentBrowserSessions);
+  if (typeof persistentBrowserSessions !== "undefined") {
+    override.persistentBrowserSessions = persistentBrowserSessions;
+  }
+  const browserSessionTtlMs = toPositiveInt(parsed.browserSessionTtlMs);
+  if (typeof browserSessionTtlMs !== "undefined") {
+    override.browserSessionTtlMs = browserSessionTtlMs;
+  }
   if (Object.prototype.hasOwnProperty.call(parsed, "defaultDeviceNodeId")) {
     override.defaultDeviceNodeId =
       parsed.defaultDeviceNodeId === null ? null : toOptionalString(parsed.defaultDeviceNodeId)?.toLowerCase() ?? null;
@@ -410,6 +427,12 @@ function applyRuntimeOverride(
       typeof override.forceSimulation === "boolean" ? override.forceSimulation : baseConfig.forceSimulation,
     actionTimeoutMs:
       typeof override.actionTimeoutMs === "number" ? override.actionTimeoutMs : baseConfig.actionTimeoutMs,
+    persistentBrowserSessions:
+      typeof override.persistentBrowserSessions === "boolean"
+        ? override.persistentBrowserSessions
+        : baseConfig.persistentBrowserSessions,
+    browserSessionTtlMs:
+      typeof override.browserSessionTtlMs === "number" ? override.browserSessionTtlMs : baseConfig.browserSessionTtlMs,
     defaultDeviceNodeId:
       typeof override.defaultDeviceNodeId === "undefined"
         ? baseConfig.defaultDeviceNodeId

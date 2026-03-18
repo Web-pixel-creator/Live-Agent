@@ -20,6 +20,21 @@ Frontend: `http://localhost:3000`
 
 Current baseline note: `dev:orchestrator` already links the repo-owned domain agents in-process (`live-agent`, `storyteller-agent`, `ui-navigator-agent`), so the separate `npm run dev:live-agent`, `npm run dev:storyteller-agent`, and `npm run dev:ui-agent` scripts are optional isolated-debug entrypoints rather than required quick-start services.
 
+## UI Executor Runtime Notes
+
+For long-running or checkpointed UI jobs, `ui-executor` can now keep a warm
+Playwright session between resume points instead of relaunching the browser on
+every slice.
+
+Key knobs:
+
+1. `UI_EXECUTOR_PERSISTENT_BROWSER_SESSIONS=true|false`
+2. `UI_EXECUTOR_BROWSER_SESSION_TTL_MS=<milliseconds>`
+
+When enabled, the session pool is surfaced in `GET /status` and
+`GET /runtime/config`, and background browser job metadata now reports explicit
+session state (`ephemeral`, `pending`, `ready`, `released`, `closed`, `expired`).
+
 ## GCP Judge Runtime
 
 For judged submission runs, use `GCP-first` infrastructure instead of the legacy Railway path.

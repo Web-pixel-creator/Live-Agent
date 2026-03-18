@@ -122,3 +122,99 @@ test("ui-executor browser worker cancel stops an active job deterministically", 
   assert.equal(final.status, "cancelled");
 });
 
+test("ui-executor browser worker keeps explicit persistent-session metadata across checkpoint resume", async () => {
+  resetBrowserJobRuntimeForTests();
+  const seenInputs: Array<{
+    persistAfterRun: boolean;
+    mode: string | null;
+    key: string | null;
+    reuseCount: number;
+  }> = [];
+
+  setBrowserJobRunner(async (input) => {
+    seenInputs.push({
+      persistAfterRun: input.persistSessionAfterRun === true,
+      mode: input.session?.mode ?? null,
+      key: input.session?.key ?? null,
+      reuseCount: input.session?.reuseCount ?? 0,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    return {
+      trace: input.actions.map((action, index) => ({
+        index: index + 1,
+        actionId: action.id,
+        actionType: action.type,
+        target: action.target,
+        status: "ok",
+        screenshotRef: `${input.screenshotSeed}/step-${index + 1}.png`,
+        notes: "worker step ok",
+      })),
+      finalStatus: "completed",
+      retries: 0,
+      executor: "unit-browser-worker",
+      adapterMode: "remote_http",
+      adapterNotes: ["unit runner"],
+      deviceNode: null,
+      session: {
+        mode: input.session?.mode ?? "ephemeral",
+        key: input.session?.key ?? null,
+        persistenceRequested: input.session?.persistenceRequested ?? false,
+        persistenceEnabled: input.session?.mode === "resumable",
+        status: input.persistSessionAfterRun === true ? "ready" : "released",
+        reuseCount: input.persistSessionAfterRun === true ? 0 : 1,
+        lastPageUrl: input.persistSessionAfterRun === true ? "https://example.com/checkpoint" : "https://example.com/final",
+        notes: [
+          input.persistSessionAfterRun === true
+            ? "Persistent browser session started."
+            : "Persistent browser session reused.",
+        ],
+      },
+    };
+  });
+
+  const job = submitBrowserJob({
+    sessionId: "session-browser-session",
+    runId: "run-browser-session",
+    actions: [
+      { id: "step-1", type: "navigate", target: "https://example.com" },
+      { id: "step-2", type: "click", target: "button:submit" },
+      { id: "step-3", type: "verify", target: "done" },
+    ],
+    checkpointEverySteps: 2,
+  });
+
+  const paused = await waitForJobStatus(job.jobId, ["paused"]);
+  assert.equal(paused.session.mode, "resumable");
+  assert.equal(paused.session.persistenceRequested, true);
+  assert.equal(paused.session.persistenceEnabled, true);
+  assert.equal(paused.session.status, "ready");
+  assert.match(String(paused.session.key ?? ""), /^browser-session-browser-job-/);
+  assert.equal(paused.session.reuseCount, 0);
+  assert.equal(paused.session.lastPageUrl, "https://example.com/checkpoint");
+  assert.deepEqual(seenInputs[0], {
+    persistAfterRun: true,
+    mode: "resumable",
+    key: paused.session.key,
+    reuseCount: 0,
+  });
+
+  const resumed = resumeBrowserJob(job.jobId, "resume persistent session");
+  assert.ok(resumed);
+
+  const completed = await waitForJobStatus(job.jobId, ["completed"]);
+  assert.equal(completed.session.mode, "resumable");
+  assert.equal(completed.session.status, "released");
+  assert.equal(completed.session.reuseCount, 1);
+  assert.equal(completed.session.lastPageUrl, "https://example.com/final");
+  assert.equal(
+    completed.session.notes.some((note) => /Persistent browser session reused\./.test(note)),
+    true,
+  );
+  assert.deepEqual(seenInputs[1], {
+    persistAfterRun: false,
+    mode: "resumable",
+    key: completed.session.key,
+    reuseCount: 0,
+  });
+});
+

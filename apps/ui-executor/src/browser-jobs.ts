@@ -69,6 +69,24 @@ export type BrowserJobCheckpoint = {
 
 export type BrowserJobStatus = "queued" | "running" | "paused" | "completed" | "failed" | "cancelled";
 
+export type BrowserJobSessionMode = "ephemeral" | "resumable";
+
+export type BrowserJobSessionStatus = "ephemeral" | "pending" | "ready" | "released" | "closed" | "expired";
+
+export type BrowserJobSessionRecord = {
+  mode: BrowserJobSessionMode;
+  key: string | null;
+  persistenceRequested: boolean;
+  persistenceEnabled: boolean;
+  status: BrowserJobSessionStatus;
+  reuseCount: number;
+  lastPageUrl: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  releasedAt: string | null;
+  notes: string[];
+};
+
 export type BrowserJobRecord = {
   jobId: string;
   sessionId: string;
@@ -99,6 +117,7 @@ export type BrowserJobRecord = {
   artifacts: BrowserJobArtifact[];
   checkpoints: BrowserJobCheckpoint[];
   sandbox: BrowserJobSandboxSnapshot | null;
+  session: BrowserJobSessionRecord;
 };
 
 type InternalBrowserJob = BrowserJobRecord & {
@@ -162,6 +181,8 @@ export type BrowserJobExecutionInput = {
   screenshotSeed: string;
   deviceNode: BrowserJobDeviceNode | null;
   sandbox: BrowserJobSandboxSnapshot | null;
+  session?: BrowserJobSessionRecord;
+  persistSessionAfterRun?: boolean;
 };
 
 export type BrowserJobExecutionResult = {
@@ -172,6 +193,7 @@ export type BrowserJobExecutionResult = {
   adapterMode: "remote_http";
   adapterNotes: string[];
   deviceNode: BrowserJobDeviceNode | null;
+  session?: Partial<BrowserJobSessionRecord> | null;
 };
 
 type SubmitBrowserJobParams = {
@@ -208,6 +230,7 @@ let runtimeStartedAt: string | null = null;
 let dispatcherTimer: NodeJS.Timeout | null = null;
 let dispatchInProgress = false;
 let runner: ((input: BrowserJobExecutionInput) => Promise<BrowserJobExecutionResult>) | null = null;
+let sessionReleaser: ((session: BrowserJobSessionRecord, reason: string) => Promise<void> | void) | null = null;
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
   if (!value) {
@@ -231,6 +254,98 @@ function cloneDeviceNode(node: BrowserJobDeviceNode | null): BrowserJobDeviceNod
         capabilities: Array.isArray(node.capabilities) ? [...node.capabilities] : undefined,
       }
     : null;
+}
+
+function cloneBrowserJobSessionRecord(session: BrowserJobSessionRecord): BrowserJobSessionRecord {
+  return {
+    ...session,
+    notes: [...session.notes],
+  };
+}
+
+function createBrowserJobSessionRecord(jobId: string, params: {
+  totalSteps: number;
+  executedSteps: number;
+  checkpointEverySteps: number | null;
+  pauseAfterStep: number | null;
+}): BrowserJobSessionRecord {
+  const nextCheckpointStep = computeNextCheckpointStep(params);
+  const persistenceRequested = typeof nextCheckpointStep === "number" && nextCheckpointStep < params.totalSteps;
+  return {
+    mode: persistenceRequested ? "resumable" : "ephemeral",
+    key: persistenceRequested ? `browser-session-${jobId}` : null,
+    persistenceRequested,
+    persistenceEnabled: false,
+    status: persistenceRequested ? "pending" : "ephemeral",
+    reuseCount: 0,
+    lastPageUrl: null,
+    createdAt: null,
+    updatedAt: null,
+    releasedAt: null,
+    notes: persistenceRequested
+      ? ["Resumable browser session requested for checkpointed job."]
+      : ["Ephemeral browser session only."],
+  };
+}
+
+function mergeSessionNotes(existing: string[], additions: string[] | undefined): string[] {
+  const merged = [...existing];
+  for (const note of additions ?? []) {
+    if (typeof note !== "string" || note.trim().length === 0) {
+      continue;
+    }
+    if (!merged.includes(note)) {
+      merged.push(note);
+    }
+  }
+  return merged;
+}
+
+function applyBrowserJobSessionUpdate(
+  current: BrowserJobSessionRecord,
+  update: Partial<BrowserJobSessionRecord> | null | undefined,
+): BrowserJobSessionRecord {
+  if (!update) {
+    return cloneBrowserJobSessionRecord(current);
+  }
+  const now = nowIso();
+  const nextStatus = update.status ?? current.status;
+  return {
+    mode: update.mode ?? current.mode,
+    key: Object.prototype.hasOwnProperty.call(update, "key") ? update.key ?? null : current.key,
+    persistenceRequested: update.persistenceRequested ?? current.persistenceRequested,
+    persistenceEnabled: update.persistenceEnabled ?? current.persistenceEnabled,
+    status: nextStatus,
+    reuseCount: typeof update.reuseCount === "number" ? Math.max(0, Math.floor(update.reuseCount)) : current.reuseCount,
+    lastPageUrl:
+      Object.prototype.hasOwnProperty.call(update, "lastPageUrl") ? update.lastPageUrl ?? null : current.lastPageUrl,
+    createdAt:
+      current.createdAt ??
+      (update.persistenceEnabled === true || update.status === "ready" ? now : update.createdAt ?? null),
+    updatedAt: now,
+    releasedAt:
+      nextStatus === "released" || nextStatus === "closed" || nextStatus === "expired"
+        ? now
+        : current.releasedAt,
+    notes: mergeSessionNotes(current.notes, update.notes),
+  };
+}
+
+function releaseBrowserJobSession(job: InternalBrowserJob, reason: string, status: BrowserJobSessionStatus): void {
+  if (!job.session.key || job.session.status === "ephemeral") {
+    return;
+  }
+  if (job.session.status === "released" || job.session.status === "closed" || job.session.status === "expired") {
+    return;
+  }
+  job.session = applyBrowserJobSessionUpdate(job.session, {
+    status,
+    notes: [reason],
+  });
+  if (sessionReleaser) {
+    const snapshot = cloneBrowserJobSessionRecord(job.session);
+    void Promise.resolve(sessionReleaser(snapshot, reason)).catch(() => {});
+  }
 }
 
 function cloneBrowserJobRecord(job: InternalBrowserJob): BrowserJobRecord {
@@ -270,6 +385,7 @@ function cloneBrowserJobRecord(job: InternalBrowserJob): BrowserJobRecord {
           warnings: [...job.sandbox.warnings],
         }
       : null,
+    session: cloneBrowserJobSessionRecord(job.session),
   };
 }
 
@@ -316,6 +432,7 @@ function sweepExpiredJobs(): void {
     if (nowMs - updatedAtMs <= config.retentionMs) {
       continue;
     }
+    releaseBrowserJobSession(job, "Browser job expired from retention window.", "expired");
     jobs.delete(jobId);
     removeFromPendingQueue(jobId);
     for (const worker of workerSlots) {
@@ -409,6 +526,7 @@ async function executeJob(slot: BrowserJobWorkerSlot, jobId: string): Promise<vo
   const stopAfterStep = computeNextCheckpointStep(current) ?? current.totalSteps;
   const sliceActions = current.actions.slice(current.executedSteps, stopAfterStep);
   if (sliceActions.length === 0) {
+    releaseBrowserJobSession(current, "Browser job finished without remaining steps.", "released");
     current.status = "completed";
     current.completedAt = nowIso();
     current.updatedAt = nowIso();
@@ -440,10 +558,17 @@ async function executeJob(slot: BrowserJobWorkerSlot, jobId: string): Promise<vo
             warnings: [...current.sandbox.warnings],
           }
         : null,
+      session: cloneBrowserJobSessionRecord(current.session),
+      persistSessionAfterRun: stopAfterStep < current.totalSteps,
     });
 
     const latest = jobs.get(jobId);
-    if (!latest || latest.status === "cancelled") {
+    if (!latest) {
+      return;
+    }
+    if (latest.status === "cancelled") {
+      releaseBrowserJobSession(latest, "Browser job cancelled before worker result was applied.", "closed");
+      jobs.set(jobId, latest);
       return;
     }
 
@@ -462,6 +587,7 @@ async function executeJob(slot: BrowserJobWorkerSlot, jobId: string): Promise<vo
     latest.adapterMode = result.adapterMode;
     latest.adapterNotes = [...result.adapterNotes];
     latest.deviceNode = cloneDeviceNode(result.deviceNode);
+    latest.session = applyBrowserJobSessionUpdate(latest.session, result.session);
     latest.currentWorkerId = null;
     latest.updatedAt = nowIso();
 
@@ -477,6 +603,7 @@ async function executeJob(slot: BrowserJobWorkerSlot, jobId: string): Promise<vo
     }
 
     if (result.finalStatus === "failed") {
+      releaseBrowserJobSession(latest, "Browser job failed and released its persistent session.", "closed");
       latest.status = "failed";
       latest.completedAt = nowIso();
       latest.error = normalizedTrace.find((item) => item.status === "failed")?.notes ?? "browser worker failed";
@@ -494,6 +621,7 @@ async function executeJob(slot: BrowserJobWorkerSlot, jobId: string): Promise<vo
     }
 
     if (latest.executedSteps >= latest.totalSteps) {
+      releaseBrowserJobSession(latest, "Browser job completed and released its persistent session.", "released");
       latest.status = "completed";
       latest.completedAt = nowIso();
       latest.error = null;
@@ -538,6 +666,7 @@ async function executeJob(slot: BrowserJobWorkerSlot, jobId: string): Promise<vo
     if (!latest || latest.status === "cancelled") {
       return;
     }
+    releaseBrowserJobSession(latest, "Browser worker execution threw and released its persistent session.", "closed");
     latest.status = "failed";
     latest.completedAt = nowIso();
     latest.currentWorkerId = null;
@@ -590,6 +719,12 @@ export function setBrowserJobRunner(
   void dispatchLoop();
 }
 
+export function setBrowserJobSessionReleaser(
+  value: ((session: BrowserJobSessionRecord, reason: string) => Promise<void> | void) | null,
+): void {
+  sessionReleaser = value;
+}
+
 export function submitBrowserJob(params: SubmitBrowserJobParams): BrowserJobRecord {
   sweepExpiredJobs();
   const requestedAt = nowIso();
@@ -604,9 +739,10 @@ export function submitBrowserJob(params: SubmitBrowserJobParams): BrowserJobReco
     typeof params.pauseAfterStep === "number" && Number.isFinite(params.pauseAfterStep) && params.pauseAfterStep > 0
       ? Math.min(totalSteps, Math.floor(params.pauseAfterStep))
       : null;
+  const jobId = `browser-job-${randomUUID()}`;
 
   const record: InternalBrowserJob = {
-    jobId: `browser-job-${randomUUID()}`,
+    jobId,
     sessionId: params.sessionId,
     runId: params.runId ?? null,
     taskId: params.taskId ?? null,
@@ -646,6 +782,12 @@ export function submitBrowserJob(params: SubmitBrowserJobParams): BrowserJobReco
           warnings: [...params.sandbox.warnings],
         }
       : null,
+    session: createBrowserJobSessionRecord(jobId, {
+      totalSteps,
+      executedSteps: 0,
+      checkpointEverySteps: normalizedCheckpointEverySteps,
+      pauseAfterStep: normalizedPauseAfterStep,
+    }),
     actions: params.actions.map((action) => ({
       ...action,
       coordinates: action.coordinates ? { ...action.coordinates } : null,
@@ -656,7 +798,6 @@ export function submitBrowserJob(params: SubmitBrowserJobParams): BrowserJobReco
       cursor: params.context?.cursor ? { ...params.context.cursor } : null,
     },
   };
-
   jobs.set(record.jobId, record);
   pendingQueue.push(record.jobId);
   const snapshot = cloneBrowserJobRecord(record);
@@ -710,6 +851,7 @@ export function cancelBrowserJob(jobId: string, reason?: string | null): Browser
     return null;
   }
   removeFromPendingQueue(jobId);
+  releaseBrowserJobSession(job, reason ?? "Cancelled by operator", "closed");
   job.status = "cancelled";
   job.completedAt = nowIso();
   job.updatedAt = nowIso();
@@ -780,12 +922,16 @@ export function getBrowserJobListSnapshot(params: ListBrowserJobsParams = {}): B
 }
 
 export function resetBrowserJobRuntimeForTests(): void {
+  for (const job of jobs.values()) {
+    releaseBrowserJobSession(job, "Browser job runtime reset for tests.", "closed");
+  }
   jobs.clear();
   pendingQueue.splice(0, pendingQueue.length);
   workerSlots.splice(0, workerSlots.length);
   runtimeStartedAt = null;
   dispatchInProgress = false;
   runner = null;
+  sessionReleaser = null;
   if (dispatcherTimer) {
     clearInterval(dispatcherTimer);
     dispatcherTimer = null;

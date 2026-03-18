@@ -22,8 +22,10 @@ import {
   getBrowserJobRuntimeSnapshot,
   resumeBrowserJob,
   setBrowserJobRunner,
+  setBrowserJobSessionReleaser,
   submitBrowserJob,
   type BrowserJobExecutionResult,
+  type BrowserJobSessionRecord,
 } from "./browser-jobs.js";
 import { resolveGroundingObservation } from "./grounding.js";
 
@@ -48,6 +50,12 @@ type ExecuteRequest = {
     markHints?: string[];
     deviceNodeId?: string;
     cursor?: { x: number; y: number };
+  };
+  session?: {
+    key?: string | null;
+    mode?: "ephemeral" | "resumable";
+    persistAfterRun?: boolean;
+    reuseCount?: number;
   };
 };
 
@@ -89,6 +97,39 @@ type ExecuteResponse = {
     warnings: string[];
     setupMarkerStatus: UiExecutorSandboxEvaluation["setupMarkerStatus"];
   };
+  session?: Partial<BrowserJobSessionRecord> | null;
+};
+
+type PlaywrightPageHandle = {
+  goto: (url: string, options?: { waitUntil?: string; timeout?: number }) => Promise<void>;
+  click: (selector: string, options?: { timeout?: number }) => Promise<void>;
+  fill: (selector: string, value: string, options?: { timeout?: number }) => Promise<void>;
+  press: (selector: string, key: string, options?: { timeout?: number }) => Promise<void>;
+  waitForSelector: (
+    selector: string,
+    options?: { timeout?: number; state?: "attached" | "detached" | "visible" | "hidden" },
+  ) => Promise<void>;
+  evaluate: {
+    <TReturn>(callback: () => TReturn): Promise<TReturn>;
+    <TReturn, TArg>(callback: (arg: TArg) => TReturn, arg: TArg): Promise<TReturn>;
+  };
+  waitForTimeout: (ms: number) => Promise<void>;
+  url: () => string;
+};
+
+type PlaywrightBrowserHandle = {
+  newPage: () => Promise<PlaywrightPageHandle>;
+  close: () => Promise<void>;
+};
+
+type PersistentPlaywrightSession = {
+  key: string;
+  browser: PlaywrightBrowserHandle;
+  page: PlaywrightPageHandle;
+  createdAt: string;
+  updatedAt: string;
+  reuseCount: number;
+  lastPageUrl: string | null;
 };
 
 type DeviceNodeResolutionResult = {
@@ -112,6 +153,51 @@ type RuntimeAnalyticsSnapshot = {
   bigQueryDataset: string | null;
   bigQueryTable: string | null;
 };
+
+const persistentPlaywrightSessions = new Map<string, PersistentPlaywrightSession>();
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+async function releasePersistentPlaywrightSession(sessionKey: string, reason = "released"): Promise<boolean> {
+  const entry = persistentPlaywrightSessions.get(sessionKey);
+  if (!entry) {
+    return false;
+  }
+  persistentPlaywrightSessions.delete(sessionKey);
+  try {
+    await entry.browser.close();
+  } catch {
+    // Best-effort cleanup only.
+  }
+  return true;
+}
+
+async function sweepPersistentPlaywrightSessions(ttlMs: number): Promise<void> {
+  if (!Number.isFinite(ttlMs) || ttlMs <= 0 || persistentPlaywrightSessions.size === 0) {
+    return;
+  }
+  const nowMs = Date.now();
+  for (const [sessionKey, entry] of persistentPlaywrightSessions.entries()) {
+    const updatedAtMs = Date.parse(entry.updatedAt);
+    if (!Number.isFinite(updatedAtMs)) {
+      await releasePersistentPlaywrightSession(sessionKey, "stale");
+      continue;
+    }
+    if (nowMs - updatedAtMs > ttlMs) {
+      await releasePersistentPlaywrightSession(sessionKey, "expired");
+    }
+  }
+}
+
+function persistentPlaywrightSessionSnapshot(): Record<string, unknown> {
+  return {
+    enabled: currentConfig().persistentBrowserSessions,
+    active: persistentPlaywrightSessions.size,
+    sessionKeys: Array.from(persistentPlaywrightSessions.keys()),
+  };
+}
 
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -237,6 +323,8 @@ function runtimeConfigPayload(): Record<string, unknown> {
     simulateIfUnavailable: config.simulateIfUnavailable,
     forceSimulation: config.forceSimulation,
     actionTimeoutMs: config.actionTimeoutMs,
+    persistentBrowserSessions: config.persistentBrowserSessions,
+    browserSessionTtlMs: config.browserSessionTtlMs,
     defaultDeviceNodeId: config.defaultDeviceNodeId,
     registeredDeviceNodes: config.deviceNodes.size,
     sandbox: sandboxPolicyRuntimeSnapshot(config.sandboxPolicy),
@@ -265,6 +353,7 @@ function runtimeState(): Record<string, unknown> {
     analytics: runtimeAnalytics,
     sandbox: sandboxPolicyRuntimeSnapshot(config.sandboxPolicy),
     browserWorkers: getBrowserJobRuntimeSnapshot(),
+    browserSessions: persistentPlaywrightSessionSnapshot(),
     metrics: {
       totalCount: summary.totalCount,
       totalErrors: summary.totalErrors,
@@ -688,28 +777,62 @@ async function executeWithPlaywright(
   }
 
   const chromium = playwrightModule.chromium as {
-    launch: (options: { headless: boolean }) => Promise<{
-      newPage: () => Promise<{
-        goto: (url: string, options?: { waitUntil?: string; timeout?: number }) => Promise<void>;
-        click: (selector: string, options?: { timeout?: number }) => Promise<void>;
-        fill: (selector: string, value: string, options?: { timeout?: number }) => Promise<void>;
-        press: (selector: string, key: string, options?: { timeout?: number }) => Promise<void>;
-        waitForSelector: (
-          selector: string,
-          options?: { timeout?: number; state?: "attached" | "detached" | "visible" | "hidden" },
-        ) => Promise<void>;
-        evaluate: {
-          <TReturn>(callback: () => TReturn): Promise<TReturn>;
-          <TReturn, TArg>(callback: (arg: TArg) => TReturn, arg: TArg): Promise<TReturn>;
-        };
-        waitForTimeout: (ms: number) => Promise<void>;
-      }>;
-      close: () => Promise<void>;
-    }>;
+    launch: (options: { headless: boolean }) => Promise<PlaywrightBrowserHandle>;
   };
 
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
+  await sweepPersistentPlaywrightSessions(config.browserSessionTtlMs);
+
+  const requestedSessionKey =
+    typeof request.session?.key === "string" && request.session.key.trim().length > 0 ? request.session.key.trim() : null;
+  const persistenceRequested = request.session?.mode === "resumable" && requestedSessionKey !== null;
+  const persistenceEnabled = config.persistentBrowserSessions && persistenceRequested;
+  const persistAfterRun = persistenceEnabled && request.session?.persistAfterRun === true;
+
+  let browser: PlaywrightBrowserHandle;
+  let page: PlaywrightPageHandle;
+  let sessionReuseCount = Math.max(0, request.session?.reuseCount ?? 0);
+  let sessionLastUrl: string | null = null;
+  const sessionNotes: string[] = [];
+
+  if (persistenceEnabled && requestedSessionKey) {
+    const existing = persistentPlaywrightSessions.get(requestedSessionKey);
+    if (existing) {
+      browser = existing.browser;
+      page = existing.page;
+      existing.reuseCount += 1;
+      existing.updatedAt = nowIso();
+      sessionReuseCount = existing.reuseCount;
+      sessionLastUrl = existing.lastPageUrl;
+      sessionNotes.push("Persistent browser session reused.");
+    } else {
+      browser = await chromium.launch({ headless: true });
+      page = await browser.newPage();
+      persistentPlaywrightSessions.set(requestedSessionKey, {
+        key: requestedSessionKey,
+        browser,
+        page,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        reuseCount: 0,
+        lastPageUrl: null,
+      });
+      sessionReuseCount = 0;
+      sessionNotes.push("Persistent browser session started.");
+      if (request.actions[0]?.type !== "navigate" && typeof request.context?.url === "string" && request.context.url.trim()) {
+        await page.goto(request.context.url.trim(), { waitUntil: "domcontentloaded", timeout: 15000 });
+        sessionNotes.push("Bootstrapped browser session from job context URL.");
+      }
+    }
+  } else {
+    browser = await chromium.launch({ headless: true });
+    page = await browser.newPage();
+    sessionNotes.push(
+      config.persistentBrowserSessions
+        ? "Ephemeral browser session executed for this slice."
+        : "Persistent browser sessions are disabled in runtime config.",
+    );
+  }
+
   const screenshotSeed = request.context?.screenshotRef || `ui://executor/${Date.now()}`;
 
   const trace: TraceStep[] = [];
@@ -837,7 +960,22 @@ async function executeWithPlaywright(
       }
     }
   } finally {
-    await browser.close();
+    sessionLastUrl = typeof page.url === "function" ? page.url() : sessionLastUrl;
+    if (persistenceEnabled && requestedSessionKey) {
+      const entry = persistentPlaywrightSessions.get(requestedSessionKey);
+      if (entry) {
+        entry.updatedAt = nowIso();
+        entry.lastPageUrl = sessionLastUrl;
+      }
+      if (!persistAfterRun || finalStatus === "failed") {
+        await releasePersistentPlaywrightSession(requestedSessionKey, finalStatus === "failed" ? "failed" : "released");
+        sessionNotes.push(finalStatus === "failed" ? "Persistent browser session closed after failure." : "Persistent browser session released after slice.");
+      } else {
+        sessionNotes.push("Persistent browser session kept warm for resume.");
+      }
+    } else {
+      await browser.close();
+    }
   }
 
   return {
@@ -854,6 +992,23 @@ async function executeWithPlaywright(
     ],
     deviceNode,
     sandbox: sandboxResponse(sandbox),
+    session: {
+      mode: persistenceRequested ? "resumable" : "ephemeral",
+      key: persistenceEnabled ? requestedSessionKey : null,
+      persistenceRequested,
+      persistenceEnabled,
+      status:
+        !persistenceEnabled
+          ? "ephemeral"
+          : !persistAfterRun || finalStatus === "failed"
+            ? finalStatus === "failed"
+              ? "closed"
+              : "released"
+            : "ready",
+      reuseCount: sessionReuseCount,
+      lastPageUrl: sessionLastUrl,
+      notes: sessionNotes,
+    },
   };
 }
 
@@ -895,6 +1050,14 @@ setBrowserJobRunner(async (input): Promise<BrowserJobExecutionResult> => {
           ? { x: input.context.cursor.x, y: input.context.cursor.y }
           : undefined,
     },
+    session: input.session
+      ? {
+          key: input.session.key,
+          mode: input.session.mode,
+          persistAfterRun: input.persistSessionAfterRun === true,
+          reuseCount: input.session.reuseCount,
+        }
+      : undefined,
   };
   const sandbox: UiExecutorSandboxEvaluation = {
     allowed: true,
@@ -949,7 +1112,15 @@ setBrowserJobRunner(async (input): Promise<BrowserJobExecutionResult> => {
             : [],
         }
       : null,
+    session: response.session,
   };
+});
+
+setBrowserJobSessionReleaser(async (session, _reason) => {
+  if (!session.key) {
+    return;
+  }
+  await releasePersistentPlaywrightSession(session.key, session.status);
 });
 
 export const server = createServer(async (req, res) => {

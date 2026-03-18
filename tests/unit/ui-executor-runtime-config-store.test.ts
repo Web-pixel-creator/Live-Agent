@@ -27,6 +27,8 @@ function createEnv(tempDir: string): NodeJS.ProcessEnv {
     UI_EXECUTOR_FORCE_SIMULATION: "false",
     UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE: "true",
     UI_EXECUTOR_STRICT_PLAYWRIGHT: "false",
+    UI_EXECUTOR_PERSISTENT_BROWSER_SESSIONS: "true",
+    UI_EXECUTOR_BROWSER_SESSION_TTL_MS: "90000",
   };
 }
 
@@ -40,10 +42,14 @@ test("ui-executor runtime config control-plane override applies force simulation
     assert.equal(baseline.sourceKind, "env");
     assert.equal(baseline.forceSimulation, false);
     assert.equal(baseline.sandboxPolicy.mode, "enforce");
+    assert.equal(baseline.persistentBrowserSessions, true);
+    assert.equal(baseline.browserSessionTtlMs, 90000);
 
     setUiExecutorRuntimeControlPlaneOverride({
       rawJson: JSON.stringify({
         forceSimulation: true,
+        persistentBrowserSessions: false,
+        browserSessionTtlMs: 15000,
         sandboxPolicy: {
           mode: "audit",
         },
@@ -58,6 +64,8 @@ test("ui-executor runtime config control-plane override applies force simulation
     assert.equal(overridden.sourceKind, "control_plane_json");
     assert.equal(overridden.forceSimulation, true);
     assert.equal(overridden.sandboxPolicy.mode, "audit");
+    assert.equal(overridden.persistentBrowserSessions, false);
+    assert.equal(overridden.browserSessionTtlMs, 15000);
     assert.equal(status.controlPlaneOverride.active, true);
     assert.equal(status.controlPlaneOverride.reason, "test:ui-executor-runtime-config");
 
@@ -68,6 +76,8 @@ test("ui-executor runtime config control-plane override applies force simulation
     assert.equal(restored.sourceKind, "env");
     assert.equal(restored.forceSimulation, false);
     assert.equal(restored.sandboxPolicy.mode, "enforce");
+    assert.equal(restored.persistentBrowserSessions, true);
+    assert.equal(restored.browserSessionTtlMs, 90000);
     assert.equal(restoredStatus.controlPlaneOverride.active, false);
   } finally {
     resetUiExecutorRuntimeConfigStoreForTests();
