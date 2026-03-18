@@ -171,6 +171,203 @@ test("operator trace summary falls back to active tasks and approvals without pe
   assert.equal(summary.liveBridgeHealth.state, "unknown");
 });
 
+test("operator trace summary derives stage-aware bottleneck views", () => {
+  const runs: RunListItem[] = [
+    {
+      runId: "run-await",
+      sessionId: "session-await",
+      status: "pending_approval",
+      route: "ui-navigator-agent",
+      updatedAt: "2026-02-20T11:00:00.000Z",
+    },
+    {
+      runId: "run-verify",
+      sessionId: "session-verify",
+      status: "completed",
+      route: "ui-navigator-agent",
+      updatedAt: "2026-02-20T10:59:00.000Z",
+    },
+    {
+      runId: "run-browser",
+      sessionId: "session-browser",
+      status: "running",
+      route: "ui-navigator-agent",
+      updatedAt: "2026-02-20T10:58:00.000Z",
+    },
+    {
+      runId: "run-escalate",
+      sessionId: "session-escalate",
+      status: "completed",
+      route: "live-agent",
+      updatedAt: "2026-02-20T10:57:00.000Z",
+    },
+  ];
+
+  const events: EventListItem[] = [
+    {
+      eventId: "event-await",
+      sessionId: "session-await",
+      runId: "run-await",
+      type: "orchestrator.response",
+      source: "ui-navigator-agent",
+      createdAt: "2026-02-20T11:00:00.000Z",
+      route: "ui-navigator-agent",
+      status: "pending_approval",
+      intent: "ui_task",
+      traceSteps: 0,
+      screenshotRefs: 0,
+      verificationState: "blocked_pending_approval",
+      verificationFailureClass: undefined,
+      verificationSummary: "Waiting for approval before verification.",
+      verifySteps: 0,
+      approvalId: "approval-run-await",
+      approvalStatus: "pending",
+      hasVisualTesting: false,
+      hasError: false,
+    },
+    {
+      eventId: "event-verify",
+      sessionId: "session-verify",
+      runId: "run-verify",
+      type: "orchestrator.response",
+      source: "ui-navigator-agent",
+      createdAt: "2026-02-20T10:59:00.000Z",
+      route: "ui-navigator-agent",
+      status: "completed",
+      intent: "ui_task",
+      traceSteps: 4,
+      screenshotRefs: 2,
+      verificationState: "unverified",
+      verificationFailureClass: "browser_check_failed",
+      verificationSummary: "Verification failed after browser run.",
+      verifySteps: 1,
+      approvalId: "approval-run-verify",
+      approvalStatus: "approved",
+      hasVisualTesting: true,
+      hasError: false,
+    },
+    {
+      eventId: "event-browser",
+      sessionId: "session-browser",
+      runId: "run-browser",
+      type: "orchestrator.response",
+      source: "ui-navigator-agent",
+      createdAt: "2026-02-20T10:58:00.000Z",
+      route: "ui-navigator-agent",
+      status: "running",
+      intent: "ui_task",
+      traceSteps: 2,
+      screenshotRefs: 1,
+      verificationState: null,
+      verificationFailureClass: undefined,
+      verificationSummary: null,
+      verifySteps: 0,
+      approvalId: null,
+      approvalStatus: null,
+      hasVisualTesting: true,
+      hasError: false,
+    },
+    {
+      eventId: "event-escalate",
+      sessionId: "session-escalate",
+      runId: "run-escalate",
+      type: "orchestrator.response",
+      source: "live-agent",
+      createdAt: "2026-02-20T10:57:00.000Z",
+      route: "live-agent",
+      status: "completed",
+      intent: "conversation",
+      traceSteps: 0,
+      screenshotRefs: 0,
+      verificationState: null,
+      verificationFailureClass: undefined,
+      verificationSummary: null,
+      verifySteps: 0,
+      approvalId: "approval-run-escalate",
+      approvalStatus: "rejected",
+      hasVisualTesting: false,
+      hasError: false,
+    },
+  ];
+
+  const approvals: ApprovalRecord[] = [
+    {
+      approvalId: "approval-run-await",
+      sessionId: "session-await",
+      runId: "run-await",
+      status: "pending",
+      decision: null,
+      reason: "Awaiting operator approval",
+      requestedAt: "2026-02-20T10:59:30.000Z",
+      softDueAt: "2026-02-20T11:00:30.000Z",
+      hardDueAt: "2026-02-20T11:03:30.000Z",
+      resolvedAt: null,
+      softReminderSentAt: null,
+      auditLog: [],
+      createdAt: "2026-02-20T10:59:30.000Z",
+      updatedAt: "2026-02-20T10:59:30.000Z",
+      metadata: null,
+    },
+    {
+      approvalId: "approval-run-escalate",
+      sessionId: "session-escalate",
+      runId: "run-escalate",
+      status: "rejected",
+      decision: "rejected",
+      reason: "Rejected by operator",
+      requestedAt: "2026-02-20T10:56:30.000Z",
+      softDueAt: "2026-02-20T10:57:30.000Z",
+      hardDueAt: "2026-02-20T11:00:30.000Z",
+      resolvedAt: "2026-02-20T10:57:45.000Z",
+      softReminderSentAt: null,
+      auditLog: [],
+      createdAt: "2026-02-20T10:56:30.000Z",
+      updatedAt: "2026-02-20T10:57:45.000Z",
+      metadata: null,
+    },
+  ];
+
+  const summary = buildOperatorTraceSummary({
+    runs,
+    events,
+    approvals,
+    activeTasks: [
+      {
+        taskId: "task-await",
+        runId: "run-await",
+        sessionId: "session-await",
+        route: "ui-navigator-agent",
+        status: "pending_approval",
+        stage: "awaiting_approval",
+        intent: "ui_task",
+        updatedAt: "2026-02-20T11:00:05.000Z",
+      },
+    ],
+    runLimit: 20,
+    eventLimit: 20,
+  });
+
+  const awaitingApproval = summary.bottlenecks.find((item) => item.key === "awaiting_approval");
+  const verificationFailed = summary.bottlenecks.find((item) => item.key === "verification_failed");
+  const browserRunIncomplete = summary.bottlenecks.find((item) => item.key === "browser_run_incomplete");
+  const escalationRequired = summary.bottlenecks.find((item) => item.key === "escalation_required");
+
+  assert.ok(awaitingApproval);
+  assert.ok(verificationFailed);
+  assert.ok(browserRunIncomplete);
+  assert.ok(escalationRequired);
+  assert.equal(awaitingApproval?.count, 1);
+  assert.equal(awaitingApproval?.stageBoundary, "awaiting_approval");
+  assert.equal(awaitingApproval?.roleBoundary, "ui-navigator-agent");
+  assert.equal(awaitingApproval?.verificationBoundary, "blocked_pending_approval");
+  assert.equal(verificationFailed?.count, 1);
+  assert.equal(verificationFailed?.verificationBoundary, "unverified");
+  assert.equal(browserRunIncomplete?.count, 1);
+  assert.equal(browserRunIncomplete?.stageBoundary, "running");
+  assert.equal(escalationRequired?.count, 1);
+  assert.equal(escalationRequired?.verificationBoundary, "rejected");
+});
+
 test("operator trace summary aggregates live bridge health telemetry", () => {
   const events: EventListItem[] = [
     {

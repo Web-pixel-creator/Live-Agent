@@ -1,4 +1,5 @@
 import type { SkillsCatalogSnapshot, SkillsRuntimeSummary } from "@mla/skills";
+import type { OperatorTraceSummary } from "./operator-traces.js";
 
 type DiagnosticsSeverity = "info" | "warn" | "critical";
 
@@ -84,11 +85,13 @@ export function buildRuntimeDiagnosticsSummary(params: {
   services: Array<Record<string, unknown>>;
   skillsCatalog: SkillsCatalogSnapshot;
   skillsRuntimeSummary?: SkillsRuntimeSummary | null;
+  operatorTraceSummary?: OperatorTraceSummary | null;
 }): Record<string, unknown> {
   const generatedAt = new Date().toISOString();
   const services = params.services;
   const skillsCatalog = params.skillsCatalog;
   const skillsRuntimeSummary = params.skillsRuntimeSummary ?? null;
+  const operatorTraceSummary = params.operatorTraceSummary ?? null;
   const signals: RuntimeSignal[] = [];
 
   let healthyServices = 0;
@@ -268,6 +271,54 @@ export function buildRuntimeDiagnosticsSummary(params: {
       severity: "warn",
       message: "UI executor browser worker has paused jobs waiting for operator resume.",
       value: toNonNegativeInt(uiExecutorBrowserWorkerQueue?.paused),
+    });
+  }
+
+  const operatorBottlenecks = Array.isArray(operatorTraceSummary?.bottlenecks)
+    ? operatorTraceSummary.bottlenecks.filter((item) => item && typeof item === "object")
+    : [];
+  const awaitingApprovalBottleneck = operatorBottlenecks.find((item) => item.key === "awaiting_approval");
+  const verificationFailedBottleneck = operatorBottlenecks.find((item) => item.key === "verification_failed");
+  const browserRunIncompleteBottleneck = operatorBottlenecks.find((item) => item.key === "browser_run_incomplete");
+  const escalationRequiredBottleneck = operatorBottlenecks.find((item) => item.key === "escalation_required");
+
+  if (awaitingApprovalBottleneck && awaitingApprovalBottleneck.count > 0) {
+    pushSignal(signals, {
+      key: "operator_stage_awaiting_approval",
+      service: "orchestrator",
+      severity: "warn",
+      message: "Operator trace summary shows runs waiting for approval.",
+      value: awaitingApprovalBottleneck.count,
+    });
+  }
+
+  if (verificationFailedBottleneck && verificationFailedBottleneck.count > 0) {
+    pushSignal(signals, {
+      key: "operator_stage_verification_failed",
+      service: "orchestrator",
+      severity: "critical",
+      message: "Operator trace summary shows verification failures or incomplete verification.",
+      value: verificationFailedBottleneck.count,
+    });
+  }
+
+  if (browserRunIncompleteBottleneck && browserRunIncompleteBottleneck.count > 0) {
+    pushSignal(signals, {
+      key: "operator_stage_browser_run_incomplete",
+      service: "ui-executor",
+      severity: "warn",
+      message: "Operator trace summary shows browser runs that are still incomplete.",
+      value: browserRunIncompleteBottleneck.count,
+    });
+  }
+
+  if (escalationRequiredBottleneck && escalationRequiredBottleneck.count > 0) {
+    pushSignal(signals, {
+      key: "operator_stage_escalation_required",
+      service: "orchestrator",
+      severity: "critical",
+      message: "Operator trace summary shows runs that need escalation.",
+      value: escalationRequiredBottleneck.count,
     });
   }
 

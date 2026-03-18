@@ -53,6 +53,22 @@ export type OperatorTraceRunSummary = {
   hasError: boolean;
 };
 
+export type OperatorTraceBottleneckView = {
+  key:
+    | "awaiting_approval"
+    | "verification_failed"
+    | "browser_run_incomplete"
+    | "escalation_required";
+  title: string;
+  severity: "info" | "warn" | "critical";
+  summary: string;
+  count: number;
+  roleBoundary: string | null;
+  stageBoundary: string | null;
+  verificationBoundary: string | null;
+  topRuns: OperatorTraceRunSummary[];
+};
+
 export type OperatorTraceSummary = {
   generatedAt: string;
   totals: {
@@ -90,6 +106,7 @@ export type OperatorTraceSummary = {
   byRoute: Record<string, number>;
   byStatus: Record<string, number>;
   byStage: Record<string, number>;
+  bottlenecks: OperatorTraceBottleneckView[];
   recentRuns: OperatorTraceRunSummary[];
   recentEvents: Array<{
     eventId: string;
@@ -155,6 +172,53 @@ function toEpochMs(value: string): number {
 function incrementCounter(record: Record<string, number>, key: string): void {
   const normalized = key.trim().length > 0 ? key : "unknown";
   record[normalized] = (record[normalized] ?? 0) + 1;
+}
+
+function summarizeTraceBoundary(runs: OperatorTraceRunSummary[]): {
+  roleBoundary: string | null;
+  stageBoundary: string | null;
+  verificationBoundary: string | null;
+} {
+  const primary = runs[0] ?? null;
+  if (!primary) {
+    return {
+      roleBoundary: null,
+      stageBoundary: null,
+      verificationBoundary: null,
+    };
+  }
+  return {
+    roleBoundary:
+      toNonEmptyString(primary.route) ?? toNonEmptyString(primary.delegatedRoute) ?? toNonEmptyString(primary.intent),
+    stageBoundary:
+      toNonEmptyString(primary.activeTaskStage) ?? toNonEmptyString(primary.status) ?? toNonEmptyString(primary.activeTaskStatus),
+    verificationBoundary:
+      toNonEmptyString(primary.verificationState) ??
+      toNonEmptyString(primary.verificationFailureClass) ??
+      toNonEmptyString(primary.approvalStatus),
+  };
+}
+
+function buildTraceBottleneckView(params: {
+  key: OperatorTraceBottleneckView["key"];
+  title: string;
+  severity: OperatorTraceBottleneckView["severity"];
+  summary: string;
+  runs: OperatorTraceRunSummary[];
+}): OperatorTraceBottleneckView {
+  const topRuns = params.runs.slice(0, 5);
+  const boundary = summarizeTraceBoundary(topRuns);
+  return {
+    key: params.key,
+    title: params.title,
+    severity: params.severity,
+    summary: params.summary,
+    count: params.runs.length,
+    roleBoundary: boundary.roleBoundary,
+    stageBoundary: boundary.stageBoundary,
+    verificationBoundary: boundary.verificationBoundary,
+    topRuns,
+  };
 }
 
 function normalizeActiveTask(value: unknown): ActiveTaskSnapshot | null {
@@ -504,6 +568,35 @@ export function buildOperatorTraceSummary(params: {
     }
   }
 
+  const awaitingApprovalRuns = runSummaries.filter(
+    (run) =>
+      run.activeTaskStage === "awaiting_approval" ||
+      run.approvalStatus === "pending" ||
+      run.status === "pending_approval",
+  );
+  const verificationFailedRuns = runSummaries.filter(
+    (run) =>
+      run.verificationState === "unverified" ||
+      run.verificationState === "partially_verified" ||
+      run.verificationFailureClass !== null ||
+      run.status === "failed" ||
+      run.hasError === true,
+  );
+  const browserRunIncompleteRuns = runSummaries.filter(
+    (run) =>
+      (run.route === "ui-navigator-agent" ||
+        run.route === "ui_navigator_agent" ||
+        run.hasVisualTesting === true ||
+        run.traceSteps > 0) &&
+      ["queued", "running", "paused"].includes(run.status),
+  );
+  const escalationRequiredRuns = runSummaries.filter(
+    (run) =>
+      run.status === "failed" ||
+      run.approvalStatus === "rejected" ||
+      run.hasError === true,
+  );
+
   return {
     generatedAt: new Date().toISOString(),
     totals: {
@@ -541,6 +634,36 @@ export function buildOperatorTraceSummary(params: {
     byRoute: routeStats,
     byStatus: statusStats,
     byStage: stageStats,
+    bottlenecks: [
+      buildTraceBottleneckView({
+        key: "awaiting_approval",
+        title: "Awaiting approval",
+        severity: awaitingApprovalRuns.length > 0 ? "warn" : "info",
+        summary: "Runs are waiting on human approval before they can continue.",
+        runs: awaitingApprovalRuns,
+      }),
+      buildTraceBottleneckView({
+        key: "verification_failed",
+        title: "Verification failed",
+        severity: verificationFailedRuns.length > 0 ? "critical" : "info",
+        summary: "Runs reached verification boundary with a failure or incomplete verification state.",
+        runs: verificationFailedRuns,
+      }),
+      buildTraceBottleneckView({
+        key: "browser_run_incomplete",
+        title: "Browser run incomplete",
+        severity: browserRunIncompleteRuns.length > 0 ? "warn" : "info",
+        summary: "UI/browser runs are still in progress, paused, or waiting on a checkpoint.",
+        runs: browserRunIncompleteRuns,
+      }),
+      buildTraceBottleneckView({
+        key: "escalation_required",
+        title: "Escalation required",
+        severity: escalationRequiredRuns.length > 0 ? "critical" : "info",
+        summary: "Runs need operator escalation because the boundary was rejected, failed, or blocked.",
+        runs: escalationRequiredRuns,
+      }),
+    ],
     recentRuns: runSummaries,
     recentEvents: recentEvents.map((event) => ({
       eventId: event.eventId,

@@ -24589,6 +24589,32 @@ function extractTopCounterEntry(counters) {
   };
 }
 
+function getOperatorTraceBottleneckViews(traces) {
+  if (!traces || typeof traces !== "object" || !Array.isArray(traces.bottlenecks)) {
+    return [];
+  }
+  return traces.bottlenecks.filter((item) => item && typeof item === "object");
+}
+
+const OPERATOR_TRACE_BOTTLENECK_LABELS = Object.freeze({
+  awaiting_approval: "trace.filter.awaiting_approval",
+  verification_failed: "trace.filter.verification_failed",
+  browser_run_incomplete: "trace.filter.browser_run_incomplete",
+  escalation_required: "trace.filter.escalation_required",
+});
+
+function formatOperatorTraceBottleneckRun(run) {
+  if (!run || typeof run !== "object") {
+    return "n/a";
+  }
+  const runId = toOptionalText(run.runId) ?? "run";
+  const route = toOptionalText(run.route) ?? "unknown";
+  const stage = toOptionalText(run.activeTaskStage) ?? toOptionalText(run.status) ?? "unknown";
+  const verification = toOptionalText(run.verificationState) ?? "n/a";
+  const approval = toOptionalText(run.approvalStatus) ?? "n/a";
+  return `${runId.slice(0, 12)} route=${route} stage=${stage} verification=${verification} approval=${approval}`;
+}
+
 function renderOperatorTraceWidget(traces) {
   if (!traces || typeof traces !== "object") {
     resetOperatorTraceWidget("no_data");
@@ -24602,6 +24628,8 @@ function renderOperatorTraceWidget(traces) {
   const traceSteps = Number(totals.traceSteps ?? 0);
   const screenshots = Number(totals.screenshotRefs ?? 0);
   const errorRuns = Number(totals.errorRuns ?? 0);
+  const bottlenecks = getOperatorTraceBottleneckViews(traces);
+  const activeBottlenecks = bottlenecks.filter((item) => Math.max(0, Math.floor(Number(item.count ?? 0) || 0)) > 0);
   const topRoute = extractTopCounterEntry(traces.byRoute);
   const topStatus = extractTopCounterEntry(traces.byStatus);
 
@@ -24653,6 +24681,32 @@ function renderOperatorTraceWidget(traces) {
       statusText = "warnings";
       hintVariant = "warn";
       hint = "Trace coverage is present but includes error runs. Verify retry/failover readiness.";
+    }
+  }
+
+  if (activeBottlenecks.length > 0) {
+    const topBottleneck = activeBottlenecks[0];
+    const topLabel = typeof topBottleneck.title === "string" && topBottleneck.title.trim().length > 0
+      ? topBottleneck.title.trim()
+      : "bottleneck";
+    const topCount = Math.max(0, Math.floor(Number(topBottleneck.count ?? 0) || 0));
+    const nextLabels = activeBottlenecks
+      .slice(1, 3)
+      .map((item) => {
+        const label = typeof item.title === "string" && item.title.trim().length > 0 ? item.title.trim() : "bottleneck";
+        const count = Math.max(0, Math.floor(Number(item.count ?? 0) || 0));
+        return `${label} (${count})`;
+      });
+    const bottleneckText = nextLabels.length > 0
+      ? `${topLabel} (${topCount}); ${nextLabels.join("; ")}`
+      : `${topLabel} (${topCount})`;
+    if (statusVariant === "ok") {
+      statusVariant = "neutral";
+      statusText = "covered_with_bottlenecks";
+    }
+    if (hintVariant !== "fail") {
+      hintVariant = "warn";
+      hint = `Trace coverage is ready. Bottlenecks: ${bottleneckText}. Use the filtered views in operator summary for the stage boundary.`;
     }
   }
 
@@ -28288,6 +28342,31 @@ function renderOperatorSummary(summary) {
         "system",
         `trace.${runId.slice(0, 12)}`,
         `route=${runRoute} status=${runStatus} events=${runEvents} steps=${runTraceSteps} screenshots=${runShots} approval=${runApproval}`,
+      );
+    }
+
+    const bottlenecks = getOperatorTraceBottleneckViews(traces);
+    for (const view of bottlenecks) {
+      if (!view || typeof view !== "object") {
+        continue;
+      }
+      const count = Math.max(0, Math.floor(Number(view.count ?? 0) || 0));
+      if (count <= 0) {
+        continue;
+      }
+      const severity = typeof view.severity === "string" ? view.severity : "info";
+      const filterLabel = OPERATOR_TRACE_BOTTLENECK_LABELS[toOptionalText(view.key) ?? ""];
+      const roleBoundary = toOptionalText(view.roleBoundary) ?? "n/a";
+      const stageBoundary = toOptionalText(view.stageBoundary) ?? "n/a";
+      const verificationBoundary = toOptionalText(view.verificationBoundary) ?? "n/a";
+      const summaryText = toOptionalText(view.summary) ?? "n/a";
+      const topRuns = Array.isArray(view.topRuns) ? view.topRuns : [];
+      const topRun = topRuns.find((item) => item && typeof item === "object") ?? null;
+      appendEntry(
+        el.operatorSummary,
+        severity === "critical" && count > 0 ? "error" : count > 0 ? "system" : "system",
+        filterLabel ?? `trace.filter.${toOptionalText(view.key) ?? "bottleneck"}`,
+        `count=${count} role=${roleBoundary} stage=${stageBoundary} verification=${verificationBoundary} summary=${summaryText} top=${formatOperatorTraceBottleneckRun(topRun)}`,
       );
     }
 

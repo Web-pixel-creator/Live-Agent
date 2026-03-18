@@ -11,12 +11,26 @@ test("operator summary exposes workflow stage counts and task queue stage postur
     "utf8",
   );
 
-  const requiredApiTokens = ["stageCounts", "oldestTaskStage", "buildTaskQueueSummary(activeTasks)", "traces"];
+  const requiredApiTokens = [
+    "stageCounts",
+    "oldestTaskStage",
+    "buildTaskQueueSummary(activeTasks)",
+    "traces",
+    "operatorTraceSummary: traces,",
+  ];
   for (const token of requiredApiTokens) {
     assert.ok(apiSource.includes(token), `operator summary API missing workflow-stage token: ${token}`);
   }
 
-  const requiredTraceTokens = ["byStage", "activeTaskStage"];
+  const requiredTraceTokens = [
+    "byStage",
+    "activeTaskStage",
+    "bottlenecks",
+    "awaiting_approval",
+    "verification_failed",
+    "browser_run_incomplete",
+    "escalation_required",
+  ];
   for (const token of requiredTraceTokens) {
     assert.ok(tracesSource.includes(token), `operator traces missing workflow-stage token: ${token}`);
   }
@@ -26,6 +40,10 @@ test("operator summary exposes workflow stage counts and task queue stage postur
     "workflowCurrentStage",
     "workflowActiveRole",
     "workflowTaskId",
+    "operator_stage_awaiting_approval",
+    "operator_stage_verification_failed",
+    "operator_stage_browser_run_incomplete",
+    "operator_stage_escalation_required",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(runtimeDiagnosticsSource.includes(token), `runtime diagnostics missing workflow-state token: ${token}`);

@@ -26,6 +26,10 @@ test("api backend exposes runtime diagnostics endpoint and operator summary lane
     "workflowCurrentStage",
     "workflowActiveRole",
     "workflowTaskId",
+    "operator_stage_awaiting_approval",
+    "operator_stage_verification_failed",
+    "operator_stage_browser_run_incomplete",
+    "operator_stage_escalation_required",
   ];
 
   for (const token of requiredHelperTokens) {

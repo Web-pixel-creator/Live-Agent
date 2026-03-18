@@ -6808,6 +6808,7 @@ export const server = createServer(async (req, res) => {
       const runtimeDiagnostics = buildRuntimeDiagnosticsSummary({
         services,
         skillsCatalog,
+        operatorTraceSummary: traces,
       });
 
       writeJson(res, 200, {
