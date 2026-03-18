@@ -89,6 +89,7 @@ export type OperatorTraceSummary = {
   };
   byRoute: Record<string, number>;
   byStatus: Record<string, number>;
+  byStage: Record<string, number>;
   recentRuns: OperatorTraceRunSummary[];
   recentEvents: Array<{
     eventId: string;
@@ -293,6 +294,7 @@ export function buildOperatorTraceSummary(params: {
 
   const routeStats: Record<string, number> = {};
   const statusStats: Record<string, number> = {};
+  const stageStats: Record<string, number> = {};
   const runSummaries: OperatorTraceRunSummary[] = [];
 
   let uiTraceRuns = 0;
@@ -467,6 +469,9 @@ export function buildOperatorTraceSummary(params: {
 
     incrementCounter(routeStats, route ?? "unknown");
     incrementCounter(statusStats, status);
+    if (run.taskStage) {
+      incrementCounter(stageStats, run.taskStage);
+    }
     if (run.source === "active_task") {
       activeTaskBackedRuns += 1;
     }
@@ -535,6 +540,7 @@ export function buildOperatorTraceSummary(params: {
     },
     byRoute: routeStats,
     byStatus: statusStats,
+    byStage: stageStats,
     recentRuns: runSummaries,
     recentEvents: recentEvents.map((event) => ({
       eventId: event.eventId,

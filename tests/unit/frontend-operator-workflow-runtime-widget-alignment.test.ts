@@ -43,6 +43,12 @@ test("operator workflow runtime widget is wired in frontend HTML and runtime", (
     "assistiveRouterBudgetPolicy",
     "assistiveRouterPromptCaching",
     "assistiveRouterWatchlistEnabled",
+    "workflowExecutionStatus",
+    "workflowCurrentStage",
+    "workflowActiveRole",
+    "awaiting_${workflowCurrentStage}",
+    "Workflow is waiting on",
+    "Workflow is running",
     "provider posture plus apiKeyConfigured",
   ];
   for (const token of requiredRuntimeTokens) {

@@ -148,6 +148,8 @@ export function buildRuntimeDiagnosticsSummary(params: {
 
   const gatewayTransport = gateway && isRecord(gateway.transport) ? gateway.transport : null;
   const orchestratorWorkflow = orchestrator && isRecord(orchestrator.workflow) ? orchestrator.workflow : null;
+  const orchestratorWorkflowState =
+    orchestratorWorkflow && isRecord(orchestratorWorkflow.workflowState) ? orchestratorWorkflow.workflowState : null;
   const orchestratorAssistiveRouter =
     orchestratorWorkflow && isRecord(orchestratorWorkflow.assistiveRouter) ? orchestratorWorkflow.assistiveRouter : null;
   const uiExecutorSandbox = uiExecutor && isRecord(uiExecutor.sandbox) ? uiExecutor.sandbox : null;
@@ -416,6 +418,16 @@ export function buildRuntimeDiagnosticsSummary(params: {
         orchestratorWorkflow && isRecord(orchestratorWorkflow.controlPlaneOverride)
           ? toNonEmptyString(orchestratorWorkflow.controlPlaneOverride.reason)
           : null,
+      workflowExecutionStatus: orchestratorWorkflowState ? toNonEmptyString(orchestratorWorkflowState.status) : null,
+      workflowCurrentStage: orchestratorWorkflowState ? toNonEmptyString(orchestratorWorkflowState.currentStage) : null,
+      workflowActiveRole: orchestratorWorkflowState ? toNonEmptyString(orchestratorWorkflowState.activeRole) : null,
+      workflowRunId: orchestratorWorkflowState ? toNonEmptyString(orchestratorWorkflowState.runId) : null,
+      workflowSessionId: orchestratorWorkflowState ? toNonEmptyString(orchestratorWorkflowState.sessionId) : null,
+      workflowTaskId: orchestratorWorkflowState ? toNonEmptyString(orchestratorWorkflowState.taskId) : null,
+      workflowIntent: orchestratorWorkflowState ? toNonEmptyString(orchestratorWorkflowState.intent) : null,
+      workflowRoute: orchestratorWorkflowState ? toNonEmptyString(orchestratorWorkflowState.route) : null,
+      workflowReason: orchestratorWorkflowState ? toNonEmptyString(orchestratorWorkflowState.reason) : null,
+      workflowUpdatedAt: orchestratorWorkflowState ? toNonEmptyString(orchestratorWorkflowState.updatedAt) : null,
       assistiveRouterEnabled: orchestratorAssistiveRouter ? toBoolean(orchestratorAssistiveRouter.enabled) : null,
       assistiveRouterApiKeyConfigured:
         orchestratorAssistiveRouter ? toBoolean(orchestratorAssistiveRouter.apiKeyConfigured) : null,

@@ -100,6 +100,7 @@ test("operator trace summary aggregates run/event/approval telemetry", () => {
   assert.equal(summary.totals.verifySteps, 1);
   assert.equal(summary.byRoute["ui-navigator-agent"], 1);
   assert.equal(summary.byStatus.completed, 2);
+  assert.equal(summary.byStage["execution"] ?? 0, 0);
   assert.equal(summary.liveBridgeHealth.state, "unknown");
   assert.equal(summary.liveBridgeHealth.degradedEvents, 0);
   assert.equal(summary.liveBridgeHealth.recoveredEvents, 0);
@@ -159,6 +160,7 @@ test("operator trace summary falls back to active tasks and approvals without pe
   assert.equal(summary.totals.activeTaskBackedRuns, 1);
   assert.equal(summary.totals.approvalLinkedRuns, 1);
   assert.equal(summary.totals.uiTraceRuns, 1);
+  assert.equal(summary.byStage.awaiting_approval, 1);
 
   const run = summary.recentRuns[0];
   assert.ok(run);

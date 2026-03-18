@@ -22948,6 +22948,31 @@ function renderOperatorWorkflowRuntimeWidget(runtimeDiagnostics) {
       : orchestratorRuntime.assistiveRouterWatchlistEnabled === false
         ? "disabled"
         : "unknown";
+  const workflowExecutionStatus =
+    typeof orchestratorRuntime.workflowExecutionStatus === "string" &&
+    orchestratorRuntime.workflowExecutionStatus.trim().length > 0
+      ? orchestratorRuntime.workflowExecutionStatus.trim()
+      : "idle";
+  const workflowCurrentStage =
+    typeof orchestratorRuntime.workflowCurrentStage === "string" &&
+    orchestratorRuntime.workflowCurrentStage.trim().length > 0
+      ? orchestratorRuntime.workflowCurrentStage.trim()
+      : null;
+  const workflowActiveRole =
+    typeof orchestratorRuntime.workflowActiveRole === "string" &&
+    orchestratorRuntime.workflowActiveRole.trim().length > 0
+      ? orchestratorRuntime.workflowActiveRole.trim()
+      : null;
+  const workflowIntent =
+    typeof orchestratorRuntime.workflowIntent === "string" && orchestratorRuntime.workflowIntent.trim().length > 0
+      ? orchestratorRuntime.workflowIntent.trim()
+      : null;
+  const workflowRoute =
+    typeof orchestratorRuntime.workflowRoute === "string" && orchestratorRuntime.workflowRoute.trim().length > 0
+      ? orchestratorRuntime.workflowRoute.trim()
+      : null;
+  const workflowStageLabel = workflowCurrentStage ? workflowCurrentStage.replaceAll("_", " ") : null;
+  const workflowRoleLabel = workflowActiveRole ? workflowActiveRole.replaceAll("_", " ") : null;
 
   setText(el.operatorWorkflowRuntimeSource, formatOperatorWorkflowRuntimeSourceLine(sourceKind, sourcePath, loadedAt));
   setText(
@@ -22984,6 +23009,26 @@ function renderOperatorWorkflowRuntimeWidget(runtimeDiagnostics) {
     hintVariant = "fail";
     hint =
       "Assistive route is on, but the key is missing. Use deterministic fallback or restore the secret before live routing.";
+  } else if (workflowExecutionStatus === "pending_approval") {
+    statusText = workflowCurrentStage ? `awaiting_${workflowCurrentStage}` : "pending_approval";
+    statusVariant = "warn";
+    hintVariant = "warn";
+    hint = `Workflow is waiting on ${workflowStageLabel ?? "approval"} via ${workflowRoleLabel ?? "safety reviewer"}${workflowIntent ? ` for ${workflowIntent}` : ""}.`;
+  } else if (workflowExecutionStatus === "running" && workflowCurrentStage) {
+    statusText = workflowCurrentStage;
+    statusVariant = "neutral";
+    hintVariant = "neutral";
+    hint = `Workflow is running ${workflowStageLabel}${workflowRoleLabel ? ` via ${workflowRoleLabel}` : ""}${workflowRoute ? ` on ${workflowRoute}` : ""}.`;
+  } else if (workflowExecutionStatus === "failed") {
+    statusText = "workflow_failed";
+    statusVariant = "fail";
+    hintVariant = "fail";
+    hint = `Workflow stopped at ${workflowStageLabel ?? "execution"}${workflowRoleLabel ? ` via ${workflowRoleLabel}` : ""}. Review the route and recent error before retrying.`;
+  } else if (workflowExecutionStatus === "completed") {
+    statusText = workflowCurrentStage ?? "workflow_completed";
+    statusVariant = "ok";
+    hintVariant = "ok";
+    hint = `Workflow completed${workflowIntent ? ` for ${workflowIntent}` : ""}${workflowRoute ? ` on ${workflowRoute}` : ""}.`;
   } else if (overrideActive) {
     statusText = "override_active";
     statusVariant = "neutral";

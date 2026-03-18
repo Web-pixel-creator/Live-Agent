@@ -59,6 +59,18 @@ test("runtime workflow control-plane snapshot redacts assistive router apiKey", 
         watchlistEnabled: false,
       },
       idempotencyTtlMs: 120000,
+      workflowState: {
+        status: "running",
+        currentStage: "planning",
+        activeRole: "planner",
+        runId: "run-workflow-1",
+        sessionId: "session-workflow-1",
+        taskId: "task-workflow-1",
+        intent: "conversation",
+        route: "live-agent",
+        reason: "planning request",
+        updatedAt: "2026-03-06T12:00:01.000Z",
+      },
       controlPlaneOverride: {
         active: true,
         updatedAt: "2026-03-06T12:00:00.000Z",
@@ -77,6 +89,12 @@ test("runtime workflow control-plane snapshot redacts assistive router apiKey", 
   assert.equal(snapshot.summary.assistiveRouterBudgetPolicy, "long_context_operator");
   assert.equal(snapshot.summary.assistiveRouterPromptCaching, "provider_default");
   assert.equal(snapshot.summary.assistiveRouterWatchlistEnabled, false);
+  assert.equal(snapshot.store?.workflowState?.currentStage, "planning");
+  assert.equal(snapshot.store?.workflowState?.activeRole, "planner");
+  assert.equal(snapshot.summary.workflowExecutionStatus, "running");
+  assert.equal(snapshot.summary.workflowCurrentStage, "planning");
+  assert.equal(snapshot.summary.workflowActiveRole, "planner");
+  assert.equal(snapshot.summary.workflowRoute, "live-agent");
   assert.deepEqual(snapshot.summary.assistiveRouterAllowIntents, ["conversation", "translation"]);
   assert.deepEqual(snapshot.summary.retryTransientErrorCodes, ["rate_limit"]);
 });

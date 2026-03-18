@@ -2085,6 +2085,7 @@ function normalizeTaskQueueStatus(value: unknown): "queued" | "running" | "pendi
 
 function buildTaskQueueSummary(tasks: unknown[]): Record<string, unknown> {
   const nowMs = Date.now();
+  const stageCounts: Record<string, number> = {};
   let queued = 0;
   let running = 0;
   let pendingApproval = 0;
@@ -2094,6 +2095,7 @@ function buildTaskQueueSummary(tasks: unknown[]): Record<string, unknown> {
   let oldestUpdatedAt: string | null = null;
   let oldestTaskId: string | null = null;
   let oldestTaskStatus: string | null = null;
+  let oldestTaskStage: string | null = null;
 
   for (const item of tasks) {
     if (!isRecord(item)) {
@@ -2109,6 +2111,10 @@ function buildTaskQueueSummary(tasks: unknown[]): Record<string, unknown> {
     } else {
       other += 1;
     }
+    const stage = typeof item.stage === "string" && item.stage.trim().length > 0 ? item.stage.trim() : null;
+    if (stage) {
+      stageCounts[stage] = (stageCounts[stage] ?? 0) + 1;
+    }
 
     const updatedAt = typeof item.updatedAt === "string" ? item.updatedAt : null;
     const updatedAtMs = parseIsoTimestampMs(updatedAt);
@@ -2121,6 +2127,7 @@ function buildTaskQueueSummary(tasks: unknown[]): Record<string, unknown> {
       oldestUpdatedAt = updatedAt;
       oldestTaskId = toTaskString(item.taskId);
       oldestTaskStatus = typeof item.status === "string" ? item.status : null;
+      oldestTaskStage = stage;
     }
     if (ageMs >= operatorTaskQueueStaleThresholdMs) {
       staleCount += 1;
@@ -2154,6 +2161,8 @@ function buildTaskQueueSummary(tasks: unknown[]): Record<string, unknown> {
     oldestUpdatedAt,
     oldestTaskId,
     oldestTaskStatus,
+    oldestTaskStage,
+    stageCounts,
     pressureLevel,
     thresholds: {
       elevatedActive: operatorTaskQueueElevatedActiveThreshold,

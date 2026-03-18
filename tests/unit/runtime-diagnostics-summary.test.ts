@@ -82,6 +82,18 @@ test("runtime diagnostics summary stays healthy when all guardrails are nominal"
           fingerprint: "wf-healthy",
           loadedAt: "2026-03-06T00:00:00.000Z",
           lastAttemptAt: "2026-03-06T00:00:00.000Z",
+          workflowState: {
+            status: "running",
+            currentStage: "planning",
+            activeRole: "planner",
+            runId: "run-workflow-healthy",
+            sessionId: "session-workflow-healthy",
+            taskId: "task-workflow-healthy",
+            intent: "conversation",
+            route: "live-agent",
+            reason: "planning request",
+            updatedAt: "2026-03-06T00:00:01.000Z",
+          },
           controlPlaneOverride: {
             active: false,
             updatedAt: null,
@@ -164,6 +176,10 @@ test("runtime diagnostics summary stays healthy when all guardrails are nominal"
   assert.equal(summary.orchestrator.assistiveRouterBudgetPolicy, "judged_default");
   assert.equal(summary.orchestrator.assistiveRouterPromptCaching, "none");
   assert.equal(summary.orchestrator.assistiveRouterWatchlistEnabled, false);
+  assert.equal(summary.orchestrator.workflowExecutionStatus, "running");
+  assert.equal(summary.orchestrator.workflowCurrentStage, "planning");
+  assert.equal(summary.orchestrator.workflowActiveRole, "planner");
+  assert.equal(summary.orchestrator.workflowRoute, "live-agent");
   assert.deepEqual(summary.orchestrator.assistiveRouterAllowIntents, ["conversation", "translation"]);
   assert.deepEqual(summary.activeSignals, []);
 });

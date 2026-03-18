@@ -52,11 +52,25 @@ export type SanitizedRuntimeWorkflowStoreStatus = {
     watchlistEnabled: boolean | null;
   } | null;
   idempotencyTtlMs: number | null;
+  workflowState: SanitizedRuntimeWorkflowExecutionState | null;
   controlPlaneOverride: {
     active: boolean;
     updatedAt: string | null;
     reason: string | null;
   };
+};
+
+export type SanitizedRuntimeWorkflowExecutionState = {
+  status: string | null;
+  currentStage: string | null;
+  activeRole: string | null;
+  runId: string | null;
+  sessionId: string | null;
+  taskId: string | null;
+  intent: string | null;
+  route: string | null;
+  reason: string | null;
+  updatedAt: string | null;
 };
 
 export type RuntimeWorkflowControlPlaneSummary = {
@@ -82,6 +96,16 @@ export type RuntimeWorkflowControlPlaneSummary = {
   assistiveRouterPromptCaching: string | null;
   assistiveRouterWatchlistEnabled: boolean | null;
   idempotencyTtlMs: number | null;
+  workflowExecutionStatus: string | null;
+  workflowCurrentStage: string | null;
+  workflowActiveRole: string | null;
+  workflowRunId: string | null;
+  workflowSessionId: string | null;
+  workflowTaskId: string | null;
+  workflowIntent: string | null;
+  workflowRoute: string | null;
+  workflowReason: string | null;
+  workflowUpdatedAt: string | null;
   retryContinuationStatusCode: number | null;
   retryContinuationBackoffMs: number | null;
   retryTransientErrorCodes: string[];
@@ -230,6 +254,7 @@ function sanitizeRuntimeWorkflowStoreStatus(value: unknown): SanitizedRuntimeWor
     return null;
   }
   const assistiveRouter = isRecord(value.assistiveRouter) ? value.assistiveRouter : null;
+  const workflowState = isRecord(value.workflowState) ? value.workflowState : null;
   const controlPlaneOverride = isRecord(value.controlPlaneOverride) ? value.controlPlaneOverride : null;
   return {
     loadedAt: toNonEmptyString(value.loadedAt),
@@ -254,6 +279,20 @@ function sanitizeRuntimeWorkflowStoreStatus(value: unknown): SanitizedRuntimeWor
         }
       : null,
     idempotencyTtlMs: toInteger(value.idempotencyTtlMs),
+    workflowState: workflowState
+      ? {
+          status: toNonEmptyString(workflowState.status),
+          currentStage: toNonEmptyString(workflowState.currentStage),
+          activeRole: toNonEmptyString(workflowState.activeRole),
+          runId: toNonEmptyString(workflowState.runId),
+          sessionId: toNonEmptyString(workflowState.sessionId),
+          taskId: toNonEmptyString(workflowState.taskId),
+          intent: toNonEmptyString(workflowState.intent),
+          route: toNonEmptyString(workflowState.route),
+          reason: toNonEmptyString(workflowState.reason),
+          updatedAt: toNonEmptyString(workflowState.updatedAt),
+        }
+      : null,
     controlPlaneOverride: {
       active: controlPlaneOverride ? controlPlaneOverride.active === true : false,
       updatedAt: controlPlaneOverride ? toNonEmptyString(controlPlaneOverride.updatedAt) : null,
@@ -268,6 +307,7 @@ function buildRuntimeWorkflowControlPlaneSummary(
 ): RuntimeWorkflowControlPlaneSummary {
   const workflowAssistiveRouter = workflow?.assistiveRouter ?? null;
   const storeAssistiveRouter = store?.assistiveRouter ?? null;
+  const workflowState = store?.workflowState ?? null;
   const retryPolicy = workflow?.retryPolicy ?? null;
   const controlPlaneOverride = store?.controlPlaneOverride ?? {
     active: false,
@@ -310,6 +350,16 @@ function buildRuntimeWorkflowControlPlaneSummary(
       storeAssistiveRouter?.watchlistEnabled,
     ),
     idempotencyTtlMs: pickFirst(workflow?.idempotencyTtlMs, store?.idempotencyTtlMs),
+    workflowExecutionStatus: workflowState?.status ?? null,
+    workflowCurrentStage: workflowState?.currentStage ?? null,
+    workflowActiveRole: workflowState?.activeRole ?? null,
+    workflowRunId: workflowState?.runId ?? null,
+    workflowSessionId: workflowState?.sessionId ?? null,
+    workflowTaskId: workflowState?.taskId ?? null,
+    workflowIntent: workflowState?.intent ?? null,
+    workflowRoute: workflowState?.route ?? null,
+    workflowReason: workflowState?.reason ?? null,
+    workflowUpdatedAt: workflowState?.updatedAt ?? null,
     retryContinuationStatusCode: retryPolicy?.continuationStatusCode ?? null,
     retryContinuationBackoffMs: retryPolicy?.continuationBackoffMs ?? null,
     retryTransientErrorCodes: retryPolicy?.transientErrorCodes ?? [],
