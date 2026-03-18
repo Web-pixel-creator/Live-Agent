@@ -4,6 +4,10 @@ This document is the durable product and implementation plan for the platform.
 It is intended to be the single place to revisit when product scope, technical
 priorities, or rollout order become unclear.
 
+Companion execution backlog:
+
+- `docs/product-backlog.md`
+
 ## North Star
 
 Build and sell one clear product:
