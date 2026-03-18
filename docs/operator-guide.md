@@ -8,6 +8,12 @@ The operator flow is used during live demos and production diagnostics to:
 2. Manage approvals and failover actions,
 3. Validate session/device/skills/governance lifecycle behavior.
 
+Product framing for operators:
+
+1. `Live Negotiator` should be treated as the main `AI Action Desk` surface.
+2. The primary commercial playbooks are lead qualification, consultation booking, and document collection.
+3. `Storyteller` should be read as a `Simulation Lab` or training surface, not as the main customer promise.
+
 ## Access Points
 
 1. Frontend: `http://localhost:3000`

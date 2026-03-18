@@ -1,10 +1,18 @@
-# Multimodal Live Agent Starter
+# AI Action Desk
 
-Starter workspace for the "next-generation agents" spec:
+Production-oriented multimodal agent workspace for multilingual service teams.
 
-- Live Agent (realtime voice/video, interruption, translation, negotiation, grounded research)
-- Creative Storyteller (Gemini + Imagen + Veo + TTS)
-- UI Navigator (Computer Use + action execution)
+Primary product wedge:
+
+- qualify inbound leads
+- book consultations or appointments
+- collect documents and form data safely
+
+Supporting product surfaces:
+
+- `Live Agent` for realtime conversation, translation, negotiation, and grounded research
+- `Simulation Lab` for scenario rehearsal, story timelines, and multimodal training flows
+- `UI Navigator` for safe browser actions with approvals and replay evidence
 
 ![PR Quality Gate](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/pr-quality.yml/badge.svg)
 ![Demo E2E](https://github.com/Web-pixel-creator/Live-Agent/actions/workflows/demo-e2e.yml/badge.svg)
@@ -12,6 +20,11 @@ Starter workspace for the "next-generation agents" spec:
 ![Demo KPI Badge](https://img.shields.io/endpoint?url=https%3A%2F%2Flive-agent-production.up.railway.app%2Fdemo-e2e%2Fbadge.json)
 
 ## Judge Snapshot
+
+- Product framing:
+  - `AI Action Desk` is the main product surface.
+  - `Simulation Lab` is the rehearsal/training surface built from the storyteller stack.
+  - `UI Navigator` is the action layer that safely executes work in browser-based systems.
 
 - Challenge coverage:
   - `Live Agent`: realtime conversation, interruption, translation, negotiation, grounded research.

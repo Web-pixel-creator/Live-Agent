@@ -905,12 +905,12 @@ const OPERATOR_EVIDENCE_DRAWER_VIEWS = Object.freeze([
 
 const UI_LANGUAGE_COPY = Object.freeze({
   en: {
-    "hero.title": "Multimodal Agent Dashboard",
-    "hero.subtitle": "One clean workspace for live chat, stories, operations, and device nodes.",
+    "hero.title": "AI Action Desk",
+    "hero.subtitle": "One workspace for lead qualification, booking, document collection, and safe follow-through.",
     "hero.languageLabel": "Language",
     "hero.languageAriaLabel": "Interface language",
     "tabs.liveNegotiator": "Live Negotiator",
-    "tabs.storyteller": "Storyteller",
+    "tabs.storyteller": "Simulation Lab",
     "tabs.operatorConsole": "Operator Console",
     "tabs.deviceNodes": "Device Nodes",
     "theme.switchToLight": "Switch to Light Theme",
@@ -983,8 +983,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.controls.keepDefault": "keep default",
     "live.controls.systemInstruction": "Live System Instruction (optional)",
     "live.controls.applyLiveSetup": "Apply Live Setup",
-    "live.compose.heading": "Start Here",
-    "live.compose.intro": "Choose one mode, write one clear request, and send it. Voice and realtime stay below.",
+    "live.compose.heading": "AI Action Desk",
+    "live.compose.intro": "Pick one service playbook, write one clear customer task, and send it. Voice and realtime stay below.",
     "live.compose.optionalTitle": "Rare tools",
     "live.compose.optionalHint": "Audio file, service actions, and background requests",
     "live.compose.audioTitle": "Audio file",
@@ -1015,18 +1015,18 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.support.refreshTasks": "Refresh Active Tasks",
     "live.support.activeCount": "Active count:",
     "live.support.emptyTitle": "No active tasks right now",
-    "live.support.emptyHint": "Kick off one scenario to populate queue evidence and keep operator status lanes warm.",
+    "live.support.emptyHint": "Kick off qualification, booking, or document collection to populate queue evidence and warm the operator lanes.",
     "live.support.runNegotiation": "Run Negotiation",
-    "live.support.runStory": "Run Story",
+    "live.support.runStory": "Run Lab",
     "live.support.runUiTask": "Run UI Task",
     "live.support.refreshTasksShort": "Refresh Active Tasks",
-    "storyteller.badge": "Story",
-    "storyteller.heading": "Story Studio",
-  "storyteller.intro": "Brief, scenes, and media in one studio.",
-    "storyteller.workspaceChip": "Story workspace",
-    "storyteller.workspaceTitle": "One timeline for the whole story",
-    "storyteller.workspaceIntro": "Title, scenes, and the next cue stay here.",
-    "storyteller.labels.title": "Story Title",
+    "storyteller.badge": "Lab",
+    "storyteller.heading": "Simulation Lab",
+  "storyteller.intro": "Run rehearsal scenes, objections, and training media in one studio.",
+    "storyteller.workspaceChip": "Simulation workspace",
+    "storyteller.workspaceTitle": "One timeline for the whole rehearsal",
+    "storyteller.workspaceIntro": "Brief, scenes, and the next training cue stay here.",
+    "storyteller.labels.title": "Scenario Title",
     "storyteller.labels.segments": "Scenes",
     "storyteller.labels.pendingJobs": "Queue",
     "storyteller.labels.state": "State",
@@ -3926,29 +3926,29 @@ function getLiveIntentCardDefinitions() {
     translation: {
       label: isRu ? "\u041f\u0435\u0440\u0435\u0432\u043e\u0434" : "Translate",
       title: isRu ? "\u041f\u0435\u0440\u0435\u0432\u0435\u0441\u0442\u0438" : "Translate",
-      hint: isRu ? "\u0422\u0435\u043a\u0441\u0442 \u0438 \u0433\u043e\u0442\u043e\u0432\u044b\u0439 \u043f\u0435\u0440\u0435\u0432\u043e\u0434." : "Text in, translation out.",
+      hint: isRu ? "\u0422\u0435\u043a\u0441\u0442 \u0438 \u0433\u043e\u0442\u043e\u0432\u044b\u0439 \u043f\u0435\u0440\u0435\u0432\u043e\u0434." : "Translate intake across languages.",
     },
     conversation: {
       label: isRu ? "\u0414\u0438\u0430\u043b\u043e\u0433" : "Chat",
       title: isRu ? "\u041f\u043e\u043e\u0431\u0449\u0430\u0442\u044c\u0441\u044f" : "Discuss",
-      hint: isRu ? "\u041e\u0434\u0438\u043d \u0432\u043e\u043f\u0440\u043e\u0441 \u0438\u043b\u0438 \u043e\u0442\u0432\u0435\u0442." : "One prompt or reply.",
+      hint: isRu ? "\u041e\u0434\u0438\u043d \u0432\u043e\u043f\u0440\u043e\u0441 \u0438\u043b\u0438 \u043e\u0442\u0432\u0435\u0442." : "Handle qualification or follow-up in one thread.",
     },
     negotiation: {
       label: isRu ? "\u0421\u0434\u0435\u043b\u043a\u0430" : "Deal",
       title: isRu ? "\u041f\u0435\u0440\u0435\u0433\u043e\u0432\u043e\u0440\u044b" : "Negotiate",
-      hint: isRu ? "\u041e\u0444\u0444\u0435\u0440 \u0438 \u043b\u0438\u043c\u0438\u0442\u044b \u0440\u044f\u0434\u043e\u043c." : "Offer and limits together.",
+      hint: isRu ? "\u041e\u0444\u0444\u0435\u0440 \u0438 \u043b\u0438\u043c\u0438\u0442\u044b \u0440\u044f\u0434\u043e\u043c." : "Keep pricing, timing, and next step together.",
     },
     research: {
       label: isRu ? "\u041f\u043e\u0438\u0441\u043a" : "Research",
       title: isRu ? "\u0418\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u0442\u044c" : "Research",
-      hint: isRu ? "\u041e\u0442\u0432\u0435\u0442 \u0441\u043e \u0441\u0441\u044b\u043b\u043a\u0430\u043c\u0438." : "Answer with sources.",
+      hint: isRu ? "\u041e\u0442\u0432\u0435\u0442 \u0441\u043e \u0441\u0441\u044b\u043b\u043a\u0430\u043c\u0438." : "Prepare a sourced answer before follow-through.",
     },
     story: {
-      label: "Story",
-      title: isRu ? "\u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u0438\u0441\u0442\u043e\u0440\u0438\u044e" : "Start story",
+      label: "Lab",
+      title: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u044e" : "Open lab",
       hint: isRu
-        ? "\u041e\u043f\u0438\u0448\u0438 \u0438\u0441\u0442\u043e\u0440\u0438\u044e \u0437\u0434\u0435\u0441\u044c, \u0430 \u0442\u0430\u0439\u043c\u043b\u0430\u0439\u043d \u043e\u0442\u043a\u0440\u043e\u0435\u0442\u0441\u044f \u0440\u044f\u0434\u043e\u043c."
-        : "Write the story here, then review the timeline there.",
+        ? "\u0417\u0430\u0434\u0430\u0439 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0439 \u0437\u0434\u0435\u0441\u044c, \u0430 \u0442\u0440\u0435\u043d\u0438\u0440\u043e\u0432\u043e\u0447\u043d\u0430\u044f \u043b\u0435\u043d\u0442\u0430 \u043e\u0442\u043a\u0440\u043e\u0435\u0442\u0441\u044f \u0440\u044f\u0434\u043e\u043c."
+        : "Shape a rehearsal here, then review the timeline in the lab.",
     },
     ui_task: {
       label: "UI",
@@ -5324,9 +5324,9 @@ function getDashboardWorkspaceConfig(tabId) {
         device: "\u0424\u043b\u0438\u0442 \u0438 routing.",
       }
     : {
-        live: "Chat, translate, negotiate.",
-        story: "Scenes and timeline.",
-        operator: "Runtime and recovery.",
+        live: "Qualify, book, collect docs.",
+        story: "Rehearsals and scenarios.",
+        operator: "Approvals and runtime.",
         device: "Fleet and routing.",
       };
 
@@ -5343,7 +5343,7 @@ function getDashboardWorkspaceConfig(tabId) {
           action: "story_open_live",
         },
         story: {
-          label: isRu ? "\u0418\u0441\u0442\u043e\u0440\u0438\u044f" : "Story",
+          label: isRu ? "\u0418\u0441\u0442\u043e\u0440\u0438\u044f" : "Lab",
           action: "story_prompt",
         },
         ops: {
@@ -5353,39 +5353,39 @@ function getDashboardWorkspaceConfig(tabId) {
       },
       checkpoint: isRu
         ? "\u0421\u0432\u0435\u0440\u0445\u0443 quick actions, \u043d\u0438\u0436\u0435 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044f, \u043e\u0431\u0437\u043e\u0440 \u0444\u043b\u043e\u0442\u0430 \u0438 \u0442\u043e\u043b\u044c\u043a\u043e \u043f\u043e\u0442\u043e\u043c advanced-\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438."
-        : "Quick actions up top, registration first, fleet overview second, advanced checks below.",
-      eyebrow: isRu ? "\u041f\u0440\u043e\u0441\u0442\u0440\u0430\u043d\u0441\u0442\u0432\u043e \u0438\u0441\u0442\u043e\u0440\u0438\u0438" : "Story Workspace",
-      title: isRu ? "\u0411\u0440\u0438\u0444 \u0438 \u0441\u0446\u0435\u043d\u044b" : "Brief and scenes",
+        : "Quick actions up top, rehearsal tools in the middle, and deeper checks below.",
+      eyebrow: isRu ? "\u041f\u0440\u043e\u0441\u0442\u0440\u0430\u043d\u0441\u0442\u0432\u043e \u0438\u0441\u0442\u043e\u0440\u0438\u0438" : "Simulation workspace",
+      title: isRu ? "\u0411\u0440\u0438\u0444 \u0438 \u0441\u0446\u0435\u043d\u044b" : "Rehearsals and scenarios",
       description: isRu
         ? "\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u0441\u043e\u0431\u0435\u0440\u0438 \u0431\u0440\u0438\u0444, \u0437\u0430\u0442\u0435\u043c \u0432\u044b\u0441\u0442\u0440\u043e\u0439 \u0441\u0446\u0435\u043d\u044b \u0438 \u043c\u0435\u0434\u0438\u0430."
-        : "Shape the brief first, then stage scenes and media.",
-      statusText: isRu ? "Story" : "Story",
+        : "Run objections, training drills, and media cues from one shared brief.",
+      statusText: isRu ? "Story" : "Lab",
       statusTone: "neutral",
       commands: [
         {
           action: "story_prompt",
           label: isRu ? "Prompt" : "Prompt",
-          title: isRu ? "\u041f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u0438\u0442\u044c \u0437\u0430\u043f\u0440\u043e\u0441 \u043d\u0430 \u0438\u0441\u0442\u043e\u0440\u0438\u044e" : "Prepare story request",
-          hint: isRu ? "\u0421\u0440\u0430\u0437\u0443 \u043e\u0442\u043a\u0440\u043e\u0435\u0442 \u0416\u0438\u0432\u043e\u0439 \u0434\u0438\u0430\u043b\u043e\u0433 \u0441 \u0433\u043e\u0442\u043e\u0432\u044b\u043c \u0442\u0435\u043a\u0441\u0442\u043e\u043c." : "Open Live with a ready story request.",
+          title: isRu ? "\u041f\u043e\u0434\u0433\u043e\u0442\u043e\u0432\u0438\u0442\u044c \u0437\u0430\u043f\u0440\u043e\u0441 \u043d\u0430 \u0438\u0441\u0442\u043e\u0440\u0438\u044e" : "Prepare rehearsal brief",
+          hint: isRu ? "\u0421\u0440\u0430\u0437\u0443 \u043e\u0442\u043a\u0440\u043e\u0435\u0442 \u0416\u0438\u0432\u043e\u0439 \u0434\u0438\u0430\u043b\u043e\u0433 \u0441 \u0433\u043e\u0442\u043e\u0432\u044b\u043c \u0442\u0435\u043a\u0441\u0442\u043e\u043c." : "Open Live with a ready rehearsal or training request.",
         },
         {
           action: "story_open_live",
           label: isRu ? "Live" : "Live",
-          title: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0438\u0441\u0442\u043e\u0440\u0438\u044e \u0432 \u0416\u0438\u0432\u043e\u043c \u0434\u0438\u0430\u043b\u043e\u0433\u0435" : "Open story in Live",
-          hint: isRu ? "\u0421\u0440\u0430\u0437\u0443 \u043f\u0435\u0440\u0435\u0439\u0442\u0438 \u043a \u0440\u0435\u0436\u0438\u043c\u0443 \u0438\u0441\u0442\u043e\u0440\u0438\u0438." : "Jump straight to story mode.",
+          title: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0438\u0441\u0442\u043e\u0440\u0438\u044e \u0432 \u0416\u0438\u0432\u043e\u043c \u0434\u0438\u0430\u043b\u043e\u0433\u0435" : "Open lab in Live",
+          hint: isRu ? "\u0421\u0440\u0430\u0437\u0443 \u043f\u0435\u0440\u0435\u0439\u0442\u0438 \u043a \u0440\u0435\u0436\u0438\u043c\u0443 \u0438\u0441\u0442\u043e\u0440\u0438\u0438." : "Jump to the live lane with the current rehearsal context.",
         },
         {
           action: "story_view",
           label: isRu ? "Timeline" : "Timeline",
-          title: isRu ? "\u0421\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u0442\u0430\u0439\u043c\u043b\u0430\u0439\u043d" : "View timeline",
-          hint: isRu ? "\u0421\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u0441\u0446\u0435\u043d\u044b, \u043c\u0430\u0442\u0435\u0440\u0438\u0430\u043b\u044b \u0438 \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441." : "Inspect scenes, media, and progress.",
+          title: isRu ? "\u0421\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u0442\u0430\u0439\u043c\u043b\u0430\u0439\u043d" : "View rehearsal timeline",
+          hint: isRu ? "\u0421\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u0441\u0446\u0435\u043d\u044b, \u043c\u0430\u0442\u0435\u0440\u0438\u0430\u043b\u044b \u0438 \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441." : "Inspect scenes, media cues, and run progress.",
         },
       ],
       glances: [
         {
           label: isRu ? "\u0420\u0435\u0436\u0438\u043c" : "Mode",
           value: storyModeLabel,
-          hint: isRu ? "\u0422\u0435\u043a\u0443\u0449\u0438\u0439 creative-\u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0439" : "Current creative scenario",
+          hint: isRu ? "\u0422\u0435\u043a\u0443\u0449\u0438\u0439 creative-\u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0439" : "Current rehearsal scenario",
         },
         {
           label: storyHasRunActivity
@@ -5394,7 +5394,7 @@ function getDashboardWorkspaceConfig(tabId) {
           value: storyHasRunActivity ? storyOutputStatus : (isRu ? "\u0411\u0440\u0438\u0444 \u0433\u043e\u0442\u043e\u0432" : "Brief ready"),
           hint: storyHasRunActivity
             ? (isRu ? "\u0421\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435 latest-output surface" : "State of the latest-output surface")
-            : (isRu ? "\u0421\u0442\u0443\u0434\u0438\u044f \u0433\u043e\u0442\u043e\u0432\u0430 \u043a \u043f\u0435\u0440\u0432\u043e\u043c\u0443 \u043f\u0440\u043e\u0433\u043e\u043d\u0443" : "Studio is ready for the first run"),
+            : (isRu ? "\u0421\u0442\u0443\u0434\u0438\u044f \u0433\u043e\u0442\u043e\u0432\u0430 \u043a \u043f\u0435\u0440\u0432\u043e\u043c\u0443 \u043f\u0440\u043e\u0433\u043e\u043d\u0443" : "Lab is ready for the first rehearsal"),
         },
         {
           label: isRu ? "\u0421\u0446\u0435\u043d\u044b" : "Scenes",
@@ -5581,11 +5581,11 @@ function getDashboardWorkspaceConfig(tabId) {
     checkpoint: isRu
       ? "\u041e\u0434\u0438\u043d \u044f\u0441\u043d\u044b\u0439 \u0440\u0430\u0431\u043e\u0447\u0438\u0439 \u044d\u043a\u0440\u0430\u043d \u0441\u0432\u0435\u0440\u0445\u0443, \u0430 \u0433\u043e\u043b\u043e\u0441 \u0438 \u0442\u0435\u0445\u0441\u043b\u043e\u0439 \u0436\u0438\u0432\u0443\u0442 \u0432 \u0432\u0435\u0440\u0445\u043d\u0435\u043c \u0434\u043e\u043a\u0435."
       : "One calm workspace shell on top, with voice and technical tools parked in the support dock below.",
-    eyebrow: isRu ? "\u0410\u043a\u0442\u0438\u0432\u043d\u0430\u044f \u0437\u043e\u043d\u0430" : "Active workspace",
-    title: isRu ? "\u0416\u0438\u0432\u043e\u0439 \u0434\u0438\u0430\u043b\u043e\u0433" : "Live dialogue",
+    eyebrow: isRu ? "\u0410\u043a\u0442\u0438\u0432\u043d\u0430\u044f \u0437\u043e\u043d\u0430" : "AI Action Desk",
+    title: isRu ? "\u0416\u0438\u0432\u043e\u0439 \u0434\u0438\u0430\u043b\u043e\u0433" : "Qualify, book, collect",
     description: isRu
       ? "\u041e\u0434\u0438\u043d \u044f\u0441\u043d\u044b\u0439 \u0437\u0430\u043f\u0440\u043e\u0441, \u043e\u0434\u0438\u043d \u0432\u0438\u0434\u0438\u043c\u044b\u0439 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442. \u0413\u043e\u043b\u043e\u0441 \u0438 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u0436\u0438\u0432\u0443\u0442 \u0432 \u0432\u0435\u0440\u0445\u043d\u0435\u043c \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u043e\u043c \u0434\u043e\u043a\u0435."
-      : "One clean request in the center, one visible result on the right. Voice and runtime stay ready in the support dock below.",
+      : "Start with one customer request, then qualify, book, or collect the missing details with safe follow-through.",
     statusText: isRu ? "Live" : "Live",
     statusTone: "neutral",
     commands: [
@@ -5593,25 +5593,25 @@ function getDashboardWorkspaceConfig(tabId) {
         action: "quick_translate",
         label: isRu ? "\u0422\u0435\u043a\u0441\u0442" : "Text",
         title: isRu ? "\u041f\u0435\u0440\u0435\u0432\u0435\u0441\u0442\u0438" : "Translate",
-        hint: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0444\u043e\u0440\u043c\u0443 \u043f\u0435\u0440\u0435\u0432\u043e\u0434\u0430." : "Open the translation form.",
+        hint: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0444\u043e\u0440\u043c\u0443 \u043f\u0435\u0440\u0435\u0432\u043e\u0434\u0430." : "Use when a lead arrives in another language.",
       },
       {
         action: "quick_conversation",
         label: isRu ? "\u0427\u0430\u0442" : "Chat",
         title: isRu ? "\u041f\u043e\u043e\u0431\u0449\u0430\u0442\u044c\u0441\u044f" : "Talk",
-        hint: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043e\u0431\u044b\u0447\u043d\u044b\u0439 \u0434\u0438\u0430\u043b\u043e\u0433." : "Open the normal conversation flow.",
+        hint: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043e\u0431\u044b\u0447\u043d\u044b\u0439 \u0434\u0438\u0430\u043b\u043e\u0433." : "Use for qualification, follow-up, or clarifying details.",
       },
       {
         action: "quick_negotiation",
         label: isRu ? "\u0423\u0441\u043b\u043e\u0432\u0438\u044f" : "Terms",
         title: isRu ? "\u041f\u0435\u0440\u0435\u0433\u043e\u0432\u043e\u0440\u044b" : "Negotiate",
-        hint: isRu ? "\u0426\u0435\u043d\u0430, \u0441\u0440\u043e\u043a, \u0434\u043e\u0441\u0442\u0430\u0432\u043a\u0430 \u0438 SLA \u0432 \u043e\u0434\u043d\u043e\u0439 \u0444\u043e\u0440\u043c\u0435." : "Price, delivery, and SLA in one form.",
+        hint: isRu ? "\u0426\u0435\u043d\u0430, \u0441\u0440\u043e\u043a, \u0434\u043e\u0441\u0442\u0430\u0432\u043a\u0430 \u0438 SLA \u0432 \u043e\u0434\u043d\u043e\u0439 \u0444\u043e\u0440\u043c\u0435." : "Handle pricing, booking terms, delivery, or SLA in one place.",
       },
       {
         action: "quick_research",
         label: isRu ? "\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438" : "Research",
         title: isRu ? "\u041d\u0430\u0439\u0442\u0438 \u043e\u0442\u0432\u0435\u0442" : "Find answer",
-        hint: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0440\u0435\u0436\u0438\u043c \u043e\u0442\u0432\u0435\u0442\u0430 \u0441 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0430\u043c\u0438." : "Open grounded answer mode with sources.",
+        hint: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0440\u0435\u0436\u0438\u043c \u043e\u0442\u0432\u0435\u0442\u0430 \u0441 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0430\u043c\u0438." : "Prepare a grounded answer before the next action.",
       },
     ],
     glances: [
@@ -15865,7 +15865,7 @@ function resolveStoryDesktopRunRailFullLabel(kind, fallback = "") {
   const isRu = state.languageMode === "ru";
   switch (kind) {
     case "title":
-      return isRu ? "Название истории" : "Story Title";
+      return isRu ? "Название истории" : "Scenario Title";
     case "titleNote":
       return isRu ? "Текущий сюжетный прогон" : "Current narrative run";
     case "count":
