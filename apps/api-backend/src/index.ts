@@ -2200,6 +2200,24 @@ function buildBrowserWorkersSummary(snapshot: unknown): Record<string, unknown> 
     lastCheckpointAt: toOptionalString(job.lastCheckpointAt),
     currentWorkerId: toOptionalString(job.currentWorkerId),
     error: toOptionalString(job.error),
+    targetUrl: toOptionalString(job.replayBundle && isRecord(job.replayBundle) ? job.replayBundle.targetUrl : null),
+    verificationState: toOptionalString(
+      job.replayBundle && isRecord(job.replayBundle) && isRecord(job.replayBundle.verification)
+        ? job.replayBundle.verification.state
+        : null,
+    ),
+    verificationSummary: toOptionalString(
+      job.replayBundle && isRecord(job.replayBundle) && isRecord(job.replayBundle.verification)
+        ? job.replayBundle.verification.summary
+        : null,
+    ),
+    latestResultRef: toOptionalString(job.replayBundle && isRecord(job.replayBundle) ? job.replayBundle.latestResultRef : null),
+    latestCheckpointRef: toOptionalString(
+      job.replayBundle && isRecord(job.replayBundle) ? job.replayBundle.latestCheckpointRef : null,
+    ),
+    screenshotRefs: Array.isArray(job.replayBundle && isRecord(job.replayBundle) ? job.replayBundle.screenshotRefs : null)
+      ? (job.replayBundle as { screenshotRefs?: unknown[] }).screenshotRefs?.length ?? 0
+      : 0,
   }));
   const statusCounts = {
     queued: 0,

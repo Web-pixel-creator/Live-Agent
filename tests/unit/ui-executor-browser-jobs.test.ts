@@ -68,6 +68,9 @@ test("ui-executor browser worker pauses at checkpoint and resumes to completion"
   assert.equal(paused.totalSteps, 3);
   assert.equal(paused.checkpoints.length, 1);
   assert.equal(paused.checkpoints[0]?.status, "ready");
+  assert.equal(paused.replayBundle.targetUrl, "https://example.com");
+  assert.equal(paused.replayBundle.verification.state, "partially_verified");
+  assert.equal(paused.replayBundle.screenshotRefs.length >= 2, true);
   assert.equal(getBrowserJobRuntimeSnapshot().queue.paused, 1);
 
   const resumed = resumeBrowserJob(job.jobId, "unit resume");
@@ -79,6 +82,9 @@ test("ui-executor browser worker pauses at checkpoint and resumes to completion"
   assert.equal(completed.status, "completed");
   assert.equal(completed.checkpoints[0]?.status, "resumed");
   assert.equal(completed.trace.length >= 3, true);
+  assert.equal(completed.replayBundle.verification.state, "verified");
+  assert.match(String(completed.replayBundle.latestResultRef ?? ""), /result-completed/i);
+  assert.equal(completed.replayBundle.stepSummaries.length >= 3, true);
 });
 
 test("ui-executor browser worker cancel stops an active job deterministically", async () => {
@@ -120,6 +126,8 @@ test("ui-executor browser worker cancel stops an active job deterministically", 
   assert.match(String(cancelled?.error ?? ""), /cancelled by unit test/i);
   const final = await waitForJobStatus(job.jobId, ["cancelled"]);
   assert.equal(final.status, "cancelled");
+  assert.equal(final.replayBundle.verification.state, "unverified");
+  assert.match(String(final.replayBundle.latestResultRef ?? ""), /result-cancelled/i);
 });
 
 test("ui-executor browser worker keeps explicit persistent-session metadata across checkpoint resume", async () => {

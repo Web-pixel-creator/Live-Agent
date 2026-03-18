@@ -27099,6 +27099,10 @@ function buildOperatorBrowserWorkerControlMeta(snapshot) {
 
 function buildOperatorBrowserWorkerCurrentConfigPreview() {
   if (state.operatorBrowserWorkerSnapshot && typeof state.operatorBrowserWorkerSnapshot === "object") {
+    const replayPreview = buildOperatorBrowserWorkerReplayPreview(state.operatorBrowserWorkerSnapshot);
+    if (replayPreview) {
+      return replayPreview;
+    }
     return stringifyOperatorBrowserWorkerValue(
       state.operatorBrowserWorkerSnapshot,
       "No browser worker snapshot loaded yet.",
@@ -27107,8 +27111,55 @@ function buildOperatorBrowserWorkerCurrentConfigPreview() {
   return "No browser worker snapshot loaded yet.";
 }
 
+function findOperatorBrowserWorkerReplayBundle(snapshot) {
+  const selectedJob = findOperatorBrowserWorkerJob(snapshot, el.operatorBrowserWorkerJobId?.value);
+  const replay =
+    selectedJob && isRecord(selectedJob.replayBundle)
+      ? selectedJob.replayBundle
+      : isRecord(snapshot) && isRecord(snapshot.replayBundle)
+        ? snapshot.replayBundle
+        : isRecord(snapshot) && isRecord(snapshot.job) && isRecord(snapshot.job.replayBundle)
+          ? snapshot.job.replayBundle
+          : null;
+  return isRecord(replay) ? replay : null;
+}
+
+function buildOperatorBrowserWorkerReplayPreview(snapshot) {
+  const replay = findOperatorBrowserWorkerReplayBundle(snapshot);
+  if (!replay) {
+    return "";
+  }
+  const verification = isRecord(replay.verification) ? replay.verification : {};
+  const targetUrl = toOptionalText(replay.targetUrl) ?? "n/a";
+  const goal = toOptionalText(replay.goal) ?? "No goal recorded.";
+  const verificationState = toOptionalText(verification.state) ?? "unverified";
+  const verificationSummary = toOptionalText(verification.summary) ?? "No verification summary recorded.";
+  const executedSteps = Math.max(0, Math.floor(Number(replay.executedSteps ?? 0) || 0));
+  const totalSteps = Math.max(0, Math.floor(Number(replay.totalSteps ?? 0) || 0));
+  const screenshotCount = Array.isArray(replay.screenshotRefs) ? replay.screenshotRefs.length : 0;
+  const latestResultRef = toOptionalText(replay.latestResultRef) ?? "n/a";
+  const latestCheckpointRef = toOptionalText(replay.latestCheckpointRef) ?? "n/a";
+  const latestScreenshotRef = toOptionalText(replay.latestScreenshotRef) ?? "n/a";
+  return [
+    `Replay bundle`,
+    `goal: ${goal}`,
+    `targetUrl: ${targetUrl}`,
+    `verification: ${verificationState}`,
+    `summary: ${verificationSummary}`,
+    `steps: ${executedSteps}/${totalSteps}`,
+    `screenshots: ${screenshotCount}`,
+    `latestResultRef: ${latestResultRef}`,
+    `latestCheckpointRef: ${latestCheckpointRef}`,
+    `latestScreenshotRef: ${latestScreenshotRef}`,
+  ].join("\n");
+}
+
 function buildOperatorBrowserWorkerLastResultPreview() {
   if (state.operatorBrowserWorkerLastResult && typeof state.operatorBrowserWorkerLastResult === "object") {
+    const replayPreview = buildOperatorBrowserWorkerReplayPreview(state.operatorBrowserWorkerLastResult.result ?? null);
+    if (replayPreview) {
+      return replayPreview;
+    }
     return stringifyOperatorBrowserWorkerValue(
       state.operatorBrowserWorkerLastResult,
       "No browser worker action has run yet.",

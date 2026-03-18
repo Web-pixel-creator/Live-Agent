@@ -53,6 +53,8 @@ test("operator console exposes browser worker control plane and widget contract"
     'operatorBrowserWorkersCheckpointReady: document.getElementById("operatorBrowserWorkersCheckpointReady")',
     "function getOperatorBrowserWorkerSnapshotParts(snapshot)",
     "function findOperatorBrowserWorkerJob(snapshot, requestedJobId = null)",
+    "function findOperatorBrowserWorkerReplayBundle(snapshot)",
+    "function buildOperatorBrowserWorkerReplayPreview(snapshot)",
     "function syncOperatorBrowserWorkerJobId(snapshot, options = {})",
     "function renderOperatorBrowserWorkersWidget(browserWorkersSummary)",
     "function setOperatorBrowserWorkerControlStatus(text, variant = \"neutral\")",

@@ -47,6 +47,7 @@ export type BrowserJobTraceStep = {
   status: "ok" | "retry" | "failed" | "blocked";
   screenshotRef: string;
   notes: string;
+  observation?: string | null;
 };
 
 export type BrowserJobArtifact = {
@@ -66,6 +67,46 @@ export type BrowserJobCheckpoint = {
   resumedAt: string | null;
   artifactRef: string;
   notes: string | null;
+};
+
+export type BrowserJobReplayVerification = {
+  state: "verified" | "partially_verified" | "unverified";
+  requested: boolean;
+  requestedSteps: number;
+  completedVerifySteps: number;
+  summary: string;
+};
+
+export type BrowserJobReplayStepSummary = {
+  index: number;
+  actionId: string;
+  actionType: BrowserJobActionType;
+  target: string;
+  status: BrowserJobTraceStep["status"];
+  screenshotRef: string;
+  notes: string;
+  observation: string | null;
+};
+
+export type BrowserJobReplayBundle = {
+  bundleId: string;
+  generatedAt: string;
+  status: BrowserJobStatus;
+  goal: string | null;
+  targetUrl: string | null;
+  traceSteps: number;
+  completedSteps: number;
+  totalSteps: number;
+  executedSteps: number;
+  screenshotRefs: string[];
+  traceArtifactRefs: string[];
+  checkpointArtifactRefs: string[];
+  resultArtifactRefs: string[];
+  latestCheckpointRef: string | null;
+  latestResultRef: string | null;
+  latestScreenshotRef: string | null;
+  verification: BrowserJobReplayVerification;
+  stepSummaries: BrowserJobReplayStepSummary[];
 };
 
 export type BrowserJobStatus = "queued" | "running" | "paused" | "completed" | "failed" | "cancelled";
@@ -119,9 +160,10 @@ export type BrowserJobRecord = {
   checkpoints: BrowserJobCheckpoint[];
   sandbox: BrowserJobSandboxSnapshot | null;
   session: BrowserJobSessionRecord;
+  replayBundle: BrowserJobReplayBundle;
 };
 
-type InternalBrowserJob = BrowserJobRecord & {
+type InternalBrowserJob = Omit<BrowserJobRecord, "replayBundle"> & {
   actions: BrowserJobAction[];
   context: BrowserJobContext;
 };
@@ -194,6 +236,7 @@ export type BrowserJobExecutionResult = {
   adapterMode: "remote_http";
   adapterNotes: string[];
   deviceNode: BrowserJobDeviceNode | null;
+  verification?: BrowserJobReplayVerification | null;
   session?: Partial<BrowserJobSessionRecord> | null;
 };
 
@@ -387,6 +430,95 @@ function cloneBrowserJobRecord(job: InternalBrowserJob): BrowserJobRecord {
         }
       : null,
     session: cloneBrowserJobSessionRecord(job.session),
+    replayBundle: buildBrowserJobReplayBundle(job),
+  };
+}
+
+function buildBrowserJobReplayVerification(job: InternalBrowserJob): BrowserJobReplayVerification {
+  const requestedSteps = job.actions.filter((action) => action.type === "verify").length;
+  const completedVerifySteps = job.trace.filter((step) => step.actionType === "verify" && step.status === "ok").length;
+  const completedSteps = job.trace.filter((step) => step.status === "ok").length;
+  const requested = requestedSteps > 0;
+  const state: BrowserJobReplayVerification["state"] =
+    job.status === "completed" && requested && completedVerifySteps >= requestedSteps
+      ? "verified"
+      : completedVerifySteps > 0 || completedSteps > 0
+        ? "partially_verified"
+        : "unverified";
+
+  let summary: string;
+  if (state === "verified") {
+    summary = `Browser job verified ${completedVerifySteps} post-action step${completedVerifySteps === 1 ? "" : "s"}.`;
+  } else if (requested) {
+    summary =
+      job.status === "paused"
+        ? `Browser job paused before all ${requestedSteps} verification step${requestedSteps === 1 ? "" : "s"} completed.`
+        : job.status === "completed"
+          ? `Browser job completed, but only ${completedVerifySteps} of ${requestedSteps} verification step${requestedSteps === 1 ? "" : "s"} succeeded.`
+          : `Browser job has not yet completed all ${requestedSteps} verification step${requestedSteps === 1 ? "" : "s"}.`;
+  } else if (completedSteps > 0) {
+    summary = "Browser job recorded action evidence without an explicit post-action verification step.";
+  } else {
+    summary = "Browser job does not yet have replayable verification evidence.";
+  }
+
+  return {
+    state,
+    requested,
+    requestedSteps,
+    completedVerifySteps,
+    summary,
+  };
+}
+
+function buildBrowserJobReplayBundle(job: InternalBrowserJob): BrowserJobReplayBundle {
+  const actionTargetUrl = job.actions.find((action) => action.type === "navigate" && /^https?:\/\//i.test(action.target))?.target ?? null;
+  const screenshotRefs = Array.from(
+    new Set(
+      job.trace
+        .map((step) => (typeof step.screenshotRef === "string" ? step.screenshotRef.trim() : ""))
+        .filter((value) => value.length > 0),
+    ),
+  );
+  const traceArtifactRefs = job.artifacts.filter((item) => item.kind === "trace").map((item) => item.ref);
+  const checkpointArtifactRefs = job.artifacts.filter((item) => item.kind === "checkpoint").map((item) => item.ref);
+  const resultArtifactRefs = job.artifacts.filter((item) => item.kind === "result").map((item) => item.ref);
+  const latestCheckpointRef = checkpointArtifactRefs.length > 0 ? checkpointArtifactRefs[checkpointArtifactRefs.length - 1] : null;
+  const latestResultRef = resultArtifactRefs.length > 0 ? resultArtifactRefs[resultArtifactRefs.length - 1] : null;
+  const latestScreenshotRef = screenshotRefs.length > 0 ? screenshotRefs[screenshotRefs.length - 1] : null;
+  const completedSteps = job.trace.filter((step) => step.status === "ok").length;
+
+  return {
+    bundleId: `replay-${job.jobId}`,
+    generatedAt: nowIso(),
+    status: job.status,
+    goal: typeof job.context.goal === "string" && job.context.goal.trim().length > 0 ? job.context.goal.trim() : null,
+    targetUrl:
+      typeof job.context.url === "string" && job.context.url.trim().length > 0
+        ? job.context.url.trim()
+        : job.session.lastPageUrl ?? actionTargetUrl,
+    traceSteps: job.trace.length,
+    completedSteps,
+    totalSteps: job.totalSteps,
+    executedSteps: job.executedSteps,
+    screenshotRefs,
+    traceArtifactRefs,
+    checkpointArtifactRefs,
+    resultArtifactRefs,
+    latestCheckpointRef,
+    latestResultRef,
+    latestScreenshotRef,
+    verification: buildBrowserJobReplayVerification(job),
+    stepSummaries: job.trace.map((step) => ({
+      index: step.index,
+      actionId: step.actionId,
+      actionType: step.actionType,
+      target: step.target,
+      status: step.status,
+      screenshotRef: step.screenshotRef,
+      notes: step.notes,
+      observation: typeof step.observation === "string" ? step.observation : null,
+    })),
   };
 }
 

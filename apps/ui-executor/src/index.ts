@@ -1223,7 +1223,10 @@ setBrowserJobRunner(async (input): Promise<BrowserJobExecutionResult> => {
     sandbox,
   });
   return {
-    trace: response.trace.map((step) => ({ ...step })),
+    trace: response.trace.map((step) => ({
+      ...step,
+      observation: typeof step.observation === "string" ? step.observation : null,
+    })),
     finalStatus: response.finalStatus,
     retries: response.retries,
     executor: response.executor,
@@ -1241,6 +1244,7 @@ setBrowserJobRunner(async (input): Promise<BrowserJobExecutionResult> => {
             : [],
         }
       : null,
+    verification: response.verification,
     session: response.session,
   };
 });
