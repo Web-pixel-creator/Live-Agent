@@ -90,7 +90,9 @@ export type UiFailureClass = (typeof UI_FAILURE_CLASSES)[number];
 export type UiVerificationEvidence = {
   traceSteps: number;
   completedSteps: number;
+  plannedVerifySteps: number;
   verifySteps: number;
+  verificationRequested: boolean;
   blockedSteps: number;
   screenshotRefs: string[];
   groundingSignals: {

@@ -114,6 +114,54 @@ test("task metadata roundtrips ui verification state and failure class", () => {
   assert.equal(payload.task?.verificationSummary, "Waiting for approval before executing the UI action.");
 });
 
+test("ui verification evidence shape carries explicit post-action verification intent", () => {
+  const envelope = createEnvelope({
+    userId: "verification-user",
+    sessionId: "verification-session",
+    runId: "verification-run",
+    type: "orchestrator.response",
+    source: "ui-navigator-agent",
+    payload: {
+      route: "ui-navigator-agent",
+      status: "completed",
+      output: {
+        verification: {
+          state: "partially_verified",
+          failureClass: "verification_failed",
+          summary: "Action steps completed without enough verification evidence.",
+          recoveryHint: "Add a clearer post-action verify step or rerun with stronger grounding.",
+          evidence: {
+            traceSteps: 3,
+            completedSteps: 2,
+            plannedVerifySteps: 1,
+            verifySteps: 0,
+            verificationRequested: true,
+            blockedSteps: 0,
+            screenshotRefs: ["ui://trace/1.png"],
+            groundingSignals: {
+              screenshotRefProvided: false,
+              domSnapshotProvided: true,
+              accessibilityTreeProvided: true,
+              markHintsCount: 1,
+              refMapCount: 0,
+              actionableRefIds: [],
+              staleRefTargets: [],
+            },
+            visualChecks: 0,
+            visualRegressions: 0,
+          },
+        },
+      },
+    },
+  });
+
+  const parsed = safeParseEnvelope(JSON.stringify(envelope));
+  assert.ok(parsed);
+  const payload = parsed?.payload as { output?: { verification?: { evidence?: Record<string, unknown> } } };
+  assert.equal(payload.output?.verification?.evidence?.plannedVerifySteps, 1);
+  assert.equal(payload.output?.verification?.evidence?.verificationRequested, true);
+});
+
 test("createNormalizedError always emits traceId", () => {
   const normalized = createNormalizedError({
     code: "TEST_ERROR",

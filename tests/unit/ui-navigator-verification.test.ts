@@ -113,6 +113,7 @@ test("ui navigator reports verified when post-action verification succeeds", asy
         assert.equal(verification.failureClass, null);
         assert.equal(asObject(planner.verification).targetState, "verified");
         assert.equal(asObject(execution.verification).state, "verified");
+        assert.match(String(output.message ?? ""), /completed and verified/i);
         assert.match(String(output.text ?? ""), /Verification state: verified/i);
       },
     );
@@ -291,6 +292,7 @@ test("ui navigator reports unverified when grounding is missing", async () => {
       assert.equal(verification.state, "unverified");
       assert.equal(verification.failureClass, "missing_grounding");
       assert.equal(asObject(execution.verification).state, "unverified");
+      assert.match(String(output.message ?? ""), /verification is unverified/i);
       assert.match(String(verification.recoveryHint ?? ""), /need stronger grounding/i);
       assert.match(String(output.text ?? ""), /need stronger grounding/i);
     },

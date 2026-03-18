@@ -37,6 +37,10 @@ test("operator trace summary aggregates run/event/approval telemetry", () => {
       approvalStatus: "approved",
       traceSteps: 3,
       screenshotRefs: 2,
+      verificationState: "verified",
+      verificationFailureClass: undefined,
+      verificationSummary: "Execution verified with 1 verification step.",
+      verifySteps: 1,
       hasVisualTesting: true,
       hasError: false,
     },
@@ -92,6 +96,8 @@ test("operator trace summary aggregates run/event/approval telemetry", () => {
   assert.equal(summary.totals.approvalLinkedRuns, 1);
   assert.equal(summary.totals.traceSteps, 3);
   assert.equal(summary.totals.screenshotRefs, 2);
+  assert.equal(summary.totals.verifiedRuns, 1);
+  assert.equal(summary.totals.verifySteps, 1);
   assert.equal(summary.byRoute["ui-navigator-agent"], 1);
   assert.equal(summary.byStatus.completed, 2);
   assert.equal(summary.liveBridgeHealth.state, "unknown");
@@ -104,6 +110,8 @@ test("operator trace summary aggregates run/event/approval telemetry", () => {
   assert.equal(uiRun?.approvalStatus, "approved");
   assert.equal(uiRun?.traceSteps, 3);
   assert.equal(uiRun?.screenshotRefs, 2);
+  assert.equal(uiRun?.verificationState, "verified");
+  assert.equal(uiRun?.verifySteps, 1);
 });
 
 test("operator trace summary falls back to active tasks and approvals without persisted runs", () => {
@@ -157,6 +165,7 @@ test("operator trace summary falls back to active tasks and approvals without pe
   assert.equal(run.runId, "run-pending-1");
   assert.equal(run.approvalStatus, "pending");
   assert.equal(run.activeTaskStage, "awaiting_approval");
+  assert.equal(run.verificationState, null);
   assert.equal(summary.liveBridgeHealth.state, "unknown");
 });
 

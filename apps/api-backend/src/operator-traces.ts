@@ -42,6 +42,10 @@ export type OperatorTraceRunSummary = {
   traceId: string | null;
   traceSteps: number;
   screenshotRefs: number;
+  verificationState: string | null;
+  verificationFailureClass: string | null;
+  verificationSummary: string | null;
+  verifySteps: number;
   approvalId: string | null;
   approvalStatus: string | null;
   delegatedRoute: string | null;
@@ -61,6 +65,11 @@ export type OperatorTraceSummary = {
     errorRuns: number;
     traceSteps: number;
     screenshotRefs: number;
+    verifiedRuns: number;
+    partiallyVerifiedRuns: number;
+    unverifiedRuns: number;
+    approvalBlockedRuns: number;
+    verifySteps: number;
     activeTaskBackedRuns: number;
   };
   liveBridgeHealth: {
@@ -93,6 +102,9 @@ export type OperatorTraceSummary = {
     intent: string | null;
     traceSteps: number;
     screenshotRefs: number;
+    verificationState: string | null;
+    verificationFailureClass: string | null;
+    verifySteps: number;
     approvalId: string | null;
     delegatedRoute: string | null;
     hasVisualTesting: boolean;
@@ -290,6 +302,11 @@ export function buildOperatorTraceSummary(params: {
   let errorRuns = 0;
   let traceStepsTotal = 0;
   let screenshotRefsTotal = 0;
+  let verifiedRuns = 0;
+  let partiallyVerifiedRuns = 0;
+  let unverifiedRuns = 0;
+  let approvalBlockedRuns = 0;
+  let verifyStepsTotal = 0;
   let activeTaskBackedRuns = 0;
   let liveBridgeDegradedEvents = 0;
   let liveBridgeRecoveredEvents = 0;
@@ -368,10 +385,15 @@ export function buildOperatorTraceSummary(params: {
     let intent = run.intent;
     let approvalId: string | null = null;
     let approvalStatus: string | null = null;
+    let verificationState: string | null = null;
+    let verificationFailureClass: string | null = null;
+    let verificationSummary: string | null = null;
+    let verifySteps = 0;
 
     for (const event of runEvents) {
       traceSteps += toNonNegativeInt(event.traceSteps, 0);
       screenshotRefs += toNonNegativeInt(event.screenshotRefs, 0);
+      verifySteps += toNonNegativeInt(event.verifySteps, 0);
       if (!delegatedRoute && toNonEmptyString(event.delegatedRoute)) {
         delegatedRoute = event.delegatedRoute ?? null;
       }
@@ -386,6 +408,15 @@ export function buildOperatorTraceSummary(params: {
       }
       if (!approvalStatus && toNonEmptyString(event.approvalStatus)) {
         approvalStatus = event.approvalStatus ?? null;
+      }
+      if (!verificationState && toNonEmptyString(event.verificationState)) {
+        verificationState = event.verificationState ?? null;
+      }
+      if (!verificationFailureClass && toNonEmptyString(event.verificationFailureClass)) {
+        verificationFailureClass = event.verificationFailureClass ?? null;
+      }
+      if (!verificationSummary && toNonEmptyString(event.verificationSummary)) {
+        verificationSummary = event.verificationSummary ?? null;
       }
       if (event.hasVisualTesting === true) {
         hasVisualTesting = true;
@@ -422,6 +453,10 @@ export function buildOperatorTraceSummary(params: {
       traceId,
       traceSteps,
       screenshotRefs,
+      verificationState,
+      verificationFailureClass,
+      verificationSummary,
+      verifySteps,
       approvalId,
       approvalStatus,
       delegatedRoute,
@@ -452,6 +487,16 @@ export function buildOperatorTraceSummary(params: {
     }
     traceStepsTotal += traceSteps;
     screenshotRefsTotal += screenshotRefs;
+    verifyStepsTotal += verifySteps;
+    if (verificationState === "verified") {
+      verifiedRuns += 1;
+    } else if (verificationState === "partially_verified") {
+      partiallyVerifiedRuns += 1;
+    } else if (verificationState === "blocked_pending_approval") {
+      approvalBlockedRuns += 1;
+    } else if (verificationState === "unverified") {
+      unverifiedRuns += 1;
+    }
   }
 
   return {
@@ -466,6 +511,11 @@ export function buildOperatorTraceSummary(params: {
       errorRuns,
       traceSteps: traceStepsTotal,
       screenshotRefs: screenshotRefsTotal,
+      verifiedRuns,
+      partiallyVerifiedRuns,
+      unverifiedRuns,
+      approvalBlockedRuns,
+      verifySteps: verifyStepsTotal,
       activeTaskBackedRuns,
     },
     liveBridgeHealth: {
@@ -498,6 +548,9 @@ export function buildOperatorTraceSummary(params: {
       intent: event.intent ?? null,
       traceSteps: toNonNegativeInt(event.traceSteps, 0),
       screenshotRefs: toNonNegativeInt(event.screenshotRefs, 0),
+      verificationState: event.verificationState ?? null,
+      verificationFailureClass: event.verificationFailureClass ?? null,
+      verifySteps: toNonNegativeInt(event.verifySteps, 0),
       approvalId: event.approvalId ?? null,
       delegatedRoute: event.delegatedRoute ?? null,
       hasVisualTesting: event.hasVisualTesting === true,

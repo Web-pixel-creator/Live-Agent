@@ -110,6 +110,13 @@ type ExecuteResponse = {
     staleRefTargets: string[];
     recoveryHint: string | null;
   };
+  verification: {
+    state: "verified" | "partially_verified" | "unverified";
+    requested: boolean;
+    requestedSteps: number;
+    completedVerifySteps: number;
+    summary: string;
+  };
   session?: Partial<BrowserJobSessionRecord> | null;
 };
 
@@ -641,6 +648,50 @@ function simulateExecution(
     deviceNode,
     sandbox: sandboxResponse(sandbox),
     grounding: groundingResponse(request),
+    verification: buildExecutionVerificationSummary(request.actions, trace, "completed"),
+  };
+}
+
+function buildExecutionVerificationSummary(
+  actions: UiAction[],
+  trace: TraceStep[],
+  finalStatus: ExecuteResponse["finalStatus"],
+): ExecuteResponse["verification"] {
+  const requestedSteps = actions.filter((action) => action.type === "verify").length;
+  const completedVerifySteps = trace.filter((step) => step.actionType === "verify" && step.status === "ok").length;
+  const completedSteps = trace.filter((step) => step.status === "ok").length;
+  const requested = requestedSteps > 0;
+  const state: ExecuteResponse["verification"]["state"] =
+    finalStatus === "completed" && requested && completedVerifySteps >= requestedSteps
+      ? "verified"
+      : completedVerifySteps > 0 || completedSteps > 0
+        ? "partially_verified"
+        : "unverified";
+
+  let summary: string;
+  if (state === "verified") {
+    summary = `Executor observed ${completedVerifySteps} successful verification step${
+      completedVerifySteps === 1 ? "" : "s"
+    }.`;
+  } else if (requested) {
+    summary =
+      finalStatus === "completed"
+        ? `Action steps completed, but only ${completedVerifySteps} of ${requestedSteps} verification step${
+            requestedSteps === 1 ? "" : "s"
+          } succeeded.`
+        : `Execution ended before all ${requestedSteps} verification step${requestedSteps === 1 ? "" : "s"} could succeed.`;
+  } else if (completedSteps > 0) {
+    summary = "Action steps completed without an explicit post-action verification step.";
+  } else {
+    summary = "Execution did not reach a verifiable UI outcome.";
+  }
+
+  return {
+    state,
+    requested,
+    requestedSteps,
+    completedVerifySteps,
+    summary,
   };
 }
 
@@ -1048,6 +1099,7 @@ async function executeWithPlaywright(
     deviceNode,
     sandbox: sandboxResponse(sandbox),
     grounding: groundingResponse(request, staleRefTargets),
+    verification: buildExecutionVerificationSummary(request.actions, trace, finalStatus),
     session: {
       mode: persistenceRequested ? "resumable" : "ephemeral",
       key: persistenceEnabled ? requestedSessionKey : null,

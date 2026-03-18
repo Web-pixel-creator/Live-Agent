@@ -120,6 +120,7 @@ test("ui navigator enforces simulated executor for non-main session sandbox mode
       assert.equal(sandbox.baseExecutorMode, "remote_http");
       assert.equal(sandbox.enforcedExecutorMode, "simulated");
       assert.equal(execution.adapterMode, "simulated");
+      assert.equal(output.verificationState, "unverified");
       assert.equal(executionSandbox.enforcedExecutorMode, "simulated");
     },
   );

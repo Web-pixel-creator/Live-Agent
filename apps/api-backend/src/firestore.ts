@@ -64,6 +64,10 @@ export type EventListItem = {
   delegatedRoute?: string;
   traceSteps?: number;
   screenshotRefs?: number;
+  verificationState?: string;
+  verificationFailureClass?: string;
+  verificationSummary?: string;
+  verifySteps?: number;
   hasVisualTesting?: boolean;
   hasError?: boolean;
   turnId?: string;
@@ -1337,6 +1341,9 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
   const visualTesting = output ? asRecord(output.visualTesting) : null;
   const damageControl = output ? asRecord(output.damageControl) : null;
   const usage = output ? asRecord(output.usage) : null;
+  const verification = output ? asRecord(output.verification) : null;
+  const executionVerification = execution ? asRecord(execution.verification) : null;
+  const task = payload ? asRecord(payload.task) : null;
 
   const intent =
     toNonEmptyString(payload?.intent) ??
@@ -1416,6 +1423,27 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
 
   let traceSteps: number | undefined;
   let screenshotRefs: number | undefined;
+  const verificationState =
+    toNonEmptyString(output?.verificationState) ??
+    toNonEmptyString(verification?.state) ??
+    toNonEmptyString(executionVerification?.state) ??
+    toNonEmptyString(task?.verificationState) ??
+    undefined;
+  const verificationFailureClass =
+    toNonEmptyString(output?.verificationFailureClass) ??
+    toNonEmptyString(verification?.failureClass) ??
+    toNonEmptyString(task?.verificationFailureClass) ??
+    undefined;
+  const verificationSummary =
+    toNonEmptyString(output?.verificationSummary) ??
+    toNonEmptyString(verification?.summary) ??
+    toNonEmptyString(executionVerification?.summary) ??
+    toNonEmptyString(task?.verificationSummary) ??
+    undefined;
+  const verifySteps =
+    toNonNegativeInt(verification?.evidence && asRecord(verification.evidence)?.verifySteps) ??
+    toNonNegativeInt(executionVerification?.completedVerifySteps) ??
+    undefined;
   const trace = execution?.trace;
   if (Array.isArray(trace)) {
     traceSteps = trace.length;
@@ -1457,6 +1485,10 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
     delegatedRoute,
     traceSteps,
     screenshotRefs,
+    verificationState,
+    verificationFailureClass,
+    verificationSummary,
+    verifySteps,
     hasVisualTesting,
     hasError,
     turnId,

@@ -95,6 +95,7 @@ type VerificationExecutionSnapshot = {
   finalStatus: string;
   retries: number;
   adapterMode: ExecutorMode;
+  verification?: ExecutorVerificationSummary | null;
 };
 
 type VisualCategory = "layout" | "content" | "interaction";
@@ -163,6 +164,14 @@ type UiTraceStep = {
 };
 
 type ExecutorMode = "simulated" | "playwright_preview" | "remote_http";
+
+type ExecutorVerificationSummary = {
+  state: UiVerificationState;
+  requested: boolean;
+  requestedSteps: number;
+  completedVerifySteps: number;
+  summary: string;
+};
 
 type RemoteHttpFallbackMode = "simulated" | "failed";
 
@@ -2538,6 +2547,7 @@ type ExecutionResult = {
   adapterNotes: string[];
   deviceNode: DeviceNodeRuntimeRecord | null;
   grounding: GroundingSignalSummary;
+  verification: ExecutorVerificationSummary;
 };
 
 function defaultExecutionResult(params: {
@@ -2549,6 +2559,8 @@ function defaultExecutionResult(params: {
   adapterNotes?: string[];
   deviceNode?: DeviceNodeRuntimeRecord | null;
   grounding: GroundingSignalSummary;
+  actions?: UiAction[];
+  verification?: ExecutorVerificationSummary | null;
 }): ExecutionResult {
   return {
     trace: params.trace,
@@ -2559,6 +2571,51 @@ function defaultExecutionResult(params: {
     adapterNotes: params.adapterNotes ?? [],
     deviceNode: params.deviceNode ?? null,
     grounding: params.grounding,
+    verification:
+      params.verification ?? buildExecutorVerificationSummary(params.actions ?? [], params.trace, params.finalStatus),
+  };
+}
+
+function buildExecutorVerificationSummary(
+  actions: UiAction[],
+  trace: UiTraceStep[],
+  finalStatus: VerificationExecutionSnapshot["finalStatus"],
+): ExecutorVerificationSummary {
+  const requestedSteps = actions.filter((action) => action.type === "verify").length;
+  const completedVerifySteps = trace.filter((step) => step.actionType === "verify" && step.status === "ok").length;
+  const completedSteps = trace.filter((step) => step.status === "ok").length;
+  const requested = requestedSteps > 0;
+  const state: UiVerificationState =
+    finalStatus === "completed" && requested && completedVerifySteps >= requestedSteps
+      ? "verified"
+      : completedVerifySteps > 0 || completedSteps > 0
+        ? "partially_verified"
+        : "unverified";
+
+  let summary: string;
+  if (state === "verified") {
+    summary = `Executor observed ${completedVerifySteps} successful verification step${
+      completedVerifySteps === 1 ? "" : "s"
+    }.`;
+  } else if (requested) {
+    summary =
+      finalStatus === "completed"
+        ? `Action steps completed, but only ${completedVerifySteps} of ${requestedSteps} verification step${
+            requestedSteps === 1 ? "" : "s"
+          } succeeded.`
+        : `Execution ended before all ${requestedSteps} verification step${requestedSteps === 1 ? "" : "s"} could succeed.`;
+  } else if (completedSteps > 0) {
+    summary = "Action steps completed without an explicit post-action verification step.";
+  } else {
+    summary = "Execution did not reach a verifiable UI outcome.";
+  }
+
+  return {
+    state,
+    requested,
+    requestedSteps,
+    completedVerifySteps,
+    summary,
   };
 }
 
@@ -2613,6 +2670,27 @@ function parseExecutorGroundingSignalSummary(value: unknown): Partial<GroundingS
     refMapCount: refMapCount ?? actionableRefIds.length,
     actionableRefIds,
     staleRefTargets,
+  };
+}
+
+function parseExecutorVerificationSummary(value: unknown): ExecutorVerificationSummary | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const rawState = toNonEmptyString(value.state, "");
+  const state: UiVerificationState =
+    rawState === "verified" ||
+    rawState === "partially_verified" ||
+    rawState === "unverified" ||
+    rawState === "blocked_pending_approval"
+      ? rawState
+      : "unverified";
+  return {
+    state,
+    requested: toBoolean(value.requested, false),
+    requestedSteps: toNonNegativeInt(value.requestedSteps) ?? 0,
+    completedVerifySteps: toNonNegativeInt(value.completedVerifySteps) ?? 0,
+    summary: toNonEmptyString(value.summary, "Execution did not expose a verification summary."),
   };
 }
 
@@ -2711,11 +2789,17 @@ function buildUiVerificationOutcome(params: {
   const damageControl = params.damageControl ?? null;
   const sandboxPolicy = params.sandboxPolicy ?? null;
   const deviceNodeRouting = params.deviceNodeRouting ?? null;
+  const executorVerification = execution?.verification ?? null;
   const grounding = buildGroundingSignalSummary(params.input);
   const trace = execution?.trace ?? [];
   const traceSteps = trace.length;
   const completedSteps = trace.filter((step) => step.status === "ok").length;
-  const verifySteps = trace.filter((step) => step.actionType === "verify" && step.status === "ok").length;
+  const plannedVerifySteps =
+    executorVerification?.requestedSteps ?? actions.filter((action) => action.type === "verify").length;
+  const verifySteps =
+    executorVerification?.completedVerifySteps ??
+    trace.filter((step) => step.actionType === "verify" && step.status === "ok").length;
+  const verificationRequested = executorVerification?.requested ?? plannedVerifySteps > 0;
   const blockedSteps = trace.filter((step) => step.status === "blocked").length;
   const screenshotRefs = uniqueStrings(
     trace
@@ -2808,7 +2892,9 @@ function buildUiVerificationOutcome(params: {
     evidence: {
       traceSteps,
       completedSteps,
+      plannedVerifySteps,
       verifySteps,
+      verificationRequested,
       blockedSteps,
       screenshotRefs,
       groundingSignals: grounding,
@@ -2928,6 +3014,9 @@ async function executeWithRemoteHttpAdapter(params: {
           baseGrounding,
           parseExecutorGroundingSignalSummary(parsed.grounding),
         );
+        const verification =
+          parseExecutorVerificationSummary(parsed.verification) ??
+          buildExecutorVerificationSummary(params.actions, trace, finalStatus);
         return defaultExecutionResult({
           trace,
           finalStatus,
@@ -2941,6 +3030,8 @@ async function executeWithRemoteHttpAdapter(params: {
           ],
           deviceNode: remoteNode ?? params.routing.selectedNode,
           grounding,
+          actions: params.actions,
+          verification,
         });
       }
     } catch (error) {
@@ -3249,6 +3340,7 @@ async function executeActionPlan(params: {
         ],
         deviceNode: params.routing.selectedNode,
         grounding,
+        actions: params.actions,
       });
     }
 
@@ -3270,6 +3362,7 @@ async function executeActionPlan(params: {
       ],
       deviceNode: params.routing.selectedNode,
       grounding,
+      actions: params.actions,
     });
   }
 
@@ -3321,6 +3414,7 @@ async function executeActionPlan(params: {
         ],
         deviceNode: params.routing.selectedNode,
         grounding,
+        actions: params.actions,
       });
     }
   }
@@ -3345,6 +3439,7 @@ async function executeActionPlan(params: {
     ],
     deviceNode: params.routing.selectedNode,
     grounding,
+    actions: params.actions,
   });
 }
 
@@ -4947,6 +5042,11 @@ export async function runUiNavigatorAgent(
       overallStatus,
       verification,
     });
+    const verificationLabel = verificationStateDisplayLabel(verification.state);
+    const completionMessage =
+      verification.state === "verified"
+        ? `UI task completed and verified across ${actions.length} planned step${actions.length === 1 ? "" : "s"} with ${execution.retries} retries.`
+        : `UI task reached the planned end state, but verification is ${verificationLabel}. ${verification.summary}`;
 
     return createEnvelopeWithUsage({
       userId: request.userId,
@@ -4962,7 +5062,7 @@ export async function runUiNavigatorAgent(
           text: displayText,
           message:
             overallStatus === "completed"
-              ? `UI task completed with ${actions.length} planned steps and ${execution.retries} retries.${visualTestingSummary}`
+              ? `${completionMessage}${visualTestingSummary}`
               : `UI task failed after retries.${loopProtectionSummary}${visualTestingSummary}`,
           handledIntent: request.payload.intent,
           traceId,
@@ -5012,6 +5112,7 @@ export async function runUiNavigatorAgent(
             executor: execution.executor,
             adapterMode: execution.adapterMode,
             adapterNotes: execution.adapterNotes,
+            executorVerification: execution.verification,
             deviceNode: execution.deviceNode
               ? {
                   nodeId: execution.deviceNode.nodeId,
