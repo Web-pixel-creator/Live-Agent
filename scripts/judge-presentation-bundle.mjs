@@ -9,11 +9,11 @@ function parseArgs(argv) {
     badge: "artifacts/demo-e2e/badge.json",
     badgeDetails: "artifacts/demo-e2e/badge-details.json",
     releaseEvidence: "artifacts/release-evidence/report.json",
-    gcpCloudRunSummary: "artifacts/deploy/gcp-cloud-run-summary.json",
-    gcpRuntimeProof: "artifacts/release-evidence/gcp-runtime-proof.json",
-    submissionRefreshStatus: "artifacts/release-evidence/submission-refresh-status.json",
-    railwayDeploySummary: "artifacts/deploy/railway-deploy-summary.json",
-    repoPublishSummary: "artifacts/deploy/repo-publish-summary.json",
+    gcpCloudRunSummary: null,
+    gcpRuntimeProof: null,
+    submissionRefreshStatus: null,
+    railwayDeploySummary: null,
+    repoPublishSummary: null,
     visualManifest: "artifacts/judge-visual-evidence/manifest.json",
     visualGallery: "artifacts/judge-visual-evidence/gallery.md",
   };
@@ -79,6 +79,9 @@ function parseArgs(argv) {
 }
 
 function toAbsolutePath(pathLike) {
+  if (!pathLike) {
+    return null;
+  }
   if (isAbsolute(pathLike)) {
     return pathLike;
   }
@@ -133,6 +136,9 @@ function toEnabledLabel(value) {
 }
 
 function toRelativePath(fromFile, toFile) {
+  if (!toFile) {
+    return null;
+  }
   const raw = relative(dirname(fromFile), toFile);
   return raw.split(sep).join("/");
 }
@@ -500,11 +506,11 @@ function main() {
   const badgeRead = readJsonIfExists(badgePath);
   const badgeDetailsRead = readJsonIfExists(badgeDetailsPath);
   const releaseEvidenceRead = readJsonIfExists(releaseEvidencePath);
-  const gcpCloudRunSummaryRead = readJsonIfExists(gcpCloudRunSummaryPath);
-  const gcpRuntimeProofRead = readJsonIfExists(gcpRuntimeProofPath);
-  const submissionRefreshStatusRead = readJsonIfExists(submissionRefreshStatusPath);
-  const railwayDeploySummaryRead = readJsonIfExists(railwayDeploySummaryPath);
-  const repoPublishSummaryRead = readJsonIfExists(repoPublishSummaryPath);
+  const gcpCloudRunSummaryRead = gcpCloudRunSummaryPath ? readJsonIfExists(gcpCloudRunSummaryPath) : { present: false, parsed: false, value: null, parseError: null };
+  const gcpRuntimeProofRead = gcpRuntimeProofPath ? readJsonIfExists(gcpRuntimeProofPath) : { present: false, parsed: false, value: null, parseError: null };
+  const submissionRefreshStatusRead = submissionRefreshStatusPath ? readJsonIfExists(submissionRefreshStatusPath) : { present: false, parsed: false, value: null, parseError: null };
+  const railwayDeploySummaryRead = railwayDeploySummaryPath ? readJsonIfExists(railwayDeploySummaryPath) : { present: false, parsed: false, value: null, parseError: null };
+  const repoPublishSummaryRead = repoPublishSummaryPath ? readJsonIfExists(repoPublishSummaryPath) : { present: false, parsed: false, value: null, parseError: null };
   const visualManifestRead = readJsonIfExists(visualManifestPath);
 
   const summary = summaryRead.value ?? {};
