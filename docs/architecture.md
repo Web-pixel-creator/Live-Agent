@@ -2,12 +2,26 @@
 
 ## Goal
 
-Provide a single production-style platform for multimodal agents that can:
+Provide a single production-style platform for `AI Action Desk` and
+`Simulation Lab`.
+
+If this document drifts from the product strategy, follow:
+
+1. `docs/product-master-plan.md`
+2. `docs/product-backlog.md`
+
+The three challenge categories are internal capability lanes, not separate
+product promises. The platform should be explained as one system that can:
 
 1. See (`image/video/screen` inputs),
 2. Hear (`audio` input and transcription),
 3. Speak (`audio` output with realtime turn handling),
 4. Act (`UI Navigator` execution with approvals and policy controls).
+
+## Source of Truth
+
+This document describes the runtime implementation of the product. The product
+definition lives in `docs/product-master-plan.md`.
 
 ## Core Services
 
@@ -37,11 +51,14 @@ Provide a single production-style platform for multimodal agents that can:
 
 ## Category Mapping
 
+These are implementation lanes under the product, not separate products.
+
 1. Live Agent
    - Realtime voice path, interruption, translation, negotiation, grounded research
    - Context compaction and truncation/delete controls
 2. Creative Storyteller
    - Planner + branch + media jobs (image/video/tts)
+   - `Simulation Lab` for training, rehearsal, and scenario generation
    - Gemini-first TTS path with provider-pinned Deepgram fallback metadata for audit and release evidence
    - Cache/fallback strategy for deterministic demos
 3. UI Navigator

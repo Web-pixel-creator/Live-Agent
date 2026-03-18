@@ -5,6 +5,14 @@ This document turns the product strategy from
 
 Use it as the working queue for product and engineering decisions.
 
+## Source of Truth
+
+This backlog is the execution queue. If it conflicts with
+`docs/product-master-plan.md`, follow the master plan.
+
+The backlog exists to ship `AI Action Desk` by priority, not to preserve old
+challenge-mode framing.
+
 ## How To Use This Backlog
 
 Rules:

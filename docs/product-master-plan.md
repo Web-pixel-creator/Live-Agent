@@ -8,6 +8,21 @@ Companion execution backlog:
 
 - `docs/product-backlog.md`
 
+## Source of Truth
+
+If another repo document uses older challenge-mode language or conflicts with
+this plan, follow this document.
+
+The canonical product framing is:
+
+1. `AI Action Desk` as the product wedge,
+2. `Live Agent` as the customer conversation layer,
+3. `UI Navigator` as the execution layer,
+4. `Storyteller` evolving into `Simulation Lab` for training and scenarios.
+
+The three challenge categories are implementation lanes under this product, not
+separate product promises.
+
 ## North Star
 
 Build and sell one clear product:

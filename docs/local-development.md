@@ -1,5 +1,13 @@
 # Local Development
 
+## Source of Truth
+
+For product framing, use `docs/product-master-plan.md` and
+`docs/product-backlog.md`.
+
+This repo is built around `AI Action Desk` with `Storyteller` positioned as
+`Simulation Lab`, not as three separate challenge-mode apps.
+
 ## Quick Start
 
 ```bash
