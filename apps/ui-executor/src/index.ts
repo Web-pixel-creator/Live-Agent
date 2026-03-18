@@ -27,7 +27,13 @@ import {
   type BrowserJobExecutionResult,
   type BrowserJobSessionRecord,
 } from "./browser-jobs.js";
-import { resolveGroundingObservation } from "./grounding.js";
+import {
+  listGroundingRefIds,
+  normalizeGroundingRefMap,
+  resolveGroundingObservation,
+  resolveGroundingTarget,
+  type UiGroundingRefMap,
+} from "./grounding.js";
 
 type ActionType = "navigate" | "click" | "type" | "scroll" | "hotkey" | "wait" | "verify";
 
@@ -48,6 +54,7 @@ type ExecuteRequest = {
     domSnapshot?: string;
     accessibilityTree?: string;
     markHints?: string[];
+    refMap?: UiGroundingRefMap;
     deviceNodeId?: string;
     cursor?: { x: number; y: number };
   };
@@ -96,6 +103,12 @@ type ExecuteResponse = {
     violations: string[];
     warnings: string[];
     setupMarkerStatus: UiExecutorSandboxEvaluation["setupMarkerStatus"];
+  };
+  grounding: {
+    refMapCount: number;
+    actionableRefIds: string[];
+    staleRefTargets: string[];
+    recoveryHint: string | null;
   };
   session?: Partial<BrowserJobSessionRecord> | null;
 };
@@ -482,6 +495,7 @@ function normalizeRequest(input: unknown): ExecuteRequest {
     markHints: Array.isArray(contextRaw.markHints)
       ? contextRaw.markHints.map((item) => toNonEmptyString(item, "")).filter((item) => item.length > 0)
       : [],
+    refMap: normalizeGroundingRefMap(contextRaw.refMap ?? contextRaw.groundingRefs),
     deviceNodeId: toNonEmptyString(contextRaw.deviceNodeId, "").toLowerCase(),
     cursor:
       isRecord(contextRaw.cursor) && typeof contextRaw.cursor.x === "number" && typeof contextRaw.cursor.y === "number"
@@ -626,7 +640,38 @@ function simulateExecution(
     ],
     deviceNode,
     sandbox: sandboxResponse(sandbox),
+    grounding: groundingResponse(request),
   };
+}
+
+function missingGroundingRefError(target: string): Error {
+  return new Error(`Need stronger grounding. The planner referenced ${target}, but no matching refMap entry was provided.`);
+}
+
+function staleGroundingRefError(refId: string): Error {
+  return new Error(`Refresh snapshot and rerun. Grounding ref ${refId} is stale on the current page.`);
+}
+
+async function assertResolvedActionTarget(
+  page: PlaywrightPageHandle,
+  selector: string,
+  refId: string | null,
+): Promise<void> {
+  if (!refId) {
+    return;
+  }
+  const visible = await page.evaluate((selectorValue) => {
+    const element = document.querySelector(selectorValue);
+    if (!(element instanceof HTMLElement)) {
+      return false;
+    }
+    const style = window.getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+  }, selector);
+  if (!visible) {
+    throw staleGroundingRefError(refId);
+  }
 }
 
 async function executeRequestWithConfiguredAdapter(params: {
@@ -836,12 +881,20 @@ async function executeWithPlaywright(
   const screenshotSeed = request.context?.screenshotRef || `ui://executor/${Date.now()}`;
 
   const trace: TraceStep[] = [];
+  const staleRefTargets = new Set<string>();
   let retries = 0;
   let finalStatus: "completed" | "failed" = "completed";
 
   const runAction = async (action: UiAction): Promise<string | null> => {
     let observation: string | null = null;
     try {
+      const resolvedTarget = resolveGroundingTarget(action.target, request.context);
+      if (resolvedTarget.mode === "ref" && resolvedTarget.status !== "resolved") {
+        throw missingGroundingRefError(action.target);
+      }
+      if ((action.type === "click" || action.type === "type" || action.type === "verify") && resolvedTarget.selector) {
+        await assertResolvedActionTarget(page, resolvedTarget.selector, resolvedTarget.refId);
+      }
       if (action.type === "navigate") {
         const navigateTarget =
           action.target.startsWith("http://") || action.target.startsWith("https://")
@@ -849,23 +902,15 @@ async function executeWithPlaywright(
             : config.defaultNavigationUrl;
         await page.goto(navigateTarget, { waitUntil: "domcontentloaded", timeout: 15000 });
       } else if (action.type === "click") {
-        if (action.target.startsWith("css:")) {
-          await page.click(action.target.slice(4), { timeout: config.actionTimeoutMs });
-        } else if (action.target.startsWith("field:")) {
-          const field = action.target.slice("field:".length);
-          await page.click(`[name="${field}"],#${field}`, { timeout: config.actionTimeoutMs });
-        } else if (action.target === "button:submit") {
-          await page.click('button[type="submit"],input[type="submit"]', { timeout: config.actionTimeoutMs });
+        if (resolvedTarget.selector) {
+          await page.click(resolvedTarget.selector, { timeout: config.actionTimeoutMs });
         } else {
           await page.click(action.target, { timeout: config.actionTimeoutMs });
         }
       } else if (action.type === "type") {
         const value = action.text ?? "";
-        if (action.target.startsWith("css:")) {
-          await page.fill(action.target.slice(4), value, { timeout: config.actionTimeoutMs });
-        } else if (action.target.startsWith("field:")) {
-          const field = action.target.slice("field:".length);
-          await page.fill(`[name="${field}"],#${field}`, value, { timeout: config.actionTimeoutMs });
+        if (resolvedTarget.selector) {
+          await page.fill(resolvedTarget.selector, value, { timeout: config.actionTimeoutMs });
         } else {
           await page.fill(action.target, value, { timeout: config.actionTimeoutMs });
         }
@@ -878,18 +923,28 @@ async function executeWithPlaywright(
       } else if (action.type === "wait") {
         await page.waitForTimeout(300);
       } else if (action.type === "verify") {
-        if (action.target.startsWith("css:")) {
-          await page.waitForSelector(action.target.slice(4), {
+        if (resolvedTarget.selector) {
+          await page.waitForSelector(resolvedTarget.selector, {
             timeout: config.actionTimeoutMs,
             state: "visible",
           });
-          observation = await collectVerifyObservation(page, action.target);
+          const verifyTarget = action.target.startsWith("ref:") ? `css:${resolvedTarget.selector}` : action.target;
+          const verifyObservation = await collectVerifyObservation(page, verifyTarget);
+          observation =
+            verifyObservation ?? (resolvedTarget.refId ? `ref-visible ${resolvedTarget.refId}` : null);
         } else {
           await page.waitForTimeout(120);
         }
       }
       return observation;
     } catch (error) {
+      if (action.target.startsWith("ref:")) {
+        const refId = resolveGroundingTarget(action.target, request.context).refId ?? action.target.slice(4);
+        staleRefTargets.add(refId);
+        throw error instanceof Error && /need stronger grounding/i.test(error.message)
+          ? error
+          : staleGroundingRefError(refId);
+      }
       const groundingObservation = resolveGroundingObservation(action.target, request.context);
       if (groundingObservation) {
         return groundingObservation;
@@ -992,6 +1047,7 @@ async function executeWithPlaywright(
     ],
     deviceNode,
     sandbox: sandboxResponse(sandbox),
+    grounding: groundingResponse(request, staleRefTargets),
     session: {
       mode: persistenceRequested ? "resumable" : "ephemeral",
       key: persistenceEnabled ? requestedSessionKey : null,
@@ -1009,6 +1065,26 @@ async function executeWithPlaywright(
       lastPageUrl: sessionLastUrl,
       notes: sessionNotes,
     },
+  };
+}
+
+function groundingResponse(
+  request: ExecuteRequest,
+  staleRefTargets: Iterable<string> = [],
+): ExecuteResponse["grounding"] {
+  const allRefIds = listGroundingRefIds(request.context?.refMap);
+  const actionableRefIds = allRefIds.slice(0, 20);
+  const staleTargets = Array.from(new Set(Array.from(staleRefTargets))).sort();
+  return {
+    refMapCount: allRefIds.length,
+    actionableRefIds,
+    staleRefTargets: staleTargets,
+    recoveryHint:
+      staleTargets.length > 0
+        ? `Refresh snapshot and rerun. Stale grounding refs detected: ${staleTargets.join(", ")}.`
+        : actionableRefIds.length > 0
+          ? null
+          : "Need stronger grounding. Provide url, snapshot, or refMap entries for actionable elements.",
   };
 }
 
@@ -1042,6 +1118,7 @@ setBrowserJobRunner(async (input): Promise<BrowserJobExecutionResult> => {
       domSnapshot: toNonEmptyString(input.context.domSnapshot, ""),
       accessibilityTree: toNonEmptyString(input.context.accessibilityTree, ""),
       markHints: Array.isArray(input.context.markHints) ? [...input.context.markHints] : [],
+      refMap: normalizeGroundingRefMap(input.context.refMap),
       deviceNodeId: toNonEmptyString(input.deviceNode?.nodeId ?? input.context.deviceNodeId, "").toLowerCase(),
       cursor:
         input.context.cursor &&
@@ -1429,6 +1506,7 @@ export const server = createServer(async (req, res) => {
           domSnapshot: request.context?.domSnapshot,
           accessibilityTree: request.context?.accessibilityTree,
           markHints: Array.isArray(request.context?.markHints) ? [...request.context.markHints] : [],
+          refMap: normalizeGroundingRefMap(request.context?.refMap),
           deviceNodeId: nodeResolution.selectedNode?.nodeId ?? request.context?.deviceNodeId,
           cursor: request.context?.cursor ? { ...request.context.cursor } : null,
         },

@@ -98,6 +98,9 @@ export type UiVerificationEvidence = {
     domSnapshotProvided: boolean;
     accessibilityTreeProvided: boolean;
     markHintsCount: number;
+    refMapCount: number;
+    actionableRefIds: string[];
+    staleRefTargets: string[];
   };
   visualChecks: number;
   visualRegressions: number;

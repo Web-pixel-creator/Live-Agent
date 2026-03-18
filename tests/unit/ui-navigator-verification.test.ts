@@ -296,3 +296,92 @@ test("ui navigator reports unverified when grounding is missing", async () => {
     },
   );
 });
+
+test("ui navigator surfaces stable ref grounding metadata from remote executor", async () => {
+  const server = createServer((_req, res) => {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(
+      JSON.stringify({
+        trace: [
+          {
+            index: 1,
+            actionId: "click-email",
+            actionType: "click",
+            target: "ref:email",
+            status: "ok",
+            screenshotRef: "ui://refs/1.png",
+            notes: "clicked",
+            observation: "grounding-confirmed ref:email",
+          },
+        ],
+        finalStatus: "completed",
+        retries: 0,
+        grounding: {
+          refMapCount: 2,
+          actionableRefIds: ["email", "submit_primary"],
+          staleRefTargets: [],
+        },
+      }),
+    );
+  });
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, "127.0.0.1", () => resolve());
+  });
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const executorUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    await withEnv(
+      {
+        UI_NAVIGATOR_USE_GEMINI_PLANNER: "false",
+        UI_NAVIGATOR_EXECUTOR_MODE: "remote_http",
+        UI_NAVIGATOR_EXECUTOR_URL: executorUrl,
+        UI_NAVIGATOR_SANDBOX_POLICY_MODE: "off",
+      },
+      async () => {
+        const request = createEnvelope({
+          userId: "ref-user",
+          sessionId: "ref-session",
+          runId: "ref-run",
+          type: "orchestrator.request",
+          source: "frontend",
+          payload: {
+            intent: "ui_task",
+            input: {
+              goal: "Focus the email field and verify the form is ready.",
+              url: "https://example.com/form",
+              refMap: {
+                email: {
+                  selector: "#email",
+                  kind: "field",
+                  label: "Email field",
+                },
+                submit_primary: {
+                  selector: "button[type='submit']",
+                  kind: "submit",
+                  label: "Submit button",
+                },
+              },
+            },
+          },
+        }) as OrchestratorRequest;
+
+        const response = await runUiNavigatorAgent(request);
+        assert.equal(response.payload.status, "completed");
+        const output = asObject(response.payload.output);
+        const execution = asObject(output.execution);
+        const grounding = asObject(execution.grounding);
+
+        assert.equal(grounding.refMapCount, 2);
+        assert.deepEqual(grounding.actionableRefIds, ["email", "submit_primary"]);
+      },
+    );
+  } finally {
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    });
+  }
+});

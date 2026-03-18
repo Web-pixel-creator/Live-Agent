@@ -27,6 +27,25 @@ import {
   type UiVerificationState,
 } from "@mla/contracts";
 
+type UiGroundingRefKind =
+  | "field"
+  | "button"
+  | "submit"
+  | "table"
+  | "dialog"
+  | "heading"
+  | "generic";
+
+type UiGroundingRefRecord = {
+  id: string;
+  selector: string;
+  kind: UiGroundingRefKind;
+  label: string | null;
+  aliases: string[];
+};
+
+type UiGroundingRefMap = Record<string, UiGroundingRefRecord>;
+
 type UiTaskInput = {
   goal: string;
   url: string | null;
@@ -39,6 +58,7 @@ type UiTaskInput = {
   domSnapshot: string | null;
   accessibilityTree: string | null;
   markHints: string[];
+  refMap: UiGroundingRefMap;
   cursor: { x: number; y: number } | null;
   formData: Record<string, string>;
   maxSteps: number;
@@ -65,6 +85,9 @@ type GroundingSignalSummary = {
   domSnapshotProvided: boolean;
   accessibilityTreeProvided: boolean;
   markHintsCount: number;
+  refMapCount: number;
+  actionableRefIds: string[];
+  staleRefTargets: string[];
 };
 
 type VerificationExecutionSnapshot = {
@@ -1240,6 +1263,195 @@ function getPlannerConfig(): PlannerConfig {
   };
 }
 
+function normalizeGroundingRefKind(value: unknown): UiGroundingRefKind {
+  const normalized = toNonEmptyString(value, "").toLowerCase();
+  if (normalized === "field" || normalized === "input" || normalized === "textbox" || normalized === "text") {
+    return "field";
+  }
+  if (normalized === "button" || normalized === "cta") {
+    return "button";
+  }
+  if (normalized === "submit") {
+    return "submit";
+  }
+  if (normalized === "table" || normalized === "grid" || normalized === "list") {
+    return "table";
+  }
+  if (normalized === "dialog" || normalized === "modal") {
+    return "dialog";
+  }
+  if (normalized === "heading" || normalized === "title") {
+    return "heading";
+  }
+  return "generic";
+}
+
+function normalizeGroundingRefMap(value: unknown): UiGroundingRefMap {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+  const result: UiGroundingRefMap = {};
+  const entries: Array<[string, unknown]> = Array.isArray(value)
+    ? (value
+        .map((item) => {
+          if (!isRecord(item)) {
+            return null;
+          }
+          const refId = toNonEmptyString(item.id ?? item.key ?? item.refId, "").toLowerCase();
+          return refId.length > 0 ? ([refId, item] as [string, unknown]) : null;
+        })
+        .filter((item): item is [string, unknown] => item !== null))
+    : Object.entries(value);
+
+  for (const [refIdRaw, item] of entries) {
+    if (!isRecord(item)) {
+      continue;
+    }
+    const refId = toNonEmptyString(refIdRaw, "").toLowerCase();
+    const selector = toNonEmptyString(item.selector ?? item.css ?? item.target, "");
+    if (refId.length === 0 || selector.length === 0) {
+      continue;
+    }
+    const aliases = Array.from(
+      new Set(
+        [
+          toNullableString(item.label),
+          toNullableString(item.name),
+          toNullableString(item.description),
+          ...toStringArray(item.aliases),
+        ].filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0),
+      ),
+    );
+    result[refId] = {
+      id: refId,
+      selector,
+      kind: normalizeGroundingRefKind(item.kind ?? item.type ?? item.role),
+      label: aliases[0] ?? null,
+      aliases,
+    };
+  }
+  return result;
+}
+
+function resolveGroundingTarget(
+  target: string,
+  context: {
+    refMap?: UiGroundingRefMap | null;
+  },
+): {
+  selector: string | null;
+  mode: "css" | "field" | "submit" | "ref" | "raw";
+  refId: string | null;
+  status: "resolved" | "missing_ref" | "missing_selector";
+} {
+  const normalizedTarget = toNonEmptyString(target, "").trim();
+  if (normalizedTarget.startsWith("ref:")) {
+    const refId = normalizedTarget.slice("ref:".length).trim().toLowerCase();
+    const ref = refId.length > 0 ? context.refMap?.[refId] : null;
+    return {
+      selector: ref?.selector ?? null,
+      mode: "ref",
+      refId: ref?.id ?? (refId.length > 0 ? refId : null),
+      status: ref?.selector ? "resolved" : refId.length > 0 ? "missing_ref" : "missing_selector",
+    };
+  }
+  if (normalizedTarget.startsWith("field:")) {
+    const field = normalizedTarget.slice("field:".length).trim();
+    return {
+      selector: field.length > 0 ? `[name="${field}"],#${field}` : null,
+      mode: "field",
+      refId: null,
+      status: field.length > 0 ? "resolved" : "missing_selector",
+    };
+  }
+  if (normalizedTarget === "button:submit") {
+    return {
+      selector: 'button[type="submit"],input[type="submit"]',
+      mode: "submit",
+      refId: null,
+      status: "resolved",
+    };
+  }
+  if (normalizedTarget.startsWith("css:")) {
+    const selector = normalizedTarget.slice(4).trim();
+    return {
+      selector: selector.length > 0 ? selector : null,
+      mode: "css",
+      refId: null,
+      status: selector.length > 0 ? "resolved" : "missing_selector",
+    };
+  }
+  return {
+    selector: normalizedTarget.length > 0 ? normalizedTarget : null,
+    mode: "raw",
+    refId: null,
+    status: normalizedTarget.length > 0 ? "resolved" : "missing_selector",
+  };
+}
+
+function resolveGroundingObservation(
+  target: string,
+  context: {
+    domSnapshot?: string | null;
+    accessibilityTree?: string | null;
+    markHints?: string[] | null;
+    refMap?: UiGroundingRefMap | null;
+  },
+): string | null {
+  const dom = toNonEmptyString(context.domSnapshot, "").toLowerCase();
+  const a11y = toNonEmptyString(context.accessibilityTree, "").toLowerCase();
+  const hints = Array.isArray(context.markHints) ? context.markHints.map((item) => item.toLowerCase()) : [];
+  const tokenExists = (token: string) => {
+    const normalized = token.trim().toLowerCase();
+    return (
+      normalized.length > 0 &&
+      (dom.includes(normalized) || a11y.includes(normalized) || hints.some((item) => item.includes(normalized)))
+    );
+  };
+
+  if (target.startsWith("ref:")) {
+    const refId = target.slice("ref:".length).trim().toLowerCase();
+    const ref = refId.length > 0 ? context.refMap?.[refId] : null;
+    if (!ref) {
+      return null;
+    }
+    return tokenExists(refId) ||
+      tokenExists(ref.selector) ||
+      ref.aliases.some((alias) => tokenExists(alias))
+      ? `grounding-confirmed ref:${ref.id}`
+      : null;
+  }
+
+  if (target === "button:submit") {
+    return dom.includes("submit") || a11y.includes("submit") || hints.some((item) => item.includes("submit"))
+      ? "grounding-confirmed submit control"
+      : null;
+  }
+
+  if (target.startsWith("field:")) {
+    const field = target.slice("field:".length).trim().toLowerCase();
+    return tokenExists(field) ? `grounding-confirmed field:${field}` : null;
+  }
+
+  const selector = target.startsWith("css:") ? target.slice(4) : target;
+  const idMatches = Array.from(selector.matchAll(/#([a-z0-9_-]+)/gi)).map((match) => match[1]);
+  for (const id of idMatches) {
+    if (id && tokenExists(id)) {
+      return `grounding-confirmed css:#${id.toLowerCase()}`;
+    }
+  }
+  const nameMatches = Array.from(selector.matchAll(/\[name=(?:'|")?([a-z0-9_-]+)(?:'|")?\]/gi)).map((match) => match[1]);
+  for (const name of nameMatches) {
+    if (name && tokenExists(name)) {
+      return `grounding-confirmed css:[name=${name.toLowerCase()}]`;
+    }
+  }
+  if (/button|role="button"|role='button'/.test(selector.toLowerCase())) {
+    return tokenExists("button") ? "grounding-confirmed button selector" : null;
+  }
+  return null;
+}
+
 function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInput {
   const raw = isRecord(input) ? input : {};
   const deviceNodeRaw = isRecord(raw.deviceNode) ? raw.deviceNode : {};
@@ -1255,6 +1467,7 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
   const domSnapshot = toNullableString(raw.domSnapshot ?? raw.dom);
   const accessibilityTree = toNullableString(raw.accessibilityTree ?? raw.a11yTree ?? raw.accessibilitySnapshot);
   const markHints = normalizeMarkHints(raw.markHints ?? raw.marks);
+  const refMap = normalizeGroundingRefMap(raw.refMap ?? raw.groundingRefs);
   const formDataRaw = isRecord(raw.formData) ? raw.formData : {};
   const formData: Record<string, string> = {};
   for (const [key, value] of Object.entries(formDataRaw)) {
@@ -1316,6 +1529,7 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
     domSnapshot,
     accessibilityTree,
     markHints,
+    refMap,
     cursor,
     formData,
     maxSteps: parsePositiveInt(String(raw.maxSteps ?? ""), config.maxStepsDefault),
@@ -1444,7 +1658,85 @@ function makeAction(params: {
   };
 }
 
-function buildRuleBasedGoalVerificationActions(goal: string): UiAction[] {
+function findGroundingRefTarget(
+  input: UiTaskInput,
+  matcher: (refId: string, entry: UiGroundingRefMap[string]) => boolean,
+): string | null {
+  for (const [refId, entry] of Object.entries(input.refMap)) {
+    if (matcher(refId, entry)) {
+      return `ref:${refId}`;
+    }
+  }
+  return null;
+}
+
+function fieldGroundingTarget(input: UiTaskInput, field: string): string {
+  const normalizedField = field.trim().toLowerCase();
+  const refTarget = findGroundingRefTarget(
+    input,
+    (refId, entry) =>
+      entry.kind === "field" &&
+      (refId.includes(normalizedField) ||
+        entry.selector.toLowerCase().includes(normalizedField) ||
+        entry.aliases.some((alias) => alias.toLowerCase().includes(normalizedField))),
+  );
+  return refTarget ?? `field:${field}`;
+}
+
+function submitGroundingTarget(input: UiTaskInput): string {
+  const refTarget = findGroundingRefTarget(
+    input,
+    (refId, entry) =>
+      entry.kind === "submit" ||
+      (entry.kind === "button" &&
+        (refId.includes("submit") ||
+          entry.selector.toLowerCase().includes("submit") ||
+          entry.aliases.some((alias) => /submit|send|confirm/i.test(alias)))),
+  );
+  return refTarget ?? "button:submit";
+}
+
+function verificationGroundingTarget(input: UiTaskInput, fallbackTarget: string): string {
+  if (/:disabled|:not\(:disabled\)/.test(fallbackTarget)) {
+    return fallbackTarget;
+  }
+  if (/table|grid/.test(fallbackTarget)) {
+    return (
+      findGroundingRefTarget(input, (_refId, entry) => entry.kind === "table") ??
+      fallbackTarget
+    );
+  }
+  if (/dialog|aria-modal/.test(fallbackTarget)) {
+    return (
+      findGroundingRefTarget(input, (_refId, entry) => entry.kind === "dialog") ??
+      fallbackTarget
+    );
+  }
+  if (/heading|h1|h2/.test(fallbackTarget)) {
+    return (
+      findGroundingRefTarget(input, (_refId, entry) => entry.kind === "heading") ??
+      fallbackTarget
+    );
+  }
+  if (/submit/.test(fallbackTarget)) {
+    return submitGroundingTarget(input);
+  }
+  if (/button/.test(fallbackTarget)) {
+    return (
+      findGroundingRefTarget(input, (_refId, entry) => entry.kind === "button" || entry.kind === "submit") ??
+      fallbackTarget
+    );
+  }
+  if (/form|textbox|input|textarea|select/.test(fallbackTarget)) {
+    return (
+      findGroundingRefTarget(input, (_refId, entry) => entry.kind === "field") ??
+      fallbackTarget
+    );
+  }
+  return fallbackTarget;
+}
+
+function buildRuleBasedGoalVerificationActions(goal: string, input: UiTaskInput): UiAction[] {
   const normalized = goal.toLowerCase();
   const actions: UiAction[] = [];
   const seenTargets = new Set<string>();
@@ -1465,40 +1757,40 @@ function buildRuleBasedGoalVerificationActions(goal: string): UiAction[] {
 
   if (/(invoice|invoices|table|grid)/.test(normalized)) {
     pushVerify(
-      'css:table,[role="table"],[role="grid"],#invoices-table,[data-testid="invoices-table"]',
+      verificationGroundingTarget(input, 'css:table,[role="table"],[role="grid"],#invoices-table,[data-testid="invoices-table"]'),
       "Verify that the requested table or grid is visible after navigation.",
     );
   } else if (/(list|rows|items)/.test(normalized)) {
     pushVerify(
-      'css:table,[role="table"],[role="grid"],[role="list"],ul,ol',
+      verificationGroundingTarget(input, 'css:table,[role="table"],[role="grid"],[role="list"],ul,ol'),
       "Verify that a list-like result surface is visible after navigation.",
     );
   }
 
   if (/(button|cta|action|submit)/.test(normalized)) {
     pushVerify(
-      'css:button,[role="button"],input[type="button"],input[type="submit"]',
+      verificationGroundingTarget(input, 'css:button,[role="button"],input[type="button"],input[type="submit"]'),
       "Verify that the expected action surface is visible.",
     );
   }
 
   if (/(form|field|input|email)/.test(normalized)) {
     pushVerify(
-      'css:form,input,textarea,select,[role="textbox"]',
+      verificationGroundingTarget(input, 'css:form,input,textarea,select,[role="textbox"]'),
       "Verify that the requested form controls are visible.",
     );
   }
 
   if (/(dialog|modal|popup)/.test(normalized)) {
     pushVerify(
-      'css:dialog,[role="dialog"],[aria-modal="true"]',
+      verificationGroundingTarget(input, 'css:dialog,[role="dialog"],[aria-modal="true"]'),
       "Verify that the requested dialog surface is visible.",
     );
   }
 
   if (/(heading|title|headline)/.test(normalized)) {
     pushVerify(
-      'css:h1,h2,[role="heading"]',
+      verificationGroundingTarget(input, 'css:h1,h2,[role="heading"]'),
       "Verify that a page heading is visible after navigation.",
     );
   }
@@ -1619,6 +1911,7 @@ function hasConcreteUiGrounding(input: UiTaskInput): boolean {
       input.domSnapshot ||
       input.accessibilityTree ||
       input.markHints.length > 0 ||
+      Object.keys(input.refMap).length > 0 ||
       Object.keys(input.formData).length > 0,
   );
 }
@@ -1666,7 +1959,14 @@ function buildRuleBasedPlan(input: UiTaskInput): UiAction[] {
     );
   }
 
-  if (input.url || input.screenshotRef || input.domSnapshot || input.accessibilityTree || input.markHints.length > 0) {
+  if (
+    input.url ||
+    input.screenshotRef ||
+    input.domSnapshot ||
+    input.accessibilityTree ||
+    input.markHints.length > 0 ||
+    Object.keys(input.refMap).length > 0
+  ) {
     if (goalRequestsEmailSubmitUnlock(goal) && hasConcreteUiGrounding(input)) {
       const emailValue =
         typeof input.formData.email === "string" && input.formData.email.trim().length > 0
@@ -1675,21 +1975,24 @@ function buildRuleBasedPlan(input: UiTaskInput): UiAction[] {
       actions.push(
         makeAction({
           type: "verify",
-          target: 'css:button[type="submit"]:disabled,input[type="submit"]:disabled',
+          target: verificationGroundingTarget(
+            input,
+            'css:button[type="submit"]:disabled,input[type="submit"]:disabled',
+          ),
           rationale: "Confirm that the submit control is disabled before email entry.",
         }),
       );
       actions.push(
         makeAction({
           type: "click",
-          target: "field:email",
+          target: fieldGroundingTarget(input, "email"),
           rationale: "Focus the email field before typing a sample address.",
         }),
       );
       actions.push(
         makeAction({
           type: "type",
-          target: "field:email",
+          target: fieldGroundingTarget(input, "email"),
           text: emailValue,
           rationale: "Fill the email field to verify the submit-state change.",
         }),
@@ -1697,12 +2000,15 @@ function buildRuleBasedPlan(input: UiTaskInput): UiAction[] {
       actions.push(
         makeAction({
           type: "verify",
-          target: 'css:button[type="submit"]:not(:disabled),input[type="submit"]:not(:disabled)',
+          target: verificationGroundingTarget(
+            input,
+            'css:button[type="submit"]:not(:disabled),input[type="submit"]:not(:disabled)',
+          ),
           rationale: "Confirm that the submit control becomes enabled after email entry.",
         }),
       );
     }
-    actions.push(...buildRuleBasedGoalVerificationActions(goal));
+    actions.push(...buildRuleBasedGoalVerificationActions(goal, input));
   }
 
   if (goal.includes("scroll")) {
@@ -1721,14 +2027,14 @@ function buildRuleBasedPlan(input: UiTaskInput): UiAction[] {
     actions.push(
       makeAction({
         type: "click",
-        target: `field:${field}`,
+        target: fieldGroundingTarget(input, field),
         rationale: `Focus form field '${field}' before typing.`,
       }),
     );
     actions.push(
       makeAction({
         type: "type",
-        target: `field:${field}`,
+        target: fieldGroundingTarget(input, field),
         text: value,
         rationale: `Fill '${field}' from provided form data.`,
       }),
@@ -1739,7 +2045,7 @@ function buildRuleBasedPlan(input: UiTaskInput): UiAction[] {
     actions.push(
       makeAction({
         type: "click",
-        target: "button:submit",
+        target: submitGroundingTarget(input),
         rationale: "Trigger final submit action requested by user goal.",
       }),
     );
@@ -2262,11 +2568,52 @@ function buildGroundingSignalSummary(input: UiTaskInput): GroundingSignalSummary
     domSnapshotProvided: typeof input.domSnapshot === "string" && input.domSnapshot.trim().length > 0,
     accessibilityTreeProvided: typeof input.accessibilityTree === "string" && input.accessibilityTree.trim().length > 0,
     markHintsCount: Array.isArray(input.markHints) ? input.markHints.length : 0,
+    refMapCount: Object.keys(input.refMap).length,
+    actionableRefIds: Object.keys(input.refMap).sort().slice(0, 20),
+    staleRefTargets: [],
   };
 }
 
 function groundingAdapterNote(summary: GroundingSignalSummary): string {
-  return `grounding_context screenshot=${summary.screenshotRefProvided} dom=${summary.domSnapshotProvided} a11y=${summary.accessibilityTreeProvided} marks=${summary.markHintsCount}`;
+  return `grounding_context screenshot=${summary.screenshotRefProvided} dom=${summary.domSnapshotProvided} a11y=${summary.accessibilityTreeProvided} marks=${summary.markHintsCount} refs=${summary.refMapCount} stale_refs=${summary.staleRefTargets.length}`;
+}
+
+function mergeGroundingSignalSummary(
+  base: GroundingSignalSummary,
+  override: Partial<GroundingSignalSummary> | null,
+): GroundingSignalSummary {
+  if (!override) {
+    return base;
+  }
+  return {
+    screenshotRefProvided: override.screenshotRefProvided ?? base.screenshotRefProvided,
+    domSnapshotProvided: override.domSnapshotProvided ?? base.domSnapshotProvided,
+    accessibilityTreeProvided: override.accessibilityTreeProvided ?? base.accessibilityTreeProvided,
+    markHintsCount: override.markHintsCount ?? base.markHintsCount,
+    refMapCount: override.refMapCount ?? base.refMapCount,
+    actionableRefIds: Array.from(
+      new Set([...(base.actionableRefIds ?? []), ...((override.actionableRefIds ?? []).slice(0, 20))]),
+    ),
+    staleRefTargets: Array.from(new Set([...(base.staleRefTargets ?? []), ...(override.staleRefTargets ?? [])])),
+  };
+}
+
+function parseExecutorGroundingSignalSummary(value: unknown): Partial<GroundingSignalSummary> | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const refMapCount = toNullableInt(value.refMapCount);
+  const actionableRefIds = Array.isArray(value.actionableRefIds)
+    ? value.actionableRefIds.map((item) => toNonEmptyString(item, "")).filter((item) => item.length > 0)
+    : [];
+  const staleRefTargets = Array.isArray(value.staleRefTargets)
+    ? value.staleRefTargets.map((item) => toNonEmptyString(item, "")).filter((item) => item.length > 0)
+    : [];
+  return {
+    refMapCount: refMapCount ?? actionableRefIds.length,
+    actionableRefIds,
+    staleRefTargets,
+  };
 }
 
 function buildUiVerificationPlan(params: {
@@ -2377,7 +2724,12 @@ function buildUiVerificationOutcome(params: {
   );
   const visualChecks = params.visualTesting?.enabled ? params.visualTesting.checks.length : 0;
   const visualRegressions = params.visualTesting?.enabled ? params.visualTesting.regressionCount : 0;
-  const hasGrounding = grounding.screenshotRefProvided || grounding.domSnapshotProvided || grounding.accessibilityTreeProvided || grounding.markHintsCount > 0;
+  const hasGrounding =
+    grounding.screenshotRefProvided ||
+    grounding.domSnapshotProvided ||
+    grounding.accessibilityTreeProvided ||
+    grounding.markHintsCount > 0 ||
+    grounding.refMapCount > 0;
   const deviceNodeMissing =
     deviceNodeRouting !== null &&
     (params.input.deviceNodeId !== null || hasDeviceNodeResolveCriteria(params.input)) &&
@@ -2504,7 +2856,7 @@ async function executeWithRemoteHttpAdapter(params: {
   const endpoint = `${params.routing.executorUrl.replace(/\/+$/, "")}/execute`;
   let lastError: Error | null = null;
   const totalAttempts = params.config.executorRequestMaxRetries + 1;
-  const grounding = buildGroundingSignalSummary(params.input);
+  const baseGrounding = buildGroundingSignalSummary(params.input);
 
   for (let attempt = 0; attempt < totalAttempts; attempt += 1) {
     const controller = new AbortController();
@@ -2525,6 +2877,7 @@ async function executeWithRemoteHttpAdapter(params: {
             domSnapshot: params.input.domSnapshot,
             accessibilityTree: params.input.accessibilityTree,
             markHints: params.input.markHints,
+            refMap: params.input.refMap,
             cursor: params.input.cursor,
             goal: params.input.goal,
             deviceNodeId: params.routing.selectedNode?.nodeId ?? params.input.deviceNodeId,
@@ -2571,6 +2924,10 @@ async function executeWithRemoteHttpAdapter(params: {
         const finalStatus = parsed.finalStatus === "failed" ? "failed" : "completed";
         const retries = toNullableInt(parsed.retries) ?? 0;
         const remoteNode = parseDeviceNodeRecord(parsed.deviceNode);
+        const grounding = mergeGroundingSignalSummary(
+          baseGrounding,
+          parseExecutorGroundingSignalSummary(parsed.grounding),
+        );
         return defaultExecutionResult({
           trace,
           finalStatus,
@@ -2658,52 +3015,119 @@ async function executeWithPlaywrightPreview(params: {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   const trace: UiTraceStep[] = [];
+  const staleRefTargets = new Set<string>();
   let retries = 0;
   let finalStatus: "completed" | "failed" = "completed";
 
   const runAction = async (action: UiAction): Promise<string | null> => {
     let observation: string | null = null;
-    if (action.type === "navigate") {
-      await page.goto(action.target, { waitUntil: "domcontentloaded", timeout: 15000 });
-    } else if (action.type === "click") {
-      if (action.target.startsWith("css:")) {
-        await page.click(action.target.slice(4), { timeout: 2500 });
-      } else if (action.target.startsWith("field:")) {
-        const field = action.target.slice("field:".length);
-        await page.click(`[name="${field}"],#${field}`, { timeout: 2500 });
-      } else if (action.target === "button:submit") {
-        await page.click('button[type="submit"],input[type="submit"]', { timeout: 2500 });
-      } else {
-        await page.click(action.target, { timeout: 2500 });
-      }
-    } else if (action.type === "type") {
-      const value = action.text ?? "";
-      if (action.target.startsWith("field:")) {
-        const field = action.target.slice("field:".length);
-        await page.fill(`[name="${field}"],#${field}`, value, { timeout: 2500 });
-      } else if (action.target.startsWith("css:")) {
-        await page.fill(action.target.slice(4), value, { timeout: 2500 });
-      } else {
-        await page.fill(action.target, value, { timeout: 2500 });
-      }
-    } else if (action.type === "scroll") {
-      await page.evaluate(() => {
-        window.scrollBy(0, Math.floor(window.innerHeight * 0.6));
+    try {
+      const resolvedTarget = resolveGroundingTarget(action.target, {
+        refMap: params.input.refMap,
       });
-    } else if (action.type === "hotkey") {
-      const key = action.text ?? "Enter";
-      await page.press("body", key, { timeout: 2500 });
-    } else if (action.type === "wait") {
-      await page.waitForTimeout(350);
-    } else if (action.type === "verify") {
-      if (action.target.startsWith("css:")) {
-        await page.waitForSelector(action.target.slice(4), { timeout: 2500, state: "visible" });
-        observation = await collectVerifyObservation(page, action.target);
+      if (resolvedTarget.mode === "ref" && resolvedTarget.status !== "resolved") {
+        throw new Error(
+          `Need stronger grounding. The planner referenced ${action.target}, but no matching refMap entry was provided.`,
+        );
+      }
+      if (action.type === "navigate") {
+        await page.goto(action.target, { waitUntil: "domcontentloaded", timeout: 15000 });
+      } else if (action.type === "click") {
+        if (resolvedTarget.selector) {
+          if (resolvedTarget.refId) {
+            const visible = await page.evaluate((selectorValue) => {
+              const element = document.querySelector(selectorValue);
+              if (!(element instanceof HTMLElement)) {
+                return false;
+              }
+              const style = window.getComputedStyle(element);
+              const rect = element.getBoundingClientRect();
+              return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+            }, resolvedTarget.selector);
+            if (!visible) {
+              throw new Error(`Refresh snapshot and rerun. Grounding ref ${resolvedTarget.refId} is stale on the current page.`);
+            }
+          }
+          await page.click(resolvedTarget.selector, { timeout: 2500 });
+        } else {
+          await page.click(action.target, { timeout: 2500 });
+        }
+      } else if (action.type === "type") {
+        const value = action.text ?? "";
+        if (resolvedTarget.selector) {
+          if (resolvedTarget.refId) {
+            const visible = await page.evaluate((selectorValue) => {
+              const element = document.querySelector(selectorValue);
+              if (!(element instanceof HTMLElement)) {
+                return false;
+              }
+              const style = window.getComputedStyle(element);
+              const rect = element.getBoundingClientRect();
+              return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+            }, resolvedTarget.selector);
+            if (!visible) {
+              throw new Error(`Refresh snapshot and rerun. Grounding ref ${resolvedTarget.refId} is stale on the current page.`);
+            }
+          }
+          await page.fill(resolvedTarget.selector, value, { timeout: 2500 });
+        } else {
+          await page.fill(action.target, value, { timeout: 2500 });
+        }
+      } else if (action.type === "scroll") {
+        await page.evaluate(() => {
+          window.scrollBy(0, Math.floor(window.innerHeight * 0.6));
+        });
+      } else if (action.type === "hotkey") {
+        const key = action.text ?? "Enter";
+        await page.press("body", key, { timeout: 2500 });
+      } else if (action.type === "wait") {
+        await page.waitForTimeout(350);
+      } else if (action.type === "verify") {
+        if (resolvedTarget.selector) {
+          if (resolvedTarget.refId) {
+            const visible = await page.evaluate((selectorValue) => {
+              const element = document.querySelector(selectorValue);
+              if (!(element instanceof HTMLElement)) {
+                return false;
+              }
+              const style = window.getComputedStyle(element);
+              const rect = element.getBoundingClientRect();
+              return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+            }, resolvedTarget.selector);
+            if (!visible) {
+              throw new Error(`Refresh snapshot and rerun. Grounding ref ${resolvedTarget.refId} is stale on the current page.`);
+            }
+          }
+          await page.waitForSelector(resolvedTarget.selector, { timeout: 2500, state: "visible" });
+          const verifyTarget = action.target.startsWith("ref:") ? `css:${resolvedTarget.selector}` : action.target;
+          observation =
+            (await collectVerifyObservation(page, verifyTarget)) ??
+            (resolvedTarget.refId ? `ref-visible ${resolvedTarget.refId}` : null);
+        } else {
+          await page.waitForTimeout(150);
+        }
+      }
+      return observation;
+    } catch (error) {
+      if (action.target.startsWith("ref:")) {
+        const refId = resolveGroundingTarget(action.target, { refMap: params.input.refMap }).refId ?? action.target.slice(4);
+        staleRefTargets.add(refId);
+        throw error instanceof Error && /need stronger grounding/i.test(error.message)
+          ? error
+          : new Error(`Refresh snapshot and rerun. Grounding ref ${refId} is stale on the current page.`);
+      }
+      const groundingObservation = resolveGroundingObservation(action.target, {
+        domSnapshot: params.input.domSnapshot,
+        accessibilityTree: params.input.accessibilityTree,
+        markHints: params.input.markHints,
+        refMap: params.input.refMap,
+      });
+      if (groundingObservation) {
+        return groundingObservation;
       } else {
-        await page.waitForTimeout(150);
+        throw error;
       }
     }
-    return observation;
   };
 
   try {
@@ -2777,10 +3201,16 @@ async function executeWithPlaywrightPreview(params: {
     adapterMode: "playwright_preview",
     adapterNotes: [
       "Executed with optional local playwright preview adapter",
-      groundingAdapterNote(buildGroundingSignalSummary(params.input)),
+      groundingAdapterNote(
+        mergeGroundingSignalSummary(buildGroundingSignalSummary(params.input), {
+          staleRefTargets: Array.from(staleRefTargets),
+        }),
+      ),
     ],
     deviceNode: params.deviceNode ?? null,
-    grounding: buildGroundingSignalSummary(params.input),
+    grounding: mergeGroundingSignalSummary(buildGroundingSignalSummary(params.input), {
+      staleRefTargets: Array.from(staleRefTargets),
+    }),
   });
 }
 
@@ -2953,6 +3383,7 @@ async function submitBrowserWorkerJob(params: {
           domSnapshot: params.input.domSnapshot,
           accessibilityTree: params.input.accessibilityTree,
           markHints: params.input.markHints,
+          refMap: params.input.refMap,
           cursor: params.input.cursor,
           goal: params.input.goal,
           url: params.input.url,
@@ -3045,6 +3476,9 @@ function humanizeUiTaskTarget(target: string): string {
   }
   if (normalized === "main-content") {
     return "the main content";
+  }
+  if (normalized.startsWith("ref:")) {
+    return `grounded UI ref ${normalized.slice(4)}`;
   }
   if (/^https?:\/\//i.test(normalized)) {
     return normalized;

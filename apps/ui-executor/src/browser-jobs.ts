@@ -17,6 +17,7 @@ export type BrowserJobContext = {
   domSnapshot?: string;
   accessibilityTree?: string;
   markHints?: string[];
+  refMap?: Record<string, unknown>;
   deviceNodeId?: string;
   cursor?: { x: number; y: number } | null;
 };
@@ -544,11 +545,12 @@ async function executeJob(slot: BrowserJobWorkerSlot, jobId: string): Promise<vo
         ...action,
         coordinates: action.coordinates ? { ...action.coordinates } : null,
       })),
-      context: {
-        ...current.context,
-        markHints: Array.isArray(current.context.markHints) ? [...current.context.markHints] : undefined,
-        cursor: current.context.cursor ? { ...current.context.cursor } : null,
-      },
+        context: {
+          ...current.context,
+          markHints: Array.isArray(current.context.markHints) ? [...current.context.markHints] : undefined,
+          refMap: current.context.refMap && typeof current.context.refMap === "object" ? { ...current.context.refMap } : undefined,
+          cursor: current.context.cursor ? { ...current.context.cursor } : null,
+        },
       screenshotSeed: nextScreenshotSeed(current),
       deviceNode: cloneDeviceNode(current.deviceNode),
       sandbox: current.sandbox
@@ -795,6 +797,7 @@ export function submitBrowserJob(params: SubmitBrowserJobParams): BrowserJobReco
     context: {
       ...params.context,
       markHints: Array.isArray(params.context?.markHints) ? [...params.context.markHints] : undefined,
+      refMap: params.context?.refMap && typeof params.context.refMap === "object" ? { ...params.context.refMap } : undefined,
       cursor: params.context?.cursor ? { ...params.context.cursor } : null,
     },
   };

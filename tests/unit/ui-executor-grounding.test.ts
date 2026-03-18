@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveGroundingObservation } from "../../apps/ui-executor/src/grounding.ts";
+import {
+  normalizeGroundingRefMap,
+  resolveGroundingObservation,
+  resolveGroundingTarget,
+} from "../../apps/ui-executor/src/grounding.ts";
 
 test("ui-executor grounding resolves field selectors from synthetic DOM context", () => {
   const observation = resolveGroundingObservation("field:email", {
@@ -54,4 +58,35 @@ test("ui-executor grounding returns null when target has no matching context", (
     markHints: [],
   });
   assert.equal(observation, null);
+});
+
+test("ui-executor grounding resolves stable ref targets from refMap", () => {
+  const refMap = normalizeGroundingRefMap({
+    email: {
+      selector: "#email",
+      kind: "field",
+      label: "Email field",
+      aliases: ["email", "work email"],
+    },
+  });
+  const resolved = resolveGroundingTarget("ref:email", {
+    refMap,
+  });
+  const observation = resolveGroundingObservation("ref:email", {
+    domSnapshot: "<main><form><input id='email' name='email' /></form></main>",
+    accessibilityTree: "main > form > textbox[name=email]",
+    markHints: ["email_field@(420,280)"],
+    refMap,
+  });
+  assert.equal(resolved.status, "resolved");
+  assert.equal(resolved.selector, "#email");
+  assert.equal(observation, "grounding-confirmed ref:email");
+});
+
+test("ui-executor grounding reports missing refs when refMap entry is absent", () => {
+  const resolved = resolveGroundingTarget("ref:submit_primary", {
+    refMap: normalizeGroundingRefMap({}),
+  });
+  assert.equal(resolved.status, "missing_ref");
+  assert.equal(resolved.selector, null);
 });

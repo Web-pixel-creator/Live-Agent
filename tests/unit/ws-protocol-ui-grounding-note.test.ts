@@ -20,6 +20,7 @@ test("ws protocol documents ui_task grounding fields for orchestrator.request", 
     "domSnapshot",
     "accessibilityTree",
     "markHints",
+    "refMap",
   ];
   for (const token of requiredTokens) {
     assert.ok(source.includes(token), `ws-protocol is missing ui grounding token: ${token}`);
