@@ -419,6 +419,789 @@
   }
 }
 
+/* 2026-03-18: timeline-panel exact-token authority */
+@media (min-width: 1180px) {
+  .layout.is-story-focused #storyResultsGrid.story-results-grid {
+    grid-template-columns: minmax(0, 1.44fr) minmax(320px, 0.56fr) !important;
+    gap: 14px !important;
+  }
+
+  /* 2026-03-14 Pass - desktop storyteller collapsed-tray shelf continuity */
+  /* 2026-03-14 Pass - desktop storyteller hero/title foreground continuity */
+  /* 2026-03-14 Pass - desktop storyteller hero lockup and ledger clarity */
+  /* 2026-03-14 Pass - desktop storyteller top microcopy rhythm */
+  /* 2026-03-15 Pass - desktop storyteller brief status utility rail */
+  /* 2026-03-15 Pass - desktop storyteller 95% foreground readability overlay */
+  /* 2026-03-15 Pass - desktop storyteller postrun reading lane continuity */
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-copy h3,
+  .layout.is-story-focused .story-shell-top .story-compose-copy h3 {
+    width: max-content !important;
+    max-width: none !important;
+  }
+
+  .layout.is-story-focused .hero-headline::after {
+    content: "" !important;
+    position: absolute !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    height: 1px !important;
+  }
+
+  .layout.is-story-focused .hero::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: -14px 0 6px !important;
+  }
+
+  .layout.is-story-focused .panel-story-studio {
+    position: relative !important;
+    margin-top: -6px !important;
+    padding: 18px 22px 18px !important;
+  }
+
+  .layout.is-story-focused .dashboard-workspace-summary.is-story-minimal {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+
+  .layout.is-story-focused .dashboard-workspace-summary.is-story-minimal .dashboard-glance-card:has(#workspaceGlanceThreeValue:empty) {
+    display: none !important;
+  }
+
+  .layout.is-story-focused .panel-story-studio > h2 {
+    display: grid !important;
+    grid-template-columns: max-content minmax(0, 1fr) !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-copy p,
+  .layout.is-story-focused .story-shell-top .story-compose-copy p {
+    width: min(100%, 52ch) !important;
+    max-width: 52ch !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-head,
+  .layout.is-story-focused .story-shell-top .story-compose-head {
+    grid-template-columns: minmax(0, 1.08fr) minmax(290px, 0.92fr) !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-head,
+  .layout.is-story-focused .story-shell-top .story-compose-head {
+    grid-template-columns: minmax(0, 1fr) fit-content(24ch) !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun #storyComposeStatus,
+  .layout.is-story-focused .story-shell-top #storyComposeStatus {
+    max-width: 24ch !important;
+    font-size: 0.6875rem !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun #storyComposeStatus,
+  .layout.is-story-focused .story-shell-top #storyComposeStatus {
+    max-width: 24ch !important;
+    font-size: 0.6875rem !important;
+  }
+
+  .layout.is-story-focused .dashboard-workspace-summary.is-story-minimal {
+    min-height: 116px !important;
+    padding: 24px 34px 22px !important;
+  }
+
+  .layout.is-story-focused .panel-story-studio {
+    margin-top: -4px !important;
+    padding: 18px 22px 20px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell,
+  .layout.is-story-focused .story-shell-top .story-compose-shell {
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklch, var(--surface-panel) 95%, transparent) 0%,
+        color-mix(in oklch, var(--surface-panel-2) 95%, transparent) 100%
+      ) !important;
+  }
+
+  .layout.is-story-focused #storyResultsGrid.story-results-grid {
+    grid-template-columns: minmax(0, 1.56fr) minmax(290px, 0.44fr) !important;
+  }
+
+  .layout.is-story-focused #storyAtlasRail.story-atlas-rail {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .layout.is-story-focused #storyTimelineList.story-timeline-list {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .dashboard-sidebar.is-story-focused .dashboard-nav .tab-btn::after {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    border: 1px solid color-mix(in oklch, var(--border-soft) 20%, transparent) !important;
+  }
+
+  .layout.is-story-focused .dashboard-workspace-summary.is-story-minimal::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 4px !important;
+    bottom: 4px !important;
+    left: 0 !important;
+    width: 1px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-head::before,
+  .layout.is-story-focused .story-shell-top .story-compose-head::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 2px !important;
+    bottom: 10px !important;
+    left: 0 !important;
+    width: 1px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-status,
+  .layout.is-story-focused .story-shell-top .story-compose-status {
+    align-self: end !important;
+    justify-self: end !important;
+    display: grid !important;
+  }
+
+  .layout.is-story-focused .panel-story-studio {
+    position: relative !important;
+    gap: 12px !important;
+    padding: 15px 20px 18px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell,
+  .layout.is-story-focused .story-shell-top .story-compose-shell {
+    position: relative !important;
+    gap: 8px !important;
+    padding: 16px 18px 17px !important;
+  }
+
+  .layout.is-story-focused .story-intro {
+    max-width: 58ch !important;
+    margin-top: -2px !important;
+    overflow: hidden !important;
+  }
+
+  .layout.is-story-focused .dashboard-workspace-summary.is-story-minimal {
+    position: relative !important;
+    max-width: 728px !important;
+    gap: 12px !important;
+  }
+
+  .dashboard-sidebar.is-story-focused .dashboard-nav .tab-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 58px !important;
+  }
+
+  .dashboard-sidebar.is-story-focused .dashboard-nav-title {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    font-size: 0.78125rem !important;
+  }
+
+  .layout.is-story-focused .dashboard-workspace-summary.is-story-minimal .dashboard-shell-meta {
+    gap: 18px !important;
+    padding-top: 9px !important;
+    border-top: 1px solid color-mix(in oklch, var(--border-soft) 24%, transparent) !important;
+  }
+
+  .dashboard-sidebar.is-story-focused .dashboard-nav-icon {
+    display: inline-flex !important;
+    width: 36px !important;
+    min-height: 22px !important;
+  }
+
+  .layout.is-story-focused .dashboard-workspace-summary.is-story-minimal {
+    position: relative !important;
+    width: min(840px, calc(100% - 84px)) !important;
+  }
+
+  .dashboard-sidebar.is-story-focused .dashboard-nav .tab-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 60px !important;
+  }
+
+  .layout.is-story-focused .dashboard-workspace-summary.is-story-minimal {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 108px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-head,
+  .layout.is-story-focused .story-shell-top .story-compose-head {
+    grid-template-columns: minmax(0, 1.08fr) minmax(290px, 0.92fr) !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-mode-card.is-active {
+    min-width: 304px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-signal-strip {
+    display: flex !important;
+    align-items: baseline !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-field textarea,
+  .layout.is-story-focused .story-shell-top .story-compose-field textarea {
+    min-height: 194px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-count,
+  .layout.is-story-focused .story-shell-top .story-compose-count {
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-actions,
+  .layout.is-story-focused .story-shell-top .story-compose-actions {
+    width: 100% !important;
+    grid-template-columns: max-content minmax(0, 1fr) !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray-grid,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray-grid {
+    gap: 7px !important;
+  }
+
+  .layout.is-story-focused :is(#storyCraftTray, #storyMediaTray, #storyDirectionTray):not([open]) > summary {
+    min-height: 106px !important;
+    gap: 7px !important;
+    padding: 13px 42px 12px 16px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray:not([open]) .story-tray-title,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray:not([open]) .story-tray-title {
+    width: 100% !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (min-width: 1180px) {
+  /* 2026-03-13 Pass - desktop storyteller one-line and honest-wrap cleanup (late load) */
+  .layout.is-story-focused .story-shell-top.is-prerun .story-signal-card {
+    gap: 3px;
+    max-width: none;
+    min-width: 0;
+    margin-right: 10px;
+    padding-right: 14px;
+    border-right: 1px solid color-mix(in oklch, var(--border-soft) 34%, transparent);
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray:not([open]) .story-tray-summary-text {
+    flex: 1 1 19ch;
+    min-width: 12ch;
+    max-width: none;
+    display: block;
+    overflow: visible;
+    font-size: 0.75rem;
+    line-height: 1.46;
+    white-space: normal;
+    text-overflow: clip;
+  }
+
+  .story-flow-strip[hidden] .story-flow-step::after {
+  content: none !important;
+}
+
+  /* 2026-03-13 Pass - desktop storyteller tray chrome and aligned summary stack */
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray:not([open]) .story-tray-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(2.15rem, auto) auto;
+  }
+
+  .layout.is-story-focused .story-results-grid {
+    grid-template-columns: minmax(0, 1.66fr) minmax(272px, 0.34fr);
+    align-items: start;
+    gap: 12px;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-mode-card.is-active {
+    grid-template-columns: max-content minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 1px 8px !important;
+    padding: 7px 10px !important;
+    border-radius: 11px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-mode-card.is-active .story-mode-kicker {
+    grid-column: 1 !important;
+    grid-row: 1 / span 2 !important;
+    align-self: start !important;
+    min-height: 20px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-mode-card.is-active .story-mode-hint {
+    grid-column: 2 !important;
+    max-width: 21ch !important;
+    font-size: 0.625rem !important;
+    line-height: 1.18 !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-mode-card:not(.is-active) .story-mode-title {
+    font-size: 0.65625rem !important;
+    letter-spacing: 0.018em !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-signal-value {
+    max-width: 11ch !important;
+    font-size: 0.625rem !important;
+    line-height: 1.16 !important;
+  }
+
+  .layout.is-story-focused .story-run-rail .story-guidance {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .layout.is-story-focused .story-run-rail #storyTimelineGuideTemplateBtn {
+    display: inline-flex;
+  }
+
+  .layout.is-story-focused .story-segment-cue:nth-child(n + 2) {
+    display: none;
+  }
+
+  .layout.is-story-focused .story-segment-card {
+    flex: 0 0 clamp(198px, 15.6vw, 214px);
+  }
+
+  .layout.is-story-focused .story-latest-output-shell.is-ready .story-section-head p,
+  .layout.is-story-focused .story-preview-shell.is-ready .story-section-head p,
+  .layout.is-story-focused .story-results-secondary .story-section-head p {
+    display: none;
+  }
+
+  .layout.is-story-focused .story-output-cue-pill:nth-child(n + 3) {
+    display: none;
+  }
+
+  .layout.is-story-focused .story-results-secondary .story-atlas-card .story-section-eyebrow {
+    display: none;
+  }
+
+  .layout.is-story-focused .story-results-secondary .story-atlas-shell-head .story-section-eyebrow,
+  .layout.is-story-focused .story-results-secondary .story-atlas-shell-head p {
+    display: none !important;
+  }
+
+  .layout.is-story-focused .story-results-secondary .story-atlas-rail {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .layout.is-story-focused .story-results-secondary .story-atlas-tab-hint {
+    display: none !important;
+  }
+
+  .layout.is-story-focused .story-results-secondary .story-atlas-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .layout.is-story-focused #storyLatestOutputShell.story-latest-output-shell.is-ready .story-output-stage,
+  .layout.is-story-focused #storyLatestOutputShell.story-latest-output-shell.is-error .story-output-stage {
+    grid-template-columns: minmax(0, 1.58fr) minmax(184px, 0.42fr) !important;
+  }
+
+  .layout.is-story-focused .story-latest-output-shell.is-ready .story-output-stage,
+  .layout.is-story-focused .story-latest-output-shell.is-error .story-output-stage {
+    grid-template-columns: minmax(0, 1.48fr) minmax(224px, 0.52fr) !important;
+  }
+
+  .layout.is-story-focused #storyLatestOutputShell.story-latest-output-shell.is-ready .story-output-stage,
+  .layout.is-story-focused #storyLatestOutputShell.story-latest-output-shell.is-error .story-output-stage {
+    grid-template-columns: minmax(0, 1.72fr) minmax(160px, 0.28fr) !important;
+  }
+
+  .layout.is-story-focused #storyPreviewShell.story-preview-shell.is-ready .story-preview-support-strip {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(208px, 0.74fr) !important;
+  }
+
+  .layout.is-story-focused .story-preview-shell.is-ready .story-preview-support-strip {
+    grid-template-columns: minmax(0, 1fr) minmax(188px, 0.72fr) !important;
+  }
+
+  .layout.is-story-focused #storyPreviewShell.story-preview-shell.is-ready .story-preview-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .layout.is-story-focused .story-preview-shell.is-ready .story-asset-pill {
+    min-height: 20px !important;
+    padding: 3px 7px !important;
+  }
+
+  .layout.is-story-focused #storyPreviewShell.story-preview-shell.is-ready .story-preview-support-strip {
+    grid-template-columns: minmax(0, 1fr) minmax(164px, 0.54fr) !important;
+  }
+
+  .layout.is-story-focused #storyPreviewShell.story-preview-shell.is-ready .story-preview-summary-item p {
+    display: none !important;
+  }
+
+  .layout.is-story-focused #storyPreviewShell.story-preview-shell.is-ready .story-asset-pill {
+    min-height: 18px !important;
+    padding: 2px 6px !important;
+  }
+
+  .layout.is-story-focused #storyLatestOutputShell.story-latest-output-shell .story-output-variant-card {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+
+  .layout.is-story-focused #storyLatestOutputShell.story-latest-output-shell .story-output-variants-more {
+    margin: 0 !important;
+    padding-top: 4px !important;
+  }
+
+  .layout.is-story-focused .story-segment-card {
+    min-height: 138px !important;
+    gap: 4px !important;
+  }
+
+  .layout.is-story-focused .story-segment-meta {
+    max-width: 14ch !important;
+    font-size: 0.6875rem !important;
+  }
+
+  .layout.is-story-focused .story-scenes-shell.is-ready .story-timeline-list,
+  .layout.is-story-focused .story-scenes-shell.is-pending .story-timeline-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* 2026-03-14 Pass - quieter desktop storyteller tray shelf ledger */
+@media (min-width: 1180px) {
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell #storyCraftTray[open] .story-tray-body,
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell #storyMediaTray[open] .story-tray-body,
+  .layout.is-story-focused .story-shell-top .story-compose-shell #storyCraftTray[open] .story-tray-body,
+  .layout.is-story-focused .story-shell-top .story-compose-shell #storyMediaTray[open] .story-tray-body {
+    grid-template-columns: minmax(0, 780px) !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] .story-tray-section-grid,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray[open] .story-tray-section-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray:not([open]) > summary,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray:not([open]) > summary {
+    gap: 6px !important;
+    min-height: 88px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray:not([open]) .story-tray-hint,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray:not([open]) .story-tray-hint {
+    display: none !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] .field:has(select)::after,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray[open] .field:has(select)::after {
+    content: "";
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] .story-tray-summary,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray[open] .story-tray-summary {
+    display: none !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] .select-shell,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray[open] .select-shell {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] .select-menu,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray[open] .select-menu {
+    left: 0 !important;
+    right: auto !important;
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  #storyDirectionTray[open] .story-tray-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #storyDirectionTray[open] .story-tray-note-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+/* 2026-03-18 Pass - desktop storyteller compose brief handoff quiet authority */
+@media (min-width: 1180px) {
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-copy h3,
+  .layout.is-story-focused .story-shell-top .story-compose-copy h3 {
+    max-width: 20ch !important;
+    font-size: clamp(1.36rem, 1.22rem + 0.34vw, 1.62rem) !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-status,
+  .layout.is-story-focused .story-shell-top .story-compose-status {
+    max-width: 272px !important;
+    gap: 5px !important;
+    padding: 10px 12px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun #storyComposeStatus,
+  .layout.is-story-focused .story-shell-top #storyComposeStatus {
+    min-width: 0 !important;
+    max-width: 13ch !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    font-size: 0.625rem !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-actions {
+    width: max-content !important;
+    max-width: 100% !important;
+    grid-template-columns: max-content max-content !important;
+    justify-content: start !important;
+    gap: 7px 10px !important;
+    padding-top: 6px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-secondary-actions {
+    display: inline-flex !important;
+    width: max-content !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-status,
+  .layout.is-story-focused .story-shell-top .story-compose-status {
+    display: inline-grid !important;
+    width: max-content !important;
+    min-width: 0 !important;
+    max-width: 214px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-meta,
+  .layout.is-story-focused .story-shell-top .story-compose-meta {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-count,
+  .layout.is-story-focused .story-shell-top .story-compose-count {
+    justify-self: end !important;
+    min-height: 24px !important;
+    padding: 0 10px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-field textarea,
+  .layout.is-story-focused .story-shell-top .story-compose-field textarea {
+    min-height: 182px !important;
+    padding: 15px 18px 17px !important;
+    border-radius: 16px !important;
+  }
+}
+
+/* 2026-03-18 Pass - storyteller desktop runtime quiet rail utility shell */
+@media (min-width: 1180px) {
+  .layout.is-story-focused .story-run-rail.is-ready .story-run-rail-head p,
+  .layout.is-story-focused .story-run-rail.is-ready .story-guidance-chip,
+  .layout.is-story-focused .story-run-rail.is-ready .story-guidance-hint,
+  .layout.is-story-focused .story-controls.is-ready .story-section-head p,
+  .layout.is-story-focused .story-controls.is-ready .story-controls-hint {
+    display: none;
+  }
+
+  .layout.is-story-focused .story-output-dossier-section {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  .layout.is-story-focused .story-output-dossier-note {
+    grid-area: note;
+    display: -webkit-box;
+  }
+
+  .layout.is-story-focused .story-controls.is-ready .field :is(input, select, .select-trigger),
+  .layout.is-story-focused .story-controls.is-ready .meta-box {
+    min-height: 34px;
+  }
+
+  .layout.is-story-focused .story-controls-grid[data-story-control-density="utility"] {
+    grid-template-columns: minmax(0, 1.08fr) minmax(220px, 0.84fr) max-content;
+  }
+
+  .layout.is-story-focused .story-controls-grid[data-story-control-density="utility"] .field:first-child {
+    grid-column: auto;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  .layout.is-story-focused .story-controls-grid[data-story-control-density="utility"] .field:nth-child(2) {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  .layout.is-story-focused .story-controls-grid[data-story-control-density="utility"] .field:nth-child(3) {
+    display: grid;
+    grid-column: auto;
+    grid-template-columns: max-content auto;
+  }
+
+  .layout.is-story-focused .story-run-rail .story-stat-card-title .story-stat-note {
+    display: none !important;
+  }
+
+  .layout.is-story-focused .story-run-rail.is-ready .story-head-grid {
+    grid-template-columns: minmax(0, 1.24fr) minmax(112px, 0.44fr) minmax(112px, 0.44fr) !important;
+  }
+
+  .layout.is-story-focused .story-run-rail.is-ready .story-stat-card-title {
+    grid-column: auto !important;
+  }
+
+  .layout.is-story-focused .story-run-rail.is-ready .story-guidance {
+    grid-template-columns: minmax(0, 1fr) max-content !important;
+  }
+
+  .layout.is-story-focused .story-results-secondary .story-atlas-card .story-atlas-head p {
+    display: block !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    font-size: 0.6875rem !important;
+    -webkit-line-clamp: 1 !important;
+  }
+
+  .layout.is-story-focused .story-results-secondary .story-atlas-meta {
+    display: block !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    font-size: 0.640625rem !important;
+    -webkit-line-clamp: 1 !important;
+  }
+}
+
+/* 2026-03-18 Pass - storyteller desktop tray editor drawer quiet authority */
+@media (min-width: 1180px) {
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] {
+    grid-column: 1 / -1;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray:not([open]) > summary {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 8px;
+    min-height: 88px;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] > summary {
+    grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr);
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell #storyCraftTray[open] .story-tray-body,
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell #storyMediaTray[open] .story-tray-body {
+    grid-template-columns: minmax(0, 1.18fr) minmax(300px, 0.82fr);
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell #storyDirectionTray[open] .story-tray-body {
+    grid-template-columns: minmax(260px, 0.44fr) minmax(0, 1fr);
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] :is(input, select, textarea) {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .story-tray-grid:has(.story-tray[open]) .story-tray:not([open]) > summary {
+    grid-template-columns: minmax(116px, max-content) minmax(0, 1fr);
+  }
+
+  .story-tray-grid:has(.story-tray[open]) .story-tray:not([open]) .story-tray-hint {
+    display: none;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] .story-tray-summary,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray[open] .story-tray-summary {
+    display: none !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] .select-shell,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray[open] .select-shell {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] .select-menu,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray[open] .select-menu {
+    left: 0 !important;
+    right: auto !important;
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  #storyDirectionTray[open] .story-tray-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #storyDirectionTray[open] .story-tray-note-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+/* 2026-03-18 Pass - quieter desktop storyteller tray shelf ledger */
+@media (min-width: 1180px) {
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray:not([open]) > summary,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray:not([open]) > summary {
+    gap: 6px !important;
+    min-height: 88px !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray:not([open]) .story-tray-hint,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray:not([open]) .story-tray-hint {
+    display: none !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] .field:has(select)::after,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray[open] .field:has(select)::after {
+    content: "";
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] .story-tray-summary,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray[open] .story-tray-summary {
+    display: none !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] .select-shell,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray[open] .select-shell {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .layout.is-story-focused .story-shell-top.is-prerun .story-compose-shell .story-tray[open] .select-menu,
+  .layout.is-story-focused .story-shell-top .story-compose-shell .story-tray[open] .select-menu {
+    left: 0 !important;
+    right: auto !important;
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+}
+
 /* 2026-03-15 Pass - desktop storyteller header and left-rail air refinement final authority */
 @media (min-width: 1180px) {
   .layout.is-story-focused .hero {

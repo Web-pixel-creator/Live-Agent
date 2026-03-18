@@ -1,6 +1,14 @@
 import { existsSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 
+const OPTIONAL_PROVENANCE_PATHS = Object.freeze({
+  gcpCloudRunSummary: "artifacts/deploy/gcp-cloud-run-summary.json",
+  gcpRuntimeProof: "artifacts/release-evidence/gcp-runtime-proof.json",
+  submissionRefreshStatus: "artifacts/release-evidence/submission-refresh-status.json",
+  railwayDeploySummary: "artifacts/deploy/railway-deploy-summary.json",
+  repoPublishSummary: "artifacts/deploy/repo-publish-summary.json",
+});
+
 function parseArgs(argv) {
   const options = {
     outputMarkdown: "artifacts/judge-visual-evidence/presentation.md",
