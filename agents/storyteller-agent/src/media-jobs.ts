@@ -20,6 +20,12 @@ export type StoryMediaJob = {
   provider: string;
   model: string;
   mode: "fallback" | "simulated";
+  simulationTrack: string | null;
+  simulationMode: string | null;
+  simulationLabel: string | null;
+  simulationRole: string | null;
+  simulationBusinessUseCase: string | null;
+  simulationSource: "explicit" | "inferred" | null;
   status: StoryMediaJobStatus;
   attempts: number;
   maxAttempts: number;
@@ -83,6 +89,12 @@ type CreateMediaJobParams = {
   provider: string;
   model: string;
   mode: "fallback" | "simulated";
+  simulationTrack: string | null;
+  simulationMode: string | null;
+  simulationLabel: string | null;
+  simulationRole: string | null;
+  simulationBusinessUseCase: string | null;
+  simulationSource: "explicit" | "inferred" | null;
   failureRate: number;
 };
 
@@ -568,6 +580,12 @@ function createMediaJob(params: CreateMediaJobParams): StoryMediaJob {
     provider: params.provider,
     model: params.model,
     mode: params.mode,
+    simulationTrack: params.simulationTrack,
+    simulationMode: params.simulationMode,
+    simulationLabel: params.simulationLabel,
+    simulationRole: params.simulationRole,
+    simulationBusinessUseCase: params.simulationBusinessUseCase,
+    simulationSource: params.simulationSource,
     status: fallbackTerminal ? "completed" : "queued",
     attempts: fallbackTerminal ? 1 : 0,
     maxAttempts,

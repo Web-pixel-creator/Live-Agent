@@ -49,6 +49,7 @@ export { getMediaJobQueueSnapshot } from "./media-jobs.js";
 export { getStoryCacheSnapshot, purgeStoryCache } from "./story-cache.js";
 
 type StoryMediaMode = "default" | "fallback" | "simulated";
+type StorySimulationTrack = "simulation_lab";
 type StorySimulationMode =
   | "sales_rehearsal"
   | "support_rehearsal"
@@ -83,11 +84,16 @@ type StoryPlan = {
 };
 
 type StorySimulationContext = {
+  track: StorySimulationTrack;
   mode: StorySimulationMode;
   label: string;
+  role: string;
+  businessUseCase: string;
   objective: string;
   audienceHint: string;
   promptHint: string;
+  scenes: string[];
+  decisionPoints: string[];
   source: "explicit" | "inferred";
 };
 
@@ -450,6 +456,8 @@ function inferSimulationModeFromPrompt(prompt: string): StorySimulationMode | nu
 
 function getSimulationTrackDetails(mode: StorySimulationMode, isRu: boolean): {
   label: string;
+  role?: string;
+  businessUseCase?: string;
   objective: string;
   audienceHint: string;
   promptHint: string;
@@ -477,6 +485,8 @@ function getSimulationTrackDetails(mode: StorySimulationMode, isRu: boolean): {
         }
       : {
           label: "Sales Rehearsal",
+          role: "sales representative",
+          businessUseCase: "sales coaching",
           objective: "practice a sales conversation, objection handling, and the next-step close",
           audienceHint: "sales team",
           promptHint: "Frame this as a realistic sales drill: short pitch, objections, proof points, and a clear next step.",
@@ -515,6 +525,8 @@ function getSimulationTrackDetails(mode: StorySimulationMode, isRu: boolean): {
         }
       : {
           label: "Support Rehearsal",
+          role: "support agent",
+          businessUseCase: "support triage",
           objective: "practice ticket triage, diagnosis, and escalation control",
           audienceHint: "support team",
           promptHint: "Frame this as a support drill: clarify the issue, diagnose quickly, and decide when to escalate.",
@@ -553,6 +565,8 @@ function getSimulationTrackDetails(mode: StorySimulationMode, isRu: boolean): {
         }
       : {
           label: "Onboarding Simulation",
+          role: "onboarding specialist",
+          businessUseCase: "customer onboarding",
           objective: "practice a first-run flow, early win, and friction reduction",
           audienceHint: "onboarding team",
           promptHint: "Frame this as an onboarding simulation: welcome, first success, friction removal, and guidance.",
@@ -590,6 +604,8 @@ function getSimulationTrackDetails(mode: StorySimulationMode, isRu: boolean): {
       }
     : {
         label: "Negotiation Drills",
+        role: "deal negotiator",
+        businessUseCase: "deal negotiation",
         objective: "practice anchoring, counteroffers, and a clean deal close",
         audienceHint: "negotiation team",
         promptHint: "Frame this as negotiation drills: anchor, counteroffer, tradeoffs, and a clear closing move.",
@@ -623,11 +639,16 @@ function buildStorySimulationContext(input: StoryInput): StorySimulationContext 
   const isRu = input.language.trim().toLowerCase().startsWith("ru");
   const details = getSimulationTrackDetails(inferredMode, isRu);
   return {
+    track: "simulation_lab",
     mode: inferredMode,
     label: details.label,
+    role: details.role ?? details.audienceHint,
+    businessUseCase: details.businessUseCase ?? details.objective,
     objective: details.objective,
     audienceHint: details.audienceHint,
     promptHint: details.promptHint,
+    scenes: details.scenes,
+    decisionPoints: details.decisionPoints,
     source: explicitMode ? "explicit" : "inferred",
   };
 }
@@ -635,17 +656,25 @@ function buildStorySimulationContext(input: StoryInput): StorySimulationContext 
 function buildStorySimulationPromptBlock(simulation: StorySimulationContext, isRu: boolean): string {
   if (isRu) {
     return [
+      `Simulation lab track: ${simulation.track}`,
       `Simulation mode: ${simulation.label}`,
+      `Role: ${simulation.role}`,
+      `Business use case: ${simulation.businessUseCase}`,
       `Objective: ${simulation.objective}`,
       `Audience: ${simulation.audienceHint}`,
+      `Key decisions: ${simulation.decisionPoints.join(" | ")}`,
       simulation.promptHint,
       "Keep the output grounded in a realistic training or rehearsal flow, not a fantasy story.",
     ].join("\n");
   }
   return [
+    `Simulation lab track: ${simulation.track}`,
     `Simulation mode: ${simulation.label}`,
+    `Role: ${simulation.role}`,
+    `Business use case: ${simulation.businessUseCase}`,
     `Objective: ${simulation.objective}`,
     `Audience: ${simulation.audienceHint}`,
+    `Key decisions: ${simulation.decisionPoints.join(" | ")}`,
     simulation.promptHint,
     "Keep the output grounded in a realistic training or rehearsal flow, not a fantasy story.",
   ].join("\n");
@@ -1147,27 +1176,49 @@ function buildAdaptiveFallbackScenario(baseScenario: FallbackScenario, input: St
   };
 }
 
-function buildStorySimulationMetadata(simulation: StorySimulationContext | null): Record<string, unknown> {
+function buildStorySimulationMetadata(
+  simulation: StorySimulationContext | null,
+  input: StoryInput,
+  generatedSceneCount: number,
+): Record<string, unknown> {
   if (!simulation) {
     return {
       active: false,
+      track: null,
       mode: null,
       label: null,
+      role: null,
+      businessUseCase: null,
       objective: null,
       audienceHint: null,
       promptHint: null,
+      sceneCount: 0,
+      templateSceneCount: 0,
+      decisionPoints: [],
       source: null,
+      includeImages: input.includeImages,
+      includeVideo: input.includeVideo,
+      mediaFastPath: false,
     };
   }
 
   return {
     active: true,
+    track: simulation.track,
     mode: simulation.mode,
     label: simulation.label,
+    role: simulation.role,
+    businessUseCase: simulation.businessUseCase,
     objective: simulation.objective,
     audienceHint: simulation.audienceHint,
     promptHint: simulation.promptHint,
+    sceneCount: generatedSceneCount,
+    templateSceneCount: simulation.scenes.length,
+    decisionPoints: simulation.decisionPoints,
     source: simulation.source,
+    includeImages: input.includeImages,
+    includeVideo: input.includeVideo,
+    mediaFastPath: !input.includeImages && !input.includeVideo,
   };
 }
 
@@ -2295,8 +2346,11 @@ async function createImageAsset(params: {
           prompt,
           adapterMode: "default",
           liveApi: true,
+          simulationTrack: params.simulation?.track ?? null,
           simulationMode: params.simulation?.mode ?? null,
           simulationLabel: params.simulation?.label ?? null,
+          simulationRole: params.simulation?.role ?? null,
+          simulationBusinessUseCase: params.simulation?.businessUseCase ?? null,
           simulationSource: params.simulation?.source ?? null,
         },
       };
@@ -2344,8 +2398,11 @@ async function createImageAsset(params: {
         meta: {
           prompt,
           adapterMode,
+          simulationTrack: params.simulation?.track ?? null,
           simulationMode: params.simulation?.mode ?? null,
           simulationLabel: params.simulation?.label ?? null,
+          simulationRole: params.simulation?.role ?? null,
+          simulationBusinessUseCase: params.simulation?.businessUseCase ?? null,
           simulationSource: params.simulation?.source ?? null,
         },
       };
@@ -2550,8 +2607,11 @@ async function createVideoAsset(params: {
           prompt,
           adapterMode: "default",
           liveApi: true,
+          simulationTrack: params.simulation?.track ?? null,
           simulationMode: params.simulation?.mode ?? null,
           simulationLabel: params.simulation?.label ?? null,
+          simulationRole: params.simulation?.role ?? null,
+          simulationBusinessUseCase: params.simulation?.businessUseCase ?? null,
           simulationSource: params.simulation?.source ?? null,
           operationName: liveResult.operationName,
           polled: liveResult.polled,
@@ -2602,8 +2662,11 @@ async function createVideoAsset(params: {
         meta: {
           prompt,
           adapterMode,
+          simulationTrack: params.simulation?.track ?? null,
           simulationMode: params.simulation?.mode ?? null,
           simulationLabel: params.simulation?.label ?? null,
+          simulationRole: params.simulation?.role ?? null,
+          simulationBusinessUseCase: params.simulation?.businessUseCase ?? null,
           simulationSource: params.simulation?.source ?? null,
           notes: adapterMode === "fallback" ? "pre-generated fallback clip" : "queued for async generation",
         },
@@ -2674,8 +2737,11 @@ async function createNarrationAsset(params: {
           selectionReason: params.adapter.descriptor.selection?.selectionReason ?? null,
           durationMs: liveResult.durationMs,
           liveApi: true,
+          simulationTrack: params.simulation?.track ?? null,
           simulationMode: params.simulation?.mode ?? null,
           simulationLabel: params.simulation?.label ?? null,
+          simulationRole: params.simulation?.role ?? null,
+          simulationBusinessUseCase: params.simulation?.businessUseCase ?? null,
           simulationSource: params.simulation?.source ?? null,
         },
       };
@@ -2763,8 +2829,11 @@ async function createNarrationAsset(params: {
           voiceStyle: params.voiceStyle,
           adapterMode,
           selectionReason: params.adapter.descriptor.selection?.selectionReason ?? null,
+          simulationTrack: params.simulation?.track ?? null,
           simulationMode: params.simulation?.mode ?? null,
           simulationLabel: params.simulation?.label ?? null,
+          simulationRole: params.simulation?.role ?? null,
+          simulationBusinessUseCase: params.simulation?.businessUseCase ?? null,
           simulationSource: params.simulation?.source ?? null,
         },
       };
@@ -2855,6 +2924,7 @@ function createVideoMediaJobs(params: {
   request: OrchestratorRequest;
   runId: string;
   videoAssets: StoryAsset[];
+  simulation: StorySimulationContext | null;
   mediaMode: "fallback" | "simulated";
   failureRate: number;
 }): StoryMediaJob[] {
@@ -2869,6 +2939,12 @@ function createVideoMediaJobs(params: {
       provider: asset.provider,
       model: asset.model,
       mode: params.mediaMode,
+      simulationTrack: params.simulation?.track ?? null,
+      simulationMode: params.simulation?.mode ?? null,
+      simulationLabel: params.simulation?.label ?? null,
+      simulationRole: params.simulation?.role ?? null,
+      simulationBusinessUseCase: params.simulation?.businessUseCase ?? null,
+      simulationSource: params.simulation?.source ?? null,
       failureRate: params.failureRate,
     });
     asset.jobId = job.jobId;
@@ -3006,6 +3082,7 @@ export async function runStorytellerAgent(
           request,
           runId,
           videoAssets,
+          simulation,
           mediaMode: capabilities.video.descriptor.mode === "simulated" ? "simulated" : "fallback",
           failureRate: videoFailureRate,
         })
@@ -3038,7 +3115,7 @@ export async function runStorytellerAgent(
     const pendingVideoJobs = videoJobs.filter(
       (job) => job.status === "queued" || job.status === "running",
     ).length;
-    const simulationMetadata = buildStorySimulationMetadata(simulation);
+    const simulationMetadata = buildStorySimulationMetadata(simulation, input, timeline.length);
     const message = `${simulationMetadata.active ? `${String(simulationMetadata.label)} ready: ` : "Story ready: "}"${plan.title}" with ${timeline.length} segments (${allAssets.length} media assets).${input.includeVideo ? ` Video jobs pending: ${pendingVideoJobs}.` : ""}`;
     const mediaQueue: StoryMediaWorkerSnapshot = getMediaJobQueueSnapshot();
     const cacheSnapshot: StoryCacheSnapshot = getStoryCacheSnapshot();
@@ -3085,7 +3162,7 @@ export async function runStorytellerAgent(
             sourceProvider: asset.sourceProvider,
             sourceModel: asset.sourceModel,
           })),
-          mediaJobs: {
+            mediaJobs: {
             video: videoJobs.map((job) => ({
               jobId: job.jobId,
               status: job.status,
@@ -3095,6 +3172,12 @@ export async function runStorytellerAgent(
               provider: job.provider,
               model: job.model,
               mode: job.mode,
+              simulationTrack: job.simulationTrack,
+              simulationMode: job.simulationMode,
+              simulationLabel: job.simulationLabel,
+              simulationRole: job.simulationRole,
+              simulationBusinessUseCase: job.simulationBusinessUseCase,
+              simulationSource: job.simulationSource,
               attempts: job.attempts,
               requestedAt: job.requestedAt,
               startedAt: job.startedAt,
