@@ -41,6 +41,7 @@ Starter workspace for the "next-generation agents" spec:
 ## Documentation Index
 
 - Architecture: `docs/architecture.md`
+- Product Master Plan: `docs/product-master-plan.md`
 - Operator Guide: `docs/operator-guide.md`
 - Judge Quickstart: `docs/judge-quickstart.md`
 - Judge Runbook (alias): `docs/judge-runbook.md`
