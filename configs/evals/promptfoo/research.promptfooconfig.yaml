@@ -1,0 +1,61 @@
+description: AI Action Desk research playbook evals
+providers:
+  - id: google:gemini-2.5-flash
+  - id: google:gemini-2.5-pro
+prompts:
+  - |
+    You are evaluating the AI Action Desk research playbook.
+    Answer the query with grounded help. Return only JSON with these keys:
+    - answer
+    - sources
+    - confidence
+    - next_question
+tests:
+  - vars:
+      query: What is Git and why does it matter for teams?
+    assert:
+      - type: is-json
+        value:
+          type: object
+          required:
+            - answer
+            - sources
+            - confidence
+            - next_question
+          properties:
+            answer:
+              type: string
+            sources:
+              type: array
+              items:
+                type: string
+            confidence:
+              type: number
+            next_question:
+              type: string
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return Array.isArray(data.sources) && data.sources.length > 0;
+  - vars:
+      query: What is the safest way to explain prompt injection to a non-technical customer?
+    assert:
+      - type: is-json
+        value:
+          type: object
+          required:
+            - answer
+            - sources
+            - confidence
+            - next_question
+          properties:
+            answer:
+              type: string
+            sources:
+              type: array
+              items:
+                type: string
+            confidence:
+              type: number
+            next_question:
+              type: string

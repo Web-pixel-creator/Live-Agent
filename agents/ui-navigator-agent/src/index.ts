@@ -21,6 +21,10 @@ import {
   type NormalizedError,
   type OrchestratorRequest,
   type OrchestratorResponse,
+  type UiFailureClass,
+  type UiPlannerVerification,
+  type UiVerificationOutcome,
+  type UiVerificationState,
 } from "@mla/contracts";
 
 type UiTaskInput = {
@@ -61,6 +65,13 @@ type GroundingSignalSummary = {
   domSnapshotProvided: boolean;
   accessibilityTreeProvided: boolean;
   markHintsCount: number;
+};
+
+type VerificationExecutionSnapshot = {
+  trace: UiTraceStep[];
+  finalStatus: string;
+  retries: number;
+  adapterMode: ExecutorMode;
 };
 
 type VisualCategory = "layout" | "content" | "interaction";
@@ -2258,6 +2269,216 @@ function groundingAdapterNote(summary: GroundingSignalSummary): string {
   return `grounding_context screenshot=${summary.screenshotRefProvided} dom=${summary.domSnapshotProvided} a11y=${summary.accessibilityTreeProvided} marks=${summary.markHintsCount}`;
 }
 
+function buildUiVerificationPlan(params: {
+  input: UiTaskInput;
+  actions: UiAction[];
+  approvalRequired: boolean;
+  damageControl: DamageControlVerdict;
+  sandboxPolicy: SandboxPolicyContext;
+}): UiPlannerVerification {
+  const groundingReady = hasConcreteUiGrounding(params.input);
+  const checkpoints = uniqueStrings([
+    params.actions.some((action) => action.type === "verify") ? "post_action_verify" : null,
+    params.input.visualTesting.enabled ? "visual_compare" : null,
+    groundingReady ? "grounded_target" : null,
+    params.approvalRequired ? "approval_gate" : null,
+    params.damageControl.verdict !== "allow" ? `damage_control_${params.damageControl.verdict}` : null,
+    params.sandboxPolicy.active ? "sandbox_policy" : null,
+  ].filter((item): item is string => item !== null));
+
+  const targetState: UiVerificationState =
+    params.approvalRequired
+      ? "blocked_pending_approval"
+      : params.actions.some((action) => action.type === "verify") || params.input.visualTesting.enabled
+        ? "verified"
+        : groundingReady
+          ? "partially_verified"
+          : "unverified";
+
+  return {
+    required: params.actions.length > 0 || params.input.visualTesting.enabled || params.approvalRequired,
+    targetState,
+    checkpoints,
+    approvalSensitive:
+      params.approvalRequired || params.damageControl.verdict !== "allow" || params.sandboxPolicy.active,
+    groundingReady,
+  };
+}
+
+function buildUiVerificationRecoveryHint(failureClass: UiFailureClass | null): string | null {
+  switch (failureClass) {
+    case "approval_required":
+      return "Ask for confirmation before continuing.";
+    case "approval_rejected":
+      return "Collect a new approval decision before retrying.";
+    case "damage_control_blocked":
+      return "Adjust the action plan or confirm a safer alternative.";
+    case "device_node_unavailable":
+      return "Choose a different device node or relax the routing constraint.";
+    case "execution_failed":
+      return "Retry with a fresh executor session and confirm the page still matches the plan.";
+    case "loop_detected":
+      return "Rewrite the plan so the agent stops repeating the same step.";
+    case "missing_grounding":
+      return "Need stronger grounding. Share a page link, screenshot, DOM snapshot, or accessibility tree.";
+    case "sandbox_blocked":
+      return "Switch to an allowed action or relax the sandbox policy for this session.";
+    case "stale_grounding":
+      return "Refresh snapshot and rerun. The page likely changed after the last grounding capture.";
+    case "verification_failed":
+      return "Add a clearer post-action verify step or rerun with stronger grounding.";
+    case "visual_regression":
+      return "Refresh the visual baseline and rerun the check.";
+    default:
+      return null;
+  }
+}
+
+function applyUiVerificationPlanOutcome(
+  plan: UiPlannerVerification,
+  verification: UiVerificationOutcome,
+): UiPlannerVerification {
+  return {
+    ...plan,
+    targetState: verification.state,
+  };
+}
+
+function buildUiVerificationOutcome(params: {
+  input: UiTaskInput;
+  actions?: UiAction[];
+  execution?: VerificationExecutionSnapshot | null;
+  visualTesting?: VisualTestingReport | null;
+  approvalState?: "approved" | "pending" | "rejected" | "not_required";
+  approvalRequired?: boolean;
+  runtimeLoop?: LoopDetectionResult | null;
+  damageControl?: DamageControlVerdict | null;
+  sandboxPolicy?: SandboxPolicyContext | null;
+  deviceNodeRouting?: DeviceNodeResolution | null;
+}): UiVerificationOutcome {
+  const actions = params.actions ?? [];
+  const execution = params.execution ?? null;
+  const approvalState = params.approvalState ?? "not_required";
+  const approvalRequired = params.approvalRequired ?? false;
+  const runtimeLoop = params.runtimeLoop ?? null;
+  const damageControl = params.damageControl ?? null;
+  const sandboxPolicy = params.sandboxPolicy ?? null;
+  const deviceNodeRouting = params.deviceNodeRouting ?? null;
+  const grounding = buildGroundingSignalSummary(params.input);
+  const trace = execution?.trace ?? [];
+  const traceSteps = trace.length;
+  const completedSteps = trace.filter((step) => step.status === "ok").length;
+  const verifySteps = trace.filter((step) => step.actionType === "verify" && step.status === "ok").length;
+  const blockedSteps = trace.filter((step) => step.status === "blocked").length;
+  const screenshotRefs = uniqueStrings(
+    trace
+      .map((step) => step.screenshotRef)
+      .filter((value): value is string => typeof value === "string" && value.trim().length > 0),
+  );
+  const visualChecks = params.visualTesting?.enabled ? params.visualTesting.checks.length : 0;
+  const visualRegressions = params.visualTesting?.enabled ? params.visualTesting.regressionCount : 0;
+  const hasGrounding = grounding.screenshotRefProvided || grounding.domSnapshotProvided || grounding.accessibilityTreeProvided || grounding.markHintsCount > 0;
+  const deviceNodeMissing =
+    deviceNodeRouting !== null &&
+    (params.input.deviceNodeId !== null || hasDeviceNodeResolveCriteria(params.input)) &&
+    deviceNodeRouting.selectedNode === null;
+  const shouldFlagApprovalBlock = approvalRequired || approvalState === "pending" || approvalState === "rejected";
+  let state: UiVerificationState;
+  let failureClass: UiFailureClass | null = null;
+
+  if (shouldFlagApprovalBlock) {
+    state = "blocked_pending_approval";
+    failureClass = approvalState === "rejected" ? "approval_rejected" : "approval_required";
+  } else if (execution?.finalStatus === "background_submitted") {
+    state = "partially_verified";
+    failureClass = null;
+  } else if (runtimeLoop?.detected) {
+    state = traceSteps > 0 || completedSteps > 0 ? "partially_verified" : "unverified";
+    failureClass = "loop_detected";
+  } else if (deviceNodeMissing) {
+    state = "unverified";
+    failureClass = "device_node_unavailable";
+  } else if (damageControl?.verdict === "block") {
+    state = traceSteps > 0 || completedSteps > 0 ? "partially_verified" : "unverified";
+    failureClass = "damage_control_blocked";
+  } else if (sandboxPolicy?.active === true && sandboxPolicy.blockedCategories.length > 0) {
+    state = traceSteps > 0 || completedSteps > 0 ? "partially_verified" : "unverified";
+    failureClass = "sandbox_blocked";
+  } else if (params.visualTesting?.enabled && params.visualTesting.status === "failed") {
+    state = completedSteps > 0 || verifySteps > 0 ? "partially_verified" : "unverified";
+    failureClass = "visual_regression";
+  } else if (!execution || execution.finalStatus !== "completed") {
+    state = traceSteps > 0 || completedSteps > 0 ? "partially_verified" : "unverified";
+    failureClass = execution?.finalStatus === "failed_background_submission" ? "execution_failed" : hasGrounding ? "stale_grounding" : "execution_failed";
+  } else if (!hasGrounding) {
+    state = "unverified";
+    failureClass = "missing_grounding";
+  } else if (execution.adapterMode === "simulated") {
+    state = verifySteps > 0 ? "partially_verified" : "unverified";
+    failureClass = hasGrounding ? "verification_failed" : "missing_grounding";
+  } else if (verifySteps > 0 || (params.visualTesting?.enabled && params.visualTesting.status === "passed")) {
+    state = "verified";
+  } else if (completedSteps > 0) {
+    state = "partially_verified";
+    failureClass = hasGrounding ? "verification_failed" : "missing_grounding";
+  } else {
+    state = "unverified";
+    failureClass = hasGrounding ? "verification_failed" : "missing_grounding";
+  }
+
+  if (state === "verified") {
+    failureClass = null;
+  }
+
+  const summary = (() => {
+    if (state === "blocked_pending_approval") {
+      return approvalState === "rejected"
+        ? "Execution is blocked pending a fresh approval decision."
+        : "Execution is blocked pending approval before any post-action verification can run.";
+    }
+    if (execution?.finalStatus === "background_submitted") {
+      return "Background browser worker staged; verification will resume after the worker reports back.";
+    }
+    if (state === "verified") {
+      return `Execution verified ${verifySteps > 0 ? `with ${verifySteps} verification step${verifySteps === 1 ? "" : "s"}` : "with strong post-action evidence"}.`;
+    }
+    if (state === "partially_verified") {
+      return `Execution produced partial verification evidence from ${completedSteps} completed step${completedSteps === 1 ? "" : "s"}${verifySteps > 0 ? ` and ${verifySteps} verification step${verifySteps === 1 ? "" : "s"}` : ""}.`;
+    }
+    return "Execution is not yet verified against a concrete UI result.";
+  })();
+
+  return {
+    state,
+    failureClass,
+    summary,
+    recoveryHint: buildUiVerificationRecoveryHint(failureClass),
+    evidence: {
+      traceSteps,
+      completedSteps,
+      verifySteps,
+      blockedSteps,
+      screenshotRefs,
+      groundingSignals: grounding,
+      visualChecks,
+      visualRegressions,
+    },
+  };
+}
+
+function verificationStateDisplayLabel(state: UiVerificationState): string {
+  switch (state) {
+    case "blocked_pending_approval":
+      return "blocked pending approval";
+    case "partially_verified":
+      return "partially verified";
+    case "verified":
+      return "verified";
+    default:
+      return "unverified";
+  }
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -3025,6 +3246,7 @@ function buildUiTaskDisplayText(params: {
   actions: UiAction[];
   execution: ExecutionResult;
   overallStatus: "completed" | "failed";
+  verification: UiVerificationOutcome;
 }): string {
   const parts: string[] = [];
   const noGrounding =
@@ -3038,6 +3260,7 @@ function buildUiTaskDisplayText(params: {
   const observationPreview = buildUiTaskObservationPreview(params.execution.trace);
   const safeNextAction = extractSafeNextActionLabel(params.execution.trace);
   const stepPreview = buildUiTaskStepPreview(params.actions);
+  const verificationLabel = verificationStateDisplayLabel(params.verification.state);
 
   if (params.overallStatus === "completed") {
     if (params.execution.adapterMode === "simulated") {
@@ -3079,6 +3302,12 @@ function buildUiTaskDisplayText(params: {
       parts.push(`Retries used: ${params.execution.retries}.`);
     }
 
+    parts.push(`Verification state: ${verificationLabel}.`);
+    parts.push(params.verification.summary);
+    if (params.verification.recoveryHint && params.verification.state !== "verified") {
+      parts.push(params.verification.recoveryHint);
+    }
+
     if (params.execution.adapterMode === "simulated") {
       parts.push(
         noGrounding
@@ -3103,6 +3332,11 @@ function buildUiTaskDisplayText(params: {
   }
   if (observationPreview) {
     parts.push(observationPreview);
+  }
+  parts.push(`Verification state: ${verificationLabel}.`);
+  parts.push(params.verification.summary);
+  if (params.verification.recoveryHint) {
+    parts.push(params.verification.recoveryHint);
   }
   return parts.join(" ");
 }
@@ -3527,6 +3761,13 @@ export async function runUiNavigatorAgent(
     });
 
     if (input.approvalDecision === "rejected") {
+      const verification = buildUiVerificationOutcome({
+        input,
+        approvalState: "rejected",
+        approvalRequired: true,
+        damageControl: null,
+        sandboxPolicy,
+      });
       return createEnvelopeWithUsage({
         userId: request.userId,
         sessionId: request.sessionId,
@@ -3551,6 +3792,9 @@ export async function runUiNavigatorAgent(
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             capabilityProfile: capabilities.profile,
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
+            verificationState: verification.state,
+            verificationFailureClass: verification.failureClass,
+            verification,
           },
         },
       });
@@ -3569,7 +3813,22 @@ export async function runUiNavigatorAgent(
       actions,
       approvalCategories,
     });
+    let verificationPlan = buildUiVerificationPlan({
+      input,
+      actions,
+      approvalRequired: false,
+      damageControl,
+      sandboxPolicy,
+    });
     if (damageControl.verdict === "block") {
+      const verification = buildUiVerificationOutcome({
+        input,
+        actions,
+        damageControl,
+        sandboxPolicy,
+        approvalState: "not_required",
+        approvalRequired: false,
+      });
       return createEnvelopeWithUsage({
         userId: request.userId,
         sessionId: request.sessionId,
@@ -3590,18 +3849,23 @@ export async function runUiNavigatorAgent(
             planner: {
               provider: planResult.plannerProvider,
               model: planResult.plannerModel,
+              verification: applyUiVerificationPlanOutcome(verificationPlan, verification),
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             damageControl: buildDamageControlPayload(damageControl),
             capabilityProfile: capabilities.profile,
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             actionPlan: actions,
+            verificationState: verification.state,
+            verificationFailureClass: verification.failureClass,
+            verification,
             execution: {
               finalStatus: "failed_damage_control",
               retries: 0,
               trace: [],
               verifyLoopEnabled: true,
               sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+              verification,
             },
           },
         },
@@ -3612,9 +3876,25 @@ export async function runUiNavigatorAgent(
       .map((match) => `damage_control:${match.ruleId}`);
     const effectiveApprovalCategories = uniqueStrings([...approvalCategories, ...damageControlApprovalCategories]);
     const approvalRequired = effectiveApprovalCategories.length > 0 && !input.approvalConfirmed;
+    verificationPlan = buildUiVerificationPlan({
+      input,
+      actions,
+      approvalRequired,
+      damageControl,
+      sandboxPolicy,
+    });
 
     const plannedLoop = detectActionLoop(actions, config);
     if (plannedLoop.detected) {
+      const verification = buildUiVerificationOutcome({
+        input,
+        actions,
+        runtimeLoop: plannedLoop,
+        damageControl,
+        sandboxPolicy,
+        approvalState: "not_required",
+        approvalRequired: false,
+      });
       return createEnvelopeWithUsage({
         userId: request.userId,
         sessionId: request.sessionId,
@@ -3647,18 +3927,23 @@ export async function runUiNavigatorAgent(
             planner: {
               provider: planResult.plannerProvider,
               model: planResult.plannerModel,
+              verification: applyUiVerificationPlanOutcome(verificationPlan, verification),
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             damageControl: buildDamageControlPayload(damageControl),
             capabilityProfile: capabilities.profile,
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             actionPlan: actions,
+            verificationState: verification.state,
+            verificationFailureClass: verification.failureClass,
+            verification,
             execution: {
               finalStatus: "failed_loop",
               retries: 0,
               trace: [],
               verifyLoopEnabled: true,
               sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+              verification,
             },
           },
         },
@@ -3679,6 +3964,15 @@ export async function runUiNavigatorAgent(
     const deviceRoutingRequested = input.deviceNodeId !== null || hasDeviceNodeResolveCriteria(input);
 
     if (deviceRoutingRequested && !deviceNodeRouting.selectedNode) {
+      const verification = buildUiVerificationOutcome({
+        input,
+        actions,
+        deviceNodeRouting,
+        damageControl,
+        sandboxPolicy,
+        approvalState: "not_required",
+        approvalRequired: false,
+      });
       return createEnvelopeWithUsage({
         userId: request.userId,
         sessionId: request.sessionId,
@@ -3701,6 +3995,7 @@ export async function runUiNavigatorAgent(
             planner: {
               provider: planResult.plannerProvider,
               model: planResult.plannerModel,
+              verification: applyUiVerificationPlanOutcome(verificationPlan, verification),
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             damageControl: buildDamageControlPayload(damageControl),
@@ -3708,12 +4003,16 @@ export async function runUiNavigatorAgent(
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             deviceNodeRouting,
             actionPlan: actions,
+            verificationState: verification.state,
+            verificationFailureClass: verification.failureClass,
+            verification,
             execution: {
               finalStatus: "failed_device_node",
               retries: 0,
               trace: [],
               verifyLoopEnabled: true,
               sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+              verification,
             },
           },
         },
@@ -3725,6 +4024,15 @@ export async function runUiNavigatorAgent(
       executionConfig.executorMode === "remote_http" &&
       !deviceNodeRouting.executorUrl
     ) {
+      const verification = buildUiVerificationOutcome({
+        input,
+        actions,
+        deviceNodeRouting,
+        damageControl,
+        sandboxPolicy,
+        approvalState: "not_required",
+        approvalRequired: false,
+      });
       return createEnvelopeWithUsage({
         userId: request.userId,
         sessionId: request.sessionId,
@@ -3747,6 +4055,7 @@ export async function runUiNavigatorAgent(
             planner: {
               provider: planResult.plannerProvider,
               model: planResult.plannerModel,
+              verification: applyUiVerificationPlanOutcome(verificationPlan, verification),
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             damageControl: buildDamageControlPayload(damageControl),
@@ -3754,12 +4063,16 @@ export async function runUiNavigatorAgent(
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             deviceNodeRouting,
             actionPlan: actions,
+            verificationState: verification.state,
+            verificationFailureClass: verification.failureClass,
+            verification,
             execution: {
               finalStatus: "failed_device_node",
               retries: 0,
               trace: [],
               verifyLoopEnabled: true,
               sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+              verification,
             },
           },
         },
@@ -3767,6 +4080,14 @@ export async function runUiNavigatorAgent(
     }
 
     if (sandboxPolicy.active && input.approvalConfirmed && sandboxPolicy.blockedCategories.length > 0) {
+      const verification = buildUiVerificationOutcome({
+        input,
+        actions,
+        damageControl,
+        sandboxPolicy,
+        approvalState: "not_required",
+        approvalRequired: false,
+      });
       return createEnvelopeWithUsage({
         userId: request.userId,
         sessionId: request.sessionId,
@@ -3787,18 +4108,23 @@ export async function runUiNavigatorAgent(
             planner: {
               provider: planResult.plannerProvider,
               model: planResult.plannerModel,
+              verification: applyUiVerificationPlanOutcome(verificationPlan, verification),
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             damageControl: buildDamageControlPayload(damageControl),
             capabilityProfile: capabilities.profile,
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             actionPlan: actions,
+            verificationState: verification.state,
+            verificationFailureClass: verification.failureClass,
+            verification,
             execution: {
               finalStatus: "failed_sandbox_policy",
               retries: 0,
               trace: [],
               verifyLoopEnabled: true,
               sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+              verification,
             },
           },
         },
@@ -3809,6 +4135,14 @@ export async function runUiNavigatorAgent(
       ? summarizeBlockedSandboxActions(actions, sandboxPolicy.allowedActionTypes)
       : [];
     if (blockedSandboxActions.length > 0) {
+      const verification = buildUiVerificationOutcome({
+        input,
+        actions,
+        damageControl,
+        sandboxPolicy,
+        approvalState: "not_required",
+        approvalRequired: false,
+      });
       return createEnvelopeWithUsage({
         userId: request.userId,
         sessionId: request.sessionId,
@@ -3829,18 +4163,23 @@ export async function runUiNavigatorAgent(
             planner: {
               provider: planResult.plannerProvider,
               model: planResult.plannerModel,
+              verification: applyUiVerificationPlanOutcome(verificationPlan, verification),
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             damageControl: buildDamageControlPayload(damageControl),
             capabilityProfile: capabilities.profile,
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             actionPlan: actions,
+            verificationState: verification.state,
+            verificationFailureClass: verification.failureClass,
+            verification,
             execution: {
               finalStatus: "failed_sandbox_policy",
               retries: 0,
               trace: [],
               verifyLoopEnabled: true,
               sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+              verification,
             },
           },
         },
@@ -3858,6 +4197,21 @@ export async function runUiNavigatorAgent(
         screenshotRef: input.screenshotRef ?? "ui://blocked/no-screenshot",
         notes: "Blocked until user confirms sensitive action execution.",
       }));
+      const verification = buildUiVerificationOutcome({
+        input,
+        actions,
+        execution: {
+          trace: blockedTrace,
+          finalStatus: "needs_approval",
+          retries: 0,
+          adapterMode: executionConfig.executorMode,
+        },
+        approvalState: "pending",
+        approvalRequired: true,
+        damageControl,
+        sandboxPolicy,
+        deviceNodeRouting,
+      });
 
       return createEnvelopeWithUsage({
         userId: request.userId,
@@ -3870,7 +4224,8 @@ export async function runUiNavigatorAgent(
           status: "accepted",
           traceId,
           output: {
-            message: "Sensitive action detected. User approval is required before execution.",
+            message: "Sensitive action detected. User approval is required before execution. Verification state: blocked pending approval.",
+            text: `Sensitive action detected. User approval is required before execution. Verification state: blocked pending approval. ${verification.summary} ${verification.recoveryHint ?? ""}`.trim(),
             handledIntent: request.payload.intent,
             traceId,
             latencyMs: Date.now() - startedAt,
@@ -3907,6 +4262,7 @@ export async function runUiNavigatorAgent(
             planner: {
               provider: planResult.plannerProvider,
               model: planResult.plannerModel,
+              verification: applyUiVerificationPlanOutcome(verificationPlan, verification),
             },
             sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
             damageControl: buildDamageControlPayload(damageControl),
@@ -3914,11 +4270,15 @@ export async function runUiNavigatorAgent(
             skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
             deviceNodeRouting,
             actionPlan: actions,
+            verificationState: verification.state,
+            verificationFailureClass: verification.failureClass,
+            verification,
             execution: {
               finalStatus: "needs_approval",
               retries: 0,
               trace: blockedTrace,
               sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+              verification,
             },
           },
         },
@@ -3943,6 +4303,21 @@ export async function runUiNavigatorAgent(
         const checkpoints = Array.isArray(job.checkpoints) ? job.checkpoints : [];
         const latestCheckpoint =
           checkpoints.length > 0 && isRecord(checkpoints[checkpoints.length - 1]) ? checkpoints[checkpoints.length - 1] : null;
+        const verification = buildUiVerificationOutcome({
+          input,
+          actions,
+          execution: {
+            trace: [],
+            finalStatus: "background_submitted",
+            retries: 0,
+            adapterMode: "remote_http",
+          },
+          damageControl,
+          sandboxPolicy,
+          deviceNodeRouting,
+          approvalState: "not_required",
+          approvalRequired: false,
+        });
 
         return createEnvelopeWithUsage({
           userId: request.userId,
@@ -3963,6 +4338,7 @@ export async function runUiNavigatorAgent(
               planner: {
                 provider: planResult.plannerProvider,
                 model: planResult.plannerModel,
+                verification: applyUiVerificationPlanOutcome(verificationPlan, verification),
               },
               sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
               damageControl: buildDamageControlPayload(damageControl),
@@ -3970,6 +4346,9 @@ export async function runUiNavigatorAgent(
               skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
               deviceNodeRouting,
               actionPlan: actions,
+              verificationState: verification.state,
+              verificationFailureClass: verification.failureClass,
+              verification,
               execution: {
                 finalStatus: "background_submitted",
                 retries: 0,
@@ -3993,6 +4372,7 @@ export async function runUiNavigatorAgent(
                     }
                   : null,
                 computerUseProfile: capabilities.computerUse.descriptor.adapterId,
+                verification,
               },
               browserWorker: {
                 enabled: true,
@@ -4022,6 +4402,21 @@ export async function runUiNavigatorAgent(
           },
         });
       } catch (error) {
+        const verification = buildUiVerificationOutcome({
+          input,
+          actions,
+          execution: {
+            trace: [],
+            finalStatus: "failed_background_submission",
+            retries: 0,
+            adapterMode: "remote_http",
+          },
+          damageControl,
+          sandboxPolicy,
+          deviceNodeRouting,
+          approvalState: "not_required",
+          approvalRequired: false,
+        });
         return createEnvelopeWithUsage({
           userId: request.userId,
           sessionId: request.sessionId,
@@ -4041,6 +4436,7 @@ export async function runUiNavigatorAgent(
               planner: {
                 provider: planResult.plannerProvider,
                 model: planResult.plannerModel,
+                verification: applyUiVerificationPlanOutcome(verificationPlan, verification),
               },
               sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
               damageControl: buildDamageControlPayload(damageControl),
@@ -4048,6 +4444,9 @@ export async function runUiNavigatorAgent(
               skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
               deviceNodeRouting,
               actionPlan: actions,
+              verificationState: verification.state,
+              verificationFailureClass: verification.failureClass,
+              verification,
               browserWorker: {
                 enabled: true,
                 error: error instanceof Error ? error.message : String(error),
@@ -4058,6 +4457,7 @@ export async function runUiNavigatorAgent(
                 trace: [],
                 verifyLoopEnabled: true,
                 sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+                verification,
               },
             },
           },
@@ -4094,11 +4494,24 @@ export async function runUiNavigatorAgent(
     const loopProtectionSummary = runtimeLoop.detected
       ? ` Loop protection triggered at trace step ${runtimeLoop.atIndex ?? "unknown"} (duplicateCount=${runtimeLoop.duplicateCount}).`
       : "";
+    const verification = buildUiVerificationOutcome({
+      input,
+      actions,
+      execution,
+      visualTesting,
+      approvalState: input.approvalConfirmed ? "approved" : "not_required",
+      approvalRequired,
+      runtimeLoop,
+      damageControl,
+      sandboxPolicy,
+      deviceNodeRouting,
+    });
     const displayText = buildUiTaskDisplayText({
       input,
       actions,
       execution,
       overallStatus,
+      verification,
     });
 
     return createEnvelopeWithUsage({
@@ -4132,6 +4545,7 @@ export async function runUiNavigatorAgent(
           planner: {
             provider: planResult.plannerProvider,
             model: planResult.plannerModel,
+            verification: applyUiVerificationPlanOutcome(verificationPlan, verification),
           },
           sandboxPolicy: buildSandboxPolicyPayload(sandboxPolicy),
           damageControl: buildDamageControlPayload(damageControl),
@@ -4139,18 +4553,21 @@ export async function runUiNavigatorAgent(
           skillsRuntime: toSkillsRuntimeSummary(skillsRuntime),
           deviceNodeRouting,
           actionPlan: actions,
-            execution: {
-              finalStatus,
-              retries: execution.retries,
-              trace: execution.trace,
-              verifyLoopEnabled: true,
-              sandbox: buildSandboxPolicyPayload(sandboxPolicy),
-              grounding: execution.grounding,
-              loopProtection: {
-                detected: runtimeLoop.detected,
-                source: runtimeLoop.source,
-                atIndex: runtimeLoop.atIndex,
-                duplicateCount: runtimeLoop.duplicateCount,
+          verificationState: verification.state,
+          verificationFailureClass: verification.failureClass,
+          verification,
+          execution: {
+            finalStatus,
+            retries: execution.retries,
+            trace: execution.trace,
+            verifyLoopEnabled: true,
+            sandbox: buildSandboxPolicyPayload(sandboxPolicy),
+            grounding: execution.grounding,
+            loopProtection: {
+              detected: runtimeLoop.detected,
+              source: runtimeLoop.source,
+              atIndex: runtimeLoop.atIndex,
+              duplicateCount: runtimeLoop.duplicateCount,
               signature: runtimeLoop.signature,
               threshold: {
                 windowSize: config.loopWindowSize,
@@ -4171,6 +4588,7 @@ export async function runUiNavigatorAgent(
                 }
               : null,
             computerUseProfile: capabilities.computerUse.descriptor.adapterId,
+            verification,
           },
           visualTesting,
         },

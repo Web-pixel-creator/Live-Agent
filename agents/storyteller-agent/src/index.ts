@@ -49,6 +49,11 @@ export { getMediaJobQueueSnapshot } from "./media-jobs.js";
 export { getStoryCacheSnapshot, purgeStoryCache } from "./story-cache.js";
 
 type StoryMediaMode = "default" | "fallback" | "simulated";
+type StorySimulationMode =
+  | "sales_rehearsal"
+  | "support_rehearsal"
+  | "onboarding_simulation"
+  | "negotiation_drills";
 
 type StoryInput = {
   prompt: string;
@@ -56,6 +61,7 @@ type StoryInput = {
   style: string;
   language: string;
   voiceStyle: string;
+  simulationMode: StorySimulationMode | null;
   branchChoice: string | null;
   includeImages: boolean;
   includeVideo: boolean;
@@ -74,6 +80,15 @@ type StoryPlan = {
   decisionPoints: string[];
   plannerProvider: "gemini" | "fallback";
   plannerModel: string;
+};
+
+type StorySimulationContext = {
+  mode: StorySimulationMode;
+  label: string;
+  objective: string;
+  audienceHint: string;
+  promptHint: string;
+  source: "explicit" | "inferred";
 };
 
 type StoryAsset = {
@@ -324,6 +339,47 @@ function normalizeMediaMode(value: unknown): StoryMediaMode | null {
   return null;
 }
 
+function normalizeStorySimulationMode(value: unknown): StorySimulationMode | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (
+    normalized === "sales" ||
+    normalized === "sales_rehearsal" ||
+    normalized === "sales-rehearsal" ||
+    normalized === "sales_rehearsals"
+  ) {
+    return "sales_rehearsal";
+  }
+  if (
+    normalized === "support" ||
+    normalized === "support_rehearsal" ||
+    normalized === "support-rehearsal" ||
+    normalized === "support_rehearsals"
+  ) {
+    return "support_rehearsal";
+  }
+  if (
+    normalized === "onboarding" ||
+    normalized === "onboarding_simulation" ||
+    normalized === "onboarding-simulation" ||
+    normalized === "onboarding_simulations"
+  ) {
+    return "onboarding_simulation";
+  }
+  if (
+    normalized === "negotiation" ||
+    normalized === "negotiation_drills" ||
+    normalized === "negotiation-drills" ||
+    normalized === "negotiation_drill" ||
+    normalized === "negotiation-drill"
+  ) {
+    return "negotiation_drills";
+  }
+  return null;
+}
+
 function normalizeStorytellerTtsProvider(value: unknown): StorytellerTtsProvider | null {
   if (typeof value !== "string") {
     return null;
@@ -373,6 +429,226 @@ function normalizeLanguageTag(language: string): string {
   }
   const [baseLanguage] = normalized.split(/[-_]/, 1);
   return baseLanguage.length > 0 ? baseLanguage : normalized;
+}
+
+function inferSimulationModeFromPrompt(prompt: string): StorySimulationMode | null {
+  const normalized = prompt.toLowerCase();
+  if (/(support|ticket|issue|bug|escalat|helpdesk|customer care)/i.test(normalized)) {
+    return "support_rehearsal";
+  }
+  if (/(onboard|onboarding|activation|welcome flow|first run|new user)/i.test(normalized)) {
+    return "onboarding_simulation";
+  }
+  if (/(negotiat|deal|offer|counteroffer|counter-offer|pricing|contract)/i.test(normalized)) {
+    return "negotiation_drills";
+  }
+  if (/(sales|pitch|lead|objection|close|quota|revenue)/i.test(normalized)) {
+    return "sales_rehearsal";
+  }
+  return null;
+}
+
+function getSimulationTrackDetails(mode: StorySimulationMode, isRu: boolean): {
+  label: string;
+  objective: string;
+  audienceHint: string;
+  promptHint: string;
+  scenes: string[];
+  decisionPoints: string[];
+} {
+  if (mode === "sales_rehearsal") {
+    return isRu
+      ? {
+          label: "Sales Rehearsal",
+          objective: "отрепетировать продажу, обработку возражений и следующий шаг",
+          audienceHint: "продажная команда",
+          promptHint: "Сделай сценарий как реалистичную тренировку продажи: короткий питч, возражения, подтверждение следующего шага.",
+          scenes: [
+            "{{hero}} открывает разговор с боли клиента и связывает {{subject}} с понятной пользой.",
+            "Когда клиент спорит о цене, {{hero}} отвечает одним сильным доказательством и держит {{tone}} тон.",
+            "Разговор смещается к срокам, и {{hero}} тренирует закрытие на следующий звонок вместо преждевременной продажи.",
+            "Финальный кадр показывает разбор после разговора: что сработало, где клиент сомневался и какой шаг нужен дальше.",
+          ],
+          decisionPoints: [
+            "Начать с боли клиента или сразу с продукта",
+            "Ответить на возражение по цене или потерять контроль",
+            "Попросить следующий шаг или остановиться слишком рано",
+          ],
+        }
+      : {
+          label: "Sales Rehearsal",
+          objective: "practice a sales conversation, objection handling, and the next-step close",
+          audienceHint: "sales team",
+          promptHint: "Frame this as a realistic sales drill: short pitch, objections, proof points, and a clear next step.",
+          scenes: [
+            "{{hero}} opens by naming the buyer's pain and connecting {{subject}} to a practical win.",
+            "When the customer pushes back on price, {{hero}} answers with one proof point and keeps the {{tone}} tone.",
+            "The conversation turns to timing, and {{hero}} rehearses a next-meeting close instead of forcing the deal.",
+            "The final beat is the team's debrief: what landed, what stalled, and what the next drill should stress.",
+          ],
+          decisionPoints: [
+            "Lead with pain or lead with product",
+            "Handle the price objection or give up margin",
+            "Ask for the next step or end too early",
+          ],
+        };
+  }
+
+  if (mode === "support_rehearsal") {
+    return isRu
+      ? {
+          label: "Support Rehearsal",
+          objective: "отрепетировать разбор обращения, уточнение проблемы и эскалацию",
+          audienceHint: "служба поддержки",
+          promptHint: "Сделай сценарий как тренировку поддержки: уточнение, диагностика, решение или эскалация.",
+          scenes: [
+            "{{hero}} встречает обращение и спокойно уточняет проблему, не споря с клиентом.",
+            "После первых деталей {{hero}} отсекает шум и строит короткую диагностику вокруг {{subject}}.",
+            "Когда решение неочевидно, {{hero}} объясняет границы и мягко подводит к эскалации или обходному пути.",
+            "Финал показывает, как команда фиксирует выводы и превращает разговор в более сильный support playbook.",
+          ],
+          decisionPoints: [
+            "Уточнить симптом или сразу предложить решение",
+            "Решить на первом уровне или эскалировать",
+            "Сохранить спокойный тон или потерять доверие",
+          ],
+        }
+      : {
+          label: "Support Rehearsal",
+          objective: "practice ticket triage, diagnosis, and escalation control",
+          audienceHint: "support team",
+          promptHint: "Frame this as a support drill: clarify the issue, diagnose quickly, and decide when to escalate.",
+          scenes: [
+            "{{hero}} receives the issue and calmly clarifies the problem without fighting the customer.",
+            "After the first details, {{hero}} narrows the diagnosis around {{subject}} and keeps the conversation structured.",
+            "When the solution is not obvious, {{hero}} explains the boundary and walks toward escalation or a workaround.",
+            "The final beat shows the team turning the conversation into a stronger support playbook.",
+          ],
+          decisionPoints: [
+            "Clarify the symptom or jump to a fix",
+            "Resolve on the first line or escalate",
+            "Keep the tone steady or lose trust",
+          ],
+        };
+  }
+
+  if (mode === "onboarding_simulation") {
+    return isRu
+      ? {
+          label: "Onboarding Simulation",
+          objective: "отрепетировать вход нового пользователя, первую победу и снижение трения",
+          audienceHint: "команда онбординга",
+          promptHint: "Сделай сценарий как onboarding simulation: приветствие, первый успех, снятие трения и подсказки.",
+          scenes: [
+            "{{hero}} приветствует нового пользователя и объясняет, что именно он сейчас научится делать.",
+            "Затем команда проводит пользователя через первый маленький успех вокруг {{subject}}.",
+            "Когда появляется трение, {{hero}} упрощает шаги и убирает лишнюю неопределенность.",
+            "Финальный кадр показывает, что пользователь уже увереннее двигается дальше и понимает следующий шаг.",
+          ],
+          decisionPoints: [
+            "Показывать все сразу или вести через первый успех",
+            "Оставить сложный шаг или упростить путь",
+            "Дать больше контекста или меньше отвлекать",
+          ],
+        }
+      : {
+          label: "Onboarding Simulation",
+          objective: "practice a first-run flow, early win, and friction reduction",
+          audienceHint: "onboarding team",
+          promptHint: "Frame this as an onboarding simulation: welcome, first success, friction removal, and guidance.",
+          scenes: [
+            "{{hero}} welcomes the new user and explains the one thing they are going to learn now.",
+            "The team guides the user to a first small win around {{subject}}.",
+            "When friction appears, {{hero}} simplifies the path and removes unnecessary uncertainty.",
+            "The final beat shows the user moving forward with more confidence and a clear next step.",
+          ],
+          decisionPoints: [
+            "Show everything at once or lead with one success",
+            "Keep the harder step or simplify the path",
+            "Give more context or stay out of the way",
+          ],
+        };
+  }
+
+  return isRu
+    ? {
+        label: "Negotiation Drills",
+        objective: "отрепетировать якорь, контрпредложение и мягкое закрытие сделки",
+        audienceHint: "переговорная команда",
+        promptHint: "Сделай сценарий как negotiation drills: якорь, контрпредложение, компромисс и финальное подтверждение.",
+        scenes: [
+          "{{hero}} начинает с четкого якоря и объясняет, почему {{subject}} стоит именно так.",
+          "Когда появляется контрпредложение, {{hero}} ищет баланс между уступкой и сохранением позиции.",
+          "Дальше переговоры переходят в проверку trade-offs, и команда репетирует спокойный ответ на давление.",
+          "Финальный кадр закрепляет либо согласие, либо паузу для подтверждения, но уже без тумана.",
+        ],
+        decisionPoints: [
+          "Давить на цену или удержать позицию",
+          "Согласиться на контрпредложение или попросить паузу",
+          "Закрыть сделку сейчас или оставить пространство для подтверждения",
+        ],
+      }
+    : {
+        label: "Negotiation Drills",
+        objective: "practice anchoring, counteroffers, and a clean deal close",
+        audienceHint: "negotiation team",
+        promptHint: "Frame this as negotiation drills: anchor, counteroffer, tradeoffs, and a clear closing move.",
+        scenes: [
+          "{{hero}} opens with a clear anchor and explains why {{subject}} is worth that position.",
+          "When the counteroffer lands, {{hero}} balances concession against keeping the deal intact.",
+          "The conversation shifts to tradeoffs, and the team rehearses a calm answer under pressure.",
+          "The final beat locks in either agreement or a pause for approval, but not uncertainty.",
+        ],
+        decisionPoints: [
+          "Push on price or protect the position",
+          "Accept the counteroffer or ask for a pause",
+          "Close now or leave room for confirmation",
+        ],
+    };
+}
+
+function renderSimulationTemplate(template: string, params: { hero: string; subject: string; tone: string }): string {
+  return template
+    .replaceAll("{{hero}}", params.hero)
+    .replaceAll("{{subject}}", params.subject)
+    .replaceAll("{{tone}}", params.tone);
+}
+
+function buildStorySimulationContext(input: StoryInput): StorySimulationContext | null {
+  const explicitMode = input.simulationMode;
+  const inferredMode = explicitMode ?? inferSimulationModeFromPrompt(input.prompt);
+  if (!inferredMode) {
+    return null;
+  }
+  const isRu = input.language.trim().toLowerCase().startsWith("ru");
+  const details = getSimulationTrackDetails(inferredMode, isRu);
+  return {
+    mode: inferredMode,
+    label: details.label,
+    objective: details.objective,
+    audienceHint: details.audienceHint,
+    promptHint: details.promptHint,
+    source: explicitMode ? "explicit" : "inferred",
+  };
+}
+
+function buildStorySimulationPromptBlock(simulation: StorySimulationContext, isRu: boolean): string {
+  if (isRu) {
+    return [
+      `Simulation mode: ${simulation.label}`,
+      `Objective: ${simulation.objective}`,
+      `Audience: ${simulation.audienceHint}`,
+      simulation.promptHint,
+      "Keep the output grounded in a realistic training or rehearsal flow, not a fantasy story.",
+    ].join("\n");
+  }
+  return [
+    `Simulation mode: ${simulation.label}`,
+    `Objective: ${simulation.objective}`,
+    `Audience: ${simulation.audienceHint}`,
+    simulation.promptHint,
+    "Keep the output grounded in a realistic training or rehearsal flow, not a fantasy story.",
+  ].join("\n");
 }
 
 function buildStorytellerTtsSelection(params: {
@@ -565,6 +841,10 @@ function normalizeStoryInput(input: unknown): StoryInput {
     style: toNonEmptyString(raw.style, "cinematic"),
     language: toNonEmptyString(raw.language, "en"),
     voiceStyle: toNonEmptyString(raw.voiceStyle, "warm storyteller voice, podcast style"),
+    simulationMode:
+      normalizeStorySimulationMode(raw.simulationMode) ??
+      normalizeStorySimulationMode(raw.simulationTrack) ??
+      normalizeStorySimulationMode(raw.scenarioMode),
     branchChoice: toNullableString(raw.branchChoice),
     includeImages: toBoolean(raw.includeImages, true),
     includeVideo: toBoolean(raw.includeVideo, false),
@@ -677,11 +957,11 @@ function buildAdaptiveDecisionPoints(
   }
 
   const safeHero = hero ?? (isRu ? "герой" : "the protagonist");
-  const safeSubject = subject ?? (isRu ? "главную цель истории" : "the central objective");
+  const safeSubject = subject ?? (isRu ? "главная цель истории" : "the central objective");
   return isRu
     ? [
         `Поставить ${safeSubject} выше личной безопасности ${safeHero}`,
-        `Сделать ставку на рискованный ход или сохранить контроль`,
+        "Сделать ставку на рискованный ход или сохранить контроль",
         "Открыть правду окружающим сейчас или удержать ее до финала",
       ]
     : [
@@ -755,14 +1035,63 @@ function buildAdaptiveFallbackScenario(baseScenario: FallbackScenario, input: St
   const hero = extractStoryHeroFromPrompt(normalizedPrompt);
   const tone = extractStoryToneFromPrompt(normalizedPrompt);
   const subject = extractStorySubjectFromPrompt(normalizedPrompt);
+  const simulation = buildStorySimulationContext(input);
   const techLaunch = isTechLaunchPrompt(normalizedPrompt, hero, subject);
-  const shouldAdapt = techLaunch || Boolean(hero) || Boolean(tone) || keywordScore <= 0;
+  const shouldAdapt = Boolean(simulation) || techLaunch || Boolean(hero) || Boolean(tone) || keywordScore <= 0;
 
   if (!shouldAdapt) {
     return baseScenario;
   }
 
   const isRu = input.language.trim().toLowerCase().startsWith("ru");
+  if (simulation) {
+    const details = getSimulationTrackDetails(simulation.mode, isRu);
+    const safeHero = hero ?? (isRu ? "оператор" : "the operator");
+    const safeSubject = subject ?? (isRu ? "сценарий тренировки" : "the rehearsal scenario");
+    const safeTone = tone ?? (isRu ? "практичный" : "practical");
+    const title = capitalizeStoryText(details.label);
+    const logline = isRu
+      ? `${safeHero} прогоняет ${details.label.toLowerCase()} через ${safeSubject}, чтобы отрепетировать ${details.objective}.`
+      : `${safeHero} runs a ${details.label.toLowerCase()} through ${safeSubject} to rehearse ${details.objective}.`;
+    const assetSlug = `simulation-${simulation.mode}`;
+    const keywords = Array.from(
+      new Set([
+        ...baseScenario.keywords,
+        simulation.mode,
+        simulation.label,
+        simulation.objective,
+        simulation.audienceHint,
+        ...tokenize(normalizedPrompt),
+        ...tokenize(safeSubject),
+        ...tokenize(safeHero),
+        ...tokenize(tone ?? input.style),
+      ]),
+    );
+    const sceneCount = Math.max(2, input.segmentCount);
+    const segments = details.scenes.slice(0, sceneCount).map((template) =>
+      renderSimulationTemplate(template, {
+        hero: safeHero,
+        subject: safeSubject,
+        tone: safeTone,
+      }),
+    );
+
+    return {
+      id: assetSlug,
+      title,
+      logline,
+      keywords,
+      segments,
+      decisionPoints: details.decisionPoints,
+      images: Array.from(
+        { length: sceneCount },
+        (_, index) => `https://placehold.co/1024x1024/png?text=${encodeURIComponent(`${details.label} Scene ${index + 1}`)}`,
+      ),
+      videos: Array.from({ length: sceneCount }, (_, index) => `fallback://story/${assetSlug}/scene-${index + 1}.mp4`),
+      narrations: Array.from({ length: sceneCount }, (_, index) => `fallback://story/${assetSlug}/scene-${index + 1}.wav`),
+    };
+  }
+
   const safeHero = techLaunch
     ? (hero ?? (isRu ? "основатель стартапа" : "the startup founder"))
     : (hero ?? (isRu ? "главный герой" : "the protagonist"));
@@ -815,6 +1144,30 @@ function buildAdaptiveFallbackScenario(baseScenario: FallbackScenario, input: St
     ),
     videos: Array.from({ length: sceneCount }, (_, index) => `fallback://story/${assetSlug}/scene-${index + 1}.mp4`),
     narrations: Array.from({ length: sceneCount }, (_, index) => `fallback://story/${assetSlug}/scene-${index + 1}.wav`),
+  };
+}
+
+function buildStorySimulationMetadata(simulation: StorySimulationContext | null): Record<string, unknown> {
+  if (!simulation) {
+    return {
+      active: false,
+      mode: null,
+      label: null,
+      objective: null,
+      audienceHint: null,
+      promptHint: null,
+      source: null,
+    };
+  }
+
+  return {
+    active: true,
+    mode: simulation.mode,
+    label: simulation.label,
+    objective: simulation.objective,
+    audienceHint: simulation.audienceHint,
+    promptHint: simulation.promptHint,
+    source: simulation.source,
   };
 }
 
@@ -1657,6 +2010,7 @@ async function generateStoryPlan(
   config: GeminiConfig,
   capabilities: StorytellerCapabilitySet,
   skillsPrompt: string | null,
+  simulation: StorySimulationContext | null,
 ): Promise<StoryPlan> {
   const cacheKey = buildStoryCacheKey("story.plan", {
     prompt: input.prompt,
@@ -1667,6 +2021,8 @@ async function generateStoryPlan(
     plannerModel: config.plannerModel,
     plannerEnabled: config.plannerEnabled,
     fallbackScenarioId: fallback.id,
+    simulationMode: simulation?.mode ?? null,
+    simulationSource: simulation?.source ?? null,
   });
 
   const cachedPlan = getFromStoryCache<StoryPlan>("plan", cacheKey);
@@ -1697,6 +2053,7 @@ async function generateStoryPlan(
     "You are a cinematic interactive storyteller.",
     "Create a story plan as strict JSON.",
     "Fields: title, logline, segments (array of strings), decisionPoints (array of strings).",
+    simulation ? buildStorySimulationPromptBlock(simulation, input.language.trim().toLowerCase().startsWith("ru")) : null,
     skillsPrompt ? `Skill directives:\n${skillsPrompt}` : null,
     `Audience: ${input.audience}`,
     `Style: ${input.style}`,
@@ -1761,8 +2118,9 @@ async function extendStoryBranch(params: {
   config: GeminiConfig;
   capabilities: StorytellerCapabilitySet;
   skillsPrompt: string | null;
+  simulation: StorySimulationContext | null;
 }): Promise<{ segments: string[]; branchProvider: "gemini" | "fallback"; branchModel: string }> {
-  const { input, currentSegments, fallback, config, capabilities, skillsPrompt } = params;
+  const { input, currentSegments, fallback, config, capabilities, skillsPrompt, simulation } = params;
   if (!input.branchChoice) {
     return {
       segments: currentSegments,
@@ -1777,6 +2135,7 @@ async function extendStoryBranch(params: {
     branchModel: config.branchModel,
     plannerEnabled: config.plannerEnabled,
     currentSegments,
+    simulationMode: simulation?.mode ?? null,
   });
   const cachedBranch = getFromStoryCache<{
     segments: string[];
@@ -1804,6 +2163,7 @@ async function extendStoryBranch(params: {
 
   const prompt = [
     "Continue the interactive story in one concise segment.",
+    simulation ? buildStorySimulationPromptBlock(simulation, input.language.trim().toLowerCase().startsWith("ru")) : null,
     skillsPrompt ? `Skill directives:\n${skillsPrompt}` : null,
     `Language: ${input.language}`,
     `Branch choice: ${input.branchChoice}`,
@@ -1902,6 +2262,7 @@ async function createImageAsset(params: {
   fallback: FallbackScenario;
   adapter: ImageCapabilityAdapter;
   config: GeminiConfig;
+  simulation: StorySimulationContext | null;
 }): Promise<StoryAsset> {
   const prompt = `Illustration for segment ${params.segmentIndex + 1}: ${params.segmentText}`;
   const isLiveGeminiImage =
@@ -1934,6 +2295,9 @@ async function createImageAsset(params: {
           prompt,
           adapterMode: "default",
           liveApi: true,
+          simulationMode: params.simulation?.mode ?? null,
+          simulationLabel: params.simulation?.label ?? null,
+          simulationSource: params.simulation?.source ?? null,
         },
       };
     }
@@ -1951,6 +2315,7 @@ async function createImageAsset(params: {
       provider: params.adapter.descriptor.provider,
       model: params.adapter.descriptor.model,
       fallbackRef,
+      simulationMode: params.simulation?.mode ?? null,
     },
     create: () => {
       const fallbackAsset = adapterMode === "fallback" || !fallbackRef ? true : false;
@@ -1979,6 +2344,9 @@ async function createImageAsset(params: {
         meta: {
           prompt,
           adapterMode,
+          simulationMode: params.simulation?.mode ?? null,
+          simulationLabel: params.simulation?.label ?? null,
+          simulationSource: params.simulation?.source ?? null,
         },
       };
     },
@@ -2082,6 +2450,7 @@ async function applyImageEditPass(params: {
         model: params.adapter.descriptor.model,
         prompt,
         imageEditReferenceRef: params.imageEditReferenceRef,
+        simulationMode: asset.meta.simulationMode ?? null,
       },
       create: () => ({
         ref:
@@ -2148,6 +2517,7 @@ async function createVideoAsset(params: {
   fallback: FallbackScenario;
   adapter: VideoCapabilityAdapter;
   config: GeminiConfig;
+  simulation: StorySimulationContext | null;
 }): Promise<StoryAsset> {
   const prompt = `Video scene for segment ${params.segmentIndex + 1}: ${params.segmentText}`;
   const isLiveGeminiVideo =
@@ -2180,6 +2550,9 @@ async function createVideoAsset(params: {
           prompt,
           adapterMode: "default",
           liveApi: true,
+          simulationMode: params.simulation?.mode ?? null,
+          simulationLabel: params.simulation?.label ?? null,
+          simulationSource: params.simulation?.source ?? null,
           operationName: liveResult.operationName,
           polled: liveResult.polled,
         },
@@ -2199,6 +2572,7 @@ async function createVideoAsset(params: {
       provider: params.adapter.descriptor.provider,
       model: params.adapter.descriptor.model,
       fallbackRef,
+      simulationMode: params.simulation?.mode ?? null,
     },
     create: () => {
       const fallbackAsset = adapterMode === "fallback" || !fallbackRef ? true : false;
@@ -2228,6 +2602,9 @@ async function createVideoAsset(params: {
         meta: {
           prompt,
           adapterMode,
+          simulationMode: params.simulation?.mode ?? null,
+          simulationLabel: params.simulation?.label ?? null,
+          simulationSource: params.simulation?.source ?? null,
           notes: adapterMode === "fallback" ? "pre-generated fallback clip" : "queued for async generation",
         },
       };
@@ -2260,6 +2637,7 @@ async function createNarrationAsset(params: {
   fallback: FallbackScenario;
   adapter: TtsCapabilityAdapter;
   config: GeminiConfig;
+  simulation: StorySimulationContext | null;
 }): Promise<StoryAsset> {
   const isLiveGeminiTts =
     params.adapter.descriptor.mode === "default" &&
@@ -2296,6 +2674,9 @@ async function createNarrationAsset(params: {
           selectionReason: params.adapter.descriptor.selection?.selectionReason ?? null,
           durationMs: liveResult.durationMs,
           liveApi: true,
+          simulationMode: params.simulation?.mode ?? null,
+          simulationLabel: params.simulation?.label ?? null,
+          simulationSource: params.simulation?.source ?? null,
         },
       };
     }
@@ -2330,6 +2711,9 @@ async function createNarrationAsset(params: {
           selectionReason: params.adapter.descriptor.selection?.selectionReason ?? null,
           durationMs: liveResult.durationMs,
           liveApi: true,
+          simulationMode: params.simulation?.mode ?? null,
+          simulationLabel: params.simulation?.label ?? null,
+          simulationSource: params.simulation?.source ?? null,
         },
       };
     }
@@ -2348,6 +2732,7 @@ async function createNarrationAsset(params: {
       provider: params.adapter.descriptor.provider,
       model: params.adapter.descriptor.model,
       fallbackRef,
+      simulationMode: params.simulation?.mode ?? null,
     },
     create: () => {
       const fallbackAsset = adapterMode === "fallback" || !fallbackRef ? true : false;
@@ -2378,6 +2763,9 @@ async function createNarrationAsset(params: {
           voiceStyle: params.voiceStyle,
           adapterMode,
           selectionReason: params.adapter.descriptor.selection?.selectionReason ?? null,
+          simulationMode: params.simulation?.mode ?? null,
+          simulationLabel: params.simulation?.label ?? null,
+          simulationSource: params.simulation?.source ?? null,
         },
       };
     },
@@ -2542,6 +2930,7 @@ export async function runStorytellerAgent(
     const input = normalizeStoryInput(request.payload.input);
     const imageEditRequested =
       input.imageEditRequested || input.imageEditPrompt !== null || input.imageEditReferenceRef !== null;
+    const simulation = buildStorySimulationContext(input);
     effectiveMediaMode = resolveMediaMode(input, config);
     capabilities = createStorytellerCapabilitySet(
       config,
@@ -2561,7 +2950,7 @@ export async function runStorytellerAgent(
     const fallbackPack = await loadFallbackPack();
     const fallbackScenario = selectFallbackScenario(fallbackPack, input);
 
-    const plan = await generateStoryPlan(input, fallbackScenario, config, capabilities, skillsPrompt);
+    const plan = await generateStoryPlan(input, fallbackScenario, config, capabilities, skillsPrompt, simulation);
     const branch = await extendStoryBranch({
       input,
       currentSegments: plan.segments,
@@ -2569,6 +2958,7 @@ export async function runStorytellerAgent(
       config,
       capabilities,
       skillsPrompt,
+      simulation,
     });
 
     const finalSegments = branch.segments;
@@ -2581,6 +2971,7 @@ export async function runStorytellerAgent(
               fallback: fallbackScenario,
               adapter: capabilities.image,
               config,
+              simulation,
             }),
           ),
         )
@@ -2605,6 +2996,7 @@ export async function runStorytellerAgent(
               fallback: fallbackScenario,
               adapter: capabilities.video,
               config,
+              simulation,
             }),
           ),
         )
@@ -2629,6 +3021,7 @@ export async function runStorytellerAgent(
           fallback: fallbackScenario,
           adapter: capabilities.tts,
           config,
+          simulation,
         }),
       ),
     );
@@ -2645,7 +3038,8 @@ export async function runStorytellerAgent(
     const pendingVideoJobs = videoJobs.filter(
       (job) => job.status === "queued" || job.status === "running",
     ).length;
-    const message = `Story ready: "${plan.title}" with ${timeline.length} segments (${allAssets.length} media assets).${input.includeVideo ? ` Video jobs pending: ${pendingVideoJobs}.` : ""}`;
+    const simulationMetadata = buildStorySimulationMetadata(simulation);
+    const message = `${simulationMetadata.active ? `${String(simulationMetadata.label)} ready: ` : "Story ready: "}"${plan.title}" with ${timeline.length} segments (${allAssets.length} media assets).${input.includeVideo ? ` Video jobs pending: ${pendingVideoJobs}.` : ""}`;
     const mediaQueue: StoryMediaWorkerSnapshot = getMediaJobQueueSnapshot();
     const cacheSnapshot: StoryCacheSnapshot = getStoryCacheSnapshot();
 
@@ -2674,6 +3068,7 @@ export async function runStorytellerAgent(
             language: input.language,
             branchChoice: input.branchChoice,
             decisionPoints: plan.decisionPoints,
+            simulation: simulationMetadata,
             timeline,
           },
           assets: allAssets.map((asset) => ({
@@ -2725,6 +3120,7 @@ export async function runStorytellerAgent(
               model: branch.branchModel,
             },
             imageModel: config.imageModel,
+            simulation: simulationMetadata,
             imageEdit: {
               requested: capabilities.imageEditSelection.requested,
               applied: capabilities.imageEditSelection.applied && imageEditPass.editedAssetCount > 0,

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { createEnvelope, type OrchestratorRequest } from "../../shared/contracts/src/index.js";
 import { orchestrate } from "../../agents/orchestrator/src/orchestrate.js";
+import { getOrchestratorWorkflowStoreStatus } from "../../agents/orchestrator/src/workflow-store.js";
 
 function asObject(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null) {
@@ -118,6 +119,11 @@ test("orchestrator keeps live-agent primary route and returns delegation payload
       input: {
         text: "delegate story: create a short scene about a rover on Mars",
       },
+      task: {
+        taskId: "task-unit-run-delegation",
+        status: "queued",
+        stage: "intake",
+      },
     },
   }) as OrchestratorRequest;
 
@@ -127,8 +133,16 @@ test("orchestrator keeps live-agent primary route and returns delegation payload
 
   const output = asObject(response.payload.output);
   const delegation = asObject(output.delegation);
+  const task = asObject(response.payload.task);
   assert.equal(delegation.requestedIntent, "story");
   assert.equal(delegation.requestedRoute, "storyteller-agent");
+  assert.equal(task.stage, "reporting");
+  assert.equal(task.status, "completed");
+
+  const workflow = getOrchestratorWorkflowStoreStatus().workflowState;
+  assert.equal(workflow.status, "completed");
+  assert.equal(workflow.currentStage, "reporting");
+  assert.equal(workflow.activeRole, "reporter");
 });
 
 test("orchestrator returns approval-required flow for sensitive ui_task", async () => {
@@ -147,6 +161,11 @@ test("orchestrator returns approval-required flow for sensitive ui_task", async 
         goal: "Open payment page and submit card details",
         url: "https://example.com/checkout",
       },
+      task: {
+        taskId: "task-unit-run-ui-approval",
+        status: "queued",
+        stage: "intake",
+      },
     },
   }) as OrchestratorRequest;
 
@@ -155,8 +174,16 @@ test("orchestrator returns approval-required flow for sensitive ui_task", async 
   assert.equal(response.payload.status, "accepted");
 
   const output = asObject(response.payload.output);
+  const task = asObject(response.payload.task);
   assert.equal(output.approvalRequired, true);
   assert.ok(typeof output.approvalId === "string");
+  assert.equal(task.stage, "safety_review");
+  assert.equal(task.status, "pending_approval");
+
+  const workflow = getOrchestratorWorkflowStoreStatus().workflowState;
+  assert.equal(workflow.status, "pending_approval");
+  assert.equal(workflow.currentStage, "safety_review");
+  assert.equal(workflow.activeRole, "safety_reviewer");
 });
 
 test("orchestrator routes research intent to live-agent with citation-bearing output", async () => {

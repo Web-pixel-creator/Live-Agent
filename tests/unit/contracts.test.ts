@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createEnvelope, createNormalizedError, RollingMetrics, safeParseEnvelope } from "../../shared/contracts/src/index.js";
+import {
+  createEnvelope,
+  createNormalizedError,
+  RollingMetrics,
+  safeParseEnvelope,
+  UI_FAILURE_CLASSES,
+  UI_VERIFICATION_STATES,
+} from "../../shared/contracts/src/index.js";
 
 test("createEnvelope + safeParseEnvelope roundtrip", () => {
   const envelope = createEnvelope({
@@ -37,6 +44,74 @@ test("safeParseEnvelope rejects malformed payload", () => {
   });
   const parsed = safeParseEnvelope(invalid);
   assert.equal(parsed, null);
+});
+
+test("ui verification states and failure classes are exposed as shared contract constants", () => {
+  assert.deepEqual(UI_VERIFICATION_STATES, [
+    "verified",
+    "partially_verified",
+    "unverified",
+    "blocked_pending_approval",
+  ]);
+  for (const token of [
+    "approval_required",
+    "approval_rejected",
+    "damage_control_blocked",
+    "device_node_unavailable",
+    "execution_failed",
+    "loop_detected",
+    "missing_grounding",
+    "sandbox_blocked",
+    "stale_grounding",
+    "verification_failed",
+    "visual_regression",
+  ]) {
+    assert.ok(UI_FAILURE_CLASSES.includes(token as (typeof UI_FAILURE_CLASSES)[number]));
+  }
+});
+
+test("task metadata roundtrips ui verification state and failure class", () => {
+  const envelope = createEnvelope({
+    userId: "task-user",
+    sessionId: "session-task",
+    runId: "run-task",
+    type: "orchestrator.request",
+    source: "frontend",
+    payload: {
+      intent: "ui_task",
+      input: { goal: "Open settings and verify account controls" },
+      task: {
+        taskId: "task-123",
+        status: "pending_approval",
+        stage: "verification",
+        route: "ui-navigator-agent",
+        verificationState: "blocked_pending_approval",
+        verificationFailureClass: "approval_required",
+        verificationSummary: "Waiting for approval before executing the UI action.",
+      },
+    },
+  });
+
+  const parsed = safeParseEnvelope(JSON.stringify(envelope));
+  assert.ok(parsed, "safeParseEnvelope should parse valid task envelope");
+  const payload = parsed?.payload as {
+    task?: {
+      taskId?: string;
+      status?: string;
+      stage?: string;
+      route?: string | null;
+      verificationState?: string;
+      verificationFailureClass?: string | null;
+      verificationSummary?: string;
+    };
+  };
+  assert.equal(payload.task?.taskId, "task-123");
+  assert.equal(payload.task?.status, "pending_approval");
+  assert.equal(payload.task?.stage, "verification");
+  assert.equal(payload.task?.route, "ui-navigator-agent");
+  assert.equal(payload.task?.verificationState, "blocked_pending_approval");
+  assert.equal(payload.task?.verificationFailureClass, "approval_required");
+  assert.equal(payload.task?.verificationSummary, "Waiting for approval before executing the UI action.");
 });
 
 test("createNormalizedError always emits traceId", () => {

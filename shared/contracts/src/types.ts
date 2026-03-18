@@ -62,6 +62,63 @@ export type TaskLifecycleStatus =
   | "completed"
   | "failed";
 
+export const UI_VERIFICATION_STATES = [
+  "verified",
+  "partially_verified",
+  "unverified",
+  "blocked_pending_approval",
+] as const;
+
+export type UiVerificationState = (typeof UI_VERIFICATION_STATES)[number];
+
+export const UI_FAILURE_CLASSES = [
+  "approval_required",
+  "approval_rejected",
+  "damage_control_blocked",
+  "device_node_unavailable",
+  "execution_failed",
+  "loop_detected",
+  "missing_grounding",
+  "sandbox_blocked",
+  "stale_grounding",
+  "verification_failed",
+  "visual_regression",
+] as const;
+
+export type UiFailureClass = (typeof UI_FAILURE_CLASSES)[number];
+
+export type UiVerificationEvidence = {
+  traceSteps: number;
+  completedSteps: number;
+  verifySteps: number;
+  blockedSteps: number;
+  screenshotRefs: string[];
+  groundingSignals: {
+    screenshotRefProvided: boolean;
+    domSnapshotProvided: boolean;
+    accessibilityTreeProvided: boolean;
+    markHintsCount: number;
+  };
+  visualChecks: number;
+  visualRegressions: number;
+};
+
+export type UiVerificationOutcome = {
+  state: UiVerificationState;
+  failureClass: UiFailureClass | null;
+  summary: string;
+  recoveryHint: string | null;
+  evidence: UiVerificationEvidence;
+};
+
+export type UiPlannerVerification = {
+  required: boolean;
+  targetState: UiVerificationState;
+  checkpoints: string[];
+  approvalSensitive: boolean;
+  groundingReady: boolean;
+};
+
 export type TaskMetadata = {
   taskId: string;
   status?: TaskLifecycleStatus;
@@ -70,6 +127,9 @@ export type TaskMetadata = {
   route?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  verificationState?: UiVerificationState;
+  verificationFailureClass?: UiFailureClass | null;
+  verificationSummary?: string;
 };
 
 export type OrchestratorRequest = EventEnvelope<{

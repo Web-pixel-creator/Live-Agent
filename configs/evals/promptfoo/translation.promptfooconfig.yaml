@@ -1,0 +1,65 @@
+description: AI Action Desk translation playbook evals
+providers:
+  - id: google:gemini-2.5-flash
+  - id: google:gemini-2.5-pro
+prompts:
+  - |
+    You are evaluating the AI Action Desk translation playbook.
+    Translate the user's message into {{target_language}}.
+    Preserve the meaning, tone, numbers, names, and business terms.
+    Return only valid JSON with these keys:
+    - translated_text
+    - preserved_terms
+    - follow_up_question
+    - confidence
+tests:
+  - vars:
+      input: Please confirm the appointment at 3 PM and send the summary.
+      target_language: Russian
+    assert:
+      - type: is-json
+        value:
+          type: object
+          required:
+            - translated_text
+            - preserved_terms
+            - follow_up_question
+            - confidence
+          properties:
+            translated_text:
+              type: string
+            preserved_terms:
+              type: array
+              items:
+                type: string
+            follow_up_question:
+              type: string
+            confidence:
+              type: number
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return typeof data.translated_text === 'string' && data.translated_text.trim().length > 0;
+  - vars:
+      input: We need the booking form and the passport number.
+      target_language: Spanish
+    assert:
+      - type: is-json
+        value:
+          type: object
+          required:
+            - translated_text
+            - preserved_terms
+            - follow_up_question
+            - confidence
+          properties:
+            translated_text:
+              type: string
+            preserved_terms:
+              type: array
+              items:
+                type: string
+            follow_up_question:
+              type: string
+            confidence:
+              type: number

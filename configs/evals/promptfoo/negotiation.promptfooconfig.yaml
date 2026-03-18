@@ -1,0 +1,68 @@
+description: AI Action Desk negotiation playbook evals
+providers:
+  - id: google:gemini-2.5-flash
+  - id: google:gemini-2.5-pro
+prompts:
+  - |
+    You are evaluating the AI Action Desk negotiation playbook.
+    Given the situation, return valid JSON with these keys:
+    - hard_constraints
+    - primary_offer
+    - fallback_offer
+    - approval_boundary
+    - next_step
+tests:
+  - vars:
+      situation: The client wants a 20 percent discount and same-day delivery, but the current offer only allows a small concession.
+    assert:
+      - type: is-json
+        value:
+          type: object
+          required:
+            - hard_constraints
+            - primary_offer
+            - fallback_offer
+            - approval_boundary
+            - next_step
+          properties:
+            hard_constraints:
+              type: array
+              items:
+                type: string
+            primary_offer:
+              type: string
+            fallback_offer:
+              type: string
+            approval_boundary:
+              type: string
+            next_step:
+              type: string
+      - type: javascript
+        value: |
+          const data = JSON.parse(output);
+          return Array.isArray(data.hard_constraints) && data.hard_constraints.length > 0;
+  - vars:
+      situation: The customer needs the booking moved to next week and wants a clearer refund policy.
+    assert:
+      - type: is-json
+        value:
+          type: object
+          required:
+            - hard_constraints
+            - primary_offer
+            - fallback_offer
+            - approval_boundary
+            - next_step
+          properties:
+            hard_constraints:
+              type: array
+              items:
+                type: string
+            primary_offer:
+              type: string
+            fallback_offer:
+              type: string
+            approval_boundary:
+              type: string
+            next_step:
+              type: string

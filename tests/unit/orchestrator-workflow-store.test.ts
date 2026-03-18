@@ -5,10 +5,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   clearOrchestratorWorkflowControlPlaneOverride,
+  clearOrchestratorWorkflowExecutionState,
   getOrchestratorWorkflowConfig,
+  getOrchestratorWorkflowExecutionState,
   getOrchestratorWorkflowStoreStatus,
   resetOrchestratorWorkflowStoreForTests,
   setOrchestratorWorkflowControlPlaneOverride,
+  setOrchestratorWorkflowExecutionState,
 } from "../../agents/orchestrator/src/workflow-store.js";
 
 function withEnv(
@@ -80,6 +83,59 @@ test("workflow store loads repo/file config and applies env overrides", () =>
       assert.equal(config.idempotencyTtlMs, 60000);
       assert.equal(config.assistiveRouter.apiKey, "unit-key");
       assert.deepEqual(config.assistiveRouter.allowIntents, ["conversation", "translation", "negotiation", "research"]);
+    },
+  ));
+
+test("workflow store tracks workflow execution stage and active role", () =>
+  withEnv(
+    {
+      ORCHESTRATOR_WORKFLOW_CONFIG_PATH: undefined,
+      ORCHESTRATOR_WORKFLOW_CONFIG_JSON: undefined,
+      ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED: undefined,
+      ORCHESTRATOR_ASSISTIVE_ROUTER_PROVIDER: undefined,
+      ORCHESTRATOR_ASSISTIVE_ROUTER_MODEL: undefined,
+      ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL: undefined,
+      ORCHESTRATOR_ASSISTIVE_ROUTER_BUDGET_POLICY: undefined,
+      ORCHESTRATOR_ASSISTIVE_ROUTER_PROMPT_CACHING: undefined,
+      ORCHESTRATOR_ASSISTIVE_ROUTER_WATCHLIST_ENABLED: undefined,
+      ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY: undefined,
+      GEMINI_API_KEY: undefined,
+      OPENAI_API_KEY: undefined,
+      ANTHROPIC_API_KEY: undefined,
+      DEEPSEEK_API_KEY: undefined,
+      MOONSHOT_API_KEY: undefined,
+    },
+    () => {
+      const initial = getOrchestratorWorkflowExecutionState();
+      assert.equal(initial.status, "idle");
+      assert.equal(initial.currentStage, null);
+      assert.equal(initial.activeRole, null);
+
+      setOrchestratorWorkflowExecutionState({
+        status: "running",
+        currentStage: "planning",
+        activeRole: "planner",
+        runId: "run-workflow-1",
+        sessionId: "session-workflow-1",
+        taskId: "task-workflow-1",
+        intent: "conversation",
+        route: "live-agent",
+        reason: "planning request",
+      });
+
+      const status = getOrchestratorWorkflowStoreStatus();
+      assert.equal(status.workflowState.status, "running");
+      assert.equal(status.workflowState.currentStage, "planning");
+      assert.equal(status.workflowState.activeRole, "planner");
+      assert.equal(status.workflowState.runId, "run-workflow-1");
+      assert.equal(status.workflowState.route, "live-agent");
+      assert.equal(status.workflowState.reason, "planning request");
+
+      clearOrchestratorWorkflowExecutionState();
+      const cleared = getOrchestratorWorkflowExecutionState();
+      assert.equal(cleared.status, "idle");
+      assert.equal(cleared.currentStage, null);
+      assert.equal(cleared.activeRole, null);
     },
   ));
 

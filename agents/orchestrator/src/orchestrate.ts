@@ -17,7 +17,13 @@ import {
 } from "./retry-classification.js";
 import { routeIntent } from "./router.js";
 import { persistEvent } from "./services/firestore.js";
-import { getOrchestratorWorkflowConfig } from "./workflow-store.js";
+import {
+  getOrchestratorWorkflowConfig,
+  getOrchestratorWorkflowExecutionState,
+  setOrchestratorWorkflowExecutionState,
+  type OrchestratorWorkflowRole,
+  type OrchestratorWorkflowStage,
+} from "./workflow-store.js";
 
 type CachedOrchestrationResult = {
   response: OrchestratorResponse;
@@ -32,6 +38,62 @@ type InFlightOrchestrationEntry = {
 
 const inFlightOrchestration = new Map<string, InFlightOrchestrationEntry>();
 const completedOrchestration = new Map<string, CachedOrchestrationResult>();
+
+const WORKFLOW_STAGE_ROLES: Record<OrchestratorWorkflowStage, OrchestratorWorkflowRole> = {
+  intake: "intake",
+  planning: "planner",
+  safety_review: "safety_reviewer",
+  execution: "executor",
+  verification: "verifier",
+  reporting: "reporter",
+};
+
+function stageReason(stage: OrchestratorWorkflowStage, detail: string): string {
+  return `${stage}:${detail}`;
+}
+
+async function persistWorkflowStageTransition(params: {
+  request: OrchestratorRequest;
+  taskId: string | null;
+  stage: OrchestratorWorkflowStage;
+  status: "running" | "pending_approval" | "completed" | "failed";
+  reason: string;
+  route: string | null;
+}): Promise<void> {
+  const activeRole = WORKFLOW_STAGE_ROLES[params.stage];
+  setOrchestratorWorkflowExecutionState({
+    status: params.status,
+    currentStage: params.stage,
+    activeRole,
+    runId: params.request.runId ?? params.request.id,
+    sessionId: params.request.sessionId,
+    taskId: params.taskId,
+    intent: params.request.payload.intent,
+    route: params.route,
+    reason: params.reason,
+  });
+  await persistEvent(
+    createEnvelope({
+      userId: params.request.userId,
+      sessionId: params.request.sessionId,
+      runId: params.request.runId,
+      type: "workflow.stage",
+      source: "orchestrator",
+      payload: {
+        taskId: params.taskId,
+        runId: params.request.runId ?? null,
+        sessionId: params.request.sessionId,
+        intent: params.request.payload.intent,
+        route: params.route,
+        stage: params.stage,
+        activeRole,
+        status: params.status,
+        reason: params.reason,
+        updatedAt: new Date().toISOString(),
+      },
+    }),
+  );
+}
 
 function ensureRunId(request: OrchestratorRequest): OrchestratorRequest {
   if (request.runId) {
@@ -189,6 +251,21 @@ function extractApprovalRequired(response: OrchestratorResponse): boolean {
   return response.payload.output.approvalRequired === true;
 }
 
+function buildWorkflowTaskMetadata(params: {
+  taskId: string;
+  status: TaskStatus;
+  route: string | null;
+}): NonNullable<OrchestratorResponse["payload"]["task"]> {
+  const workflowState = getOrchestratorWorkflowExecutionState();
+  return {
+    taskId: params.taskId,
+    status: params.status,
+    stage: workflowState.currentStage ?? "intake",
+    route: params.route,
+    updatedAt: workflowState.updatedAt ?? new Date().toISOString(),
+  };
+}
+
 async function persistTaskStatus(params: {
   request: OrchestratorRequest;
   response?: OrchestratorResponse;
@@ -198,6 +275,15 @@ async function persistTaskStatus(params: {
   error?: unknown;
 }): Promise<void> {
   const route = params.response?.payload.route ?? null;
+  const activeRole =
+    params.stage === "intake" ||
+    params.stage === "planning" ||
+    params.stage === "safety_review" ||
+    params.stage === "execution" ||
+    params.stage === "verification" ||
+    params.stage === "reporting"
+      ? WORKFLOW_STAGE_ROLES[params.stage as OrchestratorWorkflowStage]
+      : null;
   const event = createEnvelope({
     userId: params.request.userId,
     sessionId: params.request.sessionId,
@@ -211,6 +297,8 @@ async function persistTaskStatus(params: {
       route,
       status: params.status,
       stage: params.stage,
+      workflowStage: params.stage,
+      activeRole,
       error: params.error ?? null,
       updatedAt: new Date().toISOString(),
     },
@@ -413,26 +501,60 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
   const workflow = getOrchestratorWorkflowConfig();
   const routing = await resolveAssistiveRoute(baseRequest, workflow.assistiveRouter);
   const normalizedRequest = withRoutedIntent(baseRequest, routing.routedIntent);
+  const taskContext = extractTaskContext(normalizedRequest);
+  const taskId = taskContext?.taskId ?? null;
 
   await persistEvent(normalizedRequest);
-  const taskContext = extractTaskContext(normalizedRequest);
   if (taskContext) {
     await persistTaskStatus({
       request: normalizedRequest,
       taskId: taskContext.taskId,
       status: "running",
-      stage: "orchestrator.received",
+      stage: "intake",
     });
   }
+
+  await persistWorkflowStageTransition({
+    request: normalizedRequest,
+    taskId,
+    stage: "intake",
+    status: "running",
+    reason: stageReason("intake", "request received"),
+    route: null,
+  });
+  await persistWorkflowStageTransition({
+    request: normalizedRequest,
+    taskId,
+    stage: "planning",
+    status: "running",
+    reason: stageReason("planning", routing.reason),
+    route: routing.route,
+  });
 
   const route = routing.route;
   let response: OrchestratorResponse;
   try {
+    await persistWorkflowStageTransition({
+      request: normalizedRequest,
+      taskId,
+      stage: "safety_review",
+      status: "running",
+      reason: stageReason("safety_review", `preparing ${route}`),
+      route,
+    });
+    await persistWorkflowStageTransition({
+      request: normalizedRequest,
+      taskId,
+      stage: "execution",
+      status: "running",
+      reason: stageReason("execution", `dispatching ${route}`),
+      route,
+    });
     response = await executeRoute({
       route,
       request: normalizedRequest,
       phase: "primary_route",
-      taskId: taskContext?.taskId ?? null,
+      taskId,
     });
   } catch (error) {
     if (taskContext) {
@@ -443,11 +565,22 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
               defaultCode: "ORCHESTRATOR_ROUTE_FAILURE",
               defaultMessage: "route execution failed",
             });
-      const stage =
-        error instanceof OrchestratorExecutionError &&
-        error.retryDecision.classification === "continuation"
-          ? "orchestrator.awaiting_retry"
-          : "orchestrator.failed";
+      const stage = "execution";
+      setOrchestratorWorkflowExecutionState({
+        status: "failed",
+        currentStage: "execution",
+        activeRole: "executor",
+        runId: normalizedRequest.runId ?? normalizedRequest.id,
+        sessionId: normalizedRequest.sessionId,
+        taskId,
+        intent: normalizedRequest.payload.intent,
+        route,
+        reason:
+          error instanceof OrchestratorExecutionError &&
+          error.retryDecision.classification === "continuation"
+            ? "route awaiting retry"
+            : "route failed",
+      });
       await persistTaskStatus({
         request: normalizedRequest,
         taskId: taskContext.taskId,
@@ -462,6 +595,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
 
   const delegation = extractDelegationRequest(response);
   if (delegation) {
+    const delegatedRoute = routeIntent(delegation.intent);
     const delegatedRequest: OrchestratorRequest = {
       ...normalizedRequest,
       id: randomUUID(),
@@ -476,14 +610,29 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
     };
     await persistEvent(delegatedRequest);
 
-    const delegatedRoute = routeIntent(delegatedRequest.payload.intent);
+    await persistWorkflowStageTransition({
+      request: delegatedRequest,
+      taskId,
+      stage: "safety_review",
+      status: "running",
+      reason: stageReason("safety_review", `delegated ${delegatedRequest.payload.intent}`),
+      route: delegatedRoute,
+    });
+    await persistWorkflowStageTransition({
+      request: delegatedRequest,
+      taskId,
+      stage: "execution",
+      status: "running",
+      reason: stageReason("execution", `dispatching delegated ${delegatedRoute}`),
+      route: delegatedRoute,
+    });
     let delegatedResponse: OrchestratorResponse;
     try {
       delegatedResponse = await executeRoute({
         route: delegatedRoute,
         request: delegatedRequest,
         phase: "delegated_route",
-        taskId: taskContext?.taskId ?? null,
+        taskId,
       });
     } catch (error) {
       if (taskContext) {
@@ -491,14 +640,25 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
           error instanceof OrchestratorExecutionError
             ? error.normalizedError
             : normalizeUnknownError(error, {
-                defaultCode: "ORCHESTRATOR_ROUTE_FAILURE",
-                defaultMessage: "delegated route execution failed",
-              });
-        const stage =
-          error instanceof OrchestratorExecutionError &&
-          error.retryDecision.classification === "continuation"
-            ? "orchestrator.awaiting_retry"
-            : "orchestrator.failed";
+              defaultCode: "ORCHESTRATOR_ROUTE_FAILURE",
+              defaultMessage: "delegated route execution failed",
+            });
+        const stage = "execution";
+        setOrchestratorWorkflowExecutionState({
+          status: "failed",
+          currentStage: "execution",
+          activeRole: "executor",
+          runId: normalizedRequest.runId ?? normalizedRequest.id,
+          sessionId: normalizedRequest.sessionId,
+          taskId,
+          intent: normalizedRequest.payload.intent,
+          route: delegatedRoute,
+          reason:
+            error instanceof OrchestratorExecutionError &&
+            error.retryDecision.classification === "continuation"
+              ? "delegated route awaiting retry"
+              : "delegated route failed",
+        });
         await persistTaskStatus({
           request: normalizedRequest,
           taskId: taskContext.taskId,
@@ -525,14 +685,40 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
           : extractApprovalRequired(response)
             ? "pending_approval"
             : "running";
+    const finalStage: OrchestratorWorkflowStage =
+      mappedStatus === "pending_approval" ? "safety_review" : mappedStatus === "completed" ? "reporting" : "verification";
+    await persistWorkflowStageTransition({
+      request: normalizedRequest,
+      taskId,
+      stage: finalStage,
+      status: mappedStatus,
+      reason:
+        mappedStatus === "pending_approval"
+          ? stageReason(finalStage, "awaiting operator approval")
+          : mappedStatus === "completed"
+            ? stageReason(finalStage, "response verified and ready to report")
+            : stageReason(finalStage, "response reported with errors"),
+      route,
+    });
     await persistTaskStatus({
       request: normalizedRequest,
       response,
       taskId: taskContext.taskId,
       status: mappedStatus,
-      stage: mappedStatus === "pending_approval" ? "awaiting_approval" : "orchestrator.responded",
+      stage: finalStage,
       error: response.payload.error ?? null,
     });
+    response = {
+      ...response,
+      payload: {
+        ...response.payload,
+        task: buildWorkflowTaskMetadata({
+          taskId: taskContext.taskId,
+          status: mappedStatus,
+          route,
+        }),
+      },
+    };
   }
 
   await persistEvent(response);

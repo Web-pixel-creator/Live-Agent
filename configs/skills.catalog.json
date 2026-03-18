@@ -33,6 +33,36 @@
       "defaultRecipeId": "ui-sandbox-form-review"
     },
     {
+      "id": "lead-qualifier",
+      "name": "Lead Qualifier",
+      "description": "Multilingual intake persona for qualifying leads, capturing urgency, and staging the next step.",
+      "agentIds": ["live-agent"],
+      "recommendedSkillIds": ["lead-qualification-playbook"],
+      "tags": ["playbook", "lead", "qualification"],
+      "defaultIntent": "conversation",
+      "defaultRecipeId": "lead-qualification-intake"
+    },
+    {
+      "id": "consultation-booking",
+      "name": "Consultation Booking Assistant",
+      "description": "Scheduling persona for proposing times, confirming constraints, and staging booking actions.",
+      "agentIds": ["live-agent"],
+      "recommendedSkillIds": ["consultation-booking-playbook"],
+      "tags": ["playbook", "booking", "scheduling"],
+      "defaultIntent": "conversation",
+      "defaultRecipeId": "consultation-booking-flow"
+    },
+    {
+      "id": "document-collection",
+      "name": "Document Collection Assistant",
+      "description": "Collection persona for missing-field tracking, browser forms, and approval-aware submission staging.",
+      "agentIds": ["live-agent", "ui-navigator-agent"],
+      "recommendedSkillIds": ["document-collection-playbook"],
+      "tags": ["playbook", "documents", "forms"],
+      "defaultIntent": "ui_task",
+      "defaultRecipeId": "document-collection-flow"
+    },
+    {
       "id": "calendar-automation-publisher",
       "name": "Calendar Automation Publisher",
       "description": "Managed-skill and plugin-marketplace persona for calendar workflows, signing demos, and install/resolve validation.",
@@ -78,6 +108,42 @@
       "promptTemplate": "Inspect a web form, summarize the intended clicks and typed fields before execution, and stop for approval before any submit action. Prefer sandbox-safe read/preview steps first.",
       "recommendedSkillIds": [],
       "tags": ["judge-demo", "ui", "approval"],
+      "judgeCategory": "ui_navigator"
+    },
+    {
+      "id": "lead-qualification-intake",
+      "personaId": "lead-qualifier",
+      "name": "Lead Qualification Intake",
+      "description": "Qualify a new lead, capture structured intent, and stage the next action safely.",
+      "agentId": "live-agent",
+      "intent": "conversation",
+      "promptTemplate": "Qualify the lead in the user's language. Capture language, intent, urgency, service type, and timing. Restate the next step, and ask for approval only if a browser action or irreversible change is needed.",
+      "recommendedSkillIds": ["lead-qualification-playbook"],
+      "tags": ["playbook", "lead", "intake"],
+      "judgeCategory": "live_agent"
+    },
+    {
+      "id": "consultation-booking-flow",
+      "personaId": "consultation-booking",
+      "name": "Consultation Booking Flow",
+      "description": "Propose booking options, confirm constraints, and stage the appointment safely.",
+      "agentId": "live-agent",
+      "intent": "conversation",
+      "promptTemplate": "Book or stage a consultation. Clarify language, timezone, and constraints. Propose two concrete time options, keep the flow concise, and ask for approval before submitting any booking or calendar action.",
+      "recommendedSkillIds": ["consultation-booking-playbook"],
+      "tags": ["playbook", "booking", "scheduling"],
+      "judgeCategory": "live_agent"
+    },
+    {
+      "id": "document-collection-flow",
+      "personaId": "document-collection",
+      "name": "Document Collection Flow",
+      "description": "Collect missing information, stage browser forms, and verify the final submission path.",
+      "agentId": "ui-navigator-agent",
+      "intent": "ui_task",
+      "promptTemplate": "Collect missing document or form information. Track what is missing, stage browser forms carefully, ask for approval before any sensitive submission, and verify the result after execution.",
+      "recommendedSkillIds": ["document-collection-playbook"],
+      "tags": ["playbook", "documents", "forms"],
       "judgeCategory": "ui_navigator"
     },
     {

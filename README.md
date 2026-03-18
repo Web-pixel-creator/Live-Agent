@@ -43,6 +43,8 @@ Starter workspace for the "next-generation agents" spec:
 - Architecture: `docs/architecture.md`
 - Product Master Plan: `docs/product-master-plan.md`
 - Product Backlog: `docs/product-backlog.md`
+- Worker Roles: `docs/worker-roles.md`
+- Eval Plane: `docs/evals.md`
 - Operator Guide: `docs/operator-guide.md`
 - Judge Quickstart: `docs/judge-quickstart.md`
 - Judge Runbook (alias): `docs/judge-runbook.md`
@@ -564,6 +566,8 @@ Artifacts:
 - UI Navigator damage-control policy: `UI_NAVIGATOR_DAMAGE_CONTROL_ENABLED`, `UI_NAVIGATOR_DAMAGE_CONTROL_RULES_PATH` (default `.kiro/policies/ui-damage-control.rules.json`), optional inline override `UI_NAVIGATOR_DAMAGE_CONTROL_RULES_JSON`.
 - Skills runtime tuning: `SKILLS_RUNTIME_ENABLED`, `SKILLS_SOURCE_PRECEDENCE=workspace,bundled,managed`, `SKILLS_ALLOWED_SOURCES`, `SKILLS_WORKSPACE_DIR`, `SKILLS_BUNDLED_DIR`, `SKILLS_MANAGED_INDEX_JSON`, `SKILLS_MANAGED_INDEX_URL`, `SKILLS_MANAGED_INDEX_AUTH_TOKEN`, `SKILLS_MANAGED_INDEX_AUTH_CREDENTIAL`, `SKILLS_MANAGED_INDEX_TIMEOUT_MS`, `SKILLS_ENABLED_IDS`, `SKILLS_DISABLED_IDS`, `SKILLS_SECURITY_MODE=off|warn|enforce`, `SKILLS_MIN_TRUST_LEVEL=untrusted|reviewed|trusted`.
 - Skills catalog tuning: repo-owned catalog defaults to `configs/skills.catalog.json`; override with `SKILLS_CATALOG_PATH` or inline `SKILLS_CATALOG_JSON` to publish curated `personas` + `recipes` without touching Firestore registry storage, while repo-owned convergence warnings are generated from local `SKILL.md` metadata plus managed-skill sample payloads instead of a second hand-maintained registry list.
+- Playbook skills live in `skills/bundled/lead-qualification`, `skills/bundled/consultation-booking`, and `skills/bundled/document-collection`; the matching personas and recipes in `configs/skills.catalog.json` keep the demo and API aligned around the first commercial wedge.
+- Promptfoo eval suites live in `configs/evals/promptfoo` and can be run with `npm run eval:promptfoo` or `npm run eval:promptfoo:gate`. The runner mirrors `GEMINI_API_KEY` into `GOOGLE_API_KEY` for the Google provider and writes run metadata to `artifacts/evals/latest-run.json`.
 - Runtime fault profiles: repo-owned controlled degradation catalog defaults to `configs/runtime.fault-profiles.json`; override with `RUNTIME_FAULT_PROFILES_PATH` or inline `RUNTIME_FAULT_PROFILES_JSON` to publish reproducible drain/fallback/sandbox/approval drills for operators and judges.
 - Storyteller runtime control surface (via orchestrator): `GET /story/runtime/config` and `POST /story/runtime/control-plane-override` expose repo-owned media-mode drills plus `ttsProvider` override (`gemini_api|deepgram`) and `imageEditEnabled` toggle without env restarts; env knobs also support Gemini-first TTS with Deepgram Aura-2 fallback via `STORYTELLER_TTS_PROVIDER_OVERRIDE`, `STORYTELLER_TTS_SECONDARY_ENABLED`, `STORYTELLER_TTS_SECONDARY_MODEL`, and `STORYTELLER_TTS_SECONDARY_LOCALES`, plus optional fal continuity pass via `STORYTELLER_IMAGE_EDIT_ENABLED` and `STORYTELLER_IMAGE_EDIT_MODEL`.
 - Plugin marketplace signing for managed skills: `SKILL_PLUGIN_REQUIRE_SIGNATURE=true|false`, `SKILL_PLUGIN_SIGNING_KEYS_JSON` (JSON map `{ "<keyId>": "<hmacSecret>" }`), optional `SKILL_PLUGIN_SIGNING_KEYS_CREDENTIAL`.

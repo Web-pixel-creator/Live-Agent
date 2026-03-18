@@ -44,6 +44,37 @@ export type OrchestratorWorkflowConfig = {
   retryPolicy: OrchestratorRetryPolicyConfig;
 };
 
+export type OrchestratorWorkflowStage =
+  | "intake"
+  | "planning"
+  | "safety_review"
+  | "execution"
+  | "verification"
+  | "reporting";
+
+export type OrchestratorWorkflowRole =
+  | "intake"
+  | "planner"
+  | "safety_reviewer"
+  | "executor"
+  | "verifier"
+  | "reporter";
+
+export type OrchestratorWorkflowExecutionStatus = "idle" | "running" | "pending_approval" | "completed" | "failed";
+
+export type OrchestratorWorkflowExecutionState = {
+  status: OrchestratorWorkflowExecutionStatus;
+  currentStage: OrchestratorWorkflowStage | null;
+  activeRole: OrchestratorWorkflowRole | null;
+  runId: string | null;
+  sessionId: string | null;
+  taskId: string | null;
+  intent: OrchestratorIntent | null;
+  route: string | null;
+  reason: string | null;
+  updatedAt: string | null;
+};
+
 export type OrchestratorWorkflowStoreStatus = {
   loadedAt: string | null;
   lastAttemptAt: string | null;
@@ -65,6 +96,7 @@ export type OrchestratorWorkflowStoreStatus = {
     watchlistEnabled: boolean | null;
   } | null;
   idempotencyTtlMs: number | null;
+  workflowState: OrchestratorWorkflowExecutionState;
   controlPlaneOverride: {
     active: boolean;
     updatedAt: string | null;
@@ -126,6 +158,22 @@ const ALL_ASSISTIVE_PROMPT_CACHING: readonly AssistiveRouterPromptCaching[] = [
   "provider_default",
   "provider_prompt_cache",
   "watchlist_only",
+];
+const ALL_WORKFLOW_STAGES: readonly OrchestratorWorkflowStage[] = [
+  "intake",
+  "planning",
+  "safety_review",
+  "execution",
+  "verification",
+  "reporting",
+];
+const ALL_WORKFLOW_ROLES: readonly OrchestratorWorkflowRole[] = [
+  "intake",
+  "planner",
+  "safety_reviewer",
+  "executor",
+  "verifier",
+  "reporter",
 ];
 
 const DEFAULT_WORKFLOW_PATH = resolvePath(process.cwd(), "configs", "orchestrator.workflow.json");
@@ -189,6 +237,18 @@ let usingLastKnownGood = false;
 let fingerprint: string | null = null;
 let refreshSignature: string | null = null;
 let nextRefreshAtMs = 0;
+let workflowExecutionState: OrchestratorWorkflowExecutionState = {
+  status: "idle",
+  currentStage: null,
+  activeRole: null,
+  runId: null,
+  sessionId: null,
+  taskId: null,
+  intent: null,
+  route: null,
+  reason: null,
+  updatedAt: null,
+};
 let controlPlaneOverride:
   | {
       rawJson: string;
@@ -278,6 +338,22 @@ function parseAssistiveRouterPromptCaching(
     return normalized as AssistiveRouterPromptCaching;
   }
   return fallback;
+}
+
+function parseWorkflowStage(value: unknown): OrchestratorWorkflowStage | null {
+  const normalized = toNonEmptyString(value);
+  if (normalized && (ALL_WORKFLOW_STAGES as readonly string[]).includes(normalized)) {
+    return normalized as OrchestratorWorkflowStage;
+  }
+  return null;
+}
+
+function parseWorkflowRole(value: unknown): OrchestratorWorkflowRole | null {
+  const normalized = toNonEmptyString(value);
+  if (normalized && (ALL_WORKFLOW_ROLES as readonly string[]).includes(normalized)) {
+    return normalized as OrchestratorWorkflowRole;
+  }
+  return null;
 }
 
 function defaultAssistiveRouterModel(provider: AssistiveRouterProvider): string {
@@ -644,6 +720,64 @@ function createFingerprint(config: OrchestratorWorkflowConfig): string {
     .digest("hex");
 }
 
+function cloneWorkflowExecutionState(
+  state: OrchestratorWorkflowExecutionState,
+): OrchestratorWorkflowExecutionState {
+  return {
+    ...state,
+  };
+}
+
+function defaultWorkflowExecutionState(): OrchestratorWorkflowExecutionState {
+  return {
+    status: "idle",
+    currentStage: null,
+    activeRole: null,
+    runId: null,
+    sessionId: null,
+    taskId: null,
+    intent: null,
+    route: null,
+    reason: null,
+    updatedAt: null,
+  };
+}
+
+export function getOrchestratorWorkflowExecutionState(): OrchestratorWorkflowExecutionState {
+  return cloneWorkflowExecutionState(workflowExecutionState);
+}
+
+export function setOrchestratorWorkflowExecutionState(params: {
+  status?: OrchestratorWorkflowExecutionStatus;
+  currentStage?: OrchestratorWorkflowStage | string | null;
+  activeRole?: OrchestratorWorkflowRole | string | null;
+  runId?: string | null;
+  sessionId?: string | null;
+  taskId?: string | null;
+  intent?: OrchestratorIntent | null;
+  route?: string | null;
+  reason?: string | null;
+  updatedAt?: string | null;
+}): OrchestratorWorkflowExecutionState {
+  workflowExecutionState = {
+    status: params.status ?? workflowExecutionState.status,
+    currentStage: parseWorkflowStage(params.currentStage) ?? workflowExecutionState.currentStage,
+    activeRole: parseWorkflowRole(params.activeRole) ?? workflowExecutionState.activeRole,
+    runId: toNonEmptyString(params.runId) ?? workflowExecutionState.runId,
+    sessionId: toNonEmptyString(params.sessionId) ?? workflowExecutionState.sessionId,
+    taskId: toNonEmptyString(params.taskId) ?? workflowExecutionState.taskId,
+    intent: params.intent ?? workflowExecutionState.intent,
+    route: toNonEmptyString(params.route) ?? workflowExecutionState.route,
+    reason: toNonEmptyString(params.reason) ?? workflowExecutionState.reason,
+    updatedAt: toNonEmptyString(params.updatedAt) ?? new Date().toISOString(),
+  };
+  return getOrchestratorWorkflowExecutionState();
+}
+
+export function clearOrchestratorWorkflowExecutionState(): void {
+  workflowExecutionState = defaultWorkflowExecutionState();
+}
+
 function buildRefreshSignature(): string {
   return JSON.stringify({
     configPath: process.env.ORCHESTRATOR_WORKFLOW_CONFIG_PATH ?? null,
@@ -789,9 +923,10 @@ export function getOrchestratorWorkflowStoreStatus(): OrchestratorWorkflowStoreS
           budgetPolicy: cachedConfig.assistiveRouter.budgetPolicy,
           promptCaching: cachedConfig.assistiveRouter.promptCaching,
           watchlistEnabled: cachedConfig.assistiveRouter.watchlistEnabled,
-        }
-      : null,
+      }
+    : null,
     idempotencyTtlMs: cachedConfig?.idempotencyTtlMs ?? null,
+    workflowState: getOrchestratorWorkflowExecutionState(),
     controlPlaneOverride: {
       active: controlPlaneOverride !== null,
       updatedAt: controlPlaneOverride?.updatedAt ?? null,
@@ -826,5 +961,6 @@ export function resetOrchestratorWorkflowStoreForTests(): void {
   fingerprint = null;
   refreshSignature = null;
   nextRefreshAtMs = 0;
+  workflowExecutionState = defaultWorkflowExecutionState();
   controlPlaneOverride = null;
 }

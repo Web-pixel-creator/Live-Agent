@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "updatedAt": "2026-03-18T00:00:00.000Z",
+  "runner": "promptfoo",
+  "apiKeyEnvAlias": "GOOGLE_API_KEY",
+  "defaultSuite": "translation",
+  "suites": [
+    {
+      "id": "translation",
+      "name": "Translation Playbook",
+      "configPath": "configs/evals/promptfoo/translation.promptfooconfig.yaml",
+      "outputPath": "artifacts/evals/translation.results.json",
+      "playbookSkillId": "lead-qualification-playbook"
+    },
+    {
+      "id": "negotiation",
+      "name": "Negotiation Playbook",
+      "configPath": "configs/evals/promptfoo/negotiation.promptfooconfig.yaml",
+      "outputPath": "artifacts/evals/negotiation.results.json",
+      "playbookSkillId": "consultation-booking-playbook"
+    },
+    {
+      "id": "research",
+      "name": "Research Playbook",
+      "configPath": "configs/evals/promptfoo/research.promptfooconfig.yaml",
+      "outputPath": "artifacts/evals/research.results.json",
+      "playbookSkillId": "lead-qualification-playbook"
+    },
+    {
+      "id": "ui-safety",
+      "name": "UI Safety Playbook",
+      "configPath": "configs/evals/promptfoo/ui-safety.promptfooconfig.yaml",
+      "outputPath": "artifacts/evals/ui-safety.results.json",
+      "playbookSkillId": "document-collection-playbook"
+    },
+    {
+      "id": "red-team",
+      "name": "Red Team Bundle",
+      "configPath": "configs/evals/promptfoo/red-team.promptfooconfig.yaml",
+      "outputPath": "artifacts/evals/red-team.results.json",
+      "playbookSkillId": "document-collection-playbook"
+    }
+  ]
+}
