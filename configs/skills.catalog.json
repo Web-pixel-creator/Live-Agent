@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-03-19T00:00:00.000Z",
+  "updatedAt": "2026-03-19T01:00:00.000Z",
   "personas": [
     {
       "id": "live-negotiator",
@@ -81,6 +81,16 @@
       "tags": ["playbook", "visa", "relocation", "reminder", "scheduling"],
       "defaultIntent": "conversation",
       "defaultRecipeId": "consultation-reminder-flow"
+    },
+    {
+      "id": "case-escalation-handoff",
+      "name": "Visa/Relocation Case Escalation / Human Handoff",
+      "description": "Escalation persona for blocked visa and relocation cases that need human review, owner routing, and a concise handoff packet.",
+      "agentIds": ["live-agent"],
+      "recommendedSkillIds": ["case-escalation-human-handoff-playbook"],
+      "tags": ["playbook", "visa", "relocation", "escalation", "handoff"],
+      "defaultIntent": "conversation",
+      "defaultRecipeId": "case-escalation-human-handoff-flow"
     },
     {
       "id": "calendar-automation-publisher",
@@ -188,6 +198,18 @@
       "promptTemplate": "Draft a visa or relocation consultation reminder. Confirm the appointment date, time, timezone, meeting mode, and preparation items. Include what the client should bring, how to join, and how to reschedule if needed. Ask for approval before any outbound message or calendar update.",
       "recommendedSkillIds": ["consultation-reminder-playbook"],
       "tags": ["playbook", "visa", "relocation", "reminder", "scheduling"],
+      "judgeCategory": "live_agent"
+    },
+    {
+      "id": "case-escalation-human-handoff-flow",
+      "personaId": "case-escalation-handoff",
+      "name": "Visa/Relocation Case Escalation / Human Handoff",
+      "description": "Escalate a blocked visa or relocation case with a concise human handoff packet and a single owner action.",
+      "agentId": "live-agent",
+      "intent": "conversation",
+      "promptTemplate": "Escalate a visa or relocation case to a human owner when the issue is blocked, high risk, or needs agency judgment. Produce a concise handoff packet with case context, current status, blocker, urgency, and the exact human action needed. Keep the summary operator-friendly, avoid legal advice, and ask for approval before sending anything externally.",
+      "recommendedSkillIds": ["case-escalation-human-handoff-playbook"],
+      "tags": ["playbook", "visa", "relocation", "escalation", "handoff"],
       "judgeCategory": "live_agent"
     },
     {

@@ -356,6 +356,22 @@ type FollowUpFlowSnapshot = {
   readyForSubmission: boolean;
 };
 
+type HandoffFlowSnapshot = {
+  scenario: string;
+  status: string;
+  handoffIntent: string;
+  caseId: string | null;
+  clientName: string | null;
+  destinationCountry: string | null;
+  assignedOwner: string | null;
+  priority: string | null;
+  shortSummary: string | null;
+  operatorSummary: string | null;
+  prompt: string | null;
+  nextStep: string | null;
+  readyForHandoff: boolean;
+};
+
 function extractDelegationRequest(response: OrchestratorResponse): DelegationRequest | null {
   if (response.payload.route !== "live-agent") {
     return null;
@@ -461,6 +477,35 @@ function extractFollowUpSnapshot(response: OrchestratorResponse): FollowUpFlowSn
     operatorSummary: typeof followUp.operatorSummary === "string" ? followUp.operatorSummary : null,
     nextStep: typeof followUp.nextStep === "string" ? followUp.nextStep : null,
     readyForSubmission,
+  };
+}
+
+function extractHandoffSnapshot(response: OrchestratorResponse): HandoffFlowSnapshot | null {
+  if (response.payload.route !== "live-agent") {
+    return null;
+  }
+  if (!isRecord(response.payload.output) || !isRecord(response.payload.output.handoff)) {
+    return null;
+  }
+  const handoff = response.payload.output.handoff;
+  if (!isRecord(handoff.summary) || !isRecord(handoff.leadProfile)) {
+    return null;
+  }
+  return {
+    scenario: typeof handoff.scenario === "string" ? handoff.scenario : "case_escalation_human_handoff",
+    status: typeof handoff.status === "string" ? handoff.status : "ready_for_handoff",
+    handoffIntent: typeof handoff.handoffIntent === "string" ? handoff.handoffIntent : "human_handoff",
+    caseId: typeof handoff.leadProfile.caseId === "string" ? handoff.leadProfile.caseId : null,
+    clientName: typeof handoff.leadProfile.clientName === "string" ? handoff.leadProfile.clientName : null,
+    destinationCountry:
+      typeof handoff.leadProfile.destinationCountry === "string" ? handoff.leadProfile.destinationCountry : null,
+    assignedOwner: typeof handoff.leadProfile.assignedOwner === "string" ? handoff.leadProfile.assignedOwner : null,
+    priority: typeof handoff.priority === "string" ? handoff.priority : null,
+    shortSummary: typeof handoff.summary.shortSummary === "string" ? handoff.summary.shortSummary : null,
+    operatorSummary: typeof handoff.operatorSummary === "string" ? handoff.operatorSummary : null,
+    prompt: typeof handoff.prompt === "string" ? handoff.prompt : null,
+    nextStep: typeof handoff.nextStep === "string" ? handoff.nextStep : null,
+    readyForHandoff: handoff.readyForHandoff === true,
   };
 }
 
@@ -782,6 +827,13 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
   if (bookingSnapshot) {
     setOrchestratorWorkflowExecutionState({
       bookingState: bookingSnapshot,
+    });
+  }
+
+  const handoffSnapshot = extractHandoffSnapshot(response);
+  if (handoffSnapshot) {
+    setOrchestratorWorkflowExecutionState({
+      handoffState: handoffSnapshot,
     });
   }
 

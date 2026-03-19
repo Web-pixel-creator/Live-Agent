@@ -49,9 +49,9 @@ test("frontend ships a one-click CRM handoff demo preset with approved result su
     'id="reviewVisaHandoffResultBtn"',
     'data-dashboard-action="review_visa_handoff_result"',
     'data-i18n="live.compose.reviewVisaHandoff"',
-    "Launch the seeded visa relocation flow, missing-docs follow-up, consultation reminder, or CRM handoff without filling fields manually.",
-    "Prepares the seeded relocation draft, missing-docs follow-up, consultation reminder, or CRM handoff and stops before the protected action step.",
-    "Runs the approved intake, follow-up, reminder, or CRM writeback path and checks the final confirmation banner.",
+    "Launch the seeded visa relocation flow, missing-docs follow-up, consultation reminder, case escalation, or CRM handoff without filling fields manually.",
+    "Prepares the seeded relocation draft, missing-docs follow-up, consultation reminder, case escalation, or CRM handoff and stops before the protected action step.",
+    "Runs the approved intake, follow-up, reminder, escalation, or CRM writeback path and checks the final confirmation banner.",
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `index.html missing CRM handoff CTA token: ${token}`);

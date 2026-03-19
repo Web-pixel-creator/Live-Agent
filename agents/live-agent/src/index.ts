@@ -155,6 +155,42 @@ type ConsultationBookingState = {
   updatedAt: string;
 };
 
+type HumanHandoffPriority = "low" | "medium" | "high" | "urgent";
+
+type HumanHandoffLeadProfile = {
+  caseId: string | null;
+  clientName: string | null;
+  destinationCountry: string | null;
+  visaType: string | null;
+  relocationType: string | null;
+  assignedOwner: string | null;
+  escalationReason: string | null;
+  priority: HumanHandoffPriority;
+  caseNote: string | null;
+};
+
+type HumanHandoffSummary = {
+  title: string;
+  shortSummary: string;
+  operatorSummary: string;
+  prompt: string;
+  nextStep: string;
+  assignedOwner: string | null;
+  priority: HumanHandoffPriority;
+  readyForHandoff: boolean;
+};
+
+type HumanHandoffState = {
+  status: "needs_human_review" | "ready_for_handoff";
+  handoffIntent: "human_handoff";
+  seed: {
+    leadProfile: HumanHandoffLeadProfile;
+    source: string | null;
+  };
+  summary: HumanHandoffSummary;
+  updatedAt: string;
+};
+
 type MissingDocumentStatus = "has" | "missing" | "blocked";
 
 type MissingDocumentItem = {
@@ -203,6 +239,7 @@ type ConversationSessionState = {
   approxTokens: number;
   lastCompactedAt: string | null;
   booking: ConsultationBookingState | null;
+  handoff: HumanHandoffState | null;
   followUp: MissingDocumentsFollowUpState | null;
   updatedAtMs: number;
 };
@@ -601,6 +638,175 @@ function renderBookingState(state: ConsultationBookingState | null): string | nu
   return `Booking state: ${state.stage}. Topic: ${renderBookingTopic(state.topic)}. Slots: ${slotText}. Selected: ${selectedSlot}. Summary: ${summary}.`;
 }
 
+function buildHumanHandoffLeadProfile(payload: Record<string, unknown>): HumanHandoffLeadProfile {
+  const leadSources = [payload];
+  if (isRecord(payload.seed)) {
+    leadSources.push(payload.seed);
+  }
+  if (isRecord(payload.data)) {
+    leadSources.push(payload.data);
+  }
+  if (isRecord(payload.handoff)) {
+    leadSources.push(payload.handoff);
+  }
+  if (isRecord(payload.case)) {
+    leadSources.push(payload.case);
+  }
+  if (isRecord(payload.leadProfile)) {
+    leadSources.push(payload.leadProfile);
+  }
+  if (isRecord(payload.operator)) {
+    leadSources.push(payload.operator);
+  }
+
+  const getValue = (...keys: string[]): string | null => {
+    for (const source of leadSources) {
+      for (const key of keys) {
+        const value = toNonEmptyString(source[key]);
+        if (value) {
+          return value;
+        }
+      }
+    }
+    return null;
+  };
+
+  const priorityValue = getValue("priority", "urgency", "severity");
+  const priority: HumanHandoffPriority =
+    priorityValue === "low" || priorityValue === "medium" || priorityValue === "high" || priorityValue === "urgent"
+      ? priorityValue
+      : "medium";
+
+  return {
+    caseId: getValue("caseId", "applicationId", "id"),
+    clientName: getValue("clientName", "applicantName", "name"),
+    destinationCountry: getValue("destinationCountry", "country", "targetCountry"),
+    visaType: getValue("visaType", "immigrationType", "track"),
+    relocationType: getValue("relocationType", "moveType", "destinationCity"),
+    assignedOwner: getValue("assignedOwner", "owner", "handoffOwner", "caseOwner", "operatorOwner"),
+    escalationReason: getValue("escalationReason", "handoffReason", "reason", "caseNote", "note"),
+    priority,
+    caseNote: getValue("caseNote", "note", "summary", "brief"),
+  };
+}
+
+function buildHumanHandoffSummary(params: {
+  leadProfile: HumanHandoffLeadProfile;
+}): HumanHandoffSummary {
+  const title = "Case Escalation / Human Handoff";
+  const clientLabel =
+    params.leadProfile.clientName ??
+    params.leadProfile.caseId ??
+    params.leadProfile.destinationCountry ??
+    "visa/relocation lead";
+  const leadDescriptorParts = [
+    params.leadProfile.visaType ? `${params.leadProfile.visaType} visa` : null,
+    params.leadProfile.relocationType ? `${params.leadProfile.relocationType} relocation` : null,
+    params.leadProfile.destinationCountry,
+  ].filter((value): value is string => Boolean(value));
+  const leadDescriptor = leadDescriptorParts.length > 0 ? leadDescriptorParts.join(" / ") : "visa/relocation";
+  const assignedOwner = params.leadProfile.assignedOwner ?? "the assigned human operator";
+  const escalationReason = params.leadProfile.escalationReason ?? "Human review is required.";
+  const prompt =
+    params.leadProfile.caseNote ??
+    `Review ${clientLabel}'s case, confirm the escalation, and take over the next client touchpoint.`;
+  const shortSummary = `${title}: ${clientLabel} needs a human handoff.`;
+  const operatorSummary = `Escalate ${clientLabel} to ${assignedOwner}. ${escalationReason}`;
+  const nextStep = `Assign to ${assignedOwner} and confirm the next client touchpoint.`;
+  return {
+    title: `${title} - ${leadDescriptor}`,
+    shortSummary,
+    operatorSummary,
+    prompt,
+    nextStep,
+    assignedOwner: params.leadProfile.assignedOwner,
+    priority: params.leadProfile.priority,
+    readyForHandoff: true,
+  };
+}
+
+function detectHumanHandoffInput(rawInput: unknown, inputText: string): HumanHandoffState | null {
+  const payload = isRecord(rawInput) ? rawInput : {};
+  const seedPayloads = [payload];
+  if (isRecord(payload.seed)) {
+    seedPayloads.push(payload.seed);
+  }
+  if (isRecord(payload.data)) {
+    seedPayloads.push(payload.data);
+  }
+  if (isRecord(payload.handoff)) {
+    seedPayloads.push(payload.handoff);
+  }
+  if (isRecord(payload.case)) {
+    seedPayloads.push(payload.case);
+  }
+
+  const scenarioValue = seedPayloads
+    .map((source) => toNonEmptyString(source.scenario) ?? toNonEmptyString(source.handoffScenario))
+    .find((value): value is string => Boolean(value))
+    ?? null;
+  const leadProfile = buildHumanHandoffLeadProfile(payload);
+  const text = normalizeLooseLookupText(inputText);
+  const mentionsHandoff = /human\s+handoff|handoff|escalat|human\s+review|operator\s+handoff/.test(text);
+  const mentionsScenario = scenarioValue ? /handoff|escalat/i.test(scenarioValue) : false;
+  const hasHandoffSeed =
+    Boolean(leadProfile.assignedOwner || leadProfile.escalationReason || leadProfile.caseNote) ||
+    seedPayloads.some((source) =>
+      Boolean(
+        toNonEmptyString(source.prompt) ??
+          toNonEmptyString(source.handoffPrompt) ??
+          toNonEmptyString(source.nextStep) ??
+          toNonEmptyString(source.owner) ??
+          toNonEmptyString(source.assignedOwner),
+      ),
+    );
+
+  if (!mentionsHandoff && !mentionsScenario && !hasHandoffSeed) {
+    return null;
+  }
+
+  const summary = buildHumanHandoffSummary({
+    leadProfile,
+  });
+
+  return {
+    status: "ready_for_handoff",
+    handoffIntent: "human_handoff",
+    seed: {
+      leadProfile,
+      source: scenarioValue ?? toNonEmptyString(payload.source) ?? null,
+    },
+    summary,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function buildHumanHandoffResult(state: ConversationSessionState): Record<string, unknown> {
+  const handoff = state.handoff;
+  if (!handoff) {
+    throw new Error("human handoff state missing");
+  }
+  const result = {
+    scenario: "case_escalation_human_handoff",
+    handoffIntent: handoff.handoffIntent,
+    status: handoff.status,
+    leadProfile: handoff.seed.leadProfile,
+    prompt: handoff.summary.prompt,
+    handoffPrompt: handoff.summary.prompt,
+    operatorSummary: handoff.summary.operatorSummary,
+    nextStep: handoff.summary.nextStep,
+    priority: handoff.summary.priority,
+    readyForHandoff: handoff.summary.readyForHandoff,
+    summary: handoff.summary,
+  };
+  return {
+    text: handoff.summary.shortSummary,
+    message: handoff.summary.shortSummary,
+    mode: "handoff",
+    handoff: result,
+  };
+}
+
 function tokenizeLooseLookupText(text: string): string[] {
   return normalizeLooseLookupText(text)
     .split(/[^\p{L}\p{N}]+/u)
@@ -979,9 +1185,10 @@ function estimateSessionTokens(state: ConversationSessionState): number {
     : state.booking
       ? estimateTextTokens(renderBookingState(state.booking) ?? "")
       : 0;
+  const handoffTokens = state.handoff ? estimateTextTokens(state.handoff.summary.shortSummary) : 0;
   const followUpTokens = state.followUp ? estimateTextTokens(state.followUp.summary.shortSummary) : 0;
   const turnsTokens = state.turns.reduce((sum, turn) => sum + estimateTextTokens(turn.text) + 4, 0);
-  return summaryTokens + bookingTokens + followUpTokens + turnsTokens;
+  return summaryTokens + bookingTokens + handoffTokens + followUpTokens + turnsTokens;
 }
 
 function getOrCreateConversationSession(sessionId: string, config: ConversationContextConfig): ConversationSessionState {
@@ -999,6 +1206,7 @@ function getOrCreateConversationSession(sessionId: string, config: ConversationC
     approxTokens: 0,
     lastCompactedAt: null,
     booking: null,
+    handoff: null,
     followUp: null,
     updatedAtMs: Date.now(),
   };
@@ -1289,6 +1497,17 @@ function buildConversationContextPrompt(state: ConversationSessionState): string
       ].join(" "),
     );
   }
+  if (state.handoff) {
+    sections.push(
+      [
+        `Handoff state: ${state.handoff.status}.`,
+        `Lead profile: ${state.handoff.seed.leadProfile.clientName ?? state.handoff.seed.leadProfile.caseId ?? "unknown"}.`,
+        `Summary: ${state.handoff.summary.shortSummary}`,
+        `Prompt: ${state.handoff.summary.prompt}`,
+        `Next step: ${state.handoff.summary.nextStep}`,
+      ].join(" "),
+    );
+  }
   const recentTurns = state.turns.slice(-8);
   if (recentTurns.length > 0) {
     sections.push(`Recent turns:\n${renderTurns(recentTurns, 240)}`);
@@ -1336,6 +1555,18 @@ function buildContextDiagnostics(params: {
           missingItems: params.state.followUp.seed.checklist.filter((item) => item.status !== "has"),
           summary: params.state.followUp.summary,
           nextStep: params.state.followUp.summary.nextStep,
+        }
+      : null,
+    handoff: params.state.handoff
+      ? {
+          status: params.state.handoff.status,
+          handoffIntent: params.state.handoff.handoffIntent,
+          leadProfile: params.state.handoff.seed.leadProfile,
+          prompt: params.state.handoff.summary.prompt,
+          priority: params.state.handoff.summary.priority,
+          shortSummary: params.state.handoff.summary.shortSummary,
+          summary: params.state.handoff.summary,
+          nextStep: params.state.handoff.summary.nextStep,
         }
       : null,
     preReplyCompaction: params.preReplyCompaction,
@@ -2641,6 +2872,27 @@ async function handleConversation(params: {
     contextConfig,
     capabilities: params.capabilities,
   });
+
+  const handoffState = detectHumanHandoffInput(params.rawInput, input.text);
+  if (handoffState) {
+    sessionContext.handoff = handoffState;
+    sessionContext.updatedAtMs = Date.now();
+    sessionContext.approxTokens = estimateSessionTokens(sessionContext);
+    const handoffMessage = handoffState.summary.shortSummary;
+    addConversationTurn({
+      state: sessionContext,
+      role: "assistant",
+      text: handoffMessage,
+      intent: "conversation",
+    });
+    return {
+      ...buildHumanHandoffResult(sessionContext),
+      context: buildContextDiagnostics({
+        state: sessionContext,
+        preReplyCompaction,
+      }),
+    };
+  }
 
   const followUpState = detectMissingDocumentsFollowUpInput(params.rawInput, input.text);
   if (followUpState) {

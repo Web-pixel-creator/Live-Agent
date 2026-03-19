@@ -84,6 +84,22 @@ export type OrchestratorFollowUpState = {
   readyForSubmission: boolean;
 };
 
+export type OrchestratorHandoffState = {
+  scenario: string;
+  status: string;
+  handoffIntent: string;
+  caseId: string | null;
+  clientName: string | null;
+  destinationCountry: string | null;
+  assignedOwner: string | null;
+  priority: string | null;
+  shortSummary: string | null;
+  operatorSummary: string | null;
+  prompt: string | null;
+  nextStep: string | null;
+  readyForHandoff: boolean;
+};
+
 export type OrchestratorWorkflowExecutionState = {
   status: OrchestratorWorkflowExecutionStatus;
   currentStage: OrchestratorWorkflowStage | null;
@@ -96,6 +112,7 @@ export type OrchestratorWorkflowExecutionState = {
   reason: string | null;
   updatedAt: string | null;
   bookingState: OrchestratorBookingState | null;
+  handoffState: OrchestratorHandoffState | null;
   followUpState: OrchestratorFollowUpState | null;
 };
 
@@ -273,6 +290,7 @@ let workflowExecutionState: OrchestratorWorkflowExecutionState = {
   reason: null,
   updatedAt: null,
   bookingState: null,
+  handoffState: null,
   followUpState: null,
 };
 let controlPlaneOverride:
@@ -767,6 +785,7 @@ function defaultWorkflowExecutionState(): OrchestratorWorkflowExecutionState {
     reason: null,
     updatedAt: null,
     bookingState: null,
+    handoffState: null,
     followUpState: null,
   };
 }
@@ -787,6 +806,7 @@ export function setOrchestratorWorkflowExecutionState(params: {
   reason?: string | null;
   updatedAt?: string | null;
   bookingState?: OrchestratorBookingState | null;
+  handoffState?: OrchestratorHandoffState | null;
   followUpState?: OrchestratorFollowUpState | null;
 }): OrchestratorWorkflowExecutionState {
   workflowExecutionState = {
@@ -801,6 +821,7 @@ export function setOrchestratorWorkflowExecutionState(params: {
     reason: toNonEmptyString(params.reason) ?? workflowExecutionState.reason,
     updatedAt: toNonEmptyString(params.updatedAt) ?? new Date().toISOString(),
     bookingState: params.bookingState === undefined ? workflowExecutionState.bookingState : params.bookingState,
+    handoffState: params.handoffState === undefined ? workflowExecutionState.handoffState : params.handoffState,
     followUpState: params.followUpState === undefined ? workflowExecutionState.followUpState : params.followUpState,
   };
   return getOrchestratorWorkflowExecutionState();

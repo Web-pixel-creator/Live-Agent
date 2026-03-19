@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UI Task Visa Escalation Demo</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0e1218;
+        --panel: #171d27;
+        --border: rgba(127, 168, 255, 0.22);
+        --text: #f3f6fc;
+        --muted: #b5c0d5;
+        --accent: #6ea8ff;
+        --ok: #67dea5;
+        --warn: #ffd166;
+        --danger: #ff8f8f;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top right, rgba(110, 168, 255, 0.16), transparent 26%),
+          radial-gradient(circle at bottom left, rgba(103, 222, 165, 0.08), transparent 22%),
+          linear-gradient(180deg, #101722 0%, var(--bg) 100%);
+      }
+
+      main {
+        width: min(1160px, calc(100% - 40px));
+        margin: 40px auto;
+        padding: 32px;
+        border-radius: 28px;
+        border: 1px solid var(--border);
+        background: rgba(23, 29, 39, 0.96);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(110, 168, 255, 0.14);
+        color: #dbe8ff;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 18px 0 10px;
+        font-size: clamp(30px, 4vw, 46px);
+        line-height: 1.05;
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+        max-width: 80ch;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+        gap: 20px;
+        margin-top: 28px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 20px;
+      }
+
+      .panel {
+        padding: 22px;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .panel h2,
+      .panel h3 {
+        margin: 0 0 14px;
+      }
+
+      .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .meta-card,
+      .routing-card,
+      .timeline-item,
+      .confirmation {
+        padding: 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .label {
+        display: block;
+        margin-bottom: 8px;
+        color: #d8e3f7;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .value {
+        font-size: 18px;
+        line-height: 1.35;
+      }
+
+      .value strong {
+        color: var(--text);
+      }
+
+      .routing-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .routing-card .value {
+        font-size: 16px;
+      }
+
+      .checklist {
+        display: grid;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .checklist-item {
+        display: grid;
+        grid-template-columns: 20px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: start;
+        padding: 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .checkmark {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        margin-top: 2px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .is-done {
+        background: rgba(103, 222, 165, 0.16);
+        color: var(--ok);
+      }
+
+      .is-missing {
+        background: rgba(255, 143, 143, 0.12);
+        color: var(--danger);
+      }
+
+      .is-pending {
+        background: rgba(255, 209, 102, 0.12);
+        color: var(--warn);
+      }
+
+      .item-title {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+
+      .item-copy,
+      .timeline-item span,
+      .confirmation-list,
+      .protected-copy {
+        color: var(--muted);
+      }
+
+      .tag,
+      .boundary-pill {
+        display: inline-flex;
+        align-self: start;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 12px;
+      }
+
+      .timeline-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .protected-boundary {
+        border-color: rgba(255, 209, 102, 0.22);
+      }
+
+      .boundary-pill {
+        background: rgba(255, 209, 102, 0.12);
+        color: #ffe39a;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font: inherit;
+        font-weight: 600;
+      }
+
+      .primary {
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .secondary {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+
+      .confirmation {
+        border-color: rgba(103, 222, 165, 0.2);
+        background: rgba(103, 222, 165, 0.08);
+      }
+
+      @media (max-width: 960px) {
+        .workspace,
+        .meta-grid,
+        .routing-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span class="eyebrow">UI task fixture</span>
+      <h1>Visa case escalation / human handoff</h1>
+      <p>
+        Deterministic local fixture for the escalation path. It shows the CRM row, queue and owner routing,
+        checklist state, a protected approval boundary, and the approved handoff confirmation in one
+        self-contained page.
+      </p>
+
+      <section class="workspace" aria-label="Visa escalation workspace">
+        <div class="stack">
+          <section class="panel" id="crm-client-row" data-testid="crm-client-row" aria-label="CRM client row">
+            <h2>CRM client row</h2>
+            <div class="meta-grid">
+              <article class="meta-card">
+                <span class="label">Client</span>
+                <div class="value"><strong>Anna Petrova</strong></div>
+              </article>
+              <article class="meta-card">
+                <span class="label">Case</span>
+                <div class="value"><strong>VISA-2048</strong></div>
+              </article>
+              <article class="meta-card">
+                <span class="label">Stage</span>
+                <div class="value"><strong>Case escalation</strong></div>
+              </article>
+              <article class="meta-card">
+                <span class="label">Disposition</span>
+                <div class="value"><strong>Human handoff required</strong></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel" id="missing-doc-checklist" data-testid="missing-doc-checklist" aria-label="Missing document checklist">
+            <h2>Missing-doc checklist</h2>
+            <ul class="checklist">
+              <li class="checklist-item" data-doc-status="received">
+                <span class="checkmark is-done" aria-hidden="true">✓</span>
+                <div>
+                  <span class="item-title">Passport scan</span>
+                  <div class="item-copy">Received and attached to the case.</div>
+                </div>
+                <span class="tag">Complete</span>
+              </li>
+              <li class="checklist-item" data-doc-status="missing">
+                <span class="checkmark is-missing" aria-hidden="true">!</span>
+                <div>
+                  <span class="item-title">Proof of address</span>
+                  <div class="item-copy">Still missing from the intake bundle.</div>
+                </div>
+                <span class="tag">Outstanding</span>
+              </li>
+              <li class="checklist-item" data-doc-status="pending">
+                <span class="checkmark is-pending" aria-hidden="true">•</span>
+                <div>
+                <span class="item-title">Escalation note</span>
+                  <div class="item-copy">Queued for escalation summary and human review.</div>
+                </div>
+                <span class="tag">Follow up</span>
+              </li>
+            </ul>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="panel" id="escalation-routing" data-testid="escalation-routing" aria-label="Escalation routing">
+            <h2>Escalation owner and queue</h2>
+            <div class="routing-grid">
+              <article class="routing-card">
+                <span class="label">Escalation owner</span>
+                <div class="value"><strong>Sofia Kim</strong></div>
+              </article>
+              <article class="routing-card">
+                <span class="label">Queue</span>
+                <div class="value"><strong>Visa Escalations Tier 2</strong></div>
+              </article>
+              <article class="routing-card">
+                <span class="label">SLA</span>
+                <div class="value"><strong>2 business hours</strong></div>
+              </article>
+              <article class="routing-card">
+                <span class="label">Priority</span>
+                <div class="value"><strong>High</strong></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel" id="reminder-state" data-testid="reminder-state" aria-label="Reminder state">
+            <h2>Reminder state</h2>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div>
+                  <strong>Escalation draft prepared</strong>
+                  <span>Summary assembled from the case context and checklist state.</span>
+                </div>
+                <span>Step 1</span>
+              </div>
+              <div class="timeline-item">
+                <div>
+                  <strong>Human handoff pending</strong>
+                  <span>Protected send step must be approved before dispatch.</span>
+                </div>
+                <span>Step 2</span>
+              </div>
+            </div>
+          </section>
+
+          <section
+            class="panel protected-boundary"
+            id="protected-step-boundary"
+            data-testid="protected-step-boundary"
+            aria-label="Protected step boundary"
+          >
+            <div class="boundary-pill">Protected step</div>
+            <h2>Approval boundary</h2>
+            <p>
+              The escalation packet is ready, but the human handoff remains blocked until approval is granted.
+            </p>
+            <div class="actions" aria-label="Escalation actions">
+              <button id="prepare-escalation-btn" class="secondary" type="button">Prepare escalation packet</button>
+              <button id="approval-required-btn" class="primary" type="button" disabled>
+                Send for human approval
+              </button>
+            </div>
+            <p id="protected-step-copy" class="protected-copy" data-testid="protected-step-copy">
+              Protected boundary: no client-facing handoff occurs before approval.
+            </p>
+          </section>
+
+          <section
+            class="panel confirmation"
+            id="approved-confirmation"
+            data-testid="approved-confirmation"
+            data-state="approved"
+            aria-label="Approved confirmation"
+          >
+            <h3>Approved handoff confirmation</h3>
+            <p>Final verification complete. The escalation is approved and ready for human queue intake.</p>
+            <ul class="confirmation-list">
+              <li>The CRM row is tagged for escalation follow-through.</li>
+              <li>The owner and queue are visible for the seeded UI task flow.</li>
+              <li>The protected send boundary remains explicit and traceable.</li>
+            </ul>
+          </section>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

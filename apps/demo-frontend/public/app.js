@@ -614,6 +614,8 @@ const VISA_FOLLOW_UP_DEMO_URL_PATH = "/ui-task-visa-follow-up-demo.html";
 const VISA_FOLLOW_UP_DEMO_URL_FALLBACK = "http://127.0.0.1:3000/ui-task-visa-follow-up-demo.html";
 const VISA_REMINDER_DEMO_URL_PATH = "/ui-task-visa-reminder-demo.html";
 const VISA_REMINDER_DEMO_URL_FALLBACK = "http://127.0.0.1:3000/ui-task-visa-reminder-demo.html";
+const VISA_ESCALATION_DEMO_URL_PATH = "/ui-task-visa-escalation-demo.html";
+const VISA_ESCALATION_DEMO_URL_FALLBACK = "http://127.0.0.1:3000/ui-task-visa-escalation-demo.html";
 const VISA_HANDOFF_DEMO_URL_PATH = "/ui-task-visa-handoff-demo.html";
 const VISA_HANDOFF_DEMO_URL_FALLBACK = "http://127.0.0.1:3000/ui-task-visa-handoff-demo.html";
 const ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA = Object.freeze({
@@ -710,6 +712,29 @@ const ACTIVE_TASK_VISA_HANDOFF_PROMPT =
   "ui_task: Open the visa CRM handoff demo page, prepare Anna Petrova's CRM update handoff from the provided summary, stop before the protected writeback step, and wait for approval.";
 const ACTIVE_TASK_VISA_HANDOFF_RESULT_PROMPT =
   "ui_task: Open the visa CRM handoff demo page, prepare Anna Petrova's CRM update handoff from the provided summary, continue through the protected writeback step because approval is already confirmed, and verify the final confirmation banner.";
+const ACTIVE_TASK_VISA_ESCALATION_OWNER = "Sofia Kim";
+const ACTIVE_TASK_VISA_ESCALATION_QUEUE = "Visa Escalations Tier 2";
+const ACTIVE_TASK_VISA_ESCALATION_REASON = "proof of address review, deadline risk, and manual eligibility check";
+const ACTIVE_TASK_VISA_ESCALATION_SUMMARY = [
+  "case_id: VISA-2048",
+  "full_name: Anna Petrova",
+  "email: anna.petrova@example.com",
+  "phone: +34 600 123 456",
+  "destination_country: Spain",
+  "relocation_city: Madrid",
+  "visa_type: Digital Nomad Visa",
+  `escalation_reason: ${ACTIVE_TASK_VISA_ESCALATION_REASON}`,
+  `human_owner: ${ACTIVE_TASK_VISA_ESCALATION_OWNER}`,
+  `handoff_queue: ${ACTIVE_TASK_VISA_ESCALATION_QUEUE}`,
+  "priority: high",
+  "next_step: review the case note, call Anna, and update the CRM queue assignment",
+].join("\n");
+const ACTIVE_TASK_VISA_ESCALATION_APPROVAL_REASON =
+  "Reviewed the case escalation and approved the human handoff step.";
+const ACTIVE_TASK_VISA_ESCALATION_PROMPT =
+  "ui_task: Open the visa escalation demo page, prepare Anna Petrova's case escalation from the provided summary, stop before the protected human handoff step, and wait for approval.";
+const ACTIVE_TASK_VISA_ESCALATION_RESULT_PROMPT =
+  "ui_task: Open the visa escalation demo page, prepare Anna Petrova's case escalation from the provided summary, continue through the protected human handoff step because approval is already confirmed, and verify the final confirmation banner.";
 const ACTIVE_TASK_UI_TASK_PROMPT =
   "ui_task: Open the billing page, verify the invoices table loads, and report one safe next action.";
 const OPERATOR_RUNTIME_GUARDRAIL_SIGNAL_RECOVERY_PROFILE_IDS = Object.freeze({
@@ -1092,13 +1117,13 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.reviewVisaDemo": "Review Visa Draft Result",
     "live.compose.resetVisaDemo": "Reset Visa Demo",
     "live.compose.runVisaDemoHint":
-      "Launch the seeded visa relocation flow, the missing-docs follow-up, consultation reminder, or CRM handoff without filling fields manually.",
+      "Launch the seeded visa relocation flow, the missing-docs follow-up, consultation reminder, case escalation, or CRM handoff without filling fields manually.",
     "live.compose.runVisaDemoCardTitle": "Draft + approval boundary",
     "live.compose.runVisaDemoCardCopy":
-      "Prepares the seeded relocation draft, missing-docs follow-up, consultation reminder, or CRM handoff and stops before the protected action step.",
+      "Prepares the seeded relocation draft, missing-docs follow-up, consultation reminder, case escalation, or CRM handoff and stops before the protected action step.",
     "live.compose.reviewVisaDemoCardTitle": "Approved + verified completion",
     "live.compose.reviewVisaDemoCardCopy":
-      "Runs the approved intake, follow-up, reminder, or CRM writeback path and checks the final confirmation banner.",
+      "Runs the approved intake, follow-up, reminder, escalation, or CRM writeback path and checks the final confirmation banner.",
     "live.compose.runVisaFollowUp": "Run Missing Docs Follow-up",
     "live.compose.reviewVisaFollowUp": "Review Follow-up Result",
     "live.compose.runVisaFollowUpHint": "Seed the same visa-relocation lead with missing documents and keep the safe action lane ready.",
@@ -1124,6 +1149,16 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.reviewVisaHandoffCardTitle": "Approved CRM writeback",
     "live.compose.reviewVisaHandoffCardCopy":
       "Runs the approved CRM update path and verifies the operator handoff plus the assigned owner.",
+    "live.compose.runVisaEscalation": "Run Case Escalation",
+    "live.compose.reviewVisaEscalation": "Review Human Handoff Result",
+    "live.compose.runVisaEscalationHint":
+      "Seed the same visa-relocation lead with a case escalation and keep the human handoff lane ready.",
+    "live.compose.runVisaEscalationCardTitle": "Case escalation / human handoff",
+    "live.compose.runVisaEscalationCardCopy":
+      "Primes the escalation lane with the human-review reason and pauses before the protected handoff step.",
+    "live.compose.reviewVisaEscalationCardTitle": "Approved human handoff",
+    "live.compose.reviewVisaEscalationCardCopy":
+      "Runs the approved escalation path and verifies the assigned human owner plus the next operator step.",
     "live.result.visaSummaryTitle": "Visa intake completion snapshot",
     "live.result.visaSummaryLead": "Lead draft",
     "live.result.visaSummarySlot": "Consultation slot",
@@ -1172,6 +1207,19 @@ const UI_LANGUAGE_COPY = Object.freeze({
       "Operator summary copied for the CRM update handoff.",
     "live.result.visaHandoffSummaryCopyError":
       "Operator summary copy failed. Copy it from the CRM handoff result card instead.",
+    "live.result.visaEscalationSummaryTitle": "Case escalation snapshot",
+    "live.result.visaEscalationSummaryLead": "Lead draft",
+    "live.result.visaEscalationSummaryReason": "Escalation reason",
+    "live.result.visaEscalationSummaryOwner": "Human owner",
+    "live.result.visaEscalationSummaryStatus": "Execution status",
+    "live.result.visaEscalationSummaryHandoff": "Next operator step",
+    "live.result.visaEscalationSummaryHandoffValue":
+      "Review the escalation note, call Anna, and keep Sofia assigned as the case owner.",
+    "live.result.visaEscalationSummaryCopy": "Copy operator summary",
+    "live.result.visaEscalationSummaryCopySuccess":
+      "Operator summary copied for the case escalation handoff.",
+    "live.result.visaEscalationSummaryCopyError":
+      "Operator summary copy failed. Copy it from the escalation result card instead.",
     "live.compose.optionalTitle": "Rare tools",
     "live.compose.optionalHint": "Audio file, service actions, and background requests",
     "live.compose.audioTitle": "Audio file",
@@ -1496,6 +1544,29 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.reviewVisaHandoffCardTitle": "Approved CRM writeback",
     "live.compose.reviewVisaHandoffCardCopy":
       "Прогоняет approved CRM update path и проверяет operator handoff вместе с назначенным owner.",
+    "live.compose.runVisaEscalation": "Запустить case escalation",
+    "live.compose.reviewVisaEscalation": "Показать итог human handoff",
+    "live.compose.runVisaEscalationHint":
+      "Засеивает тот же visa/relocation lead с case escalation и держит human handoff lane готовым.",
+    "live.compose.runVisaEscalationCardTitle": "Case escalation / human handoff",
+    "live.compose.runVisaEscalationCardCopy":
+      "Подготавливает escalation lane с причиной human review и останавливается перед защищённым handoff шагом.",
+    "live.compose.reviewVisaEscalationCardTitle": "Approved human handoff",
+    "live.compose.reviewVisaEscalationCardCopy":
+      "Прогоняет approved escalation path и проверяет назначенного human owner и следующий шаг оператора.",
+    "live.result.visaEscalationSummaryTitle": "Итог case escalation",
+    "live.result.visaEscalationSummaryLead": "Карточка лида",
+    "live.result.visaEscalationSummaryReason": "Причина эскалации",
+    "live.result.visaEscalationSummaryOwner": "Human owner",
+    "live.result.visaEscalationSummaryStatus": "Статус выполнения",
+    "live.result.visaEscalationSummaryHandoff": "Следующий шаг оператора",
+    "live.result.visaEscalationSummaryHandoffValue":
+      "Проверить escalation note, позвонить Анне и оставить Sofia назначенным owner кейса.",
+    "live.result.visaEscalationSummaryCopy": "Скопировать summary для оператора",
+    "live.result.visaEscalationSummaryCopySuccess":
+      "Summary для оператора скопирован из сценария case escalation.",
+    "live.result.visaEscalationSummaryCopyError":
+      "Не удалось скопировать summary. Возьми текст прямо из escalation result card.",
     "live.result.visaSummaryTitle": "Итог visa intake",
     "live.result.visaSummaryLead": "Карточка лида",
     "live.result.visaSummarySlot": "Слот консультации",
@@ -2761,6 +2832,8 @@ const el = {
   reviewVisaReminderResultBtn: document.getElementById("reviewVisaReminderResultBtn"),
   runVisaHandoffBtn: document.getElementById("runVisaHandoffBtn"),
   reviewVisaHandoffResultBtn: document.getElementById("reviewVisaHandoffResultBtn"),
+  runVisaEscalationBtn: document.getElementById("runVisaEscalationBtn"),
+  reviewVisaEscalationResultBtn: document.getElementById("reviewVisaEscalationResultBtn"),
   resetVisaDemoBtn: document.getElementById("resetVisaDemoBtn"),
   sendBtnHint: document.getElementById("sendBtnHint"),
   runVisaDemoHint: document.getElementById("runVisaDemoHint"),
@@ -4585,6 +4658,7 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
       state.liveDemoScenario !== "visa_result" &&
       state.liveDemoScenario !== "visa_follow_up_result" &&
       state.liveDemoScenario !== "visa_reminder_result" &&
+      state.liveDemoScenario !== "visa_escalation_result" &&
       state.liveDemoScenario !== "visa_handoff_result"
     ) ||
     !latestResult ||
@@ -4595,6 +4669,103 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
   }
 
   const isRu = state.languageMode === "ru";
+  if (state.liveDemoScenario === "visa_escalation_result") {
+    return {
+      title: t("live.result.visaEscalationSummaryTitle", null, "Case escalation snapshot"),
+      items: [
+        {
+          label: t("live.result.visaEscalationSummaryLead", null, "Lead draft"),
+          value: isRu
+            ? `${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.full_name} · Испания · ${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.visa_type}`
+            : `${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.full_name} · Spain · ${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.visa_type}`,
+        },
+        {
+          label: t("live.result.visaEscalationSummaryReason", null, "Escalation reason"),
+          value: isRu
+            ? "проверка адреса · риск по срокам · нужен human review"
+            : ACTIVE_TASK_VISA_ESCALATION_REASON.replace(/,\s*/g, " · "),
+        },
+        {
+          label: t("live.result.visaEscalationSummaryOwner", null, "Human owner"),
+          value: `${ACTIVE_TASK_VISA_ESCALATION_OWNER} · ${ACTIVE_TASK_VISA_ESCALATION_QUEUE}`,
+        },
+        {
+          label: t("live.result.visaEscalationSummaryStatus", null, "Execution status"),
+          value: isRu
+            ? "escalation одобрена · human handoff подтверждён"
+            : "escalation approved · human handoff verified",
+        },
+      ],
+      handoff: {
+        label: t("live.result.visaEscalationSummaryHandoff", null, "Next operator step"),
+        value: t(
+          "live.result.visaEscalationSummaryHandoffValue",
+          null,
+          "Review the escalation note, keep Sofia assigned as the human owner, and call Anna to unblock the case.",
+        ),
+      },
+      copyLabel: t("live.result.visaEscalationSummaryCopy", null, "Copy operator summary"),
+      copySuccess: t(
+        "live.result.visaEscalationSummaryCopySuccess",
+        null,
+        "Operator summary copied for the case escalation handoff.",
+      ),
+      copyError: t(
+        "live.result.visaEscalationSummaryCopyError",
+        null,
+        "Operator summary copy failed. Copy it from the escalation result card instead.",
+      ),
+    };
+  }
+  const isEscalationScenario = state.liveDemoScenario === "visa_escalation_result";
+  if (isEscalationScenario) {
+    return {
+      title: t("live.result.visaEscalationSummaryTitle", null, "Case escalation snapshot"),
+      items: [
+        {
+          label: t("live.result.visaEscalationSummaryLead", null, "Lead draft"),
+          value: isRu
+            ? `${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.full_name} · Испания · ${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.visa_type}`
+            : `${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.full_name} · Spain · ${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.visa_type}`,
+        },
+        {
+          label: t("live.result.visaEscalationSummaryReason", null, "Escalation reason"),
+          value: isRu
+            ? "missing docs blocked safe submit · нужен human review"
+            : "missing docs blocked safe submit · human review requested",
+        },
+        {
+          label: t("live.result.visaEscalationSummaryOwner", null, "Human owner"),
+          value: `${ACTIVE_TASK_VISA_HANDOFF_OWNER} · relocation operations`,
+        },
+        {
+          label: t("live.result.visaEscalationSummaryStatus", null, "Execution status"),
+          value: isRu
+            ? "escalation одобрена · human handoff подтверждён"
+            : "escalation approved · human handoff verified",
+        },
+      ],
+      handoff: {
+        label: t("live.result.visaEscalationSummaryHandoff", null, "Next operator step"),
+        value: t(
+          "live.result.visaEscalationSummaryHandoffValue",
+          null,
+          "Review the escalation note, call Anna, and keep Sofia assigned as the case owner.",
+        ),
+      },
+      copyLabel: t("live.result.visaEscalationSummaryCopy", null, "Copy operator summary"),
+      copySuccess: t(
+        "live.result.visaEscalationSummaryCopySuccess",
+        null,
+        "Operator summary copied for the case escalation handoff.",
+      ),
+      copyError: t(
+        "live.result.visaEscalationSummaryCopyError",
+        null,
+        "Operator summary copy failed. Copy it from the escalation result card instead.",
+      ),
+    };
+  }
   const isHandoffScenario = state.liveDemoScenario === "visa_handoff_result";
   if (isHandoffScenario) {
     return {
@@ -5623,6 +5794,12 @@ function runDashboardAction(actionId) {
       break;
     case "review_visa_handoff_result":
       runVisaHandoffResultPreset();
+      break;
+    case "run_visa_escalation_demo":
+      runVisaEscalationDemoPreset();
+      break;
+    case "review_visa_escalation_result":
+      runVisaEscalationResultPreset();
       break;
     case "reset_visa_demo":
       resetVisaIntakeDemoPreset();
@@ -20335,6 +20512,23 @@ function buildVisaHandoffResultUiTaskOverrides() {
   };
 }
 
+function buildVisaEscalationUiTaskOverrides() {
+  return {
+    url: resolveVisaEscalationDemoUrl(),
+    summary: ACTIVE_TASK_VISA_ESCALATION_SUMMARY,
+    formData: { ...ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA },
+  };
+}
+
+function buildVisaEscalationResultUiTaskOverrides() {
+  return {
+    ...buildVisaEscalationUiTaskOverrides(),
+    approvalConfirmed: true,
+    approvalDecision: "approved",
+    approvalReason: ACTIVE_TASK_VISA_ESCALATION_APPROVAL_REASON,
+  };
+}
+
 function primeVisaIntakeDemoFields() {
   if (el.uiTaskUrl instanceof HTMLInputElement) {
     el.uiTaskUrl.value = resolveVisaIntakeDemoUrl();
@@ -20383,6 +20577,15 @@ function primeVisaHandoffDemoFields() {
   }
 }
 
+function primeVisaEscalationDemoFields() {
+  if (el.uiTaskUrl instanceof HTMLInputElement) {
+    el.uiTaskUrl.value = resolveVisaEscalationDemoUrl();
+  }
+  if (el.approvalReason instanceof HTMLInputElement || el.approvalReason instanceof HTMLTextAreaElement) {
+    el.approvalReason.value = ACTIVE_TASK_VISA_ESCALATION_APPROVAL_REASON;
+  }
+}
+
 function resolveVisaIntakeDemoUrl() {
   if (typeof window !== "undefined" && window.location && /^https?:$/i.test(window.location.protocol)) {
     try {
@@ -20425,6 +20628,17 @@ function resolveVisaHandoffDemoUrl() {
     }
   }
   return VISA_HANDOFF_DEMO_URL_FALLBACK;
+}
+
+function resolveVisaEscalationDemoUrl() {
+  if (typeof window !== "undefined" && window.location && /^https?:$/i.test(window.location.protocol)) {
+    try {
+      return new URL(VISA_ESCALATION_DEMO_URL_PATH, window.location.origin).toString();
+    } catch {
+      return VISA_ESCALATION_DEMO_URL_FALLBACK;
+    }
+  }
+  return VISA_ESCALATION_DEMO_URL_FALLBACK;
 }
 
 function runVisaIntakeDemoPreset() {
@@ -20512,6 +20726,28 @@ function runVisaHandoffResultPreset() {
     intent: "ui_task",
     message: ACTIVE_TASK_VISA_HANDOFF_RESULT_PROMPT,
     uiTaskOverrides: buildVisaHandoffResultUiTaskOverrides(),
+  });
+}
+
+function runVisaEscalationDemoPreset() {
+  applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_ESCALATION_PROMPT);
+  primeVisaEscalationDemoFields();
+  sendIntentRequest({
+    demoScenario: "visa_escalation_draft",
+    intent: "ui_task",
+    message: ACTIVE_TASK_VISA_ESCALATION_PROMPT,
+    uiTaskOverrides: buildVisaEscalationUiTaskOverrides(),
+  });
+}
+
+function runVisaEscalationResultPreset() {
+  applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_ESCALATION_RESULT_PROMPT);
+  primeVisaEscalationDemoFields();
+  sendIntentRequest({
+    demoScenario: "visa_escalation_result",
+    intent: "ui_task",
+    message: ACTIVE_TASK_VISA_ESCALATION_RESULT_PROMPT,
+    uiTaskOverrides: buildVisaEscalationResultUiTaskOverrides(),
   });
 }
 
@@ -32851,6 +33087,8 @@ function bindEvents() {
   bindDashboardActionButton(el.reviewVisaReminderResultBtn);
   bindDashboardActionButton(el.runVisaHandoffBtn);
   bindDashboardActionButton(el.reviewVisaHandoffResultBtn);
+  bindDashboardActionButton(el.runVisaEscalationBtn);
+  bindDashboardActionButton(el.reviewVisaEscalationResultBtn);
   bindDashboardActionButton(el.resetVisaDemoBtn);
   bindDashboardActionButton(el.workspaceCommandOne);
   bindDashboardActionButton(el.workspaceCommandTwo);

@@ -54,9 +54,9 @@ test("frontend ships a one-click missing-docs follow-up demo preset with approve
     'id="reviewVisaFollowUpResultBtn"',
     'data-dashboard-action="review_visa_follow_up_result"',
     'data-i18n="live.compose.reviewVisaFollowUp"',
-    "Launch the seeded visa relocation flow, missing-docs follow-up, consultation reminder, or CRM handoff without filling fields manually.",
-    "Prepares the seeded relocation draft, missing-docs follow-up, consultation reminder, or CRM handoff and stops before the protected action step.",
-    "Runs the approved intake, follow-up, reminder, or CRM writeback path and checks the final confirmation banner.",
+    "Launch the seeded visa relocation flow, missing-docs follow-up, consultation reminder, case escalation, or CRM handoff without filling fields manually.",
+    "Prepares the seeded relocation draft, missing-docs follow-up, consultation reminder, case escalation, or CRM handoff and stops before the protected action step.",
+    "Runs the approved intake, follow-up, reminder, escalation, or CRM writeback path and checks the final confirmation banner.",
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `index.html missing follow-up CTA token: ${token}`);
