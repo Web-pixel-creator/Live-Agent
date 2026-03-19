@@ -610,6 +610,8 @@ const STORY_COMPOSER_COPY = Object.freeze({
 const ACTIVE_TASK_NEGOTIATION_PROMPT = "Negotiate: price=96, delivery=9, sla=99, include one concession path.";
 const VISA_INTAKE_DEMO_URL_PATH = "/ui-task-visa-intake-demo.html";
 const VISA_INTAKE_DEMO_URL_FALLBACK = "http://127.0.0.1:3000/ui-task-visa-intake-demo.html";
+const VISA_FOLLOW_UP_DEMO_URL_PATH = "/ui-task-visa-follow-up-demo.html";
+const VISA_FOLLOW_UP_DEMO_URL_FALLBACK = "http://127.0.0.1:3000/ui-task-visa-follow-up-demo.html";
 const ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA = Object.freeze({
   full_name: "Anna Petrova",
   email: "anna.petrova@example.com",
@@ -642,6 +644,27 @@ const ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT =
   "ui_task: Open the visa intake demo page, prepare Anna Petrova's visa relocation draft from the provided summary, stop before the protected submit step, and wait for approval.";
 const ACTIVE_TASK_VISA_INTAKE_RESULT_PROMPT =
   "ui_task: Open the visa intake demo page, prepare Anna Petrova's visa relocation draft from the provided summary, continue through the protected submit step because approval is already confirmed, and verify the final confirmation banner.";
+const ACTIVE_TASK_VISA_FOLLOW_UP_MISSING_DOCUMENTS = "proof of income, housing address letter";
+const ACTIVE_TASK_VISA_FOLLOW_UP_SUMMARY = [
+  "full_name: Anna Petrova",
+  "email: anna.petrova@example.com",
+  "phone: +34 600 123 456",
+  "destination_country: Spain",
+  "relocation_city: Madrid",
+  "visa_type: Digital Nomad Visa",
+  "passport_number: XP4429018",
+  "employer: Northlight Studio",
+  "start_date: 2026-06-15",
+  `booking_slot: ${ACTIVE_TASK_VISA_INTAKE_DEMO_BOOKING_SLOT}`,
+  `missing_documents: ${ACTIVE_TASK_VISA_FOLLOW_UP_MISSING_DOCUMENTS}`,
+  "follow_up_step: send the missing-docs checklist and confirm the consultation slot",
+].join("\n");
+const ACTIVE_TASK_VISA_FOLLOW_UP_APPROVAL_REASON =
+  "Reviewed the missing-docs follow-up and approved the safe operator outreach step.";
+const ACTIVE_TASK_VISA_FOLLOW_UP_PROMPT =
+  "ui_task: Open the visa follow-up demo page, prepare Anna Petrova's missing-docs follow-up from the provided summary, stop before the protected submit step, and wait for approval.";
+const ACTIVE_TASK_VISA_FOLLOW_UP_RESULT_PROMPT =
+  "ui_task: Open the visa follow-up demo page, prepare Anna Petrova's missing-docs follow-up from the provided summary, continue through the protected submit step because approval is already confirmed, and verify the final confirmation banner.";
 const ACTIVE_TASK_UI_TASK_PROMPT =
   "ui_task: Open the billing page, verify the invoices table loads, and report one safe next action.";
 const OPERATOR_RUNTIME_GUARDRAIL_SIGNAL_RECOVERY_PROFILE_IDS = Object.freeze({
@@ -1023,11 +1046,18 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.runVisaDemo": "Run Visa Intake Demo",
     "live.compose.reviewVisaDemo": "Review Visa Draft Result",
     "live.compose.resetVisaDemo": "Reset Visa Demo",
-    "live.compose.runVisaDemoHint": "Launch the seeded visa relocation flow or jump straight to the verified result without filling fields manually.",
+    "live.compose.runVisaDemoHint": "Launch the seeded visa relocation flow or the missing-docs follow-up, or jump straight to the verified result without filling fields manually.",
     "live.compose.runVisaDemoCardTitle": "Draft + approval boundary",
-    "live.compose.runVisaDemoCardCopy": "Prepares the seeded relocation draft and stops before the protected submit step.",
+    "live.compose.runVisaDemoCardCopy": "Prepares the seeded relocation draft or missing-docs follow-up and stops before the protected submit step.",
     "live.compose.reviewVisaDemoCardTitle": "Approved + verified completion",
-    "live.compose.reviewVisaDemoCardCopy": "Runs the same seeded flow with approval already confirmed and checks the final confirmation banner.",
+    "live.compose.reviewVisaDemoCardCopy": "Runs the approved intake or follow-up path and checks the final confirmation banner.",
+    "live.compose.runVisaFollowUp": "Run Missing Docs Follow-up",
+    "live.compose.reviewVisaFollowUp": "Review Follow-up Result",
+    "live.compose.runVisaFollowUpHint": "Seed the same visa-relocation lead with missing documents and keep the safe action lane ready.",
+    "live.compose.runVisaFollowUpCardTitle": "Missing docs follow-up",
+    "live.compose.runVisaFollowUpCardCopy": "Primes the follow-up lane with the missing-document checklist and pauses before protected submit.",
+    "live.compose.reviewVisaFollowUpCardTitle": "Approved follow-up handoff",
+    "live.compose.reviewVisaFollowUpCardCopy": "Runs the approved follow-up path and verifies the next operator step for the missing documents.",
     "live.result.visaSummaryTitle": "Visa intake completion snapshot",
     "live.result.visaSummaryLead": "Lead draft",
     "live.result.visaSummarySlot": "Consultation slot",
@@ -1038,6 +1068,18 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.result.visaSummaryCopy": "Copy operator summary",
     "live.result.visaSummaryCopySuccess": "Operator summary copied for the visa demo handoff.",
     "live.result.visaSummaryCopyError": "Operator summary copy failed. Copy it from the result card instead.",
+    "live.result.visaFollowUpSummaryTitle": "Missing documents follow-up snapshot",
+    "live.result.visaFollowUpSummaryLead": "Lead draft",
+    "live.result.visaFollowUpSummaryDocs": "Missing documents",
+    "live.result.visaFollowUpSummaryStatus": "Execution status",
+    "live.result.visaFollowUpSummaryHandoff": "Next operator step",
+    "live.result.visaFollowUpSummaryHandoffValue":
+      "Send the missing-document checklist and confirm the consultation slot with Anna.",
+    "live.result.visaFollowUpSummaryCopy": "Copy operator summary",
+    "live.result.visaFollowUpSummaryCopySuccess":
+      "Operator summary copied for the missing-docs follow-up handoff.",
+    "live.result.visaFollowUpSummaryCopyError":
+      "Operator summary copy failed. Copy it from the follow-up result card instead.",
     "live.compose.optionalTitle": "Rare tools",
     "live.compose.optionalHint": "Audio file, service actions, and background requests",
     "live.compose.audioTitle": "Audio file",
@@ -1329,11 +1371,18 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.runVisaDemo": "Запустить демо визового intake",
     "live.compose.reviewVisaDemo": "Показать итог visa draft",
     "live.compose.resetVisaDemo": "Сбросить visa demo",
-    "live.compose.runVisaDemoHint": "Запустить заготовленный сценарий visa/relocation или сразу показать verified result без ручного заполнения полей.",
+    "live.compose.runVisaDemoHint": "Запустить заготовленный сценарий visa/relocation или follow-up по missing docs, либо сразу показать verified result без ручного заполнения полей.",
     "live.compose.runVisaDemoCardTitle": "Черновик + граница согласования",
-    "live.compose.runVisaDemoCardCopy": "Готовит seeded relocation draft и останавливается перед защищённым submit шагом.",
+    "live.compose.runVisaDemoCardCopy": "Готовит seeded relocation draft или missing-docs follow-up и останавливается перед защищённым submit шагом.",
     "live.compose.reviewVisaDemoCardTitle": "Согласовано + verified completion",
-    "live.compose.reviewVisaDemoCardCopy": "Прогоняет тот же seeded flow с уже подтверждённым approval и проверяет финальный confirmation banner.",
+    "live.compose.reviewVisaDemoCardCopy": "Прогоняет approved intake или follow-up path и проверяет финальный confirmation banner.",
+    "live.compose.runVisaFollowUp": "Запустить follow-up по недостающим документам",
+    "live.compose.reviewVisaFollowUp": "Показать approved follow-up",
+    "live.compose.runVisaFollowUpHint": "Засеивает тот же visa/relocation lead с missing docs и оставляет safe action lane готовым.",
+    "live.compose.runVisaFollowUpCardTitle": "Follow-up по missing docs",
+    "live.compose.runVisaFollowUpCardCopy": "Подготавливает follow-up lane с чеклистом недостающих документов и останавливается перед protected submit.",
+    "live.compose.reviewVisaFollowUpCardTitle": "Approved follow-up handoff",
+    "live.compose.reviewVisaFollowUpCardCopy": "Прогоняет approved follow-up path и проверяет следующий шаг оператора по missing docs.",
     "live.result.visaSummaryTitle": "Итог visa intake",
     "live.result.visaSummaryLead": "Карточка лида",
     "live.result.visaSummarySlot": "Слот консультации",
@@ -1344,6 +1393,18 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.result.visaSummaryCopy": "Скопировать summary для оператора",
     "live.result.visaSummaryCopySuccess": "Summary для оператора скопирован из visa demo.",
     "live.result.visaSummaryCopyError": "Не удалось скопировать summary. Возьми текст прямо из result card.",
+    "live.result.visaFollowUpSummaryTitle": "Missing documents follow-up snapshot",
+    "live.result.visaFollowUpSummaryLead": "Карточка лида",
+    "live.result.visaFollowUpSummaryDocs": "Недостающие документы",
+    "live.result.visaFollowUpSummaryStatus": "Статус выполнения",
+    "live.result.visaFollowUpSummaryHandoff": "Следующий шаг оператора",
+    "live.result.visaFollowUpSummaryHandoffValue":
+      "Отправить чеклист недостающих документов и подтвердить слот консультации с Анной.",
+    "live.result.visaFollowUpSummaryCopy": "Скопировать summary для оператора",
+    "live.result.visaFollowUpSummaryCopySuccess":
+      "Summary для оператора скопирован из follow-up сценария missing docs.",
+    "live.result.visaFollowUpSummaryCopyError":
+      "Не удалось скопировать summary. Возьми текст прямо из follow-up result card.",
     "live.compose.optionalTitle": "Опциональные media и advanced-инструменты",
     "live.compose.optionalHint": "Загрузка аудио, conversation item и out-of-band запросы",
     "live.support.badge": "Support",
@@ -2555,6 +2616,8 @@ const el = {
   sendBtn: document.getElementById("sendBtn"),
   runVisaDemoBtn: document.getElementById("runVisaDemoBtn"),
   reviewVisaResultBtn: document.getElementById("reviewVisaResultBtn"),
+  runVisaFollowUpBtn: document.getElementById("runVisaFollowUpBtn"),
+  reviewVisaFollowUpResultBtn: document.getElementById("reviewVisaFollowUpResultBtn"),
   resetVisaDemoBtn: document.getElementById("resetVisaDemoBtn"),
   sendBtnHint: document.getElementById("sendBtnHint"),
   runVisaDemoHint: document.getElementById("runVisaDemoHint"),
@@ -4375,7 +4438,7 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
   if (
     !hasIntentMatchedResult ||
     normalizedIntent !== "ui_task" ||
-    state.liveDemoScenario !== "visa_result" ||
+    (state.liveDemoScenario !== "visa_result" && state.liveDemoScenario !== "visa_follow_up_result") ||
     !latestResult ||
     latestResult.role === "error" ||
     latestResult.streaming === true
@@ -4384,6 +4447,51 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
   }
 
   const isRu = state.languageMode === "ru";
+  const isFollowUpScenario = state.liveDemoScenario === "visa_follow_up_result";
+  if (isFollowUpScenario) {
+    return {
+      title: t("live.result.visaFollowUpSummaryTitle", null, "Missing documents follow-up snapshot"),
+      items: [
+        {
+          label: t("live.result.visaFollowUpSummaryLead", null, "Lead draft"),
+          value: isRu
+            ? `${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.full_name} · Испания · ${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.visa_type}`
+            : `${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.full_name} · Spain · ${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.visa_type}`,
+        },
+        {
+          label: t("live.result.visaFollowUpSummaryDocs", null, "Missing documents"),
+          value: isRu
+            ? "подтверждение дохода · письмо с адресом проживания"
+            : ACTIVE_TASK_VISA_FOLLOW_UP_MISSING_DOCUMENTS.replace(/,\s*/g, " · "),
+        },
+        {
+          label: t("live.result.visaFollowUpSummaryStatus", null, "Execution status"),
+          value: isRu
+            ? "follow-up одобрен · safe outreach подтверждён"
+            : "follow-up approved · safe outreach verified",
+        },
+      ],
+      handoff: {
+        label: t("live.result.visaFollowUpSummaryHandoff", null, "Next operator step"),
+        value: t(
+          "live.result.visaFollowUpSummaryHandoffValue",
+          null,
+          "Send the missing-document checklist and confirm the consultation slot with Anna.",
+        ),
+      },
+      copyLabel: t("live.result.visaFollowUpSummaryCopy", null, "Copy operator summary"),
+      copySuccess: t(
+        "live.result.visaFollowUpSummaryCopySuccess",
+        null,
+        "Operator summary copied for the missing-docs follow-up handoff.",
+      ),
+      copyError: t(
+        "live.result.visaFollowUpSummaryCopyError",
+        null,
+        "Operator summary copy failed. Copy it from the follow-up result card instead.",
+      ),
+    };
+  }
   return {
     title: t("live.result.visaSummaryTitle", null, "Visa intake completion snapshot"),
     items: [
@@ -4420,6 +4528,13 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
         "Send the missing-document checklist and confirm the consultation slot with Anna.",
       ),
     },
+    copyLabel: t("live.result.visaSummaryCopy", null, "Copy operator summary"),
+    copySuccess: t("live.result.visaSummaryCopySuccess", null, "Operator summary copied for the visa demo handoff."),
+    copyError: t(
+      "live.result.visaSummaryCopyError",
+      null,
+      "Operator summary copy failed. Copy it from the result card instead.",
+    ),
   };
 }
 
@@ -5244,6 +5359,12 @@ function runDashboardAction(actionId) {
       break;
     case "review_visa_draft_result":
       runVisaIntakeResultPreset();
+      break;
+    case "run_visa_follow_up_demo":
+      runVisaFollowUpDemoPreset();
+      break;
+    case "review_visa_follow_up_result":
+      runVisaFollowUpResultPreset();
       break;
     case "reset_visa_demo":
       resetVisaIntakeDemoPreset();
@@ -14313,7 +14434,7 @@ function renderLiveIntentExperience() {
       if (summaryConfig) {
         el.liveResultSummaryCopyBtn.hidden = false;
         el.liveResultSummaryCopyBtn.disabled = false;
-        el.liveResultSummaryCopyBtn.textContent = t("live.result.visaSummaryCopy", null, "Copy operator summary");
+        el.liveResultSummaryCopyBtn.textContent = summaryConfig.copyLabel ?? t("live.result.visaSummaryCopy", null, "Copy operator summary");
       } else {
         el.liveResultSummaryCopyBtn.hidden = true;
         el.liveResultSummaryCopyBtn.disabled = true;
@@ -19905,6 +20026,23 @@ function buildVisaIntakeResultUiTaskOverrides() {
   };
 }
 
+function buildVisaFollowUpUiTaskOverrides() {
+  return {
+    url: resolveVisaFollowUpDemoUrl(),
+    summary: ACTIVE_TASK_VISA_FOLLOW_UP_SUMMARY,
+    formData: { ...ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA },
+  };
+}
+
+function buildVisaFollowUpResultUiTaskOverrides() {
+  return {
+    ...buildVisaFollowUpUiTaskOverrides(),
+    approvalConfirmed: true,
+    approvalDecision: "approved",
+    approvalReason: ACTIVE_TASK_VISA_FOLLOW_UP_APPROVAL_REASON,
+  };
+}
+
 function primeVisaIntakeDemoFields() {
   if (el.uiTaskUrl instanceof HTMLInputElement) {
     el.uiTaskUrl.value = resolveVisaIntakeDemoUrl();
@@ -19926,6 +20064,15 @@ function primeVisaIntakeDemoFields() {
   }
 }
 
+function primeVisaFollowUpDemoFields() {
+  if (el.uiTaskUrl instanceof HTMLInputElement) {
+    el.uiTaskUrl.value = resolveVisaFollowUpDemoUrl();
+  }
+  if (el.approvalReason instanceof HTMLInputElement || el.approvalReason instanceof HTMLTextAreaElement) {
+    el.approvalReason.value = ACTIVE_TASK_VISA_FOLLOW_UP_APPROVAL_REASON;
+  }
+}
+
 function resolveVisaIntakeDemoUrl() {
   if (typeof window !== "undefined" && window.location && /^https?:$/i.test(window.location.protocol)) {
     try {
@@ -19935,6 +20082,17 @@ function resolveVisaIntakeDemoUrl() {
     }
   }
   return VISA_INTAKE_DEMO_URL_FALLBACK;
+}
+
+function resolveVisaFollowUpDemoUrl() {
+  if (typeof window !== "undefined" && window.location && /^https?:$/i.test(window.location.protocol)) {
+    try {
+      return new URL(VISA_FOLLOW_UP_DEMO_URL_PATH, window.location.origin).toString();
+    } catch {
+      return VISA_FOLLOW_UP_DEMO_URL_FALLBACK;
+    }
+  }
+  return VISA_FOLLOW_UP_DEMO_URL_FALLBACK;
 }
 
 function runVisaIntakeDemoPreset() {
@@ -19956,6 +20114,28 @@ function runVisaIntakeResultPreset() {
     intent: "ui_task",
     message: ACTIVE_TASK_VISA_INTAKE_RESULT_PROMPT,
     uiTaskOverrides: buildVisaIntakeResultUiTaskOverrides(),
+  });
+}
+
+function runVisaFollowUpDemoPreset() {
+  applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_FOLLOW_UP_PROMPT);
+  primeVisaFollowUpDemoFields();
+  sendIntentRequest({
+    demoScenario: "visa_follow_up_draft",
+    intent: "ui_task",
+    message: ACTIVE_TASK_VISA_FOLLOW_UP_PROMPT,
+    uiTaskOverrides: buildVisaFollowUpUiTaskOverrides(),
+  });
+}
+
+function runVisaFollowUpResultPreset() {
+  applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_FOLLOW_UP_RESULT_PROMPT);
+  primeVisaFollowUpDemoFields();
+  sendIntentRequest({
+    demoScenario: "visa_follow_up_result",
+    intent: "ui_task",
+    message: ACTIVE_TASK_VISA_FOLLOW_UP_RESULT_PROMPT,
+    uiTaskOverrides: buildVisaFollowUpResultUiTaskOverrides(),
   });
 }
 
@@ -32289,6 +32469,8 @@ function bindEvents() {
   bindDashboardActionButton(el.sidebarOpsRefreshBtn);
   bindDashboardActionButton(el.runVisaDemoBtn);
   bindDashboardActionButton(el.reviewVisaResultBtn);
+  bindDashboardActionButton(el.runVisaFollowUpBtn);
+  bindDashboardActionButton(el.reviewVisaFollowUpResultBtn);
   bindDashboardActionButton(el.resetVisaDemoBtn);
   bindDashboardActionButton(el.workspaceCommandOne);
   bindDashboardActionButton(el.workspaceCommandTwo);
@@ -32375,13 +32557,25 @@ function bindEvents() {
         }
         appendTranscript(
           "system",
-          t("live.result.visaSummaryCopySuccess", null, "Operator summary copied for the visa demo handoff."),
+          summaryConfig?.copySuccess ??
+            t("live.result.visaSummaryCopySuccess", null, "Operator summary copied for the visa demo handoff."),
           { exposeInLiveResult: false },
         );
       } catch (error) {
         appendTranscript(
           "error",
-          t("live.result.visaSummaryCopyError", null, "Operator summary copy failed. Copy it from the result card instead."),
+          getLiveResultSummaryConfig(
+            el.intent instanceof HTMLSelectElement ? el.intent.value : state.lastRequestedIntent,
+            state.liveResult,
+            Boolean(
+              state.liveResult &&
+                typeof state.liveResult.text === "string" &&
+                state.liveResult.text.trim().length > 0 &&
+                state.liveResult.intent ===
+                  (el.intent instanceof HTMLSelectElement ? el.intent.value : state.lastRequestedIntent),
+            ),
+          )?.copyError ??
+            t("live.result.visaSummaryCopyError", null, "Operator summary copy failed. Copy it from the result card instead."),
           { exposeInLiveResult: false },
         );
       }

@@ -342,6 +342,20 @@ type BookingFlowSnapshot = {
   shortSummary: string | null;
 };
 
+type FollowUpFlowSnapshot = {
+  scenario: string;
+  status: string;
+  followUpIntent: string;
+  caseId: string | null;
+  clientName: string | null;
+  destinationCountry: string | null;
+  missingItems: string[];
+  missingItemsCount: number;
+  operatorSummary: string | null;
+  nextStep: string | null;
+  readyForSubmission: boolean;
+};
+
 function extractDelegationRequest(response: OrchestratorResponse): DelegationRequest | null {
   if (response.payload.route !== "live-agent") {
     return null;
@@ -390,6 +404,63 @@ function extractBookingSnapshot(response: OrchestratorResponse): BookingFlowSnap
       isRecord(booking.confirmedSummary) && typeof booking.confirmedSummary.shortSummary === "string"
         ? booking.confirmedSummary.shortSummary
         : null,
+  };
+}
+
+function extractFollowUpSnapshot(response: OrchestratorResponse): FollowUpFlowSnapshot | null {
+  if (response.payload.route !== "live-agent") {
+    return null;
+  }
+  if (!isRecord(response.payload.output) || !isRecord(response.payload.output.followUp)) {
+    return null;
+  }
+  const followUp = response.payload.output.followUp;
+  if (!isRecord(followUp.summary) || !isRecord(followUp.leadProfile)) {
+    return null;
+  }
+  const missingItems = Array.isArray(followUp.missingItems)
+    ? followUp.missingItems
+        .map((item) => {
+          if (typeof item === "string") {
+            return item.trim();
+          }
+          if (isRecord(item)) {
+            const label = toNonEmptyString(item.label);
+            if (label) {
+              return label;
+            }
+            const sourceField = toNonEmptyString(item.sourceField);
+            if (sourceField) {
+              return sourceField;
+            }
+          }
+          return null;
+        })
+        .filter((item): item is string => typeof item === "string" && item.length > 0)
+    : [];
+  const missingItemLabels =
+    missingItems.length > 0
+      ? missingItems
+      : isRecord(followUp.summary) && Array.isArray(followUp.summary.missingItemLabels)
+        ? followUp.summary.missingItemLabels
+            .map((item) => (typeof item === "string" ? item.trim() : ""))
+            .filter((item): item is string => item.length > 0)
+        : [];
+  const readyForSubmission = followUp.readyForSubmission === true;
+  return {
+    scenario: typeof followUp.scenario === "string" ? followUp.scenario : "missing_documents_follow_up",
+    status: typeof followUp.status === "string" ? followUp.status : "needs_documents",
+    followUpIntent:
+      typeof followUp.followUpIntent === "string" ? followUp.followUpIntent : "document_collection_follow_up",
+    caseId: typeof followUp.leadProfile.caseId === "string" ? followUp.leadProfile.caseId : null,
+    clientName: typeof followUp.leadProfile.clientName === "string" ? followUp.leadProfile.clientName : null,
+    destinationCountry:
+      typeof followUp.leadProfile.destinationCountry === "string" ? followUp.leadProfile.destinationCountry : null,
+    missingItems: missingItemLabels,
+    missingItemsCount: missingItemLabels.length,
+    operatorSummary: typeof followUp.operatorSummary === "string" ? followUp.operatorSummary : null,
+    nextStep: typeof followUp.nextStep === "string" ? followUp.nextStep : null,
+    readyForSubmission,
   };
 }
 
@@ -711,6 +782,13 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
   if (bookingSnapshot) {
     setOrchestratorWorkflowExecutionState({
       bookingState: bookingSnapshot,
+    });
+  }
+
+  const followUpSnapshot = extractFollowUpSnapshot(response);
+  if (followUpSnapshot) {
+    setOrchestratorWorkflowExecutionState({
+      followUpState: followUpSnapshot,
     });
   }
 

@@ -70,6 +70,20 @@ export type OrchestratorBookingState = {
   shortSummary: string | null;
 };
 
+export type OrchestratorFollowUpState = {
+  scenario: string;
+  status: string;
+  followUpIntent: string;
+  caseId: string | null;
+  clientName: string | null;
+  destinationCountry: string | null;
+  missingItems: string[];
+  missingItemsCount: number;
+  operatorSummary: string | null;
+  nextStep: string | null;
+  readyForSubmission: boolean;
+};
+
 export type OrchestratorWorkflowExecutionState = {
   status: OrchestratorWorkflowExecutionStatus;
   currentStage: OrchestratorWorkflowStage | null;
@@ -82,6 +96,7 @@ export type OrchestratorWorkflowExecutionState = {
   reason: string | null;
   updatedAt: string | null;
   bookingState: OrchestratorBookingState | null;
+  followUpState: OrchestratorFollowUpState | null;
 };
 
 export type OrchestratorWorkflowStoreStatus = {
@@ -258,6 +273,7 @@ let workflowExecutionState: OrchestratorWorkflowExecutionState = {
   reason: null,
   updatedAt: null,
   bookingState: null,
+  followUpState: null,
 };
 let controlPlaneOverride:
   | {
@@ -751,6 +767,7 @@ function defaultWorkflowExecutionState(): OrchestratorWorkflowExecutionState {
     reason: null,
     updatedAt: null,
     bookingState: null,
+    followUpState: null,
   };
 }
 
@@ -770,6 +787,7 @@ export function setOrchestratorWorkflowExecutionState(params: {
   reason?: string | null;
   updatedAt?: string | null;
   bookingState?: OrchestratorBookingState | null;
+  followUpState?: OrchestratorFollowUpState | null;
 }): OrchestratorWorkflowExecutionState {
   workflowExecutionState = {
     status: params.status ?? workflowExecutionState.status,
@@ -783,6 +801,7 @@ export function setOrchestratorWorkflowExecutionState(params: {
     reason: toNonEmptyString(params.reason) ?? workflowExecutionState.reason,
     updatedAt: toNonEmptyString(params.updatedAt) ?? new Date().toISOString(),
     bookingState: params.bookingState === undefined ? workflowExecutionState.bookingState : params.bookingState,
+    followUpState: params.followUpState === undefined ? workflowExecutionState.followUpState : params.followUpState,
   };
   return getOrchestratorWorkflowExecutionState();
 }

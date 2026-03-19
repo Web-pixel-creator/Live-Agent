@@ -26448,6 +26448,11 @@ button:disabled {
   border-radius: 16px;
 }
 
+#resetVisaDemoBtn {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
 .live-compose-send-hint,
 .live-compose-preset-hint {
   grid-column: 1 / -1;

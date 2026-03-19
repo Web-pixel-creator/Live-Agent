@@ -155,6 +155,46 @@ type ConsultationBookingState = {
   updatedAt: string;
 };
 
+type MissingDocumentStatus = "has" | "missing" | "blocked";
+
+type MissingDocumentItem = {
+  id: string;
+  label: string;
+  status: MissingDocumentStatus;
+  note: string | null;
+  sourceField: string | null;
+};
+
+type MissingDocumentsFollowUpLeadProfile = {
+  caseId: string | null;
+  clientName: string | null;
+  destinationCountry: string | null;
+  visaType: string | null;
+  relocationType: string | null;
+  deadline: string | null;
+};
+
+type MissingDocumentsFollowUpSummary = {
+  title: string;
+  shortSummary: string;
+  operatorSummary: string;
+  nextStep: string;
+  missingItemLabels: string[];
+  readyForSubmission: boolean;
+};
+
+type MissingDocumentsFollowUpState = {
+  status: "needs_documents" | "ready_for_submission";
+  followUpIntent: "document_collection_follow_up";
+  seed: {
+    leadProfile: MissingDocumentsFollowUpLeadProfile;
+    checklist: MissingDocumentItem[];
+    source: string | null;
+  };
+  summary: MissingDocumentsFollowUpSummary;
+  updatedAt: string;
+};
+
 type ConversationSessionState = {
   summary: string | null;
   turns: ConversationTurn[];
@@ -163,6 +203,7 @@ type ConversationSessionState = {
   approxTokens: number;
   lastCompactedAt: string | null;
   booking: ConsultationBookingState | null;
+  followUp: MissingDocumentsFollowUpState | null;
   updatedAtMs: number;
 };
 
@@ -938,8 +979,9 @@ function estimateSessionTokens(state: ConversationSessionState): number {
     : state.booking
       ? estimateTextTokens(renderBookingState(state.booking) ?? "")
       : 0;
+  const followUpTokens = state.followUp ? estimateTextTokens(state.followUp.summary.shortSummary) : 0;
   const turnsTokens = state.turns.reduce((sum, turn) => sum + estimateTextTokens(turn.text) + 4, 0);
-  return summaryTokens + bookingTokens + turnsTokens;
+  return summaryTokens + bookingTokens + followUpTokens + turnsTokens;
 }
 
 function getOrCreateConversationSession(sessionId: string, config: ConversationContextConfig): ConversationSessionState {
@@ -957,6 +999,7 @@ function getOrCreateConversationSession(sessionId: string, config: ConversationC
     approxTokens: 0,
     lastCompactedAt: null,
     booking: null,
+    followUp: null,
     updatedAtMs: Date.now(),
   };
   conversationSessions.set(sessionId, state);
@@ -1088,6 +1131,15 @@ function buildCompactionPrompt(params: {
   const bookingState = renderBookingState(params.state.booking);
   if (bookingState) {
     sections.push(bookingState);
+  }
+  if (params.state.followUp) {
+    sections.push(
+      [
+        `Follow-up state: ${params.state.followUp.status}.`,
+        `Summary: ${params.state.followUp.summary.shortSummary}`,
+        `Next step: ${params.state.followUp.summary.nextStep}`,
+      ].join(" "),
+    );
   }
   sections.push(`Transcript to compact:\n${renderTurns(params.turnsToCompact, 200)}`);
   return sections.join("\n\n");
@@ -1227,6 +1279,16 @@ function buildConversationContextPrompt(state: ConversationSessionState): string
   if (bookingState) {
     sections.push(bookingState);
   }
+  if (state.followUp) {
+    sections.push(
+      [
+        `Follow-up state: ${state.followUp.status}.`,
+        `Lead profile: ${state.followUp.seed.leadProfile.clientName ?? state.followUp.seed.leadProfile.caseId ?? "unknown"}.`,
+        `Summary: ${state.followUp.summary.shortSummary}`,
+        `Next step: ${state.followUp.summary.nextStep}`,
+      ].join(" "),
+    );
+  }
   const recentTurns = state.turns.slice(-8);
   if (recentTurns.length > 0) {
     sections.push(`Recent turns:\n${renderTurns(recentTurns, 240)}`);
@@ -1264,6 +1326,16 @@ function buildContextDiagnostics(params: {
                 topic: params.state.booking.confirmedSummary.topic,
               }
             : null,
+        }
+      : null,
+    followUp: params.state.followUp
+      ? {
+          status: params.state.followUp.status,
+          followUpIntent: params.state.followUp.followUpIntent,
+          leadProfile: params.state.followUp.seed.leadProfile,
+          missingItems: params.state.followUp.seed.checklist.filter((item) => item.status !== "has"),
+          summary: params.state.followUp.summary,
+          nextStep: params.state.followUp.summary.nextStep,
         }
       : null,
     preReplyCompaction: params.preReplyCompaction,
@@ -2299,6 +2371,249 @@ function buildBookingConfirmationResult(params: {
   };
 }
 
+function toMissingDocumentStatus(value: unknown, fallback: MissingDocumentStatus): MissingDocumentStatus {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "has" || normalized === "missing" || normalized === "blocked") {
+    return normalized;
+  }
+  if (normalized === "present" || normalized === "available" || normalized === "yes" || normalized === "ready") {
+    return "has";
+  }
+  if (normalized === "absent" || normalized === "no" || normalized === "needed" || normalized === "required") {
+    return "missing";
+  }
+  return fallback;
+}
+
+function createMissingDocumentItem(params: {
+  label: string;
+  status: MissingDocumentStatus;
+  sourceField: string | null;
+  note?: string | null;
+  fallbackId: string;
+}): MissingDocumentItem {
+  return {
+    id: params.fallbackId,
+    label: params.label,
+    status: params.status,
+    note: params.note ?? null,
+    sourceField: params.sourceField,
+  };
+}
+
+function normalizeMissingDocumentChecklist(rawValue: unknown, sourceField: string): MissingDocumentItem[] {
+  if (!Array.isArray(rawValue)) {
+    return [];
+  }
+  return rawValue
+    .map((entry, index) => {
+      const fallbackId = `${sourceField}-${index + 1}`;
+      if (typeof entry === "string") {
+        const label = entry.trim();
+        if (label.length === 0) {
+          return null;
+        }
+        return createMissingDocumentItem({
+          label,
+          status: "missing",
+          sourceField,
+          fallbackId,
+        });
+      }
+      if (!isRecord(entry)) {
+        return null;
+      }
+      const label =
+        toNonEmptyString(entry.label) ??
+        toNonEmptyString(entry.name) ??
+        toNonEmptyString(entry.document) ??
+        toNonEmptyString(entry.title);
+      if (!label) {
+        return null;
+      }
+      const status =
+        "status" in entry
+          ? toMissingDocumentStatus(entry.status, "missing")
+          : entry.has === true
+            ? "has"
+            : entry.missing === true
+              ? "missing"
+              : entry.blocked === true
+                ? "blocked"
+                : "missing";
+      return createMissingDocumentItem({
+        label,
+        status,
+        sourceField,
+        note: toNonEmptyString(entry.note) ?? toNonEmptyString(entry.reason),
+        fallbackId,
+      });
+    })
+    .filter((item): item is MissingDocumentItem => item !== null);
+}
+
+function buildMissingDocumentsLeadProfile(payload: Record<string, unknown>): MissingDocumentsFollowUpLeadProfile {
+  const leadSources = [payload];
+  if (isRecord(payload.seed)) {
+    leadSources.push(payload.seed);
+  }
+  if (isRecord(payload.data)) {
+    leadSources.push(payload.data);
+  }
+  if (isRecord(payload.followUp)) {
+    leadSources.push(payload.followUp);
+  }
+  if (isRecord(payload.leadProfile)) {
+    leadSources.push(payload.leadProfile);
+  }
+
+  const getValue = (...keys: string[]): string | null => {
+    for (const source of leadSources) {
+      for (const key of keys) {
+        const value = toNonEmptyString(source[key]);
+        if (value) {
+          return value;
+        }
+      }
+    }
+    return null;
+  };
+
+  return {
+    caseId: getValue("caseId", "applicationId", "id"),
+    clientName: getValue("clientName", "applicantName", "name"),
+    destinationCountry: getValue("destinationCountry", "country", "targetCountry"),
+    visaType: getValue("visaType", "immigrationType", "track"),
+    relocationType: getValue("relocationType", "moveType", "destinationCity"),
+    deadline: getValue("deadline", "dueDate", "targetDate"),
+  };
+}
+
+function buildMissingDocumentsSummary(params: {
+  leadProfile: MissingDocumentsFollowUpLeadProfile;
+  checklist: MissingDocumentItem[];
+}): MissingDocumentsFollowUpSummary {
+  const missingItems = params.checklist.filter((item) => item.status !== "has");
+  const missingItemLabels = missingItems.map((item) => item.label);
+  const title = "Missing Documents Follow-up";
+  const clientLabel =
+    params.leadProfile.clientName ??
+    params.leadProfile.caseId ??
+    params.leadProfile.destinationCountry ??
+    "visa/relocation lead";
+  const leadDescriptorParts = [
+    params.leadProfile.visaType ? `${params.leadProfile.visaType} visa` : null,
+    params.leadProfile.relocationType ? `${params.leadProfile.relocationType} relocation` : null,
+    params.leadProfile.destinationCountry,
+  ].filter((value): value is string => Boolean(value));
+  const leadDescriptor = leadDescriptorParts.length > 0 ? leadDescriptorParts.join(" / ") : "visa/relocation";
+  const missingLabelText = missingItemLabels.length > 0 ? missingItemLabels.join(", ") : "no blockers";
+  const readyForSubmission = missingItems.length === 0;
+  const shortSummary = readyForSubmission
+    ? `${title}: ${clientLabel} is ready for submission.`
+    : `${title}: ${clientLabel} still needs ${missingLabelText}.`;
+  const operatorSummary = readyForSubmission
+    ? `All required documents are present for ${clientLabel}.`
+    : `Missing items for ${clientLabel}: ${missingLabelText}.`;
+  const nextStep = readyForSubmission
+    ? "Proceed to submit the visa/relocation package."
+    : `Request ${missingItemLabels[0] ?? "the next missing document"} and hold submission until all items are marked has.`;
+  return {
+    title: `${title} - ${leadDescriptor}`,
+    shortSummary,
+    operatorSummary,
+    nextStep,
+    missingItemLabels,
+    readyForSubmission,
+  };
+}
+
+function detectMissingDocumentsFollowUpInput(rawInput: unknown, inputText: string): MissingDocumentsFollowUpState | null {
+  const payload = isRecord(rawInput) ? rawInput : {};
+  const seedPayloads = [payload];
+  if (isRecord(payload.seed)) {
+    seedPayloads.push(payload.seed);
+  }
+  if (isRecord(payload.data)) {
+    seedPayloads.push(payload.data);
+  }
+  if (isRecord(payload.followUp)) {
+    seedPayloads.push(payload.followUp);
+  }
+  const scenarioValue = seedPayloads
+    .map((source) => toNonEmptyString(source.scenario) ?? toNonEmptyString(source.followUpScenario))
+    .find((value): value is string => Boolean(value))
+    ?? null;
+  const checklist: MissingDocumentItem[] = [];
+  for (const source of seedPayloads) {
+    checklist.push(
+      ...normalizeMissingDocumentChecklist(source.checklist, "checklist"),
+      ...normalizeMissingDocumentChecklist(source.documentChecklist, "documentChecklist"),
+      ...normalizeMissingDocumentChecklist(source.requiredDocuments, "requiredDocuments"),
+      ...normalizeMissingDocumentChecklist(source.missingDocuments, "missingDocuments"),
+      ...normalizeMissingDocumentChecklist(source.missingDocs, "missingDocs"),
+      ...normalizeMissingDocumentChecklist(source.seededMissingDocs, "seededMissingDocs"),
+      ...normalizeMissingDocumentChecklist(source.items, "items"),
+    );
+  }
+
+  const text = normalizeLooseLookupText(inputText);
+  const mentionsFollowUp = /missing\s+document|missing\s+docs?|document\s+follow[-\s]?up|follow[-\s]?up/.test(text);
+  const mentionsScenario = scenarioValue ? /missing.*document|document.*follow.*up/i.test(scenarioValue) : false;
+  const hasChecklist = checklist.length > 0;
+
+  if (!mentionsFollowUp && !mentionsScenario && !hasChecklist) {
+    return null;
+  }
+
+  const leadProfile = buildMissingDocumentsLeadProfile(payload);
+  const summary = buildMissingDocumentsSummary({
+    leadProfile,
+    checklist,
+  });
+
+  return {
+    status: summary.readyForSubmission ? "ready_for_submission" : "needs_documents",
+    followUpIntent: "document_collection_follow_up",
+    seed: {
+      leadProfile,
+      checklist,
+      source: scenarioValue ?? toNonEmptyString(payload.source) ?? null,
+    },
+    summary,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function buildMissingDocumentsFollowUpResult(state: ConversationSessionState): Record<string, unknown> {
+  const followUp = state.followUp;
+  if (!followUp) {
+    throw new Error("missing documents follow-up state missing");
+  }
+  const result = {
+    scenario: "missing_documents_follow_up",
+    followUpIntent: followUp.followUpIntent,
+    status: followUp.status,
+    leadProfile: followUp.seed.leadProfile,
+    checklist: followUp.seed.checklist,
+    missingItems: followUp.seed.checklist.filter((item) => item.status !== "has"),
+    missingItemsSummary: followUp.summary.operatorSummary,
+    operatorSummary: followUp.summary.operatorSummary,
+    nextStep: followUp.summary.nextStep,
+    readyForSubmission: followUp.summary.readyForSubmission,
+    summary: followUp.summary,
+  };
+  return {
+    text: followUp.summary.shortSummary,
+    message: followUp.summary.shortSummary,
+    mode: "follow_up",
+    followUp: result,
+  };
+}
+
 async function handleConversation(params: {
   sessionId: string;
   input: NormalizedLiveInput;
@@ -2306,6 +2621,7 @@ async function handleConversation(params: {
   capabilities: LiveAgentCapabilitySet;
   usageTotals: AgentUsageTotals;
   skillsPrompt: string | null;
+  rawInput: unknown;
 }): Promise<Record<string, unknown>> {
   const { input } = params;
   const contextConfig = getConversationContextConfig(params.config);
@@ -2325,6 +2641,27 @@ async function handleConversation(params: {
     contextConfig,
     capabilities: params.capabilities,
   });
+
+  const followUpState = detectMissingDocumentsFollowUpInput(params.rawInput, input.text);
+  if (followUpState) {
+    sessionContext.followUp = followUpState;
+    sessionContext.updatedAtMs = Date.now();
+    sessionContext.approxTokens = estimateSessionTokens(sessionContext);
+    const followUpMessage = followUpState.summary.shortSummary;
+    addConversationTurn({
+      state: sessionContext,
+      role: "assistant",
+      text: followUpMessage,
+      intent: "conversation",
+    });
+    return {
+      ...buildMissingDocumentsFollowUpResult(sessionContext),
+      context: buildContextDiagnostics({
+        state: sessionContext,
+        preReplyCompaction,
+      }),
+    };
+  }
 
   const existingBooking = sessionContext.booking;
   const bookingSelection = detectBookingSlotSelection(input.text, existingBooking);
@@ -2667,12 +3004,13 @@ async function handleByIntent(params: {
   sessionId: string;
   intent: OrchestratorIntent;
   input: NormalizedLiveInput;
+  rawInput: unknown;
   config: GeminiConfig;
   capabilities: LiveAgentCapabilitySet;
   usageTotals: AgentUsageTotals;
   skillsPrompt: string | null;
 }): Promise<Record<string, unknown>> {
-  const { intent, input, config, capabilities, sessionId, usageTotals, skillsPrompt } = params;
+  const { intent, input, rawInput, config, capabilities, sessionId, usageTotals, skillsPrompt } = params;
   switch (intent) {
     case "translation":
       return handleTranslation({
@@ -2695,6 +3033,7 @@ async function handleByIntent(params: {
       return handleConversation({
         sessionId,
         input,
+        rawInput,
         config,
         capabilities,
         usageTotals,
@@ -2735,6 +3074,7 @@ export async function runLiveAgent(request: OrchestratorRequest): Promise<Orches
       sessionId: request.sessionId,
       intent,
       input,
+      rawInput: request.payload.input,
       config,
       capabilities,
       usageTotals,

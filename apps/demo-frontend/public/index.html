@@ -248,6 +248,15 @@
                   >
                     Run Visa Intake Demo
                   </button>
+                  <button
+                    id="runVisaFollowUpBtn"
+                    type="button"
+                    class="button-muted live-compose-preset-btn"
+                    data-dashboard-action="run_visa_follow_up_demo"
+                    data-i18n="live.compose.runVisaFollowUp"
+                  >
+                    Run Missing Docs Follow-up
+                  </button>
                     <button
                       id="reviewVisaResultBtn"
                       type="button"
@@ -256,6 +265,15 @@
                       data-i18n="live.compose.reviewVisaDemo"
                     >
                       Review Visa Draft Result
+                    </button>
+                    <button
+                      id="reviewVisaFollowUpResultBtn"
+                      type="button"
+                      class="button-muted live-compose-preset-btn"
+                      data-dashboard-action="review_visa_follow_up_result"
+                      data-i18n="live.compose.reviewVisaFollowUp"
+                    >
+                      Review Follow-up Result
                     </button>
                     <button
                       id="resetVisaDemoBtn"
@@ -274,19 +292,19 @@
                     class="live-compose-preset-hint"
                     data-i18n="live.compose.runVisaDemoHint"
                   >
-                    Launch the seeded visa relocation flow without filling fields manually.
+                    Launch the seeded visa relocation flow or missing-docs follow-up without filling fields manually.
                   </p>
                   <div class="live-compose-preset-map" aria-label="Visa demo preset guide">
                     <article class="live-compose-preset-card">
                       <strong data-i18n="live.compose.runVisaDemoCardTitle">Draft + approval boundary</strong>
                       <p data-i18n="live.compose.runVisaDemoCardCopy">
-                        Prepares the seeded relocation draft and stops before the protected submit step.
+                        Prepares the seeded relocation draft or missing-docs follow-up and stops before the protected submit step.
                       </p>
                     </article>
                     <article class="live-compose-preset-card">
                       <strong data-i18n="live.compose.reviewVisaDemoCardTitle">Approved + verified completion</strong>
                       <p data-i18n="live.compose.reviewVisaDemoCardCopy">
-                        Runs the same seeded flow with approval already confirmed and checks the final confirmation banner.
+                        Runs the approved intake or follow-up path and checks the final confirmation banner.
                       </p>
                     </article>
                   </div>

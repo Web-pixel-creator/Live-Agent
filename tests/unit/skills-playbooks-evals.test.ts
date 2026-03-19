@@ -26,6 +26,21 @@ const playbooks = [
   },
 ];
 
+const followUpPlaybooks = [
+  {
+    id: "missing-documents-follow-up-playbook",
+    personaId: "missing-documents-follow-up",
+    recipeId: "missing-documents-follow-up-flow",
+    skillPath: resolve(repoRoot, "skills", "bundled", "missing-documents-follow-up", "SKILL.md"),
+  },
+  {
+    id: "consultation-reminder-playbook",
+    personaId: "consultation-reminder",
+    recipeId: "consultation-reminder-flow",
+    skillPath: resolve(repoRoot, "skills", "bundled", "consultation-reminder", "SKILL.md"),
+  },
+];
+
 test("bundled playbooks are discoverable and export visa/relocation instructions", () => {
   for (const playbook of playbooks) {
     assert.ok(existsSync(playbook.skillPath), `missing bundled skill file: ${playbook.skillPath}`);
@@ -52,6 +67,32 @@ test("bundled playbooks are discoverable and export visa/relocation instructions
   assert.match(documentSource, /missing-items summary/i);
 });
 
+test("bundled visa/relocation follow-up playbooks are discoverable and export operator-ready instructions", () => {
+  for (const playbook of followUpPlaybooks) {
+    assert.ok(existsSync(playbook.skillPath), `missing bundled skill file: ${playbook.skillPath}`);
+    const source = readFileSync(playbook.skillPath, "utf8");
+    assert.match(source, new RegExp(`id:\\s*${playbook.id}`));
+    assert.match(source, /visa\/relocation/i);
+    assert.match(source, /prompt:/i);
+    assert.match(source, /approval boundary/i);
+    assert.match(source, /browser scope/i);
+    assert.match(source, /success metrics/i);
+    assert.match(source, /failure and escalation/i);
+  }
+
+  const followUpSource = readFileSync(followUpPlaybooks[0].skillPath, "utf8");
+  assert.match(followUpSource, /has/i);
+  assert.match(followUpSource, /missing/i);
+  assert.match(followUpSource, /next action/i);
+  assert.match(followUpSource, /missing-items summary/i);
+
+  const reminderSource = readFileSync(followUpPlaybooks[1].skillPath, "utf8");
+  assert.match(reminderSource, /appointment/i);
+  assert.match(reminderSource, /timezone/i);
+  assert.match(reminderSource, /reschedule/i);
+  assert.match(reminderSource, /should bring/i);
+});
+
 test("skills catalog exposes visa/relocation playbooks as personas and recipes", () => {
   const catalogPath = resolve(repoRoot, "configs", "skills.catalog.json");
   const catalog = JSON.parse(readFileSync(catalogPath, "utf8")) as {
@@ -70,24 +111,40 @@ test("skills catalog exposes visa/relocation playbooks as personas and recipes",
   const leadPersona = catalog.personas.find((item) => item.id === "lead-qualifier");
   const bookingPersona = catalog.personas.find((item) => item.id === "consultation-booking");
   const documentPersona = catalog.personas.find((item) => item.id === "document-collection");
+  const followUpPersona = catalog.personas.find((item) => item.id === "missing-documents-follow-up");
+  const reminderPersona = catalog.personas.find((item) => item.id === "consultation-reminder");
 
   assert.deepEqual(leadPersona?.recommendedSkillIds, ["lead-qualification-playbook"]);
   assert.deepEqual(bookingPersona?.recommendedSkillIds, ["consultation-booking-playbook"]);
   assert.deepEqual(documentPersona?.recommendedSkillIds, ["document-collection-playbook"]);
+  assert.deepEqual(followUpPersona?.recommendedSkillIds, ["missing-documents-follow-up-playbook"]);
+  assert.deepEqual(reminderPersona?.recommendedSkillIds, ["consultation-reminder-playbook"]);
   assert.equal(leadPersona?.defaultRecipeId, "lead-qualification-intake");
   assert.equal(bookingPersona?.defaultRecipeId, "consultation-booking-flow");
   assert.equal(documentPersona?.defaultRecipeId, "document-collection-flow");
+  assert.equal(followUpPersona?.defaultRecipeId, "missing-documents-follow-up-flow");
+  assert.equal(reminderPersona?.defaultRecipeId, "consultation-reminder-flow");
   assert.match(leadPersona?.name ?? "", /visa\/relocation/i);
   assert.match(documentPersona?.name ?? "", /visa\/relocation/i);
+  assert.match(followUpPersona?.name ?? "", /visa\/relocation/i);
+  assert.match(reminderPersona?.name ?? "", /visa\/relocation/i);
   assert.match(leadPersona?.description ?? "", /visa/i);
   assert.match(documentPersona?.description ?? "", /visa/i);
+  assert.match(followUpPersona?.description ?? "", /visa/i);
+  assert.match(reminderPersona?.description ?? "", /visa/i);
 
   const leadRecipe = catalog.recipes.find((item) => item.id === "lead-qualification-intake");
   const documentRecipe = catalog.recipes.find((item) => item.id === "document-collection-flow");
+  const followUpRecipe = catalog.recipes.find((item) => item.id === "missing-documents-follow-up-flow");
+  const reminderRecipe = catalog.recipes.find((item) => item.id === "consultation-reminder-flow");
   assert.match(leadRecipe?.name ?? "", /visa\/relocation/i);
   assert.match(documentRecipe?.name ?? "", /visa\/relocation/i);
+  assert.match(followUpRecipe?.name ?? "", /visa\/relocation/i);
+  assert.match(reminderRecipe?.name ?? "", /visa\/relocation/i);
   assert.match(leadRecipe?.description ?? "", /visa/i);
   assert.match(documentRecipe?.description ?? "", /visa/i);
+  assert.match(followUpRecipe?.description ?? "", /visa/i);
+  assert.match(reminderRecipe?.description ?? "", /visa/i);
 });
 
 test("eval manifest and promptfoo suites are wired for translation, negotiation, research, ui safety, and red team", () => {

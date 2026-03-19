@@ -63,6 +63,26 @@
       "defaultRecipeId": "document-collection-flow"
     },
     {
+      "id": "missing-documents-follow-up",
+      "name": "Visa/Relocation Missing Documents Follow-up",
+      "description": "Follow-up persona for chasing missing visa and relocation documents with clear status, tone, and next action.",
+      "agentIds": ["live-agent"],
+      "recommendedSkillIds": ["missing-documents-follow-up-playbook"],
+      "tags": ["playbook", "visa", "relocation", "follow-up", "documents"],
+      "defaultIntent": "conversation",
+      "defaultRecipeId": "missing-documents-follow-up-flow"
+    },
+    {
+      "id": "consultation-reminder",
+      "name": "Visa/Relocation Consultation Reminder",
+      "description": "Reminder persona for confirming visa and relocation consultation details, prep items, and reschedule paths.",
+      "agentIds": ["live-agent"],
+      "recommendedSkillIds": ["consultation-reminder-playbook"],
+      "tags": ["playbook", "visa", "relocation", "reminder", "scheduling"],
+      "defaultIntent": "conversation",
+      "defaultRecipeId": "consultation-reminder-flow"
+    },
+    {
       "id": "calendar-automation-publisher",
       "name": "Calendar Automation Publisher",
       "description": "Managed-skill and plugin-marketplace persona for calendar workflows, signing demos, and install/resolve validation.",
@@ -145,6 +165,30 @@
       "recommendedSkillIds": ["document-collection-playbook"],
       "tags": ["playbook", "visa", "relocation", "documents", "forms"],
       "judgeCategory": "ui_navigator"
+    },
+    {
+      "id": "missing-documents-follow-up-flow",
+      "personaId": "missing-documents-follow-up",
+      "name": "Visa/Relocation Missing Documents Follow-up",
+      "description": "Follow up on outstanding visa or relocation documents with a checklist, status, and one clear next action.",
+      "agentId": "live-agent",
+      "intent": "conversation",
+      "promptTemplate": "Follow up on missing visa or relocation documents. Review the checklist, mark each required item as has or missing, ask only for the missing items, and finish with a short missing-items summary and next action. Keep the tone polite and agency-ready. Ask for approval before any outbound message or calendar update.",
+      "recommendedSkillIds": ["missing-documents-follow-up-playbook"],
+      "tags": ["playbook", "visa", "relocation", "follow-up", "documents"],
+      "judgeCategory": "live_agent"
+    },
+    {
+      "id": "consultation-reminder-flow",
+      "personaId": "consultation-reminder",
+      "name": "Visa/Relocation Consultation Reminder",
+      "description": "Remind a client about a visa or relocation consultation with concrete appointment details and prep steps.",
+      "agentId": "live-agent",
+      "intent": "conversation",
+      "promptTemplate": "Draft a visa or relocation consultation reminder. Confirm the appointment date, time, timezone, meeting mode, and preparation items. Include what the client should bring, how to join, and how to reschedule if needed. Ask for approval before any outbound message or calendar update.",
+      "recommendedSkillIds": ["consultation-reminder-playbook"],
+      "tags": ["playbook", "visa", "relocation", "reminder", "scheduling"],
+      "judgeCategory": "live_agent"
     },
     {
       "id": "calendar-managed-skill-lifecycle",
