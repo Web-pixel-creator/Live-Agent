@@ -14,6 +14,8 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     'const ACTIVE_TASK_VISA_INTAKE_DEMO_APPROVAL_REASON =',
     '"live.support.runVisaDemo": "Run Visa Intake Demo"',
     '"live.compose.reviewVisaDemo": "Review Visa Draft Result"',
+    '"live.compose.runVisaDemoCardTitle": "Draft + approval boundary"',
+    '"live.compose.reviewVisaDemoCardTitle": "Approved + verified completion"',
     'action: "run_visa_intake_demo"',
     'case "review_visa_draft_result":',
     "runVisaIntakeResultPreset();",
@@ -40,6 +42,9 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     'data-i18n="live.compose.reviewVisaDemo"',
     'id="runVisaDemoHint"',
     'data-i18n="live.compose.runVisaDemoHint"',
+    'class="live-compose-preset-map"',
+    'data-i18n="live.compose.runVisaDemoCardTitle"',
+    'data-i18n="live.compose.reviewVisaDemoCardTitle"',
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `index.html missing visa demo CTA token: ${token}`);
@@ -47,6 +52,8 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
 
   const requiredStyleTokens = [
     ".live-compose-preset-hint",
+    ".live-compose-preset-map",
+    ".live-compose-preset-card",
     "grid-template-columns: repeat(3, max-content);",
     ".live-compose-send-hint,",
     ".live-compose-preset-hint {",
