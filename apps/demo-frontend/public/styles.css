@@ -26625,6 +26625,10 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
 }
 
+.live-result-summary-copy-btn {
+  justify-self: start;
+}
+
 .live-history-shell {
   gap: 14px;
   padding: 16px 16px 15px;

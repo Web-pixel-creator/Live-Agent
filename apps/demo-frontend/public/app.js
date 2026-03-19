@@ -1033,6 +1033,9 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.result.visaSummaryStatus": "Execution status",
     "live.result.visaSummaryHandoff": "Next operator step",
     "live.result.visaSummaryHandoffValue": "Send the missing-document checklist and confirm the consultation slot with Anna.",
+    "live.result.visaSummaryCopy": "Copy operator summary",
+    "live.result.visaSummaryCopySuccess": "Operator summary copied for the visa demo handoff.",
+    "live.result.visaSummaryCopyError": "Operator summary copy failed. Copy it from the result card instead.",
     "live.compose.optionalTitle": "Rare tools",
     "live.compose.optionalHint": "Audio file, service actions, and background requests",
     "live.compose.audioTitle": "Audio file",
@@ -1335,6 +1338,9 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.result.visaSummaryStatus": "Статус выполнения",
     "live.result.visaSummaryHandoff": "Следующий шаг оператора",
     "live.result.visaSummaryHandoffValue": "Отправить чеклист недостающих документов и подтвердить слот консультации с Анной.",
+    "live.result.visaSummaryCopy": "Скопировать summary для оператора",
+    "live.result.visaSummaryCopySuccess": "Summary для оператора скопирован из visa demo.",
+    "live.result.visaSummaryCopyError": "Не удалось скопировать summary. Возьми текст прямо из result card.",
     "live.compose.optionalTitle": "Опциональные media и advanced-инструменты",
     "live.compose.optionalHint": "Загрузка аудио, conversation item и out-of-band запросы",
     "live.support.badge": "Support",
@@ -2648,6 +2654,7 @@ const el = {
   liveResultSummaryTitle: document.getElementById("liveResultSummaryTitle"),
   liveResultSummaryList: document.getElementById("liveResultSummaryList"),
   liveResultSummaryHandoff: document.getElementById("liveResultSummaryHandoff"),
+  liveResultSummaryCopyBtn: document.getElementById("liveResultSummaryCopyBtn"),
   conversationHistoryKicker: document.getElementById("conversationHistoryKicker"),
   conversationHistoryTitle: document.getElementById("conversationHistoryTitle"),
   conversationHistoryHint: document.getElementById("conversationHistoryHint"),
@@ -4410,6 +4417,50 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
       ),
     },
   };
+}
+
+function buildVisaDemoOperatorSummaryText(summaryConfig) {
+  if (!summaryConfig || !Array.isArray(summaryConfig.items) || summaryConfig.items.length === 0) {
+    return "";
+  }
+  const lines = [summaryConfig.title];
+  for (const item of summaryConfig.items) {
+    if (!item || typeof item.label !== "string" || typeof item.value !== "string") {
+      continue;
+    }
+    lines.push(`- ${item.label}: ${item.value}`);
+  }
+  if (summaryConfig.handoff && typeof summaryConfig.handoff.label === "string" && typeof summaryConfig.handoff.value === "string") {
+    lines.push(`- ${summaryConfig.handoff.label}: ${summaryConfig.handoff.value}`);
+  }
+  return lines.join("\n").trim();
+}
+
+async function copyTextToClipboard(text) {
+  const normalizedText = typeof text === "string" ? text.trim() : "";
+  if (!normalizedText) {
+    return false;
+  }
+  if (navigator?.clipboard && typeof navigator.clipboard.writeText === "function") {
+    await navigator.clipboard.writeText(normalizedText);
+    return true;
+  }
+  const fallbackInput = document.createElement("textarea");
+  fallbackInput.value = normalizedText;
+  fallbackInput.setAttribute("readonly", "true");
+  fallbackInput.style.position = "fixed";
+  fallbackInput.style.opacity = "0";
+  fallbackInput.style.pointerEvents = "none";
+  document.body.appendChild(fallbackInput);
+  fallbackInput.focus();
+  fallbackInput.select();
+  let copied = false;
+  try {
+    copied = document.execCommand("copy");
+  } finally {
+    fallbackInput.remove();
+  }
+  return copied;
 }
 
 function getResolvedLiveIntentExperienceConfig(intent) {
@@ -14249,6 +14300,17 @@ function renderLiveIntentExperience() {
       } else {
         el.liveResultSummaryHandoff.hidden = true;
         el.liveResultSummaryHandoff.textContent = "";
+      }
+    }
+    if (el.liveResultSummaryCopyBtn instanceof HTMLButtonElement) {
+      if (summaryConfig) {
+        el.liveResultSummaryCopyBtn.hidden = false;
+        el.liveResultSummaryCopyBtn.disabled = false;
+        el.liveResultSummaryCopyBtn.textContent = t("live.result.visaSummaryCopy", null, "Copy operator summary");
+      } else {
+        el.liveResultSummaryCopyBtn.hidden = true;
+        el.liveResultSummaryCopyBtn.disabled = true;
+        el.liveResultSummaryCopyBtn.textContent = "";
       }
     }
   }
@@ -32238,6 +32300,40 @@ function bindEvents() {
     el.liveResultActionBtn.addEventListener("click", () => {
       if (el.liveResultActionBtn.dataset.action === "story_view") {
         setActiveTab("storyteller");
+      }
+    });
+  }
+  if (el.liveResultSummaryCopyBtn instanceof HTMLButtonElement) {
+    el.liveResultSummaryCopyBtn.addEventListener("click", async () => {
+      try {
+        const currentIntent =
+          el.intent instanceof HTMLSelectElement ? el.intent.value : state.lastRequestedIntent;
+        const summaryConfig = getLiveResultSummaryConfig(
+          currentIntent,
+          state.liveResult,
+          Boolean(
+            state.liveResult &&
+              typeof state.liveResult.text === "string" &&
+              state.liveResult.text.trim().length > 0 &&
+              state.liveResult.intent === currentIntent,
+          ),
+        );
+        const summaryText = buildVisaDemoOperatorSummaryText(summaryConfig);
+        const copied = await copyTextToClipboard(summaryText);
+        if (!copied) {
+          throw new Error("clipboard_unavailable");
+        }
+        appendTranscript(
+          "system",
+          t("live.result.visaSummaryCopySuccess", null, "Operator summary copied for the visa demo handoff."),
+          { exposeInLiveResult: false },
+        );
+      } catch (error) {
+        appendTranscript(
+          "error",
+          t("live.result.visaSummaryCopyError", null, "Operator summary copy failed. Copy it from the result card instead."),
+          { exposeInLiveResult: false },
+        );
       }
     });
   }

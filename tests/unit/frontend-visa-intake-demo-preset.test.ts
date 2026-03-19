@@ -18,6 +18,11 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     '"live.compose.reviewVisaDemoCardTitle": "Approved + verified completion"',
     '"live.result.visaSummaryTitle": "Visa intake completion snapshot"',
     '"live.result.visaSummaryHandoff": "Next operator step"',
+    '"live.result.visaSummaryCopy": "Copy operator summary"',
+    '"live.result.visaSummaryCopySuccess": "Operator summary copied for the visa demo handoff."',
+    'function buildVisaDemoOperatorSummaryText(summaryConfig) {',
+    "async function copyTextToClipboard(text) {",
+    'el.liveResultSummaryCopyBtn.addEventListener("click", async () => {',
     'demoScenario: "visa_result"',
     'action: "run_visa_intake_demo"',
     'case "review_visa_draft_result":',
@@ -52,6 +57,8 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     'id="liveResultSummaryTitle"',
     'id="liveResultSummaryList"',
     'id="liveResultSummaryHandoff"',
+    'id="liveResultSummaryCopyBtn"',
+    'data-i18n="live.result.visaSummaryCopy"',
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `index.html missing visa demo CTA token: ${token}`);
@@ -64,6 +71,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     ".live-result-summary",
     ".live-result-summary-item",
     ".live-result-summary-handoff",
+    ".live-result-summary-copy-btn",
     "grid-template-columns: repeat(3, max-content);",
     ".live-compose-send-hint,",
     ".live-compose-preset-hint {",
@@ -83,6 +91,10 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   assert.ok(
     readmeSource.includes("Review Visa Draft Result"),
     "README should document the visa result preset",
+  );
+  assert.ok(
+    readmeSource.includes("Copy operator summary"),
+    "README should document the visa operator-summary copy action",
   );
 });
 
