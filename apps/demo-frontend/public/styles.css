@@ -26435,8 +26435,10 @@ button:disabled {
 
 .live-compose-primary-actions {
   display: grid;
-  grid-template-columns: repeat(4, max-content);
+  grid-template-columns: repeat(2, minmax(172px, max-content));
   align-items: center;
+  justify-content: start;
+  justify-items: start;
   gap: 14px 18px;
 }
 

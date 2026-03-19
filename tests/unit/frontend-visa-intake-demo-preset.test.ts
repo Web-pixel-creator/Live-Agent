@@ -80,7 +80,9 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     ".live-result-summary-item",
     ".live-result-summary-handoff",
     ".live-result-summary-copy-btn",
-    "grid-template-columns: repeat(4, max-content);",
+    "grid-template-columns: repeat(2, minmax(172px, max-content));",
+    "justify-content: start;",
+    "justify-items: start;",
     ".live-compose-send-hint,",
     ".live-compose-preset-hint {",
   ];
