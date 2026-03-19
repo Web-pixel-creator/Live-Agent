@@ -6,4 +6,5 @@ coverage/
 *.log
 artifacts/
 external/
+_external/
 .agent/
