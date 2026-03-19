@@ -63,6 +63,8 @@ Supporting product surfaces:
 - Visa Client One-Pager: `docs/visa-client-one-pager.md`
 - Visa Client Deck Outline: `docs/visa-client-deck-outline.md`
 - Visa Client Deck Copy: `docs/visa-client-deck-copy.md`
+- Visa Founder Pitch 60s: `docs/visa-founder-pitch-60s.md`
+- Visa Sales Call Script 5min: `docs/visa-sales-call-script-5min.md`
 - Worker Roles: `docs/worker-roles.md`
 - Eval Plane: `docs/evals.md`
 - Operator Guide: `docs/operator-guide.md`
