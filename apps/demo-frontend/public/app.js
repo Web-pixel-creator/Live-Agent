@@ -75,6 +75,7 @@ const state = {
   liveLastRequestAt: null,
   livePendingRequest: null,
   pendingIntentRequest: null,
+  liveDemoScenario: null,
   liveResult: {
     intent: null,
     role: null,
@@ -619,6 +620,8 @@ const ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA = Object.freeze({
   employer: "Northlight Studio",
   start_date: "2026-06-15",
 });
+const ACTIVE_TASK_VISA_INTAKE_DEMO_BOOKING_SLOT = "Tomorrow 16:00";
+const ACTIVE_TASK_VISA_INTAKE_DEMO_MISSING_DOCUMENTS = "proof of income, housing address letter";
 const ACTIVE_TASK_VISA_INTAKE_DEMO_SUMMARY = [
   "full_name: Anna Petrova",
   "email: anna.petrova@example.com",
@@ -629,8 +632,8 @@ const ACTIVE_TASK_VISA_INTAKE_DEMO_SUMMARY = [
   "passport_number: XP4429018",
   "employer: Northlight Studio",
   "start_date: 2026-06-15",
-  "booking_slot: Tomorrow 16:00",
-  "missing_documents: proof of income, housing address letter",
+  `booking_slot: ${ACTIVE_TASK_VISA_INTAKE_DEMO_BOOKING_SLOT}`,
+  `missing_documents: ${ACTIVE_TASK_VISA_INTAKE_DEMO_MISSING_DOCUMENTS}`,
 ].join("\n");
 const ACTIVE_TASK_VISA_INTAKE_DEMO_APPROVAL_REASON =
   "Reviewed the seeded visa relocation draft and approved the protected submit step.";
@@ -1023,6 +1026,11 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.runVisaDemoCardCopy": "Prepares the seeded relocation draft and stops before the protected submit step.",
     "live.compose.reviewVisaDemoCardTitle": "Approved + verified completion",
     "live.compose.reviewVisaDemoCardCopy": "Runs the same seeded flow with approval already confirmed and checks the final confirmation banner.",
+    "live.result.visaSummaryTitle": "Visa intake completion snapshot",
+    "live.result.visaSummaryLead": "Lead draft",
+    "live.result.visaSummarySlot": "Consultation slot",
+    "live.result.visaSummaryDocs": "Missing documents",
+    "live.result.visaSummaryStatus": "Execution status",
     "live.compose.optionalTitle": "Rare tools",
     "live.compose.optionalHint": "Audio file, service actions, and background requests",
     "live.compose.audioTitle": "Audio file",
@@ -1318,6 +1326,11 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.runVisaDemoCardCopy": "Готовит seeded relocation draft и останавливается перед защищённым submit шагом.",
     "live.compose.reviewVisaDemoCardTitle": "Согласовано + verified completion",
     "live.compose.reviewVisaDemoCardCopy": "Прогоняет тот же seeded flow с уже подтверждённым approval и проверяет финальный confirmation banner.",
+    "live.result.visaSummaryTitle": "Итог visa intake",
+    "live.result.visaSummaryLead": "Карточка лида",
+    "live.result.visaSummarySlot": "Слот консультации",
+    "live.result.visaSummaryDocs": "Недостающие документы",
+    "live.result.visaSummaryStatus": "Статус выполнения",
     "live.compose.optionalTitle": "Опциональные media и advanced-инструменты",
     "live.compose.optionalHint": "Загрузка аудио, conversation item и out-of-band запросы",
     "live.support.badge": "Support",
@@ -2627,6 +2640,9 @@ const el = {
   liveResultMeta: document.getElementById("liveResultMeta"),
   liveResultActionBtn: document.getElementById("liveResultActionBtn"),
   liveResultBody: document.getElementById("liveResultBody"),
+  liveResultSummary: document.getElementById("liveResultSummary"),
+  liveResultSummaryTitle: document.getElementById("liveResultSummaryTitle"),
+  liveResultSummaryList: document.getElementById("liveResultSummaryList"),
   conversationHistoryKicker: document.getElementById("conversationHistoryKicker"),
   conversationHistoryTitle: document.getElementById("conversationHistoryTitle"),
   conversationHistoryHint: document.getElementById("conversationHistoryHint"),
@@ -4335,6 +4351,51 @@ function getLiveResultActionConfig(intent, latestResult, hasIntentMatchedResult)
   return {
     action: "story_view",
     label: state.languageMode === "ru" ? "Открыть Сторителлер" : "Open Storyteller",
+  };
+}
+
+function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult) {
+  const normalizedIntent = typeof intent === "string" && intent.trim().length > 0 ? intent.trim() : "conversation";
+  if (
+    !hasIntentMatchedResult ||
+    normalizedIntent !== "ui_task" ||
+    state.liveDemoScenario !== "visa_result" ||
+    !latestResult ||
+    latestResult.role === "error" ||
+    latestResult.streaming === true
+  ) {
+    return null;
+  }
+
+  const isRu = state.languageMode === "ru";
+  return {
+    title: t("live.result.visaSummaryTitle", null, "Visa intake completion snapshot"),
+    items: [
+      {
+        label: t("live.result.visaSummaryLead", null, "Lead draft"),
+        value: isRu
+          ? `${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.full_name} · Испания · ${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.visa_type}`
+          : `${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.full_name} · Spain · ${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.visa_type}`,
+      },
+      {
+        label: t("live.result.visaSummarySlot", null, "Consultation slot"),
+        value: isRu
+          ? `Завтра 16:00 · консультация подготовлена`
+          : `${ACTIVE_TASK_VISA_INTAKE_DEMO_BOOKING_SLOT} · consultation prepared`,
+      },
+      {
+        label: t("live.result.visaSummaryDocs", null, "Missing documents"),
+        value: isRu
+          ? "подтверждение дохода · письмо с адресом проживания"
+          : ACTIVE_TASK_VISA_INTAKE_DEMO_MISSING_DOCUMENTS.replace(/,\s*/g, " · "),
+      },
+      {
+        label: t("live.result.visaSummaryStatus", null, "Execution status"),
+        value: isRu
+          ? "согласование подтверждено · защищённый submit проверен"
+          : "approval confirmed · protected submit verified",
+      },
+    ],
   };
 }
 
@@ -14143,6 +14204,32 @@ function renderLiveIntentExperience() {
       delete el.liveResultActionBtn.dataset.action;
     }
   }
+  if (el.liveResultSummary instanceof HTMLElement) {
+    const summaryConfig = getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult);
+    el.liveResultSummary.hidden = !summaryConfig;
+    el.liveResultSummary.setAttribute("aria-hidden", summaryConfig ? "false" : "true");
+    if (el.liveResultSummaryTitle instanceof HTMLElement) {
+      el.liveResultSummaryTitle.textContent = summaryConfig?.title ?? "";
+    }
+    if (el.liveResultSummaryList instanceof HTMLElement) {
+      el.liveResultSummaryList.replaceChildren();
+      for (const item of summaryConfig?.items ?? []) {
+        const row = document.createElement("div");
+        row.className = "live-result-summary-item";
+
+        const label = document.createElement("span");
+        label.className = "live-result-summary-label";
+        label.textContent = item.label;
+
+        const value = document.createElement("span");
+        value.className = "live-result-summary-value";
+        value.textContent = item.value;
+
+        row.append(label, value);
+        el.liveResultSummaryList.append(row);
+      }
+    }
+  }
   if (el.conversationHistory instanceof HTMLElement) {
     el.conversationHistory.setAttribute(
       "data-empty-text",
@@ -19752,6 +19839,7 @@ function runVisaIntakeDemoPreset() {
   applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT);
   primeVisaIntakeDemoFields();
   sendIntentRequest({
+    demoScenario: "visa_draft",
     intent: "ui_task",
     message: ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT,
     uiTaskOverrides: buildVisaIntakeDemoUiTaskOverrides(),
@@ -19762,6 +19850,7 @@ function runVisaIntakeResultPreset() {
   applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_INTAKE_RESULT_PROMPT);
   primeVisaIntakeDemoFields();
   sendIntentRequest({
+    demoScenario: "visa_result",
     intent: "ui_task",
     message: ACTIVE_TASK_VISA_INTAKE_RESULT_PROMPT,
     uiTaskOverrides: buildVisaIntakeResultUiTaskOverrides(),
@@ -31381,6 +31470,10 @@ function sendIntentRequest(options = {}) {
   const intent =
     typeof options.intent === "string" && options.intent.trim().length > 0 ? options.intent.trim() : el.intent.value;
   state.lastRequestedIntent = intent;
+  state.liveDemoScenario =
+    typeof options.demoScenario === "string" && options.demoScenario.trim().length > 0
+      ? options.demoScenario.trim()
+      : null;
   const message =
     typeof options.message === "string" && options.message.trim().length > 0
       ? options.message.trim()

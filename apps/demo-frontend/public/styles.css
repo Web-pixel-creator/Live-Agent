@@ -26570,6 +26570,52 @@ button:disabled {
   line-height: 1.78;
 }
 
+.live-result-summary {
+  display: grid;
+  gap: 10px;
+  padding: 14px 15px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 70%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--surface-control) 70%, transparent),
+      color-mix(in oklch, var(--surface-panel) 88%, transparent)
+    );
+}
+
+.live-result-summary-title {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 82%, var(--muted-foreground));
+}
+
+.live-result-summary-list {
+  display: grid;
+  gap: 10px;
+}
+
+.live-result-summary-item {
+  display: grid;
+  gap: 4px;
+}
+
+.live-result-summary-label {
+  font-size: 0.68rem;
+  line-height: 1.35;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 54%, var(--muted-foreground));
+}
+
+.live-result-summary-value {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: color-mix(in oklch, var(--foreground) 92%, white);
+}
+
 .live-history-shell {
   gap: 14px;
   padding: 16px 16px 15px;

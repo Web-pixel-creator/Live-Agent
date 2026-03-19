@@ -923,12 +923,18 @@ test("demo frontend exposes a direct Storyteller CTA on ready live story launche
   const readmeSource = readFileSync(readmePath, "utf8");
 
   const helperStartToken = "function getLiveResultActionConfig(intent, latestResult, hasIntentMatchedResult) {";
-  const helperEndToken = "\n\nfunction getResolvedLiveIntentExperienceConfig(intent) {";
+  const helperEndTokenCandidates = [
+    "\n\nfunction getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult) {",
+    "\n\nfunction getResolvedLiveIntentExperienceConfig(intent) {",
+  ];
   const helperStartIndex = appSource.indexOf(helperStartToken);
-  const helperEndIndex = appSource.indexOf(helperEndToken, helperStartIndex);
+  const helperEndIndex = helperEndTokenCandidates
+    .map((token) => appSource.indexOf(token, helperStartIndex))
+    .filter((index) => index !== -1)
+    .sort((left, right) => left - right)[0] ?? -1;
 
   assert.notEqual(helperStartIndex, -1, "frontend runtime missing getLiveResultActionConfig helper");
-  assert.notEqual(helperEndIndex, -1, "frontend runtime missing getResolvedLiveIntentExperienceConfig helper boundary");
+  assert.notEqual(helperEndIndex, -1, "frontend runtime missing getLiveResultActionConfig helper boundary");
 
   const helperSource = appSource.slice(helperStartIndex, helperEndIndex);
   const getLiveResultActionConfig = runInNewContext(`(${helperSource})`, {
