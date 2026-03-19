@@ -36,7 +36,9 @@ test("frontend ships a one-click missing-docs follow-up demo preset with approve
     "Open the visa follow-up demo page",
     'case "run_visa_follow_up_demo":',
     'case "review_visa_follow_up_result":',
-    'state.liveDemoScenario !== "visa_result" && state.liveDemoScenario !== "visa_follow_up_result"',
+    'state.liveDemoScenario !== "visa_result" &&',
+    'state.liveDemoScenario !== "visa_follow_up_result" &&',
+    'state.liveDemoScenario !== "visa_reminder_result"',
     "summaryConfig.copyLabel ?? t(\"live.result.visaSummaryCopy\"",
     "summaryConfig?.copySuccess ??",
   ];
@@ -51,9 +53,9 @@ test("frontend ships a one-click missing-docs follow-up demo preset with approve
     'id="reviewVisaFollowUpResultBtn"',
     'data-dashboard-action="review_visa_follow_up_result"',
     'data-i18n="live.compose.reviewVisaFollowUp"',
-    "Launch the seeded visa relocation flow or missing-docs follow-up without filling fields manually.",
-    "Prepares the seeded relocation draft or missing-docs follow-up and stops before the protected submit step.",
-    "Runs the approved intake or follow-up path and checks the final confirmation banner.",
+    "Launch the seeded visa relocation flow, missing-docs follow-up, or consultation reminder without filling fields manually.",
+    "Prepares the seeded relocation draft, missing-docs follow-up, or consultation reminder and stops before the protected action step.",
+    "Runs the approved intake, follow-up, or reminder path and checks the final confirmation banner.",
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `index.html missing follow-up CTA token: ${token}`);

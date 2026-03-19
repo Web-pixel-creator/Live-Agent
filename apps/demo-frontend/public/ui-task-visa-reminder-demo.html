@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UI Task Visa Reminder Demo</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0f131a;
+        --panel: #171d27;
+        --border: rgba(123, 171, 255, 0.22);
+        --text: #f3f6fc;
+        --muted: #b5c0d5;
+        --accent: #64a5ff;
+        --ok: #66dea3;
+        --warn: #ffd166;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top right, rgba(100, 165, 255, 0.16), transparent 26%),
+          linear-gradient(180deg, #101722 0%, var(--bg) 100%);
+      }
+
+      main {
+        width: min(1080px, calc(100% - 40px));
+        margin: 40px auto;
+        padding: 32px;
+        border-radius: 28px;
+        border: 1px solid var(--border);
+        background: rgba(23, 29, 39, 0.96);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(100, 165, 255, 0.14);
+        color: #d9e7ff;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 18px 0 10px;
+        font-size: clamp(30px, 4vw, 44px);
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+        gap: 20px;
+        margin-top: 28px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 20px;
+      }
+
+      .panel {
+        padding: 22px;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .panel h2,
+      .panel h3 {
+        margin: 0 0 14px;
+      }
+
+      .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .meta-card,
+      .timeline-item,
+      .reminder-state,
+      .prep-item {
+        padding: 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .label {
+        display: block;
+        margin-bottom: 8px;
+        color: #d8e3f7;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .value {
+        font-size: 18px;
+      }
+
+      .prep-list,
+      .timeline {
+        display: grid;
+        gap: 12px;
+      }
+
+      .prep-item {
+        display: grid;
+        grid-template-columns: 20px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: start;
+      }
+
+      .checkmark {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        margin-top: 2px;
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(102, 222, 163, 0.16);
+        color: var(--ok);
+      }
+
+      .tag,
+      .boundary-pill {
+        display: inline-flex;
+        align-self: start;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .timeline-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .item-title {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+
+      .item-copy,
+      .timeline-item span,
+      .confirmation-list,
+      #protected-reminder-copy {
+        color: var(--muted);
+      }
+
+      .protected-boundary {
+        border-color: rgba(255, 209, 102, 0.22);
+      }
+
+      .boundary-pill {
+        background: rgba(255, 209, 102, 0.12);
+        color: #ffe39a;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font: inherit;
+        font-weight: 600;
+      }
+
+      .primary {
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .secondary {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+
+      .confirmation {
+        border-color: rgba(102, 222, 163, 0.2);
+        background: rgba(102, 222, 163, 0.08);
+      }
+
+      @media (max-width: 960px) {
+        .workspace,
+        .meta-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span class="eyebrow">UI task fixture</span>
+      <h1>Visa consultation reminder</h1>
+      <p>
+        Deterministic local fixture for the post-booking reminder path. It shows the consultation card, preparation
+        checklist, reminder draft, protected send boundary, and approved confirmation in one self-contained page.
+      </p>
+
+      <section class="workspace" aria-label="Visa reminder workspace">
+        <div class="stack">
+          <section class="panel" id="consultation-card" data-testid="consultation-card" aria-label="Consultation card">
+            <h2>Consultation card</h2>
+            <div class="meta-grid">
+              <article class="meta-card">
+                <span class="label">Client</span>
+                <div class="value"><strong>Anna Petrova</strong></div>
+              </article>
+              <article class="meta-card">
+                <span class="label">Case</span>
+                <div class="value"><strong>VISA-2048</strong></div>
+              </article>
+              <article class="meta-card">
+                <span class="label">Slot</span>
+                <div class="value"><strong>Tomorrow 16:00</strong></div>
+              </article>
+              <article class="meta-card">
+                <span class="label">Mode</span>
+                <div class="value"><strong>Video call · Europe/Madrid</strong></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel" id="prep-checklist" data-testid="prep-checklist" aria-label="Preparation checklist">
+            <h2>Preparation checklist</h2>
+            <div class="prep-list">
+              <article class="prep-item" data-prep-status="ready">
+                <span class="checkmark" aria-hidden="true">&#10003;</span>
+                <div>
+                  <span class="item-title">Passport originals</span>
+                  <div class="item-copy">Bring the original passport to confirm identity details.</div>
+                </div>
+                <span class="tag">Ready</span>
+              </article>
+              <article class="prep-item" data-prep-status="ready">
+                <span class="checkmark" aria-hidden="true">&#10003;</span>
+                <div>
+                  <span class="item-title">Proof of address</span>
+                  <div class="item-copy">Keep the latest address letter ready for the consultation review.</div>
+                </div>
+                <span class="tag">Ready</span>
+              </article>
+              <article class="prep-item" data-prep-status="ready">
+                <span class="checkmark" aria-hidden="true">&#10003;</span>
+                <div>
+                  <span class="item-title">Intake questionnaire</span>
+                  <div class="item-copy">Review the intake answers before the consultation starts.</div>
+                </div>
+                <span class="tag">Ready</span>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="panel" id="reminder-draft" data-testid="reminder-draft" aria-label="Reminder draft">
+            <h2>Reminder draft</h2>
+            <div class="timeline">
+              <div class="timeline-item">
+                <div>
+                  <strong>Reminder owner</strong>
+                  <span>Ana Ruiz</span>
+                </div>
+                <span>Email + WhatsApp</span>
+              </div>
+              <div class="timeline-item">
+                <div>
+                  <strong>Prep note</strong>
+                  <span>Confirm attendance and preparation items before the video call.</span>
+                </div>
+                <span>Ready to send</span>
+              </div>
+            </div>
+          </section>
+
+          <section
+            class="panel protected-boundary"
+            id="protected-reminder-boundary"
+            data-testid="protected-reminder-boundary"
+            aria-label="Protected reminder boundary"
+          >
+            <span class="boundary-pill">Protected step</span>
+            <h2>Reminder approval boundary</h2>
+            <p>
+              The consultation reminder is prepared, but the client-facing send action stays blocked until approval is granted.
+            </p>
+            <div class="actions" aria-label="Protected reminder actions">
+              <button id="prepare-reminder-btn" class="secondary" type="button">Prepare reminder draft</button>
+              <button id="send-reminder-btn" class="primary" type="button" disabled>Send reminder for approval</button>
+            </div>
+            <p id="protected-reminder-copy" data-testid="protected-reminder-copy">
+              Protected boundary: no reminder is sent to Anna before approval.
+            </p>
+          </section>
+
+          <section
+            class="panel confirmation"
+            id="approved-reminder-confirmation"
+            data-testid="approved-reminder-confirmation"
+            data-state="approved"
+            aria-label="Approved reminder confirmation"
+          >
+            <h3>Approved reminder confirmation</h3>
+            <p>Final verification complete. The consultation reminder is approved and ready for dispatch.</p>
+            <ul class="confirmation-list">
+              <li>Consultation card remains visible with the confirmed slot and timezone.</li>
+              <li>Preparation checklist stays attached to the reminder handoff.</li>
+              <li>The approved reminder path is ready for the operator to send.</li>
+            </ul>
+          </section>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
