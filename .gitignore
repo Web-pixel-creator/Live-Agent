@@ -4,7 +4,10 @@ dist/
 .env.local
 coverage/
 *.log
-artifacts/
+artifacts/*
+!artifacts/client-packet/
+!artifacts/client-packet/README.md
+!artifacts/client-packet/outreach-email.md
 external/
 _external/
 .agent/
