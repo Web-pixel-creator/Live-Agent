@@ -607,6 +607,33 @@ const STORY_COMPOSER_COPY = Object.freeze({
   },
 });
 const ACTIVE_TASK_NEGOTIATION_PROMPT = "Negotiate: price=96, delivery=9, sla=99, include one concession path.";
+const VISA_INTAKE_DEMO_URL = "http://127.0.0.1:3000/ui-task-visa-intake-demo.html";
+const ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA = Object.freeze({
+  full_name: "Anna Petrova",
+  email: "anna.petrova@example.com",
+  phone: "+34 600 123 456",
+  destination_country: "Spain",
+  relocation_city: "Madrid",
+  visa_type: "Digital Nomad Visa",
+  passport_number: "XP4429018",
+  employer: "Northlight Studio",
+  start_date: "2026-06-15",
+});
+const ACTIVE_TASK_VISA_INTAKE_DEMO_SUMMARY = [
+  "full_name: Anna Petrova",
+  "email: anna.petrova@example.com",
+  "phone: +34 600 123 456",
+  "destination_country: Spain",
+  "relocation_city: Madrid",
+  "visa_type: Digital Nomad Visa",
+  "passport_number: XP4429018",
+  "employer: Northlight Studio",
+  "start_date: 2026-06-15",
+  "booking_slot: Tomorrow 16:00",
+  "missing_documents: proof of income, housing address letter",
+].join("\n");
+const ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT =
+  "ui_task: Open the visa intake demo page, prepare Anna Petrova's visa relocation draft from the provided summary, stop before the protected submit step, and wait for approval.";
 const ACTIVE_TASK_UI_TASK_PROMPT =
   "ui_task: Open the billing page, verify the invoices table loads, and report one safe next action.";
 const OPERATOR_RUNTIME_GUARDRAIL_SIGNAL_RECOVERY_PROFILE_IDS = Object.freeze({
@@ -1016,9 +1043,10 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.support.activeCount": "Active count:",
     "live.support.emptyTitle": "No active tasks right now",
     "live.support.emptyHint": "Kick off intake, booking, or document collection to populate queue evidence and keep the demo path moving.",
-    "live.support.runNegotiation": "Run Negotiation",
-    "live.support.runStory": "Run Lab",
-    "live.support.runUiTask": "Run UI Task",
+  "live.support.runNegotiation": "Run Negotiation",
+  "live.support.runVisaDemo": "Run Visa Intake Demo",
+  "live.support.runStory": "Run Lab",
+  "live.support.runUiTask": "Run UI Task",
     "live.support.refreshTasksShort": "Refresh Active Tasks",
     "storyteller.badge": "Lab",
     "storyteller.heading": "Simulation Lab",
@@ -1293,9 +1321,10 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.support.activeCount": "Активных задач:",
     "live.support.emptyTitle": "Активных задач пока нет",
     "live.support.emptyHint": "Запусти один сценарий, чтобы заполнить очередь и прогреть evidence-полосу оператора.",
-    "live.support.runNegotiation": "Запустить переговоры",
-    "live.support.runStory": "Запустить историю",
-    "live.support.runUiTask": "Запустить UI-задачу",
+  "live.support.runNegotiation": "Запустить переговоры",
+  "live.support.runVisaDemo": "Запустить демо визового intake",
+  "live.support.runStory": "Запустить историю",
+  "live.support.runUiTask": "Запустить UI-задачу",
     "live.support.refreshTasksShort": "Обновить активные задачи",
     "storyteller.badge": "Story",
     "storyteller.heading": "Студия истории",
@@ -5059,6 +5088,9 @@ function runDashboardAction(actionId) {
       break;
     case "quick_research":
       applyIntentTemplateFromActiveTasks("research", "");
+      break;
+    case "run_visa_intake_demo":
+      runVisaIntakeDemoPreset();
       break;
     case "connect_live":
       document.getElementById("connectBtn")?.click();
@@ -19654,6 +19686,42 @@ function applyIntentTemplateFromActiveTasks(intentValue, messageTemplate) {
   }
 }
 
+function buildVisaIntakeDemoUiTaskOverrides() {
+  return {
+    url: VISA_INTAKE_DEMO_URL,
+    summary: ACTIVE_TASK_VISA_INTAKE_DEMO_SUMMARY,
+    formData: { ...ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA },
+  };
+}
+
+function primeVisaIntakeDemoFields() {
+  if (el.uiTaskUrl instanceof HTMLInputElement) {
+    el.uiTaskUrl.value = VISA_INTAKE_DEMO_URL;
+  }
+  const fieldsToClear = [
+    el.uiTaskDeviceNodeId,
+    el.uiTaskScreenshotRef,
+    el.uiTaskDomSnapshot,
+    el.uiTaskAccessibilityTree,
+    el.uiTaskMarkHints,
+  ];
+  for (const field of fieldsToClear) {
+    if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
+      field.value = "";
+    }
+  }
+}
+
+function runVisaIntakeDemoPreset() {
+  applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT);
+  primeVisaIntakeDemoFields();
+  sendIntentRequest({
+    intent: "ui_task",
+    message: ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT,
+    uiTaskOverrides: buildVisaIntakeDemoUiTaskOverrides(),
+  });
+}
+
 function renderActiveTaskEmptyState() {
   if (!(el.tasks instanceof HTMLElement)) {
     return;
@@ -19679,10 +19747,15 @@ function renderActiveTaskEmptyState() {
 
   const quickScenarios = [
     {
+      label: t("live.support.runVisaDemo"),
+      action: "run_visa_intake_demo",
+      className: "active-task-empty-action-primary",
+    },
+    {
       label: t("live.support.runNegotiation"),
       intent: "negotiation",
       template: ACTIVE_TASK_NEGOTIATION_PROMPT,
-      className: "active-task-empty-action-primary",
+      className: "button-muted",
     },
     {
       label: t("live.support.runStory"),
@@ -19704,6 +19777,10 @@ function renderActiveTaskEmptyState() {
     button.className = `active-task-empty-action ${scenario.className}`.trim();
     button.textContent = scenario.label;
     button.addEventListener("click", () => {
+      if (typeof scenario.action === "string" && scenario.action.trim().length > 0) {
+        runDashboardAction(scenario.action);
+        return;
+      }
       applyIntentTemplateFromActiveTasks(scenario.intent, scenario.template);
     });
     actions.append(button);
@@ -31269,7 +31346,11 @@ function sendIntentRequest(options = {}) {
   const targetPrice = getNumeric(el.targetPrice);
   const targetDelivery = getNumeric(el.targetDelivery);
   const targetSla = getNumeric(el.targetSla);
-  const uiTaskOverrides = collectUiTaskOverrides();
+  const explicitUiTaskOverrides =
+    options.uiTaskOverrides && typeof options.uiTaskOverrides === "object" && !Array.isArray(options.uiTaskOverrides)
+      ? options.uiTaskOverrides
+      : {};
+  const uiTaskOverrides = { ...collectUiTaskOverrides(), ...explicitUiTaskOverrides };
   const conversation = toConversationScope(options.conversation);
   const requestMetadata =
     options.metadata && typeof options.metadata === "object" && !Array.isArray(options.metadata)
