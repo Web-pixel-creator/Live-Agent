@@ -1021,6 +1021,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.intro": "Use this lane for one visa or relocation lead: qualify it, book the next step, collect documents, and send the safe action.",
     "live.compose.runVisaDemo": "Run Visa Intake Demo",
     "live.compose.reviewVisaDemo": "Review Visa Draft Result",
+    "live.compose.resetVisaDemo": "Reset Visa Demo",
     "live.compose.runVisaDemoHint": "Launch the seeded visa relocation flow or jump straight to the verified result without filling fields manually.",
     "live.compose.runVisaDemoCardTitle": "Draft + approval boundary",
     "live.compose.runVisaDemoCardCopy": "Prepares the seeded relocation draft and stops before the protected submit step.",
@@ -1326,6 +1327,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.intro": "Выбери один режим, напиши один понятный запрос и отправь его. Голос и realtime находятся ниже.",
     "live.compose.runVisaDemo": "Запустить демо визового intake",
     "live.compose.reviewVisaDemo": "Показать итог visa draft",
+    "live.compose.resetVisaDemo": "Сбросить visa demo",
     "live.compose.runVisaDemoHint": "Запустить заготовленный сценарий visa/relocation или сразу показать verified result без ручного заполнения полей.",
     "live.compose.runVisaDemoCardTitle": "Черновик + граница согласования",
     "live.compose.runVisaDemoCardCopy": "Готовит seeded relocation draft и останавливается перед защищённым submit шагом.",
@@ -2552,6 +2554,7 @@ const el = {
   sendBtn: document.getElementById("sendBtn"),
   runVisaDemoBtn: document.getElementById("runVisaDemoBtn"),
   reviewVisaResultBtn: document.getElementById("reviewVisaResultBtn"),
+  resetVisaDemoBtn: document.getElementById("resetVisaDemoBtn"),
   sendBtnHint: document.getElementById("sendBtnHint"),
   runVisaDemoHint: document.getElementById("runVisaDemoHint"),
   connectionStatus: document.getElementById("connectionStatus"),
@@ -5240,6 +5243,9 @@ function runDashboardAction(actionId) {
       break;
     case "review_visa_draft_result":
       runVisaIntakeResultPreset();
+      break;
+    case "reset_visa_demo":
+      resetVisaIntakeDemoPreset();
       break;
     case "connect_live":
       document.getElementById("connectBtn")?.click();
@@ -19941,6 +19947,37 @@ function runVisaIntakeResultPreset() {
   });
 }
 
+function resetVisaIntakeDemoPreset() {
+  finalizeAssistantStreamEntry();
+  resetAssistantPlayback();
+  applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT);
+  primeVisaIntakeDemoFields();
+  state.liveDemoScenario = null;
+  state.liveResult = {
+    intent: "ui_task",
+    role: null,
+    text: "",
+    streaming: false,
+    updatedAt: null,
+  };
+  state.runId = null;
+  setStatusTextValue(el.runId, "-", "-");
+  state.pendingIntentRequest = null;
+  state.liveLastRequestAt = null;
+  clearLivePendingRequest();
+  resetLiveConversationHistory();
+  clearPendingApproval();
+  state.taskRecords.clear();
+  renderTaskList();
+  if (el.transcript instanceof HTMLElement) {
+    el.transcript.replaceChildren();
+  }
+  if (el.events instanceof HTMLElement) {
+    el.events.replaceChildren();
+  }
+  renderLiveIntentExperience();
+}
+
 function renderActiveTaskEmptyState() {
   if (!(el.tasks instanceof HTMLElement)) {
     return;
@@ -32240,6 +32277,7 @@ function bindEvents() {
   bindDashboardActionButton(el.sidebarOpsRefreshBtn);
   bindDashboardActionButton(el.runVisaDemoBtn);
   bindDashboardActionButton(el.reviewVisaResultBtn);
+  bindDashboardActionButton(el.resetVisaDemoBtn);
   bindDashboardActionButton(el.workspaceCommandOne);
   bindDashboardActionButton(el.workspaceCommandTwo);
   bindDashboardActionButton(el.workspaceCommandThree);

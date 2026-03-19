@@ -26416,7 +26416,7 @@ button:disabled {
 
 .live-compose-primary-actions {
   display: grid;
-  grid-template-columns: repeat(3, max-content);
+  grid-template-columns: repeat(4, max-content);
   align-items: center;
   gap: 14px 18px;
 }

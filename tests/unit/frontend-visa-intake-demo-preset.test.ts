@@ -14,6 +14,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     'const ACTIVE_TASK_VISA_INTAKE_DEMO_APPROVAL_REASON =',
     '"live.support.runVisaDemo": "Run Visa Intake Demo"',
     '"live.compose.reviewVisaDemo": "Review Visa Draft Result"',
+    '"live.compose.resetVisaDemo": "Reset Visa Demo"',
     '"live.compose.runVisaDemoCardTitle": "Draft + approval boundary"',
     '"live.compose.reviewVisaDemoCardTitle": "Approved + verified completion"',
     '"live.result.visaSummaryTitle": "Visa intake completion snapshot"',
@@ -26,7 +27,9 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     'demoScenario: "visa_result"',
     'action: "run_visa_intake_demo"',
     'case "review_visa_draft_result":',
+    'case "reset_visa_demo":',
     "runVisaIntakeResultPreset();",
+    "resetVisaIntakeDemoPreset();",
     'summary: ACTIVE_TASK_VISA_INTAKE_DEMO_SUMMARY',
     'formData: { ...ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA }',
     'approvalConfirmed: true,',
@@ -48,6 +51,9 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     'id="reviewVisaResultBtn"',
     'data-dashboard-action="review_visa_draft_result"',
     'data-i18n="live.compose.reviewVisaDemo"',
+    'id="resetVisaDemoBtn"',
+    'data-dashboard-action="reset_visa_demo"',
+    'data-i18n="live.compose.resetVisaDemo"',
     'id="runVisaDemoHint"',
     'data-i18n="live.compose.runVisaDemoHint"',
     'class="live-compose-preset-map"',
@@ -72,7 +78,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     ".live-result-summary-item",
     ".live-result-summary-handoff",
     ".live-result-summary-copy-btn",
-    "grid-template-columns: repeat(3, max-content);",
+    "grid-template-columns: repeat(4, max-content);",
     ".live-compose-send-hint,",
     ".live-compose-preset-hint {",
   ];
@@ -91,6 +97,10 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   assert.ok(
     readmeSource.includes("Review Visa Draft Result"),
     "README should document the visa result preset",
+  );
+  assert.ok(
+    readmeSource.includes("Reset Visa Demo"),
+    "README should document the visa demo reset action",
   );
   assert.ok(
     readmeSource.includes("Copy operator summary"),
