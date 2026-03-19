@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Action Desk for Visa and Relocation Teams</title>
+    <meta
+      name="description"
+      content="Operator-safe AI workflow for visa and relocation teams: lead intake, booking, document follow-up, CRM handoff, and case escalation."
+    />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+
+      :root {
+        color-scheme: dark;
+        --bg: #0d1014;
+        --bg-elevated: rgba(22, 27, 35, 0.82);
+        --bg-soft: rgba(28, 34, 44, 0.68);
+        --line: rgba(180, 190, 220, 0.18);
+        --line-strong: rgba(180, 190, 220, 0.28);
+        --text: #f5f7fb;
+        --muted: #aeb8cb;
+        --accent: #72e7bf;
+        --accent-strong: #5d89ff;
+        --accent-soft: rgba(93, 137, 255, 0.16);
+        --ok-soft: rgba(114, 231, 191, 0.16);
+        --shadow: 0 28px 80px rgba(0, 0, 0, 0.38);
+        --font-sans: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+        --font-mono: "IBM Plex Mono", "Consolas", monospace;
+        --radius-xl: 28px;
+        --radius-lg: 20px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: var(--font-sans);
+        background:
+          radial-gradient(circle at top left, rgba(93, 137, 255, 0.2), transparent 32%),
+          radial-gradient(circle at top right, rgba(114, 231, 191, 0.12), transparent 28%),
+          linear-gradient(180deg, #0b0f13 0%, #0d1014 44%, #11161e 100%);
+        color: var(--text);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .page-shell {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 28px 0 72px;
+      }
+
+      .topbar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        margin-bottom: 24px;
+      }
+
+      .topbar-mark {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(8, 12, 16, 0.56);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+
+      .topbar-mark strong {
+        font-size: 0.95rem;
+      }
+
+      .topbar-mark span {
+        color: var(--muted);
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .topbar-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .button-link,
+      .button-ghost {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 0 18px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 700;
+        transition:
+          transform 0.18s ease,
+          border-color 0.18s ease,
+          background 0.18s ease;
+      }
+
+      .button-link {
+        background: linear-gradient(135deg, var(--accent-strong), #836dff);
+        color: #fff;
+        box-shadow: 0 18px 36px rgba(74, 96, 255, 0.28);
+      }
+
+      .button-ghost {
+        border: 1px solid var(--line-strong);
+        background: rgba(12, 16, 22, 0.52);
+        color: var(--text);
+      }
+
+      .button-link:hover,
+      .button-ghost:hover,
+      .button-link:focus-visible,
+      .button-ghost:focus-visible {
+        transform: translateY(-1px);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+        gap: 22px;
+        margin-bottom: 22px;
+      }
+
+      .hero-copy,
+      .hero-card,
+      .section-card,
+      .proof-strip,
+      .cta-band {
+        border: 1px solid var(--line);
+        background: var(--bg-elevated);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+      }
+
+      .hero-copy {
+        padding: 32px;
+        border-radius: var(--radius-xl);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 18px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: #dce7ff;
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        line-height: 1.02;
+      }
+
+      h1 {
+        max-width: 12ch;
+        font-size: clamp(2.5rem, 4.8vw, 4.9rem);
+        letter-spacing: -0.05em;
+      }
+
+      .hero-copy p {
+        margin: 18px 0 0;
+        max-width: 62ch;
+        color: var(--muted);
+        font-size: 1.03rem;
+        line-height: 1.65;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 26px;
+      }
+
+      .hero-note {
+        margin-top: 18px;
+        color: #d8e0ef;
+        font-family: var(--font-mono);
+        font-size: 0.84rem;
+      }
+
+      .hero-card {
+        display: grid;
+        gap: 16px;
+        padding: 26px;
+        border-radius: var(--radius-xl);
+      }
+
+      .hero-card h2 {
+        font-size: 1.34rem;
+        letter-spacing: -0.03em;
+      }
+
+      .hero-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .mini-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .mini-card {
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: var(--bg-soft);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .mini-card strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 0.96rem;
+      }
+
+      .mini-card span {
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.45;
+      }
+
+      .proof-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 22px;
+        padding: 14px;
+        border-radius: 24px;
+      }
+
+      .proof-tile {
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(8, 12, 18, 0.48);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .proof-tile span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .proof-tile strong {
+        display: block;
+        margin-top: 10px;
+        font-size: 1rem;
+        line-height: 1.35;
+      }
+
+      .section-grid {
+        display: grid;
+        gap: 18px;
+      }
+
+      .section-card {
+        padding: 28px;
+        border-radius: var(--radius-xl);
+      }
+
+      .section-card + .section-card {
+        margin-top: 0;
+      }
+
+      .section-card h2 {
+        font-size: 1.9rem;
+        letter-spacing: -0.04em;
+      }
+
+      .section-card p {
+        margin: 14px 0 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .bullet-grid {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .bullet-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(10, 14, 18, 0.46);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .bullet-index {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: var(--ok-soft);
+        color: var(--accent);
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
+      .bullet-row strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 1rem;
+      }
+
+      .bullet-row span {
+        color: var(--muted);
+        line-height: 1.6;
+        font-size: 0.95rem;
+      }
+
+      .flow-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .flow-step {
+        min-height: 140px;
+        padding: 16px;
+        border-radius: 20px;
+        background: rgba(10, 14, 18, 0.56);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .flow-step .step-label {
+        display: inline-block;
+        margin-bottom: 14px;
+        color: var(--accent);
+        font-family: var(--font-mono);
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .flow-step h3 {
+        font-size: 1.08rem;
+        letter-spacing: -0.03em;
+      }
+
+      .flow-step p {
+        margin-top: 10px;
+        font-size: 0.94rem;
+      }
+
+      .faq-grid {
+        display: grid;
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .faq-item {
+        padding: 18px;
+        border-radius: 20px;
+        background: rgba(10, 14, 18, 0.48);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .faq-item h3 {
+        font-size: 1.02rem;
+        letter-spacing: -0.02em;
+      }
+
+      .faq-item p {
+        margin-top: 10px;
+      }
+
+      .cta-band {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 18px;
+        margin-top: 22px;
+        padding: 26px 28px;
+        border-radius: var(--radius-xl);
+      }
+
+      .cta-band h2 {
+        font-size: 1.85rem;
+        letter-spacing: -0.04em;
+      }
+
+      .cta-band p {
+        margin: 10px 0 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .footer-note {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 0.88rem;
+        text-align: center;
+      }
+
+      @media (max-width: 1080px) {
+        .hero,
+        .two-col,
+        .cta-band {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .proof-strip {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .flow-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 720px) {
+        .page-shell {
+          width: min(100% - 20px, 1180px);
+          padding-top: 18px;
+          padding-bottom: 44px;
+        }
+
+        .hero-copy,
+        .hero-card,
+        .section-card,
+        .cta-band {
+          padding: 22px;
+        }
+
+        h1 {
+          max-width: none;
+        }
+
+        .proof-strip,
+        .flow-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="topbar">
+        <div class="topbar-mark">
+          <span>AI Action Desk</span>
+          <strong>Visa and relocation workflow</strong>
+        </div>
+        <div class="topbar-actions">
+          <a class="button-ghost" href="https://github.com/Web-pixel-creator/Live-Agent" target="_blank" rel="noreferrer">
+            View code
+          </a>
+          <a class="button-link" href="/#tab=live-negotiator">Open live demo</a>
+        </div>
+      </header>
+
+      <section class="hero">
+        <article class="hero-copy">
+          <span class="eyebrow">Operator-safe workflow AI</span>
+          <h1>Move visa and relocation cases forward from intake to handoff.</h1>
+          <p>
+            AI Action Desk helps your team qualify leads, book consultations, follow up on missing documents,
+            prepare CRM updates, and escalate difficult cases to the right human owner from one workspace.
+          </p>
+          <div class="hero-actions">
+            <a class="button-link" href="/#tab=live-negotiator">Watch the live workflow</a>
+            <a class="button-ghost" href="mailto:?subject=AI%20Action%20Desk%20Demo&body=I%20want%20to%20see%20the%20AI%20Action%20Desk%20workflow%20for%20visa%20and%20relocation%20teams.">
+              Book a demo
+            </a>
+          </div>
+          <p class="hero-note">Not just chat. Not just browser automation. One workflow from lead intake to human handoff.</p>
+        </article>
+
+        <aside class="hero-card">
+          <h2>What the live workflow covers</h2>
+          <p>The same case moves through intake, booking, document follow-up, CRM writeback, and escalation.</p>
+          <div class="mini-grid">
+            <div class="mini-card">
+              <strong>Lead intake</strong>
+              <span>Turn an inbound request into a structured case draft.</span>
+            </div>
+            <div class="mini-card">
+              <strong>Document follow-up</strong>
+              <span>Chase the missing documents without losing context.</span>
+            </div>
+            <div class="mini-card">
+              <strong>CRM and handoff</strong>
+              <span>Prepare the writeback and route difficult cases to the right human owner.</span>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="proof-strip" aria-label="Workflow proof points">
+        <article class="proof-tile">
+          <span>Focus</span>
+          <strong>Visa and relocation teams</strong>
+        </article>
+        <article class="proof-tile">
+          <span>Workflow</span>
+          <strong>Intake, booking, follow-up, CRM, escalation</strong>
+        </article>
+        <article class="proof-tile">
+          <span>Control</span>
+          <strong>Approval boundaries and verified summaries</strong>
+        </article>
+        <article class="proof-tile">
+          <span>Demo</span>
+          <strong>Repeatable public workflow with deterministic fixtures</strong>
+        </article>
+      </section>
+
+      <section class="section-grid">
+        <article class="section-card">
+          <h2>Where teams lose time today</h2>
+          <p>
+            Most visa and relocation teams still lose time in the same places: the first client questions are handled
+            manually, booking turns into back-and-forth, missing documents require repeated reminders, and important
+            case updates still have to be copied into CRM by hand.
+          </p>
+          <div class="two-col">
+            <div class="bullet-grid">
+              <div class="bullet-row">
+                <span class="bullet-index">01</span>
+                <div>
+                  <strong>Lead qualification is repetitive</strong>
+                  <span>The same intake questions still burn operator time on every new case.</span>
+                </div>
+              </div>
+              <div class="bullet-row">
+                <span class="bullet-index">02</span>
+                <div>
+                  <strong>Booking becomes message ping-pong</strong>
+                  <span>Consultation scheduling often turns into slow manual follow-up.</span>
+                </div>
+              </div>
+            </div>
+            <div class="bullet-grid">
+              <div class="bullet-row">
+                <span class="bullet-index">03</span>
+                <div>
+                  <strong>Missing documents create repeat work</strong>
+                  <span>Teams keep chasing the same missing items and rewriting the same reminders.</span>
+                </div>
+              </div>
+              <div class="bullet-row">
+                <span class="bullet-index">04</span>
+                <div>
+                  <strong>CRM and escalation are still manual</strong>
+                  <span>Important case details still get copied by hand when the workflow gets serious.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="section-card">
+          <h2>One AI workspace for the full case lifecycle</h2>
+          <p>
+            AI Action Desk keeps one case moving through the real workflow instead of stopping at chat. The agent can
+            qualify the lead, keep the booking alive, follow up on missing documents, prepare the CRM update, and hand
+            difficult cases to the right human owner.
+          </p>
+          <div class="flow-grid">
+            <article class="flow-step">
+              <span class="step-label">Step 1</span>
+              <h3>Lead intake</h3>
+              <p>Turn the incoming request into a structured case draft.</p>
+            </article>
+            <article class="flow-step">
+              <span class="step-label">Step 2</span>
+              <h3>Booking</h3>
+              <p>Move the lead toward a confirmed consultation slot.</p>
+            </article>
+            <article class="flow-step">
+              <span class="step-label">Step 3</span>
+              <h3>Document follow-up</h3>
+              <p>Keep the case moving when required items are still missing.</p>
+            </article>
+            <article class="flow-step">
+              <span class="step-label">Step 4</span>
+              <h3>CRM handoff</h3>
+              <p>Prepare clean writeback instead of leaving raw chat history behind.</p>
+            </article>
+            <article class="flow-step">
+              <span class="step-label">Step 5</span>
+              <h3>Human escalation</h3>
+              <p>Route difficult cases to the right owner with verified context.</p>
+            </article>
+          </div>
+        </article>
+
+        <article class="section-card">
+          <div class="two-col">
+            <div>
+              <h2>Why this is more useful than a chatbot alone</h2>
+              <p>
+                Chat tools stop at answers. Browser bots stop at clicks. AI Action Desk combines case progress,
+                operator-safe approval boundaries, verified summaries, and clean handoff in one workspace.
+              </p>
+              <div class="bullet-grid">
+                <div class="bullet-row">
+                  <span class="bullet-index">A</span>
+                  <div>
+                    <strong>Not just chat</strong>
+                    <span>The case continues into the next real action instead of ending at a reply.</span>
+                  </div>
+                </div>
+                <div class="bullet-row">
+                  <span class="bullet-index">B</span>
+                  <div>
+                    <strong>Not just a browser runner</strong>
+                    <span>Workflow context, summaries, and handoff stay visible to the operator.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h2>Built to stay operator-safe</h2>
+              <p>
+                Sensitive steps stay behind approval, finished paths end with verified summaries, and the operator
+                always sees the next step before a case leaves automation.
+              </p>
+              <div class="bullet-grid">
+                <div class="bullet-row">
+                  <span class="bullet-index">C</span>
+                  <div>
+                    <strong>Approval before sensitive actions</strong>
+                    <span>Automation pauses where human review matters.</span>
+                  </div>
+                </div>
+                <div class="bullet-row">
+                  <span class="bullet-index">D</span>
+                  <div>
+                    <strong>Explicit human handoff</strong>
+                    <span>Difficult cases leave the agent with a clear owner and next step.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="section-card">
+          <h2>FAQ</h2>
+          <div class="faq-grid">
+            <article class="faq-item">
+              <h3>Is this only a chatbot?</h3>
+              <p>
+                No. The product is designed to move a case into the next real step, including reminders, CRM updates,
+                and human handoff.
+              </p>
+            </article>
+            <article class="faq-item">
+              <h3>Does it act without control?</h3>
+              <p>
+                No. Sensitive steps stay behind approval, and operators see verified summaries before handoff.
+              </p>
+            </article>
+            <article class="faq-item">
+              <h3>Who is this best for first?</h3>
+              <p>
+                Visa agencies, relocation agencies, and similar service teams with multilingual intake and
+                document-heavy workflows.
+              </p>
+            </article>
+          </div>
+        </article>
+      </section>
+
+      <section class="cta-band">
+        <div>
+          <h2>Prove the workflow on one case type first.</h2>
+          <p>
+            If your team handles repeated intake, document follow-up, and handoff work, AI Action Desk gives you one
+            operator-safe workflow to move those cases forward faster.
+          </p>
+        </div>
+        <div class="topbar-actions">
+          <a class="button-ghost" href="https://github.com/Web-pixel-creator/Live-Agent" target="_blank" rel="noreferrer">
+            Open repo
+          </a>
+          <a class="button-link" href="/#tab=live-negotiator">Request a pilot</a>
+        </div>
+      </section>
+
+      <p class="footer-note">
+        Public product page for the current commercial wedge: visa and relocation workflow automation.
+      </p>
+    </main>
+  </body>
+</html>

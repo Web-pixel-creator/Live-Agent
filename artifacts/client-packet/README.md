@@ -25,6 +25,7 @@ Use this packet when you need one place that explains:
 ## Public Demo
 
 - [live-agent-frontend-production.up.railway.app](https://live-agent-frontend-production.up.railway.app)
+- [live-agent-frontend-production.up.railway.app/ai-action-desk.html](https://live-agent-frontend-production.up.railway.app/ai-action-desk.html)
 
 ## Best Demo Path
 
@@ -76,6 +77,10 @@ Use this for a structured first call.
 - [docs/visa-landing-page-copy.md](c:/Gemini_Live_Agent/docs/visa-landing-page-copy.md)
 
 Use this when you want ready-to-paste text for a product page, Notion page, or outreach microsite.
+
+Public hosted route:
+
+- [live-agent-frontend-production.up.railway.app/ai-action-desk.html](https://live-agent-frontend-production.up.railway.app/ai-action-desk.html)
 
 ### 7. Demo Narrative
 
