@@ -25872,9 +25872,24 @@ button:disabled {
   gap: 24px;
 }
 
+.live-negotiator-main > * {
+  min-width: 0;
+}
+
 .live-negotiator-primary,
 .live-negotiator-secondary {
   gap: 18px;
+}
+
+.live-negotiator-secondary,
+.live-negotiator-secondary > *,
+.live-reading-stack,
+.panel-transcript-live,
+.live-result-card,
+.live-history-shell,
+.panel-transcript-live .conversation-history,
+.panel-transcript-live .conversation-history .entry {
+  min-width: 0;
 }
 
 .panel-live-intent-composer {
@@ -26143,6 +26158,8 @@ button:disabled {
 .live-result-body {
   font-size: 0.94rem;
   line-height: 1.74;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .live-history-shell {
@@ -26160,6 +26177,8 @@ button:disabled {
   border-radius: 18px;
   font-size: 0.88rem;
   line-height: 1.58;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .panel-transcript-live .conversation-history .entry small {
