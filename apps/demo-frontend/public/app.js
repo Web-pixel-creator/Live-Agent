@@ -1031,6 +1031,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.result.visaSummarySlot": "Consultation slot",
     "live.result.visaSummaryDocs": "Missing documents",
     "live.result.visaSummaryStatus": "Execution status",
+    "live.result.visaSummaryHandoff": "Next operator step",
+    "live.result.visaSummaryHandoffValue": "Send the missing-document checklist and confirm the consultation slot with Anna.",
     "live.compose.optionalTitle": "Rare tools",
     "live.compose.optionalHint": "Audio file, service actions, and background requests",
     "live.compose.audioTitle": "Audio file",
@@ -1331,6 +1333,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.result.visaSummarySlot": "Слот консультации",
     "live.result.visaSummaryDocs": "Недостающие документы",
     "live.result.visaSummaryStatus": "Статус выполнения",
+    "live.result.visaSummaryHandoff": "Следующий шаг оператора",
+    "live.result.visaSummaryHandoffValue": "Отправить чеклист недостающих документов и подтвердить слот консультации с Анной.",
     "live.compose.optionalTitle": "Опциональные media и advanced-инструменты",
     "live.compose.optionalHint": "Загрузка аудио, conversation item и out-of-band запросы",
     "live.support.badge": "Support",
@@ -2643,6 +2647,7 @@ const el = {
   liveResultSummary: document.getElementById("liveResultSummary"),
   liveResultSummaryTitle: document.getElementById("liveResultSummaryTitle"),
   liveResultSummaryList: document.getElementById("liveResultSummaryList"),
+  liveResultSummaryHandoff: document.getElementById("liveResultSummaryHandoff"),
   conversationHistoryKicker: document.getElementById("conversationHistoryKicker"),
   conversationHistoryTitle: document.getElementById("conversationHistoryTitle"),
   conversationHistoryHint: document.getElementById("conversationHistoryHint"),
@@ -4396,6 +4401,14 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
           : "approval confirmed · protected submit verified",
       },
     ],
+    handoff: {
+      label: t("live.result.visaSummaryHandoff", null, "Next operator step"),
+      value: t(
+        "live.result.visaSummaryHandoffValue",
+        null,
+        "Send the missing-document checklist and confirm the consultation slot with Anna.",
+      ),
+    },
   };
 }
 
@@ -14227,6 +14240,15 @@ function renderLiveIntentExperience() {
 
         row.append(label, value);
         el.liveResultSummaryList.append(row);
+      }
+    }
+    if (el.liveResultSummaryHandoff instanceof HTMLElement) {
+      if (summaryConfig?.handoff) {
+        el.liveResultSummaryHandoff.hidden = false;
+        el.liveResultSummaryHandoff.textContent = `${summaryConfig.handoff.label}: ${summaryConfig.handoff.value}`;
+      } else {
+        el.liveResultSummaryHandoff.hidden = true;
+        el.liveResultSummaryHandoff.textContent = "";
       }
     }
   }

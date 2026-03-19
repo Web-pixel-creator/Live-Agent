@@ -26616,6 +26616,15 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 92%, white);
 }
 
+.live-result-summary-handoff {
+  margin: 0;
+  padding-top: 2px;
+  border-top: 1px solid color-mix(in oklch, var(--border-soft) 62%, transparent);
+  font-size: 0.78rem;
+  line-height: 1.56;
+  color: color-mix(in oklch, var(--foreground) 86%, var(--muted-foreground));
+}
+
 .live-history-shell {
   gap: 14px;
   padding: 16px 16px 15px;

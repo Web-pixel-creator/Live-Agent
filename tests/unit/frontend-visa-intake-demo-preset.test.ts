@@ -17,6 +17,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     '"live.compose.runVisaDemoCardTitle": "Draft + approval boundary"',
     '"live.compose.reviewVisaDemoCardTitle": "Approved + verified completion"',
     '"live.result.visaSummaryTitle": "Visa intake completion snapshot"',
+    '"live.result.visaSummaryHandoff": "Next operator step"',
     'demoScenario: "visa_result"',
     'action: "run_visa_intake_demo"',
     'case "review_visa_draft_result":',
@@ -50,6 +51,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     'id="liveResultSummary"',
     'id="liveResultSummaryTitle"',
     'id="liveResultSummaryList"',
+    'id="liveResultSummaryHandoff"',
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `index.html missing visa demo CTA token: ${token}`);
@@ -61,6 +63,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     ".live-compose-preset-card",
     ".live-result-summary",
     ".live-result-summary-item",
+    ".live-result-summary-handoff",
     "grid-template-columns: repeat(3, max-content);",
     ".live-compose-send-hint,",
     ".live-compose-preset-hint {",
