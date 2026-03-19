@@ -16,10 +16,10 @@ test("frontend ships a one-click case escalation demo preset with approved human
     'const ACTIVE_TASK_VISA_ESCALATION_APPROVAL_REASON =',
     'const ACTIVE_TASK_VISA_ESCALATION_PROMPT =',
     'const ACTIVE_TASK_VISA_ESCALATION_RESULT_PROMPT =',
-    '"live.compose.runVisaEscalation": "Run Case Escalation"',
-    '"live.compose.reviewVisaEscalation": "Review Human Handoff Result"',
-    '"live.compose.runVisaEscalationCardTitle": "Case escalation / human handoff"',
-    '"live.compose.reviewVisaEscalationCardTitle": "Approved human handoff"',
+    '"live.compose.runVisaEscalation": "Escalate to Specialist"',
+    '"live.compose.reviewVisaEscalation": "See Escalation Summary"',
+    '"live.compose.runVisaEscalationCardTitle": "Specialist handoff"',
+    '"live.compose.reviewVisaEscalationCardTitle": "Escalation completed"',
     '"live.result.visaEscalationSummaryTitle": "Case escalation snapshot"',
     '"live.result.visaEscalationSummaryOwner": "Human owner"',
     '"live.result.visaEscalationSummaryReason": "Escalation reason"',
@@ -49,9 +49,9 @@ test("frontend ships a one-click case escalation demo preset with approved human
     'id="reviewVisaEscalationResultBtn"',
     'data-dashboard-action="review_visa_escalation_result"',
     'data-i18n="live.compose.reviewVisaEscalation"',
-    "Launch the seeded visa relocation flow, missing-docs follow-up, consultation reminder, case escalation, or CRM handoff without filling fields manually.",
-    "Prepares the seeded relocation draft, missing-docs follow-up, consultation reminder, case escalation, or CRM handoff and stops before the protected action step.",
-    "Runs the approved intake, follow-up, reminder, escalation, or CRM writeback path and checks the final confirmation banner.",
+    "Use these ready-made examples to show intake, document follow-up, reminders, CRM updates, and escalation without filling everything manually.",
+    "Starts a ready-made visa case and pauses before the final protected step.",
+    "Shows the finished result after approval, including the final summary on the right.",
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `index.html missing escalation CTA token: ${token}`);
@@ -62,11 +62,11 @@ test("frontend ships a one-click case escalation demo preset with approved human
     "README should document the escalation fixture page",
   );
   assert.ok(
-    readmeSource.includes("Run Case Escalation"),
+    readmeSource.includes("Escalate to Specialist"),
     "README should document the escalation preset",
   );
   assert.ok(
-    readmeSource.includes("Review Human Handoff Result"),
+    readmeSource.includes("See Escalation Summary"),
     "README should document the escalation result preset",
   );
 });

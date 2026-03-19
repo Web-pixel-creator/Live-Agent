@@ -115,16 +115,16 @@ Use a simple compare table:
 
 ### Slide bullets
 
-1. `Run Visa Intake Demo`
-2. `Review Visa Draft Result`
-3. `Run Missing Docs Follow-up`
-4. `Review Follow-up Result`
-5. `Run Consultation Reminder`
-6. `Review Reminder Result`
-7. `Run CRM Update Demo`
-8. `Review CRM Handoff Result`
-9. `Run Case Escalation`
-10. `Review Human Handoff Result`
+1. `Start New Visa Case`
+2. `See Intake Summary`
+3. `Request Missing Documents`
+4. `See Follow-up Summary`
+5. `Prepare Consultation Reminder`
+6. `See Reminder Summary`
+7. `Prepare CRM Update`
+8. `See CRM Summary`
+9. `Escalate to Specialist`
+10. `See Escalation Summary`
 
 ### Speaker notes
 

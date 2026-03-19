@@ -44,7 +44,7 @@ If the rail shows `The connection to the live runtime was lost`, reconnect befor
 
 Click:
 
-- `Reset Visa Demo`
+- `Start Over`
 
 Say:
 
@@ -54,7 +54,7 @@ Say:
 
 Click:
 
-- `Run Visa Intake Demo`
+- `Start New Visa Case`
 
 Wait for:
 
@@ -69,7 +69,7 @@ Say:
 
 Click:
 
-- `Review Visa Draft Result`
+- `See Intake Summary`
 
 Point at:
 
@@ -85,11 +85,11 @@ Say:
 
 Click:
 
-- `Run Missing Docs Follow-up`
+- `Request Missing Documents`
 
 Then:
 
-- `Review Follow-up Result`
+- `See Follow-up Summary`
 
 Point at:
 
@@ -105,11 +105,11 @@ Say:
 
 Click:
 
-- `Run Consultation Reminder`
+- `Prepare Consultation Reminder`
 
 Then:
 
-- `Review Reminder Result`
+- `See Reminder Summary`
 
 Point at:
 
@@ -125,11 +125,11 @@ Say:
 
 Click:
 
-- `Run CRM Update Demo`
+- `Prepare CRM Update`
 
 Then:
 
-- `Review CRM Handoff Result`
+- `See CRM Summary`
 
 Point at:
 
@@ -145,11 +145,11 @@ Say:
 
 Click:
 
-- `Run Case Escalation`
+- `Escalate to Specialist`
 
 Then:
 
-- `Review Human Handoff Result`
+- `See Escalation Summary`
 
 Point at:
 
@@ -198,7 +198,7 @@ Do this:
 
 Do this:
 
-1. click `Reset Visa Demo`,
+1. click `Start Over`,
 2. rerun only the preset you want to show,
 3. wait for `orchestrator_completed` before speaking to the result.
 
@@ -214,7 +214,7 @@ Do this:
 
 The strongest stopping point is:
 
-1. `Review Human Handoff Result`
+1. `See Escalation Summary`
 2. point at `Case escalation snapshot`
 3. click `Copy operator summary`
 

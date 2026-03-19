@@ -13,13 +13,13 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     'const VISA_INTAKE_DEMO_URL_PATH = "/ui-task-visa-intake-demo.html";',
     'const VISA_INTAKE_DEMO_URL_FALLBACK = "http://127.0.0.1:3000/ui-task-visa-intake-demo.html";',
     'const ACTIVE_TASK_VISA_INTAKE_DEMO_APPROVAL_REASON =',
-    '"live.support.runVisaDemo": "Run Visa Intake Demo"',
-    '"live.compose.reviewVisaDemo": "Review Visa Draft Result"',
-    '"live.compose.resetVisaDemo": "Reset Visa Demo"',
+    '"live.support.runVisaDemo": "Start New Visa Case"',
+    '"live.compose.reviewVisaDemo": "See Intake Summary"',
+    '"live.compose.resetVisaDemo": "Start Over"',
     '"live.compose.runVisaDemoHint":',
-    '"live.compose.runVisaDemoCardTitle": "Draft + approval boundary"',
+    '"live.compose.runVisaDemoCardTitle": "Before final confirmation"',
     '"live.compose.runVisaDemoCardCopy":',
-    '"live.compose.reviewVisaDemoCardTitle": "Approved + verified completion"',
+    '"live.compose.reviewVisaDemoCardTitle": "After confirmation"',
     '"live.compose.reviewVisaDemoCardCopy":',
     '"live.result.visaSummaryTitle": "Visa intake completion snapshot"',
     '"live.result.visaSummaryHandoff": "Next operator step"',
@@ -102,15 +102,15 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     "README should document the hosted visa preset target behavior",
   );
   assert.ok(
-    readmeSource.includes("Run Visa Intake Demo"),
+    readmeSource.includes("Start New Visa Case"),
     "README should document the visa intake preset",
   );
   assert.ok(
-    readmeSource.includes("Review Visa Draft Result"),
+    readmeSource.includes("See Intake Summary"),
     "README should document the visa result preset",
   );
   assert.ok(
-    readmeSource.includes("Reset Visa Demo"),
+    readmeSource.includes("Start Over"),
     "README should document the visa demo reset action",
   );
   assert.ok(

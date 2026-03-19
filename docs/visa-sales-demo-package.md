@@ -39,18 +39,18 @@ This demo package should show that the agent does real work across that chain.
 
 Run the demo in this order:
 
-1. `Run Visa Intake Demo`
-2. `Review Visa Draft Result`
-3. `Run Missing Docs Follow-up`
-4. `Review Follow-up Result`
-5. `Run Consultation Reminder`
-6. `Review Reminder Result`
-7. `Run CRM Update Demo`
-8. `Review CRM Handoff Result`
-9. `Run Case Escalation`
-10. `Review Human Handoff Result`
+1. `Start New Visa Case`
+2. `See Intake Summary`
+3. `Request Missing Documents`
+4. `See Follow-up Summary`
+5. `Prepare Consultation Reminder`
+6. `See Reminder Summary`
+7. `Prepare CRM Update`
+8. `See CRM Summary`
+9. `Escalate to Specialist`
+10. `See Escalation Summary`
 
-Use `Reset Visa Demo` between takes when you need a clean starting point.
+Use `Start Over` between takes when you need a clean starting point.
 
 ## What Each Step Proves
 
@@ -120,14 +120,14 @@ Use this when you need a very short commercial pitch:
 
 Use this when the audience wants one complete loop:
 
-1. Start with `Run Visa Intake Demo`.
+1. Start with `Start New Visa Case`.
 2. Explain that the agent has already turned the incoming request into a structured lead draft.
-3. Open `Review Visa Draft Result` and point at the approval boundary.
-4. Run `Run Missing Docs Follow-up` and explain that the agent is now operating on the same case, not starting over.
-5. Open `Review Follow-up Result` and point at the missing-doc checklist and operator handoff.
-6. Run `Run Consultation Reminder` and then `Review Reminder Result` to show the booked consultation lane.
-7. Run `Run CRM Update Demo` and `Review CRM Handoff Result` to show structured writeback.
-8. Finish with `Run Case Escalation` and `Review Human Handoff Result` to show that the system also knows when a human should take over.
+3. Open `See Intake Summary` and point at the approval boundary.
+4. Run `Request Missing Documents` and explain that the agent is now operating on the same case, not starting over.
+5. Open `See Follow-up Summary` and point at the missing-doc checklist and operator handoff.
+6. Run `Prepare Consultation Reminder` and then `See Reminder Summary` to show the booked consultation lane.
+7. Run `Prepare CRM Update` and `See CRM Summary` to show structured writeback.
+8. Finish with `Escalate to Specialist` and `See Escalation Summary` to show that the system also knows when a human should take over.
 
 ## Why This Package Matters
 
@@ -192,5 +192,5 @@ Before showing this package:
 2. confirm the live session is connected,
 3. keep the first-fold CTA cluster visible,
 4. keep the right result rail visible,
-5. reset with `Reset Visa Demo` before a fresh take,
-6. finish on either `Review CRM Handoff Result` or `Review Human Handoff Result`.
+5. reset with `Start Over` before a fresh take,
+6. finish on either `See CRM Summary` or `See Escalation Summary`.

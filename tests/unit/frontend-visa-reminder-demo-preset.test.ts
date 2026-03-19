@@ -14,8 +14,8 @@ test("frontend ships a one-click consultation reminder demo preset with approved
     'const ACTIVE_TASK_VISA_REMINDER_APPROVAL_REASON =',
     'const ACTIVE_TASK_VISA_REMINDER_PROMPT =',
     'const ACTIVE_TASK_VISA_REMINDER_RESULT_PROMPT =',
-    '"live.compose.runVisaReminder": "Run Consultation Reminder"',
-    '"live.compose.reviewVisaReminder": "Review Reminder Result"',
+    '"live.compose.runVisaReminder": "Prepare Consultation Reminder"',
+    '"live.compose.reviewVisaReminder": "See Reminder Summary"',
     '"live.result.visaReminderSummaryTitle": "Consultation reminder snapshot"',
     '"live.result.visaReminderSummaryPrep": "Preparation items"',
     '"live.result.visaReminderSummaryHandoffValue":',
@@ -47,9 +47,9 @@ test("frontend ships a one-click consultation reminder demo preset with approved
     'id="reviewVisaReminderResultBtn"',
     'data-dashboard-action="review_visa_reminder_result"',
     'data-i18n="live.compose.reviewVisaReminder"',
-    "Launch the seeded visa relocation flow, missing-docs follow-up, consultation reminder, case escalation, or CRM handoff without filling fields manually.",
-    "Prepares the seeded relocation draft, missing-docs follow-up, consultation reminder, case escalation, or CRM handoff and stops before the protected action step.",
-    "Runs the approved intake, follow-up, reminder, escalation, or CRM writeback path and checks the final confirmation banner.",
+    "Use these ready-made examples to show intake, document follow-up, reminders, CRM updates, and escalation without filling everything manually.",
+    "Starts a ready-made visa case and pauses before the final protected step.",
+    "Shows the finished result after approval, including the final summary on the right.",
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `index.html missing reminder CTA token: ${token}`);
@@ -60,11 +60,11 @@ test("frontend ships a one-click consultation reminder demo preset with approved
     "README should document the consultation reminder fixture page",
   );
   assert.ok(
-    readmeSource.includes("Run Consultation Reminder"),
+    readmeSource.includes("Prepare Consultation Reminder"),
     "README should document the consultation reminder preset",
   );
   assert.ok(
-    readmeSource.includes("Review Reminder Result"),
+    readmeSource.includes("See Reminder Summary"),
     "README should document the consultation reminder result preset",
   );
 });

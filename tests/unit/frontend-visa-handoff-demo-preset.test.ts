@@ -16,10 +16,10 @@ test("frontend ships a one-click CRM handoff demo preset with approved result su
     'const ACTIVE_TASK_VISA_HANDOFF_APPROVAL_REASON =',
     'const ACTIVE_TASK_VISA_HANDOFF_PROMPT =',
     'const ACTIVE_TASK_VISA_HANDOFF_RESULT_PROMPT =',
-    '"live.compose.runVisaHandoff": "Run CRM Update Demo"',
-    '"live.compose.reviewVisaHandoff": "Review CRM Handoff Result"',
-    '"live.compose.runVisaHandoffCardTitle": "CRM update + handoff"',
-    '"live.compose.reviewVisaHandoffCardTitle": "Approved CRM writeback"',
+    '"live.compose.runVisaHandoff": "Prepare CRM Update"',
+    '"live.compose.reviewVisaHandoff": "See CRM Summary"',
+    '"live.compose.runVisaHandoffCardTitle": "CRM update"',
+    '"live.compose.reviewVisaHandoffCardTitle": "CRM updated"',
     '"live.result.visaHandoffSummaryTitle": "CRM update handoff snapshot"',
     '"live.result.visaHandoffSummaryOwner": "CRM owner"',
     '"live.result.visaHandoffSummaryWriteback": "Writeback payload"',
@@ -49,9 +49,9 @@ test("frontend ships a one-click CRM handoff demo preset with approved result su
     'id="reviewVisaHandoffResultBtn"',
     'data-dashboard-action="review_visa_handoff_result"',
     'data-i18n="live.compose.reviewVisaHandoff"',
-    "Launch the seeded visa relocation flow, missing-docs follow-up, consultation reminder, case escalation, or CRM handoff without filling fields manually.",
-    "Prepares the seeded relocation draft, missing-docs follow-up, consultation reminder, case escalation, or CRM handoff and stops before the protected action step.",
-    "Runs the approved intake, follow-up, reminder, escalation, or CRM writeback path and checks the final confirmation banner.",
+    "Use these ready-made examples to show intake, document follow-up, reminders, CRM updates, and escalation without filling everything manually.",
+    "Starts a ready-made visa case and pauses before the final protected step.",
+    "Shows the finished result after approval, including the final summary on the right.",
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `index.html missing CRM handoff CTA token: ${token}`);
@@ -62,11 +62,11 @@ test("frontend ships a one-click CRM handoff demo preset with approved result su
     "README should document the CRM handoff fixture page",
   );
   assert.ok(
-    readmeSource.includes("Run CRM Update Demo"),
+    readmeSource.includes("Prepare CRM Update"),
     "README should document the CRM handoff preset",
   );
   assert.ok(
-    readmeSource.includes("Review CRM Handoff Result"),
+    readmeSource.includes("See CRM Summary"),
     "README should document the CRM handoff result preset",
   );
 });
