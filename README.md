@@ -65,6 +65,7 @@ Supporting product surfaces:
 - Visa Client Deck Copy: `docs/visa-client-deck-copy.md`
 - Visa Founder Pitch 60s: `docs/visa-founder-pitch-60s.md`
 - Visa Sales Call Script 5min: `docs/visa-sales-call-script-5min.md`
+- Visa Landing Page Copy: `docs/visa-landing-page-copy.md`
 - Visa Client Packet: `artifacts/client-packet/README.md`
 - Worker Roles: `docs/worker-roles.md`
 - Eval Plane: `docs/evals.md`

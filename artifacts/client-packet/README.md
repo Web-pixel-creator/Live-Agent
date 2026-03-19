@@ -71,19 +71,25 @@ Use this for a short introduction in meetings or cold outreach videos.
 
 Use this for a structured first call.
 
-### 6. Demo Narrative
+### 6. Landing Page Copy
+
+- [docs/visa-landing-page-copy.md](c:/Gemini_Live_Agent/docs/visa-landing-page-copy.md)
+
+Use this when you want ready-to-paste text for a product page, Notion page, or outreach microsite.
+
+### 7. Demo Narrative
 
 - [docs/visa-sales-demo-package.md](c:/Gemini_Live_Agent/docs/visa-sales-demo-package.md)
 
 Use this when you need the commercial story around the demo.
 
-### 7. Operator Walkthrough
+### 8. Operator Walkthrough
 
 - [docs/visa-operator-walkthrough.md](c:/Gemini_Live_Agent/docs/visa-operator-walkthrough.md)
 
 Use this when someone needs to run the live product demo without improvising.
 
-### 8. Outreach Email
+### 9. Outreach Email
 
 - [artifacts/client-packet/outreach-email.md](c:/Gemini_Live_Agent/artifacts/client-packet/outreach-email.md)
 
