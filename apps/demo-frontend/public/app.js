@@ -1012,6 +1012,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.controls.applyLiveSetup": "Apply Live Setup",
     "live.compose.heading": "AI Action Desk",
     "live.compose.intro": "Use this lane for one visa or relocation lead: qualify it, book the next step, collect documents, and send the safe action.",
+    "live.compose.runVisaDemo": "Run Visa Intake Demo",
+    "live.compose.runVisaDemoHint": "Launch the seeded visa relocation flow without filling fields manually.",
     "live.compose.optionalTitle": "Rare tools",
     "live.compose.optionalHint": "Audio file, service actions, and background requests",
     "live.compose.audioTitle": "Audio file",
@@ -1300,6 +1302,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.controls.applyLiveSetup": "Применить live setup",
     "live.compose.heading": "Начни здесь",
     "live.compose.intro": "Выбери один режим, напиши один понятный запрос и отправь его. Голос и realtime находятся ниже.",
+    "live.compose.runVisaDemo": "Запустить демо визового intake",
+    "live.compose.runVisaDemoHint": "Запустить заготовленный сценарий visa/relocation без ручного заполнения полей.",
     "live.compose.optionalTitle": "Опциональные media и advanced-инструменты",
     "live.compose.optionalHint": "Загрузка аудио, conversation item и out-of-band запросы",
     "live.support.badge": "Support",
@@ -2509,7 +2513,9 @@ const el = {
   micComposerStatusPill: document.getElementById("micComposerStatusPill"),
   micComposerStatusHint: document.getElementById("micComposerStatusHint"),
   sendBtn: document.getElementById("sendBtn"),
+  runVisaDemoBtn: document.getElementById("runVisaDemoBtn"),
   sendBtnHint: document.getElementById("sendBtnHint"),
+  runVisaDemoHint: document.getElementById("runVisaDemoHint"),
   connectionStatus: document.getElementById("connectionStatus"),
   assistantStreamStatus: document.getElementById("assistantStreamStatus"),
   runId: document.getElementById("runId"),
@@ -32015,6 +32021,7 @@ function bindEvents() {
   bindDashboardActionButton(el.sidebarQuickTranslateBtn);
   bindDashboardActionButton(el.sidebarStoryLaunchBtn);
   bindDashboardActionButton(el.sidebarOpsRefreshBtn);
+  bindDashboardActionButton(el.runVisaDemoBtn);
   bindDashboardActionButton(el.workspaceCommandOne);
   bindDashboardActionButton(el.workspaceCommandTwo);
   bindDashboardActionButton(el.workspaceCommandThree);

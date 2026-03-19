@@ -5,6 +5,8 @@ import test from "node:test";
 
 test("frontend ships a one-click visa intake demo preset with summary-backed ui task overrides", () => {
   const appSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js"), "utf8");
+  const htmlSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "index.html"), "utf8");
+  const stylesSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "styles.css"), "utf8");
   const readmeSource = readFileSync(resolve(process.cwd(), "README.md"), "utf8");
 
   const requiredAppTokens = [
@@ -19,6 +21,27 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   ];
   for (const token of requiredAppTokens) {
     assert.ok(appSource.includes(token), `app.js missing visa demo preset token: ${token}`);
+  }
+
+  const requiredHtmlTokens = [
+    'id="runVisaDemoBtn"',
+    'data-dashboard-action="run_visa_intake_demo"',
+    'data-i18n="live.compose.runVisaDemo"',
+    'id="runVisaDemoHint"',
+    'data-i18n="live.compose.runVisaDemoHint"',
+  ];
+  for (const token of requiredHtmlTokens) {
+    assert.ok(htmlSource.includes(token), `index.html missing visa demo CTA token: ${token}`);
+  }
+
+  const requiredStyleTokens = [
+    ".live-compose-preset-hint",
+    "grid-template-columns: repeat(2, max-content);",
+    ".live-compose-send-hint,",
+    ".live-compose-preset-hint {",
+  ];
+  for (const token of requiredStyleTokens) {
+    assert.ok(stylesSource.includes(token), `styles.css missing visa demo CTA style token: ${token}`);
   }
 
   assert.ok(

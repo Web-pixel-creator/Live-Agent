@@ -26416,7 +26416,7 @@ button:disabled {
 
 .live-compose-primary-actions {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: repeat(2, max-content);
   align-items: center;
   gap: 14px 18px;
 }
@@ -26427,8 +26427,21 @@ button:disabled {
   border-radius: 16px;
 }
 
+.live-compose-send-hint,
+.live-compose-preset-hint {
+  grid-column: 1 / -1;
+}
+
 .live-compose-send-hint {
   max-width: 40ch;
+  font-size: 0.72rem;
+  line-height: 1.46;
+}
+
+.live-compose-preset-hint {
+  margin: -4px 0 0;
+  max-width: 40ch;
+  color: var(--muted-foreground);
   font-size: 0.72rem;
   line-height: 1.46;
 }
