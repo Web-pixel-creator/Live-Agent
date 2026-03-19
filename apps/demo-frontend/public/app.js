@@ -1091,11 +1091,14 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.runVisaDemo": "Run Visa Intake Demo",
     "live.compose.reviewVisaDemo": "Review Visa Draft Result",
     "live.compose.resetVisaDemo": "Reset Visa Demo",
-    "live.compose.runVisaDemoHint": "Launch the seeded visa relocation flow, the missing-docs follow-up, or the consultation reminder without filling fields manually.",
+    "live.compose.runVisaDemoHint":
+      "Launch the seeded visa relocation flow, the missing-docs follow-up, consultation reminder, or CRM handoff without filling fields manually.",
     "live.compose.runVisaDemoCardTitle": "Draft + approval boundary",
-    "live.compose.runVisaDemoCardCopy": "Prepares the seeded relocation draft, missing-docs follow-up, or consultation reminder and stops before the protected action step.",
+    "live.compose.runVisaDemoCardCopy":
+      "Prepares the seeded relocation draft, missing-docs follow-up, consultation reminder, or CRM handoff and stops before the protected action step.",
     "live.compose.reviewVisaDemoCardTitle": "Approved + verified completion",
-    "live.compose.reviewVisaDemoCardCopy": "Runs the approved intake, follow-up, or reminder path and checks the final confirmation banner.",
+    "live.compose.reviewVisaDemoCardCopy":
+      "Runs the approved intake, follow-up, reminder, or CRM writeback path and checks the final confirmation banner.",
     "live.compose.runVisaFollowUp": "Run Missing Docs Follow-up",
     "live.compose.reviewVisaFollowUp": "Review Follow-up Result",
     "live.compose.runVisaFollowUpHint": "Seed the same visa-relocation lead with missing documents and keep the safe action lane ready.",
@@ -1460,11 +1463,14 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.runVisaDemo": "Запустить демо визового intake",
     "live.compose.reviewVisaDemo": "Показать итог visa draft",
     "live.compose.resetVisaDemo": "Сбросить visa demo",
-    "live.compose.runVisaDemoHint": "Запустить заготовленный сценарий visa/relocation, follow-up по missing docs или reminder консультации, либо сразу показать verified result без ручного заполнения полей.",
+    "live.compose.runVisaDemoHint":
+      "Запустить заготовленный сценарий visa/relocation, follow-up по missing docs, reminder консультации или CRM handoff без ручного заполнения полей.",
     "live.compose.runVisaDemoCardTitle": "Черновик + граница согласования",
-    "live.compose.runVisaDemoCardCopy": "Готовит seeded relocation draft, missing-docs follow-up или reminder консультации и останавливается перед защищённым действием.",
+    "live.compose.runVisaDemoCardCopy":
+      "Готовит seeded relocation draft, missing-docs follow-up, reminder консультации или CRM handoff и останавливается перед защищённым действием.",
     "live.compose.reviewVisaDemoCardTitle": "Согласовано + verified completion",
-    "live.compose.reviewVisaDemoCardCopy": "Прогоняет approved intake, follow-up или reminder path и проверяет финальный confirmation banner.",
+    "live.compose.reviewVisaDemoCardCopy":
+      "Прогоняет approved intake, follow-up, reminder или CRM writeback path и проверяет финальный confirmation banner.",
     "live.compose.runVisaFollowUp": "Запустить follow-up по недостающим документам",
     "live.compose.reviewVisaFollowUp": "Показать approved follow-up",
     "live.compose.runVisaFollowUpHint": "Засеивает тот же visa/relocation lead с missing docs и оставляет safe action lane готовым.",
