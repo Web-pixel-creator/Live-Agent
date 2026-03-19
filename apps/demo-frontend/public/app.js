@@ -984,7 +984,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.controls.systemInstruction": "Live System Instruction (optional)",
     "live.controls.applyLiveSetup": "Apply Live Setup",
     "live.compose.heading": "AI Action Desk",
-    "live.compose.intro": "Pick one service playbook, write one clear customer task, and send it. Voice and realtime stay below.",
+    "live.compose.intro": "Use this lane for one visa or relocation lead: qualify it, book the next step, collect documents, and send the safe action.",
     "live.compose.optionalTitle": "Rare tools",
     "live.compose.optionalHint": "Audio file, service actions, and background requests",
     "live.compose.audioTitle": "Audio file",
@@ -1015,17 +1015,17 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.support.refreshTasks": "Refresh Active Tasks",
     "live.support.activeCount": "Active count:",
     "live.support.emptyTitle": "No active tasks right now",
-    "live.support.emptyHint": "Kick off qualification, booking, or document collection to populate queue evidence and warm the operator lanes.",
+    "live.support.emptyHint": "Kick off intake, booking, or document collection to populate queue evidence and keep the demo path moving.",
     "live.support.runNegotiation": "Run Negotiation",
     "live.support.runStory": "Run Lab",
     "live.support.runUiTask": "Run UI Task",
     "live.support.refreshTasksShort": "Refresh Active Tasks",
     "storyteller.badge": "Lab",
     "storyteller.heading": "Simulation Lab",
-  "storyteller.intro": "Run rehearsal scenes, objections, and training media in one studio.",
-    "storyteller.workspaceChip": "Simulation workspace",
-    "storyteller.workspaceTitle": "One timeline for the whole rehearsal",
-    "storyteller.workspaceIntro": "Brief, scenes, and the next training cue stay here.",
+    "storyteller.intro": "Optional rehearsal scenes and training media, kept separate from the main flow.",
+    "storyteller.workspaceChip": "Optional workspace",
+    "storyteller.workspaceTitle": "Rehearsal timeline",
+    "storyteller.workspaceIntro": "Use this lane only when you need scenes or training cues.",
     "storyteller.labels.title": "Scenario Title",
     "storyteller.labels.segments": "Scenes",
     "storyteller.labels.pendingJobs": "Queue",
@@ -1039,13 +1039,13 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "storyteller.previewHeading": "Current Scene",
     "storyteller.previewIntro": "The selected scene stays here with copy and media.",
     "storyteller.controlsChip": "Navigator",
-    "storyteller.controlsHeading": "Story navigator",
+    "storyteller.controlsHeading": "Rehearsal navigator",
     "storyteller.controlsIntro": "Jump scenes and keep the preview in view.",
     "storyteller.controls.scrubber": "Story scrubber",
     "storyteller.controls.selector": "Scene jump",
     "storyteller.controls.position": "Board position",
     "storyteller.listChip": "Storyboard",
-    "storyteller.listHeading": "Storyboard shelf",
+    "storyteller.listHeading": "Scene shelf",
     "operator.badge": "OPS",
     "operator.heading": "Operator Console",
     "deviceNodes.badge": "Nodes",
@@ -3944,11 +3944,11 @@ function getLiveIntentCardDefinitions() {
       hint: isRu ? "\u041e\u0442\u0432\u0435\u0442 \u0441\u043e \u0441\u0441\u044b\u043b\u043a\u0430\u043c\u0438." : "Prepare a sourced answer before follow-through.",
     },
     story: {
-      label: "Lab",
-      title: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u044e" : "Open lab",
+      label: isRu ? "\u041e\u043f\u0446\u0438\u043e\u043d\u0430\u043b\u044c\u043d\u043e" : "Optional",
+      title: isRu ? "\u041e\u043f\u0446\u0438\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0439 lab" : "Open optional lab",
       hint: isRu
         ? "\u0417\u0430\u0434\u0430\u0439 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0439 \u0437\u0434\u0435\u0441\u044c, \u0430 \u0442\u0440\u0435\u043d\u0438\u0440\u043e\u0432\u043e\u0447\u043d\u0430\u044f \u043b\u0435\u043d\u0442\u0430 \u043e\u0442\u043a\u0440\u043e\u0435\u0442\u0441\u044f \u0440\u044f\u0434\u043e\u043c."
-        : "Shape a rehearsal here, then review the timeline in the lab.",
+        : "Use this only when you need a rehearsal timeline.",
     },
     ui_task: {
       label: "UI",
@@ -5319,7 +5319,7 @@ function getDashboardWorkspaceConfig(tabId) {
   const navHints = isRu
     ? {
         live: "\u0414\u0438\u0430\u043b\u043e\u0433, \u043f\u0435\u0440\u0435\u0432\u043e\u0434, KPI.",
-        story: "\u0421\u0446\u0435\u043d\u044b \u0438 timeline.",
+        story: "\u041e\u043f\u0446\u0438\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0439 lab.",
         operator: "Runtime \u0438 recovery.",
         device: "\u0424\u043b\u0438\u0442 \u0438 routing.",
       }
@@ -5343,7 +5343,7 @@ function getDashboardWorkspaceConfig(tabId) {
           action: "story_open_live",
         },
         story: {
-          label: isRu ? "\u0418\u0441\u0442\u043e\u0440\u0438\u044f" : "Lab",
+          label: isRu ? "\u041b\u0430\u0431\u043e\u0440\u0430\u0442\u043e\u0440\u0438\u044f" : "Optional Lab",
           action: "story_prompt",
         },
         ops: {
@@ -5587,8 +5587,8 @@ function getDashboardWorkspaceConfig(tabId) {
     eyebrow: isRu ? "\u0410\u043a\u0442\u0438\u0432\u043d\u0430\u044f \u0437\u043e\u043d\u0430" : "AI Action Desk",
     title: isRu ? "\u0416\u0438\u0432\u043e\u0439 \u0434\u0438\u0430\u043b\u043e\u0433" : "Qualify, book, collect",
     description: isRu
-      ? "\u041e\u0434\u0438\u043d \u044f\u0441\u043d\u044b\u0439 \u0437\u0430\u043f\u0440\u043e\u0441, \u043e\u0434\u0438\u043d \u0432\u0438\u0434\u0438\u043c\u044b\u0439 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442. \u0413\u043e\u043b\u043e\u0441 \u0438 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u0436\u0438\u0432\u0443\u0442 \u0432 \u0432\u0435\u0440\u0445\u043d\u0435\u043c \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u043e\u043c \u0434\u043e\u043a\u0435."
-      : "Start with one customer request, then qualify, book, or collect the missing details with safe follow-through.",
+      ? "\u041e\u0434\u0438\u043d \u043b\u0438\u0434 \u043e\u0442 intake \u0434\u043e \u0431\u0440\u043e\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f, \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u043e\u0432 \u0438 safe action."
+      : "Start with one visa or relocation lead, then intake, booking, document collection, and safe action.",
     statusText: isRu ? "Live" : "Live",
     statusTone: "neutral",
     commands: [

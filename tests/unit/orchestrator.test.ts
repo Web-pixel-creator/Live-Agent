@@ -336,6 +336,81 @@ test("orchestrator research requests clarification for ambiguous key queries bef
   }
 });
 
+test("orchestrator proxies and stores consultation booking state across the main flow", async () => {
+  process.env.FIRESTORE_ENABLED = "false";
+  process.env.GEMINI_API_KEY = "";
+
+  const sessionId = "unit-session-booking-flow";
+  const taskId = "task-unit-booking-flow";
+
+  const offerRequest = createEnvelope({
+    userId: "unit-user",
+    sessionId,
+    runId: "unit-run-booking-flow-offer",
+    type: "orchestrator.request",
+    source: "frontend",
+    payload: {
+      intent: "conversation",
+      input: {
+        text: "I need to book a visa and relocation consultation.",
+      },
+      task: {
+        taskId,
+        status: "queued",
+        stage: "intake",
+      },
+    },
+  }) as OrchestratorRequest;
+
+  const offerResponse = await orchestrate(offerRequest);
+  assert.equal(offerResponse.payload.route, "live-agent");
+  assert.equal(offerResponse.payload.status, "completed");
+
+  const offerOutput = asObject(offerResponse.payload.output);
+  const offerBooking = asObject(offerOutput.booking);
+  assert.equal(offerOutput.mode, "booking");
+  assert.equal(offerBooking.status, "offered");
+
+  const confirmRequest = createEnvelope({
+    userId: "unit-user",
+    sessionId,
+    runId: "unit-run-booking-flow-confirm",
+    type: "orchestrator.request",
+    source: "frontend",
+    payload: {
+      intent: "conversation",
+      input: {
+        text: "Slot 2 works for me.",
+      },
+      task: {
+        taskId,
+        status: "queued",
+        stage: "intake",
+      },
+    },
+  }) as OrchestratorRequest;
+
+  const confirmResponse = await orchestrate(confirmRequest);
+  assert.equal(confirmResponse.payload.route, "live-agent");
+  assert.equal(confirmResponse.payload.status, "completed");
+
+  const confirmOutput = asObject(confirmResponse.payload.output);
+  const confirmBooking = asObject(confirmOutput.booking);
+  const confirmedSummary = asObject(confirmBooking.confirmedSummary);
+  const task = asObject(confirmResponse.payload.task);
+  const workflow = getOrchestratorWorkflowStoreStatus().workflowState;
+
+  assert.equal(confirmOutput.mode, "booking");
+  assert.equal(confirmBooking.status, "confirmed");
+  assert.equal(confirmBooking.selectedSlotId, "slot-2");
+  assert.match(String(confirmedSummary.shortSummary), /Confirmed visa and relocation consultation/);
+  assert.equal(task.status, "completed");
+  assert.equal(task.stage, "reporting");
+  assert.equal(workflow.bookingState?.status, "confirmed");
+  assert.equal(workflow.bookingState?.selectedSlotId, "slot-2");
+  assert.match(String(workflow.bookingState?.shortSummary ?? ""), /Confirmed visa and relocation consultation/);
+});
+
 test("assistive router overrides route on high confidence story classification", async () => {
   process.env.FIRESTORE_ENABLED = "false";
   process.env.GEMINI_API_KEY = "";

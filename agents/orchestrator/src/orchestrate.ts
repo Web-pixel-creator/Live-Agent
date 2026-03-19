@@ -334,6 +334,14 @@ type DelegationRequest = {
   reason: string;
 };
 
+type BookingFlowSnapshot = {
+  status: "offered" | "confirmed";
+  topic: string;
+  selectedSlotId: string | null;
+  selectedSlotLabel: string | null;
+  shortSummary: string | null;
+};
+
 function extractDelegationRequest(response: OrchestratorResponse): DelegationRequest | null {
   if (response.payload.route !== "live-agent") {
     return null;
@@ -358,6 +366,30 @@ function extractDelegationRequest(response: OrchestratorResponse): DelegationReq
       typeof output.delegationRequest.reason === "string"
         ? output.delegationRequest.reason
         : "Delegated by live-agent",
+  };
+}
+
+function extractBookingSnapshot(response: OrchestratorResponse): BookingFlowSnapshot | null {
+  if (response.payload.route !== "live-agent") {
+    return null;
+  }
+  if (!isRecord(response.payload.output) || !isRecord(response.payload.output.booking)) {
+    return null;
+  }
+  const booking = response.payload.output.booking;
+  const status = booking.status;
+  if (status !== "offered" && status !== "confirmed") {
+    return null;
+  }
+  return {
+    status,
+    topic: typeof booking.topic === "string" ? booking.topic : "consultation",
+    selectedSlotId: typeof booking.selectedSlotId === "string" ? booking.selectedSlotId : null,
+    selectedSlotLabel: typeof booking.selectedSlotLabel === "string" ? booking.selectedSlotLabel : null,
+    shortSummary:
+      isRecord(booking.confirmedSummary) && typeof booking.confirmedSummary.shortSummary === "string"
+        ? booking.confirmedSummary.shortSummary
+        : null,
   };
 }
 
@@ -673,6 +705,13 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
 
     response = mergeDelegationResult(response, delegatedResponse, delegation, delegatedRoute);
     response = withRoutingMetadata(response, routing);
+  }
+
+  const bookingSnapshot = extractBookingSnapshot(response);
+  if (bookingSnapshot) {
+    setOrchestratorWorkflowExecutionState({
+      bookingState: bookingSnapshot,
+    });
   }
 
   if (taskContext) {

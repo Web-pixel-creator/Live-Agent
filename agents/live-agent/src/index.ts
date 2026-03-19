@@ -128,6 +128,33 @@ type ConversationTurn = {
   at: string;
 };
 
+type ConsultationBookingTopic = "visa" | "relocation" | "visa_relocation";
+
+type ConsultationBookingSlot = {
+  id: string;
+  label: string;
+  focus: string;
+};
+
+type ConsultationBookingConfirmedSummary = {
+  shortSummary: string;
+  slotId: string;
+  slotLabel: string;
+  topic: ConsultationBookingTopic;
+  focusAreas: string[];
+  confirmedAt: string;
+};
+
+type ConsultationBookingState = {
+  stage: "offered" | "confirmed";
+  topic: ConsultationBookingTopic;
+  slots: ConsultationBookingSlot[];
+  selectedSlotId: string | null;
+  selectedSlotLabel: string | null;
+  confirmedSummary: ConsultationBookingConfirmedSummary | null;
+  updatedAt: string;
+};
+
 type ConversationSessionState = {
   summary: string | null;
   turns: ConversationTurn[];
@@ -135,6 +162,7 @@ type ConversationSessionState = {
   compactionCount: number;
   approxTokens: number;
   lastCompactedAt: string | null;
+  booking: ConsultationBookingState | null;
   updatedAtMs: number;
 };
 
@@ -376,6 +404,160 @@ function normalizeLooseLookupText(text: string): string {
     .replace(/\u0451/g, "\u0435")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function normalizeBookingLookupText(text: string): string {
+  return normalizeLooseLookupText(text)
+    .replace(/\bconsultation\b/g, "consult")
+    .replace(/\bappointment\b/g, "appoint")
+    .trim();
+}
+
+function buildConsultationBookingSlots(): ConsultationBookingSlot[] {
+  return [
+    {
+      id: "slot-1",
+      label: "Tue 10:00 AM",
+      focus: "visa checklist and eligibility review",
+    },
+    {
+      id: "slot-2",
+      label: "Wed 02:30 PM",
+      focus: "relocation timeline and housing planning",
+    },
+    {
+      id: "slot-3",
+      label: "Fri 11:15 AM",
+      focus: "document review and next-step planning",
+    },
+  ];
+}
+
+function detectConsultationBookingTopic(text: string): ConsultationBookingTopic | null {
+  const normalized = normalizeBookingLookupText(text);
+  const hasVisa = /\bvisa\b/.test(normalized);
+  const hasRelocation = /\brelocation\b|\brelocate\b|\bmove\b/.test(normalized);
+  if (hasVisa && hasRelocation) {
+    return "visa_relocation";
+  }
+  if (hasVisa) {
+    return "visa";
+  }
+  if (hasRelocation) {
+    return "relocation";
+  }
+  return null;
+}
+
+function isConsultationBookingRequest(text: string): boolean {
+  const normalized = normalizeBookingLookupText(text);
+  if (normalized.length === 0) {
+    return false;
+  }
+  const hasBookingAction = /\b(book|booking|schedule|scheduled|set up|arrange|arranged|consult|consultation|call|slot|appointment)\b/.test(
+    normalized,
+  );
+  return detectConsultationBookingTopic(normalized) !== null && hasBookingAction;
+}
+
+function buildBookingSelectionIndex(text: string): number | null {
+  const normalized = normalizeBookingLookupText(text);
+  if (/\b(first|one|1|option 1|slot 1)\b/.test(normalized)) {
+    return 0;
+  }
+  if (/\b(second|two|2|option 2|slot 2)\b/.test(normalized)) {
+    return 1;
+  }
+  if (/\b(third|three|3|option 3|slot 3)\b/.test(normalized)) {
+    return 2;
+  }
+  return null;
+}
+
+function createConsultationBookingState(topic: ConsultationBookingTopic): ConsultationBookingState {
+  return {
+    stage: "offered",
+    topic,
+    slots: buildConsultationBookingSlots(),
+    selectedSlotId: null,
+    selectedSlotLabel: null,
+    confirmedSummary: null,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function renderBookingTopic(topic: ConsultationBookingTopic): string {
+  switch (topic) {
+    case "visa":
+      return "visa";
+    case "relocation":
+      return "relocation";
+    case "visa_relocation":
+    default:
+      return "visa and relocation";
+  }
+}
+
+function renderBookingFocusAreas(topic: ConsultationBookingTopic): string[] {
+  switch (topic) {
+    case "visa":
+      return ["visa checklist", "eligibility review", "timelines"];
+    case "relocation":
+      return ["relocation timeline", "housing planning", "document review"];
+    case "visa_relocation":
+    default:
+      return ["visa checklist", "relocation timeline", "document review"];
+  }
+}
+
+function buildBookingOfferMessage(state: ConsultationBookingState): string {
+  const slotText = state.slots.map((slot, index) => `${index + 1}) ${slot.label}`).join("; ");
+  return `I can help book a ${renderBookingTopic(state.topic)} consultation. Choose one of these slots: ${slotText}.`;
+}
+
+function buildBookingConfirmationSummary(
+  state: ConsultationBookingState,
+  slot: ConsultationBookingSlot,
+): ConsultationBookingConfirmedSummary {
+  const focusAreas = renderBookingFocusAreas(state.topic);
+  return {
+    shortSummary: `Confirmed ${renderBookingTopic(state.topic)} consultation for ${slot.label}. Focus: ${focusAreas.join(", ")}.`,
+    slotId: slot.id,
+    slotLabel: slot.label,
+    topic: state.topic,
+    focusAreas,
+    confirmedAt: new Date().toISOString(),
+  };
+}
+
+function buildBookingConfirmationMessage(summary: ConsultationBookingConfirmedSummary): string {
+  return summary.shortSummary;
+}
+
+function detectBookingSlotSelection(text: string, booking: ConsultationBookingState | null): ConsultationBookingSlot | null {
+  if (!booking) {
+    return null;
+  }
+  const index = buildBookingSelectionIndex(text);
+  if (index !== null && booking.slots[index]) {
+    return booking.slots[index];
+  }
+  const normalized = normalizeBookingLookupText(text);
+  return (
+    booking.slots.find((slot) => normalizeBookingLookupText(slot.label) === normalized) ??
+    booking.slots.find((slot) => normalized.includes(normalizeBookingLookupText(slot.label))) ??
+    null
+  );
+}
+
+function renderBookingState(state: ConsultationBookingState | null): string | null {
+  if (!state) {
+    return null;
+  }
+  const slotText = state.slots.map((slot, index) => `${index + 1}) ${slot.label}`).join("; ");
+  const selectedSlot = state.selectedSlotLabel ?? "none";
+  const summary = state.confirmedSummary?.shortSummary ?? "none";
+  return `Booking state: ${state.stage}. Topic: ${renderBookingTopic(state.topic)}. Slots: ${slotText}. Selected: ${selectedSlot}. Summary: ${summary}.`;
 }
 
 function tokenizeLooseLookupText(text: string): string[] {
@@ -751,8 +933,13 @@ function estimateTextTokens(text: string): number {
 
 function estimateSessionTokens(state: ConversationSessionState): number {
   const summaryTokens = state.summary ? estimateTextTokens(state.summary) : 0;
+  const bookingTokens = state.booking?.confirmedSummary
+    ? estimateTextTokens(state.booking.confirmedSummary.shortSummary)
+    : state.booking
+      ? estimateTextTokens(renderBookingState(state.booking) ?? "")
+      : 0;
   const turnsTokens = state.turns.reduce((sum, turn) => sum + estimateTextTokens(turn.text) + 4, 0);
-  return summaryTokens + turnsTokens;
+  return summaryTokens + bookingTokens + turnsTokens;
 }
 
 function getOrCreateConversationSession(sessionId: string, config: ConversationContextConfig): ConversationSessionState {
@@ -769,6 +956,7 @@ function getOrCreateConversationSession(sessionId: string, config: ConversationC
     compactionCount: 0,
     approxTokens: 0,
     lastCompactedAt: null,
+    booking: null,
     updatedAtMs: Date.now(),
   };
   conversationSessions.set(sessionId, state);
@@ -896,6 +1084,10 @@ function buildCompactionPrompt(params: {
   ];
   if (params.state.summary) {
     sections.push(`Previous summary:\n${clipTailText(params.state.summary, 1600)}`);
+  }
+  const bookingState = renderBookingState(params.state.booking);
+  if (bookingState) {
+    sections.push(bookingState);
   }
   sections.push(`Transcript to compact:\n${renderTurns(params.turnsToCompact, 200)}`);
   return sections.join("\n\n");
@@ -1031,6 +1223,10 @@ function buildConversationContextPrompt(state: ConversationSessionState): string
   if (state.summary) {
     sections.push(`Session summary:\n${clipTailText(state.summary, 1800)}`);
   }
+  const bookingState = renderBookingState(state.booking);
+  if (bookingState) {
+    sections.push(bookingState);
+  }
   const recentTurns = state.turns.slice(-8);
   if (recentTurns.length > 0) {
     sections.push(`Recent turns:\n${renderTurns(recentTurns, 240)}`);
@@ -1054,6 +1250,22 @@ function buildContextDiagnostics(params: {
     summaryChars: params.state.summary ? params.state.summary.length : 0,
     retainedTurns: params.state.turns.length,
     lastCompactedAt: params.state.lastCompactedAt,
+    booking: params.state.booking
+      ? {
+          stage: params.state.booking.stage,
+          topic: params.state.booking.topic,
+          selectedSlotId: params.state.booking.selectedSlotId,
+          selectedSlotLabel: params.state.booking.selectedSlotLabel,
+          confirmedSummary: params.state.booking.confirmedSummary
+            ? {
+                shortSummary: params.state.booking.confirmedSummary.shortSummary,
+                slotId: params.state.booking.confirmedSummary.slotId,
+                slotLabel: params.state.booking.confirmedSummary.slotLabel,
+                topic: params.state.booking.confirmedSummary.topic,
+              }
+            : null,
+        }
+      : null,
     preReplyCompaction: params.preReplyCompaction,
     ...(params.postReplyCompaction ? { postReplyCompaction: params.postReplyCompaction } : {}),
   };
@@ -2016,6 +2228,77 @@ function detectDelegationRequest(text: string): DelegationRequest | null {
   return null;
 }
 
+function buildBookingOfferResult(params: {
+  state: ConversationSessionState;
+  topic: ConsultationBookingTopic;
+}): Record<string, unknown> {
+  const bookingState = createConsultationBookingState(params.topic);
+  params.state.booking = bookingState;
+
+  const message = buildBookingOfferMessage(bookingState);
+  addConversationTurn({
+    state: params.state,
+    role: "assistant",
+    text: message,
+    intent: "conversation",
+  });
+
+  return {
+    text: message,
+    message,
+    mode: "booking",
+    booking: {
+      status: "offered",
+      topic: bookingState.topic,
+      slots: bookingState.slots,
+      selectedSlotId: null,
+      selectedSlotLabel: null,
+      confirmedSummary: null,
+      nextStep: "Choose one slot to confirm the consultation.",
+    },
+  };
+}
+
+function buildBookingConfirmationResult(params: {
+  state: ConversationSessionState;
+  slot: ConsultationBookingSlot;
+}): Record<string, unknown> {
+  const bookingState = params.state.booking ?? createConsultationBookingState("visa_relocation");
+  const confirmedSummary = buildBookingConfirmationSummary(bookingState, params.slot);
+  params.state.booking = {
+    ...bookingState,
+    stage: "confirmed",
+    selectedSlotId: params.slot.id,
+    selectedSlotLabel: params.slot.label,
+    confirmedSummary,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const message = buildBookingConfirmationMessage(confirmedSummary);
+  addConversationTurn({
+    state: params.state,
+    role: "assistant",
+    text: message,
+    intent: "conversation",
+  });
+
+  return {
+    text: message,
+    message,
+    mode: "booking",
+    booking: {
+      status: "confirmed",
+      topic: params.state.booking.topic,
+      slots: params.state.booking.slots,
+      selectedSlotId: params.slot.id,
+      selectedSlotLabel: params.slot.label,
+      selectedSlot: params.slot,
+      confirmedSummary,
+      nextStep: "Consultation recorded.",
+    },
+  };
+}
+
 async function handleConversation(params: {
   sessionId: string;
   input: NormalizedLiveInput;
@@ -2042,6 +2325,37 @@ async function handleConversation(params: {
     contextConfig,
     capabilities: params.capabilities,
   });
+
+  const existingBooking = sessionContext.booking;
+  const bookingSelection = detectBookingSlotSelection(input.text, existingBooking);
+  if (bookingSelection && existingBooking) {
+    const bookingResponse = buildBookingConfirmationResult({
+      state: sessionContext,
+      slot: bookingSelection,
+    });
+    return {
+      ...bookingResponse,
+      context: buildContextDiagnostics({
+        state: sessionContext,
+        preReplyCompaction,
+      }),
+    };
+  }
+
+  const bookingTopic = detectConsultationBookingTopic(input.text);
+  if (bookingTopic && isConsultationBookingRequest(input.text)) {
+    const bookingResponse = buildBookingOfferResult({
+      state: sessionContext,
+      topic: bookingTopic,
+    });
+    return {
+      ...bookingResponse,
+      context: buildContextDiagnostics({
+        state: sessionContext,
+        preReplyCompaction,
+      }),
+    };
+  }
 
   const delegationRequest = detectDelegationRequest(input.text);
   if (delegationRequest) {

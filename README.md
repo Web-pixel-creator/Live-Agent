@@ -1,12 +1,13 @@
 # AI Action Desk
 
-Production-oriented multimodal agent workspace for multilingual service teams.
+Production-oriented AI Action Desk for visa and relocation agencies.
 
 Primary product wedge:
 
-- qualify inbound leads
+- qualify inbound leads for visa and relocation services
 - book consultations or appointments
 - collect documents and form data safely
+- execute safe UI actions with approvals and replay evidence
 
 Supporting product surfaces:
 
@@ -22,8 +23,9 @@ Supporting product surfaces:
 ## Judge Snapshot
 
 - Product framing:
-  - `AI Action Desk` is the main product surface.
-  - `Simulation Lab` is the rehearsal/training surface built from the storyteller stack.
+  - `AI Action Desk` is the main product surface for visa and relocation agencies.
+  - The core flow is lead qualification, consultation booking, document collection, then safe UI action.
+  - `Simulation Lab` is the secondary rehearsal/training surface built from the storyteller stack.
   - `UI Navigator` is the action layer that safely executes work in browser-based systems.
 
 - Challenge coverage:

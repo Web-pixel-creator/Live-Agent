@@ -62,6 +62,14 @@ export type OrchestratorWorkflowRole =
 
 export type OrchestratorWorkflowExecutionStatus = "idle" | "running" | "pending_approval" | "completed" | "failed";
 
+export type OrchestratorBookingState = {
+  status: "offered" | "confirmed";
+  topic: string;
+  selectedSlotId: string | null;
+  selectedSlotLabel: string | null;
+  shortSummary: string | null;
+};
+
 export type OrchestratorWorkflowExecutionState = {
   status: OrchestratorWorkflowExecutionStatus;
   currentStage: OrchestratorWorkflowStage | null;
@@ -73,6 +81,7 @@ export type OrchestratorWorkflowExecutionState = {
   route: string | null;
   reason: string | null;
   updatedAt: string | null;
+  bookingState: OrchestratorBookingState | null;
 };
 
 export type OrchestratorWorkflowStoreStatus = {
@@ -248,6 +257,7 @@ let workflowExecutionState: OrchestratorWorkflowExecutionState = {
   route: null,
   reason: null,
   updatedAt: null,
+  bookingState: null,
 };
 let controlPlaneOverride:
   | {
@@ -740,6 +750,7 @@ function defaultWorkflowExecutionState(): OrchestratorWorkflowExecutionState {
     route: null,
     reason: null,
     updatedAt: null,
+    bookingState: null,
   };
 }
 
@@ -758,6 +769,7 @@ export function setOrchestratorWorkflowExecutionState(params: {
   route?: string | null;
   reason?: string | null;
   updatedAt?: string | null;
+  bookingState?: OrchestratorBookingState | null;
 }): OrchestratorWorkflowExecutionState {
   workflowExecutionState = {
     status: params.status ?? workflowExecutionState.status,
@@ -770,6 +782,7 @@ export function setOrchestratorWorkflowExecutionState(params: {
     route: toNonEmptyString(params.route) ?? workflowExecutionState.route,
     reason: toNonEmptyString(params.reason) ?? workflowExecutionState.reason,
     updatedAt: toNonEmptyString(params.updatedAt) ?? new Date().toISOString(),
+    bookingState: params.bookingState === undefined ? workflowExecutionState.bookingState : params.bookingState,
   };
   return getOrchestratorWorkflowExecutionState();
 }

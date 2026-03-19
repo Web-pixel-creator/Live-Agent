@@ -13,6 +13,7 @@ export type BrowserJobAction = {
 export type BrowserJobContext = {
   goal?: string;
   url?: string;
+  summary?: string;
   screenshotRef?: string;
   domSnapshot?: string;
   accessibilityTree?: string;

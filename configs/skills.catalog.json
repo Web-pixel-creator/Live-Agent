@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-03-06T00:00:00.000Z",
+  "updatedAt": "2026-03-19T00:00:00.000Z",
   "personas": [
     {
       "id": "live-negotiator",
@@ -34,11 +34,11 @@
     },
     {
       "id": "lead-qualifier",
-      "name": "Lead Qualifier",
-      "description": "Multilingual intake persona for qualifying leads, capturing urgency, and staging the next step.",
+      "name": "Visa/Relocation Lead Intake",
+      "description": "Visa and relocation intake persona for capturing destination, timeline, document readiness, and the next step.",
       "agentIds": ["live-agent"],
       "recommendedSkillIds": ["lead-qualification-playbook"],
-      "tags": ["playbook", "lead", "qualification"],
+      "tags": ["playbook", "visa", "relocation", "lead"],
       "defaultIntent": "conversation",
       "defaultRecipeId": "lead-qualification-intake"
     },
@@ -54,11 +54,11 @@
     },
     {
       "id": "document-collection",
-      "name": "Document Collection Assistant",
-      "description": "Collection persona for missing-field tracking, browser forms, and approval-aware submission staging.",
+      "name": "Visa/Relocation Document Collection",
+      "description": "Visa and relocation collection persona for checklist tracking, missing-item status, and approval-aware submission staging.",
       "agentIds": ["live-agent", "ui-navigator-agent"],
       "recommendedSkillIds": ["document-collection-playbook"],
-      "tags": ["playbook", "documents", "forms"],
+      "tags": ["playbook", "visa", "relocation", "documents"],
       "defaultIntent": "ui_task",
       "defaultRecipeId": "document-collection-flow"
     },
@@ -113,13 +113,13 @@
     {
       "id": "lead-qualification-intake",
       "personaId": "lead-qualifier",
-      "name": "Lead Qualification Intake",
-      "description": "Qualify a new lead, capture structured intent, and stage the next action safely.",
+      "name": "Visa/Relocation Lead Intake",
+      "description": "Qualify a visa or relocation lead, capture structured intake, and stage the next action safely.",
       "agentId": "live-agent",
       "intent": "conversation",
-      "promptTemplate": "Qualify the lead in the user's language. Capture language, intent, urgency, service type, and timing. Restate the next step, and ask for approval only if a browser action or irreversible change is needed.",
+      "promptTemplate": "Qualify a visa or relocation lead in the user's language. Ask 5 to 7 concrete intake questions about destination, visa or relocation type, nationality, timeline, dependents, documents, and blockers. Restate a structured summary with the lead profile, risks, and next step. Ask for approval only if a browser action or irreversible change is needed.",
       "recommendedSkillIds": ["lead-qualification-playbook"],
-      "tags": ["playbook", "lead", "intake"],
+      "tags": ["playbook", "visa", "relocation", "lead", "intake"],
       "judgeCategory": "live_agent"
     },
     {
@@ -137,13 +137,13 @@
     {
       "id": "document-collection-flow",
       "personaId": "document-collection",
-      "name": "Document Collection Flow",
-      "description": "Collect missing information, stage browser forms, and verify the final submission path.",
+      "name": "Visa/Relocation Document Collection",
+      "description": "Collect visa or relocation documents, track missing items, and verify the final submission path.",
       "agentId": "ui-navigator-agent",
       "intent": "ui_task",
-      "promptTemplate": "Collect missing document or form information. Track what is missing, stage browser forms carefully, ask for approval before any sensitive submission, and verify the result after execution.",
+      "promptTemplate": "Collect visa or relocation document information. Build a checklist, mark each item as has or missing, and finish with a concrete missing-items summary. Stage browser forms carefully, ask for approval before any sensitive submission, and verify the result after execution.",
       "recommendedSkillIds": ["document-collection-playbook"],
-      "tags": ["playbook", "documents", "forms"],
+      "tags": ["playbook", "visa", "relocation", "documents", "forms"],
       "judgeCategory": "ui_navigator"
     },
     {

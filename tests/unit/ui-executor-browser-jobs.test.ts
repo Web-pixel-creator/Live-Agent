@@ -226,3 +226,53 @@ test("ui-executor browser worker keeps explicit persistent-session metadata acro
   });
 });
 
+test("ui-executor browser worker forwards summary-backed draft context to the runner", async () => {
+  resetBrowserJobRuntimeForTests();
+  let observedSummary: string | null = null;
+
+  setBrowserJobRunner(async (input) => {
+    observedSummary = input.context.summary ?? null;
+    return {
+      trace: input.actions.map((action, index) => ({
+        index: index + 1,
+        actionId: action.id,
+        actionType: action.type,
+        target: action.target,
+        status: "ok",
+        screenshotRef: `${input.screenshotSeed}/step-${index + 1}.png`,
+        notes: "worker step ok",
+      })),
+      finalStatus: "completed",
+      retries: 0,
+      executor: "unit-browser-worker",
+      adapterMode: "remote_http",
+      adapterNotes: ["unit runner"],
+      deviceNode: null,
+    };
+  });
+
+  const summary = [
+    "Full name: Priya Rao",
+    "Visa type: H1B transfer",
+    "Relocation city: Austin",
+  ].join("\n");
+
+  const job = submitBrowserJob({
+    sessionId: "session-summary-forwarding",
+    runId: "run-summary-forwarding",
+    actions: [
+      { id: "step-1", type: "navigate", target: "https://example.com/crm" },
+      { id: "step-2", type: "verify", target: "confirmation" },
+    ],
+    context: {
+      goal: "Prepare the CRM draft from the assembled summary.",
+      summary,
+    },
+  });
+
+  const completed = await waitForJobStatus(job.jobId, ["completed"]);
+  assert.equal(observedSummary, summary);
+  assert.equal(completed.replayBundle.verification.state, "verified");
+  assert.match(String(completed.replayBundle.latestResultRef ?? ""), /result-completed/i);
+});
+

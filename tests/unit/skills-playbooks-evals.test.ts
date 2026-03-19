@@ -26,24 +26,37 @@ const playbooks = [
   },
 ];
 
-test("bundled playbooks are discoverable and export prompt-ready instructions", () => {
+test("bundled playbooks are discoverable and export visa/relocation instructions", () => {
   for (const playbook of playbooks) {
     assert.ok(existsSync(playbook.skillPath), `missing bundled skill file: ${playbook.skillPath}`);
     const source = readFileSync(playbook.skillPath, "utf8");
     assert.match(source, new RegExp(`id:\\s*${playbook.id}`));
+    assert.match(source, /prompt:/i);
     assert.match(source, /approval boundary/i);
     assert.match(source, /browser scope/i);
     assert.match(source, /success metrics/i);
     assert.match(source, /failure and escalation/i);
-    assert.match(source, /prompt:/i);
   }
+
+  const leadSource = readFileSync(playbooks[0].skillPath, "utf8");
+  assert.match(leadSource, /visa\/relocation/i);
+  assert.match(leadSource, /5 to 7/i);
+  assert.match(leadSource, /structured summary/i);
+  assert.match(leadSource, /next step/i);
+
+  const documentSource = readFileSync(playbooks[2].skillPath, "utf8");
+  assert.match(documentSource, /visa\/relocation/i);
+  assert.match(documentSource, /checklist/i);
+  assert.match(documentSource, /has/i);
+  assert.match(documentSource, /missing/i);
+  assert.match(documentSource, /missing-items summary/i);
 });
 
-test("skills catalog exposes the three revenue playbooks as personas and recipes", () => {
+test("skills catalog exposes visa/relocation playbooks as personas and recipes", () => {
   const catalogPath = resolve(repoRoot, "configs", "skills.catalog.json");
   const catalog = JSON.parse(readFileSync(catalogPath, "utf8")) as {
-    personas: Array<{ id: string; recommendedSkillIds?: string[]; defaultRecipeId?: string | null }>;
-    recipes: Array<{ id: string; recommendedSkillIds?: string[]; judgeCategory?: string | null }>;
+    personas: Array<{ id: string; name?: string; description?: string; recommendedSkillIds?: string[]; defaultRecipeId?: string | null }>;
+    recipes: Array<{ id: string; name?: string; description?: string; recommendedSkillIds?: string[]; judgeCategory?: string | null }>;
   };
 
   const personaIds = new Set(catalog.personas.map((item) => item.id));
@@ -64,6 +77,17 @@ test("skills catalog exposes the three revenue playbooks as personas and recipes
   assert.equal(leadPersona?.defaultRecipeId, "lead-qualification-intake");
   assert.equal(bookingPersona?.defaultRecipeId, "consultation-booking-flow");
   assert.equal(documentPersona?.defaultRecipeId, "document-collection-flow");
+  assert.match(leadPersona?.name ?? "", /visa\/relocation/i);
+  assert.match(documentPersona?.name ?? "", /visa\/relocation/i);
+  assert.match(leadPersona?.description ?? "", /visa/i);
+  assert.match(documentPersona?.description ?? "", /visa/i);
+
+  const leadRecipe = catalog.recipes.find((item) => item.id === "lead-qualification-intake");
+  const documentRecipe = catalog.recipes.find((item) => item.id === "document-collection-flow");
+  assert.match(leadRecipe?.name ?? "", /visa\/relocation/i);
+  assert.match(documentRecipe?.name ?? "", /visa\/relocation/i);
+  assert.match(leadRecipe?.description ?? "", /visa/i);
+  assert.match(documentRecipe?.description ?? "", /visa/i);
 });
 
 test("eval manifest and promptfoo suites are wired for translation, negotiation, research, ui safety, and red team", () => {

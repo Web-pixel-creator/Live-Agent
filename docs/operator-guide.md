@@ -10,8 +10,8 @@ The operator flow is used during live demos and production diagnostics to:
 
 Product framing for operators:
 
-1. `Live Negotiator` should be treated as the main `AI Action Desk` surface.
-2. The primary commercial playbooks are lead qualification, consultation booking, and document collection.
+1. `Live Negotiator` should be treated as the main `AI Action Desk` surface. The current wedge is visa and relocation agencies.
+2. The primary commercial flow is lead qualification, consultation booking, and document collection before the safe UI action layer takes over.
 3. `Storyteller` should be read as a `Simulation Lab` or training surface, not as the main customer promise.
 
 ## Access Points

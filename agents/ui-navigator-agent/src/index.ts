@@ -49,6 +49,7 @@ type UiGroundingRefMap = Record<string, UiGroundingRefRecord>;
 type UiTaskInput = {
   goal: string;
   url: string | null;
+  summary: string | null;
   deviceNodeId: string | null;
   deviceNodeKind: DeviceNodeKind | null;
   deviceNodePlatform: string | null;
@@ -71,6 +72,11 @@ type UiTaskInput = {
   sessionRole: "main" | "secondary" | null;
   browserWorker: BrowserWorkerInput;
   visualTesting: VisualTestingInput;
+};
+
+type SummaryDraft = {
+  text: string | null;
+  formData: Record<string, string>;
 };
 
 type BrowserWorkerInput = {
@@ -371,6 +377,100 @@ function toStringArray(value: unknown): string[] {
     return [];
   }
   return value.map((item) => toNonEmptyString(item, "")).filter((item) => item.length > 0);
+}
+
+function normalizeSummaryText(value: unknown): string | null {
+  if (typeof value === "string") {
+    return toNullableString(value);
+  }
+  if (!isRecord(value)) {
+    return null;
+  }
+  return (
+    toNullableString(value.text ?? value.summary ?? value.caseSummary ?? value.crmSummary ?? value.draft) ??
+    toNullableString(value.narrative ?? value.description)
+  );
+}
+
+function normalizeSummaryFieldName(value: string): string | null {
+  const normalized = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  const aliases: Record<string, string> = {
+    name: "full_name",
+    full_name: "full_name",
+    candidate_name: "full_name",
+    applicant_name: "full_name",
+    email: "email",
+    email_address: "email",
+    phone: "phone",
+    phone_number: "phone",
+    mobile: "phone",
+    passport: "passport_number",
+    passport_number: "passport_number",
+    visa: "visa_type",
+    visa_type: "visa_type",
+    relocation_city: "relocation_city",
+    destination_city: "relocation_city",
+    city: "relocation_city",
+    relocation_country: "destination_country",
+    destination_country: "destination_country",
+    country: "destination_country",
+    employer: "employer",
+    company: "employer",
+    current_company: "employer",
+    job_title: "job_title",
+    role: "job_title",
+    start_date: "start_date",
+    move_date: "start_date",
+    address: "address",
+  };
+  return aliases[normalized] ?? (normalized.length > 0 ? normalized : null);
+}
+
+function normalizeSummaryFormData(summaryText: string | null): Record<string, string> {
+  if (!summaryText) {
+    return {};
+  }
+
+  const formData: Record<string, string> = {};
+  const lines = summaryText.split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0);
+  for (const line of lines) {
+    const normalizedLine = line.replace(/^[*-]\s+/, "");
+    const match = normalizedLine.match(/^([^:=]+?)\s*[:=]\s*(.+)$/);
+    if (!match) {
+      continue;
+    }
+    const key = normalizeSummaryFieldName(match[1] ?? "");
+    const value = toNonEmptyString(match[2], "");
+    if (key && value.length > 0) {
+      formData[key] = value;
+    }
+  }
+  return formData;
+}
+
+function normalizeSummaryDraft(value: unknown): SummaryDraft {
+  const text = normalizeSummaryText(value);
+  const explicitFormData = isRecord(value) && isRecord(value.formData) ? value.formData : null;
+  const summaryFormData = normalizeSummaryFormData(text);
+  const mergedFormData: Record<string, string> = { ...summaryFormData };
+
+  if (explicitFormData) {
+    for (const [key, rawValue] of Object.entries(explicitFormData)) {
+      const normalizedKey = normalizeSummaryFieldName(key);
+      const normalizedValue = toNonEmptyString(rawValue, "");
+      if (normalizedKey && normalizedValue.length > 0) {
+        mergedFormData[normalizedKey] = normalizedValue;
+      }
+    }
+  }
+
+  return {
+    text,
+    formData: mergedFormData,
+  };
 }
 
 const VALID_UI_ACTION_TYPES: UiAction["type"][] = ["navigate", "click", "type", "scroll", "hotkey", "wait", "verify"];
@@ -1204,6 +1304,11 @@ function getPlannerConfig(): PlannerConfig {
     "wire",
     "bank",
     "purchase",
+    "visa",
+    "relocation",
+    "immigration",
+    "work permit",
+    "residency",
     "submit order",
   ];
   const approvalKeywords = parseKeywordList(process.env.UI_NAVIGATOR_APPROVAL_KEYWORDS, defaultApprovalKeywords);
@@ -1477,8 +1582,12 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
   const accessibilityTree = toNullableString(raw.accessibilityTree ?? raw.a11yTree ?? raw.accessibilitySnapshot);
   const markHints = normalizeMarkHints(raw.markHints ?? raw.marks);
   const refMap = normalizeGroundingRefMap(raw.refMap ?? raw.groundingRefs);
+  const summaryDraft = normalizeSummaryDraft(raw.summary ?? raw.assembledSummary ?? raw.caseSummary ?? raw.crmSummary);
   const formDataRaw = isRecord(raw.formData) ? raw.formData : {};
   const formData: Record<string, string> = {};
+  for (const [key, value] of Object.entries(summaryDraft.formData)) {
+    formData[key] = value;
+  }
   for (const [key, value] of Object.entries(formDataRaw)) {
     const normalizedKey = toNonEmptyString(key, "");
     const normalizedValue = toNonEmptyString(value, "");
@@ -1529,6 +1638,7 @@ function normalizeUiTaskInput(input: unknown, config: PlannerConfig): UiTaskInpu
       toNonEmptyString(raw.text, "") ||
       "Open the page and complete the requested UI flow safely.",
     url: toNullableString(raw.url),
+    summary: summaryDraft.text,
     deviceNodeId: toNullableString(raw.deviceNodeId ?? deviceNodeRaw.nodeId ?? raw.targetNodeId),
     deviceNodeKind,
     deviceNodePlatform,
@@ -2209,6 +2319,7 @@ async function buildActionPlan(params: {
     "Allowed types: navigate, click, type, scroll, hotkey, wait, verify.",
     skillsPrompt ? `Skill directives:\n${skillsPrompt}` : null,
     `Goal: ${input.goal}`,
+    `Summary: ${input.summary ?? "n/a"}`,
     `URL: ${input.url ?? "n/a"}`,
     `ScreenshotRef: ${input.screenshotRef ?? "n/a"}`,
     `DOM snapshot excerpt: ${clipText(input.domSnapshot, 1200) ?? "n/a"}`,
@@ -2216,6 +2327,7 @@ async function buildActionPlan(params: {
     `Set-of-marks hints: ${input.markHints.length > 0 ? JSON.stringify(input.markHints.slice(0, 25)) : "n/a"}`,
     `Cursor: ${input.cursor ? `${input.cursor.x},${input.cursor.y}` : "n/a"}`,
     `Form data: ${JSON.stringify(input.formData)}`,
+    `CRM draft fields: ${JSON.stringify(input.formData)}`,
     `Max steps: ${input.maxSteps}`,
   ]
     .filter((item): item is string => Boolean(item))
@@ -2707,6 +2819,7 @@ function buildUiVerificationPlan(params: {
     params.input.visualTesting.enabled ? "visual_compare" : null,
     groundingReady ? "grounded_target" : null,
     params.approvalRequired ? "approval_gate" : null,
+    params.input.summary ? "summary_backed_draft" : null,
     params.damageControl.verdict !== "allow" ? `damage_control_${params.damageControl.verdict}` : null,
     params.sandboxPolicy.active ? "sandbox_policy" : null,
   ].filter((item): item is string => item !== null));
@@ -2959,6 +3072,7 @@ async function executeWithRemoteHttpAdapter(params: {
           actions: params.actions,
           context: {
             url: params.input.url,
+            summary: params.input.summary,
             screenshotRef: params.input.screenshotRef,
             domSnapshot: params.input.domSnapshot,
             accessibilityTree: params.input.accessibilityTree,
@@ -3474,6 +3588,7 @@ async function submitBrowserWorkerJob(params: {
             : null,
         actions: params.actions,
         context: {
+          summary: params.input.summary,
           screenshotRef: params.input.screenshotRef,
           domSnapshot: params.input.domSnapshot,
           accessibilityTree: params.input.accessibilityTree,
@@ -4280,7 +4395,7 @@ export async function runUiNavigatorAgent(
 
   try {
     const input = normalizeUiTaskInput(request.payload.input, config);
-    const sensitiveSignals = extractSensitiveSignals(input.goal, config.approvalKeywords);
+    const sensitiveSignals = extractSensitiveSignals([input.goal, input.summary ?? ""].join(" "), config.approvalKeywords);
     const approvalCategories = buildApprovalCategories(sensitiveSignals);
     const sandboxPolicy = resolveSandboxPolicyContext({
       requestSessionId: request.sessionId,
@@ -4753,8 +4868,9 @@ export async function runUiNavigatorAgent(
           status: "accepted",
           traceId,
           output: {
-            message: "Sensitive action detected. User approval is required before execution. Verification state: blocked pending approval.",
-            text: `Sensitive action detected. User approval is required before execution. Verification state: blocked pending approval. ${verification.summary} ${verification.recoveryHint ?? ""}`.trim(),
+            message:
+              "Summary-backed CRM draft prepared. User approval is required before execution. Verification state: blocked pending approval.",
+            text: `Summary-backed CRM draft prepared. User approval is required before execution. Verification state: blocked pending approval. ${verification.summary} ${verification.recoveryHint ?? ""}`.trim(),
             handledIntent: request.payload.intent,
             traceId,
             latencyMs: Date.now() - startedAt,
@@ -4762,11 +4878,16 @@ export async function runUiNavigatorAgent(
             approvalId,
             approvalCategories: effectiveApprovalCategories,
             sensitiveSignals,
+            draftSummary: {
+              summary: input.summary,
+              formData: input.formData,
+            },
             resumeRequestTemplate: {
               intent: "ui_task",
               input: {
                 goal: input.goal,
                 url: input.url,
+                summary: input.summary,
                 deviceNodeId: input.deviceNodeId,
                 deviceNodeKind: input.deviceNodeKind,
                 deviceNodePlatform: input.deviceNodePlatform,
@@ -5045,7 +5166,7 @@ export async function runUiNavigatorAgent(
     const verificationLabel = verificationStateDisplayLabel(verification.state);
     const completionMessage =
       verification.state === "verified"
-        ? `UI task completed and verified across ${actions.length} planned step${actions.length === 1 ? "" : "s"} with ${execution.retries} retries.`
+        ? `${input.summary ? "Summary-backed CRM draft completed and verified." : "UI task completed and verified."} Across ${actions.length} planned step${actions.length === 1 ? "" : "s"} with ${execution.retries} retries.`
         : `UI task reached the planned end state, but verification is ${verificationLabel}. ${verification.summary}`;
 
     return createEnvelopeWithUsage({
@@ -5065,14 +5186,18 @@ export async function runUiNavigatorAgent(
               ? `${completionMessage}${visualTestingSummary}`
               : `UI task failed after retries.${loopProtectionSummary}${visualTestingSummary}`,
           handledIntent: request.payload.intent,
-          traceId,
-          latencyMs: Date.now() - startedAt,
-          approvalRequired: false,
-          approval:
-            input.approvalConfirmed || input.approvalDecision === "approved"
-              ? {
-                  approvalId: input.approvalId ?? `approval-${runId}`,
-                  decision: "approved",
+            traceId,
+            latencyMs: Date.now() - startedAt,
+            approvalRequired: false,
+            draftSummary: {
+              summary: input.summary,
+              formData: input.formData,
+            },
+            approval:
+              input.approvalConfirmed || input.approvalDecision === "approved"
+                ? {
+                    approvalId: input.approvalId ?? `approval-${runId}`,
+                    decision: "approved",
                   reason: input.approvalReason ?? "Approved by user",
                 }
               : null,

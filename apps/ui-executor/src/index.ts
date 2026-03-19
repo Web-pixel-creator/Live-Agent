@@ -50,6 +50,7 @@ type ExecuteRequest = {
   context?: {
     goal?: string;
     url?: string;
+    summary?: string;
     screenshotRef?: string;
     domSnapshot?: string;
     accessibilityTree?: string;
@@ -496,6 +497,7 @@ function normalizeRequest(input: unknown): ExecuteRequest {
   const context = {
     goal: toNonEmptyString(contextRaw.goal, ""),
     url: toNonEmptyString(contextRaw.url, ""),
+    summary: toOptionalString(contextRaw.summary ?? contextRaw.caseSummary ?? contextRaw.crmSummary) ?? undefined,
     screenshotRef: toNonEmptyString(contextRaw.screenshotRef, ""),
     domSnapshot: toNonEmptyString(contextRaw.domSnapshot, ""),
     accessibilityTree: toNonEmptyString(contextRaw.accessibilityTree, ""),
@@ -889,6 +891,9 @@ async function executeWithPlaywright(
   let sessionReuseCount = Math.max(0, request.session?.reuseCount ?? 0);
   let sessionLastUrl: string | null = null;
   const sessionNotes: string[] = [];
+  if (typeof request.context?.summary === "string" && request.context.summary.trim().length > 0) {
+    sessionNotes.push("Summary-backed draft received.");
+  }
 
   if (persistenceEnabled && requestedSessionKey) {
     const existing = persistentPlaywrightSessions.get(requestedSessionKey);
@@ -1166,6 +1171,7 @@ setBrowserJobRunner(async (input): Promise<BrowserJobExecutionResult> => {
     context: {
       goal: toNonEmptyString(input.context.goal, ""),
       url: toNonEmptyString(input.context.url, ""),
+      summary: toNonEmptyString(input.context.summary, ""),
       screenshotRef: input.screenshotSeed,
       domSnapshot: toNonEmptyString(input.context.domSnapshot, ""),
       accessibilityTree: toNonEmptyString(input.context.accessibilityTree, ""),
