@@ -62,6 +62,7 @@ Supporting product surfaces:
 - Visa Operator Walkthrough: `docs/visa-operator-walkthrough.md`
 - Visa Client One-Pager: `docs/visa-client-one-pager.md`
 - Visa Client Deck Outline: `docs/visa-client-deck-outline.md`
+- Visa Client Deck Copy: `docs/visa-client-deck-copy.md`
 - Worker Roles: `docs/worker-roles.md`
 - Eval Plane: `docs/evals.md`
 - Operator Guide: `docs/operator-guide.md`
