@@ -58,6 +58,8 @@ Supporting product surfaces:
 - Architecture: `docs/architecture.md`
 - Product Master Plan: `docs/product-master-plan.md`
 - Product Backlog: `docs/product-backlog.md`
+- Visa Sales Demo Package: `docs/visa-sales-demo-package.md`
+- Visa Operator Walkthrough: `docs/visa-operator-walkthrough.md`
 - Worker Roles: `docs/worker-roles.md`
 - Eval Plane: `docs/evals.md`
 - Operator Guide: `docs/operator-guide.md`
