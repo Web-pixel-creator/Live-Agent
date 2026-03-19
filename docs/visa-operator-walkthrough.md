@@ -48,7 +48,7 @@ Click:
 
 Say:
 
-- `I’m starting from a clean seeded case so the operator flow is repeatable.`
+- `I'm starting from a clean seeded case so the operator flow is repeatable.`
 
 ### Step 2. Intake Draft
 

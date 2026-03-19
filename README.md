@@ -60,6 +60,8 @@ Supporting product surfaces:
 - Product Backlog: `docs/product-backlog.md`
 - Visa Sales Demo Package: `docs/visa-sales-demo-package.md`
 - Visa Operator Walkthrough: `docs/visa-operator-walkthrough.md`
+- Visa Client One-Pager: `docs/visa-client-one-pager.md`
+- Visa Client Deck Outline: `docs/visa-client-deck-outline.md`
 - Worker Roles: `docs/worker-roles.md`
 - Eval Plane: `docs/evals.md`
 - Operator Guide: `docs/operator-guide.md`
