@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UI Task Visa CRM Handoff Demo</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0f131a;
+        --panel: #171d27;
+        --border: rgba(123, 171, 255, 0.22);
+        --text: #f3f6fc;
+        --muted: #b5c0d5;
+        --accent: #64a5ff;
+        --ok: #66dea3;
+        --warn: #ffd166;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top right, rgba(100, 165, 255, 0.16), transparent 26%),
+          linear-gradient(180deg, #101722 0%, var(--bg) 100%);
+      }
+
+      main {
+        width: min(1080px, calc(100% - 40px));
+        margin: 40px auto;
+        padding: 32px;
+        border-radius: 28px;
+        border: 1px solid var(--border);
+        background: rgba(23, 29, 39, 0.96);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(100, 165, 255, 0.14);
+        color: #d9e7ff;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 18px 0 10px;
+        font-size: clamp(30px, 4vw, 44px);
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+        gap: 20px;
+        margin-top: 28px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 20px;
+      }
+
+      .panel {
+        padding: 22px;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .panel h2,
+      .panel h3 {
+        margin: 0 0 14px;
+      }
+
+      .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .meta-card,
+      .note-block,
+      .handoff-item {
+        padding: 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .label {
+        display: block;
+        margin-bottom: 8px;
+        color: #d8e3f7;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .value {
+        font-size: 18px;
+      }
+
+      .note-stack,
+      .handoff-stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .item-title {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+
+      .item-copy,
+      .confirmation-list,
+      #protected-crm-copy {
+        color: var(--muted);
+      }
+
+      .tag,
+      .boundary-pill {
+        display: inline-flex;
+        align-self: start;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .handoff-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .protected-boundary {
+        border-color: rgba(255, 209, 102, 0.22);
+      }
+
+      .boundary-pill {
+        background: rgba(255, 209, 102, 0.12);
+        color: #ffe39a;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font: inherit;
+        font-weight: 600;
+      }
+
+      .primary {
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .secondary {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+
+      .confirmation {
+        border-color: rgba(102, 222, 163, 0.2);
+        background: rgba(102, 222, 163, 0.08);
+      }
+
+      @media (max-width: 960px) {
+        .workspace,
+        .meta-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <span class="eyebrow">UI task fixture</span>
+      <h1>Visa CRM handoff update</h1>
+      <p>
+        Deterministic local fixture for the post-reminder CRM update path. It keeps the CRM case card, note draft,
+        owner handoff, protected writeback boundary, and approved confirmation in one self-contained page.
+      </p>
+
+      <section class="workspace" aria-label="Visa CRM handoff workspace">
+        <div class="stack">
+          <section class="panel" id="crm-handoff-card" data-testid="crm-handoff-card" aria-label="CRM handoff card">
+            <h2>CRM handoff card</h2>
+            <div class="meta-grid">
+              <article class="meta-card">
+                <span class="label">Client</span>
+                <div class="value"><strong>Anna Petrova</strong></div>
+              </article>
+              <article class="meta-card">
+                <span class="label">Case</span>
+                <div class="value"><strong>VISA-2048</strong></div>
+              </article>
+              <article class="meta-card">
+                <span class="label">CRM owner</span>
+                <div class="value"><strong>Sofia Kim</strong></div>
+              </article>
+              <article class="meta-card">
+                <span class="label">Stage</span>
+                <div class="value"><strong>Reminder follow-through</strong></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel" id="crm-note-draft" data-testid="crm-note-draft" aria-label="CRM note draft">
+            <h2>CRM note draft</h2>
+            <div class="note-stack">
+              <article class="note-block">
+                <span class="item-title">Latest case note</span>
+                <div class="item-copy">
+                  Anna confirmed the consultation slot. Reminder was approved. Keep the preparation checklist attached
+                  to the next operator touchpoint.
+                </div>
+              </article>
+              <article class="note-block">
+                <span class="item-title">Checklist handoff</span>
+                <div class="item-copy">
+                  Passport originals, proof of address, and intake questionnaire stay pinned for the consultation.
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="panel" id="operator-handoff-panel" data-testid="operator-handoff-panel" aria-label="Operator handoff panel">
+            <h2>Operator handoff panel</h2>
+            <div class="handoff-stack">
+              <div class="handoff-item">
+                <div>
+                  <strong>Assigned owner</strong>
+                  <div class="item-copy">Sofia Kim · Relocation operations</div>
+                </div>
+                <span class="tag">Owner set</span>
+              </div>
+              <div class="handoff-item">
+                <div>
+                  <strong>Next touchpoint</strong>
+                  <div class="item-copy">Send the checklist summary and watch for Anna's attendance reply.</div>
+                </div>
+                <span class="tag">Tomorrow 10:00</span>
+              </div>
+            </div>
+          </section>
+
+          <section
+            class="panel protected-boundary"
+            id="protected-crm-boundary"
+            data-testid="protected-crm-boundary"
+            aria-label="Protected CRM boundary"
+          >
+            <span class="boundary-pill">Protected step</span>
+            <h2>CRM writeback boundary</h2>
+            <p>
+              The CRM note and handoff assignment are prepared, but the case writeback stays blocked until approval is granted.
+            </p>
+            <div class="actions" aria-label="Protected CRM actions">
+              <button id="prepare-crm-note-btn" class="secondary" type="button">Prepare CRM note</button>
+              <button id="commit-crm-update-btn" class="primary" type="button" disabled>Commit CRM update for approval</button>
+            </div>
+            <p id="protected-crm-copy" data-testid="protected-crm-copy">
+              Protected boundary: the CRM writeback stays blocked before approval.
+            </p>
+          </section>
+
+          <section
+            class="panel confirmation"
+            id="approved-crm-confirmation"
+            data-testid="approved-crm-confirmation"
+            data-state="approved"
+            aria-label="Approved CRM confirmation"
+          >
+            <h3>Approved CRM handoff confirmation</h3>
+            <p>Final verification complete. The CRM update handoff is approved and ready for the operator queue.</p>
+            <ul class="confirmation-list">
+              <li>The CRM case keeps Sofia Kim as the named owner.</li>
+              <li>The case note preserves the reminder outcome and checklist summary.</li>
+              <li>The operator handoff is ready for the next outreach step.</li>
+            </ul>
+          </section>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

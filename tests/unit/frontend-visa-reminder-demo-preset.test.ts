@@ -31,7 +31,8 @@ test("frontend ships a one-click consultation reminder demo preset with approved
     'case "run_visa_reminder_demo":',
     'case "review_visa_reminder_result":',
     'state.liveDemoScenario !== "visa_result" &&',
-    'state.liveDemoScenario !== "visa_reminder_result"',
+    'state.liveDemoScenario !== "visa_reminder_result" &&',
+    'state.liveDemoScenario !== "visa_handoff_result"',
     "Open the visa reminder demo page",
   ];
   for (const token of requiredAppTokens) {
@@ -45,9 +46,9 @@ test("frontend ships a one-click consultation reminder demo preset with approved
     'id="reviewVisaReminderResultBtn"',
     'data-dashboard-action="review_visa_reminder_result"',
     'data-i18n="live.compose.reviewVisaReminder"',
-    "Launch the seeded visa relocation flow, missing-docs follow-up, or consultation reminder without filling fields manually.",
-    "Prepares the seeded relocation draft, missing-docs follow-up, or consultation reminder and stops before the protected action step.",
-    "Runs the approved intake, follow-up, or reminder path and checks the final confirmation banner.",
+    "Launch the seeded visa relocation flow, missing-docs follow-up, consultation reminder, or CRM handoff without filling fields manually.",
+    "Prepares the seeded relocation draft, missing-docs follow-up, consultation reminder, or CRM handoff and stops before the protected action step.",
+    "Runs the approved intake, follow-up, reminder, or CRM writeback path and checks the final confirmation banner.",
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `index.html missing reminder CTA token: ${token}`);

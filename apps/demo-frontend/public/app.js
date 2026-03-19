@@ -614,6 +614,8 @@ const VISA_FOLLOW_UP_DEMO_URL_PATH = "/ui-task-visa-follow-up-demo.html";
 const VISA_FOLLOW_UP_DEMO_URL_FALLBACK = "http://127.0.0.1:3000/ui-task-visa-follow-up-demo.html";
 const VISA_REMINDER_DEMO_URL_PATH = "/ui-task-visa-reminder-demo.html";
 const VISA_REMINDER_DEMO_URL_FALLBACK = "http://127.0.0.1:3000/ui-task-visa-reminder-demo.html";
+const VISA_HANDOFF_DEMO_URL_PATH = "/ui-task-visa-handoff-demo.html";
+const VISA_HANDOFF_DEMO_URL_FALLBACK = "http://127.0.0.1:3000/ui-task-visa-handoff-demo.html";
 const ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA = Object.freeze({
   full_name: "Anna Petrova",
   email: "anna.petrova@example.com",
@@ -687,6 +689,27 @@ const ACTIVE_TASK_VISA_REMINDER_PROMPT =
   "ui_task: Open the visa reminder demo page, prepare Anna Petrova's consultation reminder from the provided summary, stop before the protected send step, and wait for approval.";
 const ACTIVE_TASK_VISA_REMINDER_RESULT_PROMPT =
   "ui_task: Open the visa reminder demo page, prepare Anna Petrova's consultation reminder from the provided summary, continue through the protected send step because approval is already confirmed, and verify the final confirmation banner.";
+const ACTIVE_TASK_VISA_HANDOFF_OWNER = "Sofia Kim";
+const ACTIVE_TASK_VISA_HANDOFF_WRITEBACK =
+  "crm note, case owner assignment, checklist handoff, next-touch date";
+const ACTIVE_TASK_VISA_HANDOFF_SUMMARY = [
+  "full_name: Anna Petrova",
+  "email: anna.petrova@example.com",
+  "destination_country: Spain",
+  "relocation_city: Valencia",
+  "visa_type: Digital Nomad Visa",
+  `crm_owner: ${ACTIVE_TASK_VISA_HANDOFF_OWNER}`,
+  "crm_team: Relocation operations",
+  `booking_slot: ${ACTIVE_TASK_VISA_INTAKE_DEMO_BOOKING_SLOT}`,
+  `writeback_payload: ${ACTIVE_TASK_VISA_HANDOFF_WRITEBACK}`,
+  "handoff_goal: update the CRM record, preserve the checklist handoff, and keep one named owner on the case",
+].join("\n");
+const ACTIVE_TASK_VISA_HANDOFF_APPROVAL_REASON =
+  "Reviewed the CRM update handoff and approved the safe writeback step.";
+const ACTIVE_TASK_VISA_HANDOFF_PROMPT =
+  "ui_task: Open the visa CRM handoff demo page, prepare Anna Petrova's CRM update handoff from the provided summary, stop before the protected writeback step, and wait for approval.";
+const ACTIVE_TASK_VISA_HANDOFF_RESULT_PROMPT =
+  "ui_task: Open the visa CRM handoff demo page, prepare Anna Petrova's CRM update handoff from the provided summary, continue through the protected writeback step because approval is already confirmed, and verify the final confirmation banner.";
 const ACTIVE_TASK_UI_TASK_PROMPT =
   "ui_task: Open the billing page, verify the invoices table loads, and report one safe next action.";
 const OPERATOR_RUNTIME_GUARDRAIL_SIGNAL_RECOVERY_PROFILE_IDS = Object.freeze({
@@ -1083,11 +1106,21 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.runVisaReminder": "Run Consultation Reminder",
     "live.compose.reviewVisaReminder": "Review Reminder Result",
     "live.compose.runVisaReminderHint":
-      "Seed the same visa-relocation lead with a confirmed consultation slot and prep checklist, then stage the reminder before approval.",
+      "Seed the same visa-relocation lead with a confirmed consultation slot, prep checklist, or CRM handoff without filling fields manually.",
     "live.compose.runVisaReminderCardTitle": "Consultation reminder",
     "live.compose.runVisaReminderCardCopy": "Stages the reminder draft with slot, timezone, and preparation items before the protected send step.",
     "live.compose.reviewVisaReminderCardTitle": "Approved reminder handoff",
     "live.compose.reviewVisaReminderCardCopy": "Runs the approved reminder path and verifies the next operator handoff for the consultation.",
+    "live.compose.runVisaHandoff": "Run CRM Update Demo",
+    "live.compose.reviewVisaHandoff": "Review CRM Handoff Result",
+    "live.compose.runVisaHandoffHint":
+      "Seed the same visa-relocation lead with the CRM owner, note draft, and next-touch handoff before approval.",
+    "live.compose.runVisaHandoffCardTitle": "CRM update + handoff",
+    "live.compose.runVisaHandoffCardCopy":
+      "Stages the CRM note, named owner, and checklist handoff before the protected writeback step.",
+    "live.compose.reviewVisaHandoffCardTitle": "Approved CRM writeback",
+    "live.compose.reviewVisaHandoffCardCopy":
+      "Runs the approved CRM update path and verifies the operator handoff plus the assigned owner.",
     "live.result.visaSummaryTitle": "Visa intake completion snapshot",
     "live.result.visaSummaryLead": "Lead draft",
     "live.result.visaSummarySlot": "Consultation slot",
@@ -1123,6 +1156,19 @@ const UI_LANGUAGE_COPY = Object.freeze({
       "Operator summary copied for the consultation reminder handoff.",
     "live.result.visaReminderSummaryCopyError":
       "Operator summary copy failed. Copy it from the reminder result card instead.",
+    "live.result.visaHandoffSummaryTitle": "CRM update handoff snapshot",
+    "live.result.visaHandoffSummaryLead": "Lead draft",
+    "live.result.visaHandoffSummaryOwner": "CRM owner",
+    "live.result.visaHandoffSummaryWriteback": "Writeback payload",
+    "live.result.visaHandoffSummaryStatus": "Execution status",
+    "live.result.visaHandoffSummaryHandoff": "Next operator step",
+    "live.result.visaHandoffSummaryHandoffValue":
+      "Review the CRM note, keep Sofia assigned as the case owner, and send the checklist summary to Anna.",
+    "live.result.visaHandoffSummaryCopy": "Copy operator summary",
+    "live.result.visaHandoffSummaryCopySuccess":
+      "Operator summary copied for the CRM update handoff.",
+    "live.result.visaHandoffSummaryCopyError":
+      "Operator summary copy failed. Copy it from the CRM handoff result card instead.",
     "live.compose.optionalTitle": "Rare tools",
     "live.compose.optionalHint": "Audio file, service actions, and background requests",
     "live.compose.audioTitle": "Audio file",
@@ -1429,11 +1475,21 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.runVisaReminder": "Запустить reminder консультации",
     "live.compose.reviewVisaReminder": "Показать итог reminder",
     "live.compose.runVisaReminderHint":
-      "Засеивает тот же visa/relocation lead с подтверждённым слотом консультации и чеклистом подготовки, а затем ставит reminder перед approval.",
+      "Засеивает тот же visa/relocation lead с подтверждённым слотом консультации, checklist подготовки или CRM handoff без ручного заполнения полей.",
     "live.compose.runVisaReminderCardTitle": "Reminder консультации",
     "live.compose.runVisaReminderCardCopy": "Подготавливает reminder с датой, таймзоной и prep items перед защищённым send шагом.",
     "live.compose.reviewVisaReminderCardTitle": "Approved reminder handoff",
     "live.compose.reviewVisaReminderCardCopy": "Прогоняет approved reminder path и проверяет следующий handoff оператора по консультации.",
+    "live.compose.runVisaHandoff": "Запустить CRM update demo",
+    "live.compose.reviewVisaHandoff": "Показать итог CRM handoff",
+    "live.compose.runVisaHandoffHint":
+      "Засеивает тот же visa/relocation lead с CRM owner, note draft и next-touch handoff перед approval.",
+    "live.compose.runVisaHandoffCardTitle": "CRM update + handoff",
+    "live.compose.runVisaHandoffCardCopy":
+      "Подготавливает CRM note, named owner и checklist handoff перед защищённым writeback шагом.",
+    "live.compose.reviewVisaHandoffCardTitle": "Approved CRM writeback",
+    "live.compose.reviewVisaHandoffCardCopy":
+      "Прогоняет approved CRM update path и проверяет operator handoff вместе с назначенным owner.",
     "live.result.visaSummaryTitle": "Итог visa intake",
     "live.result.visaSummaryLead": "Карточка лида",
     "live.result.visaSummarySlot": "Слот консультации",
@@ -1469,6 +1525,19 @@ const UI_LANGUAGE_COPY = Object.freeze({
       "Summary для оператора скопирован из сценария consultation reminder.",
     "live.result.visaReminderSummaryCopyError":
       "Не удалось скопировать summary. Возьми текст прямо из reminder result card.",
+    "live.result.visaHandoffSummaryTitle": "Итог CRM update handoff",
+    "live.result.visaHandoffSummaryLead": "Карточка лида",
+    "live.result.visaHandoffSummaryOwner": "CRM owner",
+    "live.result.visaHandoffSummaryWriteback": "Writeback payload",
+    "live.result.visaHandoffSummaryStatus": "Статус выполнения",
+    "live.result.visaHandoffSummaryHandoff": "Следующий шаг оператора",
+    "live.result.visaHandoffSummaryHandoffValue":
+      "Проверить CRM note, оставить Sofia назначенным owner кейса и отправить summary checklist Анне.",
+    "live.result.visaHandoffSummaryCopy": "Скопировать summary для оператора",
+    "live.result.visaHandoffSummaryCopySuccess":
+      "Summary для оператора скопирован из сценария CRM update handoff.",
+    "live.result.visaHandoffSummaryCopyError":
+      "Не удалось скопировать summary. Возьми текст прямо из CRM handoff result card.",
     "live.compose.optionalTitle": "Опциональные media и advanced-инструменты",
     "live.compose.optionalHint": "Загрузка аудио, conversation item и out-of-band запросы",
     "live.support.badge": "Support",
@@ -2684,6 +2753,8 @@ const el = {
   reviewVisaFollowUpResultBtn: document.getElementById("reviewVisaFollowUpResultBtn"),
   runVisaReminderBtn: document.getElementById("runVisaReminderBtn"),
   reviewVisaReminderResultBtn: document.getElementById("reviewVisaReminderResultBtn"),
+  runVisaHandoffBtn: document.getElementById("runVisaHandoffBtn"),
+  reviewVisaHandoffResultBtn: document.getElementById("reviewVisaHandoffResultBtn"),
   resetVisaDemoBtn: document.getElementById("resetVisaDemoBtn"),
   sendBtnHint: document.getElementById("sendBtnHint"),
   runVisaDemoHint: document.getElementById("runVisaDemoHint"),
@@ -4507,7 +4578,8 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
     (
       state.liveDemoScenario !== "visa_result" &&
       state.liveDemoScenario !== "visa_follow_up_result" &&
-      state.liveDemoScenario !== "visa_reminder_result"
+      state.liveDemoScenario !== "visa_reminder_result" &&
+      state.liveDemoScenario !== "visa_handoff_result"
     ) ||
     !latestResult ||
     latestResult.role === "error" ||
@@ -4517,6 +4589,53 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
   }
 
   const isRu = state.languageMode === "ru";
+  const isHandoffScenario = state.liveDemoScenario === "visa_handoff_result";
+  if (isHandoffScenario) {
+    return {
+      title: t("live.result.visaHandoffSummaryTitle", null, "CRM update handoff snapshot"),
+      items: [
+        {
+          label: t("live.result.visaHandoffSummaryLead", null, "Lead draft"),
+          value: isRu
+            ? `${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.full_name} · Испания · ${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.visa_type}`
+            : `${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.full_name} · Spain · ${ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.visa_type}`,
+        },
+        {
+          label: t("live.result.visaHandoffSummaryOwner", null, "CRM owner"),
+          value: `${ACTIVE_TASK_VISA_HANDOFF_OWNER} · relocation operations`,
+        },
+        {
+          label: t("live.result.visaHandoffSummaryWriteback", null, "Writeback payload"),
+          value: ACTIVE_TASK_VISA_HANDOFF_WRITEBACK.replace(/,\s*/g, " · "),
+        },
+        {
+          label: t("live.result.visaHandoffSummaryStatus", null, "Execution status"),
+          value: isRu
+            ? "crm update одобрен · protected writeback подтверждён"
+            : "crm update approved · protected writeback verified",
+        },
+      ],
+      handoff: {
+        label: t("live.result.visaHandoffSummaryHandoff", null, "Next operator step"),
+        value: t(
+          "live.result.visaHandoffSummaryHandoffValue",
+          null,
+          "Review the CRM note, keep Sofia assigned as the case owner, and send the checklist summary to Anna.",
+        ),
+      },
+      copyLabel: t("live.result.visaHandoffSummaryCopy", null, "Copy operator summary"),
+      copySuccess: t(
+        "live.result.visaHandoffSummaryCopySuccess",
+        null,
+        "Operator summary copied for the CRM update handoff.",
+      ),
+      copyError: t(
+        "live.result.visaHandoffSummaryCopyError",
+        null,
+        "Operator summary copy failed. Copy it from the CRM handoff result card instead.",
+      ),
+    };
+  }
   const isReminderScenario = state.liveDemoScenario === "visa_reminder_result";
   if (isReminderScenario) {
     return {
@@ -5492,6 +5611,12 @@ function runDashboardAction(actionId) {
       break;
     case "review_visa_reminder_result":
       runVisaReminderResultPreset();
+      break;
+    case "run_visa_handoff_demo":
+      runVisaHandoffDemoPreset();
+      break;
+    case "review_visa_handoff_result":
+      runVisaHandoffResultPreset();
       break;
     case "reset_visa_demo":
       resetVisaIntakeDemoPreset();
@@ -20187,6 +20312,23 @@ function buildVisaReminderResultUiTaskOverrides() {
   };
 }
 
+function buildVisaHandoffUiTaskOverrides() {
+  return {
+    url: resolveVisaHandoffDemoUrl(),
+    summary: ACTIVE_TASK_VISA_HANDOFF_SUMMARY,
+    formData: { ...ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA },
+  };
+}
+
+function buildVisaHandoffResultUiTaskOverrides() {
+  return {
+    ...buildVisaHandoffUiTaskOverrides(),
+    approvalConfirmed: true,
+    approvalDecision: "approved",
+    approvalReason: ACTIVE_TASK_VISA_HANDOFF_APPROVAL_REASON,
+  };
+}
+
 function primeVisaIntakeDemoFields() {
   if (el.uiTaskUrl instanceof HTMLInputElement) {
     el.uiTaskUrl.value = resolveVisaIntakeDemoUrl();
@@ -20226,6 +20368,15 @@ function primeVisaReminderDemoFields() {
   }
 }
 
+function primeVisaHandoffDemoFields() {
+  if (el.uiTaskUrl instanceof HTMLInputElement) {
+    el.uiTaskUrl.value = resolveVisaHandoffDemoUrl();
+  }
+  if (el.approvalReason instanceof HTMLInputElement || el.approvalReason instanceof HTMLTextAreaElement) {
+    el.approvalReason.value = ACTIVE_TASK_VISA_HANDOFF_APPROVAL_REASON;
+  }
+}
+
 function resolveVisaIntakeDemoUrl() {
   if (typeof window !== "undefined" && window.location && /^https?:$/i.test(window.location.protocol)) {
     try {
@@ -20257,6 +20408,17 @@ function resolveVisaReminderDemoUrl() {
     }
   }
   return VISA_REMINDER_DEMO_URL_FALLBACK;
+}
+
+function resolveVisaHandoffDemoUrl() {
+  if (typeof window !== "undefined" && window.location && /^https?:$/i.test(window.location.protocol)) {
+    try {
+      return new URL(VISA_HANDOFF_DEMO_URL_PATH, window.location.origin).toString();
+    } catch {
+      return VISA_HANDOFF_DEMO_URL_FALLBACK;
+    }
+  }
+  return VISA_HANDOFF_DEMO_URL_FALLBACK;
 }
 
 function runVisaIntakeDemoPreset() {
@@ -20322,6 +20484,28 @@ function runVisaReminderResultPreset() {
     intent: "ui_task",
     message: ACTIVE_TASK_VISA_REMINDER_RESULT_PROMPT,
     uiTaskOverrides: buildVisaReminderResultUiTaskOverrides(),
+  });
+}
+
+function runVisaHandoffDemoPreset() {
+  applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_HANDOFF_PROMPT);
+  primeVisaHandoffDemoFields();
+  sendIntentRequest({
+    demoScenario: "visa_handoff_draft",
+    intent: "ui_task",
+    message: ACTIVE_TASK_VISA_HANDOFF_PROMPT,
+    uiTaskOverrides: buildVisaHandoffUiTaskOverrides(),
+  });
+}
+
+function runVisaHandoffResultPreset() {
+  applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_HANDOFF_RESULT_PROMPT);
+  primeVisaHandoffDemoFields();
+  sendIntentRequest({
+    demoScenario: "visa_handoff_result",
+    intent: "ui_task",
+    message: ACTIVE_TASK_VISA_HANDOFF_RESULT_PROMPT,
+    uiTaskOverrides: buildVisaHandoffResultUiTaskOverrides(),
   });
 }
 
@@ -32659,6 +32843,8 @@ function bindEvents() {
   bindDashboardActionButton(el.reviewVisaFollowUpResultBtn);
   bindDashboardActionButton(el.runVisaReminderBtn);
   bindDashboardActionButton(el.reviewVisaReminderResultBtn);
+  bindDashboardActionButton(el.runVisaHandoffBtn);
+  bindDashboardActionButton(el.reviewVisaHandoffResultBtn);
   bindDashboardActionButton(el.resetVisaDemoBtn);
   bindDashboardActionButton(el.workspaceCommandOne);
   bindDashboardActionButton(el.workspaceCommandTwo);
