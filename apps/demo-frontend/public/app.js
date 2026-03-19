@@ -608,7 +608,8 @@ const STORY_COMPOSER_COPY = Object.freeze({
   },
 });
 const ACTIVE_TASK_NEGOTIATION_PROMPT = "Negotiate: price=96, delivery=9, sla=99, include one concession path.";
-const VISA_INTAKE_DEMO_URL = "http://127.0.0.1:3000/ui-task-visa-intake-demo.html";
+const VISA_INTAKE_DEMO_URL_PATH = "/ui-task-visa-intake-demo.html";
+const VISA_INTAKE_DEMO_URL_FALLBACK = "http://127.0.0.1:3000/ui-task-visa-intake-demo.html";
 const ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA = Object.freeze({
   full_name: "Anna Petrova",
   email: "anna.petrova@example.com",
@@ -19889,7 +19890,7 @@ function applyIntentTemplateFromActiveTasks(intentValue, messageTemplate) {
 
 function buildVisaIntakeDemoUiTaskOverrides() {
   return {
-    url: VISA_INTAKE_DEMO_URL,
+    url: resolveVisaIntakeDemoUrl(),
     summary: ACTIVE_TASK_VISA_INTAKE_DEMO_SUMMARY,
     formData: { ...ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA },
   };
@@ -19906,7 +19907,7 @@ function buildVisaIntakeResultUiTaskOverrides() {
 
 function primeVisaIntakeDemoFields() {
   if (el.uiTaskUrl instanceof HTMLInputElement) {
-    el.uiTaskUrl.value = VISA_INTAKE_DEMO_URL;
+    el.uiTaskUrl.value = resolveVisaIntakeDemoUrl();
   }
   if (el.approvalReason instanceof HTMLInputElement || el.approvalReason instanceof HTMLTextAreaElement) {
     el.approvalReason.value = ACTIVE_TASK_VISA_INTAKE_DEMO_APPROVAL_REASON;
@@ -19923,6 +19924,17 @@ function primeVisaIntakeDemoFields() {
       field.value = "";
     }
   }
+}
+
+function resolveVisaIntakeDemoUrl() {
+  if (typeof window !== "undefined" && window.location && /^https?:$/i.test(window.location.protocol)) {
+    try {
+      return new URL(VISA_INTAKE_DEMO_URL_PATH, window.location.origin).toString();
+    } catch {
+      return VISA_INTAKE_DEMO_URL_FALLBACK;
+    }
+  }
+  return VISA_INTAKE_DEMO_URL_FALLBACK;
 }
 
 function runVisaIntakeDemoPreset() {

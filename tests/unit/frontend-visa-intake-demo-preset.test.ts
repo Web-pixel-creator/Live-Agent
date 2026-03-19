@@ -10,7 +10,8 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   const readmeSource = readFileSync(resolve(process.cwd(), "README.md"), "utf8");
 
   const requiredAppTokens = [
-    'const VISA_INTAKE_DEMO_URL = "http://127.0.0.1:3000/ui-task-visa-intake-demo.html";',
+    'const VISA_INTAKE_DEMO_URL_PATH = "/ui-task-visa-intake-demo.html";',
+    'const VISA_INTAKE_DEMO_URL_FALLBACK = "http://127.0.0.1:3000/ui-task-visa-intake-demo.html";',
     'const ACTIVE_TASK_VISA_INTAKE_DEMO_APPROVAL_REASON =',
     '"live.support.runVisaDemo": "Run Visa Intake Demo"',
     '"live.compose.reviewVisaDemo": "Review Visa Draft Result"',
@@ -22,6 +23,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     '"live.result.visaSummaryCopy": "Copy operator summary"',
     '"live.result.visaSummaryCopySuccess": "Operator summary copied for the visa demo handoff."',
     'function buildVisaDemoOperatorSummaryText(summaryConfig) {',
+    "function resolveVisaIntakeDemoUrl() {",
     "async function copyTextToClipboard(text) {",
     'el.liveResultSummaryCopyBtn.addEventListener("click", async () => {',
     'demoScenario: "visa_result"',
@@ -89,6 +91,10 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   assert.ok(
     readmeSource.includes("/ui-task-visa-intake-demo.html"),
     "README should document the visa intake fixture page",
+  );
+  assert.ok(
+    readmeSource.includes("current frontend origin"),
+    "README should document the hosted visa preset target behavior",
   );
   assert.ok(
     readmeSource.includes("Run Visa Intake Demo"),
