@@ -11,13 +11,21 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
 
   const requiredAppTokens = [
     'const VISA_INTAKE_DEMO_URL = "http://127.0.0.1:3000/ui-task-visa-intake-demo.html";',
+    'const ACTIVE_TASK_VISA_INTAKE_DEMO_APPROVAL_REASON =',
     '"live.support.runVisaDemo": "Run Visa Intake Demo"',
+    '"live.compose.reviewVisaDemo": "Review Visa Draft Result"',
     'action: "run_visa_intake_demo"',
+    'case "review_visa_draft_result":',
+    "runVisaIntakeResultPreset();",
     'summary: ACTIVE_TASK_VISA_INTAKE_DEMO_SUMMARY',
     'formData: { ...ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA }',
+    'approvalConfirmed: true,',
+    'approvalDecision: "approved",',
+    'approvalReason: ACTIVE_TASK_VISA_INTAKE_DEMO_APPROVAL_REASON,',
     'const uiTaskOverrides = { ...collectUiTaskOverrides(), ...explicitUiTaskOverrides };',
     'sendIntentRequest({',
     'message: ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT',
+    'message: ACTIVE_TASK_VISA_INTAKE_RESULT_PROMPT',
   ];
   for (const token of requiredAppTokens) {
     assert.ok(appSource.includes(token), `app.js missing visa demo preset token: ${token}`);
@@ -27,6 +35,9 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     'id="runVisaDemoBtn"',
     'data-dashboard-action="run_visa_intake_demo"',
     'data-i18n="live.compose.runVisaDemo"',
+    'id="reviewVisaResultBtn"',
+    'data-dashboard-action="review_visa_draft_result"',
+    'data-i18n="live.compose.reviewVisaDemo"',
     'id="runVisaDemoHint"',
     'data-i18n="live.compose.runVisaDemoHint"',
   ];
@@ -36,7 +47,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
 
   const requiredStyleTokens = [
     ".live-compose-preset-hint",
-    "grid-template-columns: repeat(2, max-content);",
+    "grid-template-columns: repeat(3, max-content);",
     ".live-compose-send-hint,",
     ".live-compose-preset-hint {",
   ];
@@ -51,6 +62,10 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   assert.ok(
     readmeSource.includes("Run Visa Intake Demo"),
     "README should document the visa intake preset",
+  );
+  assert.ok(
+    readmeSource.includes("Review Visa Draft Result"),
+    "README should document the visa result preset",
   );
 });
 

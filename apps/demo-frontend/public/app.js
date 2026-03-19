@@ -632,8 +632,12 @@ const ACTIVE_TASK_VISA_INTAKE_DEMO_SUMMARY = [
   "booking_slot: Tomorrow 16:00",
   "missing_documents: proof of income, housing address letter",
 ].join("\n");
+const ACTIVE_TASK_VISA_INTAKE_DEMO_APPROVAL_REASON =
+  "Reviewed the seeded visa relocation draft and approved the protected submit step.";
 const ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT =
   "ui_task: Open the visa intake demo page, prepare Anna Petrova's visa relocation draft from the provided summary, stop before the protected submit step, and wait for approval.";
+const ACTIVE_TASK_VISA_INTAKE_RESULT_PROMPT =
+  "ui_task: Open the visa intake demo page, prepare Anna Petrova's visa relocation draft from the provided summary, continue through the protected submit step because approval is already confirmed, and verify the final confirmation banner.";
 const ACTIVE_TASK_UI_TASK_PROMPT =
   "ui_task: Open the billing page, verify the invoices table loads, and report one safe next action.";
 const OPERATOR_RUNTIME_GUARDRAIL_SIGNAL_RECOVERY_PROFILE_IDS = Object.freeze({
@@ -1013,7 +1017,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.heading": "AI Action Desk",
     "live.compose.intro": "Use this lane for one visa or relocation lead: qualify it, book the next step, collect documents, and send the safe action.",
     "live.compose.runVisaDemo": "Run Visa Intake Demo",
-    "live.compose.runVisaDemoHint": "Launch the seeded visa relocation flow without filling fields manually.",
+    "live.compose.reviewVisaDemo": "Review Visa Draft Result",
+    "live.compose.runVisaDemoHint": "Launch the seeded visa relocation flow or jump straight to the verified result without filling fields manually.",
     "live.compose.optionalTitle": "Rare tools",
     "live.compose.optionalHint": "Audio file, service actions, and background requests",
     "live.compose.audioTitle": "Audio file",
@@ -1303,7 +1308,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.heading": "Начни здесь",
     "live.compose.intro": "Выбери один режим, напиши один понятный запрос и отправь его. Голос и realtime находятся ниже.",
     "live.compose.runVisaDemo": "Запустить демо визового intake",
-    "live.compose.runVisaDemoHint": "Запустить заготовленный сценарий visa/relocation без ручного заполнения полей.",
+    "live.compose.reviewVisaDemo": "Показать итог visa draft",
+    "live.compose.runVisaDemoHint": "Запустить заготовленный сценарий visa/relocation или сразу показать verified result без ручного заполнения полей.",
     "live.compose.optionalTitle": "Опциональные media и advanced-инструменты",
     "live.compose.optionalHint": "Загрузка аудио, conversation item и out-of-band запросы",
     "live.support.badge": "Support",
@@ -2514,6 +2520,7 @@ const el = {
   micComposerStatusHint: document.getElementById("micComposerStatusHint"),
   sendBtn: document.getElementById("sendBtn"),
   runVisaDemoBtn: document.getElementById("runVisaDemoBtn"),
+  reviewVisaResultBtn: document.getElementById("reviewVisaResultBtn"),
   sendBtnHint: document.getElementById("sendBtnHint"),
   runVisaDemoHint: document.getElementById("runVisaDemoHint"),
   connectionStatus: document.getElementById("connectionStatus"),
@@ -5097,6 +5104,9 @@ function runDashboardAction(actionId) {
       break;
     case "run_visa_intake_demo":
       runVisaIntakeDemoPreset();
+      break;
+    case "review_visa_draft_result":
+      runVisaIntakeResultPreset();
       break;
     case "connect_live":
       document.getElementById("connectBtn")?.click();
@@ -19700,9 +19710,21 @@ function buildVisaIntakeDemoUiTaskOverrides() {
   };
 }
 
+function buildVisaIntakeResultUiTaskOverrides() {
+  return {
+    ...buildVisaIntakeDemoUiTaskOverrides(),
+    approvalConfirmed: true,
+    approvalDecision: "approved",
+    approvalReason: ACTIVE_TASK_VISA_INTAKE_DEMO_APPROVAL_REASON,
+  };
+}
+
 function primeVisaIntakeDemoFields() {
   if (el.uiTaskUrl instanceof HTMLInputElement) {
     el.uiTaskUrl.value = VISA_INTAKE_DEMO_URL;
+  }
+  if (el.approvalReason instanceof HTMLInputElement || el.approvalReason instanceof HTMLTextAreaElement) {
+    el.approvalReason.value = ACTIVE_TASK_VISA_INTAKE_DEMO_APPROVAL_REASON;
   }
   const fieldsToClear = [
     el.uiTaskDeviceNodeId,
@@ -19725,6 +19747,16 @@ function runVisaIntakeDemoPreset() {
     intent: "ui_task",
     message: ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT,
     uiTaskOverrides: buildVisaIntakeDemoUiTaskOverrides(),
+  });
+}
+
+function runVisaIntakeResultPreset() {
+  applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_INTAKE_RESULT_PROMPT);
+  primeVisaIntakeDemoFields();
+  sendIntentRequest({
+    intent: "ui_task",
+    message: ACTIVE_TASK_VISA_INTAKE_RESULT_PROMPT,
+    uiTaskOverrides: buildVisaIntakeResultUiTaskOverrides(),
   });
 }
 
@@ -32022,6 +32054,7 @@ function bindEvents() {
   bindDashboardActionButton(el.sidebarStoryLaunchBtn);
   bindDashboardActionButton(el.sidebarOpsRefreshBtn);
   bindDashboardActionButton(el.runVisaDemoBtn);
+  bindDashboardActionButton(el.reviewVisaResultBtn);
   bindDashboardActionButton(el.workspaceCommandOne);
   bindDashboardActionButton(el.workspaceCommandTwo);
   bindDashboardActionButton(el.workspaceCommandThree);
