@@ -4067,13 +4067,22 @@ function ensureMountedLiveContextSectionExpanded(container) {
   if (!(container instanceof HTMLElement)) {
     return null;
   }
-  const mountedDetails = container.querySelector(":scope > details.live-context-mounted-section");
-  if (mountedDetails instanceof HTMLDetailsElement) {
-    bindPersistentMountedLiveContextSection(mountedDetails);
-    mountedDetails.open = true;
-    return mountedDetails;
+  const mountedDetails = Array.from(container.querySelectorAll(":scope > details.live-context-mounted-section"));
+  let firstMountedDetail = null;
+  let firstPersistentDetail = null;
+  for (const mountedDetail of mountedDetails) {
+    if (!(mountedDetail instanceof HTMLDetailsElement)) {
+      continue;
+    }
+    firstMountedDetail ??= mountedDetail;
+    if (mountedDetail.dataset.liveContextPersistent !== "true") {
+      continue;
+    }
+    bindPersistentMountedLiveContextSection(mountedDetail);
+    mountedDetail.open = true;
+    firstPersistentDetail ??= mountedDetail;
   }
-  return null;
+  return firstPersistentDetail ?? firstMountedDetail;
 }
 
 function focusLiveContextTrayPrimaryAction(trayId) {
@@ -4252,17 +4261,19 @@ function getLiveContextDockPanelDescriptor(panelKey) {
         ? "\u041a\u043e\u043d\u0442\u0435\u043a\u0441\u0442\u043d\u044b\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b \u0434\u043b\u044f Live"
         : "Context tools for the live lane",
       dockHint: isRu
-        ? "\u0421\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f \u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0436\u0438\u0432\u0443\u0442 \u0432 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u043e\u043c \u0441\u043b\u043e\u0435."
-        : "Approvals and queue stay below the main composer.",
+        ? "\u0421\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f, \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0438 \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430 \u0436\u0438\u0432\u0443\u0442 \u0432 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u043e\u043c \u0441\u043b\u043e\u0435."
+        : "Approvals, queue, and diagnostics stay below the main composer.",
       currentLabel: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0439 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c" : "Open lane: Operator control",
       currentHint: isRu
-        ? "\u041d\u0438\u0436\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u044b \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f, \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0438 recovery."
-        : "Approvals, queue checks, and recovery stay open below.",
+        ? "\u041d\u0438\u0436\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u044b \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f, \u043e\u0447\u0435\u0440\u0435\u0434\u044c, \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430 \u0438 recovery."
+        : "Approvals, queue checks, diagnostics, and recovery stay open below.",
       trayEyebrow: isRu ? "\u041a\u043e\u043d\u0442\u0440\u043e\u043b\u044c" : "Control",
-      trayTitle: isRu ? "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440: \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f \u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c" : "Operator: approvals and queue",
+      trayTitle: isRu
+        ? "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440: \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f, \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0438 \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430"
+        : "Operator: approvals, queue, and diagnostics",
       trayHint: isRu
-        ? "\u0417\u0434\u0435\u0441\u044c \u0436\u0438\u0432\u0443\u0442 \u0440\u0435\u0448\u0435\u043d\u0438\u044f \u043f\u043e \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044e, \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0438 recovery-\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f."
-        : "Approval decisions, queue state, and recovery actions live here.",
+        ? "\u0417\u0434\u0435\u0441\u044c \u0436\u0438\u0432\u0443\u0442 \u0440\u0435\u0448\u0435\u043d\u0438\u044f \u043f\u043e \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044e, \u043e\u0447\u0435\u0440\u0435\u0434\u044c, \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430 \u0438 recovery-\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f."
+        : "Approval decisions, queue state, diagnostics, and recovery actions live here.",
       trayStatusText: controlState.statusText,
       trayStatusVariant: controlState.statusVariant,
       buttonStatusText: controlState.statusText,
@@ -4300,10 +4311,17 @@ function getLiveContextDockPanelDescriptor(panelKey) {
 function mountLiveContextDockPanels() {
   const trayMap = getLiveContextDockTrayMap();
   const mounts = [
-    { key: "workflow", tray: trayMap.workflow, section: el.liveIntentSecondaryShell },
-    { key: "voice", tray: trayMap.voice, section: el.liveUtilitySection },
-    { key: "control", tray: trayMap.control, section: el.liveSupportSection },
-    { key: "more", tray: trayMap.more, section: el.liveInputOptionalToolsSection },
+    { key: "workflow", tray: trayMap.workflow, section: el.liveIntentSecondaryShell, persistent: true, open: true },
+    { key: "voice", tray: trayMap.voice, section: el.liveUtilitySection, persistent: true, open: true },
+    { key: "control", tray: trayMap.control, section: el.liveSupportSection, persistent: true, open: true },
+    {
+      key: "control",
+      tray: trayMap.control,
+      section: el.liveTechnicalTimelineSection,
+      persistent: false,
+      open: false,
+    },
+    { key: "more", tray: trayMap.more, section: el.liveInputOptionalToolsSection, persistent: true, open: true },
   ];
 
   for (const mount of mounts) {
@@ -4316,9 +4334,12 @@ function mountLiveContextDockPanels() {
     mount.section.classList.add("live-context-mounted-section");
     mount.section.hidden = false;
     mount.section.setAttribute("aria-hidden", "false");
+    mount.section.dataset.liveContextPersistent = mount.persistent === true ? "true" : "false";
     if (mount.section instanceof HTMLDetailsElement) {
-      bindPersistentMountedLiveContextSection(mount.section);
-      mount.section.open = true;
+      if (mount.persistent === true) {
+        bindPersistentMountedLiveContextSection(mount.section);
+      }
+      mount.section.open = mount.open !== false;
     }
   }
 }

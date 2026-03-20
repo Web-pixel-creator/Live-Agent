@@ -38,6 +38,10 @@ test("live support dock separates product support from operator tools", () => {
     '"Workflow tools"',
     '"Operator diagnostics"',
     '"Operator approvals & queue"',
+    'section: el.liveTechnicalTimelineSection',
+    'mount.section.dataset.liveContextPersistent = mount.persistent === true ? "true" : "false";',
+    '"Approvals, queue, and diagnostics stay below the main composer."',
+    '"Approval decisions, queue state, diagnostics, and recovery actions live here."',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing live dock separation token: ${token}`);
   }
@@ -48,6 +52,7 @@ test("live support dock separates product support from operator tools", () => {
     ".live-context-dock-legend-hint",
     '.live-context-dock-btn[data-live-context-group="product"]',
     '.live-context-dock-btn[data-live-context-group="operator"]',
+    '.live-context-mounted-section[data-live-context-persistent="false"] > summary',
   ]) {
     assert.ok(stylesSource.includes(token), `styles.css missing live dock separation style token: ${token}`);
   }
@@ -57,15 +62,19 @@ test("live support dock separates product support from operator tools", () => {
     "README should document live dock separation",
   );
   assert.ok(
-    readmeSource.includes("The lower workflow tray now reads as `Workflow tools`, the control lane reads as `Operator approvals & queue`, and the right-rail log reads as `Operator diagnostics`"),
-    "README should document the clearer operator/product copy split",
+    readmeSource.includes(
+      "The lower workflow tray now reads as `Workflow tools`, the control lane now keeps both `Operator approvals & queue` and `Operator diagnostics`, and the right rail stays focused on the latest result plus visible turns",
+    ),
+    "README should document the clearer operator/product rail split",
   );
   assert.ok(
     operatorGuideSource.includes("separates `Product support` (`Workflow`, `Voice`) from `Operator tools` (`Control`, `More`)"),
     "operator guide should document live dock separation",
   );
   assert.ok(
-    operatorGuideSource.includes("Live copy note: the lower workflow tray now reads as `Workflow tools`, the control tray reads as `Operator approvals & queue`, and the right-rail debug block reads as `Operator diagnostics`"),
-    "operator guide should document the clearer operator/product copy split",
+    operatorGuideSource.includes(
+      "Live copy note: the lower workflow tray now reads as `Workflow tools`, the control tray now keeps both `Operator approvals & queue` and `Operator diagnostics`, and the right rail stays focused on the latest result plus visible turns",
+    ),
+    "operator guide should document the clearer operator/product rail split",
   );
 });

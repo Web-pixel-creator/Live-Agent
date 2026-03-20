@@ -19411,6 +19411,10 @@ button:disabled {
   display: none;
 }
 
+.live-context-mounted-section[data-live-context-persistent="false"] > summary {
+  display: grid;
+}
+
 .live-context-tray-panel .live-intent-secondary-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -19433,6 +19437,10 @@ button:disabled {
 }
 
 .live-context-mounted-section.live-support-section {
+  display: block;
+}
+
+.live-context-mounted-section.live-technical-timeline {
   display: block;
 }
 
