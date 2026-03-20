@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("live support dock separates product support from operator tools", () => {
+test("live support dock separates product support from the operator lane", () => {
   const htmlSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "index.html"), "utf8");
   const appSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js"), "utf8");
   const stylesSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "styles.css"), "utf8");
@@ -23,25 +23,32 @@ test("live support dock separates product support from operator tools", () => {
   const workflowBtnIndex = htmlSource.indexOf('id="liveDockWorkflowBtn"');
   const voiceBtnIndex = htmlSource.indexOf('id="liveDockVoiceBtn"');
   const controlBtnIndex = htmlSource.indexOf('id="liveDockControlBtn"');
-  const moreBtnIndex = htmlSource.indexOf('id="liveDockMoreBtn"');
-  assert.ok(workflowBtnIndex !== -1 && voiceBtnIndex !== -1 && controlBtnIndex !== -1 && moreBtnIndex !== -1, "live dock buttons should exist");
+  const openOperatorConsoleBtnIndex = htmlSource.indexOf('id="liveContextOpenOperatorConsoleBtn"');
+  assert.ok(
+    workflowBtnIndex !== -1 && voiceBtnIndex !== -1 && controlBtnIndex !== -1 && openOperatorConsoleBtnIndex !== -1,
+    "live dock buttons and operator console CTA should exist",
+  );
   assert.ok(workflowBtnIndex < controlBtnIndex, "product support buttons should stay before operator tools");
-  assert.ok(voiceBtnIndex < moreBtnIndex, "voice lane should stay before service/operator lanes");
+  assert.ok(voiceBtnIndex < controlBtnIndex, "voice lane should stay before the operator lane");
+  assert.ok(!htmlSource.includes('id="liveDockMoreBtn"'), "legacy More dock button should be removed");
 
   for (const token of [
     'liveContextDockLegendProductTitle: document.getElementById("liveContextDockLegendProductTitle")',
     'liveContextDockLegendOperatorTitle: document.getElementById("liveContextDockLegendOperatorTitle")',
     'liveContextDockLegendProductHint: document.getElementById("liveContextDockLegendProductHint")',
     'liveContextDockLegendOperatorHint: document.getElementById("liveContextDockLegendOperatorHint")',
+    'liveContextOpenOperatorConsoleBtn: document.getElementById("liveContextOpenOperatorConsoleBtn")',
     '"Support & operator"',
-    'Product helpers and operator tools stay below the case workspace.',
+    'Product helpers and the operator lane stay below the case workspace.',
     '"Workflow tools"',
     '"Operator diagnostics"',
     '"Operator approvals & queue"',
     'section: el.liveTechnicalTimelineSection',
+    'section: el.liveInputOptionalToolsSection',
     'mount.section.dataset.liveContextPersistent = mount.persistent === true ? "true" : "false";',
-    '"Approvals, queue, and diagnostics stay below the main composer."',
-    '"Approval decisions, queue state, diagnostics, and recovery actions live here."',
+    '"Approvals, queue, diagnostics, and rare operator tools stay below the main composer."',
+    '"Approval decisions, queue state, diagnostics, recovery actions, and rare extras live here. Open deeper operator surfaces in Operator Console."',
+    'setActiveTab("operator");',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing live dock separation token: ${token}`);
   }
@@ -58,22 +65,22 @@ test("live support dock separates product support from operator tools", () => {
   }
 
   assert.ok(
-    readmeSource.includes("separates `Product support` (`Workflow`, `Voice`) from `Operator tools` (`Control`, `More`)"),
+    readmeSource.includes("separates `Product support` (`Workflow`, `Voice`) from one `Operator lane` (`Control`)"),
     "README should document live dock separation",
   );
   assert.ok(
     readmeSource.includes(
-      "The lower workflow tray now reads as `Workflow tools`, the control lane now keeps both `Operator approvals & queue` and `Operator diagnostics`, and the right rail stays focused on the latest result plus visible turns",
+      "rare `Operator extras` stay nested inside `Control` and deeper operator surfaces open through `Operator Console`",
     ),
     "README should document the clearer operator/product rail split",
   );
   assert.ok(
-    operatorGuideSource.includes("separates `Product support` (`Workflow`, `Voice`) from `Operator tools` (`Control`, `More`)"),
+    operatorGuideSource.includes("separates `Product support` (`Workflow`, `Voice`) from one `Operator lane` (`Control`)"),
     "operator guide should document live dock separation",
   );
   assert.ok(
     operatorGuideSource.includes(
-      "Live copy note: the lower workflow tray now reads as `Workflow tools`, the control tray now keeps both `Operator approvals & queue` and `Operator diagnostics`, and the right rail stays focused on the latest result plus visible turns",
+      "rare `Operator extras` stay nested inside `Control` and deeper governance surfaces open through `Operator Console`",
     ),
     "operator guide should document the clearer operator/product rail split",
   );

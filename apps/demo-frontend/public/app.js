@@ -2984,14 +2984,13 @@ const el = {
   liveContextDockLegendProductHint: document.getElementById("liveContextDockLegendProductHint"),
   liveContextDockLegendOperatorTitle: document.getElementById("liveContextDockLegendOperatorTitle"),
   liveContextDockLegendOperatorHint: document.getElementById("liveContextDockLegendOperatorHint"),
+  liveContextOpenOperatorConsoleBtn: document.getElementById("liveContextOpenOperatorConsoleBtn"),
   liveDockWorkflowBtn: document.getElementById("liveDockWorkflowBtn"),
   liveDockWorkflowState: document.getElementById("liveDockWorkflowState"),
   liveDockVoiceBtn: document.getElementById("liveDockVoiceBtn"),
   liveDockVoiceState: document.getElementById("liveDockVoiceState"),
   liveDockControlBtn: document.getElementById("liveDockControlBtn"),
   liveDockControlState: document.getElementById("liveDockControlState"),
-  liveDockMoreBtn: document.getElementById("liveDockMoreBtn"),
-  liveDockMoreState: document.getElementById("liveDockMoreState"),
   liveContextTrayEyebrow: document.getElementById("liveContextTrayEyebrow"),
   liveContextTrayTitle: document.getElementById("liveContextTrayTitle"),
   liveContextTrayHint: document.getElementById("liveContextTrayHint"),
@@ -3000,7 +2999,6 @@ const el = {
   liveContextTrayWorkflow: document.getElementById("liveContextTrayWorkflow"),
   liveContextTrayVoice: document.getElementById("liveContextTrayVoice"),
   liveContextTrayControl: document.getElementById("liveContextTrayControl"),
-  liveContextTrayMore: document.getElementById("liveContextTrayMore"),
   liveComposeModeChip: document.getElementById("liveComposeModeChip"),
   liveComposeHelper: document.getElementById("liveComposeHelper"),
   messageFieldLabel: document.getElementById("messageFieldLabel"),
@@ -3867,7 +3865,6 @@ const LIVE_CONTEXT_DOCK_PANELS = Object.freeze([
   "workflow",
   "voice",
   "control",
-  "more",
 ]);
 
 function normalizeLiveContextDockPanel(value) {
@@ -3883,7 +3880,6 @@ function getLiveContextDockButtonMap() {
     workflow: el.liveDockWorkflowBtn,
     voice: el.liveDockVoiceBtn,
     control: el.liveDockControlBtn,
-    more: el.liveDockMoreBtn,
   };
 }
 
@@ -3892,7 +3888,6 @@ function getLiveContextDockTrayMap() {
     workflow: el.liveContextTrayWorkflow,
     voice: el.liveContextTrayVoice,
     control: el.liveContextTrayControl,
-    more: el.liveContextTrayMore,
   };
 }
 
@@ -3901,7 +3896,6 @@ function getLiveContextDockStateMap() {
     workflow: el.liveDockWorkflowState,
     voice: el.liveDockVoiceState,
     control: el.liveDockControlState,
-    more: el.liveDockMoreState,
   };
 }
 
@@ -4193,21 +4187,6 @@ function getLiveContextDockPanelDescriptor(panelKey) {
             statusText: isRu ? "\u0436\u0434\u0451\u0442" : "idle",
             statusVariant: "neutral",
           };
-  const moreState = hasRecentExport
-    ? {
-        statusText: isRu ? "\u044d\u043a\u0441\u043f\u043e\u0440\u0442" : "export",
-        statusVariant: "ok",
-      }
-    : state.fallbackAsset
-      ? {
-          statusText: isRu ? "\u0442\u0435\u043a\u0441\u0442" : "text",
-          statusVariant: "neutral",
-        }
-      : {
-          statusText: isRu ? "\u0433\u043e\u0442\u043e\u0432\u043e" : "ready",
-          statusVariant: "neutral",
-        };
-
   const descriptorMap = {
     workflow: {
       dockEyebrow: isRu ? "\u0421\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0439 \u0434\u043e\u043a" : "Utility dock",
@@ -4261,46 +4240,23 @@ function getLiveContextDockPanelDescriptor(panelKey) {
         ? "\u041a\u043e\u043d\u0442\u0435\u043a\u0441\u0442\u043d\u044b\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b \u0434\u043b\u044f Live"
         : "Context tools for the live lane",
       dockHint: isRu
-        ? "\u0421\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f, \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0438 \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430 \u0436\u0438\u0432\u0443\u0442 \u0432 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u043e\u043c \u0441\u043b\u043e\u0435."
-        : "Approvals, queue, and diagnostics stay below the main composer.",
+        ? "\u0421\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f, \u043e\u0447\u0435\u0440\u0435\u0434\u044c, \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430 \u0438 \u0440\u0435\u0434\u043a\u0438\u0435 operator-\u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b \u0436\u0438\u0432\u0443\u0442 \u0432 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u043e\u043c \u0441\u043b\u043e\u0435."
+        : "Approvals, queue, diagnostics, and rare operator tools stay below the main composer.",
       currentLabel: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0439 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c" : "Open lane: Operator control",
       currentHint: isRu
-        ? "\u041d\u0438\u0436\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u044b \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f, \u043e\u0447\u0435\u0440\u0435\u0434\u044c, \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430 \u0438 recovery."
-        : "Approvals, queue checks, diagnostics, and recovery stay open below.",
+        ? "\u041d\u0438\u0436\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u044b \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f, \u043e\u0447\u0435\u0440\u0435\u0434\u044c, \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430, recovery \u0438 \u0440\u0435\u0434\u043a\u0438\u0435 operator-\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f."
+        : "Approvals, queue checks, diagnostics, recovery, and rare operator actions stay open below.",
       trayEyebrow: isRu ? "\u041a\u043e\u043d\u0442\u0440\u043e\u043b\u044c" : "Control",
       trayTitle: isRu
         ? "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440: \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f, \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0438 \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430"
         : "Operator: approvals, queue, and diagnostics",
       trayHint: isRu
-        ? "\u0417\u0434\u0435\u0441\u044c \u0436\u0438\u0432\u0443\u0442 \u0440\u0435\u0448\u0435\u043d\u0438\u044f \u043f\u043e \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044e, \u043e\u0447\u0435\u0440\u0435\u0434\u044c, \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430 \u0438 recovery-\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f."
-        : "Approval decisions, queue state, diagnostics, and recovery actions live here.",
+        ? "\u0417\u0434\u0435\u0441\u044c \u0436\u0438\u0432\u0443\u0442 \u0440\u0435\u0448\u0435\u043d\u0438\u044f \u043f\u043e \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044e, \u043e\u0447\u0435\u0440\u0435\u0434\u044c, \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430, recovery \u0438 rare-use extras. \u0413\u043b\u0443\u0431\u043e\u043a\u0438\u0435 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0435 \u0441\u043b\u043e\u0438 \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u0432 Operator Console."
+        : "Approval decisions, queue state, diagnostics, recovery actions, and rare extras live here. Open deeper operator surfaces in Operator Console.",
       trayStatusText: controlState.statusText,
       trayStatusVariant: controlState.statusVariant,
       buttonStatusText: controlState.statusText,
       buttonStatusVariant: controlState.statusVariant,
-      closeLabel: isRu ? "\u0417\u0430\u043a\u0440\u044b\u0442\u044c" : "Close",
-    },
-    more: {
-      dockEyebrow: isRu ? "\u0421\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0439 \u0434\u043e\u043a" : "Utility dock",
-      dockTitle: isRu
-        ? "\u041a\u043e\u043d\u0442\u0435\u043a\u0441\u0442\u043d\u044b\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b \u0434\u043b\u044f Live"
-        : "Context tools for the live lane",
-      dockHint: isRu
-        ? "\u0420\u0435\u0434\u043a\u0438\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b \u0441\u043a\u0440\u044b\u0442\u044b \u0434\u043e \u043d\u0443\u0436\u043d\u043e\u0433\u043e \u043c\u043e\u043c\u0435\u043d\u0442\u0430."
-        : "Rare tools stay out of the main path.",
-      currentLabel: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442 \u0441\u043b\u043e\u0439 \u00ab\u0415\u0449\u0451\u00bb" : "Open lane: More",
-      currentHint: isRu
-        ? "\u041d\u0438\u0436\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u044b \u0440\u0435\u0434\u043a\u0438\u0435 operator-\u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b."
-        : "Rare operator-side tools are open below.",
-      trayEyebrow: isRu ? "\u0415\u0449\u0451" : "More",
-      trayTitle: isRu ? "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0435 \u044d\u043a\u0441\u0442\u0440\u0430" : "Operator extras",
-      trayHint: isRu
-        ? "\u0417\u0434\u0435\u0441\u044c \u0436\u0438\u0432\u0443\u0442 \u0430\u0443\u0434\u0438\u043e\u0432\u0445\u043e\u0434, \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u043a\u043e\u043c\u0430\u043d\u0434\u044b \u0438 \u0440\u0435\u0434\u043a\u0438\u0435 support-\u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0438."
-        : "Audio input, service actions, and rare support flows live here.",
-      trayStatusText: moreState.statusText,
-      trayStatusVariant: moreState.statusVariant,
-      buttonStatusText: moreState.statusText,
-      buttonStatusVariant: moreState.statusVariant,
       closeLabel: isRu ? "\u0417\u0430\u043a\u0440\u044b\u0442\u044c" : "Close",
     },
   };
@@ -4321,7 +4277,13 @@ function mountLiveContextDockPanels() {
       persistent: false,
       open: false,
     },
-    { key: "more", tray: trayMap.more, section: el.liveInputOptionalToolsSection, persistent: true, open: true },
+    {
+      key: "control",
+      tray: trayMap.control,
+      section: el.liveInputOptionalToolsSection,
+      persistent: false,
+      open: false,
+    },
   ];
 
   for (const mount of mounts) {
@@ -4361,7 +4323,7 @@ function renderLiveContextDock() {
   const activePanelGroup =
     activePanel === "workflow" || activePanel === "voice"
       ? "product"
-      : activePanel === "control" || activePanel === "more"
+      : activePanel === "control"
         ? "operator"
         : null;
 
@@ -4384,8 +4346,8 @@ function renderLiveContextDock() {
   if (el.liveContextDockHint instanceof HTMLElement) {
     el.liveContextDockHint.textContent =
       state.languageMode === "ru"
-        ? "\u041f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435 \u043f\u043e\u043c\u043e\u0449\u043d\u0438\u043a\u0438 \u0438 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b \u0436\u0438\u0432\u0443\u0442 \u043d\u0438\u0436\u0435 \u0440\u0430\u0431\u043e\u0447\u0435\u0439 \u0437\u043e\u043d\u044b."
-        : "Product helpers and operator tools stay below the case workspace.";
+        ? "\u041f\u043e\u043c\u043e\u0449\u043d\u0438\u043a\u0438 \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u0430 \u0438 operator-\u0441\u043b\u043e\u0439 \u0436\u0438\u0432\u0443\u0442 \u043d\u0438\u0436\u0435 \u0440\u0430\u0431\u043e\u0447\u0435\u0439 \u0437\u043e\u043d\u044b."
+        : "Product helpers and the operator lane stay below the case workspace.";
   }
   if (el.liveContextDockCurrentLabel instanceof HTMLElement) {
     el.liveContextDockCurrentLabel.textContent =
@@ -4396,8 +4358,8 @@ function renderLiveContextDock() {
     el.liveContextDockCurrentHint.textContent =
       activeDescriptor?.currentHint ??
       (state.languageMode === "ru"
-        ? "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u043e\u0434\u0438\u043d \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0439 \u0438\u043b\u0438 \u043e\u0434\u0438\u043d \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0439 \u0441\u043b\u043e\u0439 \u0437\u0430 \u0440\u0430\u0437."
-        : "Open one product helper or one operator tool at a time.");
+        ? "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u043e\u0434\u0438\u043d \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0439 \u0438\u043b\u0438 operator-\u0441\u043b\u043e\u0439 \u0437\u0430 \u0440\u0430\u0437."
+        : "Open one product helper or the operator lane at a time.");
   }
   if (el.liveContextDockCurrentState instanceof HTMLElement) {
     setStatusPill(
@@ -4418,13 +4380,17 @@ function renderLiveContextDock() {
   }
   if (el.liveContextDockLegendOperatorTitle instanceof HTMLElement) {
     el.liveContextDockLegendOperatorTitle.textContent =
-      state.languageMode === "ru" ? "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b" : "Operator tools";
+      state.languageMode === "ru" ? "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0439 \u0441\u043b\u043e\u0439" : "Operator lane";
   }
   if (el.liveContextDockLegendOperatorHint instanceof HTMLElement) {
     el.liveContextDockLegendOperatorHint.textContent =
       state.languageMode === "ru"
-        ? "\u0417\u0434\u0435\u0441\u044c \u043e\u0442\u0434\u0435\u043b\u0435\u043d\u044b approvals, \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0437\u0430\u0434\u0430\u0447 \u0438 \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u043b\u0435\u0439\u043d\u044b."
-        : "Approvals, queue control, and service lanes stay separated here.";
+        ? "\u0417\u0434\u0435\u0441\u044c \u0436\u0438\u0432\u0443\u0442 approvals \u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c. \u0413\u043b\u0443\u0431\u0436\u0435 \u0441\u043b\u043e\u0438 \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u0432 Operator Console."
+        : "Approvals and queue control stay here. Open deeper operator surfaces in Operator Console.";
+  }
+  if (el.liveContextOpenOperatorConsoleBtn instanceof HTMLButtonElement) {
+    el.liveContextOpenOperatorConsoleBtn.textContent =
+      state.languageMode === "ru" ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043a\u043e\u043d\u0441\u043e\u043b\u044c \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0430" : "Open Operator Console";
   }
 
   if (el.liveContextTray instanceof HTMLElement) {
@@ -4456,7 +4422,7 @@ function renderLiveContextDock() {
       activeDescriptor?.trayHint ??
       (state.languageMode === "ru"
         ? "\u041e\u0442\u043a\u0440\u043e\u0439 \u043f\u043e\u043c\u043e\u0449\u043d\u0438\u043a \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u0430 \u0438\u043b\u0438 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0439 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442."
-        : "Open a product helper or operator tool.");
+        : "Open a product helper or the operator lane.");
   }
   if (el.liveContextTrayStatus instanceof HTMLElement) {
     setStatusPill(
@@ -33875,6 +33841,12 @@ function bindEvents() {
   if (el.liveContextTrayClose instanceof HTMLButtonElement) {
     el.liveContextTrayClose.addEventListener("click", () => {
       setActiveLiveContextPanel(null, { force: true, restoreFocus: true });
+    });
+  }
+  if (el.liveContextOpenOperatorConsoleBtn instanceof HTMLButtonElement) {
+    el.liveContextOpenOperatorConsoleBtn.addEventListener("click", () => {
+      setActiveLiveContextPanel(null, { force: true });
+      setActiveTab("operator");
     });
   }
   document.addEventListener(

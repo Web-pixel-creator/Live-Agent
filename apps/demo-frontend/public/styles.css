@@ -1121,6 +1121,11 @@
   line-height: 1.4;
 }
 
+.layout[data-active-tab="live-negotiator"] .live-context-dock-legend-action {
+  justify-self: start;
+  margin-top: 2px;
+}
+
 .layout[data-active-tab="live-negotiator"] .live-context-dock-btn[data-live-context-group="product"] {
   border-color: color-mix(in oklch, var(--primary) 26%, var(--border-soft));
 }

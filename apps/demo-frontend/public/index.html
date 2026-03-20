@@ -518,14 +518,14 @@
                     <div>
                       <strong id="liveContextDockTitle" class="live-context-dock-title">Workspace layers</strong>
                       <p id="liveContextDockHint" class="live-context-dock-copy-hint">
-                        Product helpers and operator tools stay below the case workspace.
+                        Product helpers and the operator lane stay below the case workspace.
                       </p>
                     </div>
                   </div>
                   <div class="live-context-dock-current" aria-live="polite">
                     <span id="liveContextDockCurrentLabel" class="live-context-dock-current-label">Active lane</span>
                     <p id="liveContextDockCurrentHint" class="live-context-dock-current-hint">
-                      Open one product helper or one operator tool at a time.
+                      Open one product helper or the operator lane at a time.
                     </p>
                     <span id="liveContextDockCurrentState" class="status-pill status-neutral">standby</span>
                   </div>
@@ -538,10 +538,13 @@
                     </p>
                   </article>
                   <article class="live-context-dock-legend-card">
-                    <span id="liveContextDockLegendOperatorTitle" class="section-badge">Operator tools</span>
+                    <span id="liveContextDockLegendOperatorTitle" class="section-badge">Operator lane</span>
                     <p id="liveContextDockLegendOperatorHint" class="live-context-dock-legend-hint">
-                      Approvals, queue control, and service lanes stay separated here.
+                      Approvals and queue control stay here. Deep operator surfaces open in the console.
                     </p>
+                    <button type="button" id="liveContextOpenOperatorConsoleBtn" class="button-muted live-context-dock-legend-action">
+                      Open Operator Console
+                    </button>
                   </article>
                 </div>
                 <div id="liveContextDock" class="live-context-dock" role="tablist" aria-label="Live contextual tools">
@@ -599,24 +602,6 @@
                     </span>
                     <span class="live-context-dock-hint" data-i18n="live.context.controlHint">Approvals and queue</span>
                   </button>
-                  <button
-                    type="button"
-                    id="liveDockMoreBtn"
-                    class="live-context-dock-btn"
-                    data-live-context-group="operator"
-                    data-live-dock-target="more"
-                    role="tab"
-                    tabindex="-1"
-                    aria-selected="false"
-                    aria-controls="liveContextTrayMore"
-                    aria-expanded="false"
-                  >
-                    <span class="live-context-dock-btn-head">
-                      <span class="live-context-dock-label" data-i18n="live.context.more">More</span>
-                      <span id="liveDockMoreState" class="status-pill status-neutral">ready</span>
-                    </span>
-                    <span class="live-context-dock-hint" data-i18n="live.context.moreHint">Audio and service</span>
-                  </button>
                 </div>
               </section>
               <div id="liveContextTray" class="live-context-tray" hidden>
@@ -626,7 +611,7 @@
                     <div>
                       <strong id="liveContextTrayTitle" class="live-context-tray-title">Choose a lane</strong>
                       <p id="liveContextTrayHint" class="live-context-tray-hint">
-                        Open Workflow, Voice, Control, or More.
+                        Open Workflow, Voice, or Control.
                       </p>
                     </div>
                   </div>
@@ -638,7 +623,6 @@
                 <section id="liveContextTrayWorkflow" class="live-context-tray-panel" data-live-dock-panel="workflow" hidden></section>
                 <section id="liveContextTrayVoice" class="live-context-tray-panel" data-live-dock-panel="voice" hidden></section>
                 <section id="liveContextTrayControl" class="live-context-tray-panel" data-live-dock-panel="control" hidden></section>
-                <section id="liveContextTrayMore" class="live-context-tray-panel" data-live-dock-panel="more" hidden></section>
               </div>
               <details id="liveIntentSecondaryShell" class="live-intent-secondary-shell" open>
                 <summary>
