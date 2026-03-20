@@ -511,30 +511,45 @@
                   </div>
                 </div>
               </div>
-              <section class="live-context-dock-shell" aria-label="Live contextual tools">
+              <section class="live-context-dock-shell" aria-label="Live support and operator tools">
                 <div class="live-context-dock-head">
                   <div class="live-context-dock-copy">
-                    <span id="liveContextDockEyebrow" class="section-badge">Utility dock</span>
+                    <span id="liveContextDockEyebrow" class="section-badge">Support &amp; Operator</span>
                     <div>
-                      <strong id="liveContextDockTitle" class="live-context-dock-title">Live support lanes</strong>
+                      <strong id="liveContextDockTitle" class="live-context-dock-title">Workspace layers</strong>
                       <p id="liveContextDockHint" class="live-context-dock-copy-hint">
-                        Open helpers below the main composer.
+                        Product helpers and operator tools stay below the case workspace.
                       </p>
                     </div>
                   </div>
                   <div class="live-context-dock-current" aria-live="polite">
-                    <span id="liveContextDockCurrentLabel" class="live-context-dock-current-label">Pick a lane</span>
+                    <span id="liveContextDockCurrentLabel" class="live-context-dock-current-label">Active lane</span>
                     <p id="liveContextDockCurrentHint" class="live-context-dock-current-hint">
-                      Open one lane at a time.
+                      Open one product helper or one operator tool at a time.
                     </p>
                     <span id="liveContextDockCurrentState" class="status-pill status-neutral">standby</span>
                   </div>
+                </div>
+                <div class="live-context-dock-legend" aria-label="Dock groups">
+                  <article class="live-context-dock-legend-card">
+                    <span id="liveContextDockLegendProductTitle" class="section-badge">Product support</span>
+                    <p id="liveContextDockLegendProductHint" class="live-context-dock-legend-hint">
+                      Workflow and voice stay here so the case workspace remains product-first.
+                    </p>
+                  </article>
+                  <article class="live-context-dock-legend-card">
+                    <span id="liveContextDockLegendOperatorTitle" class="section-badge">Operator tools</span>
+                    <p id="liveContextDockLegendOperatorHint" class="live-context-dock-legend-hint">
+                      Approvals, queue control, and service lanes stay separated here.
+                    </p>
+                  </article>
                 </div>
                 <div id="liveContextDock" class="live-context-dock" role="tablist" aria-label="Live contextual tools">
                   <button
                     type="button"
                     id="liveDockWorkflowBtn"
                     class="live-context-dock-btn"
+                    data-live-context-group="product"
                     data-live-dock-target="workflow"
                     role="tab"
                     tabindex="0"
@@ -552,6 +567,7 @@
                     type="button"
                     id="liveDockVoiceBtn"
                     class="live-context-dock-btn"
+                    data-live-context-group="product"
                     data-live-dock-target="voice"
                     role="tab"
                     tabindex="-1"
@@ -569,6 +585,7 @@
                     type="button"
                     id="liveDockControlBtn"
                     class="live-context-dock-btn"
+                    data-live-context-group="operator"
                     data-live-dock-target="control"
                     role="tab"
                     tabindex="-1"
@@ -586,6 +603,7 @@
                     type="button"
                     id="liveDockMoreBtn"
                     class="live-context-dock-btn"
+                    data-live-context-group="operator"
                     data-live-dock-target="more"
                     role="tab"
                     tabindex="-1"

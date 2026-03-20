@@ -1097,6 +1097,48 @@
   }
 }
 
+/* 2026-03-20: Stage 3 split between product support and operator tools inside live dock */
+.layout[data-active-tab="live-negotiator"] .live-context-dock-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 10px 0 0;
+}
+
+.layout[data-active-tab="live-negotiator"] .live-context-dock-legend-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 76%, transparent);
+  border-radius: 18px;
+  background: color-mix(in oklch, var(--surface-control) 74%, transparent);
+}
+
+.layout[data-active-tab="live-negotiator"] .live-context-dock-legend-hint {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.layout[data-active-tab="live-negotiator"] .live-context-dock-btn[data-live-context-group="product"] {
+  border-color: color-mix(in oklch, var(--primary) 26%, var(--border-soft));
+}
+
+.layout[data-active-tab="live-negotiator"] .live-context-dock-btn[data-live-context-group="operator"] {
+  border-color: color-mix(in oklch, var(--warning) 20%, var(--border-soft));
+}
+
+.layout[data-active-tab="live-negotiator"] .live-context-dock-btn[data-live-context-group="operator"] .live-context-dock-label {
+  color: color-mix(in oklch, var(--warning) 34%, var(--foreground));
+}
+
+@media (max-width: 900px) {
+  .layout[data-active-tab="live-negotiator"] .live-context-dock-legend {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (min-width: 1180px) {
 /* 2026-03-15 Pass - desktop storyteller studio band and compose-head air refinement */
 .layout.is-story-focused .dashboard-workspace-summary.is-story-minimal {

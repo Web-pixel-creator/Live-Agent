@@ -2974,6 +2974,10 @@ const el = {
   liveContextDockCurrentLabel: document.getElementById("liveContextDockCurrentLabel"),
   liveContextDockCurrentHint: document.getElementById("liveContextDockCurrentHint"),
   liveContextDockCurrentState: document.getElementById("liveContextDockCurrentState"),
+  liveContextDockLegendProductTitle: document.getElementById("liveContextDockLegendProductTitle"),
+  liveContextDockLegendProductHint: document.getElementById("liveContextDockLegendProductHint"),
+  liveContextDockLegendOperatorTitle: document.getElementById("liveContextDockLegendOperatorTitle"),
+  liveContextDockLegendOperatorHint: document.getElementById("liveContextDockLegendOperatorHint"),
   liveDockWorkflowBtn: document.getElementById("liveDockWorkflowBtn"),
   liveDockWorkflowState: document.getElementById("liveDockWorkflowState"),
   liveDockVoiceBtn: document.getElementById("liveDockVoiceBtn"),
@@ -4327,6 +4331,12 @@ function renderLiveContextDock() {
     activePanel === null
       ? null
       : getLiveContextDockPanelDescriptor(activePanel);
+  const activePanelGroup =
+    activePanel === "workflow" || activePanel === "voice"
+      ? "product"
+      : activePanel === "control" || activePanel === "more"
+        ? "operator"
+        : null;
 
   if (el.liveContextDockShell instanceof HTMLElement) {
     el.liveContextDockShell.setAttribute("data-live-context-open", activePanel === null ? "false" : "true");
@@ -4336,31 +4346,31 @@ function renderLiveContextDock() {
   }
   if (el.liveContextDockEyebrow instanceof HTMLElement) {
     el.liveContextDockEyebrow.textContent =
-      state.languageMode === "ru" ? "\u0421\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0439 \u0434\u043e\u043a" : "Utility dock";
+      state.languageMode === "ru" ? "\u041f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430 \u0438 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440" : "Support & operator";
   }
   if (el.liveContextDockTitle instanceof HTMLElement) {
     el.liveContextDockTitle.textContent =
       state.languageMode === "ru"
-        ? "\u0421\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u0441\u043b\u043e\u0438 Live"
-        : "Live support lanes";
+        ? "\u0421\u043b\u043e\u0438 \u0440\u0430\u0431\u043e\u0447\u0435\u0433\u043e \u043c\u0435\u0441\u0442\u0430"
+        : "Workspace layers";
   }
   if (el.liveContextDockHint instanceof HTMLElement) {
     el.liveContextDockHint.textContent =
       state.languageMode === "ru"
-        ? "\u0414\u0435\u0440\u0436\u0438 \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u0441\u043b\u043e\u0438 \u043d\u0430\u0434 \u043a\u043e\u043c\u043f\u043e\u0437\u0435\u0440\u043e\u043c."
-        : "Open helpers below the main composer.";
+        ? "\u041f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435 \u043f\u043e\u043c\u043e\u0449\u043d\u0438\u043a\u0438 \u0438 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b \u0436\u0438\u0432\u0443\u0442 \u043d\u0438\u0436\u0435 \u0440\u0430\u0431\u043e\u0447\u0435\u0439 \u0437\u043e\u043d\u044b."
+        : "Product helpers and operator tools stay below the case workspace.";
   }
   if (el.liveContextDockCurrentLabel instanceof HTMLElement) {
     el.liveContextDockCurrentLabel.textContent =
       activeDescriptor?.currentLabel ??
-      (state.languageMode === "ru" ? "\u0412\u044b\u0431\u0435\u0440\u0438 \u0441\u043b\u043e\u0439" : "Pick a lane");
+      (state.languageMode === "ru" ? "\u0410\u043a\u0442\u0438\u0432\u043d\u044b\u0439 \u0441\u043b\u043e\u0439" : "Active lane");
   }
   if (el.liveContextDockCurrentHint instanceof HTMLElement) {
     el.liveContextDockCurrentHint.textContent =
       activeDescriptor?.currentHint ??
       (state.languageMode === "ru"
-        ? "\u041e\u0442\u043a\u0440\u043e\u0439 \u043e\u0434\u0438\u043d \u0441\u043b\u043e\u0439 \u0437\u0430 \u0440\u0430\u0437."
-        : "Open one lane at a time.");
+        ? "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u043e\u0434\u0438\u043d \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0439 \u0438\u043b\u0438 \u043e\u0434\u0438\u043d \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0439 \u0441\u043b\u043e\u0439 \u0437\u0430 \u0440\u0430\u0437."
+        : "Open one product helper or one operator tool at a time.");
   }
   if (el.liveContextDockCurrentState instanceof HTMLElement) {
     setStatusPill(
@@ -4368,6 +4378,26 @@ function renderLiveContextDock() {
       activeDescriptor?.trayStatusText ?? (state.languageMode === "ru" ? "\u0436\u0434\u0451\u0442" : "idle"),
       activeDescriptor?.trayStatusVariant ?? "neutral",
     );
+  }
+  if (el.liveContextDockLegendProductTitle instanceof HTMLElement) {
+    el.liveContextDockLegendProductTitle.textContent =
+      state.languageMode === "ru" ? "\u041f\u043e\u043c\u043e\u0449\u043d\u0438\u043a\u0438 \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u0430" : "Product support";
+  }
+  if (el.liveContextDockLegendProductHint instanceof HTMLElement) {
+    el.liveContextDockLegendProductHint.textContent =
+      state.languageMode === "ru"
+        ? "\u0417\u0434\u0435\u0441\u044c \u0436\u0438\u0432\u0443\u0442 workflow \u0438 voice, \u0447\u0442\u043e\u0431\u044b \u043a\u0435\u0439\u0441 \u0447\u0438\u0442\u0430\u043b\u0441\u044f \u043a\u0430\u043a \u043f\u0440\u043e\u0434\u0443\u043a\u0442."
+        : "Workflow and voice stay here so the case workspace remains product-first.";
+  }
+  if (el.liveContextDockLegendOperatorTitle instanceof HTMLElement) {
+    el.liveContextDockLegendOperatorTitle.textContent =
+      state.languageMode === "ru" ? "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b" : "Operator tools";
+  }
+  if (el.liveContextDockLegendOperatorHint instanceof HTMLElement) {
+    el.liveContextDockLegendOperatorHint.textContent =
+      state.languageMode === "ru"
+        ? "\u0417\u0434\u0435\u0441\u044c \u043e\u0442\u0434\u0435\u043b\u0435\u043d\u044b approvals, \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0437\u0430\u0434\u0430\u0447 \u0438 \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u043b\u0435\u0439\u043d\u044b."
+        : "Approvals, queue control, and service lanes stay separated here.";
   }
 
   if (el.liveContextTray instanceof HTMLElement) {
@@ -4377,7 +4407,17 @@ function renderLiveContextDock() {
   if (el.liveContextTrayEyebrow instanceof HTMLElement) {
     el.liveContextTrayEyebrow.textContent =
       activeDescriptor?.trayEyebrow ??
-      (state.languageMode === "ru" ? "\u0421\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0439 \u0441\u043b\u043e\u0439" : "Live tray");
+      (activePanelGroup === "operator"
+        ? state.languageMode === "ru"
+          ? "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0439 \u0441\u043b\u043e\u0439"
+          : "Operator tray"
+        : activePanelGroup === "product"
+          ? state.languageMode === "ru"
+            ? "\u041f\u043e\u043c\u043e\u0449\u043d\u0438\u043a \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u0430"
+            : "Product support"
+          : state.languageMode === "ru"
+            ? "\u0421\u043b\u043e\u0439 \u0440\u0430\u0431\u043e\u0447\u0435\u0433\u043e \u043c\u0435\u0441\u0442\u0430"
+            : "Workspace tray");
   }
   if (el.liveContextTrayTitle instanceof HTMLElement) {
     el.liveContextTrayTitle.textContent =
@@ -4388,8 +4428,8 @@ function renderLiveContextDock() {
     el.liveContextTrayHint.textContent =
       activeDescriptor?.trayHint ??
       (state.languageMode === "ru"
-        ? "\u041e\u0442\u043a\u0440\u043e\u0439 Workflow, Voice, Control \u0438\u043b\u0438 More."
-        : "Open Workflow, Voice, Control, or More.");
+        ? "\u041e\u0442\u043a\u0440\u043e\u0439 \u043f\u043e\u043c\u043e\u0449\u043d\u0438\u043a \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u0430 \u0438\u043b\u0438 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0439 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442."
+        : "Open a product helper or operator tool.");
   }
   if (el.liveContextTrayStatus instanceof HTMLElement) {
     setStatusPill(
