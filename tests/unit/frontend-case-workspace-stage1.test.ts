@@ -13,12 +13,15 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   const utilityStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-utility"');
   const composeGridStart = htmlSource.indexOf('class="intent-compose-grid intent-grid-primary"');
   const actionStackStart = htmlSource.indexOf('class="case-workspace-action-stack"');
+  const flowShellStart = htmlSource.indexOf('class="case-workspace-flow-shell"');
 
   assert.ok(mainStart !== -1, "main action section missing from case workspace");
   assert.ok(caseStart !== -1, "case action section missing from case workspace");
   assert.ok(utilityStart !== -1, "utility action section missing from case workspace");
   assert.ok(composeGridStart !== -1, "compose grid missing after grouped actions");
   assert.ok(actionStackStart !== -1, "case-workspace action stack missing");
+  assert.ok(flowShellStart !== -1, "guided flow shell missing from case workspace");
+  assert.ok(flowShellStart < composeGridStart, "guided flow should stay above the compose grid");
   assert.ok(composeGridStart < actionStackStart, "compose grid should stay above the grouped action stack inside the first fold");
   assert.ok(mainStart < caseStart && caseStart < utilityStart, "case-workspace sections should stay ordered main -> case -> utility");
 
@@ -43,8 +46,11 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     'caseWorkspaceNextStepValue: document.getElementById("caseWorkspaceNextStepValue")',
     'caseWorkspaceNextStep: document.getElementById("caseWorkspaceNextStep")',
     'caseWorkspaceCompletedWork: document.getElementById("caseWorkspaceCompletedWork")',
+    'caseWorkspaceFlowActionBtn: document.getElementById("caseWorkspaceFlowActionBtn")',
     "function syncCaseWorkspaceStaticCopy()",
+    "function getCaseWorkspaceFlowState(",
     "function getCaseWorkspaceSnapshot(",
+    "function renderCaseWorkspaceFlow(",
     "function renderCaseWorkspaceSummary(",
   ]) {
     assert.ok(appSource.includes(token), `app.js missing case-workspace runtime token: ${token}`);
@@ -52,6 +58,10 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
 
   for (const token of [
     ".case-workspace-shell",
+    ".case-workspace-flow-shell",
+    ".case-workspace-stepper",
+    ".case-workspace-step",
+    ".case-workspace-flow-card",
     ".case-workspace-hero",
     ".case-workspace-summary-grid",
     ".case-workspace-summary-card",

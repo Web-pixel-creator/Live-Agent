@@ -147,10 +147,72 @@
                     </p>
                   </div>
                   <div class="case-workspace-hero-actions" aria-label="Workspace status">
-                    <span class="case-workspace-hero-chip" data-i18n="live.caseWorkspace.chipReady">Live case ready</span>
-                    <span class="case-workspace-hero-chip" data-i18n="live.caseWorkspace.chipSingle">One case at a time</span>
-                    <span class="case-workspace-hero-chip" data-i18n="live.caseWorkspace.chipApproval">Approval stays visible</span>
+                    <span id="caseWorkspaceHeroChipStatus" class="case-workspace-hero-chip" data-i18n="live.caseWorkspace.chipReady">Live case ready</span>
+                    <span id="caseWorkspaceHeroChipFocus" class="case-workspace-hero-chip" data-i18n="live.caseWorkspace.chipSingle">One case at a time</span>
+                    <span id="caseWorkspaceHeroChipApproval" class="case-workspace-hero-chip" data-i18n="live.caseWorkspace.chipApproval">Approval stays visible</span>
                   </div>
+                </div>
+                <div class="case-workspace-flow-shell" aria-label="Guided case flow">
+                  <div class="case-workspace-stepper" aria-label="Case stages">
+                    <article class="case-workspace-step is-current" data-case-workspace-step="case">
+                      <span class="case-workspace-step-index">1</span>
+                      <div class="case-workspace-step-copy">
+                        <span class="case-workspace-step-title">Case</span>
+                        <span class="case-workspace-step-status" data-case-workspace-step-status="case">Start here</span>
+                      </div>
+                    </article>
+                    <article class="case-workspace-step" data-case-workspace-step="documents">
+                      <span class="case-workspace-step-index">2</span>
+                      <div class="case-workspace-step-copy">
+                        <span class="case-workspace-step-title">Documents</span>
+                        <span class="case-workspace-step-status" data-case-workspace-step-status="documents">Next</span>
+                      </div>
+                    </article>
+                    <article class="case-workspace-step" data-case-workspace-step="consultation">
+                      <span class="case-workspace-step-index">3</span>
+                      <div class="case-workspace-step-copy">
+                        <span class="case-workspace-step-title">Consultation</span>
+                        <span class="case-workspace-step-status" data-case-workspace-step-status="consultation">Later</span>
+                      </div>
+                    </article>
+                    <article class="case-workspace-step" data-case-workspace-step="crm">
+                      <span class="case-workspace-step-index">4</span>
+                      <div class="case-workspace-step-copy">
+                        <span class="case-workspace-step-title">CRM</span>
+                        <span class="case-workspace-step-status" data-case-workspace-step-status="crm">Later</span>
+                      </div>
+                    </article>
+                    <article class="case-workspace-step" data-case-workspace-step="handoff">
+                      <span class="case-workspace-step-index">5</span>
+                      <div class="case-workspace-step-copy">
+                        <span class="case-workspace-step-title">Handoff</span>
+                        <span class="case-workspace-step-status" data-case-workspace-step-status="handoff">Later</span>
+                      </div>
+                    </article>
+                  </div>
+                  <article class="case-workspace-flow-card">
+                    <div class="case-workspace-summary-head">
+                      <span id="caseWorkspaceFlowBadge" class="section-badge">Guided flow</span>
+                      <span id="caseWorkspaceFlowPill" class="status-pill status-neutral">Step 1 of 5</span>
+                    </div>
+                    <h3 id="caseWorkspaceFlowTitle" class="case-workspace-flow-title">Start the case</h3>
+                    <p id="caseWorkspaceFlowDescription" class="case-workspace-summary-copy">
+                      Begin with the intake, collect the lead details, and move the case to the next verified step.
+                    </p>
+                    <div class="case-workspace-flow-actions">
+                      <button
+                        id="caseWorkspaceFlowActionBtn"
+                        type="button"
+                        class="live-compose-preset-btn"
+                        data-dashboard-action="run_visa_intake_demo"
+                      >
+                        Start New Visa Case
+                      </button>
+                      <p id="caseWorkspaceFlowHint" class="case-workspace-flow-hint">
+                        Use the guided action to move the workspace to the next recommended step.
+                      </p>
+                    </div>
+                  </article>
                 </div>
                 <div class="case-workspace-summary-grid">
                   <article class="case-workspace-summary-card case-workspace-summary-current">

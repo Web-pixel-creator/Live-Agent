@@ -58,6 +58,11 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
 
   const requiredHtmlTokens = [
     'class="case-workspace-shell"',
+    'class="case-workspace-flow-shell"',
+    'class="case-workspace-stepper"',
+    'data-case-workspace-step="case"',
+    'id="caseWorkspaceFlowTitle"',
+    'id="caseWorkspaceFlowActionBtn"',
     'id="caseWorkspaceClient"',
     'id="caseWorkspaceStatus"',
     'id="caseWorkspaceNextStepValue"',
@@ -102,6 +107,9 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
 
   const requiredStyleTokens = [
     ".case-workspace-shell",
+    ".case-workspace-flow-shell",
+    ".case-workspace-stepper",
+    ".case-workspace-flow-card",
     ".case-workspace-summary-grid",
     ".case-workspace-action-stack",
     ".case-workspace-action-section",

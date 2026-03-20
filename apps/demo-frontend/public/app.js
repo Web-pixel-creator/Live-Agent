@@ -3011,6 +3011,12 @@ const el = {
   caseWorkspaceStatusPill: document.getElementById("caseWorkspaceStatusPill"),
   caseWorkspaceNextStepPill: document.getElementById("caseWorkspaceNextStepPill"),
   caseWorkspaceCompletedPill: document.getElementById("caseWorkspaceCompletedPill"),
+  caseWorkspaceFlowBadge: document.getElementById("caseWorkspaceFlowBadge"),
+  caseWorkspaceFlowPill: document.getElementById("caseWorkspaceFlowPill"),
+  caseWorkspaceFlowTitle: document.getElementById("caseWorkspaceFlowTitle"),
+  caseWorkspaceFlowDescription: document.getElementById("caseWorkspaceFlowDescription"),
+  caseWorkspaceFlowActionBtn: document.getElementById("caseWorkspaceFlowActionBtn"),
+  caseWorkspaceFlowHint: document.getElementById("caseWorkspaceFlowHint"),
   sendBtn: document.getElementById("sendBtn"),
   runVisaDemoBtn: document.getElementById("runVisaDemoBtn"),
   reviewVisaResultBtn: document.getElementById("reviewVisaResultBtn"),
@@ -5224,6 +5230,61 @@ function buildCaseWorkspaceCompletedWorkText(summaryConfig) {
   return parts.join(" • ").trim();
 }
 
+const CASE_WORKSPACE_FLOW_STEPS = ["case", "documents", "consultation", "crm", "handoff"];
+
+function getCaseWorkspaceStepTitle(stepKey, isRu) {
+  switch (stepKey) {
+    case "case":
+      return isRu ? "Кейс" : "Case";
+    case "documents":
+      return isRu ? "Документы" : "Documents";
+    case "consultation":
+      return isRu ? "Консультация" : "Consultation";
+    case "crm":
+      return "CRM";
+    case "handoff":
+      return isRu ? "Передача" : "Handoff";
+    default:
+      return stepKey;
+  }
+}
+
+function getCaseWorkspaceStepStateLabel(stepState, isRu) {
+  switch (stepState) {
+    case "complete":
+      return isRu ? "Готово" : "Done";
+    case "current":
+      return isRu ? "Сейчас" : "Current";
+    default:
+      return isRu ? "Дальше" : "Next";
+  }
+}
+
+function getDashboardActionButtonText(actionId, fallbackText = "") {
+  const actionButtonMap = {
+    run_visa_intake_demo: el.runVisaDemoBtn,
+    review_visa_draft_result: el.reviewVisaResultBtn,
+    run_visa_follow_up_demo: el.runVisaFollowUpBtn,
+    review_visa_follow_up_result: el.reviewVisaFollowUpResultBtn,
+    run_visa_reminder_demo: el.runVisaReminderBtn,
+    review_visa_reminder_result: el.reviewVisaReminderResultBtn,
+    run_visa_handoff_demo: el.runVisaHandoffBtn,
+    review_visa_handoff_result: el.reviewVisaHandoffResultBtn,
+    run_visa_escalation_demo: el.runVisaEscalationBtn,
+    review_visa_escalation_result: el.reviewVisaEscalationResultBtn,
+    reset_visa_demo: el.resetVisaDemoBtn,
+  };
+
+  const sourceButton = actionButtonMap[actionId];
+  if (sourceButton instanceof HTMLButtonElement) {
+    const text = sourceButton.textContent?.trim();
+    if (typeof text === "string" && text.length > 0) {
+      return text;
+    }
+  }
+  return fallbackText;
+}
+
 function syncCaseWorkspaceStaticCopy() {
   const isRu = state.languageMode === "ru";
   const textBySelector = new Map([
@@ -5278,6 +5339,196 @@ function syncCaseWorkspaceStaticCopy() {
     if (node instanceof HTMLElement) {
       node.textContent = text;
     }
+  }
+}
+
+function getCaseWorkspaceFlowState(awaitingFreshResponse) {
+  const isRu = state.languageMode === "ru";
+  const buildFlowState = ({
+    currentStep,
+    completedCount,
+    title,
+    description,
+    hint,
+    actionId,
+    fallbackActionLabel,
+    actionDisabled = false,
+    pillText,
+    pillTone = "neutral",
+  }) => ({
+    currentStep,
+    completedCount,
+    title,
+    description,
+    hint,
+    actionId,
+    actionLabel: getDashboardActionButtonText(actionId, fallbackActionLabel),
+    actionDisabled,
+    pillText,
+    pillTone,
+  });
+
+  if (awaitingFreshResponse && typeof state.liveDemoScenario !== "string") {
+    return buildFlowState({
+      currentStep: "case",
+      completedCount: 0,
+      title: isRu ? "Дождитесь текущего ответа" : "Wait for the active response",
+      description: isRu
+        ? "Сейчас открыт обычный live-запрос. Дождитесь ответа справа, затем вернитесь к следующему шагу кейса."
+        : "A plain live request is active right now. Let the answer land on the right, then continue the guided case flow.",
+      hint: isRu ? "Пока идёт запрос, рабочая зона не предлагает новый шаг." : "While the request is active, the workspace holds the next guided action.",
+      actionId: "",
+      fallbackActionLabel: isRu ? "Ждём ответ" : "Waiting for response",
+      actionDisabled: true,
+      pillText: isRu ? "В процессе" : "In progress",
+    });
+  }
+
+  switch (state.liveDemoScenario) {
+    case "visa_intake_draft":
+      return buildFlowState({
+        currentStep: "case",
+        completedCount: 0,
+        title: isRu ? "Завершите intake и зафиксируйте кейс" : "Finish the intake and lock the case",
+        description: isRu
+          ? "Черновик intake уже готов. Откройте итог заявки, чтобы закрыть первый шаг и перейти к документам."
+          : "The intake draft is already prepared. Open the intake result to close step one and unlock the document follow-up.",
+        hint: isRu ? "Первый шаг заканчивается подтверждённым итогом заявки." : "Step one is complete only after the protected intake result is confirmed.",
+        actionId: "review_visa_draft_result",
+        fallbackActionLabel: isRu ? "Открыть итог заявки" : "Open intake result",
+        pillText: isRu ? "Шаг 1 из 5" : "Step 1 of 5",
+      });
+    case "visa_result":
+      return buildFlowState({
+        currentStep: "documents",
+        completedCount: 1,
+        title: isRu ? "Теперь соберите недостающие документы" : "Collect the missing documents next",
+        description: isRu
+          ? "Intake уже завершён. Следующий узкий блокер кейса — запросить недостающие документы у клиента."
+          : "The intake is done. The next concrete blocker is the missing-document follow-up for the client.",
+        hint: isRu ? "После follow-up рабочая зона переведёт кейс к напоминанию о консультации." : "After the document follow-up, the workspace will move the case to the consultation reminder.",
+        actionId: "run_visa_follow_up_demo",
+        fallbackActionLabel: isRu ? "Запросить документы" : "Request missing documents",
+        pillText: isRu ? "Шаг 2 из 5" : "Step 2 of 5",
+      });
+    case "visa_follow_up_draft":
+      return buildFlowState({
+        currentStep: "documents",
+        completedCount: 1,
+        title: isRu ? "Закройте follow-up по документам" : "Close the document follow-up",
+        description: isRu
+          ? "Сообщение о недостающих документах уже собрано. Откройте итог follow-up, чтобы зафиксировать завершение шага."
+          : "The missing-document message is already prepared. Open the follow-up result to lock this step as complete.",
+        hint: isRu ? "Пока follow-up не зафиксирован, напоминание о консультации остаётся следующим шагом." : "Until the follow-up is confirmed, the consultation reminder stays blocked behind it.",
+        actionId: "review_visa_follow_up_result",
+        fallbackActionLabel: isRu ? "Открыть итог follow-up" : "Open follow-up result",
+        pillText: isRu ? "Шаг 2 из 5" : "Step 2 of 5",
+      });
+    case "visa_follow_up_result":
+      return buildFlowState({
+        currentStep: "consultation",
+        completedCount: 2,
+        title: isRu ? "Подготовьте консультацию" : "Prepare the consultation next",
+        description: isRu
+          ? "Документы уже запрошены. Следующий шаг — собрать напоминание о консультации и список подготовки."
+          : "The document chase is done. The next step is the consultation reminder with the preparation checklist.",
+        hint: isRu ? "Консультационный шаг закрывает подготовку клиента перед CRM и handoff." : "The consultation step finishes the client-facing preparation before CRM work and handoff.",
+        actionId: "run_visa_reminder_demo",
+        fallbackActionLabel: isRu ? "Подготовить напоминание" : "Prepare consultation reminder",
+        pillText: isRu ? "Шаг 3 из 5" : "Step 3 of 5",
+      });
+    case "visa_reminder_draft":
+      return buildFlowState({
+        currentStep: "consultation",
+        completedCount: 2,
+        title: isRu ? "Подтвердите итог напоминания" : "Confirm the reminder result",
+        description: isRu
+          ? "Напоминание уже подготовлено. Откройте итог напоминания, чтобы завершить консультационный шаг."
+          : "The consultation reminder is ready. Open the reminder result to close this stage cleanly.",
+        hint: isRu ? "После подтверждения рабочая зона переведёт кейс к CRM." : "Once the reminder is confirmed, the workspace will move to CRM writeback.",
+        actionId: "review_visa_reminder_result",
+        fallbackActionLabel: isRu ? "Открыть итог напоминания" : "Open reminder result",
+        pillText: isRu ? "Шаг 3 из 5" : "Step 3 of 5",
+      });
+    case "visa_reminder_result":
+      return buildFlowState({
+        currentStep: "crm",
+        completedCount: 3,
+        title: isRu ? "Подготовьте обновление CRM" : "Prepare the CRM update",
+        description: isRu
+          ? "Клиентский контур уже закрыт. Теперь рабочая зона должна обновить CRM и сохранить handoff-след."
+          : "The client-facing work is done. Now the workspace should update CRM and preserve the operator handoff trail.",
+        hint: isRu ? "CRM-шаг фиксирует владельца кейса, заметку и следующий операторский шаг." : "The CRM step records the owner, note, and next operator move before human handoff.",
+        actionId: "run_visa_handoff_demo",
+        fallbackActionLabel: isRu ? "Подготовить обновление CRM" : "Prepare CRM update",
+        pillText: isRu ? "Шаг 4 из 5" : "Step 4 of 5",
+      });
+    case "visa_handoff_draft":
+      return buildFlowState({
+        currentStep: "crm",
+        completedCount: 3,
+        title: isRu ? "Закройте CRM-шаг" : "Close the CRM step",
+        description: isRu
+          ? "CRM-черновик уже собран. Откройте итог CRM, чтобы зафиксировать writeback и открыть handoff."
+          : "The CRM draft is already assembled. Open the CRM result to confirm the writeback and unlock handoff.",
+        hint: isRu ? "После CRM кейс можно передавать специалисту только если review всё ещё нужен." : "After CRM, escalate only when the case still needs specialist review.",
+        actionId: "review_visa_handoff_result",
+        fallbackActionLabel: isRu ? "Открыть итог CRM" : "Open CRM result",
+        pillText: isRu ? "Шаг 4 из 5" : "Step 4 of 5",
+      });
+    case "visa_handoff_result":
+      return buildFlowState({
+        currentStep: "handoff",
+        completedCount: 4,
+        title: isRu ? "Передайте кейс специалисту, если review всё ещё нужен" : "Hand the case to a specialist if review is still needed",
+        description: isRu
+          ? "CRM уже обновлена. Последний шаг — контролируемая передача человеку, если кейс требует углублённой проверки."
+          : "CRM is already updated. The last step is a controlled human handoff if the case still needs deeper review.",
+        hint: isRu ? "Если эскалация не нужна, можно просто скопировать итоговую сводку и продолжить вручную." : "If escalation is unnecessary, copy the operator summary and continue the case manually.",
+        actionId: "run_visa_escalation_demo",
+        fallbackActionLabel: isRu ? "Передать специалисту" : "Escalate to specialist",
+        pillText: isRu ? "Шаг 5 из 5" : "Step 5 of 5",
+      });
+    case "visa_escalation_draft":
+      return buildFlowState({
+        currentStep: "handoff",
+        completedCount: 4,
+        title: isRu ? "Подтвердите передачу специалисту" : "Confirm the specialist handoff",
+        description: isRu
+          ? "Передача уже подготовлена. Откройте итог передачи, чтобы закрыть финальный шаг кейса."
+          : "The specialist handoff is ready. Open the escalation result to close the final case step.",
+        hint: isRu ? "Финальный шаг заканчивается подтверждённым human handoff и summary для оператора." : "The final step ends with a verified human handoff and a copy-ready operator summary.",
+        actionId: "review_visa_escalation_result",
+        fallbackActionLabel: isRu ? "Открыть итог передачи" : "Open escalation result",
+        pillText: isRu ? "Шаг 5 из 5" : "Step 5 of 5",
+      });
+    case "visa_escalation_result":
+      return buildFlowState({
+        currentStep: "handoff",
+        completedCount: CASE_WORKSPACE_FLOW_STEPS.length,
+        title: isRu ? "Кейс полностью проведён по процессу" : "The case finished the full guided flow",
+        description: isRu
+          ? "Кейс прошёл intake, документы, консультацию, CRM и handoff. Теперь можно начать заново или продолжить работу уже вручную."
+          : "The case cleared intake, documents, consultation, CRM, and handoff. You can now restart the workspace or continue manually with the human owner.",
+        hint: isRu ? "Используйте summary справа как передачу в CRM, Slack или почту." : "Use the summary on the right as the handoff note for CRM, Slack, or email.",
+        actionId: "reset_visa_demo",
+        fallbackActionLabel: isRu ? "Начать заново" : "Start over",
+        pillText: isRu ? "Готово" : "Flow complete",
+        pillTone: "ok",
+      });
+    default:
+      return buildFlowState({
+        currentStep: "case",
+        completedCount: 0,
+        title: isRu ? "Начните с intake по новому кейсу" : "Start with a new case intake",
+        description: isRu
+          ? "Рабочая зона проведёт кейс по шагам: intake, документы, консультация, CRM и передача специалисту."
+          : "The workspace will move the case through intake, documents, consultation, CRM, and specialist handoff.",
+        hint: isRu ? "Сгруппированные действия ниже остаются быстрыми шорткатами, но guided flow показывает лучший следующий шаг." : "The grouped actions below still work as shortcuts, but the guided flow shows the best next move.",
+        actionId: "run_visa_intake_demo",
+        fallbackActionLabel: isRu ? "Новый кейс" : "Start new case",
+        pillText: isRu ? "Шаг 1 из 5" : "Step 1 of 5",
+      });
   }
 }
 
@@ -5505,6 +5756,67 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
       };
     default:
       return defaultSnapshot;
+  }
+}
+
+function renderCaseWorkspaceFlow(awaitingFreshResponse) {
+  const flowState = getCaseWorkspaceFlowState(awaitingFreshResponse);
+  const allStepsComplete = flowState.completedCount >= CASE_WORKSPACE_FLOW_STEPS.length;
+  const isRu = state.languageMode === "ru";
+
+  for (const stepNode of document.querySelectorAll("[data-case-workspace-step]")) {
+    if (!(stepNode instanceof HTMLElement)) {
+      continue;
+    }
+    const stepKey = stepNode.dataset.caseWorkspaceStep ?? "";
+    const stepIndex = CASE_WORKSPACE_FLOW_STEPS.indexOf(stepKey);
+    if (stepIndex < 0) {
+      continue;
+    }
+
+    const isComplete = allStepsComplete || stepIndex < flowState.completedCount;
+    const isCurrent = !allStepsComplete && stepKey === flowState.currentStep;
+    stepNode.classList.toggle("is-complete", isComplete);
+    stepNode.classList.toggle("is-current", isCurrent);
+    stepNode.classList.toggle("is-upcoming", !isComplete && !isCurrent);
+
+    const titleNode = stepNode.querySelector(".case-workspace-step-title");
+    if (titleNode instanceof HTMLElement) {
+      titleNode.textContent = getCaseWorkspaceStepTitle(stepKey, isRu);
+    }
+    const statusNode = stepNode.querySelector("[data-case-workspace-step-status]");
+    if (statusNode instanceof HTMLElement) {
+      statusNode.textContent = getCaseWorkspaceStepStateLabel(
+        isComplete ? "complete" : isCurrent ? "current" : "upcoming",
+        isRu,
+      );
+    }
+  }
+
+  if (el.caseWorkspaceFlowBadge instanceof HTMLElement) {
+    el.caseWorkspaceFlowBadge.textContent = isRu ? "Пошаговый путь" : "Guided flow";
+  }
+  if (el.caseWorkspaceFlowTitle instanceof HTMLElement) {
+    el.caseWorkspaceFlowTitle.textContent = flowState.title;
+  }
+  if (el.caseWorkspaceFlowDescription instanceof HTMLElement) {
+    el.caseWorkspaceFlowDescription.textContent = flowState.description;
+  }
+  if (el.caseWorkspaceFlowHint instanceof HTMLElement) {
+    el.caseWorkspaceFlowHint.textContent = flowState.hint;
+  }
+  if (el.caseWorkspaceFlowPill instanceof HTMLElement) {
+    setStatusPill(el.caseWorkspaceFlowPill, flowState.pillText, flowState.pillTone);
+  }
+  if (el.caseWorkspaceFlowActionBtn instanceof HTMLButtonElement) {
+    el.caseWorkspaceFlowActionBtn.textContent = flowState.actionLabel;
+    if (flowState.actionDisabled || typeof flowState.actionId !== "string" || flowState.actionId.length === 0) {
+      el.caseWorkspaceFlowActionBtn.disabled = true;
+      delete el.caseWorkspaceFlowActionBtn.dataset.dashboardAction;
+    } else {
+      el.caseWorkspaceFlowActionBtn.disabled = false;
+      el.caseWorkspaceFlowActionBtn.dataset.dashboardAction = flowState.actionId;
+    }
   }
 }
 
@@ -15364,6 +15676,7 @@ function renderLiveIntentExperience() {
   const summaryConfig = getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult);
 
   renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaitingFreshResponse, summaryConfig);
+  renderCaseWorkspaceFlow(awaitingFreshResponse);
 
   if (el.liveResultLabel instanceof HTMLElement) {
     el.liveResultLabel.textContent = config.resultLabel;
@@ -33692,6 +34005,7 @@ function bindEvents() {
   bindDashboardActionButton(el.sidebarQuickTranslateBtn);
   bindDashboardActionButton(el.sidebarStoryLaunchBtn);
   bindDashboardActionButton(el.sidebarOpsRefreshBtn);
+  bindDashboardActionButton(el.caseWorkspaceFlowActionBtn);
   bindDashboardActionButton(el.runVisaDemoBtn);
   bindDashboardActionButton(el.reviewVisaResultBtn);
   bindDashboardActionButton(el.runVisaFollowUpBtn);

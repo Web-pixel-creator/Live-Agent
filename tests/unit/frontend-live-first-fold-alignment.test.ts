@@ -17,9 +17,11 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   const operatorGuideSource = readFileSync(operatorGuidePath, "utf8");
 
   const caseWorkspaceShellIndex = htmlSource.indexOf('class="case-workspace-shell"');
+  const flowShellIndex = htmlSource.indexOf('class="case-workspace-flow-shell"');
   const currentCaseIndex = htmlSource.indexOf('id="caseWorkspaceClient"');
   const nextStepIndex = htmlSource.indexOf('id="caseWorkspaceNextStep"');
   const completedWorkIndex = htmlSource.indexOf('id="caseWorkspaceCompletedWork"');
+  const summaryGridIndex = htmlSource.indexOf('class="case-workspace-summary-grid"');
   const actionStackIndex = htmlSource.indexOf('class="case-workspace-action-stack"');
   const mainSectionIndex = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-main"');
   const caseSectionIndex = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-case"');
@@ -29,9 +31,11 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   const trayIndex = htmlSource.indexOf('id="liveContextTray"');
 
   assert.ok(caseWorkspaceShellIndex !== -1, "frontend html missing case workspace shell");
+  assert.ok(flowShellIndex !== -1, "frontend html missing guided flow shell");
   assert.ok(currentCaseIndex !== -1, "frontend html missing current case summary");
   assert.ok(nextStepIndex !== -1, "frontend html missing next-step summary");
   assert.ok(completedWorkIndex !== -1, "frontend html missing completed-work summary");
+  assert.ok(summaryGridIndex !== -1, "frontend html missing case-workspace summary grid");
   assert.ok(actionStackIndex !== -1, "frontend html missing grouped case workspace actions");
   assert.ok(mainSectionIndex !== -1, "frontend html missing main action section");
   assert.ok(caseSectionIndex !== -1, "frontend html missing case-action section");
@@ -41,6 +45,7 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   assert.ok(trayIndex !== -1, "frontend html missing live support tray");
 
   assert.ok(caseWorkspaceShellIndex < composeShellIndex, "case workspace shell should open the first fold");
+  assert.ok(flowShellIndex < summaryGridIndex, "guided flow should lead into the summary cards");
   assert.ok(currentCaseIndex < nextStepIndex, "current case should appear before next-step guidance");
   assert.ok(nextStepIndex < completedWorkIndex, "completed work should trail the current-case guidance");
   assert.ok(actionStackIndex < dockIndex, "grouped actions should stay above the support dock");
@@ -48,6 +53,14 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   assert.ok(caseSectionIndex < utilitySectionIndex, "utility actions should stay after case actions");
   assert.ok(dockIndex < trayIndex, "support tray should stay attached to the dock after the compose shell");
 
+  assert.ok(
+    htmlSource.includes('id="caseWorkspaceFlowTitle"'),
+    "frontend html should expose the guided-flow card title",
+  );
+  assert.ok(
+    htmlSource.includes('id="caseWorkspaceFlowActionBtn"'),
+    "frontend html should expose the guided-flow CTA",
+  );
   assert.ok(
     htmlSource.includes('data-i18n="live.caseWorkspace.title"'),
     "frontend html should expose a case-workspace title hook",
@@ -57,12 +70,36 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
     "frontend html should expose grouped main actions in the first fold",
   );
   assert.ok(
+    appSource.includes('caseWorkspaceFlowActionBtn: document.getElementById("caseWorkspaceFlowActionBtn")'),
+    "frontend runtime should bind the guided-flow CTA",
+  );
+  assert.ok(
+    appSource.includes("function getCaseWorkspaceFlowState("),
+    "frontend runtime should derive a guided flow state for the first fold",
+  );
+  assert.ok(
+    appSource.includes("function renderCaseWorkspaceFlow("),
+    "frontend runtime should render the guided flow card and stepper",
+  );
+  assert.ok(
     appSource.includes('caseWorkspaceClient: document.getElementById("caseWorkspaceClient")'),
     "frontend runtime should bind the current-case summary nodes",
   );
   assert.ok(
     appSource.includes("function renderCaseWorkspaceSummary("),
     "frontend runtime should render the case-workspace state",
+  );
+  assert.ok(
+    stylesSource.includes(".case-workspace-flow-shell"),
+    "frontend styles should define the guided flow shell",
+  );
+  assert.ok(
+    stylesSource.includes(".case-workspace-stepper"),
+    "frontend styles should define the case stepper",
+  );
+  assert.ok(
+    stylesSource.includes(".case-workspace-flow-card"),
+    "frontend styles should define the guided flow card",
   );
   assert.ok(
     stylesSource.includes(".case-workspace-shell"),
