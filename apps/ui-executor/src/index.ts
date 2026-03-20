@@ -705,6 +705,11 @@ function staleGroundingRefError(refId: string): Error {
   return new Error(`Refresh snapshot and rerun. Grounding ref ${refId} is stale on the current page.`);
 }
 
+function isVirtualVerifyTarget(target: string): boolean {
+  const normalized = target.trim().toLowerCase();
+  return normalized === "initial-screen" || normalized === "post-action-screen";
+}
+
 async function assertResolvedActionTarget(
   page: PlaywrightPageHandle,
   selector: string,
@@ -979,6 +984,11 @@ async function executeWithPlaywright(
       } else if (action.type === "wait") {
         await page.waitForTimeout(300);
       } else if (action.type === "verify") {
+        if (isVirtualVerifyTarget(action.target)) {
+          await page.waitForTimeout(120);
+          observation = `${action.target.toLowerCase()} observed`;
+          return observation;
+        }
         if (resolvedTarget.selector) {
           await page.waitForSelector(resolvedTarget.selector, {
             timeout: config.actionTimeoutMs,

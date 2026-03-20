@@ -26,6 +26,47 @@ npm run dev:frontend
 
 Frontend: `http://localhost:3000`
 
+## Dev Cost Profiles
+
+Use the repo-owned profile switcher when you want to lower Gemini spend during
+local development without hand-editing `.env`.
+
+Cheap local dev profile:
+
+```bash
+npm run profile:dev:cheap
+```
+
+This keeps the main text path on `gemini-3.1-flash-lite-preview`, moves
+Storyteller to `STORYTELLER_MEDIA_MODE=fallback`, and pins the UI/Reasoning
+planner lanes to `gemini-3.1-flash-lite-preview`. It also sets
+`STORYTELLER_USE_GEMINI_PLANNER=false` and
+`UI_NAVIGATOR_USE_GEMINI_PLANNER=false` so local demo flows stay
+deterministic and do not spend tokens on planner calls.
+
+Restore the richer local demo profile:
+
+```bash
+npm run profile:dev:full-demo
+```
+
+This restores `STORYTELLER_USE_GEMINI_PLANNER=true` and
+`UI_NAVIGATOR_USE_GEMINI_PLANNER=true`.
+
+After switching profiles, restart the affected local services:
+
+In local demo testing, the draft buttons such as `Start New Visa Case`,
+`Request Missing Documents`, and `Prepare Consultation Reminder` stop before
+the final protected step by design. Use the matching `See ... Summary` buttons
+to show the approved end state on the right.
+The reminder, CRM, and escalation presets are button-driven fixtures, so keep
+their preset-provided `refMap` / grounding payload intact when testing the
+cheap profile instead of falling back to generic intake form fields.
+
+1. `npm run dev:orchestrator`
+2. `npm run dev:storyteller-agent` when running it separately
+3. `npm run dev:ui-agent` when running it separately
+
 Current baseline note: `dev:orchestrator` already links the repo-owned domain agents in-process (`live-agent`, `storyteller-agent`, `ui-navigator-agent`), so the separate `npm run dev:live-agent`, `npm run dev:storyteller-agent`, and `npm run dev:ui-agent` scripts are optional isolated-debug entrypoints rather than required quick-start services.
 
 ## UI Executor Runtime Notes

@@ -629,6 +629,17 @@ const ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA = Object.freeze({
   employer: "Northlight Studio",
   start_date: "2026-06-15",
 });
+const ACTIVE_TASK_VISA_INTAKE_DEMO_DOM_SNAPSHOT =
+  "<main><form id='visa-intake-form'><input name='full_name' /><input name='email' /><input name='destination_country' /><input name='relocation_city' /><input name='visa_type' /><input name='passport_number' /><button id='submit-intake' type='submit'>Submit intake draft</button><button id='preview-intake' type='button'>Preview intake card</button></form></main>";
+const ACTIVE_TASK_VISA_INTAKE_DEMO_ACCESSIBILITY_TREE =
+  "main > form[name=visa intake form] > textbox[name=full_name] > textbox[name=email] > textbox[name=destination_country] > textbox[name=relocation_city] > textbox[name=visa_type] > textbox[name=passport_number] > button[name=Submit intake draft] > button[name=Preview intake card]";
+const ACTIVE_TASK_VISA_INTAKE_DEMO_MARK_HINTS = Object.freeze([
+  "full_name_field@(120,120)",
+  "email_field@(120,172)",
+  "destination_country_field@(420,172)",
+  "submit_button@(420,520)",
+  "preview_intake_button@(620,520)",
+]);
 const ACTIVE_TASK_VISA_INTAKE_DEMO_BOOKING_SLOT = "Tomorrow 16:00";
 const ACTIVE_TASK_VISA_INTAKE_DEMO_MISSING_DOCUMENTS = "proof of income, housing address letter";
 const ACTIVE_TASK_VISA_INTAKE_DEMO_SUMMARY = [
@@ -672,6 +683,36 @@ const ACTIVE_TASK_VISA_FOLLOW_UP_PROMPT =
 const ACTIVE_TASK_VISA_FOLLOW_UP_RESULT_PROMPT =
   "ui_task: Open the visa follow-up demo page, prepare Anna Petrova's missing-docs follow-up from the provided summary, continue through the protected submit step because approval is already confirmed, and verify the final confirmation banner.";
 const ACTIVE_TASK_VISA_REMINDER_PREP_ITEMS = "passport originals, proof of address, intake questionnaire";
+const ACTIVE_TASK_VISA_REMINDER_DEMO_DOM_SNAPSHOT =
+  "<main><section id='consultation-card'><h2>Consultation reminder</h2><p>Anna Petrova</p><p>Tomorrow 16:00</p></section><section id='prep-checklist'><ul><li>Passport originals</li><li>Proof of address</li><li>Intake questionnaire</li></ul></section><section id='protected-reminder-boundary'><button id='prepare-reminder-btn' type='button'>Prepare reminder draft</button><button id='send-reminder-btn' type='button' disabled>Send reminder for approval</button></section><section id='approved-reminder-confirmation' data-state='approved'><h3>Approved reminder confirmation</h3></section></main>";
+const ACTIVE_TASK_VISA_REMINDER_DEMO_ACCESSIBILITY_TREE =
+  "main > section[name=consultation reminder] > heading[name=Consultation reminder] > text[name=Anna Petrova] > text[name=Tomorrow 16:00] > section[name=prep checklist] > list[item=Passport originals,item=Proof of address,item=Intake questionnaire] > section[name=protected reminder boundary] > button[name=Prepare reminder draft] > button[name=Send reminder for approval disabled] > section[name=approved reminder confirmation]";
+const ACTIVE_TASK_VISA_REMINDER_DEMO_MARK_HINTS = Object.freeze([
+  "consultation-card@(180,140)",
+  "prepare-reminder-btn@(240,470)",
+  "send-reminder-btn@(520,470)",
+  "approved-reminder-confirmation@(260,620)",
+]);
+const ACTIVE_TASK_VISA_REMINDER_DEMO_REF_MAP = Object.freeze({
+  "prepare-reminder-btn": {
+    selector: "#prepare-reminder-btn",
+    kind: "button",
+    label: "Prepare reminder draft",
+    aliases: ["prepare reminder", "consultation reminder draft", "prepare consultation reminder"],
+  },
+  "send-reminder-btn": {
+    selector: "#send-reminder-btn",
+    kind: "submit",
+    label: "Send reminder for approval",
+    aliases: ["protected send step", "send reminder", "send reminder for approval"],
+  },
+  "approved-reminder-confirmation": {
+    selector: "#approved-reminder-confirmation",
+    kind: "heading",
+    label: "Approved reminder confirmation",
+    aliases: ["final confirmation banner", "approved reminder confirmation"],
+  },
+});
 const ACTIVE_TASK_VISA_REMINDER_SUMMARY = [
   "full_name: Anna Petrova",
   "email: anna.petrova@example.com",
@@ -694,6 +735,36 @@ const ACTIVE_TASK_VISA_REMINDER_RESULT_PROMPT =
 const ACTIVE_TASK_VISA_HANDOFF_OWNER = "Sofia Kim";
 const ACTIVE_TASK_VISA_HANDOFF_WRITEBACK =
   "crm note, case owner assignment, checklist handoff, next-touch date";
+const ACTIVE_TASK_VISA_HANDOFF_DEMO_DOM_SNAPSHOT =
+  "<main><section id='crm-handoff-card'><h2>CRM handoff</h2><p>Anna Petrova</p><p>Sofia Kim</p></section><section id='crm-note-draft'><p>Checklist handoff</p><p>Tomorrow 10:00</p></section><section id='protected-crm-boundary'><button id='prepare-crm-note-btn' type='button'>Prepare CRM note</button><button id='commit-crm-update-btn' type='button' disabled>Commit CRM update for approval</button></section><section id='approved-crm-confirmation' data-state='approved'><h3>Approved CRM handoff confirmation</h3></section></main>";
+const ACTIVE_TASK_VISA_HANDOFF_DEMO_ACCESSIBILITY_TREE =
+  "main > section[name=crm handoff] > heading[name=CRM handoff] > text[name=Anna Petrova] > text[name=Sofia Kim] > section[name=crm note draft] > text[name=Checklist handoff] > text[name=Tomorrow 10:00] > section[name=protected crm boundary] > button[name=Prepare CRM note] > button[name=Commit CRM update for approval disabled] > section[name=approved crm confirmation]";
+const ACTIVE_TASK_VISA_HANDOFF_DEMO_MARK_HINTS = Object.freeze([
+  "crm-handoff-card@(180,140)",
+  "prepare-crm-note-btn@(240,430)",
+  "commit-crm-update-btn@(540,430)",
+  "approved-crm-confirmation@(260,580)",
+]);
+const ACTIVE_TASK_VISA_HANDOFF_DEMO_REF_MAP = Object.freeze({
+  "prepare-crm-note-btn": {
+    selector: "#prepare-crm-note-btn",
+    kind: "button",
+    label: "Prepare CRM note",
+    aliases: ["prepare crm note", "prepare crm update", "prepare crm handoff"],
+  },
+  "commit-crm-update-btn": {
+    selector: "#commit-crm-update-btn",
+    kind: "submit",
+    label: "Commit CRM update for approval",
+    aliases: ["protected writeback step", "commit crm update", "crm writeback approval"],
+  },
+  "approved-crm-confirmation": {
+    selector: "#approved-crm-confirmation",
+    kind: "heading",
+    label: "Approved CRM handoff confirmation",
+    aliases: ["final confirmation banner", "approved crm handoff confirmation"],
+  },
+});
 const ACTIVE_TASK_VISA_HANDOFF_SUMMARY = [
   "full_name: Anna Petrova",
   "email: anna.petrova@example.com",
@@ -715,6 +786,36 @@ const ACTIVE_TASK_VISA_HANDOFF_RESULT_PROMPT =
 const ACTIVE_TASK_VISA_ESCALATION_OWNER = "Sofia Kim";
 const ACTIVE_TASK_VISA_ESCALATION_QUEUE = "Visa Escalations Tier 2";
 const ACTIVE_TASK_VISA_ESCALATION_REASON = "proof of address review, deadline risk, and manual eligibility check";
+const ACTIVE_TASK_VISA_ESCALATION_DEMO_DOM_SNAPSHOT =
+  "<main><section id='crm-client-row'><h2>Case escalation</h2><p>Anna Petrova</p><p>Visa Escalations Tier 2</p></section><section id='escalation-routing'><p>Sofia Kim</p><p>High priority</p></section><section id='protected-step-boundary'><button id='prepare-escalation-btn' type='button'>Prepare escalation packet</button><button id='approval-required-btn' type='button' disabled>Send for human approval</button></section><section id='approved-confirmation' data-state='approved'><h3>Approved handoff confirmation</h3></section></main>";
+const ACTIVE_TASK_VISA_ESCALATION_DEMO_ACCESSIBILITY_TREE =
+  "main > section[name=case escalation] > heading[name=Case escalation] > text[name=Anna Petrova] > text[name=Visa Escalations Tier 2] > section[name=escalation routing] > text[name=Sofia Kim] > text[name=High priority] > section[name=protected step boundary] > button[name=Prepare escalation packet] > button[name=Send for human approval disabled] > section[name=approved handoff confirmation]";
+const ACTIVE_TASK_VISA_ESCALATION_DEMO_MARK_HINTS = Object.freeze([
+  "crm-client-row@(180,140)",
+  "prepare-escalation-btn@(240,450)",
+  "approval-required-btn@(540,450)",
+  "approved-confirmation@(260,600)",
+]);
+const ACTIVE_TASK_VISA_ESCALATION_DEMO_REF_MAP = Object.freeze({
+  "prepare-escalation-btn": {
+    selector: "#prepare-escalation-btn",
+    kind: "button",
+    label: "Prepare escalation packet",
+    aliases: ["prepare escalation", "prepare escalation packet", "prepare human handoff"],
+  },
+  "approval-required-btn": {
+    selector: "#approval-required-btn",
+    kind: "submit",
+    label: "Send for human approval",
+    aliases: ["protected human handoff step", "send for human approval", "human handoff approval"],
+  },
+  "approved-confirmation": {
+    selector: "#approved-confirmation",
+    kind: "heading",
+    label: "Approved handoff confirmation",
+    aliases: ["final confirmation banner", "approved handoff confirmation"],
+  },
+});
 const ACTIVE_TASK_VISA_ESCALATION_SUMMARY = [
   "case_id: VISA-2048",
   "full_name: Anna Petrova",
@@ -1159,6 +1260,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.compose.reviewVisaEscalationCardTitle": "Escalation completed",
     "live.compose.reviewVisaEscalationCardCopy":
       "Shows the finished escalation result with the assigned specialist and next step.",
+    "live.result.demoDraftPending":
+      "The demo draft is ready in the separate browser. The protected final step still waits for confirmation. Use {action} to show the approved summary on the right. {summary}",
     "live.result.visaSummaryTitle": "Visa intake completion snapshot",
     "live.result.visaSummaryLead": "Lead draft",
     "live.result.visaSummarySlot": "Consultation slot",
@@ -4953,6 +5056,50 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
       "Operator summary copy failed. Copy it from the result card instead.",
     ),
   };
+}
+
+function getDraftDemoReviewActionLabel(responseText = "") {
+  if (responseText.includes(VISA_ESCALATION_DEMO_URL_PATH) || responseText.includes(VISA_ESCALATION_DEMO_URL_FALLBACK)) {
+    return t("live.compose.reviewVisaEscalation", null, "See Escalation Summary");
+  }
+  if (responseText.includes(VISA_HANDOFF_DEMO_URL_PATH) || responseText.includes(VISA_HANDOFF_DEMO_URL_FALLBACK)) {
+    return t("live.compose.reviewVisaHandoff", null, "See CRM Summary");
+  }
+  if (responseText.includes(VISA_REMINDER_DEMO_URL_PATH) || responseText.includes(VISA_REMINDER_DEMO_URL_FALLBACK)) {
+    return t("live.compose.reviewVisaReminder", null, "See Reminder Summary");
+  }
+  if (responseText.includes(VISA_FOLLOW_UP_DEMO_URL_PATH) || responseText.includes(VISA_FOLLOW_UP_DEMO_URL_FALLBACK)) {
+    return t("live.compose.reviewVisaFollowUp", null, "See Follow-up Summary");
+  }
+  return t("live.compose.reviewVisaDemo", null, "See Intake Summary");
+}
+
+function rewriteUiTaskDraftDemoResponseText(responseIntent, output, responseText) {
+  if (typeof responseText !== "string" || responseText.trim().length === 0) {
+    return responseText;
+  }
+  const isDraftDemoText =
+    (responseText.includes(VISA_INTAKE_DEMO_URL_PATH) || responseText.includes(VISA_INTAKE_DEMO_URL_FALLBACK) ||
+      responseText.includes(VISA_FOLLOW_UP_DEMO_URL_PATH) || responseText.includes(VISA_FOLLOW_UP_DEMO_URL_FALLBACK) ||
+      responseText.includes(VISA_REMINDER_DEMO_URL_PATH) || responseText.includes(VISA_REMINDER_DEMO_URL_FALLBACK) ||
+      responseText.includes(VISA_HANDOFF_DEMO_URL_PATH) || responseText.includes(VISA_HANDOFF_DEMO_URL_FALLBACK) ||
+      responseText.includes(VISA_ESCALATION_DEMO_URL_PATH) || responseText.includes(VISA_ESCALATION_DEMO_URL_FALLBACK)) &&
+    !/\bverification state:\s*verified\b/i.test(responseText) &&
+    /\bverification state:\s*unverified\b/i.test(responseText);
+  if (!isDraftDemoText || toOptionalText(output?.verificationState) === "verified") {
+    return responseText;
+  }
+  const reviewAction = getDraftDemoReviewActionLabel(responseText);
+  const verificationSummary =
+    toOptionalText(output?.verification?.summary) ?? toOptionalText(output?.message) ?? "";
+  return t(
+    "live.result.demoDraftPending",
+    {
+      action: reviewAction,
+      summary: verificationSummary,
+    },
+    `The demo draft is ready in the separate browser. The protected final step still waits for confirmation. Use ${reviewAction} to show the approved summary on the right. ${verificationSummary}`.trim(),
+  ).trim();
 }
 
 function buildVisaDemoOperatorSummaryText(summaryConfig) {
@@ -14357,7 +14504,11 @@ function renderConversationHistory() {
   const visibleEntries = filterLiveConversationHistoryByIntent(state.liveConversationHistory, currentIntent);
   for (const entry of visibleEntries) {
     const role = entry.role === "assistant" || entry.role === "user" ? entry.role : "error";
-    appendEntry(el.conversationHistory, role, getLiveConversationRoleLabel(role), entry.text, {
+    const displayText =
+      role === "assistant"
+        ? rewriteUiTaskDraftDemoResponseText(currentIntent, null, entry.text)
+        : entry.text;
+    appendEntry(el.conversationHistory, role, getLiveConversationRoleLabel(role), displayText, {
       timestampLabel: entry.timestampLabel,
     });
   }
@@ -14787,8 +14938,12 @@ function renderLiveIntentExperience() {
     el.liveResultLabel.textContent = config.resultLabel;
   }
   if (el.liveResultBody instanceof HTMLElement) {
+    const displayLatestResultText =
+      hasIntentMatchedResult && latestResult.role === "assistant"
+        ? rewriteUiTaskDraftDemoResponseText(normalizedIntent, null, latestResult.text)
+        : latestResult?.text;
     el.liveResultBody.textContent = hasIntentMatchedResult
-      ? latestResult.text
+      ? displayLatestResultText
       : awaitingFreshResponse
         ? (config.pendingResult ?? config.emptyResult)
         : config.emptyResult;
@@ -14908,22 +15063,26 @@ function setLiveResult(role, text, options = {}) {
     typeof options.intent === "string" && options.intent.trim().length > 0
       ? options.intent.trim()
       : state.lastRequestedIntent;
+  const displayText =
+    role === "assistant"
+      ? rewriteUiTaskDraftDemoResponseText(resolveLiveConversationIntent(intent), null, normalizedText)
+      : normalizedText;
   state.liveResult = {
     intent,
     role,
-    text: normalizedText,
+    text: displayText,
     streaming: options.streaming === true,
     updatedAt: new Date().toISOString(),
   };
   if (intent === "story") {
     state.storyLatestResult = {
       role,
-      text: normalizedText,
+      text: displayText,
       streaming: options.streaming === true,
       updatedAt: toIsoNow(),
     };
     if (options.streaming !== true) {
-      pushStoryLatestHistoryEntry(role, normalizedText, { updatedAt: state.storyLatestResult.updatedAt });
+      pushStoryLatestHistoryEntry(role, displayText, { updatedAt: state.storyLatestResult.updatedAt });
     }
   }
   renderLiveIntentExperience();
@@ -14937,10 +15096,15 @@ function appendConversationHistory(role, text, options = {}) {
     return;
   }
   const normalizedRole = role === "assistant" || role === "user" ? role : "error";
+  const normalizedIntent = resolveLiveConversationIntent(options.intent);
+  const displayText =
+    normalizedRole === "assistant"
+      ? rewriteUiTaskDraftDemoResponseText(normalizedIntent, null, normalizedText)
+      : normalizedText;
   state.liveConversationHistory.unshift({
-    intent: resolveLiveConversationIntent(options.intent),
+    intent: normalizedIntent,
     role: normalizedRole,
-    text: normalizedText,
+    text: displayText,
     timestampLabel: nowLabel(),
     updatedAt: toIsoNow(),
   });
@@ -20449,6 +20613,9 @@ function buildVisaIntakeDemoUiTaskOverrides() {
     url: resolveVisaIntakeDemoUrl(),
     summary: ACTIVE_TASK_VISA_INTAKE_DEMO_SUMMARY,
     formData: { ...ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA },
+    domSnapshot: ACTIVE_TASK_VISA_INTAKE_DEMO_DOM_SNAPSHOT,
+    accessibilityTree: ACTIVE_TASK_VISA_INTAKE_DEMO_ACCESSIBILITY_TREE,
+    markHints: [...ACTIVE_TASK_VISA_INTAKE_DEMO_MARK_HINTS],
   };
 }
 
@@ -20482,7 +20649,10 @@ function buildVisaReminderUiTaskOverrides() {
   return {
     url: resolveVisaReminderDemoUrl(),
     summary: ACTIVE_TASK_VISA_REMINDER_SUMMARY,
-    formData: { ...ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA },
+    domSnapshot: ACTIVE_TASK_VISA_REMINDER_DEMO_DOM_SNAPSHOT,
+    accessibilityTree: ACTIVE_TASK_VISA_REMINDER_DEMO_ACCESSIBILITY_TREE,
+    markHints: [...ACTIVE_TASK_VISA_REMINDER_DEMO_MARK_HINTS],
+    refMap: ACTIVE_TASK_VISA_REMINDER_DEMO_REF_MAP,
   };
 }
 
@@ -20499,7 +20669,10 @@ function buildVisaHandoffUiTaskOverrides() {
   return {
     url: resolveVisaHandoffDemoUrl(),
     summary: ACTIVE_TASK_VISA_HANDOFF_SUMMARY,
-    formData: { ...ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA },
+    domSnapshot: ACTIVE_TASK_VISA_HANDOFF_DEMO_DOM_SNAPSHOT,
+    accessibilityTree: ACTIVE_TASK_VISA_HANDOFF_DEMO_ACCESSIBILITY_TREE,
+    markHints: [...ACTIVE_TASK_VISA_HANDOFF_DEMO_MARK_HINTS],
+    refMap: ACTIVE_TASK_VISA_HANDOFF_DEMO_REF_MAP,
   };
 }
 
@@ -20516,7 +20689,10 @@ function buildVisaEscalationUiTaskOverrides() {
   return {
     url: resolveVisaEscalationDemoUrl(),
     summary: ACTIVE_TASK_VISA_ESCALATION_SUMMARY,
-    formData: { ...ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA },
+    domSnapshot: ACTIVE_TASK_VISA_ESCALATION_DEMO_DOM_SNAPSHOT,
+    accessibilityTree: ACTIVE_TASK_VISA_ESCALATION_DEMO_ACCESSIBILITY_TREE,
+    markHints: [...ACTIVE_TASK_VISA_ESCALATION_DEMO_MARK_HINTS],
+    refMap: ACTIVE_TASK_VISA_ESCALATION_DEMO_REF_MAP,
   };
 }
 
@@ -31627,7 +31803,8 @@ function handleGatewayEvent(event) {
           : "oob";
     const output = event.payload?.output;
     const responseIntent = !isOutOfBandResponse ? resolveLiveConversationIntent(output?.handledIntent ?? output?.mode) : null;
-    const responseText = findTextPayload(output) ?? buildStoryLaunchFallbackText(output);
+    const rawResponseText = findTextPayload(output) ?? buildStoryLaunchFallbackText(output);
+    const responseText = rewriteUiTaskDraftDemoResponseText(responseIntent, output, rawResponseText);
     let primaryAssistantResponseCommitted = false;
     if (!isOutOfBandResponse) {
       updateOperatorDamageControlWidgetFromResponse(event);
@@ -31709,8 +31886,14 @@ function handleGatewayEvent(event) {
       );
       const delegatedText = findTextPayload(output.delegation.delegatedOutput);
       if (delegatedText) {
-        appendTranscript("assistant", delegatedText, {
-          intent: resolveLiveConversationIntent(output.delegation.requestedIntent ?? responseIntent),
+        const delegatedIntent = resolveLiveConversationIntent(output.delegation.requestedIntent ?? responseIntent);
+        const rewrittenDelegatedText = rewriteUiTaskDraftDemoResponseText(
+          delegatedIntent,
+          output.delegation.delegatedOutput,
+          delegatedText,
+        );
+        appendTranscript("assistant", rewrittenDelegatedText, {
+          intent: delegatedIntent,
         });
       }
     }

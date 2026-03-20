@@ -1815,6 +1815,47 @@ function submitGroundingTarget(input: UiTaskInput): string {
   return refTarget ?? "button:submit";
 }
 
+function preparationGroundingTarget(input: UiTaskInput, goal: string): string | null {
+  const normalizedGoal = goal.trim().toLowerCase();
+  if (!/\bprepare\b/.test(normalizedGoal)) {
+    return null;
+  }
+  return findGroundingRefTarget(input, (refId, entry) => {
+    if (entry.kind !== "button") {
+      return false;
+    }
+    const evidence = [refId, entry.selector, ...entry.aliases].join(" ").toLowerCase();
+    if (!/\bprepare\b|\bdraft\b|\bpacket\b|\bnote\b/.test(evidence)) {
+      return false;
+    }
+    if (normalizedGoal.includes("reminder")) {
+      return evidence.includes("reminder");
+    }
+    if (normalizedGoal.includes("crm")) {
+      return evidence.includes("crm") || evidence.includes("note");
+    }
+    if (normalizedGoal.includes("escalation") || normalizedGoal.includes("handoff")) {
+      return evidence.includes("escalation") || evidence.includes("handoff");
+    }
+    return true;
+  });
+}
+
+function isButtonDrivenPreparationFlow(input: UiTaskInput, goal: string): boolean {
+  return (
+    Object.keys(input.refMap).length > 0 &&
+    !Object.values(input.refMap).some((entry) => entry.kind === "field") &&
+    preparationGroundingTarget(input, goal) !== null
+  );
+}
+
+function approvalConfirmationGroundingTarget(input: UiTaskInput): string | null {
+  return findGroundingRefTarget(input, (refId, entry) => {
+    const evidence = [refId, entry.selector, ...entry.aliases].join(" ").toLowerCase();
+    return (entry.kind === "heading" || entry.kind === "dialog" || entry.kind === "generic") && /\bapproved\b|\bconfirmation\b/.test(evidence);
+  });
+}
+
 function verificationGroundingTarget(input: UiTaskInput, fallbackTarget: string): string {
   if (/:disabled|:not\(:disabled\)/.test(fallbackTarget)) {
     return fallbackTarget;
@@ -2051,12 +2092,19 @@ function shouldAutoSubmit(goal: string, input: UiTaskInput): boolean {
     return true;
   }
 
+  if (/\bprotected\b/.test(goal) && /\b(writeback|handoff)\b/.test(goal)) {
+    return true;
+  }
+
   return /\b(send|confirm)\b/.test(goal);
 }
 
 function buildRuleBasedPlan(input: UiTaskInput): UiAction[] {
   const actions: UiAction[] = [];
   const goal = input.goal.toLowerCase();
+  const buttonDrivenPreparationFlow = isButtonDrivenPreparationFlow(input, goal);
+  const preparationTarget = buttonDrivenPreparationFlow ? preparationGroundingTarget(input, goal) : null;
+  const approvalConfirmationTarget = buttonDrivenPreparationFlow ? approvalConfirmationGroundingTarget(input) : null;
 
   if (input.url) {
     actions.push(
@@ -2130,6 +2178,26 @@ function buildRuleBasedPlan(input: UiTaskInput): UiAction[] {
     actions.push(...buildRuleBasedGoalVerificationActions(goal, input));
   }
 
+  if (preparationTarget) {
+    actions.push(
+      makeAction({
+        type: "click",
+        target: preparationTarget,
+        rationale: "Prime the button-driven draft flow before the protected approval step.",
+      }),
+    );
+  }
+
+  if (buttonDrivenPreparationFlow && input.approvalConfirmed && approvalConfirmationTarget) {
+    actions.push(
+      makeAction({
+        type: "verify",
+        target: approvalConfirmationTarget,
+        rationale: "Approval is already confirmed, so verify the ready confirmation surface instead of re-clicking a disabled protected button.",
+      }),
+    );
+  }
+
   if (goal.includes("scroll")) {
     actions.push(
       makeAction({
@@ -2141,7 +2209,7 @@ function buildRuleBasedPlan(input: UiTaskInput): UiAction[] {
     );
   }
 
-  const formEntries = Object.entries(input.formData);
+  const formEntries = buttonDrivenPreparationFlow ? [] : Object.entries(input.formData);
   for (const [field, value] of formEntries) {
     actions.push(
       makeAction({
@@ -2160,7 +2228,7 @@ function buildRuleBasedPlan(input: UiTaskInput): UiAction[] {
     );
   }
 
-  if (shouldAutoSubmit(goal, input)) {
+  if (!buttonDrivenPreparationFlow && shouldAutoSubmit(goal, input)) {
     actions.push(
       makeAction({
         type: "click",

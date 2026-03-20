@@ -11,6 +11,8 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "test:unit": "node --import tsx --test tests/unit/**/*.test.ts",
+    "profile:dev:cheap": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/set-dev-profile.ps1 -Profile cheap-dev",
+    "profile:dev:full-demo": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/set-dev-profile.ps1 -Profile full-demo",
     "demo:e2e": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/demo-e2e.ps1",
     "demo:e2e:fast": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/demo-e2e.ps1 -SkipBuild",
     "demo:e2e:fast:retry": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-readiness.ps1 -SkipBuild -SkipUnitTests -SkipMonitoringTemplates -SkipProfileSmoke -SkipPolicy -SkipBadge -SkipPerfLoad -UseFastDemoE2E",
