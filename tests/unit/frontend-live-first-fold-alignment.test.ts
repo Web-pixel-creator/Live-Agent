@@ -16,59 +16,72 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   const readmeSource = readFileSync(readmePath, "utf8");
   const operatorGuideSource = readFileSync(operatorGuidePath, "utf8");
 
-  const liveIntentCardsIndex = htmlSource.indexOf('id="liveIntentCards"');
+  const caseWorkspaceShellIndex = htmlSource.indexOf('class="case-workspace-shell"');
+  const currentCaseIndex = htmlSource.indexOf('id="caseWorkspaceClient"');
+  const nextStepIndex = htmlSource.indexOf('id="caseWorkspaceNextStep"');
+  const completedWorkIndex = htmlSource.indexOf('id="caseWorkspaceCompletedWork"');
+  const actionStackIndex = htmlSource.indexOf('class="case-workspace-action-stack"');
+  const mainSectionIndex = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-main"');
+  const caseSectionIndex = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-case"');
+  const utilitySectionIndex = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-utility"');
   const composeShellIndex = htmlSource.indexOf('class="live-compose-primary-shell"');
-  const targetLanguageIndex = htmlSource.indexOf('id="targetLanguage"');
-  const messageIndex = htmlSource.indexOf('id="message"');
-  const sendButtonIndex = htmlSource.indexOf('id="sendBtn"');
   const dockIndex = htmlSource.indexOf('class="live-context-dock-shell"');
   const trayIndex = htmlSource.indexOf('id="liveContextTray"');
 
-  assert.ok(liveIntentCardsIndex !== -1, "frontend html missing live intent cards");
+  assert.ok(caseWorkspaceShellIndex !== -1, "frontend html missing case workspace shell");
+  assert.ok(currentCaseIndex !== -1, "frontend html missing current case summary");
+  assert.ok(nextStepIndex !== -1, "frontend html missing next-step summary");
+  assert.ok(completedWorkIndex !== -1, "frontend html missing completed-work summary");
+  assert.ok(actionStackIndex !== -1, "frontend html missing grouped case workspace actions");
+  assert.ok(mainSectionIndex !== -1, "frontend html missing main action section");
+  assert.ok(caseSectionIndex !== -1, "frontend html missing case-action section");
+  assert.ok(utilitySectionIndex !== -1, "frontend html missing utility section");
   assert.ok(composeShellIndex !== -1, "frontend html missing primary compose shell");
-  assert.ok(targetLanguageIndex !== -1, "frontend html missing target-language field");
-  assert.ok(messageIndex !== -1, "frontend html missing primary message field");
-  assert.ok(sendButtonIndex !== -1, "frontend html missing primary send button");
   assert.ok(dockIndex !== -1, "frontend html missing live support dock");
   assert.ok(trayIndex !== -1, "frontend html missing live support tray");
 
-  assert.ok(liveIntentCardsIndex < composeShellIndex, "live mode switcher should lead into the primary compose shell");
-  assert.ok(composeShellIndex < targetLanguageIndex, "primary compose shell should own the language picker");
-  assert.ok(targetLanguageIndex < messageIndex, "language picker should appear before the message field");
-  assert.ok(messageIndex < sendButtonIndex, "message field should appear before the primary CTA");
-  assert.ok(sendButtonIndex < dockIndex, "support dock should not appear ahead of the primary compose CTA");
+  assert.ok(caseWorkspaceShellIndex < composeShellIndex, "case workspace shell should open the first fold");
+  assert.ok(currentCaseIndex < nextStepIndex, "current case should appear before next-step guidance");
+  assert.ok(nextStepIndex < completedWorkIndex, "completed work should trail the current-case guidance");
+  assert.ok(actionStackIndex < dockIndex, "grouped actions should stay above the support dock");
+  assert.ok(mainSectionIndex < caseSectionIndex, "main actions should lead into case actions");
+  assert.ok(caseSectionIndex < utilitySectionIndex, "utility actions should stay after case actions");
   assert.ok(dockIndex < trayIndex, "support tray should stay attached to the dock after the compose shell");
 
   assert.ok(
-    htmlSource.includes("Voice and runtime stay ready in the support dock below."),
-    "frontend html should frame voice/runtime as support chrome below the main request path",
+    htmlSource.includes('data-i18n="live.caseWorkspace.title"'),
+    "frontend html should expose a case-workspace title hook",
   );
   assert.ok(
-    stylesSource.includes(".live-compose-primary-shell {"),
-    "frontend styles should define a dedicated primary compose shell",
+    htmlSource.includes('data-i18n="live.caseWorkspace.mainActionsTitle"'),
+    "frontend html should expose grouped main actions in the first fold",
   );
   assert.ok(
-    appSource.includes("Open helpers below the main composer."),
-    "frontend runtime should describe the support dock as a below-composer tool lane",
+    appSource.includes('caseWorkspaceClient: document.getElementById("caseWorkspaceClient")'),
+    "frontend runtime should bind the current-case summary nodes",
   );
   assert.ok(
-    appSource.includes("Main compose stays here; tools open below."),
-    "frontend runtime should preserve a task-first stage hint",
+    appSource.includes("function renderCaseWorkspaceSummary("),
+    "frontend runtime should render the case-workspace state",
   );
   assert.ok(
-    !htmlSource.includes("Support lanes stay above."),
-    "frontend html should not claim that support lanes sit above the main composer anymore",
+    stylesSource.includes(".case-workspace-shell"),
+    "frontend styles should define the case-workspace shell",
   );
   assert.ok(
-    !appSource.includes("Keep helpers above the composer."),
-    "frontend runtime should not describe the support dock as above the composer anymore",
+    stylesSource.includes(".case-workspace-summary-grid"),
+    "frontend styles should define the case-workspace summary grid",
   );
   assert.ok(
-    readmeSource.includes("support dock directly below the main composer"),
-    "README should document the below-composer support dock placement",
+    stylesSource.includes(".case-workspace-action-stack"),
+    "frontend styles should define the grouped case-workspace action stack",
   );
   assert.ok(
-    operatorGuideSource.includes("support dock directly below the main composer"),
-    "operator guide should document the below-composer support dock placement",
+    readmeSource.includes("dedicated `Case Workspace` shell"),
+    "README should document the new case-workspace first fold",
+  );
+  assert.ok(
+    operatorGuideSource.includes("dedicated `Case Workspace` block"),
+    "operator guide should document the new case-workspace first fold",
   );
 });

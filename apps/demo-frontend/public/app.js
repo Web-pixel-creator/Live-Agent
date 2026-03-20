@@ -1214,6 +1214,78 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.controls.applyLiveSetup": "Apply Live Setup",
     "live.compose.heading": "AI Action Desk",
     "live.compose.intro": "Use this lane for one visa or relocation lead: qualify it, book the next step, collect documents, and send the safe action.",
+    "live.compose.panelHeading": "Choose the next action",
+    "live.compose.panelIntro": "Choose one action, add the result language if needed, write one request, and send it. Voice and support tools open below.",
+    "live.caseWorkspace.badge": "AI Action Desk",
+    "live.caseWorkspace.title": "Case Workspace",
+    "live.caseWorkspace.intro": "Follow one case from first contact to final handoff. The workspace keeps the next step, the current status, and the completed work together.",
+    "live.caseWorkspace.chipReady": "Live case ready",
+    "live.caseWorkspace.chipSingle": "One case at a time",
+    "live.caseWorkspace.chipApproval": "Approval stays visible",
+    "live.caseWorkspace.currentCase": "Current case",
+    "live.caseWorkspace.clientLabel": "Client",
+    "live.caseWorkspace.statusLabel": "Status",
+    "live.caseWorkspace.nextStepLabel": "Next step",
+    "live.caseWorkspace.nextStepCard": "Next step",
+    "live.caseWorkspace.completedWork": "Completed work",
+    "live.caseWorkspace.statusPillReady": "Workspace ready",
+    "live.caseWorkspace.statusPillInFlight": "In progress",
+    "live.caseWorkspace.statusPillVerified": "Verified",
+    "live.caseWorkspace.statusPillApproval": "Needs approval",
+    "live.caseWorkspace.statusPillNext": "Reserved",
+    "live.caseWorkspace.statusPillCompleted": "Reserved",
+    "live.caseWorkspace.mainActionsTitle": "Main",
+    "live.caseWorkspace.mainActionsHint": "Use one entry point to start the desk or continue the active case.",
+    "live.caseWorkspace.caseActionsTitle": "Case actions",
+    "live.caseWorkspace.caseActionsHint": "Move the case forward with follow-up, reminders, CRM updates, or escalation.",
+    "live.caseWorkspace.utilityActionsTitle": "Utility",
+    "live.caseWorkspace.utilityActionsHint": "Open the finished summaries or reset the demo workspace.",
+    "live.caseWorkspace.clientIdle": "Ready for first request",
+    "live.caseWorkspace.statusIdle": "Waiting for the first action",
+    "live.caseWorkspace.nextIdle": "Pick a main action below",
+    "live.caseWorkspace.nextIdleBody": "Start a new visa case, continue an active case, or send one plain live request from this workspace.",
+    "live.caseWorkspace.completedIdle": "Completed work appears here after the first verified result or operator-ready summary.",
+    "live.caseWorkspace.clientBusy": "Live request in progress",
+    "live.caseWorkspace.statusBusy": "Waiting for the latest response",
+    "live.caseWorkspace.nextBusy": "Read the newest result on the right",
+    "live.caseWorkspace.nextBusyBody": "Keep the request focused. When the answer lands, continue the case or open a finished summary.",
+    "live.caseWorkspace.completedBusy": "The latest verified work will replace this placeholder after the current action finishes.",
+    "live.caseWorkspace.clientName": "Anna Petrova",
+    "live.caseWorkspace.intakeDraftStatus": "Visa intake draft is ready for approval",
+    "live.caseWorkspace.intakeDraftNext": "Confirm the protected submit",
+    "live.caseWorkspace.intakeDraftBody": "Open the seeded intake browser, confirm the protected submit when ready, then open the intake summary.",
+    "live.caseWorkspace.intakeDraftCompleted": "Lead profile, consultation slot, and the missing-document checklist are already prepared inside the draft.",
+    "live.caseWorkspace.intakeResultStatus": "Visa intake completed",
+    "live.caseWorkspace.intakeResultNext": "Request the missing documents",
+    "live.caseWorkspace.intakeResultBody": "The intake result is verified. Move the case into follow-up or copy the operator summary.",
+    "live.caseWorkspace.followUpDraftStatus": "Missing-documents follow-up is ready",
+    "live.caseWorkspace.followUpDraftNext": "Confirm the safe outreach step",
+    "live.caseWorkspace.followUpDraftBody": "Review the prepared follow-up message, approve the safe outreach step, then open the completed summary.",
+    "live.caseWorkspace.followUpDraftCompleted": "The checklist request and follow-up note are already prepared for Anna.",
+    "live.caseWorkspace.followUpResultStatus": "Waiting on missing documents",
+    "live.caseWorkspace.followUpResultNext": "Prepare the consultation reminder",
+    "live.caseWorkspace.followUpResultBody": "The follow-up result is verified. Use the next action to prepare the consultation reminder.",
+    "live.caseWorkspace.reminderDraftStatus": "Consultation reminder is ready",
+    "live.caseWorkspace.reminderDraftNext": "Confirm the protected reminder send",
+    "live.caseWorkspace.reminderDraftBody": "Approve the reminder send when ready, then open the reminder summary to capture the final handoff.",
+    "live.caseWorkspace.reminderDraftCompleted": "The consultation slot, timezone, and preparation checklist are already assembled in the reminder draft.",
+    "live.caseWorkspace.reminderResultStatus": "Consultation reminder completed",
+    "live.caseWorkspace.reminderResultNext": "Prepare the CRM update",
+    "live.caseWorkspace.reminderResultBody": "The reminder is verified. Move the case into CRM writeback or copy the reminder handoff note.",
+    "live.caseWorkspace.handoffDraftStatus": "CRM update draft is ready",
+    "live.caseWorkspace.handoffDraftNext": "Confirm the protected CRM writeback",
+    "live.caseWorkspace.handoffDraftBody": "Review the prepared CRM note and owner assignment, then approve the protected writeback step.",
+    "live.caseWorkspace.handoffDraftCompleted": "The CRM note, assigned owner, and next action are already staged in the writeback draft.",
+    "live.caseWorkspace.handoffResultStatus": "CRM handoff completed",
+    "live.caseWorkspace.handoffResultNext": "Escalate only if specialist review is still needed",
+    "live.caseWorkspace.handoffResultBody": "The CRM update is verified. Copy the handoff summary or move to specialist review only if the case still needs escalation.",
+    "live.caseWorkspace.escalationDraftStatus": "Specialist handoff is ready",
+    "live.caseWorkspace.escalationDraftNext": "Confirm the protected human handoff",
+    "live.caseWorkspace.escalationDraftBody": "Review the escalation reason, approve the protected human handoff, then open the escalation summary.",
+    "live.caseWorkspace.escalationDraftCompleted": "The escalation note, owner, and queue are already prepared for human review.",
+    "live.caseWorkspace.escalationResultStatus": "Case handed to a specialist",
+    "live.caseWorkspace.escalationResultNext": "Call the client and continue the human review",
+    "live.caseWorkspace.escalationResultBody": "The specialist handoff is verified. Share the summary, then continue the case with the assigned human owner.",
     "live.compose.runVisaDemo": "Start New Visa Case",
     "live.compose.reviewVisaDemo": "See Intake Summary",
     "live.compose.resetVisaDemo": "Start Over",
@@ -2926,6 +2998,19 @@ const el = {
   micComposerStatus: document.getElementById("micComposerStatus"),
   micComposerStatusPill: document.getElementById("micComposerStatusPill"),
   micComposerStatusHint: document.getElementById("micComposerStatusHint"),
+  caseWorkspaceTitle: document.getElementById("caseWorkspaceTitle"),
+  caseWorkspaceIntro: document.getElementById("caseWorkspaceIntro"),
+  caseWorkspaceHeroChipStatus: document.getElementById("caseWorkspaceHeroChipStatus"),
+  caseWorkspaceHeroChipFocus: document.getElementById("caseWorkspaceHeroChipFocus"),
+  caseWorkspaceHeroChipApproval: document.getElementById("caseWorkspaceHeroChipApproval"),
+  caseWorkspaceClient: document.getElementById("caseWorkspaceClient"),
+  caseWorkspaceStatus: document.getElementById("caseWorkspaceStatus"),
+  caseWorkspaceNextStepValue: document.getElementById("caseWorkspaceNextStepValue"),
+  caseWorkspaceNextStep: document.getElementById("caseWorkspaceNextStep"),
+  caseWorkspaceCompletedWork: document.getElementById("caseWorkspaceCompletedWork"),
+  caseWorkspaceStatusPill: document.getElementById("caseWorkspaceStatusPill"),
+  caseWorkspaceNextStepPill: document.getElementById("caseWorkspaceNextStepPill"),
+  caseWorkspaceCompletedPill: document.getElementById("caseWorkspaceCompletedPill"),
   sendBtn: document.getElementById("sendBtn"),
   runVisaDemoBtn: document.getElementById("runVisaDemoBtn"),
   reviewVisaResultBtn: document.getElementById("reviewVisaResultBtn"),
@@ -5117,6 +5202,349 @@ function buildVisaDemoOperatorSummaryText(summaryConfig) {
     lines.push(`- ${summaryConfig.handoff.label}: ${summaryConfig.handoff.value}`);
   }
   return lines.join("\n").trim();
+}
+
+function buildCaseWorkspaceCompletedWorkText(summaryConfig) {
+  if (!summaryConfig || !Array.isArray(summaryConfig.items) || summaryConfig.items.length === 0) {
+    return "";
+  }
+  const parts = [];
+  if (typeof summaryConfig.title === "string" && summaryConfig.title.trim().length > 0) {
+    parts.push(summaryConfig.title.trim());
+  }
+  for (const item of summaryConfig.items.slice(0, 3)) {
+    if (!item || typeof item.label !== "string" || typeof item.value !== "string") {
+      continue;
+    }
+    parts.push(`${item.label}: ${item.value}`);
+  }
+  if (summaryConfig.handoff && typeof summaryConfig.handoff.label === "string" && typeof summaryConfig.handoff.value === "string") {
+    parts.push(`${summaryConfig.handoff.label}: ${summaryConfig.handoff.value}`);
+  }
+  return parts.join(" • ").trim();
+}
+
+function syncCaseWorkspaceStaticCopy() {
+  const isRu = state.languageMode === "ru";
+  const textBySelector = new Map([
+    ["[data-i18n=\"live.caseWorkspace.badge\"]", "AI Action Desk"],
+    ["#caseWorkspaceTitle", isRu ? "Рабочая зона кейса" : "Case Workspace"],
+    [
+      "#caseWorkspaceIntro",
+      isRu
+        ? "Ведите один кейс от первого обращения до финальной передачи. Здесь рядом видны следующий шаг, текущий статус и уже выполненная работа."
+        : "Follow one case from first contact to final handoff. The workspace keeps the next step, the current status, and the completed work together.",
+    ],
+    ["#caseWorkspaceHeroChipStatus", isRu ? "Кейс готов к работе" : "Live case ready"],
+    ["#caseWorkspaceHeroChipFocus", isRu ? "Один кейс за раз" : "One case at a time"],
+    ["#caseWorkspaceHeroChipApproval", isRu ? "Подтверждение видно сразу" : "Approval stays visible"],
+    ["[data-i18n=\"live.caseWorkspace.currentCase\"]", isRu ? "Текущий кейс" : "Current case"],
+    ["[data-i18n=\"live.caseWorkspace.clientLabel\"]", isRu ? "Клиент" : "Client"],
+    ["[data-i18n=\"live.caseWorkspace.statusLabel\"]", isRu ? "Статус" : "Status"],
+    ["[data-i18n=\"live.caseWorkspace.nextStepLabel\"]", isRu ? "Следующий шаг" : "Next step"],
+    ["[data-i18n=\"live.caseWorkspace.nextStepCard\"]", isRu ? "Что дальше" : "Next step"],
+    ["[data-i18n=\"live.caseWorkspace.completedWork\"]", isRu ? "Что уже сделано" : "Completed work"],
+    ["#caseWorkspaceMainActionsTitle", isRu ? "Главное" : "Main"],
+    [
+      ".case-workspace-action-section-main .case-workspace-action-hint",
+      isRu ? "Один вход для старта нового кейса или продолжения текущего." : "Use one entry point to start the desk or continue the active case.",
+    ],
+    ["#caseWorkspaceCaseActionsTitle", isRu ? "Действия по кейсу" : "Case actions"],
+    [
+      ".case-workspace-action-section-case .case-workspace-action-hint",
+      isRu
+        ? "Продвигайте кейс: документы, напоминание, CRM или передача специалисту."
+        : "Move the case forward with follow-up, reminders, CRM updates, or escalation.",
+    ],
+    ["#caseWorkspaceUtilityActionsTitle", isRu ? "Сервис" : "Utility"],
+    [
+      ".case-workspace-action-section-utility .case-workspace-action-hint",
+      isRu ? "Открывайте готовые итоги или сбрасывайте демо-режим." : "Open the finished summaries or reset the demo workspace.",
+    ],
+    [
+      ".case-workspace-panel-title [data-i18n=\"live.compose.panelHeading\"]",
+      isRu ? "Выберите следующее действие" : "Choose the next action",
+    ],
+    [
+      ".case-workspace-panel-intro",
+      isRu
+        ? "Выберите одно действие, при необходимости укажите язык результата, напишите один запрос и отправьте его. Голос и служебные инструменты находятся ниже."
+        : "Choose one action, add the result language if needed, write one request, and send it. Voice and support tools open below.",
+    ],
+  ]);
+
+  for (const [selector, text] of textBySelector) {
+    const node = document.querySelector(selector);
+    if (node instanceof HTMLElement) {
+      node.textContent = text;
+    }
+  }
+}
+
+function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse, summaryConfig) {
+  const isRu = state.languageMode === "ru";
+  const defaultSnapshot = {
+    client: isRu ? "Готов к первому запросу" : "Ready for first request",
+    status: isRu ? "Ожидает первого действия" : "Waiting for the first action",
+    nextStepValue: isRu ? "Выберите главное действие ниже" : "Pick a main action below",
+    nextStepBody: isRu
+      ? "Начните новый визовый кейс, продолжите активный кейс или отправьте один обычный live-запрос из этой рабочей зоны."
+      : "Start a new visa case, continue an active case, or send one plain live request from this workspace.",
+    completedWork: isRu
+      ? "Выполненная работа появится здесь после первого проверенного результата или итоговой сводки для оператора."
+      : "Completed work appears here after the first verified result or operator-ready summary.",
+    statusPill: { text: isRu ? "Готово" : "Workspace ready", tone: "neutral" },
+    nextPill: { text: isRu ? "Скоро" : "Reserved", tone: "neutral" },
+    completedPill: { text: isRu ? "Итог" : "Reserved", tone: "neutral" },
+    heroStatus: isRu ? "Кейс готов к работе" : "Live case ready",
+    heroFocus: isRu ? "Один кейс за раз" : "One case at a time",
+    heroApproval: isRu ? "Подтверждение видно сразу" : "Approval stays visible",
+  };
+
+  if (awaitingFreshResponse && typeof state.liveDemoScenario !== "string") {
+    return {
+      ...defaultSnapshot,
+      client: isRu ? "Live-запрос в работе" : "Live request in progress",
+      status: isRu ? "Ждём последний ответ" : "Waiting for the latest response",
+      nextStepValue: isRu ? "Сначала прочитайте результат справа" : "Read the newest result on the right",
+      nextStepBody: isRu
+        ? "Держите запрос сфокусированным. Когда ответ появится, продолжите кейс или откройте готовый итог."
+        : "Keep the request focused. When the answer lands, continue the case or open a finished summary.",
+      completedWork: isRu
+        ? "Последняя проверенная работа заменит этот плейсхолдер после завершения текущего действия."
+        : "The latest verified work will replace this placeholder after the current action finishes.",
+      statusPill: { text: isRu ? "В работе" : "In progress", tone: "neutral" },
+      nextPill: { text: isRu ? "Сейчас" : "Now", tone: "neutral" },
+      heroStatus: isRu ? "Запрос в работе" : "Request in progress",
+      heroFocus: isRu ? "Один запрос за раз" : "One request at a time",
+    };
+  }
+
+  const sharedClient = ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.full_name;
+  const sharedCompletedWork = buildCaseWorkspaceCompletedWorkText(summaryConfig);
+  switch (state.liveDemoScenario) {
+    case "visa_intake_draft":
+      return {
+        ...defaultSnapshot,
+        client: sharedClient,
+        status: isRu ? "Черновик визового кейса готов к подтверждению" : "Visa intake draft is ready for approval",
+        nextStepValue: isRu ? "Подтвердите защищённую отправку" : "Confirm the protected submit",
+        nextStepBody: isRu
+          ? "Откройте подготовленный intake-браузер, подтвердите защищённую отправку, затем откройте итог заявки."
+          : "Open the seeded intake browser, confirm the protected submit when ready, then open the intake summary.",
+        completedWork: isRu
+          ? "Карточка лида, слот консультации и чеклист недостающих документов уже подготовлены в черновике."
+          : "Lead profile, consultation slot, and the missing-document checklist are already prepared inside the draft.",
+        statusPill: { text: isRu ? "Нужно подтверждение" : "Needs approval", tone: "fail" },
+        nextPill: { text: isRu ? "Сейчас" : "Now", tone: "neutral" },
+        completedPill: { text: isRu ? "Черновик" : "Draft ready", tone: "neutral" },
+        heroStatus: isRu ? "Черновик готов" : "Draft ready",
+        heroFocus: isRu ? "Фокус: intake" : "Focus: intake",
+        heroApproval: isRu ? "Ждёт подтверждения" : "Approval required",
+      };
+    case "visa_result":
+      return {
+        ...defaultSnapshot,
+        client: sharedClient,
+        status: isRu ? "Визовый intake завершён" : "Visa intake completed",
+        nextStepValue: isRu ? "Запросите недостающие документы" : "Request the missing documents",
+        nextStepBody: isRu
+          ? "Итог intake уже проверен. Переведите кейс в follow-up или скопируйте итоговую сводку для оператора."
+          : "The intake result is verified. Move the case into follow-up or copy the operator summary.",
+        completedWork: sharedCompletedWork || defaultSnapshot.completedWork,
+        statusPill: { text: isRu ? "Проверено" : "Verified", tone: "ok" },
+        nextPill: { text: isRu ? "Дальше" : "Next", tone: "neutral" },
+        completedPill: { text: isRu ? "Готово" : "Completed", tone: "ok" },
+        heroStatus: isRu ? "Результат проверен" : "Result verified",
+        heroFocus: isRu ? "Фокус: follow-up" : "Focus: follow-up",
+        heroApproval: isRu ? "Подтверждение закрыто" : "Approval cleared",
+      };
+    case "visa_follow_up_draft":
+      return {
+        ...defaultSnapshot,
+        client: sharedClient,
+        status: isRu ? "Follow-up по документам готов" : "Missing-documents follow-up is ready",
+        nextStepValue: isRu ? "Подтвердите безопасную отправку" : "Confirm the safe outreach step",
+        nextStepBody: isRu
+          ? "Проверьте подготовленное сообщение, подтвердите безопасную отправку и затем откройте итог follow-up."
+          : "Review the prepared follow-up message, approve the safe outreach step, then open the completed summary.",
+        completedWork: isRu
+          ? "Чеклист и follow-up заметка уже подготовлены для Анны."
+          : "The checklist request and follow-up note are already prepared for Anna.",
+        statusPill: { text: isRu ? "Нужно подтверждение" : "Needs approval", tone: "fail" },
+        nextPill: { text: isRu ? "Сейчас" : "Now", tone: "neutral" },
+        completedPill: { text: isRu ? "Черновик" : "Draft ready", tone: "neutral" },
+        heroStatus: isRu ? "Follow-up готов" : "Follow-up ready",
+        heroFocus: isRu ? "Фокус: документы" : "Focus: documents",
+        heroApproval: isRu ? "Ждёт подтверждения" : "Approval required",
+      };
+    case "visa_follow_up_result":
+      return {
+        ...defaultSnapshot,
+        client: sharedClient,
+        status: isRu ? "Ждём недостающие документы" : "Waiting on missing documents",
+        nextStepValue: isRu ? "Подготовьте напоминание о консультации" : "Prepare the consultation reminder",
+        nextStepBody: isRu
+          ? "Итог follow-up уже проверен. Следующее действие - подготовить напоминание о консультации."
+          : "The follow-up result is verified. Use the next action to prepare the consultation reminder.",
+        completedWork: sharedCompletedWork || defaultSnapshot.completedWork,
+        statusPill: { text: isRu ? "Проверено" : "Verified", tone: "ok" },
+        nextPill: { text: isRu ? "Дальше" : "Next", tone: "neutral" },
+        completedPill: { text: isRu ? "Готово" : "Completed", tone: "ok" },
+        heroStatus: isRu ? "Follow-up завершён" : "Follow-up verified",
+        heroFocus: isRu ? "Фокус: напоминание" : "Focus: reminder",
+        heroApproval: isRu ? "Подтверждение закрыто" : "Approval cleared",
+      };
+    case "visa_reminder_draft":
+      return {
+        ...defaultSnapshot,
+        client: sharedClient,
+        status: isRu ? "Напоминание о консультации готово" : "Consultation reminder is ready",
+        nextStepValue: isRu ? "Подтвердите защищённую отправку напоминания" : "Confirm the protected reminder send",
+        nextStepBody: isRu
+          ? "Подтвердите отправку напоминания и затем откройте итог напоминания с готовым handoff."
+          : "Approve the reminder send when ready, then open the reminder summary to capture the final handoff.",
+        completedWork: isRu
+          ? "Слот, таймзона и список подготовки уже собраны в черновике напоминания."
+          : "The consultation slot, timezone, and preparation checklist are already assembled in the reminder draft.",
+        statusPill: { text: isRu ? "Нужно подтверждение" : "Needs approval", tone: "fail" },
+        nextPill: { text: isRu ? "Сейчас" : "Now", tone: "neutral" },
+        completedPill: { text: isRu ? "Черновик" : "Draft ready", tone: "neutral" },
+        heroStatus: isRu ? "Напоминание готово" : "Reminder ready",
+        heroFocus: isRu ? "Фокус: консультация" : "Focus: consultation",
+        heroApproval: isRu ? "Ждёт подтверждения" : "Approval required",
+      };
+    case "visa_reminder_result":
+      return {
+        ...defaultSnapshot,
+        client: sharedClient,
+        status: isRu ? "Напоминание о консультации завершено" : "Consultation reminder completed",
+        nextStepValue: isRu ? "Подготовьте обновление CRM" : "Prepare the CRM update",
+        nextStepBody: isRu
+          ? "Напоминание уже проверено. Дальше подготовьте CRM-обновление или скопируйте итоговую сводку."
+          : "The reminder is verified. Move the case into CRM writeback or copy the reminder handoff note.",
+        completedWork: sharedCompletedWork || defaultSnapshot.completedWork,
+        statusPill: { text: isRu ? "Проверено" : "Verified", tone: "ok" },
+        nextPill: { text: isRu ? "Дальше" : "Next", tone: "neutral" },
+        completedPill: { text: isRu ? "Готово" : "Completed", tone: "ok" },
+        heroStatus: isRu ? "Напоминание отправлено" : "Reminder verified",
+        heroFocus: isRu ? "Фокус: CRM" : "Focus: CRM",
+        heroApproval: isRu ? "Подтверждение закрыто" : "Approval cleared",
+      };
+    case "visa_handoff_draft":
+      return {
+        ...defaultSnapshot,
+        client: sharedClient,
+        status: isRu ? "Черновик обновления CRM готов" : "CRM update draft is ready",
+        nextStepValue: isRu ? "Подтвердите защищённую запись в CRM" : "Confirm the protected CRM writeback",
+        nextStepBody: isRu
+          ? "Проверьте CRM-заметку и назначенного владельца, затем подтвердите защищённую запись."
+          : "Review the prepared CRM note and owner assignment, then approve the protected writeback step.",
+        completedWork: isRu
+          ? "CRM-заметка, владелец кейса и следующий шаг уже собраны в черновике записи."
+          : "The CRM note, assigned owner, and next action are already staged in the writeback draft.",
+        statusPill: { text: isRu ? "Нужно подтверждение" : "Needs approval", tone: "fail" },
+        nextPill: { text: isRu ? "Сейчас" : "Now", tone: "neutral" },
+        completedPill: { text: isRu ? "Черновик" : "Draft ready", tone: "neutral" },
+        heroStatus: isRu ? "CRM-черновик готов" : "CRM draft ready",
+        heroFocus: isRu ? "Фокус: запись в CRM" : "Focus: CRM writeback",
+        heroApproval: isRu ? "Ждёт подтверждения" : "Approval required",
+      };
+    case "visa_handoff_result":
+      return {
+        ...defaultSnapshot,
+        client: sharedClient,
+        status: isRu ? "CRM handoff завершён" : "CRM handoff completed",
+        nextStepValue: isRu ? "Передавайте специалисту только при необходимости" : "Escalate only if specialist review is still needed",
+        nextStepBody: isRu
+          ? "Обновление CRM уже проверено. Скопируйте handoff summary или передайте кейс специалисту только если review всё ещё нужен."
+          : "The CRM update is verified. Copy the handoff summary or move to specialist review only if the case still needs escalation.",
+        completedWork: sharedCompletedWork || defaultSnapshot.completedWork,
+        statusPill: { text: isRu ? "Проверено" : "Verified", tone: "ok" },
+        nextPill: { text: isRu ? "Дальше" : "Next", tone: "neutral" },
+        completedPill: { text: isRu ? "Готово" : "Completed", tone: "ok" },
+        heroStatus: isRu ? "CRM обновлена" : "CRM verified",
+        heroFocus: isRu ? "Фокус: handoff" : "Focus: handoff",
+        heroApproval: isRu ? "Подтверждение закрыто" : "Approval cleared",
+      };
+    case "visa_escalation_draft":
+      return {
+        ...defaultSnapshot,
+        client: sharedClient,
+        status: isRu ? "Передача специалисту готова" : "Specialist handoff is ready",
+        nextStepValue: isRu ? "Подтвердите защищённую передачу человеку" : "Confirm the protected human handoff",
+        nextStepBody: isRu
+          ? "Проверьте причину эскалации, подтвердите передачу человеку и затем откройте итог передачи."
+          : "Review the escalation reason, approve the protected human handoff, then open the escalation summary.",
+        completedWork: isRu
+          ? "Причина эскалации, владелец и очередь уже подготовлены для human review."
+          : "The escalation note, owner, and queue are already prepared for human review.",
+        statusPill: { text: isRu ? "Нужно подтверждение" : "Needs approval", tone: "fail" },
+        nextPill: { text: isRu ? "Сейчас" : "Now", tone: "neutral" },
+        completedPill: { text: isRu ? "Черновик" : "Draft ready", tone: "neutral" },
+        heroStatus: isRu ? "Передача подготовлена" : "Handoff ready",
+        heroFocus: isRu ? "Фокус: специалист" : "Focus: specialist",
+        heroApproval: isRu ? "Ждёт подтверждения" : "Approval required",
+      };
+    case "visa_escalation_result":
+      return {
+        ...defaultSnapshot,
+        client: sharedClient,
+        status: isRu ? "Кейс передан специалисту" : "Case handed to a specialist",
+        nextStepValue: isRu ? "Позвоните клиенту и продолжите human review" : "Call the client and continue the human review",
+        nextStepBody: isRu
+          ? "Передача специалисту уже проверена. Поделитесь сводкой и продолжайте кейс с назначенным владельцем."
+          : "The specialist handoff is verified. Share the summary, then continue the case with the assigned human owner.",
+        completedWork: sharedCompletedWork || defaultSnapshot.completedWork,
+        statusPill: { text: isRu ? "Проверено" : "Verified", tone: "ok" },
+        nextPill: { text: isRu ? "Человек" : "Human next", tone: "neutral" },
+        completedPill: { text: isRu ? "Готово" : "Completed", tone: "ok" },
+        heroStatus: isRu ? "Передано специалисту" : "Specialist engaged",
+        heroFocus: isRu ? "Фокус: human review" : "Focus: human review",
+        heroApproval: isRu ? "Подтверждение закрыто" : "Approval cleared",
+      };
+    default:
+      return defaultSnapshot;
+  }
+}
+
+function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaitingFreshResponse, summaryConfig) {
+  syncCaseWorkspaceStaticCopy();
+  const snapshot = getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse, summaryConfig);
+
+  if (el.caseWorkspaceClient instanceof HTMLElement) {
+    el.caseWorkspaceClient.textContent = snapshot.client;
+  }
+  if (el.caseWorkspaceStatus instanceof HTMLElement) {
+    el.caseWorkspaceStatus.textContent = snapshot.status;
+  }
+  if (el.caseWorkspaceNextStepValue instanceof HTMLElement) {
+    el.caseWorkspaceNextStepValue.textContent = snapshot.nextStepValue;
+  }
+  if (el.caseWorkspaceNextStep instanceof HTMLElement) {
+    el.caseWorkspaceNextStep.textContent = snapshot.nextStepBody;
+  }
+  if (el.caseWorkspaceCompletedWork instanceof HTMLElement) {
+    el.caseWorkspaceCompletedWork.textContent = snapshot.completedWork;
+  }
+  if (el.caseWorkspaceHeroChipStatus instanceof HTMLElement) {
+    el.caseWorkspaceHeroChipStatus.textContent = snapshot.heroStatus;
+  }
+  if (el.caseWorkspaceHeroChipFocus instanceof HTMLElement) {
+    el.caseWorkspaceHeroChipFocus.textContent = snapshot.heroFocus;
+  }
+  if (el.caseWorkspaceHeroChipApproval instanceof HTMLElement) {
+    el.caseWorkspaceHeroChipApproval.textContent = snapshot.heroApproval;
+  }
+  if (el.caseWorkspaceStatusPill instanceof HTMLElement) {
+    setStatusPill(el.caseWorkspaceStatusPill, snapshot.statusPill.text, snapshot.statusPill.tone);
+  }
+  if (el.caseWorkspaceNextStepPill instanceof HTMLElement) {
+    setStatusPill(el.caseWorkspaceNextStepPill, snapshot.nextPill.text, snapshot.nextPill.tone);
+  }
+  if (el.caseWorkspaceCompletedPill instanceof HTMLElement) {
+    setStatusPill(el.caseWorkspaceCompletedPill, snapshot.completedPill.text, snapshot.completedPill.tone);
+  }
 }
 
 async function copyTextToClipboard(text) {
@@ -14933,6 +15361,9 @@ function renderLiveIntentExperience() {
     typeof latestResult.text === "string" &&
     latestResult.text.trim().length > 0 &&
     latestResult.intent === intent;
+  const summaryConfig = getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult);
+
+  renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaitingFreshResponse, summaryConfig);
 
   if (el.liveResultLabel instanceof HTMLElement) {
     el.liveResultLabel.textContent = config.resultLabel;
@@ -14987,7 +15418,6 @@ function renderLiveIntentExperience() {
     }
   }
   if (el.liveResultSummary instanceof HTMLElement) {
-    const summaryConfig = getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult);
     el.liveResultSummary.hidden = !summaryConfig;
     el.liveResultSummary.setAttribute("aria-hidden", summaryConfig ? "false" : "true");
     if (el.liveResultSummaryTitle instanceof HTMLElement) {

@@ -772,9 +772,203 @@
     line-height: 1.48;
   }
 
-  .layout.is-story-focused .story-segment-footer {
+.layout.is-story-focused .story-segment-footer {
     gap: 6px 8px;
     padding-top: 8px;
+  }
+}
+
+/* 2026-03-20: Stage 1 case-workspace shell for the live first fold */
+.layout[data-active-tab="live-negotiator"] .panel-live-intent-composer {
+  overflow: hidden;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-shell {
+  display: grid;
+  gap: 16px;
+  margin: 0 0 18px;
+  padding: 20px 20px 18px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);
+  border-radius: 28px;
+  background:
+    radial-gradient(360px 160px at 0% -16%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 72%),
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-panel) 96%, transparent), color-mix(in oklch, var(--surface-panel-2) 99%, transparent));
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px 18px;
+  align-items: start;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-hero-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-hero-copy h2 {
+  margin: 0;
+  font-size: clamp(1.42rem, 2vw, 2rem);
+  line-height: 1.14;
+  letter-spacing: -0.03em;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-hero-intro {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--muted-foreground);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  align-self: start;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-hero-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 68%, transparent);
+  background: color-mix(in oklch, var(--surface-control) 76%, transparent);
+  color: color-mix(in oklch, var(--foreground) 92%, var(--muted-foreground));
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-summary-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px 16px 18px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 74%, transparent);
+  border-radius: 22px;
+  background:
+    radial-gradient(180px 88px at 0% -18%, color-mix(in oklch, var(--primary) 8%, transparent), transparent 72%),
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 82%, transparent), color-mix(in oklch, var(--surface-panel-2) 98%, transparent));
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-summary-head,
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-section-copy {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-summary-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-summary-list div {
+  display: grid;
+  gap: 2px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-summary-list dt {
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-summary-list dd {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 0.94rem;
+  font-weight: 600;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-summary-copy {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-panel-title {
+  margin-top: 4px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-panel-intro {
+  max-width: 74ch;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-section {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 74%, transparent);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 84%, transparent), color-mix(in oklch, var(--surface-panel-2) 98%, transparent));
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-title {
+  color: color-mix(in oklch, var(--primary) 56%, var(--muted-foreground));
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-hint {
+  margin: 0;
+  max-width: 64ch;
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-group {
+  width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .layout[data-active-tab="live-negotiator"] .case-workspace-hero,
+  .layout[data-active-tab="live-negotiator"] .case-workspace-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .layout[data-active-tab="live-negotiator"] .case-workspace-hero-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .layout[data-active-tab="live-negotiator"] .case-workspace-shell {
+    padding: 18px 16px 16px;
+  }
+
+  .layout[data-active-tab="live-negotiator"] .case-workspace-action-section {
+    padding: 14px 14px 15px;
+  }
+
+  .layout[data-active-tab="live-negotiator"] .case-workspace-hero-chip {
+    min-height: 32px;
   }
 }
 

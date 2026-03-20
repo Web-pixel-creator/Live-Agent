@@ -57,6 +57,14 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   }
 
   const requiredHtmlTokens = [
+    'class="case-workspace-shell"',
+    'id="caseWorkspaceClient"',
+    'id="caseWorkspaceStatus"',
+    'id="caseWorkspaceNextStepValue"',
+    'id="caseWorkspaceNextStep"',
+    'id="caseWorkspaceCompletedWork"',
+    'class="case-workspace-action-section case-workspace-action-section-main"',
+    'class="case-workspace-action-section case-workspace-action-section-utility"',
     'id="runVisaDemoBtn"',
     'data-dashboard-action="run_visa_intake_demo"',
     'data-i18n="live.compose.runVisaDemo"',
@@ -82,7 +90,21 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     assert.ok(htmlSource.includes(token), `index.html missing visa demo CTA token: ${token}`);
   }
 
+  const mainSectionStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-main"');
+  const utilitySectionStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-utility"');
+  const utilitySectionEnd = htmlSource.indexOf("</section>", utilitySectionStart);
+  assert.ok(mainSectionStart !== -1 && utilitySectionStart !== -1 && utilitySectionEnd !== -1, "case-workspace sections should wrap the visa intake CTAs");
+  const mainSection = htmlSource.slice(mainSectionStart, utilitySectionStart);
+  const utilitySection = htmlSource.slice(utilitySectionStart, utilitySectionEnd);
+  assert.ok(mainSection.includes('id="runVisaDemoBtn"'), "visa intake launch CTA should stay in the main action section");
+  assert.ok(utilitySection.includes('id="reviewVisaResultBtn"'), "visa intake review CTA should stay in the utility section");
+  assert.ok(utilitySection.includes('id="resetVisaDemoBtn"'), "visa reset CTA should stay in the utility section");
+
   const requiredStyleTokens = [
+    ".case-workspace-shell",
+    ".case-workspace-summary-grid",
+    ".case-workspace-action-stack",
+    ".case-workspace-action-section",
     ".live-compose-preset-hint",
     ".live-compose-preset-map",
     ".live-compose-preset-card",
