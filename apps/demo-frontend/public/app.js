@@ -2194,13 +2194,13 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
 
 Object.assign(LIVE_UI_COPY_OVERRIDES.en, {
   "live.context.workflow": "Workflow",
-  "live.context.workflowHint": "Stories and UI",
+  "live.context.workflowHint": "Browser + story",
   "live.context.voice": "Voice",
   "live.context.voiceHint": "Mic and session",
   "live.context.control": "Control",
   "live.context.controlHint": "Approvals and queue",
   "live.context.more": "More",
-  "live.context.moreHint": "Audio and service",
+  "live.context.moreHint": "Extras and service",
     "live.connection.targetLanguage": "Translate to",
     "live.connection.targetLanguageHint": "Language you want back",
   "live.utility.heading": "Voice",
@@ -2213,21 +2213,21 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.en, {
       "Choose one action, set the translation direction if needed, write one clear request, and send it. Workflow, voice, control, and more stay in the dock above.",
   "live.compose.serviceActionsTitle": "More tools",
   "live.compose.serviceActionsHint": "Audio upload and service-side actions for rare flows.",
-  "live.support.heading": "Control",
-  "live.support.hint": "Open only for approvals or active-task checks.",
+  "live.support.heading": "Operator approvals & queue",
+  "live.support.hint": "Open only for approval decisions, queue checks, or task recovery.",
   "live.support.approvalTitle": "Approvals",
   "live.support.queueTitle": "Active tasks",
 });
 
 Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
   "live.context.workflow": "Workflow",
-  "live.context.workflowHint": "\u0418\u0441\u0442\u043e\u0440\u0438\u0438 \u0438 UI",
+  "live.context.workflowHint": "\u0411\u0440\u0430\u0443\u0437\u0435\u0440 \u0438 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0438",
   "live.context.voice": "\u0413\u043e\u043b\u043e\u0441",
   "live.context.voiceHint": "\u041c\u0438\u043a\u0440\u043e\u0444\u043e\u043d \u0438 \u0441\u0435\u0441\u0441\u0438\u044f",
   "live.context.control": "\u041a\u043e\u043d\u0442\u0440\u043e\u043b\u044c",
   "live.context.controlHint": "\u0421\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f \u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c",
   "live.context.more": "\u0415\u0449\u0451",
-  "live.context.moreHint": "\u0410\u0443\u0434\u0438\u043e \u0438 \u0441\u0435\u0440\u0432\u0438\u0441",
+  "live.context.moreHint": "\u042d\u043a\u0441\u0442\u0440\u0430 \u0438 \u0441\u0435\u0440\u0432\u0438\u0441",
   "live.connection.targetLanguage": "\u042f\u0437\u044b\u043a \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u0430",
   "live.connection.targetLanguageHint": "\u0412\u044b\u0431\u0435\u0440\u0438 \u044f\u0437\u044b\u043a \u043f\u0435\u0440\u0435\u0432\u043e\u0434\u0430",
   "live.utility.heading": "\u0413\u043e\u043b\u043e\u0441",
@@ -2241,48 +2241,54 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
     "\u0412\u044b\u0431\u0435\u0440\u0438 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435, \u043f\u0440\u0438 \u043d\u0443\u0436\u0434\u0435 \u0437\u0430\u0434\u0430\u0439 \u044f\u0437\u044b\u043a \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u0430, \u043d\u0430\u043f\u0438\u0448\u0438 \u0437\u0430\u043f\u0440\u043e\u0441 \u0438 \u043e\u0442\u043f\u0440\u0430\u0432\u044c \u0435\u0433\u043e. Workflow, \u0433\u043e\u043b\u043e\u0441, \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c \u0438 \u0435\u0449\u0451 \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u044e\u0442\u0441\u044f \u0441\u0432\u0435\u0440\u0445\u0443 \u0432 \u0434\u043e\u043a\u0435.",
   "live.compose.serviceActionsTitle": "\u0414\u043e\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c\u043d\u043e",
   "live.compose.serviceActionsHint": "\u0410\u0443\u0434\u0438\u043e\u0444\u0430\u0439\u043b \u0438 \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f \u0434\u043b\u044f \u0440\u0435\u0434\u043a\u0438\u0445 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0435\u0432.",
-  "live.support.heading": "\u041a\u043e\u043d\u0442\u0440\u043e\u043b\u044c",
-  "live.support.hint": "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f \u0438\u043b\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0445 \u0437\u0430\u0434\u0430\u0447.",
+  "live.support.heading": "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0435 \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f \u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c",
+  "live.support.hint": "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f \u0440\u0435\u0448\u0435\u043d\u0438\u0439 \u043f\u043e \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044e, \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u0438 \u0438\u043b\u0438 recovery.",
   "live.support.approvalTitle": "\u0421\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u0435",
   "live.support.queueTitle": "\u0410\u043a\u0442\u0438\u0432\u043d\u044b\u0435 \u0437\u0430\u0434\u0430\u0447\u0438",
 });
 
 Object.assign(LIVE_UI_COPY_OVERRIDES.en, {
-  "live.context.workflowHint": "Story + UI",
+  "live.context.workflowHint": "Browser + story",
   "live.context.voiceHint": "Mic + runtime",
   "live.context.controlHint": "Approvals + queue",
-  "live.context.moreHint": "Audio + tools",
+  "live.context.moreHint": "Extras + service",
     "live.compose.intro":
       "Choose one action, add the translation direction if needed, write one request, and send it. Support lanes stay in the dock above.",
-  "live.compose.optionalTitle": "More tools",
+  "live.compose.secondaryTitle": "Workflow tools",
+  "live.compose.secondaryHint": "Open when the case needs a browser task or a story run.",
+  "live.compose.optionalTitle": "Operator extras",
   "live.utility.summaryHint": "Mic, session, and export stay here.",
   "live.connection.summaryHint": "Connect, export, or check session state.",
   "live.controls.summaryHint": "Mic, hold-to-talk, and quick text mode.",
   "live.compose.audioTitle": "Audio input",
   "live.compose.audioHint": "Use only when a request starts from a recording.",
-  "live.compose.optionalHint": "Audio input and service actions for rare flows.",
+  "live.compose.optionalHint": "Open only for audio uploads, service actions, or support flows.",
   "live.compose.serviceActionsTitle": "Service actions",
   "live.compose.serviceActionsHint": "Send a command, clear the current answer, or queue a background request.",
-  "live.support.hint": "Open only for approvals or queue checks.",
+  "live.support.heading": "Operator approvals & queue",
+  "live.support.hint": "Open only for approval decisions, queue checks, or task recovery.",
 });
 
 Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
-  "live.context.workflowHint": "\u0418\u0441\u0442\u043e\u0440\u0438\u0438 \u0438 UI",
+  "live.context.workflowHint": "\u0411\u0440\u0430\u0443\u0437\u0435\u0440 \u0438 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0438",
   "live.context.voiceHint": "\u041c\u0438\u043a\u0440\u043e\u0444\u043e\u043d \u0438 \u0441\u0435\u0441\u0441\u0438\u044f",
   "live.context.controlHint": "\u0421\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f \u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c",
-  "live.context.moreHint": "\u0410\u0443\u0434\u0438\u043e \u0438 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b",
+  "live.context.moreHint": "\u042d\u043a\u0441\u0442\u0440\u0430 \u0438 \u0441\u0435\u0440\u0432\u0438\u0441",
   "live.compose.intro":
     "\u0412\u044b\u0431\u0435\u0440\u0438 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435, \u043f\u0440\u0438 \u043d\u0443\u0436\u0434\u0435 \u0437\u0430\u0434\u0430\u0439 \u044f\u0437\u044b\u043a \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u0430, \u043d\u0430\u043f\u0438\u0448\u0438 \u043e\u0434\u0438\u043d \u0437\u0430\u043f\u0440\u043e\u0441 \u0438 \u043e\u0442\u043f\u0440\u0430\u0432\u044c \u0435\u0433\u043e. \u0421\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u0441\u043b\u043e\u0438 \u043e\u0441\u0442\u0430\u044e\u0442\u0441\u044f \u0441\u0432\u0435\u0440\u0445\u0443 \u0432 \u0434\u043e\u043a\u0435.",
-  "live.compose.optionalTitle": "\u0414\u043e\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c\u043d\u044b\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b",
+  "live.compose.secondaryTitle": "\u0418\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b workflow",
+  "live.compose.secondaryHint": "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0439, \u0435\u0441\u043b\u0438 \u043a\u0435\u0439\u0441\u0443 \u043d\u0443\u0436\u043d\u0430 UI-\u0437\u0430\u0434\u0430\u0447\u0430 \u0438\u043b\u0438 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0439.",
+  "live.compose.optionalTitle": "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0435 \u044d\u043a\u0441\u0442\u0440\u0430",
   "live.utility.summaryHint": "\u0417\u0434\u0435\u0441\u044c \u043c\u0438\u043a\u0440\u043e\u0444\u043e\u043d, \u0441\u0435\u0441\u0441\u0438\u044f \u0438 \u044d\u043a\u0441\u043f\u043e\u0440\u0442.",
   "live.connection.summaryHint": "\u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0438, \u044d\u043a\u0441\u043f\u043e\u0440\u0442\u0438\u0440\u0443\u0439 \u0438\u043b\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u044c \u0441\u0435\u0441\u0441\u0438\u044e.",
   "live.controls.summaryHint": "\u041c\u0438\u043a\u0440\u043e\u0444\u043e\u043d, \u0440\u0435\u0436\u0438\u043c \u00ab\u043d\u0430\u0436\u043c\u0438 \u0438 \u0433\u043e\u0432\u043e\u0440\u0438\u00bb \u0438 \u0431\u044b\u0441\u0442\u0440\u044b\u0439 \u0442\u0435\u043a\u0441\u0442.",
   "live.compose.audioTitle": "\u0410\u0443\u0434\u0438\u043e\u0432\u0445\u043e\u0434",
   "live.compose.audioHint": "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439 \u0442\u043e\u043b\u044c\u043a\u043e \u043a\u043e\u0433\u0434\u0430 \u0437\u0430\u043f\u0440\u043e\u0441 \u043d\u0430\u0447\u0438\u043d\u0430\u0435\u0442\u0441\u044f \u0441 \u0437\u0430\u043f\u0438\u0441\u0438.",
-  "live.compose.optionalHint": "\u0410\u0443\u0434\u0438\u043e\u0432\u0445\u043e\u0434 \u0438 \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f \u0434\u043b\u044f \u0440\u0435\u0434\u043a\u0438\u0445 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0435\u0432.",
+  "live.compose.optionalHint": "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f \u0430\u0443\u0434\u0438\u043e\u0437\u0430\u0433\u0440\u0443\u0437\u043e\u043a, \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0445 \u043a\u043e\u043c\u0430\u043d\u0434 \u0438\u043b\u0438 support-\u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0435\u0432.",
   "live.compose.serviceActionsTitle": "\u0421\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f",
   "live.compose.serviceActionsHint": "\u041a\u043e\u043c\u0430\u043d\u0434\u0430, \u043e\u0447\u0438\u0441\u0442\u043a\u0430 \u0442\u0435\u043a\u0443\u0449\u0435\u0433\u043e \u043e\u0442\u0432\u0435\u0442\u0430 \u0438\u043b\u0438 \u0444\u043e\u043d\u043e\u0432\u044b\u0439 \u0437\u0430\u043f\u0440\u043e\u0441.",
-  "live.support.hint": "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f \u0438\u043b\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u0438.",
+  "live.support.heading": "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0435 \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f \u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c",
+  "live.support.hint": "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f \u0440\u0435\u0448\u0435\u043d\u0438\u0439 \u043f\u043e \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044e, \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u0438 \u0438\u043b\u0438 recovery.",
 });
 
 Object.assign(LIVE_UI_COPY_OVERRIDES.en, {
@@ -4200,17 +4206,17 @@ function getLiveContextDockPanelDescriptor(panelKey) {
         ? "\u041a\u043e\u043d\u0442\u0435\u043a\u0441\u0442\u043d\u044b\u0435 \u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b \u0434\u043b\u044f Live"
         : "Context tools for the live lane",
       dockHint: isRu
-        ? "\u0418\u0441\u0442\u043e\u0440\u0438\u0438, UI \u0438 \u0434\u0440\u0443\u0433\u0438\u0435 \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u0441\u043b\u043e\u0438 \u0436\u0438\u0432\u0443\u0442 \u043d\u0430\u0434 \u0432\u0432\u043e\u0434\u043e\u043c."
-        : "Story and UI stay below the main composer.",
+        ? "\u0411\u0440\u0430\u0443\u0437\u0435\u0440\u043d\u044b\u0435 \u0437\u0430\u0434\u0430\u0447\u0438 \u0438 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0438 \u0436\u0438\u0432\u0443\u0442 \u043d\u0438\u0436\u0435 \u043e\u0441\u043d\u043e\u0432\u043d\u043e\u0433\u043e \u043a\u0435\u0439\u0441\u0430."
+        : "Browser tasks and story runs stay below the main case workspace.",
       currentLabel: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442 Workflow" : "Open lane: Workflow",
       currentHint: isRu
-        ? "\u0418\u0441\u0442\u043e\u0440\u0438\u0438 \u0438 UI \u043e\u0442\u043a\u0440\u044b\u0442\u044b \u0432 \u0431\u043b\u043e\u043a\u0435 \u043d\u0438\u0436\u0435."
-        : "Story and UI are open below.",
+        ? "\u041d\u0438\u0436\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u044b browser-\u0437\u0430\u0434\u0430\u0447\u0438 \u0438 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0438."
+        : "Browser tasks and story runs are open below.",
       trayEyebrow: isRu ? "\u0420\u0435\u0436\u0438\u043c\u044b" : "Workflow",
-      trayTitle: isRu ? "Workflow: \u0438\u0441\u0442\u043e\u0440\u0438\u044f \u0438 UI" : "Workflow: story and UI",
+      trayTitle: isRu ? "Workflow: browser \u0438 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0438" : "Workflow: browser and story",
       trayHint: isRu
-        ? "\u0417\u0434\u0435\u0441\u044c \u0432\u0442\u043e\u0440\u0438\u0447\u043d\u044b\u0435 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0438 \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u0438 UI."
-        : "Secondary story and UI paths live here.",
+        ? "\u0417\u0434\u0435\u0441\u044c \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u044e\u0442\u0441\u044f browser-\u0437\u0430\u0434\u0430\u0447\u0438 \u0438 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0438 \u043f\u043e \u043a\u0435\u0439\u0441\u0443."
+        : "Open browser-task helpers and story runs here when the case needs them.",
       trayStatusText: workflowState.statusText,
       trayStatusVariant: workflowState.statusVariant,
       buttonStatusText: workflowState.statusText,
@@ -4248,15 +4254,15 @@ function getLiveContextDockPanelDescriptor(panelKey) {
       dockHint: isRu
         ? "\u0421\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f \u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0436\u0438\u0432\u0443\u0442 \u0432 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u043e\u043c \u0441\u043b\u043e\u0435."
         : "Approvals and queue stay below the main composer.",
-      currentLabel: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c" : "Open lane: Control",
+      currentLabel: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0439 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c" : "Open lane: Operator control",
       currentHint: isRu
-        ? "\u0421\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f \u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u043e\u0442\u043a\u0440\u044b\u0442\u044b \u043d\u0438\u0436\u0435."
-        : "Approvals and queue are open below.",
+        ? "\u041d\u0438\u0436\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u044b \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f, \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0438 recovery."
+        : "Approvals, queue checks, and recovery stay open below.",
       trayEyebrow: isRu ? "\u041a\u043e\u043d\u0442\u0440\u043e\u043b\u044c" : "Control",
-      trayTitle: isRu ? "\u0421\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f \u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c" : "Approvals and queue",
+      trayTitle: isRu ? "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440: \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f \u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c" : "Operator: approvals and queue",
       trayHint: isRu
-        ? "\u0417\u0434\u0435\u0441\u044c \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f \u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c."
-        : "Approval actions and queue state live here.",
+        ? "\u0417\u0434\u0435\u0441\u044c \u0436\u0438\u0432\u0443\u0442 \u0440\u0435\u0448\u0435\u043d\u0438\u044f \u043f\u043e \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044e, \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0438 recovery-\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f."
+        : "Approval decisions, queue state, and recovery actions live here.",
       trayStatusText: controlState.statusText,
       trayStatusVariant: controlState.statusVariant,
       buttonStatusText: controlState.statusText,
@@ -4273,13 +4279,13 @@ function getLiveContextDockPanelDescriptor(panelKey) {
         : "Rare tools stay out of the main path.",
       currentLabel: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442 \u0441\u043b\u043e\u0439 \u00ab\u0415\u0449\u0451\u00bb" : "Open lane: More",
       currentHint: isRu
-        ? "\u0410\u0443\u0434\u0438\u043e\u0432\u0445\u043e\u0434 \u0438 \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f \u043e\u0442\u043a\u0440\u044b\u0442\u044b \u043d\u0438\u0436\u0435."
-        : "Audio input and service actions are open below.",
+        ? "\u041d\u0438\u0436\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u044b \u0440\u0435\u0434\u043a\u0438\u0435 operator-\u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b."
+        : "Rare operator-side tools are open below.",
       trayEyebrow: isRu ? "\u0415\u0449\u0451" : "More",
-      trayTitle: isRu ? "\u0410\u0443\u0434\u0438\u043e \u0438 \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f" : "Audio and service actions",
+      trayTitle: isRu ? "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0435 \u044d\u043a\u0441\u0442\u0440\u0430" : "Operator extras",
       trayHint: isRu
-        ? "\u0417\u0434\u0435\u0441\u044c \u0436\u0438\u0432\u0443\u0442 \u0430\u0443\u0434\u0438\u043e\u0432\u0445\u043e\u0434 \u0438 \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f."
-        : "Audio input and service actions live here.",
+        ? "\u0417\u0434\u0435\u0441\u044c \u0436\u0438\u0432\u0443\u0442 \u0430\u0443\u0434\u0438\u043e\u0432\u0445\u043e\u0434, \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u043a\u043e\u043c\u0430\u043d\u0434\u044b \u0438 \u0440\u0435\u0434\u043a\u0438\u0435 support-\u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0438."
+        : "Audio input, service actions, and rare support flows live here.",
       trayStatusText: moreState.statusText,
       trayStatusVariant: moreState.statusVariant,
       buttonStatusText: moreState.statusText,
@@ -5994,8 +6000,8 @@ function getResolvedLiveIntentExperienceConfig(intent) {
       ...baseConfig,
       conversationTitle: "Visible turns",
       conversationHint: "Only user and assistant messages stay here.",
-      technicalTitle: "System log",
-      technicalHint: "Open only for runtime or queue issues.",
+      technicalTitle: "Operator diagnostics",
+      technicalHint: "Open only for runtime, queue, or protocol troubleshooting.",
       historyEmpty: "No visible turns yet. New user and assistant turns will land here.",
       historyPending,
       technicalEmpty,
@@ -6010,9 +6016,9 @@ function getResolvedLiveIntentExperienceConfig(intent) {
     conversationHint:
       "\u0422\u043e\u043b\u044c\u043a\u043e \u0442\u0432\u043e\u0438 \u0440\u0435\u043f\u043b\u0438\u043a\u0438 \u0438 \u043e\u0442\u0432\u0435\u0442\u044b \u0430\u0433\u0435\u043d\u0442\u0430.",
     technicalTitle:
-      "\u0421\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0439 \u043b\u043e\u0433",
+      "\u0414\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0430",
     technicalHint:
-      "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u0442\u043e\u043b\u044c\u043a\u043e \u043f\u0440\u0438 \u0441\u0431\u043e\u0435 runtime \u0438\u043b\u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u0438.",
+      "\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f runtime, \u043e\u0447\u0435\u0440\u0435\u0434\u0438 \u0438\u043b\u0438 \u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b\u044c\u043d\u043e\u0439 \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0438.",
     historyEmpty:
       "\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u043f\u043e\u043a\u0430 \u043f\u0443\u0441\u0442\u0430. \u041d\u043e\u0432\u044b\u0435 \u0440\u0435\u043f\u043b\u0438\u043a\u0438 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f \u0438 \u0430\u0433\u0435\u043d\u0442\u0430 \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u0437\u0434\u0435\u0441\u044c.",
     historyPending,
@@ -15596,13 +15602,13 @@ function renderLiveIntentExperience() {
         : "Choose the main action first. Main compose stays here; tools open below.";
   }
   if (el.liveIntentSecondaryLabel instanceof HTMLElement) {
-    el.liveIntentSecondaryLabel.textContent = t("live.compose.secondaryTitle", null, "Story & UI tasks");
+    el.liveIntentSecondaryLabel.textContent = t("live.compose.secondaryTitle", null, "Workflow tools");
   }
   if (el.liveIntentSecondaryHint instanceof HTMLElement) {
     el.liveIntentSecondaryHint.textContent = t(
       "live.compose.secondaryHint",
       null,
-      "Open only for a story run or a browser task.",
+      "Open when the case needs a browser task or a story run.",
     );
   }
   renderLiveIntentCards();

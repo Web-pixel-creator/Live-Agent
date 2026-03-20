@@ -35,6 +35,9 @@ test("live support dock separates product support from operator tools", () => {
     'liveContextDockLegendOperatorHint: document.getElementById("liveContextDockLegendOperatorHint")',
     '"Support & operator"',
     'Product helpers and operator tools stay below the case workspace.',
+    '"Workflow tools"',
+    '"Operator diagnostics"',
+    '"Operator approvals & queue"',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing live dock separation token: ${token}`);
   }
@@ -54,7 +57,15 @@ test("live support dock separates product support from operator tools", () => {
     "README should document live dock separation",
   );
   assert.ok(
+    readmeSource.includes("The lower workflow tray now reads as `Workflow tools`, the control lane reads as `Operator approvals & queue`, and the right-rail log reads as `Operator diagnostics`"),
+    "README should document the clearer operator/product copy split",
+  );
+  assert.ok(
     operatorGuideSource.includes("separates `Product support` (`Workflow`, `Voice`) from `Operator tools` (`Control`, `More`)"),
     "operator guide should document live dock separation",
+  );
+  assert.ok(
+    operatorGuideSource.includes("Live copy note: the lower workflow tray now reads as `Workflow tools`, the control tray reads as `Operator approvals & queue`, and the right-rail debug block reads as `Operator diagnostics`"),
+    "operator guide should document the clearer operator/product copy split",
   );
 });
