@@ -1793,18 +1793,29 @@
           </div>
         </section>
         <div id="operatorToolbar" class="actions operator-toolbar">
-          <div id="operatorToolbarClusterView" class="operator-toolbar-cluster operator-toolbar-cluster-view">
-            <p class="operator-toolbar-label">Board</p>
-            <div class="action-group operator-view-mode-actions">
-              <button id="operatorDemoViewBtn" class="button-muted" aria-pressed="true" aria-label="Demo View" title="Demo View">Demo</button>
-              <button id="operatorFullOpsViewBtn" class="button-muted" aria-pressed="false" aria-label="Full Ops View" title="Full Ops View">Full Ops</button>
+          <details id="operatorToolbarAdvancedControls" class="operator-toolbar-cluster operator-toolbar-advanced" open>
+            <summary id="operatorToolbarAdvancedSummary" class="operator-toolbar-advanced-summary">
+              <span class="operator-toolbar-advanced-copy">
+                <span class="operator-toolbar-advanced-title">Advanced board controls</span>
+                <span class="operator-toolbar-advanced-hint">Board mode and filters for broader console triage.</span>
+              </span>
+              <span class="operator-toolbar-advanced-pill">Board</span>
+            </summary>
+            <div class="operator-toolbar-advanced-body">
+              <div id="operatorToolbarClusterView" class="operator-toolbar-cluster operator-toolbar-cluster-view">
+                <p class="operator-toolbar-label">Board</p>
+                <div class="action-group operator-view-mode-actions">
+                  <button id="operatorDemoViewBtn" class="button-muted" aria-pressed="true" aria-label="Demo View" title="Demo View">Demo</button>
+                  <button id="operatorFullOpsViewBtn" class="button-muted" aria-pressed="false" aria-label="Full Ops View" title="Full Ops View">Full Ops</button>
+                </div>
+              </div>
+              <div id="operatorToolbarClusterFilters" class="operator-toolbar-cluster operator-toolbar-cluster-filters">
+                <p class="operator-toolbar-label">Filters</p>
+                <button id="operatorFocusCriticalBtn" class="button-muted" aria-pressed="false" aria-label="Focus Critical" title="Focus critical cards">Critical</button>
+                <button id="operatorIssuesOnlyBtn" class="button-muted" aria-pressed="false" aria-label="Issues Only" title="Issues Only">Issues</button>
+              </div>
             </div>
-          </div>
-          <div id="operatorToolbarClusterFilters" class="operator-toolbar-cluster operator-toolbar-cluster-filters">
-            <p class="operator-toolbar-label">Filters</p>
-            <button id="operatorFocusCriticalBtn" class="button-muted" aria-pressed="false" aria-label="Focus Critical" title="Focus critical cards">Critical</button>
-            <button id="operatorIssuesOnlyBtn" class="button-muted" aria-pressed="false" aria-label="Issues Only" title="Issues Only">Issues</button>
-          </div>
+          </details>
           <div id="operatorToolbarClusterSaved" class="operator-toolbar-cluster operator-toolbar-cluster-saved">
             <p class="operator-toolbar-label">Views</p>
             <div class="operator-saved-view-buttons" aria-label="Saved operator views">

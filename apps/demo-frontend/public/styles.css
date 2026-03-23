@@ -21810,7 +21810,7 @@ button:disabled {
 /* 2026-03-10: operator console refinement pass for calmer toolbar grouping and quieter board counts */
 .panel-operator-console .operator-toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 0.98fr) minmax(0, 0.9fr) minmax(0, 1.42fr) minmax(164px, 0.78fr);
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1.32fr) minmax(164px, 0.72fr);
   gap: 8px;
   align-items: start;
   padding: 8px 10px;
@@ -21819,7 +21819,7 @@ button:disabled {
 .panel-operator-console .operator-toolbar[data-workspace-focus="approvals"],
 .panel-operator-console .operator-toolbar[data-workspace-focus="runtime"],
 .panel-operator-console .operator-toolbar[data-workspace-focus="audit"] {
-  grid-template-columns: minmax(0, 1.38fr) minmax(152px, 0.62fr);
+  grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.34fr) minmax(152px, 0.54fr);
 }
 
 .panel-operator-console .operator-toolbar-cluster {
@@ -21829,8 +21829,72 @@ button:disabled {
   align-content: start;
 }
 
-.panel-operator-console .operator-toolbar-cluster[hidden] {
-  display: none !important;
+.panel-operator-console .operator-toolbar-advanced {
+  min-width: 0;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);
+  border-radius: calc(var(--radius) - 7px);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 92%, transparent), color-mix(in oklch, var(--surface-panel-2) 96%, transparent));
+}
+
+.panel-operator-console .operator-toolbar-advanced-summary {
+  list-style: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.panel-operator-console .operator-toolbar-advanced-summary::-webkit-details-marker {
+  display: none;
+}
+
+.panel-operator-console .operator-toolbar-advanced-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.panel-operator-console .operator-toolbar-advanced-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: color-mix(in oklch, var(--foreground) 92%, white);
+}
+
+.panel-operator-console .operator-toolbar-advanced-hint {
+  font-size: 0.69rem;
+  line-height: 1.35;
+  color: color-mix(in oklch, var(--foreground) 76%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-toolbar-advanced-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 88%, white);
+  background: color-mix(in oklch, var(--surface-panel) 84%, transparent);
+  border: 1px solid color-mix(in oklch, var(--border-soft) 86%, transparent);
+}
+
+.panel-operator-console .operator-toolbar-advanced-body {
+  display: grid;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.panel-operator-console .operator-toolbar-advanced[data-workspace-focus="approvals"]:not([open]),
+.panel-operator-console .operator-toolbar-advanced[data-workspace-focus="runtime"]:not([open]),
+.panel-operator-console .operator-toolbar-advanced[data-workspace-focus="audit"]:not([open]) {
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-panel) 88%, transparent), color-mix(in oklch, var(--surface-panel-2) 94%, transparent));
 }
 
 .panel-operator-console .operator-toolbar-cluster-filters {

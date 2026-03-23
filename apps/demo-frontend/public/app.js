@@ -3337,9 +3337,9 @@ const el = {
   operatorWorkspaceChooserStatus: document.getElementById("operatorWorkspaceChooserStatus"),
   operatorWorkspaceChooserMeta: document.getElementById("operatorWorkspaceChooserMeta"),
   operatorWorkspaceReturnBtn: document.getElementById("operatorWorkspaceReturnBtn"),
+  operatorToolbarAdvancedControls: document.getElementById("operatorToolbarAdvancedControls"),
+  operatorToolbarAdvancedSummary: document.getElementById("operatorToolbarAdvancedSummary"),
   operatorToolbar: document.getElementById("operatorToolbar"),
-  operatorToolbarClusterView: document.getElementById("operatorToolbarClusterView"),
-  operatorToolbarClusterFilters: document.getElementById("operatorToolbarClusterFilters"),
   operatorToolbarClusterSaved: document.getElementById("operatorToolbarClusterSaved"),
   operatorToolbarClusterRefresh: document.getElementById("operatorToolbarClusterRefresh"),
   operatorMobileRefreshBtn: document.getElementById("operatorMobileRefreshBtn"),
@@ -12022,14 +12022,17 @@ function syncOperatorToolbarWorkspaceMode() {
   if (el.operatorToolbar instanceof HTMLElement) {
     el.operatorToolbar.dataset.workspaceFocus = workspaceFocus;
   }
-  const boardClusters = [el.operatorToolbarClusterView, el.operatorToolbarClusterFilters];
-  const shouldCompressBoardChrome = workspaceFocus !== "overview";
-  for (const cluster of boardClusters) {
-    if (!(cluster instanceof HTMLElement)) {
-      continue;
-    }
-    cluster.hidden = shouldCompressBoardChrome;
-    cluster.setAttribute("aria-hidden", shouldCompressBoardChrome ? "true" : "false");
+  if (el.operatorToolbarAdvancedControls instanceof HTMLDetailsElement) {
+    el.operatorToolbarAdvancedControls.dataset.workspaceFocus = workspaceFocus;
+    el.operatorToolbarAdvancedControls.open = workspaceFocus === "overview";
+  }
+  if (el.operatorToolbarAdvancedSummary instanceof HTMLElement) {
+    el.operatorToolbarAdvancedSummary.setAttribute(
+      "aria-label",
+      workspaceFocus === "overview"
+        ? "Advanced board controls are open for overview triage"
+        : "Advanced board controls are available on demand while a focused workspace is active",
+    );
   }
 }
 
@@ -12039,7 +12042,7 @@ function syncOperatorSavedViewButtons() {
   if (el.operatorSavedViewHint instanceof HTMLElement) {
     el.operatorSavedViewHint.textContent =
       activeView && activeView !== "incidents"
-        ? `${OPERATOR_SAVED_VIEWS[activeView].label} workspace is active. Use Overview to reopen broader board controls.`
+        ? `${OPERATOR_SAVED_VIEWS[activeView].label} workspace is active. Open Advanced board controls only if you need broader triage filters.`
         : activeView
           ? OPERATOR_SAVED_VIEWS[activeView].hint
           : defaultHint;
