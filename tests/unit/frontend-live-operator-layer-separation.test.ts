@@ -34,6 +34,12 @@ test("live support dock separates product support from the operator lane", () =>
   assert.ok(workflowBtnIndex < controlBtnIndex, "product support buttons should stay before operator tools");
   assert.ok(voiceBtnIndex < controlBtnIndex, "voice lane should stay before the operator lane");
   assert.ok(!htmlSource.includes('id="liveDockMoreBtn"'), "legacy More dock button should be removed");
+  const controlTrayIndex = htmlSource.indexOf('id="liveContextTrayControl"');
+  const supportSectionIndex = htmlSource.indexOf('class="panel live-support-section"');
+  assert.ok(
+    controlTrayIndex !== -1 && supportSectionIndex !== -1 && controlTrayIndex < supportSectionIndex,
+    "control tray should own the operator approval/queue shell in static HTML",
+  );
 
   for (const token of [
     'liveContextDockLegendProductTitle: document.getElementById("liveContextDockLegendProductTitle")',
@@ -57,6 +63,10 @@ test("live support dock separates product support from the operator lane", () =>
   ]) {
     assert.ok(appSource.includes(token), `app.js missing live dock separation token: ${token}`);
   }
+  assert.ok(
+    !appSource.includes('section: el.liveSupportSection, persistent: true, open: true'),
+    "control tray should no longer remount the live support shell from below the live surface",
+  );
 
   for (const token of [
     ".live-context-dock-legend",
@@ -80,6 +90,10 @@ test("live support dock separates product support from the operator lane", () =>
     "README should document the clearer operator/product rail split",
   );
   assert.ok(
+    readmeSource.includes("That approval/queue shell now opens only inside the `Control` tray"),
+    "README should document the tray-owned approval/queue shell",
+  );
+  assert.ok(
     operatorGuideSource.includes("separates `Product support` (`Workflow`, `Voice`) from one `Operator lane` (`Control`)"),
     "operator guide should document live dock separation",
   );
@@ -88,5 +102,9 @@ test("live support dock separates product support from the operator lane", () =>
       "rare `Operator extras` stay nested inside `Control`, the live lane keeps only approvals plus a compact queue snapshot, and deeper operator surfaces open through `Operator Console`",
     ),
     "operator guide should document the clearer operator/product rail split",
+  );
+  assert.ok(
+    operatorGuideSource.includes("That approval/queue shell now opens only inside the `Control` tray"),
+    "operator guide should document the tray-owned approval/queue shell",
   );
 });

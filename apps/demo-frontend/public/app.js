@@ -4276,7 +4276,6 @@ function mountLiveContextDockPanels() {
   const mounts = [
     { key: "workflow", tray: trayMap.workflow, section: el.liveIntentSecondaryShell, persistent: true, open: true },
     { key: "voice", tray: trayMap.voice, section: el.liveUtilitySection, persistent: true, open: true },
-    { key: "control", tray: trayMap.control, section: el.liveSupportSection, persistent: true, open: true },
     {
       key: "control",
       tray: trayMap.control,
