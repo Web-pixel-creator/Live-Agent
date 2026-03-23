@@ -5580,10 +5580,30 @@ body.bg-video-loop-transition .background-video-fade {
   line-height: 1.45;
 }
 
+.live-control-advanced-shell {
+  margin-top: 18px;
+  background: linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 74%, transparent), color-mix(in oklch, var(--surface-panel-2) 88%, transparent));
+  border-color: color-mix(in oklch, var(--border-soft) 78%, transparent);
+}
+
+.live-control-advanced-shell > summary {
+  padding: 13px 14px;
+}
+
+.live-control-advanced-stack {
+  display: grid;
+  gap: 12px;
+}
+
 .live-input-optional-tools {
   margin-top: 18px;
   background: linear-gradient(180deg, color-mix(in oklch, var(--surface-panel) 88%, transparent), color-mix(in oklch, var(--surface-panel-2) 92%, transparent));
   border-color: color-mix(in oklch, var(--border-soft) 84%, transparent);
+}
+
+.live-control-advanced-shell .live-input-optional-tools,
+.live-control-advanced-shell .live-technical-timeline {
+  margin-top: 0;
 }
 
 .live-secondary-tools-grid {

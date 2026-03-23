@@ -19,6 +19,7 @@ test("live support dock separates product support from the operator lane", () =>
     'id="liveSupportOpenOperatorConsoleBtn"',
     'id="liveSupportQueueSnapshot"',
     'id="liveSupportQueueTitle"',
+    'id="liveControlAdvancedSection"',
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing live dock separation token: ${token}`);
   }
@@ -36,6 +37,7 @@ test("live support dock separates product support from the operator lane", () =>
   assert.ok(!htmlSource.includes('id="liveDockMoreBtn"'), "legacy More dock button should be removed");
   const controlTrayIndex = htmlSource.indexOf('id="liveContextTrayControl"');
   const supportSectionIndex = htmlSource.indexOf('class="panel live-support-section"');
+  const controlAdvancedIndex = htmlSource.indexOf('id="liveControlAdvancedSection"');
   const optionalToolsIndex = htmlSource.indexOf('class="advanced-settings live-input-optional-tools"');
   const technicalSectionIndex = htmlSource.indexOf('id="liveTechnicalTimelineSection"');
   assert.ok(
@@ -49,6 +51,18 @@ test("live support dock separates product support from the operator lane", () =>
   assert.ok(
     controlTrayIndex !== -1 && technicalSectionIndex !== -1 && controlTrayIndex < technicalSectionIndex,
     "control tray should own operator diagnostics in static HTML",
+  );
+  assert.ok(
+    supportSectionIndex !== -1 && controlAdvancedIndex !== -1 && supportSectionIndex < controlAdvancedIndex,
+    "advanced operator tools should come after the queue snapshot shell",
+  );
+  assert.ok(
+    controlAdvancedIndex !== -1 && optionalToolsIndex !== -1 && controlAdvancedIndex < optionalToolsIndex,
+    "advanced operator tools shell should own operator extras",
+  );
+  assert.ok(
+    controlAdvancedIndex !== -1 && technicalSectionIndex !== -1 && controlAdvancedIndex < technicalSectionIndex,
+    "advanced operator tools shell should own operator diagnostics",
   );
 
   for (const token of [
@@ -88,6 +102,8 @@ test("live support dock separates product support from the operator lane", () =>
     ".live-context-dock-legend",
     ".live-context-dock-legend-card",
     ".live-context-dock-legend-hint",
+    ".live-control-advanced-shell",
+    ".live-control-advanced-stack",
     '.live-context-dock-btn[data-live-context-group="product"]',
     '.live-context-dock-btn[data-live-context-group="operator"]',
     '.live-context-mounted-section[data-live-context-persistent="false"] > summary',
@@ -114,6 +130,10 @@ test("live support dock separates product support from the operator lane", () =>
     "README should document the tray-owned operator extras and diagnostics",
   );
   assert.ok(
+    readmeSource.includes("Those lower-frequency surfaces now sit behind one collapsed `Advanced operator tools` shell"),
+    "README should document the collapsed advanced operator tools shell",
+  );
+  assert.ok(
     operatorGuideSource.includes("separates `Product support` (`Workflow`, `Voice`) from one `Operator lane` (`Control`)"),
     "operator guide should document live dock separation",
   );
@@ -130,5 +150,9 @@ test("live support dock separates product support from the operator lane", () =>
   assert.ok(
     operatorGuideSource.includes("That same Control tray now owns low-frequency operator extras and diagnostics too"),
     "operator guide should document the tray-owned operator extras and diagnostics",
+  );
+  assert.ok(
+    operatorGuideSource.includes("those lower-frequency surfaces now sit behind one collapsed `Advanced operator tools` shell"),
+    "operator guide should document the collapsed advanced operator tools shell",
   );
 });

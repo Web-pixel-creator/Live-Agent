@@ -2997,6 +2997,7 @@ const el = {
   liveContextTrayHint: document.getElementById("liveContextTrayHint"),
   liveContextTrayStatus: document.getElementById("liveContextTrayStatus"),
   liveContextTrayClose: document.getElementById("liveContextTrayClose"),
+  liveControlAdvancedSection: document.getElementById("liveControlAdvancedSection"),
   liveContextTrayWorkflow: document.getElementById("liveContextTrayWorkflow"),
   liveContextTrayVoice: document.getElementById("liveContextTrayVoice"),
   liveContextTrayControl: document.getElementById("liveContextTrayControl"),
