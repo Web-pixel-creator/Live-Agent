@@ -1975,6 +1975,59 @@
               Fail and watch lanes stay loud while nominal systems remain compressed.
             </p>
           </div>
+          <div id="operatorSummaryGuidePath" class="operator-summary-guide-path" aria-label="Operator onboarding path">
+            <article id="operatorSummaryGuideStepRefresh" class="operator-summary-guide-step" data-step-state="current">
+              <div class="operator-summary-guide-step-head">
+                <span class="operator-summary-guide-step-index">1</span>
+                <div class="operator-summary-guide-step-copy">
+                  <strong id="operatorSummaryGuideStepRefreshTitle" class="operator-summary-guide-step-title">Refresh the board</strong>
+                  <p id="operatorSummaryGuideStepRefreshHint" class="operator-summary-guide-step-hint">
+                    Hydrate the first operator snapshot before you inspect deeper lanes.
+                  </p>
+                </div>
+              </div>
+              <div class="operator-summary-guide-step-foot">
+                <p id="operatorSummaryGuideStepRefreshStatus" class="status-pill status-neutral" data-status-code="current">current</p>
+                <button id="operatorSummaryGuideStepRefreshBtn" type="button" class="button-muted operator-summary-guide-step-action">
+                  Refresh Summary
+                </button>
+              </div>
+            </article>
+            <article id="operatorSummaryGuideStepInspect" class="operator-summary-guide-step" data-step-state="next">
+              <div class="operator-summary-guide-step-head">
+                <span class="operator-summary-guide-step-index">2</span>
+                <div class="operator-summary-guide-step-copy">
+                  <strong id="operatorSummaryGuideStepInspectTitle" class="operator-summary-guide-step-title">Inspect the hot lane</strong>
+                  <p id="operatorSummaryGuideStepInspectHint" class="operator-summary-guide-step-hint">
+                    After refresh, open the loudest lane instead of scanning the whole console.
+                  </p>
+                </div>
+              </div>
+              <div class="operator-summary-guide-step-foot">
+                <p id="operatorSummaryGuideStepInspectStatus" class="status-pill status-neutral" data-status-code="next">next</p>
+                <button id="operatorSummaryGuideStepInspectBtn" type="button" class="button-muted operator-summary-guide-step-action" disabled>
+                  Open lane
+                </button>
+              </div>
+            </article>
+            <article id="operatorSummaryGuideStepRecover" class="operator-summary-guide-step" data-step-state="later">
+              <div class="operator-summary-guide-step-head">
+                <span class="operator-summary-guide-step-index">3</span>
+                <div class="operator-summary-guide-step-copy">
+                  <strong id="operatorSummaryGuideStepRecoverTitle" class="operator-summary-guide-step-title">Recover only if needed</strong>
+                  <p id="operatorSummaryGuideStepRecoverHint" class="operator-summary-guide-step-hint">
+                    Use Recovery Playbook or Quick Start only after you confirm the lane still needs help.
+                  </p>
+                </div>
+              </div>
+              <div class="operator-summary-guide-step-foot">
+                <p id="operatorSummaryGuideStepRecoverStatus" class="status-pill status-neutral" data-status-code="later">later</p>
+                <button id="operatorSummaryGuideStepRecoverBtn" type="button" class="button-muted operator-summary-guide-step-action" disabled>
+                  Recovery Playbook
+                </button>
+              </div>
+            </article>
+          </div>
           <div class="operator-summary-guide-watch" data-watch-state="empty">
             <span class="operator-summary-guide-watch-label">Focus</span>
             <div id="operatorSummaryGuideWatchlist" class="operator-summary-guide-watchlist">

@@ -20323,6 +20323,99 @@ button:disabled {
   line-height: 1.46;
 }
 
+.panel-operator-console .operator-summary-guide-path {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.panel-operator-console .operator-summary-guide-step {
+  display: grid;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);
+  border-radius: calc(var(--radius) - 10px);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 92%, transparent), color-mix(in oklch, var(--surface-panel-2) 96%, transparent));
+}
+
+.panel-operator-console .operator-summary-guide-step[data-step-state="current"] {
+  border-color: color-mix(in oklch, var(--primary) 34%, var(--border-soft));
+  background:
+    radial-gradient(180px 72px at 0% -22%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 74%),
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 92%, transparent), color-mix(in oklch, var(--surface-panel-2) 96%, transparent));
+}
+
+.panel-operator-console .operator-summary-guide-step[data-step-state="done"] {
+  border-color: color-mix(in oklch, var(--chart-1) 30%, var(--border-soft));
+}
+
+.panel-operator-console .operator-summary-guide-step.is-disabled {
+  opacity: 0.76;
+}
+
+.panel-operator-console .operator-summary-guide-step-head,
+.panel-operator-console .operator-summary-guide-step-foot {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panel-operator-console .operator-summary-guide-step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);
+  background: color-mix(in oklch, var(--surface-control-hover) 90%, transparent);
+  color: color-mix(in oklch, var(--foreground) 90%, var(--muted-foreground));
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.panel-operator-console .operator-summary-guide-step-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.panel-operator-console .operator-summary-guide-step-title {
+  font-size: 0.79rem;
+  line-height: 1.35;
+}
+
+.panel-operator-console .operator-summary-guide-step-hint {
+  margin: 0;
+  color: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));
+  font-size: 0.73rem;
+  line-height: 1.44;
+}
+
+.panel-operator-console .operator-summary-guide-step-foot .status-pill {
+  flex: 0 0 auto;
+}
+
+.panel-operator-console .operator-summary-guide-step-action {
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 0.74rem;
+}
+
+@media (max-width: 1200px) {
+  .panel-operator-console .operator-summary-guide-path {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-operator-console .operator-summary-guide-step-head,
+  .panel-operator-console .operator-summary-guide-step-foot {
+    flex-wrap: wrap;
+  }
+}
+
 .panel-operator-console .operator-summary-guide-watch {
   display: grid;
   gap: 6px;

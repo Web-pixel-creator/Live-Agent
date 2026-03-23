@@ -3378,6 +3378,22 @@ const el = {
   operatorSummaryGuideContext: document.getElementById("operatorSummaryGuideContext"),
   operatorSummaryGuideViewPill: document.getElementById("operatorSummaryGuideViewPill"),
   operatorSummaryGuideViewNote: document.getElementById("operatorSummaryGuideViewNote"),
+  operatorSummaryGuidePath: document.getElementById("operatorSummaryGuidePath"),
+  operatorSummaryGuideStepRefresh: document.getElementById("operatorSummaryGuideStepRefresh"),
+  operatorSummaryGuideStepRefreshTitle: document.getElementById("operatorSummaryGuideStepRefreshTitle"),
+  operatorSummaryGuideStepRefreshHint: document.getElementById("operatorSummaryGuideStepRefreshHint"),
+  operatorSummaryGuideStepRefreshStatus: document.getElementById("operatorSummaryGuideStepRefreshStatus"),
+  operatorSummaryGuideStepRefreshBtn: document.getElementById("operatorSummaryGuideStepRefreshBtn"),
+  operatorSummaryGuideStepInspect: document.getElementById("operatorSummaryGuideStepInspect"),
+  operatorSummaryGuideStepInspectTitle: document.getElementById("operatorSummaryGuideStepInspectTitle"),
+  operatorSummaryGuideStepInspectHint: document.getElementById("operatorSummaryGuideStepInspectHint"),
+  operatorSummaryGuideStepInspectStatus: document.getElementById("operatorSummaryGuideStepInspectStatus"),
+  operatorSummaryGuideStepInspectBtn: document.getElementById("operatorSummaryGuideStepInspectBtn"),
+  operatorSummaryGuideStepRecover: document.getElementById("operatorSummaryGuideStepRecover"),
+  operatorSummaryGuideStepRecoverTitle: document.getElementById("operatorSummaryGuideStepRecoverTitle"),
+  operatorSummaryGuideStepRecoverHint: document.getElementById("operatorSummaryGuideStepRecoverHint"),
+  operatorSummaryGuideStepRecoverStatus: document.getElementById("operatorSummaryGuideStepRecoverStatus"),
+  operatorSummaryGuideStepRecoverBtn: document.getElementById("operatorSummaryGuideStepRecoverBtn"),
   operatorSummaryGuideWatchlist: document.getElementById("operatorSummaryGuideWatchlist"),
   operatorSummaryGuideRefreshBtn: document.getElementById("operatorSummaryGuideRefreshBtn"),
   operatorSummaryGuideRunNegotiationBtn: document.getElementById("operatorSummaryGuideRunNegotiationBtn"),
@@ -8328,6 +8344,249 @@ function formatOperatorSummaryGuideLabelList(items, maxItems = 2) {
   return `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}`;
 }
 
+function runOperatorSummaryGuidePathAction(actionId, options = {}) {
+  const normalizedAction = typeof actionId === "string" ? actionId.trim() : "";
+  if (!normalizedAction) {
+    return;
+  }
+  if (normalizedAction === "refresh_summary") {
+    runOperatorEmptyStateAction("refresh_summary");
+    return;
+  }
+  if (normalizedAction === "inspect_status") {
+    const targetStatusId = typeof options?.targetStatusId === "string" ? options.targetStatusId.trim() : "";
+    if (targetStatusId) {
+      jumpToOperatorStatusCard(targetStatusId);
+    }
+    return;
+  }
+  if (normalizedAction === "inspect_saved_view") {
+    const savedView = typeof options?.savedView === "string" ? options.savedView.trim() : "";
+    if (savedView) {
+      setOperatorSavedView(savedView);
+    }
+    return;
+  }
+  if (normalizedAction === "open_playbook") {
+    openOperatorSupportPanel(el.operatorLanePlaybook, el.operatorPlaybookRunNegotiationBtn);
+    return;
+  }
+  if (normalizedAction === "open_quick_start") {
+    openOperatorSupportPanel(el.operatorQuickStart, el.operatorQuickStartRunNegotiationBtn);
+  }
+}
+
+function syncOperatorSummaryGuidePathStep(stepElements, config = {}) {
+  if (!stepElements || !(stepElements.step instanceof HTMLElement) || !(stepElements.status instanceof HTMLElement)) {
+    return;
+  }
+  const stateKey = typeof config.state === "string" && config.state.trim().length > 0 ? config.state.trim() : "later";
+  const titleText = typeof config.title === "string" && config.title.trim().length > 0 ? config.title.trim() : "";
+  const hintText = typeof config.hint === "string" && config.hint.trim().length > 0 ? config.hint.trim() : "";
+  const statusText = typeof config.statusText === "string" && config.statusText.trim().length > 0
+    ? config.statusText.trim()
+    : stateKey;
+  const statusTone = config.statusTone === "ok" || config.statusTone === "fail" ? config.statusTone : "neutral";
+  const buttonLabel = typeof config.buttonLabel === "string" && config.buttonLabel.trim().length > 0
+    ? config.buttonLabel.trim()
+    : "Open";
+  const actionId = typeof config.actionId === "string" && config.actionId.trim().length > 0 ? config.actionId.trim() : "";
+  const buttonDisabled = config.disabled === true || !actionId;
+
+  stepElements.step.dataset.stepState = stateKey;
+  stepElements.step.classList.toggle("is-disabled", buttonDisabled);
+
+  if (stepElements.title instanceof HTMLElement) {
+    stepElements.title.textContent = titleText;
+  }
+  if (stepElements.hint instanceof HTMLElement) {
+    stepElements.hint.textContent = hintText;
+  }
+
+  setStatusPill(stepElements.status, statusText, statusTone);
+  stepElements.status.dataset.statusCode = stateKey;
+
+  if (stepElements.button instanceof HTMLButtonElement) {
+    stepElements.button.textContent = buttonLabel;
+    stepElements.button.disabled = buttonDisabled;
+    if (actionId) {
+      stepElements.button.dataset.guideStepAction = actionId;
+    } else {
+      delete stepElements.button.dataset.guideStepAction;
+    }
+    if (typeof config.targetStatusId === "string" && config.targetStatusId.trim().length > 0) {
+      stepElements.button.dataset.guideStepTargetStatusId = config.targetStatusId.trim();
+    } else {
+      delete stepElements.button.dataset.guideStepTargetStatusId;
+    }
+    if (typeof config.savedView === "string" && config.savedView.trim().length > 0) {
+      stepElements.button.dataset.guideStepSavedView = config.savedView.trim();
+    } else {
+      delete stepElements.button.dataset.guideStepSavedView;
+    }
+  }
+}
+
+function syncOperatorSummaryGuidePath(params = {}) {
+  if (!(el.operatorSummaryGuidePath instanceof HTMLElement)) {
+    return;
+  }
+
+  const hasManualRefresh = params.hasManualRefresh === true;
+  const refreshFailed = params.refreshFailed === true;
+  const activeSavedView = params.activeSavedView && typeof params.activeSavedView === "object" ? params.activeSavedView : null;
+  const failSignals = Array.isArray(params.failSignals) ? params.failSignals : [];
+  const neutralSignals = Array.isArray(params.neutralSignals) ? params.neutralSignals : [];
+  const okSignals = Array.isArray(params.okSignals) ? params.okSignals : [];
+
+  const refreshStep = {
+    step: el.operatorSummaryGuideStepRefresh,
+    title: el.operatorSummaryGuideStepRefreshTitle,
+    hint: el.operatorSummaryGuideStepRefreshHint,
+    status: el.operatorSummaryGuideStepRefreshStatus,
+    button: el.operatorSummaryGuideStepRefreshBtn,
+  };
+  const inspectStep = {
+    step: el.operatorSummaryGuideStepInspect,
+    title: el.operatorSummaryGuideStepInspectTitle,
+    hint: el.operatorSummaryGuideStepInspectHint,
+    status: el.operatorSummaryGuideStepInspectStatus,
+    button: el.operatorSummaryGuideStepInspectBtn,
+  };
+  const recoverStep = {
+    step: el.operatorSummaryGuideStepRecover,
+    title: el.operatorSummaryGuideStepRecoverTitle,
+    hint: el.operatorSummaryGuideStepRecoverHint,
+    status: el.operatorSummaryGuideStepRecoverStatus,
+    button: el.operatorSummaryGuideStepRecoverBtn,
+  };
+
+  if (!hasManualRefresh) {
+    syncOperatorSummaryGuidePathStep(refreshStep, {
+      state: "current",
+      title: "Refresh the board",
+      hint: "Hydrate the first operator snapshot before you inspect deeper lanes.",
+      statusText: "current",
+      statusTone: "neutral",
+      buttonLabel: "Refresh Summary",
+      actionId: "refresh_summary",
+    });
+    syncOperatorSummaryGuidePathStep(inspectStep, {
+      state: "next",
+      title: "Inspect the hot lane",
+      hint: "After refresh, open the loudest lane instead of scanning the whole console.",
+      statusText: "next",
+      statusTone: "neutral",
+      buttonLabel: "Open lane",
+      disabled: true,
+    });
+    syncOperatorSummaryGuidePathStep(recoverStep, {
+      state: "later",
+      title: "Recover only if needed",
+      hint: "Use Recovery Playbook or Quick Start only after you confirm the lane still needs help.",
+      statusText: "later",
+      statusTone: "neutral",
+      buttonLabel: "Recovery Playbook",
+      disabled: true,
+    });
+    return;
+  }
+
+  if (refreshFailed) {
+    syncOperatorSummaryGuidePathStep(refreshStep, {
+      state: "current",
+      title: "Retry the refresh",
+      hint: "The console did not hydrate cleanly. Refresh again before you inspect or recover lanes.",
+      statusText: "retry",
+      statusTone: "fail",
+      buttonLabel: "Refresh Summary",
+      actionId: "refresh_summary",
+    });
+    syncOperatorSummaryGuidePathStep(inspectStep, {
+      state: "next",
+      title: "Inspect after refresh",
+      hint: "Once the board refresh succeeds, open the loudest lane instead of scanning the full console.",
+      statusText: "waiting",
+      statusTone: "neutral",
+      buttonLabel: "Open lane",
+      disabled: true,
+    });
+    syncOperatorSummaryGuidePathStep(recoverStep, {
+      state: "later",
+      title: "Recover after the board is hydrated",
+      hint: "Use Recovery Playbook only after the refreshed board confirms which lane is still degraded.",
+      statusText: "hold",
+      statusTone: "neutral",
+      buttonLabel: "Recovery Playbook",
+      disabled: true,
+    });
+    return;
+  }
+
+  const inspectSignal = failSignals[0] ?? neutralSignals[0] ?? okSignals[0] ?? null;
+  const hasActiveSavedView = Boolean(activeSavedView && activeSavedView.id && activeSavedView.id !== "incidents");
+  const inspectNeedsAttention = failSignals.length > 0 || neutralSignals.length > 0 || hasActiveSavedView;
+  const inspectStatusTone = failSignals.length > 0 ? "fail" : inspectNeedsAttention ? "neutral" : "ok";
+  const inspectTitle = hasActiveSavedView
+    ? `Inspect ${activeSavedView.label}`
+    : inspectSignal
+      ? `Inspect ${inspectSignal.label}`
+      : "Inspect the board only if you need proof";
+  const inspectHint = hasActiveSavedView
+    ? (activeSavedView.contextNote ?? `${activeSavedView.label} is the active posture. Open it before deeper recovery surfaces.`)
+    : inspectSignal
+      ? `Jump straight into ${inspectSignal.label} before you open deeper operator tools.`
+      : "The board looks nominal. Open the lead lane only when you need deeper proof or replay.";
+  const inspectButtonLabel = hasActiveSavedView
+    ? `Open ${activeSavedView.label}`
+    : inspectSignal
+      ? "Open lane"
+      : "Review board";
+  syncOperatorSummaryGuidePathStep(inspectStep, {
+    state: inspectNeedsAttention ? "current" : "done",
+    title: inspectTitle,
+    hint: inspectHint,
+    statusText: inspectNeedsAttention ? "current" : "done",
+    statusTone: inspectStatusTone,
+    buttonLabel: inspectButtonLabel,
+    actionId: hasActiveSavedView ? "inspect_saved_view" : inspectSignal ? "inspect_status" : "",
+    targetStatusId: inspectSignal?.id ?? "",
+    savedView: hasActiveSavedView ? activeSavedView.id : "",
+    disabled: !hasActiveSavedView && !inspectSignal,
+  });
+
+  const recoverNeedsPlaybook = failSignals.length > 0;
+  const recoverNeedsQuickStart = !recoverNeedsPlaybook && neutralSignals.length > 0;
+  const recoverTargetLabel = (failSignals[0] ?? neutralSignals[0])?.label ?? "the active lane";
+  syncOperatorSummaryGuidePathStep(refreshStep, {
+    state: "done",
+    title: "Board refreshed",
+    hint: "The first operator snapshot is hydrated. Move straight to the highlighted lane instead of rescanning the console.",
+    statusText: "done",
+    statusTone: "ok",
+    buttonLabel: "Refresh Summary",
+    actionId: "refresh_summary",
+  });
+  syncOperatorSummaryGuidePathStep(recoverStep, {
+    state: recoverNeedsPlaybook ? "next" : recoverNeedsQuickStart ? "next" : "later",
+    title: recoverNeedsPlaybook
+      ? `Recover ${recoverTargetLabel}`
+      : recoverNeedsQuickStart
+        ? "Reseed only if the lane stays quiet"
+        : "Recover only if something drifts",
+    hint: recoverNeedsPlaybook
+      ? `Use Recovery Playbook only after you confirm ${recoverTargetLabel} still needs help.`
+      : recoverNeedsQuickStart
+        ? `If ${recoverTargetLabel} still looks incomplete after inspection, use Quick Start to seed one focused scenario.`
+        : "Current operator lanes look nominal. Keep recovery kits secondary until a signal changes.",
+    statusText: recoverNeedsPlaybook ? "ready" : recoverNeedsQuickStart ? "if needed" : "optional",
+    statusTone: recoverNeedsPlaybook ? "fail" : recoverNeedsQuickStart ? "neutral" : "ok",
+    buttonLabel: recoverNeedsPlaybook ? "Recovery Playbook" : recoverNeedsQuickStart ? "Open Quick Start" : "Recovery Playbook",
+    actionId: recoverNeedsPlaybook ? "open_playbook" : recoverNeedsQuickStart ? "open_quick_start" : "",
+    disabled: !recoverNeedsPlaybook && !recoverNeedsQuickStart,
+  });
+}
+
 function renderOperatorSummaryGuideWatchlist(items, fallbackText = "Refresh summary first") {
   if (!(el.operatorSummaryGuideWatchlist instanceof HTMLElement)) {
     return;
@@ -12100,6 +12359,14 @@ function syncOperatorSummaryGuide() {
   if (el.operatorSummaryGuideMeta) {
     el.operatorSummaryGuideMeta.textContent = nextMeta;
   }
+  syncOperatorSummaryGuidePath({
+    activeSavedView,
+    hasManualRefresh,
+    refreshFailed: state.operatorLastRefreshState === "failed",
+    failSignals,
+    neutralSignals,
+    okSignals,
+  });
   renderOperatorSummaryGuideWatchlist(nextWatchItems, hasManualRefresh ? "No active watch items" : "Refresh summary first");
   syncOperatorPriorityQueue();
   syncOperatorSupportPanels();
@@ -34646,6 +34913,30 @@ function bindEvents() {
   if (el.operatorConsoleEntryRefreshBtn instanceof HTMLButtonElement) {
     el.operatorConsoleEntryRefreshBtn.addEventListener("click", () => {
       void refreshOperatorSummary({ markUserRefresh: true });
+    });
+  }
+  if (el.operatorSummaryGuideStepRefreshBtn instanceof HTMLButtonElement) {
+    el.operatorSummaryGuideStepRefreshBtn.addEventListener("click", () => {
+      runOperatorSummaryGuidePathAction(el.operatorSummaryGuideStepRefreshBtn.dataset.guideStepAction, {
+        targetStatusId: el.operatorSummaryGuideStepRefreshBtn.dataset.guideStepTargetStatusId,
+        savedView: el.operatorSummaryGuideStepRefreshBtn.dataset.guideStepSavedView,
+      });
+    });
+  }
+  if (el.operatorSummaryGuideStepInspectBtn instanceof HTMLButtonElement) {
+    el.operatorSummaryGuideStepInspectBtn.addEventListener("click", () => {
+      runOperatorSummaryGuidePathAction(el.operatorSummaryGuideStepInspectBtn.dataset.guideStepAction, {
+        targetStatusId: el.operatorSummaryGuideStepInspectBtn.dataset.guideStepTargetStatusId,
+        savedView: el.operatorSummaryGuideStepInspectBtn.dataset.guideStepSavedView,
+      });
+    });
+  }
+  if (el.operatorSummaryGuideStepRecoverBtn instanceof HTMLButtonElement) {
+    el.operatorSummaryGuideStepRecoverBtn.addEventListener("click", () => {
+      runOperatorSummaryGuidePathAction(el.operatorSummaryGuideStepRecoverBtn.dataset.guideStepAction, {
+        targetStatusId: el.operatorSummaryGuideStepRecoverBtn.dataset.guideStepTargetStatusId,
+        savedView: el.operatorSummaryGuideStepRecoverBtn.dataset.guideStepSavedView,
+      });
     });
   }
   const operatorEvidenceDrawerTabs = Array.from(document.querySelectorAll("[data-operator-evidence-view]"))
