@@ -5674,6 +5674,38 @@ body.bg-video-loop-transition .background-video-fade {
   font-size: 1rem;
 }
 
+.live-support-card-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.live-support-card-queue {
+  gap: 14px;
+}
+
+.live-support-card-queue > .meta-row {
+  margin-top: 16px;
+}
+
+.live-support-queue-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.live-support-queue-actions > * {
+  flex: 0 0 auto;
+}
+
+.live-support-queue-snapshot {
+  margin-top: 14px;
+}
+
+.live-support-queue-snapshot > .events {
+  margin-top: 18px;
+}
+
 .panel-live-top {
   order: 3;
 }

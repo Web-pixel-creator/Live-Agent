@@ -737,9 +737,9 @@
                 <div class="live-support-summary-copy">
                   <span class="section-badge" data-i18n="live.support.badge">Operator</span>
                   <div>
-                    <strong class="live-support-summary-title" data-i18n="live.support.heading">Operator approvals &amp; queue</strong>
+                    <strong class="live-support-summary-title" data-i18n="live.support.heading">Operator approvals &amp; queue snapshot</strong>
                     <p class="live-support-summary-hint" data-i18n="live.support.hint">
-                      Open only when you need approval decisions, queue checks, or task recovery.
+                      Open only when you need approval decisions, queue snapshots, or task recovery.
                     </p>
                   </div>
                 </div>
@@ -790,18 +790,32 @@
                   </div>
                 </section>
 
-                <section class="live-support-card">
-                  <h3>
-                    <span class="section-badge" data-i18n="live.support.queueBadge">Queue</span>
-                    <span class="live-support-card-title" data-i18n="live.support.queueTitle">Active Tasks Queue</span>
-                  </h3>
-                  <div class="actions">
-                    <button id="refreshTasksBtn" class="button-muted" data-i18n="live.support.refreshTasks">Refresh Active Tasks</button>
+                <section class="live-support-card live-support-card-queue">
+                  <div class="live-support-card-copy">
+                    <h3>
+                      <span class="section-badge" data-i18n="live.support.queueBadge">Queue</span>
+                      <span id="liveSupportQueueTitle" class="live-support-card-title">Queue snapshot</span>
+                    </h3>
+                    <p id="liveSupportQueueIntro" class="live-support-intro">
+                      Keep one quick signal here. Open Operator Console for the full queue and recovery tools.
+                    </p>
                   </div>
                   <div class="meta-row">
                     <div><strong data-i18n="live.support.activeCount">Active count:</strong> <span id="activeTaskCount">0</span></div>
                   </div>
-                  <div id="tasks" class="events"></div>
+                  <div class="actions live-support-queue-actions">
+                    <button id="refreshTasksBtn" class="button-muted">Refresh queue</button>
+                    <button id="liveSupportOpenOperatorConsoleBtn" class="button-muted">Open Operator Console</button>
+                  </div>
+                  <details id="liveSupportQueueSnapshot" class="advanced-settings live-support-queue-snapshot">
+                    <summary>
+                      <span id="liveSupportQueueSnapshotTitle" class="advanced-title">Queue snapshot</span>
+                      <span id="liveSupportQueueSnapshotHint" class="advanced-hint">
+                        Expand only when you need the live task list in this screen.
+                      </span>
+                    </summary>
+                    <div id="tasks" class="events"></div>
+                  </details>
                 </section>
               </div>
             </details>

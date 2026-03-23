@@ -483,7 +483,7 @@ test("demo frontend keeps live negotiator UX guardrails for advanced controls an
     "README missing clearer translation-direction picker note",
   );
   assert.ok(
-    readmeSource.includes("plain-language section names (`More tools`, `Operator Control`, `Current Tasks`)"),
+    readmeSource.includes("plain-language section names (`Operator approvals`, `Queue snapshot`, `Operator diagnostics`)"),
     "README missing plain-language live section note",
   );
   assert.ok(

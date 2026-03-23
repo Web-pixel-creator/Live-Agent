@@ -2213,8 +2213,8 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.en, {
       "Choose one action, set the translation direction if needed, write one clear request, and send it. Workflow, voice, control, and more stay in the dock above.",
   "live.compose.serviceActionsTitle": "More tools",
   "live.compose.serviceActionsHint": "Audio upload and service-side actions for rare flows.",
-  "live.support.heading": "Operator approvals & queue",
-  "live.support.hint": "Open only for approval decisions, queue checks, or task recovery.",
+  "live.support.heading": "Operator approvals & queue snapshot",
+  "live.support.hint": "Open only for approval decisions, queue snapshots, or task recovery.",
   "live.support.approvalTitle": "Approvals",
   "live.support.queueTitle": "Active tasks",
 });
@@ -2265,8 +2265,8 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.en, {
   "live.compose.optionalHint": "Open only for audio uploads, service actions, or support flows.",
   "live.compose.serviceActionsTitle": "Service actions",
   "live.compose.serviceActionsHint": "Send a command, clear the current answer, or queue a background request.",
-  "live.support.heading": "Operator approvals & queue",
-  "live.support.hint": "Open only for approval decisions, queue checks, or task recovery.",
+  "live.support.heading": "Operator approvals & queue snapshot",
+  "live.support.hint": "Open only for approval decisions, queue snapshots, or task recovery.",
 });
 
 Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
@@ -2985,6 +2985,7 @@ const el = {
   liveContextDockLegendOperatorTitle: document.getElementById("liveContextDockLegendOperatorTitle"),
   liveContextDockLegendOperatorHint: document.getElementById("liveContextDockLegendOperatorHint"),
   liveContextOpenOperatorConsoleBtn: document.getElementById("liveContextOpenOperatorConsoleBtn"),
+  liveSupportOpenOperatorConsoleBtn: document.getElementById("liveSupportOpenOperatorConsoleBtn"),
   liveDockWorkflowBtn: document.getElementById("liveDockWorkflowBtn"),
   liveDockWorkflowState: document.getElementById("liveDockWorkflowState"),
   liveDockVoiceBtn: document.getElementById("liveDockVoiceBtn"),
@@ -3306,6 +3307,12 @@ const el = {
   storyTimelineListState: document.getElementById("storyTimelineListState"),
   storyTimelineList: document.getElementById("storyTimelineList"),
   storyBottomGrid: document.getElementById("storyBottomGrid"),
+  liveSupportQueueTitle: document.getElementById("liveSupportQueueTitle"),
+  liveSupportQueueIntro: document.getElementById("liveSupportQueueIntro"),
+  liveSupportQueueSnapshot: document.getElementById("liveSupportQueueSnapshot"),
+  liveSupportQueueSnapshotTitle: document.getElementById("liveSupportQueueSnapshotTitle"),
+  liveSupportQueueSnapshotHint: document.getElementById("liveSupportQueueSnapshotHint"),
+  refreshTasksBtn: document.getElementById("refreshTasksBtn"),
   activeTaskCount: document.getElementById("activeTaskCount"),
   tasks: document.getElementById("tasks"),
   operatorRole: document.getElementById("operatorRole"),
@@ -4241,7 +4248,7 @@ function getLiveContextDockPanelDescriptor(panelKey) {
         : "Context tools for the live lane",
       dockHint: isRu
         ? "\u0421\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f, \u043e\u0447\u0435\u0440\u0435\u0434\u044c, \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430 \u0438 \u0440\u0435\u0434\u043a\u0438\u0435 operator-\u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b \u0436\u0438\u0432\u0443\u0442 \u0432 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u043e\u043c \u0441\u043b\u043e\u0435."
-        : "Approvals, queue, diagnostics, and rare operator tools stay below the main composer.",
+        : "Approvals, queue snapshots, diagnostics, and rare operator tools stay below the main composer.",
       currentLabel: isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0439 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c" : "Open lane: Operator control",
       currentHint: isRu
         ? "\u041d\u0438\u0436\u0435 \u043e\u0442\u043a\u0440\u044b\u0442\u044b \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044f, \u043e\u0447\u0435\u0440\u0435\u0434\u044c, \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430, recovery \u0438 \u0440\u0435\u0434\u043a\u0438\u0435 operator-\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f."
@@ -4252,7 +4259,7 @@ function getLiveContextDockPanelDescriptor(panelKey) {
         : "Operator: approvals, queue, and diagnostics",
       trayHint: isRu
         ? "\u0417\u0434\u0435\u0441\u044c \u0436\u0438\u0432\u0443\u0442 \u0440\u0435\u0448\u0435\u043d\u0438\u044f \u043f\u043e \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u044e, \u043e\u0447\u0435\u0440\u0435\u0434\u044c, \u0434\u0438\u0430\u0433\u043d\u043e\u0441\u0442\u0438\u043a\u0430, recovery \u0438 rare-use extras. \u0413\u043b\u0443\u0431\u043e\u043a\u0438\u0435 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0441\u043a\u0438\u0435 \u0441\u043b\u043e\u0438 \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u0432 Operator Console."
-        : "Approval decisions, queue state, diagnostics, recovery actions, and rare extras live here. Open deeper operator surfaces in Operator Console.",
+        : "Approval decisions, queue snapshots, diagnostics, recovery actions, and rare extras live here. Open deeper operator surfaces in Operator Console.",
       trayStatusText: controlState.statusText,
       trayStatusVariant: controlState.statusVariant,
       buttonStatusText: controlState.statusText,
@@ -4386,12 +4393,13 @@ function renderLiveContextDock() {
     el.liveContextDockLegendOperatorHint.textContent =
       state.languageMode === "ru"
         ? "\u0417\u0434\u0435\u0441\u044c \u0436\u0438\u0432\u0443\u0442 approvals \u0438 \u043e\u0447\u0435\u0440\u0435\u0434\u044c. \u0413\u043b\u0443\u0431\u0436\u0435 \u0441\u043b\u043e\u0438 \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u0432 Operator Console."
-        : "Approvals and queue control stay here. Open deeper operator surfaces in Operator Console.";
+        : "Approvals and queue snapshots stay here. Open deeper operator surfaces in Operator Console.";
   }
   if (el.liveContextOpenOperatorConsoleBtn instanceof HTMLButtonElement) {
     el.liveContextOpenOperatorConsoleBtn.textContent =
       state.languageMode === "ru" ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043a\u043e\u043d\u0441\u043e\u043b\u044c \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0430" : "Open Operator Console";
   }
+  renderLiveSupportQueueSummary(state.taskRecords.size);
 
   if (el.liveContextTray instanceof HTMLElement) {
     el.liveContextTray.hidden = activePanel === null;
@@ -21955,6 +21963,64 @@ const LIVE_TASK_ROUTE_COPY = Object.freeze({
   },
 });
 
+function getLiveSupportQueueCopy(count = 0) {
+  const isRu = state.languageMode === "ru";
+  if (isRu) {
+    return {
+      title: "\u041a\u0440\u0430\u0442\u043a\u0430\u044f \u043e\u0447\u0435\u0440\u0435\u0434\u044c",
+      intro:
+        count > 0
+          ? `\u0412 \u043e\u0447\u0435\u0440\u0435\u0434\u0438 ${count} \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0445 \u0437\u0430\u0434\u0430\u0447. \u0414\u043b\u044f \u043f\u043e\u043b\u043d\u043e\u0439 \u043e\u0447\u0435\u0440\u0435\u0434\u0438 \u0438 recovery-\u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u043e\u0432 \u043e\u0442\u043a\u0440\u043e\u0439 Operator Console.`
+          : "\u0414\u0435\u0440\u0436\u0438 \u0437\u0434\u0435\u0441\u044c \u0442\u043e\u043b\u044c\u043a\u043e \u0431\u044b\u0441\u0442\u0440\u044b\u0439 \u0441\u0438\u0433\u043d\u0430\u043b. \u041f\u043e\u043b\u043d\u0443\u044e \u043e\u0447\u0435\u0440\u0435\u0434\u044c \u0438 recovery-\u0438\u043d\u0441\u0442\u0440\u0443\u043c\u0435\u043d\u0442\u044b \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0439 \u0432 Operator Console.",
+      snapshotTitle: "\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u043a\u0440\u0430\u0442\u043a\u0443\u044e \u043e\u0447\u0435\u0440\u0435\u0434\u044c",
+      snapshotHint:
+        count > 0
+          ? "\u0420\u0430\u0441\u043a\u0440\u044b\u0432\u0430\u0439, \u0442\u043e\u043b\u044c\u043a\u043e \u0435\u0441\u043b\u0438 \u043d\u0443\u0436\u0435\u043d live-\u0441\u043f\u0438\u0441\u043e\u043a \u0437\u0430\u0434\u0430\u0447 \u043f\u0440\u044f\u043c\u043e \u0432 \u044d\u0442\u043e\u043c \u044d\u043a\u0440\u0430\u043d\u0435."
+          : "\u0420\u0430\u0441\u043a\u0440\u044b\u0432\u0430\u0439, \u0442\u043e\u043b\u044c\u043a\u043e \u0435\u0441\u043b\u0438 \u043d\u0443\u0436\u0435\u043d idle-\u0432\u0438\u0434 \u043e\u0447\u0435\u0440\u0435\u0434\u0438 \u043f\u0440\u044f\u043c\u043e \u0437\u0434\u0435\u0441\u044c.",
+      refresh: "\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u043e\u0447\u0435\u0440\u0435\u0434\u044c",
+      openConsole: "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043a\u043e\u043d\u0441\u043e\u043b\u044c \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0430",
+    };
+  }
+
+  return {
+    title: "Queue snapshot",
+    intro:
+      count > 0
+        ? `${count} active ${count === 1 ? "task is" : "tasks are"} waiting in the operator queue. Open Operator Console for the full board and recovery tools.`
+        : "Keep one quick signal here. Open Operator Console for the full queue and recovery tools.",
+    snapshotTitle: "Show queue snapshot",
+    snapshotHint:
+      count > 0
+        ? "Expand only when you need the live task list in this screen."
+        : "Expand only when you need the idle queue pad in this screen.",
+    refresh: "Refresh queue",
+    openConsole: "Open Operator Console",
+  };
+}
+
+function renderLiveSupportQueueSummary(count = 0) {
+  const copy = getLiveSupportQueueCopy(count);
+
+  if (el.liveSupportQueueTitle instanceof HTMLElement) {
+    el.liveSupportQueueTitle.textContent = copy.title;
+  }
+  if (el.liveSupportQueueIntro instanceof HTMLElement) {
+    el.liveSupportQueueIntro.textContent = copy.intro;
+  }
+  if (el.liveSupportQueueSnapshotTitle instanceof HTMLElement) {
+    el.liveSupportQueueSnapshotTitle.textContent = copy.snapshotTitle;
+  }
+  if (el.liveSupportQueueSnapshotHint instanceof HTMLElement) {
+    el.liveSupportQueueSnapshotHint.textContent = copy.snapshotHint;
+  }
+  if (el.refreshTasksBtn instanceof HTMLButtonElement) {
+    el.refreshTasksBtn.textContent = copy.refresh;
+  }
+  if (el.liveSupportOpenOperatorConsoleBtn instanceof HTMLButtonElement) {
+    el.liveSupportOpenOperatorConsoleBtn.textContent = copy.openConsole;
+  }
+}
+
 const LIVE_TASK_STAGE_COPY = Object.freeze({
   en: {
     queued: "Queued",
@@ -22083,6 +22149,7 @@ function renderTaskList() {
     String(right.updatedAt).localeCompare(String(left.updatedAt)),
   );
   el.activeTaskCount.textContent = String(records.length);
+  renderLiveSupportQueueSummary(records.length);
   el.tasks.innerHTML = "";
   el.tasks.classList.toggle("is-empty-state", records.length === 0);
 
@@ -33845,6 +33912,12 @@ function bindEvents() {
   }
   if (el.liveContextOpenOperatorConsoleBtn instanceof HTMLButtonElement) {
     el.liveContextOpenOperatorConsoleBtn.addEventListener("click", () => {
+      setActiveLiveContextPanel(null, { force: true });
+      setActiveTab("operator");
+    });
+  }
+  if (el.liveSupportOpenOperatorConsoleBtn instanceof HTMLButtonElement) {
+    el.liveSupportOpenOperatorConsoleBtn.addEventListener("click", () => {
       setActiveLiveContextPanel(null, { force: true });
       setActiveTab("operator");
     });

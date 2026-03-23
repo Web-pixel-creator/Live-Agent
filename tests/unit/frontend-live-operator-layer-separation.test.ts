@@ -16,6 +16,9 @@ test("live support dock separates product support from the operator lane", () =>
     'id="liveContextDockLegendOperatorTitle"',
     'data-live-context-group="product"',
     'data-live-context-group="operator"',
+    'id="liveSupportOpenOperatorConsoleBtn"',
+    'id="liveSupportQueueSnapshot"',
+    'id="liveSupportQueueTitle"',
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing live dock separation token: ${token}`);
   }
@@ -42,12 +45,14 @@ test("live support dock separates product support from the operator lane", () =>
     'Product helpers and the operator lane stay below the case workspace.',
     '"Workflow tools"',
     '"Operator diagnostics"',
-    '"Operator approvals & queue"',
+    '"Operator approvals & queue snapshot"',
     'section: el.liveTechnicalTimelineSection',
     'section: el.liveInputOptionalToolsSection',
     'mount.section.dataset.liveContextPersistent = mount.persistent === true ? "true" : "false";',
-    '"Approvals, queue, diagnostics, and rare operator tools stay below the main composer."',
-    '"Approval decisions, queue state, diagnostics, recovery actions, and rare extras live here. Open deeper operator surfaces in Operator Console."',
+    '"Approvals, queue snapshots, diagnostics, and rare operator tools stay below the main composer."',
+    '"Approval decisions, queue snapshots, diagnostics, recovery actions, and rare extras live here. Open deeper operator surfaces in Operator Console."',
+    'function renderLiveSupportQueueSummary(count = 0) {',
+    '"Queue snapshot"',
     'setActiveTab("operator");',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing live dock separation token: ${token}`);
@@ -70,7 +75,7 @@ test("live support dock separates product support from the operator lane", () =>
   );
   assert.ok(
     readmeSource.includes(
-      "rare `Operator extras` stay nested inside `Control` and deeper operator surfaces open through `Operator Console`",
+      "rare `Operator extras` stay nested inside `Control`, the live lane keeps only approvals plus a compact queue snapshot, and deeper operator surfaces open through `Operator Console`",
     ),
     "README should document the clearer operator/product rail split",
   );
@@ -80,7 +85,7 @@ test("live support dock separates product support from the operator lane", () =>
   );
   assert.ok(
     operatorGuideSource.includes(
-      "rare `Operator extras` stay nested inside `Control` and deeper governance surfaces open through `Operator Console`",
+      "rare `Operator extras` stay nested inside `Control`, the live lane keeps only approvals plus a compact queue snapshot, and deeper operator surfaces open through `Operator Console`",
     ),
     "operator guide should document the clearer operator/product rail split",
   );
