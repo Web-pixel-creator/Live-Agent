@@ -1109,6 +1109,33 @@ const OPERATOR_SAVED_VIEWS = Object.freeze({
   },
 });
 
+const OPERATOR_WORKSPACE_ROUTE_FACTS = Object.freeze({
+  incidents: {
+    label: "Overview",
+    focus: "Fail + watch lanes",
+    nominalNext: "Keep broad triage visible",
+    modeLabel: "Demo View",
+  },
+  runtime: {
+    label: "Runtime",
+    focus: "Workflow + UI executor",
+    nominalNext: "Open runtime drawers only for proof",
+    modeLabel: "Full Ops",
+  },
+  approvals: {
+    label: "Approvals",
+    focus: "Approvals + queue",
+    nominalNext: "Reopen recovery only if pressure returns",
+    modeLabel: "Full Ops",
+  },
+  audit: {
+    label: "Audit",
+    focus: "Governance + export evidence",
+    nominalNext: "Open audit drawers only for review",
+    modeLabel: "Full Ops",
+  },
+});
+
 const OPERATOR_EVIDENCE_DRAWER_VIEWS = Object.freeze([
   {
     id: "latest",
@@ -3337,6 +3364,13 @@ const el = {
   operatorWorkspaceChooserStatus: document.getElementById("operatorWorkspaceChooserStatus"),
   operatorWorkspaceChooserMeta: document.getElementById("operatorWorkspaceChooserMeta"),
   operatorWorkspaceReturnBtn: document.getElementById("operatorWorkspaceReturnBtn"),
+  operatorWorkspaceHeader: document.getElementById("operatorWorkspaceHeader"),
+  operatorWorkspaceHeaderBadge: document.getElementById("operatorWorkspaceHeaderBadge"),
+  operatorWorkspaceHeaderTitle: document.getElementById("operatorWorkspaceHeaderTitle"),
+  operatorWorkspaceHeaderHint: document.getElementById("operatorWorkspaceHeaderHint"),
+  operatorWorkspaceHeaderFocusValue: document.getElementById("operatorWorkspaceHeaderFocusValue"),
+  operatorWorkspaceHeaderNextValue: document.getElementById("operatorWorkspaceHeaderNextValue"),
+  operatorWorkspaceHeaderModeValue: document.getElementById("operatorWorkspaceHeaderModeValue"),
   operatorToolbarAdvancedControls: document.getElementById("operatorToolbarAdvancedControls"),
   operatorToolbarAdvancedSummary: document.getElementById("operatorToolbarAdvancedSummary"),
   operatorToolbar: document.getElementById("operatorToolbar"),
@@ -12016,6 +12050,82 @@ function syncOperatorWorkspaceChooser() {
   }
 }
 
+function readOperatorWorkspaceHeaderSignal(viewId, config) {
+  if (viewId === "incidents") {
+    const signals = getOperatorSummaryGuideSignals();
+    return signals.find((item) => item.variant === "fail")
+      ?? signals.find((item) => item.variant === "neutral")
+      ?? signals.find((item) => item.variant === "ok")
+      ?? null;
+  }
+  const statusId = typeof config?.targetStatusId === "string" ? config.targetStatusId.trim() : "";
+  if (!statusId) {
+    return null;
+  }
+  const node = document.getElementById(statusId);
+  if (!(node instanceof HTMLElement)) {
+    return null;
+  }
+  return {
+    label: config.label,
+    text: typeof node.textContent === "string" ? node.textContent.trim() : "",
+    statusCode: getOperatorStatusCode(node),
+    variant: readOperatorStatusVariant(node),
+  };
+}
+
+function syncOperatorWorkspaceHeader() {
+  if (
+    !(el.operatorWorkspaceHeader instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderBadge instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderTitle instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderHint instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderFocusValue instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderNextValue instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderModeValue instanceof HTMLElement)
+  ) {
+    return;
+  }
+
+  const normalizedView = normalizeOperatorSavedView(state.operatorSavedView) || "incidents";
+  const config = OPERATOR_SAVED_VIEWS[normalizedView] ?? OPERATOR_SAVED_VIEWS.incidents;
+  const routeFacts = OPERATOR_WORKSPACE_ROUTE_FACTS[normalizedView] ?? OPERATOR_WORKSPACE_ROUTE_FACTS.incidents;
+  const hasManualRefresh = state.operatorSummaryUserRefreshed === true;
+  const signal = hasManualRefresh ? readOperatorWorkspaceHeaderSignal(normalizedView, config) : null;
+
+  let tone = hasManualRefresh ? "ok" : "neutral";
+  let title = config.hydrateTitle ?? `${routeFacts.label} workspace`;
+  let hint = config.hydrateHint ?? config.hint;
+  let next = "Refresh Summary";
+
+  if (hasManualRefresh && signal?.variant === "fail") {
+    tone = "fail";
+    title = `${routeFacts.label} needs attention`;
+    hint = `${signal.label}: ${signal.text || "Attention required"}. ${config.contextNote ?? config.hint}`;
+    next = signal.label ? `Inspect ${signal.label}` : "Inspect highlighted signal";
+  } else if (hasManualRefresh && signal?.variant === "neutral") {
+    tone = "neutral";
+    title = `${routeFacts.label} needs review`;
+    hint = `${signal.label}: ${signal.text || "Review recommended"}. ${config.contextNote ?? config.hint}`;
+    next = signal.label ? `Review ${signal.label}` : "Review highlighted signal";
+  } else if (hasManualRefresh) {
+    tone = normalizedView === "incidents" ? "neutral" : "ok";
+    title = config.nominalTitle ?? `${routeFacts.label} workspace is active`;
+    hint = config.nominalHint ?? config.contextNote ?? config.hint;
+    next = routeFacts.nominalNext;
+  }
+
+  el.operatorWorkspaceHeader.dataset.workspace = normalizedView;
+  el.operatorWorkspaceHeader.dataset.workspaceState = tone;
+  setStatusPill(el.operatorWorkspaceHeaderBadge, routeFacts.label, tone);
+  el.operatorWorkspaceHeaderBadge.dataset.statusCode = normalizedView;
+  el.operatorWorkspaceHeaderTitle.textContent = title;
+  el.operatorWorkspaceHeaderHint.textContent = hint;
+  el.operatorWorkspaceHeaderFocusValue.textContent = routeFacts.focus;
+  el.operatorWorkspaceHeaderNextValue.textContent = next;
+  el.operatorWorkspaceHeaderModeValue.textContent = routeFacts.modeLabel;
+}
+
 function syncOperatorToolbarWorkspaceMode() {
   const activeConfig = getActiveOperatorSavedViewConfig();
   const workspaceFocus = activeConfig?.id && activeConfig.id !== "incidents" ? activeConfig.id : "overview";
@@ -12059,6 +12169,7 @@ function syncOperatorSavedViewButtons() {
   }
   syncOperatorSavedViewContext();
   syncOperatorWorkspaceChooser();
+  syncOperatorWorkspaceHeader();
   syncOperatorToolbarWorkspaceMode();
 }
 
@@ -12441,6 +12552,7 @@ function syncOperatorSummaryGuide() {
     okSignals,
   });
   renderOperatorSummaryGuideWatchlist(nextWatchItems, hasManualRefresh ? "No active watch items" : "Refresh summary first");
+  syncOperatorWorkspaceHeader();
   syncOperatorPriorityQueue();
   syncOperatorSupportPanels();
   syncOperatorSignalStripSurface();
