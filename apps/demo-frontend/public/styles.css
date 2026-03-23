@@ -20122,6 +20122,21 @@ button:disabled {
   white-space: normal;
 }
 
+.panel-operator-console .operator-workspace-card[data-workspace-state="fail"] {
+  border-color: color-mix(in oklch, var(--destructive) 34%, var(--border-soft));
+  background:
+    radial-gradient(180px 72px at 0% -22%, color-mix(in oklch, var(--destructive) 10%, transparent), transparent 74%),
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 92%, transparent), color-mix(in oklch, var(--surface-panel-2) 96%, transparent));
+}
+
+.panel-operator-console .operator-workspace-card[data-workspace-state="neutral"] {
+  border-color: color-mix(in oklch, var(--warning) 30%, var(--border-soft));
+}
+
+.panel-operator-console .operator-workspace-card[data-workspace-state="ok"] {
+  border-color: color-mix(in oklch, var(--chart-1) 28%, var(--border-soft));
+}
+
 .panel-operator-console .operator-workspace-card.is-active {
   border-color: color-mix(in oklch, var(--primary) 34%, var(--border-soft));
   background:
@@ -20150,6 +20165,23 @@ button:disabled {
   font-size: 0.74rem;
   line-height: 1.38;
   color: color-mix(in oklch, var(--foreground) 80%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card-footer {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.panel-operator-console .operator-workspace-card-footer > .status-pill {
+  min-height: 24px;
+}
+
+.panel-operator-console .operator-workspace-card-meta {
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: color-mix(in oklch, var(--foreground) 72%, var(--muted-foreground));
 }
 
 .panel-operator-console .operator-last-refresh,

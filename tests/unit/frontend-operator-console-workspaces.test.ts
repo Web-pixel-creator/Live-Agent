@@ -22,9 +22,17 @@ test("operator console exposes a productized workspace chooser and route-aware w
     'id="operatorWorkspaceHeaderNextValue"',
     'id="operatorWorkspaceHeaderModeValue"',
     'id="operatorWorkspaceOverviewBtn"',
+    'id="operatorWorkspaceOverviewStatus"',
+    'id="operatorWorkspaceOverviewMeta"',
     'id="operatorWorkspaceApprovalsBtn"',
+    'id="operatorWorkspaceApprovalsStatus"',
+    'id="operatorWorkspaceApprovalsMeta"',
     'id="operatorWorkspaceRuntimeBtn"',
+    'id="operatorWorkspaceRuntimeStatus"',
+    'id="operatorWorkspaceRuntimeMeta"',
     'id="operatorWorkspaceAuditBtn"',
+    'id="operatorWorkspaceAuditStatus"',
+    'id="operatorWorkspaceAuditMeta"',
     'data-operator-saved-view="incidents"',
     'data-operator-saved-view="approvals"',
     'data-operator-saved-view="runtime"',
@@ -51,10 +59,27 @@ test("operator console exposes a productized workspace chooser and route-aware w
     'operatorWorkspaceHeaderFocusValue: document.getElementById("operatorWorkspaceHeaderFocusValue")',
     'operatorWorkspaceHeaderNextValue: document.getElementById("operatorWorkspaceHeaderNextValue")',
     'operatorWorkspaceHeaderModeValue: document.getElementById("operatorWorkspaceHeaderModeValue")',
+    'operatorWorkspaceOverviewBtn: document.getElementById("operatorWorkspaceOverviewBtn")',
+    'operatorWorkspaceOverviewStatus: document.getElementById("operatorWorkspaceOverviewStatus")',
+    'operatorWorkspaceOverviewMeta: document.getElementById("operatorWorkspaceOverviewMeta")',
+    'operatorWorkspaceApprovalsBtn: document.getElementById("operatorWorkspaceApprovalsBtn")',
+    'operatorWorkspaceApprovalsStatus: document.getElementById("operatorWorkspaceApprovalsStatus")',
+    'operatorWorkspaceApprovalsMeta: document.getElementById("operatorWorkspaceApprovalsMeta")',
+    'operatorWorkspaceRuntimeBtn: document.getElementById("operatorWorkspaceRuntimeBtn")',
+    'operatorWorkspaceRuntimeStatus: document.getElementById("operatorWorkspaceRuntimeStatus")',
+    'operatorWorkspaceRuntimeMeta: document.getElementById("operatorWorkspaceRuntimeMeta")',
+    'operatorWorkspaceAuditBtn: document.getElementById("operatorWorkspaceAuditBtn")',
+    'operatorWorkspaceAuditStatus: document.getElementById("operatorWorkspaceAuditStatus")',
+    'operatorWorkspaceAuditMeta: document.getElementById("operatorWorkspaceAuditMeta")',
+    "function getOperatorWorkspaceCardTargets() {",
+    "function syncOperatorWorkspaceCards() {",
     "function syncOperatorWorkspaceChooser() {",
     "function syncOperatorWorkspaceHeader() {",
     'el.operatorWorkspaceChooser.dataset.activeWorkspace = activeConfig.id;',
     'el.operatorWorkspaceHeader.dataset.workspace = normalizedView;',
+    'target.button.dataset.workspaceState = presentation.tone;',
+    'setStatusPill(target.status, cardLabel, presentation.tone);',
+    'target.meta.textContent =',
     'setStatusPill(el.operatorWorkspaceHeaderBadge, routeFacts.label, tone);',
     'el.operatorWorkspaceHeaderTitle.textContent = title;',
     'el.operatorWorkspaceHeaderHint.textContent = hint;',
@@ -64,6 +89,7 @@ test("operator console exposes a productized workspace chooser and route-aware w
     'setStatusPill(el.operatorWorkspaceChooserStatus, "overview", "neutral");',
     'const activeLabel = activeConfig.id === "incidents" ? "overview active" : `${activeConfig.label} active`;',
     'syncOperatorWorkspaceChooser();',
+    'syncOperatorWorkspaceCards();',
     'syncOperatorWorkspaceHeader();',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing workspace chooser token: ${token}`);
@@ -78,6 +104,9 @@ test("operator console exposes a productized workspace chooser and route-aware w
     ".panel-operator-console .operator-workspace-chooser-head {",
     ".panel-operator-console .operator-workspace-chooser-cards {",
     ".panel-operator-console .operator-workspace-card {",
+    '.panel-operator-console .operator-workspace-card[data-workspace-state="fail"] {',
+    ".panel-operator-console .operator-workspace-card-footer {",
+    ".panel-operator-console .operator-workspace-card-meta {",
     ".panel-operator-console .operator-workspace-card.is-active {",
   ]) {
     assert.ok(stylesSource.includes(token), `styles.css missing workspace chooser style token: ${token}`);
@@ -92,11 +121,19 @@ test("operator console exposes a productized workspace chooser and route-aware w
     "README should document the route-aware workspace header",
   );
   assert.ok(
+    readmeSource.includes("workspace chooser cards now also surface their own live state and next-step copy"),
+    "README should document state-aware workspace cards",
+  );
+  assert.ok(
     operatorGuideSource.includes("includes a `Choose workspace` strip (`Overview`, `Approvals`, `Runtime`, `Audit`)"),
     "operator guide should document the operator workspace chooser",
   );
   assert.ok(
     operatorGuideSource.includes("route-aware workspace header"),
     "operator guide should document the route-aware workspace header",
+  );
+  assert.ok(
+    operatorGuideSource.includes("workspace chooser cards now also surface their own live state and next-step copy"),
+    "operator guide should document state-aware workspace cards",
   );
 });

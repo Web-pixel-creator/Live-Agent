@@ -40,7 +40,7 @@ test("operator toolbar keeps broad board controls behind an explicit disclosure 
     'operatorToolbarClusterRefresh: document.getElementById("operatorToolbarClusterRefresh")',
     'operatorToolbarRefreshMeta: document.getElementById("operatorToolbarRefreshMeta")',
     'operatorWorkspaceReturnBtn: document.getElementById("operatorWorkspaceReturnBtn")',
-    "function getOperatorWorkspacePresentationState() {",
+    "function getOperatorWorkspacePresentationState(viewId = state.operatorSavedView) {",
     "function syncOperatorToolbarWorkspaceMode() {",
     'el.operatorToolbar.dataset.workspaceFocus = workspaceFocus;',
     'el.operatorToolbarAdvancedControls.dataset.workspaceFocus = workspaceFocus;',

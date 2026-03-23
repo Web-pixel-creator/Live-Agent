@@ -3364,6 +3364,18 @@ const el = {
   operatorWorkspaceChooserStatus: document.getElementById("operatorWorkspaceChooserStatus"),
   operatorWorkspaceChooserMeta: document.getElementById("operatorWorkspaceChooserMeta"),
   operatorWorkspaceReturnBtn: document.getElementById("operatorWorkspaceReturnBtn"),
+  operatorWorkspaceOverviewBtn: document.getElementById("operatorWorkspaceOverviewBtn"),
+  operatorWorkspaceOverviewStatus: document.getElementById("operatorWorkspaceOverviewStatus"),
+  operatorWorkspaceOverviewMeta: document.getElementById("operatorWorkspaceOverviewMeta"),
+  operatorWorkspaceApprovalsBtn: document.getElementById("operatorWorkspaceApprovalsBtn"),
+  operatorWorkspaceApprovalsStatus: document.getElementById("operatorWorkspaceApprovalsStatus"),
+  operatorWorkspaceApprovalsMeta: document.getElementById("operatorWorkspaceApprovalsMeta"),
+  operatorWorkspaceRuntimeBtn: document.getElementById("operatorWorkspaceRuntimeBtn"),
+  operatorWorkspaceRuntimeStatus: document.getElementById("operatorWorkspaceRuntimeStatus"),
+  operatorWorkspaceRuntimeMeta: document.getElementById("operatorWorkspaceRuntimeMeta"),
+  operatorWorkspaceAuditBtn: document.getElementById("operatorWorkspaceAuditBtn"),
+  operatorWorkspaceAuditStatus: document.getElementById("operatorWorkspaceAuditStatus"),
+  operatorWorkspaceAuditMeta: document.getElementById("operatorWorkspaceAuditMeta"),
   operatorWorkspaceHeader: document.getElementById("operatorWorkspaceHeader"),
   operatorWorkspaceHeaderBadge: document.getElementById("operatorWorkspaceHeaderBadge"),
   operatorWorkspaceHeaderTitle: document.getElementById("operatorWorkspaceHeaderTitle"),
@@ -12054,6 +12066,31 @@ function syncOperatorWorkspaceChooser() {
   }
 }
 
+function getOperatorWorkspaceCardTargets() {
+  return {
+    incidents: {
+      button: el.operatorWorkspaceOverviewBtn,
+      status: el.operatorWorkspaceOverviewStatus,
+      meta: el.operatorWorkspaceOverviewMeta,
+    },
+    approvals: {
+      button: el.operatorWorkspaceApprovalsBtn,
+      status: el.operatorWorkspaceApprovalsStatus,
+      meta: el.operatorWorkspaceApprovalsMeta,
+    },
+    runtime: {
+      button: el.operatorWorkspaceRuntimeBtn,
+      status: el.operatorWorkspaceRuntimeStatus,
+      meta: el.operatorWorkspaceRuntimeMeta,
+    },
+    audit: {
+      button: el.operatorWorkspaceAuditBtn,
+      status: el.operatorWorkspaceAuditStatus,
+      meta: el.operatorWorkspaceAuditMeta,
+    },
+  };
+}
+
 function readOperatorWorkspaceHeaderSignal(viewId, config) {
   if (viewId === "incidents") {
     const signals = getOperatorSummaryGuideSignals();
@@ -12078,8 +12115,8 @@ function readOperatorWorkspaceHeaderSignal(viewId, config) {
   };
 }
 
-function getOperatorWorkspacePresentationState() {
-  const normalizedView = normalizeOperatorSavedView(state.operatorSavedView) || "incidents";
+function getOperatorWorkspacePresentationState(viewId = state.operatorSavedView) {
+  const normalizedView = normalizeOperatorSavedView(viewId) || "incidents";
   const config = OPERATOR_SAVED_VIEWS[normalizedView] ?? OPERATOR_SAVED_VIEWS.incidents;
   const routeFacts = OPERATOR_WORKSPACE_ROUTE_FACTS[normalizedView] ?? OPERATOR_WORKSPACE_ROUTE_FACTS.incidents;
   const hasManualRefresh = state.operatorSummaryUserRefreshed === true;
@@ -12118,6 +12155,42 @@ function getOperatorWorkspacePresentationState() {
     hint,
     next,
   };
+}
+
+function syncOperatorWorkspaceCards() {
+  const activeView = normalizeOperatorSavedView(state.operatorSavedView) || "incidents";
+  const cardTargets = getOperatorWorkspaceCardTargets();
+  for (const [viewId, target] of Object.entries(cardTargets)) {
+    if (!(target.button instanceof HTMLButtonElement)) {
+      continue;
+    }
+    const presentation = getOperatorWorkspacePresentationState(viewId);
+    const isActive = viewId === activeView;
+    target.button.dataset.workspaceState = presentation.tone;
+    target.button.dataset.workspaceActive = isActive ? "true" : "false";
+    if (target.status instanceof HTMLElement) {
+      const cardLabel =
+        !presentation.hasManualRefresh
+          ? "Hydrate"
+          : presentation.tone === "fail"
+            ? "Attention"
+            : presentation.tone === "neutral"
+              ? "Review"
+              : "Steady";
+      setStatusPill(target.status, cardLabel, presentation.tone);
+      target.status.dataset.statusCode = viewId;
+    }
+    if (target.meta instanceof HTMLElement) {
+      target.meta.textContent =
+        !presentation.hasManualRefresh
+          ? presentation.config.hydrateMeta ?? "Refresh once to load current workspace evidence."
+          : presentation.tone === "fail"
+            ? `Next: inspect ${presentation.routeFacts.label.toLowerCase()} and recover the flagged signal.`
+            : presentation.tone === "neutral"
+              ? `Next: review ${presentation.routeFacts.label.toLowerCase()} before reopening broader triage.`
+              : `Next: keep ${presentation.routeFacts.label.toLowerCase()} steady unless fresher proof is needed.`;
+    }
+  }
 }
 
 function syncOperatorWorkspaceHeader() {
@@ -12226,6 +12299,7 @@ function syncOperatorSavedViewButtons() {
   }
   syncOperatorSavedViewContext();
   syncOperatorWorkspaceChooser();
+  syncOperatorWorkspaceCards();
   syncOperatorWorkspaceHeader();
   syncOperatorToolbarWorkspaceMode();
 }
@@ -12609,6 +12683,7 @@ function syncOperatorSummaryGuide() {
     okSignals,
   });
   renderOperatorSummaryGuideWatchlist(nextWatchItems, hasManualRefresh ? "No active watch items" : "Refresh summary first");
+  syncOperatorWorkspaceCards();
   syncOperatorWorkspaceHeader();
   syncOperatorPriorityQueue();
   syncOperatorSupportPanels();
