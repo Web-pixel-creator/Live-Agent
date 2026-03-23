@@ -3328,6 +3328,11 @@ const el = {
   operatorSavedViewRuntimeBtn: document.getElementById("operatorSavedViewRuntimeBtn"),
   operatorSavedViewApprovalsBtn: document.getElementById("operatorSavedViewApprovalsBtn"),
   operatorSavedViewAuditBtn: document.getElementById("operatorSavedViewAuditBtn"),
+  operatorConsoleEntry: document.getElementById("operatorConsoleEntry"),
+  operatorConsoleEntryApprovalsBtn: document.getElementById("operatorConsoleEntryApprovalsBtn"),
+  operatorConsoleEntryRuntimeBtn: document.getElementById("operatorConsoleEntryRuntimeBtn"),
+  operatorConsoleEntryAuditBtn: document.getElementById("operatorConsoleEntryAuditBtn"),
+  operatorConsoleEntryRefreshBtn: document.getElementById("operatorConsoleEntryRefreshBtn"),
   operatorMobileRefreshBtn: document.getElementById("operatorMobileRefreshBtn"),
   operatorMobileSavedViewIncidentsBtn: document.getElementById("operatorMobileSavedViewIncidentsBtn"),
   operatorMobileSavedViewRuntimeBtn: document.getElementById("operatorMobileSavedViewRuntimeBtn"),
@@ -11968,6 +11973,42 @@ function setOperatorSavedView(viewId, options = {}) {
   if (shouldScroll) {
     focusOperatorSavedViewSurface(normalizedView);
   }
+}
+
+function focusOperatorConsoleEntry(targetId = "operatorConsoleEntry") {
+  const preferredTarget =
+    typeof targetId === "string" && targetId.trim().length > 0 ? document.getElementById(targetId.trim()) : null;
+  const fallbackTarget = el.operatorConsoleEntry instanceof HTMLElement ? el.operatorConsoleEntry : el.operatorRefreshBtn;
+  const focusTarget = preferredTarget instanceof HTMLElement ? preferredTarget : fallbackTarget;
+  if (!(focusTarget instanceof HTMLElement)) {
+    return;
+  }
+  if (focusTarget.id) {
+    scrollOperatorElementIntoView(focusTarget.id);
+  } else {
+    scrollOperatorElementIntoView("operatorConsoleEntry");
+  }
+  scheduleDeferredFocus(() => {
+    focusTarget.focus({ preventScroll: true });
+  }, LIVE_CONTEXT_KEYBOARD_HANDOFF_DELAYS);
+}
+
+function openOperatorConsoleFromLive(options = {}) {
+  const savedView = normalizeOperatorSavedView(options?.savedView ?? "");
+  const focusId =
+    typeof options?.focusId === "string" && options.focusId.trim().length > 0
+      ? options.focusId.trim()
+      : "operatorConsoleEntry";
+  setActiveLiveContextPanel(null, { force: true });
+  setActiveTab("operator");
+  window.setTimeout(() => {
+    if (savedView) {
+      setOperatorSavedView(savedView);
+      return;
+    }
+    scrollOperatorElementIntoView("operatorConsoleEntry");
+  }, 0);
+  focusOperatorConsoleEntry(focusId);
 }
 
 function syncOperatorSummaryGuide() {
@@ -33898,14 +33939,12 @@ function bindEvents() {
   }
   if (el.liveContextOpenOperatorConsoleBtn instanceof HTMLButtonElement) {
     el.liveContextOpenOperatorConsoleBtn.addEventListener("click", () => {
-      setActiveLiveContextPanel(null, { force: true });
-      setActiveTab("operator");
+      openOperatorConsoleFromLive();
     });
   }
   if (el.liveSupportOpenOperatorConsoleBtn instanceof HTMLButtonElement) {
     el.liveSupportOpenOperatorConsoleBtn.addEventListener("click", () => {
-      setActiveLiveContextPanel(null, { force: true });
-      setActiveTab("operator");
+      openOperatorConsoleFromLive({ savedView: "approvals", focusId: "operatorConsoleEntryApprovalsBtn" });
     });
   }
   document.addEventListener(
@@ -34587,6 +34626,26 @@ function bindEvents() {
     }
     button.addEventListener("click", () => {
       setOperatorSavedView(button.dataset.operatorSavedView ?? "");
+    });
+  }
+  if (el.operatorConsoleEntryApprovalsBtn instanceof HTMLButtonElement) {
+    el.operatorConsoleEntryApprovalsBtn.addEventListener("click", () => {
+      setOperatorSavedView("approvals");
+    });
+  }
+  if (el.operatorConsoleEntryRuntimeBtn instanceof HTMLButtonElement) {
+    el.operatorConsoleEntryRuntimeBtn.addEventListener("click", () => {
+      setOperatorSavedView("runtime");
+    });
+  }
+  if (el.operatorConsoleEntryAuditBtn instanceof HTMLButtonElement) {
+    el.operatorConsoleEntryAuditBtn.addEventListener("click", () => {
+      setOperatorSavedView("audit");
+    });
+  }
+  if (el.operatorConsoleEntryRefreshBtn instanceof HTMLButtonElement) {
+    el.operatorConsoleEntryRefreshBtn.addEventListener("click", () => {
+      void refreshOperatorSummary({ markUserRefresh: true });
     });
   }
   const operatorEvidenceDrawerTabs = Array.from(document.querySelectorAll("[data-operator-evidence-view]"))

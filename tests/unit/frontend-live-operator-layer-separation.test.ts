@@ -20,6 +20,11 @@ test("live support dock separates product support from the operator lane", () =>
     'id="liveSupportQueueSnapshot"',
     'id="liveSupportQueueTitle"',
     'id="liveControlAdvancedSection"',
+    'id="operatorConsoleEntry"',
+    'id="operatorConsoleEntryApprovalsBtn"',
+    'id="operatorConsoleEntryRuntimeBtn"',
+    'id="operatorConsoleEntryAuditBtn"',
+    'id="operatorConsoleEntryRefreshBtn"',
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing live dock separation token: ${token}`);
   }
@@ -71,11 +76,22 @@ test("live support dock separates product support from the operator lane", () =>
     'liveContextDockLegendProductHint: document.getElementById("liveContextDockLegendProductHint")',
     'liveContextDockLegendOperatorHint: document.getElementById("liveContextDockLegendOperatorHint")',
     'liveContextOpenOperatorConsoleBtn: document.getElementById("liveContextOpenOperatorConsoleBtn")',
+    'operatorConsoleEntry: document.getElementById("operatorConsoleEntry")',
+    'operatorConsoleEntryApprovalsBtn: document.getElementById("operatorConsoleEntryApprovalsBtn")',
+    'operatorConsoleEntryRuntimeBtn: document.getElementById("operatorConsoleEntryRuntimeBtn")',
+    'operatorConsoleEntryAuditBtn: document.getElementById("operatorConsoleEntryAuditBtn")',
+    'operatorConsoleEntryRefreshBtn: document.getElementById("operatorConsoleEntryRefreshBtn")',
     '"Support & operator"',
     'Product helpers and the operator lane stay below the case workspace.',
     '"Workflow tools"',
     '"Operator diagnostics"',
     '"Operator approvals & queue snapshot"',
+    'function focusOperatorConsoleEntry(targetId = "operatorConsoleEntry") {',
+    'function openOperatorConsoleFromLive(options = {}) {',
+    'openOperatorConsoleFromLive();',
+    'openOperatorConsoleFromLive({ savedView: "approvals", focusId: "operatorConsoleEntryApprovalsBtn" });',
+    'setOperatorSavedView("runtime");',
+    'setOperatorSavedView("audit");',
     'mount.section.dataset.liveContextPersistent = mount.persistent === true ? "true" : "false";',
     '"Approvals, queue snapshots, diagnostics, and rare operator tools stay below the main composer."',
     '"Approval decisions, queue snapshots, diagnostics, recovery actions, and rare extras live here. Open deeper operator surfaces in Operator Console."',
@@ -104,6 +120,9 @@ test("live support dock separates product support from the operator lane", () =>
     ".live-context-dock-legend-hint",
     ".live-control-advanced-shell",
     ".live-control-advanced-stack",
+    ".operator-console-entry",
+    ".operator-console-entry-actions",
+    ".operator-console-entry-action",
     '.live-context-dock-btn[data-live-context-group="product"]',
     '.live-context-dock-btn[data-live-context-group="operator"]',
     '.live-context-mounted-section[data-live-context-persistent="false"] > summary',
@@ -134,6 +153,10 @@ test("live support dock separates product support from the operator lane", () =>
     "README should document the collapsed advanced operator tools shell",
   );
   assert.ok(
+    readmeSource.includes("`Operator Console` now starts with one explicit `Operator handoff` entry card"),
+    "README should document the explicit operator handoff entry",
+  );
+  assert.ok(
     operatorGuideSource.includes("separates `Product support` (`Workflow`, `Voice`) from one `Operator lane` (`Control`)"),
     "operator guide should document live dock separation",
   );
@@ -154,5 +177,9 @@ test("live support dock separates product support from the operator lane", () =>
   assert.ok(
     operatorGuideSource.includes("those lower-frequency surfaces now sit behind one collapsed `Advanced operator tools` shell"),
     "operator guide should document the collapsed advanced operator tools shell",
+  );
+  assert.ok(
+    operatorGuideSource.includes("`Operator Console` now starts with one explicit `Operator handoff` card"),
+    "operator guide should document the explicit operator handoff entry",
   );
 });

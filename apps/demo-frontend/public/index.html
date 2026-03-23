@@ -1691,6 +1691,29 @@
           <span class="section-badge" data-i18n="operator.badge">OPS</span>
           <span data-i18n="operator.heading">Operator Console</span>
         </h2>
+        <section id="operatorConsoleEntry" class="operator-console-entry" tabindex="-1" aria-label="Operator console handoff">
+          <div class="operator-console-entry-copy">
+            <span class="section-badge">Operator handoff</span>
+            <div>
+              <strong class="operator-console-entry-title">Continue deeper operator work here</strong>
+              <p class="operator-console-entry-hint">
+                Use this console for the full queue, deeper runtime diagnostics, recovery tools, and audit evidence after the live case workspace handoff.
+              </p>
+            </div>
+          </div>
+          <div class="operator-console-entry-actions" aria-label="Operator console quick paths">
+            <button id="operatorConsoleEntryApprovalsBtn" type="button" class="button-muted operator-console-entry-action">Approvals</button>
+            <button id="operatorConsoleEntryRuntimeBtn" type="button" class="button-muted operator-console-entry-action">Runtime</button>
+            <button id="operatorConsoleEntryAuditBtn" type="button" class="button-muted operator-console-entry-action">Audit</button>
+            <button
+              id="operatorConsoleEntryRefreshBtn"
+              type="button"
+              class="button-muted operator-console-entry-action operator-console-entry-action-refresh"
+            >
+              Refresh Summary
+            </button>
+          </div>
+        </section>
         <div class="actions operator-toolbar">
           <div class="operator-toolbar-cluster operator-toolbar-cluster-view">
             <p class="operator-toolbar-label">Board</p>
