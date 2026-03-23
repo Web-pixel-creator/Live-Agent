@@ -1783,20 +1783,20 @@
             </button>
           </div>
         </section>
-        <div class="actions operator-toolbar">
-          <div class="operator-toolbar-cluster operator-toolbar-cluster-view">
+        <div id="operatorToolbar" class="actions operator-toolbar">
+          <div id="operatorToolbarClusterView" class="operator-toolbar-cluster operator-toolbar-cluster-view">
             <p class="operator-toolbar-label">Board</p>
             <div class="action-group operator-view-mode-actions">
               <button id="operatorDemoViewBtn" class="button-muted" aria-pressed="true" aria-label="Demo View" title="Demo View">Demo</button>
               <button id="operatorFullOpsViewBtn" class="button-muted" aria-pressed="false" aria-label="Full Ops View" title="Full Ops View">Full Ops</button>
             </div>
           </div>
-          <div class="operator-toolbar-cluster operator-toolbar-cluster-filters">
+          <div id="operatorToolbarClusterFilters" class="operator-toolbar-cluster operator-toolbar-cluster-filters">
             <p class="operator-toolbar-label">Filters</p>
             <button id="operatorFocusCriticalBtn" class="button-muted" aria-pressed="false" aria-label="Focus Critical" title="Focus critical cards">Critical</button>
             <button id="operatorIssuesOnlyBtn" class="button-muted" aria-pressed="false" aria-label="Issues Only" title="Issues Only">Issues</button>
           </div>
-          <div class="operator-toolbar-cluster operator-toolbar-cluster-saved">
+          <div id="operatorToolbarClusterSaved" class="operator-toolbar-cluster operator-toolbar-cluster-saved">
             <p class="operator-toolbar-label">Views</p>
             <div class="operator-saved-view-buttons" aria-label="Saved operator views">
               <button id="operatorSavedViewIncidentsBtn" type="button" class="button-muted operator-saved-view-btn" data-operator-saved-view="incidents" aria-pressed="false">Incidents</button>
@@ -1806,7 +1806,7 @@
             </div>
             <p id="operatorSavedViewHint" class="operator-toolbar-hint">Incidents keeps fail/watch/stale lanes and next actions in one scan path.</p>
           </div>
-          <div class="operator-toolbar-cluster operator-toolbar-cluster-refresh">
+          <div id="operatorToolbarClusterRefresh" class="operator-toolbar-cluster operator-toolbar-cluster-refresh">
             <p class="operator-toolbar-label">Sync</p>
             <button id="operatorRefreshBtn" class="button-muted" aria-label="Refresh Summary" title="Refresh Summary">Refresh</button>
           </div>

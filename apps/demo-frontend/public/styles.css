@@ -21807,11 +21807,21 @@ button:disabled {
   padding: 8px 10px;
 }
 
+.panel-operator-console .operator-toolbar[data-workspace-focus="approvals"],
+.panel-operator-console .operator-toolbar[data-workspace-focus="runtime"],
+.panel-operator-console .operator-toolbar[data-workspace-focus="audit"] {
+  grid-template-columns: minmax(0, 1.38fr) minmax(152px, 0.62fr);
+}
+
 .panel-operator-console .operator-toolbar-cluster {
   min-width: 0;
   display: grid;
   gap: 4px;
   align-content: start;
+}
+
+.panel-operator-console .operator-toolbar-cluster[hidden] {
+  display: none !important;
 }
 
 .panel-operator-console .operator-toolbar-cluster-filters {

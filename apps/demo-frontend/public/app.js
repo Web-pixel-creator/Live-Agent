@@ -3336,6 +3336,11 @@ const el = {
   operatorWorkspaceChooser: document.getElementById("operatorWorkspaceChooser"),
   operatorWorkspaceChooserStatus: document.getElementById("operatorWorkspaceChooserStatus"),
   operatorWorkspaceChooserMeta: document.getElementById("operatorWorkspaceChooserMeta"),
+  operatorToolbar: document.getElementById("operatorToolbar"),
+  operatorToolbarClusterView: document.getElementById("operatorToolbarClusterView"),
+  operatorToolbarClusterFilters: document.getElementById("operatorToolbarClusterFilters"),
+  operatorToolbarClusterSaved: document.getElementById("operatorToolbarClusterSaved"),
+  operatorToolbarClusterRefresh: document.getElementById("operatorToolbarClusterRefresh"),
   operatorMobileRefreshBtn: document.getElementById("operatorMobileRefreshBtn"),
   operatorMobileSavedViewIncidentsBtn: document.getElementById("operatorMobileSavedViewIncidentsBtn"),
   operatorMobileSavedViewRuntimeBtn: document.getElementById("operatorMobileSavedViewRuntimeBtn"),
@@ -12001,11 +12006,33 @@ function syncOperatorWorkspaceChooser() {
       : activeConfig.hint ?? "Saved view is active for deeper operator work.";
 }
 
+function syncOperatorToolbarWorkspaceMode() {
+  const activeConfig = getActiveOperatorSavedViewConfig();
+  const workspaceFocus = activeConfig?.id && activeConfig.id !== "incidents" ? activeConfig.id : "overview";
+  if (el.operatorToolbar instanceof HTMLElement) {
+    el.operatorToolbar.dataset.workspaceFocus = workspaceFocus;
+  }
+  const boardClusters = [el.operatorToolbarClusterView, el.operatorToolbarClusterFilters];
+  const shouldCompressBoardChrome = workspaceFocus !== "overview";
+  for (const cluster of boardClusters) {
+    if (!(cluster instanceof HTMLElement)) {
+      continue;
+    }
+    cluster.hidden = shouldCompressBoardChrome;
+    cluster.setAttribute("aria-hidden", shouldCompressBoardChrome ? "true" : "false");
+  }
+}
+
 function syncOperatorSavedViewButtons() {
   const activeView = normalizeOperatorSavedView(state.operatorSavedView);
   const defaultHint = "Choose one saved view to jump the board into an incidents, runtime, approvals, or audit posture.";
   if (el.operatorSavedViewHint instanceof HTMLElement) {
-    el.operatorSavedViewHint.textContent = activeView ? OPERATOR_SAVED_VIEWS[activeView].hint : defaultHint;
+    el.operatorSavedViewHint.textContent =
+      activeView && activeView !== "incidents"
+        ? `${OPERATOR_SAVED_VIEWS[activeView].label} workspace is active. Use Overview to reopen broader board controls.`
+        : activeView
+          ? OPERATOR_SAVED_VIEWS[activeView].hint
+          : defaultHint;
   }
   const savedViewButtons = document.querySelectorAll("[data-operator-saved-view]");
   for (const button of savedViewButtons) {
@@ -12019,6 +12046,7 @@ function syncOperatorSavedViewButtons() {
   }
   syncOperatorSavedViewContext();
   syncOperatorWorkspaceChooser();
+  syncOperatorToolbarWorkspaceMode();
 }
 
 function clearOperatorSavedView(options = {}) {
