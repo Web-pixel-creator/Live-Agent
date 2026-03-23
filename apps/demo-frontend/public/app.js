@@ -3336,6 +3336,7 @@ const el = {
   operatorWorkspaceChooser: document.getElementById("operatorWorkspaceChooser"),
   operatorWorkspaceChooserStatus: document.getElementById("operatorWorkspaceChooserStatus"),
   operatorWorkspaceChooserMeta: document.getElementById("operatorWorkspaceChooserMeta"),
+  operatorWorkspaceReturnBtn: document.getElementById("operatorWorkspaceReturnBtn"),
   operatorToolbar: document.getElementById("operatorToolbar"),
   operatorToolbarClusterView: document.getElementById("operatorToolbarClusterView"),
   operatorToolbarClusterFilters: document.getElementById("operatorToolbarClusterFilters"),
@@ -11983,6 +11984,7 @@ function syncOperatorWorkspaceChooser() {
     return;
   }
   const activeConfig = getActiveOperatorSavedViewConfig();
+  const returnToOverviewVisible = activeConfig?.id && activeConfig.id !== "incidents";
   if (el.operatorWorkspaceChooser instanceof HTMLElement) {
     if (activeConfig?.id) {
       el.operatorWorkspaceChooser.dataset.activeWorkspace = activeConfig.id;
@@ -11995,6 +11997,10 @@ function syncOperatorWorkspaceChooser() {
     el.operatorWorkspaceChooserStatus.dataset.statusCode = "overview";
     el.operatorWorkspaceChooserMeta.textContent =
       "No workspace pinned yet. Use Approvals, Runtime, or Audit to jump deeper without scanning the full board.";
+    if (el.operatorWorkspaceReturnBtn instanceof HTMLButtonElement) {
+      el.operatorWorkspaceReturnBtn.hidden = true;
+      el.operatorWorkspaceReturnBtn.setAttribute("aria-hidden", "true");
+    }
     return;
   }
   const activeLabel = activeConfig.id === "incidents" ? "overview active" : `${activeConfig.label} active`;
@@ -12003,7 +12009,11 @@ function syncOperatorWorkspaceChooser() {
   el.operatorWorkspaceChooserMeta.textContent =
     activeConfig.id === "incidents"
       ? "Overview keeps broad fail, stale, and watch lanes in one scan path before deeper workspace work."
-      : activeConfig.hint ?? "Saved view is active for deeper operator work.";
+      : `${activeConfig.hint ?? "Saved view is active for deeper operator work."} Use Back to Overview to reopen the broader board.`;
+  if (el.operatorWorkspaceReturnBtn instanceof HTMLButtonElement) {
+    el.operatorWorkspaceReturnBtn.hidden = !returnToOverviewVisible;
+    el.operatorWorkspaceReturnBtn.setAttribute("aria-hidden", returnToOverviewVisible ? "false" : "true");
+  }
 }
 
 function syncOperatorToolbarWorkspaceMode() {

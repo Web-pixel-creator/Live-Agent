@@ -20014,6 +20014,15 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 80%, var(--muted-foreground));
 }
 
+.panel-operator-console .operator-workspace-return {
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  justify-self: start;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
 .panel-operator-console .operator-workspace-chooser-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
