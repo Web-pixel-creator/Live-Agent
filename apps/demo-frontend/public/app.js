@@ -3437,6 +3437,10 @@ const el = {
   operatorSummaryGuideContext: document.getElementById("operatorSummaryGuideContext"),
   operatorSummaryGuideViewPill: document.getElementById("operatorSummaryGuideViewPill"),
   operatorSummaryGuideViewNote: document.getElementById("operatorSummaryGuideViewNote"),
+  operatorSummaryGuidePreview: document.getElementById("operatorSummaryGuidePreview"),
+  operatorSummaryGuidePreviewFocusValue: document.getElementById("operatorSummaryGuidePreviewFocusValue"),
+  operatorSummaryGuidePreviewOpenValue: document.getElementById("operatorSummaryGuidePreviewOpenValue"),
+  operatorSummaryGuidePreviewRecoverValue: document.getElementById("operatorSummaryGuidePreviewRecoverValue"),
   operatorSummaryGuidePath: document.getElementById("operatorSummaryGuidePath"),
   operatorSummaryGuideStepRefresh: document.getElementById("operatorSummaryGuideStepRefresh"),
   operatorSummaryGuideStepRefreshTitle: document.getElementById("operatorSummaryGuideStepRefreshTitle"),
@@ -12029,6 +12033,53 @@ function syncOperatorSavedViewContext() {
     activeConfig.contextNote ?? "Saved views keep one operator posture active without rebuilding filters and lane expansion.";
 }
 
+function syncOperatorSummaryGuidePreview(activeSavedView, presentation) {
+  if (
+    !(el.operatorSummaryGuidePreview instanceof HTMLElement) ||
+    !(el.operatorSummaryGuidePreviewFocusValue instanceof HTMLElement) ||
+    !(el.operatorSummaryGuidePreviewOpenValue instanceof HTMLElement) ||
+    !(el.operatorSummaryGuidePreviewRecoverValue instanceof HTMLElement)
+  ) {
+    return;
+  }
+
+  const workspaceId = activeSavedView?.id ?? presentation?.normalizedView ?? "incidents";
+  const workspaceLabel = presentation?.routeFacts?.label ?? activeSavedView?.label ?? "Overview";
+  const workspaceTone = presentation?.tone ?? "neutral";
+  const hasManualRefresh = presentation?.hasManualRefresh === true;
+  const signalLabel = typeof presentation?.signal?.label === "string" && presentation.signal.label.trim().length > 0
+    ? presentation.signal.label.trim()
+    : workspaceLabel;
+
+  let focusValue = presentation?.routeFacts?.focus ?? "Fail + watch lanes";
+  let openValue = !hasManualRefresh ? "Refresh Summary" : `${workspaceLabel} lane`;
+  let recoverValue = !hasManualRefresh ? "Quick Start" : "Recovery Playbook";
+
+  if (workspaceId === "runtime") {
+    recoverValue = hasManualRefresh ? "Advanced Controls" : "Refresh Summary";
+  } else if (workspaceId === "audit") {
+    recoverValue = hasManualRefresh ? "Export evidence" : "Refresh Summary";
+  }
+
+  if (hasManualRefresh && workspaceTone === "fail") {
+    openValue = `Inspect ${signalLabel}`;
+  } else if (hasManualRefresh && workspaceTone === "neutral") {
+    openValue = `Review ${signalLabel}`;
+  } else if (hasManualRefresh && workspaceId === "incidents") {
+    openValue = "Open incident lane";
+  }
+
+  if (hasManualRefresh && workspaceTone === "ok" && workspaceId === "incidents") {
+    recoverValue = "Advanced board controls";
+  }
+
+  el.operatorSummaryGuidePreview.dataset.workspace = workspaceId;
+  el.operatorSummaryGuidePreview.dataset.workspaceState = workspaceTone;
+  el.operatorSummaryGuidePreviewFocusValue.textContent = focusValue;
+  el.operatorSummaryGuidePreviewOpenValue.textContent = openValue;
+  el.operatorSummaryGuidePreviewRecoverValue.textContent = recoverValue;
+}
+
 function syncOperatorWorkspaceChooser() {
   if (!(el.operatorWorkspaceChooserStatus instanceof HTMLElement) || !(el.operatorWorkspaceChooserMeta instanceof HTMLElement)) {
     return;
@@ -12590,6 +12641,7 @@ function syncOperatorSummaryGuide() {
     return;
   }
   const activeSavedView = getActiveOperatorSavedViewConfig();
+  const workspacePresentation = getOperatorWorkspacePresentationState(activeSavedView?.id);
   const isDemo = normalizeOperatorBoardMode(state.operatorBoardMode) === "demo";
   const hasManualRefresh = state.operatorSummaryUserRefreshed === true;
   const signals = getOperatorSummaryGuideSignals();
@@ -12674,6 +12726,7 @@ function syncOperatorSummaryGuide() {
   if (el.operatorSummaryGuideMeta) {
     el.operatorSummaryGuideMeta.textContent = nextMeta;
   }
+  syncOperatorSummaryGuidePreview(activeSavedView, workspacePresentation);
   syncOperatorSummaryGuidePath({
     activeSavedView,
     hasManualRefresh,

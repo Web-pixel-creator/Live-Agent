@@ -20543,6 +20543,44 @@ button:disabled {
   line-height: 1.46;
 }
 
+.panel-operator-console .operator-summary-guide-preview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.panel-operator-console .operator-summary-guide-preview-item {
+  display: grid;
+  gap: 5px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);
+  border-radius: calc(var(--radius) - 10px);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 92%, transparent), color-mix(in oklch, var(--surface-panel-2) 96%, transparent));
+}
+
+.panel-operator-console .operator-summary-guide-preview-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 68%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-summary-guide-preview-value {
+  font-size: 0.76rem;
+  line-height: 1.34;
+  color: color-mix(in oklch, var(--foreground) 92%, white);
+}
+
+.panel-operator-console .operator-summary-guide-preview[data-workspace-state="fail"] .operator-summary-guide-preview-item {
+  border-color: color-mix(in oklch, var(--destructive) 28%, var(--border-soft));
+}
+
+.panel-operator-console .operator-summary-guide-preview[data-workspace-state="ok"] .operator-summary-guide-preview-item {
+  border-color: color-mix(in oklch, var(--chart-1) 24%, var(--border-soft));
+}
+
 .panel-operator-console .operator-summary-guide-path {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -21875,6 +21913,10 @@ button:disabled {
 
   .panel-operator-console .operator-summary-guide-watchlist {
     display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .panel-operator-console .operator-summary-guide-preview {
     grid-template-columns: 1fr;
   }
 

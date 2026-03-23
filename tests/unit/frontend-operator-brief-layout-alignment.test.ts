@@ -20,9 +20,14 @@ test("operator console keeps a persistent operator brief with focus-driven first
     'class="panel panel-operator-console"',
     'id="operatorSummaryGuideStatus"',
     'id="operatorSummaryGuideMeta"',
+    'id="operatorSummaryGuidePreview"',
+    'id="operatorSummaryGuidePreviewFocusValue"',
+    'id="operatorSummaryGuidePreviewOpenValue"',
+    'id="operatorSummaryGuidePreviewRecoverValue"',
     'id="operatorSummaryGuideWatchlist"',
     "Operator brief",
     "Focus",
+    "Recover",
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `frontend html missing operator-brief token: ${token}`);
@@ -31,14 +36,24 @@ test("operator console keeps a persistent operator brief with focus-driven first
   const requiredRuntimeTokens = [
     'operatorSummaryGuideStatus: document.getElementById("operatorSummaryGuideStatus")',
     'operatorSummaryGuideMeta: document.getElementById("operatorSummaryGuideMeta")',
+    'operatorSummaryGuidePreview: document.getElementById("operatorSummaryGuidePreview")',
+    'operatorSummaryGuidePreviewFocusValue: document.getElementById("operatorSummaryGuidePreviewFocusValue")',
+    'operatorSummaryGuidePreviewOpenValue: document.getElementById("operatorSummaryGuidePreviewOpenValue")',
+    'operatorSummaryGuidePreviewRecoverValue: document.getElementById("operatorSummaryGuidePreviewRecoverValue")',
     'operatorSummaryGuideWatchlist: document.getElementById("operatorSummaryGuideWatchlist")',
     "const OPERATOR_SUMMARY_GUIDE_SIGNAL_PRIORITIES = Object.freeze([",
     "function getOperatorSummaryGuideSignals()",
     "function formatOperatorSummaryGuideLabelList(items, maxItems = 2)",
+    "function syncOperatorSummaryGuidePreview(activeSavedView, presentation) {",
     "function renderOperatorSummaryGuideWatchlist(items, fallbackText = \"Refresh summary first\")",
     'watchShell.dataset.watchState = watchItems.length > 0 ? "active" : "empty";',
     "watchShell.hidden = watchItems.length === 0;",
     'el.operatorSummaryGuide.dataset.operatorVariant = nextVariant;',
+    'el.operatorSummaryGuidePreview.dataset.workspace = workspaceId;',
+    'el.operatorSummaryGuidePreviewFocusValue.textContent = focusValue;',
+    'el.operatorSummaryGuidePreviewOpenValue.textContent = openValue;',
+    'el.operatorSummaryGuidePreviewRecoverValue.textContent = recoverValue;',
+    "syncOperatorSummaryGuidePreview(activeSavedView, workspacePresentation);",
     "renderOperatorSummaryGuideWatchlist(nextWatchItems",
   ];
   for (const token of requiredRuntimeTokens) {
@@ -52,6 +67,10 @@ test("operator console keeps a persistent operator brief with focus-driven first
     '"status guide"',
     ".operator-summary-guide-head {",
     ".operator-summary-guide-status-row {",
+    ".panel-operator-console .operator-summary-guide-preview {",
+    ".panel-operator-console .operator-summary-guide-preview-item {",
+    ".panel-operator-console .operator-summary-guide-preview-label {",
+    ".panel-operator-console .operator-summary-guide-preview-value {",
     '.operator-summary-guide-watch[data-watch-state="empty"] {',
     ".operator-summary-guide-watchlist {",
     ".operator-summary-guide-watch-chip {",
@@ -70,11 +89,19 @@ test("operator console keeps a persistent operator brief with focus-driven first
     "README missing operator focus-chip note",
   );
   assert.ok(
+    readmeSource.includes("workspace-aware `Focus / Open / Recover` preview row"),
+    "README missing operator workspace preview-row note",
+  );
+  assert.ok(
     operatorGuideSource.includes("persistent `Operator brief`"),
     "operator guide missing operator brief layout note",
   );
   assert.ok(
     operatorGuideSource.includes("compact focus chips"),
     "operator guide missing operator focus-chip note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("workspace-aware `Focus / Open / Recover` preview row"),
+    "operator guide missing operator workspace preview-row note",
   );
 });
