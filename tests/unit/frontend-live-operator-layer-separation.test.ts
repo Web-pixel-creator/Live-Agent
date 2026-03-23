@@ -36,9 +36,19 @@ test("live support dock separates product support from the operator lane", () =>
   assert.ok(!htmlSource.includes('id="liveDockMoreBtn"'), "legacy More dock button should be removed");
   const controlTrayIndex = htmlSource.indexOf('id="liveContextTrayControl"');
   const supportSectionIndex = htmlSource.indexOf('class="panel live-support-section"');
+  const optionalToolsIndex = htmlSource.indexOf('class="advanced-settings live-input-optional-tools"');
+  const technicalSectionIndex = htmlSource.indexOf('id="liveTechnicalTimelineSection"');
   assert.ok(
     controlTrayIndex !== -1 && supportSectionIndex !== -1 && controlTrayIndex < supportSectionIndex,
     "control tray should own the operator approval/queue shell in static HTML",
+  );
+  assert.ok(
+    controlTrayIndex !== -1 && optionalToolsIndex !== -1 && controlTrayIndex < optionalToolsIndex,
+    "control tray should own operator extras in static HTML",
+  );
+  assert.ok(
+    controlTrayIndex !== -1 && technicalSectionIndex !== -1 && controlTrayIndex < technicalSectionIndex,
+    "control tray should own operator diagnostics in static HTML",
   );
 
   for (const token of [
@@ -52,8 +62,6 @@ test("live support dock separates product support from the operator lane", () =>
     '"Workflow tools"',
     '"Operator diagnostics"',
     '"Operator approvals & queue snapshot"',
-    'section: el.liveTechnicalTimelineSection',
-    'section: el.liveInputOptionalToolsSection',
     'mount.section.dataset.liveContextPersistent = mount.persistent === true ? "true" : "false";',
     '"Approvals, queue snapshots, diagnostics, and rare operator tools stay below the main composer."',
     '"Approval decisions, queue snapshots, diagnostics, recovery actions, and rare extras live here. Open deeper operator surfaces in Operator Console."',
@@ -66,6 +74,14 @@ test("live support dock separates product support from the operator lane", () =>
   assert.ok(
     !appSource.includes('section: el.liveSupportSection, persistent: true, open: true'),
     "control tray should no longer remount the live support shell from below the live surface",
+  );
+  assert.ok(
+    !appSource.includes('section: el.liveTechnicalTimelineSection'),
+    "control tray should no longer remount operator diagnostics from below the live surface",
+  );
+  assert.ok(
+    !appSource.includes('section: el.liveInputOptionalToolsSection'),
+    "control tray should no longer remount operator extras from below the live surface",
   );
 
   for (const token of [
@@ -94,6 +110,10 @@ test("live support dock separates product support from the operator lane", () =>
     "README should document the tray-owned approval/queue shell",
   );
   assert.ok(
+    readmeSource.includes("The same tray now owns low-frequency operator extras and diagnostics as well"),
+    "README should document the tray-owned operator extras and diagnostics",
+  );
+  assert.ok(
     operatorGuideSource.includes("separates `Product support` (`Workflow`, `Voice`) from one `Operator lane` (`Control`)"),
     "operator guide should document live dock separation",
   );
@@ -106,5 +126,9 @@ test("live support dock separates product support from the operator lane", () =>
   assert.ok(
     operatorGuideSource.includes("That approval/queue shell now opens only inside the `Control` tray"),
     "operator guide should document the tray-owned approval/queue shell",
+  );
+  assert.ok(
+    operatorGuideSource.includes("That same Control tray now owns low-frequency operator extras and diagnostics too"),
+    "operator guide should document the tray-owned operator extras and diagnostics",
   );
 });

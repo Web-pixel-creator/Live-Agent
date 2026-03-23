@@ -710,6 +710,63 @@
                       </section>
                     </div>
                   </details>
+                  <details class="advanced-settings live-input-optional-tools" open>
+                    <summary>
+                      <span class="advanced-title" data-i18n="live.compose.optionalTitle">Operator extras</span>
+                      <span class="advanced-hint" data-i18n="live.compose.optionalHint">Open only for audio uploads, service actions, or support flows.</span>
+                    </summary>
+                    <div class="live-secondary-tools-grid">
+                      <section class="live-secondary-tool-card">
+                        <div class="live-secondary-tool-copy">
+                          <strong class="live-secondary-tool-title" data-i18n="live.compose.audioTitle">Audio file</strong>
+                          <p class="live-secondary-tool-hint" data-i18n="live.compose.audioHint">
+                            Attach only when the request starts from a recording.
+                          </p>
+                        </div>
+                        <div class="field field-audio intent-audio-field">
+                          <span data-i18n="live.compose.audioLabel">Conversation Audio</span>
+                          <div class="media-upload-row intent-audio-row">
+                            <label class="field media-upload-input">
+                              <span class="sr-only" data-i18n="live.compose.audioLabel">Conversation Audio</span>
+                              <div class="file-picker" data-file-picker-for="audioInput">
+                                <button type="button" class="file-picker-button" data-file-picker-trigger>Choose file</button>
+                                <span class="file-picker-name" data-file-picker-name>No file selected</span>
+                              </div>
+                              <input id="audioInput" class="file-picker-native" type="file" accept="audio/*" />
+                            </label>
+                          </div>
+                        </div>
+                      </section>
+                      <section class="live-secondary-tool-card">
+                        <div class="live-secondary-tool-copy">
+                          <strong class="live-secondary-tool-title" data-i18n="live.compose.serviceActionsTitle">Service actions</strong>
+                          <p class="live-secondary-tool-hint" data-i18n="live.compose.serviceActionsHint">
+                            Use these only for debugging or operator-side flows.
+                          </p>
+                        </div>
+                        <div class="actions actions-priority intent-followup-actions">
+                          <div class="action-group action-group-primary">
+                            <button id="sendConversationItemBtn" class="button-muted" data-i18n="live.compose.sendServiceItem">Send service item</button>
+                          </div>
+                          <div class="action-group action-group-secondary">
+                            <button id="sendConversationDeleteBtn" class="button-muted" data-i18n="live.compose.deleteTurn">Delete current turn</button>
+                            <button id="sendOobBtn" class="button-muted" data-i18n="live.compose.sendBackgroundRequest">Send background request</button>
+                          </div>
+                        </div>
+                      </section>
+                    </div>
+                  </details>
+                  <details id="liveTechnicalTimelineSection" class="advanced-settings live-technical-timeline">
+                    <summary>
+                      <span id="liveTechnicalTimelineTitle" class="advanced-title">Operator diagnostics</span>
+                      <span id="liveTechnicalTimelineHint" class="advanced-hint">
+                        Open only for runtime, queue, or protocol troubleshooting.
+                      </span>
+                    </summary>
+                    <div class="live-debug-transcript-shell">
+                      <div id="transcript" class="transcript"></div>
+                    </div>
+                  </details>
                 </section>
               </div>
               <details id="liveIntentSecondaryShell" class="live-intent-secondary-shell" open>
@@ -770,52 +827,6 @@
                     <span>Worker Pause After Step (optional)</span>
                     <input id="uiTaskBrowserWorkerPauseAfterStep" type="number" min="1" step="1" placeholder="2" />
                   </label>
-                </div>
-              </details>
-              <details class="advanced-settings live-input-optional-tools" open>
-                <summary>
-                  <span class="advanced-title" data-i18n="live.compose.optionalTitle">Operator extras</span>
-                  <span class="advanced-hint" data-i18n="live.compose.optionalHint">Open only for audio uploads, service actions, or support flows.</span>
-                </summary>
-                <div class="live-secondary-tools-grid">
-                  <section class="live-secondary-tool-card">
-                    <div class="live-secondary-tool-copy">
-                      <strong class="live-secondary-tool-title" data-i18n="live.compose.audioTitle">Audio file</strong>
-                      <p class="live-secondary-tool-hint" data-i18n="live.compose.audioHint">
-                        Attach only when the request starts from a recording.
-                      </p>
-                    </div>
-                    <div class="field field-audio intent-audio-field">
-                      <span data-i18n="live.compose.audioLabel">Conversation Audio</span>
-                      <div class="media-upload-row intent-audio-row">
-                        <label class="field media-upload-input">
-                          <span class="sr-only" data-i18n="live.compose.audioLabel">Conversation Audio</span>
-                          <div class="file-picker" data-file-picker-for="audioInput">
-                            <button type="button" class="file-picker-button" data-file-picker-trigger>Choose file</button>
-                            <span class="file-picker-name" data-file-picker-name>No file selected</span>
-                          </div>
-                          <input id="audioInput" class="file-picker-native" type="file" accept="audio/*" />
-                        </label>
-                      </div>
-                    </div>
-                  </section>
-                  <section class="live-secondary-tool-card">
-                    <div class="live-secondary-tool-copy">
-                      <strong class="live-secondary-tool-title" data-i18n="live.compose.serviceActionsTitle">Service actions</strong>
-                      <p class="live-secondary-tool-hint" data-i18n="live.compose.serviceActionsHint">
-                        Use these only for debugging or operator-side flows.
-                      </p>
-                    </div>
-                    <div class="actions actions-priority intent-followup-actions">
-                      <div class="action-group action-group-primary">
-                        <button id="sendConversationItemBtn" class="button-muted" data-i18n="live.compose.sendServiceItem">Send service item</button>
-                      </div>
-                      <div class="action-group action-group-secondary">
-                        <button id="sendConversationDeleteBtn" class="button-muted" data-i18n="live.compose.deleteTurn">Delete current turn</button>
-                        <button id="sendOobBtn" class="button-muted" data-i18n="live.compose.sendBackgroundRequest">Send background request</button>
-                      </div>
-                    </div>
-                  </section>
                 </div>
               </details>
             </section>
@@ -945,17 +956,6 @@
                   <div id="conversationHistory" class="transcript conversation-history"></div>
                 </section>
               </div>
-              <details id="liveTechnicalTimelineSection" class="advanced-settings live-technical-timeline">
-                <summary>
-                  <span id="liveTechnicalTimelineTitle" class="advanced-title">Operator diagnostics</span>
-                  <span id="liveTechnicalTimelineHint" class="advanced-hint">
-                    Open only for runtime, queue, or protocol troubleshooting.
-                  </span>
-                </summary>
-                <div class="live-debug-transcript-shell">
-                  <div id="transcript" class="transcript"></div>
-                </div>
-              </details>
             </section>
           </div>
         </div>
