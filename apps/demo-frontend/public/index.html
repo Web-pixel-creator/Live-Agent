@@ -1821,10 +1821,10 @@
           <details id="operatorToolbarAdvancedControls" class="operator-toolbar-cluster operator-toolbar-advanced" open>
             <summary id="operatorToolbarAdvancedSummary" class="operator-toolbar-advanced-summary">
               <span class="operator-toolbar-advanced-copy">
-                <span class="operator-toolbar-advanced-title">Advanced board controls</span>
-                <span class="operator-toolbar-advanced-hint">Board mode and filters for broader console triage.</span>
+                <span id="operatorToolbarAdvancedTitle" class="operator-toolbar-advanced-title">Advanced board controls</span>
+                <span id="operatorToolbarAdvancedHint" class="operator-toolbar-advanced-hint">Board mode and filters for broader console triage.</span>
               </span>
-              <span class="operator-toolbar-advanced-pill">Board</span>
+              <span id="operatorToolbarAdvancedPill" class="operator-toolbar-advanced-pill">Board</span>
             </summary>
             <div class="operator-toolbar-advanced-body">
               <div id="operatorToolbarClusterView" class="operator-toolbar-cluster operator-toolbar-cluster-view">
@@ -1854,6 +1854,7 @@
           <div id="operatorToolbarClusterRefresh" class="operator-toolbar-cluster operator-toolbar-cluster-refresh">
             <p class="operator-toolbar-label">Sync</p>
             <button id="operatorRefreshBtn" class="button-muted" aria-label="Refresh Summary" title="Refresh Summary">Refresh</button>
+            <p id="operatorToolbarRefreshMeta" class="operator-toolbar-refresh-meta">Refresh the current workspace summary.</p>
           </div>
         </div>
         <div id="operatorMobileDock" class="operator-mobile-dock" aria-label="Operator mobile dock">

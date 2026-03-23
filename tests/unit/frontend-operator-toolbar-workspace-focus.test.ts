@@ -14,10 +14,14 @@ test("operator toolbar keeps broad board controls behind an explicit disclosure 
     'id="operatorToolbar"',
     'id="operatorToolbarAdvancedControls"',
     'id="operatorToolbarAdvancedSummary"',
+    'id="operatorToolbarAdvancedTitle"',
+    'id="operatorToolbarAdvancedHint"',
+    'id="operatorToolbarAdvancedPill"',
     'id="operatorToolbarClusterView"',
     'id="operatorToolbarClusterFilters"',
     'id="operatorToolbarClusterSaved"',
     'id="operatorToolbarClusterRefresh"',
+    'id="operatorToolbarRefreshMeta"',
     'id="operatorWorkspaceReturnBtn"',
     "Advanced board controls",
     "Back to Overview",
@@ -29,9 +33,14 @@ test("operator toolbar keeps broad board controls behind an explicit disclosure 
     'operatorToolbar: document.getElementById("operatorToolbar")',
     'operatorToolbarAdvancedControls: document.getElementById("operatorToolbarAdvancedControls")',
     'operatorToolbarAdvancedSummary: document.getElementById("operatorToolbarAdvancedSummary")',
+    'operatorToolbarAdvancedTitle: document.getElementById("operatorToolbarAdvancedTitle")',
+    'operatorToolbarAdvancedHint: document.getElementById("operatorToolbarAdvancedHint")',
+    'operatorToolbarAdvancedPill: document.getElementById("operatorToolbarAdvancedPill")',
     'operatorToolbarClusterSaved: document.getElementById("operatorToolbarClusterSaved")',
     'operatorToolbarClusterRefresh: document.getElementById("operatorToolbarClusterRefresh")',
+    'operatorToolbarRefreshMeta: document.getElementById("operatorToolbarRefreshMeta")',
     'operatorWorkspaceReturnBtn: document.getElementById("operatorWorkspaceReturnBtn")',
+    "function getOperatorWorkspacePresentationState() {",
     "function syncOperatorToolbarWorkspaceMode() {",
     'el.operatorToolbar.dataset.workspaceFocus = workspaceFocus;',
     'el.operatorToolbarAdvancedControls.dataset.workspaceFocus = workspaceFocus;',
@@ -41,6 +50,13 @@ test("operator toolbar keeps broad board controls behind an explicit disclosure 
     'Open Advanced board controls only if you need broader triage filters.',
     'el.operatorWorkspaceReturnBtn.hidden = !returnToOverviewVisible;',
     'Use Back to Overview to reopen the broader board.',
+    'el.operatorToolbarAdvancedTitle.textContent =',
+    'el.operatorToolbarAdvancedHint.textContent =',
+    'el.operatorToolbarAdvancedPill.textContent =',
+    'el.operatorRefreshBtn.textContent = refreshLabel;',
+    'el.operatorToolbarRefreshMeta.textContent =',
+    'Hydrate ${presentation.routeFacts.label.toLowerCase()} first, then open broader board controls only if you need cross-lane triage.',
+    'Refresh after recovery or when new ${presentation.routeFacts.label.toLowerCase()} evidence lands.',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing toolbar focus token: ${token}`);
   }
@@ -52,6 +68,7 @@ test("operator toolbar keeps broad board controls behind an explicit disclosure 
     ".panel-operator-console .operator-toolbar-advanced {",
     ".panel-operator-console .operator-toolbar-advanced-summary {",
     ".panel-operator-console .operator-toolbar-advanced-body {",
+    ".panel-operator-console .operator-toolbar-refresh-meta {",
     '.panel-operator-console .operator-toolbar-advanced[data-workspace-focus="approvals"]:not([open])',
     ".panel-operator-console .operator-workspace-return {",
   ]) {
@@ -67,11 +84,19 @@ test("operator toolbar keeps broad board controls behind an explicit disclosure 
     "README should document the return-to-overview action",
   );
   assert.ok(
+    readmeSource.includes("That same workspace posture now also rewrites `Refresh` and `Advanced board controls` copy from the active workspace state"),
+    "README should document state-aware refresh and advanced control copy",
+  );
+  assert.ok(
     operatorGuideSource.includes("broad `Board` / `Filters` controls now live behind one explicit `Advanced board controls` disclosure"),
     "operator guide should document the advanced board controls disclosure",
   );
   assert.ok(
     operatorGuideSource.includes("visible `Back to Overview` action"),
     "operator guide should document the return-to-overview action",
+  );
+  assert.ok(
+    operatorGuideSource.includes("That same workspace posture now also rewrites `Refresh` and `Advanced board controls` copy from the active workspace state"),
+    "operator guide should document state-aware refresh and advanced control copy",
   );
 });

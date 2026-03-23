@@ -3373,9 +3373,13 @@ const el = {
   operatorWorkspaceHeaderModeValue: document.getElementById("operatorWorkspaceHeaderModeValue"),
   operatorToolbarAdvancedControls: document.getElementById("operatorToolbarAdvancedControls"),
   operatorToolbarAdvancedSummary: document.getElementById("operatorToolbarAdvancedSummary"),
+  operatorToolbarAdvancedTitle: document.getElementById("operatorToolbarAdvancedTitle"),
+  operatorToolbarAdvancedHint: document.getElementById("operatorToolbarAdvancedHint"),
+  operatorToolbarAdvancedPill: document.getElementById("operatorToolbarAdvancedPill"),
   operatorToolbar: document.getElementById("operatorToolbar"),
   operatorToolbarClusterSaved: document.getElementById("operatorToolbarClusterSaved"),
   operatorToolbarClusterRefresh: document.getElementById("operatorToolbarClusterRefresh"),
+  operatorToolbarRefreshMeta: document.getElementById("operatorToolbarRefreshMeta"),
   operatorMobileRefreshBtn: document.getElementById("operatorMobileRefreshBtn"),
   operatorMobileSavedViewIncidentsBtn: document.getElementById("operatorMobileSavedViewIncidentsBtn"),
   operatorMobileSavedViewRuntimeBtn: document.getElementById("operatorMobileSavedViewRuntimeBtn"),
@@ -12074,19 +12078,7 @@ function readOperatorWorkspaceHeaderSignal(viewId, config) {
   };
 }
 
-function syncOperatorWorkspaceHeader() {
-  if (
-    !(el.operatorWorkspaceHeader instanceof HTMLElement)
-    || !(el.operatorWorkspaceHeaderBadge instanceof HTMLElement)
-    || !(el.operatorWorkspaceHeaderTitle instanceof HTMLElement)
-    || !(el.operatorWorkspaceHeaderHint instanceof HTMLElement)
-    || !(el.operatorWorkspaceHeaderFocusValue instanceof HTMLElement)
-    || !(el.operatorWorkspaceHeaderNextValue instanceof HTMLElement)
-    || !(el.operatorWorkspaceHeaderModeValue instanceof HTMLElement)
-  ) {
-    return;
-  }
-
+function getOperatorWorkspacePresentationState() {
   const normalizedView = normalizeOperatorSavedView(state.operatorSavedView) || "incidents";
   const config = OPERATOR_SAVED_VIEWS[normalizedView] ?? OPERATOR_SAVED_VIEWS.incidents;
   const routeFacts = OPERATOR_WORKSPACE_ROUTE_FACTS[normalizedView] ?? OPERATOR_WORKSPACE_ROUTE_FACTS.incidents;
@@ -12115,6 +12107,34 @@ function syncOperatorWorkspaceHeader() {
     next = routeFacts.nominalNext;
   }
 
+  return {
+    normalizedView,
+    config,
+    routeFacts,
+    hasManualRefresh,
+    signal,
+    tone,
+    title,
+    hint,
+    next,
+  };
+}
+
+function syncOperatorWorkspaceHeader() {
+  if (
+    !(el.operatorWorkspaceHeader instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderBadge instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderTitle instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderHint instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderFocusValue instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderNextValue instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderModeValue instanceof HTMLElement)
+  ) {
+    return;
+  }
+
+  const { normalizedView, routeFacts, tone, title, hint, next } = getOperatorWorkspacePresentationState();
+
   el.operatorWorkspaceHeader.dataset.workspace = normalizedView;
   el.operatorWorkspaceHeader.dataset.workspaceState = tone;
   setStatusPill(el.operatorWorkspaceHeaderBadge, routeFacts.label, tone);
@@ -12127,8 +12147,8 @@ function syncOperatorWorkspaceHeader() {
 }
 
 function syncOperatorToolbarWorkspaceMode() {
-  const activeConfig = getActiveOperatorSavedViewConfig();
-  const workspaceFocus = activeConfig?.id && activeConfig.id !== "incidents" ? activeConfig.id : "overview";
+  const presentation = getOperatorWorkspacePresentationState();
+  const workspaceFocus = presentation.normalizedView !== "incidents" ? presentation.normalizedView : "overview";
   if (el.operatorToolbar instanceof HTMLElement) {
     el.operatorToolbar.dataset.workspaceFocus = workspaceFocus;
   }
@@ -12143,6 +12163,43 @@ function syncOperatorToolbarWorkspaceMode() {
         ? "Advanced board controls are open for overview triage"
         : "Advanced board controls are available on demand while a focused workspace is active",
     );
+  }
+  if (el.operatorToolbarAdvancedTitle instanceof HTMLElement) {
+    el.operatorToolbarAdvancedTitle.textContent =
+      presentation.normalizedView === "incidents" ? "Advanced board controls" : `Advanced ${presentation.routeFacts.label.toLowerCase()} controls`;
+  }
+  if (el.operatorToolbarAdvancedHint instanceof HTMLElement) {
+    el.operatorToolbarAdvancedHint.textContent =
+      presentation.normalizedView === "incidents"
+        ? "Board mode and filters for broader console triage."
+        : !presentation.hasManualRefresh
+          ? `Hydrate ${presentation.routeFacts.label.toLowerCase()} first, then open broader board controls only if you need cross-lane triage.`
+          : presentation.tone === "fail"
+            ? `Focused ${presentation.routeFacts.label.toLowerCase()} signals need attention. Open broader board controls only if you need wider triage.`
+            : presentation.tone === "neutral"
+              ? `Keep ${presentation.routeFacts.label.toLowerCase()} in review. Open broader board controls only if you need cross-lane comparison.`
+              : `Keep ${presentation.routeFacts.label.toLowerCase()} focused. Open broader board controls only when you need broader proof.`;
+  }
+  if (el.operatorToolbarAdvancedPill instanceof HTMLElement) {
+    el.operatorToolbarAdvancedPill.textContent =
+      presentation.normalizedView === "incidents" ? "Board" : presentation.routeFacts.label;
+  }
+  if (el.operatorRefreshBtn instanceof HTMLButtonElement) {
+    const refreshLabel =
+      presentation.normalizedView === "incidents" ? "Refresh Overview" : `Refresh ${presentation.routeFacts.label}`;
+    el.operatorRefreshBtn.textContent = refreshLabel;
+    el.operatorRefreshBtn.setAttribute("aria-label", refreshLabel);
+    el.operatorRefreshBtn.title = refreshLabel;
+  }
+  if (el.operatorToolbarRefreshMeta instanceof HTMLElement) {
+    el.operatorToolbarRefreshMeta.textContent =
+      !presentation.hasManualRefresh
+        ? presentation.config.hydrateMeta ?? "Refresh once to load current workspace evidence."
+        : presentation.tone === "fail"
+          ? `Refresh after recovery or when new ${presentation.routeFacts.label.toLowerCase()} evidence lands.`
+          : presentation.tone === "neutral"
+            ? `Refresh again while ${presentation.routeFacts.label.toLowerCase()} still needs confirmation.`
+            : `Refresh only when you need fresher ${presentation.routeFacts.label.toLowerCase()} proof.`;
   }
 }
 
