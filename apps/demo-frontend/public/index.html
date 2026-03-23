@@ -1714,6 +1714,75 @@
             </button>
           </div>
         </section>
+        <section id="operatorWorkspaceChooser" class="operator-workspace-chooser" aria-label="Operator workspace chooser">
+          <div class="operator-workspace-chooser-head">
+            <div class="operator-workspace-chooser-copy">
+              <span class="section-badge">Choose workspace</span>
+              <div>
+                <strong class="operator-workspace-chooser-title">Open the right operator area first</strong>
+                <p class="operator-workspace-chooser-hint">
+                  Stay in overview for broad triage, or jump straight into the operator workspace that matches the task in front of you.
+                </p>
+              </div>
+            </div>
+            <div class="operator-workspace-chooser-status-row">
+              <p id="operatorWorkspaceChooserStatus" class="status-pill status-neutral" data-status-code="overview">overview</p>
+              <p id="operatorWorkspaceChooserMeta" class="operator-workspace-chooser-meta">
+                No workspace pinned yet. Use Approvals, Runtime, or Audit to jump deeper without scanning the full board.
+              </p>
+            </div>
+          </div>
+          <div class="operator-workspace-chooser-cards" aria-label="Operator workspace quick paths">
+            <button
+              id="operatorWorkspaceOverviewBtn"
+              type="button"
+              class="button-muted operator-workspace-card operator-workspace-card-overview"
+              data-operator-saved-view="incidents"
+            >
+              <span class="operator-workspace-card-kicker">Overview</span>
+              <strong class="operator-workspace-card-title">Incident overview</strong>
+              <span class="operator-workspace-card-hint">
+                Fail, stale, and watch lanes stay together for broad first-pass triage.
+              </span>
+            </button>
+            <button
+              id="operatorWorkspaceApprovalsBtn"
+              type="button"
+              class="button-muted operator-workspace-card"
+              data-operator-saved-view="approvals"
+            >
+              <span class="operator-workspace-card-kicker">Approvals</span>
+              <strong class="operator-workspace-card-title">Clear approvals and queue pressure</strong>
+              <span class="operator-workspace-card-hint">
+                Resume decisions, queue backlog, startup gates, and pending approval health.
+              </span>
+            </button>
+            <button
+              id="operatorWorkspaceRuntimeBtn"
+              type="button"
+              class="button-muted operator-workspace-card"
+              data-operator-saved-view="runtime"
+            >
+              <span class="operator-workspace-card-kicker">Runtime</span>
+              <strong class="operator-workspace-card-title">Inspect workflow and executor posture</strong>
+              <span class="operator-workspace-card-hint">
+                Workflow routing, guardrails, UI executor failover, and device-node readiness.
+              </span>
+            </button>
+            <button
+              id="operatorWorkspaceAuditBtn"
+              type="button"
+              class="button-muted operator-workspace-card"
+              data-operator-saved-view="audit"
+            >
+              <span class="operator-workspace-card-kicker">Audit</span>
+              <strong class="operator-workspace-card-title">Review governance and export evidence</strong>
+              <span class="operator-workspace-card-hint">
+                Governance, skills, cost posture, and review-ready export evidence.
+              </span>
+            </button>
+          </div>
+        </section>
         <div class="actions operator-toolbar">
           <div class="operator-toolbar-cluster operator-toolbar-cluster-view">
             <p class="operator-toolbar-label">Board</p>

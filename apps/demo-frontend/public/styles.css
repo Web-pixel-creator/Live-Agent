@@ -19964,6 +19964,104 @@ button:disabled {
   border-color: color-mix(in oklch, var(--primary) 28%, var(--border-soft));
 }
 
+.panel-operator-console .operator-workspace-chooser {
+  display: grid;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 90%, transparent);
+  border-radius: calc(var(--radius) - 3px);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-panel) 95%, transparent), color-mix(in oklch, var(--surface-panel-2) 97%, transparent));
+}
+
+.panel-operator-console .operator-workspace-chooser-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+  gap: 14px 18px;
+  align-items: start;
+}
+
+.panel-operator-console .operator-workspace-chooser-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.panel-operator-console .operator-workspace-chooser-title {
+  display: block;
+  font-size: 0.98rem;
+  line-height: 1.18;
+  letter-spacing: 0.01em;
+  color: color-mix(in oklch, var(--foreground) 94%, white);
+}
+
+.panel-operator-console .operator-workspace-chooser-hint {
+  margin: 0;
+  max-width: 68ch;
+  color: color-mix(in oklch, var(--foreground) 64%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-chooser-status-row {
+  display: grid;
+  gap: 7px;
+  justify-items: start;
+  align-content: start;
+}
+
+.panel-operator-console .operator-workspace-chooser-meta {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.42;
+  color: color-mix(in oklch, var(--foreground) 80%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-chooser-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.panel-operator-console .operator-workspace-card {
+  min-height: 126px;
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: 7px;
+  padding: 12px 13px;
+  border-radius: calc(var(--radius) - 8px);
+  text-align: left;
+  white-space: normal;
+}
+
+.panel-operator-console .operator-workspace-card.is-active {
+  border-color: color-mix(in oklch, var(--primary) 34%, var(--border-soft));
+  background:
+    radial-gradient(180px 72px at 0% -22%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 74%),
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 92%, transparent), color-mix(in oklch, var(--surface-panel-2) 96%, transparent));
+}
+
+.panel-operator-console .operator-workspace-card-overview.is-active {
+  border-color: color-mix(in oklch, var(--accent-foreground) 28%, var(--border-soft));
+}
+
+.panel-operator-console .operator-workspace-card-kicker {
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 72%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card-title {
+  font-size: 0.84rem;
+  line-height: 1.28;
+}
+
+.panel-operator-console .operator-workspace-card-hint {
+  font-size: 0.74rem;
+  line-height: 1.38;
+  color: color-mix(in oklch, var(--foreground) 80%, var(--muted-foreground));
+}
+
 .panel-operator-console .operator-last-refresh,
 .panel-operator-console .operator-mode-banner {
   min-height: 54px;
@@ -20406,6 +20504,10 @@ button:disabled {
 }
 
 @media (max-width: 1200px) {
+  .panel-operator-console .operator-workspace-chooser-head {
+    grid-template-columns: 1fr;
+  }
+
   .panel-operator-console .operator-summary-guide-path {
     grid-template-columns: 1fr;
   }

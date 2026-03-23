@@ -3333,6 +3333,9 @@ const el = {
   operatorConsoleEntryRuntimeBtn: document.getElementById("operatorConsoleEntryRuntimeBtn"),
   operatorConsoleEntryAuditBtn: document.getElementById("operatorConsoleEntryAuditBtn"),
   operatorConsoleEntryRefreshBtn: document.getElementById("operatorConsoleEntryRefreshBtn"),
+  operatorWorkspaceChooser: document.getElementById("operatorWorkspaceChooser"),
+  operatorWorkspaceChooserStatus: document.getElementById("operatorWorkspaceChooserStatus"),
+  operatorWorkspaceChooserMeta: document.getElementById("operatorWorkspaceChooserMeta"),
   operatorMobileRefreshBtn: document.getElementById("operatorMobileRefreshBtn"),
   operatorMobileSavedViewIncidentsBtn: document.getElementById("operatorMobileSavedViewIncidentsBtn"),
   operatorMobileSavedViewRuntimeBtn: document.getElementById("operatorMobileSavedViewRuntimeBtn"),
@@ -11970,6 +11973,34 @@ function syncOperatorSavedViewContext() {
     activeConfig.contextNote ?? "Saved views keep one operator posture active without rebuilding filters and lane expansion.";
 }
 
+function syncOperatorWorkspaceChooser() {
+  if (!(el.operatorWorkspaceChooserStatus instanceof HTMLElement) || !(el.operatorWorkspaceChooserMeta instanceof HTMLElement)) {
+    return;
+  }
+  const activeConfig = getActiveOperatorSavedViewConfig();
+  if (el.operatorWorkspaceChooser instanceof HTMLElement) {
+    if (activeConfig?.id) {
+      el.operatorWorkspaceChooser.dataset.activeWorkspace = activeConfig.id;
+    } else {
+      delete el.operatorWorkspaceChooser.dataset.activeWorkspace;
+    }
+  }
+  if (!activeConfig) {
+    setStatusPill(el.operatorWorkspaceChooserStatus, "overview", "neutral");
+    el.operatorWorkspaceChooserStatus.dataset.statusCode = "overview";
+    el.operatorWorkspaceChooserMeta.textContent =
+      "No workspace pinned yet. Use Approvals, Runtime, or Audit to jump deeper without scanning the full board.";
+    return;
+  }
+  const activeLabel = activeConfig.id === "incidents" ? "overview active" : `${activeConfig.label} active`;
+  setStatusPill(el.operatorWorkspaceChooserStatus, activeLabel, activeConfig.id === "incidents" ? "neutral" : "ok");
+  el.operatorWorkspaceChooserStatus.dataset.statusCode = activeConfig.id;
+  el.operatorWorkspaceChooserMeta.textContent =
+    activeConfig.id === "incidents"
+      ? "Overview keeps broad fail, stale, and watch lanes in one scan path before deeper workspace work."
+      : activeConfig.hint ?? "Saved view is active for deeper operator work.";
+}
+
 function syncOperatorSavedViewButtons() {
   const activeView = normalizeOperatorSavedView(state.operatorSavedView);
   const defaultHint = "Choose one saved view to jump the board into an incidents, runtime, approvals, or audit posture.";
@@ -11987,6 +12018,7 @@ function syncOperatorSavedViewButtons() {
     button.setAttribute("aria-pressed", isActive ? "true" : "false");
   }
   syncOperatorSavedViewContext();
+  syncOperatorWorkspaceChooser();
 }
 
 function clearOperatorSavedView(options = {}) {
