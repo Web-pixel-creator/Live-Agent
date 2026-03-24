@@ -10915,13 +10915,15 @@ function resolveOperatorEvidenceDrawerWorkspaceHeading(model, activeView) {
   if (!shouldUseOperatorEvidenceDrawerWorkspacePlaceholder(model) || !activeView) {
     return { kicker: baseKicker, title: baseTitle };
   }
+  const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
   const viewLabel = normalizeOperatorUiCopy(activeView?.label);
+  const workspaceTitle = normalizeOperatorUiCopy(config?.hydrateTitle);
   if (!viewLabel) {
-    return { kicker: baseKicker, title: baseTitle };
+    return { kicker: baseKicker, title: workspaceTitle ?? baseTitle };
   }
   return {
     kicker: viewLabel,
-    title: baseTitle,
+    title: workspaceTitle ?? baseTitle,
   };
 }
 
