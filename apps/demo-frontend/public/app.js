@@ -10937,6 +10937,25 @@ function resolveOperatorEvidenceDrawerWorkspaceLane(model, activeView) {
   return normalizeOperatorUiCopy(config?.contextLabel ?? config?.drawerKicker ?? activeView?.label) ?? baseLane;
 }
 
+function resolveOperatorEvidenceDrawerWorkspaceStatusText(model, activeView) {
+  const baseStatusText =
+    normalizeOperatorUiCopy(model?.statusDisplayText)
+    ?? resolveStatusPillDisplayText(model?.statusCode || model?.statusText || "awaiting_refresh");
+  if (!shouldUseOperatorEvidenceDrawerWorkspacePlaceholder(model) || !activeView) {
+    return baseStatusText;
+  }
+  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  if (workspaceId === "approvals") {
+    return "Seed approvals";
+  }
+  const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
+  const workspaceTitle = normalizeOperatorUiCopy(config?.hydrateTitle)?.replace(/\s+posture$/iu, "").trim();
+  if (workspaceId === "incidents") {
+    return "Hydrate incidents";
+  }
+  return workspaceTitle || baseStatusText;
+}
+
 function buildOperatorEvidenceDrawerModelLegacy(statusId) {
   const normalizedStatusId = typeof statusId === "string" ? statusId.trim() : "";
   const activeSavedView = getActiveOperatorSavedViewConfig();
@@ -11059,7 +11078,7 @@ function syncOperatorEvidenceDrawerLegacy() {
   setText(el.operatorEvidenceDrawerHint, model.hint);
   if (el.operatorEvidenceDrawerStatus instanceof HTMLElement) {
     el.operatorEvidenceDrawerStatus.dataset.statusCode = model.statusCode;
-    el.operatorEvidenceDrawerStatus.textContent = resolveStatusPillDisplayText(model.statusCode || model.statusText);
+    el.operatorEvidenceDrawerStatus.textContent = resolveOperatorEvidenceDrawerWorkspaceStatusText(model, null);
     el.operatorEvidenceDrawerStatus.className = "status-pill";
     if (model.variant === "fail") {
       el.operatorEvidenceDrawerStatus.classList.add("status-fail");
@@ -11962,7 +11981,7 @@ function syncOperatorEvidenceDrawer() {
   setText(el.operatorEvidenceDrawerHint, resolveOperatorEvidenceDrawerWorkspaceHint(activeView, model));
   if (el.operatorEvidenceDrawerStatus instanceof HTMLElement) {
     el.operatorEvidenceDrawerStatus.dataset.statusCode = model.statusCode;
-    el.operatorEvidenceDrawerStatus.textContent = model.statusDisplayText || resolveStatusPillDisplayText(model.statusCode || model.statusText);
+    el.operatorEvidenceDrawerStatus.textContent = resolveOperatorEvidenceDrawerWorkspaceStatusText(model, activeView);
     el.operatorEvidenceDrawerStatus.className = "status-pill";
     if (model.variant === "fail") {
       el.operatorEvidenceDrawerStatus.classList.add("status-fail");
