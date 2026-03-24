@@ -19983,6 +19983,21 @@ button:disabled {
   white-space: nowrap;
 }
 
+.panel-operator-console .operator-console-entry-action[data-entry-action-state="current"] {
+  border-color: color-mix(in oklch, var(--chart-1) 14%, var(--border-soft));
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 84%, transparent), color-mix(in oklch, var(--surface-panel-2) 96%, transparent));
+  color: color-mix(in oklch, var(--foreground) 76%, var(--muted-foreground));
+  opacity: 0.78;
+}
+
+.panel-operator-console .operator-console-entry-action[data-entry-action-state="current"]:hover {
+  border-color: color-mix(in oklch, var(--chart-1) 18%, var(--border-soft));
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-control-hover) 86%, transparent), color-mix(in oklch, var(--surface-panel-2) 96%, transparent));
+  opacity: 0.84;
+}
+
 .panel-operator-console .operator-console-entry-action-refresh {
   border-color: color-mix(in oklch, var(--primary) 28%, var(--border-soft));
 }

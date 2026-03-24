@@ -12998,6 +12998,21 @@ function syncOperatorConsoleEntry() {
     el.operatorConsoleEntryTitle.textContent = "Continue deeper operator work here";
     el.operatorConsoleEntryHint.textContent =
       "Use this console for the full queue, deeper runtime diagnostics, recovery tools, and audit evidence after the live case workspace handoff.";
+    if (el.operatorConsoleEntryApprovalsBtn instanceof HTMLButtonElement) {
+      el.operatorConsoleEntryApprovalsBtn.textContent = "Approvals";
+      el.operatorConsoleEntryApprovalsBtn.dataset.entryActionState = "jump";
+      el.operatorConsoleEntryApprovalsBtn.setAttribute("aria-pressed", "false");
+    }
+    if (el.operatorConsoleEntryRuntimeBtn instanceof HTMLButtonElement) {
+      el.operatorConsoleEntryRuntimeBtn.textContent = "Runtime";
+      el.operatorConsoleEntryRuntimeBtn.dataset.entryActionState = "jump";
+      el.operatorConsoleEntryRuntimeBtn.setAttribute("aria-pressed", "false");
+    }
+    if (el.operatorConsoleEntryAuditBtn instanceof HTMLButtonElement) {
+      el.operatorConsoleEntryAuditBtn.textContent = "Audit";
+      el.operatorConsoleEntryAuditBtn.dataset.entryActionState = "jump";
+      el.operatorConsoleEntryAuditBtn.setAttribute("aria-pressed", "false");
+    }
     return;
   }
 
@@ -13008,12 +13023,26 @@ function syncOperatorConsoleEntry() {
     el.operatorConsoleEntryTitle.textContent = `${activeConfig.label} workspace is active`;
     el.operatorConsoleEntryHint.textContent =
       "The operator handoff is already complete. Keep using Choose workspace below to switch areas, or use these quick paths when you need another direct jump.";
-    return;
+  } else {
+    el.operatorConsoleEntryTitle.textContent = "Operator handoff complete";
+    el.operatorConsoleEntryHint.textContent =
+      "The board is already hydrated. Use Choose workspace below for the next focused area instead of restarting from the entry card.";
   }
 
-  el.operatorConsoleEntryTitle.textContent = "Operator handoff complete";
-  el.operatorConsoleEntryHint.textContent =
-    "The board is already hydrated. Use Choose workspace below for the next focused area instead of restarting from the entry card.";
+  const workspaceButtons = [
+    { button: el.operatorConsoleEntryApprovalsBtn, id: "approvals", label: "Approvals" },
+    { button: el.operatorConsoleEntryRuntimeBtn, id: "runtime", label: "Runtime" },
+    { button: el.operatorConsoleEntryAuditBtn, id: "audit", label: "Audit" },
+  ];
+  for (const item of workspaceButtons) {
+    if (!(item.button instanceof HTMLButtonElement)) {
+      continue;
+    }
+    const isCurrentWorkspace = activeConfig?.id === item.id;
+    item.button.dataset.entryActionState = isCurrentWorkspace ? "current" : "jump";
+    item.button.textContent = isCurrentWorkspace ? `${item.label} current` : item.label;
+    item.button.setAttribute("aria-pressed", isCurrentWorkspace ? "true" : "false");
+  }
 }
 
 function syncOperatorSummaryGuidePreview(activeSavedView, presentation) {
