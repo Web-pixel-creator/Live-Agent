@@ -13234,7 +13234,9 @@ function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {
       ? presentation.signal.text.trim()
       : presentation?.signal?.label?.trim().length
         ? presentation.signal.label.trim()
-        : "Awaiting refresh";
+        : `${typeof presentation?.routeFacts?.label === "string" && presentation.routeFacts.label.trim().length > 0
+            ? presentation.routeFacts.label.trim()
+            : "Workspace"} signal pending`;
   const signalState = presentation?.signal?.variant ?? (presentation?.tone === "ok" ? "steady" : "dormant");
   return {
     value: signalValue,

@@ -15,7 +15,7 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
     'id="operatorWorkspaceHeaderLeadValue"',
     'id="operatorWorkspaceHeaderLeadSource"',
     "Lead signal",
-    "Awaiting refresh",
+    "Overview signal pending",
     'class="operator-workspace-header-fact-source">Source: Overview</span>',
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing workspace lead signal token: ${token}`);
@@ -30,6 +30,7 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
     "function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {",
     "function resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation) {",
     'const signalValue =',
+    'signal pending',
     'const signalState = presentation?.signal?.variant ?? (presentation?.tone === "ok" ? "steady" : "dormant");',
     'const signalSource =',
     "const presentation = getOperatorWorkspacePresentationState();",

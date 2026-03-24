@@ -18,11 +18,12 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     'id="operatorEvidenceDrawerContextSignalItem"',
     'id="operatorEvidenceDrawerContextSignalValue"',
     'id="operatorEvidenceDrawerContextSignalSource"',
+    'Overview signal pending',
     'class="operator-evidence-drawer-context-label">Workspace<',
     'class="operator-evidence-drawer-context-label">View<',
     'class="operator-evidence-drawer-context-label">Next<',
     'class="operator-evidence-drawer-context-label">Signal<',
-    'class="operator-evidence-drawer-context-source">Source: waiting for refresh</span>',
+    'class="operator-evidence-drawer-context-source">Source: Overview</span>',
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing focused evidence workspace-context token: ${token}`);
   }
@@ -38,6 +39,7 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     "function resolveOperatorEvidenceDrawerWorkspaceNextValue(activeView, presentation) {",
     "function syncOperatorEvidenceDrawerContext(model, activeView) {",
     "function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {",
+    'signal pending',
     'el.operatorEvidenceDrawerContext.dataset.workspace =',
     'el.operatorEvidenceDrawerContext.dataset.workspaceState = workspaceState;',
     'el.operatorEvidenceDrawerContextWorkspaceValue.textContent = workspaceLabel;',
