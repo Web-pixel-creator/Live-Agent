@@ -24173,6 +24173,51 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 98%, white);
 }
 
+.panel-operator-console .operator-evidence-drawer-action-primary[data-action-workspace="approvals"] {
+  border-color: color-mix(in oklch, var(--chart-1) 58%, var(--border-soft));
+  background:
+    linear-gradient(180deg,
+      color-mix(in oklch, var(--chart-1) 28%, var(--surface-control)),
+      color-mix(in oklch, var(--chart-1) 20%, var(--surface-panel)));
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--chart-1) 22%, transparent),
+    0 10px 22px color-mix(in oklch, black 24%, transparent);
+}
+
+.panel-operator-console .operator-evidence-drawer-action-primary[data-action-workspace="runtime"] {
+  border-color: color-mix(in oklch, var(--chart-2) 58%, var(--border-soft));
+  background:
+    linear-gradient(180deg,
+      color-mix(in oklch, var(--chart-2) 28%, var(--surface-control)),
+      color-mix(in oklch, var(--chart-2) 20%, var(--surface-panel)));
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--chart-2) 22%, transparent),
+    0 10px 22px color-mix(in oklch, black 24%, transparent);
+}
+
+.panel-operator-console .operator-evidence-drawer-action-primary[data-action-workspace="audit"] {
+  border-color: color-mix(in oklch, var(--chart-5) 56%, var(--border-soft));
+  background:
+    linear-gradient(180deg,
+      color-mix(in oklch, var(--chart-5) 24%, var(--surface-control)),
+      color-mix(in oklch, var(--chart-5) 18%, var(--surface-panel)));
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--chart-5) 20%, transparent),
+    0 10px 22px color-mix(in oklch, black 24%, transparent);
+}
+
+.panel-operator-console .operator-evidence-drawer-action-stack[data-action-primary="true"][data-action-workspace="approvals"] .operator-evidence-drawer-action-meta {
+  color: color-mix(in oklch, var(--chart-1) 58%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-evidence-drawer-action-stack[data-action-primary="true"][data-action-workspace="runtime"] .operator-evidence-drawer-action-meta {
+  color: color-mix(in oklch, var(--chart-2) 58%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-evidence-drawer-action-stack[data-action-primary="true"][data-action-workspace="audit"] .operator-evidence-drawer-action-meta {
+  color: color-mix(in oklch, var(--chart-5) 54%, var(--muted-foreground));
+}
+
 .panel-operator-console .operator-evidence-drawer-action-secondary {
   min-height: 32px;
 }

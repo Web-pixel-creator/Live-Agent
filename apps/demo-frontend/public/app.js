@@ -11662,6 +11662,7 @@ function createOperatorEvidenceDrawerActionButton(config, options = {}) {
   }
   const compact = options.compact === true;
   const isPrimary = options.primary === true;
+  const workspaceTone = typeof options.workspaceTone === "string" ? options.workspaceTone.trim() : "";
   const fullLabel = config.label;
   const compactLabel = compact ? resolveOperatorEvidenceDrawerCompactActionLabel(config, options) : "";
   const button = document.createElement("button");
@@ -11673,6 +11674,9 @@ function createOperatorEvidenceDrawerActionButton(config, options = {}) {
   button.dataset.actionDensity = compact ? "compact" : "default";
   if (isPrimary) {
     button.dataset.actionPrimary = "true";
+  }
+  if (workspaceTone) {
+    button.dataset.actionWorkspace = workspaceTone;
   }
   button.textContent = compactLabel || fullLabel;
   if (compactLabel && compactLabel !== fullLabel) {
@@ -11690,6 +11694,7 @@ function createOperatorEvidenceDrawerActionNode(config, options = {}) {
   if (!(button instanceof HTMLButtonElement)) {
     return null;
   }
+  const workspaceTone = typeof options.workspaceTone === "string" ? options.workspaceTone.trim() : "";
   const meta =
     typeof config?.meta === "string" && config.meta.trim().length > 0
       ? config.meta.trim()
@@ -11702,6 +11707,9 @@ function createOperatorEvidenceDrawerActionNode(config, options = {}) {
   wrapper.dataset.actionDensity = options.compact === true ? "compact" : "default";
   if (options.primary === true) {
     wrapper.dataset.actionPrimary = "true";
+  }
+  if (workspaceTone) {
+    wrapper.dataset.actionWorkspace = workspaceTone;
   }
   const metaNode = document.createElement("p");
   metaNode.className = "operator-evidence-drawer-action-meta";
@@ -12247,6 +12255,10 @@ function syncOperatorEvidenceDrawer() {
         compact: isCompactEvidenceView,
         cardTitle: model.title,
         primary: useWorkspacePlaceholderEvidence && index === 0,
+        workspaceTone:
+          useWorkspacePlaceholderEvidence && index === 0
+            ? normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents"
+            : "",
       });
       if (button) {
       el.operatorEvidenceDrawerActions.append(button);
