@@ -22793,6 +22793,12 @@ button:disabled {
   line-height: 1.25;
 }
 
+.panel-operator-console .operator-evidence-drawer-context-source {
+  color: color-mix(in oklch, var(--foreground) 68%, var(--muted-foreground));
+  font-size: 0.62rem;
+  line-height: 1.25;
+}
+
 .panel-operator-console .operator-evidence-drawer-context[data-workspace="approvals"] .operator-evidence-drawer-context-item {
   border-color: color-mix(in oklch, var(--chart-1) 26%, var(--border-soft));
 }
@@ -22839,6 +22845,22 @@ button:disabled {
 
 .panel-operator-console .operator-evidence-drawer-context-item[data-signal-state="fail"] .operator-evidence-drawer-context-value {
   color: color-mix(in oklch, var(--chart-4) 62%, white);
+}
+
+.panel-operator-console .operator-evidence-drawer-context-item[data-signal-state="dormant"] .operator-evidence-drawer-context-source {
+  color: color-mix(in oklch, var(--foreground) 58%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-evidence-drawer-context-item[data-signal-state="steady"] .operator-evidence-drawer-context-source {
+  color: color-mix(in oklch, var(--foreground) 76%, white);
+}
+
+.panel-operator-console .operator-evidence-drawer-context-item[data-signal-state="neutral"] .operator-evidence-drawer-context-source {
+  color: color-mix(in oklch, var(--foreground) 68%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-evidence-drawer-context-item[data-signal-state="fail"] .operator-evidence-drawer-context-source {
+  color: color-mix(in oklch, var(--chart-4) 50%, white);
 }
 
 .panel-operator-console .operator-evidence-drawer-tabs {
