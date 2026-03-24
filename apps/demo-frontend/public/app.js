@@ -10025,6 +10025,16 @@ function normalizeOperatorEvidenceDrawerHydrateMeta(meta) {
   return normalized.replace(/^next:\s*/i, "").trim();
 }
 
+function resolveOperatorEvidenceDrawerWorkspaceHint(activeView, model) {
+  if (!shouldUseOperatorEvidenceDrawerWorkspacePlaceholder(model)) {
+    return model?.hint
+      ?? "Use the tabs to confirm latest event, trace freshness, recovery path, or audit context before opening the deeper board.";
+  }
+  const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
+  return config.drawerDormantHint
+    ?? `Refresh Summary to load ${config.label || "workspace"} evidence, then review the ${activeView?.label?.toLowerCase() ?? "focused"} proof path.`;
+}
+
 function buildOperatorEvidenceDrawerWorkspacePlaceholderFacts(activeView, model) {
   const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
   const dormantFacts = Array.isArray(config.drawerDormantFacts) && config.drawerDormantFacts.length > 0
@@ -11689,6 +11699,18 @@ function resolveOperatorEvidenceDrawerWorkspacePanelMeta(activeView, model) {
   if (workspaceId === "incidents") {
     return fallbackMeta;
   }
+  if (shouldUseOperatorEvidenceDrawerWorkspacePlaceholder(model)) {
+    if (workspaceId === "runtime") {
+      return "Hydrate runtime evidence first, then confirm trace anchors or recovery.";
+    }
+    if (workspaceId === "approvals") {
+      return "Seed one decision path first, then confirm backlog and next checks.";
+    }
+    if (workspaceId === "audit") {
+      return "Hydrate governance proof first, then review audit trail and export posture.";
+    }
+    return normalizeOperatorEvidenceDrawerHydrateMeta(getOperatorEvidenceDrawerWorkspaceConfig(model).hydrateMeta);
+  }
   if (workspaceId === "runtime") {
     if (activeView?.id === "trace") {
       return "Trace anchors and freshness stay first for runtime review.";
@@ -11893,7 +11915,7 @@ function syncOperatorEvidenceDrawer() {
   if (el.operatorEvidenceDrawerLane instanceof HTMLElement) {
     el.operatorEvidenceDrawerLane.hidden = isCompactEvidenceView;
   }
-  setText(el.operatorEvidenceDrawerHint, model.hint);
+  setText(el.operatorEvidenceDrawerHint, resolveOperatorEvidenceDrawerWorkspaceHint(activeView, model));
   if (el.operatorEvidenceDrawerStatus instanceof HTMLElement) {
     el.operatorEvidenceDrawerStatus.dataset.statusCode = model.statusCode;
     el.operatorEvidenceDrawerStatus.textContent = model.statusDisplayText || resolveStatusPillDisplayText(model.statusCode || model.statusText);
