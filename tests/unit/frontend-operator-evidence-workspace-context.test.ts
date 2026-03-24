@@ -15,9 +15,12 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     'id="operatorEvidenceDrawerContextWorkspaceValue"',
     'id="operatorEvidenceDrawerContextViewValue"',
     'id="operatorEvidenceDrawerContextNextValue"',
+    'id="operatorEvidenceDrawerContextSignalItem"',
+    'id="operatorEvidenceDrawerContextSignalValue"',
     'class="operator-evidence-drawer-context-label">Workspace<',
     'class="operator-evidence-drawer-context-label">View<',
     'class="operator-evidence-drawer-context-label">Next<',
+    'class="operator-evidence-drawer-context-label">Signal<',
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing focused evidence workspace-context token: ${token}`);
   }
@@ -27,13 +30,18 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     'operatorEvidenceDrawerContextWorkspaceValue: document.getElementById("operatorEvidenceDrawerContextWorkspaceValue")',
     'operatorEvidenceDrawerContextViewValue: document.getElementById("operatorEvidenceDrawerContextViewValue")',
     'operatorEvidenceDrawerContextNextValue: document.getElementById("operatorEvidenceDrawerContextNextValue")',
+    'operatorEvidenceDrawerContextSignalItem: document.getElementById("operatorEvidenceDrawerContextSignalItem")',
+    'operatorEvidenceDrawerContextSignalValue: document.getElementById("operatorEvidenceDrawerContextSignalValue")',
     "function resolveOperatorEvidenceDrawerWorkspaceNextValue(activeView, presentation) {",
     "function syncOperatorEvidenceDrawerContext(model, activeView) {",
+    "function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {",
     'el.operatorEvidenceDrawerContext.dataset.workspace =',
     'el.operatorEvidenceDrawerContext.dataset.workspaceState = workspaceState;',
     'el.operatorEvidenceDrawerContextWorkspaceValue.textContent = workspaceLabel;',
     'el.operatorEvidenceDrawerContextViewValue.textContent = activeView?.label ?? "Latest event";',
     'el.operatorEvidenceDrawerContextNextValue.textContent = nextValue;',
+    'el.operatorEvidenceDrawerContextSignalItem.dataset.signalState = leadSignal.state;',
+    'el.operatorEvidenceDrawerContextSignalValue.textContent = leadSignal.value;',
     'syncOperatorEvidenceDrawerContext(model, activeView);',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing focused evidence workspace-context token: ${token}`);
@@ -45,24 +53,20 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     ".panel-operator-console .operator-evidence-drawer-context-label {",
     ".panel-operator-console .operator-evidence-drawer-context-value {",
     '.panel-operator-console .operator-evidence-drawer-context[data-workspace-state="fail"] .operator-evidence-drawer-context-value {',
+    '.panel-operator-console .operator-evidence-drawer-context-item[data-signal-state="dormant"] .operator-evidence-drawer-context-value {',
+    '.panel-operator-console .operator-evidence-drawer-context-item[data-signal-state="steady"] .operator-evidence-drawer-context-value {',
+    '.panel-operator-console .operator-evidence-drawer-context-item[data-signal-state="neutral"] .operator-evidence-drawer-context-value {',
+    '.panel-operator-console .operator-evidence-drawer-context-item[data-signal-state="fail"] .operator-evidence-drawer-context-value {',
   ]) {
     assert.ok(stylesSource.includes(token), `styles.css missing focused evidence workspace-context style token: ${token}`);
   }
 
   assert.ok(
-    readmeSource.includes("workspace-aware `Focused Evidence` context row"),
-    "README should document the focused evidence workspace-context row",
+    readmeSource.includes("`Focused Evidence` context row now also carries a read-only workspace signal"),
+    "README should document the focused evidence workspace signal",
   );
   assert.ok(
-    readmeSource.includes("shows `Workspace / View / Next`"),
-    "README should document the focused evidence workspace-context fields",
-  );
-  assert.ok(
-    operatorGuideSource.includes("workspace-aware `Focused Evidence` context row"),
-    "operator guide should document the focused evidence workspace-context row",
-  );
-  assert.ok(
-    operatorGuideSource.includes("shows `Workspace / View / Next`"),
-    "operator guide should document the focused evidence workspace-context fields",
+    operatorGuideSource.includes("`Focused Evidence` context row now also carries a read-only workspace signal"),
+    "operator guide should document the focused evidence workspace signal",
   );
 });

@@ -22825,6 +22825,22 @@ button:disabled {
   color: color-mix(in oklch, var(--success) 62%, white);
 }
 
+.panel-operator-console .operator-evidence-drawer-context-item[data-signal-state="dormant"] .operator-evidence-drawer-context-value {
+  color: color-mix(in oklch, var(--foreground) 66%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-evidence-drawer-context-item[data-signal-state="steady"] .operator-evidence-drawer-context-value {
+  color: color-mix(in oklch, var(--foreground) 84%, white);
+}
+
+.panel-operator-console .operator-evidence-drawer-context-item[data-signal-state="neutral"] .operator-evidence-drawer-context-value {
+  color: color-mix(in oklch, var(--foreground) 78%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-evidence-drawer-context-item[data-signal-state="fail"] .operator-evidence-drawer-context-value {
+  color: color-mix(in oklch, var(--chart-4) 62%, white);
+}
+
 .panel-operator-console .operator-evidence-drawer-tabs {
   display: flex;
   flex-wrap: wrap;

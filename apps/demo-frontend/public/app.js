@@ -3494,6 +3494,8 @@ const el = {
   operatorEvidenceDrawerContextWorkspaceValue: document.getElementById("operatorEvidenceDrawerContextWorkspaceValue"),
   operatorEvidenceDrawerContextViewValue: document.getElementById("operatorEvidenceDrawerContextViewValue"),
   operatorEvidenceDrawerContextNextValue: document.getElementById("operatorEvidenceDrawerContextNextValue"),
+  operatorEvidenceDrawerContextSignalItem: document.getElementById("operatorEvidenceDrawerContextSignalItem"),
+  operatorEvidenceDrawerContextSignalValue: document.getElementById("operatorEvidenceDrawerContextSignalValue"),
   operatorEvidenceDrawerTabs: document.getElementById("operatorEvidenceDrawerTabs"),
   operatorEvidenceDrawerPanel: document.getElementById("operatorEvidenceDrawerPanel"),
   operatorEvidenceDrawerPanelLabel: document.getElementById("operatorEvidenceDrawerPanelLabel"),
@@ -11781,13 +11783,16 @@ function syncOperatorEvidenceDrawerContext(model, activeView) {
     !(el.operatorEvidenceDrawerContext instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextWorkspaceValue instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextViewValue instanceof HTMLElement) ||
-    !(el.operatorEvidenceDrawerContextNextValue instanceof HTMLElement)
+    !(el.operatorEvidenceDrawerContextNextValue instanceof HTMLElement) ||
+    !(el.operatorEvidenceDrawerContextSignalItem instanceof HTMLElement) ||
+    !(el.operatorEvidenceDrawerContextSignalValue instanceof HTMLElement)
   ) {
     return;
   }
   const workspacePresentation = getOperatorWorkspacePresentationState(model?.activeSavedViewId || state.operatorSavedView);
   const workspaceLabel = workspacePresentation.routeFacts?.label ?? "Overview";
   const workspaceState = workspacePresentation.tone ?? "neutral";
+  const leadSignal = resolveOperatorWorkspaceLeadSignalPresentation(workspacePresentation);
   const nextValue = resolveOperatorEvidenceDrawerWorkspaceNextValue(activeView, workspacePresentation);
   if (el.operatorEvidenceDrawer instanceof HTMLElement) {
     el.operatorEvidenceDrawer.dataset.evidenceWorkspace =
@@ -11800,6 +11805,8 @@ function syncOperatorEvidenceDrawerContext(model, activeView) {
   el.operatorEvidenceDrawerContextWorkspaceValue.textContent = workspaceLabel;
   el.operatorEvidenceDrawerContextViewValue.textContent = activeView?.label ?? "Latest event";
   el.operatorEvidenceDrawerContextNextValue.textContent = nextValue;
+  el.operatorEvidenceDrawerContextSignalItem.dataset.signalState = leadSignal.state;
+  el.operatorEvidenceDrawerContextSignalValue.textContent = leadSignal.value;
 }
 
 function buildOperatorEvidenceDrawerWorkspaceSummary(activeView, model) {
