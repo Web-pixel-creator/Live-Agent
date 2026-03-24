@@ -11151,12 +11151,42 @@ function syncOperatorEvidenceDrawerContext(model, activeView) {
   const workspaceLabel = workspacePresentation.routeFacts?.label ?? "Overview";
   const workspaceState = workspacePresentation.tone ?? "neutral";
   const nextValue = resolveOperatorEvidenceDrawerWorkspaceNextValue(activeView, workspacePresentation);
+  if (el.operatorEvidenceDrawer instanceof HTMLElement) {
+    el.operatorEvidenceDrawer.dataset.evidenceWorkspace =
+      workspacePresentation.normalizedView === "incidents" ? "overview" : workspacePresentation.normalizedView;
+    el.operatorEvidenceDrawer.dataset.evidenceWorkspaceState = workspaceState;
+  }
   el.operatorEvidenceDrawerContext.dataset.workspace =
     workspacePresentation.normalizedView === "incidents" ? "overview" : workspacePresentation.normalizedView;
   el.operatorEvidenceDrawerContext.dataset.workspaceState = workspaceState;
   el.operatorEvidenceDrawerContextWorkspaceValue.textContent = workspaceLabel;
   el.operatorEvidenceDrawerContextViewValue.textContent = activeView?.label ?? "Latest event";
   el.operatorEvidenceDrawerContextNextValue.textContent = nextValue;
+}
+
+function buildOperatorEvidenceDrawerWorkspaceSummary(activeView, model) {
+  const baseSummary = normalizeOperatorUiCopy(activeView?.summary)
+    || "Use the highlighted issue first, then open deeper diagnostics only if you still need confirmation.";
+  const workspacePresentation = getOperatorWorkspacePresentationState(model?.activeSavedViewId || state.operatorSavedView);
+  if (workspacePresentation.normalizedView === "incidents") {
+    return baseSummary;
+  }
+  const workspaceLabel = workspacePresentation.routeFacts?.label ?? "Overview";
+  const nextValue = resolveOperatorEvidenceDrawerWorkspaceNextValue(activeView, workspacePresentation);
+  if (!workspacePresentation.hasManualRefresh) {
+    return `Refresh ${workspaceLabel} first to load the ${activeView?.label?.toLowerCase() ?? "focused"} proof path.`;
+  }
+  const workspaceLead =
+    workspacePresentation.tone === "fail"
+      ? `${workspaceLabel} needs attention`
+      : workspacePresentation.tone === "neutral"
+        ? `${workspaceLabel} is in review`
+        : `${workspaceLabel} remains steady`;
+  const basePart = formatOperatorEvidenceDrawerSummaryPart(baseSummary);
+  if (normalizeOperatorEvidenceDrawerView(activeView?.id) === "recovery") {
+    return `${workspaceLead}. ${nextValue}.`;
+  }
+  return `${workspaceLead}. ${basePart || `${activeView?.label ?? "Focused Evidence"} keeps the current proof path visible`}.`;
 }
 
 function syncOperatorEvidenceDrawer() {
@@ -11244,7 +11274,7 @@ function syncOperatorEvidenceDrawer() {
   }
   setText(
     el.operatorEvidenceDrawerSummary,
-    activeView?.summary ?? "Use the highlighted issue first, then open deeper diagnostics only if you still need confirmation.",
+    buildOperatorEvidenceDrawerWorkspaceSummary(activeView, model),
   );
   setText(el.operatorEvidenceDrawerTimelineLabel, activeView?.timelineLabel ?? "Recent lane flow");
   const timelineShell = el.operatorEvidenceDrawerTimeline.closest(".operator-evidence-drawer-timeline-shell");
