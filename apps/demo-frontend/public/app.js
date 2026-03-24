@@ -10530,13 +10530,21 @@ function resolveOperatorEvidenceDrawerDefaultView(model) {
   if (!model || typeof model !== "object") {
     return "latest";
   }
+  const needsRecoveryView =
+    model.variant === "fail"
+    || model.variant === "stale"
+    || model.variant === "dormant"
+    || state.operatorSummaryUserRefreshed !== true;
   if (model.activeSavedViewId === "audit") {
     return "audit";
   }
   if (model.activeSavedViewId === "runtime") {
-    return "trace";
+    return needsRecoveryView ? "recovery" : "trace";
   }
-  if (model.variant === "fail" || model.variant === "stale" || model.variant === "dormant" || state.operatorSummaryUserRefreshed !== true) {
+  if (model.activeSavedViewId === "approvals") {
+    return needsRecoveryView ? "recovery" : "latest";
+  }
+  if (needsRecoveryView) {
     return "recovery";
   }
   return "latest";
