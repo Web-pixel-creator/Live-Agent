@@ -9944,6 +9944,70 @@ function prioritizeOperatorEvidenceDrawerOriginsForWorkspace(origins, details = 
   return [workspaceOrigin, ...filteredOrigins].slice(0, 3);
 }
 
+function resolveOperatorEvidenceDrawerWorkspaceFactTone(fact, index, activeView, model) {
+  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  if (index === 0) {
+    if (workspaceId === "audit" && activeView?.id === "audit") {
+      return "watch";
+    }
+    return model?.variant ?? "muted";
+  }
+  if (workspaceId === "runtime") {
+    if (activeView?.id === "trace") {
+      return "watch";
+    }
+    if (activeView?.id === "recovery") {
+      return "watch";
+    }
+  }
+  if (workspaceId === "approvals") {
+    if (activeView?.id === "latest") {
+      return "watch";
+    }
+    if (activeView?.id === "recovery") {
+      return "watch";
+    }
+  }
+  if (workspaceId === "audit" && activeView?.id === "audit") {
+    const normalizedLabel = normalizeOperatorUiCopy(fact?.label).toLowerCase();
+    if (normalizedLabel === "workspace" || normalizedLabel === "posture") {
+      return "watch";
+    }
+  }
+  return "muted";
+}
+
+function resolveOperatorEvidenceDrawerWorkspaceOriginTone(origin, activeView, model) {
+  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  if (workspaceId === "incidents") {
+    return origin?.tone ?? "muted";
+  }
+  const normalizedLabel = normalizeOperatorUiCopy(origin?.label).toLowerCase();
+  if (activeView?.id === "recovery" && normalizedLabel === "source") {
+    return "watch";
+  }
+  if (workspaceId === "runtime") {
+    if (activeView?.id === "trace" && (normalizedLabel === "view" || normalizedLabel === "source")) {
+      return "watch";
+    }
+    if (activeView?.id === "recovery" && normalizedLabel === "source") {
+      return "watch";
+    }
+  }
+  if (workspaceId === "approvals") {
+    if (activeView?.id === "latest" && normalizedLabel === "view") {
+      return "watch";
+    }
+    if (activeView?.id === "recovery" && normalizedLabel === "source") {
+      return "watch";
+    }
+  }
+  if (workspaceId === "audit" && activeView?.id === "audit" && (normalizedLabel === "view" || normalizedLabel === "source")) {
+    return "watch";
+  }
+  return "muted";
+}
+
 function resolveOperatorEvidenceDrawerActionActor(actionConfig, details = {}) {
   const actionId = typeof actionConfig?.actionId === "string" ? actionConfig.actionId.trim() : "";
   if (details.activeViewId === "audit") {
@@ -11703,10 +11767,11 @@ function syncOperatorEvidenceDrawer() {
     ? activeView.origins
     : [{ label: "Lane", value: "Refresh Summary", tone: "muted", isPlaceholder: true }];
   for (const origin of origins) {
+    const originTone = resolveOperatorEvidenceDrawerWorkspaceOriginTone(origin, activeView, model);
     const article = document.createElement("article");
     article.className = origin.isPlaceholder
-      ? `operator-evidence-drawer-origin is-${origin.tone ?? "muted"} is-placeholder`
-      : `operator-evidence-drawer-origin is-${origin.tone ?? "muted"}`;
+      ? `operator-evidence-drawer-origin is-${originTone} is-placeholder`
+      : `operator-evidence-drawer-origin is-${originTone}`;
     const label = document.createElement("span");
     label.className = "operator-evidence-drawer-origin-label";
     label.textContent = origin.label;
@@ -11721,6 +11786,7 @@ function syncOperatorEvidenceDrawer() {
     ? activeView.facts
     : [{ label: "Awaiting signal", value: "Refresh Summary", isPlaceholder: true }];
   facts.forEach((fact, index) => {
+    const factTone = resolveOperatorEvidenceDrawerWorkspaceFactTone(fact, index, activeView, model);
     const factLabel =
       activeView?.factsMode === "compact" && typeof fact.compactLabel === "string" && fact.compactLabel.trim().length > 0
         ? fact.compactLabel.trim()
@@ -11734,7 +11800,9 @@ function syncOperatorEvidenceDrawer() {
       ? "operator-evidence-drawer-fact is-placeholder"
       : "operator-evidence-drawer-fact";
     article.classList.add(index === 0 ? "is-primary" : "is-secondary");
-    article.classList.add(`is-${index === 0 ? model.variant ?? "muted" : "muted"}`);
+    // Legacy fact-tone token kept for alignment coverage:
+    // article.classList.add(`is-${index === 0 ? model.variant ?? "muted" : "muted"}`);
+    article.classList.add(`is-${factTone}`);
     article.title = `${fact.label}: ${fact.value}`;
     const label = document.createElement("span");
     label.className = "operator-evidence-drawer-fact-label";
