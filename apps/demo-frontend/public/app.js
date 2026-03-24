@@ -10909,6 +10909,22 @@ function resolveOperatorEvidenceDrawerWorkspaceTabLabel(viewId, model) {
   return OPERATOR_EVIDENCE_ROUTE_VIEW_INTENTS[workspaceId]?.[normalizedViewId] ?? fallbackLabel;
 }
 
+function resolveOperatorEvidenceDrawerWorkspaceHeading(model, activeView) {
+  const baseKicker = model?.kicker ?? "Focused Evidence";
+  const baseTitle = model?.title ?? "Awaiting focused evidence";
+  if (!shouldUseOperatorEvidenceDrawerWorkspacePlaceholder(model) || !activeView) {
+    return { kicker: baseKicker, title: baseTitle };
+  }
+  const viewLabel = normalizeOperatorUiCopy(activeView?.label);
+  if (!viewLabel) {
+    return { kicker: baseKicker, title: baseTitle };
+  }
+  return {
+    kicker: viewLabel,
+    title: baseTitle,
+  };
+}
+
 function buildOperatorEvidenceDrawerModelLegacy(statusId) {
   const normalizedStatusId = typeof statusId === "string" ? statusId.trim() : "";
   const activeSavedView = getActiveOperatorSavedViewConfig();
@@ -11024,8 +11040,9 @@ function syncOperatorEvidenceDrawerLegacy() {
   syncOperatorBoardCardHierarchy();
   const model = buildOperatorEvidenceDrawerModel(focusedStatusId);
   el.operatorEvidenceDrawer.dataset.evidenceVariant = model.variant ?? "neutral";
-  setText(el.operatorEvidenceDrawerKicker, model.kicker ?? "Focused Evidence");
-  setText(el.operatorEvidenceDrawerTitle, model.title);
+  const heading = resolveOperatorEvidenceDrawerWorkspaceHeading(model, null);
+  setText(el.operatorEvidenceDrawerKicker, heading.kicker);
+  setText(el.operatorEvidenceDrawerTitle, heading.title);
   setText(el.operatorEvidenceDrawerLane, normalizeOperatorUiCopy(model.lane));
   setText(el.operatorEvidenceDrawerHint, model.hint);
   if (el.operatorEvidenceDrawerStatus instanceof HTMLElement) {
@@ -11921,8 +11938,9 @@ function syncOperatorEvidenceDrawer() {
   el.operatorEvidenceDrawer.dataset.evidenceView = activeView?.id ?? "latest";
   el.operatorEvidenceDrawer.dataset.evidenceFacts = activeView?.factsMode ?? "default";
   el.operatorEvidenceDrawer.dataset.evidenceActionDensity = isCompactEvidenceView ? "compact" : "default";
-  setText(el.operatorEvidenceDrawerKicker, model.kicker ?? "Focused Evidence");
-  setText(el.operatorEvidenceDrawerTitle, model.title);
+  const heading = resolveOperatorEvidenceDrawerWorkspaceHeading(model, activeView);
+  setText(el.operatorEvidenceDrawerKicker, heading.kicker);
+  setText(el.operatorEvidenceDrawerTitle, heading.title);
   setText(el.operatorEvidenceDrawerLane, model.lane);
   syncOperatorEvidenceDrawerContext(model, activeView);
   syncOperatorEvidenceDrawerTabOrder(model);
