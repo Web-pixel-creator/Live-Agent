@@ -23726,10 +23726,20 @@ button:disabled {
     gap: 3px;
   }
 
+  .panel-operator-console .operator-evidence-drawer[data-evidence-action-density="compact"] .operator-evidence-drawer-action-stack[data-action-primary="true"] {
+    gap: 3px;
+  }
+
   .panel-operator-console .operator-evidence-drawer[data-evidence-action-density="compact"] .operator-evidence-drawer-action {
     min-height: 28px;
     padding: 4px 9px;
     font-size: 0.69rem;
+  }
+
+  .panel-operator-console .operator-evidence-drawer[data-evidence-action-density="compact"] .operator-evidence-drawer-action-primary {
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--chart-1) 16%, transparent),
+      0 8px 16px color-mix(in oklch, black 20%, transparent);
   }
 
   .panel-operator-console .operator-evidence-drawer[data-evidence-action-density="compact"] .operator-evidence-drawer-action-meta {
@@ -24132,6 +24142,10 @@ button:disabled {
   align-content: start;
 }
 
+.panel-operator-console .operator-evidence-drawer-action-stack[data-action-primary="true"] {
+  gap: 5px;
+}
+
 .panel-operator-console .operator-evidence-drawer-action-meta {
   margin: 0;
   max-width: 22ch;
@@ -24145,6 +24159,18 @@ button:disabled {
   padding: 7px 12px;
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+.panel-operator-console .operator-evidence-drawer-action-primary {
+  border-color: color-mix(in oklch, var(--chart-1) 52%, var(--border-soft));
+  background:
+    linear-gradient(180deg,
+      color-mix(in oklch, var(--chart-1) 26%, var(--surface-control)),
+      color-mix(in oklch, var(--chart-1) 18%, var(--surface-panel)));
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--chart-1) 18%, transparent),
+    0 10px 22px color-mix(in oklch, black 24%, transparent);
+  color: color-mix(in oklch, var(--foreground) 98%, white);
 }
 
 .panel-operator-console .operator-evidence-drawer-action-secondary {

@@ -11661,14 +11661,19 @@ function createOperatorEvidenceDrawerActionButton(config, options = {}) {
     return null;
   }
   const compact = options.compact === true;
+  const isPrimary = options.primary === true;
   const fullLabel = config.label;
   const compactLabel = compact ? resolveOperatorEvidenceDrawerCompactActionLabel(config, options) : "";
   const button = document.createElement("button");
   button.type = "button";
-  button.className = config.kind === "secondary"
-    ? "button-muted operator-evidence-drawer-action operator-evidence-drawer-action-secondary"
-    : "operator-evidence-drawer-action";
+  button.className = config.kind === "secondary" ? "button-muted operator-evidence-drawer-action operator-evidence-drawer-action-secondary" : "operator-evidence-drawer-action";
+  if (isPrimary) {
+    button.classList.add("operator-evidence-drawer-action-primary");
+  }
   button.dataset.actionDensity = compact ? "compact" : "default";
+  if (isPrimary) {
+    button.dataset.actionPrimary = "true";
+  }
   button.textContent = compactLabel || fullLabel;
   if (compactLabel && compactLabel !== fullLabel) {
     button.title = fullLabel;
@@ -11695,6 +11700,9 @@ function createOperatorEvidenceDrawerActionNode(config, options = {}) {
   const wrapper = document.createElement("div");
   wrapper.className = "operator-evidence-drawer-action-stack";
   wrapper.dataset.actionDensity = options.compact === true ? "compact" : "default";
+  if (options.primary === true) {
+    wrapper.dataset.actionPrimary = "true";
+  }
   const metaNode = document.createElement("p");
   metaNode.className = "operator-evidence-drawer-action-meta";
   metaNode.textContent = meta;
@@ -12233,11 +12241,12 @@ function syncOperatorEvidenceDrawer() {
     : activeView && Array.isArray(activeView.actions)
       ? activeView.actions
       : model.actions;
-    for (const actionConfig of actions) {
+  for (const [index, actionConfig] of actions.entries()) {
       const button = createOperatorEvidenceDrawerActionNode(actionConfig, {
         activeViewId: activeView?.id ?? "latest",
         compact: isCompactEvidenceView,
         cardTitle: model.title,
+        primary: useWorkspacePlaceholderEvidence && index === 0,
       });
       if (button) {
       el.operatorEvidenceDrawerActions.append(button);
