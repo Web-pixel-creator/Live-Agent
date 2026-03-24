@@ -9582,6 +9582,49 @@ function buildOperatorEvidenceDrawerSavedViewAction(viewId) {
   };
 }
 
+function prioritizeOperatorEvidenceDrawerActionsForWorkspace(actions, details = {}, viewId = "latest") {
+  const nextActions = Array.isArray(actions) ? actions.slice() : [];
+  const activeSavedView = details.activeSavedView && typeof details.activeSavedView === "object" ? details.activeSavedView : null;
+  if (!activeSavedView || activeSavedView.id === "incidents") {
+    return nextActions;
+  }
+  const normalizedViewId = normalizeOperatorEvidenceDrawerView(viewId) || "latest";
+  const preferredActionIds = [];
+  if (activeSavedView.id === "runtime") {
+    preferredActionIds.push("open_workflow_control", "run_runtime_guardrail_path", "saved_view_runtime");
+  } else if (activeSavedView.id === "approvals") {
+    preferredActionIds.push("saved_view_approvals", "open_playbook", "open_quick_start");
+  } else if (activeSavedView.id === "audit") {
+    preferredActionIds.push("saved_view_audit", "full_ops_view");
+  }
+  if (preferredActionIds.length === 0) {
+    return nextActions;
+  }
+  const scored = nextActions.map((action, index) => {
+    const actionId = typeof action?.actionId === "string" ? action.actionId.trim() : "";
+    const preferredIndex = preferredActionIds.indexOf(actionId);
+    const viewBonus = normalizedViewId === "audit" && actionId === "saved_view_audit" ? -1 : 0;
+    return {
+      action,
+      score: preferredIndex === -1 ? Number.MAX_SAFE_INTEGER : preferredIndex + viewBonus,
+      index,
+    };
+  });
+  scored.sort((left, right) => {
+    if (left.score !== right.score) {
+      return left.score - right.score;
+    }
+    return left.index - right.index;
+  });
+  return scored.map((entry) => entry.action);
+}
+
+function buildOperatorEvidenceDrawerWorkspaceActionRail(actions, details = {}, viewId = "latest", limit = 3) {
+  const dedupedActions = dedupeOperatorEvidenceDrawerActions(actions, Number.MAX_SAFE_INTEGER);
+  const prioritizedActions = prioritizeOperatorEvidenceDrawerActionsForWorkspace(dedupedActions, details, viewId);
+  return prioritizedActions.slice(0, Math.max(1, limit));
+}
+
 function resolveOperatorEvidenceDrawerFactPresetPatterns(statusId, viewId) {
   const normalizedStatusId = typeof statusId === "string" ? statusId.trim() : "";
   const normalizedViewId = normalizeOperatorEvidenceDrawerView(viewId) || "latest";
@@ -10758,6 +10801,9 @@ function buildOperatorEvidenceDrawerModel(statusId) {
   const laneSavedViewAction = relatedSavedViewId && relatedSavedViewId !== activeSavedViewId
     ? buildOperatorEvidenceDrawerSavedViewAction(relatedSavedViewId)
     : null;
+  const workspaceSavedViewAction = activeSavedViewId && activeSavedViewId !== "incidents" && activeSavedViewId !== relatedSavedViewId
+    ? buildOperatorEvidenceDrawerSavedViewAction(activeSavedViewId)
+    : null;
   const auditViewAction = activeSavedViewId !== "audit" ? buildOperatorEvidenceDrawerSavedViewAction("audit") : null;
   const recoveryFallbackAction =
     relatedSavedViewId === "runtime" && (!supportAction || supportAction.actionId !== "open_workflow_control")
@@ -10766,25 +10812,42 @@ function buildOperatorEvidenceDrawerModel(statusId) {
         ? { label: "Open Playbook", actionId: "open_playbook", kind: "secondary" }
         : laneSavedViewAction;
   const compactViewActionLimit = 2;
-  const latestActions = dedupeOperatorEvidenceDrawerActions(
-    [openLaneAction, supportAction, refreshAction, laneSavedViewAction],
+  const latestActions = buildOperatorEvidenceDrawerWorkspaceActionRail(
+    [openLaneAction, supportAction, refreshAction, laneSavedViewAction, workspaceSavedViewAction],
+    { activeSavedView },
+    "latest",
     compactViewActionLimit,
   );
-  const traceActions = dedupeOperatorEvidenceDrawerActions([openLaneAction, laneSavedViewAction, refreshAction, supportAction]);
-  const recoveryActions = dedupeOperatorEvidenceDrawerActions([
+  const traceActions = buildOperatorEvidenceDrawerWorkspaceActionRail(
+    [openLaneAction, laneSavedViewAction, workspaceSavedViewAction, refreshAction, supportAction],
+    { activeSavedView },
+    "trace",
+    compactViewActionLimit,
+  );
+  const recoveryActions = buildOperatorEvidenceDrawerWorkspaceActionRail([
     supportAction ?? openLaneAction,
     recoveryFallbackAction,
+    workspaceSavedViewAction,
     refreshAction,
     openLaneAction,
-  ], compactViewActionLimit);
-  const auditActions = dedupeOperatorEvidenceDrawerActions([
+  ],
+    { activeSavedView },
+    "recovery",
+    compactViewActionLimit,
+  );
+  const auditActions = buildOperatorEvidenceDrawerWorkspaceActionRail([
     laneSavedViewAction ?? auditViewAction,
+    workspaceSavedViewAction,
     openLaneAction,
     normalizeOperatorBoardMode(state.operatorBoardMode) === "full"
       ? null
       : { label: "Full Ops View", actionId: "full_ops_view", kind: "secondary" },
     refreshAction,
-  ], compactViewActionLimit);
+  ],
+    { activeSavedView },
+    "audit",
+    compactViewActionLimit,
+  );
   const resolveActionRouteLabelForView = (action, viewId) => resolveOperatorEvidenceDrawerActionRoute(action, {
     activeViewId: viewId,
     cardTitle,
