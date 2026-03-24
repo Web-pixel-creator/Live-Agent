@@ -3506,6 +3506,7 @@ const el = {
   operatorEvidenceDrawerHint: document.getElementById("operatorEvidenceDrawerHint"),
   operatorEvidenceDrawerContext: document.getElementById("operatorEvidenceDrawerContext"),
   operatorEvidenceDrawerContextWorkspaceValue: document.getElementById("operatorEvidenceDrawerContextWorkspaceValue"),
+  operatorEvidenceDrawerContextFocusValue: document.getElementById("operatorEvidenceDrawerContextFocusValue"),
   operatorEvidenceDrawerContextViewValue: document.getElementById("operatorEvidenceDrawerContextViewValue"),
   operatorEvidenceDrawerContextNextValue: document.getElementById("operatorEvidenceDrawerContextNextValue"),
   operatorEvidenceDrawerContextSignalItem: document.getElementById("operatorEvidenceDrawerContextSignalItem"),
@@ -11802,6 +11803,7 @@ function syncOperatorEvidenceDrawerContext(model, activeView) {
   if (
     !(el.operatorEvidenceDrawerContext instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextWorkspaceValue instanceof HTMLElement) ||
+    !(el.operatorEvidenceDrawerContextFocusValue instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextViewValue instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextNextValue instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextSignalItem instanceof HTMLElement) ||
@@ -11827,6 +11829,7 @@ function syncOperatorEvidenceDrawerContext(model, activeView) {
     workspacePresentation.normalizedView === "incidents" ? "overview" : workspacePresentation.normalizedView;
   el.operatorEvidenceDrawerContext.dataset.workspaceState = workspaceState;
   el.operatorEvidenceDrawerContextWorkspaceValue.textContent = workspaceLabel;
+  el.operatorEvidenceDrawerContextFocusValue.textContent = workspacePresentation.routeFacts.focus;
   el.operatorEvidenceDrawerContextViewValue.textContent = activeView?.label ?? "Latest event";
   el.operatorEvidenceDrawerContextNextValue.textContent = nextValue;
   el.operatorEvidenceDrawerContextSignalItem.dataset.signalState = leadSignal.state;
