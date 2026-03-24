@@ -20198,6 +20198,18 @@ button:disabled {
   border-color: color-mix(in oklch, var(--chart-1) 28%, var(--border-soft));
 }
 
+.panel-operator-console .operator-workspace-card[data-workspace-current="true"] .operator-workspace-card-footer {
+  gap: 4px;
+}
+
+.panel-operator-console .operator-workspace-card[data-workspace-current="true"] .operator-workspace-card-meta {
+  color: color-mix(in oklch, var(--foreground) 68%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card[data-workspace-current="true"] .operator-workspace-card-signal-label {
+  color: color-mix(in oklch, var(--foreground) 54%, var(--muted-foreground));
+}
+
 .panel-operator-console .operator-workspace-card.is-active {
   border-color: color-mix(in oklch, var(--primary) 34%, var(--border-soft));
   background:
@@ -20291,6 +20303,10 @@ button:disabled {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: color-mix(in oklch, var(--foreground) 60%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card-signal[data-signal-role="current"] .operator-workspace-card-signal-label {
+  color: color-mix(in oklch, var(--foreground) 82%, white);
 }
 
 .panel-operator-console .operator-workspace-card-signal-value {

@@ -13306,10 +13306,13 @@ function syncOperatorWorkspaceCards() {
     const isActive = viewId === activeView;
     target.button.dataset.workspaceState = presentation.tone;
     target.button.dataset.workspaceActive = isActive ? "true" : "false";
+    target.button.dataset.workspaceCurrent = isActive ? "true" : "false";
     if (target.status instanceof HTMLElement) {
       const cardLabel =
-        !presentation.hasManualRefresh
-          ? "Hydrate"
+        isActive
+          ? "Current"
+          : !presentation.hasManualRefresh
+            ? "Hydrate"
           : presentation.tone === "fail"
             ? "Attention"
             : presentation.tone === "neutral"
@@ -13321,16 +13324,25 @@ function syncOperatorWorkspaceCards() {
     if (target.meta instanceof HTMLElement) {
       target.meta.textContent =
         !presentation.hasManualRefresh
-          ? presentation.config.hydrateMeta ?? "Refresh once to load current workspace evidence."
-          : presentation.tone === "fail"
-            ? `Next: inspect ${presentation.routeFacts.label.toLowerCase()} and recover the flagged signal.`
-            : presentation.tone === "neutral"
-              ? `Next: review ${presentation.routeFacts.label.toLowerCase()} before reopening broader triage.`
-              : `Next: keep ${presentation.routeFacts.label.toLowerCase()} steady unless fresher proof is needed.`;
+          ? isActive
+            ? `Current workspace. Refresh once to hydrate ${presentation.routeFacts.label.toLowerCase()} evidence.`
+            : presentation.config.hydrateMeta ?? "Refresh once to load current workspace evidence."
+          : isActive
+            ? presentation.tone === "fail"
+              ? `Current workspace. Inspect the flagged ${presentation.routeFacts.label.toLowerCase()} signal before switching lanes.`
+              : presentation.tone === "neutral"
+                ? `Current workspace. Review ${presentation.routeFacts.label.toLowerCase()} before reopening broader triage.`
+                : `Current workspace. Stay here unless fresher proof is needed elsewhere.`
+            : presentation.tone === "fail"
+              ? `Next: inspect ${presentation.routeFacts.label.toLowerCase()} and recover the flagged signal.`
+              : presentation.tone === "neutral"
+                ? `Next: review ${presentation.routeFacts.label.toLowerCase()} before reopening broader triage.`
+                : `Next: keep ${presentation.routeFacts.label.toLowerCase()} steady unless fresher proof is needed.`;
     }
     const leadSignal = resolveOperatorWorkspaceLeadSignalPresentation(presentation);
     if (target.signal instanceof HTMLElement) {
-      target.signal.dataset.signalState = leadSignal.state;
+      target.signal.dataset.signalState = leadSignalValue.state;
+      target.signal.dataset.signalRole = isActive ? "current" : "jump";
     }
     if (target.signalValue instanceof HTMLElement) {
       target.signalValue.textContent = leadSignal.value;
@@ -13366,11 +13378,12 @@ function syncOperatorWorkspaceHeader() {
 
   const presentation = getOperatorWorkspacePresentationState();
   const { normalizedView, routeFacts, tone, title, hint, next } = presentation;
-  const leadSignal = resolveOperatorWorkspaceLeadSignalPresentation(presentation);
+    const leadSignalValue = resolveOperatorWorkspaceLeadSignalPresentation(presentation);
+    const leadSignal = leadSignalValue;
 
   el.operatorWorkspaceHeader.dataset.workspace = normalizedView;
   el.operatorWorkspaceHeader.dataset.workspaceState = tone;
-  el.operatorWorkspaceHeader.dataset.workspaceSignal = leadSignal.state;
+    el.operatorWorkspaceHeader.dataset.workspaceSignal = leadSignal.state;
   setStatusPill(el.operatorWorkspaceHeaderBadge, routeFacts.label, tone);
   el.operatorWorkspaceHeaderBadge.dataset.statusCode = normalizedView;
   el.operatorWorkspaceHeaderTitle.textContent = title;
@@ -13378,8 +13391,8 @@ function syncOperatorWorkspaceHeader() {
   el.operatorWorkspaceHeaderFocusValue.textContent = routeFacts.focus;
   el.operatorWorkspaceHeaderNextValue.textContent = next;
   el.operatorWorkspaceHeaderModeValue.textContent = routeFacts.modeLabel;
-  el.operatorWorkspaceHeaderLeadFact.dataset.signalState = leadSignal.state;
-  el.operatorWorkspaceHeaderLeadValue.textContent = leadSignal.value;
+    el.operatorWorkspaceHeaderLeadFact.dataset.signalState = leadSignal.state;
+    el.operatorWorkspaceHeaderLeadValue.textContent = leadSignal.value;
 }
 
 function syncOperatorToolbarWorkspaceMode() {
