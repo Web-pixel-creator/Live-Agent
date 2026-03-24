@@ -3370,15 +3370,19 @@ const el = {
   operatorWorkspaceOverviewBtn: document.getElementById("operatorWorkspaceOverviewBtn"),
   operatorWorkspaceOverviewStatus: document.getElementById("operatorWorkspaceOverviewStatus"),
   operatorWorkspaceOverviewMeta: document.getElementById("operatorWorkspaceOverviewMeta"),
+  operatorWorkspaceOverviewMarker: document.getElementById("operatorWorkspaceOverviewMarker"),
   operatorWorkspaceApprovalsBtn: document.getElementById("operatorWorkspaceApprovalsBtn"),
   operatorWorkspaceApprovalsStatus: document.getElementById("operatorWorkspaceApprovalsStatus"),
   operatorWorkspaceApprovalsMeta: document.getElementById("operatorWorkspaceApprovalsMeta"),
+  operatorWorkspaceApprovalsMarker: document.getElementById("operatorWorkspaceApprovalsMarker"),
   operatorWorkspaceRuntimeBtn: document.getElementById("operatorWorkspaceRuntimeBtn"),
   operatorWorkspaceRuntimeStatus: document.getElementById("operatorWorkspaceRuntimeStatus"),
   operatorWorkspaceRuntimeMeta: document.getElementById("operatorWorkspaceRuntimeMeta"),
+  operatorWorkspaceRuntimeMarker: document.getElementById("operatorWorkspaceRuntimeMarker"),
   operatorWorkspaceAuditBtn: document.getElementById("operatorWorkspaceAuditBtn"),
   operatorWorkspaceAuditStatus: document.getElementById("operatorWorkspaceAuditStatus"),
   operatorWorkspaceAuditMeta: document.getElementById("operatorWorkspaceAuditMeta"),
+  operatorWorkspaceAuditMarker: document.getElementById("operatorWorkspaceAuditMarker"),
   operatorWorkspaceHeader: document.getElementById("operatorWorkspaceHeader"),
   operatorWorkspaceHeaderBadge: document.getElementById("operatorWorkspaceHeaderBadge"),
   operatorWorkspaceHeaderTitle: document.getElementById("operatorWorkspaceHeaderTitle"),
@@ -13134,21 +13138,25 @@ function getOperatorWorkspaceCardTargets() {
       button: el.operatorWorkspaceOverviewBtn,
       status: el.operatorWorkspaceOverviewStatus,
       meta: el.operatorWorkspaceOverviewMeta,
+      marker: el.operatorWorkspaceOverviewMarker,
     },
     approvals: {
       button: el.operatorWorkspaceApprovalsBtn,
       status: el.operatorWorkspaceApprovalsStatus,
       meta: el.operatorWorkspaceApprovalsMeta,
+      marker: el.operatorWorkspaceApprovalsMarker,
     },
     runtime: {
       button: el.operatorWorkspaceRuntimeBtn,
       status: el.operatorWorkspaceRuntimeStatus,
       meta: el.operatorWorkspaceRuntimeMeta,
+      marker: el.operatorWorkspaceRuntimeMarker,
     },
     audit: {
       button: el.operatorWorkspaceAuditBtn,
       status: el.operatorWorkspaceAuditStatus,
       meta: el.operatorWorkspaceAuditMeta,
+      marker: el.operatorWorkspaceAuditMarker,
     },
   };
 }
@@ -13222,6 +13230,13 @@ function getOperatorWorkspacePresentationState(viewId = state.operatorSavedView)
 function syncOperatorWorkspaceCards() {
   const activeView = normalizeOperatorSavedView(state.operatorSavedView) || "incidents";
   const cardTargets = getOperatorWorkspaceCardTargets();
+  const hasManualRefresh = state.operatorSummaryUserRefreshed === true;
+  const markerViewId = activeView !== "incidents"
+    ? activeView
+    : hasManualRefresh
+      ? "incidents"
+      : "approvals";
+  const markerLabel = activeView !== "incidents" || hasManualRefresh ? "Current" : "Recommended next";
   for (const [viewId, target] of Object.entries(cardTargets)) {
     if (!(target.button instanceof HTMLButtonElement)) {
       continue;
@@ -13251,6 +13266,17 @@ function syncOperatorWorkspaceCards() {
             : presentation.tone === "neutral"
               ? `Next: review ${presentation.routeFacts.label.toLowerCase()} before reopening broader triage.`
               : `Next: keep ${presentation.routeFacts.label.toLowerCase()} steady unless fresher proof is needed.`;
+    }
+    if (target.marker instanceof HTMLElement) {
+      const shouldShowMarker = viewId === markerViewId;
+      target.marker.hidden = !shouldShowMarker;
+      if (shouldShowMarker) {
+        target.marker.textContent = markerLabel;
+        target.button.dataset.workspaceMarker = markerLabel.toLowerCase().replaceAll(" ", "-");
+      } else {
+        target.marker.textContent = "";
+        delete target.button.dataset.workspaceMarker;
+      }
     }
   }
 }

@@ -20186,6 +20186,40 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 72%, var(--muted-foreground));
 }
 
+.panel-operator-console .operator-workspace-card-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);
+  background: color-mix(in oklch, var(--surface-control) 92%, transparent);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 82%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card[data-workspace-marker="current"] .operator-workspace-card-marker {
+  border-color: color-mix(in oklch, var(--primary) 30%, var(--border-soft));
+  background:
+    linear-gradient(180deg,
+      color-mix(in oklch, var(--primary) 16%, var(--surface-control)),
+      color-mix(in oklch, var(--primary) 10%, var(--surface-panel-2)));
+  color: color-mix(in oklch, var(--foreground) 96%, white);
+}
+
+.panel-operator-console .operator-workspace-card[data-workspace-marker="recommended-next"] .operator-workspace-card-marker {
+  border-color: color-mix(in oklch, var(--chart-2) 22%, var(--border-soft));
+  background:
+    linear-gradient(180deg,
+      color-mix(in oklch, var(--chart-2) 12%, var(--surface-control)),
+      color-mix(in oklch, var(--chart-2) 8%, var(--surface-panel-2)));
+  color: color-mix(in oklch, var(--chart-2) 56%, white);
+}
+
 .panel-operator-console .operator-workspace-card-title {
   font-size: 0.84rem;
   line-height: 1.28;
