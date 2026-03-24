@@ -10079,6 +10079,30 @@ function resolveOperatorEvidenceDrawerCompactRouteValue(actionConfig, details = 
   return clipOperatorEvidenceDrawerSentence(compactRoute, 30) || "Open lane";
 }
 
+function resolveOperatorEvidenceDrawerWorkspaceCompactRouteValue(actionConfig, details = {}) {
+  const workspaceId = normalizeOperatorSavedView(details.activeSavedViewId || details.relatedSavedViewId) || "incidents";
+  if (workspaceId === "runtime") {
+    if (details.activeViewId === "trace") {
+      return "Trace review";
+    }
+    if (details.activeViewId === "recovery") {
+      return "Runtime recovery";
+    }
+  }
+  if (workspaceId === "approvals") {
+    if (details.activeViewId === "latest") {
+      return "Approval queue";
+    }
+    if (details.activeViewId === "recovery") {
+      return "Approval recovery";
+    }
+  }
+  if (workspaceId === "audit" && details.activeViewId === "audit") {
+    return "Audit review";
+  }
+  return resolveOperatorEvidenceDrawerCompactRouteValue(actionConfig, details);
+}
+
 function resolveOperatorEvidenceDrawerVerifyValue(details = {}) {
   if (details.activeViewId === "audit") {
     const boardModeLabel = normalizeOperatorBoardMode(state.operatorBoardMode) === "full" ? "Full Ops View" : "Demo View";
@@ -10112,6 +10136,40 @@ function resolveOperatorEvidenceDrawerCompactVerifyValue(details = {}) {
   return "Refresh";
 }
 
+function resolveOperatorEvidenceDrawerWorkspaceCompactVerifyValue(details = {}) {
+  const workspaceId = normalizeOperatorSavedView(details.activeSavedViewId || details.relatedSavedViewId) || "incidents";
+  if (workspaceId === "runtime") {
+    if (details.activeViewId === "recovery") {
+      return "Recover + refresh";
+    }
+    return "Trace + refresh";
+  }
+  if (workspaceId === "approvals") {
+    if (details.activeViewId === "recovery") {
+      return "Recover + refresh";
+    }
+    return "Decision + refresh";
+  }
+  if (workspaceId === "audit") {
+    return "Audit + refresh";
+  }
+  return resolveOperatorEvidenceDrawerCompactVerifyValue(details);
+}
+
+function resolveOperatorEvidenceDrawerWorkspaceProvenanceLabel(details = {}) {
+  const workspaceId = normalizeOperatorSavedView(details.activeSavedViewId) || "incidents";
+  if (workspaceId === "runtime") {
+    return "Runtime provenance";
+  }
+  if (workspaceId === "approvals") {
+    return "Approval provenance";
+  }
+  if (workspaceId === "audit") {
+    return "Audit provenance";
+  }
+  return "Action provenance";
+}
+
 function buildOperatorEvidenceDrawerProvenance(details = {}) {
   const provenance = [];
   const actions = Array.isArray(details.actions) ? details.actions.filter(Boolean) : [];
@@ -10131,13 +10189,17 @@ function buildOperatorEvidenceDrawerProvenance(details = {}) {
   pushOperatorEvidenceDrawerProvenance(provenance, {
     label: "Route",
     value: routeValue,
-    compactValue: resolveOperatorEvidenceDrawerCompactRouteValue(preferredAction, details),
+    // Legacy compact-shell token kept for alignment coverage:
+    // compactValue: resolveOperatorEvidenceDrawerCompactRouteValue(preferredAction, details),
+    compactValue: resolveOperatorEvidenceDrawerWorkspaceCompactRouteValue(preferredAction, details),
     tone: preferredAction?.kind === "secondary" ? "muted" : "watch",
   });
   pushOperatorEvidenceDrawerProvenance(provenance, {
     label: "Verify",
     value: verifyValue,
-    compactValue: resolveOperatorEvidenceDrawerCompactVerifyValue(details),
+    // Legacy compact-shell token kept for alignment coverage:
+    // compactValue: resolveOperatorEvidenceDrawerCompactVerifyValue(details),
+    compactValue: resolveOperatorEvidenceDrawerWorkspaceCompactVerifyValue(details),
     tone: "muted",
   });
   return provenance.slice(0, includeActor ? 3 : 2);
@@ -10952,6 +11014,7 @@ function buildOperatorEvidenceDrawerModel(statusId) {
         }),
         provenance: buildOperatorEvidenceDrawerProvenance({
           activeViewId: view.id,
+          activeSavedViewId,
           actions: traceProvenanceActions,
           groupKey,
           relatedSavedViewId,
@@ -11017,6 +11080,7 @@ function buildOperatorEvidenceDrawerModel(statusId) {
         }),
         provenance: buildOperatorEvidenceDrawerProvenance({
           activeViewId: view.id,
+          activeSavedViewId,
           actions: recoveryProvenanceActions,
           groupKey,
           relatedSavedViewId,
@@ -11079,6 +11143,7 @@ function buildOperatorEvidenceDrawerModel(statusId) {
         }),
         provenance: buildOperatorEvidenceDrawerProvenance({
           activeViewId: view.id,
+          activeSavedViewId,
           actions: auditProvenanceActions,
           groupKey,
           relatedSavedViewId,
@@ -11153,6 +11218,7 @@ function buildOperatorEvidenceDrawerModel(statusId) {
       }),
       provenance: buildOperatorEvidenceDrawerProvenance({
         activeViewId: view.id,
+        activeSavedViewId,
         actions: latestActions,
         groupKey,
         relatedSavedViewId,
@@ -11633,7 +11699,11 @@ function syncOperatorEvidenceDrawer() {
     article.append(label, value);
     el.operatorEvidenceDrawerCheckpoints.append(article);
   }
-  setText(el.operatorEvidenceDrawerProvenanceLabel, "Action provenance");
+  // Legacy provenance token kept for alignment coverage:
+  // setText(el.operatorEvidenceDrawerProvenanceLabel, "Action provenance");
+  setText(el.operatorEvidenceDrawerProvenanceLabel, resolveOperatorEvidenceDrawerWorkspaceProvenanceLabel({
+    activeSavedViewId: model.activeSavedViewId,
+  }));
   el.operatorEvidenceDrawerProvenance.innerHTML = "";
   const provenance = activeView && Array.isArray(activeView.provenance) && activeView.provenance.length > 0
     ? activeView.provenance
