@@ -9693,15 +9693,17 @@ function buildOperatorEvidenceDrawerLatestFacts(details) {
         { label: "Refresh", value: details.refreshLabel, isPlaceholder: state.operatorSummaryUserRefreshed !== true },
         { label: "Next", value: details.primaryActionLabel || "Open lane" },
       ]);
-  return facts.slice(0, 3).map((fact) => buildOperatorEvidenceDrawerLatestCompactFact(fact, details));
+  return prioritizeOperatorEvidenceDrawerFactsForWorkspace(facts, details, "latest")
+    .map((fact) => buildOperatorEvidenceDrawerLatestCompactFact(fact, details));
 }
 
 function buildOperatorEvidenceDrawerTraceFacts(details) {
-  return buildOperatorEvidenceDrawerPresetFacts(details, "trace", [
+  const facts = buildOperatorEvidenceDrawerPresetFacts(details, "trace", [
     { label: "Status", value: details.statusDisplayText, isPlaceholder: details.variant === "dormant" },
     { label: "Refresh", value: details.refreshLabel, isPlaceholder: state.operatorSummaryUserRefreshed !== true },
     { label: "Route", value: details.primaryActionLabel || details.traceLane || "Open lane" },
   ]);
+  return prioritizeOperatorEvidenceDrawerFactsForWorkspace(facts, details, "trace");
 }
 
 function buildOperatorEvidenceDrawerRecoveryFacts(details) {
@@ -9736,7 +9738,7 @@ function buildOperatorEvidenceDrawerRecoveryFacts(details) {
           ? "Retry summary before trusting evidence"
           : "Refresh after any recovery run",
   });
-  return facts.slice(0, 3);
+  return prioritizeOperatorEvidenceDrawerFactsForWorkspace(facts, details, "recovery");
 }
 
 function buildOperatorEvidenceDrawerAuditFacts(details) {
@@ -9786,7 +9788,7 @@ function buildOperatorEvidenceDrawerLatestOrigins(details) {
     value: sourceRow?.label && sourceRow.label.trim().toLowerCase() !== "latest" ? sourceRow.label : "Lane summary",
     tone: sourceRow?.isPlaceholder ? "muted" : "watch",
   });
-  return origins.slice(0, 3);
+  return prioritizeOperatorEvidenceDrawerOriginsForWorkspace(origins, details);
 }
 
 function buildOperatorEvidenceDrawerTraceOrigins(details) {
@@ -9810,7 +9812,7 @@ function buildOperatorEvidenceDrawerTraceOrigins(details) {
     value: traceRow?.label || "Trace anchor",
     tone: traceRow?.isPlaceholder ? "muted" : "watch",
   });
-  return origins.slice(0, 3);
+  return prioritizeOperatorEvidenceDrawerOriginsForWorkspace(origins, details);
 }
 
 function buildOperatorEvidenceDrawerRecoveryOrigins(details) {
@@ -9830,7 +9832,7 @@ function buildOperatorEvidenceDrawerRecoveryOrigins(details) {
     value: details.primaryActionLabel || "Recovery path",
     tone: "watch",
   });
-  return origins.slice(0, 3);
+  return prioritizeOperatorEvidenceDrawerOriginsForWorkspace(origins, details);
 }
 
 function buildOperatorEvidenceDrawerAuditOrigins(details) {
@@ -9850,7 +9852,53 @@ function buildOperatorEvidenceDrawerAuditOrigins(details) {
     value: details.auditActionLabel || details.primaryActionLabel || "Review path",
     tone: "watch",
   });
-  return origins.slice(0, 3);
+  return prioritizeOperatorEvidenceDrawerOriginsForWorkspace(origins, details);
+}
+
+function buildOperatorEvidenceDrawerWorkspaceLeadFact(details = {}, viewId = "latest") {
+  const activeSavedView = details.activeSavedView && typeof details.activeSavedView === "object" ? details.activeSavedView : null;
+  if (!activeSavedView || activeSavedView.id === "incidents") {
+    return null;
+  }
+  const normalizedViewId = normalizeOperatorEvidenceDrawerView(viewId) || "latest";
+  if (normalizedViewId === "audit") {
+    return null;
+  }
+  return {
+    label: normalizedViewId === "latest" ? "Workspace" : "Posture",
+    value: activeSavedView.contextLabel ?? `${activeSavedView.label} posture`,
+    tone: details.variant === "fail" ? "watch" : "muted",
+  };
+}
+
+function prioritizeOperatorEvidenceDrawerFactsForWorkspace(facts, details = {}, viewId = "latest") {
+  const nextFacts = Array.isArray(facts) ? facts.slice() : [];
+  const workspaceLeadFact = buildOperatorEvidenceDrawerWorkspaceLeadFact(details, viewId);
+  if (!workspaceLeadFact) {
+    return nextFacts.slice(0, 3);
+  }
+  const filteredFacts = nextFacts.filter((fact) => {
+    const label = typeof fact?.label === "string" ? fact.label.trim().toLowerCase() : "";
+    return label !== "workspace" && label !== "posture";
+  });
+  return [workspaceLeadFact, ...filteredFacts].slice(0, 3);
+}
+
+function prioritizeOperatorEvidenceDrawerOriginsForWorkspace(origins, details = {}) {
+  const activeSavedView = details.activeSavedView && typeof details.activeSavedView === "object" ? details.activeSavedView : null;
+  if (!activeSavedView || activeSavedView.id === "incidents") {
+    return Array.isArray(origins) ? origins.slice(0, 3) : [];
+  }
+  const workspaceOrigin = {
+    label: "View",
+    value: activeSavedView.contextLabel ?? `${activeSavedView.label} posture`,
+    tone: "muted",
+  };
+  const filteredOrigins = (Array.isArray(origins) ? origins : []).filter((origin) => {
+    const label = typeof origin?.label === "string" ? origin.label.trim().toLowerCase() : "";
+    return label !== "view";
+  });
+  return [workspaceOrigin, ...filteredOrigins].slice(0, 3);
 }
 
 function resolveOperatorEvidenceDrawerActionActor(actionConfig, details = {}) {
@@ -10764,6 +10812,7 @@ function buildOperatorEvidenceDrawerModel(statusId) {
     if (view.id === "trace") {
       const traceProvenanceActions = traceActions;
       const traceFacts = buildOperatorEvidenceDrawerTraceFacts({
+        activeSavedView,
         fallbackFacts: facts,
         primaryActionLabel: traceActionLabel,
         refreshLabel,
@@ -10790,6 +10839,7 @@ function buildOperatorEvidenceDrawerModel(statusId) {
         showOrigins: true,
         factsMode: "default",
         origins: buildOperatorEvidenceDrawerTraceOrigins({
+          activeSavedView,
           rows,
           traceLane,
           groupTitle,
@@ -10832,6 +10882,7 @@ function buildOperatorEvidenceDrawerModel(statusId) {
     if (view.id === "recovery") {
       const recoveryProvenanceActions = recoveryActions;
       const recoveryFacts = buildOperatorEvidenceDrawerRecoveryFacts({
+        activeSavedView,
         actionsConfig,
         savedViewLabel,
         variant,
@@ -10854,6 +10905,7 @@ function buildOperatorEvidenceDrawerModel(statusId) {
         showOrigins: false,
         factsMode: "compact",
         origins: buildOperatorEvidenceDrawerRecoveryOrigins({
+          activeSavedView,
           cardTitle,
           primaryActionLabel: recoveryActionLabel,
           savedViewLabel,
@@ -10955,6 +11007,7 @@ function buildOperatorEvidenceDrawerModel(statusId) {
       };
     }
     const latestFacts = buildOperatorEvidenceDrawerLatestFacts({
+      activeSavedView,
       fallbackFacts: drawerFacts,
       preserveFallbackFacts: drawerFacts !== facts,
       primaryActionLabel,
@@ -10987,6 +11040,7 @@ function buildOperatorEvidenceDrawerModel(statusId) {
       showOrigins: false,
       factsMode: latestFactsMode,
       origins: buildOperatorEvidenceDrawerLatestOrigins({
+        activeSavedView,
         rows,
         cardTitle,
         label,
