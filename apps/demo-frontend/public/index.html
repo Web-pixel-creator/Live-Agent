@@ -2107,18 +2107,33 @@
             </p>
           </div>
           <div id="operatorSummaryGuidePreview" class="operator-summary-guide-preview" aria-label="Operator brief workspace preview">
-            <div class="operator-summary-guide-preview-item">
+            <button
+              id="operatorSummaryGuidePreviewFocusBtn"
+              type="button"
+              class="operator-summary-guide-preview-item operator-summary-guide-preview-card"
+              aria-label="Focus preview card"
+            >
               <span class="operator-summary-guide-preview-label">Focus</span>
               <strong id="operatorSummaryGuidePreviewFocusValue" class="operator-summary-guide-preview-value">Fail + watch lanes</strong>
-            </div>
-            <div class="operator-summary-guide-preview-item">
+            </button>
+            <button
+              id="operatorSummaryGuidePreviewOpenBtn"
+              type="button"
+              class="operator-summary-guide-preview-item operator-summary-guide-preview-card"
+              aria-label="Open preview card"
+            >
               <span class="operator-summary-guide-preview-label">Open</span>
-              <strong id="operatorSummaryGuidePreviewOpenValue" class="operator-summary-guide-preview-value">Refresh Summary</strong>
-            </div>
-            <div class="operator-summary-guide-preview-item">
+              <strong id="operatorSummaryGuidePreviewOpenValue" class="operator-summary-guide-preview-value">Open lane</strong>
+            </button>
+            <button
+              id="operatorSummaryGuidePreviewRecoverBtn"
+              type="button"
+              class="operator-summary-guide-preview-item operator-summary-guide-preview-card"
+              aria-label="Recover preview card"
+            >
               <span class="operator-summary-guide-preview-label">Recover</span>
               <strong id="operatorSummaryGuidePreviewRecoverValue" class="operator-summary-guide-preview-value">Quick Start</strong>
-            </div>
+            </button>
           </div>
           <div id="operatorSummaryGuidePath" class="operator-summary-guide-path" aria-label="Operator onboarding path">
             <article id="operatorSummaryGuideStepRefresh" class="operator-summary-guide-step" data-step-state="current">

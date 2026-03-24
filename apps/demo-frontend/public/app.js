@@ -3438,8 +3438,11 @@ const el = {
   operatorSummaryGuideViewPill: document.getElementById("operatorSummaryGuideViewPill"),
   operatorSummaryGuideViewNote: document.getElementById("operatorSummaryGuideViewNote"),
   operatorSummaryGuidePreview: document.getElementById("operatorSummaryGuidePreview"),
+  operatorSummaryGuidePreviewFocusBtn: document.getElementById("operatorSummaryGuidePreviewFocusBtn"),
   operatorSummaryGuidePreviewFocusValue: document.getElementById("operatorSummaryGuidePreviewFocusValue"),
+  operatorSummaryGuidePreviewOpenBtn: document.getElementById("operatorSummaryGuidePreviewOpenBtn"),
   operatorSummaryGuidePreviewOpenValue: document.getElementById("operatorSummaryGuidePreviewOpenValue"),
+  operatorSummaryGuidePreviewRecoverBtn: document.getElementById("operatorSummaryGuidePreviewRecoverBtn"),
   operatorSummaryGuidePreviewRecoverValue: document.getElementById("operatorSummaryGuidePreviewRecoverValue"),
   operatorSummaryGuidePath: document.getElementById("operatorSummaryGuidePath"),
   operatorSummaryGuideStepRefresh: document.getElementById("operatorSummaryGuideStepRefresh"),
@@ -12968,8 +12971,11 @@ function syncOperatorSavedViewContext() {
 function syncOperatorSummaryGuidePreview(activeSavedView, presentation) {
   if (
     !(el.operatorSummaryGuidePreview instanceof HTMLElement) ||
+    !(el.operatorSummaryGuidePreviewFocusBtn instanceof HTMLButtonElement) ||
     !(el.operatorSummaryGuidePreviewFocusValue instanceof HTMLElement) ||
+    !(el.operatorSummaryGuidePreviewOpenBtn instanceof HTMLButtonElement) ||
     !(el.operatorSummaryGuidePreviewOpenValue instanceof HTMLElement) ||
+    !(el.operatorSummaryGuidePreviewRecoverBtn instanceof HTMLButtonElement) ||
     !(el.operatorSummaryGuidePreviewRecoverValue instanceof HTMLElement)
   ) {
     return;
@@ -12982,6 +12988,7 @@ function syncOperatorSummaryGuidePreview(activeSavedView, presentation) {
   const signalLabel = typeof presentation?.signal?.label === "string" && presentation.signal.label.trim().length > 0
     ? presentation.signal.label.trim()
     : workspaceLabel;
+  const inspectSignal = presentation?.signal && typeof presentation.signal === "object" ? presentation.signal : null;
 
   let focusValue = presentation?.routeFacts?.focus ?? "Fail + watch lanes";
   let openValue = !hasManualRefresh ? "Refresh Summary" : `${workspaceLabel} lane`;
@@ -13007,6 +13014,34 @@ function syncOperatorSummaryGuidePreview(activeSavedView, presentation) {
 
   el.operatorSummaryGuidePreview.dataset.workspace = workspaceId;
   el.operatorSummaryGuidePreview.dataset.workspaceState = workspaceTone;
+  el.operatorSummaryGuidePreviewFocusBtn.dataset.guidePreviewAction = "refresh_summary";
+  delete el.operatorSummaryGuidePreviewFocusBtn.dataset.guidePreviewTargetStatusId;
+  delete el.operatorSummaryGuidePreviewFocusBtn.dataset.guidePreviewSavedView;
+
+  const openAction = !hasManualRefresh
+    ? "refresh_summary"
+    : activeSavedView?.id && activeSavedView.id !== "incidents"
+      ? "inspect_saved_view"
+      : inspectSignal ? "inspect_status" : "refresh_summary";
+  el.operatorSummaryGuidePreviewOpenBtn.dataset.guidePreviewAction = openAction;
+  if (openAction === "inspect_status" && inspectSignal?.id) {
+    el.operatorSummaryGuidePreviewOpenBtn.dataset.guidePreviewTargetStatusId = inspectSignal.id;
+  } else {
+    delete el.operatorSummaryGuidePreviewOpenBtn.dataset.guidePreviewTargetStatusId;
+  }
+  if (openAction === "inspect_saved_view" && activeSavedView?.id) {
+    el.operatorSummaryGuidePreviewOpenBtn.dataset.guidePreviewSavedView = activeSavedView.id;
+  } else {
+    delete el.operatorSummaryGuidePreviewOpenBtn.dataset.guidePreviewSavedView;
+  }
+
+  const recoverAction = !hasManualRefresh || workspaceTone === "neutral"
+    ? "open_quick_start"
+    : "open_playbook";
+  el.operatorSummaryGuidePreviewRecoverBtn.dataset.guidePreviewAction = recoverAction;
+  delete el.operatorSummaryGuidePreviewRecoverBtn.dataset.guidePreviewTargetStatusId;
+  delete el.operatorSummaryGuidePreviewRecoverBtn.dataset.guidePreviewSavedView;
+
   el.operatorSummaryGuidePreviewFocusValue.textContent = focusValue;
   el.operatorSummaryGuidePreviewOpenValue.textContent = openValue;
   el.operatorSummaryGuidePreviewRecoverValue.textContent = recoverValue;
@@ -36238,6 +36273,30 @@ function bindEvents() {
       runOperatorSummaryGuidePathAction(el.operatorSummaryGuideStepRecoverBtn.dataset.guideStepAction, {
         targetStatusId: el.operatorSummaryGuideStepRecoverBtn.dataset.guideStepTargetStatusId,
         savedView: el.operatorSummaryGuideStepRecoverBtn.dataset.guideStepSavedView,
+      });
+    });
+  }
+  if (el.operatorSummaryGuidePreviewFocusBtn instanceof HTMLButtonElement) {
+    el.operatorSummaryGuidePreviewFocusBtn.addEventListener("click", () => {
+      runOperatorSummaryGuidePathAction(el.operatorSummaryGuidePreviewFocusBtn.dataset.guidePreviewAction, {
+        targetStatusId: el.operatorSummaryGuidePreviewFocusBtn.dataset.guidePreviewTargetStatusId,
+        savedView: el.operatorSummaryGuidePreviewFocusBtn.dataset.guidePreviewSavedView,
+      });
+    });
+  }
+  if (el.operatorSummaryGuidePreviewOpenBtn instanceof HTMLButtonElement) {
+    el.operatorSummaryGuidePreviewOpenBtn.addEventListener("click", () => {
+      runOperatorSummaryGuidePathAction(el.operatorSummaryGuidePreviewOpenBtn.dataset.guidePreviewAction, {
+        targetStatusId: el.operatorSummaryGuidePreviewOpenBtn.dataset.guidePreviewTargetStatusId,
+        savedView: el.operatorSummaryGuidePreviewOpenBtn.dataset.guidePreviewSavedView,
+      });
+    });
+  }
+  if (el.operatorSummaryGuidePreviewRecoverBtn instanceof HTMLButtonElement) {
+    el.operatorSummaryGuidePreviewRecoverBtn.addEventListener("click", () => {
+      runOperatorSummaryGuidePathAction(el.operatorSummaryGuidePreviewRecoverBtn.dataset.guidePreviewAction, {
+        targetStatusId: el.operatorSummaryGuidePreviewRecoverBtn.dataset.guidePreviewTargetStatusId,
+        savedView: el.operatorSummaryGuidePreviewRecoverBtn.dataset.guidePreviewSavedView,
       });
     });
   }

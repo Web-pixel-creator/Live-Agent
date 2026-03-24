@@ -20559,6 +20559,29 @@ button:disabled {
     linear-gradient(180deg, color-mix(in oklch, var(--surface-control) 92%, transparent), color-mix(in oklch, var(--surface-panel-2) 96%, transparent));
 }
 
+.panel-operator-console .operator-summary-guide-preview-card {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.panel-operator-console .operator-summary-guide-preview-card:hover {
+  border-color: color-mix(in oklch, var(--primary) 30%, var(--border-soft));
+  transform: translateY(-1px);
+  box-shadow: 0 12px 22px -22px color-mix(in oklch, black 42%, transparent);
+}
+
+.panel-operator-console .operator-summary-guide-preview-card:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px color-mix(in oklch, var(--ring) 18%, transparent),
+    0 12px 22px -22px color-mix(in oklch, black 42%, transparent);
+}
+
 .panel-operator-console .operator-summary-guide-preview-label {
   font-size: 0.62rem;
   font-weight: 700;
