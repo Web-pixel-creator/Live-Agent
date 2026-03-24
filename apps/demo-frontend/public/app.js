@@ -10154,13 +10154,17 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, mode
     const seedAction = {
       label: `Seed ${label}`,
       actionId: "open_workflow_control",
-      meta: "Run one approval-sensitive path first.",
+      meta: hasManualRefresh
+        ? "Reseed approval signals if the queue still looks empty."
+        : "Run one approval-sensitive path first.",
       kind: hasManualRefresh ? "secondary" : undefined,
     };
     const openAction = {
       label: `Open ${label}`,
       actionId: "saved_view_approvals",
-      meta: "Review queue pressure, approvals, and startup gates.",
+      meta: hasManualRefresh
+        ? "Review queue pressure, approvals, and startup gates."
+        : "Open the approval queue after the first refresh.",
       kind: hasManualRefresh ? undefined : "secondary",
     };
     return hasManualRefresh ? [openAction, seedAction] : [seedAction, openAction];
@@ -10169,13 +10173,17 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, mode
     const hydrateAction = {
       label: `Hydrate ${label}`,
       actionId: "refresh_summary",
-      meta: "Refresh trace anchors and runtime posture.",
+      meta: hasManualRefresh
+        ? "Refresh runtime proof again if trace posture drifts."
+        : "Refresh trace anchors and runtime posture.",
       kind: hasManualRefresh ? "secondary" : undefined,
     };
     const openAction = {
       label: `Open ${label}`,
       actionId: "saved_view_runtime",
-      meta: "Inspect workflow, guardrails, and recovery paths.",
+      meta: hasManualRefresh
+        ? "Inspect workflow, guardrails, and recovery paths."
+        : "Open runtime diagnostics after the first refresh.",
       kind: hasManualRefresh ? undefined : "secondary",
     };
     return hasManualRefresh ? [openAction, hydrateAction] : [hydrateAction, openAction];
@@ -10184,13 +10192,17 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, mode
     const hydrateAction = {
       label: `Hydrate ${label}`,
       actionId: "refresh_summary",
-      meta: "Refresh governance proof and audit posture.",
+      meta: hasManualRefresh
+        ? "Refresh governance proof again if audit posture changes."
+        : "Refresh governance proof and audit posture.",
       kind: hasManualRefresh ? "secondary" : undefined,
     };
     const openAction = {
       label: `Open ${label}`,
       actionId: "saved_view_audit",
-      meta: "Review governance, cost, and export evidence.",
+      meta: hasManualRefresh
+        ? "Review governance, cost, and export evidence."
+        : "Open audit proof after the first refresh.",
       kind: hasManualRefresh ? undefined : "secondary",
     };
     return hasManualRefresh ? [openAction, hydrateAction] : [hydrateAction, openAction];
@@ -10198,13 +10210,17 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, mode
   const refreshAction = {
     label: "Refresh Summary",
     actionId: "refresh_summary",
-    meta: "Hydrate the current lane before deeper review.",
+    meta: hasManualRefresh
+      ? "Refresh again if the current lane needs fresher proof."
+      : "Hydrate the current lane before deeper review.",
     kind: hasManualRefresh ? "secondary" : undefined,
   };
   const openAction = {
     label: activeView?.label ? `Open ${activeView.label}` : "Open lane",
     actionId: "open_playbook",
-    meta: "Open the current lane proof path.",
+    meta: hasManualRefresh
+      ? "Open the current lane proof path."
+      : "Open the current lane after the first refresh.",
     kind: hasManualRefresh ? undefined : "secondary",
   };
   return hasManualRefresh ? [openAction, refreshAction] : [refreshAction, openAction];
