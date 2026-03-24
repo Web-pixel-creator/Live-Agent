@@ -3356,6 +3356,9 @@ const el = {
   operatorSavedViewApprovalsBtn: document.getElementById("operatorSavedViewApprovalsBtn"),
   operatorSavedViewAuditBtn: document.getElementById("operatorSavedViewAuditBtn"),
   operatorConsoleEntry: document.getElementById("operatorConsoleEntry"),
+  operatorConsoleEntryStatus: document.getElementById("operatorConsoleEntryStatus"),
+  operatorConsoleEntryTitle: document.getElementById("operatorConsoleEntryTitle"),
+  operatorConsoleEntryHint: document.getElementById("operatorConsoleEntryHint"),
   operatorConsoleEntryApprovalsBtn: document.getElementById("operatorConsoleEntryApprovalsBtn"),
   operatorConsoleEntryRuntimeBtn: document.getElementById("operatorConsoleEntryRuntimeBtn"),
   operatorConsoleEntryAuditBtn: document.getElementById("operatorConsoleEntryAuditBtn"),
@@ -12968,6 +12971,47 @@ function syncOperatorSavedViewContext() {
     activeConfig.contextNote ?? "Saved views keep one operator posture active without rebuilding filters and lane expansion.";
 }
 
+function syncOperatorConsoleEntry() {
+  if (
+    !(el.operatorConsoleEntry instanceof HTMLElement) ||
+    !(el.operatorConsoleEntryStatus instanceof HTMLElement) ||
+    !(el.operatorConsoleEntryTitle instanceof HTMLElement) ||
+    !(el.operatorConsoleEntryHint instanceof HTMLElement)
+  ) {
+    return;
+  }
+
+  const activeConfig = getActiveOperatorSavedViewConfig();
+  const hasManualRefresh = state.operatorSummaryUserRefreshed === true;
+  const hasWorkspace = !!activeConfig;
+  const isComplete = hasManualRefresh || hasWorkspace;
+
+  el.operatorConsoleEntry.dataset.entryState = isComplete ? "complete" : "active";
+
+  if (!isComplete) {
+    setStatusPill(el.operatorConsoleEntryStatus, "entry active", "neutral");
+    el.operatorConsoleEntryStatus.dataset.statusCode = "handoff_waiting";
+    el.operatorConsoleEntryTitle.textContent = "Continue deeper operator work here";
+    el.operatorConsoleEntryHint.textContent =
+      "Use this console for the full queue, deeper runtime diagnostics, recovery tools, and audit evidence after the live case workspace handoff.";
+    return;
+  }
+
+  setStatusPill(el.operatorConsoleEntryStatus, "handoff complete", "ok");
+  el.operatorConsoleEntryStatus.dataset.statusCode = "handoff_complete";
+
+  if (activeConfig && activeConfig.id !== "incidents") {
+    el.operatorConsoleEntryTitle.textContent = `${activeConfig.label} workspace is active`;
+    el.operatorConsoleEntryHint.textContent =
+      "The operator handoff is already complete. Keep using Choose workspace below to switch areas, or use these quick paths when you need another direct jump.";
+    return;
+  }
+
+  el.operatorConsoleEntryTitle.textContent = "Operator handoff complete";
+  el.operatorConsoleEntryHint.textContent =
+    "The board is already hydrated. Use Choose workspace below for the next focused area instead of restarting from the entry card.";
+}
+
 function syncOperatorSummaryGuidePreview(activeSavedView, presentation) {
   if (
     !(el.operatorSummaryGuidePreview instanceof HTMLElement) ||
@@ -13316,6 +13360,7 @@ function syncOperatorSavedViewButtons() {
     button.setAttribute("aria-pressed", isActive ? "true" : "false");
   }
   syncOperatorSavedViewContext();
+  syncOperatorConsoleEntry();
   syncOperatorWorkspaceChooser();
   syncOperatorWorkspaceCards();
   syncOperatorWorkspaceHeader();
@@ -13693,6 +13738,7 @@ function syncOperatorSummaryGuide() {
   if (el.operatorSummaryGuideMeta) {
     el.operatorSummaryGuideMeta.textContent = nextMeta;
   }
+  syncOperatorConsoleEntry();
   syncOperatorSummaryGuidePreview(activeSavedView, workspacePresentation);
   syncOperatorSummaryGuidePath({
     activeSavedView,

@@ -1693,10 +1693,15 @@
         </h2>
         <section id="operatorConsoleEntry" class="operator-console-entry" tabindex="-1" aria-label="Operator console handoff">
           <div class="operator-console-entry-copy">
-            <span class="section-badge">Operator handoff</span>
+            <div class="operator-console-entry-copy-head">
+              <span class="section-badge">Operator handoff</span>
+              <p id="operatorConsoleEntryStatus" class="status-pill status-neutral operator-console-entry-status" data-status-code="handoff_waiting">
+                entry active
+              </p>
+            </div>
             <div>
-              <strong class="operator-console-entry-title">Continue deeper operator work here</strong>
-              <p class="operator-console-entry-hint">
+              <strong id="operatorConsoleEntryTitle" class="operator-console-entry-title">Continue deeper operator work here</strong>
+              <p id="operatorConsoleEntryHint" class="operator-console-entry-hint">
                 Use this console for the full queue, deeper runtime diagnostics, recovery tools, and audit evidence after the live case workspace handoff.
               </p>
             </div>

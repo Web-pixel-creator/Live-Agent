@@ -19945,6 +19945,17 @@ button:disabled {
   gap: 6px;
 }
 
+.panel-operator-console .operator-console-entry-copy-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-operator-console .operator-console-entry-status {
+  margin: 0;
+}
+
 .panel-operator-console .operator-console-entry-title {
   display: block;
   font-size: 1rem;
@@ -19974,6 +19985,25 @@ button:disabled {
 
 .panel-operator-console .operator-console-entry-action-refresh {
   border-color: color-mix(in oklch, var(--primary) 28%, var(--border-soft));
+}
+
+.panel-operator-console .operator-console-entry[data-entry-state="complete"] {
+  border-color: color-mix(in oklch, var(--chart-1) 18%, var(--border-soft));
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-panel) 96%, transparent), color-mix(in oklch, var(--surface-panel-2) 98%, transparent));
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+.panel-operator-console .operator-console-entry[data-entry-state="complete"] .operator-console-entry-title {
+  color: color-mix(in oklch, var(--foreground) 88%, white);
+}
+
+.panel-operator-console .operator-console-entry[data-entry-state="complete"] .operator-console-entry-hint {
+  color: color-mix(in oklch, var(--foreground) 56%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-console-entry[data-entry-state="complete"] .operator-console-entry-actions {
+  opacity: 0.88;
 }
 
 .panel-operator-console .operator-workspace-chooser {
