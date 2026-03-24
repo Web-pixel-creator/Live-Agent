@@ -21,6 +21,14 @@ test("operator console workspace cards expose a read-only lead signal line and c
     'id="operatorWorkspaceRuntimeMarker"',
     'id="operatorWorkspaceAuditMarker"',
     'class="operator-workspace-card-signal-label">Lead signal</span>',
+    'id="operatorWorkspaceOverviewSignalSource"',
+    'id="operatorWorkspaceApprovalsSignalSource"',
+    'id="operatorWorkspaceRuntimeSignalSource"',
+    'id="operatorWorkspaceAuditSignalSource"',
+    'class="operator-workspace-card-signal-source">Source: Overview</span>',
+    'class="operator-workspace-card-signal-source">Source: Approvals</span>',
+    'class="operator-workspace-card-signal-source">Source: Runtime</span>',
+    'class="operator-workspace-card-signal-source">Source: Audit</span>',
     'Awaiting refresh',
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing workspace chooser token: ${token}`);
@@ -37,12 +45,16 @@ test("operator console workspace cards expose a read-only lead signal line and c
     'operatorWorkspaceAuditMarker: document.getElementById("operatorWorkspaceAuditMarker")',
     'operatorWorkspaceOverviewSignal: document.getElementById("operatorWorkspaceOverviewSignal")',
     'operatorWorkspaceOverviewSignalValue: document.getElementById("operatorWorkspaceOverviewSignalValue")',
+    'operatorWorkspaceOverviewSignalSource: document.getElementById("operatorWorkspaceOverviewSignalSource")',
     'operatorWorkspaceApprovalsSignal: document.getElementById("operatorWorkspaceApprovalsSignal")',
     'operatorWorkspaceApprovalsSignalValue: document.getElementById("operatorWorkspaceApprovalsSignalValue")',
+    'operatorWorkspaceApprovalsSignalSource: document.getElementById("operatorWorkspaceApprovalsSignalSource")',
     'operatorWorkspaceRuntimeSignal: document.getElementById("operatorWorkspaceRuntimeSignal")',
     'operatorWorkspaceRuntimeSignalValue: document.getElementById("operatorWorkspaceRuntimeSignalValue")',
+    'operatorWorkspaceRuntimeSignalSource: document.getElementById("operatorWorkspaceRuntimeSignalSource")',
     'operatorWorkspaceAuditSignal: document.getElementById("operatorWorkspaceAuditSignal")',
     'operatorWorkspaceAuditSignalValue: document.getElementById("operatorWorkspaceAuditSignalValue")',
+    'operatorWorkspaceAuditSignalSource: document.getElementById("operatorWorkspaceAuditSignalSource")',
     'function syncOperatorWorkspaceCards() {',
     'function syncOperatorWorkspaceHeader() {',
     'const markerViewId = activeView !== "incidents"',
@@ -50,11 +62,17 @@ test("operator console workspace cards expose a read-only lead signal line and c
     'target.button.dataset.workspaceActive = isActive ? "true" : "false";',
     'target.button.dataset.workspaceMarker = markerLabel.toLowerCase().replaceAll(" ", "-");',
     'function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {',
+    'function resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation) {',
     'const signalValue =',
     'const signalState = presentation?.signal?.variant ?? (presentation?.tone === "ok" ? "steady" : "dormant");',
     'const leadSignal = resolveOperatorWorkspaceLeadSignalPresentation(presentation);',
+    'const leadSignalSource = resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation);',
     /target\.signal\.dataset\.signalState\s*=\s*leadSignalValue\.state;/s,
     /target\.signalValue\.textContent\s*=\s*leadSignal\.value;/s,
+    'target.signalSource.textContent = leadSignalSource;',
+    'const leadSignalSource = resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation);',
+    'operatorWorkspaceHeaderLeadSource: document.getElementById("operatorWorkspaceHeaderLeadSource")',
+    'el.operatorWorkspaceHeaderLeadSource.textContent = leadSignalSource;',
   ]) {
     if (token instanceof RegExp) {
       assert.match(appSource, token, `app.js missing workspace lead-signal or current-marker token: ${token}`);
@@ -67,11 +85,17 @@ test("operator console workspace cards expose a read-only lead signal line and c
     '.panel-operator-console .operator-workspace-card[data-workspace-marker="current"] .operator-workspace-card-marker {',
     '.panel-operator-console .operator-workspace-card[data-workspace-marker="recommended-next"] .operator-workspace-card-marker {',
     '.panel-operator-console .operator-workspace-card-signal {',
+    '.panel-operator-console .operator-workspace-card-signal-source {',
     '.panel-operator-console .operator-workspace-card-signal[data-signal-state="fail"] .operator-workspace-card-signal-value {',
+    '.panel-operator-console .operator-workspace-card-signal[data-signal-state="dormant"] .operator-workspace-card-signal-source {',
+    '.panel-operator-console .operator-workspace-card-signal[data-signal-state="steady"] .operator-workspace-card-signal-source {',
+    '.panel-operator-console .operator-workspace-card-signal[data-signal-state="neutral"] .operator-workspace-card-signal-source {',
+    '.panel-operator-console .operator-workspace-card-signal[data-signal-state="fail"] .operator-workspace-card-signal-source {',
     '.panel-operator-console .operator-workspace-header-fact[data-signal-state="dormant"] .operator-workspace-header-fact-value {',
     '.panel-operator-console .operator-workspace-header-fact[data-signal-state="steady"] .operator-workspace-header-fact-value {',
     '.panel-operator-console .operator-workspace-header-fact[data-signal-state="neutral"] .operator-workspace-header-fact-value {',
     '.panel-operator-console .operator-workspace-header-fact[data-signal-state="fail"] .operator-workspace-header-fact-value {',
+    '.panel-operator-console .operator-workspace-header-fact-source {',
   ]) {
     assert.ok(stylesSource.includes(token), `styles.css missing workspace lead-signal or marker token: ${token}`);
   }
@@ -91,5 +115,13 @@ test("operator console workspace cards expose a read-only lead signal line and c
   assert.ok(
     operatorGuideSource.includes("read-only `Lead signal` fact"),
     "operator guide should document the read-only workspace lead signal fact",
+  );
+  assert.ok(
+    readmeSource.includes("chooser, header, and evidence signals aligned"),
+    "README should document chooser/header/evidence signal alignment",
+  );
+  assert.ok(
+    operatorGuideSource.includes("chooser, header, and evidence signals aligned"),
+    "operator guide should document chooser/header/evidence signal alignment",
   );
 });

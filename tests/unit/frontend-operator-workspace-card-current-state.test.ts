@@ -15,19 +15,24 @@ test("active choose-workspace card reads as the current working area while other
     'id="operatorWorkspaceOverviewMarker"',
     'id="operatorWorkspaceOverviewSignal"',
     'id="operatorWorkspaceOverviewSignalValue"',
+    'id="operatorWorkspaceOverviewSignalSource"',
     'id="operatorWorkspaceApprovalsBtn"',
     'id="operatorWorkspaceApprovalsMarker"',
     'id="operatorWorkspaceApprovalsSignal"',
     'id="operatorWorkspaceApprovalsSignalValue"',
+    'id="operatorWorkspaceApprovalsSignalSource"',
     'id="operatorWorkspaceRuntimeBtn"',
     'id="operatorWorkspaceRuntimeMarker"',
     'id="operatorWorkspaceRuntimeSignal"',
     'id="operatorWorkspaceRuntimeSignalValue"',
+    'id="operatorWorkspaceRuntimeSignalSource"',
     'id="operatorWorkspaceAuditBtn"',
     'id="operatorWorkspaceAuditMarker"',
     'id="operatorWorkspaceAuditSignal"',
     'id="operatorWorkspaceAuditSignalValue"',
+    'id="operatorWorkspaceAuditSignalSource"',
     'class="operator-workspace-card-signal-label">Lead signal</span>',
+    'class="operator-workspace-card-signal-source">Source: Overview</span>',
     'Awaiting refresh',
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing current workspace-card token: ${token}`);
@@ -37,13 +42,18 @@ test("active choose-workspace card reads as the current working area while other
     "function getOperatorWorkspaceCardTargets() {",
     'signal: el.operatorWorkspaceOverviewSignal,',
     'signalValue: el.operatorWorkspaceOverviewSignalValue,',
+    'signalSource: el.operatorWorkspaceOverviewSignalSource,',
     'signal: el.operatorWorkspaceApprovalsSignal,',
     'signalValue: el.operatorWorkspaceApprovalsSignalValue,',
+    'signalSource: el.operatorWorkspaceApprovalsSignalSource,',
     'signal: el.operatorWorkspaceRuntimeSignal,',
     'signalValue: el.operatorWorkspaceRuntimeSignalValue,',
+    'signalSource: el.operatorWorkspaceRuntimeSignalSource,',
     'signal: el.operatorWorkspaceAuditSignal,',
     'signalValue: el.operatorWorkspaceAuditSignalValue,',
+    'signalSource: el.operatorWorkspaceAuditSignalSource,',
     "function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {",
+    "function resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation) {",
     "Current workspace. Refresh once to hydrate",
     "Current workspace. Inspect the flagged",
     "Current workspace. Review",
@@ -54,6 +64,7 @@ test("active choose-workspace card reads as the current working area while other
     'target.button.dataset.workspaceCurrent = isActive ? "true" : "false";',
     'target.signal.dataset.signalRole = isActive ? "current" : "jump";',
     /target\.signal\.dataset\.signalState\s*=\s*leadSignalValue\.state;/s,
+    'target.signalSource.textContent = leadSignalSource;',
     'target.marker.textContent = markerLabel;',
     'target.button.dataset.workspaceMarker = markerLabel.toLowerCase().replaceAll(" ", "-");',
     /el\.operatorWorkspaceHeaderLeadFact\.dataset\.signalState\s*=\s*leadSignal\.state;/s,
@@ -76,11 +87,23 @@ test("active choose-workspace card reads as the current working area while other
     "styles.css should style the current workspace-card lead signal role",
   );
   assert.ok(
+    stylesSource.includes('.panel-operator-console .operator-workspace-card-signal-source {'),
+    "styles.css should style the workspace-card signal source line",
+  );
+  assert.ok(
     readmeSource.includes("active `Choose workspace` card now reads as the current working area"),
     "README should document the current workspace-card reading as the current working area",
   );
   assert.ok(
     operatorGuideSource.includes("active `Choose workspace` card now reads as the current working area"),
     "operator guide should document the current workspace-card reading as the current working area",
+  );
+  assert.ok(
+    readmeSource.includes("chooser, header, and evidence signals aligned"),
+    "README should document chooser/header/evidence signal alignment",
+  );
+  assert.ok(
+    operatorGuideSource.includes("chooser, header, and evidence signals aligned"),
+    "operator guide should document chooser/header/evidence signal alignment",
   );
 });

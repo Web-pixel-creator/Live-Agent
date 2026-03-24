@@ -13,8 +13,10 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
   for (const token of [
     'id="operatorWorkspaceHeaderLeadFact"',
     'id="operatorWorkspaceHeaderLeadValue"',
+    'id="operatorWorkspaceHeaderLeadSource"',
     "Lead signal",
     "Awaiting refresh",
+    'class="operator-workspace-header-fact-source">Source: Overview</span>',
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing workspace lead signal token: ${token}`);
   }
@@ -22,16 +24,21 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
   for (const token of [
     'operatorWorkspaceHeaderLeadFact: document.getElementById("operatorWorkspaceHeaderLeadFact")',
     'operatorWorkspaceHeaderLeadValue: document.getElementById("operatorWorkspaceHeaderLeadValue")',
+    'operatorWorkspaceHeaderLeadSource: document.getElementById("operatorWorkspaceHeaderLeadSource")',
     "|| !(el.operatorWorkspaceHeaderLeadFact instanceof HTMLElement)",
     "|| !(el.operatorWorkspaceHeaderLeadValue instanceof HTMLElement)",
     "function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {",
+    "function resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation) {",
     'const signalValue =',
     'const signalState = presentation?.signal?.variant ?? (presentation?.tone === "ok" ? "steady" : "dormant");',
+    'const signalSource =',
     "const presentation = getOperatorWorkspacePresentationState();",
     "const leadSignal = resolveOperatorWorkspaceLeadSignalPresentation(presentation);",
+    "const leadSignalSource = resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation);",
     'el.operatorWorkspaceHeader.dataset.workspaceSignal = leadSignal.state;',
     'el.operatorWorkspaceHeaderLeadFact.dataset.signalState = leadSignal.state;',
     'el.operatorWorkspaceHeaderLeadValue.textContent = leadSignal.value;',
+    'el.operatorWorkspaceHeaderLeadSource.textContent = leadSignalSource;',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing workspace lead signal token: ${token}`);
   }
@@ -39,6 +46,7 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
   for (const token of [
     ".panel-operator-console .operator-workspace-header-facts {",
     "grid-template-columns: repeat(4, minmax(0, 1fr));",
+    '.panel-operator-console .operator-workspace-header-fact-source {',
     '.panel-operator-console .operator-workspace-header-fact[data-signal-state="dormant"] .operator-workspace-header-fact-value {',
     '.panel-operator-console .operator-workspace-header-fact[data-signal-state="steady"] .operator-workspace-header-fact-value {',
     '.panel-operator-console .operator-workspace-header-fact[data-signal-state="neutral"] .operator-workspace-header-fact-value {',
@@ -54,5 +62,13 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
   assert.ok(
     operatorGuideSource.includes("workspace header now also exposes a read-only `Lead signal` fact"),
     "operator guide should document the read-only workspace lead signal fact",
+  );
+  assert.ok(
+    readmeSource.includes("chooser, header, and evidence signals aligned"),
+    "README should document chooser/header/evidence signal alignment",
+  );
+  assert.ok(
+    operatorGuideSource.includes("chooser, header, and evidence signals aligned"),
+    "operator guide should document chooser/header/evidence signal alignment",
   );
 });

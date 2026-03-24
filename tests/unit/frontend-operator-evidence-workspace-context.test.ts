@@ -43,10 +43,10 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     'el.operatorEvidenceDrawerContextWorkspaceValue.textContent = workspaceLabel;',
     'el.operatorEvidenceDrawerContextViewValue.textContent = activeView?.label ?? "Latest event";',
     'el.operatorEvidenceDrawerContextNextValue.textContent = nextValue;',
-    'const leadSignalSource =',
+    'const leadSignalSource = resolveOperatorWorkspaceLeadSignalSourcePresentation(workspacePresentation);',
     'el.operatorEvidenceDrawerContextSignalItem.dataset.signalState = leadSignal.state;',
     'el.operatorEvidenceDrawerContextSignalValue.textContent = leadSignal.value;',
-    'el.operatorEvidenceDrawerContextSignalSource.textContent = `Source: ${leadSignalSource}`;',
+    'el.operatorEvidenceDrawerContextSignalSource.textContent = leadSignalSource;',
     'syncOperatorEvidenceDrawerContext(model, activeView);',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing focused evidence workspace-context token: ${token}`);

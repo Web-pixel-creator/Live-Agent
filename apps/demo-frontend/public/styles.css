@@ -20155,6 +20155,12 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 92%, white);
 }
 
+.panel-operator-console .operator-workspace-header-fact-source {
+  color: color-mix(in oklch, var(--foreground) 68%, var(--muted-foreground));
+  font-size: 0.62rem;
+  line-height: 1.24;
+}
+
 .panel-operator-console .operator-workspace-header-fact[data-signal-state="dormant"] .operator-workspace-header-fact-value {
   color: color-mix(in oklch, var(--foreground) 68%, var(--muted-foreground));
 }
@@ -20315,6 +20321,12 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 82%, white);
 }
 
+.panel-operator-console .operator-workspace-card-signal-source {
+  color: color-mix(in oklch, var(--foreground) 66%, var(--muted-foreground));
+  font-size: 0.61rem;
+  line-height: 1.22;
+}
+
 .panel-operator-console .operator-workspace-card-signal[data-signal-state="dormant"] .operator-workspace-card-signal-value {
   color: color-mix(in oklch, var(--foreground) 68%, var(--muted-foreground));
 }
@@ -20329,6 +20341,22 @@ button:disabled {
 
 .panel-operator-console .operator-workspace-card-signal[data-signal-state="fail"] .operator-workspace-card-signal-value {
   color: color-mix(in oklch, var(--chart-4) 60%, white);
+}
+
+.panel-operator-console .operator-workspace-card-signal[data-signal-state="dormant"] .operator-workspace-card-signal-source {
+  color: color-mix(in oklch, var(--foreground) 58%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card-signal[data-signal-state="steady"] .operator-workspace-card-signal-source {
+  color: color-mix(in oklch, var(--foreground) 76%, white);
+}
+
+.panel-operator-console .operator-workspace-card-signal[data-signal-state="neutral"] .operator-workspace-card-signal-source {
+  color: color-mix(in oklch, var(--foreground) 68%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card-signal[data-signal-state="fail"] .operator-workspace-card-signal-source {
+  color: color-mix(in oklch, var(--chart-4) 50%, white);
 }
 
 .panel-operator-console .operator-last-refresh,
