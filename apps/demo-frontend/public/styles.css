@@ -22588,6 +22588,49 @@ button:disabled {
   display: none;
 }
 
+.panel-operator-console .operator-evidence-drawer-context {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.panel-operator-console .operator-evidence-drawer-context-item {
+  display: grid;
+  gap: 3px;
+  padding: 8px 9px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 84%, transparent);
+  border-radius: calc(var(--radius) - 14px);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--surface-control) 88%, transparent),
+      color-mix(in oklch, var(--surface-panel-2) 96%, transparent)
+    );
+}
+
+.panel-operator-console .operator-evidence-drawer-context-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 68%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-evidence-drawer-context-value {
+  color: color-mix(in oklch, var(--foreground) 94%, white);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.panel-operator-console .operator-evidence-drawer-context[data-workspace-state="fail"] .operator-evidence-drawer-context-value {
+  color: color-mix(in oklch, var(--destructive) 62%, white);
+}
+
+.panel-operator-console .operator-evidence-drawer-context[data-workspace-state="ok"] .operator-evidence-drawer-context-value {
+  color: color-mix(in oklch, var(--success) 62%, white);
+}
+
 .panel-operator-console .operator-evidence-drawer-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -23534,6 +23577,14 @@ button:disabled {
   .panel-operator-console .operator-evidence-drawer[data-evidence-view="recovery"] .operator-evidence-drawer-hint,
   .panel-operator-console .operator-evidence-drawer[data-evidence-view="audit"] .operator-evidence-drawer-hint {
     display: none;
+  }
+
+  .panel-operator-console .operator-evidence-drawer-context {
+    gap: 6px;
+  }
+
+  .panel-operator-console .operator-evidence-drawer-context-item {
+    padding: 6px 8px;
   }
 
   .panel-operator-console .operator-evidence-drawer[data-evidence-view="latest"] .operator-evidence-drawer-summary,

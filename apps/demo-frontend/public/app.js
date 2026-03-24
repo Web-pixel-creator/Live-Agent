@@ -3470,6 +3470,10 @@ const el = {
   operatorEvidenceDrawerLane: document.getElementById("operatorEvidenceDrawerLane"),
   operatorEvidenceDrawerStatus: document.getElementById("operatorEvidenceDrawerStatus"),
   operatorEvidenceDrawerHint: document.getElementById("operatorEvidenceDrawerHint"),
+  operatorEvidenceDrawerContext: document.getElementById("operatorEvidenceDrawerContext"),
+  operatorEvidenceDrawerContextWorkspaceValue: document.getElementById("operatorEvidenceDrawerContextWorkspaceValue"),
+  operatorEvidenceDrawerContextViewValue: document.getElementById("operatorEvidenceDrawerContextViewValue"),
+  operatorEvidenceDrawerContextNextValue: document.getElementById("operatorEvidenceDrawerContextNextValue"),
   operatorEvidenceDrawerTabs: document.getElementById("operatorEvidenceDrawerTabs"),
   operatorEvidenceDrawerPanel: document.getElementById("operatorEvidenceDrawerPanel"),
   operatorEvidenceDrawerPanelLabel: document.getElementById("operatorEvidenceDrawerPanelLabel"),
@@ -11117,6 +11121,44 @@ function setOperatorEvidenceDrawerView(viewId, options = {}) {
   }
 }
 
+function resolveOperatorEvidenceDrawerWorkspaceNextValue(activeView, presentation) {
+  if (!presentation?.hasManualRefresh) {
+    return "Refresh Summary";
+  }
+  const viewId = normalizeOperatorEvidenceDrawerView(activeView?.id) || "latest";
+  if (viewId === "trace") {
+    return presentation.tone === "fail" ? "Inspect trace anchors" : "Confirm trace freshness";
+  }
+  if (viewId === "recovery") {
+    return presentation.tone === "fail" ? "Run recovery path" : "Review recovery path";
+  }
+  if (viewId === "audit") {
+    return presentation.tone === "fail" ? "Review governance proof" : "Cross-check audit trail";
+  }
+  return presentation.next || "Open lane";
+}
+
+function syncOperatorEvidenceDrawerContext(model, activeView) {
+  if (
+    !(el.operatorEvidenceDrawerContext instanceof HTMLElement) ||
+    !(el.operatorEvidenceDrawerContextWorkspaceValue instanceof HTMLElement) ||
+    !(el.operatorEvidenceDrawerContextViewValue instanceof HTMLElement) ||
+    !(el.operatorEvidenceDrawerContextNextValue instanceof HTMLElement)
+  ) {
+    return;
+  }
+  const workspacePresentation = getOperatorWorkspacePresentationState(model?.activeSavedViewId || state.operatorSavedView);
+  const workspaceLabel = workspacePresentation.routeFacts?.label ?? "Overview";
+  const workspaceState = workspacePresentation.tone ?? "neutral";
+  const nextValue = resolveOperatorEvidenceDrawerWorkspaceNextValue(activeView, workspacePresentation);
+  el.operatorEvidenceDrawerContext.dataset.workspace =
+    workspacePresentation.normalizedView === "incidents" ? "overview" : workspacePresentation.normalizedView;
+  el.operatorEvidenceDrawerContext.dataset.workspaceState = workspaceState;
+  el.operatorEvidenceDrawerContextWorkspaceValue.textContent = workspaceLabel;
+  el.operatorEvidenceDrawerContextViewValue.textContent = activeView?.label ?? "Latest event";
+  el.operatorEvidenceDrawerContextNextValue.textContent = nextValue;
+}
+
 function syncOperatorEvidenceDrawer() {
   if (
     !(el.operatorEvidenceDrawer instanceof HTMLElement) ||
@@ -11151,6 +11193,7 @@ function syncOperatorEvidenceDrawer() {
   setText(el.operatorEvidenceDrawerKicker, model.kicker ?? "Focused Evidence");
   setText(el.operatorEvidenceDrawerTitle, model.title);
   setText(el.operatorEvidenceDrawerLane, model.lane);
+  syncOperatorEvidenceDrawerContext(model, activeView);
   if (el.operatorEvidenceDrawerLane instanceof HTMLElement) {
     el.operatorEvidenceDrawerLane.hidden = isCompactEvidenceView;
   }
