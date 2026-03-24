@@ -23722,10 +23722,20 @@ button:disabled {
     gap: 3px;
   }
 
+  .panel-operator-console .operator-evidence-drawer[data-evidence-action-density="compact"] .operator-evidence-drawer-action-stack {
+    gap: 3px;
+  }
+
   .panel-operator-console .operator-evidence-drawer[data-evidence-action-density="compact"] .operator-evidence-drawer-action {
     min-height: 28px;
     padding: 4px 9px;
     font-size: 0.69rem;
+  }
+
+  .panel-operator-console .operator-evidence-drawer[data-evidence-action-density="compact"] .operator-evidence-drawer-action-meta {
+    max-width: 18ch;
+    font-size: 0.6rem;
+    line-height: 1.25;
   }
 }
 
@@ -24114,6 +24124,20 @@ button:disabled {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.panel-operator-console .operator-evidence-drawer-action-stack {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.panel-operator-console .operator-evidence-drawer-action-meta {
+  margin: 0;
+  max-width: 22ch;
+  font-size: 0.66rem;
+  line-height: 1.35;
+  color: color-mix(in oklch, var(--foreground) 66%, var(--muted-foreground));
 }
 
 .panel-operator-console .operator-evidence-drawer-action {

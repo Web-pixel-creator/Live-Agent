@@ -10154,11 +10154,13 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, mode
     const seedAction = {
       label: `Seed ${label}`,
       actionId: "open_workflow_control",
+      meta: "Run one approval-sensitive path first.",
       kind: hasManualRefresh ? "secondary" : undefined,
     };
     const openAction = {
       label: `Open ${label}`,
       actionId: "saved_view_approvals",
+      meta: "Review queue pressure, approvals, and startup gates.",
       kind: hasManualRefresh ? undefined : "secondary",
     };
     return hasManualRefresh ? [openAction, seedAction] : [seedAction, openAction];
@@ -10167,11 +10169,13 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, mode
     const hydrateAction = {
       label: `Hydrate ${label}`,
       actionId: "refresh_summary",
+      meta: "Refresh trace anchors and runtime posture.",
       kind: hasManualRefresh ? "secondary" : undefined,
     };
     const openAction = {
       label: `Open ${label}`,
       actionId: "saved_view_runtime",
+      meta: "Inspect workflow, guardrails, and recovery paths.",
       kind: hasManualRefresh ? undefined : "secondary",
     };
     return hasManualRefresh ? [openAction, hydrateAction] : [hydrateAction, openAction];
@@ -10180,11 +10184,13 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, mode
     const hydrateAction = {
       label: `Hydrate ${label}`,
       actionId: "refresh_summary",
+      meta: "Refresh governance proof and audit posture.",
       kind: hasManualRefresh ? "secondary" : undefined,
     };
     const openAction = {
       label: `Open ${label}`,
       actionId: "saved_view_audit",
+      meta: "Review governance, cost, and export evidence.",
       kind: hasManualRefresh ? undefined : "secondary",
     };
     return hasManualRefresh ? [openAction, hydrateAction] : [hydrateAction, openAction];
@@ -10192,11 +10198,13 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, mode
   const refreshAction = {
     label: "Refresh Summary",
     actionId: "refresh_summary",
+    meta: "Hydrate the current lane before deeper review.",
     kind: hasManualRefresh ? "secondary" : undefined,
   };
   const openAction = {
     label: activeView?.label ? `Open ${activeView.label}` : "Open lane",
     actionId: "open_playbook",
+    meta: "Open the current lane proof path.",
     kind: hasManualRefresh ? undefined : "secondary",
   };
   return hasManualRefresh ? [openAction, refreshAction] : [refreshAction, openAction];
@@ -11656,6 +11664,28 @@ function createOperatorEvidenceDrawerActionButton(config, options = {}) {
   return button;
 }
 
+function createOperatorEvidenceDrawerActionNode(config, options = {}) {
+  const button = createOperatorEvidenceDrawerActionButton(config, options);
+  if (!(button instanceof HTMLButtonElement)) {
+    return null;
+  }
+  const meta =
+    typeof config?.meta === "string" && config.meta.trim().length > 0
+      ? config.meta.trim()
+      : "";
+  if (!meta) {
+    return button;
+  }
+  const wrapper = document.createElement("div");
+  wrapper.className = "operator-evidence-drawer-action-stack";
+  wrapper.dataset.actionDensity = options.compact === true ? "compact" : "default";
+  const metaNode = document.createElement("p");
+  metaNode.className = "operator-evidence-drawer-action-meta";
+  metaNode.textContent = meta;
+  wrapper.append(button, metaNode);
+  return wrapper;
+}
+
 function setOperatorEvidenceDrawerView(viewId, options = {}) {
   const normalizedView = normalizeOperatorEvidenceDrawerView(viewId);
   if (!normalizedView) {
@@ -12187,13 +12217,13 @@ function syncOperatorEvidenceDrawer() {
     : activeView && Array.isArray(activeView.actions)
       ? activeView.actions
       : model.actions;
-  for (const actionConfig of actions) {
-    const button = createOperatorEvidenceDrawerActionButton(actionConfig, {
-      activeViewId: activeView?.id ?? "latest",
-      compact: isCompactEvidenceView,
-      cardTitle: model.title,
-    });
-    if (button) {
+    for (const actionConfig of actions) {
+      const button = createOperatorEvidenceDrawerActionNode(actionConfig, {
+        activeViewId: activeView?.id ?? "latest",
+        compact: isCompactEvidenceView,
+        cardTitle: model.title,
+      });
+      if (button) {
       el.operatorEvidenceDrawerActions.append(button);
     }
   }
