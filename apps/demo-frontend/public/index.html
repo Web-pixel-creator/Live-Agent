@@ -2838,37 +2838,46 @@
                   <strong>Refresh Summary</strong>
                 </article>
               </div>
-              <div class="operator-evidence-drawer-timeline-shell">
-                <p id="operatorEvidenceDrawerTimelineLabel" class="operator-evidence-drawer-timeline-label">Recent lane flow</p>
-                <div id="operatorEvidenceDrawerTimeline" class="operator-evidence-drawer-timeline" aria-label="Focused evidence timeline">
-                  <article class="operator-evidence-drawer-timeline-item is-muted">
-                    <div class="operator-evidence-drawer-timeline-item-head">
-                      <span class="operator-evidence-drawer-timeline-step">Now</span>
-                      <span class="operator-evidence-drawer-timeline-time">Awaiting refresh</span>
+              <details id="operatorEvidenceDrawerProofPathSection" class="operator-evidence-drawer-proof-path">
+                <summary class="operator-evidence-drawer-proof-path-summary">
+                  <span class="operator-evidence-drawer-proof-path-kicker">Proof path</span>
+                  <span class="operator-evidence-drawer-proof-path-title">Timeline, checkpoints, and provenance</span>
+                  <span class="operator-evidence-drawer-proof-path-hint">Open when you need the full trace chain.</span>
+                </summary>
+                <div class="operator-evidence-drawer-proof-path-body">
+                  <div class="operator-evidence-drawer-timeline-shell">
+                    <p id="operatorEvidenceDrawerTimelineLabel" class="operator-evidence-drawer-timeline-label">Recent lane flow</p>
+                    <div id="operatorEvidenceDrawerTimeline" class="operator-evidence-drawer-timeline" aria-label="Focused evidence timeline">
+                      <article class="operator-evidence-drawer-timeline-item is-muted">
+                        <div class="operator-evidence-drawer-timeline-item-head">
+                          <span class="operator-evidence-drawer-timeline-step">Now</span>
+                          <span class="operator-evidence-drawer-timeline-time">Awaiting refresh</span>
+                        </div>
+                        <strong class="operator-evidence-drawer-timeline-title">Awaiting signal</strong>
+                        <p class="operator-evidence-drawer-timeline-meta">Refresh Summary to hydrate the lane.</p>
+                      </article>
                     </div>
-                    <strong class="operator-evidence-drawer-timeline-title">Awaiting signal</strong>
-                    <p class="operator-evidence-drawer-timeline-meta">Refresh Summary to hydrate the lane.</p>
-                  </article>
+                  </div>
+                  <div class="operator-evidence-drawer-checkpoints-shell">
+                    <p id="operatorEvidenceDrawerCheckpointsLabel" class="operator-evidence-drawer-checkpoints-label">Recent checkpoints</p>
+                    <div id="operatorEvidenceDrawerCheckpoints" class="operator-evidence-drawer-checkpoints" aria-label="Focused evidence checkpoints">
+                      <article class="operator-evidence-drawer-checkpoint is-placeholder is-muted">
+                        <span class="operator-evidence-drawer-checkpoint-label">Awaiting signal</span>
+                        <strong class="operator-evidence-drawer-checkpoint-value">Refresh Summary</strong>
+                      </article>
+                    </div>
+                  </div>
+                  <div class="operator-evidence-drawer-provenance-shell">
+                    <p id="operatorEvidenceDrawerProvenanceLabel" class="operator-evidence-drawer-provenance-label">Action provenance</p>
+                    <div id="operatorEvidenceDrawerProvenance" class="operator-evidence-drawer-provenance" aria-label="Focused evidence action provenance">
+                      <article class="operator-evidence-drawer-provenance-item is-placeholder is-muted">
+                        <span class="operator-evidence-drawer-provenance-item-label">Actor</span>
+                        <strong class="operator-evidence-drawer-provenance-item-value">Refresh Summary</strong>
+                      </article>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div class="operator-evidence-drawer-checkpoints-shell">
-                <p id="operatorEvidenceDrawerCheckpointsLabel" class="operator-evidence-drawer-checkpoints-label">Recent checkpoints</p>
-                <div id="operatorEvidenceDrawerCheckpoints" class="operator-evidence-drawer-checkpoints" aria-label="Focused evidence checkpoints">
-                  <article class="operator-evidence-drawer-checkpoint is-placeholder is-muted">
-                    <span class="operator-evidence-drawer-checkpoint-label">Awaiting signal</span>
-                    <strong class="operator-evidence-drawer-checkpoint-value">Refresh Summary</strong>
-                  </article>
-                </div>
-              </div>
-              <div class="operator-evidence-drawer-provenance-shell">
-                <p id="operatorEvidenceDrawerProvenanceLabel" class="operator-evidence-drawer-provenance-label">Action provenance</p>
-                <div id="operatorEvidenceDrawerProvenance" class="operator-evidence-drawer-provenance" aria-label="Focused evidence action provenance">
-                  <article class="operator-evidence-drawer-provenance-item is-placeholder is-muted">
-                    <span class="operator-evidence-drawer-provenance-item-label">Actor</span>
-                    <strong class="operator-evidence-drawer-provenance-item-value">Refresh Summary</strong>
-                  </article>
-                </div>
-              </div>
+              </details>
               <div id="operatorEvidenceDrawerActions" class="operator-evidence-drawer-actions" aria-label="Focused evidence actions"></div>
             </div>
           </div>

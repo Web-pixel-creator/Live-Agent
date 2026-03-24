@@ -3487,6 +3487,7 @@ const el = {
   operatorEvidenceDrawerCheckpoints: document.getElementById("operatorEvidenceDrawerCheckpoints"),
   operatorEvidenceDrawerProvenanceLabel: document.getElementById("operatorEvidenceDrawerProvenanceLabel"),
   operatorEvidenceDrawerProvenance: document.getElementById("operatorEvidenceDrawerProvenance"),
+  operatorEvidenceDrawerProofPathSection: document.getElementById("operatorEvidenceDrawerProofPathSection"),
   operatorEvidenceDrawerActions: document.getElementById("operatorEvidenceDrawerActions"),
   operatorAdvancedControlSurfaces: document.getElementById("operatorAdvancedControlSurfaces"),
   operatorQuickStart: document.getElementById("operatorQuickStart"),
@@ -11095,6 +11096,11 @@ function syncOperatorEvidenceDrawerLegacy() {
   syncOperatorBoardCardHierarchy();
   const model = buildOperatorEvidenceDrawerModel(focusedStatusId);
   el.operatorEvidenceDrawer.dataset.evidenceVariant = model.variant ?? "neutral";
+  if (el.operatorEvidenceDrawerProofPathSection instanceof HTMLDetailsElement) {
+    const isDormantProofPath = model.variant === "dormant" || state.operatorSummaryUserRefreshed !== true;
+    el.operatorEvidenceDrawerProofPathSection.open = !isDormantProofPath;
+    el.operatorEvidenceDrawerProofPathSection.dataset.proofPathState = isDormantProofPath ? "dormant" : "hydrated";
+  }
   const heading = resolveOperatorEvidenceDrawerWorkspaceHeading(model, null);
   setText(el.operatorEvidenceDrawerKicker, heading.kicker);
   setText(el.operatorEvidenceDrawerTitle, heading.title);
@@ -12008,6 +12014,7 @@ function syncOperatorEvidenceDrawer() {
     !(el.operatorEvidenceDrawerTimeline instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerCheckpoints instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerProvenance instanceof HTMLElement) ||
+    !(el.operatorEvidenceDrawerProofPathSection instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerActions instanceof HTMLElement)
   ) {
     return;
@@ -12071,6 +12078,10 @@ function syncOperatorEvidenceDrawer() {
     el.operatorEvidenceDrawerPanel.setAttribute("aria-labelledby", labelledBy);
   }
   const useWorkspacePlaceholderEvidence = shouldUseOperatorEvidenceDrawerWorkspacePlaceholder(model);
+  if (el.operatorEvidenceDrawerProofPathSection instanceof HTMLDetailsElement) {
+    el.operatorEvidenceDrawerProofPathSection.open = !useWorkspacePlaceholderEvidence;
+    el.operatorEvidenceDrawerProofPathSection.dataset.proofPathState = useWorkspacePlaceholderEvidence ? "dormant" : "hydrated";
+  }
   setText(el.operatorEvidenceDrawerPanelLabel, activeView?.label ?? "Latest event");
   setText(
     el.operatorEvidenceDrawerPanelMeta,
