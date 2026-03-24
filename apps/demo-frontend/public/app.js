@@ -3390,6 +3390,8 @@ const el = {
   operatorWorkspaceHeaderFocusValue: document.getElementById("operatorWorkspaceHeaderFocusValue"),
   operatorWorkspaceHeaderNextValue: document.getElementById("operatorWorkspaceHeaderNextValue"),
   operatorWorkspaceHeaderModeValue: document.getElementById("operatorWorkspaceHeaderModeValue"),
+  operatorWorkspaceHeaderLeadFact: document.getElementById("operatorWorkspaceHeaderLeadFact"),
+  operatorWorkspaceHeaderLeadValue: document.getElementById("operatorWorkspaceHeaderLeadValue"),
   operatorToolbarAdvancedControls: document.getElementById("operatorToolbarAdvancedControls"),
   operatorToolbarAdvancedSummary: document.getElementById("operatorToolbarAdvancedSummary"),
   operatorToolbarAdvancedTitle: document.getElementById("operatorToolbarAdvancedTitle"),
@@ -13319,14 +13321,24 @@ function syncOperatorWorkspaceHeader() {
     || !(el.operatorWorkspaceHeaderFocusValue instanceof HTMLElement)
     || !(el.operatorWorkspaceHeaderNextValue instanceof HTMLElement)
     || !(el.operatorWorkspaceHeaderModeValue instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderLeadFact instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderLeadValue instanceof HTMLElement)
   ) {
     return;
   }
 
-  const { normalizedView, routeFacts, tone, title, hint, next } = getOperatorWorkspacePresentationState();
+  const { normalizedView, routeFacts, signal, tone, title, hint, next } = getOperatorWorkspacePresentationState();
+  const leadSignalValue =
+    signal?.text?.trim().length
+      ? signal.text.trim()
+      : signal?.label?.trim().length
+        ? signal.label.trim()
+        : "Awaiting refresh";
+  const leadSignalState = signal?.variant ?? (tone === "ok" ? "steady" : "dormant");
 
   el.operatorWorkspaceHeader.dataset.workspace = normalizedView;
   el.operatorWorkspaceHeader.dataset.workspaceState = tone;
+  el.operatorWorkspaceHeader.dataset.workspaceSignal = leadSignalState;
   setStatusPill(el.operatorWorkspaceHeaderBadge, routeFacts.label, tone);
   el.operatorWorkspaceHeaderBadge.dataset.statusCode = normalizedView;
   el.operatorWorkspaceHeaderTitle.textContent = title;
@@ -13334,6 +13346,8 @@ function syncOperatorWorkspaceHeader() {
   el.operatorWorkspaceHeaderFocusValue.textContent = routeFacts.focus;
   el.operatorWorkspaceHeaderNextValue.textContent = next;
   el.operatorWorkspaceHeaderModeValue.textContent = routeFacts.modeLabel;
+  el.operatorWorkspaceHeaderLeadFact.dataset.signalState = leadSignalState;
+  el.operatorWorkspaceHeaderLeadValue.textContent = leadSignalValue;
 }
 
 function syncOperatorToolbarWorkspaceMode() {
