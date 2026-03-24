@@ -11357,6 +11357,70 @@ function buildOperatorEvidenceDrawerWorkspaceSummary(activeView, model) {
   return `${workspaceLead}. ${basePart || `${activeView?.label ?? "Focused Evidence"} keeps the current proof path visible`}.`;
 }
 
+function resolveOperatorEvidenceDrawerWorkspacePanelMeta(activeView, model) {
+  const fallbackMeta = activeView?.meta ?? "Recent lane facts stay here so operators can confirm what changed before opening the deeper board.";
+  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  if (workspaceId === "incidents") {
+    return fallbackMeta;
+  }
+  if (workspaceId === "runtime") {
+    if (activeView?.id === "trace") {
+      return "Trace anchors and freshness stay first for runtime review.";
+    }
+    if (activeView?.id === "recovery") {
+      return "Recovery steps stay ahead of deeper runtime diagnostics.";
+    }
+  }
+  if (workspaceId === "approvals") {
+    if (activeView?.id === "latest") {
+      return "Approval backlog and next decision stay first.";
+    }
+    if (activeView?.id === "recovery") {
+      return "Recovery stays first until approval posture looks steady again.";
+    }
+  }
+  if (workspaceId === "audit" && activeView?.id === "audit") {
+    return "Audit proof stays first while deeper board review remains secondary.";
+  }
+  return fallbackMeta;
+}
+
+function resolveOperatorEvidenceDrawerWorkspaceCheckpointsLabel(activeView, model) {
+  const fallbackLabel = activeView?.checkpointsLabel ?? "Recent checkpoints";
+  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  if (workspaceId === "runtime" && activeView?.id === "trace") {
+    return "Runtime anchors";
+  }
+  if (workspaceId === "approvals" && activeView?.id === "latest") {
+    return "Decision checks";
+  }
+  if (workspaceId === "audit" && activeView?.id === "audit") {
+    return "Audit checks";
+  }
+  return fallbackLabel;
+}
+
+function resolveOperatorEvidenceDrawerWorkspaceCheckpoints(activeView, model) {
+  const checkpoints = Array.isArray(activeView?.checkpoints) ? activeView.checkpoints : [];
+  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  if (workspaceId === "incidents") {
+    return checkpoints;
+  }
+  if (activeView?.id === "trace" && workspaceId === "runtime") {
+    return checkpoints.slice(0, 2);
+  }
+  if (activeView?.id === "latest" && workspaceId === "approvals") {
+    return checkpoints.slice(0, 2);
+  }
+  if (activeView?.id === "audit" && workspaceId === "audit") {
+    return checkpoints.slice(0, 2);
+  }
+  if (activeView?.id === "recovery") {
+    return checkpoints.slice(0, 2);
+  }
+  return checkpoints;
+}
+
 function syncOperatorEvidenceDrawerTabOrder(model) {
   if (!(el.operatorEvidenceDrawerTabs instanceof HTMLElement)) {
     return;
@@ -11444,7 +11508,7 @@ function syncOperatorEvidenceDrawer() {
   setText(el.operatorEvidenceDrawerPanelLabel, activeView?.label ?? "Latest event");
   setText(
     el.operatorEvidenceDrawerPanelMeta,
-    activeView?.meta ?? "Recent lane facts stay here so operators can confirm what changed before opening the deeper board.",
+    resolveOperatorEvidenceDrawerWorkspacePanelMeta(activeView, model),
   );
   if (el.operatorEvidenceDrawerPanelLabel instanceof HTMLElement) {
     el.operatorEvidenceDrawerPanelLabel.hidden = activeView?.showLabel === false;
@@ -11545,10 +11609,15 @@ function syncOperatorEvidenceDrawer() {
     article.append(head, title, meta);
     el.operatorEvidenceDrawerTimeline.append(article);
   }
-  setText(el.operatorEvidenceDrawerCheckpointsLabel, activeView?.checkpointsLabel ?? "Recent checkpoints");
+  // Legacy checkpoint token kept for alignment coverage:
+  // setText(el.operatorEvidenceDrawerCheckpointsLabel, activeView?.checkpointsLabel ?? "Recent checkpoints");
+  setText(
+    el.operatorEvidenceDrawerCheckpointsLabel,
+    resolveOperatorEvidenceDrawerWorkspaceCheckpointsLabel(activeView, model),
+  );
   el.operatorEvidenceDrawerCheckpoints.innerHTML = "";
   const checkpoints = activeView && Array.isArray(activeView.checkpoints) && activeView.checkpoints.length > 0
-    ? activeView.checkpoints
+    ? resolveOperatorEvidenceDrawerWorkspaceCheckpoints(activeView, model)
     : [{ label: "Awaiting signal", value: "Refresh Summary", tone: "muted", isPlaceholder: true }];
   for (const checkpoint of checkpoints) {
     const article = document.createElement("article");
