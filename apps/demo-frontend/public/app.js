@@ -10899,6 +10899,16 @@ function resolveOperatorEvidenceDrawerViewOrder(model) {
   return defaultOrder;
 }
 
+function resolveOperatorEvidenceDrawerWorkspaceTabLabel(viewId, model) {
+  const normalizedViewId = normalizeOperatorEvidenceDrawerView(viewId) || "latest";
+  const fallbackLabel = OPERATOR_EVIDENCE_DRAWER_VIEWS.find((view) => view.id === normalizedViewId)?.label ?? "Latest event";
+  if (!shouldUseOperatorEvidenceDrawerWorkspacePlaceholder(model)) {
+    return fallbackLabel;
+  }
+  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  return OPERATOR_EVIDENCE_ROUTE_VIEW_INTENTS[workspaceId]?.[normalizedViewId] ?? fallbackLabel;
+}
+
 function buildOperatorEvidenceDrawerModelLegacy(statusId) {
   const normalizedStatusId = typeof statusId === "string" ? statusId.trim() : "";
   const activeSavedView = getActiveOperatorSavedViewConfig();
@@ -11872,6 +11882,10 @@ function syncOperatorEvidenceDrawerTabOrder(model) {
     .map((viewId) => el.operatorEvidenceDrawerTabs.querySelector(`[data-operator-evidence-view="${viewId}"]`))
     .filter((button) => button instanceof HTMLButtonElement);
   for (const button of orderedButtons) {
+    const buttonViewId = normalizeOperatorEvidenceDrawerView(button.dataset.operatorEvidenceView) || "latest";
+    const visibleLabel = resolveOperatorEvidenceDrawerWorkspaceTabLabel(buttonViewId, model);
+    button.textContent = visibleLabel;
+    button.setAttribute("aria-label", visibleLabel);
     el.operatorEvidenceDrawerTabs.append(button);
   }
 }
