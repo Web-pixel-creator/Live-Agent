@@ -43,6 +43,7 @@ Operator brief note: that preview row is now clickable and routes into the exist
 Operator workspace note: that same workspace header now also exposes a read-only `Lead signal` fact, so the current workspace can surface its strongest signal without changing the header navigation model.
 Operator workspace note: those same `Choose workspace` cards now also expose a read-only `Lead signal` line, so operators can scan each lane's strongest signal before opening the workspace.
 Operator workspace note: the active `Choose workspace` card now reads as the current working area, while the other cards stay as jump summaries into their respective operator surfaces.
+Operator workspace note: those same chooser cards now also expose a compact read-only `Next` line, using the same workspace-level next-step state as the active workspace header.
 Operator workspace note: chooser, workspace header, and `Focused Evidence` now share workspace-specific dormant lead-signal wording before refresh, while source alignment stays intact one layer deeper in the console.
 Operator workspace note: that same dormant lead-signal wording now also carries a compact freshness subline from the operator refresh state, so chooser, header, and evidence stay aligned on both signal and recency before refresh.
 Focused evidence note: that same right-side rail now also adds a workspace-aware `Focused Evidence` context row that shows `Workspace / View / Next`, so operators can confirm which posture and proof path they are reviewing before opening deeper facts.

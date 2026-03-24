@@ -16,6 +16,7 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
     'id="operatorWorkspaceHeaderLeadSource"',
     'id="operatorWorkspaceHeaderLeadFreshness"',
     'id="operatorWorkspaceHeaderNextValue"',
+    'class="operator-workspace-header-fact-label">Next</span>',
     "Lead signal",
     "Overview signal pending",
     'class="operator-workspace-header-fact-source">Source: Overview</span>',
