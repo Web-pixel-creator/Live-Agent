@@ -10008,6 +10008,133 @@ function resolveOperatorEvidenceDrawerWorkspaceOriginTone(origin, activeView, mo
   return "muted";
 }
 
+function getOperatorEvidenceDrawerWorkspaceConfig(model) {
+  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  return OPERATOR_SAVED_VIEWS[workspaceId] ?? OPERATOR_SAVED_VIEWS.incidents;
+}
+
+function shouldUseOperatorEvidenceDrawerWorkspacePlaceholder(model) {
+  return model?.variant === "dormant" || state.operatorSummaryUserRefreshed !== true;
+}
+
+function normalizeOperatorEvidenceDrawerHydrateMeta(meta) {
+  const normalized = normalizeOperatorUiCopy(meta);
+  if (!normalized) {
+    return "Refresh Summary to hydrate this workspace.";
+  }
+  return normalized.replace(/^next:\s*/i, "").trim();
+}
+
+function buildOperatorEvidenceDrawerWorkspacePlaceholderFacts(activeView, model) {
+  const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
+  const dormantFacts = Array.isArray(config.drawerDormantFacts) && config.drawerDormantFacts.length > 0
+    ? config.drawerDormantFacts
+    : [
+        { label: "Hydrate", value: "Refresh Summary" },
+        { label: "Then check", value: config.label || "Workspace" },
+        { label: "Escalate via", value: "Recovery rail" },
+      ];
+  const limit = activeView?.factsMode === "compact" ? 2 : 3;
+  return dormantFacts.slice(0, limit).map((fact, index) => ({
+    label: fact.label,
+    value: fact.value,
+    compactLabel: fact.label,
+    compactValue: fact.value,
+    tone: index === 0 ? "watch" : "muted",
+    isPlaceholder: true,
+  }));
+}
+
+function buildOperatorEvidenceDrawerWorkspacePlaceholderOrigins(activeView, model) {
+  const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
+  return [
+    {
+      label: "View",
+      value: config.contextLabel ?? `${config.label} view`,
+      tone: "watch",
+      isPlaceholder: true,
+    },
+    {
+      label: "Next",
+      value: normalizeOperatorEvidenceDrawerHydrateMeta(config.hydrateMeta),
+      tone: "muted",
+      isPlaceholder: true,
+    },
+    {
+      label: "Source",
+      value: activeView?.label ?? "Focused Evidence",
+      tone: "muted",
+      isPlaceholder: true,
+    },
+  ];
+}
+
+function buildOperatorEvidenceDrawerWorkspacePlaceholderTimeline(activeView, model) {
+  const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
+  const dormantFacts = Array.isArray(config.drawerDormantFacts) && config.drawerDormantFacts.length > 0
+    ? config.drawerDormantFacts
+    : [];
+  return [
+    createOperatorEvidenceDrawerTimelineEntry({
+      step: "Hydrate",
+      title: config.hydrateTitle ?? `Hydrate ${config.label || "workspace"} posture`,
+      meta: config.hydrateHint ?? "Refresh Summary to load this workspace.",
+      tone: "watch",
+      time: "Now",
+    }),
+    createOperatorEvidenceDrawerTimelineEntry({
+      step: "Then review",
+      title: dormantFacts[1]?.value || activeView?.label || `${config.label || "Workspace"} proof`,
+      meta: normalizeOperatorEvidenceDrawerHydrateMeta(config.hydrateMeta),
+      tone: "muted",
+      time: "After refresh",
+    }),
+  ];
+}
+
+function buildOperatorEvidenceDrawerWorkspacePlaceholderCheckpoints(activeView, model) {
+  const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
+  const dormantFacts = Array.isArray(config.drawerDormantFacts) && config.drawerDormantFacts.length > 0
+    ? config.drawerDormantFacts
+    : [
+        { label: "Hydrate", value: "Refresh Summary" },
+        { label: "Then check", value: config.label || "Workspace" },
+      ];
+  return dormantFacts.slice(0, 2).map((fact, index) => ({
+    label: fact.label,
+    value: fact.value,
+    tone: index === 0 ? "watch" : "muted",
+    isPlaceholder: true,
+  }));
+}
+
+function buildOperatorEvidenceDrawerWorkspacePlaceholderProvenance(activeView, model) {
+  const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
+  return [
+    {
+      label: "Actor",
+      value: config.label || "Workspace",
+      compactValue: config.label || "Workspace",
+      tone: "muted",
+      isPlaceholder: true,
+    },
+    {
+      label: "Route",
+      value: "Refresh Summary",
+      compactValue: "Refresh",
+      tone: "watch",
+      isPlaceholder: true,
+    },
+    {
+      label: "Verify",
+      value: normalizeOperatorEvidenceDrawerHydrateMeta(config.hydrateMeta),
+      compactValue: "After refresh",
+      tone: "muted",
+      isPlaceholder: true,
+    },
+  ];
+}
+
 function resolveOperatorEvidenceDrawerActionActor(actionConfig, details = {}) {
   const actionId = typeof actionConfig?.actionId === "string" ? actionConfig.actionId.trim() : "";
   if (details.activeViewId === "audit") {
@@ -11727,6 +11854,7 @@ function syncOperatorEvidenceDrawer() {
     const labelledBy = activeView ? `operatorEvidenceDrawerTab${activeView.id.charAt(0).toUpperCase()}${activeView.id.slice(1)}` : "operatorEvidenceDrawerTabLatest";
     el.operatorEvidenceDrawerPanel.setAttribute("aria-labelledby", labelledBy);
   }
+  const useWorkspacePlaceholderEvidence = shouldUseOperatorEvidenceDrawerWorkspacePlaceholder(model);
   setText(el.operatorEvidenceDrawerPanelLabel, activeView?.label ?? "Latest event");
   setText(
     el.operatorEvidenceDrawerPanelMeta,
@@ -11763,9 +11891,11 @@ function syncOperatorEvidenceDrawer() {
   }
   el.operatorEvidenceDrawerOrigins.hidden = activeView?.showOrigins === false;
   el.operatorEvidenceDrawerOrigins.innerHTML = "";
-  const origins = activeView && Array.isArray(activeView.origins) && activeView.origins.length > 0
-    ? activeView.origins
-    : [{ label: "Lane", value: "Refresh Summary", tone: "muted", isPlaceholder: true }];
+  const origins = useWorkspacePlaceholderEvidence
+    ? buildOperatorEvidenceDrawerWorkspacePlaceholderOrigins(activeView, model)
+    : activeView && Array.isArray(activeView.origins) && activeView.origins.length > 0
+      ? activeView.origins
+      : [{ label: "Lane", value: "Refresh Summary", tone: "muted", isPlaceholder: true }];
   for (const origin of origins) {
     const originTone = resolveOperatorEvidenceDrawerWorkspaceOriginTone(origin, activeView, model);
     const article = document.createElement("article");
@@ -11782,9 +11912,11 @@ function syncOperatorEvidenceDrawer() {
     el.operatorEvidenceDrawerOrigins.append(article);
   }
   el.operatorEvidenceDrawerFacts.innerHTML = "";
-  const facts = activeView && Array.isArray(activeView.facts) && activeView.facts.length > 0
-    ? activeView.facts
-    : [{ label: "Awaiting signal", value: "Refresh Summary", isPlaceholder: true }];
+  const facts = useWorkspacePlaceholderEvidence
+    ? buildOperatorEvidenceDrawerWorkspacePlaceholderFacts(activeView, model)
+    : activeView && Array.isArray(activeView.facts) && activeView.facts.length > 0
+      ? activeView.facts
+      : [{ label: "Awaiting signal", value: "Refresh Summary", isPlaceholder: true }];
   facts.forEach((fact, index) => {
     const factTone = resolveOperatorEvidenceDrawerWorkspaceFactTone(fact, index, activeView, model);
     const factLabel =
@@ -11813,9 +11945,11 @@ function syncOperatorEvidenceDrawer() {
     el.operatorEvidenceDrawerFacts.append(article);
   });
   el.operatorEvidenceDrawerTimeline.innerHTML = "";
-  const timeline = activeView && Array.isArray(activeView.timeline) && activeView.timeline.length > 0
-    ? prioritizeOperatorEvidenceDrawerTimelineForWorkspace(activeView.timeline, activeView, model)
-    : [createOperatorEvidenceDrawerTimelineEntry({})];
+  const timeline = useWorkspacePlaceholderEvidence
+    ? buildOperatorEvidenceDrawerWorkspacePlaceholderTimeline(activeView, model)
+    : activeView && Array.isArray(activeView.timeline) && activeView.timeline.length > 0
+      ? prioritizeOperatorEvidenceDrawerTimelineForWorkspace(activeView.timeline, activeView, model)
+      : [createOperatorEvidenceDrawerTimelineEntry({})];
   for (const entry of timeline) {
     const article = document.createElement("article");
     article.className = `operator-evidence-drawer-timeline-item is-${entry.tone ?? "muted"}`;
@@ -11844,9 +11978,11 @@ function syncOperatorEvidenceDrawer() {
     resolveOperatorEvidenceDrawerWorkspaceCheckpointsLabel(activeView, model),
   );
   el.operatorEvidenceDrawerCheckpoints.innerHTML = "";
-  const checkpoints = activeView && Array.isArray(activeView.checkpoints) && activeView.checkpoints.length > 0
-    ? resolveOperatorEvidenceDrawerWorkspaceCheckpoints(activeView, model)
-    : [{ label: "Awaiting signal", value: "Refresh Summary", tone: "muted", isPlaceholder: true }];
+  const checkpoints = useWorkspacePlaceholderEvidence
+    ? buildOperatorEvidenceDrawerWorkspacePlaceholderCheckpoints(activeView, model)
+    : activeView && Array.isArray(activeView.checkpoints) && activeView.checkpoints.length > 0
+      ? resolveOperatorEvidenceDrawerWorkspaceCheckpoints(activeView, model)
+      : [{ label: "Awaiting signal", value: "Refresh Summary", tone: "muted", isPlaceholder: true }];
   for (const checkpoint of checkpoints) {
     const article = document.createElement("article");
     article.className = checkpoint.isPlaceholder
@@ -11867,9 +12003,11 @@ function syncOperatorEvidenceDrawer() {
     activeSavedViewId: model.activeSavedViewId,
   }));
   el.operatorEvidenceDrawerProvenance.innerHTML = "";
-  const provenance = activeView && Array.isArray(activeView.provenance) && activeView.provenance.length > 0
-    ? activeView.provenance
-    : [{ label: "Actor", value: "Refresh Summary", tone: "muted", isPlaceholder: true }];
+  const provenance = useWorkspacePlaceholderEvidence
+    ? buildOperatorEvidenceDrawerWorkspacePlaceholderProvenance(activeView, model)
+    : activeView && Array.isArray(activeView.provenance) && activeView.provenance.length > 0
+      ? activeView.provenance
+      : [{ label: "Actor", value: "Refresh Summary", tone: "muted", isPlaceholder: true }];
   for (const item of provenance) {
     const provenanceValue =
       isCompactEvidenceView && typeof item.compactValue === "string" && item.compactValue.trim().length > 0
