@@ -10139,112 +10139,57 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, mode
   const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
   const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
   const label = config.label || "Workspace";
+  const hasManualRefresh = state.operatorSummaryUserRefreshed === true;
   if (workspaceId === "approvals") {
-    return [
-      {
-        label: `Seed ${label}`,
-        actionId: "open_workflow_control",
-      },
-      {
-        label: `Open ${label}`,
-        actionId: "saved_view_approvals",
-        kind: "secondary",
-      },
-    ];
+    const seedAction = {
+      label: `Seed ${label}`,
+      actionId: "open_workflow_control",
+      kind: hasManualRefresh ? "secondary" : undefined,
+    };
+    const openAction = {
+      label: `Open ${label}`,
+      actionId: "saved_view_approvals",
+      kind: hasManualRefresh ? undefined : "secondary",
+    };
+    return hasManualRefresh ? [openAction, seedAction] : [seedAction, openAction];
   }
   if (workspaceId === "runtime") {
-    return [
-      {
-        label: `Hydrate ${label}`,
-        actionId: "refresh_summary",
-      },
-      {
-        label: `Open ${label}`,
-        actionId: "saved_view_runtime",
-        kind: "secondary",
-      },
-    ];
+    const hydrateAction = {
+      label: `Hydrate ${label}`,
+      actionId: "refresh_summary",
+      kind: hasManualRefresh ? "secondary" : undefined,
+    };
+    const openAction = {
+      label: `Open ${label}`,
+      actionId: "saved_view_runtime",
+      kind: hasManualRefresh ? undefined : "secondary",
+    };
+    return hasManualRefresh ? [openAction, hydrateAction] : [hydrateAction, openAction];
   }
   if (workspaceId === "audit") {
-    return [
-      {
-        label: `Hydrate ${label}`,
-        actionId: "refresh_summary",
-      },
-      {
-        label: `Open ${label}`,
-        actionId: "saved_view_audit",
-        kind: "secondary",
-      },
-    ];
-  }
-  return [
-    {
-      label: "Refresh Summary",
+    const hydrateAction = {
+      label: `Hydrate ${label}`,
       actionId: "refresh_summary",
-    },
-    {
-      label: activeView?.label ? `Open ${activeView.label}` : "Open lane",
-      actionId: "open_playbook",
-      kind: "secondary",
-    },
-  ];
-}
-
-function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, model) {
-  const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
-  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
-  const label = config.label || "Workspace";
-  if (workspaceId === "approvals") {
-    return [
-      {
-        label: `Seed ${label}`,
-        actionId: "open_workflow_control",
-      },
-      {
-        label: `Open ${label}`,
-        actionId: "saved_view_approvals",
-        kind: "secondary",
-      },
-    ];
+      kind: hasManualRefresh ? "secondary" : undefined,
+    };
+    const openAction = {
+      label: `Open ${label}`,
+      actionId: "saved_view_audit",
+      kind: hasManualRefresh ? undefined : "secondary",
+    };
+    return hasManualRefresh ? [openAction, hydrateAction] : [hydrateAction, openAction];
   }
-  if (workspaceId === "runtime") {
-    return [
-      {
-        label: `Hydrate ${label}`,
-        actionId: "refresh_summary",
-      },
-      {
-        label: `Open ${label}`,
-        actionId: "saved_view_runtime",
-        kind: "secondary",
-      },
-    ];
-  }
-  if (workspaceId === "audit") {
-    return [
-      {
-        label: `Hydrate ${label}`,
-        actionId: "refresh_summary",
-      },
-      {
-        label: `Open ${label}`,
-        actionId: "saved_view_audit",
-        kind: "secondary",
-      },
-    ];
-  }
-  return [
-    {
-      label: "Refresh Summary",
-      actionId: "refresh_summary",
-    },
-    {
-      label: activeView?.label ? `Open ${activeView.label}` : "Open lane",
-      actionId: "open_playbook",
-      kind: "secondary",
-    },
-  ];
+  const refreshAction = {
+    label: "Refresh Summary",
+    actionId: "refresh_summary",
+    kind: hasManualRefresh ? "secondary" : undefined,
+  };
+  const openAction = {
+    label: activeView?.label ? `Open ${activeView.label}` : "Open lane",
+    actionId: "open_playbook",
+    kind: hasManualRefresh ? undefined : "secondary",
+  };
+  return hasManualRefresh ? [openAction, refreshAction] : [refreshAction, openAction];
 }
 
 function resolveOperatorEvidenceDrawerActionActor(actionConfig, details = {}) {
