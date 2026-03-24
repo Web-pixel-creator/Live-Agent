@@ -10550,6 +10550,35 @@ function resolveOperatorEvidenceDrawerDefaultView(model) {
   return "latest";
 }
 
+function resolveOperatorEvidenceDrawerViewOrder(model) {
+  const defaultOrder = ["latest", "trace", "recovery", "audit"];
+  if (!model || typeof model !== "object") {
+    return defaultOrder;
+  }
+  const needsRecoveryView =
+    model.variant === "fail"
+    || model.variant === "stale"
+    || model.variant === "dormant"
+    || state.operatorSummaryUserRefreshed !== true;
+  if (model.activeSavedViewId === "audit") {
+    return ["audit", "latest", "trace", "recovery"];
+  }
+  if (model.activeSavedViewId === "runtime") {
+    return needsRecoveryView
+      ? ["recovery", "trace", "latest", "audit"]
+      : ["trace", "recovery", "latest", "audit"];
+  }
+  if (model.activeSavedViewId === "approvals") {
+    return needsRecoveryView
+      ? ["recovery", "latest", "trace", "audit"]
+      : ["latest", "recovery", "trace", "audit"];
+  }
+  if (needsRecoveryView) {
+    return ["recovery", "latest", "trace", "audit"];
+  }
+  return defaultOrder;
+}
+
 function buildOperatorEvidenceDrawerModelLegacy(statusId) {
   const normalizedStatusId = typeof statusId === "string" ? statusId.trim() : "";
   const activeSavedView = getActiveOperatorSavedViewConfig();
@@ -10879,7 +10908,11 @@ function buildOperatorEvidenceDrawerModel(statusId) {
   const traceActionLabel = resolveActionRouteLabelForView(traceRouteAction, "trace");
   const recoveryActionLabel = resolveActionRouteLabelForView(recoveryRouteAction, "recovery");
   const auditActionLabel = auditRouteAction ? resolveActionRouteLabelForView(auditRouteAction, "audit") : "";
-  const viewModels = OPERATOR_EVIDENCE_DRAWER_VIEWS.map((view) => {
+  const viewOrder = resolveOperatorEvidenceDrawerViewOrder({
+    activeSavedViewId,
+    variant,
+  });
+  const unsortedViewModels = OPERATOR_EVIDENCE_DRAWER_VIEWS.map((view) => {
     if (view.id === "trace") {
       const traceProvenanceActions = traceActions;
       const traceFacts = buildOperatorEvidenceDrawerTraceFacts({
@@ -11152,6 +11185,15 @@ function buildOperatorEvidenceDrawerModel(statusId) {
       actions: latestActions,
     };
   });
+  const viewOrderIndex = new Map(viewOrder.map((viewId, index) => [viewId, index]));
+  const viewModels = unsortedViewModels.slice().sort((left, right) => {
+    const leftIndex = viewOrderIndex.has(left.id) ? viewOrderIndex.get(left.id) : Number.MAX_SAFE_INTEGER;
+    const rightIndex = viewOrderIndex.has(right.id) ? viewOrderIndex.get(right.id) : Number.MAX_SAFE_INTEGER;
+    if (leftIndex !== rightIndex) {
+      return leftIndex - rightIndex;
+    }
+    return 0;
+  });
   return {
     statusId: normalizedStatusId,
     variant,
@@ -11165,6 +11207,7 @@ function buildOperatorEvidenceDrawerModel(statusId) {
     facts: drawerFacts,
     actions: latestActions,
     activeSavedViewId,
+    viewOrder,
     views: viewModels,
     defaultView: resolveOperatorEvidenceDrawerDefaultView({
       activeSavedViewId,
@@ -11314,6 +11357,21 @@ function buildOperatorEvidenceDrawerWorkspaceSummary(activeView, model) {
   return `${workspaceLead}. ${basePart || `${activeView?.label ?? "Focused Evidence"} keeps the current proof path visible`}.`;
 }
 
+function syncOperatorEvidenceDrawerTabOrder(model) {
+  if (!(el.operatorEvidenceDrawerTabs instanceof HTMLElement)) {
+    return;
+  }
+  const orderedViewIds = Array.isArray(model?.viewOrder) && model.viewOrder.length > 0
+    ? model.viewOrder
+    : OPERATOR_EVIDENCE_DRAWER_VIEWS.map((view) => view.id);
+  const orderedButtons = orderedViewIds
+    .map((viewId) => el.operatorEvidenceDrawerTabs.querySelector(`[data-operator-evidence-view="${viewId}"]`))
+    .filter((button) => button instanceof HTMLButtonElement);
+  for (const button of orderedButtons) {
+    el.operatorEvidenceDrawerTabs.append(button);
+  }
+}
+
 function syncOperatorEvidenceDrawer() {
   if (
     !(el.operatorEvidenceDrawer instanceof HTMLElement) ||
@@ -11349,6 +11407,7 @@ function syncOperatorEvidenceDrawer() {
   setText(el.operatorEvidenceDrawerTitle, model.title);
   setText(el.operatorEvidenceDrawerLane, model.lane);
   syncOperatorEvidenceDrawerContext(model, activeView);
+  syncOperatorEvidenceDrawerTabOrder(model);
   if (el.operatorEvidenceDrawerLane instanceof HTMLElement) {
     el.operatorEvidenceDrawerLane.hidden = isCompactEvidenceView;
   }
