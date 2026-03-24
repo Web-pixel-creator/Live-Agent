@@ -19,16 +19,20 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     'id="operatorEvidenceDrawerContextSignalValue"',
     'id="operatorEvidenceDrawerContextSignalSource"',
     'id="operatorEvidenceDrawerContextSignalFreshness"',
+    /id="operatorEvidenceDrawerContextSignalItem"[\s\S]*?<span class="operator-evidence-drawer-context-label">Lead signal<\/span>/s,
     'Overview signal pending',
     'class="operator-evidence-drawer-context-label">Workspace<',
     'class="operator-evidence-drawer-context-label">View<',
     'class="operator-evidence-drawer-context-label">Next<',
-    'class="operator-evidence-drawer-context-label">Signal<',
     'class="operator-evidence-drawer-context-source">Source: Overview</span>',
     'class="operator-evidence-drawer-context-freshness">Freshness: awaiting refresh</span>',
     'Refresh Summary',
   ]) {
-    assert.ok(htmlSource.includes(token), `index.html missing focused evidence workspace-context token: ${token}`);
+    if (token instanceof RegExp) {
+      assert.match(htmlSource, token, `index.html missing focused evidence workspace-context token: ${token}`);
+    } else {
+      assert.ok(htmlSource.includes(token), `index.html missing focused evidence workspace-context token: ${token}`);
+    }
   }
 
   for (const token of [
