@@ -10059,20 +10059,20 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderOrigins(activeView, mode
   const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
   return [
     {
-      label: "View",
+      label: "Lane",
       value: config.contextLabel ?? `${config.label} view`,
       tone: "watch",
       isPlaceholder: true,
     },
     {
-      label: "Next",
-      value: normalizeOperatorEvidenceDrawerHydrateMeta(config.hydrateMeta),
+      label: "Source",
+      value: config.drawerKicker ?? activeView?.label ?? "Focused Evidence",
       tone: "muted",
       isPlaceholder: true,
     },
     {
-      label: "Source",
-      value: activeView?.label ?? "Focused Evidence",
+      label: "Next",
+      value: normalizeOperatorEvidenceDrawerHydrateMeta(config.hydrateMeta),
       tone: "muted",
       isPlaceholder: true,
     },
@@ -10927,6 +10927,16 @@ function resolveOperatorEvidenceDrawerWorkspaceHeading(model, activeView) {
   };
 }
 
+function resolveOperatorEvidenceDrawerWorkspaceLane(model, activeView) {
+  const baseLane = normalizeOperatorUiCopy(model?.lane)
+    ?? "Select a lane above or refresh summary to hydrate the board.";
+  if (!shouldUseOperatorEvidenceDrawerWorkspacePlaceholder(model) || !activeView) {
+    return baseLane;
+  }
+  const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
+  return normalizeOperatorUiCopy(config?.contextLabel ?? config?.drawerKicker ?? activeView?.label) ?? baseLane;
+}
+
 function buildOperatorEvidenceDrawerModelLegacy(statusId) {
   const normalizedStatusId = typeof statusId === "string" ? statusId.trim() : "";
   const activeSavedView = getActiveOperatorSavedViewConfig();
@@ -11045,7 +11055,7 @@ function syncOperatorEvidenceDrawerLegacy() {
   const heading = resolveOperatorEvidenceDrawerWorkspaceHeading(model, null);
   setText(el.operatorEvidenceDrawerKicker, heading.kicker);
   setText(el.operatorEvidenceDrawerTitle, heading.title);
-  setText(el.operatorEvidenceDrawerLane, normalizeOperatorUiCopy(model.lane));
+  setText(el.operatorEvidenceDrawerLane, resolveOperatorEvidenceDrawerWorkspaceLane(model, null));
   setText(el.operatorEvidenceDrawerHint, model.hint);
   if (el.operatorEvidenceDrawerStatus instanceof HTMLElement) {
     el.operatorEvidenceDrawerStatus.dataset.statusCode = model.statusCode;
@@ -11943,7 +11953,7 @@ function syncOperatorEvidenceDrawer() {
   const heading = resolveOperatorEvidenceDrawerWorkspaceHeading(model, activeView);
   setText(el.operatorEvidenceDrawerKicker, heading.kicker);
   setText(el.operatorEvidenceDrawerTitle, heading.title);
-  setText(el.operatorEvidenceDrawerLane, model.lane);
+  setText(el.operatorEvidenceDrawerLane, resolveOperatorEvidenceDrawerWorkspaceLane(model, activeView));
   syncOperatorEvidenceDrawerContext(model, activeView);
   syncOperatorEvidenceDrawerTabOrder(model);
   if (el.operatorEvidenceDrawerLane instanceof HTMLElement) {
