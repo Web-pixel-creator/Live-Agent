@@ -10135,6 +10135,118 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderProvenance(activeView, m
   ];
 }
 
+function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, model) {
+  const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
+  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  const label = config.label || "Workspace";
+  if (workspaceId === "approvals") {
+    return [
+      {
+        label: `Seed ${label}`,
+        actionId: "open_workflow_control",
+      },
+      {
+        label: `Open ${label}`,
+        actionId: "saved_view_approvals",
+        kind: "secondary",
+      },
+    ];
+  }
+  if (workspaceId === "runtime") {
+    return [
+      {
+        label: `Hydrate ${label}`,
+        actionId: "refresh_summary",
+      },
+      {
+        label: `Open ${label}`,
+        actionId: "saved_view_runtime",
+        kind: "secondary",
+      },
+    ];
+  }
+  if (workspaceId === "audit") {
+    return [
+      {
+        label: `Hydrate ${label}`,
+        actionId: "refresh_summary",
+      },
+      {
+        label: `Open ${label}`,
+        actionId: "saved_view_audit",
+        kind: "secondary",
+      },
+    ];
+  }
+  return [
+    {
+      label: "Refresh Summary",
+      actionId: "refresh_summary",
+    },
+    {
+      label: activeView?.label ? `Open ${activeView.label}` : "Open lane",
+      actionId: "open_playbook",
+      kind: "secondary",
+    },
+  ];
+}
+
+function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, model) {
+  const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
+  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  const label = config.label || "Workspace";
+  if (workspaceId === "approvals") {
+    return [
+      {
+        label: `Seed ${label}`,
+        actionId: "open_workflow_control",
+      },
+      {
+        label: `Open ${label}`,
+        actionId: "saved_view_approvals",
+        kind: "secondary",
+      },
+    ];
+  }
+  if (workspaceId === "runtime") {
+    return [
+      {
+        label: `Hydrate ${label}`,
+        actionId: "refresh_summary",
+      },
+      {
+        label: `Open ${label}`,
+        actionId: "saved_view_runtime",
+        kind: "secondary",
+      },
+    ];
+  }
+  if (workspaceId === "audit") {
+    return [
+      {
+        label: `Hydrate ${label}`,
+        actionId: "refresh_summary",
+      },
+      {
+        label: `Open ${label}`,
+        actionId: "saved_view_audit",
+        kind: "secondary",
+      },
+    ];
+  }
+  return [
+    {
+      label: "Refresh Summary",
+      actionId: "refresh_summary",
+    },
+    {
+      label: activeView?.label ? `Open ${activeView.label}` : "Open lane",
+      actionId: "open_playbook",
+      kind: "secondary",
+    },
+  ];
+}
+
 function resolveOperatorEvidenceDrawerActionActor(actionConfig, details = {}) {
   const actionId = typeof actionConfig?.actionId === "string" ? actionConfig.actionId.trim() : "";
   if (details.activeViewId === "audit") {
@@ -12028,7 +12140,11 @@ function syncOperatorEvidenceDrawer() {
     el.operatorEvidenceDrawerProvenance.append(article);
   }
   el.operatorEvidenceDrawerActions.innerHTML = "";
-  const actions = activeView && Array.isArray(activeView.actions) ? activeView.actions : model.actions;
+  const actions = useWorkspacePlaceholderEvidence
+    ? buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, model)
+    : activeView && Array.isArray(activeView.actions)
+      ? activeView.actions
+      : model.actions;
   for (const actionConfig of actions) {
     const button = createOperatorEvidenceDrawerActionButton(actionConfig, {
       activeViewId: activeView?.id ?? "latest",
