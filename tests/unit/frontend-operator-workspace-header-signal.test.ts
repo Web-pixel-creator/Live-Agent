@@ -24,13 +24,14 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
     'operatorWorkspaceHeaderLeadValue: document.getElementById("operatorWorkspaceHeaderLeadValue")',
     "|| !(el.operatorWorkspaceHeaderLeadFact instanceof HTMLElement)",
     "|| !(el.operatorWorkspaceHeaderLeadValue instanceof HTMLElement)",
-    "const { normalizedView, routeFacts, signal, tone, title, hint, next } = getOperatorWorkspacePresentationState();",
-    'const leadSignalValue =',
-    ': "Awaiting refresh";',
-    'const leadSignalState = signal?.variant ?? (tone === "ok" ? "steady" : "dormant");',
-    'el.operatorWorkspaceHeader.dataset.workspaceSignal = leadSignalState;',
-    'el.operatorWorkspaceHeaderLeadFact.dataset.signalState = leadSignalState;',
-    'el.operatorWorkspaceHeaderLeadValue.textContent = leadSignalValue;',
+    "function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {",
+    'const signalValue =',
+    'const signalState = presentation?.signal?.variant ?? (presentation?.tone === "ok" ? "steady" : "dormant");',
+    "const presentation = getOperatorWorkspacePresentationState();",
+    "const leadSignal = resolveOperatorWorkspaceLeadSignalPresentation(presentation);",
+    'el.operatorWorkspaceHeader.dataset.workspaceSignal = leadSignal.state;',
+    'el.operatorWorkspaceHeaderLeadFact.dataset.signalState = leadSignal.state;',
+    'el.operatorWorkspaceHeaderLeadValue.textContent = leadSignal.value;',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing workspace lead signal token: ${token}`);
   }

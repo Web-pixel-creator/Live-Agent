@@ -3370,18 +3370,26 @@ const el = {
   operatorWorkspaceOverviewBtn: document.getElementById("operatorWorkspaceOverviewBtn"),
   operatorWorkspaceOverviewStatus: document.getElementById("operatorWorkspaceOverviewStatus"),
   operatorWorkspaceOverviewMeta: document.getElementById("operatorWorkspaceOverviewMeta"),
+  operatorWorkspaceOverviewSignal: document.getElementById("operatorWorkspaceOverviewSignal"),
+  operatorWorkspaceOverviewSignalValue: document.getElementById("operatorWorkspaceOverviewSignalValue"),
   operatorWorkspaceOverviewMarker: document.getElementById("operatorWorkspaceOverviewMarker"),
   operatorWorkspaceApprovalsBtn: document.getElementById("operatorWorkspaceApprovalsBtn"),
   operatorWorkspaceApprovalsStatus: document.getElementById("operatorWorkspaceApprovalsStatus"),
   operatorWorkspaceApprovalsMeta: document.getElementById("operatorWorkspaceApprovalsMeta"),
+  operatorWorkspaceApprovalsSignal: document.getElementById("operatorWorkspaceApprovalsSignal"),
+  operatorWorkspaceApprovalsSignalValue: document.getElementById("operatorWorkspaceApprovalsSignalValue"),
   operatorWorkspaceApprovalsMarker: document.getElementById("operatorWorkspaceApprovalsMarker"),
   operatorWorkspaceRuntimeBtn: document.getElementById("operatorWorkspaceRuntimeBtn"),
   operatorWorkspaceRuntimeStatus: document.getElementById("operatorWorkspaceRuntimeStatus"),
   operatorWorkspaceRuntimeMeta: document.getElementById("operatorWorkspaceRuntimeMeta"),
+  operatorWorkspaceRuntimeSignal: document.getElementById("operatorWorkspaceRuntimeSignal"),
+  operatorWorkspaceRuntimeSignalValue: document.getElementById("operatorWorkspaceRuntimeSignalValue"),
   operatorWorkspaceRuntimeMarker: document.getElementById("operatorWorkspaceRuntimeMarker"),
   operatorWorkspaceAuditBtn: document.getElementById("operatorWorkspaceAuditBtn"),
   operatorWorkspaceAuditStatus: document.getElementById("operatorWorkspaceAuditStatus"),
   operatorWorkspaceAuditMeta: document.getElementById("operatorWorkspaceAuditMeta"),
+  operatorWorkspaceAuditSignal: document.getElementById("operatorWorkspaceAuditSignal"),
+  operatorWorkspaceAuditSignalValue: document.getElementById("operatorWorkspaceAuditSignalValue"),
   operatorWorkspaceAuditMarker: document.getElementById("operatorWorkspaceAuditMarker"),
   operatorWorkspaceHeader: document.getElementById("operatorWorkspaceHeader"),
   operatorWorkspaceHeaderBadge: document.getElementById("operatorWorkspaceHeaderBadge"),
@@ -13169,26 +13177,48 @@ function getOperatorWorkspaceCardTargets() {
       button: el.operatorWorkspaceOverviewBtn,
       status: el.operatorWorkspaceOverviewStatus,
       meta: el.operatorWorkspaceOverviewMeta,
+      signal: el.operatorWorkspaceOverviewSignal,
+      signalValue: el.operatorWorkspaceOverviewSignalValue,
       marker: el.operatorWorkspaceOverviewMarker,
     },
     approvals: {
       button: el.operatorWorkspaceApprovalsBtn,
       status: el.operatorWorkspaceApprovalsStatus,
       meta: el.operatorWorkspaceApprovalsMeta,
+      signal: el.operatorWorkspaceApprovalsSignal,
+      signalValue: el.operatorWorkspaceApprovalsSignalValue,
       marker: el.operatorWorkspaceApprovalsMarker,
     },
     runtime: {
       button: el.operatorWorkspaceRuntimeBtn,
       status: el.operatorWorkspaceRuntimeStatus,
       meta: el.operatorWorkspaceRuntimeMeta,
+      signal: el.operatorWorkspaceRuntimeSignal,
+      signalValue: el.operatorWorkspaceRuntimeSignalValue,
       marker: el.operatorWorkspaceRuntimeMarker,
     },
     audit: {
       button: el.operatorWorkspaceAuditBtn,
       status: el.operatorWorkspaceAuditStatus,
       meta: el.operatorWorkspaceAuditMeta,
+      signal: el.operatorWorkspaceAuditSignal,
+      signalValue: el.operatorWorkspaceAuditSignalValue,
       marker: el.operatorWorkspaceAuditMarker,
     },
+  };
+}
+
+function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {
+  const signalValue =
+    presentation?.signal?.text?.trim().length
+      ? presentation.signal.text.trim()
+      : presentation?.signal?.label?.trim().length
+        ? presentation.signal.label.trim()
+        : "Awaiting refresh";
+  const signalState = presentation?.signal?.variant ?? (presentation?.tone === "ok" ? "steady" : "dormant");
+  return {
+    value: signalValue,
+    state: signalState,
   };
 }
 
@@ -13298,6 +13328,13 @@ function syncOperatorWorkspaceCards() {
               ? `Next: review ${presentation.routeFacts.label.toLowerCase()} before reopening broader triage.`
               : `Next: keep ${presentation.routeFacts.label.toLowerCase()} steady unless fresher proof is needed.`;
     }
+    const leadSignal = resolveOperatorWorkspaceLeadSignalPresentation(presentation);
+    if (target.signal instanceof HTMLElement) {
+      target.signal.dataset.signalState = leadSignal.state;
+    }
+    if (target.signalValue instanceof HTMLElement) {
+      target.signalValue.textContent = leadSignal.value;
+    }
     if (target.marker instanceof HTMLElement) {
       const shouldShowMarker = viewId === markerViewId;
       target.marker.hidden = !shouldShowMarker;
@@ -13327,18 +13364,13 @@ function syncOperatorWorkspaceHeader() {
     return;
   }
 
-  const { normalizedView, routeFacts, signal, tone, title, hint, next } = getOperatorWorkspacePresentationState();
-  const leadSignalValue =
-    signal?.text?.trim().length
-      ? signal.text.trim()
-      : signal?.label?.trim().length
-        ? signal.label.trim()
-        : "Awaiting refresh";
-  const leadSignalState = signal?.variant ?? (tone === "ok" ? "steady" : "dormant");
+  const presentation = getOperatorWorkspacePresentationState();
+  const { normalizedView, routeFacts, tone, title, hint, next } = presentation;
+  const leadSignal = resolveOperatorWorkspaceLeadSignalPresentation(presentation);
 
   el.operatorWorkspaceHeader.dataset.workspace = normalizedView;
   el.operatorWorkspaceHeader.dataset.workspaceState = tone;
-  el.operatorWorkspaceHeader.dataset.workspaceSignal = leadSignalState;
+  el.operatorWorkspaceHeader.dataset.workspaceSignal = leadSignal.state;
   setStatusPill(el.operatorWorkspaceHeaderBadge, routeFacts.label, tone);
   el.operatorWorkspaceHeaderBadge.dataset.statusCode = normalizedView;
   el.operatorWorkspaceHeaderTitle.textContent = title;
@@ -13346,8 +13378,8 @@ function syncOperatorWorkspaceHeader() {
   el.operatorWorkspaceHeaderFocusValue.textContent = routeFacts.focus;
   el.operatorWorkspaceHeaderNextValue.textContent = next;
   el.operatorWorkspaceHeaderModeValue.textContent = routeFacts.modeLabel;
-  el.operatorWorkspaceHeaderLeadFact.dataset.signalState = leadSignalState;
-  el.operatorWorkspaceHeaderLeadValue.textContent = leadSignalValue;
+  el.operatorWorkspaceHeaderLeadFact.dataset.signalState = leadSignal.state;
+  el.operatorWorkspaceHeaderLeadValue.textContent = leadSignal.value;
 }
 
 function syncOperatorToolbarWorkspaceMode() {

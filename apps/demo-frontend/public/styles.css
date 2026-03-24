@@ -20279,6 +20279,42 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 72%, var(--muted-foreground));
 }
 
+.panel-operator-console .operator-workspace-card-signal {
+  display: grid;
+  gap: 3px;
+  padding-top: 2px;
+}
+
+.panel-operator-console .operator-workspace-card-signal-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 60%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card-signal-value {
+  font-size: 0.69rem;
+  line-height: 1.32;
+  color: color-mix(in oklch, var(--foreground) 82%, white);
+}
+
+.panel-operator-console .operator-workspace-card-signal[data-signal-state="dormant"] .operator-workspace-card-signal-value {
+  color: color-mix(in oklch, var(--foreground) 68%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card-signal[data-signal-state="steady"] .operator-workspace-card-signal-value {
+  color: color-mix(in oklch, var(--foreground) 82%, white);
+}
+
+.panel-operator-console .operator-workspace-card-signal[data-signal-state="neutral"] .operator-workspace-card-signal-value {
+  color: color-mix(in oklch, var(--foreground) 78%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card-signal[data-signal-state="fail"] .operator-workspace-card-signal-value {
+  color: color-mix(in oklch, var(--chart-4) 60%, white);
+}
+
 .panel-operator-console .operator-last-refresh,
 .panel-operator-console .operator-mode-banner {
   min-height: 54px;
