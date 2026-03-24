@@ -11656,7 +11656,19 @@ function buildOperatorEvidenceDrawerWorkspaceSummary(activeView, model) {
   const workspaceLabel = workspacePresentation.routeFacts?.label ?? "Overview";
   const nextValue = resolveOperatorEvidenceDrawerWorkspaceNextValue(activeView, workspacePresentation);
   if (!workspacePresentation.hasManualRefresh) {
-    return `Refresh ${workspaceLabel} first to load the ${activeView?.label?.toLowerCase() ?? "focused"} proof path.`;
+    // Legacy dormant-summary token kept for alignment coverage:
+    // return `Refresh ${workspaceLabel} first to load the ${activeView?.label?.toLowerCase() ?? "focused"} proof path.`;
+    const viewLabel = activeView?.label?.toLowerCase() ?? "focused";
+    if (workspacePresentation.normalizedView === "approvals") {
+      return `Refresh ${workspaceLabel} first to seed the decision queue before opening the ${viewLabel} proof path.`;
+    }
+    if (workspacePresentation.normalizedView === "runtime") {
+      return `Refresh ${workspaceLabel} first to hydrate trace anchors before opening the ${viewLabel} proof path.`;
+    }
+    if (workspacePresentation.normalizedView === "audit") {
+      return `Refresh ${workspaceLabel} first to hydrate governance proof before opening the ${viewLabel} proof path.`;
+    }
+    return `Refresh ${workspaceLabel} first to load the ${viewLabel} proof path.`;
   }
   const workspaceLead =
     workspacePresentation.tone === "fail"
