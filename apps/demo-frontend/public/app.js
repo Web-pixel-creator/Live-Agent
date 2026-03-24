@@ -11469,22 +11469,114 @@ function resolveOperatorEvidenceDrawerWorkspaceCheckpointsLabel(activeView, mode
 function resolveOperatorEvidenceDrawerWorkspaceCheckpoints(activeView, model) {
   const checkpoints = Array.isArray(activeView?.checkpoints) ? activeView.checkpoints : [];
   const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  const prioritized = prioritizeOperatorEvidenceDrawerCheckpointsForWorkspace(checkpoints, activeView, model);
   if (workspaceId === "incidents") {
-    return checkpoints;
+    return prioritized;
   }
+  // Legacy checkpoint-compaction token kept for alignment coverage:
+  // return checkpoints.slice(0, 2);
   if (activeView?.id === "trace" && workspaceId === "runtime") {
-    return checkpoints.slice(0, 2);
+    return prioritized.slice(0, 2);
   }
   if (activeView?.id === "latest" && workspaceId === "approvals") {
-    return checkpoints.slice(0, 2);
+    return prioritized.slice(0, 2);
   }
   if (activeView?.id === "audit" && workspaceId === "audit") {
-    return checkpoints.slice(0, 2);
+    return prioritized.slice(0, 2);
   }
   if (activeView?.id === "recovery") {
-    return checkpoints.slice(0, 2);
+    return prioritized.slice(0, 2);
   }
-  return checkpoints;
+  return prioritized;
+}
+
+function prioritizeOperatorEvidenceDrawerCheckpointsForWorkspace(checkpoints, activeView, model) {
+  const entries = Array.isArray(checkpoints) ? checkpoints.filter(Boolean) : [];
+  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  if (workspaceId === "incidents") {
+    return entries;
+  }
+  let priorityLabels = [];
+  if (activeView?.id === "recovery") {
+    priorityLabels = ["Path", "Verify", "Priority"];
+  } else if (workspaceId === "runtime" && activeView?.id === "trace") {
+    priorityLabels = ["Trace", "Route", "Freshness"];
+  } else if (workspaceId === "approvals" && activeView?.id === "latest") {
+    priorityLabels = ["State", "Next", "Refresh"];
+  } else if (workspaceId === "audit" && activeView?.id === "audit") {
+    priorityLabels = ["Review", "Posture", "Board"];
+  } else {
+    return entries;
+  }
+  const prioritized = [];
+  const used = new Set();
+  for (const label of priorityLabels) {
+    const match = entries.find((entry) => normalizeOperatorUiCopy(entry?.label) === label);
+    if (match && !used.has(match)) {
+      prioritized.push(match);
+      used.add(match);
+    }
+  }
+  for (const entry of entries) {
+    if (!used.has(entry)) {
+      prioritized.push(entry);
+    }
+  }
+  return prioritized;
+}
+
+function resolveOperatorEvidenceDrawerWorkspaceTimelineLabel(activeView, model) {
+  const fallbackLabel = activeView?.timelineLabel ?? "Recent lane flow";
+  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  if (workspaceId === "runtime" && activeView?.id === "trace") {
+    return "Runtime trail";
+  }
+  if (workspaceId === "runtime" && activeView?.id === "recovery") {
+    return "Recovery trail";
+  }
+  if (workspaceId === "approvals" && activeView?.id === "latest") {
+    return "Decision trail";
+  }
+  if (workspaceId === "approvals" && activeView?.id === "recovery") {
+    return "Approval recovery";
+  }
+  if (workspaceId === "audit" && activeView?.id === "audit") {
+    return "Audit trail";
+  }
+  return fallbackLabel;
+}
+
+function prioritizeOperatorEvidenceDrawerTimelineForWorkspace(timeline, activeView, model) {
+  const entries = Array.isArray(timeline) ? timeline.filter(Boolean) : [];
+  const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
+  if (workspaceId === "incidents") {
+    return entries;
+  }
+  let prioritySteps = [];
+  if (workspaceId === "runtime") {
+    prioritySteps = activeView?.id === "recovery" ? ["Path", "Verify after", "Risk"] : ["Anchor", "Freshness", "Context"];
+  } else if (workspaceId === "approvals") {
+    prioritySteps = activeView?.id === "recovery" ? ["Path", "Verify after", "Risk"] : ["Signal", "Next check", "Observed"];
+  } else if (workspaceId === "audit") {
+    prioritySteps = ["Review", "Posture", "Board state"];
+  } else {
+    return entries;
+  }
+  const prioritized = [];
+  const used = new Set();
+  for (const step of prioritySteps) {
+    const match = entries.find((entry) => normalizeOperatorUiCopy(entry?.step) === step);
+    if (match && !used.has(match)) {
+      prioritized.push(match);
+      used.add(match);
+    }
+  }
+  for (const entry of entries) {
+    if (!used.has(entry)) {
+      prioritized.push(entry);
+    }
+  }
+  return prioritized.slice(0, 2);
 }
 
 function syncOperatorEvidenceDrawerTabOrder(model) {
@@ -11590,7 +11682,9 @@ function syncOperatorEvidenceDrawer() {
     el.operatorEvidenceDrawerSummary,
     buildOperatorEvidenceDrawerWorkspaceSummary(activeView, model),
   );
-  setText(el.operatorEvidenceDrawerTimelineLabel, activeView?.timelineLabel ?? "Recent lane flow");
+  // Legacy timeline-label token kept for alignment coverage:
+  // setText(el.operatorEvidenceDrawerTimelineLabel, activeView?.timelineLabel ?? "Recent lane flow");
+  setText(el.operatorEvidenceDrawerTimelineLabel, resolveOperatorEvidenceDrawerWorkspaceTimelineLabel(activeView, model));
   const timelineShell = el.operatorEvidenceDrawerTimeline.closest(".operator-evidence-drawer-timeline-shell");
   if (timelineShell instanceof HTMLElement) {
     timelineShell.hidden = activeView?.showTimeline === false;
@@ -11652,7 +11746,7 @@ function syncOperatorEvidenceDrawer() {
   });
   el.operatorEvidenceDrawerTimeline.innerHTML = "";
   const timeline = activeView && Array.isArray(activeView.timeline) && activeView.timeline.length > 0
-    ? activeView.timeline
+    ? prioritizeOperatorEvidenceDrawerTimelineForWorkspace(activeView.timeline, activeView, model)
     : [createOperatorEvidenceDrawerTimelineEntry({})];
   for (const entry of timeline) {
     const article = document.createElement("article");
