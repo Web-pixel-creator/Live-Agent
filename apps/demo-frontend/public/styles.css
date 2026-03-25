@@ -20252,6 +20252,20 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 72%, var(--muted-foreground));
 }
 
+.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-view {
+  gap: 1px;
+}
+
+.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-view-label {
+  color: color-mix(in oklch, var(--foreground) 52%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-view-value {
+  font-size: 0.63rem;
+  line-height: 1.24;
+  color: color-mix(in oklch, var(--foreground) 74%, var(--muted-foreground));
+}
+
 .panel-operator-console .operator-workspace-card.is-active {
   border-color: color-mix(in oklch, var(--primary) 34%, var(--border-soft));
   background:
@@ -20349,6 +20363,11 @@ button:disabled {
   gap: 2px;
 }
 
+.panel-operator-console .operator-workspace-card-open {
+  display: grid;
+  gap: 2px;
+}
+
 .panel-operator-console .operator-workspace-card-mode {
   display: grid;
   gap: 2px;
@@ -20376,6 +20395,14 @@ button:disabled {
 }
 
 .panel-operator-console .operator-workspace-card-focus-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 60%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card-open-label {
   font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -20411,6 +20438,12 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 84%, white);
 }
 
+.panel-operator-console .operator-workspace-card-open-value {
+  font-size: 0.68rem;
+  line-height: 1.28;
+  color: color-mix(in oklch, var(--foreground) 84%, white);
+}
+
 .panel-operator-console .operator-workspace-card-mode-value {
   font-size: 0.68rem;
   line-height: 1.28;
@@ -20431,6 +20464,10 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 78%, var(--muted-foreground));
 }
 
+.panel-operator-console .operator-workspace-card[data-workspace-state="neutral"] .operator-workspace-card-open-value {
+  color: color-mix(in oklch, var(--foreground) 78%, var(--muted-foreground));
+}
+
 .panel-operator-console .operator-workspace-card[data-workspace-state="neutral"] .operator-workspace-card-mode-value {
   color: color-mix(in oklch, var(--foreground) 78%, var(--muted-foreground));
 }
@@ -20444,6 +20481,10 @@ button:disabled {
 }
 
 .panel-operator-console .operator-workspace-card[data-workspace-state="fail"] .operator-workspace-card-focus-value {
+  color: color-mix(in oklch, var(--destructive) 60%, white);
+}
+
+.panel-operator-console .operator-workspace-card[data-workspace-state="fail"] .operator-workspace-card-open-value {
   color: color-mix(in oklch, var(--destructive) 60%, white);
 }
 

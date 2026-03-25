@@ -3371,6 +3371,7 @@ const el = {
   operatorWorkspaceOverviewStatus: document.getElementById("operatorWorkspaceOverviewStatus"),
   operatorWorkspaceOverviewMeta: document.getElementById("operatorWorkspaceOverviewMeta"),
   operatorWorkspaceOverviewFocusValue: document.getElementById("operatorWorkspaceOverviewFocusValue"),
+  operatorWorkspaceOverviewOpenValue: document.getElementById("operatorWorkspaceOverviewOpenValue"),
   operatorWorkspaceOverviewModeValue: document.getElementById("operatorWorkspaceOverviewModeValue"),
   operatorWorkspaceOverviewViewValue: document.getElementById("operatorWorkspaceOverviewViewValue"),
   operatorWorkspaceOverviewNextValue: document.getElementById("operatorWorkspaceOverviewNextValue"),
@@ -3383,6 +3384,7 @@ const el = {
   operatorWorkspaceApprovalsStatus: document.getElementById("operatorWorkspaceApprovalsStatus"),
   operatorWorkspaceApprovalsMeta: document.getElementById("operatorWorkspaceApprovalsMeta"),
   operatorWorkspaceApprovalsFocusValue: document.getElementById("operatorWorkspaceApprovalsFocusValue"),
+  operatorWorkspaceApprovalsOpenValue: document.getElementById("operatorWorkspaceApprovalsOpenValue"),
   operatorWorkspaceApprovalsModeValue: document.getElementById("operatorWorkspaceApprovalsModeValue"),
   operatorWorkspaceApprovalsViewValue: document.getElementById("operatorWorkspaceApprovalsViewValue"),
   operatorWorkspaceApprovalsNextValue: document.getElementById("operatorWorkspaceApprovalsNextValue"),
@@ -3395,6 +3397,7 @@ const el = {
   operatorWorkspaceRuntimeStatus: document.getElementById("operatorWorkspaceRuntimeStatus"),
   operatorWorkspaceRuntimeMeta: document.getElementById("operatorWorkspaceRuntimeMeta"),
   operatorWorkspaceRuntimeFocusValue: document.getElementById("operatorWorkspaceRuntimeFocusValue"),
+  operatorWorkspaceRuntimeOpenValue: document.getElementById("operatorWorkspaceRuntimeOpenValue"),
   operatorWorkspaceRuntimeModeValue: document.getElementById("operatorWorkspaceRuntimeModeValue"),
   operatorWorkspaceRuntimeViewValue: document.getElementById("operatorWorkspaceRuntimeViewValue"),
   operatorWorkspaceRuntimeNextValue: document.getElementById("operatorWorkspaceRuntimeNextValue"),
@@ -3407,6 +3410,7 @@ const el = {
   operatorWorkspaceAuditStatus: document.getElementById("operatorWorkspaceAuditStatus"),
   operatorWorkspaceAuditMeta: document.getElementById("operatorWorkspaceAuditMeta"),
   operatorWorkspaceAuditFocusValue: document.getElementById("operatorWorkspaceAuditFocusValue"),
+  operatorWorkspaceAuditOpenValue: document.getElementById("operatorWorkspaceAuditOpenValue"),
   operatorWorkspaceAuditModeValue: document.getElementById("operatorWorkspaceAuditModeValue"),
   operatorWorkspaceAuditViewValue: document.getElementById("operatorWorkspaceAuditViewValue"),
   operatorWorkspaceAuditNextValue: document.getElementById("operatorWorkspaceAuditNextValue"),
@@ -13242,6 +13246,7 @@ function getOperatorWorkspaceCardTargets() {
       status: el.operatorWorkspaceOverviewStatus,
       meta: el.operatorWorkspaceOverviewMeta,
       focusValue: el.operatorWorkspaceOverviewFocusValue,
+      openValue: el.operatorWorkspaceOverviewOpenValue,
       modeValue: el.operatorWorkspaceOverviewModeValue,
       viewValue: el.operatorWorkspaceOverviewViewValue,
       nextValue: el.operatorWorkspaceOverviewNextValue,
@@ -13256,6 +13261,7 @@ function getOperatorWorkspaceCardTargets() {
       status: el.operatorWorkspaceApprovalsStatus,
       meta: el.operatorWorkspaceApprovalsMeta,
       focusValue: el.operatorWorkspaceApprovalsFocusValue,
+      openValue: el.operatorWorkspaceApprovalsOpenValue,
       modeValue: el.operatorWorkspaceApprovalsModeValue,
       viewValue: el.operatorWorkspaceApprovalsViewValue,
       nextValue: el.operatorWorkspaceApprovalsNextValue,
@@ -13270,6 +13276,7 @@ function getOperatorWorkspaceCardTargets() {
       status: el.operatorWorkspaceRuntimeStatus,
       meta: el.operatorWorkspaceRuntimeMeta,
       focusValue: el.operatorWorkspaceRuntimeFocusValue,
+      openValue: el.operatorWorkspaceRuntimeOpenValue,
       modeValue: el.operatorWorkspaceRuntimeModeValue,
       viewValue: el.operatorWorkspaceRuntimeViewValue,
       nextValue: el.operatorWorkspaceRuntimeNextValue,
@@ -13284,6 +13291,7 @@ function getOperatorWorkspaceCardTargets() {
       status: el.operatorWorkspaceAuditStatus,
       meta: el.operatorWorkspaceAuditMeta,
       focusValue: el.operatorWorkspaceAuditFocusValue,
+      openValue: el.operatorWorkspaceAuditOpenValue,
       modeValue: el.operatorWorkspaceAuditModeValue,
       viewValue: el.operatorWorkspaceAuditViewValue,
       nextValue: el.operatorWorkspaceAuditNextValue,
@@ -13433,7 +13441,6 @@ function buildOperatorWorkspaceCardJumpSummary(presentation) {
   const parts = [
     presentation?.routeFacts?.focus,
     presentation?.routeFacts?.modeLabel,
-    resolveOperatorWorkspaceCardViewLabel(presentation),
     presentation?.next,
   ]
     .filter((value) => typeof value === "string" && value.trim().length > 0)
@@ -13574,9 +13581,17 @@ function syncOperatorWorkspaceCards() {
       target.modeValue instanceof HTMLElement
         ? target.modeValue.closest(".operator-workspace-card-mode")
         : null;
+    const openSection =
+      target.openValue instanceof HTMLElement
+        ? target.openValue.closest(".operator-workspace-card-open")
+        : null;
     const viewSection =
       target.viewValue instanceof HTMLElement
         ? target.viewValue.closest(".operator-workspace-card-view")
+        : null;
+    const viewLabel =
+      viewSection instanceof HTMLElement
+        ? viewSection.querySelector(".operator-workspace-card-view-label")
         : null;
     const nextSection =
       target.nextValue instanceof HTMLElement
@@ -13592,12 +13607,22 @@ function syncOperatorWorkspaceCards() {
     if (target.focusValue instanceof HTMLElement) {
       target.focusValue.textContent = isActive ? presentation.routeFacts.focus : workspaceSummary;
     }
+    if (openSection instanceof HTMLElement) {
+      openSection.hidden = isActive;
+      openSection.setAttribute("aria-hidden", isActive ? "true" : "false");
+    }
+    if (target.openValue instanceof HTMLElement) {
+      target.openValue.textContent = resolveOperatorWorkspaceCardViewLabel(presentation);
+    }
     if (modeSection instanceof HTMLElement) {
       modeSection.hidden = !isActive;
       modeSection.setAttribute("aria-hidden", isActive ? "false" : "true");
     }
     if (target.modeValue instanceof HTMLElement) {
       target.modeValue.textContent = presentation.routeFacts.modeLabel;
+    }
+    if (viewLabel instanceof HTMLElement) {
+      viewLabel.textContent = "View";
     }
     if (viewSection instanceof HTMLElement) {
       viewSection.hidden = !isActive;

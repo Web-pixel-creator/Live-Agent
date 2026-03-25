@@ -102,7 +102,9 @@ test("active choose-workspace card reads as the current working area while other
     'focusLabel.textContent = isActive ? "Focus" : "Workspace";',
     'target.focusValue.textContent = isActive ? presentation.routeFacts.focus : workspaceSummary;',
     'modeSection.hidden = !isActive;',
-    'viewSection.hidden = !isActive;',
+    'viewLabel.textContent = isActive ? "View" : "Open";',
+    'viewSection.hidden = false;',
+    'viewSection.setAttribute("aria-hidden", "false");',
     'nextSection.hidden = !isActive;',
     'buildOperatorWorkspaceCardCompactSignalSummary(leadSignalSource, freshness.value)',
     /setOperatorWorkspaceCardMetaValue\(\s*target\.signalSource,\s*isActive\s*\?\s*leadSignalSource\s*:\s*buildOperatorWorkspaceCardCompactSignalSummary\(leadSignalSource,\s*freshness\.value\),\s*\);/s,
@@ -142,6 +144,18 @@ test("active choose-workspace card reads as the current working area while other
   assert.ok(
     stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-focus-value {'),
     "styles.css should soften inactive workspace summary values",
+  );
+  assert.ok(
+    stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-view {'),
+    "styles.css should preserve a compact open line for inactive workspace cards",
+  );
+  assert.ok(
+    stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-view-label {'),
+    "styles.css should quiet inactive workspace open labels",
+  );
+  assert.ok(
+    stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-view-value {'),
+    "styles.css should soften inactive workspace open values",
   );
   assert.ok(
     stylesSource.includes('.panel-operator-console .operator-workspace-card-signal[data-signal-density="compact"] {'),
