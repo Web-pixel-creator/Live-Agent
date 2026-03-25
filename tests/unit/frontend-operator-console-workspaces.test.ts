@@ -46,6 +46,7 @@ test("operator console exposes a productized workspace chooser and route-aware w
     'id="operatorWorkspaceAuditViewValue"',
     'id="operatorWorkspaceAuditNextValue"',
     'id="operatorWorkspaceAuditModeValue"',
+    'class="operator-workspace-card-status-label">Status</span>',
     'class="operator-workspace-card-mode-label">Mode</span>',
     'class="operator-workspace-card-view-label">View</span>',
     'class="operator-workspace-card-next-label">Next</span>',
@@ -146,6 +147,8 @@ test("operator console exposes a productized workspace chooser and route-aware w
     ".panel-operator-console .operator-workspace-card {",
     '.panel-operator-console .operator-workspace-card[data-workspace-state="fail"] {',
     ".panel-operator-console .operator-workspace-card-footer {",
+    ".panel-operator-console .operator-workspace-card-status {",
+    ".panel-operator-console .operator-workspace-card-status-label {",
     ".panel-operator-console .operator-workspace-card-meta {",
     ".panel-operator-console .operator-workspace-card-mode {",
     ".panel-operator-console .operator-workspace-card-mode-label {",
@@ -192,6 +195,10 @@ test("operator console exposes a productized workspace chooser and route-aware w
     "README should document the chooser-card view line",
   );
   assert.ok(
+    readmeSource.includes("visible `Status` label for the existing workspace posture pill"),
+    "README should document the chooser-card status label",
+  );
+  assert.ok(
     operatorGuideSource.includes("includes a `Choose workspace` strip (`Overview`, `Approvals`, `Runtime`, `Audit`)"),
     "operator guide should document the operator workspace chooser",
   );
@@ -214,5 +221,9 @@ test("operator console exposes a productized workspace chooser and route-aware w
   assert.ok(
     operatorGuideSource.includes("compact read-only `View` line"),
     "operator guide should document the chooser-card view line",
+  );
+  assert.ok(
+    operatorGuideSource.includes("visible `Status` label for the existing workspace posture pill"),
+    "operator guide should document the chooser-card status label",
   );
 });

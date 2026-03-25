@@ -20319,6 +20319,12 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 72%, var(--muted-foreground));
 }
 
+.panel-operator-console .operator-workspace-card-status {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
 .panel-operator-console .operator-workspace-card-next {
   display: grid;
   gap: 2px;
@@ -20337,6 +20343,14 @@ button:disabled {
 .panel-operator-console .operator-workspace-card-view {
   display: grid;
   gap: 2px;
+}
+
+.panel-operator-console .operator-workspace-card-status-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 60%, var(--muted-foreground));
 }
 
 .panel-operator-console .operator-workspace-card-next-label {
