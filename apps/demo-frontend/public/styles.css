@@ -20238,6 +20238,20 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 54%, var(--muted-foreground));
 }
 
+.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-focus {
+  gap: 1px;
+}
+
+.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-focus-label {
+  color: color-mix(in oklch, var(--foreground) 52%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-focus-value {
+  font-size: 0.63rem;
+  line-height: 1.24;
+  color: color-mix(in oklch, var(--foreground) 72%, var(--muted-foreground));
+}
+
 .panel-operator-console .operator-workspace-card.is-active {
   border-color: color-mix(in oklch, var(--primary) 34%, var(--border-soft));
   background:

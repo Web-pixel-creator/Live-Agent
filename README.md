@@ -196,6 +196,7 @@ Those same chooser-card `Lead signal` blocks now also expose explicit compact `S
 The active `Choose workspace` card now reads as the current working area, while the other cards stay as jump summaries into their respective operator surfaces.
 That same active chooser card now also carries an explicit `Current workspace` marker, so the operator can spot the live working area at a glance.
 That same chooser now keeps full signal metadata on the current workspace card, while inactive cards collapse that metadata into a quieter signal summary for faster scan.
+That same chooser now also keeps the full `Focus / Mode / View / Next` breakdown on the current workspace card, while inactive cards collapse those rows into a single quieter workspace summary.
 Those same chooser cards now also expose a visible `Status` label for the existing workspace posture pill, so chooser, header, and `Focused Evidence` scan more consistently.
 Those same chooser cards now also expose a compact read-only `Next` line, using the same workspace-level next-step state as the active workspace header.
 Those same chooser cards now also expose a compact read-only `Focus` line, aligned with the active workspace header and `Focused Evidence`, so the current lane posture stays consistent before the workspace is opened.

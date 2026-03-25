@@ -80,7 +80,7 @@ test("active choose-workspace card reads as the current working area while other
     "function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {",
     "function resolveOperatorWorkspaceCardLeadSignalSourceValue(presentation) {",
     "function resolveOperatorWorkspaceCardFreshnessValue() {",
-    "function buildOperatorWorkspaceCardSignalSummary(sourceValue, freshnessValue) {",
+    "function buildOperatorWorkspaceCardCompactSignalSummary(sourceValue, freshnessValue) {",
     "Current workspace. Refresh once to hydrate",
     "Current workspace. Inspect the flagged",
     "Current workspace. Review",
@@ -96,8 +96,16 @@ test("active choose-workspace card reads as the current working area while other
     'target.signal.dataset.freshnessState = freshness.state;',
     'const leadSignalSource = resolveOperatorWorkspaceCardLeadSignalSourceValue(presentation);',
     'const freshness = resolveOperatorWorkspaceCardFreshnessValue();',
-    'buildOperatorWorkspaceCardSignalSummary(leadSignalSource, freshness.value)',
-    /setOperatorWorkspaceCardMetaValue\(\s*target\.signalSource,\s*isActive\s*\?\s*leadSignalSource\s*:\s*buildOperatorWorkspaceCardSignalSummary\(leadSignalSource,\s*freshness\.value\),\s*\);/s,
+    'function buildOperatorWorkspaceCardJumpSummary(presentation) {',
+    'const workspaceSummary = buildOperatorWorkspaceCardJumpSummary(presentation);',
+    'target.button.dataset.workspaceSummaryDensity = isActive ? "full" : "compact";',
+    'focusLabel.textContent = isActive ? "Focus" : "Workspace";',
+    'target.focusValue.textContent = isActive ? presentation.routeFacts.focus : workspaceSummary;',
+    'modeSection.hidden = !isActive;',
+    'viewSection.hidden = !isActive;',
+    'nextSection.hidden = !isActive;',
+    'buildOperatorWorkspaceCardCompactSignalSummary(leadSignalSource, freshness.value)',
+    /setOperatorWorkspaceCardMetaValue\(\s*target\.signalSource,\s*isActive\s*\?\s*leadSignalSource\s*:\s*buildOperatorWorkspaceCardCompactSignalSummary\(leadSignalSource,\s*freshness\.value\),\s*\);/s,
     'target.signalFreshness.hidden = !isActive;',
     'target.signalFreshness.setAttribute("aria-hidden", isActive ? "false" : "true");',
     'setOperatorWorkspaceCardMetaValue(target.signalFreshness, freshness.value);',
@@ -124,11 +132,23 @@ test("active choose-workspace card reads as the current working area while other
     "styles.css should style the current workspace-card lead signal role",
   );
   assert.ok(
+    stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-focus {'),
+    "styles.css should compact inactive workspace summaries",
+  );
+  assert.ok(
+    stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-focus-label {'),
+    "styles.css should quiet inactive workspace summary labels",
+  );
+  assert.ok(
+    stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-focus-value {'),
+    "styles.css should soften inactive workspace summary values",
+  );
+  assert.ok(
     stylesSource.includes('.panel-operator-console .operator-workspace-card-signal[data-signal-density="compact"] {'),
     "styles.css should collapse signal metadata for inactive workspace cards",
   );
   assert.ok(
-    stylesSource.includes('.panel-operator-console .operator-workspace-card-signal[data-signal-density="compact"] .operator-workspace-card-signal-meta-label {'),
+    stylesSource.includes('.panel-operator-console .operator-workspace-card-signal[data-signal-density="compact"] .operator-workspace-card-signal-source .operator-workspace-card-signal-meta-label {'),
     "styles.css should quiet signal metadata labels for inactive workspace cards",
   );
   assert.ok(

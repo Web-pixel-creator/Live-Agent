@@ -13429,6 +13429,18 @@ function buildOperatorWorkspaceCardCompactSignalSummary(sourceValue, freshnessVa
   return source || freshness || "Awaiting signal";
 }
 
+function buildOperatorWorkspaceCardJumpSummary(presentation) {
+  const parts = [
+    presentation?.routeFacts?.focus,
+    presentation?.routeFacts?.modeLabel,
+    resolveOperatorWorkspaceCardViewLabel(presentation),
+    presentation?.next,
+  ]
+    .filter((value) => typeof value === "string" && value.trim().length > 0)
+    .map((value) => value.trim());
+  return parts.length > 0 ? parts.join(" · ") : "Awaiting workspace summary";
+}
+
 function readOperatorWorkspaceHeaderSignal(viewId, config) {
   if (viewId === "incidents") {
     const signals = getOperatorSummaryGuideSignals();
@@ -13549,14 +13561,54 @@ function syncOperatorWorkspaceCards() {
               ? `Next: review ${presentation.routeFacts.label.toLowerCase()} before reopening broader triage.`
                 : `Next: keep ${presentation.routeFacts.label.toLowerCase()} steady unless fresher proof is needed.`;
     }
+    const workspaceSummary = buildOperatorWorkspaceCardJumpSummary(presentation);
+    const focusSection =
+      target.focusValue instanceof HTMLElement
+        ? target.focusValue.closest(".operator-workspace-card-focus")
+        : null;
+    const focusLabel =
+      focusSection instanceof HTMLElement
+        ? focusSection.querySelector(".operator-workspace-card-focus-label")
+        : null;
+    const modeSection =
+      target.modeValue instanceof HTMLElement
+        ? target.modeValue.closest(".operator-workspace-card-mode")
+        : null;
+    const viewSection =
+      target.viewValue instanceof HTMLElement
+        ? target.viewValue.closest(".operator-workspace-card-view")
+        : null;
+    const nextSection =
+      target.nextValue instanceof HTMLElement
+        ? target.nextValue.closest(".operator-workspace-card-next")
+        : null;
+    target.button.dataset.workspaceSummaryDensity = isActive ? "full" : "compact";
+    if (focusSection instanceof HTMLElement) {
+      focusSection.dataset.summaryDensity = isActive ? "full" : "compact";
+    }
+    if (focusLabel instanceof HTMLElement) {
+      focusLabel.textContent = isActive ? "Focus" : "Workspace";
+    }
     if (target.focusValue instanceof HTMLElement) {
-      target.focusValue.textContent = presentation.routeFacts.focus;
+      target.focusValue.textContent = isActive ? presentation.routeFacts.focus : workspaceSummary;
+    }
+    if (modeSection instanceof HTMLElement) {
+      modeSection.hidden = !isActive;
+      modeSection.setAttribute("aria-hidden", isActive ? "false" : "true");
     }
     if (target.modeValue instanceof HTMLElement) {
       target.modeValue.textContent = presentation.routeFacts.modeLabel;
     }
+    if (viewSection instanceof HTMLElement) {
+      viewSection.hidden = !isActive;
+      viewSection.setAttribute("aria-hidden", isActive ? "false" : "true");
+    }
     if (target.viewValue instanceof HTMLElement) {
       target.viewValue.textContent = resolveOperatorWorkspaceCardViewLabel(presentation);
+    }
+    if (nextSection instanceof HTMLElement) {
+      nextSection.hidden = !isActive;
+      nextSection.setAttribute("aria-hidden", isActive ? "false" : "true");
     }
     if (target.nextValue instanceof HTMLElement) {
       target.nextValue.textContent = presentation.next;
