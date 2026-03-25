@@ -82,12 +82,20 @@ test("active choose-workspace card reads as the current working area while other
     "function resolveOperatorWorkspaceCardFreshnessValue() {",
     "function buildOperatorWorkspaceCardCompactSignalSummary(sourceValue, freshnessValue) {",
     "function buildOperatorWorkspaceCardCompactMeta(presentation) {",
+    "function buildOperatorWorkspaceCardCompactHint(presentation) {",
     "Current workspace. Refresh once to hydrate",
     "Current workspace. Inspect the flagged",
     "Current workspace. Review",
     "Current workspace. Stay here unless fresher proof is needed elsewhere.",
     'target.meta.dataset.metaDensity = isActive ? "full" : "compact";',
+    'hintNode.textContent = isActive ? presentation.hint : buildOperatorWorkspaceCardCompactHint(presentation);',
+    'hintNode.dataset.hintDensity = isActive ? "full" : "compact";',
     'buildOperatorWorkspaceCardCompactMeta(presentation)',
+    'buildOperatorWorkspaceCardCompactHint(presentation)',
+    'Jump here after refreshing ${workspaceLabel} evidence.',
+    'Jump here to inspect ${workspaceLabel} attention.',
+    'Jump here to review ${workspaceLabel}.',
+    'Jump here when you need ${workspaceLabel} evidence.',
     'Refresh ${workspaceLabel} evidence.',
     'Inspect ${workspaceLabel} signal.',
     'Review ${workspaceLabel} signal.',
@@ -139,6 +147,10 @@ test("active choose-workspace card reads as the current working area while other
   assert.ok(
     stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-current="true"] .operator-workspace-card-signal-label {'),
     "styles.css should style the current workspace-card lead signal role",
+  );
+  assert.ok(
+    stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-hint {'),
+    "styles.css should compact inactive workspace hint copy",
   );
   assert.ok(
     stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-meta {'),

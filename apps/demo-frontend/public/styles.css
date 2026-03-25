@@ -20344,6 +20344,12 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 80%, var(--muted-foreground));
 }
 
+.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-hint {
+  font-size: 0.68rem;
+  line-height: 1.28;
+  color: color-mix(in oklch, var(--foreground) 68%, var(--muted-foreground));
+}
+
 .panel-operator-console .operator-workspace-card-footer {
   width: 100%;
   display: grid;

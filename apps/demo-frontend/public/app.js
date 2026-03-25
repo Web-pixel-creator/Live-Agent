@@ -13469,6 +13469,23 @@ function buildOperatorWorkspaceCardCompactMeta(presentation) {
   return `Keep ${workspaceLabel} steady.`;
 }
 
+function buildOperatorWorkspaceCardCompactHint(presentation) {
+  const workspaceLabel =
+    typeof presentation?.routeFacts?.label === "string" && presentation.routeFacts.label.trim().length > 0
+      ? presentation.routeFacts.label.trim().toLowerCase()
+      : "workspace";
+  if (presentation?.hasManualRefresh !== true) {
+    return `Jump here after refreshing ${workspaceLabel} evidence.`;
+  }
+  if (presentation?.tone === "fail") {
+    return `Jump here to inspect ${workspaceLabel} attention.`;
+  }
+  if (presentation?.tone === "neutral") {
+    return `Jump here to review ${workspaceLabel}.`;
+  }
+  return `Jump here when you need ${workspaceLabel} evidence.`;
+}
+
 function readOperatorWorkspaceHeaderSignal(viewId, config) {
   if (viewId === "incidents") {
     const signals = getOperatorSummaryGuideSignals();
@@ -13557,6 +13574,11 @@ function syncOperatorWorkspaceCards() {
     target.button.dataset.workspaceState = presentation.tone;
     target.button.dataset.workspaceActive = isActive ? "true" : "false";
     target.button.dataset.workspaceCurrent = isActive ? "true" : "false";
+    const hintNode = target.button.querySelector(".operator-workspace-card-hint");
+    if (hintNode instanceof HTMLElement) {
+      hintNode.textContent = isActive ? presentation.hint : buildOperatorWorkspaceCardCompactHint(presentation);
+      hintNode.dataset.hintDensity = isActive ? "full" : "compact";
+    }
     if (target.status instanceof HTMLElement) {
       const cardLabel =
         isActive
