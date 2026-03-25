@@ -3422,6 +3422,7 @@ const el = {
   operatorWorkspaceHeaderFocusValue: document.getElementById("operatorWorkspaceHeaderFocusValue"),
   operatorWorkspaceHeaderNextValue: document.getElementById("operatorWorkspaceHeaderNextValue"),
   operatorWorkspaceHeaderModeValue: document.getElementById("operatorWorkspaceHeaderModeValue"),
+  operatorWorkspaceHeaderViewValue: document.getElementById("operatorWorkspaceHeaderViewValue"),
   operatorWorkspaceHeaderLeadFact: document.getElementById("operatorWorkspaceHeaderLeadFact"),
   operatorWorkspaceHeaderLeadValue: document.getElementById("operatorWorkspaceHeaderLeadValue"),
   operatorWorkspaceHeaderLeadSource: document.getElementById("operatorWorkspaceHeaderLeadSource"),
@@ -3520,6 +3521,7 @@ const el = {
   operatorEvidenceDrawerContextWorkspaceValue: document.getElementById("operatorEvidenceDrawerContextWorkspaceValue"),
   operatorEvidenceDrawerContextFocusValue: document.getElementById("operatorEvidenceDrawerContextFocusValue"),
   operatorEvidenceDrawerContextModeValue: document.getElementById("operatorEvidenceDrawerContextModeValue"),
+  operatorEvidenceDrawerContextStatusValue: document.getElementById("operatorEvidenceDrawerContextStatusValue"),
   operatorEvidenceDrawerContextViewValue: document.getElementById("operatorEvidenceDrawerContextViewValue"),
   operatorEvidenceDrawerContextNextValue: document.getElementById("operatorEvidenceDrawerContextNextValue"),
   operatorEvidenceDrawerContextSignalItem: document.getElementById("operatorEvidenceDrawerContextSignalItem"),
@@ -11818,6 +11820,7 @@ function syncOperatorEvidenceDrawerContext(model, activeView) {
     !(el.operatorEvidenceDrawerContextWorkspaceValue instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextFocusValue instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextModeValue instanceof HTMLElement) ||
+    !(el.operatorEvidenceDrawerContextStatusValue instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextViewValue instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextNextValue instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextSignalItem instanceof HTMLElement) ||
@@ -11834,6 +11837,13 @@ function syncOperatorEvidenceDrawerContext(model, activeView) {
   const leadSignalSource = resolveOperatorWorkspaceLeadSignalSourcePresentation(workspacePresentation);
   const freshness = resolveOperatorWorkspaceFreshnessPresentation();
   const nextValue = resolveOperatorEvidenceDrawerWorkspaceNextValue(activeView, workspacePresentation);
+  const workspaceStatus = !workspacePresentation.hasManualRefresh
+    ? "Hydrate"
+    : workspacePresentation.tone === "fail"
+      ? "Attention"
+      : workspacePresentation.tone === "neutral"
+        ? "Review"
+        : "Steady";
   if (el.operatorEvidenceDrawer instanceof HTMLElement) {
     el.operatorEvidenceDrawer.dataset.evidenceWorkspace =
       workspacePresentation.normalizedView === "incidents" ? "overview" : workspacePresentation.normalizedView;
@@ -11845,6 +11855,7 @@ function syncOperatorEvidenceDrawerContext(model, activeView) {
   el.operatorEvidenceDrawerContextWorkspaceValue.textContent = workspaceLabel;
   el.operatorEvidenceDrawerContextFocusValue.textContent = workspacePresentation.routeFacts.focus;
   el.operatorEvidenceDrawerContextModeValue.textContent = workspacePresentation.routeFacts.modeLabel;
+  el.operatorEvidenceDrawerContextStatusValue.textContent = workspaceStatus;
   el.operatorEvidenceDrawerContextViewValue.textContent = activeView?.label ?? "Latest event";
   el.operatorEvidenceDrawerContextNextValue.textContent = nextValue;
   el.operatorEvidenceDrawerContextSignalItem.dataset.signalState = leadSignal.state;
@@ -13523,6 +13534,7 @@ function syncOperatorWorkspaceHeader() {
     || !(el.operatorWorkspaceHeaderFocusValue instanceof HTMLElement)
     || !(el.operatorWorkspaceHeaderNextValue instanceof HTMLElement)
     || !(el.operatorWorkspaceHeaderModeValue instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderViewValue instanceof HTMLElement)
     || !(el.operatorWorkspaceHeaderLeadFact instanceof HTMLElement)
     || !(el.operatorWorkspaceHeaderLeadValue instanceof HTMLElement)
     || !(el.operatorWorkspaceHeaderLeadSource instanceof HTMLElement)
@@ -13548,6 +13560,7 @@ function syncOperatorWorkspaceHeader() {
   el.operatorWorkspaceHeaderFocusValue.textContent = routeFacts.focus;
   el.operatorWorkspaceHeaderNextValue.textContent = next;
   el.operatorWorkspaceHeaderModeValue.textContent = routeFacts.modeLabel;
+  el.operatorWorkspaceHeaderViewValue.textContent = resolveOperatorWorkspaceCardViewLabel(presentation);
   el.operatorWorkspaceHeaderLeadFact.dataset.signalState = leadSignal.state;
   el.operatorWorkspaceHeaderLeadFact.dataset.freshnessState = freshness.state;
   el.operatorWorkspaceHeaderLeadValue.textContent = leadSignal.value;

@@ -21,6 +21,7 @@ test("operator console exposes a productized workspace chooser and route-aware w
     'id="operatorWorkspaceHeaderFocusValue"',
     'id="operatorWorkspaceHeaderNextValue"',
     'id="operatorWorkspaceHeaderModeValue"',
+    'id="operatorWorkspaceHeaderViewValue"',
     'id="operatorWorkspaceOverviewBtn"',
     'id="operatorWorkspaceOverviewStatus"',
     'id="operatorWorkspaceOverviewMeta"',
@@ -74,6 +75,7 @@ test("operator console exposes a productized workspace chooser and route-aware w
     'operatorWorkspaceHeaderFocusValue: document.getElementById("operatorWorkspaceHeaderFocusValue")',
     'operatorWorkspaceHeaderNextValue: document.getElementById("operatorWorkspaceHeaderNextValue")',
     'operatorWorkspaceHeaderModeValue: document.getElementById("operatorWorkspaceHeaderModeValue")',
+    'operatorWorkspaceHeaderViewValue: document.getElementById("operatorWorkspaceHeaderViewValue")',
     'operatorWorkspaceOverviewBtn: document.getElementById("operatorWorkspaceOverviewBtn")',
     'operatorWorkspaceOverviewStatus: document.getElementById("operatorWorkspaceOverviewStatus")',
     'operatorWorkspaceOverviewMeta: document.getElementById("operatorWorkspaceOverviewMeta")',
@@ -123,6 +125,7 @@ test("operator console exposes a productized workspace chooser and route-aware w
     'el.operatorWorkspaceHeaderFocusValue.textContent = routeFacts.focus;',
     'el.operatorWorkspaceHeaderNextValue.textContent = next;',
     'el.operatorWorkspaceHeaderModeValue.textContent = routeFacts.modeLabel;',
+    'el.operatorWorkspaceHeaderViewValue.textContent = resolveOperatorWorkspaceCardViewLabel(presentation);',
     'setStatusPill(el.operatorWorkspaceChooserStatus, "overview", "neutral");',
     'const activeLabel = activeConfig.id === "incidents" ? "overview active" : `${activeConfig.label} active`;',
     'syncOperatorWorkspaceChooser();',
@@ -173,6 +176,10 @@ test("operator console exposes a productized workspace chooser and route-aware w
     "README should document the route-aware workspace header",
   );
   assert.ok(
+    readmeSource.includes("workspace header now also exposes a compact read-only `View` line"),
+    "README should document the workspace-header view line",
+  );
+  assert.ok(
     readmeSource.includes("workspace chooser cards now also surface their own live state and next-step copy"),
     "README should document state-aware workspace cards",
   );
@@ -191,6 +198,10 @@ test("operator console exposes a productized workspace chooser and route-aware w
   assert.ok(
     operatorGuideSource.includes("route-aware workspace header"),
     "operator guide should document the route-aware workspace header",
+  );
+  assert.ok(
+    operatorGuideSource.includes("workspace header now also exposes a compact read-only `View` line"),
+    "operator guide should document the workspace-header view line",
   );
   assert.ok(
     operatorGuideSource.includes("workspace chooser cards now also surface their own live state and next-step copy"),
