@@ -29,11 +29,12 @@ test("operator workspace chooser keeps exactly one marked card without changing 
     'operatorWorkspaceRuntimeMarker: document.getElementById("operatorWorkspaceRuntimeMarker")',
     'operatorWorkspaceAuditMarker: document.getElementById("operatorWorkspaceAuditMarker")',
     "const markerViewId = activeView !== \"incidents\"",
-    'const markerLabel = activeView !== "incidents" || hasManualRefresh ? "Current" : "Recommended next";',
+    'const markerVariant = activeView !== "incidents" || hasManualRefresh ? "current" : "recommended-next";',
+    'const markerLabel = markerVariant === "current" ? "Current workspace" : "Recommended next";',
     'const shouldShowMarker = viewId === markerViewId;',
     'target.marker.hidden = !shouldShowMarker;',
     'target.marker.textContent = markerLabel;',
-    'target.button.dataset.workspaceMarker = markerLabel.toLowerCase().replaceAll(" ", "-");',
+    'target.button.dataset.workspaceMarker = markerVariant;',
     'delete target.button.dataset.workspaceMarker;',
     'setStatusPill(target.status, cardLabel, presentation.tone);',
     'target.button.dataset.workspaceActive = isActive ? "true" : "false";',
@@ -56,5 +57,13 @@ test("operator workspace chooser keeps exactly one marked card without changing 
   assert.ok(
     operatorGuideSource.includes("`Choose workspace` strip now also marks the current card and the recommended next card"),
     "operator guide should document chooser current/recommended markers",
+  );
+  assert.ok(
+    readmeSource.includes("explicit `Current workspace` marker"),
+    "README should document the explicit current-workspace chooser marker",
+  );
+  assert.ok(
+    operatorGuideSource.includes("explicit `Current workspace` marker"),
+    "operator guide should document the explicit current-workspace chooser marker",
   );
 });

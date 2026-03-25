@@ -45,6 +45,7 @@ Operator workspace note: that same active workspace header now also exposes a re
 Operator workspace note: those same `Choose workspace` cards now also expose a read-only `Lead signal` line, so operators can scan each lane's strongest signal before opening the workspace.
 Operator workspace note: those same chooser-card `Lead signal` blocks now also expose explicit compact `Source` and `Freshness` meta rows, so operators can scan origin and recency before opening the workspace.
 Operator workspace note: the active `Choose workspace` card now reads as the current working area, while the other cards stay as jump summaries into their respective operator surfaces.
+Operator workspace note: that same active chooser card now also carries an explicit `Current workspace` marker, so the operator can spot the live working area at a glance.
 Operator workspace note: those same chooser cards now also expose a visible `Status` label for the existing workspace posture pill, so chooser, header, and `Focused Evidence` scan more consistently.
 Operator workspace note: those same chooser cards now also expose a compact read-only `Next` line, using the same workspace-level next-step state as the active workspace header.
 Operator workspace note: those same chooser cards now also expose a compact read-only `Focus` line, aligned with the active workspace header and `Focused Evidence`, so the current lane posture stays consistent before the workspace is opened.

@@ -85,7 +85,8 @@ test("active choose-workspace card reads as the current working area while other
     "Current workspace. Review",
     "Current workspace. Stay here unless fresher proof is needed elsewhere.",
     'const markerViewId = activeView !== "incidents"',
-    'const markerLabel = activeView !== "incidents" || hasManualRefresh ? "Current" : "Recommended next";',
+    'const markerVariant = activeView !== "incidents" || hasManualRefresh ? "current" : "recommended-next";',
+    'const markerLabel = markerVariant === "current" ? "Current workspace" : "Recommended next";',
     'target.button.dataset.workspaceActive = isActive ? "true" : "false";',
     'target.button.dataset.workspaceCurrent = isActive ? "true" : "false";',
     'target.signal.dataset.signalRole = isActive ? "current" : "jump";',
@@ -96,7 +97,7 @@ test("active choose-workspace card reads as the current working area while other
     'setOperatorWorkspaceCardMetaValue(target.signalSource, leadSignalSource);',
     'setOperatorWorkspaceCardMetaValue(target.signalFreshness, freshness.value);',
     'target.marker.textContent = markerLabel;',
-    'target.button.dataset.workspaceMarker = markerLabel.toLowerCase().replaceAll(" ", "-");',
+    'target.button.dataset.workspaceMarker = markerVariant;',
     /el\.operatorWorkspaceHeaderLeadFact\.dataset\.signalState\s*=\s*leadSignal\.state;/s,
     /el\.operatorWorkspaceHeaderLeadFact\.dataset\.freshnessState\s*=\s*freshness\.state;/s,
     /el\.operatorWorkspaceHeaderLeadValue\.textContent\s*=\s*leadSignal\.value;/s,
@@ -140,6 +141,14 @@ test("active choose-workspace card reads as the current working area while other
   assert.ok(
     operatorGuideSource.includes("active `Choose workspace` card now reads as the current working area"),
     "operator guide should document the current workspace-card reading as the current working area",
+  );
+  assert.ok(
+    readmeSource.includes("explicit `Current workspace` marker"),
+    "README should document the explicit current-workspace chooser marker",
+  );
+  assert.ok(
+    operatorGuideSource.includes("explicit `Current workspace` marker"),
+    "operator guide should document the explicit current-workspace chooser marker",
   );
   assert.ok(
     readmeSource.includes("chooser, header, and evidence signals aligned"),

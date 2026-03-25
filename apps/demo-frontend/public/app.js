@@ -13486,7 +13486,8 @@ function syncOperatorWorkspaceCards() {
     : hasManualRefresh
       ? "incidents"
       : "approvals";
-  const markerLabel = activeView !== "incidents" || hasManualRefresh ? "Current" : "Recommended next";
+  const markerVariant = activeView !== "incidents" || hasManualRefresh ? "current" : "recommended-next";
+  const markerLabel = markerVariant === "current" ? "Current workspace" : "Recommended next";
   for (const [viewId, target] of Object.entries(cardTargets)) {
     if (!(target.button instanceof HTMLButtonElement)) {
       continue;
@@ -13563,7 +13564,7 @@ function syncOperatorWorkspaceCards() {
       target.marker.hidden = !shouldShowMarker;
       if (shouldShowMarker) {
         target.marker.textContent = markerLabel;
-        target.button.dataset.workspaceMarker = markerLabel.toLowerCase().replaceAll(" ", "-");
+        target.button.dataset.workspaceMarker = markerVariant;
       } else {
         target.marker.textContent = "";
         delete target.button.dataset.workspaceMarker;
