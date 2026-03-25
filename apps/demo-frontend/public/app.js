@@ -3371,6 +3371,7 @@ const el = {
   operatorWorkspaceOverviewStatus: document.getElementById("operatorWorkspaceOverviewStatus"),
   operatorWorkspaceOverviewMeta: document.getElementById("operatorWorkspaceOverviewMeta"),
   operatorWorkspaceOverviewFocusValue: document.getElementById("operatorWorkspaceOverviewFocusValue"),
+  operatorWorkspaceOverviewModeValue: document.getElementById("operatorWorkspaceOverviewModeValue"),
   operatorWorkspaceOverviewNextValue: document.getElementById("operatorWorkspaceOverviewNextValue"),
   operatorWorkspaceOverviewSignal: document.getElementById("operatorWorkspaceOverviewSignal"),
   operatorWorkspaceOverviewSignalValue: document.getElementById("operatorWorkspaceOverviewSignalValue"),
@@ -3381,6 +3382,7 @@ const el = {
   operatorWorkspaceApprovalsStatus: document.getElementById("operatorWorkspaceApprovalsStatus"),
   operatorWorkspaceApprovalsMeta: document.getElementById("operatorWorkspaceApprovalsMeta"),
   operatorWorkspaceApprovalsFocusValue: document.getElementById("operatorWorkspaceApprovalsFocusValue"),
+  operatorWorkspaceApprovalsModeValue: document.getElementById("operatorWorkspaceApprovalsModeValue"),
   operatorWorkspaceApprovalsNextValue: document.getElementById("operatorWorkspaceApprovalsNextValue"),
   operatorWorkspaceApprovalsSignal: document.getElementById("operatorWorkspaceApprovalsSignal"),
   operatorWorkspaceApprovalsSignalValue: document.getElementById("operatorWorkspaceApprovalsSignalValue"),
@@ -3391,6 +3393,7 @@ const el = {
   operatorWorkspaceRuntimeStatus: document.getElementById("operatorWorkspaceRuntimeStatus"),
   operatorWorkspaceRuntimeMeta: document.getElementById("operatorWorkspaceRuntimeMeta"),
   operatorWorkspaceRuntimeFocusValue: document.getElementById("operatorWorkspaceRuntimeFocusValue"),
+  operatorWorkspaceRuntimeModeValue: document.getElementById("operatorWorkspaceRuntimeModeValue"),
   operatorWorkspaceRuntimeNextValue: document.getElementById("operatorWorkspaceRuntimeNextValue"),
   operatorWorkspaceRuntimeSignal: document.getElementById("operatorWorkspaceRuntimeSignal"),
   operatorWorkspaceRuntimeSignalValue: document.getElementById("operatorWorkspaceRuntimeSignalValue"),
@@ -3401,6 +3404,7 @@ const el = {
   operatorWorkspaceAuditStatus: document.getElementById("operatorWorkspaceAuditStatus"),
   operatorWorkspaceAuditMeta: document.getElementById("operatorWorkspaceAuditMeta"),
   operatorWorkspaceAuditFocusValue: document.getElementById("operatorWorkspaceAuditFocusValue"),
+  operatorWorkspaceAuditModeValue: document.getElementById("operatorWorkspaceAuditModeValue"),
   operatorWorkspaceAuditNextValue: document.getElementById("operatorWorkspaceAuditNextValue"),
   operatorWorkspaceAuditSignal: document.getElementById("operatorWorkspaceAuditSignal"),
   operatorWorkspaceAuditSignalValue: document.getElementById("operatorWorkspaceAuditSignalValue"),
@@ -13222,6 +13226,7 @@ function getOperatorWorkspaceCardTargets() {
       status: el.operatorWorkspaceOverviewStatus,
       meta: el.operatorWorkspaceOverviewMeta,
       focusValue: el.operatorWorkspaceOverviewFocusValue,
+      modeValue: el.operatorWorkspaceOverviewModeValue,
       nextValue: el.operatorWorkspaceOverviewNextValue,
       signal: el.operatorWorkspaceOverviewSignal,
       signalValue: el.operatorWorkspaceOverviewSignalValue,
@@ -13234,6 +13239,7 @@ function getOperatorWorkspaceCardTargets() {
       status: el.operatorWorkspaceApprovalsStatus,
       meta: el.operatorWorkspaceApprovalsMeta,
       focusValue: el.operatorWorkspaceApprovalsFocusValue,
+      modeValue: el.operatorWorkspaceApprovalsModeValue,
       nextValue: el.operatorWorkspaceApprovalsNextValue,
       signal: el.operatorWorkspaceApprovalsSignal,
       signalValue: el.operatorWorkspaceApprovalsSignalValue,
@@ -13246,6 +13252,7 @@ function getOperatorWorkspaceCardTargets() {
       status: el.operatorWorkspaceRuntimeStatus,
       meta: el.operatorWorkspaceRuntimeMeta,
       focusValue: el.operatorWorkspaceRuntimeFocusValue,
+      modeValue: el.operatorWorkspaceRuntimeModeValue,
       nextValue: el.operatorWorkspaceRuntimeNextValue,
       signal: el.operatorWorkspaceRuntimeSignal,
       signalValue: el.operatorWorkspaceRuntimeSignalValue,
@@ -13258,6 +13265,7 @@ function getOperatorWorkspaceCardTargets() {
       status: el.operatorWorkspaceAuditStatus,
       meta: el.operatorWorkspaceAuditMeta,
       focusValue: el.operatorWorkspaceAuditFocusValue,
+      modeValue: el.operatorWorkspaceAuditModeValue,
       nextValue: el.operatorWorkspaceAuditNextValue,
       signal: el.operatorWorkspaceAuditSignal,
       signalValue: el.operatorWorkspaceAuditSignalValue,
@@ -13439,6 +13447,9 @@ function syncOperatorWorkspaceCards() {
     }
     if (target.focusValue instanceof HTMLElement) {
       target.focusValue.textContent = presentation.routeFacts.focus;
+    }
+    if (target.modeValue instanceof HTMLElement) {
+      target.modeValue.textContent = presentation.routeFacts.modeLabel;
     }
     if (target.nextValue instanceof HTMLElement) {
       target.nextValue.textContent = presentation.next;
