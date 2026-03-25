@@ -23167,6 +23167,12 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 58%, var(--muted-foreground));
 }
 
+.panel-operator-console .operator-evidence-drawer-context-item[data-signal-density="compact"] .operator-evidence-drawer-context-source {
+  font-size: 0.6rem;
+  line-height: 1.22;
+  color: color-mix(in oklch, var(--foreground) 56%, var(--muted-foreground));
+}
+
 .panel-operator-console .operator-evidence-drawer-context-item[data-freshness-state="dormant"] .operator-evidence-drawer-context-freshness {
   color: color-mix(in oklch, var(--foreground) 54%, var(--muted-foreground));
 }

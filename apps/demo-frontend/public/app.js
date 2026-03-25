@@ -11819,6 +11819,18 @@ function resolveOperatorEvidenceDrawerWorkspaceNextValue(activeView, presentatio
   return presentation.next || "Open lane";
 }
 
+function buildOperatorEvidenceDrawerCompactContextSignalMeta(leadSignalSource, freshnessValue) {
+  const sourceText =
+    typeof leadSignalSource === "string" && leadSignalSource.trim().length > 0
+      ? leadSignalSource.trim()
+      : "Source: workspace";
+  const freshnessText =
+    typeof freshnessValue === "string" && freshnessValue.trim().length > 0
+      ? freshnessValue.trim()
+      : "Freshness: awaiting refresh";
+  return `${sourceText} | ${freshnessText}`;
+}
+
 function syncOperatorEvidenceDrawerContext(model, activeView) {
   if (
     !(el.operatorEvidenceDrawerContext instanceof HTMLElement) ||
@@ -11849,6 +11861,7 @@ function syncOperatorEvidenceDrawerContext(model, activeView) {
       : workspacePresentation.tone === "neutral"
         ? "Review"
         : "Steady";
+  const useCompactSignalMeta = leadSignal.state === "dormant" || freshness.state === "dormant";
   if (el.operatorEvidenceDrawer instanceof HTMLElement) {
     el.operatorEvidenceDrawer.dataset.evidenceWorkspace =
       workspacePresentation.normalizedView === "incidents" ? "overview" : workspacePresentation.normalizedView;
@@ -11865,9 +11878,14 @@ function syncOperatorEvidenceDrawerContext(model, activeView) {
   el.operatorEvidenceDrawerContextNextValue.textContent = nextValue;
   el.operatorEvidenceDrawerContextSignalItem.dataset.signalState = leadSignal.state;
   el.operatorEvidenceDrawerContextSignalItem.dataset.freshnessState = freshness.state;
+  el.operatorEvidenceDrawerContextSignalItem.dataset.signalDensity = useCompactSignalMeta ? "compact" : "full";
   el.operatorEvidenceDrawerContextSignalValue.textContent = leadSignal.value;
-  el.operatorEvidenceDrawerContextSignalSource.textContent = leadSignalSource;
+  el.operatorEvidenceDrawerContextSignalSource.textContent = useCompactSignalMeta
+    ? buildOperatorEvidenceDrawerCompactContextSignalMeta(leadSignalSource, freshness.value)
+    : leadSignalSource;
   el.operatorEvidenceDrawerContextSignalFreshness.textContent = freshness.value;
+  el.operatorEvidenceDrawerContextSignalFreshness.hidden = useCompactSignalMeta;
+  el.operatorEvidenceDrawerContextSignalFreshness.setAttribute("aria-hidden", useCompactSignalMeta ? "true" : "false");
 }
 
 function buildOperatorEvidenceDrawerWorkspaceSummary(activeView, model) {
