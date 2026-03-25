@@ -3507,6 +3507,7 @@ const el = {
   operatorEvidenceDrawerContext: document.getElementById("operatorEvidenceDrawerContext"),
   operatorEvidenceDrawerContextWorkspaceValue: document.getElementById("operatorEvidenceDrawerContextWorkspaceValue"),
   operatorEvidenceDrawerContextFocusValue: document.getElementById("operatorEvidenceDrawerContextFocusValue"),
+  operatorEvidenceDrawerContextModeValue: document.getElementById("operatorEvidenceDrawerContextModeValue"),
   operatorEvidenceDrawerContextViewValue: document.getElementById("operatorEvidenceDrawerContextViewValue"),
   operatorEvidenceDrawerContextNextValue: document.getElementById("operatorEvidenceDrawerContextNextValue"),
   operatorEvidenceDrawerContextSignalItem: document.getElementById("operatorEvidenceDrawerContextSignalItem"),
@@ -11804,6 +11805,7 @@ function syncOperatorEvidenceDrawerContext(model, activeView) {
     !(el.operatorEvidenceDrawerContext instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextWorkspaceValue instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextFocusValue instanceof HTMLElement) ||
+    !(el.operatorEvidenceDrawerContextModeValue instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextViewValue instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextNextValue instanceof HTMLElement) ||
     !(el.operatorEvidenceDrawerContextSignalItem instanceof HTMLElement) ||
@@ -11830,6 +11832,7 @@ function syncOperatorEvidenceDrawerContext(model, activeView) {
   el.operatorEvidenceDrawerContext.dataset.workspaceState = workspaceState;
   el.operatorEvidenceDrawerContextWorkspaceValue.textContent = workspaceLabel;
   el.operatorEvidenceDrawerContextFocusValue.textContent = workspacePresentation.routeFacts.focus;
+  el.operatorEvidenceDrawerContextModeValue.textContent = workspacePresentation.routeFacts.modeLabel;
   el.operatorEvidenceDrawerContextViewValue.textContent = activeView?.label ?? "Latest event";
   el.operatorEvidenceDrawerContextNextValue.textContent = nextValue;
   el.operatorEvidenceDrawerContextSignalItem.dataset.signalState = leadSignal.state;

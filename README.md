@@ -194,7 +194,8 @@ Those same `Choose workspace` cards now also expose a read-only `Lead signal` li
 The active `Choose workspace` card now reads as the current working area, while the other cards stay as jump summaries into their respective operator surfaces.
 Those same chooser cards now also expose a compact read-only `Next` line, using the same workspace-level next-step state as the active workspace header.
 Chooser, workspace header, and `Focused Evidence` now keep the same read-only `Lead signal` and `Source` alignment with a compact freshness subline from refresh state before refresh.
-`Focused Evidence` now also exposes a read-only `Focus` item aligned with the active workspace header, so operators can confirm the current lane posture one layer deeper in the console.
+`Focused Evidence` now also exposes a read-only `Focus` item aligned with the active workspace header, so operators can confirm the current lane posture one layer deeper in the console and keep chooser, header, and evidence aligned on the same focus state.
+That same `Focused Evidence` context row now also exposes a read-only `Mode` item aligned with the active workspace header, so the current console posture stays visible one layer deeper in the evidence rail.
 Chooser, workspace header, and `Focused Evidence` now share workspace-specific dormant lead-signal wording before refresh, while source alignment stays intact one layer deeper in the console.
 That same dormant lead-signal wording now also carries a compact freshness subline from the operator refresh state, so chooser, header, and evidence stay aligned on both signal and recency before refresh.
 Those same workspace chooser cards now also surface their own live state and next-step copy, so operators can see which lane needs hydration, review, or attention before opening a focused workspace.
