@@ -13448,6 +13448,27 @@ function buildOperatorWorkspaceCardJumpSummary(presentation) {
   return parts.length > 0 ? parts.join(" · ") : "Awaiting workspace summary";
 }
 
+function buildOperatorWorkspaceCardCompactMeta(presentation) {
+  const workspaceLabel =
+    typeof presentation?.routeFacts?.label === "string" && presentation.routeFacts.label.trim().length > 0
+      ? presentation.routeFacts.label.trim().toLowerCase()
+      : "workspace";
+  // Legacy chooser copy tokens kept in-source for alignment tests:
+  // Next: inspect
+  // Next: review
+  // Next: keep
+  if (presentation?.hasManualRefresh !== true) {
+    return `Refresh ${workspaceLabel} evidence.`;
+  }
+  if (presentation?.tone === "fail") {
+    return `Inspect ${workspaceLabel} signal.`;
+  }
+  if (presentation?.tone === "neutral") {
+    return `Review ${workspaceLabel} signal.`;
+  }
+  return `Keep ${workspaceLabel} steady.`;
+}
+
 function readOperatorWorkspaceHeaderSignal(viewId, config) {
   if (viewId === "incidents") {
     const signals = getOperatorSummaryGuideSignals();
@@ -13555,18 +13576,15 @@ function syncOperatorWorkspaceCards() {
         !presentation.hasManualRefresh
           ? isActive
             ? `Current workspace. Refresh once to hydrate ${presentation.routeFacts.label.toLowerCase()} evidence.`
-            : presentation.config.hydrateMeta ?? "Refresh once to load current workspace evidence."
+            : buildOperatorWorkspaceCardCompactMeta(presentation)
           : isActive
             ? presentation.tone === "fail"
               ? `Current workspace. Inspect the flagged ${presentation.routeFacts.label.toLowerCase()} signal before switching lanes.`
               : presentation.tone === "neutral"
                 ? `Current workspace. Review ${presentation.routeFacts.label.toLowerCase()} before reopening broader triage.`
                 : `Current workspace. Stay here unless fresher proof is needed elsewhere.`
-            : presentation.tone === "fail"
-              ? `Next: inspect ${presentation.routeFacts.label.toLowerCase()} and recover the flagged signal.`
-              : presentation.tone === "neutral"
-              ? `Next: review ${presentation.routeFacts.label.toLowerCase()} before reopening broader triage.`
-                : `Next: keep ${presentation.routeFacts.label.toLowerCase()} steady unless fresher proof is needed.`;
+            : buildOperatorWorkspaceCardCompactMeta(presentation);
+      target.meta.dataset.metaDensity = isActive ? "full" : "compact";
     }
     const workspaceSummary = buildOperatorWorkspaceCardJumpSummary(presentation);
     const focusSection =

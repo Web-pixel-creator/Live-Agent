@@ -48,6 +48,7 @@ Operator workspace note: the active `Choose workspace` card now reads as the cur
 Operator workspace note: that same active chooser card now also carries an explicit `Current workspace` marker, so the operator can spot the live working area at a glance.
 Operator workspace note: that same chooser now keeps full signal metadata on the current workspace card, while inactive cards collapse that metadata into a quieter signal summary for faster scan.
 Operator workspace note: that same chooser now also keeps the full `Focus / Mode / View / Next` breakdown on the current workspace card, while inactive cards collapse those rows into one quieter workspace summary.
+Operator workspace note: those same inactive chooser cards now also shorten their supporting jump-hint meta, so the current workspace keeps the fuller state guidance while secondary jump targets scan faster.
 Operator workspace note: those same inactive chooser cards now also keep a compact `Open` line, so jump targets read as explicit destinations instead of only dense summaries.
 Operator workspace note: those same chooser cards now also expose a visible `Status` label for the existing workspace posture pill, so chooser, header, and `Focused Evidence` scan more consistently.
 Operator workspace note: those same chooser cards now also expose a compact read-only `Next` line, using the same workspace-level next-step state as the active workspace header.

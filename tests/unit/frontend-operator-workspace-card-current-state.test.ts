@@ -81,10 +81,17 @@ test("active choose-workspace card reads as the current working area while other
     "function resolveOperatorWorkspaceCardLeadSignalSourceValue(presentation) {",
     "function resolveOperatorWorkspaceCardFreshnessValue() {",
     "function buildOperatorWorkspaceCardCompactSignalSummary(sourceValue, freshnessValue) {",
+    "function buildOperatorWorkspaceCardCompactMeta(presentation) {",
     "Current workspace. Refresh once to hydrate",
     "Current workspace. Inspect the flagged",
     "Current workspace. Review",
     "Current workspace. Stay here unless fresher proof is needed elsewhere.",
+    'target.meta.dataset.metaDensity = isActive ? "full" : "compact";',
+    'buildOperatorWorkspaceCardCompactMeta(presentation)',
+    'Refresh ${workspaceLabel} evidence.',
+    'Inspect ${workspaceLabel} signal.',
+    'Review ${workspaceLabel} signal.',
+    'Keep ${workspaceLabel} steady.',
     'const markerViewId = activeView !== "incidents"',
     'const markerVariant = activeView !== "incidents" || hasManualRefresh ? "current" : "recommended-next";',
     'const markerLabel = markerVariant === "current" ? "Current workspace" : "Recommended next";',
@@ -132,6 +139,10 @@ test("active choose-workspace card reads as the current working area while other
   assert.ok(
     stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-current="true"] .operator-workspace-card-signal-label {'),
     "styles.css should style the current workspace-card lead signal role",
+  );
+  assert.ok(
+    stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-meta {'),
+    "styles.css should compact inactive workspace meta guidance",
   );
   assert.ok(
     stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-focus {'),
