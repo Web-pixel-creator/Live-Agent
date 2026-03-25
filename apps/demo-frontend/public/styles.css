@@ -20465,16 +20465,33 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 82%, white);
 }
 
+.panel-operator-console .operator-workspace-card-signal-meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 6px;
+  align-items: baseline;
+}
+
 .panel-operator-console .operator-workspace-card-signal-source {
-  color: color-mix(in oklch, var(--foreground) 66%, var(--muted-foreground));
   font-size: 0.61rem;
   line-height: 1.22;
 }
 
 .panel-operator-console .operator-workspace-card-signal-freshness {
-  color: color-mix(in oklch, var(--foreground) 60%, var(--muted-foreground));
   font-size: 0.6rem;
   line-height: 1.22;
+}
+
+.panel-operator-console .operator-workspace-card-signal-meta-label {
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 52%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card-signal-meta-value {
+  min-width: 0;
 }
 
 .panel-operator-console .operator-workspace-card-signal[data-signal-state="dormant"] .operator-workspace-card-signal-value {
@@ -20493,35 +20510,35 @@ button:disabled {
   color: color-mix(in oklch, var(--chart-4) 60%, white);
 }
 
-.panel-operator-console .operator-workspace-card-signal[data-signal-state="dormant"] .operator-workspace-card-signal-source {
+.panel-operator-console .operator-workspace-card-signal[data-signal-state="dormant"] .operator-workspace-card-signal-source .operator-workspace-card-signal-meta-value {
   color: color-mix(in oklch, var(--foreground) 58%, var(--muted-foreground));
 }
 
-.panel-operator-console .operator-workspace-card-signal[data-freshness-state="dormant"] .operator-workspace-card-signal-freshness {
+.panel-operator-console .operator-workspace-card-signal[data-freshness-state="dormant"] .operator-workspace-card-signal-freshness .operator-workspace-card-signal-meta-value {
   color: color-mix(in oklch, var(--foreground) 54%, var(--muted-foreground));
 }
 
-.panel-operator-console .operator-workspace-card-signal[data-signal-state="steady"] .operator-workspace-card-signal-source {
+.panel-operator-console .operator-workspace-card-signal[data-signal-state="steady"] .operator-workspace-card-signal-source .operator-workspace-card-signal-meta-value {
   color: color-mix(in oklch, var(--foreground) 76%, white);
 }
 
-.panel-operator-console .operator-workspace-card-signal[data-freshness-state="steady"] .operator-workspace-card-signal-freshness {
+.panel-operator-console .operator-workspace-card-signal[data-freshness-state="steady"] .operator-workspace-card-signal-freshness .operator-workspace-card-signal-meta-value {
   color: color-mix(in oklch, var(--foreground) 74%, white);
 }
 
-.panel-operator-console .operator-workspace-card-signal[data-signal-state="neutral"] .operator-workspace-card-signal-source {
+.panel-operator-console .operator-workspace-card-signal[data-signal-state="neutral"] .operator-workspace-card-signal-source .operator-workspace-card-signal-meta-value {
   color: color-mix(in oklch, var(--foreground) 68%, var(--muted-foreground));
 }
 
-.panel-operator-console .operator-workspace-card-signal[data-freshness-state="neutral"] .operator-workspace-card-signal-freshness {
+.panel-operator-console .operator-workspace-card-signal[data-freshness-state="neutral"] .operator-workspace-card-signal-freshness .operator-workspace-card-signal-meta-value {
   color: color-mix(in oklch, var(--foreground) 62%, var(--muted-foreground));
 }
 
-.panel-operator-console .operator-workspace-card-signal[data-signal-state="fail"] .operator-workspace-card-signal-source {
+.panel-operator-console .operator-workspace-card-signal[data-signal-state="fail"] .operator-workspace-card-signal-source .operator-workspace-card-signal-meta-value {
   color: color-mix(in oklch, var(--chart-4) 50%, white);
 }
 
-.panel-operator-console .operator-workspace-card-signal[data-freshness-state="fail"] .operator-workspace-card-signal-freshness {
+.panel-operator-console .operator-workspace-card-signal[data-freshness-state="fail"] .operator-workspace-card-signal-freshness .operator-workspace-card-signal-meta-value {
   color: color-mix(in oklch, var(--destructive) 58%, white);
 }
 

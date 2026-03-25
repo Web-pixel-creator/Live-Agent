@@ -44,8 +44,10 @@ test("active choose-workspace card reads as the current working area while other
     'Audit signal pending',
     'Refresh to load audit evidence.',
     'class="operator-workspace-card-signal-label">Lead signal</span>',
-    'class="operator-workspace-card-signal-source">Source: Overview</span>',
-    'class="operator-workspace-card-signal-freshness">Freshness: awaiting refresh</span>',
+    'class="operator-workspace-card-signal-meta-label">Source</span>',
+    'class="operator-workspace-card-signal-meta-label">Freshness</span>',
+    'class="operator-workspace-card-signal-meta-value">Overview</span>',
+    'class="operator-workspace-card-signal-meta-value">awaiting refresh</span>',
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing current workspace-card token: ${token}`);
   }
@@ -76,8 +78,8 @@ test("active choose-workspace card reads as the current working area while other
     'signalFreshness: el.operatorWorkspaceAuditSignalFreshness,',
     'meta: el.operatorWorkspaceAuditMeta,',
     "function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {",
-    "function resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation) {",
-    "function resolveOperatorWorkspaceFreshnessPresentation() {",
+    "function resolveOperatorWorkspaceCardLeadSignalSourceValue(presentation) {",
+    "function resolveOperatorWorkspaceCardFreshnessValue() {",
     "Current workspace. Refresh once to hydrate",
     "Current workspace. Inspect the flagged",
     "Current workspace. Review",
@@ -89,8 +91,10 @@ test("active choose-workspace card reads as the current working area while other
     'target.signal.dataset.signalRole = isActive ? "current" : "jump";',
     /target\.signal\.dataset\.signalState\s*=\s*leadSignal\.state;/s,
     'target.signal.dataset.freshnessState = freshness.state;',
-    'target.signalSource.textContent = leadSignalSource;',
-    'target.signalFreshness.textContent = freshness.value;',
+    'const leadSignalSource = resolveOperatorWorkspaceCardLeadSignalSourceValue(presentation);',
+    'const freshness = resolveOperatorWorkspaceCardFreshnessValue();',
+    'setOperatorWorkspaceCardMetaValue(target.signalSource, leadSignalSource);',
+    'setOperatorWorkspaceCardMetaValue(target.signalFreshness, freshness.value);',
     'target.marker.textContent = markerLabel;',
     'target.button.dataset.workspaceMarker = markerLabel.toLowerCase().replaceAll(" ", "-");',
     /el\.operatorWorkspaceHeaderLeadFact\.dataset\.signalState\s*=\s*leadSignal\.state;/s,
@@ -112,6 +116,14 @@ test("active choose-workspace card reads as the current working area while other
   assert.ok(
     stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-current="true"] .operator-workspace-card-signal-label {'),
     "styles.css should style the current workspace-card lead signal role",
+  );
+  assert.ok(
+    stylesSource.includes('.panel-operator-console .operator-workspace-card-signal-meta-label {'),
+    "styles.css should style the workspace-card signal meta labels",
+  );
+  assert.ok(
+    stylesSource.includes('.panel-operator-console .operator-workspace-card-signal-meta-value {'),
+    "styles.css should style the workspace-card signal meta values",
   );
   assert.ok(
     stylesSource.includes('.panel-operator-console .operator-workspace-card-signal-source {'),

@@ -192,6 +192,7 @@ That chooser now feeds a route-aware workspace header inside `Operator Console`,
 That same workspace header now also exposes a read-only `Lead signal` fact, so the current workspace can surface its strongest signal without changing the header navigation model.
 That same active workspace header now also exposes a read-only `Status` fact aligned with the active workspace posture before and after refresh, so the current lane state stays visible in the header itself.
 Those same `Choose workspace` cards now also expose a read-only `Lead signal` line, so operators can scan each lane's strongest signal before opening the workspace.
+Those same chooser-card `Lead signal` blocks now also expose explicit compact `Source` and `Freshness` meta rows, so operators can scan origin and recency before opening the workspace.
 The active `Choose workspace` card now reads as the current working area, while the other cards stay as jump summaries into their respective operator surfaces.
 Those same chooser cards now also expose a visible `Status` label for the existing workspace posture pill, so chooser, header, and `Focused Evidence` scan more consistently.
 Those same chooser cards now also expose a compact read-only `Next` line, using the same workspace-level next-step state as the active workspace header.

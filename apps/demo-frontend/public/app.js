@@ -13341,6 +13341,16 @@ function resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation) {
   return `Source: ${signalSource}`;
 }
 
+function resolveOperatorWorkspaceCardLeadSignalSourceValue(presentation) {
+  if (typeof presentation?.signal?.label === "string" && presentation.signal.label.trim().length > 0) {
+    return presentation.signal.label.trim();
+  }
+  if (typeof presentation?.routeFacts?.label === "string" && presentation.routeFacts.label.trim().length > 0) {
+    return presentation.routeFacts.label.trim();
+  }
+  return "Workspace";
+}
+
 function resolveOperatorWorkspaceFreshnessPresentation() {
   if (state.operatorSummaryUserRefreshed !== true) {
     return {
@@ -13363,6 +13373,42 @@ function resolveOperatorWorkspaceFreshnessPresentation() {
     value: `Freshness: ${refreshStamp || "awaiting refresh"}`,
     state: "steady",
   };
+}
+
+function resolveOperatorWorkspaceCardFreshnessValue() {
+  if (state.operatorSummaryUserRefreshed !== true) {
+    return {
+      value: "awaiting refresh",
+      state: "dormant",
+    };
+  }
+
+  const refreshLabel = getOperatorEvidenceDrawerRefreshLabel();
+  const refreshStamp = getOperatorEvidenceDrawerRefreshStamp(refreshLabel);
+
+  if (state.operatorLastRefreshState === "failed") {
+    return {
+      value: "refresh failed",
+      state: "fail",
+    };
+  }
+
+  return {
+    value: refreshStamp || "awaiting refresh",
+    state: "steady",
+  };
+}
+
+function setOperatorWorkspaceCardMetaValue(node, value) {
+  if (!(node instanceof HTMLElement)) {
+    return;
+  }
+  const valueNode = node.querySelector(".operator-workspace-card-signal-meta-value");
+  if (valueNode instanceof HTMLElement) {
+    valueNode.textContent = value;
+    return;
+  }
+  node.textContent = value;
 }
 
 function readOperatorWorkspaceHeaderSignal(viewId, config) {
@@ -13447,8 +13493,8 @@ function syncOperatorWorkspaceCards() {
     }
     const presentation = getOperatorWorkspacePresentationState(viewId);
     const isActive = viewId === activeView;
-    const leadSignalSource = resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation);
-    const freshness = resolveOperatorWorkspaceFreshnessPresentation();
+    const leadSignalSource = resolveOperatorWorkspaceCardLeadSignalSourceValue(presentation);
+    const freshness = resolveOperatorWorkspaceCardFreshnessValue();
     target.button.dataset.workspaceState = presentation.tone;
     target.button.dataset.workspaceActive = isActive ? "true" : "false";
     target.button.dataset.workspaceCurrent = isActive ? "true" : "false";
@@ -13506,11 +13552,11 @@ function syncOperatorWorkspaceCards() {
       target.signalValue.textContent = leadSignal.value;
     }
     if (target.signalSource instanceof HTMLElement) {
-      target.signalSource.textContent = leadSignalSource;
+      setOperatorWorkspaceCardMetaValue(target.signalSource, leadSignalSource);
     }
     if (target.signalFreshness instanceof HTMLElement) {
       target.signalFreshness.dataset.freshnessState = freshness.state;
-      target.signalFreshness.textContent = freshness.value;
+      setOperatorWorkspaceCardMetaValue(target.signalFreshness, freshness.value);
     }
     if (target.marker instanceof HTMLElement) {
       const shouldShowMarker = viewId === markerViewId;
