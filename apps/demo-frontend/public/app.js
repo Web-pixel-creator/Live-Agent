@@ -13411,6 +13411,24 @@ function setOperatorWorkspaceCardMetaValue(node, value) {
   node.textContent = value;
 }
 
+function buildOperatorWorkspaceCardSignalSummary(sourceValue, freshnessValue) {
+  const source = typeof sourceValue === "string" ? sourceValue.trim() : "";
+  const freshness = typeof freshnessValue === "string" ? freshnessValue.trim() : "";
+  if (source && freshness) {
+    return `${source} · ${freshness}`;
+  }
+  return source || freshness || "Awaiting signal";
+}
+
+function buildOperatorWorkspaceCardCompactSignalSummary(sourceValue, freshnessValue) {
+  const source = typeof sourceValue === "string" ? sourceValue.trim() : "";
+  const freshness = typeof freshnessValue === "string" ? freshnessValue.trim() : "";
+  if (source && freshness) {
+    return `${source} | ${freshness}`;
+  }
+  return source || freshness || "Awaiting signal";
+}
+
 function readOperatorWorkspaceHeaderSignal(viewId, config) {
   if (viewId === "incidents") {
     const signals = getOperatorSummaryGuideSignals();
@@ -13548,15 +13566,21 @@ function syncOperatorWorkspaceCards() {
       target.signal.dataset.signalState = leadSignal.state;
       target.signal.dataset.freshnessState = freshness.state;
       target.signal.dataset.signalRole = isActive ? "current" : "jump";
+      target.signal.dataset.signalDensity = isActive ? "full" : "compact";
     }
     if (target.signalValue instanceof HTMLElement) {
       target.signalValue.textContent = leadSignal.value;
     }
     if (target.signalSource instanceof HTMLElement) {
-      setOperatorWorkspaceCardMetaValue(target.signalSource, leadSignalSource);
+      setOperatorWorkspaceCardMetaValue(
+        target.signalSource,
+        isActive ? leadSignalSource : buildOperatorWorkspaceCardCompactSignalSummary(leadSignalSource, freshness.value),
+      );
     }
     if (target.signalFreshness instanceof HTMLElement) {
       target.signalFreshness.dataset.freshnessState = freshness.state;
+      target.signalFreshness.hidden = !isActive;
+      target.signalFreshness.setAttribute("aria-hidden", isActive ? "false" : "true");
       setOperatorWorkspaceCardMetaValue(target.signalFreshness, freshness.value);
     }
     if (target.marker instanceof HTMLElement) {

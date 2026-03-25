@@ -138,7 +138,12 @@ test("operator console exposes a productized workspace chooser and route-aware w
     'target.nextValue.textContent = presentation.next;',
     'const leadSignalSource = resolveOperatorWorkspaceCardLeadSignalSourceValue(presentation);',
     'const freshness = resolveOperatorWorkspaceCardFreshnessValue();',
-    'setOperatorWorkspaceCardMetaValue(target.signalSource, leadSignalSource);',
+    'function buildOperatorWorkspaceCardSignalSummary(sourceValue, freshnessValue) {',
+    /setOperatorWorkspaceCardMetaValue\(\s*target\.signalSource,\s*isActive\s*\?\s*leadSignalSource\s*:\s*buildOperatorWorkspaceCardSignalSummary\(leadSignalSource,\s*freshness\.value\),\s*\);/s,
+    'buildOperatorWorkspaceCardSignalSummary(leadSignalSource, freshness.value)',
+    'target.signal.dataset.signalDensity = isActive ? "full" : "compact";',
+    'target.signalFreshness.hidden = !isActive;',
+    'target.signalFreshness.setAttribute("aria-hidden", isActive ? "false" : "true");',
     'setOperatorWorkspaceCardMetaValue(target.signalFreshness, freshness.value);',
     'return "Workspace";',
     'value: "awaiting refresh",',
@@ -160,7 +165,11 @@ test("operator console exposes a productized workspace chooser and route-aware w
     'syncOperatorWorkspaceCards();',
     'syncOperatorWorkspaceHeader();',
   ]) {
-    assert.ok(appSource.includes(token), `app.js missing workspace chooser token: ${token}`);
+    if (token instanceof RegExp) {
+      assert.match(appSource, token, `app.js missing workspace chooser token: ${token}`);
+    } else {
+      assert.ok(appSource.includes(token), `app.js missing workspace chooser token: ${token}`);
+    }
   }
 
   for (const token of [
@@ -195,6 +204,10 @@ test("operator console exposes a productized workspace chooser and route-aware w
     ".panel-operator-console .operator-workspace-card-signal-meta {",
     ".panel-operator-console .operator-workspace-card-signal-meta-label {",
     ".panel-operator-console .operator-workspace-card-signal-meta-value {",
+    '.panel-operator-console .operator-workspace-card-signal[data-signal-density="compact"] {',
+    '.panel-operator-console .operator-workspace-card-signal[data-signal-density="compact"] .operator-workspace-card-signal-meta-label {',
+    '.panel-operator-console .operator-workspace-card-signal[data-signal-density="compact"] .operator-workspace-card-signal-source {',
+    '.panel-operator-console .operator-workspace-card-signal[data-signal-density="compact"] .operator-workspace-card-signal-source .operator-workspace-card-signal-meta-value {',
     '.panel-operator-console .operator-workspace-card-signal[data-signal-state="dormant"] .operator-workspace-card-signal-source .operator-workspace-card-signal-meta-value {',
     '.panel-operator-console .operator-workspace-card-signal[data-freshness-state="dormant"] .operator-workspace-card-signal-freshness .operator-workspace-card-signal-meta-value {',
     '.panel-operator-console .operator-workspace-card-signal[data-signal-state="steady"] .operator-workspace-card-signal-source .operator-workspace-card-signal-meta-value {',

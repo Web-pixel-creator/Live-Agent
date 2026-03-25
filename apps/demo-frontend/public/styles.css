@@ -20494,6 +20494,24 @@ button:disabled {
   min-width: 0;
 }
 
+.panel-operator-console .operator-workspace-card-signal[data-signal-density="compact"] {
+  gap: 2px;
+}
+
+.panel-operator-console .operator-workspace-card-signal[data-signal-density="compact"] .operator-workspace-card-signal-source {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.panel-operator-console .operator-workspace-card-signal[data-signal-density="compact"] .operator-workspace-card-signal-source .operator-workspace-card-signal-meta-label {
+  display: none;
+}
+
+.panel-operator-console .operator-workspace-card-signal[data-signal-density="compact"] .operator-workspace-card-signal-source .operator-workspace-card-signal-meta-value {
+  font-size: 0.56rem;
+  line-height: 1.2;
+  color: color-mix(in oklch, var(--foreground) 60%, var(--muted-foreground));
+}
+
 .panel-operator-console .operator-workspace-card-signal[data-signal-state="dormant"] .operator-workspace-card-signal-value {
   color: color-mix(in oklch, var(--foreground) 68%, var(--muted-foreground));
 }
