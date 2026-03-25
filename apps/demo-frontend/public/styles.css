@@ -20334,6 +20334,11 @@ button:disabled {
   gap: 2px;
 }
 
+.panel-operator-console .operator-workspace-card-view {
+  display: grid;
+  gap: 2px;
+}
+
 .panel-operator-console .operator-workspace-card-next-label {
   font-size: 0.58rem;
   font-weight: 700;
@@ -20351,6 +20356,14 @@ button:disabled {
 }
 
 .panel-operator-console .operator-workspace-card-mode-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--foreground) 60%, var(--muted-foreground));
+}
+
+.panel-operator-console .operator-workspace-card-view-label {
   font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -20376,6 +20389,12 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 84%, white);
 }
 
+.panel-operator-console .operator-workspace-card-view-value {
+  font-size: 0.68rem;
+  line-height: 1.28;
+  color: color-mix(in oklch, var(--foreground) 84%, white);
+}
+
 .panel-operator-console .operator-workspace-card[data-workspace-state="neutral"] .operator-workspace-card-next-value {
   color: color-mix(in oklch, var(--foreground) 78%, var(--muted-foreground));
 }
@@ -20388,6 +20407,10 @@ button:disabled {
   color: color-mix(in oklch, var(--foreground) 78%, var(--muted-foreground));
 }
 
+.panel-operator-console .operator-workspace-card[data-workspace-state="neutral"] .operator-workspace-card-view-value {
+  color: color-mix(in oklch, var(--foreground) 78%, var(--muted-foreground));
+}
+
 .panel-operator-console .operator-workspace-card[data-workspace-state="fail"] .operator-workspace-card-next-value {
   color: color-mix(in oklch, var(--destructive) 60%, white);
 }
@@ -20397,6 +20420,10 @@ button:disabled {
 }
 
 .panel-operator-console .operator-workspace-card[data-workspace-state="fail"] .operator-workspace-card-mode-value {
+  color: color-mix(in oklch, var(--destructive) 60%, white);
+}
+
+.panel-operator-console .operator-workspace-card[data-workspace-state="fail"] .operator-workspace-card-view-value {
   color: color-mix(in oklch, var(--destructive) 60%, white);
 }
 

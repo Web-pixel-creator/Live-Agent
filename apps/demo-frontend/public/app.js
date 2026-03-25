@@ -3372,6 +3372,7 @@ const el = {
   operatorWorkspaceOverviewMeta: document.getElementById("operatorWorkspaceOverviewMeta"),
   operatorWorkspaceOverviewFocusValue: document.getElementById("operatorWorkspaceOverviewFocusValue"),
   operatorWorkspaceOverviewModeValue: document.getElementById("operatorWorkspaceOverviewModeValue"),
+  operatorWorkspaceOverviewViewValue: document.getElementById("operatorWorkspaceOverviewViewValue"),
   operatorWorkspaceOverviewNextValue: document.getElementById("operatorWorkspaceOverviewNextValue"),
   operatorWorkspaceOverviewSignal: document.getElementById("operatorWorkspaceOverviewSignal"),
   operatorWorkspaceOverviewSignalValue: document.getElementById("operatorWorkspaceOverviewSignalValue"),
@@ -3383,6 +3384,7 @@ const el = {
   operatorWorkspaceApprovalsMeta: document.getElementById("operatorWorkspaceApprovalsMeta"),
   operatorWorkspaceApprovalsFocusValue: document.getElementById("operatorWorkspaceApprovalsFocusValue"),
   operatorWorkspaceApprovalsModeValue: document.getElementById("operatorWorkspaceApprovalsModeValue"),
+  operatorWorkspaceApprovalsViewValue: document.getElementById("operatorWorkspaceApprovalsViewValue"),
   operatorWorkspaceApprovalsNextValue: document.getElementById("operatorWorkspaceApprovalsNextValue"),
   operatorWorkspaceApprovalsSignal: document.getElementById("operatorWorkspaceApprovalsSignal"),
   operatorWorkspaceApprovalsSignalValue: document.getElementById("operatorWorkspaceApprovalsSignalValue"),
@@ -3394,6 +3396,7 @@ const el = {
   operatorWorkspaceRuntimeMeta: document.getElementById("operatorWorkspaceRuntimeMeta"),
   operatorWorkspaceRuntimeFocusValue: document.getElementById("operatorWorkspaceRuntimeFocusValue"),
   operatorWorkspaceRuntimeModeValue: document.getElementById("operatorWorkspaceRuntimeModeValue"),
+  operatorWorkspaceRuntimeViewValue: document.getElementById("operatorWorkspaceRuntimeViewValue"),
   operatorWorkspaceRuntimeNextValue: document.getElementById("operatorWorkspaceRuntimeNextValue"),
   operatorWorkspaceRuntimeSignal: document.getElementById("operatorWorkspaceRuntimeSignal"),
   operatorWorkspaceRuntimeSignalValue: document.getElementById("operatorWorkspaceRuntimeSignalValue"),
@@ -3405,6 +3408,7 @@ const el = {
   operatorWorkspaceAuditMeta: document.getElementById("operatorWorkspaceAuditMeta"),
   operatorWorkspaceAuditFocusValue: document.getElementById("operatorWorkspaceAuditFocusValue"),
   operatorWorkspaceAuditModeValue: document.getElementById("operatorWorkspaceAuditModeValue"),
+  operatorWorkspaceAuditViewValue: document.getElementById("operatorWorkspaceAuditViewValue"),
   operatorWorkspaceAuditNextValue: document.getElementById("operatorWorkspaceAuditNextValue"),
   operatorWorkspaceAuditSignal: document.getElementById("operatorWorkspaceAuditSignal"),
   operatorWorkspaceAuditSignalValue: document.getElementById("operatorWorkspaceAuditSignalValue"),
@@ -13227,6 +13231,7 @@ function getOperatorWorkspaceCardTargets() {
       meta: el.operatorWorkspaceOverviewMeta,
       focusValue: el.operatorWorkspaceOverviewFocusValue,
       modeValue: el.operatorWorkspaceOverviewModeValue,
+      viewValue: el.operatorWorkspaceOverviewViewValue,
       nextValue: el.operatorWorkspaceOverviewNextValue,
       signal: el.operatorWorkspaceOverviewSignal,
       signalValue: el.operatorWorkspaceOverviewSignalValue,
@@ -13240,6 +13245,7 @@ function getOperatorWorkspaceCardTargets() {
       meta: el.operatorWorkspaceApprovalsMeta,
       focusValue: el.operatorWorkspaceApprovalsFocusValue,
       modeValue: el.operatorWorkspaceApprovalsModeValue,
+      viewValue: el.operatorWorkspaceApprovalsViewValue,
       nextValue: el.operatorWorkspaceApprovalsNextValue,
       signal: el.operatorWorkspaceApprovalsSignal,
       signalValue: el.operatorWorkspaceApprovalsSignalValue,
@@ -13253,6 +13259,7 @@ function getOperatorWorkspaceCardTargets() {
       meta: el.operatorWorkspaceRuntimeMeta,
       focusValue: el.operatorWorkspaceRuntimeFocusValue,
       modeValue: el.operatorWorkspaceRuntimeModeValue,
+      viewValue: el.operatorWorkspaceRuntimeViewValue,
       nextValue: el.operatorWorkspaceRuntimeNextValue,
       signal: el.operatorWorkspaceRuntimeSignal,
       signalValue: el.operatorWorkspaceRuntimeSignalValue,
@@ -13266,6 +13273,7 @@ function getOperatorWorkspaceCardTargets() {
       meta: el.operatorWorkspaceAuditMeta,
       focusValue: el.operatorWorkspaceAuditFocusValue,
       modeValue: el.operatorWorkspaceAuditModeValue,
+      viewValue: el.operatorWorkspaceAuditViewValue,
       nextValue: el.operatorWorkspaceAuditNextValue,
       signal: el.operatorWorkspaceAuditSignal,
       signalValue: el.operatorWorkspaceAuditSignalValue,
@@ -13274,6 +13282,25 @@ function getOperatorWorkspaceCardTargets() {
       marker: el.operatorWorkspaceAuditMarker,
     },
   };
+}
+
+function resolveOperatorWorkspaceCardViewLabel(presentation) {
+  const workspaceId = normalizeOperatorSavedView(presentation?.normalizedView) || "incidents";
+  const variant = !presentation?.hasManualRefresh
+    ? "dormant"
+    : presentation?.tone === "fail"
+      ? "fail"
+      : presentation?.tone === "ok"
+        ? "ok"
+        : "neutral";
+  const defaultViewId = resolveOperatorEvidenceDrawerDefaultView({
+    activeSavedViewId: workspaceId,
+    variant,
+  });
+  return resolveOperatorEvidenceDrawerWorkspaceTabLabel(defaultViewId, {
+    activeSavedViewId: workspaceId,
+    variant,
+  });
 }
 
 function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {
@@ -13450,6 +13477,9 @@ function syncOperatorWorkspaceCards() {
     }
     if (target.modeValue instanceof HTMLElement) {
       target.modeValue.textContent = presentation.routeFacts.modeLabel;
+    }
+    if (target.viewValue instanceof HTMLElement) {
+      target.viewValue.textContent = resolveOperatorWorkspaceCardViewLabel(presentation);
     }
     if (target.nextValue instanceof HTMLElement) {
       target.nextValue.textContent = presentation.next;

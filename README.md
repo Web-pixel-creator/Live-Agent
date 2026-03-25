@@ -195,6 +195,7 @@ The active `Choose workspace` card now reads as the current working area, while 
 Those same chooser cards now also expose a compact read-only `Next` line, using the same workspace-level next-step state as the active workspace header.
 Those same chooser cards now also expose a compact read-only `Focus` line, aligned with the active workspace header and `Focused Evidence`, so the current lane posture stays consistent before the workspace is opened.
 Those same chooser cards now also expose a compact read-only `Mode` line, aligned with the active workspace header and `Focused Evidence`, so the current workspace posture stays consistent before the workspace is opened.
+Those same chooser cards now also expose a compact read-only `View` line, aligned with the default `Focused Evidence` proof path for that workspace, so operators can see the first evidence posture before opening it.
 Chooser, workspace header, and `Focused Evidence` now keep the same read-only `Lead signal` and `Source` alignment with a compact freshness subline from refresh state before refresh.
 `Focused Evidence` now also exposes a read-only `Focus` item aligned with the active workspace header, so operators can confirm the current lane posture one layer deeper in the console and keep chooser, header, and evidence aligned on the same focus state.
 That same `Focused Evidence` context row now also exposes a read-only `Mode` item aligned with the active workspace header, so the current console posture stays visible one layer deeper in the evidence rail.
