@@ -3422,6 +3422,7 @@ const el = {
   operatorWorkspaceHeaderFocusValue: document.getElementById("operatorWorkspaceHeaderFocusValue"),
   operatorWorkspaceHeaderNextValue: document.getElementById("operatorWorkspaceHeaderNextValue"),
   operatorWorkspaceHeaderModeValue: document.getElementById("operatorWorkspaceHeaderModeValue"),
+  operatorWorkspaceHeaderStatusValue: document.getElementById("operatorWorkspaceHeaderStatusValue"),
   operatorWorkspaceHeaderViewValue: document.getElementById("operatorWorkspaceHeaderViewValue"),
   operatorWorkspaceHeaderLeadFact: document.getElementById("operatorWorkspaceHeaderLeadFact"),
   operatorWorkspaceHeaderLeadValue: document.getElementById("operatorWorkspaceHeaderLeadValue"),
@@ -13534,6 +13535,7 @@ function syncOperatorWorkspaceHeader() {
     || !(el.operatorWorkspaceHeaderFocusValue instanceof HTMLElement)
     || !(el.operatorWorkspaceHeaderNextValue instanceof HTMLElement)
     || !(el.operatorWorkspaceHeaderModeValue instanceof HTMLElement)
+    || !(el.operatorWorkspaceHeaderStatusValue instanceof HTMLElement)
     || !(el.operatorWorkspaceHeaderViewValue instanceof HTMLElement)
     || !(el.operatorWorkspaceHeaderLeadFact instanceof HTMLElement)
     || !(el.operatorWorkspaceHeaderLeadValue instanceof HTMLElement)
@@ -13549,6 +13551,13 @@ function syncOperatorWorkspaceHeader() {
   const leadSignal = leadSignalValue;
   const leadSignalSource = resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation);
   const freshness = resolveOperatorWorkspaceFreshnessPresentation();
+  const workspaceStatus = !presentation.hasManualRefresh
+    ? "Hydrate"
+    : tone === "fail"
+      ? "Attention"
+      : tone === "neutral"
+        ? "Review"
+        : "Steady";
 
   el.operatorWorkspaceHeader.dataset.workspace = normalizedView;
   el.operatorWorkspaceHeader.dataset.workspaceState = tone;
@@ -13560,6 +13569,7 @@ function syncOperatorWorkspaceHeader() {
   el.operatorWorkspaceHeaderFocusValue.textContent = routeFacts.focus;
   el.operatorWorkspaceHeaderNextValue.textContent = next;
   el.operatorWorkspaceHeaderModeValue.textContent = routeFacts.modeLabel;
+  el.operatorWorkspaceHeaderStatusValue.textContent = workspaceStatus;
   el.operatorWorkspaceHeaderViewValue.textContent = resolveOperatorWorkspaceCardViewLabel(presentation);
   el.operatorWorkspaceHeaderLeadFact.dataset.signalState = leadSignal.state;
   el.operatorWorkspaceHeaderLeadFact.dataset.freshnessState = freshness.state;

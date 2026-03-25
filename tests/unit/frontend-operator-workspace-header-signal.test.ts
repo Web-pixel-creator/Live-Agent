@@ -11,11 +11,13 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
   const operatorGuideSource = readFileSync(resolve(process.cwd(), "docs", "operator-guide.md"), "utf8");
 
   for (const token of [
+    'id="operatorWorkspaceHeaderStatusValue"',
     'id="operatorWorkspaceHeaderLeadFact"',
     'id="operatorWorkspaceHeaderLeadValue"',
     'id="operatorWorkspaceHeaderLeadSource"',
     'id="operatorWorkspaceHeaderLeadFreshness"',
     'id="operatorWorkspaceHeaderNextValue"',
+    'class="operator-workspace-header-fact-label">Status</span>',
     'class="operator-workspace-header-fact-label">Next</span>',
     "Lead signal",
     "Overview signal pending",
@@ -27,11 +29,13 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
   }
 
   for (const token of [
+    'operatorWorkspaceHeaderStatusValue: document.getElementById("operatorWorkspaceHeaderStatusValue")',
     'operatorWorkspaceHeaderLeadFact: document.getElementById("operatorWorkspaceHeaderLeadFact")',
     'operatorWorkspaceHeaderLeadValue: document.getElementById("operatorWorkspaceHeaderLeadValue")',
     'operatorWorkspaceHeaderLeadSource: document.getElementById("operatorWorkspaceHeaderLeadSource")',
     'operatorWorkspaceHeaderLeadFreshness: document.getElementById("operatorWorkspaceHeaderLeadFreshness")',
     'operatorWorkspaceHeaderNextValue: document.getElementById("operatorWorkspaceHeaderNextValue")',
+    "|| !(el.operatorWorkspaceHeaderStatusValue instanceof HTMLElement)",
     "|| !(el.operatorWorkspaceHeaderLeadFact instanceof HTMLElement)",
     "|| !(el.operatorWorkspaceHeaderLeadValue instanceof HTMLElement)",
     "|| !(el.operatorWorkspaceHeaderLeadFreshness instanceof HTMLElement)",
@@ -45,9 +49,11 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
     'const signalState = presentation?.signal?.variant ?? (presentation?.tone === "ok" ? "steady" : "dormant");',
     'const signalSource =',
     "const presentation = getOperatorWorkspacePresentationState();",
+    "const workspaceStatus = !presentation.hasManualRefresh",
     "const leadSignal = resolveOperatorWorkspaceLeadSignalPresentation(presentation);",
     "const leadSignalSource = resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation);",
     "const freshness = resolveOperatorWorkspaceFreshnessPresentation();",
+    'el.operatorWorkspaceHeaderStatusValue.textContent = workspaceStatus;',
     'el.operatorWorkspaceHeader.dataset.workspaceSignal = leadSignal.state;',
     'el.operatorWorkspaceHeaderLeadFact.dataset.signalState = leadSignal.state;',
     'el.operatorWorkspaceHeaderLeadFact.dataset.freshnessState = freshness.state;',
