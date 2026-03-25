@@ -3370,6 +3370,7 @@ const el = {
   operatorWorkspaceOverviewBtn: document.getElementById("operatorWorkspaceOverviewBtn"),
   operatorWorkspaceOverviewStatus: document.getElementById("operatorWorkspaceOverviewStatus"),
   operatorWorkspaceOverviewMeta: document.getElementById("operatorWorkspaceOverviewMeta"),
+  operatorWorkspaceOverviewFocusValue: document.getElementById("operatorWorkspaceOverviewFocusValue"),
   operatorWorkspaceOverviewNextValue: document.getElementById("operatorWorkspaceOverviewNextValue"),
   operatorWorkspaceOverviewSignal: document.getElementById("operatorWorkspaceOverviewSignal"),
   operatorWorkspaceOverviewSignalValue: document.getElementById("operatorWorkspaceOverviewSignalValue"),
@@ -3379,6 +3380,7 @@ const el = {
   operatorWorkspaceApprovalsBtn: document.getElementById("operatorWorkspaceApprovalsBtn"),
   operatorWorkspaceApprovalsStatus: document.getElementById("operatorWorkspaceApprovalsStatus"),
   operatorWorkspaceApprovalsMeta: document.getElementById("operatorWorkspaceApprovalsMeta"),
+  operatorWorkspaceApprovalsFocusValue: document.getElementById("operatorWorkspaceApprovalsFocusValue"),
   operatorWorkspaceApprovalsNextValue: document.getElementById("operatorWorkspaceApprovalsNextValue"),
   operatorWorkspaceApprovalsSignal: document.getElementById("operatorWorkspaceApprovalsSignal"),
   operatorWorkspaceApprovalsSignalValue: document.getElementById("operatorWorkspaceApprovalsSignalValue"),
@@ -3388,6 +3390,7 @@ const el = {
   operatorWorkspaceRuntimeBtn: document.getElementById("operatorWorkspaceRuntimeBtn"),
   operatorWorkspaceRuntimeStatus: document.getElementById("operatorWorkspaceRuntimeStatus"),
   operatorWorkspaceRuntimeMeta: document.getElementById("operatorWorkspaceRuntimeMeta"),
+  operatorWorkspaceRuntimeFocusValue: document.getElementById("operatorWorkspaceRuntimeFocusValue"),
   operatorWorkspaceRuntimeNextValue: document.getElementById("operatorWorkspaceRuntimeNextValue"),
   operatorWorkspaceRuntimeSignal: document.getElementById("operatorWorkspaceRuntimeSignal"),
   operatorWorkspaceRuntimeSignalValue: document.getElementById("operatorWorkspaceRuntimeSignalValue"),
@@ -3397,6 +3400,7 @@ const el = {
   operatorWorkspaceAuditBtn: document.getElementById("operatorWorkspaceAuditBtn"),
   operatorWorkspaceAuditStatus: document.getElementById("operatorWorkspaceAuditStatus"),
   operatorWorkspaceAuditMeta: document.getElementById("operatorWorkspaceAuditMeta"),
+  operatorWorkspaceAuditFocusValue: document.getElementById("operatorWorkspaceAuditFocusValue"),
   operatorWorkspaceAuditNextValue: document.getElementById("operatorWorkspaceAuditNextValue"),
   operatorWorkspaceAuditSignal: document.getElementById("operatorWorkspaceAuditSignal"),
   operatorWorkspaceAuditSignalValue: document.getElementById("operatorWorkspaceAuditSignalValue"),
@@ -13217,6 +13221,7 @@ function getOperatorWorkspaceCardTargets() {
       button: el.operatorWorkspaceOverviewBtn,
       status: el.operatorWorkspaceOverviewStatus,
       meta: el.operatorWorkspaceOverviewMeta,
+      focusValue: el.operatorWorkspaceOverviewFocusValue,
       nextValue: el.operatorWorkspaceOverviewNextValue,
       signal: el.operatorWorkspaceOverviewSignal,
       signalValue: el.operatorWorkspaceOverviewSignalValue,
@@ -13228,6 +13233,7 @@ function getOperatorWorkspaceCardTargets() {
       button: el.operatorWorkspaceApprovalsBtn,
       status: el.operatorWorkspaceApprovalsStatus,
       meta: el.operatorWorkspaceApprovalsMeta,
+      focusValue: el.operatorWorkspaceApprovalsFocusValue,
       nextValue: el.operatorWorkspaceApprovalsNextValue,
       signal: el.operatorWorkspaceApprovalsSignal,
       signalValue: el.operatorWorkspaceApprovalsSignalValue,
@@ -13239,6 +13245,7 @@ function getOperatorWorkspaceCardTargets() {
       button: el.operatorWorkspaceRuntimeBtn,
       status: el.operatorWorkspaceRuntimeStatus,
       meta: el.operatorWorkspaceRuntimeMeta,
+      focusValue: el.operatorWorkspaceRuntimeFocusValue,
       nextValue: el.operatorWorkspaceRuntimeNextValue,
       signal: el.operatorWorkspaceRuntimeSignal,
       signalValue: el.operatorWorkspaceRuntimeSignalValue,
@@ -13250,6 +13257,7 @@ function getOperatorWorkspaceCardTargets() {
       button: el.operatorWorkspaceAuditBtn,
       status: el.operatorWorkspaceAuditStatus,
       meta: el.operatorWorkspaceAuditMeta,
+      focusValue: el.operatorWorkspaceAuditFocusValue,
       nextValue: el.operatorWorkspaceAuditNextValue,
       signal: el.operatorWorkspaceAuditSignal,
       signalValue: el.operatorWorkspaceAuditSignalValue,
@@ -13428,6 +13436,9 @@ function syncOperatorWorkspaceCards() {
               : presentation.tone === "neutral"
               ? `Next: review ${presentation.routeFacts.label.toLowerCase()} before reopening broader triage.`
                 : `Next: keep ${presentation.routeFacts.label.toLowerCase()} steady unless fresher proof is needed.`;
+    }
+    if (target.focusValue instanceof HTMLElement) {
+      target.focusValue.textContent = presentation.routeFacts.focus;
     }
     if (target.nextValue instanceof HTMLElement) {
       target.nextValue.textContent = presentation.next;
