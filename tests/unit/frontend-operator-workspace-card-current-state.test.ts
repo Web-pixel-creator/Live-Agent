@@ -153,6 +153,14 @@ test("active choose-workspace card reads as the current working area while other
     "styles.css should compact inactive workspace hint copy",
   );
   assert.ok(
+    stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-status {'),
+    "styles.css should tighten inactive workspace status stacks",
+  );
+  assert.ok(
+    stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-status-label {'),
+    "styles.css should hide inactive workspace status labels",
+  );
+  assert.ok(
     stylesSource.includes('.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-meta {'),
     "styles.css should compact inactive workspace meta guidance",
   );
@@ -239,5 +247,13 @@ test("active choose-workspace card reads as the current working area while other
   assert.ok(
     operatorGuideSource.includes("compact freshness subline from the operator refresh state"),
     "operator guide should document the workspace-card lead-signal freshness subline",
+  );
+  assert.ok(
+    readmeSource.includes("full labeled `Status` stack on the current workspace card"),
+    "README should document the quieter pill-first status scan on inactive workspace cards",
+  );
+  assert.ok(
+    operatorGuideSource.includes("full labeled `Status` stack on the current workspace card"),
+    "operator guide should document the quieter pill-first status scan on inactive workspace cards",
   );
 });

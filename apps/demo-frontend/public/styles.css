@@ -20379,6 +20379,14 @@ button:disabled {
   justify-items: start;
 }
 
+.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-status {
+  gap: 0;
+}
+
+.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-status-label {
+  display: none;
+}
+
 .panel-operator-console .operator-workspace-card-next {
   display: grid;
   gap: 2px;

@@ -200,7 +200,7 @@ That same chooser now also keeps the full `Focus / Mode / View / Next` breakdown
 Those same inactive chooser cards now also shorten their supporting jump-hint meta, so the current workspace keeps the fuller state guidance while secondary jump targets scan faster.
 Those same inactive chooser cards now also keep a shorter hint, while the current workspace card retains the fuller hint for active-state guidance.
 Those same inactive chooser cards now also keep a compact `Open` line, so jump targets read as explicit destinations instead of only dense summaries.
-Those same chooser cards now also expose a visible `Status` label for the existing workspace posture pill, so chooser, header, and `Focused Evidence` scan more consistently.
+Those same chooser cards now also keep the full labeled `Status` stack on the current workspace card, while inactive jump cards step back to a quieter pill-first status scan.
 Those same chooser cards now also expose a compact read-only `Next` line, using the same workspace-level next-step state as the active workspace header.
 Those same chooser cards now also expose a compact read-only `Focus` line, aligned with the active workspace header and `Focused Evidence`, so the current lane posture stays consistent before the workspace is opened.
 Those same chooser cards now also expose a compact read-only `Mode` line, aligned with the active workspace header and `Focused Evidence`, so the current workspace posture stays consistent before the workspace is opened.

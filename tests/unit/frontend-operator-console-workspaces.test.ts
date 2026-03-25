@@ -214,6 +214,8 @@ test("operator console exposes a productized workspace chooser and route-aware w
     '.panel-operator-console .operator-workspace-card[data-workspace-state="fail"] {',
     ".panel-operator-console .operator-workspace-card-footer {",
     ".panel-operator-console .operator-workspace-card-status {",
+    '.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-status {',
+    '.panel-operator-console .operator-workspace-card[data-workspace-summary-density="compact"] .operator-workspace-card-status-label {',
     ".panel-operator-console .operator-workspace-card-status-label {",
     ".panel-operator-console .operator-workspace-card-meta {",
     ".panel-operator-console .operator-workspace-card-mode {",
@@ -276,8 +278,8 @@ test("operator console exposes a productized workspace chooser and route-aware w
     "README should document the chooser-card view line",
   );
   assert.ok(
-    readmeSource.includes("visible `Status` label for the existing workspace posture pill"),
-    "README should document the chooser-card status label",
+    readmeSource.includes("full labeled `Status` stack on the current workspace card"),
+    "README should document the quieter pill-first chooser-card status scan",
   );
   assert.ok(
     operatorGuideSource.includes("includes a `Choose workspace` strip (`Overview`, `Approvals`, `Runtime`, `Audit`)"),
@@ -304,7 +306,7 @@ test("operator console exposes a productized workspace chooser and route-aware w
     "operator guide should document the chooser-card view line",
   );
   assert.ok(
-    operatorGuideSource.includes("visible `Status` label for the existing workspace posture pill"),
-    "operator guide should document the chooser-card status label",
+    operatorGuideSource.includes("full labeled `Status` stack on the current workspace card"),
+    "operator guide should document the quieter pill-first chooser-card status scan",
   );
 });
