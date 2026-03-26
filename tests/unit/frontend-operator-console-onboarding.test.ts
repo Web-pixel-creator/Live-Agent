@@ -27,7 +27,10 @@ test("operator console first fold exposes a state-aware refresh-inspect-recover 
     'id="operatorSummaryGuideStepRecoverHint"',
     'id="operatorSummaryGuideStepRecoverStatus"',
     'id="operatorSummaryGuideStepRecoverBtn"',
-    "Inspect the hot workspace",
+    "Refresh overview workspace",
+    "Hydrate the overview workspace before you inspect deeper proof.",
+    "Inspect the highlighted workspace",
+    "After refresh, open the highlighted workspace instead of scanning the whole console.",
     "Recover only if needed",
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing onboarding path token: ${token}`);

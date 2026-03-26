@@ -16,7 +16,7 @@ test("operator desktop active queue collapses visible items into compact action 
 
   const requiredRuntimeTokens = [
     "function buildOperatorPriorityQueueCompactMeta(entry) {",
-    'return "Refresh once, then follow the hot workspace.";',
+    'return "Refresh once, then follow the highlighted workspace.";',
     "function resolveOperatorPriorityQueueCompactTitle(entry) {",
     "function resolveOperatorPriorityQueueCompactActionLabel(config) {",
     'const queueDensity = isDesktopQueue ? "compact" : "default";',
@@ -51,7 +51,7 @@ test("operator desktop active queue collapses visible items into compact action 
     "README missing compact active queue note",
   );
   assert.ok(
-    readmeSource.includes("shorten visible titles and CTA labels (`Hydrate board`, `Refresh`, `Quick Start`, `Lane`)"),
+    readmeSource.includes("shorten visible titles and CTA labels (`Hydrate board`, `Refresh`, `Quick Start`, `Workspace`)"),
     "README missing compact active queue label note",
   );
   assert.ok(
@@ -59,7 +59,7 @@ test("operator desktop active queue collapses visible items into compact action 
     "operator guide missing compact active queue note",
   );
   assert.ok(
-    operatorGuideSource.includes("shorten visible titles and CTA labels (`Hydrate board`, `Refresh`, `Quick Start`, `Lane`)"),
+    operatorGuideSource.includes("shorten visible titles and CTA labels (`Hydrate board`, `Refresh`, `Quick Start`, `Workspace`)"),
     "operator guide missing compact active queue label note",
   );
 });

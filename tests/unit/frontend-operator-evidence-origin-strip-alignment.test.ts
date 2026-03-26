@@ -34,7 +34,7 @@ test("operator focused evidence keeps quiet context chips above the facts grid",
     "function buildOperatorEvidenceDrawerTraceOrigins(details) {",
     "function buildOperatorEvidenceDrawerRecoveryOrigins(details) {",
     "function buildOperatorEvidenceDrawerAuditOrigins(details) {",
-    'label: "Lane"',
+    'label: "Workspace"',
     'label: "View"',
     'label: "Source"',
     'label.className = "operator-evidence-drawer-origin-label";',
@@ -55,11 +55,11 @@ test("operator focused evidence keeps quiet context chips above the facts grid",
   }
 
   assert.ok(
-    readmeSource.includes("quiet context chips (`Lane`, `View`, `Source`)"),
+    readmeSource.includes("quiet context chips (`Workspace`, `View`, `Source`)"),
     "README missing evidence origin note",
   );
   assert.ok(
-    operatorGuideSource.includes("quiet context chips (`Lane`, `View`, `Source`)"),
+    operatorGuideSource.includes("quiet context chips (`Workspace`, `View`, `Source`)"),
     "operator guide missing evidence origin note",
   );
 });

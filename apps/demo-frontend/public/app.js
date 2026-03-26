@@ -8591,8 +8591,8 @@ function syncOperatorSummaryGuidePath(params = {}) {
   if (!hasManualRefresh) {
     syncOperatorSummaryGuidePathStep(refreshStep, {
       state: "current",
-      title: "Refresh the board",
-      hint: "Hydrate the first operator snapshot before you inspect deeper lanes.",
+      title: "Refresh overview workspace",
+      hint: "Hydrate the overview workspace before you inspect deeper proof.",
       statusText: "current",
       statusTone: "neutral",
       buttonLabel: "Refresh Summary",
@@ -8600,8 +8600,8 @@ function syncOperatorSummaryGuidePath(params = {}) {
     });
     syncOperatorSummaryGuidePathStep(inspectStep, {
       state: "next",
-      title: "Inspect the hot workspace",
-      hint: "After refresh, open the loudest workspace instead of scanning the whole console.",
+      title: "Inspect the highlighted workspace",
+      hint: "After refresh, open the highlighted workspace instead of scanning the whole console.",
       statusText: "next",
       statusTone: "neutral",
       buttonLabel: "Open workspace",
@@ -8873,6 +8873,7 @@ function resolveOperatorPriorityQueueCompactActionLabel(config) {
     ["Open Quick Start", "Quick Start"],
     ["Open Playbook", "Playbook"],
     ["Open Lane", "Lane"],
+    ["Open Workspace", "Workspace"],
     ["Open Guardrails", "Guardrails"],
     ["Show All Cards", "All Cards"],
     ["Full Ops View", "Full Ops"],
@@ -8983,7 +8984,7 @@ function createOperatorPriorityQueueSignalEntry(signal) {
             ? `Status: ${statusLabel}. Keep this area quiet unless a new signal appears.`
             : `Status: ${statusLabel}. Confirm with one refresh or one targeted run.`,
     primary: {
-      label: actionConfig?.openLabel ?? "Open Lane",
+      label: actionConfig?.openLabel ?? "Open Workspace",
       actionId: "jump_status_card",
       targetStatusId: signal.id,
     },
@@ -9008,7 +9009,7 @@ function buildOperatorPriorityQueueCompactMeta(entry) {
   const normalizedPrimaryLabel = primaryLabel.toLowerCase();
 
   if (key === "hydrate_board") {
-    return "Refresh once, then follow the hot workspace.";
+    return "Refresh once, then follow the highlighted workspace.";
   }
   if (key === "refresh_failed") {
     return "Retry summary before trusting stale evidence.";
@@ -9022,31 +9023,31 @@ function buildOperatorPriorityQueueCompactMeta(entry) {
   if (key === "queue_empty") {
     return "Refresh after the next live action.";
   }
-  if (normalizedPrimaryLabel === "open lane") {
+  if (normalizedPrimaryLabel === "open lane" || normalizedPrimaryLabel === "open workspace") {
     if (tone === "fail") {
-      return "Open the hot lane first.";
+      return "Open the highlighted workspace first.";
     }
     if (tone === "stale") {
-      return "Refresh or reopen the stale lane.";
+      return "Refresh or reopen the stale workspace.";
     }
     if (tone === "ok") {
       return "Keep monitoring.";
     }
-    return "Confirm the highlighted lane.";
+    return "Confirm the highlighted workspace.";
   }
   if (primaryLabel) {
     return `${primaryLabel} first.`;
   }
   if (tone === "fail") {
-    return "Open the hot lane first.";
+    return "Open the highlighted workspace first.";
   }
   if (tone === "stale") {
-    return "Refresh the stale lane first.";
+    return "Refresh the stale workspace first.";
   }
   if (tone === "ok") {
     return "Keep monitoring.";
   }
-  return "Confirm the highlighted lane.";
+  return "Confirm the highlighted workspace.";
 }
 
 function buildOperatorActionCenterCards() {
@@ -9147,7 +9148,7 @@ function buildOperatorActionCenterCards() {
     key: "support_nominal",
     tone: "ok",
     kicker: "Steady board",
-    title: "No blocking lane needs action",
+    title: "No blocking workspace needs action",
     meta: isDemo
       ? "Stay in Demo View and open deeper controls only when a real question appears."
       : "Keep the board in watch mode and open lower-frequency controls only when needed.",
@@ -9881,8 +9882,8 @@ function buildOperatorEvidenceDrawerLatestOrigins(details) {
     includePlaceholder: true,
   });
   pushOperatorEvidenceDrawerOrigin(origins, {
-    label: "Lane",
-    value: details.cardTitle || details.label || "Focused lane",
+    label: "Workspace",
+    value: details.cardTitle || details.label || "Focused workspace",
     tone: details.variant,
   });
   pushOperatorEvidenceDrawerOrigin(origins, {
@@ -9892,7 +9893,7 @@ function buildOperatorEvidenceDrawerLatestOrigins(details) {
   });
   pushOperatorEvidenceDrawerOrigin(origins, {
     label: "Source",
-    value: sourceRow?.label && sourceRow.label.trim().toLowerCase() !== "latest" ? sourceRow.label : "Lane summary",
+    value: sourceRow?.label && sourceRow.label.trim().toLowerCase() !== "latest" ? sourceRow.label : "Workspace summary",
     tone: sourceRow?.isPlaceholder ? "muted" : "watch",
   });
   return prioritizeOperatorEvidenceDrawerOriginsForWorkspace(origins, details);
@@ -9905,7 +9906,7 @@ function buildOperatorEvidenceDrawerTraceOrigins(details) {
     includePlaceholder: true,
   });
   pushOperatorEvidenceDrawerOrigin(origins, {
-    label: "Lane",
+    label: "Workspace",
     value: details.traceLane || details.groupTitle || "Operator lane",
     tone: details.variant,
   });
@@ -9925,8 +9926,8 @@ function buildOperatorEvidenceDrawerTraceOrigins(details) {
 function buildOperatorEvidenceDrawerRecoveryOrigins(details) {
   const origins = [];
   pushOperatorEvidenceDrawerOrigin(origins, {
-    label: "Lane",
-    value: details.cardTitle || "Focused lane",
+    label: "Workspace",
+    value: details.cardTitle || "Focused workspace",
     tone: details.variant,
   });
   pushOperatorEvidenceDrawerOrigin(origins, {
@@ -9945,8 +9946,8 @@ function buildOperatorEvidenceDrawerRecoveryOrigins(details) {
 function buildOperatorEvidenceDrawerAuditOrigins(details) {
   const origins = [];
   pushOperatorEvidenceDrawerOrigin(origins, {
-    label: "Lane",
-    value: details.cardTitle || "Focused lane",
+    label: "Workspace",
+    value: details.cardTitle || "Focused workspace",
     tone: details.variant,
   });
   pushOperatorEvidenceDrawerOrigin(origins, {
@@ -10123,7 +10124,7 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderOrigins(activeView, mode
   const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
   return [
     {
-      label: "Lane",
+      label: "Workspace",
       value: config.contextLabel ?? `${config.label} view`,
       tone: "watch",
       isPlaceholder: true,
@@ -12238,7 +12239,7 @@ function syncOperatorEvidenceDrawer() {
     ? buildOperatorEvidenceDrawerWorkspacePlaceholderOrigins(activeView, model)
     : activeView && Array.isArray(activeView.origins) && activeView.origins.length > 0
       ? activeView.origins
-      : [{ label: "Lane", value: "Refresh Summary", tone: "muted", isPlaceholder: true }];
+      : [{ label: "Workspace", value: "Focused workspace", tone: "muted", isPlaceholder: true }];
   for (const origin of origins) {
     const originTone = resolveOperatorEvidenceDrawerWorkspaceOriginTone(origin, activeView, model);
     const article = document.createElement("article");
