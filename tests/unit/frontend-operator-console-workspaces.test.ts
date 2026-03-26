@@ -66,6 +66,7 @@ test("operator console exposes a productized workspace chooser and route-aware w
     'data-operator-saved-view="audit"',
     "Choose workspace",
     "Choose the right workspace first",
+    "Refresh once to populate the brief, action center, and priority workspaces before opening deeper diagnostics.",
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing workspace chooser token: ${token}`);
   }
@@ -178,6 +179,7 @@ test("operator console exposes a productized workspace chooser and route-aware w
     'setStatusPill(el.operatorWorkspaceHeaderBadge, routeFacts.label, tone);',
     'el.operatorWorkspaceHeaderTitle.textContent = title;',
     'el.operatorWorkspaceHeaderHint.textContent = hint;',
+    'hydrateHint: "Refresh once to populate the brief, action center, and priority workspaces before opening deeper diagnostics.",',
     'el.operatorWorkspaceHeaderFocusValue.textContent = routeFacts.focus;',
     'el.operatorWorkspaceHeaderNextValue.textContent = next;',
     'el.operatorWorkspaceHeaderModeValue.textContent = routeFacts.modeLabel;',
@@ -263,6 +265,10 @@ test("operator console exposes a productized workspace chooser and route-aware w
     "README should document the route-aware workspace header",
   );
   assert.ok(
+    readmeSource.includes("workspace-header hydrate hint now also keeps workspace-first wording (`priority workspaces`)"),
+    "README should document the workspace-first hydrate hint",
+  );
+  assert.ok(
     readmeSource.includes("workspace header now also exposes a compact read-only `View` line"),
     "README should document the workspace-header view line",
   );
@@ -289,6 +295,10 @@ test("operator console exposes a productized workspace chooser and route-aware w
   assert.ok(
     operatorGuideSource.includes("route-aware workspace header"),
     "operator guide should document the route-aware workspace header",
+  );
+  assert.ok(
+    operatorGuideSource.includes("workspace-header hydrate hint now also keeps workspace-first wording (`priority workspaces`)"),
+    "operator guide should document the workspace-first hydrate hint",
   );
   assert.ok(
     operatorGuideSource.includes("workspace header now also exposes a compact read-only `View` line"),

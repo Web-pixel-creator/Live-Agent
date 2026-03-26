@@ -1009,7 +1009,7 @@ const OPERATOR_SAVED_VIEWS = Object.freeze({
     contextLabel: "Incidents view",
     contextNote: "Fail and watch areas stay loud while steady systems stay compressed.",
     hydrateTitle: "Hydrate incident posture",
-    hydrateHint: "Refresh once to populate the brief, action center, and hot lanes before opening deeper diagnostics.",
+    hydrateHint: "Refresh once to populate the brief, action center, and priority workspaces before opening deeper diagnostics.",
     hydrateMeta: "Next: refresh summary to load incident evidence.",
     nominalTitle: "Incidents look steady",
     nominalHint: "No hot area is active. Keep the first fold in view and open deeper groups only if you need confirmation.",

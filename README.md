@@ -190,6 +190,7 @@ That same onboarding path now also uses workspace-first inspect/open wording, so
 That same operator-first entry layer now adds a dedicated `Choose workspace` strip (`Overview`, `Approvals`, `Runtime`, `Audit`), so deeper operator work starts from one explicit work area instead of from the full board toolbar.
 That same `Choose workspace` strip now also marks the current card and the recommended next card with labels like `Current` and `Recommended next`, so the first operator choice is easier to scan without changing the navigation model.
 That chooser now feeds a route-aware workspace header inside `Operator Console`, so `Overview`, `Approvals`, `Runtime`, and `Audit` each explain their current focus, next action, and posture mode before the operator reaches deeper board chrome.
+That same workspace-header hydrate hint now also keeps workspace-first wording (`priority workspaces`) instead of reverting to `hot lanes`, so the first header cue matches the chooser posture before refresh.
 That same workspace header now also exposes a read-only `Lead signal` fact, so the current workspace can surface its strongest signal without changing the header navigation model.
 That same dormant workspace-header `Lead signal` now also collapses `Source` and `Freshness` into one quieter compact first-scan line, while hydrated states keep the fuller split.
 That same active workspace header now also exposes a read-only `Status` fact aligned with the active workspace posture before and after refresh, so the current lane state stays visible in the header itself.
