@@ -10092,7 +10092,7 @@ function normalizeOperatorEvidenceDrawerHydrateMeta(meta) {
 function resolveOperatorEvidenceDrawerWorkspaceHint(activeView, model) {
   if (!shouldUseOperatorEvidenceDrawerWorkspacePlaceholder(model)) {
     return model?.hint
-      ?? "Use the tabs to confirm latest event, trace freshness, recovery path, or audit context before opening the deeper board.";
+      ?? "Use the tabs to confirm the current proof path, freshest signal, recovery path, or audit context before opening the deeper board.";
   }
   const config = getOperatorEvidenceDrawerWorkspaceConfig(model);
   return config.drawerDormantHint

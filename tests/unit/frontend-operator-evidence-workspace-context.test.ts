@@ -37,6 +37,7 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     'class="operator-evidence-drawer-context-label">Next check<',
     'class="operator-evidence-drawer-context-source">Source: Overview</span>',
     'class="operator-evidence-drawer-context-freshness">Freshness: awaiting refresh</span>',
+    'Use the tabs to confirm the current proof path, freshest signal, recovery path, or audit context before opening the deeper board.',
     'Refresh Summary',
   ]) {
     if (token instanceof RegExp) {
@@ -59,6 +60,7 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     'operatorEvidenceDrawerContextSignalSource: document.getElementById("operatorEvidenceDrawerContextSignalSource")',
     'operatorEvidenceDrawerContextSignalFreshness: document.getElementById("operatorEvidenceDrawerContextSignalFreshness")',
     /function resolveOperatorEvidenceDrawerWorkspaceNextValue\(activeView,\s*presentation\)\s*\{/s,
+    'Use the tabs to confirm the current proof path, freshest signal, recovery path, or audit context before opening the deeper board.',
     "function syncOperatorEvidenceDrawerContext(model, activeView) {",
     "function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {",
     "function resolveOperatorWorkspaceFreshnessPresentation() {",
