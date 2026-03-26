@@ -13,6 +13,10 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
   for (const token of [
     'id="operatorEvidenceDrawerContext"',
     'aria-label="Focused evidence proof context"',
+    'id="operatorEvidenceDrawerContextWorkspaceItem" class="operator-evidence-drawer-context-item" hidden',
+    'id="operatorEvidenceDrawerContextFocusItem" class="operator-evidence-drawer-context-item" hidden',
+    'id="operatorEvidenceDrawerContextModeItem" class="operator-evidence-drawer-context-item" hidden',
+    'id="operatorEvidenceDrawerContextStatusItem" class="operator-evidence-drawer-context-item" hidden',
     'id="operatorEvidenceDrawerContextWorkspaceValue"',
     'class="operator-evidence-drawer-context-label">Focus<',
     'class="operator-evidence-drawer-context-label">Mode<',
