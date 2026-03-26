@@ -17,7 +17,8 @@ test("focused evidence flips dormant action meta by refresh posture", () => {
     '"Refresh governance proof again if audit posture changes."',
     '"Open audit proof after the first refresh."',
     '"Refresh again if the current lane needs fresher proof."',
-    '"Open the current lane after the first refresh."',
+    '"Open the current workspace proof path."',
+    '"Open the current workspace after the first refresh."',
   ];
 
   for (const token of tokens) {
@@ -28,9 +29,17 @@ test("focused evidence flips dormant action meta by refresh posture", () => {
     readmeSource.includes("dormant `Focused Evidence` CTA meta lines now also flip with refresh posture"),
     "README should document refresh-aware dormant action meta copy",
   );
+  assert.ok(
+    readmeSource.includes("generic post-refresh dormant CTA meta now also says `workspace` instead of `lane`"),
+    "README should document workspace-first dormant CTA wording",
+  );
 
   assert.ok(
     operatorGuideSource.includes("dormant `Focused Evidence` CTA meta lines now also flip with refresh posture"),
     "operator guide should document refresh-aware dormant action meta copy",
+  );
+  assert.ok(
+    operatorGuideSource.includes("generic post-refresh dormant CTA meta now also says `workspace` instead of `lane`"),
+    "operator guide should document workspace-first dormant CTA wording",
   );
 });

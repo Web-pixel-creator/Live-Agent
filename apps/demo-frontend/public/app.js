@@ -10283,8 +10283,8 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, mode
     label: activeView?.label ? `Open ${activeView.label}` : "Open lane",
     actionId: "open_playbook",
     meta: hasManualRefresh
-      ? "Open the current lane proof path."
-      : "Open the current lane after the first refresh.",
+      ? "Open the current workspace proof path."
+      : "Open the current workspace after the first refresh.",
     kind: hasManualRefresh ? undefined : "secondary",
   };
   return hasManualRefresh ? [openAction, refreshAction] : [refreshAction, openAction];
@@ -13175,13 +13175,6 @@ function syncOperatorSummaryGuidePreview(activeSavedView, presentation) {
 
   let focusValue = presentation?.routeFacts?.focus ?? "Fail + watch lanes";
   let openValue = !hasManualRefresh ? "Refresh Summary" : `${workspaceLabel} lane`;
-  let recoverValue = !hasManualRefresh ? "Quick Start" : "Recovery Playbook";
-
-  if (workspaceId === "runtime") {
-    recoverValue = hasManualRefresh ? "Advanced Controls" : "Refresh Summary";
-  } else if (workspaceId === "audit") {
-    recoverValue = hasManualRefresh ? "Export evidence" : "Refresh Summary";
-  }
 
   if (hasManualRefresh && workspaceTone === "fail") {
     openValue = `Inspect ${signalLabel}`;
@@ -13189,10 +13182,6 @@ function syncOperatorSummaryGuidePreview(activeSavedView, presentation) {
     openValue = `Review ${signalLabel}`;
   } else if (hasManualRefresh && workspaceId === "incidents") {
     openValue = "Open incident lane";
-  }
-
-  if (hasManualRefresh && workspaceTone === "ok" && workspaceId === "incidents") {
-    recoverValue = "Advanced board controls";
   }
 
   el.operatorSummaryGuidePreview.dataset.workspace = workspaceId;
@@ -13221,6 +13210,7 @@ function syncOperatorSummaryGuidePreview(activeSavedView, presentation) {
   const recoverAction = !hasManualRefresh || workspaceTone === "neutral"
     ? "open_quick_start"
     : "open_playbook";
+  const recoverValue = recoverAction === "open_quick_start" ? "Quick Start" : "Recovery Playbook";
   el.operatorSummaryGuidePreviewRecoverBtn.dataset.guidePreviewAction = recoverAction;
   delete el.operatorSummaryGuidePreviewRecoverBtn.dataset.guidePreviewTargetStatusId;
   delete el.operatorSummaryGuidePreviewRecoverBtn.dataset.guidePreviewSavedView;

@@ -33,6 +33,7 @@ test("operator brief preview row stays wired to the existing operator-first path
     'el.operatorSummaryGuidePreviewFocusBtn.dataset.guidePreviewAction = "refresh_summary";',
     'el.operatorSummaryGuidePreviewOpenBtn.dataset.guidePreviewAction = openAction;',
     'el.operatorSummaryGuidePreviewRecoverBtn.dataset.guidePreviewAction = recoverAction;',
+    'const recoverValue = recoverAction === "open_quick_start" ? "Quick Start" : "Recovery Playbook";',
     'el.operatorSummaryGuidePreviewFocusValue.textContent = focusValue;',
     'el.operatorSummaryGuidePreviewOpenValue.textContent = openValue;',
     'el.operatorSummaryGuidePreviewRecoverValue.textContent = recoverValue;',
