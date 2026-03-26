@@ -10698,7 +10698,7 @@ function resolveOperatorEvidenceDrawerTimelineTime(details, pattern, options = {
 function createOperatorEvidenceDrawerTimelineEntry(config) {
   const step = typeof config?.step === "string" && config.step.trim().length > 0 ? config.step.trim() : "Now";
   const title = normalizeOperatorUiCopy(config?.title) || "Awaiting signal";
-  const meta = normalizeOperatorUiCopy(config?.meta) || "Refresh Summary to hydrate the lane.";
+  const meta = normalizeOperatorUiCopy(config?.meta) || "Refresh Summary to hydrate the proof path.";
   const tone = typeof config?.tone === "string" && config.tone.trim().length > 0 ? config.tone.trim() : "muted";
   const time = normalizeOperatorUiCopy(config?.time) || "Awaiting refresh";
   return { step, title, meta, tone, time };
@@ -11017,7 +11017,7 @@ function resolveOperatorEvidenceDrawerWorkspaceHeading(model, activeView) {
 
 function resolveOperatorEvidenceDrawerWorkspaceLane(model, activeView) {
   const baseLane = normalizeOperatorUiCopy(model?.lane)
-    ?? "Select a lane above or refresh summary to hydrate the board.";
+    ?? "Select a workspace above or refresh summary to hydrate focused evidence.";
   if (!shouldUseOperatorEvidenceDrawerWorkspacePlaceholder(model) || !activeView) {
     return baseLane;
   }
@@ -11933,7 +11933,7 @@ function buildOperatorEvidenceDrawerWorkspaceSummary(activeView, model) {
 }
 
 function resolveOperatorEvidenceDrawerWorkspacePanelMeta(activeView, model) {
-  const fallbackMeta = activeView?.meta ?? "Recent lane facts stay here so operators can confirm what changed before opening the deeper board.";
+  const fallbackMeta = activeView?.meta ?? "Recent proof facts stay here so operators can confirm what changed before opening the deeper board.";
   const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
   if (workspaceId === "incidents") {
     return fallbackMeta;
@@ -12047,7 +12047,7 @@ function prioritizeOperatorEvidenceDrawerCheckpointsForWorkspace(checkpoints, ac
 }
 
 function resolveOperatorEvidenceDrawerWorkspaceTimelineLabel(activeView, model) {
-  const fallbackLabel = activeView?.timelineLabel ?? "Recent lane flow";
+  const fallbackLabel = activeView?.timelineLabel ?? "Recent proof path";
   const workspaceId = normalizeOperatorSavedView(model?.activeSavedViewId) || "incidents";
   if (workspaceId === "runtime" && activeView?.id === "trace") {
     return "Runtime trail";

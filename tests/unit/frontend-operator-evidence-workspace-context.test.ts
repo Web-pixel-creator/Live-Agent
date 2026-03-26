@@ -32,6 +32,11 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     'id="operatorEvidenceDrawerContextSignalFreshness"',
     /id="operatorEvidenceDrawerContextSignalItem"[\s\S]*?<span class="operator-evidence-drawer-context-label">Lead signal<\/span>/s,
     'Overview signal pending',
+    'Select a workspace above or refresh summary to hydrate focused evidence.',
+    'Recent proof facts stay here so operators can confirm what changed before opening the deeper board.',
+    'Refresh Summary to hydrate focused evidence and reveal the lead signal.',
+    'Recent proof path',
+    'Refresh Summary to hydrate the proof path.',
     'class="operator-evidence-drawer-context-label">Workspace<',
     'class="operator-evidence-drawer-context-label">Proof view<',
     'class="operator-evidence-drawer-context-label">Next check<',
@@ -64,6 +69,10 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     "function syncOperatorEvidenceDrawerContext(model, activeView) {",
     "function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {",
     "function resolveOperatorWorkspaceFreshnessPresentation() {",
+    '?? "Select a workspace above or refresh summary to hydrate focused evidence.";',
+    'const fallbackMeta = activeView?.meta ?? "Recent proof facts stay here so operators can confirm what changed before opening the deeper board.";',
+    'const fallbackLabel = activeView?.timelineLabel ?? "Recent proof path";',
+    'const meta = normalizeOperatorUiCopy(config?.meta) || "Refresh Summary to hydrate the proof path.";',
     "function getOperatorEvidenceDrawerRefreshLabel() {",
     "function getOperatorEvidenceDrawerRefreshStamp(refreshLabel) {",
     'const refreshLabel = getOperatorEvidenceDrawerRefreshLabel();',
@@ -139,12 +148,20 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     "README should document the focused evidence workspace signal",
   );
   assert.ok(
+    readmeSource.includes("generic `Focused Evidence` first-paint shell now also keeps workspace/proof wording"),
+    "README should document the proof-first focused evidence fallback shell",
+  );
+  assert.ok(
     readmeSource.includes("`Focused Evidence` inner panel label now also uses the same workspace-aware label path"),
     "README should document the focused evidence panel-label alignment",
   );
   assert.ok(
     operatorGuideSource.includes("`Focused Evidence` context row now also carries a read-only workspace signal"),
     "operator guide should document the focused evidence workspace signal",
+  );
+  assert.ok(
+    operatorGuideSource.includes("generic `Focused Evidence` first-paint shell now also keeps workspace/proof wording"),
+    "operator guide should document the proof-first focused evidence fallback shell",
   );
   assert.ok(
     operatorGuideSource.includes("`Focused Evidence` inner panel label now also uses the same workspace-aware label path"),
