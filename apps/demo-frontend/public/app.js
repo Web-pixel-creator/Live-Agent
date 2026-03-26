@@ -10830,7 +10830,7 @@ function buildOperatorEvidenceDrawerLatestTimeline(details) {
     createOperatorEvidenceDrawerTimelineEntry({
       step: "Next check",
       title: details.primaryActionLabel || "Open lane",
-      meta: details.primaryActionMeta || "Use the highlighted lane path before opening the deeper board.",
+      meta: details.primaryActionMeta || "Use the highlighted workspace path before opening the deeper board.",
       tone: "muted",
       time: details.refreshStamp || "After refresh",
     }),

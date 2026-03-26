@@ -52,6 +52,7 @@ test("operator console keeps a focused evidence drawer near the active queue", (
     "function resolveOperatorFocusedEvidenceStatusId() {",
     "function createOperatorEvidenceDrawerTimelineEntry(config) {",
     "function buildOperatorEvidenceDrawerLatestTimeline(details) {",
+    'meta: details.primaryActionMeta || "Use the highlighted workspace path before opening the deeper board.",',
     "function buildOperatorEvidenceDrawerTraceTimeline(details) {",
     "function buildOperatorEvidenceDrawerRecoveryTimeline(details) {",
     "function buildOperatorEvidenceDrawerAuditTimeline(details) {",
@@ -95,6 +96,10 @@ test("operator console keeps a focused evidence drawer near the active queue", (
     "README missing focused evidence timeline note",
   );
   assert.ok(
+    readmeSource.includes("latest timeline fallback now also keeps workspace-first wording"),
+    "README missing focused evidence timeline fallback wording note",
+  );
+  assert.ok(
     operatorGuideSource.includes("compact `Focused Evidence` drawer"),
     "operator guide missing focused evidence drawer note",
   );
@@ -105,5 +110,9 @@ test("operator console keeps a focused evidence drawer near the active queue", (
   assert.ok(
     operatorGuideSource.includes("compact three-step evidence timeline"),
     "operator guide missing focused evidence timeline note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("latest timeline fallback now also keeps workspace-first wording"),
+    "operator guide missing focused evidence timeline fallback wording note",
   );
 });

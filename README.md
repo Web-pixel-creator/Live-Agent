@@ -227,6 +227,7 @@ That same right-side rail now also keeps `Focused Evidence` proof-first on the f
 That same `Focused Evidence` context row now also exposes a proof-specific accessibility label, so screen-reader copy describes this strip as proof context instead of repeating the workspace header summary.
 That same default `Focused Evidence` helper hint now also speaks in proof-first language, so the first sentence matches `Proof view`, `proof context`, and the rest of the proof rail instead of reverting to `trace freshness` wording.
 That same generic `Focused Evidence` first-paint shell now also keeps workspace/proof wording in its empty helper lines, panel meta, and timeline fallback, so the drawer no longer snaps back to lane-first placeholder copy before the first refresh.
+That same `Focused Evidence` latest timeline fallback now also keeps workspace-first wording in its `Next check` helper, so missing action meta no longer falls back to `highlighted lane` copy.
 That same `Focused Evidence` context row now also carries a read-only workspace signal, so the strongest signal stays visible one layer deeper in the console without changing the proof path itself.
 That same `Focused Evidence` context row now also uses the same workspace-aware `View` label path as the chooser and workspace header, so all three surfaces describe the same proof tab in the same words.
 That same `Focused Evidence` inner panel label now also uses the same workspace-aware label path, so the panel head no longer falls back to a raw tab label after the proof context has already been aligned.
