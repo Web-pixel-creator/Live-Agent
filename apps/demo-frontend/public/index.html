@@ -378,12 +378,19 @@
                       </button>
                     </div>
                   </section>
-                  <section class="case-workspace-action-section case-workspace-action-section-case" aria-labelledby="caseWorkspaceCaseActionsTitle">
-                    <div class="case-workspace-action-section-copy">
-                      <span id="caseWorkspaceCaseActionsTitle" class="case-workspace-action-title" data-i18n="live.caseWorkspace.caseActionsTitle">Move case forward</span>
-                      <p class="case-workspace-action-hint" data-i18n="live.caseWorkspace.caseActionsHint">Advance the case through documents, consultation prep, CRM, or specialist handoff.</p>
-                    </div>
-                    <div class="actions live-compose-primary-actions case-workspace-action-group">
+                  <details
+                    id="caseWorkspaceCaseShortcuts"
+                    class="case-workspace-action-section case-workspace-action-section-case case-workspace-action-shell"
+                    aria-labelledby="caseWorkspaceCaseActionsTitle"
+                  >
+                    <summary class="case-workspace-action-shell-summary">
+                      <span class="case-workspace-action-section-copy case-workspace-action-shell-copy">
+                        <span id="caseWorkspaceCaseActionsTitle" class="case-workspace-action-title" data-i18n="live.caseWorkspace.caseActionsTitle">Move case forward</span>
+                        <span class="case-workspace-action-hint" data-i18n="live.caseWorkspace.caseActionsHint">Open quick case shortcuts when you need to jump ahead to documents, consultation prep, CRM, or specialist handoff.</span>
+                      </span>
+                      <span id="caseWorkspaceCaseActionsChip" class="status-pill status-neutral case-workspace-action-shell-pill" data-i18n="live.caseWorkspace.caseActionsChip">Shortcuts</span>
+                    </summary>
+                    <div class="actions live-compose-primary-actions case-workspace-action-group case-workspace-action-shell-body">
                       <button
                         id="runVisaFollowUpBtn"
                         type="button"
@@ -421,7 +428,7 @@
                         Escalate to Specialist
                       </button>
                     </div>
-                  </section>
+                  </details>
                   <details
                     id="caseWorkspaceResultTools"
                     class="case-workspace-action-section case-workspace-action-section-utility case-workspace-action-shell"
@@ -432,7 +439,7 @@
                         <span id="caseWorkspaceResultToolsTitle" class="case-workspace-action-title" data-i18n="live.caseWorkspace.resultToolsTitle">Result tools</span>
                         <span class="case-workspace-action-hint" data-i18n="live.caseWorkspace.resultToolsHint">Open the finished summaries or reset the demo workspace.</span>
                       </span>
-                      <span class="status-pill status-neutral case-workspace-action-shell-pill" data-i18n="live.caseWorkspace.resultToolsChip">Secondary</span>
+                      <span id="caseWorkspaceResultToolsChip" class="status-pill status-neutral case-workspace-action-shell-pill" data-i18n="live.caseWorkspace.resultToolsChip">Secondary</span>
                     </summary>
                     <div class="actions live-compose-primary-actions case-workspace-action-group case-workspace-action-shell-body">
                       <button

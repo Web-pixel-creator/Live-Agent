@@ -1264,7 +1264,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.mainActionsTitle": "Start case",
     "live.caseWorkspace.mainActionsHint": "Begin a new intake or continue the active case from one clear starting point.",
     "live.caseWorkspace.caseActionsTitle": "Move case forward",
-    "live.caseWorkspace.caseActionsHint": "Advance the case through documents, consultation prep, CRM, or specialist handoff.",
+    "live.caseWorkspace.caseActionsHint": "Open quick case shortcuts when you need to jump ahead to documents, consultation prep, CRM, or specialist handoff.",
+    "live.caseWorkspace.caseActionsChip": "Shortcuts",
     "live.caseWorkspace.resultToolsTitle": "Result tools",
     "live.caseWorkspace.resultToolsHint": "Open the finished summaries or reset the demo workspace.",
     "live.caseWorkspace.resultToolsChip": "Secondary",
@@ -5492,15 +5493,16 @@ function syncCaseWorkspaceStaticCopy() {
     [
       ".case-workspace-action-section-case .case-workspace-action-hint",
       isRu
-        ? "Продвигайте кейс через документы, подготовку консультации, CRM или передачу специалисту."
-        : "Advance the case through documents, consultation prep, CRM, or specialist handoff.",
+        ? "Откройте быстрые шаги, если нужно перейти сразу к документам, подготовке консультации, CRM или передаче специалисту."
+        : "Open quick case shortcuts when you need to jump ahead to documents, consultation prep, CRM, or specialist handoff.",
     ],
+    ["#caseWorkspaceCaseActionsChip", isRu ? "Быстрые шаги" : "Shortcuts"],
     [
       ".case-workspace-action-section-utility .case-workspace-action-hint",
       isRu ? "Открывайте готовые итоги или сбрасывайте демо-режим." : "Open the finished summaries or reset the demo workspace.",
     ],
     ["#caseWorkspaceResultToolsTitle", isRu ? "Итоги и демо" : "Result tools"],
-    [".case-workspace-action-shell-pill", isRu ? "Вспомогательно" : "Secondary"],
+    ["#caseWorkspaceResultToolsChip", isRu ? "Вспомогательно" : "Secondary"],
     [
       ".case-workspace-panel-title [data-i18n=\"live.compose.panelHeading\"]",
       isRu ? "Выберите следующее действие" : "Choose the next action",
@@ -5703,7 +5705,7 @@ function getCaseWorkspaceFlowState(awaitingFreshResponse) {
         description: isRu
           ? "Рабочая зона проведёт кейс по шагам: intake, документы, консультация, CRM и передача специалисту."
           : "The workspace will move the case through intake, documents, consultation, CRM, and specialist handoff.",
-        hint: isRu ? "Сгруппированные действия ниже остаются быстрыми шорткатами, но guided flow показывает лучший следующий шаг." : "The grouped actions below still work as shortcuts, but the guided flow shows the best next move.",
+        hint: isRu ? "Ниже остались быстрые шорткаты, но guided flow показывает лучший следующий шаг для кейса." : "The drawers below still keep shortcut access, but the guided flow shows the best next move for the case.",
         actionId: "run_visa_intake_demo",
         fallbackActionLabel: isRu ? "Новый кейс" : "Start new case",
         pillText: isRu ? "Шаг 1 из 5" : "Step 1 of 5",
