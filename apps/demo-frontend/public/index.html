@@ -422,12 +422,19 @@
                       </button>
                     </div>
                   </section>
-                  <section class="case-workspace-action-section case-workspace-action-section-utility" aria-labelledby="caseWorkspaceUtilityActionsTitle">
-                    <div class="case-workspace-action-section-copy">
-                      <span id="caseWorkspaceUtilityActionsTitle" class="case-workspace-action-title" data-i18n="live.caseWorkspace.utilityActionsTitle">Utility</span>
-                      <p class="case-workspace-action-hint" data-i18n="live.caseWorkspace.utilityActionsHint">Open the finished summaries or reset the demo workspace.</p>
-                    </div>
-                    <div class="actions live-compose-primary-actions case-workspace-action-group">
+                  <details
+                    id="caseWorkspaceResultTools"
+                    class="case-workspace-action-section case-workspace-action-section-utility case-workspace-action-shell"
+                    aria-labelledby="caseWorkspaceResultToolsTitle"
+                  >
+                    <summary class="case-workspace-action-shell-summary">
+                      <span class="case-workspace-action-section-copy case-workspace-action-shell-copy">
+                        <span id="caseWorkspaceResultToolsTitle" class="case-workspace-action-title" data-i18n="live.caseWorkspace.resultToolsTitle">Result tools</span>
+                        <span class="case-workspace-action-hint" data-i18n="live.caseWorkspace.resultToolsHint">Open the finished summaries or reset the demo workspace.</span>
+                      </span>
+                      <span class="status-pill status-neutral case-workspace-action-shell-pill" data-i18n="live.caseWorkspace.resultToolsChip">Secondary</span>
+                    </summary>
+                    <div class="actions live-compose-primary-actions case-workspace-action-group case-workspace-action-shell-body">
                       <button
                         id="reviewVisaResultBtn"
                         type="button"
@@ -483,7 +490,7 @@
                         Start Over
                       </button>
                     </div>
-                  </section>
+                  </details>
                 </div>
                 <p id="sendBtnHint" class="live-compose-send-hint">
                       The result appears on the right. Voice, workflow, and runtime tools stay below.
