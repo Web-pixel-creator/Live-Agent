@@ -28,6 +28,7 @@ test("operator console keeps a persistent operator brief with focus-driven first
     'aria-label="Open preview card. Open workspace."',
     'aria-label="Recover preview card. Quick Start."',
     'id="operatorSummaryGuideWatchlist"',
+    "Next: hydrate the overview workspace.",
     "Operator brief",
     "Focus",
     "Recover",
@@ -59,6 +60,7 @@ test("operator console keeps a persistent operator brief with focus-driven first
     'el.operatorSummaryGuidePreviewFocusBtn.setAttribute("aria-label", `Focus preview card. ${focusValue}.`);',
     'el.operatorSummaryGuidePreviewOpenBtn.setAttribute("aria-label", `Open preview card. ${openValue}.`);',
     'el.operatorSummaryGuidePreviewRecoverBtn.setAttribute("aria-label", `Recover preview card. ${recoverValue}.`);',
+    'let nextMeta = "Next: hydrate the overview workspace.";',
     "syncOperatorSummaryGuidePreview(activeSavedView, workspacePresentation);",
     "renderOperatorSummaryGuideWatchlist(nextWatchItems",
   ];
@@ -99,6 +101,10 @@ test("operator console keeps a persistent operator brief with focus-driven first
     "README missing operator workspace preview-row note",
   );
   assert.ok(
+    readmeSource.includes("waiting-state `Operator brief` meta now also says `hydrate the overview workspace`"),
+    "README missing operator brief workspace-first waiting meta note",
+  );
+  assert.ok(
     readmeSource.includes("preview cards now also expose ARIA labels with the same workspace-aware values"),
     "README missing operator preview aria note",
   );
@@ -113,6 +119,10 @@ test("operator console keeps a persistent operator brief with focus-driven first
   assert.ok(
     operatorGuideSource.includes("workspace-aware `Focus / Open / Recover` preview row"),
     "operator guide missing operator workspace preview-row note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("waiting-state `Operator brief` meta now also says `hydrate the overview workspace`"),
+    "operator guide missing operator brief workspace-first waiting meta note",
   );
   assert.ok(
     operatorGuideSource.includes("preview cards now also expose ARIA labels with the same workspace-aware values"),

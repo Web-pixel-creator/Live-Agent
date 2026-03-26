@@ -14190,7 +14190,7 @@ function syncOperatorSummaryGuide() {
   let nextHint = isDemo
     ? "Refresh once, then follow the highlighted workspace instead of scanning the full board."
     : "Refresh once, then open only the workspace that still needs deeper diagnostics.";
-  let nextMeta = "Next: hydrate the incident board.";
+  let nextMeta = "Next: hydrate the overview workspace.";
   let nextWatchItems = [];
 
   el.operatorSummaryGuide.classList.remove("is-hidden");
