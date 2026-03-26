@@ -9008,7 +9008,7 @@ function buildOperatorPriorityQueueCompactMeta(entry) {
   const normalizedPrimaryLabel = primaryLabel.toLowerCase();
 
   if (key === "hydrate_board") {
-    return "Refresh once, then follow the hot lane.";
+    return "Refresh once, then follow the hot workspace.";
   }
   if (key === "refresh_failed") {
     return "Retry summary before trusting stale evidence.";
@@ -12424,7 +12424,7 @@ function syncOperatorPriorityQueue() {
       tone: "neutral",
       kicker: "Start here",
       title: "Hydrate the incident board",
-      meta: "Refresh summary once, then use the highlighted lane or recovery path instead of scanning the entire console.",
+      meta: "Refresh summary once, then use the highlighted workspace or recovery path instead of scanning the entire console.",
       primary: {
         label: "Refresh Summary",
         actionId: "refresh_summary",

@@ -16,6 +16,7 @@ test("operator desktop active queue collapses visible items into compact action 
 
   const requiredRuntimeTokens = [
     "function buildOperatorPriorityQueueCompactMeta(entry) {",
+    'return "Refresh once, then follow the hot workspace.";',
     "function resolveOperatorPriorityQueueCompactTitle(entry) {",
     "function resolveOperatorPriorityQueueCompactActionLabel(config) {",
     'const queueDensity = isDesktopQueue ? "compact" : "default";',

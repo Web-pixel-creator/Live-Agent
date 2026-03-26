@@ -22,6 +22,7 @@ test("operator console keeps a priority queue surface for next actions", () => {
     'class="operator-priority-queue-item is-neutral"',
     'class="operator-priority-queue-kicker">Start here<',
     'Hydrate the incident board',
+    "Refresh summary once, then follow the highlighted workspace instead of scanning the full console.",
   ];
   for (const token of requiredHtmlTokens) {
     assert.ok(htmlSource.includes(token), `frontend html missing operator-priority-queue token: ${token}`);
@@ -38,6 +39,7 @@ test("operator console keeps a priority queue surface for next actions", () => {
     "buildOperatorRuntimeGuardrailActionMeta(state.operatorRuntimeGuardrailAction)",
     "el.operatorPriorityQueueList.innerHTML = \"\";",
     "el.operatorPriorityQueueList.append(item);",
+    'meta: "Refresh summary once, then use the highlighted workspace or recovery path instead of scanning the entire console.",',
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing operator-priority-queue token: ${token}`);
@@ -59,8 +61,13 @@ test("operator console keeps a priority queue surface for next actions", () => {
     readmeSource.includes("compact action queue appears before visibility counts"),
     "README missing operator priority-queue note",
   );
+  assert.ok(readmeSource.includes("highlighted workspace"), "README missing workspace-first active queue helper note");
   assert.ok(
     operatorGuideSource.includes("`Triage Summary` now behaves like an `Active Queue`"),
     "operator guide missing operator priority-queue note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("highlighted workspace"),
+    "operator guide missing workspace-first active queue helper note",
   );
 });
