@@ -10,12 +10,14 @@ test("focused evidence picks a smarter first-open tab from the active workspace 
 
   for (const token of [
     "function resolveOperatorEvidenceDrawerDefaultView(model) {",
+    "function resolveOperatorEvidenceDrawerWorkspaceTabLabel(viewId, model) {",
     "const needsRecoveryView =",
     "if (model.activeSavedViewId === \"audit\") {",
     "if (model.activeSavedViewId === \"runtime\") {",
     "return needsRecoveryView ? \"recovery\" : \"trace\";",
     "if (model.activeSavedViewId === \"approvals\") {",
     "return needsRecoveryView ? \"recovery\" : \"latest\";",
+    "el.operatorEvidenceDrawerContextViewValue.textContent = resolveOperatorEvidenceDrawerWorkspaceTabLabel(",
   ]) {
     assert.ok(appSource.includes(token), `app.js missing workspace-aware default-view token: ${token}`);
   }

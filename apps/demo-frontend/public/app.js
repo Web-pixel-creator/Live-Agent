@@ -11870,11 +11870,18 @@ function syncOperatorEvidenceDrawerContext(model, activeView) {
   el.operatorEvidenceDrawerContext.dataset.workspace =
     workspacePresentation.normalizedView === "incidents" ? "overview" : workspacePresentation.normalizedView;
   el.operatorEvidenceDrawerContext.dataset.workspaceState = workspaceState;
+  const contextViewId =
+    normalizeOperatorEvidenceDrawerView(activeView?.id) ||
+    normalizeOperatorEvidenceDrawerView(state.operatorEvidenceDrawerView) ||
+    "latest";
   el.operatorEvidenceDrawerContextWorkspaceValue.textContent = workspaceLabel;
   el.operatorEvidenceDrawerContextFocusValue.textContent = workspacePresentation.routeFacts.focus;
   el.operatorEvidenceDrawerContextModeValue.textContent = workspacePresentation.routeFacts.modeLabel;
   el.operatorEvidenceDrawerContextStatusValue.textContent = workspaceStatus;
-  el.operatorEvidenceDrawerContextViewValue.textContent = activeView?.label ?? "Latest event";
+  el.operatorEvidenceDrawerContextViewValue.textContent = resolveOperatorEvidenceDrawerWorkspaceTabLabel(
+    contextViewId,
+    model,
+  );
   el.operatorEvidenceDrawerContextNextValue.textContent = nextValue;
   el.operatorEvidenceDrawerContextSignalItem.dataset.signalState = leadSignal.state;
   el.operatorEvidenceDrawerContextSignalItem.dataset.freshnessState = freshness.state;
