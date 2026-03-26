@@ -10275,8 +10275,8 @@ function buildOperatorEvidenceDrawerWorkspacePlaceholderActions(activeView, mode
     label: "Refresh Summary",
     actionId: "refresh_summary",
     meta: hasManualRefresh
-      ? "Refresh again if the current lane needs fresher proof."
-      : "Hydrate the current lane before deeper review.",
+      ? "Refresh again if the current workspace needs fresher proof."
+      : "Hydrate the current workspace before deeper review.",
     kind: hasManualRefresh ? "secondary" : undefined,
   };
   const openAction = {
