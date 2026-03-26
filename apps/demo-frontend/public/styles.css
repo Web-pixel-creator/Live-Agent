@@ -20161,6 +20161,12 @@ button:disabled {
   line-height: 1.24;
 }
 
+.panel-operator-console .operator-workspace-header-fact[data-signal-density="compact"] .operator-workspace-header-fact-source {
+  font-size: 0.6rem;
+  line-height: 1.22;
+  color: color-mix(in oklch, var(--foreground) 60%, var(--muted-foreground));
+}
+
 .panel-operator-console .operator-workspace-header-fact-freshness {
   color: color-mix(in oklch, var(--foreground) 60%, var(--muted-foreground));
   font-size: 0.61rem;

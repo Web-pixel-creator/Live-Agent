@@ -134,8 +134,14 @@ test("operator console workspace cards expose a read-only lead signal line and c
     'const leadSignalSource = resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation);',
     'operatorWorkspaceHeaderLeadSource: document.getElementById("operatorWorkspaceHeaderLeadSource")',
     'operatorWorkspaceHeaderLeadFreshness: document.getElementById("operatorWorkspaceHeaderLeadFreshness")',
-    'el.operatorWorkspaceHeaderLeadSource.textContent = leadSignalSource;',
+    'function buildOperatorWorkspaceHeaderCompactSignalMeta(leadSignalSource, freshnessValue) {',
+    'const useCompactLeadSignalMeta = leadSignal.state === "dormant" || freshness.state === "dormant";',
+    'el.operatorWorkspaceHeaderLeadFact.dataset.signalDensity = useCompactLeadSignalMeta ? "compact" : "full";',
+    'el.operatorWorkspaceHeaderLeadSource.textContent = useCompactLeadSignalMeta',
+    'buildOperatorWorkspaceHeaderCompactSignalMeta(leadSignalSource, freshness.value)',
     'el.operatorWorkspaceHeaderLeadFreshness.textContent = freshness.value;',
+    'el.operatorWorkspaceHeaderLeadFreshness.hidden = useCompactLeadSignalMeta;',
+    'el.operatorWorkspaceHeaderLeadFreshness.setAttribute("aria-hidden", useCompactLeadSignalMeta ? "true" : "false");',
     'Refresh Summary',
   ]) {
     if (token instanceof RegExp) {
@@ -172,6 +178,7 @@ test("operator console workspace cards expose a read-only lead signal line and c
     '.panel-operator-console .operator-workspace-header-fact[data-signal-state="fail"] .operator-workspace-header-fact-value {',
     '.panel-operator-console .operator-workspace-header-fact-source {',
     '.panel-operator-console .operator-workspace-header-fact-freshness {',
+    '.panel-operator-console .operator-workspace-header-fact[data-signal-density="compact"] .operator-workspace-header-fact-source {',
   ]) {
     assert.ok(stylesSource.includes(token), `styles.css missing workspace lead-signal or marker token: ${token}`);
   }
@@ -207,5 +214,13 @@ test("operator console workspace cards expose a read-only lead signal line and c
   assert.ok(
     operatorGuideSource.includes("compact freshness subline from the operator refresh state"),
     "operator guide should document the aligned lead-signal freshness subline",
+  );
+  assert.ok(
+    readmeSource.includes("dormant workspace-header `Lead signal` now also collapses `Source` and `Freshness`"),
+    "README should document the compact dormant workspace-header lead signal line",
+  );
+  assert.ok(
+    operatorGuideSource.includes("dormant workspace-header `Lead signal` now also collapses `Source` and `Freshness`"),
+    "operator guide should document the compact dormant workspace-header lead signal line",
   );
 });

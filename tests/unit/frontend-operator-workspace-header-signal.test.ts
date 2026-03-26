@@ -42,6 +42,7 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
     "function resolveOperatorWorkspaceLeadSignalPresentation(presentation) {",
     "function resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation) {",
     "function resolveOperatorWorkspaceFreshnessPresentation() {",
+    "function buildOperatorWorkspaceHeaderCompactSignalMeta(leadSignalSource, freshnessValue) {",
     'const signalValue =',
     'signal pending',
     'getOperatorEvidenceDrawerRefreshLabel()',
@@ -53,13 +54,18 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
     "const leadSignal = resolveOperatorWorkspaceLeadSignalPresentation(presentation);",
     "const leadSignalSource = resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation);",
     "const freshness = resolveOperatorWorkspaceFreshnessPresentation();",
+    'const useCompactLeadSignalMeta = leadSignal.state === "dormant" || freshness.state === "dormant";',
     'el.operatorWorkspaceHeaderStatusValue.textContent = workspaceStatus;',
     'el.operatorWorkspaceHeader.dataset.workspaceSignal = leadSignal.state;',
     'el.operatorWorkspaceHeaderLeadFact.dataset.signalState = leadSignal.state;',
     'el.operatorWorkspaceHeaderLeadFact.dataset.freshnessState = freshness.state;',
+    'el.operatorWorkspaceHeaderLeadFact.dataset.signalDensity = useCompactLeadSignalMeta ? "compact" : "full";',
     'el.operatorWorkspaceHeaderLeadValue.textContent = leadSignal.value;',
-    'el.operatorWorkspaceHeaderLeadSource.textContent = leadSignalSource;',
+    'buildOperatorWorkspaceHeaderCompactSignalMeta(leadSignalSource, freshness.value)',
+    'el.operatorWorkspaceHeaderLeadSource.textContent = useCompactLeadSignalMeta',
     'el.operatorWorkspaceHeaderLeadFreshness.textContent = freshness.value;',
+    'el.operatorWorkspaceHeaderLeadFreshness.hidden = useCompactLeadSignalMeta;',
+    'el.operatorWorkspaceHeaderLeadFreshness.setAttribute("aria-hidden", useCompactLeadSignalMeta ? "true" : "false");',
     'el.operatorWorkspaceHeaderNextValue.textContent =',
     'Refresh Summary',
   ]) {
@@ -70,6 +76,7 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
     ".panel-operator-console .operator-workspace-header-facts {",
     "grid-template-columns: repeat(4, minmax(0, 1fr));",
     '.panel-operator-console .operator-workspace-header-fact-source {',
+    '.panel-operator-console .operator-workspace-header-fact[data-signal-density="compact"] .operator-workspace-header-fact-source {',
     '.panel-operator-console .operator-workspace-header-fact-freshness {',
     '.panel-operator-console .operator-workspace-header-fact[data-freshness-state="dormant"] .operator-workspace-header-fact-freshness {',
     '.panel-operator-console .operator-workspace-header-fact[data-freshness-state="steady"] .operator-workspace-header-fact-freshness {',
@@ -88,8 +95,16 @@ test("operator workspace header exposes a read-only lead signal fact wired from 
     "README should document the read-only workspace lead signal fact",
   );
   assert.ok(
+    readmeSource.includes("dormant workspace-header `Lead signal` now also collapses `Source` and `Freshness`"),
+    "README should document compact dormant workspace-header signal meta",
+  );
+  assert.ok(
     operatorGuideSource.includes("workspace header now also exposes a read-only `Lead signal` fact"),
     "operator guide should document the read-only workspace lead signal fact",
+  );
+  assert.ok(
+    operatorGuideSource.includes("dormant workspace-header `Lead signal` now also collapses `Source` and `Freshness`"),
+    "operator guide should document compact dormant workspace-header signal meta",
   );
   assert.ok(
     readmeSource.includes("chooser, header, and evidence signals aligned"),

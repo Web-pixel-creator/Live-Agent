@@ -13504,6 +13504,18 @@ function buildOperatorWorkspaceCardCompactHint(presentation) {
   return `Jump here when you need ${workspaceLabel} evidence.`;
 }
 
+function buildOperatorWorkspaceHeaderCompactSignalMeta(leadSignalSource, freshnessValue) {
+  const sourceText =
+    typeof leadSignalSource === "string" && leadSignalSource.trim().length > 0
+      ? leadSignalSource.trim()
+      : "Source: workspace";
+  const freshnessText =
+    typeof freshnessValue === "string" && freshnessValue.trim().length > 0
+      ? freshnessValue.trim()
+      : "Freshness: awaiting refresh";
+  return `${sourceText} | ${freshnessText}`;
+}
+
 function readOperatorWorkspaceHeaderSignal(viewId, config) {
   if (viewId === "incidents") {
     const signals = getOperatorSummaryGuideSignals();
@@ -13757,6 +13769,7 @@ function syncOperatorWorkspaceHeader() {
   const leadSignal = leadSignalValue;
   const leadSignalSource = resolveOperatorWorkspaceLeadSignalSourcePresentation(presentation);
   const freshness = resolveOperatorWorkspaceFreshnessPresentation();
+  const useCompactLeadSignalMeta = leadSignal.state === "dormant" || freshness.state === "dormant";
   const workspaceStatus = !presentation.hasManualRefresh
     ? "Hydrate"
     : tone === "fail"
@@ -13779,9 +13792,14 @@ function syncOperatorWorkspaceHeader() {
   el.operatorWorkspaceHeaderViewValue.textContent = resolveOperatorWorkspaceCardViewLabel(presentation);
   el.operatorWorkspaceHeaderLeadFact.dataset.signalState = leadSignal.state;
   el.operatorWorkspaceHeaderLeadFact.dataset.freshnessState = freshness.state;
+  el.operatorWorkspaceHeaderLeadFact.dataset.signalDensity = useCompactLeadSignalMeta ? "compact" : "full";
   el.operatorWorkspaceHeaderLeadValue.textContent = leadSignal.value;
-  el.operatorWorkspaceHeaderLeadSource.textContent = leadSignalSource;
+  el.operatorWorkspaceHeaderLeadSource.textContent = useCompactLeadSignalMeta
+    ? buildOperatorWorkspaceHeaderCompactSignalMeta(leadSignalSource, freshness.value)
+    : leadSignalSource;
   el.operatorWorkspaceHeaderLeadFreshness.textContent = freshness.value;
+  el.operatorWorkspaceHeaderLeadFreshness.hidden = useCompactLeadSignalMeta;
+  el.operatorWorkspaceHeaderLeadFreshness.setAttribute("aria-hidden", useCompactLeadSignalMeta ? "true" : "false");
 }
 
 function syncOperatorToolbarWorkspaceMode() {
