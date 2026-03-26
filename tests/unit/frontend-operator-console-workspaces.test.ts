@@ -65,6 +65,7 @@ test("operator console exposes a productized workspace chooser and route-aware w
     'data-operator-saved-view="runtime"',
     'data-operator-saved-view="audit"',
     "Choose workspace",
+    "Choose the right workspace first",
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing workspace chooser token: ${token}`);
   }

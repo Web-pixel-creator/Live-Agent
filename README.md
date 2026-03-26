@@ -203,6 +203,7 @@ Those same inactive chooser cards now also keep a shorter hint, while the curren
 Those same inactive chooser cards now also keep a compact `Open` line, so jump targets read as explicit destinations instead of only dense summaries.
 Those same chooser cards now also keep the full labeled `Status` stack on the current workspace card, while inactive jump cards step back to a quieter pill-first status scan.
 Those same chooser cards now also expose a compact read-only `Next` line, using the same workspace-level next-step state as the active workspace header.
+That same chooser now uses workspace-first title copy, so the first prominent line matches the `Choose workspace` framing instead of reverting to a generic operator-area label.
 Those same chooser cards now also expose a compact read-only `Focus` line, aligned with the active workspace header and `Focused Evidence`, so the current lane posture stays consistent before the workspace is opened.
 Those same chooser cards now also expose a compact read-only `Mode` line, aligned with the active workspace header and `Focused Evidence`, so the current workspace posture stays consistent before the workspace is opened.
 Those same chooser cards now also expose a compact read-only `View` line, aligned with the default `Focused Evidence` proof path for that workspace, so operators can see the first evidence posture before opening it.
