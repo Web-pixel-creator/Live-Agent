@@ -12195,7 +12195,10 @@ function syncOperatorEvidenceDrawer() {
     el.operatorEvidenceDrawerProofPathSection.open = !useWorkspacePlaceholderEvidence;
     el.operatorEvidenceDrawerProofPathSection.dataset.proofPathState = useWorkspacePlaceholderEvidence ? "dormant" : "hydrated";
   }
-  setText(el.operatorEvidenceDrawerPanelLabel, activeView?.label ?? "Latest event");
+  setText(
+    el.operatorEvidenceDrawerPanelLabel,
+    resolveOperatorEvidenceDrawerWorkspaceTabLabel(activeView?.id ?? "latest", model),
+  );
   setText(
     el.operatorEvidenceDrawerPanelMeta,
     resolveOperatorEvidenceDrawerWorkspacePanelMeta(activeView, model),

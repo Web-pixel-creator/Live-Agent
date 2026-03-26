@@ -84,6 +84,8 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     'normalizeOperatorEvidenceDrawerView(activeView?.id)',
     'normalizeOperatorEvidenceDrawerView(state.operatorEvidenceDrawerView)',
     'el.operatorEvidenceDrawerContextViewValue.textContent = resolveOperatorEvidenceDrawerWorkspaceTabLabel(',
+    'el.operatorEvidenceDrawerPanelLabel,',
+    'resolveOperatorEvidenceDrawerWorkspaceTabLabel(activeView?.id ?? "latest", model)',
     'el.operatorEvidenceDrawerContextNextValue.textContent = nextValue;',
     'const leadSignalSource = resolveOperatorWorkspaceLeadSignalSourcePresentation(workspacePresentation);',
     'const freshness = resolveOperatorWorkspaceFreshnessPresentation();',
@@ -137,8 +139,16 @@ test("focused evidence adds a workspace-aware context row above the drawer tabs"
     "README should document the focused evidence workspace signal",
   );
   assert.ok(
+    readmeSource.includes("`Focused Evidence` inner panel label now also uses the same workspace-aware label path"),
+    "README should document the focused evidence panel-label alignment",
+  );
+  assert.ok(
     operatorGuideSource.includes("`Focused Evidence` context row now also carries a read-only workspace signal"),
     "operator guide should document the focused evidence workspace signal",
+  );
+  assert.ok(
+    operatorGuideSource.includes("`Focused Evidence` inner panel label now also uses the same workspace-aware label path"),
+    "operator guide should document the focused evidence panel-label alignment",
   );
   assert.ok(
     readmeSource.includes("`Focused Evidence` Signal context item now also shows a read-only `Source` subline"),
