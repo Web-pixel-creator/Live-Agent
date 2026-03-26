@@ -15,7 +15,7 @@ test("focused evidence collapses dormant proof rails into one Proof path disclos
     'class="operator-evidence-drawer-proof-path-summary"',
     'class="operator-evidence-drawer-proof-path-kicker">Proof path<',
     'class="operator-evidence-drawer-proof-path-title">Timeline, checkpoints, and provenance<',
-    'class="operator-evidence-drawer-proof-path-hint">Open when you need the full trace chain.<',
+    'class="operator-evidence-drawer-proof-path-hint">Open when you need the full proof chain.<',
     'class="operator-evidence-drawer-timeline-shell"',
     'class="operator-evidence-drawer-checkpoints-shell"',
     'class="operator-evidence-drawer-provenance-shell"',
