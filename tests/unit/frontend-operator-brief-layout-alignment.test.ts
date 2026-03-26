@@ -24,6 +24,9 @@ test("operator console keeps a persistent operator brief with focus-driven first
     'id="operatorSummaryGuidePreviewFocusValue"',
     'id="operatorSummaryGuidePreviewOpenValue"',
     'id="operatorSummaryGuidePreviewRecoverValue"',
+    'aria-label="Focus preview card. Fail + watch lanes."',
+    'aria-label="Open preview card. Open lane."',
+    'aria-label="Recover preview card. Quick Start."',
     'id="operatorSummaryGuideWatchlist"',
     "Operator brief",
     "Focus",
@@ -53,6 +56,9 @@ test("operator console keeps a persistent operator brief with focus-driven first
     'el.operatorSummaryGuidePreviewFocusValue.textContent = focusValue;',
     'el.operatorSummaryGuidePreviewOpenValue.textContent = openValue;',
     'el.operatorSummaryGuidePreviewRecoverValue.textContent = recoverValue;',
+    'el.operatorSummaryGuidePreviewFocusBtn.setAttribute("aria-label", `Focus preview card. ${focusValue}.`);',
+    'el.operatorSummaryGuidePreviewOpenBtn.setAttribute("aria-label", `Open preview card. ${openValue}.`);',
+    'el.operatorSummaryGuidePreviewRecoverBtn.setAttribute("aria-label", `Recover preview card. ${recoverValue}.`);',
     "syncOperatorSummaryGuidePreview(activeSavedView, workspacePresentation);",
     "renderOperatorSummaryGuideWatchlist(nextWatchItems",
   ];
@@ -93,6 +99,10 @@ test("operator console keeps a persistent operator brief with focus-driven first
     "README missing operator workspace preview-row note",
   );
   assert.ok(
+    readmeSource.includes("preview cards now also expose ARIA labels with the same workspace-aware values"),
+    "README missing operator preview aria note",
+  );
+  assert.ok(
     operatorGuideSource.includes("persistent `Operator brief`"),
     "operator guide missing operator brief layout note",
   );
@@ -103,5 +113,9 @@ test("operator console keeps a persistent operator brief with focus-driven first
   assert.ok(
     operatorGuideSource.includes("workspace-aware `Focus / Open / Recover` preview row"),
     "operator guide missing operator workspace preview-row note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("preview cards now also expose ARIA labels with the same workspace-aware values"),
+    "operator guide missing operator preview aria note",
   );
 });

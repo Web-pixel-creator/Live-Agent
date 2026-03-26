@@ -15,6 +15,9 @@ test("operator brief preview row stays wired to the existing operator-first path
     'id="operatorSummaryGuidePreviewOpenValue"',
     'id="operatorSummaryGuidePreviewRecoverBtn"',
     'id="operatorSummaryGuidePreviewRecoverValue"',
+    'aria-label="Focus preview card. Fail + watch lanes."',
+    'aria-label="Open preview card. Open lane."',
+    'aria-label="Recover preview card. Quick Start."',
     'class="operator-summary-guide-preview-label">Focus<',
     'class="operator-summary-guide-preview-label">Open<',
     'class="operator-summary-guide-preview-label">Recover<',
@@ -37,6 +40,9 @@ test("operator brief preview row stays wired to the existing operator-first path
     'el.operatorSummaryGuidePreviewFocusValue.textContent = focusValue;',
     'el.operatorSummaryGuidePreviewOpenValue.textContent = openValue;',
     'el.operatorSummaryGuidePreviewRecoverValue.textContent = recoverValue;',
+    'el.operatorSummaryGuidePreviewFocusBtn.setAttribute("aria-label", `Focus preview card. ${focusValue}.`);',
+    'el.operatorSummaryGuidePreviewOpenBtn.setAttribute("aria-label", `Open preview card. ${openValue}.`);',
+    'el.operatorSummaryGuidePreviewRecoverBtn.setAttribute("aria-label", `Recover preview card. ${recoverValue}.`);',
     "function syncOperatorSummaryGuidePath(params = {}) {",
     'stepElements.button.dataset.guideStepAction = actionId;',
     'runOperatorSummaryGuidePathAction(el.operatorSummaryGuideStepRefreshBtn.dataset.guideStepAction',
@@ -50,4 +56,16 @@ test("operator brief preview row stays wired to the existing operator-first path
   ]) {
     assert.ok(appSource.includes(token), `operator brief runtime missing preview/path token: ${token}`);
   }
+
+  const readmeSource = readFileSync(resolve(process.cwd(), "README.md"), "utf8");
+  const operatorGuideSource = readFileSync(resolve(process.cwd(), "docs", "operator-guide.md"), "utf8");
+
+  assert.ok(
+    readmeSource.includes("preview cards now also expose ARIA labels with the same workspace-aware values"),
+    "README should document workspace-aware preview aria copy",
+  );
+  assert.ok(
+    operatorGuideSource.includes("preview cards now also expose ARIA labels with the same workspace-aware values"),
+    "operator guide should document workspace-aware preview aria copy",
+  );
 });

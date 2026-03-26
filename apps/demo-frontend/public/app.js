@@ -13218,6 +13218,9 @@ function syncOperatorSummaryGuidePreview(activeSavedView, presentation) {
   el.operatorSummaryGuidePreviewFocusValue.textContent = focusValue;
   el.operatorSummaryGuidePreviewOpenValue.textContent = openValue;
   el.operatorSummaryGuidePreviewRecoverValue.textContent = recoverValue;
+  el.operatorSummaryGuidePreviewFocusBtn.setAttribute("aria-label", `Focus preview card. ${focusValue}.`);
+  el.operatorSummaryGuidePreviewOpenBtn.setAttribute("aria-label", `Open preview card. ${openValue}.`);
+  el.operatorSummaryGuidePreviewRecoverBtn.setAttribute("aria-label", `Recover preview card. ${recoverValue}.`);
 }
 
 function syncOperatorWorkspaceChooser() {
