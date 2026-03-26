@@ -19,6 +19,7 @@ test("operator console compacts the action center into a single recovery rail be
   const requiredHtmlTokens = [
     'id="operatorActionCenterSupportHead"',
     "Recovery Rail",
+    "Next actions and Focused Evidence stay here. The Recovery Rail stays quieter below.",
     "Keep one fallback path here. Deeper drills stay below.",
     "Run one controlled scenario, then refresh summary.",
   ];
@@ -66,6 +67,10 @@ test("operator console compacts the action center into a single recovery rail be
     "README missing recovery-rail compaction note",
   );
   assert.ok(
+    readmeSource.includes("triage-shell helper now names `Focused Evidence` and `Recovery Rail` directly"),
+    "README missing explicit triage helper naming note",
+  );
+  assert.ok(
     readmeSource.includes("queue -> evidence -> recovery"),
     "README missing triage shell ordering note",
   );
@@ -76,6 +81,10 @@ test("operator console compacts the action center into a single recovery rail be
   assert.ok(
     operatorGuideSource.includes("single compact `Recovery Rail`"),
     "operator guide missing recovery-rail compaction note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("triage-shell helper now names `Focused Evidence` and `Recovery Rail` directly"),
+    "operator guide missing explicit triage helper naming note",
   );
   assert.ok(
     operatorGuideSource.includes("queue -> evidence -> recovery"),
