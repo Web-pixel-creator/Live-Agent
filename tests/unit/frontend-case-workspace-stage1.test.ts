@@ -16,8 +16,8 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   const actionStackStart = htmlSource.indexOf('class="case-workspace-action-stack"');
   const flowShellStart = htmlSource.indexOf('class="case-workspace-flow-shell"');
 
-  assert.ok(mainStart !== -1, "main action section missing from case workspace");
-  assert.ok(caseStart !== -1, "case action section missing from case workspace");
+  assert.ok(mainStart !== -1, "start-case section missing from case workspace");
+  assert.ok(caseStart !== -1, "move-case-forward section missing from case workspace");
   assert.ok(utilityStart !== -1, "utility action section missing from case workspace");
   assert.ok(resultToolsStart !== -1, "result tools shell missing from case workspace");
   assert.ok(composeGridStart !== -1, "compose grid missing after grouped actions");
@@ -26,7 +26,7 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   assert.ok(!htmlSource.includes('id="caseWorkspaceResultTools" open'), "result tools should stay collapsed by default");
   assert.ok(flowShellStart < composeGridStart, "guided flow should stay above the compose grid");
   assert.ok(composeGridStart < actionStackStart, "compose grid should stay above the grouped action stack inside the first fold");
-  assert.ok(mainStart < caseStart && caseStart < utilityStart, "case-workspace sections should stay ordered main -> case -> result tools");
+  assert.ok(mainStart < caseStart && caseStart < utilityStart, "case-workspace sections should stay ordered start case -> move case forward -> result tools");
 
   const mainSection = htmlSource.slice(mainStart, caseStart);
   const caseSection = htmlSource.slice(caseStart, utilityStart);
@@ -34,10 +34,10 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   const utilitySection = htmlSource.slice(utilityStart, utilitySectionEnd === -1 ? htmlSource.length : utilitySectionEnd);
 
   for (const token of ['id="sendBtn"', 'id="runVisaDemoBtn"']) {
-    assert.ok(mainSection.includes(token), `main section missing token: ${token}`);
+    assert.ok(mainSection.includes(token), `start-case section missing token: ${token}`);
   }
   for (const token of ['id="runVisaFollowUpBtn"', 'id="runVisaReminderBtn"', 'id="runVisaHandoffBtn"', 'id="runVisaEscalationBtn"']) {
-    assert.ok(caseSection.includes(token), `case section missing token: ${token}`);
+    assert.ok(caseSection.includes(token), `move-case-forward section missing token: ${token}`);
   }
   for (const token of ['id="reviewVisaResultBtn"', 'id="reviewVisaFollowUpResultBtn"', 'id="reviewVisaReminderResultBtn"', 'id="reviewVisaHandoffResultBtn"', 'id="reviewVisaEscalationResultBtn"', 'id="resetVisaDemoBtn"']) {
     assert.ok(utilitySection.includes(token), `utility section missing token: ${token}`);
@@ -50,6 +50,8 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     'caseWorkspaceNextStep: document.getElementById("caseWorkspaceNextStep")',
     'caseWorkspaceCompletedWork: document.getElementById("caseWorkspaceCompletedWork")',
     'caseWorkspaceFlowActionBtn: document.getElementById("caseWorkspaceFlowActionBtn")',
+    '"live.caseWorkspace.mainActionsTitle": "Start case"',
+    '"live.caseWorkspace.caseActionsTitle": "Move case forward"',
     '"live.caseWorkspace.resultToolsTitle": "Result tools"',
     '"live.caseWorkspace.resultToolsChip": "Secondary"',
     "function syncCaseWorkspaceStaticCopy()",

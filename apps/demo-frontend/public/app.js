@@ -1261,10 +1261,10 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.statusPillApproval": "Needs approval",
     "live.caseWorkspace.statusPillNext": "Reserved",
     "live.caseWorkspace.statusPillCompleted": "Reserved",
-    "live.caseWorkspace.mainActionsTitle": "Main",
-    "live.caseWorkspace.mainActionsHint": "Use one entry point to start the desk or continue the active case.",
-    "live.caseWorkspace.caseActionsTitle": "Case actions",
-    "live.caseWorkspace.caseActionsHint": "Move the case forward with follow-up, reminders, CRM updates, or escalation.",
+    "live.caseWorkspace.mainActionsTitle": "Start case",
+    "live.caseWorkspace.mainActionsHint": "Begin a new intake or continue the active case from one clear starting point.",
+    "live.caseWorkspace.caseActionsTitle": "Move case forward",
+    "live.caseWorkspace.caseActionsHint": "Advance the case through documents, consultation prep, CRM, or specialist handoff.",
     "live.caseWorkspace.resultToolsTitle": "Result tools",
     "live.caseWorkspace.resultToolsHint": "Open the finished summaries or reset the demo workspace.",
     "live.caseWorkspace.resultToolsChip": "Secondary",
@@ -5481,25 +5481,24 @@ function syncCaseWorkspaceStaticCopy() {
     ["[data-i18n=\"live.caseWorkspace.nextStepLabel\"]", isRu ? "Следующий шаг" : "Next step"],
     ["[data-i18n=\"live.caseWorkspace.nextStepCard\"]", isRu ? "Что дальше" : "Next step"],
     ["[data-i18n=\"live.caseWorkspace.completedWork\"]", isRu ? "Что уже сделано" : "Completed work"],
-    ["#caseWorkspaceMainActionsTitle", isRu ? "Главное" : "Main"],
+    ["#caseWorkspaceMainActionsTitle", isRu ? "Старт кейса" : "Start case"],
     [
       ".case-workspace-action-section-main .case-workspace-action-hint",
-      isRu ? "Один вход для старта нового кейса или продолжения текущего." : "Use one entry point to start the desk or continue the active case.",
+      isRu
+        ? "Начните новый intake или продолжите активный кейс из одной понятной точки входа."
+        : "Begin a new intake or continue the active case from one clear starting point.",
     ],
-    ["#caseWorkspaceCaseActionsTitle", isRu ? "Действия по кейсу" : "Case actions"],
+    ["#caseWorkspaceCaseActionsTitle", isRu ? "Двигайте кейс дальше" : "Move case forward"],
     [
       ".case-workspace-action-section-case .case-workspace-action-hint",
       isRu
-        ? "Продвигайте кейс: документы, напоминание, CRM или передача специалисту."
-        : "Move the case forward with follow-up, reminders, CRM updates, or escalation.",
+        ? "Продвигайте кейс через документы, подготовку консультации, CRM или передачу специалисту."
+        : "Advance the case through documents, consultation prep, CRM, or specialist handoff.",
     ],
-    ["#caseWorkspaceUtilityActionsTitle", isRu ? "Сервис" : "Utility"],
     [
       ".case-workspace-action-section-utility .case-workspace-action-hint",
       isRu ? "Открывайте готовые итоги или сбрасывайте демо-режим." : "Open the finished summaries or reset the demo workspace.",
     ],
-    ["#caseWorkspaceResultToolsTitle", isRu ? "РС‚РѕРіРё Рё РґРµРјРѕ" : "Result tools"],
-    [".case-workspace-action-shell-pill", isRu ? "Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅРѕ" : "Secondary"],
     ["#caseWorkspaceResultToolsTitle", isRu ? "Итоги и демо" : "Result tools"],
     [".case-workspace-action-shell-pill", isRu ? "Вспомогательно" : "Secondary"],
     [

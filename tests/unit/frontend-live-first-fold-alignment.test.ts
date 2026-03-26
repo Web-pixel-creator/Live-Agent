@@ -38,8 +38,8 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   assert.ok(completedWorkIndex !== -1, "frontend html missing completed-work summary");
   assert.ok(summaryGridIndex !== -1, "frontend html missing case-workspace summary grid");
   assert.ok(actionStackIndex !== -1, "frontend html missing grouped case workspace actions");
-  assert.ok(mainSectionIndex !== -1, "frontend html missing main action section");
-  assert.ok(caseSectionIndex !== -1, "frontend html missing case-action section");
+  assert.ok(mainSectionIndex !== -1, "frontend html missing start-case section");
+  assert.ok(caseSectionIndex !== -1, "frontend html missing move-case-forward section");
   assert.ok(utilitySectionIndex !== -1, "frontend html missing utility section");
   assert.ok(resultToolsIndex !== -1, "frontend html missing result-tools shell");
   assert.ok(composeShellIndex !== -1, "frontend html missing primary compose shell");
@@ -51,9 +51,9 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   assert.ok(currentCaseIndex < nextStepIndex, "current case should appear before next-step guidance");
   assert.ok(nextStepIndex < completedWorkIndex, "completed work should trail the current-case guidance");
   assert.ok(actionStackIndex < dockIndex, "grouped actions should stay above the support dock");
-  assert.ok(mainSectionIndex < caseSectionIndex, "main actions should lead into case actions");
-  assert.ok(caseSectionIndex < utilitySectionIndex, "utility actions should stay after case actions");
-  assert.ok(caseSectionIndex < resultToolsIndex, "result tools should stay after case actions");
+  assert.ok(mainSectionIndex < caseSectionIndex, "start-case actions should lead into move-case-forward actions");
+  assert.ok(caseSectionIndex < utilitySectionIndex, "utility actions should stay after move-case-forward actions");
+  assert.ok(caseSectionIndex < resultToolsIndex, "result tools should stay after move-case-forward actions");
   assert.ok(dockIndex < trayIndex, "support tray should stay attached to the dock after the compose shell");
 
   assert.ok(
@@ -70,7 +70,7 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   );
   assert.ok(
     htmlSource.includes('data-i18n="live.caseWorkspace.mainActionsTitle"'),
-    "frontend html should expose grouped main actions in the first fold",
+    "frontend html should expose grouped start-case actions in the first fold",
   );
   assert.ok(
     htmlSource.includes('id="caseWorkspaceResultToolsTitle"'),

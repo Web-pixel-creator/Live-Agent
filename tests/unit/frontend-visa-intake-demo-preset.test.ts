@@ -107,7 +107,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   assert.ok(!htmlSource.includes('id="caseWorkspaceResultTools" open'), "result tools should stay collapsed in the first scan");
   const mainSection = htmlSource.slice(mainSectionStart, utilitySectionStart);
   const utilitySection = htmlSource.slice(utilitySectionStart, utilitySectionEnd);
-  assert.ok(mainSection.includes('id="runVisaDemoBtn"'), "visa intake launch CTA should stay in the main action section");
+  assert.ok(mainSection.includes('id="runVisaDemoBtn"'), "visa intake launch CTA should stay in the start-case section");
   assert.ok(utilitySection.includes('id="reviewVisaResultBtn"'), "visa intake review CTA should stay in the utility section");
   assert.ok(utilitySection.includes('id="resetVisaDemoBtn"'), "visa reset CTA should stay in the utility section");
 
