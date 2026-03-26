@@ -27,7 +27,7 @@ test("operator console first fold exposes a state-aware refresh-inspect-recover 
     'id="operatorSummaryGuideStepRecoverHint"',
     'id="operatorSummaryGuideStepRecoverStatus"',
     'id="operatorSummaryGuideStepRecoverBtn"',
-    "Inspect the hot lane",
+    "Inspect the hot workspace",
     "Recover only if needed",
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing onboarding path token: ${token}`);
@@ -71,7 +71,15 @@ test("operator console first fold exposes a state-aware refresh-inspect-recover 
     "README should document the state-aware operator onboarding path",
   );
   assert.ok(
+    readmeSource.includes("workspace-first inspect/open wording"),
+    "README should document workspace-first onboarding wording",
+  );
+  assert.ok(
     operatorGuideSource.includes("guided `Refresh -> Inspect -> Recover` path"),
     "operator guide should document the guided operator onboarding path",
+  );
+  assert.ok(
+    operatorGuideSource.includes("workspace-first inspect/open wording"),
+    "operator guide should document workspace-first onboarding wording",
   );
 });

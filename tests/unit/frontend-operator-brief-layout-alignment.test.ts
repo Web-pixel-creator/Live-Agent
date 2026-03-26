@@ -25,7 +25,7 @@ test("operator console keeps a persistent operator brief with focus-driven first
     'id="operatorSummaryGuidePreviewOpenValue"',
     'id="operatorSummaryGuidePreviewRecoverValue"',
     'aria-label="Focus preview card. Fail + watch lanes."',
-    'aria-label="Open preview card. Open lane."',
+    'aria-label="Open preview card. Open workspace."',
     'aria-label="Recover preview card. Quick Start."',
     'id="operatorSummaryGuideWatchlist"',
     "Operator brief",

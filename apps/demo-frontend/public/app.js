@@ -8600,17 +8600,17 @@ function syncOperatorSummaryGuidePath(params = {}) {
     });
     syncOperatorSummaryGuidePathStep(inspectStep, {
       state: "next",
-      title: "Inspect the hot lane",
-      hint: "After refresh, open the loudest lane instead of scanning the whole console.",
+      title: "Inspect the hot workspace",
+      hint: "After refresh, open the loudest workspace instead of scanning the whole console.",
       statusText: "next",
       statusTone: "neutral",
-      buttonLabel: "Open lane",
+      buttonLabel: "Open workspace",
       disabled: true,
     });
     syncOperatorSummaryGuidePathStep(recoverStep, {
       state: "later",
       title: "Recover only if needed",
-      hint: "Use Recovery Playbook or Quick Start only after you confirm the lane still needs help.",
+      hint: "Use Recovery Playbook or Quick Start only after you confirm the workspace still needs help.",
       statusText: "later",
       statusTone: "neutral",
       buttonLabel: "Recovery Playbook",
@@ -8632,16 +8632,16 @@ function syncOperatorSummaryGuidePath(params = {}) {
     syncOperatorSummaryGuidePathStep(inspectStep, {
       state: "next",
       title: "Inspect after refresh",
-      hint: "Once the board refresh succeeds, open the loudest lane instead of scanning the full console.",
+      hint: "Once the board refresh succeeds, open the loudest workspace instead of scanning the full console.",
       statusText: "waiting",
       statusTone: "neutral",
-      buttonLabel: "Open lane",
+      buttonLabel: "Open workspace",
       disabled: true,
     });
     syncOperatorSummaryGuidePathStep(recoverStep, {
       state: "later",
       title: "Recover after the board is hydrated",
-      hint: "Use Recovery Playbook only after the refreshed board confirms which lane is still degraded.",
+      hint: "Use Recovery Playbook only after the refreshed board confirms which workspace is still degraded.",
       statusText: "hold",
       statusTone: "neutral",
       buttonLabel: "Recovery Playbook",
@@ -8663,11 +8663,11 @@ function syncOperatorSummaryGuidePath(params = {}) {
     ? (activeSavedView.contextNote ?? `${activeSavedView.label} is the active posture. Open it before deeper recovery surfaces.`)
     : inspectSignal
       ? `Jump straight into ${inspectSignal.label} before you open deeper operator tools.`
-      : "The board looks nominal. Open the lead lane only when you need deeper proof or replay.";
+      : "The board looks nominal. Open the lead workspace only when you need deeper proof or replay.";
   const inspectButtonLabel = hasActiveSavedView
     ? `Open ${activeSavedView.label}`
     : inspectSignal
-      ? "Open lane"
+      ? "Open workspace"
       : "Review board";
   syncOperatorSummaryGuidePathStep(inspectStep, {
     state: inspectNeedsAttention ? "current" : "done",
@@ -8684,11 +8684,11 @@ function syncOperatorSummaryGuidePath(params = {}) {
 
   const recoverNeedsPlaybook = failSignals.length > 0;
   const recoverNeedsQuickStart = !recoverNeedsPlaybook && neutralSignals.length > 0;
-  const recoverTargetLabel = (failSignals[0] ?? neutralSignals[0])?.label ?? "the active lane";
+  const recoverTargetLabel = (failSignals[0] ?? neutralSignals[0])?.label ?? "the active workspace";
   syncOperatorSummaryGuidePathStep(refreshStep, {
     state: "done",
     title: "Board refreshed",
-    hint: "The first operator snapshot is hydrated. Move straight to the highlighted lane instead of rescanning the console.",
+    hint: "The first operator snapshot is hydrated. Move straight to the highlighted workspace instead of rescanning the console.",
     statusText: "done",
     statusTone: "ok",
     buttonLabel: "Refresh Summary",
@@ -8699,7 +8699,7 @@ function syncOperatorSummaryGuidePath(params = {}) {
     title: recoverNeedsPlaybook
       ? `Recover ${recoverTargetLabel}`
       : recoverNeedsQuickStart
-        ? "Reseed only if the lane stays quiet"
+        ? "Reseed only if the workspace stays quiet"
         : "Recover only if something drifts",
     hint: recoverNeedsPlaybook
       ? `Use Recovery Playbook only after you confirm ${recoverTargetLabel} still needs help.`
@@ -13174,14 +13174,14 @@ function syncOperatorSummaryGuidePreview(activeSavedView, presentation) {
   const inspectSignal = presentation?.signal && typeof presentation.signal === "object" ? presentation.signal : null;
 
   let focusValue = presentation?.routeFacts?.focus ?? "Fail + watch lanes";
-  let openValue = !hasManualRefresh ? "Refresh Summary" : `${workspaceLabel} lane`;
+  let openValue = !hasManualRefresh ? "Refresh Summary" : `${workspaceLabel} workspace`;
 
   if (hasManualRefresh && workspaceTone === "fail") {
     openValue = `Inspect ${signalLabel}`;
   } else if (hasManualRefresh && workspaceTone === "neutral") {
     openValue = `Review ${signalLabel}`;
   } else if (hasManualRefresh && workspaceId === "incidents") {
-    openValue = "Open incident lane";
+    openValue = "Open incident workspace";
   }
 
   el.operatorSummaryGuidePreview.dataset.workspace = workspaceId;
@@ -14188,8 +14188,8 @@ function syncOperatorSummaryGuide() {
   let nextStatusText = "waiting";
   let nextTitle = isDemo ? "Start with one refresh" : "Hydrate diagnostics first";
   let nextHint = isDemo
-    ? "Refresh once, then follow the highlighted lane instead of scanning the full board."
-    : "Refresh once, then open only the lane that still needs deeper diagnostics.";
+    ? "Refresh once, then follow the highlighted workspace instead of scanning the full board."
+    : "Refresh once, then open only the workspace that still needs deeper diagnostics.";
   let nextMeta = "Next: hydrate the incident board.";
   let nextWatchItems = [];
 

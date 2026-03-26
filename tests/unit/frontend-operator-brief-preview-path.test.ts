@@ -16,7 +16,7 @@ test("operator brief preview row stays wired to the existing operator-first path
     'id="operatorSummaryGuidePreviewRecoverBtn"',
     'id="operatorSummaryGuidePreviewRecoverValue"',
     'aria-label="Focus preview card. Fail + watch lanes."',
-    'aria-label="Open preview card. Open lane."',
+    'aria-label="Open preview card. Open workspace."',
     'aria-label="Recover preview card. Quick Start."',
     'class="operator-summary-guide-preview-label">Focus<',
     'class="operator-summary-guide-preview-label">Open<',

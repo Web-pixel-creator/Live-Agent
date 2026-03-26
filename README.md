@@ -186,6 +186,7 @@ The frontend now uses a left dashboard rail plus a compact active-workspace shel
 
 `Operator Console` now starts with one explicit `Operator handoff` entry card (`Approvals`, `Runtime`, `Audit`, `Refresh Summary`), so live-to-operator transitions land in a clearer operator-first route before the deeper board surfaces.
 That same first fold now includes a state-aware `Refresh -> Inspect -> Recover` onboarding path, so first-time operators see one guided sequence instead of a static brief before they touch the deeper console.
+That same onboarding path now also uses workspace-first inspect/open wording, so the first operator sequence stays aligned with `Choose workspace`, the `Operator brief` preview row, and the current product-surface vocabulary.
 That same operator-first entry layer now adds a dedicated `Choose workspace` strip (`Overview`, `Approvals`, `Runtime`, `Audit`), so deeper operator work starts from one explicit work area instead of from the full board toolbar.
 That same `Choose workspace` strip now also marks the current card and the recommended next card with labels like `Current` and `Recommended next`, so the first operator choice is easier to scan without changing the navigation model.
 That chooser now feeds a route-aware workspace header inside `Operator Console`, so `Overview`, `Approvals`, `Runtime`, and `Audit` each explain their current focus, next action, and posture mode before the operator reaches deeper board chrome.
