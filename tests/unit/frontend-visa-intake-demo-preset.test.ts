@@ -16,6 +16,8 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     '"live.support.runVisaDemo": "Start New Visa Case"',
     '"live.compose.reviewVisaDemo": "See Intake Summary"',
     '"live.compose.resetVisaDemo": "Start Over"',
+    '"live.caseWorkspace.requestTitle": "Live request"',
+    '"live.caseWorkspace.requestChip": "Optional"',
     '"live.caseWorkspace.caseActionsChip": "Shortcuts"',
     '"live.caseWorkspace.resultToolsTitle": "Result tools"',
     '"live.caseWorkspace.resultToolsChip": "Secondary"',
@@ -87,6 +89,8 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     'id="caseWorkspaceResultToolsTitle"',
     'id="caseWorkspaceResultToolsChip"',
     'data-i18n="live.caseWorkspace.resultToolsTitle"',
+    'id="caseWorkspaceRequestChip"',
+    'data-i18n="live.caseWorkspace.requestChip"',
     'id="caseWorkspaceDemoGuide"',
     'id="caseWorkspaceDemoGuideTitle"',
     'id="caseWorkspaceDemoGuideChip"',
@@ -131,8 +135,8 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   const caseSection = htmlSource.slice(caseShortcutsStart, utilitySectionStart);
   const utilitySection = htmlSource.slice(utilitySectionStart, utilitySectionEnd);
   assert.ok(mainSection.includes('id="runVisaDemoBtn"'), "visa intake launch CTA should stay in the start-case section");
-  assert.ok(requestSection.includes('id="sendBtn"'), "generic live send CTA should move into the main-request section");
-  assert.ok(requestSection.includes('id="sendBtnHint"'), "main-request section should keep the generic live hint");
+  assert.ok(requestSection.includes('id="sendBtn"'), "generic live send CTA should move into the live-request section");
+  assert.ok(requestSection.includes('id="sendBtnHint"'), "live-request section should keep the generic live hint");
   for (const token of ['id="runVisaFollowUpBtn"', 'id="runVisaReminderBtn"', 'id="runVisaHandoffBtn"', 'id="runVisaEscalationBtn"']) {
     assert.ok(caseSection.includes(token), `move-case-forward drawer should keep token: ${token}`);
   }
@@ -167,6 +171,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     '.live-compose-preset-btn[data-case-workspace-action-state="recommended"]',
     '.live-compose-preset-btn[data-case-workspace-action-state="utility"]',
     '.case-workspace-action-shell[data-case-workspace-drawer-state="review"] .case-workspace-action-hint',
+    ".case-workspace-action-inline-pill",
   ];
   for (const token of requiredStyleTokens) {
     assert.ok(stylesSource.includes(token), `styles.css missing visa demo CTA style token: ${token}`);
@@ -185,8 +190,8 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     "README should document the visa intake preset",
   );
   assert.ok(
-    readmeSource.includes("one visible `Main request` section"),
-    "README should document the dedicated main-request section",
+    readmeSource.includes("one visible optional `Live request` section"),
+    "README should document the dedicated optional live-request section",
   );
   assert.ok(
     readmeSource.includes("collapsed `Move case forward`"),

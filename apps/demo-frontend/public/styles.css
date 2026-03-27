@@ -1059,6 +1059,10 @@
   line-height: 1.45;
 }
 
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-inline-pill {
+  align-self: flex-start;
+}
+
 .layout[data-active-tab="live-negotiator"] .case-workspace-action-group {
   width: 100%;
 }

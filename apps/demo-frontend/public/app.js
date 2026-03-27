@@ -1263,8 +1263,9 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.statusPillCompleted": "Reserved",
     "live.caseWorkspace.mainActionsTitle": "Start case",
     "live.caseWorkspace.mainActionsHint": "Begin a new intake or continue the active case from one clear starting point.",
-    "live.caseWorkspace.requestTitle": "Main request",
-    "live.caseWorkspace.requestHint": "Use the live composer for translation, negotiation, research, UI tasks, or free-form chat.",
+    "live.caseWorkspace.requestTitle": "Live request",
+    "live.caseWorkspace.requestHint": "Use the live composer for one standalone translation, negotiation, research, UI task, or chat outside the case path.",
+    "live.caseWorkspace.requestChip": "Optional",
     "live.caseWorkspace.caseActionsTitle": "Move case forward",
     "live.caseWorkspace.caseActionsHint": "Open quick case shortcuts when you need to jump ahead to documents, consultation prep, CRM, or specialist handoff.",
     "live.caseWorkspace.caseActionsChip": "Shortcuts",
@@ -5668,12 +5669,13 @@ function syncCaseWorkspaceStaticCopy() {
         ? "Начните новый intake или продолжите активный кейс из одной понятной точки входа."
         : "Begin a new intake or continue the active case from one clear starting point.",
     ],
-    ["#caseWorkspaceRequestTitle", isRu ? "Главный запрос" : "Main request"],
+    ["#caseWorkspaceRequestTitle", isRu ? "Отдельный запрос" : "Live request"],
+    ["#caseWorkspaceRequestChip", isRu ? "Опционально" : "Optional"],
     [
       ".case-workspace-action-section-request .case-workspace-action-hint",
       isRu
-        ? "Используйте live-composer для перевода, переговоров, research, UI-задач или свободного чата."
-        : "Use the live composer for translation, negotiation, research, UI tasks, or free-form chat.",
+        ? "Используйте live-composer для одного отдельного перевода, negotiation, research, UI-задачи или чата вне текущего шага кейса."
+        : "Use the live composer for one standalone translation, negotiation, research, UI task, or chat outside the case path.",
     ],
     ["#caseWorkspaceCaseActionsTitle", isRu ? "Двигайте кейс дальше" : "Move case forward"],
     [
