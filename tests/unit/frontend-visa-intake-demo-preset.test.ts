@@ -87,6 +87,10 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     'id="caseWorkspaceResultToolsTitle"',
     'id="caseWorkspaceResultToolsChip"',
     'data-i18n="live.caseWorkspace.resultToolsTitle"',
+    'id="caseWorkspaceDemoGuide"',
+    'id="caseWorkspaceDemoGuideTitle"',
+    'id="caseWorkspaceDemoGuideChip"',
+    'data-i18n="live.caseWorkspace.demoGuideTitle"',
     'id="runVisaDemoBtn"',
     'data-dashboard-action="run_visa_intake_demo"',
     'data-i18n="live.compose.runVisaDemo"',
@@ -117,9 +121,11 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   const caseShortcutsStart = htmlSource.indexOf('id="caseWorkspaceCaseShortcuts"');
   const utilitySectionStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-utility case-workspace-action-shell"');
   const utilitySectionEnd = htmlSource.indexOf("</details>", utilitySectionStart);
-  assert.ok(mainSectionStart !== -1 && requestSectionStart !== -1 && caseShortcutsStart !== -1 && utilitySectionStart !== -1 && utilitySectionEnd !== -1, "case-workspace sections should wrap the visa intake CTAs");
+  const demoGuideStart = htmlSource.indexOf('id="caseWorkspaceDemoGuide"');
+  assert.ok(mainSectionStart !== -1 && requestSectionStart !== -1 && caseShortcutsStart !== -1 && utilitySectionStart !== -1 && utilitySectionEnd !== -1 && demoGuideStart !== -1, "case-workspace sections should wrap the visa intake CTAs");
   assert.ok(!htmlSource.includes('id="caseWorkspaceCaseShortcuts" open'), "move-case-forward shortcuts should stay collapsed in the first scan");
   assert.ok(!htmlSource.includes('id="caseWorkspaceResultTools" open'), "result tools should stay collapsed in the first scan");
+  assert.ok(!htmlSource.includes('id="caseWorkspaceDemoGuide" open'), "demo guide should stay collapsed in the first scan");
   const mainSection = htmlSource.slice(mainSectionStart, requestSectionStart);
   const requestSection = htmlSource.slice(requestSectionStart, caseShortcutsStart);
   const caseSection = htmlSource.slice(caseShortcutsStart, utilitySectionStart);
@@ -132,6 +138,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   }
   assert.ok(utilitySection.includes('id="reviewVisaResultBtn"'), "visa intake review CTA should stay in the utility section");
   assert.ok(utilitySection.includes('id="resetVisaDemoBtn"'), "visa reset CTA should stay in the utility section");
+  assert.ok(utilitySectionEnd < demoGuideStart, "demo guide should stay after the result-tools drawer");
 
   const requiredStyleTokens = [
     ".case-workspace-shell",
@@ -143,6 +150,8 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     ".case-workspace-action-section",
     ".case-workspace-action-shell-summary",
     ".case-workspace-action-shell-body",
+    ".case-workspace-action-section-demo .live-compose-preset-hint",
+    ".case-workspace-action-section-demo .live-compose-preset-map",
     ".live-compose-preset-hint",
     ".live-compose-preset-map",
     ".live-compose-preset-card",

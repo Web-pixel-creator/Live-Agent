@@ -1271,6 +1271,10 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.resultToolsTitle": "Result tools",
     "live.caseWorkspace.resultToolsHint": "Open the finished summaries or reset the demo workspace.",
     "live.caseWorkspace.resultToolsChip": "Secondary",
+    "live.caseWorkspace.demoGuideTitle": "Demo guide",
+    "live.caseWorkspace.demoGuideHint":
+      "Open the short before/after guide when you need a quick reminder of how the visa presets move through the case.",
+    "live.caseWorkspace.demoGuideChip": "Optional",
     "live.caseWorkspace.clientIdle": "Ready for first request",
     "live.caseWorkspace.statusIdle": "Waiting for the first action",
     "live.caseWorkspace.nextIdle": "Pick a main action below",
@@ -5702,6 +5706,21 @@ function syncCaseWorkspaceStaticCopy() {
     if (node instanceof HTMLElement) {
       node.textContent = text;
     }
+  }
+
+  const demoGuideTitle = document.querySelector("#caseWorkspaceDemoGuideTitle");
+  if (demoGuideTitle instanceof HTMLElement) {
+    demoGuideTitle.textContent = isRu ? "Гид по демо" : "Demo guide";
+  }
+  const demoGuideHint = document.querySelector(".case-workspace-action-section-demo .case-workspace-action-hint");
+  if (demoGuideHint instanceof HTMLElement) {
+    demoGuideHint.textContent = isRu
+      ? "Откройте короткий гид до и после подтверждения, если нужно быстро вспомнить, как визовые пресеты проходят по кейсу."
+      : "Open the short before/after guide when you need a quick reminder of how the visa presets move through the case.";
+  }
+  const demoGuideChip = document.querySelector("#caseWorkspaceDemoGuideChip");
+  if (demoGuideChip instanceof HTMLElement) {
+    demoGuideChip.textContent = isRu ? "Необязательно" : "Optional";
   }
 }
 

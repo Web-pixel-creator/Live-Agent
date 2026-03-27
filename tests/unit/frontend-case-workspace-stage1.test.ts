@@ -13,6 +13,7 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   const caseStart = htmlSource.indexOf('id="caseWorkspaceCaseShortcuts"');
   const utilityStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-utility case-workspace-action-shell"');
   const resultToolsStart = htmlSource.indexOf('id="caseWorkspaceResultTools"');
+  const demoGuideStart = htmlSource.indexOf('id="caseWorkspaceDemoGuide"');
   const composeGridStart = htmlSource.indexOf('class="intent-compose-grid intent-grid-primary"');
   const actionStackStart = htmlSource.indexOf('class="case-workspace-action-stack"');
   const flowShellStart = htmlSource.indexOf('class="case-workspace-flow-shell"');
@@ -22,14 +23,17 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   assert.ok(caseStart !== -1, "move-case-forward shortcuts drawer missing from case workspace");
   assert.ok(utilityStart !== -1, "utility action section missing from case workspace");
   assert.ok(resultToolsStart !== -1, "result tools shell missing from case workspace");
+  assert.ok(demoGuideStart !== -1, "demo guide shell missing from case workspace");
   assert.ok(composeGridStart !== -1, "compose grid missing after grouped actions");
   assert.ok(actionStackStart !== -1, "case-workspace action stack missing");
   assert.ok(flowShellStart !== -1, "guided flow shell missing from case workspace");
   assert.ok(!htmlSource.includes('id="caseWorkspaceCaseShortcuts" open'), "move-case-forward shortcuts should stay collapsed by default");
   assert.ok(!htmlSource.includes('id="caseWorkspaceResultTools" open'), "result tools should stay collapsed by default");
+  assert.ok(!htmlSource.includes('id="caseWorkspaceDemoGuide" open'), "demo guide should stay collapsed by default");
   assert.ok(flowShellStart < composeGridStart, "guided flow should stay above the compose grid");
   assert.ok(composeGridStart < actionStackStart, "compose grid should stay above the grouped action stack inside the first fold");
   assert.ok(mainStart < requestStart && requestStart < caseStart && caseStart < utilityStart, "case-workspace sections should stay ordered start case -> main request -> move case forward drawer -> result tools");
+  assert.ok(resultToolsStart < demoGuideStart, "demo guide should stay after result tools");
 
   const mainSection = htmlSource.slice(mainStart, requestStart);
   const requestSection = htmlSource.slice(requestStart, caseStart);
@@ -65,7 +69,12 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     '"live.caseWorkspace.caseActionsChip": "Shortcuts"',
     '"live.caseWorkspace.resultToolsTitle": "Result tools"',
     '"live.caseWorkspace.resultToolsChip": "Secondary"',
+    '"live.caseWorkspace.demoGuideTitle": "Demo guide"',
+    '"live.caseWorkspace.demoGuideHint":',
+    '"live.caseWorkspace.demoGuideChip": "Optional"',
     '#caseWorkspaceResultToolsChip',
+    '#caseWorkspaceDemoGuideTitle',
+    '#caseWorkspaceDemoGuideChip',
     "function syncCaseWorkspaceStaticCopy()",
     "function getCaseWorkspaceFlowState(",
     "function getCaseWorkspaceSnapshot(",
@@ -89,6 +98,7 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     ".case-workspace-action-shell-summary",
     ".case-workspace-action-shell-body",
     ".case-workspace-action-shell-pill",
+    ".case-workspace-action-section-demo .live-compose-preset-hint",
   ]) {
     assert.ok(stylesSource.includes(token), `styles.css missing case-workspace style token: ${token}`);
   }
