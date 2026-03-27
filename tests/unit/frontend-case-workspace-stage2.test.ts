@@ -43,9 +43,18 @@ test("case workspace stage 2 exposes a guided flow with staged CTA wiring", () =
     'caseWorkspaceFlowPill: document.getElementById("caseWorkspaceFlowPill")',
     'caseWorkspaceFlowActionBtn: document.getElementById("caseWorkspaceFlowActionBtn")',
     "const CASE_WORKSPACE_FLOW_STEPS = [\"case\", \"documents\", \"consultation\", \"crm\", \"handoff\"]",
+    "const CASE_WORKSPACE_ACTION_SEQUENCE = [",
+    "function getCaseWorkspaceActionIndex(",
+    "function getCaseWorkspaceShortcutButtonState(",
+    "function syncCaseWorkspaceActionButtons(",
     "function getCaseWorkspaceFlowState(",
     "function renderCaseWorkspaceFlow(",
     'bindDashboardActionButton(el.caseWorkspaceFlowActionBtn);',
+    'button.dataset.caseWorkspaceActionState = uiState.state;',
+    'caseDrawer.dataset.caseWorkspaceDrawerState = "recommended";',
+    'resultDrawer.dataset.caseWorkspaceDrawerState = isReset ? "ready" : "review";',
+    'setCaseWorkspaceDrawerPill(caseChip',
+    'setCaseWorkspaceDrawerPill(resultChip',
     'run_visa_follow_up_demo',
     'review_visa_follow_up_result',
     'run_visa_reminder_demo',
@@ -69,6 +78,9 @@ test("case workspace stage 2 exposes a guided flow with staged CTA wiring", () =
     ".case-workspace-flow-title",
     ".case-workspace-flow-actions",
     ".case-workspace-flow-hint",
+    '.live-compose-preset-btn[data-case-workspace-action-state="recommended"]',
+    '.live-compose-preset-btn[data-case-workspace-action-state="jump"]',
+    '.case-workspace-action-shell[data-case-workspace-drawer-state="recommended"] .case-workspace-action-shell-pill',
   ]) {
     assert.ok(stylesSource.includes(token), `styles.css missing guided flow style token: ${token}`);
   }
@@ -78,7 +90,15 @@ test("case workspace stage 2 exposes a guided flow with staged CTA wiring", () =
     "README should mention the guided flow layer in the live first fold",
   );
   assert.ok(
+    readmeSource.includes("recommended shortcut") || readmeSource.includes("required protected review action"),
+    "README should mention that the drawers mirror the guided flow",
+  );
+  assert.ok(
     operatorGuideSource.includes("guided flow"),
     "operator guide should mention the guided flow layer in the live first fold",
+  );
+  assert.ok(
+    operatorGuideSource.includes("required protected review action"),
+    "operator guide should mention that drawers mirror the guided flow",
   );
 });

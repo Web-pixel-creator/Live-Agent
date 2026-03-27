@@ -19,6 +19,14 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     '"live.caseWorkspace.caseActionsChip": "Shortcuts"',
     '"live.caseWorkspace.resultToolsTitle": "Result tools"',
     '"live.caseWorkspace.resultToolsChip": "Secondary"',
+    "const CASE_WORKSPACE_ACTION_BUTTONS = [",
+    "const CASE_WORKSPACE_RESULT_ACTIONS = new Set(",
+    "const CASE_WORKSPACE_CASE_ACTIONS = new Set(",
+    "function getCaseWorkspaceShortcutButtonState(",
+    'button.dataset.caseWorkspaceActionState = uiState.state;',
+    'button.classList.toggle("is-active", uiState.state === "recommended");',
+    'button.classList.toggle("is-quiet", uiState.state === "jump" || uiState.state === "held" || uiState.state === "utility");',
+    'resultDrawer.dataset.caseWorkspaceDrawerState = isReset ? "ready" : "review";',
     '"live.compose.runVisaDemoHint":',
     '"live.compose.runVisaDemoCardTitle": "Before final confirmation"',
     '"live.compose.runVisaDemoCardCopy":',
@@ -147,6 +155,9 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     "justify-items: start;",
     ".live-compose-send-hint,",
     ".live-compose-preset-hint {",
+    '.live-compose-preset-btn[data-case-workspace-action-state="recommended"]',
+    '.live-compose-preset-btn[data-case-workspace-action-state="utility"]',
+    '.case-workspace-action-shell[data-case-workspace-drawer-state="review"] .case-workspace-action-hint',
   ];
   for (const token of requiredStyleTokens) {
     assert.ok(stylesSource.includes(token), `styles.css missing visa demo CTA style token: ${token}`);

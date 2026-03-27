@@ -5411,6 +5411,38 @@ function buildCaseWorkspaceCompletedWorkText(summaryConfig) {
 }
 
 const CASE_WORKSPACE_FLOW_STEPS = ["case", "documents", "consultation", "crm", "handoff"];
+const CASE_WORKSPACE_ACTION_SEQUENCE = [
+  "run_visa_intake_demo",
+  "review_visa_draft_result",
+  "run_visa_follow_up_demo",
+  "review_visa_follow_up_result",
+  "run_visa_reminder_demo",
+  "review_visa_reminder_result",
+  "run_visa_handoff_demo",
+  "review_visa_handoff_result",
+  "run_visa_escalation_demo",
+  "review_visa_escalation_result",
+  "reset_visa_demo",
+];
+const CASE_WORKSPACE_ACTION_BUTTONS = [
+  { key: "runVisaDemoBtn", actionId: "run_visa_intake_demo", drawer: "main" },
+  { key: "runVisaFollowUpBtn", actionId: "run_visa_follow_up_demo", drawer: "case" },
+  { key: "runVisaReminderBtn", actionId: "run_visa_reminder_demo", drawer: "case" },
+  { key: "runVisaHandoffBtn", actionId: "run_visa_handoff_demo", drawer: "case" },
+  { key: "runVisaEscalationBtn", actionId: "run_visa_escalation_demo", drawer: "case" },
+  { key: "reviewVisaResultBtn", actionId: "review_visa_draft_result", drawer: "result" },
+  { key: "reviewVisaFollowUpResultBtn", actionId: "review_visa_follow_up_result", drawer: "result" },
+  { key: "reviewVisaReminderResultBtn", actionId: "review_visa_reminder_result", drawer: "result" },
+  { key: "reviewVisaHandoffResultBtn", actionId: "review_visa_handoff_result", drawer: "result" },
+  { key: "reviewVisaEscalationResultBtn", actionId: "review_visa_escalation_result", drawer: "result" },
+  { key: "resetVisaDemoBtn", actionId: "reset_visa_demo", drawer: "result" },
+];
+const CASE_WORKSPACE_RESULT_ACTIONS = new Set(
+  CASE_WORKSPACE_ACTION_BUTTONS.filter((entry) => entry.drawer === "result").map((entry) => entry.actionId),
+);
+const CASE_WORKSPACE_CASE_ACTIONS = new Set(
+  CASE_WORKSPACE_ACTION_BUTTONS.filter((entry) => entry.drawer === "case").map((entry) => entry.actionId),
+);
 
 function getCaseWorkspaceStepTitle(stepKey, isRu) {
   switch (stepKey) {
@@ -5437,6 +5469,146 @@ function getCaseWorkspaceStepStateLabel(stepState, isRu) {
       return isRu ? "Сейчас" : "Current";
     default:
       return isRu ? "Дальше" : "Next";
+  }
+}
+
+function getCaseWorkspaceActionIndex(actionId) {
+  if (typeof actionId !== "string" || actionId.length === 0) {
+    return -1;
+  }
+  return CASE_WORKSPACE_ACTION_SEQUENCE.indexOf(actionId);
+}
+
+function getCaseWorkspaceShortcutButtonState(buttonActionId, activeActionId, flowState, isRu) {
+  const flowHeld =
+    flowState?.actionDisabled === true &&
+    (typeof activeActionId !== "string" || activeActionId.length === 0) &&
+    typeof state.liveDemoScenario !== "string";
+  if (flowHeld) {
+    return {
+      state: "held",
+      title: isRu ? "Подождите текущий ответ, затем вернитесь к кейсу." : "Wait for the current response, then continue the case.",
+    };
+  }
+  if (buttonActionId === activeActionId) {
+    return {
+      state: "recommended",
+      title: isRu ? "Это лучший следующий шаг для кейса прямо сейчас." : "This is the recommended next case step right now.",
+    };
+  }
+  if (buttonActionId === "reset_visa_demo") {
+    return {
+      state: "utility",
+      title: isRu ? "Сбросьте демо-режим, когда захотите начать путь заново." : "Reset the demo workspace whenever you want to restart the flow.",
+    };
+  }
+  const activeIndex = getCaseWorkspaceActionIndex(activeActionId);
+  const buttonIndex = getCaseWorkspaceActionIndex(buttonActionId);
+  if (activeIndex >= 0 && buttonIndex >= 0) {
+    if (buttonIndex < activeIndex) {
+      return {
+        state: "completed",
+        title: isRu ? "Этот шаг уже был пройден раньше в текущем пути." : "This step has already been completed earlier in the current path.",
+      };
+    }
+    if (buttonIndex > activeIndex) {
+      return {
+        state: "jump",
+        title: isRu ? "Это переход вперёд. Лучше сначала закрыть рекомендованный шаг." : "This jumps ahead. Close the recommended step first when possible.",
+      };
+    }
+  }
+  return {
+    state: "available",
+    title: isRu ? "Этот шаг доступен как вспомогательный shortcut." : "This step stays available as a secondary shortcut.",
+  };
+}
+
+function setCaseWorkspaceDrawerPill(node, text, tone = "neutral") {
+  if (!(node instanceof HTMLElement)) {
+    return;
+  }
+  node.textContent = text;
+  node.dataset.statusCode = text;
+  node.classList.remove("status-ok", "status-fail");
+  if (tone === "ok") {
+    node.classList.add("status-ok");
+  } else if (tone === "fail") {
+    node.classList.add("status-fail");
+  }
+}
+
+function syncCaseWorkspaceActionButtons(flowState) {
+  const isRu = state.languageMode === "ru";
+  const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
+
+  for (const entry of CASE_WORKSPACE_ACTION_BUTTONS) {
+    const button = el[entry.key];
+    if (!(button instanceof HTMLButtonElement)) {
+      continue;
+    }
+    const uiState = getCaseWorkspaceShortcutButtonState(entry.actionId, activeActionId, flowState, isRu);
+    button.dataset.caseWorkspaceActionState = uiState.state;
+    button.classList.toggle("is-active", uiState.state === "recommended");
+    button.classList.toggle("is-complete", uiState.state === "completed");
+    button.classList.toggle("is-quiet", uiState.state === "jump" || uiState.state === "held" || uiState.state === "utility");
+    if (uiState.state === "recommended") {
+      button.setAttribute("aria-current", "step");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+    button.title = uiState.title;
+  }
+
+  const caseDrawer = document.getElementById("caseWorkspaceCaseShortcuts");
+  const caseHint = caseDrawer instanceof HTMLElement ? caseDrawer.querySelector(".case-workspace-action-hint") : null;
+  const caseChip = document.getElementById("caseWorkspaceCaseActionsChip");
+  if (caseDrawer instanceof HTMLElement) {
+    if (CASE_WORKSPACE_CASE_ACTIONS.has(activeActionId)) {
+      caseDrawer.dataset.caseWorkspaceDrawerState = "recommended";
+      setCaseWorkspaceDrawerPill(caseChip, isRu ? "Сейчас" : "Recommended", "ok");
+      if (caseHint instanceof HTMLElement) {
+        caseHint.textContent = isRu
+          ? "Подсвеченный shortcut ниже — следующий рекомендуемый шаг по кейсу."
+          : "The highlighted shortcut below is the recommended next case step.";
+      }
+    } else {
+      caseDrawer.dataset.caseWorkspaceDrawerState = "default";
+      setCaseWorkspaceDrawerPill(caseChip, isRu ? "Быстрые шаги" : "Shortcuts");
+      if (caseHint instanceof HTMLElement) {
+        caseHint.textContent = isRu
+          ? "Открывайте быстрые шаги, когда нужно перейти к документам, консультации, CRM или передаче кейса."
+          : "Open quick case shortcuts when you need to jump ahead to documents, consultation prep, CRM, or specialist handoff.";
+      }
+    }
+  }
+
+  const resultDrawer = document.getElementById("caseWorkspaceResultTools");
+  const resultHint = resultDrawer instanceof HTMLElement ? resultDrawer.querySelector(".case-workspace-action-hint") : null;
+  const resultChip = document.getElementById("caseWorkspaceResultToolsChip");
+  if (resultDrawer instanceof HTMLElement) {
+    if (CASE_WORKSPACE_RESULT_ACTIONS.has(activeActionId)) {
+      const isReset = activeActionId === "reset_visa_demo";
+      resultDrawer.dataset.caseWorkspaceDrawerState = isReset ? "ready" : "review";
+      setCaseWorkspaceDrawerPill(resultChip, isReset ? (isRu ? "Сброс" : "Restart") : isRu ? "Проверьте" : "Review now", isReset ? "ok" : "neutral");
+      if (resultHint instanceof HTMLElement) {
+        resultHint.textContent = isReset
+          ? isRu
+            ? "Рабочая зона завершила путь. Используйте сброс, чтобы начать кейс заново."
+            : "The workspace finished the flow. Use reset when you want to start a fresh case."
+          : isRu
+            ? "Подсвеченный итог ниже закрывает текущий защищённый шаг кейса."
+            : "The highlighted result below closes the current protected case step.";
+      }
+    } else {
+      resultDrawer.dataset.caseWorkspaceDrawerState = "default";
+      setCaseWorkspaceDrawerPill(resultChip, isRu ? "Вспомогательно" : "Secondary");
+      if (resultHint instanceof HTMLElement) {
+        resultHint.textContent = isRu
+          ? "Открывайте готовые итоги или сбрасывайте демо-режим."
+          : "Open the finished summaries or reset the demo workspace.";
+      }
+    }
   }
 }
 
@@ -6009,6 +6181,8 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse) {
       el.caseWorkspaceFlowActionBtn.dataset.dashboardAction = flowState.actionId;
     }
   }
+
+  syncCaseWorkspaceActionButtons(flowState);
 }
 
 function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaitingFreshResponse, summaryConfig) {

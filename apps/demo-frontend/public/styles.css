@@ -1112,6 +1112,38 @@
   padding-bottom: 14px;
 }
 
+.layout[data-active-tab="live-negotiator"] .live-compose-preset-btn[data-case-workspace-action-state="recommended"] {
+  border-color: color-mix(in oklch, var(--primary) 52%, var(--border));
+  background: linear-gradient(135deg, color-mix(in oklch, var(--primary) 88%, white), var(--primary));
+  color: var(--primary-foreground);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, white 22%, transparent),
+    0 10px 24px -18px color-mix(in oklch, var(--primary) 72%, transparent),
+    var(--shadow-sm);
+}
+
+.layout[data-active-tab="live-negotiator"] .live-compose-preset-btn[data-case-workspace-action-state="completed"] {
+  border-color: color-mix(in oklch, var(--primary) 26%, var(--border));
+  color: color-mix(in oklch, var(--foreground) 88%, var(--muted-foreground));
+}
+
+.layout[data-active-tab="live-negotiator"] .live-compose-preset-btn[data-case-workspace-action-state="jump"],
+.layout[data-active-tab="live-negotiator"] .live-compose-preset-btn[data-case-workspace-action-state="held"],
+.layout[data-active-tab="live-negotiator"] .live-compose-preset-btn[data-case-workspace-action-state="utility"] {
+  opacity: 0.74;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-shell[data-case-workspace-drawer-state="recommended"] .case-workspace-action-shell-pill,
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-shell[data-case-workspace-drawer-state="review"] .case-workspace-action-shell-pill,
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-shell[data-case-workspace-drawer-state="ready"] .case-workspace-action-shell-pill {
+  border-color: color-mix(in oklch, var(--primary) 34%, var(--border));
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-shell[data-case-workspace-drawer-state="recommended"] .case-workspace-action-hint,
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-shell[data-case-workspace-drawer-state="review"] .case-workspace-action-hint {
+  color: color-mix(in oklch, var(--foreground) 90%, var(--accent-foreground));
+}
+
 @media (max-width: 1100px) {
   .layout[data-active-tab="live-negotiator"] .case-workspace-hero,
   .layout[data-active-tab="live-negotiator"] .case-workspace-flow-shell,
