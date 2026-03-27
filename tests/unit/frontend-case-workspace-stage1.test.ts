@@ -73,7 +73,7 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     '"live.caseWorkspace.demoGuideTitle": "Demo guide"',
     '"live.caseWorkspace.demoGuideHint":',
     '"live.caseWorkspace.demoGuideChip": "Optional"',
-    '#caseWorkspaceResultToolsChip',
+    'const resultChip = document.getElementById("caseWorkspaceResultToolsChip")',
     '#caseWorkspaceDemoGuideTitle',
     '#caseWorkspaceDemoGuideChip',
     "function syncCaseWorkspaceStaticCopy()",

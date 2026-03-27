@@ -5543,6 +5543,159 @@ function setCaseWorkspaceDrawerPill(node, text, tone = "neutral") {
   }
 }
 
+function getCaseWorkspaceStepAfter(stepKey) {
+  const currentIndex = CASE_WORKSPACE_FLOW_STEPS.indexOf(stepKey);
+  if (currentIndex < 0) {
+    return "";
+  }
+  return CASE_WORKSPACE_FLOW_STEPS[currentIndex + 1] ?? "";
+}
+
+function getCaseWorkspaceCaseDrawerContent(flowState, isRu) {
+  const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
+  const currentStep = typeof flowState?.currentStep === "string" ? flowState.currentStep : "case";
+  const currentLabel = getCaseWorkspaceStepTitle(currentStep, isRu);
+  const nextStep = getCaseWorkspaceStepAfter(currentStep);
+  const nextLabel = nextStep ? getCaseWorkspaceStepTitle(nextStep, isRu) : "";
+  const flowComplete = Number(flowState?.completedCount) >= CASE_WORKSPACE_FLOW_STEPS.length || activeActionId === "reset_visa_demo";
+  const awaitingStandaloneRequest = flowState?.actionDisabled === true && activeActionId.length === 0;
+
+  if (awaitingStandaloneRequest) {
+    return {
+      drawerState: "default",
+      title: isRu ? "Путь кейса на паузе" : "Case path paused",
+      chip: isRu ? "Ждём" : "Waiting",
+      chipTone: "neutral",
+      hint: isRu
+        ? "Сначала дождитесь отдельного live-запроса, затем вернитесь к пошаговому пути кейса."
+        : "Finish the standalone live request first, then return to the guided case path.",
+    };
+  }
+
+  if (flowComplete) {
+    return {
+      drawerState: "default",
+      title: isRu ? "Путь кейса завершён" : "Case path complete",
+      chip: isRu ? "Готово" : "Finished",
+      chipTone: "ok",
+      hint: isRu
+        ? "Новый прогон запускается через Result tools, если нужно начать кейс заново."
+        : "Use Result tools to restart when you need a fresh case.",
+    };
+  }
+
+  if (CASE_WORKSPACE_CASE_ACTIONS.has(activeActionId)) {
+    return {
+      drawerState: "recommended",
+      title: isRu ? currentLabel + " — следующий этап" : currentLabel + " comes next",
+      chip: isRu ? "Следом" : "Next in path",
+      chipTone: "ok",
+      hint: isRu
+        ? "Подсвеченный shortcut ниже переводит кейс на этап «" + currentLabel + "». Более поздние шаги остаются тихими переходами."
+        : "The highlighted shortcut below moves the case into " + currentLabel + ". Later steps stay available as quieter jumps.",
+    };
+  }
+
+  if (CASE_WORKSPACE_RESULT_ACTIONS.has(activeActionId)) {
+    if (nextLabel) {
+      return {
+        drawerState: "default",
+        title: isRu ? nextLabel + " после итога" : nextLabel + " after review",
+        chip: isRu ? "После итога" : "After review",
+        chipTone: "neutral",
+        hint: isRu
+          ? "Сначала закройте защищённый итог текущего шага. Затем рабочая зона откроет этап «" + nextLabel + "»."
+          : "Close the protected result first. The workspace will open " + nextLabel + " next.",
+      };
+    }
+    return {
+      drawerState: "default",
+      title: isRu ? "Финал после проверки" : "Final review closes the path",
+      chip: isRu ? "Финал" : "Final review",
+      chipTone: "neutral",
+      hint: isRu
+        ? "Подтвердите финальный handoff-итог, чтобы закрыть guided flow."
+        : "Confirm the handoff result to close the guided flow.",
+    };
+  }
+
+  return {
+    drawerState: "default",
+    title: isRu ? "Следующие шаги кейса" : "Later case steps",
+    chip: isRu ? "После intake" : "After intake",
+    chipTone: "neutral",
+    hint: isRu
+      ? "Документы, консультация, CRM и передача откроются после того, как итог intake будет подтверждён."
+      : "Documents, consultation, CRM, and handoff unlock after the intake result is confirmed.",
+  };
+}
+
+function getCaseWorkspaceResultDrawerContent(flowState, isRu) {
+  const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
+  const currentStep = typeof flowState?.currentStep === "string" ? flowState.currentStep : "case";
+  const currentLabel = getCaseWorkspaceStepTitle(currentStep, isRu);
+  const flowComplete = Number(flowState?.completedCount) >= CASE_WORKSPACE_FLOW_STEPS.length || activeActionId === "reset_visa_demo";
+  const awaitingStandaloneRequest = flowState?.actionDisabled === true && activeActionId.length === 0;
+
+  if (awaitingStandaloneRequest) {
+    return {
+      drawerState: "default",
+      title: isRu ? "Итоги ждут здесь" : "Results wait here",
+      chip: isRu ? "Ждём" : "Waiting",
+      chipTone: "neutral",
+      hint: isRu
+        ? "Защищённые итоги кейса появятся здесь после завершения текущего live-запроса или шага кейса."
+        : "Protected case results appear here after the current live request or case step finishes.",
+    };
+  }
+
+  if (CASE_WORKSPACE_RESULT_ACTIONS.has(activeActionId)) {
+    const isReset = activeActionId === "reset_visa_demo";
+    if (isReset || flowComplete) {
+      return {
+        drawerState: "ready",
+        title: isRu ? "Кейс завершён" : "Case complete",
+        chip: isRu ? "Сброс" : "Restart",
+        chipTone: "ok",
+        hint: isRu
+          ? "Рабочая зона завершила путь. Используйте сброс, чтобы начать кейс заново."
+          : "The workspace finished the flow. Use reset when you want to start a fresh case.",
+      };
+    }
+    return {
+      drawerState: "review",
+      title: isRu ? "Проверьте итог этапа «" + currentLabel + "»" : "Review the " + currentLabel + " result",
+      chip: isRu ? "Проверьте" : "Review now",
+      chipTone: "neutral",
+      hint: isRu
+        ? "Подсвеченный итог ниже закрывает этап «" + currentLabel + "» и удерживает proof path в одном месте."
+        : "The highlighted result below closes " + currentLabel + " and keeps the proof path in one place.",
+    };
+  }
+
+  if (CASE_WORKSPACE_CASE_ACTIONS.has(activeActionId)) {
+    return {
+      drawerState: "default",
+      title: isRu ? "Итог этапа «" + currentLabel + "»" : currentLabel + " result",
+      chip: isRu ? "После шага" : "After step",
+      chipTone: "neutral",
+      hint: isRu
+        ? "Когда этап «" + currentLabel + "» будет подготовлен, его защищённый итог появится здесь для проверки."
+        : "Once " + currentLabel + " is prepared, its protected result will appear here for review.",
+    };
+  }
+
+  return {
+    drawerState: "default",
+    title: isRu ? "Проверка и перезапуск" : "Review and restart",
+    chip: isRu ? "Позже" : "Later",
+    chipTone: "neutral",
+    hint: isRu
+      ? "Защищённые итоги и перезапуск остаются здесь после завершения каждого шага кейса."
+      : "Protected summaries and restart stay here after each case step closes.",
+  };
+}
+
 function syncCaseWorkspaceActionButtons(flowState) {
   const isRu = state.languageMode === "ru";
   const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
@@ -5566,53 +5719,34 @@ function syncCaseWorkspaceActionButtons(flowState) {
   }
 
   const caseDrawer = document.getElementById("caseWorkspaceCaseShortcuts");
+  const caseTitle = document.getElementById("caseWorkspaceCaseActionsTitle");
   const caseHint = caseDrawer instanceof HTMLElement ? caseDrawer.querySelector(".case-workspace-action-hint") : null;
   const caseChip = document.getElementById("caseWorkspaceCaseActionsChip");
   if (caseDrawer instanceof HTMLElement) {
-    if (CASE_WORKSPACE_CASE_ACTIONS.has(activeActionId)) {
-      caseDrawer.dataset.caseWorkspaceDrawerState = "recommended";
-      setCaseWorkspaceDrawerPill(caseChip, isRu ? "Сейчас" : "Recommended", "ok");
-      if (caseHint instanceof HTMLElement) {
-        caseHint.textContent = isRu
-          ? "Подсвеченный shortcut ниже — следующий рекомендуемый шаг по кейсу."
-          : "The highlighted shortcut below is the recommended next case step.";
-      }
-    } else {
-      caseDrawer.dataset.caseWorkspaceDrawerState = "default";
-      setCaseWorkspaceDrawerPill(caseChip, isRu ? "Быстрые шаги" : "Shortcuts");
-      if (caseHint instanceof HTMLElement) {
-        caseHint.textContent = isRu
-          ? "Открывайте быстрые шаги, когда нужно перейти к документам, консультации, CRM или передаче кейса."
-          : "Open quick case shortcuts when you need to jump ahead to documents, consultation prep, CRM, or specialist handoff.";
-      }
+    const caseDrawerCopy = getCaseWorkspaceCaseDrawerContent(flowState, isRu);
+    caseDrawer.dataset.caseWorkspaceDrawerState = caseDrawerCopy.drawerState;
+    if (caseTitle instanceof HTMLElement) {
+      caseTitle.textContent = caseDrawerCopy.title;
+    }
+    setCaseWorkspaceDrawerPill(caseChip, caseDrawerCopy.chip, caseDrawerCopy.chipTone);
+    if (caseHint instanceof HTMLElement) {
+      caseHint.textContent = caseDrawerCopy.hint;
     }
   }
 
   const resultDrawer = document.getElementById("caseWorkspaceResultTools");
+  const resultTitle = document.getElementById("caseWorkspaceResultToolsTitle");
   const resultHint = resultDrawer instanceof HTMLElement ? resultDrawer.querySelector(".case-workspace-action-hint") : null;
   const resultChip = document.getElementById("caseWorkspaceResultToolsChip");
   if (resultDrawer instanceof HTMLElement) {
-    if (CASE_WORKSPACE_RESULT_ACTIONS.has(activeActionId)) {
-      const isReset = activeActionId === "reset_visa_demo";
-      resultDrawer.dataset.caseWorkspaceDrawerState = isReset ? "ready" : "review";
-      setCaseWorkspaceDrawerPill(resultChip, isReset ? (isRu ? "Сброс" : "Restart") : isRu ? "Проверьте" : "Review now", isReset ? "ok" : "neutral");
-      if (resultHint instanceof HTMLElement) {
-        resultHint.textContent = isReset
-          ? isRu
-            ? "Рабочая зона завершила путь. Используйте сброс, чтобы начать кейс заново."
-            : "The workspace finished the flow. Use reset when you want to start a fresh case."
-          : isRu
-            ? "Подсвеченный итог ниже закрывает текущий защищённый шаг кейса."
-            : "The highlighted result below closes the current protected case step.";
-      }
-    } else {
-      resultDrawer.dataset.caseWorkspaceDrawerState = "default";
-      setCaseWorkspaceDrawerPill(resultChip, isRu ? "Вспомогательно" : "Secondary");
-      if (resultHint instanceof HTMLElement) {
-        resultHint.textContent = isRu
-          ? "Открывайте готовые итоги или сбрасывайте демо-режим."
-          : "Open the finished summaries or reset the demo workspace.";
-      }
+    const resultDrawerCopy = getCaseWorkspaceResultDrawerContent(flowState, isRu);
+    resultDrawer.dataset.caseWorkspaceDrawerState = resultDrawerCopy.drawerState;
+    if (resultTitle instanceof HTMLElement) {
+      resultTitle.textContent = resultDrawerCopy.title;
+    }
+    setCaseWorkspaceDrawerPill(resultChip, resultDrawerCopy.chip, resultDrawerCopy.chipTone);
+    if (resultHint instanceof HTMLElement) {
+      resultHint.textContent = resultDrawerCopy.hint;
     }
   }
 }
@@ -5677,20 +5811,6 @@ function syncCaseWorkspaceStaticCopy() {
         ? "Используйте live-composer для одного отдельного перевода, negotiation, research, UI-задачи или чата вне текущего шага кейса."
         : "Use the live composer for one standalone translation, negotiation, research, UI task, or chat outside the case path.",
     ],
-    ["#caseWorkspaceCaseActionsTitle", isRu ? "Двигайте кейс дальше" : "Move case forward"],
-    [
-      ".case-workspace-action-section-case .case-workspace-action-hint",
-      isRu
-        ? "Откройте быстрые шаги, если нужно перейти сразу к документам, подготовке консультации, CRM или передаче специалисту."
-        : "Open quick case shortcuts when you need to jump ahead to documents, consultation prep, CRM, or specialist handoff.",
-    ],
-    ["#caseWorkspaceCaseActionsChip", isRu ? "Быстрые шаги" : "Shortcuts"],
-    [
-      ".case-workspace-action-section-utility .case-workspace-action-hint",
-      isRu ? "Открывайте готовые итоги или сбрасывайте демо-режим." : "Open the finished summaries or reset the demo workspace.",
-    ],
-    ["#caseWorkspaceResultToolsTitle", isRu ? "Итоги и демо" : "Result tools"],
-    ["#caseWorkspaceResultToolsChip", isRu ? "Вспомогательно" : "Secondary"],
     [
       ".case-workspace-panel-title [data-i18n=\"live.compose.panelHeading\"]",
       isRu ? "Выберите следующее действие" : "Choose the next action",
