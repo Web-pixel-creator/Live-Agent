@@ -24,6 +24,7 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   const summaryGridIndex = htmlSource.indexOf('class="case-workspace-summary-grid"');
   const actionStackIndex = htmlSource.indexOf('class="case-workspace-action-stack"');
   const mainSectionIndex = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-main"');
+  const requestSectionIndex = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-request"');
   const caseSectionIndex = htmlSource.indexOf('id="caseWorkspaceCaseShortcuts"');
   const utilitySectionIndex = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-utility case-workspace-action-shell"');
   const resultToolsIndex = htmlSource.indexOf('id="caseWorkspaceResultTools"');
@@ -39,6 +40,7 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   assert.ok(summaryGridIndex !== -1, "frontend html missing case-workspace summary grid");
   assert.ok(actionStackIndex !== -1, "frontend html missing grouped case workspace actions");
   assert.ok(mainSectionIndex !== -1, "frontend html missing start-case section");
+  assert.ok(requestSectionIndex !== -1, "frontend html missing main-request section");
   assert.ok(caseSectionIndex !== -1, "frontend html missing move-case-forward shortcuts drawer");
   assert.ok(utilitySectionIndex !== -1, "frontend html missing utility section");
   assert.ok(resultToolsIndex !== -1, "frontend html missing result-tools shell");
@@ -51,7 +53,8 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   assert.ok(currentCaseIndex < nextStepIndex, "current case should appear before next-step guidance");
   assert.ok(nextStepIndex < completedWorkIndex, "completed work should trail the current-case guidance");
   assert.ok(actionStackIndex < dockIndex, "grouped actions should stay above the support dock");
-  assert.ok(mainSectionIndex < caseSectionIndex, "start-case actions should lead into move-case-forward actions");
+  assert.ok(mainSectionIndex < requestSectionIndex, "start-case actions should lead into the main-request section");
+  assert.ok(requestSectionIndex < caseSectionIndex, "main-request section should stay ahead of move-case-forward actions");
   assert.ok(caseSectionIndex < utilitySectionIndex, "utility actions should stay after the move-case-forward drawer");
   assert.ok(caseSectionIndex < resultToolsIndex, "result tools should stay after the move-case-forward drawer");
   assert.ok(dockIndex < trayIndex, "support tray should stay attached to the dock after the compose shell");
@@ -73,6 +76,10 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
     "frontend html should expose grouped start-case actions in the first fold",
   );
   assert.ok(
+    htmlSource.includes('id="caseWorkspaceRequestTitle"'),
+    "frontend html should expose a dedicated main-request section in the first fold",
+  );
+  assert.ok(
     htmlSource.includes('id="caseWorkspaceCaseActionsChip"'),
     "frontend html should expose a shortcuts pill for the move-case-forward drawer",
   );
@@ -83,6 +90,10 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   assert.ok(
     htmlSource.includes('id="caseWorkspaceResultToolsChip"'),
     "frontend html should expose a dedicated result-tools pill",
+  );
+  assert.ok(
+    htmlSource.includes('id="sendBtnHint"'),
+    "frontend html should keep the generic send hint inside the main-request section",
   );
   assert.ok(
     appSource.includes('caseWorkspaceFlowActionBtn: document.getElementById("caseWorkspaceFlowActionBtn")'),

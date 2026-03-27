@@ -9,6 +9,7 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   const stylesSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "styles.css"), "utf8");
 
   const mainStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-main"');
+  const requestStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-request"');
   const caseStart = htmlSource.indexOf('id="caseWorkspaceCaseShortcuts"');
   const utilityStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-utility case-workspace-action-shell"');
   const resultToolsStart = htmlSource.indexOf('id="caseWorkspaceResultTools"');
@@ -17,6 +18,7 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   const flowShellStart = htmlSource.indexOf('class="case-workspace-flow-shell"');
 
   assert.ok(mainStart !== -1, "start-case section missing from case workspace");
+  assert.ok(requestStart !== -1, "main-request section missing from case workspace");
   assert.ok(caseStart !== -1, "move-case-forward shortcuts drawer missing from case workspace");
   assert.ok(utilityStart !== -1, "utility action section missing from case workspace");
   assert.ok(resultToolsStart !== -1, "result tools shell missing from case workspace");
@@ -27,15 +29,19 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   assert.ok(!htmlSource.includes('id="caseWorkspaceResultTools" open'), "result tools should stay collapsed by default");
   assert.ok(flowShellStart < composeGridStart, "guided flow should stay above the compose grid");
   assert.ok(composeGridStart < actionStackStart, "compose grid should stay above the grouped action stack inside the first fold");
-  assert.ok(mainStart < caseStart && caseStart < utilityStart, "case-workspace sections should stay ordered start case -> move case forward drawer -> result tools");
+  assert.ok(mainStart < requestStart && requestStart < caseStart && caseStart < utilityStart, "case-workspace sections should stay ordered start case -> main request -> move case forward drawer -> result tools");
 
-  const mainSection = htmlSource.slice(mainStart, caseStart);
+  const mainSection = htmlSource.slice(mainStart, requestStart);
+  const requestSection = htmlSource.slice(requestStart, caseStart);
   const caseSection = htmlSource.slice(caseStart, utilityStart);
   const utilitySectionEnd = htmlSource.indexOf("</details>", utilityStart);
   const utilitySection = htmlSource.slice(utilityStart, utilitySectionEnd === -1 ? htmlSource.length : utilitySectionEnd);
 
-  for (const token of ['id="sendBtn"', 'id="runVisaDemoBtn"']) {
+  for (const token of ['id="runVisaDemoBtn"']) {
     assert.ok(mainSection.includes(token), `start-case section missing token: ${token}`);
+  }
+  for (const token of ['id="caseWorkspaceRequestTitle"', 'id="sendBtn"', 'id="sendBtnHint"']) {
+    assert.ok(requestSection.includes(token), `main-request section missing token: ${token}`);
   }
   for (const token of ['id="runVisaFollowUpBtn"', 'id="runVisaReminderBtn"', 'id="runVisaHandoffBtn"', 'id="runVisaEscalationBtn"']) {
     assert.ok(caseSection.includes(token), `move-case-forward drawer missing token: ${token}`);
@@ -51,7 +57,10 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     'caseWorkspaceNextStep: document.getElementById("caseWorkspaceNextStep")',
     'caseWorkspaceCompletedWork: document.getElementById("caseWorkspaceCompletedWork")',
     'caseWorkspaceFlowActionBtn: document.getElementById("caseWorkspaceFlowActionBtn")',
+    'caseWorkspaceRequestTitle: document.getElementById("caseWorkspaceRequestTitle")',
     '"live.caseWorkspace.mainActionsTitle": "Start case"',
+    '"live.caseWorkspace.requestTitle": "Main request"',
+    '"live.caseWorkspace.requestHint": "Use the live composer for translation, negotiation, research, UI tasks, or free-form chat."',
     '"live.caseWorkspace.caseActionsTitle": "Move case forward"',
     '"live.caseWorkspace.caseActionsChip": "Shortcuts"',
     '"live.caseWorkspace.resultToolsTitle": "Result tools"',

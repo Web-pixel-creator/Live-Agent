@@ -363,10 +363,9 @@
                   <section class="case-workspace-action-section case-workspace-action-section-main" aria-labelledby="caseWorkspaceMainActionsTitle">
                     <div class="case-workspace-action-section-copy">
                       <span id="caseWorkspaceMainActionsTitle" class="case-workspace-action-title" data-i18n="live.caseWorkspace.mainActionsTitle">Start case</span>
-                      <p class="case-workspace-action-hint" data-i18n="live.caseWorkspace.mainActionsHint">Begin a new intake or continue the active case from one clear starting point.</p>
+                      <p class="case-workspace-action-hint" data-i18n="live.caseWorkspace.mainActionsHint">Start the intake from one clear case entry point.</p>
                     </div>
                     <div class="actions live-compose-primary-actions case-workspace-action-group">
-                      <button id="sendBtn">Translate</button>
                       <button
                         id="runVisaDemoBtn"
                         type="button"
@@ -377,6 +376,18 @@
                         Start New Visa Case
                       </button>
                     </div>
+                  </section>
+                  <section class="case-workspace-action-section case-workspace-action-section-request" aria-labelledby="caseWorkspaceRequestTitle">
+                    <div class="case-workspace-action-section-copy">
+                      <span id="caseWorkspaceRequestTitle" class="case-workspace-action-title" data-i18n="live.caseWorkspace.requestTitle">Main request</span>
+                      <p class="case-workspace-action-hint" data-i18n="live.caseWorkspace.requestHint">Use the live composer for translation, negotiation, research, UI tasks, or free-form chat.</p>
+                    </div>
+                    <div class="actions live-compose-primary-actions case-workspace-action-group">
+                      <button id="sendBtn">Translate</button>
+                    </div>
+                    <p id="sendBtnHint" class="live-compose-send-hint">
+                      The result appears on the right. Voice, workflow, and runtime tools stay below.
+                    </p>
                   </section>
                   <details
                     id="caseWorkspaceCaseShortcuts"
@@ -499,9 +510,6 @@
                     </div>
                   </details>
                 </div>
-                <p id="sendBtnHint" class="live-compose-send-hint">
-                      The result appears on the right. Voice, workflow, and runtime tools stay below.
-                    </p>
                   <p
                     id="runVisaDemoHint"
                     class="live-compose-preset-hint"

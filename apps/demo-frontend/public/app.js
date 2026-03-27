@@ -1263,6 +1263,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.statusPillCompleted": "Reserved",
     "live.caseWorkspace.mainActionsTitle": "Start case",
     "live.caseWorkspace.mainActionsHint": "Begin a new intake or continue the active case from one clear starting point.",
+    "live.caseWorkspace.requestTitle": "Main request",
+    "live.caseWorkspace.requestHint": "Use the live composer for translation, negotiation, research, UI tasks, or free-form chat.",
     "live.caseWorkspace.caseActionsTitle": "Move case forward",
     "live.caseWorkspace.caseActionsHint": "Open quick case shortcuts when you need to jump ahead to documents, consultation prep, CRM, or specialist handoff.",
     "live.caseWorkspace.caseActionsChip": "Shortcuts",
@@ -3056,6 +3058,7 @@ const el = {
   caseWorkspaceFlowDescription: document.getElementById("caseWorkspaceFlowDescription"),
   caseWorkspaceFlowActionBtn: document.getElementById("caseWorkspaceFlowActionBtn"),
   caseWorkspaceFlowHint: document.getElementById("caseWorkspaceFlowHint"),
+  caseWorkspaceRequestTitle: document.getElementById("caseWorkspaceRequestTitle"),
   sendBtn: document.getElementById("sendBtn"),
   runVisaDemoBtn: document.getElementById("runVisaDemoBtn"),
   reviewVisaResultBtn: document.getElementById("reviewVisaResultBtn"),
@@ -5488,6 +5491,13 @@ function syncCaseWorkspaceStaticCopy() {
       isRu
         ? "Начните новый intake или продолжите активный кейс из одной понятной точки входа."
         : "Begin a new intake or continue the active case from one clear starting point.",
+    ],
+    ["#caseWorkspaceRequestTitle", isRu ? "Главный запрос" : "Main request"],
+    [
+      ".case-workspace-action-section-request .case-workspace-action-hint",
+      isRu
+        ? "Используйте live-composer для перевода, переговоров, research, UI-задач или свободного чата."
+        : "Use the live composer for translation, negotiation, research, UI tasks, or free-form chat.",
     ],
     ["#caseWorkspaceCaseActionsTitle", isRu ? "Двигайте кейс дальше" : "Move case forward"],
     [

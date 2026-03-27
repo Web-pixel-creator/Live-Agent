@@ -105,16 +105,20 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   }
 
   const mainSectionStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-main"');
+  const requestSectionStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-request"');
   const caseShortcutsStart = htmlSource.indexOf('id="caseWorkspaceCaseShortcuts"');
   const utilitySectionStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-utility case-workspace-action-shell"');
   const utilitySectionEnd = htmlSource.indexOf("</details>", utilitySectionStart);
-  assert.ok(mainSectionStart !== -1 && caseShortcutsStart !== -1 && utilitySectionStart !== -1 && utilitySectionEnd !== -1, "case-workspace sections should wrap the visa intake CTAs");
+  assert.ok(mainSectionStart !== -1 && requestSectionStart !== -1 && caseShortcutsStart !== -1 && utilitySectionStart !== -1 && utilitySectionEnd !== -1, "case-workspace sections should wrap the visa intake CTAs");
   assert.ok(!htmlSource.includes('id="caseWorkspaceCaseShortcuts" open'), "move-case-forward shortcuts should stay collapsed in the first scan");
   assert.ok(!htmlSource.includes('id="caseWorkspaceResultTools" open'), "result tools should stay collapsed in the first scan");
-  const mainSection = htmlSource.slice(mainSectionStart, caseShortcutsStart);
+  const mainSection = htmlSource.slice(mainSectionStart, requestSectionStart);
+  const requestSection = htmlSource.slice(requestSectionStart, caseShortcutsStart);
   const caseSection = htmlSource.slice(caseShortcutsStart, utilitySectionStart);
   const utilitySection = htmlSource.slice(utilitySectionStart, utilitySectionEnd);
   assert.ok(mainSection.includes('id="runVisaDemoBtn"'), "visa intake launch CTA should stay in the start-case section");
+  assert.ok(requestSection.includes('id="sendBtn"'), "generic live send CTA should move into the main-request section");
+  assert.ok(requestSection.includes('id="sendBtnHint"'), "main-request section should keep the generic live hint");
   for (const token of ['id="runVisaFollowUpBtn"', 'id="runVisaReminderBtn"', 'id="runVisaHandoffBtn"', 'id="runVisaEscalationBtn"']) {
     assert.ok(caseSection.includes(token), `move-case-forward drawer should keep token: ${token}`);
   }
@@ -159,6 +163,10 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   assert.ok(
     readmeSource.includes("Start New Visa Case"),
     "README should document the visa intake preset",
+  );
+  assert.ok(
+    readmeSource.includes("one visible `Main request` section"),
+    "README should document the dedicated main-request section",
   );
   assert.ok(
     readmeSource.includes("collapsed `Move case forward`"),
