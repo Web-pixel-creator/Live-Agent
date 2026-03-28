@@ -26,6 +26,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     "const CASE_WORKSPACE_CASE_ACTIONS = new Set(",
     "function getCaseWorkspaceShortcutButtonState(",
     "function getCaseWorkspaceCaseDrawerContent(flowState, isRu)",
+    "function getCaseWorkspaceRequestDrawerContent(flowState, isRu)",
     "function getCaseWorkspaceResultDrawerContent(flowState, isRu)",
     'button.dataset.caseWorkspaceActionState = uiState.state;',
     'button.classList.toggle("is-active", uiState.state === "recommended");',
@@ -87,6 +88,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     'id="caseWorkspaceNextStep"',
     'id="caseWorkspaceCompletedWork"',
     'class="case-workspace-action-section case-workspace-action-section-main"',
+    'id="caseWorkspaceRequestShell"',
     'id="caseWorkspaceCaseShortcuts"',
     'id="caseWorkspaceCaseActionsChip"',
     'class="case-workspace-action-section case-workspace-action-section-utility case-workspace-action-shell"',
@@ -126,7 +128,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   }
 
   const mainSectionStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-main"');
-  const requestSectionStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-request"');
+  const requestSectionStart = htmlSource.indexOf('id="caseWorkspaceRequestShell"');
   const caseShortcutsStart = htmlSource.indexOf('id="caseWorkspaceCaseShortcuts"');
   const utilitySectionStart = htmlSource.indexOf('class="case-workspace-action-section case-workspace-action-section-utility case-workspace-action-shell"');
   const utilitySectionEnd = htmlSource.indexOf("</details>", utilitySectionStart);
@@ -140,8 +142,8 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   const caseSection = htmlSource.slice(caseShortcutsStart, utilitySectionStart);
   const utilitySection = htmlSource.slice(utilitySectionStart, utilitySectionEnd);
   assert.ok(mainSection.includes('id="runVisaDemoBtn"'), "visa intake launch CTA should stay in the start-case section");
-  assert.ok(requestSection.includes('id="sendBtn"'), "generic live send CTA should move into the live-request section");
-  assert.ok(requestSection.includes('id="sendBtnHint"'), "live-request section should keep the generic live hint");
+  assert.ok(requestSection.includes('id="sendBtn"'), "generic live send CTA should move into the live-request drawer");
+  assert.ok(requestSection.includes('id="sendBtnHint"'), "live-request drawer should keep the generic live hint");
   for (const token of ['id="runVisaFollowUpBtn"', 'id="runVisaReminderBtn"', 'id="runVisaHandoffBtn"', 'id="runVisaEscalationBtn"']) {
     assert.ok(caseSection.includes(token), `move-case-forward drawer should keep token: ${token}`);
   }
@@ -195,8 +197,8 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     "README should document the visa intake preset",
   );
   assert.ok(
-    readmeSource.includes("one visible optional `Live request` section"),
-    "README should document the dedicated optional live-request section",
+    readmeSource.includes("the standalone `Live request` lane now lives in its own drawer"),
+    "README should document the dedicated optional live-request drawer",
   );
   assert.ok(
     readmeSource.includes("collapsed `Move case forward`"),

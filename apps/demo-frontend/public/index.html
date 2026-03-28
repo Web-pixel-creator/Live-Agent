@@ -377,19 +377,28 @@
                       </button>
                     </div>
                   </section>
-                  <section class="case-workspace-action-section case-workspace-action-section-request" aria-labelledby="caseWorkspaceRequestTitle">
-                    <div class="case-workspace-action-section-copy">
-                      <span id="caseWorkspaceRequestTitle" class="case-workspace-action-title" data-i18n="live.caseWorkspace.requestTitle">Live request</span>
-                      <span id="caseWorkspaceRequestChip" class="status-pill status-neutral case-workspace-action-inline-pill" data-i18n="live.caseWorkspace.requestChip">Optional</span>
-                      <p class="case-workspace-action-hint" data-i18n="live.caseWorkspace.requestHint">Use the live composer for one standalone translation, negotiation, research, UI task, or chat outside the case path.</p>
+                  <details
+                    id="caseWorkspaceRequestShell"
+                    class="case-workspace-action-section case-workspace-action-section-request case-workspace-action-shell"
+                    aria-labelledby="caseWorkspaceRequestTitle"
+                    open
+                  >
+                    <summary class="case-workspace-action-shell-summary">
+                      <span class="case-workspace-action-section-copy case-workspace-action-shell-copy">
+                        <span id="caseWorkspaceRequestTitle" class="case-workspace-action-title" data-i18n="live.caseWorkspace.requestTitle">Live request</span>
+                        <span class="case-workspace-action-hint" data-i18n="live.caseWorkspace.requestHint">Use the live composer for one standalone translation, negotiation, research, UI task, or chat outside the case path.</span>
+                      </span>
+                      <span id="caseWorkspaceRequestChip" class="status-pill status-neutral case-workspace-action-shell-pill" data-i18n="live.caseWorkspace.requestChip">Optional</span>
+                    </summary>
+                    <div class="case-workspace-action-shell-body case-workspace-request-shell-body">
+                      <div class="actions live-compose-primary-actions case-workspace-action-group">
+                        <button id="sendBtn">Translate</button>
+                      </div>
+                      <p id="sendBtnHint" class="live-compose-send-hint">
+                        The result appears on the right. Voice, workflow, and runtime tools stay below.
+                      </p>
                     </div>
-                    <div class="actions live-compose-primary-actions case-workspace-action-group">
-                      <button id="sendBtn">Translate</button>
-                    </div>
-                    <p id="sendBtnHint" class="live-compose-send-hint">
-                      The result appears on the right. Voice, workflow, and runtime tools stay below.
-                    </p>
-                  </section>
+                  </details>
                   <details
                     id="caseWorkspaceCaseShortcuts"
                     class="case-workspace-action-section case-workspace-action-section-case case-workspace-action-shell"

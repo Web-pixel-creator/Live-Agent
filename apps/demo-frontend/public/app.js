@@ -5721,6 +5721,68 @@ function getCaseWorkspaceCaseDrawerContent(flowState, isRu) {
   };
 }
 
+function getCaseWorkspaceRequestDrawerContent(flowState, isRu) {
+  const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
+  const completedCount = Number(flowState?.completedCount) || 0;
+  const awaitingStandaloneRequest = flowState?.actionDisabled === true && activeActionId.length === 0;
+  const flowComplete = completedCount >= CASE_WORKSPACE_FLOW_STEPS.length || activeActionId === "reset_visa_demo";
+  const caseActive = activeActionId.length > 0 || completedCount > 0;
+
+  if (awaitingStandaloneRequest) {
+    return {
+      drawerState: "review",
+      title: isRu ? "Live-запрос в работе" : "Live request in progress",
+      chip: isRu ? "В процессе" : "In progress",
+      chipTone: "neutral",
+      hint: isRu
+        ? "Дождитесь результата справа, затем вернитесь к рабочей зоне кейса."
+        : "Let the standalone request finish on the right, then return to the case workspace.",
+      open: true,
+      signatureKey: "busy",
+    };
+  }
+
+  if (flowComplete) {
+    return {
+      drawerState: "default",
+      title: isRu ? "Отдельный live-запрос после кейса" : "Standalone live request",
+      chip: isRu ? "После кейса" : "After case",
+      chipTone: "neutral",
+      hint: isRu
+        ? "Открывайте только если после завершения кейса нужен ещё один отдельный перевод, negotiation, research, UI-задача или чат."
+        : "Open only when you need one more translation, negotiation, research, UI task, or chat after the case is complete.",
+      open: false,
+      signatureKey: "complete",
+    };
+  }
+
+  if (caseActive) {
+    return {
+      drawerState: "default",
+      title: isRu ? "Отдельный запрос вне кейса" : "Live request outside the case",
+      chip: isRu ? "Отдельно" : "Side path",
+      chipTone: "neutral",
+      hint: isRu
+        ? "Открывайте только если нужен один перевод, negotiation, research, UI-задача или чат вне текущего шага кейса."
+        : "Open only when you need one translation, negotiation, research, UI task, or chat outside the current case step.",
+      open: false,
+      signatureKey: "active:" + activeActionId,
+    };
+  }
+
+  return {
+    drawerState: "default",
+    title: isRu ? "Отдельный запрос" : "Live request",
+    chip: isRu ? "Опционально" : "Optional",
+    chipTone: "neutral",
+    hint: isRu
+      ? "Используйте live-composer для одного отдельного перевода, negotiation, research, UI-задачи или чата вне пути кейса."
+      : "Use the live composer for one standalone translation, negotiation, research, UI task, or chat outside the case path.",
+    open: true,
+    signatureKey: "idle",
+  };
+}
+
 function getCaseWorkspaceResultDrawerContent(flowState, isRu) {
   const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
   const currentStep = typeof flowState?.currentStep === "string" ? flowState.currentStep : "case";
@@ -6041,6 +6103,27 @@ function syncCaseWorkspaceActionButtons(flowState) {
       button.removeAttribute("aria-current");
     }
     button.title = uiState.title;
+  }
+
+  const requestDrawer = document.getElementById("caseWorkspaceRequestShell");
+  const requestTitle = document.getElementById("caseWorkspaceRequestTitle");
+  const requestHint = requestDrawer instanceof HTMLElement ? requestDrawer.querySelector(".case-workspace-action-hint") : null;
+  const requestChip = document.getElementById("caseWorkspaceRequestChip");
+  if (requestDrawer instanceof HTMLElement) {
+    const requestDrawerCopy = getCaseWorkspaceRequestDrawerContent(flowState, isRu);
+    requestDrawer.dataset.caseWorkspaceDrawerState = requestDrawerCopy.drawerState;
+    if (requestTitle instanceof HTMLElement) {
+      requestTitle.textContent = requestDrawerCopy.title;
+    }
+    setCaseWorkspaceDrawerPill(requestChip, requestDrawerCopy.chip, requestDrawerCopy.chipTone);
+    if (requestHint instanceof HTMLElement) {
+      requestHint.textContent = requestDrawerCopy.hint;
+    }
+    syncCaseWorkspaceSubshellOpen(
+      requestDrawer,
+      requestDrawerCopy.open,
+      "drawer:request:" + requestDrawerCopy.signatureKey,
+    );
   }
 
   const caseDrawer = document.getElementById("caseWorkspaceCaseShortcuts");
