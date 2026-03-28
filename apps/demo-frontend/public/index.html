@@ -255,11 +255,11 @@
                   </article>
                 </div>
               </div>
-              <h2 class="case-workspace-panel-title"><span class="section-badge">Input</span><span data-i18n="live.compose.panelHeading">Choose the next action</span></h2>
-              <p class="live-compose-intro case-workspace-panel-intro" data-i18n="live.compose.panelIntro">
+              <h2 class="case-workspace-panel-title"><span class="section-badge">Input</span><span id="liveComposePanelHeading" data-i18n="live.compose.panelHeading">Choose the next action</span></h2>
+              <p id="liveComposePanelIntro" class="live-compose-intro case-workspace-panel-intro" data-i18n="live.compose.panelIntro">
                 Choose one action, add the result language if needed, write one request, and send it. Voice and support tools open below.
               </p>
-              <div class="live-intent-stage">
+              <div id="liveIntentStageShell" class="live-intent-stage">
                 <div class="live-intent-stage-head">
                   <div>
                     <p id="liveIntentStageLabel" class="live-intent-stage-label">Main actions</p>
@@ -270,7 +270,7 @@
                 </div>
                 <div id="liveIntentCards" class="live-intent-switcher" aria-label="Live mode switcher"></div>
               </div>
-              <div class="live-compose-primary-shell">
+              <div id="liveComposePrimaryShell" class="live-compose-primary-shell">
                 <div class="intent-compose-grid intent-grid-primary">
                 <label class="field intent-field-intent live-intent-native-field" hidden aria-hidden="true">
                   <span>Intent</span>

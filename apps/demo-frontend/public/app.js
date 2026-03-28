@@ -3004,9 +3004,13 @@ const el = {
   translationDirectionSummary: document.getElementById("translationDirectionSummary"),
   translationDirectionSummaryLabel: document.getElementById("translationDirectionSummaryLabel"),
   translationDirectionSummaryValue: document.getElementById("translationDirectionSummaryValue"),
+  liveComposePanelHeading: document.getElementById("liveComposePanelHeading"),
+  liveComposePanelIntro: document.getElementById("liveComposePanelIntro"),
+  liveIntentStageShell: document.getElementById("liveIntentStageShell"),
   liveIntentStageLabel: document.getElementById("liveIntentStageLabel"),
   liveIntentStageHint: document.getElementById("liveIntentStageHint"),
   liveIntentCards: document.getElementById("liveIntentCards"),
+  liveComposePrimaryShell: document.getElementById("liveComposePrimaryShell"),
   liveContextDockShell: document.querySelector(".live-context-dock-shell"),
   liveContextDock: document.getElementById("liveContextDock"),
   liveContextTray: document.getElementById("liveContextTray"),
@@ -5783,6 +5787,53 @@ function getCaseWorkspaceRequestDrawerContent(flowState, isRu) {
   };
 }
 
+function getCaseWorkspaceLiveIntentShellContent(flowState, isRu) {
+  const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
+  const completedCount = Number(flowState?.completedCount) || 0;
+  const flowComplete = completedCount >= CASE_WORKSPACE_FLOW_STEPS.length || activeActionId === "reset_visa_demo";
+  const caseActive = activeActionId.length > 0 || completedCount > 0;
+
+  if (flowComplete) {
+    return {
+      mode: "after-case",
+      heading: isRu ? "Live-запрос после кейса" : "Live request after case",
+      intro: isRu
+        ? "Используйте этот composer только если после завершения кейса нужен ещё один отдельный перевод, negotiation, research, UI-задача или чат."
+        : "Use this composer only when you need one more standalone translation, negotiation, research, UI task, or chat after the case is complete.",
+      stageLabel: isRu ? "Отдельные действия" : "Standalone actions",
+      stageHint: isRu
+        ? "Главный путь кейса уже завершён выше. Здесь остаётся только отдельный live-запрос перед следующим кейсом."
+        : "The main case path is already complete above. This lane stays here only for a standalone live request before the next case.",
+    };
+  }
+
+  if (caseActive) {
+    return {
+      mode: "secondary",
+      heading: isRu ? "Отдельный live-запрос" : "Standalone live request",
+      intro: isRu
+        ? "Используйте этот composer только если запрос находится вне текущего шага кейса. Основной шаг кейса остаётся выше."
+        : "Use this composer only when the request sits outside the current case step. The main case move stays above.",
+      stageLabel: isRu ? "Отдельные действия" : "Standalone actions",
+      stageHint: isRu
+        ? "Сначала двигайте кейс через главный шаг выше. Этот chooser нужен только для отдельного запроса вне пути кейса."
+        : "Move the case through the main step above first. Use this chooser only for a one-off request outside the case path.",
+    };
+  }
+
+  return {
+    mode: "primary",
+    heading: isRu ? "Выберите следующее действие" : "Choose the next action",
+    intro: isRu
+      ? "Выберите одно действие, при необходимости укажите язык результата, напишите один запрос и отправьте его. Голос и служебные инструменты находятся ниже."
+      : "Choose one action, add the result language if needed, write one request, and send it. Voice and support tools open below.",
+    stageLabel: isRu ? "Основные действия" : "Main actions",
+    stageHint: isRu
+      ? "Сначала выберите главное действие. Main compose остаётся здесь, а служебные инструменты находятся ниже."
+      : "Choose the main action first. Main compose stays here; tools open below.",
+  };
+}
+
 function getCaseWorkspaceResultDrawerContent(flowState, isRu) {
   const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
   const currentStep = typeof flowState?.currentStep === "string" ? flowState.currentStep : "case";
@@ -6782,8 +6833,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
   }
 }
 
-function renderCaseWorkspaceFlow(awaitingFreshResponse) {
-  const flowState = getCaseWorkspaceFlowState(awaitingFreshResponse);
+function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorkspaceFlowState(awaitingFreshResponse)) {
   const flowDrawerTarget = getCaseWorkspaceDrawerTarget(flowState);
   const allStepsComplete = flowState.completedCount >= CASE_WORKSPACE_FLOW_STEPS.length;
   const isRu = state.languageMode === "ru";
@@ -18697,17 +18747,20 @@ function renderLiveIntentCards() {
 function renderLiveIntentExperience() {
   const intent = el.intent instanceof HTMLSelectElement ? el.intent.value : state.lastRequestedIntent;
   const normalizedIntent = typeof intent === "string" && intent.trim().length > 0 ? intent.trim() : "conversation";
+  const isRu = state.languageMode === "ru";
   const config = getResolvedLiveIntentExperienceConfig(intent);
   const composeConfig = getLiveIntentComposerConfig(intent);
+  const latestResult = state.liveResult;
+  const pendingRequest = resolveLivePendingRequest();
+  const awaitingFreshResponse =
+    pendingRequest !== null && resolveLiveConversationIntent(pendingRequest.intent) === normalizedIntent;
+  const flowState = getCaseWorkspaceFlowState(awaitingFreshResponse);
+  const liveIntentShellCopy = getCaseWorkspaceLiveIntentShellContent(flowState, isRu);
   if (el.liveIntentStageLabel instanceof HTMLElement) {
-    el.liveIntentStageLabel.textContent =
-      state.languageMode === "ru" ? "\u041e\u0441\u043d\u043e\u0432\u043d\u044b\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f" : "Main actions";
+    el.liveIntentStageLabel.textContent = liveIntentShellCopy.stageLabel;
   }
   if (el.liveIntentStageHint instanceof HTMLElement) {
-    el.liveIntentStageHint.textContent =
-      state.languageMode === "ru"
-        ? "\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u0432\u044b\u0431\u0435\u0440\u0438 \u0433\u043b\u0430\u0432\u043d\u043e\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435. \u0421\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0435 \u0441\u043b\u043e\u0438 \u043e\u0441\u0442\u0430\u044e\u0442\u0441\u044f \u0432\u044b\u0448\u0435."
-        : "Choose the main action first. Main compose stays here; tools open below.";
+    el.liveIntentStageHint.textContent = liveIntentShellCopy.stageHint;
   }
   if (el.liveIntentSecondaryLabel instanceof HTMLElement) {
     el.liveIntentSecondaryLabel.textContent = t("live.compose.secondaryTitle", null, "Workflow tools");
@@ -18818,10 +18871,6 @@ function renderLiveIntentExperience() {
     messageField.hidden = isNegotiate;
   }
 
-  const latestResult = state.liveResult;
-  const pendingRequest = resolveLivePendingRequest();
-  const awaitingFreshResponse =
-    pendingRequest !== null && resolveLiveConversationIntent(pendingRequest.intent) === normalizedIntent;
   const hasIntentMatchedResult =
     latestResult &&
     typeof latestResult.text === "string" &&
@@ -18830,7 +18879,20 @@ function renderLiveIntentExperience() {
   const summaryConfig = getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult);
 
   renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaitingFreshResponse, summaryConfig);
-  renderCaseWorkspaceFlow(awaitingFreshResponse);
+  if (el.liveComposePanelHeading instanceof HTMLElement) {
+    el.liveComposePanelHeading.textContent = liveIntentShellCopy.heading;
+  }
+  if (el.liveComposePanelIntro instanceof HTMLElement) {
+    el.liveComposePanelIntro.textContent = liveIntentShellCopy.intro;
+    el.liveComposePanelIntro.dataset.caseWorkspaceIntentMode = liveIntentShellCopy.mode;
+  }
+  if (el.liveIntentStageShell instanceof HTMLElement) {
+    el.liveIntentStageShell.dataset.caseWorkspaceIntentMode = liveIntentShellCopy.mode;
+  }
+  if (el.liveComposePrimaryShell instanceof HTMLElement) {
+    el.liveComposePrimaryShell.dataset.caseWorkspaceIntentMode = liveIntentShellCopy.mode;
+  }
+  renderCaseWorkspaceFlow(awaitingFreshResponse, flowState);
 
   if (el.liveResultLabel instanceof HTMLElement) {
     el.liveResultLabel.textContent = config.resultLabel;

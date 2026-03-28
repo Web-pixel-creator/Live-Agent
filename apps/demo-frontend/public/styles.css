@@ -25953,6 +25953,11 @@ button:disabled {
   line-height: 1.56;
 }
 
+.case-workspace-panel-intro[data-case-workspace-intent-mode="secondary"],
+.case-workspace-panel-intro[data-case-workspace-intent-mode="after-case"] {
+  color: color-mix(in oklch, var(--muted-foreground) 88%, var(--foreground));
+}
+
 .live-intent-stage {
   gap: 14px;
   margin-bottom: 0;
@@ -25964,6 +25969,17 @@ button:disabled {
       180deg,
       color-mix(in oklch, var(--surface-control) 78%, transparent),
       color-mix(in oklch, var(--surface-panel) 95%, transparent)
+    );
+}
+
+.live-intent-stage[data-case-workspace-intent-mode="secondary"],
+.live-intent-stage[data-case-workspace-intent-mode="after-case"] {
+  border-color: color-mix(in oklch, var(--border-soft) 62%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--surface-control) 62%, transparent),
+      color-mix(in oklch, var(--surface-panel) 90%, transparent)
     );
 }
 
@@ -26005,6 +26021,17 @@ button:disabled {
 .live-compose-primary-shell {
   display: grid;
   gap: 14px;
+}
+
+.live-compose-primary-shell[data-case-workspace-intent-mode="secondary"] .intent-compose-grid,
+.live-compose-primary-shell[data-case-workspace-intent-mode="after-case"] .intent-compose-grid {
+  border-color: color-mix(in oklch, var(--border-soft) 64%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--surface-control) 64%, transparent),
+      color-mix(in oklch, var(--surface-panel) 92%, transparent)
+    );
 }
 
 .intent-compose-grid {
