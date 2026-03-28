@@ -20,7 +20,7 @@ test("case workspace demotes the generic live-intent shell once case flow is act
   }
 
   for (const token of [
-    "function getCaseWorkspaceLiveIntentShellContent(flowState, isRu)",
+    "function getCaseWorkspaceLiveIntentShellContent(flowState, isRu, requestDrawerOpen = true)",
     'heading: isRu ? "Отдельный live-запрос" : "Standalone live request"',
     'heading: isRu ? "Live-запрос после кейса" : "Live request after case"',
     'stageLabel: isRu ? "Отдельные действия" : "Standalone actions"',

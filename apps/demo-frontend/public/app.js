@@ -3068,6 +3068,7 @@ const el = {
   caseWorkspaceFlowDescription: document.getElementById("caseWorkspaceFlowDescription"),
   caseWorkspaceFlowActionBtn: document.getElementById("caseWorkspaceFlowActionBtn"),
   caseWorkspaceFlowHint: document.getElementById("caseWorkspaceFlowHint"),
+  caseWorkspaceRequestShell: document.getElementById("caseWorkspaceRequestShell"),
   caseWorkspaceRequestTitle: document.getElementById("caseWorkspaceRequestTitle"),
   sendBtn: document.getElementById("sendBtn"),
   runVisaDemoBtn: document.getElementById("runVisaDemoBtn"),
@@ -5787,13 +5788,27 @@ function getCaseWorkspaceRequestDrawerContent(flowState, isRu) {
   };
 }
 
-function getCaseWorkspaceLiveIntentShellContent(flowState, isRu) {
+function getCaseWorkspaceLiveIntentShellContent(flowState, isRu, requestDrawerOpen = true) {
   const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
   const completedCount = Number(flowState?.completedCount) || 0;
   const flowComplete = completedCount >= CASE_WORKSPACE_FLOW_STEPS.length || activeActionId === "reset_visa_demo";
   const caseActive = activeActionId.length > 0 || completedCount > 0;
 
   if (flowComplete) {
+    if (!requestDrawerOpen) {
+      return {
+        mode: "after-case",
+        heading: isRu ? "Live-запрос после кейса" : "Live request after case",
+        intro: isRu
+          ? "Откройте drawer «Отдельный запрос» ниже, только если перед следующим кейсом нужен ещё один отдельный перевод, negotiation, research, UI-задача или чат."
+          : "Open the Live request drawer below only when you need one more standalone translation, negotiation, research, UI task, or chat before the next case.",
+        stageLabel: isRu ? "Отдельные действия" : "Standalone actions",
+        stageHint: isRu
+          ? "Главный путь кейса уже завершён выше. Этот standalone composer раскрывается только через drawer ниже."
+          : "The main case path is already complete above. This standalone composer opens only through the drawer below.",
+        showComposer: false,
+      };
+    }
     return {
       mode: "after-case",
       heading: isRu ? "Live-запрос после кейса" : "Live request after case",
@@ -5804,10 +5819,25 @@ function getCaseWorkspaceLiveIntentShellContent(flowState, isRu) {
       stageHint: isRu
         ? "Главный путь кейса уже завершён выше. Здесь остаётся только отдельный live-запрос перед следующим кейсом."
         : "The main case path is already complete above. This lane stays here only for a standalone live request before the next case.",
+      showComposer: true,
     };
   }
 
   if (caseActive) {
+    if (!requestDrawerOpen) {
+      return {
+        mode: "secondary",
+        heading: isRu ? "Отдельный live-запрос" : "Standalone live request",
+        intro: isRu
+          ? "Откройте drawer «Отдельный запрос» ниже, только если запрос находится вне текущего шага кейса."
+          : "Open the Live request drawer below only when the request sits outside the current case step.",
+        stageLabel: isRu ? "Отдельные действия" : "Standalone actions",
+        stageHint: isRu
+          ? "Сначала двигайте кейс через главный шаг выше. Этот standalone composer раскрывается только через drawer ниже."
+          : "Move the case through the main step above first. This standalone composer opens only through the drawer below.",
+        showComposer: false,
+      };
+    }
     return {
       mode: "secondary",
       heading: isRu ? "Отдельный live-запрос" : "Standalone live request",
@@ -5818,6 +5848,7 @@ function getCaseWorkspaceLiveIntentShellContent(flowState, isRu) {
       stageHint: isRu
         ? "Сначала двигайте кейс через главный шаг выше. Этот chooser нужен только для отдельного запроса вне пути кейса."
         : "Move the case through the main step above first. Use this chooser only for a one-off request outside the case path.",
+      showComposer: true,
     };
   }
 
@@ -5831,6 +5862,7 @@ function getCaseWorkspaceLiveIntentShellContent(flowState, isRu) {
     stageHint: isRu
       ? "Сначала выберите главное действие. Main compose остаётся здесь, а служебные инструменты находятся ниже."
       : "Choose the main action first. Main compose stays here; tools open below.",
+    showComposer: true,
   };
 }
 
@@ -18755,7 +18787,9 @@ function renderLiveIntentExperience() {
   const awaitingFreshResponse =
     pendingRequest !== null && resolveLiveConversationIntent(pendingRequest.intent) === normalizedIntent;
   const flowState = getCaseWorkspaceFlowState(awaitingFreshResponse);
-  const liveIntentShellCopy = getCaseWorkspaceLiveIntentShellContent(flowState, isRu);
+  const requestDrawerOpen =
+    el.caseWorkspaceRequestShell instanceof HTMLDetailsElement ? el.caseWorkspaceRequestShell.open : true;
+  const liveIntentShellCopy = getCaseWorkspaceLiveIntentShellContent(flowState, isRu, requestDrawerOpen);
   if (el.liveIntentStageLabel instanceof HTMLElement) {
     el.liveIntentStageLabel.textContent = liveIntentShellCopy.stageLabel;
   }
@@ -18888,9 +18922,13 @@ function renderLiveIntentExperience() {
   }
   if (el.liveIntentStageShell instanceof HTMLElement) {
     el.liveIntentStageShell.dataset.caseWorkspaceIntentMode = liveIntentShellCopy.mode;
+    el.liveIntentStageShell.hidden = liveIntentShellCopy.showComposer !== true;
+    el.liveIntentStageShell.setAttribute("aria-hidden", liveIntentShellCopy.showComposer === true ? "false" : "true");
   }
   if (el.liveComposePrimaryShell instanceof HTMLElement) {
     el.liveComposePrimaryShell.dataset.caseWorkspaceIntentMode = liveIntentShellCopy.mode;
+    el.liveComposePrimaryShell.hidden = liveIntentShellCopy.showComposer !== true;
+    el.liveComposePrimaryShell.setAttribute("aria-hidden", liveIntentShellCopy.showComposer === true ? "false" : "true");
   }
   renderCaseWorkspaceFlow(awaitingFreshResponse, flowState);
 
@@ -37365,6 +37403,11 @@ function bindEvents() {
   }
   if (el.sendBtn) {
     el.sendBtn.addEventListener("click", sendIntentRequest);
+  }
+  if (el.caseWorkspaceRequestShell instanceof HTMLDetailsElement) {
+    el.caseWorkspaceRequestShell.addEventListener("toggle", () => {
+      renderLiveIntentExperience();
+    });
   }
   if (el.liveResultActionBtn instanceof HTMLButtonElement) {
     el.liveResultActionBtn.addEventListener("click", () => {
