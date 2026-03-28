@@ -41,7 +41,7 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   const utilitySectionEnd = htmlSource.indexOf("</details>", utilityStart);
   const utilitySection = htmlSource.slice(utilityStart, utilitySectionEnd === -1 ? htmlSource.length : utilitySectionEnd);
 
-  for (const token of ['id="caseWorkspaceMainActionStatus"', 'id="caseWorkspaceMainActionMeta"', 'id="runVisaDemoBtn"']) {
+  for (const token of ['id="caseWorkspaceMainActionStatus"', 'id="caseWorkspaceMainActionMeta"', 'id="caseWorkspaceMainActionSurfaceLabel"', 'id="caseWorkspaceMainActionSurfaceValue"', 'id="runVisaDemoBtn"']) {
     assert.ok(mainSection.includes(token), `start-case section missing token: ${token}`);
   }
   for (const token of ['id="caseWorkspaceRequestTitle"', 'id="caseWorkspaceRequestChip"', 'id="sendBtn"', 'id="sendBtnHint"']) {
@@ -62,6 +62,8 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     'caseWorkspaceCompletedWork: document.getElementById("caseWorkspaceCompletedWork")',
     'caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus")',
     'caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta")',
+    'caseWorkspaceMainActionSurfaceLabel: document.getElementById("caseWorkspaceMainActionSurfaceLabel")',
+    'caseWorkspaceMainActionSurfaceValue: document.getElementById("caseWorkspaceMainActionSurfaceValue")',
     'caseWorkspaceFlowActionBtn: document.getElementById("caseWorkspaceFlowActionBtn")',
     'caseWorkspaceRequestTitle: document.getElementById("caseWorkspaceRequestTitle")',
     'const requestDrawer = document.getElementById("caseWorkspaceRequestShell")',
@@ -102,6 +104,9 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     ".case-workspace-action-section",
     ".case-workspace-main-action-meta-row",
     ".case-workspace-main-action-meta",
+    ".case-workspace-main-action-surface-row",
+    ".case-workspace-main-action-surface-label",
+    ".case-workspace-main-action-surface-value",
     ".case-workspace-action-shell-summary",
     ".case-workspace-action-shell-body",
     ".case-workspace-action-shell-pill",

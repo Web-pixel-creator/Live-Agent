@@ -1073,6 +1073,28 @@
   line-height: 1.45;
 }
 
+.layout[data-active-tab="live-negotiator"] .case-workspace-main-action-surface-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-main-action-surface-label {
+  color: color-mix(in oklch, var(--primary) 52%, var(--muted-foreground));
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-main-action-surface-value {
+  color: color-mix(in oklch, var(--foreground) 94%, var(--accent-foreground));
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .layout[data-active-tab="live-negotiator"] .case-workspace-action-inline-pill {
   align-self: flex-start;
 }
@@ -1256,6 +1278,11 @@
 .layout[data-active-tab="live-negotiator"] .case-workspace-action-section-main[data-case-workspace-primary-state="case"] .case-workspace-main-action-meta,
 .layout[data-active-tab="live-negotiator"] .case-workspace-action-section-main[data-case-workspace-primary-state="review"] .case-workspace-main-action-meta {
   color: color-mix(in oklch, var(--foreground) 94%, var(--accent-foreground));
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-section-main[data-case-workspace-primary-surface="case"] .case-workspace-main-action-surface-value,
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-section-main[data-case-workspace-primary-surface="result"] .case-workspace-main-action-surface-value {
+  color: color-mix(in oklch, var(--foreground) 96%, white);
 }
 
 @media (max-width: 1100px) {

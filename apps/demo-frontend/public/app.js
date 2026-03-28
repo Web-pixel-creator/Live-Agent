@@ -3064,6 +3064,8 @@ const el = {
   caseWorkspaceMainActionsTitle: document.getElementById("caseWorkspaceMainActionsTitle"),
   caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus"),
   caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta"),
+  caseWorkspaceMainActionSurfaceLabel: document.getElementById("caseWorkspaceMainActionSurfaceLabel"),
+  caseWorkspaceMainActionSurfaceValue: document.getElementById("caseWorkspaceMainActionSurfaceValue"),
   caseWorkspaceFlowBadge: document.getElementById("caseWorkspaceFlowBadge"),
   caseWorkspaceFlowPill: document.getElementById("caseWorkspaceFlowPill"),
   caseWorkspaceFlowTitle: document.getElementById("caseWorkspaceFlowTitle"),
@@ -6198,6 +6200,44 @@ function getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu) {
   }
 }
 
+function getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu) {
+  const drawerTarget = getCaseWorkspaceDrawerTarget(flowState);
+  const currentStepKey =
+    typeof flowState?.currentStep === "string" && flowState.currentStep.length > 0
+      ? flowState.currentStep
+      : "case";
+  const currentStepTitle = getCaseWorkspaceStepTitle(currentStepKey, isRu);
+
+  if (primaryActionCopy?.state === "waiting") {
+    return {
+      label: isRu ? "Рабочая поверхность" : "Working surface",
+      value: isRu ? "Пауза до ответа" : "Paused until reply",
+    };
+  }
+  if (drawerTarget === "case") {
+    return {
+      label: isRu ? "Рабочая поверхность" : "Working surface",
+      value: isRu ? `Следующие шаги кейса • ${currentStepTitle}` : `Move case forward • ${currentStepTitle}`,
+    };
+  }
+  if (drawerTarget === "result") {
+    return {
+      label: isRu ? "Рабочая поверхность" : "Working surface",
+      value: isRu ? `Проверка и перезапуск • ${currentStepTitle}` : `Result tools • ${currentStepTitle}`,
+    };
+  }
+  if (primaryActionCopy?.state === "complete") {
+    return {
+      label: isRu ? "Следующий вход" : "Next entry",
+      value: isRu ? "Старт кейса" : "Start case",
+    };
+  }
+  return {
+    label: isRu ? "Рабочая поверхность" : "Working surface",
+    value: isRu ? "Старт кейса" : "Start case",
+  };
+}
+
 function getCaseWorkspaceDrawerTarget(flowState) {
   const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
   const completedCount = Number(flowState?.completedCount);
@@ -7021,8 +7061,10 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorks
   }
   const mainActionSection = document.querySelector(".case-workspace-action-section-main");
   const mainActionHint = document.querySelector(".case-workspace-action-section-main .case-workspace-action-hint");
+  const primaryDrawerTarget = getCaseWorkspaceDrawerTarget(flowState);
   if (mainActionSection instanceof HTMLElement) {
     mainActionSection.dataset.caseWorkspacePrimaryState = primaryActionCopy.state;
+    mainActionSection.dataset.caseWorkspacePrimarySurface = primaryDrawerTarget || primaryActionCopy.state;
   }
   if (el.caseWorkspaceMainActionsTitle instanceof HTMLElement) {
     el.caseWorkspaceMainActionsTitle.textContent = primaryActionCopy.title;
@@ -7037,6 +7079,13 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorks
   if (el.caseWorkspaceMainActionMeta instanceof HTMLElement) {
     el.caseWorkspaceMainActionMeta.textContent = primaryActionMeta.meta;
   }
+  const primaryActionSurface = getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu);
+  if (el.caseWorkspaceMainActionSurfaceLabel instanceof HTMLElement) {
+    el.caseWorkspaceMainActionSurfaceLabel.textContent = primaryActionSurface.label;
+  }
+  if (el.caseWorkspaceMainActionSurfaceValue instanceof HTMLElement) {
+    el.caseWorkspaceMainActionSurfaceValue.textContent = primaryActionSurface.value;
+  }
   if (el.runVisaDemoBtn instanceof HTMLButtonElement) {
     el.runVisaDemoBtn.textContent = primaryActionCopy.actionLabel;
     if (primaryActionCopy.disabled || typeof primaryActionCopy.actionId !== "string" || primaryActionCopy.actionId.length === 0) {
@@ -7048,6 +7097,13 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorks
     }
     el.runVisaDemoBtn.title = primaryActionCopy.hint;
     el.runVisaDemoBtn.setAttribute("aria-describedby", "caseWorkspaceMainActionMeta");
+    if (primaryDrawerTarget === "case") {
+      el.runVisaDemoBtn.setAttribute("aria-controls", "caseWorkspaceCaseShortcuts");
+    } else if (primaryDrawerTarget === "result") {
+      el.runVisaDemoBtn.setAttribute("aria-controls", "caseWorkspaceResultTools");
+    } else {
+      el.runVisaDemoBtn.removeAttribute("aria-controls");
+    }
   }
 
   syncCaseWorkspaceActionButtons(flowState);
