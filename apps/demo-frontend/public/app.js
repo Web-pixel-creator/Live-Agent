@@ -5556,6 +5556,24 @@ function shouldShowCaseWorkspaceCaseEntry(entry, activeActionId) {
   return buttonIndex >= activeIndex;
 }
 
+function shouldShowCaseWorkspaceResultEntry(entry, activeActionId) {
+  if (!entry || entry.drawer !== "result") {
+    return false;
+  }
+  if (entry.actionId === "reset_visa_demo") {
+    return typeof activeActionId === "string" && activeActionId.length > 0;
+  }
+  if (typeof activeActionId !== "string" || activeActionId.length === 0) {
+    return false;
+  }
+  const activeIndex = getCaseWorkspaceActionIndex(activeActionId);
+  const buttonIndex = getCaseWorkspaceActionIndex(entry.actionId);
+  if (activeIndex < 0 || buttonIndex < 0) {
+    return false;
+  }
+  return buttonIndex <= activeIndex;
+}
+
 function getCaseWorkspaceShortcutButtonState(buttonActionId, activeActionId, flowState, isRu) {
   const flowHeld =
     flowState?.actionDisabled === true &&
@@ -5838,7 +5856,8 @@ function getCaseWorkspaceCasePathBodyCopy(primaryActionId, isRu) {
   };
 }
 
-function getCaseWorkspaceResultPathBodyCopy(primaryActionId, isRu) {
+function getCaseWorkspaceResultPathBodyCopy(primaryActionId, laterVisibleCount, isRu) {
+  const hasLaterEntries = Number.isFinite(laterVisibleCount) && laterVisibleCount > 0;
   if (typeof primaryActionId === "string" && primaryActionId.length > 0) {
     const actionLabel = getDashboardActionButtonText(primaryActionId, isRu ? "Текущая проверка" : "Current review");
     return {
@@ -5848,11 +5867,15 @@ function getCaseWorkspaceResultPathBodyCopy(primaryActionId, isRu) {
         ? "Сначала закройте текущий защищённый итог. Остальные summary и перезапуск остаются ниже."
         : "Close the current protected result first. Other summaries and restart stay below.",
       primaryChip: isRu ? "Проверка" : "Review",
-      laterTitle: isRu ? "Поздние итоги и перезапуск" : "Later summaries and restart",
+      laterTitle: isRu ? "Завершённые итоги и перезапуск" : "Completed summaries and restart",
       laterHint: isRu
-        ? "Открывайте другие итоговые сводки или перезапуск только после текущей proof-проверки."
-        : "Open other summaries or restart only after the current proof step is closed.",
-      laterChip: isRu ? "Позже" : "Later",
+        ? hasLaterEntries
+          ? "Ранние подтверждённые итоги и перезапуск остаются здесь как история review-пути."
+          : "Как только текущий итог будет закрыт, здесь появится review-история и перезапуск."
+        : hasLaterEntries
+          ? "Earlier verified summaries and restart stay here as the review history lane."
+          : "Once the current review closes, this lane will keep the completed review history and restart.",
+      laterChip: isRu ? "История" : "History",
       laterOpen: false,
     };
   }
@@ -5862,11 +5885,15 @@ function getCaseWorkspaceResultPathBodyCopy(primaryActionId, isRu) {
     primaryTitle: "",
     primaryHint: "",
     primaryChip: "",
-    laterTitle: isRu ? "Все итоги и перезапуск" : "All summaries and restart",
+    laterTitle: isRu ? "Завершённые итоги и перезапуск" : "Completed summaries and restart",
     laterHint: isRu
-      ? "Итоговые summary и перезапуск остаются здесь, пока рабочая зона ведёт кейс по шагам."
-      : "Finished summaries and restart stay here while the workspace keeps the case moving step by step.",
-    laterChip: isRu ? "Опционально" : "Optional",
+      ? hasLaterEntries
+        ? "Здесь остаются уже подтверждённые итоги и перезапуск, пока рабочая зона ведёт кейс дальше."
+        : "Когда появятся подтверждённые итоги, они останутся здесь как review-история и путь к перезапуску."
+      : hasLaterEntries
+        ? "Verified summaries and restart stay here while the workspace keeps the case moving."
+        : "Verified summaries will land here as review history once the case reaches them.",
+    laterChip: isRu ? "История" : "History",
     laterOpen: false,
   };
 }
@@ -5989,12 +6016,16 @@ function syncCaseWorkspaceActionButtons(flowState) {
   const resultLaterChip = document.getElementById("caseWorkspaceResultLaterChip");
   const resultLaterActions = document.getElementById("caseWorkspaceResultLaterActions");
   const resultPrimaryActionId = CASE_WORKSPACE_RESULT_ACTIONS.has(activeActionId) ? activeActionId : "";
-  const resultPathCopy = getCaseWorkspaceResultPathBodyCopy(resultPrimaryActionId, isRu);
+  const visibleResultEntries = CASE_WORKSPACE_RESULT_BUTTON_ENTRIES.filter((entry) => shouldShowCaseWorkspaceResultEntry(entry, activeActionId));
+  const visibleResultActionIds = new Set(visibleResultEntries.map((entry) => entry.actionId));
+  const resultLaterVisibleCount = visibleResultEntries.filter((entry) => entry.actionId !== resultPrimaryActionId).length;
+  const resultPathCopy = getCaseWorkspaceResultPathBodyCopy(resultPrimaryActionId, resultLaterVisibleCount, isRu);
   moveCaseWorkspaceDrawerButtons(
     CASE_WORKSPACE_RESULT_BUTTON_ENTRIES,
     resultPrimaryActionId,
     resultPrimaryActions,
     resultLaterActions,
+    { visibleActionIds: visibleResultActionIds },
   );
   if (resultPrimaryCard instanceof HTMLElement) {
     resultPrimaryCard.hidden = !resultPathCopy.showPrimary;
@@ -6013,7 +6044,14 @@ function syncCaseWorkspaceActionButtons(flowState) {
     resultLaterHint.textContent = resultPathCopy.laterHint;
   }
   setCaseWorkspaceDrawerPill(resultLaterChip, resultPathCopy.laterChip);
-  syncCaseWorkspaceSubshellOpen(resultLaterTools, resultPathCopy.laterOpen, "result:" + (resultPrimaryActionId || "later"));
+  if (resultLaterTools instanceof HTMLElement) {
+    resultLaterTools.hidden = resultLaterVisibleCount === 0;
+  }
+  syncCaseWorkspaceSubshellOpen(
+    resultLaterTools,
+    resultLaterVisibleCount > 0 ? resultPathCopy.laterOpen : false,
+    "result:" + (resultPrimaryActionId || "later") + ":" + String(resultLaterVisibleCount),
+  );
 }
 
 function getDashboardActionButtonText(actionId, fallbackText = "") {

@@ -40,7 +40,7 @@ test("case workspace drawers split current path actions from later jumps", () =>
     'const CASE_WORKSPACE_RESULT_BUTTON_ENTRIES = CASE_WORKSPACE_ACTION_BUTTONS.filter((entry) => entry.drawer === "result")',
     "function moveCaseWorkspaceDrawerButtons(",
     "function getCaseWorkspaceCasePathBodyCopy(primaryActionId, isRu)",
-    "function getCaseWorkspaceResultPathBodyCopy(primaryActionId, isRu)",
+    "function getCaseWorkspaceResultPathBodyCopy(primaryActionId, laterVisibleCount, isRu)",
     'const casePrimaryCard = document.getElementById("caseWorkspaceCasePrimaryCard")',
     'const caseLaterSteps = document.getElementById("caseWorkspaceCaseLaterSteps")',
     'const resultPrimaryCard = document.getElementById("caseWorkspaceResultPrimaryCard")',
@@ -53,7 +53,8 @@ test("case workspace drawers split current path actions from later jumps", () =>
     'caseLaterSteps.hidden = caseLaterVisibleCount === 0;',
     'syncCaseWorkspaceSubshellOpen(',
     '"case:" + (casePrimaryActionId || "later") + ":" + String(caseLaterVisibleCount)',
-    'syncCaseWorkspaceSubshellOpen(resultLaterTools, resultPathCopy.laterOpen, "result:" + (resultPrimaryActionId || "later"));',
+    'resultLaterTools.hidden = resultLaterVisibleCount === 0;',
+    '"result:" + (resultPrimaryActionId || "later") + ":" + String(resultLaterVisibleCount)',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing path-group token: ${token}`);
   }

@@ -22,12 +22,14 @@ test("move case forward keeps only the current move and future case jumps", () =
 
   assert.ok(
     readmeSource.includes("current case move and future jumps")
-      && readmeSource.includes("completed proof/review actions stay in `Result tools`"),
+      && readmeSource.includes("current protected review on top")
+      && readmeSource.includes("completed summary history plus restart underneath it"),
     "README should explain that completed review affordances live only in Result tools",
   );
   assert.ok(
     operatorGuideSource.includes("current case move and future jumps")
-      && operatorGuideSource.includes("completed proof/review actions stay in `Result tools`"),
+      && operatorGuideSource.includes("current protected review on top")
+      && operatorGuideSource.includes("completed summary history plus restart underneath it"),
     "operator guide should explain that completed review affordances live only in Result tools",
   );
 });
