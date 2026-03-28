@@ -13,6 +13,8 @@ test("case workspace main row mirrors the current guided step", () => {
     "function getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu)",
     "function getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu)",
     "function getCaseWorkspacePrimaryActionOutcome(flowState, primaryActionCopy, isRu)",
+    'label: isRu ? "Вернётся в" : "Returns in"',
+    'label: isRu ? "Откроется в" : "Open in"',
     'title: isRu ? "Текущий шаг кейса" : "Current case move"',
     'title: isRu ? "Текущая проверка кейса" : "Current case review"',
     'title: isRu ? "Начните следующий кейс" : "Start another case"',
@@ -49,8 +51,8 @@ test("case workspace main row mirrors the current guided step", () => {
     "README should explain that the primary case row now carries a status/meta strip",
   );
   assert.ok(
-    readmeSource.includes("primary case row now also shows its current working surface"),
-    "README should explain that the primary case row now shows its working surface",
+    readmeSource.includes("primary case row now also shows where the current action opens next"),
+    "README should explain that the primary case row now shows where the current action opens next",
   );
   assert.ok(
     readmeSource.includes("primary case row now also carries a short `Outcome / Next proof` line"),
@@ -65,8 +67,8 @@ test("case workspace main row mirrors the current guided step", () => {
     "operator guide should explain that the primary case row now carries a status/meta strip",
   );
   assert.ok(
-    operatorGuideSource.includes("primary case row now also shows its current working surface"),
-    "operator guide should explain that the primary case row now shows its working surface",
+    operatorGuideSource.includes("primary case row now also shows where the current action opens next"),
+    "operator guide should explain that the primary case row now shows where the current action opens next",
   );
   assert.ok(
     operatorGuideSource.includes("primary case row now also carries a short `Outcome / Next proof` line"),

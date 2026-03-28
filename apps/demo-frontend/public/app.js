@@ -6216,19 +6216,19 @@ function getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu
 
   if (primaryActionCopy?.state === "waiting") {
     return {
-      label: isRu ? "Рабочая поверхность" : "Working surface",
+      label: isRu ? "Вернётся в" : "Returns in",
       value: isRu ? "Пауза до ответа" : "Paused until reply",
     };
   }
   if (drawerTarget === "case") {
     return {
-      label: isRu ? "Рабочая поверхность" : "Working surface",
+      label: isRu ? "Откроется в" : "Open in",
       value: isRu ? `Следующие шаги кейса • ${currentStepTitle}` : `Move case forward • ${currentStepTitle}`,
     };
   }
   if (drawerTarget === "result") {
     return {
-      label: isRu ? "Рабочая поверхность" : "Working surface",
+      label: isRu ? "Откроется в" : "Open in",
       value: isRu ? `Проверка и перезапуск • ${currentStepTitle}` : `Result tools • ${currentStepTitle}`,
     };
   }
@@ -6239,7 +6239,7 @@ function getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu
     };
   }
   return {
-    label: isRu ? "Рабочая поверхность" : "Working surface",
+    label: isRu ? "Откроется в" : "Open in",
     value: isRu ? "Старт кейса" : "Start case",
   };
 }

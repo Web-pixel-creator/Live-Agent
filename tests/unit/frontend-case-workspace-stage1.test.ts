@@ -44,6 +44,10 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   for (const token of ['id="caseWorkspaceMainActionStatus"', 'id="caseWorkspaceMainActionMeta"', 'id="caseWorkspaceMainActionPathContextLabel"', 'id="caseWorkspaceMainActionSurfaceLabel"', 'id="caseWorkspaceMainActionSurfaceValue"', 'id="caseWorkspaceMainActionOutcomeLabel"', 'id="caseWorkspaceMainActionOutcomeValue"', 'id="caseWorkspaceMainActionProofLabel"', 'id="caseWorkspaceMainActionProofValue"', 'id="runVisaDemoBtn"']) {
     assert.ok(mainSection.includes(token), `start-case section missing token: ${token}`);
   }
+  assert.ok(
+    mainSection.includes('<span id="caseWorkspaceMainActionSurfaceLabel" class="case-workspace-main-action-surface-label">Open in</span>'),
+    "start-case section should keep the static 'Open in' fallback label for the main action surface",
+  );
   for (const token of ['id="caseWorkspaceRequestTitle"', 'id="caseWorkspaceRequestChip"', 'id="sendBtn"', 'id="sendBtnHint"']) {
     assert.ok(requestSection.includes(token), `live-request drawer missing token: ${token}`);
   }
