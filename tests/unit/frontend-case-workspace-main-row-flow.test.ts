@@ -80,8 +80,8 @@ test("case workspace main row mirrors the current guided step", () => {
     "README should explain that the primary case row now carries an outcome/proof line",
   );
   assert.ok(
-    readmeSource.includes("primary case row now also adds a compact active-only `Task path` rail"),
-    "README should explain that the primary case row now includes an active-only task rail",
+    readmeSource.includes("primary case row now also adds a compact `Task path` rail for active case and review states"),
+    "README should explain that the primary case row now includes a case/review task rail",
   );
   assert.ok(
     operatorGuideSource.includes("primary case row now mirrors the active guided step"),
@@ -100,7 +100,7 @@ test("case workspace main row mirrors the current guided step", () => {
     "operator guide should explain that the primary case row now carries an outcome/proof line",
   );
   assert.ok(
-    operatorGuideSource.includes("primary case row now also adds a compact active-only `Task path` rail"),
-    "operator guide should explain that the primary case row now includes an active-only task rail",
+    operatorGuideSource.includes("primary case row now also adds a compact `Task path` rail for active case and review states"),
+    "operator guide should explain that the primary case row now includes a case/review task rail",
   );
 });
