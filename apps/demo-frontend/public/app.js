@@ -5989,11 +5989,11 @@ function getCaseWorkspaceCasePathBodyCopy(primaryActionId, isRu) {
         ? "Откройте текущий рекомендуемый шаг кейса отсюда. Более поздние переходы остаются ниже."
         : "Open the current recommended case step here. Later jumps stay below.",
       primaryChip: isRu ? "Сейчас" : "Now",
-      laterTitle: isRu ? "Более поздние переходы" : "Later stage jumps",
+      laterTitle: isRu ? "Пропустить вперёд" : "Skip ahead",
       laterHint: isRu
-        ? "Открывайте более поздние переходы только если нужно перепрыгнуть вперёд по кейсу."
-        : "Open the later-stage jumps only when you need to skip ahead in the case path.",
-      laterChip: isRu ? "Позже" : "Later",
+        ? "Открывайте этот блок только если нужно перескочить через обычный путь кейса."
+        : "Open this only when you need to jump past the normal case path.",
+      laterChip: isRu ? "Пропуск" : "Skip",
       laterOpen: false,
     };
   }
@@ -6003,7 +6003,7 @@ function getCaseWorkspaceCasePathBodyCopy(primaryActionId, isRu) {
     primaryTitle: "",
     primaryHint: "",
     primaryChip: "",
-    laterTitle: isRu ? "Все поздние шаги" : "All later steps",
+    laterTitle: isRu ? "Доступные переходы" : "Available jumps",
     laterHint: isRu
       ? "Пока этот блок нужен как jump-набор. После текущего шага рабочая зона сама поднимет сюда следующий ход."
       : "This block stays as a jump set for now. After the current step, the workspace will raise the next move here.",

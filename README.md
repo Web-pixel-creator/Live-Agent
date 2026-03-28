@@ -189,6 +189,7 @@ That same first fold now includes a state-aware `Refresh -> Inspect -> Recover` 
 That same onboarding path now also uses workspace-first inspect/open wording, so the first operator sequence stays aligned with `Choose workspace`, the `Operator brief` preview row, and the current product-surface vocabulary.
 That same waiting-state `Operator brief` meta now also says `hydrate the overview workspace` instead of `incident board`, so the first operator prompt stays aligned with the workspace chooser before refresh.
 Case workspace note: `Move case forward` now keeps only the current case move and future jumps, while `Result tools` keeps the current protected review on top and completed summary history plus restart underneath it.
+Case workspace note: the future-jump subshell inside `Move case forward` now reads as a `Skip ahead` path, so normal case progression stays primary and jump-ahead shortcuts feel explicitly exceptional.
 Case workspace note: the primary case row now mirrors the active guided step, so the top button follows the live case path instead of staying intake-only after the first stage.
 Case workspace note: the primary case row now adds a small task-first status/meta strip, so the current step reads like an active working action instead of one more plain launcher.
 Case workspace note: the primary case row now also shows where the current action opens next and wires `aria-controls` to `Move case forward` or `Result tools` when the active step lives there.

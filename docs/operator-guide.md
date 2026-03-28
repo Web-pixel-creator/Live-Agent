@@ -36,6 +36,7 @@ Operator onboarding note: that same first fold now exposes a guided `Refresh -> 
 Operator onboarding note: that same guided path now also uses workspace-first inspect/open wording, so the first operator sequence stays aligned with `Choose workspace`, the `Operator brief` preview row, and the current product-surface vocabulary.
 Case workspace note: the secondary jump/review subshells inside `Move case forward` and `Result tools` now keep one current path row on top and quieter later jumps or reviews underneath it.
 Case workspace note: `Move case forward` now keeps only the current case move and future jumps, while `Result tools` keeps the current protected review on top and completed summary history plus restart underneath it.
+Case workspace note: the future-jump subshell inside `Move case forward` now reads as a `Skip ahead` path, so normal case progression stays primary and jump-ahead shortcuts feel explicitly exceptional.
 Case workspace note: the primary case row now mirrors the active guided step, so the top button follows the live case path instead of staying intake-only after the first stage.
 Case workspace note: the primary case row now adds a small task-first status/meta strip, so the current step reads like an active working action instead of one more plain launcher.
 Case workspace note: the primary case row now also shows where the current action opens next and wires `aria-controls` to `Move case forward` or `Result tools` when the active step lives there.

@@ -41,6 +41,9 @@ test("case workspace drawers split current path actions from later jumps", () =>
     "function moveCaseWorkspaceDrawerButtons(",
     "function getCaseWorkspaceCasePathBodyCopy(primaryActionId, isRu)",
     "function getCaseWorkspaceResultPathBodyCopy(primaryActionId, laterVisibleCount, isRu)",
+    'laterTitle: isRu ? "Пропустить вперёд" : "Skip ahead"',
+    'laterChip: isRu ? "Пропуск" : "Skip"',
+    'laterTitle: isRu ? "Доступные переходы" : "Available jumps"',
     'const casePrimaryCard = document.getElementById("caseWorkspaceCasePrimaryCard")',
     'const caseLaterSteps = document.getElementById("caseWorkspaceCaseLaterSteps")',
     'const resultPrimaryCard = document.getElementById("caseWorkspaceResultPrimaryCard")',
@@ -76,8 +79,16 @@ test("case workspace drawers split current path actions from later jumps", () =>
     "README should mention the quieter secondary drawer shell",
   );
   assert.ok(
+    readmeSource.includes("`Skip ahead` path"),
+    "README should describe the future-jump subshell as a skip-ahead path",
+  );
+  assert.ok(
     operatorGuideSource.includes("secondary jump/review subshells")
       || operatorGuideSource.includes("secondary shell for later jumps"),
     "operator guide should mention the quieter secondary drawer shell",
+  );
+  assert.ok(
+    operatorGuideSource.includes("`Skip ahead` path"),
+    "operator guide should describe the future-jump subshell as a skip-ahead path",
   );
 });
