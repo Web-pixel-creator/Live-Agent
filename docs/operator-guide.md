@@ -42,7 +42,7 @@ Case workspace note: the primary case row now also shows where the current actio
 Case workspace note: the primary case row now also carries a short `Outcome / Next proof` line, so the operator can see what this step unlocks before pressing the main action.
 Case workspace note: that same `Outcome / Next proof` line now follows the immediate proof path, so active case moves promise their protected review before the later stage handoff.
 Case workspace note: the primary case row now also includes a short `Proof lands in` line, so the operator can see which working surface receives the next review or next move.
-Case workspace note: those support rows now sit under one `Path context` label, so the main row scans like one case-path explanation instead of three unrelated metadata lines.
+Case workspace note: those support rows now sit under one `This action` label, so the main row scans like one case-path explanation instead of three unrelated metadata lines.
 Case workspace note: Guided flow now also hands off into the matching top-level case drawer only after the case is active, so `Move case forward` or `Result tools` opens at runtime without cluttering the first scan.
 Case workspace note: The guided CTA now points at the matching top-level case drawer with `aria-controls`, so assistive tech gets the same drawer handoff cue as the visual path.
 Case workspace note: Guided flow now hands off to the main Start case action on the empty intake state, so operators and demo users still see one true intake launch control on first load.

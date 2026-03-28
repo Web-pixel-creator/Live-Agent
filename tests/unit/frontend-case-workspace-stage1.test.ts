@@ -66,7 +66,7 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     'caseWorkspaceCompletedWork: document.getElementById("caseWorkspaceCompletedWork")',
     'caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus")',
     'caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta")',
-    '"live.caseWorkspace.pathContextLabel": "Path context"',
+    '"live.caseWorkspace.pathContextLabel": "This action"',
     'caseWorkspaceMainActionSurfaceLabel: document.getElementById("caseWorkspaceMainActionSurfaceLabel")',
     'caseWorkspaceMainActionSurfaceValue: document.getElementById("caseWorkspaceMainActionSurfaceValue")',
     'caseWorkspaceMainActionOutcomeLabel: document.getElementById("caseWorkspaceMainActionOutcomeLabel")',

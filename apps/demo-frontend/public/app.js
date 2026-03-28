@@ -1263,7 +1263,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.statusPillCompleted": "Reserved",
     "live.caseWorkspace.mainActionsTitle": "Start case",
     "live.caseWorkspace.mainActionsHint": "Begin a new intake or continue the active case from one clear starting point.",
-    "live.caseWorkspace.pathContextLabel": "Path context",
+  "live.caseWorkspace.pathContextLabel": "This action",
     "live.caseWorkspace.requestTitle": "Live request",
     "live.caseWorkspace.requestHint": "Use the live composer for one standalone translation, negotiation, research, UI task, or chat outside the case path.",
     "live.caseWorkspace.requestChip": "Optional",
@@ -2162,7 +2162,7 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.en, {
 });
 
 Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
-  "live.caseWorkspace.pathContextLabel": "\u041a\u043e\u043d\u0442\u0435\u043a\u0441\u0442 \u043f\u0443\u0442\u0438",
+  "live.caseWorkspace.pathContextLabel": "\u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435",
   "live.context.workflow": "\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438 UI",
   "live.context.workflowHint": "\u0417\u0430\u043f\u0443\u0441\u043a \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u0438 \u0437\u0430\u0434\u0430\u0447\u0438 \u0432 \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0435",
   "live.context.voice": "\u0413\u043e\u043b\u043e\u0441",
