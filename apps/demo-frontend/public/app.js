@@ -3057,6 +3057,7 @@ const el = {
   caseWorkspaceStatusPill: document.getElementById("caseWorkspaceStatusPill"),
   caseWorkspaceNextStepPill: document.getElementById("caseWorkspaceNextStepPill"),
   caseWorkspaceCompletedPill: document.getElementById("caseWorkspaceCompletedPill"),
+  caseWorkspaceMainActionsTitle: document.getElementById("caseWorkspaceMainActionsTitle"),
   caseWorkspaceFlowBadge: document.getElementById("caseWorkspaceFlowBadge"),
   caseWorkspaceFlowPill: document.getElementById("caseWorkspaceFlowPill"),
   caseWorkspaceFlowTitle: document.getElementById("caseWorkspaceFlowTitle"),
@@ -5898,6 +5899,89 @@ function getCaseWorkspaceResultPathBodyCopy(primaryActionId, laterVisibleCount, 
   };
 }
 
+function getCaseWorkspacePrimaryActionCopy(flowState, isRu) {
+  const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
+  const actionLabel = typeof flowState?.actionLabel === "string" && flowState.actionLabel.length > 0
+    ? flowState.actionLabel
+    : getDashboardActionButtonText("run_visa_intake_demo", isRu ? "Начать визовый кейс" : "Start New Visa Case");
+
+  if (flowState?.actionDisabled === true || activeActionId.length === 0) {
+    return {
+      title: isRu ? "Путь кейса ждёт" : "Case path waiting",
+      hint: isRu
+        ? "Сначала дождитесь текущего live-запроса, затем вернитесь к основному пути кейса."
+        : "Finish the active live request first, then return to the main case path.",
+      actionId: "",
+      actionLabel: flowState?.actionLabel || (isRu ? "Ждём ответ" : "Waiting for response"),
+      disabled: true,
+      state: "waiting",
+    };
+  }
+
+  if (activeActionId === "run_visa_intake_demo" && Number(flowState?.completedCount) === 0) {
+    return {
+      title: isRu ? "Старт кейса" : "Start case",
+      hint: isRu
+        ? "Начните intake из одного понятного входа, а затем ведите кейс по шагам."
+        : "Begin the intake from one clear entry point, then keep the case moving step by step.",
+      actionId: activeActionId,
+      actionLabel,
+      disabled: false,
+      state: "start",
+    };
+  }
+
+  if (activeActionId === "reset_visa_demo") {
+    return {
+      title: isRu ? "Начните следующий кейс" : "Start another case",
+      hint: isRu
+        ? "Текущий путь завершён. Сбросьте рабочую зону, чтобы начать новый кейс."
+        : "The current path is complete. Reset the workspace when you want to start a fresh case.",
+      actionId: activeActionId,
+      actionLabel,
+      disabled: false,
+      state: "complete",
+    };
+  }
+
+  if (CASE_WORKSPACE_RESULT_ACTIONS.has(activeActionId)) {
+    return {
+      title: isRu ? "Текущая проверка кейса" : "Current case review",
+      hint: isRu
+        ? "Основной ряд держит текущий защищённый итог, пока рабочая зона не перейдёт к следующему шагу."
+        : "The primary row keeps the current protected result in view until the workspace moves to the next step.",
+      actionId: activeActionId,
+      actionLabel,
+      disabled: false,
+      state: "review",
+    };
+  }
+
+  if (CASE_WORKSPACE_CASE_ACTIONS.has(activeActionId)) {
+    return {
+      title: isRu ? "Текущий шаг кейса" : "Current case move",
+      hint: isRu
+        ? "Основной ряд всегда показывает следующий рабочий шаг guided flow, а более поздние переходы остаются ниже."
+        : "The primary row always shows the next guided case move, while later jumps stay below.",
+      actionId: activeActionId,
+      actionLabel,
+      disabled: false,
+      state: "case",
+    };
+  }
+
+  return {
+    title: isRu ? "Старт кейса" : "Start case",
+    hint: isRu
+      ? "Начните новый intake или продолжите активный кейс из одного понятного входа."
+      : "Begin a new intake or continue the active case from one clear starting point.",
+    actionId: activeActionId,
+    actionLabel,
+    disabled: false,
+    state: "start",
+  };
+}
+
 function syncCaseWorkspaceActionButtons(flowState) {
   const isRu = state.languageMode === "ru";
   const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
@@ -6624,6 +6708,30 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse) {
       el.caseWorkspaceFlowActionBtn.disabled = false;
       el.caseWorkspaceFlowActionBtn.dataset.dashboardAction = flowState.actionId;
     }
+  }
+
+  const primaryActionCopy = getCaseWorkspacePrimaryActionCopy(flowState, isRu);
+  const mainActionSection = document.querySelector(".case-workspace-action-section-main");
+  const mainActionHint = document.querySelector(".case-workspace-action-section-main .case-workspace-action-hint");
+  if (mainActionSection instanceof HTMLElement) {
+    mainActionSection.dataset.caseWorkspacePrimaryState = primaryActionCopy.state;
+  }
+  if (el.caseWorkspaceMainActionsTitle instanceof HTMLElement) {
+    el.caseWorkspaceMainActionsTitle.textContent = primaryActionCopy.title;
+  }
+  if (mainActionHint instanceof HTMLElement) {
+    mainActionHint.textContent = primaryActionCopy.hint;
+  }
+  if (el.runVisaDemoBtn instanceof HTMLButtonElement) {
+    el.runVisaDemoBtn.textContent = primaryActionCopy.actionLabel;
+    if (primaryActionCopy.disabled || typeof primaryActionCopy.actionId !== "string" || primaryActionCopy.actionId.length === 0) {
+      el.runVisaDemoBtn.disabled = true;
+      delete el.runVisaDemoBtn.dataset.dashboardAction;
+    } else {
+      el.runVisaDemoBtn.disabled = false;
+      el.runVisaDemoBtn.dataset.dashboardAction = primaryActionCopy.actionId;
+    }
+    el.runVisaDemoBtn.title = primaryActionCopy.hint;
   }
 
   syncCaseWorkspaceActionButtons(flowState);
