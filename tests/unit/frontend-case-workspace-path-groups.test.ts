@@ -49,7 +49,10 @@ test("case workspace drawers split current path actions from later jumps", () =>
     "moveCaseWorkspaceDrawerButtons(",
     'casePrimaryCard.hidden = !casePathCopy.showPrimary;',
     'resultPrimaryCard.hidden = !resultPathCopy.showPrimary;',
-    'syncCaseWorkspaceSubshellOpen(caseLaterSteps, casePathCopy.laterOpen, "case:" + (casePrimaryActionId || "later"));',
+    'const visibleCaseEntries = CASE_WORKSPACE_CASE_BUTTON_ENTRIES.filter((entry) => shouldShowCaseWorkspaceCaseEntry(entry, activeActionId));',
+    'caseLaterSteps.hidden = caseLaterVisibleCount === 0;',
+    'syncCaseWorkspaceSubshellOpen(',
+    '"case:" + (casePrimaryActionId || "later") + ":" + String(caseLaterVisibleCount)',
     'syncCaseWorkspaceSubshellOpen(resultLaterTools, resultPathCopy.laterOpen, "result:" + (resultPrimaryActionId || "later"));',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing path-group token: ${token}`);

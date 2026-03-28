@@ -5541,6 +5541,21 @@ function getCaseWorkspaceActionIndex(actionId) {
   return CASE_WORKSPACE_ACTION_SEQUENCE.indexOf(actionId);
 }
 
+function shouldShowCaseWorkspaceCaseEntry(entry, activeActionId) {
+  if (!entry || entry.drawer !== "case") {
+    return false;
+  }
+  if (typeof activeActionId !== "string" || activeActionId.length === 0) {
+    return true;
+  }
+  const activeIndex = getCaseWorkspaceActionIndex(activeActionId);
+  const buttonIndex = getCaseWorkspaceActionIndex(entry.actionId);
+  if (activeIndex < 0 || buttonIndex < 0) {
+    return true;
+  }
+  return buttonIndex >= activeIndex;
+}
+
 function getCaseWorkspaceShortcutButtonState(buttonActionId, activeActionId, flowState, isRu) {
   const flowHeld =
     flowState?.actionDisabled === true &&
@@ -5753,13 +5768,22 @@ function getCaseWorkspaceResultDrawerContent(flowState, isRu) {
   };
 }
 
-function moveCaseWorkspaceDrawerButtons(buttonEntries, primaryActionId, primaryHost, laterHost) {
+function moveCaseWorkspaceDrawerButtons(buttonEntries, primaryActionId, primaryHost, laterHost, options = {}) {
   if (!(laterHost instanceof HTMLElement)) {
     return;
   }
+  const visibleActionIds = options?.visibleActionIds instanceof Set ? options.visibleActionIds : null;
   for (const entry of buttonEntries) {
     const button = el[entry.key];
     if (!(button instanceof HTMLButtonElement)) {
+      continue;
+    }
+    const isVisible = !visibleActionIds || visibleActionIds.has(entry.actionId);
+    button.hidden = !isVisible;
+    if (!isVisible) {
+      if (button.parentElement !== laterHost) {
+        laterHost.appendChild(button);
+      }
       continue;
     }
     const target =
@@ -5902,13 +5926,17 @@ function syncCaseWorkspaceActionButtons(flowState) {
   const caseLaterChip = document.getElementById("caseWorkspaceCaseLaterChip");
   const caseLaterActions = document.getElementById("caseWorkspaceCaseLaterActions");
   const casePrimaryActionId = CASE_WORKSPACE_CASE_ACTIONS.has(activeActionId) ? activeActionId : "";
+  const visibleCaseEntries = CASE_WORKSPACE_CASE_BUTTON_ENTRIES.filter((entry) => shouldShowCaseWorkspaceCaseEntry(entry, activeActionId));
+  const visibleCaseActionIds = new Set(visibleCaseEntries.map((entry) => entry.actionId));
   const casePathCopy = getCaseWorkspaceCasePathBodyCopy(casePrimaryActionId, isRu);
   moveCaseWorkspaceDrawerButtons(
     CASE_WORKSPACE_CASE_BUTTON_ENTRIES,
     casePrimaryActionId,
     casePrimaryActions,
     caseLaterActions,
+    { visibleActionIds: visibleCaseActionIds },
   );
+  const caseLaterVisibleCount = visibleCaseEntries.filter((entry) => entry.actionId !== casePrimaryActionId).length;
   if (casePrimaryCard instanceof HTMLElement) {
     casePrimaryCard.hidden = !casePathCopy.showPrimary;
   }
@@ -5926,7 +5954,14 @@ function syncCaseWorkspaceActionButtons(flowState) {
     caseLaterHint.textContent = casePathCopy.laterHint;
   }
   setCaseWorkspaceDrawerPill(caseLaterChip, casePathCopy.laterChip);
-  syncCaseWorkspaceSubshellOpen(caseLaterSteps, casePathCopy.laterOpen, "case:" + (casePrimaryActionId || "later"));
+  if (caseLaterSteps instanceof HTMLElement) {
+    caseLaterSteps.hidden = caseLaterVisibleCount === 0;
+  }
+  syncCaseWorkspaceSubshellOpen(
+    caseLaterSteps,
+    caseLaterVisibleCount > 0 ? casePathCopy.laterOpen : false,
+    "case:" + (casePrimaryActionId || "later") + ":" + String(caseLaterVisibleCount),
+  );
 
   const resultDrawer = document.getElementById("caseWorkspaceResultTools");
   const resultTitle = document.getElementById("caseWorkspaceResultToolsTitle");
