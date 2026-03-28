@@ -33,7 +33,7 @@ test("case workspace main row mirrors the current guided step", () => {
     'el.caseWorkspaceMainActionOutcomeValue.textContent = primaryActionOutcome.value;',
     'el.runVisaDemoBtn.textContent = primaryActionCopy.actionLabel;',
     'el.runVisaDemoBtn.dataset.dashboardAction = primaryActionCopy.actionId;',
-    'el.runVisaDemoBtn.setAttribute("aria-describedby", "caseWorkspaceMainActionMeta caseWorkspaceMainActionOutcomeValue");',
+    'el.runVisaDemoBtn.setAttribute("aria-describedby", "caseWorkspaceMainActionMeta caseWorkspaceMainActionOutcomeValue caseWorkspaceMainActionProofValue");',
     'el.runVisaDemoBtn.setAttribute("aria-controls", "caseWorkspaceCaseShortcuts");',
     'el.runVisaDemoBtn.setAttribute("aria-controls", "caseWorkspaceResultTools");',
   ]) {

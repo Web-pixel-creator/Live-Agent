@@ -194,6 +194,7 @@ Case workspace note: the primary case row now adds a small status/meta strip, so
 Case workspace note: the primary case row now also shows its current working surface and wires `aria-controls` to `Move case forward` or `Result tools` when the active step lives there.
 Case workspace note: the primary case row now also carries a short `Outcome / Next proof` line, so the operator can see what this step unlocks before pressing the main action.
 Case workspace note: that same `Outcome / Next proof` line now follows the immediate proof path, so active case moves promise their protected review before the later stage handoff.
+Case workspace note: the primary case row now also includes a short `Proof lands in` line, so the operator can see which working surface receives the next review or next move.
 Case workspace note: Guided flow now also hands off into the matching top-level case drawer only after the case is active, so the workspace opens `Move case forward` or `Result tools` at runtime without breaking the clean first load.
 Case workspace note: The guided CTA now points at the matching top-level case drawer with `aria-controls`, so keyboard and screen-reader users get the same drawer handoff cue without changing the flow behavior.
 Case workspace note: Guided flow now hands off to the main Start case action on the empty intake state, so the first screen keeps one real intake launch control instead of two parallel start buttons.

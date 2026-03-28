@@ -3068,6 +3068,8 @@ const el = {
   caseWorkspaceMainActionSurfaceValue: document.getElementById("caseWorkspaceMainActionSurfaceValue"),
   caseWorkspaceMainActionOutcomeLabel: document.getElementById("caseWorkspaceMainActionOutcomeLabel"),
   caseWorkspaceMainActionOutcomeValue: document.getElementById("caseWorkspaceMainActionOutcomeValue"),
+  caseWorkspaceMainActionProofLabel: document.getElementById("caseWorkspaceMainActionProofLabel"),
+  caseWorkspaceMainActionProofValue: document.getElementById("caseWorkspaceMainActionProofValue"),
   caseWorkspaceFlowBadge: document.getElementById("caseWorkspaceFlowBadge"),
   caseWorkspaceFlowPill: document.getElementById("caseWorkspaceFlowPill"),
   caseWorkspaceFlowTitle: document.getElementById("caseWorkspaceFlowTitle"),
@@ -6286,6 +6288,49 @@ function getCaseWorkspacePrimaryActionOutcome(flowState, primaryActionCopy, isRu
   }
 }
 
+function getCaseWorkspacePrimaryActionProofLanding(flowState, primaryActionCopy, isRu) {
+  const currentStepKey =
+    typeof flowState?.currentStep === "string" && flowState.currentStep.length > 0
+      ? flowState.currentStep
+      : "case";
+  const currentStepTitle = getCaseWorkspaceStepTitle(currentStepKey, isRu);
+  const nextStepKey = getCaseWorkspaceStepAfter(currentStepKey);
+  const nextStepTitle = nextStepKey ? getCaseWorkspaceStepTitle(nextStepKey, isRu) : "";
+
+  switch (primaryActionCopy?.state) {
+    case "review":
+      return nextStepTitle
+        ? {
+            label: isRu ? "Следующий шаг откроется в" : "Next step lands in",
+            value: isRu ? `Следующие шаги кейса • ${nextStepTitle}` : `Move case forward • ${nextStepTitle}`,
+          }
+        : {
+            label: isRu ? "Следующий шаг откроется в" : "Next step lands in",
+            value: isRu ? "Главный ряд кейса" : "Main row",
+          };
+    case "case":
+      return {
+        label: isRu ? "Проверка откроется в" : "Proof lands in",
+        value: isRu ? `Проверка и перезапуск • ${currentStepTitle}` : `Result tools • ${currentStepTitle}`,
+      };
+    case "waiting":
+      return {
+        label: isRu ? "Шаг вернётся в" : "Step returns in",
+        value: isRu ? "Главный ряд кейса" : "Main row",
+      };
+    case "complete":
+      return {
+        label: isRu ? "Перезапуск откроется в" : "Restart lands in",
+        value: isRu ? "Главный ряд кейса" : "Main row",
+      };
+    default:
+      return {
+        label: isRu ? "Проверка откроется в" : "Proof lands in",
+        value: isRu ? "Проверка и перезапуск • Кейс" : "Result tools • Case",
+      };
+  }
+}
+
 function getCaseWorkspaceDrawerTarget(flowState) {
   const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
   const completedCount = Number(flowState?.completedCount);
@@ -7141,6 +7186,13 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorks
   if (el.caseWorkspaceMainActionOutcomeValue instanceof HTMLElement) {
     el.caseWorkspaceMainActionOutcomeValue.textContent = primaryActionOutcome.value;
   }
+  const primaryActionProofLanding = getCaseWorkspacePrimaryActionProofLanding(flowState, primaryActionCopy, isRu);
+  if (el.caseWorkspaceMainActionProofLabel instanceof HTMLElement) {
+    el.caseWorkspaceMainActionProofLabel.textContent = primaryActionProofLanding.label;
+  }
+  if (el.caseWorkspaceMainActionProofValue instanceof HTMLElement) {
+    el.caseWorkspaceMainActionProofValue.textContent = primaryActionProofLanding.value;
+  }
   if (el.runVisaDemoBtn instanceof HTMLButtonElement) {
     el.runVisaDemoBtn.textContent = primaryActionCopy.actionLabel;
     if (primaryActionCopy.disabled || typeof primaryActionCopy.actionId !== "string" || primaryActionCopy.actionId.length === 0) {
@@ -7151,7 +7203,7 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorks
       el.runVisaDemoBtn.dataset.dashboardAction = primaryActionCopy.actionId;
     }
     el.runVisaDemoBtn.title = primaryActionCopy.hint;
-    el.runVisaDemoBtn.setAttribute("aria-describedby", "caseWorkspaceMainActionMeta caseWorkspaceMainActionOutcomeValue");
+    el.runVisaDemoBtn.setAttribute("aria-describedby", "caseWorkspaceMainActionMeta caseWorkspaceMainActionOutcomeValue caseWorkspaceMainActionProofValue");
     if (primaryDrawerTarget === "case") {
       el.runVisaDemoBtn.setAttribute("aria-controls", "caseWorkspaceCaseShortcuts");
     } else if (primaryDrawerTarget === "result") {
