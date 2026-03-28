@@ -12,6 +12,7 @@ test("case workspace main row mirrors the current guided step", () => {
     "function getCaseWorkspacePrimaryActionCopy(flowState, isRu)",
     "function getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu)",
     "function getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu)",
+    "function getCaseWorkspacePrimaryActionOutcome(flowState, primaryActionCopy, isRu)",
     'title: isRu ? "Текущий шаг кейса" : "Current case move"',
     'title: isRu ? "Текущая проверка кейса" : "Current case review"',
     'title: isRu ? "Начните следующий кейс" : "Start another case"',
@@ -19,6 +20,7 @@ test("case workspace main row mirrors the current guided step", () => {
     "const primaryActionCopy = getCaseWorkspacePrimaryActionCopy(flowState, isRu);",
     "const primaryActionMeta = getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu);",
     "const primaryActionSurface = getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu);",
+    "const primaryActionOutcome = getCaseWorkspacePrimaryActionOutcome(flowState, primaryActionCopy, isRu);",
     'mainActionSection.dataset.caseWorkspacePrimaryState = primaryActionCopy.state;',
     'mainActionSection.dataset.caseWorkspacePrimarySurface = primaryDrawerTarget || primaryActionCopy.state;',
     'el.caseWorkspaceMainActionsTitle.textContent = primaryActionCopy.title;',
@@ -27,9 +29,11 @@ test("case workspace main row mirrors the current guided step", () => {
     'el.caseWorkspaceMainActionMeta.textContent = primaryActionMeta.meta;',
     'el.caseWorkspaceMainActionSurfaceLabel.textContent = primaryActionSurface.label;',
     'el.caseWorkspaceMainActionSurfaceValue.textContent = primaryActionSurface.value;',
+    'el.caseWorkspaceMainActionOutcomeLabel.textContent = primaryActionOutcome.label;',
+    'el.caseWorkspaceMainActionOutcomeValue.textContent = primaryActionOutcome.value;',
     'el.runVisaDemoBtn.textContent = primaryActionCopy.actionLabel;',
     'el.runVisaDemoBtn.dataset.dashboardAction = primaryActionCopy.actionId;',
-    'el.runVisaDemoBtn.setAttribute("aria-describedby", "caseWorkspaceMainActionMeta");',
+    'el.runVisaDemoBtn.setAttribute("aria-describedby", "caseWorkspaceMainActionMeta caseWorkspaceMainActionOutcomeValue");',
     'el.runVisaDemoBtn.setAttribute("aria-controls", "caseWorkspaceCaseShortcuts");',
     'el.runVisaDemoBtn.setAttribute("aria-controls", "caseWorkspaceResultTools");',
   ]) {
@@ -49,6 +53,10 @@ test("case workspace main row mirrors the current guided step", () => {
     "README should explain that the primary case row now shows its working surface",
   );
   assert.ok(
+    readmeSource.includes("primary case row now also carries a short `Outcome / Next proof` line"),
+    "README should explain that the primary case row now carries an outcome/proof line",
+  );
+  assert.ok(
     operatorGuideSource.includes("primary case row now mirrors the active guided step"),
     "operator guide should explain that the primary case row mirrors the active guided step",
   );
@@ -59,5 +67,9 @@ test("case workspace main row mirrors the current guided step", () => {
   assert.ok(
     operatorGuideSource.includes("primary case row now also shows its current working surface"),
     "operator guide should explain that the primary case row now shows its working surface",
+  );
+  assert.ok(
+    operatorGuideSource.includes("primary case row now also carries a short `Outcome / Next proof` line"),
+    "operator guide should explain that the primary case row now carries an outcome/proof line",
   );
 });

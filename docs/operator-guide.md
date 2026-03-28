@@ -39,6 +39,7 @@ Case workspace note: `Move case forward` now keeps only the current case move an
 Case workspace note: the primary case row now mirrors the active guided step, so the top button follows the live case path instead of staying intake-only after the first stage.
 Case workspace note: the primary case row now adds a small status/meta strip, so the current step reads like an active working action instead of one more plain launcher.
 Case workspace note: the primary case row now also shows its current working surface and wires `aria-controls` to `Move case forward` or `Result tools` when the active step lives there.
+Case workspace note: the primary case row now also carries a short `Outcome / Next proof` line, so the operator can see what this step unlocks before pressing the main action.
 Case workspace note: Guided flow now also hands off into the matching top-level case drawer only after the case is active, so `Move case forward` or `Result tools` opens at runtime without cluttering the first scan.
 Case workspace note: The guided CTA now points at the matching top-level case drawer with `aria-controls`, so assistive tech gets the same drawer handoff cue as the visual path.
 Case workspace note: Guided flow now hands off to the main Start case action on the empty intake state, so operators and demo users still see one true intake launch control on first load.

@@ -41,7 +41,7 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   const utilitySectionEnd = htmlSource.indexOf("</details>", utilityStart);
   const utilitySection = htmlSource.slice(utilityStart, utilitySectionEnd === -1 ? htmlSource.length : utilitySectionEnd);
 
-  for (const token of ['id="caseWorkspaceMainActionStatus"', 'id="caseWorkspaceMainActionMeta"', 'id="caseWorkspaceMainActionSurfaceLabel"', 'id="caseWorkspaceMainActionSurfaceValue"', 'id="runVisaDemoBtn"']) {
+  for (const token of ['id="caseWorkspaceMainActionStatus"', 'id="caseWorkspaceMainActionMeta"', 'id="caseWorkspaceMainActionSurfaceLabel"', 'id="caseWorkspaceMainActionSurfaceValue"', 'id="caseWorkspaceMainActionOutcomeLabel"', 'id="caseWorkspaceMainActionOutcomeValue"', 'id="runVisaDemoBtn"']) {
     assert.ok(mainSection.includes(token), `start-case section missing token: ${token}`);
   }
   for (const token of ['id="caseWorkspaceRequestTitle"', 'id="caseWorkspaceRequestChip"', 'id="sendBtn"', 'id="sendBtnHint"']) {
@@ -64,6 +64,8 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     'caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta")',
     'caseWorkspaceMainActionSurfaceLabel: document.getElementById("caseWorkspaceMainActionSurfaceLabel")',
     'caseWorkspaceMainActionSurfaceValue: document.getElementById("caseWorkspaceMainActionSurfaceValue")',
+    'caseWorkspaceMainActionOutcomeLabel: document.getElementById("caseWorkspaceMainActionOutcomeLabel")',
+    'caseWorkspaceMainActionOutcomeValue: document.getElementById("caseWorkspaceMainActionOutcomeValue")',
     'caseWorkspaceFlowActionBtn: document.getElementById("caseWorkspaceFlowActionBtn")',
     'caseWorkspaceRequestTitle: document.getElementById("caseWorkspaceRequestTitle")',
     'const requestDrawer = document.getElementById("caseWorkspaceRequestShell")',
@@ -107,6 +109,9 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     ".case-workspace-main-action-surface-row",
     ".case-workspace-main-action-surface-label",
     ".case-workspace-main-action-surface-value",
+    ".case-workspace-main-action-outcome-row",
+    ".case-workspace-main-action-outcome-label",
+    ".case-workspace-main-action-outcome-value",
     ".case-workspace-action-shell-summary",
     ".case-workspace-action-shell-body",
     ".case-workspace-action-shell-pill",

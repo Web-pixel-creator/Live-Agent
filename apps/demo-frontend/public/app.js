@@ -3066,6 +3066,8 @@ const el = {
   caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta"),
   caseWorkspaceMainActionSurfaceLabel: document.getElementById("caseWorkspaceMainActionSurfaceLabel"),
   caseWorkspaceMainActionSurfaceValue: document.getElementById("caseWorkspaceMainActionSurfaceValue"),
+  caseWorkspaceMainActionOutcomeLabel: document.getElementById("caseWorkspaceMainActionOutcomeLabel"),
+  caseWorkspaceMainActionOutcomeValue: document.getElementById("caseWorkspaceMainActionOutcomeValue"),
   caseWorkspaceFlowBadge: document.getElementById("caseWorkspaceFlowBadge"),
   caseWorkspaceFlowPill: document.getElementById("caseWorkspaceFlowPill"),
   caseWorkspaceFlowTitle: document.getElementById("caseWorkspaceFlowTitle"),
@@ -6238,6 +6240,48 @@ function getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu
   };
 }
 
+function getCaseWorkspacePrimaryActionOutcome(flowState, primaryActionCopy, isRu) {
+  const currentStepKey =
+    typeof flowState?.currentStep === "string" && flowState.currentStep.length > 0
+      ? flowState.currentStep
+      : "case";
+  const currentStepTitle = getCaseWorkspaceStepTitle(currentStepKey, isRu);
+  const nextStepKey = getCaseWorkspaceStepAfter(currentStepKey);
+  const nextStepTitle = nextStepKey ? getCaseWorkspaceStepTitle(nextStepKey, isRu) : "";
+
+  switch (primaryActionCopy?.state) {
+    case "waiting":
+      return {
+        label: isRu ? "Дальше" : "Next",
+        value: isRu ? "После ответа рабочая зона снова откроет текущий шаг кейса." : "After the reply, the workspace will reopen the current case step.",
+      };
+    case "review":
+      return {
+        label: isRu ? "Следующее подтверждение" : "Next proof",
+        value: nextStepTitle
+          ? (isRu ? `После проверки откроется этап «${nextStepTitle}».` : `After review, the workspace opens ${nextStepTitle}.`)
+          : (isRu ? "После проверки guided flow закроется и рабочая зона перейдёт к следующему кейсу." : "After review, the guided flow closes and the workspace returns to the next case."),
+      };
+    case "case":
+      return {
+        label: isRu ? "Результат шага" : "Outcome",
+        value: nextStepTitle
+          ? (isRu ? `Этот шаг завершит «${currentStepTitle}» и переведёт кейс к этапу «${nextStepTitle}».` : `This step closes ${currentStepTitle} and moves the case into ${nextStepTitle}.`)
+          : (isRu ? `Этот шаг завершит «${currentStepTitle}» и выведет кейс на финальную проверку.` : `This step closes ${currentStepTitle} and moves the case into the final review.`),
+      };
+    case "complete":
+      return {
+        label: isRu ? "После перезапуска" : "After restart",
+        value: isRu ? "Рабочая зона очистится и снова начнёт intake с первого шага." : "The workspace resets and starts intake again from step one.",
+      };
+    default:
+      return {
+        label: isRu ? "Результат шага" : "Outcome",
+        value: isRu ? "Первый шаг создаёт intake-черновик и открывает защищённую проверку результата." : "The first step creates the intake draft and unlocks the protected result review.",
+      };
+  }
+}
+
 function getCaseWorkspaceDrawerTarget(flowState) {
   const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
   const completedCount = Number(flowState?.completedCount);
@@ -7086,6 +7130,13 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorks
   if (el.caseWorkspaceMainActionSurfaceValue instanceof HTMLElement) {
     el.caseWorkspaceMainActionSurfaceValue.textContent = primaryActionSurface.value;
   }
+  const primaryActionOutcome = getCaseWorkspacePrimaryActionOutcome(flowState, primaryActionCopy, isRu);
+  if (el.caseWorkspaceMainActionOutcomeLabel instanceof HTMLElement) {
+    el.caseWorkspaceMainActionOutcomeLabel.textContent = primaryActionOutcome.label;
+  }
+  if (el.caseWorkspaceMainActionOutcomeValue instanceof HTMLElement) {
+    el.caseWorkspaceMainActionOutcomeValue.textContent = primaryActionOutcome.value;
+  }
   if (el.runVisaDemoBtn instanceof HTMLButtonElement) {
     el.runVisaDemoBtn.textContent = primaryActionCopy.actionLabel;
     if (primaryActionCopy.disabled || typeof primaryActionCopy.actionId !== "string" || primaryActionCopy.actionId.length === 0) {
@@ -7096,7 +7147,7 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorks
       el.runVisaDemoBtn.dataset.dashboardAction = primaryActionCopy.actionId;
     }
     el.runVisaDemoBtn.title = primaryActionCopy.hint;
-    el.runVisaDemoBtn.setAttribute("aria-describedby", "caseWorkspaceMainActionMeta");
+    el.runVisaDemoBtn.setAttribute("aria-describedby", "caseWorkspaceMainActionMeta caseWorkspaceMainActionOutcomeValue");
     if (primaryDrawerTarget === "case") {
       el.runVisaDemoBtn.setAttribute("aria-controls", "caseWorkspaceCaseShortcuts");
     } else if (primaryDrawerTarget === "result") {
