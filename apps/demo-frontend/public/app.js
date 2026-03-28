@@ -1263,13 +1263,13 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.statusPillCompleted": "Reserved",
     "live.caseWorkspace.mainActionsTitle": "Start case",
     "live.caseWorkspace.mainActionsHint": "Begin a new intake or continue the active case from one clear starting point.",
-  "live.caseWorkspace.pathContextLabel": "This action",
+    "live.caseWorkspace.pathContextLabel": "This action",
     "live.caseWorkspace.requestTitle": "Live request",
     "live.caseWorkspace.requestHint": "Use the live composer for one standalone translation, negotiation, research, UI task, or chat outside the case path.",
     "live.caseWorkspace.requestChip": "Optional",
-    "live.caseWorkspace.caseActionsTitle": "Move case forward",
-    "live.caseWorkspace.caseActionsHint": "Open quick case shortcuts when you need to jump ahead to documents, consultation prep, CRM, or specialist handoff.",
-    "live.caseWorkspace.caseActionsChip": "Shortcuts",
+    "live.caseWorkspace.caseActionsTitle": "Case path",
+    "live.caseWorkspace.caseActionsHint": "Open the next case step here after intake. Jump-ahead options stay quieter below.",
+    "live.caseWorkspace.caseActionsChip": "After intake",
     "live.caseWorkspace.resultToolsTitle": "Result tools",
     "live.caseWorkspace.resultToolsHint": "Open the finished summaries or reset the demo workspace.",
     "live.caseWorkspace.resultToolsChip": "Secondary",
@@ -5631,7 +5631,7 @@ function getCaseWorkspaceShortcutButtonState(buttonActionId, activeActionId, flo
   }
   return {
     state: "available",
-    title: isRu ? "Этот шаг доступен как вспомогательный shortcut." : "This step stays available as a secondary shortcut.",
+    title: isRu ? "Этот шаг остаётся доступным как более тихая ветка пути." : "This step stays available as a quieter path branch.",
   };
 }
 
@@ -5693,12 +5693,12 @@ function getCaseWorkspaceCaseDrawerContent(flowState, isRu) {
   if (CASE_WORKSPACE_CASE_ACTIONS.has(activeActionId)) {
     return {
       drawerState: "recommended",
-      title: isRu ? currentLabel + " — следующий этап" : currentLabel + " comes next",
-      chip: isRu ? "Следом" : "Next in path",
+      title: isRu ? currentLabel + " — текущий шаг" : currentLabel + " is current",
+      chip: isRu ? "Текущий" : "Current",
       chipTone: "ok",
       hint: isRu
-        ? "Подсвеченный shortcut ниже переводит кейс на этап «" + currentLabel + "». Более поздние шаги остаются тихими переходами."
-        : "The highlighted shortcut below moves the case into " + currentLabel + ". Later steps stay available as quieter jumps.",
+        ? "Подсвеченный шаг ниже открывает этап «" + currentLabel + "». Более поздние ветви пути остаются тихими переходами."
+        : "Open the highlighted case step below. Skip-ahead options stay quieter underneath.",
     };
   }
 
@@ -5727,12 +5727,12 @@ function getCaseWorkspaceCaseDrawerContent(flowState, isRu) {
 
   return {
     drawerState: "default",
-    title: isRu ? "Следующие шаги кейса" : "Later case steps",
+    title: isRu ? "Путь кейса после intake" : "Case path after intake",
     chip: isRu ? "После intake" : "After intake",
     chipTone: "neutral",
     hint: isRu
-      ? "Документы, консультация, CRM и передача откроются после того, как итог intake будет подтверждён."
-      : "Documents, consultation, CRM, and handoff unlock after the intake result is confirmed.",
+      ? "Документы, консультация, CRM и передача откроются здесь после подтверждения intake."
+      : "Documents, consultation, CRM, and handoff open here after intake is confirmed.",
   };
 }
 
@@ -6003,10 +6003,10 @@ function getCaseWorkspaceCasePathBodyCopy(primaryActionId, isRu) {
     primaryTitle: "",
     primaryHint: "",
     primaryChip: "",
-    laterTitle: isRu ? "Доступные переходы" : "Available jumps",
+    laterTitle: isRu ? "Ветви пути дальше" : "Later path branches",
     laterHint: isRu
-      ? "Пока этот блок нужен как jump-набор. После текущего шага рабочая зона сама поднимет сюда следующий ход."
-      : "This block stays as a jump set for now. After the current step, the workspace will raise the next move here.",
+      ? "Переходы с пропуском шага остаются здесь на случай необходимости. После текущего шага рабочая зона сама поднимет сюда следующий ход кейса."
+      : "Skip-ahead branches stay here when you need them. After the current step, the workspace will raise the next case move here.",
     laterChip: isRu ? "Опционально" : "Optional",
     laterOpen: false,
   };
@@ -6223,7 +6223,7 @@ function getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu
   if (drawerTarget === "case") {
     return {
       label: isRu ? "Откроется в" : "Open in",
-      value: isRu ? `Следующие шаги кейса • ${currentStepTitle}` : `Move case forward • ${currentStepTitle}`,
+      value: isRu ? `Путь кейса • ${currentStepTitle}` : `Case path • ${currentStepTitle}`,
     };
   }
   if (drawerTarget === "result") {
@@ -6304,7 +6304,7 @@ function getCaseWorkspacePrimaryActionProofLanding(flowState, primaryActionCopy,
       return nextStepTitle
         ? {
             label: isRu ? "Следующий шаг откроется в" : "Next step lands in",
-            value: isRu ? `Следующие шаги кейса • ${nextStepTitle}` : `Move case forward • ${nextStepTitle}`,
+            value: isRu ? `Путь кейса • ${nextStepTitle}` : `Case path • ${nextStepTitle}`,
           }
         : {
             label: isRu ? "Следующий шаг откроется в" : "Next step lands in",

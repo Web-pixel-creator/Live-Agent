@@ -42,7 +42,7 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   assert.ok(actionStackIndex !== -1, "frontend html missing grouped case workspace actions");
   assert.ok(mainSectionIndex !== -1, "frontend html missing start-case section");
   assert.ok(requestSectionIndex !== -1, "frontend html missing live-request drawer");
-  assert.ok(caseSectionIndex !== -1, "frontend html missing move-case-forward shortcuts drawer");
+  assert.ok(caseSectionIndex !== -1, "frontend html missing case-path drawer");
   assert.ok(utilitySectionIndex !== -1, "frontend html missing utility section");
   assert.ok(resultToolsIndex !== -1, "frontend html missing result-tools shell");
   assert.ok(demoGuideIndex !== -1, "frontend html missing demo-guide shell");
@@ -89,7 +89,7 @@ test("live negotiator keeps primary compose controls ahead of support dock chrom
   );
   assert.ok(
     htmlSource.includes('id="caseWorkspaceCaseActionsChip"'),
-    "frontend html should expose a shortcuts pill for the move-case-forward drawer",
+    "frontend html should expose a stage pill for the case-path drawer",
   );
   assert.ok(
     htmlSource.includes('id="caseWorkspaceResultToolsTitle"'),

@@ -43,7 +43,7 @@ test("case workspace drawers split current path actions from later jumps", () =>
     "function getCaseWorkspaceResultPathBodyCopy(primaryActionId, laterVisibleCount, isRu)",
     'laterTitle: isRu ? "Пропустить вперёд" : "Skip ahead"',
     'laterChip: isRu ? "Пропуск" : "Skip"',
-    'laterTitle: isRu ? "Доступные переходы" : "Available jumps"',
+    'laterTitle: isRu ? "Ветви пути дальше" : "Later path branches"',
     'const casePrimaryCard = document.getElementById("caseWorkspaceCasePrimaryCard")',
     'const caseLaterSteps = document.getElementById("caseWorkspaceCaseLaterSteps")',
     'const resultPrimaryCard = document.getElementById("caseWorkspaceResultPrimaryCard")',

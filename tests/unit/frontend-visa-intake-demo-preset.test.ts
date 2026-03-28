@@ -18,7 +18,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     '"live.compose.resetVisaDemo": "Start Over"',
     '"live.caseWorkspace.requestTitle": "Live request"',
     '"live.caseWorkspace.requestChip": "Optional"',
-    '"live.caseWorkspace.caseActionsChip": "Shortcuts"',
+    '"live.caseWorkspace.caseActionsChip": "After intake"',
     '"live.caseWorkspace.resultToolsTitle": "Result tools"',
     '"live.caseWorkspace.resultToolsChip": "Secondary"',
     "const CASE_WORKSPACE_ACTION_BUTTONS = [",
@@ -134,7 +134,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   const utilitySectionEnd = htmlSource.indexOf("</details>", utilitySectionStart);
   const demoGuideStart = htmlSource.indexOf('id="caseWorkspaceDemoGuide"');
   assert.ok(mainSectionStart !== -1 && requestSectionStart !== -1 && caseShortcutsStart !== -1 && utilitySectionStart !== -1 && utilitySectionEnd !== -1 && demoGuideStart !== -1, "case-workspace sections should wrap the visa intake CTAs");
-  assert.ok(!htmlSource.includes('id="caseWorkspaceCaseShortcuts" open'), "move-case-forward shortcuts should stay collapsed in the first scan");
+  assert.ok(!htmlSource.includes('id="caseWorkspaceCaseShortcuts" open'), "case-path drawer should stay collapsed in the first scan");
   assert.ok(!htmlSource.includes('id="caseWorkspaceResultTools" open'), "result tools should stay collapsed in the first scan");
   assert.ok(!htmlSource.includes('id="caseWorkspaceDemoGuide" open'), "demo guide should stay collapsed in the first scan");
   const mainSection = htmlSource.slice(mainSectionStart, requestSectionStart);

@@ -34,17 +34,18 @@ Advanced operator tools note: those lower-frequency surfaces now sit behind one 
 Operator handoff note: `Operator Console` now starts with one explicit `Operator handoff` card (`Approvals`, `Runtime`, `Audit`, `Refresh Summary`), so live-to-operator transitions land in a clearer operator-first route before the deeper board surfaces.
 Operator onboarding note: that same first fold now exposes a guided `Refresh -> Inspect -> Recover` path, so first-time operators see one state-aware sequence before they open deeper console lanes.
 Operator onboarding note: that same guided path now also uses workspace-first inspect/open wording, so the first operator sequence stays aligned with `Choose workspace`, the `Operator brief` preview row, and the current product-surface vocabulary.
-Case workspace note: the secondary jump/review subshells inside `Move case forward` and `Result tools` now keep one current path row on top and quieter later jumps or reviews underneath it.
-Case workspace note: `Move case forward` now keeps only the current case move and future jumps, while `Result tools` keeps the current protected review on top and completed summary history plus restart underneath it.
-Case workspace note: the future-jump subshell inside `Move case forward` now reads as a `Skip ahead` path, so normal case progression stays primary and jump-ahead shortcuts feel explicitly exceptional.
+Case workspace note: the secondary jump/review subshells inside `Case path` and `Result tools` now keep one current path row on top and quieter later jumps or reviews underneath it.
+Case workspace note: `Case path` now keeps only the current case move and future jumps, while `Result tools` keeps the current protected review on top and completed summary history plus restart underneath it.
+Case workspace note: the future-jump subshell inside `Case path` now reads as a `Skip ahead` path, so normal case progression stays primary and jump-ahead shortcuts feel explicitly exceptional.
+Case workspace note: the top-level `Case path` shell now reads as a workflow surface instead of a shortcut rack, so the current step feels like the normal workflow and not a demo jump menu.
 Case workspace note: the primary case row now mirrors the active guided step, so the top button follows the live case path instead of staying intake-only after the first stage.
 Case workspace note: the primary case row now adds a small task-first status/meta strip, so the current step reads like an active working action instead of one more plain launcher.
-Case workspace note: the primary case row now also shows where the current action opens next and wires `aria-controls` to `Move case forward` or `Result tools` when the active step lives there.
+Case workspace note: the primary case row now also shows where the current action opens next and wires `aria-controls` to `Case path` or `Result tools` when the active step lives there.
 Case workspace note: the primary case row now also carries a short `Outcome / Next proof` line, so the operator can see what this step unlocks before pressing the main action.
 Case workspace note: that same `Outcome / Next proof` line now follows the immediate proof path, so active case moves promise their protected review before the later stage handoff.
 Case workspace note: the primary case row now also includes a short `Proof lands in` line, so the operator can see which working surface receives the next review or next move.
 Case workspace note: those support rows now sit under one `This action` label, so the main row scans like one case-path explanation instead of three unrelated metadata lines.
-Case workspace note: Guided flow now also hands off into the matching top-level case drawer only after the case is active, so `Move case forward` or `Result tools` opens at runtime without cluttering the first scan.
+Case workspace note: Guided flow now also hands off into the matching top-level case drawer only after the case is active, so `Case path` or `Result tools` opens at runtime without cluttering the first scan.
 Case workspace note: The guided CTA now points at the matching top-level case drawer with `aria-controls`, so assistive tech gets the same drawer handoff cue as the visual path.
 Case workspace note: Guided flow now hands off to the main Start case action on the empty intake state, so operators and demo users still see one true intake launch control on first load.
 Case workspace note: Guided flow now hands active case steps, reviews, and the completed-flow restart down to the main Start/current step row, so the top card explains the path while one live launcher stays in the action stack.

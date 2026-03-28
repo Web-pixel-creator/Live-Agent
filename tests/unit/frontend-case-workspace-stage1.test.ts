@@ -20,19 +20,19 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
 
   assert.ok(mainStart !== -1, "start-case section missing from case workspace");
   assert.ok(requestStart !== -1, "live-request drawer missing from case workspace");
-  assert.ok(caseStart !== -1, "move-case-forward shortcuts drawer missing from case workspace");
+  assert.ok(caseStart !== -1, "case-path drawer missing from case workspace");
   assert.ok(utilityStart !== -1, "utility action section missing from case workspace");
   assert.ok(resultToolsStart !== -1, "result tools shell missing from case workspace");
   assert.ok(demoGuideStart !== -1, "demo guide shell missing from case workspace");
   assert.ok(composeGridStart !== -1, "compose grid missing after grouped actions");
   assert.ok(actionStackStart !== -1, "case-workspace action stack missing");
   assert.ok(flowShellStart !== -1, "guided flow shell missing from case workspace");
-  assert.ok(!htmlSource.includes('id="caseWorkspaceCaseShortcuts" open'), "move-case-forward shortcuts should stay collapsed by default");
+  assert.ok(!htmlSource.includes('id="caseWorkspaceCaseShortcuts" open'), "case-path drawer should stay collapsed by default");
   assert.ok(!htmlSource.includes('id="caseWorkspaceResultTools" open'), "result tools should stay collapsed by default");
   assert.ok(!htmlSource.includes('id="caseWorkspaceDemoGuide" open'), "demo guide should stay collapsed by default");
   assert.ok(flowShellStart < composeGridStart, "guided flow should stay above the compose grid");
   assert.ok(composeGridStart < actionStackStart, "compose grid should stay above the grouped action stack inside the first fold");
-  assert.ok(mainStart < requestStart && requestStart < caseStart && caseStart < utilityStart, "case-workspace sections should stay ordered start case -> live request drawer -> move case forward drawer -> result tools");
+  assert.ok(mainStart < requestStart && requestStart < caseStart && caseStart < utilityStart, "case-workspace sections should stay ordered start case -> live request drawer -> case path drawer -> result tools");
   assert.ok(resultToolsStart < demoGuideStart, "demo guide should stay after result tools");
 
   const mainSection = htmlSource.slice(mainStart, requestStart);
@@ -81,8 +81,8 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     '"live.caseWorkspace.requestHint": "Use the live composer for one standalone translation, negotiation, research, UI task, or chat outside the case path."',
     '"live.caseWorkspace.requestChip": "Optional"',
     "function getCaseWorkspaceRequestDrawerContent(flowState, isRu)",
-    '"live.caseWorkspace.caseActionsTitle": "Move case forward"',
-    '"live.caseWorkspace.caseActionsChip": "Shortcuts"',
+    '"live.caseWorkspace.caseActionsTitle": "Case path"',
+    '"live.caseWorkspace.caseActionsChip": "After intake"',
     '"live.caseWorkspace.resultToolsTitle": "Result tools"',
     '"live.caseWorkspace.resultToolsChip": "Secondary"',
     '"live.caseWorkspace.demoGuideTitle": "Demo guide"',
