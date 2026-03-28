@@ -16,6 +16,9 @@ test("guided case flow hands off to the matching top-level drawer only after the
     "const drawerTarget = getCaseWorkspaceDrawerTarget(flowState);",
     '"drawer:case:" + (drawerTarget === "case" ? activeActionId : "idle")',
     '"drawer:result:" + (drawerTarget === "result" ? activeActionId : "idle")',
+    'el.caseWorkspaceFlowActionBtn.removeAttribute("aria-controls");',
+    'el.caseWorkspaceFlowActionBtn.setAttribute("aria-controls", "caseWorkspaceCaseShortcuts");',
+    'el.caseWorkspaceFlowActionBtn.setAttribute("aria-controls", "caseWorkspaceResultTools");',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing guided-drawer handoff token: ${token}`);
   }

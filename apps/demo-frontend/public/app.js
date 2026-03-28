@@ -6682,6 +6682,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
 
 function renderCaseWorkspaceFlow(awaitingFreshResponse) {
   const flowState = getCaseWorkspaceFlowState(awaitingFreshResponse);
+  const flowDrawerTarget = getCaseWorkspaceDrawerTarget(flowState);
   const allStepsComplete = flowState.completedCount >= CASE_WORKSPACE_FLOW_STEPS.length;
   const isRu = state.languageMode === "ru";
 
@@ -6734,9 +6735,17 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse) {
     if (flowState.actionDisabled || typeof flowState.actionId !== "string" || flowState.actionId.length === 0) {
       el.caseWorkspaceFlowActionBtn.disabled = true;
       delete el.caseWorkspaceFlowActionBtn.dataset.dashboardAction;
+      el.caseWorkspaceFlowActionBtn.removeAttribute("aria-controls");
     } else {
       el.caseWorkspaceFlowActionBtn.disabled = false;
       el.caseWorkspaceFlowActionBtn.dataset.dashboardAction = flowState.actionId;
+      if (flowDrawerTarget === "case") {
+        el.caseWorkspaceFlowActionBtn.setAttribute("aria-controls", "caseWorkspaceCaseShortcuts");
+      } else if (flowDrawerTarget === "result") {
+        el.caseWorkspaceFlowActionBtn.setAttribute("aria-controls", "caseWorkspaceResultTools");
+      } else {
+        el.caseWorkspaceFlowActionBtn.removeAttribute("aria-controls");
+      }
     }
   }
 
