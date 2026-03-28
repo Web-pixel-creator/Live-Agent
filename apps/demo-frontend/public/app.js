@@ -5661,6 +5661,17 @@ function setCaseWorkspaceDrawerPill(node, text, tone = "neutral") {
   }
 }
 
+function formatCaseWorkspaceDrawerCountPill(text, count) {
+  if (typeof text !== "string" || text.length === 0) {
+    return "";
+  }
+  const total = Number(count);
+  if (!Number.isFinite(total) || total <= 0) {
+    return text;
+  }
+  return `${text} ${total}`;
+}
+
 function getCaseWorkspaceStepAfter(stepKey) {
   const currentIndex = CASE_WORKSPACE_FLOW_STEPS.indexOf(stepKey);
   if (currentIndex < 0) {
@@ -6477,13 +6488,13 @@ function syncCaseWorkspaceActionButtons(flowState) {
   const caseTitle = document.getElementById("caseWorkspaceCaseActionsTitle");
   const caseHint = caseDrawer instanceof HTMLElement ? caseDrawer.querySelector(".case-workspace-action-hint") : null;
   const caseChip = document.getElementById("caseWorkspaceCaseActionsChip");
+  let caseDrawerCopy = null;
   if (caseDrawer instanceof HTMLElement) {
-    const caseDrawerCopy = getCaseWorkspaceCaseDrawerContent(flowState, isRu);
+    caseDrawerCopy = getCaseWorkspaceCaseDrawerContent(flowState, isRu);
     caseDrawer.dataset.caseWorkspaceDrawerState = caseDrawerCopy.drawerState;
     if (caseTitle instanceof HTMLElement) {
       caseTitle.textContent = caseDrawerCopy.title;
     }
-    setCaseWorkspaceDrawerPill(caseChip, caseDrawerCopy.chip, caseDrawerCopy.chipTone);
     if (caseHint instanceof HTMLElement) {
       caseHint.textContent = caseDrawerCopy.hint;
     }
@@ -6528,6 +6539,11 @@ function syncCaseWorkspaceActionButtons(flowState) {
     },
   );
   const caseLaterVisibleCount = visibleCaseEntries.filter((entry) => entry.actionId !== casePrimaryActionId).length;
+  setCaseWorkspaceDrawerPill(
+    caseChip,
+    caseDrawerMainOwned ? formatCaseWorkspaceDrawerCountPill(casePathCopy.laterChip, caseLaterVisibleCount) : caseDrawerCopy?.chip || "",
+    caseDrawerCopy?.chipTone || "neutral",
+  );
   if (casePrimaryCard instanceof HTMLElement) {
     casePrimaryCard.hidden = !casePathCopy.showPrimary;
   }
@@ -6570,14 +6586,14 @@ function syncCaseWorkspaceActionButtons(flowState) {
   const resultTitle = document.getElementById("caseWorkspaceResultToolsTitle");
   const resultHint = resultDrawer instanceof HTMLElement ? resultDrawer.querySelector(".case-workspace-action-hint") : null;
   const resultChip = document.getElementById("caseWorkspaceResultToolsChip");
+  let resultDrawerCopy = null;
   if (resultDrawer instanceof HTMLElement) {
-    const resultDrawerCopy = getCaseWorkspaceResultDrawerContent(flowState, isRu);
+    resultDrawerCopy = getCaseWorkspaceResultDrawerContent(flowState, isRu);
     resultDrawer.dataset.caseWorkspaceDrawerState = resultDrawerCopy.drawerState;
     resultDrawer.dataset.caseWorkspaceDrawerOwnership = drawerTarget === "result" ? "secondary" : "launcher";
     if (resultTitle instanceof HTMLElement) {
       resultTitle.textContent = resultDrawerCopy.title;
     }
-    setCaseWorkspaceDrawerPill(resultChip, resultDrawerCopy.chip, resultDrawerCopy.chipTone);
     if (resultHint instanceof HTMLElement) {
       resultHint.textContent = resultDrawerCopy.hint;
     }
@@ -6607,6 +6623,11 @@ function syncCaseWorkspaceActionButtons(flowState) {
       visibleActionIds: visibleResultActionIds,
       suppressedActionIds: resultDrawerMainOwned ? new Set([resultPrimaryActionId]) : null,
     },
+  );
+  setCaseWorkspaceDrawerPill(
+    resultChip,
+    resultDrawerMainOwned ? formatCaseWorkspaceDrawerCountPill(resultPathCopy.laterChip, resultLaterVisibleCount) : resultDrawerCopy?.chip || "",
+    resultDrawerCopy?.chipTone || "neutral",
   );
   if (resultPrimaryCard instanceof HTMLElement) {
     resultPrimaryCard.hidden = !resultPathCopy.showPrimary;
