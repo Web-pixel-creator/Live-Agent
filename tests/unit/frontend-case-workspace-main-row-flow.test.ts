@@ -11,6 +11,7 @@ test("case workspace main row mirrors the current guided step", () => {
   for (const token of [
     "function getCaseWorkspacePrimaryActionCopy(flowState, isRu)",
     "function getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu)",
+    "function getCaseWorkspacePrimaryActionTaskRail(flowState, primaryActionCopy, isRu)",
     "function getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu)",
     "function getCaseWorkspacePrimaryActionOutcome(flowState, primaryActionCopy, isRu)",
     "function getCaseWorkspaceCasePathBodyCopy(primaryActionId, isRu, options = {})",
@@ -28,6 +29,7 @@ test("case workspace main row mirrors the current guided step", () => {
     'title: isRu ? "Путь кейса ждёт" : "Case path waiting"',
     "const primaryActionCopy = getCaseWorkspacePrimaryActionCopy(flowState, isRu);",
     "const primaryActionMeta = getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu);",
+    "const primaryActionTaskRail = getCaseWorkspacePrimaryActionTaskRail(flowState, primaryActionCopy, isRu);",
     "const primaryActionSurface = getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu);",
     "const primaryActionOutcome = getCaseWorkspacePrimaryActionOutcome(flowState, primaryActionCopy, isRu);",
     'mainActionSection.dataset.caseWorkspacePrimaryState = primaryActionCopy.state;',
@@ -36,6 +38,11 @@ test("case workspace main row mirrors the current guided step", () => {
     'mainActionHint.textContent = primaryActionCopy.hint;',
     'setStatusPill(el.caseWorkspaceMainActionStatus, primaryActionMeta.status, primaryActionMeta.tone);',
     'el.caseWorkspaceMainActionMeta.textContent = primaryActionMeta.meta;',
+    'el.caseWorkspaceMainActionTaskRail.hidden = primaryActionTaskRail.visible !== true;',
+    'el.caseWorkspaceMainActionTaskRailLabel.textContent = primaryActionTaskRail.label;',
+    'el.caseWorkspaceMainActionTaskNowValue.textContent = primaryActionTaskRail.nowValue;',
+    'el.caseWorkspaceMainActionTaskReviewValue.textContent = primaryActionTaskRail.reviewValue;',
+    'el.caseWorkspaceMainActionTaskThenValue.textContent = primaryActionTaskRail.thenValue;',
     'el.caseWorkspaceMainActionSurfaceLabel.textContent = primaryActionSurface.label;',
     'el.caseWorkspaceMainActionSurfaceValue.textContent = primaryActionSurface.value;',
     'el.caseWorkspaceMainActionOutcomeLabel.textContent = primaryActionOutcome.label;',
@@ -50,6 +57,10 @@ test("case workspace main row mirrors the current guided step", () => {
     'el.runVisaDemoBtn.setAttribute("aria-controls", "caseWorkspaceResultTools");',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing main-row flow token: ${token}`);
+  }
+
+  for (const token of ['"Task path"', '"Review path"', '"Do now"', '"Review next"', '"Then continue"']) {
+    assert.ok(appSource.includes(token), `app.js missing task-rail label token: ${token}`);
   }
 
   assert.ok(
@@ -69,6 +80,10 @@ test("case workspace main row mirrors the current guided step", () => {
     "README should explain that the primary case row now carries an outcome/proof line",
   );
   assert.ok(
+    readmeSource.includes("primary case row now also adds a compact active-only `Task path` rail"),
+    "README should explain that the primary case row now includes an active-only task rail",
+  );
+  assert.ok(
     operatorGuideSource.includes("primary case row now mirrors the active guided step"),
     "operator guide should explain that the primary case row mirrors the active guided step",
   );
@@ -83,5 +98,9 @@ test("case workspace main row mirrors the current guided step", () => {
   assert.ok(
     operatorGuideSource.includes("primary case row now also carries a short `Outcome / Next proof` line"),
     "operator guide should explain that the primary case row now carries an outcome/proof line",
+  );
+  assert.ok(
+    operatorGuideSource.includes("primary case row now also adds a compact active-only `Task path` rail"),
+    "operator guide should explain that the primary case row now includes an active-only task rail",
   );
 });

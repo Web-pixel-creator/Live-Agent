@@ -369,6 +369,23 @@
                       <span id="caseWorkspaceMainActionStatus" class="status-pill status-neutral case-workspace-action-inline-pill">Single entry</span>
                       <span id="caseWorkspaceMainActionMeta" class="case-workspace-main-action-meta">Use this main row as the single intake entry point.</span>
                     </div>
+                    <div id="caseWorkspaceMainActionTaskRail" class="case-workspace-main-action-task-rail" aria-label="Task path" hidden>
+                      <span id="caseWorkspaceMainActionTaskRailLabel" class="case-workspace-main-action-task-rail-label">Task path</span>
+                      <div class="case-workspace-main-action-task-rail-grid">
+                        <div class="case-workspace-main-action-task-item">
+                          <span id="caseWorkspaceMainActionTaskNowLabel" class="case-workspace-main-action-task-item-label">Do now</span>
+                          <span id="caseWorkspaceMainActionTaskNowValue" class="case-workspace-main-action-task-item-value">Start the current case step.</span>
+                        </div>
+                        <div class="case-workspace-main-action-task-item">
+                          <span id="caseWorkspaceMainActionTaskReviewLabel" class="case-workspace-main-action-task-item-label">Review next</span>
+                          <span id="caseWorkspaceMainActionTaskReviewValue" class="case-workspace-main-action-task-item-value">Review opens after the step finishes.</span>
+                        </div>
+                        <div class="case-workspace-main-action-task-item">
+                          <span id="caseWorkspaceMainActionTaskThenLabel" class="case-workspace-main-action-task-item-label">Then continue</span>
+                          <span id="caseWorkspaceMainActionTaskThenValue" class="case-workspace-main-action-task-item-value">The next case move waits after review.</span>
+                        </div>
+                      </div>
+                    </div>
                     <div class="case-workspace-main-action-path-context" aria-label="This action">
                       <span id="caseWorkspaceMainActionPathContextLabel" class="case-workspace-main-action-path-context-label" data-i18n="live.caseWorkspace.pathContextLabel">This action</span>
                       <div class="case-workspace-main-action-path-context-body">

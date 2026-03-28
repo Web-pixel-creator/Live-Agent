@@ -3066,6 +3066,14 @@ const el = {
   caseWorkspaceMainActionsTitle: document.getElementById("caseWorkspaceMainActionsTitle"),
   caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus"),
   caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta"),
+  caseWorkspaceMainActionTaskRail: document.getElementById("caseWorkspaceMainActionTaskRail"),
+  caseWorkspaceMainActionTaskRailLabel: document.getElementById("caseWorkspaceMainActionTaskRailLabel"),
+  caseWorkspaceMainActionTaskNowLabel: document.getElementById("caseWorkspaceMainActionTaskNowLabel"),
+  caseWorkspaceMainActionTaskNowValue: document.getElementById("caseWorkspaceMainActionTaskNowValue"),
+  caseWorkspaceMainActionTaskReviewLabel: document.getElementById("caseWorkspaceMainActionTaskReviewLabel"),
+  caseWorkspaceMainActionTaskReviewValue: document.getElementById("caseWorkspaceMainActionTaskReviewValue"),
+  caseWorkspaceMainActionTaskThenLabel: document.getElementById("caseWorkspaceMainActionTaskThenLabel"),
+  caseWorkspaceMainActionTaskThenValue: document.getElementById("caseWorkspaceMainActionTaskThenValue"),
   caseWorkspaceMainActionSurfaceLabel: document.getElementById("caseWorkspaceMainActionSurfaceLabel"),
   caseWorkspaceMainActionSurfaceValue: document.getElementById("caseWorkspaceMainActionSurfaceValue"),
   caseWorkspaceMainActionOutcomeLabel: document.getElementById("caseWorkspaceMainActionOutcomeLabel"),
@@ -6287,6 +6295,63 @@ function getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu) {
   }
 }
 
+function getCaseWorkspacePrimaryActionTaskRail(flowState, primaryActionCopy, isRu) {
+  const currentStepKey =
+    typeof flowState?.currentStep === "string" && flowState.currentStep.length > 0
+      ? flowState.currentStep
+      : "case";
+  const currentStepTitle = getCaseWorkspaceStepTitle(currentStepKey, isRu);
+  const nextStepKey = getCaseWorkspaceStepAfter(currentStepKey);
+  const nextStepTitle = nextStepKey ? getCaseWorkspaceStepTitle(nextStepKey, isRu) : "";
+  const actionLabel =
+    typeof primaryActionCopy?.actionLabel === "string" && primaryActionCopy.actionLabel.trim().length > 0
+      ? primaryActionCopy.actionLabel.trim()
+      : (isRu ? "Откройте текущий шаг" : "Open the current step");
+
+  if (primaryActionCopy?.state === "case") {
+    return {
+      visible: true,
+      label: isRu ? "Путь шага" : "Task path",
+      nowLabel: isRu ? "Сделайте сейчас" : "Do now",
+      nowValue: actionLabel,
+      reviewLabel: isRu ? "Проверьте дальше" : "Review next",
+      reviewValue: isRu ? `Проверка и перезапуск • ${currentStepTitle}` : `Result tools • ${currentStepTitle}`,
+      thenLabel: isRu ? "Продолжите потом" : "Then continue",
+      thenValue: nextStepTitle
+        ? (isRu ? `Путь кейса • ${nextStepTitle}` : `Case path • ${nextStepTitle}`)
+        : (isRu ? "Следующий кейс" : "Next case"),
+    };
+  }
+
+  if (primaryActionCopy?.state === "review") {
+    return {
+      visible: true,
+      label: isRu ? "Путь проверки" : "Review path",
+      nowLabel: isRu ? "Проверьте сейчас" : "Check now",
+      nowValue: actionLabel,
+      reviewLabel: isRu ? "Продолжите потом" : "Then continue",
+      reviewValue: nextStepTitle
+        ? (isRu ? `Путь кейса • ${nextStepTitle}` : `Case path • ${nextStepTitle}`)
+        : (isRu ? "Следующий кейс" : "Next case"),
+      thenLabel: isRu ? "Вернётся в" : "Returns in",
+      thenValue: nextStepTitle
+        ? (isRu ? `Главный шаг • ${nextStepTitle}` : `Main row • ${nextStepTitle}`)
+        : (isRu ? "Главный ряд кейса" : "Main row"),
+    };
+  }
+
+  return {
+    visible: false,
+    label: isRu ? "Путь шага" : "Task path",
+    nowLabel: isRu ? "Сделайте сейчас" : "Do now",
+    nowValue: "",
+    reviewLabel: isRu ? "Проверьте дальше" : "Review next",
+    reviewValue: "",
+    thenLabel: isRu ? "Продолжите потом" : "Then continue",
+    thenValue: "",
+  };
+}
+
 function getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu) {
   const drawerTarget = getCaseWorkspaceDrawerTarget(flowState);
   const currentStepKey =
@@ -7303,6 +7368,31 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorks
   }
   if (el.caseWorkspaceMainActionMeta instanceof HTMLElement) {
     el.caseWorkspaceMainActionMeta.textContent = primaryActionMeta.meta;
+  }
+  const primaryActionTaskRail = getCaseWorkspacePrimaryActionTaskRail(flowState, primaryActionCopy, isRu);
+  if (el.caseWorkspaceMainActionTaskRail instanceof HTMLElement) {
+    el.caseWorkspaceMainActionTaskRail.hidden = primaryActionTaskRail.visible !== true;
+  }
+  if (el.caseWorkspaceMainActionTaskRailLabel instanceof HTMLElement) {
+    el.caseWorkspaceMainActionTaskRailLabel.textContent = primaryActionTaskRail.label;
+  }
+  if (el.caseWorkspaceMainActionTaskNowLabel instanceof HTMLElement) {
+    el.caseWorkspaceMainActionTaskNowLabel.textContent = primaryActionTaskRail.nowLabel;
+  }
+  if (el.caseWorkspaceMainActionTaskNowValue instanceof HTMLElement) {
+    el.caseWorkspaceMainActionTaskNowValue.textContent = primaryActionTaskRail.nowValue;
+  }
+  if (el.caseWorkspaceMainActionTaskReviewLabel instanceof HTMLElement) {
+    el.caseWorkspaceMainActionTaskReviewLabel.textContent = primaryActionTaskRail.reviewLabel;
+  }
+  if (el.caseWorkspaceMainActionTaskReviewValue instanceof HTMLElement) {
+    el.caseWorkspaceMainActionTaskReviewValue.textContent = primaryActionTaskRail.reviewValue;
+  }
+  if (el.caseWorkspaceMainActionTaskThenLabel instanceof HTMLElement) {
+    el.caseWorkspaceMainActionTaskThenLabel.textContent = primaryActionTaskRail.thenLabel;
+  }
+  if (el.caseWorkspaceMainActionTaskThenValue instanceof HTMLElement) {
+    el.caseWorkspaceMainActionTaskThenValue.textContent = primaryActionTaskRail.thenValue;
   }
   const primaryActionSurface = getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu);
   if (el.caseWorkspaceMainActionSurfaceLabel instanceof HTMLElement) {

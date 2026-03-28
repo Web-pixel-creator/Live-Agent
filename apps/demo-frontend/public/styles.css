@@ -1073,6 +1073,57 @@
   line-height: 1.45;
 }
 
+.layout[data-active-tab="live-negotiator"] .case-workspace-main-action-task-rail {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in oklch, var(--primary) 18%, var(--border-soft));
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--surface-panel) 92%, transparent), color-mix(in oklch, var(--surface-panel-2) 94%, transparent));
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-main-action-task-rail-label {
+  color: color-mix(in oklch, var(--primary) 58%, var(--muted-foreground));
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-main-action-task-rail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-main-action-task-item {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-main-action-task-item-label {
+  color: color-mix(in oklch, var(--muted-foreground) 92%, var(--foreground));
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-main-action-task-item-value {
+  color: color-mix(in oklch, var(--foreground) 92%, var(--accent-foreground));
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .layout[data-active-tab="live-negotiator"] .case-workspace-main-action-task-rail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .layout[data-active-tab="live-negotiator"] .case-workspace-main-action-path-context {
   display: grid;
   gap: 8px;
