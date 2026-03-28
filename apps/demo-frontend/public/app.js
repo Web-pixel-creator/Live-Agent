@@ -5901,9 +5901,23 @@ function getCaseWorkspaceResultPathBodyCopy(primaryActionId, laterVisibleCount, 
 
 function getCaseWorkspacePrimaryActionCopy(flowState, isRu) {
   const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
+  const startCaseActionLabel = getDashboardActionButtonText("run_visa_intake_demo", isRu ? "Начать визовый кейс" : "Start New Visa Case");
   const actionLabel = typeof flowState?.actionLabel === "string" && flowState.actionLabel.length > 0
     ? flowState.actionLabel
-    : getDashboardActionButtonText("run_visa_intake_demo", isRu ? "Начать визовый кейс" : "Start New Visa Case");
+    : startCaseActionLabel;
+
+  if (typeof flowState?.proxyTargetId === "string" && flowState.proxyTargetId === "runVisaDemoBtn") {
+    return {
+      title: isRu ? "Старт кейса" : "Start case",
+      hint: isRu
+        ? "Начните intake из одного понятного входа, а затем ведите кейс по шагам."
+        : "Begin the intake from one clear entry point, then keep the case moving step by step.",
+      actionId: "run_visa_intake_demo",
+      actionLabel: startCaseActionLabel,
+      disabled: false,
+      state: "start",
+    };
+  }
 
   if (flowState?.actionDisabled === true || activeActionId.length === 0) {
     return {
@@ -6274,6 +6288,7 @@ function getCaseWorkspaceFlowState(awaitingFreshResponse) {
     actionId,
     fallbackActionLabel,
     actionDisabled = false,
+    proxyTargetId = "",
     pillText,
     pillTone = "neutral",
   }) => ({
@@ -6285,6 +6300,7 @@ function getCaseWorkspaceFlowState(awaitingFreshResponse) {
     actionId,
     actionLabel: getDashboardActionButtonText(actionId, fallbackActionLabel),
     actionDisabled,
+    proxyTargetId,
     pillText,
     pillTone,
   });
@@ -6445,9 +6461,12 @@ function getCaseWorkspaceFlowState(awaitingFreshResponse) {
         description: isRu
           ? "Рабочая зона проведёт кейс по шагам: intake, документы, консультация, CRM и передача специалисту."
           : "The workspace will move the case through intake, documents, consultation, CRM, and specialist handoff.",
-        hint: isRu ? "Ниже остались быстрые шорткаты, но guided flow показывает лучший следующий шаг для кейса." : "The drawers below still keep shortcut access, but the guided flow shows the best next move for the case.",
-        actionId: "run_visa_intake_demo",
-        fallbackActionLabel: isRu ? "Новый кейс" : "Start new case",
+        hint: isRu
+          ? "Начните intake через главную кнопку ниже. После этого guided flow сам ведёт кейс по шагам."
+          : "Use the main Start case button below to launch intake. After that, the guided flow takes over the case path.",
+        actionId: "",
+        fallbackActionLabel: isRu ? "Используйте старт кейса ниже" : "Use Start case below",
+        proxyTargetId: "runVisaDemoBtn",
         pillText: isRu ? "Шаг 1 из 5" : "Step 1 of 5",
       });
   }
@@ -6733,12 +6752,20 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse) {
   if (el.caseWorkspaceFlowActionBtn instanceof HTMLButtonElement) {
     el.caseWorkspaceFlowActionBtn.textContent = flowState.actionLabel;
     if (flowState.actionDisabled || typeof flowState.actionId !== "string" || flowState.actionId.length === 0) {
-      el.caseWorkspaceFlowActionBtn.disabled = true;
-      delete el.caseWorkspaceFlowActionBtn.dataset.dashboardAction;
+      if (typeof flowState.proxyTargetId === "string" && flowState.proxyTargetId.length > 0) {
+        el.caseWorkspaceFlowActionBtn.disabled = false;
+        delete el.caseWorkspaceFlowActionBtn.dataset.dashboardAction;
+        el.caseWorkspaceFlowActionBtn.dataset.dashboardProxyTarget = flowState.proxyTargetId;
+      } else {
+        el.caseWorkspaceFlowActionBtn.disabled = true;
+        delete el.caseWorkspaceFlowActionBtn.dataset.dashboardAction;
+        delete el.caseWorkspaceFlowActionBtn.dataset.dashboardProxyTarget;
+      }
       el.caseWorkspaceFlowActionBtn.removeAttribute("aria-controls");
     } else {
       el.caseWorkspaceFlowActionBtn.disabled = false;
       el.caseWorkspaceFlowActionBtn.dataset.dashboardAction = flowState.actionId;
+      delete el.caseWorkspaceFlowActionBtn.dataset.dashboardProxyTarget;
       if (flowDrawerTarget === "case") {
         el.caseWorkspaceFlowActionBtn.setAttribute("aria-controls", "caseWorkspaceCaseShortcuts");
       } else if (flowDrawerTarget === "result") {
@@ -36731,6 +36758,14 @@ function bindEvents() {
       const actionId = button.dataset.dashboardAction;
       if (typeof actionId === "string" && actionId.length > 0) {
         runDashboardAction(actionId);
+        return;
+      }
+      const proxyTargetId = button.dataset.dashboardProxyTarget;
+      if (typeof proxyTargetId === "string" && proxyTargetId.length > 0) {
+        const proxyTarget = document.getElementById(proxyTargetId);
+        if (proxyTarget instanceof HTMLElement) {
+          proxyTarget.focus();
+        }
       }
     });
   };
