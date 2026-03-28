@@ -6749,13 +6749,28 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse) {
   if (el.caseWorkspaceFlowPill instanceof HTMLElement) {
     setStatusPill(el.caseWorkspaceFlowPill, flowState.pillText, flowState.pillTone);
   }
+  const primaryActionCopy = getCaseWorkspacePrimaryActionCopy(flowState, isRu);
+  const flowProxyTargetId = typeof flowState.proxyTargetId === "string" && flowState.proxyTargetId.length > 0
+    ? flowState.proxyTargetId
+    : (typeof flowState.actionId === "string"
+        && flowState.actionId.length > 0
+        && primaryActionCopy.actionId === flowState.actionId
+        ? "runVisaDemoBtn"
+        : "");
+  const flowActionLabel = flowProxyTargetId === "runVisaDemoBtn" && flowState.actionId === "reset_visa_demo"
+    ? (isRu ? "Начать следующий кейс ниже" : "Start another case below")
+    : flowProxyTargetId === "runVisaDemoBtn" && CASE_WORKSPACE_CASE_ACTIONS.has(flowState.actionId)
+      ? (isRu ? "Открыть текущий шаг ниже" : "Open current step below")
+      : flowProxyTargetId === "runVisaDemoBtn" && CASE_WORKSPACE_RESULT_ACTIONS.has(flowState.actionId)
+        ? (isRu ? "Открыть текущую проверку ниже" : "Open current review below")
+        : flowState.actionLabel;
   if (el.caseWorkspaceFlowActionBtn instanceof HTMLButtonElement) {
-    el.caseWorkspaceFlowActionBtn.textContent = flowState.actionLabel;
+    el.caseWorkspaceFlowActionBtn.textContent = flowActionLabel;
     if (flowState.actionDisabled || typeof flowState.actionId !== "string" || flowState.actionId.length === 0) {
-      if (typeof flowState.proxyTargetId === "string" && flowState.proxyTargetId.length > 0) {
+      if (flowProxyTargetId.length > 0) {
         el.caseWorkspaceFlowActionBtn.disabled = false;
         delete el.caseWorkspaceFlowActionBtn.dataset.dashboardAction;
-        el.caseWorkspaceFlowActionBtn.dataset.dashboardProxyTarget = flowState.proxyTargetId;
+        el.caseWorkspaceFlowActionBtn.dataset.dashboardProxyTarget = flowProxyTargetId;
       } else {
         el.caseWorkspaceFlowActionBtn.disabled = true;
         delete el.caseWorkspaceFlowActionBtn.dataset.dashboardAction;
@@ -6763,20 +6778,25 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse) {
       }
       el.caseWorkspaceFlowActionBtn.removeAttribute("aria-controls");
     } else {
-      el.caseWorkspaceFlowActionBtn.disabled = false;
-      el.caseWorkspaceFlowActionBtn.dataset.dashboardAction = flowState.actionId;
-      delete el.caseWorkspaceFlowActionBtn.dataset.dashboardProxyTarget;
-      if (flowDrawerTarget === "case") {
-        el.caseWorkspaceFlowActionBtn.setAttribute("aria-controls", "caseWorkspaceCaseShortcuts");
-      } else if (flowDrawerTarget === "result") {
-        el.caseWorkspaceFlowActionBtn.setAttribute("aria-controls", "caseWorkspaceResultTools");
-      } else {
+      if (flowProxyTargetId.length > 0) {
+        el.caseWorkspaceFlowActionBtn.disabled = false;
+        delete el.caseWorkspaceFlowActionBtn.dataset.dashboardAction;
+        el.caseWorkspaceFlowActionBtn.dataset.dashboardProxyTarget = flowProxyTargetId;
         el.caseWorkspaceFlowActionBtn.removeAttribute("aria-controls");
+      } else {
+        el.caseWorkspaceFlowActionBtn.disabled = false;
+        el.caseWorkspaceFlowActionBtn.dataset.dashboardAction = flowState.actionId;
+        delete el.caseWorkspaceFlowActionBtn.dataset.dashboardProxyTarget;
+        if (flowDrawerTarget === "case") {
+          el.caseWorkspaceFlowActionBtn.setAttribute("aria-controls", "caseWorkspaceCaseShortcuts");
+        } else if (flowDrawerTarget === "result") {
+          el.caseWorkspaceFlowActionBtn.setAttribute("aria-controls", "caseWorkspaceResultTools");
+        } else {
+          el.caseWorkspaceFlowActionBtn.removeAttribute("aria-controls");
+        }
       }
     }
   }
-
-  const primaryActionCopy = getCaseWorkspacePrimaryActionCopy(flowState, isRu);
   const mainActionSection = document.querySelector(".case-workspace-action-section-main");
   const mainActionHint = document.querySelector(".case-workspace-action-section-main .case-workspace-action-hint");
   if (mainActionSection instanceof HTMLElement) {

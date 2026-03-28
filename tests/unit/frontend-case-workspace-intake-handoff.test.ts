@@ -12,7 +12,7 @@ test("idle guided flow hands off to the main start-case action instead of launch
     'proxyTargetId = ""',
     'proxyTargetId: "runVisaDemoBtn"',
     '"Use Start case below"',
-    'el.caseWorkspaceFlowActionBtn.dataset.dashboardProxyTarget = flowState.proxyTargetId;',
+    'el.caseWorkspaceFlowActionBtn.dataset.dashboardProxyTarget = flowProxyTargetId;',
     'delete el.caseWorkspaceFlowActionBtn.dataset.dashboardProxyTarget;',
     'const proxyTargetId = button.dataset.dashboardProxyTarget;',
     'proxyTarget.focus();',
