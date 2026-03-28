@@ -402,43 +402,62 @@
                       </span>
                       <span id="caseWorkspaceCaseActionsChip" class="status-pill status-neutral case-workspace-action-shell-pill" data-i18n="live.caseWorkspace.caseActionsChip">Shortcuts</span>
                     </summary>
-                    <div class="actions live-compose-primary-actions case-workspace-action-group case-workspace-action-shell-body">
-                      <button
-                        id="runVisaFollowUpBtn"
-                        type="button"
-                        class="button-muted live-compose-preset-btn"
-                        data-dashboard-action="run_visa_follow_up_demo"
-                        data-i18n="live.compose.runVisaFollowUp"
-                      >
-                        Request Missing Documents
-                      </button>
-                      <button
-                        id="runVisaReminderBtn"
-                        type="button"
-                        class="button-muted live-compose-preset-btn"
-                        data-dashboard-action="run_visa_reminder_demo"
-                        data-i18n="live.compose.runVisaReminder"
-                      >
-                        Prepare Consultation Reminder
-                      </button>
-                      <button
-                        id="runVisaHandoffBtn"
-                        type="button"
-                        class="button-muted live-compose-preset-btn"
-                        data-dashboard-action="run_visa_handoff_demo"
-                        data-i18n="live.compose.runVisaHandoff"
-                      >
-                        Prepare CRM Update
-                      </button>
-                      <button
-                        id="runVisaEscalationBtn"
-                        type="button"
-                        class="button-muted live-compose-preset-btn"
-                        data-dashboard-action="run_visa_escalation_demo"
-                        data-i18n="live.compose.runVisaEscalation"
-                      >
-                        Escalate to Specialist
-                      </button>
+                    <div class="case-workspace-action-shell-body case-workspace-path-shell-body">
+                      <div id="caseWorkspaceCasePrimaryCard" class="case-workspace-path-card" hidden>
+                        <div class="case-workspace-path-copy">
+                          <span id="caseWorkspaceCasePrimaryTitle" class="case-workspace-action-title">Now: next case step</span>
+                          <span id="caseWorkspaceCasePrimaryHint" class="case-workspace-action-hint">Open the current recommended case step here before using later jumps.</span>
+                        </div>
+                        <span id="caseWorkspaceCasePrimaryChip" class="status-pill status-neutral case-workspace-action-shell-pill">Now</span>
+                        <div id="caseWorkspaceCasePrimaryActions" class="actions live-compose-primary-actions case-workspace-action-group case-workspace-path-actions"></div>
+                      </div>
+                      <details id="caseWorkspaceCaseLaterSteps" class="case-workspace-action-subshell">
+                        <summary class="case-workspace-action-subshell-summary">
+                          <span class="case-workspace-action-section-copy case-workspace-action-shell-copy">
+                            <span id="caseWorkspaceCaseLaterTitle" class="case-workspace-action-title">Later stage jumps</span>
+                            <span id="caseWorkspaceCaseLaterHint" class="case-workspace-action-hint">Open the broader case shortcuts only when you need to jump ahead.</span>
+                          </span>
+                          <span id="caseWorkspaceCaseLaterChip" class="status-pill status-neutral case-workspace-action-shell-pill">Later</span>
+                        </summary>
+                        <div id="caseWorkspaceCaseLaterActions" class="actions live-compose-primary-actions case-workspace-action-group case-workspace-action-subshell-body">
+                          <button
+                            id="runVisaFollowUpBtn"
+                            type="button"
+                            class="button-muted live-compose-preset-btn"
+                            data-dashboard-action="run_visa_follow_up_demo"
+                            data-i18n="live.compose.runVisaFollowUp"
+                          >
+                            Request Missing Documents
+                          </button>
+                          <button
+                            id="runVisaReminderBtn"
+                            type="button"
+                            class="button-muted live-compose-preset-btn"
+                            data-dashboard-action="run_visa_reminder_demo"
+                            data-i18n="live.compose.runVisaReminder"
+                          >
+                            Prepare Consultation Reminder
+                          </button>
+                          <button
+                            id="runVisaHandoffBtn"
+                            type="button"
+                            class="button-muted live-compose-preset-btn"
+                            data-dashboard-action="run_visa_handoff_demo"
+                            data-i18n="live.compose.runVisaHandoff"
+                          >
+                            Prepare CRM Update
+                          </button>
+                          <button
+                            id="runVisaEscalationBtn"
+                            type="button"
+                            class="button-muted live-compose-preset-btn"
+                            data-dashboard-action="run_visa_escalation_demo"
+                            data-i18n="live.compose.runVisaEscalation"
+                          >
+                            Escalate to Specialist
+                          </button>
+                        </div>
+                      </details>
                     </div>
                   </details>
                   <details
@@ -453,61 +472,80 @@
                       </span>
                       <span id="caseWorkspaceResultToolsChip" class="status-pill status-neutral case-workspace-action-shell-pill" data-i18n="live.caseWorkspace.resultToolsChip">Secondary</span>
                     </summary>
-                    <div class="actions live-compose-primary-actions case-workspace-action-group case-workspace-action-shell-body">
-                      <button
-                        id="reviewVisaResultBtn"
-                        type="button"
-                        class="button-muted live-compose-preset-btn"
-                        data-dashboard-action="review_visa_draft_result"
-                        data-i18n="live.compose.reviewVisaDemo"
-                      >
-                        See Intake Summary
-                      </button>
-                      <button
-                        id="reviewVisaFollowUpResultBtn"
-                        type="button"
-                        class="button-muted live-compose-preset-btn"
-                        data-dashboard-action="review_visa_follow_up_result"
-                        data-i18n="live.compose.reviewVisaFollowUp"
-                      >
-                        See Follow-up Summary
-                      </button>
-                      <button
-                        id="reviewVisaReminderResultBtn"
-                        type="button"
-                        class="button-muted live-compose-preset-btn"
-                        data-dashboard-action="review_visa_reminder_result"
-                        data-i18n="live.compose.reviewVisaReminder"
-                      >
-                        See Reminder Summary
-                      </button>
-                      <button
-                        id="reviewVisaHandoffResultBtn"
-                        type="button"
-                        class="button-muted live-compose-preset-btn"
-                        data-dashboard-action="review_visa_handoff_result"
-                        data-i18n="live.compose.reviewVisaHandoff"
-                      >
-                        See CRM Summary
-                      </button>
-                      <button
-                        id="reviewVisaEscalationResultBtn"
-                        type="button"
-                        class="button-muted live-compose-preset-btn"
-                        data-dashboard-action="review_visa_escalation_result"
-                        data-i18n="live.compose.reviewVisaEscalation"
-                      >
-                        See Escalation Summary
-                      </button>
-                      <button
-                        id="resetVisaDemoBtn"
-                        type="button"
-                        class="button-muted live-compose-preset-btn"
-                        data-dashboard-action="reset_visa_demo"
-                        data-i18n="live.compose.resetVisaDemo"
-                      >
-                        Start Over
-                      </button>
+                    <div class="case-workspace-action-shell-body case-workspace-path-shell-body">
+                      <div id="caseWorkspaceResultPrimaryCard" class="case-workspace-path-card" hidden>
+                        <div class="case-workspace-path-copy">
+                          <span id="caseWorkspaceResultPrimaryTitle" class="case-workspace-action-title">Now: current review</span>
+                          <span id="caseWorkspaceResultPrimaryHint" class="case-workspace-action-hint">Close the current protected result here before opening later summaries or restart.</span>
+                        </div>
+                        <span id="caseWorkspaceResultPrimaryChip" class="status-pill status-neutral case-workspace-action-shell-pill">Review</span>
+                        <div id="caseWorkspaceResultPrimaryActions" class="actions live-compose-primary-actions case-workspace-action-group case-workspace-path-actions"></div>
+                      </div>
+                      <details id="caseWorkspaceResultLaterTools" class="case-workspace-action-subshell">
+                        <summary class="case-workspace-action-subshell-summary">
+                          <span class="case-workspace-action-section-copy case-workspace-action-shell-copy">
+                            <span id="caseWorkspaceResultLaterTitle" class="case-workspace-action-title">Later summaries and restart</span>
+                            <span id="caseWorkspaceResultLaterHint" class="case-workspace-action-hint">Open other finished summaries or restart only when the current proof step is closed.</span>
+                          </span>
+                          <span id="caseWorkspaceResultLaterChip" class="status-pill status-neutral case-workspace-action-shell-pill">Later</span>
+                        </summary>
+                        <div id="caseWorkspaceResultLaterActions" class="actions live-compose-primary-actions case-workspace-action-group case-workspace-action-subshell-body">
+                          <button
+                            id="reviewVisaResultBtn"
+                            type="button"
+                            class="button-muted live-compose-preset-btn"
+                            data-dashboard-action="review_visa_draft_result"
+                            data-i18n="live.compose.reviewVisaDemo"
+                          >
+                            See Intake Summary
+                          </button>
+                          <button
+                            id="reviewVisaFollowUpResultBtn"
+                            type="button"
+                            class="button-muted live-compose-preset-btn"
+                            data-dashboard-action="review_visa_follow_up_result"
+                            data-i18n="live.compose.reviewVisaFollowUp"
+                          >
+                            See Follow-up Summary
+                          </button>
+                          <button
+                            id="reviewVisaReminderResultBtn"
+                            type="button"
+                            class="button-muted live-compose-preset-btn"
+                            data-dashboard-action="review_visa_reminder_result"
+                            data-i18n="live.compose.reviewVisaReminder"
+                          >
+                            See Reminder Summary
+                          </button>
+                          <button
+                            id="reviewVisaHandoffResultBtn"
+                            type="button"
+                            class="button-muted live-compose-preset-btn"
+                            data-dashboard-action="review_visa_handoff_result"
+                            data-i18n="live.compose.reviewVisaHandoff"
+                          >
+                            See CRM Summary
+                          </button>
+                          <button
+                            id="reviewVisaEscalationResultBtn"
+                            type="button"
+                            class="button-muted live-compose-preset-btn"
+                            data-dashboard-action="review_visa_escalation_result"
+                            data-i18n="live.compose.reviewVisaEscalation"
+                          >
+                            See Escalation Summary
+                          </button>
+                          <button
+                            id="resetVisaDemoBtn"
+                            type="button"
+                            class="button-muted live-compose-preset-btn"
+                            data-dashboard-action="reset_visa_demo"
+                            data-i18n="live.compose.resetVisaDemo"
+                          >
+                            Start Over
+                          </button>
+                        </div>
+                      </details>
                     </div>
                   </details>
                 </div>

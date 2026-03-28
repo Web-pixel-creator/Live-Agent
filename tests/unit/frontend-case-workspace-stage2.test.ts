@@ -46,6 +46,8 @@ test("case workspace stage 2 exposes a guided flow with staged CTA wiring", () =
     "const CASE_WORKSPACE_ACTION_SEQUENCE = [",
     "function getCaseWorkspaceActionIndex(",
     "function getCaseWorkspaceShortcutButtonState(",
+    "function getCaseWorkspaceActionKicker(",
+    "function getCaseWorkspaceActionSortOrder(",
     "function getCaseWorkspaceCaseDrawerContent(flowState, isRu)",
     "function getCaseWorkspaceResultDrawerContent(flowState, isRu)",
     "function syncCaseWorkspaceActionButtons(",
@@ -53,6 +55,8 @@ test("case workspace stage 2 exposes a guided flow with staged CTA wiring", () =
     "function renderCaseWorkspaceFlow(",
     'bindDashboardActionButton(el.caseWorkspaceFlowActionBtn);',
     'button.dataset.caseWorkspaceActionState = uiState.state;',
+    'button.dataset.caseWorkspaceActionKicker = actionKicker;',
+    'button.style.order = String(getCaseWorkspaceActionSortOrder(entry, uiState));',
     'caseDrawer.dataset.caseWorkspaceDrawerState = caseDrawerCopy.drawerState;',
     'resultDrawer.dataset.caseWorkspaceDrawerState = resultDrawerCopy.drawerState;',
     'const caseTitle = document.getElementById("caseWorkspaceCaseActionsTitle")',
@@ -84,6 +88,8 @@ test("case workspace stage 2 exposes a guided flow with staged CTA wiring", () =
     ".case-workspace-flow-hint",
     '.live-compose-preset-btn[data-case-workspace-action-state="recommended"]',
     '.live-compose-preset-btn[data-case-workspace-action-state="jump"]',
+    '.live-compose-preset-btn[data-case-workspace-action-kicker]',
+    '.live-compose-preset-btn[data-case-workspace-action-kicker]::before',
     '.case-workspace-action-shell[data-case-workspace-drawer-state="recommended"] .case-workspace-action-shell-pill',
   ]) {
     assert.ok(stylesSource.includes(token), `styles.css missing guided flow style token: ${token}`);

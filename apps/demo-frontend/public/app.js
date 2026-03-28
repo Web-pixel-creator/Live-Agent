@@ -5430,17 +5430,17 @@ const CASE_WORKSPACE_ACTION_SEQUENCE = [
   "reset_visa_demo",
 ];
 const CASE_WORKSPACE_ACTION_BUTTONS = [
-  { key: "runVisaDemoBtn", actionId: "run_visa_intake_demo", drawer: "main" },
-  { key: "runVisaFollowUpBtn", actionId: "run_visa_follow_up_demo", drawer: "case" },
-  { key: "runVisaReminderBtn", actionId: "run_visa_reminder_demo", drawer: "case" },
-  { key: "runVisaHandoffBtn", actionId: "run_visa_handoff_demo", drawer: "case" },
-  { key: "runVisaEscalationBtn", actionId: "run_visa_escalation_demo", drawer: "case" },
-  { key: "reviewVisaResultBtn", actionId: "review_visa_draft_result", drawer: "result" },
-  { key: "reviewVisaFollowUpResultBtn", actionId: "review_visa_follow_up_result", drawer: "result" },
-  { key: "reviewVisaReminderResultBtn", actionId: "review_visa_reminder_result", drawer: "result" },
-  { key: "reviewVisaHandoffResultBtn", actionId: "review_visa_handoff_result", drawer: "result" },
-  { key: "reviewVisaEscalationResultBtn", actionId: "review_visa_escalation_result", drawer: "result" },
-  { key: "resetVisaDemoBtn", actionId: "reset_visa_demo", drawer: "result" },
+  { key: "runVisaDemoBtn", actionId: "run_visa_intake_demo", drawer: "main", stageKey: "case" },
+  { key: "runVisaFollowUpBtn", actionId: "run_visa_follow_up_demo", drawer: "case", stageKey: "documents" },
+  { key: "runVisaReminderBtn", actionId: "run_visa_reminder_demo", drawer: "case", stageKey: "consultation" },
+  { key: "runVisaHandoffBtn", actionId: "run_visa_handoff_demo", drawer: "case", stageKey: "crm" },
+  { key: "runVisaEscalationBtn", actionId: "run_visa_escalation_demo", drawer: "case", stageKey: "handoff" },
+  { key: "reviewVisaResultBtn", actionId: "review_visa_draft_result", drawer: "result", stageKey: "case" },
+  { key: "reviewVisaFollowUpResultBtn", actionId: "review_visa_follow_up_result", drawer: "result", stageKey: "documents" },
+  { key: "reviewVisaReminderResultBtn", actionId: "review_visa_reminder_result", drawer: "result", stageKey: "consultation" },
+  { key: "reviewVisaHandoffResultBtn", actionId: "review_visa_handoff_result", drawer: "result", stageKey: "crm" },
+  { key: "reviewVisaEscalationResultBtn", actionId: "review_visa_escalation_result", drawer: "result", stageKey: "handoff" },
+  { key: "resetVisaDemoBtn", actionId: "reset_visa_demo", drawer: "result", stageKey: "handoff" },
 ];
 const CASE_WORKSPACE_RESULT_ACTIONS = new Set(
   CASE_WORKSPACE_ACTION_BUTTONS.filter((entry) => entry.drawer === "result").map((entry) => entry.actionId),
@@ -5448,6 +5448,8 @@ const CASE_WORKSPACE_RESULT_ACTIONS = new Set(
 const CASE_WORKSPACE_CASE_ACTIONS = new Set(
   CASE_WORKSPACE_ACTION_BUTTONS.filter((entry) => entry.drawer === "case").map((entry) => entry.actionId),
 );
+const CASE_WORKSPACE_CASE_BUTTON_ENTRIES = CASE_WORKSPACE_ACTION_BUTTONS.filter((entry) => entry.drawer === "case");
+const CASE_WORKSPACE_RESULT_BUTTON_ENTRIES = CASE_WORKSPACE_ACTION_BUTTONS.filter((entry) => entry.drawer === "result");
 
 function getCaseWorkspaceStepTitle(stepKey, isRu) {
   switch (stepKey) {
@@ -5464,6 +5466,61 @@ function getCaseWorkspaceStepTitle(stepKey, isRu) {
     default:
       return stepKey;
   }
+}
+
+function getCaseWorkspaceActionKicker(entry, uiState, isRu) {
+  if (!entry || typeof entry !== "object") {
+    return "";
+  }
+  if (entry.actionId === "reset_visa_demo") {
+    return isRu ? "Перезапуск" : "Restart";
+  }
+
+  const stageKey = typeof entry.stageKey === "string" ? entry.stageKey : "";
+  const stageLabel = stageKey ? getCaseWorkspaceStepTitle(stageKey, isRu) : "";
+  const stageIndex = stageKey ? CASE_WORKSPACE_FLOW_STEPS.indexOf(stageKey) + 1 : 0;
+
+  if (entry.drawer === "result") {
+    if (uiState?.state === "recommended") {
+      return isRu ? "Проверить • " + stageLabel : "Review • " + stageLabel;
+    }
+    if (uiState?.state === "completed") {
+      return isRu ? "Готово • " + stageLabel : "Done • " + stageLabel;
+    }
+    return isRu ? "Итог • " + stageLabel : "Result • " + stageLabel;
+  }
+
+  if (uiState?.state === "recommended") {
+    return isRu ? "Следом • " + stageLabel : "Next • " + stageLabel;
+  }
+  if (uiState?.state === "completed") {
+    return isRu ? "Готово • " + stageLabel : "Done • " + stageLabel;
+  }
+  if (uiState?.state === "jump") {
+    return isRu ? "Позже • " + stageLabel : "Later • " + stageLabel;
+  }
+  if (uiState?.state === "held") {
+    return isRu ? "Пауза • " + stageLabel : "Paused • " + stageLabel;
+  }
+  if (stageIndex > 0) {
+    return isRu ? "Шаг " + stageIndex + " • " + stageLabel : "Step " + stageIndex + " • " + stageLabel;
+  }
+  return stageLabel;
+}
+
+function getCaseWorkspaceActionSortOrder(entry, uiState) {
+  const actionIndex = getCaseWorkspaceActionIndex(entry?.actionId ?? "");
+  const stateRank = {
+    recommended: 0,
+    available: 1,
+    jump: 2,
+    completed: 3,
+    held: 4,
+    utility: 5,
+  };
+  const rank = stateRank[uiState?.state] ?? 6;
+  const index = actionIndex >= 0 ? actionIndex : 99;
+  return rank * 100 + index;
 }
 
 function getCaseWorkspaceStepStateLabel(stepState, isRu) {
@@ -5696,6 +5753,100 @@ function getCaseWorkspaceResultDrawerContent(flowState, isRu) {
   };
 }
 
+function moveCaseWorkspaceDrawerButtons(buttonEntries, primaryActionId, primaryHost, laterHost) {
+  if (!(laterHost instanceof HTMLElement)) {
+    return;
+  }
+  for (const entry of buttonEntries) {
+    const button = el[entry.key];
+    if (!(button instanceof HTMLButtonElement)) {
+      continue;
+    }
+    const target =
+      primaryActionId === entry.actionId && primaryHost instanceof HTMLElement ? primaryHost : laterHost;
+    if (button.parentElement !== target) {
+      target.appendChild(button);
+    }
+  }
+}
+
+function syncCaseWorkspaceSubshellOpen(detailsEl, shouldOpen, signature) {
+  if (!(detailsEl instanceof HTMLDetailsElement)) {
+    return;
+  }
+  const normalizedSignature = typeof signature === "string" && signature.length > 0 ? signature : "__default__";
+  if (detailsEl.dataset.caseWorkspaceOpenSignature !== normalizedSignature) {
+    detailsEl.open = shouldOpen;
+    detailsEl.dataset.caseWorkspaceOpenSignature = normalizedSignature;
+  }
+}
+
+function getCaseWorkspaceCasePathBodyCopy(primaryActionId, isRu) {
+  if (typeof primaryActionId === "string" && primaryActionId.length > 0) {
+    const actionLabel = getDashboardActionButtonText(primaryActionId, isRu ? "Следующий шаг" : "Next step");
+    return {
+      showPrimary: true,
+      primaryTitle: isRu ? "Сейчас: " + actionLabel : "Now: " + actionLabel,
+      primaryHint: isRu
+        ? "Откройте текущий рекомендуемый шаг кейса отсюда. Более поздние переходы остаются ниже."
+        : "Open the current recommended case step here. Later jumps stay below.",
+      primaryChip: isRu ? "Сейчас" : "Now",
+      laterTitle: isRu ? "Более поздние переходы" : "Later stage jumps",
+      laterHint: isRu
+        ? "Открывайте более поздние переходы только если нужно перепрыгнуть вперёд по кейсу."
+        : "Open the later-stage jumps only when you need to skip ahead in the case path.",
+      laterChip: isRu ? "Позже" : "Later",
+      laterOpen: false,
+    };
+  }
+
+  return {
+    showPrimary: false,
+    primaryTitle: "",
+    primaryHint: "",
+    primaryChip: "",
+    laterTitle: isRu ? "Все поздние шаги" : "All later steps",
+    laterHint: isRu
+      ? "Пока этот блок нужен как jump-набор. После текущего шага рабочая зона сама поднимет сюда следующий ход."
+      : "This block stays as a jump set for now. After the current step, the workspace will raise the next move here.",
+    laterChip: isRu ? "Опционально" : "Optional",
+    laterOpen: false,
+  };
+}
+
+function getCaseWorkspaceResultPathBodyCopy(primaryActionId, isRu) {
+  if (typeof primaryActionId === "string" && primaryActionId.length > 0) {
+    const actionLabel = getDashboardActionButtonText(primaryActionId, isRu ? "Текущая проверка" : "Current review");
+    return {
+      showPrimary: true,
+      primaryTitle: isRu ? "Сейчас: " + actionLabel : "Now: " + actionLabel,
+      primaryHint: isRu
+        ? "Сначала закройте текущий защищённый итог. Остальные summary и перезапуск остаются ниже."
+        : "Close the current protected result first. Other summaries and restart stay below.",
+      primaryChip: isRu ? "Проверка" : "Review",
+      laterTitle: isRu ? "Поздние итоги и перезапуск" : "Later summaries and restart",
+      laterHint: isRu
+        ? "Открывайте другие итоговые сводки или перезапуск только после текущей proof-проверки."
+        : "Open other summaries or restart only after the current proof step is closed.",
+      laterChip: isRu ? "Позже" : "Later",
+      laterOpen: false,
+    };
+  }
+
+  return {
+    showPrimary: false,
+    primaryTitle: "",
+    primaryHint: "",
+    primaryChip: "",
+    laterTitle: isRu ? "Все итоги и перезапуск" : "All summaries and restart",
+    laterHint: isRu
+      ? "Итоговые summary и перезапуск остаются здесь, пока рабочая зона ведёт кейс по шагам."
+      : "Finished summaries and restart stay here while the workspace keeps the case moving step by step.",
+    laterChip: isRu ? "Опционально" : "Optional",
+    laterOpen: false,
+  };
+}
+
 function syncCaseWorkspaceActionButtons(flowState) {
   const isRu = state.languageMode === "ru";
   const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
@@ -5706,10 +5857,17 @@ function syncCaseWorkspaceActionButtons(flowState) {
       continue;
     }
     const uiState = getCaseWorkspaceShortcutButtonState(entry.actionId, activeActionId, flowState, isRu);
+    const actionKicker = getCaseWorkspaceActionKicker(entry, uiState, isRu);
     button.dataset.caseWorkspaceActionState = uiState.state;
+    if (actionKicker) {
+      button.dataset.caseWorkspaceActionKicker = actionKicker;
+    } else {
+      delete button.dataset.caseWorkspaceActionKicker;
+    }
     button.classList.toggle("is-active", uiState.state === "recommended");
     button.classList.toggle("is-complete", uiState.state === "completed");
     button.classList.toggle("is-quiet", uiState.state === "jump" || uiState.state === "held" || uiState.state === "utility");
+    button.style.order = String(getCaseWorkspaceActionSortOrder(entry, uiState));
     if (uiState.state === "recommended") {
       button.setAttribute("aria-current", "step");
     } else {
@@ -5733,6 +5891,42 @@ function syncCaseWorkspaceActionButtons(flowState) {
       caseHint.textContent = caseDrawerCopy.hint;
     }
   }
+  const casePrimaryCard = document.getElementById("caseWorkspaceCasePrimaryCard");
+  const casePrimaryTitle = document.getElementById("caseWorkspaceCasePrimaryTitle");
+  const casePrimaryHint = document.getElementById("caseWorkspaceCasePrimaryHint");
+  const casePrimaryChip = document.getElementById("caseWorkspaceCasePrimaryChip");
+  const casePrimaryActions = document.getElementById("caseWorkspaceCasePrimaryActions");
+  const caseLaterSteps = document.getElementById("caseWorkspaceCaseLaterSteps");
+  const caseLaterTitle = document.getElementById("caseWorkspaceCaseLaterTitle");
+  const caseLaterHint = document.getElementById("caseWorkspaceCaseLaterHint");
+  const caseLaterChip = document.getElementById("caseWorkspaceCaseLaterChip");
+  const caseLaterActions = document.getElementById("caseWorkspaceCaseLaterActions");
+  const casePrimaryActionId = CASE_WORKSPACE_CASE_ACTIONS.has(activeActionId) ? activeActionId : "";
+  const casePathCopy = getCaseWorkspaceCasePathBodyCopy(casePrimaryActionId, isRu);
+  moveCaseWorkspaceDrawerButtons(
+    CASE_WORKSPACE_CASE_BUTTON_ENTRIES,
+    casePrimaryActionId,
+    casePrimaryActions,
+    caseLaterActions,
+  );
+  if (casePrimaryCard instanceof HTMLElement) {
+    casePrimaryCard.hidden = !casePathCopy.showPrimary;
+  }
+  if (casePrimaryTitle instanceof HTMLElement) {
+    casePrimaryTitle.textContent = casePathCopy.primaryTitle;
+  }
+  if (casePrimaryHint instanceof HTMLElement) {
+    casePrimaryHint.textContent = casePathCopy.primaryHint;
+  }
+  setCaseWorkspaceDrawerPill(casePrimaryChip, casePathCopy.primaryChip);
+  if (caseLaterTitle instanceof HTMLElement) {
+    caseLaterTitle.textContent = casePathCopy.laterTitle;
+  }
+  if (caseLaterHint instanceof HTMLElement) {
+    caseLaterHint.textContent = casePathCopy.laterHint;
+  }
+  setCaseWorkspaceDrawerPill(caseLaterChip, casePathCopy.laterChip);
+  syncCaseWorkspaceSubshellOpen(caseLaterSteps, casePathCopy.laterOpen, "case:" + (casePrimaryActionId || "later"));
 
   const resultDrawer = document.getElementById("caseWorkspaceResultTools");
   const resultTitle = document.getElementById("caseWorkspaceResultToolsTitle");
@@ -5749,6 +5943,42 @@ function syncCaseWorkspaceActionButtons(flowState) {
       resultHint.textContent = resultDrawerCopy.hint;
     }
   }
+  const resultPrimaryCard = document.getElementById("caseWorkspaceResultPrimaryCard");
+  const resultPrimaryTitle = document.getElementById("caseWorkspaceResultPrimaryTitle");
+  const resultPrimaryHint = document.getElementById("caseWorkspaceResultPrimaryHint");
+  const resultPrimaryChip = document.getElementById("caseWorkspaceResultPrimaryChip");
+  const resultPrimaryActions = document.getElementById("caseWorkspaceResultPrimaryActions");
+  const resultLaterTools = document.getElementById("caseWorkspaceResultLaterTools");
+  const resultLaterTitle = document.getElementById("caseWorkspaceResultLaterTitle");
+  const resultLaterHint = document.getElementById("caseWorkspaceResultLaterHint");
+  const resultLaterChip = document.getElementById("caseWorkspaceResultLaterChip");
+  const resultLaterActions = document.getElementById("caseWorkspaceResultLaterActions");
+  const resultPrimaryActionId = CASE_WORKSPACE_RESULT_ACTIONS.has(activeActionId) ? activeActionId : "";
+  const resultPathCopy = getCaseWorkspaceResultPathBodyCopy(resultPrimaryActionId, isRu);
+  moveCaseWorkspaceDrawerButtons(
+    CASE_WORKSPACE_RESULT_BUTTON_ENTRIES,
+    resultPrimaryActionId,
+    resultPrimaryActions,
+    resultLaterActions,
+  );
+  if (resultPrimaryCard instanceof HTMLElement) {
+    resultPrimaryCard.hidden = !resultPathCopy.showPrimary;
+  }
+  if (resultPrimaryTitle instanceof HTMLElement) {
+    resultPrimaryTitle.textContent = resultPathCopy.primaryTitle;
+  }
+  if (resultPrimaryHint instanceof HTMLElement) {
+    resultPrimaryHint.textContent = resultPathCopy.primaryHint;
+  }
+  setCaseWorkspaceDrawerPill(resultPrimaryChip, resultPathCopy.primaryChip);
+  if (resultLaterTitle instanceof HTMLElement) {
+    resultLaterTitle.textContent = resultPathCopy.laterTitle;
+  }
+  if (resultLaterHint instanceof HTMLElement) {
+    resultLaterHint.textContent = resultPathCopy.laterHint;
+  }
+  setCaseWorkspaceDrawerPill(resultLaterChip, resultPathCopy.laterChip);
+  syncCaseWorkspaceSubshellOpen(resultLaterTools, resultPathCopy.laterOpen, "result:" + (resultPrimaryActionId || "later"));
 }
 
 function getDashboardActionButtonText(actionId, fallbackText = "") {
