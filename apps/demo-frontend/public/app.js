@@ -5512,6 +5512,9 @@ function getCaseWorkspaceActionKicker(entry, uiState, isRu) {
   if (uiState?.state === "completed") {
     return isRu ? "Готово • " + stageLabel : "Done • " + stageLabel;
   }
+  if (uiState?.state === "preview") {
+    return isRu ? "После intake • " + stageLabel : "After intake • " + stageLabel;
+  }
   if (uiState?.state === "jump") {
     return isRu ? "Позже • " + stageLabel : "Later • " + stageLabel;
   }
@@ -5529,12 +5532,13 @@ function getCaseWorkspaceActionSortOrder(entry, uiState) {
   const stateRank = {
     recommended: 0,
     available: 1,
-    jump: 2,
-    completed: 3,
-    held: 4,
-    utility: 5,
+    preview: 2,
+    jump: 3,
+    completed: 4,
+    held: 5,
+    utility: 6,
   };
-  const rank = stateRank[uiState?.state] ?? 6;
+  const rank = stateRank[uiState?.state] ?? 7;
   const index = actionIndex >= 0 ? actionIndex : 99;
   return rank * 100 + index;
 }
@@ -5599,6 +5603,14 @@ function getCaseWorkspaceShortcutButtonState(buttonActionId, activeActionId, flo
     return {
       state: "held",
       title: isRu ? "Подождите текущий ответ, затем вернитесь к кейсу." : "Wait for the current response, then continue the case.",
+    };
+  }
+  if (CASE_WORKSPACE_CASE_ACTIONS.has(buttonActionId) && (typeof activeActionId !== "string" || activeActionId.length === 0)) {
+    return {
+      state: "preview",
+      title: isRu
+        ? "Этот шаг откроется после подтверждения intake. Пока он остаётся только превью пути."
+        : "This step unlocks after intake is confirmed. For now it stays as a path preview.",
     };
   }
   if (buttonActionId === activeActionId) {
@@ -6370,13 +6382,15 @@ function syncCaseWorkspaceActionButtons(flowState) {
     }
     button.classList.toggle("is-active", uiState.state === "recommended");
     button.classList.toggle("is-complete", uiState.state === "completed");
-    button.classList.toggle("is-quiet", uiState.state === "jump" || uiState.state === "held" || uiState.state === "utility");
+    button.classList.toggle("is-quiet", uiState.state === "preview" || uiState.state === "jump" || uiState.state === "held" || uiState.state === "utility");
     button.style.order = String(getCaseWorkspaceActionSortOrder(entry, uiState));
     if (uiState.state === "recommended") {
       button.setAttribute("aria-current", "step");
     } else {
       button.removeAttribute("aria-current");
     }
+    button.disabled = uiState.state === "preview";
+    button.setAttribute("aria-disabled", button.disabled ? "true" : "false");
     button.title = uiState.title;
   }
 

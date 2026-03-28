@@ -191,6 +191,7 @@ That same waiting-state `Operator brief` meta now also says `hydrate the overvie
 Case workspace note: `Case path` now keeps only the current case move and future jumps, while `Result tools` keeps the current protected review on top and completed summary history plus restart underneath it.
 Case workspace note: the future-jump subshell inside `Case path` now reads as a `Skip ahead` path, so normal case progression stays primary and jump-ahead shortcuts feel explicitly exceptional.
 Case workspace note: the top-level `Case path` shell now reads as a workflow surface instead of a shortcut rack, so the current step feels like the normal workflow and not a demo jump menu.
+Case workspace note: before intake is confirmed, future steps inside `Case path` now stay visible only as a route preview, so the first fold no longer behaves like an early jump menu.
 Case workspace note: the primary case row now mirrors the active guided step, so the top button follows the live case path instead of staying intake-only after the first stage.
 Case workspace note: the primary case row now adds a small task-first status/meta strip, so the current step reads like an active working action instead of one more plain launcher.
 Case workspace note: the primary case row now also shows where the current action opens next and wires `aria-controls` to `Case path` or `Result tools` when the active step lives there.

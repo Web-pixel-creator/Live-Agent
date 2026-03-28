@@ -1310,10 +1310,16 @@
   color: color-mix(in oklch, var(--foreground) 88%, var(--muted-foreground));
 }
 
+.layout[data-active-tab="live-negotiator"] .live-compose-preset-btn[data-case-workspace-action-state="preview"],
 .layout[data-active-tab="live-negotiator"] .live-compose-preset-btn[data-case-workspace-action-state="jump"],
 .layout[data-active-tab="live-negotiator"] .live-compose-preset-btn[data-case-workspace-action-state="held"],
 .layout[data-active-tab="live-negotiator"] .live-compose-preset-btn[data-case-workspace-action-state="utility"] {
   opacity: 0.74;
+}
+
+.layout[data-active-tab="live-negotiator"] .live-compose-preset-btn[data-case-workspace-action-state="preview"] {
+  cursor: not-allowed;
+  border-style: dashed;
 }
 
 .layout[data-active-tab="live-negotiator"] .case-workspace-action-shell[data-case-workspace-drawer-state="recommended"] .case-workspace-action-shell-pill,

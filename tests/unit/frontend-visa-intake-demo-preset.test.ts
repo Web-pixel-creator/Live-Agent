@@ -30,7 +30,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     "function getCaseWorkspaceResultDrawerContent(flowState, isRu)",
     'button.dataset.caseWorkspaceActionState = uiState.state;',
     'button.classList.toggle("is-active", uiState.state === "recommended");',
-    'button.classList.toggle("is-quiet", uiState.state === "jump" || uiState.state === "held" || uiState.state === "utility");',
+    'button.classList.toggle("is-quiet", uiState.state === "preview" || uiState.state === "jump" || uiState.state === "held" || uiState.state === "utility");',
     'resultDrawer.dataset.caseWorkspaceDrawerState = resultDrawerCopy.drawerState;',
     'caseDrawer.dataset.caseWorkspaceDrawerState = caseDrawerCopy.drawerState;',
     'const caseTitle = document.getElementById("caseWorkspaceCaseActionsTitle")',
