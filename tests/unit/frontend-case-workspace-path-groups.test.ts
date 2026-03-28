@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("case workspace drawers split current path actions from later jumps", () => {
+test("case workspace drawers split the current path from idle preview and later jumps", () => {
   const htmlSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "index.html"), "utf8");
   const appSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js"), "utf8");
   const stylesSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "styles.css"), "utf8");
@@ -12,24 +12,12 @@ test("case workspace drawers split current path actions from later jumps", () =>
 
   for (const token of [
     'id="caseWorkspaceCasePrimaryCard"',
-    'id="caseWorkspaceCasePrimaryTitle"',
-    'id="caseWorkspaceCasePrimaryHint"',
-    'id="caseWorkspaceCasePrimaryChip"',
     'id="caseWorkspaceCasePrimaryActions"',
+    'id="caseWorkspaceCaseIdlePreview"',
     'id="caseWorkspaceCaseLaterSteps"',
-    'id="caseWorkspaceCaseLaterTitle"',
-    'id="caseWorkspaceCaseLaterHint"',
-    'id="caseWorkspaceCaseLaterChip"',
     'id="caseWorkspaceCaseLaterActions"',
     'id="caseWorkspaceResultPrimaryCard"',
-    'id="caseWorkspaceResultPrimaryTitle"',
-    'id="caseWorkspaceResultPrimaryHint"',
-    'id="caseWorkspaceResultPrimaryChip"',
-    'id="caseWorkspaceResultPrimaryActions"',
     'id="caseWorkspaceResultLaterTools"',
-    'id="caseWorkspaceResultLaterTitle"',
-    'id="caseWorkspaceResultLaterHint"',
-    'id="caseWorkspaceResultLaterChip"',
     'id="caseWorkspaceResultLaterActions"',
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing case path grouping token: ${token}`);
@@ -39,24 +27,18 @@ test("case workspace drawers split current path actions from later jumps", () =>
     'const CASE_WORKSPACE_CASE_BUTTON_ENTRIES = CASE_WORKSPACE_ACTION_BUTTONS.filter((entry) => entry.drawer === "case")',
     'const CASE_WORKSPACE_RESULT_BUTTON_ENTRIES = CASE_WORKSPACE_ACTION_BUTTONS.filter((entry) => entry.drawer === "result")',
     "function moveCaseWorkspaceDrawerButtons(",
+    "function renderCaseWorkspacePreviewRail(",
     "function getCaseWorkspaceCasePathBodyCopy(primaryActionId, isRu)",
     "function getCaseWorkspaceResultPathBodyCopy(primaryActionId, laterVisibleCount, isRu)",
-    'laterTitle: isRu ? "Пропустить вперёд" : "Skip ahead"',
-    'laterChip: isRu ? "Пропуск" : "Skip"',
-    'laterTitle: isRu ? "Ветви пути дальше" : "Later path branches"',
-    'const casePrimaryCard = document.getElementById("caseWorkspaceCasePrimaryCard")',
-    'const caseLaterSteps = document.getElementById("caseWorkspaceCaseLaterSteps")',
-    'const resultPrimaryCard = document.getElementById("caseWorkspaceResultPrimaryCard")',
-    'const resultLaterTools = document.getElementById("caseWorkspaceResultLaterTools")',
-    "function syncCaseWorkspaceSubshellOpen(",
-    "moveCaseWorkspaceDrawerButtons(",
-    'casePrimaryCard.hidden = !casePathCopy.showPrimary;',
-    'resultPrimaryCard.hidden = !resultPathCopy.showPrimary;',
-    'const visibleCaseEntries = CASE_WORKSPACE_CASE_BUTTON_ENTRIES.filter((entry) => shouldShowCaseWorkspaceCaseEntry(entry, activeActionId));',
-    'caseLaterSteps.hidden = caseLaterVisibleCount === 0;',
-    'syncCaseWorkspaceSubshellOpen(',
-    '"case:" + (casePrimaryActionId || "later") + ":" + String(caseLaterVisibleCount)',
+    'const caseIdlePreview = document.getElementById("caseWorkspaceCaseIdlePreview")',
+    'const idleCasePathPreview =',
+    '"Route preview after intake"',
+    '"Before intake is confirmed, this rail shows only the future path order. After intake, the same steps unlock as the working case path."',
+    'renderCaseWorkspacePreviewRail(caseIdlePreview, visibleCaseEntries, isRu);',
+    'caseLaterActions.hidden = idleCasePathPreview;',
+    'caseLaterSteps.hidden = idleCasePathPreview || caseLaterVisibleCount === 0;',
     'resultLaterTools.hidden = resultLaterVisibleCount === 0;',
+    '"case:" + (casePrimaryActionId || "later") + ":" + String(caseLaterVisibleCount)',
     '"result:" + (resultPrimaryActionId || "later") + ":" + String(resultLaterVisibleCount)',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing path-group token: ${token}`);
@@ -66,6 +48,10 @@ test("case workspace drawers split current path actions from later jumps", () =>
     ".case-workspace-path-shell-body",
     ".case-workspace-path-card",
     ".case-workspace-path-copy",
+    ".case-workspace-preview-rail",
+    ".case-workspace-preview-row",
+    ".case-workspace-preview-kicker",
+    ".case-workspace-preview-title",
     ".case-workspace-path-actions",
     ".case-workspace-action-subshell",
     ".case-workspace-action-subshell-summary",
@@ -79,8 +65,8 @@ test("case workspace drawers split current path actions from later jumps", () =>
     "README should mention the quieter secondary drawer shell",
   );
   assert.ok(
-    readmeSource.includes("`Skip ahead` path"),
-    "README should describe the future-jump subshell as a skip-ahead path",
+    readmeSource.includes("static preview rail"),
+    "README should mention the idle static preview rail",
   );
   assert.ok(
     operatorGuideSource.includes("secondary jump/review subshells")
@@ -88,7 +74,7 @@ test("case workspace drawers split current path actions from later jumps", () =>
     "operator guide should mention the quieter secondary drawer shell",
   );
   assert.ok(
-    operatorGuideSource.includes("`Skip ahead` path"),
-    "operator guide should describe the future-jump subshell as a skip-ahead path",
+    operatorGuideSource.includes("static preview rail"),
+    "operator guide should mention the idle static preview rail",
   );
 });

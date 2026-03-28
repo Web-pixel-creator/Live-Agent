@@ -1226,6 +1226,33 @@
   gap: 6px;
 }
 
+.layout[data-active-tab="live-negotiator"] .case-workspace-preview-rail {
+  display: grid;
+  gap: 10px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-preview-row {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px dashed color-mix(in oklch, var(--border-soft) 82%, transparent);
+  background: color-mix(in oklch, var(--surface-panel-2) 84%, transparent);
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-preview-kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--muted-foreground) 88%, var(--foreground));
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-preview-title {
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: color-mix(in oklch, var(--foreground) 92%, var(--surface-panel));
+}
+
 .layout[data-active-tab="live-negotiator"] .case-workspace-path-actions {
   padding-top: 2px;
 }

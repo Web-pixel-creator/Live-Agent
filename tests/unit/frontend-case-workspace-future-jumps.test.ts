@@ -15,7 +15,8 @@ test("move case forward keeps only the current move and future case jumps", () =
     "const visibleCaseActionIds = new Set(visibleCaseEntries.map((entry) => entry.actionId));",
     "{ visibleActionIds: visibleCaseActionIds },",
     "const caseLaterVisibleCount = visibleCaseEntries.filter((entry) => entry.actionId !== casePrimaryActionId).length;",
-    "caseLaterSteps.hidden = caseLaterVisibleCount === 0;",
+    "const idleCasePathPreview =",
+    "caseLaterSteps.hidden = idleCasePathPreview || caseLaterVisibleCount === 0;",
   ]) {
     assert.ok(appSource.includes(token), `app.js missing future-jumps token: ${token}`);
   }

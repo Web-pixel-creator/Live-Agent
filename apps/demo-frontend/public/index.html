@@ -432,26 +432,27 @@
                       </span>
                       <span id="caseWorkspaceCaseActionsChip" class="status-pill status-neutral case-workspace-action-shell-pill" data-i18n="live.caseWorkspace.caseActionsChip">After intake</span>
                     </summary>
-                    <div class="case-workspace-action-shell-body case-workspace-path-shell-body">
-                      <div id="caseWorkspaceCasePrimaryCard" class="case-workspace-path-card" hidden>
-                        <div class="case-workspace-path-copy">
-                          <span id="caseWorkspaceCasePrimaryTitle" class="case-workspace-action-title">Now: next case step</span>
-                          <span id="caseWorkspaceCasePrimaryHint" class="case-workspace-action-hint">Open the current recommended case step here before using later jumps.</span>
+                      <div class="case-workspace-action-shell-body case-workspace-path-shell-body">
+                        <div id="caseWorkspaceCasePrimaryCard" class="case-workspace-path-card" hidden>
+                          <div class="case-workspace-path-copy">
+                            <span id="caseWorkspaceCasePrimaryTitle" class="case-workspace-action-title">Now: next case step</span>
+                            <span id="caseWorkspaceCasePrimaryHint" class="case-workspace-action-hint">Open the current recommended case step here before using later jumps.</span>
+                          </div>
+                          <span id="caseWorkspaceCasePrimaryChip" class="status-pill status-neutral case-workspace-action-shell-pill">Now</span>
+                          <div id="caseWorkspaceCasePrimaryActions" class="actions live-compose-primary-actions case-workspace-action-group case-workspace-path-actions"></div>
                         </div>
-                        <span id="caseWorkspaceCasePrimaryChip" class="status-pill status-neutral case-workspace-action-shell-pill">Now</span>
-                        <div id="caseWorkspaceCasePrimaryActions" class="actions live-compose-primary-actions case-workspace-action-group case-workspace-path-actions"></div>
-                      </div>
-                      <details id="caseWorkspaceCaseLaterSteps" class="case-workspace-action-subshell">
-                        <summary class="case-workspace-action-subshell-summary">
-                          <span class="case-workspace-action-section-copy case-workspace-action-shell-copy">
-                            <span id="caseWorkspaceCaseLaterTitle" class="case-workspace-action-title">Skip ahead</span>
-                            <span id="caseWorkspaceCaseLaterHint" class="case-workspace-action-hint">Open this only when you need to jump past the normal case path.</span>
-                          </span>
-                          <span id="caseWorkspaceCaseLaterChip" class="status-pill status-neutral case-workspace-action-shell-pill">Skip</span>
-                        </summary>
-                        <div id="caseWorkspaceCaseLaterActions" class="actions live-compose-primary-actions case-workspace-action-group case-workspace-action-subshell-body">
-                          <button
-                            id="runVisaFollowUpBtn"
+                        <div id="caseWorkspaceCaseIdlePreview" class="case-workspace-preview-rail" hidden></div>
+                        <details id="caseWorkspaceCaseLaterSteps" class="case-workspace-action-subshell">
+                          <summary class="case-workspace-action-subshell-summary">
+                            <span class="case-workspace-action-section-copy case-workspace-action-shell-copy">
+                              <span id="caseWorkspaceCaseLaterTitle" class="case-workspace-action-title">Skip ahead</span>
+                              <span id="caseWorkspaceCaseLaterHint" class="case-workspace-action-hint">Open this only when you need to jump past the normal case path.</span>
+                            </span>
+                            <span id="caseWorkspaceCaseLaterChip" class="status-pill status-neutral case-workspace-action-shell-pill">Skip</span>
+                          </summary>
+                          <div id="caseWorkspaceCaseLaterActions" class="actions live-compose-primary-actions case-workspace-action-group case-workspace-action-subshell-body">
+                            <button
+                              id="runVisaFollowUpBtn"
                             type="button"
                             class="button-muted live-compose-preset-btn"
                             data-dashboard-action="run_visa_follow_up_demo"

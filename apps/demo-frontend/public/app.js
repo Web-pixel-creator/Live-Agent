@@ -5980,6 +5980,27 @@ function moveCaseWorkspaceDrawerButtons(buttonEntries, primaryActionId, primaryH
   }
 }
 
+function renderCaseWorkspacePreviewRail(container, entries, isRu) {
+  if (!(container instanceof HTMLElement)) {
+    return;
+  }
+  container.replaceChildren();
+  const fragment = document.createDocumentFragment();
+  for (const entry of entries) {
+    const row = document.createElement("article");
+    row.className = "case-workspace-preview-row";
+    const kicker = document.createElement("span");
+    kicker.className = "case-workspace-preview-kicker";
+    kicker.textContent = getCaseWorkspaceActionKicker(entry, { state: "preview" }, isRu);
+    const title = document.createElement("span");
+    title.className = "case-workspace-preview-title";
+    title.textContent = getDashboardActionButtonText(entry.actionId, isRu ? "Следующий шаг" : "Next step");
+    row.append(kicker, title);
+    fragment.append(row);
+  }
+  container.append(fragment);
+}
+
 function syncCaseWorkspaceSubshellOpen(detailsEl, shouldOpen, signature) {
   if (!(detailsEl instanceof HTMLDetailsElement)) {
     return;
@@ -6435,6 +6456,7 @@ function syncCaseWorkspaceActionButtons(flowState) {
   const casePrimaryHint = document.getElementById("caseWorkspaceCasePrimaryHint");
   const casePrimaryChip = document.getElementById("caseWorkspaceCasePrimaryChip");
   const casePrimaryActions = document.getElementById("caseWorkspaceCasePrimaryActions");
+  const caseIdlePreview = document.getElementById("caseWorkspaceCaseIdlePreview");
   const caseLaterSteps = document.getElementById("caseWorkspaceCaseLaterSteps");
   const caseLaterTitle = document.getElementById("caseWorkspaceCaseLaterTitle");
   const caseLaterHint = document.getElementById("caseWorkspaceCaseLaterHint");
@@ -6444,6 +6466,18 @@ function syncCaseWorkspaceActionButtons(flowState) {
   const visibleCaseEntries = CASE_WORKSPACE_CASE_BUTTON_ENTRIES.filter((entry) => shouldShowCaseWorkspaceCaseEntry(entry, activeActionId));
   const visibleCaseActionIds = new Set(visibleCaseEntries.map((entry) => entry.actionId));
   const casePathCopy = getCaseWorkspaceCasePathBodyCopy(casePrimaryActionId, isRu);
+  const idleCasePathPreview =
+    casePrimaryActionId.length === 0 &&
+    activeActionId.length === 0 &&
+    flowState?.actionDisabled !== true &&
+    (Number(flowState?.completedCount) || 0) === 0;
+  if (idleCasePathPreview) {
+    casePathCopy.laterTitle = isRu ? "РџСЂРµРІСЊСЋ РїСѓС‚Рё РїРѕСЃР»Рµ intake" : "Route preview after intake";
+    casePathCopy.laterHint = isRu
+      ? "Р”Рѕ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ intake Р·РґРµСЃСЊ РїРѕРєР°Р·Р°РЅ С‚РѕР»СЊРєРѕ РїРѕСЂСЏРґРѕРє Р±СѓРґСѓС‰РёС… С€Р°РіРѕРІ. РџРѕСЃР»Рµ intake РѕРЅРё РѕС‚РєСЂРѕСЋС‚СЃСЏ РєР°Рє СЂР°Р±РѕС‡РёР№ РїСѓС‚СЊ."
+      : "Before intake is confirmed, this rail shows only the future path order. After intake, the same steps unlock as the working case path.";
+    casePathCopy.laterChip = isRu ? "РџСЂРµРІСЊСЋ" : "Preview";
+  }
   moveCaseWorkspaceDrawerButtons(
     CASE_WORKSPACE_CASE_BUTTON_ENTRIES,
     casePrimaryActionId,
@@ -6469,8 +6503,20 @@ function syncCaseWorkspaceActionButtons(flowState) {
     caseLaterHint.textContent = casePathCopy.laterHint;
   }
   setCaseWorkspaceDrawerPill(caseLaterChip, casePathCopy.laterChip);
+  if (caseIdlePreview instanceof HTMLElement) {
+    const showIdlePreviewRail = idleCasePathPreview && caseLaterVisibleCount > 0;
+    caseIdlePreview.hidden = !showIdlePreviewRail;
+    if (showIdlePreviewRail) {
+      renderCaseWorkspacePreviewRail(caseIdlePreview, visibleCaseEntries, isRu);
+    } else {
+      caseIdlePreview.replaceChildren();
+    }
+  }
+  if (caseLaterActions instanceof HTMLElement) {
+    caseLaterActions.hidden = idleCasePathPreview;
+  }
   if (caseLaterSteps instanceof HTMLElement) {
-    caseLaterSteps.hidden = caseLaterVisibleCount === 0;
+    caseLaterSteps.hidden = idleCasePathPreview || caseLaterVisibleCount === 0;
   }
   syncCaseWorkspaceSubshellOpen(
     caseLaterSteps,
