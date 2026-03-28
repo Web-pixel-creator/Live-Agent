@@ -6266,8 +6266,12 @@ function getCaseWorkspacePrimaryActionOutcome(flowState, primaryActionCopy, isRu
       return {
         label: isRu ? "Результат шага" : "Outcome",
         value: nextStepTitle
-          ? (isRu ? `Этот шаг завершит «${currentStepTitle}» и переведёт кейс к этапу «${nextStepTitle}».` : `This step closes ${currentStepTitle} and moves the case into ${nextStepTitle}.`)
-          : (isRu ? `Этот шаг завершит «${currentStepTitle}» и выведет кейс на финальную проверку.` : `This step closes ${currentStepTitle} and moves the case into the final review.`),
+          ? (isRu
+              ? `Этот шаг завершит «${currentStepTitle}», откроет его защищённую проверку, а затем переведёт кейс к этапу «${nextStepTitle}».`
+              : `This step closes ${currentStepTitle}, opens its protected review, and then hands the case to ${nextStepTitle}.`)
+          : (isRu
+              ? `Этот шаг завершит «${currentStepTitle}» и откроет его финальную защищённую проверку.`
+              : `This step closes ${currentStepTitle} and opens its final protected review.`),
       };
     case "complete":
       return {
