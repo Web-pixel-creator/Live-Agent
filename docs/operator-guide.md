@@ -37,6 +37,7 @@ Operator onboarding note: that same guided path now also uses workspace-first in
 Case workspace note: the secondary jump/review subshells inside `Move case forward` and `Result tools` now keep one current path row on top and quieter later jumps or reviews underneath it.
 Case workspace note: `Move case forward` now keeps only the current case move and future jumps, while `Result tools` keeps the current protected review on top and completed summary history plus restart underneath it.
 Case workspace note: the primary case row now mirrors the active guided step, so the top button follows the live case path instead of staying intake-only after the first stage.
+Case workspace note: Guided flow now also hands off into the matching top-level case drawer only after the case is active, so `Move case forward` or `Result tools` opens at runtime without cluttering the first scan.
 Operator onboarding note: that same waiting-state `Operator brief` meta now also says `hydrate the overview workspace` instead of `incident board`, so the first prompt stays aligned with the workspace chooser before refresh.
 Operator workspace note: that same first fold now includes a `Choose workspace` strip (`Overview`, `Approvals`, `Runtime`, `Audit`), so deeper operator work starts from one explicit work area before the full board toolbar.
 Operator workspace note: that same `Choose workspace` strip now also marks the current card and the recommended next card with labels like `Current` and `Recommended next`, so the first operator choice is easier to scan without changing the navigation model.
@@ -406,5 +407,4 @@ Operator walkthrough should end with:
 6. Health/failover diagnostics visible.
 
 See full judged flow in `docs/judge-runbook.md`.
-
 

@@ -5982,6 +5982,24 @@ function getCaseWorkspacePrimaryActionCopy(flowState, isRu) {
   };
 }
 
+function getCaseWorkspaceDrawerTarget(flowState) {
+  const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
+  const completedCount = Number(flowState?.completedCount);
+  if (activeActionId.length === 0 || flowState?.actionDisabled === true) {
+    return "";
+  }
+  if (activeActionId === "run_visa_intake_demo" && completedCount === 0) {
+    return "";
+  }
+  if (CASE_WORKSPACE_RESULT_ACTIONS.has(activeActionId)) {
+    return "result";
+  }
+  if (CASE_WORKSPACE_CASE_ACTIONS.has(activeActionId)) {
+    return "case";
+  }
+  return "";
+}
+
 function syncCaseWorkspaceActionButtons(flowState) {
   const isRu = state.languageMode === "ru";
   const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
@@ -6135,6 +6153,18 @@ function syncCaseWorkspaceActionButtons(flowState) {
     resultLaterTools,
     resultLaterVisibleCount > 0 ? resultPathCopy.laterOpen : false,
     "result:" + (resultPrimaryActionId || "later") + ":" + String(resultLaterVisibleCount),
+  );
+
+  const drawerTarget = getCaseWorkspaceDrawerTarget(flowState);
+  syncCaseWorkspaceSubshellOpen(
+    caseDrawer,
+    drawerTarget === "case",
+    "drawer:case:" + (drawerTarget === "case" ? activeActionId : "idle"),
+  );
+  syncCaseWorkspaceSubshellOpen(
+    resultDrawer,
+    drawerTarget === "result",
+    "drawer:result:" + (drawerTarget === "result" ? activeActionId : "idle"),
   );
 }
 
