@@ -41,7 +41,7 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   const utilitySectionEnd = htmlSource.indexOf("</details>", utilityStart);
   const utilitySection = htmlSource.slice(utilityStart, utilitySectionEnd === -1 ? htmlSource.length : utilitySectionEnd);
 
-  for (const token of ['id="runVisaDemoBtn"']) {
+  for (const token of ['id="caseWorkspaceMainActionStatus"', 'id="caseWorkspaceMainActionMeta"', 'id="runVisaDemoBtn"']) {
     assert.ok(mainSection.includes(token), `start-case section missing token: ${token}`);
   }
   for (const token of ['id="caseWorkspaceRequestTitle"', 'id="caseWorkspaceRequestChip"', 'id="sendBtn"', 'id="sendBtnHint"']) {
@@ -60,6 +60,8 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     'caseWorkspaceNextStepValue: document.getElementById("caseWorkspaceNextStepValue")',
     'caseWorkspaceNextStep: document.getElementById("caseWorkspaceNextStep")',
     'caseWorkspaceCompletedWork: document.getElementById("caseWorkspaceCompletedWork")',
+    'caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus")',
+    'caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta")',
     'caseWorkspaceFlowActionBtn: document.getElementById("caseWorkspaceFlowActionBtn")',
     'caseWorkspaceRequestTitle: document.getElementById("caseWorkspaceRequestTitle")',
     'const requestDrawer = document.getElementById("caseWorkspaceRequestShell")',
@@ -98,6 +100,8 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     ".case-workspace-summary-card",
     ".case-workspace-action-stack",
     ".case-workspace-action-section",
+    ".case-workspace-main-action-meta-row",
+    ".case-workspace-main-action-meta",
     ".case-workspace-action-shell-summary",
     ".case-workspace-action-shell-body",
     ".case-workspace-action-shell-pill",

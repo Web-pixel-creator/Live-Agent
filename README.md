@@ -190,6 +190,7 @@ That same onboarding path now also uses workspace-first inspect/open wording, so
 That same waiting-state `Operator brief` meta now also says `hydrate the overview workspace` instead of `incident board`, so the first operator prompt stays aligned with the workspace chooser before refresh.
 Case workspace note: `Move case forward` now keeps only the current case move and future jumps, while `Result tools` keeps the current protected review on top and completed summary history plus restart underneath it.
 Case workspace note: the primary case row now mirrors the active guided step, so the top button follows the live case path instead of staying intake-only after the first stage.
+Case workspace note: the primary case row now adds a small status/meta strip, so the current step reads like an active working action instead of one more plain launcher.
 Case workspace note: Guided flow now also hands off into the matching top-level case drawer only after the case is active, so the workspace opens `Move case forward` or `Result tools` at runtime without breaking the clean first load.
 Case workspace note: The guided CTA now points at the matching top-level case drawer with `aria-controls`, so keyboard and screen-reader users get the same drawer handoff cue without changing the flow behavior.
 Case workspace note: Guided flow now hands off to the main Start case action on the empty intake state, so the first screen keeps one real intake launch control instead of two parallel start buttons.

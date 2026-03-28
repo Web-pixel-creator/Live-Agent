@@ -3062,6 +3062,8 @@ const el = {
   caseWorkspaceNextStepPill: document.getElementById("caseWorkspaceNextStepPill"),
   caseWorkspaceCompletedPill: document.getElementById("caseWorkspaceCompletedPill"),
   caseWorkspaceMainActionsTitle: document.getElementById("caseWorkspaceMainActionsTitle"),
+  caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus"),
+  caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta"),
   caseWorkspaceFlowBadge: document.getElementById("caseWorkspaceFlowBadge"),
   caseWorkspaceFlowPill: document.getElementById("caseWorkspaceFlowPill"),
   caseWorkspaceFlowTitle: document.getElementById("caseWorkspaceFlowTitle"),
@@ -6141,6 +6143,61 @@ function getCaseWorkspacePrimaryActionCopy(flowState, isRu) {
   };
 }
 
+function getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu) {
+  const currentStepKey =
+    typeof flowState?.currentStep === "string" && flowState.currentStep.length > 0
+      ? flowState.currentStep
+      : "case";
+  const currentStepTitle = getCaseWorkspaceStepTitle(currentStepKey, isRu);
+  const actionLabel =
+    typeof primaryActionCopy?.actionLabel === "string" && primaryActionCopy.actionLabel.trim().length > 0
+      ? primaryActionCopy.actionLabel.trim()
+      : (isRu ? "Откройте текущий шаг" : "Open the current step");
+
+  switch (primaryActionCopy?.state) {
+    case "waiting":
+      return {
+        status: isRu ? "Ждём" : "Waiting",
+        tone: "neutral",
+        meta: isRu
+          ? "Сначала завершите отдельный live-запрос. Затем главный ряд снова откроет шаг кейса."
+          : "Finish the standalone live request first. Then the main row will reopen the case step.",
+      };
+    case "review":
+      return {
+        status: isRu ? "Проверка" : "Review",
+        tone: "neutral",
+        meta: isRu
+          ? `${currentStepTitle}: ${actionLabel}. Зафиксируйте защищённый итог из главного ряда.`
+          : `${currentStepTitle}: ${actionLabel}. Lock the protected result from the main row.`,
+      };
+    case "case":
+      return {
+        status: isRu ? "Текущий шаг" : "Current step",
+        tone: "ok",
+        meta: isRu
+          ? `${currentStepTitle}: ${actionLabel}. Продвиньте кейс дальше из главного ряда.`
+          : `${currentStepTitle}: ${actionLabel}. Move the case forward from the main row.`,
+      };
+    case "complete":
+      return {
+        status: isRu ? "Новый кейс" : "Restart",
+        tone: "ok",
+        meta: isRu
+          ? "Путь кейса завершён. Начните следующий кейс из этого главного ряда."
+          : "The guided path is complete. Start the next case from this main row.",
+      };
+    default:
+      return {
+        status: isRu ? "Один вход" : "Single entry",
+        tone: "neutral",
+        meta: isRu
+          ? "Используйте этот главный ряд как единую точку запуска intake."
+          : "Use this main row as the single intake entry point.",
+      };
+  }
+}
+
 function getCaseWorkspaceDrawerTarget(flowState) {
   const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
   const completedCount = Number(flowState?.completedCount);
@@ -6973,6 +7030,13 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorks
   if (mainActionHint instanceof HTMLElement) {
     mainActionHint.textContent = primaryActionCopy.hint;
   }
+  const primaryActionMeta = getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu);
+  if (el.caseWorkspaceMainActionStatus instanceof HTMLElement) {
+    setStatusPill(el.caseWorkspaceMainActionStatus, primaryActionMeta.status, primaryActionMeta.tone);
+  }
+  if (el.caseWorkspaceMainActionMeta instanceof HTMLElement) {
+    el.caseWorkspaceMainActionMeta.textContent = primaryActionMeta.meta;
+  }
   if (el.runVisaDemoBtn instanceof HTMLButtonElement) {
     el.runVisaDemoBtn.textContent = primaryActionCopy.actionLabel;
     if (primaryActionCopy.disabled || typeof primaryActionCopy.actionId !== "string" || primaryActionCopy.actionId.length === 0) {
@@ -6983,6 +7047,7 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorks
       el.runVisaDemoBtn.dataset.dashboardAction = primaryActionCopy.actionId;
     }
     el.runVisaDemoBtn.title = primaryActionCopy.hint;
+    el.runVisaDemoBtn.setAttribute("aria-describedby", "caseWorkspaceMainActionMeta");
   }
 
   syncCaseWorkspaceActionButtons(flowState);
