@@ -1360,6 +1360,23 @@
   color: color-mix(in oklch, var(--foreground) 90%, var(--accent-foreground));
 }
 
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-shell[data-case-workspace-drawer-ownership="secondary"] .case-workspace-action-shell-summary {
+  gap: 12px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-shell[data-case-workspace-drawer-ownership="secondary"] .case-workspace-action-title {
+  color: color-mix(in oklch, var(--muted-foreground) 90%, var(--foreground));
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-shell[data-case-workspace-drawer-ownership="secondary"] .case-workspace-action-hint {
+  color: color-mix(in oklch, var(--muted-foreground) 94%, var(--foreground));
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-action-shell[data-case-workspace-drawer-ownership="secondary"] .case-workspace-action-shell-pill {
+  background: color-mix(in oklch, var(--surface-panel-2) 92%, transparent);
+  border-color: color-mix(in oklch, var(--border-soft) 84%, transparent);
+}
+
 .layout[data-active-tab="live-negotiator"] .case-workspace-action-section-main[data-case-workspace-primary-state="case"],
 .layout[data-active-tab="live-negotiator"] .case-workspace-action-section-main[data-case-workspace-primary-state="review"] {
   border-color: color-mix(in oklch, var(--primary) 32%, var(--border-soft));

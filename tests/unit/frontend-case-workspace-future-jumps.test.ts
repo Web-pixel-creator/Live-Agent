@@ -11,9 +11,11 @@ test("move case forward keeps only the current move and future case jumps", () =
   for (const token of [
     "function shouldShowCaseWorkspaceCaseEntry(entry, activeActionId)",
     "return buttonIndex >= activeIndex;",
+    'const caseDrawerMainOwned = drawerTarget === "case" && casePrimaryActionId.length > 0;',
     "const visibleCaseEntries = CASE_WORKSPACE_CASE_BUTTON_ENTRIES.filter((entry) => shouldShowCaseWorkspaceCaseEntry(entry, activeActionId));",
     "const visibleCaseActionIds = new Set(visibleCaseEntries.map((entry) => entry.actionId));",
-    "{ visibleActionIds: visibleCaseActionIds },",
+    'suppressedActionIds: caseDrawerMainOwned ? new Set([casePrimaryActionId]) : null,',
+    '"Later case moves"',
     "const caseLaterVisibleCount = visibleCaseEntries.filter((entry) => entry.actionId !== casePrimaryActionId).length;",
     "const idleCasePathPreview =",
     "caseLaterSteps.hidden = idleCasePathPreview || caseLaterVisibleCount === 0;",
@@ -22,15 +24,15 @@ test("move case forward keeps only the current move and future case jumps", () =
   }
 
   assert.ok(
-    readmeSource.includes("current case move and future jumps")
-      && readmeSource.includes("current protected review on top")
-      && readmeSource.includes("completed summary history plus restart underneath it"),
+    readmeSource.includes("main row owns the active step")
+      && readmeSource.includes("later case moves")
+      && readmeSource.includes("earlier verified summary history plus restart"),
     "README should explain that completed review affordances live only in Result tools",
   );
   assert.ok(
-    operatorGuideSource.includes("current case move and future jumps")
-      && operatorGuideSource.includes("current protected review on top")
-      && operatorGuideSource.includes("completed summary history plus restart underneath it"),
+    operatorGuideSource.includes("main row owns the active step")
+      && operatorGuideSource.includes("later case moves")
+      && operatorGuideSource.includes("earlier verified summary history plus restart"),
     "operator guide should explain that completed review affordances live only in Result tools",
   );
 });

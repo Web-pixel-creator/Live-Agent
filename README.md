@@ -188,7 +188,7 @@ The frontend now uses a left dashboard rail plus a compact active-workspace shel
 That same first fold now includes a state-aware `Refresh -> Inspect -> Recover` onboarding path, so first-time operators see one guided sequence instead of a static brief before they touch the deeper console.
 That same onboarding path now also uses workspace-first inspect/open wording, so the first operator sequence stays aligned with `Choose workspace`, the `Operator brief` preview row, and the current product-surface vocabulary.
 That same waiting-state `Operator brief` meta now also says `hydrate the overview workspace` instead of `incident board`, so the first operator prompt stays aligned with the workspace chooser before refresh.
-Case workspace note: `Case path` now keeps only the current case move and future jumps, while `Result tools` keeps the current protected review on top and completed summary history plus restart underneath it.
+Case workspace note: once the main row owns the active step, `Case path` keeps only the later case moves while `Result tools` keeps earlier verified summary history plus restart.
 Case workspace note: the future-jump subshell inside `Case path` now reads as a `Skip ahead` path, so normal case progression stays primary and jump-ahead shortcuts feel explicitly exceptional.
 Case workspace note: the top-level `Case path` shell now reads as a workflow surface instead of a shortcut rack, so the current step feels like the normal workflow and not a demo jump menu.
 Case workspace note: before intake is confirmed, future steps inside `Case path` now stay visible only as a route preview, so the first fold no longer behaves like an early jump menu.
@@ -207,6 +207,7 @@ Case workspace note: Guided flow now hands active case steps, reviews, and the c
 Case workspace note: the standalone `Live request` lane now lives in its own drawer, stays open on idle, and collapses once case work is active so the first scan keeps one main case path.
 Case workspace note: the generic live-intent chooser and composer now also quiet down during active or completed case flow, so they read as a standalone side path while the current case step stays above as the main launcher.
 Case workspace note: during active or completed case flow, that standalone chooser/composer now opens only through the `Live request` drawer, so the first scan no longer shows a second generic input lane until the operator explicitly asks for it.
+Case workspace note: once a case step or protected review is active, the matching open drawer now stays as a secondary context/history lane while the main row remains the only live launcher for the current action.
 That same operator-first entry layer now adds a dedicated `Choose workspace` strip (`Overview`, `Approvals`, `Runtime`, `Audit`), so deeper operator work starts from one explicit work area instead of from the full board toolbar.
 That same `Choose workspace` strip now also marks the current card and the recommended next card with labels like `Current` and `Recommended next`, so the first operator choice is easier to scan without changing the navigation model.
 That chooser now feeds a route-aware workspace header inside `Operator Console`, so `Overview`, `Approvals`, `Runtime`, and `Audit` each explain their current focus, next action, and posture mode before the operator reaches deeper board chrome.

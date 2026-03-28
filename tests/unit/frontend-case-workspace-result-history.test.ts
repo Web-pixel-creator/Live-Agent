@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("result tools keeps current review above completed review history", () => {
+test("result tools keeps earlier completed review history once the main row owns the current review", () => {
   const appSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js"), "utf8");
   const readmeSource = readFileSync(resolve(process.cwd(), "README.md"), "utf8");
   const operatorGuideSource = readFileSync(resolve(process.cwd(), "docs", "operator-guide.md"), "utf8");
@@ -12,26 +12,29 @@ test("result tools keeps current review above completed review history", () => {
     "function shouldShowCaseWorkspaceResultEntry(entry, activeActionId)",
     'if (entry.actionId === "reset_visa_demo") {',
     "return buttonIndex <= activeIndex;",
+    'const resultDrawerMainOwned = drawerTarget === "result" && resultPrimaryActionId.length > 0;',
     "const visibleResultEntries = CASE_WORKSPACE_RESULT_BUTTON_ENTRIES.filter((entry) => shouldShowCaseWorkspaceResultEntry(entry, activeActionId));",
     "const visibleResultActionIds = new Set(visibleResultEntries.map((entry) => entry.actionId));",
     "const resultLaterVisibleCount = visibleResultEntries.filter((entry) => entry.actionId !== resultPrimaryActionId).length;",
-    '{ visibleActionIds: visibleResultActionIds },',
+    'suppressedActionIds: resultDrawerMainOwned ? new Set([resultPrimaryActionId]) : null,',
+    '"Review history and restart"',
     '"Completed summaries and restart"',
-    '"Earlier verified summaries and restart stay here as the review history lane."',
+    '"The current protected review is already open in the main row above. Earlier verified summaries and restart stay here."',
     '"History"',
+    'resultDrawer.dataset.caseWorkspaceDrawerOwnership = drawerTarget === "result" ? "secondary" : "launcher";',
     "resultLaterTools.hidden = resultLaterVisibleCount === 0;",
   ]) {
     assert.ok(appSource.includes(token), `app.js missing result-history token: ${token}`);
   }
 
   assert.ok(
-    readmeSource.includes("current protected review on top")
-      && readmeSource.includes("completed summary history plus restart underneath it"),
-    "README should describe Result tools as current review plus completed review history",
+    readmeSource.includes("main row owns the active step")
+      && readmeSource.includes("earlier verified summary history plus restart"),
+    "README should describe Result tools as earlier history once the main row owns the current review",
   );
   assert.ok(
-    operatorGuideSource.includes("current protected review on top")
-      && operatorGuideSource.includes("completed summary history plus restart underneath it"),
-    "operator guide should describe Result tools as current review plus completed review history",
+    operatorGuideSource.includes("main row owns the active step")
+      && operatorGuideSource.includes("earlier verified summary history plus restart"),
+    "operator guide should describe Result tools as earlier history once the main row owns the current review",
   );
 });
