@@ -13,6 +13,11 @@ test("case workspace main row mirrors the current guided step", () => {
     "function getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu)",
     "function getCaseWorkspacePrimaryActionSurface(flowState, primaryActionCopy, isRu)",
     "function getCaseWorkspacePrimaryActionOutcome(flowState, primaryActionCopy, isRu)",
+    'status: isRu ? "Начните здесь" : "Start here"',
+    'status: isRu ? "Сделайте сейчас" : "Do now"',
+    'status: isRu ? "Проверьте сейчас" : "Check now"',
+    'status: isRu ? "Начните следующий" : "Start next"',
+    'status: isRu ? "На паузе" : "On hold"',
     'label: isRu ? "Вернётся в" : "Returns in"',
     'label: isRu ? "Откроется в" : "Open in"',
     'title: isRu ? "Текущий шаг кейса" : "Current case move"',
@@ -47,7 +52,7 @@ test("case workspace main row mirrors the current guided step", () => {
     "README should explain that the primary case row mirrors the active guided step",
   );
   assert.ok(
-    readmeSource.includes("primary case row now adds a small status/meta strip"),
+    readmeSource.includes("primary case row now adds a small task-first status/meta strip"),
     "README should explain that the primary case row now carries a status/meta strip",
   );
   assert.ok(
@@ -63,7 +68,7 @@ test("case workspace main row mirrors the current guided step", () => {
     "operator guide should explain that the primary case row mirrors the active guided step",
   );
   assert.ok(
-    operatorGuideSource.includes("primary case row now adds a small status/meta strip"),
+    operatorGuideSource.includes("primary case row now adds a small task-first status/meta strip"),
     "operator guide should explain that the primary case row now carries a status/meta strip",
   );
   assert.ok(

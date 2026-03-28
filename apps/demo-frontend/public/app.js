@@ -6165,7 +6165,7 @@ function getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu) {
   switch (primaryActionCopy?.state) {
     case "waiting":
       return {
-        status: isRu ? "Ждём" : "Waiting",
+        status: isRu ? "На паузе" : "On hold",
         tone: "neutral",
         meta: isRu
           ? "Сначала завершите отдельный live-запрос. Затем главный ряд снова откроет шаг кейса."
@@ -6173,7 +6173,7 @@ function getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu) {
       };
     case "review":
       return {
-        status: isRu ? "Проверка" : "Review",
+        status: isRu ? "Проверьте сейчас" : "Check now",
         tone: "neutral",
         meta: isRu
           ? `${currentStepTitle}: ${actionLabel}. Зафиксируйте защищённый итог из главного ряда.`
@@ -6181,7 +6181,7 @@ function getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu) {
       };
     case "case":
       return {
-        status: isRu ? "Текущий шаг" : "Current step",
+        status: isRu ? "Сделайте сейчас" : "Do now",
         tone: "ok",
         meta: isRu
           ? `${currentStepTitle}: ${actionLabel}. Продвиньте кейс дальше из главного ряда.`
@@ -6189,7 +6189,7 @@ function getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu) {
       };
     case "complete":
       return {
-        status: isRu ? "Новый кейс" : "Restart",
+        status: isRu ? "Начните следующий" : "Start next",
         tone: "ok",
         meta: isRu
           ? "Путь кейса завершён. Начните следующий кейс из этого главного ряда."
@@ -6197,7 +6197,7 @@ function getCaseWorkspacePrimaryActionMeta(flowState, primaryActionCopy, isRu) {
       };
     default:
       return {
-        status: isRu ? "Один вход" : "Single entry",
+        status: isRu ? "Начните здесь" : "Start here",
         tone: "neutral",
         meta: isRu
           ? "Используйте этот главный ряд как единую точку запуска intake."

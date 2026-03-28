@@ -37,7 +37,7 @@ Operator onboarding note: that same guided path now also uses workspace-first in
 Case workspace note: the secondary jump/review subshells inside `Move case forward` and `Result tools` now keep one current path row on top and quieter later jumps or reviews underneath it.
 Case workspace note: `Move case forward` now keeps only the current case move and future jumps, while `Result tools` keeps the current protected review on top and completed summary history plus restart underneath it.
 Case workspace note: the primary case row now mirrors the active guided step, so the top button follows the live case path instead of staying intake-only after the first stage.
-Case workspace note: the primary case row now adds a small status/meta strip, so the current step reads like an active working action instead of one more plain launcher.
+Case workspace note: the primary case row now adds a small task-first status/meta strip, so the current step reads like an active working action instead of one more plain launcher.
 Case workspace note: the primary case row now also shows where the current action opens next and wires `aria-controls` to `Move case forward` or `Result tools` when the active step lives there.
 Case workspace note: the primary case row now also carries a short `Outcome / Next proof` line, so the operator can see what this step unlocks before pressing the main action.
 Case workspace note: that same `Outcome / Next proof` line now follows the immediate proof path, so active case moves promise their protected review before the later stage handoff.
