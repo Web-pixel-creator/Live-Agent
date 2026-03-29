@@ -1,0 +1,43 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import test from "node:test";
+
+test("verified case results keep next-step copy on the case path while summary review stays in result tools", () => {
+  const appSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js"), "utf8");
+  const readmeSource = readFileSync(resolve(process.cwd(), "README.md"), "utf8");
+  const operatorGuideSource = readFileSync(resolve(process.cwd(), "docs", "operator-guide.md"), "utf8");
+
+  for (const token of [
+    '"live.caseWorkspace.intakeResultBody": "The intake result is verified. The next step is the missing-document follow-up for the client."',
+    '"live.caseWorkspace.followUpResultBody": "The follow-up result is verified. The next step is the consultation reminder."',
+    '"live.caseWorkspace.reminderResultBody": "The reminder is verified. The next step is the CRM update."',
+    '"live.caseWorkspace.handoffResultBody": "The CRM update is verified. The next step is specialist handoff only if the case still needs escalation."',
+    '"live.caseWorkspace.escalationResultBody": "The specialist handoff is verified. The next step is continuing the case with the assigned human owner."',
+    '"The intake result is verified. The next step is the missing-document follow-up for the client."',
+    '"The follow-up result is verified. The next step is the consultation reminder."',
+    '"The reminder is verified. The next step is the CRM update."',
+    '"The CRM update is verified. The next step is specialist handoff only if the case still needs escalation."',
+    '"The specialist handoff is verified. The next step is continuing the case with the assigned human owner."',
+  ]) {
+    assert.ok(appSource.includes(token), `app.js missing verified result next-step token: ${token}`);
+  }
+
+  for (const staleToken of [
+    '"The intake result is verified. Move the case into follow-up or copy the operator summary."',
+    '"The reminder is verified. Move the case into CRM writeback or copy the reminder handoff note."',
+    '"The CRM update is verified. Copy the handoff summary or move to specialist review only if the case still needs escalation."',
+    '"The specialist handoff is verified. Share the summary, then continue the case with the assigned human owner."',
+  ]) {
+    assert.ok(!appSource.includes(staleToken), `app.js should not keep mixed result next-step copy: ${staleToken}`);
+  }
+
+  assert.ok(
+    readmeSource.includes("verified-result `Next step` now stays on the next case move or human continuation"),
+    "README should explain that verified result next-step copy stays on the case path",
+  );
+  assert.ok(
+    operatorGuideSource.includes("verified-result `Next step` now stays on the next case move or human continuation"),
+    "operator guide should explain that verified result next-step copy stays on the case path",
+  );
+});

@@ -59,6 +59,7 @@ Case workspace note: once a case step or protected review is active, the matchin
 Case workspace note: those secondary drawer chips now also show how many later moves or verified history entries are waiting, while empty secondary lanes stay quiet instead of showing `0`.
 Case workspace note: `Completed work` now stays focused on the latest verified summary, while `Result tools` keeps earlier verified history plus restart and approval-only context stays in `Next step` as `Prepared in draft`.
 Case workspace note: draft-stage `Next step` now points at the protected summary review in the main row, so the fold promises the same action the current launcher actually opens.
+Case workspace note: verified-result `Next step` now stays on the next case move or human continuation, while summary copy and review history stay in `Result tools`.
 Operator onboarding note: that same waiting-state `Operator brief` meta now also says `hydrate the overview workspace` instead of `incident board`, so the first prompt stays aligned with the workspace chooser before refresh.
 Operator workspace note: that same first fold now includes a `Choose workspace` strip (`Overview`, `Approvals`, `Runtime`, `Audit`), so deeper operator work starts from one explicit work area before the full board toolbar.
 Operator workspace note: that same `Choose workspace` strip now also marks the current card and the recommended next card with labels like `Current` and `Recommended next`, so the first operator choice is easier to scan without changing the navigation model.
