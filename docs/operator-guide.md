@@ -61,6 +61,7 @@ Case workspace note: `Completed work` now stays focused on the latest verified s
 Case workspace note: draft-stage `Next step` now points at the protected summary review in the main row, so the fold promises the same action the current launcher actually opens.
 Case workspace note: verified-result `Next step` now stays on the next case move or human continuation, while summary copy and review history stay in `Result tools`.
 Case workspace note: the verified document follow-up state now reads as a completed review instead of a waiting state, so `Current case` stays aligned with the consultation reminder path.
+Case workspace note: the verified reminder state now reads as `Consultation reminder verified`, so `Current case` matches the protected reminder result already in view.
 Case workspace note: the verified CRM state now reads as `CRM update verified`, so `Current case` no longer sounds like the specialist handoff already happened before that final branch is chosen.
 Case workspace note: the verified specialist handoff state now reads as `Specialist handoff verified`, so `Current case` keeps the final protected review in view instead of sounding like a raw side effect.
 Operator onboarding note: that same waiting-state `Operator brief` meta now also says `hydrate the overview workspace` instead of `incident board`, so the first prompt stays aligned with the workspace chooser before refresh.

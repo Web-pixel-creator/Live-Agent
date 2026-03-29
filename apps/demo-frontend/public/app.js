@@ -1308,7 +1308,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.reminderDraftNext": "Open the protected reminder summary",
     "live.caseWorkspace.reminderDraftBody": "Open the protected reminder summary from the main row to confirm the reminder send and capture the final handoff.",
     "live.caseWorkspace.reminderDraftCompleted": "The consultation slot, timezone, and preparation checklist are already assembled in the reminder draft.",
-    "live.caseWorkspace.reminderResultStatus": "Consultation reminder completed",
+    "live.caseWorkspace.reminderResultStatus": "Consultation reminder verified",
     "live.caseWorkspace.reminderResultNext": "Prepare the CRM update",
     "live.caseWorkspace.reminderResultBody": "The reminder is verified. The next step is the CRM update.",
     "live.caseWorkspace.handoffDraftStatus": "CRM update draft is ready",
@@ -7249,7 +7249,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
       return {
         ...defaultSnapshot,
         client: sharedClient,
-        status: isRu ? "Напоминание о консультации завершено" : "Consultation reminder completed",
+        status: isRu ? "Напоминание о консультации проверено" : "Consultation reminder verified",
         nextStepValue: isRu ? "Подготовьте обновление CRM" : "Prepare the CRM update",
         nextStepBody: isRu
           ? "??????????? ??? ?????????. ????????? ???: ??????????? ?????????? CRM."
