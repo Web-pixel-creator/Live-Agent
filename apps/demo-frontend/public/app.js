@@ -7162,10 +7162,6 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         ...defaultSnapshot,
         client: sharedClient,
         status: isRu ? "Черновик визового кейса готов к подтверждению" : "Visa intake draft is ready for approval",
-        nextStepValue: isRu ? "Подтвердите защищённую отправку" : "Confirm the protected submit",
-        nextStepBody: isRu
-          ? "Откройте подготовленный intake-браузер, подтвердите защищённую отправку, затем откройте итог заявки."
-          : "Open the seeded intake browser, confirm the protected submit when ready, then open the intake summary.",
         nextStepValue: getCaseWorkspaceDraftNextCopy("visa_intake_draft", isRu)?.value ?? "",
         nextStepBody: getCaseWorkspaceDraftNextCopy("visa_intake_draft", isRu)?.body ?? "",
         preparedDraftNote: isRu
@@ -7201,10 +7197,6 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         ...defaultSnapshot,
         client: sharedClient,
         status: isRu ? "Follow-up по документам готов" : "Missing-documents follow-up is ready",
-        nextStepValue: isRu ? "Подтвердите безопасную отправку" : "Confirm the safe outreach step",
-        nextStepBody: isRu
-          ? "Проверьте подготовленное сообщение, подтвердите безопасную отправку и затем откройте итог follow-up."
-          : "Review the prepared follow-up message, approve the safe outreach step, then open the completed summary.",
         nextStepValue: getCaseWorkspaceDraftNextCopy("visa_follow_up_draft", isRu)?.value ?? "",
         nextStepBody: getCaseWorkspaceDraftNextCopy("visa_follow_up_draft", isRu)?.body ?? "",
         preparedDraftNote: isRu
@@ -7240,10 +7232,6 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         ...defaultSnapshot,
         client: sharedClient,
         status: isRu ? "Напоминание о консультации готово" : "Consultation reminder is ready",
-        nextStepValue: isRu ? "Подтвердите защищённую отправку напоминания" : "Confirm the protected reminder send",
-        nextStepBody: isRu
-          ? "Подтвердите отправку напоминания и затем откройте итог напоминания с готовым handoff."
-          : "Approve the reminder send when ready, then open the reminder summary to capture the final handoff.",
         nextStepValue: getCaseWorkspaceDraftNextCopy("visa_reminder_draft", isRu)?.value ?? "",
         nextStepBody: getCaseWorkspaceDraftNextCopy("visa_reminder_draft", isRu)?.body ?? "",
         preparedDraftNote: isRu
@@ -7279,10 +7267,6 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         ...defaultSnapshot,
         client: sharedClient,
         status: isRu ? "Черновик обновления CRM готов" : "CRM update draft is ready",
-        nextStepValue: isRu ? "Подтвердите защищённую запись в CRM" : "Confirm the protected CRM writeback",
-        nextStepBody: isRu
-          ? "Проверьте CRM-заметку и назначенного владельца, затем подтвердите защищённую запись."
-          : "Review the prepared CRM note and owner assignment, then approve the protected writeback step.",
         nextStepValue: getCaseWorkspaceDraftNextCopy("visa_handoff_draft", isRu)?.value ?? "",
         nextStepBody: getCaseWorkspaceDraftNextCopy("visa_handoff_draft", isRu)?.body ?? "",
         preparedDraftNote: isRu
@@ -7318,10 +7302,6 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         ...defaultSnapshot,
         client: sharedClient,
         status: isRu ? "Передача специалисту готова" : "Specialist handoff is ready",
-        nextStepValue: isRu ? "Подтвердите защищённую передачу человеку" : "Confirm the protected human handoff",
-        nextStepBody: isRu
-          ? "Проверьте причину эскалации, подтвердите передачу человеку и затем откройте итог передачи."
-          : "Review the escalation reason, approve the protected human handoff, then open the escalation summary.",
         nextStepValue: getCaseWorkspaceDraftNextCopy("visa_escalation_draft", isRu)?.value ?? "",
         nextStepBody: getCaseWorkspaceDraftNextCopy("visa_escalation_draft", isRu)?.body ?? "",
         preparedDraftNote: isRu
