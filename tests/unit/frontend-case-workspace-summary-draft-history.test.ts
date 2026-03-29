@@ -62,17 +62,23 @@ test("case workspace keeps the latest verified summary while draft-only prep sta
       && htmlSource.includes("The latest verified summary appears here after the first protected result or operator-ready handoff note."),
     "index.html should keep a latest-summary fallback for completed work before the first verified result lands",
   );
+  assert.ok(
+    !appSource.includes('completedPill: { text: isRu ? "Готово" : "Completed", tone: "ok" },'),
+    "verified result states should not relabel completed work as a generic completed card when it is showing the latest summary",
+  );
 
   assert.ok(
     readmeSource.includes("`Completed work` now stays focused on the latest verified summary")
       && readmeSource.includes("`Result tools` keeps earlier verified history plus restart")
-      && readmeSource.includes("`Next step` as `Prepared in draft`"),
+      && readmeSource.includes("`Next step` as `Prepared in draft`")
+      && readmeSource.includes("keeps the verified summary badge during verified result states"),
     "README should explain that completed work keeps only the latest verified summary while Result tools holds earlier history",
   );
   assert.ok(
     operatorGuideSource.includes("`Completed work` now stays focused on the latest verified summary")
       && operatorGuideSource.includes("`Result tools` keeps earlier verified history plus restart")
-      && operatorGuideSource.includes("`Next step` as `Prepared in draft`"),
+      && operatorGuideSource.includes("`Next step` as `Prepared in draft`")
+      && operatorGuideSource.includes("keeps the verified summary badge during verified result states"),
     "operator guide should explain that completed work keeps only the latest verified summary while Result tools holds earlier history",
   );
 });
