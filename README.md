@@ -213,6 +213,7 @@ Case workspace note: those secondary drawer chips now also show how many later m
 Case workspace note: `Completed work` now stays focused on the latest verified summary, while `Result tools` keeps earlier verified history plus restart and approval-only context stays in `Next step` as `Prepared in draft`.
 Case workspace note: that same `Completed work` card now also keeps the verified summary badge during verified result states instead of falling back to a generic `Completed` pill.
 Case workspace note: `Current case` now shows the active stage (`Case`, `Documents`, `Consultation`, `CRM`, `Handoff`), while `Next step` remains the operator action and draft/review promise for that stage.
+Case workspace note: `Next step` now also surfaces that operator action as a short `Action` line above the body text, so the card reads as one concrete move plus the supporting explanation.
 Case workspace note: draft-stage `Next step` now points at the protected summary review in the main row, so the fold promises the same action the current launcher actually opens.
 Case workspace note: verified-result `Next step` now stays on the next case move or human continuation, while summary copy and review history stay in `Result tools`.
 Case workspace note: the verified intake state now reads as `Visa intake verified`, so `Current case` starts the protected result chain with the same terminology as the review body already in view.

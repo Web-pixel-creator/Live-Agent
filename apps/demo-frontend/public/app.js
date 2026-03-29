@@ -1256,6 +1256,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.currentStageLabel": "Current stage",
 "live.caseWorkspace.nextStepLabel": "Next step",
 "live.caseWorkspace.nextStepCard": "Next step",
+"live.caseWorkspace.nextStepFocusLabel": "Action",
 "live.caseWorkspace.preparedDraftLabel": "Prepared in draft",
 "live.caseWorkspace.completedWork": "Completed work",
     "live.caseWorkspace.statusPillReady": "Workspace ready",
@@ -3061,6 +3062,7 @@ const el = {
   caseWorkspaceClient: document.getElementById("caseWorkspaceClient"),
   caseWorkspaceStatus: document.getElementById("caseWorkspaceStatus"),
   caseWorkspaceCurrentStageValue: document.getElementById("caseWorkspaceCurrentStageValue"),
+  caseWorkspaceNextStepFocusValue: document.getElementById("caseWorkspaceNextStepFocusValue"),
   caseWorkspaceNextStep: document.getElementById("caseWorkspaceNextStep"),
   caseWorkspacePreparedDraftShell: document.getElementById("caseWorkspacePreparedDraftShell"),
   caseWorkspacePreparedDraftLabel: document.getElementById("caseWorkspacePreparedDraftLabel"),
@@ -7538,6 +7540,7 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   const flowState = getCaseWorkspaceFlowState(awaitingFreshResponse);
   const isRu = state.languageMode === "ru";
   const currentStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentStageLabel"]');
+  const nextStepFocusLabel = document.querySelector('[data-i18n="live.caseWorkspace.nextStepFocusLabel"]');
 
   if (el.caseWorkspaceClient instanceof HTMLElement) {
     el.caseWorkspaceClient.textContent = snapshot.client;
@@ -7550,6 +7553,12 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   }
   if (el.caseWorkspaceCurrentStageValue instanceof HTMLElement) {
     el.caseWorkspaceCurrentStageValue.textContent = getCaseWorkspaceSummaryStageValue(flowState, isRu);
+  }
+  if (nextStepFocusLabel instanceof HTMLElement) {
+    nextStepFocusLabel.textContent = isRu ? "\u0427\u0442\u043e \u0434\u0435\u043b\u0430\u0442\u044c" : "Action";
+  }
+  if (el.caseWorkspaceNextStepFocusValue instanceof HTMLElement) {
+    el.caseWorkspaceNextStepFocusValue.textContent = snapshot.nextStepValue;
   }
   if (el.caseWorkspaceNextStep instanceof HTMLElement) {
     el.caseWorkspaceNextStep.textContent = snapshot.nextStepBody;
