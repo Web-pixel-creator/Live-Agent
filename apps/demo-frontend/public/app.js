@@ -76,6 +76,7 @@ const state = {
   livePendingRequest: null,
   pendingIntentRequest: null,
   liveDemoScenario: null,
+  liveCaseLastVerifiedSummaryConfig: null,
   liveResult: {
     intent: null,
     role: null,
@@ -1261,7 +1262,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.statusPillVerified": "Verified",
     "live.caseWorkspace.statusPillApproval": "Needs approval",
     "live.caseWorkspace.statusPillNext": "Reserved",
-    "live.caseWorkspace.statusPillCompleted": "Reserved",
+    "live.caseWorkspace.statusPillCompleted": "Summary",
     "live.caseWorkspace.mainActionsTitle": "Start case",
     "live.caseWorkspace.mainActionsHint": "Begin a new intake or continue the active case from one clear starting point.",
     "live.caseWorkspace.pathContextLabel": "This action",
@@ -1282,12 +1283,12 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.statusIdle": "Waiting for the first action",
     "live.caseWorkspace.nextIdle": "Pick a main action below",
 "live.caseWorkspace.nextIdleBody": "Start a new visa case, continue an active case, or send one plain live request from this workspace.",
-    "live.caseWorkspace.completedIdle": "Completed work appears here after the first verified result or operator-ready summary.",
+    "live.caseWorkspace.completedIdle": "The latest verified summary appears here after the first protected result or operator-ready handoff note.",
     "live.caseWorkspace.clientBusy": "Live request in progress",
     "live.caseWorkspace.statusBusy": "Waiting for the latest response",
     "live.caseWorkspace.nextBusy": "Read the newest result on the right",
     "live.caseWorkspace.nextBusyBody": "Keep the request focused. When the answer lands, continue the case or open a finished summary.",
-    "live.caseWorkspace.completedBusy": "The latest verified work will replace this placeholder after the current action finishes.",
+    "live.caseWorkspace.completedBusy": "The latest verified summary updates here after the current action finishes.",
     "live.caseWorkspace.clientName": "Anna Petrova",
     "live.caseWorkspace.intakeDraftStatus": "Visa intake draft is ready for approval",
     "live.caseWorkspace.intakeDraftNext": "Confirm the protected submit",
@@ -5443,6 +5444,40 @@ function buildCaseWorkspaceCompletedWorkText(summaryConfig) {
   return parts.join(" • ").trim();
 }
 
+function getCaseWorkspaceCompletedSummaryPill(isRu) {
+  return { text: isRu ? "Сводка" : "Summary", tone: "neutral" };
+}
+
+function getCaseWorkspaceCompletedIdleText(isRu) {
+  return isRu
+    ? "Последняя проверенная сводка появится здесь после первого защищённого результата или готовой сводки для оператора."
+    : "The latest verified summary appears here after the first protected result or operator-ready handoff note.";
+}
+
+function getCaseWorkspaceCompletedBusyText(isRu) {
+  return isRu
+    ? "Последняя проверенная сводка обновится здесь после завершения текущего действия."
+    : "The latest verified summary updates here after the current action finishes.";
+}
+
+function cloneLiveResultSummaryConfig(summaryConfig) {
+  if (!summaryConfig || typeof summaryConfig !== "object") {
+    return null;
+  }
+  return {
+    ...summaryConfig,
+    items: Array.isArray(summaryConfig.items)
+      ? summaryConfig.items.map((item) =>
+          item && typeof item === "object" ? { ...item } : item,
+        )
+      : [],
+    handoff:
+      summaryConfig.handoff && typeof summaryConfig.handoff === "object"
+        ? { ...summaryConfig.handoff }
+        : null,
+  };
+}
+
 const CASE_WORKSPACE_FLOW_STEPS = ["case", "documents", "consultation", "crm", "handoff"];
 const CASE_WORKSPACE_ACTION_SEQUENCE = [
   "run_visa_intake_demo",
@@ -6861,7 +6896,6 @@ function getCaseWorkspaceFlowState(awaitingFreshResponse) {
     pillText,
     pillTone,
   });
-
   if (awaitingFreshResponse && typeof state.liveDemoScenario !== "string") {
     return buildFlowState({
       currentStep: "case",
@@ -7049,9 +7083,11 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
     heroFocus: isRu ? "Один кейс за раз" : "One case at a time",
     heroApproval: isRu ? "Подтверждение видно сразу" : "Approval stays visible",
   };
+  defaultSnapshot.completedWork = getCaseWorkspaceCompletedIdleText(isRu);
+  defaultSnapshot.completedPill = getCaseWorkspaceCompletedSummaryPill(isRu);
 
   if (awaitingFreshResponse && typeof state.liveDemoScenario !== "string") {
-    return {
+    const busySnapshot = {
       ...defaultSnapshot,
       client: isRu ? "Live-запрос в работе" : "Live request in progress",
       status: isRu ? "Ждём последний ответ" : "Waiting for the latest response",
@@ -7067,10 +7103,13 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
       heroStatus: isRu ? "Запрос в работе" : "Request in progress",
       heroFocus: isRu ? "Один запрос за раз" : "One request at a time",
     };
+    busySnapshot.completedWork = getCaseWorkspaceCompletedBusyText(isRu);
+    return busySnapshot;
   }
 
   const sharedClient = ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.full_name;
-  const sharedCompletedWork = buildCaseWorkspaceCompletedWorkText(summaryConfig);
+  const completedSummaryConfig = summaryConfig ?? state.liveCaseLastVerifiedSummaryConfig;
+  const sharedCompletedWork = buildCaseWorkspaceCompletedWorkText(completedSummaryConfig);
   const sharedCompletedPill =
     sharedCompletedWork && sharedCompletedWork.length > 0
       ? { text: isRu ? "РџСЂРѕРІРµСЂРµРЅРѕ" : "Verified", tone: "ok" }
@@ -19386,6 +19425,9 @@ function renderLiveIntentExperience() {
     latestResult.text.trim().length > 0 &&
     latestResult.intent === intent;
   const summaryConfig = getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult);
+  if (summaryConfig) {
+    state.liveCaseLastVerifiedSummaryConfig = cloneLiveResultSummaryConfig(summaryConfig);
+  }
 
   renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaitingFreshResponse, summaryConfig);
   if (el.liveComposePanelHeading instanceof HTMLElement) {
@@ -25292,6 +25334,7 @@ function resolveVisaEscalationDemoUrl() {
 function runVisaIntakeDemoPreset() {
   applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT);
   primeVisaIntakeDemoFields();
+  state.liveCaseLastVerifiedSummaryConfig = null;
   sendIntentRequest({
     demoScenario: "visa_intake_draft",
     intent: "ui_task",
@@ -25405,6 +25448,7 @@ function resetVisaIntakeDemoPreset() {
   applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT);
   primeVisaIntakeDemoFields();
   state.liveDemoScenario = null;
+  state.liveCaseLastVerifiedSummaryConfig = null;
   state.liveResult = {
     intent: "ui_task",
     role: null,

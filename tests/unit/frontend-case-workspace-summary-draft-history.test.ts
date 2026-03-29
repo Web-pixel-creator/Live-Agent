@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("case workspace keeps completed work on verified history while draft-only prep stays under what next", () => {
+test("case workspace keeps the latest verified summary while draft-only prep stays under what next", () => {
   const htmlSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "index.html"), "utf8");
   const appSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js"), "utf8");
   const stylesSource = readFileSync(resolve(process.cwd(), "apps", "demo-frontend", "public", "styles.css"), "utf8");
@@ -23,9 +23,23 @@ test("case workspace keeps completed work on verified history while draft-only p
     'caseWorkspacePreparedDraftLabel: document.getElementById("caseWorkspacePreparedDraftLabel")',
     'caseWorkspacePreparedDraftNote: document.getElementById("caseWorkspacePreparedDraftNote")',
     '"live.caseWorkspace.preparedDraftLabel": "Prepared in draft"',
+    '"live.caseWorkspace.statusPillCompleted": "Summary"',
+    '"live.caseWorkspace.completedIdle": "The latest verified summary appears here after the first protected result or operator-ready handoff note."',
+    '"live.caseWorkspace.completedBusy": "The latest verified summary updates here after the current action finishes."',
+    "liveCaseLastVerifiedSummaryConfig: null,",
+    "function getCaseWorkspaceCompletedSummaryPill(isRu)",
+    "function getCaseWorkspaceCompletedIdleText(isRu)",
+    "function getCaseWorkspaceCompletedBusyText(isRu)",
+    "function cloneLiveResultSummaryConfig(summaryConfig)",
     'preparedDraftNote: "",',
-    "const sharedCompletedWork = buildCaseWorkspaceCompletedWorkText(summaryConfig);",
+    "defaultSnapshot.completedWork = getCaseWorkspaceCompletedIdleText(isRu);",
+    "defaultSnapshot.completedPill = getCaseWorkspaceCompletedSummaryPill(isRu);",
+    "busySnapshot.completedWork = getCaseWorkspaceCompletedBusyText(isRu);",
+    "const completedSummaryConfig = summaryConfig ?? state.liveCaseLastVerifiedSummaryConfig;",
+    "const sharedCompletedWork = buildCaseWorkspaceCompletedWorkText(completedSummaryConfig);",
     "const sharedCompletedPill =",
+    "state.liveCaseLastVerifiedSummaryConfig = cloneLiveResultSummaryConfig(summaryConfig);",
+    "state.liveCaseLastVerifiedSummaryConfig = null;",
     'preparedDraftNote: isRu',
     "completedWork: sharedCompletedWork || defaultSnapshot.completedWork,",
     "completedPill: sharedCompletedPill,",
@@ -44,13 +58,21 @@ test("case workspace keeps completed work on verified history while draft-only p
   }
 
   assert.ok(
-    readmeSource.includes("`Completed work` now stays reserved for verified history")
+    htmlSource.includes('id="caseWorkspaceCompletedPill" class="status-pill status-neutral" data-i18n="live.caseWorkspace.statusPillCompleted">Summary</span>')
+      && htmlSource.includes("The latest verified summary appears here after the first protected result or operator-ready handoff note."),
+    "index.html should keep a latest-summary fallback for completed work before the first verified result lands",
+  );
+
+  assert.ok(
+    readmeSource.includes("`Completed work` now stays focused on the latest verified summary")
+      && readmeSource.includes("`Result tools` keeps earlier verified history plus restart")
       && readmeSource.includes("`Next step` as `Prepared in draft`"),
-    "README should explain that draft-only context moved under Next step while completed work stays verified-history only",
+    "README should explain that completed work keeps only the latest verified summary while Result tools holds earlier history",
   );
   assert.ok(
-    operatorGuideSource.includes("`Completed work` now stays reserved for verified history")
+    operatorGuideSource.includes("`Completed work` now stays focused on the latest verified summary")
+      && operatorGuideSource.includes("`Result tools` keeps earlier verified history plus restart")
       && operatorGuideSource.includes("`Next step` as `Prepared in draft`"),
-    "operator guide should explain that draft-only context moved under Next step while completed work stays verified-history only",
+    "operator guide should explain that completed work keeps only the latest verified summary while Result tools holds earlier history",
   );
 });
