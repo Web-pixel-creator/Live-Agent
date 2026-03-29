@@ -14,6 +14,8 @@ test("case workspace keeps the latest verified summary while draft-only prep sta
     'id="caseWorkspacePreparedDraftShell"',
     'id="caseWorkspacePreparedDraftLabel"',
     'id="caseWorkspacePreparedDraftNote"',
+    'data-i18n="live.caseWorkspace.completedFocusLabel">Latest proof</span>',
+    'id="caseWorkspaceCompletedFocusValue"',
   ]) {
     assert.ok(htmlSource.includes(token), `index.html missing prepared-draft summary token: ${token}`);
   }
@@ -24,10 +26,12 @@ test("case workspace keeps the latest verified summary while draft-only prep sta
     'caseWorkspacePreparedDraftNote: document.getElementById("caseWorkspacePreparedDraftNote")',
     '"live.caseWorkspace.preparedDraftLabel": "Prepared in draft"',
     '"live.caseWorkspace.statusPillCompleted": "Summary"',
+    '"live.caseWorkspace.completedFocusLabel": "Latest proof"',
     '"live.caseWorkspace.completedIdle": "The latest verified summary appears here after the first protected result or operator-ready handoff note."',
     '"live.caseWorkspace.completedBusy": "The latest verified summary updates here after the current action finishes."',
     "liveCaseLastVerifiedSummaryConfig: null,",
     "function getCaseWorkspaceCompletedSummaryPill(isRu)",
+    "function getCaseWorkspaceCompletedFocusValue(summaryConfig, isRu)",
     "function getCaseWorkspaceCompletedIdleText(isRu)",
     "function getCaseWorkspaceCompletedBusyText(isRu)",
     "function cloneLiveResultSummaryConfig(summaryConfig)",
@@ -38,11 +42,13 @@ test("case workspace keeps the latest verified summary while draft-only prep sta
     "const completedSummaryConfig = summaryConfig ?? state.liveCaseLastVerifiedSummaryConfig;",
     "const sharedCompletedWork = buildCaseWorkspaceCompletedWorkText(completedSummaryConfig);",
     "const sharedCompletedPill =",
+    "const completedFocusLabel = document.querySelector('[data-i18n=\"live.caseWorkspace.completedFocusLabel\"]');",
     "state.liveCaseLastVerifiedSummaryConfig = cloneLiveResultSummaryConfig(summaryConfig);",
     "state.liveCaseLastVerifiedSummaryConfig = null;",
     'preparedDraftNote: isRu',
     "completedWork: sharedCompletedWork || defaultSnapshot.completedWork,",
     "completedPill: sharedCompletedPill,",
+    "el.caseWorkspaceCompletedFocusValue.textContent = getCaseWorkspaceCompletedFocusValue(completedSummaryConfig, isRu);",
     'el.caseWorkspacePreparedDraftShell.hidden = !(typeof snapshot.preparedDraftNote === "string" && snapshot.preparedDraftNote.trim().length > 0);',
     'typeof snapshot.preparedDraftNote === "string" ? snapshot.preparedDraftNote : ""',
   ]) {
@@ -50,6 +56,9 @@ test("case workspace keeps the latest verified summary while draft-only prep sta
   }
 
   for (const token of [
+    ".case-workspace-summary-completed-focus",
+    ".case-workspace-summary-completed-focus-label",
+    ".case-workspace-summary-completed-focus-value",
     ".case-workspace-summary-prepared",
     ".case-workspace-summary-prepared-label",
     ".case-workspace-summary-prepared-copy",
@@ -71,14 +80,16 @@ test("case workspace keeps the latest verified summary while draft-only prep sta
     readmeSource.includes("`Completed work` now stays focused on the latest verified summary")
       && readmeSource.includes("`Result tools` keeps earlier verified history plus restart")
       && readmeSource.includes("`Next step` as `Prepared in draft`")
-      && readmeSource.includes("keeps the verified summary badge during verified result states"),
+      && readmeSource.includes("keeps the verified summary badge during verified result states")
+      && readmeSource.includes("`Latest proof` line above the details"),
     "README should explain that completed work keeps only the latest verified summary while Result tools holds earlier history",
   );
   assert.ok(
     operatorGuideSource.includes("`Completed work` now stays focused on the latest verified summary")
       && operatorGuideSource.includes("`Result tools` keeps earlier verified history plus restart")
       && operatorGuideSource.includes("`Next step` as `Prepared in draft`")
-      && operatorGuideSource.includes("keeps the verified summary badge during verified result states"),
+      && operatorGuideSource.includes("keeps the verified summary badge during verified result states")
+      && operatorGuideSource.includes("`Latest proof` line above the details"),
     "operator guide should explain that completed work keeps only the latest verified summary while Result tools holds earlier history",
   );
 });

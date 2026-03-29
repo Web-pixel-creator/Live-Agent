@@ -1259,6 +1259,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
 "live.caseWorkspace.nextStepFocusLabel": "Action",
 "live.caseWorkspace.preparedDraftLabel": "Prepared in draft",
 "live.caseWorkspace.completedWork": "Completed work",
+"live.caseWorkspace.completedFocusLabel": "Latest proof",
     "live.caseWorkspace.statusPillReady": "Workspace ready",
     "live.caseWorkspace.statusPillInFlight": "In progress",
     "live.caseWorkspace.statusPillVerified": "Verified",
@@ -3067,6 +3068,7 @@ const el = {
   caseWorkspacePreparedDraftShell: document.getElementById("caseWorkspacePreparedDraftShell"),
   caseWorkspacePreparedDraftLabel: document.getElementById("caseWorkspacePreparedDraftLabel"),
   caseWorkspacePreparedDraftNote: document.getElementById("caseWorkspacePreparedDraftNote"),
+  caseWorkspaceCompletedFocusValue: document.getElementById("caseWorkspaceCompletedFocusValue"),
   caseWorkspaceCompletedWork: document.getElementById("caseWorkspaceCompletedWork"),
   caseWorkspaceStatusPill: document.getElementById("caseWorkspaceStatusPill"),
   caseWorkspaceNextStepPill: document.getElementById("caseWorkspaceNextStepPill"),
@@ -5432,9 +5434,6 @@ function buildCaseWorkspaceCompletedWorkText(summaryConfig) {
     return "";
   }
   const parts = [];
-  if (typeof summaryConfig.title === "string" && summaryConfig.title.trim().length > 0) {
-    parts.push(summaryConfig.title.trim());
-  }
   for (const item of summaryConfig.items.slice(0, 3)) {
     if (!item || typeof item.label !== "string" || typeof item.value !== "string") {
       continue;
@@ -5449,6 +5448,15 @@ function buildCaseWorkspaceCompletedWorkText(summaryConfig) {
 
 function getCaseWorkspaceCompletedSummaryPill(isRu) {
   return { text: isRu ? "Сводка" : "Summary", tone: "neutral" };
+}
+
+function getCaseWorkspaceCompletedFocusValue(summaryConfig, isRu) {
+  if (summaryConfig && typeof summaryConfig.title === "string" && summaryConfig.title.trim().length > 0) {
+    return summaryConfig.title.trim();
+  }
+  return isRu
+    ? "\u041e\u0436\u0438\u0434\u0430\u0435\u043c \u043f\u0435\u0440\u0432\u0443\u044e \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0443"
+    : "Waiting for the first verified result";
 }
 
 function getCaseWorkspaceCompletedIdleText(isRu) {
@@ -7539,8 +7547,10 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   const snapshot = getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse, summaryConfig);
   const flowState = getCaseWorkspaceFlowState(awaitingFreshResponse);
   const isRu = state.languageMode === "ru";
+  const completedSummaryConfig = summaryConfig ?? state.liveCaseLastVerifiedSummaryConfig;
   const currentStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentStageLabel"]');
   const nextStepFocusLabel = document.querySelector('[data-i18n="live.caseWorkspace.nextStepFocusLabel"]');
+  const completedFocusLabel = document.querySelector('[data-i18n="live.caseWorkspace.completedFocusLabel"]');
 
   if (el.caseWorkspaceClient instanceof HTMLElement) {
     el.caseWorkspaceClient.textContent = snapshot.client;
@@ -7572,6 +7582,12 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   if (el.caseWorkspacePreparedDraftNote instanceof HTMLElement) {
     el.caseWorkspacePreparedDraftNote.textContent =
       typeof snapshot.preparedDraftNote === "string" ? snapshot.preparedDraftNote : "";
+  }
+  if (completedFocusLabel instanceof HTMLElement) {
+    completedFocusLabel.textContent = isRu ? "\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u044f\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430" : "Latest proof";
+  }
+  if (el.caseWorkspaceCompletedFocusValue instanceof HTMLElement) {
+    el.caseWorkspaceCompletedFocusValue.textContent = getCaseWorkspaceCompletedFocusValue(completedSummaryConfig, isRu);
   }
   if (el.caseWorkspaceCompletedWork instanceof HTMLElement) {
     el.caseWorkspaceCompletedWork.textContent = snapshot.completedWork;
