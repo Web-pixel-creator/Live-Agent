@@ -1294,14 +1294,14 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.intakeDraftNext": "Open the protected intake summary",
     "live.caseWorkspace.intakeDraftBody": "Open the protected intake summary from the main row to confirm the seeded submit and close the first case step.",
     "live.caseWorkspace.intakeDraftCompleted": "Lead profile, consultation slot, and the missing-document checklist are already prepared inside the draft.",
-    "live.caseWorkspace.intakeResultStatus": "Visa intake completed",
+    "live.caseWorkspace.intakeResultStatus": "Visa intake verified",
     "live.caseWorkspace.intakeResultNext": "Request the missing documents",
     "live.caseWorkspace.intakeResultBody": "The intake result is verified. The next step is the missing-document follow-up for the client.",
     "live.caseWorkspace.followUpDraftStatus": "Missing-documents follow-up is ready",
     "live.caseWorkspace.followUpDraftNext": "Open the protected follow-up summary",
     "live.caseWorkspace.followUpDraftBody": "Open the protected follow-up summary from the main row to confirm the safe outreach step and close the documents stage.",
     "live.caseWorkspace.followUpDraftCompleted": "The checklist request and follow-up note are already prepared for Anna.",
-    "live.caseWorkspace.followUpResultStatus": "Document follow-up completed",
+    "live.caseWorkspace.followUpResultStatus": "Document follow-up verified",
     "live.caseWorkspace.followUpResultNext": "Prepare the consultation reminder",
     "live.caseWorkspace.followUpResultBody": "The follow-up result is verified. The next step is the consultation reminder.",
     "live.caseWorkspace.reminderDraftStatus": "Consultation reminder is ready",
@@ -7179,7 +7179,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
       return {
         ...defaultSnapshot,
         client: sharedClient,
-        status: isRu ? "Визовый intake завершён" : "Visa intake completed",
+        status: isRu ? "Визовый intake проверен" : "Visa intake verified",
         nextStepValue: isRu ? "Запросите недостающие документы" : "Request the missing documents",
         nextStepBody: isRu
           ? "???? intake ??? ????????. ????????? ???: ????????? ??????????? ????????? ? ???????."
@@ -7214,7 +7214,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
       return {
         ...defaultSnapshot,
         client: sharedClient,
-        status: isRu ? "Follow-up по документам завершён" : "Document follow-up completed",
+        status: isRu ? "Follow-up по документам проверен" : "Document follow-up verified",
         nextStepValue: isRu ? "Подготовьте напоминание о консультации" : "Prepare the consultation reminder",
         nextStepBody: isRu
           ? "???? follow-up ??? ????????. ????????? ???: ??????????? ??????????? ? ????????????."

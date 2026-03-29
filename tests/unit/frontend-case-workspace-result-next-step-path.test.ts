@@ -10,7 +10,8 @@ test("verified case results keep next-step copy on the case path while summary r
 
   for (const token of [
     '"live.caseWorkspace.intakeResultBody": "The intake result is verified. The next step is the missing-document follow-up for the client."',
-    '"live.caseWorkspace.followUpResultStatus": "Document follow-up completed"',
+    '"live.caseWorkspace.intakeResultStatus": "Visa intake verified"',
+    '"live.caseWorkspace.followUpResultStatus": "Document follow-up verified"',
     '"live.caseWorkspace.followUpResultBody": "The follow-up result is verified. The next step is the consultation reminder."',
     '"live.caseWorkspace.reminderResultStatus": "Consultation reminder verified"',
     '"live.caseWorkspace.reminderResultBody": "The reminder is verified. The next step is the CRM update."',
@@ -19,7 +20,8 @@ test("verified case results keep next-step copy on the case path while summary r
     '"live.caseWorkspace.escalationResultStatus": "Specialist handoff verified"',
     '"live.caseWorkspace.escalationResultBody": "The specialist handoff is verified. The next step is continuing the case with the assigned human owner."',
     '"The intake result is verified. The next step is the missing-document follow-up for the client."',
-    '"Document follow-up completed"',
+    '"Visa intake verified"',
+    '"Document follow-up verified"',
     '"The follow-up result is verified. The next step is the consultation reminder."',
     '"Consultation reminder verified"',
     '"The reminder is verified. The next step is the CRM update."',
@@ -33,7 +35,9 @@ test("verified case results keep next-step copy on the case path while summary r
 
   for (const staleToken of [
     '"The intake result is verified. Move the case into follow-up or copy the operator summary."',
+    '"Visa intake completed"',
     '"Waiting on missing documents"',
+    '"Document follow-up completed"',
     '"Consultation reminder completed"',
     '"The reminder is verified. Move the case into CRM writeback or copy the reminder handoff note."',
     '"CRM handoff completed"',
@@ -49,7 +53,11 @@ test("verified case results keep next-step copy on the case path while summary r
     "README should explain that verified result next-step copy stays on the case path",
   );
   assert.ok(
-    readmeSource.includes("verified document follow-up state now reads as a completed review instead of a waiting state"),
+    readmeSource.includes("verified intake state now reads as `Visa intake verified`"),
+    "README should explain the intake result status alignment",
+  );
+  assert.ok(
+    readmeSource.includes("verified document follow-up state now reads as `Document follow-up verified`"),
     "README should explain the follow-up result status alignment",
   );
   assert.ok(
@@ -69,7 +77,11 @@ test("verified case results keep next-step copy on the case path while summary r
     "operator guide should explain that verified result next-step copy stays on the case path",
   );
   assert.ok(
-    operatorGuideSource.includes("verified document follow-up state now reads as a completed review instead of a waiting state"),
+    operatorGuideSource.includes("verified intake state now reads as `Visa intake verified`"),
+    "operator guide should explain the intake result status alignment",
+  );
+  assert.ok(
+    operatorGuideSource.includes("verified document follow-up state now reads as `Document follow-up verified`"),
     "operator guide should explain the follow-up result status alignment",
   );
   assert.ok(

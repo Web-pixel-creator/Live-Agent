@@ -60,7 +60,8 @@ Case workspace note: those secondary drawer chips now also show how many later m
 Case workspace note: `Completed work` now stays focused on the latest verified summary, while `Result tools` keeps earlier verified history plus restart and approval-only context stays in `Next step` as `Prepared in draft`.
 Case workspace note: draft-stage `Next step` now points at the protected summary review in the main row, so the fold promises the same action the current launcher actually opens.
 Case workspace note: verified-result `Next step` now stays on the next case move or human continuation, while summary copy and review history stay in `Result tools`.
-Case workspace note: the verified document follow-up state now reads as a completed review instead of a waiting state, so `Current case` stays aligned with the consultation reminder path.
+Case workspace note: the verified intake state now reads as `Visa intake verified`, so `Current case` starts the protected result chain with the same terminology as the review body already in view.
+Case workspace note: the verified document follow-up state now reads as `Document follow-up verified`, so `Current case` stays aligned with the consultation reminder path.
 Case workspace note: the verified reminder state now reads as `Consultation reminder verified`, so `Current case` matches the protected reminder result already in view.
 Case workspace note: the verified CRM state now reads as `CRM update verified`, so `Current case` no longer sounds like the specialist handoff already happened before that final branch is chosen.
 Case workspace note: the verified specialist handoff state now reads as `Specialist handoff verified`, so `Current case` keeps the final protected review in view instead of sounding like a raw side effect.
