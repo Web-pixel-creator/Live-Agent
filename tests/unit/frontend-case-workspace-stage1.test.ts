@@ -51,6 +51,9 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   for (const token of ['id="caseWorkspaceRequestTitle"', 'id="caseWorkspaceRequestChip"', 'id="sendBtn"', 'id="sendBtnHint"']) {
     assert.ok(requestSection.includes(token), `live-request drawer missing token: ${token}`);
   }
+  for (const token of ['id="caseWorkspacePreparedDraftShell"', 'id="caseWorkspacePreparedDraftLabel"', 'id="caseWorkspacePreparedDraftNote"']) {
+    assert.ok(htmlSource.includes(token), `case-workspace summary grid missing token: ${token}`);
+  }
   for (const token of ['id="runVisaFollowUpBtn"', 'id="runVisaReminderBtn"', 'id="runVisaHandoffBtn"', 'id="runVisaEscalationBtn"']) {
     assert.ok(caseSection.includes(token), `move-case-forward drawer missing token: ${token}`);
   }
@@ -63,9 +66,13 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     'caseWorkspaceStatus: document.getElementById("caseWorkspaceStatus")',
     'caseWorkspaceNextStepValue: document.getElementById("caseWorkspaceNextStepValue")',
     'caseWorkspaceNextStep: document.getElementById("caseWorkspaceNextStep")',
+    'caseWorkspacePreparedDraftShell: document.getElementById("caseWorkspacePreparedDraftShell")',
+    'caseWorkspacePreparedDraftLabel: document.getElementById("caseWorkspacePreparedDraftLabel")',
+    'caseWorkspacePreparedDraftNote: document.getElementById("caseWorkspacePreparedDraftNote")',
     'caseWorkspaceCompletedWork: document.getElementById("caseWorkspaceCompletedWork")',
     'caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus")',
     'caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta")',
+    '"live.caseWorkspace.preparedDraftLabel": "Prepared in draft"',
     '"live.caseWorkspace.pathContextLabel": "This action"',
     'caseWorkspaceMainActionSurfaceLabel: document.getElementById("caseWorkspaceMainActionSurfaceLabel")',
     'caseWorkspaceMainActionSurfaceValue: document.getElementById("caseWorkspaceMainActionSurfaceValue")',
@@ -109,6 +116,9 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     ".case-workspace-hero",
     ".case-workspace-summary-grid",
     ".case-workspace-summary-card",
+    ".case-workspace-summary-prepared",
+    ".case-workspace-summary-prepared-label",
+    ".case-workspace-summary-prepared-copy",
     ".case-workspace-action-stack",
     ".case-workspace-action-section",
     ".case-workspace-main-action-meta-row",

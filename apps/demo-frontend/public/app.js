@@ -1252,9 +1252,10 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.currentCase": "Current case",
     "live.caseWorkspace.clientLabel": "Client",
     "live.caseWorkspace.statusLabel": "Status",
-    "live.caseWorkspace.nextStepLabel": "Next step",
-    "live.caseWorkspace.nextStepCard": "Next step",
-    "live.caseWorkspace.completedWork": "Completed work",
+"live.caseWorkspace.nextStepLabel": "Next step",
+"live.caseWorkspace.nextStepCard": "Next step",
+"live.caseWorkspace.preparedDraftLabel": "Prepared in draft",
+"live.caseWorkspace.completedWork": "Completed work",
     "live.caseWorkspace.statusPillReady": "Workspace ready",
     "live.caseWorkspace.statusPillInFlight": "In progress",
     "live.caseWorkspace.statusPillVerified": "Verified",
@@ -1280,7 +1281,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.clientIdle": "Ready for first request",
     "live.caseWorkspace.statusIdle": "Waiting for the first action",
     "live.caseWorkspace.nextIdle": "Pick a main action below",
-    "live.caseWorkspace.nextIdleBody": "Start a new visa case, continue an active case, or send one plain live request from this workspace.",
+"live.caseWorkspace.nextIdleBody": "Start a new visa case, continue an active case, or send one plain live request from this workspace.",
     "live.caseWorkspace.completedIdle": "Completed work appears here after the first verified result or operator-ready summary.",
     "live.caseWorkspace.clientBusy": "Live request in progress",
     "live.caseWorkspace.statusBusy": "Waiting for the latest response",
@@ -3059,6 +3060,9 @@ const el = {
   caseWorkspaceStatus: document.getElementById("caseWorkspaceStatus"),
   caseWorkspaceNextStepValue: document.getElementById("caseWorkspaceNextStepValue"),
   caseWorkspaceNextStep: document.getElementById("caseWorkspaceNextStep"),
+  caseWorkspacePreparedDraftShell: document.getElementById("caseWorkspacePreparedDraftShell"),
+  caseWorkspacePreparedDraftLabel: document.getElementById("caseWorkspacePreparedDraftLabel"),
+  caseWorkspacePreparedDraftNote: document.getElementById("caseWorkspacePreparedDraftNote"),
   caseWorkspaceCompletedWork: document.getElementById("caseWorkspaceCompletedWork"),
   caseWorkspaceStatusPill: document.getElementById("caseWorkspaceStatusPill"),
   caseWorkspaceNextStepPill: document.getElementById("caseWorkspaceNextStepPill"),
@@ -7034,6 +7038,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
     nextStepBody: isRu
       ? "Начните новый визовый кейс, продолжите активный кейс или отправьте один обычный live-запрос из этой рабочей зоны."
       : "Start a new visa case, continue an active case, or send one plain live request from this workspace.",
+    preparedDraftNote: "",
     completedWork: isRu
       ? "Выполненная работа появится здесь после первого проверенного результата или итоговой сводки для оператора."
       : "Completed work appears here after the first verified result or operator-ready summary.",
@@ -7066,6 +7071,10 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
 
   const sharedClient = ACTIVE_TASK_VISA_INTAKE_DEMO_FORM_DATA.full_name;
   const sharedCompletedWork = buildCaseWorkspaceCompletedWorkText(summaryConfig);
+  const sharedCompletedPill =
+    sharedCompletedWork && sharedCompletedWork.length > 0
+      ? { text: isRu ? "РџСЂРѕРІРµСЂРµРЅРѕ" : "Verified", tone: "ok" }
+      : defaultSnapshot.completedPill;
   switch (state.liveDemoScenario) {
     case "visa_intake_draft":
       return {
@@ -7076,12 +7085,13 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         nextStepBody: isRu
           ? "Откройте подготовленный intake-браузер, подтвердите защищённую отправку, затем откройте итог заявки."
           : "Open the seeded intake browser, confirm the protected submit when ready, then open the intake summary.",
-        completedWork: isRu
+        preparedDraftNote: isRu
           ? "Карточка лида, слот консультации и чеклист недостающих документов уже подготовлены в черновике."
           : "Lead profile, consultation slot, and the missing-document checklist are already prepared inside the draft.",
+        completedWork: sharedCompletedWork || defaultSnapshot.completedWork,
         statusPill: { text: isRu ? "Нужно подтверждение" : "Needs approval", tone: "fail" },
         nextPill: { text: isRu ? "Сейчас" : "Now", tone: "neutral" },
-        completedPill: { text: isRu ? "Черновик" : "Draft ready", tone: "neutral" },
+        completedPill: sharedCompletedPill,
         heroStatus: isRu ? "Черновик готов" : "Draft ready",
         heroFocus: isRu ? "Фокус: intake" : "Focus: intake",
         heroApproval: isRu ? "Ждёт подтверждения" : "Approval required",
@@ -7112,12 +7122,13 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         nextStepBody: isRu
           ? "Проверьте подготовленное сообщение, подтвердите безопасную отправку и затем откройте итог follow-up."
           : "Review the prepared follow-up message, approve the safe outreach step, then open the completed summary.",
-        completedWork: isRu
+        preparedDraftNote: isRu
           ? "Чеклист и follow-up заметка уже подготовлены для Анны."
           : "The checklist request and follow-up note are already prepared for Anna.",
+        completedWork: sharedCompletedWork || defaultSnapshot.completedWork,
         statusPill: { text: isRu ? "Нужно подтверждение" : "Needs approval", tone: "fail" },
         nextPill: { text: isRu ? "Сейчас" : "Now", tone: "neutral" },
-        completedPill: { text: isRu ? "Черновик" : "Draft ready", tone: "neutral" },
+        completedPill: sharedCompletedPill,
         heroStatus: isRu ? "Follow-up готов" : "Follow-up ready",
         heroFocus: isRu ? "Фокус: документы" : "Focus: documents",
         heroApproval: isRu ? "Ждёт подтверждения" : "Approval required",
@@ -7148,12 +7159,13 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         nextStepBody: isRu
           ? "Подтвердите отправку напоминания и затем откройте итог напоминания с готовым handoff."
           : "Approve the reminder send when ready, then open the reminder summary to capture the final handoff.",
-        completedWork: isRu
+        preparedDraftNote: isRu
           ? "Слот, таймзона и список подготовки уже собраны в черновике напоминания."
           : "The consultation slot, timezone, and preparation checklist are already assembled in the reminder draft.",
+        completedWork: sharedCompletedWork || defaultSnapshot.completedWork,
         statusPill: { text: isRu ? "Нужно подтверждение" : "Needs approval", tone: "fail" },
         nextPill: { text: isRu ? "Сейчас" : "Now", tone: "neutral" },
-        completedPill: { text: isRu ? "Черновик" : "Draft ready", tone: "neutral" },
+        completedPill: sharedCompletedPill,
         heroStatus: isRu ? "Напоминание готово" : "Reminder ready",
         heroFocus: isRu ? "Фокус: консультация" : "Focus: consultation",
         heroApproval: isRu ? "Ждёт подтверждения" : "Approval required",
@@ -7184,12 +7196,13 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         nextStepBody: isRu
           ? "Проверьте CRM-заметку и назначенного владельца, затем подтвердите защищённую запись."
           : "Review the prepared CRM note and owner assignment, then approve the protected writeback step.",
-        completedWork: isRu
+        preparedDraftNote: isRu
           ? "CRM-заметка, владелец кейса и следующий шаг уже собраны в черновике записи."
           : "The CRM note, assigned owner, and next action are already staged in the writeback draft.",
+        completedWork: sharedCompletedWork || defaultSnapshot.completedWork,
         statusPill: { text: isRu ? "Нужно подтверждение" : "Needs approval", tone: "fail" },
         nextPill: { text: isRu ? "Сейчас" : "Now", tone: "neutral" },
-        completedPill: { text: isRu ? "Черновик" : "Draft ready", tone: "neutral" },
+        completedPill: sharedCompletedPill,
         heroStatus: isRu ? "CRM-черновик готов" : "CRM draft ready",
         heroFocus: isRu ? "Фокус: запись в CRM" : "Focus: CRM writeback",
         heroApproval: isRu ? "Ждёт подтверждения" : "Approval required",
@@ -7220,12 +7233,13 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         nextStepBody: isRu
           ? "Проверьте причину эскалации, подтвердите передачу человеку и затем откройте итог передачи."
           : "Review the escalation reason, approve the protected human handoff, then open the escalation summary.",
-        completedWork: isRu
+        preparedDraftNote: isRu
           ? "Причина эскалации, владелец и очередь уже подготовлены для human review."
           : "The escalation note, owner, and queue are already prepared for human review.",
+        completedWork: sharedCompletedWork || defaultSnapshot.completedWork,
         statusPill: { text: isRu ? "Нужно подтверждение" : "Needs approval", tone: "fail" },
         nextPill: { text: isRu ? "Сейчас" : "Now", tone: "neutral" },
-        completedPill: { text: isRu ? "Черновик" : "Draft ready", tone: "neutral" },
+        completedPill: sharedCompletedPill,
         heroStatus: isRu ? "Передача подготовлена" : "Handoff ready",
         heroFocus: isRu ? "Фокус: специалист" : "Focus: specialist",
         heroApproval: isRu ? "Ждёт подтверждения" : "Approval required",
@@ -7441,6 +7455,7 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorks
 function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaitingFreshResponse, summaryConfig) {
   syncCaseWorkspaceStaticCopy();
   const snapshot = getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse, summaryConfig);
+  const isRu = state.languageMode === "ru";
 
   if (el.caseWorkspaceClient instanceof HTMLElement) {
     el.caseWorkspaceClient.textContent = snapshot.client;
@@ -7453,6 +7468,16 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   }
   if (el.caseWorkspaceNextStep instanceof HTMLElement) {
     el.caseWorkspaceNextStep.textContent = snapshot.nextStepBody;
+  }
+  if (el.caseWorkspacePreparedDraftShell instanceof HTMLElement) {
+    el.caseWorkspacePreparedDraftShell.hidden = !(typeof snapshot.preparedDraftNote === "string" && snapshot.preparedDraftNote.trim().length > 0);
+  }
+  if (el.caseWorkspacePreparedDraftLabel instanceof HTMLElement) {
+    el.caseWorkspacePreparedDraftLabel.textContent = isRu ? "Подготовлено в черновике" : "Prepared in draft";
+  }
+  if (el.caseWorkspacePreparedDraftNote instanceof HTMLElement) {
+    el.caseWorkspacePreparedDraftNote.textContent =
+      typeof snapshot.preparedDraftNote === "string" ? snapshot.preparedDraftNote : "";
   }
   if (el.caseWorkspaceCompletedWork instanceof HTMLElement) {
     el.caseWorkspaceCompletedWork.textContent = snapshot.completedWork;
@@ -25268,7 +25293,7 @@ function runVisaIntakeDemoPreset() {
   applyIntentTemplateFromActiveTasks("ui_task", ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT);
   primeVisaIntakeDemoFields();
   sendIntentRequest({
-    demoScenario: "visa_draft",
+    demoScenario: "visa_intake_draft",
     intent: "ui_task",
     message: ACTIVE_TASK_VISA_INTAKE_DEMO_PROMPT,
     uiTaskOverrides: buildVisaIntakeDemoUiTaskOverrides(),

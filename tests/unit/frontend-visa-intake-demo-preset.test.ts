@@ -52,6 +52,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     "function resolveVisaIntakeDemoUrl() {",
     "async function copyTextToClipboard(text) {",
     'el.liveResultSummaryCopyBtn.addEventListener("click", async () => {',
+    'demoScenario: "visa_intake_draft"',
     'demoScenario: "visa_result"',
     'action: "run_visa_intake_demo"',
     'case "review_visa_draft_result":',
@@ -74,6 +75,10 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
   for (const token of requiredAppTokens) {
     assert.ok(appSource.includes(token), `app.js missing visa demo preset token: ${token}`);
   }
+  assert.ok(
+    !appSource.includes('demoScenario: "visa_draft"'),
+    "app.js should not use the stale visa_draft intake scenario name",
+  );
 
   const requiredHtmlTokens = [
     'class="case-workspace-shell"',
