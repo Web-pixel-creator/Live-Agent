@@ -1301,7 +1301,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.followUpDraftNext": "Open the protected follow-up summary",
     "live.caseWorkspace.followUpDraftBody": "Open the protected follow-up summary from the main row to confirm the safe outreach step and close the documents stage.",
     "live.caseWorkspace.followUpDraftCompleted": "The checklist request and follow-up note are already prepared for Anna.",
-    "live.caseWorkspace.followUpResultStatus": "Waiting on missing documents",
+    "live.caseWorkspace.followUpResultStatus": "Document follow-up completed",
     "live.caseWorkspace.followUpResultNext": "Prepare the consultation reminder",
     "live.caseWorkspace.followUpResultBody": "The follow-up result is verified. The next step is the consultation reminder.",
     "live.caseWorkspace.reminderDraftStatus": "Consultation reminder is ready",
@@ -7214,7 +7214,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
       return {
         ...defaultSnapshot,
         client: sharedClient,
-        status: isRu ? "Ждём недостающие документы" : "Waiting on missing documents",
+        status: isRu ? "Follow-up по документам завершён" : "Document follow-up completed",
         nextStepValue: isRu ? "Подготовьте напоминание о консультации" : "Prepare the consultation reminder",
         nextStepBody: isRu
           ? "???? follow-up ??? ????????. ????????? ???: ??????????? ??????????? ? ????????????."
