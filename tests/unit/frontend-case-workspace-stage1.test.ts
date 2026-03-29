@@ -64,7 +64,7 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
   for (const token of [
     'caseWorkspaceClient: document.getElementById("caseWorkspaceClient")',
     'caseWorkspaceStatus: document.getElementById("caseWorkspaceStatus")',
-    'caseWorkspaceNextStepValue: document.getElementById("caseWorkspaceNextStepValue")',
+    'caseWorkspaceCurrentStageValue: document.getElementById("caseWorkspaceCurrentStageValue")',
     'caseWorkspaceNextStep: document.getElementById("caseWorkspaceNextStep")',
     'caseWorkspacePreparedDraftShell: document.getElementById("caseWorkspacePreparedDraftShell")',
     'caseWorkspacePreparedDraftLabel: document.getElementById("caseWorkspacePreparedDraftLabel")',
@@ -72,6 +72,7 @@ test("live first fold groups visa actions inside the Case Workspace shell", () =
     'caseWorkspaceCompletedWork: document.getElementById("caseWorkspaceCompletedWork")',
     'caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus")',
     'caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta")',
+    '"live.caseWorkspace.currentStageLabel": "Current stage"',
     '"live.caseWorkspace.preparedDraftLabel": "Prepared in draft"',
     '"live.caseWorkspace.pathContextLabel": "This action"',
     'caseWorkspaceMainActionSurfaceLabel: document.getElementById("caseWorkspaceMainActionSurfaceLabel")',

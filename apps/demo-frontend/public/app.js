@@ -1253,6 +1253,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.currentCase": "Current case",
     "live.caseWorkspace.clientLabel": "Client",
     "live.caseWorkspace.statusLabel": "Status",
+    "live.caseWorkspace.currentStageLabel": "Current stage",
 "live.caseWorkspace.nextStepLabel": "Next step",
 "live.caseWorkspace.nextStepCard": "Next step",
 "live.caseWorkspace.preparedDraftLabel": "Prepared in draft",
@@ -3059,7 +3060,7 @@ const el = {
   caseWorkspaceHeroChipApproval: document.getElementById("caseWorkspaceHeroChipApproval"),
   caseWorkspaceClient: document.getElementById("caseWorkspaceClient"),
   caseWorkspaceStatus: document.getElementById("caseWorkspaceStatus"),
-  caseWorkspaceNextStepValue: document.getElementById("caseWorkspaceNextStepValue"),
+  caseWorkspaceCurrentStageValue: document.getElementById("caseWorkspaceCurrentStageValue"),
   caseWorkspaceNextStep: document.getElementById("caseWorkspaceNextStep"),
   caseWorkspacePreparedDraftShell: document.getElementById("caseWorkspacePreparedDraftShell"),
   caseWorkspacePreparedDraftLabel: document.getElementById("caseWorkspacePreparedDraftLabel"),
@@ -5573,6 +5574,14 @@ function getCaseWorkspaceStepTitle(stepKey, isRu) {
   }
 }
 
+function getCaseWorkspaceSummaryStageValue(flowState, isRu) {
+  const stepKey =
+    typeof flowState?.currentStep === "string" && flowState.currentStep.length > 0
+      ? flowState.currentStep
+      : "case";
+  return getCaseWorkspaceStepTitle(stepKey, isRu);
+}
+
 function getCaseWorkspaceActionKicker(entry, uiState, isRu) {
   if (!entry || typeof entry !== "object") {
     return "";
@@ -7526,7 +7535,9 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorks
 function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaitingFreshResponse, summaryConfig) {
   syncCaseWorkspaceStaticCopy();
   const snapshot = getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse, summaryConfig);
+  const flowState = getCaseWorkspaceFlowState(awaitingFreshResponse);
   const isRu = state.languageMode === "ru";
+  const currentStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentStageLabel"]');
 
   if (el.caseWorkspaceClient instanceof HTMLElement) {
     el.caseWorkspaceClient.textContent = snapshot.client;
@@ -7534,8 +7545,11 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   if (el.caseWorkspaceStatus instanceof HTMLElement) {
     el.caseWorkspaceStatus.textContent = snapshot.status;
   }
-  if (el.caseWorkspaceNextStepValue instanceof HTMLElement) {
-    el.caseWorkspaceNextStepValue.textContent = snapshot.nextStepValue;
+  if (currentStageLabel instanceof HTMLElement) {
+    currentStageLabel.textContent = isRu ? "\u0422\u0435\u043a\u0443\u0449\u0438\u0439 \u044d\u0442\u0430\u043f" : "Current stage";
+  }
+  if (el.caseWorkspaceCurrentStageValue instanceof HTMLElement) {
+    el.caseWorkspaceCurrentStageValue.textContent = getCaseWorkspaceSummaryStageValue(flowState, isRu);
   }
   if (el.caseWorkspaceNextStep instanceof HTMLElement) {
     el.caseWorkspaceNextStep.textContent = snapshot.nextStepBody;

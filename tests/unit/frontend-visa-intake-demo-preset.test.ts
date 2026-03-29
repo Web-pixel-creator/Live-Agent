@@ -89,7 +89,7 @@ test("frontend ships a one-click visa intake demo preset with summary-backed ui 
     'id="caseWorkspaceFlowActionBtn"',
     'id="caseWorkspaceClient"',
     'id="caseWorkspaceStatus"',
-    'id="caseWorkspaceNextStepValue"',
+    'id="caseWorkspaceCurrentStageValue"',
     'id="caseWorkspaceNextStep"',
     'id="caseWorkspaceCompletedWork"',
     'class="case-workspace-action-section case-workspace-action-section-main"',
