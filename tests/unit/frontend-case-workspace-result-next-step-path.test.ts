@@ -13,13 +13,17 @@ test("verified case results keep next-step copy on the case path while summary r
     '"live.caseWorkspace.followUpResultStatus": "Document follow-up completed"',
     '"live.caseWorkspace.followUpResultBody": "The follow-up result is verified. The next step is the consultation reminder."',
     '"live.caseWorkspace.reminderResultBody": "The reminder is verified. The next step is the CRM update."',
+    '"live.caseWorkspace.handoffResultStatus": "CRM update verified"',
     '"live.caseWorkspace.handoffResultBody": "The CRM update is verified. The next step is specialist handoff only if the case still needs escalation."',
+    '"live.caseWorkspace.escalationResultStatus": "Specialist handoff verified"',
     '"live.caseWorkspace.escalationResultBody": "The specialist handoff is verified. The next step is continuing the case with the assigned human owner."',
     '"The intake result is verified. The next step is the missing-document follow-up for the client."',
     '"Document follow-up completed"',
     '"The follow-up result is verified. The next step is the consultation reminder."',
     '"The reminder is verified. The next step is the CRM update."',
+    '"CRM update verified"',
     '"The CRM update is verified. The next step is specialist handoff only if the case still needs escalation."',
+    '"Specialist handoff verified"',
     '"The specialist handoff is verified. The next step is continuing the case with the assigned human owner."',
   ]) {
     assert.ok(appSource.includes(token), `app.js missing verified result next-step token: ${token}`);
@@ -29,6 +33,8 @@ test("verified case results keep next-step copy on the case path while summary r
     '"The intake result is verified. Move the case into follow-up or copy the operator summary."',
     '"Waiting on missing documents"',
     '"The reminder is verified. Move the case into CRM writeback or copy the reminder handoff note."',
+    '"CRM handoff completed"',
+    '"Case handed to a specialist"',
     '"The CRM update is verified. Copy the handoff summary or move to specialist review only if the case still needs escalation."',
     '"The specialist handoff is verified. Share the summary, then continue the case with the assigned human owner."',
   ]) {
@@ -44,11 +50,27 @@ test("verified case results keep next-step copy on the case path while summary r
     "README should explain the follow-up result status alignment",
   );
   assert.ok(
+    readmeSource.includes("verified CRM state now reads as `CRM update verified`"),
+    "README should explain the CRM result status alignment",
+  );
+  assert.ok(
+    readmeSource.includes("verified specialist handoff state now reads as `Specialist handoff verified`"),
+    "README should explain the specialist handoff result status alignment",
+  );
+  assert.ok(
     operatorGuideSource.includes("verified-result `Next step` now stays on the next case move or human continuation"),
     "operator guide should explain that verified result next-step copy stays on the case path",
   );
   assert.ok(
     operatorGuideSource.includes("verified document follow-up state now reads as a completed review instead of a waiting state"),
     "operator guide should explain the follow-up result status alignment",
+  );
+  assert.ok(
+    operatorGuideSource.includes("verified CRM state now reads as `CRM update verified`"),
+    "operator guide should explain the CRM result status alignment",
+  );
+  assert.ok(
+    operatorGuideSource.includes("verified specialist handoff state now reads as `Specialist handoff verified`"),
+    "operator guide should explain the specialist handoff result status alignment",
   );
 });

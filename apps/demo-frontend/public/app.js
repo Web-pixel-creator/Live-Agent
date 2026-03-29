@@ -1315,14 +1315,14 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.handoffDraftNext": "Open the protected CRM summary",
     "live.caseWorkspace.handoffDraftBody": "Open the protected CRM summary from the main row to confirm the writeback and decide whether specialist review is still needed.",
     "live.caseWorkspace.handoffDraftCompleted": "The CRM note, assigned owner, and next action are already staged in the writeback draft.",
-    "live.caseWorkspace.handoffResultStatus": "CRM handoff completed",
+    "live.caseWorkspace.handoffResultStatus": "CRM update verified",
     "live.caseWorkspace.handoffResultNext": "Escalate only if specialist review is still needed",
     "live.caseWorkspace.handoffResultBody": "The CRM update is verified. The next step is specialist handoff only if the case still needs escalation.",
     "live.caseWorkspace.escalationDraftStatus": "Specialist handoff is ready",
     "live.caseWorkspace.escalationDraftNext": "Open the protected handoff summary",
     "live.caseWorkspace.escalationDraftBody": "Open the protected handoff summary from the main row to confirm the human handoff and close the final case step.",
     "live.caseWorkspace.escalationDraftCompleted": "The escalation note, owner, and queue are already prepared for human review.",
-    "live.caseWorkspace.escalationResultStatus": "Case handed to a specialist",
+    "live.caseWorkspace.escalationResultStatus": "Specialist handoff verified",
     "live.caseWorkspace.escalationResultNext": "Call the client and continue the human review",
     "live.caseWorkspace.escalationResultBody": "The specialist handoff is verified. The next step is continuing the case with the assigned human owner.",
     "live.compose.runVisaDemo": "Start New Visa Case",
@@ -7284,7 +7284,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
       return {
         ...defaultSnapshot,
         client: sharedClient,
-        status: isRu ? "CRM handoff завершён" : "CRM handoff completed",
+        status: isRu ? "Обновление CRM проверено" : "CRM update verified",
         nextStepValue: isRu ? "Передавайте специалисту только при необходимости" : "Escalate only if specialist review is still needed",
         nextStepBody: isRu
           ? "?????????? CRM ??? ?????????. ????????? ???: ??????????? ???? ??????????? ?????? ???? ??? ??? ??? ????? ?????????."
@@ -7319,7 +7319,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
       return {
         ...defaultSnapshot,
         client: sharedClient,
-        status: isRu ? "Кейс передан специалисту" : "Case handed to a specialist",
+        status: isRu ? "Передача специалисту проверена" : "Specialist handoff verified",
         nextStepValue: isRu ? "Позвоните клиенту и продолжите human review" : "Call the client and continue the human review",
         nextStepBody: isRu
           ? "???????? ??????????? ??? ?????????. ????????? ???: ??????????? ???? ? ??????????? ??????????."
