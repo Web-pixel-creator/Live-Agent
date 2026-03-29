@@ -1291,36 +1291,36 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.completedBusy": "The latest verified summary updates here after the current action finishes.",
     "live.caseWorkspace.clientName": "Anna Petrova",
     "live.caseWorkspace.intakeDraftStatus": "Visa intake draft is ready for approval",
-    "live.caseWorkspace.intakeDraftNext": "Confirm the protected submit",
-    "live.caseWorkspace.intakeDraftBody": "Open the seeded intake browser, confirm the protected submit when ready, then open the intake summary.",
+    "live.caseWorkspace.intakeDraftNext": "Open the protected intake summary",
+    "live.caseWorkspace.intakeDraftBody": "Open the protected intake summary from the main row to confirm the seeded submit and close the first case step.",
     "live.caseWorkspace.intakeDraftCompleted": "Lead profile, consultation slot, and the missing-document checklist are already prepared inside the draft.",
     "live.caseWorkspace.intakeResultStatus": "Visa intake completed",
     "live.caseWorkspace.intakeResultNext": "Request the missing documents",
     "live.caseWorkspace.intakeResultBody": "The intake result is verified. Move the case into follow-up or copy the operator summary.",
     "live.caseWorkspace.followUpDraftStatus": "Missing-documents follow-up is ready",
-    "live.caseWorkspace.followUpDraftNext": "Confirm the safe outreach step",
-    "live.caseWorkspace.followUpDraftBody": "Review the prepared follow-up message, approve the safe outreach step, then open the completed summary.",
+    "live.caseWorkspace.followUpDraftNext": "Open the protected follow-up summary",
+    "live.caseWorkspace.followUpDraftBody": "Open the protected follow-up summary from the main row to confirm the safe outreach step and close the documents stage.",
     "live.caseWorkspace.followUpDraftCompleted": "The checklist request and follow-up note are already prepared for Anna.",
     "live.caseWorkspace.followUpResultStatus": "Waiting on missing documents",
     "live.caseWorkspace.followUpResultNext": "Prepare the consultation reminder",
     "live.caseWorkspace.followUpResultBody": "The follow-up result is verified. Use the next action to prepare the consultation reminder.",
     "live.caseWorkspace.reminderDraftStatus": "Consultation reminder is ready",
-    "live.caseWorkspace.reminderDraftNext": "Confirm the protected reminder send",
-    "live.caseWorkspace.reminderDraftBody": "Approve the reminder send when ready, then open the reminder summary to capture the final handoff.",
+    "live.caseWorkspace.reminderDraftNext": "Open the protected reminder summary",
+    "live.caseWorkspace.reminderDraftBody": "Open the protected reminder summary from the main row to confirm the reminder send and capture the final handoff.",
     "live.caseWorkspace.reminderDraftCompleted": "The consultation slot, timezone, and preparation checklist are already assembled in the reminder draft.",
     "live.caseWorkspace.reminderResultStatus": "Consultation reminder completed",
     "live.caseWorkspace.reminderResultNext": "Prepare the CRM update",
     "live.caseWorkspace.reminderResultBody": "The reminder is verified. Move the case into CRM writeback or copy the reminder handoff note.",
     "live.caseWorkspace.handoffDraftStatus": "CRM update draft is ready",
-    "live.caseWorkspace.handoffDraftNext": "Confirm the protected CRM writeback",
-    "live.caseWorkspace.handoffDraftBody": "Review the prepared CRM note and owner assignment, then approve the protected writeback step.",
+    "live.caseWorkspace.handoffDraftNext": "Open the protected CRM summary",
+    "live.caseWorkspace.handoffDraftBody": "Open the protected CRM summary from the main row to confirm the writeback and decide whether specialist review is still needed.",
     "live.caseWorkspace.handoffDraftCompleted": "The CRM note, assigned owner, and next action are already staged in the writeback draft.",
     "live.caseWorkspace.handoffResultStatus": "CRM handoff completed",
     "live.caseWorkspace.handoffResultNext": "Escalate only if specialist review is still needed",
     "live.caseWorkspace.handoffResultBody": "The CRM update is verified. Copy the handoff summary or move to specialist review only if the case still needs escalation.",
     "live.caseWorkspace.escalationDraftStatus": "Specialist handoff is ready",
-    "live.caseWorkspace.escalationDraftNext": "Confirm the protected human handoff",
-    "live.caseWorkspace.escalationDraftBody": "Review the escalation reason, approve the protected human handoff, then open the escalation summary.",
+    "live.caseWorkspace.escalationDraftNext": "Open the protected handoff summary",
+    "live.caseWorkspace.escalationDraftBody": "Open the protected handoff summary from the main row to confirm the human handoff and close the final case step.",
     "live.caseWorkspace.escalationDraftCompleted": "The escalation note, owner, and queue are already prepared for human review.",
     "live.caseWorkspace.escalationResultStatus": "Case handed to a specialist",
     "live.caseWorkspace.escalationResultNext": "Call the client and continue the human review",
@@ -5460,6 +5460,48 @@ function getCaseWorkspaceCompletedBusyText(isRu) {
     : "The latest verified summary updates here after the current action finishes.";
 }
 
+function getCaseWorkspaceDraftNextCopy(demoScenario, isRu) {
+  switch (demoScenario) {
+    case "visa_intake_draft":
+      return {
+        value: isRu ? "Откройте защищённый итог заявки" : "Open the protected intake summary",
+        body: isRu
+          ? "Откройте защищённый итог заявки из главного ряда, подтвердите подготовленную отправку и закройте первый шаг кейса."
+          : "Open the protected intake summary from the main row to confirm the seeded submit and close the first case step.",
+      };
+    case "visa_follow_up_draft":
+      return {
+        value: isRu ? "Откройте защищённый итог follow-up" : "Open the protected follow-up summary",
+        body: isRu
+          ? "Откройте защищённый итог follow-up из главного ряда, подтвердите безопасный outreach и закройте этап документов."
+          : "Open the protected follow-up summary from the main row to confirm the safe outreach step and close the documents stage.",
+      };
+    case "visa_reminder_draft":
+      return {
+        value: isRu ? "Откройте защищённый итог напоминания" : "Open the protected reminder summary",
+        body: isRu
+          ? "Откройте защищённый итог напоминания из главного ряда, подтвердите отправку и зафиксируйте финальный handoff."
+          : "Open the protected reminder summary from the main row to confirm the reminder send and capture the final handoff.",
+      };
+    case "visa_handoff_draft":
+      return {
+        value: isRu ? "Откройте защищённый итог CRM" : "Open the protected CRM summary",
+        body: isRu
+          ? "Откройте защищённый итог CRM из главного ряда, подтвердите writeback и решите, нужна ли ещё передача специалисту."
+          : "Open the protected CRM summary from the main row to confirm the writeback and decide whether specialist review is still needed.",
+      };
+    case "visa_escalation_draft":
+      return {
+        value: isRu ? "Откройте защищённый итог передачи" : "Open the protected handoff summary",
+        body: isRu
+          ? "Откройте защищённый итог передачи из главного ряда, подтвердите передачу человеку и закройте финальный шаг кейса."
+          : "Open the protected handoff summary from the main row to confirm the human handoff and close the final case step.",
+      };
+    default:
+      return null;
+  }
+}
+
 function cloneLiveResultSummaryConfig(summaryConfig) {
   if (!summaryConfig || typeof summaryConfig !== "object") {
     return null;
@@ -7124,6 +7166,8 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         nextStepBody: isRu
           ? "Откройте подготовленный intake-браузер, подтвердите защищённую отправку, затем откройте итог заявки."
           : "Open the seeded intake browser, confirm the protected submit when ready, then open the intake summary.",
+        nextStepValue: getCaseWorkspaceDraftNextCopy("visa_intake_draft", isRu)?.value ?? "",
+        nextStepBody: getCaseWorkspaceDraftNextCopy("visa_intake_draft", isRu)?.body ?? "",
         preparedDraftNote: isRu
           ? "Карточка лида, слот консультации и чеклист недостающих документов уже подготовлены в черновике."
           : "Lead profile, consultation slot, and the missing-document checklist are already prepared inside the draft.",
@@ -7161,6 +7205,8 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         nextStepBody: isRu
           ? "Проверьте подготовленное сообщение, подтвердите безопасную отправку и затем откройте итог follow-up."
           : "Review the prepared follow-up message, approve the safe outreach step, then open the completed summary.",
+        nextStepValue: getCaseWorkspaceDraftNextCopy("visa_follow_up_draft", isRu)?.value ?? "",
+        nextStepBody: getCaseWorkspaceDraftNextCopy("visa_follow_up_draft", isRu)?.body ?? "",
         preparedDraftNote: isRu
           ? "Чеклист и follow-up заметка уже подготовлены для Анны."
           : "The checklist request and follow-up note are already prepared for Anna.",
@@ -7198,6 +7244,8 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         nextStepBody: isRu
           ? "Подтвердите отправку напоминания и затем откройте итог напоминания с готовым handoff."
           : "Approve the reminder send when ready, then open the reminder summary to capture the final handoff.",
+        nextStepValue: getCaseWorkspaceDraftNextCopy("visa_reminder_draft", isRu)?.value ?? "",
+        nextStepBody: getCaseWorkspaceDraftNextCopy("visa_reminder_draft", isRu)?.body ?? "",
         preparedDraftNote: isRu
           ? "Слот, таймзона и список подготовки уже собраны в черновике напоминания."
           : "The consultation slot, timezone, and preparation checklist are already assembled in the reminder draft.",
@@ -7235,6 +7283,8 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         nextStepBody: isRu
           ? "Проверьте CRM-заметку и назначенного владельца, затем подтвердите защищённую запись."
           : "Review the prepared CRM note and owner assignment, then approve the protected writeback step.",
+        nextStepValue: getCaseWorkspaceDraftNextCopy("visa_handoff_draft", isRu)?.value ?? "",
+        nextStepBody: getCaseWorkspaceDraftNextCopy("visa_handoff_draft", isRu)?.body ?? "",
         preparedDraftNote: isRu
           ? "CRM-заметка, владелец кейса и следующий шаг уже собраны в черновике записи."
           : "The CRM note, assigned owner, and next action are already staged in the writeback draft.",
@@ -7272,6 +7322,8 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
         nextStepBody: isRu
           ? "Проверьте причину эскалации, подтвердите передачу человеку и затем откройте итог передачи."
           : "Review the escalation reason, approve the protected human handoff, then open the escalation summary.",
+        nextStepValue: getCaseWorkspaceDraftNextCopy("visa_escalation_draft", isRu)?.value ?? "",
+        nextStepBody: getCaseWorkspaceDraftNextCopy("visa_escalation_draft", isRu)?.body ?? "",
         preparedDraftNote: isRu
           ? "Причина эскалации, владелец и очередь уже подготовлены для human review."
           : "The escalation note, owner, and queue are already prepared for human review.",
