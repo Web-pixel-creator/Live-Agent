@@ -1260,6 +1260,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
 "live.caseWorkspace.preparedDraftLabel": "Prepared in draft",
 "live.caseWorkspace.completedWork": "Completed work",
 "live.caseWorkspace.completedFocusLabel": "Latest proof",
+"live.caseWorkspace.completedStageLabel": "Verified stage",
     "live.caseWorkspace.statusPillReady": "Workspace ready",
     "live.caseWorkspace.statusPillInFlight": "In progress",
     "live.caseWorkspace.statusPillVerified": "Verified",
@@ -3068,6 +3069,8 @@ const el = {
   caseWorkspacePreparedDraftShell: document.getElementById("caseWorkspacePreparedDraftShell"),
   caseWorkspacePreparedDraftLabel: document.getElementById("caseWorkspacePreparedDraftLabel"),
   caseWorkspacePreparedDraftNote: document.getElementById("caseWorkspacePreparedDraftNote"),
+  caseWorkspaceCompletedStageShell: document.getElementById("caseWorkspaceCompletedStageShell"),
+  caseWorkspaceCompletedStageValue: document.getElementById("caseWorkspaceCompletedStageValue"),
   caseWorkspaceCompletedFocusValue: document.getElementById("caseWorkspaceCompletedFocusValue"),
   caseWorkspaceCompletedWork: document.getElementById("caseWorkspaceCompletedWork"),
   caseWorkspaceStatusPill: document.getElementById("caseWorkspaceStatusPill"),
@@ -5117,6 +5120,7 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
           "Review the escalation note, keep Sofia assigned as the human owner, and call Anna to unblock the case.",
         ),
       },
+      stageKey: "handoff",
       copyLabel: t("live.result.visaEscalationSummaryCopy", null, "Copy operator summary"),
       copySuccess: t(
         "live.result.visaEscalationSummaryCopySuccess",
@@ -5166,6 +5170,7 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
           "Review the escalation note, call Anna, and keep Sofia assigned as the case owner.",
         ),
       },
+      stageKey: "handoff",
       copyLabel: t("live.result.visaEscalationSummaryCopy", null, "Copy operator summary"),
       copySuccess: t(
         "live.result.visaEscalationSummaryCopySuccess",
@@ -5213,6 +5218,7 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
           "Review the CRM note, keep Sofia assigned as the case owner, and send the checklist summary to Anna.",
         ),
       },
+      stageKey: "crm",
       copyLabel: t("live.result.visaHandoffSummaryCopy", null, "Copy operator summary"),
       copySuccess: t(
         "live.result.visaHandoffSummaryCopySuccess",
@@ -5264,6 +5270,7 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
           "Send the reminder, confirm Anna's attendance, and keep the prep checklist ready for the consultation.",
         ),
       },
+      stageKey: "consultation",
       copyLabel: t("live.result.visaReminderSummaryCopy", null, "Copy operator summary"),
       copySuccess: t(
         "live.result.visaReminderSummaryCopySuccess",
@@ -5309,6 +5316,7 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
           "Send the missing-document checklist and confirm the consultation slot with Anna.",
         ),
       },
+      stageKey: "documents",
       copyLabel: t("live.result.visaFollowUpSummaryCopy", null, "Copy operator summary"),
       copySuccess: t(
         "live.result.visaFollowUpSummaryCopySuccess",
@@ -5358,6 +5366,7 @@ function getLiveResultSummaryConfig(intent, latestResult, hasIntentMatchedResult
         "Send the missing-document checklist and confirm the consultation slot with Anna.",
       ),
     },
+    stageKey: "case",
     copyLabel: t("live.result.visaSummaryCopy", null, "Copy operator summary"),
     copySuccess: t("live.result.visaSummaryCopySuccess", null, "Operator summary copied for the visa demo handoff."),
     copyError: t(
@@ -5461,6 +5470,13 @@ function getCaseWorkspaceCompletedFocusValue(summaryConfig, isRu) {
   return isRu
     ? "\u041e\u0436\u0438\u0434\u0430\u0435\u043c \u043f\u0435\u0440\u0432\u0443\u044e \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0443"
     : "Waiting for the first verified result";
+}
+
+function getCaseWorkspaceCompletedStageValue(summaryConfig, isRu) {
+  if (summaryConfig && typeof summaryConfig.stageKey === "string" && summaryConfig.stageKey.length > 0) {
+    return getCaseWorkspaceStepTitle(summaryConfig.stageKey, isRu);
+  }
+  return "";
 }
 
 function getCaseWorkspaceCompletedIdleText(isRu) {
@@ -7555,6 +7571,7 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   const currentStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentStageLabel"]');
   const nextStepFocusLabel = document.querySelector('[data-i18n="live.caseWorkspace.nextStepFocusLabel"]');
   const completedFocusLabel = document.querySelector('[data-i18n="live.caseWorkspace.completedFocusLabel"]');
+  const completedStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.completedStageLabel"]');
 
   if (el.caseWorkspaceClient instanceof HTMLElement) {
     el.caseWorkspaceClient.textContent = snapshot.client;
@@ -7592,6 +7609,15 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   }
   if (el.caseWorkspaceCompletedFocusValue instanceof HTMLElement) {
     el.caseWorkspaceCompletedFocusValue.textContent = getCaseWorkspaceCompletedFocusValue(completedSummaryConfig, isRu);
+  }
+  if (completedStageLabel instanceof HTMLElement) {
+    completedStageLabel.textContent = isRu ? "\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0451\u043d\u043d\u044b\u0439 \u044d\u0442\u0430\u043f" : "Verified stage";
+  }
+  if (el.caseWorkspaceCompletedStageShell instanceof HTMLElement) {
+    el.caseWorkspaceCompletedStageShell.hidden = !completedSummaryConfig;
+  }
+  if (el.caseWorkspaceCompletedStageValue instanceof HTMLElement) {
+    el.caseWorkspaceCompletedStageValue.textContent = getCaseWorkspaceCompletedStageValue(completedSummaryConfig, isRu);
   }
   if (el.caseWorkspaceCompletedWork instanceof HTMLElement) {
     el.caseWorkspaceCompletedWork.textContent = snapshot.completedWork;

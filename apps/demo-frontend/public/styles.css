@@ -1058,6 +1058,25 @@
   line-height: 1.4;
 }
 
+.layout[data-active-tab="live-negotiator"] .case-workspace-summary-completed-stage {
+  display: grid;
+  gap: 3px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-summary-completed-stage-label {
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-summary-completed-stage-value {
+  color: var(--foreground);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .layout[data-active-tab="live-negotiator"] .case-workspace-summary-prepared {
   display: grid;
   gap: 6px;
