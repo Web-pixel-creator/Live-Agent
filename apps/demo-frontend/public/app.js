@@ -5450,6 +5450,10 @@ function getCaseWorkspaceCompletedSummaryPill(isRu) {
   return { text: isRu ? "Сводка" : "Summary", tone: "neutral" };
 }
 
+function getCaseWorkspaceVerifiedResultPill(isRu) {
+  return { text: isRu ? "\u041f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043e" : "Verified", tone: "ok" };
+}
+
 function getCaseWorkspaceCompletedFocusValue(summaryConfig, isRu) {
   if (summaryConfig && typeof summaryConfig.title === "string" && summaryConfig.title.trim().length > 0) {
     return summaryConfig.title.trim();
@@ -7173,7 +7177,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
   const sharedCompletedWork = buildCaseWorkspaceCompletedWorkText(completedSummaryConfig);
   const sharedCompletedPill =
     sharedCompletedWork && sharedCompletedWork.length > 0
-      ? { text: isRu ? "РџСЂРѕРІРµСЂРµРЅРѕ" : "Verified", tone: "ok" }
+      ? getCaseWorkspaceVerifiedResultPill(isRu)
       : defaultSnapshot.completedPill;
   switch (state.liveDemoScenario) {
     case "visa_intake_draft":

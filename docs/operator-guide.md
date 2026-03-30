@@ -58,7 +58,8 @@ Case workspace note: during active or completed case flow, that standalone choos
 Case workspace note: once a case step or protected review is active, the matching open drawer now stays as a secondary context/history lane while the main row remains the only live launcher for the current action.
 Case workspace note: those secondary drawer chips now also show how many later moves or verified history entries are waiting, while empty secondary lanes stay quiet instead of showing `0`.
 Case workspace note: `Completed work` now stays focused on the latest verified summary, while `Result tools` keeps earlier verified history plus restart and approval-only context stays in `Next step` as `Prepared in draft`.
-Case workspace note: that same `Completed work` card now also keeps the verified summary badge during verified result states instead of falling back to a generic `Completed` pill.
+Case workspace note: that same `Completed work` card now also keeps the verified summary badge during verified result states as a localized `Verified` / `Проверено` summary badge instead of falling back to a generic `Completed` pill.
+Case workspace note: that verified-result summary badge now routes through one explicit helper, so fresh RU loads keep a readable verified-state pill instead of mojibake.
 Case workspace note: `Completed work` now also exposes a short `Latest proof` line above the details, so the fold shows the last verified result title first and the summary facts below it.
 Case workspace note: `Current case` now shows the active stage (`Case`, `Documents`, `Consultation`, `CRM`, `Handoff`), while `Next step` remains the operator action and draft/review promise for that stage.
 Case workspace note: `Next step` now also surfaces that operator action as a short `Action` line above the body text, so the card reads as one concrete move plus the supporting explanation.

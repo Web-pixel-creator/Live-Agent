@@ -31,6 +31,7 @@ test("case workspace keeps the latest verified summary while draft-only prep sta
     '"live.caseWorkspace.completedBusy": "The latest verified summary updates here after the current action finishes."',
     "liveCaseLastVerifiedSummaryConfig: null,",
     "function getCaseWorkspaceCompletedSummaryPill(isRu)",
+    "function getCaseWorkspaceVerifiedResultPill(isRu)",
     "function getCaseWorkspaceCompletedFocusValue(summaryConfig, isRu)",
     "function getCaseWorkspaceCompletedIdleText(isRu)",
     "function getCaseWorkspaceCompletedBusyText(isRu)",
@@ -42,6 +43,8 @@ test("case workspace keeps the latest verified summary while draft-only prep sta
     "const completedSummaryConfig = summaryConfig ?? state.liveCaseLastVerifiedSummaryConfig;",
     "const sharedCompletedWork = buildCaseWorkspaceCompletedWorkText(completedSummaryConfig);",
     "const sharedCompletedPill =",
+    "getCaseWorkspaceVerifiedResultPill(isRu)",
+    '\\u041f\\u0440\\u043e\\u0432\\u0435\\u0440\\u0435\\u043d\\u043e',
     "const completedFocusLabel = document.querySelector('[data-i18n=\"live.caseWorkspace.completedFocusLabel\"]');",
     "state.liveCaseLastVerifiedSummaryConfig = cloneLiveResultSummaryConfig(summaryConfig);",
     "state.liveCaseLastVerifiedSummaryConfig = null;",
@@ -77,10 +80,17 @@ test("case workspace keeps the latest verified summary while draft-only prep sta
   );
 
   assert.ok(
+    !appSource.includes('РџСЂРѕРІРµСЂРµРЅРѕ'),
+    "the shared completed-work verified pill should not keep mojibake in app.js",
+  );
+
+  assert.ok(
     readmeSource.includes("`Completed work` now stays focused on the latest verified summary")
       && readmeSource.includes("`Result tools` keeps earlier verified history plus restart")
       && readmeSource.includes("`Next step` as `Prepared in draft`")
       && readmeSource.includes("keeps the verified summary badge during verified result states")
+      && readmeSource.includes("routes through one explicit helper")
+      && readmeSource.includes("fresh RU loads keep a readable verified-state pill")
       && readmeSource.includes("`Latest proof` line above the details"),
     "README should explain that completed work keeps only the latest verified summary while Result tools holds earlier history",
   );
@@ -89,6 +99,8 @@ test("case workspace keeps the latest verified summary while draft-only prep sta
       && operatorGuideSource.includes("`Result tools` keeps earlier verified history plus restart")
       && operatorGuideSource.includes("`Next step` as `Prepared in draft`")
       && operatorGuideSource.includes("keeps the verified summary badge during verified result states")
+      && operatorGuideSource.includes("routes through one explicit helper")
+      && operatorGuideSource.includes("fresh RU loads keep a readable verified-state pill")
       && operatorGuideSource.includes("`Latest proof` line above the details"),
     "operator guide should explain that completed work keeps only the latest verified summary while Result tools holds earlier history",
   );
