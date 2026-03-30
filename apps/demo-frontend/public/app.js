@@ -1258,6 +1258,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
 "live.caseWorkspace.nextStepLabel": "Next step",
 "live.caseWorkspace.nextStepCard": "Next step",
 "live.caseWorkspace.nextStepFocusLabel": "Action",
+"live.caseWorkspace.nextStepStageLabel": "After this",
 "live.caseWorkspace.preparedDraftLabel": "Prepared in draft",
 "live.caseWorkspace.completedWork": "Completed work",
 "live.caseWorkspace.completedFocusLabel": "Latest proof",
@@ -3067,6 +3068,7 @@ const el = {
   caseWorkspaceCurrentStageValue: document.getElementById("caseWorkspaceCurrentStageValue"),
   caseWorkspaceCurrentResponsibilityValue: document.getElementById("caseWorkspaceCurrentResponsibilityValue"),
   caseWorkspaceNextStepFocusValue: document.getElementById("caseWorkspaceNextStepFocusValue"),
+  caseWorkspaceNextStepStageValue: document.getElementById("caseWorkspaceNextStepStageValue"),
   caseWorkspaceNextStep: document.getElementById("caseWorkspaceNextStep"),
   caseWorkspacePreparedDraftShell: document.getElementById("caseWorkspacePreparedDraftShell"),
   caseWorkspacePreparedDraftLabel: document.getElementById("caseWorkspacePreparedDraftLabel"),
@@ -5639,6 +5641,71 @@ function getCaseWorkspaceSummaryResponsibilityValue(flowState, isRu) {
   }
 }
 
+function getCaseWorkspaceNextStageValue(flowState, isRu) {
+  const scenario = typeof state.liveDemoScenario === "string" ? state.liveDemoScenario : "";
+  const stepKey =
+    typeof flowState?.currentStep === "string" && flowState.currentStep.length > 0
+      ? flowState.currentStep
+      : "case";
+  const manualContinuationLabel = isRu ? "\u0420\u0443\u0447\u043d\u043e\u0435 \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0435\u043d\u0438\u0435" : "Manual continuation";
+
+  const getUnlockedStageValue = () => {
+    switch (stepKey) {
+      case "case":
+        return getCaseWorkspaceStepTitle("documents", isRu);
+      case "documents":
+        return getCaseWorkspaceStepTitle("consultation", isRu);
+      case "consultation":
+        return getCaseWorkspaceStepTitle("crm", isRu);
+      case "crm":
+        return getCaseWorkspaceStepTitle("handoff", isRu);
+      case "handoff":
+        return manualContinuationLabel;
+      default:
+        return getCaseWorkspaceStepTitle("documents", isRu);
+    }
+  };
+
+  const getStageReviewValue = () => {
+    switch (stepKey) {
+      case "case":
+        return isRu ? "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 intake" : "Intake review";
+      case "documents":
+        return isRu ? "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u043e\u0432" : "Documents review";
+      case "consultation":
+        return isRu ? "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043a\u043e\u043d\u0441\u0443\u043b\u044c\u0442\u0430\u0446\u0438\u0438" : "Consultation review";
+      case "crm":
+        return isRu ? "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 CRM" : "CRM review";
+      case "handoff":
+        return isRu ? "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u0435\u0440\u0435\u0434\u0430\u0447\u0438" : "Handoff review";
+      default:
+        return isRu ? "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 intake" : "Intake review";
+    }
+  };
+
+  if (!scenario) {
+    const primaryActionCopy = getCaseWorkspacePrimaryActionCopy(flowState, isRu);
+    if (primaryActionCopy?.state === "waiting") {
+      return isRu ? "\u041f\u0443\u0442\u044c \u043a\u0435\u0439\u0441\u0430" : "Guided case path";
+    }
+    return getStageReviewValue();
+  }
+
+  if (scenario === "visa_escalation_draft" || scenario === "visa_escalation_result") {
+    return manualContinuationLabel;
+  }
+
+  if (/_draft$/.test(scenario)) {
+    return getUnlockedStageValue();
+  }
+
+  if (/_result$/.test(scenario)) {
+    return getStageReviewValue();
+  }
+
+  return getUnlockedStageValue();
+}
+
 function getCaseWorkspaceActionKicker(entry, uiState, isRu) {
   if (!entry || typeof entry !== "object") {
     return "";
@@ -7598,6 +7665,7 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   const currentStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentStageLabel"]');
   const currentResponsibilityLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentResponsibilityLabel"]');
   const nextStepFocusLabel = document.querySelector('[data-i18n="live.caseWorkspace.nextStepFocusLabel"]');
+  const nextStepStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.nextStepStageLabel"]');
   const completedFocusLabel = document.querySelector('[data-i18n="live.caseWorkspace.completedFocusLabel"]');
   const completedStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.completedStageLabel"]');
 
@@ -7624,6 +7692,12 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   }
   if (el.caseWorkspaceNextStepFocusValue instanceof HTMLElement) {
     el.caseWorkspaceNextStepFocusValue.textContent = snapshot.nextStepValue;
+  }
+  if (nextStepStageLabel instanceof HTMLElement) {
+    nextStepStageLabel.textContent = isRu ? "\u041f\u043e\u0441\u043b\u0435 \u044d\u0442\u043e\u0433\u043e" : "After this";
+  }
+  if (el.caseWorkspaceNextStepStageValue instanceof HTMLElement) {
+    el.caseWorkspaceNextStepStageValue.textContent = getCaseWorkspaceNextStageValue(flowState, isRu);
   }
   if (el.caseWorkspaceNextStep instanceof HTMLElement) {
     el.caseWorkspaceNextStep.textContent = snapshot.nextStepBody;

@@ -219,6 +219,7 @@ Case workspace note: `Current case` now shows the active stage (`Case`, `Documen
 Case workspace note: `Current case` now also shows the current responsibility, so the first scan answers who owns the work right now without duplicating the `Next step` action line.
 Case workspace note: after a verified result, `Current case` status now stays on the live case posture (`Documents stage is ready`, `Consultation stage is ready`, and so on) so verification stays owned by `Completed work`.
 Case workspace note: `Next step` now also surfaces that operator action as a short `Action` line above the body text, so the card reads as one concrete move plus the supporting explanation.
+Case workspace note: `Next step` now also shows `After this`, so the fold reads as current stage, current action, what opens immediately after this step, and the latest verified proof.
 Case workspace note: draft-stage `Next step` now points at the protected summary review in the main row, so the fold promises the same action the current launcher actually opens.
 Case workspace note: verified-result `Next step` now stays on the next case move or human continuation, while summary copy and review history stay in `Result tools`.
 Case workspace note: the verified intake state now reads as `Visa intake verified`, so `Current case` starts the protected result chain with the same terminology as the review body already in view.
