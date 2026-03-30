@@ -1254,6 +1254,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.clientLabel": "Client",
     "live.caseWorkspace.statusLabel": "Status",
     "live.caseWorkspace.currentStageLabel": "Current stage",
+"live.caseWorkspace.currentResponsibilityLabel": "Current responsibility",
 "live.caseWorkspace.nextStepLabel": "Next step",
 "live.caseWorkspace.nextStepCard": "Next step",
 "live.caseWorkspace.nextStepFocusLabel": "Action",
@@ -3064,6 +3065,7 @@ const el = {
   caseWorkspaceClient: document.getElementById("caseWorkspaceClient"),
   caseWorkspaceStatus: document.getElementById("caseWorkspaceStatus"),
   caseWorkspaceCurrentStageValue: document.getElementById("caseWorkspaceCurrentStageValue"),
+  caseWorkspaceCurrentResponsibilityValue: document.getElementById("caseWorkspaceCurrentResponsibilityValue"),
   caseWorkspaceNextStepFocusValue: document.getElementById("caseWorkspaceNextStepFocusValue"),
   caseWorkspaceNextStep: document.getElementById("caseWorkspaceNextStep"),
   caseWorkspacePreparedDraftShell: document.getElementById("caseWorkspacePreparedDraftShell"),
@@ -5612,6 +5614,31 @@ function getCaseWorkspaceSummaryStageValue(flowState, isRu) {
   return getCaseWorkspaceStepTitle(stepKey, isRu);
 }
 
+function getCaseWorkspaceSummaryResponsibilityValue(flowState, isRu) {
+  const scenario = typeof state.liveDemoScenario === "string" ? state.liveDemoScenario : "";
+  if (scenario === "visa_escalation_result") {
+    return isRu ? "\u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u043d\u044b\u0439 \u0441\u043f\u0435\u0446\u0438\u0430\u043b\u0438\u0441\u0442" : "Assigned human owner";
+  }
+  if (/_draft$/.test(scenario)) {
+    return isRu ? "\u041e\u0434\u043e\u0431\u0440\u0435\u043d\u0438\u0435 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0430" : "Operator approval";
+  }
+
+  const primaryActionCopy = getCaseWorkspacePrimaryActionCopy(flowState, isRu);
+  switch (primaryActionCopy?.state) {
+    case "waiting":
+      return isRu ? "\u041e\u0436\u0438\u0434\u0430\u043d\u0438\u0435 live-\u043e\u0442\u0432\u0435\u0442\u0430" : "Live response wait";
+    case "review":
+      return isRu ? "\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0430" : "Operator review";
+    case "case":
+      return isRu ? "\u0428\u0430\u0433 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0430 \u043f\u043e \u043a\u0435\u0439\u0441\u0443" : "Operator case move";
+    case "complete":
+      return isRu ? "\u0421\u0442\u0430\u0440\u0442 \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u0433\u043e \u043a\u0435\u0439\u0441\u0430" : "Next case start";
+    case "start":
+    default:
+      return isRu ? "\u0421\u0442\u0430\u0440\u0442 intake" : "Intake launch";
+  }
+}
+
 function getCaseWorkspaceActionKicker(entry, uiState, isRu) {
   if (!entry || typeof entry !== "object") {
     return "";
@@ -7218,7 +7245,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
       return {
         ...defaultSnapshot,
         client: sharedClient,
-        status: isRu ? "Визовый intake проверен" : "Visa intake verified",
+        status: isRu ? "\u042d\u0442\u0430\u043f \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u043e\u0432 \u0433\u043e\u0442\u043e\u0432" : "Documents stage is ready",
         nextStepValue: isRu ? "Запросите недостающие документы" : "Request the missing documents",
         nextStepBody: isRu
           ? "???? intake ??? ????????. ????????? ???: ????????? ??????????? ????????? ? ???????."
@@ -7253,7 +7280,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
       return {
         ...defaultSnapshot,
         client: sharedClient,
-        status: isRu ? "Follow-up по документам проверен" : "Document follow-up verified",
+        status: isRu ? "\u042d\u0442\u0430\u043f \u043a\u043e\u043d\u0441\u0443\u043b\u044c\u0442\u0430\u0446\u0438\u0438 \u0433\u043e\u0442\u043e\u0432" : "Consultation stage is ready",
         nextStepValue: isRu ? "Подготовьте напоминание о консультации" : "Prepare the consultation reminder",
         nextStepBody: isRu
           ? "???? follow-up ??? ????????. ????????? ???: ??????????? ??????????? ? ????????????."
@@ -7288,7 +7315,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
       return {
         ...defaultSnapshot,
         client: sharedClient,
-        status: isRu ? "Напоминание о консультации проверено" : "Consultation reminder verified",
+        status: isRu ? "\u042d\u0442\u0430\u043f CRM \u0433\u043e\u0442\u043e\u0432" : "CRM stage is ready",
         nextStepValue: isRu ? "Подготовьте обновление CRM" : "Prepare the CRM update",
         nextStepBody: isRu
           ? "??????????? ??? ?????????. ????????? ???: ??????????? ?????????? CRM."
@@ -7323,7 +7350,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
       return {
         ...defaultSnapshot,
         client: sharedClient,
-        status: isRu ? "Обновление CRM проверено" : "CRM update verified",
+        status: isRu ? "\u042d\u0442\u0430\u043f \u043f\u0435\u0440\u0435\u0434\u0430\u0447\u0438 \u0433\u043e\u0442\u043e\u0432" : "Handoff stage is ready",
         nextStepValue: isRu ? "Передавайте специалисту только при необходимости" : "Escalate only if specialist review is still needed",
         nextStepBody: isRu
           ? "?????????? CRM ??? ?????????. ????????? ???: ??????????? ???? ??????????? ?????? ???? ??? ??? ??? ????? ?????????."
@@ -7358,7 +7385,7 @@ function getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse,
       return {
         ...defaultSnapshot,
         client: sharedClient,
-        status: isRu ? "Передача специалисту проверена" : "Specialist handoff verified",
+        status: isRu ? "\u0414\u0430\u043b\u044c\u0448\u0435 \u0432\u0435\u0434\u0451\u0442 \u0447\u0435\u043b\u043e\u0432\u0435\u043a" : "Human owner takes over",
         nextStepValue: isRu ? "Позвоните клиенту и продолжите human review" : "Call the client and continue the human review",
         nextStepBody: isRu
           ? "???????? ??????????? ??? ?????????. ????????? ???: ??????????? ???? ? ??????????? ??????????."
@@ -7569,6 +7596,7 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   const isRu = state.languageMode === "ru";
   const completedSummaryConfig = summaryConfig ?? state.liveCaseLastVerifiedSummaryConfig;
   const currentStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentStageLabel"]');
+  const currentResponsibilityLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentResponsibilityLabel"]');
   const nextStepFocusLabel = document.querySelector('[data-i18n="live.caseWorkspace.nextStepFocusLabel"]');
   const completedFocusLabel = document.querySelector('[data-i18n="live.caseWorkspace.completedFocusLabel"]');
   const completedStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.completedStageLabel"]');
@@ -7584,6 +7612,12 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   }
   if (el.caseWorkspaceCurrentStageValue instanceof HTMLElement) {
     el.caseWorkspaceCurrentStageValue.textContent = getCaseWorkspaceSummaryStageValue(flowState, isRu);
+  }
+  if (currentResponsibilityLabel instanceof HTMLElement) {
+    currentResponsibilityLabel.textContent = isRu ? "\u0422\u0435\u043a\u0443\u0449\u0430\u044f \u0437\u043e\u043d\u0430 \u043e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043d\u043d\u043e\u0441\u0442\u0438" : "Current responsibility";
+  }
+  if (el.caseWorkspaceCurrentResponsibilityValue instanceof HTMLElement) {
+    el.caseWorkspaceCurrentResponsibilityValue.textContent = getCaseWorkspaceSummaryResponsibilityValue(flowState, isRu);
   }
   if (nextStepFocusLabel instanceof HTMLElement) {
     nextStepFocusLabel.textContent = isRu ? "\u0427\u0442\u043e \u0434\u0435\u043b\u0430\u0442\u044c" : "Action";

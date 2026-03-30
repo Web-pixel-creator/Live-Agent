@@ -216,6 +216,8 @@ Case workspace note: that verified-result summary badge now routes through one e
 Case workspace note: `Completed work` now also exposes a short `Latest proof` line above the details, so the fold shows the last verified result title first and the summary facts below it.
 Case workspace note: `Completed work` now also shows the `Verified stage` from the latest protected summary, so draft follow-up still keeps the last confirmed case stage visible.
 Case workspace note: `Current case` now shows the active stage (`Case`, `Documents`, `Consultation`, `CRM`, `Handoff`), while `Next step` remains the operator action and draft/review promise for that stage.
+Case workspace note: `Current case` now also shows the current responsibility, so the first scan answers who owns the work right now without duplicating the `Next step` action line.
+Case workspace note: after a verified result, `Current case` status now stays on the live case posture (`Documents stage is ready`, `Consultation stage is ready`, and so on) so verification stays owned by `Completed work`.
 Case workspace note: `Next step` now also surfaces that operator action as a short `Action` line above the body text, so the card reads as one concrete move plus the supporting explanation.
 Case workspace note: draft-stage `Next step` now points at the protected summary review in the main row, so the fold promises the same action the current launcher actually opens.
 Case workspace note: verified-result `Next step` now stays on the next case move or human continuation, while summary copy and review history stay in `Result tools`.
