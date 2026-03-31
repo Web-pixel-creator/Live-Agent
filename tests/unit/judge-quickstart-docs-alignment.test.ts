@@ -3,19 +3,20 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("readme exposes judge quick path and quickstart doc link", () => {
-  const readmePath = resolve(process.cwd(), "README.md");
-  const source = readFileSync(readmePath, "utf8");
+test("judge quickstart exposes judge quick path and evidence entry points", () => {
+  const quickstartPath = resolve(process.cwd(), "docs", "judge-quickstart.md");
+  const source = readFileSync(quickstartPath, "utf8");
 
   const requiredTokens = [
-    "Judge Quickstart: `docs/judge-quickstart.md`",
-    "## Judge Quick Path",
-    "npm run demo:e2e:fast && npm run demo:e2e:policy",
+    "# Judge Quickstart",
+    "Fast, judge-facing entry point for a 5-10 minute evaluation run.",
+    "npm run demo:e2e:fast",
+    "npm run demo:e2e:policy",
     "artifacts/demo-e2e/badge-details.json",
-    "Frontend `Intent Request` also supports `intent=research`",
+    "intent=research",
   ];
   for (const token of requiredTokens) {
-    assert.ok(source.includes(token), `README missing judge quick path token: ${token}`);
+    assert.ok(source.includes(token), `judge quickstart missing quick path token: ${token}`);
   }
 });
 
