@@ -18,7 +18,13 @@ test("frontend railway deploy helper is wired across package script, script cont
   assert.match(source, /\[string\]\$FrontendPath = "apps\/demo-frontend"/);
   assert.match(source, /\[string\]\$FrontendWsUrl = \$env:FRONTEND_WS_URL/);
   assert.match(source, /\[string\]\$FrontendApiBaseUrl = \$env:FRONTEND_API_BASE_URL/);
+  assert.match(source, /\$useProjectTokenFallback = \(\$env:RAILWAY_AUTH_PROJECT_MODE -eq "true"\)/);
+  assert.match(source, /Skipping FRONTEND_WS_URL mutation in project-token fallback mode; reusing existing Railway environment value\./);
   assert.match(source, /Run-Cli -CliArgs @\("variable", "set", "-s", \$Service, "-e", \$Environment, "--skip-deploys", "FRONTEND_WS_URL=\$FrontendWsUrl"\)/);
+  assert.match(
+    source,
+    /Skipping FRONTEND_API_BASE_URL mutation in project-token fallback mode; reusing existing Railway environment value\./,
+  );
   assert.match(
     source,
     /Run-Cli -CliArgs @\("variable", "set", "-s", \$Service, "-e", \$Environment, "--skip-deploys", "FRONTEND_API_BASE_URL=\$FrontendApiBaseUrl"\)/,
@@ -32,5 +38,5 @@ test("frontend railway deploy helper is wired across package script, script cont
   const readme = readFileSync(readmePath, "utf8");
   assert.match(readme, /## Railway Frontend Service/);
   assert.match(readme, /npm run deploy:railway:frontend/);
+  assert.match(readme, /In `RAILWAY_AUTH_PROJECT_MODE=true`, the frontend deploy helper skips `railway variable set`/);
 });
-

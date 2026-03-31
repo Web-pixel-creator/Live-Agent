@@ -1376,6 +1376,7 @@ railway variable set -s "Live-Agent-Frontend" -e production --skip-deploys "FRON
 Notes:
 
 - Frontend serves `GET /config.json` and applies `FRONTEND_WS_URL` / `FRONTEND_API_BASE_URL` at bootstrap.
+- In `RAILWAY_AUTH_PROJECT_MODE=true`, the frontend deploy helper skips `railway variable set` for `FRONTEND_WS_URL` / `FRONTEND_API_BASE_URL` and reuses the existing Railway environment values.
 - Frontend service health endpoint: `GET /healthz`.
 - Frontend service config-as-code is at `apps/demo-frontend/railway.json`.
 - Helper flags: `-NoWait`, `-SkipHealthCheck`, `-StatusPollMaxAttempts`, `-StatusPollIntervalSec`.

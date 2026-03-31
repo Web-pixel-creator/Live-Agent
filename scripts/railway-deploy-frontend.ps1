@@ -252,6 +252,8 @@ if ($LASTEXITCODE -ne 0) {
 
 Ensure-RailwayAuthContext -LogPrefix "railway-frontend"
 
+$useProjectTokenFallback = ($env:RAILWAY_AUTH_PROJECT_MODE -eq "true")
+
 if ([string]::IsNullOrWhiteSpace($Environment)) {
   $Environment = "production"
 }
@@ -278,13 +280,23 @@ if ([string]::IsNullOrWhiteSpace($DeployMessage)) {
 }
 
 if (-not [string]::IsNullOrWhiteSpace($FrontendWsUrl)) {
-  Write-Host "[railway-frontend] Setting FRONTEND_WS_URL..."
-  Run-Cli -CliArgs @("variable", "set", "-s", $Service, "-e", $Environment, "--skip-deploys", "FRONTEND_WS_URL=$FrontendWsUrl")
+  if ($useProjectTokenFallback) {
+    Write-Warning "[railway-frontend] Skipping FRONTEND_WS_URL mutation in project-token fallback mode; reusing existing Railway environment value."
+  }
+  else {
+    Write-Host "[railway-frontend] Setting FRONTEND_WS_URL..."
+    Run-Cli -CliArgs @("variable", "set", "-s", $Service, "-e", $Environment, "--skip-deploys", "FRONTEND_WS_URL=$FrontendWsUrl")
+  }
 }
 
 if (-not [string]::IsNullOrWhiteSpace($FrontendApiBaseUrl)) {
-  Write-Host "[railway-frontend] Setting FRONTEND_API_BASE_URL..."
-  Run-Cli -CliArgs @("variable", "set", "-s", $Service, "-e", $Environment, "--skip-deploys", "FRONTEND_API_BASE_URL=$FrontendApiBaseUrl")
+  if ($useProjectTokenFallback) {
+    Write-Warning "[railway-frontend] Skipping FRONTEND_API_BASE_URL mutation in project-token fallback mode; reusing existing Railway environment value."
+  }
+  else {
+    Write-Host "[railway-frontend] Setting FRONTEND_API_BASE_URL..."
+    Run-Cli -CliArgs @("variable", "set", "-s", $Service, "-e", $Environment, "--skip-deploys", "FRONTEND_API_BASE_URL=$FrontendApiBaseUrl")
+  }
 }
 
 $deployArgs = @("up", $FrontendPath, "--path-as-root", "-d", "-s", $Service, "-e", $Environment, "-m", $DeployMessage)
