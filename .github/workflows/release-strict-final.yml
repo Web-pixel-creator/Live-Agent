@@ -142,7 +142,6 @@ jobs:
         shell: powershell
         run: |
           $args = @(
-            "--",
             "-ProjectId", $env:RAILWAY_PROJECT_ID,
             "-GatewayServiceId", $env:RAILWAY_SERVICE_ID,
             "-Environment", "${{ inputs.railway_environment }}",
@@ -187,7 +186,7 @@ jobs:
             $args += "-FrontendSkipHealthCheck"
           }
 
-          npm run deploy:railway:all @args
+          & powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy-all.ps1 @args
 
       - name: Verify Public Endpoints Fallback (Deploy Failure)
         id: verify_only_fallback

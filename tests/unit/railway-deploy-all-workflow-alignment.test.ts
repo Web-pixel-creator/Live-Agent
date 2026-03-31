@@ -39,7 +39,7 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /continue-on-error:\s*true/);
   assert.match(source, /\$gatewayDemoFrontendPublicUrl = "\$\{\{\s*inputs\.gateway_demo_frontend_public_url\s*\}\}"\.Trim\(\)/);
   assert.match(source, /if \(\[string\]::IsNullOrWhiteSpace\(\$gatewayDemoFrontendPublicUrl\) -and -not \[string\]::IsNullOrWhiteSpace\(\$env:FRONTEND_PUBLIC_URL\)\)/);
-  assert.match(source, /npm run deploy:railway:all @args/);
+  assert.match(source, /& powershell -NoProfile -ExecutionPolicy Bypass -File \.\/scripts\/railway-deploy-all\.ps1 @args/);
   assert.match(source, /- name:\s*Verify Public Endpoints Fallback \(Deploy Failure\)/);
   assert.match(source, /id:\s*verify_only_fallback/);
   assert.match(source, /if:\s*steps\.combined_deploy\.outcome != 'success' && inputs\.verify_only_fallback_on_auth_failure == true/);

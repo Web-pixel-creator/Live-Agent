@@ -2819,7 +2819,7 @@ test(
       }),
     });
     assert.equal(result.exitCode, 1);
-    const output = `${result.stderr}\n${result.stdout}`;
+    const output = `${result.stderr}\n${result.stdout}`.replace(/\s+/g, " ");
     assert.match(
       output,
       /source run manifest evidenceSnapshot\.railwayDeploySummaryDeploymentId is required when railwayDeploySummaryPrese\s*nt=true/i,

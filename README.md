@@ -1409,6 +1409,7 @@ Notes:
 
 - Railway combined deploy workflow: `.github/workflows/railway-deploy-all.yml`
 - Triggered manually (`workflow_dispatch`) to deploy `gateway + frontend` via `npm run deploy:railway:all`.
+- Workflow invokes `scripts/railway-deploy-all.ps1` directly from PowerShell so switch parameters reach the deploy helper without npm/PowerShell argument-loss on Windows runners.
 - Required repository secrets:
   - `RAILWAY_API_TOKEN` (recommended: workspace/account token)
   - `RAILWAY_TOKEN` (legacy account-token fallback; workflow exports it separately as `RAILWAY_LEGACY_TOKEN`)
