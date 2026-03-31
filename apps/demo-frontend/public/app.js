@@ -1255,6 +1255,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.statusLabel": "Status",
     "live.caseWorkspace.currentStageLabel": "Current stage",
 "live.caseWorkspace.currentResponsibilityLabel": "Current responsibility",
+"live.caseWorkspace.currentCheckpointLabel": "Current checkpoint",
 "live.caseWorkspace.currentProgressLabel": "Case progress",
 "live.caseWorkspace.nextStepLabel": "Next step",
 "live.caseWorkspace.nextStepCard": "Next step",
@@ -3068,6 +3069,7 @@ const el = {
   caseWorkspaceStatus: document.getElementById("caseWorkspaceStatus"),
   caseWorkspaceCurrentStageValue: document.getElementById("caseWorkspaceCurrentStageValue"),
   caseWorkspaceCurrentResponsibilityValue: document.getElementById("caseWorkspaceCurrentResponsibilityValue"),
+  caseWorkspaceCurrentCheckpointValue: document.getElementById("caseWorkspaceCurrentCheckpointValue"),
   caseWorkspaceCurrentProgressValue: document.getElementById("caseWorkspaceCurrentProgressValue"),
   caseWorkspaceNextStepFocusValue: document.getElementById("caseWorkspaceNextStepFocusValue"),
   caseWorkspaceNextStepStageValue: document.getElementById("caseWorkspaceNextStepStageValue"),
@@ -5643,6 +5645,34 @@ function getCaseWorkspaceSummaryResponsibilityValue(flowState, isRu) {
   }
 }
 
+function getCaseWorkspaceSummaryCheckpointValue(flowState, isRu) {
+  const scenario = typeof state.liveDemoScenario === "string" ? state.liveDemoScenario : "";
+  if (scenario === "visa_escalation_result") {
+    return isRu ? "\u0414\u0430\u043b\u044c\u0448\u0435 \u0432\u0435\u0434\u0451\u0442 \u0447\u0435\u043b\u043e\u0432\u0435\u043a" : "Manual follow-through remains";
+  }
+  if (/_draft$/.test(scenario)) {
+    return isRu ? "\u0417\u0430\u0449\u0438\u0449\u0451\u043d\u043d\u0430\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0436\u0434\u0451\u0442" : "Protected review is pending";
+  }
+  if (/_result$/.test(scenario)) {
+    return isRu ? "\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u0439 \u0448\u0430\u0433 \u043a\u0435\u0439\u0441\u0430 \u043e\u0442\u043a\u0440\u044b\u0442" : "Next case move is unlocked";
+  }
+
+  const primaryActionCopy = getCaseWorkspacePrimaryActionCopy(flowState, isRu);
+  switch (primaryActionCopy?.state) {
+    case "waiting":
+      return isRu ? "\u0416\u0434\u0451\u043c \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0439 live-\u043e\u0442\u0432\u0435\u0442" : "Waiting for the active response";
+    case "review":
+      return isRu ? "\u0417\u0430\u0449\u0438\u0449\u0451\u043d\u043d\u0430\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043e\u0442\u043a\u0440\u044b\u0442\u0430" : "Protected review is open";
+    case "case":
+      return isRu ? "\u0422\u0435\u043a\u0443\u0449\u0438\u0439 \u0448\u0430\u0433 \u043a\u0435\u0439\u0441\u0430 \u0433\u043e\u0442\u043e\u0432" : "Current case move is ready";
+    case "complete":
+      return isRu ? "\u041c\u043e\u0436\u043d\u043e \u043d\u0430\u0447\u0430\u0442\u044c \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u0439 \u043a\u0435\u0439\u0441" : "Next case can start";
+    case "start":
+    default:
+      return isRu ? "\u0421\u0442\u0430\u0440\u0442 intake \u043e\u0442\u043a\u0440\u044b\u0442" : "Intake launch is open";
+  }
+}
+
 function getCaseWorkspaceSummaryProgressValue(flowState, isRu) {
   const totalSteps = CASE_WORKSPACE_FLOW_STEPS.length;
   const completedCount = Number(flowState?.completedCount) || 0;
@@ -7683,6 +7713,7 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   const completedSummaryConfig = summaryConfig ?? state.liveCaseLastVerifiedSummaryConfig;
   const currentStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentStageLabel"]');
   const currentResponsibilityLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentResponsibilityLabel"]');
+  const currentCheckpointLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentCheckpointLabel"]');
   const currentProgressLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentProgressLabel"]');
   const nextStepFocusLabel = document.querySelector('[data-i18n="live.caseWorkspace.nextStepFocusLabel"]');
   const nextStepStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.nextStepStageLabel"]');
@@ -7706,6 +7737,12 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   }
   if (el.caseWorkspaceCurrentResponsibilityValue instanceof HTMLElement) {
     el.caseWorkspaceCurrentResponsibilityValue.textContent = getCaseWorkspaceSummaryResponsibilityValue(flowState, isRu);
+  }
+  if (currentCheckpointLabel instanceof HTMLElement) {
+    currentCheckpointLabel.textContent = isRu ? "\u0422\u0435\u043a\u0443\u0449\u0430\u044f \u0442\u043e\u0447\u043a\u0430 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044f" : "Current checkpoint";
+  }
+  if (el.caseWorkspaceCurrentCheckpointValue instanceof HTMLElement) {
+    el.caseWorkspaceCurrentCheckpointValue.textContent = getCaseWorkspaceSummaryCheckpointValue(flowState, isRu);
   }
   if (currentProgressLabel instanceof HTMLElement) {
     currentProgressLabel.textContent = isRu ? "\u041f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u043a\u0435\u0439\u0441\u0430" : "Case progress";
