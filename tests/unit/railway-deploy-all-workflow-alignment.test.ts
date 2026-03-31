@@ -22,7 +22,7 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /verify_only_fallback_on_auth_failure:/);
 
   assert.match(source, /RAILWAY_API_TOKEN:\s*\$\{\{\s*secrets\.RAILWAY_API_TOKEN\s*\|\|\s*secrets\.RAILWAY_TOKEN\s*\}\}/);
-  assert.match(source, /RAILWAY_TOKEN:\s*\$\{\{\s*secrets\.RAILWAY_PROJECT_TOKEN\s*\}\}/);
+  assert.match(source, /RAILWAY_PROJECT_TOKEN:\s*\$\{\{\s*secrets\.RAILWAY_PROJECT_TOKEN\s*\}\}/);
   assert.match(source, /RAILWAY_PROJECT_ID:\s*\$\{\{\s*secrets\.RAILWAY_PROJECT_ID\s*\}\}/);
   assert.match(source, /RAILWAY_SERVICE_ID:\s*\$\{\{\s*secrets\.RAILWAY_SERVICE_ID\s*\}\}/);
   assert.match(source, /FRONTEND_PUBLIC_URL:\s*\$\{\{\s*vars\.FRONTEND_PUBLIC_URL\s*\}\}/);
@@ -78,6 +78,7 @@ test("readme documents deploy-all workflow and required secrets", () => {
   assert.match(readme, /railway-deploy-all\.yml/);
   assert.match(readme, /RAILWAY_API_TOKEN/);
   assert.match(readme, /RAILWAY_TOKEN/);
+  assert.match(readme, /RAILWAY_PROJECT_TOKEN/);
   assert.match(readme, /RAILWAY_PROJECT_ID/);
   assert.match(readme, /RAILWAY_SERVICE_ID/);
   assert.match(readme, /artifacts\/deploy\/railway-deploy-summary\.json/);

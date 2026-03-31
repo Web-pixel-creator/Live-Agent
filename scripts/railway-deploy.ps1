@@ -364,11 +364,39 @@ function Run-CliCapture([string[]]$CliArgs) {
 }
 
 function Ensure-RailwayAuthContext([string]$LogPrefix) {
-  $hasProjectToken = -not [string]::IsNullOrWhiteSpace($env:RAILWAY_TOKEN)
+  $accountToken = $env:RAILWAY_API_TOKEN
+  $legacyToken = $env:RAILWAY_TOKEN
+  $projectToken = $env:RAILWAY_PROJECT_TOKEN
+  $usingProjectTokenMode = $false
 
-  if ([string]::IsNullOrWhiteSpace($env:RAILWAY_API_TOKEN) -and $hasProjectToken) {
-    $env:RAILWAY_API_TOKEN = $env:RAILWAY_TOKEN
-    Write-Host ("[" + $LogPrefix + "] RAILWAY_API_TOKEN is empty; using RAILWAY_TOKEN fallback for CLI auth.")
+  if (-not [string]::IsNullOrWhiteSpace($accountToken)) {
+    if (-not [string]::IsNullOrWhiteSpace($legacyToken) -and $legacyToken -ne $accountToken) {
+      Write-Warning ("[" + $LogPrefix + "] Ignoring RAILWAY_TOKEN because RAILWAY_API_TOKEN is already set.")
+    }
+    $env:RAILWAY_TOKEN = ""
+  }
+  else {
+    $fallbackProjectToken = $null
+    if (-not [string]::IsNullOrWhiteSpace($projectToken)) {
+      $fallbackProjectToken = $projectToken
+    }
+    elseif (-not [string]::IsNullOrWhiteSpace($legacyToken)) {
+      $fallbackProjectToken = $legacyToken
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($fallbackProjectToken)) {
+      $env:RAILWAY_API_TOKEN = $fallbackProjectToken
+      $env:RAILWAY_TOKEN = ""
+      $usingProjectTokenMode = $true
+      Write-Host ("[" + $LogPrefix + "] RAILWAY_API_TOKEN is empty; using project-token fallback for CLI auth.")
+    }
+  }
+
+  if ($usingProjectTokenMode) {
+    $env:RAILWAY_AUTH_PROJECT_MODE = "true"
+  }
+  else {
+    Remove-Item Env:RAILWAY_AUTH_PROJECT_MODE -ErrorAction SilentlyContinue
   }
 
   $authProbe = ""
@@ -395,18 +423,12 @@ function Ensure-RailwayAuthContext([string]$LogPrefix) {
     Write-Host $authProbe
   }
 
-  if ($hasProjectToken) {
-    if ($env:RAILWAY_API_TOKEN -ne $env:RAILWAY_TOKEN) {
-      $env:RAILWAY_API_TOKEN = $env:RAILWAY_TOKEN
-      Write-Warning ("[" + $LogPrefix + "] railway whoami failed; forcing RAILWAY_TOKEN project-token mode (RAILWAY_TOKEN -> RAILWAY_API_TOKEN).")
-    }
-    else {
-      Write-Warning ("[" + $LogPrefix + "] railway whoami failed; continuing with RAILWAY_TOKEN project-token mode.")
-    }
+  if ($usingProjectTokenMode) {
+    Write-Warning ("[" + $LogPrefix + "] railway whoami failed; continuing with project-token fallback mode.")
     return
   }
 
-  Fail ("[" + $LogPrefix + "] Railway authentication failed. Set RAILWAY_API_TOKEN (account token), or set RAILWAY_TOKEN (project token), or run 'railway login'.")
+  Fail ("[" + $LogPrefix + "] Railway authentication failed. Set RAILWAY_API_TOKEN (account token), or set RAILWAY_PROJECT_TOKEN (or legacy RAILWAY_TOKEN), or run 'railway login'.")
 }
 
 function Resolve-NpmCli() {
@@ -1076,8 +1098,8 @@ if (-not $SkipLink) {
         $linkOutput | ForEach-Object { Write-Host $_ }
       }
 
-      if (-not [string]::IsNullOrWhiteSpace($env:RAILWAY_TOKEN)) {
-        Write-Warning "[railway-deploy] railway link failed; continuing with direct project/service flags in project-token mode."
+      if ($env:RAILWAY_AUTH_PROJECT_MODE -eq "true") {
+        Write-Warning "[railway-deploy] railway link failed; continuing with direct project/service flags in project-token fallback mode."
       }
       else {
         Fail ("railway command failed: railway " + ($linkArgs -join " "))
