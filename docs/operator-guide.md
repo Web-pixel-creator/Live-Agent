@@ -64,6 +64,7 @@ Case workspace note: `Completed work` now also exposes a short `Latest proof` li
 Case workspace note: `Completed work` now also shows the `Verified stage` from the latest protected summary, so draft follow-up still keeps the last confirmed case stage visible.
 Case workspace note: `Current case` now shows the active stage (`Case`, `Documents`, `Consultation`, `CRM`, `Handoff`), while `Next step` remains the operator action and draft/review promise for that stage.
 Case workspace note: `Current case` now also shows the current responsibility, so the first scan answers who owns the work right now without duplicating the `Next step` action line.
+Case workspace note: `Current case` now also shows `Case progress`, sourced from the guided flow state, so the operator can read the stage count without cross-checking the separate step bar.
 Case workspace note: after a verified result, `Current case` status now stays on the live case posture (`Documents stage is ready`, `Consultation stage is ready`, and so on) so verification stays owned by `Completed work`.
 Case workspace note: `Next step` now also surfaces that operator action as a short `Action` line above the body text, so the card reads as one concrete move plus the supporting explanation.
 Case workspace note: `Next step` now also shows `After this`, so the fold reads as current stage, current action, what opens immediately after this step, and the latest verified proof.

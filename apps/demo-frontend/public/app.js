@@ -1255,6 +1255,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.statusLabel": "Status",
     "live.caseWorkspace.currentStageLabel": "Current stage",
 "live.caseWorkspace.currentResponsibilityLabel": "Current responsibility",
+"live.caseWorkspace.currentProgressLabel": "Case progress",
 "live.caseWorkspace.nextStepLabel": "Next step",
 "live.caseWorkspace.nextStepCard": "Next step",
 "live.caseWorkspace.nextStepFocusLabel": "Action",
@@ -3067,6 +3068,7 @@ const el = {
   caseWorkspaceStatus: document.getElementById("caseWorkspaceStatus"),
   caseWorkspaceCurrentStageValue: document.getElementById("caseWorkspaceCurrentStageValue"),
   caseWorkspaceCurrentResponsibilityValue: document.getElementById("caseWorkspaceCurrentResponsibilityValue"),
+  caseWorkspaceCurrentProgressValue: document.getElementById("caseWorkspaceCurrentProgressValue"),
   caseWorkspaceNextStepFocusValue: document.getElementById("caseWorkspaceNextStepFocusValue"),
   caseWorkspaceNextStepStageValue: document.getElementById("caseWorkspaceNextStepStageValue"),
   caseWorkspaceNextStep: document.getElementById("caseWorkspaceNextStep"),
@@ -5641,6 +5643,23 @@ function getCaseWorkspaceSummaryResponsibilityValue(flowState, isRu) {
   }
 }
 
+function getCaseWorkspaceSummaryProgressValue(flowState, isRu) {
+  const totalSteps = CASE_WORKSPACE_FLOW_STEPS.length;
+  const completedCount = Number(flowState?.completedCount) || 0;
+  const activeActionId = typeof flowState?.actionId === "string" ? flowState.actionId : "";
+  if (completedCount >= totalSteps || activeActionId === "reset_visa_demo") {
+    return isRu ? `\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043e ${totalSteps} \u0438\u0437 ${totalSteps}` : `Completed ${totalSteps} of ${totalSteps}`;
+  }
+
+  const stepKey =
+    typeof flowState?.currentStep === "string" && flowState.currentStep.length > 0
+      ? flowState.currentStep
+      : "case";
+  const currentIndex = CASE_WORKSPACE_FLOW_STEPS.indexOf(stepKey);
+  const stepNumber = currentIndex >= 0 ? currentIndex + 1 : Math.min(totalSteps, Math.max(1, completedCount + 1));
+  return isRu ? `\u0428\u0430\u0433 ${stepNumber} \u0438\u0437 ${totalSteps}` : `Step ${stepNumber} of ${totalSteps}`;
+}
+
 function getCaseWorkspaceNextStageValue(flowState, isRu) {
   const scenario = typeof state.liveDemoScenario === "string" ? state.liveDemoScenario : "";
   const stepKey =
@@ -7664,6 +7683,7 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   const completedSummaryConfig = summaryConfig ?? state.liveCaseLastVerifiedSummaryConfig;
   const currentStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentStageLabel"]');
   const currentResponsibilityLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentResponsibilityLabel"]');
+  const currentProgressLabel = document.querySelector('[data-i18n="live.caseWorkspace.currentProgressLabel"]');
   const nextStepFocusLabel = document.querySelector('[data-i18n="live.caseWorkspace.nextStepFocusLabel"]');
   const nextStepStageLabel = document.querySelector('[data-i18n="live.caseWorkspace.nextStepStageLabel"]');
   const completedFocusLabel = document.querySelector('[data-i18n="live.caseWorkspace.completedFocusLabel"]');
@@ -7686,6 +7706,12 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   }
   if (el.caseWorkspaceCurrentResponsibilityValue instanceof HTMLElement) {
     el.caseWorkspaceCurrentResponsibilityValue.textContent = getCaseWorkspaceSummaryResponsibilityValue(flowState, isRu);
+  }
+  if (currentProgressLabel instanceof HTMLElement) {
+    currentProgressLabel.textContent = isRu ? "\u041f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u043a\u0435\u0439\u0441\u0430" : "Case progress";
+  }
+  if (el.caseWorkspaceCurrentProgressValue instanceof HTMLElement) {
+    el.caseWorkspaceCurrentProgressValue.textContent = getCaseWorkspaceSummaryProgressValue(flowState, isRu);
   }
   if (nextStepFocusLabel instanceof HTMLElement) {
     nextStepFocusLabel.textContent = isRu ? "\u0427\u0442\u043e \u0434\u0435\u043b\u0430\u0442\u044c" : "Action";
