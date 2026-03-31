@@ -1305,7 +1305,7 @@ Behavior:
 - repo publish surfaces local release-evidence report/manifest paths after pre-publish verification so the validated artifact set is explicit before any push/deploy step.
 - repo publish also emits `artifacts/deploy/repo-publish-summary.json` with the verified artifact set and enabled publish/deploy steps.
 - In automation contexts, repo publish also writes `repo_publish_summary_path` and related provenance flags to `GITHUB_OUTPUT`, and appends the same high-level state to `GITHUB_STEP_SUMMARY`.
-- Runs auth preflight (`railway whoami`) before deploy; if `RAILWAY_API_TOKEN` is already set, helper scripts ignore `RAILWAY_TOKEN` so a stale legacy/project token cannot override account-scope auth. If `RAILWAY_API_TOKEN` is empty, helpers fall back to `RAILWAY_PROJECT_TOKEN` (or legacy `RAILWAY_TOKEN`) by mirroring it into `RAILWAY_API_TOKEN` while keeping `RAILWAY_TOKEN` unset for CLI precedence safety.
+- Runs auth preflight (`railway whoami`) before deploy; helper scripts now try `RAILWAY_API_TOKEN` first, then retry `RAILWAY_TOKEN`/`RAILWAY_LEGACY_TOKEN` as a legacy account-token fallback, and only then fall back to `RAILWAY_PROJECT_TOKEN`. In all cases they keep `RAILWAY_TOKEN` unset for CLI precedence safety unless a legacy retry is explicitly underway.
 - Links local directory to Railway project/service when both `-ProjectId` and `-ServiceId` are provided.
 - If `-ProjectId/-ServiceId` are omitted, reuses existing Railway linked context for this workspace.
 - Triggers deployment (`railway up`) and waits until terminal status.
@@ -1411,7 +1411,7 @@ Notes:
 - Triggered manually (`workflow_dispatch`) to deploy `gateway + frontend` via `npm run deploy:railway:all`.
 - Required repository secrets:
   - `RAILWAY_API_TOKEN` (recommended: workspace/account token)
-  - `RAILWAY_TOKEN` (legacy fallback; still supported as a backup for `RAILWAY_API_TOKEN`)
+  - `RAILWAY_TOKEN` (legacy account-token fallback; workflow exports it separately as `RAILWAY_LEGACY_TOKEN`)
   - optional `RAILWAY_PROJECT_TOKEN` (explicit project-token fallback; workflow exports it separately so it does not override `RAILWAY_API_TOKEN`)
   - `RAILWAY_PROJECT_ID`
   - `RAILWAY_SERVICE_ID`

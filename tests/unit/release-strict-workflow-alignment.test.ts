@@ -25,7 +25,8 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /push:\s*\r?\n\s*branches:\s*\r?\n\s*-\s*main[\s\S]*-\s*master/);
   assert.match(source, /Run Release Strict Final Gate/);
   assert.match(source, /npm run verify:release:strict/);
-  assert.match(source, /RAILWAY_API_TOKEN:\s*\$\{\{\s*secrets\.RAILWAY_API_TOKEN\s*\|\|\s*secrets\.RAILWAY_TOKEN\s*\}\}/);
+  assert.match(source, /RAILWAY_API_TOKEN:\s*\$\{\{\s*secrets\.RAILWAY_API_TOKEN\s*\}\}/);
+  assert.match(source, /RAILWAY_LEGACY_TOKEN:\s*\$\{\{\s*secrets\.RAILWAY_TOKEN\s*\}\}/);
   assert.match(source, /RAILWAY_PROJECT_TOKEN:\s*\$\{\{\s*secrets\.RAILWAY_PROJECT_TOKEN\s*\}\}/);
   assert.match(source, /RAILWAY_PROJECT_ID:\s*\$\{\{\s*secrets\.RAILWAY_PROJECT_ID\s*\}\}/);
   assert.match(source, /RAILWAY_SERVICE_ID:\s*\$\{\{\s*secrets\.RAILWAY_SERVICE_ID\s*\}\}/);
