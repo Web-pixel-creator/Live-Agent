@@ -39,6 +39,7 @@
     "eval:promptfoo:red-team": "node ./scripts/eval-plane.mjs --suite red-team",
     "eval:promptfoo:gate": "node ./scripts/eval-plane.mjs --suite all --gate",
     "eval:promptfoo:dry-run": "node ./scripts/eval-plane.mjs --suite all --dry-run",
+    "runtime:surface:snapshot": "node --import tsx ./scripts/runtime-surface-snapshot.mjs --output ./artifacts/runtime/runtime-surface-snapshot.json",
     "autoresearch:runtime-perf": "node ./scripts/autoresearch-harness.mjs --config ./configs/autoresearch/runtime-perf.json",
     "profile:smoke": "node --import tsx ./scripts/runtime-profile-smoke.mjs",
     "storyteller:smoke:live": "node --import tsx ./scripts/storyteller-live-media-smoke.mjs",
