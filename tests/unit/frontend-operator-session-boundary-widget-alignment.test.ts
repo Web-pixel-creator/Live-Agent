@@ -56,6 +56,8 @@ test("operator console exposes compact session boundary widget", () => {
     "recoveryHandoff",
     "latestVerifiedStage",
     "renderOperatorSessionBoundaryWidget(state.operatorSessionReplaySnapshot);",
+    "recoveryTargetButtonLabel",
+    'el.operatorSessionBoundaryOpenBtn.textContent = recoveryTargetButtonLabel;',
     "openOperatorSessionBoundaryTarget();",
   ];
   for (const token of requiredRuntimeTokens) {

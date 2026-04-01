@@ -27778,6 +27778,9 @@ function resetOperatorSessionBoundaryWidget(reason = "no_data") {
   setText(el.operatorSessionBoundaryLatestProof, "n/a");
   setText(el.operatorSessionBoundaryRecovery, "n/a");
   setText(el.operatorSessionBoundaryHandoff, "n/a");
+  if (el.operatorSessionBoundaryOpenBtn) {
+    el.operatorSessionBoundaryOpenBtn.textContent = "Open Session Ops";
+  }
   setOperatorSessionBoundaryHint(
     "Load one replay session in Operator Session Ops to inspect resume and recovery posture.",
     "neutral",
@@ -29520,6 +29523,9 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const handoffDetail = recoveryHandoff
     ? `${recoveryTargetLabel}${toOptionalText(recoveryHandoff?.action) ? ` | ${recoveryHandoff.action}` : ""}`
     : "Stay in Operator Session Ops";
+  const recoveryTargetButtonLabel = recoveryHandoff
+    ? `Open ${recoveryTargetLabel}`
+    : "Open Session Ops";
 
   setText(
     el.operatorSessionBoundarySession,
@@ -29553,6 +29559,9 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     el.operatorSessionBoundaryHandoff,
     handoffDetail,
   );
+  if (el.operatorSessionBoundaryOpenBtn) {
+    el.operatorSessionBoundaryOpenBtn.textContent = recoveryTargetButtonLabel;
+  }
 
   let statusText = replayState;
   let statusVariant = "neutral";
