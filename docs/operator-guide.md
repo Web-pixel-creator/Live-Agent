@@ -274,6 +274,7 @@ Runtime surface inventory note: use `GET /v1/runtime/surface` when you need one 
 Runtime surface readiness note: use `GET /v1/runtime/surface/readiness` when you need one operator-safe `ready / degraded / critical` verdict; it overlays bootstrap doctor, runtime diagnostics, service coverage, device readiness, and evidence posture, while `Skills Registry Lifecycle` remains the source for managed-skill activation history rather than readiness state.
 Runtime surface artifact note: use `npm run runtime:surface:snapshot` to write `artifacts/runtime/runtime-surface-snapshot.json`; pass `-- --offline true` when you want the repo-owned inventory/readiness pair without live service or device-node probing.
 Runtime surface parity note: use `npm run runtime:surface:parity` after the snapshot step when you need a hard gate against missing runtime-surface agents, routes, control-plane entries, evidence lanes, UI capabilities, or required ready playbooks.
+Runtime surface doc drift note: use `npm run runtime:surface:doc-drift` after the snapshot/parity steps when you need a hard gate that `README.md`, `docs/architecture.md`, `docs/operator-guide.md`, and `package.json` still describe the same repo-owned runtime-surface routes, scripts, and artifact paths; it writes `artifacts/runtime/runtime-surface-doc-drift.json`.
 
 ## Standard Operator Actions
 
