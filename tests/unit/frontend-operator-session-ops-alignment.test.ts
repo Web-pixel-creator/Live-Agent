@@ -92,6 +92,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "readStoredOperatorPurposeDeclaration()",
     "refreshOperatorSessionReplay({ silent: true }).catch(() => {",
     "refreshOperatorDiscovery({ silent: true }).catch(() => {",
+    "nextAction=",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing session-ops token: ${token}`);

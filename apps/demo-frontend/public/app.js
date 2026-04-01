@@ -3780,6 +3780,7 @@ const el = {
   operatorSessionBoundarySummary: document.getElementById("operatorSessionBoundarySummary"),
   operatorSessionBoundaryOwner: document.getElementById("operatorSessionBoundaryOwner"),
   operatorSessionBoundaryApprovalGate: document.getElementById("operatorSessionBoundaryApprovalGate"),
+  operatorSessionBoundaryNextAction: document.getElementById("operatorSessionBoundaryNextAction"),
   operatorSessionBoundaryLatestProof: document.getElementById("operatorSessionBoundaryLatestProof"),
   operatorSessionBoundaryRecovery: document.getElementById("operatorSessionBoundaryRecovery"),
   operatorSessionBoundaryHandoff: document.getElementById("operatorSessionBoundaryHandoff"),
@@ -27777,6 +27778,7 @@ function resetOperatorSessionBoundaryWidget(reason = "no_data") {
   setText(el.operatorSessionBoundarySummary, "n/a");
   setText(el.operatorSessionBoundaryOwner, "n/a");
   setText(el.operatorSessionBoundaryApprovalGate, "n/a");
+  setText(el.operatorSessionBoundaryNextAction, "n/a");
   setText(el.operatorSessionBoundaryLatestProof, "n/a");
   setText(el.operatorSessionBoundaryRecovery, "n/a");
   setText(el.operatorSessionBoundaryHandoff, "n/a");
@@ -29526,6 +29528,10 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const approvalGateDetail = approvalGate
     ? `${toOptionalText(approvalGate.source) ?? "session"} | ${approvalGateSummary ?? "pending"}${nextOperatorActionLabel ? ` | ${nextOperatorActionLabel}` : toOptionalText(approvalGate.action) ? ` | ${approvalGate.action}` : ""}`
     : "No open approval gate";
+  const nextActionDetail =
+    nextOperatorActionLabel ??
+    boundaryNextStep ??
+    "Inspect the selected session before continuing.";
   const recoveryDrillDetail = recoveryDrill
     ? `${toOptionalText(recoveryDrill.label) ?? "Recovery drill"}${toOptionalText(recoveryDrill.profileId) ? ` | ${recoveryDrill.profileId}/${toOptionalText(recoveryDrill.phase) ?? "recovery"}` : ""}`
     : null;
@@ -29553,6 +29559,10 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   setText(
     el.operatorSessionBoundaryApprovalGate,
     approvalGateDetail,
+  );
+  setText(
+    el.operatorSessionBoundaryNextAction,
+    nextActionDetail,
   );
   setText(
     el.operatorSessionBoundaryLatestProof,
@@ -30493,6 +30503,7 @@ function buildOperatorSessionOpsControlMeta() {
     `replaySessions=${Math.max(0, Math.floor(Number(replay?.totalSessions ?? 0) || 0))}`,
     `replayEvents=${Math.max(0, Math.floor(Number(replay?.totalEvents ?? 0) || 0))}`,
     `resume=${replay?.selectedSession?.replay?.resumeReady === true ? "ready" : replay?.selectedSession?.replay?.resumeBlockedBy ?? "idle"}`,
+    `nextAction=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionLabel) ?? toOptionalText(replay?.selectedSession?.replay?.nextOperatorAction) ?? "n/a"}`,
     `personas=${Math.max(0, Math.floor(Number(discovery?.totalPersonas ?? 0) || 0))}`,
     `recipes=${Math.max(0, Math.floor(Number(discovery?.totalRecipes ?? 0) || 0))}`,
     `agents=${Array.isArray(discovery?.agentIds) ? discovery.agentIds.join(",") || "none" : "none"}`,
