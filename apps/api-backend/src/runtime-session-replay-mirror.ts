@@ -63,10 +63,79 @@ export type RuntimeSessionReplaySnapshot = {
       workflowRoute: string | null;
       workflowReason: string | null;
       workflowUpdatedAt: string | null;
+      booking: {
+        status: string | null;
+        topic: string | null;
+        selectedSlotLabel: string | null;
+        summary: string | null;
+      } | null;
+      handoff: {
+        kind: "handoff";
+        scenario: string | null;
+        status: string | null;
+        intent: string | null;
+        caseId: string | null;
+        destinationCountry: string | null;
+        assignedOwner: string | null;
+        priority: string | null;
+        summary: string | null;
+        nextStep: string | null;
+        ready: boolean | null;
+      } | null;
+      followUp: {
+        kind: "follow_up";
+        scenario: string | null;
+        status: string | null;
+        intent: string | null;
+        caseId: string | null;
+        destinationCountry: string | null;
+        missingItemsCount: number | null;
+        summary: string | null;
+        nextStep: string | null;
+        ready: boolean | null;
+      } | null;
     };
     replay: {
       replayState: RuntimeSessionReplayState;
       replayReady: boolean;
+      resumeReady: boolean;
+      resumeBlockedBy: string | null;
+      nextOperatorAction: string | null;
+      currentHandoffState:
+        | {
+            kind: "booking";
+            status: string | null;
+            topic: string | null;
+            selectedSlotLabel: string | null;
+            summary: string | null;
+          }
+        | {
+            kind: "handoff";
+            status: string | null;
+            intent: string | null;
+            caseId: string | null;
+            destinationCountry: string | null;
+            nextStep: string | null;
+            ready: boolean | null;
+          }
+        | {
+            kind: "follow_up";
+            status: string | null;
+            intent: string | null;
+            caseId: string | null;
+            destinationCountry: string | null;
+            nextStep: string | null;
+            ready: boolean | null;
+          }
+        | null;
+      latestProofPointer: {
+        runId: string | null;
+        summary: string | null;
+        verifiedAt: string | null;
+        route: string | null;
+        intent: string | null;
+        workflowStage: string | null;
+      } | null;
       eventCount: number;
       runCount: number;
       approvalCount: number;
@@ -89,6 +158,8 @@ export type RuntimeSessionReplaySnapshot = {
       latestVerifiedRunId: string | null;
       latestVerifiedSummary: string | null;
       latestVerifiedAt: string | null;
+      latestVerifiedRoute: string | null;
+      latestVerifiedIntent: string | null;
       bySource: Record<string, number>;
       byType: Record<string, number>;
       byRoute: Record<string, number>;
@@ -117,6 +188,8 @@ type SessionEventInsight = {
   latestVerifiedRunId: string | null;
   latestVerifiedSummary: string | null;
   latestVerifiedAt: string | null;
+  latestVerifiedRoute: string | null;
+  latestVerifiedIntent: string | null;
   bySource: Record<string, number>;
   byType: Record<string, number>;
   byRoute: Record<string, number>;
@@ -229,9 +302,241 @@ function buildSessionEventInsight(events: EventListItem[]): SessionEventInsight 
     latestVerifiedRunId: latestVerifiedEvent ? toNonEmptyString(latestVerifiedEvent.runId) : null,
     latestVerifiedSummary: latestVerifiedEvent ? toNonEmptyString(latestVerifiedEvent.verificationSummary) : null,
     latestVerifiedAt: latestVerifiedEvent ? latestVerifiedEvent.createdAt : null,
+    latestVerifiedRoute: latestVerifiedEvent ? toNonEmptyString(latestVerifiedEvent.route) : null,
+    latestVerifiedIntent: latestVerifiedEvent ? toNonEmptyString(latestVerifiedEvent.intent) : null,
     bySource,
     byType,
     byRoute,
+  };
+}
+
+function buildWorkflowBookingSummary(workflowSummary: RuntimeWorkflowControlPlaneSummary | null) {
+  if (!workflowSummary) {
+    return null;
+  }
+  const hasBooking =
+    workflowSummary.workflowBookingStatus !== null ||
+    workflowSummary.workflowBookingTopic !== null ||
+    workflowSummary.workflowBookingSelectedSlotLabel !== null ||
+    workflowSummary.workflowBookingSummary !== null;
+  if (!hasBooking) {
+    return null;
+  }
+  return {
+    status: workflowSummary.workflowBookingStatus,
+    topic: workflowSummary.workflowBookingTopic,
+    selectedSlotLabel: workflowSummary.workflowBookingSelectedSlotLabel,
+    summary: workflowSummary.workflowBookingSummary,
+  };
+}
+
+function buildWorkflowHandoffSummary(workflowSummary: RuntimeWorkflowControlPlaneSummary | null) {
+  if (!workflowSummary) {
+    return null;
+  }
+  const hasHandoff =
+    workflowSummary.workflowHandoffStatus !== null ||
+    workflowSummary.workflowHandoffIntent !== null ||
+    workflowSummary.workflowHandoffCaseId !== null ||
+    workflowSummary.workflowHandoffDestinationCountry !== null ||
+    workflowSummary.workflowHandoffAssignedOwner !== null ||
+    workflowSummary.workflowHandoffPriority !== null ||
+    workflowSummary.workflowHandoffSummary !== null ||
+    workflowSummary.workflowHandoffNextStep !== null ||
+    workflowSummary.workflowHandoffReady !== null;
+  if (!hasHandoff) {
+    return null;
+  }
+  return {
+    kind: "handoff" as const,
+    scenario: workflowSummary.workflowHandoffScenario,
+    status: workflowSummary.workflowHandoffStatus,
+    intent: workflowSummary.workflowHandoffIntent,
+    caseId: workflowSummary.workflowHandoffCaseId,
+    destinationCountry: workflowSummary.workflowHandoffDestinationCountry,
+    assignedOwner: workflowSummary.workflowHandoffAssignedOwner,
+    priority: workflowSummary.workflowHandoffPriority,
+    summary: workflowSummary.workflowHandoffSummary,
+    nextStep: workflowSummary.workflowHandoffNextStep,
+    ready: workflowSummary.workflowHandoffReady,
+  };
+}
+
+function buildWorkflowFollowUpSummary(workflowSummary: RuntimeWorkflowControlPlaneSummary | null) {
+  if (!workflowSummary) {
+    return null;
+  }
+  const hasFollowUp =
+    workflowSummary.workflowFollowUpStatus !== null ||
+    workflowSummary.workflowFollowUpIntent !== null ||
+    workflowSummary.workflowFollowUpCaseId !== null ||
+    workflowSummary.workflowFollowUpDestinationCountry !== null ||
+    workflowSummary.workflowFollowUpMissingItemsCount !== null ||
+    workflowSummary.workflowFollowUpSummary !== null ||
+    workflowSummary.workflowFollowUpNextStep !== null ||
+    workflowSummary.workflowFollowUpReady !== null;
+  if (!hasFollowUp) {
+    return null;
+  }
+  return {
+    kind: "follow_up" as const,
+    scenario: workflowSummary.workflowFollowUpScenario,
+    status: workflowSummary.workflowFollowUpStatus,
+    intent: workflowSummary.workflowFollowUpIntent,
+    caseId: workflowSummary.workflowFollowUpCaseId,
+    destinationCountry: workflowSummary.workflowFollowUpDestinationCountry,
+    missingItemsCount: workflowSummary.workflowFollowUpMissingItemsCount,
+    summary: workflowSummary.workflowFollowUpSummary,
+    nextStep: workflowSummary.workflowFollowUpNextStep,
+    ready: workflowSummary.workflowFollowUpReady,
+  };
+}
+
+function buildLatestProofPointer(params: {
+  eventInsight: SessionEventInsight;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+}) {
+  const hasPointer =
+    params.eventInsight.latestVerifiedRunId !== null ||
+    params.eventInsight.latestVerifiedSummary !== null ||
+    params.eventInsight.latestVerifiedAt !== null;
+  if (!hasPointer) {
+    return null;
+  }
+  return {
+    runId: params.eventInsight.latestVerifiedRunId,
+    summary: params.eventInsight.latestVerifiedSummary,
+    verifiedAt: params.eventInsight.latestVerifiedAt,
+    route: params.eventInsight.latestVerifiedRoute,
+    intent: params.eventInsight.latestVerifiedIntent,
+    workflowStage: params.workflowSummary?.workflowCurrentStage ?? null,
+  };
+}
+
+function buildCurrentHandoffState(params: {
+  booking: ReturnType<typeof buildWorkflowBookingSummary>;
+  handoff: ReturnType<typeof buildWorkflowHandoffSummary>;
+  followUp: ReturnType<typeof buildWorkflowFollowUpSummary>;
+}) {
+  if (params.handoff) {
+    return {
+      kind: "handoff" as const,
+      status: params.handoff.status,
+      intent: params.handoff.intent,
+      caseId: params.handoff.caseId,
+      destinationCountry: params.handoff.destinationCountry,
+      nextStep: params.handoff.nextStep,
+      ready: params.handoff.ready,
+    };
+  }
+  if (params.followUp) {
+    return {
+      kind: "follow_up" as const,
+      status: params.followUp.status,
+      intent: params.followUp.intent,
+      caseId: params.followUp.caseId,
+      destinationCountry: params.followUp.destinationCountry,
+      nextStep: params.followUp.nextStep,
+      ready: params.followUp.ready,
+    };
+  }
+  if (params.booking) {
+    return {
+      kind: "booking" as const,
+      status: params.booking.status,
+      topic: params.booking.topic,
+      selectedSlotLabel: params.booking.selectedSlotLabel,
+      summary: params.booking.summary,
+    };
+  }
+  return null;
+}
+
+function buildResumeMetadata(params: {
+  selectedSessionId: string | null;
+  selectedSession: SessionListItem | null;
+  replayState: RuntimeSessionReplayState;
+  pendingApprovalCount: number;
+  workflowLinked: boolean;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+  latestProofPointer: ReturnType<typeof buildLatestProofPointer>;
+  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+}) {
+  if (!params.selectedSessionId || !params.selectedSession) {
+    return {
+      resumeReady: false,
+      resumeBlockedBy: "session_missing",
+      nextOperatorAction: "inspect_session",
+    };
+  }
+  if (params.pendingApprovalCount > 0) {
+    return {
+      resumeReady: false,
+      resumeBlockedBy: "approval_pending",
+      nextOperatorAction: "resolve_approval",
+    };
+  }
+  if (params.workflowLinked && params.workflowSummary?.workflowExecutionStatus === "pending_approval") {
+    return {
+      resumeReady: false,
+      resumeBlockedBy: "workflow_pending_approval",
+      nextOperatorAction: "resolve_workflow_approval",
+    };
+  }
+  if (params.workflowLinked && params.workflowSummary?.workflowExecutionStatus === "running") {
+    return {
+      resumeReady: false,
+      resumeBlockedBy: "workflow_active",
+      nextOperatorAction: "observe_live_work",
+    };
+  }
+  if (params.replayState === "empty") {
+    return {
+      resumeReady: false,
+      resumeBlockedBy: "replay_unavailable",
+      nextOperatorAction: params.workflowLinked ? "inspect_workflow_boundary" : "inspect_session",
+    };
+  }
+  if (params.selectedSession.status === "closed" && params.latestProofPointer === null) {
+    return {
+      resumeReady: false,
+      resumeBlockedBy: "session_closed",
+      nextOperatorAction: "inspect_session",
+    };
+  }
+  if (params.currentHandoffState?.kind === "handoff") {
+    return {
+      resumeReady: true,
+      resumeBlockedBy: null,
+      nextOperatorAction: params.currentHandoffState.ready ? "resume_handoff" : "inspect_handoff",
+    };
+  }
+  if (params.currentHandoffState?.kind === "follow_up") {
+    return {
+      resumeReady: true,
+      resumeBlockedBy: null,
+      nextOperatorAction: params.currentHandoffState.ready ? "resume_follow_up" : "inspect_follow_up",
+    };
+  }
+  if (params.currentHandoffState?.kind === "booking") {
+    return {
+      resumeReady: true,
+      resumeBlockedBy: null,
+      nextOperatorAction:
+        params.currentHandoffState.status === "offered" ? "confirm_booking" : "resume_booking",
+    };
+  }
+  if (params.latestProofPointer) {
+    return {
+      resumeReady: true,
+      resumeBlockedBy: null,
+      nextOperatorAction: "resume_from_latest_proof",
+    };
+  }
+  return {
+    resumeReady: true,
+    resumeBlockedBy: null,
+    nextOperatorAction: "resume_session",
   };
 }
 
@@ -363,6 +668,28 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
   });
   const workflowLinked =
     selectedSessionId !== null && workflowSummary?.workflowSessionId === selectedSessionId;
+  const workflowBooking = buildWorkflowBookingSummary(workflowSummary);
+  const workflowHandoff = buildWorkflowHandoffSummary(workflowSummary);
+  const workflowFollowUp = buildWorkflowFollowUpSummary(workflowSummary);
+  const latestProofPointer = buildLatestProofPointer({
+    eventInsight: selectedEventInsight,
+    workflowSummary,
+  });
+  const currentHandoffState = buildCurrentHandoffState({
+    booking: workflowBooking,
+    handoff: workflowHandoff,
+    followUp: workflowFollowUp,
+  });
+  const resumeMetadata = buildResumeMetadata({
+    selectedSessionId,
+    selectedSession,
+    replayState: selectedReplayState,
+    pendingApprovalCount,
+    workflowLinked,
+    workflowSummary,
+    latestProofPointer,
+    currentHandoffState,
+  });
 
   return {
     generatedAt: new Date().toISOString(),
@@ -398,10 +725,18 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         workflowRoute: workflowSummary?.workflowRoute ?? null,
         workflowReason: workflowSummary?.workflowReason ?? null,
         workflowUpdatedAt: workflowSummary?.workflowUpdatedAt ?? null,
+        booking: workflowBooking,
+        handoff: workflowHandoff,
+        followUp: workflowFollowUp,
       },
       replay: {
         replayState: selectedReplayState,
         replayReady: selectedReplayState !== "empty",
+        resumeReady: resumeMetadata.resumeReady,
+        resumeBlockedBy: resumeMetadata.resumeBlockedBy,
+        nextOperatorAction: resumeMetadata.nextOperatorAction,
+        currentHandoffState,
+        latestProofPointer,
         eventCount: selectedEventInsight.eventCount,
         runCount: selectedRuns.length || selectedEventInsight.runCount,
         approvalCount: selectedApprovals.length,
@@ -426,6 +761,8 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         latestVerifiedRunId: selectedEventInsight.latestVerifiedRunId,
         latestVerifiedSummary: selectedEventInsight.latestVerifiedSummary,
         latestVerifiedAt: selectedEventInsight.latestVerifiedAt,
+        latestVerifiedRoute: selectedEventInsight.latestVerifiedRoute,
+        latestVerifiedIntent: selectedEventInsight.latestVerifiedIntent,
         bySource: selectedEventInsight.bySource,
         byType: selectedEventInsight.byType,
         byRoute: selectedEventInsight.byRoute,

@@ -70,6 +70,35 @@ test("runtime workflow control-plane snapshot redacts assistive router apiKey", 
         route: "live-agent",
         reason: "planning request",
         updatedAt: "2026-03-06T12:00:01.000Z",
+        bookingState: {
+          status: "offered",
+          topic: "Consultation booking",
+          selectedSlotLabel: "Apr 2, 10:30",
+          shortSummary: "Slot offered to the client",
+        },
+        handoffState: {
+          scenario: "visa_handoff",
+          status: "ready",
+          handoffIntent: "escalation",
+          caseId: "case-42",
+          destinationCountry: "Canada",
+          assignedOwner: "ops-specialist",
+          priority: "high",
+          shortSummary: "Escalation pack is ready",
+          nextStep: "Transfer to specialist",
+          readyForHandoff: true,
+        },
+        followUpState: {
+          scenario: "visa_follow_up",
+          status: "draft_ready",
+          followUpIntent: "document_follow_up",
+          caseId: "case-42",
+          destinationCountry: "Canada",
+          missingItemsCount: 2,
+          operatorSummary: "Two documents still missing",
+          nextStep: "Send follow-up draft",
+          readyForSubmission: false,
+        },
       },
       controlPlaneOverride: {
         active: true,
@@ -95,6 +124,19 @@ test("runtime workflow control-plane snapshot redacts assistive router apiKey", 
   assert.equal(snapshot.summary.workflowCurrentStage, "planning");
   assert.equal(snapshot.summary.workflowActiveRole, "planner");
   assert.equal(snapshot.summary.workflowRoute, "live-agent");
+  assert.equal(snapshot.summary.workflowBookingStatus, "offered");
+  assert.equal(snapshot.summary.workflowBookingTopic, "Consultation booking");
+  assert.equal(snapshot.summary.workflowBookingSelectedSlotLabel, "Apr 2, 10:30");
+  assert.equal(snapshot.summary.workflowBookingSummary, "Slot offered to the client");
+  assert.equal(snapshot.summary.workflowHandoffStatus, "ready");
+  assert.equal(snapshot.summary.workflowHandoffCaseId, "case-42");
+  assert.equal(snapshot.summary.workflowHandoffAssignedOwner, "ops-specialist");
+  assert.equal(snapshot.summary.workflowHandoffReady, true);
+  assert.equal(snapshot.summary.workflowFollowUpStatus, "draft_ready");
+  assert.equal(snapshot.summary.workflowFollowUpMissingItemsCount, 2);
+  assert.equal(snapshot.summary.workflowFollowUpReady, false);
+  assert.equal(snapshot.store?.workflowState?.handoffState?.assignedOwner, "ops-specialist");
+  assert.equal(snapshot.store?.workflowState?.followUpState?.operatorSummary, "Two documents still missing");
   assert.deepEqual(snapshot.summary.assistiveRouterAllowIntents, ["conversation", "translation"]);
   assert.deepEqual(snapshot.summary.retryTransientErrorCodes, ["rate_limit"]);
 });

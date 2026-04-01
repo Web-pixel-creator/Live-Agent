@@ -71,6 +71,35 @@ export type SanitizedRuntimeWorkflowExecutionState = {
   route: string | null;
   reason: string | null;
   updatedAt: string | null;
+  bookingState: {
+    status: string | null;
+    topic: string | null;
+    selectedSlotLabel: string | null;
+    shortSummary: string | null;
+  } | null;
+  handoffState: {
+    scenario: string | null;
+    status: string | null;
+    handoffIntent: string | null;
+    caseId: string | null;
+    destinationCountry: string | null;
+    assignedOwner: string | null;
+    priority: string | null;
+    shortSummary: string | null;
+    nextStep: string | null;
+    readyForHandoff: boolean | null;
+  } | null;
+  followUpState: {
+    scenario: string | null;
+    status: string | null;
+    followUpIntent: string | null;
+    caseId: string | null;
+    destinationCountry: string | null;
+    missingItemsCount: number | null;
+    operatorSummary: string | null;
+    nextStep: string | null;
+    readyForSubmission: boolean | null;
+  } | null;
 };
 
 export type RuntimeWorkflowControlPlaneSummary = {
@@ -106,6 +135,29 @@ export type RuntimeWorkflowControlPlaneSummary = {
   workflowRoute: string | null;
   workflowReason: string | null;
   workflowUpdatedAt: string | null;
+  workflowBookingStatus: string | null;
+  workflowBookingTopic: string | null;
+  workflowBookingSelectedSlotLabel: string | null;
+  workflowBookingSummary: string | null;
+  workflowHandoffScenario: string | null;
+  workflowHandoffStatus: string | null;
+  workflowHandoffIntent: string | null;
+  workflowHandoffCaseId: string | null;
+  workflowHandoffDestinationCountry: string | null;
+  workflowHandoffAssignedOwner: string | null;
+  workflowHandoffPriority: string | null;
+  workflowHandoffSummary: string | null;
+  workflowHandoffNextStep: string | null;
+  workflowHandoffReady: boolean | null;
+  workflowFollowUpScenario: string | null;
+  workflowFollowUpStatus: string | null;
+  workflowFollowUpIntent: string | null;
+  workflowFollowUpCaseId: string | null;
+  workflowFollowUpDestinationCountry: string | null;
+  workflowFollowUpMissingItemsCount: number | null;
+  workflowFollowUpSummary: string | null;
+  workflowFollowUpNextStep: string | null;
+  workflowFollowUpReady: boolean | null;
   retryContinuationStatusCode: number | null;
   retryContinuationBackoffMs: number | null;
   retryTransientErrorCodes: string[];
@@ -291,6 +343,41 @@ function sanitizeRuntimeWorkflowStoreStatus(value: unknown): SanitizedRuntimeWor
           route: toNonEmptyString(workflowState.route),
           reason: toNonEmptyString(workflowState.reason),
           updatedAt: toNonEmptyString(workflowState.updatedAt),
+          bookingState: isRecord(workflowState.bookingState)
+            ? {
+                status: toNonEmptyString(workflowState.bookingState.status),
+                topic: toNonEmptyString(workflowState.bookingState.topic),
+                selectedSlotLabel: toNonEmptyString(workflowState.bookingState.selectedSlotLabel),
+                shortSummary: toNonEmptyString(workflowState.bookingState.shortSummary),
+              }
+            : null,
+          handoffState: isRecord(workflowState.handoffState)
+            ? {
+                scenario: toNonEmptyString(workflowState.handoffState.scenario),
+                status: toNonEmptyString(workflowState.handoffState.status),
+                handoffIntent: toNonEmptyString(workflowState.handoffState.handoffIntent),
+                caseId: toNonEmptyString(workflowState.handoffState.caseId),
+                destinationCountry: toNonEmptyString(workflowState.handoffState.destinationCountry),
+                assignedOwner: toNonEmptyString(workflowState.handoffState.assignedOwner),
+                priority: toNonEmptyString(workflowState.handoffState.priority),
+                shortSummary: toNonEmptyString(workflowState.handoffState.shortSummary),
+                nextStep: toNonEmptyString(workflowState.handoffState.nextStep),
+                readyForHandoff: toBoolean(workflowState.handoffState.readyForHandoff),
+              }
+            : null,
+          followUpState: isRecord(workflowState.followUpState)
+            ? {
+                scenario: toNonEmptyString(workflowState.followUpState.scenario),
+                status: toNonEmptyString(workflowState.followUpState.status),
+                followUpIntent: toNonEmptyString(workflowState.followUpState.followUpIntent),
+                caseId: toNonEmptyString(workflowState.followUpState.caseId),
+                destinationCountry: toNonEmptyString(workflowState.followUpState.destinationCountry),
+                missingItemsCount: toInteger(workflowState.followUpState.missingItemsCount),
+                operatorSummary: toNonEmptyString(workflowState.followUpState.operatorSummary),
+                nextStep: toNonEmptyString(workflowState.followUpState.nextStep),
+                readyForSubmission: toBoolean(workflowState.followUpState.readyForSubmission),
+              }
+            : null,
         }
       : null,
     controlPlaneOverride: {
@@ -308,6 +395,9 @@ function buildRuntimeWorkflowControlPlaneSummary(
   const workflowAssistiveRouter = workflow?.assistiveRouter ?? null;
   const storeAssistiveRouter = store?.assistiveRouter ?? null;
   const workflowState = store?.workflowState ?? null;
+  const bookingState = workflowState?.bookingState ?? null;
+  const handoffState = workflowState?.handoffState ?? null;
+  const followUpState = workflowState?.followUpState ?? null;
   const retryPolicy = workflow?.retryPolicy ?? null;
   const controlPlaneOverride = store?.controlPlaneOverride ?? {
     active: false,
@@ -360,6 +450,29 @@ function buildRuntimeWorkflowControlPlaneSummary(
     workflowRoute: workflowState?.route ?? null,
     workflowReason: workflowState?.reason ?? null,
     workflowUpdatedAt: workflowState?.updatedAt ?? null,
+    workflowBookingStatus: bookingState?.status ?? null,
+    workflowBookingTopic: bookingState?.topic ?? null,
+    workflowBookingSelectedSlotLabel: bookingState?.selectedSlotLabel ?? null,
+    workflowBookingSummary: bookingState?.shortSummary ?? null,
+    workflowHandoffScenario: handoffState?.scenario ?? null,
+    workflowHandoffStatus: handoffState?.status ?? null,
+    workflowHandoffIntent: handoffState?.handoffIntent ?? null,
+    workflowHandoffCaseId: handoffState?.caseId ?? null,
+    workflowHandoffDestinationCountry: handoffState?.destinationCountry ?? null,
+    workflowHandoffAssignedOwner: handoffState?.assignedOwner ?? null,
+    workflowHandoffPriority: handoffState?.priority ?? null,
+    workflowHandoffSummary: handoffState?.shortSummary ?? null,
+    workflowHandoffNextStep: handoffState?.nextStep ?? null,
+    workflowHandoffReady: handoffState?.readyForHandoff ?? null,
+    workflowFollowUpScenario: followUpState?.scenario ?? null,
+    workflowFollowUpStatus: followUpState?.status ?? null,
+    workflowFollowUpIntent: followUpState?.followUpIntent ?? null,
+    workflowFollowUpCaseId: followUpState?.caseId ?? null,
+    workflowFollowUpDestinationCountry: followUpState?.destinationCountry ?? null,
+    workflowFollowUpMissingItemsCount: followUpState?.missingItemsCount ?? null,
+    workflowFollowUpSummary: followUpState?.operatorSummary ?? null,
+    workflowFollowUpNextStep: followUpState?.nextStep ?? null,
+    workflowFollowUpReady: followUpState?.readyForSubmission ?? null,
     retryContinuationStatusCode: retryPolicy?.continuationStatusCode ?? null,
     retryContinuationBackoffMs: retryPolicy?.continuationBackoffMs ?? null,
     retryTransientErrorCodes: retryPolicy?.transientErrorCodes ?? [],
