@@ -101,6 +101,7 @@ export type RuntimeSessionReplaySnapshot = {
       resumeReady: boolean;
       resumeBlockedBy: string | null;
       nextOperatorAction: string | null;
+      latestVerifiedStage: string | null;
       currentHandoffState:
         | {
             kind: "booking";
@@ -128,6 +129,15 @@ export type RuntimeSessionReplaySnapshot = {
             ready: boolean | null;
           }
         | null;
+      workflowBoundarySummary: {
+        kind: "booking" | "handoff" | "follow_up" | "workflow" | "session_only";
+        stage: string | null;
+        role: string | null;
+        status: string | null;
+        summary: string | null;
+        nextStep: string | null;
+        owner: string | null;
+      } | null;
       latestProofPointer: {
         runId: string | null;
         summary: string | null;
@@ -135,6 +145,11 @@ export type RuntimeSessionReplaySnapshot = {
         route: string | null;
         intent: string | null;
         workflowStage: string | null;
+      } | null;
+      recoveryPathHint: {
+        code: string;
+        label: string;
+        action: string | null;
       } | null;
       eventCount: number;
       runCount: number;
@@ -413,6 +428,86 @@ function buildLatestProofPointer(params: {
   };
 }
 
+function buildWorkflowBoundarySummary(params: {
+  selectedSession: SessionListItem | null;
+  workflowLinked: boolean;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+  booking: ReturnType<typeof buildWorkflowBookingSummary>;
+  handoff: ReturnType<typeof buildWorkflowHandoffSummary>;
+  followUp: ReturnType<typeof buildWorkflowFollowUpSummary>;
+  latestProofPointer: ReturnType<typeof buildLatestProofPointer>;
+}) {
+  const stage = params.workflowSummary?.workflowCurrentStage ?? null;
+  const role = params.workflowSummary?.workflowActiveRole ?? null;
+  if (params.handoff) {
+    return {
+      kind: "handoff" as const,
+      stage,
+      role,
+      status: params.handoff.status,
+      summary: params.handoff.summary,
+      nextStep: params.handoff.nextStep,
+      owner: params.handoff.assignedOwner,
+    };
+  }
+  if (params.followUp) {
+    const summary =
+      params.followUp.summary ??
+      (params.followUp.missingItemsCount !== null
+        ? `${params.followUp.missingItemsCount} missing items remain before submission.`
+        : null);
+    return {
+      kind: "follow_up" as const,
+      stage,
+      role,
+      status: params.followUp.status,
+      summary,
+      nextStep: params.followUp.nextStep,
+      owner: null,
+    };
+  }
+  if (params.booking) {
+    return {
+      kind: "booking" as const,
+      stage,
+      role,
+      status: params.booking.status,
+      summary: params.booking.summary ?? params.booking.topic,
+      nextStep:
+        params.booking.status === "offered"
+          ? "Confirm the offered booking slot."
+          : "Continue from the confirmed booking boundary.",
+      owner: null,
+    };
+  }
+  if (params.workflowLinked && params.workflowSummary) {
+    return {
+      kind: "workflow" as const,
+      stage,
+      role,
+      status: params.workflowSummary.workflowExecutionStatus,
+      summary: params.workflowSummary.workflowReason,
+      nextStep:
+        params.latestProofPointer !== null
+          ? "Reopen from the latest verified proof."
+          : "Inspect the linked workflow boundary.",
+      owner: null,
+    };
+  }
+  if (params.selectedSession) {
+    return {
+      kind: "session_only" as const,
+      stage: null,
+      role: null,
+      status: params.selectedSession.status,
+      summary: "Workflow boundary is not linked to the selected session.",
+      nextStep: "Inspect the selected session timeline.",
+      owner: null,
+    };
+  }
+  return null;
+}
+
 function buildCurrentHandoffState(params: {
   booking: ReturnType<typeof buildWorkflowBookingSummary>;
   handoff: ReturnType<typeof buildWorkflowHandoffSummary>;
@@ -537,6 +632,88 @@ function buildResumeMetadata(params: {
     resumeReady: true,
     resumeBlockedBy: null,
     nextOperatorAction: "resume_session",
+  };
+}
+
+function buildRecoveryPathHint(params: {
+  resumeMetadata: ReturnType<typeof buildResumeMetadata>;
+  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+  latestProofPointer: ReturnType<typeof buildLatestProofPointer>;
+}) {
+  if (params.resumeMetadata.resumeBlockedBy === "session_missing") {
+    return {
+      code: "session_missing",
+      label: "Load a tracked session before attempting resume.",
+      action: "inspect_session",
+    };
+  }
+  if (params.resumeMetadata.resumeBlockedBy === "approval_pending") {
+    return {
+      code: "approval_pending",
+      label: "Resolve the pending approval, then reopen the selected session.",
+      action: "resolve_approval",
+    };
+  }
+  if (params.resumeMetadata.resumeBlockedBy === "workflow_pending_approval") {
+    return {
+      code: "workflow_pending_approval",
+      label: "Resolve the linked workflow approval before resuming replay.",
+      action: "resolve_workflow_approval",
+    };
+  }
+  if (params.resumeMetadata.resumeBlockedBy === "workflow_active") {
+    return {
+      code: "workflow_active",
+      label: "Wait for the active workflow boundary to settle, or inspect the live workflow first.",
+      action: "observe_live_work",
+    };
+  }
+  if (params.resumeMetadata.resumeBlockedBy === "replay_unavailable") {
+    return {
+      code: "replay_unavailable",
+      label: "Replay evidence is empty; inspect the workflow boundary before resuming.",
+      action: "inspect_workflow_boundary",
+    };
+  }
+  if (params.resumeMetadata.resumeBlockedBy === "session_closed") {
+    return {
+      code: "session_closed",
+      label: "This session is closed and has no verified proof pointer yet.",
+      action: "inspect_session",
+    };
+  }
+  if (params.currentHandoffState?.kind === "handoff") {
+    return {
+      code: "resume_handoff",
+      label: "Resume from the handoff boundary and transfer the prepared case pack.",
+      action: params.resumeMetadata.nextOperatorAction,
+    };
+  }
+  if (params.currentHandoffState?.kind === "follow_up") {
+    return {
+      code: "resume_follow_up",
+      label: "Resume from the follow-up boundary and continue the draft or submission path.",
+      action: params.resumeMetadata.nextOperatorAction,
+    };
+  }
+  if (params.currentHandoffState?.kind === "booking") {
+    return {
+      code: "resume_booking",
+      label: "Resume from the booking boundary and confirm or continue the offered slot.",
+      action: params.resumeMetadata.nextOperatorAction,
+    };
+  }
+  if (params.latestProofPointer) {
+    return {
+      code: "resume_from_latest_proof",
+      label: "Resume from the latest verified proof and continue the next protected step.",
+      action: params.resumeMetadata.nextOperatorAction,
+    };
+  }
+  return {
+    code: "resume_session",
+    label: "Resume the selected session from the current workflow boundary.",
+    action: params.resumeMetadata.nextOperatorAction,
   };
 }
 
@@ -690,6 +867,20 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
     latestProofPointer,
     currentHandoffState,
   });
+  const workflowBoundarySummary = buildWorkflowBoundarySummary({
+    selectedSession,
+    workflowLinked,
+    workflowSummary,
+    booking: workflowBooking,
+    handoff: workflowHandoff,
+    followUp: workflowFollowUp,
+    latestProofPointer,
+  });
+  const recoveryPathHint = buildRecoveryPathHint({
+    resumeMetadata,
+    currentHandoffState,
+    latestProofPointer,
+  });
 
   return {
     generatedAt: new Date().toISOString(),
@@ -735,8 +926,11 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         resumeReady: resumeMetadata.resumeReady,
         resumeBlockedBy: resumeMetadata.resumeBlockedBy,
         nextOperatorAction: resumeMetadata.nextOperatorAction,
+        latestVerifiedStage: latestProofPointer?.workflowStage ?? null,
         currentHandoffState,
+        workflowBoundarySummary,
         latestProofPointer,
+        recoveryPathHint,
         eventCount: selectedEventInsight.eventCount,
         runCount: selectedRuns.length || selectedEventInsight.runCount,
         approvalCount: selectedApprovals.length,

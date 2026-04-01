@@ -207,8 +207,18 @@ test("runtime session replay mirror aggregates selected session replay, approval
   assert.equal(snapshot.selectedSession.replay.resumeReady, true);
   assert.equal(snapshot.selectedSession.replay.resumeBlockedBy, null);
   assert.equal(snapshot.selectedSession.replay.nextOperatorAction, "resume_handoff");
+  assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, "review");
   assert.equal(snapshot.selectedSession.replay.currentHandoffState?.kind, "handoff");
   assert.equal(snapshot.selectedSession.replay.currentHandoffState?.nextStep, "Transfer to specialist");
+  assert.deepEqual(snapshot.selectedSession.replay.workflowBoundarySummary, {
+    kind: "handoff",
+    stage: "review",
+    role: "operator",
+    status: "ready",
+    summary: "Escalation pack is ready",
+    nextStep: "Transfer to specialist",
+    owner: "ops-specialist",
+  });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedSummary, "Intake review passed.");
   assert.equal(snapshot.selectedSession.replay.latestVerifiedRunId, "run-a-1");
   assert.deepEqual(snapshot.selectedSession.replay.latestProofPointer, {
@@ -218,6 +228,11 @@ test("runtime session replay mirror aggregates selected session replay, approval
     route: "live-agent",
     intent: "translation",
     workflowStage: "review",
+  });
+  assert.deepEqual(snapshot.selectedSession.replay.recoveryPathHint, {
+    code: "resume_handoff",
+    label: "Resume from the handoff boundary and transfer the prepared case pack.",
+    action: "resume_handoff",
   });
   assert.equal(snapshot.selectedSession.replay.bySource["live-agent"], 1);
   assert.equal(snapshot.selectedSession.replay.byType["orchestrator.response"], 1);
@@ -308,5 +323,20 @@ test("runtime session replay mirror blocks resume when approval or active workfl
   assert.equal(snapshot.selectedSession.replay.resumeReady, false);
   assert.equal(snapshot.selectedSession.replay.resumeBlockedBy, "approval_pending");
   assert.equal(snapshot.selectedSession.replay.nextOperatorAction, "resolve_approval");
+  assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, null);
+  assert.deepEqual(snapshot.selectedSession.replay.workflowBoundarySummary, {
+    kind: "workflow",
+    stage: "verification",
+    role: "operator",
+    status: "pending_approval",
+    summary: "review pending",
+    nextStep: "Inspect the linked workflow boundary.",
+    owner: null,
+  });
   assert.equal(snapshot.selectedSession.replay.latestProofPointer, null);
+  assert.deepEqual(snapshot.selectedSession.replay.recoveryPathHint, {
+    code: "approval_pending",
+    label: "Resolve the pending approval, then reopen the selected session.",
+    action: "resolve_approval",
+  });
 });

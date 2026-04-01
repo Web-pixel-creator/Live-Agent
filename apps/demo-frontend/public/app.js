@@ -25026,7 +25026,10 @@ function buildSessionExportOperatorSessionReplay() {
     resumeReady: replay?.resumeReady === true,
     resumeBlockedBy: toOptionalText(replay?.resumeBlockedBy),
     nextOperatorAction: toOptionalText(replay?.nextOperatorAction),
+    latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
+    workflowBoundarySummary: isRecord(replay?.workflowBoundarySummary) ? replay.workflowBoundarySummary : null,
     latestProofPointer: isRecord(replay?.latestProofPointer) ? replay.latestProofPointer : null,
+    recoveryPathHint: isRecord(replay?.recoveryPathHint) ? replay.recoveryPathHint : null,
     currentHandoffState: isRecord(replay?.currentHandoffState) ? replay.currentHandoffState : null,
     latestVerifiedSummary: toOptionalText(replay?.latestVerifiedSummary),
     latestVerifiedAt: toOptionalText(replay?.latestVerifiedAt),
@@ -30040,12 +30043,19 @@ function buildOperatorSessionReplaySnapshot(value) {
         resumeReady: selectedSessionRecord.replay.resumeReady === true,
         resumeBlockedBy: toOptionalText(selectedSessionRecord.replay.resumeBlockedBy),
         nextOperatorAction: toOptionalText(selectedSessionRecord.replay.nextOperatorAction),
+        latestVerifiedStage: toOptionalText(selectedSessionRecord.replay.latestVerifiedStage),
         currentHandoffState: normalizeOperatorReplayCurrentHandoffState(
           selectedSessionRecord.replay.currentHandoffState,
         ),
+        workflowBoundarySummary: isRecord(selectedSessionRecord.replay.workflowBoundarySummary)
+          ? selectedSessionRecord.replay.workflowBoundarySummary
+          : null,
         latestProofPointer: normalizeOperatorReplayLatestProofPointer(
           selectedSessionRecord.replay.latestProofPointer,
         ),
+        recoveryPathHint: isRecord(selectedSessionRecord.replay.recoveryPathHint)
+          ? selectedSessionRecord.replay.recoveryPathHint
+          : null,
         eventCount: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.eventCount ?? 0) || 0)),
         runCount: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.runCount ?? 0) || 0)),
         approvalCount: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.approvalCount ?? 0) || 0)),
@@ -30223,7 +30233,10 @@ function buildOperatorSessionOpsReplayPreview() {
       resumeReady: replay?.resumeReady === true,
       resumeBlockedBy: toOptionalText(replay?.resumeBlockedBy),
       nextOperatorAction: toOptionalText(replay?.nextOperatorAction),
+      latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
+      workflowBoundarySummary: isRecord(replay?.workflowBoundarySummary) ? replay.workflowBoundarySummary : null,
       latestProofPointer: isRecord(replay?.latestProofPointer) ? replay.latestProofPointer : null,
+      recoveryPathHint: isRecord(replay?.recoveryPathHint) ? replay.recoveryPathHint : null,
       currentHandoffState: isRecord(replay?.currentHandoffState) ? replay.currentHandoffState : null,
       workflowLinked: workflow?.linked === true,
       workflowStatus: toOptionalText(workflow?.workflowExecutionStatus),
