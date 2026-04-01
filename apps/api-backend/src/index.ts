@@ -76,6 +76,7 @@ import { summarizeAgentUsage } from "./agent-usage-summary.js";
 import { buildDeviceNodeHealthSummary } from "./device-node-summary.js";
 import { buildRuntimeSurfaceInventorySnapshot } from "./runtime-surface-inventory.js";
 import { buildRuntimeSurfaceReadinessSnapshot } from "./runtime-surface-readiness.js";
+import { buildRuntimeSessionReplayMirrorSnapshot } from "./runtime-session-replay-mirror.js";
 import {
   buildRuntimeFaultProfileExecutionPlan,
   extractRuntimeFaultProfileExecutionFollowUpContext,
@@ -1388,6 +1389,9 @@ function normalizeOperationPath(pathname: string): string {
   }
   if (pathname === "/v1/runtime/surface/readiness") {
     return "/v1/runtime/surface/readiness";
+  }
+  if (pathname === "/v1/runtime/session-replay") {
+    return "/v1/runtime/session-replay";
   }
   if (pathname === "/v1/runtime/auth-profiles") {
     return "/v1/runtime/auth-profiles";
@@ -4457,6 +4461,70 @@ export const server = createServer(async (req, res) => {
         data: runtimeSurfaceReadiness,
         role,
         source: "repo_owned_runtime_surface_readiness",
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/session-replay" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const sessionLimit = parseBoundedInt(url.searchParams.get("sessionLimit"), 20, 1, 100);
+      const eventLimit = parseBoundedInt(url.searchParams.get("eventLimit"), 120, 10, 500);
+      const runLimit = parseBoundedInt(url.searchParams.get("runLimit"), 120, 20, 500);
+      const approvalLimit = parseBoundedInt(url.searchParams.get("approvalLimit"), 120, 20, 500);
+      const recentEventLimit = parseBoundedInt(
+        url.searchParams.get("recentEventLimit"),
+        Math.max(eventLimit, sessionLimit * 10),
+        20,
+        500,
+      );
+      const requestedSessionId = toOptionalString(url.searchParams.get("sessionId"));
+      const sessions = await listSessions(sessionLimit, { tenantId: requestTenant.tenantId });
+      const selectedSessionId = requestedSessionId ?? sessions[0]?.sessionId ?? null;
+      const [runs, approvals, recentEvents, selectedEvents] = await Promise.all([
+        listRuns(runLimit),
+        listApprovals({
+          limit: approvalLimit,
+          tenantId: requestTenant.tenantId,
+        }),
+        listRecentEvents(recentEventLimit),
+        selectedSessionId ? listEvents({ sessionId: selectedSessionId, limit: eventLimit }) : Promise.resolve([]),
+      ]);
+
+      let workflowControlPlaneSummary:
+        | ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>["summary"]
+        | null = null;
+      try {
+        const upstream = await fetchJsonWithTimeout(`${orchestratorBaseUrl}/workflow/config`, 8000);
+        const workflowControlPlane = isRecord(upstream)
+          ? buildRuntimeWorkflowControlPlaneSnapshot(upstream)
+          : (buildUnavailableRuntimeWorkflowControlPlaneSnapshot(
+              "orchestrator workflow control plane is unavailable",
+              "/workflow/config",
+            ) as unknown as ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>);
+        workflowControlPlaneSummary = workflowControlPlane.summary;
+      } catch {
+        const workflowControlPlane = buildUnavailableRuntimeWorkflowControlPlaneSnapshot(
+          "orchestrator workflow control plane is unavailable",
+          "/workflow/config",
+        ) as unknown as ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>;
+        workflowControlPlaneSummary = workflowControlPlane.summary;
+      }
+
+      const runtimeSessionReplay = buildRuntimeSessionReplayMirrorSnapshot({
+        sessions,
+        runs,
+        approvals,
+        recentEvents,
+        selectedEvents,
+        selectedSessionId,
+        workflowSummary: workflowControlPlaneSummary,
+      });
+
+      writeJson(res, 200, {
+        data: runtimeSessionReplay,
+        role,
+        tenant: requestTenant,
+        source: "repo_owned_runtime_session_replay",
       });
       return;
     }

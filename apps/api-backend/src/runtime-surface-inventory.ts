@@ -254,6 +254,15 @@ const RUNTIME_SURFACE_CONTROL_PLANE_SPECS: RuntimeSurfaceControlPlaneSummary[] =
     operatorVisible: true,
   },
   {
+    id: "runtime-session-replay",
+    label: "Session replay mirror",
+    method: "GET",
+    path: "/v1/runtime/session-replay",
+    category: "runtime",
+    releaseCritical: false,
+    operatorVisible: true,
+  },
+  {
     id: "runtime-auth-profiles",
     label: "Auth profiles",
     method: "GET",
