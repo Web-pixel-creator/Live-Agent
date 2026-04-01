@@ -25010,15 +25010,21 @@ function buildPcm16WavBytes(pcmBytes, sampleRate = 16000, channels = 1) {
 function buildSessionExportOperatorSessionReplay() {
   const snapshot = isRecord(state.operatorSessionReplaySnapshot) ? state.operatorSessionReplaySnapshot : {};
   const selectedSession = isRecord(snapshot.selectedSession) ? snapshot.selectedSession : null;
-  const recentEvents = Array.isArray(snapshot.recentEvents) ? snapshot.recentEvents.slice(0, 20) : [];
+  const replay = isRecord(selectedSession?.replay) ? selectedSession.replay : null;
   return {
     status: toOptionalText(snapshot.status) ?? "idle",
+    source: toOptionalText(snapshot.source),
     loadedAt: toOptionalText(snapshot.loadedAt) ?? toOptionalText(state.operatorSessionReplayLoadedAt),
     totalSessions: Math.max(0, Math.floor(Number(snapshot.totalSessions ?? state.operatorSessionReplaySessions.length ?? 0) || 0)),
     selectedSessionId: toOptionalText(snapshot.selectedSessionId),
     selectedSession,
-    totalEvents: Math.max(0, Math.floor(Number(snapshot.totalEvents ?? recentEvents.length) || 0)),
-    recentEvents,
+    totalEvents: Math.max(0, Math.floor(Number(snapshot.totalEvents ?? replay?.eventCount ?? 0) || 0)),
+    totalRuns: Math.max(0, Math.floor(Number(snapshot.totalRuns ?? replay?.runCount ?? 0) || 0)),
+    totalApprovals: Math.max(0, Math.floor(Number(snapshot.totalApprovals ?? replay?.approvalCount ?? 0) || 0)),
+    replayState: toOptionalText(snapshot.replayState) ?? toOptionalText(replay?.replayState),
+    latestVerifiedSummary: toOptionalText(replay?.latestVerifiedSummary),
+    latestVerifiedAt: toOptionalText(replay?.latestVerifiedAt),
+    workflowLinked: selectedSession?.workflow?.linked === true,
   };
 }
 
@@ -29868,33 +29874,6 @@ function normalizeOperatorReplaySessionRecord(value) {
   };
 }
 
-function normalizeOperatorReplayEventRecord(value) {
-  if (!isRecord(value)) {
-    return null;
-  }
-  const type = toOptionalText(value.type);
-  const createdAt = toOptionalText(value.createdAt);
-  if (!type && !createdAt) {
-    return null;
-  }
-  return {
-    eventId: toOptionalText(value.eventId),
-    type: type ?? "unknown",
-    createdAt: createdAt ?? "unknown",
-    runId: toOptionalText(value.runId),
-    taskId: toOptionalText(value.taskId),
-    stage: toOptionalText(value.stage),
-    turnId: toOptionalText(value.turnId),
-    actor: toOptionalText(value.actor),
-    message:
-      toOptionalText(value.message) ??
-      toOptionalText(value.errorCode) ??
-      toOptionalText(value.status) ??
-      toOptionalText(value.route) ??
-      null,
-  };
-}
-
 function populateOperatorSessionReplayOptions(selectedSessionId = null) {
   if (!(el.operatorSessionReplaySessionId instanceof HTMLSelectElement)) {
     return;
@@ -29909,7 +29888,7 @@ function populateOperatorSessionReplayOptions(selectedSessionId = null) {
   for (const session of sessions) {
     const option = document.createElement("option");
     option.value = session.sessionId;
-    option.textContent = `${session.sessionId} (${session.mode}/${session.status})`;
+    option.textContent = `${session.sessionId} (${session.mode}/${session.status}${session.replayState ? ` • ${session.replayState}` : ""})`;
     el.operatorSessionReplaySessionId.appendChild(option);
   }
   const resolvedId =
@@ -29920,19 +29899,116 @@ function populateOperatorSessionReplayOptions(selectedSessionId = null) {
   syncCustomSelectControl(el.operatorSessionReplaySessionId);
 }
 
-function buildOperatorSessionReplaySnapshot(sessions, events, selectedSessionId = null) {
-  const normalizedSessions = Array.isArray(sessions) ? sessions.filter((item) => item && typeof item === "object") : [];
-  const normalizedEvents = Array.isArray(events) ? events.filter((item) => item && typeof item === "object") : [];
-  const selectedId = toOptionalText(selectedSessionId) ?? toOptionalText(normalizedSessions[0]?.sessionId);
-  const selectedSession = normalizedSessions.find((item) => toOptionalText(item.sessionId) === selectedId) ?? null;
+function buildOperatorSessionReplaySnapshot(value) {
+  const typed = isRecord(value) ? value : {};
+  const summary = isRecord(typed.summary) ? typed.summary : {};
+  const sessions = Array.isArray(typed.sessions)
+    ? typed.sessions.map(normalizeOperatorReplaySessionRecord).filter((item) => item !== null)
+    : [];
+  const selectedSessionRecord = isRecord(typed.selectedSession) ? typed.selectedSession : null;
+  const selectedSessionSummary = isRecord(selectedSessionRecord?.session)
+    ? normalizeOperatorReplaySessionRecord(selectedSessionRecord.session)
+    : null;
+  const selectedSessionWorkflow = isRecord(selectedSessionRecord?.workflow)
+    ? {
+        linked: selectedSessionRecord.workflow.linked === true,
+        workflowExecutionStatus: toOptionalText(selectedSessionRecord.workflow.workflowExecutionStatus),
+        workflowCurrentStage: toOptionalText(selectedSessionRecord.workflow.workflowCurrentStage),
+        workflowActiveRole: toOptionalText(selectedSessionRecord.workflow.workflowActiveRole),
+        workflowRunId: toOptionalText(selectedSessionRecord.workflow.workflowRunId),
+        workflowSessionId: toOptionalText(selectedSessionRecord.workflow.workflowSessionId),
+        workflowTaskId: toOptionalText(selectedSessionRecord.workflow.workflowTaskId),
+        workflowIntent: toOptionalText(selectedSessionRecord.workflow.workflowIntent),
+        workflowRoute: toOptionalText(selectedSessionRecord.workflow.workflowRoute),
+        workflowReason: toOptionalText(selectedSessionRecord.workflow.workflowReason),
+        workflowUpdatedAt: toOptionalText(selectedSessionRecord.workflow.workflowUpdatedAt),
+      }
+    : null;
+  const selectedSessionReplay = isRecord(selectedSessionRecord?.replay)
+    ? {
+        replayState: toOptionalText(selectedSessionRecord.replay.replayState) ?? "empty",
+        replayReady: selectedSessionRecord.replay.replayReady === true,
+        eventCount: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.eventCount ?? 0) || 0)),
+        runCount: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.runCount ?? 0) || 0)),
+        approvalCount: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.approvalCount ?? 0) || 0)),
+        pendingApprovalCount: Math.max(
+          0,
+          Math.floor(Number(selectedSessionRecord.replay.pendingApprovalCount ?? 0) || 0),
+        ),
+        traceSteps: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.traceSteps ?? 0) || 0)),
+        screenshotRefs: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.screenshotRefs ?? 0) || 0)),
+        verifySteps: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.verifySteps ?? 0) || 0)),
+        verifiedRuns: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.verifiedRuns ?? 0) || 0)),
+        partiallyVerifiedRuns: Math.max(
+          0,
+          Math.floor(Number(selectedSessionRecord.replay.partiallyVerifiedRuns ?? 0) || 0),
+        ),
+        unverifiedRuns: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.unverifiedRuns ?? 0) || 0)),
+        latestRunId: toOptionalText(selectedSessionRecord.replay.latestRunId),
+        latestRoute: toOptionalText(selectedSessionRecord.replay.latestRoute),
+        latestIntent: toOptionalText(selectedSessionRecord.replay.latestIntent),
+        latestStatus: toOptionalText(selectedSessionRecord.replay.latestStatus),
+        latestEventType: toOptionalText(selectedSessionRecord.replay.latestEventType),
+        latestEventAt: toOptionalText(selectedSessionRecord.replay.latestEventAt),
+        latestVerificationState: toOptionalText(selectedSessionRecord.replay.latestVerificationState),
+        latestVerificationFailureClass: toOptionalText(selectedSessionRecord.replay.latestVerificationFailureClass),
+        latestVerificationSummary: toOptionalText(selectedSessionRecord.replay.latestVerificationSummary),
+        latestVerifiedRunId: toOptionalText(selectedSessionRecord.replay.latestVerifiedRunId),
+        latestVerifiedSummary: toOptionalText(selectedSessionRecord.replay.latestVerifiedSummary),
+        latestVerifiedAt: toOptionalText(selectedSessionRecord.replay.latestVerifiedAt),
+        bySource: isRecord(selectedSessionRecord.replay.bySource) ? selectedSessionRecord.replay.bySource : {},
+        byType: isRecord(selectedSessionRecord.replay.byType) ? selectedSessionRecord.replay.byType : {},
+        byRoute: isRecord(selectedSessionRecord.replay.byRoute) ? selectedSessionRecord.replay.byRoute : {},
+      }
+    : null;
+  const selectedSession = selectedSessionRecord
+    ? {
+        foundInSessionIndex: selectedSessionRecord.foundInSessionIndex === true,
+        session: selectedSessionSummary,
+        workflow: selectedSessionWorkflow,
+        replay: selectedSessionReplay,
+      }
+    : null;
+  const selectedId =
+    toOptionalText(typed.selectedSessionId) ??
+    toOptionalText(selectedSessionSummary?.sessionId) ??
+    toOptionalText(sessions[0]?.sessionId);
+  const totalSessions = Math.max(0, Math.floor(Number(summary.totalSessions ?? sessions.length ?? 0) || 0));
+  const totalEvents = Math.max(
+    0,
+    Math.floor(Number(summary.selectedSessionEventCount ?? selectedSessionReplay?.eventCount ?? 0) || 0),
+  );
+  const totalRuns = Math.max(
+    0,
+    Math.floor(Number(summary.selectedSessionRunCount ?? selectedSessionReplay?.runCount ?? 0) || 0),
+  );
+  const totalApprovals = Math.max(
+    0,
+    Math.floor(Number(summary.selectedSessionApprovalCount ?? selectedSessionReplay?.approvalCount ?? 0) || 0),
+  );
+  const replayState = toOptionalText(selectedSessionReplay?.replayState);
   return {
-    status: selectedSession ? (normalizedEvents.length > 0 ? "loaded" : "empty") : normalizedSessions.length > 0 ? "sessions_only" : "idle",
-    totalSessions: normalizedSessions.length,
+    source: toOptionalText(typed.source) ?? "repo_owned_runtime_session_replay",
+    mirrorVersion: Number.isFinite(Number(typed.mirrorVersion)) ? Math.max(0, Math.floor(Number(typed.mirrorVersion))) : null,
+    status: selectedId
+      ? totalEvents > 0 || totalRuns > 0 || totalApprovals > 0
+        ? "loaded"
+        : "empty"
+      : totalSessions > 0
+        ? "sessions_only"
+        : "idle",
     selectedSessionId: selectedId ?? null,
     selectedSession,
-    totalEvents: normalizedEvents.length,
-    recentEvents: normalizedEvents.slice(0, OPERATOR_SESSION_REPLAY_EVENT_LIMIT),
-    loadedAt: toIsoNow(),
+    totalSessions,
+    totalEvents,
+    totalRuns,
+    totalApprovals,
+    sessionsAwaitingApproval: Math.max(0, Math.floor(Number(summary.sessionsAwaitingApproval ?? 0) || 0)),
+    sessionsWithVerifiedProof: Math.max(0, Math.floor(Number(summary.sessionsWithVerifiedProof ?? 0) || 0)),
+    workflowAvailable: typed.workflowAvailable === true,
+    replayState: replayState ?? null,
+    sessions,
+    loadedAt: toOptionalText(typed.generatedAt) ?? toIsoNow(),
   };
 }
 
@@ -30120,49 +30196,42 @@ async function refreshOperatorSessionReplay(options = {}) {
   const requestedSessionId = toOptionalText(options?.sessionId) ?? toOptionalText(el.operatorSessionReplaySessionId?.value);
   setOperatorSessionOpsControlStatus("session_replay_loading", "neutral");
   try {
-    const sessionsResponse = await fetch(
-      `${state.apiBaseUrl}/v1/sessions?limit=${encodeURIComponent(String(OPERATOR_SESSION_REPLAY_LIMIT))}`,
-      {
-        method: "GET",
-        headers: operatorHeaders(false),
-      },
+    const replayUrl = new URL(`${state.apiBaseUrl}/v1/runtime/session-replay`);
+    replayUrl.searchParams.set("sessionLimit", String(OPERATOR_SESSION_REPLAY_LIMIT));
+    replayUrl.searchParams.set("eventLimit", String(OPERATOR_SESSION_REPLAY_EVENT_LIMIT));
+    replayUrl.searchParams.set("runLimit", String(Math.max(OPERATOR_SESSION_REPLAY_EVENT_LIMIT, 120)));
+    replayUrl.searchParams.set("approvalLimit", String(Math.max(OPERATOR_SESSION_REPLAY_EVENT_LIMIT, 120)));
+    replayUrl.searchParams.set(
+      "recentEventLimit",
+      String(Math.max(OPERATOR_SESSION_REPLAY_EVENT_LIMIT * 2, OPERATOR_SESSION_REPLAY_LIMIT * 10)),
     );
-    const sessionsPayload = await sessionsResponse.json();
-    if (!sessionsResponse.ok) {
-      const errorText = getApiErrorMessage(sessionsPayload, `session replay failed with ${sessionsResponse.status}`);
+    if (requestedSessionId) {
+      replayUrl.searchParams.set("sessionId", requestedSessionId);
+    }
+    const replayResponse = await fetch(replayUrl.toString(), {
+      method: "GET",
+      headers: operatorHeaders(false),
+    });
+    const replayPayload = await replayResponse.json();
+    if (!replayResponse.ok) {
+      const errorText = getApiErrorMessage(replayPayload, `session replay failed with ${replayResponse.status}`);
       throw new Error(String(errorText));
     }
-    const sessions = Array.isArray(sessionsPayload?.data)
-      ? sessionsPayload.data.map(normalizeOperatorReplaySessionRecord).filter((item) => item !== null)
+    const sessionReplaySnapshot = buildOperatorSessionReplaySnapshot(replayPayload?.data);
+    state.operatorSessionReplaySnapshot = sessionReplaySnapshot;
+    state.operatorSessionReplaySessions = Array.isArray(sessionReplaySnapshot.sessions)
+      ? sessionReplaySnapshot.sessions
       : [];
-    state.operatorSessionReplaySessions = sessions;
-    populateOperatorSessionReplayOptions(requestedSessionId);
-    const selectedSessionId = toOptionalText(el.operatorSessionReplaySessionId?.value);
-    let events = [];
-    if (selectedSessionId) {
-      const eventsResponse = await fetch(
-        `${state.apiBaseUrl}/v1/events?sessionId=${encodeURIComponent(selectedSessionId)}&limit=${encodeURIComponent(String(OPERATOR_SESSION_REPLAY_EVENT_LIMIT))}`,
-        {
-          method: "GET",
-          headers: operatorHeaders(false),
-        },
-      );
-      const eventsPayload = await eventsResponse.json();
-      if (!eventsResponse.ok) {
-        const errorText = getApiErrorMessage(eventsPayload, `session events failed with ${eventsResponse.status}`);
-        throw new Error(String(errorText));
-      }
-      events = Array.isArray(eventsPayload?.data)
-        ? eventsPayload.data.map(normalizeOperatorReplayEventRecord).filter((item) => item !== null)
-        : [];
-    }
-    state.operatorSessionReplaySnapshot = buildOperatorSessionReplaySnapshot(sessions, events, selectedSessionId);
-    state.operatorSessionReplayLoadedAt = toIsoNow();
+    populateOperatorSessionReplayOptions(sessionReplaySnapshot.selectedSessionId);
+    const selectedSessionId = toOptionalText(sessionReplaySnapshot.selectedSessionId);
+    state.operatorSessionReplayLoadedAt = toOptionalText(sessionReplaySnapshot.loadedAt) ?? toIsoNow();
     state.operatorSessionOpsLastResult = {
       action: "session_replay_refreshed",
       selectedSessionId: selectedSessionId ?? null,
-      totalSessions: sessions.length,
-      totalEvents: events.length,
+      totalSessions: Math.max(0, Math.floor(Number(sessionReplaySnapshot.totalSessions ?? 0) || 0)),
+      totalEvents: Math.max(0, Math.floor(Number(sessionReplaySnapshot.totalEvents ?? 0) || 0)),
+      totalRuns: Math.max(0, Math.floor(Number(sessionReplaySnapshot.totalRuns ?? 0) || 0)),
+      totalApprovals: Math.max(0, Math.floor(Number(sessionReplaySnapshot.totalApprovals ?? 0) || 0)),
       loadedAt: state.operatorSessionReplayLoadedAt,
     };
     setOperatorSessionOpsControlStatus(
@@ -30173,7 +30242,7 @@ async function refreshOperatorSessionReplay(options = {}) {
     if (!silent) {
       appendTranscript(
         "system",
-        `Session replay refreshed: sessions=${sessions.length} selected=${selectedSessionId ?? "none"} events=${events.length}`,
+        `Session replay refreshed: sessions=${sessionReplaySnapshot.totalSessions} selected=${selectedSessionId ?? "none"} events=${sessionReplaySnapshot.totalEvents}`,
       );
     }
   } catch (error) {
