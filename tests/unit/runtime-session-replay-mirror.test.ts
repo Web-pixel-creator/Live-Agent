@@ -208,6 +208,10 @@ test("runtime session replay mirror aggregates selected session replay, approval
   assert.equal(snapshot.selectedSession.replay.resumeBlockedBy, null);
   assert.equal(snapshot.selectedSession.replay.nextOperatorAction, "resume_handoff");
   assert.equal(snapshot.selectedSession.replay.nextOperatorActionLabel, "Resume handoff");
+  assert.deepEqual(snapshot.selectedSession.replay.nextOperatorActionTarget, {
+    targetSurface: "operator_session_ops",
+    targetLabel: "Operator Session Ops",
+  });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, "review");
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
     role: "operator",
@@ -342,6 +346,10 @@ test("runtime session replay mirror blocks resume when approval or active workfl
   assert.equal(snapshot.selectedSession.replay.resumeBlockedBy, "approval_pending");
   assert.equal(snapshot.selectedSession.replay.nextOperatorAction, "resolve_approval");
   assert.equal(snapshot.selectedSession.replay.nextOperatorActionLabel, "Resolve approval");
+  assert.deepEqual(snapshot.selectedSession.replay.nextOperatorActionTarget, {
+    targetSurface: "operator_saved_view_approvals",
+    targetLabel: "Approvals",
+  });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, null);
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
     role: "operator",
@@ -454,6 +462,10 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
   assert.equal(snapshot.selectedSession.replay.resumeBlockedBy, "workflow_failed");
   assert.equal(snapshot.selectedSession.replay.nextOperatorAction, "plan_recovery_drill");
   assert.equal(snapshot.selectedSession.replay.nextOperatorActionLabel, "Plan recovery drill");
+  assert.deepEqual(snapshot.selectedSession.replay.nextOperatorActionTarget, {
+    targetSurface: "operator_runtime_drills",
+    targetLabel: "Runtime Drill Runner",
+  });
   assert.deepEqual(snapshot.selectedSession.replay.recoveryPathHint, {
     code: "workflow_failed",
     label: "Plan the workflow recovery drill before resuming the linked boundary.",

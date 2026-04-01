@@ -25038,6 +25038,7 @@ function buildSessionExportOperatorSessionReplay() {
     resumeBlockedBy: toOptionalText(replay?.resumeBlockedBy),
     nextOperatorAction: toOptionalText(replay?.nextOperatorAction),
     nextOperatorActionLabel: toOptionalText(replay?.nextOperatorActionLabel),
+    nextOperatorActionTarget: isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null,
     latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
     boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
     approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,
@@ -29464,6 +29465,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const recovery = isRecord(replay?.recoveryPathHint) ? replay.recoveryPathHint : null;
   const recoveryHandoff = isRecord(replay?.recoveryHandoff) ? replay.recoveryHandoff : null;
   const recoveryDrill = isRecord(replay?.recoveryDrill) ? replay.recoveryDrill : null;
+  const nextActionTarget = isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null;
   const currentHandoffState = isRecord(replay?.currentHandoffState) ? replay.currentHandoffState : null;
   const boundaryOwnerRecord = isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null;
   const approvalGate = isRecord(replay?.approvalGate) ? replay.approvalGate : null;
@@ -29509,6 +29511,17 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const recoveryAction = toOptionalText(recovery?.action);
   const nextOperatorActionLabel =
     toOptionalText(replay?.nextOperatorActionLabel) ?? toOptionalText(replay?.nextOperatorAction);
+  const nextOperatorActionTargetLabel =
+    toOptionalText(nextActionTarget?.targetLabel) ??
+    (toOptionalText(nextActionTarget?.targetSurface) === "operator_workflow_control"
+      ? "Workflow Control"
+      : toOptionalText(nextActionTarget?.targetSurface) === "operator_runtime_drills"
+        ? "Runtime Drill Runner"
+        : toOptionalText(nextActionTarget?.targetSurface) === "operator_saved_view_approvals"
+          ? "Approvals"
+          : toOptionalText(nextActionTarget?.targetSurface) === "operator_session_ops"
+            ? "Operator Session Ops"
+            : null);
   const recoveryTargetLabel =
     toOptionalText(recoveryHandoff?.targetLabel) ??
     (toOptionalText(recoveryHandoff?.targetPanel) === "operator_workflow_control"
@@ -29529,17 +29542,19 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     ? `${toOptionalText(approvalGate.source) ?? "session"} | ${approvalGateSummary ?? "pending"}${nextOperatorActionLabel ? ` | ${nextOperatorActionLabel}` : toOptionalText(approvalGate.action) ? ` | ${approvalGate.action}` : ""}`
     : "No open approval gate";
   const nextActionDetail =
-    nextOperatorActionLabel ??
-    boundaryNextStep ??
-    "Inspect the selected session before continuing.";
+    nextOperatorActionLabel
+      ? `${nextOperatorActionLabel}${nextOperatorActionTargetLabel ? ` | ${nextOperatorActionTargetLabel}` : ""}`
+      : boundaryNextStep ?? "Inspect the selected session before continuing.";
   const recoveryDrillDetail = recoveryDrill
     ? `${toOptionalText(recoveryDrill.label) ?? "Recovery drill"}${toOptionalText(recoveryDrill.profileId) ? ` | ${recoveryDrill.profileId}/${toOptionalText(recoveryDrill.phase) ?? "recovery"}` : ""}`
     : null;
   const handoffDetail = recoveryHandoff
     ? `${recoveryTargetLabel}${nextOperatorActionLabel ? ` | ${nextOperatorActionLabel}` : toOptionalText(recoveryHandoff?.action) ? ` | ${recoveryHandoff.action}` : ""}`
     : "Stay in Operator Session Ops";
-  const recoveryTargetButtonLabel = recoveryHandoff
-    ? `Open ${recoveryTargetLabel}`
+  const recoveryTargetButtonLabel = nextOperatorActionTargetLabel
+    ? `Open ${nextOperatorActionTargetLabel}`
+    : recoveryHandoff
+      ? `Open ${recoveryTargetLabel}`
     : "Open Session Ops";
 
   setText(
@@ -29624,7 +29639,26 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
 function openOperatorSessionBoundaryTarget() {
   const snapshot = isRecord(state.operatorSessionReplaySnapshot) ? state.operatorSessionReplaySnapshot : null;
   const replay = isRecord(snapshot?.selectedSession?.replay) ? snapshot.selectedSession.replay : null;
+  const nextOperatorActionTarget = isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null;
   const recoveryHandoff = isRecord(replay?.recoveryHandoff) ? replay.recoveryHandoff : null;
+  const targetSurface = toOptionalText(nextOperatorActionTarget?.targetSurface);
+  if (targetSurface === "operator_saved_view_approvals") {
+    setOperatorSavedView("approvals");
+    focusOperatorConsoleEntry("operatorApprovalsStatus");
+    return;
+  }
+  if (targetSurface === "operator_workflow_control") {
+    openOperatorSupportPanel(el.operatorWorkflowControl, el.operatorWorkflowRefreshBtn);
+    return;
+  }
+  if (targetSurface === "operator_runtime_drills") {
+    openOperatorSupportPanel(el.operatorRuntimeDrills, el.operatorRuntimeFaultRunBtn);
+    return;
+  }
+  if (targetSurface === "operator_session_ops") {
+    openOperatorSupportPanel(el.operatorSessionOpsControl, el.operatorSessionReplayLoadBtn);
+    return;
+  }
   const targetPanel = toOptionalText(recoveryHandoff?.targetPanel);
   if (targetPanel === "operator_workflow_control") {
     openOperatorSupportPanel(el.operatorWorkflowControl, el.operatorWorkflowRefreshBtn);
@@ -30261,6 +30295,16 @@ function normalizeOperatorReplayApprovalGate(value) {
   };
 }
 
+function normalizeOperatorReplayNextActionTarget(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    targetSurface: toOptionalText(value.targetSurface),
+    targetLabel: toOptionalText(value.targetLabel),
+  };
+}
+
 function normalizeOperatorReplayRecoveryHandoff(value) {
   if (!isRecord(value)) {
     return null;
@@ -30348,6 +30392,9 @@ function buildOperatorSessionReplaySnapshot(value) {
         resumeBlockedBy: toOptionalText(selectedSessionRecord.replay.resumeBlockedBy),
         nextOperatorAction: toOptionalText(selectedSessionRecord.replay.nextOperatorAction),
         nextOperatorActionLabel: toOptionalText(selectedSessionRecord.replay.nextOperatorActionLabel),
+        nextOperatorActionTarget: normalizeOperatorReplayNextActionTarget(
+          selectedSessionRecord.replay.nextOperatorActionTarget,
+        ),
         latestVerifiedStage: toOptionalText(selectedSessionRecord.replay.latestVerifiedStage),
         boundaryOwner: normalizeOperatorReplayBoundaryOwner(selectedSessionRecord.replay.boundaryOwner),
         approvalGate: normalizeOperatorReplayApprovalGate(selectedSessionRecord.replay.approvalGate),
@@ -30504,6 +30551,7 @@ function buildOperatorSessionOpsControlMeta() {
     `replayEvents=${Math.max(0, Math.floor(Number(replay?.totalEvents ?? 0) || 0))}`,
     `resume=${replay?.selectedSession?.replay?.resumeReady === true ? "ready" : replay?.selectedSession?.replay?.resumeBlockedBy ?? "idle"}`,
     `nextAction=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionLabel) ?? toOptionalText(replay?.selectedSession?.replay?.nextOperatorAction) ?? "n/a"}`,
+    `nextTarget=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionTarget?.targetLabel) ?? toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionTarget?.targetSurface) ?? "n/a"}`,
     `personas=${Math.max(0, Math.floor(Number(discovery?.totalPersonas ?? 0) || 0))}`,
     `recipes=${Math.max(0, Math.floor(Number(discovery?.totalRecipes ?? 0) || 0))}`,
     `agents=${Array.isArray(discovery?.agentIds) ? discovery.agentIds.join(",") || "none" : "none"}`,
@@ -30544,6 +30592,7 @@ function buildOperatorSessionOpsReplayPreview() {
       resumeBlockedBy: toOptionalText(replay?.resumeBlockedBy),
       nextOperatorAction: toOptionalText(replay?.nextOperatorAction),
       nextOperatorActionLabel: toOptionalText(replay?.nextOperatorActionLabel),
+      nextOperatorActionTarget: isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null,
       latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
       boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
       approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,

@@ -8,6 +8,15 @@ import type { RuntimeWorkflowControlPlaneSummary } from "./runtime-workflow-cont
 
 export type RuntimeSessionReplayState = "empty" | "active" | "awaiting_approval" | "verified";
 
+type RuntimeSessionReplayNextOperatorActionTarget = {
+  targetSurface:
+    | "operator_session_ops"
+    | "operator_workflow_control"
+    | "operator_runtime_drills"
+    | "operator_saved_view_approvals";
+  targetLabel: string;
+};
+
 export type RuntimeSessionReplayCompactEntry = {
   sessionId: string;
   mode: string;
@@ -102,6 +111,7 @@ export type RuntimeSessionReplaySnapshot = {
       resumeBlockedBy: string | null;
       nextOperatorAction: string | null;
       nextOperatorActionLabel: string | null;
+      nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
       latestVerifiedStage: string | null;
       boundaryOwner: {
         role: string | null;
@@ -739,6 +749,43 @@ function buildNextOperatorActionLabel(action: string | null) {
   }
 }
 
+function buildNextOperatorActionTarget(action: string | null): RuntimeSessionReplayNextOperatorActionTarget | null {
+  switch (action) {
+    case "resolve_approval":
+    case "resolve_workflow_approval":
+      return {
+        targetSurface: "operator_saved_view_approvals",
+        targetLabel: "Approvals",
+      };
+    case "observe_live_work":
+    case "inspect_workflow_boundary":
+      return {
+        targetSurface: "operator_workflow_control",
+        targetLabel: "Workflow Control",
+      };
+    case "plan_recovery_drill":
+      return {
+        targetSurface: "operator_runtime_drills",
+        targetLabel: "Runtime Drill Runner",
+      };
+    case "inspect_session":
+    case "inspect_handoff":
+    case "resume_handoff":
+    case "inspect_follow_up":
+    case "resume_follow_up":
+    case "confirm_booking":
+    case "resume_booking":
+    case "resume_from_latest_proof":
+    case "resume_session":
+      return {
+        targetSurface: "operator_session_ops",
+        targetLabel: "Operator Session Ops",
+      };
+    default:
+      return null;
+  }
+}
+
 function buildApprovalGate(params: {
   latestSelectedApproval: ApprovalRecord | null;
   pendingApprovalCount: number;
@@ -1089,6 +1136,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
     latestProofPointer,
   });
   const nextOperatorActionLabel = buildNextOperatorActionLabel(resumeMetadata.nextOperatorAction);
+  const nextOperatorActionTarget = buildNextOperatorActionTarget(resumeMetadata.nextOperatorAction);
   const boundaryOwner = buildBoundaryOwner({
     selectedSessionId,
     workflowLinked,
@@ -1158,6 +1206,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         resumeBlockedBy: resumeMetadata.resumeBlockedBy,
         nextOperatorAction: resumeMetadata.nextOperatorAction,
         nextOperatorActionLabel,
+        nextOperatorActionTarget,
         latestVerifiedStage: latestProofPointer?.workflowStage ?? null,
         boundaryOwner,
         approvalGate,
