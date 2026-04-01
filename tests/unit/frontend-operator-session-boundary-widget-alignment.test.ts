@@ -41,18 +41,24 @@ test("operator console exposes compact session boundary widget", () => {
     "setOperatorSessionBoundaryHint",
     "resetOperatorSessionBoundaryWidget",
     "renderOperatorSessionBoundaryWidget",
+    "openOperatorSessionBoundaryTarget",
+    "boundaryOwner",
+    "approvalGate",
     "workflowBoundarySummary",
     "latestProofPointer",
     "recoveryPathHint",
+    "recoveryHandoff",
     "latestVerifiedStage",
     "renderOperatorSessionBoundaryWidget(state.operatorSessionReplaySnapshot);",
-    'openOperatorSupportPanel(el.operatorSessionOpsControl, el.operatorSessionReplayLoadBtn);',
+    "openOperatorSessionBoundaryTarget();",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing session boundary token: ${token}`);
   }
 
   assert.ok(readmeSource.includes("`Session Boundary`"), "README missing Session Boundary card note");
+  assert.match(readmeSource, /approval gate|boundary owner|recovery path/i);
   assert.ok(operatorGuideSource.includes("`Session Boundary`"), "operator guide missing Session Boundary card note");
+  assert.match(operatorGuideSource, /approval gate|boundary owner|recovery path/i);
   assert.match(architectureSource, /Session Boundary/);
 });

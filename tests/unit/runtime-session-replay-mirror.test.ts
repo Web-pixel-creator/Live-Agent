@@ -208,6 +208,14 @@ test("runtime session replay mirror aggregates selected session replay, approval
   assert.equal(snapshot.selectedSession.replay.resumeBlockedBy, null);
   assert.equal(snapshot.selectedSession.replay.nextOperatorAction, "resume_handoff");
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, "review");
+  assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
+    role: "operator",
+    owner: "ops-specialist",
+    sessionId: "session-a",
+    taskId: "task-a-1",
+    workflowRunId: "run-a-1",
+  });
+  assert.equal(snapshot.selectedSession.replay.approvalGate, null);
   assert.equal(snapshot.selectedSession.replay.currentHandoffState?.kind, "handoff");
   assert.equal(snapshot.selectedSession.replay.currentHandoffState?.nextStep, "Transfer to specialist");
   assert.deepEqual(snapshot.selectedSession.replay.workflowBoundarySummary, {
@@ -232,6 +240,12 @@ test("runtime session replay mirror aggregates selected session replay, approval
   assert.deepEqual(snapshot.selectedSession.replay.recoveryPathHint, {
     code: "resume_handoff",
     label: "Resume from the handoff boundary and transfer the prepared case pack.",
+    action: "resume_handoff",
+  });
+  assert.deepEqual(snapshot.selectedSession.replay.recoveryHandoff, {
+    targetPanel: "operator_session_ops",
+    targetLabel: "Operator Session Ops",
+    reason: "Transfer to specialist",
     action: "resume_handoff",
   });
   assert.equal(snapshot.selectedSession.replay.bySource["live-agent"], 1);
@@ -313,6 +327,8 @@ test("runtime session replay mirror blocks resume when approval or active workfl
     selectedSessionId: "session-b",
     workflowSummary: buildWorkflowSummary({
       workflowSessionId: "session-b",
+      workflowRunId: "run-b-1",
+      workflowTaskId: "task-b-1",
       workflowExecutionStatus: "pending_approval",
       workflowCurrentStage: "verification",
     }),
@@ -324,6 +340,24 @@ test("runtime session replay mirror blocks resume when approval or active workfl
   assert.equal(snapshot.selectedSession.replay.resumeBlockedBy, "approval_pending");
   assert.equal(snapshot.selectedSession.replay.nextOperatorAction, "resolve_approval");
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, null);
+  assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
+    role: "operator",
+    owner: null,
+    sessionId: "session-b",
+    taskId: "task-b-1",
+    workflowRunId: "run-b-1",
+  });
+  assert.deepEqual(snapshot.selectedSession.replay.approvalGate, {
+    source: "session",
+    status: "pending",
+    approvalId: "approval-b-1",
+    runId: "run-b-1",
+    reason: "Awaiting operator decision",
+    requestedAt: "2026-04-01T09:25:00.000Z",
+    hardDueAt: "2026-04-01T09:35:00.000Z",
+    pendingCount: 1,
+    action: "resolve_approval",
+  });
   assert.deepEqual(snapshot.selectedSession.replay.workflowBoundarySummary, {
     kind: "workflow",
     stage: "verification",
@@ -337,6 +371,12 @@ test("runtime session replay mirror blocks resume when approval or active workfl
   assert.deepEqual(snapshot.selectedSession.replay.recoveryPathHint, {
     code: "approval_pending",
     label: "Resolve the pending approval, then reopen the selected session.",
+    action: "resolve_approval",
+  });
+  assert.deepEqual(snapshot.selectedSession.replay.recoveryHandoff, {
+    targetPanel: "operator_session_ops",
+    targetLabel: "Operator Session Ops",
+    reason: "Inspect the linked workflow boundary.",
     action: "resolve_approval",
   });
 });

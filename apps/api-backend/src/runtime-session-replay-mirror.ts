@@ -102,6 +102,24 @@ export type RuntimeSessionReplaySnapshot = {
       resumeBlockedBy: string | null;
       nextOperatorAction: string | null;
       latestVerifiedStage: string | null;
+      boundaryOwner: {
+        role: string | null;
+        owner: string | null;
+        sessionId: string | null;
+        taskId: string | null;
+        workflowRunId: string | null;
+      } | null;
+      approvalGate: {
+        source: "session" | "workflow";
+        status: string | null;
+        approvalId: string | null;
+        runId: string | null;
+        reason: string | null;
+        requestedAt: string | null;
+        hardDueAt: string | null;
+        pendingCount: number;
+        action: string | null;
+      } | null;
       currentHandoffState:
         | {
             kind: "booking";
@@ -149,6 +167,12 @@ export type RuntimeSessionReplaySnapshot = {
       recoveryPathHint: {
         code: string;
         label: string;
+        action: string | null;
+      } | null;
+      recoveryHandoff: {
+        targetPanel: "operator_session_ops" | "operator_workflow_control" | "operator_runtime_drills";
+        targetLabel: string;
+        reason: string | null;
         action: string | null;
       } | null;
       eventCount: number;
@@ -508,6 +532,35 @@ function buildWorkflowBoundarySummary(params: {
   return null;
 }
 
+function buildBoundaryOwner(params: {
+  selectedSessionId: string | null;
+  workflowLinked: boolean;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+  workflowBoundarySummary: ReturnType<typeof buildWorkflowBoundarySummary>;
+}) {
+  const role = params.workflowSummary?.workflowActiveRole ?? null;
+  const owner = params.workflowBoundarySummary?.owner ?? null;
+  const sessionId = params.workflowLinked ? params.workflowSummary?.workflowSessionId ?? params.selectedSessionId : params.selectedSessionId;
+  const taskId = params.workflowLinked ? params.workflowSummary?.workflowTaskId ?? null : null;
+  const workflowRunId = params.workflowLinked ? params.workflowSummary?.workflowRunId ?? null : null;
+  const hasOwner =
+    role !== null ||
+    owner !== null ||
+    taskId !== null ||
+    workflowRunId !== null ||
+    (params.workflowLinked && sessionId !== null);
+  if (!hasOwner) {
+    return null;
+  }
+  return {
+    role,
+    owner,
+    sessionId,
+    taskId,
+    workflowRunId,
+  };
+}
+
 function buildCurrentHandoffState(params: {
   booking: ReturnType<typeof buildWorkflowBookingSummary>;
   handoff: ReturnType<typeof buildWorkflowHandoffSummary>;
@@ -635,6 +688,42 @@ function buildResumeMetadata(params: {
   };
 }
 
+function buildApprovalGate(params: {
+  latestSelectedApproval: ApprovalRecord | null;
+  pendingApprovalCount: number;
+  workflowLinked: boolean;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+  resumeMetadata: ReturnType<typeof buildResumeMetadata>;
+}) {
+  if (params.pendingApprovalCount > 0 && params.latestSelectedApproval) {
+    return {
+      source: "session" as const,
+      status: params.latestSelectedApproval.status,
+      approvalId: params.latestSelectedApproval.approvalId,
+      runId: params.latestSelectedApproval.runId,
+      reason: params.latestSelectedApproval.reason,
+      requestedAt: params.latestSelectedApproval.requestedAt,
+      hardDueAt: params.latestSelectedApproval.hardDueAt,
+      pendingCount: params.pendingApprovalCount,
+      action: params.resumeMetadata.nextOperatorAction,
+    };
+  }
+  if (params.workflowLinked && params.workflowSummary?.workflowExecutionStatus === "pending_approval") {
+    return {
+      source: "workflow" as const,
+      status: params.workflowSummary.workflowExecutionStatus,
+      approvalId: null,
+      runId: params.workflowSummary.workflowRunId ?? null,
+      reason: params.workflowSummary.workflowReason ?? null,
+      requestedAt: params.workflowSummary.workflowUpdatedAt ?? null,
+      hardDueAt: null,
+      pendingCount: Math.max(1, params.pendingApprovalCount),
+      action: params.resumeMetadata.nextOperatorAction,
+    };
+  }
+  return null;
+}
+
 function buildRecoveryPathHint(params: {
   resumeMetadata: ReturnType<typeof buildResumeMetadata>;
   currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
@@ -713,6 +802,45 @@ function buildRecoveryPathHint(params: {
   return {
     code: "resume_session",
     label: "Resume the selected session from the current workflow boundary.",
+    action: params.resumeMetadata.nextOperatorAction,
+  };
+}
+
+function buildRecoveryHandoff(params: {
+  resumeMetadata: ReturnType<typeof buildResumeMetadata>;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+  workflowBoundarySummary: ReturnType<typeof buildWorkflowBoundarySummary>;
+}) {
+  if (params.workflowSummary?.workflowExecutionStatus === "failed") {
+    return {
+      targetPanel: "operator_runtime_drills" as const,
+      targetLabel: "Runtime Drill Runner",
+      reason:
+        params.workflowBoundarySummary?.summary ??
+        "The workflow boundary failed and may need a recovery drill before replay continues.",
+      action: "plan_recovery_drill",
+    };
+  }
+  if (
+    params.resumeMetadata.resumeBlockedBy === "workflow_pending_approval" ||
+    params.resumeMetadata.resumeBlockedBy === "workflow_active"
+  ) {
+    return {
+      targetPanel: "operator_workflow_control" as const,
+      targetLabel: "Workflow Control",
+      reason:
+        params.workflowBoundarySummary?.summary ??
+        "Workflow control still owns this boundary and should be inspected first.",
+      action: params.resumeMetadata.nextOperatorAction,
+    };
+  }
+  return {
+    targetPanel: "operator_session_ops" as const,
+    targetLabel: "Operator Session Ops",
+    reason:
+      params.workflowBoundarySummary?.nextStep ??
+      params.workflowBoundarySummary?.summary ??
+      "Keep the selected session loaded while you resolve replay.",
     action: params.resumeMetadata.nextOperatorAction,
   };
 }
@@ -881,6 +1009,24 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
     currentHandoffState,
     latestProofPointer,
   });
+  const boundaryOwner = buildBoundaryOwner({
+    selectedSessionId,
+    workflowLinked,
+    workflowSummary,
+    workflowBoundarySummary,
+  });
+  const approvalGate = buildApprovalGate({
+    latestSelectedApproval,
+    pendingApprovalCount,
+    workflowLinked,
+    workflowSummary,
+    resumeMetadata,
+  });
+  const recoveryHandoff = buildRecoveryHandoff({
+    resumeMetadata,
+    workflowSummary,
+    workflowBoundarySummary,
+  });
 
   return {
     generatedAt: new Date().toISOString(),
@@ -927,10 +1073,13 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         resumeBlockedBy: resumeMetadata.resumeBlockedBy,
         nextOperatorAction: resumeMetadata.nextOperatorAction,
         latestVerifiedStage: latestProofPointer?.workflowStage ?? null,
+        boundaryOwner,
+        approvalGate,
         currentHandoffState,
         workflowBoundarySummary,
         latestProofPointer,
         recoveryPathHint,
+        recoveryHandoff,
         eventCount: selectedEventInsight.eventCount,
         runCount: selectedRuns.length || selectedEventInsight.runCount,
         approvalCount: selectedApprovals.length,
