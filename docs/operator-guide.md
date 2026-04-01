@@ -273,6 +273,7 @@ Operator support note: `Workflow Control Panel` and `Browser Worker Control` now
 Runtime surface inventory note: use `GET /v1/runtime/surface` when you need one repo-owned snapshot of agent routes, runtime/control-plane surfaces, available playbooks, evidence outputs, and UI/runtime capabilities without stitching together bootstrap, diagnostics, and skills views by hand.
 Runtime surface readiness note: use `GET /v1/runtime/surface/readiness` when you need one operator-safe `ready / degraded / critical` verdict; it overlays bootstrap doctor, runtime diagnostics, service coverage, device readiness, and evidence posture, while `Skills Registry Lifecycle` remains the source for managed-skill activation history rather than readiness state.
 Runtime surface artifact note: use `npm run runtime:surface:snapshot` to write `artifacts/runtime/runtime-surface-snapshot.json`; pass `-- --offline true` when you want the repo-owned inventory/readiness pair without live service or device-node probing.
+Runtime surface parity note: use `npm run runtime:surface:parity` after the snapshot step when you need a hard gate against missing runtime-surface agents, routes, control-plane entries, evidence lanes, UI capabilities, or required ready playbooks.
 
 ## Standard Operator Actions
 

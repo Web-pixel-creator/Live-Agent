@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "source": "repo_owned_runtime_surface_manifest",
+  "requiredAgentIds": [
+    "live-agent",
+    "storyteller-agent",
+    "ui-navigator-agent"
+  ],
+  "requiredRouteIntents": [
+    "conversation",
+    "translation",
+    "negotiation",
+    "research",
+    "story",
+    "ui_task"
+  ],
+  "requiredControlPlaneIds": [
+    "runtime-diagnostics",
+    "runtime-bootstrap-status",
+    "runtime-surface",
+    "runtime-surface-readiness",
+    "runtime-auth-profiles",
+    "runtime-auth-profile-rotate",
+    "runtime-workflow-config",
+    "runtime-workflow-override",
+    "runtime-browser-jobs",
+    "runtime-fault-profiles",
+    "skills-catalog",
+    "skills-personas",
+    "skills-recipes",
+    "device-nodes-index",
+    "channels-session-resolve"
+  ],
+  "requiredEvidenceIds": [
+    "operator-summary",
+    "runtime-diagnostics-evidence",
+    "bootstrap-doctor-evidence",
+    "operator-trace-summary",
+    "ui-replay-bundle",
+    "release-artifacts"
+  ],
+  "requiredUiCapabilityIds": [
+    "ui-grounding",
+    "ui-post-action-verification",
+    "ui-browser-worker",
+    "ui-safety-controls"
+  ],
+  "requiredReadyPlaybookIds": [
+    "live-negotiator",
+    "story-director",
+    "ui-operator",
+    "live-negotiation-judge-demo",
+    "story-hook-conflict-resolution",
+    "ui-sandbox-form-review"
+  ],
+  "summary": {
+    "totalAgents": 3,
+    "totalRoutes": 6,
+    "totalControlPlaneSurfaces": 15,
+    "totalEvidenceLanes": 6,
+    "totalUiCapabilities": 4,
+    "minimumPlaybooks": 18
+  }
+}

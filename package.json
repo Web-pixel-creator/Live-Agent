@@ -40,6 +40,7 @@
     "eval:promptfoo:gate": "node ./scripts/eval-plane.mjs --suite all --gate",
     "eval:promptfoo:dry-run": "node ./scripts/eval-plane.mjs --suite all --dry-run",
     "runtime:surface:snapshot": "node --import tsx ./scripts/runtime-surface-snapshot.mjs --output ./artifacts/runtime/runtime-surface-snapshot.json",
+    "runtime:surface:parity": "node ./scripts/runtime-surface-parity-check.mjs --snapshot ./artifacts/runtime/runtime-surface-snapshot.json --manifest ./configs/runtime-surface-manifest.json --output ./artifacts/runtime/runtime-surface-parity.json",
     "autoresearch:runtime-perf": "node ./scripts/autoresearch-harness.mjs --config ./configs/autoresearch/runtime-perf.json",
     "profile:smoke": "node --import tsx ./scripts/runtime-profile-smoke.mjs",
     "storyteller:smoke:live": "node --import tsx ./scripts/storyteller-live-media-smoke.mjs",
