@@ -39,6 +39,7 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
     "resumeReady",
     "resumeBlockedBy",
     "nextOperatorAction",
+    "nextOperatorActionLabel",
     "latestVerifiedStage",
     "boundaryOwner",
     "approvalGate",
@@ -46,6 +47,7 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
     "latestProofPointer",
     "recoveryPathHint",
     "recoveryHandoff",
+    "recoveryDrill",
     "currentHandoffState",
     "workflowHandoffStatus",
     "workflowFollowUpStatus",
@@ -65,10 +67,10 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
 
   assert.match(readme, /GET \/v1\/runtime\/session-replay/);
   assert.match(readme, /session replay mirror/i);
-  assert.match(readme, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner/i);
+  assert.match(readme, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|recovery drill/i);
   assert.match(operatorGuide, /GET \/v1\/runtime\/session-replay/);
   assert.match(operatorGuide, /Runtime session replay note:/);
-  assert.match(operatorGuide, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner/i);
+  assert.match(operatorGuide, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|recovery drill/i);
   assert.match(architecture, /runtime session replay mirror/i);
-  assert.match(architecture, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner/i);
+  assert.match(architecture, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|recovery drill/i);
 });

@@ -25036,6 +25036,7 @@ function buildSessionExportOperatorSessionReplay() {
     resumeReady: replay?.resumeReady === true,
     resumeBlockedBy: toOptionalText(replay?.resumeBlockedBy),
     nextOperatorAction: toOptionalText(replay?.nextOperatorAction),
+    nextOperatorActionLabel: toOptionalText(replay?.nextOperatorActionLabel),
     latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
     boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
     approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,
@@ -25043,6 +25044,7 @@ function buildSessionExportOperatorSessionReplay() {
     latestProofPointer: isRecord(replay?.latestProofPointer) ? replay.latestProofPointer : null,
     recoveryPathHint: isRecord(replay?.recoveryPathHint) ? replay.recoveryPathHint : null,
     recoveryHandoff: isRecord(replay?.recoveryHandoff) ? replay.recoveryHandoff : null,
+    recoveryDrill: isRecord(replay?.recoveryDrill) ? replay.recoveryDrill : null,
     currentHandoffState: isRecord(replay?.currentHandoffState) ? replay.currentHandoffState : null,
     latestVerifiedSummary: toOptionalText(replay?.latestVerifiedSummary),
     latestVerifiedAt: toOptionalText(replay?.latestVerifiedAt),
@@ -29459,6 +29461,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const proof = isRecord(replay?.latestProofPointer) ? replay.latestProofPointer : null;
   const recovery = isRecord(replay?.recoveryPathHint) ? replay.recoveryPathHint : null;
   const recoveryHandoff = isRecord(replay?.recoveryHandoff) ? replay.recoveryHandoff : null;
+  const recoveryDrill = isRecord(replay?.recoveryDrill) ? replay.recoveryDrill : null;
   const currentHandoffState = isRecord(replay?.currentHandoffState) ? replay.currentHandoffState : null;
   const boundaryOwnerRecord = isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null;
   const approvalGate = isRecord(replay?.approvalGate) ? replay.approvalGate : null;
@@ -29487,6 +29490,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const boundaryNextStep =
     toOptionalText(boundary?.nextStep) ??
     toOptionalText(currentHandoffState?.nextStep) ??
+    toOptionalText(replay?.nextOperatorActionLabel) ??
     toOptionalText(replay?.nextOperatorAction);
   const latestProofSummary =
     toOptionalText(proof?.summary) ??
@@ -29501,6 +29505,8 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     boundaryNextStep ??
     "Open Session Ops to inspect the next recovery path.";
   const recoveryAction = toOptionalText(recovery?.action);
+  const nextOperatorActionLabel =
+    toOptionalText(replay?.nextOperatorActionLabel) ?? toOptionalText(replay?.nextOperatorAction);
   const recoveryTargetLabel =
     toOptionalText(recoveryHandoff?.targetLabel) ??
     (toOptionalText(recoveryHandoff?.targetPanel) === "operator_workflow_control"
@@ -29518,10 +29524,13 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     ? `${ownerSummary}${toOptionalText(boundaryOwnerRecord?.workflowRunId) ? ` | ${boundaryOwnerRecord.workflowRunId}` : ""}`
     : "No explicit boundary owner";
   const approvalGateDetail = approvalGate
-    ? `${toOptionalText(approvalGate.source) ?? "session"} | ${approvalGateSummary ?? "pending"}${toOptionalText(approvalGate.action) ? ` | ${approvalGate.action}` : ""}`
+    ? `${toOptionalText(approvalGate.source) ?? "session"} | ${approvalGateSummary ?? "pending"}${nextOperatorActionLabel ? ` | ${nextOperatorActionLabel}` : toOptionalText(approvalGate.action) ? ` | ${approvalGate.action}` : ""}`
     : "No open approval gate";
+  const recoveryDrillDetail = recoveryDrill
+    ? `${toOptionalText(recoveryDrill.label) ?? "Recovery drill"}${toOptionalText(recoveryDrill.profileId) ? ` | ${recoveryDrill.profileId}/${toOptionalText(recoveryDrill.phase) ?? "recovery"}` : ""}`
+    : null;
   const handoffDetail = recoveryHandoff
-    ? `${recoveryTargetLabel}${toOptionalText(recoveryHandoff?.action) ? ` | ${recoveryHandoff.action}` : ""}`
+    ? `${recoveryTargetLabel}${nextOperatorActionLabel ? ` | ${nextOperatorActionLabel}` : toOptionalText(recoveryHandoff?.action) ? ` | ${recoveryHandoff.action}` : ""}`
     : "Stay in Operator Session Ops";
   const recoveryTargetButtonLabel = recoveryHandoff
     ? `Open ${recoveryTargetLabel}`
@@ -29553,7 +29562,8 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   );
   setText(
     el.operatorSessionBoundaryRecovery,
-    `${recoveryLabel}${recoveryAction ? ` | ${recoveryAction}` : ""}`,
+    recoveryDrillDetail ??
+      `${recoveryLabel}${nextOperatorActionLabel ? ` | ${nextOperatorActionLabel}` : recoveryAction ? ` | ${recoveryAction}` : ""}`,
   );
   setText(
     el.operatorSessionBoundaryHandoff,
@@ -29575,9 +29585,11 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     hint = recoveryLabel;
   } else if (toOptionalText(replay?.resumeBlockedBy)) {
     statusText = toOptionalText(replay?.resumeBlockedBy) ?? "resume_blocked";
-    statusVariant = ["approval_pending", "workflow_pending_approval", "workflow_active"].includes(statusText)
-      ? "warn"
-      : "neutral";
+    statusVariant = statusText === "workflow_failed"
+      ? "fail"
+      : ["approval_pending", "workflow_pending_approval", "workflow_active"].includes(statusText)
+        ? "warn"
+        : "neutral";
     hintVariant = statusVariant;
     hint = recoveryLabel;
   } else if (!replay) {
@@ -29594,7 +29606,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
 
   setStatusPill(el.operatorSessionBoundaryStatus, statusText, statusVariant);
   setOperatorSessionBoundaryHint(
-    recoveryHandoff?.reason ?? approvalGate?.reason ?? hint,
+    recoveryDrill?.reason ?? recoveryHandoff?.reason ?? approvalGate?.reason ?? hint,
     hintVariant,
   );
 }
@@ -30251,6 +30263,20 @@ function normalizeOperatorReplayRecoveryHandoff(value) {
   };
 }
 
+function normalizeOperatorReplayRecoveryDrill(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    profileId: toOptionalText(value.profileId),
+    phase: toOptionalText(value.phase),
+    label: toOptionalText(value.label),
+    service: toOptionalText(value.service),
+    reason: toOptionalText(value.reason),
+    action: toOptionalText(value.action),
+  };
+}
+
 function populateOperatorSessionReplayOptions(selectedSessionId = null) {
   if (!(el.operatorSessionReplaySessionId instanceof HTMLSelectElement)) {
     return;
@@ -30311,6 +30337,7 @@ function buildOperatorSessionReplaySnapshot(value) {
         resumeReady: selectedSessionRecord.replay.resumeReady === true,
         resumeBlockedBy: toOptionalText(selectedSessionRecord.replay.resumeBlockedBy),
         nextOperatorAction: toOptionalText(selectedSessionRecord.replay.nextOperatorAction),
+        nextOperatorActionLabel: toOptionalText(selectedSessionRecord.replay.nextOperatorActionLabel),
         latestVerifiedStage: toOptionalText(selectedSessionRecord.replay.latestVerifiedStage),
         boundaryOwner: normalizeOperatorReplayBoundaryOwner(selectedSessionRecord.replay.boundaryOwner),
         approvalGate: normalizeOperatorReplayApprovalGate(selectedSessionRecord.replay.approvalGate),
@@ -30327,6 +30354,7 @@ function buildOperatorSessionReplaySnapshot(value) {
           ? selectedSessionRecord.replay.recoveryPathHint
           : null,
         recoveryHandoff: normalizeOperatorReplayRecoveryHandoff(selectedSessionRecord.replay.recoveryHandoff),
+        recoveryDrill: normalizeOperatorReplayRecoveryDrill(selectedSessionRecord.replay.recoveryDrill),
         eventCount: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.eventCount ?? 0) || 0)),
         runCount: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.runCount ?? 0) || 0)),
         approvalCount: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.approvalCount ?? 0) || 0)),
@@ -30504,6 +30532,7 @@ function buildOperatorSessionOpsReplayPreview() {
       resumeReady: replay?.resumeReady === true,
       resumeBlockedBy: toOptionalText(replay?.resumeBlockedBy),
       nextOperatorAction: toOptionalText(replay?.nextOperatorAction),
+      nextOperatorActionLabel: toOptionalText(replay?.nextOperatorActionLabel),
       latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
       boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
       approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,
@@ -30511,6 +30540,7 @@ function buildOperatorSessionOpsReplayPreview() {
       latestProofPointer: isRecord(replay?.latestProofPointer) ? replay.latestProofPointer : null,
       recoveryPathHint: isRecord(replay?.recoveryPathHint) ? replay.recoveryPathHint : null,
       recoveryHandoff: isRecord(replay?.recoveryHandoff) ? replay.recoveryHandoff : null,
+      recoveryDrill: isRecord(replay?.recoveryDrill) ? replay.recoveryDrill : null,
       currentHandoffState: isRecord(replay?.currentHandoffState) ? replay.currentHandoffState : null,
       workflowLinked: workflow?.linked === true,
       workflowStatus: toOptionalText(workflow?.workflowExecutionStatus),

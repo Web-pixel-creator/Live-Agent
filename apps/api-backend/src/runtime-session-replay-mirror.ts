@@ -101,6 +101,7 @@ export type RuntimeSessionReplaySnapshot = {
       resumeReady: boolean;
       resumeBlockedBy: string | null;
       nextOperatorAction: string | null;
+      nextOperatorActionLabel: string | null;
       latestVerifiedStage: string | null;
       boundaryOwner: {
         role: string | null;
@@ -172,6 +173,14 @@ export type RuntimeSessionReplaySnapshot = {
       recoveryHandoff: {
         targetPanel: "operator_session_ops" | "operator_workflow_control" | "operator_runtime_drills";
         targetLabel: string;
+        reason: string | null;
+        action: string | null;
+      } | null;
+      recoveryDrill: {
+        profileId: string | null;
+        phase: "recovery";
+        label: string;
+        service: string | null;
         reason: string | null;
         action: string | null;
       } | null;
@@ -638,6 +647,13 @@ function buildResumeMetadata(params: {
       nextOperatorAction: "observe_live_work",
     };
   }
+  if (params.workflowLinked && params.workflowSummary?.workflowExecutionStatus === "failed") {
+    return {
+      resumeReady: false,
+      resumeBlockedBy: "workflow_failed",
+      nextOperatorAction: "plan_recovery_drill",
+    };
+  }
   if (params.replayState === "empty") {
     return {
       resumeReady: false,
@@ -686,6 +702,41 @@ function buildResumeMetadata(params: {
     resumeBlockedBy: null,
     nextOperatorAction: "resume_session",
   };
+}
+
+function buildNextOperatorActionLabel(action: string | null) {
+  switch (action) {
+    case "inspect_session":
+      return "Inspect session";
+    case "resolve_approval":
+      return "Resolve approval";
+    case "resolve_workflow_approval":
+      return "Resolve workflow approval";
+    case "observe_live_work":
+      return "Observe live workflow";
+    case "inspect_workflow_boundary":
+      return "Inspect workflow boundary";
+    case "plan_recovery_drill":
+      return "Plan recovery drill";
+    case "inspect_handoff":
+      return "Inspect handoff";
+    case "resume_handoff":
+      return "Resume handoff";
+    case "inspect_follow_up":
+      return "Inspect follow-up";
+    case "resume_follow_up":
+      return "Resume follow-up";
+    case "confirm_booking":
+      return "Confirm booking";
+    case "resume_booking":
+      return "Resume booking";
+    case "resume_from_latest_proof":
+      return "Resume from latest proof";
+    case "resume_session":
+      return "Resume session";
+    default:
+      return null;
+  }
 }
 
 function buildApprovalGate(params: {
@@ -757,6 +808,13 @@ function buildRecoveryPathHint(params: {
       action: "observe_live_work",
     };
   }
+  if (params.resumeMetadata.resumeBlockedBy === "workflow_failed") {
+    return {
+      code: "workflow_failed",
+      label: "Plan the workflow recovery drill before resuming the linked boundary.",
+      action: "plan_recovery_drill",
+    };
+  }
   if (params.resumeMetadata.resumeBlockedBy === "replay_unavailable") {
     return {
       code: "replay_unavailable",
@@ -803,6 +861,27 @@ function buildRecoveryPathHint(params: {
     code: "resume_session",
     label: "Resume the selected session from the current workflow boundary.",
     action: params.resumeMetadata.nextOperatorAction,
+  };
+}
+
+function buildRecoveryDrill(params: {
+  resumeMetadata: ReturnType<typeof buildResumeMetadata>;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+  workflowBoundarySummary: ReturnType<typeof buildWorkflowBoundarySummary>;
+}) {
+  if (params.resumeMetadata.resumeBlockedBy !== "workflow_failed") {
+    return null;
+  }
+  return {
+    profileId: "orchestrator-last-known-good",
+    phase: "recovery" as const,
+    label: "Workflow recovery drill",
+    service: "orchestrator",
+    reason:
+      params.workflowBoundarySummary?.summary ??
+      params.workflowSummary?.workflowReason ??
+      "Workflow failure needs a repo-owned recovery drill before replay can resume.",
+    action: "plan_recovery_drill",
   };
 }
 
@@ -1009,6 +1088,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
     currentHandoffState,
     latestProofPointer,
   });
+  const nextOperatorActionLabel = buildNextOperatorActionLabel(resumeMetadata.nextOperatorAction);
   const boundaryOwner = buildBoundaryOwner({
     selectedSessionId,
     workflowLinked,
@@ -1023,6 +1103,11 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
     resumeMetadata,
   });
   const recoveryHandoff = buildRecoveryHandoff({
+    resumeMetadata,
+    workflowSummary,
+    workflowBoundarySummary,
+  });
+  const recoveryDrill = buildRecoveryDrill({
     resumeMetadata,
     workflowSummary,
     workflowBoundarySummary,
@@ -1072,6 +1157,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         resumeReady: resumeMetadata.resumeReady,
         resumeBlockedBy: resumeMetadata.resumeBlockedBy,
         nextOperatorAction: resumeMetadata.nextOperatorAction,
+        nextOperatorActionLabel,
         latestVerifiedStage: latestProofPointer?.workflowStage ?? null,
         boundaryOwner,
         approvalGate,
@@ -1080,6 +1166,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         latestProofPointer,
         recoveryPathHint,
         recoveryHandoff,
+        recoveryDrill,
         eventCount: selectedEventInsight.eventCount,
         runCount: selectedRuns.length || selectedEventInsight.runCount,
         approvalCount: selectedApprovals.length,

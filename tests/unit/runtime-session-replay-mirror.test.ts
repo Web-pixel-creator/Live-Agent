@@ -207,6 +207,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
   assert.equal(snapshot.selectedSession.replay.resumeReady, true);
   assert.equal(snapshot.selectedSession.replay.resumeBlockedBy, null);
   assert.equal(snapshot.selectedSession.replay.nextOperatorAction, "resume_handoff");
+  assert.equal(snapshot.selectedSession.replay.nextOperatorActionLabel, "Resume handoff");
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, "review");
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
     role: "operator",
@@ -248,6 +249,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
     reason: "Transfer to specialist",
     action: "resume_handoff",
   });
+  assert.equal(snapshot.selectedSession.replay.recoveryDrill, null);
   assert.equal(snapshot.selectedSession.replay.bySource["live-agent"], 1);
   assert.equal(snapshot.selectedSession.replay.byType["orchestrator.response"], 1);
   assert.equal(snapshot.selectedSession.replay.byRoute["live-agent"], 1);
@@ -339,6 +341,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
   assert.equal(snapshot.selectedSession.replay.resumeReady, false);
   assert.equal(snapshot.selectedSession.replay.resumeBlockedBy, "approval_pending");
   assert.equal(snapshot.selectedSession.replay.nextOperatorAction, "resolve_approval");
+  assert.equal(snapshot.selectedSession.replay.nextOperatorActionLabel, "Resolve approval");
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, null);
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
     role: "operator",
@@ -378,5 +381,96 @@ test("runtime session replay mirror blocks resume when approval or active workfl
     targetLabel: "Operator Session Ops",
     reason: "Inspect the linked workflow boundary.",
     action: "resolve_approval",
+  });
+  assert.equal(snapshot.selectedSession.replay.recoveryDrill, null);
+});
+
+test("runtime session replay mirror surfaces recovery drill guidance for failed workflow boundaries", () => {
+  const sessions: SessionListItem[] = [
+    {
+      sessionId: "session-c",
+      tenantId: "tenant-a",
+      mode: "live",
+      status: "paused",
+      version: 3,
+      lastMutationId: "mutation-c",
+      updatedAt: "2026-04-01T11:10:00.000Z",
+    },
+  ];
+
+  const runs: RunListItem[] = [
+    {
+      runId: "run-c-1",
+      sessionId: "session-c",
+      status: "failed",
+      route: "live-agent",
+      updatedAt: "2026-04-01T11:10:00.000Z",
+    },
+  ];
+
+  const recentEvents: EventListItem[] = [
+    {
+      eventId: "event-c-1",
+      sessionId: "session-c",
+      runId: "run-c-1",
+      type: "orchestrator.response",
+      source: "live-agent",
+      createdAt: "2026-04-01T11:10:00.000Z",
+      route: "live-agent",
+      status: "failed",
+      intent: "translation",
+      verificationState: "unverified",
+      verificationSummary: "Workflow boundary failed before protected review.",
+    },
+  ];
+
+  const snapshot = buildRuntimeSessionReplayMirrorSnapshot({
+    sessions,
+    runs,
+    approvals: [],
+    recentEvents,
+    selectedEvents: recentEvents,
+    selectedSessionId: "session-c",
+    workflowSummary: buildWorkflowSummary({
+      workflowSessionId: "session-c",
+      workflowRunId: "run-c-1",
+      workflowTaskId: "task-c-1",
+      workflowExecutionStatus: "failed",
+      workflowCurrentStage: "handoff",
+      workflowReason: "Recovery drill is required before replay can resume.",
+      workflowHandoffStatus: "blocked",
+      workflowHandoffIntent: "escalation",
+      workflowHandoffCaseId: "case-99",
+      workflowHandoffDestinationCountry: "Canada",
+      workflowHandoffAssignedOwner: "ops-recovery",
+      workflowHandoffSummary: "Specialist transfer stalled",
+      workflowHandoffNextStep: "Rebuild the handoff package",
+      workflowHandoffReady: false,
+    }),
+  });
+
+  assert.equal(snapshot.selectedSession.replay.replayState, "active");
+  assert.equal(snapshot.selectedSession.replay.resumeReady, false);
+  assert.equal(snapshot.selectedSession.replay.resumeBlockedBy, "workflow_failed");
+  assert.equal(snapshot.selectedSession.replay.nextOperatorAction, "plan_recovery_drill");
+  assert.equal(snapshot.selectedSession.replay.nextOperatorActionLabel, "Plan recovery drill");
+  assert.deepEqual(snapshot.selectedSession.replay.recoveryPathHint, {
+    code: "workflow_failed",
+    label: "Plan the workflow recovery drill before resuming the linked boundary.",
+    action: "plan_recovery_drill",
+  });
+  assert.deepEqual(snapshot.selectedSession.replay.recoveryHandoff, {
+    targetPanel: "operator_runtime_drills",
+    targetLabel: "Runtime Drill Runner",
+    reason: "Specialist transfer stalled",
+    action: "plan_recovery_drill",
+  });
+  assert.deepEqual(snapshot.selectedSession.replay.recoveryDrill, {
+    profileId: "orchestrator-last-known-good",
+    phase: "recovery",
+    label: "Workflow recovery drill",
+    service: "orchestrator",
+    reason: "Specialist transfer stalled",
+    action: "plan_recovery_drill",
   });
 });
