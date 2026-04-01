@@ -2976,7 +2976,7 @@
           </summary>
           <div class="operator-session-ops-control-body">
             <p class="operator-session-ops-control-hint">
-              Save a purpose declaration before high-risk control-plane actions, use <code>Refresh Sessions</code> to inspect replayable timelines from <code>/v1/sessions</code> + <code>/v1/events</code>, and use <code>Refresh Discovery</code> to inspect repo-owned personas and recipes from the skills catalog.
+              Save a purpose declaration before high-risk control-plane actions, use <code>Refresh Sessions</code> to inspect replayable timelines from <code>/v1/runtime/session-replay</code>, and use <code>Refresh Discovery</code> to inspect repo-owned personas and recipes from the skills catalog.
             </p>
             <div class="operator-session-ops-control-status-row">
               <p id="operatorSessionOpsControlStatus" class="status-pill status-neutral" data-status-code="session_ops_idle">session_ops_idle</p>
@@ -4202,6 +4202,32 @@
               </div>
               <p id="operatorRuntimeSurfaceHint" class="operator-health-hint operator-health-hint-neutral">
                 Refresh surface to inspect runtime inventory, readiness, and missing capabilities.
+              </p>
+            </article>
+  <article class="operator-health-card">
+              <h3>Session Boundary</h3>
+              <p id="operatorSessionBoundaryStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_replay</p>
+              <p class="operator-health-row">
+                <strong>Session</strong>
+                <span id="operatorSessionBoundarySession">pending</span>
+              </p>
+              <p class="operator-health-row">
+                <strong>Boundary</strong>
+                <span id="operatorSessionBoundarySummary">pending</span>
+              </p>
+              <p class="operator-health-row">
+                <strong>Latest Proof</strong>
+                <span id="operatorSessionBoundaryLatestProof">pending</span>
+              </p>
+              <p class="operator-health-row">
+                <strong>Recovery</strong>
+                <span id="operatorSessionBoundaryRecovery">pending</span>
+              </p>
+              <div class="operator-health-actions">
+                <button type="button" id="operatorSessionBoundaryOpenBtn" class="button-muted">Open Session Ops</button>
+              </div>
+              <p id="operatorSessionBoundaryHint" class="operator-health-hint operator-health-hint-neutral">
+                Load one replay session in Operator Session Ops to inspect resume and recovery posture.
               </p>
             </article>
   <article class="operator-health-card">

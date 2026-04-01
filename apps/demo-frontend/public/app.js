@@ -3774,6 +3774,13 @@ const el = {
   operatorRuntimeSurfaceEvidence: document.getElementById("operatorRuntimeSurfaceEvidence"),
   operatorRuntimeSurfaceSkills: document.getElementById("operatorRuntimeSurfaceSkills"),
   operatorRuntimeSurfaceHint: document.getElementById("operatorRuntimeSurfaceHint"),
+  operatorSessionBoundaryOpenBtn: document.getElementById("operatorSessionBoundaryOpenBtn"),
+  operatorSessionBoundaryStatus: document.getElementById("operatorSessionBoundaryStatus"),
+  operatorSessionBoundarySession: document.getElementById("operatorSessionBoundarySession"),
+  operatorSessionBoundarySummary: document.getElementById("operatorSessionBoundarySummary"),
+  operatorSessionBoundaryLatestProof: document.getElementById("operatorSessionBoundaryLatestProof"),
+  operatorSessionBoundaryRecovery: document.getElementById("operatorSessionBoundaryRecovery"),
+  operatorSessionBoundaryHint: document.getElementById("operatorSessionBoundaryHint"),
   operatorRuntimeGuardrailsActionList: document.getElementById("operatorRuntimeGuardrailsActionList"),
   operatorRuntimeGuardrailsHistoryStatus: document.getElementById("operatorRuntimeGuardrailsHistoryStatus"),
   operatorRuntimeGuardrailsHint: document.getElementById("operatorRuntimeGuardrailsHint"),
@@ -26682,6 +26689,27 @@ function setOperatorRuntimeSurfaceHint(text, variant = "neutral") {
   el.operatorRuntimeSurfaceHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorSessionBoundaryHint(text, variant = "neutral") {
+  if (!el.operatorSessionBoundaryHint) {
+    return;
+  }
+  el.operatorSessionBoundaryHint.textContent = text;
+  el.operatorSessionBoundaryHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorSessionBoundaryHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorSessionBoundaryHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorSessionBoundaryHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorSessionBoundaryHint.classList.add("operator-health-hint-neutral");
+}
+
 function setOperatorRuntimeGuardrailsHint(text, variant = "neutral") {
   if (!el.operatorRuntimeGuardrailsHint) {
     return;
@@ -27734,6 +27762,18 @@ function resetOperatorRuntimeSurfaceWidget(reason = "no_data") {
     "neutral",
   );
   setStatusPill(el.operatorRuntimeSurfaceStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorSessionBoundaryWidget(reason = "no_data") {
+  setText(el.operatorSessionBoundarySession, "n/a");
+  setText(el.operatorSessionBoundarySummary, "n/a");
+  setText(el.operatorSessionBoundaryLatestProof, "n/a");
+  setText(el.operatorSessionBoundaryRecovery, "n/a");
+  setOperatorSessionBoundaryHint(
+    "Load one replay session in Operator Session Ops to inspect resume and recovery posture.",
+    "neutral",
+  );
+  setStatusPill(el.operatorSessionBoundaryStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function resetOperatorBrowserWorkersWidget(reason = "no_data") {
@@ -29391,6 +29431,113 @@ function renderOperatorRuntimeSurfaceWidget(runtimeSurfaceSnapshot) {
   setOperatorRuntimeSurfaceHint(hint, hintVariant);
 }
 
+function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
+  const snapshot = isRecord(sessionReplaySnapshot) ? sessionReplaySnapshot : null;
+  if (!snapshot) {
+    resetOperatorSessionBoundaryWidget("no_data");
+    return;
+  }
+
+  const selectedSession = isRecord(snapshot.selectedSession) ? snapshot.selectedSession : null;
+  const workflow = isRecord(selectedSession?.workflow) ? selectedSession.workflow : null;
+  const replay = isRecord(selectedSession?.replay) ? selectedSession.replay : null;
+  const selectedSessionId = toOptionalText(snapshot.selectedSessionId);
+  const replayState = toOptionalText(replay?.replayState) ?? toOptionalText(snapshot.replayState) ?? "idle";
+  const boundary = isRecord(replay?.workflowBoundarySummary) ? replay.workflowBoundarySummary : null;
+  const proof = isRecord(replay?.latestProofPointer) ? replay.latestProofPointer : null;
+  const recovery = isRecord(replay?.recoveryPathHint) ? replay.recoveryPathHint : null;
+  const currentHandoffState = isRecord(replay?.currentHandoffState) ? replay.currentHandoffState : null;
+  const boundaryKind =
+    toOptionalText(boundary?.kind) ??
+    toOptionalText(currentHandoffState?.kind) ??
+    (workflow?.linked === true ? "workflow" : "session");
+  const boundaryStage =
+    toOptionalText(boundary?.stage) ??
+    toOptionalText(replay?.latestVerifiedStage) ??
+    toOptionalText(proof?.workflowStage) ??
+    toOptionalText(workflow?.workflowCurrentStage);
+  const boundaryStatus =
+    toOptionalText(boundary?.status) ??
+    toOptionalText(currentHandoffState?.status) ??
+    toOptionalText(workflow?.workflowExecutionStatus) ??
+    replayState;
+  const boundaryOwner = toOptionalText(boundary?.owner);
+  const boundarySummary =
+    toOptionalText(boundary?.summary) ??
+    toOptionalText(workflow?.workflowReason) ??
+    "No workflow boundary summary loaded yet.";
+  const boundaryNextStep =
+    toOptionalText(boundary?.nextStep) ??
+    toOptionalText(currentHandoffState?.nextStep) ??
+    toOptionalText(replay?.nextOperatorAction);
+  const latestProofSummary =
+    toOptionalText(proof?.summary) ??
+    toOptionalText(replay?.latestVerifiedSummary) ??
+    "No verified proof pointer yet.";
+  const latestProofStage =
+    toOptionalText(replay?.latestVerifiedStage) ??
+    toOptionalText(proof?.workflowStage) ??
+    toOptionalText(proof?.route);
+  const recoveryLabel =
+    toOptionalText(recovery?.label) ??
+    boundaryNextStep ??
+    "Open Session Ops to inspect the next recovery path.";
+  const recoveryAction = toOptionalText(recovery?.action);
+
+  setText(
+    el.operatorSessionBoundarySession,
+    selectedSessionId
+      ? `${selectedSessionId} | replay=${replayState}${workflow?.linked === true ? " | linked" : ""}`
+      : "No replay session selected",
+  );
+  setText(
+    el.operatorSessionBoundarySummary,
+    `${boundaryKind} | ${boundaryStage ?? "n/a"} | ${boundaryStatus ?? "n/a"}${boundaryOwner ? ` | ${boundaryOwner}` : ""}`,
+  );
+  setText(
+    el.operatorSessionBoundaryLatestProof,
+    latestProofSummary
+      ? `${latestProofSummary}${latestProofStage ? ` | ${latestProofStage}` : ""}`
+      : "No verified proof pointer yet.",
+  );
+  setText(
+    el.operatorSessionBoundaryRecovery,
+    `${recoveryLabel}${recoveryAction ? ` | ${recoveryAction}` : ""}`,
+  );
+
+  let statusText = replayState;
+  let statusVariant = "neutral";
+  let hintVariant = "neutral";
+  let hint = boundarySummary;
+
+  if (replay?.resumeReady === true) {
+    statusText = "resume_ready";
+    statusVariant = "ok";
+    hintVariant = "ok";
+    hint = recoveryLabel;
+  } else if (toOptionalText(replay?.resumeBlockedBy)) {
+    statusText = toOptionalText(replay?.resumeBlockedBy) ?? "resume_blocked";
+    statusVariant = ["approval_pending", "workflow_pending_approval", "workflow_active"].includes(statusText)
+      ? "warn"
+      : "neutral";
+    hintVariant = statusVariant;
+    hint = recoveryLabel;
+  } else if (!replay) {
+    statusText = "awaiting_replay";
+    statusVariant = "neutral";
+    hintVariant = "neutral";
+    hint = "Load one replay session in Operator Session Ops to inspect resume and recovery posture.";
+  } else if (replayState === "empty") {
+    statusText = "replay_empty";
+    statusVariant = "neutral";
+    hintVariant = "neutral";
+    hint = recoveryLabel;
+  }
+
+  setStatusPill(el.operatorSessionBoundaryStatus, statusText, statusVariant);
+  setOperatorSessionBoundaryHint(hint, hintVariant);
+}
+
 function stringifyOperatorBootstrapDoctorValue(value, fallback = "No bootstrap doctor snapshot loaded yet.") {
   return stringifyOperatorRuntimeFaultValue(value, fallback);
 }
@@ -30309,6 +30456,7 @@ function renderOperatorSessionOpsPanel() {
   if (el.operatorSessionReplayLoadBtn instanceof HTMLButtonElement) {
     el.operatorSessionReplayLoadBtn.disabled = !toOptionalText(el.operatorSessionReplaySessionId?.value);
   }
+  renderOperatorSessionBoundaryWidget(state.operatorSessionReplaySnapshot);
 }
 
 function saveOperatorPurposeDeclaration() {
@@ -34106,6 +34254,7 @@ function renderOperatorSummary(summary) {
   resetOperatorHealthWidget("no_data");
   resetOperatorUiExecutorWidget("no_data");
   resetOperatorWorkflowRuntimeWidget("no_data");
+  resetOperatorSessionBoundaryWidget("no_data");
   resetOperatorBrowserWorkersWidget("no_data");
   resetOperatorRuntimeGuardrailsWidget("no_data");
   resetOperatorDeviceNodesWidget("no_data");
@@ -34134,6 +34283,9 @@ function renderOperatorSummary(summary) {
   renderOperatorGovernancePolicyWidget(null);
   renderOperatorAgentUsageWidget(null);
   renderOperatorCostEstimateWidget(null);
+  if (state.operatorSessionReplaySnapshot) {
+    renderOperatorSessionBoundaryWidget(state.operatorSessionReplaySnapshot);
+  }
   if (!summary || typeof summary !== "object") {
     appendEntry(el.operatorSummary, "error", "operator.summary", "No summary data");
     return;
@@ -35074,6 +35226,11 @@ async function refreshOperatorSummary(options = {}) {
       renderOperatorRuntimeSurfaceWidget(state.operatorRuntimeSurfaceSnapshot);
     } else {
       resetOperatorRuntimeSurfaceWidget(failedRefreshReason);
+    }
+    if (state.operatorSessionReplaySnapshot) {
+      renderOperatorSessionBoundaryWidget(state.operatorSessionReplaySnapshot);
+    } else {
+      resetOperatorSessionBoundaryWidget("no_data");
     }
     resetOperatorBrowserWorkersWidget(failedRefreshReason);
     resetOperatorRuntimeGuardrailsWidget(failedRefreshReason);
@@ -38959,6 +39116,11 @@ function bindEvents() {
   if (el.operatorRuntimeSurfaceRefreshBtn) {
     el.operatorRuntimeSurfaceRefreshBtn.addEventListener("click", () => {
       void refreshOperatorRuntimeSurface();
+    });
+  }
+  if (el.operatorSessionBoundaryOpenBtn) {
+    el.operatorSessionBoundaryOpenBtn.addEventListener("click", () => {
+      openOperatorSupportPanel(el.operatorSessionOpsControl, el.operatorSessionReplayLoadBtn);
     });
   }
   if (el.operatorBootstrapDoctorRotateBtn) {
