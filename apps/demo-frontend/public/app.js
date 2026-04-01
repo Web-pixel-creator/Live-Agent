@@ -25011,6 +25011,7 @@ function buildSessionExportOperatorSessionReplay() {
   const snapshot = isRecord(state.operatorSessionReplaySnapshot) ? state.operatorSessionReplaySnapshot : {};
   const selectedSession = isRecord(snapshot.selectedSession) ? snapshot.selectedSession : null;
   const replay = isRecord(selectedSession?.replay) ? selectedSession.replay : null;
+  const workflow = isRecord(selectedSession?.workflow) ? selectedSession.workflow : null;
   return {
     status: toOptionalText(snapshot.status) ?? "idle",
     source: toOptionalText(snapshot.source),
@@ -25022,9 +25023,21 @@ function buildSessionExportOperatorSessionReplay() {
     totalRuns: Math.max(0, Math.floor(Number(snapshot.totalRuns ?? replay?.runCount ?? 0) || 0)),
     totalApprovals: Math.max(0, Math.floor(Number(snapshot.totalApprovals ?? replay?.approvalCount ?? 0) || 0)),
     replayState: toOptionalText(snapshot.replayState) ?? toOptionalText(replay?.replayState),
+    resumeReady: replay?.resumeReady === true,
+    resumeBlockedBy: toOptionalText(replay?.resumeBlockedBy),
+    nextOperatorAction: toOptionalText(replay?.nextOperatorAction),
+    latestProofPointer: isRecord(replay?.latestProofPointer) ? replay.latestProofPointer : null,
+    currentHandoffState: isRecord(replay?.currentHandoffState) ? replay.currentHandoffState : null,
     latestVerifiedSummary: toOptionalText(replay?.latestVerifiedSummary),
     latestVerifiedAt: toOptionalText(replay?.latestVerifiedAt),
+    latestVerifiedRoute: toOptionalText(replay?.latestVerifiedRoute),
+    latestVerifiedIntent: toOptionalText(replay?.latestVerifiedIntent),
     workflowLinked: selectedSession?.workflow?.linked === true,
+    workflowStatus: toOptionalText(workflow?.workflowExecutionStatus),
+    workflowStage: toOptionalText(workflow?.workflowCurrentStage),
+    workflowBooking: isRecord(workflow?.booking) ? workflow.booking : null,
+    workflowHandoff: isRecord(workflow?.handoff) ? workflow.handoff : null,
+    workflowFollowUp: isRecord(workflow?.followUp) ? workflow.followUp : null,
   };
 }
 
@@ -29874,6 +29887,99 @@ function normalizeOperatorReplaySessionRecord(value) {
   };
 }
 
+function normalizeOperatorReplayWorkflowBooking(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    status: toOptionalText(value.status),
+    topic: toOptionalText(value.topic),
+    selectedSlotLabel: toOptionalText(value.selectedSlotLabel),
+    summary: toOptionalText(value.summary),
+  };
+}
+
+function normalizeOperatorReplayWorkflowHandoff(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    kind: toOptionalText(value.kind) ?? "handoff",
+    scenario: toOptionalText(value.scenario),
+    status: toOptionalText(value.status),
+    intent: toOptionalText(value.intent),
+    caseId: toOptionalText(value.caseId),
+    destinationCountry: toOptionalText(value.destinationCountry),
+    assignedOwner: toOptionalText(value.assignedOwner),
+    priority: toOptionalText(value.priority),
+    summary: toOptionalText(value.summary),
+    nextStep: toOptionalText(value.nextStep),
+    ready: value.ready === true ? true : value.ready === false ? false : null,
+  };
+}
+
+function normalizeOperatorReplayWorkflowFollowUp(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    kind: toOptionalText(value.kind) ?? "follow_up",
+    scenario: toOptionalText(value.scenario),
+    status: toOptionalText(value.status),
+    intent: toOptionalText(value.intent),
+    caseId: toOptionalText(value.caseId),
+    destinationCountry: toOptionalText(value.destinationCountry),
+    missingItemsCount: Number.isFinite(Number(value.missingItemsCount))
+      ? Math.max(0, Math.floor(Number(value.missingItemsCount)))
+      : null,
+    summary: toOptionalText(value.summary),
+    nextStep: toOptionalText(value.nextStep),
+    ready: value.ready === true ? true : value.ready === false ? false : null,
+  };
+}
+
+function normalizeOperatorReplayCurrentHandoffState(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const kind = toOptionalText(value.kind);
+  if (kind === "booking") {
+    return {
+      kind,
+      status: toOptionalText(value.status),
+      topic: toOptionalText(value.topic),
+      selectedSlotLabel: toOptionalText(value.selectedSlotLabel),
+      summary: toOptionalText(value.summary),
+    };
+  }
+  if (kind === "handoff" || kind === "follow_up") {
+    return {
+      kind,
+      status: toOptionalText(value.status),
+      intent: toOptionalText(value.intent),
+      caseId: toOptionalText(value.caseId),
+      destinationCountry: toOptionalText(value.destinationCountry),
+      nextStep: toOptionalText(value.nextStep),
+      ready: value.ready === true ? true : value.ready === false ? false : null,
+    };
+  }
+  return null;
+}
+
+function normalizeOperatorReplayLatestProofPointer(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    runId: toOptionalText(value.runId),
+    summary: toOptionalText(value.summary),
+    verifiedAt: toOptionalText(value.verifiedAt),
+    route: toOptionalText(value.route),
+    intent: toOptionalText(value.intent),
+    workflowStage: toOptionalText(value.workflowStage),
+  };
+}
+
 function populateOperatorSessionReplayOptions(selectedSessionId = null) {
   if (!(el.operatorSessionReplaySessionId instanceof HTMLSelectElement)) {
     return;
@@ -29922,12 +30028,24 @@ function buildOperatorSessionReplaySnapshot(value) {
         workflowRoute: toOptionalText(selectedSessionRecord.workflow.workflowRoute),
         workflowReason: toOptionalText(selectedSessionRecord.workflow.workflowReason),
         workflowUpdatedAt: toOptionalText(selectedSessionRecord.workflow.workflowUpdatedAt),
+        booking: normalizeOperatorReplayWorkflowBooking(selectedSessionRecord.workflow.booking),
+        handoff: normalizeOperatorReplayWorkflowHandoff(selectedSessionRecord.workflow.handoff),
+        followUp: normalizeOperatorReplayWorkflowFollowUp(selectedSessionRecord.workflow.followUp),
       }
     : null;
   const selectedSessionReplay = isRecord(selectedSessionRecord?.replay)
     ? {
         replayState: toOptionalText(selectedSessionRecord.replay.replayState) ?? "empty",
         replayReady: selectedSessionRecord.replay.replayReady === true,
+        resumeReady: selectedSessionRecord.replay.resumeReady === true,
+        resumeBlockedBy: toOptionalText(selectedSessionRecord.replay.resumeBlockedBy),
+        nextOperatorAction: toOptionalText(selectedSessionRecord.replay.nextOperatorAction),
+        currentHandoffState: normalizeOperatorReplayCurrentHandoffState(
+          selectedSessionRecord.replay.currentHandoffState,
+        ),
+        latestProofPointer: normalizeOperatorReplayLatestProofPointer(
+          selectedSessionRecord.replay.latestProofPointer,
+        ),
         eventCount: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.eventCount ?? 0) || 0)),
         runCount: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.runCount ?? 0) || 0)),
         approvalCount: Math.max(0, Math.floor(Number(selectedSessionRecord.replay.approvalCount ?? 0) || 0)),
@@ -29956,6 +30074,8 @@ function buildOperatorSessionReplaySnapshot(value) {
         latestVerifiedRunId: toOptionalText(selectedSessionRecord.replay.latestVerifiedRunId),
         latestVerifiedSummary: toOptionalText(selectedSessionRecord.replay.latestVerifiedSummary),
         latestVerifiedAt: toOptionalText(selectedSessionRecord.replay.latestVerifiedAt),
+        latestVerifiedRoute: toOptionalText(selectedSessionRecord.replay.latestVerifiedRoute),
+        latestVerifiedIntent: toOptionalText(selectedSessionRecord.replay.latestVerifiedIntent),
         bySource: isRecord(selectedSessionRecord.replay.bySource) ? selectedSessionRecord.replay.bySource : {},
         byType: isRecord(selectedSessionRecord.replay.byType) ? selectedSessionRecord.replay.byType : {},
         byRoute: isRecord(selectedSessionRecord.replay.byRoute) ? selectedSessionRecord.replay.byRoute : {},
@@ -30063,6 +30183,7 @@ function buildOperatorSessionOpsControlMeta() {
       : "purpose=missing",
     `replaySessions=${Math.max(0, Math.floor(Number(replay?.totalSessions ?? 0) || 0))}`,
     `replayEvents=${Math.max(0, Math.floor(Number(replay?.totalEvents ?? 0) || 0))}`,
+    `resume=${replay?.selectedSession?.replay?.resumeReady === true ? "ready" : replay?.selectedSession?.replay?.resumeBlockedBy ?? "idle"}`,
     `personas=${Math.max(0, Math.floor(Number(discovery?.totalPersonas ?? 0) || 0))}`,
     `recipes=${Math.max(0, Math.floor(Number(discovery?.totalRecipes ?? 0) || 0))}`,
     `agents=${Array.isArray(discovery?.agentIds) ? discovery.agentIds.join(",") || "none" : "none"}`,
@@ -30092,7 +30213,34 @@ function buildOperatorSessionOpsReplayPreview() {
   if (!snapshot) {
     return "No replay session loaded yet.";
   }
-  return stringifyOperatorRuntimeFaultValue(snapshot, "No replay session loaded yet.");
+  const selectedSession = isRecord(snapshot.selectedSession) ? snapshot.selectedSession : null;
+  const replay = isRecord(selectedSession?.replay) ? selectedSession.replay : null;
+  const workflow = isRecord(selectedSession?.workflow) ? selectedSession.workflow : null;
+  return stringifyOperatorRuntimeFaultValue(
+    {
+      selectedSessionId: toOptionalText(snapshot.selectedSessionId),
+      replayState: toOptionalText(replay?.replayState) ?? toOptionalText(snapshot.replayState),
+      resumeReady: replay?.resumeReady === true,
+      resumeBlockedBy: toOptionalText(replay?.resumeBlockedBy),
+      nextOperatorAction: toOptionalText(replay?.nextOperatorAction),
+      latestProofPointer: isRecord(replay?.latestProofPointer) ? replay.latestProofPointer : null,
+      currentHandoffState: isRecord(replay?.currentHandoffState) ? replay.currentHandoffState : null,
+      workflowLinked: workflow?.linked === true,
+      workflowStatus: toOptionalText(workflow?.workflowExecutionStatus),
+      workflowStage: toOptionalText(workflow?.workflowCurrentStage),
+      booking: isRecord(workflow?.booking) ? workflow.booking : null,
+      handoff: isRecord(workflow?.handoff) ? workflow.handoff : null,
+      followUp: isRecord(workflow?.followUp) ? workflow.followUp : null,
+      totals: {
+        sessions: Math.max(0, Math.floor(Number(snapshot.totalSessions ?? 0) || 0)),
+        events: Math.max(0, Math.floor(Number(snapshot.totalEvents ?? 0) || 0)),
+        runs: Math.max(0, Math.floor(Number(snapshot.totalRuns ?? 0) || 0)),
+        approvals: Math.max(0, Math.floor(Number(snapshot.totalApprovals ?? 0) || 0)),
+      },
+      loadedAt: toOptionalText(snapshot.loadedAt),
+    },
+    "No replay session loaded yet.",
+  );
 }
 
 function buildOperatorSessionOpsDiscoveryPreview() {
