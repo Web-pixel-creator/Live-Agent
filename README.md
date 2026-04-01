@@ -799,11 +799,15 @@ Session mutation concurrency controls:
 - `GET /v1/channels/sessions/resolve?adapterId=<id>&externalSessionId=<id>` -> resolve external channel session to internal session/user.
 - `POST /v1/channels/sessions/bind` -> create/update adapter binding with optimistic versioning (`expectedVersion`) and idempotency key (`idempotencyKey` or `x-idempotency-key`).
 - Optional env:
-  - `API_CHANNEL_ADAPTERS=webchat,telegram,slack`
-  - `API_CHANNEL_ADAPTERS_ALLOW_CUSTOM=true|false`
+ - `API_CHANNEL_ADAPTERS=webchat,telegram,slack`
+ - `API_CHANNEL_ADAPTERS_ALLOW_CUSTOM=true|false`
 
 10. Operator console APIs (RBAC via `x-operator-role: viewer|operator|admin`):
+- `Runtime surface inventory` is the repo-owned snapshot of what the platform can expose right now: skills/playbooks, orchestrator routes, control-plane surfaces, evidence outputs, and UI/runtime capabilities. It is not a second skills system; it is the operator-facing mirror over the existing runtime/catalog layers.
+- `Runtime surface readiness` is the companion posture snapshot that tells operators whether that surface is ready, degraded, or critical by combining bootstrap doctor, diagnostics, service coverage, device readiness, and evidence posture into one `safeToRun` verdict.
 - `GET /v1/operator/summary` -> active tasks, approvals snapshot, service runtime/health summary, execution trace rollup with per-run verification fields (`verificationState`, `verificationFailureClass`, `verificationSummary`, `verifySteps`) on UI runs, judge-facing lifecycle evidence lanes (`skillsRegistryLifecycle`, `pluginMarketplaceLifecycle`, `governancePolicyLifecycle`, `deviceNodeUpdates`, `agentUsage`, `costEstimate`), and consolidated `runtimeDiagnostics` (transport/workflow/sandbox/catalog guardrails + active degradation signals).
+- `GET /v1/runtime/surface` (`x-operator-role`) -> runtime surface inventory snapshot for agents, routes, control-plane APIs, evidence lanes, UI capabilities, playbooks, and runtime skill overlays.
+- `GET /v1/runtime/surface/readiness` (`x-operator-role`) -> runtime surface readiness snapshot with `ready/degraded/critical`, `safeToRun`, top degraded reason, service/device coverage, skills posture, and evidence readiness.
 - `GET /v1/runtime/diagnostics` (`x-operator-role`) -> standalone consolidated runtime diagnostics snapshot (service coverage, startup probe issues, transport fallback, workflow-store/assistive-router state, ui-executor sandbox posture, and skills-catalog warnings). Optional `agentId` overlays skills runtime readiness for that agent.
 - `GET /v1/runtime/workflow-config` (`x-operator-role`) -> operator-facing redacted workflow-store/assistive-router snapshot proxied from orchestrator, with `summary` fields for source, `fingerprint`, last-known-good status, control-plane override state, and `apiKeyConfigured` instead of the raw assistive-router key.
 - `POST /v1/runtime/workflow-control-plane-override` (`x-operator-role: admin`) -> apply or clear repo-owned orchestrator workflow overrides through `api-backend`; accepts `workflow`, `rawJson`, or `clear=true`, records redacted audit previews, and returns the same redacted snapshot contract.

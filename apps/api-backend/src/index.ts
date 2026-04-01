@@ -74,6 +74,8 @@ import { AnalyticsExporter } from "./analytics-export.js";
 import { buildOperatorTraceSummary } from "./operator-traces.js";
 import { summarizeAgentUsage } from "./agent-usage-summary.js";
 import { buildDeviceNodeHealthSummary } from "./device-node-summary.js";
+import { buildRuntimeSurfaceInventorySnapshot } from "./runtime-surface-inventory.js";
+import { buildRuntimeSurfaceReadinessSnapshot } from "./runtime-surface-readiness.js";
 import {
   buildRuntimeFaultProfileExecutionPlan,
   extractRuntimeFaultProfileExecutionFollowUpContext,
@@ -1380,6 +1382,12 @@ function normalizeOperationPath(pathname: string): string {
   }
   if (pathname === "/v1/runtime/bootstrap-status") {
     return "/v1/runtime/bootstrap-status";
+  }
+  if (pathname === "/v1/runtime/surface") {
+    return "/v1/runtime/surface";
+  }
+  if (pathname === "/v1/runtime/surface/readiness") {
+    return "/v1/runtime/surface/readiness";
   }
   if (pathname === "/v1/runtime/auth-profiles") {
     return "/v1/runtime/auth-profiles";
@@ -4414,6 +4422,41 @@ export const server = createServer(async (req, res) => {
         data: bootstrapDoctor,
         role,
         source: "repo_owned_bootstrap_doctor",
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/surface" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const runtimeSurface = await buildRuntimeSurfaceInventorySnapshot({
+        env: process.env,
+        cwd: process.cwd(),
+      });
+      writeJson(res, 200, {
+        data: runtimeSurface,
+        role,
+        source: "repo_owned_runtime_surface_inventory",
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/surface/readiness" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const services = await getOperatorServiceSummary();
+      const deviceNodes = await listDeviceNodes({
+        limit: operatorDeviceNodeSummaryLimit,
+        includeOffline: true,
+      });
+      const runtimeSurfaceReadiness = await buildRuntimeSurfaceReadinessSnapshot({
+        env: process.env,
+        cwd: process.cwd(),
+        services,
+        deviceNodes,
+      });
+      writeJson(res, 200, {
+        data: runtimeSurfaceReadiness,
+        role,
+        source: "repo_owned_runtime_surface_readiness",
       });
       return;
     }
