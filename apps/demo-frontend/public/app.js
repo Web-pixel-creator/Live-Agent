@@ -3778,8 +3778,11 @@ const el = {
   operatorSessionBoundaryStatus: document.getElementById("operatorSessionBoundaryStatus"),
   operatorSessionBoundarySession: document.getElementById("operatorSessionBoundarySession"),
   operatorSessionBoundarySummary: document.getElementById("operatorSessionBoundarySummary"),
+  operatorSessionBoundaryOwner: document.getElementById("operatorSessionBoundaryOwner"),
+  operatorSessionBoundaryApprovalGate: document.getElementById("operatorSessionBoundaryApprovalGate"),
   operatorSessionBoundaryLatestProof: document.getElementById("operatorSessionBoundaryLatestProof"),
   operatorSessionBoundaryRecovery: document.getElementById("operatorSessionBoundaryRecovery"),
+  operatorSessionBoundaryHandoff: document.getElementById("operatorSessionBoundaryHandoff"),
   operatorSessionBoundaryHint: document.getElementById("operatorSessionBoundaryHint"),
   operatorRuntimeGuardrailsActionList: document.getElementById("operatorRuntimeGuardrailsActionList"),
   operatorRuntimeGuardrailsHistoryStatus: document.getElementById("operatorRuntimeGuardrailsHistoryStatus"),
@@ -27770,8 +27773,11 @@ function resetOperatorRuntimeSurfaceWidget(reason = "no_data") {
 function resetOperatorSessionBoundaryWidget(reason = "no_data") {
   setText(el.operatorSessionBoundarySession, "n/a");
   setText(el.operatorSessionBoundarySummary, "n/a");
+  setText(el.operatorSessionBoundaryOwner, "n/a");
+  setText(el.operatorSessionBoundaryApprovalGate, "n/a");
   setText(el.operatorSessionBoundaryLatestProof, "n/a");
   setText(el.operatorSessionBoundaryRecovery, "n/a");
+  setText(el.operatorSessionBoundaryHandoff, "n/a");
   setOperatorSessionBoundaryHint(
     "Load one replay session in Operator Session Ops to inspect resume and recovery posture.",
     "neutral",
@@ -29505,16 +29511,33 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const ownerSummary = boundaryOwner
     ? `${boundaryOwner}${toOptionalText(boundaryOwnerRecord?.taskId) ? ` | ${boundaryOwnerRecord.taskId}` : ""}`
     : null;
+  const ownerDetail = ownerSummary
+    ? `${ownerSummary}${toOptionalText(boundaryOwnerRecord?.workflowRunId) ? ` | ${boundaryOwnerRecord.workflowRunId}` : ""}`
+    : "No explicit boundary owner";
+  const approvalGateDetail = approvalGate
+    ? `${toOptionalText(approvalGate.source) ?? "session"} | ${approvalGateSummary ?? "pending"}${toOptionalText(approvalGate.action) ? ` | ${approvalGate.action}` : ""}`
+    : "No open approval gate";
+  const handoffDetail = recoveryHandoff
+    ? `${recoveryTargetLabel}${toOptionalText(recoveryHandoff?.action) ? ` | ${recoveryHandoff.action}` : ""}`
+    : "Stay in Operator Session Ops";
 
   setText(
     el.operatorSessionBoundarySession,
     selectedSessionId
-      ? `${selectedSessionId} | replay=${replayState}${workflow?.linked === true ? " | linked" : ""}${approvalGateSummary ? ` | approval=${approvalGateSummary}` : ""}`
+      ? `${selectedSessionId} | replay=${replayState}${workflow?.linked === true ? " | linked" : ""}`
       : "No replay session selected",
   );
   setText(
     el.operatorSessionBoundarySummary,
-    `${boundaryKind} | ${boundaryStage ?? "n/a"} | ${boundaryStatus ?? "n/a"}${ownerSummary ? ` | ${ownerSummary}` : ""}`,
+    `${boundaryKind} | ${boundaryStage ?? "n/a"} | ${boundaryStatus ?? "n/a"}`,
+  );
+  setText(
+    el.operatorSessionBoundaryOwner,
+    ownerDetail,
+  );
+  setText(
+    el.operatorSessionBoundaryApprovalGate,
+    approvalGateDetail,
   );
   setText(
     el.operatorSessionBoundaryLatestProof,
@@ -29524,7 +29547,11 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   );
   setText(
     el.operatorSessionBoundaryRecovery,
-    `${recoveryTargetLabel}${recoveryLabel ? ` | ${recoveryLabel}` : ""}${recoveryAction ? ` | ${recoveryAction}` : ""}`,
+    `${recoveryLabel}${recoveryAction ? ` | ${recoveryAction}` : ""}`,
+  );
+  setText(
+    el.operatorSessionBoundaryHandoff,
+    handoffDetail,
   );
 
   let statusText = replayState;
