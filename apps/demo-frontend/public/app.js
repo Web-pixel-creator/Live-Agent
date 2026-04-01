@@ -122,6 +122,8 @@ const state = {
   operatorRuntimeGuardrailActions: [],
   operatorRuntimeGuardrailActionStates: new Map(),
   operatorRuntimeGuardrailHistoryRestoredCount: 0,
+  operatorRuntimeSurfaceSnapshot: null,
+  operatorRuntimeSurfaceLoadedAt: null,
   operatorWorkflowConfigSnapshot: null,
   operatorWorkflowConfigLoadedAt: null,
   operatorWorkflowLastResult: null,
@@ -3764,6 +3766,14 @@ const el = {
   operatorBootstrapDoctorFallbackPaths: document.getElementById("operatorBootstrapDoctorFallbackPaths"),
   operatorBootstrapDoctorTopCheck: document.getElementById("operatorBootstrapDoctorTopCheck"),
   operatorBootstrapDoctorHint: document.getElementById("operatorBootstrapDoctorHint"),
+  operatorRuntimeSurfaceRefreshBtn: document.getElementById("operatorRuntimeSurfaceRefreshBtn"),
+  operatorRuntimeSurfaceStatus: document.getElementById("operatorRuntimeSurfaceStatus"),
+  operatorRuntimeSurfaceInventory: document.getElementById("operatorRuntimeSurfaceInventory"),
+  operatorRuntimeSurfaceMissing: document.getElementById("operatorRuntimeSurfaceMissing"),
+  operatorRuntimeSurfacePlaybooks: document.getElementById("operatorRuntimeSurfacePlaybooks"),
+  operatorRuntimeSurfaceEvidence: document.getElementById("operatorRuntimeSurfaceEvidence"),
+  operatorRuntimeSurfaceSkills: document.getElementById("operatorRuntimeSurfaceSkills"),
+  operatorRuntimeSurfaceHint: document.getElementById("operatorRuntimeSurfaceHint"),
   operatorRuntimeGuardrailsActionList: document.getElementById("operatorRuntimeGuardrailsActionList"),
   operatorRuntimeGuardrailsHistoryStatus: document.getElementById("operatorRuntimeGuardrailsHistoryStatus"),
   operatorRuntimeGuardrailsHint: document.getElementById("operatorRuntimeGuardrailsHint"),
@@ -26629,6 +26639,27 @@ function setOperatorBootstrapDoctorHint(text, variant = "neutral") {
   el.operatorBootstrapDoctorHint.classList.add("operator-health-hint-neutral");
 }
 
+function setOperatorRuntimeSurfaceHint(text, variant = "neutral") {
+  if (!el.operatorRuntimeSurfaceHint) {
+    return;
+  }
+  el.operatorRuntimeSurfaceHint.textContent = text;
+  el.operatorRuntimeSurfaceHint.className = "operator-health-hint";
+  if (variant === "ok") {
+    el.operatorRuntimeSurfaceHint.classList.add("operator-health-hint-ok");
+    return;
+  }
+  if (variant === "warn") {
+    el.operatorRuntimeSurfaceHint.classList.add("operator-health-hint-warn");
+    return;
+  }
+  if (variant === "fail") {
+    el.operatorRuntimeSurfaceHint.classList.add("operator-health-hint-fail");
+    return;
+  }
+  el.operatorRuntimeSurfaceHint.classList.add("operator-health-hint-neutral");
+}
+
 function setOperatorRuntimeGuardrailsHint(text, variant = "neutral") {
   if (!el.operatorRuntimeGuardrailsHint) {
     return;
@@ -27668,6 +27699,19 @@ function resetOperatorBootstrapDoctorWidget(reason = "no_data") {
     "neutral",
   );
   setStatusPill(el.operatorBootstrapDoctorStatus, reason, reason === "summary_error" ? "fail" : "neutral");
+}
+
+function resetOperatorRuntimeSurfaceWidget(reason = "no_data") {
+  setText(el.operatorRuntimeSurfaceInventory, "n/a");
+  setText(el.operatorRuntimeSurfaceMissing, "n/a");
+  setText(el.operatorRuntimeSurfacePlaybooks, "n/a");
+  setText(el.operatorRuntimeSurfaceEvidence, "n/a");
+  setText(el.operatorRuntimeSurfaceSkills, "n/a");
+  setOperatorRuntimeSurfaceHint(
+    "Refresh surface to inspect runtime inventory, readiness, and missing capabilities.",
+    "neutral",
+  );
+  setStatusPill(el.operatorRuntimeSurfaceStatus, reason, reason === "summary_error" ? "fail" : "neutral");
 }
 
 function resetOperatorBrowserWorkersWidget(reason = "no_data") {
@@ -29211,6 +29255,118 @@ function renderOperatorWorkflowRuntimeWidget(runtimeDiagnostics) {
 
   setStatusPill(el.operatorWorkflowRuntimeStatus, statusText, statusVariant);
   setOperatorWorkflowRuntimeHint(hint, hintVariant);
+}
+
+function buildOperatorRuntimeSurfaceSnapshot(inventoryPayload, readinessPayload) {
+  const inventory = isRecord(inventoryPayload) ? inventoryPayload : null;
+  const readiness = isRecord(readinessPayload) ? readinessPayload : null;
+  if (!inventory && !readiness) {
+    return null;
+  }
+  return {
+    inventory,
+    readiness,
+    generatedAt:
+      toOptionalText(readiness?.generatedAt) ??
+      toOptionalText(inventory?.generatedAt) ??
+      new Date().toISOString(),
+  };
+}
+
+function renderOperatorRuntimeSurfaceWidget(runtimeSurfaceSnapshot) {
+  const snapshot =
+    runtimeSurfaceSnapshot && typeof runtimeSurfaceSnapshot === "object" ? runtimeSurfaceSnapshot : null;
+  const inventory = isRecord(snapshot?.inventory) ? snapshot.inventory : null;
+  const readiness = isRecord(snapshot?.readiness) ? snapshot.readiness : null;
+  if (!inventory || !readiness) {
+    resetOperatorRuntimeSurfaceWidget("no_data");
+    return;
+  }
+
+  const inventorySummary = isRecord(inventory.summary) ? inventory.summary : {};
+  const playbooks = Array.isArray(inventory.playbooks) ? inventory.playbooks.filter((item) => isRecord(item)) : [];
+  const evidenceEntries = Array.isArray(inventory.evidence) ? inventory.evidence.filter((item) => isRecord(item)) : [];
+  const readinessSummary = isRecord(readiness.summary) ? readiness.summary : {};
+  const skillsSummary = isRecord(readinessSummary.skills) ? readinessSummary.skills : {};
+  const evidenceSummary = isRecord(readinessSummary.evidence) ? readinessSummary.evidence : {};
+  const degradedReasons = Array.isArray(readiness.degradedReasons)
+    ? readiness.degradedReasons
+        .map((item) => toOptionalText(item))
+        .filter((item) => typeof item === "string" && item.length > 0)
+    : [];
+  const topIssue = toOptionalText(readiness.topIssue);
+  const totalAgents = Math.max(0, Math.floor(Number(inventorySummary.totalAgents ?? 0) || 0));
+  const totalRoutes = Math.max(0, Math.floor(Number(inventorySummary.totalRoutes ?? 0) || 0));
+  const totalControlPlaneSurfaces = Math.max(
+    0,
+    Math.floor(Number(inventorySummary.totalControlPlaneSurfaces ?? 0) || 0),
+  );
+  const totalUiCapabilities = Math.max(0, Math.floor(Number(inventorySummary.totalUiCapabilities ?? 0) || 0));
+  const totalEvidenceLanes = Math.max(0, Math.floor(Number(inventorySummary.totalEvidenceLanes ?? 0) || 0));
+  const releaseCriticalEvidence = evidenceEntries.filter((item) => item.releaseCritical === true).length;
+  const validatedCount = Math.max(0, Math.floor(Number(evidenceSummary.validatedCount ?? 0) || 0));
+  const totalChecks = Math.max(0, Math.floor(Number(evidenceSummary.totalChecks ?? 0) || 0));
+  const readyPlaybooks = playbooks.filter((item) => item.ready === true).length;
+  const personaCount = playbooks.filter((item) => item.kind === "persona").length;
+  const recipeCount = playbooks.filter((item) => item.kind === "recipe").length;
+  const runtimeReadyAgents = Math.max(0, Math.floor(Number(skillsSummary.runtimeReadyAgents ?? 0) || 0));
+  const runtimeAgentTotal = Math.max(0, Math.floor(Number(skillsSummary.runtimeAgentTotal ?? 0) || 0));
+  const totalActiveSkills = Math.max(0, Math.floor(Number(skillsSummary.totalActiveSkills ?? 0) || 0));
+  const readyStatus = toOptionalText(readiness.status) ?? "no_data";
+  const safeToRun = readiness.safeToRun !== false;
+
+  setText(
+    el.operatorRuntimeSurfaceInventory,
+    `agents=${totalAgents} | routes=${totalRoutes} | controls=${totalControlPlaneSurfaces} | ui=${totalUiCapabilities}`,
+  );
+  setText(
+    el.operatorRuntimeSurfaceMissing,
+    degradedReasons.length > 0
+      ? `issues=${degradedReasons.length} | ${degradedReasons[0]}`
+      : topIssue ?? "No missing capabilities",
+  );
+  setText(
+    el.operatorRuntimeSurfacePlaybooks,
+    `ready=${readyPlaybooks}/${playbooks.length} | personas=${personaCount} | recipes=${recipeCount}`,
+  );
+  setText(
+    el.operatorRuntimeSurfaceEvidence,
+    `lanes=${totalEvidenceLanes} | validated=${validatedCount}/${totalChecks} | critical=${releaseCriticalEvidence}`,
+  );
+  setText(
+    el.operatorRuntimeSurfaceSkills,
+    `catalog=${personaCount}P/${recipeCount}R | agents=${runtimeReadyAgents}/${runtimeAgentTotal} | active=${totalActiveSkills}`,
+  );
+
+  let statusText = readyStatus;
+  let statusVariant = "neutral";
+  let hintVariant = "neutral";
+  let hint = "Refresh surface to inspect runtime inventory, readiness, and missing capabilities.";
+  if (readyStatus === "critical") {
+    statusText = "critical";
+    statusVariant = "fail";
+    hintVariant = "fail";
+    hint = topIssue
+      ? `Runtime surface is blocked: ${topIssue}`
+      : "Runtime surface is blocked. Resolve the top degraded path before demo.";
+  } else if (readyStatus === "degraded") {
+    statusText = safeToRun ? "degraded_safe" : "degraded_hold";
+    statusVariant = "warn";
+    hintVariant = "warn";
+    hint = topIssue
+      ? `Runtime surface is degraded: ${topIssue}`
+      : "Runtime surface is degraded. Review the top missing capability before demo.";
+  } else if (readyStatus === "ready") {
+    statusText = safeToRun ? "ready" : "ready_hold";
+    statusVariant = safeToRun ? "ok" : "warn";
+    hintVariant = safeToRun ? "ok" : "warn";
+    hint = safeToRun
+      ? "Runtime surface is ready. Inventory, playbooks, and evidence posture are in sync."
+      : "Runtime surface is loaded, but a hold remains before safe execution.";
+  }
+
+  setStatusPill(el.operatorRuntimeSurfaceStatus, statusText, statusVariant);
+  setOperatorRuntimeSurfaceHint(hint, hintVariant);
 }
 
 function stringifyOperatorBootstrapDoctorValue(value, fallback = "No bootstrap doctor snapshot loaded yet.") {
@@ -34582,6 +34738,71 @@ function renderOperatorSummary(summary) {
   renderOperatorUiExecutorWidget(uiExecutorService, uiExecutorLastFailoverAction);
 }
 
+async function refreshOperatorRuntimeSurface(options = {}) {
+  const silent = options?.silent === true;
+  try {
+    const [inventoryResponse, readinessResponse] = await Promise.all([
+      fetch(`${state.apiBaseUrl}/v1/runtime/surface`, {
+        method: "GET",
+        headers: operatorHeaders(false),
+      }),
+      fetch(`${state.apiBaseUrl}/v1/runtime/surface/readiness`, {
+        method: "GET",
+        headers: operatorHeaders(false),
+      }),
+    ]);
+    const [inventoryPayload, readinessPayload] = await Promise.all([
+      inventoryResponse.json(),
+      readinessResponse.json(),
+    ]);
+    if (!inventoryResponse.ok) {
+      const errorText = getApiErrorMessage(
+        inventoryPayload,
+        `runtime surface inventory failed with ${inventoryResponse.status}`,
+      );
+      throw new Error(String(errorText));
+    }
+    if (!readinessResponse.ok) {
+      const errorText = getApiErrorMessage(
+        readinessPayload,
+        `runtime surface readiness failed with ${readinessResponse.status}`,
+      );
+      throw new Error(String(errorText));
+    }
+    const snapshot = buildOperatorRuntimeSurfaceSnapshot(
+      inventoryPayload?.data ?? null,
+      readinessPayload?.data ?? null,
+    );
+    state.operatorRuntimeSurfaceSnapshot = snapshot;
+    state.operatorRuntimeSurfaceLoadedAt =
+      toOptionalText(readinessPayload?.data?.generatedAt) ??
+      toOptionalText(inventoryPayload?.data?.generatedAt) ??
+      new Date().toISOString();
+    renderOperatorRuntimeSurfaceWidget(snapshot);
+    if (!silent) {
+      const inventorySummary = isRecord(snapshot?.inventory?.summary) ? snapshot.inventory.summary : {};
+      appendTranscript(
+        "system",
+        `Runtime surface refreshed: status=${toOptionalText(snapshot?.readiness?.status) ?? "unknown"} routes=${Math.max(0, Math.floor(Number(inventorySummary.totalRoutes ?? 0) || 0))} playbooks=${Math.max(0, Math.floor(Number(inventorySummary.totalPlaybooks ?? 0) || 0))}`,
+        { exposeInLiveResult: false },
+      );
+    }
+    return snapshot;
+  } catch (error) {
+    if (state.operatorRuntimeSurfaceSnapshot) {
+      renderOperatorRuntimeSurfaceWidget(state.operatorRuntimeSurfaceSnapshot);
+    } else {
+      resetOperatorRuntimeSurfaceWidget("summary_error");
+    }
+    if (!silent) {
+      appendTranscript("error", `Runtime surface refresh failed: ${String(error)}`, {
+        exposeInLiveResult: false,
+      });
+    }
+    throw error;
+  }
+}
+
 async function refreshOperatorSummary(options = {}) {
   const markUserRefresh = options?.markUserRefresh === true;
   if (markUserRefresh && state.operatorSummaryUserRefreshed !== true) {
@@ -34604,6 +34825,9 @@ async function refreshOperatorSummary(options = {}) {
     renderOperatorSummary(payload?.data ?? null);
     renderDashboardWorkspace();
     await refreshDeviceNodes({ silent: true });
+    try {
+      await refreshOperatorRuntimeSurface({ silent: true });
+    } catch {}
     appendTranscript("system", "Operator summary refreshed", { exposeInLiveResult: false });
     setOperatorLastRefreshState("success");
   } catch (error) {
@@ -34615,6 +34839,11 @@ async function refreshOperatorSummary(options = {}) {
       renderOperatorBootstrapDoctorWidget(state.operatorBootstrapDoctorSnapshot);
     } else {
       resetOperatorBootstrapDoctorWidget(failedRefreshReason);
+    }
+    if (state.operatorRuntimeSurfaceSnapshot) {
+      renderOperatorRuntimeSurfaceWidget(state.operatorRuntimeSurfaceSnapshot);
+    } else {
+      resetOperatorRuntimeSurfaceWidget(failedRefreshReason);
     }
     resetOperatorBrowserWorkersWidget(failedRefreshReason);
     resetOperatorRuntimeGuardrailsWidget(failedRefreshReason);
@@ -38497,6 +38726,11 @@ function bindEvents() {
       void refreshOperatorBootstrapDoctor();
     });
   }
+  if (el.operatorRuntimeSurfaceRefreshBtn) {
+    el.operatorRuntimeSurfaceRefreshBtn.addEventListener("click", () => {
+      void refreshOperatorRuntimeSurface();
+    });
+  }
   if (el.operatorBootstrapDoctorRotateBtn) {
     el.operatorBootstrapDoctorRotateBtn.addEventListener("click", () => {
       void rotateOperatorBootstrapAuthProfile();
@@ -39228,6 +39462,9 @@ async function bootstrap() {
   });
   refreshOperatorBootstrapDoctor({ silent: true }).catch(() => {
     appendTranscript("error", "Initial bootstrap doctor fetch failed", { exposeInLiveResult: false });
+  });
+  refreshOperatorRuntimeSurface({ silent: true }).catch(() => {
+    appendTranscript("error", "Initial runtime surface fetch failed", { exposeInLiveResult: false });
   });
   refreshOperatorSessionReplay({ silent: true }).catch(() => {
     appendTranscript("error", "Initial session replay fetch failed", { exposeInLiveResult: false });

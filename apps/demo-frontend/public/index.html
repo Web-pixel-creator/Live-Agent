@@ -4174,6 +4174,36 @@
               Refresh summary to inspect bootstrap readiness, providers, and access profiles.
             </p>
             </article>
+  <article class="operator-health-card" data-operator-critical>
+              <h3>Runtime Surface</h3>
+              <p id="operatorRuntimeSurfaceStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
+              <p class="operator-health-row">
+                <strong>Surface</strong>
+                <span id="operatorRuntimeSurfaceInventory">pending</span>
+              </p>
+              <p class="operator-health-row">
+                <strong>Missing</strong>
+                <span id="operatorRuntimeSurfaceMissing">pending</span>
+              </p>
+              <p class="operator-health-row">
+                <strong>Playbooks</strong>
+                <span id="operatorRuntimeSurfacePlaybooks">pending</span>
+              </p>
+              <p class="operator-health-row">
+                <strong>Evidence</strong>
+                <span id="operatorRuntimeSurfaceEvidence">pending</span>
+              </p>
+              <p class="operator-health-row">
+                <strong>Skills</strong>
+                <span id="operatorRuntimeSurfaceSkills">pending</span>
+              </p>
+              <div class="operator-health-actions">
+                <button type="button" id="operatorRuntimeSurfaceRefreshBtn" class="button-muted">Refresh Surface</button>
+              </div>
+              <p id="operatorRuntimeSurfaceHint" class="operator-health-hint operator-health-hint-neutral">
+                Refresh surface to inspect runtime inventory, readiness, and missing capabilities.
+              </p>
+            </article>
   <article class="operator-health-card">
               <h3>Browser Workers</h3>
               <p id="operatorBrowserWorkersStatus" class="status-pill status-neutral" data-status-code="no_data">awaiting_refresh</p>
