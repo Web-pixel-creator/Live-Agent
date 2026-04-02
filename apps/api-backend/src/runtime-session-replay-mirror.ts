@@ -61,6 +61,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   surfaceState: RuntimeSessionReplayPrimaryStepSurfaceState;
   needsRefresh: boolean;
   refreshDisposition: RuntimeSessionReplayPrimaryRefreshDisposition | null;
+  refreshEvidenceHint: string | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1014,6 +1015,30 @@ function buildNextOperatorPrimaryStepRefreshDisposition(params: {
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEvidenceHint(params: {
+  needsRefresh: boolean;
+  nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
+  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+  latestProofPointer: ReturnType<typeof buildLatestProofPointer>;
+}): string | null {
+  if (!params.needsRefresh) {
+    return null;
+  }
+  switch (params.nextOperatorActionTarget?.targetSurface) {
+    case "operator_saved_view_approvals":
+      return "Recheck the latest approval gate evidence.";
+    case "operator_workflow_control":
+      return "Recheck the latest workflow boundary evidence.";
+    case "operator_runtime_drills":
+      return "Recheck the latest recovery drill evidence.";
+    case "operator_session_ops":
+    default:
+      return params.currentHandoffState || params.latestProofPointer
+        ? "Recheck the latest proof pointer before reopening the session path."
+        : "Recheck the latest replay evidence before reopening the session path.";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1365,6 +1390,12 @@ function buildNextOperatorPrimaryStep(params: {
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
   });
+  const refreshEvidenceHint = buildNextOperatorPrimaryStepRefreshEvidenceHint({
+    needsRefresh,
+    nextOperatorActionTarget: params.nextOperatorActionTarget,
+    currentHandoffState: params.currentHandoffState,
+    latestProofPointer: params.latestProofPointer,
+  });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -1385,6 +1416,7 @@ function buildNextOperatorPrimaryStep(params: {
     surfaceState,
     needsRefresh,
     refreshDisposition,
+    refreshEvidenceHint,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;

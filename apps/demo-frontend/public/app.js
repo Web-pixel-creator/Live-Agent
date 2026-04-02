@@ -29577,6 +29577,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     ? nextOperatorPrimaryStep.needsRefresh
     : null;
   const primaryStepRefreshDisposition = toOptionalText(nextOperatorPrimaryStep?.refreshDisposition);
+  const primaryStepRefreshEvidenceHint = toOptionalText(nextOperatorPrimaryStep?.refreshEvidenceHint);
   const primaryStepFreshness =
     primaryStepSurfaceState === "primed"
       ? primaryStepNeedsRefresh
@@ -29612,7 +29613,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
       : "No primary operator step loaded.";
   const afterRefreshDetail =
     primaryStepRefreshTargetState
-      ? `${toOptionalText(primaryStepRefreshTargetState?.targetLabel) ?? "Target"}${toOptionalText(primaryStepRefreshTargetState?.stateLabel) ? ` | ${primaryStepRefreshTargetState.stateLabel}` : ""}${toOptionalText(primaryStepRefreshTargetState?.refreshScope) ? ` | ${primaryStepRefreshTargetState.refreshScope}` : ""}${primaryStepRefreshDisposition ? ` | ${primaryStepRefreshDisposition}` : ""}${toOptionalText(primaryStepRefreshTargetState?.workspace) ? ` | ${primaryStepRefreshTargetState.workspace}` : ""}`
+      ? `${toOptionalText(primaryStepRefreshTargetState?.targetLabel) ?? "Target"}${toOptionalText(primaryStepRefreshTargetState?.stateLabel) ? ` | ${primaryStepRefreshTargetState.stateLabel}` : ""}${toOptionalText(primaryStepRefreshTargetState?.refreshScope) ? ` | ${primaryStepRefreshTargetState.refreshScope}` : ""}${primaryStepRefreshDisposition ? ` | ${primaryStepRefreshDisposition}` : ""}${primaryStepRefreshEvidenceHint ? ` | ${primaryStepRefreshEvidenceHint}` : ""}${toOptionalText(primaryStepRefreshTargetState?.workspace) ? ` | ${primaryStepRefreshTargetState.workspace}` : ""}`
       : "No refresh handoff loaded.";
   const stepProgressDetail =
     toOptionalText(nextOperatorStepProgress?.label)
@@ -30499,6 +30500,7 @@ function normalizeOperatorReplayPrimaryStep(value) {
     surfaceState: toOptionalText(value.surfaceState),
     needsRefresh: typeof value.needsRefresh === "boolean" ? value.needsRefresh : null,
     refreshDisposition: toOptionalText(value.refreshDisposition),
+    refreshEvidenceHint: toOptionalText(value.refreshEvidenceHint),
     refreshAction: isRecord(value.refreshAction)
       ? {
           label: toOptionalText(value.refreshAction.label),
@@ -30790,6 +30792,7 @@ function buildOperatorSessionOpsControlMeta() {
     `firstStepPrime=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.surfaceState) ?? "n/a"}`,
     `firstStepFreshness=${typeof replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.needsRefresh === "boolean" ? replay.selectedSession.replay.nextOperatorPrimaryStep.needsRefresh ? "needs_refresh" : "fresh" : "n/a"}`,
     `firstStepRefreshDisposition=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshDisposition) ?? "n/a"}`,
+    `firstStepRefreshEvidence=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEvidenceHint) ?? "n/a"}`,
     `firstStepRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshAction?.action) ?? "n/a"}`,
     `firstStepAfterRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.stateLabel) ?? "n/a"}`,
     `firstStepRefreshScope=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.refreshScope) ?? "n/a"}`,

@@ -245,6 +245,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       surfaceState: "primed",
       needsRefresh: false,
       refreshDisposition: null,
+      refreshEvidenceHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -419,6 +420,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       surfaceState: "primed",
       needsRefresh: true,
       refreshDisposition: "reopen_then_refresh",
+      refreshEvidenceHint: "Recheck the latest approval gate evidence.",
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -585,6 +587,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       surfaceState: "primed",
       needsRefresh: false,
       refreshDisposition: null,
+      refreshEvidenceHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -637,6 +640,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       surfaceState: "not_primed",
       needsRefresh: false,
       refreshDisposition: null,
+      refreshEvidenceHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
