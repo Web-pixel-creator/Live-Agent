@@ -3782,6 +3782,7 @@ const el = {
   operatorSessionBoundaryApprovalGate: document.getElementById("operatorSessionBoundaryApprovalGate"),
   operatorSessionBoundaryNextAction: document.getElementById("operatorSessionBoundaryNextAction"),
   operatorSessionBoundaryPrimaryStep: document.getElementById("operatorSessionBoundaryPrimaryStep"),
+  operatorSessionBoundaryStepProgress: document.getElementById("operatorSessionBoundaryStepProgress"),
   operatorSessionBoundaryChecklist: document.getElementById("operatorSessionBoundaryChecklist"),
   operatorSessionBoundaryLatestProof: document.getElementById("operatorSessionBoundaryLatestProof"),
   operatorSessionBoundaryRecovery: document.getElementById("operatorSessionBoundaryRecovery"),
@@ -25047,6 +25048,7 @@ function buildSessionExportOperatorSessionReplay() {
       ? replay.nextOperatorRemainingSteps
       : [],
     nextOperatorPrimaryStep: isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null,
+    nextOperatorStepProgress: isRecord(replay?.nextOperatorStepProgress) ? replay.nextOperatorStepProgress : null,
     latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
     boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
     approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,
@@ -27789,6 +27791,7 @@ function resetOperatorSessionBoundaryWidget(reason = "no_data") {
   setText(el.operatorSessionBoundaryApprovalGate, "n/a");
   setText(el.operatorSessionBoundaryNextAction, "n/a");
   setText(el.operatorSessionBoundaryPrimaryStep, "n/a");
+  setText(el.operatorSessionBoundaryStepProgress, "n/a");
   setText(el.operatorSessionBoundaryChecklist, "n/a");
   setText(el.operatorSessionBoundaryLatestProof, "n/a");
   setText(el.operatorSessionBoundaryRecovery, "n/a");
@@ -29477,6 +29480,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const recoveryDrill = isRecord(replay?.recoveryDrill) ? replay.recoveryDrill : null;
   const nextActionTarget = isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null;
   const nextOperatorPrimaryStep = isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null;
+  const nextOperatorStepProgress = isRecord(replay?.nextOperatorStepProgress) ? replay.nextOperatorStepProgress : null;
   const nextOperatorRemainingSteps = Array.isArray(replay?.nextOperatorRemainingSteps)
     ? replay.nextOperatorRemainingSteps.filter((item) => typeof item === "string" && item.trim().length > 0)
     : [];
@@ -29537,7 +29541,10 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
             ? "Operator Session Ops"
             : null);
   const primaryStepLabel =
-    toOptionalText(nextOperatorPrimaryStep?.label) ?? nextOperatorChecklist[0] ?? null;
+    toOptionalText(nextOperatorPrimaryStep?.label) ??
+    (Array.isArray(replay?.nextOperatorChecklist) && replay.nextOperatorChecklist.length > 0
+      ? toOptionalText(replay.nextOperatorChecklist[0])
+      : null);
   const primaryStepTargetLabel =
     toOptionalText(nextOperatorPrimaryStep?.targetLabel) ??
     toOptionalText(nextActionTarget?.targetLabel) ??
@@ -29571,6 +29578,9 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     primaryStepLabel
       ? `${primaryStepLabel}${primaryStepTargetLabel ? ` | ${primaryStepTargetLabel}` : ""}${primaryStepWorkspace ? ` | ${primaryStepWorkspace}` : ""}`
       : "No primary operator step loaded.";
+  const stepProgressDetail =
+    toOptionalText(nextOperatorStepProgress?.label) ??
+    (nextOperatorRemainingSteps.length > 0 || primaryStepLabel ? "1/1" : "n/a");
   const checklistDetail =
     nextOperatorRemainingSteps.length > 0
       ? nextOperatorRemainingSteps.join(" -> ")
@@ -29614,6 +29624,10 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   setText(
     el.operatorSessionBoundaryPrimaryStep,
     primaryStepDetail,
+  );
+  setText(
+    el.operatorSessionBoundaryStepProgress,
+    stepProgressDetail,
   );
   setText(
     el.operatorSessionBoundaryChecklist,
@@ -30370,6 +30384,23 @@ function normalizeOperatorReplayRemainingSteps(value) {
     .filter((item) => item !== null);
 }
 
+function normalizeOperatorReplayStepProgress(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const current = Number.isFinite(Number(value.current))
+    ? Math.max(0, Math.floor(Number(value.current)))
+    : 0;
+  const total = Number.isFinite(Number(value.total))
+    ? Math.max(0, Math.floor(Number(value.total)))
+    : 0;
+  return {
+    current,
+    total,
+    label: toOptionalText(value.label),
+  };
+}
+
 function normalizeOperatorReplayPrimaryStep(value) {
   if (!isRecord(value)) {
     return null;
@@ -30481,6 +30512,9 @@ function buildOperatorSessionReplaySnapshot(value) {
         ),
         nextOperatorPrimaryStep: normalizeOperatorReplayPrimaryStep(
           selectedSessionRecord.replay.nextOperatorPrimaryStep,
+        ),
+        nextOperatorStepProgress: normalizeOperatorReplayStepProgress(
+          selectedSessionRecord.replay.nextOperatorStepProgress,
         ),
         latestVerifiedStage: toOptionalText(selectedSessionRecord.replay.latestVerifiedStage),
         boundaryOwner: normalizeOperatorReplayBoundaryOwner(selectedSessionRecord.replay.boundaryOwner),
@@ -30641,6 +30675,7 @@ function buildOperatorSessionOpsControlMeta() {
     `nextTarget=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionTarget?.targetLabel) ?? toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionTarget?.targetSurface) ?? "n/a"}`,
     `nextWorkspace=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorWorkspace) ?? "n/a"}`,
     `firstStep=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.label) ?? "n/a"}`,
+    `stepProgress=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorStepProgress?.label) ?? "n/a"}`,
     `checklist=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorChecklist) ? replay.selectedSession.replay.nextOperatorChecklist.length : 0}`,
     `remainingSteps=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorRemainingSteps) ? replay.selectedSession.replay.nextOperatorRemainingSteps.length : 0}`,
     `personas=${Math.max(0, Math.floor(Number(discovery?.totalPersonas ?? 0) || 0))}`,
@@ -30690,6 +30725,7 @@ function buildOperatorSessionOpsReplayPreview() {
         ? replay.nextOperatorRemainingSteps
         : [],
       nextOperatorPrimaryStep: isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null,
+      nextOperatorStepProgress: isRecord(replay?.nextOperatorStepProgress) ? replay.nextOperatorStepProgress : null,
       latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
       boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
       approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,
