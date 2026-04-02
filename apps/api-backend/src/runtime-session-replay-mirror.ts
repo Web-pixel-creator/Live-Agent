@@ -37,6 +37,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   runState: RuntimeSessionReplayStepRunState;
   actionMode: RuntimeSessionReplayPrimaryStepActionMode;
   surfaceState: RuntimeSessionReplayPrimaryStepSurfaceState;
+  needsRefresh: boolean;
 };
 
 type RuntimeSessionReplayStepProgress = {
@@ -328,6 +329,10 @@ function sortByUpdatedAtDesc<T extends { updatedAt: string }>(items: T[]): T[] {
 
 function sortEventsDesc(items: EventListItem[]): EventListItem[] {
   return [...items].sort((left, right) => toEpochMs(right.createdAt) - toEpochMs(left.createdAt));
+}
+
+function maxTimestampMs(values: Array<string | null | undefined>): number {
+  return values.reduce((max, value) => Math.max(max, toEpochMs(value)), 0);
 }
 
 function buildSessionEventInsight(events: EventListItem[]): SessionEventInsight {
@@ -889,6 +894,56 @@ function buildNextOperatorPrimaryStepSurfaceState(params: {
   }
 }
 
+function buildNextOperatorPrimaryStepNeedsRefresh(params: {
+  surfaceState: RuntimeSessionReplayPrimaryStepSurfaceState;
+  nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
+  selectedSession: SessionListItem | null;
+  latestSelectedRun: RunListItem | null;
+  latestSelectedApproval: ApprovalRecord | null;
+  selectedEventInsight: SessionEventInsight;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+  latestProofPointer: ReturnType<typeof buildLatestProofPointer>;
+}): boolean {
+  if (params.surfaceState !== "primed") {
+    return false;
+  }
+  switch (params.nextOperatorActionTarget?.targetSurface) {
+    case "operator_saved_view_approvals": {
+      const baselineMs = maxTimestampMs([
+        params.selectedSession?.updatedAt ?? null,
+        params.latestSelectedRun?.updatedAt ?? null,
+        params.selectedEventInsight.latestEventAt,
+        params.workflowSummary?.workflowUpdatedAt ?? null,
+        params.latestProofPointer?.verifiedAt ?? null,
+      ]);
+      const surfaceAnchorMs = maxTimestampMs([
+        params.latestSelectedApproval?.updatedAt ?? null,
+      ]);
+      return surfaceAnchorMs > 0 && baselineMs > surfaceAnchorMs;
+    }
+    case "operator_session_ops": {
+      if (params.latestProofPointer?.verifiedAt === null) {
+        return false;
+      }
+      const baselineMs = maxTimestampMs([
+        params.selectedSession?.updatedAt ?? null,
+        params.latestSelectedRun?.updatedAt ?? null,
+        params.latestSelectedApproval?.updatedAt ?? null,
+        params.selectedEventInsight.latestEventAt,
+        params.workflowSummary?.workflowUpdatedAt ?? null,
+      ]);
+      const surfaceAnchorMs = maxTimestampMs([
+        params.latestProofPointer?.verifiedAt ?? null,
+      ]);
+      return surfaceAnchorMs > 0 && baselineMs > surfaceAnchorMs;
+    }
+    case "operator_workflow_control":
+    case "operator_runtime_drills":
+    default:
+      return false;
+  }
+}
+
 function buildApprovalGate(params: {
   latestSelectedApproval: ApprovalRecord | null;
   pendingApprovalCount: number;
@@ -1152,6 +1207,11 @@ function buildNextOperatorPrimaryStep(params: {
   recoveryDrill: ReturnType<typeof buildRecoveryDrill>;
   currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
   latestProofPointer: ReturnType<typeof buildLatestProofPointer>;
+  selectedSession: SessionListItem | null;
+  latestSelectedRun: RunListItem | null;
+  latestSelectedApproval: ApprovalRecord | null;
+  selectedEventInsight: SessionEventInsight;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
   selectedSessionId: string | null;
   selectedSessionFound: boolean;
 }): RuntimeSessionReplayPrimaryOperatorStep | null {
@@ -1166,8 +1226,18 @@ function buildNextOperatorPrimaryStep(params: {
     recoveryDrill: params.recoveryDrill,
     currentHandoffState: params.currentHandoffState,
     latestProofPointer: params.latestProofPointer,
-    selectedSessionId: params.selectedSessionId,
-    selectedSessionFound: params.selectedSessionFound,
+      selectedSessionId: params.selectedSessionId,
+      selectedSessionFound: params.selectedSessionFound,
+    });
+  const needsRefresh = buildNextOperatorPrimaryStepNeedsRefresh({
+    surfaceState,
+    nextOperatorActionTarget: params.nextOperatorActionTarget,
+    selectedSession: params.selectedSession,
+    latestSelectedRun: params.latestSelectedRun,
+    latestSelectedApproval: params.latestSelectedApproval,
+    selectedEventInsight: params.selectedEventInsight,
+    workflowSummary: params.workflowSummary,
+    latestProofPointer: params.latestProofPointer,
   });
   return {
     label: params.nextOperatorChecklist[0] ?? "Open the next operator surface.",
@@ -1180,6 +1250,7 @@ function buildNextOperatorPrimaryStep(params: {
     runState: "runnable",
     actionMode,
     surfaceState,
+    needsRefresh,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
 }
 
@@ -1415,6 +1486,11 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
     recoveryDrill,
     currentHandoffState,
     latestProofPointer,
+    selectedSession,
+    latestSelectedRun,
+    latestSelectedApproval,
+    selectedEventInsight,
+    workflowSummary,
     selectedSessionId,
     selectedSessionFound: selectedSession !== null,
   });

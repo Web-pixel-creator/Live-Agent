@@ -232,18 +232,19 @@ test("runtime session replay mirror aggregates selected session replay, approval
     { label: "Resume the handoff package.", phase: "queued", runState: "blocked" },
     { label: "Confirm the transfer summary.", phase: "queued", runState: "blocked" },
   ]);
-  assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
-    label: "Open Session Ops.",
-    action: "resume_handoff",
-    targetSurface: "operator_session_ops",
-    targetLabel: "Operator Session Ops",
+    assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
+      label: "Open Session Ops.",
+      action: "resume_handoff",
+      targetSurface: "operator_session_ops",
+      targetLabel: "Operator Session Ops",
     workspace: "runtime",
     ctaLabel: "Open first step",
-    phase: "active",
-    runState: "runnable",
-    actionMode: "openable",
-    surfaceState: "primed",
-  });
+      phase: "active",
+      runState: "runnable",
+      actionMode: "openable",
+      surfaceState: "primed",
+      needsRefresh: false,
+    });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, "review");
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
     role: "operator",
@@ -402,18 +403,19 @@ test("runtime session replay mirror blocks resume when approval or active workfl
     { label: "Resolve the pending approval.", phase: "queued", runState: "blocked" },
     { label: "Reload replay for the selected session.", phase: "queued", runState: "blocked" },
   ]);
-  assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
-    label: "Open the Approvals workspace.",
-    action: "resolve_approval",
-    targetSurface: "operator_saved_view_approvals",
-    targetLabel: "Approvals",
+    assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
+      label: "Open the Approvals workspace.",
+      action: "resolve_approval",
+      targetSurface: "operator_saved_view_approvals",
+      targetLabel: "Approvals",
     workspace: "approvals",
     ctaLabel: "Open first step",
-    phase: "active",
-    runState: "runnable",
-    actionMode: "openable",
-    surfaceState: "primed",
-  });
+      phase: "active",
+      runState: "runnable",
+      actionMode: "openable",
+      surfaceState: "primed",
+      needsRefresh: true,
+    });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, null);
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
     role: "operator",
@@ -550,18 +552,19 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
     { label: "Run the workflow recovery drill.", phase: "queued", runState: "blocked" },
     { label: "Return to Session Ops and reload replay.", phase: "queued", runState: "blocked" },
   ]);
-  assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
-    label: "Open Runtime Drill Runner.",
-    action: "plan_recovery_drill",
-    targetSurface: "operator_runtime_drills",
-    targetLabel: "Runtime Drill Runner",
+    assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
+      label: "Open Runtime Drill Runner.",
+      action: "plan_recovery_drill",
+      targetSurface: "operator_runtime_drills",
+      targetLabel: "Runtime Drill Runner",
     workspace: "runtime",
     ctaLabel: "Run first step",
-    phase: "active",
-    runState: "runnable",
-    actionMode: "executable",
-    surfaceState: "primed",
-  });
+      phase: "active",
+      runState: "runnable",
+      actionMode: "executable",
+      surfaceState: "primed",
+      needsRefresh: false,
+    });
   assert.deepEqual(snapshot.selectedSession.replay.recoveryPathHint, {
     code: "workflow_failed",
     label: "Plan the workflow recovery drill before resuming the linked boundary.",
@@ -598,16 +601,17 @@ test("runtime session replay mirror marks the first step as not_primed when no t
   assert.equal(snapshot.selectedSession.foundInSessionIndex, false);
   assert.equal(snapshot.selectedSession.replay.resumeReady, false);
   assert.equal(snapshot.selectedSession.replay.resumeBlockedBy, "session_missing");
-  assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
-    label: "Open Session Ops.",
-    action: "inspect_session",
-    targetSurface: "operator_session_ops",
-    targetLabel: "Operator Session Ops",
+    assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
+      label: "Open Session Ops.",
+      action: "inspect_session",
+      targetSurface: "operator_session_ops",
+      targetLabel: "Operator Session Ops",
     workspace: "runtime",
     ctaLabel: "Open first step",
-    phase: "active",
-    runState: "runnable",
-    actionMode: "openable",
-    surfaceState: "not_primed",
+      phase: "active",
+      runState: "runnable",
+      actionMode: "openable",
+      surfaceState: "not_primed",
+      needsRefresh: false,
+    });
   });
-});

@@ -29565,6 +29565,15 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     (primaryStepLabel ? "runnable" : null);
   const primaryStepActionMode = toOptionalText(nextOperatorPrimaryStep?.actionMode);
   const primaryStepSurfaceState = toOptionalText(nextOperatorPrimaryStep?.surfaceState);
+  const primaryStepNeedsRefresh = typeof nextOperatorPrimaryStep?.needsRefresh === "boolean"
+    ? nextOperatorPrimaryStep.needsRefresh
+    : null;
+  const primaryStepFreshness =
+    primaryStepSurfaceState === "primed"
+      ? primaryStepNeedsRefresh
+        ? "needs_refresh"
+        : "fresh"
+      : null;
   const recoveryTargetLabel =
     toOptionalText(recoveryHandoff?.targetLabel) ??
     (toOptionalText(recoveryHandoff?.targetPanel) === "operator_workflow_control"
@@ -29590,7 +29599,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
       : boundaryNextStep ?? "Inspect the selected session before continuing.";
   const primaryStepDetail =
     primaryStepLabel
-      ? `${primaryStepLabel}${primaryStepPhase ? ` | ${primaryStepPhase}` : ""}${primaryStepRunState ? ` | ${primaryStepRunState}` : ""}${primaryStepActionMode ? ` | ${primaryStepActionMode}` : ""}${primaryStepSurfaceState ? ` | ${primaryStepSurfaceState}` : ""}${primaryStepTargetLabel ? ` | ${primaryStepTargetLabel}` : ""}${primaryStepWorkspace ? ` | ${primaryStepWorkspace}` : ""}`
+      ? `${primaryStepLabel}${primaryStepPhase ? ` | ${primaryStepPhase}` : ""}${primaryStepRunState ? ` | ${primaryStepRunState}` : ""}${primaryStepActionMode ? ` | ${primaryStepActionMode}` : ""}${primaryStepSurfaceState ? ` | ${primaryStepSurfaceState}` : ""}${primaryStepFreshness ? ` | ${primaryStepFreshness}` : ""}${primaryStepTargetLabel ? ` | ${primaryStepTargetLabel}` : ""}${primaryStepWorkspace ? ` | ${primaryStepWorkspace}` : ""}`
       : "No primary operator step loaded.";
   const stepProgressDetail =
     toOptionalText(nextOperatorStepProgress?.label)
@@ -30454,6 +30463,7 @@ function normalizeOperatorReplayPrimaryStep(value) {
     runState: toOptionalText(value.runState),
     actionMode: toOptionalText(value.actionMode),
     surfaceState: toOptionalText(value.surfaceState),
+    needsRefresh: typeof value.needsRefresh === "boolean" ? value.needsRefresh : null,
   };
 }
 
@@ -30723,6 +30733,7 @@ function buildOperatorSessionOpsControlMeta() {
     `firstStepState=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.runState) ?? "n/a"}`,
     `firstStepMode=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.actionMode) ?? "n/a"}`,
     `firstStepPrime=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.surfaceState) ?? "n/a"}`,
+    `firstStepFreshness=${typeof replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.needsRefresh === "boolean" ? replay.selectedSession.replay.nextOperatorPrimaryStep.needsRefresh ? "needs_refresh" : "fresh" : "n/a"}`,
     `stepProgress=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorStepProgress?.label) ?? "n/a"}`,
     `stepPath=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorStepPath) ? replay.selectedSession.replay.nextOperatorStepPath.map((item) => `${toOptionalText(item?.phase) ?? "unknown"}:${toOptionalText(item?.runState) ?? "blocked"}`).join(",") || "n/a" : "n/a"}`,
     `checklist=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorChecklist) ? replay.selectedSession.replay.nextOperatorChecklist.length : 0}`,
