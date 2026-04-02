@@ -29,6 +29,7 @@ type RuntimeSessionReplayPrimaryRefreshDisposition =
   | "silent_rehydrate"
   | "reopen_then_refresh"
   | "reload_before_run";
+type RuntimeSessionReplayPrimaryRefreshConfidence = "high" | "medium" | "low";
 
 type RuntimeSessionReplayPrimaryRefreshAction = {
   label: string;
@@ -63,6 +64,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshDisposition: RuntimeSessionReplayPrimaryRefreshDisposition | null;
   refreshEvidenceHint: string | null;
   refreshOutcomeLabel: string | null;
+  refreshConfidence: RuntimeSessionReplayPrimaryRefreshConfidence | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1064,6 +1066,25 @@ function buildNextOperatorPrimaryStepRefreshOutcomeLabel(params: {
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshConfidence(params: {
+  needsRefresh: boolean;
+  nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshConfidence | null {
+  if (!params.needsRefresh) {
+    return null;
+  }
+  switch (params.nextOperatorActionTarget?.targetSurface) {
+    case "operator_session_ops":
+      return "high";
+    case "operator_saved_view_approvals":
+    case "operator_workflow_control":
+      return "medium";
+    case "operator_runtime_drills":
+    default:
+      return "low";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1427,6 +1448,10 @@ function buildNextOperatorPrimaryStep(params: {
     currentHandoffState: params.currentHandoffState,
     latestProofPointer: params.latestProofPointer,
   });
+  const refreshConfidence = buildNextOperatorPrimaryStepRefreshConfidence({
+    needsRefresh,
+    nextOperatorActionTarget: params.nextOperatorActionTarget,
+  });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -1449,6 +1474,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshDisposition,
     refreshEvidenceHint,
     refreshOutcomeLabel,
+    refreshConfidence,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
