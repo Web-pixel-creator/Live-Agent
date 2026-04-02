@@ -65,6 +65,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEvidenceHint: string | null;
   refreshOutcomeLabel: string | null;
   refreshConfidence: RuntimeSessionReplayPrimaryRefreshConfidence | null;
+  refreshDetourHint: string | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1085,6 +1086,26 @@ function buildNextOperatorPrimaryStepRefreshConfidence(params: {
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshDetourHint(params: {
+  needsRefresh: boolean;
+  nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
+}): string | null {
+  if (!params.needsRefresh) {
+    return null;
+  }
+  switch (params.nextOperatorActionTarget?.targetSurface) {
+    case "operator_saved_view_approvals":
+      return "If the gate still looks stale after refresh, stay in Approvals and inspect the pending gate before resuming.";
+    case "operator_workflow_control":
+      return "If the boundary still looks stale after refresh, jump to Runtime Drill Runner before retrying the workflow path.";
+    case "operator_runtime_drills":
+      return "If recovery state is still stale after refresh, reopen Workflow Control before rerunning the drill.";
+    case "operator_session_ops":
+    default:
+      return "If the proof pointer still looks stale after refresh, stay in Session Ops and inspect the latest proof before resuming.";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1452,6 +1473,10 @@ function buildNextOperatorPrimaryStep(params: {
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
   });
+  const refreshDetourHint = buildNextOperatorPrimaryStepRefreshDetourHint({
+    needsRefresh,
+    nextOperatorActionTarget: params.nextOperatorActionTarget,
+  });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -1475,6 +1500,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEvidenceHint,
     refreshOutcomeLabel,
     refreshConfidence,
+    refreshDetourHint,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;

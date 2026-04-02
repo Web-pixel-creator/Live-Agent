@@ -248,6 +248,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEvidenceHint: null,
       refreshOutcomeLabel: null,
       refreshConfidence: null,
+      refreshDetourHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -425,6 +426,8 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEvidenceHint: "Recheck the latest approval gate evidence.",
       refreshOutcomeLabel: "Approval gate is current again.",
       refreshConfidence: "medium",
+      refreshDetourHint:
+        "If the gate still looks stale after refresh, stay in Approvals and inspect the pending gate before resuming.",
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -594,6 +597,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEvidenceHint: null,
       refreshOutcomeLabel: null,
       refreshConfidence: null,
+      refreshDetourHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -649,6 +653,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEvidenceHint: null,
       refreshOutcomeLabel: null,
       refreshConfidence: null,
+      refreshDetourHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
