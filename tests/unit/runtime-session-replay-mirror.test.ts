@@ -218,6 +218,10 @@ test("runtime session replay mirror aggregates selected session replay, approval
     "Resume the handoff package.",
     "Confirm the transfer summary.",
   ]);
+  assert.deepEqual(snapshot.selectedSession.replay.nextOperatorRemainingSteps, [
+    "Resume the handoff package.",
+    "Confirm the transfer summary.",
+  ]);
   assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
     label: "Open Session Ops.",
     action: "resume_handoff",
@@ -370,6 +374,10 @@ test("runtime session replay mirror blocks resume when approval or active workfl
     "Resolve the pending approval.",
     "Reload replay for the selected session.",
   ]);
+  assert.deepEqual(snapshot.selectedSession.replay.nextOperatorRemainingSteps, [
+    "Resolve the pending approval.",
+    "Reload replay for the selected session.",
+  ]);
   assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
     label: "Open the Approvals workspace.",
     action: "resolve_approval",
@@ -497,6 +505,10 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
   assert.equal(snapshot.selectedSession.replay.nextOperatorWorkspace, "runtime");
   assert.deepEqual(snapshot.selectedSession.replay.nextOperatorChecklist, [
     "Open Runtime Drill Runner.",
+    "Run the workflow recovery drill.",
+    "Return to Session Ops and reload replay.",
+  ]);
+  assert.deepEqual(snapshot.selectedSession.replay.nextOperatorRemainingSteps, [
     "Run the workflow recovery drill.",
     "Return to Session Ops and reload replay.",
   ]);

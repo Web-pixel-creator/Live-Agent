@@ -127,6 +127,7 @@ export type RuntimeSessionReplaySnapshot = {
       nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
       nextOperatorWorkspace: RuntimeSessionReplayNextOperatorWorkspace | null;
       nextOperatorChecklist: string[];
+      nextOperatorRemainingSteps: string[];
       nextOperatorPrimaryStep: RuntimeSessionReplayPrimaryOperatorStep | null;
       latestVerifiedStage: string | null;
       boundaryOwner: {
@@ -1097,6 +1098,10 @@ function buildNextOperatorPrimaryStep(params: {
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
 }
 
+function buildNextOperatorRemainingSteps(nextOperatorChecklist: string[]) {
+  return nextOperatorChecklist.slice(1);
+}
+
 function buildReplayState(params: {
   verifiedRuns: number;
   pendingApprovalCount: number;
@@ -1269,6 +1274,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
     currentHandoffState,
     latestProofPointer,
   });
+  const nextOperatorRemainingSteps = buildNextOperatorRemainingSteps(nextOperatorChecklist);
   const nextOperatorPrimaryStep = buildNextOperatorPrimaryStep({
     resumeMetadata,
     nextOperatorActionTarget,
@@ -1347,6 +1353,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         nextOperatorActionTarget,
         nextOperatorWorkspace,
         nextOperatorChecklist,
+        nextOperatorRemainingSteps,
         nextOperatorPrimaryStep,
         latestVerifiedStage: latestProofPointer?.workflowStage ?? null,
         boundaryOwner,

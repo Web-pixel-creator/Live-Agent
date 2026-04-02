@@ -25043,6 +25043,9 @@ function buildSessionExportOperatorSessionReplay() {
     nextOperatorActionTarget: isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null,
     nextOperatorWorkspace: toOptionalText(replay?.nextOperatorWorkspace),
     nextOperatorChecklist: Array.isArray(replay?.nextOperatorChecklist) ? replay.nextOperatorChecklist : [],
+    nextOperatorRemainingSteps: Array.isArray(replay?.nextOperatorRemainingSteps)
+      ? replay.nextOperatorRemainingSteps
+      : [],
     nextOperatorPrimaryStep: isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null,
     latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
     boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
@@ -29474,8 +29477,8 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const recoveryDrill = isRecord(replay?.recoveryDrill) ? replay.recoveryDrill : null;
   const nextActionTarget = isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null;
   const nextOperatorPrimaryStep = isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null;
-  const nextOperatorChecklist = Array.isArray(replay?.nextOperatorChecklist)
-    ? replay.nextOperatorChecklist.filter((item) => typeof item === "string" && item.trim().length > 0)
+  const nextOperatorRemainingSteps = Array.isArray(replay?.nextOperatorRemainingSteps)
+    ? replay.nextOperatorRemainingSteps.filter((item) => typeof item === "string" && item.trim().length > 0)
     : [];
   const currentHandoffState = isRecord(replay?.currentHandoffState) ? replay.currentHandoffState : null;
   const boundaryOwnerRecord = isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null;
@@ -29569,9 +29572,11 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
       ? `${primaryStepLabel}${primaryStepTargetLabel ? ` | ${primaryStepTargetLabel}` : ""}${primaryStepWorkspace ? ` | ${primaryStepWorkspace}` : ""}`
       : "No primary operator step loaded.";
   const checklistDetail =
-    nextOperatorChecklist.length > 0
-      ? nextOperatorChecklist.join(" -> ")
-      : "No operator checklist loaded.";
+    nextOperatorRemainingSteps.length > 0
+      ? nextOperatorRemainingSteps.join(" -> ")
+      : primaryStepLabel
+        ? "No remaining steps after the primary step."
+        : "No operator checklist loaded.";
   const recoveryDrillDetail = recoveryDrill
     ? `${toOptionalText(recoveryDrill.label) ?? "Recovery drill"}${toOptionalText(recoveryDrill.profileId) ? ` | ${recoveryDrill.profileId}/${toOptionalText(recoveryDrill.phase) ?? "recovery"}` : ""}`
     : null;
@@ -30356,6 +30361,15 @@ function normalizeOperatorReplayChecklist(value) {
     .filter((item) => item !== null);
 }
 
+function normalizeOperatorReplayRemainingSteps(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((item) => toOptionalText(item))
+    .filter((item) => item !== null);
+}
+
 function normalizeOperatorReplayPrimaryStep(value) {
   if (!isRecord(value)) {
     return null;
@@ -30462,6 +30476,9 @@ function buildOperatorSessionReplaySnapshot(value) {
         ),
         nextOperatorWorkspace: toOptionalText(selectedSessionRecord.replay.nextOperatorWorkspace),
         nextOperatorChecklist: normalizeOperatorReplayChecklist(selectedSessionRecord.replay.nextOperatorChecklist),
+        nextOperatorRemainingSteps: normalizeOperatorReplayRemainingSteps(
+          selectedSessionRecord.replay.nextOperatorRemainingSteps,
+        ),
         nextOperatorPrimaryStep: normalizeOperatorReplayPrimaryStep(
           selectedSessionRecord.replay.nextOperatorPrimaryStep,
         ),
@@ -30625,6 +30642,7 @@ function buildOperatorSessionOpsControlMeta() {
     `nextWorkspace=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorWorkspace) ?? "n/a"}`,
     `firstStep=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.label) ?? "n/a"}`,
     `checklist=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorChecklist) ? replay.selectedSession.replay.nextOperatorChecklist.length : 0}`,
+    `remainingSteps=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorRemainingSteps) ? replay.selectedSession.replay.nextOperatorRemainingSteps.length : 0}`,
     `personas=${Math.max(0, Math.floor(Number(discovery?.totalPersonas ?? 0) || 0))}`,
     `recipes=${Math.max(0, Math.floor(Number(discovery?.totalRecipes ?? 0) || 0))}`,
     `agents=${Array.isArray(discovery?.agentIds) ? discovery.agentIds.join(",") || "none" : "none"}`,
@@ -30668,6 +30686,9 @@ function buildOperatorSessionOpsReplayPreview() {
       nextOperatorActionTarget: isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null,
       nextOperatorWorkspace: toOptionalText(replay?.nextOperatorWorkspace),
       nextOperatorChecklist: Array.isArray(replay?.nextOperatorChecklist) ? replay.nextOperatorChecklist : [],
+      nextOperatorRemainingSteps: Array.isArray(replay?.nextOperatorRemainingSteps)
+        ? replay.nextOperatorRemainingSteps
+        : [],
       nextOperatorPrimaryStep: isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null,
       latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
       boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
