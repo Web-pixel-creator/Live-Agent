@@ -3782,6 +3782,7 @@ const el = {
   operatorSessionBoundaryApprovalGate: document.getElementById("operatorSessionBoundaryApprovalGate"),
   operatorSessionBoundaryNextAction: document.getElementById("operatorSessionBoundaryNextAction"),
   operatorSessionBoundaryPrimaryStep: document.getElementById("operatorSessionBoundaryPrimaryStep"),
+  operatorSessionBoundaryAfterRefresh: document.getElementById("operatorSessionBoundaryAfterRefresh"),
   operatorSessionBoundaryStepProgress: document.getElementById("operatorSessionBoundaryStepProgress"),
   operatorSessionBoundaryChecklist: document.getElementById("operatorSessionBoundaryChecklist"),
   operatorSessionBoundaryLatestProof: document.getElementById("operatorSessionBoundaryLatestProof"),
@@ -27792,6 +27793,7 @@ function resetOperatorSessionBoundaryWidget(reason = "no_data") {
   setText(el.operatorSessionBoundaryApprovalGate, "n/a");
   setText(el.operatorSessionBoundaryNextAction, "n/a");
   setText(el.operatorSessionBoundaryPrimaryStep, "n/a");
+  setText(el.operatorSessionBoundaryAfterRefresh, "n/a");
   setText(el.operatorSessionBoundaryStepProgress, "n/a");
   setText(el.operatorSessionBoundaryChecklist, "n/a");
   setText(el.operatorSessionBoundaryLatestProof, "n/a");
@@ -29484,6 +29486,9 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const primaryStepRefreshAction = isRecord(nextOperatorPrimaryStep?.refreshAction)
     ? nextOperatorPrimaryStep.refreshAction
     : null;
+  const primaryStepRefreshTargetState = isRecord(nextOperatorPrimaryStep?.refreshTargetState)
+    ? nextOperatorPrimaryStep.refreshTargetState
+    : null;
   const nextOperatorStepProgress = isRecord(replay?.nextOperatorStepProgress) ? replay.nextOperatorStepProgress : null;
   const nextOperatorStepPath = Array.isArray(replay?.nextOperatorStepPath)
     ? replay.nextOperatorStepPath.filter((item) => isRecord(item))
@@ -29604,6 +29609,10 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     primaryStepLabel
       ? `${primaryStepLabel}${primaryStepPhase ? ` | ${primaryStepPhase}` : ""}${primaryStepRunState ? ` | ${primaryStepRunState}` : ""}${primaryStepActionMode ? ` | ${primaryStepActionMode}` : ""}${primaryStepSurfaceState ? ` | ${primaryStepSurfaceState}` : ""}${primaryStepFreshness ? ` | ${primaryStepFreshness}` : ""}${primaryStepTargetLabel ? ` | ${primaryStepTargetLabel}` : ""}${primaryStepWorkspace ? ` | ${primaryStepWorkspace}` : ""}`
       : "No primary operator step loaded.";
+  const afterRefreshDetail =
+    primaryStepRefreshTargetState
+      ? `${toOptionalText(primaryStepRefreshTargetState?.targetLabel) ?? "Target"}${toOptionalText(primaryStepRefreshTargetState?.stateLabel) ? ` | ${primaryStepRefreshTargetState.stateLabel}` : ""}${toOptionalText(primaryStepRefreshTargetState?.workspace) ? ` | ${primaryStepRefreshTargetState.workspace}` : ""}`
+      : "No refresh handoff loaded.";
   const stepProgressDetail =
     toOptionalText(nextOperatorStepProgress?.label)
       ? `${toOptionalText(nextOperatorStepProgress?.label)}${nextOperatorStepPath.length > 0 ? ` | ${nextOperatorStepPath.map((item) => `${toOptionalText(item.phase) ?? "unknown"}:${toOptionalText(item.runState) ?? "blocked"}`).join(" -> ")}` : ""}`
@@ -29656,6 +29665,10 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   setText(
     el.operatorSessionBoundaryPrimaryStep,
     primaryStepDetail,
+  );
+  setText(
+    el.operatorSessionBoundaryAfterRefresh,
+    afterRefreshDetail,
   );
   setText(
     el.operatorSessionBoundaryStepProgress,
@@ -30494,6 +30507,15 @@ function normalizeOperatorReplayPrimaryStep(value) {
           workspace: toOptionalText(value.refreshAction.workspace),
         }
       : null,
+    refreshTargetState: isRecord(value.refreshTargetState)
+      ? {
+          label: toOptionalText(value.refreshTargetState.label),
+          targetSurface: toOptionalText(value.refreshTargetState.targetSurface),
+          targetLabel: toOptionalText(value.refreshTargetState.targetLabel),
+          workspace: toOptionalText(value.refreshTargetState.workspace),
+          stateLabel: toOptionalText(value.refreshTargetState.stateLabel),
+        }
+      : null,
   };
 }
 
@@ -30765,6 +30787,7 @@ function buildOperatorSessionOpsControlMeta() {
     `firstStepPrime=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.surfaceState) ?? "n/a"}`,
     `firstStepFreshness=${typeof replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.needsRefresh === "boolean" ? replay.selectedSession.replay.nextOperatorPrimaryStep.needsRefresh ? "needs_refresh" : "fresh" : "n/a"}`,
     `firstStepRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshAction?.action) ?? "n/a"}`,
+    `firstStepAfterRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.stateLabel) ?? "n/a"}`,
     `stepProgress=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorStepProgress?.label) ?? "n/a"}`,
     `stepPath=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorStepPath) ? replay.selectedSession.replay.nextOperatorStepPath.map((item) => `${toOptionalText(item?.phase) ?? "unknown"}:${toOptionalText(item?.runState) ?? "blocked"}`).join(",") || "n/a" : "n/a"}`,
     `checklist=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorChecklist) ? replay.selectedSession.replay.nextOperatorChecklist.length : 0}`,

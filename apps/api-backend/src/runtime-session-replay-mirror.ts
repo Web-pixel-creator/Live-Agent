@@ -35,6 +35,14 @@ type RuntimeSessionReplayPrimaryRefreshAction = {
   workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
 };
 
+type RuntimeSessionReplayPrimaryRefreshTargetState = {
+  label: string;
+  targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"];
+  targetLabel: string;
+  workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
+  stateLabel: string;
+};
+
 type RuntimeSessionReplayPrimaryOperatorStep = {
   label: string;
   action: string | null;
@@ -48,6 +56,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   surfaceState: RuntimeSessionReplayPrimaryStepSurfaceState;
   needsRefresh: boolean;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
+  refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
 
 type RuntimeSessionReplayStepProgress = {
@@ -980,6 +989,45 @@ function buildNextOperatorPrimaryStepRefreshAction(params: {
   };
 }
 
+function buildNextOperatorPrimaryStepRefreshTargetState(params: {
+  needsRefresh: boolean;
+  nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
+  nextOperatorWorkspace: RuntimeSessionReplayNextOperatorWorkspace | null;
+  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+  latestProofPointer: ReturnType<typeof buildLatestProofPointer>;
+}): RuntimeSessionReplayPrimaryRefreshTargetState | null {
+  if (!params.needsRefresh) {
+    return null;
+  }
+  const targetSurface = params.nextOperatorActionTarget?.targetSurface ?? "operator_session_ops";
+  const targetLabel =
+    params.nextOperatorActionTarget?.targetLabel ??
+    (targetSurface === "operator_saved_view_approvals"
+      ? "Approvals"
+      : targetSurface === "operator_workflow_control"
+        ? "Workflow Control"
+        : targetSurface === "operator_runtime_drills"
+          ? "Runtime Drill Runner"
+          : "Operator Session Ops");
+  const stateLabel =
+    targetSurface === "operator_saved_view_approvals"
+      ? "latest gate state"
+      : targetSurface === "operator_workflow_control"
+        ? "latest boundary state"
+        : targetSurface === "operator_runtime_drills"
+          ? "latest recovery state"
+          : params.currentHandoffState || params.latestProofPointer
+            ? "latest proof state"
+            : "latest replay state";
+  return {
+    label: `${targetLabel} | ${stateLabel}`,
+    targetSurface,
+    targetLabel,
+    workspace: params.nextOperatorWorkspace,
+    stateLabel,
+  };
+}
+
 function buildApprovalGate(params: {
   latestSelectedApproval: ApprovalRecord | null;
   pendingApprovalCount: number;
@@ -1279,6 +1327,13 @@ function buildNextOperatorPrimaryStep(params: {
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
   });
+  const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
+    needsRefresh,
+    nextOperatorActionTarget: params.nextOperatorActionTarget,
+    nextOperatorWorkspace: params.nextOperatorWorkspace,
+    currentHandoffState: params.currentHandoffState,
+    latestProofPointer: params.latestProofPointer,
+  });
   return {
     label: params.nextOperatorChecklist[0] ?? "Open the next operator surface.",
     action: params.resumeMetadata.nextOperatorAction,
@@ -1292,6 +1347,7 @@ function buildNextOperatorPrimaryStep(params: {
     surfaceState,
     needsRefresh,
     refreshAction,
+    refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
 }
 

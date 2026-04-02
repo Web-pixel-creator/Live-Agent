@@ -25,6 +25,7 @@ test("operator console exposes compact session boundary widget", () => {
     'id="operatorSessionBoundaryApprovalGate"',
     'id="operatorSessionBoundaryNextAction"',
     'id="operatorSessionBoundaryPrimaryStep"',
+    'id="operatorSessionBoundaryAfterRefresh"',
     'id="operatorSessionBoundaryStepProgress"',
     'id="operatorSessionBoundaryChecklist"',
     'id="operatorSessionBoundaryLatestProof"',
@@ -46,6 +47,7 @@ test("operator console exposes compact session boundary widget", () => {
     'operatorSessionBoundaryApprovalGate: document.getElementById("operatorSessionBoundaryApprovalGate")',
     'operatorSessionBoundaryNextAction: document.getElementById("operatorSessionBoundaryNextAction")',
     'operatorSessionBoundaryPrimaryStep: document.getElementById("operatorSessionBoundaryPrimaryStep")',
+    'operatorSessionBoundaryAfterRefresh: document.getElementById("operatorSessionBoundaryAfterRefresh")',
     'operatorSessionBoundaryStepProgress: document.getElementById("operatorSessionBoundaryStepProgress")',
     'operatorSessionBoundaryChecklist: document.getElementById("operatorSessionBoundaryChecklist")',
     'operatorSessionBoundaryLatestProof: document.getElementById("operatorSessionBoundaryLatestProof")',
@@ -68,6 +70,8 @@ test("operator console exposes compact session boundary widget", () => {
     "surfaceState",
     "needsRefresh",
     "refreshAction",
+    "refreshTargetState",
+    "stateLabel",
     "nextOperatorStepProgress",
     "nextOperatorStepPath",
     "runState",
@@ -80,6 +84,8 @@ test("operator console exposes compact session boundary widget", () => {
     "renderOperatorSessionBoundaryWidget(state.operatorSessionReplaySnapshot);",
     "recoveryTargetButtonLabel",
     'toOptionalText(primaryStepRefreshAction?.ctaLabel) ??',
+    "primaryStepRefreshTargetState",
+    "afterRefreshDetail",
     "refresh_session_replay",
     "await refreshOperatorSessionReplay({",
     'toOptionalText(nextOperatorPrimaryStep?.ctaLabel) ??',
@@ -90,8 +96,8 @@ test("operator console exposes compact session boundary widget", () => {
   }
 
   assert.ok(readmeSource.includes("`Session Boundary`"), "README missing Session Boundary card note");
-  assert.match(readmeSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay/i);
+  assert.match(readmeSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay|refresh target state|after refresh|latest gate state/i);
   assert.ok(operatorGuideSource.includes("`Session Boundary`"), "operator guide missing Session Boundary card note");
-  assert.match(operatorGuideSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay/i);
-  assert.match(architectureSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay/i);
+  assert.match(operatorGuideSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay|refresh target state|after refresh|latest gate state/i);
+  assert.match(architectureSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay|refresh target state|after refresh|latest gate state/i);
 });

@@ -49,6 +49,8 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
     "surfaceState",
     "needsRefresh",
     "refreshAction",
+    "refreshTargetState",
+    "stateLabel",
     "nextOperatorStepProgress",
     "nextOperatorStepPath",
     "runState",
@@ -79,10 +81,10 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
 
   assert.match(readme, /GET \/v1\/runtime\/session-replay/);
   assert.match(readme, /session replay mirror/i);
-  assert.match(readme, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay/i);
+  assert.match(readme, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay|refresh target state|after refresh|latest gate state/i);
   assert.match(operatorGuide, /GET \/v1\/runtime\/session-replay/);
   assert.match(operatorGuide, /Runtime session replay note:/);
-  assert.match(operatorGuide, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay/i);
+  assert.match(operatorGuide, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay|refresh target state|after refresh|latest gate state/i);
   assert.match(architecture, /runtime session replay mirror/i);
-  assert.match(architecture, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay/i);
+  assert.match(architecture, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay|refresh target state|after refresh|latest gate state/i);
 });
