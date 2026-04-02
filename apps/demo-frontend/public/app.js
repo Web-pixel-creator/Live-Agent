@@ -25039,6 +25039,7 @@ function buildSessionExportOperatorSessionReplay() {
     nextOperatorAction: toOptionalText(replay?.nextOperatorAction),
     nextOperatorActionLabel: toOptionalText(replay?.nextOperatorActionLabel),
     nextOperatorActionTarget: isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null,
+    nextOperatorWorkspace: toOptionalText(replay?.nextOperatorWorkspace),
     latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
     boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
     approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,
@@ -29640,10 +29641,13 @@ function openOperatorSessionBoundaryTarget() {
   const snapshot = isRecord(state.operatorSessionReplaySnapshot) ? state.operatorSessionReplaySnapshot : null;
   const replay = isRecord(snapshot?.selectedSession?.replay) ? snapshot.selectedSession.replay : null;
   const nextOperatorActionTarget = isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null;
+  const nextOperatorWorkspace = toOptionalText(replay?.nextOperatorWorkspace);
   const recoveryHandoff = isRecord(replay?.recoveryHandoff) ? replay.recoveryHandoff : null;
   const targetSurface = toOptionalText(nextOperatorActionTarget?.targetSurface);
+  if (nextOperatorWorkspace === "approvals" || nextOperatorWorkspace === "runtime") {
+    setOperatorSavedView(nextOperatorWorkspace, { scroll: false });
+  }
   if (targetSurface === "operator_saved_view_approvals") {
-    setOperatorSavedView("approvals");
     focusOperatorConsoleEntry("operatorApprovalsStatus");
     return;
   }
@@ -30395,6 +30399,7 @@ function buildOperatorSessionReplaySnapshot(value) {
         nextOperatorActionTarget: normalizeOperatorReplayNextActionTarget(
           selectedSessionRecord.replay.nextOperatorActionTarget,
         ),
+        nextOperatorWorkspace: toOptionalText(selectedSessionRecord.replay.nextOperatorWorkspace),
         latestVerifiedStage: toOptionalText(selectedSessionRecord.replay.latestVerifiedStage),
         boundaryOwner: normalizeOperatorReplayBoundaryOwner(selectedSessionRecord.replay.boundaryOwner),
         approvalGate: normalizeOperatorReplayApprovalGate(selectedSessionRecord.replay.approvalGate),
@@ -30552,6 +30557,7 @@ function buildOperatorSessionOpsControlMeta() {
     `resume=${replay?.selectedSession?.replay?.resumeReady === true ? "ready" : replay?.selectedSession?.replay?.resumeBlockedBy ?? "idle"}`,
     `nextAction=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionLabel) ?? toOptionalText(replay?.selectedSession?.replay?.nextOperatorAction) ?? "n/a"}`,
     `nextTarget=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionTarget?.targetLabel) ?? toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionTarget?.targetSurface) ?? "n/a"}`,
+    `nextWorkspace=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorWorkspace) ?? "n/a"}`,
     `personas=${Math.max(0, Math.floor(Number(discovery?.totalPersonas ?? 0) || 0))}`,
     `recipes=${Math.max(0, Math.floor(Number(discovery?.totalRecipes ?? 0) || 0))}`,
     `agents=${Array.isArray(discovery?.agentIds) ? discovery.agentIds.join(",") || "none" : "none"}`,
@@ -30593,6 +30599,7 @@ function buildOperatorSessionOpsReplayPreview() {
       nextOperatorAction: toOptionalText(replay?.nextOperatorAction),
       nextOperatorActionLabel: toOptionalText(replay?.nextOperatorActionLabel),
       nextOperatorActionTarget: isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null,
+      nextOperatorWorkspace: toOptionalText(replay?.nextOperatorWorkspace),
       latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
       boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
       approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,

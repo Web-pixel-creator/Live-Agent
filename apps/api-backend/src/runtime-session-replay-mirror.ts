@@ -17,6 +17,10 @@ type RuntimeSessionReplayNextOperatorActionTarget = {
   targetLabel: string;
 };
 
+type RuntimeSessionReplayNextOperatorWorkspace =
+  | "approvals"
+  | "runtime";
+
 export type RuntimeSessionReplayCompactEntry = {
   sessionId: string;
   mode: string;
@@ -112,6 +116,7 @@ export type RuntimeSessionReplaySnapshot = {
       nextOperatorAction: string | null;
       nextOperatorActionLabel: string | null;
       nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
+      nextOperatorWorkspace: RuntimeSessionReplayNextOperatorWorkspace | null;
       latestVerifiedStage: string | null;
       boundaryOwner: {
         role: string | null;
@@ -786,6 +791,29 @@ function buildNextOperatorActionTarget(action: string | null): RuntimeSessionRep
   }
 }
 
+function buildNextOperatorWorkspace(action: string | null): RuntimeSessionReplayNextOperatorWorkspace | null {
+  switch (action) {
+    case "resolve_approval":
+    case "resolve_workflow_approval":
+      return "approvals";
+    case "observe_live_work":
+    case "inspect_workflow_boundary":
+    case "plan_recovery_drill":
+    case "inspect_session":
+    case "inspect_handoff":
+    case "resume_handoff":
+    case "inspect_follow_up":
+    case "resume_follow_up":
+    case "confirm_booking":
+    case "resume_booking":
+    case "resume_from_latest_proof":
+    case "resume_session":
+      return "runtime";
+    default:
+      return null;
+  }
+}
+
 function buildApprovalGate(params: {
   latestSelectedApproval: ApprovalRecord | null;
   pendingApprovalCount: number;
@@ -1137,6 +1165,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
   });
   const nextOperatorActionLabel = buildNextOperatorActionLabel(resumeMetadata.nextOperatorAction);
   const nextOperatorActionTarget = buildNextOperatorActionTarget(resumeMetadata.nextOperatorAction);
+  const nextOperatorWorkspace = buildNextOperatorWorkspace(resumeMetadata.nextOperatorAction);
   const boundaryOwner = buildBoundaryOwner({
     selectedSessionId,
     workflowLinked,
@@ -1207,6 +1236,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         nextOperatorAction: resumeMetadata.nextOperatorAction,
         nextOperatorActionLabel,
         nextOperatorActionTarget,
+        nextOperatorWorkspace,
         latestVerifiedStage: latestProofPointer?.workflowStage ?? null,
         boundaryOwner,
         approvalGate,

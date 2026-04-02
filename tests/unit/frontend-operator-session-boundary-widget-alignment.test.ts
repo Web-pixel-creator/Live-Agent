@@ -54,6 +54,7 @@ test("operator console exposes compact session boundary widget", () => {
     "approvalGate",
     "nextOperatorActionLabel",
     "nextOperatorActionTarget",
+    "nextOperatorWorkspace",
     "workflowBoundarySummary",
     "latestProofPointer",
     "recoveryPathHint",
@@ -70,8 +71,8 @@ test("operator console exposes compact session boundary widget", () => {
   }
 
   assert.ok(readmeSource.includes("`Session Boundary`"), "README missing Session Boundary card note");
-  assert.match(readmeSource, /approval gate|boundary owner|recovery path|recovery drill|next action target/i);
+  assert.match(readmeSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace/i);
   assert.ok(operatorGuideSource.includes("`Session Boundary`"), "operator guide missing Session Boundary card note");
-  assert.match(operatorGuideSource, /approval gate|boundary owner|recovery path|recovery drill|next action target/i);
+  assert.match(operatorGuideSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace/i);
   assert.match(architectureSource, /Session Boundary/);
 });

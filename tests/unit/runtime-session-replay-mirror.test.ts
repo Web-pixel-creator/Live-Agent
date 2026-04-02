@@ -212,6 +212,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
     targetSurface: "operator_session_ops",
     targetLabel: "Operator Session Ops",
   });
+  assert.equal(snapshot.selectedSession.replay.nextOperatorWorkspace, "runtime");
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, "review");
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
     role: "operator",
@@ -350,6 +351,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
     targetSurface: "operator_saved_view_approvals",
     targetLabel: "Approvals",
   });
+  assert.equal(snapshot.selectedSession.replay.nextOperatorWorkspace, "approvals");
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, null);
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
     role: "operator",
@@ -466,6 +468,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
     targetSurface: "operator_runtime_drills",
     targetLabel: "Runtime Drill Runner",
   });
+  assert.equal(snapshot.selectedSession.replay.nextOperatorWorkspace, "runtime");
   assert.deepEqual(snapshot.selectedSession.replay.recoveryPathHint, {
     code: "workflow_failed",
     label: "Plan the workflow recovery drill before resuming the linked boundary.",
