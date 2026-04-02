@@ -431,6 +431,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
         targetLabel: "Approvals",
         workspace: "approvals",
         stateLabel: "latest gate state",
+        refreshScope: "gate",
       },
     });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, null);

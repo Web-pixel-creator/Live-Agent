@@ -41,6 +41,7 @@ type RuntimeSessionReplayPrimaryRefreshTargetState = {
   targetLabel: string;
   workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
   stateLabel: string;
+  refreshScope: "gate" | "boundary" | "proof" | "recovery";
 };
 
 type RuntimeSessionReplayPrimaryOperatorStep = {
@@ -1017,14 +1018,23 @@ function buildNextOperatorPrimaryStepRefreshTargetState(params: {
         : targetSurface === "operator_runtime_drills"
           ? "latest recovery state"
           : params.currentHandoffState || params.latestProofPointer
-            ? "latest proof state"
+          ? "latest proof state"
             : "latest replay state";
+  const refreshScope =
+    targetSurface === "operator_saved_view_approvals"
+      ? "gate"
+      : targetSurface === "operator_workflow_control"
+        ? "boundary"
+        : targetSurface === "operator_runtime_drills"
+          ? "recovery"
+          : "proof";
   return {
     label: `${targetLabel} | ${stateLabel}`,
     targetSurface,
     targetLabel,
     workspace: params.nextOperatorWorkspace,
     stateLabel,
+    refreshScope,
   };
 }
 
