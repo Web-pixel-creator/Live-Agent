@@ -228,9 +228,9 @@ test("runtime session replay mirror aggregates selected session replay, approval
     label: "1/3",
   });
   assert.deepEqual(snapshot.selectedSession.replay.nextOperatorStepPath, [
-    { label: "Open Session Ops.", phase: "active" },
-    { label: "Resume the handoff package.", phase: "queued" },
-    { label: "Confirm the transfer summary.", phase: "queued" },
+    { label: "Open Session Ops.", phase: "active", runState: "runnable" },
+    { label: "Resume the handoff package.", phase: "queued", runState: "blocked" },
+    { label: "Confirm the transfer summary.", phase: "queued", runState: "blocked" },
   ]);
   assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
     label: "Open Session Ops.",
@@ -240,6 +240,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
     workspace: "runtime",
     ctaLabel: "Run first step",
     phase: "active",
+    runState: "runnable",
   });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, "review");
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
@@ -395,9 +396,9 @@ test("runtime session replay mirror blocks resume when approval or active workfl
     label: "1/3",
   });
   assert.deepEqual(snapshot.selectedSession.replay.nextOperatorStepPath, [
-    { label: "Open the Approvals workspace.", phase: "active" },
-    { label: "Resolve the pending approval.", phase: "queued" },
-    { label: "Reload replay for the selected session.", phase: "queued" },
+    { label: "Open the Approvals workspace.", phase: "active", runState: "runnable" },
+    { label: "Resolve the pending approval.", phase: "queued", runState: "blocked" },
+    { label: "Reload replay for the selected session.", phase: "queued", runState: "blocked" },
   ]);
   assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
     label: "Open the Approvals workspace.",
@@ -407,6 +408,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
     workspace: "approvals",
     ctaLabel: "Run first step",
     phase: "active",
+    runState: "runnable",
   });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, null);
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
@@ -540,9 +542,9 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
     label: "1/3",
   });
   assert.deepEqual(snapshot.selectedSession.replay.nextOperatorStepPath, [
-    { label: "Open Runtime Drill Runner.", phase: "active" },
-    { label: "Run the workflow recovery drill.", phase: "queued" },
-    { label: "Return to Session Ops and reload replay.", phase: "queued" },
+    { label: "Open Runtime Drill Runner.", phase: "active", runState: "runnable" },
+    { label: "Run the workflow recovery drill.", phase: "queued", runState: "blocked" },
+    { label: "Return to Session Ops and reload replay.", phase: "queued", runState: "blocked" },
   ]);
   assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
     label: "Open Runtime Drill Runner.",
@@ -552,6 +554,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
     workspace: "runtime",
     ctaLabel: "Run first step",
     phase: "active",
+    runState: "runnable",
   });
   assert.deepEqual(snapshot.selectedSession.replay.recoveryPathHint, {
     code: "workflow_failed",

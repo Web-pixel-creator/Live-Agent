@@ -22,6 +22,7 @@ type RuntimeSessionReplayNextOperatorWorkspace =
   | "runtime";
 
 type RuntimeSessionReplayStepPhase = "active" | "queued";
+type RuntimeSessionReplayStepRunState = "runnable" | "blocked";
 
 type RuntimeSessionReplayPrimaryOperatorStep = {
   label: string;
@@ -31,6 +32,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
   ctaLabel: string;
   phase: RuntimeSessionReplayStepPhase;
+  runState: RuntimeSessionReplayStepRunState;
 };
 
 type RuntimeSessionReplayStepProgress = {
@@ -42,6 +44,7 @@ type RuntimeSessionReplayStepProgress = {
 type RuntimeSessionReplayStepPathEntry = {
   label: string;
   phase: RuntimeSessionReplayStepPhase;
+  runState: RuntimeSessionReplayStepRunState;
 };
 
 export type RuntimeSessionReplayCompactEntry = {
@@ -1112,6 +1115,7 @@ function buildNextOperatorPrimaryStep(params: {
     workspace: params.nextOperatorWorkspace,
     ctaLabel: "Run first step",
     phase: "active",
+    runState: "runnable",
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
 }
 
@@ -1210,6 +1214,7 @@ function buildNextOperatorStepPath(nextOperatorChecklist: string[]): RuntimeSess
   return nextOperatorChecklist.map((label, index) => ({
     label,
     phase: index === 0 ? "active" : "queued",
+    runState: index === 0 ? "runnable" : "blocked",
   }));
 }
 
