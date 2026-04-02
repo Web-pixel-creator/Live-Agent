@@ -23,6 +23,7 @@ type RuntimeSessionReplayNextOperatorWorkspace =
 
 type RuntimeSessionReplayStepPhase = "active" | "queued";
 type RuntimeSessionReplayStepRunState = "runnable" | "blocked";
+type RuntimeSessionReplayPrimaryStepActionMode = "openable" | "executable";
 
 type RuntimeSessionReplayPrimaryOperatorStep = {
   label: string;
@@ -33,6 +34,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   ctaLabel: string;
   phase: RuntimeSessionReplayStepPhase;
   runState: RuntimeSessionReplayStepRunState;
+  actionMode: RuntimeSessionReplayPrimaryStepActionMode;
 };
 
 type RuntimeSessionReplayStepProgress = {
@@ -845,6 +847,17 @@ function buildNextOperatorWorkspace(action: string | null): RuntimeSessionReplay
   }
 }
 
+function buildNextOperatorPrimaryStepActionMode(
+  action: string | null,
+): RuntimeSessionReplayPrimaryStepActionMode {
+  switch (action) {
+    case "plan_recovery_drill":
+      return "executable";
+    default:
+      return "openable";
+  }
+}
+
 function buildApprovalGate(params: {
   latestSelectedApproval: ApprovalRecord | null;
   pendingApprovalCount: number;
@@ -1107,15 +1120,17 @@ function buildNextOperatorPrimaryStep(params: {
   if (!params.nextOperatorActionTarget) {
     return null;
   }
+  const actionMode = buildNextOperatorPrimaryStepActionMode(params.resumeMetadata.nextOperatorAction);
   return {
     label: params.nextOperatorChecklist[0] ?? "Open the next operator surface.",
     action: params.resumeMetadata.nextOperatorAction,
     targetSurface: params.nextOperatorActionTarget.targetSurface,
     targetLabel: params.nextOperatorActionTarget.targetLabel,
     workspace: params.nextOperatorWorkspace,
-    ctaLabel: "Run first step",
+    ctaLabel: actionMode === "executable" ? "Run first step" : "Open first step",
     phase: "active",
     runState: "runnable",
+    actionMode,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
 }
 

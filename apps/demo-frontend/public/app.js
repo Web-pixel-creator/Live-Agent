@@ -29563,6 +29563,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     toOptionalText(nextOperatorPrimaryStep?.runState) ??
     toOptionalText(nextOperatorStepPath[0]?.runState) ??
     (primaryStepLabel ? "runnable" : null);
+  const primaryStepActionMode = toOptionalText(nextOperatorPrimaryStep?.actionMode);
   const recoveryTargetLabel =
     toOptionalText(recoveryHandoff?.targetLabel) ??
     (toOptionalText(recoveryHandoff?.targetPanel) === "operator_workflow_control"
@@ -29588,7 +29589,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
       : boundaryNextStep ?? "Inspect the selected session before continuing.";
   const primaryStepDetail =
     primaryStepLabel
-      ? `${primaryStepLabel}${primaryStepPhase ? ` | ${primaryStepPhase}` : ""}${primaryStepRunState ? ` | ${primaryStepRunState}` : ""}${primaryStepTargetLabel ? ` | ${primaryStepTargetLabel}` : ""}${primaryStepWorkspace ? ` | ${primaryStepWorkspace}` : ""}`
+      ? `${primaryStepLabel}${primaryStepPhase ? ` | ${primaryStepPhase}` : ""}${primaryStepRunState ? ` | ${primaryStepRunState}` : ""}${primaryStepActionMode ? ` | ${primaryStepActionMode}` : ""}${primaryStepTargetLabel ? ` | ${primaryStepTargetLabel}` : ""}${primaryStepWorkspace ? ` | ${primaryStepWorkspace}` : ""}`
       : "No primary operator step loaded.";
   const stepProgressDetail =
     toOptionalText(nextOperatorStepProgress?.label)
@@ -30450,6 +30451,7 @@ function normalizeOperatorReplayPrimaryStep(value) {
     ctaLabel: toOptionalText(value.ctaLabel),
     phase: toOptionalText(value.phase),
     runState: toOptionalText(value.runState),
+    actionMode: toOptionalText(value.actionMode),
   };
 }
 
@@ -30717,6 +30719,7 @@ function buildOperatorSessionOpsControlMeta() {
     `nextWorkspace=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorWorkspace) ?? "n/a"}`,
     `firstStep=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.label) ?? "n/a"}`,
     `firstStepState=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.runState) ?? "n/a"}`,
+    `firstStepMode=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.actionMode) ?? "n/a"}`,
     `stepProgress=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorStepProgress?.label) ?? "n/a"}`,
     `stepPath=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorStepPath) ? replay.selectedSession.replay.nextOperatorStepPath.map((item) => `${toOptionalText(item?.phase) ?? "unknown"}:${toOptionalText(item?.runState) ?? "blocked"}`).join(",") || "n/a" : "n/a"}`,
     `checklist=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorChecklist) ? replay.selectedSession.replay.nextOperatorChecklist.length : 0}`,

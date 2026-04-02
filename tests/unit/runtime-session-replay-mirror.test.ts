@@ -238,9 +238,10 @@ test("runtime session replay mirror aggregates selected session replay, approval
     targetSurface: "operator_session_ops",
     targetLabel: "Operator Session Ops",
     workspace: "runtime",
-    ctaLabel: "Run first step",
+    ctaLabel: "Open first step",
     phase: "active",
     runState: "runnable",
+    actionMode: "openable",
   });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, "review");
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
@@ -406,9 +407,10 @@ test("runtime session replay mirror blocks resume when approval or active workfl
     targetSurface: "operator_saved_view_approvals",
     targetLabel: "Approvals",
     workspace: "approvals",
-    ctaLabel: "Run first step",
+    ctaLabel: "Open first step",
     phase: "active",
     runState: "runnable",
+    actionMode: "openable",
   });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, null);
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
@@ -555,6 +557,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
     ctaLabel: "Run first step",
     phase: "active",
     runState: "runnable",
+    actionMode: "executable",
   });
   assert.deepEqual(snapshot.selectedSession.replay.recoveryPathHint, {
     code: "workflow_failed",
