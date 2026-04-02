@@ -29576,6 +29576,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const primaryStepNeedsRefresh = typeof nextOperatorPrimaryStep?.needsRefresh === "boolean"
     ? nextOperatorPrimaryStep.needsRefresh
     : null;
+  const primaryStepRefreshDisposition = toOptionalText(nextOperatorPrimaryStep?.refreshDisposition);
   const primaryStepFreshness =
     primaryStepSurfaceState === "primed"
       ? primaryStepNeedsRefresh
@@ -29607,11 +29608,11 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
       : boundaryNextStep ?? "Inspect the selected session before continuing.";
   const primaryStepDetail =
     primaryStepLabel
-      ? `${primaryStepLabel}${primaryStepPhase ? ` | ${primaryStepPhase}` : ""}${primaryStepRunState ? ` | ${primaryStepRunState}` : ""}${primaryStepActionMode ? ` | ${primaryStepActionMode}` : ""}${primaryStepSurfaceState ? ` | ${primaryStepSurfaceState}` : ""}${primaryStepFreshness ? ` | ${primaryStepFreshness}` : ""}${primaryStepTargetLabel ? ` | ${primaryStepTargetLabel}` : ""}${primaryStepWorkspace ? ` | ${primaryStepWorkspace}` : ""}`
+      ? `${primaryStepLabel}${primaryStepPhase ? ` | ${primaryStepPhase}` : ""}${primaryStepRunState ? ` | ${primaryStepRunState}` : ""}${primaryStepActionMode ? ` | ${primaryStepActionMode}` : ""}${primaryStepSurfaceState ? ` | ${primaryStepSurfaceState}` : ""}${primaryStepFreshness ? ` | ${primaryStepFreshness}` : ""}${primaryStepRefreshDisposition ? ` | ${primaryStepRefreshDisposition}` : ""}${primaryStepTargetLabel ? ` | ${primaryStepTargetLabel}` : ""}${primaryStepWorkspace ? ` | ${primaryStepWorkspace}` : ""}`
       : "No primary operator step loaded.";
   const afterRefreshDetail =
     primaryStepRefreshTargetState
-      ? `${toOptionalText(primaryStepRefreshTargetState?.targetLabel) ?? "Target"}${toOptionalText(primaryStepRefreshTargetState?.stateLabel) ? ` | ${primaryStepRefreshTargetState.stateLabel}` : ""}${toOptionalText(primaryStepRefreshTargetState?.refreshScope) ? ` | ${primaryStepRefreshTargetState.refreshScope}` : ""}${toOptionalText(primaryStepRefreshTargetState?.workspace) ? ` | ${primaryStepRefreshTargetState.workspace}` : ""}`
+      ? `${toOptionalText(primaryStepRefreshTargetState?.targetLabel) ?? "Target"}${toOptionalText(primaryStepRefreshTargetState?.stateLabel) ? ` | ${primaryStepRefreshTargetState.stateLabel}` : ""}${toOptionalText(primaryStepRefreshTargetState?.refreshScope) ? ` | ${primaryStepRefreshTargetState.refreshScope}` : ""}${primaryStepRefreshDisposition ? ` | ${primaryStepRefreshDisposition}` : ""}${toOptionalText(primaryStepRefreshTargetState?.workspace) ? ` | ${primaryStepRefreshTargetState.workspace}` : ""}`
       : "No refresh handoff loaded.";
   const stepProgressDetail =
     toOptionalText(nextOperatorStepProgress?.label)
@@ -30497,6 +30498,7 @@ function normalizeOperatorReplayPrimaryStep(value) {
     actionMode: toOptionalText(value.actionMode),
     surfaceState: toOptionalText(value.surfaceState),
     needsRefresh: typeof value.needsRefresh === "boolean" ? value.needsRefresh : null,
+    refreshDisposition: toOptionalText(value.refreshDisposition),
     refreshAction: isRecord(value.refreshAction)
       ? {
           label: toOptionalText(value.refreshAction.label),
@@ -30787,6 +30789,7 @@ function buildOperatorSessionOpsControlMeta() {
     `firstStepMode=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.actionMode) ?? "n/a"}`,
     `firstStepPrime=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.surfaceState) ?? "n/a"}`,
     `firstStepFreshness=${typeof replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.needsRefresh === "boolean" ? replay.selectedSession.replay.nextOperatorPrimaryStep.needsRefresh ? "needs_refresh" : "fresh" : "n/a"}`,
+    `firstStepRefreshDisposition=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshDisposition) ?? "n/a"}`,
     `firstStepRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshAction?.action) ?? "n/a"}`,
     `firstStepAfterRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.stateLabel) ?? "n/a"}`,
     `firstStepRefreshScope=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.refreshScope) ?? "n/a"}`,

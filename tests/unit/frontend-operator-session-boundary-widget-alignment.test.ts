@@ -69,6 +69,7 @@ test("operator console exposes compact session boundary widget", () => {
     "actionMode",
     "surfaceState",
     "needsRefresh",
+    "refreshDisposition",
     "refreshAction",
     "refreshTargetState",
     "stateLabel",
@@ -85,6 +86,7 @@ test("operator console exposes compact session boundary widget", () => {
     "renderOperatorSessionBoundaryWidget(state.operatorSessionReplaySnapshot);",
     "recoveryTargetButtonLabel",
     'toOptionalText(primaryStepRefreshAction?.ctaLabel) ??',
+    "primaryStepRefreshDisposition",
     "primaryStepRefreshTargetState",
     "afterRefreshDetail",
     "refresh_session_replay",
@@ -97,8 +99,8 @@ test("operator console exposes compact session boundary widget", () => {
   }
 
   assert.ok(readmeSource.includes("`Session Boundary`"), "README missing Session Boundary card note");
-  assert.match(readmeSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay|refresh target state|refresh scope|after refresh|latest gate state|gate|boundary|proof|recovery/i);
+  assert.match(readmeSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh disposition|silent_rehydrate|reopen_then_refresh|reload_before_run|refresh action|refresh first|refresh replay|refresh target state|refresh scope|after refresh|latest gate state|gate|boundary|proof|recovery/i);
   assert.ok(operatorGuideSource.includes("`Session Boundary`"), "operator guide missing Session Boundary card note");
-  assert.match(operatorGuideSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay|refresh target state|refresh scope|after refresh|latest gate state|gate|boundary|proof|recovery/i);
-  assert.match(architectureSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh action|refresh first|refresh replay|refresh target state|refresh scope|after refresh|latest gate state|gate|boundary|proof|recovery/i);
+  assert.match(operatorGuideSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh disposition|silent_rehydrate|reopen_then_refresh|reload_before_run|refresh action|refresh first|refresh replay|refresh target state|refresh scope|after refresh|latest gate state|gate|boundary|proof|recovery/i);
+  assert.match(architectureSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh disposition|silent_rehydrate|reopen_then_refresh|reload_before_run|refresh action|refresh first|refresh replay|refresh target state|refresh scope|after refresh|latest gate state|gate|boundary|proof|recovery/i);
 });

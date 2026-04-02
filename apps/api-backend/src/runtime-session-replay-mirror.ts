@@ -25,6 +25,10 @@ type RuntimeSessionReplayStepPhase = "active" | "queued";
 type RuntimeSessionReplayStepRunState = "runnable" | "blocked";
 type RuntimeSessionReplayPrimaryStepActionMode = "openable" | "executable";
 type RuntimeSessionReplayPrimaryStepSurfaceState = "primed" | "not_primed";
+type RuntimeSessionReplayPrimaryRefreshDisposition =
+  | "silent_rehydrate"
+  | "reopen_then_refresh"
+  | "reload_before_run";
 
 type RuntimeSessionReplayPrimaryRefreshAction = {
   label: string;
@@ -56,6 +60,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   actionMode: RuntimeSessionReplayPrimaryStepActionMode;
   surfaceState: RuntimeSessionReplayPrimaryStepSurfaceState;
   needsRefresh: boolean;
+  refreshDisposition: RuntimeSessionReplayPrimaryRefreshDisposition | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -990,6 +995,25 @@ function buildNextOperatorPrimaryStepRefreshAction(params: {
   };
 }
 
+function buildNextOperatorPrimaryStepRefreshDisposition(params: {
+  needsRefresh: boolean;
+  nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshDisposition | null {
+  if (!params.needsRefresh) {
+    return null;
+  }
+  switch (params.nextOperatorActionTarget?.targetSurface) {
+    case "operator_saved_view_approvals":
+    case "operator_workflow_control":
+      return "reopen_then_refresh";
+    case "operator_runtime_drills":
+      return "reload_before_run";
+    case "operator_session_ops":
+    default:
+      return "silent_rehydrate";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1337,6 +1361,10 @@ function buildNextOperatorPrimaryStep(params: {
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
   });
+  const refreshDisposition = buildNextOperatorPrimaryStepRefreshDisposition({
+    needsRefresh,
+    nextOperatorActionTarget: params.nextOperatorActionTarget,
+  });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -1356,6 +1384,7 @@ function buildNextOperatorPrimaryStep(params: {
     actionMode,
     surfaceState,
     needsRefresh,
+    refreshDisposition,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
