@@ -24,6 +24,7 @@ type RuntimeSessionReplayNextOperatorWorkspace =
 type RuntimeSessionReplayStepPhase = "active" | "queued";
 type RuntimeSessionReplayStepRunState = "runnable" | "blocked";
 type RuntimeSessionReplayPrimaryStepActionMode = "openable" | "executable";
+type RuntimeSessionReplayPrimaryStepSurfaceState = "primed" | "not_primed";
 
 type RuntimeSessionReplayPrimaryOperatorStep = {
   label: string;
@@ -35,6 +36,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   phase: RuntimeSessionReplayStepPhase;
   runState: RuntimeSessionReplayStepRunState;
   actionMode: RuntimeSessionReplayPrimaryStepActionMode;
+  surfaceState: RuntimeSessionReplayPrimaryStepSurfaceState;
 };
 
 type RuntimeSessionReplayStepProgress = {
@@ -858,6 +860,35 @@ function buildNextOperatorPrimaryStepActionMode(
   }
 }
 
+function buildNextOperatorPrimaryStepSurfaceState(params: {
+  nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
+  approvalGate: ReturnType<typeof buildApprovalGate>;
+  workflowBoundarySummary: ReturnType<typeof buildWorkflowBoundarySummary>;
+  recoveryDrill: ReturnType<typeof buildRecoveryDrill>;
+  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+  latestProofPointer: ReturnType<typeof buildLatestProofPointer>;
+  selectedSessionId: string | null;
+  selectedSessionFound: boolean;
+}): RuntimeSessionReplayPrimaryStepSurfaceState {
+  switch (params.nextOperatorActionTarget?.targetSurface) {
+    case "operator_saved_view_approvals":
+      return params.approvalGate?.pendingCount && params.approvalGate.pendingCount > 0 ? "primed" : "not_primed";
+    case "operator_workflow_control":
+      return params.workflowBoundarySummary ? "primed" : "not_primed";
+    case "operator_runtime_drills":
+      return params.recoveryDrill ? "primed" : "not_primed";
+    case "operator_session_ops":
+      return params.selectedSessionFound &&
+        (params.currentHandoffState !== null || params.latestProofPointer !== null || params.workflowBoundarySummary !== null)
+        ? "primed"
+        : params.selectedSessionId
+          ? "not_primed"
+          : "not_primed";
+    default:
+      return "not_primed";
+  }
+}
+
 function buildApprovalGate(params: {
   latestSelectedApproval: ApprovalRecord | null;
   pendingApprovalCount: number;
@@ -1116,11 +1147,28 @@ function buildNextOperatorPrimaryStep(params: {
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
   nextOperatorWorkspace: RuntimeSessionReplayNextOperatorWorkspace | null;
   nextOperatorChecklist: string[];
+  approvalGate: ReturnType<typeof buildApprovalGate>;
+  workflowBoundarySummary: ReturnType<typeof buildWorkflowBoundarySummary>;
+  recoveryDrill: ReturnType<typeof buildRecoveryDrill>;
+  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+  latestProofPointer: ReturnType<typeof buildLatestProofPointer>;
+  selectedSessionId: string | null;
+  selectedSessionFound: boolean;
 }): RuntimeSessionReplayPrimaryOperatorStep | null {
   if (!params.nextOperatorActionTarget) {
     return null;
   }
   const actionMode = buildNextOperatorPrimaryStepActionMode(params.resumeMetadata.nextOperatorAction);
+  const surfaceState = buildNextOperatorPrimaryStepSurfaceState({
+    nextOperatorActionTarget: params.nextOperatorActionTarget,
+    approvalGate: params.approvalGate,
+    workflowBoundarySummary: params.workflowBoundarySummary,
+    recoveryDrill: params.recoveryDrill,
+    currentHandoffState: params.currentHandoffState,
+    latestProofPointer: params.latestProofPointer,
+    selectedSessionId: params.selectedSessionId,
+    selectedSessionFound: params.selectedSessionFound,
+  });
   return {
     label: params.nextOperatorChecklist[0] ?? "Open the next operator surface.",
     action: params.resumeMetadata.nextOperatorAction,
@@ -1131,6 +1179,7 @@ function buildNextOperatorPrimaryStep(params: {
     phase: "active",
     runState: "runnable",
     actionMode,
+    surfaceState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
 }
 
@@ -1333,12 +1382,6 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
   const nextOperatorRemainingSteps = buildNextOperatorRemainingSteps(nextOperatorChecklist);
   const nextOperatorStepProgress = buildNextOperatorStepProgress(nextOperatorChecklist);
   const nextOperatorStepPath = buildNextOperatorStepPath(nextOperatorChecklist);
-  const nextOperatorPrimaryStep = buildNextOperatorPrimaryStep({
-    resumeMetadata,
-    nextOperatorActionTarget,
-    nextOperatorWorkspace,
-    nextOperatorChecklist,
-  });
   const boundaryOwner = buildBoundaryOwner({
     selectedSessionId,
     workflowLinked,
@@ -1361,6 +1404,19 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
     resumeMetadata,
     workflowSummary,
     workflowBoundarySummary,
+  });
+  const nextOperatorPrimaryStep = buildNextOperatorPrimaryStep({
+    resumeMetadata,
+    nextOperatorActionTarget,
+    nextOperatorWorkspace,
+    nextOperatorChecklist,
+    approvalGate,
+    workflowBoundarySummary,
+    recoveryDrill,
+    currentHandoffState,
+    latestProofPointer,
+    selectedSessionId,
+    selectedSessionFound: selectedSession !== null,
   });
 
   return {

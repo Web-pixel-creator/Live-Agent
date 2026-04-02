@@ -242,6 +242,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
     phase: "active",
     runState: "runnable",
     actionMode: "openable",
+    surfaceState: "primed",
   });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, "review");
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
@@ -411,6 +412,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
     phase: "active",
     runState: "runnable",
     actionMode: "openable",
+    surfaceState: "primed",
   });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, null);
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
@@ -558,6 +560,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
     phase: "active",
     runState: "runnable",
     actionMode: "executable",
+    surfaceState: "primed",
   });
   assert.deepEqual(snapshot.selectedSession.replay.recoveryPathHint, {
     code: "workflow_failed",
@@ -577,5 +580,34 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
     service: "orchestrator",
     reason: "Specialist transfer stalled",
     action: "plan_recovery_drill",
+  });
+});
+
+test("runtime session replay mirror marks the first step as not_primed when no tracked session is loaded", () => {
+  const snapshot = buildRuntimeSessionReplayMirrorSnapshot({
+    sessions: [],
+    runs: [],
+    approvals: [],
+    recentEvents: [],
+    selectedEvents: [],
+    selectedSessionId: "session-missing",
+    workflowSummary: null,
+  });
+
+  assert.equal(snapshot.selectedSessionId, "session-missing");
+  assert.equal(snapshot.selectedSession.foundInSessionIndex, false);
+  assert.equal(snapshot.selectedSession.replay.resumeReady, false);
+  assert.equal(snapshot.selectedSession.replay.resumeBlockedBy, "session_missing");
+  assert.deepEqual(snapshot.selectedSession.replay.nextOperatorPrimaryStep, {
+    label: "Open Session Ops.",
+    action: "inspect_session",
+    targetSurface: "operator_session_ops",
+    targetLabel: "Operator Session Ops",
+    workspace: "runtime",
+    ctaLabel: "Open first step",
+    phase: "active",
+    runState: "runnable",
+    actionMode: "openable",
+    surfaceState: "not_primed",
   });
 });

@@ -83,6 +83,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "nextOperatorRemainingSteps",
     "nextOperatorPrimaryStep",
     "actionMode",
+    "surfaceState",
     "nextOperatorStepProgress",
     "nextOperatorStepPath",
     "runState",
@@ -107,6 +108,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "firstStep=",
     "firstStepState=",
     "firstStepMode=",
+    "firstStepPrime=",
     "stepProgress=",
     "stepPath=",
     "checklist=",
@@ -132,10 +134,10 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.ok(readmeSource.includes("`Operator Session Ops`"), "README missing session-ops panel note");
   assert.ok(readmeSource.includes("`operatorPurpose`"), "README missing operatorPurpose note");
   assert.ok(readmeSource.includes("`GET /v1/runtime/session-replay`"), "README missing session replay API note");
-  assert.match(readmeSource, /resume-ready|latest verified proof pointer|handoff|workflow boundary|recovery path|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|open first step|run first step/i);
+  assert.match(readmeSource, /resume-ready|latest verified proof pointer|handoff|workflow boundary|recovery path|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|open first step|run first step/i);
   assert.ok(readmeSource.includes("`GET /v1/skills/personas`"), "README missing persona discovery API note");
   assert.ok(operatorGuideSource.includes("`Operator Session Ops`"), "operator guide missing session-ops panel note");
   assert.ok(operatorGuideSource.includes("`operatorPurpose`"), "operator guide missing operator purpose note");
   assert.ok(operatorGuideSource.includes("`GET /v1/runtime/session-replay`"), "operator guide missing session replay note");
-  assert.match(operatorGuideSource, /resume-ready|latest verified proof pointer|handoff|workflow boundary|recovery path|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|open first step|run first step/i);
+  assert.match(operatorGuideSource, /resume-ready|latest verified proof pointer|handoff|workflow boundary|recovery path|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|open first step|run first step/i);
 });
