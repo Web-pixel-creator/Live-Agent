@@ -24,6 +24,7 @@ test("operator console exposes compact session boundary widget", () => {
     'id="operatorSessionBoundaryOwner"',
     'id="operatorSessionBoundaryApprovalGate"',
     'id="operatorSessionBoundaryNextAction"',
+    'id="operatorSessionBoundaryPrimaryStep"',
     'id="operatorSessionBoundaryChecklist"',
     'id="operatorSessionBoundaryLatestProof"',
     'id="operatorSessionBoundaryRecovery"',
@@ -43,6 +44,7 @@ test("operator console exposes compact session boundary widget", () => {
     'operatorSessionBoundaryOwner: document.getElementById("operatorSessionBoundaryOwner")',
     'operatorSessionBoundaryApprovalGate: document.getElementById("operatorSessionBoundaryApprovalGate")',
     'operatorSessionBoundaryNextAction: document.getElementById("operatorSessionBoundaryNextAction")',
+    'operatorSessionBoundaryPrimaryStep: document.getElementById("operatorSessionBoundaryPrimaryStep")',
     'operatorSessionBoundaryChecklist: document.getElementById("operatorSessionBoundaryChecklist")',
     'operatorSessionBoundaryLatestProof: document.getElementById("operatorSessionBoundaryLatestProof")',
     'operatorSessionBoundaryRecovery: document.getElementById("operatorSessionBoundaryRecovery")',
@@ -58,6 +60,7 @@ test("operator console exposes compact session boundary widget", () => {
     "nextOperatorActionTarget",
     "nextOperatorWorkspace",
     "nextOperatorChecklist",
+    "nextOperatorPrimaryStep",
     "workflowBoundarySummary",
     "latestProofPointer",
     "recoveryPathHint",
@@ -66,7 +69,7 @@ test("operator console exposes compact session boundary widget", () => {
     "latestVerifiedStage",
     "renderOperatorSessionBoundaryWidget(state.operatorSessionReplaySnapshot);",
     "recoveryTargetButtonLabel",
-    'el.operatorSessionBoundaryOpenBtn.textContent = recoveryTargetButtonLabel;',
+    'toOptionalText(nextOperatorPrimaryStep?.ctaLabel) ?? recoveryTargetButtonLabel',
     "openOperatorSessionBoundaryTarget();",
   ];
   for (const token of requiredRuntimeTokens) {
@@ -74,8 +77,8 @@ test("operator console exposes compact session boundary widget", () => {
   }
 
   assert.ok(readmeSource.includes("`Session Boundary`"), "README missing Session Boundary card note");
-  assert.match(readmeSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist/i);
+  assert.match(readmeSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|primary step|run first step/i);
   assert.ok(operatorGuideSource.includes("`Session Boundary`"), "operator guide missing Session Boundary card note");
-  assert.match(operatorGuideSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist/i);
+  assert.match(operatorGuideSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist|primary step|run first step/i);
   assert.match(architectureSource, /Session Boundary/);
 });

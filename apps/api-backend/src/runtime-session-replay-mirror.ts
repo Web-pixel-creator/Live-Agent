@@ -21,6 +21,15 @@ type RuntimeSessionReplayNextOperatorWorkspace =
   | "approvals"
   | "runtime";
 
+type RuntimeSessionReplayPrimaryOperatorStep = {
+  label: string;
+  action: string | null;
+  targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"];
+  targetLabel: string;
+  workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
+  ctaLabel: string;
+};
+
 export type RuntimeSessionReplayCompactEntry = {
   sessionId: string;
   mode: string;
@@ -118,6 +127,7 @@ export type RuntimeSessionReplaySnapshot = {
       nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
       nextOperatorWorkspace: RuntimeSessionReplayNextOperatorWorkspace | null;
       nextOperatorChecklist: string[];
+      nextOperatorPrimaryStep: RuntimeSessionReplayPrimaryOperatorStep | null;
       latestVerifiedStage: string | null;
       boundaryOwner: {
         role: string | null;
@@ -1068,6 +1078,25 @@ function buildNextOperatorChecklist(params: {
   ];
 }
 
+function buildNextOperatorPrimaryStep(params: {
+  resumeMetadata: ReturnType<typeof buildResumeMetadata>;
+  nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
+  nextOperatorWorkspace: RuntimeSessionReplayNextOperatorWorkspace | null;
+  nextOperatorChecklist: string[];
+}): RuntimeSessionReplayPrimaryOperatorStep | null {
+  if (!params.nextOperatorActionTarget) {
+    return null;
+  }
+  return {
+    label: params.nextOperatorChecklist[0] ?? "Open the next operator surface.",
+    action: params.resumeMetadata.nextOperatorAction,
+    targetSurface: params.nextOperatorActionTarget.targetSurface,
+    targetLabel: params.nextOperatorActionTarget.targetLabel,
+    workspace: params.nextOperatorWorkspace,
+    ctaLabel: "Run first step",
+  } satisfies RuntimeSessionReplayPrimaryOperatorStep;
+}
+
 function buildReplayState(params: {
   verifiedRuns: number;
   pendingApprovalCount: number;
@@ -1240,6 +1269,12 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
     currentHandoffState,
     latestProofPointer,
   });
+  const nextOperatorPrimaryStep = buildNextOperatorPrimaryStep({
+    resumeMetadata,
+    nextOperatorActionTarget,
+    nextOperatorWorkspace,
+    nextOperatorChecklist,
+  });
   const boundaryOwner = buildBoundaryOwner({
     selectedSessionId,
     workflowLinked,
@@ -1312,6 +1347,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         nextOperatorActionTarget,
         nextOperatorWorkspace,
         nextOperatorChecklist,
+        nextOperatorPrimaryStep,
         latestVerifiedStage: latestProofPointer?.workflowStage ?? null,
         boundaryOwner,
         approvalGate,
