@@ -66,6 +66,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshOutcomeLabel: string | null;
   refreshConfidence: RuntimeSessionReplayPrimaryRefreshConfidence | null;
   refreshDetourHint: string | null;
+  refreshEscalationHint: string | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1106,6 +1107,26 @@ function buildNextOperatorPrimaryStepRefreshDetourHint(params: {
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationHint(params: {
+  needsRefresh: boolean;
+  nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
+}): string | null {
+  if (!params.needsRefresh) {
+    return null;
+  }
+  switch (params.nextOperatorActionTarget?.targetSurface) {
+    case "operator_saved_view_approvals":
+      return "Escalate through Workflow Control if the approval gate still blocks after the refresh detour.";
+    case "operator_workflow_control":
+      return "Escalate through Runtime Drill Runner if the workflow boundary still blocks after refresh.";
+    case "operator_runtime_drills":
+      return "Escalate to the workflow owner if recovery still fails after the refresh and drill rerun.";
+    case "operator_session_ops":
+    default:
+      return null;
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1477,6 +1498,10 @@ function buildNextOperatorPrimaryStep(params: {
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
   });
+  const refreshEscalationHint = buildNextOperatorPrimaryStepRefreshEscalationHint({
+    needsRefresh,
+    nextOperatorActionTarget: params.nextOperatorActionTarget,
+  });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -1501,6 +1526,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshOutcomeLabel,
     refreshConfidence,
     refreshDetourHint,
+    refreshEscalationHint,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
