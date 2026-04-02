@@ -24,6 +24,7 @@ test("operator console exposes compact session boundary widget", () => {
     'id="operatorSessionBoundaryOwner"',
     'id="operatorSessionBoundaryApprovalGate"',
     'id="operatorSessionBoundaryNextAction"',
+    'id="operatorSessionBoundaryChecklist"',
     'id="operatorSessionBoundaryLatestProof"',
     'id="operatorSessionBoundaryRecovery"',
     'id="operatorSessionBoundaryHandoff"',
@@ -42,6 +43,7 @@ test("operator console exposes compact session boundary widget", () => {
     'operatorSessionBoundaryOwner: document.getElementById("operatorSessionBoundaryOwner")',
     'operatorSessionBoundaryApprovalGate: document.getElementById("operatorSessionBoundaryApprovalGate")',
     'operatorSessionBoundaryNextAction: document.getElementById("operatorSessionBoundaryNextAction")',
+    'operatorSessionBoundaryChecklist: document.getElementById("operatorSessionBoundaryChecklist")',
     'operatorSessionBoundaryLatestProof: document.getElementById("operatorSessionBoundaryLatestProof")',
     'operatorSessionBoundaryRecovery: document.getElementById("operatorSessionBoundaryRecovery")',
     'operatorSessionBoundaryHandoff: document.getElementById("operatorSessionBoundaryHandoff")',
@@ -55,6 +57,7 @@ test("operator console exposes compact session boundary widget", () => {
     "nextOperatorActionLabel",
     "nextOperatorActionTarget",
     "nextOperatorWorkspace",
+    "nextOperatorChecklist",
     "workflowBoundarySummary",
     "latestProofPointer",
     "recoveryPathHint",
@@ -71,8 +74,8 @@ test("operator console exposes compact session boundary widget", () => {
   }
 
   assert.ok(readmeSource.includes("`Session Boundary`"), "README missing Session Boundary card note");
-  assert.match(readmeSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace/i);
+  assert.match(readmeSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist/i);
   assert.ok(operatorGuideSource.includes("`Session Boundary`"), "operator guide missing Session Boundary card note");
-  assert.match(operatorGuideSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace/i);
+  assert.match(operatorGuideSource, /approval gate|boundary owner|recovery path|recovery drill|next action target|next operator workspace|checklist/i);
   assert.match(architectureSource, /Session Boundary/);
 });

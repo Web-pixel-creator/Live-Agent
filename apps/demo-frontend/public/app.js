@@ -3781,6 +3781,7 @@ const el = {
   operatorSessionBoundaryOwner: document.getElementById("operatorSessionBoundaryOwner"),
   operatorSessionBoundaryApprovalGate: document.getElementById("operatorSessionBoundaryApprovalGate"),
   operatorSessionBoundaryNextAction: document.getElementById("operatorSessionBoundaryNextAction"),
+  operatorSessionBoundaryChecklist: document.getElementById("operatorSessionBoundaryChecklist"),
   operatorSessionBoundaryLatestProof: document.getElementById("operatorSessionBoundaryLatestProof"),
   operatorSessionBoundaryRecovery: document.getElementById("operatorSessionBoundaryRecovery"),
   operatorSessionBoundaryHandoff: document.getElementById("operatorSessionBoundaryHandoff"),
@@ -25040,6 +25041,7 @@ function buildSessionExportOperatorSessionReplay() {
     nextOperatorActionLabel: toOptionalText(replay?.nextOperatorActionLabel),
     nextOperatorActionTarget: isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null,
     nextOperatorWorkspace: toOptionalText(replay?.nextOperatorWorkspace),
+    nextOperatorChecklist: Array.isArray(replay?.nextOperatorChecklist) ? replay.nextOperatorChecklist : [],
     latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
     boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
     approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,
@@ -27781,6 +27783,7 @@ function resetOperatorSessionBoundaryWidget(reason = "no_data") {
   setText(el.operatorSessionBoundaryOwner, "n/a");
   setText(el.operatorSessionBoundaryApprovalGate, "n/a");
   setText(el.operatorSessionBoundaryNextAction, "n/a");
+  setText(el.operatorSessionBoundaryChecklist, "n/a");
   setText(el.operatorSessionBoundaryLatestProof, "n/a");
   setText(el.operatorSessionBoundaryRecovery, "n/a");
   setText(el.operatorSessionBoundaryHandoff, "n/a");
@@ -29467,6 +29470,9 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const recoveryHandoff = isRecord(replay?.recoveryHandoff) ? replay.recoveryHandoff : null;
   const recoveryDrill = isRecord(replay?.recoveryDrill) ? replay.recoveryDrill : null;
   const nextActionTarget = isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null;
+  const nextOperatorChecklist = Array.isArray(replay?.nextOperatorChecklist)
+    ? replay.nextOperatorChecklist.filter((item) => typeof item === "string" && item.trim().length > 0)
+    : [];
   const currentHandoffState = isRecord(replay?.currentHandoffState) ? replay.currentHandoffState : null;
   const boundaryOwnerRecord = isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null;
   const approvalGate = isRecord(replay?.approvalGate) ? replay.approvalGate : null;
@@ -29546,6 +29552,10 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     nextOperatorActionLabel
       ? `${nextOperatorActionLabel}${nextOperatorActionTargetLabel ? ` | ${nextOperatorActionTargetLabel}` : ""}`
       : boundaryNextStep ?? "Inspect the selected session before continuing.";
+  const checklistDetail =
+    nextOperatorChecklist.length > 0
+      ? nextOperatorChecklist.join(" -> ")
+      : "No operator checklist loaded.";
   const recoveryDrillDetail = recoveryDrill
     ? `${toOptionalText(recoveryDrill.label) ?? "Recovery drill"}${toOptionalText(recoveryDrill.profileId) ? ` | ${recoveryDrill.profileId}/${toOptionalText(recoveryDrill.phase) ?? "recovery"}` : ""}`
     : null;
@@ -29579,6 +29589,10 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   setText(
     el.operatorSessionBoundaryNextAction,
     nextActionDetail,
+  );
+  setText(
+    el.operatorSessionBoundaryChecklist,
+    checklistDetail,
   );
   setText(
     el.operatorSessionBoundaryLatestProof,
@@ -30309,6 +30323,15 @@ function normalizeOperatorReplayNextActionTarget(value) {
   };
 }
 
+function normalizeOperatorReplayChecklist(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((item) => toOptionalText(item))
+    .filter((item) => item !== null);
+}
+
 function normalizeOperatorReplayRecoveryHandoff(value) {
   if (!isRecord(value)) {
     return null;
@@ -30400,6 +30423,7 @@ function buildOperatorSessionReplaySnapshot(value) {
           selectedSessionRecord.replay.nextOperatorActionTarget,
         ),
         nextOperatorWorkspace: toOptionalText(selectedSessionRecord.replay.nextOperatorWorkspace),
+        nextOperatorChecklist: normalizeOperatorReplayChecklist(selectedSessionRecord.replay.nextOperatorChecklist),
         latestVerifiedStage: toOptionalText(selectedSessionRecord.replay.latestVerifiedStage),
         boundaryOwner: normalizeOperatorReplayBoundaryOwner(selectedSessionRecord.replay.boundaryOwner),
         approvalGate: normalizeOperatorReplayApprovalGate(selectedSessionRecord.replay.approvalGate),
@@ -30558,6 +30582,7 @@ function buildOperatorSessionOpsControlMeta() {
     `nextAction=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionLabel) ?? toOptionalText(replay?.selectedSession?.replay?.nextOperatorAction) ?? "n/a"}`,
     `nextTarget=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionTarget?.targetLabel) ?? toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionTarget?.targetSurface) ?? "n/a"}`,
     `nextWorkspace=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorWorkspace) ?? "n/a"}`,
+    `checklist=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorChecklist) ? replay.selectedSession.replay.nextOperatorChecklist.length : 0}`,
     `personas=${Math.max(0, Math.floor(Number(discovery?.totalPersonas ?? 0) || 0))}`,
     `recipes=${Math.max(0, Math.floor(Number(discovery?.totalRecipes ?? 0) || 0))}`,
     `agents=${Array.isArray(discovery?.agentIds) ? discovery.agentIds.join(",") || "none" : "none"}`,
@@ -30600,6 +30625,7 @@ function buildOperatorSessionOpsReplayPreview() {
       nextOperatorActionLabel: toOptionalText(replay?.nextOperatorActionLabel),
       nextOperatorActionTarget: isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null,
       nextOperatorWorkspace: toOptionalText(replay?.nextOperatorWorkspace),
+      nextOperatorChecklist: Array.isArray(replay?.nextOperatorChecklist) ? replay.nextOperatorChecklist : [],
       latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
       boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
       approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,

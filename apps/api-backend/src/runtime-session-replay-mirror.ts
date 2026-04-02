@@ -117,6 +117,7 @@ export type RuntimeSessionReplaySnapshot = {
       nextOperatorActionLabel: string | null;
       nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
       nextOperatorWorkspace: RuntimeSessionReplayNextOperatorWorkspace | null;
+      nextOperatorChecklist: string[];
       latestVerifiedStage: string | null;
       boundaryOwner: {
         role: string | null;
@@ -999,6 +1000,74 @@ function buildRecoveryHandoff(params: {
   };
 }
 
+function buildNextOperatorChecklist(params: {
+  resumeMetadata: ReturnType<typeof buildResumeMetadata>;
+  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+  latestProofPointer: ReturnType<typeof buildLatestProofPointer>;
+}) {
+  if (params.resumeMetadata.resumeBlockedBy === "approval_pending") {
+    return [
+      "Open the Approvals workspace.",
+      "Resolve the pending approval.",
+      "Reload replay for the selected session.",
+    ];
+  }
+  if (params.resumeMetadata.resumeBlockedBy === "workflow_pending_approval") {
+    return [
+      "Open the Approvals workspace.",
+      "Resolve the workflow approval gate.",
+      "Return to runtime replay and reload the boundary.",
+    ];
+  }
+  if (params.resumeMetadata.resumeBlockedBy === "workflow_active") {
+    return [
+      "Open Workflow Control.",
+      "Inspect the live workflow boundary.",
+      "Reload replay after the boundary settles.",
+    ];
+  }
+  if (params.resumeMetadata.resumeBlockedBy === "workflow_failed") {
+    return [
+      "Open Runtime Drill Runner.",
+      "Run the workflow recovery drill.",
+      "Return to Session Ops and reload replay.",
+    ];
+  }
+  if (params.currentHandoffState?.kind === "handoff") {
+    return [
+      "Open Session Ops.",
+      params.currentHandoffState.ready ? "Resume the handoff package." : "Inspect the handoff boundary.",
+      "Confirm the transfer summary.",
+    ];
+  }
+  if (params.currentHandoffState?.kind === "follow_up") {
+    return [
+      "Open Session Ops.",
+      params.currentHandoffState.ready ? "Resume the follow-up path." : "Inspect the follow-up boundary.",
+      "Verify the next protected step.",
+    ];
+  }
+  if (params.currentHandoffState?.kind === "booking") {
+    return [
+      "Open Session Ops.",
+      params.currentHandoffState.status === "offered" ? "Confirm the offered booking slot." : "Resume the booking boundary.",
+      "Reload the booking boundary after confirmation.",
+    ];
+  }
+  if (params.latestProofPointer) {
+    return [
+      "Open Session Ops.",
+      "Resume from the latest proof.",
+      "Continue the next protected step.",
+    ];
+  }
+  return [
+    "Open Session Ops.",
+    "Inspect the selected session.",
+    "Resume the current workflow boundary.",
+  ];
+}
+
 function buildReplayState(params: {
   verifiedRuns: number;
   pendingApprovalCount: number;
@@ -1166,6 +1235,11 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
   const nextOperatorActionLabel = buildNextOperatorActionLabel(resumeMetadata.nextOperatorAction);
   const nextOperatorActionTarget = buildNextOperatorActionTarget(resumeMetadata.nextOperatorAction);
   const nextOperatorWorkspace = buildNextOperatorWorkspace(resumeMetadata.nextOperatorAction);
+  const nextOperatorChecklist = buildNextOperatorChecklist({
+    resumeMetadata,
+    currentHandoffState,
+    latestProofPointer,
+  });
   const boundaryOwner = buildBoundaryOwner({
     selectedSessionId,
     workflowLinked,
@@ -1237,6 +1311,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         nextOperatorActionLabel,
         nextOperatorActionTarget,
         nextOperatorWorkspace,
+        nextOperatorChecklist,
         latestVerifiedStage: latestProofPointer?.workflowStage ?? null,
         boundaryOwner,
         approvalGate,
