@@ -25049,6 +25049,7 @@ function buildSessionExportOperatorSessionReplay() {
       : [],
     nextOperatorPrimaryStep: isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null,
     nextOperatorStepProgress: isRecord(replay?.nextOperatorStepProgress) ? replay.nextOperatorStepProgress : null,
+    nextOperatorStepPath: Array.isArray(replay?.nextOperatorStepPath) ? replay.nextOperatorStepPath : [],
     latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
     boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
     approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,
@@ -29481,6 +29482,9 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const nextActionTarget = isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null;
   const nextOperatorPrimaryStep = isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null;
   const nextOperatorStepProgress = isRecord(replay?.nextOperatorStepProgress) ? replay.nextOperatorStepProgress : null;
+  const nextOperatorStepPath = Array.isArray(replay?.nextOperatorStepPath)
+    ? replay.nextOperatorStepPath.filter((item) => isRecord(item))
+    : [];
   const nextOperatorRemainingSteps = Array.isArray(replay?.nextOperatorRemainingSteps)
     ? replay.nextOperatorRemainingSteps.filter((item) => typeof item === "string" && item.trim().length > 0)
     : [];
@@ -29551,6 +29555,10 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     nextOperatorActionTargetLabel;
   const primaryStepWorkspace =
     toOptionalText(nextOperatorPrimaryStep?.workspace) ?? toOptionalText(replay?.nextOperatorWorkspace);
+  const primaryStepPhase =
+    toOptionalText(nextOperatorPrimaryStep?.phase) ??
+    toOptionalText(nextOperatorStepPath[0]?.phase) ??
+    (primaryStepLabel ? "active" : null);
   const recoveryTargetLabel =
     toOptionalText(recoveryHandoff?.targetLabel) ??
     (toOptionalText(recoveryHandoff?.targetPanel) === "operator_workflow_control"
@@ -29576,14 +29584,20 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
       : boundaryNextStep ?? "Inspect the selected session before continuing.";
   const primaryStepDetail =
     primaryStepLabel
-      ? `${primaryStepLabel}${primaryStepTargetLabel ? ` | ${primaryStepTargetLabel}` : ""}${primaryStepWorkspace ? ` | ${primaryStepWorkspace}` : ""}`
+      ? `${primaryStepLabel}${primaryStepPhase ? ` | ${primaryStepPhase}` : ""}${primaryStepTargetLabel ? ` | ${primaryStepTargetLabel}` : ""}${primaryStepWorkspace ? ` | ${primaryStepWorkspace}` : ""}`
       : "No primary operator step loaded.";
   const stepProgressDetail =
-    toOptionalText(nextOperatorStepProgress?.label) ??
-    (nextOperatorRemainingSteps.length > 0 || primaryStepLabel ? "1/1" : "n/a");
+    toOptionalText(nextOperatorStepProgress?.label)
+      ? `${toOptionalText(nextOperatorStepProgress?.label)}${nextOperatorStepPath.length > 0 ? ` | ${nextOperatorStepPath.map((item) => toOptionalText(item.phase) ?? "unknown").join(" -> ")}` : ""}`
+      : nextOperatorStepPath.length > 0
+        ? `1/${nextOperatorStepPath.length} | ${nextOperatorStepPath.map((item) => toOptionalText(item.phase) ?? "unknown").join(" -> ")}`
+        : "n/a";
   const checklistDetail =
     nextOperatorRemainingSteps.length > 0
-      ? nextOperatorRemainingSteps.join(" -> ")
+      ? nextOperatorStepPath
+          .slice(1)
+          .map((item, index) => `${toOptionalText(item?.phase) ?? "queued"}: ${nextOperatorRemainingSteps[index] ?? toOptionalText(item?.label) ?? "step"}`)
+          .join(" -> ")
       : primaryStepLabel
         ? "No remaining steps after the primary step."
         : "No operator checklist loaded.";
@@ -30401,6 +30415,23 @@ function normalizeOperatorReplayStepProgress(value) {
   };
 }
 
+function normalizeOperatorReplayStepPath(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((item) => {
+      if (!isRecord(item)) {
+        return null;
+      }
+      return {
+        label: toOptionalText(item.label),
+        phase: toOptionalText(item.phase),
+      };
+    })
+    .filter((item) => item !== null);
+}
+
 function normalizeOperatorReplayPrimaryStep(value) {
   if (!isRecord(value)) {
     return null;
@@ -30412,6 +30443,7 @@ function normalizeOperatorReplayPrimaryStep(value) {
     targetLabel: toOptionalText(value.targetLabel),
     workspace: toOptionalText(value.workspace),
     ctaLabel: toOptionalText(value.ctaLabel),
+    phase: toOptionalText(value.phase),
   };
 }
 
@@ -30515,6 +30547,9 @@ function buildOperatorSessionReplaySnapshot(value) {
         ),
         nextOperatorStepProgress: normalizeOperatorReplayStepProgress(
           selectedSessionRecord.replay.nextOperatorStepProgress,
+        ),
+        nextOperatorStepPath: normalizeOperatorReplayStepPath(
+          selectedSessionRecord.replay.nextOperatorStepPath,
         ),
         latestVerifiedStage: toOptionalText(selectedSessionRecord.replay.latestVerifiedStage),
         boundaryOwner: normalizeOperatorReplayBoundaryOwner(selectedSessionRecord.replay.boundaryOwner),
@@ -30676,6 +30711,7 @@ function buildOperatorSessionOpsControlMeta() {
     `nextWorkspace=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorWorkspace) ?? "n/a"}`,
     `firstStep=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.label) ?? "n/a"}`,
     `stepProgress=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorStepProgress?.label) ?? "n/a"}`,
+    `stepPath=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorStepPath) ? replay.selectedSession.replay.nextOperatorStepPath.map((item) => toOptionalText(item?.phase) ?? "unknown").join(",") || "n/a" : "n/a"}`,
     `checklist=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorChecklist) ? replay.selectedSession.replay.nextOperatorChecklist.length : 0}`,
     `remainingSteps=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorRemainingSteps) ? replay.selectedSession.replay.nextOperatorRemainingSteps.length : 0}`,
     `personas=${Math.max(0, Math.floor(Number(discovery?.totalPersonas ?? 0) || 0))}`,
@@ -30726,6 +30762,7 @@ function buildOperatorSessionOpsReplayPreview() {
         : [],
       nextOperatorPrimaryStep: isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null,
       nextOperatorStepProgress: isRecord(replay?.nextOperatorStepProgress) ? replay.nextOperatorStepProgress : null,
+      nextOperatorStepPath: Array.isArray(replay?.nextOperatorStepPath) ? replay.nextOperatorStepPath : [],
       latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
       boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
       approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,

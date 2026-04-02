@@ -21,6 +21,8 @@ type RuntimeSessionReplayNextOperatorWorkspace =
   | "approvals"
   | "runtime";
 
+type RuntimeSessionReplayStepPhase = "active" | "queued";
+
 type RuntimeSessionReplayPrimaryOperatorStep = {
   label: string;
   action: string | null;
@@ -28,12 +30,18 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   targetLabel: string;
   workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
   ctaLabel: string;
+  phase: RuntimeSessionReplayStepPhase;
 };
 
 type RuntimeSessionReplayStepProgress = {
   current: number;
   total: number;
   label: string;
+};
+
+type RuntimeSessionReplayStepPathEntry = {
+  label: string;
+  phase: RuntimeSessionReplayStepPhase;
 };
 
 export type RuntimeSessionReplayCompactEntry = {
@@ -136,6 +144,7 @@ export type RuntimeSessionReplaySnapshot = {
       nextOperatorRemainingSteps: string[];
       nextOperatorPrimaryStep: RuntimeSessionReplayPrimaryOperatorStep | null;
       nextOperatorStepProgress: RuntimeSessionReplayStepProgress | null;
+      nextOperatorStepPath: RuntimeSessionReplayStepPathEntry[];
       latestVerifiedStage: string | null;
       boundaryOwner: {
         role: string | null;
@@ -1102,6 +1111,7 @@ function buildNextOperatorPrimaryStep(params: {
     targetLabel: params.nextOperatorActionTarget.targetLabel,
     workspace: params.nextOperatorWorkspace,
     ctaLabel: "Run first step",
+    phase: "active",
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
 }
 
@@ -1194,6 +1204,13 @@ function buildCompactEntry(params: {
     latestApprovalStatus: latestApproval?.status ?? null,
     replayState,
   };
+}
+
+function buildNextOperatorStepPath(nextOperatorChecklist: string[]): RuntimeSessionReplayStepPathEntry[] {
+  return nextOperatorChecklist.map((label, index) => ({
+    label,
+    phase: index === 0 ? "active" : "queued",
+  }));
 }
 
 export function buildRuntimeSessionReplayMirrorSnapshot(params: {
@@ -1295,6 +1312,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
   });
   const nextOperatorRemainingSteps = buildNextOperatorRemainingSteps(nextOperatorChecklist);
   const nextOperatorStepProgress = buildNextOperatorStepProgress(nextOperatorChecklist);
+  const nextOperatorStepPath = buildNextOperatorStepPath(nextOperatorChecklist);
   const nextOperatorPrimaryStep = buildNextOperatorPrimaryStep({
     resumeMetadata,
     nextOperatorActionTarget,
@@ -1376,6 +1394,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         nextOperatorRemainingSteps,
         nextOperatorPrimaryStep,
         nextOperatorStepProgress,
+        nextOperatorStepPath,
         latestVerifiedStage: latestProofPointer?.workflowStage ?? null,
         boundaryOwner,
         approvalGate,
