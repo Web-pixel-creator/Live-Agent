@@ -26,6 +26,15 @@ type RuntimeSessionReplayStepRunState = "runnable" | "blocked";
 type RuntimeSessionReplayPrimaryStepActionMode = "openable" | "executable";
 type RuntimeSessionReplayPrimaryStepSurfaceState = "primed" | "not_primed";
 
+type RuntimeSessionReplayPrimaryRefreshAction = {
+  label: string;
+  action: "refresh_session_replay";
+  ctaLabel: string;
+  targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"];
+  targetLabel: string;
+  workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
+};
+
 type RuntimeSessionReplayPrimaryOperatorStep = {
   label: string;
   action: string | null;
@@ -38,6 +47,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   actionMode: RuntimeSessionReplayPrimaryStepActionMode;
   surfaceState: RuntimeSessionReplayPrimaryStepSurfaceState;
   needsRefresh: boolean;
+  refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
 };
 
 type RuntimeSessionReplayStepProgress = {
@@ -944,6 +954,32 @@ function buildNextOperatorPrimaryStepNeedsRefresh(params: {
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshAction(params: {
+  needsRefresh: boolean;
+  nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshAction | null {
+  if (!params.needsRefresh) {
+    return null;
+  }
+  const staleTargetLabel =
+    params.nextOperatorActionTarget?.targetLabel ??
+    (params.nextOperatorActionTarget?.targetSurface === "operator_saved_view_approvals"
+      ? "Approvals"
+      : params.nextOperatorActionTarget?.targetSurface === "operator_workflow_control"
+        ? "Workflow Control"
+        : params.nextOperatorActionTarget?.targetSurface === "operator_runtime_drills"
+          ? "Runtime Drill Runner"
+          : "Operator Session Ops");
+  return {
+    label: `Refresh replay before reopening ${staleTargetLabel}.`,
+    action: "refresh_session_replay",
+    ctaLabel: "Refresh first",
+    targetSurface: "operator_session_ops",
+    targetLabel: "Operator Session Ops",
+    workspace: "runtime",
+  };
+}
+
 function buildApprovalGate(params: {
   latestSelectedApproval: ApprovalRecord | null;
   pendingApprovalCount: number;
@@ -1239,6 +1275,10 @@ function buildNextOperatorPrimaryStep(params: {
     workflowSummary: params.workflowSummary,
     latestProofPointer: params.latestProofPointer,
   });
+  const refreshAction = buildNextOperatorPrimaryStepRefreshAction({
+    needsRefresh,
+    nextOperatorActionTarget: params.nextOperatorActionTarget,
+  });
   return {
     label: params.nextOperatorChecklist[0] ?? "Open the next operator surface.",
     action: params.resumeMetadata.nextOperatorAction,
@@ -1251,6 +1291,7 @@ function buildNextOperatorPrimaryStep(params: {
     actionMode,
     surfaceState,
     needsRefresh,
+    refreshAction,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
 }
 

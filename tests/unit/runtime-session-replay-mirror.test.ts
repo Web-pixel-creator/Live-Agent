@@ -244,6 +244,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       actionMode: "openable",
       surfaceState: "primed",
       needsRefresh: false,
+      refreshAction: null,
     });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, "review");
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
@@ -415,6 +416,14 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       actionMode: "openable",
       surfaceState: "primed",
       needsRefresh: true,
+      refreshAction: {
+        label: "Refresh replay before reopening Approvals.",
+        action: "refresh_session_replay",
+        ctaLabel: "Refresh first",
+        targetSurface: "operator_session_ops",
+        targetLabel: "Operator Session Ops",
+        workspace: "runtime",
+      },
     });
   assert.equal(snapshot.selectedSession.replay.latestVerifiedStage, null);
   assert.deepEqual(snapshot.selectedSession.replay.boundaryOwner, {
@@ -564,6 +573,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       actionMode: "executable",
       surfaceState: "primed",
       needsRefresh: false,
+      refreshAction: null,
     });
   assert.deepEqual(snapshot.selectedSession.replay.recoveryPathHint, {
     code: "workflow_failed",
@@ -613,5 +623,6 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       actionMode: "openable",
       surfaceState: "not_primed",
       needsRefresh: false,
+      refreshAction: null,
     });
   });

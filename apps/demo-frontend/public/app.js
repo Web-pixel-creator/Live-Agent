@@ -29481,6 +29481,9 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const recoveryDrill = isRecord(replay?.recoveryDrill) ? replay.recoveryDrill : null;
   const nextActionTarget = isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null;
   const nextOperatorPrimaryStep = isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null;
+  const primaryStepRefreshAction = isRecord(nextOperatorPrimaryStep?.refreshAction)
+    ? nextOperatorPrimaryStep.refreshAction
+    : null;
   const nextOperatorStepProgress = isRecord(replay?.nextOperatorStepProgress) ? replay.nextOperatorStepProgress : null;
   const nextOperatorStepPath = Array.isArray(replay?.nextOperatorStepPath)
     ? replay.nextOperatorStepPath.filter((item) => isRecord(item))
@@ -29679,7 +29682,9 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   );
   if (el.operatorSessionBoundaryOpenBtn) {
     el.operatorSessionBoundaryOpenBtn.textContent =
-      toOptionalText(nextOperatorPrimaryStep?.ctaLabel) ?? recoveryTargetButtonLabel;
+      toOptionalText(primaryStepRefreshAction?.ctaLabel) ??
+      toOptionalText(nextOperatorPrimaryStep?.ctaLabel) ??
+      recoveryTargetButtonLabel;
   }
 
   let statusText = replayState;
@@ -29720,11 +29725,26 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   );
 }
 
-function openOperatorSessionBoundaryTarget() {
+async function openOperatorSessionBoundaryTarget() {
   const snapshot = isRecord(state.operatorSessionReplaySnapshot) ? state.operatorSessionReplaySnapshot : null;
   const replay = isRecord(snapshot?.selectedSession?.replay) ? snapshot.selectedSession.replay : null;
   const nextOperatorPrimaryStep = isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null;
+  const primaryStepRefreshAction = isRecord(nextOperatorPrimaryStep?.refreshAction)
+    ? nextOperatorPrimaryStep.refreshAction
+    : null;
   const nextOperatorActionTarget = isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null;
+  const selectedSessionId = toOptionalText(snapshot?.selectedSessionId);
+  if (toOptionalText(primaryStepRefreshAction?.action) === "refresh_session_replay") {
+    const refreshWorkspace = toOptionalText(primaryStepRefreshAction?.workspace);
+    if (refreshWorkspace === "approvals" || refreshWorkspace === "runtime") {
+      setOperatorSavedView(refreshWorkspace, { scroll: false });
+    }
+    openOperatorSupportPanel(el.operatorSessionOpsControl, el.operatorSessionReplayRefreshBtn);
+    await refreshOperatorSessionReplay({
+      sessionId: selectedSessionId,
+    });
+    return;
+  }
   const nextOperatorWorkspace =
     toOptionalText(nextOperatorPrimaryStep?.workspace) ?? toOptionalText(replay?.nextOperatorWorkspace);
   const recoveryHandoff = isRecord(replay?.recoveryHandoff) ? replay.recoveryHandoff : null;
@@ -30464,6 +30484,16 @@ function normalizeOperatorReplayPrimaryStep(value) {
     actionMode: toOptionalText(value.actionMode),
     surfaceState: toOptionalText(value.surfaceState),
     needsRefresh: typeof value.needsRefresh === "boolean" ? value.needsRefresh : null,
+    refreshAction: isRecord(value.refreshAction)
+      ? {
+          label: toOptionalText(value.refreshAction.label),
+          action: toOptionalText(value.refreshAction.action),
+          ctaLabel: toOptionalText(value.refreshAction.ctaLabel),
+          targetSurface: toOptionalText(value.refreshAction.targetSurface),
+          targetLabel: toOptionalText(value.refreshAction.targetLabel),
+          workspace: toOptionalText(value.refreshAction.workspace),
+        }
+      : null,
   };
 }
 
@@ -30734,6 +30764,7 @@ function buildOperatorSessionOpsControlMeta() {
     `firstStepMode=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.actionMode) ?? "n/a"}`,
     `firstStepPrime=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.surfaceState) ?? "n/a"}`,
     `firstStepFreshness=${typeof replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.needsRefresh === "boolean" ? replay.selectedSession.replay.nextOperatorPrimaryStep.needsRefresh ? "needs_refresh" : "fresh" : "n/a"}`,
+    `firstStepRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshAction?.action) ?? "n/a"}`,
     `stepProgress=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorStepProgress?.label) ?? "n/a"}`,
     `stepPath=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorStepPath) ? replay.selectedSession.replay.nextOperatorStepPath.map((item) => `${toOptionalText(item?.phase) ?? "unknown"}:${toOptionalText(item?.runState) ?? "blocked"}`).join(",") || "n/a" : "n/a"}`,
     `checklist=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorChecklist) ? replay.selectedSession.replay.nextOperatorChecklist.length : 0}`,
@@ -39531,7 +39562,7 @@ function bindEvents() {
   }
   if (el.operatorSessionBoundaryOpenBtn) {
     el.operatorSessionBoundaryOpenBtn.addEventListener("click", () => {
-      openOperatorSessionBoundaryTarget();
+      void openOperatorSessionBoundaryTarget();
     });
   }
   if (el.operatorBootstrapDoctorRotateBtn) {
