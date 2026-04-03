@@ -252,6 +252,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationHint: null,
       refreshEscalationTarget: null,
       refreshEscalationCTA: null,
+      refreshEscalationReadiness: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -448,6 +449,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
         targetLabel: "Workflow Control",
         workspace: "runtime",
       },
+      refreshEscalationReadiness: "ready",
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -621,6 +623,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationHint: null,
       refreshEscalationTarget: null,
       refreshEscalationCTA: null,
+      refreshEscalationReadiness: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -680,7 +683,85 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationHint: null,
       refreshEscalationTarget: null,
       refreshEscalationCTA: null,
+      refreshEscalationReadiness: null,
       refreshAction: null,
       refreshTargetState: null,
     });
   });
+
+test("runtime session replay mirror marks stale escalation as needs_prep when workflow escalation is not linked yet", () => {
+  const sessions: SessionListItem[] = [
+    {
+      sessionId: "session-ready-gap",
+      tenantId: "tenant-a",
+      mode: "live",
+      status: "active",
+      version: 2,
+      lastMutationId: "mutation-ready-gap",
+      updatedAt: "2026-04-01T09:30:00.000Z",
+    },
+  ];
+
+  const runs: RunListItem[] = [
+    {
+      runId: "run-ready-gap-1",
+      sessionId: "session-ready-gap",
+      status: "pending_approval",
+      route: "ui-navigator-agent",
+      updatedAt: "2026-04-01T09:30:00.000Z",
+    },
+  ];
+
+  const approvals: ApprovalRecord[] = [
+    {
+      approvalId: "approval-ready-gap-1",
+      tenantId: "tenant-a",
+      sessionId: "session-ready-gap",
+      runId: "run-ready-gap-1",
+      status: "pending",
+      decision: null,
+      reason: "Awaiting operator decision",
+      requestedAt: "2026-04-01T09:25:00.000Z",
+      softDueAt: "2026-04-01T09:26:00.000Z",
+      hardDueAt: "2026-04-01T09:35:00.000Z",
+      resolvedAt: null,
+      softReminderSentAt: null,
+      auditLog: [],
+      createdAt: "2026-04-01T09:25:00.000Z",
+      updatedAt: "2026-04-01T09:25:00.000Z",
+      metadata: null,
+    },
+  ];
+
+  const recentEvents: EventListItem[] = [
+    {
+      eventId: "event-ready-gap-1",
+      sessionId: "session-ready-gap",
+      runId: "run-ready-gap-1",
+      type: "orchestrator.response",
+      source: "ui-navigator-agent",
+      createdAt: "2026-04-01T09:30:00.000Z",
+      route: "ui-navigator-agent",
+      status: "pending_approval",
+      intent: "ui_task",
+      approvalId: "approval-ready-gap-1",
+      approvalStatus: "pending",
+      verificationState: "blocked_pending_approval",
+    },
+  ];
+
+  const snapshot = buildRuntimeSessionReplayMirrorSnapshot({
+    sessions,
+    runs,
+    approvals,
+    recentEvents,
+    selectedEvents: recentEvents,
+    selectedSessionId: "session-ready-gap",
+    workflowSummary: null,
+  });
+
+  assert.equal(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationReadiness,
+    "needs_prep",
+  );
+});

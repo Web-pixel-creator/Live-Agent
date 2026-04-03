@@ -30,6 +30,7 @@ type RuntimeSessionReplayPrimaryRefreshDisposition =
   | "reopen_then_refresh"
   | "reload_before_run";
 type RuntimeSessionReplayPrimaryRefreshConfidence = "high" | "medium" | "low";
+type RuntimeSessionReplayPrimaryRefreshEscalationReadiness = "ready" | "needs_prep";
 
 type RuntimeSessionReplayPrimaryRefreshAction = {
   label: string;
@@ -86,6 +87,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationHint: string | null;
   refreshEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationTarget | null;
   refreshEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationCTA | null;
+  refreshEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationReadiness | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1224,6 +1226,28 @@ function buildNextOperatorPrimaryStepRefreshEscalationCTA(params: {
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationReadiness(params: {
+  needsRefresh: boolean;
+  refreshEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationTarget | null;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+  recoveryDrill: ReturnType<typeof buildRecoveryDrill>;
+}): RuntimeSessionReplayPrimaryRefreshEscalationReadiness | null {
+  if (!params.needsRefresh || !params.refreshEscalationTarget) {
+    return null;
+  }
+  switch (params.refreshEscalationTarget.targetSurface) {
+    case "operator_workflow_control":
+      return params.workflowSummary || params.currentHandoffState ? "ready" : "needs_prep";
+    case "operator_runtime_drills":
+      return params.recoveryDrill ? "ready" : "needs_prep";
+    case "operator_session_ops":
+    case "operator_saved_view_approvals":
+    default:
+      return "needs_prep";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1607,6 +1631,13 @@ function buildNextOperatorPrimaryStep(params: {
     needsRefresh,
     refreshEscalationTarget,
   });
+  const refreshEscalationReadiness = buildNextOperatorPrimaryStepRefreshEscalationReadiness({
+    needsRefresh,
+    refreshEscalationTarget,
+    workflowSummary: params.workflowSummary,
+    currentHandoffState: params.currentHandoffState,
+    recoveryDrill: params.recoveryDrill,
+  });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -1634,6 +1665,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationHint,
     refreshEscalationTarget,
     refreshEscalationCTA,
+    refreshEscalationReadiness,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
