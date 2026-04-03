@@ -264,6 +264,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackConfidence: null,
       refreshEscalationFallbackDetourHint: null,
       refreshEscalationFallbackEscalationHint: null,
+      refreshEscalationFallbackEscalationTarget: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -472,6 +473,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackConfidence: null,
       refreshEscalationFallbackDetourHint: null,
       refreshEscalationFallbackEscalationHint: null,
+      refreshEscalationFallbackEscalationTarget: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -657,6 +659,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackConfidence: null,
       refreshEscalationFallbackDetourHint: null,
       refreshEscalationFallbackEscalationHint: null,
+      refreshEscalationFallbackEscalationTarget: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -728,6 +731,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackConfidence: null,
       refreshEscalationFallbackDetourHint: null,
       refreshEscalationFallbackEscalationHint: null,
+      refreshEscalationFallbackEscalationTarget: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -863,5 +867,15 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
   assert.equal(
     snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationHint,
     "Escalate to boundary review if the gate fallback still does not resolve ownership.",
+  );
+  assert.deepEqual(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationTarget,
+    {
+      label: "Workflow Control | boundary review",
+      targetSurface: "operator_workflow_control",
+      targetLabel: "Workflow Control",
+      workspace: "runtime",
+      stateLabel: "boundary review",
+    },
   );
 });

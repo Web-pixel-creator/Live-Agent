@@ -67,6 +67,14 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget = {
   stateLabel: string;
 };
 
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationTarget = {
+  label: string;
+  targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"];
+  targetLabel: string;
+  workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
+  stateLabel: string;
+};
+
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackCTA = {
   label: string;
   ctaLabel: string;
@@ -116,6 +124,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackConfidence: RuntimeSessionReplayPrimaryRefreshConfidence | null;
   refreshEscalationFallbackDetourHint: string | null;
   refreshEscalationFallbackEscalationHint: string | null;
+  refreshEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationTarget | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1543,6 +1552,42 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationHint(par
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationTarget(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationTarget | null {
+  if (!params.needsRefresh || !params.refreshEscalationFallbackTarget) {
+    return null;
+  }
+  switch (params.refreshEscalationFallbackTarget.targetSurface) {
+    case "operator_saved_view_approvals":
+      return {
+        label: "Workflow Control | boundary review",
+        targetSurface: "operator_workflow_control",
+        targetLabel: "Workflow Control",
+        workspace: "runtime",
+        stateLabel: "boundary review",
+      };
+    case "operator_workflow_control":
+      return {
+        label: "Workflow Control | owner handoff",
+        targetSurface: "operator_workflow_control",
+        targetLabel: "Workflow Control",
+        workspace: "runtime",
+        stateLabel: "owner handoff",
+      };
+    case "operator_session_ops":
+    default:
+      return {
+        label: "Operator Session Ops | manual handoff",
+        targetSurface: "operator_session_ops",
+        targetLabel: "Operator Session Ops",
+        workspace: "runtime",
+        stateLabel: "manual handoff",
+      };
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1993,6 +2038,11 @@ function buildNextOperatorPrimaryStep(params: {
       needsRefresh,
       refreshEscalationFallbackTarget,
     });
+  const refreshEscalationFallbackEscalationTarget =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationTarget({
+      needsRefresh,
+      refreshEscalationFallbackTarget,
+    });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -2032,6 +2082,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackConfidence,
     refreshEscalationFallbackDetourHint,
     refreshEscalationFallbackEscalationHint,
+    refreshEscalationFallbackEscalationTarget,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
