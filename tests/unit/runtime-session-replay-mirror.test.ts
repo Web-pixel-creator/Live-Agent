@@ -263,6 +263,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackOutcomeLabel: null,
       refreshEscalationFallbackConfidence: null,
       refreshEscalationFallbackDetourHint: null,
+      refreshEscalationFallbackEscalationHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -470,6 +471,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackOutcomeLabel: null,
       refreshEscalationFallbackConfidence: null,
       refreshEscalationFallbackDetourHint: null,
+      refreshEscalationFallbackEscalationHint: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -654,6 +656,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackOutcomeLabel: null,
       refreshEscalationFallbackConfidence: null,
       refreshEscalationFallbackDetourHint: null,
+      refreshEscalationFallbackEscalationHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -724,6 +727,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackOutcomeLabel: null,
       refreshEscalationFallbackConfidence: null,
       refreshEscalationFallbackDetourHint: null,
+      refreshEscalationFallbackEscalationHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -855,5 +859,9 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
   assert.equal(
     snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackDetourHint,
     "Use boundary review if the gate fallback still does not resolve ownership.",
+  );
+  assert.equal(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationHint,
+    "Escalate to boundary review if the gate fallback still does not resolve ownership.",
   );
 });

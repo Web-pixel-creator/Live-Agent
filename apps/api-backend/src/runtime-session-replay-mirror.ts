@@ -115,6 +115,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackOutcomeLabel: string | null;
   refreshEscalationFallbackConfidence: RuntimeSessionReplayPrimaryRefreshConfidence | null;
   refreshEscalationFallbackDetourHint: string | null;
+  refreshEscalationFallbackEscalationHint: string | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1524,6 +1525,24 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackDetourHint(params:
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationHint(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
+}): string | null {
+  if (!params.needsRefresh || !params.refreshEscalationFallbackTarget) {
+    return null;
+  }
+  switch (params.refreshEscalationFallbackTarget.targetSurface) {
+    case "operator_saved_view_approvals":
+      return "Escalate to boundary review if the gate fallback still does not resolve ownership.";
+    case "operator_workflow_control":
+      return "Escalate to owner handoff if the boundary fallback still does not clear the workflow edge.";
+    case "operator_session_ops":
+    default:
+      return "Escalate to manual handoff if the replay fallback still does not restore the session path.";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1969,6 +1988,11 @@ function buildNextOperatorPrimaryStep(params: {
       needsRefresh,
       refreshEscalationFallbackTarget,
     });
+  const refreshEscalationFallbackEscalationHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationHint({
+      needsRefresh,
+      refreshEscalationFallbackTarget,
+    });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -2007,6 +2031,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackOutcomeLabel,
     refreshEscalationFallbackConfidence,
     refreshEscalationFallbackDetourHint,
+    refreshEscalationFallbackEscalationHint,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
