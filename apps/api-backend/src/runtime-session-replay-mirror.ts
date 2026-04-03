@@ -31,6 +31,7 @@ type RuntimeSessionReplayPrimaryRefreshDisposition =
   | "reload_before_run";
 type RuntimeSessionReplayPrimaryRefreshConfidence = "high" | "medium" | "low";
 type RuntimeSessionReplayPrimaryRefreshEscalationReadiness = "ready" | "needs_prep";
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackReadiness = "ready" | "needs_prep";
 
 type RuntimeSessionReplayPrimaryRefreshAction = {
   label: string;
@@ -108,6 +109,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationOpenGuard: string | null;
   refreshEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
   refreshEscalationFallbackCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackCTA | null;
+  refreshEscalationFallbackReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackReadiness | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1396,6 +1398,27 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackCTA(params: {
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackReadiness(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
+  approvalGate: ReturnType<typeof buildApprovalGate>;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackReadiness | null {
+  if (!params.needsRefresh || !params.refreshEscalationFallbackTarget) {
+    return null;
+  }
+  switch (params.refreshEscalationFallbackTarget.targetSurface) {
+    case "operator_saved_view_approvals":
+      return params.approvalGate ? "ready" : "needs_prep";
+    case "operator_workflow_control":
+      return params.workflowSummary || params.currentHandoffState ? "ready" : "needs_prep";
+    case "operator_session_ops":
+    default:
+      return "ready";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1806,6 +1829,14 @@ function buildNextOperatorPrimaryStep(params: {
     needsRefresh,
     refreshEscalationFallbackTarget,
   });
+  const refreshEscalationFallbackReadiness =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackReadiness({
+      needsRefresh,
+      refreshEscalationFallbackTarget,
+      approvalGate: params.approvalGate,
+      workflowSummary: params.workflowSummary,
+      currentHandoffState: params.currentHandoffState,
+    });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -1838,6 +1869,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationOpenGuard,
     refreshEscalationFallbackTarget,
     refreshEscalationFallbackCTA,
+    refreshEscalationFallbackReadiness,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
