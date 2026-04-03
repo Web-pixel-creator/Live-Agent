@@ -66,6 +66,14 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget = {
   stateLabel: string;
 };
 
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackCTA = {
+  label: string;
+  ctaLabel: string;
+  targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"];
+  targetLabel: string;
+  workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
+};
+
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
   targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"];
@@ -99,6 +107,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationPrepHint: string | null;
   refreshEscalationOpenGuard: string | null;
   refreshEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
+  refreshEscalationFallbackCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackCTA | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1351,6 +1360,42 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackTarget(params: {
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackCTA(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackCTA | null {
+  if (!params.needsRefresh || !params.refreshEscalationFallbackTarget) {
+    return null;
+  }
+  switch (params.refreshEscalationFallbackTarget.targetSurface) {
+    case "operator_saved_view_approvals":
+      return {
+        label: "Open Approvals for the gate fallback.",
+        ctaLabel: "Open gate fallback",
+        targetSurface: params.refreshEscalationFallbackTarget.targetSurface,
+        targetLabel: params.refreshEscalationFallbackTarget.targetLabel,
+        workspace: params.refreshEscalationFallbackTarget.workspace,
+      };
+    case "operator_workflow_control":
+      return {
+        label: "Open Workflow Control for the boundary fallback.",
+        ctaLabel: "Inspect boundary fallback",
+        targetSurface: params.refreshEscalationFallbackTarget.targetSurface,
+        targetLabel: params.refreshEscalationFallbackTarget.targetLabel,
+        workspace: params.refreshEscalationFallbackTarget.workspace,
+      };
+    case "operator_session_ops":
+    default:
+      return {
+        label: "Open Operator Session Ops for the replay fallback.",
+        ctaLabel: "Open replay fallback",
+        targetSurface: params.refreshEscalationFallbackTarget.targetSurface,
+        targetLabel: params.refreshEscalationFallbackTarget.targetLabel,
+        workspace: params.refreshEscalationFallbackTarget.workspace,
+      };
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1757,6 +1802,10 @@ function buildNextOperatorPrimaryStep(params: {
       refreshEscalationTarget,
       refreshEscalationReadiness,
     });
+  const refreshEscalationFallbackCTA = buildNextOperatorPrimaryStepRefreshEscalationFallbackCTA({
+    needsRefresh,
+    refreshEscalationFallbackTarget,
+  });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -1788,6 +1837,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationPrepHint,
     refreshEscalationOpenGuard,
     refreshEscalationFallbackTarget,
+    refreshEscalationFallbackCTA,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;

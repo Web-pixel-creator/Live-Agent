@@ -256,6 +256,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationPrepHint: null,
       refreshEscalationOpenGuard: null,
       refreshEscalationFallbackTarget: null,
+      refreshEscalationFallbackCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -456,6 +457,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationPrepHint: null,
       refreshEscalationOpenGuard: null,
       refreshEscalationFallbackTarget: null,
+      refreshEscalationFallbackCTA: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -633,6 +635,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationPrepHint: null,
       refreshEscalationOpenGuard: null,
       refreshEscalationFallbackTarget: null,
+      refreshEscalationFallbackCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -696,6 +699,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationPrepHint: null,
       refreshEscalationOpenGuard: null,
       refreshEscalationFallbackTarget: null,
+      refreshEscalationFallbackCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -792,6 +796,16 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
       targetLabel: "Approvals",
       workspace: "approvals",
       stateLabel: "gate fallback",
+    },
+  );
+  assert.deepEqual(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackCTA,
+    {
+      label: "Open Approvals for the gate fallback.",
+      ctaLabel: "Open gate fallback",
+      targetSurface: "operator_saved_view_approvals",
+      targetLabel: "Approvals",
+      workspace: "approvals",
     },
   );
 });
