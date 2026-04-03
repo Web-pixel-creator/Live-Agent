@@ -136,6 +136,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationTarget | null;
   refreshEscalationFallbackEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationCTA | null;
   refreshEscalationFallbackEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationReadiness | null;
+  refreshEscalationFallbackEscalationPrepHint: string | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1663,6 +1664,29 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationReadines
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationPrepHint(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationTarget | null;
+  refreshEscalationFallbackEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationReadiness | null;
+}): string | null {
+  if (
+    !params.needsRefresh ||
+    !params.refreshEscalationFallbackEscalationTarget ||
+    params.refreshEscalationFallbackEscalationReadiness !== "needs_prep"
+  ) {
+    return null;
+  }
+  switch (params.refreshEscalationFallbackEscalationTarget.targetSurface) {
+    case "operator_workflow_control":
+      return "Load the linked workflow boundary or workflow owner handoff before opening the fallback escalation.";
+    case "operator_runtime_drills":
+      return "Load the repo-owned recovery drill before opening the fallback recovery escalation.";
+    case "operator_session_ops":
+    default:
+      return "Load the latest replay handoff before opening the fallback manual handoff.";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -2130,6 +2154,12 @@ function buildNextOperatorPrimaryStep(params: {
       workflowSummary: params.workflowSummary,
       currentHandoffState: params.currentHandoffState,
     });
+  const refreshEscalationFallbackEscalationPrepHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationPrepHint({
+      needsRefresh,
+      refreshEscalationFallbackEscalationTarget,
+      refreshEscalationFallbackEscalationReadiness,
+    });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -2172,6 +2202,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackEscalationTarget,
     refreshEscalationFallbackEscalationCTA,
     refreshEscalationFallbackEscalationReadiness,
+    refreshEscalationFallbackEscalationPrepHint,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
