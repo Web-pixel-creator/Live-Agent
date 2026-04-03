@@ -110,6 +110,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
   refreshEscalationFallbackCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackCTA | null;
   refreshEscalationFallbackReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackReadiness | null;
+  refreshEscalationFallbackPrepHint: string | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1419,6 +1420,29 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackReadiness(params: 
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackPrepHint(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
+  refreshEscalationFallbackReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackReadiness | null;
+}): string | null {
+  if (
+    !params.needsRefresh ||
+    !params.refreshEscalationFallbackTarget ||
+    params.refreshEscalationFallbackReadiness !== "needs_prep"
+  ) {
+    return null;
+  }
+  switch (params.refreshEscalationFallbackTarget.targetSurface) {
+    case "operator_saved_view_approvals":
+      return "Load the current approval gate before opening the gate fallback.";
+    case "operator_workflow_control":
+      return "Load the linked workflow boundary or workflow owner handoff before opening the boundary fallback.";
+    case "operator_session_ops":
+    default:
+      return "Load the latest replay handoff before opening the replay fallback.";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1837,6 +1861,12 @@ function buildNextOperatorPrimaryStep(params: {
       workflowSummary: params.workflowSummary,
       currentHandoffState: params.currentHandoffState,
     });
+  const refreshEscalationFallbackPrepHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackPrepHint({
+      needsRefresh,
+      refreshEscalationFallbackTarget,
+      refreshEscalationFallbackReadiness,
+    });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -1870,6 +1900,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackTarget,
     refreshEscalationFallbackCTA,
     refreshEscalationFallbackReadiness,
+    refreshEscalationFallbackPrepHint,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
