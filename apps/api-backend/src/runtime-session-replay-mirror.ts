@@ -84,6 +84,14 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackCTA = {
   workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
 };
 
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationCTA = {
+  label: string;
+  ctaLabel: string;
+  targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"];
+  targetLabel: string;
+  workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
+};
+
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
   targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"];
@@ -126,6 +134,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackDetourHint: string | null;
   refreshEscalationFallbackEscalationHint: string | null;
   refreshEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationTarget | null;
+  refreshEscalationFallbackEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationCTA | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1592,6 +1601,46 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationTarget(p
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationCTA(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationCTA | null {
+  if (!params.needsRefresh || !params.refreshEscalationFallbackEscalationTarget) {
+    return null;
+  }
+  switch (params.refreshEscalationFallbackEscalationTarget.mode) {
+    case "inspect":
+      return {
+        label: "Open Workflow Control for the fallback boundary review.",
+        ctaLabel: "Inspect fallback escalation",
+        targetSurface: params.refreshEscalationFallbackEscalationTarget.targetSurface,
+        targetLabel: params.refreshEscalationFallbackEscalationTarget.targetLabel,
+        workspace: params.refreshEscalationFallbackEscalationTarget.workspace,
+      };
+    case "recover":
+      return {
+        label: "Open Runtime Drill Runner for the fallback recovery escalation.",
+        ctaLabel: "Recover after fallback",
+        targetSurface: params.refreshEscalationFallbackEscalationTarget.targetSurface,
+        targetLabel: params.refreshEscalationFallbackEscalationTarget.targetLabel,
+        workspace: params.refreshEscalationFallbackEscalationTarget.workspace,
+      };
+    case "owner_handoff":
+      return {
+        label:
+          params.refreshEscalationFallbackEscalationTarget.targetSurface === "operator_workflow_control"
+            ? "Open Workflow Control for the fallback owner handoff."
+            : "Open Operator Session Ops for the fallback manual handoff.",
+        ctaLabel: "Hand off after fallback",
+        targetSurface: params.refreshEscalationFallbackEscalationTarget.targetSurface,
+        targetLabel: params.refreshEscalationFallbackEscalationTarget.targetLabel,
+        workspace: params.refreshEscalationFallbackEscalationTarget.workspace,
+      };
+    default:
+      return null;
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -2047,6 +2096,11 @@ function buildNextOperatorPrimaryStep(params: {
       needsRefresh,
       refreshEscalationFallbackTarget,
     });
+  const refreshEscalationFallbackEscalationCTA =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationCTA({
+      needsRefresh,
+      refreshEscalationFallbackEscalationTarget,
+    });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -2087,6 +2141,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackDetourHint,
     refreshEscalationFallbackEscalationHint,
     refreshEscalationFallbackEscalationTarget,
+    refreshEscalationFallbackEscalationCTA,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
