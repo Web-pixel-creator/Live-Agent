@@ -29597,6 +29597,11 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const primaryStepRefreshEscalationOpenGuard = toOptionalText(
     nextOperatorPrimaryStep?.refreshEscalationOpenGuard,
   );
+  const primaryStepRefreshEscalationFallbackTarget = isRecord(
+    nextOperatorPrimaryStep?.refreshEscalationFallbackTarget,
+  )
+    ? nextOperatorPrimaryStep.refreshEscalationFallbackTarget
+    : null;
   const primaryStepFreshness =
     primaryStepSurfaceState === "primed"
       ? primaryStepNeedsRefresh
@@ -29632,7 +29637,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
       : "No primary operator step loaded.";
   const afterRefreshDetail =
     primaryStepRefreshTargetState
-      ? `${toOptionalText(primaryStepRefreshTargetState?.targetLabel) ?? "Target"}${toOptionalText(primaryStepRefreshTargetState?.stateLabel) ? ` | ${primaryStepRefreshTargetState.stateLabel}` : ""}${toOptionalText(primaryStepRefreshTargetState?.refreshScope) ? ` | ${primaryStepRefreshTargetState.refreshScope}` : ""}${primaryStepRefreshDisposition ? ` | ${primaryStepRefreshDisposition}` : ""}${primaryStepRefreshConfidence ? ` | ${primaryStepRefreshConfidence}` : ""}${primaryStepRefreshEvidenceHint ? ` | ${primaryStepRefreshEvidenceHint}` : ""}${primaryStepRefreshOutcomeLabel ? ` | ${primaryStepRefreshOutcomeLabel}` : ""}${primaryStepRefreshDetourHint ? ` | ${primaryStepRefreshDetourHint}` : ""}${primaryStepRefreshEscalationHint ? ` | ${primaryStepRefreshEscalationHint}` : ""}${toOptionalText(primaryStepRefreshEscalationTarget?.targetLabel) ? ` | ${primaryStepRefreshEscalationTarget.targetLabel}` : ""}${toOptionalText(primaryStepRefreshEscalationTarget?.stateLabel) ? ` | ${primaryStepRefreshEscalationTarget.stateLabel}` : ""}${toOptionalText(primaryStepRefreshEscalationTarget?.mode) ? ` | ${primaryStepRefreshEscalationTarget.mode}` : ""}${primaryStepRefreshEscalationReadiness ? ` | ${primaryStepRefreshEscalationReadiness}` : ""}${primaryStepRefreshEscalationPrepHint ? ` | ${primaryStepRefreshEscalationPrepHint}` : ""}${primaryStepRefreshEscalationOpenGuard ? ` | ${primaryStepRefreshEscalationOpenGuard}` : ""}${toOptionalText(primaryStepRefreshEscalationCTA?.ctaLabel) ? ` | ${primaryStepRefreshEscalationCTA.ctaLabel}` : ""}${toOptionalText(primaryStepRefreshEscalationTarget?.workspace) ? ` | ${primaryStepRefreshEscalationTarget.workspace}` : ""}${toOptionalText(primaryStepRefreshTargetState?.workspace) ? ` | ${primaryStepRefreshTargetState.workspace}` : ""}`
+      ? `${toOptionalText(primaryStepRefreshTargetState?.targetLabel) ?? "Target"}${toOptionalText(primaryStepRefreshTargetState?.stateLabel) ? ` | ${primaryStepRefreshTargetState.stateLabel}` : ""}${toOptionalText(primaryStepRefreshTargetState?.refreshScope) ? ` | ${primaryStepRefreshTargetState.refreshScope}` : ""}${primaryStepRefreshDisposition ? ` | ${primaryStepRefreshDisposition}` : ""}${primaryStepRefreshConfidence ? ` | ${primaryStepRefreshConfidence}` : ""}${primaryStepRefreshEvidenceHint ? ` | ${primaryStepRefreshEvidenceHint}` : ""}${primaryStepRefreshOutcomeLabel ? ` | ${primaryStepRefreshOutcomeLabel}` : ""}${primaryStepRefreshDetourHint ? ` | ${primaryStepRefreshDetourHint}` : ""}${primaryStepRefreshEscalationHint ? ` | ${primaryStepRefreshEscalationHint}` : ""}${toOptionalText(primaryStepRefreshEscalationTarget?.targetLabel) ? ` | ${primaryStepRefreshEscalationTarget.targetLabel}` : ""}${toOptionalText(primaryStepRefreshEscalationTarget?.stateLabel) ? ` | ${primaryStepRefreshEscalationTarget.stateLabel}` : ""}${toOptionalText(primaryStepRefreshEscalationTarget?.mode) ? ` | ${primaryStepRefreshEscalationTarget.mode}` : ""}${primaryStepRefreshEscalationReadiness ? ` | ${primaryStepRefreshEscalationReadiness}` : ""}${primaryStepRefreshEscalationPrepHint ? ` | ${primaryStepRefreshEscalationPrepHint}` : ""}${primaryStepRefreshEscalationOpenGuard ? ` | ${primaryStepRefreshEscalationOpenGuard}` : ""}${toOptionalText(primaryStepRefreshEscalationFallbackTarget?.targetLabel) ? ` | ${primaryStepRefreshEscalationFallbackTarget.targetLabel}` : ""}${toOptionalText(primaryStepRefreshEscalationFallbackTarget?.stateLabel) ? ` | ${primaryStepRefreshEscalationFallbackTarget.stateLabel}` : ""}${toOptionalText(primaryStepRefreshEscalationFallbackTarget?.workspace) ? ` | ${primaryStepRefreshEscalationFallbackTarget.workspace}` : ""}${toOptionalText(primaryStepRefreshEscalationCTA?.ctaLabel) ? ` | ${primaryStepRefreshEscalationCTA.ctaLabel}` : ""}${toOptionalText(primaryStepRefreshEscalationTarget?.workspace) ? ` | ${primaryStepRefreshEscalationTarget.workspace}` : ""}${toOptionalText(primaryStepRefreshTargetState?.workspace) ? ` | ${primaryStepRefreshTargetState.workspace}` : ""}`
       : "No refresh handoff loaded.";
   const stepProgressDetail =
     toOptionalText(nextOperatorStepProgress?.label)
@@ -30546,6 +30551,15 @@ function normalizeOperatorReplayPrimaryStep(value) {
     refreshEscalationReadiness: toOptionalText(value.refreshEscalationReadiness),
     refreshEscalationPrepHint: toOptionalText(value.refreshEscalationPrepHint),
     refreshEscalationOpenGuard: toOptionalText(value.refreshEscalationOpenGuard),
+    refreshEscalationFallbackTarget: isRecord(value.refreshEscalationFallbackTarget)
+      ? {
+          label: toOptionalText(value.refreshEscalationFallbackTarget.label),
+          targetSurface: toOptionalText(value.refreshEscalationFallbackTarget.targetSurface),
+          targetLabel: toOptionalText(value.refreshEscalationFallbackTarget.targetLabel),
+          workspace: toOptionalText(value.refreshEscalationFallbackTarget.workspace),
+          stateLabel: toOptionalText(value.refreshEscalationFallbackTarget.stateLabel),
+        }
+      : null,
     refreshAction: isRecord(value.refreshAction)
       ? {
           label: toOptionalText(value.refreshAction.label),
@@ -30848,6 +30862,7 @@ function buildOperatorSessionOpsControlMeta() {
     `firstStepRefreshEscalationReadiness=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationReadiness) ?? "n/a"}`,
     `firstStepRefreshEscalationPrep=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationPrepHint) ?? "n/a"}`,
     `firstStepRefreshEscalationOpenGuard=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationOpenGuard) ?? "n/a"}`,
+    `firstStepRefreshEscalationFallback=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackTarget?.targetLabel) ?? toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackTarget?.targetSurface) ?? "n/a"}`,
     `firstStepRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshAction?.action) ?? "n/a"}`,
     `firstStepAfterRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.stateLabel) ?? "n/a"}`,
     `firstStepRefreshScope=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.refreshScope) ?? "n/a"}`,
