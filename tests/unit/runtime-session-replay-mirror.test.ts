@@ -259,6 +259,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackCTA: null,
       refreshEscalationFallbackReadiness: null,
       refreshEscalationFallbackPrepHint: null,
+      refreshEscalationFallbackOpenGuard: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -462,6 +463,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackCTA: null,
       refreshEscalationFallbackReadiness: null,
       refreshEscalationFallbackPrepHint: null,
+      refreshEscalationFallbackOpenGuard: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -642,6 +644,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackCTA: null,
       refreshEscalationFallbackReadiness: null,
       refreshEscalationFallbackPrepHint: null,
+      refreshEscalationFallbackOpenGuard: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -708,6 +711,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackCTA: null,
       refreshEscalationFallbackReadiness: null,
       refreshEscalationFallbackPrepHint: null,
+      refreshEscalationFallbackOpenGuard: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -822,6 +826,10 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
   );
   assert.equal(
     snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackPrepHint,
+    null,
+  );
+  assert.equal(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackOpenGuard,
     null,
   );
 });
