@@ -73,6 +73,7 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationTarget = {
   targetLabel: string;
   workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
   stateLabel: string;
+  mode: "inspect" | "recover" | "owner_handoff";
 };
 
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackCTA = {
@@ -1567,6 +1568,7 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationTarget(p
         targetLabel: "Workflow Control",
         workspace: "runtime",
         stateLabel: "boundary review",
+        mode: "inspect",
       };
     case "operator_workflow_control":
       return {
@@ -1575,6 +1577,7 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationTarget(p
         targetLabel: "Workflow Control",
         workspace: "runtime",
         stateLabel: "owner handoff",
+        mode: "owner_handoff",
       };
     case "operator_session_ops":
     default:
@@ -1584,6 +1587,7 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationTarget(p
         targetLabel: "Operator Session Ops",
         workspace: "runtime",
         stateLabel: "manual handoff",
+        mode: "owner_handoff",
       };
   }
 }

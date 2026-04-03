@@ -876,6 +876,7 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
       targetLabel: "Workflow Control",
       workspace: "runtime",
       stateLabel: "boundary review",
+      mode: "inspect",
     },
   );
 });
