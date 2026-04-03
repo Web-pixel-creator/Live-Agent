@@ -270,6 +270,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackEscalationPrepHint: null,
       refreshEscalationFallbackEscalationOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackTarget: null,
+      refreshEscalationFallbackEscalationFallbackCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -484,6 +485,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackEscalationPrepHint: null,
       refreshEscalationFallbackEscalationOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackTarget: null,
+      refreshEscalationFallbackEscalationFallbackCTA: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -675,6 +677,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackEscalationPrepHint: null,
       refreshEscalationFallbackEscalationOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackTarget: null,
+      refreshEscalationFallbackEscalationFallbackCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -752,6 +755,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackEscalationPrepHint: null,
       refreshEscalationFallbackEscalationOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackTarget: null,
+      refreshEscalationFallbackEscalationFallbackCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -929,6 +933,16 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
       targetLabel: "Operator Session Ops",
       workspace: "runtime",
       stateLabel: "manual handoff",
+    },
+  );
+  assert.deepEqual(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackCTA,
+    {
+      label: "Open Operator Session Ops for the backup manual handoff.",
+      ctaLabel: "Open backup handoff",
+      targetSurface: "operator_session_ops",
+      targetLabel: "Operator Session Ops",
+      workspace: "runtime",
     },
   );
 });
