@@ -112,6 +112,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackReadiness | null;
   refreshEscalationFallbackPrepHint: string | null;
   refreshEscalationFallbackOpenGuard: string | null;
+  refreshEscalationFallbackOutcomeLabel: string | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1467,6 +1468,24 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackOpenGuard(params: 
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackOutcomeLabel(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
+}): string | null {
+  if (!params.needsRefresh || !params.refreshEscalationFallbackTarget) {
+    return null;
+  }
+  switch (params.refreshEscalationFallbackTarget.targetSurface) {
+    case "operator_saved_view_approvals":
+      return "Approval gate fallback is open.";
+    case "operator_workflow_control":
+      return "Boundary fallback is open.";
+    case "operator_session_ops":
+    default:
+      return "Replay fallback is open.";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1897,6 +1916,11 @@ function buildNextOperatorPrimaryStep(params: {
       refreshEscalationFallbackTarget,
       refreshEscalationFallbackReadiness,
     });
+  const refreshEscalationFallbackOutcomeLabel =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackOutcomeLabel({
+      needsRefresh,
+      refreshEscalationFallbackTarget,
+    });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -1932,6 +1956,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackReadiness,
     refreshEscalationFallbackPrepHint,
     refreshEscalationFallbackOpenGuard,
+    refreshEscalationFallbackOutcomeLabel,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
