@@ -49,6 +49,14 @@ type RuntimeSessionReplayPrimaryRefreshEscalationTarget = {
   mode: "inspect" | "recover" | "owner_handoff";
 };
 
+type RuntimeSessionReplayPrimaryRefreshEscalationCTA = {
+  label: string;
+  ctaLabel: string;
+  targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"];
+  targetLabel: string;
+  workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
+};
+
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
   targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"];
@@ -77,6 +85,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshDetourHint: string | null;
   refreshEscalationHint: string | null;
   refreshEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationTarget | null;
+  refreshEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationCTA | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1178,6 +1187,43 @@ function buildNextOperatorPrimaryStepRefreshEscalationTarget(params: {
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationCTA(params: {
+  needsRefresh: boolean;
+  refreshEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshEscalationCTA | null {
+  if (!params.needsRefresh || !params.refreshEscalationTarget) {
+    return null;
+  }
+  switch (params.refreshEscalationTarget.mode) {
+    case "inspect":
+      return {
+        label: "Open Workflow Control for approval escalation.",
+        ctaLabel: "Inspect escalation path",
+        targetSurface: params.refreshEscalationTarget.targetSurface,
+        targetLabel: params.refreshEscalationTarget.targetLabel,
+        workspace: params.refreshEscalationTarget.workspace,
+      };
+    case "recover":
+      return {
+        label: "Open Runtime Drill Runner for the recovery escalation.",
+        ctaLabel: "Recover after refresh",
+        targetSurface: params.refreshEscalationTarget.targetSurface,
+        targetLabel: params.refreshEscalationTarget.targetLabel,
+        workspace: params.refreshEscalationTarget.workspace,
+      };
+    case "owner_handoff":
+      return {
+        label: "Open Workflow Control for the workflow owner handoff.",
+        ctaLabel: "Hand off after refresh",
+        targetSurface: params.refreshEscalationTarget.targetSurface,
+        targetLabel: params.refreshEscalationTarget.targetLabel,
+        workspace: params.refreshEscalationTarget.workspace,
+      };
+    default:
+      return null;
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1557,6 +1603,10 @@ function buildNextOperatorPrimaryStep(params: {
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
   });
+  const refreshEscalationCTA = buildNextOperatorPrimaryStepRefreshEscalationCTA({
+    needsRefresh,
+    refreshEscalationTarget,
+  });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -1583,6 +1633,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshDetourHint,
     refreshEscalationHint,
     refreshEscalationTarget,
+    refreshEscalationCTA,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;

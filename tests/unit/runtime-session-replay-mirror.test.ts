@@ -251,6 +251,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshDetourHint: null,
       refreshEscalationHint: null,
       refreshEscalationTarget: null,
+      refreshEscalationCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -440,6 +441,13 @@ test("runtime session replay mirror blocks resume when approval or active workfl
         stateLabel: "approval escalation",
         mode: "inspect",
       },
+      refreshEscalationCTA: {
+        label: "Open Workflow Control for approval escalation.",
+        ctaLabel: "Inspect escalation path",
+        targetSurface: "operator_workflow_control",
+        targetLabel: "Workflow Control",
+        workspace: "runtime",
+      },
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -612,6 +620,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshDetourHint: null,
       refreshEscalationHint: null,
       refreshEscalationTarget: null,
+      refreshEscalationCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -670,6 +679,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshDetourHint: null,
       refreshEscalationHint: null,
       refreshEscalationTarget: null,
+      refreshEscalationCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
