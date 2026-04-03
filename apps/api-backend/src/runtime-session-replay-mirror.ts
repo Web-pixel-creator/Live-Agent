@@ -46,6 +46,7 @@ type RuntimeSessionReplayPrimaryRefreshEscalationTarget = {
   targetLabel: string;
   workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
   stateLabel: string;
+  mode: "inspect" | "recover" | "owner_handoff";
 };
 
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
@@ -1151,6 +1152,7 @@ function buildNextOperatorPrimaryStepRefreshEscalationTarget(params: {
         targetLabel: "Workflow Control",
         workspace: "runtime",
         stateLabel: "approval escalation",
+        mode: "inspect",
       };
     case "operator_workflow_control":
       return {
@@ -1159,6 +1161,7 @@ function buildNextOperatorPrimaryStepRefreshEscalationTarget(params: {
         targetLabel: "Runtime Drill Runner",
         workspace: "runtime",
         stateLabel: "recovery escalation",
+        mode: "recover",
       };
     case "operator_runtime_drills":
       return {
@@ -1167,6 +1170,7 @@ function buildNextOperatorPrimaryStepRefreshEscalationTarget(params: {
         targetLabel: "Workflow Control",
         workspace: "runtime",
         stateLabel: "workflow owner escalation",
+        mode: "owner_handoff",
       };
     case "operator_session_ops":
     default:

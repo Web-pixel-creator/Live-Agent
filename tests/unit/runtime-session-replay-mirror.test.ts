@@ -438,6 +438,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
         targetLabel: "Workflow Control",
         workspace: "runtime",
         stateLabel: "approval escalation",
+        mode: "inspect",
       },
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
