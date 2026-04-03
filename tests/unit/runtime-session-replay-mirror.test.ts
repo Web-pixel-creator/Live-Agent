@@ -268,6 +268,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackEscalationCTA: null,
       refreshEscalationFallbackEscalationReadiness: null,
       refreshEscalationFallbackEscalationPrepHint: null,
+      refreshEscalationFallbackEscalationOpenGuard: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -480,6 +481,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackEscalationCTA: null,
       refreshEscalationFallbackEscalationReadiness: null,
       refreshEscalationFallbackEscalationPrepHint: null,
+      refreshEscalationFallbackEscalationOpenGuard: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -669,6 +671,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackEscalationCTA: null,
       refreshEscalationFallbackEscalationReadiness: null,
       refreshEscalationFallbackEscalationPrepHint: null,
+      refreshEscalationFallbackEscalationOpenGuard: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -744,6 +747,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackEscalationCTA: null,
       refreshEscalationFallbackEscalationReadiness: null,
       refreshEscalationFallbackEscalationPrepHint: null,
+      refreshEscalationFallbackEscalationOpenGuard: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -908,5 +912,9 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
   assert.equal(
     snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationPrepHint,
     "Load the linked workflow boundary or workflow owner handoff before opening the fallback escalation.",
+  );
+  assert.equal(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationOpenGuard,
+    "Open once a linked workflow boundary or workflow owner handoff is loaded.",
   );
 });
