@@ -40,6 +40,14 @@ type RuntimeSessionReplayPrimaryRefreshAction = {
   workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
 };
 
+type RuntimeSessionReplayPrimaryRefreshEscalationTarget = {
+  label: string;
+  targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"];
+  targetLabel: string;
+  workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
+  stateLabel: string;
+};
+
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
   targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"];
@@ -67,6 +75,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshConfidence: RuntimeSessionReplayPrimaryRefreshConfidence | null;
   refreshDetourHint: string | null;
   refreshEscalationHint: string | null;
+  refreshEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationTarget | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1127,6 +1136,44 @@ function buildNextOperatorPrimaryStepRefreshEscalationHint(params: {
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationTarget(params: {
+  needsRefresh: boolean;
+  nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshEscalationTarget | null {
+  if (!params.needsRefresh) {
+    return null;
+  }
+  switch (params.nextOperatorActionTarget?.targetSurface) {
+    case "operator_saved_view_approvals":
+      return {
+        label: "Workflow Control | approval escalation",
+        targetSurface: "operator_workflow_control",
+        targetLabel: "Workflow Control",
+        workspace: "runtime",
+        stateLabel: "approval escalation",
+      };
+    case "operator_workflow_control":
+      return {
+        label: "Runtime Drill Runner | recovery escalation",
+        targetSurface: "operator_runtime_drills",
+        targetLabel: "Runtime Drill Runner",
+        workspace: "runtime",
+        stateLabel: "recovery escalation",
+      };
+    case "operator_runtime_drills":
+      return {
+        label: "Workflow Control | workflow owner escalation",
+        targetSurface: "operator_workflow_control",
+        targetLabel: "Workflow Control",
+        workspace: "runtime",
+        stateLabel: "workflow owner escalation",
+      };
+    case "operator_session_ops":
+    default:
+      return null;
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1502,6 +1549,10 @@ function buildNextOperatorPrimaryStep(params: {
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
   });
+  const refreshEscalationTarget = buildNextOperatorPrimaryStepRefreshEscalationTarget({
+    needsRefresh,
+    nextOperatorActionTarget: params.nextOperatorActionTarget,
+  });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -1527,6 +1578,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshConfidence,
     refreshDetourHint,
     refreshEscalationHint,
+    refreshEscalationTarget,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
