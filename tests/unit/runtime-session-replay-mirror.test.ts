@@ -254,6 +254,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationCTA: null,
       refreshEscalationReadiness: null,
       refreshEscalationPrepHint: null,
+      refreshEscalationOpenGuard: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -452,6 +453,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       },
       refreshEscalationReadiness: "ready",
       refreshEscalationPrepHint: null,
+      refreshEscalationOpenGuard: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -627,6 +629,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationCTA: null,
       refreshEscalationReadiness: null,
       refreshEscalationPrepHint: null,
+      refreshEscalationOpenGuard: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -688,6 +691,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationCTA: null,
       refreshEscalationReadiness: null,
       refreshEscalationPrepHint: null,
+      refreshEscalationOpenGuard: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -771,5 +775,9 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
   assert.equal(
     snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationPrepHint,
     "Load the linked workflow boundary before escalating through Workflow Control.",
+  );
+  assert.equal(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationOpenGuard,
+    "Open once a linked workflow boundary or workflow owner handoff is loaded.",
   );
 });

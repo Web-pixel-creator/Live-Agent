@@ -89,6 +89,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationCTA | null;
   refreshEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationReadiness | null;
   refreshEscalationPrepHint: string | null;
+  refreshEscalationOpenGuard: string | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1271,6 +1272,28 @@ function buildNextOperatorPrimaryStepRefreshEscalationPrepHint(params: {
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationOpenGuard(params: {
+  needsRefresh: boolean;
+  refreshEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationTarget | null;
+  refreshEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationReadiness | null;
+}): string | null {
+  if (
+    !params.needsRefresh ||
+    !params.refreshEscalationTarget ||
+    params.refreshEscalationReadiness !== "needs_prep"
+  ) {
+    return null;
+  }
+  switch (params.refreshEscalationTarget.targetSurface) {
+    case "operator_workflow_control":
+      return "Open once a linked workflow boundary or workflow owner handoff is loaded.";
+    case "operator_runtime_drills":
+      return "Open once the repo-owned recovery drill is loaded.";
+    default:
+      return "Open once the escalation surface is prepared.";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -1666,6 +1689,11 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationTarget,
     refreshEscalationReadiness,
   });
+  const refreshEscalationOpenGuard = buildNextOperatorPrimaryStepRefreshEscalationOpenGuard({
+    needsRefresh,
+    refreshEscalationTarget,
+    refreshEscalationReadiness,
+  });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -1695,6 +1723,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationCTA,
     refreshEscalationReadiness,
     refreshEscalationPrepHint,
+    refreshEscalationOpenGuard,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
