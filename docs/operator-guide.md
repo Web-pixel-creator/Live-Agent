@@ -360,6 +360,7 @@ Runtime surface doc drift note: use `npm run runtime:surface:doc-drift` after th
 19.1.4. The replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback target`, so the operator can see the backup surface if that same follow-up still does not open cleanly.
 19.1.5. The replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback cta`, so that backup surface comes with one canonical operator handoff instead of a bare target.
 19.1.6. The replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback readiness`, so the operator can see whether that backup handoff is already `ready` or still `needs_prep`.
+19.1.7. The replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback prep hint`, so a `needs_prep` backup handoff explains which replay or handoff context is still missing before it can open safely.
 20. Top operator toolbar keeps only primary triage controls visible (`Demo/Full`, `Refresh`, `Focus Critical`, `Issues Only`); reset/collapse/cancel controls are grouped under a collapsed `Board Actions` block
 21. Collapse/expand operator evidence cards (`Collapse All` / `Expand All`); before first manual refresh the UI keeps only `Live Bridge & Turn Safety` expanded by default
 21.1. That same pre-refresh preset now also ships directly in the static HTML shell, so desktop first paint already opens only `Live Bridge & Turn Safety` while Audit, Runtime, and Decisions start as quiet `Open lane` rows
