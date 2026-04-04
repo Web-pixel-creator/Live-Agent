@@ -438,6 +438,7 @@ Runtime surface doc drift note: use `npm run runtime:surface:doc-drift` after th
 55. The same `Signal Paths` history is persisted in browser local storage on the operator workstation, restored on reload before the next summary refresh, and can be reset explicitly with `Clear Path History`
 56. `Intent Request` now includes `research` alongside live/story/ui lanes; use it when you need a citation-bearing answer path rather than freeform conversation.
 57. Demo/release artifacts also capture a repo-generated `Runtime Guardrails` snapshot: `badge-details.json` now includes `evidence.runtimeGuardrailsSignalPaths`, plus top-level `providerUsage` for adapter provenance (for example storyteller `tts` provider/model selection, optional `image_edit` lineage, live-agent `research` citation/source-url counts, and orchestrator `routing_reasoning` provider posture), and unified release evidence surfaces the same runtime-guardrails lane as `runtimeGuardrailsSignalPathsStatus`; these artifact snapshots intentionally exclude browser-local staged/executed history
+58. The runtime session replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback open guard`, so a `needs_prep` backup handoff states the exact safe-open condition once the latest replay or handoff context is loaded.
 
 ## Safety Controls
 
