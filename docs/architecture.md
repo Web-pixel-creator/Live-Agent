@@ -85,6 +85,7 @@ These are implementation lanes under the product, not separate products.
 8.3. The replay mirror also emits a repo-owned `refresh escalation fallback escalation fallback readiness`, so that backup handoff exposes whether it is already safe to open or still needs prep.
 8.4. The replay mirror also emits a repo-owned `refresh escalation fallback escalation fallback prep hint`, so a `needs_prep` backup handoff can state which replay or handoff context must load before the operator opens it.
 8.5. The replay mirror also emits a repo-owned `refresh escalation fallback escalation fallback open guard`, so a `needs_prep` backup handoff can state the explicit safe-open condition once that replay or handoff context is loaded.
+8.6. The replay mirror also emits a repo-owned `refresh escalation fallback escalation fallback outcome`, so the same backup handoff can state the restored operator outcome once it opens cleanly.
 8. Repo-owned operator session-ops contract in the frontend + API audit lane: purpose declarations, session replay, and cross-agent discovery are exportable and attach to high-risk operator audit records
 9. CI release gates and artifact revalidation workflows
 

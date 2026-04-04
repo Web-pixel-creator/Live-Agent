@@ -1619,3 +1619,4 @@ This scaffold is intentionally minimal and is designed to be expanded by impleme
 3. Vertex AI agent runtime wiring
 4. Tool execution and approval workflows
 5. The runtime session replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback open guard`, so a `needs_prep` backup handoff states the exact safe-open condition once the latest replay or handoff context is loaded.
+6. The runtime session replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback outcome`, so the same backup handoff spells out the restored operator outcome once it opens cleanly.

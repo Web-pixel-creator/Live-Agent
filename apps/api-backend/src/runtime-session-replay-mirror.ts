@@ -105,6 +105,7 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackReadi
 
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackPrepHint = string;
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOpenGuard = string;
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOutcomeLabel = string;
 
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
@@ -157,6 +158,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationFallbackReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackReadiness | null;
   refreshEscalationFallbackEscalationFallbackPrepHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackPrepHint | null;
   refreshEscalationFallbackEscalationFallbackOpenGuard: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOpenGuard | null;
+  refreshEscalationFallbackEscalationFallbackOutcomeLabel: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOutcomeLabel | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1841,6 +1843,27 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackOutcomeLabel(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOutcomeLabel | null {
+  if (!params.needsRefresh || !params.refreshEscalationFallbackEscalationFallbackTarget) {
+    return null;
+  }
+  switch (params.refreshEscalationFallbackEscalationFallbackTarget.targetSurface) {
+    case "operator_session_ops":
+      return "Backup handoff is open.";
+    case "operator_workflow_control":
+      return "Backup boundary handoff is open.";
+    case "operator_runtime_drills":
+      return "Backup recovery handoff is open.";
+    case "operator_saved_view_approvals":
+      return "Backup approval handoff is open.";
+    default:
+      return null;
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -2348,6 +2371,11 @@ function buildNextOperatorPrimaryStep(params: {
       refreshEscalationFallbackEscalationFallbackTarget,
       refreshEscalationFallbackEscalationFallbackReadiness,
     });
+  const refreshEscalationFallbackEscalationFallbackOutcomeLabel =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackOutcomeLabel({
+      needsRefresh,
+      refreshEscalationFallbackEscalationFallbackTarget,
+    });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -2397,6 +2425,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackEscalationFallbackReadiness,
     refreshEscalationFallbackEscalationFallbackPrepHint,
     refreshEscalationFallbackEscalationFallbackOpenGuard,
+    refreshEscalationFallbackEscalationFallbackOutcomeLabel,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;

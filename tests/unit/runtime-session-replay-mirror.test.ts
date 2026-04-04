@@ -274,6 +274,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackEscalationFallbackReadiness: null,
       refreshEscalationFallbackEscalationFallbackPrepHint: null,
       refreshEscalationFallbackEscalationFallbackOpenGuard: null,
+      refreshEscalationFallbackEscalationFallbackOutcomeLabel: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -492,6 +493,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackEscalationFallbackReadiness: null,
       refreshEscalationFallbackEscalationFallbackPrepHint: null,
       refreshEscalationFallbackEscalationFallbackOpenGuard: null,
+      refreshEscalationFallbackEscalationFallbackOutcomeLabel: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -687,6 +689,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackEscalationFallbackReadiness: null,
       refreshEscalationFallbackEscalationFallbackPrepHint: null,
       refreshEscalationFallbackEscalationFallbackOpenGuard: null,
+      refreshEscalationFallbackEscalationFallbackOutcomeLabel: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -768,6 +771,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackEscalationFallbackReadiness: null,
       refreshEscalationFallbackEscalationFallbackPrepHint: null,
       refreshEscalationFallbackEscalationFallbackOpenGuard: null,
+      refreshEscalationFallbackEscalationFallbackOutcomeLabel: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -968,5 +972,9 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
   assert.equal(
     snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackOpenGuard,
     "Open once the latest replay handoff is loaded.",
+  );
+  assert.equal(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackOutcomeLabel,
+    "Backup handoff is open.",
   );
 });
