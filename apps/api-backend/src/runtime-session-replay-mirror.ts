@@ -106,6 +106,8 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackReadi
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackPrepHint = string;
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOpenGuard = string;
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOutcomeLabel = string;
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackConfidence =
+  RuntimeSessionReplayPrimaryRefreshConfidence;
 
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
@@ -159,6 +161,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationFallbackPrepHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackPrepHint | null;
   refreshEscalationFallbackEscalationFallbackOpenGuard: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOpenGuard | null;
   refreshEscalationFallbackEscalationFallbackOutcomeLabel: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOutcomeLabel | null;
+  refreshEscalationFallbackEscalationFallbackConfidence: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackConfidence | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1864,6 +1867,25 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackConfidence(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackConfidence | null {
+  if (!params.needsRefresh || !params.refreshEscalationFallbackEscalationFallbackTarget) {
+    return null;
+  }
+  switch (params.refreshEscalationFallbackEscalationFallbackTarget.targetSurface) {
+    case "operator_saved_view_approvals":
+      return "high";
+    case "operator_workflow_control":
+    case "operator_runtime_drills":
+      return "medium";
+    case "operator_session_ops":
+    default:
+      return "low";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -2376,6 +2398,11 @@ function buildNextOperatorPrimaryStep(params: {
       needsRefresh,
       refreshEscalationFallbackEscalationFallbackTarget,
     });
+  const refreshEscalationFallbackEscalationFallbackConfidence =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackConfidence({
+      needsRefresh,
+      refreshEscalationFallbackEscalationFallbackTarget,
+    });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -2426,6 +2453,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackEscalationFallbackPrepHint,
     refreshEscalationFallbackEscalationFallbackOpenGuard,
     refreshEscalationFallbackEscalationFallbackOutcomeLabel,
+    refreshEscalationFallbackEscalationFallbackConfidence,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;

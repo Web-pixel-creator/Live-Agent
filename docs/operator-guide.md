@@ -440,6 +440,7 @@ Runtime surface doc drift note: use `npm run runtime:surface:doc-drift` after th
 57. Demo/release artifacts also capture a repo-generated `Runtime Guardrails` snapshot: `badge-details.json` now includes `evidence.runtimeGuardrailsSignalPaths`, plus top-level `providerUsage` for adapter provenance (for example storyteller `tts` provider/model selection, optional `image_edit` lineage, live-agent `research` citation/source-url counts, and orchestrator `routing_reasoning` provider posture), and unified release evidence surfaces the same runtime-guardrails lane as `runtimeGuardrailsSignalPathsStatus`; these artifact snapshots intentionally exclude browser-local staged/executed history
 58. The runtime session replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback open guard`, so a `needs_prep` backup handoff states the exact safe-open condition once the latest replay or handoff context is loaded.
 59. The runtime session replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback outcome`, so the same backup handoff spells out the restored operator outcome once it opens cleanly.
+60. The runtime session replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback confidence`, so the same backup handoff shows how reliably that backup follow-up should close the stale boundary once opened.
 
 ## Safety Controls
 

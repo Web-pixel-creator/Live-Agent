@@ -275,6 +275,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackEscalationFallbackPrepHint: null,
       refreshEscalationFallbackEscalationFallbackOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackOutcomeLabel: null,
+      refreshEscalationFallbackEscalationFallbackConfidence: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -494,6 +495,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackEscalationFallbackPrepHint: null,
       refreshEscalationFallbackEscalationFallbackOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackOutcomeLabel: null,
+      refreshEscalationFallbackEscalationFallbackConfidence: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -690,6 +692,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackEscalationFallbackPrepHint: null,
       refreshEscalationFallbackEscalationFallbackOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackOutcomeLabel: null,
+      refreshEscalationFallbackEscalationFallbackConfidence: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -772,6 +775,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackEscalationFallbackPrepHint: null,
       refreshEscalationFallbackEscalationFallbackOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackOutcomeLabel: null,
+      refreshEscalationFallbackEscalationFallbackConfidence: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -976,5 +980,9 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
   assert.equal(
     snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackOutcomeLabel,
     "Backup handoff is open.",
+  );
+  assert.equal(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackConfidence,
+    "low",
   );
 });
