@@ -108,6 +108,7 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOpenG
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOutcomeLabel = string;
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackConfidence =
   RuntimeSessionReplayPrimaryRefreshConfidence;
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackDetourHint = string;
 
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
@@ -162,6 +163,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationFallbackOpenGuard: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOpenGuard | null;
   refreshEscalationFallbackEscalationFallbackOutcomeLabel: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOutcomeLabel | null;
   refreshEscalationFallbackEscalationFallbackConfidence: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackConfidence | null;
+  refreshEscalationFallbackEscalationFallbackDetourHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackDetourHint | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -1886,6 +1888,26 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackDetourHint(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackDetourHint | null {
+  if (!params.needsRefresh || !params.refreshEscalationFallbackEscalationFallbackTarget) {
+    return null;
+  }
+  switch (params.refreshEscalationFallbackEscalationFallbackTarget.targetSurface) {
+    case "operator_saved_view_approvals":
+      return "Use boundary review if the backup approval handoff still does not restore ownership.";
+    case "operator_workflow_control":
+      return "Use owner handoff if the backup boundary handoff still does not clear the workflow edge.";
+    case "operator_runtime_drills":
+      return "Use recovery follow-through if the backup recovery handoff still does not close the stale boundary.";
+    case "operator_session_ops":
+    default:
+      return "Use manual follow-through if the backup handoff still does not restore the session path.";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -2403,6 +2425,11 @@ function buildNextOperatorPrimaryStep(params: {
       needsRefresh,
       refreshEscalationFallbackEscalationFallbackTarget,
     });
+  const refreshEscalationFallbackEscalationFallbackDetourHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackDetourHint({
+      needsRefresh,
+      refreshEscalationFallbackEscalationFallbackTarget,
+    });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -2454,6 +2481,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackEscalationFallbackOpenGuard,
     refreshEscalationFallbackEscalationFallbackOutcomeLabel,
     refreshEscalationFallbackEscalationFallbackConfidence,
+    refreshEscalationFallbackEscalationFallbackDetourHint,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;

@@ -276,6 +276,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackEscalationFallbackOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackOutcomeLabel: null,
       refreshEscalationFallbackEscalationFallbackConfidence: null,
+      refreshEscalationFallbackEscalationFallbackDetourHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -496,6 +497,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackEscalationFallbackOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackOutcomeLabel: null,
       refreshEscalationFallbackEscalationFallbackConfidence: null,
+      refreshEscalationFallbackEscalationFallbackDetourHint: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -693,6 +695,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackEscalationFallbackOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackOutcomeLabel: null,
       refreshEscalationFallbackEscalationFallbackConfidence: null,
+      refreshEscalationFallbackEscalationFallbackDetourHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -776,6 +779,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackEscalationFallbackOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackOutcomeLabel: null,
       refreshEscalationFallbackEscalationFallbackConfidence: null,
+      refreshEscalationFallbackEscalationFallbackDetourHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -984,5 +988,9 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
   assert.equal(
     snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackConfidence,
     "low",
+  );
+  assert.equal(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackDetourHint,
+    "Use manual follow-through if the backup handoff still does not restore the session path.",
   );
 });
