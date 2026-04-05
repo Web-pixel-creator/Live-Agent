@@ -120,6 +120,8 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscal
   string;
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationOpenGuard =
   string;
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackTarget =
+  RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationTarget;
 
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
@@ -181,6 +183,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationFallbackEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationReadiness | null;
   refreshEscalationFallbackEscalationFallbackEscalationPrepHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationPrepHint | null;
   refreshEscalationFallbackEscalationFallbackEscalationOpenGuard: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationOpenGuard | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackTarget | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -2103,6 +2106,38 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackTarget(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackTarget | null {
+  if (!params.needsRefresh || !params.refreshEscalationFallbackEscalationFallbackEscalationTarget) {
+    return null;
+  }
+  switch (params.refreshEscalationFallbackEscalationFallbackEscalationTarget.targetSurface) {
+    case "operator_workflow_control":
+    case "operator_runtime_drills":
+      return {
+        label: "Operator Session Ops | manual handoff",
+        targetSurface: "operator_session_ops",
+        targetLabel: "Operator Session Ops",
+        workspace: "runtime",
+        stateLabel: "manual handoff",
+        mode: "owner_handoff",
+      };
+    case "operator_session_ops":
+    case "operator_saved_view_approvals":
+    default:
+      return {
+        label: "Workflow Control | boundary review",
+        targetSurface: "operator_workflow_control",
+        targetLabel: "Workflow Control",
+        workspace: "runtime",
+        stateLabel: "boundary review",
+        mode: "inspect",
+      };
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -2660,6 +2695,11 @@ function buildNextOperatorPrimaryStep(params: {
       refreshEscalationFallbackEscalationFallbackEscalationTarget,
       refreshEscalationFallbackEscalationFallbackEscalationReadiness,
     });
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackTarget({
+      needsRefresh,
+      refreshEscalationFallbackEscalationFallbackEscalationTarget,
+    });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -2718,6 +2758,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackEscalationFallbackEscalationReadiness,
     refreshEscalationFallbackEscalationFallbackEscalationPrepHint,
     refreshEscalationFallbackEscalationFallbackEscalationOpenGuard,
+    refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
