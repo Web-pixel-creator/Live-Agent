@@ -286,6 +286,8 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackPrepHint: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackOpenGuard: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -516,6 +518,8 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackPrepHint: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackOpenGuard: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -723,6 +727,8 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackPrepHint: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackOpenGuard: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -816,6 +822,8 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackPrepHint: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackOpenGuard: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -1090,5 +1098,13 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
   assert.equal(
     snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness,
     "needs_prep",
+  );
+  assert.equal(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackPrepHint,
+    "Load the latest workflow boundary or workflow owner handoff before opening the backup boundary review follow-through.",
+  );
+  assert.equal(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackOpenGuard,
+    "Open once a linked workflow boundary or workflow owner handoff is loaded.",
   );
 });
