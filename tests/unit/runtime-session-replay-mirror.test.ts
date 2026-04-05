@@ -281,6 +281,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackEscalationFallbackEscalationTarget: null,
       refreshEscalationFallbackEscalationFallbackEscalationCTA: null,
       refreshEscalationFallbackEscalationFallbackEscalationReadiness: null,
+      refreshEscalationFallbackEscalationFallbackEscalationPrepHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -506,6 +507,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackEscalationFallbackEscalationTarget: null,
       refreshEscalationFallbackEscalationFallbackEscalationCTA: null,
       refreshEscalationFallbackEscalationFallbackEscalationReadiness: null,
+      refreshEscalationFallbackEscalationFallbackEscalationPrepHint: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -708,6 +710,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackEscalationFallbackEscalationTarget: null,
       refreshEscalationFallbackEscalationFallbackEscalationCTA: null,
       refreshEscalationFallbackEscalationFallbackEscalationReadiness: null,
+      refreshEscalationFallbackEscalationFallbackEscalationPrepHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -796,6 +799,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackEscalationFallbackEscalationTarget: null,
       refreshEscalationFallbackEscalationFallbackEscalationCTA: null,
       refreshEscalationFallbackEscalationFallbackEscalationReadiness: null,
+      refreshEscalationFallbackEscalationFallbackEscalationPrepHint: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -1037,5 +1041,9 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
   assert.equal(
     snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationReadiness,
     "needs_prep",
+  );
+  assert.equal(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationPrepHint,
+    "Load the latest replay handoff before opening the backup handoff escalation.",
   );
 });
