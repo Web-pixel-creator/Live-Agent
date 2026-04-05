@@ -114,6 +114,8 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscal
   RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationTarget;
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationCTA =
   RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationCTA;
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationReadiness =
+  RuntimeSessionReplayPrimaryRefreshEscalationReadiness;
 
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
@@ -172,6 +174,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationFallbackEscalationHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationHint | null;
   refreshEscalationFallbackEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationTarget | null;
   refreshEscalationFallbackEscalationFallbackEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationCTA | null;
+  refreshEscalationFallbackEscalationFallbackEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationReadiness | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -2025,6 +2028,29 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationReadiness(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationTarget | null;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+  recoveryDrill: ReturnType<typeof buildRecoveryDrill>;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationReadiness | null {
+  if (!params.needsRefresh || !params.refreshEscalationFallbackEscalationFallbackEscalationTarget) {
+    return null;
+  }
+  switch (params.refreshEscalationFallbackEscalationFallbackEscalationTarget.targetSurface) {
+    case "operator_workflow_control":
+      return params.workflowSummary || params.currentHandoffState ? "ready" : "needs_prep";
+    case "operator_session_ops":
+      return params.currentHandoffState ? "ready" : "needs_prep";
+    case "operator_runtime_drills":
+      return params.recoveryDrill ? "ready" : "needs_prep";
+    case "operator_saved_view_approvals":
+    default:
+      return "needs_prep";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -2562,6 +2588,14 @@ function buildNextOperatorPrimaryStep(params: {
       needsRefresh,
       refreshEscalationFallbackEscalationFallbackEscalationTarget,
     });
+  const refreshEscalationFallbackEscalationFallbackEscalationReadiness =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationReadiness({
+      needsRefresh,
+      refreshEscalationFallbackEscalationFallbackEscalationTarget,
+      workflowSummary: params.workflowSummary,
+      currentHandoffState: params.currentHandoffState,
+      recoveryDrill: params.recoveryDrill,
+    });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -2617,6 +2651,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackEscalationFallbackEscalationHint,
     refreshEscalationFallbackEscalationFallbackEscalationTarget,
     refreshEscalationFallbackEscalationFallbackEscalationCTA,
+    refreshEscalationFallbackEscalationFallbackEscalationReadiness,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
