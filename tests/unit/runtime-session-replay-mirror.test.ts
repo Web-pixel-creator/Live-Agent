@@ -279,6 +279,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackEscalationFallbackDetourHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationTarget: null,
+      refreshEscalationFallbackEscalationFallbackEscalationCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -502,6 +503,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackEscalationFallbackDetourHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationTarget: null,
+      refreshEscalationFallbackEscalationFallbackEscalationCTA: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -702,6 +704,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackEscalationFallbackDetourHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationTarget: null,
+      refreshEscalationFallbackEscalationFallbackEscalationCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -788,6 +791,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackEscalationFallbackDetourHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationTarget: null,
+      refreshEscalationFallbackEscalationFallbackEscalationCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -1014,6 +1018,16 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
       workspace: "runtime",
       stateLabel: "manual handoff",
       mode: "owner_handoff",
+    },
+  );
+  assert.deepEqual(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationCTA,
+    {
+      label: "Open Operator Session Ops for the backup manual handoff.",
+      ctaLabel: "Hand off after backup escalation",
+      targetSurface: "operator_session_ops",
+      targetLabel: "Operator Session Ops",
+      workspace: "runtime",
     },
   );
 });
