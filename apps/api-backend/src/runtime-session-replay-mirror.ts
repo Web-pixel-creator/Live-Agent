@@ -142,6 +142,8 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscal
   RuntimeSessionReplayPrimaryRefreshEscalationTarget;
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA =
   RuntimeSessionReplayPrimaryRefreshEscalationCTA;
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness =
+  RuntimeSessionReplayPrimaryRefreshEscalationReadiness;
 
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
@@ -214,6 +216,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -2448,6 +2451,35 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget | null;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+  recoveryDrill: ReturnType<typeof buildRecoveryDrill>;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness | null {
+  if (
+    !params.needsRefresh ||
+    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget
+  ) {
+    return null;
+  }
+  switch (
+    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget
+      .targetSurface
+  ) {
+    case "operator_workflow_control":
+      return params.workflowSummary || params.currentHandoffState ? "ready" : "needs_prep";
+    case "operator_session_ops":
+      return params.currentHandoffState ? "ready" : "needs_prep";
+    case "operator_runtime_drills":
+      return params.recoveryDrill ? "ready" : "needs_prep";
+    case "operator_saved_view_approvals":
+    default:
+      return "needs_prep";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -3065,6 +3097,14 @@ function buildNextOperatorPrimaryStep(params: {
       needsRefresh,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
     });
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness({
+      needsRefresh,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+      workflowSummary: params.workflowSummary,
+      currentHandoffState: params.currentHandoffState,
+      recoveryDrill: params.recoveryDrill,
+    });
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -3134,6 +3174,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA,
+    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
