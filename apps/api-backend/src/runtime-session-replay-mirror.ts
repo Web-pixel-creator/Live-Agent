@@ -144,6 +144,8 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscal
   RuntimeSessionReplayPrimaryRefreshEscalationCTA;
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness =
   RuntimeSessionReplayPrimaryRefreshEscalationReadiness;
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint =
+  string;
 
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
@@ -217,6 +219,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -2480,6 +2483,33 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness | null;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint | null {
+  if (
+    !params.needsRefresh ||
+    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget ||
+    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness !==
+      "needs_prep"
+  ) {
+    return null;
+  }
+  switch (
+    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget
+      .targetSurface
+  ) {
+    case "operator_workflow_control":
+      return "Load the latest workflow boundary or workflow owner handoff before opening the backup boundary recovery escalation.";
+    case "operator_runtime_drills":
+      return "Load the repo-owned recovery drill before opening the backup runtime recovery.";
+    case "operator_session_ops":
+    default:
+      return "Load the latest replay handoff before opening the backup manual handoff escalation.";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -3105,6 +3135,14 @@ function buildNextOperatorPrimaryStep(params: {
       currentHandoffState: params.currentHandoffState,
       recoveryDrill: params.recoveryDrill,
     });
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint(
+      {
+        needsRefresh,
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
+      },
+    );
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -3175,6 +3213,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
+    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
