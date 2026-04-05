@@ -284,6 +284,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackEscalationFallbackEscalationPrepHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -512,6 +513,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackEscalationFallbackEscalationPrepHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA: null,
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -717,6 +719,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackEscalationFallbackEscalationPrepHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -808,6 +811,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackEscalationFallbackEscalationPrepHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA: null,
       refreshAction: null,
       refreshTargetState: null,
     });
@@ -1067,6 +1071,16 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
       workspace: "runtime",
       stateLabel: "boundary review",
       mode: "inspect",
+    },
+  );
+  assert.deepEqual(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA,
+    {
+      label: "Open Workflow Control for the backup boundary review follow-through.",
+      ctaLabel: "Inspect backup follow-through",
+      targetSurface: "operator_workflow_control",
+      targetLabel: "Workflow Control",
+      workspace: "runtime",
     },
   );
 });
