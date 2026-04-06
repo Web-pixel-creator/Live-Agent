@@ -175,6 +175,7 @@ test("operator console exposes compact session boundary widget", () => {
   "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrepHint",
   "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard",
   "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence",
     "firstStepRefreshEscalationFallbackEscalationMode=",
     "firstStepRefreshEscalationFallbackEscalationCTA=",
     "firstStepRefreshEscalationFallbackEscalationReadiness=",
@@ -236,6 +237,7 @@ test("operator console exposes compact session boundary widget", () => {
   "firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrep=",
   "firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard=",
   "firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcome=",
+  "firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence=",
     "firstStepRefreshEscalationCTA=",
     "firstStepRefreshEscalationReadiness=",
     "firstStepRefreshEscalationPrep=",
@@ -275,6 +277,7 @@ assert.match(readmeSource, /refresh escalation fallback escalation fallback esca
 assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation prep/i);
 assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation open guard/i);
 assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation outcome/i);
+assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation confidence/i);
 assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback escalation prep hint/i);
 assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback escalation open guard/i);
 assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback escalation outcome/i);
@@ -295,6 +298,7 @@ assert.match(operatorGuideSource, /refresh escalation fallback escalation fallba
 assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation prep/i);
 assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation open guard/i);
 assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation outcome/i);
+assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation confidence/i);
 assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback escalation prep hint/i);
 assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback escalation open guard/i);
 assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback escalation outcome/i);
@@ -314,6 +318,7 @@ assert.match(architectureSource, /refresh escalation fallback escalation fallbac
 assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation prep/i);
 assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation open guard/i);
 assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation outcome/i);
+assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation confidence/i);
 assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback escalation prep hint/i);
 assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback escalation open guard/i);
 assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback escalation outcome/i);
