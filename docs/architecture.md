@@ -122,7 +122,8 @@ These are implementation lanes under the product, not separate products.
 8.40. The replay mirror also emits a repo-owned `refresh escalation fallback escalation fallback escalation fallback escalation escalation detour`, so that same nested spare surface can tell the operator when one more ownership follow-through is still needed after that escalation recovery step opens.
 8.41. The replay mirror also emits a repo-owned `refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation`, so that same nested spare surface can tell the operator when that escalation recovery step should already flip into one more explicit escalation path.
 8.42. The replay mirror also emits a repo-owned `refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation target`, so that same nested spare surface can point the operator to the exact next surface and posture for that re-escalation path.
-8.43. Repo-owned operator session-ops contract in the frontend + API audit lane: purpose declarations, session replay, and cross-agent discovery are exportable and attach to high-risk operator audit records
+8.43. The replay mirror also emits a repo-owned `refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation cta`, so that same nested spare surface can hand the operator one canonical follow-through for that re-escalation path.
+8.44. Repo-owned operator session-ops contract in the frontend + API audit lane: purpose declarations, session replay, and cross-agent discovery are exportable and attach to high-risk operator audit records
 9. CI release gates and artifact revalidation workflows
 
 ## Source Docs
