@@ -170,6 +170,8 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscal
   string;
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence =
   RuntimeSessionReplayPrimaryRefreshConfidence;
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint =
+  string;
 
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
@@ -256,6 +258,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -2917,6 +2920,30 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint | null {
+  if (
+    !params.needsRefresh ||
+    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+  ) {
+    return null;
+  }
+  switch (
+    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+      .targetSurface
+  ) {
+    case "operator_workflow_control":
+      return "Recheck boundary ownership after the escalation opens.";
+    case "operator_runtime_drills":
+      return "Recheck runtime ownership after the escalation opens.";
+    case "operator_session_ops":
+    default:
+      return "Recheck manual ownership handoff after the escalation opens.";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -3640,6 +3667,13 @@ function buildNextOperatorPrimaryStep(params: {
         refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
       },
     );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint(
+      {
+        needsRefresh,
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+      },
+    );
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -3723,6 +3757,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence,
+    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;

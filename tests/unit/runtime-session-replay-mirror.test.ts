@@ -299,6 +299,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: null,
@@ -551,6 +552,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: null,
@@ -780,6 +782,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: null,
@@ -895,6 +898,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: null,
@@ -1292,5 +1296,9 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
     assert.equal(
       snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence,
       "medium",
+    );
+    assert.equal(
+      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint,
+      "Recheck boundary ownership after the escalation opens.",
     );
   });
