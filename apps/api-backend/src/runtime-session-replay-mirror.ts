@@ -158,6 +158,8 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscal
   string;
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget =
   RuntimeSessionReplayPrimaryRefreshEscalationTarget;
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA =
+  RuntimeSessionReplayPrimaryRefreshEscalationCTA;
 
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
@@ -238,6 +240,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -2697,6 +2700,77 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA | null {
+  if (
+    !params.needsRefresh ||
+    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+  ) {
+    return null;
+  }
+  switch (
+    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+      .mode
+  ) {
+    case "inspect":
+      return {
+        label: "Open Workflow Control for the ownership recovery escalation.",
+        ctaLabel: "Inspect ownership recovery",
+        targetSurface:
+          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+            .targetSurface,
+        targetLabel:
+          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+            .targetLabel,
+        workspace:
+          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+            .workspace,
+      };
+    case "recover":
+      return {
+        label:
+          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+            .targetSurface === "operator_workflow_control"
+            ? "Open Workflow Control for the boundary ownership recovery."
+            : "Open Runtime Drill Runner for the runtime ownership recovery.",
+        ctaLabel: "Recover ownership after escalation",
+        targetSurface:
+          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+            .targetSurface,
+        targetLabel:
+          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+            .targetLabel,
+        workspace:
+          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+            .workspace,
+      };
+    case "owner_handoff":
+    default:
+      return {
+        label:
+          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+            .targetSurface === "operator_workflow_control"
+            ? "Open Workflow Control for the boundary ownership recovery handoff."
+            : params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+                  .targetSurface === "operator_runtime_drills"
+              ? "Open Runtime Drill Runner for the runtime ownership recovery handoff."
+              : "Open Operator Session Ops for the ownership recovery handoff.",
+        ctaLabel: "Hand off into ownership recovery",
+        targetSurface:
+          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+            .targetSurface,
+        targetLabel:
+          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+            .targetLabel,
+        workspace:
+          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+            .workspace,
+      };
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -3373,6 +3447,13 @@ function buildNextOperatorPrimaryStep(params: {
         refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
       },
     );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA(
+      {
+        needsRefresh,
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+      },
+    );
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -3450,6 +3531,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;

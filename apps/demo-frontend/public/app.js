@@ -29784,6 +29784,13 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
       ? nextOperatorPrimaryStep
           .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
       : null;
+  const primaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA =
+    isRecord(
+      nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA,
+    )
+      ? nextOperatorPrimaryStep
+          .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA
+      : null;
   const primaryStepFreshness =
     primaryStepSurfaceState === "primed"
       ? primaryStepNeedsRefresh
@@ -29844,6 +29851,12 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
             primaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget?.mode,
           )
             ? ` | ${primaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget.mode}`
+            : ""
+        }${
+          toOptionalText(
+            primaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA?.ctaLabel,
+          )
+            ? ` | ${primaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA.ctaLabel}`
             : ""
         }`
       : afterRefreshBaseDetail;
@@ -31075,6 +31088,38 @@ function normalizeOperatorReplayPrimaryStep(value) {
             ),
           }
         : null,
+    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA:
+      isRecord(
+        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA,
+      )
+        ? {
+            label: toOptionalText(
+              value
+                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA
+                .label,
+            ),
+            ctaLabel: toOptionalText(
+              value
+                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA
+                .ctaLabel,
+            ),
+            targetSurface: toOptionalText(
+              value
+                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA
+                .targetSurface,
+            ),
+            targetLabel: toOptionalText(
+              value
+                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA
+                .targetLabel,
+            ),
+            workspace: toOptionalText(
+              value
+                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA
+                .workspace,
+            ),
+          }
+        : null,
     refreshAction: isRecord(value.refreshAction)
       ? {
           label: toOptionalText(value.refreshAction.label),
@@ -31425,6 +31470,7 @@ function buildOperatorSessionOpsControlMeta() {
     `firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetour=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint) ?? "n/a"}`,
     `firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalation=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint) ?? "n/a"}`,
     `firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget?.targetLabel) ?? toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget?.targetSurface) ?? "n/a"}`,
+    `firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA?.ctaLabel) ?? "n/a"}`,
     `firstStepRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshAction?.action) ?? "n/a"}`,
     `firstStepAfterRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.stateLabel) ?? "n/a"}`,
     `firstStepRefreshScope=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.refreshScope) ?? "n/a"}`,
