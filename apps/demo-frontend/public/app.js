@@ -29849,6 +29849,10 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     toOptionalText(
       nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel,
     );
+  const primaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence =
+    toOptionalText(
+      nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence,
+    );
   const primaryStepFreshness =
     primaryStepSurfaceState === "primed"
       ? primaryStepNeedsRefresh
@@ -29983,6 +29987,10 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
           }${
             primaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcome
               ? ` | ${primaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcome}`
+              : ""
+          }${
+            primaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence
+              ? ` | ${primaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence}`
               : ""
           }`
       : afterRefreshBaseDetail;
@@ -31359,6 +31367,10 @@ function normalizeOperatorReplayPrimaryStep(value) {
       toOptionalText(
         value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel,
       ),
+    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence:
+      toOptionalText(
+        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence,
+      ),
     refreshAction: isRecord(value.refreshAction)
       ? {
           label: toOptionalText(value.refreshAction.label),
@@ -31723,6 +31735,7 @@ function buildOperatorSessionOpsControlMeta() {
     `firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrep=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint) ?? "n/a"}`,
     `firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard) ?? "n/a"}`,
     `firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcome=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel) ?? "n/a"}`,
+    `firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence) ?? "n/a"}`,
     `firstStepRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshAction?.action) ?? "n/a"}`,
     `firstStepAfterRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.stateLabel) ?? "n/a"}`,
     `firstStepRefreshScope=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.refreshScope) ?? "n/a"}`,

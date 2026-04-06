@@ -186,6 +186,8 @@ type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscal
   string;
 type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel =
   string;
+type RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence =
+  RuntimeSessionReplayPrimaryRefreshConfidence;
 
 type RuntimeSessionReplayPrimaryRefreshTargetState = {
   label: string;
@@ -280,6 +282,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -3202,6 +3205,30 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence(params: {
+  needsRefresh: boolean;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget | null;
+}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence | null {
+  if (
+    !params.needsRefresh ||
+    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget
+  ) {
+    return null;
+  }
+  switch (
+    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget
+      .targetSurface
+  ) {
+    case "operator_workflow_control":
+      return "medium";
+    case "operator_runtime_drills":
+      return "medium";
+    case "operator_session_ops":
+    default:
+      return "low";
+  }
+}
+
 function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   needsRefresh: boolean;
   nextOperatorActionTarget: RuntimeSessionReplayNextOperatorActionTarget | null;
@@ -3986,6 +4013,13 @@ function buildNextOperatorPrimaryStep(params: {
         refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
       },
     );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence(
+      {
+        needsRefresh,
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+      },
+    );
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
     needsRefresh,
     nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -4077,6 +4111,7 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel,
+    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
