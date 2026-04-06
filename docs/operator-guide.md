@@ -471,6 +471,7 @@ Runtime surface doc drift note: use `npm run runtime:surface:doc-drift` after th
 88. The runtime session replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback escalation fallback escalation escalation readiness`, so that same nested spare surface can state whether that escalation recovery follow-through is already `ready` or still `needs_prep`.
 89. The runtime session replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback escalation fallback escalation escalation prep hint`, so that same nested spare surface can explain what workflow, handoff, or recovery context is still missing before that escalation recovery follow-through is safe to open.
 90. The runtime session replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback escalation fallback escalation escalation open guard`, so that same nested spare surface can state the exact safe-open condition once the missing workflow, handoff, or recovery context is loaded.
+91. The runtime session replay mirror now also emits a repo-owned `refresh escalation fallback escalation fallback escalation fallback escalation escalation outcome`, so that same nested spare surface can show the restored operator outcome once that escalation recovery follow-through opens cleanly.
 
 ## Safety Controls
 
