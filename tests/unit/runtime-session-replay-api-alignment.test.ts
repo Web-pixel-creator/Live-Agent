@@ -108,6 +108,7 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
   "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget",
   "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA",
   "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint",
     "mode",
     "refreshAction",
     "refreshTargetState",

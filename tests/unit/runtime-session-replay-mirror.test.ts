@@ -295,6 +295,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness: null,
+    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: null,
@@ -543,6 +544,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness: null,
+    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: null,
@@ -768,6 +770,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness: null,
+    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: null,
@@ -879,6 +882,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness: null,
+    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: null,
@@ -1260,5 +1264,9 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
   assert.equal(
     snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
     "needs_prep",
+  );
+  assert.equal(
+    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint,
+    "Load the latest workflow boundary or workflow owner handoff before opening the ownership recovery escalation.",
   );
 });
