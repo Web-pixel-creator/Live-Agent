@@ -310,6 +310,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: null,
@@ -573,6 +574,7 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: null,
@@ -813,6 +815,7 @@ test("runtime session replay mirror surfaces recovery drill guidance for failed 
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: null,
@@ -939,6 +942,7 @@ test("runtime session replay mirror marks the first step as not_primed when no t
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint: null,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget: null,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: null,
@@ -1393,5 +1397,16 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
     assert.equal(
       snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint,
       "Escalate again if boundary ownership still stays unresolved.",
+    );
+    assert.deepEqual(
+      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+      {
+        label: "Workflow Control | boundary ownership escalation retry",
+        targetSurface: "operator_workflow_control",
+        targetLabel: "Workflow Control",
+        workspace: "runtime",
+        stateLabel: "boundary ownership escalation retry",
+        mode: "inspect",
+      },
     );
   });
