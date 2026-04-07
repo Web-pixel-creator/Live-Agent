@@ -74,10 +74,14 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "buildSessionExportOperatorSessionReplay",
     "buildSessionExportOperatorDiscovery",
     "buildOperatorReplayPrimaryStepRefreshView",
+    "function normalizeOperatorReplayPrimaryStepRefreshState(value)",
     "buildOperatorReplayRefreshRecoveryFollowupSummary",
     "refreshRecoveryFollowupPathSummary",
     "refreshRecoveryLegacyFallbackSummary",
     "refreshRecoveryAfterRefreshDetail",
+    "refreshState",
+    "refreshStateSource",
+    "flat_refresh_escalation_fields",
     "readStoredOperatorPurposeDeclaration()",
     "refreshOperatorSessionReplay({ silent: true }).catch(() => {",
     "refreshOperatorDiscovery({ silent: true }).catch(() => {",
@@ -89,6 +93,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "firstStepMode=",
     "firstStepPrime=",
     "firstStepFreshness=",
+    "firstStepRefreshModel=",
     "firstStepRefresh=",
     "firstStepAfterRefresh=",
     "firstStepRefreshScope=",
@@ -127,6 +132,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.ok(readmeSource.includes("`operatorPurpose`"), "README missing operatorPurpose note");
   assert.ok(readmeSource.includes("`GET /v1/runtime/session-replay`"), "README missing session replay API note");
   assert.match(readmeSource, /refresh recovery follow-?up path/i);
+  assert.match(readmeSource, /structured refresh state/i);
 assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation prep/i);
 assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation open guard/i);
 assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation outcome/i);
@@ -136,6 +142,7 @@ assert.match(readmeSource, /refresh escalation fallback escalation fallback esca
   assert.ok(readmeSource.includes("`GET /v1/skills/personas`"), "README missing persona discovery API note");
   assert.ok(operatorGuideSource.includes("`Operator Session Ops`"), "operator guide missing session-ops panel note");
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);
+  assert.match(operatorGuideSource, /structured refresh state/i);
   assert.ok(operatorGuideSource.includes("`operatorPurpose`"), "operator guide missing operator purpose note");
   assert.ok(operatorGuideSource.includes("`GET /v1/runtime/session-replay`"), "operator guide missing session replay note");
 assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation prep/i);

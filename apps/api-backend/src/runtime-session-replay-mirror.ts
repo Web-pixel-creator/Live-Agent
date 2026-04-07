@@ -248,6 +248,19 @@ type RuntimeSessionReplayRefreshRecoveryFollowupPathEntry = {
   disposition: RuntimeSessionReplayPrimaryRefreshDisposition | null;
 };
 
+type RuntimeSessionReplayPrimaryRefreshState = {
+  source: "structured_primary_refresh_state";
+  legacyFallbackMode: "flat_refresh_escalation_fields";
+  action: RuntimeSessionReplayPrimaryRefreshAction | null;
+  targetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
+  disposition: RuntimeSessionReplayPrimaryRefreshDisposition | null;
+  evidenceHint: string | null;
+  outcomeLabel: string | null;
+  confidence: RuntimeSessionReplayPrimaryRefreshConfidence | null;
+  detourHint: string | null;
+  followupPath: RuntimeSessionReplayRefreshRecoveryFollowupPathEntry[];
+};
+
 type RuntimeSessionReplayPrimaryOperatorStep = {
   label: string;
   action: string | null;
@@ -344,6 +357,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint | null;
   refreshRecoveryFollowupPath?: RuntimeSessionReplayRefreshRecoveryFollowupPathEntry[];
+  refreshState: RuntimeSessionReplayPrimaryRefreshState | null;
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -3850,6 +3864,39 @@ function buildNextOperatorPrimaryStepRefreshRecoveryFollowupPath(params: {
   return entries;
 }
 
+function buildNextOperatorPrimaryStepRefreshState(params: {
+  needsRefresh: boolean;
+  refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
+  refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
+  refreshDisposition: RuntimeSessionReplayPrimaryRefreshDisposition | null;
+  refreshEvidenceHint: string | null;
+  refreshOutcomeLabel: string | null;
+  refreshConfidence: RuntimeSessionReplayPrimaryRefreshConfidence | null;
+  refreshDetourHint: string | null;
+  refreshRecoveryFollowupPath: RuntimeSessionReplayRefreshRecoveryFollowupPathEntry[];
+}): RuntimeSessionReplayPrimaryRefreshState | null {
+  if (
+    !params.needsRefresh &&
+    !params.refreshAction &&
+    !params.refreshTargetState &&
+    params.refreshRecoveryFollowupPath.length < 1
+  ) {
+    return null;
+  }
+  return {
+    source: "structured_primary_refresh_state",
+    legacyFallbackMode: "flat_refresh_escalation_fields",
+    action: params.refreshAction,
+    targetState: params.refreshTargetState,
+    disposition: params.refreshDisposition,
+    evidenceHint: params.refreshEvidenceHint,
+    outcomeLabel: params.refreshOutcomeLabel,
+    confidence: params.refreshConfidence,
+    detourHint: params.refreshDetourHint,
+    followupPath: [...params.refreshRecoveryFollowupPath],
+  } satisfies RuntimeSessionReplayPrimaryRefreshState;
+}
+
 function buildApprovalGate(params: {
   latestSelectedApproval: ApprovalRecord | null;
   pendingApprovalCount: number;
@@ -4737,6 +4784,17 @@ function buildNextOperatorPrimaryStep(params: {
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint,
     });
+  const refreshState = buildNextOperatorPrimaryStepRefreshState({
+    needsRefresh,
+    refreshAction,
+    refreshTargetState,
+    refreshDisposition,
+    refreshEvidenceHint,
+    refreshOutcomeLabel,
+    refreshConfidence,
+    refreshDetourHint,
+    refreshRecoveryFollowupPath,
+  });
   return {
     label: params.nextOperatorChecklist[0] ?? "Open the next operator surface.",
     action: params.resumeMetadata.nextOperatorAction,
@@ -4837,6 +4895,7 @@ function buildNextOperatorPrimaryStep(params: {
           refreshRecoveryFollowupPath,
         }
       : {}),
+    refreshState,
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;

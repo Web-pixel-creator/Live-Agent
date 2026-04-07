@@ -29486,11 +29486,11 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const nextActionTarget = isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null;
   const nextOperatorPrimaryStep = isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null;
   const primaryStepRefreshView = buildOperatorReplayPrimaryStepRefreshView(nextOperatorPrimaryStep);
-  const primaryStepRefreshAction = isRecord(nextOperatorPrimaryStep?.refreshAction)
-    ? nextOperatorPrimaryStep.refreshAction
+  const primaryStepRefreshAction = isRecord(primaryStepRefreshView.primaryStepRefreshAction)
+    ? primaryStepRefreshView.primaryStepRefreshAction
     : null;
-  const primaryStepRefreshTargetState = isRecord(nextOperatorPrimaryStep?.refreshTargetState)
-    ? nextOperatorPrimaryStep.refreshTargetState
+  const primaryStepRefreshTargetState = isRecord(primaryStepRefreshView.primaryStepRefreshTargetState)
+    ? primaryStepRefreshView.primaryStepRefreshTargetState
     : null;
   const primaryStepRefreshRecoveryFollowupPath = Array.isArray(
     primaryStepRefreshView.refreshRecoveryFollowupPath,
@@ -30086,8 +30086,9 @@ async function openOperatorSessionBoundaryTarget() {
   const snapshot = isRecord(state.operatorSessionReplaySnapshot) ? state.operatorSessionReplaySnapshot : null;
   const replay = isRecord(snapshot?.selectedSession?.replay) ? snapshot.selectedSession.replay : null;
   const nextOperatorPrimaryStep = isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null;
-  const primaryStepRefreshAction = isRecord(nextOperatorPrimaryStep?.refreshAction)
-    ? nextOperatorPrimaryStep.refreshAction
+  const primaryStepRefreshView = buildOperatorReplayPrimaryStepRefreshView(nextOperatorPrimaryStep);
+  const primaryStepRefreshAction = isRecord(primaryStepRefreshView.primaryStepRefreshAction)
+    ? primaryStepRefreshView.primaryStepRefreshAction
     : null;
   const nextOperatorActionTarget = isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null;
   const selectedSessionId = toOptionalText(snapshot?.selectedSessionId);
@@ -30848,6 +30849,42 @@ function normalizeOperatorReplayRefreshRecoveryFollowupPath(value) {
       }));
 }
 
+function normalizeOperatorReplayPrimaryStepRefreshState(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    source: toOptionalText(value.source),
+    legacyFallbackMode: toOptionalText(value.legacyFallbackMode),
+    action: isRecord(value.action)
+      ? {
+          label: toOptionalText(value.action.label),
+          action: toOptionalText(value.action.action),
+          ctaLabel: toOptionalText(value.action.ctaLabel),
+          targetSurface: toOptionalText(value.action.targetSurface),
+          targetLabel: toOptionalText(value.action.targetLabel),
+          workspace: toOptionalText(value.action.workspace),
+        }
+      : null,
+    targetState: isRecord(value.targetState)
+      ? {
+          label: toOptionalText(value.targetState.label),
+          targetSurface: toOptionalText(value.targetState.targetSurface),
+          targetLabel: toOptionalText(value.targetState.targetLabel),
+          workspace: toOptionalText(value.targetState.workspace),
+          stateLabel: toOptionalText(value.targetState.stateLabel),
+          refreshScope: toOptionalText(value.targetState.refreshScope),
+        }
+      : null,
+    disposition: toOptionalText(value.disposition),
+    evidenceHint: toOptionalText(value.evidenceHint),
+    outcomeLabel: toOptionalText(value.outcomeLabel),
+    confidence: toOptionalText(value.confidence),
+    detourHint: toOptionalText(value.detourHint),
+    followupPath: normalizeOperatorReplayRefreshRecoveryFollowupPath(value.followupPath),
+  };
+}
+
 function buildOperatorReplayRefreshRecoveryFollowupSummary(value) {
   return normalizeOperatorReplayRefreshRecoveryFollowupPath(value).map((item, index) => {
     const compositeLabel = [item.targetLabel, item.stateLabel]
@@ -30893,17 +30930,41 @@ function stringifyOperatorReplayRefreshRecoveryFollowupSummary(value) {
 
 function buildOperatorReplayPrimaryStepRefreshView(value) {
   const primaryStep = normalizeOperatorReplayPrimaryStep(value);
-  const refreshRecoveryFollowupPath = Array.isArray(primaryStep?.refreshRecoveryFollowupPath)
-    ? primaryStep.refreshRecoveryFollowupPath
-    : [];
+  const refreshState = isRecord(primaryStep?.refreshState) ? primaryStep.refreshState : null;
+  const primaryStepRefreshAction = isRecord(refreshState?.action)
+    ? refreshState.action
+    : isRecord(primaryStep?.refreshAction)
+      ? primaryStep.refreshAction
+      : null;
+  const primaryStepRefreshTargetState = isRecord(refreshState?.targetState)
+    ? refreshState.targetState
+    : isRecord(primaryStep?.refreshTargetState)
+      ? primaryStep.refreshTargetState
+      : null;
+  const refreshRecoveryFollowupPath = Array.isArray(refreshState?.followupPath) &&
+      refreshState.followupPath.length > 0
+    ? refreshState.followupPath
+    : Array.isArray(primaryStep?.refreshRecoveryFollowupPath)
+      ? primaryStep.refreshRecoveryFollowupPath
+      : [];
   const refreshRecoveryFollowupPathSummary = buildOperatorReplayRefreshRecoveryFollowupSummary(
     refreshRecoveryFollowupPath,
   );
+  const refreshDisposition =
+    toOptionalText(refreshState?.disposition) ?? toOptionalText(primaryStep?.refreshDisposition);
+  const refreshEvidenceHint =
+    toOptionalText(refreshState?.evidenceHint) ?? toOptionalText(primaryStep?.refreshEvidenceHint);
+  const refreshOutcomeLabel =
+    toOptionalText(refreshState?.outcomeLabel) ?? toOptionalText(primaryStep?.refreshOutcomeLabel);
+  const refreshConfidence =
+    toOptionalText(refreshState?.confidence) ?? toOptionalText(primaryStep?.refreshConfidence);
+  const refreshDetourHint =
+    toOptionalText(refreshState?.detourHint) ?? toOptionalText(primaryStep?.refreshDetourHint);
   const refreshLegacyFallbackSummary =
     refreshRecoveryFollowupPathSummary.length > 0
       ? []
       : [
-          toOptionalText(primaryStep?.refreshDetourHint),
+          refreshDetourHint,
           toOptionalText(primaryStep?.refreshEscalationHint),
           toOptionalText(primaryStep?.refreshEscalationTarget?.targetLabel) ??
             toOptionalText(primaryStep?.refreshEscalationTarget?.stateLabel),
@@ -30912,20 +30973,20 @@ function buildOperatorReplayPrimaryStepRefreshView(value) {
           toOptionalText(primaryStep?.refreshEscalationOpenGuard),
         ].filter((part) => typeof part === "string" && part.length > 0);
   const afterRefreshParts = [];
-  if (primaryStep?.refreshTargetState) {
-    afterRefreshParts.push(toOptionalText(primaryStep.refreshTargetState.targetLabel) ?? "Target");
-    if (toOptionalText(primaryStep.refreshTargetState.stateLabel)) {
-      afterRefreshParts.push(primaryStep.refreshTargetState.stateLabel);
+  if (primaryStepRefreshTargetState) {
+    afterRefreshParts.push(toOptionalText(primaryStepRefreshTargetState.targetLabel) ?? "Target");
+    if (toOptionalText(primaryStepRefreshTargetState.stateLabel)) {
+      afterRefreshParts.push(primaryStepRefreshTargetState.stateLabel);
     }
-    if (toOptionalText(primaryStep.refreshTargetState.refreshScope)) {
-      afterRefreshParts.push(primaryStep.refreshTargetState.refreshScope);
+    if (toOptionalText(primaryStepRefreshTargetState.refreshScope)) {
+      afterRefreshParts.push(primaryStepRefreshTargetState.refreshScope);
     }
   }
   for (const part of [
-    toOptionalText(primaryStep?.refreshDisposition),
-    toOptionalText(primaryStep?.refreshConfidence),
-    toOptionalText(primaryStep?.refreshEvidenceHint),
-    toOptionalText(primaryStep?.refreshOutcomeLabel),
+    refreshDisposition,
+    refreshConfidence,
+    refreshEvidenceHint,
+    refreshOutcomeLabel,
   ]) {
     if (typeof part === "string" && part.length > 0) {
       afterRefreshParts.push(part);
@@ -30949,6 +31010,15 @@ function buildOperatorReplayPrimaryStepRefreshView(value) {
   }
   return {
     primaryStep,
+    refreshState,
+    refreshStateSource:
+      toOptionalText(refreshState?.source) ??
+      (refreshRecoveryFollowupPathSummary.length > 0 ? "refresh_recovery_followup_path" : null),
+    refreshLegacyFallbackMode:
+      toOptionalText(refreshState?.legacyFallbackMode) ??
+      (refreshRecoveryFollowupPathSummary.length > 0 ? "flat_refresh_escalation_fields" : null),
+    primaryStepRefreshAction,
+    primaryStepRefreshTargetState,
     refreshRecoveryFollowupPath,
     refreshRecoveryFollowupPathSummary,
     refreshRecoveryFollowupPathToken: stringifyOperatorReplayRefreshRecoveryFollowupSummary(
@@ -31638,6 +31708,7 @@ function normalizeOperatorReplayPrimaryStep(value) {
       toOptionalText(
         value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint,
       ),
+    refreshState: normalizeOperatorReplayPrimaryStepRefreshState(value.refreshState),
     refreshAction: isRecord(value.refreshAction)
       ? {
           label: toOptionalText(value.refreshAction.label),
@@ -31936,14 +32007,15 @@ function buildOperatorSessionOpsControlMeta() {
     `firstStepMode=${toOptionalText(primaryStep?.actionMode) ?? "n/a"}`,
     `firstStepPrime=${toOptionalText(primaryStep?.surfaceState) ?? "n/a"}`,
     `firstStepFreshness=${typeof primaryStep?.needsRefresh === "boolean" ? primaryStep.needsRefresh ? "needs_refresh" : "fresh" : "n/a"}`,
-    `firstStepRefresh=${toOptionalText(primaryStep?.refreshAction?.action) ?? "n/a"}`,
-    `firstStepAfterRefresh=${toOptionalText(primaryStep?.refreshTargetState?.stateLabel) ?? "n/a"}`,
-    `firstStepRefreshScope=${toOptionalText(primaryStep?.refreshTargetState?.refreshScope) ?? "n/a"}`,
-    `firstStepRefreshDisposition=${toOptionalText(primaryStep?.refreshDisposition) ?? "n/a"}`,
-    `firstStepRefreshConfidence=${toOptionalText(primaryStep?.refreshConfidence) ?? "n/a"}`,
-    `firstStepRefreshEvidence=${toOptionalText(primaryStep?.refreshEvidenceHint) ?? "n/a"}`,
-    `firstStepRefreshOutcome=${toOptionalText(primaryStep?.refreshOutcomeLabel) ?? "n/a"}`,
-    `firstStepRefreshDetour=${toOptionalText(primaryStep?.refreshDetourHint) ?? "n/a"}`,
+    `firstStepRefreshModel=${toOptionalText(refreshView.refreshStateSource) ?? "n/a"}`,
+    `firstStepRefresh=${toOptionalText(refreshView.primaryStepRefreshAction?.action) ?? "n/a"}`,
+    `firstStepAfterRefresh=${toOptionalText(refreshView.primaryStepRefreshTargetState?.stateLabel) ?? "n/a"}`,
+    `firstStepRefreshScope=${toOptionalText(refreshView.primaryStepRefreshTargetState?.refreshScope) ?? "n/a"}`,
+    `firstStepRefreshDisposition=${toOptionalText(refreshView.refreshState?.disposition) ?? toOptionalText(primaryStep?.refreshDisposition) ?? "n/a"}`,
+    `firstStepRefreshConfidence=${toOptionalText(refreshView.refreshState?.confidence) ?? toOptionalText(primaryStep?.refreshConfidence) ?? "n/a"}`,
+    `firstStepRefreshEvidence=${toOptionalText(refreshView.refreshState?.evidenceHint) ?? toOptionalText(primaryStep?.refreshEvidenceHint) ?? "n/a"}`,
+    `firstStepRefreshOutcome=${toOptionalText(refreshView.refreshState?.outcomeLabel) ?? toOptionalText(primaryStep?.refreshOutcomeLabel) ?? "n/a"}`,
+    `firstStepRefreshDetour=${toOptionalText(refreshView.refreshState?.detourHint) ?? toOptionalText(primaryStep?.refreshDetourHint) ?? "n/a"}`,
     `firstStepRefreshFollowupCount=${refreshView.refreshRecoveryFollowupPathSummary.length}`,
     `firstStepRefreshFollowupHead=${toOptionalText(refreshFollowupHead?.label) ?? toOptionalText(refreshFollowupHead?.targetLabel) ?? toOptionalText(refreshFollowupHead?.stateLabel) ?? "n/a"}`,
     `firstStepRefreshFollowupPath=${refreshView.refreshRecoveryFollowupPathToken}`,
