@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { resolve, dirname } from "node:path";
 
@@ -44,6 +44,14 @@ function ensureGoogleKeyAlias(env) {
   return copied;
 }
 
+function toPositiveInteger(value, fallback) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return fallback;
+  }
+  return parsed;
+}
+
 function selectSuites(manifestSuites, selection) {
   if (selection === "all") {
     return { selected: manifestSuites, missing: [] };
@@ -55,6 +63,61 @@ function selectSuites(manifestSuites, selection) {
   const selected = manifestSuites.filter((suite) => requested.includes(suite.id));
   const missing = requested.filter((item) => !manifestSuites.some((suite) => suite.id === item));
   return { selected, missing };
+}
+
+function collectPromptfooText(value, sink = []) {
+  if (sink.length > 500) {
+    return sink;
+  }
+  if (typeof value === "string") {
+    sink.push(value);
+    return sink;
+  }
+  if (!value || typeof value !== "object") {
+    return sink;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectPromptfooText(item, sink);
+    }
+    return sink;
+  }
+  for (const item of Object.values(value)) {
+    collectPromptfooText(item, sink);
+  }
+  return sink;
+}
+
+function isTransientProviderErrorText(text) {
+  return /(?:\b503\b|UNAVAILABLE|high demand|No candidates returned|RESOURCE_EXHAUSTED|rate limit|timeout)/i.test(text);
+}
+
+function readPromptfooTransientFailure(outputPath) {
+  if (!existsSync(outputPath)) {
+    return { transient: false, reason: "missing_output" };
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync(outputPath, "utf8"));
+  } catch {
+    return { transient: false, reason: "invalid_output_json" };
+  }
+
+  const stats = parsed?.results?.stats ?? {};
+  const failures = Number(stats.failures ?? stats.failed ?? 0);
+  const errors = Number(stats.errors ?? 0);
+  const text = collectPromptfooText(parsed).join("\n");
+  const hasTransientProviderError = isTransientProviderErrorText(text);
+
+  return {
+    transient: hasTransientProviderError && failures === 0 && errors > 0,
+    reason: hasTransientProviderError ? "provider_transient_error" : "non_transient_failure",
+    stats: {
+      failures,
+      errors,
+    },
+  };
 }
 
 function quoteCmdArgument(value) {
@@ -117,6 +180,7 @@ function main() {
   };
 
   const env = ensureGoogleKeyAlias(process.env);
+  const maxTransientRetries = toPositiveInteger(env.EVAL_PLANE_MAX_TRANSIENT_RETRIES, 2);
   let hasFailure = false;
 
   for (const suite of selected) {
@@ -139,24 +203,61 @@ function main() {
     }
 
     console.log(`[eval-plane] running ${suite.id}`);
-    const startedAt = Date.now();
-    const result = spawnSync(command.executable, command.args, {
-      cwd,
-      env,
-      stdio: "inherit",
-    });
-    const durationMs = Date.now() - startedAt;
-    const spawnError = result.error
-      ? {
-          name: result.error.name,
-          code: result.error.code ?? null,
-          message: result.error.message,
-        }
-      : null;
-    const exitCode = typeof result.status === "number" ? result.status : 1;
-    if (spawnError) {
-      console.error(`[eval-plane] runner spawn failed for ${suite.id}: ${spawnError.message}`);
+    const suiteStartedAt = Date.now();
+    const attempts = [];
+    let result;
+    let exitCode = 1;
+    let spawnError = null;
+    let transientFailure = { transient: false, reason: "not_checked" };
+
+    for (let attempt = 1; attempt <= maxTransientRetries + 1; attempt += 1) {
+      if (existsSync(outputPath)) {
+        unlinkSync(outputPath);
+      }
+
+      const attemptStartedAt = Date.now();
+      result = spawnSync(command.executable, command.args, {
+        cwd,
+        env,
+        stdio: "inherit",
+      });
+      const attemptDurationMs = Date.now() - attemptStartedAt;
+      spawnError = result.error
+        ? {
+            name: result.error.name,
+            code: result.error.code ?? null,
+            message: result.error.message,
+          }
+        : null;
+      exitCode = typeof result.status === "number" ? result.status : 1;
+      transientFailure =
+        exitCode !== 0 && !spawnError
+          ? readPromptfooTransientFailure(outputPath)
+          : { transient: false, reason: spawnError ? "spawn_error" : "passed" };
+
+      attempts.push({
+        attempt,
+        durationMs: attemptDurationMs,
+        exitCode,
+        signal: result.signal ?? null,
+        error: spawnError,
+        transientFailure,
+      });
+
+      if (spawnError) {
+        console.error(`[eval-plane] runner spawn failed for ${suite.id}: ${spawnError.message}`);
+      }
+      if (exitCode === 0 || !transientFailure.transient || attempt > maxTransientRetries) {
+        break;
+      }
+      console.warn(
+        `[eval-plane] transient provider failure for ${suite.id}; retrying attempt ${attempt + 1} of ${
+          maxTransientRetries + 1
+        }`,
+      );
     }
+    const durationMs = Date.now() - suiteStartedAt;
+
     if (exitCode !== 0) {
       hasFailure = true;
     }
@@ -168,8 +269,10 @@ function main() {
       command: command.displayCommand,
       durationMs,
       exitCode,
-      signal: result.signal ?? null,
+      signal: result?.signal ?? null,
       error: spawnError,
+      transientFailure,
+      attempts,
       passed: exitCode === 0,
     });
   }

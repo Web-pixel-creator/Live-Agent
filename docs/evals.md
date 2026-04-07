@@ -34,11 +34,15 @@ The repo now has a promptfoo-based eval scaffold for the product wedge:
   needed so Promptfoo can use the Google provider.
 - On Windows, the eval runner invokes Promptfoo through `cmd.exe` so `npx.cmd`
   runs correctly in CI and local PowerShell shells.
+- Provider-level transient failures such as Gemini `503`/`UNAVAILABLE` are
+  retried by the eval runner without retrying ordinary assertion failures. Set
+  `EVAL_PLANE_MAX_TRANSIENT_RETRIES` to override the default retry count.
 - All suites run against both `google:gemini-2.5-flash` and
   `google:gemini-2.5-pro` to keep a simple model-comparison lane.
 - The runner writes a machine-readable run summary to
-  `artifacts/evals/latest-run.json`, including runner spawn errors when
-  Promptfoo cannot be started.
+  `artifacts/evals/latest-run.json`, including runner spawn errors and per-suite
+  retry attempts when Promptfoo cannot be started or a provider is temporarily
+  unavailable.
 
 ## Release Gate
 

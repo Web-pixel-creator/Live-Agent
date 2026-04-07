@@ -228,6 +228,10 @@ test("eval runner and package scripts are present for local runs and release gat
   assert.match(runner, /cmd\.exe/);
   assert.match(runner, /runner spawn failed/);
   assert.match(runner, /error: spawnError/);
+  assert.match(runner, /EVAL_PLANE_MAX_TRANSIENT_RETRIES/);
+  assert.match(runner, /readPromptfooTransientFailure/);
+  assert.match(runner, /transient provider failure/);
+  assert.match(runner, /attempts/);
 });
 
 test("worker roles and eval docs are linked from the repository", () => {
