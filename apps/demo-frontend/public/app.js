@@ -30797,604 +30797,141 @@ function renderOperatorSessionBoundaryRefreshRecoveryFollowupPath(value) {
   el.operatorSessionBoundaryAfterRefreshPath.append(list);
 }
 
+const OPERATOR_REPLAY_REFRESH_LEGACY_TEXT_FIELDS = [
+  "refreshDisposition",
+  "refreshEvidenceHint",
+  "refreshOutcomeLabel",
+  "refreshConfidence",
+  "refreshDetourHint",
+  "refreshEscalationHint",
+  "refreshEscalationReadiness",
+  "refreshEscalationPrepHint",
+  "refreshEscalationOpenGuard",
+  "refreshEscalationFallbackReadiness",
+  "refreshEscalationFallbackPrepHint",
+  "refreshEscalationFallbackOpenGuard",
+  "refreshEscalationFallbackOutcomeLabel",
+  "refreshEscalationFallbackConfidence",
+  "refreshEscalationFallbackDetourHint",
+  "refreshEscalationFallbackEscalationHint",
+  "refreshEscalationFallbackEscalationReadiness",
+  "refreshEscalationFallbackEscalationPrepHint",
+  "refreshEscalationFallbackEscalationOpenGuard",
+  "refreshEscalationFallbackEscalationFallbackReadiness",
+  "refreshEscalationFallbackEscalationFallbackPrepHint",
+  "refreshEscalationFallbackEscalationFallbackOpenGuard",
+  "refreshEscalationFallbackEscalationFallbackOutcomeLabel",
+  "refreshEscalationFallbackEscalationFallbackConfidence",
+  "refreshEscalationFallbackEscalationFallbackDetourHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationReadiness",
+  "refreshEscalationFallbackEscalationFallbackEscalationPrepHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationOpenGuard",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackPrepHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackOpenGuard",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackOutcomeLabel",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOpenGuard",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrepHint",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint",
+];
+
+const OPERATOR_REPLAY_REFRESH_LEGACY_TARGET_FIELDS = [
+  ["refreshEscalationTarget", true],
+  ["refreshEscalationFallbackTarget", false],
+  ["refreshEscalationFallbackEscalationTarget", true],
+  ["refreshEscalationFallbackEscalationFallbackTarget", false],
+  ["refreshEscalationFallbackEscalationFallbackEscalationTarget", true],
+  ["refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget", true],
+  ["refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget", true],
+  ["refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget", true],
+  ["refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget", true],
+  ["refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget", true],
+];
+
+const OPERATOR_REPLAY_REFRESH_LEGACY_CTA_FIELDS = [
+  "refreshEscalationCTA",
+  "refreshEscalationFallbackCTA",
+  "refreshEscalationFallbackEscalationCTA",
+  "refreshEscalationFallbackEscalationFallbackCTA",
+  "refreshEscalationFallbackEscalationFallbackEscalationCTA",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA",
+];
+
+function normalizeOperatorReplayLegacyTarget(value, includeMode = false) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const normalized = {
+    label: toOptionalText(value.label),
+    targetSurface: toOptionalText(value.targetSurface),
+    targetLabel: toOptionalText(value.targetLabel),
+    workspace: toOptionalText(value.workspace),
+    stateLabel: toOptionalText(value.stateLabel),
+  };
+  if (includeMode) {
+    normalized.mode = toOptionalText(value.mode);
+  }
+  return normalized;
+}
+
+function normalizeOperatorReplayLegacyCTA(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    label: toOptionalText(value.label),
+    ctaLabel: toOptionalText(value.ctaLabel),
+    targetSurface: toOptionalText(value.targetSurface),
+    targetLabel: toOptionalText(value.targetLabel),
+    workspace: toOptionalText(value.workspace),
+  };
+}
+
 function normalizeOperatorReplayPrimaryStepRefreshLegacyProjection(value) {
   // Keep flat refreshEscalation* normalization isolated while refreshState stays primary.
-  return {
-    refreshDisposition: toOptionalText(value.refreshDisposition),
-    refreshEvidenceHint: toOptionalText(value.refreshEvidenceHint),
-    refreshOutcomeLabel: toOptionalText(value.refreshOutcomeLabel),
-    refreshConfidence: toOptionalText(value.refreshConfidence),
-    refreshDetourHint: toOptionalText(value.refreshDetourHint),
-    refreshEscalationHint: toOptionalText(value.refreshEscalationHint),
-    refreshEscalationTarget: isRecord(value.refreshEscalationTarget)
-      ? {
-          label: toOptionalText(value.refreshEscalationTarget.label),
-          targetSurface: toOptionalText(value.refreshEscalationTarget.targetSurface),
-          targetLabel: toOptionalText(value.refreshEscalationTarget.targetLabel),
-          workspace: toOptionalText(value.refreshEscalationTarget.workspace),
-          stateLabel: toOptionalText(value.refreshEscalationTarget.stateLabel),
-          mode: toOptionalText(value.refreshEscalationTarget.mode),
-        }
-      : null,
-    refreshEscalationCTA: isRecord(value.refreshEscalationCTA)
-      ? {
-          label: toOptionalText(value.refreshEscalationCTA.label),
-          ctaLabel: toOptionalText(value.refreshEscalationCTA.ctaLabel),
-          targetSurface: toOptionalText(value.refreshEscalationCTA.targetSurface),
-          targetLabel: toOptionalText(value.refreshEscalationCTA.targetLabel),
-          workspace: toOptionalText(value.refreshEscalationCTA.workspace),
-        }
-      : null,
-    refreshEscalationReadiness: toOptionalText(value.refreshEscalationReadiness),
-    refreshEscalationPrepHint: toOptionalText(value.refreshEscalationPrepHint),
-    refreshEscalationOpenGuard: toOptionalText(value.refreshEscalationOpenGuard),
-    refreshEscalationFallbackTarget: isRecord(value.refreshEscalationFallbackTarget)
-      ? {
-          label: toOptionalText(value.refreshEscalationFallbackTarget.label),
-          targetSurface: toOptionalText(value.refreshEscalationFallbackTarget.targetSurface),
-          targetLabel: toOptionalText(value.refreshEscalationFallbackTarget.targetLabel),
-          workspace: toOptionalText(value.refreshEscalationFallbackTarget.workspace),
-          stateLabel: toOptionalText(value.refreshEscalationFallbackTarget.stateLabel),
-        }
-      : null,
-    refreshEscalationFallbackCTA: isRecord(value.refreshEscalationFallbackCTA)
-      ? {
-          label: toOptionalText(value.refreshEscalationFallbackCTA.label),
-          ctaLabel: toOptionalText(value.refreshEscalationFallbackCTA.ctaLabel),
-          targetSurface: toOptionalText(value.refreshEscalationFallbackCTA.targetSurface),
-          targetLabel: toOptionalText(value.refreshEscalationFallbackCTA.targetLabel),
-          workspace: toOptionalText(value.refreshEscalationFallbackCTA.workspace),
-        }
-      : null,
-    refreshEscalationFallbackReadiness: toOptionalText(value.refreshEscalationFallbackReadiness),
-    refreshEscalationFallbackPrepHint: toOptionalText(value.refreshEscalationFallbackPrepHint),
-    refreshEscalationFallbackOpenGuard: toOptionalText(value.refreshEscalationFallbackOpenGuard),
-    refreshEscalationFallbackOutcomeLabel: toOptionalText(value.refreshEscalationFallbackOutcomeLabel),
-    refreshEscalationFallbackConfidence: toOptionalText(value.refreshEscalationFallbackConfidence),
-    refreshEscalationFallbackDetourHint: toOptionalText(value.refreshEscalationFallbackDetourHint),
-    refreshEscalationFallbackEscalationHint: toOptionalText(value.refreshEscalationFallbackEscalationHint),
-    refreshEscalationFallbackEscalationTarget: isRecord(value.refreshEscalationFallbackEscalationTarget)
-      ? {
-          label: toOptionalText(value.refreshEscalationFallbackEscalationTarget.label),
-          targetSurface: toOptionalText(value.refreshEscalationFallbackEscalationTarget.targetSurface),
-          targetLabel: toOptionalText(value.refreshEscalationFallbackEscalationTarget.targetLabel),
-          workspace: toOptionalText(value.refreshEscalationFallbackEscalationTarget.workspace),
-          stateLabel: toOptionalText(value.refreshEscalationFallbackEscalationTarget.stateLabel),
-          mode: toOptionalText(value.refreshEscalationFallbackEscalationTarget.mode),
-        }
-      : null,
-    refreshEscalationFallbackEscalationCTA: isRecord(value.refreshEscalationFallbackEscalationCTA)
-      ? {
-          label: toOptionalText(value.refreshEscalationFallbackEscalationCTA.label),
-          ctaLabel: toOptionalText(value.refreshEscalationFallbackEscalationCTA.ctaLabel),
-          targetSurface: toOptionalText(value.refreshEscalationFallbackEscalationCTA.targetSurface),
-          targetLabel: toOptionalText(value.refreshEscalationFallbackEscalationCTA.targetLabel),
-          workspace: toOptionalText(value.refreshEscalationFallbackEscalationCTA.workspace),
-        }
-      : null,
-    refreshEscalationFallbackEscalationReadiness: toOptionalText(
-      value.refreshEscalationFallbackEscalationReadiness,
-    ),
-    refreshEscalationFallbackEscalationPrepHint: toOptionalText(
-      value.refreshEscalationFallbackEscalationPrepHint,
-    ),
-    refreshEscalationFallbackEscalationOpenGuard: toOptionalText(
-      value.refreshEscalationFallbackEscalationOpenGuard,
-    ),
-    refreshEscalationFallbackEscalationFallbackTarget: isRecord(
-      value.refreshEscalationFallbackEscalationFallbackTarget,
-    )
-      ? {
-          label: toOptionalText(value.refreshEscalationFallbackEscalationFallbackTarget.label),
-          targetSurface: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackTarget.targetSurface,
-          ),
-          targetLabel: toOptionalText(value.refreshEscalationFallbackEscalationFallbackTarget.targetLabel),
-          workspace: toOptionalText(value.refreshEscalationFallbackEscalationFallbackTarget.workspace),
-          stateLabel: toOptionalText(value.refreshEscalationFallbackEscalationFallbackTarget.stateLabel),
-        }
-      : null,
-    refreshEscalationFallbackEscalationFallbackCTA: isRecord(
-      value.refreshEscalationFallbackEscalationFallbackCTA,
-    )
-      ? {
-          label: toOptionalText(value.refreshEscalationFallbackEscalationFallbackCTA.label),
-          ctaLabel: toOptionalText(value.refreshEscalationFallbackEscalationFallbackCTA.ctaLabel),
-          targetSurface: toOptionalText(value.refreshEscalationFallbackEscalationFallbackCTA.targetSurface),
-          targetLabel: toOptionalText(value.refreshEscalationFallbackEscalationFallbackCTA.targetLabel),
-          workspace: toOptionalText(value.refreshEscalationFallbackEscalationFallbackCTA.workspace),
-        }
-      : null,
-    refreshEscalationFallbackEscalationFallbackReadiness: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackReadiness,
-    ),
-    refreshEscalationFallbackEscalationFallbackPrepHint: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackPrepHint,
-    ),
-    refreshEscalationFallbackEscalationFallbackOpenGuard: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackOpenGuard,
-    ),
-    refreshEscalationFallbackEscalationFallbackOutcomeLabel: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackOutcomeLabel,
-    ),
-    refreshEscalationFallbackEscalationFallbackConfidence: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackConfidence,
-    ),
-    refreshEscalationFallbackEscalationFallbackDetourHint: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackDetourHint,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationHint: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationHint,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationTarget: isRecord(
-      value.refreshEscalationFallbackEscalationFallbackEscalationTarget,
-    )
-      ? {
-          label: toOptionalText(value.refreshEscalationFallbackEscalationFallbackEscalationTarget.label),
-          targetSurface: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationTarget.targetSurface,
-          ),
-          targetLabel: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationTarget.targetLabel,
-          ),
-          workspace: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationTarget.workspace,
-          ),
-          stateLabel: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationTarget.stateLabel,
-          ),
-          mode: toOptionalText(value.refreshEscalationFallbackEscalationFallbackEscalationTarget.mode),
-        }
-      : null,
-    refreshEscalationFallbackEscalationFallbackEscalationCTA: isRecord(
-      value.refreshEscalationFallbackEscalationFallbackEscalationCTA,
-    )
-      ? {
-          label: toOptionalText(value.refreshEscalationFallbackEscalationFallbackEscalationCTA.label),
-          ctaLabel: toOptionalText(value.refreshEscalationFallbackEscalationFallbackEscalationCTA.ctaLabel),
-          targetSurface: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationCTA.targetSurface,
-          ),
-          targetLabel: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationCTA.targetLabel,
-          ),
-          workspace: toOptionalText(value.refreshEscalationFallbackEscalationFallbackEscalationCTA.workspace),
-        }
-      : null,
-    refreshEscalationFallbackEscalationFallbackEscalationReadiness: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationReadiness,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationPrepHint: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationPrepHint,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationOpenGuard: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationOpenGuard,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget: isRecord(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget,
-    )
-      ? {
-          label: toOptionalText(value.refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget.label),
-          targetSurface: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget.targetSurface,
-          ),
-          targetLabel: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget.targetLabel,
-          ),
-          workspace: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget.workspace,
-          ),
-          stateLabel: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget.stateLabel,
-          ),
-          mode: toOptionalText(value.refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget.mode),
-        }
-      : null,
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA: isRecord(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA,
-    )
-      ? {
-          label: toOptionalText(value.refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA.label),
-          ctaLabel: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA.ctaLabel,
-          ),
-          targetSurface: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA.targetSurface,
-          ),
-          targetLabel: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA.targetLabel,
-          ),
-          workspace: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA.workspace,
-          ),
-        }
-      : null,
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackPrepHint: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackPrepHint,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackOpenGuard: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackOpenGuard,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackOutcomeLabel: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackOutcomeLabel,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget: isRecord(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
-    )
-      ? {
-          label: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget
-              .label,
-          ),
-          targetSurface: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget
-              .targetSurface,
-          ),
-          targetLabel: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget
-              .targetLabel,
-          ),
-          workspace: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget
-              .workspace,
-          ),
-          stateLabel: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget
-              .stateLabel,
-          ),
-          mode: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget
-              .mode,
-          ),
-        }
-      : null,
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA: isRecord(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA,
-    )
-      ? {
-          label: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA.label,
-          ),
-          ctaLabel: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA
-              .ctaLabel,
-          ),
-          targetSurface: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA
-              .targetSurface,
-          ),
-          targetLabel: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA
-              .targetLabel,
-          ),
-          workspace: toOptionalText(
-            value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA
-              .workspace,
-          ),
-        }
-      : null,
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOpenGuard: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOpenGuard,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint: toOptionalText(
-      value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint,
-    ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget:
-      isRecord(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-      )
-        ? {
-            label: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-                .label,
-            ),
-            targetSurface: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-                .targetSurface,
-            ),
-            targetLabel: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-                .targetLabel,
-            ),
-            workspace: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-                .workspace,
-            ),
-            stateLabel: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-                .stateLabel,
-            ),
-            mode: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-                .mode,
-            ),
-          }
-        : null,
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA:
-      isRecord(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA,
-      )
-        ? {
-            label: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA
-                .label,
-            ),
-            ctaLabel: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA
-                .ctaLabel,
-            ),
-            targetSurface: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA
-                .targetSurface,
-            ),
-            targetLabel: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA
-                .targetLabel,
-            ),
-            workspace: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA
-                .workspace,
-            ),
-          }
-        : null,
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationHint:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationHint,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget:
-      isRecord(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
-      )
-        ? {
-            label: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget
-                .label,
-            ),
-            targetSurface: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget
-                .targetSurface,
-            ),
-            targetLabel: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget
-                .targetLabel,
-            ),
-            workspace: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget
-                .workspace,
-            ),
-            stateLabel: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget
-                .stateLabel,
-            ),
-            mode: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget
-                .mode,
-            ),
-          }
-        : null,
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA:
-      isRecord(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA,
-      )
-        ? {
-            label: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA
-                .label,
-            ),
-            ctaLabel: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA
-                .ctaLabel,
-            ),
-            targetSurface: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA
-                .targetSurface,
-            ),
-            targetLabel: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA
-                .targetLabel,
-            ),
-            workspace: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA
-                .workspace,
-            ),
-          }
-        : null,
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget:
-      isRecord(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
-      )
-        ? {
-            label: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-                .label,
-            ),
-            targetSurface: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-                .targetSurface,
-            ),
-            targetLabel: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-                .targetLabel,
-            ),
-            workspace: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-                .workspace,
-            ),
-            stateLabel: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-                .stateLabel,
-            ),
-            mode: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-                .mode,
-            ),
-          }
-        : null,
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA:
-      isRecord(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA,
-      )
-        ? {
-            label: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA
-                .label,
-            ),
-            ctaLabel: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA
-                .ctaLabel,
-            ),
-            targetSurface: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA
-                .targetSurface,
-            ),
-            targetLabel: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA
-                .targetLabel,
-            ),
-            workspace: toOptionalText(
-              value
-                .refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA
-                .workspace,
-            ),
-          }
-        : null,
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrepHint:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrepHint,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence,
-      ),
-    refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint:
-      toOptionalText(
-        value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint,
-      ),
-  };
+  const projection = {};
+  for (const field of OPERATOR_REPLAY_REFRESH_LEGACY_TEXT_FIELDS) {
+    projection[field] = toOptionalText(value[field]);
+  }
+  for (const [field, includeMode] of OPERATOR_REPLAY_REFRESH_LEGACY_TARGET_FIELDS) {
+    projection[field] = normalizeOperatorReplayLegacyTarget(value[field], includeMode);
+  }
+  for (const field of OPERATOR_REPLAY_REFRESH_LEGACY_CTA_FIELDS) {
+    projection[field] = normalizeOperatorReplayLegacyCTA(value[field]);
+  }
+  return projection;
 }
 
 function normalizeOperatorReplayPrimaryStep(value) {
