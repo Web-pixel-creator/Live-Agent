@@ -252,9 +252,18 @@ type RuntimeSessionReplayPrimaryRefreshFollowupTreeNode = RuntimeSessionReplayRe
   next: RuntimeSessionReplayPrimaryRefreshFollowupTreeNode | null;
 };
 
+type RuntimeSessionReplayPrimaryRefreshCompatibility = {
+  status: "transitional";
+  primaryReadModel: "refreshState.followupTree";
+  legacyProjection: "flat_refresh_escalation_fields";
+  legacyFlatFieldPrefix: "refreshEscalation";
+  followupTreeDepth: number;
+};
+
 type RuntimeSessionReplayPrimaryRefreshState = {
   source: "structured_primary_refresh_state";
   legacyFallbackMode: "flat_refresh_escalation_fields";
+  compatibility: RuntimeSessionReplayPrimaryRefreshCompatibility;
   action: RuntimeSessionReplayPrimaryRefreshAction | null;
   targetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
   disposition: RuntimeSessionReplayPrimaryRefreshDisposition | null;
@@ -3904,6 +3913,13 @@ function buildNextOperatorPrimaryStepRefreshState(params: {
   return {
     source: "structured_primary_refresh_state",
     legacyFallbackMode: "flat_refresh_escalation_fields",
+    compatibility: {
+      status: "transitional",
+      primaryReadModel: "refreshState.followupTree",
+      legacyProjection: "flat_refresh_escalation_fields",
+      legacyFlatFieldPrefix: "refreshEscalation",
+      followupTreeDepth: params.refreshRecoveryFollowupPath.length,
+    },
     action: params.refreshAction,
     targetState: params.refreshTargetState,
     disposition: params.refreshDisposition,

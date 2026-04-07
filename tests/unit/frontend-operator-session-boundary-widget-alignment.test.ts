@@ -68,6 +68,10 @@ test("operator console exposes compact session boundary widget", () => {
     "renderOperatorSessionBoundaryRefreshRecoveryFollowupPath",
     "refreshState",
     "refreshStateSource",
+    "refreshStateCompatibility",
+    "firstStepRefreshCompatibility=",
+    "primaryReadModel",
+    "legacyProjection",
     "followupTree",
     "flat_refresh_escalation_fields",
     "refreshRecoveryFollowupPath",
@@ -92,6 +96,7 @@ test("operator console exposes compact session boundary widget", () => {
   assert.match(readmeSource, /refresh recovery follow-?up path/i);
   assert.match(readmeSource, /structured refresh state/i);
   assert.match(readmeSource, /followuptree|followup tree/i);
+  assert.match(readmeSource, /compatibility block|compatibility metadata/i);
   assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback cta/i);
   assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback prep hint/i);
   assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback open guard/i);
@@ -117,6 +122,7 @@ assert.match(readmeSource, /refresh escalation fallback escalation fallback esca
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);
   assert.match(operatorGuideSource, /structured refresh state/i);
   assert.match(operatorGuideSource, /followuptree|followup tree/i);
+  assert.match(operatorGuideSource, /compatibility block|compatibility metadata/i);
   assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback cta/i);
   assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback prep hint/i);
   assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback open guard/i);
@@ -142,6 +148,7 @@ assert.match(operatorGuideSource, /refresh escalation fallback escalation fallba
   assert.match(architectureSource, /refresh recovery follow-?up path/i);
   assert.match(architectureSource, /structured refresh state/i);
   assert.match(architectureSource, /followuptree|followup tree/i);
+  assert.match(architectureSource, /compatibility block|compatibility metadata/i);
   assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback prep hint/i);
   assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback open guard/i);
   assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback outcome/i);

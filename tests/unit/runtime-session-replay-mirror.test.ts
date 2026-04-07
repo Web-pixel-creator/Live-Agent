@@ -635,6 +635,13 @@ test("runtime session replay mirror blocks resume when approval or active workfl
       refreshState: {
         source: "structured_primary_refresh_state",
         legacyFallbackMode: "flat_refresh_escalation_fields",
+        compatibility: {
+          status: "transitional",
+          primaryReadModel: "refreshState.followupTree",
+          legacyProjection: "flat_refresh_escalation_fields",
+          legacyFlatFieldPrefix: "refreshEscalation",
+          followupTreeDepth: 2,
+        },
         action: {
           label: "Refresh replay before reopening Approvals.",
           action: "refresh_session_replay",

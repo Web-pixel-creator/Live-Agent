@@ -134,6 +134,11 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
     "refreshState",
     "structured_primary_refresh_state",
     "flat_refresh_escalation_fields",
+    "compatibility",
+    "primaryReadModel",
+    "legacyProjection",
+    "legacyFlatFieldPrefix",
+    "followupTreeDepth",
     "followupTree",
     "mode",
     "refreshAction",
@@ -198,6 +203,7 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
   assert.match(readme, /refresh recovery follow-?up path/i);
   assert.match(readme, /structured refresh state/i);
   assert.match(readme, /followuptree|followup tree/i);
+  assert.match(readme, /compatibility block|compatibility metadata/i);
   assert.match(readme, /refresh escalation fallback escalation fallback escalation fallback cta/i);
   assert.match(readme, /refresh escalation fallback escalation fallback escalation fallback prep hint/i);
   assert.match(readme, /refresh escalation fallback escalation fallback escalation fallback open guard/i);
@@ -224,6 +230,7 @@ assert.match(readme, /refresh escalation fallback escalation fallback escalation
   assert.match(operatorGuide, /refresh recovery follow-?up path/i);
   assert.match(operatorGuide, /structured refresh state/i);
   assert.match(operatorGuide, /followuptree|followup tree/i);
+  assert.match(operatorGuide, /compatibility block|compatibility metadata/i);
   assert.match(operatorGuide, /refresh escalation fallback escalation fallback escalation fallback cta/i);
   assert.match(operatorGuide, /refresh escalation fallback escalation fallback escalation fallback prep hint/i);
   assert.match(operatorGuide, /refresh escalation fallback escalation fallback escalation fallback open guard/i);
@@ -249,6 +256,7 @@ assert.match(operatorGuide, /refresh escalation fallback escalation fallback esc
   assert.match(architecture, /refresh recovery follow-?up path/i);
   assert.match(architecture, /structured refresh state/i);
   assert.match(architecture, /followuptree|followup tree/i);
+  assert.match(architecture, /compatibility block|compatibility metadata/i);
   assert.match(architecture, /refresh escalation fallback escalation fallback escalation fallback cta/i);
   assert.match(architecture, /refresh escalation fallback escalation fallback escalation fallback prep hint/i);
   assert.match(architecture, /refresh escalation fallback escalation fallback escalation fallback open guard/i);

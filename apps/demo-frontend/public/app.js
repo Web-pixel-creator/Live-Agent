@@ -30878,6 +30878,17 @@ function normalizeOperatorReplayPrimaryStepRefreshState(value) {
   return {
     source: toOptionalText(value.source),
     legacyFallbackMode: toOptionalText(value.legacyFallbackMode),
+    compatibility: isRecord(value.compatibility)
+      ? {
+          status: toOptionalText(value.compatibility.status),
+          primaryReadModel: toOptionalText(value.compatibility.primaryReadModel),
+          legacyProjection: toOptionalText(value.compatibility.legacyProjection),
+          legacyFlatFieldPrefix: toOptionalText(value.compatibility.legacyFlatFieldPrefix),
+          followupTreeDepth: Number.isFinite(value.compatibility.followupTreeDepth)
+            ? value.compatibility.followupTreeDepth
+            : null,
+        }
+      : null,
     action: isRecord(value.action)
       ? {
           label: toOptionalText(value.action.label),
@@ -31037,6 +31048,7 @@ function buildOperatorReplayPrimaryStepRefreshView(value) {
     refreshStateSource:
       toOptionalText(refreshState?.source) ??
       (refreshRecoveryFollowupPathSummary.length > 0 ? "refresh_recovery_followup_path" : null),
+    refreshStateCompatibility: isRecord(refreshState?.compatibility) ? refreshState.compatibility : null,
     refreshLegacyFallbackMode:
       toOptionalText(refreshState?.legacyFallbackMode) ??
       (refreshRecoveryFollowupPathSummary.length > 0 ? "flat_refresh_escalation_fields" : null),
@@ -32042,6 +32054,7 @@ function buildOperatorSessionOpsControlMeta() {
     `firstStepRefreshFollowupCount=${refreshView.refreshRecoveryFollowupPathSummary.length}`,
     `firstStepRefreshFollowupHead=${toOptionalText(refreshFollowupHead?.label) ?? toOptionalText(refreshFollowupHead?.targetLabel) ?? toOptionalText(refreshFollowupHead?.stateLabel) ?? "n/a"}`,
     `firstStepRefreshFollowupPath=${refreshView.refreshRecoveryFollowupPathToken}`,
+    `firstStepRefreshCompatibility=${toOptionalText(refreshView.refreshStateCompatibility?.primaryReadModel) ?? "n/a"}:${toOptionalText(refreshView.refreshStateCompatibility?.legacyProjection) ?? "n/a"}`,
     `firstStepRefreshLegacyFallback=${refreshView.refreshLegacyFallbackToken}`,
       `stepProgress=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorStepProgress?.label) ?? "n/a"}`,
     `stepPath=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorStepPath) ? replay.selectedSession.replay.nextOperatorStepPath.map((item) => `${toOptionalText(item?.phase) ?? "unknown"}:${toOptionalText(item?.runState) ?? "blocked"}`).join(",") || "n/a" : "n/a"}`,

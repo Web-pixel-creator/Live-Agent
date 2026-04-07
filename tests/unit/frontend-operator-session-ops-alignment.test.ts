@@ -82,6 +82,10 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "refreshRecoveryAfterRefreshDetail",
     "refreshState",
     "refreshStateSource",
+    "refreshStateCompatibility",
+    "firstStepRefreshCompatibility=",
+    "primaryReadModel",
+    "legacyProjection",
     "followupTree",
     "flat_refresh_escalation_fields",
     "readStoredOperatorPurposeDeclaration()",
@@ -136,6 +140,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(readmeSource, /refresh recovery follow-?up path/i);
   assert.match(readmeSource, /structured refresh state/i);
   assert.match(readmeSource, /followuptree|followup tree/i);
+  assert.match(readmeSource, /compatibility block|compatibility metadata/i);
 assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation prep/i);
 assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation open guard/i);
 assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation outcome/i);
@@ -147,6 +152,7 @@ assert.match(readmeSource, /refresh escalation fallback escalation fallback esca
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);
   assert.match(operatorGuideSource, /structured refresh state/i);
   assert.match(operatorGuideSource, /followuptree|followup tree/i);
+  assert.match(operatorGuideSource, /compatibility block|compatibility metadata/i);
   assert.ok(operatorGuideSource.includes("`operatorPurpose`"), "operator guide missing operator purpose note");
   assert.ok(operatorGuideSource.includes("`GET /v1/runtime/session-replay`"), "operator guide missing session replay note");
 assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation prep/i);
