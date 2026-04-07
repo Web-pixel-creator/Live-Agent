@@ -123,7 +123,7 @@ async function main() {
 
   const maxGatewayWsRoundTripMs = Number.isFinite(toNumber(args.maxGatewayWsRoundTripMs))
     ? toNumber(args.maxGatewayWsRoundTripMs)
-    : 1800;
+    : 6000;
   const maxGatewayInterruptLatencyMs = Number.isFinite(toNumber(args.maxGatewayInterruptLatencyMs))
     ? toNumber(args.maxGatewayInterruptLatencyMs)
     : 300;

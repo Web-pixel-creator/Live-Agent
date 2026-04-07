@@ -43,7 +43,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $ReleaseThresholds = @{
-  MaxGatewayWsRoundTripMs = 1800
+  MaxGatewayWsRoundTripMs = 6000
   MaxGatewayInterruptLatencyMs = 300
   MaxGatewayErrorCorrelationLatencyMs = 5000
   MinServiceStartMaxAttempts = 2

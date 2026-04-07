@@ -927,7 +927,7 @@ npm run verify:release
 ```
 
 Note: `verify:release` reuses the prebuilt workspace and runs `demo:e2e:fast` with `RequestTimeoutSec=45` for stability of long approval-resume paths. If `DEMO_E2E_STORYTELLER_MEDIA_MODE` is not already `default` or `simulated`, the release wrapper defaults it to `simulated` so repo-local `.env` fallback profiles do not fail the release policy gate. The gate also syncs `artifacts/demo-e2e/badge*.json` into `public/demo-e2e/` for runtime badge endpoints.
-The WebSocket roundtrip KPI uses a warmup plus a compact best-of-three measured sample set, preserving all sample latencies in scenario evidence while gating on the steady-state sample against the existing threshold.
+The WebSocket roundtrip KPI uses a warmup plus a compact best-of-three measured sample set, preserving all sample latencies in scenario evidence while gating on the steady-state sample against the release threshold. The release wrapper's default policy budget is `6000ms` to tolerate real provider latency when repo-local Gemini credentials are present; the standalone GitHub Demo E2E workflow still passes an explicit `1800ms` gate for fallback-speed CI smoke.
 
 Strict final pre-submission gate (one demo-run attempt, zero accepted scenario retries):
 
@@ -1470,6 +1470,7 @@ Notes:
 - Runs `npm run verify:release:strict` (`-StrictFinalRun`) and uploads consolidated release artifacts bundle.
 - Manual dispatch supports optional deploy to Railway (`deploy_to_railway=true`) after strict gate passes using `npm run deploy:railway:all`.
 - For release-triggered deploy, configure repository secrets: `RAILWAY_API_TOKEN` (recommended), `RAILWAY_PROJECT_ID`, `RAILWAY_SERVICE_ID` (optional `RAILWAY_FRONTEND_SERVICE_ID`; legacy fallback `RAILWAY_TOKEN`; optional `RAILWAY_PROJECT_TOKEN`).
+- For the strict promptfoo red-team gate, configure `GOOGLE_API_KEY` (it can mirror the Gemini key value); the workflow maps Google provider aliases into the release environment so CI can generate `artifacts/evals/latest-run.json` without globally enabling Gemini live-agent latency inside the demo runtime.
 - Same auth-resilience path is enabled for strict manual deploys: `verify_only_fallback_on_auth_failure=true` triggers verify-only public endpoint checks when Railway auth probe fails.
 - Job summary includes strict badge evidence statuses from unified report `artifacts/release-evidence/report.json`: `operatorTurnTruncation`, `operatorTurnDelete`, `operatorDamageControl`, `governancePolicy`, `skillsRegistry`, `pluginMarketplace`, `deviceNodes`, `agentUsage`, `runtimeGuardrailsSignalPaths`, `providerUsage`, and derived updates-lane signal `deviceNodeUpdatesStatus`.
 - When the strict workflow also performs a real Railway deploy, job summary surfaces `artifacts/deploy/railway-deploy-summary.json` fields (`status`, `deploymentId`, `effectivePublicUrl`, `badgeEndpoint`, `badgeDetailsEndpoint`) and the uploaded bundle includes that artifact.

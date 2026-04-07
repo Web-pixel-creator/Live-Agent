@@ -900,43 +900,50 @@ async function executeWithPlaywright(
     sessionNotes.push("Summary-backed draft received.");
   }
 
-  if (persistenceEnabled && requestedSessionKey) {
-    const existing = persistentPlaywrightSessions.get(requestedSessionKey);
-    if (existing) {
-      browser = existing.browser;
-      page = existing.page;
-      existing.reuseCount += 1;
-      existing.updatedAt = nowIso();
-      sessionReuseCount = existing.reuseCount;
-      sessionLastUrl = existing.lastPageUrl;
-      sessionNotes.push("Persistent browser session reused.");
+  try {
+    if (persistenceEnabled && requestedSessionKey) {
+      const existing = persistentPlaywrightSessions.get(requestedSessionKey);
+      if (existing) {
+        browser = existing.browser;
+        page = existing.page;
+        existing.reuseCount += 1;
+        existing.updatedAt = nowIso();
+        sessionReuseCount = existing.reuseCount;
+        sessionLastUrl = existing.lastPageUrl;
+        sessionNotes.push("Persistent browser session reused.");
+      } else {
+        browser = await chromium.launch({ headless: true });
+        page = await browser.newPage();
+        persistentPlaywrightSessions.set(requestedSessionKey, {
+          key: requestedSessionKey,
+          browser,
+          page,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+          reuseCount: 0,
+          lastPageUrl: null,
+        });
+        sessionReuseCount = 0;
+        sessionNotes.push("Persistent browser session started.");
+        if (request.actions[0]?.type !== "navigate" && typeof request.context?.url === "string" && request.context.url.trim()) {
+          await page.goto(request.context.url.trim(), { waitUntil: "domcontentloaded", timeout: 15000 });
+          sessionNotes.push("Bootstrapped browser session from job context URL.");
+        }
+      }
     } else {
       browser = await chromium.launch({ headless: true });
       page = await browser.newPage();
-      persistentPlaywrightSessions.set(requestedSessionKey, {
-        key: requestedSessionKey,
-        browser,
-        page,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-        reuseCount: 0,
-        lastPageUrl: null,
-      });
-      sessionReuseCount = 0;
-      sessionNotes.push("Persistent browser session started.");
-      if (request.actions[0]?.type !== "navigate" && typeof request.context?.url === "string" && request.context.url.trim()) {
-        await page.goto(request.context.url.trim(), { waitUntil: "domcontentloaded", timeout: 15000 });
-        sessionNotes.push("Bootstrapped browser session from job context URL.");
-      }
+      sessionNotes.push(
+        config.persistentBrowserSessions
+          ? "Ephemeral browser session executed for this slice."
+          : "Persistent browser sessions are disabled in runtime config.",
+      );
     }
-  } else {
-    browser = await chromium.launch({ headless: true });
-    page = await browser.newPage();
-    sessionNotes.push(
-      config.persistentBrowserSessions
-        ? "Ephemeral browser session executed for this slice."
-        : "Persistent browser sessions are disabled in runtime config.",
-    );
+  } catch {
+    if (requestedSessionKey) {
+      await releasePersistentPlaywrightSession(requestedSessionKey, "failed");
+    }
+    return null;
   }
 
   const screenshotSeed = request.context?.screenshotRef || `ui://executor/${Date.now()}`;

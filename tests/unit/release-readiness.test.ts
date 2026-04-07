@@ -1507,10 +1507,10 @@ test(
   "release-readiness fails when gateway websocket roundtrip exceeds threshold",
   { skip: skipIfNoPowerShell },
   () => {
-    const result = runReleaseReadiness(createPassingSummary({ gatewayRoundTripMs: 2001 }));
+    const result = runReleaseReadiness(createPassingSummary({ gatewayRoundTripMs: 6001 }));
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
-    assert.match(output, /gatewayWsRoundTripMs expected <= 1800, actual 2001/i);
+    assert.match(output, /gatewayWsRoundTripMs expected <= 6000, actual 6001/i);
   },
 );
 

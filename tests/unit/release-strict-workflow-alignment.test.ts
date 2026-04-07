@@ -30,6 +30,8 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /RAILWAY_PROJECT_TOKEN:\s*\$\{\{\s*secrets\.RAILWAY_PROJECT_TOKEN\s*\}\}/);
   assert.match(source, /RAILWAY_PROJECT_ID:\s*\$\{\{\s*secrets\.RAILWAY_PROJECT_ID\s*\}\}/);
   assert.match(source, /RAILWAY_SERVICE_ID:\s*\$\{\{\s*secrets\.RAILWAY_SERVICE_ID\s*\}\}/);
+  assert.match(source, /GOOGLE_API_KEY:\s*\$\{\{\s*secrets\.GOOGLE_API_KEY\s*\}\}/);
+  assert.doesNotMatch(source, /GEMINI_API_KEY:\s*\$\{\{\s*secrets\.GEMINI_API_KEY\s*\}\}/);
   assert.match(source, /FRONTEND_PUBLIC_URL:\s*\$\{\{\s*vars\.FRONTEND_PUBLIC_URL\s*\}\}/);
   assert.match(source, /- name:\s*Install Railway CLI/);
   assert.match(source, /if:\s*github\.event_name == 'workflow_dispatch' && inputs\.deploy_to_railway == true/);
@@ -162,6 +164,8 @@ test("readme documents optional release-strict railway deploy path", () => {
   assert.match(readme, /RAILWAY_PROJECT_TOKEN/);
   assert.match(readme, /RAILWAY_PROJECT_ID/);
   assert.match(readme, /RAILWAY_SERVICE_ID/);
+  assert.match(readme, /GOOGLE_API_KEY/);
+  assert.match(readme, /artifacts\/evals\/latest-run\.json/);
   assert.match(readme, /badge evidence statuses/i);
   assert.match(readme, /operatorTurnTruncation/);
   assert.match(readme, /operatorTurnDelete/);
