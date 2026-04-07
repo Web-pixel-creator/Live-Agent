@@ -103,6 +103,7 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
     "RuntimeSessionReplayPrimaryOperatorStepBase",
     "RuntimeSessionReplayPrimaryRefreshLegacyProjection",
     "buildNextOperatorPrimaryStepRefreshLegacyProjection",
+    "refreshLegacyProjection",
   ]) {
     assert.ok(helperSource.includes(token), `runtime session replay legacy projection missing token: ${token}`);
   }
