@@ -130,6 +130,7 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
   "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard",
   "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel",
   "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence",
+  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint",
   "mode",
     "refreshAction",
     "refreshTargetState",
@@ -203,6 +204,7 @@ assert.match(readme, /refresh escalation fallback escalation fallback escalation
 assert.match(readme, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation open guard/i);
 assert.match(readme, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation outcome/i);
 assert.match(readme, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation confidence/i);
+assert.match(readme, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation detour/i);
 assert.match(readme, /refresh escalation fallback escalation fallback escalation fallback escalation prep hint/i);
 assert.match(readme, /refresh escalation fallback escalation fallback escalation fallback escalation open guard/i);
 assert.match(readme, /refresh escalation fallback escalation fallback escalation fallback escalation outcome/i);
@@ -225,6 +227,7 @@ assert.match(operatorGuide, /refresh escalation fallback escalation fallback esc
 assert.match(operatorGuide, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation open guard/i);
 assert.match(operatorGuide, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation outcome/i);
 assert.match(operatorGuide, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation confidence/i);
+assert.match(operatorGuide, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation detour/i);
 assert.match(operatorGuide, /refresh escalation fallback escalation fallback escalation fallback escalation prep hint/i);
 assert.match(operatorGuide, /refresh escalation fallback escalation fallback escalation fallback escalation open guard/i);
 assert.match(operatorGuide, /refresh escalation fallback escalation fallback escalation fallback escalation outcome/i);
@@ -246,6 +249,7 @@ assert.match(architecture, /refresh escalation fallback escalation fallback esca
 assert.match(architecture, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation open guard/i);
 assert.match(architecture, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation outcome/i);
 assert.match(architecture, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation confidence/i);
+assert.match(architecture, /refresh escalation fallback escalation fallback escalation fallback escalation escalation escalation escalation detour/i);
 assert.match(architecture, /refresh escalation fallback escalation fallback escalation fallback escalation prep hint/i);
 assert.match(architecture, /refresh escalation fallback escalation fallback escalation fallback escalation open guard/i);
 assert.match(architecture, /refresh escalation fallback escalation fallback escalation fallback escalation outcome/i);
