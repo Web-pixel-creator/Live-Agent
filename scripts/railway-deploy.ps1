@@ -1205,7 +1205,12 @@ try {
       $workspaceLinkOutput | ForEach-Object { Write-Host $_ }
     }
     if ($workspaceLinkExitCode -ne 0) {
-      Fail "Unable to link clean Railway deploy worktree."
+      if ($env:RAILWAY_AUTH_PROJECT_MODE -eq "true") {
+        Write-Warning "[railway-deploy] clean worktree railway link failed; continuing with direct project/service flags in project-token fallback mode."
+      }
+      else {
+        Fail "Unable to link clean Railway deploy worktree."
+      }
     }
   }
 
