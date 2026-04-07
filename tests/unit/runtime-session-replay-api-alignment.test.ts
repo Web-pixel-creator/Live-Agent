@@ -138,6 +138,8 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
     "primaryReadModel",
     "legacyProjection",
     "legacyFlatFieldPrefix",
+    "RuntimeSessionReplayPrimaryRefreshLegacyProjection",
+    "buildNextOperatorPrimaryStepRefreshLegacyProjection",
     "followupTreeDepth",
     "followupTree",
     "mode",
