@@ -926,8 +926,8 @@ Single-command local quality gate (build + unit tests + profile smoke + demo e2e
 npm run verify:release
 ```
 
-Note: `verify:release` reuses the prebuilt workspace and runs `demo:e2e:fast` with `RequestTimeoutSec=45` for stability of long approval-resume paths. If `DEMO_E2E_STORYTELLER_MEDIA_MODE` is not already `default` or `simulated`, the release wrapper defaults it to `simulated` so repo-local `.env` fallback profiles do not fail the release policy gate. The gate also syncs `artifacts/demo-e2e/badge*.json` into `public/demo-e2e/` for runtime badge endpoints.
-The WebSocket roundtrip KPI uses a warmup plus a compact best-of-three measured sample set, preserving all sample latencies in scenario evidence while gating on the steady-state sample against the release threshold. The release wrapper's default policy budget is `6000ms` to tolerate real provider latency when repo-local Gemini credentials are present; the standalone GitHub Demo E2E workflow still passes an explicit `1800ms` gate for fallback-speed CI smoke.
+Note: `verify:release` reuses the prebuilt workspace and runs `demo:e2e:fast` with `RequestTimeoutSec=45` for stability of long approval-resume paths. If `DEMO_E2E_STORYTELLER_MEDIA_MODE` is not already `default` or `simulated`, the release wrapper defaults it to `simulated` so repo-local `.env` fallback profiles do not fail the release policy gate. When `DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK=true`, the policy gate also accepts the explicit fallback-safe `remote_http` UI executor profile (`strictPlaywright=false`, `simulateIfUnavailable=true`, `forceSimulation=false`) instead of requiring live Playwright runtime validation. The release policy allows `fallback`, `gemini`, or `google_translate` translation providers because CI can expose Google provider keys for promptfoo without forcing the demo runtime into one provider. The gate also syncs `artifacts/demo-e2e/badge*.json` into `public/demo-e2e/` for runtime badge endpoints.
+The WebSocket roundtrip KPI uses a warmup plus a compact best-of-three measured sample set, preserving all sample latencies in scenario evidence while gating on the steady-state sample against the release threshold. The release wrapper's default policy budget is `6000ms` to tolerate real provider latency when repo-local Gemini credentials are present; the standalone GitHub Demo E2E workflow still passes an explicit `1800ms` gate for fallback-speed CI smoke. The perf-load fast profile keeps UI/gateway budgets unchanged but uses a `4500ms` live p95 budget for provider-backed local release verification.
 
 Strict final pre-submission gate (one demo-run attempt, zero accepted scenario retries):
 
@@ -1018,7 +1018,7 @@ Note: `verify:pr` uses fast demo mode (`demo:e2e:fast`) with a slightly higher r
 Direct mode with explicit thresholds:
 
 ```powershell
-node ./scripts/demo-e2e-policy-check.mjs --input ./artifacts/demo-e2e/summary.json --output ./artifacts/demo-e2e/policy-check.md --maxGatewayWsRoundTripMs 1800 --minApprovalsRecorded 1 --maxUiApprovalResumeElapsedMs 60000 --minUiApprovalResumeRequestAttempts 1 --maxUiApprovalResumeRequestAttempts 2 --expectedUiAdapterMode remote_http --allowedUiAdapterModes remote_http,simulated --allowedGatewayInterruptEvents live.interrupt.requested,live.bridge.unavailable --allowedTranslationProviders fallback,gemini --allowedVisualComparatorModes fallback_heuristic,gemini_reasoning --allowedStoryMediaModes simulated
+node ./scripts/demo-e2e-policy-check.mjs --input ./artifacts/demo-e2e/summary.json --output ./artifacts/demo-e2e/policy-check.md --maxGatewayWsRoundTripMs 1800 --minApprovalsRecorded 1 --maxUiApprovalResumeElapsedMs 60000 --minUiApprovalResumeRequestAttempts 1 --maxUiApprovalResumeRequestAttempts 2 --expectedUiAdapterMode remote_http --allowedUiAdapterModes remote_http,simulated --allowedGatewayInterruptEvents live.interrupt.requested,live.bridge.unavailable --allowedTranslationProviders fallback,gemini,google_translate --allowUiExecutorRuntimeFallback true --allowedVisualComparatorModes fallback_heuristic,gemini_reasoning --allowedStoryMediaModes simulated
 ```
 
 The script writes a structured report to:
@@ -1068,8 +1068,8 @@ The live voice workload performs a short warmup before collecting measured sampl
 Example with custom thresholds:
 
 ```powershell
-node ./scripts/perf-load.mjs --liveIterations 30 --liveConcurrency 6 --uiIterations 30 --uiConcurrency 6 --gatewayReplayIterations 12 --gatewayReplayConcurrency 3 --maxLiveP95Ms 1800 --maxUiP95Ms 25000 --maxGatewayReplayP95Ms 9000 --maxGatewayReplayErrorRatePct 20 --maxAggregateErrorRatePct 10
-node ./scripts/perf-load-policy-check.mjs --input ./artifacts/perf-load/summary.json --maxLiveP95Ms 1800 --maxUiP95Ms 25000 --maxGatewayReplayP95Ms 9000 --maxGatewayReplayErrorRatePct 20 --maxAggregateErrorRatePct 10 --requiredUiAdapterMode remote_http
+node ./scripts/perf-load.mjs --liveIterations 30 --liveConcurrency 6 --uiIterations 30 --uiConcurrency 6 --gatewayReplayIterations 12 --gatewayReplayConcurrency 3 --maxLiveP95Ms 4500 --maxUiP95Ms 25000 --maxGatewayReplayP95Ms 9000 --maxGatewayReplayErrorRatePct 20 --maxAggregateErrorRatePct 10
+node ./scripts/perf-load-policy-check.mjs --input ./artifacts/perf-load/summary.json --maxLiveP95Ms 4500 --maxUiP95Ms 25000 --maxGatewayReplayP95Ms 9000 --maxGatewayReplayErrorRatePct 20 --maxAggregateErrorRatePct 10 --requiredUiAdapterMode remote_http
 ```
 
 ## Story Media Worker Runtime
@@ -1471,6 +1471,7 @@ Notes:
 - Manual dispatch supports optional deploy to Railway (`deploy_to_railway=true`) after strict gate passes using `npm run deploy:railway:all`.
 - For release-triggered deploy, configure repository secrets: `RAILWAY_API_TOKEN` (recommended), `RAILWAY_PROJECT_ID`, `RAILWAY_SERVICE_ID` (optional `RAILWAY_FRONTEND_SERVICE_ID`; legacy fallback `RAILWAY_TOKEN`; optional `RAILWAY_PROJECT_TOKEN`).
 - For the strict promptfoo red-team gate, configure `GOOGLE_API_KEY` (it can mirror the Gemini key value); the workflow maps Google provider aliases into the release environment so CI can generate `artifacts/evals/latest-run.json` without globally enabling Gemini live-agent latency inside the demo runtime.
+- The strict workflow clears Google/Gemini provider env vars only around nested unit-test execution, then restores them for promptfoo/release gates; it also sets `DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK=true` so fallback-safe `remote_http` UI executor posture is accepted in CI while still rejecting forced simulation.
 - Same auth-resilience path is enabled for strict manual deploys: `verify_only_fallback_on_auth_failure=true` triggers verify-only public endpoint checks when Railway auth probe fails.
 - Job summary includes strict badge evidence statuses from unified report `artifacts/release-evidence/report.json`: `operatorTurnTruncation`, `operatorTurnDelete`, `operatorDamageControl`, `governancePolicy`, `skillsRegistry`, `pluginMarketplace`, `deviceNodes`, `agentUsage`, `runtimeGuardrailsSignalPaths`, `providerUsage`, and derived updates-lane signal `deviceNodeUpdatesStatus`.
 - When the strict workflow also performs a real Railway deploy, job summary surfaces `artifacts/deploy/railway-deploy-summary.json` fields (`status`, `deploymentId`, `effectivePublicUrl`, `badgeEndpoint`, `badgeDetailsEndpoint`) and the uploaded bundle includes that artifact.

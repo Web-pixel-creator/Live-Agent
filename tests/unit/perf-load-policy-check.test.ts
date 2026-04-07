@@ -87,6 +87,7 @@ test("perf-load-policy-check passes for healthy summary", () => {
   assert.ok(result.outputJson);
   assert.equal(result.outputJson?.ok, true);
   assert.equal(result.outputJson?.checks, 15);
+  assert.equal(result.outputJson?.thresholds?.maxLiveP95Ms, 4500);
 });
 
 test("perf-load-policy-check fails when required ui adapter mode is missing", () => {

@@ -46,12 +46,17 @@ test("artifact provenance guardrails stay aligned across readiness gate and mani
   assert.match(helperSource, /repoPublishSummaryReleaseEvidenceArtifactsCount\s*=\s*\$repoPublishSummaryReleaseEvidenceArtifactsCount/);
 
   assert.match(workflowSource, /core\.setOutput\("source_run_conclusion"/);
-  assert.match(workflowSource, /conclusion\s*=\s*"\$\{\{\s*steps\.resolve_source\.outputs\.source_run_conclusion\s*\}\}"/);
-  assert.match(workflowSource, /allowAnySourceBranch\s*=\s*"\$\{\{\s*steps\.resolve_source\.outputs\.allow_any_source_branch\s*\}\}"/);
+  assert.match(workflowSource, /SOURCE_RUN_CONCLUSION:\s*\$\{\{\s*steps\.resolve_source\.outputs\.source_run_conclusion\s*\}\}/);
+  assert.match(workflowSource, /conclusion\s*=\s*\$env:SOURCE_RUN_CONCLUSION/);
+  assert.match(workflowSource, /SOURCE_ALLOW_ANY_BRANCH:\s*\$\{\{\s*steps\.resolve_source\.outputs\.allow_any_source_branch\s*\}\}/);
+  assert.match(workflowSource, /allowAnySourceBranch\s*=\s*\$env:SOURCE_ALLOW_ANY_BRANCH/);
   assert.match(workflowSource, /allowedBranches\s*=\s*@\("main", "master"\)/);
-  assert.match(workflowSource, /maxSourceRunAgeHours\s*=\s*"\$\{\{\s*steps\.resolve_source\.outputs\.max_source_run_age_hours\s*\}\}"/);
-  assert.match(workflowSource, /branch\s*=\s*"\$\{\{\s*steps\.resolve_source\.outputs\.source_run_branch\s*\}\}"/);
-  assert.match(workflowSource, /ageHours\s*=\s*"\$\{\{\s*steps\.resolve_source\.outputs\.source_run_age_hours\s*\}\}"/);
+  assert.match(workflowSource, /SOURCE_MAX_RUN_AGE_HOURS:\s*\$\{\{\s*steps\.resolve_source\.outputs\.max_source_run_age_hours\s*\}\}/);
+  assert.match(workflowSource, /maxSourceRunAgeHours\s*=\s*\$env:SOURCE_MAX_RUN_AGE_HOURS/);
+  assert.match(workflowSource, /SOURCE_RUN_BRANCH:\s*\$\{\{\s*steps\.resolve_source\.outputs\.source_run_branch\s*\}\}/);
+  assert.match(workflowSource, /branch\s*=\s*\$env:SOURCE_RUN_BRANCH/);
+  assert.match(workflowSource, /SOURCE_RUN_AGE_HOURS:\s*\$\{\{\s*steps\.resolve_source\.outputs\.source_run_age_hours\s*\}\}/);
+  assert.match(workflowSource, /ageHours\s*=\s*\$env:SOURCE_RUN_AGE_HOURS/);
   assert.match(workflowSource, /railwayDeploySummaryPresent\s*=\s*\[bool\]\$railwayDeploySummaryPresent/);
   assert.match(workflowSource, /railwayDeploySummaryProjectId\s*=\s*\$railwayDeploySummaryProjectId/);
   assert.match(workflowSource, /railwayDeploySummaryRootDescriptorAttempted\s*=\s*\$railwayDeploySummaryRootDescriptorAttempted/);

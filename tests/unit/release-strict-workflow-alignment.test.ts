@@ -32,6 +32,7 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /RAILWAY_SERVICE_ID:\s*\$\{\{\s*secrets\.RAILWAY_SERVICE_ID\s*\}\}/);
   assert.match(source, /GOOGLE_API_KEY:\s*\$\{\{\s*secrets\.GOOGLE_API_KEY\s*\}\}/);
   assert.doesNotMatch(source, /GEMINI_API_KEY:\s*\$\{\{\s*secrets\.GEMINI_API_KEY\s*\}\}/);
+  assert.match(source, /DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK:\s*"true"/);
   assert.match(source, /FRONTEND_PUBLIC_URL:\s*\$\{\{\s*vars\.FRONTEND_PUBLIC_URL\s*\}\}/);
   assert.match(source, /- name:\s*Install Railway CLI/);
   assert.match(source, /if:\s*github\.event_name == 'workflow_dispatch' && inputs\.deploy_to_railway == true/);

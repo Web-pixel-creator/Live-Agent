@@ -107,3 +107,27 @@ test("source-run manifest schema stays aligned between local helper and workflow
   assert.match(scriptSource, /Source run manifest written/);
   assert.match(workflowSource, /Source run manifest written/);
 });
+
+test("source-run manifest workflow run block keeps GitHub expressions outside the long script body", () => {
+  const workflowPath = resolve(process.cwd(), ".github", "workflows", "release-artifact-revalidation.yml");
+  const workflowSource = readFileSync(workflowPath, "utf8");
+  const writeManifestStart = workflowSource.indexOf("      - name: Write Source Run Manifest");
+  const artifactOnlyStart = workflowSource.indexOf("      - name: Run Artifact-Only Release Revalidation", writeManifestStart);
+
+  assert.notEqual(writeManifestStart, -1);
+  assert.notEqual(artifactOnlyStart, -1);
+
+  const writeManifestBlock = workflowSource.slice(writeManifestStart, artifactOnlyStart);
+  const runBlockStart = writeManifestBlock.indexOf("        run: |");
+  assert.notEqual(runBlockStart, -1);
+
+  const writeManifestRunBlock = writeManifestBlock.slice(runBlockStart);
+  assert.doesNotMatch(
+    writeManifestRunBlock,
+    /\$\{\{/,
+    "GitHub expressions in this long PowerShell run block can exceed GitHub's expression parser limit",
+  );
+  assert.match(writeManifestBlock, /REVALIDATION_REPOSITORY:\s*\$\{\{\s*github\.repository\s*\}\}/);
+  assert.match(writeManifestRunBlock, /name = \$env:REVALIDATION_REPOSITORY/);
+  assert.match(writeManifestRunBlock, /runId = \$env:SOURCE_RUN_ID/);
+});

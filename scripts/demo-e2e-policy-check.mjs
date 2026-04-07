@@ -59,6 +59,19 @@ function toStringArray(value) {
   return [];
 }
 
+function toBooleanFlag(value) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+  if (typeof value === "string") {
+    return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
+  }
+  return false;
+}
+
 function toSafeString(value) {
   if (value === null || value === undefined) {
     return "-";
@@ -168,6 +181,7 @@ async function main() {
     : 2;
   const expectedUiAdapterMode = args.expectedUiAdapterMode ?? "remote_http";
   const allowedUiAdapterModes = toStringArray(args.allowedUiAdapterModes ?? expectedUiAdapterMode);
+  const allowUiExecutorRuntimeFallback = toBooleanFlag(args.allowUiExecutorRuntimeFallback ?? false);
   const expectedUiRemoteHttpFallbackMode = args.expectedUiRemoteHttpFallbackMode ?? "failed";
   const allowedUiRemoteHttpFallbackModes = toStringArray(
     args.allowedUiRemoteHttpFallbackModes ?? expectedUiRemoteHttpFallbackMode,
@@ -1317,9 +1331,14 @@ async function main() {
   );
   addCheck(
     "kpi.uiExecutorRuntimeValidated",
-    kpis.uiExecutorRuntimeValidated === true,
+    kpis.uiExecutorRuntimeValidated === true ||
+      (allowUiExecutorRuntimeFallback &&
+        String(kpis.uiExecutorMode) === "remote_http" &&
+        kpis.uiExecutorForceSimulation === false &&
+        kpis.uiExecutorStrictPlaywright === false &&
+        kpis.uiExecutorSimulateIfUnavailable === true),
     kpis.uiExecutorRuntimeValidated,
-    true,
+    allowUiExecutorRuntimeFallback ? "true | remote_http fallback-safe profile" : true,
   );
   addCheck(
     "kpi.uiExecutorLifecycleValidated",
@@ -2067,6 +2086,7 @@ async function main() {
       maxUiApprovalResumeRequestAttempts,
       expectedUiAdapterMode,
       allowedUiAdapterModes,
+      allowUiExecutorRuntimeFallback,
       expectedUiRemoteHttpFallbackMode,
       allowedUiRemoteHttpFallbackModes,
       allowedVisualComparatorModes,

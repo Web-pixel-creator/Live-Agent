@@ -230,6 +230,8 @@ function createPassingSummary(overrides?: {
     uiAdapterMode: "remote_http",
     uiExecutorMode: "remote_http",
     uiExecutorForceSimulation: false,
+    uiExecutorStrictPlaywright: true,
+    uiExecutorSimulateIfUnavailable: false,
     uiExecutorRuntimeValidated: true,
     uiExecutorLifecycleValidated: true,
     uiApprovalResumeRequestAttempts: 1,
@@ -1311,6 +1313,23 @@ test("demo-e2e policy check fails when ui-executor runtime profile is invalid", 
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.uiExecutorRuntimeValidated")));
+});
+
+test("demo-e2e policy check allows remote fallback-safe ui-executor runtime when explicitly enabled", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        uiExecutorRuntimeValidated: false,
+        uiExecutorStrictPlaywright: false,
+        uiExecutorSimulateIfUnavailable: true,
+      },
+    }),
+    ["--allowUiExecutorRuntimeFallback", "true"],
+  );
+
+  assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
+  assert.equal(result.payload.ok, true);
+  assert.equal(result.payload.thresholds.allowUiExecutorRuntimeFallback, true);
 });
 
 test("demo-e2e policy check fails when ui-executor lifecycle KPI is invalid", () => {

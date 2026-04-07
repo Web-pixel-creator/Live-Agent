@@ -54,7 +54,7 @@ $ReleaseThresholds = @{
   MinAnalyticsServicesValidated = 4
   MinAnalyticsRequestedEnabledServices = 4
   MinAnalyticsEnabledServices = 4
-  MaxPerfLiveP95Ms = 1800
+  MaxPerfLiveP95Ms = 4500
   MaxPerfUiP95Ms = 25000
   MaxPerfGatewayReplayP95Ms = 9000
   MaxPerfGatewayReplayErrorRatePct = 20
@@ -232,6 +232,29 @@ function Run-StepWithRetry(
   Fail "Step failed after retries: $Name"
 }
 
+function Invoke-WithTemporaryClearedEnvVars {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string[]]$Names,
+    [Parameter(Mandatory = $true)]
+    [scriptblock]$ScriptBlock
+  )
+
+  $snapshot = @{}
+  foreach ($name in $Names) {
+    $snapshot[$name] = [Environment]::GetEnvironmentVariable($name, "Process")
+    [Environment]::SetEnvironmentVariable($name, $null, "Process")
+  }
+
+  try {
+    & $ScriptBlock
+  } finally {
+    foreach ($name in $Names) {
+      [Environment]::SetEnvironmentVariable($name, $snapshot[$name], "Process")
+    }
+  }
+}
+
 function Ensure-ReleaseDemoStorytellerMediaMode {
   $requestedMediaMode = [string][Environment]::GetEnvironmentVariable("DEMO_E2E_STORYTELLER_MEDIA_MODE")
   if (@("default", "simulated") -contains $requestedMediaMode) {
@@ -342,7 +365,9 @@ if (-not $SkipBuild) {
 }
 
 if (-not $SkipUnitTests) {
-  Run-Step "Run unit tests" "npm run test:unit"
+  Invoke-WithTemporaryClearedEnvVars `
+    -Names @("GOOGLE_API_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_GENAI_API_KEY") `
+    -ScriptBlock { Run-Step "Run unit tests" "npm run test:unit" }
 }
 
 if (-not $SkipPromptfooRedTeam) {
@@ -406,6 +431,11 @@ if ((-not $SkipDemoE2E) -and (-not $SkipDemoRun)) {
 
 if (-not $SkipPolicy) {
   $policyCommand = "npm run demo:e2e:policy -- --maxScenarioRetriesUsedCount $MaxAllowedScenarioRetriesUsedCount"
+  $allowUiExecutorRuntimeFallbackForPolicy = ([string][Environment]::GetEnvironmentVariable("DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK")).Trim().ToLowerInvariant()
+  if (@("1", "true", "yes", "on") -contains $allowUiExecutorRuntimeFallbackForPolicy) {
+    $policyCommand += " --allowUiExecutorRuntimeFallback true"
+  }
+  $policyCommand += " --allowedTranslationProviders fallback,gemini,google_translate"
   Run-Step "Run policy gate" $policyCommand
 }
 

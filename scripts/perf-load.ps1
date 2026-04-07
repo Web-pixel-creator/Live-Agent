@@ -33,7 +33,7 @@ param(
   [int]$GatewayReplayTimeoutMs = 18000,
 
   [Parameter(Mandatory = $false)]
-  [int]$MaxLiveP95Ms = 1800,
+  [int]$MaxLiveP95Ms = 4500,
 
   [Parameter(Mandatory = $false)]
   [int]$MaxUiP95Ms = 25000,

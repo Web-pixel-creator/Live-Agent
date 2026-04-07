@@ -554,6 +554,28 @@ jobs:
       - name: Write Source Run Manifest
         id: write_manifest
         shell: powershell
+        env:
+          REVALIDATION_REPOSITORY: ${{ github.repository }}
+          REVALIDATION_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          REVALIDATION_RUN_ID: ${{ github.run_id }}
+          REVALIDATION_RUN_ATTEMPT: ${{ github.run_attempt }}
+          SOURCE_RUN_ID: ${{ steps.resolve_source.outputs.run_id }}
+          SOURCE_RUN_WORKFLOW: ${{ steps.resolve_source.outputs.source_run_workflow }}
+          SOURCE_RUN_BRANCH: ${{ steps.resolve_source.outputs.source_run_branch }}
+          SOURCE_RUN_HEAD_SHA: ${{ steps.resolve_source.outputs.source_run_head_sha }}
+          SOURCE_RUN_CONCLUSION: ${{ steps.resolve_source.outputs.source_run_conclusion }}
+          SOURCE_RUN_UPDATED_AT: ${{ steps.resolve_source.outputs.source_run_updated_at }}
+          SOURCE_RUN_AGE_HOURS: ${{ steps.resolve_source.outputs.source_run_age_hours }}
+          SOURCE_ARTIFACT_NAME: ${{ steps.resolve_source.outputs.artifact_name }}
+          SOURCE_ARTIFACT_ID: ${{ steps.resolve_source.outputs.artifact_id }}
+          SOURCE_ALLOW_ANY_BRANCH: ${{ steps.resolve_source.outputs.allow_any_source_branch }}
+          SOURCE_MAX_RUN_AGE_HOURS: ${{ steps.resolve_source.outputs.max_source_run_age_hours }}
+          REVALIDATION_REQUESTED_PERF_MODE: ${{ steps.inspect_artifacts.outputs.requested_perf_mode }}
+          REVALIDATION_EFFECTIVE_PERF_MODE: ${{ steps.inspect_artifacts.outputs.effective_perf_mode }}
+          REVALIDATION_HAS_PERF_ARTIFACTS: ${{ steps.inspect_artifacts.outputs.has_perf_artifacts }}
+          REVALIDATION_STRICT_FINAL_RUN: ${{ steps.inspect_artifacts.outputs.strict_final_run }}
+          SOURCE_GITHUB_API_MAX_ATTEMPTS: ${{ steps.resolve_source.outputs.github_api_max_attempts }}
+          SOURCE_GITHUB_API_RETRY_BACKOFF_MS: ${{ steps.resolve_source.outputs.github_api_retry_backoff_ms }}
         run: |
           function Get-ObjectPropertyValue {
             param(
@@ -941,41 +963,41 @@ jobs:
             schemaVersion = "1.0"
             generatedAt = [datetime]::UtcNow.ToString("o")
             repository = [ordered]@{
-              name = "${{ github.repository }}"
-              owner = "${{ github.repository_owner }}"
+              name = $env:REVALIDATION_REPOSITORY
+              owner = $env:REVALIDATION_REPOSITORY_OWNER
             }
             workflow = [ordered]@{
-              runId = "${{ github.run_id }}"
-              runAttempt = "${{ github.run_attempt }}"
+              runId = $env:REVALIDATION_RUN_ID
+              runAttempt = $env:REVALIDATION_RUN_ATTEMPT
             }
             sourceRun = [ordered]@{
-              runId = "${{ steps.resolve_source.outputs.run_id }}"
-              workflow = "${{ steps.resolve_source.outputs.source_run_workflow }}"
-              branch = "${{ steps.resolve_source.outputs.source_run_branch }}"
-              headSha = "${{ steps.resolve_source.outputs.source_run_head_sha }}"
-              conclusion = "${{ steps.resolve_source.outputs.source_run_conclusion }}"
-              updatedAt = "${{ steps.resolve_source.outputs.source_run_updated_at }}"
-              ageHours = "${{ steps.resolve_source.outputs.source_run_age_hours }}"
+              runId = $env:SOURCE_RUN_ID
+              workflow = $env:SOURCE_RUN_WORKFLOW
+              branch = $env:SOURCE_RUN_BRANCH
+              headSha = $env:SOURCE_RUN_HEAD_SHA
+              conclusion = $env:SOURCE_RUN_CONCLUSION
+              updatedAt = $env:SOURCE_RUN_UPDATED_AT
+              ageHours = $env:SOURCE_RUN_AGE_HOURS
             }
             artifact = [ordered]@{
-              name = "${{ steps.resolve_source.outputs.artifact_name }}"
-              id = "${{ steps.resolve_source.outputs.artifact_id }}"
+              name = $env:SOURCE_ARTIFACT_NAME
+              id = $env:SOURCE_ARTIFACT_ID
             }
             sourceSelection = [ordered]@{
-              allowAnySourceBranch = "${{ steps.resolve_source.outputs.allow_any_source_branch }}"
+              allowAnySourceBranch = $env:SOURCE_ALLOW_ANY_BRANCH
               allowedBranches = @("main", "master")
-              maxSourceRunAgeHours = "${{ steps.resolve_source.outputs.max_source_run_age_hours }}"
+              maxSourceRunAgeHours = $env:SOURCE_MAX_RUN_AGE_HOURS
             }
             gate = [ordered]@{
-              requestedPerfMode = "${{ steps.inspect_artifacts.outputs.requested_perf_mode }}"
-              effectivePerfMode = "${{ steps.inspect_artifacts.outputs.effective_perf_mode }}"
-              perfArtifactsDetected = "${{ steps.inspect_artifacts.outputs.has_perf_artifacts }}"
-              strictFinalRun = "${{ steps.inspect_artifacts.outputs.strict_final_run }}"
+              requestedPerfMode = $env:REVALIDATION_REQUESTED_PERF_MODE
+              effectivePerfMode = $env:REVALIDATION_EFFECTIVE_PERF_MODE
+              perfArtifactsDetected = $env:REVALIDATION_HAS_PERF_ARTIFACTS
+              strictFinalRun = $env:REVALIDATION_STRICT_FINAL_RUN
               evidenceSnapshot = $gateEvidenceSnapshot
             }
             retry = [ordered]@{
-              githubApiMaxAttempts = "${{ steps.resolve_source.outputs.github_api_max_attempts }}"
-              githubApiRetryBackoffMs = "${{ steps.resolve_source.outputs.github_api_retry_backoff_ms }}"
+              githubApiMaxAttempts = $env:SOURCE_GITHUB_API_MAX_ATTEMPTS
+              githubApiRetryBackoffMs = $env:SOURCE_GITHUB_API_RETRY_BACKOFF_MS
               retryableStatusCodes = $retryableStatusCodes
             }
           }

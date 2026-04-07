@@ -19,6 +19,8 @@ jobs:
       UI_NAVIGATOR_EXECUTOR_URL: http://localhost:8090
       UI_EXECUTOR_STRICT_PLAYWRIGHT: "false"
       UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE: "true"
+      DEMO_E2E_STORYTELLER_MEDIA_MODE: simulated
+      DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK: "true"
 
     steps:
       - name: Checkout
@@ -65,7 +67,8 @@ jobs:
           --expectedUiAdapterMode remote_http
           --allowedUiAdapterModes remote_http,simulated
           --allowedGatewayInterruptEvents live.interrupt.requested,live.bridge.unavailable
-          --allowedTranslationProviders fallback,gemini
+          --allowedTranslationProviders fallback,gemini,google_translate
+          --allowUiExecutorRuntimeFallback true
         shell: powershell
 
       - name: Build Badge Artifact

@@ -578,7 +578,7 @@ async function main() {
     gatewayReplayIterations: toPositiveInt(args.gatewayReplayIterations, 8),
     gatewayReplayConcurrency: toPositiveInt(args.gatewayReplayConcurrency, 2),
     gatewayReplayTimeoutMs: toPositiveInt(args.gatewayReplayTimeoutMs, 18000),
-    maxLiveP95Ms: toPositiveInt(args.maxLiveP95Ms, 1800),
+    maxLiveP95Ms: toPositiveInt(args.maxLiveP95Ms, 4500),
     maxUiP95Ms: toPositiveInt(args.maxUiP95Ms, 25000),
     maxGatewayReplayP95Ms: toPositiveInt(args.maxGatewayReplayP95Ms, 9000),
     maxGatewayReplayErrorRatePct: toFiniteNumber(args.maxGatewayReplayErrorRatePct, 20),

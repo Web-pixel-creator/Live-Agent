@@ -5414,6 +5414,8 @@ $summary = [ordered]@{
     uiAdapterRetries = if ($null -ne $uiApproveData) { $uiApproveData.retries } else { $null }
     uiExecutorMode = if ($null -ne $uiExecutorService) { Get-FieldValue -Object $uiExecutorService -Path @("health", "mode") } else { $null }
     uiExecutorForceSimulation = if ($null -ne $uiExecutorService) { Get-FieldValue -Object $uiExecutorService -Path @("health", "forceSimulation") } else { $null }
+    uiExecutorStrictPlaywright = if ($null -ne $uiExecutorService) { Get-FieldValue -Object $uiExecutorService -Path @("health", "strictPlaywright") } else { $null }
+    uiExecutorSimulateIfUnavailable = if ($null -ne $uiExecutorService) { Get-FieldValue -Object $uiExecutorService -Path @("health", "simulateIfUnavailable") } else { $null }
     uiExecutorRuntimeValidated = if (
       $null -ne $uiExecutorService -and
       [string](Get-FieldValue -Object $uiExecutorService -Path @("health", "mode")) -eq "remote_http" -and

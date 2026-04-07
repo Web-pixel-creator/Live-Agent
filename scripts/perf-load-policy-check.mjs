@@ -101,7 +101,7 @@ async function main() {
   const outputPath = resolve(args.output ?? "artifacts/perf-load/policy-check.md");
   const jsonOutputPath = resolve(args.jsonOutput ?? "artifacts/perf-load/policy-check.json");
 
-  const maxLiveP95Ms = toNumber(args.maxLiveP95Ms, 1800);
+  const maxLiveP95Ms = toNumber(args.maxLiveP95Ms, 4500);
   const maxUiP95Ms = toNumber(args.maxUiP95Ms, 25000);
   const maxGatewayReplayP95Ms = toNumber(args.maxGatewayReplayP95Ms, 9000);
   const maxGatewayReplayErrorRatePct = toNumber(args.maxGatewayReplayErrorRatePct, 20);

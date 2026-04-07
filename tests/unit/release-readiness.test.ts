@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -22,6 +22,17 @@ function resolvePowerShellBinary(): string | null {
 
 const powershellBin = resolvePowerShellBinary();
 const skipIfNoPowerShell = powershellBin ? false : "PowerShell binary is not available";
+
+test("release-readiness keeps provider env out of nested unit tests while preserving policy overrides", () => {
+  const source = readFileSync(releaseScriptPath, "utf8");
+
+  assert.match(source, /function Invoke-WithTemporaryClearedEnvVars/);
+  assert.match(source, /"GOOGLE_API_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_GENAI_API_KEY"/);
+  assert.match(source, /-ScriptBlock \{ Run-Step "Run unit tests" "npm run test:unit" \}/);
+  assert.match(source, /DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK/);
+  assert.match(source, /--allowUiExecutorRuntimeFallback true/);
+  assert.match(source, /--allowedTranslationProviders fallback,gemini,google_translate/);
+});
 
 function createPassingSummary(
   overrides: Partial<{
@@ -802,7 +813,7 @@ function createPassingPerfPolicy(): Record<string, unknown> {
     ok: true,
     checks: checkNames.length,
     thresholds: {
-      maxLiveP95Ms: 1800,
+      maxLiveP95Ms: 4500,
       maxUiP95Ms: 25000,
       maxGatewayReplayP95Ms: 9000,
       maxGatewayReplayErrorRatePct: 20,
@@ -2571,13 +2582,13 @@ test(
   () => {
     const policy = createPassingPerfPolicy();
     if (policy.thresholds && typeof policy.thresholds === "object") {
-      (policy.thresholds as Record<string, unknown>).maxLiveP95Ms = 2600;
+      (policy.thresholds as Record<string, unknown>).maxLiveP95Ms = 6000;
     }
 
     const result = runReleaseReadinessWithPerfArtifacts(createPassingSummary(), createPassingPerfSummary(), policy);
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
-    assert.match(output, /perf policy threshold mismatch: maxLiveP95Ms expected <= 1800, actual 2600/i);
+    assert.match(output, /perf policy threshold mismatch: maxLiveP95Ms expected <= 4500, actual 6000/i);
   },
 );
 
@@ -2613,7 +2624,7 @@ test(
   "release-readiness fails when perf summary live p95 exceeds release limit",
   { skip: skipIfNoPowerShell },
   () => {
-    const perfSummary = createPassingPerfSummary({ liveP95Ms: 2400 });
+    const perfSummary = createPassingPerfSummary({ liveP95Ms: 4600 });
     const result = runReleaseReadinessWithPerfArtifacts(
       createPassingSummary(),
       perfSummary,
@@ -2621,7 +2632,7 @@ test(
     );
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
-    assert.match(output, /perf summary check failed: live_voice_translation p95 expected <= 1800, actual 2400/i);
+    assert.match(output, /perf summary check failed: live_voice_translation p95 expected <= 4500, actual 4600/i);
   },
 );
 

@@ -25,6 +25,7 @@ test("perf-load script enforces remote_http runtime defaults for release verific
   const source = readFileSync(scriptPath, "utf8");
 
   assert.match(source, /function Set-EnvValue/);
+  assert.match(source, /\[int\]\$MaxLiveP95Ms = 4500/);
   assert.match(source, /Set-EnvValue -Name "UI_NAVIGATOR_EXECUTOR_MODE" -Value "remote_http"/);
   assert.match(source, /Set-EnvValue -Name "UI_NAVIGATOR_EXECUTOR_URL" -Value "http:\/\/localhost:8090"/);
   assert.match(source, /Set-EnvValue -Name "UI_NAVIGATOR_REMOTE_HTTP_FALLBACK_MODE" -Value "failed"/);
