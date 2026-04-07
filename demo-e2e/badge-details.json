@@ -1,28 +1,76 @@
 {
-  "generatedAt": "2026-03-17T06:03:49.822Z",
+  "generatedAt": "2026-04-07T16:10:37.735Z",
   "ok": true,
   "policyPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\summary.json",
-  "checks": 279,
+  "checks": 281,
   "violations": 0,
-  "roundTripMs": 51,
+  "roundTripMs": 69,
   "costEstimate": {
     "currency": "USD",
-    "geminiLiveUsd": 0.023902,
+    "geminiLiveUsd": 0.035962,
     "imagenUsd": 0.12,
     "veoUsd": 0.36,
     "ttsUsd": 0.024,
-    "totalUsd": 0.527902,
+    "totalUsd": 0.539962,
     "source": "runtime_estimate"
   },
   "tokensUsed": {
-    "input": 2218,
-    "output": 16966,
-    "total": 19184,
+    "input": 2561,
+    "output": 25785,
+    "total": 28346,
     "source": "runtime_estimate"
   },
+  "providerUsage": {
+    "status": "pass",
+    "validated": true,
+    "activeSecondaryProviders": 0,
+    "entries": [
+      {
+        "route": "storyteller-agent",
+        "capability": "tts",
+        "defaultProvider": "gemini_api",
+        "defaultModel": "gemini-2.5-flash-preview-tts",
+        "selectedProvider": "gemini_api",
+        "selectedModel": "gemini-2.5-flash-preview-tts",
+        "selectionReason": "default_primary",
+        "secondaryProvider": "deepgram",
+        "secondaryModel": "aura-2",
+        "secondaryActive": false
+      },
+      {
+        "route": "live-agent",
+        "capability": "research",
+        "defaultProvider": "perplexity",
+        "defaultModel": "sonar-pro",
+        "selectedProvider": "perplexity",
+        "selectedModel": "sonar-pro",
+        "selectionReason": "mock_response",
+        "secondaryProvider": null,
+        "secondaryModel": null,
+        "secondaryActive": false,
+        "citationCount": 2,
+        "sourceUrlCount": 2
+      },
+      {
+        "route": "orchestrator",
+        "capability": "routing_reasoning",
+        "defaultProvider": "gemini_api",
+        "defaultModel": "gemini-3.1-flash-lite-preview",
+        "selectedProvider": "gemini_api",
+        "selectedModel": "gemini-3-flash",
+        "selectionReason": "judged_default",
+        "budgetPolicy": "judged_default",
+        "promptCaching": "none",
+        "watchlistEnabled": false,
+        "secondaryProvider": null,
+        "secondaryModel": null,
+        "secondaryActive": false
+      }
+    ]
+  },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-03-17T06:03:48.1545731+00:00",
+    "sourceSummaryGeneratedAt": "2026-04-07T16:10:35.9569478+00:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -30,7 +78,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-17T06:03:47.011Z",
+      "latestSeenAt": "2026-04-07T16:10:34.480Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -44,7 +92,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-17T06:03:47.111Z",
+      "latestSeenAt": "2026-04-07T16:10:34.595Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -78,7 +126,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-03-17T06:03:46.666Z",
+        "seenAt": "2026-04-07T16:10:34.066Z",
         "seenAtIsIso": true
       }
     },
@@ -142,10 +190,10 @@
       },
       "latest": {
         "outcome": "succeeded",
-        "pluginId": "demo-plugin-skill-26b61dce-ab3b-4843-9f3a-852c0709ee7c",
+        "pluginId": "demo-plugin-skill-34aa0df4-88ea-4def-b2de-ff3f2dcaf5cf",
         "version": 1,
         "signingStatus": "unsigned",
-        "seenAt": "2026-03-17T06:03:47.657Z",
+        "seenAt": "2026-04-07T16:10:35.205Z",
         "seenAtIsIso": true
       }
     },
@@ -174,25 +222,90 @@
     "agentUsage": {
       "status": "pass",
       "validated": true,
-      "total": 6,
-      "uniqueRuns": 5,
+      "total": 9,
+      "uniqueRuns": 8,
       "uniqueSessions": 1,
       "totalCalls": 0,
       "inputTokens": 0,
       "outputTokens": 0,
       "totalTokens": 0,
       "models": [
-        "fallback-dictionary",
+        "google-translate-free",
         "usage_metadata_unavailable"
       ],
       "summarySource": "gateway_runtime",
       "summaryStatus": "observed"
+    },
+    "runtimeGuardrailsSignalPaths": {
+      "status": "pass",
+      "validated": true,
+      "summaryStatus": "critical signals=3",
+      "signalsSummary": "total=3 | critical=1 | warn=2 | info=0",
+      "coverageSummary": "healthy=4/4 | ready=4/4 | runtime=4/4 | metrics=4/4 | startup=0/0",
+      "sandboxSummary": "mode=off | network=allow_all | setup=unconfigured | warnings=0",
+      "skillsSummary": "catalog=path/0w | personas=3/10 | recipes=3/10 | runtime=off active=0 skipped=0 blocked=0",
+      "topSignal": "critical ui_executor_sandbox_not_enforce@ui-executor | value=off | UI executor sandbox mode is weaker than enforce.",
+      "historyStatus": "Signal paths are sourced from the current runtime summary. Release artifacts exclude browser-local lifecycle history.",
+      "totalPaths": 1,
+      "lifecycleCounts": {
+        "active": 1,
+        "staged": 0,
+        "opened": 0,
+        "focused": 0,
+        "planned": 0,
+        "executed": 0,
+        "cleared": 0,
+        "failed": 0
+      },
+      "lifecycleSummary": "active=1",
+      "primaryPath": {
+        "title": "Recovery drill - ui-executor-sandbox-audit",
+        "kind": "runtime_drill",
+        "signalKey": "ui_executor_sandbox_not_enforce",
+        "signalService": "ui-executor",
+        "signalKeys": [],
+        "signalDescriptors": [],
+        "profileId": "ui-executor-sandbox-audit",
+        "phase": "recovery",
+        "targetStatusId": null,
+        "summaryText": "Recovery drill: UI executor sandbox audit mode (ui-executor-sandbox-audit/recovery) for ui_executor_sandbox_not_enforce@ui-executor.",
+        "buttonLabel": "Plan Recovery Drill",
+        "lifecycle": {
+          "statusCode": "active",
+          "statusText": "active",
+          "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
+          "updatedAt": "2026-04-07T16:10:35.4669882+00:00",
+          "updatedAtIsIso": true
+        }
+      },
+      "paths": [
+        {
+          "title": "Recovery drill - ui-executor-sandbox-audit",
+          "kind": "runtime_drill",
+          "signalKey": "ui_executor_sandbox_not_enforce",
+          "signalService": "ui-executor",
+          "signalKeys": [],
+          "signalDescriptors": [],
+          "profileId": "ui-executor-sandbox-audit",
+          "phase": "recovery",
+          "targetStatusId": null,
+          "summaryText": "Recovery drill: UI executor sandbox audit mode (ui-executor-sandbox-audit/recovery) for ui_executor_sandbox_not_enforce@ui-executor.",
+          "buttonLabel": "Plan Recovery Drill",
+          "lifecycle": {
+            "statusCode": "active",
+            "statusText": "active",
+            "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
+            "updatedAt": "2026-04-07T16:10:35.4669882+00:00",
+            "updatedAtIsIso": true
+          }
+        }
+      ]
     }
   },
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 279 checks | 51ms ws",
+    "message": "pass | 281 checks | 69ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }
