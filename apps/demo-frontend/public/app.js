@@ -3780,10 +3780,11 @@ const el = {
   operatorSessionBoundarySummary: document.getElementById("operatorSessionBoundarySummary"),
   operatorSessionBoundaryOwner: document.getElementById("operatorSessionBoundaryOwner"),
   operatorSessionBoundaryApprovalGate: document.getElementById("operatorSessionBoundaryApprovalGate"),
-  operatorSessionBoundaryNextAction: document.getElementById("operatorSessionBoundaryNextAction"),
-  operatorSessionBoundaryPrimaryStep: document.getElementById("operatorSessionBoundaryPrimaryStep"),
-  operatorSessionBoundaryAfterRefresh: document.getElementById("operatorSessionBoundaryAfterRefresh"),
-  operatorSessionBoundaryStepProgress: document.getElementById("operatorSessionBoundaryStepProgress"),
+    operatorSessionBoundaryNextAction: document.getElementById("operatorSessionBoundaryNextAction"),
+    operatorSessionBoundaryPrimaryStep: document.getElementById("operatorSessionBoundaryPrimaryStep"),
+    operatorSessionBoundaryAfterRefresh: document.getElementById("operatorSessionBoundaryAfterRefresh"),
+    operatorSessionBoundaryAfterRefreshPath: document.getElementById("operatorSessionBoundaryAfterRefreshPath"),
+    operatorSessionBoundaryStepProgress: document.getElementById("operatorSessionBoundaryStepProgress"),
   operatorSessionBoundaryChecklist: document.getElementById("operatorSessionBoundaryChecklist"),
   operatorSessionBoundaryLatestProof: document.getElementById("operatorSessionBoundaryLatestProof"),
   operatorSessionBoundaryRecovery: document.getElementById("operatorSessionBoundaryRecovery"),
@@ -27794,6 +27795,7 @@ function resetOperatorSessionBoundaryWidget(reason = "no_data") {
   setText(el.operatorSessionBoundaryNextAction, "n/a");
   setText(el.operatorSessionBoundaryPrimaryStep, "n/a");
   setText(el.operatorSessionBoundaryAfterRefresh, "n/a");
+  renderOperatorSessionBoundaryRefreshRecoveryFollowupPath([]);
   setText(el.operatorSessionBoundaryStepProgress, "n/a");
   setText(el.operatorSessionBoundaryChecklist, "n/a");
   setText(el.operatorSessionBoundaryLatestProof, "n/a");
@@ -30171,10 +30173,9 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   );
   setText(
     el.operatorSessionBoundaryAfterRefresh,
-    primaryStepRefreshRecoveryFollowupSummary
-      ? `${afterRefreshDetail}${afterRefreshDetail === "No refresh handoff loaded." ? "" : " | "}path ${primaryStepRefreshRecoveryFollowupSummary}`
-      : afterRefreshDetail,
+    afterRefreshDetail,
   );
+  renderOperatorSessionBoundaryRefreshRecoveryFollowupPath(primaryStepRefreshRecoveryFollowupPath);
   setText(
     el.operatorSessionBoundaryStepProgress,
     stepProgressDetail,
@@ -31005,8 +31006,99 @@ function normalizeOperatorReplayRefreshRecoveryFollowupPath(value) {
       outcomeLabel: toOptionalText(item.outcomeLabel),
       confidence: toOptionalText(item.confidence),
       detourHint: toOptionalText(item.detourHint),
-      disposition: toOptionalText(item.disposition),
-    }));
+        disposition: toOptionalText(item.disposition),
+      }));
+}
+
+function buildOperatorReplayRefreshRecoveryFollowupSummary(value) {
+  return normalizeOperatorReplayRefreshRecoveryFollowupPath(value).map((item, index) => {
+    const compositeLabel = [item.targetLabel, item.stateLabel]
+      .filter((part) => typeof part === "string" && part.length > 0)
+      .join(" | ");
+    const label = item.label ?? (compositeLabel || "Refresh follow-up");
+    const summary = {
+      level: item.level ?? `followup_${index + 1}`,
+      label,
+      targetSurface: item.targetSurface,
+      targetLabel: item.targetLabel,
+      workspace: item.workspace,
+      stateLabel: item.stateLabel,
+      mode: item.mode,
+      ctaLabel: item.ctaLabel,
+      readiness: item.readiness,
+      outcomeLabel: item.outcomeLabel,
+      confidence: item.confidence,
+      detourHint: item.detourHint,
+      disposition: item.disposition,
+    };
+    return summary;
+  });
+}
+
+function renderOperatorSessionBoundaryRefreshRecoveryFollowupPath(value) {
+  if (!(el.operatorSessionBoundaryAfterRefreshPath instanceof HTMLElement)) {
+    return;
+  }
+  const pathEntries = buildOperatorReplayRefreshRecoveryFollowupSummary(value);
+  el.operatorSessionBoundaryAfterRefreshPath.replaceChildren();
+  el.operatorSessionBoundaryAfterRefreshPath.hidden = pathEntries.length === 0;
+  if (pathEntries.length === 0) {
+    return;
+  }
+
+  const list = document.createElement("ol");
+  list.className = "operator-health-path-list";
+  for (const [index, entry] of pathEntries.entries()) {
+    const item = document.createElement("li");
+    item.className = "operator-health-path-item";
+    if (entry.readiness) {
+      item.dataset.readiness = entry.readiness;
+    }
+    if (entry.level) {
+      item.dataset.pathLevel = entry.level;
+    }
+
+    const header = document.createElement("div");
+    header.className = "operator-health-path-step";
+
+    const order = document.createElement("span");
+    order.className = "operator-health-path-step-index";
+    order.textContent = String(index + 1).padStart(2, "0");
+
+    const label = document.createElement("span");
+    label.className = "operator-health-path-step-label";
+    label.textContent = entry.label ?? "Refresh follow-up";
+
+    header.append(order, label);
+    item.append(header);
+
+    const metaParts = [
+      entry.readiness,
+      entry.ctaLabel,
+      entry.disposition ?? entry.mode,
+      entry.workspace,
+    ].filter((part) => typeof part === "string" && part.length > 0);
+    if (metaParts.length > 0) {
+      const meta = document.createElement("p");
+      meta.className = "operator-health-path-step-meta";
+      meta.textContent = metaParts.join(" | ");
+      item.append(meta);
+    }
+
+    const detailParts = [entry.outcomeLabel, entry.detourHint].filter(
+      (part) => typeof part === "string" && part.length > 0,
+    );
+    if (detailParts.length > 0) {
+      const detail = document.createElement("p");
+      detail.className = "operator-health-path-step-detail";
+      detail.textContent = detailParts.join(" | ");
+      item.append(detail);
+    }
+
+    list.append(item);
+  }
+
+  el.operatorSessionBoundaryAfterRefreshPath.append(list);
 }
 
 function normalizeOperatorReplayPrimaryStep(value) {
@@ -31897,6 +31989,9 @@ function buildOperatorSessionOpsControlMeta() {
   const declaration = cloneOperatorPurposeDeclaration(state.operatorPurposeDeclaration);
   const replay = isRecord(state.operatorSessionReplaySnapshot) ? state.operatorSessionReplaySnapshot : null;
   const discovery = isRecord(state.operatorDiscoverySnapshot) ? state.operatorDiscoverySnapshot : null;
+  const refreshRecoveryFollowupPathSummary = buildOperatorReplayRefreshRecoveryFollowupSummary(
+    replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshRecoveryFollowupPath,
+  );
   const details = [
     declaration
       ? `purpose=${formatOperatorPurposeCategoryLabel(declaration.category)} @ ${declaration.declaredAt}`
@@ -31997,11 +32092,11 @@ function buildOperatorSessionOpsControlMeta() {
     `firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcome=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel) ?? "n/a"}`,
     `firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence) ?? "n/a"}`,
     `firstStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetour=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint) ?? "n/a"}`,
-    `firstStepRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshAction?.action) ?? "n/a"}`,
-    `firstStepAfterRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.stateLabel) ?? "n/a"}`,
-    `firstStepRefreshScope=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.refreshScope) ?? "n/a"}`,
-    `firstStepRefreshFollowupPath=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshRecoveryFollowupPath) ? replay.selectedSession.replay.nextOperatorPrimaryStep.refreshRecoveryFollowupPath.map((item) => `${toOptionalText(item?.level) ?? "unknown"}:${toOptionalText(item?.targetLabel) ?? toOptionalText(item?.stateLabel) ?? "n/a"}${toOptionalText(item?.readiness) ? `/${toOptionalText(item?.readiness)}` : ""}`).join(",") || "n/a" : "n/a"}`,
-    `stepProgress=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorStepProgress?.label) ?? "n/a"}`,
+      `firstStepRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshAction?.action) ?? "n/a"}`,
+      `firstStepAfterRefresh=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.stateLabel) ?? "n/a"}`,
+      `firstStepRefreshScope=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorPrimaryStep?.refreshTargetState?.refreshScope) ?? "n/a"}`,
+      `firstStepRefreshFollowupPath=${refreshRecoveryFollowupPathSummary.length > 0 ? refreshRecoveryFollowupPathSummary.map((item) => `${toOptionalText(item.level) ?? "unknown"}:${toOptionalText(item.targetLabel) ?? toOptionalText(item.stateLabel) ?? toOptionalText(item.label) ?? "n/a"}${toOptionalText(item.readiness) ? `/${toOptionalText(item.readiness)}` : ""}`).join(",") : "n/a"}`,
+      `stepProgress=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorStepProgress?.label) ?? "n/a"}`,
     `stepPath=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorStepPath) ? replay.selectedSession.replay.nextOperatorStepPath.map((item) => `${toOptionalText(item?.phase) ?? "unknown"}:${toOptionalText(item?.runState) ?? "blocked"}`).join(",") || "n/a" : "n/a"}`,
     `checklist=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorChecklist) ? replay.selectedSession.replay.nextOperatorChecklist.length : 0}`,
     `remainingSteps=${Array.isArray(replay?.selectedSession?.replay?.nextOperatorRemainingSteps) ? replay.selectedSession.replay.nextOperatorRemainingSteps.length : 0}`,
@@ -32037,6 +32132,9 @@ function buildOperatorSessionOpsReplayPreview() {
   const selectedSession = isRecord(snapshot.selectedSession) ? snapshot.selectedSession : null;
   const replay = isRecord(selectedSession?.replay) ? selectedSession.replay : null;
   const workflow = isRecord(selectedSession?.workflow) ? selectedSession.workflow : null;
+  const refreshRecoveryFollowupPathSummary = buildOperatorReplayRefreshRecoveryFollowupSummary(
+    replay?.nextOperatorPrimaryStep?.refreshRecoveryFollowupPath,
+  );
   return stringifyOperatorRuntimeFaultValue(
     {
       selectedSessionId: toOptionalText(snapshot.selectedSessionId),
@@ -32048,12 +32146,13 @@ function buildOperatorSessionOpsReplayPreview() {
       nextOperatorActionTarget: isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null,
       nextOperatorWorkspace: toOptionalText(replay?.nextOperatorWorkspace),
       nextOperatorChecklist: Array.isArray(replay?.nextOperatorChecklist) ? replay.nextOperatorChecklist : [],
-      nextOperatorRemainingSteps: Array.isArray(replay?.nextOperatorRemainingSteps)
-        ? replay.nextOperatorRemainingSteps
-        : [],
-      nextOperatorPrimaryStep: isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null,
-      nextOperatorStepProgress: isRecord(replay?.nextOperatorStepProgress) ? replay.nextOperatorStepProgress : null,
-      nextOperatorStepPath: Array.isArray(replay?.nextOperatorStepPath) ? replay.nextOperatorStepPath : [],
+        nextOperatorRemainingSteps: Array.isArray(replay?.nextOperatorRemainingSteps)
+          ? replay.nextOperatorRemainingSteps
+          : [],
+        nextOperatorPrimaryStep: isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null,
+        refreshRecoveryFollowupPathSummary,
+        nextOperatorStepProgress: isRecord(replay?.nextOperatorStepProgress) ? replay.nextOperatorStepProgress : null,
+        nextOperatorStepPath: Array.isArray(replay?.nextOperatorStepPath) ? replay.nextOperatorStepPath : [],
       latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
       boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
       approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,

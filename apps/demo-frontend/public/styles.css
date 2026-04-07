@@ -10687,6 +10687,87 @@ button:disabled {
   box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 8%, transparent);
 }
 
+.operator-health-path {
+  margin: -2px 0 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.operator-health-path-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.operator-health-path-item {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 88%, transparent);
+  border-radius: calc(var(--radius) - 8px);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--surface-panel) 97%, transparent),
+      color-mix(in oklch, var(--surface-panel) 92%, transparent)
+    );
+}
+
+.operator-health-path-item[data-readiness="needs_prep"] {
+  border-color: color-mix(in oklch, var(--accent-foreground) 30%, var(--border-soft));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--accent-soft) 46%, transparent),
+      color-mix(in oklch, var(--surface-panel) 94%, transparent)
+    );
+}
+
+.operator-health-path-item[data-readiness="ready"] {
+  border-color: color-mix(in oklch, var(--chart-1) 24%, var(--border-soft));
+}
+
+.operator-health-path-step {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.operator-health-path-step-index {
+  flex: 0 0 auto;
+  min-width: 18px;
+  color: color-mix(in oklch, var(--foreground) 70%, var(--muted-foreground));
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.operator-health-path-step-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: color-mix(in oklch, var(--foreground) 97%, white);
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.operator-health-path-step-meta,
+.operator-health-path-step-detail {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: color-mix(in oklch, var(--foreground) 84%, var(--muted-foreground));
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.operator-health-path-step-detail {
+  color: color-mix(in oklch, var(--foreground) 90%, var(--muted-foreground));
+}
+
 .operator-health-hint {
   margin: 12px 0 0;
   border: 1px solid var(--border-soft);
@@ -15082,6 +15163,19 @@ button:disabled {
     font-size: 0.78rem;
     overflow-wrap: anywhere;
     word-break: break-word;
+  }
+
+  .operator-health-path-item {
+    padding: 7px 9px;
+  }
+
+  .operator-health-path-step-label {
+    font-size: 0.76rem;
+  }
+
+  .operator-health-path-step-meta,
+  .operator-health-path-step-detail {
+    font-size: 0.69rem;
   }
 
   .operator-health-hint {
