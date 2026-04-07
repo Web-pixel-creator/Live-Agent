@@ -275,7 +275,7 @@ type RuntimeSessionReplayPrimaryRefreshState = {
   followupTree: RuntimeSessionReplayPrimaryRefreshFollowupTreeNode | null;
 };
 
-type RuntimeSessionReplayPrimaryOperatorStep = {
+type RuntimeSessionReplayPrimaryOperatorStepBase = {
   label: string;
   action: string | null;
   targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"];
@@ -292,6 +292,13 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshOutcomeLabel: string | null;
   refreshConfidence: RuntimeSessionReplayPrimaryRefreshConfidence | null;
   refreshDetourHint: string | null;
+  refreshRecoveryFollowupPath?: RuntimeSessionReplayRefreshRecoveryFollowupPathEntry[];
+  refreshState: RuntimeSessionReplayPrimaryRefreshState | null;
+  refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
+  refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
+};
+
+type RuntimeSessionReplayPrimaryRefreshLegacyProjection = {
   refreshEscalationHint: string | null;
   refreshEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationTarget | null;
   refreshEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationCTA | null;
@@ -370,17 +377,10 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint | null;
-  refreshRecoveryFollowupPath?: RuntimeSessionReplayRefreshRecoveryFollowupPathEntry[];
-  refreshState: RuntimeSessionReplayPrimaryRefreshState | null;
-  refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
-  refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
 
-type RuntimeSessionReplayPrimaryRefreshLegacyProjection = {
-  [Key in keyof RuntimeSessionReplayPrimaryOperatorStep as Key extends `refreshEscalation${string}`
-    ? Key
-    : never]: RuntimeSessionReplayPrimaryOperatorStep[Key];
-};
+type RuntimeSessionReplayPrimaryOperatorStep =
+  RuntimeSessionReplayPrimaryOperatorStepBase & RuntimeSessionReplayPrimaryRefreshLegacyProjection;
 
 type RuntimeSessionReplayStepProgress = {
   current: number;

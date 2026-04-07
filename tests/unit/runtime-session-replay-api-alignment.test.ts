@@ -100,6 +100,7 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
     "refreshEscalationHint",
     "refreshEscalationTarget",
     "refreshEscalationCTA",
+    "RuntimeSessionReplayPrimaryOperatorStepBase",
     "RuntimeSessionReplayPrimaryRefreshLegacyProjection",
     "buildNextOperatorPrimaryStepRefreshLegacyProjection",
   ]) {
