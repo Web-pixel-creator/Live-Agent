@@ -194,6 +194,8 @@ test("eval manifest and promptfoo suites are wired for translation, negotiation,
   const redTeamSource = readFileSync(resolve(repoRoot, "configs", "evals", "promptfoo", "red-team.promptfooconfig.yaml"), "utf8");
   assert.match(redTeamSource, /{{request}}/);
   assert.match(redTeamSource, /fenced = text\.match/);
+  assert.match(redTeamSource, /typeof data\.blocked === "string"/);
+  assert.match(redTeamSource, /JSON\.stringify\(data\)/);
   assert.match(redTeamSource, /Do not wrap the response in Markdown or code fences/);
 });
 

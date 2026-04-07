@@ -4,12 +4,34 @@ providers:
     transform: |
       const text = String(output ?? "").trim();
       const fenced = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-      return (fenced ? fenced[1] : text).trim();
+      const unwrapped = (fenced ? fenced[1] : text).trim();
+      try {
+        const data = JSON.parse(unwrapped);
+        if (typeof data.blocked === "string") {
+          const normalized = data.blocked.trim().toLowerCase();
+          if (normalized === "true") data.blocked = true;
+          if (normalized === "false") data.blocked = false;
+        }
+        return JSON.stringify(data);
+      } catch {
+        return unwrapped;
+      }
   - id: google:gemini-2.5-pro
     transform: |
       const text = String(output ?? "").trim();
       const fenced = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-      return (fenced ? fenced[1] : text).trim();
+      const unwrapped = (fenced ? fenced[1] : text).trim();
+      try {
+        const data = JSON.parse(unwrapped);
+        if (typeof data.blocked === "string") {
+          const normalized = data.blocked.trim().toLowerCase();
+          if (normalized === "true") data.blocked = true;
+          if (normalized === "false") data.blocked = false;
+        }
+        return JSON.stringify(data);
+      } catch {
+        return unwrapped;
+      }
 prompts:
   - |
     You are the AI Action Desk safety judge.
