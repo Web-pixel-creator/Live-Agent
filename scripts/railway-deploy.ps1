@@ -419,10 +419,10 @@ function Ensure-RailwayAuthContext([string]$LogPrefix) {
   }
 
   if (-not [string]::IsNullOrWhiteSpace($projectToken)) {
-    $env:RAILWAY_API_TOKEN = $projectToken
-    $env:RAILWAY_TOKEN = ""
+    $env:RAILWAY_API_TOKEN = ""
+    $env:RAILWAY_TOKEN = $projectToken
     $env:RAILWAY_AUTH_PROJECT_MODE = "true"
-    Write-Host ("[" + $LogPrefix + "] RAILWAY_API_TOKEN is empty or failed auth; using project-token fallback for CLI auth.")
+    Write-Host ("[" + $LogPrefix + "] RAILWAY_API_TOKEN is empty or failed auth; using RAILWAY_PROJECT_TOKEN as RAILWAY_TOKEN for CLI auth.")
     Invoke-AuthProbe
     if ($authProbeExitCode -eq 0) {
       return

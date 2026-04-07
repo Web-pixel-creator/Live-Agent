@@ -18,7 +18,9 @@ test("railway deploy helpers try API auth first, then legacy fallback, then proj
     assert.match(source, /Ignoring RAILWAY_TOKEN because RAILWAY_API_TOKEN is already set\./);
     assert.match(source, /railway whoami failed with RAILWAY_API_TOKEN; retrying legacy RAILWAY_TOKEN fallback\./);
     assert.match(source, /\$env:RAILWAY_TOKEN = ""/);
-    assert.match(source, /RAILWAY_API_TOKEN is empty or failed auth; using project-token fallback for CLI auth\./);
+    assert.match(source, /\$env:RAILWAY_API_TOKEN = ""/);
+    assert.match(source, /\$env:RAILWAY_TOKEN = \$projectToken/);
+    assert.match(source, /RAILWAY_API_TOKEN is empty or failed auth; using RAILWAY_PROJECT_TOKEN as RAILWAY_TOKEN for CLI auth\./);
     assert.match(source, /function Invoke-AuthProbe/);
     assert.match(source, /\$script:authProbe = \(& railway whoami 2>&1 \| Out-String\)\.Trim\(\)/);
     assert.match(source, /\$script:authProbeExitCode = \$LASTEXITCODE/);
