@@ -1215,8 +1215,13 @@ try {
   }
 
   if (-not [string]::IsNullOrWhiteSpace($DemoFrontendPublicUrl)) {
-    Write-Host "[railway-deploy] Setting DEMO_FRONTEND_PUBLIC_URL on gateway service..."
-    Run-Cli -CliArgs @("variable", "set", "-s", $resolvedService, "-e", $Environment, "--skip-deploys", ("DEMO_FRONTEND_PUBLIC_URL=" + $DemoFrontendPublicUrl))
+    if ($env:RAILWAY_AUTH_PROJECT_MODE -eq "true") {
+      Write-Warning "[railway-deploy] Skipping DEMO_FRONTEND_PUBLIC_URL mutation in project-token fallback mode; reusing existing Railway environment value."
+    }
+    else {
+      Write-Host "[railway-deploy] Setting DEMO_FRONTEND_PUBLIC_URL on gateway service..."
+      Run-Cli -CliArgs @("variable", "set", "-s", $resolvedService, "-e", $Environment, "--skip-deploys", ("DEMO_FRONTEND_PUBLIC_URL=" + $DemoFrontendPublicUrl))
+    }
   }
 
   if ([string]::IsNullOrWhiteSpace($DeployMessage)) {

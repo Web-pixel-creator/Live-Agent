@@ -34,6 +34,7 @@ test("railway deploy helpers try API auth first, then legacy fallback, then proj
     gatewayScript,
     /clean worktree railway link failed; continuing with direct project\/service flags in project-token fallback mode\./,
   );
+  assert.match(gatewayScript, /Skipping DEMO_FRONTEND_PUBLIC_URL mutation in project-token fallback mode/);
   assert.match(frontendScript, /Ensure-RailwayAuthContext -LogPrefix "railway-frontend"/);
 });
 
