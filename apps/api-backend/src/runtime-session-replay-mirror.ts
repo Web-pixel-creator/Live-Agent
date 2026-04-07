@@ -248,6 +248,10 @@ type RuntimeSessionReplayRefreshRecoveryFollowupPathEntry = {
   disposition: RuntimeSessionReplayPrimaryRefreshDisposition | null;
 };
 
+type RuntimeSessionReplayPrimaryRefreshFollowupTreeNode = RuntimeSessionReplayRefreshRecoveryFollowupPathEntry & {
+  next: RuntimeSessionReplayPrimaryRefreshFollowupTreeNode | null;
+};
+
 type RuntimeSessionReplayPrimaryRefreshState = {
   source: "structured_primary_refresh_state";
   legacyFallbackMode: "flat_refresh_escalation_fields";
@@ -259,6 +263,7 @@ type RuntimeSessionReplayPrimaryRefreshState = {
   confidence: RuntimeSessionReplayPrimaryRefreshConfidence | null;
   detourHint: string | null;
   followupPath: RuntimeSessionReplayRefreshRecoveryFollowupPathEntry[];
+  followupTree: RuntimeSessionReplayPrimaryRefreshFollowupTreeNode | null;
 };
 
 type RuntimeSessionReplayPrimaryOperatorStep = {
@@ -3883,6 +3888,19 @@ function buildNextOperatorPrimaryStepRefreshState(params: {
   ) {
     return null;
   }
+  const buildFollowupTree = (
+    entries: RuntimeSessionReplayRefreshRecoveryFollowupPathEntry[],
+    index = 0,
+  ): RuntimeSessionReplayPrimaryRefreshFollowupTreeNode | null => {
+    const entry = entries[index];
+    if (!entry) {
+      return null;
+    }
+    return {
+      ...entry,
+      next: buildFollowupTree(entries, index + 1),
+    } satisfies RuntimeSessionReplayPrimaryRefreshFollowupTreeNode;
+  };
   return {
     source: "structured_primary_refresh_state",
     legacyFallbackMode: "flat_refresh_escalation_fields",
@@ -3894,6 +3912,7 @@ function buildNextOperatorPrimaryStepRefreshState(params: {
     confidence: params.refreshConfidence,
     detourHint: params.refreshDetourHint,
     followupPath: [...params.refreshRecoveryFollowupPath],
+    followupTree: buildFollowupTree(params.refreshRecoveryFollowupPath),
   } satisfies RuntimeSessionReplayPrimaryRefreshState;
 }
 

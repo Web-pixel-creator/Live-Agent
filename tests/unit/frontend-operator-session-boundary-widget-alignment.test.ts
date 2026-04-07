@@ -63,10 +63,12 @@ test("operator console exposes compact session boundary widget", () => {
     "buildOperatorReplayRefreshRecoveryFollowupSummary",
     "stringifyOperatorReplayRefreshRecoveryFollowupSummary",
     "buildOperatorReplayPrimaryStepRefreshView",
+    "function normalizeOperatorReplayRefreshRecoveryFollowupTree(value)",
     "function normalizeOperatorReplayPrimaryStepRefreshState(value)",
     "renderOperatorSessionBoundaryRefreshRecoveryFollowupPath",
     "refreshState",
     "refreshStateSource",
+    "followupTree",
     "flat_refresh_escalation_fields",
     "refreshRecoveryFollowupPath",
     "primaryStepRefreshView.afterRefreshDetail",
@@ -89,6 +91,7 @@ test("operator console exposes compact session boundary widget", () => {
   assert.ok(readmeSource.includes("`Session Boundary`"), "README missing Session Boundary card note");
   assert.match(readmeSource, /refresh recovery follow-?up path/i);
   assert.match(readmeSource, /structured refresh state/i);
+  assert.match(readmeSource, /followuptree|followup tree/i);
   assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback cta/i);
   assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback prep hint/i);
   assert.match(readmeSource, /refresh escalation fallback escalation fallback escalation fallback open guard/i);
@@ -113,6 +116,7 @@ assert.match(readmeSource, /refresh escalation fallback escalation fallback esca
   assert.ok(operatorGuideSource.includes("`Session Boundary`"), "operator guide missing Session Boundary card note");
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);
   assert.match(operatorGuideSource, /structured refresh state/i);
+  assert.match(operatorGuideSource, /followuptree|followup tree/i);
   assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback cta/i);
   assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback prep hint/i);
   assert.match(operatorGuideSource, /refresh escalation fallback escalation fallback escalation fallback open guard/i);
@@ -137,6 +141,7 @@ assert.match(operatorGuideSource, /refresh escalation fallback escalation fallba
   assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback cta/i);
   assert.match(architectureSource, /refresh recovery follow-?up path/i);
   assert.match(architectureSource, /structured refresh state/i);
+  assert.match(architectureSource, /followuptree|followup tree/i);
   assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback prep hint/i);
   assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback open guard/i);
   assert.match(architectureSource, /refresh escalation fallback escalation fallback escalation fallback outcome/i);

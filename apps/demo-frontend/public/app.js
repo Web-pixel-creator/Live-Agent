@@ -30849,6 +30849,28 @@ function normalizeOperatorReplayRefreshRecoveryFollowupPath(value) {
       }));
 }
 
+function normalizeOperatorReplayRefreshRecoveryFollowupTree(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    level: toOptionalText(value.level),
+    label: toOptionalText(value.label),
+    targetSurface: toOptionalText(value.targetSurface),
+    targetLabel: toOptionalText(value.targetLabel),
+    workspace: toOptionalText(value.workspace),
+    stateLabel: toOptionalText(value.stateLabel),
+    mode: toOptionalText(value.mode),
+    ctaLabel: toOptionalText(value.ctaLabel),
+    readiness: toOptionalText(value.readiness),
+    outcomeLabel: toOptionalText(value.outcomeLabel),
+    confidence: toOptionalText(value.confidence),
+    detourHint: toOptionalText(value.detourHint),
+    disposition: toOptionalText(value.disposition),
+    next: normalizeOperatorReplayRefreshRecoveryFollowupTree(value.next),
+  };
+}
+
 function normalizeOperatorReplayPrimaryStepRefreshState(value) {
   if (!isRecord(value)) {
     return null;
@@ -30882,6 +30904,7 @@ function normalizeOperatorReplayPrimaryStepRefreshState(value) {
     confidence: toOptionalText(value.confidence),
     detourHint: toOptionalText(value.detourHint),
     followupPath: normalizeOperatorReplayRefreshRecoveryFollowupPath(value.followupPath),
+    followupTree: normalizeOperatorReplayRefreshRecoveryFollowupTree(value.followupTree),
   };
 }
 
