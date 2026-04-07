@@ -76,7 +76,7 @@ test("operator console exposes compact session boundary widget", () => {
     "flat_refresh_escalation_fields",
     "refreshRecoveryFollowupPath",
     "primaryStepRefreshView.afterRefreshDetail",
-    "primaryStepRefreshRecoveryFollowupSummary",
+    "primaryStepRefreshView.refreshDisposition",
     "firstStepRefreshFollowupCount=",
     "firstStepRefreshFollowupHead=",
     "firstStepRefreshLegacyFallback=",
