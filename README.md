@@ -1343,6 +1343,14 @@ Fast contract-only dry gate for Railway deploy/repo-publish wiring:
 npm run verify:deploy:railway:dry
 ```
 
+Local deploy/auth readiness preflight (does not deploy):
+
+```powershell
+npm run verify:deploy:readiness
+```
+
+This writes `artifacts/deploy/deploy-readiness-preflight.json` and separates code readiness from local auth readiness: Railway CLI/auth, GitHub CLI/token/`gh auth`, and target env configuration. Use `npm run verify:deploy:readiness -- -Strict` when missing Railway/GitHub deploy prerequisites should fail the gate instead of only reporting warnings.
+
 Common flags:
 
 - `-- -StrictReleaseVerification` - use strict pre-deploy gate (`verify:release:strict`).

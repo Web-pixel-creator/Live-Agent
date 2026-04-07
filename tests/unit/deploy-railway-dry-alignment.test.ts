@@ -14,6 +14,7 @@ test("railway dry deploy verifier stays aligned across package, script, and docs
   const scriptPath = resolve(process.cwd(), "scripts", "verify-deploy-railway-dry.ps1");
   const scriptRaw = readFileSync(scriptPath, "utf8");
   assert.match(scriptRaw, /tests\/unit\/public-badge-check-alignment\.test\.ts/);
+  assert.match(scriptRaw, /tests\/unit\/deploy-readiness-preflight-alignment\.test\.ts/);
   assert.match(scriptRaw, /tests\/unit\/railway-deploy-alignment\.test\.ts/);
   assert.match(scriptRaw, /tests\/unit\/railway-deploy-all-alignment\.test\.ts/);
   assert.match(scriptRaw, /tests\/unit\/railway-deploy-all-dispatch-alignment\.test\.ts/);

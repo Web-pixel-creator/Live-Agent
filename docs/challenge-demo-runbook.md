@@ -52,6 +52,11 @@ For PR/deploy contract drift check (without full demo gate), run:
 npm run verify:deploy:railway:dry
 ```
 This dry verifier checks `deploy:railway` and `repo:publish` contract alignment and does not trigger a real deploy.
+For local deploy/auth readiness (without triggering Railway or GitHub workflows), run:
+```powershell
+npm run verify:deploy:readiness
+```
+This writes `artifacts/deploy/deploy-readiness-preflight.json` and reports Railway CLI/auth, GitHub CLI/token/`gh auth`, and target env readiness. Add `-- -Strict` when missing deploy prerequisites should fail the gate.
 For artifact-only revalidation (without rerunning perf profile), keep perf artifacts and run:
 ```powershell
 npm run verify:release:artifact-only
