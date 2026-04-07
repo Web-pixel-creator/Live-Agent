@@ -53,84 +53,6 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
     "refreshOutcomeLabel",
     "refreshConfidence",
     "refreshDetourHint",
-    "refreshEscalationHint",
-    "refreshEscalationTarget",
-    "refreshEscalationCTA",
-    "refreshEscalationReadiness",
-    "refreshEscalationPrepHint",
-    "refreshEscalationOpenGuard",
-    "refreshEscalationFallbackTarget",
-    "refreshEscalationFallbackCTA",
-    "refreshEscalationFallbackReadiness",
-    "refreshEscalationFallbackPrepHint",
-    "refreshEscalationFallbackOpenGuard",
-    "refreshEscalationFallbackOutcomeLabel",
-    "refreshEscalationFallbackConfidence",
-    "refreshEscalationFallbackDetourHint",
-    "refreshEscalationFallbackEscalationHint",
-    "refreshEscalationFallbackEscalationTarget",
-    "refreshEscalationFallbackEscalationCTA",
-    "refreshEscalationFallbackEscalationReadiness",
-    "refreshEscalationFallbackEscalationPrepHint",
-    "refreshEscalationFallbackEscalationOpenGuard",
-    "refreshEscalationFallbackEscalationFallbackTarget",
-    "refreshEscalationFallbackEscalationFallbackCTA",
-    "refreshEscalationFallbackEscalationFallbackReadiness",
-    "refreshEscalationFallbackEscalationFallbackPrepHint",
-    "refreshEscalationFallbackEscalationFallbackOpenGuard",
-    "refreshEscalationFallbackEscalationFallbackOutcomeLabel",
-    "refreshEscalationFallbackEscalationFallbackConfidence",
-    "refreshEscalationFallbackEscalationFallbackDetourHint",
-    "refreshEscalationFallbackEscalationFallbackEscalationHint",
-    "refreshEscalationFallbackEscalationFallbackEscalationTarget",
-    "refreshEscalationFallbackEscalationFallbackEscalationCTA",
-    "refreshEscalationFallbackEscalationFallbackEscalationReadiness",
-    "refreshEscalationFallbackEscalationFallbackEscalationPrepHint",
-    "refreshEscalationFallbackEscalationFallbackEscalationOpenGuard",
-    "refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget",
-    "refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA",
-    "refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness",
-    "refreshEscalationFallbackEscalationFallbackEscalationFallbackPrepHint",
-    "refreshEscalationFallbackEscalationFallbackEscalationFallbackOpenGuard",
-    "refreshEscalationFallbackEscalationFallbackEscalationFallbackOutcomeLabel",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOpenGuard",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationHint",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrepHint",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard",
-  "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel",
-    "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence",
-    "refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint",
     "refreshState",
     "structured_primary_refresh_state",
     "flat_refresh_escalation_fields",
@@ -138,37 +60,19 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
     "primaryReadModel",
     "legacyProjection",
     "legacyFlatFieldPrefix",
-    "RuntimeSessionReplayPrimaryRefreshLegacyProjection",
-    "buildNextOperatorPrimaryStepRefreshLegacyProjection",
     "followupTreeDepth",
     "followupTree",
-    "mode",
     "refreshAction",
     "refreshTargetState",
     "refreshRecoveryFollowupPath",
+    "mode",
     "approval escalation",
     "recovery escalation",
     "workflow owner escalation",
     "inspect",
     "recover",
     "owner_handoff",
-    "Inspect escalation path",
-    "Recover after refresh",
-    "Hand off after refresh",
     "ready",
-    "needs_prep",
-    "Load the linked workflow boundary before escalating through Workflow Control.",
-    "Load the repo-owned recovery drill before escalating through Runtime Drill Runner.",
-    "Load the linked workflow boundary or workflow owner handoff before opening the fallback escalation.",
-    "Open once a linked workflow boundary or workflow owner handoff is loaded.",
-    "Operator Session Ops | manual handoff",
-    "Open backup handoff",
-    "Load the latest replay handoff before opening the backup handoff.",
-    "Open once the latest replay handoff is loaded.",
-    "Backup handoff is open.",
-    "Use manual follow-through if the backup handoff still does not restore the session path.",
-    "Escalate to manual handoff if the backup handoff still does not restore the session path.",
-    "Hand off after backup escalation",
     "needs_prep",
     "stateLabel",
     "refreshScope",
@@ -193,6 +97,16 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
   }
 
   for (const token of [
+    "refreshEscalationHint",
+    "refreshEscalationTarget",
+    "refreshEscalationCTA",
+    "RuntimeSessionReplayPrimaryRefreshLegacyProjection",
+    "buildNextOperatorPrimaryStepRefreshLegacyProjection",
+  ]) {
+    assert.ok(helperSource.includes(token), `runtime session replay legacy projection missing token: ${token}`);
+  }
+
+  for (const token of [
     'id: "runtime-session-replay"',
     'label: "Session replay mirror"',
     'path: "/v1/runtime/session-replay"',
@@ -207,7 +121,7 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
   assert.match(readme, /followuptree|followup tree/i);
   assert.match(readme, /compatibility block|compatibility metadata/i);
   assert.match(readme, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);
-  assert.match(readme, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh disposition|refresh evidence hint|refresh outcome|refresh confidence|refresh detour|refresh escalation|refresh escalation target|refresh escalation mode|refresh escalation cta|refresh escalation readiness|refresh escalation prep|refresh escalation open guard|refresh escalation fallback|refresh escalation fallback cta|refresh escalation fallback readiness|refresh escalation fallback prep|refresh escalation fallback open guard|refresh escalation fallback outcome|refresh escalation fallback confidence|refresh escalation fallback detour|refresh escalation fallback escalation|refresh escalation fallback escalation target|refresh escalation fallback escalation mode|refresh escalation fallback escalation cta|refresh escalation fallback escalation readiness|refresh escalation fallback escalation prep|refresh escalation fallback escalation open guard|refresh escalation fallback escalation fallback|approval escalation|recovery escalation|workflow owner escalation|boundary review|manual handoff|inspect|recover|owner_handoff|ready|needs_prep|approval gate evidence|workflow boundary evidence|recovery drill evidence|proof pointer|approval gate is current again|workflow boundary is current again|recovery drill state is current again|proof pointer is current again|approval gate fallback is open|boundary fallback is open|replay fallback is open|high|medium|low|silent_rehydrate|reopen_then_refresh|reload_before_run|refresh action|refresh first|refresh replay|refresh target state|refresh scope|after refresh|latest gate state|gate|boundary|proof|recovery|linked workflow boundary or workflow owner handoff|repo-owned recovery drill|gate fallback|handoff fallback|boundary fallback|replay fallback|open gate fallback|inspect boundary fallback|open replay fallback|inspect fallback escalation|hand off after fallback|load the latest replay handoff before opening the backup handoff escalation|open once the latest replay handoff is loaded/i);
+  assert.match(readme, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|primary step|step progress|structured refresh state|followuptree|compatibility|legacy projection/i);
   assert.match(operatorGuide, /GET \/v1\/runtime\/session-replay/);
   assert.match(operatorGuide, /Runtime session replay note:/);
   assert.match(operatorGuide, /refresh recovery follow-?up path/i);
@@ -215,12 +129,12 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
   assert.match(operatorGuide, /followuptree|followup tree/i);
   assert.match(operatorGuide, /compatibility block|compatibility metadata/i);
   assert.match(operatorGuide, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);
-  assert.match(operatorGuide, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh disposition|refresh evidence hint|refresh outcome|refresh confidence|refresh detour|refresh escalation|refresh escalation target|refresh escalation mode|refresh escalation cta|refresh escalation readiness|refresh escalation prep|refresh escalation open guard|refresh escalation fallback|refresh escalation fallback cta|refresh escalation fallback readiness|refresh escalation fallback prep|refresh escalation fallback open guard|refresh escalation fallback outcome|refresh escalation fallback confidence|refresh escalation fallback detour|refresh escalation fallback escalation|refresh escalation fallback escalation target|refresh escalation fallback escalation mode|refresh escalation fallback escalation cta|refresh escalation fallback escalation readiness|refresh escalation fallback escalation prep|refresh escalation fallback escalation open guard|refresh escalation fallback escalation fallback|approval escalation|recovery escalation|workflow owner escalation|boundary review|manual handoff|inspect|recover|owner_handoff|ready|needs_prep|approval gate evidence|workflow boundary evidence|recovery drill evidence|proof pointer|approval gate is current again|workflow boundary is current again|recovery drill state is current again|proof pointer is current again|approval gate fallback is open|boundary fallback is open|replay fallback is open|high|medium|low|silent_rehydrate|reopen_then_refresh|reload_before_run|refresh action|refresh first|refresh replay|refresh target state|refresh scope|after refresh|latest gate state|gate|boundary|proof|recovery|linked workflow boundary or workflow owner handoff|repo-owned recovery drill|gate fallback|handoff fallback|boundary fallback|replay fallback|open gate fallback|inspect boundary fallback|open replay fallback|inspect fallback escalation|hand off after fallback|load the latest replay handoff before opening the backup handoff escalation|open once the latest replay handoff is loaded/i);
+  assert.match(operatorGuide, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|primary step|step progress|structured refresh state|followuptree|compatibility|legacy projection/i);
   assert.match(architecture, /runtime session replay mirror/i);
   assert.match(architecture, /refresh recovery follow-?up path/i);
   assert.match(architecture, /structured refresh state/i);
   assert.match(architecture, /followuptree|followup tree/i);
   assert.match(architecture, /compatibility block|compatibility metadata/i);
   assert.match(architecture, /flat `refreshEscalation\.\.\.` projection remains transitional/i);
-  assert.match(architecture, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh disposition|refresh evidence hint|refresh outcome|refresh confidence|refresh detour|refresh escalation|refresh escalation target|refresh escalation mode|refresh escalation cta|refresh escalation readiness|refresh escalation prep|refresh escalation open guard|refresh escalation fallback|refresh escalation fallback cta|refresh escalation fallback readiness|refresh escalation fallback prep|refresh escalation fallback open guard|refresh escalation fallback outcome|refresh escalation fallback confidence|refresh escalation fallback detour|refresh escalation fallback escalation|refresh escalation fallback escalation target|refresh escalation fallback escalation mode|refresh escalation fallback escalation cta|refresh escalation fallback escalation readiness|refresh escalation fallback escalation prep|refresh escalation fallback escalation open guard|refresh escalation fallback escalation fallback|approval escalation|recovery escalation|workflow owner escalation|boundary review|manual handoff|inspect|recover|owner_handoff|ready|needs_prep|approval gate evidence|workflow boundary evidence|recovery drill evidence|proof pointer|approval gate is current again|workflow boundary is current again|recovery drill state is current again|proof pointer is current again|approval gate fallback is open|boundary fallback is open|replay fallback is open|high|medium|low|silent_rehydrate|reopen_then_refresh|reload_before_run|refresh action|refresh first|refresh replay|refresh target state|refresh scope|after refresh|latest gate state|gate|boundary|proof|recovery|linked workflow boundary or workflow owner handoff|repo-owned recovery drill|gate fallback|handoff fallback|boundary fallback|replay fallback|open gate fallback|inspect boundary fallback|open replay fallback|inspect fallback escalation|hand off after fallback|load the latest replay handoff before opening the backup handoff escalation|open once the latest replay handoff is loaded/i);
+  assert.match(architecture, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|primary step|step progress|structured refresh state|followuptree|compatibility|legacy projection/i);
 });

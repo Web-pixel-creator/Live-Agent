@@ -1190,476 +1190,97 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
     workflowSummary: null,
   });
 
+  const primaryStep = snapshot.selectedSession.replay.nextOperatorPrimaryStep;
+  assert.ok(primaryStep);
+
+  // Smoke-check the transitional flat projection without making it the primary test contract.
+  assert.equal(primaryStep.refreshEscalationReadiness, "needs_prep");
+  assert.equal(primaryStep.refreshEscalationFallbackTarget?.targetSurface, "operator_saved_view_approvals");
   assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationReadiness,
-    "needs_prep",
+    primaryStep.refreshEscalationFallbackEscalationFallbackTarget?.targetSurface,
+    "operator_session_ops",
   );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationPrepHint,
-    "Load the linked workflow boundary before escalating through Workflow Control.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationOpenGuard,
-    "Open once a linked workflow boundary or workflow owner handoff is loaded.",
+
+  const refreshState = primaryStep.refreshState;
+  assert.ok(refreshState);
+  assert.equal(refreshState.source, "structured_primary_refresh_state");
+  assert.equal(refreshState.legacyFallbackMode, "flat_refresh_escalation_fields");
+  assert.deepEqual(refreshState.compatibility, {
+    status: "transitional",
+    primaryReadModel: "refreshState.followupTree",
+    legacyProjection: "flat_refresh_escalation_fields",
+    legacyFlatFieldPrefix: "refreshEscalation",
+    followupTreeDepth: 11,
+  });
+  assert.equal(refreshState.action?.action, "refresh_session_replay");
+  assert.equal(refreshState.targetState?.refreshScope, "gate");
+  assert.equal(refreshState.disposition, "reopen_then_refresh");
+  assert.equal(refreshState.evidenceHint, "Recheck the latest approval gate evidence.");
+  assert.equal(refreshState.outcomeLabel, "Approval gate is current again.");
+  assert.equal(refreshState.confidence, "medium");
+
+  const expectedFollowupLevels = [
+    "refresh",
+    "refresh_escalation",
+    "refresh_escalation_fallback",
+    "refresh_escalation_fallback_escalation",
+    "refresh_escalation_fallback_escalation_fallback",
+    "refresh_escalation_fallback_escalation_fallback_escalation",
+    "refresh_escalation_fallback_escalation_fallback_escalation_fallback",
+    "refresh_escalation_fallback_escalation_fallback_escalation_recovery",
+    "refresh_escalation_fallback_escalation_fallback_escalation_recovery_followup",
+    "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry",
+    "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry_followup",
+  ];
+  assert.deepEqual(
+    refreshState.followupPath.map((entry) => entry.level),
+    expectedFollowupLevels,
   );
   assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackTarget,
-    {
-      label: "Approvals | gate fallback",
-      targetSurface: "operator_saved_view_approvals",
-      targetLabel: "Approvals",
-      workspace: "approvals",
-      stateLabel: "gate fallback",
-    },
+    primaryStep.refreshRecoveryFollowupPath?.map((entry) => entry.level),
+    expectedFollowupLevels,
   );
-  assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackCTA,
-    {
-      label: "Open Approvals for the gate fallback.",
-      ctaLabel: "Open gate fallback",
-      targetSurface: "operator_saved_view_approvals",
-      targetLabel: "Approvals",
-      workspace: "approvals",
-    },
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackReadiness,
-    "ready",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackPrepHint,
-    null,
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackOpenGuard,
-    null,
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackOutcomeLabel,
-    "Approval gate fallback is open.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackConfidence,
-    "high",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackDetourHint,
-    "Use boundary review if the gate fallback still does not resolve ownership.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationHint,
-    "Escalate to boundary review if the gate fallback still does not resolve ownership.",
-  );
-  assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationTarget,
-    {
-      label: "Workflow Control | boundary review",
-      targetSurface: "operator_workflow_control",
-      targetLabel: "Workflow Control",
-      workspace: "runtime",
-      stateLabel: "boundary review",
-      mode: "inspect",
-    },
-  );
-  assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationCTA,
-    {
-      label: "Open Workflow Control for the fallback boundary review.",
-      ctaLabel: "Inspect fallback escalation",
-      targetSurface: "operator_workflow_control",
-      targetLabel: "Workflow Control",
-      workspace: "runtime",
-    },
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationReadiness,
-    "needs_prep",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationPrepHint,
-    "Load the linked workflow boundary or workflow owner handoff before opening the fallback escalation.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationOpenGuard,
-    "Open once a linked workflow boundary or workflow owner handoff is loaded.",
-  );
-  assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackTarget,
-    {
-      label: "Operator Session Ops | manual handoff",
-      targetSurface: "operator_session_ops",
-      targetLabel: "Operator Session Ops",
-      workspace: "runtime",
-      stateLabel: "manual handoff",
-    },
-  );
-  assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackCTA,
-    {
-      label: "Open Operator Session Ops for the backup manual handoff.",
-      ctaLabel: "Open backup handoff",
-      targetSurface: "operator_session_ops",
-      targetLabel: "Operator Session Ops",
-      workspace: "runtime",
-    },
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackReadiness,
-    "needs_prep",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackPrepHint,
-    "Load the latest replay handoff before opening the backup handoff.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackOpenGuard,
-    "Open once the latest replay handoff is loaded.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackOutcomeLabel,
-    "Backup handoff is open.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackConfidence,
-    "low",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackDetourHint,
-    "Use manual follow-through if the backup handoff still does not restore the session path.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationHint,
-    "Escalate to manual handoff if the backup handoff still does not restore the session path.",
-  );
-  assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationTarget,
-    {
-      label: "Operator Session Ops | manual handoff",
-      targetSurface: "operator_session_ops",
-      targetLabel: "Operator Session Ops",
-      workspace: "runtime",
-      stateLabel: "manual handoff",
-      mode: "owner_handoff",
-    },
-  );
-  assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationCTA,
-    {
-      label: "Open Operator Session Ops for the backup manual handoff.",
-      ctaLabel: "Hand off after backup escalation",
-      targetSurface: "operator_session_ops",
-      targetLabel: "Operator Session Ops",
-      workspace: "runtime",
-    },
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationReadiness,
-    "needs_prep",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationPrepHint,
-    "Load the latest replay handoff before opening the backup handoff escalation.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationOpenGuard,
-    "Open once the latest replay handoff is loaded.",
-  );
-  assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget,
-    {
-      label: "Workflow Control | boundary review",
-      targetSurface: "operator_workflow_control",
-      targetLabel: "Workflow Control",
-      workspace: "runtime",
-      stateLabel: "boundary review",
-      mode: "inspect",
-    },
-  );
-  assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA,
-    {
-      label: "Open Workflow Control for the backup boundary review follow-through.",
-      ctaLabel: "Inspect backup follow-through",
-      targetSurface: "operator_workflow_control",
-      targetLabel: "Workflow Control",
-      workspace: "runtime",
-    },
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness,
-    "needs_prep",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackPrepHint,
-    "Load the latest workflow boundary or workflow owner handoff before opening the backup boundary review follow-through.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackOpenGuard,
-    "Open once a linked workflow boundary or workflow owner handoff is loaded.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackOutcomeLabel,
-    "Backup boundary review follow-through is open.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence,
-    "medium",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint,
-    "Use manual handoff follow-through if the backup boundary review still does not restore ownership.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint,
-    "Escalate to boundary recovery if the backup boundary review still does not restore ownership.",
-  );
-  assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
-    {
-      label: "Workflow Control | boundary recovery",
-      targetSurface: "operator_workflow_control",
-      targetLabel: "Workflow Control",
-      workspace: "runtime",
-      stateLabel: "boundary recovery",
-      mode: "recover",
-    },
-  );
-  assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA,
-    {
-      label: "Open Workflow Control for the backup boundary recovery.",
-      ctaLabel: "Recover after backup follow-through",
-      targetSurface: "operator_workflow_control",
-      targetLabel: "Workflow Control",
-      workspace: "runtime",
-    },
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
-    "needs_prep",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint,
-    "Load the latest workflow boundary or workflow owner handoff before opening the backup boundary recovery escalation.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOpenGuard,
-    "Open once a linked workflow boundary or workflow owner handoff is loaded.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel,
-    "Backup boundary recovery escalation is open.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence,
-    "medium",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint,
-    "Use workflow owner follow-through if the backup boundary recovery escalation still does not restore ownership.",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint,
-    "Escalate to boundary ownership recovery if the backup boundary recovery escalation still does not restore ownership.",
-  );
-  assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-    {
-      label: "Workflow Control | boundary ownership recovery",
-      targetSurface: "operator_workflow_control",
-      targetLabel: "Workflow Control",
-      workspace: "runtime",
-      stateLabel: "boundary ownership recovery",
-      mode: "owner_handoff",
-    },
-  );
-  assert.deepEqual(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA,
-    {
-      label: "Open Workflow Control for the boundary ownership recovery handoff.",
-      ctaLabel: "Hand off into ownership recovery",
-      targetSurface: "operator_workflow_control",
-      targetLabel: "Workflow Control",
-      workspace: "runtime",
-    },
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
-    "needs_prep",
-  );
-  assert.equal(
-    snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint,
-    "Load the latest workflow boundary or workflow owner handoff before opening the ownership recovery escalation.",
-  );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard,
-      "Open once a linked workflow boundary or workflow owner handoff is loaded.",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel,
-      "Ownership recovery boundary escalation is open.",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence,
-      "medium",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint,
-      "Recheck boundary ownership after the escalation opens.",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationHint,
-      "Escalate again if boundary ownership still stays unresolved.",
-    );
-    assert.deepEqual(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
-      {
-        label: "Workflow Control | boundary ownership re-escalation",
-        targetSurface: "operator_workflow_control",
-        targetLabel: "Workflow Control",
-        workspace: "runtime",
-        stateLabel: "boundary ownership re-escalation",
-        mode: "inspect",
-      },
-    );
-    assert.deepEqual(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA,
-      {
-        label: "Open Workflow Control for the ownership re-escalation.",
-        ctaLabel: "Inspect re-escalation",
-        targetSurface: "operator_workflow_control",
-        targetLabel: "Workflow Control",
-        workspace: "runtime",
-      },
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness,
-      "needs_prep",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint,
-      "Load the latest workflow boundary or workflow owner handoff before opening the ownership re-escalation.",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard,
-      "Open once the latest workflow boundary or workflow owner handoff is loaded.",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel,
-      "Ownership re-escalation is open.",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence,
-      "medium",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint,
-      "Recheck boundary ownership after the re-escalation opens.",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint,
-      "Escalate again if boundary ownership still stays unresolved.",
-    );
-    assert.deepEqual(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
-      {
-        label: "Workflow Control | boundary ownership escalation retry",
-        targetSurface: "operator_workflow_control",
-        targetLabel: "Workflow Control",
-        workspace: "runtime",
-        stateLabel: "boundary ownership escalation retry",
-        mode: "inspect",
-      },
-    );
-    assert.deepEqual(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA,
-      {
-        label: "Open Workflow Control for the ownership escalation retry.",
-        ctaLabel: "Inspect escalation retry",
-        targetSurface: "operator_workflow_control",
-        targetLabel: "Workflow Control",
-        workspace: "runtime",
-      },
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness,
-      "needs_prep",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrepHint,
-      "Load the latest workflow boundary or workflow owner handoff before opening the ownership escalation retry.",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard,
-      "Open once the latest workflow boundary or workflow owner handoff is loaded.",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel,
-      "Ownership escalation retry is open.",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence,
-      "medium",
-    );
-    assert.equal(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint,
+  assert.deepEqual(refreshState.followupPath[0], {
+    level: "refresh",
+    label: "Approvals | latest gate state",
+    targetSurface: "operator_saved_view_approvals",
+    targetLabel: "Approvals",
+    workspace: "approvals",
+    stateLabel: "latest gate state",
+    mode: null,
+    ctaLabel: "Refresh first",
+    readiness: "ready",
+    outcomeLabel: "Approval gate is current again.",
+    confidence: "medium",
+    detourHint:
+      "If the gate still looks stale after refresh, stay in Approvals and inspect the pending gate before resuming.",
+    disposition: "reopen_then_refresh",
+  });
+  assert.deepEqual(refreshState.followupPath.at(-1), {
+    level:
+      "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry_followup",
+    label: "Workflow Control | boundary ownership escalation retry",
+    targetSurface: "operator_workflow_control",
+    targetLabel: "Workflow Control",
+    workspace: "runtime",
+    stateLabel: "boundary ownership escalation retry",
+    mode: "inspect",
+    ctaLabel: "Inspect escalation retry",
+    readiness: "needs_prep",
+    outcomeLabel: "Ownership escalation retry is open.",
+    confidence: "medium",
+    detourHint:
       "Recheck boundary ownership after the ownership escalation retry opens.",
-    );
-    assert.deepEqual(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshRecoveryFollowupPath?.map(
-        (entry) => entry.level,
-      ),
-      [
-        "refresh",
-        "refresh_escalation",
-        "refresh_escalation_fallback",
-        "refresh_escalation_fallback_escalation",
-        "refresh_escalation_fallback_escalation_fallback",
-        "refresh_escalation_fallback_escalation_fallback_escalation",
-        "refresh_escalation_fallback_escalation_fallback_escalation_fallback",
-        "refresh_escalation_fallback_escalation_fallback_escalation_recovery",
-        "refresh_escalation_fallback_escalation_fallback_escalation_recovery_followup",
-        "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry",
-        "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry_followup",
-      ],
-    );
-    assert.deepEqual(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshRecoveryFollowupPath?.[0],
-      {
-        level: "refresh",
-        label: "Approvals | latest gate state",
-        targetSurface: "operator_saved_view_approvals",
-        targetLabel: "Approvals",
-        workspace: "approvals",
-        stateLabel: "latest gate state",
-        mode: null,
-        ctaLabel: "Refresh first",
-        readiness: "ready",
-        outcomeLabel: "Approval gate is current again.",
-        confidence: "medium",
-        detourHint:
-          "If the gate still looks stale after refresh, stay in Approvals and inspect the pending gate before resuming.",
-        disposition: "reopen_then_refresh",
-      },
-    );
-    assert.deepEqual(
-      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshRecoveryFollowupPath?.at(-1),
-      {
-        level:
-          "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry_followup",
-        label: "Workflow Control | boundary ownership escalation retry",
-        targetSurface: "operator_workflow_control",
-        targetLabel: "Workflow Control",
-        workspace: "runtime",
-        stateLabel: "boundary ownership escalation retry",
-        mode: "inspect",
-        ctaLabel: "Inspect escalation retry",
-        readiness: "needs_prep",
-        outcomeLabel: "Ownership escalation retry is open.",
-        confidence: "medium",
-        detourHint:
-          "Recheck boundary ownership after the ownership escalation retry opens.",
-        disposition: null,
-      },
-    );
+    disposition: null,
+  });
+
+  const collectFollowupTreeLevels = (
+    node: NonNullable<typeof refreshState>["followupTree"],
+  ): string[] => {
+    if (!node) {
+      return [];
+    }
+    return [node.level, ...collectFollowupTreeLevels(node.next)];
+  };
+  assert.deepEqual(collectFollowupTreeLevels(refreshState.followupTree), expectedFollowupLevels);
   });
