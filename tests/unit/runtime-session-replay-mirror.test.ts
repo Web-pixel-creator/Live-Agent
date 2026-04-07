@@ -598,6 +598,39 @@ test("runtime session replay mirror blocks resume when approval or active workfl
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOpenGuard: null,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel: null,
+      refreshRecoveryFollowupPath: [
+        {
+          level: "refresh",
+          label: "Approvals | latest gate state",
+          targetSurface: "operator_saved_view_approvals",
+          targetLabel: "Approvals",
+          workspace: "approvals",
+          stateLabel: "latest gate state",
+          mode: null,
+          ctaLabel: "Refresh first",
+          readiness: "ready",
+          outcomeLabel: "Approval gate is current again.",
+          confidence: "medium",
+          detourHint:
+            "If the gate still looks stale after refresh, stay in Approvals and inspect the pending gate before resuming.",
+          disposition: "reopen_then_refresh",
+        },
+        {
+          level: "refresh_escalation",
+          label: "Workflow Control | approval escalation",
+          targetSurface: "operator_workflow_control",
+          targetLabel: "Workflow Control",
+          workspace: "runtime",
+          stateLabel: "approval escalation",
+          mode: "inspect",
+          ctaLabel: "Inspect escalation path",
+          readiness: "ready",
+          outcomeLabel: null,
+          confidence: null,
+          detourHint: null,
+          disposition: null,
+        },
+      ],
       refreshAction: {
         label: "Refresh replay before reopening Approvals.",
         action: "refresh_session_replay",
@@ -1470,5 +1503,62 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
     assert.equal(
       snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint,
       "Recheck boundary ownership after the ownership escalation retry opens.",
+    );
+    assert.deepEqual(
+      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshRecoveryFollowupPath?.map(
+        (entry) => entry.level,
+      ),
+      [
+        "refresh",
+        "refresh_escalation",
+        "refresh_escalation_fallback",
+        "refresh_escalation_fallback_escalation",
+        "refresh_escalation_fallback_escalation_fallback",
+        "refresh_escalation_fallback_escalation_fallback_escalation",
+        "refresh_escalation_fallback_escalation_fallback_escalation_fallback",
+        "refresh_escalation_fallback_escalation_fallback_escalation_recovery",
+        "refresh_escalation_fallback_escalation_fallback_escalation_recovery_followup",
+        "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry",
+        "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry_followup",
+      ],
+    );
+    assert.deepEqual(
+      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshRecoveryFollowupPath?.[0],
+      {
+        level: "refresh",
+        label: "Approvals | latest gate state",
+        targetSurface: "operator_saved_view_approvals",
+        targetLabel: "Approvals",
+        workspace: "approvals",
+        stateLabel: "latest gate state",
+        mode: null,
+        ctaLabel: "Refresh first",
+        readiness: "ready",
+        outcomeLabel: "Approval gate is current again.",
+        confidence: "medium",
+        detourHint:
+          "If the gate still looks stale after refresh, stay in Approvals and inspect the pending gate before resuming.",
+        disposition: "reopen_then_refresh",
+      },
+    );
+    assert.deepEqual(
+      snapshot.selectedSession.replay.nextOperatorPrimaryStep?.refreshRecoveryFollowupPath?.at(-1),
+      {
+        level:
+          "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry_followup",
+        label: "Workflow Control | boundary ownership escalation retry",
+        targetSurface: "operator_workflow_control",
+        targetLabel: "Workflow Control",
+        workspace: "runtime",
+        stateLabel: "boundary ownership escalation retry",
+        mode: "inspect",
+        ctaLabel: "Inspect escalation retry",
+        readiness: "needs_prep",
+        outcomeLabel: "Ownership escalation retry is open.",
+        confidence: "medium",
+        detourHint:
+          "Recheck boundary ownership after the ownership escalation retry opens.",
+        disposition: null,
+      },
     );
   });

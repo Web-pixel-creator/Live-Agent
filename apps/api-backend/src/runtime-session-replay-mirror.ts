@@ -218,6 +218,36 @@ type RuntimeSessionReplayPrimaryRefreshTargetState = {
   refreshScope: "gate" | "boundary" | "proof" | "recovery";
 };
 
+type RuntimeSessionReplayRefreshRecoveryFollowupPathTarget =
+  | RuntimeSessionReplayPrimaryRefreshTargetState
+  | RuntimeSessionReplayPrimaryRefreshEscalationTarget
+  | RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget
+  | RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationTarget
+  | null;
+
+type RuntimeSessionReplayRefreshRecoveryFollowupPathCTA =
+  | RuntimeSessionReplayPrimaryRefreshAction
+  | RuntimeSessionReplayPrimaryRefreshEscalationCTA
+  | RuntimeSessionReplayPrimaryRefreshEscalationFallbackCTA
+  | RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationCTA
+  | null;
+
+type RuntimeSessionReplayRefreshRecoveryFollowupPathEntry = {
+  level: string;
+  label: string;
+  targetSurface: RuntimeSessionReplayNextOperatorActionTarget["targetSurface"] | null;
+  targetLabel: string | null;
+  workspace: RuntimeSessionReplayNextOperatorWorkspace | null;
+  stateLabel: string | null;
+  mode: "inspect" | "recover" | "owner_handoff" | null;
+  ctaLabel: string | null;
+  readiness: RuntimeSessionReplayPrimaryRefreshEscalationReadiness | null;
+  outcomeLabel: string | null;
+  confidence: RuntimeSessionReplayPrimaryRefreshConfidence | null;
+  detourHint: string | null;
+  disposition: RuntimeSessionReplayPrimaryRefreshDisposition | null;
+};
+
 type RuntimeSessionReplayPrimaryOperatorStep = {
   label: string;
   action: string | null;
@@ -313,6 +343,7 @@ type RuntimeSessionReplayPrimaryOperatorStep = {
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence | null;
   refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint | null;
+  refreshRecoveryFollowupPath?: RuntimeSessionReplayRefreshRecoveryFollowupPathEntry[];
   refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
   refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
 };
@@ -3613,6 +3644,212 @@ function buildNextOperatorPrimaryStepRefreshTargetState(params: {
   };
 }
 
+function buildNextOperatorPrimaryStepRefreshRecoveryFollowupPath(params: {
+  needsRefresh: boolean;
+  surfaceState: RuntimeSessionReplayPrimaryStepSurfaceState;
+  refreshDisposition: RuntimeSessionReplayPrimaryRefreshDisposition | null;
+  refreshAction: RuntimeSessionReplayPrimaryRefreshAction | null;
+  refreshTargetState: RuntimeSessionReplayPrimaryRefreshTargetState | null;
+  refreshOutcomeLabel: string | null;
+  refreshConfidence: RuntimeSessionReplayPrimaryRefreshConfidence | null;
+  refreshDetourHint: string | null;
+  refreshEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationTarget | null;
+  refreshEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationCTA | null;
+  refreshEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationReadiness | null;
+  refreshEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
+  refreshEscalationFallbackCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackCTA | null;
+  refreshEscalationFallbackReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackReadiness | null;
+  refreshEscalationFallbackOutcomeLabel: string | null;
+  refreshEscalationFallbackConfidence: RuntimeSessionReplayPrimaryRefreshConfidence | null;
+  refreshEscalationFallbackDetourHint: string | null;
+  refreshEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationTarget | null;
+  refreshEscalationFallbackEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationCTA | null;
+  refreshEscalationFallbackEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationReadiness | null;
+  refreshEscalationFallbackEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackTarget | null;
+  refreshEscalationFallbackEscalationFallbackCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackCTA | null;
+  refreshEscalationFallbackEscalationFallbackReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackReadiness | null;
+  refreshEscalationFallbackEscalationFallbackOutcomeLabel: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackOutcomeLabel | null;
+  refreshEscalationFallbackEscalationFallbackConfidence: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackConfidence | null;
+  refreshEscalationFallbackEscalationFallbackDetourHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackDetourHint | null;
+  refreshEscalationFallbackEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationTarget | null;
+  refreshEscalationFallbackEscalationFallbackEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationCTA | null;
+  refreshEscalationFallbackEscalationFallbackEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationReadiness | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackTarget | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackCTA | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackOutcomeLabel: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackOutcomeLabel | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence | null;
+  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint | null;
+}): RuntimeSessionReplayRefreshRecoveryFollowupPathEntry[] {
+  if (!params.needsRefresh) {
+    return [];
+  }
+  const entries: RuntimeSessionReplayRefreshRecoveryFollowupPathEntry[] = [];
+  const appendEntry = (entry: {
+    level: string;
+    label?: string | null;
+    target?: RuntimeSessionReplayRefreshRecoveryFollowupPathTarget;
+    cta?: RuntimeSessionReplayRefreshRecoveryFollowupPathCTA;
+    readiness?: RuntimeSessionReplayPrimaryRefreshEscalationReadiness | null;
+    outcomeLabel?: string | null;
+    confidence?: RuntimeSessionReplayPrimaryRefreshConfidence | null;
+    detourHint?: string | null;
+    disposition?: RuntimeSessionReplayPrimaryRefreshDisposition | null;
+  }) => {
+    const target = entry.target ?? null;
+    const cta = entry.cta ?? null;
+    const label = entry.label ?? target?.label ?? cta?.label ?? null;
+    const mode =
+      target && "mode" in target
+        ? ((target.mode ?? null) as RuntimeSessionReplayRefreshRecoveryFollowupPathEntry["mode"])
+        : null;
+    if (
+      !label &&
+      !target &&
+      !cta &&
+      !entry.outcomeLabel &&
+      !entry.confidence &&
+      !entry.detourHint &&
+      !entry.disposition
+    ) {
+      return;
+    }
+    entries.push({
+      level: entry.level,
+      label: label ?? "Refresh follow-up",
+      targetSurface: target?.targetSurface ?? cta?.targetSurface ?? null,
+      targetLabel: target?.targetLabel ?? cta?.targetLabel ?? null,
+      workspace: target?.workspace ?? cta?.workspace ?? null,
+      stateLabel: target && "stateLabel" in target ? target.stateLabel ?? null : null,
+      mode,
+      ctaLabel: cta?.ctaLabel ?? null,
+      readiness: entry.readiness ?? null,
+      outcomeLabel: entry.outcomeLabel ?? null,
+      confidence: entry.confidence ?? null,
+      detourHint: entry.detourHint ?? null,
+      disposition: entry.disposition ?? null,
+    });
+  };
+
+  appendEntry({
+    level: "refresh",
+    target: params.refreshTargetState,
+    cta: params.refreshAction,
+    readiness: params.surfaceState === "primed" ? "ready" : "needs_prep",
+    outcomeLabel: params.refreshOutcomeLabel,
+    confidence: params.refreshConfidence,
+    detourHint: params.refreshDetourHint,
+    disposition: params.refreshDisposition,
+  });
+  appendEntry({
+    level: "refresh_escalation",
+    target: params.refreshEscalationTarget,
+    cta: params.refreshEscalationCTA,
+    readiness: params.refreshEscalationReadiness,
+  });
+  appendEntry({
+    level: "refresh_escalation_fallback",
+    target: params.refreshEscalationFallbackTarget,
+    cta: params.refreshEscalationFallbackCTA,
+    readiness: params.refreshEscalationFallbackReadiness,
+    outcomeLabel: params.refreshEscalationFallbackOutcomeLabel,
+    confidence: params.refreshEscalationFallbackConfidence,
+    detourHint: params.refreshEscalationFallbackDetourHint,
+  });
+  appendEntry({
+    level: "refresh_escalation_fallback_escalation",
+    target: params.refreshEscalationFallbackEscalationTarget,
+    cta: params.refreshEscalationFallbackEscalationCTA,
+    readiness: params.refreshEscalationFallbackEscalationReadiness,
+  });
+  appendEntry({
+    level: "refresh_escalation_fallback_escalation_fallback",
+    target: params.refreshEscalationFallbackEscalationFallbackTarget,
+    cta: params.refreshEscalationFallbackEscalationFallbackCTA,
+    readiness: params.refreshEscalationFallbackEscalationFallbackReadiness,
+    outcomeLabel: params.refreshEscalationFallbackEscalationFallbackOutcomeLabel,
+    confidence: params.refreshEscalationFallbackEscalationFallbackConfidence,
+    detourHint: params.refreshEscalationFallbackEscalationFallbackDetourHint,
+  });
+  appendEntry({
+    level: "refresh_escalation_fallback_escalation_fallback_escalation",
+    target: params.refreshEscalationFallbackEscalationFallbackEscalationTarget,
+    cta: params.refreshEscalationFallbackEscalationFallbackEscalationCTA,
+    readiness: params.refreshEscalationFallbackEscalationFallbackEscalationReadiness,
+  });
+  appendEntry({
+    level: "refresh_escalation_fallback_escalation_fallback_escalation_fallback",
+    target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget,
+    cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA,
+    readiness: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness,
+    outcomeLabel: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackOutcomeLabel,
+    confidence: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence,
+    detourHint: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint,
+  });
+  appendEntry({
+    level: "refresh_escalation_fallback_escalation_fallback_escalation_recovery",
+    target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+    cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA,
+    readiness: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
+    outcomeLabel: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel,
+    confidence: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence,
+    detourHint: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint,
+  });
+  appendEntry({
+    level: "refresh_escalation_fallback_escalation_fallback_escalation_recovery_followup",
+    target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+    cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA,
+    readiness: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
+    outcomeLabel: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel,
+    confidence: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence,
+    detourHint: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint,
+  });
+  appendEntry({
+    level: "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry",
+    target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+    cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA,
+    readiness: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness,
+    outcomeLabel: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel,
+    confidence: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence,
+    detourHint: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint,
+  });
+  appendEntry({
+    level: "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry_followup",
+    target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+    cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA,
+    readiness: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness,
+    outcomeLabel: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel,
+    confidence: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence,
+    detourHint: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint,
+  });
+
+  return entries;
+}
+
 function buildApprovalGate(params: {
   latestSelectedApproval: ApprovalRecord | null;
   pendingApprovalCount: number;
@@ -4438,6 +4675,68 @@ function buildNextOperatorPrimaryStep(params: {
     currentHandoffState: params.currentHandoffState,
     latestProofPointer: params.latestProofPointer,
   });
+  const refreshRecoveryFollowupPath =
+    buildNextOperatorPrimaryStepRefreshRecoveryFollowupPath({
+      needsRefresh,
+      surfaceState,
+      refreshDisposition,
+      refreshAction,
+      refreshTargetState,
+      refreshOutcomeLabel,
+      refreshConfidence,
+      refreshDetourHint,
+      refreshEscalationTarget,
+      refreshEscalationCTA,
+      refreshEscalationReadiness,
+      refreshEscalationFallbackTarget,
+      refreshEscalationFallbackCTA,
+      refreshEscalationFallbackReadiness,
+      refreshEscalationFallbackOutcomeLabel,
+      refreshEscalationFallbackConfidence,
+      refreshEscalationFallbackDetourHint,
+      refreshEscalationFallbackEscalationTarget,
+      refreshEscalationFallbackEscalationCTA,
+      refreshEscalationFallbackEscalationReadiness,
+      refreshEscalationFallbackEscalationFallbackTarget,
+      refreshEscalationFallbackEscalationFallbackCTA,
+      refreshEscalationFallbackEscalationFallbackReadiness,
+      refreshEscalationFallbackEscalationFallbackOutcomeLabel,
+      refreshEscalationFallbackEscalationFallbackConfidence,
+      refreshEscalationFallbackEscalationFallbackDetourHint,
+      refreshEscalationFallbackEscalationFallbackEscalationTarget,
+      refreshEscalationFallbackEscalationFallbackEscalationCTA,
+      refreshEscalationFallbackEscalationFallbackEscalationReadiness,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackOutcomeLabel,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence,
+      refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint,
+    });
   return {
     label: params.nextOperatorChecklist[0] ?? "Open the next operator surface.",
     action: params.resumeMetadata.nextOperatorAction,
@@ -4533,6 +4832,11 @@ function buildNextOperatorPrimaryStep(params: {
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence,
     refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint,
+    ...(refreshRecoveryFollowupPath.length > 0
+      ? {
+          refreshRecoveryFollowupPath,
+        }
+      : {}),
     refreshAction,
     refreshTargetState,
   } satisfies RuntimeSessionReplayPrimaryOperatorStep;
