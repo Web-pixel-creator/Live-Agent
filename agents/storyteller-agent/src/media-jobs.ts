@@ -604,6 +604,9 @@ function createMediaJob(params: CreateMediaJobParams): StoryMediaJob {
   };
 
   jobs.set(job.jobId, job);
+  if (fallbackTerminal && config.enabled) {
+    ensureRuntimeStarted();
+  }
   if (params.mode === "simulated") {
     if (config.enabled) {
       ensureRuntimeStarted();

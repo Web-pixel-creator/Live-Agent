@@ -101,7 +101,7 @@ For demo-only retry (without unit/policy/badge/perf gates), use:
 ```powershell
 npm run demo:e2e:fast:retry
 ```
-`demo:e2e:fast` imports the repo-local `.env` before it resolves runtime defaults, then force-enables the demo analytics split required by the release gates while preserving the repo-local UI/Storyteller planner model selections instead of pinning a separate fast-lane planner model. It follows the current Storyteller runtime media mode unless `DEMO_E2E_STORYTELLER_MEDIA_MODE` is set explicitly, and when `storytellerVideoMode=default` it runs a compact video-first Storyteller footprint (`includeImages=false`, shorter scene count, longer timeout) so live Veo proof stays reproducible in the automated lane. Story cache verification is routed through a lightweight fallback lane so cache/purge evidence stays deterministic without inflating the judged summary with inline media blobs. The same fast path also restarts stale healthy `ui-executor` processes when their runtime analytics or Playwright flags drift from submission-safe defaults.
+`demo:e2e:fast` imports the repo-local `.env` before it resolves runtime defaults, then force-enables the demo analytics split required by the release gates while preserving the repo-local UI/Storyteller planner model selections instead of pinning a separate fast-lane planner model. It follows the current Storyteller runtime media mode unless `DEMO_E2E_STORYTELLER_MEDIA_MODE` is set explicitly; `verify:release` sets that override to `simulated` when it is unset so repo-local fallback profiles stay valid for development without failing the release policy gate. When `storytellerVideoMode=default` it runs a compact video-first Storyteller footprint (`includeImages=false`, shorter scene count, longer timeout) so live Veo proof stays reproducible in the automated lane. Story cache verification is routed through a lightweight fallback lane so cache/purge evidence stays deterministic without inflating the judged summary with inline media blobs. The same fast path also restarts stale healthy `ui-executor` processes when their runtime analytics or Playwright flags drift from submission-safe defaults.
 For final pre-submission validation, enforce strict no-retry discipline:
 ```powershell
 npm run verify:release:strict
@@ -274,6 +274,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `storytellerCacheInvalidationValidated=true`
   - `storytellerMediaMode != simulated` for submission runs
 - `storytellerMediaQueueWorkers >= 1` for fallback/simulated video lanes
+  - fallback video jobs may complete synchronously, but the worker runtime still exposes idle worker slots so the queue snapshot proves the media worker surface is visible.
 - `storytellerMediaQueueWorkers >= 0` when `storytellerVideoMode=default`
   - `storytellerCacheHits >= 1`
 - Demo e2e scenario retry discipline:
@@ -310,6 +311,7 @@ The release gate (`scripts/release-readiness.ps1`) hard-fails when these evidenc
   - `kpi.runtimeMetricsScenarioAttempts <= options.scenarioRetryMaxAttempts`
   - `kpi.scenarioRetryableFailuresTotal >= 0`
 - Perf-load anti-drift (from `artifacts/perf-load/policy-check.json`):
+  - live voice performs a warmup before measured samples so `workload.live.p95` tracks steady-state orchestrator latency instead of service cold start.
   - required check items include:
     - `workload.live.p95`
     - `workload.ui.p95`

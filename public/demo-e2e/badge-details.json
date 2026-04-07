@@ -1,24 +1,24 @@
 {
-  "generatedAt": "2026-03-17T04:22:48.884Z",
+  "generatedAt": "2026-04-07T12:44:06.147Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 281,
   "violations": 0,
-  "roundTripMs": 1570,
+  "roundTripMs": 1539,
   "costEstimate": {
     "currency": "USD",
-    "geminiLiveUsd": 0.026663,
-    "imagenUsd": 0.08,
-    "veoUsd": 0,
-    "ttsUsd": 0.016,
-    "totalUsd": 0.122663,
+    "geminiLiveUsd": 0.035837,
+    "imagenUsd": 0.12,
+    "veoUsd": 0.36,
+    "ttsUsd": 0.024,
+    "totalUsd": 0.539837,
     "source": "runtime_estimate"
   },
   "tokensUsed": {
-    "input": 2557,
-    "output": 18898,
-    "total": 21455,
+    "input": 2561,
+    "output": 25692,
+    "total": 28253,
     "source": "runtime_estimate"
   },
   "providerUsage": {
@@ -36,6 +36,18 @@
         "selectionReason": "provider_override",
         "secondaryProvider": "deepgram",
         "secondaryModel": "aura-2-thalia-en",
+        "secondaryActive": false
+      },
+      {
+        "route": "storyteller-agent",
+        "capability": "image_edit",
+        "defaultProvider": "fal",
+        "defaultModel": "fal-ai/nano-banana-2/edit",
+        "selectedProvider": "fal",
+        "selectedModel": "fal-ai/nano-banana-2/edit",
+        "selectionReason": "config_enabled",
+        "secondaryProvider": null,
+        "secondaryModel": null,
         "secondaryActive": false
       },
       {
@@ -70,7 +82,7 @@
     ]
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-03-17T09:22:47.9058603+05:00",
+    "sourceSummaryGeneratedAt": "2026-04-07T17:44:05.0504439+05:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -78,7 +90,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-17T04:22:44.616Z",
+      "latestSeenAt": "2026-04-07T12:43:59.898Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -92,7 +104,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-03-17T04:22:44.700Z",
+      "latestSeenAt": "2026-04-07T12:43:59.980Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -126,7 +138,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-03-17T04:22:41.985Z",
+        "seenAt": "2026-04-07T12:43:57.585Z",
         "seenAtIsIso": true
       }
     },
@@ -190,10 +202,10 @@
       },
       "latest": {
         "outcome": "succeeded",
-        "pluginId": "demo-plugin-skill-949a1926-5564-4029-998f-5a3d7fad4cd8",
+        "pluginId": "demo-plugin-skill-5acc8a4c-1b35-448b-8f4c-e9da55354b05",
         "version": 1,
         "signingStatus": "unsigned",
-        "seenAt": "2026-03-17T04:22:47.427Z",
+        "seenAt": "2026-04-07T12:44:04.280Z",
         "seenAtIsIso": true
       }
     },
@@ -226,9 +238,9 @@
       "uniqueRuns": 6,
       "uniqueSessions": 1,
       "totalCalls": 6,
-      "inputTokens": 805,
-      "outputTokens": 302,
-      "totalTokens": 1107,
+      "inputTokens": 1885,
+      "outputTokens": 304,
+      "totalTokens": 2189,
       "models": [
         "gemini-3.1-flash-lite-preview",
         "usage_metadata_unavailable"
@@ -239,11 +251,11 @@
     "runtimeGuardrailsSignalPaths": {
       "status": "pass",
       "validated": true,
-      "summaryStatus": "critical signals=1",
-      "signalsSummary": "total=1 | critical=1 | warn=0 | info=0",
+      "summaryStatus": "critical signals=3",
+      "signalsSummary": "total=3 | critical=1 | warn=2 | info=0",
       "coverageSummary": "healthy=4/4 | ready=4/4 | runtime=4/4 | metrics=4/4 | startup=0/0",
       "sandboxSummary": "mode=off | network=allow_all | setup=unconfigured | warnings=0",
-      "skillsSummary": "catalog=path/0w | personas=3/4 | recipes=3/4 | runtime=off active=0 skipped=0 blocked=0",
+      "skillsSummary": "catalog=path/0w | personas=3/10 | recipes=3/10 | runtime=off active=0 skipped=0 blocked=0",
       "topSignal": "critical ui_executor_sandbox_not_enforce@ui-executor | value=off | UI executor sandbox mode is weaker than enforce.",
       "historyStatus": "Signal paths are sourced from the current runtime summary. Release artifacts exclude browser-local lifecycle history.",
       "totalPaths": 1,
@@ -274,7 +286,7 @@
           "statusCode": "active",
           "statusText": "active",
           "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-          "updatedAt": "2026-03-17T09:22:47.5563560+05:00",
+          "updatedAt": "2026-04-07T17:44:04.5098603+05:00",
           "updatedAtIsIso": true
         }
       },
@@ -295,7 +307,7 @@
             "statusCode": "active",
             "statusText": "active",
             "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-            "updatedAt": "2026-03-17T09:22:47.5563560+05:00",
+            "updatedAt": "2026-04-07T17:44:04.5098603+05:00",
             "updatedAtIsIso": true
           }
         }
@@ -305,7 +317,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 281 checks | 1570ms ws",
+    "message": "pass | 281 checks | 1539ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }

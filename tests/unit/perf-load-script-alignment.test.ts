@@ -45,6 +45,16 @@ test("perf-load script probes remote_http readiness before the perf workload", (
   );
 });
 
+test("perf-load runtime warms live voice lane before measuring p95", () => {
+  const scriptPath = resolve(process.cwd(), "scripts", "perf-load.mjs");
+  const source = readFileSync(scriptPath, "utf8");
+
+  assert.match(source, /async function runLiveVoiceWarmup\(options\)/);
+  assert.match(source, /runLiveVoiceTranslationRequest\(options, iteration, "live-warmup"\)/);
+  assert.match(source, /const warmupIterations = await runLiveVoiceWarmup\(options\)/);
+  assert.match(source, /summary\.warmupIterations = warmupIterations/);
+});
+
 test(
   "perf-load script parses in PowerShell",
   { skip: skipIfNoPowerShell },

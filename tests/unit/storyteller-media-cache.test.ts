@@ -185,6 +185,59 @@ test("media-jobs fallback mode completes immediately without queueing", { concur
   );
 });
 
+test("media-jobs fallback mode exposes worker slots when worker runtime is enabled", { concurrency: false }, async () => {
+  await withEnv(
+    {
+      STORYTELLER_MEDIA_WORKER_ENABLED: "true",
+      STORYTELLER_MEDIA_WORKER_CONCURRENCY: "2",
+      STORYTELLER_MEDIA_JOB_MAX_ATTEMPTS: "2",
+    },
+    async () => {
+      const jobsModule = await importFreshModule<{
+        createVideoMediaJob(params: {
+          sessionId: string;
+          runId: string;
+          assetId: string;
+          assetRef: string;
+          segmentIndex: number;
+          provider: string;
+          model: string;
+          mode: "fallback" | "simulated";
+          failureRate: number;
+        }): {
+          status: string;
+        };
+        getMediaJobQueueSnapshot(): {
+          queue: { backlog: number };
+          runtime: { enabled: boolean; started: boolean };
+          workers: Array<{ workerId: string; activeJobId: string | null }>;
+        };
+      }>("agents/storyteller-agent/src/media-jobs.ts");
+
+      const created = jobsModule.createVideoMediaJob({
+        sessionId: "session-fallback-workers",
+        runId: "run-fallback-workers",
+        assetId: "asset-fallback-workers",
+        assetRef: "asset://fallback-workers",
+        segmentIndex: 0,
+        provider: "veo",
+        model: "veo-3.1",
+        mode: "fallback",
+        failureRate: 0,
+      });
+
+      assert.equal(created.status, "completed");
+
+      const queueSnapshot = jobsModule.getMediaJobQueueSnapshot();
+      assert.equal(queueSnapshot.runtime.enabled, true);
+      assert.equal(queueSnapshot.runtime.started, true);
+      assert.equal(queueSnapshot.queue.backlog, 0);
+      assert.equal(queueSnapshot.workers.length, 2);
+      assert.ok(queueSnapshot.workers.every((worker) => worker.activeJobId === null));
+    },
+  );
+});
+
 test("media-jobs simulated mode uses worker queue, quota ledger, and completes", { concurrency: false }, async () => {
   await withEnv(
     {
@@ -341,4 +394,3 @@ test("media-jobs exhaust retry budget and dead-letter failed jobs", { concurrenc
     },
   );
 });
-

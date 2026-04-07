@@ -46,6 +46,8 @@ test("release-readiness uses demo and scenario retry defaults and retry runner",
   assert.ok(maxScenarioRetriesUsedCount >= 2, "max scenario retries used guard should allow bounded retry tolerance");
 
   assert.match(source, /function\s+Run-StepWithRetry\s*\(/);
+  assert.match(source, /function\s+Ensure-ReleaseDemoStorytellerMediaMode\s*\{/);
+  assert.match(source, /SetEnvironmentVariable\("DEMO_E2E_STORYTELLER_MEDIA_MODE", "simulated", "Process"\)/);
   assert.match(source, /Run-StepWithRetry\s+"Run demo e2e"/);
   assert.match(source, /\[switch\]\$StrictFinalRun/);
   assert.match(source, /\$MaxAllowedScenarioRetriesUsedCount\s*=\s*if\s*\(\$StrictFinalRun\)\s*\{\s*0\s*\}/);

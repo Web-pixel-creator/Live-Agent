@@ -317,67 +317,81 @@ function addCheck(checks, violations, name, passed, value, expectation) {
   }
 }
 
-async function runLiveVoiceLoad(options) {
+async function runLiveVoiceTranslationRequest(options, iteration, label = "live") {
   const orchestrateUrl = `${options.orchestratorBaseUrl.replace(/\/+$/, "")}/orchestrate`;
-  const results = await runWithConcurrency(options.liveIterations, options.liveConcurrency, async (iteration) => {
-    const sessionId = `perf-live-session-${iteration}-${randomUUID()}`;
-    const runId = `perf-live-run-${iteration}-${randomUUID()}`;
-    const userId = `perf-live-user-${iteration % 7}`;
-    const request = createOrchestratorRequest({
-      sessionId,
-      runId,
-      userId,
-      intent: "translation",
-      input: {
-        text: "Live load test translation request for latency measurement.",
-        targetLanguage: "ru",
+  const sessionId = `perf-${label}-session-${iteration}-${randomUUID()}`;
+  const runId = `perf-${label}-run-${iteration}-${randomUUID()}`;
+  const userId = `perf-${label}-user-${iteration % 7}`;
+  const request = createOrchestratorRequest({
+    sessionId,
+    runId,
+    userId,
+    intent: "translation",
+    input: {
+      text: "Live load test translation request for latency measurement.",
+      targetLanguage: "ru",
+    },
+  });
+  const startedAt = Date.now();
+
+  try {
+    const response = await fetch(orchestrateUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify(request),
     });
-    const startedAt = Date.now();
-
-    try {
-      const response = await fetch(orchestrateUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(request),
-      });
-      const payload = await response.json().catch(() => null);
-      const latencyMs = Date.now() - startedAt;
-      if (!response.ok) {
-        return {
-          ok: false,
-          latencyMs: null,
-          iteration,
-          error: `HTTP ${response.status}`,
-        };
-      }
-
-      const status = isObject(payload) && isObject(payload.payload) ? payload.payload.status : null;
-      const route = isObject(payload) && isObject(payload.payload) ? payload.payload.route : null;
-      const hasTranslation =
-        isObject(payload) && isObject(payload.payload) && isObject(payload.payload.output) && isObject(payload.payload.output.translation);
-
-      const ok = status === "completed" && route === "live-agent" && hasTranslation;
-      return {
-        ok,
-        latencyMs: ok ? latencyMs : null,
-        iteration,
-        error: ok ? null : `unexpected status/route/translation ${toSafeString(status)}/${toSafeString(route)}/${hasTranslation}`,
-      };
-    } catch (error) {
+    const payload = await response.json().catch(() => null);
+    const latencyMs = Date.now() - startedAt;
+    if (!response.ok) {
       return {
         ok: false,
         latencyMs: null,
         iteration,
-        error: error instanceof Error ? error.message : String(error),
+        error: `HTTP ${response.status}`,
       };
     }
+
+    const status = isObject(payload) && isObject(payload.payload) ? payload.payload.status : null;
+    const route = isObject(payload) && isObject(payload.payload) ? payload.payload.route : null;
+    const hasTranslation =
+      isObject(payload) && isObject(payload.payload) && isObject(payload.payload.output) && isObject(payload.payload.output.translation);
+
+    const ok = status === "completed" && route === "live-agent" && hasTranslation;
+    return {
+      ok,
+      latencyMs: ok ? latencyMs : null,
+      iteration,
+      error: ok ? null : `unexpected status/route/translation ${toSafeString(status)}/${toSafeString(route)}/${hasTranslation}`,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      latencyMs: null,
+      iteration,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function runLiveVoiceWarmup(options) {
+  const warmupIterations = Math.max(1, Math.min(options.liveConcurrency, options.liveIterations));
+  await runWithConcurrency(warmupIterations, warmupIterations, async (iteration) => {
+    return runLiveVoiceTranslationRequest(options, iteration, "live-warmup");
+  });
+  return warmupIterations;
+}
+
+async function runLiveVoiceLoad(options) {
+  const warmupIterations = await runLiveVoiceWarmup(options);
+  const results = await runWithConcurrency(options.liveIterations, options.liveConcurrency, async (iteration) => {
+    return runLiveVoiceTranslationRequest(options, iteration, "live");
   });
 
   const summary = summarizeWorkload("live_voice_translation", results);
   summary.path = "orchestrator_http";
+  summary.warmupIterations = warmupIterations;
   return summary;
 }
 

@@ -231,6 +231,25 @@ function Run-StepWithRetry(
   Fail "Step failed after retries: $Name"
 }
 
+function Ensure-ReleaseDemoStorytellerMediaMode {
+  $requestedMediaMode = [string][Environment]::GetEnvironmentVariable("DEMO_E2E_STORYTELLER_MEDIA_MODE")
+  if (@("default", "simulated") -contains $requestedMediaMode) {
+    return
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($requestedMediaMode)) {
+    Write-Host (
+      "[release-check] DEMO_E2E_STORYTELLER_MEDIA_MODE=" +
+      $requestedMediaMode +
+      " is not release-safe; policy gate will validate it."
+    )
+    return
+  }
+
+  [Environment]::SetEnvironmentVariable("DEMO_E2E_STORYTELLER_MEDIA_MODE", "simulated", "Process")
+  Write-Host "[release-check] DEMO_E2E_STORYTELLER_MEDIA_MODE defaulted to simulated for release verification."
+}
+
 function Get-FirstNonEmptyEnvironmentVariableValue([string[]]$Names) {
   foreach ($name in $Names) {
     $value = [Environment]::GetEnvironmentVariable($name)
@@ -372,6 +391,7 @@ if (-not $SkipProfileSmoke) {
 }
 
 if ((-not $SkipDemoE2E) -and (-not $SkipDemoRun)) {
+  Ensure-ReleaseDemoStorytellerMediaMode
   $runFastDemo = $UseFastDemoE2E -or (-not $SkipBuild)
   $scenarioRetryArgs = "-ScenarioRetryMaxAttempts $DemoScenarioRetryMaxAttempts -ScenarioRetryBackoffMs $DemoScenarioRetryBackoffMs"
   $serviceRestartArgs = "-RestartHealthyServices"
