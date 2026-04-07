@@ -63,6 +63,7 @@ test("operator console exposes compact session boundary widget", () => {
     "buildOperatorReplayRefreshRecoveryFollowupSummary",
     "stringifyOperatorReplayRefreshRecoveryFollowupSummary",
     "buildOperatorReplayPrimaryStepRefreshView",
+    "function normalizeOperatorReplayPrimaryStepRefreshLegacyProjection(value)",
     "function normalizeOperatorReplayRefreshRecoveryFollowupTree(value)",
     "function normalizeOperatorReplayPrimaryStepRefreshState(value)",
     "renderOperatorSessionBoundaryRefreshRecoveryFollowupPath",

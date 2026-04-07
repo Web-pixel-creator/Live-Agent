@@ -30797,22 +30797,9 @@ function renderOperatorSessionBoundaryRefreshRecoveryFollowupPath(value) {
   el.operatorSessionBoundaryAfterRefreshPath.append(list);
 }
 
-function normalizeOperatorReplayPrimaryStep(value) {
-  if (!isRecord(value)) {
-    return null;
-  }
+function normalizeOperatorReplayPrimaryStepRefreshLegacyProjection(value) {
+  // Keep flat refreshEscalation* normalization isolated while refreshState stays primary.
   return {
-    label: toOptionalText(value.label),
-    action: toOptionalText(value.action),
-    targetSurface: toOptionalText(value.targetSurface),
-    targetLabel: toOptionalText(value.targetLabel),
-    workspace: toOptionalText(value.workspace),
-    ctaLabel: toOptionalText(value.ctaLabel),
-    phase: toOptionalText(value.phase),
-    runState: toOptionalText(value.runState),
-    actionMode: toOptionalText(value.actionMode),
-    surfaceState: toOptionalText(value.surfaceState),
-    needsRefresh: typeof value.needsRefresh === "boolean" ? value.needsRefresh : null,
     refreshDisposition: toOptionalText(value.refreshDisposition),
     refreshEvidenceHint: toOptionalText(value.refreshEvidenceHint),
     refreshOutcomeLabel: toOptionalText(value.refreshOutcomeLabel),
@@ -31407,6 +31394,26 @@ function normalizeOperatorReplayPrimaryStep(value) {
       toOptionalText(
         value.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint,
       ),
+  };
+}
+
+function normalizeOperatorReplayPrimaryStep(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    label: toOptionalText(value.label),
+    action: toOptionalText(value.action),
+    targetSurface: toOptionalText(value.targetSurface),
+    targetLabel: toOptionalText(value.targetLabel),
+    workspace: toOptionalText(value.workspace),
+    ctaLabel: toOptionalText(value.ctaLabel),
+    phase: toOptionalText(value.phase),
+    runState: toOptionalText(value.runState),
+    actionMode: toOptionalText(value.actionMode),
+    surfaceState: toOptionalText(value.surfaceState),
+    needsRefresh: typeof value.needsRefresh === "boolean" ? value.needsRefresh : null,
+    ...normalizeOperatorReplayPrimaryStepRefreshLegacyProjection(value),
     refreshState: normalizeOperatorReplayPrimaryStepRefreshState(value.refreshState),
     refreshAction: isRecord(value.refreshAction)
       ? {

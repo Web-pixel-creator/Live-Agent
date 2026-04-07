@@ -74,6 +74,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "buildSessionExportOperatorSessionReplay",
     "buildSessionExportOperatorDiscovery",
     "buildOperatorReplayPrimaryStepRefreshView",
+    "function normalizeOperatorReplayPrimaryStepRefreshLegacyProjection(value)",
     "function normalizeOperatorReplayRefreshRecoveryFollowupTree(value)",
     "function normalizeOperatorReplayPrimaryStepRefreshState(value)",
     "buildOperatorReplayRefreshRecoveryFollowupSummary",
