@@ -2101,7 +2101,7 @@ test(
     const result = runReleaseReadiness(createPassingSummary({ assistiveRouterProvider: "invalid" }));
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
-    assert.match(output, /assistiveRouterProvider expected gemini_api\|openai\|anthropic\|deepseek\|moonshot, actua\s*l invalid/i);
+    assert.match(output, /assistiveRouterProvider expected gemini_api\|openai\|anthropic\|deepseek\|moonshot,\s*actua\s*l invalid/i);
   },
 );
 
@@ -2841,7 +2841,7 @@ test(
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(
       output,
-      /source run manifest evidenceSnapshot\.repoPublishSummaryReleaseEvidenceValidated expected true when repoPublishSu\s*mmaryPresent=true/i,
+      /source run manifest evidenceSnapshot\.repoPublishSummaryReleaseEvidenceValidated expected true when\s*repoPublishSu\s*mmaryPresent=true/i,
     );
   },
 );
@@ -3052,7 +3052,7 @@ test(
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(
       output,
-      /source run manifest evidenceSnapshot\.badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath is required when total\s*Paths > 0/i,
+      /source run manifest evidenceSnapshot\.badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath is required when\s*total\s*Paths > 0/i,
     );
   },
 );

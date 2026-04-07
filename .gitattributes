@@ -1,0 +1,3 @@
+apps/demo-frontend/public/*.css text eol=lf
+apps/demo-frontend/public/*.html text eol=lf
+apps/demo-frontend/public/*.js text eol=lf
