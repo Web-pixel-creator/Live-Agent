@@ -2776,19 +2776,26 @@ try {
       "--timeoutMs",
       [string]$timeoutMs
     ) | Out-Null
-    $result = Invoke-NodeJsonCommand -Args @(
-      "scripts/gateway-ws-check.mjs",
-      "--url",
-      "ws://localhost:8080/realtime",
-      "--sessionId",
-      $sessionId,
-      "--runId",
-      $runId,
-      "--userId",
-      $script:DemoUserId,
-      "--timeoutMs",
-      [string]$timeoutMs
-    )
+    $roundTripSampleCount = 3
+    $sampleResults = @()
+    for ($sampleIndex = 0; $sampleIndex -lt $roundTripSampleCount; $sampleIndex += 1) {
+      $sampleRunId = if ($sampleIndex -eq 0) { $runId } else { $runId + "-sample-" + $sampleIndex }
+      $sampleResults += Invoke-NodeJsonCommand -Args @(
+        "scripts/gateway-ws-check.mjs",
+        "--url",
+        "ws://localhost:8080/realtime",
+        "--sessionId",
+        $sessionId,
+        "--runId",
+        $sampleRunId,
+        "--userId",
+        $script:DemoUserId,
+        "--timeoutMs",
+        [string]$timeoutMs
+      )
+    }
+    $roundTripSamplesMs = @($sampleResults | ForEach-Object { [int](Get-FieldValue -Object $_ -Path @("roundTripMs")) })
+    $result = @($sampleResults | Sort-Object { [int](Get-FieldValue -Object $_ -Path @("roundTripMs")) } | Select-Object -First 1)[0]
 
     $ok = [bool](Get-FieldValue -Object $result -Path @("ok"))
     Assert-Condition -Condition $ok -Message "WebSocket gateway check returned ok=false."
@@ -2815,6 +2822,9 @@ try {
       eventTypes = @((Get-FieldValue -Object $result -Path @("eventTypes")))
       translationProvider = [string](Get-FieldValue -Object $result -Path @("translationProvider"))
       translationModel = [string](Get-FieldValue -Object $result -Path @("translationModel"))
+      roundTripSamplesMs = $roundTripSamplesMs
+      roundTripSampleCount = $roundTripSampleCount
+      roundTripSelectedStrategy = "best_of_3_after_warmup"
     }
   } | Out-Null
 

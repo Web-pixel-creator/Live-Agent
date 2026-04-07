@@ -64,6 +64,7 @@ $ReleaseThresholds = @{
 }
 
 $MaxAllowedScenarioRetriesUsedCount = if ($StrictFinalRun) { 0 } else { $ReleaseThresholds.MaxScenarioRetriesUsedCount }
+$EffectiveDemoRunMaxAttempts = if ($StrictFinalRun) { 1 } else { $DemoRunMaxAttempts }
 $IsArtifactOnlyMode = $SkipDemoE2E -and $SkipPolicy -and $SkipBadge
 
 function To-NumberOrNaN([object]$Value) {
@@ -400,7 +401,7 @@ if ((-not $SkipDemoE2E) -and (-not $SkipDemoRun)) {
   } else {
     "npm run demo:e2e -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs"
   }
-  Run-StepWithRetry "Run demo e2e" $demoCommand $DemoRunMaxAttempts $DemoRunRetryBackoffMs
+  Run-StepWithRetry "Run demo e2e" $demoCommand $EffectiveDemoRunMaxAttempts $DemoRunRetryBackoffMs
 }
 
 if (-not $SkipPolicy) {

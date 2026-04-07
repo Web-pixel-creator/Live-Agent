@@ -51,8 +51,10 @@ test("release-readiness uses demo and scenario retry defaults and retry runner",
   assert.match(source, /Run-StepWithRetry\s+"Run demo e2e"/);
   assert.match(source, /\[switch\]\$StrictFinalRun/);
   assert.match(source, /\$MaxAllowedScenarioRetriesUsedCount\s*=\s*if\s*\(\$StrictFinalRun\)\s*\{\s*0\s*\}/);
+  assert.match(source, /\$EffectiveDemoRunMaxAttempts\s*=\s*if\s*\(\$StrictFinalRun\)\s*\{\s*1\s*\}\s*else\s*\{\s*\$DemoRunMaxAttempts\s*\}/);
   assert.match(source, /demo:e2e:policy -- --maxScenarioRetriesUsedCount \$MaxAllowedScenarioRetriesUsedCount/);
   assert.match(source, /-ScenarioRetryMaxAttempts\s+\$DemoScenarioRetryMaxAttempts/);
   assert.match(source, /-ScenarioRetryBackoffMs\s+\$DemoScenarioRetryBackoffMs/);
+  assert.match(source, /Run-StepWithRetry\s+"Run demo e2e"\s+\$demoCommand\s+\$EffectiveDemoRunMaxAttempts\s+\$DemoRunRetryBackoffMs/);
   assert.match(source, /-RestartHealthyServices/);
 });

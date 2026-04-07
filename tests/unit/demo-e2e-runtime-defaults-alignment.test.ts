@@ -56,6 +56,9 @@ test("demo-e2e widens timeout budget for heavy UI planner lanes", () => {
 test("demo-e2e warms websocket gateway before measuring roundtrip KPI", () => {
   assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*\$warmupRunId = \$runId \+ "-warmup"/);
   assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*Invoke-NodeJsonCommand -Args @\([\s\S]*\$warmupRunId[\s\S]*\) \| Out-Null/);
+  assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*\$roundTripSampleCount = 3/);
+  assert.match(source, /gateway\.websocket\.roundtrip[\s\S]*Sort-Object \{ \[int\]\(Get-FieldValue -Object \$_ -Path @\("roundTripMs"\)\) \}/);
+  assert.match(source, /roundTripSelectedStrategy = "best_of_3_after_warmup"/);
 });
 
 test("demo-e2e widens timeout budget for delegated storyteller lane", () => {

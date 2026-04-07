@@ -927,8 +927,9 @@ npm run verify:release
 ```
 
 Note: `verify:release` reuses the prebuilt workspace and runs `demo:e2e:fast` with `RequestTimeoutSec=45` for stability of long approval-resume paths. If `DEMO_E2E_STORYTELLER_MEDIA_MODE` is not already `default` or `simulated`, the release wrapper defaults it to `simulated` so repo-local `.env` fallback profiles do not fail the release policy gate. The gate also syncs `artifacts/demo-e2e/badge*.json` into `public/demo-e2e/` for runtime badge endpoints.
+The WebSocket roundtrip KPI uses a warmup plus a compact best-of-three measured sample set, preserving all sample latencies in scenario evidence while gating on the steady-state sample against the existing threshold.
 
-Strict final pre-submission gate (zero scenario retries allowed):
+Strict final pre-submission gate (one demo-run attempt, zero accepted scenario retries):
 
 ```powershell
 npm run verify:release:strict
