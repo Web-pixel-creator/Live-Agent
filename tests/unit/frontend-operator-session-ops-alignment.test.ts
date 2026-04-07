@@ -3,6 +3,19 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 
+function assertStructuredReplayRefreshContract(source) {
+  assert.match(source, /approval gate|boundary owner|recovery path|recovery drill/i);
+  assert.match(source, /primary step|step progress|checklist|next action target|next operator workspace/i);
+  assert.match(source, /structured refresh state|refreshState|refresh state/i);
+  assert.match(source, /followuptree|followup tree|followupPath|followup path/i);
+  assert.match(source, /compatibility metadata|compatibility block/i);
+  assert.ok(
+    source.includes("legacy projection") ||
+      source.includes("flat `refreshEscalation...` fields") ||
+      source.includes("flat `refreshEscalation...` projection"),
+    "docs missing transitional flat refreshEscalation legacy projection note",
+  );
+}
 test("operator console exposes session ops purpose, replay, and discovery surfaces", () => {
   const htmlPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "index.html");
   const appPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js");
@@ -143,7 +156,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(readmeSource, /followuptree|followup tree/i);
   assert.match(readmeSource, /compatibility block|compatibility metadata/i);
   assert.match(readmeSource, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);
-  assert.match(readmeSource, /resume-ready|latest verified proof pointer|handoff|workflow boundary|recovery path|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh disposition|refresh evidence hint|refresh outcome|refresh confidence|refresh detour|refresh escalation|refresh escalation target|refresh escalation mode|refresh escalation cta|refresh escalation readiness|refresh escalation prep|refresh escalation open guard|refresh escalation fallback|refresh escalation fallback cta|refresh escalation fallback readiness|refresh escalation fallback prep|refresh escalation fallback open guard|refresh escalation fallback outcome|refresh escalation fallback confidence|refresh escalation fallback detour|refresh escalation fallback escalation|refresh escalation fallback escalation target|refresh escalation fallback escalation mode|refresh escalation fallback escalation cta|approval escalation|recovery escalation|workflow owner escalation|boundary review|manual handoff|inspect|recover|owner_handoff|ready|needs_prep|approval gate evidence|workflow boundary evidence|recovery drill evidence|proof pointer|approval gate is current again|workflow boundary is current again|recovery drill state is current again|proof pointer is current again|approval gate fallback is open|boundary fallback is open|replay fallback is open|high|medium|low|silent_rehydrate|reopen_then_refresh|reload_before_run|refresh action|refresh first|refresh replay|refresh target state|refresh scope|after refresh|latest gate state|gate|boundary|proof|recovery|linked workflow boundary or workflow owner handoff|repo-owned recovery drill|gate fallback|handoff fallback|boundary fallback|replay fallback|open gate fallback|inspect boundary fallback|open replay fallback|inspect fallback escalation|hand off after fallback/i);
+  assertStructuredReplayRefreshContract(readmeSource);
   assert.ok(readmeSource.includes("`GET /v1/skills/personas`"), "README missing persona discovery API note");
   assert.ok(operatorGuideSource.includes("`Operator Session Ops`"), "operator guide missing session-ops panel note");
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);
@@ -153,5 +166,5 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.ok(operatorGuideSource.includes("`operatorPurpose`"), "operator guide missing operator purpose note");
   assert.ok(operatorGuideSource.includes("`GET /v1/runtime/session-replay`"), "operator guide missing session replay note");
   assert.match(operatorGuideSource, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);
-  assert.match(operatorGuideSource, /resume-ready|latest verified proof pointer|handoff|workflow boundary|recovery path|approval gate|boundary owner|recovery drill|next action target|next operator workspace|checklist|remaining steps|primary step|step progress|step path|active|queued|runnable|blocked|openable|executable|primed|not_primed|needsrefresh|fresh|needs_refresh|refresh disposition|refresh evidence hint|refresh outcome|refresh confidence|refresh detour|refresh escalation|refresh escalation target|refresh escalation mode|refresh escalation cta|refresh escalation readiness|refresh escalation prep|refresh escalation open guard|refresh escalation fallback|refresh escalation fallback cta|refresh escalation fallback readiness|refresh escalation fallback prep|refresh escalation fallback open guard|refresh escalation fallback outcome|refresh escalation fallback confidence|refresh escalation fallback detour|refresh escalation fallback escalation|refresh escalation fallback escalation target|refresh escalation fallback escalation mode|refresh escalation fallback escalation cta|approval escalation|recovery escalation|workflow owner escalation|boundary review|manual handoff|inspect|recover|owner_handoff|ready|needs_prep|approval gate evidence|workflow boundary evidence|recovery drill evidence|proof pointer|approval gate is current again|workflow boundary is current again|recovery drill state is current again|proof pointer is current again|approval gate fallback is open|boundary fallback is open|replay fallback is open|high|medium|low|silent_rehydrate|reopen_then_refresh|reload_before_run|refresh action|refresh first|refresh replay|refresh target state|refresh scope|after refresh|latest gate state|gate|boundary|proof|recovery|linked workflow boundary or workflow owner handoff|repo-owned recovery drill|gate fallback|handoff fallback|boundary fallback|replay fallback|open gate fallback|inspect boundary fallback|open replay fallback|inspect fallback escalation|hand off after fallback/i);
+  assertStructuredReplayRefreshContract(operatorGuideSource);
 });
