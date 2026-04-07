@@ -32,10 +32,13 @@ The repo now has a promptfoo-based eval scaffold for the product wedge:
 
 - `GEMINI_API_KEY` is mirrored to `GOOGLE_API_KEY` by the eval runner when
   needed so Promptfoo can use the Google provider.
+- On Windows, the eval runner invokes Promptfoo through `cmd.exe` so `npx.cmd`
+  runs correctly in CI and local PowerShell shells.
 - All suites run against both `google:gemini-2.5-flash` and
   `google:gemini-2.5-pro` to keep a simple model-comparison lane.
 - The runner writes a machine-readable run summary to
-  `artifacts/evals/latest-run.json`.
+  `artifacts/evals/latest-run.json`, including runner spawn errors when
+  Promptfoo cannot be started.
 
 ## Release Gate
 

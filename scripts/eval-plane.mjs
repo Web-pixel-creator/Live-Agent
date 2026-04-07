@@ -57,6 +57,34 @@ function selectSuites(manifestSuites, selection) {
   return { selected, missing };
 }
 
+function quoteCmdArgument(value) {
+  const text = String(value);
+  if (/^[A-Za-z0-9_./:@=\\-]+$/.test(text)) {
+    return text;
+  }
+  return `"${text.replace(/"/g, '\\"')}"`;
+}
+
+function buildPromptfooCommand({ configPath, outputPath }) {
+  const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
+  const args = ["-y", "promptfoo@latest", "eval", "-c", configPath, "-o", outputPath, "--no-cache"];
+  const displayCommand = [npxCommand, ...args].join(" ");
+
+  if (process.platform === "win32") {
+    return {
+      executable: "cmd.exe",
+      args: ["/d", "/s", "/c", [npxCommand, ...args].map(quoteCmdArgument).join(" ")],
+      displayCommand,
+    };
+  }
+
+  return {
+    executable: npxCommand,
+    args,
+    displayCommand,
+  };
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
@@ -89,23 +117,22 @@ function main() {
   };
 
   const env = ensureGoogleKeyAlias(process.env);
-  const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
   let hasFailure = false;
 
   for (const suite of selected) {
     const configPath = resolve(cwd, suite.configPath);
     const outputPath = resolve(cwd, suite.outputPath);
     mkdirSync(dirname(outputPath), { recursive: true });
-    const command = [npxCommand, "-y", "promptfoo@latest", "eval", "-c", configPath, "-o", outputPath, "--no-cache"];
+    const command = buildPromptfooCommand({ configPath, outputPath });
 
     if (args.dryRun) {
-      console.log(command.join(" "));
+      console.log(command.displayCommand);
       runSummary.suites.push({
         id: suite.id,
         name: suite.name,
         configPath,
         outputPath,
-        command: command.join(" "),
+        command: command.displayCommand,
         dryRun: true,
       });
       continue;
@@ -113,13 +140,23 @@ function main() {
 
     console.log(`[eval-plane] running ${suite.id}`);
     const startedAt = Date.now();
-    const result = spawnSync(command[0], command.slice(1), {
+    const result = spawnSync(command.executable, command.args, {
       cwd,
       env,
       stdio: "inherit",
     });
     const durationMs = Date.now() - startedAt;
+    const spawnError = result.error
+      ? {
+          name: result.error.name,
+          code: result.error.code ?? null,
+          message: result.error.message,
+        }
+      : null;
     const exitCode = typeof result.status === "number" ? result.status : 1;
+    if (spawnError) {
+      console.error(`[eval-plane] runner spawn failed for ${suite.id}: ${spawnError.message}`);
+    }
     if (exitCode !== 0) {
       hasFailure = true;
     }
@@ -128,10 +165,11 @@ function main() {
       name: suite.name,
       configPath,
       outputPath,
-      command: command.join(" "),
+      command: command.displayCommand,
       durationMs,
       exitCode,
       signal: result.signal ?? null,
+      error: spawnError,
       passed: exitCode === 0,
     });
   }

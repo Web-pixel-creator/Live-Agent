@@ -190,6 +190,11 @@ test("eval manifest and promptfoo suites are wired for translation, negotiation,
     assert.match(source, /type:\s*is-json/);
     assert.match(source, /type:\s*javascript/);
   }
+
+  const redTeamSource = readFileSync(resolve(repoRoot, "configs", "evals", "promptfoo", "red-team.promptfooconfig.yaml"), "utf8");
+  assert.match(redTeamSource, /{{request}}/);
+  assert.match(redTeamSource, /fenced = text\.match/);
+  assert.match(redTeamSource, /Do not wrap the response in Markdown or code fences/);
 });
 
 test("eval runner and package scripts are present for local runs and release gating", () => {
@@ -219,6 +224,10 @@ test("eval runner and package scripts are present for local runs and release gat
   assert.match(runner, /promptfoo@latest/);
   assert.match(runner, /GOOGLE_API_KEY/);
   assert.match(runner, /artifacts", "evals", "latest-run\.json/);
+  assert.match(runner, /buildPromptfooCommand/);
+  assert.match(runner, /cmd\.exe/);
+  assert.match(runner, /runner spawn failed/);
+  assert.match(runner, /error: spawnError/);
 });
 
 test("worker roles and eval docs are linked from the repository", () => {
