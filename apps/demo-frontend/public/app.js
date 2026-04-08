@@ -74,6 +74,11 @@ const state = {
   lastRequestedIntent: "translation",
   liveLastRequestAt: null,
   livePendingRequest: null,
+  liveBootstrapState: "idle",
+  liveBootstrapSnapshot: null,
+  liveBootstrapLoadedAt: null,
+  liveBootstrapError: null,
+  liveTransportMode: "relay",
   pendingIntentRequest: null,
   liveDemoScenario: null,
   liveCaseLastVerifiedSummaryConfig: null,
@@ -19074,17 +19079,123 @@ function setSessionState(text) {
 
 function resolveModeStatusVariant(mode) {
   const normalized = typeof mode === "string" ? mode.trim().toLowerCase() : "";
-  if (normalized === "voice") {
+  if (normalized.includes("bootstrap_error") || normalized.includes("error")) {
+    return "fail";
+  }
+  if (normalized.includes("voice") || normalized.includes("relay") || normalized.includes("direct_live")) {
     return "ok";
   }
   return "neutral";
 }
 
+function buildLiveModeStatusLabel() {
+  const normalizedMode = typeof state.mode === "string" && state.mode.trim().length > 0 ? state.mode.trim() : "voice";
+  if (normalizedMode !== "voice") {
+    return normalizedMode;
+  }
+  const transportMode =
+    typeof state.liveTransportMode === "string" && state.liveTransportMode.trim().length > 0
+      ? state.liveTransportMode.trim()
+      : "relay";
+  if (state.liveBootstrapState === "loading") {
+    return "voice • bootstrapping";
+  }
+  if (state.liveBootstrapState === "prepared_direct") {
+    return `voice • ${transportMode} • direct_ready`;
+  }
+  if (state.liveBootstrapState === "fallback_relay") {
+    return `voice • ${transportMode} • fallback`;
+  }
+  if (state.liveBootstrapState === "error") {
+    return `voice • ${transportMode} • bootstrap_error`;
+  }
+  return `voice • ${transportMode}`;
+}
+
+function renderLiveModeStatus() {
+  const label = buildLiveModeStatusLabel();
+  setStatusPill(el.modeStatus, label, resolveModeStatusVariant(label));
+}
+
 function setMode(mode) {
   const normalized = typeof mode === "string" && mode.trim().length > 0 ? mode.trim() : "voice";
   state.mode = normalized;
-  setStatusPill(el.modeStatus, normalized, resolveModeStatusVariant(normalized));
+  renderLiveModeStatus();
   syncLiveControlButtonStates();
+}
+
+function resolvePreferredLiveBootstrapMode() {
+  const liveRuntime = resolveOperatorBootstrapDoctorLiveRuntime(state.operatorBootstrapDoctorSnapshot);
+  const preferredMode = toOptionalText(liveRuntime?.preferredMode);
+  if (preferredMode === "relay" || preferredMode === "direct_live") {
+    return preferredMode;
+  }
+  return null;
+}
+
+function buildLiveSessionBootstrapRequest(intent = getCurrentLiveIntentValue()) {
+  const preferredMode = resolvePreferredLiveBootstrapMode();
+  const payload = {
+    intent,
+    audio: state.mode !== "text-fallback",
+    video: false,
+    screen: false,
+    toolsRequired: true,
+  };
+  if (preferredMode) {
+    payload.preferredMode = preferredMode;
+  }
+  return payload;
+}
+
+function applyLiveSessionBootstrapResult(status, snapshot = null, errorMessage = null) {
+  state.liveBootstrapState = status;
+  state.liveBootstrapSnapshot = snapshot;
+  state.liveBootstrapLoadedAt = snapshot ? new Date().toISOString() : state.liveBootstrapLoadedAt;
+  state.liveBootstrapError = typeof errorMessage === "string" && errorMessage.trim().length > 0 ? errorMessage.trim() : null;
+  state.liveTransportMode = "relay";
+  renderLiveModeStatus();
+}
+
+async function bootstrapLiveSessionTransport(options = {}) {
+  const intent =
+    typeof options.intent === "string" && options.intent.trim().length > 0 ? options.intent.trim() : getCurrentLiveIntentValue();
+  applyLiveSessionBootstrapResult("loading", state.liveBootstrapSnapshot, null);
+  try {
+    const response = await fetch(`${state.apiBaseUrl}/v1/runtime/live/session-token`, {
+      method: "POST",
+      headers: operatorHeaders(true),
+      body: JSON.stringify(buildLiveSessionBootstrapRequest(intent)),
+    });
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+    if (!response.ok) {
+      const errorText = getApiErrorMessage(payload, `live bootstrap failed with ${response.status}`);
+      throw new Error(String(errorText));
+    }
+    const snapshot = isRecord(payload?.data) ? payload.data : null;
+    const connectionMode = toOptionalText(snapshot?.connectionMode) ?? "relay";
+    const fallbackMode = toOptionalText(snapshot?.fallbackMode);
+    const warnings = Array.isArray(snapshot?.warnings)
+      ? snapshot.warnings.filter((item) => typeof item === "string" && item.trim().length > 0)
+      : [];
+    const nextState =
+      connectionMode === "direct_live"
+        ? "prepared_direct"
+        : fallbackMode === "relay" || warnings.length > 0
+          ? "fallback_relay"
+          : "relay_ready";
+    applyLiveSessionBootstrapResult(nextState, snapshot, warnings[0] ?? null);
+    return snapshot;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    applyLiveSessionBootstrapResult("error", null, message);
+    return null;
+  }
 }
 
 function setPttStatus(text, variant = "neutral") {
@@ -38503,16 +38614,21 @@ function shouldSurfaceLiveProtocolFailure() {
   return sessionState !== "orchestrator_completed" && sessionState !== "orchestrator_pending_approval";
 }
 
-function connectWebSocket() {
+async function connectWebSocket() {
   if (state.ws && (state.ws.readyState === WebSocket.OPEN || state.ws.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+  if (state.connectionStatus === "connecting") {
     return;
   }
   const wsUrl = el.wsUrl.value.trim();
   state.wsUrl = wsUrl;
+  setConnectionStatus("connecting");
+  await bootstrapLiveSessionTransport({
+    intent: getCurrentLiveIntentValue(),
+  });
   const ws = new WebSocket(wsUrl);
   state.ws = ws;
-
-  setConnectionStatus("connecting");
 
   ws.addEventListener("open", () => {
     setConnectionStatus("connected");
@@ -39147,7 +39263,7 @@ function sendIntentRequest(options = {}) {
         ? "Live-сессия ещё не открыта. Подключаюсь и отправлю запрос автоматически."
         : "Live session is not open yet. Connecting now and sending the request automatically.",
     );
-    connectWebSocket();
+    void connectWebSocket();
     return;
   }
 
@@ -39648,7 +39764,9 @@ function bindEvents() {
       focusLiveContextTrayPrimaryAction(activeTrayId);
     }, LIVE_CONTEXT_KEYBOARD_HANDOFF_DELAYS);
   });
-  document.getElementById("connectBtn").addEventListener("click", connectWebSocket);
+  document.getElementById("connectBtn").addEventListener("click", () => {
+    void connectWebSocket();
+  });
   document.getElementById("disconnectBtn").addEventListener("click", disconnectWebSocket);
   if (el.exportMarkdownBtn) {
     el.exportMarkdownBtn.addEventListener("click", () => {
@@ -40820,6 +40938,7 @@ async function bootstrap() {
   applyThemeMode(readStoredThemeMode(), { persist: false, announce: false });
   setConnectionStatus("disconnected");
   setExportStatus("idle");
+  renderLiveModeStatus();
   updatePttUi();
   setStatusPill(el.constraintStatus, "Waiting for offer", "neutral");
   setFallbackAsset(false);

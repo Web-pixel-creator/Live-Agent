@@ -1170,7 +1170,7 @@ test("demo frontend keeps late protocol noise out of the result card after orche
   const readmeSource = readFileSync(readmePath, "utf8");
 
   const helperStartToken = "function shouldSurfaceLiveProtocolFailure() {";
-  const helperEndToken = "\n\nfunction connectWebSocket() {";
+  const helperEndToken = "\n\nasync function connectWebSocket() {";
   const helperStartIndex = appSource.indexOf(helperStartToken);
   const helperEndIndex = appSource.indexOf(helperEndToken, helperStartIndex);
 

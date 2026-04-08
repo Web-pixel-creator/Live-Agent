@@ -15,7 +15,7 @@ test("demo frontend waits for an explicit Connect action before opening the live
   const operatorGuideSource = readFileSync(operatorGuidePath, "utf8");
   const runbookSource = readFileSync(runbookPath, "utf8");
 
-  const startToken = 'document.getElementById("connectBtn").addEventListener("click", connectWebSocket);';
+  const startToken = 'document.getElementById("connectBtn").addEventListener("click", () => {';
   const endToken = "\n  if (el.exportMarkdownBtn) {";
   const startIndex = appSource.indexOf(startToken);
   const endIndex = appSource.indexOf(endToken, startIndex);
@@ -29,7 +29,20 @@ test("demo frontend waits for an explicit Connect action before opening the live
     "frontend runtime missing disconnect binding near connect controls",
   );
   assert.ok(
-    !bootstrapSource.includes("connectWebSocket();"),
+    bootstrapSource.includes("void connectWebSocket();"),
+    "frontend runtime missing async manual connect wrapper",
+  );
+  const bootstrapStartToken = "async function bootstrap() {";
+  const bootstrapEndToken = "\n\nbootstrap().catch((error) => {";
+  const bootstrapFunctionStartIndex = appSource.indexOf(bootstrapStartToken);
+  const bootstrapFunctionEndIndex = appSource.indexOf(bootstrapEndToken, bootstrapFunctionStartIndex);
+
+  assert.notEqual(bootstrapFunctionStartIndex, -1, "frontend runtime missing bootstrap function");
+  assert.notEqual(bootstrapFunctionEndIndex, -1, "frontend runtime missing bootstrap function boundary");
+
+  const bootstrapFunctionSource = appSource.slice(bootstrapFunctionStartIndex, bootstrapFunctionEndIndex);
+  assert.ok(
+    !bootstrapFunctionSource.includes("connectWebSocket();") && !bootstrapFunctionSource.includes("void connectWebSocket();"),
     "frontend should not auto-connect the websocket during page bootstrap",
   );
 

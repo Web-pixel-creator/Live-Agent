@@ -32,8 +32,12 @@ test("demo frontend keeps live status strip states mapped to pill variants", () 
     "setConnectionStatus",
     "resolveSessionStateVariant",
     "resolveModeStatusVariant",
+    "buildLiveModeStatusLabel",
+    "renderLiveModeStatus",
     "setSessionState",
     "setMode",
+    "async function bootstrapLiveSessionTransport(options = {})",
+    'fetch(`${state.apiBaseUrl}/v1/runtime/live/session-token`',
     "setStatusPill(el.connectionStatus",
     "setStatusPill(el.sessionState",
     "setStatusPill(el.modeStatus",
@@ -77,5 +81,9 @@ test("demo frontend keeps live status strip states mapped to pill variants", () 
   assert.ok(
     operatorGuideSource.includes("compact `4-column` matrix"),
     "operator guide missing live status strip 4-column matrix note",
+  );
+  assert.ok(
+    operatorGuideSource.includes("voice • relay • direct_ready"),
+    "operator guide missing live bootstrap mode-strip note",
   );
 });
