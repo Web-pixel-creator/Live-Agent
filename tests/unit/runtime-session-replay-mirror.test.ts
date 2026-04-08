@@ -205,6 +205,7 @@ test("runtime session replay mirror aggregates selected session replay, approval
   assert.equal(snapshot.selectedSession.workflow.followUp, null);
   assert.equal(snapshot.selectedSession.replay.replayState, "verified");
   assert.equal(snapshot.selectedSession.replay.resumeReady, true);
+  assert.equal(snapshot.selectedSession.replay.liveTransport, null);
   assert.equal(snapshot.selectedSession.replay.resumeBlockedBy, null);
   assert.equal(snapshot.selectedSession.replay.nextOperatorAction, "resume_handoff");
   assert.equal(snapshot.selectedSession.replay.nextOperatorActionLabel, "Resume handoff");
@@ -884,3 +885,53 @@ test("runtime session replay mirror marks stale escalation as needs_prep when wo
   };
   assert.deepEqual(collectFollowupTreeLevels(refreshState.followupTree), expectedFollowupLevels);
   });
+
+test("runtime session replay mirror surfaces direct live transport evidence from direct_live events", () => {
+  const sessions: SessionListItem[] = [
+    {
+      sessionId: "session-direct",
+      tenantId: "tenant-a",
+      mode: "live",
+      status: "active",
+      version: 1,
+      lastMutationId: "mutation-direct",
+      updatedAt: "2026-04-01T10:05:00.000Z",
+    },
+  ];
+
+  const directEvents: EventListItem[] = [
+    {
+      eventId: "event-direct-1",
+      sessionId: "session-direct",
+      runId: "run-direct-1",
+      type: "live.output",
+      source: "direct_live",
+      createdAt: "2026-04-01T10:05:00.000Z",
+      route: "live-agent",
+      status: "completed",
+      intent: "translation",
+      verificationState: "verified",
+      verificationSummary: "Direct live turn completed.",
+    },
+  ];
+
+  const snapshot = buildRuntimeSessionReplayMirrorSnapshot({
+    sessions,
+    runs: [],
+    approvals: [],
+    recentEvents: directEvents,
+    selectedEvents: directEvents,
+    selectedSessionId: "session-direct",
+    workflowSummary: null,
+  });
+
+  assert.deepEqual(snapshot.selectedSession.replay.liveTransport, {
+    activeMode: "direct_live",
+    provider: null,
+    model: null,
+    bootstrapState: null,
+    fallbackReason: null,
+    capturedAt: "2026-04-01T10:05:00.000Z",
+    evidenceSource: "session_events",
+  });
+});

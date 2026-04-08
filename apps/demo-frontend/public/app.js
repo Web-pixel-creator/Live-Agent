@@ -19204,6 +19204,64 @@ async function bootstrapLiveSessionTransport(options = {}) {
   }
 }
 
+function normalizeOperatorReplayLiveTransport(value) {
+  const typed = isRecord(value) ? value : {};
+  const activeMode = toOptionalText(typed.activeMode);
+  const provider = toOptionalText(typed.provider);
+  const model = toOptionalText(typed.model);
+  const bootstrapState = toOptionalText(typed.bootstrapState);
+  const fallbackReason = toOptionalText(typed.fallbackReason);
+  const capturedAt = toOptionalText(typed.capturedAt);
+  const evidenceSource = toOptionalText(typed.evidenceSource);
+  if (!activeMode && !provider && !model && !bootstrapState && !fallbackReason && !capturedAt && !evidenceSource) {
+    return null;
+  }
+  return {
+    activeMode,
+    provider,
+    model,
+    bootstrapState,
+    fallbackReason,
+    capturedAt,
+    evidenceSource,
+  };
+}
+
+function buildCurrentLiveTransportEvidence(options = {}) {
+  const currentSessionId = toOptionalText(state.sessionId);
+  const selectedSessionId = toOptionalText(options.selectedSessionId) ?? currentSessionId;
+  if (!currentSessionId || !selectedSessionId || selectedSessionId !== currentSessionId) {
+    return null;
+  }
+  const snapshot = isRecord(state.liveBootstrapSnapshot) ? state.liveBootstrapSnapshot : null;
+  const warnings = Array.isArray(snapshot?.warnings)
+    ? snapshot.warnings.filter((item) => typeof item === "string" && item.trim().length > 0)
+    : [];
+  const activeMode = toOptionalText(state.liveTransportMode);
+  const bootstrapState = toOptionalText(state.liveBootstrapState);
+  const provider = toOptionalText(snapshot?.provider);
+  const model = toOptionalText(snapshot?.model);
+  const fallbackReason = toOptionalText(state.liveBootstrapError) ?? toOptionalText(warnings[0]);
+  const capturedAt = toOptionalText(state.liveBootstrapLoadedAt) ?? toOptionalText(state.liveLastRequestAt);
+  const hasEvidence =
+    (bootstrapState && bootstrapState !== "idle") ||
+    activeMode === "direct_live" ||
+    capturedAt !== null ||
+    state.connectionStatus === "connected";
+  if (!hasEvidence) {
+    return null;
+  }
+  return {
+    activeMode: activeMode ?? "relay",
+    provider,
+    model,
+    bootstrapState,
+    fallbackReason,
+    capturedAt,
+    evidenceSource: "frontend_runtime",
+  };
+}
+
 function setPttStatus(text, variant = "neutral") {
   if (!el.pttStatus) {
     return;
@@ -25147,6 +25205,11 @@ function buildSessionExportOperatorSessionReplay() {
   const selectedSession = isRecord(snapshot.selectedSession) ? snapshot.selectedSession : null;
   const replay = isRecord(selectedSession?.replay) ? selectedSession.replay : null;
   const workflow = isRecord(selectedSession?.workflow) ? selectedSession.workflow : null;
+  const liveTransport =
+    normalizeOperatorReplayLiveTransport(replay?.liveTransport) ??
+    buildCurrentLiveTransportEvidence({
+      selectedSessionId: toOptionalText(snapshot.selectedSessionId),
+    });
   return {
     status: toOptionalText(snapshot.status) ?? "idle",
     source: toOptionalText(snapshot.source),
@@ -25171,6 +25234,7 @@ function buildSessionExportOperatorSessionReplay() {
     nextOperatorPrimaryStep: isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null,
     nextOperatorStepProgress: isRecord(replay?.nextOperatorStepProgress) ? replay.nextOperatorStepProgress : null,
     nextOperatorStepPath: Array.isArray(replay?.nextOperatorStepPath) ? replay.nextOperatorStepPath : [],
+    liveTransport,
     latestVerifiedStage: toOptionalText(replay?.latestVerifiedStage),
     boundaryOwner: isRecord(replay?.boundaryOwner) ? replay.boundaryOwner : null,
     approvalGate: isRecord(replay?.approvalGate) ? replay.approvalGate : null,
@@ -25342,6 +25406,17 @@ function toMarkdownExport(payload) {
   lines.push(`- totalSessions: ${payload.operatorEvidence?.operatorSessionReplay?.totalSessions ?? 0}`);
   lines.push(`- selectedSessionId: ${payload.operatorEvidence?.operatorSessionReplay?.selectedSessionId ?? "-"}`);
   lines.push(`- totalEvents: ${payload.operatorEvidence?.operatorSessionReplay?.totalEvents ?? 0}`);
+  if (payload.operatorEvidence?.operatorSessionReplay?.liveTransport && typeof payload.operatorEvidence.operatorSessionReplay.liveTransport === "object") {
+    const liveTransport = payload.operatorEvidence.operatorSessionReplay.liveTransport;
+    lines.push(`- liveTransport: ${liveTransport.activeMode ?? "-"}`);
+    lines.push(`- liveProvider: ${liveTransport.provider ?? "-"}`);
+    lines.push(`- liveModel: ${liveTransport.model ?? "-"}`);
+    lines.push(`- liveBootstrap: ${liveTransport.bootstrapState ?? "-"}`);
+    lines.push(`- liveFallback: ${liveTransport.fallbackReason ?? "-"}`);
+    lines.push(`- liveEvidenceSource: ${liveTransport.evidenceSource ?? "-"}`);
+  } else {
+    lines.push("- liveTransport: (not captured)");
+  }
   if ((payload.operatorEvidence?.operatorSessionReplay?.recentEvents?.length ?? 0) === 0) {
     lines.push("- recentEvents: (empty)");
   } else {
@@ -29604,6 +29679,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   const recovery = isRecord(replay?.recoveryPathHint) ? replay.recoveryPathHint : null;
   const recoveryHandoff = isRecord(replay?.recoveryHandoff) ? replay.recoveryHandoff : null;
   const recoveryDrill = isRecord(replay?.recoveryDrill) ? replay.recoveryDrill : null;
+  const liveTransport = normalizeOperatorReplayLiveTransport(replay?.liveTransport);
   const nextActionTarget = isRecord(replay?.nextOperatorActionTarget) ? replay.nextOperatorActionTarget : null;
   const nextOperatorPrimaryStep = isRecord(replay?.nextOperatorPrimaryStep) ? replay.nextOperatorPrimaryStep : null;
   const primaryStepRefreshView = buildOperatorReplayPrimaryStepRefreshView(nextOperatorPrimaryStep);
@@ -29650,6 +29726,9 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
     toOptionalText(boundary?.summary) ??
     toOptionalText(workflow?.workflowReason) ??
     "No workflow boundary summary loaded yet.";
+  const liveTransportDetail = liveTransport
+    ? `live=${toOptionalText(liveTransport.activeMode) ?? "unknown"}${toOptionalText(liveTransport.provider) ? `/${toOptionalText(liveTransport.provider)}` : ""}${toOptionalText(liveTransport.model) ? `:${toOptionalText(liveTransport.model)}` : ""}${toOptionalText(liveTransport.bootstrapState) ? ` | ${toOptionalText(liveTransport.bootstrapState)}` : ""}`
+    : null;
   const boundaryNextStep =
     toOptionalText(boundary?.nextStep) ??
     toOptionalText(currentHandoffState?.nextStep) ??
@@ -29775,7 +29854,7 @@ function renderOperatorSessionBoundaryWidget(sessionReplaySnapshot) {
   );
   setText(
     el.operatorSessionBoundarySummary,
-    `${boundaryKind} | ${boundaryStage ?? "n/a"} | ${boundaryStatus ?? "n/a"}`,
+    `${boundaryKind} | ${boundaryStage ?? "n/a"} | ${boundaryStatus ?? "n/a"}${liveTransportDetail ? ` | ${liveTransportDetail}` : ""}`,
   );
   setText(
     el.operatorSessionBoundaryOwner,
@@ -31237,6 +31316,10 @@ function buildOperatorSessionReplaySnapshot(value) {
   const selectedSessionSummary = isRecord(selectedSessionRecord?.session)
     ? normalizeOperatorReplaySessionRecord(selectedSessionRecord.session)
     : null;
+  const selectedSessionReplaySessionId =
+    toOptionalText(selectedSessionSummary?.sessionId) ??
+    toOptionalText(selectedSessionRecord?.session?.sessionId) ??
+    toOptionalText(typed.selectedSessionId);
   const selectedSessionWorkflow = isRecord(selectedSessionRecord?.workflow)
     ? {
         linked: selectedSessionRecord.workflow.linked === true,
@@ -31259,6 +31342,10 @@ function buildOperatorSessionReplaySnapshot(value) {
     ? {
         replayState: toOptionalText(selectedSessionRecord.replay.replayState) ?? "empty",
         replayReady: selectedSessionRecord.replay.replayReady === true,
+        liveTransport:
+          buildCurrentLiveTransportEvidence({
+            selectedSessionId: selectedSessionReplaySessionId,
+          }) ?? normalizeOperatorReplayLiveTransport(selectedSessionRecord.replay.liveTransport),
         resumeReady: selectedSessionRecord.replay.resumeReady === true,
         resumeBlockedBy: toOptionalText(selectedSessionRecord.replay.resumeBlockedBy),
         nextOperatorAction: toOptionalText(selectedSessionRecord.replay.nextOperatorAction),
@@ -31431,6 +31518,11 @@ function buildOperatorSessionOpsControlMeta() {
   const refreshView = buildOperatorReplayPrimaryStepRefreshView(
     replay?.selectedSession?.replay?.nextOperatorPrimaryStep,
   );
+  const liveTransport =
+    normalizeOperatorReplayLiveTransport(replay?.selectedSession?.replay?.liveTransport) ??
+    buildCurrentLiveTransportEvidence({
+      selectedSessionId: toOptionalText(replay?.selectedSessionId),
+    });
   const primaryStep = refreshView.primaryStep;
   const refreshFollowupHead = refreshView.refreshRecoveryFollowupPathSummary[0] ?? null;
   const details = [
@@ -31443,6 +31535,10 @@ function buildOperatorSessionOpsControlMeta() {
     `nextAction=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionLabel) ?? toOptionalText(replay?.selectedSession?.replay?.nextOperatorAction) ?? "n/a"}`,
     `nextTarget=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionTarget?.targetLabel) ?? toOptionalText(replay?.selectedSession?.replay?.nextOperatorActionTarget?.targetSurface) ?? "n/a"}`,
     `nextWorkspace=${toOptionalText(replay?.selectedSession?.replay?.nextOperatorWorkspace) ?? "n/a"}`,
+    `liveTransport=${toOptionalText(liveTransport?.activeMode) ?? "n/a"}`,
+    `liveTransportSource=${toOptionalText(liveTransport?.evidenceSource) ?? "n/a"}`,
+    `liveProvider=${toOptionalText(liveTransport?.provider) ?? "n/a"}`,
+    `liveBootstrap=${toOptionalText(liveTransport?.bootstrapState) ?? "n/a"}`,
     `firstStep=${toOptionalText(primaryStep?.label) ?? "n/a"}`,
     `firstStepState=${toOptionalText(primaryStep?.runState) ?? "n/a"}`,
     `firstStepMode=${toOptionalText(primaryStep?.actionMode) ?? "n/a"}`,
@@ -31503,6 +31599,11 @@ function buildOperatorSessionOpsReplayPreview() {
     {
       selectedSessionId: toOptionalText(snapshot.selectedSessionId),
       replayState: toOptionalText(replay?.replayState) ?? toOptionalText(snapshot.replayState),
+      liveTransport:
+        normalizeOperatorReplayLiveTransport(replay?.liveTransport) ??
+        buildCurrentLiveTransportEvidence({
+          selectedSessionId: toOptionalText(snapshot.selectedSessionId),
+        }),
       resumeReady: replay?.resumeReady === true,
       resumeBlockedBy: toOptionalText(replay?.resumeBlockedBy),
       nextOperatorAction: toOptionalText(replay?.nextOperatorAction),

@@ -787,6 +787,15 @@ export type RuntimeSessionReplaySnapshot = {
     replay: {
       replayState: RuntimeSessionReplayState;
       replayReady: boolean;
+      liveTransport: {
+        activeMode: "relay" | "direct_live" | null;
+        provider: string | null;
+        model: string | null;
+        bootstrapState: string | null;
+        fallbackReason: string | null;
+        capturedAt: string | null;
+        evidenceSource: "session_events" | "frontend_runtime" | "unknown" | null;
+      } | null;
       resumeReady: boolean;
       resumeBlockedBy: string | null;
       nextOperatorAction: string | null;
@@ -938,6 +947,10 @@ type SessionEventInsight = {
   byType: Record<string, number>;
   byRoute: Record<string, number>;
 };
+
+type RuntimeSessionReplayLiveTransport = NonNullable<
+  RuntimeSessionReplaySnapshot["selectedSession"]["replay"]["liveTransport"]
+>;
 
 function toNonEmptyString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -4052,6 +4065,23 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionSegment<TTarget, TCt
   };
 }
 
+function buildSessionLiveTransport(
+  eventInsight: SessionEventInsight,
+): RuntimeSessionReplayLiveTransport | null {
+  if ((eventInsight.bySource.direct_live ?? 0) < 1) {
+    return null;
+  }
+  return {
+    activeMode: "direct_live",
+    provider: null,
+    model: null,
+    bootstrapState: null,
+    fallbackReason: null,
+    capturedAt: eventInsight.latestEventAt,
+    evidenceSource: "session_events",
+  };
+}
+
 function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationSegment(
   params: RuntimeSessionReplayPrimaryRefreshLegacyProjectionEscalationSegmentParams,
 ): RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments["escalation"] {
@@ -5662,6 +5692,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
       replay: {
         replayState: selectedReplayState,
         replayReady: selectedReplayState !== "empty",
+        liveTransport: buildSessionLiveTransport(selectedEventInsight),
         resumeReady: resumeMetadata.resumeReady,
         resumeBlockedBy: resumeMetadata.resumeBlockedBy,
         nextOperatorAction: resumeMetadata.nextOperatorAction,

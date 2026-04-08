@@ -37,6 +37,10 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
     "sessionsAwaitingApproval",
     "sessionsWithVerifiedProof",
     "resumeReady",
+    "liveTransport",
+    "activeMode",
+    "evidenceSource",
+    "capturedAt",
     "resumeBlockedBy",
     "nextOperatorAction",
     "nextOperatorActionLabel",
@@ -123,7 +127,7 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
   assert.match(readme, /followuptree|followup tree/i);
   assert.match(readme, /compatibility block|compatibility metadata/i);
   assert.match(readme, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);
-  assert.match(readme, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|primary step|step progress|structured refresh state|followuptree|compatibility|legacy projection/i);
+  assert.match(readme, /resume-ready|live transport|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|primary step|step progress|structured refresh state|followuptree|compatibility|legacy projection/i);
   assert.match(operatorGuide, /GET \/v1\/runtime\/session-replay/);
   assert.match(operatorGuide, /Runtime session replay note:/);
   assert.match(operatorGuide, /refresh recovery follow-?up path/i);
@@ -131,12 +135,12 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
   assert.match(operatorGuide, /followuptree|followup tree/i);
   assert.match(operatorGuide, /compatibility block|compatibility metadata/i);
   assert.match(operatorGuide, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);
-  assert.match(operatorGuide, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|primary step|step progress|structured refresh state|followuptree|compatibility|legacy projection/i);
+  assert.match(operatorGuide, /resume-ready|live transport|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|primary step|step progress|structured refresh state|followuptree|compatibility|legacy projection/i);
   assert.match(architecture, /runtime session replay mirror/i);
   assert.match(architecture, /refresh recovery follow-?up path/i);
   assert.match(architecture, /structured refresh state/i);
   assert.match(architecture, /followuptree|followup tree/i);
   assert.match(architecture, /compatibility block|compatibility metadata/i);
   assert.match(architecture, /flat `refreshEscalation\.\.\.` projection remains transitional/i);
-  assert.match(architecture, /resume-ready|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|primary step|step progress|structured refresh state|followuptree|compatibility|legacy projection/i);
+  assert.match(architecture, /resume-ready|live transport|latest verified proof pointer|handoff|recovery path|workflow boundary|approval gate|boundary owner|primary step|step progress|structured refresh state|followuptree|compatibility|legacy projection/i);
 });
