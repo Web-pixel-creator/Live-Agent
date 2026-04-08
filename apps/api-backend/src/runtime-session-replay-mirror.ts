@@ -465,6 +465,23 @@ type RuntimeSessionReplayPrimaryRefreshRecoveryFollowupAppendEntry = {
   disposition?: RuntimeSessionReplayPrimaryRefreshDisposition | null;
 };
 
+type RuntimeSessionReplayPrimaryRefreshEscalationRetryParams = {
+  needsRefresh: boolean;
+  escalationRetryTarget: RuntimeSessionReplayPrimaryRefreshEscalationTarget | null;
+};
+
+type RuntimeSessionReplayPrimaryRefreshEscalationRetryReadinessParams =
+  RuntimeSessionReplayPrimaryRefreshEscalationRetryParams & {
+    workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+    currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+    recoveryDrill: ReturnType<typeof buildRecoveryDrill>;
+  };
+
+type RuntimeSessionReplayPrimaryRefreshEscalationRetryGateParams =
+  RuntimeSessionReplayPrimaryRefreshEscalationRetryParams & {
+    escalationRetryReadiness: RuntimeSessionReplayPrimaryRefreshLegacyReadiness | null;
+  };
+
 type RuntimeSessionReplayStepProgress = {
   current: number;
   total: number;
@@ -3431,20 +3448,16 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint(
+  params: RuntimeSessionReplayPrimaryRefreshEscalationRetryParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyTextValue | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget
+    !params.escalationRetryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.escalationRetryTarget.targetSurface) {
     case "operator_workflow_control":
       return "Escalate again if boundary ownership still stays unresolved.";
     case "operator_runtime_drills":
@@ -3455,20 +3468,16 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget(
+  params: RuntimeSessionReplayPrimaryRefreshEscalationRetryParams,
+): RuntimeSessionReplayPrimaryRefreshEscalationTarget | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget
+    !params.escalationRetryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.escalationRetryTarget.targetSurface) {
     case "operator_workflow_control":
       return {
         label: "Workflow Control | boundary ownership escalation retry",
@@ -3500,83 +3509,54 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA(
+  params: RuntimeSessionReplayPrimaryRefreshEscalationRetryParams,
+): RuntimeSessionReplayPrimaryRefreshEscalationCTA | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
+    !params.escalationRetryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-      .mode
-  ) {
+  switch (params.escalationRetryTarget.mode) {
     case "inspect":
       return {
         label: "Open Workflow Control for the ownership escalation retry.",
         ctaLabel: "Inspect escalation retry",
-        targetSurface:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-            .targetSurface,
-        targetLabel:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-            .targetLabel,
-        workspace:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-            .workspace,
+        targetSurface: params.escalationRetryTarget.targetSurface,
+        targetLabel: params.escalationRetryTarget.targetLabel,
+        workspace: params.escalationRetryTarget.workspace,
       };
     case "recover":
       return {
         label: "Open Runtime Drill Runner for the ownership escalation retry recovery.",
         ctaLabel: "Recover after escalation retry",
-        targetSurface:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-            .targetSurface,
-        targetLabel:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-            .targetLabel,
-        workspace:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-            .workspace,
+        targetSurface: params.escalationRetryTarget.targetSurface,
+        targetLabel: params.escalationRetryTarget.targetLabel,
+        workspace: params.escalationRetryTarget.workspace,
       };
     case "owner_handoff":
     default:
       return {
         label: "Open Operator Session Ops for the ownership escalation retry handoff.",
         ctaLabel: "Hand off into escalation retry",
-        targetSurface:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-            .targetSurface,
-        targetLabel:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-            .targetLabel,
-        workspace:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-            .workspace,
+        targetSurface: params.escalationRetryTarget.targetSurface,
+        targetLabel: params.escalationRetryTarget.targetLabel,
+        workspace: params.escalationRetryTarget.workspace,
       };
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget | null;
-  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
-  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
-  recoveryDrill: ReturnType<typeof buildRecoveryDrill>;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness(
+  params: RuntimeSessionReplayPrimaryRefreshEscalationRetryReadinessParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyReadiness | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
+    !params.escalationRetryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.escalationRetryTarget.targetSurface) {
     case "operator_workflow_control":
       return params.workflowSummary || params.currentHandoffState ? "ready" : "needs_prep";
     case "operator_runtime_drills":
@@ -3587,23 +3567,17 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrepHint(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget | null;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrepHint | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrepHint(
+  params: RuntimeSessionReplayPrimaryRefreshEscalationRetryGateParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyTextValue | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget ||
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness !==
-      "needs_prep"
+    !params.escalationRetryTarget ||
+    params.escalationRetryReadiness !== "needs_prep"
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.escalationRetryTarget.targetSurface) {
     case "operator_workflow_control":
       return "Load the latest workflow boundary or workflow owner handoff before opening the ownership escalation retry.";
     case "operator_runtime_drills":
@@ -3614,23 +3588,17 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget | null;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard(
+  params: RuntimeSessionReplayPrimaryRefreshEscalationRetryGateParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyTextValue | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget ||
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness !==
-      "needs_prep"
+    !params.escalationRetryTarget ||
+    params.escalationRetryReadiness !== "needs_prep"
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.escalationRetryTarget.targetSurface) {
     case "operator_workflow_control":
       return "Open once the latest workflow boundary or workflow owner handoff is loaded.";
     case "operator_runtime_drills":
@@ -3641,20 +3609,16 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel(
+  params: RuntimeSessionReplayPrimaryRefreshEscalationRetryParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyTextValue | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
+    !params.escalationRetryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.escalationRetryTarget.targetSurface) {
     case "operator_workflow_control":
       return "Ownership escalation retry is open.";
     case "operator_runtime_drills":
@@ -3665,20 +3629,16 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence(
+  params: RuntimeSessionReplayPrimaryRefreshEscalationRetryParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyConfidence | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
+    !params.escalationRetryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.escalationRetryTarget.targetSurface) {
     case "operator_workflow_control":
       return "medium";
     case "operator_runtime_drills":
@@ -3689,20 +3649,16 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint(
+  params: RuntimeSessionReplayPrimaryRefreshEscalationRetryParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyTextValue | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
+    !params.escalationRetryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.escalationRetryTarget.targetSurface) {
     case "operator_workflow_control":
       return "Recheck boundary ownership after the ownership escalation retry opens.";
     case "operator_runtime_drills":
@@ -4714,28 +4670,32 @@ function buildNextOperatorPrimaryStep(params: {
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
         workflowSummary: params.workflowSummary,
         currentHandoffState: params.currentHandoffState,
         recoveryDrill: params.recoveryDrill,
@@ -4745,37 +4705,44 @@ function buildNextOperatorPrimaryStep(params: {
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrepHint(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+        escalationRetryReadiness:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+        escalationRetryReadiness:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
       },
     );
   const refreshTargetState = buildNextOperatorPrimaryStepRefreshTargetState({
