@@ -19,6 +19,30 @@ on:
         description: "Comma-separated frontend origins to publish into API_CORS_ALLOWED_ORIGINS before deploy"
         required: false
         default: "https://live-agent-frontend-production.up.railway.app"
+      live_api_enabled:
+        description: "Optional LIVE_API_ENABLED override"
+        required: false
+        default: ""
+      live_direct_mode_enabled:
+        description: "Optional LIVE_DIRECT_MODE_ENABLED override"
+        required: false
+        default: ""
+      live_ephemeral_tokens_enabled:
+        description: "Optional LIVE_EPHEMERAL_TOKENS_ENABLED override"
+        required: false
+        default: ""
+      live_direct_mode_default:
+        description: "Optional LIVE_DIRECT_MODE_DEFAULT override"
+        required: false
+        default: ""
+      live_api_protocol:
+        description: "Optional LIVE_API_PROTOCOL override"
+        required: false
+        default: ""
+      live_model_id:
+        description: "Optional LIVE_MODEL_ID override"
+        required: false
+        default: ""
       skip_health_check:
         description: "Skip API /healthz verification"
         required: true
@@ -112,6 +136,30 @@ jobs:
           $corsOrigins = "${{ inputs.api_cors_allowed_origins }}".Trim()
           if (-not [string]::IsNullOrWhiteSpace($corsOrigins)) {
             $args += @("-ApiCorsAllowedOrigins", $corsOrigins)
+          }
+          $liveApiEnabled = "${{ inputs.live_api_enabled }}".Trim()
+          if (-not [string]::IsNullOrWhiteSpace($liveApiEnabled)) {
+            $args += @("-LiveApiEnabled", $liveApiEnabled)
+          }
+          $liveDirectModeEnabled = "${{ inputs.live_direct_mode_enabled }}".Trim()
+          if (-not [string]::IsNullOrWhiteSpace($liveDirectModeEnabled)) {
+            $args += @("-LiveDirectModeEnabled", $liveDirectModeEnabled)
+          }
+          $liveEphemeralTokensEnabled = "${{ inputs.live_ephemeral_tokens_enabled }}".Trim()
+          if (-not [string]::IsNullOrWhiteSpace($liveEphemeralTokensEnabled)) {
+            $args += @("-LiveEphemeralTokensEnabled", $liveEphemeralTokensEnabled)
+          }
+          $liveDirectModeDefault = "${{ inputs.live_direct_mode_default }}".Trim()
+          if (-not [string]::IsNullOrWhiteSpace($liveDirectModeDefault)) {
+            $args += @("-LiveDirectModeDefault", $liveDirectModeDefault)
+          }
+          $liveApiProtocol = "${{ inputs.live_api_protocol }}".Trim()
+          if (-not [string]::IsNullOrWhiteSpace($liveApiProtocol)) {
+            $args += @("-LiveApiProtocol", $liveApiProtocol)
+          }
+          $liveModelId = "${{ inputs.live_model_id }}".Trim()
+          if (-not [string]::IsNullOrWhiteSpace($liveModelId)) {
+            $args += @("-LiveModelId", $liveModelId)
           }
           if ("${{ inputs.skip_health_check }}" -eq "true") {
             $args += "-SkipHealthCheck"

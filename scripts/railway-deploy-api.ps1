@@ -7,6 +7,12 @@ param(
   [string]$DeployMessage = "",
   [string]$ApiCorsAllowedOrigins = $env:API_CORS_ALLOWED_ORIGINS,
   [string]$ApiPublicUrl = $(if (-not [string]::IsNullOrWhiteSpace($env:API_PUBLIC_URL)) { $env:API_PUBLIC_URL } else { "https://live-agent-api-production.up.railway.app" }),
+  [string]$LiveApiEnabled = $env:LIVE_API_ENABLED,
+  [string]$LiveDirectModeEnabled = $env:LIVE_DIRECT_MODE_ENABLED,
+  [string]$LiveEphemeralTokensEnabled = $env:LIVE_EPHEMERAL_TOKENS_ENABLED,
+  [string]$LiveDirectModeDefault = $env:LIVE_DIRECT_MODE_DEFAULT,
+  [string]$LiveApiProtocol = $env:LIVE_API_PROTOCOL,
+  [string]$LiveModelId = $env:LIVE_MODEL_ID,
   [switch]$NoWait,
   [switch]$SkipHealthCheck,
   [switch]$SkipCapabilitiesCheck,
@@ -160,6 +166,15 @@ function Run-CliCapture([string[]]$CliArgs) {
     Fail ("railway command failed: railway " + ($CliArgs -join " "))
   }
   return ,$output
+}
+
+function Set-RailwayVariableIfProvided([string]$Name, [string]$Value, [string]$TargetService, [string]$TargetEnvironment) {
+  if ([string]::IsNullOrWhiteSpace($Value)) {
+    return
+  }
+
+  Write-Host ("[railway-api] Setting " + $Name + "...")
+  Run-Cli -CliArgs @("variable", "set", "-s", $TargetService, "-e", $TargetEnvironment, "--skip-deploys", ($Name + "=" + $Value))
 }
 
 function Ensure-RailwayAuthContext([string]$LogPrefix) {
@@ -423,15 +438,13 @@ if ([string]::IsNullOrWhiteSpace($DeployMessage)) {
   $DeployMessage = "deploy api-backend: $commit"
 }
 
-if (-not [string]::IsNullOrWhiteSpace($ApiCorsAllowedOrigins)) {
-  if ($useProjectTokenFallback) {
-    Write-Warning "[railway-api] Skipping API_CORS_ALLOWED_ORIGINS mutation in project-token fallback mode; reusing existing Railway environment value."
-  }
-  else {
-    Write-Host "[railway-api] Setting API_CORS_ALLOWED_ORIGINS..."
-    Run-Cli -CliArgs @("variable", "set", "-s", $Service, "-e", $Environment, "--skip-deploys", "API_CORS_ALLOWED_ORIGINS=$ApiCorsAllowedOrigins")
-  }
-}
+Set-RailwayVariableIfProvided -Name "API_CORS_ALLOWED_ORIGINS" -Value $ApiCorsAllowedOrigins -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "LIVE_API_ENABLED" -Value $LiveApiEnabled -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "LIVE_DIRECT_MODE_ENABLED" -Value $LiveDirectModeEnabled -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "LIVE_EPHEMERAL_TOKENS_ENABLED" -Value $LiveEphemeralTokensEnabled -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "LIVE_DIRECT_MODE_DEFAULT" -Value $LiveDirectModeDefault -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "LIVE_API_PROTOCOL" -Value $LiveApiProtocol -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "LIVE_MODEL_ID" -Value $LiveModelId -TargetService $Service -TargetEnvironment $Environment
 
 try {
   Push-Location $deployWorkspacePath

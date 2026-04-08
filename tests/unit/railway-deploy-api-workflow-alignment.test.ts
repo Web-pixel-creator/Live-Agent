@@ -12,6 +12,12 @@ test("railway api deploy workflow is wired to the dedicated helper and public li
   assert.match(source, /api_service:/);
   assert.match(source, /api_public_url:/);
   assert.match(source, /api_cors_allowed_origins:/);
+  assert.match(source, /live_api_enabled:/);
+  assert.match(source, /live_direct_mode_enabled:/);
+  assert.match(source, /live_ephemeral_tokens_enabled:/);
+  assert.match(source, /live_direct_mode_default:/);
+  assert.match(source, /live_api_protocol:/);
+  assert.match(source, /live_model_id:/);
   assert.match(source, /skip_health_check:/);
   assert.match(source, /skip_capabilities_check:/);
   assert.match(source, /no_wait:/);
@@ -26,6 +32,12 @@ test("railway api deploy workflow is wired to the dedicated helper and public li
   assert.match(source, /scripts\/railway-deploy-api\.ps1/);
   assert.match(source, /-ApiPublicUrl/);
   assert.match(source, /-ApiCorsAllowedOrigins/);
+  assert.match(source, /-LiveApiEnabled/);
+  assert.match(source, /-LiveDirectModeEnabled/);
+  assert.match(source, /-LiveEphemeralTokensEnabled/);
+  assert.match(source, /-LiveDirectModeDefault/);
+  assert.match(source, /-LiveApiProtocol/);
+  assert.match(source, /-LiveModelId/);
   assert.match(source, /-SkipHealthCheck/);
   assert.match(source, /-SkipCapabilitiesCheck/);
   assert.match(source, /-NoWait/);
@@ -61,6 +73,10 @@ test("package and docs expose the dedicated Railway API deploy lane", () => {
   assert.match(runbook, /live-agent-api-production\.up\.railway\.app/);
 
   assert.match(script, /API_CORS_ALLOWED_ORIGINS/);
+  assert.match(script, /LIVE_API_ENABLED/);
+  assert.match(script, /LIVE_DIRECT_MODE_ENABLED/);
+  assert.match(script, /LIVE_EPHEMERAL_TOKENS_ENABLED/);
+  assert.match(script, /LIVE_DIRECT_MODE_DEFAULT/);
   assert.match(script, /Live-Agent-API/);
   assert.match(script, /v1\/runtime\/live\/capabilities/);
   assert.match(script, /railway-api-deploy-summary\.json/);
