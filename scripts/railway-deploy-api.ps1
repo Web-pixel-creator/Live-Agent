@@ -55,11 +55,21 @@ function Resolve-RailwayApiManifestTemplatePath([string]$RepoRoot) {
 function New-RailwayApiDeployWorkspace([string]$RepoRoot, [string]$ManifestTemplatePath) {
   $workspacePath = Join-Path $env:TEMP ("mla-railway-api-deploy-" + [guid]::NewGuid().ToString())
   $gitArgs = @("-C", $RepoRoot, "worktree", "add", "--detach", $workspacePath, "HEAD")
-  $gitOutput = & git @gitArgs 2>&1
+  $gitOutput = @()
+  $gitExitCode = 1
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = "Continue"
+    $gitOutput = (& git @gitArgs 2>&1)
+    $gitExitCode = $LASTEXITCODE
+  }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
   if ($gitOutput) {
     $gitOutput | ForEach-Object { Write-Host $_ }
   }
-  if ($LASTEXITCODE -ne 0) {
+  if ($gitExitCode -ne 0) {
     Fail "Unable to create temporary Railway API deploy worktree."
   }
 
@@ -76,7 +86,15 @@ function Remove-RailwayApiDeployWorkspace([string]$RepoRoot, [string]$WorkspaceP
   }
 
   $gitArgs = @("-C", $RepoRoot, "worktree", "remove", "--force", $WorkspacePath)
-  $gitOutput = & git @gitArgs 2>&1
+  $gitOutput = @()
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    $ErrorActionPreference = "Continue"
+    $gitOutput = (& git @gitArgs 2>&1)
+  }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
   if ($gitOutput) {
     $gitOutput | ForEach-Object { Write-Host $_ }
   }
