@@ -1437,6 +1437,8 @@ Notes:
 
 ## CI Workflow
 
+All GitHub workflow jobs that rely on JavaScript-based actions now set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`, so the repo is already opted into the Node 24 runner posture ahead of the Node 20 deprecation window.
+
 - PR workflow: `.github/workflows/pr-quality.yml`
 - Triggered on pull requests.
 - Runs `npm run verify:deploy:railway:dry` (deploy/repo-publish contract checks) before `npm run verify:pr` (build + unit + profile smoke + monitoring validate + demo policy/badge gate).

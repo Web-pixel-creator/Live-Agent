@@ -78,6 +78,7 @@ jobs:
       group: release-strict-final-${{ github.ref }}
       cancel-in-progress: true
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       FIRESTORE_ENABLED: "false"
       UI_NAVIGATOR_EXECUTOR_MODE: remote_http
       UI_NAVIGATOR_EXECUTOR_URL: http://localhost:8090
