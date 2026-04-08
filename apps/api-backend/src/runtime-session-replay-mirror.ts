@@ -400,6 +400,9 @@ type RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegment<TTarget, TCta> = 
   detourHint?: RuntimeSessionReplayPrimaryRefreshLegacyTextValue | null;
 };
 
+type RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegmentInit<TTarget, TCta> =
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegment<TTarget, TCta>;
+
 type RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments = {
   escalation: RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegment<
     RuntimeSessionReplayPrimaryRefreshEscalationTarget,
@@ -4029,6 +4032,22 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjection(
   } satisfies RuntimeSessionReplayPrimaryRefreshLegacyProjection;
 }
 
+function buildNextOperatorPrimaryStepRefreshLegacyProjectionSegment<TTarget, TCta>(
+  params: RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegmentInit<TTarget, TCta>,
+): RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegment<TTarget, TCta> {
+  return {
+    hint: params.hint,
+    target: params.target,
+    cta: params.cta,
+    readiness: params.readiness,
+    prepHint: params.prepHint,
+    openGuard: params.openGuard,
+    outcomeLabel: params.outcomeLabel,
+    confidence: params.confidence,
+    detourHint: params.detourHint,
+  };
+}
+
 function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationSegment(
   params: RuntimeSessionReplayPrimaryRefreshLegacyProjectionEscalationSegmentParams,
 ): RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments["escalation"] {
@@ -4043,7 +4062,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationSegment(
     currentHandoffState: params.currentHandoffState,
     recoveryDrill: params.recoveryDrill,
   });
-  return {
+  return buildNextOperatorPrimaryStepRefreshLegacyProjectionSegment({
     hint: buildNextOperatorPrimaryStepRefreshEscalationHint({
       needsRefresh: params.needsRefresh,
       nextOperatorActionTarget: params.nextOperatorActionTarget,
@@ -4064,7 +4083,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationSegment(
       refreshEscalationTarget: target,
       refreshEscalationReadiness: readiness,
     }),
-  };
+  });
 }
 
 function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackSegment(
@@ -4082,7 +4101,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackSe
     workflowSummary: params.workflowSummary,
     currentHandoffState: params.currentHandoffState,
   });
-  return {
+  return buildNextOperatorPrimaryStepRefreshLegacyProjectionSegment({
     target,
     cta: buildNextOperatorPrimaryStepRefreshEscalationFallbackCTA({
       needsRefresh: params.needsRefresh,
@@ -4111,7 +4130,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackSe
       needsRefresh: params.needsRefresh,
       refreshEscalationFallbackTarget: target,
     }),
-  };
+  });
 }
 
 function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackEscalationSegment(
@@ -4127,7 +4146,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackEs
     workflowSummary: params.workflowSummary,
     currentHandoffState: params.currentHandoffState,
   });
-  return {
+  return buildNextOperatorPrimaryStepRefreshLegacyProjectionSegment({
     hint: buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationHint({
       needsRefresh: params.needsRefresh,
       refreshEscalationFallbackTarget: params.refreshEscalationFallbackTarget,
@@ -4148,7 +4167,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackEs
       refreshEscalationFallbackEscalationTarget: target,
       refreshEscalationFallbackEscalationReadiness: readiness,
     }),
-  };
+  });
 }
 
 function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackEscalationFallbackSegment(
@@ -4163,7 +4182,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackEs
     refreshEscalationFallbackEscalationFallbackTarget: target,
     currentHandoffState: params.currentHandoffState,
   });
-  return {
+  return buildNextOperatorPrimaryStepRefreshLegacyProjectionSegment({
     target,
     cta: buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackCTA({
       needsRefresh: params.needsRefresh,
@@ -4192,7 +4211,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackEs
       needsRefresh: params.needsRefresh,
       refreshEscalationFallbackEscalationFallbackTarget: target,
     }),
-  };
+  });
 }
 
 function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackEscalationFallbackEscalationSegment(
@@ -4210,7 +4229,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackEs
     currentHandoffState: params.currentHandoffState,
     recoveryDrill: params.recoveryDrill,
   });
-  return {
+  return buildNextOperatorPrimaryStepRefreshLegacyProjectionSegment({
     hint: buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationHint({
       needsRefresh: params.needsRefresh,
       refreshEscalationFallbackEscalationFallbackTarget:
@@ -4232,7 +4251,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackEs
       refreshEscalationFallbackEscalationFallbackEscalationTarget: target,
       refreshEscalationFallbackEscalationFallbackEscalationReadiness: readiness,
     }),
-  };
+  });
 }
 
 function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackEscalationFallbackEscalationFallbackSegment(
@@ -4250,7 +4269,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackEs
     currentHandoffState: params.currentHandoffState,
     recoveryDrill: params.recoveryDrill,
   });
-  return {
+  return buildNextOperatorPrimaryStepRefreshLegacyProjectionSegment({
     target,
     cta: buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackCTA({
       needsRefresh: params.needsRefresh,
@@ -4279,7 +4298,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionEscalationFallbackEs
       needsRefresh: params.needsRefresh,
       refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget: target,
     }),
-  };
+  });
 }
 
 function buildNextOperatorPrimaryStepRefreshLegacyProjectionPrefixSegments(
@@ -4425,7 +4444,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionRecoverySegment(
     );
   return {
     target,
-    segment: {
+    segment: buildNextOperatorPrimaryStepRefreshLegacyProjectionSegment({
       hint,
       target,
       cta,
@@ -4435,7 +4454,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionRecoverySegment(
       outcomeLabel,
       confidence,
       detourHint,
-    },
+    }),
   };
 }
 
@@ -4512,7 +4531,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionRecoveryFollowupSegm
     );
   return {
     target,
-    segment: {
+    segment: buildNextOperatorPrimaryStepRefreshLegacyProjectionSegment({
       hint,
       target,
       cta,
@@ -4522,7 +4541,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionRecoveryFollowupSegm
       outcomeLabel,
       confidence,
       detourHint,
-    },
+    }),
   };
 }
 
@@ -4599,7 +4618,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionRecoveryRetrySegment
     );
   return {
     target,
-    segment: {
+    segment: buildNextOperatorPrimaryStepRefreshLegacyProjectionSegment({
       hint,
       target,
       cta,
@@ -4609,7 +4628,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionRecoveryRetrySegment
       outcomeLabel,
       confidence,
       detourHint,
-    },
+    }),
   };
 }
 
@@ -4686,7 +4705,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionRecoveryRetryFollowu
     );
   return {
     target,
-    segment: {
+    segment: buildNextOperatorPrimaryStepRefreshLegacyProjectionSegment({
       hint,
       target,
       cta,
@@ -4696,7 +4715,7 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionRecoveryRetryFollowu
       outcomeLabel,
       confidence,
       detourHint,
-    },
+    }),
   };
 }
 
