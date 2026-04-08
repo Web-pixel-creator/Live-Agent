@@ -28,6 +28,7 @@ test("railway api deploy workflow is wired to the dedicated helper and public li
   assert.match(source, /RAILWAY_PROJECT_TOKEN:\s*\$\{\{\s*secrets\.RAILWAY_PROJECT_TOKEN\s*\}\}/);
   assert.match(source, /RAILWAY_PROJECT_ID:\s*\$\{\{\s*secrets\.RAILWAY_PROJECT_ID\s*\}\}/);
   assert.match(source, /RAILWAY_API_SERVICE_ID:\s*\$\{\{\s*secrets\.RAILWAY_API_SERVICE_ID\s*\}\}/);
+  assert.match(source, /GEMINI_API_KEY:\s*\$\{\{\s*secrets\.GEMINI_API_KEY\s*\}\}/);
   assert.match(source, /railway whoami/);
   assert.match(source, /scripts\/railway-deploy-api\.ps1/);
   assert.match(source, /-ApiPublicUrl/);
@@ -78,6 +79,7 @@ test("package and docs expose the dedicated Railway API deploy lane", () => {
   assert.match(script, /LIVE_EPHEMERAL_TOKENS_ENABLED/);
   assert.match(script, /LIVE_DIRECT_MODE_DEFAULT/);
   assert.match(script, /Live-Agent-API/);
+  assert.match(script, /GEMINI_API_KEY/);
   assert.match(script, /v1\/runtime\/live\/capabilities/);
   assert.match(script, /railway-api-deploy-summary\.json/);
   assert.match(script, /infra\\railway\\manifests\\api-backend\.railway\.json/);

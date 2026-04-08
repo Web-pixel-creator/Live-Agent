@@ -13,6 +13,7 @@ param(
   [string]$LiveDirectModeDefault = $env:LIVE_DIRECT_MODE_DEFAULT,
   [string]$LiveApiProtocol = $env:LIVE_API_PROTOCOL,
   [string]$LiveModelId = $env:LIVE_MODEL_ID,
+  [string]$GeminiApiKey = $env:GEMINI_API_KEY,
   [switch]$NoWait,
   [switch]$SkipHealthCheck,
   [switch]$SkipCapabilitiesCheck,
@@ -445,6 +446,7 @@ Set-RailwayVariableIfProvided -Name "LIVE_EPHEMERAL_TOKENS_ENABLED" -Value $Live
 Set-RailwayVariableIfProvided -Name "LIVE_DIRECT_MODE_DEFAULT" -Value $LiveDirectModeDefault -TargetService $Service -TargetEnvironment $Environment
 Set-RailwayVariableIfProvided -Name "LIVE_API_PROTOCOL" -Value $LiveApiProtocol -TargetService $Service -TargetEnvironment $Environment
 Set-RailwayVariableIfProvided -Name "LIVE_MODEL_ID" -Value $LiveModelId -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "GEMINI_API_KEY" -Value $GeminiApiKey -TargetService $Service -TargetEnvironment $Environment
 
 try {
   Push-Location $deployWorkspacePath

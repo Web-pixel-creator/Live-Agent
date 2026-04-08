@@ -1446,7 +1446,7 @@ Notes:
 - Railway manifest override for deploys is at `infra/railway/manifests/api-backend.railway.json`, so the API lane deploys from repo root and preserves workspace dependency resolution.
 - API service health endpoint: `GET /healthz`.
 - API deploy lane also verifies `GET /v1/runtime/live/capabilities` on the public API URL so direct-live bootstrap cannot stay on an older Railway revision silently.
-- The workflow can also publish `LIVE_API_ENABLED`, `LIVE_DIRECT_MODE_ENABLED`, `LIVE_EPHEMERAL_TOKENS_ENABLED`, `LIVE_DIRECT_MODE_DEFAULT`, `LIVE_API_PROTOCOL`, and `LIVE_MODEL_ID` before deploy when you want to raise hosted direct-live posture through the same lane.
+- The workflow can also publish `LIVE_API_ENABLED`, `LIVE_DIRECT_MODE_ENABLED`, `LIVE_EPHEMERAL_TOKENS_ENABLED`, `LIVE_DIRECT_MODE_DEFAULT`, `LIVE_API_PROTOCOL`, `LIVE_MODEL_ID`, and repo secret-backed `GEMINI_API_KEY` before deploy when you want to raise hosted direct-live posture through the same lane.
 - Frontend should point `FRONTEND_API_BASE_URL` to this API service URL, not to gateway URL.
 
 ## CI Workflow
