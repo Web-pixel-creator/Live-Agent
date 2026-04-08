@@ -3764,6 +3764,8 @@ const el = {
   operatorBootstrapDoctorAuthProfiles: document.getElementById("operatorBootstrapDoctorAuthProfiles"),
   operatorBootstrapDoctorDeviceReadiness: document.getElementById("operatorBootstrapDoctorDeviceReadiness"),
   operatorBootstrapDoctorFallbackPaths: document.getElementById("operatorBootstrapDoctorFallbackPaths"),
+  operatorBootstrapDoctorLiveMode: document.getElementById("operatorBootstrapDoctorLiveMode"),
+  operatorBootstrapDoctorLiveBootstrap: document.getElementById("operatorBootstrapDoctorLiveBootstrap"),
   operatorBootstrapDoctorTopCheck: document.getElementById("operatorBootstrapDoctorTopCheck"),
   operatorBootstrapDoctorHint: document.getElementById("operatorBootstrapDoctorHint"),
   operatorRuntimeSurfaceRefreshBtn: document.getElementById("operatorRuntimeSurfaceRefreshBtn"),
@@ -27766,6 +27768,8 @@ function resetOperatorBootstrapDoctorWidget(reason = "no_data") {
   setText(el.operatorBootstrapDoctorAuthProfiles, "n/a");
   setText(el.operatorBootstrapDoctorDeviceReadiness, "n/a");
   setText(el.operatorBootstrapDoctorFallbackPaths, "n/a");
+  setText(el.operatorBootstrapDoctorLiveMode, "n/a");
+  setText(el.operatorBootstrapDoctorLiveBootstrap, "n/a");
   setText(el.operatorBootstrapDoctorTopCheck, "n/a");
   setOperatorBootstrapDoctorHint(
     "Refresh summary to inspect bootstrap readiness, providers, and access profiles.",
@@ -29806,7 +29810,7 @@ function stringifyOperatorBootstrapDoctorValue(value, fallback = "No bootstrap d
   return stringifyOperatorRuntimeFaultValue(value, fallback);
 }
 
-function buildOperatorBootstrapDoctorSnapshot(doctorSnapshot, authProfileCatalog = null) {
+function buildOperatorBootstrapDoctorSnapshot(doctorSnapshot, authProfileCatalog = null, liveRuntimeCatalog = null) {
   if (!isRecord(doctorSnapshot)) {
     return null;
   }
@@ -29817,7 +29821,61 @@ function buildOperatorBootstrapDoctorSnapshot(doctorSnapshot, authProfileCatalog
       : isRecord(state.operatorBootstrapDoctorSnapshot?.authProfileCatalog)
         ? state.operatorBootstrapDoctorSnapshot.authProfileCatalog
         : null,
+    liveRuntimeCatalog: isRecord(liveRuntimeCatalog)
+      ? liveRuntimeCatalog
+      : isRecord(state.operatorBootstrapDoctorSnapshot?.liveRuntimeCatalog)
+        ? state.operatorBootstrapDoctorSnapshot.liveRuntimeCatalog
+        : null,
   };
+}
+
+function resolveOperatorBootstrapDoctorLiveRuntime(snapshot) {
+  if (!isRecord(snapshot)) {
+    return null;
+  }
+  const summary = isRecord(snapshot.summary) ? snapshot.summary : null;
+  if (summary && isRecord(summary.live)) {
+    return summary.live;
+  }
+  return isRecord(snapshot.liveRuntimeCatalog) ? snapshot.liveRuntimeCatalog : null;
+}
+
+function buildOperatorBootstrapDoctorLiveModeText(snapshot) {
+  const liveRuntime = resolveOperatorBootstrapDoctorLiveRuntime(snapshot);
+  if (!liveRuntime) {
+    return "pending";
+  }
+  const preferredMode = toOptionalText(liveRuntime.preferredMode) ?? "relay";
+  const activeMode = toOptionalText(liveRuntime.activeMode) ?? preferredMode;
+  const provider = toOptionalText(liveRuntime.provider) ?? "none";
+  const model = toOptionalText(liveRuntime.model) ?? "none";
+  const fallbackReason = toOptionalText(liveRuntime.lastFallbackReason);
+  const details = [
+    `preferred=${preferredMode}`,
+    `active=${activeMode}`,
+    `provider=${provider}`,
+    `model=${model}`,
+  ];
+  if (fallbackReason) {
+    details.push(`fallback=${fallbackReason}`);
+  }
+  return details.join(" | ");
+}
+
+function buildOperatorBootstrapDoctorLiveBootstrapText(snapshot) {
+  const liveRuntime = resolveOperatorBootstrapDoctorLiveRuntime(snapshot);
+  if (!liveRuntime) {
+    return "pending";
+  }
+  const capabilities = isRecord(liveRuntime.capabilities) ? liveRuntime.capabilities : {};
+  return [
+    `ephemeral=${liveRuntime.ephemeralTokensSupported === true ? "yes" : "no"}`,
+    `relay=${liveRuntime.fallbackAvailable === true ? "yes" : "no"}`,
+    `audio=${capabilities.audioInput === true ? "yes" : "no"}`,
+    `video=${capabilities.videoInput === true ? "yes" : "no"}`,
+    `tools=${capabilities.toolCalls === true ? "yes" : "no"}`,
+    `reconnect=${capabilities.reconnectSupported === true ? "yes" : "no"}`,
+  ].join(" | ");
 }
 
 function getOperatorBootstrapDoctorProfiles(snapshot) {
@@ -29957,6 +30015,8 @@ function renderOperatorBootstrapDoctorWidget(bootstrapDoctorSummary) {
     el.operatorBootstrapDoctorFallbackPaths,
     `ready=${Math.max(0, Math.floor(Number(fallbackPaths.readyCount ?? 0) || 0))}/${Math.max(0, Math.floor(Number(fallbackPaths.total ?? 0) || 0))} | live=${fallbackPaths.liveTextFallbackReady === true ? "yes" : "no"} | story=${fallbackPaths.storyFallbackReady === true ? "yes" : "no"} | ui=${fallbackPaths.uiSimulationFallbackReady === true ? "yes" : "no"} | local=${fallbackPaths.localFirstReady === true ? "yes" : "no"}`,
   );
+  setText(el.operatorBootstrapDoctorLiveMode, buildOperatorBootstrapDoctorLiveModeText(bootstrapDoctorSummary));
+  setText(el.operatorBootstrapDoctorLiveBootstrap, buildOperatorBootstrapDoctorLiveBootstrapText(bootstrapDoctorSummary));
   setText(
     el.operatorBootstrapDoctorTopCheck,
     topCheck
@@ -30004,6 +30064,7 @@ function buildOperatorBootstrapDoctorControlMeta(snapshot) {
   const deviceNodes = isRecord(summary.deviceNodes) ? summary.deviceNodes : {};
   const fallbackPaths = isRecord(summary.fallbackPaths) ? summary.fallbackPaths : {};
   const topCheck = isRecord(summary.topCheck) ? summary.topCheck : null;
+  const liveRuntime = resolveOperatorBootstrapDoctorLiveRuntime(snapshot);
   const selectedProfile = findOperatorBootstrapDoctorProfile(snapshot, el.operatorBootstrapDoctorProfileId?.value);
   const selectedWarnings = Array.isArray(selectedProfile?.warnings)
     ? selectedProfile.warnings.filter((item) => typeof item === "string" && item.trim().length > 0)
@@ -30016,6 +30077,17 @@ function buildOperatorBootstrapDoctorControlMeta(snapshot) {
     `devices=${Math.max(0, Math.floor(Number(deviceNodes.ready ?? 0) || 0))}/${Math.max(0, Math.floor(Number(deviceNodes.total ?? 0) || 0))}`,
     `fallback=${Math.max(0, Math.floor(Number(fallbackPaths.readyCount ?? 0) || 0))}/${Math.max(0, Math.floor(Number(fallbackPaths.total ?? 0) || 0))}`,
   ];
+  if (liveRuntime) {
+    details.push(
+      `liveMode=${toOptionalText(liveRuntime.preferredMode) ?? "relay"}->${toOptionalText(liveRuntime.activeMode) ?? toOptionalText(liveRuntime.preferredMode) ?? "relay"}`,
+      `liveDirect=${liveRuntime.ephemeralTokensSupported === true ? "yes" : "no"}`,
+      `liveProvider=${toOptionalText(liveRuntime.provider) ?? "none"}`,
+    );
+    const liveFallbackReason = toOptionalText(liveRuntime.lastFallbackReason);
+    if (liveFallbackReason) {
+      details.push(`liveFallback=${liveFallbackReason}`);
+    }
+  }
   if (selectedProfile) {
     details.push(
       `selectedProfile=${toOptionalText(selectedProfile.profileId) ?? "none"}`,
@@ -30093,7 +30165,7 @@ async function refreshOperatorBootstrapDoctor(options = {}) {
   const preserveCredentialName = toOptionalText(el.operatorBootstrapDoctorCredentialName?.value);
   setOperatorBootstrapDoctorControlStatus("bootstrap_doctor_loading", "neutral");
   try {
-    const [doctorResponse, authProfilesResponse] = await Promise.all([
+    const [doctorResponse, authProfilesResponse, liveCapabilitiesResponse] = await Promise.all([
       fetch(`${state.apiBaseUrl}/v1/runtime/bootstrap-status`, {
         method: "GET",
         headers: operatorHeaders(false),
@@ -30102,9 +30174,14 @@ async function refreshOperatorBootstrapDoctor(options = {}) {
         method: "GET",
         headers: operatorHeaders(false),
       }),
+      fetch(`${state.apiBaseUrl}/v1/runtime/live/capabilities`, {
+        method: "GET",
+        headers: operatorHeaders(false),
+      }),
     ]);
     const doctorPayload = await doctorResponse.json();
     const authProfilesPayload = await authProfilesResponse.json();
+    const liveCapabilitiesPayload = liveCapabilitiesResponse.ok ? await liveCapabilitiesResponse.json() : null;
     if (!doctorResponse.ok) {
       const errorText = getApiErrorMessage(doctorPayload, `bootstrap doctor failed with ${doctorResponse.status}`);
       throw new Error(String(errorText));
@@ -30117,7 +30194,11 @@ async function refreshOperatorBootstrapDoctor(options = {}) {
       throw new Error(String(errorText));
     }
 
-    const snapshot = buildOperatorBootstrapDoctorSnapshot(doctorPayload?.data ?? null, authProfilesPayload?.data ?? null);
+    const snapshot = buildOperatorBootstrapDoctorSnapshot(
+      doctorPayload?.data ?? null,
+      authProfilesPayload?.data ?? null,
+      liveCapabilitiesPayload?.data ?? null,
+    );
     state.operatorBootstrapDoctorSnapshot = snapshot;
     state.operatorBootstrapDoctorLoadedAt =
       toOptionalText(doctorPayload?.generatedAt) ?? toOptionalText(snapshot?.generatedAt) ?? new Date().toISOString();
