@@ -1439,8 +1439,12 @@ railway variable set -s "Live-Agent-API" -e production --skip-deploys "API_CORS_
 
 Notes:
 
+- Helper deploy command: `npm run deploy:railway:api -- -Service "Live-Agent-API" -Environment production -ProjectId "bbca2889-fd0d-48fe-bded-79802230e5a6" -ApiPublicUrl https://live-agent-api-production.up.railway.app`
+- Dedicated workflow: `.github/workflows/railway-deploy-api.yml`
+- Deploy summary artifact: `artifacts/deploy/railway-api-deploy-summary.json`
 - API service config-as-code is at `apps/api-backend/railway.json`.
 - API service health endpoint: `GET /healthz`.
+- API deploy lane also verifies `GET /v1/runtime/live/capabilities` on the public API URL so direct-live bootstrap cannot stay on an older Railway revision silently.
 - Frontend should point `FRONTEND_API_BASE_URL` to this API service URL, not to gateway URL.
 
 ## CI Workflow
@@ -1449,6 +1453,8 @@ All GitHub workflow jobs that rely on JavaScript-based actions now use Node 24-c
 
 - PR workflow: `.github/workflows/pr-quality.yml`
 - Triggered on pull requests.
+- Manual API deploy workflow: `.github/workflows/railway-deploy-api.yml`
+  Uses Railway secrets plus `Live-Agent-API` service targeting to keep the public API revision aligned with frontend `FRONTEND_API_BASE_URL`.
 - Runs `npm run verify:deploy:railway:dry` (deploy/repo-publish contract checks) before `npm run verify:pr` (build + unit + profile smoke + monitoring validate + demo policy/badge gate).
 - Uploads demo artifacts for PR review.
 

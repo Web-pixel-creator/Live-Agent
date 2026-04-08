@@ -66,6 +66,7 @@
     "repo:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-repo-publish.ps1",
     "deploy:railway": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy.ps1",
     "deploy:railway:frontend": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy-frontend.ps1",
+    "deploy:railway:api": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy-api.ps1",
     "deploy:railway:all": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy-all.ps1",
     "deploy:railway:all:dispatch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy-all-dispatch.ps1",
     "workflow:dispatch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/workflow-dispatch.ps1",

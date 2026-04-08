@@ -1,0 +1,199 @@
+name: Railway Deploy API
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Railway environment name"
+        required: true
+        default: "production"
+      api_service:
+        description: "Railway API service name or id"
+        required: true
+        default: "Live-Agent-API"
+      api_public_url:
+        description: "Public API base URL used for health and live capabilities verification"
+        required: true
+        default: "https://live-agent-api-production.up.railway.app"
+      api_cors_allowed_origins:
+        description: "Comma-separated frontend origins to publish into API_CORS_ALLOWED_ORIGINS before deploy"
+        required: false
+        default: "https://live-agent-frontend-production.up.railway.app"
+      skip_health_check:
+        description: "Skip API /healthz verification"
+        required: true
+        type: boolean
+        default: false
+      skip_capabilities_check:
+        description: "Skip API /v1/runtime/live/capabilities verification"
+        required: true
+        type: boolean
+        default: false
+      no_wait:
+        description: "Trigger API deploy and exit without waiting"
+        required: true
+        type: boolean
+        default: false
+      verify_only_fallback_on_auth_failure:
+        description: "When Railway auth fails in CI, run public API verification instead of deploy"
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  deploy_api:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+      RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+      RAILWAY_LEGACY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_PROJECT_TOKEN: ${{ secrets.RAILWAY_PROJECT_TOKEN }}
+      RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+      RAILWAY_API_SERVICE_ID: ${{ secrets.RAILWAY_API_SERVICE_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+        shell: powershell
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+        shell: powershell
+
+      - name: Validate Railway Secrets
+        shell: powershell
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RAILWAY_API_TOKEN)) {
+            throw "Missing required repository secret: RAILWAY_API_TOKEN (or legacy RAILWAY_TOKEN)"
+          }
+          if ([string]::IsNullOrWhiteSpace($env:RAILWAY_PROJECT_ID)) {
+            throw "Missing required repository secret: RAILWAY_PROJECT_ID"
+          }
+
+      - name: Probe Railway Auth
+        id: railway_auth_probe
+        continue-on-error: true
+        shell: powershell
+        run: railway whoami
+
+      - name: Run API Railway Deploy
+        id: api_deploy
+        continue-on-error: true
+        shell: powershell
+        run: |
+          $service = if (-not [string]::IsNullOrWhiteSpace($env:RAILWAY_API_SERVICE_ID)) {
+            $env:RAILWAY_API_SERVICE_ID
+          } else {
+            "${{ inputs.api_service }}".Trim()
+          }
+
+          if ([string]::IsNullOrWhiteSpace($service)) {
+            throw "api_service input or RAILWAY_API_SERVICE_ID secret is required."
+          }
+
+          $args = @(
+            "-ProjectId", $env:RAILWAY_PROJECT_ID,
+            "-Service", $service,
+            "-Environment", "${{ inputs.environment }}",
+            "-ApiPublicUrl", "${{ inputs.api_public_url }}"
+          )
+
+          $corsOrigins = "${{ inputs.api_cors_allowed_origins }}".Trim()
+          if (-not [string]::IsNullOrWhiteSpace($corsOrigins)) {
+            $args += @("-ApiCorsAllowedOrigins", $corsOrigins)
+          }
+          if ("${{ inputs.skip_health_check }}" -eq "true") {
+            $args += "-SkipHealthCheck"
+          }
+          if ("${{ inputs.skip_capabilities_check }}" -eq "true") {
+            $args += "-SkipCapabilitiesCheck"
+          }
+          if ("${{ inputs.no_wait }}" -eq "true") {
+            $args += "-NoWait"
+          }
+
+          & powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy-api.ps1 @args
+
+      - name: Verify Public API Fallback (Deploy Failure)
+        id: verify_only_fallback
+        if: steps.api_deploy.outcome != 'success' && inputs.verify_only_fallback_on_auth_failure == true
+        shell: powershell
+        run: |
+          Write-Warning "Railway API deploy failed; running verify-only fallback."
+
+          $apiPublicUrl = "${{ inputs.api_public_url }}".Trim().TrimEnd("/")
+          if ([string]::IsNullOrWhiteSpace($apiPublicUrl)) {
+            throw "api_public_url is required for verify-only fallback."
+          }
+
+          $health = Invoke-RestMethod -Method Get -Uri ($apiPublicUrl + "/healthz") -TimeoutSec 20
+          if ($null -eq $health -or $health.ok -ne $true -or [string]$health.service -ne "api-backend") {
+            throw ("API fallback health check failed for " + $apiPublicUrl + "/healthz")
+          }
+
+          if ("${{ inputs.skip_capabilities_check }}" -ne "true") {
+            $caps = Invoke-RestMethod -Method Get -Uri ($apiPublicUrl + "/v1/runtime/live/capabilities") -Headers @{ "x-operator-role" = "operator" } -TimeoutSec 20
+            if ($null -eq $caps -or $null -eq $caps.data) {
+              throw ("API fallback live capabilities check failed for " + $apiPublicUrl + "/v1/runtime/live/capabilities")
+            }
+          }
+
+      - name: Fail on Railway API Deploy
+        if: steps.api_deploy.outcome != 'success' && inputs.verify_only_fallback_on_auth_failure != true
+        shell: powershell
+        run: |
+          throw "Railway API deploy failed and verify_only_fallback_on_auth_failure=false."
+
+      - name: Publish Railway API Deploy Mode Summary
+        if: always()
+        shell: powershell
+        run: |
+          $deployMode = if ("${{ steps.api_deploy.outcome }}" -eq "success") {
+            "real_deploy"
+          } elseif ("${{ steps.verify_only_fallback.outcome }}" -eq "success") {
+            "verify_only_fallback"
+          } else {
+            "deploy_failed_no_fallback"
+          }
+
+          ("railway_api_deploy_mode=" + $deployMode) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
+      - name: Publish Railway API Deploy Provenance Summary
+        if: always()
+        shell: powershell
+        run: |
+          $summaryPath = "artifacts/deploy/railway-api-deploy-summary.json"
+          if (Test-Path $summaryPath) {
+            $summary = Get-Content $summaryPath -Raw | ConvertFrom-Json
+            ("Railway API deploy summary path: " + $summaryPath) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Railway API deploy summary status: " + [string]$summary.status) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Railway API deploy summary deployment id: " + [string]$summary.deploymentId) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Railway API deploy summary public URL: " + [string]$summary.effectivePublicUrl) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            if ($null -ne $summary.checks -and $null -ne $summary.checks.liveCapabilities) {
+              ("Railway API live capabilities active mode: " + [string]$summary.checks.liveCapabilities.activeMode) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+              ("Railway API live capabilities preferred mode: " + [string]$summary.checks.liveCapabilities.preferredMode) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+              ("Railway API live capabilities ephemeral tokens: " + [string]$summary.checks.liveCapabilities.ephemeralTokensSupported) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            }
+          } else {
+            "Railway API deploy summary was not generated." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+
+      - name: Upload Railway API Deploy Artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: railway-deploy-api-artifacts
+          path: |
+            artifacts/deploy/railway-api-deploy-summary.json
+          if-no-files-found: warn
