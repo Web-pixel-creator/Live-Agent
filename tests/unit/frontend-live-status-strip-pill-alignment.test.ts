@@ -86,4 +86,8 @@ test("demo frontend keeps live status strip states mapped to pill variants", () 
     operatorGuideSource.includes("voice • relay • direct_ready"),
     "operator guide missing live bootstrap mode-strip note",
   );
+  assert.ok(
+    operatorGuideSource.includes("direct_live") && operatorGuideSource.includes("direct_ready"),
+    "operator guide missing active direct-live mode-strip note",
+  );
 });

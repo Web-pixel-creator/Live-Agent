@@ -1170,9 +1170,15 @@ test("demo frontend keeps late protocol noise out of the result card after orche
   const readmeSource = readFileSync(readmePath, "utf8");
 
   const helperStartToken = "function shouldSurfaceLiveProtocolFailure() {";
-  const helperEndToken = "\n\nasync function connectWebSocket() {";
+  const helperEndTokenCandidates = [
+    "\n\nfunction connectDirectLiveTransport(snapshot) {",
+    "\n\nasync function connectWebSocket() {",
+  ];
   const helperStartIndex = appSource.indexOf(helperStartToken);
-  const helperEndIndex = appSource.indexOf(helperEndToken, helperStartIndex);
+  const helperEndIndex = helperEndTokenCandidates
+    .map((token) => appSource.indexOf(token, helperStartIndex))
+    .filter((index) => index !== -1)
+    .sort((left, right) => left - right)[0] ?? -1;
 
   assert.notEqual(helperStartIndex, -1, "frontend runtime missing shouldSurfaceLiveProtocolFailure helper");
   assert.notEqual(helperEndIndex, -1, "frontend runtime missing connectWebSocket helper boundary");

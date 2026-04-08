@@ -60,6 +60,37 @@ test("demo frontend waits for an explicit Connect action before opening the live
   );
 });
 
+test("demo frontend can promote live bootstrap into a constrained direct-live transport", () => {
+  const appPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js");
+  const readmePath = resolve(process.cwd(), "README.md");
+  const operatorGuidePath = resolve(process.cwd(), "docs", "operator-guide.md");
+
+  const appSource = readFileSync(appPath, "utf8");
+  const readmeSource = readFileSync(readmePath, "utf8");
+  const operatorGuideSource = readFileSync(operatorGuidePath, "utf8");
+
+  assert.ok(
+    appSource.includes("BidiGenerateContentConstrained?access_token="),
+    "frontend runtime missing constrained direct-live websocket target",
+  );
+  assert.ok(
+    appSource.includes('appendTranscript("system", "Switching from direct live to relay for orchestrator request");'),
+    "frontend runtime should announce relay downgrade for orchestrator requests",
+  );
+  assert.ok(
+    appSource.includes('void connectWebSocket({ forceRelay: true, intent });'),
+    "frontend runtime should force relay reconnect for orchestrator requests while direct live is active",
+  );
+  assert.ok(
+    readmeSource.includes("voice • direct_live • direct_ready"),
+    "README should document active direct-live mode-strip posture",
+  );
+  assert.ok(
+    operatorGuideSource.includes("voice • direct_live • direct_ready"),
+    "operator guide should document active direct-live mode-strip posture",
+  );
+});
+
 test("demo frontend keeps transient live_forwarded churn out of the main session pill", () => {
   const appPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js");
   const readmePath = resolve(process.cwd(), "README.md");

@@ -79,6 +79,10 @@ const state = {
   liveBootstrapLoadedAt: null,
   liveBootstrapError: null,
   liveTransportMode: "relay",
+  liveDirectSetupSent: false,
+  liveDirectTurnId: null,
+  liveDirectTurnText: "",
+  liveDirectLastFunctionCallFingerprint: null,
   pendingIntentRequest: null,
   liveDemoScenario: null,
   liveCaseLastVerifiedSummaryConfig: null,
@@ -153,6 +157,8 @@ const state = {
   operatorBrowserWorkerControlPrimed: false,
   exportHistory: [],
 };
+
+const DIRECT_GEMINI_LIVE_WEBSOCKET_BASE_URL = "wss://generativelanguage.googleapis.com";
 
 function getHeroCopy(languageMode) {
   if (languageMode === "ru") {
@@ -33435,12 +33441,504 @@ function createEnvelope(type, payload, source = "frontend", runOrOptions = state
   };
 }
 
+function isSocketOpen(socket = state.ws) {
+  return Boolean(socket && socket.readyState === WebSocket.OPEN);
+}
+
+function isDirectLiveTransportActive() {
+  return state.liveTransportMode === "direct_live";
+}
+
+function resetDirectLiveTransportState() {
+  state.liveDirectSetupSent = false;
+  state.liveDirectTurnId = null;
+  state.liveDirectTurnText = "";
+  state.liveDirectLastFunctionCallFingerprint = null;
+}
+
+function canUseDirectLiveTransport(snapshot = state.liveBootstrapSnapshot) {
+  return (
+    isRecord(snapshot) &&
+    toOptionalText(snapshot.connectionMode) === "direct_live" &&
+    toOptionalText(snapshot.sessionToken) !== null
+  );
+}
+
+function buildDirectLiveWebSocketUrl(snapshot = state.liveBootstrapSnapshot) {
+  if (!isRecord(snapshot)) {
+    return null;
+  }
+  const sessionToken = toOptionalText(snapshot.sessionToken);
+  if (!sessionToken) {
+    return null;
+  }
+  return `${DIRECT_GEMINI_LIVE_WEBSOCKET_BASE_URL}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=${encodeURIComponent(sessionToken)}`;
+}
+
+function buildDirectLiveSetupPayload(payloadOverride = null) {
+  const snapshot = isRecord(state.liveBootstrapSnapshot) ? state.liveBootstrapSnapshot : null;
+  const override = isRecord(payloadOverride) ? payloadOverride : {};
+  const overrideGenerationConfig = isRecord(override.generationConfig) ? override.generationConfig : {};
+  const model =
+    toOptionalText(override.model) ??
+    (snapshot ? toOptionalText(snapshot.model) : null) ??
+    "gemini-live-2.5-flash-native-audio";
+  return {
+    ...override,
+    model,
+    generationConfig: {
+      responseModalities: ["TEXT", "AUDIO"],
+      ...overrideGenerationConfig,
+    },
+  };
+}
+
+function sendDirectLiveJson(message) {
+  if (!isSocketOpen()) {
+    appendTranscript("error", "Live transport is not connected");
+    return false;
+  }
+  state.ws.send(JSON.stringify(message));
+  return true;
+}
+
+function ensureDirectLiveSetupSent(payloadOverride = null) {
+  if (state.liveDirectSetupSent && payloadOverride === null) {
+    return true;
+  }
+  const setupPayload = buildDirectLiveSetupPayload(payloadOverride);
+  const sent = sendDirectLiveJson({
+    setup: setupPayload,
+  });
+  if (sent) {
+    state.liveDirectSetupSent = true;
+  }
+  return sent;
+}
+
+function normalizeDirectLiveFunctionCallCandidate(candidate) {
+  if (!isRecord(candidate)) {
+    return null;
+  }
+  const name = toOptionalText(candidate.name);
+  if (!name) {
+    return null;
+  }
+  const callId = toOptionalText(candidate.id) ?? toOptionalText(candidate.callId);
+  const rawArguments = candidate.args ?? candidate.arguments ?? candidate.argumentsJson ?? {};
+  const argumentsJson =
+    typeof rawArguments === "string"
+      ? rawArguments
+      : (() => {
+          try {
+            return JSON.stringify(rawArguments ?? {});
+          } catch {
+            return "{}";
+          }
+        })();
+  return {
+    callId,
+    name,
+    argumentsJson,
+  };
+}
+
+function normalizeDirectLiveUpstreamMessage(parsed) {
+  if (!isRecord(parsed)) {
+    return null;
+  }
+  const normalized = {};
+  const serverContent = isRecord(parsed.serverContent) ? parsed.serverContent : null;
+  if (serverContent && typeof serverContent.interrupted === "boolean") {
+    normalized.interrupted = serverContent.interrupted;
+  }
+  if (typeof parsed.interrupted === "boolean") {
+    normalized.interrupted = parsed.interrupted;
+  }
+  if (serverContent && typeof serverContent.turnComplete === "boolean") {
+    normalized.turnComplete = serverContent.turnComplete;
+  }
+  const modelTurn = serverContent && isRecord(serverContent.modelTurn) ? serverContent.modelTurn : null;
+  const parts = modelTurn && Array.isArray(modelTurn.parts) ? modelTurn.parts : [];
+  const texts = [];
+  for (const part of parts) {
+    if (!isRecord(part)) {
+      continue;
+    }
+    if (typeof part.text === "string" && part.text.length > 0) {
+      texts.push(part.text);
+    }
+    if (isRecord(part.inlineData) && typeof part.inlineData.data === "string") {
+      const mimeType = typeof part.inlineData.mimeType === "string" ? part.inlineData.mimeType : "";
+      if (mimeType.startsWith("audio/")) {
+        normalized.audioBase64 = part.inlineData.data;
+        normalized.audioMimeType = mimeType;
+      }
+    }
+    if (!normalized.functionCall && isRecord(part.functionCall)) {
+      const functionCall = normalizeDirectLiveFunctionCallCandidate(part.functionCall);
+      if (functionCall) {
+        normalized.functionCall = functionCall;
+      }
+    }
+  }
+  if (texts.length > 0) {
+    normalized.text = texts.join("\n");
+  }
+  if (!normalized.text && typeof serverContent?.outputTranscript === "string") {
+    normalized.text = serverContent.outputTranscript;
+  }
+  if (
+    typeof normalized.text === "string" ||
+    typeof normalized.audioBase64 === "string" ||
+    typeof normalized.functionCall === "object" ||
+    normalized.interrupted === true ||
+    normalized.turnComplete === true
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
+function emitDirectLiveGatewayEvent(type, payload, metadata = null) {
+  handleGatewayEvent({
+    id: makeId(),
+    userId: state.userId,
+    sessionId: state.sessionId,
+    runId: state.runId,
+    conversation: "default",
+    source: "direct_live",
+    ts: new Date().toISOString(),
+    type,
+    payload,
+    ...(metadata && typeof metadata === "object" ? { metadata } : {}),
+  });
+}
+
+function buildDirectLiveConversationParts(content) {
+  if (!Array.isArray(content)) {
+    return [];
+  }
+  const parts = [];
+  for (const item of content) {
+    if (!isRecord(item)) {
+      continue;
+    }
+    if (item.type === "input_text" && typeof item.text === "string" && item.text.length > 0) {
+      parts.push({ text: item.text });
+      continue;
+    }
+    if (item.type === "input_image" && typeof item.image_url === "string") {
+      const parsedImage = parseBase64DataUrl(item.image_url);
+      if (parsedImage) {
+        parts.push({
+          inlineData: {
+            mimeType: parsedImage.mimeType,
+            data: parsedImage.base64,
+          },
+        });
+      }
+      continue;
+    }
+    if (item.type === "input_audio" && typeof item.audio === "string" && item.audio.length > 0) {
+      parts.push({
+        inlineData: {
+          mimeType: typeof item.mimeType === "string" && item.mimeType.trim().length > 0 ? item.mimeType.trim() : "audio/wav",
+          data: item.audio,
+        },
+      });
+    }
+  }
+  return parts;
+}
+
+function sendDirectLiveEnvelope(envelope) {
+  const type = typeof envelope?.type === "string" ? envelope.type : "";
+  const payload = envelope?.payload;
+  const isSessionLocalConversationEvent = type === "conversation.item.truncate" || type === "conversation.item.delete";
+  if (!isSessionLocalConversationEvent && type !== "live.setup" && !ensureDirectLiveSetupSent()) {
+    return false;
+  }
+  switch (type) {
+    case "live.setup": {
+      return ensureDirectLiveSetupSent(payload && typeof payload === "object" ? payload : null);
+    }
+    case "live.audio":
+    case "live.video": {
+      if (!isRecord(payload) || typeof payload.chunkBase64 !== "string" || payload.chunkBase64.length === 0) {
+        appendTranscript("error", `Missing chunkBase64 for ${type}`);
+        return false;
+      }
+      const mimeType =
+        typeof payload.mimeType === "string" && payload.mimeType.trim().length > 0
+          ? payload.mimeType.trim()
+          : type === "live.audio"
+            ? `audio/pcm;rate=${Number.isFinite(payload.sampleRate) ? Math.max(1, Math.floor(payload.sampleRate)) : 16000}`
+            : "image/jpeg";
+      return sendDirectLiveJson({
+        realtimeInput: {
+          mediaChunks: [
+            {
+              mimeType,
+              data: payload.chunkBase64,
+            },
+          ],
+        },
+      });
+    }
+    case "live.image": {
+      if (!isRecord(payload)) {
+        appendTranscript("error", "Missing payload for live.image");
+        return false;
+      }
+      const parsedImage =
+        typeof payload.dataUrl === "string"
+          ? parseBase64DataUrl(payload.dataUrl)
+          : typeof payload.base64 === "string" && typeof payload.mimeType === "string"
+            ? { base64: payload.base64, mimeType: payload.mimeType }
+            : null;
+      if (!parsedImage) {
+        appendTranscript("error", "Invalid image payload for direct live transport");
+        return false;
+      }
+      return sendDirectLiveJson({
+        realtimeInput: {
+          mediaChunks: [
+            {
+              mimeType: parsedImage.mimeType,
+              data: parsedImage.base64,
+            },
+          ],
+        },
+      });
+    }
+    case "live.text": {
+      const text = findTextPayload(payload);
+      if (!text) {
+        appendTranscript("error", "Missing text payload for live.text");
+        return false;
+      }
+      return sendDirectLiveJson({
+        clientContent: {
+          turns: [
+            {
+              role: "user",
+              parts: [{ text }],
+            },
+          ],
+          turnComplete: true,
+        },
+      });
+    }
+    case "conversation.item.create": {
+      const item = isRecord(payload?.item) ? payload.item : null;
+      const content = item && Array.isArray(item.content) ? item.content : [];
+      const parts = buildDirectLiveConversationParts(content);
+      if (parts.length === 0) {
+        appendTranscript("error", "Missing content payload for conversation.item.create");
+        return false;
+      }
+      const role = toOptionalText(item?.role) === "assistant" ? "model" : "user";
+      return sendDirectLiveJson({
+        clientContent: {
+          turns: [
+            {
+              role,
+              parts,
+            },
+          ],
+          turnComplete: payload?.turnComplete !== false,
+        },
+      });
+    }
+    case "live.turn.end": {
+      return sendDirectLiveJson({
+        realtimeInput: {
+          activityEnd: true,
+        },
+      });
+    }
+    case "live.input.clear": {
+      resetDirectLiveTransportState();
+      emitDirectLiveGatewayEvent("live.input.cleared", {
+        reason: typeof payload?.reason === "string" ? payload.reason : "client_input_clear",
+        clearedAt: new Date().toISOString(),
+      });
+      return true;
+    }
+    case "live.input.commit": {
+      const sent = sendDirectLiveJson({
+        realtimeInput: {
+          activityEnd: true,
+        },
+      });
+      if (sent) {
+        emitDirectLiveGatewayEvent("live.input.committed", {
+          reason: typeof payload?.reason === "string" ? payload.reason : "client_input_commit",
+          committedAt: new Date().toISOString(),
+        });
+      }
+      return sent;
+    }
+    case "live.function_call_output": {
+      if (!isRecord(payload)) {
+        appendTranscript("error", "Invalid payload for live.function_call_output");
+        return false;
+      }
+      const name = toOptionalText(payload.name) ?? toOptionalText(payload.functionName);
+      if (!name) {
+        appendTranscript("error", "Missing function name for live.function_call_output");
+        return false;
+      }
+      const callId = toOptionalText(payload.callId) ?? toOptionalText(payload.call_id);
+      const responsePayload =
+        isRecord(payload.output) || Array.isArray(payload.output)
+          ? payload.output
+          : isRecord(payload.result) || Array.isArray(payload.result)
+            ? payload.result
+            : isRecord(payload.response) || Array.isArray(payload.response)
+              ? payload.response
+              : { value: payload.output ?? payload.result ?? payload.response ?? null };
+      const sent = sendDirectLiveJson({
+        clientContent: {
+          turns: [
+            {
+              role: "user",
+              parts: [
+                {
+                  functionResponse: {
+                    name,
+                    ...(callId ? { id: callId } : {}),
+                    response: responsePayload,
+                  },
+                },
+              ],
+            },
+          ],
+          turnComplete: true,
+        },
+      });
+      if (sent) {
+        emitDirectLiveGatewayEvent("live.function_call_output.sent", {
+          name,
+          callId,
+          sentAt: new Date().toISOString(),
+        });
+      }
+      return sent;
+    }
+    case "live.interrupt": {
+      return sendDirectLiveJson({
+        realtimeInput: {
+          activityEnd: true,
+        },
+      });
+    }
+    case "conversation.item.truncate": {
+      const turnId = toOptionalText(payload?.item_id) ?? state.liveDirectTurnId;
+      resetDirectLiveTransportState();
+      emitDirectLiveGatewayEvent("live.turn.truncated", {
+        reason: typeof payload?.reason === "string" ? payload.reason : "client_truncate",
+        turnId,
+        contentIndex: Number.isFinite(payload?.content_index) ? Math.max(0, Math.floor(payload.content_index)) : 0,
+        audioEndMs: Number.isFinite(payload?.audio_end_ms) ? Math.max(0, Math.floor(payload.audio_end_ms)) : null,
+        hadActiveTurn: turnId !== null,
+        appliedAt: new Date().toISOString(),
+        scope: "session_local",
+      });
+      return true;
+    }
+    case "conversation.item.delete": {
+      const turnId = toOptionalText(payload?.item_id) ?? state.liveDirectTurnId;
+      resetDirectLiveTransportState();
+      emitDirectLiveGatewayEvent("live.turn.deleted", {
+        reason: typeof payload?.reason === "string" ? payload.reason : "client_delete",
+        turnId,
+        hadActiveTurn: turnId !== null,
+        appliedAt: new Date().toISOString(),
+        scope: "session_local",
+      });
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+
+function handleDirectLiveMessageData(data) {
+  const parsed = parseGatewayFrameData(data);
+  if (parsed === null) {
+    return;
+  }
+  const normalized = normalizeDirectLiveUpstreamMessage(parsed);
+  if (!normalized) {
+    return;
+  }
+  if ((typeof normalized.text === "string" && normalized.text.length > 0) || typeof normalized.audioBase64 === "string") {
+    if (!state.liveDirectTurnId) {
+      state.liveDirectTurnId = `turn-${makeId()}`;
+    }
+    if (typeof normalized.text === "string" && normalized.text.length > 0) {
+      state.liveDirectTurnText += normalized.text;
+    }
+    emitDirectLiveGatewayEvent("live.output", {
+      normalized: {
+        ...normalized,
+        turnId: state.liveDirectTurnId,
+      },
+    });
+  }
+  if (normalized.functionCall && typeof normalized.functionCall === "object") {
+    if (!state.liveDirectTurnId) {
+      state.liveDirectTurnId = `turn-${makeId()}`;
+    }
+    const callId =
+      typeof normalized.functionCall.callId === "string" && normalized.functionCall.callId.trim().length > 0
+        ? normalized.functionCall.callId.trim()
+        : `call-${makeId()}`;
+    const fingerprint = `${callId}:${normalized.functionCall.name}:${normalized.functionCall.argumentsJson}`;
+    if (fingerprint !== state.liveDirectLastFunctionCallFingerprint) {
+      state.liveDirectLastFunctionCallFingerprint = fingerprint;
+      emitDirectLiveGatewayEvent("live.function_call", {
+        turnId: state.liveDirectTurnId,
+        callId,
+        name: normalized.functionCall.name,
+        argumentsJson: normalized.functionCall.argumentsJson,
+        receivedAt: new Date().toISOString(),
+      });
+    }
+  }
+  if (normalized.interrupted === true) {
+    emitDirectLiveGatewayEvent("live.interrupted", {
+      reason: "direct_live_upstream_interrupted",
+      interruptedAt: new Date().toISOString(),
+    });
+    resetDirectLiveTransportState();
+    return;
+  }
+  if (normalized.turnComplete === true && state.liveDirectTurnId) {
+    emitDirectLiveGatewayEvent("live.turn.completed", {
+      turnId: state.liveDirectTurnId,
+      textChars: state.liveDirectTurnText.length,
+      completedAt: new Date().toISOString(),
+    });
+    resetDirectLiveTransportState();
+  }
+}
+
 function sendEnvelope(type, payload, source = "frontend", runOrOptions = state.runId) {
+  const envelope = createEnvelope(type, payload, source, runOrOptions);
+  if (isDirectLiveTransportActive() && isSocketOpen()) {
+    if (sendDirectLiveEnvelope(envelope)) {
+      return;
+    }
+    appendTranscript("error", `Direct live transport does not support ${type}; switch to relay for this action`);
+    return;
+  }
   if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
     appendTranscript("error", "WebSocket is not connected");
     return;
   }
-  const envelope = createEnvelope(type, payload, source, runOrOptions);
   prunePendingClientEvents();
   state.pendingClientEvents.set(envelope.id, {
     type,
@@ -38614,7 +39112,129 @@ function shouldSurfaceLiveProtocolFailure() {
   return sessionState !== "orchestrator_completed" && sessionState !== "orchestrator_pending_approval";
 }
 
-async function connectWebSocket() {
+function connectDirectLiveTransport(snapshot) {
+  const directWsUrl = buildDirectLiveWebSocketUrl(snapshot);
+  if (!directWsUrl) {
+    return Promise.resolve(false);
+  }
+  return new Promise((resolve) => {
+    let settled = false;
+    let opened = false;
+    const finish = (result) => {
+      if (!settled) {
+        settled = true;
+        resolve(result);
+      }
+    };
+    const ws = new WebSocket(directWsUrl);
+    state.ws = ws;
+    const isActiveSocket = () => state.ws === ws;
+
+    ws.addEventListener("open", () => {
+      if (!isActiveSocket()) {
+        try {
+          ws.close();
+        } catch {
+          // best-effort stale direct-live socket close
+        }
+        finish(false);
+        return;
+      }
+      opened = true;
+      resetDirectLiveTransportState();
+      state.liveTransportMode = "direct_live";
+      renderLiveModeStatus();
+      setConnectionStatus("connected");
+      appendTranscript(
+        "system",
+        `Connected directly to ${toOptionalText(snapshot?.provider) ?? "gemini_live_api"} (${toOptionalText(snapshot?.model) ?? "unknown model"})`,
+      );
+      finish(true);
+    });
+
+    ws.addEventListener("close", () => {
+      if (!isActiveSocket()) {
+        finish(false);
+        return;
+      }
+      finalizeAssistantStreamEntry();
+      resetAssistantPlayback();
+      state.pttPressed = false;
+      updatePttUi();
+      setConnectionStatus("disconnected");
+      const hadLiveRequestInFlight = hasLiveRequestInFlight();
+      clearLivePendingRequest();
+      state.pendingIntentRequest = null;
+      if (opened) {
+        if (hadLiveRequestInFlight) {
+          reportLiveRuntimeFailure("transport", "Direct live session closed");
+        } else {
+          appendTranscript("system", "Direct live session closed");
+        }
+      }
+      state.pendingClientEvents.clear();
+      state.ws = null;
+      resetDirectLiveTransportState();
+      if (!opened) {
+        finish(false);
+      }
+    });
+
+    ws.addEventListener("error", () => {
+      if (!isActiveSocket()) {
+        finish(false);
+        return;
+      }
+      if (!opened) {
+        state.ws = null;
+        resetDirectLiveTransportState();
+        finish(false);
+        return;
+      }
+      finalizeAssistantStreamEntry();
+      resetAssistantPlayback();
+      state.pttPressed = false;
+      updatePttUi();
+      setConnectionStatus("error");
+      const hadLiveRequestInFlight = hasLiveRequestInFlight();
+      clearLivePendingRequest();
+      state.pendingIntentRequest = null;
+      reportLiveRuntimeFailure("transport", "Direct live socket error", {
+        surfaceInResult: hadLiveRequestInFlight,
+      });
+      state.pendingClientEvents.clear();
+    });
+
+    ws.addEventListener("message", (raw) => {
+      if (!isActiveSocket()) {
+        return;
+      }
+      try {
+        handleDirectLiveMessageData(raw.data);
+      } catch (error) {
+        const hadLiveRequestInFlight = hasLiveRequestInFlight();
+        clearLivePendingRequest();
+        const details = error instanceof Error ? error.message : String(error);
+        reportLiveRuntimeFailure("protocol", `Direct live event handling failed: ${details}`, {
+          surfaceInResult: hadLiveRequestInFlight && shouldSurfaceLiveProtocolFailure(),
+        });
+      }
+    });
+  });
+}
+
+async function connectWebSocket(options = {}) {
+  if (options.forceRelay === true && state.liveTransportMode === "direct_live" && state.ws) {
+    const directSocket = state.ws;
+    state.ws = null;
+    state.pendingClientEvents.clear();
+    resetDirectLiveTransportState();
+    try {
+      directSocket.close(1000, "switch_to_relay");
+    } catch {
+      // best-effort switch from direct live to relay
+    }
+  }
   if (state.ws && (state.ws.readyState === WebSocket.OPEN || state.ws.readyState === WebSocket.CONNECTING)) {
     return;
   }
@@ -38624,9 +39244,24 @@ async function connectWebSocket() {
   const wsUrl = el.wsUrl.value.trim();
   state.wsUrl = wsUrl;
   setConnectionStatus("connecting");
-  await bootstrapLiveSessionTransport({
-    intent: getCurrentLiveIntentValue(),
+  const bootstrapSnapshot = await bootstrapLiveSessionTransport({
+    intent:
+      typeof options.intent === "string" && options.intent.trim().length > 0
+        ? options.intent.trim()
+        : getCurrentLiveIntentValue(),
   });
+  if (options.forceRelay !== true && !state.pendingIntentRequest && canUseDirectLiveTransport(bootstrapSnapshot)) {
+    const directConnected = await connectDirectLiveTransport(bootstrapSnapshot);
+    if (directConnected) {
+      return;
+    }
+    applyLiveSessionBootstrapResult(
+      "fallback_relay",
+      isRecord(bootstrapSnapshot) ? bootstrapSnapshot : null,
+      "direct live transport connect failed; falling back to relay",
+    );
+    setConnectionStatus("connecting");
+  }
   const ws = new WebSocket(wsUrl);
   state.ws = ws;
 
@@ -39251,7 +39886,7 @@ function sendIntentRequest(options = {}) {
   setStatusTextValue(el.runId, requestRunId, "-");
 
   const requestEnvelope = { intent, input, conversation, requestMetadata, requestRunId };
-  const wsReady = Boolean(state.ws && state.ws.readyState === WebSocket.OPEN);
+  const wsReady = Boolean(state.ws && state.ws.readyState === WebSocket.OPEN && state.liveTransportMode === "relay");
   if (!wsReady) {
     state.pendingIntentRequest = requestEnvelope;
     if (conversation !== "none") {
@@ -39263,7 +39898,10 @@ function sendIntentRequest(options = {}) {
         ? "Live-сессия ещё не открыта. Подключаюсь и отправлю запрос автоматически."
         : "Live session is not open yet. Connecting now and sending the request automatically.",
     );
-    void connectWebSocket();
+    if (state.liveTransportMode === "direct_live" && state.ws && state.ws.readyState === WebSocket.OPEN) {
+      appendTranscript("system", "Switching from direct live to relay for orchestrator request");
+    }
+    void connectWebSocket({ forceRelay: true, intent });
     return;
   }
 
