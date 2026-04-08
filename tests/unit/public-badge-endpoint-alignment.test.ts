@@ -42,6 +42,7 @@ test("tracked public badge details embed badge payload", () => {
   const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
   const agentUsage = evidence.agentUsage as Record<string, unknown>;
   const runtimeGuardrailsSignalPaths = evidence.runtimeGuardrailsSignalPaths as Record<string, unknown>;
+  const liveTransport = details.liveTransport as Record<string, unknown>;
   const providerUsage = details.providerUsage as Record<string, unknown>;
   assert.ok(turnTruncation && typeof turnTruncation === "object");
   assert.ok(turnDelete && typeof turnDelete === "object");
@@ -53,6 +54,7 @@ test("tracked public badge details embed badge payload", () => {
   assert.ok(deviceNodes && typeof deviceNodes === "object");
   assert.ok(agentUsage && typeof agentUsage === "object");
   assert.ok(runtimeGuardrailsSignalPaths && typeof runtimeGuardrailsSignalPaths === "object");
+  assert.ok(liveTransport && typeof liveTransport === "object");
   assert.ok(providerUsage && typeof providerUsage === "object");
 
   assert.equal(details.ok, true);
@@ -218,6 +220,41 @@ test("tracked public badge details embed badge payload", () => {
   assert.equal(typeof runtimeGuardrailsSignalPaths.skillsSummary, "string");
   assert.equal(typeof runtimeGuardrailsSignalPaths.topSignal, "string");
   assert.equal(typeof runtimeGuardrailsSignalPaths.historyStatus, "string");
+  assert.equal(typeof liveTransport.status, "string");
+  assert.equal(typeof liveTransport.validated, "boolean");
+  const liveTransportRuntime = liveTransport.runtime as Record<string, unknown>;
+  const liveTransportSession = liveTransport.session as Record<string, unknown>;
+  assert.ok(liveTransportRuntime && typeof liveTransportRuntime === "object");
+  assert.ok(liveTransportSession && typeof liveTransportSession === "object");
+  assert.equal(typeof liveTransport.summary, "string");
+  assert.equal(typeof liveTransportRuntime.validated, "boolean");
+  assert.ok(
+    liveTransportRuntime.requestedMode === null || typeof liveTransportRuntime.requestedMode === "string",
+  );
+  assert.ok(liveTransportRuntime.activeMode === null || typeof liveTransportRuntime.activeMode === "string");
+  assert.ok(
+    liveTransportRuntime.fallbackActive === null || typeof liveTransportRuntime.fallbackActive === "boolean",
+  );
+  assert.ok(
+    liveTransportRuntime.evidenceSource === null || typeof liveTransportRuntime.evidenceSource === "string",
+  );
+  assert.equal(typeof liveTransportSession.observed, "boolean");
+  assert.ok(liveTransportSession.activeMode === null || typeof liveTransportSession.activeMode === "string");
+  assert.ok(liveTransportSession.provider === null || typeof liveTransportSession.provider === "string");
+  assert.ok(liveTransportSession.model === null || typeof liveTransportSession.model === "string");
+  assert.ok(
+    liveTransportSession.bootstrapState === null || typeof liveTransportSession.bootstrapState === "string",
+  );
+  assert.ok(
+    liveTransportSession.fallbackReason === null || typeof liveTransportSession.fallbackReason === "string",
+  );
+  assert.ok(
+    liveTransportSession.evidenceSource === null || typeof liveTransportSession.evidenceSource === "string",
+  );
+  assert.ok(
+    liveTransportSession.connectedEventType === null ||
+      typeof liveTransportSession.connectedEventType === "string",
+  );
   assert.equal(typeof runtimeGuardrailsSignalPaths.totalPaths, "number");
   assert.equal(typeof runtimeGuardrailsSignalPaths.lifecycleSummary, "string");
   assert.equal(Array.isArray(runtimeGuardrailsSignalPaths.paths), true);

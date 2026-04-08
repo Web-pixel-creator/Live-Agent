@@ -149,6 +149,64 @@ function New-ProviderUsagePrimaryEntry {
   }
 }
 
+function New-LiveTransportSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status    = "unavailable"
+      validated = $false
+      runtime   = [ordered]@{
+        validated      = $false
+        requestedMode  = $null
+        activeMode     = $null
+        fallbackActive = $null
+        evidenceSource = $null
+      }
+      session   = [ordered]@{
+        observed         = $false
+        activeMode       = $null
+        provider         = $null
+        model            = $null
+        bootstrapState   = $null
+        fallbackReason   = $null
+        evidenceSource   = $null
+        connectedEventType = $null
+      }
+      summary   = "unavailable"
+    }
+  }
+
+  $runtime = if ($null -ne $Value.runtime) { $Value.runtime } else { $null }
+  $session = if ($null -ne $Value.session) { $Value.session } else { $null }
+
+  return [ordered]@{
+    status    = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated = ($Value.validated -eq $true)
+    runtime   = [ordered]@{
+      validated      = ($null -ne $runtime -and $runtime.validated -eq $true)
+      requestedMode  = $(if ($null -eq $runtime) { $null } else { Get-StatusValueOrDefault -Value $runtime.requestedMode -DefaultValue "" })
+      activeMode     = $(if ($null -eq $runtime) { $null } else { Get-StatusValueOrDefault -Value $runtime.activeMode -DefaultValue "" })
+      fallbackActive = $(if ($null -eq $runtime) { $null } else { if ($null -eq $runtime.fallbackActive) { $null } else { $runtime.fallbackActive -eq $true } })
+      evidenceSource = $(if ($null -eq $runtime) { $null } else { Get-StatusValueOrDefault -Value $runtime.evidenceSource -DefaultValue "" })
+    }
+    session   = [ordered]@{
+      observed           = ($null -ne $session -and $session.observed -eq $true)
+      activeMode         = $(if ($null -eq $session) { $null } else { Get-StatusValueOrDefault -Value $session.activeMode -DefaultValue "" })
+      provider           = $(if ($null -eq $session) { $null } else { Get-StatusValueOrDefault -Value $session.provider -DefaultValue "" })
+      model              = $(if ($null -eq $session) { $null } else { Get-StatusValueOrDefault -Value $session.model -DefaultValue "" })
+      bootstrapState     = $(if ($null -eq $session) { $null } else { Get-StatusValueOrDefault -Value $session.bootstrapState -DefaultValue "" })
+      fallbackReason     = $(if ($null -eq $session) { $null } else { Get-StatusValueOrDefault -Value $session.fallbackReason -DefaultValue "" })
+      evidenceSource     = $(if ($null -eq $session) { $null } else { Get-StatusValueOrDefault -Value $session.evidenceSource -DefaultValue "" })
+      connectedEventType = $(if ($null -eq $session) { $null } else { Get-StatusValueOrDefault -Value $session.connectedEventType -DefaultValue "" })
+    }
+    summary   = Get-StatusValueOrDefault -Value $Value.summary -DefaultValue "unavailable"
+  }
+}
+
 function New-ArtifactEntry {
   param(
     [Parameter(Mandatory = $true)]
@@ -278,6 +336,7 @@ $report = [ordered]@{
     deviceNodesStatus         = "unavailable"
     agentUsageStatus          = "unavailable"
     runtimeGuardrailsSignalPathsStatus = "unavailable"
+    liveTransportStatus       = "unavailable"
     providerUsageStatus       = "unavailable"
     deviceNodeUpdatesStatus   = "unavailable"
   }
@@ -292,6 +351,28 @@ $report = [ordered]@{
     summaryStatus = "unavailable"
     totalPaths    = 0
     primaryPath   = $null
+  }
+  liveTransport = [ordered]@{
+    status    = "unavailable"
+    validated = $false
+    runtime   = [ordered]@{
+      validated      = $false
+      requestedMode  = $null
+      activeMode     = $null
+      fallbackActive = $null
+      evidenceSource = $null
+    }
+    session   = [ordered]@{
+      observed           = $false
+      activeMode         = $null
+      provider           = $null
+      model              = $null
+      bootstrapState     = $null
+      fallbackReason     = $null
+      evidenceSource     = $null
+      connectedEventType = $null
+    }
+    summary   = "unavailable"
   }
   providerUsage = [ordered]@{
     status                  = "unavailable"
@@ -398,6 +479,10 @@ if (Test-Path $resolvedBadgeDetailsPath) {
         $report.runtimeGuardrailsSignalPaths.primaryPath = New-RuntimeGuardrailsPrimaryPath -Value $badgeDetails.evidence.runtimeGuardrailsSignalPaths.primaryPath
       }
     }
+    if ($null -ne $badgeDetails.liveTransport) {
+      $report.liveTransport = New-LiveTransportSnapshot -Value $badgeDetails.liveTransport
+      $report.statuses.liveTransportStatus = Get-StatusValueOrDefault -Value $report.liveTransport.status -DefaultValue "unavailable"
+    }
     if ($null -ne $badgeDetails.providerUsage) {
       $report.providerUsage.status = Get-StatusValueOrDefault -Value $badgeDetails.providerUsage.status -DefaultValue "unavailable"
       $report.statuses.providerUsageStatus = $report.providerUsage.status
@@ -446,6 +531,7 @@ $markdown = @(
   "| deviceNodes | $($report.statuses.deviceNodesStatus) |",
   "| agentUsage | $($report.statuses.agentUsageStatus) |",
   "| runtimeGuardrailsSignalPaths | $($report.statuses.runtimeGuardrailsSignalPathsStatus) |",
+  "| liveTransport | $($report.statuses.liveTransportStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",
@@ -466,6 +552,22 @@ $markdown = @(
     } else {
       "- primaryPath: (none)"
     }),
+  "",
+  "## Live Transport Snapshot",
+  "",
+  "- status: $($report.liveTransport.status)",
+  "- validated: $($report.liveTransport.validated)",
+  "- runtimeMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.runtime.activeMode)) { "n/a" } else { [string]$report.liveTransport.runtime.activeMode })",
+  "- runtimeRequestedMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.runtime.requestedMode)) { "n/a" } else { [string]$report.liveTransport.runtime.requestedMode })",
+  "- runtimeFallbackActive: $(if ($null -eq $report.liveTransport.runtime.fallbackActive) { "n/a" } else { [string]$report.liveTransport.runtime.fallbackActive })",
+  "- sessionMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.activeMode)) { "n/a" } else { [string]$report.liveTransport.session.activeMode })",
+  "- sessionProvider: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.provider)) { "n/a" } else { [string]$report.liveTransport.session.provider })",
+  "- sessionModel: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.model)) { "n/a" } else { [string]$report.liveTransport.session.model })",
+  "- bootstrapState: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.bootstrapState)) { "n/a" } else { [string]$report.liveTransport.session.bootstrapState })",
+  "- fallbackReason: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.fallbackReason)) { "n/a" } else { [string]$report.liveTransport.session.fallbackReason })",
+  "- evidenceSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.evidenceSource)) { "n/a" } else { [string]$report.liveTransport.session.evidenceSource })",
+  "- connectedEventType: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.connectedEventType)) { "n/a" } else { [string]$report.liveTransport.session.connectedEventType })",
+  "- summary: $($report.liveTransport.summary)",
   "",
   "## Secondary Provider Usage",
   "",
@@ -593,6 +695,7 @@ $manifestMarkdown = @(
   "| deviceNodes | $($report.statuses.deviceNodesStatus) |",
   "| agentUsage | $($report.statuses.agentUsageStatus) |",
   "| runtimeGuardrailsSignalPaths | $($report.statuses.runtimeGuardrailsSignalPathsStatus) |",
+  "| liveTransport | $($report.statuses.liveTransportStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",

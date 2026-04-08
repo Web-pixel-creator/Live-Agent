@@ -89,6 +89,10 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /plugin_marketplace_status=/);
   assert.match(source, /device_nodes_status=/);
   assert.match(source, /agent_usage_status=/);
+  assert.match(source, /live_transport_status=/);
+  assert.match(source, /live_transport_session_mode=/);
+  assert.match(source, /live_transport_runtime_mode=/);
+  assert.match(source, /live_transport_evidence_source=/);
   assert.match(source, /provider_usage_status=/);
   assert.match(source, /provider_usage_active_secondary_providers=/);
   assert.match(source, /provider_usage_entries_count=/);
@@ -96,6 +100,7 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /device_node_updates_status=/);
   assert.match(source, /report\.statuses\.pluginMarketplaceStatus/);
   assert.match(source, /report\.statuses\.deviceNodeUpdatesStatus/);
+  assert.match(source, /report\.statuses\.liveTransportStatus/);
   assert.match(source, /report\.statuses\.providerUsageStatus/);
   assert.match(source, /Badge details present: \$\{\{\s*steps\.collect_release_evidence\.outputs\.badge_details_present\s*\}\}/);
   assert.match(source, /Turn-truncation status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.turn_truncation_status\s*\}\}/);
@@ -106,6 +111,10 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /Plugin-marketplace status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.plugin_marketplace_status\s*\}\}/);
   assert.match(source, /Device-nodes status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.device_nodes_status\s*\}\}/);
   assert.match(source, /Agent-usage status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.agent_usage_status\s*\}\}/);
+  assert.match(source, /Live-transport status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.live_transport_status\s*\}\}/);
+  assert.match(source, /Live-transport session mode \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.live_transport_session_mode\s*\}\}/);
+  assert.match(source, /Live-transport runtime mode \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.live_transport_runtime_mode\s*\}\}/);
+  assert.match(source, /Live-transport evidence source \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.live_transport_evidence_source\s*\}\}/);
   assert.match(source, /Provider-usage status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.provider_usage_status\s*\}\}/);
   assert.match(source, /Provider-usage active secondary providers \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.provider_usage_active_secondary_providers\s*\}\}/);
   assert.match(source, /Provider-usage entries count \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.provider_usage_entries_count\s*\}\}/);

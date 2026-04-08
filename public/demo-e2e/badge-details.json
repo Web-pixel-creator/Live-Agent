@@ -1,25 +1,47 @@
 {
-  "generatedAt": "2026-04-07T18:59:15.753Z",
+  "generatedAt": "2026-04-08T14:32:10.741Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 281,
   "violations": 0,
-  "roundTripMs": 1091,
+  "roundTripMs": 1195,
   "costEstimate": {
     "currency": "USD",
-    "geminiLiveUsd": 0.035814,
+    "geminiLiveUsd": 0.035765,
     "imagenUsd": 0.12,
     "veoUsd": 0.36,
     "ttsUsd": 0.024,
-    "totalUsd": 0.539814,
+    "totalUsd": 0.539765,
     "source": "runtime_estimate"
   },
   "tokensUsed": {
     "input": 2561,
-    "output": 25675,
-    "total": 28236,
+    "output": 25639,
+    "total": 28200,
     "source": "runtime_estimate"
+  },
+  "liveTransport": {
+    "status": "pass",
+    "validated": true,
+    "runtime": {
+      "validated": true,
+      "requestedMode": "websocket",
+      "activeMode": "websocket",
+      "fallbackActive": false,
+      "evidenceSource": "runtime.lifecycle.endpoints"
+    },
+    "session": {
+      "observed": true,
+      "activeMode": "relay",
+      "provider": null,
+      "model": null,
+      "bootstrapState": null,
+      "fallbackReason": null,
+      "evidenceSource": "gateway_connected_event",
+      "connectedEventType": "gateway.connected"
+    },
+    "summary": "runtime=websocket | session=relay | source=gateway_connected_event"
   },
   "providerUsage": {
     "status": "pass",
@@ -82,7 +104,7 @@
     ]
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-04-07T23:59:14.6035771+05:00",
+    "sourceSummaryGeneratedAt": "2026-04-08T19:32:09.6076040+05:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -90,7 +112,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-07T18:59:10.791Z",
+      "latestSeenAt": "2026-04-08T14:32:04.368Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -104,7 +126,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-07T18:59:10.883Z",
+      "latestSeenAt": "2026-04-08T14:32:04.481Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -138,7 +160,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-04-07T18:59:08.653Z",
+        "seenAt": "2026-04-08T14:32:02.101Z",
         "seenAtIsIso": true
       }
     },
@@ -202,10 +224,10 @@
       },
       "latest": {
         "outcome": "succeeded",
-        "pluginId": "demo-plugin-skill-b986dfbe-3e27-4417-8efc-5557bb140d15",
+        "pluginId": "demo-plugin-skill-3a648f02-a2e7-4f6f-b5a9-07e55e806d70",
         "version": 1,
         "signingStatus": "unsigned",
-        "seenAt": "2026-04-07T18:59:13.782Z",
+        "seenAt": "2026-04-08T14:32:08.194Z",
         "seenAtIsIso": true
       }
     },
@@ -239,8 +261,8 @@
       "uniqueSessions": 1,
       "totalCalls": 8,
       "inputTokens": 2517,
-      "outputTokens": 412,
-      "totalTokens": 2929,
+      "outputTokens": 408,
+      "totalTokens": 2925,
       "models": [
         "gemini-3.1-flash-lite-preview",
         "usage_metadata_unavailable"
@@ -286,7 +308,7 @@
           "statusCode": "active",
           "statusText": "active",
           "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-          "updatedAt": "2026-04-07T23:59:14.0580867+05:00",
+          "updatedAt": "2026-04-08T19:32:08.4884885+05:00",
           "updatedAtIsIso": true
         }
       },
@@ -307,7 +329,7 @@
             "statusCode": "active",
             "statusText": "active",
             "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-            "updatedAt": "2026-04-07T23:59:14.0580867+05:00",
+            "updatedAt": "2026-04-08T19:32:08.4884885+05:00",
             "updatedAtIsIso": true
           }
         }
@@ -317,7 +339,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 281 checks | 1091ms ws",
+    "message": "pass | 281 checks | 1195ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }

@@ -706,6 +706,139 @@ function buildRuntimeGuardrailsSignalPathsEvidence(kpis) {
   };
 }
 
+function getNestedObjectCandidate(root, path) {
+  if (!isObject(root)) {
+    return null;
+  }
+  let current = root;
+  for (const segment of path) {
+    if (!isObject(current) || !(segment in current)) {
+      return null;
+    }
+    current = current[segment];
+  }
+  return isObject(current) ? current : null;
+}
+
+function normalizeLiveTransportSnapshot(value, defaultEvidenceSource = null) {
+  const typed = isObject(value) ? value : {};
+  const activeMode =
+    toOptionalString(typed.activeMode) ??
+    toOptionalString(typed.connectionMode) ??
+    toOptionalString(typed.transportMode) ??
+    toOptionalString(typed.mode);
+  const provider = toOptionalString(typed.provider);
+  const model = toOptionalString(typed.model);
+  const bootstrapState = toOptionalString(typed.bootstrapState);
+  const fallbackReason =
+    toOptionalString(typed.fallbackReason) ??
+    toOptionalString(typed.fallbackMode) ??
+    toOptionalString(typed.warning);
+  const explicitEvidenceSource = toOptionalString(typed.evidenceSource);
+  const hasCoreEvidence = activeMode || provider || model || bootstrapState || fallbackReason;
+  const evidenceSource = explicitEvidenceSource ?? (hasCoreEvidence ? defaultEvidenceSource : null);
+
+  if (!activeMode && !provider && !model && !bootstrapState && !fallbackReason && !evidenceSource) {
+    return null;
+  }
+
+  return {
+    activeMode,
+    provider,
+    model,
+    bootstrapState,
+    fallbackReason,
+    evidenceSource,
+  };
+}
+
+function buildLiveTransport(summary, kpis) {
+  const runtimeValidated = toBoolean(kpis.transportModeValidated) === true;
+  const runtimeRequestedMode = toOptionalString(kpis.gatewayTransportRequestedMode);
+  const runtimeActiveMode = toOptionalString(kpis.gatewayTransportActiveMode);
+  const runtimeFallbackActive = toBoolean(kpis.gatewayTransportFallbackActive);
+  const runtimeEvidenceObserved =
+    runtimeValidated ||
+    runtimeRequestedMode !== null ||
+    runtimeActiveMode !== null ||
+    runtimeFallbackActive !== null;
+
+  const sessionCandidates = [
+    getNestedObjectCandidate(summary, ["liveTransport"]),
+    getNestedObjectCandidate(summary, ["session", "liveTransport"]),
+    getNestedObjectCandidate(summary, ["operatorEvidence", "operatorSessionReplay", "liveTransport"]),
+    getNestedObjectCandidate(summary, ["selectedSession", "replay", "liveTransport"]),
+    getNestedObjectCandidate(summary, ["replay", "selectedSession", "replay", "liveTransport"]),
+  ];
+
+  let normalizedSession = null;
+  for (const candidate of sessionCandidates) {
+    normalizedSession = normalizeLiveTransportSnapshot(candidate, "summary_live_transport");
+    if (normalizedSession) {
+      break;
+    }
+  }
+
+  const connectedEventType = toOptionalString(kpis.assistantActivityConnectedEventType);
+  if (!normalizedSession && connectedEventType === "gateway.connected") {
+    normalizedSession = {
+      activeMode: "relay",
+      provider: null,
+      model: null,
+      bootstrapState: null,
+      fallbackReason: null,
+      evidenceSource: "gateway_connected_event",
+    };
+  }
+
+  const sessionObserved = normalizedSession !== null || connectedEventType !== null;
+  const status =
+    runtimeEvidenceObserved && sessionObserved
+      ? "pass"
+      : runtimeEvidenceObserved || sessionObserved
+        ? "partial"
+        : "unavailable";
+
+  const summaryParts = [];
+  if (runtimeActiveMode) {
+    summaryParts.push(`runtime=${runtimeActiveMode}`);
+  } else if (runtimeRequestedMode) {
+    summaryParts.push(`runtime_requested=${runtimeRequestedMode}`);
+  }
+  if (normalizedSession?.activeMode) {
+    summaryParts.push(`session=${normalizedSession.activeMode}`);
+  }
+  if (normalizedSession?.evidenceSource) {
+    summaryParts.push(`source=${normalizedSession.evidenceSource}`);
+  }
+  if (summaryParts.length === 0) {
+    summaryParts.push("live transport evidence unavailable");
+  }
+
+  return {
+    status,
+    validated: runtimeEvidenceObserved || sessionObserved,
+    runtime: {
+      validated: runtimeValidated,
+      requestedMode: runtimeRequestedMode,
+      activeMode: runtimeActiveMode,
+      fallbackActive: runtimeFallbackActive,
+      evidenceSource: runtimeEvidenceObserved ? "runtime.lifecycle.endpoints" : null,
+    },
+    session: {
+      observed: sessionObserved,
+      activeMode: normalizedSession?.activeMode ?? null,
+      provider: normalizedSession?.provider ?? null,
+      model: normalizedSession?.model ?? null,
+      bootstrapState: normalizedSession?.bootstrapState ?? null,
+      fallbackReason: normalizedSession?.fallbackReason ?? null,
+      evidenceSource: normalizedSession?.evidenceSource ?? null,
+      connectedEventType,
+    },
+    summary: summaryParts.join(" | "),
+  };
+}
+
 function buildProviderUsage(kpis) {
   const entries = [];
   let validated = true;
@@ -966,6 +1099,7 @@ async function main() {
   const deviceNodesEvidence = buildDeviceNodesEvidence(kpis);
   const agentUsageEvidence = buildAgentUsageEvidence(kpis);
   const runtimeGuardrailsSignalPathsEvidence = buildRuntimeGuardrailsSignalPathsEvidence(kpis);
+  const liveTransport = buildLiveTransport(summary, kpis);
   const providerUsage = buildProviderUsage(kpis);
 
   let color = "red";
@@ -998,6 +1132,7 @@ async function main() {
     roundTripMs,
     costEstimate,
     tokensUsed,
+    liveTransport,
     providerUsage,
     evidence: {
       sourceSummaryGeneratedAt: toOptionalString(summary.generatedAt),

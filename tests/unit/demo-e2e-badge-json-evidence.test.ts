@@ -61,6 +61,11 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
       generatedAt: "2026-02-26T00:00:00.000Z",
       kpis: {
         gatewayWsRoundTripMs: 37,
+        transportModeValidated: true,
+        gatewayTransportRequestedMode: "websocket",
+        gatewayTransportActiveMode: "websocket",
+        gatewayTransportFallbackActive: false,
+        assistantActivityConnectedEventType: "gateway.connected",
         costEstimateCurrency: "USD",
         costEstimateGeminiLiveUsd: 0.12,
         costEstimateImagenUsd: 0.35,
@@ -335,9 +340,24 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(tokensUsed.input, 6200);
   assert.equal(tokensUsed.output, 3100);
   assert.equal(tokensUsed.total, 9300);
+  const liveTransport = result.details.liveTransport as Record<string, unknown>;
   assert.equal(providerUsage.status, "pass");
   assert.equal(providerUsage.validated, true);
   assert.equal(providerUsage.activeSecondaryProviders, 2);
+  assert.ok(liveTransport && typeof liveTransport === "object");
+  assert.equal(liveTransport.status, "pass");
+  assert.equal(liveTransport.validated, true);
+  const liveTransportRuntime = liveTransport.runtime as Record<string, unknown>;
+  const liveTransportSession = liveTransport.session as Record<string, unknown>;
+  assert.equal(liveTransportRuntime.validated, true);
+  assert.equal(liveTransportRuntime.requestedMode, "websocket");
+  assert.equal(liveTransportRuntime.activeMode, "websocket");
+  assert.equal(liveTransportRuntime.fallbackActive, false);
+  assert.equal(liveTransportRuntime.evidenceSource, "runtime.lifecycle.endpoints");
+  assert.equal(liveTransportSession.observed, true);
+  assert.equal(liveTransportSession.activeMode, "relay");
+  assert.equal(liveTransportSession.evidenceSource, "gateway_connected_event");
+  assert.equal(liveTransportSession.connectedEventType, "gateway.connected");
   const providerUsageEntries = providerUsage.entries as Record<string, unknown>[];
   assert.equal(providerUsageEntries.length, 4);
   assert.equal(providerUsageEntries[0]?.capability, "tts");
@@ -445,6 +465,47 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(runtimeGuardrailsPaths[2]?.buttonLabel, "Open Workflow Clear Path");
 });
 
+test("demo-e2e badge details prefer structured live transport session evidence when present", () => {
+  const result = runBadgeGenerator({
+    policy: {
+      ok: true,
+      checks: 205,
+      violations: [],
+    },
+    summary: {
+      generatedAt: "2026-02-26T00:00:00.000Z",
+      liveTransport: {
+        activeMode: "direct_live",
+        provider: "gemini_api",
+        model: "gemini-live-2.5-flash-preview",
+        bootstrapState: "ready",
+        evidenceSource: "frontend_runtime",
+      },
+      kpis: {
+        gatewayWsRoundTripMs: 37,
+        transportModeValidated: true,
+        gatewayTransportRequestedMode: "websocket",
+        gatewayTransportActiveMode: "websocket",
+        gatewayTransportFallbackActive: false,
+        assistantActivityConnectedEventType: "gateway.connected",
+      },
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  const liveTransport = result.details.liveTransport as Record<string, unknown>;
+  const liveTransportRuntime = liveTransport.runtime as Record<string, unknown>;
+  const liveTransportSession = liveTransport.session as Record<string, unknown>;
+  assert.equal(liveTransport.status, "pass");
+  assert.equal(liveTransportRuntime.activeMode, "websocket");
+  assert.equal(liveTransportSession.activeMode, "direct_live");
+  assert.equal(liveTransportSession.provider, "gemini_api");
+  assert.equal(liveTransportSession.model, "gemini-live-2.5-flash-preview");
+  assert.equal(liveTransportSession.bootstrapState, "ready");
+  assert.equal(liveTransportSession.evidenceSource, "frontend_runtime");
+  assert.equal(liveTransportSession.connectedEventType, "gateway.connected");
+});
+
 test("demo-e2e badge provider usage ignores disabled storyteller image-edit requests", () => {
   const result = runBadgeGenerator({
     policy: {
@@ -543,9 +604,12 @@ test("demo-e2e badge details marks operator turn delete evidence as failed when 
   assert.equal(tokensUsed.input, 0);
   assert.equal(tokensUsed.output, 0);
   assert.equal(tokensUsed.total, 0);
+  const liveTransport = result.details.liveTransport as Record<string, unknown>;
   assert.equal(providerUsage.status, "fail");
   assert.equal(providerUsage.validated, false);
   assert.equal(providerUsage.activeSecondaryProviders, 0);
+  assert.equal(liveTransport.status, "unavailable");
+  assert.equal(liveTransport.validated, false);
   assert.deepEqual(providerUsage.entries, []);
   const evidence = result.details.evidence as Record<string, unknown>;
   const turnDelete = evidence.operatorTurnDelete as Record<string, unknown>;
