@@ -506,6 +506,7 @@ jobs:
             artifacts/release-evidence/report.md
             artifacts/release-evidence/manifest.json
             artifacts/release-evidence/manifest.md
+            artifacts/evals/latest-run.json
             artifacts/demo-e2e/logs
             artifacts/perf-load/summary.json
             artifacts/perf-load/summary.md

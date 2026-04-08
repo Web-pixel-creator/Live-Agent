@@ -25,8 +25,11 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /-\s*with_perf/);
   assert.match(source, /-\s*without_perf/);
   assert.match(source, /actions\/github-script@v8/);
-  assert.match(source, /demo-e2e\.yml/);
   assert.match(source, /release-strict-final\.yml/);
+  assert.match(source, /demo-e2e\.yml/);
+  assert.match(source, /const workflowIds = \["release-strict-final\.yml", "demo-e2e\.yml"\]/);
+  assert.match(source, /workflowPriority = new Map/);
+  assert.match(source, /strict release preferred, demo-e2e fallback/);
   assert.match(source, /getWorkflowRun/);
   assert.match(source, /withRetry/);
   assert.match(source, /artifact_id/);
@@ -260,6 +263,7 @@ test("release artifact revalidation workflow publishes consolidated artifacts", 
   assert.match(source, /artifacts\/perf-load\/policy-check\.json/);
   assert.match(source, /artifacts\/release-evidence\/report\.json/);
   assert.match(source, /artifacts\/release-evidence\/report\.md/);
+  assert.match(source, /artifacts\/evals\/latest-run\.json/);
   assert.match(source, /artifacts\/deploy\/railway-deploy-summary\.json/);
   assert.match(source, /artifacts\/deploy\/repo-publish-summary\.json/);
   assert.match(source, /artifacts\/release-artifact-revalidation\/source-run\.json/);
@@ -279,6 +283,7 @@ test("workflow docs include retry-control inputs", () => {
     assert.match(content, /allow_any_source_branch/);
     assert.match(content, /artifacts\/release-evidence\/report\.json/);
     assert.match(content, /artifacts\/release-evidence\/report\.md/);
+    assert.match(content, /artifacts\/evals\/latest-run\.json/);
   }
 });
 

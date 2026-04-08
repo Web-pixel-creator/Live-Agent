@@ -1528,7 +1528,7 @@ npm run workflow:dispatch -- -Workflow railway_deploy_all -DryRun
 
 - Artifact-only release revalidation workflow: `.github/workflows/release-artifact-revalidation.yml`
 - Triggered on manual dispatch.
-- Resolves latest successful `demo-e2e`/`release-strict-final` run (or uses provided `source_run_id`), downloads artifact bundle, and runs artifact-only release gate.
+- Resolves latest successful `release-strict-final` run first (falls back to `demo-e2e` when no strict bundle is available), downloads artifact bundle, and runs artifact-only release gate.
 - Supports manual `workflow_dispatch` inputs:
   - `perf_gate_mode=auto|with_perf|without_perf` for explicit operator control of perf validation behavior.
   - `strict_final_run=true|false` to enforce strict artifact gate (`-StrictFinalRun`).
@@ -1540,6 +1540,7 @@ npm run workflow:dispatch -- -Workflow railway_deploy_all -DryRun
 - Workflow writes source provenance manifest to `artifacts/release-artifact-revalidation/source-run.json` and includes the path in job summary.
 - Job summary includes badge evidence statuses for `operatorTurnTruncation`, `operatorTurnDelete`, `operatorDamageControl`, `governancePolicy`, `skillsRegistry`, `pluginMarketplace`, `deviceNodes`, `agentUsage`, `runtimeGuardrailsSignalPaths`, `providerUsage`, and derived updates-lane signal `deviceNodeUpdatesStatus` from unified report `artifacts/release-evidence/report.json`; the same summary also surfaces optional `railway-deploy-summary` / `repo-publish-summary` provenance when those files are present in the downloaded artifact bundle.
 - Upload bundle now preserves optional deploy provenance artifacts `artifacts/deploy/railway-deploy-summary.json` and `artifacts/deploy/repo-publish-summary.json` alongside release evidence and `source-run.json`.
+- Revalidation and strict release bundles also preserve `artifacts/evals/latest-run.json` so promptfoo red-team proof survives source-bundle handoff.
 - Artifact revalidation also builds unified release evidence artifacts:
   - `artifacts/release-evidence/report.json`
   - `artifacts/release-evidence/report.md`

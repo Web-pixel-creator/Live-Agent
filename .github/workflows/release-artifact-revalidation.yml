@@ -133,7 +133,10 @@ jobs:
             let resolvedRunMeta = null;
             if (!resolvedRunId) {
               const candidates = [];
-              const workflowIds = ["demo-e2e.yml", "release-strict-final.yml"];
+              const workflowIds = ["release-strict-final.yml", "demo-e2e.yml"];
+              const workflowPriority = new Map(
+                workflowIds.map((workflowId, index) => [workflowId, index])
+              );
               for (const workflowId of workflowIds) {
                 const response = await withRetry(`listWorkflowRuns:${workflowId}`, () =>
                   github.rest.actions.listWorkflowRuns({
@@ -168,11 +171,18 @@ jobs:
                 return;
               }
 
-              candidates.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+              candidates.sort((a, b) => {
+                const priorityA = workflowPriority.get(a.workflowId) ?? Number.MAX_SAFE_INTEGER;
+                const priorityB = workflowPriority.get(b.workflowId) ?? Number.MAX_SAFE_INTEGER;
+                if (priorityA !== priorityB) {
+                  return priorityA - priorityB;
+                }
+                return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+              });
               const latest = candidates[0];
               resolvedRunId = String(latest.runId);
               resolvedRunMeta = latest;
-              core.info(`Auto-selected run ${resolvedRunId} from ${latest.workflowId}`);
+              core.info(`Auto-selected run ${resolvedRunId} from ${latest.workflowId} (strict release preferred, demo-e2e fallback).`);
             }
 
             const parsedRunId = Number(resolvedRunId);
@@ -1211,6 +1221,7 @@ jobs:
             artifacts/release-evidence/report.md
             artifacts/release-evidence/manifest.json
             artifacts/release-evidence/manifest.md
+            artifacts/evals/latest-run.json
             artifacts/deploy/railway-deploy-summary.json
             artifacts/deploy/repo-publish-summary.json
             artifacts/release-artifact-revalidation/source-run.json

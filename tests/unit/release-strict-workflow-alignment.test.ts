@@ -153,6 +153,7 @@ test("release strict workflow publishes release-critical artifacts", () => {
   assert.match(source, /artifacts\/deploy\/production-smoke\.md/);
   assert.match(source, /artifacts\/release-evidence\/report\.json/);
   assert.match(source, /artifacts\/release-evidence\/report\.md/);
+  assert.match(source, /artifacts\/evals\/latest-run\.json/);
 });
 
 test("strict release npm script stays aligned with release-readiness strict flag", () => {
