@@ -6,18 +6,28 @@ import test from "node:test";
 test("api backend exposes runtime bootstrap doctor and auth-profile control plane", () => {
   const sourcePath = resolve(process.cwd(), "apps", "api-backend", "src", "index.ts");
   const helperPath = resolve(process.cwd(), "apps", "api-backend", "src", "runtime-bootstrap-doctor.ts");
+  const liveHelperPath = resolve(process.cwd(), "apps", "api-backend", "src", "runtime-live-session-token.ts");
   const source = readFileSync(sourcePath, "utf8");
   const helper = readFileSync(helperPath, "utf8");
+  const liveHelper = readFileSync(liveHelperPath, "utf8");
 
   const requiredSourceTokens = [
     "/v1/runtime/bootstrap-status",
+    "/v1/runtime/live/capabilities",
+    "/v1/runtime/live/session-token",
     "/v1/runtime/auth-profiles",
     "/v1/runtime/auth-profiles/rotate",
     "buildRuntimeBootstrapDoctorSnapshot",
+    "buildRuntimeLiveStatusSnapshot",
+    "issueRuntimeLiveSessionToken",
+    "normalizeRuntimeLiveSessionTokenRequest",
     "listAuthProfileSnapshots",
     "rotateAuthProfile",
     'source: "repo_owned_bootstrap_doctor"',
+    'source: "repo_owned_live_runtime_capabilities"',
+    'source: "repo_owned_live_session_token"',
     'source: "repo_owned_auth_profile_control_plane"',
+    "API_RUNTIME_LIVE_SESSION_TOKEN_INVALID_JSON",
     "runtime_auth_profile_rotate",
     "API_RUNTIME_AUTH_PROFILE_INVALID_JSON",
     "API_RUNTIME_AUTH_PROFILE_ID_REQUIRED",
@@ -26,6 +36,22 @@ test("api backend exposes runtime bootstrap doctor and auth-profile control plan
   ];
   for (const token of requiredSourceTokens) {
     assert.ok(source.includes(token), `runtime bootstrap API missing token: ${token}`);
+  }
+
+  const requiredLiveHelperTokens = [
+    "LIVE_DIRECT_MODE_ENABLED",
+    "LIVE_EPHEMERAL_TOKENS_ENABLED",
+    "LIVE_DIRECT_MODE_DEFAULT",
+    "LIVE_DIRECT_TOKEN_TTL_SECONDS",
+    "buildRuntimeLiveCapabilitiesSnapshot",
+    "buildRuntimeLiveStatusSnapshot",
+    "normalizeRuntimeLiveSessionTokenRequest",
+    "issueRuntimeLiveSessionToken",
+    "API_RUNTIME_LIVE_SESSION_TOKEN_INVALID_REQUEST",
+    "direct live token issuance failed",
+  ];
+  for (const token of requiredLiveHelperTokens) {
+    assert.ok(liveHelper.includes(token), `runtime live helper missing token: ${token}`);
   }
 
   const requiredHelperTokens = [
@@ -51,9 +77,12 @@ test("api backend exposes runtime bootstrap doctor and auth-profile control plan
 test("docs describe bootstrap doctor and auth-profile runtime surfaces", () => {
   const readme = readFileSync(resolve(process.cwd(), "README.md"), "utf8");
   const operatorGuide = readFileSync(resolve(process.cwd(), "docs", "operator-guide.md"), "utf8");
+  const localDevelopment = readFileSync(resolve(process.cwd(), "docs", "local-development.md"), "utf8");
   const architecture = readFileSync(resolve(process.cwd(), "docs", "architecture.md"), "utf8");
 
   assert.match(readme, /GET \/v1\/runtime\/bootstrap-status/);
+  assert.match(readme, /GET \/v1\/runtime\/live\/capabilities/);
+  assert.match(readme, /POST \/v1\/runtime\/live\/session-token/);
   assert.match(readme, /GET \/v1\/runtime\/auth-profiles/);
   assert.match(readme, /POST \/v1\/runtime\/auth-profiles\/rotate/);
   assert.match(readme, /Bootstrap Doctor & Auth Profiles/);
@@ -61,10 +90,18 @@ test("docs describe bootstrap doctor and auth-profile runtime surfaces", () => {
   assert.match(readme, /SKILLS_MANAGED_INDEX_AUTH_PROFILE/);
   assert.match(readme, /UI_NAVIGATOR_DEVICE_NODE_INDEX_AUTH_PROFILE/);
   assert.match(readme, /LIVE_API_AUTH_PROFILES_JSON/);
+  assert.match(readme, /LIVE_DIRECT_MODE_ENABLED/);
+  assert.match(readme, /LIVE_EPHEMERAL_TOKENS_ENABLED/);
   assert.match(readme, /apiKeyProfileId/);
   assert.match(readme, /authHeaderProfileId/);
   assert.match(operatorGuide, /Bootstrap Doctor & Auth Profiles/);
+  assert.match(operatorGuide, /live direct/i);
+  assert.match(operatorGuide, /session-token/i);
   assert.match(operatorGuide, /auth-profile/i);
   assert.match(operatorGuide, /rotate/i);
+  assert.match(localDevelopment, /LIVE_DIRECT_MODE_ENABLED/);
+  assert.match(localDevelopment, /LIVE_EPHEMERAL_TOKENS_ENABLED/);
+  assert.match(localDevelopment, /LIVE_DIRECT_TOKEN_TTL_SECONDS/);
   assert.match(architecture, /bootstrap doctor\/auth-profile/i);
+  assert.match(architecture, /live direct/i);
 });

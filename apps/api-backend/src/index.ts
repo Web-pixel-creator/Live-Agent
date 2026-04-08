@@ -85,6 +85,11 @@ import {
 } from "./runtime-fault-profile-actions.js";
 import { buildRuntimeDiagnosticsSummary } from "./runtime-diagnostics-summary.js";
 import { buildRuntimeBootstrapDoctorSnapshot } from "./runtime-bootstrap-doctor.js";
+import {
+  buildRuntimeLiveStatusSnapshot,
+  issueRuntimeLiveSessionToken,
+  normalizeRuntimeLiveSessionTokenRequest,
+} from "./runtime-live-session-token.js";
 import { getRuntimeFaultProfilesSnapshot } from "./runtime-fault-profiles.js";
 import {
   buildRuntimeWorkflowControlPlaneSnapshot,
@@ -1383,6 +1388,12 @@ function normalizeOperationPath(pathname: string): string {
   }
   if (pathname === "/v1/runtime/bootstrap-status") {
     return "/v1/runtime/bootstrap-status";
+  }
+  if (pathname === "/v1/runtime/live/capabilities") {
+    return "/v1/runtime/live/capabilities";
+  }
+  if (pathname === "/v1/runtime/live/session-token") {
+    return "/v1/runtime/live/session-token";
   }
   if (pathname === "/v1/runtime/surface") {
     return "/v1/runtime/surface";
@@ -4426,6 +4437,76 @@ export const server = createServer(async (req, res) => {
         data: bootstrapDoctor,
         role,
         source: "repo_owned_bootstrap_doctor",
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/live/capabilities" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const liveGatewayAuthConfigured = listAuthProfileSnapshots({
+        env: process.env,
+        cwd: process.cwd(),
+      }).some(
+        (item) =>
+          item.category === "live_gateway" &&
+          (item.directValueConfigured ||
+            item.explicitCredentialName ||
+            (item.effectiveResolution.source === "credential_store" && item.activeCredentialName)),
+      );
+      const liveCapabilities = buildRuntimeLiveStatusSnapshot({
+        env: process.env,
+        liveGatewayAuthConfigured,
+      });
+      writeJson(res, 200, {
+        data: liveCapabilities,
+        role,
+        source: "repo_owned_live_runtime_capabilities",
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/live/session-token" && req.method === "POST") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const raw = await readBody(req);
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = parseJsonBody(raw);
+      } catch {
+        writeApiError(res, 400, {
+          code: "API_RUNTIME_LIVE_SESSION_TOKEN_INVALID_JSON",
+          message: "runtime live session token body must be valid JSON",
+        });
+        return;
+      }
+      const normalizedRequest = normalizeRuntimeLiveSessionTokenRequest(parsed);
+      if (!normalizedRequest.ok) {
+        writeApiError(res, 400, {
+          code: normalizedRequest.code,
+          message: normalizedRequest.message,
+          details: normalizedRequest.details,
+        });
+        return;
+      }
+
+      const liveGatewayAuthConfigured = listAuthProfileSnapshots({
+        env: process.env,
+        cwd: process.cwd(),
+      }).some(
+        (item) =>
+          item.category === "live_gateway" &&
+          (item.directValueConfigured ||
+            item.explicitCredentialName ||
+            (item.effectiveResolution.source === "credential_store" && item.activeCredentialName)),
+      );
+      const liveSessionToken = await issueRuntimeLiveSessionToken({
+        env: process.env,
+        liveGatewayAuthConfigured,
+        request: normalizedRequest.value,
+      });
+      writeJson(res, 200, {
+        data: liveSessionToken,
+        role,
+        source: "repo_owned_live_session_token",
       });
       return;
     }

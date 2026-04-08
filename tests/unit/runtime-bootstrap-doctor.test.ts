@@ -95,11 +95,15 @@ test("bootstrap doctor reports healthy posture when primary provider, auth profi
     });
 
     const summary = asObject(snapshot.summary);
+    const live = asObject(summary.live);
     assert.equal(snapshot.status, "healthy");
     assert.equal(asObject(summary.checks).fail, 0);
     assert.equal(asObject(summary.authProfiles).ready, 2);
     assert.equal(asObject(summary.deviceNodes).ready, 1);
     assert.equal(asObject(summary.fallbackPaths).readyCount, 3);
+    assert.equal(live.preferredMode, "relay");
+    assert.equal(live.activeMode, "relay");
+    assert.equal(live.ephemeralTokensSupported, false);
   } finally {
     rmSync(rootDir, { recursive: true, force: true });
   }
@@ -271,4 +275,51 @@ test("bootstrap doctor surfaces ui-executor hardening gaps when sandbox posture 
   assert.equal(asObject(hardeningCheck).id, "ui_executor_hardening");
   assert.equal(asObject(hardeningCheck).status, "fail");
   assert.match(String(asObject(hardeningCheck).message ?? ""), /network=allow_all/i);
+});
+
+test("bootstrap doctor surfaces direct live readiness when live direct bootstrap is configured", () => {
+  const snapshot = buildRuntimeBootstrapDoctorSnapshot({
+    env: {
+      GEMINI_API_KEY: "gemini-live-secret",
+      LIVE_API_ENABLED: "true",
+      LIVE_API_PROTOCOL: "gemini",
+      LIVE_DIRECT_MODE_ENABLED: "true",
+      LIVE_EPHEMERAL_TOKENS_ENABLED: "true",
+      LIVE_DIRECT_MODE_DEFAULT: "direct_live",
+      LIVE_MODEL_ID: "gemini-live-2.5-flash-native-audio",
+      STORYTELLER_MEDIA_MODE: "fallback",
+      UI_NAVIGATOR_EXECUTOR_MODE: "simulated",
+    },
+    cwd: process.cwd(),
+    services: [],
+    deviceNodes: [
+      {
+        nodeId: "desktop-main",
+        displayName: "Desktop Main",
+        kind: "desktop",
+        platform: "windows",
+        executorUrl: "http://127.0.0.1:8090",
+        status: "online",
+        trustLevel: "trusted",
+        capabilities: ["screen", "click", "type"],
+        version: 1,
+        createdAt: "2026-03-07T02:01:00.000Z",
+        updatedAt: "2026-03-07T02:01:10.000Z",
+        lastSeenAt: "2026-03-07T02:01:10.000Z",
+        metadata: {},
+      },
+    ],
+  });
+
+  const summary = asObject(snapshot.summary);
+  const live = asObject(summary.live);
+  const checks = Array.isArray(snapshot.checks) ? snapshot.checks : [];
+  const directCheck = checks.find((item) => asObject(item).id === "live_direct_runtime") ?? null;
+
+  assert.equal(live.preferredMode, "direct_live");
+  assert.equal(live.activeMode, "direct_live");
+  assert.equal(live.ephemeralTokensSupported, true);
+  assert.equal(live.provider, "gemini_live_api");
+  assert.equal(live.model, "gemini-live-2.5-flash-native-audio");
+  assert.equal(asObject(directCheck).status, "ok");
 });

@@ -200,6 +200,10 @@ Gateway envs:
 1. `LIVE_API_ENABLED=true`
 2. `LIVE_API_PROTOCOL=gemini`
 3. `LIVE_API_WS_URL=wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent` for Gemini Live, or `ws://localhost:8091/live` when you intentionally run the local mock.
+4. `LIVE_DIRECT_MODE_ENABLED=true|false` to expose repo-owned direct-live bootstrap posture from `api-backend`.
+5. `LIVE_EPHEMERAL_TOKENS_ENABLED=true|false` to allow `POST /v1/runtime/live/session-token` to issue constrained ephemeral Gemini Live tokens instead of forcing relay.
+6. `LIVE_DIRECT_MODE_DEFAULT=relay|direct_live` to choose the preferred browser bootstrap mode when both paths are available.
+7. `LIVE_DIRECT_TOKEN_TTL_SECONDS=300` to control direct-live token lifetime for local testing without changing relay behavior.
 
 ## Validation Commands
 

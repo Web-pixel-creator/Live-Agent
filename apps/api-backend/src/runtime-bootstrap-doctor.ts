@@ -3,6 +3,7 @@ import {
   type AuthProfileSnapshot,
 } from "@mla/skills";
 import type { DeviceNodeRecord } from "./firestore.js";
+import { buildRuntimeLiveStatusSnapshot } from "./runtime-live-session-token.js";
 
 type BootstrapCheckStatus = "ok" | "warn" | "fail";
 
@@ -309,6 +310,31 @@ function buildUiExecutorHardeningCheck(services: Array<Record<string, unknown>>)
   };
 }
 
+function buildLiveDirectRuntimeCheck(
+  liveRuntime: ReturnType<typeof buildRuntimeLiveStatusSnapshot>,
+): BootstrapCheck {
+  const status: BootstrapCheckStatus =
+    liveRuntime.preferredMode === "direct_live" && liveRuntime.activeMode !== "direct_live" ? "warn" : "ok";
+  const message =
+    liveRuntime.activeMode === "direct_live"
+      ? `Direct live bootstrap is ready for ${liveRuntime.provider ?? "gemini_live_api"} / ${liveRuntime.model ?? "unknown model"}.`
+      : liveRuntime.preferredMode === "direct_live" && liveRuntime.lastFallbackReason
+        ? `Direct live prefers direct mode but currently falls back to relay (${liveRuntime.lastFallbackReason}).`
+        : "Direct live bootstrap is disabled; relay remains the default live connection mode.";
+  const hint =
+    status === "ok"
+      ? null
+      : "Set LIVE_DIRECT_MODE_ENABLED=true, LIVE_EPHEMERAL_TOKENS_ENABLED=true, and a Gemini API key before preferring direct live bootstrap.";
+
+  return {
+    id: "live_direct_runtime",
+    status,
+    title: "Live direct runtime",
+    message,
+    hint,
+  };
+}
+
 function buildChecks(params: {
   env: NodeJS.ProcessEnv;
   services: Array<Record<string, unknown>>;
@@ -316,6 +342,7 @@ function buildChecks(params: {
   authProfiles: AuthProfileSnapshot[];
   deviceNodes: DeviceNodeRecord[];
   fallbackSummary: ReturnType<typeof buildFallbackSummary>;
+  liveRuntime: ReturnType<typeof buildRuntimeLiveStatusSnapshot>;
 }): BootstrapCheck[] {
   const checks: BootstrapCheck[] = [];
   const primaryGemini = params.providerStatuses.find((item) => item.id === "gemini-primary") ?? null;
@@ -407,6 +434,8 @@ function buildChecks(params: {
     checks.push(uiExecutorHardeningCheck);
   }
 
+  checks.push(buildLiveDirectRuntimeCheck(params.liveRuntime));
+
   return checks;
 }
 
@@ -433,6 +462,10 @@ export function buildRuntimeBootstrapDoctorSnapshot(params: {
     toNonEmptyString(env.RUNTIME_PROFILE)?.toLowerCase() === "local-first" ||
     toNonEmptyString(env.APP_ENV)?.toLowerCase() === "dev";
   const providerStatuses = buildProviderStatuses(env, localFirstLike, liveGatewayAuthConfigured);
+  const liveRuntime = buildRuntimeLiveStatusSnapshot({
+    env,
+    liveGatewayAuthConfigured,
+  });
   const fallbackSummary = buildFallbackSummary({
     env,
     services: params.services,
@@ -449,6 +482,7 @@ export function buildRuntimeBootstrapDoctorSnapshot(params: {
     authProfiles,
     deviceNodes,
     fallbackSummary,
+    liveRuntime,
   });
   const failedChecks = checks.filter((item) => item.status === "fail").length;
   const warnChecks = checks.filter((item) => item.status === "warn").length;
@@ -476,6 +510,7 @@ export function buildRuntimeBootstrapDoctorSnapshot(params: {
         trusted: trustedNodes.length,
       },
       fallbackPaths: fallbackSummary,
+      live: liveRuntime,
       checks: {
         total: checks.length,
         ok: checks.filter((item) => item.status === "ok").length,
@@ -492,6 +527,11 @@ export function buildRuntimeBootstrapDoctorSnapshot(params: {
       firestoreEnabled: toBoolean(env.FIRESTORE_ENABLED),
       googleCloudProjectConfigured: Boolean(toNonEmptyString(env.GOOGLE_CLOUD_PROJECT)),
       liveApiEnabled: toBoolean(env.LIVE_API_ENABLED),
+      liveDirectModeEnabled: toBoolean(env.LIVE_DIRECT_MODE_ENABLED),
+      liveEphemeralTokensEnabled: toBoolean(env.LIVE_EPHEMERAL_TOKENS_ENABLED),
+      liveConnectionModeDefault: liveRuntime.preferredMode,
+      liveProvider: liveRuntime.provider,
+      liveModel: liveRuntime.model,
       gatewayTransportMode: toNonEmptyString(env.GATEWAY_TRANSPORT_MODE) ?? "websocket",
       storytellerMediaMode: toNonEmptyString(env.STORYTELLER_MEDIA_MODE) ?? "fallback",
       uiNavigatorExecutorMode: toNonEmptyString(env.UI_NAVIGATOR_EXECUTOR_MODE) ?? "simulated",
