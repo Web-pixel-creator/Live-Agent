@@ -893,6 +893,8 @@ npm run demo:e2e:fast
 
 `demo:e2e:fast` now follows the active Storyteller runtime media mode by default (`DEMO_E2E_STORYTELLER_MEDIA_MODE` still overrides it when needed) and keeps the UI executor in real Playwright remote-http mode unless you explicitly force simulation in the shell.
 
+For the browser lane, run `npm run demo:e2e -- -IncludeFrontend`. That path now opens the real `demo-frontend`, forces `?livePreferredMode=direct_live` for the smoke window, clicks `Connect`, and records `artifacts/demo-e2e/direct-live-browser-smoke.json` plus `.png`. If direct live is unsupported in the current runtime it reports `skipped`; if it is supported, the smoke requires backend replay evidence from repo-owned `session_events`.
+
 Fast mode with built-in full-run retry (demo-only, skips policy/badge/perf gates):
 
 ```powershell
@@ -1278,7 +1280,7 @@ https://github.com/<OWNER>/<REPO>/actions/workflows/demo-e2e.yml/badge.svg
 Useful flags:
 
 - `-SkipServiceStart` - do not start local services (use already running endpoints).
-- `-IncludeFrontend` - also start `demo-frontend` and health-check it.
+- `-IncludeFrontend` - also start `demo-frontend`, run the Playwright browser direct-live smoke, and health-check the frontend lane.
 - `-KeepServices` - keep script-started services running after completion.
 - `-OutputPath <path>` - custom report output path.
 - `-SkipReleaseVerification` - skip pre-publish release verification (`verify:release`).

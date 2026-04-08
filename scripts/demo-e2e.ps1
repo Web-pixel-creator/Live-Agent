@@ -1805,6 +1805,11 @@ New-Item -ItemType Directory -Force -Path $script:LogDir | Out-Null
 
 $resolvedOutputPath = Resolve-OutputPath -Candidate $OutputPath
 $resolvedOutputDir = Split-Path -Parent $resolvedOutputPath
+if ([string]::IsNullOrWhiteSpace($resolvedOutputDir)) {
+  $resolvedOutputDir = Join-Path $script:RepoRoot "artifacts/demo-e2e"
+}
+$resolvedDirectLiveBrowserSmokePath = Join-Path $resolvedOutputDir "direct-live-browser-smoke.json"
+$resolvedDirectLiveBrowserSmokeScreenshotPath = Join-Path $resolvedOutputDir "direct-live-browser-smoke.png"
 if (-not [string]::IsNullOrWhiteSpace($resolvedOutputDir)) {
   New-Item -ItemType Directory -Force -Path $resolvedOutputDir | Out-Null
 }
@@ -1936,6 +1941,67 @@ try {
   $sessionId = [string](Get-FieldValue -Object $sessionCreateResponse -Path @("data", "sessionId"))
   Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($sessionId)) -Message "Failed to create a sessionId."
   Write-Step "Created demo session: $sessionId"
+
+  if ($IncludeFrontend) {
+    Invoke-Scenario `
+      -Name "frontend.live.direct_transport" `
+      -MaxAttempts 1 `
+      -InitialBackoffMs $ScenarioRetryBackoffMs `
+      -Action {
+      $browserSmokeCommand = @(
+        "node",
+        ".\\scripts\\demo-e2e-direct-live-browser-smoke.mjs",
+        "--frontendBaseUrl",
+        "http://localhost:3000",
+        "--apiBaseUrl",
+        "http://localhost:8081",
+        "--sessionId",
+        $sessionId,
+        "--userId",
+        $script:DemoUserId,
+        "--output",
+        $resolvedDirectLiveBrowserSmokePath,
+        "--screenshot",
+        $resolvedDirectLiveBrowserSmokeScreenshotPath,
+        "--timeoutMs",
+        ([string]([Math]::Max(($RequestTimeoutSec * 1000), 20000)))
+      )
+      & $browserSmokeCommand[0] $browserSmokeCommand[1..($browserSmokeCommand.Count - 1)]
+      if ($LASTEXITCODE -ne 0 -and -not (Test-Path -LiteralPath $resolvedDirectLiveBrowserSmokePath)) {
+        throw "frontend direct-live browser smoke exited with code $LASTEXITCODE before writing output."
+      }
+      $browserSmokeRaw = Get-Content -LiteralPath $resolvedDirectLiveBrowserSmokePath -Raw | ConvertFrom-Json
+      $browserSmokeStatus = [string](Get-FieldValue -Object $browserSmokeRaw -Path @("status"))
+      $browserSmokeReason = [string](Get-FieldValue -Object $browserSmokeRaw -Path @("reason"))
+      $browserSmokeDirectSupported = [bool](Get-FieldValue -Object $browserSmokeRaw -Path @("runtimeStatus", "ephemeralTokensSupported"))
+      $browserSmokeReplay = Get-FieldValue -Object $browserSmokeRaw -Path @("replay", "liveTransport")
+      $browserSmokeReplayMode = if ($null -ne $browserSmokeReplay) { [string](Get-FieldValue -Object $browserSmokeReplay -Path @("activeMode")) } else { $null }
+      $browserSmokeReplaySource = if ($null -ne $browserSmokeReplay) { [string](Get-FieldValue -Object $browserSmokeReplay -Path @("evidenceSource")) } else { $null }
+      if ($browserSmokeStatus -eq "fail") {
+        $failureMessage = if (-not [string]::IsNullOrWhiteSpace($browserSmokeReason)) {
+          $browserSmokeReason
+        } else {
+          "frontend direct-live browser smoke failed"
+        }
+        Assert-Condition -Condition $false -Message $failureMessage
+      }
+      if ($browserSmokeStatus -eq "pass") {
+        Assert-Condition -Condition ($browserSmokeReplayMode -eq "direct_live") -Message "Frontend direct-live browser smoke should persist direct_live replay proof."
+        Assert-Condition -Condition ($browserSmokeReplaySource -eq "session_events") -Message "Frontend direct-live browser smoke should persist repo-owned session_events evidence."
+      }
+      return [ordered]@{
+        status = $browserSmokeStatus
+        reason = $browserSmokeReason
+        directSupported = $browserSmokeDirectSupported
+        outputPath = $resolvedDirectLiveBrowserSmokePath
+        screenshotPath = $resolvedDirectLiveBrowserSmokeScreenshotPath
+        runtimeStatus = Get-FieldValue -Object $browserSmokeRaw -Path @("runtimeStatus")
+        ui = Get-FieldValue -Object $browserSmokeRaw -Path @("ui")
+        replay = Get-FieldValue -Object $browserSmokeRaw -Path @("replay")
+        summary = [string](Get-FieldValue -Object $browserSmokeRaw -Path @("summary"))
+      }
+    } | Out-Null
+  }
 
   Invoke-Scenario `
     -Name "live.translation" `
@@ -5080,6 +5146,7 @@ $gatewayWsItemDeleteData = Get-ScenarioData -Name "gateway.websocket.item_delete
 $gatewayWsInvalidData = Get-ScenarioData -Name "gateway.websocket.invalid_envelope"
 $gatewayWsBindingMismatchData = Get-ScenarioData -Name "gateway.websocket.binding_mismatch"
 $gatewayWsDrainingData = Get-ScenarioData -Name "gateway.websocket.draining_rejection"
+$frontendDirectLiveData = Get-ScenarioData -Name "frontend.live.direct_transport"
 $operatorActionsData = Get-ScenarioData -Name "operator.console.actions"
 $approvalsListData = Get-ScenarioData -Name "api.approvals.list"
 $approvalsInvalidIntentData = Get-ScenarioData -Name "api.approvals.resume.invalid_intent"
@@ -5103,6 +5170,7 @@ $gatewayItemDeleteScenario = @($script:ScenarioResults | Where-Object { $_.name 
 $gatewayInvalidEnvelopeScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.invalid_envelope" } | Select-Object -First 1)
 $gatewayBindingMismatchScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.binding_mismatch" } | Select-Object -First 1)
 $gatewayDrainingRejectionScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.draining_rejection" } | Select-Object -First 1)
+$frontendDirectLiveScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "frontend.live.direct_transport" } | Select-Object -First 1)
 $delegationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "multi_agent.delegation" } | Select-Object -First 1)
 $operatorDeviceNodesScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "operator.device_nodes.lifecycle" } | Select-Object -First 1)
 $approvalsListScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.approvals.list" } | Select-Object -First 1)
@@ -5200,7 +5268,7 @@ $costEstimate = [ordered]@{
 $costEstimateJsonRaw = [Environment]::GetEnvironmentVariable("DEMO_E2E_COST_ESTIMATE_JSON")
 if (-not [string]::IsNullOrWhiteSpace($costEstimateJsonRaw)) {
   try {
-    $costEstimateRaw = $costEstimateJsonRaw | ConvertFrom-Json -Depth 20
+    $costEstimateRaw = $costEstimateJsonRaw | ConvertFrom-Json
     $costEstimateCurrency = [string](Get-FieldValue -Object $costEstimateRaw -Path @("currency"))
     if (-not [string]::IsNullOrWhiteSpace($costEstimateCurrency)) {
       $costEstimate.currency = $costEstimateCurrency.Trim()
@@ -5237,7 +5305,7 @@ $tokensUsed = [ordered]@{
 $tokensUsedJsonRaw = [Environment]::GetEnvironmentVariable("DEMO_E2E_TOKENS_USED_JSON")
 if (-not [string]::IsNullOrWhiteSpace($tokensUsedJsonRaw)) {
   try {
-    $tokensUsedRaw = $tokensUsedJsonRaw | ConvertFrom-Json -Depth 20
+    $tokensUsedRaw = $tokensUsedJsonRaw | ConvertFrom-Json
     $tokensUsed.input = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $tokensUsedRaw -Path @("input"))
     $tokensUsed.output = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $tokensUsedRaw -Path @("output"))
     $tokensPartsTotal = [int]($tokensUsed.input + $tokensUsed.output)
@@ -5284,12 +5352,18 @@ $summary = [ordered]@{
     sessionId = $sessionId
     createResponse = $sessionCreateResponse
   }
+  frontendLiveDirectSmoke = $frontendDirectLiveData
   liveTransport = if ($null -ne $operatorActionsData) { $operatorActionsData.sessionReplayLiveTransport } else { $null }
   costEstimate = $costEstimate
   tokensUsed = $tokensUsed
   services = $script:ServiceStatuses
   scenarios = $script:ScenarioResults
   kpis = [ordered]@{
+    frontendDirectLiveSmokeStatus = if ($frontendDirectLiveScenario.Count -gt 0) { Get-FieldValue -Object $frontendDirectLiveScenario[0] -Path @("data", "status") } else { $null }
+    frontendDirectLiveSmokeReason = if ($frontendDirectLiveScenario.Count -gt 0) { Get-FieldValue -Object $frontendDirectLiveScenario[0] -Path @("data", "reason") } else { $null }
+    frontendDirectLiveSmokeDirectSupported = if ($frontendDirectLiveScenario.Count -gt 0) { Get-FieldValue -Object $frontendDirectLiveScenario[0] -Path @("data", "directSupported") } else { $null }
+    frontendDirectLiveSmokeReplayMode = if ($frontendDirectLiveScenario.Count -gt 0) { Get-FieldValue -Object $frontendDirectLiveScenario[0] -Path @("data", "replay", "liveTransport", "activeMode") } else { $null }
+    frontendDirectLiveSmokeEvidenceSource = if ($frontendDirectLiveScenario.Count -gt 0) { Get-FieldValue -Object $frontendDirectLiveScenario[0] -Path @("data", "replay", "liveTransport", "evidenceSource") } else { $null }
     translationProvider = if ($null -ne $translationData) { $translationData.provider } else { $null }
     researchProvider = if ($null -ne $researchData) { $researchData.provider } else { $null }
     researchModel = if ($null -ne $researchData) { $researchData.model } else { $null }

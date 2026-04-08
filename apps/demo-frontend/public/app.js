@@ -19131,6 +19131,16 @@ function setMode(mode) {
 }
 
 function resolvePreferredLiveBootstrapMode() {
+  if (typeof window !== "undefined") {
+    try {
+      const forcedMode = toOptionalText(new URLSearchParams(window.location.search).get("livePreferredMode"));
+      if (forcedMode === "relay" || forcedMode === "direct_live") {
+        return forcedMode;
+      }
+    } catch {
+      // fall through to runtime posture
+    }
+  }
   const liveRuntime = resolveOperatorBootstrapDoctorLiveRuntime(state.operatorBootstrapDoctorSnapshot);
   const preferredMode = toOptionalText(liveRuntime?.preferredMode);
   if (preferredMode === "relay" || preferredMode === "direct_live") {

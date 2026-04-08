@@ -766,6 +766,7 @@ function buildLiveTransport(summary, kpis) {
   const sessionCandidates = [
     getNestedObjectCandidate(summary, ["liveTransport"]),
     getNestedObjectCandidate(summary, ["session", "liveTransport"]),
+    getNestedObjectCandidate(summary, ["frontendLiveDirectSmoke", "replay", "liveTransport"]),
     getNestedObjectCandidate(summary, ["operatorEvidence", "operatorSessionReplay", "liveTransport"]),
     getNestedObjectCandidate(summary, ["selectedSession", "replay", "liveTransport"]),
     getNestedObjectCandidate(summary, ["replay", "selectedSession", "replay", "liveTransport"]),

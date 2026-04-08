@@ -450,3 +450,36 @@ test("demo frontend auto-submits translation mic capture after a short speech pa
     "auto-submit should leave a system hint when translation is dispatched on speech pause",
   );
 });
+
+test("demo frontend can force preferred live mode from the URL for browser smoke", () => {
+  const appPath = resolve(process.cwd(), "apps", "demo-frontend", "public", "app.js");
+  const readmePath = resolve(process.cwd(), "README.md");
+  const localDevelopmentPath = resolve(process.cwd(), "docs", "local-development.md");
+  const runbookPath = resolve(process.cwd(), "docs", "challenge-demo-runbook.md");
+
+  const appSource = readFileSync(appPath, "utf8");
+  const readmeSource = readFileSync(readmePath, "utf8");
+  const localDevelopmentSource = readFileSync(localDevelopmentPath, "utf8");
+  const runbookSource = readFileSync(runbookPath, "utf8");
+
+  assert.ok(
+    appSource.includes('new URLSearchParams(window.location.search).get("livePreferredMode")'),
+    "frontend runtime missing URL-driven preferred live mode override",
+  );
+  assert.ok(
+    appSource.includes('if (forcedMode === "relay" || forcedMode === "direct_live") {'),
+    "frontend runtime should only honor supported preferred live mode overrides",
+  );
+  assert.ok(
+    readmeSource.includes("?livePreferredMode=direct_live"),
+    "README should document forced direct-live browser smoke override",
+  );
+  assert.ok(
+    localDevelopmentSource.includes("?livePreferredMode=direct_live"),
+    "local development guide should document forced direct-live browser override",
+  );
+  assert.ok(
+    runbookSource.includes("?livePreferredMode=direct_live"),
+    "challenge runbook should document forced direct-live browser smoke override",
+  );
+});
