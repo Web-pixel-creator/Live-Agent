@@ -4066,18 +4066,20 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionSegment<TTarget, TCt
 }
 
 function buildSessionLiveTransport(
+  events: EventListItem[],
   eventInsight: SessionEventInsight,
 ): RuntimeSessionReplayLiveTransport | null {
-  if ((eventInsight.bySource.direct_live ?? 0) < 1) {
+  const latestDirectLiveEvent = sortEventsDesc(events).find((item) => item.source === "direct_live") ?? null;
+  if (!latestDirectLiveEvent && (eventInsight.bySource.direct_live ?? 0) < 1) {
     return null;
   }
   return {
-    activeMode: "direct_live",
-    provider: null,
-    model: null,
-    bootstrapState: null,
-    fallbackReason: null,
-    capturedAt: eventInsight.latestEventAt,
+    activeMode: latestDirectLiveEvent?.liveTransportMode === "relay" ? "relay" : "direct_live",
+    provider: latestDirectLiveEvent?.liveTransportProvider ?? null,
+    model: latestDirectLiveEvent?.liveTransportModel ?? null,
+    bootstrapState: latestDirectLiveEvent?.liveTransportBootstrapState ?? null,
+    fallbackReason: latestDirectLiveEvent?.liveTransportFallbackReason ?? null,
+    capturedAt: latestDirectLiveEvent?.createdAt ?? eventInsight.latestEventAt,
     evidenceSource: "session_events",
   };
 }
@@ -5692,7 +5694,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
       replay: {
         replayState: selectedReplayState,
         replayReady: selectedReplayState !== "empty",
-        liveTransport: buildSessionLiveTransport(selectedEventInsight),
+        liveTransport: buildSessionLiveTransport(params.selectedEvents, selectedEventInsight),
         resumeReady: resumeMetadata.resumeReady,
         resumeBlockedBy: resumeMetadata.resumeBlockedBy,
         nextOperatorAction: resumeMetadata.nextOperatorAction,

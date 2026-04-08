@@ -203,6 +203,7 @@ Gateway envs:
 4. `LIVE_DIRECT_MODE_ENABLED=true|false` to expose repo-owned direct-live bootstrap posture from `api-backend`.
 5. `LIVE_EPHEMERAL_TOKENS_ENABLED=true|false` to allow `POST /v1/runtime/live/session-token` to issue constrained ephemeral Gemini Live tokens instead of forcing relay.
 6. `LIVE_DIRECT_MODE_DEFAULT=relay|direct_live` to choose the preferred browser bootstrap mode when both paths are available.
+7. Browser-direct live replay proof is persisted through `POST /v1/runtime/live/session-events`; keep `api-backend` reachable from the demo frontend if you want `/v1/runtime/session-replay` and release evidence to show backend-observed `direct_live`.
 7. `LIVE_DIRECT_TOKEN_TTL_SECONDS=300` to control direct-live token lifetime for local testing without changing relay behavior.
 
 ## Validation Commands

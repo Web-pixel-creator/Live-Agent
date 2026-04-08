@@ -910,6 +910,10 @@ test("runtime session replay mirror surfaces direct live transport evidence from
       route: "live-agent",
       status: "completed",
       intent: "translation",
+      liveTransportMode: "direct_live",
+      liveTransportProvider: "gemini_live_api",
+      liveTransportModel: "gemini-live-2.5-flash-native-audio",
+      liveTransportBootstrapState: "prepared_direct",
       verificationState: "verified",
       verificationSummary: "Direct live turn completed.",
     },
@@ -927,9 +931,9 @@ test("runtime session replay mirror surfaces direct live transport evidence from
 
   assert.deepEqual(snapshot.selectedSession.replay.liveTransport, {
     activeMode: "direct_live",
-    provider: null,
-    model: null,
-    bootstrapState: null,
+    provider: "gemini_live_api",
+    model: "gemini-live-2.5-flash-native-audio",
+    bootstrapState: "prepared_direct",
     fallbackReason: null,
     capturedAt: "2026-04-01T10:05:00.000Z",
     evidenceSource: "session_events",

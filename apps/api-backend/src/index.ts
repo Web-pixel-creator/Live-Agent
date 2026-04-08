@@ -86,6 +86,10 @@ import {
 import { buildRuntimeDiagnosticsSummary } from "./runtime-diagnostics-summary.js";
 import { buildRuntimeBootstrapDoctorSnapshot } from "./runtime-bootstrap-doctor.js";
 import {
+  ingestRuntimeLiveSessionEvent,
+  normalizeRuntimeLiveSessionEventIngestRequest,
+} from "./runtime-live-session-events.js";
+import {
   buildRuntimeLiveStatusSnapshot,
   issueRuntimeLiveSessionToken,
   normalizeRuntimeLiveSessionTokenRequest,
@@ -4507,6 +4511,42 @@ export const server = createServer(async (req, res) => {
         data: liveSessionToken,
         role,
         source: "repo_owned_live_session_token",
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/live/session-events" && req.method === "POST") {
+      const role = assertOperatorRole(req, ["operator", "admin"]);
+      const raw = await readBody(req);
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = parseJsonBody(raw);
+      } catch {
+        writeApiError(res, 400, {
+          code: "API_RUNTIME_LIVE_SESSION_EVENT_INVALID_JSON",
+          message: "runtime live session event body must be valid JSON",
+        });
+        return;
+      }
+      const normalizedEvent = normalizeRuntimeLiveSessionEventIngestRequest(parsed);
+      if (!normalizedEvent.ok) {
+        writeApiError(res, 400, {
+          code: normalizedEvent.code,
+          message: normalizedEvent.message,
+          details: normalizedEvent.details,
+        });
+        return;
+      }
+
+      const persistedEvent = await ingestRuntimeLiveSessionEvent({
+        tenantId: requestTenant.tenantId,
+        request: normalizedEvent.value,
+      });
+      writeJson(res, 200, {
+        data: persistedEvent,
+        role,
+        tenant: requestTenant,
+        source: "repo_owned_live_session_event_ingest",
       });
       return;
     }

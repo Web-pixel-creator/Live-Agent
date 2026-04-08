@@ -33702,7 +33702,41 @@ function normalizeDirectLiveUpstreamMessage(parsed) {
 }
 
 function emitDirectLiveGatewayEvent(type, payload, metadata = null) {
-  handleGatewayEvent({
+  const event = buildDirectLiveReplayEvent(type, payload, metadata);
+  handleGatewayEvent(event);
+  void persistDirectLiveReplayEvent(event);
+}
+
+function buildDirectLiveReplayPayload(type, payload) {
+  const normalizedPayload = isRecord(payload) ? { ...payload } : {};
+  if (!toOptionalText(normalizedPayload.intent)) {
+    normalizedPayload.intent = getCurrentLiveIntentValue();
+  }
+  if (!toOptionalText(normalizedPayload.route)) {
+    normalizedPayload.route = "live-agent";
+  }
+  if (!toOptionalText(normalizedPayload.status)) {
+    if (type === "gateway.connected") {
+      normalizedPayload.status = "connected";
+    } else if (type === "live.turn.completed") {
+      normalizedPayload.status = "completed";
+    } else if (type === "live.interrupted") {
+      normalizedPayload.status = "interrupted";
+    }
+  }
+  if (!isRecord(normalizedPayload.liveTransport)) {
+    const liveTransportEvidence = buildCurrentLiveTransportEvidence({
+      selectedSessionId: state.sessionId,
+    });
+    if (liveTransportEvidence) {
+      normalizedPayload.liveTransport = liveTransportEvidence;
+    }
+  }
+  return normalizedPayload;
+}
+
+function buildDirectLiveReplayEvent(type, payload, metadata = null) {
+  return {
     id: makeId(),
     userId: state.userId,
     sessionId: state.sessionId,
@@ -33711,9 +33745,57 @@ function emitDirectLiveGatewayEvent(type, payload, metadata = null) {
     source: "direct_live",
     ts: new Date().toISOString(),
     type,
-    payload,
+    payload: buildDirectLiveReplayPayload(type, payload),
     ...(metadata && typeof metadata === "object" ? { metadata } : {}),
-  });
+  };
+}
+
+function shouldPersistDirectLiveReplayEvent(event) {
+  if (!isRecord(event)) {
+    return false;
+  }
+  if (toOptionalText(event.source) !== "direct_live") {
+    return false;
+  }
+  switch (toOptionalText(event.type)) {
+    case "gateway.connected":
+    case "live.function_call":
+    case "live.function_call_output.sent":
+    case "live.interrupted":
+    case "live.turn.truncated":
+    case "live.turn.deleted":
+    case "live.turn.completed":
+      return true;
+    default:
+      return false;
+  }
+}
+
+async function persistDirectLiveReplayEvent(event) {
+  if (!shouldPersistDirectLiveReplayEvent(event)) {
+    return false;
+  }
+  const sessionId = toOptionalText(event.sessionId);
+  if (!sessionId) {
+    return false;
+  }
+  try {
+    const response = await fetch(`${state.apiBaseUrl}/v1/runtime/live/session-events`, {
+      method: "POST",
+      headers: operatorHeaders(true),
+      body: JSON.stringify(event),
+      keepalive: true,
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+function captureDirectLiveReplayEvent(type, payload, metadata = null) {
+  const event = buildDirectLiveReplayEvent(type, payload, metadata);
+  void persistDirectLiveReplayEvent(event);
+  return event;
 }
 
 function buildDirectLiveConversationParts(content) {
@@ -39246,6 +39328,9 @@ function connectDirectLiveTransport(snapshot) {
       state.liveTransportMode = "direct_live";
       renderLiveModeStatus();
       setConnectionStatus("connected");
+      captureDirectLiveReplayEvent("gateway.connected", {
+        connectedAt: new Date().toISOString(),
+      });
       appendTranscript(
         "system",
         `Connected directly to ${toOptionalText(snapshot?.provider) ?? "gemini_live_api"} (${toOptionalText(snapshot?.model) ?? "unknown model"})`,

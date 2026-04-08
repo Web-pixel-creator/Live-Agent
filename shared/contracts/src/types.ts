@@ -106,6 +106,28 @@ export type LiveRuntimeStatus = {
   capabilities: LiveCapabilitiesSnapshot;
 };
 
+export type RuntimeLiveSessionEventIngestRequest = {
+  id?: string;
+  userId?: string;
+  sessionId: string;
+  runId?: string;
+  conversation?: ConversationScope;
+  source?: "direct_live";
+  type: string;
+  ts?: string;
+  payload?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+};
+
+export type RuntimeLiveSessionEventIngestResponse = {
+  accepted: true;
+  eventId: string;
+  sessionId: string;
+  runId?: string;
+  source: "direct_live";
+  createdAt: string;
+};
+
 export type TaskLifecycleStatus =
   | "queued"
   | "running"

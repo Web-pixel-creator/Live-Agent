@@ -7,27 +7,34 @@ test("api backend exposes runtime bootstrap doctor and auth-profile control plan
   const sourcePath = resolve(process.cwd(), "apps", "api-backend", "src", "index.ts");
   const helperPath = resolve(process.cwd(), "apps", "api-backend", "src", "runtime-bootstrap-doctor.ts");
   const liveHelperPath = resolve(process.cwd(), "apps", "api-backend", "src", "runtime-live-session-token.ts");
+  const liveEventsHelperPath = resolve(process.cwd(), "apps", "api-backend", "src", "runtime-live-session-events.ts");
   const source = readFileSync(sourcePath, "utf8");
   const helper = readFileSync(helperPath, "utf8");
   const liveHelper = readFileSync(liveHelperPath, "utf8");
+  const liveEventsHelper = readFileSync(liveEventsHelperPath, "utf8");
 
   const requiredSourceTokens = [
     "/v1/runtime/bootstrap-status",
     "/v1/runtime/live/capabilities",
     "/v1/runtime/live/session-token",
+    "/v1/runtime/live/session-events",
     "/v1/runtime/auth-profiles",
     "/v1/runtime/auth-profiles/rotate",
     "buildRuntimeBootstrapDoctorSnapshot",
     "buildRuntimeLiveStatusSnapshot",
     "issueRuntimeLiveSessionToken",
+    "ingestRuntimeLiveSessionEvent",
+    "normalizeRuntimeLiveSessionEventIngestRequest",
     "normalizeRuntimeLiveSessionTokenRequest",
     "listAuthProfileSnapshots",
     "rotateAuthProfile",
     'source: "repo_owned_bootstrap_doctor"',
     'source: "repo_owned_live_runtime_capabilities"',
     'source: "repo_owned_live_session_token"',
+    'source: "repo_owned_live_session_event_ingest"',
     'source: "repo_owned_auth_profile_control_plane"',
     "API_RUNTIME_LIVE_SESSION_TOKEN_INVALID_JSON",
+    "API_RUNTIME_LIVE_SESSION_EVENT_INVALID_JSON",
     "runtime_auth_profile_rotate",
     "API_RUNTIME_AUTH_PROFILE_INVALID_JSON",
     "API_RUNTIME_AUTH_PROFILE_ID_REQUIRED",
@@ -52,6 +59,17 @@ test("api backend exposes runtime bootstrap doctor and auth-profile control plan
   ];
   for (const token of requiredLiveHelperTokens) {
     assert.ok(liveHelper.includes(token), `runtime live helper missing token: ${token}`);
+  }
+
+  const requiredLiveEventsHelperTokens = [
+    "normalizeRuntimeLiveSessionEventIngestRequest",
+    "ingestRuntimeLiveSessionEvent",
+    "API_RUNTIME_LIVE_SESSION_EVENT_INVALID_REQUEST",
+    "runtime live session event ingest only accepts direct_live source",
+    "payload must be a JSON object when provided",
+  ];
+  for (const token of requiredLiveEventsHelperTokens) {
+    assert.ok(liveEventsHelper.includes(token), `runtime live events helper missing token: ${token}`);
   }
 
   const requiredHelperTokens = [
@@ -83,6 +101,7 @@ test("docs describe bootstrap doctor and auth-profile runtime surfaces", () => {
   assert.match(readme, /GET \/v1\/runtime\/bootstrap-status/);
   assert.match(readme, /GET \/v1\/runtime\/live\/capabilities/);
   assert.match(readme, /POST \/v1\/runtime\/live\/session-token/);
+  assert.match(readme, /POST \/v1\/runtime\/live\/session-events/);
   assert.match(readme, /GET \/v1\/runtime\/auth-profiles/);
   assert.match(readme, /POST \/v1\/runtime\/auth-profiles\/rotate/);
   assert.match(readme, /Bootstrap Doctor & Auth Profiles/);
@@ -96,6 +115,7 @@ test("docs describe bootstrap doctor and auth-profile runtime surfaces", () => {
   assert.match(readme, /authHeaderProfileId/);
   assert.match(operatorGuide, /Bootstrap Doctor & Auth Profiles/);
   assert.match(operatorGuide, /live direct/i);
+  assert.match(operatorGuide, /session-events/i);
   assert.match(operatorGuide, /session-token/i);
   assert.match(operatorGuide, /auth-profile/i);
   assert.match(operatorGuide, /rotate/i);
@@ -104,4 +124,5 @@ test("docs describe bootstrap doctor and auth-profile runtime surfaces", () => {
   assert.match(localDevelopment, /LIVE_DIRECT_TOKEN_TTL_SECONDS/);
   assert.match(architecture, /bootstrap doctor\/auth-profile/i);
   assert.match(architecture, /live direct/i);
+  assert.match(architecture, /session-events/i);
 });

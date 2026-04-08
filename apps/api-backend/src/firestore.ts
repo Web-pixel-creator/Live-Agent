@@ -87,6 +87,26 @@ export type EventListItem = {
   agentUsageOutputTokens?: number;
   agentUsageTotalTokens?: number;
   agentUsageModels?: string[];
+  liveTransportMode?: string;
+  liveTransportProvider?: string;
+  liveTransportModel?: string;
+  liveTransportBootstrapState?: string;
+  liveTransportFallbackReason?: string;
+  liveTransportEvidenceSource?: string;
+};
+
+export type RuntimeSessionEventRecord = {
+  eventId: string;
+  tenantId?: string;
+  userId?: string;
+  sessionId: string;
+  runId?: string;
+  conversation?: string;
+  type: string;
+  source: string;
+  createdAt: string;
+  payload?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 };
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "timeout";
@@ -435,6 +455,7 @@ let state: FirestoreState = {
 };
 
 const inMemorySessions = new Map<string, SessionListItem>();
+const inMemoryEvents: EventListItem[] = [];
 const inMemoryApprovals = new Map<string, ApprovalRecord>();
 const inMemoryOperatorActions: OperatorActionRecord[] = [];
 const inMemoryTenantGovernancePolicies = new Map<string, TenantGovernancePolicyRecord>();
@@ -1331,6 +1352,7 @@ function channelSessionBindingSignature(binding: ChannelSessionBindingRecord): s
 
 function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSessionId?: string): EventListItem {
   const payload = asRecord(raw.payload);
+  const metadata = asRecord(raw.metadata);
   const output = payload ? asRecord(payload.output) : null;
   const execution = output ? asRecord(output.execution) : null;
   const approval = output ? asRecord(output.approval) : null;
@@ -1344,6 +1366,9 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
   const verification = output ? asRecord(output.verification) : null;
   const executionVerification = execution ? asRecord(execution.verification) : null;
   const task = payload ? asRecord(payload.task) : null;
+  const liveTransport =
+    (payload ? asRecord(payload.liveTransport) : null) ??
+    (metadata ? asRecord(metadata.liveTransport) : null);
 
   const intent =
     toNonEmptyString(payload?.intent) ??
@@ -1420,6 +1445,12 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
     agentUsageModelSet.add("usage_metadata_unavailable");
   }
   const agentUsageModels = Array.from(agentUsageModelSet);
+  const liveTransportMode = toNonEmptyString(liveTransport?.activeMode) ?? undefined;
+  const liveTransportProvider = toNonEmptyString(liveTransport?.provider) ?? undefined;
+  const liveTransportModel = toNonEmptyString(liveTransport?.model) ?? undefined;
+  const liveTransportBootstrapState = toNonEmptyString(liveTransport?.bootstrapState) ?? undefined;
+  const liveTransportFallbackReason = toNonEmptyString(liveTransport?.fallbackReason) ?? undefined;
+  const liveTransportEvidenceSource = toNonEmptyString(liveTransport?.evidenceSource) ?? undefined;
 
   let traceSteps: number | undefined;
   let screenshotRefs: number | undefined;
@@ -1508,6 +1539,12 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
     agentUsageOutputTokens,
     agentUsageTotalTokens,
     agentUsageModels: agentUsageModels.length > 0 ? agentUsageModels : undefined,
+    liveTransportMode,
+    liveTransportProvider,
+    liveTransportModel,
+    liveTransportBootstrapState,
+    liveTransportFallbackReason,
+    liveTransportEvidenceSource,
   };
 }
 
@@ -1865,13 +1902,129 @@ export async function listRuns(limit: number): Promise<RunListItem[]> {
   });
 }
 
+function buildRuntimeSessionEventStorageRecord(event: RuntimeSessionEventRecord): Record<string, unknown> {
+  return {
+    sessionId: event.sessionId,
+    runId: event.runId ?? null,
+    userId: event.userId ?? null,
+    conversation: event.conversation ?? null,
+    type: event.type,
+    source: event.source,
+    payload: event.payload ?? {},
+    metadata: event.metadata ?? {},
+    createdAt: event.createdAt,
+  };
+}
+
+function buildRuntimeSessionEventRecord(event: RuntimeSessionEventRecord): EventListItem {
+  return mapEventRecord(event.eventId, buildRuntimeSessionEventStorageRecord(event), event.sessionId);
+}
+
+export async function recordRuntimeSessionEvent(event: RuntimeSessionEventRecord): Promise<EventListItem> {
+  const normalizedCreatedAt = toIso(event.createdAt);
+  const normalizedEvent: RuntimeSessionEventRecord = {
+    ...event,
+    createdAt: normalizedCreatedAt,
+    payload: event.payload ?? {},
+    metadata: event.metadata ?? {},
+  };
+  const sessionRecord = buildRuntimeSessionEventRecord(normalizedEvent);
+  const payload = asRecord(normalizedEvent.payload) ?? {};
+  const route = toNonEmptyString(payload.route);
+  const intent = toNonEmptyString(payload.intent);
+  const status = toNonEmptyString(payload.status) ?? "active";
+  const tenantId = normalizeTenantId(normalizedEvent.tenantId);
+  const db = initFirestore();
+
+  if (!db) {
+    await runInMemoryWriteLane(`event:${normalizedEvent.sessionId}`, () => {
+      const existingSession = inMemorySessions.get(normalizedEvent.sessionId) ?? null;
+      inMemorySessions.set(normalizedEvent.sessionId, {
+        sessionId: normalizedEvent.sessionId,
+        tenantId: existingSession?.tenantId ?? tenantId,
+        mode: existingSession?.mode ?? "live",
+        status: existingSession?.status ?? "active",
+        version: existingSession?.version ?? 1,
+        lastMutationId: existingSession?.lastMutationId ?? null,
+        updatedAt: normalizedCreatedAt,
+      });
+      inMemoryEvents.unshift(sessionRecord);
+      if (inMemoryEvents.length > 5000) {
+        inMemoryEvents.splice(5000);
+      }
+    });
+    return sessionRecord;
+  }
+
+  const batch = db.batch();
+  const createdAtDate = new Date(normalizedCreatedAt);
+  const createdAtValue = Number.isNaN(createdAtDate.getTime())
+    ? FieldValue.serverTimestamp()
+    : Timestamp.fromDate(createdAtDate);
+  const expireAt = Timestamp.fromDate(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000));
+
+  const eventRef = db.collection("events").doc(normalizedEvent.eventId);
+  batch.set(eventRef, {
+    ...buildRuntimeSessionEventStorageRecord(normalizedEvent),
+    createdAt: createdAtValue,
+    storedAt: FieldValue.serverTimestamp(),
+    expireAt,
+  });
+
+  const sessionRef = db.collection("sessions").doc(normalizedEvent.sessionId);
+  batch.set(
+    sessionRef,
+    {
+      sessionId: normalizedEvent.sessionId,
+      tenantId,
+      userId: normalizedEvent.userId ?? null,
+      mode: "live",
+      status: "active",
+      version: 1,
+      lastMutationId: null,
+      lastIntent: intent ?? null,
+      lastRoute: route ?? null,
+      lastEventType: normalizedEvent.type,
+      expireAt,
+      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  if (normalizedEvent.runId) {
+    const runRef = db.collection("agent_runs").doc(normalizedEvent.runId);
+    batch.set(
+      runRef,
+      {
+        runId: normalizedEvent.runId,
+        sessionId: normalizedEvent.sessionId,
+        status,
+        intent: intent ?? null,
+        route: route ?? null,
+        lastEventType: normalizedEvent.type,
+        expireAt,
+        updatedAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  }
+
+  await batch.commit();
+  return sessionRecord;
+}
+
 export async function listEvents(params: {
   sessionId: string;
   limit: number;
 }): Promise<EventListItem[]> {
   const db = initFirestore();
   if (!db) {
-    return [];
+    return inMemoryEvents
+      .filter((item) => item.sessionId === params.sessionId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, params.limit);
   }
 
   const snapshot = await db
@@ -1889,7 +2042,7 @@ export async function listEvents(params: {
 export async function listRecentEvents(limit: number): Promise<EventListItem[]> {
   const db = initFirestore();
   if (!db) {
-    return [];
+    return [...inMemoryEvents].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
   }
 
   const snapshot = await db

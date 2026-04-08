@@ -82,6 +82,18 @@ test("demo frontend can promote live bootstrap into a constrained direct-live tr
     "frontend runtime should force relay reconnect for orchestrator requests while direct live is active",
   );
   assert.ok(
+    appSource.includes("/v1/runtime/live/session-events"),
+    "frontend runtime should persist direct-live replay proof through the live session-events route",
+  );
+  assert.ok(
+    appSource.includes('captureDirectLiveReplayEvent("gateway.connected", {'),
+    "frontend runtime should capture a repo-owned direct-live gateway proof when the constrained transport opens",
+  );
+  assert.ok(
+    appSource.includes("void persistDirectLiveReplayEvent(event);"),
+    "frontend runtime should persist direct-live replay events after local synthesis",
+  );
+  assert.ok(
     readmeSource.includes("voice • direct_live • direct_ready"),
     "README should document active direct-live mode-strip posture",
   );

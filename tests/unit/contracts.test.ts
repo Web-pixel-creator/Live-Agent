@@ -11,6 +11,8 @@ import {
   UI_VERIFICATION_STATES,
   type LiveCapabilitiesSnapshot,
   type LiveRuntimeStatus,
+  type RuntimeLiveSessionEventIngestRequest,
+  type RuntimeLiveSessionEventIngestResponse,
   type LiveSessionTokenResponse,
 } from "../../shared/contracts/src/index.js";
 
@@ -126,6 +128,43 @@ test("live direct mode contracts are exposed as shared contract constants and ty
   assert.equal(tokenResponse.capabilities.audioInput, true);
   assert.equal(runtimeStatus.activeMode, "relay");
   assert.equal(runtimeStatus.fallbackAvailable, true);
+});
+
+test("direct-live replay ingest contracts expose a stable browser-to-backend proof shape", () => {
+  const ingestRequest: RuntimeLiveSessionEventIngestRequest = {
+    sessionId: "live-session-1",
+    runId: "run-live-1",
+    conversation: "default",
+    source: "direct_live",
+    type: "gateway.connected",
+    ts: "2026-04-08T12:01:00.000Z",
+    payload: {
+      route: "live-agent",
+      status: "connected",
+      intent: "translation",
+      liveTransport: {
+        activeMode: "direct_live",
+        provider: "gemini_live_api",
+        model: "gemini-live-2.5-flash-native-audio",
+        bootstrapState: "prepared_direct",
+      },
+    },
+  };
+  const ingestResponse: RuntimeLiveSessionEventIngestResponse = {
+    accepted: true,
+    eventId: "evt-direct-proof-1",
+    sessionId: "live-session-1",
+    runId: "run-live-1",
+    source: "direct_live",
+    createdAt: "2026-04-08T12:01:00.000Z",
+  };
+
+  assert.equal(ingestRequest.source, "direct_live");
+  const liveTransportPayload = (ingestRequest.payload as { liveTransport?: { activeMode?: string } } | undefined)
+    ?.liveTransport;
+  assert.equal(liveTransportPayload?.activeMode, "direct_live");
+  assert.equal(ingestResponse.accepted, true);
+  assert.equal(ingestResponse.source, "direct_live");
 });
 
 test("task metadata roundtrips ui verification state and failure class", () => {
