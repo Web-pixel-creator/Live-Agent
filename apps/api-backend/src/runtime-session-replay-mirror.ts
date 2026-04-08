@@ -457,22 +457,36 @@ type RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegmentsParams = {
   recoveryDrill: ReturnType<typeof buildRecoveryDrill>;
 };
 
-type RuntimeSessionReplayPrimaryRefreshLegacyProjectionPrefixLayerContext = Pick<
+type RuntimeSessionReplayPrimaryRefreshLegacyProjectionCoreContext = Pick<
   RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegmentsParams,
-  "needsRefresh" | "workflowSummary" | "currentHandoffState" | "recoveryDrill"
+  "needsRefresh" | "currentHandoffState"
 >;
 
+type RuntimeSessionReplayPrimaryRefreshLegacyProjectionWorkflowContext =
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionCoreContext &
+    Pick<RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegmentsParams, "workflowSummary">;
+
+type RuntimeSessionReplayPrimaryRefreshLegacyProjectionApprovalContext =
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionWorkflowContext &
+    Pick<RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegmentsParams, "approvalGate">;
+
+type RuntimeSessionReplayPrimaryRefreshLegacyProjectionLayerContext =
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionWorkflowContext &
+    Pick<RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegmentsParams, "recoveryDrill">;
+
+type RuntimeSessionReplayPrimaryRefreshLegacyProjectionLayerResult<TSegment, TTarget> = {
+  segment: TSegment;
+  target: TTarget;
+};
+
 type RuntimeSessionReplayPrimaryRefreshLegacyProjectionEscalationSegmentParams =
-  RuntimeSessionReplayPrimaryRefreshLegacyProjectionPrefixLayerContext & {
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionLayerContext & {
     nextOperatorActionTarget:
       RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegmentsParams["nextOperatorActionTarget"];
   };
 
 type RuntimeSessionReplayPrimaryRefreshLegacyProjectionEscalationFallbackSegmentParams =
-  Pick<
-    RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegmentsParams,
-    "needsRefresh" | "approvalGate" | "workflowSummary" | "currentHandoffState"
-  > & {
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionApprovalContext & {
     refreshEscalationTarget:
       RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments["escalation"]["target"];
     refreshEscalationReadiness:
@@ -480,31 +494,25 @@ type RuntimeSessionReplayPrimaryRefreshLegacyProjectionEscalationFallbackSegment
   };
 
 type RuntimeSessionReplayPrimaryRefreshLegacyProjectionEscalationFallbackEscalationSegmentParams =
-  Pick<
-    RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegmentsParams,
-    "needsRefresh" | "workflowSummary" | "currentHandoffState"
-  > & {
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionWorkflowContext & {
     refreshEscalationFallbackTarget:
       RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments["escalationFallback"]["target"];
   };
 
 type RuntimeSessionReplayPrimaryRefreshLegacyProjectionEscalationFallbackEscalationFallbackSegmentParams =
-  Pick<
-    RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegmentsParams,
-    "needsRefresh" | "currentHandoffState"
-  > & {
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionCoreContext & {
     refreshEscalationFallbackEscalationTarget:
       RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments["escalationFallbackEscalation"]["target"];
   };
 
 type RuntimeSessionReplayPrimaryRefreshLegacyProjectionEscalationFallbackEscalationFallbackEscalationSegmentParams =
-  RuntimeSessionReplayPrimaryRefreshLegacyProjectionPrefixLayerContext & {
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionLayerContext & {
     refreshEscalationFallbackEscalationFallbackTarget:
       RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments["escalationFallbackEscalationFallback"]["target"];
   };
 
 type RuntimeSessionReplayPrimaryRefreshLegacyProjectionEscalationFallbackEscalationFallbackEscalationFallbackSegmentParams =
-  RuntimeSessionReplayPrimaryRefreshLegacyProjectionPrefixLayerContext & {
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionLayerContext & {
     refreshEscalationFallbackEscalationFallbackEscalationTarget:
       RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments["escalationFallbackEscalationFallbackEscalation"]["target"];
   };
@@ -518,39 +526,35 @@ type RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoverySegmentsParams = 
     RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments["escalationFallbackEscalationFallbackEscalationFallback"]["target"];
 };
 
-type RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryLayerContext = Pick<
-  RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoverySegmentsParams,
-  "needsRefresh" | "workflowSummary" | "currentHandoffState" | "recoveryDrill"
->;
-
 type RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryLayerTarget =
   RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments["recovery"]["target"];
 
-type RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryLayerResult = {
-  segment: RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments["recovery"];
-  target: RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryLayerTarget;
-};
+type RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryLayerResult =
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionLayerResult<
+    RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments["recovery"],
+    RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryLayerTarget
+  >;
 
 type RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoverySegmentParams =
-  RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryLayerContext & {
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionLayerContext & {
     ownershipRecoveryEscalationTarget:
       RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoverySegmentsParams["ownershipRecoveryEscalationTarget"];
   };
 
 type RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryFollowupSegmentParams =
-  RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryLayerContext & {
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionLayerContext & {
     ownershipRecoveryTarget:
       RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryLayerTarget;
   };
 
 type RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryRetrySegmentParams =
-  RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryLayerContext & {
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionLayerContext & {
     ownershipReescalationTarget:
       RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryLayerTarget;
   };
 
 type RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryRetryFollowupSegmentParams =
-  RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryLayerContext & {
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionLayerContext & {
     escalationRetryTarget:
       RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoveryLayerTarget;
   };
