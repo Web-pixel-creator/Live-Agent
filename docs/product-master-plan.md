@@ -104,6 +104,30 @@ Keep these five modules as the product center:
    - support training,
    - pre-release scenario testing.
 
+## Current Execution Order
+
+The current implementation order should stay narrow and sequential.
+
+1. `Gemini Live direct path`
+   - browser-first live sessions with ephemeral credentials,
+   - lower-latency realtime voice/video,
+   - relay fallback preserved for degraded environments.
+2. `Case Wiki / compiled memory`
+   - persistent case knowledge between raw evidence and answers,
+   - case summaries, proofs, contradictions, and next actions that compound over time.
+3. `Persistent UI runtime`
+   - durable browser sessions, stable refs, verification, and replay bundles.
+4. `Structured provider portfolio`
+   - `Gemini` for judged realtime default,
+   - `GLM` for longer engineering-style planning lanes,
+   - `Gemma` local/offline fallback for operator and edge scenarios.
+5. `Safe self-improvement`
+   - suggestion and validation loops in `Simulation Lab`,
+   - never uncontrolled self-mutation in the production path.
+
+This order does not replace `P0` and `P1`; it defines the sequence in which the
+existing backlog should be executed.
+
 ## What Leaves Center Stage
 
 These areas stay in the repo but should not be the main commercial message:

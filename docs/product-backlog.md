@@ -39,6 +39,118 @@ The first commercial playbooks should stay centered on:
 2. appointment or consultation booking,
 3. document and form collection.
 
+## Current Execution Plan
+
+This section refines the order of execution for the current product cycle. It
+does not replace `P0`/`P1`; it determines what should be built first inside
+those queues.
+
+### Phase 1 - Gemini Live Direct Path
+
+Goal:
+
+Introduce a browser-first `direct_live` lane with ephemeral credentials while
+keeping relay mode as a first-class fallback.
+
+Primary targets:
+
+1. `shared/contracts/src/*`
+2. `apps/realtime-gateway/src/*`
+3. `apps/api-backend/src/*`
+4. `apps/demo-frontend/public/app.js`
+
+Definition of done:
+
+1. The frontend can bootstrap `relay` or `direct_live` deterministically.
+2. Runtime surfaces explain which live mode is active and why.
+3. Release evidence records the active live mode and fallback reason.
+
+### Phase 2 - Case Wiki / Compiled Memory
+
+Goal:
+
+Add a persistent case knowledge layer between raw sources and runtime answers.
+
+Primary targets:
+
+1. `agents/orchestrator/src/orchestrate.ts`
+2. `agents/orchestrator/src/workflow-store.ts`
+3. `apps/api-backend/src/runtime-workflow-control-plane.ts`
+4. `apps/api-backend/src/runtime-session-replay-mirror.ts`
+
+Definition of done:
+
+1. A case can accumulate structured knowledge across sessions.
+2. Operators can read a compiled summary instead of stitching logs by hand.
+
+### Phase 3 - Persistent UI Runtime
+
+Goal:
+
+Turn `ui-executor` into a durable action runtime with persistent session state,
+stable refs, verification, and replay bundles.
+
+Primary targets:
+
+1. `apps/ui-executor/src/browser-jobs.ts`
+2. `apps/ui-executor/src/index.ts`
+3. `apps/ui-executor/src/grounding.ts`
+4. `agents/ui-navigator-agent/src/index.ts`
+
+Definition of done:
+
+1. Browser jobs can resume with explicit session metadata.
+2. Verification and replay are first-class runtime outputs.
+
+### Phase 4 - Structured Provider Portfolio
+
+Goal:
+
+Route providers by workload instead of treating one model family as the answer
+to every path.
+
+Primary targets:
+
+1. `agents/orchestrator/src/assistive-router.ts`
+2. `apps/api-backend/src/runtime-bootstrap-doctor.ts`
+3. `apps/api-backend/src/runtime-surface-readiness.ts`
+
+Definition of done:
+
+1. Runtime and operator surfaces explain provider choice by task class.
+2. `Gemini`, `GLM`, and `Gemma` lanes are explicit and bounded.
+
+### Phase 5 - Safe Self-Improvement Lab
+
+Goal:
+
+Add `observe -> critique -> propose -> validate -> apply` loops only inside
+operator-approved simulation and evaluation paths.
+
+Primary targets:
+
+1. `agents/orchestrator/src/*`
+2. `shared/skills`
+3. `scripts/*`
+4. `configs/*`
+
+Definition of done:
+
+1. The system can propose improvements with evidence and regression checks.
+2. Production runtime does not auto-mutate itself.
+
+## Immediate PR Order
+
+The next commit train should follow this order:
+
+1. `feat: add live direct mode contracts`
+2. `feat: add runtime live token endpoints`
+3. `feat: expose live direct readiness in runtime surfaces`
+4. `feat: add frontend live bootstrap modes`
+5. `feat: add direct live browser session`
+6. `feat: add live mode replay evidence`
+7. `feat: record live direct release evidence`
+
 ## P0 - Must Ship
 
 These tasks directly support the revenue wedge and runtime reliability.

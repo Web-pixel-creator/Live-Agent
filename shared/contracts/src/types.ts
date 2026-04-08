@@ -55,6 +55,57 @@ export type OrchestratorIntent =
   | "story"
   | "ui_task";
 
+export const LIVE_CONNECTION_MODES = ["relay", "direct_live"] as const;
+
+export type LiveConnectionMode = (typeof LIVE_CONNECTION_MODES)[number];
+
+export const LIVE_CAPABILITY_FLAGS = [
+  "audioInput",
+  "audioOutput",
+  "videoInput",
+  "screenInput",
+  "toolCalls",
+  "interruptions",
+  "translation",
+  "reconnectSupported",
+] as const;
+
+export type LiveCapabilityFlag = (typeof LIVE_CAPABILITY_FLAGS)[number];
+
+export type LiveCapabilitiesSnapshot = Record<LiveCapabilityFlag, boolean>;
+
+export type LiveSessionTokenRequest = {
+  preferredMode?: LiveConnectionMode | null;
+  intent?: OrchestratorIntent | null;
+  audio?: boolean;
+  video?: boolean;
+  screen?: boolean;
+  toolsRequired?: boolean;
+};
+
+export type LiveSessionTokenResponse = {
+  provider: string;
+  model: string;
+  connectionMode: LiveConnectionMode;
+  expiresAt: string | null;
+  sessionToken: string | null;
+  sessionId: string;
+  capabilities: LiveCapabilitiesSnapshot;
+  fallbackMode: LiveConnectionMode | null;
+  warnings: string[];
+};
+
+export type LiveRuntimeStatus = {
+  preferredMode: LiveConnectionMode;
+  activeMode: LiveConnectionMode;
+  provider: string | null;
+  model: string | null;
+  ephemeralTokensSupported: boolean;
+  fallbackAvailable: boolean;
+  lastFallbackReason: string | null;
+  capabilities: LiveCapabilitiesSnapshot;
+};
+
 export type TaskLifecycleStatus =
   | "queued"
   | "running"

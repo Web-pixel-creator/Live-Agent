@@ -3,10 +3,15 @@ import assert from "node:assert/strict";
 import {
   createEnvelope,
   createNormalizedError,
+  LIVE_CAPABILITY_FLAGS,
+  LIVE_CONNECTION_MODES,
   RollingMetrics,
   safeParseEnvelope,
   UI_FAILURE_CLASSES,
   UI_VERIFICATION_STATES,
+  type LiveCapabilitiesSnapshot,
+  type LiveRuntimeStatus,
+  type LiveSessionTokenResponse,
 } from "../../shared/contracts/src/index.js";
 
 test("createEnvelope + safeParseEnvelope roundtrip", () => {
@@ -68,6 +73,59 @@ test("ui verification states and failure classes are exposed as shared contract 
   ]) {
     assert.ok(UI_FAILURE_CLASSES.includes(token as (typeof UI_FAILURE_CLASSES)[number]));
   }
+});
+
+test("live direct mode contracts are exposed as shared contract constants and typed shapes", () => {
+  assert.deepEqual(LIVE_CONNECTION_MODES, ["relay", "direct_live"]);
+  assert.deepEqual(LIVE_CAPABILITY_FLAGS, [
+    "audioInput",
+    "audioOutput",
+    "videoInput",
+    "screenInput",
+    "toolCalls",
+    "interruptions",
+    "translation",
+    "reconnectSupported",
+  ]);
+
+  const capabilities: LiveCapabilitiesSnapshot = {
+    audioInput: true,
+    audioOutput: true,
+    videoInput: true,
+    screenInput: false,
+    toolCalls: true,
+    interruptions: true,
+    translation: true,
+    reconnectSupported: true,
+  };
+
+  const tokenResponse: LiveSessionTokenResponse = {
+    provider: "gemini",
+    model: "gemini-live-2.5-flash",
+    connectionMode: "direct_live",
+    expiresAt: "2026-04-08T12:00:00.000Z",
+    sessionToken: "live-session-token",
+    sessionId: "live-session-1",
+    capabilities,
+    fallbackMode: "relay",
+    warnings: ["relay fallback remains available"],
+  };
+
+  const runtimeStatus: LiveRuntimeStatus = {
+    preferredMode: "direct_live",
+    activeMode: "relay",
+    provider: "gemini",
+    model: "gemini-live-2.5-flash",
+    ephemeralTokensSupported: true,
+    fallbackAvailable: true,
+    lastFallbackReason: "direct_live_not_available_for_browser",
+    capabilities,
+  };
+
+  assert.equal(tokenResponse.connectionMode, "direct_live");
+  assert.equal(tokenResponse.capabilities.audioInput, true);
+  assert.equal(runtimeStatus.activeMode, "relay");
+  assert.equal(runtimeStatus.fallbackAvailable, true);
 });
 
 test("task metadata roundtrips ui verification state and failure class", () => {
