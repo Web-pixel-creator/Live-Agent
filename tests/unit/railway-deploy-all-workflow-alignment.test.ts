@@ -47,6 +47,9 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /frontend fallback health check/i);
   assert.match(source, /- name:\s*Fail on Railway Deploy/);
   assert.match(source, /verify_only_fallback_on_auth_failure=false/);
+  assert.match(source, /- name:\s*Run Production Smoke/);
+  assert.match(source, /if:\s*steps\.combined_deploy\.outcome == 'success' \|\| steps\.verify_only_fallback\.outcome == 'success'/);
+  assert.match(source, /npm run verify:deploy:production-smoke -- -GatewayPublicUrl/);
   assert.match(source, /- name:\s*Publish Railway Deploy Mode Summary/);
   assert.match(source, /railway_deploy_mode=/);
   assert.match(source, /real_deploy/);
@@ -58,8 +61,16 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /Railway deploy summary status:/);
   assert.match(source, /Railway deploy summary badge-details URL:/);
   assert.match(source, /Railway deploy summary was not generated\./);
+  assert.match(source, /Production smoke status:/);
+  assert.match(source, /Production smoke gateway runtime:/);
+  assert.match(source, /Production smoke frontend health:/);
+  assert.match(source, /Production smoke frontend title:/);
+  assert.match(source, /Production smoke badge:/);
+  assert.match(source, /Production smoke was not generated\./);
   assert.match(source, /- name:\s*Upload Railway Deploy Artifacts/);
   assert.match(source, /name:\s*railway-deploy-all-artifacts/);
+  assert.match(source, /artifacts\/deploy\/production-smoke\.json/);
+  assert.match(source, /artifacts\/deploy\/production-smoke\.md/);
   assert.match(source, /-SkipReleaseVerification/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
   assert.match(source, /-GatewayRootDescriptorCheckMaxAttempts/);
@@ -83,5 +94,6 @@ test("readme documents deploy-all workflow and required secrets", () => {
   assert.match(readme, /RAILWAY_PROJECT_ID/);
   assert.match(readme, /RAILWAY_SERVICE_ID/);
   assert.match(readme, /artifacts\/deploy\/railway-deploy-summary\.json/);
+  assert.match(readme, /artifacts\/deploy\/production-smoke\.json/);
   assert.match(readme, /railway-deploy-all-artifacts/);
 });

@@ -53,6 +53,9 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /npm run badge:public:check -- -RailwayPublicUrl/);
   assert.match(source, /- name:\s*Fail on Railway Deploy/);
   assert.match(source, /verify_only_fallback_on_auth_failure=false/);
+  assert.match(source, /- name:\s*Run Production Smoke/);
+  assert.match(source, /steps\.combined_deploy\.outcome == 'success' \|\| steps\.verify_only_fallback\.outcome == 'success'/);
+  assert.match(source, /npm run verify:deploy:production-smoke -- -GatewayPublicUrl/);
   assert.match(source, /- name:\s*Publish Railway Deploy Mode Summary/);
   assert.match(source, /railway_deploy_mode=/);
   assert.match(source, /not_requested/);
@@ -114,6 +117,12 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /Railway deploy summary public URL: \$\{\{\s*steps\.collect_railway_deploy_summary\.outputs\.railway_deploy_summary_public_url\s*\}\}/);
   assert.match(source, /Railway deploy summary badge URL: \$\{\{\s*steps\.collect_railway_deploy_summary\.outputs\.railway_deploy_summary_badge_endpoint\s*\}\}/);
   assert.match(source, /Railway deploy summary badge-details URL: \$\{\{\s*steps\.collect_railway_deploy_summary\.outputs\.railway_deploy_summary_badge_details_endpoint\s*\}\}/);
+  assert.match(source, /Production smoke status:/);
+  assert.match(source, /Production smoke gateway runtime:/);
+  assert.match(source, /Production smoke frontend health:/);
+  assert.match(source, /Production smoke frontend title:/);
+  assert.match(source, /Production smoke badge:/);
+  assert.match(source, /Production smoke was not generated\./);
   assert.match(source, /Release evidence report JSON: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_json_path\s*\}\}/);
   assert.match(source, /Release evidence report Markdown: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_md_path\s*\}\}/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
@@ -140,6 +149,8 @@ test("release strict workflow publishes release-critical artifacts", () => {
   assert.match(source, /artifacts\/perf-load\/summary\.json/);
   assert.match(source, /artifacts\/perf-load\/policy-check\.json/);
   assert.match(source, /artifacts\/deploy\/railway-deploy-summary\.json/);
+  assert.match(source, /artifacts\/deploy\/production-smoke\.json/);
+  assert.match(source, /artifacts\/deploy\/production-smoke\.md/);
   assert.match(source, /artifacts\/release-evidence\/report\.json/);
   assert.match(source, /artifacts\/release-evidence\/report\.md/);
 });
@@ -177,6 +188,7 @@ test("readme documents optional release-strict railway deploy path", () => {
   assert.match(readme, /deviceNodes/);
   assert.match(readme, /agentUsage/);
   assert.match(readme, /artifacts\/deploy\/railway-deploy-summary\.json/);
+  assert.match(readme, /artifacts\/deploy\/production-smoke\.json/);
   assert.match(readme, /artifacts\/release-evidence\/report\.json/);
   assert.match(readme, /artifacts\/release-evidence\/report\.md/);
 });

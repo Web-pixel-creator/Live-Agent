@@ -123,6 +123,7 @@ npm run verify:release:strict:skip-perf-run
 ```
 Optional CI equivalent: run GitHub workflow `.github/workflows/release-strict-final.yml` (manual `workflow_dispatch`) for the same strict gate + artifact bundle.
 If that strict workflow also runs a real Railway deploy, its job summary now surfaces `artifacts/deploy/railway-deploy-summary.json` fields and the uploaded artifact bundle carries that deploy summary alongside release evidence.
+After a successful strict Railway deploy or verify-only fallback, the workflow also runs `verify:deploy:production-smoke` and uploads `artifacts/deploy/production-smoke.json` plus `artifacts/deploy/production-smoke.md`.
 Optional one-command publish + Railway deploy flow:
 ```powershell
 $env:GITHUB_OWNER="Web-pixel-creator"

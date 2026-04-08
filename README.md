@@ -1455,6 +1455,7 @@ Notes:
 - Auth-resilience: workflow probes `railway whoami` first; if auth fails and `verify_only_fallback_on_auth_failure=true` (default), it runs verify-only checks (`badge:public:check` + frontend `/healthz`) instead of hard-failing deploy stage.
 - Optional repository variable: `FRONTEND_PUBLIC_URL` (used by verify-only fallback frontend health check; default fallback URL is `https://live-agent-frontend-production.up.railway.app`).
 - Job summary also surfaces `artifacts/deploy/railway-deploy-summary.json` when a real gateway deploy emits it, and the workflow uploads the same file as artifact bundle `railway-deploy-all-artifacts`.
+- After a successful real deploy or verify-only fallback, the workflow also runs `verify:deploy:production-smoke` and uploads `artifacts/deploy/production-smoke.json` plus `artifacts/deploy/production-smoke.md`.
 
 - Full workflow: `.github/workflows/demo-e2e.yml`
 - Triggered on push to `main`/`master` and manual dispatch.
@@ -1485,6 +1486,7 @@ Notes:
 - Same auth-resilience path is enabled for strict manual deploys: `verify_only_fallback_on_auth_failure=true` triggers verify-only public endpoint checks when Railway auth probe fails.
 - Job summary includes strict badge evidence statuses from unified report `artifacts/release-evidence/report.json`: `operatorTurnTruncation`, `operatorTurnDelete`, `operatorDamageControl`, `governancePolicy`, `skillsRegistry`, `pluginMarketplace`, `deviceNodes`, `agentUsage`, `runtimeGuardrailsSignalPaths`, `providerUsage`, and derived updates-lane signal `deviceNodeUpdatesStatus`.
 - When the strict workflow also performs a real Railway deploy, job summary surfaces `artifacts/deploy/railway-deploy-summary.json` fields (`status`, `deploymentId`, `effectivePublicUrl`, `badgeEndpoint`, `badgeDetailsEndpoint`) and the uploaded bundle includes that artifact.
+- After a successful strict Railway deploy or verify-only fallback, the strict workflow also runs `verify:deploy:production-smoke`, publishes smoke status to job summary, and uploads `artifacts/deploy/production-smoke.json` plus `artifacts/deploy/production-smoke.md`.
 - Strict workflow also builds unified release evidence artifacts:
   - `artifacts/release-evidence/report.json`
   - `artifacts/release-evidence/report.md`
