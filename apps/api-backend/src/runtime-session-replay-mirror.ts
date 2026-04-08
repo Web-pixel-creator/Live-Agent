@@ -482,6 +482,23 @@ type RuntimeSessionReplayPrimaryRefreshEscalationRetryGateParams =
     escalationRetryReadiness: RuntimeSessionReplayPrimaryRefreshLegacyReadiness | null;
   };
 
+type RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryParams = {
+  needsRefresh: boolean;
+  ownershipRecoveryTarget: RuntimeSessionReplayPrimaryRefreshEscalationTarget | null;
+};
+
+type RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryReadinessParams =
+  RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryParams & {
+    workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+    currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+    recoveryDrill: ReturnType<typeof buildRecoveryDrill>;
+  };
+
+type RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryGateParams =
+  RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryParams & {
+    ownershipRecoveryReadiness: RuntimeSessionReplayPrimaryRefreshLegacyReadiness | null;
+  };
+
 type RuntimeSessionReplayStepProgress = {
   current: number;
   total: number;
@@ -2867,20 +2884,16 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint(
+  params: RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyTextValue | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget
+    !params.ownershipRecoveryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.ownershipRecoveryTarget.targetSurface) {
     case "operator_workflow_control":
       return "Escalate to boundary ownership recovery if the backup boundary recovery escalation still does not restore ownership.";
     case "operator_runtime_drills":
@@ -2891,20 +2904,16 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget(
+  params: RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryParams,
+): RuntimeSessionReplayPrimaryRefreshEscalationTarget | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget
+    !params.ownershipRecoveryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.ownershipRecoveryTarget.targetSurface) {
     case "operator_workflow_control":
       return {
         label: "Workflow Control | boundary ownership recovery",
@@ -2937,94 +2946,62 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA(
+  params: RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryParams,
+): RuntimeSessionReplayPrimaryRefreshEscalationCTA | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+    !params.ownershipRecoveryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-      .mode
-  ) {
+  switch (params.ownershipRecoveryTarget.mode) {
     case "inspect":
       return {
         label: "Open Workflow Control for the ownership recovery escalation.",
         ctaLabel: "Inspect ownership recovery",
-        targetSurface:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-            .targetSurface,
-        targetLabel:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-            .targetLabel,
-        workspace:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-            .workspace,
+        targetSurface: params.ownershipRecoveryTarget.targetSurface,
+        targetLabel: params.ownershipRecoveryTarget.targetLabel,
+        workspace: params.ownershipRecoveryTarget.workspace,
       };
     case "recover":
       return {
         label:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-            .targetSurface === "operator_workflow_control"
+          params.ownershipRecoveryTarget.targetSurface === "operator_workflow_control"
             ? "Open Workflow Control for the boundary ownership recovery."
             : "Open Runtime Drill Runner for the runtime ownership recovery.",
         ctaLabel: "Recover ownership after escalation",
-        targetSurface:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-            .targetSurface,
-        targetLabel:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-            .targetLabel,
-        workspace:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-            .workspace,
+        targetSurface: params.ownershipRecoveryTarget.targetSurface,
+        targetLabel: params.ownershipRecoveryTarget.targetLabel,
+        workspace: params.ownershipRecoveryTarget.workspace,
       };
     case "owner_handoff":
     default:
       return {
         label:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-            .targetSurface === "operator_workflow_control"
+          params.ownershipRecoveryTarget.targetSurface === "operator_workflow_control"
             ? "Open Workflow Control for the boundary ownership recovery handoff."
-            : params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-                  .targetSurface === "operator_runtime_drills"
+            : params.ownershipRecoveryTarget.targetSurface === "operator_runtime_drills"
               ? "Open Runtime Drill Runner for the runtime ownership recovery handoff."
               : "Open Operator Session Ops for the ownership recovery handoff.",
         ctaLabel: "Hand off into ownership recovery",
-        targetSurface:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-            .targetSurface,
-        targetLabel:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-            .targetLabel,
-        workspace:
-          params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-            .workspace,
+        targetSurface: params.ownershipRecoveryTarget.targetSurface,
+        targetLabel: params.ownershipRecoveryTarget.targetLabel,
+        workspace: params.ownershipRecoveryTarget.workspace,
       };
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget | null;
-  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
-  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
-  recoveryDrill: ReturnType<typeof buildRecoveryDrill>;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness(
+  params: RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryReadinessParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyReadiness | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+    !params.ownershipRecoveryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.ownershipRecoveryTarget.targetSurface) {
     case "operator_workflow_control":
       return params.workflowSummary || params.currentHandoffState ? "ready" : "needs_prep";
     case "operator_session_ops":
@@ -3037,23 +3014,17 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget | null;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint(
+  params: RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryGateParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyTextValue | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget ||
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness !==
-      "needs_prep"
+    !params.ownershipRecoveryTarget ||
+    params.ownershipRecoveryReadiness !== "needs_prep"
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.ownershipRecoveryTarget.targetSurface) {
     case "operator_workflow_control":
       return "Load the latest workflow boundary or workflow owner handoff before opening the ownership recovery escalation.";
     case "operator_runtime_drills":
@@ -3064,23 +3035,17 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget | null;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard(
+  params: RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryGateParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyTextValue | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget ||
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness !==
-      "needs_prep"
+    !params.ownershipRecoveryTarget ||
+    params.ownershipRecoveryReadiness !== "needs_prep"
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.ownershipRecoveryTarget.targetSurface) {
     case "operator_workflow_control":
       return "Open once a linked workflow boundary or workflow owner handoff is loaded.";
     case "operator_runtime_drills":
@@ -3091,20 +3056,16 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel(
+  params: RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyTextValue | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+    !params.ownershipRecoveryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.ownershipRecoveryTarget.targetSurface) {
     case "operator_workflow_control":
       return "Ownership recovery boundary escalation is open.";
     case "operator_runtime_drills":
@@ -3115,20 +3076,16 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence(
+  params: RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyConfidence | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+    !params.ownershipRecoveryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.ownershipRecoveryTarget.targetSurface) {
     case "operator_workflow_control":
       return "medium";
     case "operator_runtime_drills":
@@ -3139,20 +3096,16 @@ function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallback
   }
 }
 
-function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint(params: {
-  needsRefresh: boolean;
-  refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget: RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget | null;
-}): RuntimeSessionReplayPrimaryRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint | null {
+function buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint(
+  params: RuntimeSessionReplayPrimaryRefreshOwnershipRecoveryParams,
+): RuntimeSessionReplayPrimaryRefreshLegacyTextValue | null {
   if (
     !params.needsRefresh ||
-    !params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
+    !params.ownershipRecoveryTarget
   ) {
     return null;
   }
-  switch (
-    params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget
-      .targetSurface
-  ) {
+  switch (params.ownershipRecoveryTarget.targetSurface) {
     case "operator_workflow_control":
       return "Recheck boundary ownership after the escalation opens.";
     case "operator_runtime_drills":
@@ -4534,28 +4487,32 @@ function buildNextOperatorPrimaryStep(params: {
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
         workflowSummary: params.workflowSummary,
         currentHandoffState: params.currentHandoffState,
         recoveryDrill: params.recoveryDrill,
@@ -4565,37 +4522,44 @@ function buildNextOperatorPrimaryStep(params: {
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+        ownershipRecoveryReadiness:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+        ownershipRecoveryReadiness:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint(
       {
         needsRefresh,
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
       },
     );
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationHint =
