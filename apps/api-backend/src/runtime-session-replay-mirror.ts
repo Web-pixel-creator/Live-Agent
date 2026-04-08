@@ -3635,97 +3635,115 @@ function buildNextOperatorPrimaryStepRefreshRecoveryFollowupPath(
     });
   };
 
-  appendEntry({
-    level: "refresh",
-    target: params.refreshTargetState,
-    cta: params.refreshAction,
-    readiness: params.surfaceState === "primed" ? "ready" : "needs_prep",
-    outcomeLabel: params.refreshOutcomeLabel,
-    confidence: params.refreshConfidence,
-    detourHint: params.refreshDetourHint,
-    disposition: params.refreshDisposition,
-  });
-  appendEntry({
-    level: "refresh_escalation",
-    target: params.refreshEscalationTarget,
-    cta: params.refreshEscalationCTA,
-    readiness: params.refreshEscalationReadiness,
-  });
-  appendEntry({
-    level: "refresh_escalation_fallback",
-    target: params.refreshEscalationFallbackTarget,
-    cta: params.refreshEscalationFallbackCTA,
-    readiness: params.refreshEscalationFallbackReadiness,
-    outcomeLabel: params.refreshEscalationFallbackOutcomeLabel,
-    confidence: params.refreshEscalationFallbackConfidence,
-    detourHint: params.refreshEscalationFallbackDetourHint,
-  });
-  appendEntry({
-    level: "refresh_escalation_fallback_escalation",
-    target: params.refreshEscalationFallbackEscalationTarget,
-    cta: params.refreshEscalationFallbackEscalationCTA,
-    readiness: params.refreshEscalationFallbackEscalationReadiness,
-  });
-  appendEntry({
-    level: "refresh_escalation_fallback_escalation_fallback",
-    target: params.refreshEscalationFallbackEscalationFallbackTarget,
-    cta: params.refreshEscalationFallbackEscalationFallbackCTA,
-    readiness: params.refreshEscalationFallbackEscalationFallbackReadiness,
-    outcomeLabel: params.refreshEscalationFallbackEscalationFallbackOutcomeLabel,
-    confidence: params.refreshEscalationFallbackEscalationFallbackConfidence,
-    detourHint: params.refreshEscalationFallbackEscalationFallbackDetourHint,
-  });
-  appendEntry({
-    level: "refresh_escalation_fallback_escalation_fallback_escalation",
-    target: params.refreshEscalationFallbackEscalationFallbackEscalationTarget,
-    cta: params.refreshEscalationFallbackEscalationFallbackEscalationCTA,
-    readiness: params.refreshEscalationFallbackEscalationFallbackEscalationReadiness,
-  });
-  appendEntry({
-    level: "refresh_escalation_fallback_escalation_fallback_escalation_fallback",
-    target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget,
-    cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA,
-    readiness: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness,
-    outcomeLabel: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackOutcomeLabel,
-    confidence: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence,
-    detourHint: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint,
-  });
-  appendEntry({
-    level: "refresh_escalation_fallback_escalation_fallback_escalation_recovery",
-    target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
-    cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA,
-    readiness: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
-    outcomeLabel: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel,
-    confidence: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence,
-    detourHint: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint,
-  });
-  appendEntry({
-    level: "refresh_escalation_fallback_escalation_fallback_escalation_recovery_followup",
-    target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-    cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA,
-    readiness: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
-    outcomeLabel: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel,
-    confidence: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence,
-    detourHint: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint,
-  });
-  appendEntry({
-    level: "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry",
-    target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
-    cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA,
-    readiness: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness,
-    outcomeLabel: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel,
-    confidence: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence,
-    detourHint: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint,
-  });
-  appendEntry({
-    level: "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry_followup",
-    target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
-    cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA,
-    readiness: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness,
-    outcomeLabel: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel,
-    confidence: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence,
-    detourHint: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint,
-  });
+  const followupEntries: RuntimeSessionReplayPrimaryRefreshRecoveryFollowupAppendEntry[] = [
+    {
+      level: "refresh",
+      target: params.refreshTargetState,
+      cta: params.refreshAction,
+      readiness: params.surfaceState === "primed" ? "ready" : "needs_prep",
+      outcomeLabel: params.refreshOutcomeLabel,
+      confidence: params.refreshConfidence,
+      detourHint: params.refreshDetourHint,
+      disposition: params.refreshDisposition,
+    },
+    {
+      level: "refresh_escalation",
+      target: params.refreshEscalationTarget,
+      cta: params.refreshEscalationCTA,
+      readiness: params.refreshEscalationReadiness,
+    },
+    {
+      level: "refresh_escalation_fallback",
+      target: params.refreshEscalationFallbackTarget,
+      cta: params.refreshEscalationFallbackCTA,
+      readiness: params.refreshEscalationFallbackReadiness,
+      outcomeLabel: params.refreshEscalationFallbackOutcomeLabel,
+      confidence: params.refreshEscalationFallbackConfidence,
+      detourHint: params.refreshEscalationFallbackDetourHint,
+    },
+    {
+      level: "refresh_escalation_fallback_escalation",
+      target: params.refreshEscalationFallbackEscalationTarget,
+      cta: params.refreshEscalationFallbackEscalationCTA,
+      readiness: params.refreshEscalationFallbackEscalationReadiness,
+    },
+    {
+      level: "refresh_escalation_fallback_escalation_fallback",
+      target: params.refreshEscalationFallbackEscalationFallbackTarget,
+      cta: params.refreshEscalationFallbackEscalationFallbackCTA,
+      readiness: params.refreshEscalationFallbackEscalationFallbackReadiness,
+      outcomeLabel: params.refreshEscalationFallbackEscalationFallbackOutcomeLabel,
+      confidence: params.refreshEscalationFallbackEscalationFallbackConfidence,
+      detourHint: params.refreshEscalationFallbackEscalationFallbackDetourHint,
+    },
+    {
+      level: "refresh_escalation_fallback_escalation_fallback_escalation",
+      target: params.refreshEscalationFallbackEscalationFallbackEscalationTarget,
+      cta: params.refreshEscalationFallbackEscalationFallbackEscalationCTA,
+      readiness: params.refreshEscalationFallbackEscalationFallbackEscalationReadiness,
+    },
+    {
+      level: "refresh_escalation_fallback_escalation_fallback_escalation_fallback",
+      target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget,
+      cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackCTA,
+      readiness: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackReadiness,
+      outcomeLabel: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackOutcomeLabel,
+      confidence: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackConfidence,
+      detourHint: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint,
+    },
+    {
+      level: "refresh_escalation_fallback_escalation_fallback_escalation_recovery",
+      target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+      cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA,
+      readiness: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
+      outcomeLabel: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel,
+      confidence: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence,
+      detourHint: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint,
+    },
+    {
+      level: "refresh_escalation_fallback_escalation_fallback_escalation_recovery_followup",
+      target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+      cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA,
+      readiness: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
+      outcomeLabel:
+        params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel,
+      confidence:
+        params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence,
+      detourHint:
+        params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint,
+    },
+    {
+      level: "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry",
+      target: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+      cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA,
+      readiness:
+        params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness,
+      outcomeLabel:
+        params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel,
+      confidence:
+        params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence,
+      detourHint:
+        params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint,
+    },
+    {
+      level: "refresh_escalation_fallback_escalation_fallback_escalation_recovery_retry_followup",
+      target:
+        params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+      cta: params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA,
+      readiness:
+        params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness,
+      outcomeLabel:
+        params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel,
+      confidence:
+        params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence,
+      detourHint:
+        params.refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint,
+    },
+  ];
+
+  for (const entry of followupEntries) {
+    appendEntry(entry);
+  }
 
   return entries;
 }
