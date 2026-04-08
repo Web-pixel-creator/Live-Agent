@@ -4050,6 +4050,26 @@ try {
     if ($runtimeDiagnosticsActiveSignals.Count -gt 0) {
       Assert-Condition -Condition ($runtimeGuardrailsSignalPathsTotal -ge 1) -Message "Runtime guardrails signal-path evidence should expose at least one repo-owned path when active signals are present."
     }
+    $sessionReplayUri = "http://localhost:8081/v1/runtime/session-replay?sessionId=$([Uri]::EscapeDataString([string]$sessionId))&sessionLimit=20&eventLimit=120&runLimit=120&approvalLimit=120&recentEventLimit=200"
+    $sessionReplayResponse = Invoke-JsonRequest -Method GET -Uri $sessionReplayUri -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
+    $sessionReplayData = Get-FieldValue -Object $sessionReplayResponse -Path @("data")
+    $sessionReplaySelectedSessionId = [string](Get-FieldValue -Object $sessionReplayData -Path @("selectedSessionId"))
+    if ([string]::IsNullOrWhiteSpace($sessionReplaySelectedSessionId)) {
+      $sessionReplaySelectedSessionId = [string](Get-FieldValue -Object $sessionReplayData -Path @("selectedSession", "sessionId"))
+    }
+    Assert-Condition -Condition ($sessionReplaySelectedSessionId -eq $sessionId) -Message "Runtime session replay should resolve the active demo session."
+    $sessionReplayLiveTransport = Get-FieldValue -Object $sessionReplayData -Path @("selectedSession", "replay", "liveTransport")
+    $sessionReplayLiveTransportCaptured = ($null -ne $sessionReplayLiveTransport)
+    $sessionReplayLiveTransportActiveMode = if ($sessionReplayLiveTransportCaptured) { Get-FieldValue -Object $sessionReplayLiveTransport -Path @("activeMode") } else { $null }
+    $sessionReplayLiveTransportProvider = if ($sessionReplayLiveTransportCaptured) { Get-FieldValue -Object $sessionReplayLiveTransport -Path @("provider") } else { $null }
+    $sessionReplayLiveTransportModel = if ($sessionReplayLiveTransportCaptured) { Get-FieldValue -Object $sessionReplayLiveTransport -Path @("model") } else { $null }
+    $sessionReplayLiveTransportBootstrapState = if ($sessionReplayLiveTransportCaptured) { Get-FieldValue -Object $sessionReplayLiveTransport -Path @("bootstrapState") } else { $null }
+    $sessionReplayLiveTransportFallbackReason = if ($sessionReplayLiveTransportCaptured) { Get-FieldValue -Object $sessionReplayLiveTransport -Path @("fallbackReason") } else { $null }
+    $sessionReplayLiveTransportEvidenceSource = if ($sessionReplayLiveTransportCaptured) { Get-FieldValue -Object $sessionReplayLiveTransport -Path @("evidenceSource") } else { $null }
+    $sessionReplayLiveTransportCapturedAt = if ($sessionReplayLiveTransportCaptured) { Get-FieldValue -Object $sessionReplayLiveTransport -Path @("capturedAt") } else { $null }
+    if ($sessionReplayLiveTransportCaptured) {
+      Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace([string]$sessionReplayLiveTransportActiveMode)) -Message "Captured session replay live transport should expose activeMode."
+    }
 
     return [ordered]@{
       taskId = $taskId
@@ -4195,6 +4215,16 @@ try {
       deviceNodeHealthSummaryValidated = $true
       runtimeGuardrailsSignalPaths = $runtimeGuardrailsSignalPaths
       runtimeGuardrailsSignalPathsValidated = $runtimeGuardrailsSignalPathsValidated
+      sessionReplaySelectedSessionId = $sessionReplaySelectedSessionId
+      sessionReplayLiveTransport = $sessionReplayLiveTransport
+      sessionReplayLiveTransportCaptured = $sessionReplayLiveTransportCaptured
+      sessionReplayLiveTransportActiveMode = $sessionReplayLiveTransportActiveMode
+      sessionReplayLiveTransportProvider = $sessionReplayLiveTransportProvider
+      sessionReplayLiveTransportModel = $sessionReplayLiveTransportModel
+      sessionReplayLiveTransportBootstrapState = $sessionReplayLiveTransportBootstrapState
+      sessionReplayLiveTransportFallbackReason = $sessionReplayLiveTransportFallbackReason
+      sessionReplayLiveTransportEvidenceSource = $sessionReplayLiveTransportEvidenceSource
+      sessionReplayLiveTransportCapturedAt = $sessionReplayLiveTransportCapturedAt
     }
   } | Out-Null
 
@@ -5254,6 +5284,7 @@ $summary = [ordered]@{
     sessionId = $sessionId
     createResponse = $sessionCreateResponse
   }
+  liveTransport = if ($null -ne $operatorActionsData) { $operatorActionsData.sessionReplayLiveTransport } else { $null }
   costEstimate = $costEstimate
   tokensUsed = $tokensUsed
   services = $script:ServiceStatuses
@@ -6009,6 +6040,15 @@ $summary = [ordered]@{
     gatewayTransportRequestedMode = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.gatewayTransportRequestedMode } else { $null }
     gatewayTransportActiveMode = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.gatewayTransportActiveMode } else { $null }
     gatewayTransportFallbackActive = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.gatewayTransportFallbackActive } else { $null }
+    sessionReplaySelectedSessionId = if ($null -ne $operatorActionsData) { $operatorActionsData.sessionReplaySelectedSessionId } else { $null }
+    sessionReplayLiveTransportCaptured = if ($null -ne $operatorActionsData) { $operatorActionsData.sessionReplayLiveTransportCaptured } else { $false }
+    sessionReplayLiveTransportActiveMode = if ($null -ne $operatorActionsData) { $operatorActionsData.sessionReplayLiveTransportActiveMode } else { $null }
+    sessionReplayLiveTransportProvider = if ($null -ne $operatorActionsData) { $operatorActionsData.sessionReplayLiveTransportProvider } else { $null }
+    sessionReplayLiveTransportModel = if ($null -ne $operatorActionsData) { $operatorActionsData.sessionReplayLiveTransportModel } else { $null }
+    sessionReplayLiveTransportBootstrapState = if ($null -ne $operatorActionsData) { $operatorActionsData.sessionReplayLiveTransportBootstrapState } else { $null }
+    sessionReplayLiveTransportFallbackReason = if ($null -ne $operatorActionsData) { $operatorActionsData.sessionReplayLiveTransportFallbackReason } else { $null }
+    sessionReplayLiveTransportEvidenceSource = if ($null -ne $operatorActionsData) { $operatorActionsData.sessionReplayLiveTransportEvidenceSource } else { $null }
+    sessionReplayLiveTransportCapturedAt = if ($null -ne $operatorActionsData) { $operatorActionsData.sessionReplayLiveTransportCapturedAt } else { $null }
     runtimeLocalFirstServices = if ($null -ne $runtimeLifecycleData) { $runtimeLifecycleData.localFirstServices } else { $null }
     metricsEndpointsValidated = if ($null -ne $runtimeMetricsData) { $true } else { $false }
     metricsServicesValidated = if ($null -ne $runtimeMetricsData) { $runtimeMetricsData.count } else { $null }

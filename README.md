@@ -1185,6 +1185,7 @@ npm run badge:public:check
 - `costEstimate` (`currency`, `geminiLiveUsd`, `imagenUsd`, `veoUsd`, `ttsUsd`, `totalUsd`, `source`)
 - `tokensUsed` (`input`, `output`, `total`, `source`)
 - `liveTransport` (`status`, `runtime`, `session`, `summary`) to distinguish gateway runtime transport posture from the actual observed session path (`relay` vs `direct_live`) when the demo captured transport evidence
+  - `demo-e2e` now seeds top-level `summary.liveTransport` from repo-owned `GET /v1/runtime/session-replay` when the selected session replay carries transport proof, so `badge-details.json` prefers backend replay evidence before falling back to inferred relay markers.
 - `providerUsage` (`status`, `validated`, `activeSecondaryProviders`, `entries[]`) for adapter provenance such as storyteller `tts` provider/model selection, optional `image_edit` continuity passes, and live-agent `research` provenance with citation/source-url counts
 - `evidence.operatorTurnTruncation`
 - `evidence.operatorTurnDelete`

@@ -456,6 +456,7 @@ Manual shortcut:
 4. Local artifact `artifacts/demo-e2e/policy-check.md`.
 5. Local artifact `artifacts/demo-e2e/badge.json`.
 6. Local artifact `artifacts/demo-e2e/badge-details.json` (must include top-level `costEstimate` + `tokensUsed`, top-level `liveTransport` for runtime-vs-session transport proof, top-level `providerUsage` for adapter provenance including storyteller `tts`, optional `image_edit` continuity passes, and live-agent `research` citation/source-url counts, plus `evidence.operatorTurnTruncation`, `evidence.operatorTurnDelete`, `evidence.operatorDamageControl`, `evidence.governancePolicy`, `evidence.skillsRegistry`, `evidence.pluginMarketplace`, `evidence.deviceNodes`, `evidence.agentUsage`, and `evidence.runtimeGuardrailsSignalPaths` where `deviceNodes` also validates updates lane: `updatesValidated`, `updatesHasUpsert`, `updatesHasHeartbeat`, `updatesApiValidated`, `updatesTotal>=2`).
+   - `demo-e2e` now mirrors top-level `summary.liveTransport` from repo-owned `GET /v1/runtime/session-replay` for the active demo session when replay evidence exists, so `badge-details.json` prefers backend-selected session transport proof before falling back to inferred relay markers.
 7. Observability screenshot: dashboard `MLA Telemetry KPI Overview` with latency and error widgets.
 8. Observability screenshot: alert policy `MLA Gateway P95 Latency High` enabled.
 9. Observability screenshot: alert policy `MLA Service Error Rate High` enabled.
