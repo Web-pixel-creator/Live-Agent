@@ -27,9 +27,14 @@ test("release-readiness keeps provider env out of nested unit tests while preser
   const source = readFileSync(releaseScriptPath, "utf8");
 
   assert.match(source, /function Invoke-WithTemporaryClearedEnvVars/);
+  assert.match(source, /function Resolve-ReleaseDemoFrontendDecision/);
   assert.match(source, /"GOOGLE_API_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_GENAI_API_KEY"/);
   assert.match(source, /-ScriptBlock \{ Run-Step "Run unit tests" "npm run test:unit" \}/);
   assert.match(source, /DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK/);
+  assert.match(source, /DEMO_E2E_INCLUDE_FRONTEND/);
+  assert.match(source, /LIVE_DIRECT_MODE_ENABLED/);
+  assert.match(source, /LIVE_EPHEMERAL_TOKENS_ENABLED/);
+  assert.match(source, /-IncludeFrontend/);
   assert.match(source, /--allowUiExecutorRuntimeFallback true/);
   assert.match(source, /--allowedTranslationProviders fallback,gemini,google_translate/);
 });

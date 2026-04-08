@@ -38,6 +38,10 @@ test("runbook documents release perf artifact-only mode and critical evidence ke
 
   const requiredRunbookTokens = [
     "npm run verify:release",
+    "`DEMO_E2E_INCLUDE_FRONTEND=true|false|auto`",
+    "`LIVE_DIRECT_MODE_ENABLED=true`",
+    "`LIVE_EPHEMERAL_TOKENS_ENABLED=true`",
+    "`-IncludeFrontend`",
     "-SkipPerfRun",
     "-DemoRunMaxAttempts",
     "-DemoRunRetryBackoffMs",

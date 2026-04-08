@@ -274,6 +274,80 @@ function Ensure-ReleaseDemoStorytellerMediaMode {
   Write-Host "[release-check] DEMO_E2E_STORYTELLER_MEDIA_MODE defaulted to simulated for release verification."
 }
 
+function Test-ReleaseDemoAnyNonEmptyEnvVar([string[]]$Names) {
+  foreach ($name in $Names) {
+    $value = [Environment]::GetEnvironmentVariable($name)
+    if (-not [string]::IsNullOrWhiteSpace($value)) {
+      return $true
+    }
+  }
+
+  return $false
+}
+
+function Resolve-ReleaseDemoFrontendDecision {
+  $overrideRaw = [string][Environment]::GetEnvironmentVariable("DEMO_E2E_INCLUDE_FRONTEND")
+  if (-not [string]::IsNullOrWhiteSpace($overrideRaw)) {
+    $override = $overrideRaw.Trim().ToLowerInvariant()
+    if (@("1", "true", "yes", "on") -contains $override) {
+      return @{
+        IncludeFrontend = $true
+        Reason = "forced by DEMO_E2E_INCLUDE_FRONTEND"
+      }
+    }
+
+    if (@("0", "false", "no", "off") -contains $override) {
+      return @{
+        IncludeFrontend = $false
+        Reason = "disabled by DEMO_E2E_INCLUDE_FRONTEND"
+      }
+    }
+
+    if ($override -ne "auto") {
+      Fail "DEMO_E2E_INCLUDE_FRONTEND expected true|false|auto when provided"
+    }
+  }
+
+  $liveApiEnabled = To-BoolOrNull([Environment]::GetEnvironmentVariable("LIVE_API_ENABLED"))
+  $directModeEnabled = To-BoolOrNull([Environment]::GetEnvironmentVariable("LIVE_DIRECT_MODE_ENABLED"))
+  $ephemeralTokensEnabled = To-BoolOrNull([Environment]::GetEnvironmentVariable("LIVE_EPHEMERAL_TOKENS_ENABLED"))
+  $liveProtocol = [string][Environment]::GetEnvironmentVariable("LIVE_API_PROTOCOL")
+  if ([string]::IsNullOrWhiteSpace($liveProtocol)) {
+    $liveProtocol = "gemini"
+  } else {
+    $liveProtocol = $liveProtocol.Trim().ToLowerInvariant()
+  }
+
+  $hasGeminiLiveKey = Test-ReleaseDemoAnyNonEmptyEnvVar @(
+    "LIVE_API_API_KEY",
+    "GEMINI_API_KEY",
+    "GOOGLE_API_KEY",
+    "GOOGLE_GENAI_API_KEY",
+    "LIVE_AGENT_GEMINI_API_KEY",
+    "STORYTELLER_GEMINI_API_KEY",
+    "UI_NAVIGATOR_GEMINI_API_KEY"
+  )
+
+  $directBootstrapReady =
+    ($liveApiEnabled -eq $true) -and
+    ($directModeEnabled -eq $true) -and
+    ($ephemeralTokensEnabled -eq $true) -and
+    ($liveProtocol -eq "gemini") -and
+    $hasGeminiLiveKey
+
+  if ($directBootstrapReady) {
+    return @{
+      IncludeFrontend = $true
+      Reason = "enabled because direct-live bootstrap is configured"
+    }
+  }
+
+  return @{
+    IncludeFrontend = $false
+    Reason = "browser lane stays off until direct-live bootstrap is configured"
+  }
+}
+
 function Get-FirstNonEmptyEnvironmentVariableValue([string[]]$Names) {
   foreach ($name in $Names) {
     $value = [Environment]::GetEnvironmentVariable($name)
@@ -421,10 +495,19 @@ if ((-not $SkipDemoE2E) -and (-not $SkipDemoRun)) {
   $runFastDemo = $UseFastDemoE2E -or (-not $SkipBuild)
   $scenarioRetryArgs = "-ScenarioRetryMaxAttempts $DemoScenarioRetryMaxAttempts -ScenarioRetryBackoffMs $DemoScenarioRetryBackoffMs"
   $serviceRestartArgs = "-RestartHealthyServices"
+  $frontendDecision = Resolve-ReleaseDemoFrontendDecision
+  $frontendArgs = if ($frontendDecision.IncludeFrontend) { "-IncludeFrontend" } else { "" }
+  Write-Host (
+    "[release-check] Demo frontend lane: " +
+    $(if ($frontendDecision.IncludeFrontend) { "enabled" } else { "disabled" }) +
+    " (" +
+    [string]$frontendDecision.Reason +
+    ")"
+  )
   $demoCommand = if ($runFastDemo) {
-    "npm run demo:e2e:fast -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs"
+    "npm run demo:e2e:fast -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs $frontendArgs"
   } else {
-    "npm run demo:e2e -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs"
+    "npm run demo:e2e -- -StartupTimeoutSec $DemoStartupTimeoutSec -RequestTimeoutSec $DemoRequestTimeoutSec $scenarioRetryArgs $serviceRestartArgs $frontendArgs"
   }
   Run-StepWithRetry "Run demo e2e" $demoCommand $EffectiveDemoRunMaxAttempts $DemoRunRetryBackoffMs
 }
