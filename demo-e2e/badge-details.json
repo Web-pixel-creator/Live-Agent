@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-04-08T13:54:21.513Z",
+  "generatedAt": "2026-04-08T14:37:48.776Z",
   "ok": true,
   "policyPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 281,
   "violations": 0,
-  "roundTripMs": 44,
+  "roundTripMs": 43,
   "costEstimate": {
     "currency": "USD",
     "geminiLiveUsd": 0.035962,
@@ -20,6 +20,28 @@
     "output": 25785,
     "total": 28346,
     "source": "runtime_estimate"
+  },
+  "liveTransport": {
+    "status": "pass",
+    "validated": true,
+    "runtime": {
+      "validated": true,
+      "requestedMode": "websocket",
+      "activeMode": "websocket",
+      "fallbackActive": false,
+      "evidenceSource": "runtime.lifecycle.endpoints"
+    },
+    "session": {
+      "observed": true,
+      "activeMode": "relay",
+      "provider": null,
+      "model": null,
+      "bootstrapState": null,
+      "fallbackReason": null,
+      "evidenceSource": "gateway_connected_event",
+      "connectedEventType": "gateway.connected"
+    },
+    "summary": "runtime=websocket | session=relay | source=gateway_connected_event"
   },
   "providerUsage": {
     "status": "pass",
@@ -70,7 +92,7 @@
     ]
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-04-08T13:54:19.7163229+00:00",
+    "sourceSummaryGeneratedAt": "2026-04-08T14:37:47.0310293+00:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -78,7 +100,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-08T13:54:18.219Z",
+      "latestSeenAt": "2026-04-08T14:37:45.553Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -92,7 +114,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-08T13:54:18.324Z",
+      "latestSeenAt": "2026-04-08T14:37:45.660Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -126,7 +148,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-04-08T13:54:17.750Z",
+        "seenAt": "2026-04-08T14:37:45.171Z",
         "seenAtIsIso": true
       }
     },
@@ -190,10 +212,10 @@
       },
       "latest": {
         "outcome": "succeeded",
-        "pluginId": "demo-plugin-skill-2dfebef2-40a4-4526-a962-df314348411a",
+        "pluginId": "demo-plugin-skill-ae617b61-696c-4e7f-ae6b-6682c7ca0f4b",
         "version": 1,
         "signingStatus": "unsigned",
-        "seenAt": "2026-04-08T13:54:18.930Z",
+        "seenAt": "2026-04-08T14:37:46.276Z",
         "seenAtIsIso": true
       }
     },
@@ -274,7 +296,7 @@
           "statusCode": "active",
           "statusText": "active",
           "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-          "updatedAt": "2026-04-08T13:54:19.2053744+00:00",
+          "updatedAt": "2026-04-08T14:37:46.5452647+00:00",
           "updatedAtIsIso": true
         }
       },
@@ -295,7 +317,7 @@
             "statusCode": "active",
             "statusText": "active",
             "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-            "updatedAt": "2026-04-08T13:54:19.2053744+00:00",
+            "updatedAt": "2026-04-08T14:37:46.5452647+00:00",
             "updatedAtIsIso": true
           }
         }
@@ -305,7 +327,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 281 checks | 44ms ws",
+    "message": "pass | 281 checks | 43ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }
