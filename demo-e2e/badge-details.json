@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-08T09:51:56.277Z",
+  "generatedAt": "2026-04-08T10:01:43.676Z",
   "ok": true,
   "policyPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\summary.json",
@@ -70,7 +70,7 @@
     ]
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-04-08T09:51:54.4838956+00:00",
+    "sourceSummaryGeneratedAt": "2026-04-08T10:01:41.9574816+00:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -78,7 +78,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-08T09:51:53.018Z",
+      "latestSeenAt": "2026-04-08T10:01:40.570Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -92,7 +92,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-08T09:51:53.143Z",
+      "latestSeenAt": "2026-04-08T10:01:40.671Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -126,7 +126,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-04-08T09:51:52.619Z",
+        "seenAt": "2026-04-08T10:01:40.186Z",
         "seenAtIsIso": true
       }
     },
@@ -190,10 +190,10 @@
       },
       "latest": {
         "outcome": "succeeded",
-        "pluginId": "demo-plugin-skill-bb6d40e5-eb51-4dfe-b71d-c432d58ecab7",
+        "pluginId": "demo-plugin-skill-cd7bb0a5-58e6-4c4e-baaa-d18d1d1b2ad2",
         "version": 1,
         "signingStatus": "unsigned",
-        "seenAt": "2026-04-08T09:51:53.720Z",
+        "seenAt": "2026-04-08T10:01:41.247Z",
         "seenAtIsIso": true
       }
     },
@@ -274,7 +274,7 @@
           "statusCode": "active",
           "statusText": "active",
           "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-          "updatedAt": "2026-04-08T09:51:53.9984176+00:00",
+          "updatedAt": "2026-04-08T10:01:41.4951995+00:00",
           "updatedAtIsIso": true
         }
       },
@@ -295,7 +295,7 @@
             "statusCode": "active",
             "statusText": "active",
             "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-            "updatedAt": "2026-04-08T09:51:53.9984176+00:00",
+            "updatedAt": "2026-04-08T10:01:41.4951995+00:00",
             "updatedAtIsIso": true
           }
         }
