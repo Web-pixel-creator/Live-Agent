@@ -62,6 +62,7 @@
     "verify:workflow:dispatch:dry": "node --import tsx --test tests/unit/workflow-dispatch-alignment.test.ts tests/unit/workflow-dispatch-defaults-alignment.test.ts tests/unit/workflow-dispatch-flag-parity-alignment.test.ts tests/unit/workflow-dispatch-dry-run-smoke.test.ts",
     "verify:deploy:railway:dry": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-deploy-railway-dry.ps1",
     "verify:deploy:readiness": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-readiness-preflight.ps1",
+    "verify:deploy:production-smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-production-smoke.ps1",
     "repo:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-repo-publish.ps1",
     "deploy:railway": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy.ps1",
     "deploy:railway:frontend": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy-frontend.ps1",

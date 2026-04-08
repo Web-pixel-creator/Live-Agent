@@ -1225,6 +1225,16 @@ Publish + deploy to Railway with explicit post-deploy badge check controls:
 npm run repo:publish -- -DeployRailway -SkipPages -SkipBadgeCheck -RailwayPublicUrl https://live-agent-production.up.railway.app -RailwayPublicBadgeCheckTimeoutSec 30
 ```
 
+Post-deploy production smoke against live Railway gateway/frontend:
+
+```powershell
+npm run verify:deploy:production-smoke -- -GatewayPublicUrl https://live-agent-production.up.railway.app -FrontendPublicUrl https://live-agent-frontend-production.up.railway.app
+```
+
+This writes:
+- `artifacts/deploy/production-smoke.json`
+- `artifacts/deploy/production-smoke.md`
+
 Trigger-only Railway deploy (no wait + no post-deploy badge check):
 
 ```powershell

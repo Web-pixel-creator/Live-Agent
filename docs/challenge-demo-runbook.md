@@ -57,6 +57,11 @@ For local deploy/auth readiness (without triggering Railway or GitHub workflows)
 npm run verify:deploy:readiness
 ```
 This writes `artifacts/deploy/deploy-readiness-preflight.json` and reports Railway CLI/auth, GitHub CLI/token/`gh auth`, and target env readiness. Add `-- -Strict` when missing deploy prerequisites should fail the gate.
+For post-deploy Railway production smoke (gateway root descriptor, public badge/details, frontend health, frontend root markers), run:
+```powershell
+npm run verify:deploy:production-smoke -- -GatewayPublicUrl https://live-agent-production.up.railway.app -FrontendPublicUrl https://live-agent-frontend-production.up.railway.app
+```
+This writes `artifacts/deploy/production-smoke.json` and `artifacts/deploy/production-smoke.md`.
 For artifact-only revalidation (without rerunning perf profile), keep perf artifacts and run:
 ```powershell
 npm run verify:release:artifact-only
