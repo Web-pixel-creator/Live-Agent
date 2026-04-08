@@ -454,6 +454,15 @@ type RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegmentsParams = {
   recoveryDrill: ReturnType<typeof buildRecoveryDrill>;
 };
 
+type RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoverySegmentsParams = {
+  needsRefresh: boolean;
+  workflowSummary: RuntimeWorkflowControlPlaneSummary | null;
+  currentHandoffState: ReturnType<typeof buildCurrentHandoffState>;
+  recoveryDrill: ReturnType<typeof buildRecoveryDrill>;
+  ownershipRecoveryEscalationTarget:
+    RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments["escalationFallbackEscalationFallbackEscalationFallback"]["target"];
+};
+
 type RuntimeSessionReplayPrimaryOperatorStep =
   RuntimeSessionReplayPrimaryOperatorStepBase & RuntimeSessionReplayPrimaryRefreshLegacyProjection;
 
@@ -4231,6 +4240,389 @@ function buildNextOperatorPrimaryStepRefreshLegacyProjectionPrefixSegments(
   };
 }
 
+function buildNextOperatorPrimaryStepRefreshLegacyProjectionRecoverySegments(
+  params: RuntimeSessionReplayPrimaryRefreshLegacyProjectionRecoverySegmentsParams,
+): Pick<
+  RuntimeSessionReplayPrimaryRefreshLegacyProjectionSegments,
+  "recovery" | "recoveryFollowup" | "recoveryRetry" | "recoveryRetryFollowup"
+> {
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryEscalationTarget: params.ownershipRecoveryEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryEscalationTarget: params.ownershipRecoveryEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryEscalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryEscalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+        workflowSummary: params.workflowSummary,
+        currentHandoffState: params.currentHandoffState,
+        recoveryDrill: params.recoveryDrill,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryEscalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+        ownershipRecoveryEscalationReadiness:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOpenGuard =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOpenGuard(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryEscalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+        ownershipRecoveryEscalationReadiness:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryEscalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryEscalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryEscalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+        workflowSummary: params.workflowSummary,
+        currentHandoffState: params.currentHandoffState,
+        recoveryDrill: params.recoveryDrill,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+        ownershipRecoveryReadiness:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+        ownershipRecoveryReadiness:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipRecoveryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationHint(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipReescalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipReescalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipReescalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipReescalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+        workflowSummary: params.workflowSummary,
+        currentHandoffState: params.currentHandoffState,
+        recoveryDrill: params.recoveryDrill,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipReescalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+        ownershipReescalationReadiness:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipReescalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+        ownershipReescalationReadiness:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipReescalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipReescalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint(
+      {
+        needsRefresh: params.needsRefresh,
+        ownershipReescalationTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint(
+      {
+        needsRefresh: params.needsRefresh,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget(
+      {
+        needsRefresh: params.needsRefresh,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA(
+      {
+        needsRefresh: params.needsRefresh,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness(
+      {
+        needsRefresh: params.needsRefresh,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+        workflowSummary: params.workflowSummary,
+        currentHandoffState: params.currentHandoffState,
+        recoveryDrill: params.recoveryDrill,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrepHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrepHint(
+      {
+        needsRefresh: params.needsRefresh,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+        escalationRetryReadiness:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard(
+      {
+        needsRefresh: params.needsRefresh,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+        escalationRetryReadiness:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel(
+      {
+        needsRefresh: params.needsRefresh,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence(
+      {
+        needsRefresh: params.needsRefresh,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+      },
+    );
+  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint =
+    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint(
+      {
+        needsRefresh: params.needsRefresh,
+        escalationRetryTarget:
+          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+      },
+    );
+  return {
+    recovery: {
+      hint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint,
+      target: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+      cta: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA,
+      readiness: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
+      prepHint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint,
+      openGuard: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOpenGuard,
+      outcomeLabel: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel,
+      confidence: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence,
+      detourHint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint,
+    },
+    recoveryFollowup: {
+      hint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint,
+      target: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+      cta: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA,
+      readiness: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
+      prepHint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint,
+      openGuard: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard,
+      outcomeLabel: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel,
+      confidence: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence,
+      detourHint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint,
+    },
+    recoveryRetry: {
+      hint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationHint,
+      target: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+      cta: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA,
+      readiness:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness,
+      prepHint:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint,
+      openGuard:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard,
+      outcomeLabel:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel,
+      confidence:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence,
+      detourHint:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint,
+    },
+    recoveryRetryFollowup: {
+      hint:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint,
+      target:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationTarget,
+      cta:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationCTA,
+      readiness:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationReadiness,
+      prepHint:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationPrepHint,
+      openGuard:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOpenGuard,
+      outcomeLabel:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationOutcomeLabel,
+      confidence:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationConfidence,
+      detourHint:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationDetourHint,
+    },
+  };
+}
+
 function buildNextOperatorPrimaryStepRefreshRecoveryFollowupBundles(
   params: RuntimeSessionReplayPrimaryRefreshRecoveryFollowupBundlesParams,
 ): RuntimeSessionReplayPrimaryRefreshRecoveryFollowupBundles {
@@ -4728,235 +5120,56 @@ function buildNextOperatorPrimaryStep(params: {
       detourHint: refreshEscalationFallbackEscalationFallbackEscalationFallbackDetourHint,
     },
   } = refreshLegacyProjectionPrefixSegments;
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint({
+  const refreshLegacyProjectionRecoverySegments =
+    buildNextOperatorPrimaryStepRefreshLegacyProjectionRecoverySegments({
       needsRefresh,
-      ownershipRecoveryEscalationTarget:
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget,
-    });
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget({
-      needsRefresh,
-      ownershipRecoveryEscalationTarget:
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget,
-    });
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA({
-      needsRefresh,
-      ownershipRecoveryEscalationTarget:
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
-    });
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness({
-      needsRefresh,
-      ownershipRecoveryEscalationTarget:
-        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
       workflowSummary: params.workflowSummary,
       currentHandoffState: params.currentHandoffState,
       recoveryDrill: params.recoveryDrill,
+      ownershipRecoveryEscalationTarget:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackTarget,
     });
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint(
-      {
-        needsRefresh,
-        ownershipRecoveryEscalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
-        ownershipRecoveryEscalationReadiness:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOpenGuard =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOpenGuard(
-      {
-        needsRefresh,
-        ownershipRecoveryEscalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
-        ownershipRecoveryEscalationReadiness:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel(
-      {
-        needsRefresh,
-        ownershipRecoveryEscalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence(
-      {
-        needsRefresh,
-        ownershipRecoveryEscalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint(
-      {
-        needsRefresh,
-        ownershipRecoveryEscalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint(
-      {
-        needsRefresh,
-        ownershipRecoveryTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget(
-      {
-        needsRefresh,
-        ownershipRecoveryTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA(
-      {
-        needsRefresh,
-        ownershipRecoveryTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness(
-      {
-        needsRefresh,
-        ownershipRecoveryTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-        workflowSummary: params.workflowSummary,
-        currentHandoffState: params.currentHandoffState,
-        recoveryDrill: params.recoveryDrill,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint(
-      {
-        needsRefresh,
-        ownershipRecoveryTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-        ownershipRecoveryReadiness:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard(
-      {
-        needsRefresh,
-        ownershipRecoveryTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-        ownershipRecoveryReadiness:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel(
-      {
-        needsRefresh,
-        ownershipRecoveryTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence(
-      {
-        needsRefresh,
-        ownershipRecoveryTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint(
-      {
-        needsRefresh,
-        ownershipRecoveryTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationHint =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationHint(
-      {
-        needsRefresh,
-        ownershipReescalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget(
-      {
-        needsRefresh,
-        ownershipReescalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA(
-      {
-        needsRefresh,
-        ownershipReescalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness(
-      {
-        needsRefresh,
-        ownershipReescalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
-        workflowSummary: params.workflowSummary,
-        currentHandoffState: params.currentHandoffState,
-        recoveryDrill: params.recoveryDrill,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint(
-      {
-        needsRefresh,
-        ownershipReescalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
-        ownershipReescalationReadiness:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard(
-      {
-        needsRefresh,
-        ownershipReescalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
-        ownershipReescalationReadiness:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel(
-      {
-        needsRefresh,
-        ownershipReescalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence(
-      {
-        needsRefresh,
-        ownershipReescalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
-      },
-    );
-  const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint =
-    buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint(
-      {
-        needsRefresh,
-        ownershipReescalationTarget:
-          refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
-      },
-    );
+  const {
+    recovery: {
+      hint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationHint,
+      target: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationTarget,
+      cta: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationCTA,
+      readiness: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationReadiness,
+      prepHint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationPrepHint,
+      openGuard: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOpenGuard,
+      outcomeLabel: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationOutcomeLabel,
+      confidence: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationConfidence,
+      detourHint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationDetourHint,
+    },
+    recoveryFollowup: {
+      hint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationHint,
+      target: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationTarget,
+      cta: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationCTA,
+      readiness: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationReadiness,
+      prepHint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationPrepHint,
+      openGuard: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOpenGuard,
+      outcomeLabel: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationOutcomeLabel,
+      confidence: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationConfidence,
+      detourHint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationDetourHint,
+    },
+    recoveryRetry: {
+      hint: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationHint,
+      target: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationTarget,
+      cta: refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationCTA,
+      readiness:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationReadiness,
+      prepHint:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationPrepHint,
+      openGuard:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOpenGuard,
+      outcomeLabel:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationOutcomeLabel,
+      confidence:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationConfidence,
+      detourHint:
+        refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationDetourHint,
+    },
+  } = refreshLegacyProjectionRecoverySegments;
   const refreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint =
     buildNextOperatorPrimaryStepRefreshEscalationFallbackEscalationFallbackEscalationFallbackEscalationEscalationEscalationEscalationHint(
       {
