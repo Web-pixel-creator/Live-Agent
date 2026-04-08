@@ -66,6 +66,7 @@ $ReleaseThresholds = @{
 $MaxAllowedScenarioRetriesUsedCount = if ($StrictFinalRun) { 0 } else { $ReleaseThresholds.MaxScenarioRetriesUsedCount }
 $EffectiveDemoRunMaxAttempts = if ($StrictFinalRun) { 1 } else { $DemoRunMaxAttempts }
 $IsArtifactOnlyMode = $SkipDemoE2E -and $SkipPolicy -and $SkipBadge
+$script:ReleaseReadinessDotEnvValues = $null
 
 function To-NumberOrNaN([object]$Value) {
   if ($null -eq $Value) {
@@ -274,9 +275,67 @@ function Ensure-ReleaseDemoStorytellerMediaMode {
   Write-Host "[release-check] DEMO_E2E_STORYTELLER_MEDIA_MODE defaulted to simulated for release verification."
 }
 
+function Get-ReleaseReadinessDotEnvValues {
+  if ($null -ne $script:ReleaseReadinessDotEnvValues) {
+    return $script:ReleaseReadinessDotEnvValues
+  }
+
+  $values = @{}
+  $envPath = Join-Path (Join-Path $PSScriptRoot "..") ".env"
+  if (-not (Test-Path $envPath)) {
+    $script:ReleaseReadinessDotEnvValues = $values
+    return $script:ReleaseReadinessDotEnvValues
+  }
+
+  foreach ($line in (Get-Content $envPath)) {
+    if ([string]::IsNullOrWhiteSpace($line)) {
+      continue
+    }
+
+    $trimmed = $line.Trim()
+    if ($trimmed.StartsWith("#")) {
+      continue
+    }
+
+    if ($trimmed -notmatch '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') {
+      continue
+    }
+
+    $name = [string]$matches[1]
+    $value = [string]$matches[2]
+    if (
+      $value.Length -ge 2 -and (
+        ($value.StartsWith('"') -and $value.EndsWith('"')) -or
+        ($value.StartsWith("'") -and $value.EndsWith("'"))
+      )
+    ) {
+      $value = $value.Substring(1, $value.Length - 2)
+    }
+
+    $values[$name] = $value
+  }
+
+  $script:ReleaseReadinessDotEnvValues = $values
+  return $script:ReleaseReadinessDotEnvValues
+}
+
+function Get-ReleaseReadinessEnvValue([string]$Name) {
+  $processValue = [Environment]::GetEnvironmentVariable($Name)
+  if (-not [string]::IsNullOrWhiteSpace($processValue)) {
+    return [string]$processValue
+  }
+
+  $dotEnvValues = Get-ReleaseReadinessDotEnvValues
+  if ($dotEnvValues.ContainsKey($Name)) {
+    return [string]$dotEnvValues[$Name]
+  }
+
+  return ""
+}
+
 function Test-ReleaseDemoAnyNonEmptyEnvVar([string[]]$Names) {
   foreach ($name in $Names) {
-    $value = [Environment]::GetEnvironmentVariable($name)
+    $value = Get-ReleaseReadinessEnvValue $name
     if (-not [string]::IsNullOrWhiteSpace($value)) {
       return $true
     }
@@ -286,7 +345,7 @@ function Test-ReleaseDemoAnyNonEmptyEnvVar([string[]]$Names) {
 }
 
 function Resolve-ReleaseDemoFrontendDecision {
-  $overrideRaw = [string][Environment]::GetEnvironmentVariable("DEMO_E2E_INCLUDE_FRONTEND")
+  $overrideRaw = [string](Get-ReleaseReadinessEnvValue "DEMO_E2E_INCLUDE_FRONTEND")
   if (-not [string]::IsNullOrWhiteSpace($overrideRaw)) {
     $override = $overrideRaw.Trim().ToLowerInvariant()
     if (@("1", "true", "yes", "on") -contains $override) {
@@ -308,10 +367,10 @@ function Resolve-ReleaseDemoFrontendDecision {
     }
   }
 
-  $liveApiEnabled = To-BoolOrNull([Environment]::GetEnvironmentVariable("LIVE_API_ENABLED"))
-  $directModeEnabled = To-BoolOrNull([Environment]::GetEnvironmentVariable("LIVE_DIRECT_MODE_ENABLED"))
-  $ephemeralTokensEnabled = To-BoolOrNull([Environment]::GetEnvironmentVariable("LIVE_EPHEMERAL_TOKENS_ENABLED"))
-  $liveProtocol = [string][Environment]::GetEnvironmentVariable("LIVE_API_PROTOCOL")
+  $liveApiEnabled = To-BoolOrNull((Get-ReleaseReadinessEnvValue "LIVE_API_ENABLED"))
+  $directModeEnabled = To-BoolOrNull((Get-ReleaseReadinessEnvValue "LIVE_DIRECT_MODE_ENABLED"))
+  $ephemeralTokensEnabled = To-BoolOrNull((Get-ReleaseReadinessEnvValue "LIVE_EPHEMERAL_TOKENS_ENABLED"))
+  $liveProtocol = [string](Get-ReleaseReadinessEnvValue "LIVE_API_PROTOCOL")
   if ([string]::IsNullOrWhiteSpace($liveProtocol)) {
     $liveProtocol = "gemini"
   } else {

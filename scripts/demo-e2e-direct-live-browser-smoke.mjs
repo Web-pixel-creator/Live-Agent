@@ -182,6 +182,43 @@ async function readText(page, selector) {
   return toOptionalString(value);
 }
 
+async function ensureVoiceTrayConnectSurface(page, timeoutMs) {
+  const connectButton = page.locator("#connectBtn").first();
+  if (await connectButton.isVisible().catch(() => false)) {
+    return;
+  }
+
+  const voiceDockButton = page.locator("#liveDockVoiceBtn").first();
+  if (await voiceDockButton.isVisible().catch(() => false)) {
+    await voiceDockButton.click({ timeout: timeoutMs });
+  }
+
+  await connectButton.waitFor({ state: "visible", timeout: timeoutMs });
+}
+
+async function setFrontendInputValue(page, selector, value, timeoutMs) {
+  const locator = page.locator(selector).first();
+  await locator.waitFor({ state: "attached", timeout: timeoutMs });
+
+  if (await locator.isVisible().catch(() => false)) {
+    await locator.fill(value, { timeout: timeoutMs });
+    return;
+  }
+
+  await page.evaluate(
+    ({ targetSelector, targetValue }) => {
+      const node = document.querySelector(targetSelector);
+      if (!(node instanceof HTMLInputElement)) {
+        throw new Error(`input not found: ${targetSelector}`);
+      }
+      node.value = targetValue;
+      node.dispatchEvent(new Event("input", { bubbles: true }));
+      node.dispatchEvent(new Event("change", { bubbles: true }));
+    },
+    { targetSelector: selector, targetValue: value },
+  );
+}
+
 async function pollSessionReplay(apiBaseUrl, sessionId, timeoutMs) {
   const replayUrl = new URL(`${apiBaseUrl.replace(/\/+$/g, "")}/v1/runtime/session-replay`);
   replayUrl.searchParams.set("sessionId", sessionId);
@@ -273,9 +310,9 @@ async function run() {
       waitUntil: "domcontentloaded",
       timeout: options.timeoutMs,
     });
-    await page.locator("#connectBtn").waitFor({ state: "visible", timeout: options.timeoutMs });
-    await page.locator("#sessionId").fill(options.sessionId);
-    await page.locator("#userId").fill(options.userId);
+    await ensureVoiceTrayConnectSurface(page, options.timeoutMs);
+    await setFrontendInputValue(page, "#sessionId", options.sessionId, options.timeoutMs);
+    await setFrontendInputValue(page, "#userId", options.userId, options.timeoutMs);
     await page.locator("#connectBtn").click();
 
     await page.waitForFunction(

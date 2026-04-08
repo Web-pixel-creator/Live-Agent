@@ -206,7 +206,7 @@ Gateway envs:
 7. Browser-direct live replay proof is persisted through `POST /v1/runtime/live/session-events`; keep `api-backend` reachable from the demo frontend if you want `/v1/runtime/session-replay` and release evidence to show backend-observed `direct_live`.
 8. `LIVE_DIRECT_TOKEN_TTL_SECONDS=300` to control direct-live token lifetime for local testing without changing relay behavior.
 9. Append `?livePreferredMode=direct_live` to the demo-frontend URL when you want the browser to force a direct-live attempt even if the runtime default stays `relay`. `demo:e2e -- -IncludeFrontend` uses this override for the Playwright smoke window.
-10. `DEMO_E2E_INCLUDE_FRONTEND=true|false|auto` controls whether `verify:release` appends `-IncludeFrontend` to the demo lane. Leave it unset or `auto` to enable the browser lane only when direct-live bootstrap is fully configured.
+10. `DEMO_E2E_INCLUDE_FRONTEND=true|false|auto` controls whether `verify:release` appends `-IncludeFrontend` to the demo lane. Leave it unset or `auto` to enable the browser lane only when direct-live bootstrap is fully configured; the release wrapper resolves that from process env first and then falls back to repo-local `.env`.
 
 ## Validation Commands
 

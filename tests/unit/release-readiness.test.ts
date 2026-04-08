@@ -28,7 +28,10 @@ test("release-readiness keeps provider env out of nested unit tests while preser
 
   assert.match(source, /function Invoke-WithTemporaryClearedEnvVars/);
   assert.match(source, /function Resolve-ReleaseDemoFrontendDecision/);
+  assert.match(source, /function Get-ReleaseReadinessDotEnvValues/);
+  assert.match(source, /function Get-ReleaseReadinessEnvValue/);
   assert.match(source, /"GOOGLE_API_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_GENAI_API_KEY"/);
+  assert.match(source, /Join-Path \(Join-Path \$PSScriptRoot "\.\."\) "\.env"/);
   assert.match(source, /-ScriptBlock \{ Run-Step "Run unit tests" "npm run test:unit" \}/);
   assert.match(source, /DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK/);
   assert.match(source, /DEMO_E2E_INCLUDE_FRONTEND/);
