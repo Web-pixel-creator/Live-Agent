@@ -1443,6 +1443,7 @@ Notes:
 - Dedicated workflow: `.github/workflows/railway-deploy-api.yml`
 - Deploy summary artifact: `artifacts/deploy/railway-api-deploy-summary.json`
 - API service config-as-code is at `apps/api-backend/railway.json`.
+- Railway manifest override for deploys is at `infra/railway/manifests/api-backend.railway.json`, so the API lane deploys from repo root and preserves workspace dependency resolution.
 - API service health endpoint: `GET /healthz`.
 - API deploy lane also verifies `GET /v1/runtime/live/capabilities` on the public API URL so direct-live bootstrap cannot stay on an older Railway revision silently.
 - Frontend should point `FRONTEND_API_BASE_URL` to this API service URL, not to gateway URL.

@@ -39,6 +39,93 @@ function Write-RailwayApiDeploySummary([object]$Summary) {
   return $summaryPath
 }
 
+function Resolve-RailwayApiManifestTemplatePath([string]$RepoRoot) {
+  if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
+    return $null
+  }
+
+  $candidate = Join-Path $RepoRoot "infra\railway\manifests\api-backend.railway.json"
+  if (Test-Path $candidate) {
+    return $candidate
+  }
+
+  return $null
+}
+
+function New-RailwayApiDeployWorkspace([string]$RepoRoot, [string]$ManifestTemplatePath) {
+  $workspacePath = Join-Path $env:TEMP ("mla-railway-api-deploy-" + [guid]::NewGuid().ToString())
+  $gitArgs = @("-C", $RepoRoot, "worktree", "add", "--detach", $workspacePath, "HEAD")
+  $gitOutput = & git @gitArgs 2>&1
+  if ($gitOutput) {
+    $gitOutput | ForEach-Object { Write-Host $_ }
+  }
+  if ($LASTEXITCODE -ne 0) {
+    Fail "Unable to create temporary Railway API deploy worktree."
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($ManifestTemplatePath)) {
+    Copy-Item -LiteralPath $ManifestTemplatePath -Destination (Join-Path $workspacePath "railway.json") -Force
+  }
+
+  return $workspacePath
+}
+
+function Remove-RailwayApiDeployWorkspace([string]$RepoRoot, [string]$WorkspacePath) {
+  if ([string]::IsNullOrWhiteSpace($WorkspacePath) -or -not (Test-Path $WorkspacePath)) {
+    return
+  }
+
+  $gitArgs = @("-C", $RepoRoot, "worktree", "remove", "--force", $WorkspacePath)
+  $gitOutput = & git @gitArgs 2>&1
+  if ($gitOutput) {
+    $gitOutput | ForEach-Object { Write-Host $_ }
+  }
+
+  if (Test-Path $WorkspacePath) {
+    Remove-Item -LiteralPath $WorkspacePath -Recurse -Force -ErrorAction SilentlyContinue
+  }
+}
+
+function Write-RailwayApiDeployFailureSummary(
+  [string]$FailureStatus,
+  [string]$DeploymentId,
+  [string]$ProjectId,
+  [string]$Service,
+  [string]$Environment,
+  [string]$EffectivePublicUrl,
+  [bool]$SkipHealthCheck,
+  [bool]$SkipCapabilitiesCheck
+) {
+  $summary = [ordered]@{
+    schemaVersion = 1
+    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+    status = $FailureStatus
+    deploymentId = $DeploymentId
+    projectId = $ProjectId
+    service = $Service
+    environment = $Environment
+    effectivePublicUrl = if ([string]::IsNullOrWhiteSpace($EffectivePublicUrl)) { $null } else { $EffectivePublicUrl.Trim().TrimEnd("/") }
+    checks = [ordered]@{
+      health = [ordered]@{
+        attempted = (-not $SkipHealthCheck)
+        passed = $null
+        healthUrl = if ([string]::IsNullOrWhiteSpace($EffectivePublicUrl)) { $null } else { $EffectivePublicUrl.Trim().TrimEnd("/") + "/healthz" }
+      }
+      liveCapabilities = [ordered]@{
+        attempted = (-not $SkipCapabilitiesCheck)
+        passed = $null
+        endpoint = if ([string]::IsNullOrWhiteSpace($EffectivePublicUrl)) { $null } else { $EffectivePublicUrl.Trim().TrimEnd("/") + "/v1/runtime/live/capabilities" }
+      }
+    }
+    artifacts = [ordered]@{
+      self = "artifacts/deploy/railway-api-deploy-summary.json"
+    }
+  }
+
+  $summaryPath = Write-RailwayApiDeploySummary -Summary $summary
+  Write-Host ("[railway-api] Summary artifact: " + $summaryPath)
+}
+
 function Run-Cli([string[]]$CliArgs) {
   & railway @CliArgs
   if ($LASTEXITCODE -ne 0) {
@@ -302,6 +389,14 @@ if (-not (Test-Path $apiPackageJsonPath)) {
   Fail "API package.json not found under: $ApiPath"
 }
 
+$repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+$serviceManifestTemplatePath = Resolve-RailwayApiManifestTemplatePath -RepoRoot $repoRoot
+if ([string]::IsNullOrWhiteSpace($serviceManifestTemplatePath)) {
+  Fail "Railway API manifest template is missing: infra/railway/manifests/api-backend.railway.json"
+}
+
+$deployWorkspacePath = New-RailwayApiDeployWorkspace -RepoRoot $repoRoot -ManifestTemplatePath $serviceManifestTemplatePath
+
 if ([string]::IsNullOrWhiteSpace($DeployMessage)) {
   $commit = (& git rev-parse --short HEAD 2>$null)
   if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commit)) {
@@ -320,156 +415,169 @@ if (-not [string]::IsNullOrWhiteSpace($ApiCorsAllowedOrigins)) {
   }
 }
 
-$deployArgs = @("up", $ApiPath, "--path-as-root", "-d", "-s", $Service, "-e", $Environment, "-m", $DeployMessage)
-if (-not [string]::IsNullOrWhiteSpace($ProjectId)) {
-  $deployArgs += @("-p", $ProjectId)
-}
+try {
+  Push-Location $deployWorkspacePath
 
-Write-Host "[railway-api] Triggering deployment..."
-$deployOutput = Run-CliCapture -CliArgs $deployArgs
-$deployText = [string]::Join("`n", $deployOutput)
-
-$deploymentId = $null
-$idMatch = [regex]::Match($deployText, "id=([0-9a-fA-F-]{36})")
-if ($idMatch.Success) {
-  $deploymentId = $idMatch.Groups[1].Value
-}
-
-if ([string]::IsNullOrWhiteSpace($deploymentId)) {
-  $latest = Get-LatestDeployment -TargetService $Service -TargetEnvironment $Environment
-  if ($null -ne $latest) {
-    $deploymentId = [string]$latest.id
+  $deployArgs = @("up", "-d", "-s", $Service, "-e", $Environment, "-m", $DeployMessage)
+  if (-not [string]::IsNullOrWhiteSpace($ProjectId)) {
+    $deployArgs += @("-p", $ProjectId)
   }
-}
 
-if ([string]::IsNullOrWhiteSpace($deploymentId)) {
-  Fail "Deployment created but deployment ID could not be resolved."
-}
+  Write-Host "[railway-api] Triggering deployment..."
+  $deployOutput = Run-CliCapture -CliArgs $deployArgs
+  $deployText = [string]::Join("`n", $deployOutput)
 
-Write-Host "[railway-api] Deployment ID: $deploymentId"
+  $deploymentId = $null
+  $idMatch = [regex]::Match($deployText, "id=([0-9a-fA-F-]{36})")
+  if ($idMatch.Success) {
+    $deploymentId = $idMatch.Groups[1].Value
+  }
 
-if ($NoWait) {
-  $noWaitSummary = [ordered]@{
-    schemaVersion = 1
-    generatedAt = (Get-Date).ToUniversalTime().ToString("o")
-    status = "triggered"
-    deploymentId = $deploymentId
-    projectId = $ProjectId
-    service = $Service
-    environment = $Environment
-    effectivePublicUrl = $ApiPublicUrl
-    checks = [ordered]@{
-      health = [ordered]@{
-        attempted = (-not $SkipHealthCheck)
-        skipped = [bool]$SkipHealthCheck
-        healthUrl = if ([string]::IsNullOrWhiteSpace($ApiPublicUrl)) { $null } else { $ApiPublicUrl.TrimEnd("/") + "/healthz" }
-      }
-      liveCapabilities = [ordered]@{
-        attempted = (-not $SkipCapabilitiesCheck)
-        skipped = [bool]$SkipCapabilitiesCheck
-        endpoint = if ([string]::IsNullOrWhiteSpace($ApiPublicUrl)) { $null } else { $ApiPublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities" }
-      }
-    }
-    artifacts = [ordered]@{
-      self = "artifacts/deploy/railway-api-deploy-summary.json"
+  if ([string]::IsNullOrWhiteSpace($deploymentId)) {
+    $latest = Get-LatestDeployment -TargetService $Service -TargetEnvironment $Environment
+    if ($null -ne $latest) {
+      $deploymentId = [string]$latest.id
     }
   }
-  $noWaitSummaryPath = Write-RailwayApiDeploySummary -Summary $noWaitSummary
-  Write-Host ("[railway-api] Summary artifact: " + $noWaitSummaryPath)
-  exit 0
-}
 
-$pending = @("QUEUED", "INITIALIZING", "BUILDING", "DEPLOYING")
-for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
-  $deployment = Get-DeploymentById -DeploymentId $deploymentId -TargetService $Service -TargetEnvironment $Environment
-  if ($null -eq $deployment) {
-    Write-Host "[railway-api] Waiting for deployment metadata ($attempt/$StatusPollMaxAttempts)..."
+  if ([string]::IsNullOrWhiteSpace($deploymentId)) {
+    Write-RailwayApiDeployFailureSummary -FailureStatus "deployment_id_unresolved" -DeploymentId $null -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+    Fail "Deployment created but deployment ID could not be resolved."
   }
-  else {
-    $state = [string]$deployment.status
-    Write-Host "[railway-api] Status ($attempt/$StatusPollMaxAttempts): $state"
-    if ($state -eq "SUCCESS") {
-      $status = $null
-      try {
-        $statusJson = (& railway status --json)
-        if ($LASTEXITCODE -eq 0) {
-          $status = $statusJson | ConvertFrom-Json
+
+  Write-Host "[railway-api] Deployment ID: $deploymentId"
+
+  if ($NoWait) {
+    $noWaitSummary = [ordered]@{
+      schemaVersion = 1
+      generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+      status = "triggered"
+      deploymentId = $deploymentId
+      projectId = $ProjectId
+      service = $Service
+      environment = $Environment
+      effectivePublicUrl = $ApiPublicUrl
+      checks = [ordered]@{
+        health = [ordered]@{
+          attempted = (-not $SkipHealthCheck)
+          skipped = [bool]$SkipHealthCheck
+          healthUrl = if ([string]::IsNullOrWhiteSpace($ApiPublicUrl)) { $null } else { $ApiPublicUrl.TrimEnd("/") + "/healthz" }
+        }
+        liveCapabilities = [ordered]@{
+          attempted = (-not $SkipCapabilitiesCheck)
+          skipped = [bool]$SkipCapabilitiesCheck
+          endpoint = if ([string]::IsNullOrWhiteSpace($ApiPublicUrl)) { $null } else { $ApiPublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities" }
         }
       }
-      catch {
+      artifacts = [ordered]@{
+        self = "artifacts/deploy/railway-api-deploy-summary.json"
       }
+    }
+    $noWaitSummaryPath = Write-RailwayApiDeploySummary -Summary $noWaitSummary
+    Write-Host ("[railway-api] Summary artifact: " + $noWaitSummaryPath)
+    exit 0
+  }
 
-      $effectivePublicUrl = if (-not [string]::IsNullOrWhiteSpace($ApiPublicUrl)) {
-        $ApiPublicUrl.Trim().TrimEnd("/")
-      }
-      else {
-        Resolve-ServicePublicUrlFromStatus -StatusPayload $status -TargetService $Service -TargetEnvironment $Environment
-      }
-
-      $healthPassed = $null
-      if (-not $SkipHealthCheck) {
-        $healthPassed = Test-ApiHealth -BaseUrl $effectivePublicUrl -TimeoutSec $HealthCheckTimeoutSec
-        if (-not $healthPassed) {
-          Fail ("API health check failed: " + $effectivePublicUrl.TrimEnd("/") + "/healthz")
-        }
-        Write-Host ("[railway-api] Health check passed: " + $effectivePublicUrl.TrimEnd("/") + "/healthz")
-      }
-
-      $liveCapabilities = $null
-      if (-not $SkipCapabilitiesCheck) {
-        $liveCapabilities = Get-ApiLiveCapabilities -BaseUrl $effectivePublicUrl -TimeoutSec $HealthCheckTimeoutSec
-        if ($null -eq $liveCapabilities) {
-          Fail ("API live capabilities route check failed: " + $effectivePublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities")
-        }
-        Write-Host ("[railway-api] Live capabilities route passed: " + $effectivePublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities")
-      }
-
-      $deploySummary = [ordered]@{
-        schemaVersion = 1
-        generatedAt = (Get-Date).ToUniversalTime().ToString("o")
-        status = "success"
-        deploymentId = $deploymentId
-        projectId = $ProjectId
-        service = $Service
-        environment = $Environment
-        effectivePublicUrl = $effectivePublicUrl
-        checks = [ordered]@{
-          health = [ordered]@{
-            attempted = (-not $SkipHealthCheck)
-            passed = $healthPassed
-            healthUrl = if ([string]::IsNullOrWhiteSpace($effectivePublicUrl)) { $null } else { $effectivePublicUrl.TrimEnd("/") + "/healthz" }
-          }
-          liveCapabilities = [ordered]@{
-            attempted = (-not $SkipCapabilitiesCheck)
-            passed = if ($SkipCapabilitiesCheck) { $null } else { $null -ne $liveCapabilities }
-            endpoint = if ([string]::IsNullOrWhiteSpace($effectivePublicUrl)) { $null } else { $effectivePublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities" }
-            preferredMode = if ($null -ne $liveCapabilities -and $null -ne $liveCapabilities.data) { [string]$liveCapabilities.data.preferredMode } else { $null }
-            activeMode = if ($null -ne $liveCapabilities -and $null -ne $liveCapabilities.data) { [string]$liveCapabilities.data.activeMode } else { $null }
-            provider = if ($null -ne $liveCapabilities -and $null -ne $liveCapabilities.data) { [string]$liveCapabilities.data.provider } else { $null }
-            model = if ($null -ne $liveCapabilities -and $null -ne $liveCapabilities.data) { [string]$liveCapabilities.data.model } else { $null }
-            ephemeralTokensSupported = if ($null -ne $liveCapabilities -and $null -ne $liveCapabilities.data) { [bool]$liveCapabilities.data.ephemeralTokensSupported } else { $null }
+  $pending = @("QUEUED", "INITIALIZING", "BUILDING", "DEPLOYING")
+  for ($attempt = 1; $attempt -le $StatusPollMaxAttempts; $attempt++) {
+    $deployment = Get-DeploymentById -DeploymentId $deploymentId -TargetService $Service -TargetEnvironment $Environment
+    if ($null -eq $deployment) {
+      Write-Host "[railway-api] Waiting for deployment metadata ($attempt/$StatusPollMaxAttempts)..."
+    }
+    else {
+      $state = [string]$deployment.status
+      Write-Host "[railway-api] Status ($attempt/$StatusPollMaxAttempts): $state"
+      if ($state -eq "SUCCESS") {
+        $status = $null
+        try {
+          $statusJson = (& railway status --json)
+          if ($LASTEXITCODE -eq 0) {
+            $status = $statusJson | ConvertFrom-Json
           }
         }
-        artifacts = [ordered]@{
-          self = "artifacts/deploy/railway-api-deploy-summary.json"
+        catch {
         }
+
+        $effectivePublicUrl = if (-not [string]::IsNullOrWhiteSpace($ApiPublicUrl)) {
+          $ApiPublicUrl.Trim().TrimEnd("/")
+        }
+        else {
+          Resolve-ServicePublicUrlFromStatus -StatusPayload $status -TargetService $Service -TargetEnvironment $Environment
+        }
+
+        $healthPassed = $null
+        if (-not $SkipHealthCheck) {
+          $healthPassed = Test-ApiHealth -BaseUrl $effectivePublicUrl -TimeoutSec $HealthCheckTimeoutSec
+          if (-not $healthPassed) {
+            Write-RailwayApiDeployFailureSummary -FailureStatus "healthcheck_failed" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $effectivePublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+            Fail ("API health check failed: " + $effectivePublicUrl.TrimEnd("/") + "/healthz")
+          }
+          Write-Host ("[railway-api] Health check passed: " + $effectivePublicUrl.TrimEnd("/") + "/healthz")
+        }
+
+        $liveCapabilities = $null
+        if (-not $SkipCapabilitiesCheck) {
+          $liveCapabilities = Get-ApiLiveCapabilities -BaseUrl $effectivePublicUrl -TimeoutSec $HealthCheckTimeoutSec
+          if ($null -eq $liveCapabilities) {
+            Write-RailwayApiDeployFailureSummary -FailureStatus "live_capabilities_failed" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $effectivePublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+            Fail ("API live capabilities route check failed: " + $effectivePublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities")
+          }
+          Write-Host ("[railway-api] Live capabilities route passed: " + $effectivePublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities")
+        }
+
+        $deploySummary = [ordered]@{
+          schemaVersion = 1
+          generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+          status = "success"
+          deploymentId = $deploymentId
+          projectId = $ProjectId
+          service = $Service
+          environment = $Environment
+          effectivePublicUrl = $effectivePublicUrl
+          checks = [ordered]@{
+            health = [ordered]@{
+              attempted = (-not $SkipHealthCheck)
+              passed = $healthPassed
+              healthUrl = if ([string]::IsNullOrWhiteSpace($effectivePublicUrl)) { $null } else { $effectivePublicUrl.TrimEnd("/") + "/healthz" }
+            }
+            liveCapabilities = [ordered]@{
+              attempted = (-not $SkipCapabilitiesCheck)
+              passed = if ($SkipCapabilitiesCheck) { $null } else { $null -ne $liveCapabilities }
+              endpoint = if ([string]::IsNullOrWhiteSpace($effectivePublicUrl)) { $null } else { $effectivePublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities" }
+              preferredMode = if ($null -ne $liveCapabilities -and $null -ne $liveCapabilities.data) { [string]$liveCapabilities.data.preferredMode } else { $null }
+              activeMode = if ($null -ne $liveCapabilities -and $null -ne $liveCapabilities.data) { [string]$liveCapabilities.data.activeMode } else { $null }
+              provider = if ($null -ne $liveCapabilities -and $null -ne $liveCapabilities.data) { [string]$liveCapabilities.data.provider } else { $null }
+              model = if ($null -ne $liveCapabilities -and $null -ne $liveCapabilities.data) { [string]$liveCapabilities.data.model } else { $null }
+              ephemeralTokensSupported = if ($null -ne $liveCapabilities -and $null -ne $liveCapabilities.data) { [bool]$liveCapabilities.data.ephemeralTokensSupported } else { $null }
+            }
+          }
+          artifacts = [ordered]@{
+            self = "artifacts/deploy/railway-api-deploy-summary.json"
+          }
+        }
+        $deploySummaryPath = Write-RailwayApiDeploySummary -Summary $deploySummary
+        Write-Host ("[railway-api] Summary artifact: " + $deploySummaryPath)
+
+        Write-Host ""
+        Write-Host "API deployment completed successfully."
+        Write-Host "Deployment ID: $deploymentId"
+        exit 0
       }
-      $deploySummaryPath = Write-RailwayApiDeploySummary -Summary $deploySummary
-      Write-Host ("[railway-api] Summary artifact: " + $deploySummaryPath)
-
-      Write-Host ""
-      Write-Host "API deployment completed successfully."
-      Write-Host "Deployment ID: $deploymentId"
-      exit 0
+      if ($pending -notcontains $state) {
+        Write-RailwayApiDeployFailureSummary -FailureStatus $state.ToLowerInvariant() -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+        Fail "API deployment finished with non-success status: $state (deploymentId=$deploymentId)"
+      }
     }
-    if ($pending -notcontains $state) {
-      Fail "API deployment finished with non-success status: $state (deploymentId=$deploymentId)"
+
+    if ($attempt -lt $StatusPollMaxAttempts) {
+      Start-Sleep -Seconds $StatusPollIntervalSec
     }
   }
 
-  if ($attempt -lt $StatusPollMaxAttempts) {
-    Start-Sleep -Seconds $StatusPollIntervalSec
-  }
+  Write-RailwayApiDeployFailureSummary -FailureStatus "timeout" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+  Fail "Timed out waiting for API deployment completion (deploymentId=$deploymentId)."
 }
-
-Fail "Timed out waiting for API deployment completion (deploymentId=$deploymentId)."
+finally {
+  Pop-Location
+  Remove-RailwayApiDeployWorkspace -RepoRoot $repoRoot -WorkspacePath $deployWorkspacePath
+}

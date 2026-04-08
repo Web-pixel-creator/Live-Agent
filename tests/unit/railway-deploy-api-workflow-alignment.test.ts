@@ -54,6 +54,7 @@ test("package and docs expose the dedicated Railway API deploy lane", () => {
   assert.match(readme, /railway-deploy-api\.yml/);
   assert.match(readme, /railway-api-deploy-summary\.json/);
   assert.match(readme, /\/v1\/runtime\/live\/capabilities/);
+  assert.match(readme, /api-backend\.railway\.json/);
 
   assert.match(runbook, /deploy:railway:api/);
   assert.match(runbook, /railway-deploy-api\.yml/);
@@ -63,4 +64,13 @@ test("package and docs expose the dedicated Railway API deploy lane", () => {
   assert.match(script, /Live-Agent-API/);
   assert.match(script, /v1\/runtime\/live\/capabilities/);
   assert.match(script, /railway-api-deploy-summary\.json/);
+  assert.match(script, /infra\\railway\\manifests\\api-backend\.railway\.json/);
+  assert.doesNotMatch(script, /--path-as-root/);
+
+  const manifest = readFileSync(
+    resolve(process.cwd(), "infra", "railway", "manifests", "api-backend.railway.json"),
+    "utf8",
+  );
+  assert.match(manifest, /apps\/api-backend\/src\/index\.ts/);
+  assert.match(manifest, /"healthcheckPath": "\/healthz"/);
 });
