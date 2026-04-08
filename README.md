@@ -1437,7 +1437,7 @@ Notes:
 
 ## CI Workflow
 
-All GitHub workflow jobs that rely on JavaScript-based actions now set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`, so the repo is already opted into the Node 24 runner posture ahead of the Node 20 deprecation window.
+All GitHub workflow jobs that rely on JavaScript-based actions now use Node 24-compatible action majors (`actions/checkout@v5`, `actions/setup-node@v5`, `actions/upload-artifact@v6`, `actions/github-script@v8`) and still set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` as a repo-wide safeguard ahead of the Node 20 deprecation window.
 
 - PR workflow: `.github/workflows/pr-quality.yml`
 - Triggered on pull requests.

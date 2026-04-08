@@ -24,7 +24,7 @@ test("release artifact revalidation workflow resolves source artifacts and runs 
   assert.match(source, /default:\s*"168"/);
   assert.match(source, /-\s*with_perf/);
   assert.match(source, /-\s*without_perf/);
-  assert.match(source, /actions\/github-script@v7/);
+  assert.match(source, /actions\/github-script@v8/);
   assert.match(source, /demo-e2e\.yml/);
   assert.match(source, /release-strict-final\.yml/);
   assert.match(source, /getWorkflowRun/);
