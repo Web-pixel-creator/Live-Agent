@@ -1132,6 +1132,72 @@
   padding-top: 2px;
 }
 
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-focus-shell {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-focus-group {
+  display: grid;
+  gap: 8px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-focus-label {
+  color: color-mix(in oklch, var(--primary) 58%, var(--muted-foreground));
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-focus-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-focus-chip {
+  border: 1px solid color-mix(in oklch, var(--border-soft) 76%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--surface-control) 78%, transparent);
+  color: color-mix(in oklch, var(--foreground) 92%, var(--muted-foreground));
+  min-height: 34px;
+  padding: 7px 12px;
+  font-size: 0.8rem;
+  line-height: 1.25;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-focus-chip:hover {
+  border-color: color-mix(in oklch, var(--primary) 42%, var(--border-soft));
+  background: color-mix(in oklch, var(--surface-panel-2) 84%, var(--surface-control));
+  transform: translateY(-1px);
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-focus-chip:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--primary) 52%, transparent);
+  outline-offset: 2px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-focus-chip.is-active {
+  border-color: color-mix(in oklch, var(--primary) 52%, var(--border-soft));
+  background: color-mix(in oklch, var(--primary) 16%, var(--surface-panel-2));
+  color: color-mix(in oklch, var(--foreground) 96%, var(--primary));
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-focus-empty {
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 .layout[data-active-tab="live-negotiator"] .case-workspace-panel-title {
   margin-top: 4px;
 }
@@ -1587,6 +1653,7 @@
     grid-template-columns: 1fr;
   }
 
+  .layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-focus-shell,
   .layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-evidence-rail {
     grid-template-columns: 1fr;
   }

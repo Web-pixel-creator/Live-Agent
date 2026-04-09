@@ -149,6 +149,7 @@ const state = {
   operatorDiscoverySnapshot: null,
   operatorDiscoveryLoadedAt: null,
   operatorCaseWikiSnapshot: null,
+  operatorCaseWikiFocus: null,
   operatorCaseWikiLoadedAt: null,
   operatorSessionOpsLastResult: null,
   operatorBrowserWorkerSnapshot: null,
@@ -1291,6 +1292,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.caseWikiRefsLabel": "Source refs",
     "live.caseWorkspace.caseWikiDrilldownLabel": "Evidence drilldown",
     "live.caseWorkspace.caseWikiHandoffLabel": "Handoff preview",
+    "live.caseWorkspace.caseWikiProofChipsLabel": "Proof focus",
+    "live.caseWorkspace.caseWikiQuestionChipsLabel": "Question focus",
     "live.caseWorkspace.statusPillReady": "Workspace ready",
     "live.caseWorkspace.statusPillInFlight": "In progress",
     "live.caseWorkspace.statusPillVerified": "Verified",
@@ -2209,6 +2212,8 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
   "live.caseWorkspace.caseWikiRefsLabel": "\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438",
   "live.caseWorkspace.caseWikiDrilldownLabel": "\u0414\u0435\u0442\u0430\u043b\u0438 evidence pack",
   "live.caseWorkspace.caseWikiHandoffLabel": "\u041f\u0440\u0435\u0432\u044c\u044e handoff",
+  "live.caseWorkspace.caseWikiProofChipsLabel": "\u0424\u043e\u043a\u0443\u0441 \u043f\u043e proof",
+  "live.caseWorkspace.caseWikiQuestionChipsLabel": "\u0424\u043e\u043a\u0443\u0441 \u043f\u043e question",
   "live.caseWorkspace.pathContextLabel": "\u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435",
   "live.context.workflow": "\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438 UI",
   "live.context.workflowHint": "\u0417\u0430\u043f\u0443\u0441\u043a \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u0438 \u0437\u0430\u0434\u0430\u0447\u0438 \u0432 \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0435",
@@ -3134,6 +3139,8 @@ const el = {
   caseWorkspaceCaseWikiRefsValue: document.getElementById("caseWorkspaceCaseWikiRefsValue"),
   caseWorkspaceCaseWikiDrilldownValue: document.getElementById("caseWorkspaceCaseWikiDrilldownValue"),
   caseWorkspaceCaseWikiHandoffValue: document.getElementById("caseWorkspaceCaseWikiHandoffValue"),
+  caseWorkspaceCaseWikiProofChips: document.getElementById("caseWorkspaceCaseWikiProofChips"),
+  caseWorkspaceCaseWikiQuestionChips: document.getElementById("caseWorkspaceCaseWikiQuestionChips"),
   caseWorkspaceMainActionsTitle: document.getElementById("caseWorkspaceMainActionsTitle"),
   caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus"),
   caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta"),
@@ -7878,6 +7885,7 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
   const topProof = resolveOperatorCaseWikiTopProof(snapshot);
   const keyEntity = resolveOperatorCaseWikiTopEntity(snapshot);
   const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
+  const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
   const statusPresentation = resolveCaseWorkspaceCaseWikiStatusPresentation(toOptionalText(overview?.status), isRu);
   const currentStage = toOptionalText(overview?.currentStage);
   const nextActionType = toOptionalText(nextAction?.type);
@@ -7892,13 +7900,17 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
       ? evidencePack.sourceRefs.join(" | ")
       : idle.refsValue;
   const drilldownValue =
+    buildOperatorCaseWikiFocusedDrilldownValue(focusedItem) ||
     [
       buildOperatorCaseWikiEvidencePackProofSummary(evidencePack),
       buildOperatorCaseWikiEvidencePackQuestionSummary(evidencePack),
     ].filter(Boolean).join(" | ") || idle.drilldownValue;
   const handoffValue =
+    buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem) ??
     buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack) ??
     idle.handoffValue;
+  const proofChips = buildOperatorCaseWikiFocusChipRail(evidencePack, "proof");
+  const questionChips = buildOperatorCaseWikiFocusChipRail(evidencePack, "question");
   return {
     pillText: statusPresentation.pillText,
     pillTone: statusPresentation.pillTone,
@@ -7945,9 +7957,50 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
         : idle.refsValue,
     drilldownValue,
     handoffValue,
+    proofChips,
+    questionChips,
     packValue,
     refsValue,
   };
+}
+
+function renderCaseWorkspaceCaseWikiFocusRail(container, chips, emptyText) {
+  if (!(container instanceof HTMLElement)) {
+    return;
+  }
+  container.replaceChildren();
+  if (!Array.isArray(chips) || chips.length === 0) {
+    const empty = document.createElement("span");
+    empty.className = "case-workspace-case-wiki-focus-empty";
+    empty.textContent = emptyText;
+    container.appendChild(empty);
+    return;
+  }
+  for (const chip of chips) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "case-workspace-case-wiki-focus-chip";
+    if (chip.isActive) {
+      button.classList.add("is-active");
+    }
+    button.textContent = chip.label;
+    if (chip.title) {
+      button.title = chip.title;
+    }
+    button.addEventListener("click", () => {
+      state.operatorCaseWikiFocus = chip.isActive
+        ? null
+        : {
+            kind: chip.kind,
+            id: chip.id,
+          };
+      renderCaseWorkspaceCaseWikiSummary();
+      if (el.operatorCaseWikiEvidenceSnapshot instanceof HTMLElement) {
+        el.operatorCaseWikiEvidenceSnapshot.textContent = buildOperatorCaseWikiEvidencePreview();
+      }
+    });
+    container.appendChild(button);
+  }
 }
 
 function renderCaseWorkspaceCaseWikiSummary() {
@@ -7963,6 +8016,8 @@ function renderCaseWorkspaceCaseWikiSummary() {
   const caseWikiRefsLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiRefsLabel"]');
   const caseWikiDrilldownLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiDrilldownLabel"]');
   const caseWikiHandoffLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiHandoffLabel"]');
+  const caseWikiProofChipsLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiProofChipsLabel"]');
+  const caseWikiQuestionChipsLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiQuestionChipsLabel"]');
 
   if (caseWikiStatusLabel instanceof HTMLElement) {
     caseWikiStatusLabel.textContent = isRu ? "\u0421\u0442\u0430\u0442\u0443\u0441 \u0441\u0432\u043e\u0434\u043a\u0438" : "Compiled status";
@@ -7993,6 +8048,12 @@ function renderCaseWorkspaceCaseWikiSummary() {
   }
   if (caseWikiHandoffLabel instanceof HTMLElement) {
     caseWikiHandoffLabel.textContent = isRu ? "\u041f\u0440\u0435\u0432\u044c\u044e handoff" : "Handoff preview";
+  }
+  if (caseWikiProofChipsLabel instanceof HTMLElement) {
+    caseWikiProofChipsLabel.textContent = isRu ? "\u0424\u043e\u043a\u0443\u0441 \u043f\u043e proof" : "Proof focus";
+  }
+  if (caseWikiQuestionChipsLabel instanceof HTMLElement) {
+    caseWikiQuestionChipsLabel.textContent = isRu ? "\u0424\u043e\u043a\u0443\u0441 \u043f\u043e question" : "Question focus";
   }
   if (el.caseWorkspaceCaseWikiStatusValue instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiStatusValue.textContent = caseWikiSummary.statusValue;
@@ -8030,6 +8091,20 @@ function renderCaseWorkspaceCaseWikiSummary() {
   if (el.caseWorkspaceCaseWikiHandoffValue instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiHandoffValue.textContent = caseWikiSummary.handoffValue;
   }
+  renderCaseWorkspaceCaseWikiFocusRail(
+    el.caseWorkspaceCaseWikiProofChips,
+    caseWikiSummary.proofChips,
+    isRu
+      ? "\u0427\u0438\u043f\u044b proof \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
+      : "Proof chips appear here after Case Wiki refresh.",
+  );
+  renderCaseWorkspaceCaseWikiFocusRail(
+    el.caseWorkspaceCaseWikiQuestionChips,
+    caseWikiSummary.questionChips,
+    isRu
+      ? "\u0427\u0438\u043f\u044b question \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
+      : "Question chips appear here after Case Wiki refresh.",
+  );
   if (el.caseWorkspaceCaseWikiPill instanceof HTMLElement) {
     setStatusPill(el.caseWorkspaceCaseWikiPill, caseWikiSummary.pillText, caseWikiSummary.pillTone);
   }
@@ -25578,9 +25653,11 @@ function buildSessionExportOperatorCaseWiki() {
   const topProof = resolveOperatorCaseWikiTopProof(snapshot);
   const topEntity = resolveOperatorCaseWikiTopEntity(snapshot);
   const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
+  const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
   const evidencePackProofs = buildOperatorCaseWikiEvidencePackProofSummary(evidencePack);
   const evidencePackQuestions = buildOperatorCaseWikiEvidencePackQuestionSummary(evidencePack);
   const handoffPreview = buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack);
+  const handoffFocus = buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem);
   return {
     status: snapshot ? "loaded" : "idle",
     loadedAt: toOptionalText(state.operatorCaseWikiLoadedAt) ?? toOptionalText(snapshot?.generatedAt),
@@ -25601,9 +25678,11 @@ function buildSessionExportOperatorCaseWiki() {
     topBlockingQuestion: isRecord(blockingQuestion) ? blockingQuestion : null,
     topProof: isRecord(topProof) ? topProof : null,
     topEntity: isRecord(topEntity) ? topEntity : null,
+    focus: buildOperatorCaseWikiFocusSummary(focusedItem),
     evidencePackProofs,
     evidencePackQuestions,
     handoffPreview,
+    handoffFocus,
     counts: {
       entities: Array.isArray(snapshot?.entities) ? snapshot.entities.length : 0,
       proofs: Array.isArray(snapshot?.proofs) ? snapshot.proofs.length : 0,
@@ -25791,6 +25870,7 @@ function toMarkdownExport(payload) {
   lines.push(`- topProofEvidence: ${payload.operatorEvidence?.operatorCaseWiki?.topProof?.evidenceSummary ?? payload.operatorEvidence?.operatorCaseWiki?.topProof?.contradictionNote ?? "-"}`);
   lines.push(`- topEntity: ${payload.operatorEvidence?.operatorCaseWiki?.topEntity?.label ?? "-"}`);
   lines.push(`- topEntityRole: ${payload.operatorEvidence?.operatorCaseWiki?.topEntity?.role ?? "-"}`);
+  lines.push(`- focus: ${payload.operatorEvidence?.operatorCaseWiki?.focus ?? "-"}`);
   lines.push(
     `- evidencePack: proofs=${payload.operatorEvidence?.operatorCaseWiki?.evidencePack?.proofs?.length ?? 0}, entities=${payload.operatorEvidence?.operatorCaseWiki?.evidencePack?.entities?.length ?? 0}, questions=${payload.operatorEvidence?.operatorCaseWiki?.evidencePack?.questions?.length ?? 0}`,
   );
@@ -25800,6 +25880,7 @@ function toMarkdownExport(payload) {
     `- evidencePackRefs: ${(payload.operatorEvidence?.operatorCaseWiki?.evidencePack?.sourceRefs ?? []).join(", ") || "-"}`,
   );
   lines.push(`- handoffPreview: ${payload.operatorEvidence?.operatorCaseWiki?.handoffPreview ?? "-"}`);
+  lines.push(`- handoffFocus: ${payload.operatorEvidence?.operatorCaseWiki?.handoffFocus ?? "-"}`);
   lines.push(
     `- counts: entities=${payload.operatorEvidence?.operatorCaseWiki?.counts?.entities ?? 0}, proofs=${payload.operatorEvidence?.operatorCaseWiki?.counts?.proofs ?? 0}, openQuestions=${payload.operatorEvidence?.operatorCaseWiki?.counts?.openQuestions ?? 0}, timeline=${payload.operatorEvidence?.operatorCaseWiki?.counts?.timeline ?? 0}`,
   );
@@ -32019,6 +32100,84 @@ function resolveOperatorCaseWikiEvidencePack(snapshot) {
   };
 }
 
+function normalizeOperatorCaseWikiFocus(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const kind = toOptionalText(value.kind);
+  const id = toOptionalText(value.id);
+  if ((kind !== "proof" && kind !== "question") || !id) {
+    return null;
+  }
+  return { kind, id };
+}
+
+function truncateOperatorCaseWikiFocusChipLabel(value, limit = 44) {
+  const text = toOptionalText(value);
+  if (!text) {
+    return null;
+  }
+  if (text.length <= limit) {
+    return text;
+  }
+  return `${text.slice(0, Math.max(0, limit - 1)).trimEnd()}…`;
+}
+
+function resolveOperatorCaseWikiFocusedItem(evidencePack) {
+  const focus = normalizeOperatorCaseWikiFocus(state.operatorCaseWikiFocus);
+  if (!focus || !evidencePack) {
+    return null;
+  }
+  const items = focus.kind === "proof" ? evidencePack.proofs : evidencePack.questions;
+  const item = Array.isArray(items)
+    ? items.find((candidate) => toOptionalText(candidate?.id) === focus.id)
+    : null;
+  return item ? { kind: focus.kind, id: focus.id, item } : null;
+}
+
+function buildOperatorCaseWikiFocusChipTitle(kind, item) {
+  if (!isRecord(item)) {
+    return null;
+  }
+  const sourceRefs = Array.isArray(item.sourceRefs) ? item.sourceRefs : [];
+  if (kind === "proof") {
+    return [
+      toOptionalText(item.statement),
+      toOptionalText(item.evidenceSummary),
+      toOptionalText(item.contradictionNote),
+      sourceRefs.length > 0 ? `Refs: ${sourceRefs.join(", ")}` : null,
+    ].filter(Boolean).join("\n");
+  }
+  return [
+    toOptionalText(item.question),
+    toOptionalText(item.suggestedNextStep),
+    toOptionalText(item.owner) ? `Owner: ${toOptionalText(item.owner)}` : null,
+    sourceRefs.length > 0 ? `Refs: ${sourceRefs.join(", ")}` : null,
+  ].filter(Boolean).join("\n");
+}
+
+function buildOperatorCaseWikiFocusChipRail(evidencePack, kind) {
+  const items = kind === "proof" ? evidencePack?.proofs : evidencePack?.questions;
+  if (!Array.isArray(items) || items.length === 0) {
+    return [];
+  }
+  const activeFocus = normalizeOperatorCaseWikiFocus(state.operatorCaseWikiFocus);
+  return items.slice(0, 3).map((item, index) => {
+    const id = toOptionalText(item?.id) ?? `${kind}-${index}`;
+    const labelSource =
+      kind === "proof"
+        ? toOptionalText(item?.statement) ?? toOptionalText(item?.status) ?? `Proof ${index + 1}`
+        : toOptionalText(item?.question) ?? toOptionalText(item?.priority) ?? `Question ${index + 1}`;
+    return {
+      kind,
+      id,
+      label: truncateOperatorCaseWikiFocusChipLabel(labelSource) ?? `${kind} ${index + 1}`,
+      title: buildOperatorCaseWikiFocusChipTitle(kind, item),
+      isActive: activeFocus?.kind === kind && activeFocus?.id === id,
+    };
+  });
+}
+
 function buildOperatorCaseWikiEvidencePackProofSummary(evidencePack) {
   if (!evidencePack || !Array.isArray(evidencePack.proofs) || evidencePack.proofs.length === 0) {
     return null;
@@ -32071,6 +32230,71 @@ function buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack) {
     : evidencePack?.sourceRefs;
   const refsLabel = buildOperatorCaseWikiSourceRefsSummary(sourceRefs, 4);
   return [nextActionLabel, refsLabel ? `refs: ${refsLabel}` : null].filter(Boolean).join(" | ") || null;
+}
+
+function buildOperatorCaseWikiFocusedDrilldownValue(focusedItem) {
+  if (!focusedItem || !isRecord(focusedItem.item)) {
+    return null;
+  }
+  const item = focusedItem.item;
+  if (focusedItem.kind === "proof") {
+    return [
+      toOptionalText(item.statement),
+      toOptionalText(item.evidenceSummary),
+      toOptionalText(item.contradictionNote),
+    ].filter(Boolean).join(" | ");
+  }
+  return [
+    toOptionalText(item.question),
+    toOptionalText(item.suggestedNextStep),
+    toOptionalText(item.owner),
+  ].filter(Boolean).join(" | ");
+}
+
+function buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem) {
+  if (!focusedItem || !isRecord(focusedItem.item)) {
+    return null;
+  }
+  const item = focusedItem.item;
+  const nextAction = isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null;
+  const sourceRefs =
+    Array.isArray(item.sourceRefs) && item.sourceRefs.length > 0
+      ? item.sourceRefs
+      : Array.isArray(evidencePack?.sourceRefs)
+        ? evidencePack.sourceRefs
+        : [];
+  const refsLabel = buildOperatorCaseWikiSourceRefsSummary(sourceRefs, 4);
+  if (focusedItem.kind === "proof") {
+    return [
+      `Focus proof: ${toOptionalText(item.statement) ?? "Selected proof"}`,
+      toOptionalText(item.evidenceSummary) ? `Evidence: ${toOptionalText(item.evidenceSummary)}` : null,
+      toOptionalText(item.contradictionNote) ? `Watch: ${toOptionalText(item.contradictionNote)}` : null,
+      toOptionalText(nextAction?.title) ? `Next: ${toOptionalText(nextAction.title)}` : null,
+      refsLabel ? `Refs: ${refsLabel}` : null,
+    ].filter(Boolean).join("\n");
+  }
+  return [
+    `Focus question: ${toOptionalText(item.question) ?? "Selected question"}`,
+    toOptionalText(item.suggestedNextStep) ? `Resolve: ${toOptionalText(item.suggestedNextStep)}` : null,
+    toOptionalText(item.owner) ? `Owner: ${toOptionalText(item.owner)}` : null,
+    toOptionalText(nextAction?.title) ? `Next: ${toOptionalText(nextAction.title)}` : null,
+    refsLabel ? `Refs: ${refsLabel}` : null,
+  ].filter(Boolean).join("\n");
+}
+
+function buildOperatorCaseWikiFocusSummary(focusedItem) {
+  if (!focusedItem || !isRecord(focusedItem.item)) {
+    return null;
+  }
+  return focusedItem.kind === "proof"
+    ? truncateOperatorCaseWikiFocusChipLabel(
+        toOptionalText(focusedItem.item.statement) ?? toOptionalText(focusedItem.item.status) ?? "Selected proof",
+        80,
+      )
+    : truncateOperatorCaseWikiFocusChipLabel(
+        toOptionalText(focusedItem.item.question) ?? toOptionalText(focusedItem.item.priority) ?? "Selected question",
+        80,
+      );
 }
 
 function resolveOperatorCaseWikiSelectedSessionId() {
@@ -32131,6 +32355,7 @@ function buildOperatorCaseWikiEvidencePreview() {
   const topProof = resolveOperatorCaseWikiTopProof(snapshot);
   const topEntity = resolveOperatorCaseWikiTopEntity(snapshot);
   const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
+  const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
   return stringifyOperatorRuntimeFaultValue(
     {
       topProof: topProof
@@ -32159,7 +32384,9 @@ function buildOperatorCaseWikiEvidencePreview() {
             sourceRefs: evidencePack.sourceRefs,
           }
         : null,
+      focus: buildOperatorCaseWikiFocusSummary(focusedItem),
       handoffPreview: buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack),
+      handoffFocus: buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem),
       recommendedNextAction: isRecord(snapshot.recommendedNextAction)
         ? {
             type: toOptionalText(snapshot.recommendedNextAction.type),

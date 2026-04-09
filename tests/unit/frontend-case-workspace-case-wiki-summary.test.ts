@@ -27,6 +27,10 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
       && htmlSource.includes('id="caseWorkspaceCaseWikiDrilldownValue"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiHandoffLabel">Handoff preview</dt>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiHandoffValue"')
+      && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiProofChipsLabel">Proof focus</span>')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiProofChips"')
+      && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiQuestionChipsLabel">Question focus</span>')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiQuestionChips"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiProofLabel">Top proof</span>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofTitle"')
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofSummary"')
@@ -46,6 +50,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     '"live.caseWorkspace.caseWikiRefsLabel": "Source refs"',
     '"live.caseWorkspace.caseWikiDrilldownLabel": "Evidence drilldown"',
     '"live.caseWorkspace.caseWikiHandoffLabel": "Handoff preview"',
+    '"live.caseWorkspace.caseWikiProofChipsLabel": "Proof focus"',
+    '"live.caseWorkspace.caseWikiQuestionChipsLabel": "Question focus"',
     '"live.caseWorkspace.caseWikiProofLabel": "Top proof"',
     '"live.caseWorkspace.caseWikiEntityLabel": "Key entity"',
     'caseWorkspaceCaseWikiPill: document.getElementById("caseWorkspaceCaseWikiPill")',
@@ -57,6 +63,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     'caseWorkspaceCaseWikiRefsValue: document.getElementById("caseWorkspaceCaseWikiRefsValue")',
     'caseWorkspaceCaseWikiDrilldownValue: document.getElementById("caseWorkspaceCaseWikiDrilldownValue")',
     'caseWorkspaceCaseWikiHandoffValue: document.getElementById("caseWorkspaceCaseWikiHandoffValue")',
+    'caseWorkspaceCaseWikiProofChips: document.getElementById("caseWorkspaceCaseWikiProofChips")',
+    'caseWorkspaceCaseWikiQuestionChips: document.getElementById("caseWorkspaceCaseWikiQuestionChips")',
     'caseWorkspaceCaseWikiProofTitle: document.getElementById("caseWorkspaceCaseWikiProofTitle")',
     'caseWorkspaceCaseWikiProofSummary: document.getElementById("caseWorkspaceCaseWikiProofSummary")',
     'caseWorkspaceCaseWikiEntityTitle: document.getElementById("caseWorkspaceCaseWikiEntityTitle")',
@@ -64,8 +72,12 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "function buildCaseWorkspaceCaseWikiSummary(isRu)",
     "function renderCaseWorkspaceCaseWikiSummary()",
     "const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);",
+    "const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);",
+    "const proofChips = buildOperatorCaseWikiFocusChipRail(evidencePack, \"proof\");",
+    "const questionChips = buildOperatorCaseWikiFocusChipRail(evidencePack, \"question\");",
     "const drilldownValue =",
     "const handoffValue =",
+    "function renderCaseWorkspaceCaseWikiFocusRail(container, chips, emptyText) {",
     "const caseWikiSummary = buildCaseWorkspaceCaseWikiSummary(isRu);",
     "el.caseWorkspaceCaseWikiStatusValue.textContent = caseWikiSummary.statusValue;",
     "el.caseWorkspaceCaseWikiProofTitle.textContent = caseWikiSummary.proofTitle;",
@@ -74,6 +86,7 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "el.caseWorkspaceCaseWikiRefsValue.textContent = caseWikiSummary.refsValue;",
     "el.caseWorkspaceCaseWikiDrilldownValue.textContent = caseWikiSummary.drilldownValue;",
     "el.caseWorkspaceCaseWikiHandoffValue.textContent = caseWikiSummary.handoffValue;",
+    "renderCaseWorkspaceCaseWikiFocusRail(",
     "renderCaseWorkspaceCaseWikiSummary();",
   ]) {
     assert.ok(appSource.includes(token), `app.js missing case wiki workspace token: ${token}`);
@@ -83,6 +96,9 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     ".case-workspace-summary-case-wiki {",
     "grid-column: 1 / -1;",
     ".case-workspace-summary-case-wiki .case-workspace-summary-list {",
+    ".case-workspace-case-wiki-focus-shell {",
+    ".case-workspace-case-wiki-focus-rail {",
+    ".case-workspace-case-wiki-focus-chip {",
     ".case-workspace-case-wiki-evidence-rail {",
   ]) {
     assert.ok(stylesSource.includes(token), `styles.css missing case wiki workspace token: ${token}`);
