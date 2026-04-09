@@ -14,6 +14,8 @@ import type {
   CaseWikiProofStatus,
   CaseWikiHandoffPack,
   CaseWikiHandoffPackItem,
+  CaseWikiFocusPack,
+  CaseWikiFocusPackItem,
   CaseWikiRoutingActionId,
   CaseWikiRoutingCTA,
   CaseWikiRoutingLane,
@@ -1226,6 +1228,85 @@ function buildCaseWikiActionPack(params: {
   };
 }
 
+function buildCaseWikiFocusPack(params: {
+  evidencePack: {
+    proofs: CaseWikiProof[];
+    questions: CaseWikiOpenQuestion[];
+    sourceRefs: string[];
+  };
+  handoffPack: CaseWikiHandoffPack;
+}): CaseWikiFocusPack {
+  const sharedFallbackRefs = params.evidencePack.sourceRefs;
+  const buildChipTitle = (lines: Array<string | null>): string | null => {
+    const normalized = lines.filter((item): item is string => Boolean(item));
+    return normalized.length > 0 ? normalized.join("\n") : null;
+  };
+  const buildDrilldown = (parts: Array<string | null>): string | null => {
+    const normalized = parts.filter((item): item is string => Boolean(item));
+    return normalized.length > 0 ? normalized.join(" | ") : null;
+  };
+  const buildProofItem = (proof: CaseWikiProof): CaseWikiFocusPackItem => {
+    const handoffPackItem = params.handoffPack.proofs.find((item) => item.focusId === proof.id) ?? null;
+    const sourceRefs =
+      proof.sourceRefs.length > 0
+        ? proof.sourceRefs
+        : (handoffPackItem?.sourceRefs.length ?? 0) > 0
+          ? handoffPackItem?.sourceRefs ?? []
+          : sharedFallbackRefs;
+    const refsLabel = sourceRefs.length > 0 ? `Refs: ${sourceRefs.join(", ")}` : null;
+    return {
+      focusKind: "proof",
+      focusId: proof.id,
+      focusLabel: proof.statement,
+      chipTitle: buildChipTitle([
+        proof.statement,
+        toNonEmptyString(proof.evidenceSummary),
+        toNonEmptyString(proof.contradictionNote),
+        refsLabel,
+      ]),
+      focusSummary: toNonEmptyString(proof.statement),
+      drilldown: buildDrilldown([
+        proof.statement,
+        toNonEmptyString(proof.evidenceSummary),
+        toNonEmptyString(proof.contradictionNote),
+      ]),
+      handoffPreview: toNonEmptyString(handoffPackItem?.handoff ?? null),
+    };
+  };
+  const buildQuestionItem = (question: CaseWikiOpenQuestion): CaseWikiFocusPackItem => {
+    const handoffPackItem = params.handoffPack.questions.find((item) => item.focusId === question.id) ?? null;
+    const sourceRefs =
+      question.sourceRefs.length > 0
+        ? question.sourceRefs
+        : (handoffPackItem?.sourceRefs.length ?? 0) > 0
+          ? handoffPackItem?.sourceRefs ?? []
+          : sharedFallbackRefs;
+    const refsLabel = sourceRefs.length > 0 ? `Refs: ${sourceRefs.join(", ")}` : null;
+    return {
+      focusKind: "question",
+      focusId: question.id,
+      focusLabel: question.question,
+      chipTitle: buildChipTitle([
+        question.question,
+        toNonEmptyString(question.suggestedNextStep),
+        toNonEmptyString(question.owner ?? null) ? `Owner: ${toNonEmptyString(question.owner ?? null)}` : null,
+        refsLabel,
+      ]),
+      focusSummary: toNonEmptyString(question.question),
+      drilldown: buildDrilldown([
+        question.question,
+        toNonEmptyString(question.suggestedNextStep),
+        toNonEmptyString(question.owner ?? null),
+      ]),
+      handoffPreview: toNonEmptyString(handoffPackItem?.handoff ?? null),
+    };
+  };
+  return {
+    proofs: params.evidencePack.proofs.map((item) => buildProofItem(item)),
+    questions: params.evidencePack.questions.map((item) => buildQuestionItem(item)),
+  };
+}
+
 function selectTopProof(proofs: CaseWikiProof[]): CaseWikiProof | null {
   return (
     proofs.find((item) => item.status === "missing") ??
@@ -1371,6 +1452,10 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     handoffPack,
     detailPack,
   });
+  const focusPack = buildCaseWikiFocusPack({
+    evidencePack,
+    handoffPack,
+  });
 
   return {
     schemaVersion: 1,
@@ -1413,6 +1498,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     detailPack,
     routingPack,
     actionPack,
+    focusPack,
     entities,
     timeline,
     proofs,

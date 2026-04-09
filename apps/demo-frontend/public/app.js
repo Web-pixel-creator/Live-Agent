@@ -25873,6 +25873,7 @@ function buildSessionExportOperatorCaseWiki() {
     detailPack: isRecord(snapshot?.detailPack) ? snapshot.detailPack : null,
     routingPack: isRecord(snapshot?.routingPack) ? snapshot.routingPack : null,
     actionPack: isRecord(snapshot?.actionPack) ? snapshot.actionPack : null,
+    focusPack: isRecord(snapshot?.focusPack) ? snapshot.focusPack : null,
     recommendedNextAction: isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null,
     topBlockingQuestion: isRecord(blockingQuestion) ? blockingQuestion : null,
     topProof: isRecord(topProof) ? topProof : null,
@@ -26116,6 +26117,9 @@ function toMarkdownExport(payload) {
   );
   lines.push(
     `- actionPack: proofs=${payload.operatorEvidence?.operatorCaseWiki?.actionPack?.proofs?.length ?? 0}, questions=${payload.operatorEvidence?.operatorCaseWiki?.actionPack?.questions?.length ?? 0}`,
+  );
+  lines.push(
+    `- focusPack: proofs=${payload.operatorEvidence?.operatorCaseWiki?.focusPack?.proofs?.length ?? 0}, questions=${payload.operatorEvidence?.operatorCaseWiki?.focusPack?.questions?.length ?? 0}`,
   );
   lines.push(
     `- counts: entities=${payload.operatorEvidence?.operatorCaseWiki?.counts?.entities ?? 0}, proofs=${payload.operatorEvidence?.operatorCaseWiki?.counts?.proofs ?? 0}, openQuestions=${payload.operatorEvidence?.operatorCaseWiki?.counts?.openQuestions ?? 0}, timeline=${payload.operatorEvidence?.operatorCaseWiki?.counts?.timeline ?? 0}`,
@@ -32257,6 +32261,12 @@ function buildOperatorCaseWikiSnapshot(value) {
           questions: Array.isArray(value.actionPack.questions) ? value.actionPack.questions.filter((item) => isRecord(item)) : [],
         }
       : null,
+    focusPack: isRecord(value.focusPack)
+      ? {
+          proofs: Array.isArray(value.focusPack.proofs) ? value.focusPack.proofs.filter((item) => isRecord(item)) : [],
+          questions: Array.isArray(value.focusPack.questions) ? value.focusPack.questions.filter((item) => isRecord(item)) : [],
+        }
+      : null,
     entities: Array.isArray(value.entities) ? value.entities.filter((item) => isRecord(item)) : [],
     timeline: Array.isArray(value.timeline) ? value.timeline.filter((item) => isRecord(item)) : [],
     proofs: Array.isArray(value.proofs) ? value.proofs.filter((item) => isRecord(item)) : [],
@@ -32398,6 +32408,12 @@ function resolveOperatorCaseWikiFocusedItem(evidencePack) {
 function buildOperatorCaseWikiFocusChipTitle(kind, item) {
   if (!isRecord(item)) {
     return null;
+  }
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const itemId = toOptionalText(item.id);
+  const focusPackItem = itemId ? resolveOperatorCaseWikiFocusPackItem(snapshot, kind, itemId) : null;
+  if (toOptionalText(focusPackItem?.chipTitle)) {
+    return toOptionalText(focusPackItem.chipTitle);
   }
   const sourceRefs = Array.isArray(item.sourceRefs) ? item.sourceRefs : [];
   if (kind === "proof") {
@@ -32555,6 +32571,25 @@ function resolveOperatorCaseWikiActionPackItem(snapshot, kind, focusId) {
   ) ?? null;
 }
 
+function resolveOperatorCaseWikiFocusPackItem(snapshot, kind, focusId) {
+  if (!isRecord(snapshot) || !focusId) {
+    return null;
+  }
+  const focusPack = isRecord(snapshot.focusPack) ? snapshot.focusPack : null;
+  if (!focusPack) {
+    return null;
+  }
+  const items = kind === "proof" ? focusPack.proofs : focusPack.questions;
+  if (!Array.isArray(items)) {
+    return null;
+  }
+  return items.find((item) =>
+    isRecord(item) &&
+    toOptionalText(item.focusKind) === kind &&
+    toOptionalText(item.focusId) === focusId
+  ) ?? null;
+}
+
 function buildOperatorCaseWikiDetailValueFromPackItem(detailPackItem) {
   if (!isRecord(detailPackItem)) {
     return null;
@@ -32596,6 +32631,12 @@ function buildOperatorCaseWikiFocusedDrilldownValue(focusedItem) {
   if (!focusedItem || !isRecord(focusedItem.item)) {
     return null;
   }
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const focusId = toOptionalText(focusedItem.id) ?? toOptionalText(focusedItem.item.id);
+  const focusPackItem = focusId ? resolveOperatorCaseWikiFocusPackItem(snapshot, focusedItem.kind, focusId) : null;
+  if (toOptionalText(focusPackItem?.drilldown)) {
+    return toOptionalText(focusPackItem.drilldown);
+  }
   const item = focusedItem.item;
   if (focusedItem.kind === "proof") {
     return [
@@ -32614,6 +32655,11 @@ function buildOperatorCaseWikiFocusedDrilldownValue(focusedItem) {
 function buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem) {
   if (!focusedItem || !isRecord(focusedItem.item)) {
     return null;
+  }
+  const focusId = toOptionalText(focusedItem.id) ?? toOptionalText(focusedItem.item.id);
+  const focusPackItem = focusId ? resolveOperatorCaseWikiFocusPackItem(snapshot, focusedItem.kind, focusId) : null;
+  if (toOptionalText(focusPackItem?.handoffPreview)) {
+    return toOptionalText(focusPackItem.handoffPreview);
   }
   const handoffPackItem = resolveOperatorCaseWikiFocusedHandoffPackItem(snapshot, focusedItem);
   if (toOptionalText(handoffPackItem?.handoff)) {
@@ -32917,6 +32963,12 @@ function buildOperatorCaseWikiFocusedRoutingCTA(lane, route, nextAction, focused
 function buildOperatorCaseWikiFocusSummary(focusedItem) {
   if (!focusedItem || !isRecord(focusedItem.item)) {
     return null;
+  }
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const focusId = toOptionalText(focusedItem.id) ?? toOptionalText(focusedItem.item.id);
+  const focusPackItem = focusId ? resolveOperatorCaseWikiFocusPackItem(snapshot, focusedItem.kind, focusId) : null;
+  if (toOptionalText(focusPackItem?.focusSummary)) {
+    return truncateOperatorCaseWikiFocusChipLabel(toOptionalText(focusPackItem.focusSummary), 80);
   }
   return focusedItem.kind === "proof"
     ? truncateOperatorCaseWikiFocusChipLabel(

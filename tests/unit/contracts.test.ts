@@ -538,6 +538,44 @@ test("case wiki contracts expose stable structured memory shapes", () => {
         },
       ],
     },
+    focusPack: {
+      proofs: [
+        {
+          focusKind: "proof",
+          focusId: "proof-1",
+          focusLabel: "Customer wants a spouse relocation consultation.",
+          chipTitle: [
+            "Customer wants a spouse relocation consultation.",
+            "Confirmed in the latest live intake.",
+            "Refs: session:session-123",
+          ].join("\n"),
+          focusSummary: "Customer wants a spouse relocation consultation.",
+          drilldown: "Customer wants a spouse relocation consultation. | Confirmed in the latest live intake.",
+          handoffPreview: [
+            "Focus proof: Customer wants a spouse relocation consultation.",
+            "Evidence: Confirmed in the latest live intake.",
+          ].join("\n"),
+        },
+      ],
+      questions: [
+        {
+          focusKind: "question",
+          focusId: "question-1",
+          focusLabel: "Has the customer already received the invitation letter?",
+          chipTitle: [
+            "Has the customer already received the invitation letter?",
+            "Request the invitation letter or confirm issuance status.",
+            "Owner: customer",
+          ].join("\n"),
+          focusSummary: "Has the customer already received the invitation letter?",
+          drilldown: "Has the customer already received the invitation letter? | Request the invitation letter or confirm issuance status. | customer",
+          handoffPreview: [
+            "Focus question: Has the customer already received the invitation letter?",
+            "Resolve: Request the invitation letter or confirm issuance status.",
+          ].join("\n"),
+        },
+      ],
+    },
     entities: [
       {
         id: "entity-customer",
@@ -610,6 +648,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.equal(wiki.routingPack.questions[0]?.cta.actionId, "run_negotiation");
   assert.match(wiki.actionPack.proofs[0]?.handoffText ?? "", /Proof handoff/i);
   assert.match(wiki.actionPack.questions[0]?.refsText ?? "", /Question refs/i);
+  assert.match(wiki.focusPack.proofs[0]?.chipTitle ?? "", /Refs:/i);
+  assert.match(wiki.focusPack.questions[0]?.handoffPreview ?? "", /Focus question/i);
   assert.equal(wiki.entities[0]?.kind, "person");
   assert.equal(wiki.proofs[0]?.status, "confirmed");
   assert.equal(wiki.recommendedNextAction?.type, "document_request");

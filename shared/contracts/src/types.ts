@@ -303,6 +303,21 @@ export type CaseWikiActionPack = {
   questions: CaseWikiActionPackItem[];
 };
 
+export type CaseWikiFocusPackItem = {
+  focusKind: CaseWikiRoutingFocusKind;
+  focusId: string;
+  focusLabel: string;
+  chipTitle: string | null;
+  focusSummary: string | null;
+  drilldown: string | null;
+  handoffPreview: string | null;
+};
+
+export type CaseWikiFocusPack = {
+  proofs: CaseWikiFocusPackItem[];
+  questions: CaseWikiFocusPackItem[];
+};
+
 export type CaseWikiRoutingRoute = {
   lane: CaseWikiRoutingLane;
   owner: string | null;
@@ -403,6 +418,7 @@ export type CaseWiki = {
   detailPack: CaseWikiDetailPack;
   routingPack: CaseWikiRoutingPack;
   actionPack: CaseWikiActionPack;
+  focusPack: CaseWikiFocusPack;
   entities: CaseWikiEntity[];
   timeline: CaseWikiTimelineEntry[];
   proofs: CaseWikiProof[];
