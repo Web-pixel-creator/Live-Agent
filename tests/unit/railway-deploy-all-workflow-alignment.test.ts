@@ -56,6 +56,8 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /- name:\s*Run Production Smoke/);
   assert.match(source, /if:\s*steps\.combined_deploy\.outcome == 'success' \|\| steps\.verify_only_fallback\.outcome == 'success'/);
   assert.match(source, /npm run verify:deploy:production-smoke -- -GatewayPublicUrl/);
+  assert.match(source, /- name:\s*Run Direct-Live Proof/);
+  assert.match(source, /npm run verify:deploy:direct-live-proof -- -FrontendPublicUrl/);
   assert.match(source, /- name:\s*Publish Railway Deploy Mode Summary/);
   assert.match(source, /railway_deploy_mode=/);
   assert.match(source, /real_deploy/);
@@ -73,10 +75,18 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /Production smoke frontend title:/);
   assert.match(source, /Production smoke badge:/);
   assert.match(source, /Production smoke was not generated\./);
+  assert.match(source, /Direct-live proof status:/);
+  assert.match(source, /Direct-live proof API URL:/);
+  assert.match(source, /Direct-live proof requested session:/);
+  assert.match(source, /Direct-live proof transport:/);
+  assert.match(source, /Direct-live proof was not generated\./);
   assert.match(source, /- name:\s*Upload Railway Deploy Artifacts/);
   assert.match(source, /name:\s*railway-deploy-all-artifacts/);
   assert.match(source, /artifacts\/deploy\/production-smoke\.json/);
   assert.match(source, /artifacts\/deploy\/production-smoke\.md/);
+  assert.match(source, /artifacts\/deploy\/direct-live-proof\.json/);
+  assert.match(source, /artifacts\/deploy\/direct-live-proof\.md/);
+  assert.match(source, /artifacts\/deploy\/direct-live-proof\.png/);
   assert.match(source, /-SkipReleaseVerification/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
   assert.match(source, /-FrontendApiBaseUrl/);

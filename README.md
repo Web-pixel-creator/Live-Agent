@@ -1490,6 +1490,7 @@ All GitHub workflow jobs that rely on JavaScript-based actions now use Node 24-c
 - Optional repository variable: `FRONTEND_PUBLIC_URL` (used by verify-only fallback frontend health check; default fallback URL is `https://live-agent-frontend-production.up.railway.app`).
 - Job summary also surfaces `artifacts/deploy/railway-deploy-summary.json` when a real gateway deploy emits it, and the workflow uploads the same file as artifact bundle `railway-deploy-all-artifacts`.
 - After a successful real deploy or verify-only fallback, the workflow also runs `verify:deploy:production-smoke` and uploads `artifacts/deploy/production-smoke.json` plus `artifacts/deploy/production-smoke.md`.
+- The same deploy workflows now also run `verify:deploy:direct-live-proof`, producing `artifacts/deploy/direct-live-proof.json`, `artifacts/deploy/direct-live-proof.md`, and `artifacts/deploy/direct-live-proof.png` from the hosted browser lane. When the runtime does not support direct live, that artifact is allowed to report `skipped`; when supported, it must prove `direct_live` via backend replay `session_events`.
 
 - Full workflow: `.github/workflows/demo-e2e.yml`
 - Triggered on push to `main`/`master` and manual dispatch.
@@ -1522,6 +1523,7 @@ All GitHub workflow jobs that rely on JavaScript-based actions now use Node 24-c
 - Job summary includes strict badge evidence statuses from unified report `artifacts/release-evidence/report.json`: `operatorTurnTruncation`, `operatorTurnDelete`, `operatorDamageControl`, `governancePolicy`, `skillsRegistry`, `pluginMarketplace`, `deviceNodes`, `agentUsage`, `runtimeGuardrailsSignalPaths`, `liveTransport`, `providerUsage`, and derived updates-lane signal `deviceNodeUpdatesStatus`.
 - When the strict workflow also performs a real Railway deploy, job summary surfaces `artifacts/deploy/railway-deploy-summary.json` fields (`status`, `deploymentId`, `effectivePublicUrl`, `badgeEndpoint`, `badgeDetailsEndpoint`) and the uploaded bundle includes that artifact.
 - After a successful strict Railway deploy or verify-only fallback, the strict workflow also runs `verify:deploy:production-smoke`, publishes smoke status to job summary, and uploads `artifacts/deploy/production-smoke.json` plus `artifacts/deploy/production-smoke.md`.
+- The strict workflow also uploads hosted browser direct-live proof artifacts (`artifacts/deploy/direct-live-proof.json`, `.md`, `.png`) and adds their status, API URL source, session mapping, and replay transport source to the GitHub Actions job summary.
 - Strict workflow also builds unified release evidence artifacts:
   - `artifacts/release-evidence/report.json`
   - `artifacts/release-evidence/report.md`

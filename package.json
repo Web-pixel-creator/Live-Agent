@@ -63,6 +63,7 @@
     "verify:deploy:railway:dry": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/verify-deploy-railway-dry.ps1",
     "verify:deploy:readiness": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-readiness-preflight.ps1",
     "verify:deploy:production-smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-production-smoke.ps1",
+    "verify:deploy:direct-live-proof": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-direct-live-proof.ps1",
     "repo:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-repo-publish.ps1",
     "deploy:railway": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy.ps1",
     "deploy:railway:frontend": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy-frontend.ps1",

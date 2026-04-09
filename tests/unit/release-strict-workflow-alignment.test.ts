@@ -62,6 +62,8 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /- name:\s*Run Production Smoke/);
   assert.match(source, /steps\.combined_deploy\.outcome == 'success' \|\| steps\.verify_only_fallback\.outcome == 'success'/);
   assert.match(source, /npm run verify:deploy:production-smoke -- -GatewayPublicUrl/);
+  assert.match(source, /- name:\s*Run Direct-Live Proof/);
+  assert.match(source, /npm run verify:deploy:direct-live-proof -- -FrontendPublicUrl/);
   assert.match(source, /- name:\s*Publish Railway Deploy Mode Summary/);
   assert.match(source, /railway_deploy_mode=/);
   assert.match(source, /not_requested/);
@@ -138,6 +140,11 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /Production smoke frontend title:/);
   assert.match(source, /Production smoke badge:/);
   assert.match(source, /Production smoke was not generated\./);
+  assert.match(source, /Direct-live proof status:/);
+  assert.match(source, /Direct-live proof API URL:/);
+  assert.match(source, /Direct-live proof requested session:/);
+  assert.match(source, /Direct-live proof transport:/);
+  assert.match(source, /Direct-live proof was not generated\./);
   assert.match(source, /Release evidence report JSON: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_json_path\s*\}\}/);
   assert.match(source, /Release evidence report Markdown: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_md_path\s*\}\}/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
@@ -168,6 +175,9 @@ test("release strict workflow publishes release-critical artifacts", () => {
   assert.match(source, /artifacts\/deploy\/railway-deploy-summary\.json/);
   assert.match(source, /artifacts\/deploy\/production-smoke\.json/);
   assert.match(source, /artifacts\/deploy\/production-smoke\.md/);
+  assert.match(source, /artifacts\/deploy\/direct-live-proof\.json/);
+  assert.match(source, /artifacts\/deploy\/direct-live-proof\.md/);
+  assert.match(source, /artifacts\/deploy\/direct-live-proof\.png/);
   assert.match(source, /artifacts\/release-evidence\/report\.json/);
   assert.match(source, /artifacts\/release-evidence\/report\.md/);
   assert.match(source, /artifacts\/evals\/latest-run\.json/);
