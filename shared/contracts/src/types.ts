@@ -106,6 +106,139 @@ export type LiveRuntimeStatus = {
   capabilities: LiveCapabilitiesSnapshot;
 };
 
+export const CASE_WIKI_STATUSES = [
+  "active",
+  "waiting_on_customer",
+  "waiting_on_operator",
+  "blocked",
+  "resolved",
+] as const;
+
+export type CaseWikiStatus = (typeof CASE_WIKI_STATUSES)[number];
+
+export const CASE_WIKI_ENTITY_KINDS = [
+  "person",
+  "company",
+  "document",
+  "appointment",
+  "policy",
+  "requirement",
+  "task",
+  "location",
+  "system",
+  "case",
+] as const;
+
+export type CaseWikiEntityKind = (typeof CASE_WIKI_ENTITY_KINDS)[number];
+
+export const CASE_WIKI_TIMELINE_ENTRY_KINDS = [
+  "session",
+  "operator_note",
+  "approval",
+  "workflow",
+  "document",
+  "task",
+  "system",
+] as const;
+
+export type CaseWikiTimelineEntryKind = (typeof CASE_WIKI_TIMELINE_ENTRY_KINDS)[number];
+
+export const CASE_WIKI_PROOF_STATUSES = ["confirmed", "pending", "contradicted", "missing"] as const;
+
+export type CaseWikiProofStatus = (typeof CASE_WIKI_PROOF_STATUSES)[number];
+
+export const CASE_WIKI_PRIORITIES = ["low", "medium", "high"] as const;
+
+export type CaseWikiPriority = (typeof CASE_WIKI_PRIORITIES)[number];
+
+export const CASE_WIKI_NEXT_ACTION_TYPES = [
+  "operator_followup",
+  "approval_request",
+  "document_request",
+  "workflow_resume",
+  "ui_task",
+  "live_followup",
+] as const;
+
+export type CaseWikiNextActionType = (typeof CASE_WIKI_NEXT_ACTION_TYPES)[number];
+
+export type CaseWikiOverview = {
+  title: string;
+  summary: string;
+  status: CaseWikiStatus;
+  customerGoal: string | null;
+  currentStage: string | null;
+  lastMeaningfulUpdateAt: string | null;
+  activeLanguage: string | null;
+  missingEvidenceSummary: string | null;
+  contradictionsSummary: string | null;
+};
+
+export type CaseWikiEntity = {
+  id: string;
+  kind: CaseWikiEntityKind;
+  label: string;
+  role: string | null;
+  description: string | null;
+  confidence: number | null;
+  sourceRefs: string[];
+};
+
+export type CaseWikiTimelineEntry = {
+  id: string;
+  kind: CaseWikiTimelineEntryKind;
+  ts: string;
+  title: string;
+  summary: string;
+  status: string | null;
+  sourceRefs: string[];
+};
+
+export type CaseWikiProof = {
+  id: string;
+  statement: string;
+  status: CaseWikiProofStatus;
+  confidence: number | null;
+  evidenceSummary: string | null;
+  contradictionNote: string | null;
+  sourceRefs: string[];
+};
+
+export type CaseWikiOpenQuestion = {
+  id: string;
+  question: string;
+  priority: CaseWikiPriority;
+  blocking: boolean;
+  owner: string | null;
+  suggestedNextStep: string | null;
+  sourceRefs: string[];
+};
+
+export type CaseWikiNextAction = {
+  type: CaseWikiNextActionType;
+  title: string;
+  summary: string;
+  owner: string | null;
+  dueBy: string | null;
+  blocking: boolean;
+  relatedQuestionIds: string[];
+  sourceRefs: string[];
+};
+
+export type CaseWiki = {
+  schemaVersion: 1;
+  caseId: string;
+  sessionId: string | null;
+  userId: string | null;
+  generatedAt: string;
+  overview: CaseWikiOverview;
+  entities: CaseWikiEntity[];
+  timeline: CaseWikiTimelineEntry[];
+  proofs: CaseWikiProof[];
+  openQuestions: CaseWikiOpenQuestion[];
+  recommendedNextAction: CaseWikiNextAction | null;
+};
+
 export type RuntimeLiveSessionEventIngestRequest = {
   id?: string;
   userId?: string;

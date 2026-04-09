@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  CASE_WIKI_ENTITY_KINDS,
+  CASE_WIKI_NEXT_ACTION_TYPES,
+  CASE_WIKI_PRIORITIES,
+  CASE_WIKI_PROOF_STATUSES,
+  CASE_WIKI_STATUSES,
+  CASE_WIKI_TIMELINE_ENTRY_KINDS,
   createEnvelope,
   createNormalizedError,
   LIVE_CAPABILITY_FLAGS,
@@ -13,6 +19,7 @@ import {
   type LiveRuntimeStatus,
   type RuntimeLiveSessionEventIngestRequest,
   type RuntimeLiveSessionEventIngestResponse,
+  type CaseWiki,
   type LiveSessionTokenResponse,
 } from "../../shared/contracts/src/index.js";
 
@@ -165,6 +172,125 @@ test("direct-live replay ingest contracts expose a stable browser-to-backend pro
   assert.equal(liveTransportPayload?.activeMode, "direct_live");
   assert.equal(ingestResponse.accepted, true);
   assert.equal(ingestResponse.source, "direct_live");
+});
+
+test("case wiki contracts expose stable structured memory shapes", () => {
+  assert.deepEqual(CASE_WIKI_STATUSES, [
+    "active",
+    "waiting_on_customer",
+    "waiting_on_operator",
+    "blocked",
+    "resolved",
+  ]);
+  assert.deepEqual(CASE_WIKI_ENTITY_KINDS, [
+    "person",
+    "company",
+    "document",
+    "appointment",
+    "policy",
+    "requirement",
+    "task",
+    "location",
+    "system",
+    "case",
+  ]);
+  assert.deepEqual(CASE_WIKI_TIMELINE_ENTRY_KINDS, [
+    "session",
+    "operator_note",
+    "approval",
+    "workflow",
+    "document",
+    "task",
+    "system",
+  ]);
+  assert.deepEqual(CASE_WIKI_PROOF_STATUSES, ["confirmed", "pending", "contradicted", "missing"]);
+  assert.deepEqual(CASE_WIKI_PRIORITIES, ["low", "medium", "high"]);
+  assert.deepEqual(CASE_WIKI_NEXT_ACTION_TYPES, [
+    "operator_followup",
+    "approval_request",
+    "document_request",
+    "workflow_resume",
+    "ui_task",
+    "live_followup",
+  ]);
+
+  const wiki: CaseWiki = {
+    schemaVersion: 1,
+    caseId: "case-123",
+    sessionId: "session-123",
+    userId: "user-123",
+    generatedAt: "2026-04-09T07:00:00.000Z",
+    overview: {
+      title: "Visa intake for spouse relocation",
+      summary: "Customer is evaluating a relocation package and waiting on document guidance.",
+      status: "waiting_on_customer",
+      customerGoal: "Collect missing visa documents and book a consultation.",
+      currentStage: "document_collection",
+      lastMeaningfulUpdateAt: "2026-04-09T06:58:00.000Z",
+      activeLanguage: "en",
+      missingEvidenceSummary: "Passport scan and invitation letter are still missing.",
+      contradictionsSummary: null,
+    },
+    entities: [
+      {
+        id: "entity-customer",
+        kind: "person",
+        label: "Primary applicant",
+        role: "customer",
+        description: "Applicant relocating with spouse.",
+        confidence: 0.98,
+        sourceRefs: ["session:session-123", "note:operator-1"],
+      },
+    ],
+    timeline: [
+      {
+        id: "timeline-1",
+        kind: "session",
+        ts: "2026-04-09T06:55:00.000Z",
+        title: "Live intake session completed",
+        summary: "Customer asked about spouse visa steps and consultation timing.",
+        status: "completed",
+        sourceRefs: ["session:session-123"],
+      },
+    ],
+    proofs: [
+      {
+        id: "proof-1",
+        statement: "Customer wants a spouse relocation consultation.",
+        status: "confirmed",
+        confidence: 0.96,
+        evidenceSummary: "Confirmed in the latest live intake.",
+        contradictionNote: null,
+        sourceRefs: ["session:session-123"],
+      },
+    ],
+    openQuestions: [
+      {
+        id: "question-1",
+        question: "Has the customer already received the invitation letter?",
+        priority: "high",
+        blocking: true,
+        owner: "customer",
+        suggestedNextStep: "Request the invitation letter or confirm issuance status.",
+        sourceRefs: ["proof:proof-1"],
+      },
+    ],
+    recommendedNextAction: {
+      type: "document_request",
+      title: "Request missing visa documents",
+      summary: "Ask the customer for the passport scan and invitation letter before scheduling filing.",
+      owner: "operator",
+      dueBy: null,
+      blocking: true,
+      relatedQuestionIds: ["question-1"],
+      sourceRefs: ["question:question-1", "timeline:timeline-1"],
+    },
+  };
+
+  assert.equal(wiki.overview.status, "waiting_on_customer");
+  assert.equal(wiki.entities[0]?.kind, "person");
+  assert.equal(wiki.proofs[0]?.status, "confirmed");
+  assert.equal(wiki.recommendedNextAction?.type, "document_request");
 });
 
 test("task metadata roundtrips ui verification state and failure class", () => {

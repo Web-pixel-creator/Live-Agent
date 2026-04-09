@@ -143,13 +143,11 @@ Definition of done:
 
 The next commit train should follow this order:
 
-1. `feat: add live direct mode contracts`
-2. `feat: add runtime live token endpoints`
-3. `feat: expose live direct readiness in runtime surfaces`
-4. `feat: add frontend live bootstrap modes`
-5. `feat: add direct live browser session`
-6. `feat: add live mode replay evidence`
-7. `feat: record live direct release evidence`
+1. `feat: add case wiki contracts`
+2. `feat: add runtime case wiki builder`
+3. `feat: add runtime case wiki routes`
+4. `feat: add operator case wiki panel`
+5. `feat: add case wiki replay and export evidence`
 
 ## P0 - Must Ship
 
