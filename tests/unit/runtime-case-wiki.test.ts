@@ -201,6 +201,11 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.match(wiki?.overview.summary ?? "", /passport scan and invitation letter are still missing/i);
   assert.match(wiki?.overview.missingEvidenceSummary ?? "", /2 required follow-up items still missing/i);
   assert.equal(wiki?.overview.contradictionsSummary, null);
+  assert.equal(wiki?.highlights.topProof?.id, "proof:followup-completeness");
+  assert.equal(wiki?.highlights.topProof?.status, "missing");
+  assert.equal(wiki?.highlights.topEntity?.id, "location:canada");
+  assert.equal(wiki?.highlights.topEntity?.label, "Canada");
+  assert.equal(wiki?.highlights.topBlockingQuestion?.id, "question:missing-followup-items");
   assert.equal(wiki?.entities.some((item) => item.kind === "case" && item.id === "case:case-42"), true);
   assert.equal(wiki?.entities.some((item) => item.kind === "location" && item.label === "Canada"), true);
   assert.equal(wiki?.timeline[0]?.id, "session:session-case-1");
@@ -337,4 +342,5 @@ test("runtime case wiki prioritizes pending approvals as the next action when op
   assert.equal(wiki?.recommendedNextAction?.dueBy, "2026-04-09T09:20:00.000Z");
   assert.deepEqual(wiki?.recommendedNextAction?.relatedQuestionIds, ["question:approval:approval-pending-1"]);
   assert.deepEqual(wiki?.recommendedNextAction?.sourceRefs, ["approval:approval-pending-1"]);
+  assert.equal(wiki?.highlights.topBlockingQuestion?.id, "question:approval:approval-pending-1");
 });

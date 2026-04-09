@@ -225,6 +225,12 @@ export type CaseWikiNextAction = {
   sourceRefs: string[];
 };
 
+export type CaseWikiHighlights = {
+  topProof: CaseWikiProof | null;
+  topEntity: CaseWikiEntity | null;
+  topBlockingQuestion: CaseWikiOpenQuestion | null;
+};
+
 export type RuntimeCaseWikiNoteRequest = {
   sessionId: string;
   runId?: string;
@@ -255,6 +261,7 @@ export type CaseWiki = {
   userId: string | null;
   generatedAt: string;
   overview: CaseWikiOverview;
+  highlights: CaseWikiHighlights;
   entities: CaseWikiEntity[];
   timeline: CaseWikiTimelineEntry[];
   proofs: CaseWikiProof[];

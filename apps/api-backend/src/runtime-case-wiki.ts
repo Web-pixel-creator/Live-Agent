@@ -713,6 +713,23 @@ function buildRecommendedNextAction(context: RuntimeCaseWikiContext, openQuestio
   };
 }
 
+function selectTopProof(proofs: CaseWikiProof[]): CaseWikiProof | null {
+  return (
+    proofs.find((item) => item.status === "missing") ??
+    proofs.find((item) => item.status === "confirmed") ??
+    proofs[0] ??
+    null
+  );
+}
+
+function selectTopEntity(entities: CaseWikiEntity[]): CaseWikiEntity | null {
+  return entities.find((item) => toNonEmptyString(item.kind) !== "case") ?? entities[0] ?? null;
+}
+
+function selectTopBlockingQuestion(openQuestions: CaseWikiOpenQuestion[]): CaseWikiOpenQuestion | null {
+  return openQuestions.find((item) => item.blocking === true) ?? openQuestions[0] ?? null;
+}
+
 function buildContext(params: RuntimeCaseWikiBuilderParams): RuntimeCaseWikiContext | null {
   const requestedSessionId = toNonEmptyString(params.selectedSessionId ?? null);
   const selectedSession = deriveSelectedSession(params.sessions, requestedSessionId);
@@ -756,7 +773,11 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     return null;
   }
 
+  const entities = buildEntities(context);
+  const timeline = buildTimeline(context);
+  const proofs = buildProofs(context);
   const openQuestions = buildOpenQuestions(context);
+  const recommendedNextAction = buildRecommendedNextAction(context, openQuestions);
 
   return {
     schemaVersion: 1,
@@ -789,10 +810,15 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
       missingEvidenceSummary: buildMissingEvidenceSummary(context),
       contradictionsSummary: buildContradictionsSummary(context),
     },
-    entities: buildEntities(context),
-    timeline: buildTimeline(context),
-    proofs: buildProofs(context),
+    highlights: {
+      topProof: selectTopProof(proofs),
+      topEntity: selectTopEntity(entities),
+      topBlockingQuestion: selectTopBlockingQuestion(openQuestions),
+    },
+    entities,
+    timeline,
+    proofs,
     openQuestions,
-    recommendedNextAction: buildRecommendedNextAction(context, openQuestions),
+    recommendedNextAction,
   };
 }

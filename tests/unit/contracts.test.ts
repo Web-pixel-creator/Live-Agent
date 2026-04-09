@@ -233,6 +233,35 @@ test("case wiki contracts expose stable structured memory shapes", () => {
       missingEvidenceSummary: "Passport scan and invitation letter are still missing.",
       contradictionsSummary: null,
     },
+    highlights: {
+      topProof: {
+        id: "proof-1",
+        statement: "Customer wants a spouse relocation consultation.",
+        status: "confirmed",
+        confidence: 0.96,
+        evidenceSummary: "Confirmed in the latest live intake.",
+        contradictionNote: null,
+        sourceRefs: ["session:session-123"],
+      },
+      topEntity: {
+        id: "entity-customer",
+        kind: "person",
+        label: "Primary applicant",
+        role: "customer",
+        description: "Applicant relocating with spouse.",
+        confidence: 0.98,
+        sourceRefs: ["session:session-123", "note:operator-1"],
+      },
+      topBlockingQuestion: {
+        id: "question-1",
+        question: "Has the customer already received the invitation letter?",
+        priority: "high",
+        blocking: true,
+        owner: "customer",
+        suggestedNextStep: "Request the invitation letter or confirm issuance status.",
+        sourceRefs: ["proof:proof-1"],
+      },
+    },
     entities: [
       {
         id: "entity-customer",
@@ -290,6 +319,9 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   };
 
   assert.equal(wiki.overview.status, "waiting_on_customer");
+  assert.equal(wiki.highlights.topProof?.status, "confirmed");
+  assert.equal(wiki.highlights.topEntity?.kind, "person");
+  assert.equal(wiki.highlights.topBlockingQuestion?.priority, "high");
   assert.equal(wiki.entities[0]?.kind, "person");
   assert.equal(wiki.proofs[0]?.status, "confirmed");
   assert.equal(wiki.recommendedNextAction?.type, "document_request");

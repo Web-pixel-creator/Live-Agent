@@ -3705,6 +3705,7 @@ const el = {
   operatorSessionOpsReplaySnapshot: document.getElementById("operatorSessionOpsReplaySnapshot"),
   operatorSessionOpsDiscoverySnapshot: document.getElementById("operatorSessionOpsDiscoverySnapshot"),
   operatorCaseWikiOverviewSnapshot: document.getElementById("operatorCaseWikiOverviewSnapshot"),
+  operatorCaseWikiEvidenceSnapshot: document.getElementById("operatorCaseWikiEvidenceSnapshot"),
   operatorCaseWikiQuestionsSnapshot: document.getElementById("operatorCaseWikiQuestionsSnapshot"),
   operatorCaseWikiTimelineSnapshot: document.getElementById("operatorCaseWikiTimelineSnapshot"),
   operatorSessionOpsLastResult: document.getElementById("operatorSessionOpsLastResult"),
@@ -7848,17 +7849,10 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     return idle;
   }
   const overview = isRecord(snapshot.overview) ? snapshot.overview : null;
-  const blockingQuestion = snapshot.openQuestions.find((item) => item.blocking === true) ?? snapshot.openQuestions[0] ?? null;
+  const blockingQuestion = resolveOperatorCaseWikiTopBlockingQuestion(snapshot);
   const nextAction = isRecord(snapshot.recommendedNextAction) ? snapshot.recommendedNextAction : null;
-  const topProof =
-    snapshot.proofs.find((item) => item.status === "missing") ??
-    snapshot.proofs.find((item) => item.status === "confirmed") ??
-    snapshot.proofs[0] ??
-    null;
-  const keyEntity =
-    snapshot.entities.find((item) => toOptionalText(item.kind) !== "case") ??
-    snapshot.entities[0] ??
-    null;
+  const topProof = resolveOperatorCaseWikiTopProof(snapshot);
+  const keyEntity = resolveOperatorCaseWikiTopEntity(snapshot);
   const statusPresentation = resolveCaseWorkspaceCaseWikiStatusPresentation(toOptionalText(overview?.status), isRu);
   const currentStage = toOptionalText(overview?.currentStage);
   const nextActionType = toOptionalText(nextAction?.type);
@@ -25495,16 +25489,9 @@ function buildSessionExportOperatorDiscovery() {
 
 function buildSessionExportOperatorCaseWiki() {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
-  const blockingQuestion = snapshot?.openQuestions.find((item) => item.blocking === true) ?? snapshot?.openQuestions[0] ?? null;
-  const topProof =
-    snapshot?.proofs.find((item) => item.status === "missing") ??
-    snapshot?.proofs.find((item) => item.status === "confirmed") ??
-    snapshot?.proofs[0] ??
-    null;
-  const topEntity =
-    snapshot?.entities.find((item) => toOptionalText(item.kind) !== "case") ??
-    snapshot?.entities[0] ??
-    null;
+  const blockingQuestion = resolveOperatorCaseWikiTopBlockingQuestion(snapshot);
+  const topProof = resolveOperatorCaseWikiTopProof(snapshot);
+  const topEntity = resolveOperatorCaseWikiTopEntity(snapshot);
   return {
     status: snapshot ? "loaded" : "idle",
     loadedAt: toOptionalText(state.operatorCaseWikiLoadedAt) ?? toOptionalText(snapshot?.generatedAt),
@@ -25512,6 +25499,7 @@ function buildSessionExportOperatorCaseWiki() {
     sessionId: toOptionalText(snapshot?.sessionId),
     generatedAt: toOptionalText(snapshot?.generatedAt),
     overview: isRecord(snapshot?.overview) ? snapshot.overview : null,
+    highlights: isRecord(snapshot?.highlights) ? snapshot.highlights : null,
     recommendedNextAction: isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null,
     topBlockingQuestion: isRecord(blockingQuestion) ? blockingQuestion : null,
     topProof: isRecord(topProof) ? topProof : null,
@@ -31802,12 +31790,54 @@ function buildOperatorCaseWikiSnapshot(value) {
     userId: toOptionalText(value.userId),
     generatedAt: toOptionalText(value.generatedAt),
     overview: isRecord(value.overview) ? value.overview : null,
+    highlights: isRecord(value.highlights)
+      ? {
+          topProof: isRecord(value.highlights.topProof) ? value.highlights.topProof : null,
+          topEntity: isRecord(value.highlights.topEntity) ? value.highlights.topEntity : null,
+          topBlockingQuestion: isRecord(value.highlights.topBlockingQuestion) ? value.highlights.topBlockingQuestion : null,
+        }
+      : null,
     entities: Array.isArray(value.entities) ? value.entities.filter((item) => isRecord(item)) : [],
     timeline: Array.isArray(value.timeline) ? value.timeline.filter((item) => isRecord(item)) : [],
     proofs: Array.isArray(value.proofs) ? value.proofs.filter((item) => isRecord(item)) : [],
     openQuestions: Array.isArray(value.openQuestions) ? value.openQuestions.filter((item) => isRecord(item)) : [],
     recommendedNextAction: isRecord(value.recommendedNextAction) ? value.recommendedNextAction : null,
   };
+}
+
+function resolveOperatorCaseWikiTopProof(snapshot) {
+  if (!snapshot) {
+    return null;
+  }
+  if (isRecord(snapshot.highlights?.topProof)) {
+    return snapshot.highlights.topProof;
+  }
+  return (
+    snapshot.proofs.find((item) => item.status === "missing") ??
+    snapshot.proofs.find((item) => item.status === "confirmed") ??
+    snapshot.proofs[0] ??
+    null
+  );
+}
+
+function resolveOperatorCaseWikiTopEntity(snapshot) {
+  if (!snapshot) {
+    return null;
+  }
+  if (isRecord(snapshot.highlights?.topEntity)) {
+    return snapshot.highlights.topEntity;
+  }
+  return snapshot.entities.find((item) => toOptionalText(item.kind) !== "case") ?? snapshot.entities[0] ?? null;
+}
+
+function resolveOperatorCaseWikiTopBlockingQuestion(snapshot) {
+  if (!snapshot) {
+    return null;
+  }
+  if (isRecord(snapshot.highlights?.topBlockingQuestion)) {
+    return snapshot.highlights.topBlockingQuestion;
+  }
+  return snapshot.openQuestions.find((item) => item.blocking === true) ?? snapshot.openQuestions[0] ?? null;
 }
 
 function resolveOperatorCaseWikiSelectedSessionId() {
@@ -31857,6 +31887,46 @@ function buildOperatorCaseWikiOverviewPreview() {
       },
     },
     "No case wiki loaded yet.",
+  );
+}
+
+function buildOperatorCaseWikiEvidencePreview() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  if (!snapshot) {
+    return "No case wiki evidence loaded yet.";
+  }
+  const topProof = resolveOperatorCaseWikiTopProof(snapshot);
+  const topEntity = resolveOperatorCaseWikiTopEntity(snapshot);
+  return stringifyOperatorRuntimeFaultValue(
+    {
+      topProof: topProof
+        ? {
+            status: toOptionalText(topProof.status),
+            statement: toOptionalText(topProof.statement),
+            evidenceSummary: toOptionalText(topProof.evidenceSummary),
+            contradictionNote: toOptionalText(topProof.contradictionNote),
+            sourceRefs: Array.isArray(topProof.sourceRefs) ? topProof.sourceRefs : [],
+          }
+        : null,
+      topEntity: topEntity
+        ? {
+            kind: toOptionalText(topEntity.kind),
+            label: toOptionalText(topEntity.label),
+            role: toOptionalText(topEntity.role),
+            summary: toOptionalText(topEntity.summary),
+            sourceRefs: Array.isArray(topEntity.sourceRefs) ? topEntity.sourceRefs : [],
+          }
+        : null,
+      recommendedNextAction: isRecord(snapshot.recommendedNextAction)
+        ? {
+            type: toOptionalText(snapshot.recommendedNextAction.type),
+            title: toOptionalText(snapshot.recommendedNextAction.title),
+            owner: toOptionalText(snapshot.recommendedNextAction.owner),
+            rationale: toOptionalText(snapshot.recommendedNextAction.rationale),
+          }
+        : null,
+    },
+    "No case wiki evidence loaded yet.",
   );
 }
 
@@ -31938,6 +32008,8 @@ function buildOperatorSessionOpsControlMeta() {
   const replay = isRecord(state.operatorSessionReplaySnapshot) ? state.operatorSessionReplaySnapshot : null;
   const discovery = isRecord(state.operatorDiscoverySnapshot) ? state.operatorDiscoverySnapshot : null;
   const caseWiki = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiTopProof = resolveOperatorCaseWikiTopProof(caseWiki);
+  const caseWikiTopEntity = resolveOperatorCaseWikiTopEntity(caseWiki);
   const refreshView = buildOperatorReplayPrimaryStepRefreshView(
     replay?.selectedSession?.replay?.nextOperatorPrimaryStep,
   );
@@ -31994,6 +32066,8 @@ function buildOperatorSessionOpsControlMeta() {
     `caseWikiQuestions=${Array.isArray(caseWiki?.openQuestions) ? caseWiki.openQuestions.length : 0}`,
     `caseWikiBlocking=${Array.isArray(caseWiki?.openQuestions) ? caseWiki.openQuestions.filter((item) => item?.blocking === true).length : 0}`,
     `caseWikiNextAction=${toOptionalText(caseWiki?.recommendedNextAction?.title) ?? toOptionalText(caseWiki?.recommendedNextAction?.type) ?? "n/a"}`,
+    `caseWikiProof=${toOptionalText(caseWikiTopProof?.statement) ?? toOptionalText(caseWikiTopProof?.status) ?? "n/a"}`,
+    `caseWikiEntity=${toOptionalText(caseWikiTopEntity?.label) ?? toOptionalText(caseWikiTopEntity?.kind) ?? "n/a"}`,
     declaration
       ? "High-risk operator actions can attach purpose metadata to audit-safe control-plane requests."
       : "Save a purpose declaration before live drill/override/rotation/replay actions.",
@@ -32122,6 +32196,9 @@ function renderOperatorSessionOpsPanel() {
   }
   if (el.operatorCaseWikiOverviewSnapshot instanceof HTMLElement) {
     el.operatorCaseWikiOverviewSnapshot.textContent = buildOperatorCaseWikiOverviewPreview();
+  }
+  if (el.operatorCaseWikiEvidenceSnapshot instanceof HTMLElement) {
+    el.operatorCaseWikiEvidenceSnapshot.textContent = buildOperatorCaseWikiEvidencePreview();
   }
   if (el.operatorCaseWikiQuestionsSnapshot instanceof HTMLElement) {
     el.operatorCaseWikiQuestionsSnapshot.textContent = buildOperatorCaseWikiQuestionsPreview();
