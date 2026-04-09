@@ -25863,6 +25863,7 @@ function buildSessionExportOperatorCaseWiki() {
     handoffFocus,
     focusedHandoffBlock,
     focusedRoutingBlock,
+    focusedRoutingCta: focusedRoutingBlock?.cta?.label ?? null,
     counts: {
       entities: Array.isArray(snapshot?.entities) ? snapshot.entities.length : 0,
       proofs: Array.isArray(snapshot?.proofs) ? snapshot.proofs.length : 0,
@@ -26075,6 +26076,9 @@ function toMarkdownExport(payload) {
   );
   lines.push(
     `- focusedRoutingApproval: ${payload.operatorEvidence?.operatorCaseWiki?.focusedRoutingBlock?.route?.approvalRequired === true}`,
+  );
+  lines.push(
+    `- focusedRoutingCta: ${payload.operatorEvidence?.operatorCaseWiki?.focusedRoutingBlock?.cta?.label ?? "-"}`,
   );
   lines.push(
     `- counts: entities=${payload.operatorEvidence?.operatorCaseWiki?.counts?.entities ?? 0}, proofs=${payload.operatorEvidence?.operatorCaseWiki?.counts?.proofs ?? 0}, openQuestions=${payload.operatorEvidence?.operatorCaseWiki?.counts?.openQuestions ?? 0}, timeline=${payload.operatorEvidence?.operatorCaseWiki?.counts?.timeline ?? 0}`,
@@ -32585,6 +32589,17 @@ function buildOperatorCaseWikiFocusedRoutingBlock(snapshot, evidencePack, focuse
     blocking ? "blocking" : "non-blocking",
     approvalRequired ? "approval-ready" : null,
   ].filter(Boolean).join(" | ");
+  const route = {
+    lane,
+    owner,
+    priority,
+    status,
+    blocking,
+    approvalRequired,
+    dueBy: toOptionalText(nextAction?.dueBy),
+    summary: routeSummary,
+  };
+  const cta = buildOperatorCaseWikiFocusedRoutingCTA(lane, route, nextAction, focusedItem);
   return {
     focus: {
       kind: focusedItem.kind,
@@ -32595,16 +32610,8 @@ function buildOperatorCaseWikiFocusedRoutingBlock(snapshot, evidencePack, focuse
           : toOptionalText(item.question) ?? "Selected question",
       summary: buildOperatorCaseWikiFocusSummary(focusedItem),
     },
-    route: {
-      lane,
-      owner,
-      priority,
-      status,
-      blocking,
-      approvalRequired,
-      dueBy: toOptionalText(nextAction?.dueBy),
-      summary: routeSummary,
-    },
+    route,
+    cta,
     nextAction: nextAction
       ? {
           type: actionType,
@@ -32618,6 +32625,67 @@ function buildOperatorCaseWikiFocusedRoutingBlock(snapshot, evidencePack, focuse
     sourceRefs,
     relatedQuestionIds,
     handoff: buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem),
+  };
+}
+
+function buildOperatorCaseWikiFocusedRoutingCTA(lane, route, nextAction, focusedItem) {
+  const normalizedLane = typeof lane === "string" ? lane.trim().toLowerCase() : "";
+  if (!normalizedLane) {
+    return null;
+  }
+  const focusLabel = buildOperatorCaseWikiFocusSummary(focusedItem);
+  const nextActionTitle = toOptionalText(nextAction?.title);
+  const owner = toOptionalText(route?.owner) ?? "operator";
+  const dueBy = toOptionalText(route?.dueBy);
+  let actionId = "refresh_summary";
+  let label = "Inspect operator follow-up";
+  let hint = "Refresh operator state, confirm the blocker, and decide the next handoff.";
+  switch (normalizedLane) {
+    case "approval_queue":
+      actionId = "open_workflow_control";
+      label = "Review approval queue";
+      hint = "Open workflow control, review the protected step, and confirm whether approval can be granted.";
+      break;
+    case "customer_followup":
+      actionId = "run_negotiation";
+      label = "Prepare customer follow-up";
+      hint = "Use the live follow-up lane to request the missing proof and attach the focused refs.";
+      break;
+    case "workflow_resume":
+      actionId = "open_workflow_control";
+      label = "Resume workflow control";
+      hint = "Open workflow control, verify the blocker is cleared, and continue the queued step.";
+      break;
+    case "ui_task":
+      actionId = "run_ui_task";
+      label = "Run UI task";
+      hint = "Launch the UI executor with the focused proof or question context and verify the protected action.";
+      break;
+    case "live_followup":
+      actionId = "run_negotiation";
+      label = "Run live follow-up";
+      hint = "Reopen the live follow-up lane and carry the focused handoff into the next conversation.";
+      break;
+    default:
+      break;
+  }
+  const summary = [
+    label,
+    owner ? `owner: ${owner}` : null,
+    route?.approvalRequired === true ? "approval-ready" : null,
+    focusLabel ? `focus: ${focusLabel}` : null,
+    dueBy ? `due: ${dueBy}` : null,
+    nextActionTitle ? `next: ${nextActionTitle}` : null,
+  ].filter(Boolean).join(" | ");
+  return {
+    actionId,
+    label,
+    hint,
+    owner,
+    lane: normalizedLane,
+    approvalRequired: route?.approvalRequired === true,
+    blocking: route?.blocking === true,
+    summary,
   };
 }
 
@@ -32992,7 +33060,7 @@ async function copyOperatorCaseWikiFocusedRoutingBlock(mode = "routing") {
       ? routingBlock
         ? `${JSON.stringify(routingBlock, null, 2)}\n`
         : null
-      : toOptionalText(routingBlock?.route?.summary);
+      : toOptionalText(routingBlock?.cta?.summary) ?? toOptionalText(routingBlock?.route?.summary);
   if (!text) {
     setOperatorSessionOpsControlStatus("case_wiki_routing_unavailable", "warn");
     state.operatorSessionOpsLastResult = {
@@ -33017,6 +33085,7 @@ async function copyOperatorCaseWikiFocusedRoutingBlock(mode = "routing") {
     action: resultAction,
     focus: routingBlock?.focus?.summary ?? routingBlock?.focus?.label ?? null,
     route: routingBlock?.route?.summary ?? null,
+    cta: routingBlock?.cta?.label ?? null,
     copiedAt: toIsoNow(),
   };
   setOperatorSessionOpsControlStatus(resultAction, "ok");

@@ -92,6 +92,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem)",
     "function buildOperatorCaseWikiFocusedHandoffBlock(snapshot, evidencePack, focusedItem)",
     "function buildOperatorCaseWikiFocusedRoutingBlock(snapshot, evidencePack, focusedItem)",
+    "function buildOperatorCaseWikiFocusedRoutingCTA(lane, route, nextAction, focusedItem)",
     "function buildOperatorCaseWikiFocusedHandoffPreviewBlock()",
     "function buildOperatorCaseWikiFocusedRoutingPreviewBlock()",
     "async function copyOperatorCaseWikiFocusedHandoffBlock(mode = \"handoff\")",
@@ -248,6 +249,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(readmeSource, /Case Wiki Evidence/i);
   assert.match(readmeSource, /Case Wiki Focused Handoff/i);
   assert.match(readmeSource, /Case Wiki Focused Routing/i);
+  assert.match(readmeSource, /ready-to-run CTA/i);
   assert.match(readmeSource, /Case Wiki Open Questions/i);
   assert.match(readmeSource, /refresh recovery follow-?up path/i);
   assert.match(readmeSource, /structured refresh state/i);
@@ -264,6 +266,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(operatorGuideSource, /Case Wiki Evidence/i);
   assert.match(operatorGuideSource, /Case Wiki Focused Handoff/i);
   assert.match(operatorGuideSource, /Case Wiki Focused Routing/i);
+  assert.match(operatorGuideSource, /ready-to-run CTA/i);
   assert.match(operatorGuideSource, /Case Wiki Open Questions/i);
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);
   assert.match(operatorGuideSource, /structured refresh state/i);
