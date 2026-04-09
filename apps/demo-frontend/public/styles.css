@@ -1252,6 +1252,22 @@
   white-space: pre-wrap;
 }
 
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-action {
+  min-height: 30px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .layout[data-active-tab="live-negotiator"] .case-workspace-panel-title {
   margin-top: 4px;
 }
