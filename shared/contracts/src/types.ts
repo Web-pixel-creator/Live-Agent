@@ -231,6 +231,13 @@ export type CaseWikiHighlights = {
   topBlockingQuestion: CaseWikiOpenQuestion | null;
 };
 
+export type CaseWikiEvidencePack = {
+  proofs: CaseWikiProof[];
+  entities: CaseWikiEntity[];
+  questions: CaseWikiOpenQuestion[];
+  sourceRefs: string[];
+};
+
 export type RuntimeCaseWikiNoteRequest = {
   sessionId: string;
   runId?: string;
@@ -262,6 +269,7 @@ export type CaseWiki = {
   generatedAt: string;
   overview: CaseWikiOverview;
   highlights: CaseWikiHighlights;
+  evidencePack: CaseWikiEvidencePack;
   entities: CaseWikiEntity[];
   timeline: CaseWikiTimelineEntry[];
   proofs: CaseWikiProof[];

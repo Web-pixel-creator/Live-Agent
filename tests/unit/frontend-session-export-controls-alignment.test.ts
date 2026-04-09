@@ -84,6 +84,8 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "topBlockingQuestion:",
     "topProof:",
     "topEntity:",
+    "evidencePack:",
+    "evidencePackRefs:",
     "liveTransport:",
     "liveEvidenceSource:",
     "historyStatus:",

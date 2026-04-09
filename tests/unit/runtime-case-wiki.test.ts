@@ -206,6 +206,10 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.equal(wiki?.highlights.topEntity?.id, "location:canada");
   assert.equal(wiki?.highlights.topEntity?.label, "Canada");
   assert.equal(wiki?.highlights.topBlockingQuestion?.id, "question:missing-followup-items");
+  assert.equal(wiki?.evidencePack.proofs[0]?.id, "proof:followup-completeness");
+  assert.equal(wiki?.evidencePack.entities[0]?.id, "location:canada");
+  assert.equal(wiki?.evidencePack.questions[0]?.id, "question:missing-followup-items");
+  assert.equal(wiki?.evidencePack.sourceRefs.includes("workflow:control-plane"), true);
   assert.equal(wiki?.entities.some((item) => item.kind === "case" && item.id === "case:case-42"), true);
   assert.equal(wiki?.entities.some((item) => item.kind === "location" && item.label === "Canada"), true);
   assert.equal(wiki?.timeline[0]?.id, "session:session-case-1");

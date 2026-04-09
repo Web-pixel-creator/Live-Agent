@@ -730,6 +730,65 @@ function selectTopBlockingQuestion(openQuestions: CaseWikiOpenQuestion[]): CaseW
   return openQuestions.find((item) => item.blocking === true) ?? openQuestions[0] ?? null;
 }
 
+function buildEvidencePack(params: {
+  proofs: CaseWikiProof[];
+  entities: CaseWikiEntity[];
+  openQuestions: CaseWikiOpenQuestion[];
+}) {
+  const proofPriority = new Map<CaseWikiProofStatus, number>([
+    ["missing", 0],
+    ["contradicted", 1],
+    ["pending", 2],
+    ["confirmed", 3],
+  ]);
+  const questionPriority = new Map<CaseWikiPriority, number>([
+    ["high", 0],
+    ["medium", 1],
+    ["low", 2],
+  ]);
+  const proofs = [...params.proofs]
+    .sort((left, right) => {
+      const leftScore = proofPriority.get(left.status) ?? 99;
+      const rightScore = proofPriority.get(right.status) ?? 99;
+      if (leftScore !== rightScore) {
+        return leftScore - rightScore;
+      }
+      return (right.confidence ?? 0) - (left.confidence ?? 0);
+    })
+    .slice(0, 3);
+  const entities = [...params.entities]
+    .sort((left, right) => {
+      const leftCase = toNonEmptyString(left.kind) === "case" ? 1 : 0;
+      const rightCase = toNonEmptyString(right.kind) === "case" ? 1 : 0;
+      if (leftCase !== rightCase) {
+        return leftCase - rightCase;
+      }
+      return (right.confidence ?? 0) - (left.confidence ?? 0);
+    })
+    .slice(0, 3);
+  const questions = [...params.openQuestions]
+    .sort((left, right) => {
+      if (left.blocking !== right.blocking) {
+        return left.blocking ? -1 : 1;
+      }
+      const leftScore = questionPriority.get(left.priority) ?? 99;
+      const rightScore = questionPriority.get(right.priority) ?? 99;
+      return leftScore - rightScore;
+    })
+    .slice(0, 3);
+  const sourceRefs = [...new Set([
+    ...proofs.flatMap((item) => item.sourceRefs ?? []),
+    ...entities.flatMap((item) => item.sourceRefs ?? []),
+    ...questions.flatMap((item) => item.sourceRefs ?? []),
+  ])].slice(0, 12);
+  return {
+    proofs,
+    entities,
+    questions,
+    sourceRefs,
+  };
+}
+
 function buildContext(params: RuntimeCaseWikiBuilderParams): RuntimeCaseWikiContext | null {
   const requestedSessionId = toNonEmptyString(params.selectedSessionId ?? null);
   const selectedSession = deriveSelectedSession(params.sessions, requestedSessionId);
@@ -778,6 +837,11 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
   const proofs = buildProofs(context);
   const openQuestions = buildOpenQuestions(context);
   const recommendedNextAction = buildRecommendedNextAction(context, openQuestions);
+  const evidencePack = buildEvidencePack({
+    proofs,
+    entities,
+    openQuestions,
+  });
 
   return {
     schemaVersion: 1,
@@ -815,6 +879,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
       topEntity: selectTopEntity(entities),
       topBlockingQuestion: selectTopBlockingQuestion(openQuestions),
     },
+    evidencePack,
     entities,
     timeline,
     proofs,
