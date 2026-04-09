@@ -73,10 +73,12 @@ test("runtime surface parity check stays aligned across package, script, manifes
     '"requiredRouteIntents"',
     '"requiredControlPlaneIds"',
     '"runtime-session-replay"',
+    '"runtime-case-wiki"',
+    '"runtime-case-wiki-notes"',
     '"requiredEvidenceIds"',
     '"requiredUiCapabilityIds"',
     '"requiredReadyPlaybookIds"',
-    '"totalControlPlaneSurfaces": 16',
+    '"totalControlPlaneSurfaces": 18',
     '"minimumPlaybooks": 18',
   ]) {
     assert.ok(manifestSource.includes(token), `runtime surface manifest missing token: ${token}`);

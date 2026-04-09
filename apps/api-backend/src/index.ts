@@ -77,6 +77,11 @@ import { buildDeviceNodeHealthSummary } from "./device-node-summary.js";
 import { buildRuntimeSurfaceInventorySnapshot } from "./runtime-surface-inventory.js";
 import { buildRuntimeSurfaceReadinessSnapshot } from "./runtime-surface-readiness.js";
 import { buildRuntimeSessionReplayMirrorSnapshot } from "./runtime-session-replay-mirror.js";
+import { buildRuntimeCaseWiki } from "./runtime-case-wiki.js";
+import {
+  appendRuntimeCaseWikiNote,
+  normalizeRuntimeCaseWikiNoteRequest,
+} from "./runtime-case-wiki-notes.js";
 import {
   buildRuntimeFaultProfileExecutionPlan,
   extractRuntimeFaultProfileExecutionFollowUpContext,
@@ -1405,12 +1410,18 @@ function normalizeOperationPath(pathname: string): string {
   if (pathname === "/v1/runtime/surface/readiness") {
     return "/v1/runtime/surface/readiness";
   }
-  if (pathname === "/v1/runtime/session-replay") {
-    return "/v1/runtime/session-replay";
-  }
-  if (pathname === "/v1/runtime/auth-profiles") {
-    return "/v1/runtime/auth-profiles";
-  }
+    if (pathname === "/v1/runtime/session-replay") {
+      return "/v1/runtime/session-replay";
+    }
+    if (pathname === "/v1/runtime/case-wiki") {
+      return "/v1/runtime/case-wiki";
+    }
+    if (pathname === "/v1/runtime/case-wiki/notes") {
+      return "/v1/runtime/case-wiki/notes";
+    }
+    if (pathname === "/v1/runtime/auth-profiles") {
+      return "/v1/runtime/auth-profiles";
+    }
   if (pathname === "/v1/runtime/auth-profiles/rotate") {
     return "/v1/runtime/auth-profiles/rotate";
   }
@@ -4582,6 +4593,154 @@ export const server = createServer(async (req, res) => {
         data: runtimeSurfaceReadiness,
         role,
         source: "repo_owned_runtime_surface_readiness",
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/case-wiki" && req.method === "GET") {
+      const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
+      const sessionLimit = parseBoundedInt(url.searchParams.get("sessionLimit"), 20, 1, 100);
+      const eventLimit = parseBoundedInt(url.searchParams.get("eventLimit"), 120, 10, 500);
+      const runLimit = parseBoundedInt(url.searchParams.get("runLimit"), 120, 20, 500);
+      const approvalLimit = parseBoundedInt(url.searchParams.get("approvalLimit"), 120, 20, 500);
+      const recentEventLimit = parseBoundedInt(
+        url.searchParams.get("recentEventLimit"),
+        Math.max(eventLimit, sessionLimit * 10),
+        20,
+        500,
+      );
+      const requestedSessionId = toOptionalString(url.searchParams.get("sessionId"));
+      const sessions = await listSessions(sessionLimit, { tenantId: requestTenant.tenantId });
+      const selectedSessionId = requestedSessionId ?? sessions[0]?.sessionId ?? null;
+
+      if (!selectedSessionId) {
+        writeApiError(res, 404, {
+          code: "API_RUNTIME_CASE_WIKI_NOT_FOUND",
+          message: "runtime case wiki requires at least one session",
+          details: {
+            requestedSessionId,
+          },
+        });
+        return;
+      }
+
+      const [runs, approvals, recentEvents, selectedEvents] = await Promise.all([
+        listRuns(runLimit),
+        listApprovals({
+          limit: approvalLimit,
+          tenantId: requestTenant.tenantId,
+        }),
+        listRecentEvents(recentEventLimit),
+        listEvents({ sessionId: selectedSessionId, limit: eventLimit }),
+      ]);
+
+      let workflowControlPlaneSummary:
+        | ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>["summary"]
+        | null = null;
+      try {
+        const upstream = await fetchJsonWithTimeout(`${orchestratorBaseUrl}/workflow/config`, 8000);
+        const workflowControlPlane = isRecord(upstream)
+          ? buildRuntimeWorkflowControlPlaneSnapshot(upstream)
+          : (buildUnavailableRuntimeWorkflowControlPlaneSnapshot(
+              "orchestrator workflow control plane is unavailable",
+              "/workflow/config",
+            ) as unknown as ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>);
+        workflowControlPlaneSummary = workflowControlPlane.summary;
+      } catch {
+        const workflowControlPlane = buildUnavailableRuntimeWorkflowControlPlaneSnapshot(
+          "orchestrator workflow control plane is unavailable",
+          "/workflow/config",
+        ) as unknown as ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>;
+        workflowControlPlaneSummary = workflowControlPlane.summary;
+      }
+
+      const caseWiki = buildRuntimeCaseWiki({
+        sessions,
+        runs,
+        approvals,
+        recentEvents,
+        selectedEvents,
+        selectedSessionId,
+        workflowSummary: workflowControlPlaneSummary,
+      });
+
+      if (!caseWiki) {
+        writeApiError(res, 404, {
+          code: "API_RUNTIME_CASE_WIKI_NOT_FOUND",
+          message: "runtime case wiki could not be compiled for the requested session",
+          details: {
+            selectedSessionId,
+          },
+        });
+        return;
+      }
+
+      writeJson(res, 200, {
+        data: caseWiki,
+        role,
+        tenant: requestTenant,
+        source: "repo_owned_runtime_case_wiki",
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/runtime/case-wiki/notes" && req.method === "POST") {
+      const role = assertOperatorRole(req, ["operator", "admin"]);
+      const raw = await readBody(req);
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = parseJsonBody(raw);
+      } catch {
+        writeApiError(res, 400, {
+          code: "API_RUNTIME_CASE_WIKI_NOTE_INVALID_JSON",
+          message: "runtime case wiki note body must be valid JSON",
+        });
+        return;
+      }
+
+      const normalized = normalizeRuntimeCaseWikiNoteRequest(parsed);
+      if (!normalized.ok) {
+        await auditOperatorAction({
+          tenantId: requestTenant.tenantId,
+          role,
+          action: "runtime_case_wiki_note_append",
+          outcome: "denied",
+          reason: normalized.message,
+          errorCode: normalized.code,
+          details: normalized.details,
+        });
+        writeApiError(res, 400, {
+          code: normalized.code,
+          message: normalized.message,
+          details: normalized.details,
+        });
+        return;
+      }
+
+      const note = await appendRuntimeCaseWikiNote({
+        tenantId: requestTenant.tenantId,
+        request: normalized.value,
+      });
+
+      await auditOperatorAction({
+        tenantId: requestTenant.tenantId,
+        role,
+        action: "runtime_case_wiki_note_append",
+        outcome: "succeeded",
+        reason: "runtime case wiki note appended",
+        details: {
+          sessionId: note.sessionId,
+          runId: note.runId,
+          eventId: note.eventId,
+          kind: note.kind,
+        },
+      });
+
+      writeJson(res, 201, {
+        data: note,
+        role,
+        tenant: requestTenant,
+        source: "repo_owned_case_wiki_note_ingest",
       });
       return;
     }

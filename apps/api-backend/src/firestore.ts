@@ -93,6 +93,8 @@ export type EventListItem = {
   liveTransportBootstrapState?: string;
   liveTransportFallbackReason?: string;
   liveTransportEvidenceSource?: string;
+  payload?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 };
 
 export type RuntimeSessionEventRecord = {

@@ -152,6 +152,28 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
       liveTransportModel: "gemini-live-2.5-flash-native-audio",
       liveTransportEvidenceSource: "session_events",
     },
+    {
+      eventId: "event-case-note-1",
+      sessionId: "session-case-1",
+      runId: "run-case-1",
+      type: "operator.note",
+      source: "operator",
+      createdAt: "2026-04-09T09:01:00.000Z",
+      route: "case-wiki",
+      status: "captured",
+      payload: {
+        kind: "case_wiki_note",
+        title: "Customer follow-up required",
+        note: "Customer must upload the passport scan before submission.",
+        priority: "high",
+        blocking: true,
+        owner: "customer",
+        suggestedNextStep: "Request the missing passport scan.",
+      },
+      metadata: {
+        kind: "case_wiki_note",
+      },
+    },
   ];
 
   const wiki = buildRuntimeCaseWiki({
@@ -185,6 +207,12 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.equal(wiki?.timeline.some((item) => item.kind === "workflow"), true);
   assert.equal(wiki?.timeline.some((item) => item.kind === "approval"), true);
   assert.equal(
+    wiki?.timeline.some(
+      (item) => item.kind === "operator_note" && item.title === "Customer follow-up required",
+    ),
+    true,
+  );
+  assert.equal(
     wiki?.proofs.some(
       (item) =>
         item.id === "proof:followup-completeness" &&
@@ -206,6 +234,15 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
       (item) =>
         item.id === "question:missing-followup-items" &&
         item.priority === "high" &&
+        item.blocking === true,
+    ),
+    true,
+  );
+  assert.equal(
+    wiki?.openQuestions.some(
+      (item) =>
+        item.id === "question:event:event-case-note-1" &&
+        item.owner === "customer" &&
         item.blocking === true,
     ),
     true,

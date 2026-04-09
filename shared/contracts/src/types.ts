@@ -225,6 +225,29 @@ export type CaseWikiNextAction = {
   sourceRefs: string[];
 };
 
+export type RuntimeCaseWikiNoteRequest = {
+  sessionId: string;
+  runId?: string;
+  userId?: string;
+  title?: string;
+  note: string;
+  priority?: CaseWikiPriority;
+  blocking?: boolean;
+  owner?: string;
+  suggestedNextStep?: string;
+  ts?: string;
+};
+
+export type RuntimeCaseWikiNoteResponse = {
+  accepted: true;
+  eventId: string;
+  sessionId: string;
+  runId: string | null;
+  source: "operator";
+  kind: "operator_note";
+  createdAt: string;
+};
+
 export type CaseWiki = {
   schemaVersion: 1;
   caseId: string;

@@ -20,6 +20,8 @@
     "runtime-surface",
     "runtime-surface-readiness",
     "runtime-session-replay",
+    "runtime-case-wiki",
+    "runtime-case-wiki-notes",
     "runtime-auth-profiles",
     "runtime-auth-profile-rotate",
     "runtime-workflow-config",
@@ -57,7 +59,7 @@
   "summary": {
     "totalAgents": 3,
     "totalRoutes": 6,
-    "totalControlPlaneSurfaces": 16,
+    "totalControlPlaneSurfaces": 18,
     "totalEvidenceLanes": 6,
     "totalUiCapabilities": 4,
     "minimumPlaybooks": 18

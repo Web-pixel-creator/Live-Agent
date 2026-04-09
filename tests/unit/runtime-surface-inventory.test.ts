@@ -15,6 +15,8 @@ test("runtime surface inventory exposes agent, route, control-plane, evidence, a
   assert.ok(snapshot.controlPlane.some((item) => item.path === "/v1/runtime/surface"));
   assert.ok(snapshot.controlPlane.some((item) => item.path === "/v1/runtime/surface/readiness"));
   assert.ok(snapshot.controlPlane.some((item) => item.path === "/v1/runtime/session-replay"));
+  assert.ok(snapshot.controlPlane.some((item) => item.path === "/v1/runtime/case-wiki"));
+  assert.ok(snapshot.controlPlane.some((item) => item.path === "/v1/runtime/case-wiki/notes"));
   assert.ok(snapshot.evidence.some((item) => item.id === "ui-replay-bundle"));
   assert.ok(snapshot.uiCapabilities.some((item) => item.id === "ui-post-action-verification"));
   assert.ok(snapshot.playbooks.length >= 2);

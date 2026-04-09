@@ -91,6 +91,10 @@ function toNonEmptyString(value: unknown): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function toSentenceCase(value: string): string {
   if (value.length === 0) {
     return value;
@@ -362,6 +366,36 @@ function buildEntities(context: RuntimeCaseWikiContext): CaseWikiEntity[] {
   return [...uniqueEntities.values()];
 }
 
+function isCaseWikiNoteEvent(event: EventListItem): boolean {
+  if (event.type === "operator.note") {
+    return true;
+  }
+  const payload = isRecord(event.payload) ? event.payload : null;
+  const metadata = isRecord(event.metadata) ? event.metadata : null;
+  return payload?.kind === "case_wiki_note" || metadata?.kind === "case_wiki_note";
+}
+
+function buildOperatorNoteTimelineEntries(context: RuntimeCaseWikiContext): RuntimeCaseWikiTimelineSeed[] {
+  return sortDescByIso(
+    context.selectedEvents.filter((item) => isCaseWikiNoteEvent(item)),
+    (item) => item.createdAt,
+  ).map((event) => {
+    const payload = isRecord(event.payload) ? event.payload : null;
+    const title = toNonEmptyString(payload?.title) ?? "Operator note";
+    const note = toNonEmptyString(payload?.note) ?? "Operator note captured for the case.";
+    const priority = toNonEmptyString(payload?.priority);
+    return {
+      id: `event:${event.eventId}`,
+      kind: "operator_note",
+      ts: event.createdAt,
+      title,
+      summary: note,
+      status: priority ?? event.status ?? null,
+      sourceRefs: buildSourceRef("event", event.eventId),
+    };
+  });
+}
+
 function buildTimeline(context: RuntimeCaseWikiContext): CaseWikiTimelineEntry[] {
   const timelineSeeds: RuntimeCaseWikiTimelineSeed[] = [];
 
@@ -436,6 +470,8 @@ function buildTimeline(context: RuntimeCaseWikiContext): CaseWikiTimelineEntry[]
       sourceRefs: buildSourceRef("approval", approval.approvalId),
     });
   }
+
+  timelineSeeds.push(...buildOperatorNoteTimelineEntries(context));
 
   return sortDescByIso(timelineSeeds, (item) => item.ts).map((entry) => ({
     id: entry.id,
@@ -564,6 +600,33 @@ function buildOpenQuestions(context: RuntimeCaseWikiContext): CaseWikiOpenQuesti
       owner: toNonEmptyString(context.workflowSummary?.workflowActiveRole) ?? "operator",
       suggestedNextStep: workflowNextStep,
       sourceRefs: ["workflow:control-plane"],
+    });
+  }
+
+  const operatorNoteQuestions = sortDescByIso(
+    context.selectedEvents.filter((item) => isCaseWikiNoteEvent(item)),
+    (item) => item.createdAt,
+  );
+  for (const event of operatorNoteQuestions) {
+    const payload = isRecord(event.payload) ? event.payload : null;
+    if (!payload || payload.blocking !== true) {
+      continue;
+    }
+    const note = toNonEmptyString(payload.note);
+    if (!note) {
+      continue;
+    }
+    questions.push({
+      id: `question:event:${event.eventId}`,
+      question: note,
+      priority:
+        payload.priority === "low" || payload.priority === "high" || payload.priority === "medium"
+          ? payload.priority
+          : "medium",
+      blocking: true,
+      owner: toNonEmptyString(payload.owner) ?? "operator",
+      suggestedNextStep: toNonEmptyString(payload.suggestedNextStep),
+      sourceRefs: buildSourceRef("event", event.eventId),
     });
   }
 

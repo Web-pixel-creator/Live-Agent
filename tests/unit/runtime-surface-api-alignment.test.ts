@@ -14,6 +14,8 @@ test("api backend exposes runtime surface inventory and readiness routes", () =>
   for (const token of [
     "/v1/runtime/surface",
     "/v1/runtime/surface/readiness",
+    "/v1/runtime/case-wiki",
+    "/v1/runtime/case-wiki/notes",
     "buildRuntimeSurfaceInventorySnapshot",
     "buildRuntimeSurfaceReadinessSnapshot",
     'source: "repo_owned_runtime_surface_inventory"',
@@ -32,8 +34,12 @@ test("api backend exposes runtime surface inventory and readiness routes", () =>
     "RUNTIME_SURFACE_UI_CAPABILITIES",
     'path: "/v1/runtime/surface"',
     'path: "/v1/runtime/surface/readiness"',
+    'path: "/v1/runtime/case-wiki"',
+    'path: "/v1/runtime/case-wiki/notes"',
     'label: "Runtime surface inventory"',
     'label: "Runtime surface readiness"',
+    'label: "Case Wiki"',
+    'label: "Case Wiki notes"',
   ]) {
     assert.ok(inventory.includes(token), `runtime surface inventory helper missing token: ${token}`);
   }
@@ -63,6 +69,8 @@ test("runtime surface docs stay aligned with inventory and readiness routes", ()
 
   assert.match(readme, /GET \/v1\/runtime\/surface/);
   assert.match(readme, /GET \/v1\/runtime\/surface\/readiness/);
+  assert.match(readme, /GET \/v1\/runtime\/case-wiki/);
+  assert.match(readme, /POST \/v1\/runtime\/case-wiki\/notes/);
   assert.match(readme, /Runtime surface inventory/i);
   assert.match(readme, /Runtime surface readiness/i);
   assert.match(operatorGuide, /runtime surface inventory/i);

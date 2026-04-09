@@ -17,6 +17,8 @@ import {
   UI_VERIFICATION_STATES,
   type LiveCapabilitiesSnapshot,
   type LiveRuntimeStatus,
+  type RuntimeCaseWikiNoteRequest,
+  type RuntimeCaseWikiNoteResponse,
   type RuntimeLiveSessionEventIngestRequest,
   type RuntimeLiveSessionEventIngestResponse,
   type CaseWiki,
@@ -291,6 +293,36 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.equal(wiki.entities[0]?.kind, "person");
   assert.equal(wiki.proofs[0]?.status, "confirmed");
   assert.equal(wiki.recommendedNextAction?.type, "document_request");
+});
+
+test("runtime case wiki note contracts expose stable operator append shapes", () => {
+  const request: RuntimeCaseWikiNoteRequest = {
+    sessionId: "session-123",
+    runId: "run-123",
+    userId: "operator-123",
+    title: "Missing passport scan",
+    note: "Customer still needs to upload the passport scan before submission.",
+    priority: "high",
+    blocking: true,
+    owner: "customer",
+    suggestedNextStep: "Request the passport scan in the next follow-up.",
+    ts: "2026-04-09T09:15:00.000Z",
+  };
+  const response: RuntimeCaseWikiNoteResponse = {
+    accepted: true,
+    eventId: "evt-case-note-1",
+    sessionId: "session-123",
+    runId: "run-123",
+    source: "operator",
+    kind: "operator_note",
+    createdAt: "2026-04-09T09:15:00.000Z",
+  };
+
+  assert.equal(request.blocking, true);
+  assert.equal(request.priority, "high");
+  assert.equal(response.accepted, true);
+  assert.equal(response.kind, "operator_note");
+  assert.equal(response.source, "operator");
 });
 
 test("task metadata roundtrips ui verification state and failure class", () => {
