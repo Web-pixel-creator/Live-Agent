@@ -1,5 +1,8 @@
 import type {
   CaseWiki,
+  CaseWikiDetailBadge,
+  CaseWikiDetailPack,
+  CaseWikiDetailPackItem,
   CaseWikiEntity,
   CaseWikiEntityKind,
   CaseWikiNextAction,
@@ -1008,6 +1011,124 @@ function buildCaseWikiHandoffPack(params: {
   };
 }
 
+function buildCaseWikiDetailPack(params: {
+  evidencePack: {
+    proofs: CaseWikiProof[];
+    questions: CaseWikiOpenQuestion[];
+    sourceRefs: string[];
+  };
+}): CaseWikiDetailPack {
+  const sharedFallbackRefs = params.evidencePack.sourceRefs;
+  const buildProofBadges = (proof: CaseWikiProof, sourceRefs: string[]): CaseWikiDetailBadge[] => {
+    const badges: CaseWikiDetailBadge[] = [];
+    const status = toNonEmptyString(proof.status);
+    const confidence = Number.isFinite(Number(proof.confidence)) ? `${Math.round(Number(proof.confidence) * 100)}%` : null;
+    if (status) {
+      const normalizedStatus = status.trim().toLowerCase();
+      badges.push({
+        tone:
+          normalizedStatus === "confirmed"
+            ? "ok"
+            : normalizedStatus.includes("missing") || normalizedStatus.includes("contrad")
+              ? "watch"
+              : "neutral",
+        label: sentenceCaseCaseWikiRoutingValue(status) ?? status,
+      });
+    }
+    if (confidence) {
+      badges.push({
+        tone: "neutral",
+        label: `confidence ${confidence}`,
+      });
+    }
+    badges.push({
+      tone: sourceRefs.length > 0 ? "ok" : "neutral",
+      label: `refs ${sourceRefs.length}`,
+    });
+    return badges;
+  };
+  const buildQuestionBadges = (question: CaseWikiOpenQuestion, sourceRefs: string[]): CaseWikiDetailBadge[] => {
+    const badges: CaseWikiDetailBadge[] = [];
+    const priority = toNonEmptyString(question.priority);
+    const owner = toNonEmptyString(question.owner ?? null);
+    if (priority) {
+      badges.push({
+        tone: priority.trim().toLowerCase() === "high" ? "watch" : "neutral",
+        label: sentenceCaseCaseWikiRoutingValue(priority) ?? priority,
+      });
+    }
+    if (question.blocking === true) {
+      badges.push({
+        tone: "watch",
+        label: "Blocking",
+      });
+    }
+    if (owner) {
+      badges.push({
+        tone: "ok",
+        label: `owner ${owner}`,
+      });
+    }
+    badges.push({
+      tone: sourceRefs.length > 0 ? "ok" : "neutral",
+      label: `refs ${sourceRefs.length}`,
+    });
+    return badges;
+  };
+  const buildProofItem = (proof: CaseWikiProof): CaseWikiDetailPackItem => {
+    const sourceRefs = proof.sourceRefs.length > 0 ? proof.sourceRefs : sharedFallbackRefs;
+    const refsLabel = buildCaseWikiHandoffSourceRefsLabel(sourceRefs);
+    const status = sentenceCaseCaseWikiRoutingValue(proof.status);
+    const confidence = Number.isFinite(Number(proof.confidence)) ? `${Math.round(Number(proof.confidence) * 100)}%` : null;
+    return {
+      focusKind: "proof",
+      focusId: proof.id,
+      focusLabel: proof.statement,
+      title: proof.statement,
+      meta: [
+        status,
+        confidence ? `confidence ${confidence}` : null,
+        refsLabel ? `refs: ${refsLabel}` : null,
+      ].filter((item): item is string => Boolean(item)).join(" | "),
+      body:
+        [
+          toNonEmptyString(proof.evidenceSummary),
+          toNonEmptyString(proof.contradictionNote),
+        ].filter((item): item is string => Boolean(item)).join("\n") ||
+        "No extra proof context.",
+      badges: buildProofBadges(proof, sourceRefs),
+      sourceRefs,
+    };
+  };
+  const buildQuestionItem = (question: CaseWikiOpenQuestion): CaseWikiDetailPackItem => {
+    const sourceRefs = question.sourceRefs.length > 0 ? question.sourceRefs : sharedFallbackRefs;
+    const refsLabel = buildCaseWikiHandoffSourceRefsLabel(sourceRefs);
+    const priority = sentenceCaseCaseWikiRoutingValue(question.priority);
+    const owner = toNonEmptyString(question.owner ?? null);
+    return {
+      focusKind: "question",
+      focusId: question.id,
+      focusLabel: question.question,
+      title: question.question,
+      meta: [
+        priority,
+        question.blocking === true ? "Blocking" : null,
+        owner ? `owner: ${owner}` : null,
+        refsLabel ? `refs: ${refsLabel}` : null,
+      ].filter((item): item is string => Boolean(item)).join(" | "),
+      body:
+        [toNonEmptyString(question.suggestedNextStep)].filter((item): item is string => Boolean(item)).join("\n") ||
+        "No extra question context.",
+      badges: buildQuestionBadges(question, sourceRefs),
+      sourceRefs,
+    };
+  };
+  return {
+    proofs: params.evidencePack.proofs.map((item) => buildProofItem(item)),
+    questions: params.evidencePack.questions.map((item) => buildQuestionItem(item)),
+  };
+}
+
 function selectTopProof(proofs: CaseWikiProof[]): CaseWikiProof | null {
   return (
     proofs.find((item) => item.status === "missing") ??
@@ -1141,6 +1262,9 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     evidencePack,
     recommendedNextAction,
   });
+  const detailPack = buildCaseWikiDetailPack({
+    evidencePack,
+  });
   const routingPack = buildCaseWikiRoutingPack({
     evidencePack,
     recommendedNextAction,
@@ -1184,6 +1308,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     },
     evidencePack,
     handoffPack,
+    detailPack,
     routingPack,
     entities,
     timeline,

@@ -262,6 +262,31 @@ export type CaseWikiEvidencePack = {
   sourceRefs: string[];
 };
 
+export const CASE_WIKI_DETAIL_BADGE_TONES = ["neutral", "ok", "watch"] as const;
+
+export type CaseWikiDetailBadgeTone = (typeof CASE_WIKI_DETAIL_BADGE_TONES)[number];
+
+export type CaseWikiDetailBadge = {
+  tone: CaseWikiDetailBadgeTone;
+  label: string;
+};
+
+export type CaseWikiDetailPackItem = {
+  focusKind: CaseWikiRoutingFocusKind;
+  focusId: string;
+  focusLabel: string;
+  title: string;
+  meta: string;
+  body: string;
+  badges: CaseWikiDetailBadge[];
+  sourceRefs: string[];
+};
+
+export type CaseWikiDetailPack = {
+  proofs: CaseWikiDetailPackItem[];
+  questions: CaseWikiDetailPackItem[];
+};
+
 export type CaseWikiRoutingRoute = {
   lane: CaseWikiRoutingLane;
   owner: string | null;
@@ -359,6 +384,7 @@ export type CaseWiki = {
   highlights: CaseWikiHighlights;
   evidencePack: CaseWikiEvidencePack;
   handoffPack: CaseWikiHandoffPack;
+  detailPack: CaseWikiDetailPack;
   routingPack: CaseWikiRoutingPack;
   entities: CaseWikiEntity[];
   timeline: CaseWikiTimelineEntry[];

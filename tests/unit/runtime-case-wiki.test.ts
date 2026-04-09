@@ -214,6 +214,10 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.match(wiki?.handoffPack.proofs[0]?.handoff ?? "", /Focus proof: Follow-up package is complete/i);
   assert.equal(wiki?.handoffPack.questions[0]?.focusId, "question:missing-followup-items");
   assert.match(wiki?.handoffPack.questions[0]?.handoff ?? "", /Resolve: Ask the customer to upload the missing documents/i);
+  assert.equal(wiki?.detailPack.proofs[0]?.focusId, "proof:followup-completeness");
+  assert.match(wiki?.detailPack.proofs[0]?.meta ?? "", /Missing/i);
+  assert.equal(wiki?.detailPack.questions[0]?.focusId, "question:missing-followup-items");
+  assert.match(wiki?.detailPack.questions[0]?.meta ?? "", /owner: customer/i);
   assert.equal(wiki?.routingPack.proofs[0]?.focusId, "proof:followup-completeness");
   assert.equal(wiki?.routingPack.proofs[0]?.route.lane, "customer_followup");
   assert.equal(wiki?.routingPack.proofs[0]?.cta.actionId, "run_negotiation");
@@ -358,6 +362,8 @@ test("runtime case wiki prioritizes pending approvals as the next action when op
   assert.equal(wiki?.highlights.topBlockingQuestion?.id, "question:approval:approval-pending-1");
   assert.equal(wiki?.handoffPack.questions[0]?.focusId, "question:approval:approval-pending-1");
   assert.match(wiki?.handoffPack.questions[0]?.handoff ?? "", /Focus question: Who should resolve the pending operator approval/i);
+  assert.equal(wiki?.detailPack.questions[0]?.focusId, "question:approval:approval-pending-1");
+  assert.match(wiki?.detailPack.questions[0]?.meta ?? "", /Blocking/i);
   assert.equal(wiki?.routingPack.questions[0]?.route.lane, "approval_queue");
   assert.equal(wiki?.routingPack.questions[0]?.cta.actionId, "open_workflow_control");
 });

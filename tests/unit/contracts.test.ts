@@ -387,6 +387,41 @@ test("case wiki contracts expose stable structured memory shapes", () => {
         },
       ],
     },
+    detailPack: {
+      proofs: [
+        {
+          focusKind: "proof",
+          focusId: "proof-1",
+          focusLabel: "Customer wants a spouse relocation consultation.",
+          title: "Customer wants a spouse relocation consultation.",
+          meta: "Confirmed | confidence 96% | refs: session:session-123",
+          body: "Confirmed in the latest live intake.",
+          badges: [
+            { tone: "ok", label: "Confirmed" },
+            { tone: "neutral", label: "confidence 96%" },
+            { tone: "ok", label: "refs 1" },
+          ],
+          sourceRefs: ["session:session-123"],
+        },
+      ],
+      questions: [
+        {
+          focusKind: "question",
+          focusId: "question-1",
+          focusLabel: "Has the customer already received the invitation letter?",
+          title: "Has the customer already received the invitation letter?",
+          meta: "High | Blocking | owner: customer | refs: proof:proof-1",
+          body: "Request the invitation letter or confirm issuance status.",
+          badges: [
+            { tone: "watch", label: "High" },
+            { tone: "watch", label: "Blocking" },
+            { tone: "ok", label: "owner customer" },
+            { tone: "ok", label: "refs 1" },
+          ],
+          sourceRefs: ["proof:proof-1"],
+        },
+      ],
+    },
     routingPack: {
       proofs: [
         {
@@ -533,6 +568,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.equal(wiki.evidencePack.sourceRefs.includes("proof:proof-1"), true);
   assert.match(wiki.handoffPack.proofs[0]?.handoff ?? "", /Focus proof/i);
   assert.equal(wiki.handoffPack.questions[0]?.detail.priority, "high");
+  assert.equal(wiki.detailPack.proofs[0]?.badges[0]?.tone, "ok");
+  assert.match(wiki.detailPack.questions[0]?.meta ?? "", /owner: customer/i);
   assert.equal(wiki.routingPack.proofs[0]?.route.lane, "customer_followup");
   assert.equal(wiki.routingPack.questions[0]?.cta.actionId, "run_negotiation");
   assert.equal(wiki.entities[0]?.kind, "person");

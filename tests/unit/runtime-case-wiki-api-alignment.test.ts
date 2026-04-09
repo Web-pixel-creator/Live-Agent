@@ -40,6 +40,7 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
     "buildRuntimeCaseWiki",
     "CaseWiki",
     "handoffPack",
+    "detailPack",
     "routingPack",
     "question:event:",
     "operator.note",
@@ -71,13 +72,16 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
   assert.match(readme, /POST \/v1\/runtime\/case-wiki\/notes/);
   assert.match(readme, /case wiki/i);
   assert.match(readme, /handoffPack/i);
+  assert.match(readme, /detailPack/i);
   assert.match(readme, /routingPack/i);
   assert.match(operatorGuide, /case wiki/i);
   assert.match(operatorGuide, /case-wiki\/notes/i);
   assert.match(operatorGuide, /handoffPack/i);
+  assert.match(operatorGuide, /detailPack/i);
   assert.match(operatorGuide, /routingPack/i);
   assert.match(architecture, /case wiki/i);
   assert.match(architecture, /handoffPack/i);
+  assert.match(architecture, /detailPack/i);
   assert.match(architecture, /routingPack/i);
   assert.match(architecture, /case-wiki\/notes/i);
 });
