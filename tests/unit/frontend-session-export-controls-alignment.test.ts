@@ -93,6 +93,9 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "handoffFocus:",
     "focusedHandoffBlock:",
     "focusedHandoffRefs:",
+    "focusedRoutingBlock:",
+    "focusedRoutingLane:",
+    "focusedRoutingApproval:",
     "liveTransport:",
     "liveEvidenceSource:",
     "historyStatus:",
@@ -153,6 +156,11 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     /focused handoff block/i,
     "operator guide missing focused handoff export note",
   );
+  assert.match(
+    operatorGuideSource,
+    /focused routing/i,
+    "operator guide missing focused routing export note",
+  );
   assert.ok(
     readmeSource.includes("`runtimeGuardrailsSignalPaths`"),
     "README missing runtime guardrails session export note",
@@ -160,4 +168,5 @@ test("demo frontend wires session export controls and runtime helpers", () => {
   assert.ok(readmeSource.includes("`operatorPurpose`"), "README missing operator purpose export note");
   assert.ok(readmeSource.includes("`operatorCaseWiki`"), "README missing operator case wiki export note");
   assert.match(readmeSource, /focused handoff block/i, "README missing focused handoff export note");
+  assert.match(readmeSource, /focused routing/i, "README missing focused routing export note");
 });

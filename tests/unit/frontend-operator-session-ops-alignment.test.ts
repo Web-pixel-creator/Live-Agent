@@ -58,6 +58,9 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     'id="operatorCaseWikiFocusedHandoffSnapshot"',
     'id="operatorCaseWikiFocusedHandoffCopyBtn"',
     'id="operatorCaseWikiFocusedHandoffExportBtn"',
+    'id="operatorCaseWikiFocusedRoutingSnapshot"',
+    'id="operatorCaseWikiFocusedRoutingCopyBtn"',
+    'id="operatorCaseWikiFocusedRoutingExportBtn"',
     'id="operatorCaseWikiQuestionsSnapshot"',
     'id="operatorCaseWikiTimelineSnapshot"',
     'id="operatorSessionOpsLastResult"',
@@ -88,8 +91,11 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "resolveOperatorCaseWikiFocusedItem(evidencePack)",
     "buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem)",
     "function buildOperatorCaseWikiFocusedHandoffBlock(snapshot, evidencePack, focusedItem)",
+    "function buildOperatorCaseWikiFocusedRoutingBlock(snapshot, evidencePack, focusedItem)",
     "function buildOperatorCaseWikiFocusedHandoffPreviewBlock()",
+    "function buildOperatorCaseWikiFocusedRoutingPreviewBlock()",
     "async function copyOperatorCaseWikiFocusedHandoffBlock(mode = \"handoff\")",
+    "async function copyOperatorCaseWikiFocusedRoutingBlock(mode = \"routing\")",
     "buildOperatorCaseWikiFocusSummary(focusedItem)",
     "function buildOperatorCaseWikiQuestionsPreview()",
     "function buildOperatorCaseWikiTimelinePreview()",
@@ -135,6 +141,9 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     'operatorCaseWikiFocusedHandoffSnapshot: document.getElementById("operatorCaseWikiFocusedHandoffSnapshot")',
     'operatorCaseWikiFocusedHandoffCopyBtn: document.getElementById("operatorCaseWikiFocusedHandoffCopyBtn")',
     'operatorCaseWikiFocusedHandoffExportBtn: document.getElementById("operatorCaseWikiFocusedHandoffExportBtn")',
+    'operatorCaseWikiFocusedRoutingSnapshot: document.getElementById("operatorCaseWikiFocusedRoutingSnapshot")',
+    'operatorCaseWikiFocusedRoutingCopyBtn: document.getElementById("operatorCaseWikiFocusedRoutingCopyBtn")',
+    'operatorCaseWikiFocusedRoutingExportBtn: document.getElementById("operatorCaseWikiFocusedRoutingExportBtn")',
     "buildSessionExportOperatorSessionReplay",
     "buildSessionExportOperatorDiscovery",
     "buildSessionExportOperatorCaseWiki",
@@ -206,6 +215,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "handoffPreview:",
     "handoffFocus:",
     "focusedHandoffBlock:",
+    "focusedRoutingBlock:",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing session-ops token: ${token}`);
@@ -237,6 +247,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(readmeSource, /Case Wiki Overview/i);
   assert.match(readmeSource, /Case Wiki Evidence/i);
   assert.match(readmeSource, /Case Wiki Focused Handoff/i);
+  assert.match(readmeSource, /Case Wiki Focused Routing/i);
   assert.match(readmeSource, /Case Wiki Open Questions/i);
   assert.match(readmeSource, /refresh recovery follow-?up path/i);
   assert.match(readmeSource, /structured refresh state/i);
@@ -252,6 +263,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(operatorGuideSource, /Case Wiki Overview/i);
   assert.match(operatorGuideSource, /Case Wiki Evidence/i);
   assert.match(operatorGuideSource, /Case Wiki Focused Handoff/i);
+  assert.match(operatorGuideSource, /Case Wiki Focused Routing/i);
   assert.match(operatorGuideSource, /Case Wiki Open Questions/i);
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);
   assert.match(operatorGuideSource, /structured refresh state/i);
