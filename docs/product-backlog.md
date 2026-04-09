@@ -77,6 +77,7 @@ Primary targets:
 2. `agents/orchestrator/src/workflow-store.ts`
 3. `apps/api-backend/src/runtime-workflow-control-plane.ts`
 4. `apps/api-backend/src/runtime-session-replay-mirror.ts`
+5. `apps/api-backend/src/runtime-case-wiki.ts`
 
 Definition of done:
 
