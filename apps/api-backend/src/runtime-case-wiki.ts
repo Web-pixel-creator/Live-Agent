@@ -7,6 +7,8 @@ import type {
   CaseWikiPriority,
   CaseWikiProof,
   CaseWikiProofStatus,
+  CaseWikiHandoffPack,
+  CaseWikiHandoffPackItem,
   CaseWikiRoutingActionId,
   CaseWikiRoutingCTA,
   CaseWikiRoutingLane,
@@ -917,6 +919,95 @@ function buildCaseWikiRoutingPack(params: {
   };
 }
 
+function buildCaseWikiHandoffSourceRefsLabel(
+  sourceRefs: string[],
+  limit = 4,
+): string | null {
+  const refs = sourceRefs
+    .map((item) => toNonEmptyString(item))
+    .filter((item): item is string => Boolean(item))
+    .slice(0, limit);
+  return refs.length > 0 ? refs.join(", ") : null;
+}
+
+function buildCaseWikiHandoffPack(params: {
+  evidencePack: {
+    proofs: CaseWikiProof[];
+    questions: CaseWikiOpenQuestion[];
+    sourceRefs: string[];
+  };
+  recommendedNextAction: CaseWikiNextAction | null;
+}): CaseWikiHandoffPack {
+  const nextAction = params.recommendedNextAction;
+  const nextActionLabel =
+    toNonEmptyString(nextAction?.title ?? null) ??
+    toNonEmptyString(nextAction?.summary ?? null) ??
+    sentenceCaseCaseWikiRoutingValue(nextAction?.type ?? null);
+  const sharedFallbackRefs = Array.isArray(nextAction?.sourceRefs) && nextAction.sourceRefs.length > 0
+    ? nextAction.sourceRefs
+    : params.evidencePack.sourceRefs;
+  const buildProofItem = (proof: CaseWikiProof): CaseWikiHandoffPackItem => {
+    const sourceRefs = proof.sourceRefs.length > 0 ? proof.sourceRefs : sharedFallbackRefs;
+    const refsLabel = buildCaseWikiHandoffSourceRefsLabel(sourceRefs);
+    return {
+      focusKind: "proof",
+      focusId: proof.id,
+      focusLabel: proof.statement,
+      handoff: [
+        `Focus proof: ${proof.statement}`,
+        toNonEmptyString(proof.evidenceSummary) ? `Evidence: ${toNonEmptyString(proof.evidenceSummary)}` : null,
+        toNonEmptyString(proof.contradictionNote) ? `Watch: ${toNonEmptyString(proof.contradictionNote)}` : null,
+        nextActionLabel ? `Next: ${nextActionLabel}` : null,
+        refsLabel ? `Refs: ${refsLabel}` : null,
+      ].filter((item): item is string => Boolean(item)).join("\n"),
+      detail: {
+        status: proof.status,
+        confidence: Number.isFinite(Number(proof.confidence)) ? Number(proof.confidence) : null,
+        evidenceSummary: toNonEmptyString(proof.evidenceSummary),
+        contradictionNote: toNonEmptyString(proof.contradictionNote),
+        priority: null,
+        blocking: nextAction?.blocking === true,
+        owner: toNonEmptyString(nextAction?.owner ?? null),
+        suggestedNextStep: null,
+      },
+      sourceRefs,
+      nextAction,
+    };
+  };
+  const buildQuestionItem = (question: CaseWikiOpenQuestion): CaseWikiHandoffPackItem => {
+    const sourceRefs = question.sourceRefs.length > 0 ? question.sourceRefs : sharedFallbackRefs;
+    const refsLabel = buildCaseWikiHandoffSourceRefsLabel(sourceRefs);
+    return {
+      focusKind: "question",
+      focusId: question.id,
+      focusLabel: question.question,
+      handoff: [
+        `Focus question: ${question.question}`,
+        toNonEmptyString(question.suggestedNextStep) ? `Resolve: ${toNonEmptyString(question.suggestedNextStep)}` : null,
+        toNonEmptyString(question.owner ?? null) ? `Owner: ${toNonEmptyString(question.owner ?? null)}` : null,
+        nextActionLabel ? `Next: ${nextActionLabel}` : null,
+        refsLabel ? `Refs: ${refsLabel}` : null,
+      ].filter((item): item is string => Boolean(item)).join("\n"),
+      detail: {
+        status: question.blocking ? "open" : "monitored",
+        confidence: null,
+        evidenceSummary: null,
+        contradictionNote: null,
+        priority: question.priority,
+        blocking: question.blocking,
+        owner: toNonEmptyString(question.owner ?? null),
+        suggestedNextStep: toNonEmptyString(question.suggestedNextStep),
+      },
+      sourceRefs,
+      nextAction,
+    };
+  };
+  return {
+    proofs: params.evidencePack.proofs.map((item) => buildProofItem(item)),
+    questions: params.evidencePack.questions.map((item) => buildQuestionItem(item)),
+  };
+}
+
 function selectTopProof(proofs: CaseWikiProof[]): CaseWikiProof | null {
   return (
     proofs.find((item) => item.status === "missing") ??
@@ -1046,6 +1137,10 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     entities,
     openQuestions,
   });
+  const handoffPack = buildCaseWikiHandoffPack({
+    evidencePack,
+    recommendedNextAction,
+  });
   const routingPack = buildCaseWikiRoutingPack({
     evidencePack,
     recommendedNextAction,
@@ -1088,6 +1183,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
       topBlockingQuestion: selectTopBlockingQuestion(openQuestions),
     },
     evidencePack,
+    handoffPack,
     routingPack,
     entities,
     timeline,

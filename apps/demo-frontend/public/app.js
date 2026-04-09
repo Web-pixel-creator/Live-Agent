@@ -25853,6 +25853,7 @@ function buildSessionExportOperatorCaseWiki() {
           sourceRefs: evidencePack.sourceRefs,
         }
       : null,
+    handoffPack: isRecord(snapshot?.handoffPack) ? snapshot.handoffPack : null,
     routingPack: isRecord(snapshot?.routingPack) ? snapshot.routingPack : null,
     recommendedNextAction: isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null,
     topBlockingQuestion: isRecord(blockingQuestion) ? blockingQuestion : null,
@@ -26085,6 +26086,9 @@ function toMarkdownExport(payload) {
   );
   lines.push(
     `- focusedRoutingCtaAction: ${payload.operatorEvidence?.operatorCaseWiki?.focusedRoutingBlock?.cta?.actionId ?? "-"}`,
+  );
+  lines.push(
+    `- handoffPack: proofs=${payload.operatorEvidence?.operatorCaseWiki?.handoffPack?.proofs?.length ?? 0}, questions=${payload.operatorEvidence?.operatorCaseWiki?.handoffPack?.questions?.length ?? 0}`,
   );
   lines.push(
     `- routingPack: proofs=${payload.operatorEvidence?.operatorCaseWiki?.routingPack?.proofs?.length ?? 0}, questions=${payload.operatorEvidence?.operatorCaseWiki?.routingPack?.questions?.length ?? 0}`,
@@ -32446,6 +32450,25 @@ function resolveOperatorCaseWikiFocusedRoutingPackItem(snapshot, focusedItem) {
   ) ?? null;
 }
 
+function resolveOperatorCaseWikiFocusedHandoffPackItem(snapshot, focusedItem) {
+  if (!isRecord(snapshot) || !focusedItem || !isRecord(focusedItem.item)) {
+    return null;
+  }
+  const handoffPack = isRecord(snapshot.handoffPack) ? snapshot.handoffPack : null;
+  if (!handoffPack) {
+    return null;
+  }
+  const items = focusedItem.kind === "proof" ? handoffPack.proofs : handoffPack.questions;
+  if (!Array.isArray(items)) {
+    return null;
+  }
+  return items.find((item) =>
+    isRecord(item) &&
+    toOptionalText(item.focusKind) === focusedItem.kind &&
+    toOptionalText(item.focusId) === (toOptionalText(focusedItem.id) ?? toOptionalText(focusedItem.item.id))
+  ) ?? null;
+}
+
 function buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack) {
   const nextAction = isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null;
   const nextActionLabel =
@@ -32482,6 +32505,10 @@ function buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focu
   if (!focusedItem || !isRecord(focusedItem.item)) {
     return null;
   }
+  const handoffPackItem = resolveOperatorCaseWikiFocusedHandoffPackItem(snapshot, focusedItem);
+  if (toOptionalText(handoffPackItem?.handoff)) {
+    return toOptionalText(handoffPackItem?.handoff);
+  }
   const item = focusedItem.item;
   const nextAction = isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null;
   const sourceRefs =
@@ -32514,9 +32541,15 @@ function buildOperatorCaseWikiFocusedHandoffBlock(snapshot, evidencePack, focuse
     return null;
   }
   const item = focusedItem.item;
-  const nextAction = isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null;
-  const sourceRefs =
-    Array.isArray(item.sourceRefs) && item.sourceRefs.length > 0
+  const handoffPackItem = resolveOperatorCaseWikiFocusedHandoffPackItem(snapshot, focusedItem);
+  const nextAction = isRecord(handoffPackItem?.nextAction)
+    ? handoffPackItem.nextAction
+    : isRecord(snapshot?.recommendedNextAction)
+      ? snapshot.recommendedNextAction
+      : null;
+  const sourceRefs = Array.isArray(handoffPackItem?.sourceRefs)
+    ? handoffPackItem.sourceRefs.map((entry) => toOptionalText(entry)).filter(Boolean)
+    : Array.isArray(item.sourceRefs) && item.sourceRefs.length > 0
       ? item.sourceRefs.map((entry) => toOptionalText(entry)).filter(Boolean)
       : Array.isArray(evidencePack?.sourceRefs)
         ? evidencePack.sourceRefs.map((entry) => toOptionalText(entry)).filter(Boolean)
@@ -32531,16 +32564,41 @@ function buildOperatorCaseWikiFocusedHandoffBlock(snapshot, evidencePack, focuse
           : toOptionalText(item.question) ?? "Selected question",
       summary: buildOperatorCaseWikiFocusSummary(focusedItem),
     },
-    handoff: buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem),
-    detail:
-      focusedItem.kind === "proof"
+    handoff:
+      toOptionalText(handoffPackItem?.handoff) ??
+      buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem),
+    detail: isRecord(handoffPackItem?.detail)
+      ? {
+          status: toOptionalText(handoffPackItem.detail.status),
+          confidence: Number.isFinite(Number(handoffPackItem.detail.confidence))
+            ? Number(handoffPackItem.detail.confidence)
+            : null,
+          evidenceSummary: toOptionalText(handoffPackItem.detail.evidenceSummary),
+          contradictionNote: toOptionalText(handoffPackItem.detail.contradictionNote),
+          priority: toOptionalText(handoffPackItem.detail.priority),
+          blocking:
+            typeof handoffPackItem.detail.blocking === "boolean"
+              ? handoffPackItem.detail.blocking
+              : null,
+          owner: toOptionalText(handoffPackItem.detail.owner),
+          suggestedNextStep: toOptionalText(handoffPackItem.detail.suggestedNextStep),
+        }
+      : focusedItem.kind === "proof"
         ? {
             status: toOptionalText(item.status),
             confidence: Number.isFinite(Number(item.confidence)) ? Number(item.confidence) : null,
             evidenceSummary: toOptionalText(item.evidenceSummary),
             contradictionNote: toOptionalText(item.contradictionNote),
+            priority: null,
+            blocking: nextAction?.blocking === true,
+            owner: toOptionalText(nextAction?.owner),
+            suggestedNextStep: null,
           }
         : {
+            status: item.blocking === true ? "open" : "monitored",
+            confidence: null,
+            evidenceSummary: null,
+            contradictionNote: null,
             priority: toOptionalText(item.priority),
             blocking: item.blocking === true,
             owner: toOptionalText(item.owner),
@@ -33347,6 +33405,7 @@ function buildOperatorCaseWikiEvidencePreview() {
             sourceRefs: evidencePack.sourceRefs,
           }
         : null,
+      handoffPack: isRecord(snapshot.handoffPack) ? snapshot.handoffPack : null,
       focus: buildOperatorCaseWikiFocusSummary(focusedItem),
       handoffPreview: buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack),
       handoffFocus: buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem),

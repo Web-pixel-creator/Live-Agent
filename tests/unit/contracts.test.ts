@@ -316,6 +316,77 @@ test("case wiki contracts expose stable structured memory shapes", () => {
       ],
       sourceRefs: ["session:session-123", "note:operator-1", "proof:proof-1"],
     },
+    handoffPack: {
+      proofs: [
+        {
+          focusKind: "proof",
+          focusId: "proof-1",
+          focusLabel: "Customer wants a spouse relocation consultation.",
+          handoff: [
+            "Focus proof: Customer wants a spouse relocation consultation.",
+            "Evidence: Confirmed in the latest live intake.",
+            "Next: Request missing visa documents",
+            "Refs: session:session-123",
+          ].join("\n"),
+          detail: {
+            status: "confirmed",
+            confidence: 0.96,
+            evidenceSummary: "Confirmed in the latest live intake.",
+            contradictionNote: null,
+            priority: null,
+            blocking: true,
+            owner: "operator",
+            suggestedNextStep: null,
+          },
+          sourceRefs: ["session:session-123"],
+          nextAction: {
+            type: "document_request",
+            title: "Request missing visa documents",
+            summary: "Ask the customer for the passport scan and invitation letter before scheduling filing.",
+            owner: "operator",
+            dueBy: null,
+            blocking: true,
+            relatedQuestionIds: ["question-1"],
+            sourceRefs: ["question:question-1", "timeline:timeline-1"],
+          },
+        },
+      ],
+      questions: [
+        {
+          focusKind: "question",
+          focusId: "question-1",
+          focusLabel: "Has the customer already received the invitation letter?",
+          handoff: [
+            "Focus question: Has the customer already received the invitation letter?",
+            "Resolve: Request the invitation letter or confirm issuance status.",
+            "Owner: customer",
+            "Next: Request missing visa documents",
+            "Refs: proof:proof-1",
+          ].join("\n"),
+          detail: {
+            status: "open",
+            confidence: null,
+            evidenceSummary: null,
+            contradictionNote: null,
+            priority: "high",
+            blocking: true,
+            owner: "customer",
+            suggestedNextStep: "Request the invitation letter or confirm issuance status.",
+          },
+          sourceRefs: ["proof:proof-1"],
+          nextAction: {
+            type: "document_request",
+            title: "Request missing visa documents",
+            summary: "Ask the customer for the passport scan and invitation letter before scheduling filing.",
+            owner: "operator",
+            dueBy: null,
+            blocking: true,
+            relatedQuestionIds: ["question-1"],
+            sourceRefs: ["question:question-1", "timeline:timeline-1"],
+          },
+        },
+      ],
+    },
     routingPack: {
       proofs: [
         {
@@ -460,6 +531,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.equal(wiki.evidencePack.entities[0]?.kind, "person");
   assert.equal(wiki.evidencePack.questions[0]?.priority, "high");
   assert.equal(wiki.evidencePack.sourceRefs.includes("proof:proof-1"), true);
+  assert.match(wiki.handoffPack.proofs[0]?.handoff ?? "", /Focus proof/i);
+  assert.equal(wiki.handoffPack.questions[0]?.detail.priority, "high");
   assert.equal(wiki.routingPack.proofs[0]?.route.lane, "customer_followup");
   assert.equal(wiki.routingPack.questions[0]?.cta.actionId, "run_negotiation");
   assert.equal(wiki.entities[0]?.kind, "person");

@@ -300,6 +300,32 @@ export type CaseWikiRoutingPack = {
   questions: CaseWikiRoutingPackItem[];
 };
 
+export type CaseWikiHandoffDetail = {
+  status: string | null;
+  confidence: number | null;
+  evidenceSummary: string | null;
+  contradictionNote: string | null;
+  priority: CaseWikiPriority | null;
+  blocking: boolean | null;
+  owner: string | null;
+  suggestedNextStep: string | null;
+};
+
+export type CaseWikiHandoffPackItem = {
+  focusKind: CaseWikiRoutingFocusKind;
+  focusId: string;
+  focusLabel: string;
+  handoff: string;
+  detail: CaseWikiHandoffDetail;
+  sourceRefs: string[];
+  nextAction: CaseWikiNextAction | null;
+};
+
+export type CaseWikiHandoffPack = {
+  proofs: CaseWikiHandoffPackItem[];
+  questions: CaseWikiHandoffPackItem[];
+};
+
 export type RuntimeCaseWikiNoteRequest = {
   sessionId: string;
   runId?: string;
@@ -332,6 +358,7 @@ export type CaseWiki = {
   overview: CaseWikiOverview;
   highlights: CaseWikiHighlights;
   evidencePack: CaseWikiEvidencePack;
+  handoffPack: CaseWikiHandoffPack;
   routingPack: CaseWikiRoutingPack;
   entities: CaseWikiEntity[];
   timeline: CaseWikiTimelineEntry[];

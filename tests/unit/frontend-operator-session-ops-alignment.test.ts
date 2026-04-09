@@ -216,6 +216,8 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "caseWikiProof=",
     "caseWikiEntity=",
     "evidencePack:",
+    "resolveOperatorCaseWikiFocusedHandoffPackItem(snapshot, focusedItem)",
+    "handoffPack:",
     "routingPack:",
     "focus:",
     "handoffPreview:",
@@ -257,6 +259,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(readmeSource, /Case Wiki Evidence/i);
   assert.match(readmeSource, /Case Wiki Focused Handoff/i);
   assert.match(readmeSource, /Case Wiki Focused Routing/i);
+  assert.match(readmeSource, /handoffPack/i);
   assert.match(readmeSource, /routingPack/i);
   assert.match(readmeSource, /one-click CTA action/i);
   assert.match(readmeSource, /Case Wiki Open Questions/i);
@@ -275,6 +278,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(operatorGuideSource, /Case Wiki Evidence/i);
   assert.match(operatorGuideSource, /Case Wiki Focused Handoff/i);
   assert.match(operatorGuideSource, /Case Wiki Focused Routing/i);
+  assert.match(operatorGuideSource, /handoffPack/i);
   assert.match(operatorGuideSource, /routingPack/i);
   assert.match(operatorGuideSource, /one-click CTA action/i);
   assert.match(operatorGuideSource, /Case Wiki Open Questions/i);
