@@ -183,17 +183,33 @@ async function readText(page, selector) {
 }
 
 async function ensureVoiceTrayConnectSurface(page, timeoutMs) {
-  const connectButton = page.locator("#connectBtn").first();
-  if (await connectButton.isVisible().catch(() => false)) {
-    return;
-  }
-
   const voiceDockButton = page.locator("#liveDockVoiceBtn").first();
   if (await voiceDockButton.isVisible().catch(() => false)) {
     await voiceDockButton.click({ timeout: timeoutMs });
   }
 
+  const connectButton = page.locator("#connectBtn").first();
   await connectButton.waitFor({ state: "visible", timeout: timeoutMs });
+}
+
+async function triggerFrontendButtonClick(page, selector, timeoutMs) {
+  const locator = page.locator(selector).first();
+  await locator.waitFor({ state: "attached", timeout: timeoutMs });
+
+  try {
+    await locator.scrollIntoViewIfNeeded();
+    await locator.click({ timeout: Math.min(timeoutMs, 5000) });
+    return "playwright";
+  } catch {
+    await page.evaluate((targetSelector) => {
+      const node = document.querySelector(targetSelector);
+      if (!(node instanceof HTMLButtonElement)) {
+        throw new Error(`button not found: ${targetSelector}`);
+      }
+      node.click();
+    }, selector);
+    return "dom";
+  }
 }
 
 async function setFrontendInputValue(page, selector, value, timeoutMs) {
@@ -313,7 +329,7 @@ async function run() {
     await ensureVoiceTrayConnectSurface(page, options.timeoutMs);
     await setFrontendInputValue(page, "#sessionId", options.sessionId, options.timeoutMs);
     await setFrontendInputValue(page, "#userId", options.userId, options.timeoutMs);
-    await page.locator("#connectBtn").click();
+    const connectClickPath = await triggerFrontendButtonClick(page, "#connectBtn", options.timeoutMs);
 
     await page.waitForFunction(
       () => {
@@ -336,6 +352,7 @@ async function run() {
       modeStatus: await readText(page, "#modeStatus"),
       sessionState: await readText(page, "#sessionState"),
       runId: await readText(page, "#runId"),
+      connectClickPath,
     };
 
     const replayResult = await pollSessionReplay(options.apiBaseUrl, options.sessionId, Math.max(3000, Math.floor(options.timeoutMs / 2)));
@@ -353,7 +370,7 @@ async function run() {
 
     try {
       if (ui.connectionStatus === "connected") {
-        await page.locator("#disconnectBtn").click({ timeout: 5000 });
+        await triggerFrontendButtonClick(page, "#disconnectBtn", 5000);
       }
     } catch {
       // best-effort disconnect
