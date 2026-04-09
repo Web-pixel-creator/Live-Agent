@@ -119,6 +119,7 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "function renderCaseWorkspaceCaseWikiDetailBadges(container, badges) {",
     "async function copyOperatorCaseWikiDetailAction(kind, action) {",
     "function openCaseWorkspaceCaseWikiInOperatorOps(kind) {",
+    "openOperatorSupportPanel(el.operatorSessionOpsControl, el.operatorCaseWikiFocusedHandoffSnapshot);",
     "const drilldownValue =",
     "const handoffValue =",
     "function renderCaseWorkspaceCaseWikiFocusRail(container, chips, emptyText) {",

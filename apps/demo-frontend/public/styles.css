@@ -8692,6 +8692,19 @@ textarea {
   gap: 10px;
 }
 
+.operator-session-ops-control-output-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.operator-session-ops-control-output-actions > button {
+  min-height: 28px;
+  padding: 5px 10px;
+  font-size: 0.68rem;
+}
+
 .operator-session-ops-control-output-head h3 {
   margin: 0;
   color: color-mix(in oklch, var(--foreground) 97%, var(--secondary));

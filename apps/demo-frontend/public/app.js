@@ -3749,6 +3749,9 @@ const el = {
   operatorSessionOpsDiscoverySnapshot: document.getElementById("operatorSessionOpsDiscoverySnapshot"),
   operatorCaseWikiOverviewSnapshot: document.getElementById("operatorCaseWikiOverviewSnapshot"),
   operatorCaseWikiEvidenceSnapshot: document.getElementById("operatorCaseWikiEvidenceSnapshot"),
+  operatorCaseWikiFocusedHandoffSnapshot: document.getElementById("operatorCaseWikiFocusedHandoffSnapshot"),
+  operatorCaseWikiFocusedHandoffCopyBtn: document.getElementById("operatorCaseWikiFocusedHandoffCopyBtn"),
+  operatorCaseWikiFocusedHandoffExportBtn: document.getElementById("operatorCaseWikiFocusedHandoffExportBtn"),
   operatorCaseWikiQuestionsSnapshot: document.getElementById("operatorCaseWikiQuestionsSnapshot"),
   operatorCaseWikiTimelineSnapshot: document.getElementById("operatorCaseWikiTimelineSnapshot"),
   operatorSessionOpsLastResult: document.getElementById("operatorSessionOpsLastResult"),
@@ -25824,6 +25827,7 @@ function buildSessionExportOperatorCaseWiki() {
   const topEntity = resolveOperatorCaseWikiTopEntity(snapshot);
   const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
   const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
+  const focusedHandoffBlock = buildOperatorCaseWikiFocusedHandoffBlock(snapshot, evidencePack, focusedItem);
   const evidencePackProofs = buildOperatorCaseWikiEvidencePackProofSummary(evidencePack);
   const evidencePackQuestions = buildOperatorCaseWikiEvidencePackQuestionSummary(evidencePack);
   const handoffPreview = buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack);
@@ -25853,6 +25857,7 @@ function buildSessionExportOperatorCaseWiki() {
     evidencePackQuestions,
     handoffPreview,
     handoffFocus,
+    focusedHandoffBlock,
     counts: {
       entities: Array.isArray(snapshot?.entities) ? snapshot.entities.length : 0,
       proofs: Array.isArray(snapshot?.proofs) ? snapshot.proofs.length : 0,
@@ -26051,6 +26056,12 @@ function toMarkdownExport(payload) {
   );
   lines.push(`- handoffPreview: ${payload.operatorEvidence?.operatorCaseWiki?.handoffPreview ?? "-"}`);
   lines.push(`- handoffFocus: ${payload.operatorEvidence?.operatorCaseWiki?.handoffFocus ?? "-"}`);
+  lines.push(
+    `- focusedHandoffBlock: ${payload.operatorEvidence?.operatorCaseWiki?.focusedHandoffBlock?.focus?.label ?? "-"}`,
+  );
+  lines.push(
+    `- focusedHandoffRefs: ${(payload.operatorEvidence?.operatorCaseWiki?.focusedHandoffBlock?.sourceRefs ?? []).join(", ") || "-"}`,
+  );
   lines.push(
     `- counts: entities=${payload.operatorEvidence?.operatorCaseWiki?.counts?.entities ?? 0}, proofs=${payload.operatorEvidence?.operatorCaseWiki?.counts?.proofs ?? 0}, openQuestions=${payload.operatorEvidence?.operatorCaseWiki?.counts?.openQuestions ?? 0}, timeline=${payload.operatorEvidence?.operatorCaseWiki?.counts?.timeline ?? 0}`,
   );
@@ -32452,6 +32463,55 @@ function buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focu
   ].filter(Boolean).join("\n");
 }
 
+function buildOperatorCaseWikiFocusedHandoffBlock(snapshot, evidencePack, focusedItem) {
+  if (!focusedItem || !isRecord(focusedItem.item)) {
+    return null;
+  }
+  const item = focusedItem.item;
+  const nextAction = isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null;
+  const sourceRefs =
+    Array.isArray(item.sourceRefs) && item.sourceRefs.length > 0
+      ? item.sourceRefs.map((entry) => toOptionalText(entry)).filter(Boolean)
+      : Array.isArray(evidencePack?.sourceRefs)
+        ? evidencePack.sourceRefs.map((entry) => toOptionalText(entry)).filter(Boolean)
+        : [];
+  return {
+    focus: {
+      kind: focusedItem.kind,
+      id: toOptionalText(focusedItem.id) ?? toOptionalText(item.id),
+      label:
+        focusedItem.kind === "proof"
+          ? toOptionalText(item.statement) ?? "Selected proof"
+          : toOptionalText(item.question) ?? "Selected question",
+      summary: buildOperatorCaseWikiFocusSummary(focusedItem),
+    },
+    handoff: buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem),
+    detail:
+      focusedItem.kind === "proof"
+        ? {
+            status: toOptionalText(item.status),
+            confidence: Number.isFinite(Number(item.confidence)) ? Number(item.confidence) : null,
+            evidenceSummary: toOptionalText(item.evidenceSummary),
+            contradictionNote: toOptionalText(item.contradictionNote),
+          }
+        : {
+            priority: toOptionalText(item.priority),
+            blocking: item.blocking === true,
+            owner: toOptionalText(item.owner),
+            suggestedNextStep: toOptionalText(item.suggestedNextStep),
+          },
+    sourceRefs,
+    nextAction: nextAction
+      ? {
+          type: toOptionalText(nextAction.type),
+          title: toOptionalText(nextAction.title),
+          owner: toOptionalText(nextAction.owner),
+          rationale: toOptionalText(nextAction.rationale),
+        }
+      : null,
+  };
+}
+
 function buildOperatorCaseWikiFocusSummary(focusedItem) {
   if (!focusedItem || !isRecord(focusedItem.item)) {
     return null;
@@ -32764,6 +32824,55 @@ async function copyOperatorCaseWikiDetailAction(kind, action) {
   );
 }
 
+async function copyOperatorCaseWikiFocusedHandoffBlock(mode = "handoff") {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
+  const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
+  const focusedBlock = buildOperatorCaseWikiFocusedHandoffBlock(snapshot, evidencePack, focusedItem);
+  const text =
+    mode === "export"
+      ? focusedBlock
+        ? `${JSON.stringify(focusedBlock, null, 2)}\n`
+        : null
+      : toOptionalText(focusedBlock?.handoff);
+  if (!text) {
+    setOperatorSessionOpsControlStatus("case_wiki_handoff_unavailable", "warn");
+    state.operatorSessionOpsLastResult = {
+      action: `case_wiki_focused_handoff_${mode}_skipped`,
+      reason: "focus_required",
+      requestedAt: toIsoNow(),
+    };
+    renderOperatorSessionOpsPanel();
+    appendTranscript(
+      "error",
+      "Select a Case Wiki proof/question focus before copying the focused handoff block.",
+      { exposeInLiveResult: false },
+    );
+    return;
+  }
+  const copied = await copyTextToClipboard(text);
+  if (!copied) {
+    throw new Error("clipboard_unavailable");
+  }
+  const resultAction = mode === "export" ? "case_wiki_focused_handoff_export_copied" : "case_wiki_focused_handoff_copied";
+  state.operatorSessionOpsLastResult = {
+    action: resultAction,
+    focus: focusedBlock?.focus?.summary ?? focusedBlock?.focus?.label ?? null,
+    refsCount: Array.isArray(focusedBlock?.sourceRefs) ? focusedBlock.sourceRefs.length : 0,
+    copiedAt: toIsoNow(),
+  };
+  setOperatorSessionOpsControlStatus(resultAction, "ok");
+  setExportStatus(mode === "export" ? "case wiki focused export copied" : "case wiki focused handoff copied");
+  renderOperatorSessionOpsPanel();
+  appendTranscript(
+    "system",
+    mode === "export"
+      ? `Case Wiki focused export block copied: ${focusedBlock?.focus?.label ?? "selected focus"}`
+      : `Case Wiki focused handoff copied: ${focusedBlock?.focus?.label ?? "selected focus"}`,
+    { exposeInLiveResult: false },
+  );
+}
+
 function openCaseWorkspaceCaseWikiInOperatorOps(kind) {
   const isRu = state.languageMode === "ru";
   const bundle = buildOperatorCaseWikiDetailActionBundle(kind, isRu);
@@ -32778,8 +32887,8 @@ function openCaseWorkspaceCaseWikiInOperatorOps(kind) {
     appendTranscript(
       "error",
       isRu
-        ? "\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u043e\u0431\u043d\u043e\u0432\u0438 Case Wiki, \u0447\u0442\u043e\u0431\u044b \u043e\u0442\u043a\u0440\u044b\u0442\u044c focused evidence \u0432 Operator Session Ops."
-        : "Refresh Case Wiki first to open focused evidence in Operator Session Ops.",
+        ? "\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u043e\u0431\u043d\u043e\u0432\u0438 Case Wiki, \u0447\u0442\u043e\u0431\u044b \u043e\u0442\u043a\u0440\u044b\u0442\u044c focused handoff \u0432 Operator Session Ops."
+        : "Refresh Case Wiki first to open the focused handoff in Operator Session Ops.",
       { exposeInLiveResult: false },
     );
     return;
@@ -32799,12 +32908,12 @@ function openCaseWorkspaceCaseWikiInOperatorOps(kind) {
   setActiveTab("operator");
   setOperatorSavedView("runtime", { scroll: false });
   window.setTimeout(() => {
-    openOperatorSupportPanel(el.operatorSessionOpsControl, el.operatorCaseWikiEvidenceSnapshot);
-    if (el.operatorCaseWikiEvidenceSnapshot instanceof HTMLElement) {
-      el.operatorCaseWikiEvidenceSnapshot.tabIndex = -1;
-      scrollOperatorElementIntoView("operatorCaseWikiEvidenceSnapshot");
+    openOperatorSupportPanel(el.operatorSessionOpsControl, el.operatorCaseWikiFocusedHandoffSnapshot);
+    if (el.operatorCaseWikiFocusedHandoffSnapshot instanceof HTMLElement) {
+      el.operatorCaseWikiFocusedHandoffSnapshot.tabIndex = -1;
+      scrollOperatorElementIntoView("operatorCaseWikiFocusedHandoffSnapshot");
       scheduleDeferredFocus(() => {
-        el.operatorCaseWikiEvidenceSnapshot.focus({ preventScroll: true });
+        el.operatorCaseWikiFocusedHandoffSnapshot.focus({ preventScroll: true });
       });
     }
   }, 0);
@@ -32812,11 +32921,11 @@ function openCaseWorkspaceCaseWikiInOperatorOps(kind) {
     "system",
     kind === "proof"
       ? isRu
-        ? `Case Wiki proof opened in Operator Session Ops: ${bundle.title}`
-        : `Case Wiki proof opened in Operator Session Ops: ${bundle.title}`
+        ? `Case Wiki proof opened in focused handoff: ${bundle.title}`
+        : `Case Wiki proof opened in focused handoff: ${bundle.title}`
       : isRu
-        ? `Case Wiki question opened in Operator Session Ops: ${bundle.title}`
-        : `Case Wiki question opened in Operator Session Ops: ${bundle.title}`,
+        ? `Case Wiki question opened in focused handoff: ${bundle.title}`
+        : `Case Wiki question opened in focused handoff: ${bundle.title}`,
     { exposeInLiveResult: false },
   );
 }
@@ -32921,6 +33030,20 @@ function buildOperatorCaseWikiEvidencePreview() {
         : null,
     },
     "No case wiki evidence loaded yet.",
+  );
+}
+
+function buildOperatorCaseWikiFocusedHandoffPreviewBlock() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  if (!snapshot) {
+    return "No focused case wiki handoff loaded yet.";
+  }
+  const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
+  const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
+  const focusedBlock = buildOperatorCaseWikiFocusedHandoffBlock(snapshot, evidencePack, focusedItem);
+  return stringifyOperatorRuntimeFaultValue(
+    focusedBlock,
+    "No focused case wiki handoff loaded yet.",
   );
 }
 
@@ -33161,6 +33284,14 @@ function buildOperatorSessionOpsLastResultPreview() {
 
 function renderOperatorSessionOpsPanel() {
   const declaration = cloneOperatorPurposeDeclaration(state.operatorPurposeDeclaration);
+  const caseWikiSnapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const caseWikiEvidencePack = resolveOperatorCaseWikiEvidencePack(caseWikiSnapshot);
+  const caseWikiFocusedItem = resolveOperatorCaseWikiFocusedItem(caseWikiEvidencePack);
+  const focusedHandoffBlock = buildOperatorCaseWikiFocusedHandoffBlock(
+    caseWikiSnapshot,
+    caseWikiEvidencePack,
+    caseWikiFocusedItem,
+  );
   if (el.operatorPurposeCategory instanceof HTMLSelectElement) {
     el.operatorPurposeCategory.value = normalizeOperatorPurposeCategory(declaration?.category);
     syncCustomSelectControl(el.operatorPurposeCategory);
@@ -33194,6 +33325,9 @@ function renderOperatorSessionOpsPanel() {
   if (el.operatorCaseWikiEvidenceSnapshot instanceof HTMLElement) {
     el.operatorCaseWikiEvidenceSnapshot.textContent = buildOperatorCaseWikiEvidencePreview();
   }
+  if (el.operatorCaseWikiFocusedHandoffSnapshot instanceof HTMLElement) {
+    el.operatorCaseWikiFocusedHandoffSnapshot.textContent = buildOperatorCaseWikiFocusedHandoffPreviewBlock();
+  }
   if (el.operatorCaseWikiQuestionsSnapshot instanceof HTMLElement) {
     el.operatorCaseWikiQuestionsSnapshot.textContent = buildOperatorCaseWikiQuestionsPreview();
   }
@@ -33217,6 +33351,16 @@ function renderOperatorSessionOpsPanel() {
   }
   if (el.operatorCaseWikiSaveBtn instanceof HTMLButtonElement) {
     el.operatorCaseWikiSaveBtn.disabled = !canAppendOperatorCaseWikiNote();
+  }
+  if (el.operatorCaseWikiFocusedHandoffCopyBtn instanceof HTMLButtonElement) {
+    el.operatorCaseWikiFocusedHandoffCopyBtn.disabled = !toOptionalText(focusedHandoffBlock?.handoff);
+    el.operatorCaseWikiFocusedHandoffCopyBtn.title =
+      focusedHandoffBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
+  }
+  if (el.operatorCaseWikiFocusedHandoffExportBtn instanceof HTMLButtonElement) {
+    el.operatorCaseWikiFocusedHandoffExportBtn.disabled = !focusedHandoffBlock;
+    el.operatorCaseWikiFocusedHandoffExportBtn.title =
+      focusedHandoffBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first";
   }
   renderCaseWorkspaceCaseWikiSummary();
   renderOperatorSessionBoundaryWidget(state.operatorSessionReplaySnapshot);
@@ -42851,6 +42995,20 @@ function bindEvents() {
   if (el.operatorCaseWikiSaveBtn) {
     el.operatorCaseWikiSaveBtn.addEventListener("click", () => {
       void appendOperatorCaseWikiNote();
+    });
+  }
+  if (el.operatorCaseWikiFocusedHandoffCopyBtn instanceof HTMLButtonElement) {
+    el.operatorCaseWikiFocusedHandoffCopyBtn.addEventListener("click", () => {
+      void copyOperatorCaseWikiFocusedHandoffBlock("handoff").catch((error) => {
+        appendTranscript("error", `Case Wiki focused handoff copy failed: ${String(error)}`, { exposeInLiveResult: false });
+      });
+    });
+  }
+  if (el.operatorCaseWikiFocusedHandoffExportBtn instanceof HTMLButtonElement) {
+    el.operatorCaseWikiFocusedHandoffExportBtn.addEventListener("click", () => {
+      void copyOperatorCaseWikiFocusedHandoffBlock("export").catch((error) => {
+        appendTranscript("error", `Case Wiki focused export copy failed: ${String(error)}`, { exposeInLiveResult: false });
+      });
     });
   }
   if (el.caseWorkspaceCaseWikiProofHandoffCopyBtn instanceof HTMLButtonElement) {
