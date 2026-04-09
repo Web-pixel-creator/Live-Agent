@@ -24,6 +24,9 @@ test("browser direct-live smoke script drives frontend connect flow and checks b
     'button not found: ${targetSelector}',
     'connectClickPath',
     "function setFrontendInputValue",
+    "function readFrontendInputValue",
+    "actualSessionId",
+    "requestedSessionId",
     '"session_events"',
     "direct-live-browser-smoke.png",
   ]) {

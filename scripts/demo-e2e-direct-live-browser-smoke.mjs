@@ -235,6 +235,20 @@ async function setFrontendInputValue(page, selector, value, timeoutMs) {
   );
 }
 
+async function readFrontendInputValue(page, selector, timeoutMs) {
+  const locator = page.locator(selector).first();
+  await locator.waitFor({ state: "attached", timeout: timeoutMs });
+
+  return page.evaluate((targetSelector) => {
+    const node = document.querySelector(targetSelector);
+    if (!(node instanceof HTMLInputElement)) {
+      throw new Error(`input not found: ${targetSelector}`);
+    }
+    const normalized = node.value.trim();
+    return normalized.length > 0 ? normalized : null;
+  }, selector);
+}
+
 async function pollSessionReplay(apiBaseUrl, sessionId, timeoutMs) {
   const replayUrl = new URL(`${apiBaseUrl.replace(/\/+$/g, "")}/v1/runtime/session-replay`);
   replayUrl.searchParams.set("sessionId", sessionId);
@@ -352,10 +366,17 @@ async function run() {
       modeStatus: await readText(page, "#modeStatus"),
       sessionState: await readText(page, "#sessionState"),
       runId: await readText(page, "#runId"),
+      actualSessionId: await readFrontendInputValue(page, "#sessionId", options.timeoutMs),
+      actualUserId: await readFrontendInputValue(page, "#userId", options.timeoutMs),
       connectClickPath,
     };
 
-    const replayResult = await pollSessionReplay(options.apiBaseUrl, options.sessionId, Math.max(3000, Math.floor(options.timeoutMs / 2)));
+    const replaySessionId = toOptionalString(ui.actualSessionId) ?? options.sessionId;
+    const replayResult = await pollSessionReplay(
+      options.apiBaseUrl,
+      replaySessionId,
+      Math.max(3000, Math.floor(options.timeoutMs / 2)),
+    );
     const liveTransport = replayResult.liveTransport;
     const observedDirectLive = liveTransport?.activeMode === "direct_live" && liveTransport?.evidenceSource === "session_events";
 
@@ -382,12 +403,13 @@ async function run() {
       reason,
       frontendBaseUrl: options.frontendBaseUrl,
       apiBaseUrl: options.apiBaseUrl,
-      sessionId: options.sessionId,
+      requestedSessionId: options.sessionId,
+      sessionId: replaySessionId,
       userId: options.userId,
       runtimeStatus,
       ui,
       replay: {
-        selectedSessionId: options.sessionId,
+        selectedSessionId: replaySessionId,
         liveTransport,
       },
       screenshotPath,
