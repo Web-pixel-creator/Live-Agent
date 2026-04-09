@@ -1285,6 +1285,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.caseWikiSummaryLabel": "Known now",
     "live.caseWorkspace.caseWikiBlockerLabel": "Top blocker",
     "live.caseWorkspace.caseWikiNextActionLabel": "Next action",
+    "live.caseWorkspace.caseWikiProofLabel": "Top proof",
+    "live.caseWorkspace.caseWikiEntityLabel": "Key entity",
     "live.caseWorkspace.statusPillReady": "Workspace ready",
     "live.caseWorkspace.statusPillInFlight": "In progress",
     "live.caseWorkspace.statusPillVerified": "Verified",
@@ -2197,6 +2199,8 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
   "live.caseWorkspace.caseWikiSummaryLabel": "\u0427\u0442\u043e \u0443\u0436\u0435 \u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e",
   "live.caseWorkspace.caseWikiBlockerLabel": "\u0413\u043b\u0430\u0432\u043d\u044b\u0439 \u0431\u043b\u043e\u043a\u0435\u0440",
   "live.caseWorkspace.caseWikiNextActionLabel": "\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435",
+  "live.caseWorkspace.caseWikiProofLabel": "\u041a\u043b\u044e\u0447\u0435\u0432\u043e\u0435 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u043e",
+  "live.caseWorkspace.caseWikiEntityLabel": "\u041a\u043b\u044e\u0447\u0435\u0432\u0430\u044f \u0441\u0443\u0449\u043d\u043e\u0441\u0442\u044c",
   "live.caseWorkspace.pathContextLabel": "\u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435",
   "live.context.workflow": "\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438 UI",
   "live.context.workflowHint": "\u0417\u0430\u043f\u0443\u0441\u043a \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u0438 \u0437\u0430\u0434\u0430\u0447\u0438 \u0432 \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0435",
@@ -3114,6 +3118,10 @@ const el = {
   caseWorkspaceCaseWikiSummaryValue: document.getElementById("caseWorkspaceCaseWikiSummaryValue"),
   caseWorkspaceCaseWikiBlockerValue: document.getElementById("caseWorkspaceCaseWikiBlockerValue"),
   caseWorkspaceCaseWikiNextActionValue: document.getElementById("caseWorkspaceCaseWikiNextActionValue"),
+  caseWorkspaceCaseWikiProofTitle: document.getElementById("caseWorkspaceCaseWikiProofTitle"),
+  caseWorkspaceCaseWikiProofSummary: document.getElementById("caseWorkspaceCaseWikiProofSummary"),
+  caseWorkspaceCaseWikiEntityTitle: document.getElementById("caseWorkspaceCaseWikiEntityTitle"),
+  caseWorkspaceCaseWikiEntitySummary: document.getElementById("caseWorkspaceCaseWikiEntitySummary"),
   caseWorkspaceMainActionsTitle: document.getElementById("caseWorkspaceMainActionsTitle"),
   caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus"),
   caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta"),
@@ -7827,6 +7835,14 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     nextActionValue: isRu
       ? "\u041e\u0431\u043d\u043e\u0432\u0438 Case Wiki \u0432 Operator Session Ops."
       : "Refresh Case Wiki in Operator Session Ops.",
+    proofTitle: isRu ? "\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0441\u0438\u0433\u043d\u0430\u043b\u0430 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u0430." : "No compiled proof yet.",
+    proofSummary: isRu
+      ? "\u041e\u0431\u043d\u043e\u0432\u0438 Case Wiki, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u0434\u043d\u044f\u0442\u044c \u0441\u0430\u043c\u044b\u0439 \u0441\u0438\u043b\u044c\u043d\u044b\u0439 confirmed \u0438\u043b\u0438 missing-evidence signal."
+      : "Refresh Case Wiki to surface the strongest confirmed or missing-evidence signal.",
+    entityTitle: isRu ? "\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u043a\u043b\u044e\u0447\u0435\u0432\u043e\u0439 \u0441\u0443\u0449\u043d\u043e\u0441\u0442\u0438." : "No key entity compiled yet.",
+    entitySummary: isRu
+      ? "\u0421\u0432\u043e\u0434\u043d\u044b\u0439 entity context \u043f\u043e\u044f\u0432\u0438\u0442\u0441\u044f \u0437\u0434\u0435\u0441\u044c \u043f\u043e\u0441\u043b\u0435 \u0447\u0442\u0435\u043d\u0438\u044f workflow \u0438 session evidence."
+      : "Compiled entity context appears here after the wiki reads workflow and session evidence.",
   };
   if (!snapshot) {
     return idle;
@@ -7834,6 +7850,15 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
   const overview = isRecord(snapshot.overview) ? snapshot.overview : null;
   const blockingQuestion = snapshot.openQuestions.find((item) => item.blocking === true) ?? snapshot.openQuestions[0] ?? null;
   const nextAction = isRecord(snapshot.recommendedNextAction) ? snapshot.recommendedNextAction : null;
+  const topProof =
+    snapshot.proofs.find((item) => item.status === "missing") ??
+    snapshot.proofs.find((item) => item.status === "confirmed") ??
+    snapshot.proofs[0] ??
+    null;
+  const keyEntity =
+    snapshot.entities.find((item) => toOptionalText(item.kind) !== "case") ??
+    snapshot.entities[0] ??
+    null;
   const statusPresentation = resolveCaseWorkspaceCaseWikiStatusPresentation(toOptionalText(overview?.status), isRu);
   const currentStage = toOptionalText(overview?.currentStage);
   const nextActionType = toOptionalText(nextAction?.type);
@@ -7857,6 +7882,20 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
       toOptionalText(nextAction?.summary) ??
       (nextActionType ? sentenceCaseOperatorEvidenceValue(nextActionType) : null) ??
       idle.nextActionValue,
+    proofTitle:
+      toOptionalText(topProof?.statement) ??
+      idle.proofTitle,
+    proofSummary:
+      toOptionalText(topProof?.evidenceSummary) ??
+      toOptionalText(topProof?.contradictionNote) ??
+      (toOptionalText(topProof?.status) ? sentenceCaseOperatorEvidenceValue(toOptionalText(topProof?.status)) : null) ??
+      idle.proofSummary,
+    entityTitle:
+      toOptionalText(keyEntity?.label) ??
+      idle.entityTitle,
+    entitySummary:
+      [toOptionalText(keyEntity?.role), toOptionalText(keyEntity?.description)].filter(Boolean).join(" · ") ||
+      idle.entitySummary,
   };
 }
 
@@ -7867,6 +7906,8 @@ function renderCaseWorkspaceCaseWikiSummary() {
   const caseWikiSummaryLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiSummaryLabel"]');
   const caseWikiBlockerLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiBlockerLabel"]');
   const caseWikiNextActionLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiNextActionLabel"]');
+  const caseWikiProofLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiProofLabel"]');
+  const caseWikiEntityLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiEntityLabel"]');
 
   if (caseWikiStatusLabel instanceof HTMLElement) {
     caseWikiStatusLabel.textContent = isRu ? "\u0421\u0442\u0430\u0442\u0443\u0441 \u0441\u0432\u043e\u0434\u043a\u0438" : "Compiled status";
@@ -7880,6 +7921,12 @@ function renderCaseWorkspaceCaseWikiSummary() {
   if (caseWikiNextActionLabel instanceof HTMLElement) {
     caseWikiNextActionLabel.textContent = isRu ? "\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435" : "Next action";
   }
+  if (caseWikiProofLabel instanceof HTMLElement) {
+    caseWikiProofLabel.textContent = isRu ? "\u041a\u043b\u044e\u0447\u0435\u0432\u043e\u0435 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u043e" : "Top proof";
+  }
+  if (caseWikiEntityLabel instanceof HTMLElement) {
+    caseWikiEntityLabel.textContent = isRu ? "\u041a\u043b\u044e\u0447\u0435\u0432\u0430\u044f \u0441\u0443\u0449\u043d\u043e\u0441\u0442\u044c" : "Key entity";
+  }
   if (el.caseWorkspaceCaseWikiStatusValue instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiStatusValue.textContent = caseWikiSummary.statusValue;
   }
@@ -7891,6 +7938,18 @@ function renderCaseWorkspaceCaseWikiSummary() {
   }
   if (el.caseWorkspaceCaseWikiNextActionValue instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiNextActionValue.textContent = caseWikiSummary.nextActionValue;
+  }
+  if (el.caseWorkspaceCaseWikiProofTitle instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiProofTitle.textContent = caseWikiSummary.proofTitle;
+  }
+  if (el.caseWorkspaceCaseWikiProofSummary instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiProofSummary.textContent = caseWikiSummary.proofSummary;
+  }
+  if (el.caseWorkspaceCaseWikiEntityTitle instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiEntityTitle.textContent = caseWikiSummary.entityTitle;
+  }
+  if (el.caseWorkspaceCaseWikiEntitySummary instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiEntitySummary.textContent = caseWikiSummary.entitySummary;
   }
   if (el.caseWorkspaceCaseWikiPill instanceof HTMLElement) {
     setStatusPill(el.caseWorkspaceCaseWikiPill, caseWikiSummary.pillText, caseWikiSummary.pillTone);
@@ -25437,6 +25496,15 @@ function buildSessionExportOperatorDiscovery() {
 function buildSessionExportOperatorCaseWiki() {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
   const blockingQuestion = snapshot?.openQuestions.find((item) => item.blocking === true) ?? snapshot?.openQuestions[0] ?? null;
+  const topProof =
+    snapshot?.proofs.find((item) => item.status === "missing") ??
+    snapshot?.proofs.find((item) => item.status === "confirmed") ??
+    snapshot?.proofs[0] ??
+    null;
+  const topEntity =
+    snapshot?.entities.find((item) => toOptionalText(item.kind) !== "case") ??
+    snapshot?.entities[0] ??
+    null;
   return {
     status: snapshot ? "loaded" : "idle",
     loadedAt: toOptionalText(state.operatorCaseWikiLoadedAt) ?? toOptionalText(snapshot?.generatedAt),
@@ -25446,6 +25514,8 @@ function buildSessionExportOperatorCaseWiki() {
     overview: isRecord(snapshot?.overview) ? snapshot.overview : null,
     recommendedNextAction: isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null,
     topBlockingQuestion: isRecord(blockingQuestion) ? blockingQuestion : null,
+    topProof: isRecord(topProof) ? topProof : null,
+    topEntity: isRecord(topEntity) ? topEntity : null,
     counts: {
       entities: Array.isArray(snapshot?.entities) ? snapshot.entities.length : 0,
       proofs: Array.isArray(snapshot?.proofs) ? snapshot.proofs.length : 0,
@@ -25629,6 +25699,10 @@ function toMarkdownExport(payload) {
   lines.push(`- contradictions: ${payload.operatorEvidence?.operatorCaseWiki?.overview?.contradictionsSummary ?? "-"}`);
   lines.push(`- nextAction: ${payload.operatorEvidence?.operatorCaseWiki?.recommendedNextAction?.title ?? payload.operatorEvidence?.operatorCaseWiki?.recommendedNextAction?.type ?? "-"}`);
   lines.push(`- topBlockingQuestion: ${payload.operatorEvidence?.operatorCaseWiki?.topBlockingQuestion?.question ?? "-"}`);
+  lines.push(`- topProof: ${payload.operatorEvidence?.operatorCaseWiki?.topProof?.statement ?? "-"}`);
+  lines.push(`- topProofEvidence: ${payload.operatorEvidence?.operatorCaseWiki?.topProof?.evidenceSummary ?? payload.operatorEvidence?.operatorCaseWiki?.topProof?.contradictionNote ?? "-"}`);
+  lines.push(`- topEntity: ${payload.operatorEvidence?.operatorCaseWiki?.topEntity?.label ?? "-"}`);
+  lines.push(`- topEntityRole: ${payload.operatorEvidence?.operatorCaseWiki?.topEntity?.role ?? "-"}`);
   lines.push(
     `- counts: entities=${payload.operatorEvidence?.operatorCaseWiki?.counts?.entities ?? 0}, proofs=${payload.operatorEvidence?.operatorCaseWiki?.counts?.proofs ?? 0}, openQuestions=${payload.operatorEvidence?.operatorCaseWiki?.counts?.openQuestions ?? 0}, timeline=${payload.operatorEvidence?.operatorCaseWiki?.counts?.timeline ?? 0}`,
   );

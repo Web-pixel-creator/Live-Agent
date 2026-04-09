@@ -1127,6 +1127,11 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-evidence-rail {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top: 2px;
+}
+
 .layout[data-active-tab="live-negotiator"] .case-workspace-panel-title {
   margin-top: 4px;
 }
@@ -1579,6 +1584,10 @@
   }
 
   .layout[data-active-tab="live-negotiator"] .case-workspace-summary-case-wiki .case-workspace-summary-list {
+    grid-template-columns: 1fr;
+  }
+
+  .layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-evidence-rail {
     grid-template-columns: 1fr;
   }
 }

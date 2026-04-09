@@ -82,6 +82,8 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "## Cross-Agent Discovery",
     "buildSessionExportOperatorCaseWiki",
     "topBlockingQuestion:",
+    "topProof:",
+    "topEntity:",
     "liveTransport:",
     "liveEvidenceSource:",
     "historyStatus:",

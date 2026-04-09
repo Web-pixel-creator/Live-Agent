@@ -18,7 +18,13 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiBlockerLabel">Top blocker</dt>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiBlockerValue"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiNextActionLabel">Next action</dt>')
-      && htmlSource.includes('id="caseWorkspaceCaseWikiNextActionValue"'),
+      && htmlSource.includes('id="caseWorkspaceCaseWikiNextActionValue"')
+      && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiProofLabel">Top proof</span>')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiProofTitle"')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiProofSummary"')
+      && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiEntityLabel">Key entity</span>')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiEntityTitle"')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiEntitySummary"'),
     "index.html should expose a compact Case Wiki summary card inside Case Workspace",
   );
 
@@ -28,15 +34,23 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     '"live.caseWorkspace.caseWikiSummaryLabel": "Known now"',
     '"live.caseWorkspace.caseWikiBlockerLabel": "Top blocker"',
     '"live.caseWorkspace.caseWikiNextActionLabel": "Next action"',
+    '"live.caseWorkspace.caseWikiProofLabel": "Top proof"',
+    '"live.caseWorkspace.caseWikiEntityLabel": "Key entity"',
     'caseWorkspaceCaseWikiPill: document.getElementById("caseWorkspaceCaseWikiPill")',
     'caseWorkspaceCaseWikiStatusValue: document.getElementById("caseWorkspaceCaseWikiStatusValue")',
     'caseWorkspaceCaseWikiSummaryValue: document.getElementById("caseWorkspaceCaseWikiSummaryValue")',
     'caseWorkspaceCaseWikiBlockerValue: document.getElementById("caseWorkspaceCaseWikiBlockerValue")',
     'caseWorkspaceCaseWikiNextActionValue: document.getElementById("caseWorkspaceCaseWikiNextActionValue")',
+    'caseWorkspaceCaseWikiProofTitle: document.getElementById("caseWorkspaceCaseWikiProofTitle")',
+    'caseWorkspaceCaseWikiProofSummary: document.getElementById("caseWorkspaceCaseWikiProofSummary")',
+    'caseWorkspaceCaseWikiEntityTitle: document.getElementById("caseWorkspaceCaseWikiEntityTitle")',
+    'caseWorkspaceCaseWikiEntitySummary: document.getElementById("caseWorkspaceCaseWikiEntitySummary")',
     "function buildCaseWorkspaceCaseWikiSummary(isRu)",
     "function renderCaseWorkspaceCaseWikiSummary()",
     "const caseWikiSummary = buildCaseWorkspaceCaseWikiSummary(isRu);",
     "el.caseWorkspaceCaseWikiStatusValue.textContent = caseWikiSummary.statusValue;",
+    "el.caseWorkspaceCaseWikiProofTitle.textContent = caseWikiSummary.proofTitle;",
+    "el.caseWorkspaceCaseWikiEntityTitle.textContent = caseWikiSummary.entityTitle;",
     "renderCaseWorkspaceCaseWikiSummary();",
   ]) {
     assert.ok(appSource.includes(token), `app.js missing case wiki workspace token: ${token}`);
@@ -46,6 +60,7 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     ".case-workspace-summary-case-wiki {",
     "grid-column: 1 / -1;",
     ".case-workspace-summary-case-wiki .case-workspace-summary-list {",
+    ".case-workspace-case-wiki-evidence-rail {",
   ]) {
     assert.ok(stylesSource.includes(token), `styles.css missing case wiki workspace token: ${token}`);
   }
