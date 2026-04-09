@@ -11,6 +11,8 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /workflow_dispatch:/);
   assert.match(source, /skip_release_verification:/);
   assert.match(source, /gateway_demo_frontend_public_url:/);
+  assert.match(source, /frontend_api_base_url:/);
+  assert.match(source, /frontend_ws_url:/);
   assert.match(source, /gateway_root_descriptor_check_max_attempts:/);
   assert.match(source, /gateway_root_descriptor_check_retry_backoff_sec:/);
   assert.match(source, /skip_gateway_deploy:/);
@@ -38,7 +40,11 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /id:\s*combined_deploy/);
   assert.match(source, /continue-on-error:\s*true/);
   assert.match(source, /\$gatewayDemoFrontendPublicUrl = "\$\{\{\s*inputs\.gateway_demo_frontend_public_url\s*\}\}"\.Trim\(\)/);
+  assert.match(source, /\$frontendApiBaseUrl = "\$\{\{\s*inputs\.frontend_api_base_url\s*\}\}"\.Trim\(\)/);
+  assert.match(source, /\$frontendWsUrl = "\$\{\{\s*inputs\.frontend_ws_url\s*\}\}"\.Trim\(\)/);
   assert.match(source, /if \(\[string\]::IsNullOrWhiteSpace\(\$gatewayDemoFrontendPublicUrl\) -and -not \[string\]::IsNullOrWhiteSpace\(\$env:FRONTEND_PUBLIC_URL\)\)/);
+  assert.match(source, /-FrontendApiBaseUrl/);
+  assert.match(source, /-FrontendWsUrl/);
   assert.match(source, /& powershell -NoProfile -ExecutionPolicy Bypass -File \.\/scripts\/railway-deploy-all\.ps1 @args/);
   assert.match(source, /- name:\s*Verify Public Endpoints Fallback \(Deploy Failure\)/);
   assert.match(source, /id:\s*verify_only_fallback/);
@@ -73,6 +79,8 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /artifacts\/deploy\/production-smoke\.md/);
   assert.match(source, /-SkipReleaseVerification/);
   assert.match(source, /-GatewayDemoFrontendPublicUrl/);
+  assert.match(source, /-FrontendApiBaseUrl/);
+  assert.match(source, /-FrontendWsUrl/);
   assert.match(source, /-GatewayRootDescriptorCheckMaxAttempts/);
   assert.match(source, /-GatewayRootDescriptorCheckRetryBackoffSec/);
   assert.match(source, /-SkipGatewayDeploy/);
@@ -96,4 +104,6 @@ test("readme documents deploy-all workflow and required secrets", () => {
   assert.match(readme, /artifacts\/deploy\/railway-deploy-summary\.json/);
   assert.match(readme, /artifacts\/deploy\/production-smoke\.json/);
   assert.match(readme, /railway-deploy-all-artifacts/);
+  assert.match(readme, /frontend_api_base_url/);
+  assert.match(readme, /frontend_ws_url/);
 });

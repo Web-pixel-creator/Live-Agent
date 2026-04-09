@@ -15,6 +15,14 @@ on:
         description: "Expected demo frontend public URL for gateway root descriptor uiUrl validation"
         required: false
         default: ""
+      frontend_api_base_url:
+        description: "Explicit frontend API base URL override (defaults to gateway_public_url when omitted)"
+        required: false
+        default: ""
+      frontend_ws_url:
+        description: "Explicit frontend WebSocket URL override (defaults to derived websocket URL when omitted)"
+        required: false
+        default: ""
       gateway_root_descriptor_check_max_attempts:
         description: "Max attempts for gateway root descriptor check"
         required: false
@@ -134,6 +142,14 @@ jobs:
           }
           if (-not [string]::IsNullOrWhiteSpace($gatewayDemoFrontendPublicUrl)) {
             $args += @("-GatewayDemoFrontendPublicUrl", $gatewayDemoFrontendPublicUrl)
+          }
+          $frontendApiBaseUrl = "${{ inputs.frontend_api_base_url }}".Trim()
+          if (-not [string]::IsNullOrWhiteSpace($frontendApiBaseUrl)) {
+            $args += @("-FrontendApiBaseUrl", $frontendApiBaseUrl)
+          }
+          $frontendWsUrl = "${{ inputs.frontend_ws_url }}".Trim()
+          if (-not [string]::IsNullOrWhiteSpace($frontendWsUrl)) {
+            $args += @("-FrontendWsUrl", $frontendWsUrl)
           }
           if (-not [string]::IsNullOrWhiteSpace("${{ inputs.gateway_root_descriptor_check_max_attempts }}")) {
             $args += @("-GatewayRootDescriptorCheckMaxAttempts", "${{ inputs.gateway_root_descriptor_check_max_attempts }}")

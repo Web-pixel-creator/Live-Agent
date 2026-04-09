@@ -1329,6 +1329,21 @@ $env:GITHUB_REPO="Live-Agent"
 npm run deploy:railway:all:dispatch -- -Environment production -GatewayPublicUrl https://live-agent-production.up.railway.app -SkipReleaseVerification
 ```
 
+Frontend-only dispatch that preserves the dedicated API + realtime endpoints:
+
+```powershell
+gh workflow run railway-deploy-all.yml `
+  -f environment=production `
+  -f gateway_public_url=https://live-agent-production.up.railway.app `
+  -f gateway_demo_frontend_public_url=https://live-agent-frontend-production.up.railway.app `
+  -f frontend_api_base_url=https://live-agent-api-production.up.railway.app `
+  -f frontend_ws_url=wss://live-agent-production.up.railway.app/realtime `
+  -f skip_release_verification=true `
+  -f skip_gateway_deploy=true `
+  -f skip_frontend_deploy=false `
+  -f verify_only_fallback_on_auth_failure=true
+```
+
 `deploy:railway:all:dispatch` auth uses `-Token`, then `GITHUB_TOKEN`/`GH_TOKEN`, then fallback `gh auth token`.
 
 Behavior:
@@ -1463,6 +1478,7 @@ All GitHub workflow jobs that rely on JavaScript-based actions now use Node 24-c
 - Railway combined deploy workflow: `.github/workflows/railway-deploy-all.yml`
 - Triggered manually (`workflow_dispatch`) to deploy `gateway + frontend` via `npm run deploy:railway:all`.
 - Workflow invokes `scripts/railway-deploy-all.ps1` directly from PowerShell so switch parameters reach the deploy helper without npm/PowerShell argument-loss on Windows runners.
+- Manual dispatch also accepts `frontend_api_base_url` and `frontend_ws_url` so a frontend-only rollout can keep `config.json` pinned to the dedicated API service instead of falling back to `gateway_public_url`.
 - Required repository secrets:
   - `RAILWAY_API_TOKEN` (recommended: workspace/account token)
   - `RAILWAY_TOKEN` (legacy account-token fallback; workflow exports it separately as `RAILWAY_LEGACY_TOKEN`)
@@ -1498,6 +1514,7 @@ All GitHub workflow jobs that rely on JavaScript-based actions now use Node 24-c
 - Triggered on push to `main`/`master` and manual dispatch.
 - Runs `npm run verify:release:strict` (`-StrictFinalRun`) and uploads consolidated release artifacts bundle.
 - Manual dispatch supports optional deploy to Railway (`deploy_to_railway=true`) after strict gate passes using `npm run deploy:railway:all`.
+- The same manual dispatch now exposes `frontend_api_base_url` and `frontend_ws_url` for frontend-only redeploys that must keep the frontend bound to `https://live-agent-api-production.up.railway.app` rather than the gateway root.
 - For release-triggered deploy, configure repository secrets: `RAILWAY_API_TOKEN` (recommended), `RAILWAY_PROJECT_ID`, `RAILWAY_SERVICE_ID` (optional `RAILWAY_FRONTEND_SERVICE_ID`; legacy fallback `RAILWAY_TOKEN`; optional `RAILWAY_PROJECT_TOKEN`).
 - For the strict promptfoo red-team gate, configure `GOOGLE_API_KEY` (it can mirror the Gemini key value); the workflow maps Google provider aliases into the release environment so CI can generate `artifacts/evals/latest-run.json` without globally enabling Gemini live-agent latency inside the demo runtime.
 - The strict workflow clears Google/Gemini provider env vars only around nested unit-test execution, then restores them for promptfoo/release gates; it also sets `DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK=true` so fallback-safe `remote_http` UI executor posture is accepted in CI while still rejecting forced simulation.
