@@ -108,6 +108,7 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "function renderCaseWorkspaceCaseWikiSummary()",
     "const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);",
     "const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);",
+    "const previewPack = isRecord(snapshot.previewPack) ? snapshot.previewPack : null;",
     "const proofChips = buildOperatorCaseWikiFocusChipRail(evidencePack, \"proof\");",
     "const questionChips = buildOperatorCaseWikiFocusChipRail(evidencePack, \"question\");",
     "const proofDetailPackItem = resolveOperatorCaseWikiDetailPackItem(snapshot, \"proof\", proofDetailFocusId);",

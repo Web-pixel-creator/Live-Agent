@@ -576,6 +576,15 @@ test("case wiki contracts expose stable structured memory shapes", () => {
         },
       ],
     },
+    previewPack: {
+      packValue: "1 proofs | 1 entities | 1 questions",
+      refsValue: "session:session-123 | note:operator-1 | proof:proof-1",
+      proofsSummary: "[confirmed] Customer wants a spouse relocation consultation.",
+      questionsSummary: "[high] Has the customer already received the invitation letter?",
+      drilldownValue:
+        "[confirmed] Customer wants a spouse relocation consultation. | [high] Has the customer already received the invitation letter?",
+      handoffValue: "Request missing visa documents | refs: question:question-1, timeline:timeline-1",
+    },
     entities: [
       {
         id: "entity-customer",
@@ -650,6 +659,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.match(wiki.actionPack.questions[0]?.refsText ?? "", /Question refs/i);
   assert.match(wiki.focusPack.proofs[0]?.chipTitle ?? "", /Refs:/i);
   assert.match(wiki.focusPack.questions[0]?.handoffPreview ?? "", /Focus question/i);
+  assert.match(wiki.previewPack.packValue ?? "", /1 proofs/i);
+  assert.match(wiki.previewPack.handoffValue ?? "", /Request missing visa documents/i);
   assert.equal(wiki.entities[0]?.kind, "person");
   assert.equal(wiki.proofs[0]?.status, "confirmed");
   assert.equal(wiki.recommendedNextAction?.type, "document_request");

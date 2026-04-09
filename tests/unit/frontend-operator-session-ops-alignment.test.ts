@@ -90,6 +90,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "buildOperatorCaseWikiEvidencePackQuestionSummary",
     "resolveOperatorCaseWikiFocusedRoutingPackItem(snapshot, focusedItem)",
     "resolveOperatorCaseWikiFocusPackItem(snapshot, focusedItem.kind, focusId)",
+    "previewPack: isRecord(snapshot.previewPack) ? snapshot.previewPack : null,",
     "buildOperatorCaseWikiHandoffPreview",
     "resolveOperatorCaseWikiFocusedItem(evidencePack)",
     "buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem)",
@@ -223,6 +224,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "routingPack:",
     "actionPack:",
     "focusPack:",
+    "previewPack:",
     "resolveOperatorCaseWikiActionPackItem(snapshot, kind, target.id)",
     "focus:",
     "handoffPreview:",
@@ -269,6 +271,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(readmeSource, /routingPack/i);
   assert.match(readmeSource, /actionPack/i);
   assert.match(readmeSource, /focusPack/i);
+  assert.match(readmeSource, /previewPack/i);
   assert.match(readmeSource, /one-click CTA action/i);
   assert.match(readmeSource, /Case Wiki Open Questions/i);
   assert.match(readmeSource, /refresh recovery follow-?up path/i);
@@ -291,6 +294,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(operatorGuideSource, /routingPack/i);
   assert.match(operatorGuideSource, /actionPack/i);
   assert.match(operatorGuideSource, /focusPack/i);
+  assert.match(operatorGuideSource, /previewPack/i);
   assert.match(operatorGuideSource, /one-click CTA action/i);
   assert.match(operatorGuideSource, /Case Wiki Open Questions/i);
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);

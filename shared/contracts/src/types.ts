@@ -318,6 +318,15 @@ export type CaseWikiFocusPack = {
   questions: CaseWikiFocusPackItem[];
 };
 
+export type CaseWikiPreviewPack = {
+  packValue: string | null;
+  refsValue: string | null;
+  proofsSummary: string | null;
+  questionsSummary: string | null;
+  drilldownValue: string | null;
+  handoffValue: string | null;
+};
+
 export type CaseWikiRoutingRoute = {
   lane: CaseWikiRoutingLane;
   owner: string | null;
@@ -419,6 +428,7 @@ export type CaseWiki = {
   routingPack: CaseWikiRoutingPack;
   actionPack: CaseWikiActionPack;
   focusPack: CaseWikiFocusPack;
+  previewPack: CaseWikiPreviewPack;
   entities: CaseWikiEntity[];
   timeline: CaseWikiTimelineEntry[];
   proofs: CaseWikiProof[];

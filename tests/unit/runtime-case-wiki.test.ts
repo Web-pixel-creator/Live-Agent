@@ -231,6 +231,10 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.match(wiki?.focusPack.proofs[0]?.drilldown ?? "", /Follow-up package is complete/i);
   assert.equal(wiki?.focusPack.questions[0]?.focusId, "question:missing-followup-items");
   assert.match(wiki?.focusPack.questions[0]?.handoffPreview ?? "", /Focus question/i);
+  assert.match(wiki?.previewPack.packValue ?? "", /3 proofs/i);
+  assert.match(wiki?.previewPack.refsValue ?? "", /workflow:control-plane/i);
+  assert.match(wiki?.previewPack.questionsSummary ?? "", /\[high\]/i);
+  assert.match(wiki?.previewPack.handoffValue ?? "", /Request missing follow-up items/i);
   assert.equal(wiki?.entities.some((item) => item.kind === "case" && item.id === "case:case-42"), true);
   assert.equal(wiki?.entities.some((item) => item.kind === "location" && item.label === "Canada"), true);
   assert.equal(wiki?.timeline[0]?.id, "session:session-case-1");
@@ -378,4 +382,5 @@ test("runtime case wiki prioritizes pending approvals as the next action when op
   assert.match(wiki?.actionPack.questions[0]?.refsText ?? "", /approval:approval-pending-1/i);
   assert.equal(wiki?.focusPack.questions[0]?.focusId, "question:approval:approval-pending-1");
   assert.match(wiki?.focusPack.questions[0]?.chipTitle ?? "", /Owner: operator/i);
+  assert.match(wiki?.previewPack.handoffValue ?? "", /Resolve pending approval/i);
 });

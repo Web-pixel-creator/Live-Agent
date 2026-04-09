@@ -16,6 +16,7 @@ import type {
   CaseWikiHandoffPackItem,
   CaseWikiFocusPack,
   CaseWikiFocusPackItem,
+  CaseWikiPreviewPack,
   CaseWikiRoutingActionId,
   CaseWikiRoutingCTA,
   CaseWikiRoutingLane,
@@ -1307,6 +1308,63 @@ function buildCaseWikiFocusPack(params: {
   };
 }
 
+function buildCaseWikiPreviewPack(params: {
+  evidencePack: {
+    proofs: CaseWikiProof[];
+    entities: CaseWikiEntity[];
+    questions: CaseWikiOpenQuestion[];
+    sourceRefs: string[];
+  };
+  recommendedNextAction: CaseWikiNextAction | null;
+}): CaseWikiPreviewPack {
+  const proofsSummary =
+    params.evidencePack.proofs
+      .slice(0, 3)
+      .map((item) => {
+        const status = toNonEmptyString(item.status);
+        return [status ? `[${status}]` : null, item.statement].filter((part): part is string => Boolean(part)).join(" ");
+      })
+      .filter((item) => item.length > 0)
+      .join(" | ") || null;
+  const questionsSummary =
+    params.evidencePack.questions
+      .slice(0, 3)
+      .map((item) => {
+        const priority = toNonEmptyString(item.priority);
+        return [priority ? `[${priority}]` : null, item.question].filter((part): part is string => Boolean(part)).join(" ");
+      })
+      .filter((item) => item.length > 0)
+      .join(" | ") || null;
+  const nextAction = params.recommendedNextAction;
+  const nextActionLabel =
+    toNonEmptyString(nextAction?.title ?? null) ??
+    toNonEmptyString(nextAction?.summary ?? null) ??
+    sentenceCaseCaseWikiRoutingValue(nextAction?.type ?? null);
+  const handoffRefs =
+    Array.isArray(nextAction?.sourceRefs) && nextAction.sourceRefs.length > 0
+      ? nextAction.sourceRefs
+      : params.evidencePack.sourceRefs;
+  const handoffRefsLabel = buildCaseWikiHandoffSourceRefsLabel(handoffRefs, 4);
+  return {
+    packValue:
+      [
+        params.evidencePack.proofs.length > 0 ? `${params.evidencePack.proofs.length} proofs` : null,
+        params.evidencePack.entities.length > 0 ? `${params.evidencePack.entities.length} entities` : null,
+        params.evidencePack.questions.length > 0 ? `${params.evidencePack.questions.length} questions` : null,
+      ].filter((item): item is string => Boolean(item)).join(" | ") || null,
+    refsValue:
+      params.evidencePack.sourceRefs.length > 0
+        ? params.evidencePack.sourceRefs.join(" | ")
+        : null,
+    proofsSummary,
+    questionsSummary,
+    drilldownValue: [proofsSummary, questionsSummary].filter((item): item is string => Boolean(item)).join(" | ") || null,
+    handoffValue: [nextActionLabel, handoffRefsLabel ? `refs: ${handoffRefsLabel}` : null]
+      .filter((item): item is string => Boolean(item))
+      .join(" | ") || null,
+  };
+}
+
 function selectTopProof(proofs: CaseWikiProof[]): CaseWikiProof | null {
   return (
     proofs.find((item) => item.status === "missing") ??
@@ -1456,6 +1514,10 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     evidencePack,
     handoffPack,
   });
+  const previewPack = buildCaseWikiPreviewPack({
+    evidencePack,
+    recommendedNextAction,
+  });
 
   return {
     schemaVersion: 1,
@@ -1499,6 +1561,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     routingPack,
     actionPack,
     focusPack,
+    previewPack,
     entities,
     timeline,
     proofs,
