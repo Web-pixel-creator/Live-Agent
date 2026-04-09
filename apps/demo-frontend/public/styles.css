@@ -1198,6 +1198,60 @@
   line-height: 1.45;
 }
 
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-shell {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-row {
+  border: 1px solid color-mix(in oklch, var(--border-soft) 74%, transparent);
+  border-radius: 18px;
+  background: color-mix(in oklch, var(--surface-control) 72%, transparent);
+  overflow: clip;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-summary {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-summary::-webkit-details-marker {
+  display: none;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-label {
+  color: color-mix(in oklch, var(--primary) 58%, var(--muted-foreground));
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-title {
+  color: color-mix(in oklch, var(--foreground) 95%, var(--accent-foreground));
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-meta {
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-body {
+  margin: 0;
+  padding: 0 14px 14px;
+  color: var(--foreground);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
 .layout[data-active-tab="live-negotiator"] .case-workspace-panel-title {
   margin-top: 4px;
 }
@@ -1654,6 +1708,7 @@
   }
 
   .layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-focus-shell,
+  .layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-shell,
   .layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-evidence-rail {
     grid-template-columns: 1fr;
   }

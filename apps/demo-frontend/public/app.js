@@ -1294,6 +1294,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.caseWikiHandoffLabel": "Handoff preview",
     "live.caseWorkspace.caseWikiProofChipsLabel": "Proof focus",
     "live.caseWorkspace.caseWikiQuestionChipsLabel": "Question focus",
+    "live.caseWorkspace.caseWikiProofDetailLabel": "Proof detail",
+    "live.caseWorkspace.caseWikiQuestionDetailLabel": "Question detail",
     "live.caseWorkspace.statusPillReady": "Workspace ready",
     "live.caseWorkspace.statusPillInFlight": "In progress",
     "live.caseWorkspace.statusPillVerified": "Verified",
@@ -2214,6 +2216,8 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
   "live.caseWorkspace.caseWikiHandoffLabel": "\u041f\u0440\u0435\u0432\u044c\u044e handoff",
   "live.caseWorkspace.caseWikiProofChipsLabel": "\u0424\u043e\u043a\u0443\u0441 \u043f\u043e proof",
   "live.caseWorkspace.caseWikiQuestionChipsLabel": "\u0424\u043e\u043a\u0443\u0441 \u043f\u043e question",
+  "live.caseWorkspace.caseWikiProofDetailLabel": "\u0414\u0435\u0442\u0430\u043b\u0438 proof",
+  "live.caseWorkspace.caseWikiQuestionDetailLabel": "\u0414\u0435\u0442\u0430\u043b\u0438 question",
   "live.caseWorkspace.pathContextLabel": "\u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435",
   "live.context.workflow": "\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438 UI",
   "live.context.workflowHint": "\u0417\u0430\u043f\u0443\u0441\u043a \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u0438 \u0437\u0430\u0434\u0430\u0447\u0438 \u0432 \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0435",
@@ -3141,6 +3145,12 @@ const el = {
   caseWorkspaceCaseWikiHandoffValue: document.getElementById("caseWorkspaceCaseWikiHandoffValue"),
   caseWorkspaceCaseWikiProofChips: document.getElementById("caseWorkspaceCaseWikiProofChips"),
   caseWorkspaceCaseWikiQuestionChips: document.getElementById("caseWorkspaceCaseWikiQuestionChips"),
+  caseWorkspaceCaseWikiProofDetailTitle: document.getElementById("caseWorkspaceCaseWikiProofDetailTitle"),
+  caseWorkspaceCaseWikiProofDetailMeta: document.getElementById("caseWorkspaceCaseWikiProofDetailMeta"),
+  caseWorkspaceCaseWikiProofDetailBody: document.getElementById("caseWorkspaceCaseWikiProofDetailBody"),
+  caseWorkspaceCaseWikiQuestionDetailTitle: document.getElementById("caseWorkspaceCaseWikiQuestionDetailTitle"),
+  caseWorkspaceCaseWikiQuestionDetailMeta: document.getElementById("caseWorkspaceCaseWikiQuestionDetailMeta"),
+  caseWorkspaceCaseWikiQuestionDetailBody: document.getElementById("caseWorkspaceCaseWikiQuestionDetailBody"),
   caseWorkspaceMainActionsTitle: document.getElementById("caseWorkspaceMainActionsTitle"),
   caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus"),
   caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta"),
@@ -7875,6 +7885,20 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     handoffValue: isRu
       ? "\u041f\u0440\u0435\u0432\u044c\u044e handoff \u0441 source refs \u043f\u043e\u044f\u0432\u0438\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
       : "Source-linked handoff preview appears here after Case Wiki refresh.",
+    proofDetailTitle: isRu ? "\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0434\u0435\u0442\u0430\u043b\u0435\u0439 proof." : "No proof detail yet.",
+    proofDetailMeta: isRu
+      ? "\u041e\u0431\u043d\u043e\u0432\u0438 Case Wiki, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u0434\u043d\u044f\u0442\u044c status, confidence \u0438 refs."
+      : "Refresh Case Wiki to surface proof status, confidence, and refs.",
+    proofDetailBody: isRu
+      ? "\u0420\u0430\u0437\u0432\u0451\u0440\u043d\u0443\u0442\u044b\u0435 details \u043f\u043e proof \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
+      : "Expanded proof detail appears here after Case Wiki refresh.",
+    questionDetailTitle: isRu ? "\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0434\u0435\u0442\u0430\u043b\u0435\u0439 question." : "No question detail yet.",
+    questionDetailMeta: isRu
+      ? "\u041e\u0431\u043d\u043e\u0432\u0438 Case Wiki, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u0434\u043d\u044f\u0442\u044c owner, priority \u0438 next step."
+      : "Refresh Case Wiki to surface owner, priority, and suggested next step.",
+    questionDetailBody: isRu
+      ? "\u0420\u0430\u0437\u0432\u0451\u0440\u043d\u0443\u0442\u044b\u0435 details \u043f\u043e question \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
+      : "Expanded question detail appears here after Case Wiki refresh.",
   };
   if (!snapshot) {
     return idle;
@@ -7911,6 +7935,14 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     idle.handoffValue;
   const proofChips = buildOperatorCaseWikiFocusChipRail(evidencePack, "proof");
   const questionChips = buildOperatorCaseWikiFocusChipRail(evidencePack, "question");
+  const proofDetail = buildOperatorCaseWikiProofDetailValue(
+    focusedItem?.kind === "proof" ? focusedItem.item : topProof,
+    isRu,
+  );
+  const questionDetail = buildOperatorCaseWikiQuestionDetailValue(
+    focusedItem?.kind === "question" ? focusedItem.item : blockingQuestion ?? snapshot.openQuestions[0] ?? null,
+    isRu,
+  );
   return {
     pillText: statusPresentation.pillText,
     pillTone: statusPresentation.pillTone,
@@ -7959,6 +7991,12 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     handoffValue,
     proofChips,
     questionChips,
+    proofDetailTitle: proofDetail.title,
+    proofDetailMeta: proofDetail.meta,
+    proofDetailBody: proofDetail.body,
+    questionDetailTitle: questionDetail.title,
+    questionDetailMeta: questionDetail.meta,
+    questionDetailBody: questionDetail.body,
     packValue,
     refsValue,
   };
@@ -8018,6 +8056,8 @@ function renderCaseWorkspaceCaseWikiSummary() {
   const caseWikiHandoffLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiHandoffLabel"]');
   const caseWikiProofChipsLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiProofChipsLabel"]');
   const caseWikiQuestionChipsLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiQuestionChipsLabel"]');
+  const caseWikiProofDetailLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiProofDetailLabel"]');
+  const caseWikiQuestionDetailLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiQuestionDetailLabel"]');
 
   if (caseWikiStatusLabel instanceof HTMLElement) {
     caseWikiStatusLabel.textContent = isRu ? "\u0421\u0442\u0430\u0442\u0443\u0441 \u0441\u0432\u043e\u0434\u043a\u0438" : "Compiled status";
@@ -8055,6 +8095,12 @@ function renderCaseWorkspaceCaseWikiSummary() {
   if (caseWikiQuestionChipsLabel instanceof HTMLElement) {
     caseWikiQuestionChipsLabel.textContent = isRu ? "\u0424\u043e\u043a\u0443\u0441 \u043f\u043e question" : "Question focus";
   }
+  if (caseWikiProofDetailLabel instanceof HTMLElement) {
+    caseWikiProofDetailLabel.textContent = isRu ? "\u0414\u0435\u0442\u0430\u043b\u0438 proof" : "Proof detail";
+  }
+  if (caseWikiQuestionDetailLabel instanceof HTMLElement) {
+    caseWikiQuestionDetailLabel.textContent = isRu ? "\u0414\u0435\u0442\u0430\u043b\u0438 question" : "Question detail";
+  }
   if (el.caseWorkspaceCaseWikiStatusValue instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiStatusValue.textContent = caseWikiSummary.statusValue;
   }
@@ -8090,6 +8136,24 @@ function renderCaseWorkspaceCaseWikiSummary() {
   }
   if (el.caseWorkspaceCaseWikiHandoffValue instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiHandoffValue.textContent = caseWikiSummary.handoffValue;
+  }
+  if (el.caseWorkspaceCaseWikiProofDetailTitle instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiProofDetailTitle.textContent = caseWikiSummary.proofDetailTitle;
+  }
+  if (el.caseWorkspaceCaseWikiProofDetailMeta instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiProofDetailMeta.textContent = caseWikiSummary.proofDetailMeta;
+  }
+  if (el.caseWorkspaceCaseWikiProofDetailBody instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiProofDetailBody.textContent = caseWikiSummary.proofDetailBody;
+  }
+  if (el.caseWorkspaceCaseWikiQuestionDetailTitle instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiQuestionDetailTitle.textContent = caseWikiSummary.questionDetailTitle;
+  }
+  if (el.caseWorkspaceCaseWikiQuestionDetailMeta instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiQuestionDetailMeta.textContent = caseWikiSummary.questionDetailMeta;
+  }
+  if (el.caseWorkspaceCaseWikiQuestionDetailBody instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiQuestionDetailBody.textContent = caseWikiSummary.questionDetailBody;
   }
   renderCaseWorkspaceCaseWikiFocusRail(
     el.caseWorkspaceCaseWikiProofChips,
@@ -32295,6 +32359,68 @@ function buildOperatorCaseWikiFocusSummary(focusedItem) {
         toOptionalText(focusedItem.item.question) ?? toOptionalText(focusedItem.item.priority) ?? "Selected question",
         80,
       );
+}
+
+function buildOperatorCaseWikiProofDetailValue(proof, isRu) {
+  if (!isRecord(proof)) {
+    return {
+      title: isRu ? "\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0434\u0435\u0442\u0430\u043b\u0435\u0439 proof." : "No proof detail yet.",
+      meta: isRu
+        ? "\u041e\u0431\u043d\u043e\u0432\u0438 Case Wiki, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u0434\u043d\u044f\u0442\u044c status, confidence \u0438 refs."
+        : "Refresh Case Wiki to surface proof status, confidence, and refs.",
+      body: isRu
+        ? "\u0420\u0430\u0437\u0432\u0451\u0440\u043d\u0443\u0442\u044b\u0435 details \u043f\u043e proof \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
+        : "Expanded proof detail appears here after Case Wiki refresh.",
+    };
+  }
+  const status = toOptionalText(proof.status);
+  const confidence = Number.isFinite(Number(proof.confidence)) ? `${Math.round(Number(proof.confidence) * 100)}%` : null;
+  const refs = buildOperatorCaseWikiSourceRefsSummary(Array.isArray(proof.sourceRefs) ? proof.sourceRefs : [], 4);
+  return {
+    title: toOptionalText(proof.statement) ?? (isRu ? "\u0412\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0439 proof" : "Selected proof"),
+    meta: [
+      status ? sentenceCaseOperatorEvidenceValue(status) : null,
+      confidence ? (isRu ? `confidence ${confidence}` : `confidence ${confidence}`) : null,
+      refs ? `refs: ${refs}` : null,
+    ].filter(Boolean).join(" | "),
+    body:
+      [
+        toOptionalText(proof.evidenceSummary),
+        toOptionalText(proof.contradictionNote),
+      ].filter(Boolean).join("\n") ||
+      (isRu ? "\u041d\u0435\u0442 \u0434\u043e\u043f. proof context." : "No extra proof context."),
+  };
+}
+
+function buildOperatorCaseWikiQuestionDetailValue(question, isRu) {
+  if (!isRecord(question)) {
+    return {
+      title: isRu ? "\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0434\u0435\u0442\u0430\u043b\u0435\u0439 question." : "No question detail yet.",
+      meta: isRu
+        ? "\u041e\u0431\u043d\u043e\u0432\u0438 Case Wiki, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u0434\u043d\u044f\u0442\u044c owner, priority \u0438 next step."
+        : "Refresh Case Wiki to surface owner, priority, and suggested next step.",
+      body: isRu
+        ? "\u0420\u0430\u0437\u0432\u0451\u0440\u043d\u0443\u0442\u044b\u0435 details \u043f\u043e question \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
+        : "Expanded question detail appears here after Case Wiki refresh.",
+    };
+  }
+  const priority = toOptionalText(question.priority);
+  const owner = toOptionalText(question.owner);
+  const refs = buildOperatorCaseWikiSourceRefsSummary(Array.isArray(question.sourceRefs) ? question.sourceRefs : [], 4);
+  return {
+    title: toOptionalText(question.question) ?? (isRu ? "\u0412\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0439 question" : "Selected question"),
+    meta: [
+      priority ? sentenceCaseOperatorEvidenceValue(priority) : null,
+      question.blocking === true ? (isRu ? "\u0411\u043b\u043e\u043a\u0438\u0440\u0443\u0435\u0442" : "Blocking") : null,
+      owner ? `owner: ${owner}` : null,
+      refs ? `refs: ${refs}` : null,
+    ].filter(Boolean).join(" | "),
+    body:
+      [
+        toOptionalText(question.suggestedNextStep),
+      ].filter(Boolean).join("\n") ||
+      (isRu ? "\u041d\u0435\u0442 \u0434\u043e\u043f. question context." : "No extra question context."),
+  };
 }
 
 function resolveOperatorCaseWikiSelectedSessionId() {

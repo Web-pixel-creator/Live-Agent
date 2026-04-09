@@ -31,6 +31,14 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofChips"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiQuestionChipsLabel">Question focus</span>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiQuestionChips"')
+      && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiProofDetailLabel">Proof detail</span>')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiProofDetailTitle"')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiProofDetailMeta"')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiProofDetailBody"')
+      && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiQuestionDetailLabel">Question detail</span>')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiQuestionDetailTitle"')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiQuestionDetailMeta"')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiQuestionDetailBody"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiProofLabel">Top proof</span>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofTitle"')
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofSummary"')
@@ -52,6 +60,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     '"live.caseWorkspace.caseWikiHandoffLabel": "Handoff preview"',
     '"live.caseWorkspace.caseWikiProofChipsLabel": "Proof focus"',
     '"live.caseWorkspace.caseWikiQuestionChipsLabel": "Question focus"',
+    '"live.caseWorkspace.caseWikiProofDetailLabel": "Proof detail"',
+    '"live.caseWorkspace.caseWikiQuestionDetailLabel": "Question detail"',
     '"live.caseWorkspace.caseWikiProofLabel": "Top proof"',
     '"live.caseWorkspace.caseWikiEntityLabel": "Key entity"',
     'caseWorkspaceCaseWikiPill: document.getElementById("caseWorkspaceCaseWikiPill")',
@@ -65,6 +75,12 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     'caseWorkspaceCaseWikiHandoffValue: document.getElementById("caseWorkspaceCaseWikiHandoffValue")',
     'caseWorkspaceCaseWikiProofChips: document.getElementById("caseWorkspaceCaseWikiProofChips")',
     'caseWorkspaceCaseWikiQuestionChips: document.getElementById("caseWorkspaceCaseWikiQuestionChips")',
+    'caseWorkspaceCaseWikiProofDetailTitle: document.getElementById("caseWorkspaceCaseWikiProofDetailTitle")',
+    'caseWorkspaceCaseWikiProofDetailMeta: document.getElementById("caseWorkspaceCaseWikiProofDetailMeta")',
+    'caseWorkspaceCaseWikiProofDetailBody: document.getElementById("caseWorkspaceCaseWikiProofDetailBody")',
+    'caseWorkspaceCaseWikiQuestionDetailTitle: document.getElementById("caseWorkspaceCaseWikiQuestionDetailTitle")',
+    'caseWorkspaceCaseWikiQuestionDetailMeta: document.getElementById("caseWorkspaceCaseWikiQuestionDetailMeta")',
+    'caseWorkspaceCaseWikiQuestionDetailBody: document.getElementById("caseWorkspaceCaseWikiQuestionDetailBody")',
     'caseWorkspaceCaseWikiProofTitle: document.getElementById("caseWorkspaceCaseWikiProofTitle")',
     'caseWorkspaceCaseWikiProofSummary: document.getElementById("caseWorkspaceCaseWikiProofSummary")',
     'caseWorkspaceCaseWikiEntityTitle: document.getElementById("caseWorkspaceCaseWikiEntityTitle")',
@@ -75,6 +91,10 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);",
     "const proofChips = buildOperatorCaseWikiFocusChipRail(evidencePack, \"proof\");",
     "const questionChips = buildOperatorCaseWikiFocusChipRail(evidencePack, \"question\");",
+    "const proofDetail = buildOperatorCaseWikiProofDetailValue(",
+    "const questionDetail = buildOperatorCaseWikiQuestionDetailValue(",
+    "function buildOperatorCaseWikiProofDetailValue(proof, isRu) {",
+    "function buildOperatorCaseWikiQuestionDetailValue(question, isRu) {",
     "const drilldownValue =",
     "const handoffValue =",
     "function renderCaseWorkspaceCaseWikiFocusRail(container, chips, emptyText) {",
@@ -86,6 +106,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "el.caseWorkspaceCaseWikiRefsValue.textContent = caseWikiSummary.refsValue;",
     "el.caseWorkspaceCaseWikiDrilldownValue.textContent = caseWikiSummary.drilldownValue;",
     "el.caseWorkspaceCaseWikiHandoffValue.textContent = caseWikiSummary.handoffValue;",
+    "el.caseWorkspaceCaseWikiProofDetailTitle.textContent = caseWikiSummary.proofDetailTitle;",
+    "el.caseWorkspaceCaseWikiQuestionDetailTitle.textContent = caseWikiSummary.questionDetailTitle;",
     "renderCaseWorkspaceCaseWikiFocusRail(",
     "renderCaseWorkspaceCaseWikiSummary();",
   ]) {
@@ -99,6 +121,9 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     ".case-workspace-case-wiki-focus-shell {",
     ".case-workspace-case-wiki-focus-rail {",
     ".case-workspace-case-wiki-focus-chip {",
+    ".case-workspace-case-wiki-detail-shell {",
+    ".case-workspace-case-wiki-detail-row {",
+    ".case-workspace-case-wiki-detail-summary {",
     ".case-workspace-case-wiki-evidence-rail {",
   ]) {
     assert.ok(stylesSource.includes(token), `styles.css missing case wiki workspace token: ${token}`);
