@@ -1252,6 +1252,41 @@
   white-space: pre-wrap;
 }
 
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 14px 10px;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 9px;
+  border: 1px solid color-mix(in oklch, var(--border-soft) 80%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--surface-panel-2) 82%, transparent);
+  color: color-mix(in oklch, var(--foreground) 90%, var(--muted-foreground));
+  font-size: 0.68rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-badge.is-ok {
+  border-color: color-mix(in oklch, var(--chart-1) 40%, var(--border-soft));
+  color: color-mix(in oklch, var(--foreground) 94%, var(--chart-1));
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-badge.is-watch {
+  border-color: color-mix(in oklch, var(--warning) 38%, var(--border-soft));
+  color: color-mix(in oklch, var(--foreground) 94%, var(--warning));
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-badge.is-neutral {
+  border-style: dashed;
+}
+
 .layout[data-active-tab="live-negotiator"] .case-workspace-case-wiki-detail-actions {
   display: flex;
   flex-wrap: wrap;

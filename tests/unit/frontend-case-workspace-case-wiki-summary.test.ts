@@ -34,15 +34,19 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiProofDetailLabel">Proof detail</span>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofDetailTitle"')
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofDetailMeta"')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiProofDetailBadges"')
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofDetailBody"')
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofHandoffCopyBtn"')
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofRefsCopyBtn"')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiProofOpenOpsBtn"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiQuestionDetailLabel">Question detail</span>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiQuestionDetailTitle"')
       && htmlSource.includes('id="caseWorkspaceCaseWikiQuestionDetailMeta"')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiQuestionDetailBadges"')
       && htmlSource.includes('id="caseWorkspaceCaseWikiQuestionDetailBody"')
       && htmlSource.includes('id="caseWorkspaceCaseWikiQuestionHandoffCopyBtn"')
       && htmlSource.includes('id="caseWorkspaceCaseWikiQuestionRefsCopyBtn"')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiQuestionOpenOpsBtn"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiProofLabel">Top proof</span>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofTitle"')
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofSummary"')
@@ -68,6 +72,7 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     '"live.caseWorkspace.caseWikiQuestionDetailLabel": "Question detail"',
     '"live.caseWorkspace.caseWikiCopyHandoff": "Copy handoff"',
     '"live.caseWorkspace.caseWikiCopyRefs": "Copy refs"',
+    '"live.caseWorkspace.caseWikiOpenOps": "Open in Operator Ops"',
     '"live.caseWorkspace.caseWikiProofLabel": "Top proof"',
     '"live.caseWorkspace.caseWikiEntityLabel": "Key entity"',
     'caseWorkspaceCaseWikiPill: document.getElementById("caseWorkspaceCaseWikiPill")',
@@ -83,14 +88,18 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     'caseWorkspaceCaseWikiQuestionChips: document.getElementById("caseWorkspaceCaseWikiQuestionChips")',
     'caseWorkspaceCaseWikiProofDetailTitle: document.getElementById("caseWorkspaceCaseWikiProofDetailTitle")',
     'caseWorkspaceCaseWikiProofDetailMeta: document.getElementById("caseWorkspaceCaseWikiProofDetailMeta")',
+    'caseWorkspaceCaseWikiProofDetailBadges: document.getElementById("caseWorkspaceCaseWikiProofDetailBadges")',
     'caseWorkspaceCaseWikiProofDetailBody: document.getElementById("caseWorkspaceCaseWikiProofDetailBody")',
     'caseWorkspaceCaseWikiProofHandoffCopyBtn: document.getElementById("caseWorkspaceCaseWikiProofHandoffCopyBtn")',
     'caseWorkspaceCaseWikiProofRefsCopyBtn: document.getElementById("caseWorkspaceCaseWikiProofRefsCopyBtn")',
+    'caseWorkspaceCaseWikiProofOpenOpsBtn: document.getElementById("caseWorkspaceCaseWikiProofOpenOpsBtn")',
     'caseWorkspaceCaseWikiQuestionDetailTitle: document.getElementById("caseWorkspaceCaseWikiQuestionDetailTitle")',
     'caseWorkspaceCaseWikiQuestionDetailMeta: document.getElementById("caseWorkspaceCaseWikiQuestionDetailMeta")',
+    'caseWorkspaceCaseWikiQuestionDetailBadges: document.getElementById("caseWorkspaceCaseWikiQuestionDetailBadges")',
     'caseWorkspaceCaseWikiQuestionDetailBody: document.getElementById("caseWorkspaceCaseWikiQuestionDetailBody")',
     'caseWorkspaceCaseWikiQuestionHandoffCopyBtn: document.getElementById("caseWorkspaceCaseWikiQuestionHandoffCopyBtn")',
     'caseWorkspaceCaseWikiQuestionRefsCopyBtn: document.getElementById("caseWorkspaceCaseWikiQuestionRefsCopyBtn")',
+    'caseWorkspaceCaseWikiQuestionOpenOpsBtn: document.getElementById("caseWorkspaceCaseWikiQuestionOpenOpsBtn")',
     'caseWorkspaceCaseWikiProofTitle: document.getElementById("caseWorkspaceCaseWikiProofTitle")',
     'caseWorkspaceCaseWikiProofSummary: document.getElementById("caseWorkspaceCaseWikiProofSummary")',
     'caseWorkspaceCaseWikiEntityTitle: document.getElementById("caseWorkspaceCaseWikiEntityTitle")',
@@ -105,8 +114,11 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "const questionDetail = buildOperatorCaseWikiQuestionDetailValue(",
     "function buildOperatorCaseWikiProofDetailValue(proof, isRu) {",
     "function buildOperatorCaseWikiQuestionDetailValue(question, isRu) {",
+    "function buildOperatorCaseWikiDetailBadges(kind, item, isRu) {",
     "function buildOperatorCaseWikiDetailActionBundle(kind, isRu) {",
+    "function renderCaseWorkspaceCaseWikiDetailBadges(container, badges) {",
     "async function copyOperatorCaseWikiDetailAction(kind, action) {",
+    "function openCaseWorkspaceCaseWikiInOperatorOps(kind) {",
     "const drilldownValue =",
     "const handoffValue =",
     "function renderCaseWorkspaceCaseWikiFocusRail(container, chips, emptyText) {",
@@ -120,8 +132,11 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "el.caseWorkspaceCaseWikiHandoffValue.textContent = caseWikiSummary.handoffValue;",
     "el.caseWorkspaceCaseWikiProofDetailTitle.textContent = caseWikiSummary.proofDetailTitle;",
     "el.caseWorkspaceCaseWikiQuestionDetailTitle.textContent = caseWikiSummary.questionDetailTitle;",
+    "renderCaseWorkspaceCaseWikiDetailBadges(",
     "el.caseWorkspaceCaseWikiProofHandoffCopyBtn.disabled = !proofActionBundle?.handoffText;",
     "el.caseWorkspaceCaseWikiQuestionRefsCopyBtn.disabled = !questionActionBundle?.refsText;",
+    "el.caseWorkspaceCaseWikiProofOpenOpsBtn.disabled = !proofActionBundle?.focusId;",
+    "el.caseWorkspaceCaseWikiQuestionOpenOpsBtn.disabled = !questionActionBundle?.focusId;",
     "renderCaseWorkspaceCaseWikiFocusRail(",
     "renderCaseWorkspaceCaseWikiSummary();",
   ]) {
@@ -138,6 +153,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     ".case-workspace-case-wiki-detail-shell {",
     ".case-workspace-case-wiki-detail-row {",
     ".case-workspace-case-wiki-detail-summary {",
+    ".case-workspace-case-wiki-detail-badges {",
+    ".case-workspace-case-wiki-detail-badge {",
     ".case-workspace-case-wiki-detail-actions {",
     ".case-workspace-case-wiki-detail-action {",
     ".case-workspace-case-wiki-evidence-rail {",

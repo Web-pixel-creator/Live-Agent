@@ -1298,6 +1298,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
       "live.caseWorkspace.caseWikiQuestionDetailLabel": "Question detail",
       "live.caseWorkspace.caseWikiCopyHandoff": "Copy handoff",
       "live.caseWorkspace.caseWikiCopyRefs": "Copy refs",
+      "live.caseWorkspace.caseWikiOpenOps": "Open in Operator Ops",
       "live.caseWorkspace.statusPillReady": "Workspace ready",
     "live.caseWorkspace.statusPillInFlight": "In progress",
     "live.caseWorkspace.statusPillVerified": "Verified",
@@ -2222,6 +2223,7 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
     "live.caseWorkspace.caseWikiQuestionDetailLabel": "\u0414\u0435\u0442\u0430\u043b\u0438 question",
     "live.caseWorkspace.caseWikiCopyHandoff": "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c handoff",
     "live.caseWorkspace.caseWikiCopyRefs": "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c refs",
+    "live.caseWorkspace.caseWikiOpenOps": "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0432 Operator Ops",
     "live.caseWorkspace.pathContextLabel": "\u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435",
   "live.context.workflow": "\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438 UI",
   "live.context.workflowHint": "\u0417\u0430\u043f\u0443\u0441\u043a \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u0438 \u0437\u0430\u0434\u0430\u0447\u0438 \u0432 \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0435",
@@ -3151,14 +3153,18 @@ const el = {
   caseWorkspaceCaseWikiQuestionChips: document.getElementById("caseWorkspaceCaseWikiQuestionChips"),
   caseWorkspaceCaseWikiProofDetailTitle: document.getElementById("caseWorkspaceCaseWikiProofDetailTitle"),
   caseWorkspaceCaseWikiProofDetailMeta: document.getElementById("caseWorkspaceCaseWikiProofDetailMeta"),
+  caseWorkspaceCaseWikiProofDetailBadges: document.getElementById("caseWorkspaceCaseWikiProofDetailBadges"),
   caseWorkspaceCaseWikiProofDetailBody: document.getElementById("caseWorkspaceCaseWikiProofDetailBody"),
   caseWorkspaceCaseWikiProofHandoffCopyBtn: document.getElementById("caseWorkspaceCaseWikiProofHandoffCopyBtn"),
   caseWorkspaceCaseWikiProofRefsCopyBtn: document.getElementById("caseWorkspaceCaseWikiProofRefsCopyBtn"),
+  caseWorkspaceCaseWikiProofOpenOpsBtn: document.getElementById("caseWorkspaceCaseWikiProofOpenOpsBtn"),
   caseWorkspaceCaseWikiQuestionDetailTitle: document.getElementById("caseWorkspaceCaseWikiQuestionDetailTitle"),
   caseWorkspaceCaseWikiQuestionDetailMeta: document.getElementById("caseWorkspaceCaseWikiQuestionDetailMeta"),
+  caseWorkspaceCaseWikiQuestionDetailBadges: document.getElementById("caseWorkspaceCaseWikiQuestionDetailBadges"),
   caseWorkspaceCaseWikiQuestionDetailBody: document.getElementById("caseWorkspaceCaseWikiQuestionDetailBody"),
   caseWorkspaceCaseWikiQuestionHandoffCopyBtn: document.getElementById("caseWorkspaceCaseWikiQuestionHandoffCopyBtn"),
   caseWorkspaceCaseWikiQuestionRefsCopyBtn: document.getElementById("caseWorkspaceCaseWikiQuestionRefsCopyBtn"),
+  caseWorkspaceCaseWikiQuestionOpenOpsBtn: document.getElementById("caseWorkspaceCaseWikiQuestionOpenOpsBtn"),
   caseWorkspaceMainActionsTitle: document.getElementById("caseWorkspaceMainActionsTitle"),
   caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus"),
   caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta"),
@@ -7900,6 +7906,7 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     proofDetailBody: isRu
       ? "\u0420\u0430\u0437\u0432\u0451\u0440\u043d\u0443\u0442\u044b\u0435 details \u043f\u043e proof \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
       : "Expanded proof detail appears here after Case Wiki refresh.",
+    proofDetailBadges: [{ tone: "neutral", label: isRu ? "\u041e\u0436\u0438\u0434\u0430\u0435\u0442 detail" : "Awaiting detail" }],
     questionDetailTitle: isRu ? "\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0434\u0435\u0442\u0430\u043b\u0435\u0439 question." : "No question detail yet.",
     questionDetailMeta: isRu
       ? "\u041e\u0431\u043d\u043e\u0432\u0438 Case Wiki, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u0434\u043d\u044f\u0442\u044c owner, priority \u0438 next step."
@@ -7907,6 +7914,7 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     questionDetailBody: isRu
       ? "\u0420\u0430\u0437\u0432\u0451\u0440\u043d\u0443\u0442\u044b\u0435 details \u043f\u043e question \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
       : "Expanded question detail appears here after Case Wiki refresh.",
+    questionDetailBadges: [{ tone: "neutral", label: isRu ? "\u041e\u0436\u0438\u0434\u0430\u0435\u0442 detail" : "Awaiting detail" }],
   };
   if (!snapshot) {
     return idle;
@@ -7951,6 +7959,8 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     focusedItem?.kind === "question" ? focusedItem.item : blockingQuestion ?? snapshot.openQuestions[0] ?? null,
     isRu,
   );
+  const proofActionBundle = buildOperatorCaseWikiDetailActionBundle("proof", isRu);
+  const questionActionBundle = buildOperatorCaseWikiDetailActionBundle("question", isRu);
   return {
     pillText: statusPresentation.pillText,
     pillTone: statusPresentation.pillTone,
@@ -8002,9 +8012,19 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     proofDetailTitle: proofDetail.title,
     proofDetailMeta: proofDetail.meta,
     proofDetailBody: proofDetail.body,
+    proofDetailBadges:
+      proofActionBundle?.badges ??
+      buildOperatorCaseWikiDetailBadges("proof", focusedItem?.kind === "proof" ? focusedItem.item : topProof, isRu),
     questionDetailTitle: questionDetail.title,
     questionDetailMeta: questionDetail.meta,
     questionDetailBody: questionDetail.body,
+    questionDetailBadges:
+      questionActionBundle?.badges ??
+      buildOperatorCaseWikiDetailBadges(
+        "question",
+        focusedItem?.kind === "question" ? focusedItem.item : blockingQuestion ?? snapshot.openQuestions[0] ?? null,
+        isRu,
+      ),
     packValue,
     refsValue,
   };
@@ -8068,6 +8088,7 @@ function renderCaseWorkspaceCaseWikiSummary() {
   const caseWikiQuestionDetailLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiQuestionDetailLabel"]');
   const caseWikiCopyHandoffLabels = document.querySelectorAll('[data-i18n="live.caseWorkspace.caseWikiCopyHandoff"]');
   const caseWikiCopyRefsLabels = document.querySelectorAll('[data-i18n="live.caseWorkspace.caseWikiCopyRefs"]');
+  const caseWikiOpenOpsLabels = document.querySelectorAll('[data-i18n="live.caseWorkspace.caseWikiOpenOps"]');
 
   if (caseWikiStatusLabel instanceof HTMLElement) {
     caseWikiStatusLabel.textContent = isRu ? "\u0421\u0442\u0430\u0442\u0443\u0441 \u0441\u0432\u043e\u0434\u043a\u0438" : "Compiled status";
@@ -8121,6 +8142,11 @@ function renderCaseWorkspaceCaseWikiSummary() {
       node.textContent = isRu ? "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c refs" : "Copy refs";
     }
   }
+  for (const node of caseWikiOpenOpsLabels) {
+    if (node instanceof HTMLElement) {
+      node.textContent = isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0432 Operator Ops" : "Open in Operator Ops";
+    }
+  }
   if (el.caseWorkspaceCaseWikiStatusValue instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiStatusValue.textContent = caseWikiSummary.statusValue;
   }
@@ -8166,6 +8192,10 @@ function renderCaseWorkspaceCaseWikiSummary() {
   if (el.caseWorkspaceCaseWikiProofDetailBody instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiProofDetailBody.textContent = caseWikiSummary.proofDetailBody;
   }
+  renderCaseWorkspaceCaseWikiDetailBadges(
+    el.caseWorkspaceCaseWikiProofDetailBadges,
+    caseWikiSummary.proofDetailBadges,
+  );
   if (el.caseWorkspaceCaseWikiQuestionDetailTitle instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiQuestionDetailTitle.textContent = caseWikiSummary.questionDetailTitle;
   }
@@ -8175,6 +8205,10 @@ function renderCaseWorkspaceCaseWikiSummary() {
   if (el.caseWorkspaceCaseWikiQuestionDetailBody instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiQuestionDetailBody.textContent = caseWikiSummary.questionDetailBody;
   }
+  renderCaseWorkspaceCaseWikiDetailBadges(
+    el.caseWorkspaceCaseWikiQuestionDetailBadges,
+    caseWikiSummary.questionDetailBadges,
+  );
   const proofActionBundle = buildOperatorCaseWikiDetailActionBundle("proof", isRu);
   const questionActionBundle = buildOperatorCaseWikiDetailActionBundle("question", isRu);
   if (el.caseWorkspaceCaseWikiProofHandoffCopyBtn instanceof HTMLButtonElement) {
@@ -8210,6 +8244,22 @@ function renderCaseWorkspaceCaseWikiSummary() {
         : isRu
           ? "\u041d\u0435\u0442 question refs \u0434\u043b\u044f copy"
           : "No question refs available to copy";
+  }
+  if (el.caseWorkspaceCaseWikiProofOpenOpsBtn instanceof HTMLButtonElement) {
+    el.caseWorkspaceCaseWikiProofOpenOpsBtn.disabled = !proofActionBundle?.focusId;
+    el.caseWorkspaceCaseWikiProofOpenOpsBtn.title =
+      proofActionBundle?.title ??
+      (isRu
+        ? "\u041d\u0435\u0442 focused proof \u0434\u043b\u044f \u043e\u0442\u043a\u0440\u044b\u0442\u0438\u044f \u0432 Operator Ops"
+        : "No focused proof available to open in Operator Ops");
+  }
+  if (el.caseWorkspaceCaseWikiQuestionOpenOpsBtn instanceof HTMLButtonElement) {
+    el.caseWorkspaceCaseWikiQuestionOpenOpsBtn.disabled = !questionActionBundle?.focusId;
+    el.caseWorkspaceCaseWikiQuestionOpenOpsBtn.title =
+      questionActionBundle?.title ??
+      (isRu
+        ? "\u041d\u0435\u0442 focused question \u0434\u043b\u044f \u043e\u0442\u043a\u0440\u044b\u0442\u0438\u044f \u0432 Operator Ops"
+        : "No focused question available to open in Operator Ops");
   }
   renderCaseWorkspaceCaseWikiFocusRail(
     el.caseWorkspaceCaseWikiProofChips,
@@ -32479,6 +32529,72 @@ function buildOperatorCaseWikiQuestionDetailValue(question, isRu) {
   };
 }
 
+function buildOperatorCaseWikiDetailBadges(kind, item, isRu) {
+  if (!isRecord(item)) {
+    return [
+      {
+        tone: "neutral",
+        label: isRu ? "\u041e\u0436\u0438\u0434\u0430\u0435\u0442 detail" : "Awaiting detail",
+      },
+    ];
+  }
+  const badges = [];
+  if (kind === "proof") {
+    const status = toOptionalText(item.status);
+    const confidence = Number.isFinite(Number(item.confidence)) ? `${Math.round(Number(item.confidence) * 100)}%` : null;
+    const refsCount = Array.isArray(item.sourceRefs) ? item.sourceRefs.length : 0;
+    if (status) {
+      const normalizedStatus = status.trim().toLowerCase();
+      badges.push({
+        tone:
+          normalizedStatus === "confirmed"
+            ? "ok"
+            : normalizedStatus.includes("missing") || normalizedStatus.includes("contrad")
+              ? "watch"
+              : "neutral",
+        label: sentenceCaseOperatorEvidenceValue(status),
+      });
+    }
+    if (confidence) {
+      badges.push({
+        tone: "neutral",
+        label: isRu ? `confidence ${confidence}` : `confidence ${confidence}`,
+      });
+    }
+    badges.push({
+      tone: refsCount > 0 ? "ok" : "neutral",
+      label: refsCount > 0 ? `refs ${refsCount}` : isRu ? "refs 0" : "refs 0",
+    });
+    return badges;
+  }
+  const priority = toOptionalText(item.priority);
+  const owner = toOptionalText(item.owner);
+  const refsCount = Array.isArray(item.sourceRefs) ? item.sourceRefs.length : 0;
+  if (priority) {
+    badges.push({
+      tone: priority.trim().toLowerCase() === "high" ? "watch" : "neutral",
+      label: sentenceCaseOperatorEvidenceValue(priority),
+    });
+  }
+  if (item.blocking === true) {
+    badges.push({
+      tone: "watch",
+      label: isRu ? "\u0411\u043b\u043e\u043a\u0438\u0440\u0443\u0435\u0442" : "Blocking",
+    });
+  }
+  if (owner) {
+    badges.push({
+      tone: "ok",
+      label: isRu ? `owner ${owner}` : `owner ${owner}`,
+    });
+  }
+  badges.push({
+    tone: refsCount > 0 ? "ok" : "neutral",
+    label: refsCount > 0 ? `refs ${refsCount}` : isRu ? "refs 0" : "refs 0",
+  });
+  return badges;
+}
+
 function resolveOperatorCaseWikiDetailFocusTarget(snapshot, evidencePack, kind) {
   const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
   if (focusedItem?.kind === kind && isRecord(focusedItem.item)) {
@@ -32544,6 +32660,8 @@ function buildOperatorCaseWikiDetailActionBundle(kind, isRu) {
   return {
     kind,
     title: detail.title,
+    focusId: target.id,
+    badges: buildOperatorCaseWikiDetailBadges(kind, target.item, isRu),
     refs,
     refsText:
       refs.length > 0
@@ -32573,6 +32691,20 @@ function buildOperatorCaseWikiDetailActionBundle(kind, isRu) {
       ].filter(Boolean).join("\n"),
     focusSummary: buildOperatorCaseWikiFocusSummary(focusRecord),
   };
+}
+
+function renderCaseWorkspaceCaseWikiDetailBadges(container, badges) {
+  if (!(container instanceof HTMLElement)) {
+    return;
+  }
+  container.textContent = "";
+  const items = Array.isArray(badges) && badges.length > 0 ? badges : [{ tone: "neutral", label: "Awaiting detail" }];
+  for (const badge of items) {
+    const chip = document.createElement("span");
+    chip.className = `case-workspace-case-wiki-detail-badge${badge?.tone ? ` is-${badge.tone}` : ""}`;
+    chip.textContent = toOptionalText(badge?.label) ?? "Awaiting detail";
+    container.appendChild(chip);
+  }
 }
 
 async function copyOperatorCaseWikiDetailAction(kind, action) {
@@ -32628,6 +32760,63 @@ async function copyOperatorCaseWikiDetailAction(kind, action) {
         : isRu
           ? `Case Wiki question handoff copied: ${bundle?.title ?? "selected question"}`
           : `Case Wiki question handoff copied: ${bundle?.title ?? "selected question"}`,
+    { exposeInLiveResult: false },
+  );
+}
+
+function openCaseWorkspaceCaseWikiInOperatorOps(kind) {
+  const isRu = state.languageMode === "ru";
+  const bundle = buildOperatorCaseWikiDetailActionBundle(kind, isRu);
+  if (!bundle?.focusId) {
+    setOperatorSessionOpsControlStatus("case_wiki_focus_unavailable", "warn");
+    state.operatorSessionOpsLastResult = {
+      action: `case_wiki_${kind}_focus_open_skipped`,
+      reason: "focus_unavailable",
+      requestedAt: toIsoNow(),
+    };
+    renderOperatorSessionOpsPanel();
+    appendTranscript(
+      "error",
+      isRu
+        ? "\u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u043e\u0431\u043d\u043e\u0432\u0438 Case Wiki, \u0447\u0442\u043e\u0431\u044b \u043e\u0442\u043a\u0440\u044b\u0442\u044c focused evidence \u0432 Operator Session Ops."
+        : "Refresh Case Wiki first to open focused evidence in Operator Session Ops.",
+      { exposeInLiveResult: false },
+    );
+    return;
+  }
+  state.operatorCaseWikiFocus = {
+    kind,
+    id: bundle.focusId,
+  };
+  state.operatorSessionOpsLastResult = {
+    action: `case_wiki_${kind}_focus_opened`,
+    title: bundle.title,
+    focus: bundle.focusSummary ?? null,
+    openedAt: toIsoNow(),
+  };
+  setOperatorSessionOpsControlStatus("case_wiki_focus_opened", "ok");
+  renderOperatorSessionOpsPanel();
+  setActiveTab("operator");
+  setOperatorSavedView("runtime", { scroll: false });
+  window.setTimeout(() => {
+    openOperatorSupportPanel(el.operatorSessionOpsControl, el.operatorCaseWikiEvidenceSnapshot);
+    if (el.operatorCaseWikiEvidenceSnapshot instanceof HTMLElement) {
+      el.operatorCaseWikiEvidenceSnapshot.tabIndex = -1;
+      scrollOperatorElementIntoView("operatorCaseWikiEvidenceSnapshot");
+      scheduleDeferredFocus(() => {
+        el.operatorCaseWikiEvidenceSnapshot.focus({ preventScroll: true });
+      });
+    }
+  }, 0);
+  appendTranscript(
+    "system",
+    kind === "proof"
+      ? isRu
+        ? `Case Wiki proof opened in Operator Session Ops: ${bundle.title}`
+        : `Case Wiki proof opened in Operator Session Ops: ${bundle.title}`
+      : isRu
+        ? `Case Wiki question opened in Operator Session Ops: ${bundle.title}`
+        : `Case Wiki question opened in Operator Session Ops: ${bundle.title}`,
     { exposeInLiveResult: false },
   );
 }
@@ -42690,6 +42879,16 @@ function bindEvents() {
       void copyOperatorCaseWikiDetailAction("question", "refs").catch((error) => {
         appendTranscript("error", `Case Wiki question refs copy failed: ${String(error)}`, { exposeInLiveResult: false });
       });
+    });
+  }
+  if (el.caseWorkspaceCaseWikiProofOpenOpsBtn instanceof HTMLButtonElement) {
+    el.caseWorkspaceCaseWikiProofOpenOpsBtn.addEventListener("click", () => {
+      openCaseWorkspaceCaseWikiInOperatorOps("proof");
+    });
+  }
+  if (el.caseWorkspaceCaseWikiQuestionOpenOpsBtn instanceof HTMLButtonElement) {
+    el.caseWorkspaceCaseWikiQuestionOpenOpsBtn.addEventListener("click", () => {
+      openCaseWorkspaceCaseWikiInOperatorOps("question");
     });
   }
   if (el.operatorCaseWikiTitle) {
