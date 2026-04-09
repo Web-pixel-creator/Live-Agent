@@ -242,6 +242,11 @@ jobs:
 
           npm run verify:deploy:production-smoke -- -GatewayPublicUrl $gatewayPublicUrl -FrontendPublicUrl $frontendBaseUrl
 
+      - name: Install Playwright Browser
+        if: steps.combined_deploy.outcome == 'success' || steps.verify_only_fallback.outcome == 'success'
+        shell: powershell
+        run: npx playwright install chromium
+
       - name: Run Direct-Live Proof
         if: steps.combined_deploy.outcome == 'success' || steps.verify_only_fallback.outcome == 'success'
         shell: powershell

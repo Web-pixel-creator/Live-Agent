@@ -56,6 +56,8 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /- name:\s*Run Production Smoke/);
   assert.match(source, /if:\s*steps\.combined_deploy\.outcome == 'success' \|\| steps\.verify_only_fallback\.outcome == 'success'/);
   assert.match(source, /npm run verify:deploy:production-smoke -- -GatewayPublicUrl/);
+  assert.match(source, /- name:\s*Install Playwright Browser/);
+  assert.match(source, /run:\s*npx playwright install chromium/);
   assert.match(source, /- name:\s*Run Direct-Live Proof/);
   assert.match(source, /npm run verify:deploy:direct-live-proof -- -FrontendPublicUrl/);
   assert.match(source, /- name:\s*Publish Railway Deploy Mode Summary/);
