@@ -89,6 +89,7 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "handoffPack:",
     "detailPack:",
     "routingPack:",
+    "actionPack:",
     "evidencePackRefs:",
     "evidencePackProofs:",
     "evidencePackQuestions:",

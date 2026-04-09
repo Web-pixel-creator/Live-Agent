@@ -502,6 +502,42 @@ test("case wiki contracts expose stable structured memory shapes", () => {
         },
       ],
     },
+    actionPack: {
+      proofs: [
+        {
+          focusKind: "proof",
+          focusId: "proof-1",
+          focusLabel: "Customer wants a spouse relocation consultation.",
+          title: "Customer wants a spouse relocation consultation.",
+          handoffText: [
+            "Proof handoff: Customer wants a spouse relocation consultation.",
+            "Confirmed | confidence 96% | refs: session:session-123",
+            "Confirmed in the latest live intake.",
+            "Focus proof: Customer wants a spouse relocation consultation.",
+          ].join("\n"),
+          refs: ["session:session-123"],
+          refsText: ["Proof refs: Customer wants a spouse relocation consultation.", "session:session-123"].join("\n"),
+          focusSummary: "Customer wants a spouse relocation consultation.",
+        },
+      ],
+      questions: [
+        {
+          focusKind: "question",
+          focusId: "question-1",
+          focusLabel: "Has the customer already received the invitation letter?",
+          title: "Has the customer already received the invitation letter?",
+          handoffText: [
+            "Question handoff: Has the customer already received the invitation letter?",
+            "High | Blocking | owner: customer | refs: proof:proof-1",
+            "Request the invitation letter or confirm issuance status.",
+            "Focus question: Has the customer already received the invitation letter?",
+          ].join("\n"),
+          refs: ["proof:proof-1"],
+          refsText: ["Question refs: Has the customer already received the invitation letter?", "proof:proof-1"].join("\n"),
+          focusSummary: "Has the customer already received the invitation letter?",
+        },
+      ],
+    },
     entities: [
       {
         id: "entity-customer",
@@ -572,6 +608,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.match(wiki.detailPack.questions[0]?.meta ?? "", /owner: customer/i);
   assert.equal(wiki.routingPack.proofs[0]?.route.lane, "customer_followup");
   assert.equal(wiki.routingPack.questions[0]?.cta.actionId, "run_negotiation");
+  assert.match(wiki.actionPack.proofs[0]?.handoffText ?? "", /Proof handoff/i);
+  assert.match(wiki.actionPack.questions[0]?.refsText ?? "", /Question refs/i);
   assert.equal(wiki.entities[0]?.kind, "person");
   assert.equal(wiki.proofs[0]?.status, "confirmed");
   assert.equal(wiki.recommendedNextAction?.type, "document_request");

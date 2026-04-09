@@ -287,6 +287,22 @@ export type CaseWikiDetailPack = {
   questions: CaseWikiDetailPackItem[];
 };
 
+export type CaseWikiActionPackItem = {
+  focusKind: CaseWikiRoutingFocusKind;
+  focusId: string;
+  focusLabel: string;
+  title: string;
+  handoffText: string;
+  refs: string[];
+  refsText: string | null;
+  focusSummary: string | null;
+};
+
+export type CaseWikiActionPack = {
+  proofs: CaseWikiActionPackItem[];
+  questions: CaseWikiActionPackItem[];
+};
+
 export type CaseWikiRoutingRoute = {
   lane: CaseWikiRoutingLane;
   owner: string | null;
@@ -386,6 +402,7 @@ export type CaseWiki = {
   handoffPack: CaseWikiHandoffPack;
   detailPack: CaseWikiDetailPack;
   routingPack: CaseWikiRoutingPack;
+  actionPack: CaseWikiActionPack;
   entities: CaseWikiEntity[];
   timeline: CaseWikiTimelineEntry[];
   proofs: CaseWikiProof[];

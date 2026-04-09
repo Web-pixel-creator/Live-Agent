@@ -1,4 +1,6 @@
 import type {
+  CaseWikiActionPack,
+  CaseWikiActionPackItem,
   CaseWiki,
   CaseWikiDetailBadge,
   CaseWikiDetailPack,
@@ -1129,6 +1131,101 @@ function buildCaseWikiDetailPack(params: {
   };
 }
 
+function buildCaseWikiActionPack(params: {
+  evidencePack: {
+    proofs: CaseWikiProof[];
+    questions: CaseWikiOpenQuestion[];
+    sourceRefs: string[];
+  };
+  handoffPack: CaseWikiHandoffPack;
+  detailPack: CaseWikiDetailPack;
+}): CaseWikiActionPack {
+  const sharedFallbackRefs = params.evidencePack.sourceRefs;
+  const buildRefsText = (prefix: "Proof" | "Question", title: string, refs: string[]): string | null =>
+    refs.length > 0 ? [`${prefix} refs: ${title}`, ...refs].join("\n") : null;
+  const buildHandoffText = (
+    prefix: "Proof" | "Question",
+    title: string,
+    meta: string | null,
+    body: string | null,
+    handoff: string | null,
+  ): string =>
+    [
+      `${prefix} handoff: ${title}`,
+      meta,
+      body,
+      handoff,
+    ].filter((item): item is string => Boolean(item)).join("\n");
+  const buildProofItem = (proof: CaseWikiProof): CaseWikiActionPackItem => {
+    const handoffPackItem = params.handoffPack.proofs.find((item) => item.focusId === proof.id) ?? null;
+    const detailPackItem = params.detailPack.proofs.find((item) => item.focusId === proof.id) ?? null;
+    const title =
+      toNonEmptyString(detailPackItem?.title) ??
+      toNonEmptyString(detailPackItem?.focusLabel) ??
+      proof.statement;
+    const refs =
+      (detailPackItem?.sourceRefs.length ?? 0) > 0
+        ? detailPackItem?.sourceRefs ?? []
+        : (handoffPackItem?.sourceRefs.length ?? 0) > 0
+          ? handoffPackItem?.sourceRefs ?? []
+          : proof.sourceRefs.length > 0
+            ? proof.sourceRefs
+            : sharedFallbackRefs;
+    return {
+      focusKind: "proof",
+      focusId: proof.id,
+      focusLabel: proof.statement,
+      title,
+      handoffText: buildHandoffText(
+        "Proof",
+        title,
+        toNonEmptyString(detailPackItem?.meta ?? null),
+        toNonEmptyString(detailPackItem?.body ?? null),
+        toNonEmptyString(handoffPackItem?.handoff ?? null),
+      ),
+      refs,
+      refsText: buildRefsText("Proof", title, refs),
+      focusSummary: toNonEmptyString(proof.statement),
+    };
+  };
+  const buildQuestionItem = (question: CaseWikiOpenQuestion): CaseWikiActionPackItem => {
+    const handoffPackItem = params.handoffPack.questions.find((item) => item.focusId === question.id) ?? null;
+    const detailPackItem = params.detailPack.questions.find((item) => item.focusId === question.id) ?? null;
+    const title =
+      toNonEmptyString(detailPackItem?.title) ??
+      toNonEmptyString(detailPackItem?.focusLabel) ??
+      question.question;
+    const refs =
+      (detailPackItem?.sourceRefs.length ?? 0) > 0
+        ? detailPackItem?.sourceRefs ?? []
+        : (handoffPackItem?.sourceRefs.length ?? 0) > 0
+          ? handoffPackItem?.sourceRefs ?? []
+          : question.sourceRefs.length > 0
+            ? question.sourceRefs
+            : sharedFallbackRefs;
+    return {
+      focusKind: "question",
+      focusId: question.id,
+      focusLabel: question.question,
+      title,
+      handoffText: buildHandoffText(
+        "Question",
+        title,
+        toNonEmptyString(detailPackItem?.meta ?? null),
+        toNonEmptyString(detailPackItem?.body ?? null),
+        toNonEmptyString(handoffPackItem?.handoff ?? null),
+      ),
+      refs,
+      refsText: buildRefsText("Question", title, refs),
+      focusSummary: toNonEmptyString(question.question),
+    };
+  };
+  return {
+    proofs: params.evidencePack.proofs.map((item) => buildProofItem(item)),
+    questions: params.evidencePack.questions.map((item) => buildQuestionItem(item)),
+  };
+}
+
 function selectTopProof(proofs: CaseWikiProof[]): CaseWikiProof | null {
   return (
     proofs.find((item) => item.status === "missing") ??
@@ -1269,6 +1366,11 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     evidencePack,
     recommendedNextAction,
   });
+  const actionPack = buildCaseWikiActionPack({
+    evidencePack,
+    handoffPack,
+    detailPack,
+  });
 
   return {
     schemaVersion: 1,
@@ -1310,6 +1412,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     handoffPack,
     detailPack,
     routingPack,
+    actionPack,
     entities,
     timeline,
     proofs,
