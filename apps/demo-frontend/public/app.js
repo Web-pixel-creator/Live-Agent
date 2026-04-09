@@ -1277,9 +1277,14 @@ const UI_LANGUAGE_COPY = Object.freeze({
 "live.caseWorkspace.nextStepFocusLabel": "Action",
 "live.caseWorkspace.nextStepStageLabel": "After this",
 "live.caseWorkspace.preparedDraftLabel": "Prepared in draft",
-"live.caseWorkspace.completedWork": "Completed work",
-"live.caseWorkspace.completedFocusLabel": "Latest proof",
-"live.caseWorkspace.completedStageLabel": "Verified stage",
+    "live.caseWorkspace.completedWork": "Completed work",
+    "live.caseWorkspace.completedFocusLabel": "Latest proof",
+    "live.caseWorkspace.completedStageLabel": "Verified stage",
+    "live.caseWorkspace.caseWiki": "Case Wiki",
+    "live.caseWorkspace.caseWikiStatusLabel": "Compiled status",
+    "live.caseWorkspace.caseWikiSummaryLabel": "Known now",
+    "live.caseWorkspace.caseWikiBlockerLabel": "Top blocker",
+    "live.caseWorkspace.caseWikiNextActionLabel": "Next action",
     "live.caseWorkspace.statusPillReady": "Workspace ready",
     "live.caseWorkspace.statusPillInFlight": "In progress",
     "live.caseWorkspace.statusPillVerified": "Verified",
@@ -2187,6 +2192,11 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.en, {
 });
 
 Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
+  "live.caseWorkspace.caseWiki": "\u041a\u0435\u0439\u0441-\u0432\u0438\u043a\u0438",
+  "live.caseWorkspace.caseWikiStatusLabel": "\u0421\u0442\u0430\u0442\u0443\u0441 \u0441\u0432\u043e\u0434\u043a\u0438",
+  "live.caseWorkspace.caseWikiSummaryLabel": "\u0427\u0442\u043e \u0443\u0436\u0435 \u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e",
+  "live.caseWorkspace.caseWikiBlockerLabel": "\u0413\u043b\u0430\u0432\u043d\u044b\u0439 \u0431\u043b\u043e\u043a\u0435\u0440",
+  "live.caseWorkspace.caseWikiNextActionLabel": "\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435",
   "live.caseWorkspace.pathContextLabel": "\u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435",
   "live.context.workflow": "\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438 UI",
   "live.context.workflowHint": "\u0417\u0430\u043f\u0443\u0441\u043a \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u0438 \u0437\u0430\u0434\u0430\u0447\u0438 \u0432 \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0435",
@@ -3099,6 +3109,11 @@ const el = {
   caseWorkspaceStatusPill: document.getElementById("caseWorkspaceStatusPill"),
   caseWorkspaceNextStepPill: document.getElementById("caseWorkspaceNextStepPill"),
   caseWorkspaceCompletedPill: document.getElementById("caseWorkspaceCompletedPill"),
+  caseWorkspaceCaseWikiPill: document.getElementById("caseWorkspaceCaseWikiPill"),
+  caseWorkspaceCaseWikiStatusValue: document.getElementById("caseWorkspaceCaseWikiStatusValue"),
+  caseWorkspaceCaseWikiSummaryValue: document.getElementById("caseWorkspaceCaseWikiSummaryValue"),
+  caseWorkspaceCaseWikiBlockerValue: document.getElementById("caseWorkspaceCaseWikiBlockerValue"),
+  caseWorkspaceCaseWikiNextActionValue: document.getElementById("caseWorkspaceCaseWikiNextActionValue"),
   caseWorkspaceMainActionsTitle: document.getElementById("caseWorkspaceMainActionsTitle"),
   caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus"),
   caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta"),
@@ -7757,6 +7772,131 @@ function renderCaseWorkspaceFlow(awaitingFreshResponse, flowState = getCaseWorks
   syncCaseWorkspaceActionButtons(flowState);
 }
 
+function resolveCaseWorkspaceCaseWikiStatusPresentation(status, isRu) {
+  const normalized = typeof status === "string" ? status.trim().toLowerCase() : "";
+  switch (normalized) {
+    case "resolved":
+      return {
+        pillText: isRu ? "\u0420\u0435\u0448\u0451\u043d" : "Resolved",
+        pillTone: "ok",
+        statusText: isRu ? "\u0420\u0435\u0448\u0451\u043d" : "Resolved",
+      };
+    case "blocked":
+      return {
+        pillText: isRu ? "\u0411\u043b\u043e\u043a\u0435\u0440" : "Blocked",
+        pillTone: "fail",
+        statusText: isRu ? "\u0415\u0441\u0442\u044c \u0431\u043b\u043e\u043a\u0435\u0440" : "Blocked",
+      };
+    case "waiting_on_customer":
+      return {
+        pillText: isRu ? "\u041a\u043b\u0438\u0435\u043d\u0442" : "Customer",
+        pillTone: "warn",
+        statusText: isRu ? "\u0416\u0434\u0451\u0442 \u043a\u043b\u0438\u0435\u043d\u0442\u0430" : "Waiting on customer",
+      };
+    case "waiting_on_operator":
+      return {
+        pillText: isRu ? "\u041e\u043f\u0435\u0440\u0430\u0442\u043e\u0440" : "Operator",
+        pillTone: "warn",
+        statusText: isRu ? "\u0416\u0434\u0451\u0442 \u043e\u043f\u0435\u0440\u0430\u0442\u043e\u0440\u0430" : "Waiting on operator",
+      };
+    case "active":
+      return {
+        pillText: isRu ? "\u0410\u043a\u0442\u0438\u0432\u0435\u043d" : "Active",
+        pillTone: "neutral",
+        statusText: isRu ? "\u0410\u043a\u0442\u0438\u0432\u0435\u043d" : "Active",
+      };
+    default:
+      return {
+        pillText: isRu ? "\u041e\u0436\u0438\u0434\u0430\u0435\u0442" : "Awaiting",
+        pillTone: "neutral",
+        statusText: isRu ? "\u041e\u0436\u0438\u0434\u0430\u0435\u0442 \u0441\u0432\u043e\u0434\u043a\u0443" : "Awaiting compiled memory",
+      };
+  }
+}
+
+function buildCaseWorkspaceCaseWikiSummary(isRu) {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const idle = {
+    pillText: isRu ? "\u041e\u0436\u0438\u0434\u0430\u0435\u0442" : "Awaiting",
+    pillTone: "neutral",
+    statusValue: isRu ? "\u041e\u0436\u0438\u0434\u0430\u0435\u0442 \u0441\u0432\u043e\u0434\u043a\u0443" : "Awaiting compiled memory",
+    summaryValue: isRu
+      ? "\u041e\u0431\u043d\u043e\u0432\u0438 replay \u0432 Operator Session Ops, \u0447\u0442\u043e\u0431\u044b \u0441\u043e\u0431\u0440\u0430\u0442\u044c Case Wiki \u0438\u0437 runtime evidence."
+      : "Refresh session replay in Operator Session Ops to compile a case wiki from runtime evidence.",
+    blockerValue: isRu ? "\u0411\u043b\u043e\u043a\u0435\u0440\u044b \u043f\u043e\u043a\u0430 \u043d\u0435 \u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u044b." : "No blockers captured yet.",
+    nextActionValue: isRu
+      ? "\u041e\u0431\u043d\u043e\u0432\u0438 Case Wiki \u0432 Operator Session Ops."
+      : "Refresh Case Wiki in Operator Session Ops.",
+  };
+  if (!snapshot) {
+    return idle;
+  }
+  const overview = isRecord(snapshot.overview) ? snapshot.overview : null;
+  const blockingQuestion = snapshot.openQuestions.find((item) => item.blocking === true) ?? snapshot.openQuestions[0] ?? null;
+  const nextAction = isRecord(snapshot.recommendedNextAction) ? snapshot.recommendedNextAction : null;
+  const statusPresentation = resolveCaseWorkspaceCaseWikiStatusPresentation(toOptionalText(overview?.status), isRu);
+  const currentStage = toOptionalText(overview?.currentStage);
+  const nextActionType = toOptionalText(nextAction?.type);
+  return {
+    pillText: statusPresentation.pillText,
+    pillTone: statusPresentation.pillTone,
+    statusValue: [statusPresentation.statusText, currentStage].filter(Boolean).join(" · "),
+    summaryValue:
+      toOptionalText(overview?.summary) ??
+      toOptionalText(overview?.title) ??
+      toOptionalText(overview?.customerGoal) ??
+      toOptionalText(overview?.missingEvidenceSummary) ??
+      idle.summaryValue,
+    blockerValue:
+      toOptionalText(blockingQuestion?.question) ??
+      toOptionalText(overview?.missingEvidenceSummary) ??
+      toOptionalText(overview?.contradictionsSummary) ??
+      idle.blockerValue,
+    nextActionValue:
+      toOptionalText(nextAction?.title) ??
+      toOptionalText(nextAction?.summary) ??
+      (nextActionType ? sentenceCaseOperatorEvidenceValue(nextActionType) : null) ??
+      idle.nextActionValue,
+  };
+}
+
+function renderCaseWorkspaceCaseWikiSummary() {
+  const isRu = state.languageMode === "ru";
+  const caseWikiSummary = buildCaseWorkspaceCaseWikiSummary(isRu);
+  const caseWikiStatusLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiStatusLabel"]');
+  const caseWikiSummaryLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiSummaryLabel"]');
+  const caseWikiBlockerLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiBlockerLabel"]');
+  const caseWikiNextActionLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiNextActionLabel"]');
+
+  if (caseWikiStatusLabel instanceof HTMLElement) {
+    caseWikiStatusLabel.textContent = isRu ? "\u0421\u0442\u0430\u0442\u0443\u0441 \u0441\u0432\u043e\u0434\u043a\u0438" : "Compiled status";
+  }
+  if (caseWikiSummaryLabel instanceof HTMLElement) {
+    caseWikiSummaryLabel.textContent = isRu ? "\u0427\u0442\u043e \u0443\u0436\u0435 \u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e" : "Known now";
+  }
+  if (caseWikiBlockerLabel instanceof HTMLElement) {
+    caseWikiBlockerLabel.textContent = isRu ? "\u0413\u043b\u0430\u0432\u043d\u044b\u0439 \u0431\u043b\u043e\u043a\u0435\u0440" : "Top blocker";
+  }
+  if (caseWikiNextActionLabel instanceof HTMLElement) {
+    caseWikiNextActionLabel.textContent = isRu ? "\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435" : "Next action";
+  }
+  if (el.caseWorkspaceCaseWikiStatusValue instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiStatusValue.textContent = caseWikiSummary.statusValue;
+  }
+  if (el.caseWorkspaceCaseWikiSummaryValue instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiSummaryValue.textContent = caseWikiSummary.summaryValue;
+  }
+  if (el.caseWorkspaceCaseWikiBlockerValue instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiBlockerValue.textContent = caseWikiSummary.blockerValue;
+  }
+  if (el.caseWorkspaceCaseWikiNextActionValue instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiNextActionValue.textContent = caseWikiSummary.nextActionValue;
+  }
+  if (el.caseWorkspaceCaseWikiPill instanceof HTMLElement) {
+    setStatusPill(el.caseWorkspaceCaseWikiPill, caseWikiSummary.pillText, caseWikiSummary.pillTone);
+  }
+}
+
 function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaitingFreshResponse, summaryConfig) {
   syncCaseWorkspaceStaticCopy();
   const snapshot = getCaseWorkspaceSnapshot(intent, pendingRequest, awaitingFreshResponse, summaryConfig);
@@ -7863,6 +8003,7 @@ function renderCaseWorkspaceSummary(intent, latestResult, pendingRequest, awaiti
   if (el.caseWorkspaceCompletedPill instanceof HTMLElement) {
     setStatusPill(el.caseWorkspaceCompletedPill, snapshot.completedPill.text, snapshot.completedPill.tone);
   }
+  renderCaseWorkspaceCaseWikiSummary();
 }
 
 async function copyTextToClipboard(text) {
@@ -25293,6 +25434,29 @@ function buildSessionExportOperatorDiscovery() {
   };
 }
 
+function buildSessionExportOperatorCaseWiki() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const blockingQuestion = snapshot?.openQuestions.find((item) => item.blocking === true) ?? snapshot?.openQuestions[0] ?? null;
+  return {
+    status: snapshot ? "loaded" : "idle",
+    loadedAt: toOptionalText(state.operatorCaseWikiLoadedAt) ?? toOptionalText(snapshot?.generatedAt),
+    caseId: toOptionalText(snapshot?.caseId),
+    sessionId: toOptionalText(snapshot?.sessionId),
+    generatedAt: toOptionalText(snapshot?.generatedAt),
+    overview: isRecord(snapshot?.overview) ? snapshot.overview : null,
+    recommendedNextAction: isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null,
+    topBlockingQuestion: isRecord(blockingQuestion) ? blockingQuestion : null,
+    counts: {
+      entities: Array.isArray(snapshot?.entities) ? snapshot.entities.length : 0,
+      proofs: Array.isArray(snapshot?.proofs) ? snapshot.proofs.length : 0,
+      openQuestions: Array.isArray(snapshot?.openQuestions) ? snapshot.openQuestions.length : 0,
+      timeline: Array.isArray(snapshot?.timeline) ? snapshot.timeline.length : 0,
+    },
+    openQuestions: Array.isArray(snapshot?.openQuestions) ? snapshot.openQuestions.slice(0, 8) : [],
+    timeline: Array.isArray(snapshot?.timeline) ? snapshot.timeline.slice(0, 8) : [],
+  };
+}
+
 function buildSessionExportPayload() {
   const audioSummary = buildAssistantAudioSummary();
   const selectedStorySegment = getStoryTimelineSelectedSegment();
@@ -25300,6 +25464,7 @@ function buildSessionExportPayload() {
   const operatorPurpose = cloneOperatorPurposeDeclaration(state.operatorPurposeDeclaration);
   const operatorSessionReplay = buildSessionExportOperatorSessionReplay();
   const operatorDiscovery = buildSessionExportOperatorDiscovery();
+  const operatorCaseWiki = buildSessionExportOperatorCaseWiki();
   return {
     schemaVersion: 1,
     generatedAt: toIsoNow(),
@@ -25354,6 +25519,7 @@ function buildSessionExportPayload() {
       operatorPurpose,
       operatorSessionReplay,
       operatorDiscovery,
+      operatorCaseWiki,
       runtimeGuardrailsSignalPaths,
     },
     transcript: collectEntryLane(el.transcript, "transcript"),
@@ -25449,6 +25615,23 @@ function toMarkdownExport(payload) {
       );
     }
   }
+  lines.push("");
+  lines.push("## Case Wiki");
+  lines.push("");
+  lines.push(`- status: ${payload.operatorEvidence?.operatorCaseWiki?.status ?? "idle"}`);
+  lines.push(`- loadedAt: ${payload.operatorEvidence?.operatorCaseWiki?.loadedAt ?? "-"}`);
+  lines.push(`- caseId: ${payload.operatorEvidence?.operatorCaseWiki?.caseId ?? "-"}`);
+  lines.push(`- sessionId: ${payload.operatorEvidence?.operatorCaseWiki?.sessionId ?? "-"}`);
+  lines.push(`- overviewStatus: ${payload.operatorEvidence?.operatorCaseWiki?.overview?.status ?? "-"}`);
+  lines.push(`- currentStage: ${payload.operatorEvidence?.operatorCaseWiki?.overview?.currentStage ?? "-"}`);
+  lines.push(`- summary: ${payload.operatorEvidence?.operatorCaseWiki?.overview?.summary ?? payload.operatorEvidence?.operatorCaseWiki?.overview?.title ?? "-"}`);
+  lines.push(`- missingEvidence: ${payload.operatorEvidence?.operatorCaseWiki?.overview?.missingEvidenceSummary ?? "-"}`);
+  lines.push(`- contradictions: ${payload.operatorEvidence?.operatorCaseWiki?.overview?.contradictionsSummary ?? "-"}`);
+  lines.push(`- nextAction: ${payload.operatorEvidence?.operatorCaseWiki?.recommendedNextAction?.title ?? payload.operatorEvidence?.operatorCaseWiki?.recommendedNextAction?.type ?? "-"}`);
+  lines.push(`- topBlockingQuestion: ${payload.operatorEvidence?.operatorCaseWiki?.topBlockingQuestion?.question ?? "-"}`);
+  lines.push(
+    `- counts: entities=${payload.operatorEvidence?.operatorCaseWiki?.counts?.entities ?? 0}, proofs=${payload.operatorEvidence?.operatorCaseWiki?.counts?.proofs ?? 0}, openQuestions=${payload.operatorEvidence?.operatorCaseWiki?.counts?.openQuestions ?? 0}, timeline=${payload.operatorEvidence?.operatorCaseWiki?.counts?.timeline ?? 0}`,
+  );
   lines.push("");
   lines.push("## Cross-Agent Discovery");
   lines.push("");
@@ -31890,6 +32073,7 @@ function renderOperatorSessionOpsPanel() {
   if (el.operatorCaseWikiSaveBtn instanceof HTMLButtonElement) {
     el.operatorCaseWikiSaveBtn.disabled = !canAppendOperatorCaseWikiNote();
   }
+  renderCaseWorkspaceCaseWikiSummary();
   renderOperatorSessionBoundaryWidget(state.operatorSessionReplaySnapshot);
 }
 

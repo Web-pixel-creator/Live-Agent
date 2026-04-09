@@ -118,6 +118,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     'operatorCaseWikiSuggestedNextStep: document.getElementById("operatorCaseWikiSuggestedNextStep")',
     "buildSessionExportOperatorSessionReplay",
     "buildSessionExportOperatorDiscovery",
+    "buildSessionExportOperatorCaseWiki",
     "buildOperatorReplayPrimaryStepRefreshView",
     "OPERATOR_REPLAY_REFRESH_LEGACY_TEXT_FIELDS",
     "OPERATOR_REPLAY_REFRESH_LEGACY_TARGET_FIELDS",
@@ -205,6 +206,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.ok(readmeSource.includes("`GET /v1/runtime/session-replay`"), "README missing session replay API note");
   assert.ok(readmeSource.includes("`GET /v1/runtime/case-wiki`"), "README missing case wiki API note");
   assert.ok(readmeSource.includes("`POST /v1/runtime/case-wiki/notes`"), "README missing case wiki note API note");
+  assert.ok(readmeSource.includes("Case Workspace"), "README missing case workspace case wiki note");
   assert.match(readmeSource, /Case Wiki Overview/i);
   assert.match(readmeSource, /Case Wiki Open Questions/i);
   assert.match(readmeSource, /refresh recovery follow-?up path/i);
@@ -217,6 +219,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.ok(operatorGuideSource.includes("`Operator Session Ops`"), "operator guide missing session-ops panel note");
   assert.ok(operatorGuideSource.includes("`GET /v1/runtime/case-wiki`"), "operator guide missing case wiki note");
   assert.ok(operatorGuideSource.includes("`POST /v1/runtime/case-wiki/notes`"), "operator guide missing case wiki note append");
+  assert.ok(operatorGuideSource.includes("Case Workspace"), "operator guide missing case workspace case wiki note");
   assert.match(operatorGuideSource, /Case Wiki Overview/i);
   assert.match(operatorGuideSource, /Case Wiki Open Questions/i);
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);

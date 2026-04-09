@@ -1119,6 +1119,14 @@
   line-height: 1.45;
 }
 
+.layout[data-active-tab="live-negotiator"] .case-workspace-summary-case-wiki {
+  grid-column: 1 / -1;
+}
+
+.layout[data-active-tab="live-negotiator"] .case-workspace-summary-case-wiki .case-workspace-summary-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .layout[data-active-tab="live-negotiator"] .case-workspace-panel-title {
   margin-top: 4px;
 }
@@ -1568,6 +1576,10 @@
 
   .layout[data-active-tab="live-negotiator"] .case-workspace-stepper {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .layout[data-active-tab="live-negotiator"] .case-workspace-summary-case-wiki .case-workspace-summary-list {
+    grid-template-columns: 1fr;
   }
 }
 

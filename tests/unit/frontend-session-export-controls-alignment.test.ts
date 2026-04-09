@@ -74,10 +74,14 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "operatorPurpose",
     "operatorSessionReplay",
     "operatorDiscovery",
+    "operatorCaseWiki",
     "liveTransport",
     "## Operator Purpose",
     "## Session Replay",
+    "## Case Wiki",
     "## Cross-Agent Discovery",
+    "buildSessionExportOperatorCaseWiki",
+    "topBlockingQuestion:",
     "liveTransport:",
     "liveEvidenceSource:",
     "historyStatus:",
@@ -130,8 +134,13 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "operator guide missing operator purpose export note",
   );
   assert.ok(
+    operatorGuideSource.includes("`operatorCaseWiki`"),
+    "operator guide missing operator case wiki export note",
+  );
+  assert.ok(
     readmeSource.includes("`runtimeGuardrailsSignalPaths`"),
     "README missing runtime guardrails session export note",
   );
   assert.ok(readmeSource.includes("`operatorPurpose`"), "README missing operator purpose export note");
+  assert.ok(readmeSource.includes("`operatorCaseWiki`"), "README missing operator case wiki export note");
 });
