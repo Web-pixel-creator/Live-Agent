@@ -3753,6 +3753,7 @@ const el = {
   operatorCaseWikiFocusedHandoffCopyBtn: document.getElementById("operatorCaseWikiFocusedHandoffCopyBtn"),
   operatorCaseWikiFocusedHandoffExportBtn: document.getElementById("operatorCaseWikiFocusedHandoffExportBtn"),
   operatorCaseWikiFocusedRoutingSnapshot: document.getElementById("operatorCaseWikiFocusedRoutingSnapshot"),
+  operatorCaseWikiFocusedRoutingCtaBtn: document.getElementById("operatorCaseWikiFocusedRoutingCtaBtn"),
   operatorCaseWikiFocusedRoutingCopyBtn: document.getElementById("operatorCaseWikiFocusedRoutingCopyBtn"),
   operatorCaseWikiFocusedRoutingExportBtn: document.getElementById("operatorCaseWikiFocusedRoutingExportBtn"),
   operatorCaseWikiQuestionsSnapshot: document.getElementById("operatorCaseWikiQuestionsSnapshot"),
@@ -25864,6 +25865,7 @@ function buildSessionExportOperatorCaseWiki() {
     focusedHandoffBlock,
     focusedRoutingBlock,
     focusedRoutingCta: focusedRoutingBlock?.cta?.label ?? null,
+    focusedRoutingCtaAction: focusedRoutingBlock?.cta?.actionId ?? null,
     counts: {
       entities: Array.isArray(snapshot?.entities) ? snapshot.entities.length : 0,
       proofs: Array.isArray(snapshot?.proofs) ? snapshot.proofs.length : 0,
@@ -26079,6 +26081,9 @@ function toMarkdownExport(payload) {
   );
   lines.push(
     `- focusedRoutingCta: ${payload.operatorEvidence?.operatorCaseWiki?.focusedRoutingBlock?.cta?.label ?? "-"}`,
+  );
+  lines.push(
+    `- focusedRoutingCtaAction: ${payload.operatorEvidence?.operatorCaseWiki?.focusedRoutingBlock?.cta?.actionId ?? "-"}`,
   );
   lines.push(
     `- counts: entities=${payload.operatorEvidence?.operatorCaseWiki?.counts?.entities ?? 0}, proofs=${payload.operatorEvidence?.operatorCaseWiki?.counts?.proofs ?? 0}, openQuestions=${payload.operatorEvidence?.operatorCaseWiki?.counts?.openQuestions ?? 0}, timeline=${payload.operatorEvidence?.operatorCaseWiki?.counts?.timeline ?? 0}`,
@@ -33100,6 +33105,52 @@ async function copyOperatorCaseWikiFocusedRoutingBlock(mode = "routing") {
   );
 }
 
+function runOperatorCaseWikiFocusedRoutingCTA() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
+  const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
+  const routingBlock = buildOperatorCaseWikiFocusedRoutingBlock(snapshot, evidencePack, focusedItem);
+  const cta = isRecord(routingBlock?.cta) ? routingBlock.cta : null;
+  const actionId = toOptionalText(cta?.actionId);
+  if (!actionId) {
+    setOperatorSessionOpsControlStatus("case_wiki_routing_cta_unavailable", "warn");
+    state.operatorSessionOpsLastResult = {
+      action: "case_wiki_focused_routing_cta_skipped",
+      reason: "cta_unavailable",
+      requestedAt: toIsoNow(),
+    };
+    renderOperatorSessionOpsPanel();
+    appendTranscript(
+      "error",
+      "Select a Case Wiki proof/question focus with a ready routing CTA before launching the next move.",
+      { exposeInLiveResult: false },
+    );
+    return;
+  }
+  state.operatorSessionOpsLastResult = {
+    action: "case_wiki_focused_routing_cta_run",
+    focus: routingBlock?.focus?.summary ?? routingBlock?.focus?.label ?? null,
+    route: routingBlock?.route?.summary ?? null,
+    cta: cta?.summary ?? cta?.label ?? null,
+    launchedAt: toIsoNow(),
+  };
+  setOperatorSessionOpsControlStatus("case_wiki_focused_routing_cta_run", "ok");
+  setExportStatus("case wiki focused routing CTA launched");
+  renderOperatorSessionOpsPanel();
+  appendTranscript(
+    "system",
+    `Case Wiki focused routing CTA launched: ${cta?.label ?? "next move"} (${routingBlock?.focus?.label ?? "selected focus"})`,
+    { exposeInLiveResult: false },
+  );
+  runOperatorPriorityQueueAction(actionId, {
+    label: toOptionalText(cta?.label) ?? "Routing CTA",
+    shortLabel: toOptionalText(cta?.label) ?? "Routing CTA",
+    source: "case_wiki_focused_routing",
+    lane: toOptionalText(routingBlock?.route?.lane),
+    focus: routingBlock?.focus?.summary ?? routingBlock?.focus?.label ?? null,
+  });
+}
+
 function openCaseWorkspaceCaseWikiInOperatorOps(kind) {
   const isRu = state.languageMode === "ru";
   const bundle = buildOperatorCaseWikiDetailActionBundle(kind, isRu);
@@ -33576,6 +33627,14 @@ function renderOperatorSessionOpsPanel() {
   }
   if (el.operatorCaseWikiFocusedRoutingSnapshot instanceof HTMLElement) {
     el.operatorCaseWikiFocusedRoutingSnapshot.textContent = buildOperatorCaseWikiFocusedRoutingPreviewBlock();
+  }
+  if (el.operatorCaseWikiFocusedRoutingCtaBtn instanceof HTMLButtonElement) {
+    const ctaLabel = toOptionalText(focusedRoutingBlock?.cta?.label) ?? "Run CTA";
+    el.operatorCaseWikiFocusedRoutingCtaBtn.textContent = ctaLabel;
+    el.operatorCaseWikiFocusedRoutingCtaBtn.disabled = !toOptionalText(focusedRoutingBlock?.cta?.actionId);
+    el.operatorCaseWikiFocusedRoutingCtaBtn.title =
+      toOptionalText(focusedRoutingBlock?.cta?.hint) ??
+      (focusedRoutingBlock?.focus?.label ?? "Select a Case Wiki proof/question focus first");
   }
   if (el.operatorCaseWikiQuestionsSnapshot instanceof HTMLElement) {
     el.operatorCaseWikiQuestionsSnapshot.textContent = buildOperatorCaseWikiQuestionsPreview();
@@ -43275,6 +43334,11 @@ function bindEvents() {
       void copyOperatorCaseWikiFocusedRoutingBlock("routing").catch((error) => {
         appendTranscript("error", `Case Wiki focused routing copy failed: ${String(error)}`, { exposeInLiveResult: false });
       });
+    });
+  }
+  if (el.operatorCaseWikiFocusedRoutingCtaBtn instanceof HTMLButtonElement) {
+    el.operatorCaseWikiFocusedRoutingCtaBtn.addEventListener("click", () => {
+      runOperatorCaseWikiFocusedRoutingCTA();
     });
   }
   if (el.operatorCaseWikiFocusedRoutingExportBtn instanceof HTMLButtonElement) {

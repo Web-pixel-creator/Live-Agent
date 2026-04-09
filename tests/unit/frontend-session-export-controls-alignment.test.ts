@@ -97,6 +97,7 @@ test("demo frontend wires session export controls and runtime helpers", () => {
     "focusedRoutingLane:",
     "focusedRoutingApproval:",
     "focusedRoutingCta:",
+    "focusedRoutingCtaAction:",
     "liveTransport:",
     "liveEvidenceSource:",
     "historyStatus:",

@@ -8705,6 +8705,20 @@ textarea {
   font-size: 0.68rem;
 }
 
+.operator-session-ops-control-output-primary-action {
+  border: 1px solid color-mix(in oklch, var(--primary) 34%, var(--border));
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in oklch, var(--primary) 22%, var(--surface-control)),
+      color-mix(in oklch, var(--primary) 14%, var(--surface-panel))
+    );
+  color: color-mix(in oklch, var(--foreground) 98%, white);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, white 26%, transparent),
+    0 8px 18px -18px color-mix(in oklch, var(--primary) 44%, transparent);
+}
+
 .operator-session-ops-control-output-head h3 {
   margin: 0;
   color: color-mix(in oklch, var(--foreground) 97%, var(--secondary));
