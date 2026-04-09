@@ -23,6 +23,10 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
       && htmlSource.includes('id="caseWorkspaceCaseWikiPackValue"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiRefsLabel">Source refs</dt>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiRefsValue"')
+      && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiDrilldownLabel">Evidence drilldown</dt>')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiDrilldownValue"')
+      && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiHandoffLabel">Handoff preview</dt>')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiHandoffValue"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiProofLabel">Top proof</span>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofTitle"')
       && htmlSource.includes('id="caseWorkspaceCaseWikiProofSummary"')
@@ -40,6 +44,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     '"live.caseWorkspace.caseWikiNextActionLabel": "Next action"',
     '"live.caseWorkspace.caseWikiPackLabel": "Evidence pack"',
     '"live.caseWorkspace.caseWikiRefsLabel": "Source refs"',
+    '"live.caseWorkspace.caseWikiDrilldownLabel": "Evidence drilldown"',
+    '"live.caseWorkspace.caseWikiHandoffLabel": "Handoff preview"',
     '"live.caseWorkspace.caseWikiProofLabel": "Top proof"',
     '"live.caseWorkspace.caseWikiEntityLabel": "Key entity"',
     'caseWorkspaceCaseWikiPill: document.getElementById("caseWorkspaceCaseWikiPill")',
@@ -49,6 +55,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     'caseWorkspaceCaseWikiNextActionValue: document.getElementById("caseWorkspaceCaseWikiNextActionValue")',
     'caseWorkspaceCaseWikiPackValue: document.getElementById("caseWorkspaceCaseWikiPackValue")',
     'caseWorkspaceCaseWikiRefsValue: document.getElementById("caseWorkspaceCaseWikiRefsValue")',
+    'caseWorkspaceCaseWikiDrilldownValue: document.getElementById("caseWorkspaceCaseWikiDrilldownValue")',
+    'caseWorkspaceCaseWikiHandoffValue: document.getElementById("caseWorkspaceCaseWikiHandoffValue")',
     'caseWorkspaceCaseWikiProofTitle: document.getElementById("caseWorkspaceCaseWikiProofTitle")',
     'caseWorkspaceCaseWikiProofSummary: document.getElementById("caseWorkspaceCaseWikiProofSummary")',
     'caseWorkspaceCaseWikiEntityTitle: document.getElementById("caseWorkspaceCaseWikiEntityTitle")',
@@ -56,12 +64,16 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "function buildCaseWorkspaceCaseWikiSummary(isRu)",
     "function renderCaseWorkspaceCaseWikiSummary()",
     "const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);",
+    "const drilldownValue =",
+    "const handoffValue =",
     "const caseWikiSummary = buildCaseWorkspaceCaseWikiSummary(isRu);",
     "el.caseWorkspaceCaseWikiStatusValue.textContent = caseWikiSummary.statusValue;",
     "el.caseWorkspaceCaseWikiProofTitle.textContent = caseWikiSummary.proofTitle;",
     "el.caseWorkspaceCaseWikiEntityTitle.textContent = caseWikiSummary.entityTitle;",
     "el.caseWorkspaceCaseWikiPackValue.textContent = caseWikiSummary.packValue;",
     "el.caseWorkspaceCaseWikiRefsValue.textContent = caseWikiSummary.refsValue;",
+    "el.caseWorkspaceCaseWikiDrilldownValue.textContent = caseWikiSummary.drilldownValue;",
+    "el.caseWorkspaceCaseWikiHandoffValue.textContent = caseWikiSummary.handoffValue;",
     "renderCaseWorkspaceCaseWikiSummary();",
   ]) {
     assert.ok(appSource.includes(token), `app.js missing case wiki workspace token: ${token}`);

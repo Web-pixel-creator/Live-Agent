@@ -79,6 +79,9 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "function buildOperatorCaseWikiOverviewPreview()",
     "function buildOperatorCaseWikiEvidencePreview()",
     "resolveOperatorCaseWikiEvidencePack(snapshot)",
+    "buildOperatorCaseWikiEvidencePackProofSummary",
+    "buildOperatorCaseWikiEvidencePackQuestionSummary",
+    "buildOperatorCaseWikiHandoffPreview",
     "function buildOperatorCaseWikiQuestionsPreview()",
     "function buildOperatorCaseWikiTimelinePreview()",
     "function canAppendOperatorCaseWikiNote()",
@@ -187,6 +190,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "caseWikiProof=",
     "caseWikiEntity=",
     "evidencePack:",
+    "handoffPreview:",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing session-ops token: ${token}`);

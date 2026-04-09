@@ -173,16 +173,6 @@ function getHeroCopy(languageMode) {
   return {
     title: "Multimodal Agent Dashboard",
     subtitle: "One clean workspace for live chat, stories, operations, and device nodes.",
-    packValue:
-      [
-        Array.isArray(evidencePack?.proofs) && evidencePack.proofs.length > 0 ? `${evidencePack.proofs.length} proofs` : null,
-        Array.isArray(evidencePack?.entities) && evidencePack.entities.length > 0 ? `${evidencePack.entities.length} entities` : null,
-        Array.isArray(evidencePack?.questions) && evidencePack.questions.length > 0 ? `${evidencePack.questions.length} questions` : null,
-      ].filter(Boolean).join(" | ") || idle.packValue,
-    refsValue:
-      Array.isArray(evidencePack?.sourceRefs) && evidencePack.sourceRefs.length > 0
-        ? evidencePack.sourceRefs.join(" | ")
-        : idle.refsValue,
   };
 }
 
@@ -1299,6 +1289,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.caseWikiEntityLabel": "Key entity",
     "live.caseWorkspace.caseWikiPackLabel": "Evidence pack",
     "live.caseWorkspace.caseWikiRefsLabel": "Source refs",
+    "live.caseWorkspace.caseWikiDrilldownLabel": "Evidence drilldown",
+    "live.caseWorkspace.caseWikiHandoffLabel": "Handoff preview",
     "live.caseWorkspace.statusPillReady": "Workspace ready",
     "live.caseWorkspace.statusPillInFlight": "In progress",
     "live.caseWorkspace.statusPillVerified": "Verified",
@@ -2215,6 +2207,8 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
   "live.caseWorkspace.caseWikiEntityLabel": "\u041a\u043b\u044e\u0447\u0435\u0432\u0430\u044f \u0441\u0443\u0449\u043d\u043e\u0441\u0442\u044c",
   "live.caseWorkspace.caseWikiPackLabel": "\u041f\u0430\u043a\u0435\u0442 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432",
   "live.caseWorkspace.caseWikiRefsLabel": "\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438",
+  "live.caseWorkspace.caseWikiDrilldownLabel": "\u0414\u0435\u0442\u0430\u043b\u0438 evidence pack",
+  "live.caseWorkspace.caseWikiHandoffLabel": "\u041f\u0440\u0435\u0432\u044c\u044e handoff",
   "live.caseWorkspace.pathContextLabel": "\u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435",
   "live.context.workflow": "\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438 UI",
   "live.context.workflowHint": "\u0417\u0430\u043f\u0443\u0441\u043a \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u0438 \u0437\u0430\u0434\u0430\u0447\u0438 \u0432 \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0435",
@@ -3138,6 +3132,8 @@ const el = {
   caseWorkspaceCaseWikiEntitySummary: document.getElementById("caseWorkspaceCaseWikiEntitySummary"),
   caseWorkspaceCaseWikiPackValue: document.getElementById("caseWorkspaceCaseWikiPackValue"),
   caseWorkspaceCaseWikiRefsValue: document.getElementById("caseWorkspaceCaseWikiRefsValue"),
+  caseWorkspaceCaseWikiDrilldownValue: document.getElementById("caseWorkspaceCaseWikiDrilldownValue"),
+  caseWorkspaceCaseWikiHandoffValue: document.getElementById("caseWorkspaceCaseWikiHandoffValue"),
   caseWorkspaceMainActionsTitle: document.getElementById("caseWorkspaceMainActionsTitle"),
   caseWorkspaceMainActionStatus: document.getElementById("caseWorkspaceMainActionStatus"),
   caseWorkspaceMainActionMeta: document.getElementById("caseWorkspaceMainActionMeta"),
@@ -7866,6 +7862,12 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     refsValue: isRu
       ? "\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438 \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u0432\u043c\u0435\u0441\u0442\u0435 \u0441 compiled evidence pack."
       : "Source refs appear here with the compiled evidence pack.",
+    drilldownValue: isRu
+      ? "\u041a\u043e\u0440\u043e\u0442\u043a\u0438\u0439 pack proofs/questions \u043f\u043e\u044f\u0432\u0438\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
+      : "Compact proof/question drilldown appears here after Case Wiki refresh.",
+    handoffValue: isRu
+      ? "\u041f\u0440\u0435\u0432\u044c\u044e handoff \u0441 source refs \u043f\u043e\u044f\u0432\u0438\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
+      : "Source-linked handoff preview appears here after Case Wiki refresh.",
   };
   if (!snapshot) {
     return idle;
@@ -7879,6 +7881,24 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
   const statusPresentation = resolveCaseWorkspaceCaseWikiStatusPresentation(toOptionalText(overview?.status), isRu);
   const currentStage = toOptionalText(overview?.currentStage);
   const nextActionType = toOptionalText(nextAction?.type);
+  const packValue =
+    [
+      Array.isArray(evidencePack?.proofs) && evidencePack.proofs.length > 0 ? `${evidencePack.proofs.length} proofs` : null,
+      Array.isArray(evidencePack?.entities) && evidencePack.entities.length > 0 ? `${evidencePack.entities.length} entities` : null,
+      Array.isArray(evidencePack?.questions) && evidencePack.questions.length > 0 ? `${evidencePack.questions.length} questions` : null,
+    ].filter(Boolean).join(" | ") || idle.packValue;
+  const refsValue =
+    Array.isArray(evidencePack?.sourceRefs) && evidencePack.sourceRefs.length > 0
+      ? evidencePack.sourceRefs.join(" | ")
+      : idle.refsValue;
+  const drilldownValue =
+    [
+      buildOperatorCaseWikiEvidencePackProofSummary(evidencePack),
+      buildOperatorCaseWikiEvidencePackQuestionSummary(evidencePack),
+    ].filter(Boolean).join(" | ") || idle.drilldownValue;
+  const handoffValue =
+    buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack) ??
+    idle.handoffValue;
   return {
     pillText: statusPresentation.pillText,
     pillTone: statusPresentation.pillTone,
@@ -7923,6 +7943,10 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
       Array.isArray(evidencePack?.sourceRefs) && evidencePack.sourceRefs.length > 0
         ? evidencePack.sourceRefs.join(" В· ")
         : idle.refsValue,
+    drilldownValue,
+    handoffValue,
+    packValue,
+    refsValue,
   };
 }
 
@@ -7937,6 +7961,8 @@ function renderCaseWorkspaceCaseWikiSummary() {
   const caseWikiEntityLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiEntityLabel"]');
   const caseWikiPackLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiPackLabel"]');
   const caseWikiRefsLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiRefsLabel"]');
+  const caseWikiDrilldownLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiDrilldownLabel"]');
+  const caseWikiHandoffLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiHandoffLabel"]');
 
   if (caseWikiStatusLabel instanceof HTMLElement) {
     caseWikiStatusLabel.textContent = isRu ? "\u0421\u0442\u0430\u0442\u0443\u0441 \u0441\u0432\u043e\u0434\u043a\u0438" : "Compiled status";
@@ -7961,6 +7987,12 @@ function renderCaseWorkspaceCaseWikiSummary() {
   }
   if (caseWikiRefsLabel instanceof HTMLElement) {
     caseWikiRefsLabel.textContent = isRu ? "\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438" : "Source refs";
+  }
+  if (caseWikiDrilldownLabel instanceof HTMLElement) {
+    caseWikiDrilldownLabel.textContent = isRu ? "\u0414\u0435\u0442\u0430\u043b\u0438 evidence pack" : "Evidence drilldown";
+  }
+  if (caseWikiHandoffLabel instanceof HTMLElement) {
+    caseWikiHandoffLabel.textContent = isRu ? "\u041f\u0440\u0435\u0432\u044c\u044e handoff" : "Handoff preview";
   }
   if (el.caseWorkspaceCaseWikiStatusValue instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiStatusValue.textContent = caseWikiSummary.statusValue;
@@ -7991,6 +8023,12 @@ function renderCaseWorkspaceCaseWikiSummary() {
   }
   if (el.caseWorkspaceCaseWikiRefsValue instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiRefsValue.textContent = caseWikiSummary.refsValue;
+  }
+  if (el.caseWorkspaceCaseWikiDrilldownValue instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiDrilldownValue.textContent = caseWikiSummary.drilldownValue;
+  }
+  if (el.caseWorkspaceCaseWikiHandoffValue instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiHandoffValue.textContent = caseWikiSummary.handoffValue;
   }
   if (el.caseWorkspaceCaseWikiPill instanceof HTMLElement) {
     setStatusPill(el.caseWorkspaceCaseWikiPill, caseWikiSummary.pillText, caseWikiSummary.pillTone);
@@ -25540,6 +25578,9 @@ function buildSessionExportOperatorCaseWiki() {
   const topProof = resolveOperatorCaseWikiTopProof(snapshot);
   const topEntity = resolveOperatorCaseWikiTopEntity(snapshot);
   const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
+  const evidencePackProofs = buildOperatorCaseWikiEvidencePackProofSummary(evidencePack);
+  const evidencePackQuestions = buildOperatorCaseWikiEvidencePackQuestionSummary(evidencePack);
+  const handoffPreview = buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack);
   return {
     status: snapshot ? "loaded" : "idle",
     loadedAt: toOptionalText(state.operatorCaseWikiLoadedAt) ?? toOptionalText(snapshot?.generatedAt),
@@ -25560,6 +25601,9 @@ function buildSessionExportOperatorCaseWiki() {
     topBlockingQuestion: isRecord(blockingQuestion) ? blockingQuestion : null,
     topProof: isRecord(topProof) ? topProof : null,
     topEntity: isRecord(topEntity) ? topEntity : null,
+    evidencePackProofs,
+    evidencePackQuestions,
+    handoffPreview,
     counts: {
       entities: Array.isArray(snapshot?.entities) ? snapshot.entities.length : 0,
       proofs: Array.isArray(snapshot?.proofs) ? snapshot.proofs.length : 0,
@@ -25750,9 +25794,12 @@ function toMarkdownExport(payload) {
   lines.push(
     `- evidencePack: proofs=${payload.operatorEvidence?.operatorCaseWiki?.evidencePack?.proofs?.length ?? 0}, entities=${payload.operatorEvidence?.operatorCaseWiki?.evidencePack?.entities?.length ?? 0}, questions=${payload.operatorEvidence?.operatorCaseWiki?.evidencePack?.questions?.length ?? 0}`,
   );
+  lines.push(`- evidencePackProofs: ${payload.operatorEvidence?.operatorCaseWiki?.evidencePackProofs ?? "-"}`);
+  lines.push(`- evidencePackQuestions: ${payload.operatorEvidence?.operatorCaseWiki?.evidencePackQuestions ?? "-"}`);
   lines.push(
     `- evidencePackRefs: ${(payload.operatorEvidence?.operatorCaseWiki?.evidencePack?.sourceRefs ?? []).join(", ") || "-"}`,
   );
+  lines.push(`- handoffPreview: ${payload.operatorEvidence?.operatorCaseWiki?.handoffPreview ?? "-"}`);
   lines.push(
     `- counts: entities=${payload.operatorEvidence?.operatorCaseWiki?.counts?.entities ?? 0}, proofs=${payload.operatorEvidence?.operatorCaseWiki?.counts?.proofs ?? 0}, openQuestions=${payload.operatorEvidence?.operatorCaseWiki?.counts?.openQuestions ?? 0}, timeline=${payload.operatorEvidence?.operatorCaseWiki?.counts?.timeline ?? 0}`,
   );
@@ -31972,6 +32019,60 @@ function resolveOperatorCaseWikiEvidencePack(snapshot) {
   };
 }
 
+function buildOperatorCaseWikiEvidencePackProofSummary(evidencePack) {
+  if (!evidencePack || !Array.isArray(evidencePack.proofs) || evidencePack.proofs.length === 0) {
+    return null;
+  }
+  return evidencePack.proofs
+    .slice(0, 3)
+    .map((item) => {
+      const status = toOptionalText(item?.status);
+      const statement = toOptionalText(item?.statement);
+      return [status ? `[${status}]` : null, statement].filter(Boolean).join(" ");
+    })
+    .filter(Boolean)
+    .join(" | ");
+}
+
+function buildOperatorCaseWikiEvidencePackQuestionSummary(evidencePack) {
+  if (!evidencePack || !Array.isArray(evidencePack.questions) || evidencePack.questions.length === 0) {
+    return null;
+  }
+  return evidencePack.questions
+    .slice(0, 3)
+    .map((item) => {
+      const priority = toOptionalText(item?.priority);
+      const question = toOptionalText(item?.question);
+      return [priority ? `[${priority}]` : null, question].filter(Boolean).join(" ");
+    })
+    .filter(Boolean)
+    .join(" | ");
+}
+
+function buildOperatorCaseWikiSourceRefsSummary(sourceRefs, limit = 4) {
+  if (!Array.isArray(sourceRefs) || sourceRefs.length === 0) {
+    return null;
+  }
+  return sourceRefs
+    .map((item) => toOptionalText(item))
+    .filter(Boolean)
+    .slice(0, limit)
+    .join(", ");
+}
+
+function buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack) {
+  const nextAction = isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null;
+  const nextActionLabel =
+    toOptionalText(nextAction?.title) ??
+    toOptionalText(nextAction?.summary) ??
+    (toOptionalText(nextAction?.type) ? sentenceCaseOperatorEvidenceValue(toOptionalText(nextAction?.type)) : null);
+  const sourceRefs = Array.isArray(nextAction?.sourceRefs) && nextAction.sourceRefs.length > 0
+    ? nextAction.sourceRefs
+    : evidencePack?.sourceRefs;
+  const refsLabel = buildOperatorCaseWikiSourceRefsSummary(sourceRefs, 4);
+  return [nextActionLabel, refsLabel ? `refs: ${refsLabel}` : null].filter(Boolean).join(" | ") || null;
+}
+
 function resolveOperatorCaseWikiSelectedSessionId() {
   return (
     toOptionalText(el.operatorSessionReplaySessionId?.value) ??
@@ -32058,6 +32159,7 @@ function buildOperatorCaseWikiEvidencePreview() {
             sourceRefs: evidencePack.sourceRefs,
           }
         : null,
+      handoffPreview: buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack),
       recommendedNextAction: isRecord(snapshot.recommendedNextAction)
         ? {
             type: toOptionalText(snapshot.recommendedNextAction.type),
