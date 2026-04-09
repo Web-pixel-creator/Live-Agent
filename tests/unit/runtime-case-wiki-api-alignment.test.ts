@@ -39,6 +39,7 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
   for (const token of [
     "buildRuntimeCaseWiki",
     "CaseWiki",
+    "routingPack",
     "question:event:",
     "operator.note",
     "case_wiki_note",
@@ -68,8 +69,11 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
   assert.match(readme, /GET \/v1\/runtime\/case-wiki/);
   assert.match(readme, /POST \/v1\/runtime\/case-wiki\/notes/);
   assert.match(readme, /case wiki/i);
+  assert.match(readme, /routingPack/i);
   assert.match(operatorGuide, /case wiki/i);
   assert.match(operatorGuide, /case-wiki\/notes/i);
+  assert.match(operatorGuide, /routingPack/i);
   assert.match(architecture, /case wiki/i);
+  assert.match(architecture, /routingPack/i);
   assert.match(architecture, /case-wiki\/notes/i);
 });

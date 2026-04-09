@@ -210,6 +210,11 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.equal(wiki?.evidencePack.entities[0]?.id, "location:canada");
   assert.equal(wiki?.evidencePack.questions[0]?.id, "question:missing-followup-items");
   assert.equal(wiki?.evidencePack.sourceRefs.includes("workflow:control-plane"), true);
+  assert.equal(wiki?.routingPack.proofs[0]?.focusId, "proof:followup-completeness");
+  assert.equal(wiki?.routingPack.proofs[0]?.route.lane, "customer_followup");
+  assert.equal(wiki?.routingPack.proofs[0]?.cta.actionId, "run_negotiation");
+  assert.equal(wiki?.routingPack.questions[0]?.focusId, "question:missing-followup-items");
+  assert.equal(wiki?.routingPack.questions[0]?.route.blocking, true);
   assert.equal(wiki?.entities.some((item) => item.kind === "case" && item.id === "case:case-42"), true);
   assert.equal(wiki?.entities.some((item) => item.kind === "location" && item.label === "Canada"), true);
   assert.equal(wiki?.timeline[0]?.id, "session:session-case-1");
@@ -347,4 +352,6 @@ test("runtime case wiki prioritizes pending approvals as the next action when op
   assert.deepEqual(wiki?.recommendedNextAction?.relatedQuestionIds, ["question:approval:approval-pending-1"]);
   assert.deepEqual(wiki?.recommendedNextAction?.sourceRefs, ["approval:approval-pending-1"]);
   assert.equal(wiki?.highlights.topBlockingQuestion?.id, "question:approval:approval-pending-1");
+  assert.equal(wiki?.routingPack.questions[0]?.route.lane, "approval_queue");
+  assert.equal(wiki?.routingPack.questions[0]?.cta.actionId, "open_workflow_control");
 });

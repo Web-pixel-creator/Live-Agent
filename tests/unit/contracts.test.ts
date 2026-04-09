@@ -5,6 +5,9 @@ import {
   CASE_WIKI_NEXT_ACTION_TYPES,
   CASE_WIKI_PRIORITIES,
   CASE_WIKI_PROOF_STATUSES,
+  CASE_WIKI_ROUTING_ACTION_IDS,
+  CASE_WIKI_ROUTING_FOCUS_KINDS,
+  CASE_WIKI_ROUTING_LANES,
   CASE_WIKI_STATUSES,
   CASE_WIKI_TIMELINE_ENTRY_KINDS,
   createEnvelope,
@@ -215,6 +218,21 @@ test("case wiki contracts expose stable structured memory shapes", () => {
     "ui_task",
     "live_followup",
   ]);
+  assert.deepEqual(CASE_WIKI_ROUTING_FOCUS_KINDS, ["proof", "question"]);
+  assert.deepEqual(CASE_WIKI_ROUTING_LANES, [
+    "approval_queue",
+    "customer_followup",
+    "workflow_resume",
+    "ui_task",
+    "live_followup",
+    "operator_followup",
+  ]);
+  assert.deepEqual(CASE_WIKI_ROUTING_ACTION_IDS, [
+    "open_workflow_control",
+    "run_negotiation",
+    "run_ui_task",
+    "refresh_summary",
+  ]);
 
   const wiki: CaseWiki = {
     schemaVersion: 1,
@@ -298,6 +316,86 @@ test("case wiki contracts expose stable structured memory shapes", () => {
       ],
       sourceRefs: ["session:session-123", "note:operator-1", "proof:proof-1"],
     },
+    routingPack: {
+      proofs: [
+        {
+          focusKind: "proof",
+          focusId: "proof-1",
+          focusLabel: "Customer wants a spouse relocation consultation.",
+          route: {
+            lane: "customer_followup",
+            owner: "operator",
+            priority: "low",
+            status: "confirmed",
+            blocking: true,
+            approvalRequired: false,
+            dueBy: null,
+            summary: "Customer followup | owner: operator | priority: Low | blocking",
+          },
+          cta: {
+            actionId: "run_negotiation",
+            label: "Prepare customer follow-up",
+            hint: "Use the live follow-up lane to request the missing proof and attach the focused refs.",
+            owner: "operator",
+            lane: "customer_followup",
+            approvalRequired: false,
+            blocking: true,
+            summary: "Prepare customer follow-up | owner: operator | focus: Customer wants a spouse relocation consultation.",
+          },
+          sourceRefs: ["session:session-123"],
+          relatedQuestionIds: ["question-1"],
+          nextAction: {
+            type: "document_request",
+            title: "Request missing visa documents",
+            summary: "Ask the customer for the passport scan and invitation letter before scheduling filing.",
+            owner: "operator",
+            dueBy: null,
+            blocking: true,
+            relatedQuestionIds: ["question-1"],
+            sourceRefs: ["question:question-1", "timeline:timeline-1"],
+          },
+        },
+      ],
+      questions: [
+        {
+          focusKind: "question",
+          focusId: "question-1",
+          focusLabel: "Has the customer already received the invitation letter?",
+          route: {
+            lane: "customer_followup",
+            owner: "operator",
+            priority: "high",
+            status: "open",
+            blocking: true,
+            approvalRequired: false,
+            dueBy: null,
+            summary: "Customer followup | owner: operator | priority: High | blocking",
+          },
+          cta: {
+            actionId: "run_negotiation",
+            label: "Prepare customer follow-up",
+            hint: "Use the live follow-up lane to request the missing proof and attach the focused refs.",
+            owner: "operator",
+            lane: "customer_followup",
+            approvalRequired: false,
+            blocking: true,
+            summary: "Prepare customer follow-up | owner: operator | focus: Has the customer already received the invitation letter?",
+          },
+          sourceRefs: ["proof:proof-1"],
+          relatedQuestionIds: ["question-1"],
+          nextAction: {
+            type: "document_request",
+            title: "Request missing visa documents",
+            summary: "Ask the customer for the passport scan and invitation letter before scheduling filing.",
+            owner: "operator",
+            dueBy: null,
+            blocking: true,
+            relatedQuestionIds: ["question-1"],
+            sourceRefs: ["question:question-1", "timeline:timeline-1"],
+          },
+        },
+      ],
+    },
     entities: [
       {
         id: "entity-customer",
@@ -362,6 +460,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.equal(wiki.evidencePack.entities[0]?.kind, "person");
   assert.equal(wiki.evidencePack.questions[0]?.priority, "high");
   assert.equal(wiki.evidencePack.sourceRefs.includes("proof:proof-1"), true);
+  assert.equal(wiki.routingPack.proofs[0]?.route.lane, "customer_followup");
+  assert.equal(wiki.routingPack.questions[0]?.cta.actionId, "run_negotiation");
   assert.equal(wiki.entities[0]?.kind, "person");
   assert.equal(wiki.proofs[0]?.status, "confirmed");
   assert.equal(wiki.recommendedNextAction?.type, "document_request");

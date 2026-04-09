@@ -25853,6 +25853,7 @@ function buildSessionExportOperatorCaseWiki() {
           sourceRefs: evidencePack.sourceRefs,
         }
       : null,
+    routingPack: isRecord(snapshot?.routingPack) ? snapshot.routingPack : null,
     recommendedNextAction: isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null,
     topBlockingQuestion: isRecord(blockingQuestion) ? blockingQuestion : null,
     topProof: isRecord(topProof) ? topProof : null,
@@ -26084,6 +26085,9 @@ function toMarkdownExport(payload) {
   );
   lines.push(
     `- focusedRoutingCtaAction: ${payload.operatorEvidence?.operatorCaseWiki?.focusedRoutingBlock?.cta?.actionId ?? "-"}`,
+  );
+  lines.push(
+    `- routingPack: proofs=${payload.operatorEvidence?.operatorCaseWiki?.routingPack?.proofs?.length ?? 0}, questions=${payload.operatorEvidence?.operatorCaseWiki?.routingPack?.questions?.length ?? 0}`,
   );
   lines.push(
     `- counts: entities=${payload.operatorEvidence?.operatorCaseWiki?.counts?.entities ?? 0}, proofs=${payload.operatorEvidence?.operatorCaseWiki?.counts?.proofs ?? 0}, openQuestions=${payload.operatorEvidence?.operatorCaseWiki?.counts?.openQuestions ?? 0}, timeline=${payload.operatorEvidence?.operatorCaseWiki?.counts?.timeline ?? 0}`,
@@ -32423,6 +32427,25 @@ function buildOperatorCaseWikiSourceRefsSummary(sourceRefs, limit = 4) {
     .join(", ");
 }
 
+function resolveOperatorCaseWikiFocusedRoutingPackItem(snapshot, focusedItem) {
+  if (!isRecord(snapshot) || !focusedItem || !isRecord(focusedItem.item)) {
+    return null;
+  }
+  const routingPack = isRecord(snapshot.routingPack) ? snapshot.routingPack : null;
+  if (!routingPack) {
+    return null;
+  }
+  const items = focusedItem.kind === "proof" ? routingPack.proofs : routingPack.questions;
+  if (!Array.isArray(items)) {
+    return null;
+  }
+  return items.find((item) =>
+    isRecord(item) &&
+    toOptionalText(item.focusKind) === focusedItem.kind &&
+    toOptionalText(item.focusId) === (toOptionalText(focusedItem.id) ?? toOptionalText(focusedItem.item.id))
+  ) ?? null;
+}
+
 function buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack) {
   const nextAction = isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null;
   const nextActionLabel =
@@ -32540,6 +32563,7 @@ function buildOperatorCaseWikiFocusedRoutingBlock(snapshot, evidencePack, focuse
     return null;
   }
   const item = focusedItem.item;
+  const routingPackItem = resolveOperatorCaseWikiFocusedRoutingPackItem(snapshot, focusedItem);
   const nextAction = isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null;
   const actionType = toOptionalText(nextAction?.type);
   const owner =
@@ -32576,17 +32600,20 @@ function buildOperatorCaseWikiFocusedRoutingBlock(snapshot, evidencePack, focuse
             : actionType === "live_followup"
               ? "live_followup"
               : "operator_followup";
-  const sourceRefs =
-    Array.isArray(item.sourceRefs) && item.sourceRefs.length > 0
+  const sourceRefs = Array.isArray(routingPackItem?.sourceRefs)
+    ? routingPackItem.sourceRefs.map((entry) => toOptionalText(entry)).filter(Boolean)
+    : Array.isArray(item.sourceRefs) && item.sourceRefs.length > 0
       ? item.sourceRefs.map((entry) => toOptionalText(entry)).filter(Boolean)
       : Array.isArray(nextAction?.sourceRefs) && nextAction.sourceRefs.length > 0
         ? nextAction.sourceRefs.map((entry) => toOptionalText(entry)).filter(Boolean)
         : Array.isArray(evidencePack?.sourceRefs)
           ? evidencePack.sourceRefs.map((entry) => toOptionalText(entry)).filter(Boolean)
           : [];
-  const relatedQuestionIds = Array.isArray(nextAction?.relatedQuestionIds)
-    ? nextAction.relatedQuestionIds.map((entry) => toOptionalText(entry)).filter(Boolean)
-    : [];
+  const relatedQuestionIds = Array.isArray(routingPackItem?.relatedQuestionIds)
+    ? routingPackItem.relatedQuestionIds.map((entry) => toOptionalText(entry)).filter(Boolean)
+    : Array.isArray(nextAction?.relatedQuestionIds)
+      ? nextAction.relatedQuestionIds.map((entry) => toOptionalText(entry)).filter(Boolean)
+      : [];
   const routeSummary = [
     sentenceCaseOperatorEvidenceValue(lane),
     owner ? `owner: ${owner}` : null,
@@ -32594,30 +32621,55 @@ function buildOperatorCaseWikiFocusedRoutingBlock(snapshot, evidencePack, focuse
     blocking ? "blocking" : "non-blocking",
     approvalRequired ? "approval-ready" : null,
   ].filter(Boolean).join(" | ");
-  const route = {
-    lane,
-    owner,
-    priority,
-    status,
-    blocking,
-    approvalRequired,
-    dueBy: toOptionalText(nextAction?.dueBy),
-    summary: routeSummary,
-  };
-  const cta = buildOperatorCaseWikiFocusedRoutingCTA(lane, route, nextAction, focusedItem);
+  const route = isRecord(routingPackItem?.route)
+    ? {
+        lane: toOptionalText(routingPackItem.route.lane) ?? lane,
+        owner: toOptionalText(routingPackItem.route.owner) ?? owner,
+        priority: toOptionalText(routingPackItem.route.priority) ?? priority,
+        status: toOptionalText(routingPackItem.route.status) ?? status,
+        blocking: routingPackItem.route.blocking === true,
+        approvalRequired: routingPackItem.route.approvalRequired === true,
+        dueBy: toOptionalText(routingPackItem.route.dueBy) ?? toOptionalText(nextAction?.dueBy),
+        summary: toOptionalText(routingPackItem.route.summary) ?? routeSummary,
+      }
+    : {
+        lane,
+        owner,
+        priority,
+        status,
+        blocking,
+        approvalRequired,
+        dueBy: toOptionalText(nextAction?.dueBy),
+        summary: routeSummary,
+      };
+  const cta = isRecord(routingPackItem?.cta)
+    ? {
+        actionId: toOptionalText(routingPackItem.cta.actionId) ?? null,
+        label: toOptionalText(routingPackItem.cta.label) ?? "Inspect operator follow-up",
+        hint: toOptionalText(routingPackItem.cta.hint) ?? null,
+        owner: toOptionalText(routingPackItem.cta.owner) ?? route.owner,
+        lane: toOptionalText(routingPackItem.cta.lane) ?? route.lane,
+        approvalRequired: routingPackItem.cta.approvalRequired === true,
+        blocking: routingPackItem.cta.blocking === true,
+        summary: toOptionalText(routingPackItem.cta.summary) ?? null,
+      }
+    : buildOperatorCaseWikiFocusedRoutingCTA(route.lane, route, nextAction, focusedItem);
   return {
     focus: {
       kind: focusedItem.kind,
       id: toOptionalText(focusedItem.id) ?? toOptionalText(item.id),
       label:
-        focusedItem.kind === "proof"
+        toOptionalText(routingPackItem?.focusLabel) ??
+        (focusedItem.kind === "proof"
           ? toOptionalText(item.statement) ?? "Selected proof"
-          : toOptionalText(item.question) ?? "Selected question",
+          : toOptionalText(item.question) ?? "Selected question"),
       summary: buildOperatorCaseWikiFocusSummary(focusedItem),
     },
     route,
     cta,
-    nextAction: nextAction
+    nextAction: isRecord(routingPackItem?.nextAction)
+      ? routingPackItem.nextAction
+      : nextAction
       ? {
           type: actionType,
           title: toOptionalText(nextAction.title),

@@ -162,6 +162,30 @@ export const CASE_WIKI_NEXT_ACTION_TYPES = [
 
 export type CaseWikiNextActionType = (typeof CASE_WIKI_NEXT_ACTION_TYPES)[number];
 
+export const CASE_WIKI_ROUTING_FOCUS_KINDS = ["proof", "question"] as const;
+
+export type CaseWikiRoutingFocusKind = (typeof CASE_WIKI_ROUTING_FOCUS_KINDS)[number];
+
+export const CASE_WIKI_ROUTING_LANES = [
+  "approval_queue",
+  "customer_followup",
+  "workflow_resume",
+  "ui_task",
+  "live_followup",
+  "operator_followup",
+] as const;
+
+export type CaseWikiRoutingLane = (typeof CASE_WIKI_ROUTING_LANES)[number];
+
+export const CASE_WIKI_ROUTING_ACTION_IDS = [
+  "open_workflow_control",
+  "run_negotiation",
+  "run_ui_task",
+  "refresh_summary",
+] as const;
+
+export type CaseWikiRoutingActionId = (typeof CASE_WIKI_ROUTING_ACTION_IDS)[number];
+
 export type CaseWikiOverview = {
   title: string;
   summary: string;
@@ -238,6 +262,44 @@ export type CaseWikiEvidencePack = {
   sourceRefs: string[];
 };
 
+export type CaseWikiRoutingRoute = {
+  lane: CaseWikiRoutingLane;
+  owner: string | null;
+  priority: CaseWikiPriority;
+  status: string | null;
+  blocking: boolean;
+  approvalRequired: boolean;
+  dueBy: string | null;
+  summary: string;
+};
+
+export type CaseWikiRoutingCTA = {
+  actionId: CaseWikiRoutingActionId;
+  label: string;
+  hint: string;
+  owner: string | null;
+  lane: CaseWikiRoutingLane;
+  approvalRequired: boolean;
+  blocking: boolean;
+  summary: string;
+};
+
+export type CaseWikiRoutingPackItem = {
+  focusKind: CaseWikiRoutingFocusKind;
+  focusId: string;
+  focusLabel: string;
+  route: CaseWikiRoutingRoute;
+  cta: CaseWikiRoutingCTA;
+  sourceRefs: string[];
+  relatedQuestionIds: string[];
+  nextAction: CaseWikiNextAction | null;
+};
+
+export type CaseWikiRoutingPack = {
+  proofs: CaseWikiRoutingPackItem[];
+  questions: CaseWikiRoutingPackItem[];
+};
+
 export type RuntimeCaseWikiNoteRequest = {
   sessionId: string;
   runId?: string;
@@ -270,6 +332,7 @@ export type CaseWiki = {
   overview: CaseWikiOverview;
   highlights: CaseWikiHighlights;
   evidencePack: CaseWikiEvidencePack;
+  routingPack: CaseWikiRoutingPack;
   entities: CaseWikiEntity[];
   timeline: CaseWikiTimelineEntry[];
   proofs: CaseWikiProof[];

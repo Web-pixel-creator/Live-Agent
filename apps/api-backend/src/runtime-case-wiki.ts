@@ -7,6 +7,12 @@ import type {
   CaseWikiPriority,
   CaseWikiProof,
   CaseWikiProofStatus,
+  CaseWikiRoutingActionId,
+  CaseWikiRoutingCTA,
+  CaseWikiRoutingLane,
+  CaseWikiRoutingPack,
+  CaseWikiRoutingPackItem,
+  CaseWikiRoutingRoute,
   CaseWikiStatus,
   CaseWikiTimelineEntry,
   CaseWikiTimelineEntryKind,
@@ -713,6 +719,204 @@ function buildRecommendedNextAction(context: RuntimeCaseWikiContext, openQuestio
   };
 }
 
+function sentenceCaseCaseWikiRoutingValue(value: string | null | undefined): string | null {
+  const text = toNonEmptyString(value ?? null);
+  if (!text) {
+    return null;
+  }
+  return text
+    .split(/[_\s-]+/u)
+    .filter(Boolean)
+    .map((entry) => entry.charAt(0).toUpperCase() + entry.slice(1))
+    .join(" ");
+}
+
+function deriveCaseWikiRoutingLane(
+  actionType: CaseWikiNextAction["type"] | null,
+  owner: string | null,
+  approvalRequired: boolean,
+): CaseWikiRoutingLane {
+  if (approvalRequired) {
+    return "approval_queue";
+  }
+  if (actionType === "document_request" || owner === "customer") {
+    return "customer_followup";
+  }
+  if (actionType === "workflow_resume") {
+    return "workflow_resume";
+  }
+  if (actionType === "ui_task") {
+    return "ui_task";
+  }
+  if (actionType === "live_followup") {
+    return "live_followup";
+  }
+  return "operator_followup";
+}
+
+function buildCaseWikiRoutingCTA(params: {
+  lane: CaseWikiRoutingLane;
+  route: CaseWikiRoutingRoute;
+  nextAction: CaseWikiNextAction | null;
+  focusLabel: string;
+}): CaseWikiRoutingCTA {
+  const owner = toNonEmptyString(params.route.owner ?? null) ?? "operator";
+  const dueBy = toNonEmptyString(params.route.dueBy ?? null);
+  const nextActionTitle = toNonEmptyString(params.nextAction?.title ?? null);
+  let actionId: CaseWikiRoutingActionId = "refresh_summary";
+  let label = "Inspect operator follow-up";
+  let hint = "Refresh operator state, confirm the blocker, and decide the next handoff.";
+  switch (params.lane) {
+    case "approval_queue":
+      actionId = "open_workflow_control";
+      label = "Review approval queue";
+      hint = "Open workflow control, review the protected step, and confirm whether approval can be granted.";
+      break;
+    case "customer_followup":
+      actionId = "run_negotiation";
+      label = "Prepare customer follow-up";
+      hint = "Use the live follow-up lane to request the missing proof and attach the focused refs.";
+      break;
+    case "workflow_resume":
+      actionId = "open_workflow_control";
+      label = "Resume workflow control";
+      hint = "Open workflow control, verify the blocker is cleared, and continue the queued step.";
+      break;
+    case "ui_task":
+      actionId = "run_ui_task";
+      label = "Run UI task";
+      hint = "Launch the UI executor with the focused proof or question context and verify the protected action.";
+      break;
+    case "live_followup":
+      actionId = "run_negotiation";
+      label = "Run live follow-up";
+      hint = "Reopen the live follow-up lane and carry the focused handoff into the next conversation.";
+      break;
+    default:
+      break;
+  }
+  const summary = [
+    label,
+    owner ? `owner: ${owner}` : null,
+    params.route.approvalRequired === true ? "approval-ready" : null,
+    params.focusLabel ? `focus: ${params.focusLabel}` : null,
+    dueBy ? `due: ${dueBy}` : null,
+    nextActionTitle ? `next: ${nextActionTitle}` : null,
+  ].filter((item): item is string => Boolean(item)).join(" | ");
+  return {
+    actionId,
+    label,
+    hint,
+    owner,
+    lane: params.lane,
+    approvalRequired: params.route.approvalRequired,
+    blocking: params.route.blocking,
+    summary,
+  };
+}
+
+function buildCaseWikiRoutingPack(params: {
+  evidencePack: {
+    proofs: CaseWikiProof[];
+    questions: CaseWikiOpenQuestion[];
+    sourceRefs: string[];
+  };
+  recommendedNextAction: CaseWikiNextAction | null;
+}): CaseWikiRoutingPack {
+  const nextAction = params.recommendedNextAction;
+  const sharedRelatedQuestionIds = Array.isArray(nextAction?.relatedQuestionIds) ? nextAction.relatedQuestionIds : [];
+  const sharedFallbackRefs = Array.isArray(nextAction?.sourceRefs) && nextAction.sourceRefs.length > 0
+    ? nextAction.sourceRefs
+    : params.evidencePack.sourceRefs;
+  const buildProofItem = (proof: CaseWikiProof): CaseWikiRoutingPackItem => {
+    const owner = toNonEmptyString(nextAction?.owner ?? null) ?? "operator";
+    const priority: CaseWikiPriority =
+      proof.status === "missing" || proof.status === "contradicted"
+        ? "high"
+        : proof.status === "pending"
+          ? "medium"
+          : "low";
+    const approvalRequired = nextAction?.type === "approval_request";
+    const lane = deriveCaseWikiRoutingLane(nextAction?.type ?? null, owner, approvalRequired);
+    const route: CaseWikiRoutingRoute = {
+      lane,
+      owner,
+      priority,
+      status: proof.status,
+      blocking: nextAction?.blocking === true,
+      approvalRequired,
+      dueBy: toNonEmptyString(nextAction?.dueBy ?? null),
+      summary: [
+        sentenceCaseCaseWikiRoutingValue(lane),
+        owner ? `owner: ${owner}` : null,
+        priority ? `priority: ${sentenceCaseCaseWikiRoutingValue(priority)}` : null,
+        nextAction?.blocking === true ? "blocking" : "non-blocking",
+        approvalRequired ? "approval-ready" : null,
+      ].filter((item): item is string => Boolean(item)).join(" | "),
+    };
+    return {
+      focusKind: "proof",
+      focusId: proof.id,
+      focusLabel: proof.statement,
+      route,
+      cta: buildCaseWikiRoutingCTA({
+        lane,
+        route,
+        nextAction,
+        focusLabel: proof.statement,
+      }),
+      sourceRefs: proof.sourceRefs.length > 0 ? proof.sourceRefs : sharedFallbackRefs,
+      relatedQuestionIds: sharedRelatedQuestionIds,
+      nextAction,
+    };
+  };
+  const buildQuestionItem = (question: CaseWikiOpenQuestion): CaseWikiRoutingPackItem => {
+    const owner =
+      toNonEmptyString(nextAction?.owner ?? null) ??
+      toNonEmptyString(question.owner ?? null) ??
+      "operator";
+    const approvalRequired =
+      nextAction?.type === "approval_request" ||
+      (question.blocking === true && owner === "operator");
+    const lane = deriveCaseWikiRoutingLane(nextAction?.type ?? null, owner, approvalRequired);
+    const route: CaseWikiRoutingRoute = {
+      lane,
+      owner,
+      priority: question.priority,
+      status: question.blocking ? "open" : "monitored",
+      blocking: question.blocking,
+      approvalRequired,
+      dueBy: toNonEmptyString(nextAction?.dueBy ?? null),
+      summary: [
+        sentenceCaseCaseWikiRoutingValue(lane),
+        owner ? `owner: ${owner}` : null,
+        question.priority ? `priority: ${sentenceCaseCaseWikiRoutingValue(question.priority)}` : null,
+        question.blocking ? "blocking" : "non-blocking",
+        approvalRequired ? "approval-ready" : null,
+      ].filter((item): item is string => Boolean(item)).join(" | "),
+    };
+    return {
+      focusKind: "question",
+      focusId: question.id,
+      focusLabel: question.question,
+      route,
+      cta: buildCaseWikiRoutingCTA({
+        lane,
+        route,
+        nextAction,
+        focusLabel: question.question,
+      }),
+      sourceRefs: question.sourceRefs.length > 0 ? question.sourceRefs : sharedFallbackRefs,
+      relatedQuestionIds: sharedRelatedQuestionIds,
+      nextAction,
+    };
+  };
+  return {
+    proofs: params.evidencePack.proofs.map((item) => buildProofItem(item)),
+    questions: params.evidencePack.questions.map((item) => buildQuestionItem(item)),
+  };
+}
+
 function selectTopProof(proofs: CaseWikiProof[]): CaseWikiProof | null {
   return (
     proofs.find((item) => item.status === "missing") ??
@@ -842,6 +1046,10 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     entities,
     openQuestions,
   });
+  const routingPack = buildCaseWikiRoutingPack({
+    evidencePack,
+    recommendedNextAction,
+  });
 
   return {
     schemaVersion: 1,
@@ -880,6 +1088,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
       topBlockingQuestion: selectTopBlockingQuestion(openQuestions),
     },
     evidencePack,
+    routingPack,
     entities,
     timeline,
     proofs,
