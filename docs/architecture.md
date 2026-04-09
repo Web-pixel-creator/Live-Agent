@@ -47,7 +47,7 @@ definition lives in `docs/product-master-plan.md`.
    - `shared/skills` as the repo-owned skill runtime/catalog layer (`workspace`, `bundled`, `managed`, plus curated `personas` and `recipes`)
 5. Frontend
    - `apps/demo-frontend` for judged demo and operator visibility
-   - `Operator Session Ops` support lane for purpose-gated high-risk actions, session replay, and cross-agent discovery snapshots
+   - `Operator Session Ops` support lane for purpose-gated high-risk actions, session replay, compiled `Case Wiki` snapshots, operator note append, and cross-agent discovery snapshots
 
 ## Category Mapping
 
@@ -83,7 +83,7 @@ These are implementation lanes under the product, not separate products.
 8.2. Operator clients should prefer `refreshState.followupTree` and `refreshState.followupPath` for the refresh recovery followup path; the flat `refreshEscalation...` projection remains transitional for older consumers.
 8.3. In the frontend, `Operator Session Ops` owns replay loading/export, while the compact `Session Boundary` card shows the structured `After refresh` ladder and keeps resume posture, workflow boundary, proof, recovery, handoff, checklist, primary-step CTA, and current `live transport` posture visible in the first runtime scan.
 8.4. `scripts/runtime-surface-snapshot.mjs` emits the inventory/readiness pair into `artifacts/runtime/runtime-surface-snapshot.json`, `scripts/runtime-surface-parity-check.mjs` validates it against `configs/runtime-surface-manifest.json`, and `scripts/runtime-surface-doc-drift-check.mjs` verifies that package/docs claims still match the repo-owned runtime-surface routes, scripts, and artifacts.
-8.5. Repo-owned operator session-ops contract in the frontend + API audit lane: purpose declarations, session replay, and cross-agent discovery are exportable and attach to high-risk operator audit records.
+8.5. Repo-owned operator session-ops contract in the frontend + API audit lane: purpose declarations, session replay, compiled `Case Wiki` memory, and cross-agent discovery are exportable/inspectable and attach to high-risk operator audit records.
 9. CI release gates and artifact revalidation workflows
 
 ## Source Docs

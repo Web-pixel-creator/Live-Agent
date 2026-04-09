@@ -2972,11 +2972,11 @@
         <details id="operatorSessionOpsControl" class="operator-session-ops-control operator-support-panel" role="region" aria-label="Operator purpose gate, session replay, and cross-agent discovery">
           <summary>
             <span class="operator-support-summary-title">Operator Session Ops</span>
-            <span class="operator-support-summary-hint">Save purpose, replay sessions, and inspect personas or recipes.</span>
+            <span class="operator-support-summary-hint">Save purpose, inspect replay, hydrate case wiki, and append operator notes.</span>
           </summary>
           <div class="operator-session-ops-control-body">
             <p class="operator-session-ops-control-hint">
-              Save a purpose declaration before high-risk control-plane actions, use <code>Refresh Sessions</code> to inspect replayable timelines from <code>/v1/runtime/session-replay</code>, and use <code>Refresh Discovery</code> to inspect repo-owned personas and recipes from the skills catalog.
+              Save a purpose declaration before high-risk control-plane actions, use <code>Refresh Sessions</code> to inspect replayable timelines from <code>/v1/runtime/session-replay</code>, use <code>Refresh Case Wiki</code> to compile the current case from <code>/v1/runtime/case-wiki</code>, and use <code>Save Case Wiki Note</code> to append operator notes through <code>/v1/runtime/case-wiki/notes</code>.
             </p>
             <div class="operator-session-ops-control-status-row">
               <p id="operatorSessionOpsControlStatus" class="status-pill status-neutral" data-status-code="session_ops_idle">session_ops_idle</p>
@@ -3015,7 +3015,45 @@
               <button id="operatorPurposeClearBtn" type="button" class="button-muted">Clear Purpose</button>
               <button id="operatorSessionReplayRefreshBtn" type="button" class="button-muted">Refresh Sessions</button>
               <button id="operatorSessionReplayLoadBtn" type="button" class="button-muted">Load Replay</button>
+              <button id="operatorCaseWikiRefreshBtn" type="button" class="button-muted">Refresh Case Wiki</button>
               <button id="operatorDiscoveryRefreshBtn" type="button" class="button-muted">Refresh Discovery</button>
+              <button id="operatorCaseWikiSaveBtn" type="button">Save Case Wiki Note</button>
+            </div>
+            <div class="operator-session-ops-control-grid operator-session-ops-control-note-grid">
+              <label class="field">
+                <span>Case Wiki Note Title (optional)</span>
+                <input id="operatorCaseWikiTitle" type="text" placeholder="Missing passport scan" />
+              </label>
+              <label class="field">
+                <span>Note Priority</span>
+                <select id="operatorCaseWikiPriority">
+                  <option value="low">low</option>
+                  <option value="medium" selected>medium</option>
+                  <option value="high">high</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Blocking</span>
+                <select id="operatorCaseWikiBlocking">
+                  <option value="false" selected>no</option>
+                  <option value="true">yes</option>
+                </select>
+              </label>
+              <label class="field operator-session-ops-control-note-field">
+                <span>Case Wiki Note</span>
+                <textarea
+                  id="operatorCaseWikiNote"
+                  placeholder="Customer still needs to upload the passport scan before filing."
+                ></textarea>
+              </label>
+              <label class="field">
+                <span>Owner (optional)</span>
+                <input id="operatorCaseWikiOwner" type="text" placeholder="customer" />
+              </label>
+              <label class="field operator-session-ops-control-note-step-field">
+                <span>Suggested Next Step (optional)</span>
+                <input id="operatorCaseWikiSuggestedNextStep" type="text" placeholder="Request the missing document before filing." />
+              </label>
             </div>
             <div class="operator-session-ops-control-output-grid">
               <article class="operator-session-ops-control-output-card">
@@ -3035,6 +3073,24 @@
                   <h3>Cross-Agent Discovery</h3>
                 </div>
                 <pre id="operatorSessionOpsDiscoverySnapshot" class="operator-session-ops-control-output">No persona or recipe catalog loaded yet.</pre>
+              </article>
+              <article class="operator-session-ops-control-output-card">
+                <div class="operator-session-ops-control-output-head">
+                  <h3>Case Wiki Overview</h3>
+                </div>
+                <pre id="operatorCaseWikiOverviewSnapshot" class="operator-session-ops-control-output">No case wiki loaded yet.</pre>
+              </article>
+              <article class="operator-session-ops-control-output-card">
+                <div class="operator-session-ops-control-output-head">
+                  <h3>Case Wiki Open Questions</h3>
+                </div>
+                <pre id="operatorCaseWikiQuestionsSnapshot" class="operator-session-ops-control-output">No case wiki questions loaded yet.</pre>
+              </article>
+              <article class="operator-session-ops-control-output-card">
+                <div class="operator-session-ops-control-output-head">
+                  <h3>Case Wiki Timeline</h3>
+                </div>
+                <pre id="operatorCaseWikiTimelineSnapshot" class="operator-session-ops-control-output">No case wiki timeline loaded yet.</pre>
               </article>
               <article class="operator-session-ops-control-output-card">
                 <div class="operator-session-ops-control-output-head">

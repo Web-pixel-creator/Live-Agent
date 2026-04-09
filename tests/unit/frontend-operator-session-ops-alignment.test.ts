@@ -41,10 +41,21 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     'id="operatorPurposeClearBtn"',
     'id="operatorSessionReplayRefreshBtn"',
     'id="operatorSessionReplayLoadBtn"',
+    'id="operatorCaseWikiRefreshBtn"',
     'id="operatorDiscoveryRefreshBtn"',
+    'id="operatorCaseWikiSaveBtn"',
+    'id="operatorCaseWikiTitle"',
+    'id="operatorCaseWikiPriority"',
+    'id="operatorCaseWikiBlocking"',
+    'id="operatorCaseWikiNote"',
+    'id="operatorCaseWikiOwner"',
+    'id="operatorCaseWikiSuggestedNextStep"',
     'id="operatorSessionOpsPurposeSnapshot"',
     'id="operatorSessionOpsReplaySnapshot"',
     'id="operatorSessionOpsDiscoverySnapshot"',
+    'id="operatorCaseWikiOverviewSnapshot"',
+    'id="operatorCaseWikiQuestionsSnapshot"',
+    'id="operatorCaseWikiTimelineSnapshot"',
     'id="operatorSessionOpsLastResult"',
   ];
   for (const token of requiredHtmlTokens) {
@@ -56,11 +67,19 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "operatorSessionReplaySessions: []",
     "operatorSessionReplaySnapshot: null",
     "operatorDiscoverySnapshot: null",
+    "operatorCaseWikiSnapshot: null",
+    "operatorCaseWikiLoadedAt: null",
     "operatorSessionOpsLastResult: null",
     "OPERATOR_PURPOSE_DECLARATION_STORAGE_KEY",
     "function ensureOperatorPurposeDeclaration(actionLabel)",
     "function renderOperatorSessionOpsPanel()",
     "function buildOperatorSessionReplaySnapshot(value)",
+    "function buildOperatorCaseWikiSnapshot(value)",
+    "function buildOperatorCaseWikiOverviewPreview()",
+    "function buildOperatorCaseWikiQuestionsPreview()",
+    "function buildOperatorCaseWikiTimelinePreview()",
+    "function canAppendOperatorCaseWikiNote()",
+    "function resetOperatorCaseWikiDraft()",
     "function normalizeOperatorReplayWorkflowBooking(value)",
     "function normalizeOperatorReplayWorkflowHandoff(value)",
     "function normalizeOperatorReplayWorkflowFollowUp(value)",
@@ -68,13 +87,18 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "function normalizeOperatorReplayLatestProofPointer(value)",
     "function buildOperatorDiscoverySnapshot(personas, recipes)",
     "async function refreshOperatorSessionReplay(options = {})",
+    "async function refreshOperatorCaseWiki(options = {})",
     "async function refreshOperatorDiscovery(options = {})",
+    "async function appendOperatorCaseWikiNote()",
     "new URL(`${state.apiBaseUrl}/v1/runtime/session-replay`)",
+    "new URL(`${state.apiBaseUrl}/v1/runtime/case-wiki`)",
     "replayUrl.searchParams.set(\"sessionLimit\", String(OPERATOR_SESSION_REPLAY_LIMIT))",
     "replayUrl.searchParams.set(\"eventLimit\", String(OPERATOR_SESSION_REPLAY_EVENT_LIMIT))",
     "buildOperatorSessionReplaySnapshot(replayPayload?.data)",
+    "buildOperatorCaseWikiSnapshot(payload?.data)",
     'fetch(`${state.apiBaseUrl}/v1/skills/personas`, {',
     'fetch(`${state.apiBaseUrl}/v1/skills/recipes`, {',
+    'fetch(`${state.apiBaseUrl}/v1/runtime/case-wiki/notes`, {',
     'operatorSessionOpsControl: document.getElementById("operatorSessionOpsControl")',
     'operatorPurposeCategory: document.getElementById("operatorPurposeCategory")',
     'operatorPurposeInput: document.getElementById("operatorPurposeInput")',
@@ -83,7 +107,15 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     'operatorPurposeClearBtn: document.getElementById("operatorPurposeClearBtn")',
     'operatorSessionReplayRefreshBtn: document.getElementById("operatorSessionReplayRefreshBtn")',
     'operatorSessionReplayLoadBtn: document.getElementById("operatorSessionReplayLoadBtn")',
+    'operatorCaseWikiRefreshBtn: document.getElementById("operatorCaseWikiRefreshBtn")',
     'operatorDiscoveryRefreshBtn: document.getElementById("operatorDiscoveryRefreshBtn")',
+    'operatorCaseWikiSaveBtn: document.getElementById("operatorCaseWikiSaveBtn")',
+    'operatorCaseWikiTitle: document.getElementById("operatorCaseWikiTitle")',
+    'operatorCaseWikiPriority: document.getElementById("operatorCaseWikiPriority")',
+    'operatorCaseWikiBlocking: document.getElementById("operatorCaseWikiBlocking")',
+    'operatorCaseWikiNote: document.getElementById("operatorCaseWikiNote")',
+    'operatorCaseWikiOwner: document.getElementById("operatorCaseWikiOwner")',
+    'operatorCaseWikiSuggestedNextStep: document.getElementById("operatorCaseWikiSuggestedNextStep")',
     "buildSessionExportOperatorSessionReplay",
     "buildSessionExportOperatorDiscovery",
     "buildOperatorReplayPrimaryStepRefreshView",
@@ -141,6 +173,12 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "stepPath=",
     "checklist=",
     "remainingSteps=",
+    "caseWiki=",
+    "caseWikiStatus=",
+    "caseWikiCase=",
+    "caseWikiQuestions=",
+    "caseWikiBlocking=",
+    "caseWikiNextAction=",
   ];
   for (const token of requiredRuntimeTokens) {
     assert.ok(appSource.includes(token), `frontend runtime missing session-ops token: ${token}`);
@@ -150,6 +188,9 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     ".operator-session-ops-control {",
     ".operator-session-ops-control-body {",
     ".operator-session-ops-control-grid {",
+    ".operator-session-ops-control-note-grid {",
+    ".operator-session-ops-control-note-field {",
+    ".operator-session-ops-control-note-step-field {",
     ".operator-session-ops-control-actions > button {",
     ".operator-session-ops-control-output-grid {",
     ".operator-session-ops-control-output-card {",
@@ -162,6 +203,10 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.ok(readmeSource.includes("`Operator Session Ops`"), "README missing session-ops panel note");
   assert.ok(readmeSource.includes("`operatorPurpose`"), "README missing operatorPurpose note");
   assert.ok(readmeSource.includes("`GET /v1/runtime/session-replay`"), "README missing session replay API note");
+  assert.ok(readmeSource.includes("`GET /v1/runtime/case-wiki`"), "README missing case wiki API note");
+  assert.ok(readmeSource.includes("`POST /v1/runtime/case-wiki/notes`"), "README missing case wiki note API note");
+  assert.match(readmeSource, /Case Wiki Overview/i);
+  assert.match(readmeSource, /Case Wiki Open Questions/i);
   assert.match(readmeSource, /refresh recovery follow-?up path/i);
   assert.match(readmeSource, /structured refresh state/i);
   assert.match(readmeSource, /followuptree|followup tree/i);
@@ -170,6 +215,10 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assertStructuredReplayRefreshContract(readmeSource);
   assert.ok(readmeSource.includes("`GET /v1/skills/personas`"), "README missing persona discovery API note");
   assert.ok(operatorGuideSource.includes("`Operator Session Ops`"), "operator guide missing session-ops panel note");
+  assert.ok(operatorGuideSource.includes("`GET /v1/runtime/case-wiki`"), "operator guide missing case wiki note");
+  assert.ok(operatorGuideSource.includes("`POST /v1/runtime/case-wiki/notes`"), "operator guide missing case wiki note append");
+  assert.match(operatorGuideSource, /Case Wiki Overview/i);
+  assert.match(operatorGuideSource, /Case Wiki Open Questions/i);
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);
   assert.match(operatorGuideSource, /structured refresh state/i);
   assert.match(operatorGuideSource, /followuptree|followup tree/i);

@@ -8438,6 +8438,22 @@ textarea {
   grid-column: span 2;
 }
 
+.operator-session-ops-control-note-grid {
+  align-items: start;
+}
+
+.operator-session-ops-control-note-field {
+  grid-column: span 3;
+}
+
+.operator-session-ops-control-note-field textarea {
+  min-height: 96px;
+}
+
+.operator-session-ops-control-note-step-field {
+  grid-column: span 2;
+}
+
 .operator-session-ops-control-actions {
   display: flex;
   flex-wrap: wrap;
@@ -15020,6 +15036,11 @@ button:disabled {
   }
 
   .operator-session-ops-control-purpose-field {
+    grid-column: auto;
+  }
+
+  .operator-session-ops-control-note-field,
+  .operator-session-ops-control-note-step-field {
     grid-column: auto;
   }
 

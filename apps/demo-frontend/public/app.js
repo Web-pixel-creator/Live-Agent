@@ -148,6 +148,8 @@ const state = {
   operatorSessionReplayLoadedAt: null,
   operatorDiscoverySnapshot: null,
   operatorDiscoveryLoadedAt: null,
+  operatorCaseWikiSnapshot: null,
+  operatorCaseWikiLoadedAt: null,
   operatorSessionOpsLastResult: null,
   operatorBrowserWorkerSnapshot: null,
   operatorBrowserWorkerLoadedAt: null,
@@ -3667,10 +3669,21 @@ const el = {
   operatorSessionReplaySessionId: document.getElementById("operatorSessionReplaySessionId"),
   operatorSessionReplayRefreshBtn: document.getElementById("operatorSessionReplayRefreshBtn"),
   operatorSessionReplayLoadBtn: document.getElementById("operatorSessionReplayLoadBtn"),
+  operatorCaseWikiRefreshBtn: document.getElementById("operatorCaseWikiRefreshBtn"),
   operatorDiscoveryRefreshBtn: document.getElementById("operatorDiscoveryRefreshBtn"),
+  operatorCaseWikiSaveBtn: document.getElementById("operatorCaseWikiSaveBtn"),
+  operatorCaseWikiTitle: document.getElementById("operatorCaseWikiTitle"),
+  operatorCaseWikiPriority: document.getElementById("operatorCaseWikiPriority"),
+  operatorCaseWikiBlocking: document.getElementById("operatorCaseWikiBlocking"),
+  operatorCaseWikiNote: document.getElementById("operatorCaseWikiNote"),
+  operatorCaseWikiOwner: document.getElementById("operatorCaseWikiOwner"),
+  operatorCaseWikiSuggestedNextStep: document.getElementById("operatorCaseWikiSuggestedNextStep"),
   operatorSessionOpsPurposeSnapshot: document.getElementById("operatorSessionOpsPurposeSnapshot"),
   operatorSessionOpsReplaySnapshot: document.getElementById("operatorSessionOpsReplaySnapshot"),
   operatorSessionOpsDiscoverySnapshot: document.getElementById("operatorSessionOpsDiscoverySnapshot"),
+  operatorCaseWikiOverviewSnapshot: document.getElementById("operatorCaseWikiOverviewSnapshot"),
+  operatorCaseWikiQuestionsSnapshot: document.getElementById("operatorCaseWikiQuestionsSnapshot"),
+  operatorCaseWikiTimelineSnapshot: document.getElementById("operatorCaseWikiTimelineSnapshot"),
   operatorSessionOpsLastResult: document.getElementById("operatorSessionOpsLastResult"),
   operatorBrowserWorkerControlStatus: document.getElementById("operatorBrowserWorkerControlStatus"),
   operatorBrowserWorkerControlMeta: document.getElementById("operatorBrowserWorkerControlMeta"),
@@ -31521,10 +31534,153 @@ function buildOperatorDiscoverySnapshot(personas, recipes) {
   };
 }
 
+function buildOperatorCaseWikiSnapshot(value) {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return {
+    schemaVersion: Number.isFinite(Number(value.schemaVersion)) ? Math.floor(Number(value.schemaVersion)) : 1,
+    caseId: toOptionalText(value.caseId),
+    sessionId: toOptionalText(value.sessionId),
+    userId: toOptionalText(value.userId),
+    generatedAt: toOptionalText(value.generatedAt),
+    overview: isRecord(value.overview) ? value.overview : null,
+    entities: Array.isArray(value.entities) ? value.entities.filter((item) => isRecord(item)) : [],
+    timeline: Array.isArray(value.timeline) ? value.timeline.filter((item) => isRecord(item)) : [],
+    proofs: Array.isArray(value.proofs) ? value.proofs.filter((item) => isRecord(item)) : [],
+    openQuestions: Array.isArray(value.openQuestions) ? value.openQuestions.filter((item) => isRecord(item)) : [],
+    recommendedNextAction: isRecord(value.recommendedNextAction) ? value.recommendedNextAction : null,
+  };
+}
+
+function resolveOperatorCaseWikiSelectedSessionId() {
+  return (
+    toOptionalText(el.operatorSessionReplaySessionId?.value) ??
+    toOptionalText(state.operatorSessionReplaySnapshot?.selectedSessionId) ??
+    toOptionalText(state.sessionId)
+  );
+}
+
+function resolveOperatorCaseWikiSelectedRunId() {
+  const replaySnapshot = isRecord(state.operatorSessionReplaySnapshot) ? state.operatorSessionReplaySnapshot : null;
+  const selectedSession = isRecord(replaySnapshot?.selectedSession) ? replaySnapshot.selectedSession : null;
+  const workflow = isRecord(selectedSession?.workflow) ? selectedSession.workflow : null;
+  return toOptionalText(workflow?.workflowRunId);
+}
+
+function buildOperatorCaseWikiOverviewPreview() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  if (!snapshot) {
+    return "No case wiki loaded yet.\n\nRefresh case wiki to compile overview, blockers, and next action from runtime evidence.";
+  }
+  const overview = isRecord(snapshot.overview) ? snapshot.overview : null;
+  return stringifyOperatorRuntimeFaultValue(
+    {
+      caseId: snapshot.caseId,
+      sessionId: snapshot.sessionId,
+      schemaVersion: snapshot.schemaVersion,
+      generatedAt: snapshot.generatedAt,
+      overview: overview
+        ? {
+            title: toOptionalText(overview.title),
+            status: toOptionalText(overview.status),
+            currentStage: toOptionalText(overview.currentStage),
+            customerGoal: toOptionalText(overview.customerGoal),
+            summary: toOptionalText(overview.summary),
+            missingEvidenceSummary: toOptionalText(overview.missingEvidenceSummary),
+            contradictionsSummary: toOptionalText(overview.contradictionsSummary),
+          }
+        : null,
+      recommendedNextAction: isRecord(snapshot.recommendedNextAction) ? snapshot.recommendedNextAction : null,
+      counts: {
+        entities: snapshot.entities.length,
+        proofs: snapshot.proofs.length,
+        openQuestions: snapshot.openQuestions.length,
+        timeline: snapshot.timeline.length,
+      },
+    },
+    "No case wiki loaded yet.",
+  );
+}
+
+function buildOperatorCaseWikiQuestionsPreview() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  if (!snapshot) {
+    return "No case wiki questions loaded yet.";
+  }
+  const questions = snapshot.openQuestions.slice(0, 6).map((item) => ({
+    id: toOptionalText(item.id),
+    priority: toOptionalText(item.priority),
+    blocking: item.blocking === true,
+    owner: toOptionalText(item.owner),
+    question: toOptionalText(item.question),
+    suggestedNextStep: toOptionalText(item.suggestedNextStep),
+    sourceRefs: Array.isArray(item.sourceRefs) ? item.sourceRefs : [],
+  }));
+  return stringifyOperatorRuntimeFaultValue(
+    {
+      totalQuestions: snapshot.openQuestions.length,
+      blockingQuestions: snapshot.openQuestions.filter((item) => item.blocking === true).length,
+      items: questions,
+    },
+    "No case wiki questions loaded yet.",
+  );
+}
+
+function buildOperatorCaseWikiTimelinePreview() {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  if (!snapshot) {
+    return "No case wiki timeline loaded yet.";
+  }
+  const timeline = snapshot.timeline.slice(0, 6).map((item) => ({
+    ts: toOptionalText(item.ts),
+    kind: toOptionalText(item.kind),
+    title: toOptionalText(item.title),
+    summary: toOptionalText(item.summary),
+    status: toOptionalText(item.status),
+    sourceRefs: Array.isArray(item.sourceRefs) ? item.sourceRefs : [],
+  }));
+  return stringifyOperatorRuntimeFaultValue(
+    {
+      totalEntries: snapshot.timeline.length,
+      latestEntries: timeline,
+    },
+    "No case wiki timeline loaded yet.",
+  );
+}
+
+function canAppendOperatorCaseWikiNote() {
+  return Boolean(resolveOperatorCaseWikiSelectedSessionId() && toOptionalText(el.operatorCaseWikiNote?.value));
+}
+
+function resetOperatorCaseWikiDraft() {
+  if (el.operatorCaseWikiTitle instanceof HTMLInputElement) {
+    el.operatorCaseWikiTitle.value = "";
+  }
+  if (el.operatorCaseWikiNote instanceof HTMLTextAreaElement) {
+    el.operatorCaseWikiNote.value = "";
+  }
+  if (el.operatorCaseWikiOwner instanceof HTMLInputElement) {
+    el.operatorCaseWikiOwner.value = "";
+  }
+  if (el.operatorCaseWikiSuggestedNextStep instanceof HTMLInputElement) {
+    el.operatorCaseWikiSuggestedNextStep.value = "";
+  }
+  if (el.operatorCaseWikiPriority instanceof HTMLSelectElement) {
+    el.operatorCaseWikiPriority.value = "medium";
+    syncCustomSelectControl(el.operatorCaseWikiPriority);
+  }
+  if (el.operatorCaseWikiBlocking instanceof HTMLSelectElement) {
+    el.operatorCaseWikiBlocking.value = "false";
+    syncCustomSelectControl(el.operatorCaseWikiBlocking);
+  }
+}
+
 function buildOperatorSessionOpsControlMeta() {
   const declaration = cloneOperatorPurposeDeclaration(state.operatorPurposeDeclaration);
   const replay = isRecord(state.operatorSessionReplaySnapshot) ? state.operatorSessionReplaySnapshot : null;
   const discovery = isRecord(state.operatorDiscoverySnapshot) ? state.operatorDiscoverySnapshot : null;
+  const caseWiki = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
   const refreshView = buildOperatorReplayPrimaryStepRefreshView(
     replay?.selectedSession?.replay?.nextOperatorPrimaryStep,
   );
@@ -31575,6 +31731,12 @@ function buildOperatorSessionOpsControlMeta() {
     `personas=${Math.max(0, Math.floor(Number(discovery?.totalPersonas ?? 0) || 0))}`,
     `recipes=${Math.max(0, Math.floor(Number(discovery?.totalRecipes ?? 0) || 0))}`,
     `agents=${Array.isArray(discovery?.agentIds) ? discovery.agentIds.join(",") || "none" : "none"}`,
+    `caseWiki=${caseWiki ? "loaded" : "idle"}`,
+    `caseWikiStatus=${toOptionalText(caseWiki?.overview?.status) ?? "n/a"}`,
+    `caseWikiCase=${toOptionalText(caseWiki?.caseId) ?? "n/a"}`,
+    `caseWikiQuestions=${Array.isArray(caseWiki?.openQuestions) ? caseWiki.openQuestions.length : 0}`,
+    `caseWikiBlocking=${Array.isArray(caseWiki?.openQuestions) ? caseWiki.openQuestions.filter((item) => item?.blocking === true).length : 0}`,
+    `caseWikiNextAction=${toOptionalText(caseWiki?.recommendedNextAction?.title) ?? toOptionalText(caseWiki?.recommendedNextAction?.type) ?? "n/a"}`,
     declaration
       ? "High-risk operator actions can attach purpose metadata to audit-safe control-plane requests."
       : "Save a purpose declaration before live drill/override/rotation/replay actions.",
@@ -31701,14 +31863,32 @@ function renderOperatorSessionOpsPanel() {
   if (el.operatorSessionOpsDiscoverySnapshot instanceof HTMLElement) {
     el.operatorSessionOpsDiscoverySnapshot.textContent = buildOperatorSessionOpsDiscoveryPreview();
   }
+  if (el.operatorCaseWikiOverviewSnapshot instanceof HTMLElement) {
+    el.operatorCaseWikiOverviewSnapshot.textContent = buildOperatorCaseWikiOverviewPreview();
+  }
+  if (el.operatorCaseWikiQuestionsSnapshot instanceof HTMLElement) {
+    el.operatorCaseWikiQuestionsSnapshot.textContent = buildOperatorCaseWikiQuestionsPreview();
+  }
+  if (el.operatorCaseWikiTimelineSnapshot instanceof HTMLElement) {
+    el.operatorCaseWikiTimelineSnapshot.textContent = buildOperatorCaseWikiTimelinePreview();
+  }
   if (el.operatorSessionOpsLastResult instanceof HTMLElement) {
     el.operatorSessionOpsLastResult.textContent = buildOperatorSessionOpsLastResultPreview();
+  }
+  if (el.operatorCaseWikiPriority instanceof HTMLSelectElement) {
+    syncCustomSelectControl(el.operatorCaseWikiPriority);
+  }
+  if (el.operatorCaseWikiBlocking instanceof HTMLSelectElement) {
+    syncCustomSelectControl(el.operatorCaseWikiBlocking);
   }
   if (el.operatorPurposeClearBtn instanceof HTMLButtonElement) {
     el.operatorPurposeClearBtn.disabled = declaration === null;
   }
   if (el.operatorSessionReplayLoadBtn instanceof HTMLButtonElement) {
     el.operatorSessionReplayLoadBtn.disabled = !toOptionalText(el.operatorSessionReplaySessionId?.value);
+  }
+  if (el.operatorCaseWikiSaveBtn instanceof HTMLButtonElement) {
+    el.operatorCaseWikiSaveBtn.disabled = !canAppendOperatorCaseWikiNote();
   }
   renderOperatorSessionBoundaryWidget(state.operatorSessionReplaySnapshot);
 }
@@ -31802,6 +31982,12 @@ async function refreshOperatorSessionReplay(options = {}) {
       selectedSessionId ? "ok" : "neutral",
     );
     renderOperatorSessionOpsPanel();
+    void refreshOperatorCaseWiki({
+      silent: true,
+      sessionId: selectedSessionId,
+      controlStatus: false,
+      updateLastResult: false,
+    }).catch(() => {});
     if (!silent) {
       appendTranscript(
         "system",
@@ -31876,6 +32062,188 @@ async function refreshOperatorDiscovery(options = {}) {
     if (!silent) {
     appendTranscript("error", `Cross-agent discovery refresh failed: ${String(error)}`, { exposeInLiveResult: false });
     }
+    throw error;
+  }
+}
+
+async function refreshOperatorCaseWiki(options = {}) {
+  const silent = options?.silent === true;
+  const controlStatus = options?.controlStatus !== false;
+  const updateLastResult = options?.updateLastResult !== false;
+  const requestedSessionId = toOptionalText(options?.sessionId) ?? resolveOperatorCaseWikiSelectedSessionId();
+  if (controlStatus) {
+    setOperatorSessionOpsControlStatus("case_wiki_loading", "neutral");
+  }
+  try {
+    const caseWikiUrl = new URL(`${state.apiBaseUrl}/v1/runtime/case-wiki`);
+    caseWikiUrl.searchParams.set("sessionLimit", String(OPERATOR_SESSION_REPLAY_LIMIT));
+    caseWikiUrl.searchParams.set("eventLimit", String(OPERATOR_SESSION_REPLAY_EVENT_LIMIT));
+    caseWikiUrl.searchParams.set("runLimit", String(Math.max(OPERATOR_SESSION_REPLAY_EVENT_LIMIT, 120)));
+    caseWikiUrl.searchParams.set("approvalLimit", String(Math.max(OPERATOR_SESSION_REPLAY_EVENT_LIMIT, 120)));
+    caseWikiUrl.searchParams.set(
+      "recentEventLimit",
+      String(Math.max(OPERATOR_SESSION_REPLAY_EVENT_LIMIT * 2, OPERATOR_SESSION_REPLAY_LIMIT * 10)),
+    );
+    if (requestedSessionId) {
+      caseWikiUrl.searchParams.set("sessionId", requestedSessionId);
+    }
+    const response = await fetch(caseWikiUrl.toString(), {
+      method: "GET",
+      headers: operatorHeaders(false),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      const errorText = getApiErrorMessage(payload, `case wiki failed with ${response.status}`);
+      throw new Error(String(errorText));
+    }
+    const caseWikiSnapshot = buildOperatorCaseWikiSnapshot(payload?.data);
+    state.operatorCaseWikiSnapshot = caseWikiSnapshot;
+    state.operatorCaseWikiLoadedAt = toOptionalText(caseWikiSnapshot?.generatedAt) ?? toIsoNow();
+    if (updateLastResult) {
+      state.operatorSessionOpsLastResult = {
+        action: "case_wiki_refreshed",
+        caseId: toOptionalText(caseWikiSnapshot?.caseId),
+        sessionId: toOptionalText(caseWikiSnapshot?.sessionId),
+        status: toOptionalText(caseWikiSnapshot?.overview?.status),
+        openQuestions: Array.isArray(caseWikiSnapshot?.openQuestions) ? caseWikiSnapshot.openQuestions.length : 0,
+        timelineEntries: Array.isArray(caseWikiSnapshot?.timeline) ? caseWikiSnapshot.timeline.length : 0,
+        loadedAt: state.operatorCaseWikiLoadedAt,
+      };
+    }
+    if (controlStatus) {
+      setOperatorSessionOpsControlStatus(caseWikiSnapshot ? "case_wiki_loaded" : "case_wiki_idle", caseWikiSnapshot ? "ok" : "neutral");
+    }
+    renderOperatorSessionOpsPanel();
+    if (!silent) {
+      appendTranscript(
+        "system",
+        `Case wiki refreshed: case=${toOptionalText(caseWikiSnapshot?.caseId) ?? "none"} session=${toOptionalText(caseWikiSnapshot?.sessionId) ?? requestedSessionId ?? "auto"} questions=${Array.isArray(caseWikiSnapshot?.openQuestions) ? caseWikiSnapshot.openQuestions.length : 0}`,
+      );
+    }
+    return caseWikiSnapshot;
+  } catch (error) {
+    if (controlStatus) {
+      setOperatorSessionOpsControlStatus("case_wiki_failed", "fail");
+    }
+    if (updateLastResult) {
+      state.operatorSessionOpsLastResult = {
+        action: "case_wiki_failed",
+        sessionId: requestedSessionId ?? null,
+        error: String(error),
+        failedAt: toIsoNow(),
+      };
+    }
+    renderOperatorSessionOpsPanel();
+    if (!silent) {
+      appendTranscript("error", `Case wiki refresh failed: ${String(error)}`, { exposeInLiveResult: false });
+    }
+    throw error;
+  }
+}
+
+async function appendOperatorCaseWikiNote() {
+  const sessionId = resolveOperatorCaseWikiSelectedSessionId();
+  const note = toOptionalText(el.operatorCaseWikiNote?.value);
+  if (!sessionId) {
+    setOperatorSessionOpsControlStatus("case_wiki_session_required", "warn");
+    state.operatorSessionOpsLastResult = {
+      action: "case_wiki_note_denied",
+      reason: "session_required",
+      deniedAt: toIsoNow(),
+    };
+    renderOperatorSessionOpsPanel();
+    appendTranscript("error", "Select or load a replay session before saving a case wiki note.", {
+      exposeInLiveResult: false,
+    });
+    return;
+  }
+  if (!note) {
+    setOperatorSessionOpsControlStatus("case_wiki_note_missing", "warn");
+    state.operatorSessionOpsLastResult = {
+      action: "case_wiki_note_denied",
+      reason: "note_required",
+      sessionId,
+      deniedAt: toIsoNow(),
+    };
+    renderOperatorSessionOpsPanel();
+    appendTranscript("error", "Case wiki note cannot be empty.", { exposeInLiveResult: false });
+    return;
+  }
+
+  setOperatorSessionOpsControlStatus("case_wiki_note_saving", "neutral");
+  try {
+    const requestBody = {
+      sessionId,
+      runId: resolveOperatorCaseWikiSelectedRunId() ?? undefined,
+      userId: toOptionalText(el.userId?.value) ?? undefined,
+      title: toOptionalText(el.operatorCaseWikiTitle?.value) ?? undefined,
+      note,
+      priority: toOptionalText(el.operatorCaseWikiPriority?.value) ?? "medium",
+      blocking: toOptionalText(el.operatorCaseWikiBlocking?.value) === "true",
+      owner: toOptionalText(el.operatorCaseWikiOwner?.value) ?? undefined,
+      suggestedNextStep: toOptionalText(el.operatorCaseWikiSuggestedNextStep?.value) ?? undefined,
+    };
+    const response = await fetch(`${state.apiBaseUrl}/v1/runtime/case-wiki/notes`, {
+      method: "POST",
+      headers: operatorHeaders(true),
+      body: JSON.stringify(requestBody),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      const errorText = getApiErrorMessage(payload, `case wiki note append failed with ${response.status}`);
+      throw new Error(String(errorText));
+    }
+
+    let refreshError = null;
+    try {
+      await refreshOperatorCaseWiki({
+        silent: true,
+        sessionId,
+        controlStatus: false,
+        updateLastResult: false,
+      });
+    } catch (error) {
+      refreshError = error;
+    }
+
+    const noteRecord = isRecord(payload?.data) ? payload.data : null;
+    state.operatorSessionOpsLastResult = {
+      action: "case_wiki_note_saved",
+      eventId: toOptionalText(noteRecord?.eventId),
+      sessionId: toOptionalText(noteRecord?.sessionId) ?? sessionId,
+      runId: toOptionalText(noteRecord?.runId),
+      priority: requestBody.priority,
+      blocking: requestBody.blocking,
+      owner: requestBody.owner ?? null,
+      refreshed: refreshError === null,
+      refreshError: refreshError ? String(refreshError) : null,
+      savedAt: toOptionalText(noteRecord?.createdAt) ?? toIsoNow(),
+    };
+    setOperatorSessionOpsControlStatus(
+      refreshError ? "case_wiki_note_saved_refresh_pending" : "case_wiki_note_saved",
+      refreshError ? "warn" : "ok",
+    );
+    resetOperatorCaseWikiDraft();
+    renderOperatorSessionOpsPanel();
+    appendTranscript(
+      "system",
+      `Case wiki note saved: session=${toOptionalText(noteRecord?.sessionId) ?? sessionId} event=${toOptionalText(noteRecord?.eventId) ?? "n/a"}${requestBody.blocking ? " | blocking" : ""}`,
+    );
+    if (refreshError) {
+      appendTranscript("error", `Case wiki note saved, but refresh failed: ${String(refreshError)}`, {
+        exposeInLiveResult: false,
+      });
+    }
+  } catch (error) {
+    setOperatorSessionOpsControlStatus("case_wiki_note_failed", "fail");
+    state.operatorSessionOpsLastResult = {
+      action: "case_wiki_note_failed",
+      sessionId,
+      error: String(error),
+      failedAt: toIsoNow(),
+    };
+    renderOperatorSessionOpsPanel();
+    appendTranscript("error", `Case wiki note save failed: ${String(error)}`, { exposeInLiveResult: false });
     throw error;
   }
 }
@@ -41144,6 +41512,46 @@ function bindEvents() {
   if (el.operatorDiscoveryRefreshBtn) {
     el.operatorDiscoveryRefreshBtn.addEventListener("click", () => {
       void refreshOperatorDiscovery();
+    });
+  }
+  if (el.operatorCaseWikiRefreshBtn) {
+    el.operatorCaseWikiRefreshBtn.addEventListener("click", () => {
+      void refreshOperatorCaseWiki();
+    });
+  }
+  if (el.operatorCaseWikiSaveBtn) {
+    el.operatorCaseWikiSaveBtn.addEventListener("click", () => {
+      void appendOperatorCaseWikiNote();
+    });
+  }
+  if (el.operatorCaseWikiTitle) {
+    el.operatorCaseWikiTitle.addEventListener("input", () => {
+      renderOperatorSessionOpsPanel();
+    });
+  }
+  if (el.operatorCaseWikiNote) {
+    el.operatorCaseWikiNote.addEventListener("input", () => {
+      renderOperatorSessionOpsPanel();
+    });
+  }
+  if (el.operatorCaseWikiOwner) {
+    el.operatorCaseWikiOwner.addEventListener("input", () => {
+      renderOperatorSessionOpsPanel();
+    });
+  }
+  if (el.operatorCaseWikiSuggestedNextStep) {
+    el.operatorCaseWikiSuggestedNextStep.addEventListener("input", () => {
+      renderOperatorSessionOpsPanel();
+    });
+  }
+  if (el.operatorCaseWikiPriority) {
+    el.operatorCaseWikiPriority.addEventListener("change", () => {
+      renderOperatorSessionOpsPanel();
+    });
+  }
+  if (el.operatorCaseWikiBlocking) {
+    el.operatorCaseWikiBlocking.addEventListener("change", () => {
+      renderOperatorSessionOpsPanel();
     });
   }
   if (el.operatorBrowserWorkerJobId) {
