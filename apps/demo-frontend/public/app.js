@@ -32594,6 +32594,18 @@ function resolveOperatorCaseWikiPreferredWorkspaceFocus(snapshot, evidencePack, 
       : null;
     return item ? { kind, id, item } : null;
   };
+  const workspacePack = isRecord(snapshot.workspacePack) ? snapshot.workspacePack : null;
+  const defaultFocus = isRecord(workspacePack?.defaultFocus) ? workspacePack.defaultFocus : null;
+  const defaultFocusKind = toOptionalText(defaultFocus?.focusKind);
+  if (
+    (defaultFocusKind === "proof" || defaultFocusKind === "question") &&
+    (!preferredKind || defaultFocusKind === preferredKind)
+  ) {
+    const defaultFocusRecord = resolveById(defaultFocusKind, defaultFocus?.focusId);
+    if (defaultFocusRecord) {
+      return defaultFocusRecord;
+    }
+  }
   for (const kind of preferredKinds) {
     const highlightedFocus =
       kind === "proof"

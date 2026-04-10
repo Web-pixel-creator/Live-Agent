@@ -318,6 +318,12 @@ export type CaseWikiFocusPack = {
   questions: CaseWikiFocusPackItem[];
 };
 
+export type CaseWikiDefaultFocusSource = "highlight" | "focusPack" | "evidencePack";
+
+export type CaseWikiDefaultFocus = CaseWikiFocusPackItem & {
+  source: CaseWikiDefaultFocusSource;
+};
+
 export type CaseWikiPreviewPack = {
   packValue: string | null;
   refsValue: string | null;
@@ -328,6 +334,7 @@ export type CaseWikiPreviewPack = {
 };
 
 export type CaseWikiWorkspacePack = {
+  defaultFocus: CaseWikiDefaultFocus | null;
   statusValue: string | null;
   summaryValue: string | null;
   blockerValue: string | null;

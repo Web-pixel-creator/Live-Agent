@@ -586,6 +586,23 @@ test("case wiki contracts expose stable structured memory shapes", () => {
       handoffValue: "Request missing visa documents | refs: question:question-1, timeline:timeline-1",
     },
     workspacePack: {
+      defaultFocus: {
+        focusKind: "question",
+        focusId: "question-1",
+        focusLabel: "Has the customer already received the invitation letter?",
+        chipTitle: [
+          "Has the customer already received the invitation letter?",
+          "Request the invitation letter or confirm issuance status.",
+          "Owner: customer",
+        ].join("\n"),
+        focusSummary: "Has the customer already received the invitation letter?",
+        drilldown: "Has the customer already received the invitation letter? | Request the invitation letter or confirm issuance status. | customer",
+        handoffPreview: [
+          "Focus question: Has the customer already received the invitation letter?",
+          "Resolve: Request the invitation letter or confirm issuance status.",
+        ].join("\n"),
+        source: "highlight",
+      },
       statusValue: "Waiting on customer | document_collection",
       summaryValue: "Customer is evaluating a relocation package and waiting on document guidance.",
       blockerValue: "Has the customer already received the invitation letter?",
@@ -810,6 +827,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.match(wiki.focusPack.questions[0]?.handoffPreview ?? "", /Focus question/i);
   assert.match(wiki.previewPack.packValue ?? "", /1 proofs/i);
   assert.match(wiki.previewPack.handoffValue ?? "", /Request missing visa documents/i);
+  assert.equal(wiki.workspacePack.defaultFocus?.focusKind, "question");
+  assert.equal(wiki.workspacePack.defaultFocus?.source, "highlight");
   assert.match(wiki.workspacePack.statusValue ?? "", /Waiting on customer/i);
   assert.match(wiki.workspacePack.questionsValue ?? "", /\[high\]/i);
   assert.match(wiki.workspacePack.timelineValue ?? "", /\[session\]/i);

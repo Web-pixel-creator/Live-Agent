@@ -120,6 +120,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "const workspacePack = isRecord(snapshot.workspacePack) ? snapshot.workspacePack : null;",
     "const focusPack = isRecord(snapshot?.focusPack) ? snapshot.focusPack : null;",
     "function resolveOperatorCaseWikiPreferredWorkspaceFocus(snapshot, evidencePack, preferredKind = null) {",
+    "const defaultFocus = isRecord(workspacePack?.defaultFocus) ? workspacePack.defaultFocus : null;",
+    "const defaultFocusRecord = resolveById(defaultFocusKind, defaultFocus?.focusId);",
     "resolveOperatorCaseWikiTopProof(snapshot)?.id",
     "resolveOperatorCaseWikiTopBlockingQuestion(snapshot)?.id",
     "const explicitFocus = normalizeOperatorCaseWikiFocus(state.operatorCaseWikiFocus);",

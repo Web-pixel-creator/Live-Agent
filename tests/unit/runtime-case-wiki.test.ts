@@ -231,6 +231,10 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.match(wiki?.focusPack.proofs[0]?.drilldown ?? "", /Follow-up package is complete/i);
   assert.equal(wiki?.focusPack.questions[0]?.focusId, "question:missing-followup-items");
   assert.match(wiki?.focusPack.questions[0]?.handoffPreview ?? "", /Focus question/i);
+  assert.equal(wiki?.workspacePack.defaultFocus?.focusKind, "question");
+  assert.equal(wiki?.workspacePack.defaultFocus?.focusId, "question:missing-followup-items");
+  assert.equal(wiki?.workspacePack.defaultFocus?.source, "highlight");
+  assert.match(wiki?.workspacePack.defaultFocus?.handoffPreview ?? "", /Focus question/i);
   assert.match(wiki?.previewPack.packValue ?? "", /3 proofs/i);
   assert.match(wiki?.previewPack.refsValue ?? "", /workflow:control-plane/i);
   assert.match(wiki?.previewPack.questionsSummary ?? "", /\[high\]/i);
@@ -400,6 +404,9 @@ test("runtime case wiki prioritizes pending approvals as the next action when op
   assert.match(wiki?.actionPack.questions[0]?.refsText ?? "", /approval:approval-pending-1/i);
   assert.equal(wiki?.focusPack.questions[0]?.focusId, "question:approval:approval-pending-1");
   assert.match(wiki?.focusPack.questions[0]?.chipTitle ?? "", /Owner: operator/i);
+  assert.equal(wiki?.workspacePack.defaultFocus?.focusKind, "question");
+  assert.equal(wiki?.workspacePack.defaultFocus?.focusId, "question:approval:approval-pending-1");
+  assert.equal(wiki?.workspacePack.defaultFocus?.source, "highlight");
   assert.match(wiki?.previewPack.handoffValue ?? "", /Resolve pending approval/i);
   assert.match(wiki?.workspacePack.statusValue ?? "", /Waiting on operator/i);
   assert.match(wiki?.workspacePack.nextActionValue ?? "", /Resolve pending approval/i);

@@ -3,6 +3,7 @@ import type {
   CaseWikiActionPackItem,
   CaseWiki,
   CaseWikiDetailBadge,
+  CaseWikiDefaultFocus,
   CaseWikiDetailPack,
   CaseWikiDetailPackItem,
   CaseWikiEntity,
@@ -1310,6 +1311,96 @@ function buildCaseWikiFocusPack(params: {
   };
 }
 
+function buildCaseWikiDefaultFocus(params: {
+  highlights: {
+    topProof: CaseWikiProof | null;
+    topBlockingQuestion: CaseWikiOpenQuestion | null;
+  };
+  evidencePack: {
+    proofs: CaseWikiProof[];
+    questions: CaseWikiOpenQuestion[];
+  };
+  focusPack: CaseWikiFocusPack;
+}): CaseWikiDefaultFocus | null {
+  const buildFallbackFocus = (
+    kind: "proof" | "question",
+    item: CaseWikiProof | CaseWikiOpenQuestion | null,
+    source: CaseWikiDefaultFocus["source"],
+  ): CaseWikiDefaultFocus | null => {
+    if (!item) {
+      return null;
+    }
+    const focusId = toNonEmptyString(item.id);
+    if (!focusId) {
+      return null;
+    }
+    const focusPackItems = kind === "proof" ? params.focusPack.proofs : params.focusPack.questions;
+    const focusPackItem = focusPackItems.find((candidate) => candidate.focusId === focusId);
+    if (focusPackItem) {
+      return { ...focusPackItem, source };
+    }
+    if (kind === "proof") {
+      const proof = item as CaseWikiProof;
+      return {
+        focusKind: "proof",
+        focusId,
+        focusLabel: proof.statement,
+        chipTitle: null,
+        focusSummary: toNonEmptyString(proof.statement),
+        drilldown: [proof.statement, toNonEmptyString(proof.evidenceSummary), toNonEmptyString(proof.contradictionNote)]
+          .filter((part): part is string => Boolean(part))
+          .join(" | ") || null,
+        handoffPreview: null,
+        source,
+      };
+    }
+    const question = item as CaseWikiOpenQuestion;
+    return {
+      focusKind: "question",
+      focusId,
+      focusLabel: question.question,
+      chipTitle: null,
+      focusSummary: toNonEmptyString(question.question),
+      drilldown: [question.question, toNonEmptyString(question.suggestedNextStep), toNonEmptyString(question.owner)]
+        .filter((part): part is string => Boolean(part))
+        .join(" | ") || null,
+      handoffPreview: null,
+      source,
+    };
+  };
+  const resolveById = (
+    kind: "proof" | "question",
+    focusId: string | null | undefined,
+    source: CaseWikiDefaultFocus["source"],
+  ): CaseWikiDefaultFocus | null => {
+    const normalizedFocusId = toNonEmptyString(focusId);
+    if (!normalizedFocusId) {
+      return null;
+    }
+    const items = kind === "proof" ? params.evidencePack.proofs : params.evidencePack.questions;
+    const item = items.find((candidate) => candidate.id === normalizedFocusId) ?? null;
+    return buildFallbackFocus(kind, item, source);
+  };
+  const resolveFirst = (
+    kind: "proof" | "question",
+    source: CaseWikiDefaultFocus["source"],
+  ): CaseWikiDefaultFocus | null => {
+    const focusPackItems = kind === "proof" ? params.focusPack.proofs : params.focusPack.questions;
+    const focusPackItem = focusPackItems[0];
+    if (focusPackItem) {
+      return { ...focusPackItem, source };
+    }
+    const items = kind === "proof" ? params.evidencePack.proofs : params.evidencePack.questions;
+    return buildFallbackFocus(kind, items[0] ?? null, "evidencePack");
+  };
+  return (
+    resolveById("question", params.highlights.topBlockingQuestion?.id, "highlight") ??
+    resolveFirst("question", "focusPack") ??
+    resolveById("proof", params.highlights.topProof?.id, "highlight") ??
+    resolveFirst("proof", "focusPack")
+  );
+}
+
 function buildCaseWikiPreviewPack(params: {
   evidencePack: {
     proofs: CaseWikiProof[];
@@ -1433,12 +1524,19 @@ function buildCaseWikiWorkspacePack(params: {
   };
   openQuestions: CaseWikiOpenQuestion[];
   timeline: CaseWikiTimelineEntry[];
+  focusPack: CaseWikiFocusPack;
   previewPack: CaseWikiPreviewPack;
   recommendedNextAction: CaseWikiNextAction | null;
 }): CaseWikiWorkspacePack {
   const nextActionType = sentenceCaseCaseWikiRoutingValue(params.recommendedNextAction?.type ?? null);
   const proofStatus = sentenceCaseCaseWikiRoutingValue(params.highlights.topProof?.status ?? null);
+  const defaultFocus = buildCaseWikiDefaultFocus({
+    highlights: params.highlights,
+    evidencePack: params.evidencePack,
+    focusPack: params.focusPack,
+  });
   return {
+    defaultFocus,
     statusValue: [
       buildCaseWikiWorkspaceStatusText(params.overview.status),
       toNonEmptyString(params.overview.currentStage),
@@ -1804,6 +1902,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     evidencePack,
     openQuestions,
     timeline,
+    focusPack,
     previewPack,
     recommendedNextAction,
   });
