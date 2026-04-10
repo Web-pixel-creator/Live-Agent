@@ -397,9 +397,37 @@ export type CaseWikiOperatorEvidencePreview = {
   } | null;
 };
 
+export type CaseWikiOperatorQuestionsPreview = {
+  totalQuestions: number;
+  blockingQuestions: number;
+  items: Array<{
+    id: string | null;
+    priority: CaseWikiPriority | null;
+    blocking: boolean;
+    owner: string | null;
+    question: string | null;
+    suggestedNextStep: string | null;
+    sourceRefs: string[];
+  }>;
+};
+
+export type CaseWikiOperatorTimelinePreview = {
+  totalEntries: number;
+  latestEntries: Array<{
+    ts: string | null;
+    kind: CaseWikiTimelineEntryKind | null;
+    title: string | null;
+    summary: string | null;
+    status: string | null;
+    sourceRefs: string[];
+  }>;
+};
+
 export type CaseWikiOperatorPreviewPack = {
   overview: CaseWikiOperatorOverviewPreview;
   evidence: CaseWikiOperatorEvidencePreview;
+  questions: CaseWikiOperatorQuestionsPreview;
+  timeline: CaseWikiOperatorTimelinePreview;
 };
 
 export type CaseWikiRoutingRoute = {

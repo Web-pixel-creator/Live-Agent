@@ -1489,6 +1489,8 @@ function buildCaseWikiOperatorPreviewPack(params: {
     openQuestions: number;
     timeline: number;
   };
+  openQuestions: CaseWikiOpenQuestion[];
+  timeline: CaseWikiTimelineEntry[];
 }): CaseWikiOperatorPreviewPack {
   const nextActionPreview = params.recommendedNextAction
     ? {
@@ -1553,6 +1555,30 @@ function buildCaseWikiOperatorPreviewPack(params: {
       handoffPack: params.handoffPack,
       detailPack: params.detailPack,
       recommendedNextAction: nextActionPreview,
+    },
+    questions: {
+      totalQuestions: params.openQuestions.length,
+      blockingQuestions: params.openQuestions.filter((item) => item.blocking === true).length,
+      items: params.openQuestions.slice(0, 6).map((item) => ({
+        id: toNonEmptyString(item.id),
+        priority: item.priority,
+        blocking: item.blocking === true,
+        owner: toNonEmptyString(item.owner ?? null),
+        question: toNonEmptyString(item.question),
+        suggestedNextStep: toNonEmptyString(item.suggestedNextStep ?? null),
+        sourceRefs: Array.isArray(item.sourceRefs) ? item.sourceRefs : [],
+      })),
+    },
+    timeline: {
+      totalEntries: params.timeline.length,
+      latestEntries: params.timeline.slice(0, 6).map((item) => ({
+        ts: toNonEmptyString(item.ts),
+        kind: item.kind,
+        title: toNonEmptyString(item.title),
+        summary: toNonEmptyString(item.summary),
+        status: toNonEmptyString(item.status ?? null),
+        sourceRefs: Array.isArray(item.sourceRefs) ? item.sourceRefs : [],
+      })),
     },
   };
 }
@@ -1764,6 +1790,8 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
       openQuestions: openQuestions.length,
       timeline: timeline.length,
     },
+    openQuestions,
+    timeline,
   });
 
   return {

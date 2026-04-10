@@ -703,6 +703,34 @@ test("case wiki contracts expose stable structured memory shapes", () => {
           summary: "Ask the customer for the passport scan and invitation letter before scheduling filing.",
         },
       },
+      questions: {
+        totalQuestions: 1,
+        blockingQuestions: 1,
+        items: [
+          {
+            id: "question-1",
+            priority: "high",
+            blocking: true,
+            owner: "customer",
+            question: "Has the customer already received the invitation letter?",
+            suggestedNextStep: "Request the invitation letter or confirm issuance status.",
+            sourceRefs: ["proof:proof-1"],
+          },
+        ],
+      },
+      timeline: {
+        totalEntries: 1,
+        latestEntries: [
+          {
+            ts: "2026-04-09T06:55:00.000Z",
+            kind: "session",
+            title: "Live intake session completed",
+            summary: "Customer asked about spouse visa steps and consultation timing.",
+            status: "completed",
+            sourceRefs: ["session:session-123"],
+          },
+        ],
+      },
     },
     entities: [
       {
@@ -784,6 +812,10 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.match(wiki.workspacePack.handoffValue ?? "", /Request missing visa documents/i);
   assert.match(wiki.operatorPreviewPack.overview.overview?.summary ?? "", /document guidance/i);
   assert.match(wiki.operatorPreviewPack.evidence.topEntity?.summary ?? "", /Applicant relocating with spouse/i);
+  assert.equal(wiki.operatorPreviewPack.questions.totalQuestions, 1);
+  assert.equal(wiki.operatorPreviewPack.questions.items[0]?.id, "question-1");
+  assert.equal(wiki.operatorPreviewPack.timeline.totalEntries, 1);
+  assert.equal(wiki.operatorPreviewPack.timeline.latestEntries[0]?.kind, "session");
   assert.equal(wiki.entities[0]?.kind, "person");
   assert.equal(wiki.proofs[0]?.status, "confirmed");
   assert.equal(wiki.recommendedNextAction?.type, "document_request");

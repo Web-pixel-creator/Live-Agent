@@ -32370,6 +32370,8 @@ function buildOperatorCaseWikiSnapshot(value) {
       ? {
           overview: isRecord(value.operatorPreviewPack.overview) ? value.operatorPreviewPack.overview : null,
           evidence: isRecord(value.operatorPreviewPack.evidence) ? value.operatorPreviewPack.evidence : null,
+          questions: isRecord(value.operatorPreviewPack.questions) ? value.operatorPreviewPack.questions : null,
+          timeline: isRecord(value.operatorPreviewPack.timeline) ? value.operatorPreviewPack.timeline : null,
         }
       : null,
     entities: Array.isArray(value.entities) ? value.entities.filter((item) => isRecord(item)) : [],
@@ -33757,6 +33759,10 @@ function buildOperatorCaseWikiQuestionsPreview() {
   if (!snapshot) {
     return "No case wiki questions loaded yet.";
   }
+  const operatorPreviewPack = isRecord(snapshot.operatorPreviewPack) ? snapshot.operatorPreviewPack : null;
+  if (isRecord(operatorPreviewPack?.questions)) {
+    return stringifyOperatorRuntimeFaultValue(operatorPreviewPack.questions, "No case wiki questions loaded yet.");
+  }
   const questions = snapshot.openQuestions.slice(0, 6).map((item) => ({
     id: toOptionalText(item.id),
     priority: toOptionalText(item.priority),
@@ -33780,6 +33786,10 @@ function buildOperatorCaseWikiTimelinePreview() {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
   if (!snapshot) {
     return "No case wiki timeline loaded yet.";
+  }
+  const operatorPreviewPack = isRecord(snapshot.operatorPreviewPack) ? snapshot.operatorPreviewPack : null;
+  if (isRecord(operatorPreviewPack?.timeline)) {
+    return stringifyOperatorRuntimeFaultValue(operatorPreviewPack.timeline, "No case wiki timeline loaded yet.");
   }
   const timeline = snapshot.timeline.slice(0, 6).map((item) => ({
     ts: toOptionalText(item.ts),
