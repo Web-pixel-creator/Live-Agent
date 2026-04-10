@@ -46,26 +46,36 @@ async function withEnv(
 async function startGeminiMockServer(responseText: string): Promise<{
   baseUrl: string;
   close: () => Promise<void>;
+  requestBodies: Array<Record<string, unknown>>;
 }> {
+  const requestBodies: Array<Record<string, unknown>> = [];
   const server = createServer((req, res) => {
     if (req.method !== "POST") {
       res.statusCode = 405;
       res.end("method_not_allowed");
       return;
     }
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
-        candidates: [
-          {
-            content: {
-              parts: [{ text: responseText }],
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk) => {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    });
+    req.on("end", () => {
+      const rawBody = Buffer.concat(chunks).toString("utf8");
+      requestBodies.push(JSON.parse(rawBody) as Record<string, unknown>);
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.end(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: responseText }],
+              },
             },
-          },
-        ],
-      }),
-    );
+          ],
+        }),
+      );
+    });
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
   const address = server.address();
@@ -75,6 +85,7 @@ async function startGeminiMockServer(responseText: string): Promise<{
   const baseUrl = `http://127.0.0.1:${address.port}/v1beta`;
   return {
     baseUrl,
+    requestBodies,
     close: async () => {
       await new Promise<void>((resolve, reject) => {
         server.close((error) => {
@@ -658,6 +669,149 @@ test("assistive router overrides route on high confidence story classification",
     assert.equal(routing.budgetPolicy, "judged_default");
     assert.equal(routing.promptCaching, "none");
     assert.equal(routing.watchlistEnabled, false);
+  } finally {
+    await mock.close();
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_PROVIDER;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BUDGET_POLICY;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_PROMPT_CACHING;
+    delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_WATCHLIST_ENABLED;
+  }
+});
+
+test("assistive router feeds Case Wiki routing context into classifier prompts", async () => {
+  process.env.FIRESTORE_ENABLED = "false";
+  process.env.GEMINI_API_KEY = "";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED = "true";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_PROVIDER = "gemini_api";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY = "unit-test-key";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE = "0.75";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BUDGET_POLICY = "judged_default";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_PROMPT_CACHING = "none";
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_WATCHLIST_ENABLED = "false";
+
+  const mock = await startGeminiMockServer(
+    JSON.stringify({
+      intent: "negotiation",
+      confidence: 0.91,
+      reason: "case wiki says customer follow-up is required",
+    }),
+  );
+  process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL = mock.baseUrl;
+
+  try {
+    const request = createEnvelope({
+      userId: "unit-user",
+      sessionId: "unit-session-assistive-case-wiki",
+      runId: "unit-run-assistive-case-wiki",
+      type: "orchestrator.request",
+      source: "frontend",
+      payload: {
+        intent: "conversation",
+        input: {
+          text: "Continue with this case.",
+          caseWiki: {
+            caseId: "case-42",
+            overview: {
+              summary: "Customer is blocked on one missing passport scan before submission.",
+              status: "waiting_on_customer",
+              currentStage: "document_collection",
+            },
+            highlights: {
+              topBlockingQuestion: {
+                id: "question:passport-scan",
+                question: "Do we have the passport scan?",
+                suggestedNextStep: "Ask the customer to upload the passport scan.",
+              },
+            },
+            workspacePack: {
+              summaryValue: "Passport scan is still missing for this case.",
+              blockerValue: "Do we have the passport scan?",
+              nextActionValue: "Ask the customer to upload the passport scan.",
+              defaultFocus: {
+                focusKind: "question",
+                focusId: "question:passport-scan",
+                focusLabel: "Passport scan is missing",
+              },
+            },
+            recommendedNextAction: {
+              type: "document_request",
+              title: "Request passport scan",
+              summary: "Ask the customer to upload the passport scan.",
+              owner: "customer",
+              blocking: true,
+              relatedQuestionIds: ["question:passport-scan"],
+              sourceRefs: ["workflow:control-plane"],
+            },
+            routingPack: {
+              proofs: [],
+              questions: [
+                {
+                  focusKind: "question",
+                  focusId: "question:passport-scan",
+                  focusLabel: "Passport scan is missing",
+                  route: {
+                    lane: "customer_followup",
+                    owner: "customer",
+                    priority: "high",
+                    status: "open",
+                    blocking: true,
+                    approvalRequired: false,
+                    dueBy: null,
+                    summary: "Collect the missing document from the customer.",
+                  },
+                  cta: {
+                    actionId: "run_negotiation",
+                    label: "Ask for passport scan",
+                    hint: "Message the customer for the missing passport scan.",
+                    owner: "customer",
+                    lane: "customer_followup",
+                    approvalRequired: false,
+                    blocking: true,
+                    summary: "Run a customer follow-up request.",
+                  },
+                  sourceRefs: ["workflow:control-plane"],
+                  relatedQuestionIds: ["question:passport-scan"],
+                  nextAction: null,
+                },
+              ],
+            },
+          },
+        },
+      },
+    }) as OrchestratorRequest;
+
+    const response = await orchestrate(request);
+    assert.equal(response.payload.route, "live-agent");
+    assert.equal(response.payload.status, "completed");
+
+    const output = asObject(response.payload.output);
+    const routing = asObject(output.routing);
+    assert.equal(routing.mode, "assistive_override");
+    assert.equal(routing.routedIntent, "negotiation");
+    assert.equal(routing.contextSource, "case_wiki");
+    assert.equal(routing.contextFocusId, "question:passport-scan");
+    assert.equal(routing.contextBlocker, "Do we have the passport scan?");
+    assert.equal(routing.contextNextAction, "Request passport scan");
+
+    assert.equal(mock.requestBodies.length, 1);
+    const contents = Array.isArray(mock.requestBodies[0]?.contents) ? mock.requestBodies[0].contents : [];
+    const userContent = asObject(contents[0]);
+    const parts = Array.isArray(userContent.parts) ? userContent.parts : [];
+    const firstPart = asObject(parts[0]);
+    const prompt = String(firstPart.text ?? "");
+    assert.match(prompt, /Case Wiki compiled memory \(primary routing context\)/);
+    assert.match(prompt, /Case summary: Passport scan is still missing for this case\./);
+    assert.match(prompt, /Current stage: document_collection/);
+    assert.match(prompt, /Default focus: kind=question; id=question:passport-scan; label=Passport scan is missing/);
+    assert.match(prompt, /Blocking question: Do we have the passport scan\?/);
+    assert.match(prompt, /Next action: Request passport scan/);
+    assert.match(prompt, /Routing lane: customer_followup/);
+    assert.match(prompt, /Routing CTA: run_negotiation/);
+    assert.match(prompt, /User input: Continue with this case\./);
   } finally {
     await mock.close();
     delete process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BASE_URL;

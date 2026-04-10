@@ -649,6 +649,10 @@ function withRoutingMetadata(
           budgetPolicy: routing.budgetPolicy,
           promptCaching: routing.promptCaching,
           watchlistEnabled: routing.watchlistEnabled,
+          contextSource: routing.contextSource,
+          contextFocusId: routing.contextFocusId,
+          contextBlocker: routing.contextBlocker,
+          contextNextAction: routing.contextNextAction,
         },
         ...(budgetGuard ? { runtimeBudgetGuard: budgetGuard } : {}),
       },
@@ -842,6 +846,7 @@ function buildBudgetGuardRoutingDecision(
   config: ReturnType<typeof getOrchestratorWorkflowConfig>["assistiveRouter"],
   reason: string,
 ): AssistiveRoutingDecision {
+  const hasCaseWikiContext = extractRequestCaseWiki(request.payload.input) !== null;
   return {
     requestedIntent: request.payload.intent,
     routedIntent: request.payload.intent,
@@ -857,6 +862,10 @@ function buildBudgetGuardRoutingDecision(
     budgetPolicy: config.budgetPolicy,
     promptCaching: config.promptCaching,
     watchlistEnabled: config.watchlistEnabled,
+    contextSource: hasCaseWikiContext ? "case_wiki" : "input_only",
+    contextFocusId: null,
+    contextBlocker: null,
+    contextNextAction: null,
   };
 }
 

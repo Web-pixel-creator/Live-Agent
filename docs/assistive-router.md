@@ -17,9 +17,10 @@ The orchestrator now supports an optional assistive classifier that can override
 4. Provider-aware assistive classification supports `gemini_api`, `openai`, `anthropic`, `deepseek`, and watchlist `moonshot`; Gemini remains the judged-default router.
 5. OpenAI-compatible adapters (`openai`, `deepseek`, `moonshot`) use repo-owned `/chat/completions` JSON classification, Anthropic uses `/messages`, and Gemini keeps `generateContent`.
 6. If `confidence < ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE`, routing falls back to deterministic route.
-7. Response payload includes routing diagnostics in `payload.output.routing`, including `provider`, `defaultProvider`, `defaultModel`, `selectionReason`, `budgetPolicy`, `promptCaching`, and `watchlistEnabled`.
+7. Response payload includes routing diagnostics in `payload.output.routing`, including `provider`, `defaultProvider`, `defaultModel`, `selectionReason`, `budgetPolicy`, `promptCaching`, `watchlistEnabled`, and context hints such as `contextSource`, `contextFocusId`, `contextBlocker`, and `contextNextAction`.
 8. Workflow-store runtime exposes `usingLastKnownGood`, `lastError`, and `controlPlaneOverride` state via orchestrator runtime status.
-9. Case Wiki cost guard runs before assistive classification when `workspacePack.costSummary` is present. Within-budget cases keep the normal router path, soft-limit cases skip the assistive classifier and request `short_context`, and hard-limit cases can pause at an approval gate before route execution.
+9. When compiled Case Wiki memory is present, the assistive classifier prompt consumes the Case Wiki summary, default focus, blocker, next action, and routing lane before the raw user text so routing stays aligned with the active case.
+10. Case Wiki cost guard runs before assistive classification when `workspacePack.costSummary` is present. Within-budget cases keep the normal router path, soft-limit cases skip the assistive classifier and request `short_context`, and hard-limit cases can pause at an approval gate before route execution.
 
 ## Configuration
 

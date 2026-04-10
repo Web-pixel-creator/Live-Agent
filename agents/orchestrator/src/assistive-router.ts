@@ -11,6 +11,8 @@ type AssistiveRouterMode =
   | "assistive_match"
   | "assistive_fallback";
 
+type AssistiveRoutingContextSource = "input_only" | "case_wiki";
+
 export type AssistiveRoutingDecision = {
   requestedIntent: OrchestratorIntent;
   routedIntent: OrchestratorIntent;
@@ -26,12 +28,30 @@ export type AssistiveRoutingDecision = {
   budgetPolicy: AssistiveRouterRuntimeConfig["budgetPolicy"];
   promptCaching: AssistiveRouterRuntimeConfig["promptCaching"];
   watchlistEnabled: boolean;
+  contextSource: AssistiveRoutingContextSource;
+  contextFocusId: string | null;
+  contextBlocker: string | null;
+  contextNextAction: string | null;
 };
 
 type AssistiveRouterCandidate = {
   intent: OrchestratorIntent;
   confidence: number;
   reason: string;
+};
+
+type CaseWikiAssistiveRoutingContext = {
+  source: "case_wiki";
+  summary: string | null;
+  status: string | null;
+  currentStage: string | null;
+  focusKind: string | null;
+  focusId: string | null;
+  focusLabel: string | null;
+  blockingQuestion: string | null;
+  nextAction: string | null;
+  routingLane: string | null;
+  routingActionId: string | null;
 };
 
 const ALL_INTENTS: readonly OrchestratorIntent[] = [
@@ -45,22 +65,44 @@ const ALL_INTENTS: readonly OrchestratorIntent[] = [
 const DEFAULT_ASSISTIVE_ROUTER_PROVIDER: AssistiveRouterProvider = "gemini_api";
 const DEFAULT_ASSISTIVE_ROUTER_MODEL = "gemini-3.1-flash-lite-preview";
 
-function extractText(value: unknown): string | null {
-  if (typeof value === "string") {
-    const normalized = value.trim();
-    return normalized.length > 0 ? normalized : null;
-  }
-  if (typeof value !== "object" || value === null) {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function toNonEmptyString(value: unknown): string | null {
+  if (typeof value !== "string") {
     return null;
   }
-  const record = value as Record<string, unknown>;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function clipText(value: string | null, maxLength: number): string | null {
+  if (!value) {
+    return null;
+  }
+  return value.length <= maxLength ? value : `${value.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+function asRecordArray(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is Record<string, unknown> => isRecord(item));
+}
+
+function extractText(value: unknown): string | null {
+  const direct = toNonEmptyString(value);
+  if (direct) {
+    return direct;
+  }
+  if (!isRecord(value)) {
+    return null;
+  }
   const candidateKeys = ["text", "prompt", "goal", "message", "query", "utterance"];
   for (const key of candidateKeys) {
-    if (typeof record[key] !== "string") {
-      continue;
-    }
-    const normalized = (record[key] as string).trim();
-    if (normalized.length > 0) {
+    const normalized = toNonEmptyString(value[key]);
+    if (normalized) {
       return normalized;
     }
   }
@@ -225,6 +267,122 @@ function buildSelectionReason(config: AssistiveRouterRuntimeConfig): string {
   return "judged_default";
 }
 
+function extractCaseWikiRecord(input: unknown): Record<string, unknown> | null {
+  if (!isRecord(input)) {
+    return null;
+  }
+  for (const key of ["caseWiki", "caseWikiSnapshot", "runtimeCaseWiki", "compiledCaseWiki"]) {
+    if (isRecord(input[key])) {
+      return input[key];
+    }
+  }
+  const context = isRecord(input.context) ? input.context : null;
+  return context && isRecord(context.caseWiki) ? context.caseWiki : null;
+}
+
+function findCaseWikiRoutingItem(
+  caseWiki: Record<string, unknown>,
+  focusKind: string | null,
+  focusId: string | null,
+): Record<string, unknown> | null {
+  const routingPack = isRecord(caseWiki.routingPack) ? caseWiki.routingPack : null;
+  if (!routingPack) {
+    return null;
+  }
+  const proofItems = asRecordArray(routingPack.proofs);
+  const questionItems = asRecordArray(routingPack.questions);
+  const preferredItems =
+    focusKind === "question" ? questionItems : focusKind === "proof" ? proofItems : [];
+  const secondaryItems =
+    focusKind === "question" ? proofItems : focusKind === "proof" ? questionItems : [...questionItems, ...proofItems];
+  const match =
+    (focusId ? preferredItems.find((item) => toNonEmptyString(item.focusId) === focusId) : null) ??
+    (focusId ? secondaryItems.find((item) => toNonEmptyString(item.focusId) === focusId) : null);
+  return match ?? preferredItems[0] ?? secondaryItems[0] ?? null;
+}
+
+function extractCaseWikiAssistiveRoutingContext(
+  request: OrchestratorRequest,
+): CaseWikiAssistiveRoutingContext | null {
+  const caseWiki = extractCaseWikiRecord(request.payload.input);
+  if (!caseWiki) {
+    return null;
+  }
+  const overview = isRecord(caseWiki.overview) ? caseWiki.overview : {};
+  const workspacePack = isRecord(caseWiki.workspacePack) ? caseWiki.workspacePack : {};
+  const highlights = isRecord(caseWiki.highlights) ? caseWiki.highlights : {};
+  const defaultFocus = isRecord(workspacePack.defaultFocus) ? workspacePack.defaultFocus : null;
+  const topBlockingQuestion = isRecord(highlights.topBlockingQuestion) ? highlights.topBlockingQuestion : null;
+  const recommendedNextAction = isRecord(caseWiki.recommendedNextAction) ? caseWiki.recommendedNextAction : {};
+  const focusKind = toNonEmptyString(defaultFocus?.focusKind);
+  const focusId = toNonEmptyString(defaultFocus?.focusId);
+  const routingItem = findCaseWikiRoutingItem(caseWiki, focusKind, focusId);
+  const route = isRecord(routingItem?.route) ? routingItem.route : null;
+  const cta = isRecord(routingItem?.cta) ? routingItem.cta : null;
+  const context: CaseWikiAssistiveRoutingContext = {
+    source: "case_wiki",
+    summary:
+      toNonEmptyString(workspacePack.summaryValue) ??
+      toNonEmptyString(overview.summary),
+    status:
+      toNonEmptyString(overview.status) ??
+      toNonEmptyString(workspacePack.statusValue),
+    currentStage: toNonEmptyString(overview.currentStage),
+    focusKind,
+    focusId,
+    focusLabel:
+      toNonEmptyString(defaultFocus?.focusLabel) ??
+      toNonEmptyString(routingItem?.focusLabel),
+    blockingQuestion:
+      toNonEmptyString(topBlockingQuestion?.question) ??
+      toNonEmptyString(workspacePack.blockerValue),
+    nextAction:
+      toNonEmptyString(recommendedNextAction.title) ??
+      toNonEmptyString(recommendedNextAction.summary) ??
+      toNonEmptyString(workspacePack.nextActionValue),
+    routingLane: toNonEmptyString(route?.lane) ?? toNonEmptyString(cta?.lane),
+    routingActionId: toNonEmptyString(cta?.actionId),
+  };
+  const hasUsefulContext = [
+    context.summary,
+    context.status,
+    context.currentStage,
+    context.focusLabel,
+    context.blockingQuestion,
+    context.nextAction,
+    context.routingLane,
+    context.routingActionId,
+  ].some((value) => Boolean(value));
+  return hasUsefulContext ? context : null;
+}
+
+function buildCaseWikiRoutingPromptBlock(context: CaseWikiAssistiveRoutingContext | null): string | null {
+  if (!context) {
+    return null;
+  }
+  return [
+    "Case Wiki compiled memory (primary routing context).",
+    context.summary ? `Case summary: ${clipText(context.summary, 280)}` : null,
+    context.status ? `Case status: ${clipText(context.status, 120)}` : null,
+    context.currentStage ? `Current stage: ${clipText(context.currentStage, 120)}` : null,
+    context.focusKind || context.focusId || context.focusLabel
+      ? `Default focus: ${[
+          context.focusKind ? `kind=${context.focusKind}` : null,
+          context.focusId ? `id=${context.focusId}` : null,
+          context.focusLabel ? `label=${clipText(context.focusLabel, 160)}` : null,
+        ]
+          .filter((value): value is string => Boolean(value))
+          .join("; ")}`
+      : null,
+    context.blockingQuestion ? `Blocking question: ${clipText(context.blockingQuestion, 220)}` : null,
+    context.nextAction ? `Next action: ${clipText(context.nextAction, 220)}` : null,
+    context.routingLane ? `Routing lane: ${context.routingLane}` : null,
+    context.routingActionId ? `Routing CTA: ${context.routingActionId}` : null,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join("\n");
+}
+
 function baseDecision(
   request: OrchestratorRequest,
   config: AssistiveRouterRuntimeConfig,
@@ -236,6 +394,7 @@ function baseDecision(
     confidence: number | null;
     model: string | null;
   },
+  routingContext?: CaseWikiAssistiveRoutingContext | null,
 ): AssistiveRoutingDecision {
   const routedIntent = params.routedIntent ?? request.payload.intent;
   return {
@@ -253,6 +412,10 @@ function baseDecision(
     budgetPolicy: config.budgetPolicy,
     promptCaching: config.promptCaching,
     watchlistEnabled: config.watchlistEnabled,
+    contextSource: routingContext?.source ?? "input_only",
+    contextFocusId: routingContext?.focusId ?? null,
+    contextBlocker: routingContext?.blockingQuestion ?? null,
+    contextNextAction: routingContext?.nextAction ?? null,
   };
 }
 
@@ -260,19 +423,25 @@ function deterministicDecision(
   request: OrchestratorRequest,
   config: AssistiveRouterRuntimeConfig,
   reason: string,
+  routingContext?: CaseWikiAssistiveRoutingContext | null,
 ): AssistiveRoutingDecision {
   return baseDecision(request, config, {
     mode: "deterministic",
     reason,
     confidence: null,
     model: config.model,
-  });
+  }, routingContext);
 }
 
-function buildClassifierPrompt(request: OrchestratorRequest, text: string): string {
+function buildClassifierPrompt(
+  request: OrchestratorRequest,
+  text: string,
+  routingContext: CaseWikiAssistiveRoutingContext | null,
+): string {
   return [
     "You classify intent for an orchestrator router.",
     `Current intent: ${request.payload.intent}`,
+    buildCaseWikiRoutingPromptBlock(routingContext),
     `User input: ${text}`,
     "Return strict JSON with keys: intent, confidence, reason.",
     "intent must be one of: conversation, translation, negotiation, research, story, ui_task.",
@@ -284,8 +453,9 @@ async function classifyWithGemini(params: {
   config: AssistiveRouterRuntimeConfig;
   request: OrchestratorRequest;
   text: string;
+  routingContext: CaseWikiAssistiveRoutingContext | null;
 }): Promise<AssistiveRouterCandidate | null> {
-  const prompt = buildClassifierPrompt(params.request, params.text);
+  const prompt = buildClassifierPrompt(params.request, params.text, params.routingContext);
 
   const body = {
     contents: [
@@ -333,8 +503,9 @@ async function classifyWithOpenAiCompatible(params: {
   config: AssistiveRouterRuntimeConfig;
   request: OrchestratorRequest;
   text: string;
+  routingContext: CaseWikiAssistiveRoutingContext | null;
 }): Promise<AssistiveRouterCandidate | null> {
-  const prompt = buildClassifierPrompt(params.request, params.text);
+  const prompt = buildClassifierPrompt(params.request, params.text, params.routingContext);
   const body = {
     model: params.config.model,
     temperature: 0,
@@ -387,8 +558,9 @@ async function classifyWithAnthropic(params: {
   config: AssistiveRouterRuntimeConfig;
   request: OrchestratorRequest;
   text: string;
+  routingContext: CaseWikiAssistiveRoutingContext | null;
 }): Promise<AssistiveRouterCandidate | null> {
-  const prompt = buildClassifierPrompt(params.request, params.text);
+  const prompt = buildClassifierPrompt(params.request, params.text, params.routingContext);
   const body = {
     model: params.config.model,
     max_tokens: 256,
@@ -437,6 +609,7 @@ async function classifyAssistiveRoute(params: {
   config: AssistiveRouterRuntimeConfig;
   request: OrchestratorRequest;
   text: string;
+  routingContext: CaseWikiAssistiveRoutingContext | null;
 }): Promise<AssistiveRouterCandidate | null> {
   switch (params.config.provider) {
     case "openai":
@@ -455,31 +628,33 @@ export async function resolveAssistiveRoute(
   request: OrchestratorRequest,
   config: AssistiveRouterRuntimeConfig,
 ): Promise<AssistiveRoutingDecision> {
+  const routingContext = extractCaseWikiAssistiveRoutingContext(request);
   if (!config.enabled) {
-    return deterministicDecision(request, config, "assistive_router_disabled");
+    return deterministicDecision(request, config, "assistive_router_disabled", routingContext);
   }
   if (config.provider === "moonshot" && config.watchlistEnabled !== true) {
-    return deterministicDecision(request, config, "assistive_router_watchlist_disabled");
+    return deterministicDecision(request, config, "assistive_router_watchlist_disabled", routingContext);
   }
   if (!config.apiKey) {
-    return deterministicDecision(request, config, "assistive_router_missing_api_key");
+    return deterministicDecision(request, config, "assistive_router_missing_api_key", routingContext);
   }
   if (!config.allowIntents.includes(request.payload.intent)) {
-    return deterministicDecision(request, config, "assistive_router_intent_not_eligible");
+    return deterministicDecision(request, config, "assistive_router_intent_not_eligible", routingContext);
   }
 
   const text = extractText(request.payload.input);
   if (!text) {
-    return deterministicDecision(request, config, "assistive_router_missing_text_input");
+    return deterministicDecision(request, config, "assistive_router_missing_text_input", routingContext);
   }
 
   const candidate = await classifyAssistiveRoute({
     config,
     request,
     text,
+    routingContext,
   });
   if (!candidate) {
-    return deterministicDecision(request, config, "assistive_router_no_candidate");
+    return deterministicDecision(request, config, "assistive_router_no_candidate", routingContext);
   }
 
   if (candidate.confidence < config.minConfidence) {
@@ -488,7 +663,7 @@ export async function resolveAssistiveRoute(
       reason: `assistive_low_confidence:${candidate.confidence.toFixed(3)}`,
       confidence: candidate.confidence,
       model: config.model,
-    });
+    }, routingContext);
   }
 
   const suggestedRoute = routeIntent(candidate.intent);
@@ -500,7 +675,7 @@ export async function resolveAssistiveRoute(
       reason: candidate.reason,
       confidence: candidate.confidence,
       model: config.model,
-    });
+    }, routingContext);
   }
 
   return baseDecision(request, config, {
@@ -510,5 +685,5 @@ export async function resolveAssistiveRoute(
     reason: candidate.reason,
     confidence: candidate.confidence,
     model: config.model,
-  });
+  }, routingContext);
 }
