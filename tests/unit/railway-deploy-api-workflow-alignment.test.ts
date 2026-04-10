@@ -49,7 +49,11 @@ test("railway api deploy workflow is wired to the dedicated helper and public li
   assert.match(source, /Verify Public API Fallback \(Deploy Failure\)/);
   assert.match(source, /\/v1\/runtime\/live\/capabilities/);
   assert.match(source, /Railway API deploy summary path:/);
+  assert.match(source, /Railway API deploy summary requested public URL:/);
   assert.match(source, /Railway API live capabilities active mode:/);
+  assert.match(source, /Railway API deploy summary resolved service public URL:/);
+  assert.match(source, /Railway API deploy summary public URL source:/);
+  assert.match(source, /Railway API deploy summary requested public URL matches service domain:/);
   assert.match(source, /railway-deploy-api-artifacts/);
   assert.match(source, /artifacts\/deploy\/railway-api-deploy-summary\.json/);
 });
@@ -70,11 +74,15 @@ test("package and docs expose the dedicated Railway API deploy lane", () => {
   assert.match(readme, /deploy:railway:api/);
   assert.match(readme, /railway-deploy-api\.yml/);
   assert.match(readme, /railway-api-deploy-summary\.json/);
+  assert.match(readme, /RAILWAY_API_SERVICE_ID/);
+  assert.match(readme, /resolvedServicePublicUrl/);
   assert.match(readme, /\/v1\/runtime\/live\/capabilities/);
   assert.match(readme, /api-backend\.railway\.json/);
 
   assert.match(runbook, /deploy:railway:api/);
   assert.match(runbook, /railway-deploy-api\.yml/);
+  assert.match(runbook, /RAILWAY_API_SERVICE_ID/);
+  assert.match(runbook, /resolved Railway service domains/i);
   assert.match(runbook, /live-agent-api-production\.up\.railway\.app/);
 
   assert.match(script, /API_CORS_ALLOWED_ORIGINS/);
@@ -89,6 +97,12 @@ test("package and docs expose the dedicated Railway API deploy lane", () => {
   assert.match(script, /RUNTIME_EVIDENCE_SIGNING_KEY_ID/);
   assert.match(script, /RUNTIME_EVIDENCE_SIGNING_SIGNER_ID/);
   assert.match(script, /requires RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM or RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64/i);
+  assert.match(script, /Normalize-PublicUrl/);
+  assert.match(script, /Resolve-ServicePublicUrlsFromStatus/);
+  assert.match(script, /requestedPublicUrl/);
+  assert.match(script, /resolvedServicePublicUrls/);
+  assert.match(script, /requestedPublicUrlMatchesServiceDomain/);
+  assert.match(script, /Requested ApiPublicUrl does not match the resolved target service domains/);
   assert.match(script, /v1\/runtime\/live\/capabilities/);
   assert.match(script, /railway-api-deploy-summary\.json/);
   assert.match(script, /infra\\railway\\manifests\\api-backend\.railway\.json/);

@@ -1477,6 +1477,7 @@ All GitHub workflow jobs that rely on JavaScript-based actions now use Node 24-c
 - Triggered on pull requests.
 - Manual API deploy workflow: `.github/workflows/railway-deploy-api.yml`
   Uses Railway secrets plus `Live-Agent-API` service targeting to keep the public API revision aligned with frontend `FRONTEND_API_BASE_URL`.
+  Set repo secret `RAILWAY_API_SERVICE_ID` to the Railway service id so the workflow does not fall back to an ambiguous service name.
 - Runs `npm run verify:deploy:railway:dry` (deploy/repo-publish contract checks) before `npm run verify:pr` (build + unit + profile smoke + monitoring validate + demo policy/badge gate).
 - Uploads demo artifacts for PR review.
 
@@ -1530,6 +1531,7 @@ All GitHub workflow jobs that rely on JavaScript-based actions now use Node 24-c
 - After a successful strict Railway deploy or verify-only fallback, the strict workflow also runs `verify:deploy:production-smoke`, publishes smoke status to job summary, and uploads `artifacts/deploy/production-smoke.json` plus `artifacts/deploy/production-smoke.md`.
 - The strict workflow also uploads hosted browser direct-live proof artifacts (`artifacts/deploy/direct-live-proof.json`, `.md`, `.png`) and adds their status, API URL source, session mapping, replay transport source, and runtime case wiki evidence signature status to the GitHub Actions job summary.
 - For hosted runtime case wiki evidence signature proof, configure repo secrets `RUNTIME_EVIDENCE_SIGNING_ENABLED`, `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64`, `RUNTIME_EVIDENCE_SIGNING_KEY_ID`, and `RUNTIME_EVIDENCE_SIGNING_SIGNER_ID`, then deploy `api-backend` through `.github/workflows/railway-deploy-api.yml` so the API lane can publish those values into Railway before rollout.
+- The dedicated API deploy summary now records `requestedPublicUrl`, `resolvedServicePublicUrl`, `resolvedServicePublicUrls`, `publicUrlSource`, and `requestedPublicUrlMatchesServiceDomain` so hosted proofs can detect when a manually supplied public URL does not belong to the Railway service that was just deployed.
 - Strict workflow also builds unified release evidence artifacts:
   - `artifacts/release-evidence/report.json`
   - `artifacts/release-evidence/report.md`

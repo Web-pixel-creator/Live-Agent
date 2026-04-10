@@ -51,6 +51,23 @@ function Write-RailwayApiDeploySummary([object]$Summary) {
   return $summaryPath
 }
 
+function Normalize-PublicUrl([string]$Value) {
+  if ([string]::IsNullOrWhiteSpace($Value)) {
+    return $null
+  }
+
+  $trimmed = $Value.Trim().TrimEnd("/")
+  if ([string]::IsNullOrWhiteSpace($trimmed)) {
+    return $null
+  }
+
+  if ($trimmed -match "^https?://") {
+    return $trimmed
+  }
+
+  return ("https://" + $trimmed)
+}
+
 function Resolve-RailwayApiManifestTemplatePath([string]$RepoRoot) {
   if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
     return $null
@@ -123,9 +140,22 @@ function Write-RailwayApiDeployFailureSummary(
   [string]$Service,
   [string]$Environment,
   [string]$EffectivePublicUrl,
+  [string]$RequestedPublicUrl = $null,
+  [string[]]$ResolvedServicePublicUrls = @(),
+  [string]$PublicUrlSource = $null,
+  [object]$RequestedPublicUrlMatchesServiceDomain = $null,
   [bool]$SkipHealthCheck,
   [bool]$SkipCapabilitiesCheck
 ) {
+  $normalizedRequestedPublicUrl = Normalize-PublicUrl $RequestedPublicUrl
+  $normalizedResolvedServicePublicUrls = @(
+    $ResolvedServicePublicUrls |
+      ForEach-Object { Normalize-PublicUrl ([string]$_) } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+      Select-Object -Unique
+  )
+  $normalizedEffectivePublicUrl = Normalize-PublicUrl $EffectivePublicUrl
+
   $summary = [ordered]@{
     schemaVersion = 1
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
@@ -134,17 +164,22 @@ function Write-RailwayApiDeployFailureSummary(
     projectId = $ProjectId
     service = $Service
     environment = $Environment
-    effectivePublicUrl = if ([string]::IsNullOrWhiteSpace($EffectivePublicUrl)) { $null } else { $EffectivePublicUrl.Trim().TrimEnd("/") }
+    requestedPublicUrl = $normalizedRequestedPublicUrl
+    effectivePublicUrl = $normalizedEffectivePublicUrl
+    resolvedServicePublicUrl = if ($normalizedResolvedServicePublicUrls.Count -gt 0) { $normalizedResolvedServicePublicUrls[0] } else { $null }
+    resolvedServicePublicUrls = $normalizedResolvedServicePublicUrls
+    publicUrlSource = if ([string]::IsNullOrWhiteSpace($PublicUrlSource)) { $null } else { $PublicUrlSource.Trim() }
+    requestedPublicUrlMatchesServiceDomain = $RequestedPublicUrlMatchesServiceDomain
     checks = [ordered]@{
       health = [ordered]@{
         attempted = (-not $SkipHealthCheck)
         passed = $null
-        healthUrl = if ([string]::IsNullOrWhiteSpace($EffectivePublicUrl)) { $null } else { $EffectivePublicUrl.Trim().TrimEnd("/") + "/healthz" }
+        healthUrl = if ([string]::IsNullOrWhiteSpace($normalizedEffectivePublicUrl)) { $null } else { $normalizedEffectivePublicUrl + "/healthz" }
       }
       liveCapabilities = [ordered]@{
         attempted = (-not $SkipCapabilitiesCheck)
         passed = $null
-        endpoint = if ([string]::IsNullOrWhiteSpace($EffectivePublicUrl)) { $null } else { $EffectivePublicUrl.Trim().TrimEnd("/") + "/v1/runtime/live/capabilities" }
+        endpoint = if ([string]::IsNullOrWhiteSpace($normalizedEffectivePublicUrl)) { $null } else { $normalizedEffectivePublicUrl + "/v1/runtime/live/capabilities" }
       }
     }
     artifacts = [ordered]@{
@@ -298,14 +333,16 @@ function Get-DeploymentById([string]$DeploymentId, [string]$TargetService, [stri
   return $items | Where-Object { $_.id -eq $DeploymentId } | Select-Object -First 1
 }
 
-function Resolve-ServicePublicUrlFromStatus([object]$StatusPayload, [string]$TargetService, [string]$TargetEnvironment) {
+function Resolve-ServicePublicUrlsFromStatus([object]$StatusPayload, [string]$TargetService, [string]$TargetEnvironment) {
+  $resolved = New-Object System.Collections.Generic.List[string]
+
   if ($null -eq $StatusPayload -or -not ($StatusPayload.PSObject.Properties.Name -contains "environments")) {
-    return $null
+    return @()
   }
 
   $envEdges = $StatusPayload.environments.edges
   if ($null -eq $envEdges) {
-    return $null
+    return @()
   }
 
   foreach ($envEdge in $envEdges) {
@@ -359,18 +396,27 @@ function Resolve-ServicePublicUrlFromStatus([object]$StatusPayload, [string]$Tar
       }
 
       foreach ($domain in $domainCandidates) {
-        if ([string]::IsNullOrWhiteSpace($domain)) {
+        $normalizedDomain = Normalize-PublicUrl ([string]$domain)
+        if ([string]::IsNullOrWhiteSpace($normalizedDomain)) {
           continue
         }
-        if ($domain -match "^https?://") {
-          return $domain.TrimEnd("/")
+        if (-not $resolved.Contains($normalizedDomain)) {
+          $resolved.Add($normalizedDomain)
         }
-        return ("https://" + $domain.Trim())
       }
     }
   }
 
-  return $null
+  return @($resolved.ToArray())
+}
+
+function Resolve-ServicePublicUrlFromStatus([object]$StatusPayload, [string]$TargetService, [string]$TargetEnvironment) {
+  $resolved = Resolve-ServicePublicUrlsFromStatus -StatusPayload $StatusPayload -TargetService $TargetService -TargetEnvironment $TargetEnvironment
+  if ($null -eq $resolved -or $resolved.Count -eq 0) {
+    return $null
+  }
+
+  return $resolved[0]
 }
 
 function Test-ApiHealth([string]$BaseUrl, [int]$TimeoutSec) {
@@ -498,13 +544,14 @@ try {
   }
 
   if ([string]::IsNullOrWhiteSpace($deploymentId)) {
-    Write-RailwayApiDeployFailureSummary -FailureStatus "deployment_id_unresolved" -DeploymentId $null -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+    Write-RailwayApiDeployFailureSummary -FailureStatus "deployment_id_unresolved" -DeploymentId $null -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -RequestedPublicUrl $ApiPublicUrl -PublicUrlSource "requested" -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
     Fail "Deployment created but deployment ID could not be resolved."
   }
 
   Write-Host "[railway-api] Deployment ID: $deploymentId"
 
   if ($NoWait) {
+    $normalizedRequestedPublicUrl = Normalize-PublicUrl $ApiPublicUrl
     $noWaitSummary = [ordered]@{
       schemaVersion = 1
       generatedAt = (Get-Date).ToUniversalTime().ToString("o")
@@ -513,17 +560,22 @@ try {
       projectId = $ProjectId
       service = $Service
       environment = $Environment
-      effectivePublicUrl = $ApiPublicUrl
+      requestedPublicUrl = $normalizedRequestedPublicUrl
+      effectivePublicUrl = $normalizedRequestedPublicUrl
+      resolvedServicePublicUrl = $null
+      resolvedServicePublicUrls = @()
+      publicUrlSource = if ([string]::IsNullOrWhiteSpace($normalizedRequestedPublicUrl)) { $null } else { "requested" }
+      requestedPublicUrlMatchesServiceDomain = $null
       checks = [ordered]@{
         health = [ordered]@{
           attempted = (-not $SkipHealthCheck)
           skipped = [bool]$SkipHealthCheck
-          healthUrl = if ([string]::IsNullOrWhiteSpace($ApiPublicUrl)) { $null } else { $ApiPublicUrl.TrimEnd("/") + "/healthz" }
+          healthUrl = if ([string]::IsNullOrWhiteSpace($normalizedRequestedPublicUrl)) { $null } else { $normalizedRequestedPublicUrl + "/healthz" }
         }
         liveCapabilities = [ordered]@{
           attempted = (-not $SkipCapabilitiesCheck)
           skipped = [bool]$SkipCapabilitiesCheck
-          endpoint = if ([string]::IsNullOrWhiteSpace($ApiPublicUrl)) { $null } else { $ApiPublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities" }
+          endpoint = if ([string]::IsNullOrWhiteSpace($normalizedRequestedPublicUrl)) { $null } else { $normalizedRequestedPublicUrl + "/v1/runtime/live/capabilities" }
         }
       }
       artifacts = [ordered]@{
@@ -555,18 +607,37 @@ try {
         catch {
         }
 
-        $effectivePublicUrl = if (-not [string]::IsNullOrWhiteSpace($ApiPublicUrl)) {
-          $ApiPublicUrl.Trim().TrimEnd("/")
+        $requestedPublicUrl = Normalize-PublicUrl $ApiPublicUrl
+        $resolvedServicePublicUrls = Resolve-ServicePublicUrlsFromStatus -StatusPayload $status -TargetService $Service -TargetEnvironment $Environment
+        $resolvedServicePublicUrl = if ($resolvedServicePublicUrls.Count -gt 0) { $resolvedServicePublicUrls[0] } else { $null }
+        $requestedPublicUrlMatchesServiceDomain = $null
+        if (-not [string]::IsNullOrWhiteSpace($requestedPublicUrl) -and $resolvedServicePublicUrls.Count -gt 0) {
+          $requestedPublicUrlMatchesServiceDomain = $resolvedServicePublicUrls -contains $requestedPublicUrl
+        }
+        $publicUrlSource = $null
+        if (-not [string]::IsNullOrWhiteSpace($requestedPublicUrl)) {
+          if ($resolvedServicePublicUrls.Count -eq 0 -or $requestedPublicUrlMatchesServiceDomain -eq $true) {
+            $effectivePublicUrl = $requestedPublicUrl
+            $publicUrlSource = "requested"
+          }
+          else {
+            $effectivePublicUrl = $resolvedServicePublicUrl
+            $publicUrlSource = "resolved_service_domain"
+            Write-Warning ("[railway-api] Requested ApiPublicUrl does not match the resolved target service domains. Requested=" + $requestedPublicUrl + "; resolved=" + ($resolvedServicePublicUrls -join ", "))
+          }
         }
         else {
-          Resolve-ServicePublicUrlFromStatus -StatusPayload $status -TargetService $Service -TargetEnvironment $Environment
+          $effectivePublicUrl = $resolvedServicePublicUrl
+          if (-not [string]::IsNullOrWhiteSpace($effectivePublicUrl)) {
+            $publicUrlSource = "resolved_service_domain"
+          }
         }
 
         $healthPassed = $null
         if (-not $SkipHealthCheck) {
           $healthPassed = Test-ApiHealth -BaseUrl $effectivePublicUrl -TimeoutSec $HealthCheckTimeoutSec
           if (-not $healthPassed) {
-            Write-RailwayApiDeployFailureSummary -FailureStatus "healthcheck_failed" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $effectivePublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+            Write-RailwayApiDeployFailureSummary -FailureStatus "healthcheck_failed" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $effectivePublicUrl -RequestedPublicUrl $requestedPublicUrl -ResolvedServicePublicUrls $resolvedServicePublicUrls -PublicUrlSource $publicUrlSource -RequestedPublicUrlMatchesServiceDomain $requestedPublicUrlMatchesServiceDomain -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
             Fail ("API health check failed: " + $effectivePublicUrl.TrimEnd("/") + "/healthz")
           }
           Write-Host ("[railway-api] Health check passed: " + $effectivePublicUrl.TrimEnd("/") + "/healthz")
@@ -576,7 +647,7 @@ try {
         if (-not $SkipCapabilitiesCheck) {
           $liveCapabilities = Get-ApiLiveCapabilities -BaseUrl $effectivePublicUrl -TimeoutSec $HealthCheckTimeoutSec
           if ($null -eq $liveCapabilities) {
-            Write-RailwayApiDeployFailureSummary -FailureStatus "live_capabilities_failed" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $effectivePublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+            Write-RailwayApiDeployFailureSummary -FailureStatus "live_capabilities_failed" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $effectivePublicUrl -RequestedPublicUrl $requestedPublicUrl -ResolvedServicePublicUrls $resolvedServicePublicUrls -PublicUrlSource $publicUrlSource -RequestedPublicUrlMatchesServiceDomain $requestedPublicUrlMatchesServiceDomain -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
             Fail ("API live capabilities route check failed: " + $effectivePublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities")
           }
           Write-Host ("[railway-api] Live capabilities route passed: " + $effectivePublicUrl.TrimEnd("/") + "/v1/runtime/live/capabilities")
@@ -590,7 +661,12 @@ try {
           projectId = $ProjectId
           service = $Service
           environment = $Environment
+          requestedPublicUrl = $requestedPublicUrl
           effectivePublicUrl = $effectivePublicUrl
+          resolvedServicePublicUrl = $resolvedServicePublicUrl
+          resolvedServicePublicUrls = $resolvedServicePublicUrls
+          publicUrlSource = $publicUrlSource
+          requestedPublicUrlMatchesServiceDomain = $requestedPublicUrlMatchesServiceDomain
           checks = [ordered]@{
             health = [ordered]@{
               attempted = (-not $SkipHealthCheck)
@@ -621,7 +697,7 @@ try {
         exit 0
       }
       if ($pending -notcontains $state) {
-        Write-RailwayApiDeployFailureSummary -FailureStatus $state.ToLowerInvariant() -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+        Write-RailwayApiDeployFailureSummary -FailureStatus $state.ToLowerInvariant() -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -RequestedPublicUrl $ApiPublicUrl -PublicUrlSource "requested" -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
         Fail "API deployment finished with non-success status: $state (deploymentId=$deploymentId)"
       }
     }
@@ -631,7 +707,7 @@ try {
     }
   }
 
-  Write-RailwayApiDeployFailureSummary -FailureStatus "timeout" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
+  Write-RailwayApiDeployFailureSummary -FailureStatus "timeout" -DeploymentId $deploymentId -ProjectId $ProjectId -Service $Service -Environment $Environment -EffectivePublicUrl $ApiPublicUrl -RequestedPublicUrl $ApiPublicUrl -PublicUrlSource "requested" -SkipHealthCheck:$SkipHealthCheck -SkipCapabilitiesCheck:$SkipCapabilitiesCheck
   Fail "Timed out waiting for API deployment completion (deploymentId=$deploymentId)."
 }
 finally {
