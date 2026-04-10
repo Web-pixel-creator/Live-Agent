@@ -181,7 +181,108 @@ test("runtime diagnostics summary stays healthy when all guardrails are nominal"
   assert.equal(summary.orchestrator.workflowActiveRole, "planner");
   assert.equal(summary.orchestrator.workflowRoute, "live-agent");
   assert.deepEqual(summary.orchestrator.assistiveRouterAllowIntents, ["conversation", "translation"]);
+  assert.equal(summary.slo.status, "missing");
+  assert.equal(summary.slo.validated, true);
   assert.deepEqual(summary.activeSignals, []);
+});
+
+test("runtime diagnostics summary exposes latency SLO posture and breach signals", () => {
+  const summary = buildRuntimeDiagnosticsSummary({
+    services: [
+      {
+        name: "realtime-gateway",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {
+          totalCount: 12,
+          p95Ms: 1900,
+        },
+      },
+      {
+        name: "orchestrator",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {},
+      },
+      {
+        name: "ui-executor",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {
+          totalCount: 8,
+          p95Ms: 8000,
+        },
+      },
+      {
+        name: "api-backend",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {
+          totalCount: 10,
+          p95Ms: 900,
+          operations: [
+            {
+              operation: "GET /v1/runtime/case-wiki",
+              count: 3,
+              latencyMs: {
+                p95: 700,
+              },
+              lastUpdatedAt: "2026-03-06T00:00:05.000Z",
+            },
+          ],
+        },
+      },
+    ],
+    events: [
+      {
+        eventId: "event-live-first-audio",
+        sessionId: "session-slo",
+        type: "live.first_audio",
+        source: "direct_live",
+        createdAt: "2026-03-06T00:00:01.000Z",
+        route: "live-agent",
+        liveFirstAudioMs: 1400,
+      },
+      {
+        eventId: "event-ui-navigator",
+        sessionId: "session-slo",
+        type: "orchestrator.response",
+        source: "ui-navigator-agent",
+        createdAt: "2026-03-06T00:00:02.000Z",
+        route: "ui-navigator-agent",
+        latencyMs: 12000,
+      },
+    ],
+    skillsCatalog: baseCatalog,
+    sloThresholds: {
+      liveFirstAudioP95Ms: 2500,
+      navigatorStepP95Ms: 10000,
+      caseWikiQueryP95Ms: 1500,
+    },
+  });
+
+  assert.equal(summary.status, "degraded");
+  assert.equal(summary.slo.status, "breach");
+  assert.match(String(summary.slo.summary), /navigatorStepP95=12000ms\/10000ms/);
+  assert.equal(summary.slo.breachCount, 1);
+  assert.equal(summary.slo.observedCount, 3);
+  assert.equal(summary.activeSignals.some((item) => item.key === "runtime_slo_navigatorStepP95_breach"), true);
 });
 
 test("runtime diagnostics summary highlights active degradation signals", () => {

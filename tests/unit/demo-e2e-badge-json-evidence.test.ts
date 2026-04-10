@@ -241,6 +241,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
           status: "critical signals=3",
           signalsSummary: "total=3 | critical=1 | warn=2 | info=0",
           coverageSummary: "healthy=4/4 | ready=4/4 | runtime=4/4 | metrics=4/4 | startup=0/0",
+          sloSummary: "liveFirstAudioP95=1200ms/2500ms | navigatorStepP95=4300ms/25000ms | caseWikiQueryP95=missing",
           sandboxSummary: "mode=audit | network=allow_all | setup=present | warnings=1",
           skillsSummary: "catalog=path/1w | personas=2/2 | recipes=1/1 | runtime=off active=0 skipped=0 blocked=0",
           topSignal:
@@ -471,6 +472,10 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(agentUsage.summarySource, "gateway_runtime");
   assert.equal(agentUsage.summaryStatus, "observed");
   assert.equal(runtimeGuardrailsSignalPaths.summaryStatus, "critical signals=3");
+  assert.equal(
+    runtimeGuardrailsSignalPaths.sloSummary,
+    "liveFirstAudioP95=1200ms/2500ms | navigatorStepP95=4300ms/25000ms | caseWikiQueryP95=missing",
+  );
   assert.equal(caseWikiEvidenceSignature.status, "pass");
   assert.equal(caseWikiEvidenceSignature.validated, true);
   assert.equal(caseWikiEvidenceSignature.totalArtifacts, 1);

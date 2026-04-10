@@ -638,6 +638,7 @@ function buildRuntimeGuardrailsSignalPathsEvidence(kpis) {
   const summaryStatus = toOptionalString(snapshot.status) ?? "coverage_incomplete";
   const signalsSummary = toOptionalString(snapshot.signalsSummary) ?? "n/a";
   const coverageSummary = toOptionalString(snapshot.coverageSummary) ?? "n/a";
+  const sloSummary = toOptionalString(snapshot.sloSummary) ?? "n/a";
   const sandboxSummary = toOptionalString(snapshot.sandboxSummary) ?? "n/a";
   const skillsSummary = toOptionalString(snapshot.skillsSummary) ?? "n/a";
   const topSignal = toOptionalString(snapshot.topSignal) ?? "n/a";
@@ -678,6 +679,7 @@ function buildRuntimeGuardrailsSignalPathsEvidence(kpis) {
     summaryStatus.length > 0 &&
     signalsSummary.length > 0 &&
     coverageSummary.length > 0 &&
+    sloSummary.length > 0 &&
     sandboxSummary.length > 0 &&
     skillsSummary.length > 0 &&
     topSignal.length > 0 &&
@@ -694,6 +696,7 @@ function buildRuntimeGuardrailsSignalPathsEvidence(kpis) {
     summaryStatus,
     signalsSummary,
     coverageSummary,
+    sloSummary,
     sandboxSummary,
     skillsSummary,
     topSignal,

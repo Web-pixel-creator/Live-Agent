@@ -80,6 +80,9 @@ const state = {
   liveBootstrapError: null,
   liveTransportMode: "relay",
   liveDirectSetupSent: false,
+  liveDirectConnectedAtMs: null,
+  liveDirectFirstAudioCaptured: false,
+  liveDirectFirstOutputCaptured: false,
   liveDirectTurnId: null,
   liveDirectTurnText: "",
   liveDirectLastFunctionCallFingerprint: null,
@@ -3851,6 +3854,7 @@ const el = {
   operatorRuntimeGuardrailsStatus: document.getElementById("operatorRuntimeGuardrailsStatus"),
   operatorRuntimeGuardrailsSignals: document.getElementById("operatorRuntimeGuardrailsSignals"),
   operatorRuntimeGuardrailsCoverage: document.getElementById("operatorRuntimeGuardrailsCoverage"),
+  operatorRuntimeGuardrailsSlo: document.getElementById("operatorRuntimeGuardrailsSlo"),
   operatorRuntimeGuardrailsSandbox: document.getElementById("operatorRuntimeGuardrailsSandbox"),
   operatorRuntimeGuardrailsSkills: document.getElementById("operatorRuntimeGuardrailsSkills"),
   operatorRuntimeGuardrailsTopSignal: document.getElementById("operatorRuntimeGuardrailsTopSignal"),
@@ -28452,6 +28456,7 @@ function buildSessionExportRuntimeGuardrailsEvidence() {
     status: toNodeText(el.operatorRuntimeGuardrailsStatus, "awaiting_refresh"),
     signalsSummary: toNodeText(el.operatorRuntimeGuardrailsSignals, "n/a"),
     coverageSummary: toNodeText(el.operatorRuntimeGuardrailsCoverage, "n/a"),
+    sloSummary: toNodeText(el.operatorRuntimeGuardrailsSlo, "n/a"),
     sandboxSummary: toNodeText(el.operatorRuntimeGuardrailsSandbox, "n/a"),
     skillsSummary: toNodeText(el.operatorRuntimeGuardrailsSkills, "n/a"),
     topSignal: toNodeText(el.operatorRuntimeGuardrailsTopSignal, "n/a"),
@@ -28912,6 +28917,7 @@ function resetOperatorBrowserWorkersWidget(reason = "no_data") {
 function resetOperatorRuntimeGuardrailsWidget(reason = "no_data") {
   setText(el.operatorRuntimeGuardrailsSignals, "n/a");
   setText(el.operatorRuntimeGuardrailsCoverage, "n/a");
+  setText(el.operatorRuntimeGuardrailsSlo, "n/a");
   setText(el.operatorRuntimeGuardrailsSandbox, "n/a");
   setText(el.operatorRuntimeGuardrailsSkills, "n/a");
   setText(el.operatorRuntimeGuardrailsTopSignal, "n/a");
@@ -34978,6 +34984,34 @@ function resolveOperatorRuntimeGuardrailAction(signals) {
   return resolveOperatorRuntimeGuardrailActions(signals)[0] ?? null;
 }
 
+function formatOperatorRuntimeGuardrailSloMetric(metric) {
+  if (!isRecord(metric)) {
+    return null;
+  }
+  const key = toOptionalText(metric.key) ?? "slo";
+  const p95Ms = Number(metric.p95Ms);
+  const thresholdMs = Number(metric.thresholdMs);
+  const status = toOptionalText(metric.status) ?? "missing";
+  const sampleCount = Math.max(0, Math.floor(Number(metric.sampleCount ?? 0) || 0));
+  if (!Number.isFinite(p95Ms) || p95Ms < 0) {
+    return `${key}=missing`;
+  }
+  return `${key}=${Math.floor(p95Ms)}ms/${Number.isFinite(thresholdMs) ? Math.floor(thresholdMs) : "n/a"}ms ${status} n=${sampleCount}`;
+}
+
+function buildOperatorRuntimeGuardrailSloSummary(runtimeDiagnostics) {
+  const slo = isRecord(runtimeDiagnostics?.slo) ? runtimeDiagnostics.slo : null;
+  const metrics = Array.isArray(slo?.metrics)
+    ? slo.metrics
+        .map((metric) => formatOperatorRuntimeGuardrailSloMetric(metric))
+        .filter((item) => typeof item === "string" && item.length > 0)
+    : [];
+  if (metrics.length > 0) {
+    return metrics.join(" | ");
+  }
+  return toOptionalText(slo?.summary) ?? "missing";
+}
+
 async function runOperatorRuntimeGuardrailsAction(actionOverride = null) {
   const action =
     actionOverride && typeof actionOverride === "object" ? actionOverride : state.operatorRuntimeGuardrailAction;
@@ -35157,6 +35191,7 @@ function renderOperatorRuntimeGuardrailsWidget(runtimeDiagnostics) {
     topSignal && typeof topSignal.message === "string" && topSignal.message.trim().length > 0
       ? topSignal.message.trim()
       : "No active runtime guardrail signal.";
+  const sloSummary = buildOperatorRuntimeGuardrailSloSummary(runtimeDiagnostics);
 
   setText(
     el.operatorRuntimeGuardrailsSignals,
@@ -35166,6 +35201,7 @@ function renderOperatorRuntimeGuardrailsWidget(runtimeDiagnostics) {
     el.operatorRuntimeGuardrailsCoverage,
     `healthy=${coverageHealthy}/${coverageTotal} | ready=${coverageReady}/${coverageTotal} | runtime=${coverageRuntimeVisible}/${coverageTotal} | metrics=${coverageMetricsVisible}/${coverageTotal} | startup=${coverageStartupFailures}/${coverageStartupBlocking}`,
   );
+  setText(el.operatorRuntimeGuardrailsSlo, sloSummary);
   setText(
     el.operatorRuntimeGuardrailsSandbox,
     `mode=${sandboxMode} | network=${sandboxNetworkPolicy} | setup=${sandboxSetupStatus} | warnings=${sandboxWarnings.length}`,
@@ -36398,6 +36434,12 @@ function resetDirectLiveTransportState() {
   state.liveDirectLastFunctionCallFingerprint = null;
 }
 
+function resetDirectLiveConnectionTelemetryState() {
+  state.liveDirectConnectedAtMs = null;
+  state.liveDirectFirstAudioCaptured = false;
+  state.liveDirectFirstOutputCaptured = false;
+}
+
 function canUseDirectLiveTransport(snapshot = state.liveBootstrapSnapshot) {
   return (
     isRecord(snapshot) &&
@@ -36600,6 +36642,8 @@ function shouldPersistDirectLiveReplayEvent(event) {
   }
   switch (toOptionalText(event.type)) {
     case "gateway.connected":
+    case "live.first_audio":
+    case "live.first_output":
     case "live.function_call":
     case "live.function_call_output.sent":
     case "live.interrupted":
@@ -36897,6 +36941,35 @@ function handleDirectLiveMessageData(data) {
   const normalized = normalizeDirectLiveUpstreamMessage(parsed);
   if (!normalized) {
     return;
+  }
+  const connectedAtMs = Number(state.liveDirectConnectedAtMs);
+  const outputLatencyMs =
+    Number.isFinite(connectedAtMs) && connectedAtMs > 0 ? Math.max(0, Date.now() - connectedAtMs) : null;
+  if (
+    outputLatencyMs !== null &&
+    !state.liveDirectFirstOutputCaptured &&
+    ((typeof normalized.text === "string" && normalized.text.length > 0) ||
+      (typeof normalized.audioBase64 === "string" && normalized.audioBase64.length > 0))
+  ) {
+    state.liveDirectFirstOutputCaptured = true;
+    captureDirectLiveReplayEvent("live.first_output", {
+      firstOutputMs: outputLatencyMs,
+      hasAudio: typeof normalized.audioBase64 === "string" && normalized.audioBase64.length > 0,
+      hasText: typeof normalized.text === "string" && normalized.text.length > 0,
+      observedAt: new Date().toISOString(),
+    });
+  }
+  if (
+    outputLatencyMs !== null &&
+    !state.liveDirectFirstAudioCaptured &&
+    typeof normalized.audioBase64 === "string" &&
+    normalized.audioBase64.length > 0
+  ) {
+    state.liveDirectFirstAudioCaptured = true;
+    captureDirectLiveReplayEvent("live.first_audio", {
+      firstAudioMs: outputLatencyMs,
+      observedAt: new Date().toISOString(),
+    });
   }
   if ((typeof normalized.text === "string" && normalized.text.length > 0) || typeof normalized.audioBase64 === "string") {
     if (!state.liveDirectTurnId) {
@@ -39427,6 +39500,15 @@ function renderOperatorSummary(summary) {
       "runtime_guardrails",
       `status=${runtimeStatus} validated=${runtimeValidated} signals=${runtimeSignals.length} critical=${runtimeCriticalSignals.length} warn=${runtimeWarnSignals.length} healthy=${coverageHealthy}/${coverageTotal} ready=${coverageReady}/${coverageTotal} runtime_visible=${coverageRuntimeVisible}/${coverageTotal} metrics_visible=${coverageMetricsVisible}/${coverageTotal} sandbox=${sandboxMode}/${sandboxSetup} catalog_warnings=${skillsCatalogWarnings} skills_blocked=${skillsRuntimeBlocked}`,
     );
+    const runtimeSlo = isRecord(runtimeDiagnostics.slo) ? runtimeDiagnostics.slo : null;
+    if (runtimeSlo) {
+      appendEntry(
+        el.operatorSummary,
+        toOptionalText(runtimeSlo.status) === "breach" ? "error" : "system",
+        "runtime_guardrails.slo",
+        buildOperatorRuntimeGuardrailSloSummary(runtimeDiagnostics),
+      );
+    }
     const runtimeTopSignal =
       runtimeCriticalSignals[0] ?? runtimeWarnSignals[0] ?? runtimeSignals[0] ?? null;
     if (runtimeTopSignal) {
@@ -42166,6 +42248,8 @@ function connectDirectLiveTransport(snapshot) {
       }
       opened = true;
       resetDirectLiveTransportState();
+      resetDirectLiveConnectionTelemetryState();
+      state.liveDirectConnectedAtMs = Date.now();
       state.liveTransportMode = "direct_live";
       renderLiveModeStatus();
       setConnectionStatus("connected");
@@ -42202,6 +42286,7 @@ function connectDirectLiveTransport(snapshot) {
       state.pendingClientEvents.clear();
       state.ws = null;
       resetDirectLiveTransportState();
+      resetDirectLiveConnectionTelemetryState();
       if (!opened) {
         finish(false);
       }
@@ -42215,6 +42300,7 @@ function connectDirectLiveTransport(snapshot) {
       if (!opened) {
         state.ws = null;
         resetDirectLiveTransportState();
+        resetDirectLiveConnectionTelemetryState();
         finish(false);
         return;
       }
@@ -42230,6 +42316,7 @@ function connectDirectLiveTransport(snapshot) {
         surfaceInResult: hadLiveRequestInFlight,
       });
       state.pendingClientEvents.clear();
+      resetDirectLiveConnectionTelemetryState();
     });
 
     ws.addEventListener("message", (raw) => {
@@ -42256,6 +42343,7 @@ async function connectWebSocket(options = {}) {
     state.ws = null;
     state.pendingClientEvents.clear();
     resetDirectLiveTransportState();
+    resetDirectLiveConnectionTelemetryState();
     try {
       directSocket.close(1000, "switch_to_relay");
     } catch {

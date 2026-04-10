@@ -1657,6 +1657,12 @@ function Build-RuntimeGuardrailsSignalPathsEvidence {
   $coverageStartupFailures = if ($null -ne $coverage) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $coverage -Path @("startupFailureServices")) } else { 0 }
   $coverageStartupBlocking = if ($null -ne $coverage) { Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $coverage -Path @("startupBlockingServices")) } else { 0 }
 
+  $slo = Get-FieldValue -Object $RuntimeDiagnostics -Path @("slo")
+  $sloSummary = if ($null -ne $slo) { [string](Get-FieldValue -Object $slo -Path @("summary")) } else { "" }
+  if ([string]::IsNullOrWhiteSpace($sloSummary)) {
+    $sloSummary = "missing"
+  }
+
   $uiExecutorRuntime = Get-FieldValue -Object $RuntimeDiagnostics -Path @("uiExecutor")
   $sandboxMode = if ($null -ne $uiExecutorRuntime) { [string](Get-FieldValue -Object $uiExecutorRuntime -Path @("sandboxMode")) } else { "" }
   if ([string]::IsNullOrWhiteSpace($sandboxMode)) {
@@ -1776,6 +1782,7 @@ function Build-RuntimeGuardrailsSignalPathsEvidence {
     -not [string]::IsNullOrWhiteSpace($statusText) -and
     -not [string]::IsNullOrWhiteSpace($signalsSummary) -and
     -not [string]::IsNullOrWhiteSpace($coverageSummary) -and
+    -not [string]::IsNullOrWhiteSpace($sloSummary) -and
     -not [string]::IsNullOrWhiteSpace($sandboxSummary) -and
     -not [string]::IsNullOrWhiteSpace($skillsSummary) -and
     -not [string]::IsNullOrWhiteSpace($topSignalText) -and
@@ -1789,6 +1796,7 @@ function Build-RuntimeGuardrailsSignalPathsEvidence {
     validated        = $snapshotValidated
     signalsSummary   = $signalsSummary
     coverageSummary  = $coverageSummary
+    sloSummary       = $sloSummary
     sandboxSummary   = $sandboxSummary
     skillsSummary    = $skillsSummary
     topSignal        = $topSignalText

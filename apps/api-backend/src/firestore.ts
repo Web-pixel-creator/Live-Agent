@@ -87,6 +87,9 @@ export type EventListItem = {
   agentUsageOutputTokens?: number;
   agentUsageTotalTokens?: number;
   agentUsageModels?: string[];
+  latencyMs?: number;
+  liveFirstAudioMs?: number;
+  liveFirstOutputMs?: number;
   liveTransportMode?: string;
   liveTransportProvider?: string;
   liveTransportModel?: string;
@@ -1453,6 +1456,11 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
   const liveTransportBootstrapState = toNonEmptyString(liveTransport?.bootstrapState) ?? undefined;
   const liveTransportFallbackReason = toNonEmptyString(liveTransport?.fallbackReason) ?? undefined;
   const liveTransportEvidenceSource = toNonEmptyString(liveTransport?.evidenceSource) ?? undefined;
+  const latencyMs = toNonNegativeInt(output?.latencyMs) ?? toNonNegativeInt(payload?.latencyMs) ?? undefined;
+  const liveFirstAudioMs =
+    toNonNegativeInt(payload?.firstAudioMs) ?? toNonNegativeInt(metadata?.firstAudioMs) ?? undefined;
+  const liveFirstOutputMs =
+    toNonNegativeInt(payload?.firstOutputMs) ?? toNonNegativeInt(metadata?.firstOutputMs) ?? undefined;
 
   let traceSteps: number | undefined;
   let screenshotRefs: number | undefined;
@@ -1541,6 +1549,9 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
     agentUsageOutputTokens,
     agentUsageTotalTokens,
     agentUsageModels: agentUsageModels.length > 0 ? agentUsageModels : undefined,
+    latencyMs,
+    liveFirstAudioMs,
+    liveFirstOutputMs,
     liveTransportMode,
     liveTransportProvider,
     liveTransportModel,

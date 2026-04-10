@@ -94,7 +94,10 @@ import {
   normalizeRuntimeFaultProfileExecutionPhase,
   resolveRuntimeFaultProfileExecution,
 } from "./runtime-fault-profile-actions.js";
-import { buildRuntimeDiagnosticsSummary } from "./runtime-diagnostics-summary.js";
+import {
+  buildRuntimeDiagnosticsSummary,
+  resolveRuntimeDiagnosticsSloThresholds,
+} from "./runtime-diagnostics-summary.js";
 import { buildRuntimeBootstrapDoctorSnapshot } from "./runtime-bootstrap-doctor.js";
 import {
   ingestRuntimeLiveSessionEvent,
@@ -215,6 +218,7 @@ const runtimeCostTrackerConfig = {
   pricePer1kInputUsd: operatorCostPer1kInputUsd,
   pricePer1kOutputUsd: operatorCostPer1kOutputUsd,
 };
+const runtimeDiagnosticsSloThresholds = resolveRuntimeDiagnosticsSloThresholds(process.env);
 const configuredChannelAdapters = parseChannelAdapters(
   process.env.API_CHANNEL_ADAPTERS ?? "webchat,telegram,slack",
 );
@@ -1991,6 +1995,7 @@ async function getOperatorServiceSummary(): Promise<Array<Record<string, unknown
             totalCount: metricsSummary.totalCount ?? null,
             errorRatePct: metricsSummary.errorRatePct ?? null,
             p95Ms: isRecord(metricsSummary.latencyMs) ? metricsSummary.latencyMs.p95 ?? null : null,
+            operations: Array.isArray(metricsSummary.operations) ? metricsSummary.operations.slice(0, 50) : [],
           }
         : null,
       startupStatus,
@@ -4360,7 +4365,11 @@ export const server = createServer(async (req, res) => {
     if (url.pathname === "/v1/runtime/diagnostics" && req.method === "GET") {
       const role = assertOperatorRole(req, ["viewer", "operator", "admin"]);
       const agentId = toOptionalString(url.searchParams.get("agentId"));
-      const services = await getOperatorServiceSummary();
+      const eventLimit = parseBoundedInt(url.searchParams.get("eventLimit"), 120, 20, 500);
+      const [services, recentEvents] = await Promise.all([
+        getOperatorServiceSummary(),
+        listRecentEvents(eventLimit),
+      ]);
       const skillsRuntimeCatalog = agentId
         ? await getSkillsRuntimeCatalogSnapshot({
             agentId: sanitizeAgentId(agentId),
@@ -4378,6 +4387,8 @@ export const server = createServer(async (req, res) => {
         services,
         skillsCatalog,
         skillsRuntimeSummary: skillsRuntimeCatalog?.runtimeSummary ?? null,
+        events: recentEvents,
+        sloThresholds: runtimeDiagnosticsSloThresholds,
       });
       writeJson(res, 200, {
         data: runtimeDiagnostics,
@@ -7161,6 +7172,8 @@ export const server = createServer(async (req, res) => {
         services,
         skillsCatalog,
         operatorTraceSummary: traces,
+        events: recentEvents,
+        sloThresholds: runtimeDiagnosticsSloThresholds,
       });
 
       writeJson(res, 200, {
