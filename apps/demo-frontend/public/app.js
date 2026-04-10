@@ -32599,6 +32599,30 @@ function buildOperatorCaseWikiFocusChipTitle(kind, item) {
 }
 
 function buildOperatorCaseWikiFocusChipRail(evidencePack, kind) {
+  const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
+  const focusPack = isRecord(snapshot?.focusPack) ? snapshot.focusPack : null;
+  const focusPackItems =
+    kind === "proof"
+      ? Array.isArray(focusPack?.proofs)
+        ? focusPack.proofs
+        : []
+      : Array.isArray(focusPack?.questions)
+        ? focusPack.questions
+        : [];
+  if (focusPackItems.length > 0) {
+    const activeFocus = normalizeOperatorCaseWikiFocus(state.operatorCaseWikiFocus);
+    return focusPackItems.slice(0, 3).map((item, index) => {
+      const id = toOptionalText(item?.focusId) ?? `${kind}-${index}`;
+      const labelSource = toOptionalText(item?.focusLabel) ?? `${kind} ${index + 1}`;
+      return {
+        kind,
+        id,
+        label: truncateOperatorCaseWikiFocusChipLabel(labelSource) ?? `${kind} ${index + 1}`,
+        title: toOptionalText(item?.chipTitle) ?? null,
+        isActive: activeFocus?.kind === kind && activeFocus?.id === id,
+      };
+    });
+  }
   const items = kind === "proof" ? evidencePack?.proofs : evidencePack?.questions;
   if (!Array.isArray(items) || items.length === 0) {
     return [];
