@@ -2,6 +2,7 @@ import type {
   CaseWikiActionPack,
   CaseWikiActionPackItem,
   CaseWiki,
+  CaseWikiCostSummary,
   CaseWikiDetailBadge,
   CaseWikiDefaultFocus,
   CaseWikiDetailPack,
@@ -50,6 +51,7 @@ export type RuntimeCaseWikiBuilderParams = {
   userId?: string | null;
   now?: Date;
   evidenceSigner?: RuntimeEvidenceSignerConfig | null;
+  costSummary?: CaseWikiCostSummary | null;
 };
 
 type RuntimeCaseWikiContext = {
@@ -1503,6 +1505,36 @@ function buildCaseWikiWorkspaceTimelineValue(timeline: CaseWikiTimelineEntry[]):
   return items.length > 0 ? items.join(" | ") : null;
 }
 
+function formatCompactNumber(value: number, digits: number): string {
+  const normalized = Math.max(0, value);
+  const fixed = normalized.toFixed(digits);
+  return fixed.replace(/\.?0+$/, "");
+}
+
+function buildCaseWikiWorkspaceCostValue(costSummary: CaseWikiCostSummary | null | undefined): string | null {
+  if (!costSummary) {
+    return null;
+  }
+  const parts: string[] = [];
+  if (costSummary.pricingConfigured && costSummary.totalUsd > 0) {
+    const digits = costSummary.totalUsd >= 1 ? 2 : costSummary.totalUsd >= 0.1 ? 3 : 4;
+    parts.push(`$${formatCompactNumber(costSummary.totalUsd, digits)}`);
+  }
+  if (costSummary.totalTokens > 0) {
+    parts.push(`${costSummary.totalTokens} tokens`);
+  }
+  if (costSummary.liveMinutes > 0) {
+    parts.push(`live ${formatCompactNumber(costSummary.liveMinutes, 1)}m`);
+  }
+  if (costSummary.uiExecutorMinutes > 0) {
+    parts.push(`ui ${formatCompactNumber(costSummary.uiExecutorMinutes, 1)}m`);
+  }
+  if (costSummary.storageMb > 0) {
+    parts.push(`${formatCompactNumber(costSummary.storageMb, 2)} MB`);
+  }
+  return parts.join(" | ") || null;
+}
+
 function buildCaseWikiWorkspacePack(params: {
   overview: {
     title: string;
@@ -1529,6 +1561,7 @@ function buildCaseWikiWorkspacePack(params: {
   focusPack: CaseWikiFocusPack;
   previewPack: CaseWikiPreviewPack;
   recommendedNextAction: CaseWikiNextAction | null;
+  costSummary?: CaseWikiCostSummary | null;
 }): CaseWikiWorkspacePack {
   const nextActionType = sentenceCaseCaseWikiRoutingValue(params.recommendedNextAction?.type ?? null);
   const proofStatus = sentenceCaseCaseWikiRoutingValue(params.highlights.topProof?.status ?? null);
@@ -1585,6 +1618,8 @@ function buildCaseWikiWorkspacePack(params: {
     timelineValue: buildCaseWikiWorkspaceTimelineValue(params.timeline),
     drilldownValue: toNonEmptyString(params.previewPack.drilldownValue),
     handoffValue: toNonEmptyString(params.previewPack.handoffValue),
+    costValue: buildCaseWikiWorkspaceCostValue(params.costSummary ?? null),
+    costSummary: params.costSummary ?? null,
   };
 }
 
@@ -1907,6 +1942,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     focusPack,
     previewPack,
     recommendedNextAction,
+    costSummary: params.costSummary ?? null,
   });
   const operatorPreviewPack = buildCaseWikiOperatorPreviewPack({
     caseId: context.caseId,

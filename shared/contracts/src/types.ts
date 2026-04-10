@@ -347,6 +347,45 @@ export type CaseWikiPreviewPack = {
   handoffValue: string | null;
 };
 
+export type CaseWikiCostSummary = {
+  status: "observed" | "missing";
+  source: "operator_summary" | "case_wiki";
+  summaryStatus: string;
+  summarySource: string;
+  summaryAuthority: string;
+  aggregationMode: string;
+  estimationMode: "tokens_only" | "token_rate_estimate" | "runtime_rate_estimate";
+  observationMode: "usage_rollup" | "event_span_estimate";
+  pricingConfigured: boolean;
+  currency: "USD";
+  inputTokens: number;
+  outputTokens: number;
+  derivedTotalTokens: number;
+  totalTokens: number;
+  tokenConsistency: boolean;
+  tokenDriftTokens: number;
+  inputUsd: number;
+  outputUsd: number;
+  liveUsd: number;
+  uiExecutorUsd: number;
+  storageUsd: number;
+  totalUsd: number;
+  liveMinutes: number;
+  uiExecutorMinutes: number;
+  storageMb: number;
+  pricePer1kInputUsd: number;
+  pricePer1kOutputUsd: number;
+  pricePerLiveMinuteUsd: number;
+  pricePerUiExecutorMinuteUsd: number;
+  pricePerStorageMbUsd: number;
+  models: string[];
+  uniqueModels: number;
+  unknownSourceCount: number;
+  latestSeenAt: string | null;
+  sourceRefs: string[];
+  validated: boolean;
+};
+
 export type CaseWikiWorkspacePack = {
   defaultFocus: CaseWikiDefaultFocus | null;
   statusValue: string | null;
@@ -363,6 +402,8 @@ export type CaseWikiWorkspacePack = {
   timelineValue: string | null;
   drilldownValue: string | null;
   handoffValue: string | null;
+  costValue?: string | null;
+  costSummary?: CaseWikiCostSummary | null;
 };
 
 export type CaseWikiOperatorOverviewPreview = {

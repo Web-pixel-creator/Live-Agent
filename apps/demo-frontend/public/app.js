@@ -1286,6 +1286,7 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.caseWikiSummaryLabel": "Known now",
     "live.caseWorkspace.caseWikiBlockerLabel": "Top blocker",
     "live.caseWorkspace.caseWikiNextActionLabel": "Next action",
+    "live.caseWorkspace.caseWikiCostLabel": "Cost posture",
     "live.caseWorkspace.caseWikiProofLabel": "Top proof",
     "live.caseWorkspace.caseWikiEntityLabel": "Key entity",
     "live.caseWorkspace.caseWikiPackLabel": "Evidence pack",
@@ -2213,6 +2214,7 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
   "live.caseWorkspace.caseWikiSummaryLabel": "\u0427\u0442\u043e \u0443\u0436\u0435 \u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e",
   "live.caseWorkspace.caseWikiBlockerLabel": "\u0413\u043b\u0430\u0432\u043d\u044b\u0439 \u0431\u043b\u043e\u043a\u0435\u0440",
   "live.caseWorkspace.caseWikiNextActionLabel": "\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435",
+  "live.caseWorkspace.caseWikiCostLabel": "\u0421\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c \u043a\u0435\u0439\u0441\u0430",
   "live.caseWorkspace.caseWikiProofLabel": "\u041a\u043b\u044e\u0447\u0435\u0432\u043e\u0435 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u043e",
   "live.caseWorkspace.caseWikiEntityLabel": "\u041a\u043b\u044e\u0447\u0435\u0432\u0430\u044f \u0441\u0443\u0449\u043d\u043e\u0441\u0442\u044c",
   "live.caseWorkspace.caseWikiPackLabel": "\u041f\u0430\u043a\u0435\u0442 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432",
@@ -3145,6 +3147,7 @@ const el = {
   caseWorkspaceCaseWikiSummaryValue: document.getElementById("caseWorkspaceCaseWikiSummaryValue"),
   caseWorkspaceCaseWikiBlockerValue: document.getElementById("caseWorkspaceCaseWikiBlockerValue"),
   caseWorkspaceCaseWikiNextActionValue: document.getElementById("caseWorkspaceCaseWikiNextActionValue"),
+  caseWorkspaceCaseWikiCostValue: document.getElementById("caseWorkspaceCaseWikiCostValue"),
   caseWorkspaceCaseWikiProofTitle: document.getElementById("caseWorkspaceCaseWikiProofTitle"),
   caseWorkspaceCaseWikiProofSummary: document.getElementById("caseWorkspaceCaseWikiProofSummary"),
   caseWorkspaceCaseWikiEntityTitle: document.getElementById("caseWorkspaceCaseWikiEntityTitle"),
@@ -7879,6 +7882,48 @@ function resolveCaseWorkspaceCaseWikiStatusPresentation(status, isRu) {
   }
 }
 
+function formatCaseWorkspaceCaseWikiNumber(value, digits = 2) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return "0";
+  }
+  return parsed.toFixed(digits).replace(/\.?0+$/, "");
+}
+
+function buildCaseWorkspaceCaseWikiCostValue(costSummary, isRu) {
+  if (!isRecord(costSummary)) {
+    return null;
+  }
+  const parts = [];
+  const totalUsd = Number(costSummary.totalUsd);
+  const totalTokens = Number(costSummary.totalTokens);
+  const liveMinutes = Number(costSummary.liveMinutes);
+  const uiExecutorMinutes = Number(costSummary.uiExecutorMinutes);
+  const storageMb = Number(costSummary.storageMb);
+  if (costSummary.pricingConfigured === true && Number.isFinite(totalUsd) && totalUsd > 0) {
+    parts.push(`$${formatCaseWorkspaceCaseWikiNumber(totalUsd, totalUsd >= 1 ? 2 : 4)}`);
+  }
+  if (Number.isFinite(totalTokens) && totalTokens > 0) {
+    parts.push(`${Math.floor(totalTokens)} tokens`);
+  }
+  if (Number.isFinite(liveMinutes) && liveMinutes > 0) {
+    parts.push(`live ${formatCaseWorkspaceCaseWikiNumber(liveMinutes, 1)}m`);
+  }
+  if (Number.isFinite(uiExecutorMinutes) && uiExecutorMinutes > 0) {
+    parts.push(`ui ${formatCaseWorkspaceCaseWikiNumber(uiExecutorMinutes, 1)}m`);
+  }
+  if (Number.isFinite(storageMb) && storageMb > 0) {
+    parts.push(`${formatCaseWorkspaceCaseWikiNumber(storageMb, 2)} MB`);
+  }
+  if (parts.length > 0) {
+    return parts.join(" | ");
+  }
+  if (toOptionalText(costSummary.status) === "observed") {
+    return isRu ? "\u0417\u0430\u0442\u0440\u0430\u0442\u044b \u043d\u0430\u0431\u043b\u044e\u0434\u0430\u044e\u0442\u0441\u044f, pricing \u043d\u0435 \u0437\u0430\u0434\u0430\u043d." : "Cost observed, pricing not configured.";
+  }
+  return null;
+}
+
 function buildCaseWorkspaceCaseWikiSummary(isRu) {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
   const idle = {
@@ -7892,6 +7937,9 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     nextActionValue: isRu
       ? "\u041e\u0431\u043d\u043e\u0432\u0438 Case Wiki \u0432 Operator Session Ops."
       : "Refresh Case Wiki in Operator Session Ops.",
+    costValue: isRu
+      ? "\u0421\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c \u043a\u0435\u0439\u0441\u0430 \u043f\u043e\u044f\u0432\u0438\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
+      : "Per-case cost appears here after Case Wiki refresh.",
     proofTitle: isRu ? "\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0441\u0438\u0433\u043d\u0430\u043b\u0430 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u0430." : "No compiled proof yet.",
     proofSummary: isRu
       ? "\u041e\u0431\u043d\u043e\u0432\u0438 Case Wiki, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u0434\u043d\u044f\u0442\u044c \u0441\u0430\u043c\u044b\u0439 \u0441\u0438\u043b\u044c\u043d\u044b\u0439 confirmed \u0438\u043b\u0438 missing-evidence signal."
@@ -7950,6 +7998,10 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
   const nextActionType = toOptionalText(nextAction?.type);
   const previewPack = isRecord(snapshot.previewPack) ? snapshot.previewPack : null;
   const workspacePack = isRecord(snapshot.workspacePack) ? snapshot.workspacePack : null;
+  const workspaceCostValue =
+    toOptionalText(workspacePack?.costValue) ??
+    buildCaseWorkspaceCaseWikiCostValue(workspacePack?.costSummary, isRu) ??
+    idle.costValue;
   const packValue =
     toOptionalText(workspacePack?.packValue) ??
     toOptionalText(previewPack?.packValue) ??
@@ -8147,6 +8199,7 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     summaryValue: workspaceSummaryValue,
     blockerValue: workspaceBlockerValue,
     nextActionValue: workspaceNextActionValue,
+    costValue: workspaceCostValue,
     proofTitle: workspaceProofTitle,
     proofSummary: workspaceProofSummary,
     entityTitle: workspaceEntityTitle,
@@ -8206,6 +8259,7 @@ function renderCaseWorkspaceCaseWikiSummary() {
   const caseWikiSummaryLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiSummaryLabel"]');
   const caseWikiBlockerLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiBlockerLabel"]');
   const caseWikiNextActionLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiNextActionLabel"]');
+  const caseWikiCostLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiCostLabel"]');
   const caseWikiProofLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiProofLabel"]');
   const caseWikiEntityLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiEntityLabel"]');
   const caseWikiPackLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiPackLabel"]');
@@ -8233,6 +8287,9 @@ function renderCaseWorkspaceCaseWikiSummary() {
   }
   if (caseWikiNextActionLabel instanceof HTMLElement) {
     caseWikiNextActionLabel.textContent = isRu ? "\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435" : "Next action";
+  }
+  if (caseWikiCostLabel instanceof HTMLElement) {
+    caseWikiCostLabel.textContent = isRu ? "\u0421\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c \u043a\u0435\u0439\u0441\u0430" : "Cost posture";
   }
   if (caseWikiProofLabel instanceof HTMLElement) {
     caseWikiProofLabel.textContent = isRu ? "\u041a\u043b\u044e\u0447\u0435\u0432\u043e\u0435 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432\u043e" : "Top proof";
@@ -8296,6 +8353,9 @@ function renderCaseWorkspaceCaseWikiSummary() {
   }
   if (el.caseWorkspaceCaseWikiNextActionValue instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiNextActionValue.textContent = caseWikiSummary.nextActionValue;
+  }
+  if (el.caseWorkspaceCaseWikiCostValue instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiCostValue.textContent = caseWikiSummary.costValue;
   }
   if (el.caseWorkspaceCaseWikiProofTitle instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiProofTitle.textContent = caseWikiSummary.proofTitle;
@@ -32435,6 +32495,8 @@ function buildOperatorCaseWikiSnapshot(value) {
           timelineValue: toOptionalText(value.workspacePack.timelineValue),
           drilldownValue: toOptionalText(value.workspacePack.drilldownValue),
           handoffValue: toOptionalText(value.workspacePack.handoffValue),
+          costValue: toOptionalText(value.workspacePack.costValue),
+          costSummary: isRecord(value.workspacePack.costSummary) ? value.workspacePack.costSummary : null,
         }
       : null,
     operatorPreviewPack: isRecord(value.operatorPreviewPack)
@@ -33783,14 +33845,33 @@ function resolveOperatorCaseWikiSelectedRunId() {
   return toOptionalText(workflow?.workflowRunId);
 }
 
+function buildOperatorCaseWikiUnitEconomics(snapshot) {
+  const workspacePack = isRecord(snapshot?.workspacePack) ? snapshot.workspacePack : null;
+  const costSummary = isRecord(workspacePack?.costSummary) ? workspacePack.costSummary : null;
+  if (!costSummary && !toOptionalText(workspacePack?.costValue)) {
+    return null;
+  }
+  return {
+    costValue: toOptionalText(workspacePack?.costValue) ?? buildCaseWorkspaceCaseWikiCostValue(costSummary, false),
+    costSummary,
+  };
+}
+
 function buildOperatorCaseWikiOverviewPreview() {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
   if (!snapshot) {
     return "No case wiki loaded yet.\n\nRefresh case wiki to compile overview, blockers, and next action from runtime evidence.";
   }
   const operatorPreviewPack = isRecord(snapshot.operatorPreviewPack) ? snapshot.operatorPreviewPack : null;
+  const unitEconomics = buildOperatorCaseWikiUnitEconomics(snapshot);
   if (isRecord(operatorPreviewPack?.overview)) {
-    return stringifyOperatorRuntimeFaultValue(operatorPreviewPack.overview, "No case wiki loaded yet.");
+    return stringifyOperatorRuntimeFaultValue(
+      {
+        ...operatorPreviewPack.overview,
+        unitEconomics,
+      },
+      "No case wiki loaded yet.",
+    );
   }
   const overview = isRecord(snapshot.overview) ? snapshot.overview : null;
   return stringifyOperatorRuntimeFaultValue(
@@ -33811,6 +33892,7 @@ function buildOperatorCaseWikiOverviewPreview() {
           }
         : null,
       recommendedNextAction: isRecord(snapshot.recommendedNextAction) ? snapshot.recommendedNextAction : null,
+      unitEconomics,
       counts: {
         entities: snapshot.entities.length,
         proofs: snapshot.proofs.length,

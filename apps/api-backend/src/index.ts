@@ -78,6 +78,11 @@ import { buildRuntimeSurfaceInventorySnapshot } from "./runtime-surface-inventor
 import { buildRuntimeSurfaceReadinessSnapshot } from "./runtime-surface-readiness.js";
 import { buildRuntimeSessionReplayMirrorSnapshot } from "./runtime-session-replay-mirror.js";
 import { buildRuntimeCaseWiki } from "./runtime-case-wiki.js";
+import {
+  buildRuntimeCaseCostSummary,
+  buildRuntimeCostSummary,
+  resolveRuntimeCostTrackerConfig,
+} from "./runtime-cost-tracker.js";
 import { resolveRuntimeEvidenceSignerConfig } from "./runtime-evidence-signer.js";
 import {
   appendRuntimeCaseWikiNote,
@@ -205,6 +210,11 @@ const operatorCostPer1kOutputUsd = parseNonNegativeFloat(
   process.env.OPERATOR_COST_PER_1K_OUTPUT_USD ?? null,
   0,
 );
+const runtimeCostTrackerConfig = {
+  ...resolveRuntimeCostTrackerConfig(process.env),
+  pricePer1kInputUsd: operatorCostPer1kInputUsd,
+  pricePer1kOutputUsd: operatorCostPer1kOutputUsd,
+};
 const configuredChannelAdapters = parseChannelAdapters(
   process.env.API_CHANNEL_ADAPTERS ?? "webchat,telegram,slack",
 );
@@ -2902,70 +2912,11 @@ function buildAgentUsageSummary(
 }
 
 function buildCostEstimateSummary(agentUsage: Record<string, unknown>): Record<string, unknown> {
-  const inputTokens = parseNonNegativeInt(agentUsage.inputTokens) ?? 0;
-  const outputTokens = parseNonNegativeInt(agentUsage.outputTokens) ?? 0;
-  const derivedTotalTokens =
-    parseNonNegativeInt(agentUsage.derivedTotalTokens) ?? inputTokens + outputTokens;
-  const totalTokens = parseNonNegativeInt(agentUsage.totalTokens) ?? derivedTotalTokens;
-  const usageTotal = parseNonNegativeInt(agentUsage.total) ?? 0;
-  const usageSource = toOptionalString(agentUsage.source) ?? "operator_summary";
-  const usageStatus = toOptionalString(agentUsage.status) ?? (usageTotal > 0 ? "observed" : "missing");
-  const usageAuthority = toOptionalString(agentUsage.authority) ?? "missing";
-  const usageAggregationMode = toOptionalString(agentUsage.aggregationMode) ?? "high_water_by_run";
-  const usageLatest = isRecord(agentUsage.latest) ? agentUsage.latest : null;
-  const usageLatestSeenAt = toOptionalString(usageLatest?.createdAt);
-  const usageModels = Array.isArray(agentUsage.models)
-    ? agentUsage.models
-        .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-        .map((item) => item.trim())
-    : [];
-  const sourceCounts =
-    agentUsage.sourceCounts && isRecord(agentUsage.sourceCounts) ? agentUsage.sourceCounts : null;
-  const usageUnknownSourceCount = parseNonNegativeInt(sourceCounts?.unknown) ?? 0;
-  const inputUsdRaw = (inputTokens / 1000) * operatorCostPer1kInputUsd;
-  const outputUsdRaw = (outputTokens / 1000) * operatorCostPer1kOutputUsd;
-  const totalUsdRaw = inputUsdRaw + outputUsdRaw;
-  const roundUsd = (value: number): number => {
-    if (!Number.isFinite(value) || value < 0) {
-      return 0;
-    }
-    return Math.round(value * 1000000) / 1000000;
-  };
-  const inputUsd = roundUsd(inputUsdRaw);
-  const outputUsd = roundUsd(outputUsdRaw);
-  const totalUsd = roundUsd(totalUsdRaw);
-  const pricingConfigured = operatorCostPer1kInputUsd > 0 || operatorCostPer1kOutputUsd > 0;
-  const tokenConsistency = totalTokens >= derivedTotalTokens;
-  const usdConsistency = totalUsd >= inputUsd + outputUsd - 0.000001;
-  const validated = tokenConsistency && usdConsistency && usageSource === "operator_summary";
-
-  return {
-    status: usageTotal > 0 ? "observed" : "missing",
+  return buildRuntimeCostSummary({
+    agentUsage,
+    config: runtimeCostTrackerConfig,
     source: "operator_summary",
-    summaryStatus: usageStatus,
-    summarySource: usageSource,
-    summaryAuthority: usageAuthority,
-    aggregationMode: usageAggregationMode,
-    estimationMode: pricingConfigured ? "token_rate_estimate" : "tokens_only",
-    pricingConfigured,
-    currency: "USD",
-    inputTokens,
-    outputTokens,
-    derivedTotalTokens,
-    totalTokens,
-    tokenConsistency,
-    tokenDriftTokens: Math.max(0, derivedTotalTokens - totalTokens),
-    inputUsd,
-    outputUsd,
-    totalUsd,
-    pricePer1kInputUsd: roundUsd(operatorCostPer1kInputUsd),
-    pricePer1kOutputUsd: roundUsd(operatorCostPer1kOutputUsd),
-    models: usageModels,
-    uniqueModels: usageModels.length,
-    unknownSourceCount: usageUnknownSourceCount,
-    latestSeenAt: usageLatestSeenAt,
-    validated,
-  };
+  });
 }
 
 function buildSkillsRegistryLifecycleSummary(
@@ -4655,6 +4606,13 @@ export const server = createServer(async (req, res) => {
         workflowControlPlaneSummary = workflowControlPlane.summary;
       }
 
+      const caseCostSummary = buildRuntimeCaseCostSummary({
+        events: selectedEvents,
+        config: runtimeCostTrackerConfig,
+        sessionId: selectedSessionId,
+        sourceRefs: [`session:${selectedSessionId}`],
+      });
+
       const caseWiki = buildRuntimeCaseWiki({
         sessions,
         runs,
@@ -4664,6 +4622,7 @@ export const server = createServer(async (req, res) => {
         selectedSessionId,
         workflowSummary: workflowControlPlaneSummary,
         evidenceSigner: resolveRuntimeEvidenceSignerConfig(process.env),
+        costSummary: caseCostSummary,
       });
 
       if (!caseWiki) {

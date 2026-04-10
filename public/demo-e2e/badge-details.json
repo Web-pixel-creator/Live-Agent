@@ -1,24 +1,24 @@
 {
-  "generatedAt": "2026-04-09T06:56:14.382Z",
+  "generatedAt": "2026-04-10T13:30:35.208Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 281,
   "violations": 0,
-  "roundTripMs": 1162,
+  "roundTripMs": 1020,
   "costEstimate": {
     "currency": "USD",
-    "geminiLiveUsd": 0.035835,
+    "geminiLiveUsd": 0.035846,
     "imagenUsd": 0.12,
     "veoUsd": 0.36,
     "ttsUsd": 0.024,
-    "totalUsd": 0.539835,
+    "totalUsd": 0.539846,
     "source": "runtime_estimate"
   },
   "tokensUsed": {
     "input": 2561,
-    "output": 25691,
-    "total": 28252,
+    "output": 25699,
+    "total": 28260,
     "source": "runtime_estimate"
   },
   "liveTransport": {
@@ -104,7 +104,7 @@
     ]
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-04-09T11:56:13.1306370+05:00",
+    "sourceSummaryGeneratedAt": "2026-04-10T18:30:33.9562741+05:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -112,7 +112,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-09T06:56:08.706Z",
+      "latestSeenAt": "2026-04-10T13:30:29.307Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -126,7 +126,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-09T06:56:08.791Z",
+      "latestSeenAt": "2026-04-10T13:30:29.395Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -160,7 +160,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-04-09T06:56:06.463Z",
+        "seenAt": "2026-04-10T13:30:25.718Z",
         "seenAtIsIso": true
       }
     },
@@ -224,10 +224,10 @@
       },
       "latest": {
         "outcome": "succeeded",
-        "pluginId": "demo-plugin-skill-651ffded-77ed-423f-b886-ba65b1538170",
+        "pluginId": "demo-plugin-skill-f9dec84b-eff8-40d7-ac43-787b94fea883",
         "version": 1,
         "signingStatus": "unsigned",
-        "seenAt": "2026-04-09T06:56:12.230Z",
+        "seenAt": "2026-04-10T13:30:33.033Z",
         "seenAtIsIso": true
       }
     },
@@ -308,7 +308,7 @@
           "statusCode": "active",
           "statusText": "active",
           "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-          "updatedAt": "2026-04-09T11:56:12.5301879+05:00",
+          "updatedAt": "2026-04-10T18:30:33.3134751+05:00",
           "updatedAtIsIso": true
         }
       },
@@ -329,17 +329,40 @@
             "statusCode": "active",
             "statusText": "active",
             "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-            "updatedAt": "2026-04-09T11:56:12.5301879+05:00",
+            "updatedAt": "2026-04-10T18:30:33.3134751+05:00",
             "updatedAtIsIso": true
           }
         }
       ]
+    },
+    "caseWikiEvidenceSignature": {
+      "status": "pass",
+      "validated": true,
+      "totalArtifacts": 1,
+      "signedArtifacts": 0,
+      "unsignedArtifacts": 1,
+      "signatureStatus": "unsigned",
+      "algorithm": "ed25519-sha256",
+      "canonicalization": "json-stable-v1",
+      "payloadHash": "sha256:a58f317de3038908b0d4eccd152a118df93c925d1a451d8eb2d82f528934f6ee",
+      "keyId": null,
+      "signerId": "api-backend",
+      "signedAt": "2026-04-10T13:30:33.471Z",
+      "signedAtIsIso": true,
+      "signaturePresent": false,
+      "caseId": "local-1775827776930-90075",
+      "sessionId": "local-1775827776930-90075",
+      "overviewStatus": "waiting_on_operator",
+      "focusKind": null,
+      "focusLabel": null,
+      "nextAction": "Resolve pending approval",
+      "sourceRefsCount": 0
     }
   },
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 281 checks | 1162ms ws",
+    "message": "pass | 281 checks | 1020ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }

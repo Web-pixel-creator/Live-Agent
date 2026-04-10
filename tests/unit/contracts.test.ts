@@ -632,6 +632,45 @@ test("case wiki contracts expose stable structured memory shapes", () => {
       drilldownValue:
         "[confirmed] Customer wants a spouse relocation consultation. | [high] Has the customer already received the invitation letter?",
       handoffValue: "Request missing visa documents | refs: question:question-1, timeline:timeline-1",
+      costValue: "$0.0124 | 480 tokens | live 2.5m | 0.03 MB",
+      costSummary: {
+        status: "observed",
+        source: "case_wiki",
+        summaryStatus: "observed",
+        summarySource: "operator_summary",
+        summaryAuthority: "authoritative",
+        aggregationMode: "high_water_by_run",
+        estimationMode: "runtime_rate_estimate",
+        observationMode: "event_span_estimate",
+        pricingConfigured: true,
+        currency: "USD",
+        inputTokens: 320,
+        outputTokens: 160,
+        derivedTotalTokens: 480,
+        totalTokens: 480,
+        tokenConsistency: true,
+        tokenDriftTokens: 0,
+        inputUsd: 0.000144,
+        outputUsd: 0.000216,
+        liveUsd: 0.012,
+        uiExecutorUsd: 0,
+        storageUsd: 0.000006,
+        totalUsd: 0.012366,
+        liveMinutes: 2.5,
+        uiExecutorMinutes: 0,
+        storageMb: 0.03,
+        pricePer1kInputUsd: 0.00045,
+        pricePer1kOutputUsd: 0.00135,
+        pricePerLiveMinuteUsd: 0.0048,
+        pricePerUiExecutorMinuteUsd: 0,
+        pricePerStorageMbUsd: 0.0002,
+        models: ["gemini-live-2.5-flash-native-audio"],
+        uniqueModels: 1,
+        unknownSourceCount: 0,
+        latestSeenAt: "2026-04-09T07:00:00.000Z",
+        sourceRefs: ["session:session-123", "run:run-123"],
+        validated: true,
+      },
     },
     operatorPreviewPack: {
       overview: {
@@ -850,6 +889,9 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.match(wiki.workspacePack.questionsValue ?? "", /\[high\]/i);
   assert.match(wiki.workspacePack.timelineValue ?? "", /\[session\]/i);
   assert.match(wiki.workspacePack.handoffValue ?? "", /Request missing visa documents/i);
+  assert.match(wiki.workspacePack.costValue ?? "", /\$0\.0124/i);
+  assert.equal(wiki.workspacePack.costSummary?.source, "case_wiki");
+  assert.equal(wiki.workspacePack.costSummary?.totalTokens, 480);
   assert.match(wiki.operatorPreviewPack.overview.overview?.summary ?? "", /document guidance/i);
   assert.match(wiki.operatorPreviewPack.evidence.topEntity?.summary ?? "", /Applicant relocating with spouse/i);
   assert.equal(wiki.operatorPreviewPack.questions.totalQuestions, 1);

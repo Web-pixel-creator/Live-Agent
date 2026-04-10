@@ -19,6 +19,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
       && htmlSource.includes('id="caseWorkspaceCaseWikiBlockerValue"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiNextActionLabel">Next action</dt>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiNextActionValue"')
+      && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiCostLabel">Cost posture</dt>')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiCostValue"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiPackLabel">Evidence pack</dt>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiPackValue"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiRefsLabel">Source refs</dt>')
@@ -66,6 +68,7 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     '"live.caseWorkspace.caseWikiSummaryLabel": "Known now"',
     '"live.caseWorkspace.caseWikiBlockerLabel": "Top blocker"',
     '"live.caseWorkspace.caseWikiNextActionLabel": "Next action"',
+    '"live.caseWorkspace.caseWikiCostLabel": "Cost posture"',
     '"live.caseWorkspace.caseWikiPackLabel": "Evidence pack"',
     '"live.caseWorkspace.caseWikiRefsLabel": "Source refs"',
     '"live.caseWorkspace.caseWikiQuestionsLabel": "Open questions"',
@@ -86,6 +89,7 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     'caseWorkspaceCaseWikiSummaryValue: document.getElementById("caseWorkspaceCaseWikiSummaryValue")',
     'caseWorkspaceCaseWikiBlockerValue: document.getElementById("caseWorkspaceCaseWikiBlockerValue")',
     'caseWorkspaceCaseWikiNextActionValue: document.getElementById("caseWorkspaceCaseWikiNextActionValue")',
+    'caseWorkspaceCaseWikiCostValue: document.getElementById("caseWorkspaceCaseWikiCostValue")',
     'caseWorkspaceCaseWikiPackValue: document.getElementById("caseWorkspaceCaseWikiPackValue")',
     'caseWorkspaceCaseWikiRefsValue: document.getElementById("caseWorkspaceCaseWikiRefsValue")',
     'caseWorkspaceCaseWikiQuestionsValue: document.getElementById("caseWorkspaceCaseWikiQuestionsValue")',
@@ -118,6 +122,9 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "const focusedItem = resolveOperatorCaseWikiPreferredWorkspaceFocus(snapshot, evidencePack);",
     "const previewPack = isRecord(snapshot.previewPack) ? snapshot.previewPack : null;",
     "const workspacePack = isRecord(snapshot.workspacePack) ? snapshot.workspacePack : null;",
+    "function buildCaseWorkspaceCaseWikiCostValue(costSummary, isRu) {",
+    "const workspaceCostValue =",
+    "buildCaseWorkspaceCaseWikiCostValue(workspacePack?.costSummary, isRu)",
     "const focusPack = isRecord(snapshot?.focusPack) ? snapshot.focusPack : null;",
     "function resolveOperatorCaseWikiPreferredWorkspaceFocus(snapshot, evidencePack, preferredKind = null) {",
     "const defaultFocus = isRecord(workspacePack?.defaultFocus) ? workspacePack.defaultFocus : null;",
@@ -142,6 +149,7 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "const workspaceSummaryValue =",
     "const workspaceBlockerValue =",
     "const workspaceNextActionValue =",
+    "costValue: workspaceCostValue",
     "const workspaceProofTitle =",
     "const workspaceProofSummary =",
     "const workspaceEntityTitle =",
@@ -169,6 +177,7 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "function renderCaseWorkspaceCaseWikiFocusRail(container, chips, emptyText) {",
     "const caseWikiSummary = buildCaseWorkspaceCaseWikiSummary(isRu);",
     "el.caseWorkspaceCaseWikiStatusValue.textContent = caseWikiSummary.statusValue;",
+    "el.caseWorkspaceCaseWikiCostValue.textContent = caseWikiSummary.costValue;",
     "el.caseWorkspaceCaseWikiProofTitle.textContent = caseWikiSummary.proofTitle;",
     "el.caseWorkspaceCaseWikiEntityTitle.textContent = caseWikiSummary.entityTitle;",
     "el.caseWorkspaceCaseWikiPackValue.textContent = caseWikiSummary.packValue;",

@@ -8,6 +8,10 @@ import type {
   SessionListItem,
 } from "../../apps/api-backend/src/firestore.js";
 import { buildRuntimeCaseWiki } from "../../apps/api-backend/src/runtime-case-wiki.js";
+import {
+  buildRuntimeCaseCostSummary,
+  type RuntimeCostTrackerConfig,
+} from "../../apps/api-backend/src/runtime-cost-tracker.js";
 import { verifyEvidencePayloadSignature } from "../../apps/api-backend/src/runtime-evidence-signer.js";
 import type { RuntimeWorkflowControlPlaneSummary } from "../../apps/api-backend/src/runtime-workflow-control-plane.js";
 
@@ -178,6 +182,20 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
     },
   ];
 
+  const costConfig: RuntimeCostTrackerConfig = {
+    pricePer1kInputUsd: 0.00045,
+    pricePer1kOutputUsd: 0.00135,
+    pricePerLiveMinuteUsd: 0.006,
+    pricePerUiExecutorMinuteUsd: 0.02,
+    pricePerStorageMbUsd: 0.0002,
+  };
+  const costSummary = buildRuntimeCaseCostSummary({
+    events: selectedEvents,
+    config: costConfig,
+    sessionId: "session-case-1",
+    sourceRefs: ["workflow:control-plane"],
+  });
+
   const wiki = buildRuntimeCaseWiki({
     sessions,
     runs,
@@ -188,6 +206,7 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
     workflowSummary: buildWorkflowSummary(),
     userId: "user-case-1",
     now: new Date("2026-04-09T09:05:00.000Z"),
+    costSummary,
   });
 
   assert.ok(wiki, "expected a compiled case wiki");
@@ -253,6 +272,11 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.match(wiki?.workspacePack.questionsValue ?? "", /\[high\]/i);
   assert.match(wiki?.workspacePack.timelineValue ?? "", /\[session\]/i);
   assert.match(wiki?.workspacePack.handoffValue ?? "", /Request missing follow-up items/i);
+  assert.ok(wiki?.workspacePack.costSummary, "expected workspacePack.costSummary");
+  assert.equal(wiki?.workspacePack.costSummary?.source, "case_wiki");
+  assert.equal(wiki?.workspacePack.costSummary?.totalTokens, 0);
+  assert.ok((wiki?.workspacePack.costSummary?.storageMb ?? 0) > 0);
+  assert.match(wiki?.workspacePack.costValue ?? "", /MB/i);
   assert.match(wiki?.operatorPreviewPack.overview.overview?.summary ?? "", /passport scan and invitation letter are still missing/i);
   assert.equal(wiki?.operatorPreviewPack.overview.counts.proofs, wiki?.proofs.length);
   assert.equal(wiki?.operatorPreviewPack.evidence.topProof?.status, "missing");
