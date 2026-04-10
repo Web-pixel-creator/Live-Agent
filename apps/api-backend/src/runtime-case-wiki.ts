@@ -1384,6 +1384,32 @@ function buildCaseWikiWorkspaceStatusText(status: CaseWikiStatus): string {
   }
 }
 
+function buildCaseWikiWorkspaceQuestionsValue(questions: CaseWikiOpenQuestion[]): string | null {
+  const items = questions
+    .slice(0, 2)
+    .map((item) =>
+      [toNonEmptyString(item.priority), toNonEmptyString(item.question)]
+        .filter((value): value is string => Boolean(value))
+        .map((value, index) => (index === 0 ? `[${value}]` : value))
+        .join(" "),
+    )
+    .filter((value): value is string => Boolean(value));
+  return items.length > 0 ? items.join(" | ") : null;
+}
+
+function buildCaseWikiWorkspaceTimelineValue(timeline: CaseWikiTimelineEntry[]): string | null {
+  const items = timeline
+    .slice(0, 2)
+    .map((item) =>
+      [toNonEmptyString(item.kind), toNonEmptyString(item.title)]
+        .filter((value): value is string => Boolean(value))
+        .map((value, index) => (index === 0 ? `[${value}]` : value))
+        .join(" "),
+    )
+    .filter((value): value is string => Boolean(value));
+  return items.length > 0 ? items.join(" | ") : null;
+}
+
 function buildCaseWikiWorkspacePack(params: {
   overview: {
     title: string;
@@ -1405,6 +1431,8 @@ function buildCaseWikiWorkspacePack(params: {
     questions: CaseWikiOpenQuestion[];
     sourceRefs: string[];
   };
+  openQuestions: CaseWikiOpenQuestion[];
+  timeline: CaseWikiTimelineEntry[];
   previewPack: CaseWikiPreviewPack;
   recommendedNextAction: CaseWikiNextAction | null;
 }): CaseWikiWorkspacePack {
@@ -1451,6 +1479,10 @@ function buildCaseWikiWorkspacePack(params: {
     refsValue:
       toNonEmptyString(params.previewPack.refsValue) ??
       (params.evidencePack.sourceRefs.length > 0 ? params.evidencePack.sourceRefs.join(" | ") : null),
+    questionsValue:
+      toNonEmptyString(params.previewPack.questionsSummary) ??
+      buildCaseWikiWorkspaceQuestionsValue(params.openQuestions),
+    timelineValue: buildCaseWikiWorkspaceTimelineValue(params.timeline),
     drilldownValue: toNonEmptyString(params.previewPack.drilldownValue),
     handoffValue: toNonEmptyString(params.previewPack.handoffValue),
   };
@@ -1770,6 +1802,8 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     overview,
     highlights,
     evidencePack,
+    openQuestions,
+    timeline,
     previewPack,
     recommendedNextAction,
   });

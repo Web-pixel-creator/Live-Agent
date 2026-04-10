@@ -23,6 +23,10 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
       && htmlSource.includes('id="caseWorkspaceCaseWikiPackValue"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiRefsLabel">Source refs</dt>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiRefsValue"')
+      && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiQuestionsLabel">Open questions</dt>')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiQuestionsValue"')
+      && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiTimelineLabel">Timeline</dt>')
+      && htmlSource.includes('id="caseWorkspaceCaseWikiTimelineValue"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiDrilldownLabel">Evidence drilldown</dt>')
       && htmlSource.includes('id="caseWorkspaceCaseWikiDrilldownValue"')
       && htmlSource.includes('data-i18n="live.caseWorkspace.caseWikiHandoffLabel">Handoff preview</dt>')
@@ -64,6 +68,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     '"live.caseWorkspace.caseWikiNextActionLabel": "Next action"',
     '"live.caseWorkspace.caseWikiPackLabel": "Evidence pack"',
     '"live.caseWorkspace.caseWikiRefsLabel": "Source refs"',
+    '"live.caseWorkspace.caseWikiQuestionsLabel": "Open questions"',
+    '"live.caseWorkspace.caseWikiTimelineLabel": "Timeline"',
     '"live.caseWorkspace.caseWikiDrilldownLabel": "Evidence drilldown"',
     '"live.caseWorkspace.caseWikiHandoffLabel": "Handoff preview"',
     '"live.caseWorkspace.caseWikiProofChipsLabel": "Proof focus"',
@@ -82,6 +88,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     'caseWorkspaceCaseWikiNextActionValue: document.getElementById("caseWorkspaceCaseWikiNextActionValue")',
     'caseWorkspaceCaseWikiPackValue: document.getElementById("caseWorkspaceCaseWikiPackValue")',
     'caseWorkspaceCaseWikiRefsValue: document.getElementById("caseWorkspaceCaseWikiRefsValue")',
+    'caseWorkspaceCaseWikiQuestionsValue: document.getElementById("caseWorkspaceCaseWikiQuestionsValue")',
+    'caseWorkspaceCaseWikiTimelineValue: document.getElementById("caseWorkspaceCaseWikiTimelineValue")',
     'caseWorkspaceCaseWikiDrilldownValue: document.getElementById("caseWorkspaceCaseWikiDrilldownValue")',
     'caseWorkspaceCaseWikiHandoffValue: document.getElementById("caseWorkspaceCaseWikiHandoffValue")',
     'caseWorkspaceCaseWikiProofChips: document.getElementById("caseWorkspaceCaseWikiProofChips")',
@@ -110,6 +118,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);",
     "const previewPack = isRecord(snapshot.previewPack) ? snapshot.previewPack : null;",
     "const workspacePack = isRecord(snapshot.workspacePack) ? snapshot.workspacePack : null;",
+    "const questionsValue =",
+    "const timelineValue =",
     "const proofChips = buildOperatorCaseWikiFocusChipRail(evidencePack, \"proof\");",
     "const questionChips = buildOperatorCaseWikiFocusChipRail(evidencePack, \"question\");",
     "const proofDetailPackItem = resolveOperatorCaseWikiDetailPackItem(snapshot, \"proof\", proofDetailFocusId);",
@@ -149,6 +159,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "el.caseWorkspaceCaseWikiEntityTitle.textContent = caseWikiSummary.entityTitle;",
     "el.caseWorkspaceCaseWikiPackValue.textContent = caseWikiSummary.packValue;",
     "el.caseWorkspaceCaseWikiRefsValue.textContent = caseWikiSummary.refsValue;",
+    "el.caseWorkspaceCaseWikiQuestionsValue.textContent = caseWikiSummary.questionsValue;",
+    "el.caseWorkspaceCaseWikiTimelineValue.textContent = caseWikiSummary.timelineValue;",
     "el.caseWorkspaceCaseWikiDrilldownValue.textContent = caseWikiSummary.drilldownValue;",
     "el.caseWorkspaceCaseWikiHandoffValue.textContent = caseWikiSummary.handoffValue;",
     "el.caseWorkspaceCaseWikiProofDetailTitle.textContent = caseWikiSummary.proofDetailTitle;",

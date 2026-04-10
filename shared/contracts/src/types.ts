@@ -338,6 +338,8 @@ export type CaseWikiWorkspacePack = {
   entitySummary: string | null;
   packValue: string | null;
   refsValue: string | null;
+  questionsValue: string | null;
+  timelineValue: string | null;
   drilldownValue: string | null;
   handoffValue: string | null;
 };

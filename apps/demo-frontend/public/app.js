@@ -1290,6 +1290,8 @@ const UI_LANGUAGE_COPY = Object.freeze({
     "live.caseWorkspace.caseWikiEntityLabel": "Key entity",
     "live.caseWorkspace.caseWikiPackLabel": "Evidence pack",
     "live.caseWorkspace.caseWikiRefsLabel": "Source refs",
+    "live.caseWorkspace.caseWikiQuestionsLabel": "Open questions",
+    "live.caseWorkspace.caseWikiTimelineLabel": "Timeline",
     "live.caseWorkspace.caseWikiDrilldownLabel": "Evidence drilldown",
     "live.caseWorkspace.caseWikiHandoffLabel": "Handoff preview",
       "live.caseWorkspace.caseWikiProofChipsLabel": "Proof focus",
@@ -2215,6 +2217,8 @@ Object.assign(LIVE_UI_COPY_OVERRIDES.ru, {
   "live.caseWorkspace.caseWikiEntityLabel": "\u041a\u043b\u044e\u0447\u0435\u0432\u0430\u044f \u0441\u0443\u0449\u043d\u043e\u0441\u0442\u044c",
   "live.caseWorkspace.caseWikiPackLabel": "\u041f\u0430\u043a\u0435\u0442 \u0434\u043e\u043a\u0430\u0437\u0430\u0442\u0435\u043b\u044c\u0441\u0442\u0432",
   "live.caseWorkspace.caseWikiRefsLabel": "\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438",
+  "live.caseWorkspace.caseWikiQuestionsLabel": "\u041e\u0442\u043a\u0440\u044b\u0442\u044b\u0435 \u0432\u043e\u043f\u0440\u043e\u0441\u044b",
+  "live.caseWorkspace.caseWikiTimelineLabel": "\u0422\u0430\u0439\u043c\u043b\u0430\u0439\u043d",
   "live.caseWorkspace.caseWikiDrilldownLabel": "\u0414\u0435\u0442\u0430\u043b\u0438 evidence pack",
   "live.caseWorkspace.caseWikiHandoffLabel": "\u041f\u0440\u0435\u0432\u044c\u044e handoff",
     "live.caseWorkspace.caseWikiProofChipsLabel": "\u0424\u043e\u043a\u0443\u0441 \u043f\u043e proof",
@@ -3147,6 +3151,8 @@ const el = {
   caseWorkspaceCaseWikiEntitySummary: document.getElementById("caseWorkspaceCaseWikiEntitySummary"),
   caseWorkspaceCaseWikiPackValue: document.getElementById("caseWorkspaceCaseWikiPackValue"),
   caseWorkspaceCaseWikiRefsValue: document.getElementById("caseWorkspaceCaseWikiRefsValue"),
+  caseWorkspaceCaseWikiQuestionsValue: document.getElementById("caseWorkspaceCaseWikiQuestionsValue"),
+  caseWorkspaceCaseWikiTimelineValue: document.getElementById("caseWorkspaceCaseWikiTimelineValue"),
   caseWorkspaceCaseWikiDrilldownValue: document.getElementById("caseWorkspaceCaseWikiDrilldownValue"),
   caseWorkspaceCaseWikiHandoffValue: document.getElementById("caseWorkspaceCaseWikiHandoffValue"),
   caseWorkspaceCaseWikiProofChips: document.getElementById("caseWorkspaceCaseWikiProofChips"),
@@ -7900,6 +7906,12 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     refsValue: isRu
       ? "\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438 \u043f\u043e\u044f\u0432\u044f\u0442\u0441\u044f \u0432\u043c\u0435\u0441\u0442\u0435 \u0441 compiled evidence pack."
       : "Source refs appear here with the compiled evidence pack.",
+    questionsValue: isRu
+      ? "\u041a\u043e\u0440\u043e\u0442\u043a\u0438\u0439 \u0441\u043f\u0438\u0441\u043e\u043a open questions \u043f\u043e\u044f\u0432\u0438\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
+      : "Open question summary appears here after Case Wiki refresh.",
+    timelineValue: isRu
+      ? "\u041a\u043e\u0440\u043e\u0442\u043a\u0438\u0439 timeline \u043f\u043e\u044f\u0432\u0438\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
+      : "Timeline summary appears here after Case Wiki refresh.",
     drilldownValue: isRu
       ? "\u041a\u043e\u0440\u043e\u0442\u043a\u0438\u0439 pack proofs/questions \u043f\u043e\u044f\u0432\u0438\u0442\u0441\u044f \u043f\u043e\u0441\u043b\u0435 refresh Case Wiki."
       : "Compact proof/question drilldown appears here after Case Wiki refresh.",
@@ -7952,6 +7964,35 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     (Array.isArray(evidencePack?.sourceRefs) && evidencePack.sourceRefs.length > 0
       ? evidencePack.sourceRefs.join(" | ")
       : idle.refsValue);
+  const questionsValue =
+    toOptionalText(workspacePack?.questionsValue) ??
+    toOptionalText(previewPack?.questionsSummary) ??
+    (Array.isArray(snapshot.openQuestions) && snapshot.openQuestions.length > 0
+      ? snapshot.openQuestions
+          .slice(0, 2)
+          .map((item) =>
+            [toOptionalText(item.priority), toOptionalText(item.question)]
+              .filter(Boolean)
+              .map((value, index) => (index === 0 ? `[${value}]` : value))
+              .join(" "),
+          )
+          .filter(Boolean)
+          .join(" | ")
+      : idle.questionsValue);
+  const timelineValue =
+    toOptionalText(workspacePack?.timelineValue) ??
+    (Array.isArray(snapshot.timeline) && snapshot.timeline.length > 0
+      ? snapshot.timeline
+          .slice(0, 2)
+          .map((item) =>
+            [toOptionalText(item.kind), toOptionalText(item.title)]
+              .filter(Boolean)
+              .map((value, index) => (index === 0 ? `[${value}]` : value))
+              .join(" "),
+          )
+          .filter(Boolean)
+          .join(" | ")
+      : idle.timelineValue);
   const drilldownValue =
     buildOperatorCaseWikiFocusedDrilldownValue(focusedItem) ||
     toOptionalText(workspacePack?.drilldownValue) ||
@@ -8112,6 +8153,8 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     entitySummary: workspaceEntitySummary,
     packValue,
     refsValue,
+    questionsValue,
+    timelineValue,
     drilldownValue,
     handoffValue,
   };
@@ -8167,6 +8210,8 @@ function renderCaseWorkspaceCaseWikiSummary() {
   const caseWikiEntityLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiEntityLabel"]');
   const caseWikiPackLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiPackLabel"]');
   const caseWikiRefsLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiRefsLabel"]');
+  const caseWikiQuestionsLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiQuestionsLabel"]');
+  const caseWikiTimelineLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiTimelineLabel"]');
   const caseWikiDrilldownLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiDrilldownLabel"]');
   const caseWikiHandoffLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiHandoffLabel"]');
   const caseWikiProofChipsLabel = document.querySelector('[data-i18n="live.caseWorkspace.caseWikiProofChipsLabel"]');
@@ -8200,6 +8245,12 @@ function renderCaseWorkspaceCaseWikiSummary() {
   }
   if (caseWikiRefsLabel instanceof HTMLElement) {
     caseWikiRefsLabel.textContent = isRu ? "\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438" : "Source refs";
+  }
+  if (caseWikiQuestionsLabel instanceof HTMLElement) {
+    caseWikiQuestionsLabel.textContent = isRu ? "\u041e\u0442\u043a\u0440\u044b\u0442\u044b\u0435 \u0432\u043e\u043f\u0440\u043e\u0441\u044b" : "Open questions";
+  }
+  if (caseWikiTimelineLabel instanceof HTMLElement) {
+    caseWikiTimelineLabel.textContent = isRu ? "\u0422\u0430\u0439\u043c\u043b\u0430\u0439\u043d" : "Timeline";
   }
   if (caseWikiDrilldownLabel instanceof HTMLElement) {
     caseWikiDrilldownLabel.textContent = isRu ? "\u0414\u0435\u0442\u0430\u043b\u0438 evidence pack" : "Evidence drilldown";
@@ -8263,6 +8314,12 @@ function renderCaseWorkspaceCaseWikiSummary() {
   }
   if (el.caseWorkspaceCaseWikiRefsValue instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiRefsValue.textContent = caseWikiSummary.refsValue;
+  }
+  if (el.caseWorkspaceCaseWikiQuestionsValue instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiQuestionsValue.textContent = caseWikiSummary.questionsValue;
+  }
+  if (el.caseWorkspaceCaseWikiTimelineValue instanceof HTMLElement) {
+    el.caseWorkspaceCaseWikiTimelineValue.textContent = caseWikiSummary.timelineValue;
   }
   if (el.caseWorkspaceCaseWikiDrilldownValue instanceof HTMLElement) {
     el.caseWorkspaceCaseWikiDrilldownValue.textContent = caseWikiSummary.drilldownValue;
@@ -32362,6 +32419,8 @@ function buildOperatorCaseWikiSnapshot(value) {
           entitySummary: toOptionalText(value.workspacePack.entitySummary),
           packValue: toOptionalText(value.workspacePack.packValue),
           refsValue: toOptionalText(value.workspacePack.refsValue),
+          questionsValue: toOptionalText(value.workspacePack.questionsValue),
+          timelineValue: toOptionalText(value.workspacePack.timelineValue),
           drilldownValue: toOptionalText(value.workspacePack.drilldownValue),
           handoffValue: toOptionalText(value.workspacePack.handoffValue),
         }
