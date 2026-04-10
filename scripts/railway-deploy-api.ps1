@@ -411,7 +411,7 @@ function Resolve-ServicePublicUrlsFromStatus([object]$StatusPayload, [string]$Ta
 }
 
 function Resolve-ServicePublicUrlFromStatus([object]$StatusPayload, [string]$TargetService, [string]$TargetEnvironment) {
-  $resolved = Resolve-ServicePublicUrlsFromStatus -StatusPayload $StatusPayload -TargetService $TargetService -TargetEnvironment $TargetEnvironment
+  $resolved = @(Resolve-ServicePublicUrlsFromStatus -StatusPayload $StatusPayload -TargetService $TargetService -TargetEnvironment $TargetEnvironment)
   if ($null -eq $resolved -or $resolved.Count -eq 0) {
     return $null
   }
@@ -608,7 +608,7 @@ try {
         }
 
         $requestedPublicUrl = Normalize-PublicUrl $ApiPublicUrl
-        $resolvedServicePublicUrls = Resolve-ServicePublicUrlsFromStatus -StatusPayload $status -TargetService $Service -TargetEnvironment $Environment
+        $resolvedServicePublicUrls = @(Resolve-ServicePublicUrlsFromStatus -StatusPayload $status -TargetService $Service -TargetEnvironment $Environment)
         $resolvedServicePublicUrl = if ($resolvedServicePublicUrls.Count -gt 0) { $resolvedServicePublicUrls[0] } else { $null }
         $requestedPublicUrlMatchesServiceDomain = $null
         if (-not [string]::IsNullOrWhiteSpace($requestedPublicUrl) -and $resolvedServicePublicUrls.Count -gt 0) {
