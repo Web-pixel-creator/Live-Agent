@@ -874,6 +874,68 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       }
     }
 
+    $manifestCaseWikiRoutingContextStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceCaseWikiRoutingContextStatus
+    $manifestCaseWikiRoutingContextStatus = $manifestCaseWikiRoutingContextStatusRaw.ToLowerInvariant()
+    if ($manifestCaseWikiRoutingContextStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextStatus expected pass, actual " +
+        $manifestCaseWikiRoutingContextStatusRaw
+      )
+    }
+
+    $manifestCaseWikiRoutingContextValidated = To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiRoutingContextValidated
+    if ($manifestCaseWikiRoutingContextValidated -ne $true) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextValidated expected true")
+    }
+
+    $manifestCaseWikiRoutingContextObserved = To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiRoutingContextObserved
+    if ($manifestCaseWikiRoutingContextObserved -ne $true) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextObserved expected true")
+    }
+
+    $manifestCaseWikiRoutingContextSource = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextSource")
+    if ($manifestCaseWikiRoutingContextSource -ne "case_wiki") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextSource expected case_wiki, actual " +
+        $manifestCaseWikiRoutingContextSource
+      )
+    }
+
+    $manifestCaseWikiRoutingContextFocusId = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextFocusId")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextFocusId)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextFocusId is required")
+    }
+
+    $manifestCaseWikiRoutingContextBlocker = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextBlocker")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextBlocker)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextBlocker is required")
+    }
+
+    $manifestCaseWikiRoutingContextNextAction = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextNextAction")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextNextAction)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextNextAction is required")
+    }
+
+    $manifestCaseWikiRoutingContextRoute = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRoute")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextRoute)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextRoute is required")
+    }
+
+    $manifestCaseWikiRoutingContextMode = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextMode")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextMode)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextMode is required")
+    }
+
+    $manifestCaseWikiRoutingContextRequestedIntent = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRequestedIntent")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextRequestedIntent)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextRequestedIntent is required")
+    }
+
+    $manifestCaseWikiRoutingContextRoutedIntent = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRoutedIntent")
+    if ([string]::IsNullOrWhiteSpace($manifestCaseWikiRoutingContextRoutedIntent)) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextRoutedIntent is required")
+    }
+
     $manifestProviderUsageStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageStatus
     $manifestProviderUsageStatus = $manifestProviderUsageStatusRaw.ToLowerInvariant()
     if ($manifestProviderUsageStatus -ne "pass") {
@@ -2863,6 +2925,17 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     $manifestRuntimeGuardrailsSignalPathsTotalPaths = [string]$manifestEvidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths
     $manifestRuntimeGuardrailsSignalPathsPrimaryPath = Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath"
     $manifestRuntimeGuardrailsSignalPathsPrimaryPathTitle = if ($null -ne $manifestRuntimeGuardrailsSignalPathsPrimaryPath) { [string](Get-ObjectPropertyValue -Object $manifestRuntimeGuardrailsSignalPathsPrimaryPath -Name "title") } else { "" }
+    $manifestCaseWikiRoutingContextStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceCaseWikiRoutingContextStatus
+    $manifestCaseWikiRoutingContextValidated = if ((To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiRoutingContextValidated) -eq $true) { "true" } else { "false" }
+    $manifestCaseWikiRoutingContextObserved = if ((To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiRoutingContextObserved) -eq $true) { "true" } else { "false" }
+    $manifestCaseWikiRoutingContextSource = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextSource")
+    $manifestCaseWikiRoutingContextFocusId = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextFocusId")
+    $manifestCaseWikiRoutingContextBlocker = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextBlocker")
+    $manifestCaseWikiRoutingContextNextAction = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextNextAction")
+    $manifestCaseWikiRoutingContextRoute = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRoute")
+    $manifestCaseWikiRoutingContextMode = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextMode")
+    $manifestCaseWikiRoutingContextRequestedIntent = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRequestedIntent")
+    $manifestCaseWikiRoutingContextRoutedIntent = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRoutedIntent")
     $manifestProviderUsageStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageStatus
     $manifestProviderUsageValidated = if ([bool]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageValidated) { "true" } else { "false" }
     $manifestProviderUsageActiveSecondaryProviders = [string]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageActiveSecondaryProviders
@@ -2931,6 +3004,17 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       ", runtime_guardrails_signal_paths_summary_status=" + $manifestRuntimeGuardrailsSignalPathsSummaryStatus +
       ", runtime_guardrails_signal_paths_total_paths=" + $manifestRuntimeGuardrailsSignalPathsTotalPaths +
       ", runtime_guardrails_signal_paths_primary_path_title=" + $manifestRuntimeGuardrailsSignalPathsPrimaryPathTitle +
+      ", case_wiki_routing_context_status=" + $manifestCaseWikiRoutingContextStatus +
+      ", case_wiki_routing_context_validated=" + $manifestCaseWikiRoutingContextValidated +
+      ", case_wiki_routing_context_observed=" + $manifestCaseWikiRoutingContextObserved +
+      ", case_wiki_routing_context_source=" + $manifestCaseWikiRoutingContextSource +
+      ", case_wiki_routing_context_focus_id=" + $manifestCaseWikiRoutingContextFocusId +
+      ", case_wiki_routing_context_blocker=" + $manifestCaseWikiRoutingContextBlocker +
+      ", case_wiki_routing_context_next_action=" + $manifestCaseWikiRoutingContextNextAction +
+      ", case_wiki_routing_context_route=" + $manifestCaseWikiRoutingContextRoute +
+      ", case_wiki_routing_context_mode=" + $manifestCaseWikiRoutingContextMode +
+      ", case_wiki_routing_context_requested_intent=" + $manifestCaseWikiRoutingContextRequestedIntent +
+      ", case_wiki_routing_context_routed_intent=" + $manifestCaseWikiRoutingContextRoutedIntent +
       ", provider_usage_status=" + $manifestProviderUsageStatus +
       ", provider_usage_validated=" + $manifestProviderUsageValidated +
       ", provider_usage_active_secondary_providers=" + $manifestProviderUsageActiveSecondaryProviders +

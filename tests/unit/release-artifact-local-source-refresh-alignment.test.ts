@@ -50,6 +50,17 @@ test("local source-run refresh helper keeps expected evidence and branch-guard i
   assert.match(source, /badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus/);
   assert.match(source, /badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths/);
   assert.match(source, /badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath/);
+  assert.match(source, /badgeEvidenceCaseWikiRoutingContextStatus/);
+  assert.match(source, /badgeEvidenceCaseWikiRoutingContextValidated/);
+  assert.match(source, /badgeEvidenceCaseWikiRoutingContextObserved/);
+  assert.match(source, /badgeEvidenceCaseWikiRoutingContextSource/);
+  assert.match(source, /badgeEvidenceCaseWikiRoutingContextFocusId/);
+  assert.match(source, /badgeEvidenceCaseWikiRoutingContextBlocker/);
+  assert.match(source, /badgeEvidenceCaseWikiRoutingContextNextAction/);
+  assert.match(source, /badgeEvidenceCaseWikiRoutingContextRoute/);
+  assert.match(source, /badgeEvidenceCaseWikiRoutingContextMode/);
+  assert.match(source, /badgeEvidenceCaseWikiRoutingContextRequestedIntent/);
+  assert.match(source, /badgeEvidenceCaseWikiRoutingContextRoutedIntent/);
   assert.match(source, /badgeEvidenceProviderUsageStatus/);
   assert.match(source, /badgeEvidenceProviderUsageValidated/);
   assert.match(source, /badgeEvidenceProviderUsageActiveSecondaryProviders/);
@@ -57,6 +68,7 @@ test("local source-run refresh helper keeps expected evidence and branch-guard i
   assert.match(source, /badgeEvidenceProviderUsagePrimaryEntry/);
   assert.match(source, /badgeEvidenceDeviceNodeUpdatesStatus/);
   assert.match(source, /Source run manifest written/);
+  assert.match(source, /Case wiki routing context status/);
 });
 
 test("local source-run refresh helper docs stay aligned", () => {

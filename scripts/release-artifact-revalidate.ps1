@@ -675,6 +675,17 @@ $badgeEvidenceRuntimeGuardrailsSignalPathsStatus = $null
 $badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = $null
 $badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = $null
 $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $null
+$badgeEvidenceCaseWikiRoutingContextStatus = "unavailable"
+$badgeEvidenceCaseWikiRoutingContextValidated = $false
+$badgeEvidenceCaseWikiRoutingContextObserved = $false
+$badgeEvidenceCaseWikiRoutingContextSource = $null
+$badgeEvidenceCaseWikiRoutingContextFocusId = $null
+$badgeEvidenceCaseWikiRoutingContextBlocker = $null
+$badgeEvidenceCaseWikiRoutingContextNextAction = $null
+$badgeEvidenceCaseWikiRoutingContextRoute = $null
+$badgeEvidenceCaseWikiRoutingContextMode = $null
+$badgeEvidenceCaseWikiRoutingContextRequestedIntent = $null
+$badgeEvidenceCaseWikiRoutingContextRoutedIntent = $null
 $badgeEvidenceProviderUsageStatus = "unavailable"
 $badgeEvidenceProviderUsageValidated = $false
 $badgeEvidenceProviderUsageActiveSecondaryProviders = 0
@@ -793,7 +804,38 @@ if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.runti
     $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $releaseEvidenceReport.runtimeGuardrailsSignalPaths.primaryPath
   }
 }
+if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.caseWikiRoutingContext) {
+  $badgeEvidenceCaseWikiRoutingContextValidated = ($releaseEvidenceReport.caseWikiRoutingContext.validated -eq $true)
+  $badgeEvidenceCaseWikiRoutingContextObserved = ($releaseEvidenceReport.caseWikiRoutingContext.observed -eq $true)
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.contextSource)) {
+    $badgeEvidenceCaseWikiRoutingContextSource = [string]$releaseEvidenceReport.caseWikiRoutingContext.contextSource
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.focusId)) {
+    $badgeEvidenceCaseWikiRoutingContextFocusId = [string]$releaseEvidenceReport.caseWikiRoutingContext.focusId
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.blocker)) {
+    $badgeEvidenceCaseWikiRoutingContextBlocker = [string]$releaseEvidenceReport.caseWikiRoutingContext.blocker
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.nextAction)) {
+    $badgeEvidenceCaseWikiRoutingContextNextAction = [string]$releaseEvidenceReport.caseWikiRoutingContext.nextAction
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.route)) {
+    $badgeEvidenceCaseWikiRoutingContextRoute = [string]$releaseEvidenceReport.caseWikiRoutingContext.route
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.mode)) {
+    $badgeEvidenceCaseWikiRoutingContextMode = [string]$releaseEvidenceReport.caseWikiRoutingContext.mode
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.requestedIntent)) {
+    $badgeEvidenceCaseWikiRoutingContextRequestedIntent = [string]$releaseEvidenceReport.caseWikiRoutingContext.requestedIntent
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.routedIntent)) {
+    $badgeEvidenceCaseWikiRoutingContextRoutedIntent = [string]$releaseEvidenceReport.caseWikiRoutingContext.routedIntent
+  }
+}
 if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.statuses) {
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.caseWikiRoutingContextStatus)) {
+    $badgeEvidenceCaseWikiRoutingContextStatus = [string]$releaseEvidenceReport.statuses.caseWikiRoutingContextStatus
+  }
   if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.providerUsageStatus)) {
     $badgeEvidenceProviderUsageStatus = [string]$releaseEvidenceReport.statuses.providerUsageStatus
   }
@@ -982,6 +1024,17 @@ $gateEvidenceSnapshot = [ordered]@{
   badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = $badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus
   badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = $badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths
   badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath
+  badgeEvidenceCaseWikiRoutingContextStatus   = $badgeEvidenceCaseWikiRoutingContextStatus
+  badgeEvidenceCaseWikiRoutingContextValidated = $badgeEvidenceCaseWikiRoutingContextValidated
+  badgeEvidenceCaseWikiRoutingContextObserved = $badgeEvidenceCaseWikiRoutingContextObserved
+  badgeEvidenceCaseWikiRoutingContextSource   = $badgeEvidenceCaseWikiRoutingContextSource
+  badgeEvidenceCaseWikiRoutingContextFocusId  = $badgeEvidenceCaseWikiRoutingContextFocusId
+  badgeEvidenceCaseWikiRoutingContextBlocker  = $badgeEvidenceCaseWikiRoutingContextBlocker
+  badgeEvidenceCaseWikiRoutingContextNextAction = $badgeEvidenceCaseWikiRoutingContextNextAction
+  badgeEvidenceCaseWikiRoutingContextRoute    = $badgeEvidenceCaseWikiRoutingContextRoute
+  badgeEvidenceCaseWikiRoutingContextMode     = $badgeEvidenceCaseWikiRoutingContextMode
+  badgeEvidenceCaseWikiRoutingContextRequestedIntent = $badgeEvidenceCaseWikiRoutingContextRequestedIntent
+  badgeEvidenceCaseWikiRoutingContextRoutedIntent = $badgeEvidenceCaseWikiRoutingContextRoutedIntent
   badgeEvidenceProviderUsageStatus            = $badgeEvidenceProviderUsageStatus
   badgeEvidenceProviderUsageValidated         = $badgeEvidenceProviderUsageValidated
   badgeEvidenceProviderUsageActiveSecondaryProviders = $badgeEvidenceProviderUsageActiveSecondaryProviders
@@ -1123,6 +1176,17 @@ Write-Host ("- evidence snapshot (runtime guardrails signal paths status): " + $
 Write-Host ("- evidence snapshot (runtime guardrails signal paths summary status): " + $badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus)
 Write-Host ("- evidence snapshot (runtime guardrails signal paths total paths): " + $badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths)
 Write-Host ("- evidence snapshot (runtime guardrails signal paths primary path title): " + $(if ($null -ne $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath) { [string]$badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath.title } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context status): " + $badgeEvidenceCaseWikiRoutingContextStatus)
+Write-Host ("- evidence snapshot (case wiki routing context validated): " + $badgeEvidenceCaseWikiRoutingContextValidated)
+Write-Host ("- evidence snapshot (case wiki routing context observed): " + $badgeEvidenceCaseWikiRoutingContextObserved)
+Write-Host ("- evidence snapshot (case wiki routing context source): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextSource)) { $badgeEvidenceCaseWikiRoutingContextSource } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context focus id): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextFocusId)) { $badgeEvidenceCaseWikiRoutingContextFocusId } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context blocker): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextBlocker)) { $badgeEvidenceCaseWikiRoutingContextBlocker } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context next action): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextNextAction)) { $badgeEvidenceCaseWikiRoutingContextNextAction } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context route): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextRoute)) { $badgeEvidenceCaseWikiRoutingContextRoute } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context mode): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextMode)) { $badgeEvidenceCaseWikiRoutingContextMode } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context requested intent): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextRequestedIntent)) { $badgeEvidenceCaseWikiRoutingContextRequestedIntent } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki routing context routed intent): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextRoutedIntent)) { $badgeEvidenceCaseWikiRoutingContextRoutedIntent } else { "(none)" }))
 Write-Host ("- evidence snapshot (provider usage status): " + $badgeEvidenceProviderUsageStatus)
 Write-Host ("- evidence snapshot (provider usage validated): " + $badgeEvidenceProviderUsageValidated)
 Write-Host ("- evidence snapshot (provider usage active secondary providers): " + $badgeEvidenceProviderUsageActiveSecondaryProviders)

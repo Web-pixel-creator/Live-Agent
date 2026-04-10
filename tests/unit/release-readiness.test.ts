@@ -1018,6 +1018,17 @@ function createPassingSourceRunManifest(
     evidenceRuntimeGuardrailsSignalPathsSummaryStatus: string;
     evidenceRuntimeGuardrailsSignalPathsTotalPaths: number | string;
     evidenceRuntimeGuardrailsSignalPathsPrimaryPath: Record<string, unknown> | null;
+    evidenceCaseWikiRoutingContextStatus: string;
+    evidenceCaseWikiRoutingContextValidated: boolean | string;
+    evidenceCaseWikiRoutingContextObserved: boolean | string;
+    evidenceCaseWikiRoutingContextSource: string;
+    evidenceCaseWikiRoutingContextFocusId: string;
+    evidenceCaseWikiRoutingContextBlocker: string;
+    evidenceCaseWikiRoutingContextNextAction: string;
+    evidenceCaseWikiRoutingContextRoute: string;
+    evidenceCaseWikiRoutingContextMode: string;
+    evidenceCaseWikiRoutingContextRequestedIntent: string;
+    evidenceCaseWikiRoutingContextRoutedIntent: string;
     evidenceProviderUsageStatus: string;
     evidenceProviderUsageValidated: boolean;
     evidenceProviderUsageActiveSecondaryProviders: number | string;
@@ -1275,6 +1286,39 @@ function createPassingSourceRunManifest(
                 "Recovery drill: UI executor sandbox audit mode for ui_executor_sandbox_not_enforce@ui-executor.",
               lifecycleStatus: "active",
             },
+        badgeEvidenceCaseWikiRoutingContextStatus: hasOverride("evidenceCaseWikiRoutingContextStatus")
+          ? overrides.evidenceCaseWikiRoutingContextStatus
+          : "pass",
+        badgeEvidenceCaseWikiRoutingContextValidated: hasOverride("evidenceCaseWikiRoutingContextValidated")
+          ? overrides.evidenceCaseWikiRoutingContextValidated
+          : true,
+        badgeEvidenceCaseWikiRoutingContextObserved: hasOverride("evidenceCaseWikiRoutingContextObserved")
+          ? overrides.evidenceCaseWikiRoutingContextObserved
+          : true,
+        badgeEvidenceCaseWikiRoutingContextSource: hasOverride("evidenceCaseWikiRoutingContextSource")
+          ? overrides.evidenceCaseWikiRoutingContextSource
+          : "case_wiki",
+        badgeEvidenceCaseWikiRoutingContextFocusId: hasOverride("evidenceCaseWikiRoutingContextFocusId")
+          ? overrides.evidenceCaseWikiRoutingContextFocusId
+          : "question:passport-scan",
+        badgeEvidenceCaseWikiRoutingContextBlocker: hasOverride("evidenceCaseWikiRoutingContextBlocker")
+          ? overrides.evidenceCaseWikiRoutingContextBlocker
+          : "Do we have the passport scan?",
+        badgeEvidenceCaseWikiRoutingContextNextAction: hasOverride("evidenceCaseWikiRoutingContextNextAction")
+          ? overrides.evidenceCaseWikiRoutingContextNextAction
+          : "Request passport scan",
+        badgeEvidenceCaseWikiRoutingContextRoute: hasOverride("evidenceCaseWikiRoutingContextRoute")
+          ? overrides.evidenceCaseWikiRoutingContextRoute
+          : "live-agent",
+        badgeEvidenceCaseWikiRoutingContextMode: hasOverride("evidenceCaseWikiRoutingContextMode")
+          ? overrides.evidenceCaseWikiRoutingContextMode
+          : "assistive_override",
+        badgeEvidenceCaseWikiRoutingContextRequestedIntent: hasOverride("evidenceCaseWikiRoutingContextRequestedIntent")
+          ? overrides.evidenceCaseWikiRoutingContextRequestedIntent
+          : "conversation",
+        badgeEvidenceCaseWikiRoutingContextRoutedIntent: hasOverride("evidenceCaseWikiRoutingContextRoutedIntent")
+          ? overrides.evidenceCaseWikiRoutingContextRoutedIntent
+          : "negotiation",
         badgeEvidenceProviderUsageStatus: hasOverride("evidenceProviderUsageStatus")
           ? overrides.evidenceProviderUsageStatus
           : "pass",

@@ -686,6 +686,17 @@ jobs:
           $badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = "unavailable"
           $badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = 0
           $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $null
+          $badgeEvidenceCaseWikiRoutingContextStatus = "unavailable"
+          $badgeEvidenceCaseWikiRoutingContextValidated = $false
+          $badgeEvidenceCaseWikiRoutingContextObserved = $false
+          $badgeEvidenceCaseWikiRoutingContextSource = $null
+          $badgeEvidenceCaseWikiRoutingContextFocusId = $null
+          $badgeEvidenceCaseWikiRoutingContextBlocker = $null
+          $badgeEvidenceCaseWikiRoutingContextNextAction = $null
+          $badgeEvidenceCaseWikiRoutingContextRoute = $null
+          $badgeEvidenceCaseWikiRoutingContextMode = $null
+          $badgeEvidenceCaseWikiRoutingContextRequestedIntent = $null
+          $badgeEvidenceCaseWikiRoutingContextRoutedIntent = $null
           $badgeEvidenceProviderUsageStatus = "unavailable"
           $badgeEvidenceProviderUsageValidated = $false
           $badgeEvidenceProviderUsageActiveSecondaryProviders = 0
@@ -762,6 +773,9 @@ jobs:
             if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.runtimeGuardrailsSignalPathsStatus)) {
               $badgeEvidenceRuntimeGuardrailsSignalPathsStatus = [string]$releaseEvidenceReport.statuses.runtimeGuardrailsSignalPathsStatus
             }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.caseWikiRoutingContextStatus)) {
+              $badgeEvidenceCaseWikiRoutingContextStatus = [string]$releaseEvidenceReport.statuses.caseWikiRoutingContextStatus
+            }
             if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.providerUsageStatus)) {
               $badgeEvidenceProviderUsageStatus = [string]$releaseEvidenceReport.statuses.providerUsageStatus
             }
@@ -778,6 +792,34 @@ jobs:
             }
             if ($null -ne $releaseEvidenceReport.runtimeGuardrailsSignalPaths.primaryPath) {
               $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $releaseEvidenceReport.runtimeGuardrailsSignalPaths.primaryPath
+            }
+          }
+          if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.caseWikiRoutingContext) {
+            $badgeEvidenceCaseWikiRoutingContextValidated = ($releaseEvidenceReport.caseWikiRoutingContext.validated -eq $true)
+            $badgeEvidenceCaseWikiRoutingContextObserved = ($releaseEvidenceReport.caseWikiRoutingContext.observed -eq $true)
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.contextSource)) {
+              $badgeEvidenceCaseWikiRoutingContextSource = [string]$releaseEvidenceReport.caseWikiRoutingContext.contextSource
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.focusId)) {
+              $badgeEvidenceCaseWikiRoutingContextFocusId = [string]$releaseEvidenceReport.caseWikiRoutingContext.focusId
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.blocker)) {
+              $badgeEvidenceCaseWikiRoutingContextBlocker = [string]$releaseEvidenceReport.caseWikiRoutingContext.blocker
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.nextAction)) {
+              $badgeEvidenceCaseWikiRoutingContextNextAction = [string]$releaseEvidenceReport.caseWikiRoutingContext.nextAction
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.route)) {
+              $badgeEvidenceCaseWikiRoutingContextRoute = [string]$releaseEvidenceReport.caseWikiRoutingContext.route
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.mode)) {
+              $badgeEvidenceCaseWikiRoutingContextMode = [string]$releaseEvidenceReport.caseWikiRoutingContext.mode
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.requestedIntent)) {
+              $badgeEvidenceCaseWikiRoutingContextRequestedIntent = [string]$releaseEvidenceReport.caseWikiRoutingContext.requestedIntent
+            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.routedIntent)) {
+              $badgeEvidenceCaseWikiRoutingContextRoutedIntent = [string]$releaseEvidenceReport.caseWikiRoutingContext.routedIntent
             }
           }
           if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.providerUsage) {
@@ -963,6 +1005,17 @@ jobs:
             badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = $badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus
             badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = $badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths
             badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath
+            badgeEvidenceCaseWikiRoutingContextStatus = $badgeEvidenceCaseWikiRoutingContextStatus
+            badgeEvidenceCaseWikiRoutingContextValidated = $badgeEvidenceCaseWikiRoutingContextValidated
+            badgeEvidenceCaseWikiRoutingContextObserved = $badgeEvidenceCaseWikiRoutingContextObserved
+            badgeEvidenceCaseWikiRoutingContextSource = $badgeEvidenceCaseWikiRoutingContextSource
+            badgeEvidenceCaseWikiRoutingContextFocusId = $badgeEvidenceCaseWikiRoutingContextFocusId
+            badgeEvidenceCaseWikiRoutingContextBlocker = $badgeEvidenceCaseWikiRoutingContextBlocker
+            badgeEvidenceCaseWikiRoutingContextNextAction = $badgeEvidenceCaseWikiRoutingContextNextAction
+            badgeEvidenceCaseWikiRoutingContextRoute = $badgeEvidenceCaseWikiRoutingContextRoute
+            badgeEvidenceCaseWikiRoutingContextMode = $badgeEvidenceCaseWikiRoutingContextMode
+            badgeEvidenceCaseWikiRoutingContextRequestedIntent = $badgeEvidenceCaseWikiRoutingContextRequestedIntent
+            badgeEvidenceCaseWikiRoutingContextRoutedIntent = $badgeEvidenceCaseWikiRoutingContextRoutedIntent
             badgeEvidenceProviderUsageStatus = $badgeEvidenceProviderUsageStatus
             badgeEvidenceProviderUsageValidated = $badgeEvidenceProviderUsageValidated
             badgeEvidenceProviderUsageActiveSecondaryProviders = $badgeEvidenceProviderUsageActiveSecondaryProviders
@@ -1029,6 +1082,17 @@ jobs:
           ("runtime_guardrails_signal_paths_summary_status=" + [string]$badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("runtime_guardrails_signal_paths_total_paths=" + [string]$badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("runtime_guardrails_signal_paths_primary_path_title=" + $(if ($null -ne $badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath) { [string]$badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath.title } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_status=" + [string]$badgeEvidenceCaseWikiRoutingContextStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_validated=" + $(if ($badgeEvidenceCaseWikiRoutingContextValidated) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_observed=" + $(if ($badgeEvidenceCaseWikiRoutingContextObserved) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_source=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextSource) { [string]$badgeEvidenceCaseWikiRoutingContextSource } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_focus_id=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextFocusId) { [string]$badgeEvidenceCaseWikiRoutingContextFocusId } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_blocker=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextBlocker) { [string]$badgeEvidenceCaseWikiRoutingContextBlocker } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_next_action=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextNextAction) { [string]$badgeEvidenceCaseWikiRoutingContextNextAction } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_route=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextRoute) { [string]$badgeEvidenceCaseWikiRoutingContextRoute } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_mode=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextMode) { [string]$badgeEvidenceCaseWikiRoutingContextMode } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_requested_intent=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextRequestedIntent) { [string]$badgeEvidenceCaseWikiRoutingContextRequestedIntent } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_routed_intent=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextRoutedIntent) { [string]$badgeEvidenceCaseWikiRoutingContextRoutedIntent } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("provider_usage_status=" + [string]$badgeEvidenceProviderUsageStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("provider_usage_validated=" + $(if ($badgeEvidenceProviderUsageValidated) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("provider_usage_active_secondary_providers=" + [string]$badgeEvidenceProviderUsageActiveSecondaryProviders) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -1134,6 +1198,17 @@ jobs:
           ("Runtime-guardrails-signal-paths summary status (badge evidence): ${{ steps.write_manifest.outputs.runtime_guardrails_signal_paths_summary_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Runtime-guardrails-signal-paths total paths (badge evidence): ${{ steps.write_manifest.outputs.runtime_guardrails_signal_paths_total_paths }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Runtime-guardrails-signal-paths primary path title (badge evidence): ${{ steps.write_manifest.outputs.runtime_guardrails_signal_paths_primary_path_title }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context status (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context validated (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_validated }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context observed (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_observed }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context source (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_source }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context focus id (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_focus_id }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context blocker (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_blocker }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context next action (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_next_action }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context route (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_route }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context mode (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context requested intent (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_requested_intent }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context routed intent (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_routed_intent }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Provider-usage status (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Provider-usage validated (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_validated }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Provider-usage active secondary providers (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_active_secondary_providers }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

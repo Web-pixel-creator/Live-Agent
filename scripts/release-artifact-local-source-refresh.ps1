@@ -455,6 +455,17 @@ $sourceRunManifest = [ordered]@{
       badgeEvidenceRuntimeGuardrailsSignalPathsSummaryStatus = Get-StatusOrFallback -Primary (Get-ObjectPropertyValue -Object $runtimeGuardrails -Name "summaryStatus") -Secondary (Get-ObjectPropertyValue -Object $runtimeGuardrailsBadge -Name "summaryStatus")
       badgeEvidenceRuntimeGuardrailsSignalPathsTotalPaths = Get-IntOrDefault (Get-ObjectPropertyValue -Object $runtimeGuardrails -Name "totalPaths") (Get-IntOrDefault (Get-ObjectPropertyValue -Object $runtimeGuardrailsBadge -Name "totalPaths") 0)
       badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath = $runtimeGuardrailsPrimaryPath
+      badgeEvidenceCaseWikiRoutingContextStatus = Get-StatusOrFallback -Primary (Get-ObjectPropertyValue -Object $reportStatuses -Name "caseWikiRoutingContextStatus") -Secondary (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $badgeEvidence -Name "caseWikiRoutingContext") -Name "status")
+      badgeEvidenceCaseWikiRoutingContextValidated = ((Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "validated") -eq $true)
+      badgeEvidenceCaseWikiRoutingContextObserved = ((Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "observed") -eq $true)
+      badgeEvidenceCaseWikiRoutingContextSource = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "contextSource")
+      badgeEvidenceCaseWikiRoutingContextFocusId = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "focusId")
+      badgeEvidenceCaseWikiRoutingContextBlocker = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "blocker")
+      badgeEvidenceCaseWikiRoutingContextNextAction = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "nextAction")
+      badgeEvidenceCaseWikiRoutingContextRoute = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "route")
+      badgeEvidenceCaseWikiRoutingContextMode = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "mode")
+      badgeEvidenceCaseWikiRoutingContextRequestedIntent = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "requestedIntent")
+      badgeEvidenceCaseWikiRoutingContextRoutedIntent = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "routedIntent")
       badgeEvidenceProviderUsageStatus = Get-StatusOrFallback -Primary (Get-ObjectPropertyValue -Object $providerUsage -Name "status") -Secondary (Get-ObjectPropertyValue -Object $providerUsageBadge -Name "status")
       badgeEvidenceProviderUsageValidated = $providerUsageValidated
       badgeEvidenceProviderUsageActiveSecondaryProviders = Get-IntOrDefault (Get-ObjectPropertyValue -Object $providerUsage -Name "activeSecondaryProviders") (Get-IntOrDefault (Get-ObjectPropertyValue -Object $providerUsageBadge -Name "activeSecondaryProviders") 0)
@@ -477,4 +488,5 @@ Write-Host ("[local-source-refresh] Source run manifest written: " + $resolvedOu
 Write-Host ("[local-source-refresh] Branch guard: allowAnySourceBranch=" + [string]$branchSelection.allowAnySourceBranch + "; allowedBranches=" + ($branchSelection.allowedBranches -join ", "))
 Write-Host ("[local-source-refresh] Perf mode: " + $perfMode)
 Write-Host ("[local-source-refresh] Runtime guardrails status: " + [string]$sourceRunManifest.gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsStatus)
+Write-Host ("[local-source-refresh] Case wiki routing context status: " + [string]$sourceRunManifest.gate.evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextStatus)
 Write-Host ("[local-source-refresh] Provider usage status: " + [string]$sourceRunManifest.gate.evidenceSnapshot.badgeEvidenceProviderUsageStatus)

@@ -403,6 +403,15 @@ jobs:
           $agentUsageStatus = "unavailable"
           $liveTransportStatus = "unavailable"
           $caseWikiEvidenceSignatureStatus = "unavailable"
+          $caseWikiRoutingContextStatus = "unavailable"
+          $caseWikiRoutingContextSource = ""
+          $caseWikiRoutingContextFocusId = ""
+          $caseWikiRoutingContextBlocker = ""
+          $caseWikiRoutingContextNextAction = ""
+          $caseWikiRoutingContextRoute = ""
+          $caseWikiRoutingContextMode = ""
+          $caseWikiRoutingContextRequestedIntent = ""
+          $caseWikiRoutingContextRoutedIntent = ""
           $liveTransportSessionMode = ""
           $liveTransportRuntimeMode = ""
           $liveTransportEvidenceSource = ""
@@ -430,8 +439,35 @@ jobs:
                 $agentUsageStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.agentUsageStatus)) { "unavailable" } else { [string]$report.statuses.agentUsageStatus }
                 $liveTransportStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.liveTransportStatus)) { "unavailable" } else { [string]$report.statuses.liveTransportStatus }
                 $caseWikiEvidenceSignatureStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.caseWikiEvidenceSignatureStatus)) { "unavailable" } else { [string]$report.statuses.caseWikiEvidenceSignatureStatus }
+                $caseWikiRoutingContextStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.caseWikiRoutingContextStatus)) { "unavailable" } else { [string]$report.statuses.caseWikiRoutingContextStatus }
                 $providerUsageStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.providerUsageStatus)) { "unavailable" } else { [string]$report.statuses.providerUsageStatus }
                 $deviceNodeUpdatesStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.deviceNodeUpdatesStatus)) { "unavailable" } else { [string]$report.statuses.deviceNodeUpdatesStatus }
+              }
+              if ($null -ne $report -and $null -ne $report.caseWikiRoutingContext) {
+                if (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.contextSource)) {
+                  $caseWikiRoutingContextSource = [string]$report.caseWikiRoutingContext.contextSource
+                }
+                if (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.focusId)) {
+                  $caseWikiRoutingContextFocusId = [string]$report.caseWikiRoutingContext.focusId
+                }
+                if (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) {
+                  $caseWikiRoutingContextBlocker = [string]$report.caseWikiRoutingContext.blocker
+                }
+                if (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.nextAction)) {
+                  $caseWikiRoutingContextNextAction = [string]$report.caseWikiRoutingContext.nextAction
+                }
+                if (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.route)) {
+                  $caseWikiRoutingContextRoute = [string]$report.caseWikiRoutingContext.route
+                }
+                if (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.mode)) {
+                  $caseWikiRoutingContextMode = [string]$report.caseWikiRoutingContext.mode
+                }
+                if (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.requestedIntent)) {
+                  $caseWikiRoutingContextRequestedIntent = [string]$report.caseWikiRoutingContext.requestedIntent
+                }
+                if (-not [string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.routedIntent)) {
+                  $caseWikiRoutingContextRoutedIntent = [string]$report.caseWikiRoutingContext.routedIntent
+                }
               }
               if ($null -ne $report -and $null -ne $report.liveTransport) {
                 if ($null -ne $report.liveTransport.session -and -not [string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.activeMode)) {
@@ -477,6 +513,15 @@ jobs:
           ("agent_usage_status=" + $agentUsageStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("live_transport_status=" + $liveTransportStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("case_wiki_evidence_signature_status=" + $caseWikiEvidenceSignatureStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_status=" + $caseWikiRoutingContextStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_source=" + $caseWikiRoutingContextSource) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_focus_id=" + $caseWikiRoutingContextFocusId) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_blocker=" + $caseWikiRoutingContextBlocker) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_next_action=" + $caseWikiRoutingContextNextAction) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_route=" + $caseWikiRoutingContextRoute) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_mode=" + $caseWikiRoutingContextMode) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_requested_intent=" + $caseWikiRoutingContextRequestedIntent) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_routing_context_routed_intent=" + $caseWikiRoutingContextRoutedIntent) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("live_transport_session_mode=" + $liveTransportSessionMode) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("live_transport_runtime_mode=" + $liveTransportRuntimeMode) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("live_transport_evidence_source=" + $liveTransportEvidenceSource) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -524,6 +569,15 @@ jobs:
           ("Agent-usage status (badge evidence): ${{ steps.collect_release_evidence.outputs.agent_usage_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Live-transport status (badge evidence): ${{ steps.collect_release_evidence.outputs.live_transport_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Case-wiki-evidence-signature status (badge evidence): ${{ steps.collect_release_evidence.outputs.case_wiki_evidence_signature_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context status (badge evidence): ${{ steps.collect_release_evidence.outputs.case_wiki_routing_context_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context source (badge evidence): ${{ steps.collect_release_evidence.outputs.case_wiki_routing_context_source }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context focus id (badge evidence): ${{ steps.collect_release_evidence.outputs.case_wiki_routing_context_focus_id }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context blocker (badge evidence): ${{ steps.collect_release_evidence.outputs.case_wiki_routing_context_blocker }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context next action (badge evidence): ${{ steps.collect_release_evidence.outputs.case_wiki_routing_context_next_action }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context route (badge evidence): ${{ steps.collect_release_evidence.outputs.case_wiki_routing_context_route }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context mode (badge evidence): ${{ steps.collect_release_evidence.outputs.case_wiki_routing_context_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context requested intent (badge evidence): ${{ steps.collect_release_evidence.outputs.case_wiki_routing_context_requested_intent }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-routing-context routed intent (badge evidence): ${{ steps.collect_release_evidence.outputs.case_wiki_routing_context_routed_intent }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Live-transport session mode (badge evidence): ${{ steps.collect_release_evidence.outputs.live_transport_session_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Live-transport runtime mode (badge evidence): ${{ steps.collect_release_evidence.outputs.live_transport_runtime_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Live-transport evidence source (badge evidence): ${{ steps.collect_release_evidence.outputs.live_transport_evidence_source }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

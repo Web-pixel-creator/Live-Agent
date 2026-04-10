@@ -326,6 +326,17 @@ $sourceRunManifest = [ordered]@{
         summaryText = "Recovery drill: UI executor sandbox audit mode for ui_executor_sandbox_not_enforce@ui-executor."
         lifecycleStatus = "active"
       }
+      badgeEvidenceCaseWikiRoutingContextStatus = "pass"
+      badgeEvidenceCaseWikiRoutingContextValidated = $true
+      badgeEvidenceCaseWikiRoutingContextObserved = $true
+      badgeEvidenceCaseWikiRoutingContextSource = "case_wiki"
+      badgeEvidenceCaseWikiRoutingContextFocusId = "question:passport-scan"
+      badgeEvidenceCaseWikiRoutingContextBlocker = "Do we have the passport scan?"
+      badgeEvidenceCaseWikiRoutingContextNextAction = "Request passport scan"
+      badgeEvidenceCaseWikiRoutingContextRoute = "live-agent"
+      badgeEvidenceCaseWikiRoutingContextMode = "assistive_override"
+      badgeEvidenceCaseWikiRoutingContextRequestedIntent = "conversation"
+      badgeEvidenceCaseWikiRoutingContextRoutedIntent = "negotiation"
       badgeEvidenceProviderUsageStatus = "pass"
       badgeEvidenceProviderUsageValidated = $true
       badgeEvidenceProviderUsageActiveSecondaryProviders = 0
