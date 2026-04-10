@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-04-10T08:42:55.692Z",
+  "generatedAt": "2026-04-10T08:51:01.298Z",
   "ok": true,
   "policyPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "D:\\a\\Live-Agent\\Live-Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 281,
   "violations": 0,
-  "roundTripMs": 69,
+  "roundTripMs": 40,
   "costEstimate": {
     "currency": "USD",
     "geminiLiveUsd": 0.035962,
@@ -92,7 +92,7 @@
     ]
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-04-10T08:42:53.9309330+00:00",
+    "sourceSummaryGeneratedAt": "2026-04-10T08:50:59.5799038+00:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -100,7 +100,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-10T08:42:52.337Z",
+      "latestSeenAt": "2026-04-10T08:50:58.168Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -114,7 +114,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-10T08:42:52.443Z",
+      "latestSeenAt": "2026-04-10T08:50:58.268Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -148,7 +148,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-04-10T08:42:51.903Z",
+        "seenAt": "2026-04-10T08:50:57.781Z",
         "seenAtIsIso": true
       }
     },
@@ -212,10 +212,10 @@
       },
       "latest": {
         "outcome": "succeeded",
-        "pluginId": "demo-plugin-skill-ec3922f8-bc35-4b59-a73d-a3fa49a766a3",
+        "pluginId": "demo-plugin-skill-073122e5-3b42-497d-9997-5ab7c2308e62",
         "version": 1,
         "signingStatus": "unsigned",
-        "seenAt": "2026-04-10T08:42:53.083Z",
+        "seenAt": "2026-04-10T08:50:58.835Z",
         "seenAtIsIso": true
       }
     },
@@ -296,7 +296,7 @@
           "statusCode": "active",
           "statusText": "active",
           "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-          "updatedAt": "2026-04-10T08:42:53.4068965+00:00",
+          "updatedAt": "2026-04-10T08:50:59.1078738+00:00",
           "updatedAtIsIso": true
         }
       },
@@ -317,7 +317,7 @@
             "statusCode": "active",
             "statusText": "active",
             "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-            "updatedAt": "2026-04-10T08:42:53.4068965+00:00",
+            "updatedAt": "2026-04-10T08:50:59.1078738+00:00",
             "updatedAtIsIso": true
           }
         }
@@ -327,7 +327,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 281 checks | 69ms ws",
+    "message": "pass | 281 checks | 40ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }
