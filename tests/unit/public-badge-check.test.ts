@@ -105,18 +105,43 @@ async function withMockBadgeServer(
   }
 }
 
+function withDefaultCaseWikiRoutingContext(details: Record<string, unknown>): Record<string, unknown> {
+  const cloned = JSON.parse(JSON.stringify(details)) as Record<string, unknown>;
+  const evidence = (cloned.evidence ?? {}) as Record<string, unknown>;
+  cloned.evidence = evidence;
+  if (!("caseWikiRoutingContext" in evidence)) {
+    evidence.caseWikiRoutingContext = {
+      status: "pass",
+      validated: true,
+      observed: true,
+      contextSource: "case_wiki",
+      focusId: "question:passport-scan",
+      blocker: "Do we have the passport scan?",
+      nextAction: "Request passport scan",
+      route: "live-agent",
+      mode: "assistive_override",
+      requestedIntent: "conversation",
+      routedIntent: "negotiation",
+    };
+  }
+  return cloned;
+}
+
 test(
   "public-badge-check passes when tracked badge details include valid plugin marketplace and provider usage evidence",
   { skip: skipIfNoPowerShell },
   async () => {
     const badge = JSON.parse(readFileSync(trackedBadgePath, "utf8")) as Record<string, unknown>;
-    const details = JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>;
+    const details = withDefaultCaseWikiRoutingContext(
+      JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>,
+    );
 
     await withMockBadgeServer(badge, details, async ({ badgeEndpoint, detailsEndpoint }) => {
       const result = await runPublicBadgeCheck({ badgeEndpoint, detailsEndpoint });
       assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
       assert.match(result.stdout, /Public badge endpoint is valid\./);
       assert.match(result.stdout, /Device-node-updates status \(badge evidence\): pass/);
+      assert.match(result.stdout, /Case-wiki-routing-context status \(badge evidence\): pass/);
       assert.match(result.stdout, /Provider-usage status \(badge evidence\): pass/);
     });
   },
@@ -127,7 +152,9 @@ test(
   { skip: skipIfNoPowerShell },
   async () => {
     const badge = JSON.parse(readFileSync(trackedBadgePath, "utf8")) as Record<string, unknown>;
-    const details = JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>;
+    const details = withDefaultCaseWikiRoutingContext(
+      JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>,
+    );
     const failingDetails = JSON.parse(JSON.stringify(details)) as Record<string, unknown>;
 
     const evidence = failingDetails.evidence as Record<string, unknown>;
@@ -152,7 +179,9 @@ test(
   { skip: skipIfNoPowerShell },
   async () => {
     const badge = JSON.parse(readFileSync(trackedBadgePath, "utf8")) as Record<string, unknown>;
-    const details = JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>;
+    const details = withDefaultCaseWikiRoutingContext(
+      JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>,
+    );
     const failingDetails = JSON.parse(JSON.stringify(details)) as Record<string, unknown>;
 
     const providerUsage = failingDetails.providerUsage as Record<string, unknown>;

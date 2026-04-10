@@ -39,7 +39,9 @@ test("release-readiness keeps provider env out of nested unit tests while preser
   assert.match(source, /LIVE_EPHEMERAL_TOKENS_ENABLED/);
   assert.match(source, /RUNTIME_EVIDENCE_SIGNING_ENABLED/);
   assert.match(source, /caseWikiEvidenceSignature/);
+  assert.match(source, /caseWikiRoutingContext/);
   assert.match(source, /case_wiki\.evidence_signature: validated=/);
+  assert.match(source, /case_wiki\.routing_context: validated=/);
   assert.match(source, /-IncludeFrontend/);
   assert.match(source, /--allowUiExecutorRuntimeFallback true/);
   assert.match(source, /--allowedTranslationProviders fallback,gemini,google_translate/);
@@ -808,6 +810,19 @@ function createCaseWikiEvidenceSignatureBadgeDetails(
         nextAction: "Ask the customer to upload the passport scan.",
         sourceRefsCount: 2,
       },
+      caseWikiRoutingContext: {
+        status: "pass",
+        validated: true,
+        observed: true,
+        contextSource: "case_wiki",
+        focusId: "question:passport-scan",
+        blocker: "Do we have the passport scan?",
+        nextAction: "Request passport scan",
+        route: "live-agent",
+        mode: "assistive_override",
+        requestedIntent: "conversation",
+        routedIntent: "negotiation",
+      },
     },
   };
 }
@@ -1517,6 +1532,8 @@ test(
     assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /case_wiki\.evidence_signature: validated=True/i);
+    assert.match(output, /case_wiki\.routing_context: validated=True/i);
+    assert.match(output, /context_source=case_wiki/i);
     assert.match(output, /signature_status=unsigned/i);
     assert.match(output, /signed=0/i);
     assert.match(output, /unsigned=1/i);

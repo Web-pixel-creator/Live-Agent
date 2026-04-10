@@ -271,6 +271,43 @@ function New-CaseWikiEvidenceSignatureSnapshot {
   }
 }
 
+function New-CaseWikiRoutingContextSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status          = "unavailable"
+      validated       = $false
+      observed        = $false
+      contextSource   = $null
+      focusId         = $null
+      blocker         = $null
+      nextAction      = $null
+      route           = $null
+      mode            = $null
+      requestedIntent = $null
+      routedIntent    = $null
+    }
+  }
+
+  return [ordered]@{
+    status          = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated       = ($Value.validated -eq $true)
+    observed        = ($Value.observed -eq $true)
+    contextSource   = $(if ([string]::IsNullOrWhiteSpace([string]$Value.contextSource)) { $null } else { [string]$Value.contextSource })
+    focusId         = $(if ([string]::IsNullOrWhiteSpace([string]$Value.focusId)) { $null } else { [string]$Value.focusId })
+    blocker         = $(if ([string]::IsNullOrWhiteSpace([string]$Value.blocker)) { $null } else { [string]$Value.blocker })
+    nextAction      = $(if ([string]::IsNullOrWhiteSpace([string]$Value.nextAction)) { $null } else { [string]$Value.nextAction })
+    route           = $(if ([string]::IsNullOrWhiteSpace([string]$Value.route)) { $null } else { [string]$Value.route })
+    mode            = $(if ([string]::IsNullOrWhiteSpace([string]$Value.mode)) { $null } else { [string]$Value.mode })
+    requestedIntent = $(if ([string]::IsNullOrWhiteSpace([string]$Value.requestedIntent)) { $null } else { [string]$Value.requestedIntent })
+    routedIntent    = $(if ([string]::IsNullOrWhiteSpace([string]$Value.routedIntent)) { $null } else { [string]$Value.routedIntent })
+  }
+}
+
 function New-ArtifactEntry {
   param(
     [Parameter(Mandatory = $true)]
@@ -403,6 +440,7 @@ $report = [ordered]@{
     liveTransportStatus       = "unavailable"
     providerUsageStatus       = "unavailable"
     caseWikiEvidenceSignatureStatus = "unavailable"
+    caseWikiRoutingContextStatus = "unavailable"
     deviceNodeUpdatesStatus   = "unavailable"
   }
   deviceNodeUpdates = [ordered]@{
@@ -461,6 +499,19 @@ $report = [ordered]@{
     focusLabel        = $null
     nextAction        = $null
     sourceRefsCount   = 0
+  }
+  caseWikiRoutingContext = [ordered]@{
+    status          = "unavailable"
+    validated       = $false
+    observed        = $false
+    contextSource   = $null
+    focusId         = $null
+    blocker         = $null
+    nextAction      = $null
+    route           = $null
+    mode            = $null
+    requestedIntent = $null
+    routedIntent    = $null
   }
   providerUsage = [ordered]@{
     status                  = "unavailable"
@@ -575,6 +626,10 @@ if (Test-Path $resolvedBadgeDetailsPath) {
       $report.caseWikiEvidenceSignature = New-CaseWikiEvidenceSignatureSnapshot -Value $badgeDetails.evidence.caseWikiEvidenceSignature
       $report.statuses.caseWikiEvidenceSignatureStatus = Get-StatusValueOrDefault -Value $report.caseWikiEvidenceSignature.status -DefaultValue "unavailable"
     }
+    if ($null -ne $badgeDetails.evidence.caseWikiRoutingContext) {
+      $report.caseWikiRoutingContext = New-CaseWikiRoutingContextSnapshot -Value $badgeDetails.evidence.caseWikiRoutingContext
+      $report.statuses.caseWikiRoutingContextStatus = Get-StatusValueOrDefault -Value $report.caseWikiRoutingContext.status -DefaultValue "unavailable"
+    }
     if ($null -ne $badgeDetails.providerUsage) {
       $report.providerUsage.status = Get-StatusValueOrDefault -Value $badgeDetails.providerUsage.status -DefaultValue "unavailable"
       $report.statuses.providerUsageStatus = $report.providerUsage.status
@@ -625,6 +680,7 @@ $markdown = @(
   "| runtimeGuardrailsSignalPaths | $($report.statuses.runtimeGuardrailsSignalPathsStatus) |",
   "| liveTransport | $($report.statuses.liveTransportStatus) |",
   "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
+  "| caseWikiRoutingContext | $($report.statuses.caseWikiRoutingContextStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",
@@ -685,6 +741,20 @@ $markdown = @(
   "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.nextAction)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.nextAction })",
   "- sourceRefsCount: $($report.caseWikiEvidenceSignature.sourceRefsCount)",
   "- payloadHash: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.payloadHash)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.payloadHash })",
+  "",
+  "## Case Wiki Routing Context Snapshot",
+  "",
+  "- status: $($report.caseWikiRoutingContext.status)",
+  "- validated: $($report.caseWikiRoutingContext.validated)",
+  "- observed: $($report.caseWikiRoutingContext.observed)",
+  "- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$report.caseWikiRoutingContext.contextSource })",
+  "- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.focusId)) { "n/a" } else { [string]$report.caseWikiRoutingContext.focusId })",
+  "- blocker: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$report.caseWikiRoutingContext.blocker })",
+  "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$report.caseWikiRoutingContext.nextAction })",
+  "- route: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.route)) { "n/a" } else { [string]$report.caseWikiRoutingContext.route })",
+  "- mode: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.mode)) { "n/a" } else { [string]$report.caseWikiRoutingContext.mode })",
+  "- requestedIntent: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.requestedIntent)) { "n/a" } else { [string]$report.caseWikiRoutingContext.requestedIntent })",
+  "- routedIntent: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.routedIntent)) { "n/a" } else { [string]$report.caseWikiRoutingContext.routedIntent })",
   "",
   "## Secondary Provider Usage",
   "",
@@ -762,6 +832,19 @@ $manifest = [ordered]@{
     signerId          = $report.caseWikiEvidenceSignature.signerId
     signedAt          = $report.caseWikiEvidenceSignature.signedAt
   }
+  caseWikiRoutingContext = [ordered]@{
+    status          = $report.caseWikiRoutingContext.status
+    validated       = $report.caseWikiRoutingContext.validated
+    observed        = $report.caseWikiRoutingContext.observed
+    contextSource   = $report.caseWikiRoutingContext.contextSource
+    focusId         = $report.caseWikiRoutingContext.focusId
+    blocker         = $report.caseWikiRoutingContext.blocker
+    nextAction      = $report.caseWikiRoutingContext.nextAction
+    route           = $report.caseWikiRoutingContext.route
+    mode            = $report.caseWikiRoutingContext.mode
+    requestedIntent = $report.caseWikiRoutingContext.requestedIntent
+    routedIntent    = $report.caseWikiRoutingContext.routedIntent
+  }
   artifacts     = $artifactEntries
   submissionAssets = @(
     [ordered]@{
@@ -824,6 +907,7 @@ $manifestMarkdown = @(
   "| runtimeGuardrailsSignalPaths | $($report.statuses.runtimeGuardrailsSignalPathsStatus) |",
   "| liveTransport | $($report.statuses.liveTransportStatus) |",
   "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
+  "| caseWikiRoutingContext | $($report.statuses.caseWikiRoutingContextStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",
@@ -839,6 +923,22 @@ $manifestMarkdown = @(
   "| signatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signatureStatus)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signatureStatus }) |",
   "| signerId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signerId)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signerId }) |",
   "| signedAt | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signedAt)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signedAt }) |",
+  "",
+  "## Case Wiki Routing Context",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.caseWikiRoutingContext.status) |",
+  "| validated | $($manifest.caseWikiRoutingContext.validated) |",
+  "| observed | $($manifest.caseWikiRoutingContext.observed) |",
+  "| contextSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.contextSource)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.contextSource }) |",
+  "| focusId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.focusId)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.focusId }) |",
+  "| blocker | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.blocker)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.blocker }) |",
+  "| nextAction | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.nextAction)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.nextAction }) |",
+  "| route | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.route)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.route }) |",
+  "| mode | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.mode)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.mode }) |",
+  "| requestedIntent | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.requestedIntent)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.requestedIntent }) |",
+  "| routedIntent | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.routedIntent)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.routedIntent }) |",
   "",
   "## Artifact Inventory",
   "",

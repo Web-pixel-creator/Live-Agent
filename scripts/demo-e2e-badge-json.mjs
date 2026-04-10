@@ -900,6 +900,58 @@ function buildCaseWikiEvidenceSignature(summary) {
   };
 }
 
+function buildCaseWikiRoutingContextEvidence(kpis) {
+  const validated = toBoolean(kpis.caseWikiRoutingContextValidated) === true;
+  const contextSource = toOptionalString(kpis.caseWikiRoutingContextSource);
+  const focusId = toOptionalString(kpis.caseWikiRoutingContextFocusId);
+  const blocker = toOptionalString(kpis.caseWikiRoutingContextBlocker);
+  const nextAction = toOptionalString(kpis.caseWikiRoutingContextNextAction);
+  const route = toOptionalString(kpis.caseWikiRoutingContextRoute);
+  const mode = toOptionalString(kpis.caseWikiRoutingContextMode);
+  const requestedIntent = toOptionalString(kpis.caseWikiRoutingContextRequestedIntent);
+  const routedIntent = toOptionalString(kpis.caseWikiRoutingContextRoutedIntent);
+  const observed =
+    contextSource !== null ||
+    focusId !== null ||
+    blocker !== null ||
+    nextAction !== null ||
+    route !== null ||
+    mode !== null ||
+    requestedIntent !== null ||
+    routedIntent !== null;
+  const modeValid =
+    mode !== null &&
+    ["deterministic", "assistive_override", "assistive_match", "assistive_fallback"].includes(mode);
+  const status =
+    validated &&
+    contextSource === "case_wiki" &&
+    focusId !== null &&
+    blocker !== null &&
+    nextAction !== null &&
+    route !== null &&
+    requestedIntent !== null &&
+    routedIntent !== null &&
+    modeValid
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    observed,
+    contextSource,
+    focusId,
+    blocker,
+    nextAction,
+    route,
+    mode,
+    requestedIntent,
+    routedIntent,
+  };
+}
+
 function buildProviderUsage(kpis) {
   const entries = [];
   let validated = true;
@@ -1162,6 +1214,7 @@ async function main() {
   const runtimeGuardrailsSignalPathsEvidence = buildRuntimeGuardrailsSignalPathsEvidence(kpis);
   const liveTransport = buildLiveTransport(summary, kpis);
   const caseWikiEvidenceSignature = buildCaseWikiEvidenceSignature(summary);
+  const caseWikiRoutingContext = buildCaseWikiRoutingContextEvidence(kpis);
   const providerUsage = buildProviderUsage(kpis);
 
   let color = "red";
@@ -1209,6 +1262,7 @@ async function main() {
       agentUsage: agentUsageEvidence,
       runtimeGuardrailsSignalPaths: runtimeGuardrailsSignalPathsEvidence,
       caseWikiEvidenceSignature,
+      caseWikiRoutingContext,
     },
     badge,
   };

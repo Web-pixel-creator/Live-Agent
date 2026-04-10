@@ -2198,6 +2198,11 @@ if (Test-Path $ReleaseEvidenceReportPath) {
     Fail ("release evidence report missing caseWikiEvidenceSignature block: " + $ReleaseEvidenceReportPath)
   }
 
+  $caseWikiRoutingContext = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext"
+  if ($null -eq $caseWikiRoutingContext) {
+    Fail ("release evidence report missing caseWikiRoutingContext block: " + $ReleaseEvidenceReportPath)
+  }
+
   $caseWikiEvidenceStatus = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "status")
   $caseWikiEvidenceValidated = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "validated")
   $caseWikiEvidenceTotalArtifacts = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "totalArtifacts")
@@ -2278,6 +2283,64 @@ if (Test-Path $ReleaseEvidenceReportPath) {
           "release evidence caseWikiEvidenceSignature expected unsignedArtifacts=totalArtifacts and signedArtifacts=0 when RUNTIME_EVIDENCE_SIGNING_ENABLED=false"
         )
       }
+    }
+  }
+
+  $caseWikiRoutingContextStatus = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "status")
+  $caseWikiRoutingContextValidated = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "validated")
+  $caseWikiRoutingContextObserved = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "observed")
+  $caseWikiRoutingContextSource = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "contextSource")
+  $caseWikiRoutingContextFocusId = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "focusId")
+  $caseWikiRoutingContextBlocker = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "blocker")
+  $caseWikiRoutingContextNextAction = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "nextAction")
+  $caseWikiRoutingContextRoute = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "route")
+  $caseWikiRoutingContextMode = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "mode")
+  $caseWikiRoutingContextRequestedIntent = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "requestedIntent")
+  $caseWikiRoutingContextRoutedIntent = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "routedIntent")
+  $allowedCaseWikiRoutingModes = @("deterministic", "assistive_override", "assistive_match", "assistive_fallback")
+  $caseWikiRoutingObserved =
+    ($caseWikiRoutingContextObserved -eq $true) -or
+    ($caseWikiRoutingContextStatus -ne "unavailable") -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiRoutingContextSource)) -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiRoutingContextFocusId)) -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiRoutingContextBlocker)) -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiRoutingContextNextAction))
+
+  if ($caseWikiRoutingObserved) {
+    if ($caseWikiRoutingContextStatus -ne "pass" -or $caseWikiRoutingContextValidated -ne $true) {
+      Fail (
+        "release evidence caseWikiRoutingContext expected status=pass and validated=true, actual status=" +
+        $caseWikiRoutingContextStatus +
+        ", validated=" +
+        (Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "validated")
+      )
+    }
+    if ($caseWikiRoutingContextObserved -ne $true) {
+      Fail "release evidence caseWikiRoutingContext.observed must be true"
+    }
+    if ($caseWikiRoutingContextSource -ne "case_wiki") {
+      Fail ("release evidence caseWikiRoutingContext.contextSource expected case_wiki, actual " + $caseWikiRoutingContextSource)
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiRoutingContextFocusId)) {
+      Fail "release evidence caseWikiRoutingContext.focusId is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiRoutingContextBlocker)) {
+      Fail "release evidence caseWikiRoutingContext.blocker is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiRoutingContextNextAction)) {
+      Fail "release evidence caseWikiRoutingContext.nextAction is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiRoutingContextRoute)) {
+      Fail "release evidence caseWikiRoutingContext.route is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiRoutingContextRequestedIntent)) {
+      Fail "release evidence caseWikiRoutingContext.requestedIntent is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiRoutingContextRoutedIntent)) {
+      Fail "release evidence caseWikiRoutingContext.routedIntent is required"
+    }
+    if ($allowedCaseWikiRoutingModes -notcontains $caseWikiRoutingContextMode) {
+      Fail ("release evidence caseWikiRoutingContext.mode expected one of " + ($allowedCaseWikiRoutingModes -join ", ") + "; actual " + $caseWikiRoutingContextMode)
     }
   }
 }
@@ -2747,6 +2810,25 @@ if (Test-Path $ReleaseEvidenceReportPath) {
       ", total=" + $caseWikiEvidenceTotalArtifacts +
       ", signed=" + $caseWikiEvidenceSignedArtifacts +
       ", unsigned=" + $caseWikiEvidenceUnsignedArtifacts
+    )
+  }
+  $caseWikiRoutingContext = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext"
+  if ($null -ne $caseWikiRoutingContext) {
+    $caseWikiRoutingStatus = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "status")
+    $caseWikiRoutingValidated = Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "validated"
+    $caseWikiRoutingObserved = Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "observed"
+    $caseWikiRoutingContextSource = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "contextSource")
+    $caseWikiRoutingFocusId = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "focusId")
+    $caseWikiRoutingRoute = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "route")
+    $caseWikiRoutingMode = [string](Get-ObjectPropertyValue -Object $caseWikiRoutingContext -Name "mode")
+    Write-Host (
+      "case_wiki.routing_context: validated=" + $caseWikiRoutingValidated +
+      ", status=" + $caseWikiRoutingStatus +
+      ", observed=" + $caseWikiRoutingObserved +
+      ", context_source=" + $caseWikiRoutingContextSource +
+      ", focus_id=" + $caseWikiRoutingFocusId +
+      ", route=" + $caseWikiRoutingRoute +
+      ", mode=" + $caseWikiRoutingMode
     )
   }
 }

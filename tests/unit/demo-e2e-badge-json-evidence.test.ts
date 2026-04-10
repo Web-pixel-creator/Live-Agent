@@ -129,6 +129,15 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         assistiveRouterPromptCaching: "provider_default",
         assistiveRouterWatchlistEnabled: false,
         assistiveRouterProviderMetadataValidated: true,
+        caseWikiRoutingContextValidated: true,
+        caseWikiRoutingContextSource: "case_wiki",
+        caseWikiRoutingContextFocusId: "question:passport-scan",
+        caseWikiRoutingContextBlocker: "Do we have the passport scan?",
+        caseWikiRoutingContextNextAction: "Request passport scan",
+        caseWikiRoutingContextRoute: "live-agent",
+        caseWikiRoutingContextMode: "assistive_override",
+        caseWikiRoutingContextRequestedIntent: "conversation",
+        caseWikiRoutingContextRoutedIntent: "negotiation",
         operatorTurnTruncationSummaryValidated: true,
         operatorTurnTruncationExpectedEventSeen: true,
         operatorTurnTruncationTotal: 1,
@@ -417,6 +426,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   const agentUsage = evidence.agentUsage as Record<string, unknown>;
   const runtimeGuardrailsSignalPaths = evidence.runtimeGuardrailsSignalPaths as Record<string, unknown>;
   const caseWikiEvidenceSignature = evidence.caseWikiEvidenceSignature as Record<string, unknown>;
+  const caseWikiRoutingContext = evidence.caseWikiRoutingContext as Record<string, unknown>;
   assert.equal(turnTruncation.status, "pass");
   assert.equal(turnDelete.status, "pass");
   assert.equal(damageControl.status, "pass");
@@ -492,6 +502,17 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(caseWikiEvidenceSignature.focusLabel, "Passport scan is missing");
   assert.equal(caseWikiEvidenceSignature.nextAction, "Ask the customer to upload the passport scan.");
   assert.equal(caseWikiEvidenceSignature.sourceRefsCount, 2);
+  assert.equal(caseWikiRoutingContext.status, "pass");
+  assert.equal(caseWikiRoutingContext.validated, true);
+  assert.equal(caseWikiRoutingContext.observed, true);
+  assert.equal(caseWikiRoutingContext.contextSource, "case_wiki");
+  assert.equal(caseWikiRoutingContext.focusId, "question:passport-scan");
+  assert.equal(caseWikiRoutingContext.blocker, "Do we have the passport scan?");
+  assert.equal(caseWikiRoutingContext.nextAction, "Request passport scan");
+  assert.equal(caseWikiRoutingContext.route, "live-agent");
+  assert.equal(caseWikiRoutingContext.mode, "assistive_override");
+  assert.equal(caseWikiRoutingContext.requestedIntent, "conversation");
+  assert.equal(caseWikiRoutingContext.routedIntent, "negotiation");
   assert.equal(runtimeGuardrailsSignalPaths.totalPaths, 3);
   assert.equal(runtimeGuardrailsSignalPaths.lifecycleSummary, "active=3");
   const runtimeGuardrailsCounts = runtimeGuardrailsSignalPaths.lifecycleCounts as Record<string, unknown>;

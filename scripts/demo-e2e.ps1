@@ -2829,6 +2829,104 @@ try {
   } | Out-Null
 
   Invoke-Scenario `
+    -Name "orchestrator.case_wiki_routing_context" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    $caseWikiRoutingRequestTimeoutSec = [Math]::Max($RequestTimeoutSec, 120)
+    $runId = "demo-case-wiki-routing-" + [Guid]::NewGuid().Guid
+    $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "conversation" -RequestInput ([ordered]@{
+      text = "Continue with this case."
+      caseWiki = [ordered]@{
+        overview = [ordered]@{
+          summary = "Passport scan is still missing for this case."
+          status = "blocked"
+          currentStage = "document_collection"
+        }
+        highlights = [ordered]@{
+          topBlockingQuestion = "Do we have the passport scan?"
+        }
+        workspacePack = [ordered]@{
+          summaryValue = "Passport scan is still missing for this case."
+          blockerValue = "Do we have the passport scan?"
+          nextActionValue = "Request passport scan"
+          defaultFocus = [ordered]@{
+            focusKind = "question"
+            focusId = "question:passport-scan"
+            focusLabel = "Passport scan is missing"
+          }
+        }
+        recommendedNextAction = [ordered]@{
+          title = "Request passport scan"
+        }
+        routingPack = [ordered]@{
+          questions = @(
+            [ordered]@{
+              focusKind = "question"
+              focusId = "question:passport-scan"
+              focusLabel = "Passport scan is missing"
+              route = [ordered]@{
+                lane = "customer_followup"
+                owner = "customer"
+                priority = "high"
+                status = "open"
+                blocking = $true
+                approvalRequired = $false
+                dueBy = $null
+                summary = "Collect the missing document from the customer."
+              }
+              cta = [ordered]@{
+                actionId = "run_negotiation"
+                label = "Ask for passport scan"
+                hint = "Message the customer for the missing passport scan."
+                owner = "customer"
+                lane = "customer_followup"
+                approvalRequired = $false
+                blocking = $true
+                summary = "Run a customer follow-up request."
+              }
+            }
+          )
+        }
+      }
+    })
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $caseWikiRoutingRequestTimeoutSec
+
+    $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
+    $route = [string](Get-FieldValue -Object $response -Path @("payload", "route"))
+    $routingMode = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "mode"))
+    $requestedIntent = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "requestedIntent"))
+    $routedIntent = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "routedIntent"))
+    $contextSource = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextSource"))
+    $contextFocusId = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextFocusId"))
+    $contextBlocker = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextBlocker"))
+    $contextNextAction = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextNextAction"))
+
+    Assert-Condition -Condition ($status -eq "completed") -Message "Case Wiki routing request did not complete."
+    Assert-Condition -Condition ($route -eq "live-agent") -Message "Case Wiki routing request should stay on live-agent."
+    Assert-Condition -Condition ($requestedIntent -eq "conversation") -Message "Case Wiki routing request should preserve the requested conversation intent."
+    Assert-Condition -Condition ($contextSource -eq "case_wiki") -Message "Case Wiki routing context source should be case_wiki."
+    Assert-Condition -Condition ($contextFocusId -eq "question:passport-scan") -Message "Case Wiki routing focus id mismatch."
+    Assert-Condition -Condition ($contextBlocker -eq "Do we have the passport scan?") -Message "Case Wiki routing blocker mismatch."
+    Assert-Condition -Condition ($contextNextAction -eq "Request passport scan") -Message "Case Wiki routing next action mismatch."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($routingMode)) -Message "Case Wiki routing mode should be present."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($routedIntent)) -Message "Case Wiki routed intent should be present."
+
+    return [ordered]@{
+      route = $route
+      requestedIntent = $requestedIntent
+      routedIntent = $routedIntent
+      mode = $routingMode
+      contextSource = $contextSource
+      focusId = $contextFocusId
+      blocker = $contextBlocker
+      nextAction = $contextNextAction
+      timeoutSec = $caseWikiRoutingRequestTimeoutSec
+    }
+  } | Out-Null
+
+  Invoke-Scenario `
     -Name "gateway.websocket.roundtrip" `
     -MaxAttempts $ScenarioRetryMaxAttempts `
     -InitialBackoffMs $ScenarioRetryBackoffMs `
@@ -5241,6 +5339,7 @@ $skillsRegistryData = Get-ScenarioData -Name "skills.registry.lifecycle"
 $sessionVersioningData = Get-ScenarioData -Name "api.sessions.versioning"
 $runtimeLifecycleData = Get-ScenarioData -Name "runtime.lifecycle.endpoints"
 $runtimeMetricsData = Get-ScenarioData -Name "runtime.metrics.endpoints"
+$caseWikiRoutingContextData = Get-ScenarioData -Name "orchestrator.case_wiki_routing_context"
 $translationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.translation" } | Select-Object -First 1)
 $researchScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.research" } | Select-Object -First 1)
 $negotiationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.negotiation" } | Select-Object -First 1)
@@ -5258,6 +5357,7 @@ $gatewayBindingMismatchScenario = @($script:ScenarioResults | Where-Object { $_.
 $gatewayDrainingRejectionScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.draining_rejection" } | Select-Object -First 1)
 $frontendDirectLiveScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "frontend.live.direct_transport" } | Select-Object -First 1)
 $delegationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "multi_agent.delegation" } | Select-Object -First 1)
+$caseWikiRoutingContextScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "orchestrator.case_wiki_routing_context" } | Select-Object -First 1)
 $operatorDeviceNodesScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "operator.device_nodes.lifecycle" } | Select-Object -First 1)
 $approvalsListScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.approvals.list" } | Select-Object -First 1)
 $approvalsInvalidIntentScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "api.approvals.resume.invalid_intent" } | Select-Object -First 1)
@@ -5690,6 +5790,7 @@ $summary = [ordered]@{
     gatewayBindingMismatchScenarioAttempts = if ($gatewayBindingMismatchScenario.Count -gt 0) { [int]$gatewayBindingMismatchScenario[0].attempts } else { $null }
     gatewayDrainingRejectionScenarioAttempts = if ($gatewayDrainingRejectionScenario.Count -gt 0) { [int]$gatewayDrainingRejectionScenario[0].attempts } else { $null }
     multiAgentDelegationScenarioAttempts = if ($delegationScenario.Count -gt 0) { [int]$delegationScenario[0].attempts } else { $null }
+    caseWikiRoutingContextScenarioAttempts = if ($caseWikiRoutingContextScenario.Count -gt 0) { [int]$caseWikiRoutingContextScenario[0].attempts } else { $null }
     operatorDeviceNodesLifecycleScenarioAttempts = if ($operatorDeviceNodesScenario.Count -gt 0) { [int]$operatorDeviceNodesScenario[0].attempts } else { $null }
     approvalsListScenarioAttempts = if ($approvalsListScenario.Count -gt 0) { [int]$approvalsListScenario[0].attempts } else { $null }
     approvalsInvalidIntentScenarioAttempts = if ($approvalsInvalidIntentScenario.Count -gt 0) { [int]$approvalsInvalidIntentScenario[0].attempts } else { $null }
@@ -5714,6 +5815,25 @@ $summary = [ordered]@{
     assistiveRouterPromptCaching = if ($null -ne $delegationData) { $delegationData.routingPromptCaching } else { $null }
     assistiveRouterWatchlistEnabled = if ($null -ne $delegationData) { $delegationData.routingWatchlistEnabled } else { $null }
     assistiveRouterConfidence = if ($null -ne $delegationData) { $delegationData.routingConfidence } else { $null }
+    caseWikiRoutingContextSource = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.contextSource } else { $null }
+    caseWikiRoutingContextFocusId = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.focusId } else { $null }
+    caseWikiRoutingContextBlocker = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.blocker } else { $null }
+    caseWikiRoutingContextNextAction = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.nextAction } else { $null }
+    caseWikiRoutingContextRoute = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.route } else { $null }
+    caseWikiRoutingContextMode = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.mode } else { $null }
+    caseWikiRoutingContextRequestedIntent = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.requestedIntent } else { $null }
+    caseWikiRoutingContextRoutedIntent = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.routedIntent } else { $null }
+    caseWikiRoutingContextValidated = if (
+      $null -ne $caseWikiRoutingContextData -and
+      [string]$caseWikiRoutingContextData.contextSource -eq "case_wiki" -and
+      [string]$caseWikiRoutingContextData.focusId -eq "question:passport-scan" -and
+      [string]$caseWikiRoutingContextData.blocker -eq "Do we have the passport scan?" -and
+      [string]$caseWikiRoutingContextData.nextAction -eq "Request passport scan" -and
+      [string]$caseWikiRoutingContextData.route -eq "live-agent" -and
+      [string]$caseWikiRoutingContextData.requestedIntent -eq "conversation" -and
+      -not [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextData.routedIntent) -and
+      -not [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextData.mode)
+    ) { $true } else { $false }
     assistiveRouterDiagnosticsValidated = if (
       $null -ne $delegationData -and
       @("deterministic", "assistive_override", "assistive_match", "assistive_fallback") -contains [string]$delegationData.routingMode -and

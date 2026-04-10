@@ -35,12 +35,14 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /pluginMarketplace/);
   assert.match(scriptRaw, /deviceNodes/);
   assert.match(scriptRaw, /agentUsage/);
+  assert.match(scriptRaw, /caseWikiRoutingContext/);
   assert.match(scriptRaw, /providerUsageEvidenceRequired/);
   assert.match(scriptRaw, /governancePolicyEvidenceRequired/);
   assert.match(scriptRaw, /skillsRegistryEvidenceRequired/);
   assert.match(scriptRaw, /pluginMarketplaceEvidenceRequired/);
   assert.match(scriptRaw, /deviceNodesEvidenceRequired/);
   assert.match(scriptRaw, /agentUsageEvidenceRequired/);
+  assert.match(scriptRaw, /caseWikiRoutingContextEvidenceRequired/);
   assert.match(scriptRaw, /updatesValidated/);
   assert.match(scriptRaw, /updatesHasUpsert/);
   assert.match(scriptRaw, /updatesHasHeartbeat/);
@@ -48,10 +50,12 @@ test("public badge check helper stays aligned across package, script, and docs",
   assert.match(scriptRaw, /updatesTotal/);
   assert.match(scriptRaw, /deviceNodeUpdatesStatus/);
   assert.match(scriptRaw, /Device-node-updates status \(badge evidence\):/);
+  assert.match(scriptRaw, /Case-wiki-routing-context status \(badge evidence\):/);
   assert.match(scriptRaw, /Provider-usage status \(badge evidence\):/);
   assert.match(scriptRaw, /Provider-usage active secondary providers \(badge evidence\):/);
   assert.match(scriptRaw, /Provider-usage primary entry \(badge evidence\):/);
   assert.match(scriptRaw, /agentUsage must be validated with total\/unique\/calls\/tokens consistency, models>=1, summarySource in \[operator_summary,gateway_runtime\], and summaryStatus=observed/);
+  assert.match(scriptRaw, /caseWikiRoutingContext must prove observed\+validated case_wiki routing context with focus\/blocker\/nextAction and routing metadata/);
   assert.match(scriptRaw, /providerUsage must be validated with entries>=1 and activeSecondaryProviders>=0/);
   assert.match(scriptRaw, /updates lane must be 'pass' for deployment gate/);
   assert.match(scriptRaw, /must be 'pass' for deployment gate/);

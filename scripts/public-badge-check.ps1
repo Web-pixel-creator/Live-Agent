@@ -201,7 +201,7 @@ if (-not $SkipDetails) {
     Fail "badge-details tokensUsed.total must be >= input + output."
   }
 
-  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl", "governancePolicy", "skillsRegistry", "pluginMarketplace", "deviceNodes", "agentUsage") -Payload $details.evidence -ScopeName "badge-details.evidence"
+  Assert-RequiredFields -Required @("operatorTurnTruncation", "operatorTurnDelete", "damageControl", "operatorDamageControl", "governancePolicy", "skillsRegistry", "pluginMarketplace", "deviceNodes", "agentUsage", "caseWikiRoutingContext") -Payload $details.evidence -ScopeName "badge-details.evidence"
 
   $truncationEvidence = $details.evidence.operatorTurnTruncation
   $deleteEvidence = $details.evidence.operatorTurnDelete
@@ -212,6 +212,7 @@ if (-not $SkipDetails) {
   $pluginMarketplaceEvidence = $details.evidence.pluginMarketplace
   $deviceNodesEvidence = $details.evidence.deviceNodes
   $agentUsageEvidence = $details.evidence.agentUsage
+  $caseWikiRoutingContextEvidence = $details.evidence.caseWikiRoutingContext
   $providerUsageEvidence = $details.providerUsage
   if ($null -eq $truncationEvidence) {
     Fail "badge-details evidence is missing operatorTurnTruncation block."
@@ -239,6 +240,9 @@ if (-not $SkipDetails) {
   }
   if ($null -eq $agentUsageEvidence) {
     Fail "badge-details evidence is missing agentUsage block."
+  }
+  if ($null -eq $caseWikiRoutingContextEvidence) {
+    Fail "badge-details evidence is missing caseWikiRoutingContext block."
   }
   if ($null -eq $providerUsageEvidence) {
     Fail "badge-details providerUsage block must be present."
@@ -392,6 +396,25 @@ if (-not $SkipDetails) {
     Fail "badge-details evidence agentUsage.status must be one of [pass, fail]."
   }
 
+  $caseWikiRoutingContextEvidenceRequired = @(
+    "status",
+    "validated",
+    "observed",
+    "contextSource",
+    "focusId",
+    "blocker",
+    "nextAction",
+    "route",
+    "mode",
+    "requestedIntent",
+    "routedIntent"
+  )
+  Assert-RequiredFields -Required $caseWikiRoutingContextEvidenceRequired -Payload $caseWikiRoutingContextEvidence -ScopeName "badge-details.evidence.caseWikiRoutingContext"
+  $caseWikiRoutingContextStatus = [string]$caseWikiRoutingContextEvidence.status
+  if (-not (@("pass", "fail", "unavailable") -contains $caseWikiRoutingContextStatus)) {
+    Fail "badge-details evidence caseWikiRoutingContext.status must be one of [pass, fail, unavailable]."
+  }
+
   $providerUsageEvidenceRequired = @("status", "validated", "activeSecondaryProviders", "entries")
   Assert-RequiredFields -Required $providerUsageEvidenceRequired -Payload $providerUsageEvidence -ScopeName "badge-details.providerUsage"
   $providerUsageStatus = [string]$providerUsageEvidence.status
@@ -458,6 +481,7 @@ if (-not $SkipDetails) {
       @{ Name = "pluginMarketplace"; Status = $pluginMarketplaceStatus },
       @{ Name = "deviceNodes"; Status = $deviceNodesStatus },
       @{ Name = "agentUsage"; Status = $agentUsageStatus },
+      @{ Name = "caseWikiRoutingContext"; Status = $caseWikiRoutingContextStatus },
       @{ Name = "providerUsage"; Status = $providerUsageStatus }
     )
     foreach ($statusCheck in $statusChecks) {
@@ -559,6 +583,21 @@ if (-not $SkipDetails) {
     ) {
       Fail "badge-details evidence agentUsage must be validated with total/unique/calls/tokens consistency, models>=1, summarySource in [operator_summary,gateway_runtime], and summaryStatus=observed."
     }
+    $allowedRoutingModes = @("deterministic", "assistive_override", "assistive_match", "assistive_fallback")
+    if (
+      -not [bool]$caseWikiRoutingContextEvidence.validated -or
+      -not [bool]$caseWikiRoutingContextEvidence.observed -or
+      [string]$caseWikiRoutingContextEvidence.contextSource -ne "case_wiki" -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextEvidence.focusId) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextEvidence.blocker) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextEvidence.nextAction) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextEvidence.route) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextEvidence.requestedIntent) -or
+      [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextEvidence.routedIntent) -or
+      -not ($allowedRoutingModes -contains [string]$caseWikiRoutingContextEvidence.mode)
+    ) {
+      Fail "badge-details evidence caseWikiRoutingContext must prove observed+validated case_wiki routing context with focus/blocker/nextAction and routing metadata."
+    }
     if (
       -not [bool]$providerUsageEvidence.validated -or
       $providerUsageEntries.Count -lt 1 -or
@@ -569,6 +608,7 @@ if (-not $SkipDetails) {
   }
 
   Write-Host ("Device-node-updates status (badge evidence): " + $deviceNodeUpdatesStatus)
+  Write-Host ("Case-wiki-routing-context status (badge evidence): " + $caseWikiRoutingContextStatus)
   Write-Host ("Provider-usage status (badge evidence): " + $providerUsageStatus)
   Write-Host ("Provider-usage active secondary providers (badge evidence): " + $providerUsageActiveSecondaryProviders)
   Write-Host ("Provider-usage primary entry (badge evidence): " + [string]$providerUsagePrimaryEntry.route + "/" + [string]$providerUsagePrimaryEntry.capability + " -> " + [string]$providerUsagePrimaryEntry.selectedProvider + "/" + [string]$providerUsagePrimaryEntry.selectedModel)
