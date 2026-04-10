@@ -795,6 +795,11 @@ export type RuntimeSessionReplaySnapshot = {
         fallbackReason: string | null;
         capturedAt: string | null;
         evidenceSource: "session_events" | "frontend_runtime" | "unknown" | null;
+        firstAudioMs: number | null;
+        firstAudioCapturedAt: string | null;
+        firstOutputMs: number | null;
+        firstOutputCapturedAt: string | null;
+        fallbackEventCount: number;
       } | null;
       resumeReady: boolean;
       resumeBlockedBy: string | null;
@@ -972,6 +977,14 @@ function toNonNegativeInt(value: unknown): number {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed) || parsed < 0) {
     return 0;
+  }
+  return Math.floor(parsed);
+}
+
+function toOptionalNonNegativeInt(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
   }
   return Math.floor(parsed);
 }
@@ -4069,18 +4082,46 @@ function buildSessionLiveTransport(
   events: EventListItem[],
   eventInsight: SessionEventInsight,
 ): RuntimeSessionReplayLiveTransport | null {
-  const latestDirectLiveEvent = sortEventsDesc(events).find((item) => item.source === "direct_live") ?? null;
+  const directLiveEvents = sortEventsDesc(events).filter((item) => item.source === "direct_live");
+  const latestDirectLiveEvent = directLiveEvents[0] ?? null;
   if (!latestDirectLiveEvent && (eventInsight.bySource.direct_live ?? 0) < 1) {
     return null;
   }
+  const latestModeEvent =
+    directLiveEvents.find((item) => toNonEmptyString(item.liveTransportMode) !== null) ?? latestDirectLiveEvent;
+  const latestProviderEvent =
+    directLiveEvents.find((item) => toNonEmptyString(item.liveTransportProvider) !== null) ?? latestDirectLiveEvent;
+  const latestModelEvent =
+    directLiveEvents.find((item) => toNonEmptyString(item.liveTransportModel) !== null) ?? latestDirectLiveEvent;
+  const latestBootstrapEvent =
+    directLiveEvents.find((item) => toNonEmptyString(item.liveTransportBootstrapState) !== null) ?? latestDirectLiveEvent;
+  const latestFallbackEvent =
+    directLiveEvents.find(
+      (item) =>
+        toNonEmptyString(item.liveTransportFallbackReason) !== null ||
+        toNonEmptyString(item.liveTransportMode) === "relay",
+    ) ?? null;
+  const latestFirstAudioEvent =
+    directLiveEvents.find((item) => toOptionalNonNegativeInt(item.liveFirstAudioMs) !== null) ?? null;
+  const latestFirstOutputEvent =
+    directLiveEvents.find((item) => toOptionalNonNegativeInt(item.liveFirstOutputMs) !== null) ?? null;
+  const fallbackEventCount = directLiveEvents.filter(
+    (item) =>
+      toNonEmptyString(item.liveTransportFallbackReason) !== null || toNonEmptyString(item.liveTransportMode) === "relay",
+  ).length;
   return {
-    activeMode: latestDirectLiveEvent?.liveTransportMode === "relay" ? "relay" : "direct_live",
-    provider: latestDirectLiveEvent?.liveTransportProvider ?? null,
-    model: latestDirectLiveEvent?.liveTransportModel ?? null,
-    bootstrapState: latestDirectLiveEvent?.liveTransportBootstrapState ?? null,
-    fallbackReason: latestDirectLiveEvent?.liveTransportFallbackReason ?? null,
+    activeMode: latestModeEvent?.liveTransportMode === "relay" ? "relay" : "direct_live",
+    provider: latestProviderEvent?.liveTransportProvider ?? null,
+    model: latestModelEvent?.liveTransportModel ?? null,
+    bootstrapState: latestBootstrapEvent?.liveTransportBootstrapState ?? null,
+    fallbackReason: latestFallbackEvent?.liveTransportFallbackReason ?? null,
     capturedAt: latestDirectLiveEvent?.createdAt ?? eventInsight.latestEventAt,
     evidenceSource: "session_events",
+    firstAudioMs: toOptionalNonNegativeInt(latestFirstAudioEvent?.liveFirstAudioMs),
+    firstAudioCapturedAt: latestFirstAudioEvent?.createdAt ?? null,
+    firstOutputMs: toOptionalNonNegativeInt(latestFirstOutputEvent?.liveFirstOutputMs),
+    firstOutputCapturedAt: latestFirstOutputEvent?.createdAt ?? null,
+    fallbackEventCount,
   };
 }
 

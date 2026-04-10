@@ -83,6 +83,19 @@ function toBoolean(value) {
   return null;
 }
 
+function toOptionalNonNegativeInt(value) {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+    return Math.floor(value);
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return Math.floor(parsed);
+    }
+  }
+  return null;
+}
+
 async function ensureParentDir(pathLike) {
   await mkdir(dirname(resolve(process.cwd(), pathLike)), { recursive: true });
 }
@@ -158,7 +171,23 @@ function normalizeReplayLiveTransport(payload) {
   const fallbackReason = toOptionalString(liveTransport.fallbackReason);
   const evidenceSource = toOptionalString(liveTransport.evidenceSource);
   const capturedAt = toOptionalString(liveTransport.capturedAt);
-  if (!activeMode && !provider && !model && !bootstrapState && !fallbackReason && !evidenceSource && !capturedAt) {
+  const firstAudioMs = toOptionalNonNegativeInt(liveTransport.firstAudioMs);
+  const firstAudioCapturedAt = toOptionalString(liveTransport.firstAudioCapturedAt);
+  const firstOutputMs = toOptionalNonNegativeInt(liveTransport.firstOutputMs);
+  const firstOutputCapturedAt = toOptionalString(liveTransport.firstOutputCapturedAt);
+  const fallbackEventCount = toOptionalNonNegativeInt(liveTransport.fallbackEventCount) ?? 0;
+  if (
+    !activeMode &&
+    !provider &&
+    !model &&
+    !bootstrapState &&
+    !fallbackReason &&
+    !evidenceSource &&
+    !capturedAt &&
+    firstAudioMs === null &&
+    firstOutputMs === null &&
+    fallbackEventCount < 1
+  ) {
     return null;
   }
   return {
@@ -169,6 +198,11 @@ function normalizeReplayLiveTransport(payload) {
     fallbackReason,
     evidenceSource,
     capturedAt,
+    firstAudioMs,
+    firstAudioCapturedAt,
+    firstOutputMs,
+    firstOutputCapturedAt,
+    fallbackEventCount,
   };
 }
 
@@ -541,7 +575,7 @@ async function run() {
           },
       screenshotPath,
       summary: observedDirectLive
-        ? `direct_live observed via ${liveTransport?.evidenceSource ?? "unknown"}`
+        ? `direct_live observed via ${liveTransport?.evidenceSource ?? "unknown"} first_audio=${liveTransport?.firstAudioMs ?? "n/a"}ms first_output=${liveTransport?.firstOutputMs ?? "n/a"}ms fallback_events=${liveTransport?.fallbackEventCount ?? 0}`
         : `direct_live not observed; connection=${ui.connectionStatus ?? "unknown"} mode=${ui.modeStatus ?? "unknown"}`,
     };
     const outputPath = await writeJson(options.output, result);

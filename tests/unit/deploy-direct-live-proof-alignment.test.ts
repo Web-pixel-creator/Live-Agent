@@ -25,15 +25,23 @@ test("deploy direct-live proof helper is wired across package, script, and docs"
   assert.match(scriptRaw, /ExpectedCaseWikiEvidenceSignatureStatus/);
   assert.match(scriptRaw, /direct_live\.proof\.status/);
   assert.match(scriptRaw, /direct_live\.proof\.case_wiki\.signature_status/);
+  assert.match(scriptRaw, /direct_live\.proof\.replay\.first_audio_ms/);
+  assert.match(scriptRaw, /direct_live\.proof\.replay\.first_output_ms/);
+  assert.match(scriptRaw, /direct_live\.proof\.replay\.fallback_event_count/);
   assert.match(scriptRaw, /Replay Evidence Source/);
+  assert.match(scriptRaw, /Replay First Audio \(ms\)/);
+  assert.match(scriptRaw, /Replay First Output \(ms\)/);
+  assert.match(scriptRaw, /Replay Fallback Events/);
   assert.match(scriptRaw, /Case Wiki Signature Status/);
 
   const readme = readFileSync(resolve(process.cwd(), "README.md"), "utf8");
   assert.match(readme, /verify:deploy:direct-live-proof/);
   assert.match(readme, /direct-live-proof\.json/);
+  assert.match(readme, /first-audio\/first-output latency/i);
   assert.match(readme, /case wiki evidence signature/i);
 
   const runbook = readFileSync(resolve(process.cwd(), "docs", "challenge-demo-runbook.md"), "utf8");
   assert.match(runbook, /verify:deploy:direct-live-proof/);
+  assert.match(runbook, /first-audio\/first-output latency/i);
   assert.match(runbook, /case wiki evidence signature/i);
 });

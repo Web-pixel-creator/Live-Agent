@@ -27,6 +27,9 @@ test("browser direct-live smoke script drives frontend connect flow and checks b
     "function readFrontendInputValue",
     "actualSessionId",
     "requestedSessionId",
+    "firstAudioMs",
+    "firstOutputMs",
+    "fallbackEventCount",
     '"session_events"',
     "direct-live-browser-smoke.png",
   ]) {

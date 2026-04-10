@@ -122,6 +122,11 @@ function New-MarkdownSummary {
   $uiSessionState = if ($null -ne $Summary.ui -and $null -ne $Summary.ui.sessionState) { [string]$Summary.ui.sessionState } else { "" }
   $replayTransportMode = if ($null -ne $Summary.replay -and $null -ne $Summary.replay.liveTransport -and $null -ne $Summary.replay.liveTransport.activeMode) { [string]$Summary.replay.liveTransport.activeMode } else { "" }
   $replayEvidenceSource = if ($null -ne $Summary.replay -and $null -ne $Summary.replay.liveTransport -and $null -ne $Summary.replay.liveTransport.evidenceSource) { [string]$Summary.replay.liveTransport.evidenceSource } else { "" }
+  $replayFirstAudioMs = if ($null -ne $Summary.replay -and $null -ne $Summary.replay.liveTransport -and $null -ne $Summary.replay.liveTransport.firstAudioMs) { [string]$Summary.replay.liveTransport.firstAudioMs } else { "" }
+  $replayFirstAudioCapturedAt = if ($null -ne $Summary.replay -and $null -ne $Summary.replay.liveTransport -and $null -ne $Summary.replay.liveTransport.firstAudioCapturedAt) { [string]$Summary.replay.liveTransport.firstAudioCapturedAt } else { "" }
+  $replayFirstOutputMs = if ($null -ne $Summary.replay -and $null -ne $Summary.replay.liveTransport -and $null -ne $Summary.replay.liveTransport.firstOutputMs) { [string]$Summary.replay.liveTransport.firstOutputMs } else { "" }
+  $replayFirstOutputCapturedAt = if ($null -ne $Summary.replay -and $null -ne $Summary.replay.liveTransport -and $null -ne $Summary.replay.liveTransport.firstOutputCapturedAt) { [string]$Summary.replay.liveTransport.firstOutputCapturedAt } else { "" }
+  $replayFallbackEventCount = if ($null -ne $Summary.replay -and $null -ne $Summary.replay.liveTransport -and $null -ne $Summary.replay.liveTransport.fallbackEventCount) { [string]$Summary.replay.liveTransport.fallbackEventCount } else { "0" }
   $caseWikiSessionId = if ($null -ne $Summary.caseWiki -and $null -ne $Summary.caseWiki.sessionId) { [string]$Summary.caseWiki.sessionId } else { "" }
   $caseWikiOverviewStatus = if ($null -ne $Summary.caseWiki -and $null -ne $Summary.caseWiki.overviewStatus) { [string]$Summary.caseWiki.overviewStatus } else { "" }
   $caseWikiFocusKind = if ($null -ne $Summary.caseWiki -and $null -ne $Summary.caseWiki.focusKind) { [string]$Summary.caseWiki.focusKind } else { "" }
@@ -154,6 +159,11 @@ function New-MarkdownSummary {
     "- UI Session State: $uiSessionState",
     "- Replay Transport: $replayTransportMode",
     "- Replay Evidence Source: $replayEvidenceSource",
+    "- Replay First Audio (ms): $replayFirstAudioMs",
+    "- Replay First Audio Captured At: $replayFirstAudioCapturedAt",
+    "- Replay First Output (ms): $replayFirstOutputMs",
+    "- Replay First Output Captured At: $replayFirstOutputCapturedAt",
+    "- Replay Fallback Events: $replayFallbackEventCount",
     "- Case Wiki Session ID: $caseWikiSessionId",
     "- Case Wiki Overview Status: $caseWikiOverviewStatus",
     "- Case Wiki Focus: $caseWikiFocusKind / $caseWikiFocusLabel",
@@ -303,6 +313,11 @@ Write-Host ("direct_live.proof.json: " + $OutputPath)
 Write-Host ("direct_live.proof.md: " + $MarkdownOutputPath)
 if ($null -ne $summary.caseWiki -and $null -ne $summary.caseWiki.evidenceSignature) {
   Write-Host ("direct_live.proof.case_wiki.signature_status: " + [string]$summary.caseWiki.evidenceSignature.status)
+}
+if ($null -ne $summary.replay -and $null -ne $summary.replay.liveTransport) {
+  Write-Host ("direct_live.proof.replay.first_audio_ms: " + [string]$summary.replay.liveTransport.firstAudioMs)
+  Write-Host ("direct_live.proof.replay.first_output_ms: " + [string]$summary.replay.liveTransport.firstOutputMs)
+  Write-Host ("direct_live.proof.replay.fallback_event_count: " + [string]$summary.replay.liveTransport.fallbackEventCount)
 }
 
 if ($summary.status -eq "pass") {

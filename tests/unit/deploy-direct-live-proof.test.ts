@@ -76,6 +76,11 @@ const payload = {
           provider: "gemini_live_api",
           model: "gemini-live-2.5-flash-native-audio",
           bootstrapState: "prepared_direct",
+          firstAudioMs: 640,
+          firstAudioCapturedAt: "2026-04-09T00:00:01.000Z",
+          firstOutputMs: 410,
+          firstOutputCapturedAt: "2026-04-09T00:00:00.500Z",
+          fallbackEventCount: 0,
         }
       : null,
   },
@@ -202,7 +207,15 @@ test(
       apiPublicUrlSource?: string;
       sessionId?: string;
       requestedSessionId?: string;
-      replay?: { liveTransport?: { activeMode?: string; evidenceSource?: string } };
+      replay?: {
+        liveTransport?: {
+          activeMode?: string;
+          evidenceSource?: string;
+          firstAudioMs?: number;
+          firstOutputMs?: number;
+          fallbackEventCount?: number;
+        };
+      };
       caseWiki?: { evidenceSignature?: { status?: string; signaturePresent?: boolean } };
     };
 
@@ -212,6 +225,9 @@ test(
     assert.equal(summary.sessionId, "observed-session-1");
     assert.equal(summary.replay?.liveTransport?.activeMode, "direct_live");
     assert.equal(summary.replay?.liveTransport?.evidenceSource, "session_events");
+    assert.equal(summary.replay?.liveTransport?.firstAudioMs, 640);
+    assert.equal(summary.replay?.liveTransport?.firstOutputMs, 410);
+    assert.equal(summary.replay?.liveTransport?.fallbackEventCount, 0);
     assert.equal(summary.caseWiki?.evidenceSignature?.status, "signed");
     assert.equal(summary.caseWiki?.evidenceSignature?.signaturePresent, true);
 
@@ -219,6 +235,8 @@ test(
     assert.match(markdown, /# Direct Live Proof/);
     assert.match(markdown, /Status: pass/);
     assert.match(markdown, /Replay Evidence Source: session_events/);
+    assert.match(markdown, /Replay First Audio \(ms\): 640/);
+    assert.match(markdown, /Replay Fallback Events: 0/);
   },
 );
 

@@ -901,6 +901,47 @@ test("runtime session replay mirror surfaces direct live transport evidence from
 
   const directEvents: EventListItem[] = [
     {
+      eventId: "event-direct-0",
+      sessionId: "session-direct",
+      runId: "run-direct-1",
+      type: "gateway.connected",
+      source: "direct_live",
+      createdAt: "2026-04-01T10:04:00.000Z",
+      route: "live-agent",
+      status: "connected",
+      intent: "translation",
+      liveTransportMode: "direct_live",
+      liveTransportProvider: "gemini_live_api",
+      liveTransportModel: "gemini-live-2.5-flash-native-audio",
+      liveTransportBootstrapState: "prepared_direct",
+    },
+    {
+      eventId: "event-direct-audio",
+      sessionId: "session-direct",
+      runId: "run-direct-1",
+      type: "live.first_audio",
+      source: "direct_live",
+      createdAt: "2026-04-01T10:04:15.000Z",
+      route: "live-agent",
+      status: "completed",
+      intent: "translation",
+      liveTransportMode: "direct_live",
+      liveFirstAudioMs: 640,
+    },
+    {
+      eventId: "event-direct-output",
+      sessionId: "session-direct",
+      runId: "run-direct-1",
+      type: "live.first_output",
+      source: "direct_live",
+      createdAt: "2026-04-01T10:04:14.000Z",
+      route: "live-agent",
+      status: "completed",
+      intent: "translation",
+      liveTransportMode: "direct_live",
+      liveFirstOutputMs: 410,
+    },
+    {
       eventId: "event-direct-1",
       sessionId: "session-direct",
       runId: "run-direct-1",
@@ -937,5 +978,68 @@ test("runtime session replay mirror surfaces direct live transport evidence from
     fallbackReason: null,
     capturedAt: "2026-04-01T10:05:00.000Z",
     evidenceSource: "session_events",
+    firstAudioMs: 640,
+    firstAudioCapturedAt: "2026-04-01T10:04:15.000Z",
+    firstOutputMs: 410,
+    firstOutputCapturedAt: "2026-04-01T10:04:14.000Z",
+    fallbackEventCount: 0,
+  });
+});
+
+test("runtime session replay mirror counts relay fallback evidence from direct_live events", () => {
+  const sessions: SessionListItem[] = [
+    {
+      sessionId: "session-fallback",
+      tenantId: "tenant-a",
+      mode: "live",
+      status: "active",
+      version: 1,
+      lastMutationId: "mutation-fallback",
+      updatedAt: "2026-04-01T11:05:00.000Z",
+    },
+  ];
+
+  const directEvents: EventListItem[] = [
+    {
+      eventId: "event-fallback-1",
+      sessionId: "session-fallback",
+      runId: "run-fallback-1",
+      type: "live.interrupted",
+      source: "direct_live",
+      createdAt: "2026-04-01T11:05:00.000Z",
+      route: "live-agent",
+      status: "interrupted",
+      intent: "translation",
+      liveTransportMode: "relay",
+      liveTransportProvider: "gemini_live_api",
+      liveTransportModel: "gemini-live-2.5-flash-native-audio",
+      liveTransportBootstrapState: "fallback_relay",
+      liveTransportFallbackReason: "direct_live_upstream_interrupted",
+    },
+  ];
+
+  const snapshot = buildRuntimeSessionReplayMirrorSnapshot({
+    sessions,
+    runs: [],
+    approvals: [],
+    recentEvents: directEvents,
+    selectedEvents: directEvents,
+    selectedSessionId: "session-fallback",
+    workflowSummary: null,
+  });
+
+  assert.deepEqual(snapshot.selectedSession.replay.liveTransport, {
+    activeMode: "relay",
+    provider: "gemini_live_api",
+    model: "gemini-live-2.5-flash-native-audio",
+    bootstrapState: "fallback_relay",
+    fallbackReason: "direct_live_upstream_interrupted",
+    capturedAt: "2026-04-01T11:05:00.000Z",
+    evidenceSource: "session_events",
+    firstAudioMs: null,
+    firstAudioCapturedAt: null,
+    firstOutputMs: null,
+    firstOutputCapturedAt: null,
+    fallbackEventCount: 1,
   });
 });

@@ -608,6 +608,8 @@ jobs:
             ("Direct-live proof API URL: " + [string]$directLiveProof.apiPublicUrl + " (" + [string]$directLiveProof.apiPublicUrlSource + ")") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             ("Direct-live proof requested session: " + [string]$directLiveProof.requestedSessionId + " -> " + [string]$directLiveProof.sessionId) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             ("Direct-live proof transport: " + [string]$directLiveProof.replay.liveTransport.activeMode + " via " + [string]$directLiveProof.replay.liveTransport.evidenceSource) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Direct-live proof latency: firstAudioMs=" + [string]$directLiveProof.replay.liveTransport.firstAudioMs + " firstOutputMs=" + [string]$directLiveProof.replay.liveTransport.firstOutputMs) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Direct-live proof fallback events: " + [string]$directLiveProof.replay.liveTransport.fallbackEventCount + " reason=" + [string]$directLiveProof.replay.liveTransport.fallbackReason) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           } else {
             ("Direct-live proof was not generated.") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           }

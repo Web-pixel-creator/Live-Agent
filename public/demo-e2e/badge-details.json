@@ -1,24 +1,24 @@
 {
-  "generatedAt": "2026-04-10T18:18:30.750Z",
+  "generatedAt": "2026-04-10T18:38:22.208Z",
   "ok": true,
   "policyPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\policy-check.json",
   "summaryPath": "C:\\Gemini_Live_Agent\\artifacts\\demo-e2e\\summary.json",
   "checks": 281,
   "violations": 0,
-  "roundTripMs": 1322,
+  "roundTripMs": 951,
   "costEstimate": {
     "currency": "USD",
-    "geminiLiveUsd": 0.038479,
+    "geminiLiveUsd": 0.038465,
     "imagenUsd": 0.12,
     "veoUsd": 0.36,
     "ttsUsd": 0.024,
-    "totalUsd": 0.542479,
+    "totalUsd": 0.542465,
     "source": "runtime_estimate"
   },
   "tokensUsed": {
     "input": 2561,
-    "output": 27649,
-    "total": 30210,
+    "output": 27639,
+    "total": 30200,
     "source": "runtime_estimate"
   },
   "liveTransport": {
@@ -104,7 +104,7 @@
     ]
   },
   "evidence": {
-    "sourceSummaryGeneratedAt": "2026-04-10T23:18:29.4731985+05:00",
+    "sourceSummaryGeneratedAt": "2026-04-10T23:38:20.8698282+05:00",
     "operatorTurnTruncation": {
       "status": "pass",
       "validated": true,
@@ -112,7 +112,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-10T18:18:24.776Z",
+      "latestSeenAt": "2026-04-10T18:38:17.382Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-truncate-demo",
       "latestReason": "demo_truncate_checkpoint",
@@ -126,7 +126,7 @@
       "total": 1,
       "uniqueRuns": 1,
       "uniqueSessions": 1,
-      "latestSeenAt": "2026-04-10T18:18:24.862Z",
+      "latestSeenAt": "2026-04-10T18:38:17.467Z",
       "latestSeenAtIsIso": true,
       "latestTurnId": "turn-delete-demo",
       "latestReason": "demo_delete_checkpoint",
@@ -160,7 +160,7 @@
         "verdict": "ask",
         "source": "file",
         "matchedRuleCount": 1,
-        "seenAt": "2026-04-10T18:18:22.724Z",
+        "seenAt": "2026-04-10T18:38:15.347Z",
         "seenAtIsIso": true
       }
     },
@@ -224,10 +224,10 @@
       },
       "latest": {
         "outcome": "succeeded",
-        "pluginId": "demo-plugin-skill-c36f406c-e385-491b-97bf-711f0e17cdc3",
+        "pluginId": "demo-plugin-skill-e9e351b5-cc85-45c3-9b0e-26e7791168c9",
         "version": 1,
         "signingStatus": "unsigned",
-        "seenAt": "2026-04-10T18:18:28.520Z",
+        "seenAt": "2026-04-10T18:38:19.884Z",
         "seenAtIsIso": true
       }
     },
@@ -261,8 +261,8 @@
       "uniqueSessions": 1,
       "totalCalls": 8,
       "inputTokens": 2517,
-      "outputTokens": 408,
-      "totalTokens": 2925,
+      "outputTokens": 414,
+      "totalTokens": 2931,
       "models": [
         "gemini-3.1-flash-lite-preview",
         "usage_metadata_unavailable"
@@ -276,7 +276,7 @@
       "summaryStatus": "critical signals=3",
       "signalsSummary": "total=3 | critical=1 | warn=2 | info=0",
       "coverageSummary": "healthy=4/4 | ready=4/4 | runtime=4/4 | metrics=4/4 | startup=0/0",
-      "sloSummary": "liveFirstAudioP95=1428ms/2500ms | navigatorStepP95=4264ms/25000ms | caseWikiQueryP95=missing",
+      "sloSummary": "liveFirstAudioP95=1114ms/2500ms | navigatorStepP95=4401ms/25000ms | caseWikiQueryP95=missing",
       "sandboxSummary": "mode=off | network=allow_all | setup=unconfigured | warnings=0",
       "skillsSummary": "catalog=path/0w | personas=3/10 | recipes=3/10 | runtime=off active=0 skipped=0 blocked=0",
       "topSignal": "critical ui_executor_sandbox_not_enforce@ui-executor | value=off | UI executor sandbox mode is weaker than enforce.",
@@ -309,7 +309,7 @@
           "statusCode": "active",
           "statusText": "active",
           "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-          "updatedAt": "2026-04-10T23:18:28.7924449+05:00",
+          "updatedAt": "2026-04-10T23:38:20.1725237+05:00",
           "updatedAtIsIso": true
         }
       },
@@ -330,7 +330,7 @@
             "statusCode": "active",
             "statusText": "active",
             "detailText": "Repo-generated active signal path from runtime diagnostics summary.",
-            "updatedAt": "2026-04-10T23:18:28.7924449+05:00",
+            "updatedAt": "2026-04-10T23:38:20.1725237+05:00",
             "updatedAtIsIso": true
           }
         }
@@ -345,14 +345,14 @@
       "signatureStatus": "unsigned",
       "algorithm": "ed25519-sha256",
       "canonicalization": "json-stable-v1",
-      "payloadHash": "sha256:bcc4e7a0293af0e9cb8efc9efe7662f173a12eaa02c83923117d4370391cebec",
+      "payloadHash": "sha256:58c594d2adead88cb6a1d66c87afce7b50ed31106daf67ea86b05edbd351af63",
       "keyId": null,
       "signerId": "api-backend",
-      "signedAt": "2026-04-10T18:18:28.990Z",
+      "signedAt": "2026-04-10T18:38:20.366Z",
       "signedAtIsIso": true,
       "signaturePresent": false,
-      "caseId": "local-1775845037913-77464",
-      "sessionId": "local-1775845037913-77464",
+      "caseId": "local-1775846245044-58764",
+      "sessionId": "local-1775846245044-58764",
       "overviewStatus": "waiting_on_operator",
       "focusKind": null,
       "focusLabel": null,
@@ -376,7 +376,7 @@
   "badge": {
     "schemaVersion": 1,
     "label": "Demo KPI Gate",
-    "message": "pass | 281 checks | 1322ms ws",
+    "message": "pass | 281 checks | 951ms ws",
     "color": "brightgreen",
     "cacheSeconds": 300
   }
