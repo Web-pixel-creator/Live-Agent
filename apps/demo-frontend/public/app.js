@@ -25940,6 +25940,7 @@ function buildSessionExportOperatorCaseWiki() {
     focusPack: isRecord(snapshot?.focusPack) ? snapshot.focusPack : null,
     previewPack: isRecord(snapshot?.previewPack) ? snapshot.previewPack : null,
     workspacePack: isRecord(snapshot?.workspacePack) ? snapshot.workspacePack : null,
+    operatorPreviewPack: isRecord(snapshot?.operatorPreviewPack) ? snapshot.operatorPreviewPack : null,
     recommendedNextAction: isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null,
     topBlockingQuestion: isRecord(blockingQuestion) ? blockingQuestion : null,
     topProof: isRecord(topProof) ? topProof : null,
@@ -32365,6 +32366,12 @@ function buildOperatorCaseWikiSnapshot(value) {
           handoffValue: toOptionalText(value.workspacePack.handoffValue),
         }
       : null,
+    operatorPreviewPack: isRecord(value.operatorPreviewPack)
+      ? {
+          overview: isRecord(value.operatorPreviewPack.overview) ? value.operatorPreviewPack.overview : null,
+          evidence: isRecord(value.operatorPreviewPack.evidence) ? value.operatorPreviewPack.evidence : null,
+        }
+      : null,
     entities: Array.isArray(value.entities) ? value.entities.filter((item) => isRecord(item)) : [],
     timeline: Array.isArray(value.timeline) ? value.timeline.filter((item) => isRecord(item)) : [],
     proofs: Array.isArray(value.proofs) ? value.proofs.filter((item) => isRecord(item)) : [],
@@ -33612,6 +33619,10 @@ function buildOperatorCaseWikiOverviewPreview() {
   if (!snapshot) {
     return "No case wiki loaded yet.\n\nRefresh case wiki to compile overview, blockers, and next action from runtime evidence.";
   }
+  const operatorPreviewPack = isRecord(snapshot.operatorPreviewPack) ? snapshot.operatorPreviewPack : null;
+  if (isRecord(operatorPreviewPack?.overview)) {
+    return stringifyOperatorRuntimeFaultValue(operatorPreviewPack.overview, "No case wiki loaded yet.");
+  }
   const overview = isRecord(snapshot.overview) ? snapshot.overview : null;
   return stringifyOperatorRuntimeFaultValue(
     {
@@ -33647,10 +33658,22 @@ function buildOperatorCaseWikiEvidencePreview() {
   if (!snapshot) {
     return "No case wiki evidence loaded yet.";
   }
+  const operatorPreviewPack = isRecord(snapshot.operatorPreviewPack) ? snapshot.operatorPreviewPack : null;
   const topProof = resolveOperatorCaseWikiTopProof(snapshot);
   const topEntity = resolveOperatorCaseWikiTopEntity(snapshot);
   const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
   const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
+  if (isRecord(operatorPreviewPack?.evidence)) {
+    return stringifyOperatorRuntimeFaultValue(
+      {
+        ...operatorPreviewPack.evidence,
+        focus: buildOperatorCaseWikiFocusSummary(focusedItem),
+        handoffPreview: buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack),
+        handoffFocus: buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem),
+      },
+      "No case wiki evidence loaded yet.",
+    );
+  }
   return stringifyOperatorRuntimeFaultValue(
     {
       topProof: topProof
@@ -33667,7 +33690,10 @@ function buildOperatorCaseWikiEvidencePreview() {
             kind: toOptionalText(topEntity.kind),
             label: toOptionalText(topEntity.label),
             role: toOptionalText(topEntity.role),
-            summary: toOptionalText(topEntity.summary),
+            summary:
+              [toOptionalText(topEntity.role), toOptionalText(topEntity.description)]
+                .filter(Boolean)
+                .join(" | ") || null,
             sourceRefs: Array.isArray(topEntity.sourceRefs) ? topEntity.sourceRefs : [],
           }
         : null,
@@ -33690,7 +33716,7 @@ function buildOperatorCaseWikiEvidencePreview() {
             type: toOptionalText(snapshot.recommendedNextAction.type),
             title: toOptionalText(snapshot.recommendedNextAction.title),
             owner: toOptionalText(snapshot.recommendedNextAction.owner),
-            rationale: toOptionalText(snapshot.recommendedNextAction.rationale),
+            summary: toOptionalText(snapshot.recommendedNextAction.summary),
           }
         : null,
     },

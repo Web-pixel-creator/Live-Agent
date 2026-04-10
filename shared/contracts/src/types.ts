@@ -342,6 +342,66 @@ export type CaseWikiWorkspacePack = {
   handoffValue: string | null;
 };
 
+export type CaseWikiOperatorOverviewPreview = {
+  caseId: string;
+  sessionId: string | null;
+  schemaVersion: 1;
+  generatedAt: string;
+  overview: {
+    title: string | null;
+    status: CaseWikiStatus | null;
+    currentStage: string | null;
+    customerGoal: string | null;
+    summary: string | null;
+    missingEvidenceSummary: string | null;
+    contradictionsSummary: string | null;
+  } | null;
+  recommendedNextAction: {
+    type: CaseWikiNextActionType | null;
+    title: string | null;
+    owner: string | null;
+    summary: string | null;
+  } | null;
+  counts: {
+    entities: number;
+    proofs: number;
+    openQuestions: number;
+    timeline: number;
+  };
+};
+
+export type CaseWikiOperatorEvidencePreview = {
+  topProof: {
+    status: CaseWikiProofStatus | null;
+    statement: string | null;
+    evidenceSummary: string | null;
+    contradictionNote: string | null;
+    sourceRefs: string[];
+  } | null;
+  topEntity: {
+    kind: CaseWikiEntityKind | null;
+    label: string | null;
+    role: string | null;
+    summary: string | null;
+    sourceRefs: string[];
+  } | null;
+  evidencePack: CaseWikiEvidencePack | null;
+  previewPack: CaseWikiPreviewPack | null;
+  handoffPack: CaseWikiHandoffPack | null;
+  detailPack: CaseWikiDetailPack | null;
+  recommendedNextAction: {
+    type: CaseWikiNextActionType | null;
+    title: string | null;
+    owner: string | null;
+    summary: string | null;
+  } | null;
+};
+
+export type CaseWikiOperatorPreviewPack = {
+  overview: CaseWikiOperatorOverviewPreview;
+  evidence: CaseWikiOperatorEvidencePreview;
+};
+
 export type CaseWikiRoutingRoute = {
   lane: CaseWikiRoutingLane;
   owner: string | null;
@@ -445,6 +505,7 @@ export type CaseWiki = {
   focusPack: CaseWikiFocusPack;
   previewPack: CaseWikiPreviewPack;
   workspacePack: CaseWikiWorkspacePack;
+  operatorPreviewPack: CaseWikiOperatorPreviewPack;
   entities: CaseWikiEntity[];
   timeline: CaseWikiTimelineEntry[];
   proofs: CaseWikiProof[];

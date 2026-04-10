@@ -46,6 +46,7 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
     "focusPack",
     "previewPack",
     "workspacePack",
+    "operatorPreviewPack",
     "question:event:",
     "operator.note",
     "case_wiki_note",
@@ -82,6 +83,7 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
   assert.match(readme, /focusPack/i);
   assert.match(readme, /previewPack/i);
   assert.match(readme, /workspacePack/i);
+  assert.match(readme, /operatorPreviewPack/i);
   assert.match(operatorGuide, /case wiki/i);
   assert.match(operatorGuide, /case-wiki\/notes/i);
   assert.match(operatorGuide, /handoffPack/i);
@@ -91,6 +93,7 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
   assert.match(operatorGuide, /focusPack/i);
   assert.match(operatorGuide, /previewPack/i);
   assert.match(operatorGuide, /workspacePack/i);
+  assert.match(operatorGuide, /operatorPreviewPack/i);
   assert.match(architecture, /case wiki/i);
   assert.match(architecture, /handoffPack/i);
   assert.match(architecture, /detailPack/i);
@@ -99,5 +102,6 @@ test("api backend exposes runtime case wiki routes, helpers, inventory, and docs
   assert.match(architecture, /focusPack/i);
   assert.match(architecture, /previewPack/i);
   assert.match(architecture, /workspacePack/i);
+  assert.match(architecture, /operatorPreviewPack/i);
   assert.match(architecture, /case-wiki\/notes/i);
 });

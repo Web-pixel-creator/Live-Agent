@@ -600,6 +600,110 @@ test("case wiki contracts expose stable structured memory shapes", () => {
         "[confirmed] Customer wants a spouse relocation consultation. | [high] Has the customer already received the invitation letter?",
       handoffValue: "Request missing visa documents | refs: question:question-1, timeline:timeline-1",
     },
+    operatorPreviewPack: {
+      overview: {
+        caseId: "case-123",
+        sessionId: "session-123",
+        schemaVersion: 1,
+        generatedAt: "2026-04-09T07:00:00.000Z",
+        overview: {
+          title: "Visa intake for spouse relocation",
+          status: "waiting_on_customer",
+          currentStage: "document_collection",
+          customerGoal: "Collect missing visa documents and book a consultation.",
+          summary: "Customer is evaluating a relocation package and waiting on document guidance.",
+          missingEvidenceSummary: "Passport scan and invitation letter are still missing.",
+          contradictionsSummary: null,
+        },
+        recommendedNextAction: {
+          type: "document_request",
+          title: "Request missing visa documents",
+          owner: "operator",
+          summary: "Ask the customer for the passport scan and invitation letter before scheduling filing.",
+        },
+        counts: {
+          entities: 1,
+          proofs: 1,
+          openQuestions: 1,
+          timeline: 1,
+        },
+      },
+      evidence: {
+        topProof: {
+          status: "confirmed",
+          statement: "Customer wants a spouse relocation consultation.",
+          evidenceSummary: "Confirmed in the latest live intake.",
+          contradictionNote: null,
+          sourceRefs: ["session:session-123"],
+        },
+        topEntity: {
+          kind: "person",
+          label: "Primary applicant",
+          role: "customer",
+          summary: "customer | Applicant relocating with spouse.",
+          sourceRefs: ["session:session-123", "note:operator-1"],
+        },
+        evidencePack: {
+          proofs: [
+            {
+              id: "proof-1",
+              statement: "Customer wants a spouse relocation consultation.",
+              status: "confirmed",
+              confidence: 0.96,
+              evidenceSummary: "Confirmed in the latest live intake.",
+              contradictionNote: null,
+              sourceRefs: ["session:session-123"],
+            },
+          ],
+          entities: [
+            {
+              id: "entity-customer",
+              kind: "person",
+              label: "Primary applicant",
+              role: "customer",
+              description: "Applicant relocating with spouse.",
+              confidence: 0.98,
+              sourceRefs: ["session:session-123", "note:operator-1"],
+            },
+          ],
+          questions: [
+            {
+              id: "question-1",
+              question: "Has the customer already received the invitation letter?",
+              priority: "high",
+              blocking: true,
+              owner: "customer",
+              suggestedNextStep: "Request the invitation letter or confirm issuance status.",
+              sourceRefs: ["proof:proof-1"],
+            },
+          ],
+          sourceRefs: ["session:session-123", "note:operator-1", "proof:proof-1"],
+        },
+        previewPack: {
+          packValue: "1 proofs | 1 entities | 1 questions",
+          refsValue: "session:session-123 | note:operator-1 | proof:proof-1",
+          proofsSummary: "[confirmed] Customer wants a spouse relocation consultation.",
+          questionsSummary: "[high] Has the customer already received the invitation letter?",
+          drilldownValue:
+            "[confirmed] Customer wants a spouse relocation consultation. | [high] Has the customer already received the invitation letter?",
+          handoffValue: "Request missing visa documents | refs: question:question-1, timeline:timeline-1",
+        },
+        handoffPack: {
+          proofs: [],
+          questions: [],
+        },
+        detailPack: {
+          proofs: [],
+          questions: [],
+        },
+        recommendedNextAction: {
+          type: "document_request",
+          title: "Request missing visa documents",
+          owner: "operator",
+          summary: "Ask the customer for the passport scan and invitation letter before scheduling filing.",
+        },
+      },
+    },
     entities: [
       {
         id: "entity-customer",
@@ -678,6 +782,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.match(wiki.previewPack.handoffValue ?? "", /Request missing visa documents/i);
   assert.match(wiki.workspacePack.statusValue ?? "", /Waiting on customer/i);
   assert.match(wiki.workspacePack.handoffValue ?? "", /Request missing visa documents/i);
+  assert.match(wiki.operatorPreviewPack.overview.overview?.summary ?? "", /document guidance/i);
+  assert.match(wiki.operatorPreviewPack.evidence.topEntity?.summary ?? "", /Applicant relocating with spouse/i);
   assert.equal(wiki.entities[0]?.kind, "person");
   assert.equal(wiki.proofs[0]?.status, "confirmed");
   assert.equal(wiki.recommendedNextAction?.type, "document_request");

@@ -241,6 +241,11 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.match(wiki?.workspacePack.nextActionValue ?? "", /Request missing follow-up items/i);
   assert.match(wiki?.workspacePack.packValue ?? "", /3 proofs/i);
   assert.match(wiki?.workspacePack.handoffValue ?? "", /Request missing follow-up items/i);
+  assert.match(wiki?.operatorPreviewPack.overview.overview?.summary ?? "", /passport scan and invitation letter are still missing/i);
+  assert.equal(wiki?.operatorPreviewPack.overview.counts.proofs, wiki?.proofs.length);
+  assert.equal(wiki?.operatorPreviewPack.evidence.topProof?.status, "missing");
+  assert.match(wiki?.operatorPreviewPack.evidence.topEntity?.summary ?? "", /Primary destination/i);
+  assert.match(wiki?.operatorPreviewPack.evidence.recommendedNextAction?.summary ?? "", /upload the missing documents/i);
   assert.equal(wiki?.entities.some((item) => item.kind === "case" && item.id === "case:case-42"), true);
   assert.equal(wiki?.entities.some((item) => item.kind === "location" && item.label === "Canada"), true);
   assert.equal(wiki?.timeline[0]?.id, "session:session-case-1");
@@ -391,4 +396,6 @@ test("runtime case wiki prioritizes pending approvals as the next action when op
   assert.match(wiki?.previewPack.handoffValue ?? "", /Resolve pending approval/i);
   assert.match(wiki?.workspacePack.statusValue ?? "", /Waiting on operator/i);
   assert.match(wiki?.workspacePack.nextActionValue ?? "", /Resolve pending approval/i);
+  assert.match(wiki?.operatorPreviewPack.overview.overview?.summary ?? "", /approval.*pending|pending.*approval/i);
+  assert.equal(wiki?.operatorPreviewPack.evidence.recommendedNextAction?.type, "approval_request");
 });

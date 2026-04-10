@@ -16,6 +16,7 @@ import type {
   CaseWikiHandoffPackItem,
   CaseWikiFocusPack,
   CaseWikiFocusPackItem,
+  CaseWikiOperatorPreviewPack,
   CaseWikiPreviewPack,
   CaseWikiWorkspacePack,
   CaseWikiRoutingActionId,
@@ -1455,6 +1456,107 @@ function buildCaseWikiWorkspacePack(params: {
   };
 }
 
+function buildCaseWikiOperatorPreviewPack(params: {
+  caseId: string;
+  sessionId: string;
+  generatedAt: string;
+  overview: {
+    title: string;
+    summary: string;
+    status: CaseWikiStatus;
+    customerGoal: string | null;
+    currentStage: string | null;
+    missingEvidenceSummary: string | null;
+    contradictionsSummary: string | null;
+  };
+  evidencePack: {
+    proofs: CaseWikiProof[];
+    entities: CaseWikiEntity[];
+    questions: CaseWikiOpenQuestion[];
+    sourceRefs: string[];
+  };
+  highlights: {
+    topProof: CaseWikiProof | null;
+    topEntity: CaseWikiEntity | null;
+  };
+  handoffPack: CaseWikiHandoffPack;
+  detailPack: CaseWikiDetailPack;
+  previewPack: CaseWikiPreviewPack;
+  recommendedNextAction: CaseWikiNextAction | null;
+  counts: {
+    entities: number;
+    proofs: number;
+    openQuestions: number;
+    timeline: number;
+  };
+}): CaseWikiOperatorPreviewPack {
+  const nextActionPreview = params.recommendedNextAction
+    ? {
+        type: params.recommendedNextAction.type,
+        title: toNonEmptyString(params.recommendedNextAction.title),
+        owner: toNonEmptyString(params.recommendedNextAction.owner ?? null),
+        summary: toNonEmptyString(params.recommendedNextAction.summary),
+      }
+    : null;
+  return {
+    overview: {
+      caseId: params.caseId,
+      sessionId: params.sessionId,
+      schemaVersion: 1,
+      generatedAt: params.generatedAt,
+      overview: {
+        title: toNonEmptyString(params.overview.title),
+        status: params.overview.status,
+        currentStage: toNonEmptyString(params.overview.currentStage),
+        customerGoal: toNonEmptyString(params.overview.customerGoal),
+        summary: toNonEmptyString(params.overview.summary),
+        missingEvidenceSummary: toNonEmptyString(params.overview.missingEvidenceSummary),
+        contradictionsSummary: toNonEmptyString(params.overview.contradictionsSummary),
+      },
+      recommendedNextAction: nextActionPreview,
+      counts: { ...params.counts },
+    },
+    evidence: {
+      topProof: params.highlights.topProof
+        ? {
+            status: params.highlights.topProof.status,
+            statement: toNonEmptyString(params.highlights.topProof.statement),
+            evidenceSummary: toNonEmptyString(params.highlights.topProof.evidenceSummary),
+            contradictionNote: toNonEmptyString(params.highlights.topProof.contradictionNote),
+            sourceRefs: Array.isArray(params.highlights.topProof.sourceRefs)
+              ? params.highlights.topProof.sourceRefs
+              : [],
+          }
+        : null,
+      topEntity: params.highlights.topEntity
+        ? {
+            kind: params.highlights.topEntity.kind,
+            label: toNonEmptyString(params.highlights.topEntity.label),
+            role: toNonEmptyString(params.highlights.topEntity.role),
+            summary:
+              [
+                toNonEmptyString(params.highlights.topEntity.role),
+                toNonEmptyString(params.highlights.topEntity.description),
+              ].filter((item): item is string => Boolean(item)).join(" | ") || null,
+            sourceRefs: Array.isArray(params.highlights.topEntity.sourceRefs)
+              ? params.highlights.topEntity.sourceRefs
+              : [],
+          }
+        : null,
+      evidencePack: {
+        proofs: params.evidencePack.proofs,
+        entities: params.evidencePack.entities,
+        questions: params.evidencePack.questions,
+        sourceRefs: params.evidencePack.sourceRefs,
+      },
+      previewPack: params.previewPack,
+      handoffPack: params.handoffPack,
+      detailPack: params.detailPack,
+      recommendedNextAction: nextActionPreview,
+    },
+  };
+}
+
 function selectTopProof(proofs: CaseWikiProof[]): CaseWikiProof | null {
   return (
     proofs.find((item) => item.status === "missing") ??
@@ -1645,6 +1747,24 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     previewPack,
     recommendedNextAction,
   });
+  const operatorPreviewPack = buildCaseWikiOperatorPreviewPack({
+    caseId: context.caseId,
+    sessionId: context.selectedSession.sessionId,
+    generatedAt: context.generatedAt,
+    overview,
+    evidencePack,
+    highlights,
+    handoffPack,
+    detailPack,
+    previewPack,
+    recommendedNextAction,
+    counts: {
+      entities: entities.length,
+      proofs: proofs.length,
+      openQuestions: openQuestions.length,
+      timeline: timeline.length,
+    },
+  });
 
   return {
     schemaVersion: 1,
@@ -1662,6 +1782,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     focusPack,
     previewPack,
     workspacePack,
+    operatorPreviewPack,
     entities,
     timeline,
     proofs,
