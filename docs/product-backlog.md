@@ -45,6 +45,26 @@ This section refines the order of execution for the current product cycle. It
 does not replace `P0`/`P1`; it determines what should be built first inside
 those queues.
 
+Status snapshot on 2026-04-10:
+
+1. `Phase 1` is implemented as a runtime path, but it still needs hosted
+   production proof: Railway env enabled, direct-live smoke evidence, and
+   latency/fallback artifacts from the deployed stack.
+2. `Phase 2` is implemented for operator/runtime surfaces: Case Wiki contracts,
+   builder, API routes, notes, frontend Case Workspace, workspace packs, and
+   default focus are in place. The remaining work is to make compiled Case Wiki
+   state the default input for agent decision loops, not only an operator
+   summary surface.
+3. `Phase 3` has its foundation in `ui-executor`: persistent browser sessions,
+   browser jobs, checkpoints, stable refs, verification summaries, and replay
+   bundles exist. The remaining work is real vertical-flow reliability proof on
+   visa/relocation forms.
+4. `Phase 4` is partially implemented through the assistive router and provider
+   posture surfaces. Explicit `Gemini`, `GLM`, and `Gemma` workload lanes remain
+   deferred until runtime reliability is proven.
+5. `Phase 5` remains deferred. Safe self-improvement must stay simulation-only
+   and human-approved until the revenue runtime is stable.
+
 ### Phase 1 - Gemini Live Direct Path
 
 Goal:
@@ -140,15 +160,34 @@ Definition of done:
 1. The system can propose improvements with evidence and regression checks.
 2. Production runtime does not auto-mutate itself.
 
-## Immediate PR Order
+## Immediate Proof Train
 
-The next commit train should follow this order:
+The next commit train should prove the existing architecture instead of adding
+new speculative breadth.
 
-1. `feat: add case wiki contracts`
-2. `feat: add runtime case wiki builder`
-3. `feat: add runtime case wiki routes`
-4. `feat: add operator case wiki panel`
-5. `feat: add case wiki replay and export evidence`
+1. `proof: enable hosted direct live smoke`
+   - Confirm Railway/env readiness for `LIVE_DIRECT_MODE_ENABLED=true`,
+     `LIVE_EPHEMERAL_TOKENS_ENABLED=true`, and `LIVE_DIRECT_MODE_DEFAULT`.
+   - Run `verify:deploy:direct-live-proof` against the hosted frontend/backend.
+   - Persist direct-live active mode, fallback reason, and latency evidence in
+     release artifacts.
+2. `feat: route agent decisions through case wiki`
+   - Feed compiled Case Wiki overview, blockers, proofs, and next action into
+     the live/orchestrator prompt path before raw transcript fallback.
+   - Keep raw session replay and docs as evidence lanes, not the first memory
+     source for every turn.
+   - Add tests proving the agent sees `workspacePack.defaultFocus` and blocking
+     questions when choosing the next action.
+3. `proof: run persistent navigator visa flows`
+   - Add or extend 3-5 vertical UI tasks for visa/relocation forms.
+   - Require persistent session metadata, stable refs, verification state, and
+     replay bundle output in each run.
+   - Track success rate and stale-ref recovery explicitly.
+4. `docs: publish runtime proof report`
+   - Summarize direct-live, Case Wiki, and UI Navigator evidence in one operator
+     report.
+   - Keep provider portfolio and self-improvement as deferred lanes until the
+     proof train is green.
 
 ## P0 - Must Ship
 

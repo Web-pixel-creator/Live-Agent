@@ -128,6 +128,30 @@ The current implementation order should stay narrow and sequential.
 This order does not replace `P0` and `P1`; it defines the sequence in which the
 existing backlog should be executed.
 
+## Current Status Snapshot
+
+As of 2026-04-10, the platform has moved from architecture setup into runtime
+proof work.
+
+1. `Gemini Live direct path` has contracts, token issuance, frontend bootstrap,
+   relay fallback, replay evidence, and deploy proof tooling. The open risk is
+   hosted production proof with direct mode enabled and latency/fallback
+   evidence collected from Railway.
+2. `Case Wiki / compiled memory` has contracts, runtime builder, API routes,
+   notes, workspace packs, operator UI, default focus, and tests. The open risk
+   is agent-loop adoption: compiled case state should become the first memory
+   source for live/orchestrator decisions, with raw transcript and docs as
+   evidence fallback.
+3. `Persistent UI runtime` has persistent browser session metadata, browser
+   jobs, checkpoints, stable refs, verification summaries, and replay bundles.
+   The open risk is real-flow reliability proof on visa/relocation browser
+   tasks.
+4. `Structured provider portfolio` has assistive router/provider posture
+   foundations, but explicit `Gemini`, `GLM`, and `Gemma` workload lanes remain
+   intentionally deferred.
+5. `Safe self-improvement` remains a later Simulation Lab lane and must stay
+   human-approved and sandbox-only.
+
 ## What Leaves Center Stage
 
 These areas stay in the repo but should not be the main commercial message:
