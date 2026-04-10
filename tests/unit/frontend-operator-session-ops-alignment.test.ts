@@ -225,6 +225,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
     "actionPack:",
     "focusPack:",
     "previewPack:",
+    "workspacePack:",
     "resolveOperatorCaseWikiActionPackItem(snapshot, kind, target.id)",
     "focus:",
     "handoffPreview:",
@@ -272,6 +273,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(readmeSource, /actionPack/i);
   assert.match(readmeSource, /focusPack/i);
   assert.match(readmeSource, /previewPack/i);
+  assert.match(readmeSource, /workspacePack/i);
   assert.match(readmeSource, /one-click CTA action/i);
   assert.match(readmeSource, /Case Wiki Open Questions/i);
   assert.match(readmeSource, /refresh recovery follow-?up path/i);
@@ -295,6 +297,7 @@ test("operator console exposes session ops purpose, replay, and discovery surfac
   assert.match(operatorGuideSource, /actionPack/i);
   assert.match(operatorGuideSource, /focusPack/i);
   assert.match(operatorGuideSource, /previewPack/i);
+  assert.match(operatorGuideSource, /workspacePack/i);
   assert.match(operatorGuideSource, /one-click CTA action/i);
   assert.match(operatorGuideSource, /Case Wiki Open Questions/i);
   assert.match(operatorGuideSource, /refresh recovery follow-?up path/i);

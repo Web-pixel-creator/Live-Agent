@@ -327,6 +327,21 @@ export type CaseWikiPreviewPack = {
   handoffValue: string | null;
 };
 
+export type CaseWikiWorkspacePack = {
+  statusValue: string | null;
+  summaryValue: string | null;
+  blockerValue: string | null;
+  nextActionValue: string | null;
+  proofTitle: string | null;
+  proofSummary: string | null;
+  entityTitle: string | null;
+  entitySummary: string | null;
+  packValue: string | null;
+  refsValue: string | null;
+  drilldownValue: string | null;
+  handoffValue: string | null;
+};
+
 export type CaseWikiRoutingRoute = {
   lane: CaseWikiRoutingLane;
   owner: string | null;
@@ -429,6 +444,7 @@ export type CaseWiki = {
   actionPack: CaseWikiActionPack;
   focusPack: CaseWikiFocusPack;
   previewPack: CaseWikiPreviewPack;
+  workspacePack: CaseWikiWorkspacePack;
   entities: CaseWikiEntity[];
   timeline: CaseWikiTimelineEntry[];
   proofs: CaseWikiProof[];

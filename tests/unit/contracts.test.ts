@@ -585,6 +585,21 @@ test("case wiki contracts expose stable structured memory shapes", () => {
         "[confirmed] Customer wants a spouse relocation consultation. | [high] Has the customer already received the invitation letter?",
       handoffValue: "Request missing visa documents | refs: question:question-1, timeline:timeline-1",
     },
+    workspacePack: {
+      statusValue: "Waiting on customer | document_collection",
+      summaryValue: "Customer is evaluating a relocation package and waiting on document guidance.",
+      blockerValue: "Has the customer already received the invitation letter?",
+      nextActionValue: "Request missing visa documents",
+      proofTitle: "Customer wants a spouse relocation consultation.",
+      proofSummary: "Confirmed in the latest live intake.",
+      entityTitle: "Primary applicant",
+      entitySummary: "customer | Applicant relocating with spouse.",
+      packValue: "1 proofs | 1 entities | 1 questions",
+      refsValue: "session:session-123 | note:operator-1 | proof:proof-1",
+      drilldownValue:
+        "[confirmed] Customer wants a spouse relocation consultation. | [high] Has the customer already received the invitation letter?",
+      handoffValue: "Request missing visa documents | refs: question:question-1, timeline:timeline-1",
+    },
     entities: [
       {
         id: "entity-customer",
@@ -661,6 +676,8 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.match(wiki.focusPack.questions[0]?.handoffPreview ?? "", /Focus question/i);
   assert.match(wiki.previewPack.packValue ?? "", /1 proofs/i);
   assert.match(wiki.previewPack.handoffValue ?? "", /Request missing visa documents/i);
+  assert.match(wiki.workspacePack.statusValue ?? "", /Waiting on customer/i);
+  assert.match(wiki.workspacePack.handoffValue ?? "", /Request missing visa documents/i);
   assert.equal(wiki.entities[0]?.kind, "person");
   assert.equal(wiki.proofs[0]?.status, "confirmed");
   assert.equal(wiki.recommendedNextAction?.type, "document_request");

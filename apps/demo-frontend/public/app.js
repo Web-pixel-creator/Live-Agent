@@ -7937,7 +7937,9 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
   const currentStage = toOptionalText(overview?.currentStage);
   const nextActionType = toOptionalText(nextAction?.type);
   const previewPack = isRecord(snapshot.previewPack) ? snapshot.previewPack : null;
+  const workspacePack = isRecord(snapshot.workspacePack) ? snapshot.workspacePack : null;
   const packValue =
+    toOptionalText(workspacePack?.packValue) ??
     toOptionalText(previewPack?.packValue) ??
     ([
       Array.isArray(evidencePack?.proofs) && evidencePack.proofs.length > 0 ? `${evidencePack.proofs.length} proofs` : null,
@@ -7945,12 +7947,14 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
       Array.isArray(evidencePack?.questions) && evidencePack.questions.length > 0 ? `${evidencePack.questions.length} questions` : null,
     ].filter(Boolean).join(" | ") || idle.packValue);
   const refsValue =
+    toOptionalText(workspacePack?.refsValue) ??
     toOptionalText(previewPack?.refsValue) ??
     (Array.isArray(evidencePack?.sourceRefs) && evidencePack.sourceRefs.length > 0
       ? evidencePack.sourceRefs.join(" | ")
       : idle.refsValue);
   const drilldownValue =
     buildOperatorCaseWikiFocusedDrilldownValue(focusedItem) ||
+    toOptionalText(workspacePack?.drilldownValue) ||
     toOptionalText(previewPack?.drilldownValue) ||
     ([
       buildOperatorCaseWikiEvidencePackProofSummary(evidencePack),
@@ -7958,6 +7962,7 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     ].filter(Boolean).join(" | ") || idle.drilldownValue);
   const handoffValue =
     buildOperatorCaseWikiFocusedHandoffPreview(snapshot, evidencePack, focusedItem) ??
+    toOptionalText(workspacePack?.handoffValue) ??
     toOptionalText(previewPack?.handoffValue) ??
     buildOperatorCaseWikiHandoffPreview(snapshot, evidencePack) ??
     idle.handoffValue;
@@ -7987,6 +7992,46 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
     );
   const proofActionBundle = buildOperatorCaseWikiDetailActionBundle("proof", isRu);
   const questionActionBundle = buildOperatorCaseWikiDetailActionBundle("question", isRu);
+  const workspaceStatusValue =
+    toOptionalText(workspacePack?.statusValue) ??
+    [statusPresentation.statusText, currentStage].filter(Boolean).join(" | ");
+  const workspaceSummaryValue =
+    toOptionalText(workspacePack?.summaryValue) ??
+    toOptionalText(overview?.summary) ??
+    toOptionalText(overview?.title) ??
+    toOptionalText(overview?.customerGoal) ??
+    toOptionalText(overview?.missingEvidenceSummary) ??
+    idle.summaryValue;
+  const workspaceBlockerValue =
+    toOptionalText(workspacePack?.blockerValue) ??
+    toOptionalText(blockingQuestion?.question) ??
+    toOptionalText(overview?.missingEvidenceSummary) ??
+    toOptionalText(overview?.contradictionsSummary) ??
+    idle.blockerValue;
+  const workspaceNextActionValue =
+    toOptionalText(workspacePack?.nextActionValue) ??
+    toOptionalText(nextAction?.title) ??
+    toOptionalText(nextAction?.summary) ??
+    (nextActionType ? sentenceCaseOperatorEvidenceValue(nextActionType) : null) ??
+    idle.nextActionValue;
+  const workspaceProofTitle =
+    toOptionalText(workspacePack?.proofTitle) ??
+    toOptionalText(topProof?.statement) ??
+    idle.proofTitle;
+  const workspaceProofSummary =
+    toOptionalText(workspacePack?.proofSummary) ??
+    toOptionalText(topProof?.evidenceSummary) ??
+    toOptionalText(topProof?.contradictionNote) ??
+    (toOptionalText(topProof?.status) ? sentenceCaseOperatorEvidenceValue(toOptionalText(topProof?.status)) : null) ??
+    idle.proofSummary;
+  const workspaceEntityTitle =
+    toOptionalText(workspacePack?.entityTitle) ??
+    toOptionalText(keyEntity?.label) ??
+    idle.entityTitle;
+  const workspaceEntitySummary =
+    toOptionalText(workspacePack?.entitySummary) ??
+    ([toOptionalText(keyEntity?.role), toOptionalText(keyEntity?.description)].filter(Boolean).join(" | ") ||
+      idle.entitySummary);
   return {
     pillText: statusPresentation.pillText,
     pillTone: statusPresentation.pillTone,
@@ -8057,6 +8102,18 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
       ),
     packValue,
     refsValue,
+    statusValue: workspaceStatusValue,
+    summaryValue: workspaceSummaryValue,
+    blockerValue: workspaceBlockerValue,
+    nextActionValue: workspaceNextActionValue,
+    proofTitle: workspaceProofTitle,
+    proofSummary: workspaceProofSummary,
+    entityTitle: workspaceEntityTitle,
+    entitySummary: workspaceEntitySummary,
+    packValue,
+    refsValue,
+    drilldownValue,
+    handoffValue,
   };
 }
 
@@ -25882,6 +25939,7 @@ function buildSessionExportOperatorCaseWiki() {
     actionPack: isRecord(snapshot?.actionPack) ? snapshot.actionPack : null,
     focusPack: isRecord(snapshot?.focusPack) ? snapshot.focusPack : null,
     previewPack: isRecord(snapshot?.previewPack) ? snapshot.previewPack : null,
+    workspacePack: isRecord(snapshot?.workspacePack) ? snapshot.workspacePack : null,
     recommendedNextAction: isRecord(snapshot?.recommendedNextAction) ? snapshot.recommendedNextAction : null,
     topBlockingQuestion: isRecord(blockingQuestion) ? blockingQuestion : null,
     topProof: isRecord(topProof) ? topProof : null,
@@ -26131,6 +26189,9 @@ function toMarkdownExport(payload) {
   );
   lines.push(
     `- previewPack: ${payload.operatorEvidence?.operatorCaseWiki?.previewPack?.packValue ?? "-"}`,
+  );
+  lines.push(
+    `- workspacePack: ${payload.operatorEvidence?.operatorCaseWiki?.workspacePack?.statusValue ?? "-"}`,
   );
   lines.push(
     `- counts: entities=${payload.operatorEvidence?.operatorCaseWiki?.counts?.entities ?? 0}, proofs=${payload.operatorEvidence?.operatorCaseWiki?.counts?.proofs ?? 0}, openQuestions=${payload.operatorEvidence?.operatorCaseWiki?.counts?.openQuestions ?? 0}, timeline=${payload.operatorEvidence?.operatorCaseWiki?.counts?.timeline ?? 0}`,
@@ -32286,6 +32347,22 @@ function buildOperatorCaseWikiSnapshot(value) {
           questionsSummary: toOptionalText(value.previewPack.questionsSummary),
           drilldownValue: toOptionalText(value.previewPack.drilldownValue),
           handoffValue: toOptionalText(value.previewPack.handoffValue),
+        }
+      : null,
+    workspacePack: isRecord(value.workspacePack)
+      ? {
+          statusValue: toOptionalText(value.workspacePack.statusValue),
+          summaryValue: toOptionalText(value.workspacePack.summaryValue),
+          blockerValue: toOptionalText(value.workspacePack.blockerValue),
+          nextActionValue: toOptionalText(value.workspacePack.nextActionValue),
+          proofTitle: toOptionalText(value.workspacePack.proofTitle),
+          proofSummary: toOptionalText(value.workspacePack.proofSummary),
+          entityTitle: toOptionalText(value.workspacePack.entityTitle),
+          entitySummary: toOptionalText(value.workspacePack.entitySummary),
+          packValue: toOptionalText(value.workspacePack.packValue),
+          refsValue: toOptionalText(value.workspacePack.refsValue),
+          drilldownValue: toOptionalText(value.workspacePack.drilldownValue),
+          handoffValue: toOptionalText(value.workspacePack.handoffValue),
         }
       : null,
     entities: Array.isArray(value.entities) ? value.entities.filter((item) => isRecord(item)) : [],

@@ -17,6 +17,7 @@ import type {
   CaseWikiFocusPack,
   CaseWikiFocusPackItem,
   CaseWikiPreviewPack,
+  CaseWikiWorkspacePack,
   CaseWikiRoutingActionId,
   CaseWikiRoutingCTA,
   CaseWikiRoutingLane,
@@ -1365,6 +1366,95 @@ function buildCaseWikiPreviewPack(params: {
   };
 }
 
+function buildCaseWikiWorkspaceStatusText(status: CaseWikiStatus): string {
+  switch (status) {
+    case "resolved":
+      return "Resolved";
+    case "blocked":
+      return "Blocked";
+    case "waiting_on_customer":
+      return "Waiting on customer";
+    case "waiting_on_operator":
+      return "Waiting on operator";
+    case "active":
+      return "Active";
+    default:
+      return "Awaiting compiled memory";
+  }
+}
+
+function buildCaseWikiWorkspacePack(params: {
+  overview: {
+    title: string;
+    summary: string;
+    status: CaseWikiStatus;
+    customerGoal: string | null;
+    currentStage: string | null;
+    missingEvidenceSummary: string | null;
+    contradictionsSummary: string | null;
+  };
+  highlights: {
+    topProof: CaseWikiProof | null;
+    topEntity: CaseWikiEntity | null;
+    topBlockingQuestion: CaseWikiOpenQuestion | null;
+  };
+  evidencePack: {
+    proofs: CaseWikiProof[];
+    entities: CaseWikiEntity[];
+    questions: CaseWikiOpenQuestion[];
+    sourceRefs: string[];
+  };
+  previewPack: CaseWikiPreviewPack;
+  recommendedNextAction: CaseWikiNextAction | null;
+}): CaseWikiWorkspacePack {
+  const nextActionType = sentenceCaseCaseWikiRoutingValue(params.recommendedNextAction?.type ?? null);
+  const proofStatus = sentenceCaseCaseWikiRoutingValue(params.highlights.topProof?.status ?? null);
+  return {
+    statusValue: [
+      buildCaseWikiWorkspaceStatusText(params.overview.status),
+      toNonEmptyString(params.overview.currentStage),
+    ].filter((item): item is string => Boolean(item)).join(" | ") || null,
+    summaryValue:
+      toNonEmptyString(params.overview.summary) ??
+      toNonEmptyString(params.overview.title) ??
+      toNonEmptyString(params.overview.customerGoal) ??
+      toNonEmptyString(params.overview.missingEvidenceSummary) ??
+      null,
+    blockerValue:
+      toNonEmptyString(params.highlights.topBlockingQuestion?.question ?? null) ??
+      toNonEmptyString(params.overview.missingEvidenceSummary) ??
+      toNonEmptyString(params.overview.contradictionsSummary) ??
+      null,
+    nextActionValue:
+      toNonEmptyString(params.recommendedNextAction?.title ?? null) ??
+      toNonEmptyString(params.recommendedNextAction?.summary ?? null) ??
+      nextActionType,
+    proofTitle: toNonEmptyString(params.highlights.topProof?.statement ?? null),
+    proofSummary:
+      toNonEmptyString(params.highlights.topProof?.evidenceSummary ?? null) ??
+      toNonEmptyString(params.highlights.topProof?.contradictionNote ?? null) ??
+      proofStatus,
+    entityTitle: toNonEmptyString(params.highlights.topEntity?.label ?? null),
+    entitySummary:
+      [
+        toNonEmptyString(params.highlights.topEntity?.role ?? null),
+        toNonEmptyString(params.highlights.topEntity?.description ?? null),
+      ].filter((item): item is string => Boolean(item)).join(" | ") || null,
+    packValue:
+      toNonEmptyString(params.previewPack.packValue) ??
+      ([
+        params.evidencePack.proofs.length > 0 ? `${params.evidencePack.proofs.length} proofs` : null,
+        params.evidencePack.entities.length > 0 ? `${params.evidencePack.entities.length} entities` : null,
+        params.evidencePack.questions.length > 0 ? `${params.evidencePack.questions.length} questions` : null,
+      ].filter((item): item is string => Boolean(item)).join(" | ") || null),
+    refsValue:
+      toNonEmptyString(params.previewPack.refsValue) ??
+      (params.evidencePack.sourceRefs.length > 0 ? params.evidencePack.sourceRefs.join(" | ") : null),
+    drilldownValue: toNonEmptyString(params.previewPack.drilldownValue),
+    handoffValue: toNonEmptyString(params.previewPack.handoffValue),
+  };
+}
+
 function selectTopProof(proofs: CaseWikiProof[]): CaseWikiProof | null {
   return (
     proofs.find((item) => item.status === "missing") ??
@@ -1518,6 +1608,43 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     evidencePack,
     recommendedNextAction,
   });
+  const highlights = {
+    topProof: selectTopProof(proofs),
+    topEntity: selectTopEntity(entities),
+    topBlockingQuestion: selectTopBlockingQuestion(openQuestions),
+  };
+  const overview = {
+    title: buildOverviewTitle(context),
+    summary: buildOverviewSummary(context),
+    status: deriveOverviewStatus(context),
+    customerGoal: buildCustomerGoal(context),
+    currentStage:
+      toNonEmptyString(context.workflowSummary?.workflowCurrentStage) ??
+      toNonEmptyString(context.latestEvent?.route ?? null) ??
+      toNonEmptyString(context.latestEvent?.intent ?? null) ??
+      context.selectedSession.mode,
+    lastMeaningfulUpdateAt:
+      sortDescByIso(
+        [
+          context.selectedSession.updatedAt,
+          context.selectedRun?.updatedAt ?? null,
+          context.selectedApproval?.updatedAt ?? null,
+          context.latestEvent?.createdAt ?? null,
+          context.workflowSummary?.workflowUpdatedAt ?? null,
+        ].filter((item): item is string => Boolean(item)),
+        (item) => item,
+      )[0] ?? null,
+    activeLanguage: null,
+    missingEvidenceSummary: buildMissingEvidenceSummary(context),
+    contradictionsSummary: buildContradictionsSummary(context),
+  };
+  const workspacePack = buildCaseWikiWorkspacePack({
+    overview,
+    highlights,
+    evidencePack,
+    previewPack,
+    recommendedNextAction,
+  });
 
   return {
     schemaVersion: 1,
@@ -1525,36 +1652,8 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     sessionId: context.selectedSession.sessionId,
     userId: context.userId,
     generatedAt: context.generatedAt,
-    overview: {
-      title: buildOverviewTitle(context),
-      summary: buildOverviewSummary(context),
-      status: deriveOverviewStatus(context),
-      customerGoal: buildCustomerGoal(context),
-      currentStage:
-        toNonEmptyString(context.workflowSummary?.workflowCurrentStage) ??
-        toNonEmptyString(context.latestEvent?.route ?? null) ??
-        toNonEmptyString(context.latestEvent?.intent ?? null) ??
-        context.selectedSession.mode,
-      lastMeaningfulUpdateAt:
-        sortDescByIso(
-          [
-            context.selectedSession.updatedAt,
-            context.selectedRun?.updatedAt ?? null,
-            context.selectedApproval?.updatedAt ?? null,
-            context.latestEvent?.createdAt ?? null,
-            context.workflowSummary?.workflowUpdatedAt ?? null,
-          ].filter((item): item is string => Boolean(item)),
-          (item) => item,
-        )[0] ?? null,
-      activeLanguage: null,
-      missingEvidenceSummary: buildMissingEvidenceSummary(context),
-      contradictionsSummary: buildContradictionsSummary(context),
-    },
-    highlights: {
-      topProof: selectTopProof(proofs),
-      topEntity: selectTopEntity(entities),
-      topBlockingQuestion: selectTopBlockingQuestion(openQuestions),
-    },
+    overview,
+    highlights,
     evidencePack,
     handoffPack,
     detailPack,
@@ -1562,6 +1661,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     actionPack,
     focusPack,
     previewPack,
+    workspacePack,
     entities,
     timeline,
     proofs,
