@@ -32409,6 +32409,18 @@ function buildOperatorCaseWikiSnapshot(value) {
       : null,
     workspacePack: isRecord(value.workspacePack)
       ? {
+          defaultFocus: isRecord(value.workspacePack.defaultFocus)
+            ? {
+                focusKind: toOptionalText(value.workspacePack.defaultFocus.focusKind),
+                focusId: toOptionalText(value.workspacePack.defaultFocus.focusId),
+                focusLabel: toOptionalText(value.workspacePack.defaultFocus.focusLabel),
+                chipTitle: toOptionalText(value.workspacePack.defaultFocus.chipTitle),
+                focusSummary: toOptionalText(value.workspacePack.defaultFocus.focusSummary),
+                drilldown: toOptionalText(value.workspacePack.defaultFocus.drilldown),
+                handoffPreview: toOptionalText(value.workspacePack.defaultFocus.handoffPreview),
+                source: toOptionalText(value.workspacePack.defaultFocus.source),
+              }
+            : null,
           statusValue: toOptionalText(value.workspacePack.statusValue),
           summaryValue: toOptionalText(value.workspacePack.summaryValue),
           blockerValue: toOptionalText(value.workspacePack.blockerValue),
