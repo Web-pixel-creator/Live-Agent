@@ -15,6 +15,13 @@
     "promptCaching": "none",
     "watchlistEnabled": false
   },
+  "costGuard": {
+    "enabled": true,
+    "maxCaseUsd": 5,
+    "maxCaseTokens": 250000,
+    "degradeAtRatio": 0.8,
+    "requireApproval": true
+  },
   "retryPolicy": {
     "continuationStatusCode": 503,
     "continuationBackoffMs": 1200,

@@ -282,6 +282,11 @@ type CaseWikiRuntimeContext = {
   nextAction: string | null;
   summary: string | null;
   sourceRefs: string[];
+  runtimeBudgetGuard: {
+    status: string | null;
+    reason: string | null;
+    shortContextPreferred: boolean;
+  } | null;
 };
 
 const conversationSessions = new Map<string, ConversationSessionState>();
@@ -1316,6 +1321,17 @@ function getCaseWikiRuntimeRecord(input: unknown): Record<string, unknown> | nul
   return null;
 }
 
+function getRuntimeBudgetGuardRecord(input: unknown): Record<string, unknown> | null {
+  if (!isRecord(input)) {
+    return null;
+  }
+  if (isRecord(input.runtimeBudgetGuard)) {
+    return input.runtimeBudgetGuard;
+  }
+  const context = isRecord(input.context) ? input.context : null;
+  return context && isRecord(context.runtimeBudgetGuard) ? context.runtimeBudgetGuard : null;
+}
+
 function normalizeCaseWikiSourceRefs(value: unknown): string[] {
   const rawItems = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
   const refs: string[] = [];
@@ -1379,6 +1395,15 @@ function buildCaseWikiRuntimeContext(rawInput: unknown): CaseWikiRuntimeContext 
   const routingPack = isRecord(wiki.routingPack) ? wiki.routingPack : {};
   const actionPack = isRecord(wiki.actionPack) ? wiki.actionPack : {};
   const recommendedNextAction = isRecord(wiki.recommendedNextAction) ? wiki.recommendedNextAction : {};
+  const budgetGuardRecord = getRuntimeBudgetGuardRecord(rawInput);
+  const runtimeBudgetGuard = budgetGuardRecord
+    ? {
+        status: firstNonEmptyString(budgetGuardRecord.status),
+        reason: firstNonEmptyString(budgetGuardRecord.reason),
+        shortContextPreferred: budgetGuardRecord.shortContextPreferred === true,
+      }
+    : null;
+  const shortContextPreferred = runtimeBudgetGuard?.shortContextPreferred === true;
 
   const evidenceQuestions = asRecordArray(evidencePack.questions);
   const topBlockingQuestion = isRecord(highlights.topBlockingQuestion)
@@ -1412,17 +1437,17 @@ function buildCaseWikiRuntimeContext(rawInput: unknown): CaseWikiRuntimeContext 
   const sourceRefs = normalizeCaseWikiSourceRefs(evidencePack.sourceRefs);
 
   const focusLines = [
-    ...formatCaseWikiItems(asRecordArray(focusPack.questions), "Focus question", 2),
-    ...formatCaseWikiItems(asRecordArray(focusPack.proofs), "Focus proof", 2),
-  ].slice(0, 4);
+    ...formatCaseWikiItems(asRecordArray(focusPack.questions), "Focus question", shortContextPreferred ? 1 : 2),
+    ...formatCaseWikiItems(asRecordArray(focusPack.proofs), "Focus proof", shortContextPreferred ? 1 : 2),
+  ].slice(0, shortContextPreferred ? 2 : 4);
   const routingLines = [
-    ...formatCaseWikiItems(asRecordArray(routingPack.questions), "Routing question", 2),
-    ...formatCaseWikiItems(asRecordArray(routingPack.proofs), "Routing proof", 2),
-  ].slice(0, 4);
+    ...formatCaseWikiItems(asRecordArray(routingPack.questions), "Routing question", shortContextPreferred ? 1 : 2),
+    ...formatCaseWikiItems(asRecordArray(routingPack.proofs), "Routing proof", shortContextPreferred ? 1 : 2),
+  ].slice(0, shortContextPreferred ? 2 : 4);
   const actionLines = [
-    ...formatCaseWikiItems(asRecordArray(actionPack.questions), "Action question", 2),
-    ...formatCaseWikiItems(asRecordArray(actionPack.proofs), "Action proof", 2),
-  ].slice(0, 4);
+    ...formatCaseWikiItems(asRecordArray(actionPack.questions), "Action question", shortContextPreferred ? 1 : 2),
+    ...formatCaseWikiItems(asRecordArray(actionPack.proofs), "Action proof", shortContextPreferred ? 1 : 2),
+  ].slice(0, shortContextPreferred ? 2 : 4);
 
   const hasUsefulContent = [
     caseId,
@@ -1442,10 +1467,13 @@ function buildCaseWikiRuntimeContext(rawInput: unknown): CaseWikiRuntimeContext 
   const promptLines = [
     "Case Wiki compiled memory (primary context).",
     "Use this before raw transcript. If a blocker is present, do not promise completion before it is resolved.",
+    shortContextPreferred
+      ? `Runtime budget guard: short_context preferred (${runtimeBudgetGuard?.reason ?? "cost_guard"}). Use the focused Case Wiki facts only and avoid expanding raw transcript context.`
+      : null,
     caseId ? `Case: ${clipText(caseId, 160)}` : null,
     status ? `Status: ${clipText(status, 180)}` : null,
     currentStage ? `Current stage: ${clipText(currentStage, 180)}` : null,
-    summary ? `Summary: ${clipText(summary, 900)}` : null,
+    summary ? `Summary: ${clipText(summary, shortContextPreferred ? 360 : 900)}` : null,
     focusId || focusLabel || focusKind
       ? `Default focus: ${[
           focusKind ? `kind=${focusKind}` : null,
@@ -1455,12 +1483,14 @@ function buildCaseWikiRuntimeContext(rawInput: unknown): CaseWikiRuntimeContext 
           .filter((value): value is string => Boolean(value))
           .join("; ")}`
       : null,
-    blockingQuestion ? `Blocking question: ${clipText(blockingQuestion, 500)}` : null,
-    nextAction ? `Next action: ${clipText(nextAction, 500)}` : null,
+    blockingQuestion ? `Blocking question: ${clipText(blockingQuestion, shortContextPreferred ? 240 : 500)}` : null,
+    nextAction ? `Next action: ${clipText(nextAction, shortContextPreferred ? 240 : 500)}` : null,
     focusLines.length > 0 ? `Focus pack:\n${focusLines.join("\n")}` : null,
     routingLines.length > 0 ? `Routing pack:\n${routingLines.join("\n")}` : null,
     actionLines.length > 0 ? `Action pack:\n${actionLines.join("\n")}` : null,
-    sourceRefs.length > 0 ? `Source refs: ${sourceRefs.join(", ")}` : null,
+    sourceRefs.length > 0
+      ? `Source refs: ${sourceRefs.slice(0, shortContextPreferred ? 3 : 6).join(", ")}`
+      : null,
   ].filter((value): value is string => Boolean(value));
 
   return {
@@ -1474,6 +1504,7 @@ function buildCaseWikiRuntimeContext(rawInput: unknown): CaseWikiRuntimeContext 
     nextAction,
     summary,
     sourceRefs,
+    runtimeBudgetGuard,
   };
 }
 
@@ -1696,17 +1727,18 @@ function buildConversationContextPrompt(
   caseWikiContext: CaseWikiRuntimeContext | null,
 ): string | null {
   const sections: string[] = [];
+  const shortContextPreferred = caseWikiContext?.runtimeBudgetGuard?.shortContextPreferred === true;
   if (caseWikiContext) {
     sections.push(caseWikiContext.prompt);
   }
   if (state.summary) {
-    sections.push(`Session summary:\n${clipTailText(state.summary, 1800)}`);
+    sections.push(`Session summary:\n${clipTailText(state.summary, shortContextPreferred ? 600 : 1800)}`);
   }
   const bookingState = renderBookingState(state.booking);
-  if (bookingState) {
+  if (bookingState && !shortContextPreferred) {
     sections.push(bookingState);
   }
-  if (state.followUp) {
+  if (state.followUp && !shortContextPreferred) {
     sections.push(
       [
         `Follow-up state: ${state.followUp.status}.`,
@@ -1716,7 +1748,7 @@ function buildConversationContextPrompt(
       ].join(" "),
     );
   }
-  if (state.handoff) {
+  if (state.handoff && !shortContextPreferred) {
     sections.push(
       [
         `Handoff state: ${state.handoff.status}.`,
@@ -1727,9 +1759,9 @@ function buildConversationContextPrompt(
       ].join(" "),
     );
   }
-  const recentTurns = state.turns.slice(-8);
+  const recentTurns = state.turns.slice(shortContextPreferred ? -2 : -8);
   if (recentTurns.length > 0) {
-    sections.push(`Recent turns:\n${renderTurns(recentTurns, 240)}`);
+    sections.push(`Recent turns:\n${renderTurns(recentTurns, shortContextPreferred ? 120 : 240)}`);
   }
   if (sections.length === 0) {
     return null;
@@ -1756,6 +1788,7 @@ function buildContextDiagnostics(params: {
           nextAction: params.caseWikiContext.nextAction,
           summary: params.caseWikiContext.summary,
           sourceRefs: params.caseWikiContext.sourceRefs,
+          runtimeBudgetGuard: params.caseWikiContext.runtimeBudgetGuard,
         }
       : null,
     revision: params.state.revision,

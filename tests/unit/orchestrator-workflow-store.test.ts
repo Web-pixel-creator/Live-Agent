@@ -65,6 +65,11 @@ test("workflow store loads repo/file config and applies env overrides", () =>
       ORCHESTRATOR_ASSISTIVE_ROUTER_PROMPT_CACHING: undefined,
       ORCHESTRATOR_ASSISTIVE_ROUTER_WATCHLIST_ENABLED: undefined,
       ORCHESTRATOR_ASSISTIVE_ROUTER_API_KEY: undefined,
+      ORCHESTRATOR_COST_GUARD_ENABLED: "true",
+      ORCHESTRATOR_COST_GUARD_MAX_CASE_USD: "3.5",
+      ORCHESTRATOR_COST_GUARD_MAX_CASE_TOKENS: "125000",
+      ORCHESTRATOR_COST_GUARD_DEGRADE_AT_RATIO: "0.7",
+      ORCHESTRATOR_COST_GUARD_REQUIRE_APPROVAL: "false",
       ORCHESTRATOR_IDEMPOTENCY_TTL_MS: "60000",
       GEMINI_API_KEY: "unit-key",
       OPENAI_API_KEY: undefined,
@@ -74,6 +79,7 @@ test("workflow store loads repo/file config and applies env overrides", () =>
     },
     () => {
       const config = getOrchestratorWorkflowConfig();
+      const status = getOrchestratorWorkflowStoreStatus();
       assert.equal(config.sourceKind, "file");
       assert.equal(config.assistiveRouter.enabled, true);
       assert.equal(config.assistiveRouter.provider, "gemini_api");
@@ -83,6 +89,14 @@ test("workflow store loads repo/file config and applies env overrides", () =>
       assert.equal(config.idempotencyTtlMs, 60000);
       assert.equal(config.assistiveRouter.apiKey, "unit-key");
       assert.deepEqual(config.assistiveRouter.allowIntents, ["conversation", "translation", "negotiation", "research"]);
+      assert.deepEqual(config.costGuard, {
+        enabled: true,
+        maxCaseUsd: 3.5,
+        maxCaseTokens: 125000,
+        degradeAtRatio: 0.7,
+        requireApproval: false,
+      });
+      assert.deepEqual(status.costGuard, config.costGuard);
     },
   ));
 

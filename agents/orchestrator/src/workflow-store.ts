@@ -41,7 +41,16 @@ export type OrchestratorWorkflowConfig = {
   sourcePath: string | null;
   idempotencyTtlMs: number;
   assistiveRouter: AssistiveRouterRuntimeConfig;
+  costGuard: OrchestratorCostGuardConfig;
   retryPolicy: OrchestratorRetryPolicyConfig;
+};
+
+export type OrchestratorCostGuardConfig = {
+  enabled: boolean;
+  maxCaseUsd: number;
+  maxCaseTokens: number;
+  degradeAtRatio: number;
+  requireApproval: boolean;
 };
 
 export type OrchestratorWorkflowStage =
@@ -136,6 +145,7 @@ export type OrchestratorWorkflowStoreStatus = {
     promptCaching: AssistiveRouterPromptCaching | null;
     watchlistEnabled: boolean | null;
   } | null;
+  costGuard: OrchestratorCostGuardConfig | null;
   idempotencyTtlMs: number | null;
   workflowState: OrchestratorWorkflowExecutionState;
   controlPlaneOverride: {
@@ -162,6 +172,13 @@ type WorkflowFileOverlay = {
     budgetPolicy?: unknown;
     promptCaching?: unknown;
     watchlistEnabled?: unknown;
+  };
+  costGuard?: {
+    enabled?: unknown;
+    maxCaseUsd?: unknown;
+    maxCaseTokens?: unknown;
+    degradeAtRatio?: unknown;
+    requireApproval?: unknown;
   };
   retryPolicy?: {
     continuationStatusCode?: unknown;
@@ -338,6 +355,14 @@ function parsePositiveInt(value: unknown, fallback: number): number {
   return Math.floor(parsed);
 }
 
+function parsePositiveNumber(value: unknown, fallback: number): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
+}
+
 function parseStatusCode(value: unknown, fallback: number): number {
   const parsed = parsePositiveInt(value, fallback);
   if (parsed < 400 || parsed > 599) {
@@ -382,6 +407,14 @@ function parseAssistiveRouterPromptCaching(
     return normalized as AssistiveRouterPromptCaching;
   }
   return fallback;
+}
+
+function parsePositiveRatio(value: unknown, fallback: number): number {
+  const parsed = parseConfidence(value, fallback);
+  if (parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
 }
 
 function parseWorkflowStage(value: unknown): OrchestratorWorkflowStage | null {
@@ -531,6 +564,13 @@ function defaultConfig(): OrchestratorWorkflowConfig {
       promptCaching: defaultAssistiveRouterPromptCaching(provider),
       watchlistEnabled: defaultAssistiveRouterWatchlistEnabled(provider),
     },
+    costGuard: {
+      enabled: true,
+      maxCaseUsd: 5,
+      maxCaseTokens: 250_000,
+      degradeAtRatio: 0.8,
+      requireApproval: true,
+    },
     retryPolicy: {
       continuationStatusCode: 503,
       continuationBackoffMs: 1_200,
@@ -591,6 +631,14 @@ function applyOverlay(
       budgetPolicy,
       promptCaching,
       watchlistEnabled,
+    },
+    costGuard: {
+      ...base.costGuard,
+      enabled: parseBoolean(overlay.costGuard?.enabled, base.costGuard.enabled),
+      maxCaseUsd: parsePositiveNumber(overlay.costGuard?.maxCaseUsd, base.costGuard.maxCaseUsd),
+      maxCaseTokens: parsePositiveInt(overlay.costGuard?.maxCaseTokens, base.costGuard.maxCaseTokens),
+      degradeAtRatio: parsePositiveRatio(overlay.costGuard?.degradeAtRatio, base.costGuard.degradeAtRatio),
+      requireApproval: parseBoolean(overlay.costGuard?.requireApproval, base.costGuard.requireApproval),
     },
     retryPolicy: {
       ...base.retryPolicy,
@@ -674,6 +722,23 @@ function applyEnvOverrides(base: OrchestratorWorkflowConfig): OrchestratorWorkfl
       budgetPolicy,
       promptCaching,
       watchlistEnabled,
+    },
+    costGuard: {
+      ...base.costGuard,
+      enabled: parseBoolean(process.env.ORCHESTRATOR_COST_GUARD_ENABLED, base.costGuard.enabled),
+      maxCaseUsd: parsePositiveNumber(process.env.ORCHESTRATOR_COST_GUARD_MAX_CASE_USD, base.costGuard.maxCaseUsd),
+      maxCaseTokens: parsePositiveInt(
+        process.env.ORCHESTRATOR_COST_GUARD_MAX_CASE_TOKENS,
+        base.costGuard.maxCaseTokens,
+      ),
+      degradeAtRatio: parsePositiveRatio(
+        process.env.ORCHESTRATOR_COST_GUARD_DEGRADE_AT_RATIO,
+        base.costGuard.degradeAtRatio,
+      ),
+      requireApproval: parseBoolean(
+        process.env.ORCHESTRATOR_COST_GUARD_REQUIRE_APPROVAL,
+        base.costGuard.requireApproval,
+      ),
     },
     retryPolicy: {
       ...base.retryPolicy,
@@ -848,6 +913,11 @@ function buildRefreshSignature(): string {
     assistiveRouterBudgetPolicy: process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_BUDGET_POLICY ?? null,
     assistiveRouterPromptCaching: process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_PROMPT_CACHING ?? null,
     assistiveRouterWatchlistEnabled: process.env.ORCHESTRATOR_ASSISTIVE_ROUTER_WATCHLIST_ENABLED ?? null,
+    costGuardEnabled: process.env.ORCHESTRATOR_COST_GUARD_ENABLED ?? null,
+    costGuardMaxCaseUsd: process.env.ORCHESTRATOR_COST_GUARD_MAX_CASE_USD ?? null,
+    costGuardMaxCaseTokens: process.env.ORCHESTRATOR_COST_GUARD_MAX_CASE_TOKENS ?? null,
+    costGuardDegradeAtRatio: process.env.ORCHESTRATOR_COST_GUARD_DEGRADE_AT_RATIO ?? null,
+    costGuardRequireApproval: process.env.ORCHESTRATOR_COST_GUARD_REQUIRE_APPROVAL ?? null,
     continuationStatusCode: process.env.ORCHESTRATOR_CONTINUATION_STATUS_CODE ?? null,
     continuationRetryBackoffMs: process.env.ORCHESTRATOR_CONTINUATION_RETRY_BACKOFF_MS ?? null,
     transientErrorCodes: process.env.ORCHESTRATOR_TRANSIENT_ERROR_CODES ?? null,
@@ -978,6 +1048,7 @@ export function getOrchestratorWorkflowStoreStatus(): OrchestratorWorkflowStoreS
           watchlistEnabled: cachedConfig.assistiveRouter.watchlistEnabled,
       }
     : null,
+    costGuard: cachedConfig ? { ...cachedConfig.costGuard } : null,
     idempotencyTtlMs: cachedConfig?.idempotencyTtlMs ?? null,
     workflowState: getOrchestratorWorkflowExecutionState(),
     controlPlaneOverride: {

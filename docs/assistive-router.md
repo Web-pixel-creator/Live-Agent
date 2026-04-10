@@ -19,6 +19,7 @@ The orchestrator now supports an optional assistive classifier that can override
 6. If `confidence < ORCHESTRATOR_ASSISTIVE_ROUTER_MIN_CONFIDENCE`, routing falls back to deterministic route.
 7. Response payload includes routing diagnostics in `payload.output.routing`, including `provider`, `defaultProvider`, `defaultModel`, `selectionReason`, `budgetPolicy`, `promptCaching`, and `watchlistEnabled`.
 8. Workflow-store runtime exposes `usingLastKnownGood`, `lastError`, and `controlPlaneOverride` state via orchestrator runtime status.
+9. Case Wiki cost guard runs before assistive classification when `workspacePack.costSummary` is present. Within-budget cases keep the normal router path, soft-limit cases skip the assistive classifier and request `short_context`, and hard-limit cases can pause at an approval gate before route execution.
 
 ## Configuration
 
@@ -37,6 +38,11 @@ The orchestrator now supports an optional assistive classifier that can override
 13. `ORCHESTRATOR_ASSISTIVE_ROUTER_BUDGET_POLICY` exposes routing posture (`judged_default`, `long_context_operator`, `cost_sensitive_batch`, `watchlist_experimental`) to operator/runtime evidence.
 14. `ORCHESTRATOR_ASSISTIVE_ROUTER_PROMPT_CACHING` exposes routing cache posture (`none`, `provider_default`, `provider_prompt_cache`, `watchlist_only`).
 15. `ORCHESTRATOR_ASSISTIVE_ROUTER_WATCHLIST_ENABLED` must be `true` before `moonshot` is allowed to execute; otherwise routing stays deterministic with reason `assistive_router_watchlist_disabled`.
+16. `ORCHESTRATOR_COST_GUARD_ENABLED` enables the Case Wiki cost guard.
+17. `ORCHESTRATOR_COST_GUARD_MAX_CASE_USD` sets the hard priced-case ceiling when `costSummary.pricingConfigured=true`.
+18. `ORCHESTRATOR_COST_GUARD_MAX_CASE_TOKENS` sets the hard total-token ceiling even when pricing is not configured.
+19. `ORCHESTRATOR_COST_GUARD_DEGRADE_AT_RATIO` sets the soft-limit ratio that switches to deterministic routing plus `short_context`.
+20. `ORCHESTRATOR_COST_GUARD_REQUIRE_APPROVAL` pauses hard-limit cases for operator approval instead of merely degrading context.
 
 ## Control-Plane Overrides
 
@@ -56,6 +62,7 @@ The orchestrator now supports an optional assistive classifier that can override
 4. No runtime hard failure is propagated to the user from the classifier path.
 5. If workflow reload fails after a valid snapshot was loaded, orchestrator keeps the last-known-good config and exposes that state via runtime diagnostics.
 6. If a control-plane override is active, its status (`active`, `updatedAt`, `reason`) remains visible until cleared.
+7. Cost guard hard-limit approvals emit `approvalReason=runtime_cost_budget_guard` and include `payload.output.runtimeBudgetGuard` plus routing diagnostics; they do not invoke the target route agent until approval is granted by the operator path.
 
 ## KPI Gate Alignment
 

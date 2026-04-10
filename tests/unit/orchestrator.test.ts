@@ -3,13 +3,44 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { createEnvelope, type OrchestratorRequest } from "../../shared/contracts/src/index.js";
 import { orchestrate } from "../../agents/orchestrator/src/orchestrate.js";
-import { getOrchestratorWorkflowStoreStatus } from "../../agents/orchestrator/src/workflow-store.js";
+import {
+  getOrchestratorWorkflowStoreStatus,
+  resetOrchestratorWorkflowStoreForTests,
+} from "../../agents/orchestrator/src/workflow-store.js";
 
 function asObject(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null) {
     return {};
   }
   return value as Record<string, unknown>;
+}
+
+async function withEnv(
+  overrides: Record<string, string | undefined>,
+  run: () => Promise<void>,
+): Promise<void> {
+  const previous = new Map<string, string | undefined>();
+  for (const [key, value] of Object.entries(overrides)) {
+    previous.set(key, process.env[key]);
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+
+  try {
+    await run();
+  } finally {
+    for (const [key, value] of previous.entries()) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+    resetOrchestratorWorkflowStoreForTests();
+  }
 }
 
 async function startGeminiMockServer(responseText: string): Promise<{
@@ -409,6 +440,170 @@ test("orchestrator proxies and stores consultation booking state across the main
   assert.equal(workflow.bookingState?.status, "confirmed");
   assert.equal(workflow.bookingState?.selectedSlotId, "slot-2");
   assert.match(String(workflow.bookingState?.shortSummary ?? ""), /Confirmed visa and relocation consultation/);
+});
+
+test("orchestrator pauses hard-limit Case Wiki cost runs for approval before route execution", async () => {
+  await withEnv(
+    {
+      FIRESTORE_ENABLED: "false",
+      GEMINI_API_KEY: "",
+      LIVE_AGENT_GEMINI_API_KEY: "",
+      LIVE_AGENT_MOONSHOT_API_KEY: "",
+      MOONSHOT_API_KEY: "",
+      ORCHESTRATOR_COST_GUARD_ENABLED: "true",
+      ORCHESTRATOR_COST_GUARD_MAX_CASE_USD: "1",
+      ORCHESTRATOR_COST_GUARD_MAX_CASE_TOKENS: "5000",
+      ORCHESTRATOR_COST_GUARD_DEGRADE_AT_RATIO: "0.8",
+      ORCHESTRATOR_COST_GUARD_REQUIRE_APPROVAL: "true",
+      ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED: "true",
+    },
+    async () => {
+      const runId = `unit-run-cost-guard-hard-${Date.now()}`;
+      const request = createEnvelope({
+        userId: "unit-user",
+        sessionId: "unit-session-cost-guard-hard",
+        runId,
+        type: "orchestrator.request",
+        source: "frontend",
+        payload: {
+          intent: "conversation",
+          input: {
+            text: "What should we do next for this case?",
+            caseWiki: {
+              caseId: "case-cost-hard",
+              overview: {
+                summary: "Relocation case is near completion but cost budget is already exceeded.",
+                status: "blocked",
+                currentStage: "document_collection",
+              },
+              workspacePack: {
+                summaryValue: "Budget exceeded on this relocation case.",
+                blockerValue: "Operator must approve more runtime spend.",
+                nextActionValue: "Request operator approval before continuing.",
+                costSummary: {
+                  pricingConfigured: true,
+                  totalUsd: 1.25,
+                  totalTokens: 3000,
+                },
+              },
+            },
+          },
+          task: {
+            taskId: `task-${runId}`,
+            status: "queued",
+            stage: "intake",
+          },
+        },
+      }) as OrchestratorRequest;
+
+      const response = await orchestrate(request);
+      assert.equal(response.payload.route, "live-agent");
+      assert.equal(response.payload.status, "accepted");
+
+      const output = asObject(response.payload.output);
+      const routing = asObject(output.routing);
+      const runtimeBudgetGuard = asObject(output.runtimeBudgetGuard);
+      const task = asObject(response.payload.task);
+      const workflow = getOrchestratorWorkflowStoreStatus().workflowState;
+
+      assert.equal(output.approvalRequired, true);
+      assert.equal(output.approvalReason, "runtime_cost_budget_guard");
+      assert.equal(runtimeBudgetGuard.status, "approval_required");
+      assert.equal(runtimeBudgetGuard.action, "approval_required");
+      assert.equal(runtimeBudgetGuard.approvalRequired, true);
+      assert.deepEqual(runtimeBudgetGuard.exceeded, ["usd"]);
+      assert.equal(routing.selectionReason, "cost_guard");
+      assert.equal(routing.reason, "case_wiki_cost_guard_hard_limit:usd");
+      assert.equal(task.stage, "safety_review");
+      assert.equal(task.status, "pending_approval");
+      assert.equal(workflow.status, "pending_approval");
+      assert.equal(workflow.currentStage, "safety_review");
+    },
+  );
+});
+
+test("orchestrator degrades soft-limit Case Wiki cost runs to short-context routing", async () => {
+  await withEnv(
+    {
+      FIRESTORE_ENABLED: "false",
+      GEMINI_API_KEY: "",
+      LIVE_AGENT_GEMINI_API_KEY: "",
+      LIVE_AGENT_USE_GEMINI_CHAT: "false",
+      LIVE_AGENT_TEXT_PROVIDER: "gemini_api",
+      LIVE_AGENT_MOONSHOT_API_KEY: "",
+      MOONSHOT_API_KEY: "",
+      ORCHESTRATOR_COST_GUARD_ENABLED: "true",
+      ORCHESTRATOR_COST_GUARD_MAX_CASE_USD: "5",
+      ORCHESTRATOR_COST_GUARD_MAX_CASE_TOKENS: "1000",
+      ORCHESTRATOR_COST_GUARD_DEGRADE_AT_RATIO: "0.8",
+      ORCHESTRATOR_COST_GUARD_REQUIRE_APPROVAL: "true",
+      ORCHESTRATOR_ASSISTIVE_ROUTER_ENABLED: "true",
+    },
+    async () => {
+      const runId = `unit-run-cost-guard-soft-${Date.now()}`;
+      const request = createEnvelope({
+        userId: "unit-user",
+        sessionId: "unit-session-cost-guard-soft",
+        runId,
+        type: "orchestrator.request",
+        source: "frontend",
+        payload: {
+          intent: "conversation",
+          input: {
+            text: "What is the next action?",
+            caseWiki: {
+              caseId: "case-cost-soft",
+              overview: {
+                summary: "Customer is preparing a relocation visa packet and needs one identity document.",
+                status: "blocked",
+                currentStage: "document_collection",
+              },
+              workspacePack: {
+                summaryValue: "Relocation visa packet is blocked by one missing passport scan.",
+                blockerValue: "Passport scan is missing.",
+                nextActionValue: "Ask the customer to upload the passport scan.",
+                costSummary: {
+                  pricingConfigured: false,
+                  totalTokens: 900,
+                },
+              },
+              highlights: {
+                topBlockingQuestion: {
+                  id: "question:passport-scan",
+                  question: "Do we have the passport scan?",
+                  suggestedNextStep: "Ask the customer to upload the passport scan.",
+                },
+              },
+              evidencePack: {
+                sourceRefs: ["workflow:control-plane", "replay:session-soft"],
+              },
+            },
+          },
+        },
+      }) as OrchestratorRequest;
+
+      const response = await orchestrate(request);
+      assert.equal(response.payload.route, "live-agent");
+      assert.equal(response.payload.status, "completed");
+
+      const output = asObject(response.payload.output);
+      const routing = asObject(output.routing);
+      const runtimeBudgetGuard = asObject(output.runtimeBudgetGuard);
+      const context = asObject(output.context);
+      const caseWiki = asObject(context.caseWiki);
+      const caseWikiBudgetGuard = asObject(caseWiki.runtimeBudgetGuard);
+
+      assert.equal(routing.selectionReason, "cost_guard");
+      assert.equal(routing.reason, "case_wiki_cost_guard_soft_limit:tokens");
+      assert.equal(runtimeBudgetGuard.status, "degraded");
+      assert.equal(runtimeBudgetGuard.action, "short_context");
+      assert.equal(runtimeBudgetGuard.shortContextPreferred, true);
+      assert.equal(context.contextSource, "caseWiki");
+      assert.equal(caseWiki.caseId, "case-cost-soft");
+      assert.equal(caseWikiBudgetGuard.status, "degraded");
+      assert.equal(caseWikiBudgetGuard.shortContextPreferred, true);
+    },
+  );
 });
 
 test("assistive router overrides route on high confidence story classification", async () => {
