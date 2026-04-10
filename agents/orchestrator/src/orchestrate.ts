@@ -644,6 +644,32 @@ function withRoutedIntent(
   };
 }
 
+function extractRequestCaseWiki(input: unknown): Record<string, unknown> | null {
+  if (!isRecord(input)) {
+    return null;
+  }
+  for (const key of ["caseWiki", "caseWikiSnapshot", "runtimeCaseWiki", "compiledCaseWiki"]) {
+    const candidate = input[key];
+    if (isRecord(candidate)) {
+      return candidate;
+    }
+  }
+  const context = isRecord(input.context) ? input.context : null;
+  return context && isRecord(context.caseWiki) ? context.caseWiki : null;
+}
+
+function mergeDelegatedInputWithCaseWiki(
+  delegatedInput: unknown,
+  sourceInput: unknown,
+): Record<string, unknown> {
+  const base = isRecord(delegatedInput) ? delegatedInput : {};
+  if (isRecord(base.caseWiki)) {
+    return base;
+  }
+  const caseWiki = extractRequestCaseWiki(sourceInput);
+  return caseWiki ? { ...base, caseWiki } : base;
+}
+
 async function orchestrateCore(request: OrchestratorRequest): Promise<OrchestratorResponse> {
   const baseRequest = ensureRunId(request);
   const workflow = getOrchestratorWorkflowConfig();
@@ -753,7 +779,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
       ts: new Date().toISOString(),
       payload: {
         intent: delegation.intent,
-        input: delegation.input ?? {},
+        input: mergeDelegatedInputWithCaseWiki(delegation.input, normalizedRequest.payload.input),
       },
     };
     await persistEvent(delegatedRequest);

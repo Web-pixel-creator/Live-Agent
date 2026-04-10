@@ -155,6 +155,17 @@ For local `Discuss` runs, the conversation lane now also uses Moonshot as the se
 
 For local `Research` runs, skill directives stay in provider context instead of being prepended to the user query. If the grounded research provider is unavailable but the reasoning adapter is still live, the agent returns a concise answer without citations before it falls back to the deterministic offline message.
 
+## Runtime Evidence Signing
+
+`GET /v1/runtime/case-wiki` always emits `evidenceSignature.payloadHash` as a canonical SHA256 over the Case Wiki snapshot without the signature field. To sign snapshots locally, configure:
+
+1. `RUNTIME_EVIDENCE_SIGNING_ENABLED=true`
+2. `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM` or `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64`
+3. `RUNTIME_EVIDENCE_SIGNING_KEY_ID=local-dev-key`
+4. `RUNTIME_EVIDENCE_SIGNING_SIGNER_ID=api-backend`
+
+Without a private key, snapshots stay `unsigned` but keep the canonical hash for deterministic artifact comparison.
+
 ## Storyteller Secondary Media Paths
 
 The primary Gemini reasoning path now uses the official Google `@google/genai` SDK, and storyteller can also run the primary image/video/TTS lanes in `STORYTELLER_MEDIA_MODE=default` when Gemini credentials are present. For Gemini image models, `STORYTELLER_IMAGE_MODEL=gemini-3.1-flash-image-preview` selects `Nano Banana 2`, while Imagen-family IDs continue to use the Imagen predict path. `Nano Banana 2` image generations can take longer than the repo's old `12s` baseline, so raise `STORYTELLER_GEMINI_TIMEOUT_MS` when you enable the Gemini image lane locally. Use `STORYTELLER_VIDEO_POLL_MS` and `STORYTELLER_VIDEO_MAX_WAIT_MS` to control how long the runtime waits for the live Veo operation before it degrades to repo-owned fallback assets.

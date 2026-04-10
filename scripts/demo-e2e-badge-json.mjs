@@ -840,6 +840,63 @@ function buildLiveTransport(summary, kpis) {
   };
 }
 
+function buildCaseWikiEvidenceSignature(summary) {
+  const caseWiki = isObject(summary.caseWiki) ? summary.caseWiki : {};
+  const evidenceSignature = isObject(caseWiki.evidenceSignature) ? caseWiki.evidenceSignature : {};
+  const signatureStatus = toOptionalString(evidenceSignature.status);
+  const algorithm = toOptionalString(evidenceSignature.algorithm);
+  const canonicalization = toOptionalString(evidenceSignature.canonicalization);
+  const payloadHash = toOptionalString(evidenceSignature.payloadHash);
+  const keyId = toOptionalString(evidenceSignature.keyId);
+  const signerId = toOptionalString(evidenceSignature.signerId);
+  const signedAt = toOptionalString(evidenceSignature.signedAt);
+  const signaturePresent = toBoolean(evidenceSignature.signaturePresent);
+  const totalArtifacts = signatureStatus !== null ? 1 : 0;
+  const signedArtifacts = signatureStatus === "signed" ? 1 : 0;
+  const unsignedArtifacts = signatureStatus === "unsigned" ? 1 : 0;
+  const payloadHashValid = payloadHash !== null && /^sha256:[a-f0-9]{64}$/.test(payloadHash);
+  const signedAtIsIso = signedAt !== null && isIsoTimestamp(signedAt);
+  const signatureStatusValid = signatureStatus !== null && ["signed", "unsigned"].includes(signatureStatus);
+  const algorithmValid = algorithm === "ed25519-sha256";
+  const canonicalizationValid = canonicalization === "json-stable-v1";
+  const signaturePresenceValid =
+    (signatureStatus === "signed" && signaturePresent === true) ||
+    (signatureStatus === "unsigned" && signaturePresent === false);
+  const validated =
+    totalArtifacts === 1 &&
+    signatureStatusValid &&
+    algorithmValid &&
+    canonicalizationValid &&
+    payloadHashValid &&
+    signerId !== null &&
+    signedAtIsIso &&
+    signaturePresenceValid;
+
+  return {
+    status: validated ? "pass" : "fail",
+    validated,
+    totalArtifacts,
+    signedArtifacts,
+    unsignedArtifacts,
+    signatureStatus,
+    algorithm,
+    canonicalization,
+    payloadHash,
+    keyId,
+    signerId,
+    signedAt,
+    signedAtIsIso,
+    signaturePresent,
+    caseId: toOptionalString(caseWiki.caseId),
+    sessionId: toOptionalString(caseWiki.sessionId),
+    overviewStatus: toOptionalString(caseWiki.overviewStatus),
+    focusKind: toOptionalString(caseWiki.focusKind),
+    focusLabel: toOptionalString(caseWiki.focusLabel),
+    nextAction: toOptionalString(caseWiki.nextAction),
+    sourceRefsCount: Math.max(0, Math.trunc(toNumber(caseWiki.sourceRefsCount) ?? 0)),
+  };
+}
+
 function buildProviderUsage(kpis) {
   const entries = [];
   let validated = true;
@@ -1101,6 +1158,7 @@ async function main() {
   const agentUsageEvidence = buildAgentUsageEvidence(kpis);
   const runtimeGuardrailsSignalPathsEvidence = buildRuntimeGuardrailsSignalPathsEvidence(kpis);
   const liveTransport = buildLiveTransport(summary, kpis);
+  const caseWikiEvidenceSignature = buildCaseWikiEvidenceSignature(summary);
   const providerUsage = buildProviderUsage(kpis);
 
   let color = "red";
@@ -1147,6 +1205,7 @@ async function main() {
       deviceNodes: deviceNodesEvidence,
       agentUsage: agentUsageEvidence,
       runtimeGuardrailsSignalPaths: runtimeGuardrailsSignalPathsEvidence,
+      caseWikiEvidenceSignature,
     },
     badge,
   };

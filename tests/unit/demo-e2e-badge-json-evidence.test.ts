@@ -59,6 +59,25 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
     },
     summary: {
       generatedAt: "2026-02-26T00:00:00.000Z",
+      caseWiki: {
+        caseId: "case-visa-042",
+        sessionId: "session-visa-042",
+        overviewStatus: "blocked",
+        focusKind: "question",
+        focusLabel: "Passport scan is missing",
+        nextAction: "Ask the customer to upload the passport scan.",
+        sourceRefsCount: 2,
+        evidenceSignature: {
+          status: "unsigned",
+          algorithm: "ed25519-sha256",
+          canonicalization: "json-stable-v1",
+          payloadHash: "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          keyId: null,
+          signerId: "api-backend",
+          signedAt: "2026-02-26T00:00:00.000Z",
+          signaturePresent: false,
+        },
+      },
       kpis: {
         gatewayWsRoundTripMs: 37,
         transportModeValidated: true,
@@ -396,6 +415,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   const deviceNodes = evidence.deviceNodes as Record<string, unknown>;
   const agentUsage = evidence.agentUsage as Record<string, unknown>;
   const runtimeGuardrailsSignalPaths = evidence.runtimeGuardrailsSignalPaths as Record<string, unknown>;
+  const caseWikiEvidenceSignature = evidence.caseWikiEvidenceSignature as Record<string, unknown>;
   assert.equal(turnTruncation.status, "pass");
   assert.equal(turnDelete.status, "pass");
   assert.equal(damageControl.status, "pass");
@@ -451,6 +471,22 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(agentUsage.summarySource, "gateway_runtime");
   assert.equal(agentUsage.summaryStatus, "observed");
   assert.equal(runtimeGuardrailsSignalPaths.summaryStatus, "critical signals=3");
+  assert.equal(caseWikiEvidenceSignature.status, "pass");
+  assert.equal(caseWikiEvidenceSignature.validated, true);
+  assert.equal(caseWikiEvidenceSignature.totalArtifacts, 1);
+  assert.equal(caseWikiEvidenceSignature.signedArtifacts, 0);
+  assert.equal(caseWikiEvidenceSignature.unsignedArtifacts, 1);
+  assert.equal(caseWikiEvidenceSignature.signatureStatus, "unsigned");
+  assert.equal(caseWikiEvidenceSignature.algorithm, "ed25519-sha256");
+  assert.equal(caseWikiEvidenceSignature.canonicalization, "json-stable-v1");
+  assert.equal(caseWikiEvidenceSignature.signerId, "api-backend");
+  assert.equal(caseWikiEvidenceSignature.signaturePresent, false);
+  assert.equal(caseWikiEvidenceSignature.caseId, "case-visa-042");
+  assert.equal(caseWikiEvidenceSignature.sessionId, "session-visa-042");
+  assert.equal(caseWikiEvidenceSignature.focusKind, "question");
+  assert.equal(caseWikiEvidenceSignature.focusLabel, "Passport scan is missing");
+  assert.equal(caseWikiEvidenceSignature.nextAction, "Ask the customer to upload the passport scan.");
+  assert.equal(caseWikiEvidenceSignature.sourceRefsCount, 2);
   assert.equal(runtimeGuardrailsSignalPaths.totalPaths, 3);
   assert.equal(runtimeGuardrailsSignalPaths.lifecycleSummary, "active=3");
   const runtimeGuardrailsCounts = runtimeGuardrailsSignalPaths.lifecycleCounts as Record<string, unknown>;

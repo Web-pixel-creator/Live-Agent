@@ -36,6 +36,7 @@ import type {
   RunListItem,
   SessionListItem,
 } from "./firestore.js";
+import { signEvidencePayload, type RuntimeEvidenceSignerConfig } from "./runtime-evidence-signer.js";
 import type { RuntimeWorkflowControlPlaneSummary } from "./runtime-workflow-control-plane.js";
 
 export type RuntimeCaseWikiBuilderParams = {
@@ -48,6 +49,7 @@ export type RuntimeCaseWikiBuilderParams = {
   workflowSummary?: RuntimeWorkflowControlPlaneSummary | null;
   userId?: string | null;
   now?: Date;
+  evidenceSigner?: RuntimeEvidenceSignerConfig | null;
 };
 
 type RuntimeCaseWikiContext = {
@@ -1927,7 +1929,7 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     timeline,
   });
 
-  return {
+  const unsignedWiki: Omit<CaseWiki, "evidenceSignature"> = {
     schemaVersion: 1,
     caseId: context.caseId,
     sessionId: context.selectedSession.sessionId,
@@ -1949,5 +1951,17 @@ export function buildRuntimeCaseWiki(params: RuntimeCaseWikiBuilderParams): Case
     proofs,
     openQuestions,
     recommendedNextAction,
+  };
+
+  return {
+    ...unsignedWiki,
+    evidenceSignature: signEvidencePayload(unsignedWiki, {
+      enabled: false,
+      privateKeyPem: null,
+      keyId: null,
+      signerId: "api-backend",
+      ...params.evidenceSigner,
+      signedAt: params.evidenceSigner?.signedAt ?? context.generatedAt,
+    }),
   };
 }

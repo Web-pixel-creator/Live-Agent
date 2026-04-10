@@ -37,6 +37,9 @@ test("release-readiness keeps provider env out of nested unit tests while preser
   assert.match(source, /DEMO_E2E_INCLUDE_FRONTEND/);
   assert.match(source, /LIVE_DIRECT_MODE_ENABLED/);
   assert.match(source, /LIVE_EPHEMERAL_TOKENS_ENABLED/);
+  assert.match(source, /RUNTIME_EVIDENCE_SIGNING_ENABLED/);
+  assert.match(source, /caseWikiEvidenceSignature/);
+  assert.match(source, /case_wiki\.evidence_signature: validated=/);
   assert.match(source, /-IncludeFrontend/);
   assert.match(source, /--allowUiExecutorRuntimeFallback true/);
   assert.match(source, /--allowedTranslationProviders fallback,gemini,google_translate/);
@@ -758,6 +761,140 @@ function runReleaseReadiness(
   }
 }
 
+function createCaseWikiEvidenceSignatureBadgeDetails(
+  overrides: Partial<{
+    status: string;
+    validated: boolean;
+    totalArtifacts: number;
+    signedArtifacts: number;
+    unsignedArtifacts: number;
+    signatureStatus: string;
+    signerId: string;
+    signedAt: string;
+    signedAtIsIso: boolean;
+    signaturePresent: boolean;
+    payloadHash: string;
+  }> = {},
+): Record<string, unknown> {
+  const hasOverride = (key: string): boolean => Object.prototype.hasOwnProperty.call(overrides, key);
+  return {
+    generatedAt: "2026-02-26T00:00:00.000Z",
+    ok: true,
+    checks: 1,
+    violations: 0,
+    evidence: {
+      caseWikiEvidenceSignature: {
+        status: hasOverride("status") ? overrides.status : "pass",
+        validated: hasOverride("validated") ? overrides.validated : true,
+        totalArtifacts: hasOverride("totalArtifacts") ? overrides.totalArtifacts : 1,
+        signedArtifacts: hasOverride("signedArtifacts") ? overrides.signedArtifacts : 0,
+        unsignedArtifacts: hasOverride("unsignedArtifacts") ? overrides.unsignedArtifacts : 1,
+        signatureStatus: hasOverride("signatureStatus") ? overrides.signatureStatus : "unsigned",
+        algorithm: "ed25519-sha256",
+        canonicalization: "json-stable-v1",
+        payloadHash: hasOverride("payloadHash")
+          ? overrides.payloadHash
+          : "sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+        keyId: null,
+        signerId: hasOverride("signerId") ? overrides.signerId : "api-backend",
+        signedAt: hasOverride("signedAt") ? overrides.signedAt : "2026-02-26T00:00:00.000Z",
+        signedAtIsIso: hasOverride("signedAtIsIso") ? overrides.signedAtIsIso : true,
+        signaturePresent: hasOverride("signaturePresent") ? overrides.signaturePresent : false,
+        caseId: "case-visa-042",
+        sessionId: "session-visa-042",
+        overviewStatus: "blocked",
+        focusKind: "question",
+        focusLabel: "Passport scan is missing",
+        nextAction: "Ask the customer to upload the passport scan.",
+        sourceRefsCount: 2,
+      },
+    },
+  };
+}
+
+function runReleaseReadinessWithCaseWikiEvidence(
+  summary: Record<string, unknown>,
+  badgeDetails: Record<string, unknown>,
+  options?: Partial<{
+    strictFinalRun: boolean;
+    promptfooEvalSummary: Record<string, unknown> | null;
+    env: Record<string, string>;
+  }>,
+): { exitCode: number; stdout: string; stderr: string } {
+  if (!powershellBin) {
+    throw new Error("PowerShell binary is not available");
+  }
+
+  const tempDir = mkdtempSync(join(tmpdir(), "mla-release-readiness-case-wiki-"));
+  try {
+    const summaryPath = join(tempDir, "summary.json");
+    const badgeDetailsPath = join(tempDir, "badge-details.json");
+    const promptfooEvalSummaryPath = join(tempDir, "evals", "latest-run.json");
+    const releaseEvidenceReportPath = join(tempDir, "release-evidence", "report.json");
+    const releaseEvidenceReportMarkdownPath = join(tempDir, "release-evidence", "report.md");
+    const releaseEvidenceManifestPath = join(tempDir, "release-evidence", "manifest.json");
+    const releaseEvidenceManifestMarkdownPath = join(tempDir, "release-evidence", "manifest.md");
+    writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
+    writeFileSync(badgeDetailsPath, `${JSON.stringify(badgeDetails, null, 2)}\n`, "utf8");
+    const promptfooEvalSummary = Object.prototype.hasOwnProperty.call(options ?? {}, "promptfooEvalSummary")
+      ? options?.promptfooEvalSummary
+      : createPassingPromptfooEvalSummary();
+    if (promptfooEvalSummary !== null && promptfooEvalSummary !== undefined) {
+      mkdirSync(dirname(promptfooEvalSummaryPath), { recursive: true });
+      writeFileSync(promptfooEvalSummaryPath, `${JSON.stringify(promptfooEvalSummary, null, 2)}\n`, "utf8");
+    }
+
+    const args = [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      releaseScriptPath,
+      "-SkipBuild",
+      "-SkipUnitTests",
+      "-SkipMonitoringTemplates",
+      "-SkipProfileSmoke",
+      "-SkipPolicy",
+      "-SkipBadge",
+      "-SkipPerfLoad",
+      "-SkipDemoRun",
+      "-PromptfooEvalSummaryPath",
+      promptfooEvalSummaryPath,
+      "-SummaryPath",
+      summaryPath,
+      "-BadgeDetailsPath",
+      badgeDetailsPath,
+      "-ReleaseEvidenceReportPath",
+      releaseEvidenceReportPath,
+      "-ReleaseEvidenceReportMarkdownPath",
+      releaseEvidenceReportMarkdownPath,
+      "-ReleaseEvidenceManifestPath",
+      releaseEvidenceManifestPath,
+      "-ReleaseEvidenceManifestMarkdownPath",
+      releaseEvidenceManifestMarkdownPath,
+    ];
+    if (options?.strictFinalRun) {
+      args.push("-StrictFinalRun");
+    }
+
+    const result = spawnSync(powershellBin, args, {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        ...(options?.env ?? {}),
+      },
+    });
+
+    return {
+      exitCode: result.status ?? 1,
+      stdout: result.stdout ?? "",
+      stderr: result.stderr ?? "",
+    };
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
 function createPassingPerfSummary(
   overrides: Partial<{
     liveP95Ms: number;
@@ -1366,6 +1503,45 @@ test(
   () => {
     const result = runReleaseReadiness(createPassingSummary());
     assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+  },
+);
+
+test(
+  "release-readiness passes with unsigned case wiki evidence signature when runtime signing is disabled",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessWithCaseWikiEvidence(
+      createPassingSummary(),
+      createCaseWikiEvidenceSignatureBadgeDetails(),
+    );
+    assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /case_wiki\.evidence_signature: validated=True/i);
+    assert.match(output, /signature_status=unsigned/i);
+    assert.match(output, /signed=0/i);
+    assert.match(output, /unsigned=1/i);
+  },
+);
+
+test(
+  "release-readiness fails when runtime signing is enabled but case wiki evidence remains unsigned",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessWithCaseWikiEvidence(
+      createPassingSummary(),
+      createCaseWikiEvidenceSignatureBadgeDetails(),
+      {
+        env: {
+          RUNTIME_EVIDENCE_SIGNING_ENABLED: "true",
+        },
+      },
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /caseWikiEvidenceSignature expected signedArtifacts=totalArtifacts and unsignedArtifacts=0 when\s+RUNTIME_EVIDENCE_SIGNING_ENABLED=true/i,
+    );
   },
 );
 

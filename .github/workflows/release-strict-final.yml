@@ -402,6 +402,7 @@ jobs:
           $deviceNodesStatus = "unavailable"
           $agentUsageStatus = "unavailable"
           $liveTransportStatus = "unavailable"
+          $caseWikiEvidenceSignatureStatus = "unavailable"
           $liveTransportSessionMode = ""
           $liveTransportRuntimeMode = ""
           $liveTransportEvidenceSource = ""
@@ -428,6 +429,7 @@ jobs:
                 $deviceNodesStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.deviceNodesStatus)) { "unavailable" } else { [string]$report.statuses.deviceNodesStatus }
                 $agentUsageStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.agentUsageStatus)) { "unavailable" } else { [string]$report.statuses.agentUsageStatus }
                 $liveTransportStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.liveTransportStatus)) { "unavailable" } else { [string]$report.statuses.liveTransportStatus }
+                $caseWikiEvidenceSignatureStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.caseWikiEvidenceSignatureStatus)) { "unavailable" } else { [string]$report.statuses.caseWikiEvidenceSignatureStatus }
                 $providerUsageStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.providerUsageStatus)) { "unavailable" } else { [string]$report.statuses.providerUsageStatus }
                 $deviceNodeUpdatesStatus = if ([string]::IsNullOrWhiteSpace([string]$report.statuses.deviceNodeUpdatesStatus)) { "unavailable" } else { [string]$report.statuses.deviceNodeUpdatesStatus }
               }
@@ -474,6 +476,7 @@ jobs:
           ("device_nodes_status=" + $deviceNodesStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("agent_usage_status=" + $agentUsageStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("live_transport_status=" + $liveTransportStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_evidence_signature_status=" + $caseWikiEvidenceSignatureStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("live_transport_session_mode=" + $liveTransportSessionMode) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("live_transport_runtime_mode=" + $liveTransportRuntimeMode) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("live_transport_evidence_source=" + $liveTransportEvidenceSource) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -520,6 +523,7 @@ jobs:
           ("Device-nodes status (badge evidence): ${{ steps.collect_release_evidence.outputs.device_nodes_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Agent-usage status (badge evidence): ${{ steps.collect_release_evidence.outputs.agent_usage_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Live-transport status (badge evidence): ${{ steps.collect_release_evidence.outputs.live_transport_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-evidence-signature status (badge evidence): ${{ steps.collect_release_evidence.outputs.case_wiki_evidence_signature_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Live-transport session mode (badge evidence): ${{ steps.collect_release_evidence.outputs.live_transport_session_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Live-transport runtime mode (badge evidence): ${{ steps.collect_release_evidence.outputs.live_transport_runtime_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Live-transport evidence source (badge evidence): ${{ steps.collect_release_evidence.outputs.live_transport_evidence_source }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

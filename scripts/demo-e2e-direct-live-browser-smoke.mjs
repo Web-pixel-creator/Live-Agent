@@ -172,6 +172,62 @@ function normalizeReplayLiveTransport(payload) {
   };
 }
 
+function normalizeCaseWikiSnapshot(payload) {
+  const data = isObject(payload?.data) ? payload.data : {};
+  const overview = isObject(data.overview) ? data.overview : {};
+  const focusPack = isObject(data.focusPack) ? data.focusPack : {};
+  const evidenceSignature = isObject(data.evidenceSignature) ? data.evidenceSignature : {};
+  const caseId = toOptionalString(data.caseId);
+  const sessionId = toOptionalString(data.sessionId);
+  const overviewStatus = toOptionalString(overview.status);
+  const focusKind = toOptionalString(focusPack.kind);
+  const focusLabel = toOptionalString(focusPack.label);
+  const recommendedNextAction = toOptionalString(data.recommendedNextAction);
+  const sourceRefs = Array.isArray(focusPack.sourceRefs) ? focusPack.sourceRefs : [];
+  const status = toOptionalString(evidenceSignature.status);
+  const algorithm = toOptionalString(evidenceSignature.algorithm);
+  const canonicalization = toOptionalString(evidenceSignature.canonicalization);
+  const payloadHash = toOptionalString(evidenceSignature.payloadHash);
+  const keyId = toOptionalString(evidenceSignature.keyId);
+  const signerId = toOptionalString(evidenceSignature.signerId);
+  const signedAt = toOptionalString(evidenceSignature.signedAt);
+  const signaturePresent = toOptionalString(evidenceSignature.signature) !== null;
+
+  if (
+    !caseId &&
+    !sessionId &&
+    !overviewStatus &&
+    !focusKind &&
+    !focusLabel &&
+    !recommendedNextAction &&
+    !status &&
+    !payloadHash &&
+    !signerId
+  ) {
+    return null;
+  }
+
+  return {
+    caseId,
+    sessionId,
+    overviewStatus,
+    focusKind,
+    focusLabel,
+    recommendedNextAction,
+    sourceRefsCount: sourceRefs.length,
+    evidenceSignature: {
+      status,
+      algorithm,
+      canonicalization,
+      payloadHash,
+      keyId,
+      signerId,
+      signedAt,
+      signaturePresent,
+    },
+  };
+}
+
 async function readText(page, selector) {
   const locator = page.locator(selector);
   const count = await locator.count();
@@ -283,6 +339,45 @@ async function pollSessionReplay(apiBaseUrl, sessionId, timeoutMs) {
   };
 }
 
+async function pollCaseWiki(apiBaseUrl, sessionId, timeoutMs) {
+  const caseWikiUrl = new URL(`${apiBaseUrl.replace(/\/+$/g, "")}/v1/runtime/case-wiki`);
+  caseWikiUrl.searchParams.set("sessionId", sessionId);
+  caseWikiUrl.searchParams.set("sessionLimit", "20");
+  caseWikiUrl.searchParams.set("eventLimit", "120");
+  caseWikiUrl.searchParams.set("runLimit", "120");
+  caseWikiUrl.searchParams.set("approvalLimit", "120");
+  caseWikiUrl.searchParams.set("recentEventLimit", "200");
+
+  const startedAt = Date.now();
+  let latestPayload = null;
+  while (Date.now() - startedAt < timeoutMs) {
+    latestPayload = await fetchJson(caseWikiUrl.toString(), {
+      method: "GET",
+      headers: buildOperatorHeaders(false),
+    });
+    const normalized = normalizeCaseWikiSnapshot(latestPayload.data);
+    if (
+      normalized?.sessionId === sessionId &&
+      normalized.evidenceSignature?.algorithm === "ed25519-sha256" &&
+      normalized.evidenceSignature?.canonicalization === "json-stable-v1" &&
+      normalized.evidenceSignature?.payloadHash
+    ) {
+      return {
+        observed: true,
+        payload: latestPayload.data,
+        caseWiki: normalized,
+      };
+    }
+    await new Promise((resolveSleep) => setTimeout(resolveSleep, 500));
+  }
+
+  return {
+    observed: false,
+    payload: latestPayload?.data ?? null,
+    caseWiki: normalizeCaseWikiSnapshot(latestPayload?.data),
+  };
+}
+
 async function run() {
   const options = parseArgs(process.argv.slice(2));
   if (!toOptionalString(options.sessionId)) {
@@ -314,6 +409,7 @@ async function run() {
         selectedSessionId: options.sessionId,
         liveTransport: null,
       },
+      caseWiki: null,
       screenshotPath: null,
       summary: `direct live skipped: ${runtimeStatus.lastFallbackReason ?? "unsupported"}`,
     };
@@ -377,7 +473,13 @@ async function run() {
       replaySessionId,
       Math.max(3000, Math.floor(options.timeoutMs / 2)),
     );
+    const caseWikiResult = await pollCaseWiki(
+      options.apiBaseUrl,
+      replaySessionId,
+      Math.max(3000, Math.floor(options.timeoutMs / 2)),
+    );
     const liveTransport = replayResult.liveTransport;
+    const caseWiki = caseWikiResult.caseWiki;
     const observedDirectLive = liveTransport?.activeMode === "direct_live" && liveTransport?.evidenceSource === "session_events";
 
     const status = observedDirectLive ? "pass" : "fail";
@@ -412,6 +514,31 @@ async function run() {
         selectedSessionId: replaySessionId,
         liveTransport,
       },
+      caseWiki: caseWiki
+        ? {
+            selectedSessionId: replaySessionId,
+            observed: caseWikiResult.observed,
+            caseId: caseWiki.caseId,
+            sessionId: caseWiki.sessionId,
+            overviewStatus: caseWiki.overviewStatus,
+            focusKind: caseWiki.focusKind,
+            focusLabel: caseWiki.focusLabel,
+            recommendedNextAction: caseWiki.recommendedNextAction,
+            sourceRefsCount: caseWiki.sourceRefsCount,
+            evidenceSignature: caseWiki.evidenceSignature,
+          }
+        : {
+            selectedSessionId: replaySessionId,
+            observed: false,
+            caseId: null,
+            sessionId: null,
+            overviewStatus: null,
+            focusKind: null,
+            focusLabel: null,
+            recommendedNextAction: null,
+            sourceRefsCount: 0,
+            evidenceSignature: null,
+          },
       screenshotPath,
       summary: observedDirectLive
         ? `direct_live observed via ${liveTransport?.evidenceSource ?? "unknown"}`
@@ -443,6 +570,7 @@ run().catch(async (error) => {
       selectedSessionId: null,
       liveTransport: null,
     },
+    caseWiki: null,
     screenshotPath: null,
     summary: "browser direct-live smoke failed before completion",
   };

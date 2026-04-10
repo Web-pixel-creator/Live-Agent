@@ -26,7 +26,13 @@ const skipIfNoPowerShell = powershellBin ? false : "PowerShell binary is not ava
 function writeStubBrowserSmokeScript(args: {
   scriptPath: string;
   status: "pass" | "skipped";
+  includeCaseWiki?: boolean;
+  caseWikiSignatureStatus?: "signed" | "unsigned";
+  caseWikiSignaturePresent?: boolean;
 }) {
+  const includeCaseWiki = args.includeCaseWiki ?? args.status === "pass";
+  const caseWikiSignatureStatus = args.caseWikiSignatureStatus ?? "signed";
+  const caseWikiSignaturePresent = args.caseWikiSignaturePresent ?? (caseWikiSignatureStatus === "signed");
   const script = `
 const args = process.argv.slice(2);
 function readArg(name, fallback = "") {
@@ -73,6 +79,27 @@ const payload = {
         }
       : null,
   },
+  caseWiki: ${includeCaseWiki ? `{
+    selectedSessionId: status === "pass" ? "observed-session-1" : sessionId,
+    observed: status === "pass",
+    caseId: "case-123",
+    sessionId: status === "pass" ? "observed-session-1" : sessionId,
+    overviewStatus: "waiting_on_operator",
+    focusKind: null,
+    focusLabel: null,
+    recommendedNextAction: "Resolve pending approval",
+    sourceRefsCount: 0,
+    evidenceSignature: {
+      status: ${JSON.stringify(caseWikiSignatureStatus)},
+      algorithm: "ed25519-sha256",
+      canonicalization: "json-stable-v1",
+      payloadHash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      keyId: null,
+      signerId: "api-backend",
+      signedAt: "2026-04-09T00:00:00.000Z",
+      signaturePresent: ${caseWikiSignaturePresent ? "true" : "false"}
+    }
+  }` : "null"},
   screenshotPath,
   summary: status === "pass" ? "direct_live observed via session_events" : "direct_live skipped",
   outputPath,
@@ -92,6 +119,8 @@ function runDirectLiveProof(args: {
   browserSmokeScriptPath: string;
   sessionId?: string;
   failOnSkip?: boolean;
+  requireCaseWikiEvidenceSignature?: boolean;
+  expectedCaseWikiEvidenceSignatureStatus?: "signed" | "unsigned";
 }): Promise<{ status: number | null; stdout: string; stderr: string }> {
   const commandArgs = [
     "-NoProfile",
@@ -116,6 +145,12 @@ function runDirectLiveProof(args: {
   ];
   if (args.failOnSkip) {
     commandArgs.push("-FailOnSkip");
+  }
+  if (args.requireCaseWikiEvidenceSignature) {
+    commandArgs.push("-RequireCaseWikiEvidenceSignature");
+  }
+  if (args.expectedCaseWikiEvidenceSignatureStatus) {
+    commandArgs.push("-ExpectedCaseWikiEvidenceSignatureStatus", args.expectedCaseWikiEvidenceSignatureStatus);
   }
 
   return new Promise((resolveResult) => {
@@ -168,6 +203,7 @@ test(
       sessionId?: string;
       requestedSessionId?: string;
       replay?: { liveTransport?: { activeMode?: string; evidenceSource?: string } };
+      caseWiki?: { evidenceSignature?: { status?: string; signaturePresent?: boolean } };
     };
 
     assert.equal(summary.status, "pass");
@@ -176,6 +212,8 @@ test(
     assert.equal(summary.sessionId, "observed-session-1");
     assert.equal(summary.replay?.liveTransport?.activeMode, "direct_live");
     assert.equal(summary.replay?.liveTransport?.evidenceSource, "session_events");
+    assert.equal(summary.caseWiki?.evidenceSignature?.status, "signed");
+    assert.equal(summary.caseWiki?.evidenceSignature?.signaturePresent, true);
 
     const markdown = readFileSync(markdownPath, "utf8");
     assert.match(markdown, /# Direct Live Proof/);
@@ -213,5 +251,73 @@ test(
 
     assert.equal(summary.status, "skipped");
     assert.match(summary.reason ?? "", /direct live unavailable/i);
+  },
+);
+
+test(
+  "deploy direct-live proof can require signed case wiki evidence signature",
+  { skip: skipIfNoPowerShell },
+  async () => {
+    const outputDir = mkdtempSync(join(tmpdir(), "deploy-direct-live-proof-signed-case-wiki-"));
+    const outputPath = join(outputDir, "direct-live-proof.json");
+    const markdownPath = join(outputDir, "direct-live-proof.md");
+    const browserSmokeScriptPath = join(outputDir, "browser-smoke-signed-case-wiki.mjs");
+    writeStubBrowserSmokeScript({
+      scriptPath: browserSmokeScriptPath,
+      status: "pass",
+      caseWikiSignatureStatus: "signed",
+      caseWikiSignaturePresent: true,
+    });
+
+    const result = await runDirectLiveProof({
+      frontendUrl: "https://live-agent-frontend-production.up.railway.app",
+      apiUrl: "https://live-agent-api-production.up.railway.app",
+      outputPath,
+      markdownPath,
+      browserSmokeScriptPath,
+      sessionId: "requested-session",
+      requireCaseWikiEvidenceSignature: true,
+    });
+
+    assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+    assert.match(result.stdout, /direct_live\.proof\.case_wiki\.signature_status: signed/);
+  },
+);
+
+test(
+  "deploy direct-live proof fails when signed case wiki evidence signature is required but runtime stays unsigned",
+  { skip: skipIfNoPowerShell },
+  async () => {
+    const outputDir = mkdtempSync(join(tmpdir(), "deploy-direct-live-proof-unsigned-case-wiki-"));
+    const outputPath = join(outputDir, "direct-live-proof.json");
+    const markdownPath = join(outputDir, "direct-live-proof.md");
+    const browserSmokeScriptPath = join(outputDir, "browser-smoke-unsigned-case-wiki.mjs");
+    writeStubBrowserSmokeScript({
+      scriptPath: browserSmokeScriptPath,
+      status: "pass",
+      caseWikiSignatureStatus: "unsigned",
+      caseWikiSignaturePresent: false,
+    });
+
+    const result = await runDirectLiveProof({
+      frontendUrl: "https://live-agent-frontend-production.up.railway.app",
+      apiUrl: "https://live-agent-api-production.up.railway.app",
+      outputPath,
+      markdownPath,
+      browserSmokeScriptPath,
+      sessionId: "requested-session",
+      requireCaseWikiEvidenceSignature: true,
+      expectedCaseWikiEvidenceSignatureStatus: "signed",
+    });
+
+    assert.notEqual(result.status, 0, `${result.stderr}\n${result.stdout}`);
+    const summary = JSON.parse(readFileSync(outputPath, "utf8")) as {
+      status?: string;
+      reason?: string;
+      summary?: string;
+    };
+    assert.equal(summary.status, "fail");
+    assert.match(summary.reason ?? "", /expected 'signed' but observed 'unsigned'/i);
+    assert.match(summary.summary ?? "", /expected 'signed' but observed 'unsigned'/i);
   },
 );

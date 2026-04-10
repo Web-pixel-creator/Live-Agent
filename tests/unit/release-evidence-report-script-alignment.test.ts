@@ -26,10 +26,12 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /agentUsageStatus/);
   assert.match(source, /runtimeGuardrailsSignalPathsStatus/);
   assert.match(source, /liveTransportStatus/);
+  assert.match(source, /caseWikiEvidenceSignatureStatus/);
   assert.match(source, /providerUsageStatus/);
   assert.match(source, /deviceNodeUpdatesStatus/);
   assert.match(source, /runtimeGuardrailsSignalPaths = \[ordered\]@/);
   assert.match(source, /liveTransport = \[ordered\]@/);
+  assert.match(source, /caseWikiEvidenceSignature = \[ordered\]@/);
   assert.match(source, /providerUsage = \[ordered\]@/);
   assert.match(source, /summaryStatus\s*=\s*"unavailable"/);
   assert.match(source, /totalPaths\s*=\s*0/);
@@ -40,6 +42,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /Convert-ToNonNegativeIntOrDefault/);
   assert.match(source, /New-RuntimeGuardrailsPrimaryPath/);
   assert.match(source, /New-LiveTransportSnapshot/);
+  assert.match(source, /New-CaseWikiEvidenceSignatureSnapshot/);
   assert.match(source, /New-ProviderUsagePrimaryEntry/);
   assert.match(source, /\$maxAttempts = 8/);
   assert.match(source, /\$baseRetryDelayMs = 80/);
@@ -54,6 +57,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /runtimeGuardrailsSignalPaths/);
   assert.match(source, /Runtime Guardrails Signal Paths Snapshot/);
   assert.match(source, /Live Transport Snapshot/);
+  assert.match(source, /Case Wiki Evidence Signature Snapshot/);
   assert.match(source, /Secondary Provider Usage/);
   assert.match(source, /Artifact Inventory/);
   assert.match(source, /GCP Submission Follow-Up/);
@@ -77,6 +81,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /\$report\.statuses\.deviceNodeUpdatesStatus = "pass"/);
   assert.match(source, /\$report\.statuses\.deviceNodeUpdatesStatus = "fail"/);
   assert.match(source, /\$report\.statuses\.liveTransportStatus = Get-StatusValueOrDefault/);
+  assert.match(source, /\$report\.statuses\.caseWikiEvidenceSignatureStatus = Get-StatusValueOrDefault/);
   assert.match(source, /\[release-evidence-report\] JSON:/);
   assert.match(source, /\[release-evidence-report\] Markdown:/);
   assert.match(source, /\[release-evidence-report\] Manifest JSON:/);

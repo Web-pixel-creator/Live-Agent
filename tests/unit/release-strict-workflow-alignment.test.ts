@@ -100,6 +100,7 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /device_nodes_status=/);
   assert.match(source, /agent_usage_status=/);
   assert.match(source, /live_transport_status=/);
+  assert.match(source, /case_wiki_evidence_signature_status=/);
   assert.match(source, /live_transport_session_mode=/);
   assert.match(source, /live_transport_runtime_mode=/);
   assert.match(source, /live_transport_evidence_source=/);
@@ -122,6 +123,7 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /Device-nodes status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.device_nodes_status\s*\}\}/);
   assert.match(source, /Agent-usage status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.agent_usage_status\s*\}\}/);
   assert.match(source, /Live-transport status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.live_transport_status\s*\}\}/);
+  assert.match(source, /Case-wiki-evidence-signature status \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.case_wiki_evidence_signature_status\s*\}\}/);
   assert.match(source, /Live-transport session mode \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.live_transport_session_mode\s*\}\}/);
   assert.match(source, /Live-transport runtime mode \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.live_transport_runtime_mode\s*\}\}/);
   assert.match(source, /Live-transport evidence source \(badge evidence\): \$\{\{\s*steps\.collect_release_evidence\.outputs\.live_transport_evidence_source\s*\}\}/);

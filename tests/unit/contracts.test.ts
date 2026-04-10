@@ -25,6 +25,7 @@ import {
   type RuntimeLiveSessionEventIngestRequest,
   type RuntimeLiveSessionEventIngestResponse,
   type CaseWiki,
+  type EvidenceSignature,
   type LiveSessionTokenResponse,
 } from "../../shared/contracts/src/index.js";
 
@@ -234,6 +235,18 @@ test("case wiki contracts expose stable structured memory shapes", () => {
     "refresh_summary",
   ]);
 
+  const evidenceSignature: EvidenceSignature = {
+    schemaVersion: 1,
+    status: "unsigned",
+    algorithm: "ed25519-sha256",
+    canonicalization: "json-stable-v1",
+    payloadHash: "sha256:contract-hash",
+    signature: null,
+    keyId: null,
+    signerId: "api-backend",
+    signedAt: "2026-04-09T07:00:00.000Z",
+  };
+
   const wiki: CaseWiki = {
     schemaVersion: 1,
     caseId: "case-123",
@@ -316,6 +329,7 @@ test("case wiki contracts expose stable structured memory shapes", () => {
       ],
       sourceRefs: ["session:session-123", "note:operator-1", "proof:proof-1"],
     },
+    evidenceSignature,
     handoffPack: {
       proofs: [
         {
@@ -815,6 +829,9 @@ test("case wiki contracts expose stable structured memory shapes", () => {
   assert.equal(wiki.evidencePack.entities[0]?.kind, "person");
   assert.equal(wiki.evidencePack.questions[0]?.priority, "high");
   assert.equal(wiki.evidencePack.sourceRefs.includes("proof:proof-1"), true);
+  assert.equal(wiki.evidenceSignature?.status, "unsigned");
+  assert.equal(wiki.evidenceSignature?.algorithm, "ed25519-sha256");
+  assert.equal(wiki.evidenceSignature?.canonicalization, "json-stable-v1");
   assert.match(wiki.handoffPack.proofs[0]?.handoff ?? "", /Focus proof/i);
   assert.equal(wiki.handoffPack.questions[0]?.detail.priority, "high");
   assert.equal(wiki.detailPack.proofs[0]?.badges[0]?.tone, "ok");

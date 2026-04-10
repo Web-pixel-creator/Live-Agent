@@ -4137,6 +4137,83 @@ try {
       Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace([string]$sessionReplayLiveTransportActiveMode)) -Message "Captured session replay live transport should expose activeMode."
     }
 
+    $caseWikiUri = "http://localhost:8081/v1/runtime/case-wiki?sessionId=$([Uri]::EscapeDataString([string]$sessionId))&sessionLimit=20&eventLimit=120&runLimit=120&approvalLimit=120&recentEventLimit=200"
+    $caseWikiResponse = Invoke-JsonRequest -Method GET -Uri $caseWikiUri -Headers $operatorHeaders -TimeoutSec $RequestTimeoutSec
+    $caseWikiData = Get-FieldValue -Object $caseWikiResponse -Path @("data")
+    Assert-Condition -Condition ($null -ne $caseWikiData) -Message "Runtime case wiki payload is missing."
+    $caseWikiCaseIdRaw = Get-FieldValue -Object $caseWikiData -Path @("caseId")
+    $caseWikiCaseId = if ([string]::IsNullOrWhiteSpace([string]$caseWikiCaseIdRaw)) { $null } else { [string]$caseWikiCaseIdRaw }
+    $caseWikiSessionId = [string](Get-FieldValue -Object $caseWikiData -Path @("sessionId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($caseWikiCaseId)) -Message "Runtime case wiki should include caseId."
+    Assert-Condition -Condition ($caseWikiSessionId -eq $sessionId) -Message "Runtime case wiki should resolve the active demo session."
+    $caseWikiOverviewStatusRaw = Get-FieldValue -Object $caseWikiData -Path @("overview", "status")
+    $caseWikiOverviewStatus = if ([string]::IsNullOrWhiteSpace([string]$caseWikiOverviewStatusRaw)) { $null } else { [string]$caseWikiOverviewStatusRaw }
+    $caseWikiDefaultFocus = Get-FieldValue -Object $caseWikiData -Path @("workspacePack", "defaultFocus")
+    $caseWikiFocusKindRaw = Get-FieldValue -Object $caseWikiDefaultFocus -Path @("kind")
+    $caseWikiFocusKind = if ([string]::IsNullOrWhiteSpace([string]$caseWikiFocusKindRaw)) { $null } else { [string]$caseWikiFocusKindRaw }
+    $caseWikiFocusLabelRaw = Get-FieldValue -Object $caseWikiDefaultFocus -Path @("label")
+    $caseWikiFocusLabel = if ([string]::IsNullOrWhiteSpace([string]$caseWikiFocusLabelRaw)) { $null } else { [string]$caseWikiFocusLabelRaw }
+    $caseWikiRecommendedNextActionRaw = Get-FieldValue -Object $caseWikiData -Path @("recommendedNextAction", "title")
+    if ([string]::IsNullOrWhiteSpace([string]$caseWikiRecommendedNextActionRaw)) {
+      $caseWikiRecommendedNextActionRaw = Get-FieldValue -Object $caseWikiData -Path @("recommendedNextAction", "type")
+    }
+    $caseWikiRecommendedNextAction = if ([string]::IsNullOrWhiteSpace([string]$caseWikiRecommendedNextActionRaw)) { $null } else { [string]$caseWikiRecommendedNextActionRaw }
+    $caseWikiFocusPackSourceRefsRaw = Get-FieldValue -Object $caseWikiData -Path @("focusPack", "sourceRefs")
+    if ($caseWikiFocusPackSourceRefsRaw -is [System.Array]) {
+      $caseWikiFocusPackSourceRefs = @($caseWikiFocusPackSourceRefsRaw)
+    }
+    elseif ($null -ne $caseWikiFocusPackSourceRefsRaw) {
+      $caseWikiFocusPackSourceRefs = @($caseWikiFocusPackSourceRefsRaw)
+    }
+    else {
+      $caseWikiFocusPackSourceRefs = @()
+    }
+
+    $caseWikiEvidenceSignature = Get-FieldValue -Object $caseWikiData -Path @("evidenceSignature")
+    Assert-Condition -Condition ($null -ne $caseWikiEvidenceSignature) -Message "Runtime case wiki should include evidenceSignature."
+    $caseWikiEvidenceSignatureStatus = [string](Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("status"))
+    $caseWikiEvidenceSignatureAlgorithm = [string](Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("algorithm"))
+    $caseWikiEvidenceSignatureCanonicalization = [string](Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("canonicalization"))
+    $caseWikiEvidenceSignaturePayloadHash = [string](Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("payloadHash"))
+    $caseWikiEvidenceSignatureKeyIdRaw = Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("keyId")
+    $caseWikiEvidenceSignatureKeyId = if ([string]::IsNullOrWhiteSpace([string]$caseWikiEvidenceSignatureKeyIdRaw)) { $null } else { [string]$caseWikiEvidenceSignatureKeyIdRaw }
+    $caseWikiEvidenceSignatureSignerId = [string](Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("signerId"))
+    $caseWikiEvidenceSignatureSignedAt = [string](Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("signedAt"))
+    $caseWikiEvidenceSignatureRaw = Get-FieldValue -Object $caseWikiEvidenceSignature -Path @("signature")
+    $caseWikiEvidenceSignaturePresent = -not [string]::IsNullOrWhiteSpace([string]$caseWikiEvidenceSignatureRaw)
+    Assert-Condition -Condition (@("signed", "unsigned") -contains $caseWikiEvidenceSignatureStatus) -Message "Runtime case wiki evidenceSignature.status is invalid."
+    Assert-Condition -Condition ($caseWikiEvidenceSignatureAlgorithm -eq "ed25519-sha256") -Message "Runtime case wiki evidenceSignature.algorithm is invalid."
+    Assert-Condition -Condition ($caseWikiEvidenceSignatureCanonicalization -eq "json-stable-v1") -Message "Runtime case wiki evidenceSignature.canonicalization is invalid."
+    Assert-Condition -Condition ($caseWikiEvidenceSignaturePayloadHash -match "^sha256:[a-f0-9]{64}$") -Message "Runtime case wiki evidenceSignature.payloadHash is invalid."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($caseWikiEvidenceSignatureSignerId)) -Message "Runtime case wiki evidenceSignature.signerId is missing."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($caseWikiEvidenceSignatureSignedAt)) -Message "Runtime case wiki evidenceSignature.signedAt is missing."
+    if ($caseWikiEvidenceSignatureStatus -eq "signed") {
+      Assert-Condition -Condition $caseWikiEvidenceSignaturePresent -Message "Signed runtime case wiki evidenceSignature should include signature bytes."
+    }
+    else {
+      Assert-Condition -Condition (-not $caseWikiEvidenceSignaturePresent) -Message "Unsigned runtime case wiki evidenceSignature should not include signature bytes."
+    }
+
+    $caseWikiSnapshot = [ordered]@{
+      caseId = $caseWikiCaseId
+      sessionId = $caseWikiSessionId
+      overviewStatus = $caseWikiOverviewStatus
+      focusKind = $caseWikiFocusKind
+      focusLabel = $caseWikiFocusLabel
+      nextAction = $caseWikiRecommendedNextAction
+      sourceRefsCount = @($caseWikiFocusPackSourceRefs).Count
+      evidenceSignature = [ordered]@{
+        status = $caseWikiEvidenceSignatureStatus
+        algorithm = $caseWikiEvidenceSignatureAlgorithm
+        canonicalization = $caseWikiEvidenceSignatureCanonicalization
+        payloadHash = $caseWikiEvidenceSignaturePayloadHash
+        keyId = $caseWikiEvidenceSignatureKeyId
+        signerId = $caseWikiEvidenceSignatureSignerId
+        signedAt = $caseWikiEvidenceSignatureSignedAt
+        signaturePresent = $caseWikiEvidenceSignaturePresent
+      }
+    }
+
     return [ordered]@{
       taskId = $taskId
       summaryActiveTasks = $activeTasks.Count
@@ -4291,6 +4368,7 @@ try {
       sessionReplayLiveTransportFallbackReason = $sessionReplayLiveTransportFallbackReason
       sessionReplayLiveTransportEvidenceSource = $sessionReplayLiveTransportEvidenceSource
       sessionReplayLiveTransportCapturedAt = $sessionReplayLiveTransportCapturedAt
+      caseWikiSnapshot = $caseWikiSnapshot
     }
   } | Out-Null
 
@@ -5354,6 +5432,7 @@ $summary = [ordered]@{
   }
   frontendLiveDirectSmoke = $frontendDirectLiveData
   liveTransport = if ($null -ne $operatorActionsData) { $operatorActionsData.sessionReplayLiveTransport } else { $null }
+  caseWiki = if ($null -ne $operatorActionsData) { $operatorActionsData.caseWikiSnapshot } else { $null }
   costEstimate = $costEstimate
   tokensUsed = $tokensUsed
   services = $script:ServiceStatuses

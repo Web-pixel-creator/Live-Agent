@@ -247,6 +247,24 @@ Do not adopt now:
 1. a full consumer local-first pivot,
 2. a personal assistant strategy as the primary market wedge.
 
+### From MemPalace
+
+Adopt:
+
+1. raw/verbatim evidence as the bottom memory layer,
+2. a small always-available compiled layer for the active case,
+3. on-demand room/topic recall instead of stuffing every transcript into each
+   prompt,
+4. temporal facts and invalidation as a future case-history layer,
+5. specialist-agent diaries as a later operator/audit pattern.
+
+Do not adopt now:
+
+1. `AAAK` as the default memory substrate, because it is lossy and still
+   experimental,
+2. a separate local ChromaDB memory plane before the repo-owned `Case Wiki`
+   becomes canonical for live/orchestrator decisions.
+
 ## Technical Blueprint
 
 The next version of the platform should be built around four layers.

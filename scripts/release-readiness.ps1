@@ -2191,6 +2191,97 @@ if ((-not $SkipBadge) -and (Test-Path $BadgePath)) {
   }
 }
 
+if (Test-Path $ReleaseEvidenceReportPath) {
+  $releaseEvidenceReport = Get-Content $ReleaseEvidenceReportPath -Raw | ConvertFrom-Json
+  $caseWikiEvidenceSignature = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiEvidenceSignature"
+  if ($null -eq $caseWikiEvidenceSignature) {
+    Fail ("release evidence report missing caseWikiEvidenceSignature block: " + $ReleaseEvidenceReportPath)
+  }
+
+  $caseWikiEvidenceStatus = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "status")
+  $caseWikiEvidenceValidated = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "validated")
+  $caseWikiEvidenceTotalArtifacts = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "totalArtifacts")
+  $caseWikiEvidenceSignedArtifacts = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signedArtifacts")
+  $caseWikiEvidenceUnsignedArtifacts = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "unsignedArtifacts")
+  $caseWikiEvidenceSignatureStatus = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signatureStatus")
+  $caseWikiEvidenceSignaturePresent = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signaturePresent")
+  $caseWikiEvidenceSignerId = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signerId")
+  $caseWikiEvidenceSignedAt = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signedAt")
+  $caseWikiEvidenceSignedAtIsIso = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signedAtIsIso")
+  $caseWikiEvidencePayloadHash = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "payloadHash")
+  $caseWikiEvidenceObserved =
+    ($caseWikiEvidenceStatus -ne "unavailable") -or
+    ((-not [double]::IsNaN($caseWikiEvidenceTotalArtifacts)) -and $caseWikiEvidenceTotalArtifacts -gt 0) -or
+    ($caseWikiEvidenceSignatureStatus -in @("signed", "unsigned")) -or
+    (-not [string]::IsNullOrWhiteSpace($caseWikiEvidencePayloadHash))
+
+  if ($caseWikiEvidenceObserved) {
+    if ($caseWikiEvidenceStatus -ne "pass" -or $caseWikiEvidenceValidated -ne $true) {
+      Fail (
+        "release evidence caseWikiEvidenceSignature expected status=pass and validated=true, actual status=" +
+        $caseWikiEvidenceStatus +
+        ", validated=" +
+        (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "validated")
+      )
+    }
+    if (
+      [double]::IsNaN($caseWikiEvidenceTotalArtifacts) -or
+      [double]::IsNaN($caseWikiEvidenceSignedArtifacts) -or
+      [double]::IsNaN($caseWikiEvidenceUnsignedArtifacts) -or
+      $caseWikiEvidenceTotalArtifacts -lt 1 -or
+      $caseWikiEvidenceSignedArtifacts -lt 0 -or
+      $caseWikiEvidenceUnsignedArtifacts -lt 0
+    ) {
+      Fail "release evidence caseWikiEvidenceSignature artifact counts are invalid"
+    }
+    if (($caseWikiEvidenceSignedArtifacts + $caseWikiEvidenceUnsignedArtifacts) -ne $caseWikiEvidenceTotalArtifacts) {
+      Fail "release evidence caseWikiEvidenceSignature signedArtifacts + unsignedArtifacts must equal totalArtifacts"
+    }
+    if ($caseWikiEvidenceSignatureStatus -notin @("signed", "unsigned")) {
+      Fail ("release evidence caseWikiEvidenceSignature.signatureStatus expected signed|unsigned, actual " + $caseWikiEvidenceSignatureStatus)
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiEvidenceSignerId)) {
+      Fail "release evidence caseWikiEvidenceSignature.signerId is required"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiEvidenceSignedAt) -or $caseWikiEvidenceSignedAtIsIso -ne $true) {
+      Fail "release evidence caseWikiEvidenceSignature.signedAt must be an ISO timestamp"
+    }
+    if ([string]::IsNullOrWhiteSpace($caseWikiEvidencePayloadHash) -or $caseWikiEvidencePayloadHash -notmatch "^sha256:[a-f0-9]{64}$") {
+      Fail "release evidence caseWikiEvidenceSignature.payloadHash must be a canonical sha256:<hex> digest"
+    }
+
+    $runtimeEvidenceSigningEnabled = To-BoolOrNull (Get-ReleaseReadinessEnvValue "RUNTIME_EVIDENCE_SIGNING_ENABLED")
+    if ($null -eq $runtimeEvidenceSigningEnabled) {
+      $runtimeEvidenceSigningEnabled = $false
+    }
+
+    if ($runtimeEvidenceSigningEnabled -eq $true) {
+      if (
+        $caseWikiEvidenceSignatureStatus -ne "signed" -or
+        $caseWikiEvidenceSignaturePresent -ne $true -or
+        $caseWikiEvidenceSignedArtifacts -ne $caseWikiEvidenceTotalArtifacts -or
+        $caseWikiEvidenceUnsignedArtifacts -ne 0
+      ) {
+        Fail (
+          "release evidence caseWikiEvidenceSignature expected signedArtifacts=totalArtifacts and unsignedArtifacts=0 when RUNTIME_EVIDENCE_SIGNING_ENABLED=true"
+        )
+      }
+    }
+    else {
+      if (
+        $caseWikiEvidenceSignatureStatus -ne "unsigned" -or
+        $caseWikiEvidenceSignaturePresent -ne $false -or
+        $caseWikiEvidenceUnsignedArtifacts -ne $caseWikiEvidenceTotalArtifacts -or
+        $caseWikiEvidenceSignedArtifacts -ne 0
+      ) {
+        Fail (
+          "release evidence caseWikiEvidenceSignature expected unsignedArtifacts=totalArtifacts and signedArtifacts=0 when RUNTIME_EVIDENCE_SIGNING_ENABLED=false"
+        )
+      }
+    }
+  }
+}
+
 if ((-not $SkipPerfLoad) -and (Test-Path $PerfSummaryPath)) {
   $perfSummary = Get-Content $PerfSummaryPath -Raw | ConvertFrom-Json
   if (-not $perfSummary.success) {
@@ -2640,6 +2731,24 @@ if ((-not $SkipPerfLoad) -and (Test-Path $PerfPolicyPath)) {
 }
 if (Test-Path $ReleaseEvidenceReportPath) {
   Write-Host ("release.evidence.report: " + $ReleaseEvidenceReportPath)
+  $releaseEvidenceReport = Get-Content $ReleaseEvidenceReportPath -Raw | ConvertFrom-Json
+  $caseWikiEvidenceSignature = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiEvidenceSignature"
+  if ($null -ne $caseWikiEvidenceSignature) {
+    $caseWikiEvidenceValidated = Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "validated"
+    $caseWikiEvidenceStatus = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "status")
+    $caseWikiEvidenceTotalArtifacts = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "totalArtifacts")
+    $caseWikiEvidenceSignedArtifacts = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signedArtifacts")
+    $caseWikiEvidenceUnsignedArtifacts = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "unsignedArtifacts")
+    $caseWikiEvidenceSignatureStatus = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "signatureStatus")
+    Write-Host (
+      "case_wiki.evidence_signature: validated=" + $caseWikiEvidenceValidated +
+      ", status=" + $caseWikiEvidenceStatus +
+      ", signature_status=" + $caseWikiEvidenceSignatureStatus +
+      ", total=" + $caseWikiEvidenceTotalArtifacts +
+      ", signed=" + $caseWikiEvidenceSignedArtifacts +
+      ", unsigned=" + $caseWikiEvidenceUnsignedArtifacts
+    )
+  }
 }
 if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
   $sourceRunManifest = Get-Content $SourceRunManifestPath -Raw | ConvertFrom-Json

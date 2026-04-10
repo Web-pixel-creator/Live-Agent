@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { generateKeyPairSync } from "node:crypto";
 import test from "node:test";
 import type {
   ApprovalRecord,
@@ -7,6 +8,7 @@ import type {
   SessionListItem,
 } from "../../apps/api-backend/src/firestore.js";
 import { buildRuntimeCaseWiki } from "../../apps/api-backend/src/runtime-case-wiki.js";
+import { verifyEvidencePayloadSignature } from "../../apps/api-backend/src/runtime-evidence-signer.js";
 import type { RuntimeWorkflowControlPlaneSummary } from "../../apps/api-backend/src/runtime-workflow-control-plane.js";
 
 function buildWorkflowSummary(
@@ -194,6 +196,10 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
   assert.equal(wiki?.sessionId, "session-case-1");
   assert.equal(wiki?.userId, "user-case-1");
   assert.equal(wiki?.generatedAt, "2026-04-09T09:05:00.000Z");
+  assert.equal(wiki?.evidenceSignature?.status, "unsigned");
+  assert.match(wiki?.evidenceSignature?.payloadHash ?? "", /^sha256:[a-f0-9]{64}$/);
+  assert.equal(wiki?.evidenceSignature?.signature, null);
+  assert.equal(wiki?.evidenceSignature?.signedAt, "2026-04-09T09:05:00.000Z");
   assert.equal(wiki?.overview.title, "Case case-42 for Canada");
   assert.equal(wiki?.overview.status, "waiting_on_customer");
   assert.equal(wiki?.overview.customerGoal, "Spouse visa consultation");
@@ -313,6 +319,52 @@ test("runtime case wiki builds compiled overview, timeline, proofs, and next act
     relatedQuestionIds: ["question:missing-followup-items"],
     sourceRefs: ["workflow:control-plane"],
   });
+});
+
+test("runtime case wiki can attach a signed evidence envelope", () => {
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  const privateKeyPem = privateKey.export({ format: "pem", type: "pkcs8" }).toString();
+  const publicKeyPem = publicKey.export({ format: "pem", type: "spki" }).toString();
+  const wiki = buildRuntimeCaseWiki({
+    sessions: [
+      {
+        sessionId: "session-signed-1",
+        tenantId: "tenant-a",
+        mode: "live",
+        status: "active",
+        version: 1,
+        lastMutationId: "mutation-signed-1",
+        updatedAt: "2026-04-10T09:00:00.000Z",
+      },
+    ],
+    runs: [],
+    approvals: [],
+    recentEvents: [],
+    selectedEvents: [],
+    userId: "user-signed-1",
+    now: new Date("2026-04-10T09:01:00.000Z"),
+    evidenceSigner: {
+      enabled: true,
+      privateKeyPem,
+      keyId: "case-wiki-unit-key",
+      signerId: "api-backend-test",
+    },
+  });
+
+  assert.ok(wiki);
+  assert.ok(wiki.evidenceSignature);
+  assert.equal(wiki?.evidenceSignature?.status, "signed");
+  assert.equal(wiki?.evidenceSignature?.keyId, "case-wiki-unit-key");
+  assert.equal(wiki?.evidenceSignature?.signerId, "api-backend-test");
+  assert.equal(wiki?.evidenceSignature?.signedAt, "2026-04-10T09:01:00.000Z");
+  assert.equal(
+    verifyEvidencePayloadSignature({
+      payload: wiki,
+      evidenceSignature: wiki.evidenceSignature,
+      publicKeyPem,
+    }).ok,
+    true,
+  );
 });
 
 test("runtime case wiki prioritizes pending approvals as the next action when operator decision is blocking", () => {

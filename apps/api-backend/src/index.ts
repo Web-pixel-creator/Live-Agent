@@ -78,6 +78,7 @@ import { buildRuntimeSurfaceInventorySnapshot } from "./runtime-surface-inventor
 import { buildRuntimeSurfaceReadinessSnapshot } from "./runtime-surface-readiness.js";
 import { buildRuntimeSessionReplayMirrorSnapshot } from "./runtime-session-replay-mirror.js";
 import { buildRuntimeCaseWiki } from "./runtime-case-wiki.js";
+import { resolveRuntimeEvidenceSignerConfig } from "./runtime-evidence-signer.js";
 import {
   appendRuntimeCaseWikiNote,
   normalizeRuntimeCaseWikiNoteRequest,
@@ -4662,6 +4663,7 @@ export const server = createServer(async (req, res) => {
         selectedEvents,
         selectedSessionId,
         workflowSummary: workflowControlPlaneSummary,
+        evidenceSigner: resolveRuntimeEvidenceSignerConfig(process.env),
       });
 
       if (!caseWiki) {

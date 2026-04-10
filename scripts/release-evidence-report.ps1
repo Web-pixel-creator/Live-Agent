@@ -207,6 +207,70 @@ function New-LiveTransportSnapshot {
   }
 }
 
+function New-CaseWikiEvidenceSignatureSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status            = "unavailable"
+      validated         = $false
+      totalArtifacts    = 0
+      signedArtifacts   = 0
+      unsignedArtifacts = 0
+      signatureStatus   = $null
+      algorithm         = $null
+      canonicalization  = $null
+      payloadHash       = $null
+      keyId             = $null
+      signerId          = $null
+      signedAt          = $null
+      signedAtIsIso     = $false
+      signaturePresent  = $null
+      caseId            = $null
+      sessionId         = $null
+      overviewStatus    = $null
+      focusKind         = $null
+      focusLabel        = $null
+      nextAction        = $null
+      sourceRefsCount   = 0
+    }
+  }
+
+  $signedAt = Get-StatusValueOrDefault -Value $Value.signedAt -DefaultValue ""
+  $signedAtIsIso = $false
+  if (-not [string]::IsNullOrWhiteSpace($signedAt)) {
+    $parsedSignedAt = [DateTimeOffset]::MinValue
+    $signedAtIsIso = [DateTimeOffset]::TryParse($signedAt, [ref]$parsedSignedAt)
+  }
+
+  return [ordered]@{
+    status            = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated         = ($Value.validated -eq $true)
+    totalArtifacts    = Convert-ToNonNegativeIntOrDefault -Value $Value.totalArtifacts -DefaultValue 0
+    signedArtifacts   = Convert-ToNonNegativeIntOrDefault -Value $Value.signedArtifacts -DefaultValue 0
+    unsignedArtifacts = Convert-ToNonNegativeIntOrDefault -Value $Value.unsignedArtifacts -DefaultValue 0
+    signatureStatus   = $(if ([string]::IsNullOrWhiteSpace([string]$Value.signatureStatus)) { $null } else { [string]$Value.signatureStatus })
+    algorithm         = $(if ([string]::IsNullOrWhiteSpace([string]$Value.algorithm)) { $null } else { [string]$Value.algorithm })
+    canonicalization  = $(if ([string]::IsNullOrWhiteSpace([string]$Value.canonicalization)) { $null } else { [string]$Value.canonicalization })
+    payloadHash       = $(if ([string]::IsNullOrWhiteSpace([string]$Value.payloadHash)) { $null } else { [string]$Value.payloadHash })
+    keyId             = $(if ([string]::IsNullOrWhiteSpace([string]$Value.keyId)) { $null } else { [string]$Value.keyId })
+    signerId          = $(if ([string]::IsNullOrWhiteSpace([string]$Value.signerId)) { $null } else { [string]$Value.signerId })
+    signedAt          = $(if ([string]::IsNullOrWhiteSpace($signedAt)) { $null } else { $signedAt })
+    signedAtIsIso     = $signedAtIsIso
+    signaturePresent  = $(if ($null -eq $Value.signaturePresent) { $null } else { $Value.signaturePresent -eq $true })
+    caseId            = $(if ([string]::IsNullOrWhiteSpace([string]$Value.caseId)) { $null } else { [string]$Value.caseId })
+    sessionId         = $(if ([string]::IsNullOrWhiteSpace([string]$Value.sessionId)) { $null } else { [string]$Value.sessionId })
+    overviewStatus    = $(if ([string]::IsNullOrWhiteSpace([string]$Value.overviewStatus)) { $null } else { [string]$Value.overviewStatus })
+    focusKind         = $(if ([string]::IsNullOrWhiteSpace([string]$Value.focusKind)) { $null } else { [string]$Value.focusKind })
+    focusLabel        = $(if ([string]::IsNullOrWhiteSpace([string]$Value.focusLabel)) { $null } else { [string]$Value.focusLabel })
+    nextAction        = $(if ([string]::IsNullOrWhiteSpace([string]$Value.nextAction)) { $null } else { [string]$Value.nextAction })
+    sourceRefsCount   = Convert-ToNonNegativeIntOrDefault -Value $Value.sourceRefsCount -DefaultValue 0
+  }
+}
+
 function New-ArtifactEntry {
   param(
     [Parameter(Mandatory = $true)]
@@ -338,6 +402,7 @@ $report = [ordered]@{
     runtimeGuardrailsSignalPathsStatus = "unavailable"
     liveTransportStatus       = "unavailable"
     providerUsageStatus       = "unavailable"
+    caseWikiEvidenceSignatureStatus = "unavailable"
     deviceNodeUpdatesStatus   = "unavailable"
   }
   deviceNodeUpdates = [ordered]@{
@@ -373,6 +438,29 @@ $report = [ordered]@{
       connectedEventType = $null
     }
     summary   = "unavailable"
+  }
+  caseWikiEvidenceSignature = [ordered]@{
+    status            = "unavailable"
+    validated         = $false
+    totalArtifacts    = 0
+    signedArtifacts   = 0
+    unsignedArtifacts = 0
+    signatureStatus   = $null
+    algorithm         = $null
+    canonicalization  = $null
+    payloadHash       = $null
+    keyId             = $null
+    signerId          = $null
+    signedAt          = $null
+    signedAtIsIso     = $false
+    signaturePresent  = $null
+    caseId            = $null
+    sessionId         = $null
+    overviewStatus    = $null
+    focusKind         = $null
+    focusLabel        = $null
+    nextAction        = $null
+    sourceRefsCount   = 0
   }
   providerUsage = [ordered]@{
     status                  = "unavailable"
@@ -483,6 +571,10 @@ if (Test-Path $resolvedBadgeDetailsPath) {
       $report.liveTransport = New-LiveTransportSnapshot -Value $badgeDetails.liveTransport
       $report.statuses.liveTransportStatus = Get-StatusValueOrDefault -Value $report.liveTransport.status -DefaultValue "unavailable"
     }
+    if ($null -ne $badgeDetails.evidence.caseWikiEvidenceSignature) {
+      $report.caseWikiEvidenceSignature = New-CaseWikiEvidenceSignatureSnapshot -Value $badgeDetails.evidence.caseWikiEvidenceSignature
+      $report.statuses.caseWikiEvidenceSignatureStatus = Get-StatusValueOrDefault -Value $report.caseWikiEvidenceSignature.status -DefaultValue "unavailable"
+    }
     if ($null -ne $badgeDetails.providerUsage) {
       $report.providerUsage.status = Get-StatusValueOrDefault -Value $badgeDetails.providerUsage.status -DefaultValue "unavailable"
       $report.statuses.providerUsageStatus = $report.providerUsage.status
@@ -532,6 +624,7 @@ $markdown = @(
   "| agentUsage | $($report.statuses.agentUsageStatus) |",
   "| runtimeGuardrailsSignalPaths | $($report.statuses.runtimeGuardrailsSignalPathsStatus) |",
   "| liveTransport | $($report.statuses.liveTransportStatus) |",
+  "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",
@@ -568,6 +661,30 @@ $markdown = @(
   "- evidenceSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.evidenceSource)) { "n/a" } else { [string]$report.liveTransport.session.evidenceSource })",
   "- connectedEventType: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.connectedEventType)) { "n/a" } else { [string]$report.liveTransport.session.connectedEventType })",
   "- summary: $($report.liveTransport.summary)",
+  "",
+  "## Case Wiki Evidence Signature Snapshot",
+  "",
+  "- status: $($report.caseWikiEvidenceSignature.status)",
+  "- validated: $($report.caseWikiEvidenceSignature.validated)",
+  "- totalArtifacts: $($report.caseWikiEvidenceSignature.totalArtifacts)",
+  "- signedArtifacts: $($report.caseWikiEvidenceSignature.signedArtifacts)",
+  "- unsignedArtifacts: $($report.caseWikiEvidenceSignature.unsignedArtifacts)",
+  "- signatureStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.signatureStatus)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.signatureStatus })",
+  "- algorithm: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.algorithm)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.algorithm })",
+  "- canonicalization: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.canonicalization)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.canonicalization })",
+  "- signerId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.signerId)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.signerId })",
+  "- keyId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.keyId)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.keyId })",
+  "- signedAt: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.signedAt)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.signedAt })",
+  "- signedAtIsIso: $($report.caseWikiEvidenceSignature.signedAtIsIso)",
+  "- signaturePresent: $(if ($null -eq $report.caseWikiEvidenceSignature.signaturePresent) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.signaturePresent })",
+  "- caseId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.caseId)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.caseId })",
+  "- sessionId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.sessionId)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.sessionId })",
+  "- overviewStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.overviewStatus)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.overviewStatus })",
+  "- focusKind: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.focusKind)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.focusKind })",
+  "- focusLabel: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.focusLabel)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.focusLabel })",
+  "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.nextAction)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.nextAction })",
+  "- sourceRefsCount: $($report.caseWikiEvidenceSignature.sourceRefsCount)",
+  "- payloadHash: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.payloadHash)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.payloadHash })",
   "",
   "## Secondary Provider Usage",
   "",
@@ -635,6 +752,16 @@ $manifest = [ordered]@{
     missingRequired = $missingRequiredArtifacts.Count
   }
   criticalEvidenceStatuses = $report.statuses
+  caseWikiEvidenceSignature = [ordered]@{
+    status            = $report.caseWikiEvidenceSignature.status
+    validated         = $report.caseWikiEvidenceSignature.validated
+    totalArtifacts    = $report.caseWikiEvidenceSignature.totalArtifacts
+    signedArtifacts   = $report.caseWikiEvidenceSignature.signedArtifacts
+    unsignedArtifacts = $report.caseWikiEvidenceSignature.unsignedArtifacts
+    signatureStatus   = $report.caseWikiEvidenceSignature.signatureStatus
+    signerId          = $report.caseWikiEvidenceSignature.signerId
+    signedAt          = $report.caseWikiEvidenceSignature.signedAt
+  }
   artifacts     = $artifactEntries
   submissionAssets = @(
     [ordered]@{
@@ -696,8 +823,22 @@ $manifestMarkdown = @(
   "| agentUsage | $($report.statuses.agentUsageStatus) |",
   "| runtimeGuardrailsSignalPaths | $($report.statuses.runtimeGuardrailsSignalPathsStatus) |",
   "| liveTransport | $($report.statuses.liveTransportStatus) |",
+  "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
+  "",
+  "## Case Wiki Evidence Signature",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.caseWikiEvidenceSignature.status) |",
+  "| validated | $($manifest.caseWikiEvidenceSignature.validated) |",
+  "| totalArtifacts | $($manifest.caseWikiEvidenceSignature.totalArtifacts) |",
+  "| signedArtifacts | $($manifest.caseWikiEvidenceSignature.signedArtifacts) |",
+  "| unsignedArtifacts | $($manifest.caseWikiEvidenceSignature.unsignedArtifacts) |",
+  "| signatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signatureStatus)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signatureStatus }) |",
+  "| signerId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signerId)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signerId }) |",
+  "| signedAt | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signedAt)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signedAt }) |",
   "",
   "## Artifact Inventory",
   "",

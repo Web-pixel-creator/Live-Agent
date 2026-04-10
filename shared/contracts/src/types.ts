@@ -262,6 +262,20 @@ export type CaseWikiEvidencePack = {
   sourceRefs: string[];
 };
 
+export type EvidenceSignatureStatus = "signed" | "unsigned";
+
+export type EvidenceSignature = {
+  schemaVersion: 1;
+  status: EvidenceSignatureStatus;
+  algorithm: "ed25519-sha256";
+  canonicalization: "json-stable-v1";
+  payloadHash: string;
+  signature: string | null;
+  keyId: string | null;
+  signerId: string;
+  signedAt: string;
+};
+
 export const CASE_WIKI_DETAIL_BADGE_TONES = ["neutral", "ok", "watch"] as const;
 
 export type CaseWikiDetailBadgeTone = (typeof CASE_WIKI_DETAIL_BADGE_TONES)[number];
@@ -535,6 +549,7 @@ export type CaseWiki = {
   overview: CaseWikiOverview;
   highlights: CaseWikiHighlights;
   evidencePack: CaseWikiEvidencePack;
+  evidenceSignature?: EvidenceSignature;
   handoffPack: CaseWikiHandoffPack;
   detailPack: CaseWikiDetailPack;
   routingPack: CaseWikiRoutingPack;

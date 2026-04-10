@@ -14,6 +14,11 @@ param(
   [string]$LiveApiProtocol = $env:LIVE_API_PROTOCOL,
   [string]$LiveModelId = $env:LIVE_MODEL_ID,
   [string]$GeminiApiKey = $env:GEMINI_API_KEY,
+  [string]$RuntimeEvidenceSigningEnabled = $env:RUNTIME_EVIDENCE_SIGNING_ENABLED,
+  [string]$RuntimeEvidenceSigningPrivateKeyPem = $env:RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM,
+  [string]$RuntimeEvidenceSigningPrivateKeyBase64 = $env:RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64,
+  [string]$RuntimeEvidenceSigningKeyId = $env:RUNTIME_EVIDENCE_SIGNING_KEY_ID,
+  [string]$RuntimeEvidenceSigningSignerId = $env:RUNTIME_EVIDENCE_SIGNING_SIGNER_ID,
   [switch]$NoWait,
   [switch]$SkipHealthCheck,
   [switch]$SkipCapabilitiesCheck,
@@ -414,6 +419,20 @@ if ([string]::IsNullOrWhiteSpace($Service)) {
   Fail "Provide -Service (or set RAILWAY_API_SERVICE_ID/RAILWAY_API_SERVICE)."
 }
 
+$runtimeEvidenceSigningEnabledValue = if ([string]::IsNullOrWhiteSpace($RuntimeEvidenceSigningEnabled)) {
+  ""
+} else {
+  [string]$RuntimeEvidenceSigningEnabled
+}
+
+if (
+  [string]::Equals($runtimeEvidenceSigningEnabledValue.Trim(), "true", [System.StringComparison]::OrdinalIgnoreCase) -and
+  [string]::IsNullOrWhiteSpace($RuntimeEvidenceSigningPrivateKeyPem) -and
+  [string]::IsNullOrWhiteSpace($RuntimeEvidenceSigningPrivateKeyBase64)
+) {
+  Fail "RUNTIME_EVIDENCE_SIGNING_ENABLED=true requires RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM or RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64."
+}
+
 if (-not (Test-Path $ApiPath)) {
   Fail "API path not found: $ApiPath"
 }
@@ -447,6 +466,11 @@ Set-RailwayVariableIfProvided -Name "LIVE_DIRECT_MODE_DEFAULT" -Value $LiveDirec
 Set-RailwayVariableIfProvided -Name "LIVE_API_PROTOCOL" -Value $LiveApiProtocol -TargetService $Service -TargetEnvironment $Environment
 Set-RailwayVariableIfProvided -Name "LIVE_MODEL_ID" -Value $LiveModelId -TargetService $Service -TargetEnvironment $Environment
 Set-RailwayVariableIfProvided -Name "GEMINI_API_KEY" -Value $GeminiApiKey -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "RUNTIME_EVIDENCE_SIGNING_ENABLED" -Value $RuntimeEvidenceSigningEnabled -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM" -Value $RuntimeEvidenceSigningPrivateKeyPem -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64" -Value $RuntimeEvidenceSigningPrivateKeyBase64 -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "RUNTIME_EVIDENCE_SIGNING_KEY_ID" -Value $RuntimeEvidenceSigningKeyId -TargetService $Service -TargetEnvironment $Environment
+Set-RailwayVariableIfProvided -Name "RUNTIME_EVIDENCE_SIGNING_SIGNER_ID" -Value $RuntimeEvidenceSigningSignerId -TargetService $Service -TargetEnvironment $Environment
 
 try {
   Push-Location $deployWorkspacePath
