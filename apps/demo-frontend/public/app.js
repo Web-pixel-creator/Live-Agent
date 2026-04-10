@@ -7944,7 +7944,7 @@ function buildCaseWorkspaceCaseWikiSummary(isRu) {
   const topProof = resolveOperatorCaseWikiTopProof(snapshot);
   const keyEntity = resolveOperatorCaseWikiTopEntity(snapshot);
   const evidencePack = resolveOperatorCaseWikiEvidencePack(snapshot);
-  const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
+  const focusedItem = resolveOperatorCaseWikiPreferredWorkspaceFocus(snapshot, evidencePack);
   const statusPresentation = resolveCaseWorkspaceCaseWikiStatusPresentation(toOptionalText(overview?.status), isRu);
   const currentStage = toOptionalText(overview?.currentStage);
   const nextActionType = toOptionalText(nextAction?.type);
@@ -32571,6 +32571,62 @@ function resolveOperatorCaseWikiFocusedItem(evidencePack) {
   return item ? { kind: focus.kind, id: focus.id, item } : null;
 }
 
+function resolveOperatorCaseWikiPreferredWorkspaceFocus(snapshot, evidencePack, preferredKind = null) {
+  if (!snapshot || !evidencePack) {
+    return null;
+  }
+  const explicitFocus = resolveOperatorCaseWikiFocusedItem(evidencePack);
+  if (explicitFocus) {
+    return explicitFocus;
+  }
+  const preferredKinds = preferredKind
+    && (preferredKind === "proof" || preferredKind === "question")
+    ? [preferredKind]
+    : ["question", "proof"];
+  const resolveById = (kind, focusId) => {
+    const id = toOptionalText(focusId);
+    if (!id) {
+      return null;
+    }
+    const items = kind === "proof" ? evidencePack?.proofs : evidencePack?.questions;
+    const item = Array.isArray(items)
+      ? items.find((candidate) => toOptionalText(candidate?.id) === id)
+      : null;
+    return item ? { kind, id, item } : null;
+  };
+  for (const kind of preferredKinds) {
+    const highlightedFocus =
+      kind === "proof"
+        ? resolveById("proof", resolveOperatorCaseWikiTopProof(snapshot)?.id)
+        : resolveById("question", resolveOperatorCaseWikiTopBlockingQuestion(snapshot)?.id);
+    if (highlightedFocus) {
+      return highlightedFocus;
+    }
+    const focusPack = isRecord(snapshot.focusPack) ? snapshot.focusPack : null;
+    const focusPackItems =
+      kind === "proof"
+        ? Array.isArray(focusPack?.proofs)
+          ? focusPack.proofs
+          : []
+        : Array.isArray(focusPack?.questions)
+          ? focusPack.questions
+          : [];
+    for (const item of focusPackItems) {
+      const focusRecord = resolveById(kind, item?.focusId);
+      if (focusRecord) {
+        return focusRecord;
+      }
+    }
+    const rawItems = kind === "proof" ? evidencePack?.proofs : evidencePack?.questions;
+    if (Array.isArray(rawItems) && rawItems.length > 0) {
+      const firstItem = rawItems[0];
+      const id = toOptionalText(firstItem?.id) ?? `${kind}-0`;
+      return { kind, id, item: firstItem };
+    }
+  }
+  return null;
+}
+
 function buildOperatorCaseWikiFocusChipTitle(kind, item) {
   if (!isRecord(item)) {
     return null;
@@ -32601,6 +32657,11 @@ function buildOperatorCaseWikiFocusChipTitle(kind, item) {
 function buildOperatorCaseWikiFocusChipRail(evidencePack, kind) {
   const snapshot = buildOperatorCaseWikiSnapshot(state.operatorCaseWikiSnapshot);
   const focusPack = isRecord(snapshot?.focusPack) ? snapshot.focusPack : null;
+  const explicitFocus = normalizeOperatorCaseWikiFocus(state.operatorCaseWikiFocus);
+  const workspaceFocus =
+    explicitFocus && explicitFocus.kind !== kind
+      ? null
+      : resolveOperatorCaseWikiPreferredWorkspaceFocus(snapshot, evidencePack, kind);
   const focusPackItems =
     kind === "proof"
       ? Array.isArray(focusPack?.proofs)
@@ -32610,7 +32671,6 @@ function buildOperatorCaseWikiFocusChipRail(evidencePack, kind) {
         ? focusPack.questions
         : [];
   if (focusPackItems.length > 0) {
-    const activeFocus = normalizeOperatorCaseWikiFocus(state.operatorCaseWikiFocus);
     return focusPackItems.slice(0, 3).map((item, index) => {
       const id = toOptionalText(item?.focusId) ?? `${kind}-${index}`;
       const labelSource = toOptionalText(item?.focusLabel) ?? `${kind} ${index + 1}`;
@@ -32619,7 +32679,7 @@ function buildOperatorCaseWikiFocusChipRail(evidencePack, kind) {
         id,
         label: truncateOperatorCaseWikiFocusChipLabel(labelSource) ?? `${kind} ${index + 1}`,
         title: toOptionalText(item?.chipTitle) ?? null,
-        isActive: activeFocus?.kind === kind && activeFocus?.id === id,
+        isActive: workspaceFocus?.kind === kind && workspaceFocus?.id === id,
       };
     });
   }
@@ -32627,7 +32687,6 @@ function buildOperatorCaseWikiFocusChipRail(evidencePack, kind) {
   if (!Array.isArray(items) || items.length === 0) {
     return [];
   }
-  const activeFocus = normalizeOperatorCaseWikiFocus(state.operatorCaseWikiFocus);
   return items.slice(0, 3).map((item, index) => {
     const id = toOptionalText(item?.id) ?? `${kind}-${index}`;
     const labelSource =
@@ -32639,7 +32698,7 @@ function buildOperatorCaseWikiFocusChipRail(evidencePack, kind) {
       id,
       label: truncateOperatorCaseWikiFocusChipLabel(labelSource) ?? `${kind} ${index + 1}`,
       title: buildOperatorCaseWikiFocusChipTitle(kind, item),
-      isActive: activeFocus?.kind === kind && activeFocus?.id === id,
+      isActive: workspaceFocus?.kind === kind && workspaceFocus?.id === id,
     };
   });
 }
