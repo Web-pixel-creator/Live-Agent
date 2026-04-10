@@ -33363,13 +33363,14 @@ function buildOperatorCaseWikiDetailBadges(kind, item, isRu) {
 }
 
 function resolveOperatorCaseWikiDetailFocusTarget(snapshot, evidencePack, kind) {
-  const focusedItem = resolveOperatorCaseWikiFocusedItem(evidencePack);
+  const focusedItem = resolveOperatorCaseWikiPreferredWorkspaceFocus(snapshot, evidencePack, kind);
   if (focusedItem?.kind === kind && isRecord(focusedItem.item)) {
+    const explicitFocus = normalizeOperatorCaseWikiFocus(state.operatorCaseWikiFocus);
     return {
       kind,
       id: toOptionalText(focusedItem.id) ?? toOptionalText(focusedItem.item.id) ?? `focused-${kind}`,
       item: focusedItem.item,
-      isFocused: true,
+      isFocused: explicitFocus?.kind === kind && explicitFocus?.id === focusedItem.id,
     };
   }
   if (kind === "proof") {

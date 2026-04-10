@@ -154,6 +154,8 @@ test("case workspace surfaces a compact case wiki summary fed from operator comp
     "function buildOperatorCaseWikiQuestionDetailValue(question, isRu) {",
     "function buildOperatorCaseWikiDetailBadges(kind, item, isRu) {",
     "function buildOperatorCaseWikiDetailActionBundle(kind, isRu) {",
+    "const focusedItem = resolveOperatorCaseWikiPreferredWorkspaceFocus(snapshot, evidencePack, kind);",
+    "explicitFocus?.kind === kind && explicitFocus?.id === focusedItem.id",
     "const actionPackItem = resolveOperatorCaseWikiActionPackItem(snapshot, kind, target.id);",
     "const focusPackItem = focusId ? resolveOperatorCaseWikiFocusPackItem(snapshot, focusedItem.kind, focusId) : null;",
     "function renderCaseWorkspaceCaseWikiDetailBadges(container, badges) {",
