@@ -55,6 +55,7 @@ function Resolve-ApiPublicUrl {
     [Parameter(Mandatory = $true)]
     [string]$FrontendBaseUrl,
     [Parameter(Mandatory = $true)]
+    [AllowEmptyString()]
     [string]$ExplicitApiPublicUrl,
     [Parameter(Mandatory = $true)]
     [int]$TimeoutSec

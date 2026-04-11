@@ -308,6 +308,78 @@ function New-CaseWikiRoutingContextSnapshot {
   }
 }
 
+function New-HostedDirectLiveProofSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status                   = "unavailable"
+      observed                 = $false
+      apiPublicUrl             = $null
+      apiPublicUrlSource       = $null
+      frontendPublicUrl        = $null
+      requestedSessionId       = $null
+      sessionId                = $null
+      runtimePreferredMode     = $null
+      runtimeActiveMode        = $null
+      replayActiveMode         = $null
+      replayEvidenceSource     = $null
+      firstAudioMs             = $null
+      firstOutputMs            = $null
+      fallbackEventCount       = 0
+      fallbackReason           = $null
+      caseWikiSignatureStatus  = $null
+      caseWikiSignaturePresent = $null
+      latencyObserved          = $false
+      summary                  = "unavailable"
+    }
+  }
+
+  $runtimeStatus = if ($null -ne $Value.runtimeStatus) { $Value.runtimeStatus } else { $null }
+  $replay = if ($null -ne $Value.replay) { $Value.replay } else { $null }
+  $replayLiveTransport = if ($null -ne $replay -and $null -ne $replay.liveTransport) { $replay.liveTransport } else { $null }
+  $caseWiki = if ($null -ne $Value.caseWiki) { $Value.caseWiki } else { $null }
+  $caseWikiEvidenceSignature =
+    if ($null -ne $caseWiki -and $null -ne $caseWiki.evidenceSignature) { $caseWiki.evidenceSignature } else { $null }
+
+  $firstAudioMs = if ($null -eq $replayLiveTransport) { $null } else { Convert-ToNonNegativeIntOrDefault -Value $replayLiveTransport.firstAudioMs -DefaultValue -1 }
+  if ($firstAudioMs -lt 0) {
+    $firstAudioMs = $null
+  }
+  $firstOutputMs = if ($null -eq $replayLiveTransport) { $null } else { Convert-ToNonNegativeIntOrDefault -Value $replayLiveTransport.firstOutputMs -DefaultValue -1 }
+  if ($firstOutputMs -lt 0) {
+    $firstOutputMs = $null
+  }
+
+  return [ordered]@{
+    status                   = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    observed                 = (
+      (Get-StatusValueOrDefault -Value $replayLiveTransport.activeMode -DefaultValue "") -eq "direct_live" -and
+      (Get-StatusValueOrDefault -Value $replayLiveTransport.evidenceSource -DefaultValue "") -eq "session_events"
+    )
+    apiPublicUrl             = $(if ([string]::IsNullOrWhiteSpace([string]$Value.apiPublicUrl)) { $null } else { [string]$Value.apiPublicUrl })
+    apiPublicUrlSource       = $(if ([string]::IsNullOrWhiteSpace([string]$Value.apiPublicUrlSource)) { $null } else { [string]$Value.apiPublicUrlSource })
+    frontendPublicUrl        = $(if ([string]::IsNullOrWhiteSpace([string]$Value.frontendPublicUrl)) { $null } else { [string]$Value.frontendPublicUrl })
+    requestedSessionId       = $(if ([string]::IsNullOrWhiteSpace([string]$Value.requestedSessionId)) { $null } else { [string]$Value.requestedSessionId })
+    sessionId                = $(if ([string]::IsNullOrWhiteSpace([string]$Value.sessionId)) { $null } else { [string]$Value.sessionId })
+    runtimePreferredMode     = $(if ($null -eq $runtimeStatus) { $null } else { Get-StatusValueOrDefault -Value $runtimeStatus.preferredMode -DefaultValue "" })
+    runtimeActiveMode        = $(if ($null -eq $runtimeStatus) { $null } else { Get-StatusValueOrDefault -Value $runtimeStatus.activeMode -DefaultValue "" })
+    replayActiveMode         = $(if ($null -eq $replayLiveTransport) { $null } else { Get-StatusValueOrDefault -Value $replayLiveTransport.activeMode -DefaultValue "" })
+    replayEvidenceSource     = $(if ($null -eq $replayLiveTransport) { $null } else { Get-StatusValueOrDefault -Value $replayLiveTransport.evidenceSource -DefaultValue "" })
+    firstAudioMs             = $firstAudioMs
+    firstOutputMs            = $firstOutputMs
+    fallbackEventCount       = $(if ($null -eq $replayLiveTransport) { 0 } else { Convert-ToNonNegativeIntOrDefault -Value $replayLiveTransport.fallbackEventCount -DefaultValue 0 })
+    fallbackReason           = $(if ($null -eq $replayLiveTransport) { $null } else { Get-StatusValueOrDefault -Value $replayLiveTransport.fallbackReason -DefaultValue "" })
+    caseWikiSignatureStatus  = $(if ($null -eq $caseWikiEvidenceSignature) { $null } else { Get-StatusValueOrDefault -Value $caseWikiEvidenceSignature.status -DefaultValue "" })
+    caseWikiSignaturePresent = $(if ($null -eq $caseWikiEvidenceSignature -or $null -eq $caseWikiEvidenceSignature.signaturePresent) { $null } else { $caseWikiEvidenceSignature.signaturePresent -eq $true })
+    latencyObserved          = ($null -ne $firstAudioMs) -or ($null -ne $firstOutputMs)
+    summary                  = Get-StatusValueOrDefault -Value $Value.summary -DefaultValue "unavailable"
+  }
+}
+
 function New-ArtifactEntry {
   param(
     [Parameter(Mandatory = $true)]
@@ -378,6 +450,9 @@ $resolvedDemoPolicyPath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/poli
 $resolvedDemoBadgePath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/badge.json")
 $resolvedPerfSummaryPath = [System.IO.Path]::GetFullPath("artifacts/perf-load/summary.json")
 $resolvedPerfPolicyPath = [System.IO.Path]::GetFullPath("artifacts/perf-load/policy-check.json")
+$resolvedDirectLiveProofJsonPath = [System.IO.Path]::GetFullPath("artifacts/deploy/direct-live-proof.json")
+$resolvedDirectLiveProofMarkdownPath = [System.IO.Path]::GetFullPath("artifacts/deploy/direct-live-proof.md")
+$resolvedDirectLiveProofPngPath = [System.IO.Path]::GetFullPath("artifacts/deploy/direct-live-proof.png")
 $resolvedSourceRunManifestPath = [System.IO.Path]::GetFullPath("artifacts/release-artifact-revalidation/source-run.json")
 $resolvedGcpCloudRunSummaryPath = [System.IO.Path]::GetFullPath("artifacts/deploy/gcp-cloud-run-summary.json")
 $resolvedGcpFirestoreSummaryPath = [System.IO.Path]::GetFullPath("artifacts/deploy/gcp-firestore-summary.json")
@@ -438,6 +513,7 @@ $report = [ordered]@{
     agentUsageStatus          = "unavailable"
     runtimeGuardrailsSignalPathsStatus = "unavailable"
     liveTransportStatus       = "unavailable"
+    hostedDirectLiveProofStatus = "unavailable"
     providerUsageStatus       = "unavailable"
     caseWikiEvidenceSignatureStatus = "unavailable"
     caseWikiRoutingContextStatus = "unavailable"
@@ -476,6 +552,27 @@ $report = [ordered]@{
       connectedEventType = $null
     }
     summary   = "unavailable"
+  }
+  hostedDirectLiveProof = [ordered]@{
+    status                   = "unavailable"
+    observed                 = $false
+    apiPublicUrl             = $null
+    apiPublicUrlSource       = $null
+    frontendPublicUrl        = $null
+    requestedSessionId       = $null
+    sessionId                = $null
+    runtimePreferredMode     = $null
+    runtimeActiveMode        = $null
+    replayActiveMode         = $null
+    replayEvidenceSource     = $null
+    firstAudioMs             = $null
+    firstOutputMs            = $null
+    fallbackEventCount       = 0
+    fallbackReason           = $null
+    caseWikiSignatureStatus  = $null
+    caseWikiSignaturePresent = $null
+    latencyObserved          = $false
+    summary                  = "unavailable"
   }
   caseWikiEvidenceSignature = [ordered]@{
     status            = "unavailable"
@@ -545,6 +642,16 @@ $report = [ordered]@{
     screenChecklistPath = $resolvedScreenChecklistPath
     bonusArticleDraftPath = $resolvedBonusArticleDraftPath
   }
+}
+
+$hostedDirectLiveProofRead = Read-JsonIfExists -Path $resolvedDirectLiveProofJsonPath
+if ($hostedDirectLiveProofRead.present -and $hostedDirectLiveProofRead.parsed) {
+  $report.hostedDirectLiveProof = New-HostedDirectLiveProofSnapshot -Value $hostedDirectLiveProofRead.value
+  $report.statuses.hostedDirectLiveProofStatus = Get-StatusValueOrDefault -Value $report.hostedDirectLiveProof.status -DefaultValue "unavailable"
+} elseif ($hostedDirectLiveProofRead.present) {
+  $report.hostedDirectLiveProof.status = "fail"
+  $report.hostedDirectLiveProof.summary = Get-StatusValueOrDefault -Value $hostedDirectLiveProofRead.parseError -DefaultValue "invalid hosted direct-live proof artifact"
+  $report.statuses.hostedDirectLiveProofStatus = "fail"
 }
 
 if (Test-Path $resolvedBadgeDetailsPath) {
@@ -679,6 +786,7 @@ $markdown = @(
   "| agentUsage | $($report.statuses.agentUsageStatus) |",
   "| runtimeGuardrailsSignalPaths | $($report.statuses.runtimeGuardrailsSignalPathsStatus) |",
   "| liveTransport | $($report.statuses.liveTransportStatus) |",
+  "| hostedDirectLiveProof | $($report.statuses.hostedDirectLiveProofStatus) |",
   "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
   "| caseWikiRoutingContext | $($report.statuses.caseWikiRoutingContextStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
@@ -717,6 +825,28 @@ $markdown = @(
   "- evidenceSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.evidenceSource)) { "n/a" } else { [string]$report.liveTransport.session.evidenceSource })",
   "- connectedEventType: $(if ([string]::IsNullOrWhiteSpace([string]$report.liveTransport.session.connectedEventType)) { "n/a" } else { [string]$report.liveTransport.session.connectedEventType })",
   "- summary: $($report.liveTransport.summary)",
+  "",
+  "## Hosted Direct-Live Proof Snapshot",
+  "",
+  "- status: $($report.hostedDirectLiveProof.status)",
+  "- observed: $($report.hostedDirectLiveProof.observed)",
+  "- frontendPublicUrl: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.frontendPublicUrl)) { "n/a" } else { [string]$report.hostedDirectLiveProof.frontendPublicUrl })",
+  "- apiPublicUrl: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.apiPublicUrl)) { "n/a" } else { [string]$report.hostedDirectLiveProof.apiPublicUrl })",
+  "- apiPublicUrlSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.apiPublicUrlSource)) { "n/a" } else { [string]$report.hostedDirectLiveProof.apiPublicUrlSource })",
+  "- requestedSessionId: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.requestedSessionId)) { "n/a" } else { [string]$report.hostedDirectLiveProof.requestedSessionId })",
+  "- sessionId: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.sessionId)) { "n/a" } else { [string]$report.hostedDirectLiveProof.sessionId })",
+  "- runtimePreferredMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.runtimePreferredMode)) { "n/a" } else { [string]$report.hostedDirectLiveProof.runtimePreferredMode })",
+  "- runtimeActiveMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.runtimeActiveMode)) { "n/a" } else { [string]$report.hostedDirectLiveProof.runtimeActiveMode })",
+  "- replayActiveMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.replayActiveMode)) { "n/a" } else { [string]$report.hostedDirectLiveProof.replayActiveMode })",
+  "- replayEvidenceSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.replayEvidenceSource)) { "n/a" } else { [string]$report.hostedDirectLiveProof.replayEvidenceSource })",
+  "- firstAudioMs: $(if ($null -eq $report.hostedDirectLiveProof.firstAudioMs) { "n/a" } else { [string]$report.hostedDirectLiveProof.firstAudioMs })",
+  "- firstOutputMs: $(if ($null -eq $report.hostedDirectLiveProof.firstOutputMs) { "n/a" } else { [string]$report.hostedDirectLiveProof.firstOutputMs })",
+  "- fallbackEventCount: $($report.hostedDirectLiveProof.fallbackEventCount)",
+  "- fallbackReason: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.fallbackReason)) { "n/a" } else { [string]$report.hostedDirectLiveProof.fallbackReason })",
+  "- caseWikiSignatureStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.caseWikiSignatureStatus)) { "n/a" } else { [string]$report.hostedDirectLiveProof.caseWikiSignatureStatus })",
+  "- caseWikiSignaturePresent: $(if ($null -eq $report.hostedDirectLiveProof.caseWikiSignaturePresent) { "n/a" } else { [string]$report.hostedDirectLiveProof.caseWikiSignaturePresent })",
+  "- latencyObserved: $($report.hostedDirectLiveProof.latencyObserved)",
+  "- summary: $($report.hostedDirectLiveProof.summary)",
   "",
   "## Case Wiki Evidence Signature Snapshot",
   "",
@@ -798,6 +928,9 @@ $artifactEntries = @(
   (New-ArtifactEntry -Id "demo.badgeDetails" -Category "demo" -Label "Demo badge-details JSON" -Path $resolvedBadgeDetailsPath -Required $true -Present (Test-Path $resolvedBadgeDetailsPath)),
   (New-ArtifactEntry -Id "perf.summary" -Category "perf" -Label "Perf summary JSON" -Path $resolvedPerfSummaryPath -Required $false -Present (Test-Path $resolvedPerfSummaryPath)),
   (New-ArtifactEntry -Id "perf.policy" -Category "perf" -Label "Perf policy-check JSON" -Path $resolvedPerfPolicyPath -Required $false -Present (Test-Path $resolvedPerfPolicyPath)),
+  (New-ArtifactEntry -Id "deploy.directLiveProofJson" -Category "deploy" -Label "Hosted direct-live proof JSON" -Path $resolvedDirectLiveProofJsonPath -Required $false -Present (Test-Path $resolvedDirectLiveProofJsonPath)),
+  (New-ArtifactEntry -Id "deploy.directLiveProofMarkdown" -Category "deploy" -Label "Hosted direct-live proof Markdown" -Path $resolvedDirectLiveProofMarkdownPath -Required $false -Present (Test-Path $resolvedDirectLiveProofMarkdownPath)),
+  (New-ArtifactEntry -Id "deploy.directLiveProofScreenshot" -Category "deploy" -Label "Hosted direct-live proof screenshot" -Path $resolvedDirectLiveProofPngPath -Required $false -Present (Test-Path $resolvedDirectLiveProofPngPath)),
   (New-ArtifactEntry -Id "release.reportJson" -Category "release_evidence" -Label "Release evidence report JSON" -Path $resolvedOutputJsonPath -Required $true -Present (Test-Path $resolvedOutputJsonPath)),
   (New-ArtifactEntry -Id "release.reportMarkdown" -Category "release_evidence" -Label "Release evidence report Markdown" -Path $resolvedOutputMarkdownPath -Required $true -Present (Test-Path $resolvedOutputMarkdownPath)),
   (New-ArtifactEntry -Id "release.manifestJson" -Category "release_evidence" -Label "Release evidence manifest JSON" -Path $resolvedOutputManifestJsonPath -Required $true -Present $true),
@@ -822,6 +955,17 @@ $manifest = [ordered]@{
     missingRequired = $missingRequiredArtifacts.Count
   }
   criticalEvidenceStatuses = $report.statuses
+  hostedDirectLiveProof = [ordered]@{
+    status                  = $report.hostedDirectLiveProof.status
+    observed                = $report.hostedDirectLiveProof.observed
+    apiPublicUrlSource      = $report.hostedDirectLiveProof.apiPublicUrlSource
+    replayEvidenceSource    = $report.hostedDirectLiveProof.replayEvidenceSource
+    firstAudioMs            = $report.hostedDirectLiveProof.firstAudioMs
+    firstOutputMs           = $report.hostedDirectLiveProof.firstOutputMs
+    fallbackEventCount      = $report.hostedDirectLiveProof.fallbackEventCount
+    caseWikiSignatureStatus = $report.hostedDirectLiveProof.caseWikiSignatureStatus
+    latencyObserved         = $report.hostedDirectLiveProof.latencyObserved
+  }
   caseWikiEvidenceSignature = [ordered]@{
     status            = $report.caseWikiEvidenceSignature.status
     validated         = $report.caseWikiEvidenceSignature.validated
@@ -906,6 +1050,7 @@ $manifestMarkdown = @(
   "| agentUsage | $($report.statuses.agentUsageStatus) |",
   "| runtimeGuardrailsSignalPaths | $($report.statuses.runtimeGuardrailsSignalPathsStatus) |",
   "| liveTransport | $($report.statuses.liveTransportStatus) |",
+  "| hostedDirectLiveProof | $($report.statuses.hostedDirectLiveProofStatus) |",
   "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
   "| caseWikiRoutingContext | $($report.statuses.caseWikiRoutingContextStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
@@ -923,6 +1068,20 @@ $manifestMarkdown = @(
   "| signatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signatureStatus)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signatureStatus }) |",
   "| signerId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signerId)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signerId }) |",
   "| signedAt | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.signedAt)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.signedAt }) |",
+  "",
+  "## Hosted Direct-Live Proof",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.hostedDirectLiveProof.status) |",
+  "| observed | $($manifest.hostedDirectLiveProof.observed) |",
+  "| apiPublicUrlSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.apiPublicUrlSource)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.apiPublicUrlSource }) |",
+  "| replayEvidenceSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.replayEvidenceSource)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.replayEvidenceSource }) |",
+  "| firstAudioMs | $(if ($null -eq $manifest.hostedDirectLiveProof.firstAudioMs) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.firstAudioMs }) |",
+  "| firstOutputMs | $(if ($null -eq $manifest.hostedDirectLiveProof.firstOutputMs) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.firstOutputMs }) |",
+  "| fallbackEventCount | $($manifest.hostedDirectLiveProof.fallbackEventCount) |",
+  "| caseWikiSignatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.caseWikiSignatureStatus)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.caseWikiSignatureStatus }) |",
+  "| latencyObserved | $($manifest.hostedDirectLiveProof.latencyObserved) |",
   "",
   "## Case Wiki Routing Context",
   "",

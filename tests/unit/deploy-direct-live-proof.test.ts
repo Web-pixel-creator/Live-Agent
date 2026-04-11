@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createServer, type Server } from "node:http";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -118,7 +119,7 @@ process.exit(status === "pass" || status === "skipped" ? 0 : 1);
 
 function runDirectLiveProof(args: {
   frontendUrl: string;
-  apiUrl: string;
+  apiUrl?: string;
   outputPath: string;
   markdownPath: string;
   browserSmokeScriptPath: string;
@@ -135,8 +136,6 @@ function runDirectLiveProof(args: {
     directLiveProofScriptPath,
     "-FrontendPublicUrl",
     args.frontendUrl,
-    "-ApiPublicUrl",
-    args.apiUrl,
     "-SessionId",
     args.sessionId ?? "requested-session",
     "-OutputPath",
@@ -148,6 +147,9 @@ function runDirectLiveProof(args: {
     "-TimeoutSec",
     "5",
   ];
+  if (typeof args.apiUrl === "string") {
+    commandArgs.splice(7, 0, "-ApiPublicUrl", args.apiUrl);
+  }
   if (args.failOnSkip) {
     commandArgs.push("-FailOnSkip");
   }
@@ -178,6 +180,36 @@ function runDirectLiveProof(args: {
       });
     });
   });
+}
+
+async function startConfigServer(args: { apiBaseUrl: string }): Promise<{ server: Server; baseUrl: string }> {
+  const server = createServer((request, response) => {
+    if (request.url === "/config.json") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ runtime: { apiBaseUrl: args.apiBaseUrl } }));
+      return;
+    }
+    response.writeHead(404, { "content-type": "text/plain" });
+    response.end("not found");
+  });
+
+  await new Promise<void>((resolveListen, rejectListen) => {
+    server.once("error", rejectListen);
+    server.listen(0, "127.0.0.1", () => {
+      server.off("error", rejectListen);
+      resolveListen();
+    });
+  });
+
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    throw new Error("config server did not expose a TCP port");
+  }
+
+  return {
+    server,
+    baseUrl: `http://127.0.0.1:${address.port}`,
+  };
 }
 
 test(
@@ -269,6 +301,54 @@ test(
 
     assert.equal(summary.status, "skipped");
     assert.match(summary.reason ?? "", /direct live unavailable/i);
+  },
+);
+
+test(
+  "deploy direct-live proof resolves api url from frontend config when explicit api url is omitted",
+  { skip: skipIfNoPowerShell },
+  async () => {
+    const outputDir = mkdtempSync(join(tmpdir(), "deploy-direct-live-proof-config-"));
+    const outputPath = join(outputDir, "direct-live-proof.json");
+    const markdownPath = join(outputDir, "direct-live-proof.md");
+    const browserSmokeScriptPath = join(outputDir, "browser-smoke-config.mjs");
+    writeStubBrowserSmokeScript({ scriptPath: browserSmokeScriptPath, status: "pass" });
+
+    const configServer = await startConfigServer({
+      apiBaseUrl: "https://frontend-config-api.example",
+    });
+
+    try {
+      const result = await runDirectLiveProof({
+        frontendUrl: configServer.baseUrl,
+        outputPath,
+        markdownPath,
+        browserSmokeScriptPath,
+        sessionId: "requested-session",
+      });
+
+      assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+
+      const summary = JSON.parse(readFileSync(outputPath, "utf8")) as {
+        status?: string;
+        apiPublicUrl?: string;
+        apiPublicUrlSource?: string;
+      };
+
+      assert.equal(summary.status, "pass");
+      assert.equal(summary.apiPublicUrl, "https://frontend-config-api.example");
+      assert.equal(summary.apiPublicUrlSource, "frontend_config");
+    } finally {
+      await new Promise<void>((resolveClose, rejectClose) => {
+        configServer.server.close((error) => {
+          if (error) {
+            rejectClose(error);
+            return;
+          }
+          resolveClose();
+        });
+      });
+    }
   },
 );
 
