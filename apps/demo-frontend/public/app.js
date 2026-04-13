@@ -37115,8 +37115,37 @@ function registerLiveDebugHooks() {
   };
 }
 
+function resolveCaseWikiSnapshotForInput() {
+  const snapshot = isRecord(state.operatorCaseWikiSnapshot) ? state.operatorCaseWikiSnapshot : null;
+  if (!snapshot) {
+    return null;
+  }
+  const snapshotSessionId = toOptionalText(snapshot.sessionId);
+  const currentSessionId = toOptionalText(state.sessionId);
+  if (snapshotSessionId && currentSessionId && snapshotSessionId !== currentSessionId) {
+    return null;
+  }
+  return snapshot;
+}
+
+function buildOrchestratorInput(input) {
+  const base = isRecord(input) ? input : {};
+  if (isRecord(base.caseWiki)) {
+    return base;
+  }
+  const caseWikiSnapshot = resolveCaseWikiSnapshotForInput();
+  if (!caseWikiSnapshot) {
+    return base;
+  }
+  return {
+    ...base,
+    caseWiki: caseWikiSnapshot,
+  };
+}
+
 function dispatchIntentRequestEnvelope({ intent, input, conversation, requestMetadata, requestRunId }) {
-  sendEnvelope("orchestrator.request", { intent, input }, "frontend", {
+  const enrichedInput = buildOrchestratorInput(input);
+  sendEnvelope("orchestrator.request", { intent, input: enrichedInput }, "frontend", {
     runId: requestRunId,
     conversation,
     metadata: requestMetadata,
