@@ -218,6 +218,81 @@ const runtimeCostTrackerConfig = {
   pricePer1kInputUsd: operatorCostPer1kInputUsd,
   pricePer1kOutputUsd: operatorCostPer1kOutputUsd,
 };
+
+async function loadWorkflowControlPlaneSummary():
+  | ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>["summary"]
+  | null {
+  try {
+    const upstream = await fetchJsonWithTimeout(`${orchestratorBaseUrl}/workflow/config`, 8000);
+    const workflowControlPlane = isRecord(upstream)
+      ? buildRuntimeWorkflowControlPlaneSnapshot(upstream)
+      : (buildUnavailableRuntimeWorkflowControlPlaneSnapshot(
+          "orchestrator workflow control plane is unavailable",
+          "/workflow/config",
+        ) as unknown as ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>);
+    return workflowControlPlane.summary;
+  } catch {
+    const workflowControlPlane = buildUnavailableRuntimeWorkflowControlPlaneSnapshot(
+      "orchestrator workflow control plane is unavailable",
+      "/workflow/config",
+    ) as unknown as ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>;
+    return workflowControlPlane.summary;
+  }
+}
+
+async function buildRuntimeCaseWikiSnapshot(params: {
+  tenantId: string;
+  sessionId?: string | null;
+  sessionLimit?: number;
+  eventLimit?: number;
+  runLimit?: number;
+  approvalLimit?: number;
+  recentEventLimit?: number;
+}): Promise<{ caseWiki: ReturnType<typeof buildRuntimeCaseWiki> | null; selectedSessionId: string | null }> {
+  const sessionLimit = params.sessionLimit ?? 20;
+  const eventLimit = params.eventLimit ?? 120;
+  const runLimit = params.runLimit ?? 120;
+  const approvalLimit = params.approvalLimit ?? 120;
+  const recentEventLimit = params.recentEventLimit ?? Math.max(eventLimit, sessionLimit * 10);
+  const sessions = await listSessions(sessionLimit, { tenantId: params.tenantId });
+  const selectedSessionId = params.sessionId ?? sessions[0]?.sessionId ?? null;
+
+  if (!selectedSessionId) {
+    return { caseWiki: null, selectedSessionId: null };
+  }
+
+  const [runs, approvals, recentEvents, selectedEvents] = await Promise.all([
+    listRuns(runLimit),
+    listApprovals({
+      limit: approvalLimit,
+      tenantId: params.tenantId,
+    }),
+    listRecentEvents(recentEventLimit),
+    listEvents({ sessionId: selectedSessionId, limit: eventLimit }),
+  ]);
+
+  const workflowSummary = await loadWorkflowControlPlaneSummary();
+  const caseCostSummary = buildRuntimeCaseCostSummary({
+    events: selectedEvents,
+    config: runtimeCostTrackerConfig,
+    sessionId: selectedSessionId,
+    sourceRefs: [`session:${selectedSessionId}`],
+  });
+
+  const caseWiki = buildRuntimeCaseWiki({
+    sessions,
+    runs,
+    approvals,
+    recentEvents,
+    selectedEvents,
+    selectedSessionId,
+    workflowSummary,
+    evidenceSigner: resolveRuntimeEvidenceSignerConfig(process.env),
+    costSummary: caseCostSummary,
+  });
+
+  return { caseWiki, selectedSessionId };
+}
 const runtimeDiagnosticsSloThresholds = resolveRuntimeDiagnosticsSloThresholds(process.env);
 const configuredChannelAdapters = parseChannelAdapters(
   process.env.API_CHANNEL_ADAPTERS ?? "webchat,telegram,slack",
@@ -4573,8 +4648,15 @@ export const server = createServer(async (req, res) => {
         500,
       );
       const requestedSessionId = toOptionalString(url.searchParams.get("sessionId"));
-      const sessions = await listSessions(sessionLimit, { tenantId: requestTenant.tenantId });
-      const selectedSessionId = requestedSessionId ?? sessions[0]?.sessionId ?? null;
+      const { caseWiki, selectedSessionId } = await buildRuntimeCaseWikiSnapshot({
+        tenantId: requestTenant.tenantId,
+        sessionId: requestedSessionId,
+        sessionLimit,
+        eventLimit,
+        runLimit,
+        approvalLimit,
+        recentEventLimit,
+      });
 
       if (!selectedSessionId) {
         writeApiError(res, 404, {
@@ -4586,55 +4668,6 @@ export const server = createServer(async (req, res) => {
         });
         return;
       }
-
-      const [runs, approvals, recentEvents, selectedEvents] = await Promise.all([
-        listRuns(runLimit),
-        listApprovals({
-          limit: approvalLimit,
-          tenantId: requestTenant.tenantId,
-        }),
-        listRecentEvents(recentEventLimit),
-        listEvents({ sessionId: selectedSessionId, limit: eventLimit }),
-      ]);
-
-      let workflowControlPlaneSummary:
-        | ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>["summary"]
-        | null = null;
-      try {
-        const upstream = await fetchJsonWithTimeout(`${orchestratorBaseUrl}/workflow/config`, 8000);
-        const workflowControlPlane = isRecord(upstream)
-          ? buildRuntimeWorkflowControlPlaneSnapshot(upstream)
-          : (buildUnavailableRuntimeWorkflowControlPlaneSnapshot(
-              "orchestrator workflow control plane is unavailable",
-              "/workflow/config",
-            ) as unknown as ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>);
-        workflowControlPlaneSummary = workflowControlPlane.summary;
-      } catch {
-        const workflowControlPlane = buildUnavailableRuntimeWorkflowControlPlaneSnapshot(
-          "orchestrator workflow control plane is unavailable",
-          "/workflow/config",
-        ) as unknown as ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>;
-        workflowControlPlaneSummary = workflowControlPlane.summary;
-      }
-
-      const caseCostSummary = buildRuntimeCaseCostSummary({
-        events: selectedEvents,
-        config: runtimeCostTrackerConfig,
-        sessionId: selectedSessionId,
-        sourceRefs: [`session:${selectedSessionId}`],
-      });
-
-      const caseWiki = buildRuntimeCaseWiki({
-        sessions,
-        runs,
-        approvals,
-        recentEvents,
-        selectedEvents,
-        selectedSessionId,
-        workflowSummary: workflowControlPlaneSummary,
-        evidenceSigner: resolveRuntimeEvidenceSignerConfig(process.env),
-        costSummary: caseCostSummary,
-      });
 
       if (!caseWiki) {
         writeApiError(res, 404, {
@@ -7044,6 +7077,25 @@ export const server = createServer(async (req, res) => {
       }
 
       const baseInput = isRecord(parsed.input) ? parsed.input : {};
+      let caseWikiSnapshot: ReturnType<typeof buildRuntimeCaseWiki> | null = null;
+      try {
+        const built = await buildRuntimeCaseWikiSnapshot({
+          tenantId: requestTenant.tenantId,
+          sessionId,
+          sessionLimit: 50,
+          eventLimit: 160,
+          runLimit: 200,
+          approvalLimit: 200,
+          recentEventLimit: 400,
+        });
+        caseWikiSnapshot = built.caseWiki;
+      } catch {
+        caseWikiSnapshot = null;
+      }
+      const orchestratorInput =
+        caseWikiSnapshot && !isRecord(baseInput.caseWiki)
+          ? { ...baseInput, caseWiki: caseWikiSnapshot }
+          : baseInput;
       const orchestratorRequest = createEnvelope({
         userId,
         sessionId,
@@ -7053,7 +7105,7 @@ export const server = createServer(async (req, res) => {
         payload: {
           intent,
           input: {
-            ...baseInput,
+            ...orchestratorInput,
             approvalConfirmed: true,
             approvalDecision: decision,
             approvalReason: reason,
