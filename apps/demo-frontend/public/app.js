@@ -36466,12 +36466,14 @@ function buildDirectLiveSetupPayload(payloadOverride = null) {
   const model =
     toOptionalText(override.model) ??
     (snapshot ? toOptionalText(snapshot.model) : null) ??
-    "gemini-live-2.5-flash-native-audio";
+    "gemini-3.1-flash-live-preview";
+  const normalizedModel =
+    typeof model === "string" && model.startsWith("models/") ? model : `models/${model}`;
   return {
     ...override,
-    model,
+    model: normalizedModel,
     generationConfig: {
-      responseModalities: ["TEXT", "AUDIO"],
+      responseModalities: ["AUDIO"],
       ...overrideGenerationConfig,
     },
   };
@@ -36481,6 +36483,18 @@ function sendDirectLiveJson(message) {
   if (!isSocketOpen()) {
     appendTranscript("error", "Live transport is not connected");
     return false;
+  }
+  if (enableLiveDebugHooks) {
+    let snapshot = "";
+    try {
+      snapshot = JSON.stringify(message);
+    } catch {
+      snapshot = "[unserializable]";
+    }
+    if (snapshot.length > 400) {
+      snapshot = snapshot.slice(0, 400) + "…";
+    }
+    appendTranscript("system", `Direct live send: ${snapshot}`, { exposeInLiveResult: false });
   }
   state.ws.send(JSON.stringify(message));
   return true;
@@ -36787,14 +36801,8 @@ function sendDirectLiveEnvelope(envelope) {
         return false;
       }
       return sendDirectLiveJson({
-        clientContent: {
-          turns: [
-            {
-              role: "user",
-              parts: [{ text }],
-            },
-          ],
-          turnComplete: true,
+        realtimeInput: {
+          text,
         },
       });
     }
@@ -36807,6 +36815,19 @@ function sendDirectLiveEnvelope(envelope) {
         return false;
       }
       const role = toOptionalText(item?.role) === "assistant" ? "model" : "user";
+      if (
+        role === "user" &&
+        parts.length === 1 &&
+        isRecord(parts[0]) &&
+        typeof parts[0].text === "string" &&
+        parts[0].text.trim().length > 0
+      ) {
+        return sendDirectLiveJson({
+          realtimeInput: {
+            text: parts[0].text,
+          },
+        });
+      }
       return sendDirectLiveJson({
         clientContent: {
           turns: [
@@ -37049,6 +37070,49 @@ function sendEnvelope(type, payload, source = "frontend", runOrOptions = state.r
     }
   }
   state.ws.send(JSON.stringify(envelope));
+}
+
+const enableLiveDebugHooks =
+  typeof window !== "undefined" &&
+  new URLSearchParams(window.location.search).get("debugLive") === "true";
+
+function registerLiveDebugHooks() {
+  if (!enableLiveDebugHooks || typeof window === "undefined") {
+    return;
+  }
+  window.__liveDebug = {
+    sendLiveText: (text) => {
+      const safeText = typeof text === "string" ? text : "";
+      if (safeText.trim().length === 0) {
+        return false;
+      }
+      sendEnvelope("live.text", { text: safeText });
+      return true;
+    },
+    sendConversationItem: (text) => {
+      const safeText = typeof text === "string" ? text : "";
+      if (safeText.trim().length === 0) {
+        return false;
+      }
+      const requestRunId = makeId();
+      state.runId = requestRunId;
+      sendEnvelope(
+        "conversation.item.create",
+        {
+          item: {
+            type: "message",
+            role: "user",
+            content: [{ type: "input_text", text: safeText }],
+          },
+          turnComplete: true,
+          sentAtMs: Date.now(),
+        },
+        "frontend",
+        requestRunId,
+      );
+      return true;
+    },
+  };
 }
 
 function dispatchIntentRequestEnvelope({ intent, input, conversation, requestMetadata, requestRunId }) {
@@ -42263,10 +42327,19 @@ function connectDirectLiveTransport(snapshot) {
       finish(true);
     });
 
-    ws.addEventListener("close", () => {
+    ws.addEventListener("close", (event) => {
       if (!isActiveSocket()) {
         finish(false);
         return;
+      }
+      if (enableLiveDebugHooks) {
+        const closeCode = typeof event?.code === "number" ? event.code : null;
+        const closeReason = typeof event?.reason === "string" ? event.reason : "";
+        appendTranscript(
+          "system",
+          `Direct live socket closed (code=${closeCode ?? "n/a"}, reason=${closeReason || "n/a"})`,
+          { exposeInLiveResult: false },
+        );
       }
       finalizeAssistantStreamEntry();
       resetAssistantPlayback();
@@ -42319,12 +42392,37 @@ function connectDirectLiveTransport(snapshot) {
       resetDirectLiveConnectionTelemetryState();
     });
 
-    ws.addEventListener("message", (raw) => {
+    ws.addEventListener("message", async (raw) => {
       if (!isActiveSocket()) {
         return;
       }
       try {
-        handleDirectLiveMessageData(raw.data);
+        let payload = raw.data;
+        if (payload instanceof Blob) {
+          appendTranscript("system", `Direct live frame (Blob, ${payload.size} bytes)`, {
+            exposeInLiveResult: false,
+          });
+        } else if (payload instanceof ArrayBuffer) {
+          appendTranscript("system", `Direct live frame (ArrayBuffer, ${payload.byteLength} bytes)`, {
+            exposeInLiveResult: false,
+          });
+        } else {
+          appendTranscript(
+            "system",
+            `Direct live frame (${typeof payload})`,
+            { exposeInLiveResult: false },
+          );
+        }
+        if (payload instanceof Blob) {
+          payload = await payload.text();
+        } else if (payload instanceof ArrayBuffer) {
+          payload = new TextDecoder("utf-8").decode(payload);
+        }
+        if (enableLiveDebugHooks && typeof payload === "string" && payload.length > 0) {
+          const snippet = payload.length > 300 ? payload.slice(0, 300) + "…" : payload;
+          appendTranscript("system", `Direct live payload: ${snippet}`, { exposeInLiveResult: false });
+        }
+        handleDirectLiveMessageData(payload);
       } catch (error) {
         const hadLiveRequestInFlight = hasLiveRequestInFlight();
         clearLivePendingRequest();
@@ -44876,6 +44974,7 @@ async function bootstrap() {
   refreshDeviceNodes({ silent: true }).catch(() => {
     appendTranscript("error", "Initial device node registry fetch failed", { exposeInLiveResult: false });
   });
+  registerLiveDebugHooks();
   appendTranscript("system", "Frontend ready");
 }
 
