@@ -101,6 +101,7 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
     "workflowFollowUpStatus",
     "latestVerifiedSummary",
     "workflowAvailable",
+    "evidenceSignature",
   ]) {
     assert.ok(helperSource.includes(token), `runtime session replay helper missing token: ${token}`);
   }
@@ -129,6 +130,7 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
   assert.match(readme, /session replay mirror/i);
   assert.match(readme, /refresh recovery follow-?up path/i);
   assert.match(readme, /structured refresh state/i);
+  assert.match(readme, /evidenceSignature|tamper-evident|tamper evidence/i);
   assert.match(readme, /followuptree|followup tree/i);
   assert.match(readme, /compatibility block|compatibility metadata/i);
   assert.match(readme, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);
@@ -137,6 +139,7 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
   assert.match(operatorGuide, /Runtime session replay note:/);
   assert.match(operatorGuide, /refresh recovery follow-?up path/i);
   assert.match(operatorGuide, /structured refresh state/i);
+  assert.match(operatorGuide, /evidenceSignature|tamper-evident|tamper evidence/i);
   assert.match(operatorGuide, /followuptree|followup tree/i);
   assert.match(operatorGuide, /compatibility block|compatibility metadata/i);
   assert.match(operatorGuide, /flat `refreshEscalation\.\.\.` fields remain a transitional legacy projection/i);
@@ -144,6 +147,7 @@ test("runtime session replay mirror route stays aligned across API, helper, inve
   assert.match(architecture, /runtime session replay mirror/i);
   assert.match(architecture, /refresh recovery follow-?up path/i);
   assert.match(architecture, /structured refresh state/i);
+  assert.match(architecture, /evidenceSignature|tamper-evident|tamper evidence/i);
   assert.match(architecture, /followuptree|followup tree/i);
   assert.match(architecture, /compatibility block|compatibility metadata/i);
   assert.match(architecture, /flat `refreshEscalation\.\.\.` projection remains transitional/i);

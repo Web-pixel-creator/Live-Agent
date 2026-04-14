@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildGroundingRefRecoveryPlan,
   normalizeGroundingRefMap,
   resolveGroundingObservation,
   resolveGroundingTarget,
@@ -89,4 +90,44 @@ test("ui-executor grounding reports missing refs when refMap entry is absent", (
   });
   assert.equal(resolved.status, "missing_ref");
   assert.equal(resolved.selector, null);
+});
+
+test("ui-executor grounding builds recovery selectors for field refs", () => {
+  const refMap = normalizeGroundingRefMap({
+    email: {
+      selector: "#legacy-email",
+      kind: "field",
+      label: "Work Email",
+      aliases: ["email", "candidate_email"],
+    },
+  });
+  const recoveryPlan = buildGroundingRefRecoveryPlan("ref:email", {
+    refMap,
+  });
+  assert.ok(recoveryPlan);
+  assert.equal(recoveryPlan?.refId, "email");
+  assert.equal(recoveryPlan?.kind, "field");
+  assert.equal(recoveryPlan?.selectors.includes("#legacy-email"), true);
+  assert.equal(recoveryPlan?.selectors.includes('[name="email"]'), true);
+  assert.equal(recoveryPlan?.selectors.includes('input[placeholder="Work Email"]'), true);
+  assert.equal(recoveryPlan?.tokens.includes("candidate_email"), true);
+  assert.equal(recoveryPlan?.exactTexts.includes("Work Email"), true);
+});
+
+test("ui-executor grounding builds submit recovery selectors for stale submit refs", () => {
+  const refMap = normalizeGroundingRefMap({
+    submit_primary: {
+      selector: "#submit-now",
+      kind: "submit",
+      label: "Submit application",
+      aliases: ["submit", "continue"],
+    },
+  });
+  const recoveryPlan = buildGroundingRefRecoveryPlan("ref:submit_primary", {
+    refMap,
+  });
+  assert.ok(recoveryPlan);
+  assert.equal(recoveryPlan?.selectors.includes('button[type="submit"]'), true);
+  assert.equal(recoveryPlan?.selectors.includes('input[type="submit"]'), true);
+  assert.equal(recoveryPlan?.selectors.includes('[aria-label="Submit application"]'), true);
 });

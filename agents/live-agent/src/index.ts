@@ -1163,7 +1163,7 @@ function getGeminiConfig(): GeminiConfig {
     moonshotTemperature: toNullableNumber(process.env.LIVE_AGENT_MOONSHOT_TEMPERATURE) ?? 1,
     moonshotTimeoutMs: toNullableNumber(process.env.LIVE_AGENT_MOONSHOT_TIMEOUT_MS) ?? Math.max(timeoutMs, 15000),
     timeoutMs,
-    liveModel: toNonEmptyString(process.env.LIVE_AGENT_LIVE_MODEL) ?? "gemini-live-2.5-flash-native-audio",
+    liveModel: toNonEmptyString(process.env.LIVE_AGENT_LIVE_MODEL) ?? "gemini-3.1-flash-live-preview",
     translationModel: toNonEmptyString(process.env.LIVE_AGENT_TRANSLATION_MODEL) ?? "gemini-3.1-flash-lite-preview",
     conversationModel: toNonEmptyString(process.env.LIVE_AGENT_CONVERSATION_MODEL) ?? "gemini-3.1-flash-lite-preview",
     moonshotTranslationModel: toNonEmptyString(process.env.LIVE_AGENT_MOONSHOT_TRANSLATION_MODEL) ?? "kimi-k2.5",

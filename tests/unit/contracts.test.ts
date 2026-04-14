@@ -1009,6 +1009,7 @@ test("ui verification evidence shape carries explicit post-action verification i
               refMapCount: 0,
               actionableRefIds: [],
               staleRefTargets: [],
+              healedRefTargets: [],
             },
             visualChecks: 0,
             visualRegressions: 0,

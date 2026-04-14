@@ -35,6 +35,8 @@ test("api backend exposes runtime diagnostics endpoint and operator summary lane
     "liveFirstAudioP95",
     "navigatorStepP95",
     "caseWikiQueryP95",
+    "evidenceSigning",
+    "evidence_signing_key_unavailable",
     "runtime_slo_${metric.key}_breach",
   ];
 
@@ -50,4 +52,5 @@ test("readme documents runtime diagnostics endpoint and operator summary coverag
   assert.match(readme, /runtimeDiagnostics/);
   assert.match(readme, /workflow stage/i);
   assert.match(readme, /latency SLO/i);
+  assert.match(readme, /evidence signing/i);
 });

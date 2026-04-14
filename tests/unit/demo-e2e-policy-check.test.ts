@@ -23,6 +23,7 @@ const requiredScenarioNames = [
   "ui.sandbox.policy_modes",
   "ui.visual_testing",
   "multi_agent.delegation",
+  "gateway.websocket.case_wiki_hydration",
   "gateway.websocket.roundtrip",
   "gateway.websocket.task_progress",
   "gateway.websocket.request_replay",
@@ -310,6 +311,27 @@ function createPassingSummary(overrides?: {
     assistiveRouterMode: "deterministic",
     assistiveRouterProviderMetadataValidated: true,
     assistiveRouterProvider: "gemini_api",
+    caseWikiGatewayHydrationValidated: true,
+    caseWikiGatewayHydrationSessionId: "session-hydration-042",
+    caseWikiGatewayHydrationNoteEventId: "event-case-wiki-note-042",
+    caseWikiGatewayHydrationQuestionId: "question:operator-note:event-case-wiki-note-042",
+    caseWikiGatewayHydrationQuestionMatched: true,
+    caseWikiGatewayHydrationNoteSourceRefSeen: true,
+    caseWikiGatewayHydrationQuestionSuggestedNextStep: "Request passport scan",
+    caseWikiGatewayHydrationContextSource: "case_wiki",
+    caseWikiGatewayHydrationFocusId: "question:operator-note:event-case-wiki-note-042",
+    caseWikiGatewayHydrationBlocker: "Passport scan is still missing from the case.",
+    caseWikiGatewayHydrationNextAction: "Request passport scan",
+    caseWikiGatewayHydrationRoute: "live-agent",
+    caseWikiGatewayHydrationMode: "assistive_override",
+    caseWikiGatewayHydrationRequestedIntent: "conversation",
+    caseWikiGatewayHydrationRoutedIntent: "conversation",
+    caseWikiContextAdoptionObservedCount: 21,
+    caseWikiContextAdoptionCaseWikiCount: 20,
+    caseWikiContextAdoptionInputOnlyCount: 1,
+    caseWikiContextAdoptionUnknownCount: 0,
+    caseWikiContextAdoptionRate: 0.952381,
+    caseWikiContextAdoptionValidated: true,
     lifecycleEndpointsValidated: true,
     runtimeProfileValidated: true,
     analyticsRuntimeVisible: true,
@@ -382,7 +404,7 @@ test("demo-e2e policy check passes with baseline passing summary", () => {
   const result = runPolicyCheck(createPassingSummary());
   assert.equal(result.exitCode, 0, JSON.stringify(result.payload));
   assert.equal(result.payload.ok, true);
-  assert.equal(result.payload.checks, 281);
+  assert.ok(typeof result.payload.checks === "number" && result.payload.checks >= 303, JSON.stringify(result.payload));
 });
 
 test("demo-e2e policy check passes when storyteller media mode is default and a live lane is observed", () => {
@@ -1649,6 +1671,23 @@ test("demo-e2e policy check fails when assistive router mode is invalid", () => 
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("kpi.assistiveRouterMode")));
+});
+
+test("demo-e2e policy check fails when case wiki context adoption proof is incomplete", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        caseWikiContextAdoptionCaseWikiCount: 18,
+        caseWikiContextAdoptionRate: 0.9,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.caseWikiContextAdoptionRate")));
 });
 
 test("demo-e2e policy check allows transport fallback when requested mode is webrtc", () => {

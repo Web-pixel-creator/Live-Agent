@@ -24,6 +24,7 @@ export type GatewayConfig = {
   gatewayWebrtcRolloutStage: GatewayWebrtcRolloutStage;
   gatewayWebrtcCanaryPercent: number;
   gatewayWebrtcRollbackReady: boolean;
+  apiBackendBaseUrl: string;
   orchestratorUrl: string;
   orchestratorTimeoutMs: number;
   orchestratorStoryTimeoutMs: number;
@@ -369,6 +370,7 @@ export function loadGatewayConfig(options?: {
     gatewayWebrtcRolloutStage: parseGatewayWebrtcRolloutStage(env.GATEWAY_WEBRTC_ROLLOUT_STAGE),
     gatewayWebrtcCanaryPercent: parsePercentInt(env.GATEWAY_WEBRTC_CANARY_PERCENT, 0),
     gatewayWebrtcRollbackReady: parseBoolean(env.GATEWAY_WEBRTC_ROLLBACK_READY, true),
+    apiBackendBaseUrl: parseOptionalString(env.API_BACKEND_BASE_URL) ?? "http://localhost:8081",
     orchestratorUrl: env.ORCHESTRATOR_URL ?? "http://localhost:8082/orchestrate",
     orchestratorTimeoutMs,
     orchestratorStoryTimeoutMs,
@@ -380,7 +382,7 @@ export function loadGatewayConfig(options?: {
     liveApiAuthHeader,
     liveAuthProfiles,
     liveApiProtocol,
-    liveModelId: env.LIVE_MODEL_ID ?? "gemini-live-2.5-flash-native-audio",
+    liveModelId: env.LIVE_MODEL_ID ?? "gemini-3.1-flash-live-preview",
     liveModelFallbackIds: parseCsv(env.LIVE_MODEL_FALLBACK_IDS),
     liveTranscriptReplacements: parseTranscriptReplacements(env.LIVE_TRANSCRIPT_REPLACEMENTS_JSON),
     liveAudioMimeType: env.LIVE_AUDIO_MIME_TYPE ?? "audio/pcm;rate=16000",

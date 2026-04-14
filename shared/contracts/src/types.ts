@@ -676,6 +676,7 @@ export type UiVerificationEvidence = {
     refMapCount: number;
     actionableRefIds: string[];
     staleRefTargets: string[];
+    healedRefTargets: string[];
   };
   visualChecks: number;
   visualRegressions: number;

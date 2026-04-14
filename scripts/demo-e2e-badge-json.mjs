@@ -874,9 +874,10 @@ function buildCaseWikiEvidenceSignature(summary) {
     signerId !== null &&
     signedAtIsIso &&
     signaturePresenceValid;
+  const status = !validated ? "fail" : signatureStatus === "signed" ? "pass" : "warn";
 
   return {
-    status: validated ? "pass" : "fail",
+    status,
     validated,
     totalArtifacts,
     signedArtifacts,
@@ -949,6 +950,189 @@ function buildCaseWikiRoutingContextEvidence(kpis) {
     mode,
     requestedIntent,
     routedIntent,
+  };
+}
+
+function buildCaseWikiGatewayHydrationEvidence(kpis) {
+  const validated = toBoolean(kpis.caseWikiGatewayHydrationValidated) === true;
+  const sessionId = toOptionalString(kpis.caseWikiGatewayHydrationSessionId);
+  const noteEventId = toOptionalString(kpis.caseWikiGatewayHydrationNoteEventId);
+  const questionId = toOptionalString(kpis.caseWikiGatewayHydrationQuestionId);
+  const questionMatched = toBoolean(kpis.caseWikiGatewayHydrationQuestionMatched);
+  const noteSourceRefSeen = toBoolean(kpis.caseWikiGatewayHydrationNoteSourceRefSeen);
+  const questionSuggestedNextStep = toOptionalString(kpis.caseWikiGatewayHydrationQuestionSuggestedNextStep);
+  const contextSource = toOptionalString(kpis.caseWikiGatewayHydrationContextSource);
+  const focusId = toOptionalString(kpis.caseWikiGatewayHydrationFocusId);
+  const blocker = toOptionalString(kpis.caseWikiGatewayHydrationBlocker);
+  const nextAction = toOptionalString(kpis.caseWikiGatewayHydrationNextAction);
+  const route = toOptionalString(kpis.caseWikiGatewayHydrationRoute);
+  const mode = toOptionalString(kpis.caseWikiGatewayHydrationMode);
+  const requestedIntent = toOptionalString(kpis.caseWikiGatewayHydrationRequestedIntent);
+  const routedIntent = toOptionalString(kpis.caseWikiGatewayHydrationRoutedIntent);
+  const observed =
+    sessionId !== null ||
+    noteEventId !== null ||
+    questionId !== null ||
+    questionSuggestedNextStep !== null ||
+    contextSource !== null ||
+    focusId !== null ||
+    blocker !== null ||
+    nextAction !== null ||
+    route !== null ||
+    mode !== null ||
+    requestedIntent !== null ||
+    routedIntent !== null;
+  const modeValid =
+    mode !== null &&
+    ["deterministic", "assistive_override", "assistive_match", "assistive_fallback"].includes(mode);
+  const status =
+    validated &&
+    questionMatched === true &&
+    noteSourceRefSeen === true &&
+    sessionId !== null &&
+    noteEventId !== null &&
+    questionId !== null &&
+    questionSuggestedNextStep !== null &&
+    contextSource === "case_wiki" &&
+    focusId !== null &&
+    blocker !== null &&
+    nextAction !== null &&
+    route === "live-agent" &&
+    requestedIntent === "conversation" &&
+    routedIntent !== null &&
+    modeValid
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    observed,
+    sessionId,
+    noteEventId,
+    questionId,
+    questionMatched,
+    noteSourceRefSeen,
+    questionSuggestedNextStep,
+    contextSource,
+    focusId,
+    blocker,
+    nextAction,
+    route,
+    mode,
+    requestedIntent,
+    routedIntent,
+  };
+}
+
+function buildCaseWikiContextAdoptionEvidence(kpis) {
+  const validated = toBoolean(kpis.caseWikiContextAdoptionValidated) === true;
+  const observedCount = Math.max(0, Math.trunc(toNumber(kpis.caseWikiContextAdoptionObservedCount) ?? 0));
+  const caseWikiObservedCount = Math.max(0, Math.trunc(toNumber(kpis.caseWikiContextAdoptionCaseWikiCount) ?? 0));
+  const inputOnlyObservedCount = Math.max(0, Math.trunc(toNumber(kpis.caseWikiContextAdoptionInputOnlyCount) ?? 0));
+  const unknownObservedCount = Math.max(0, Math.trunc(toNumber(kpis.caseWikiContextAdoptionUnknownCount) ?? 0));
+  const caseWikiRate = toNumber(kpis.caseWikiContextAdoptionRate);
+  const observed = observedCount > 0;
+  const countsConserved =
+    caseWikiObservedCount + inputOnlyObservedCount + unknownObservedCount === observedCount;
+  const rateValid =
+    caseWikiRate !== null &&
+    caseWikiRate >= 0 &&
+    caseWikiRate <= 1 &&
+    Math.abs(caseWikiRate - caseWikiObservedCount / Math.max(1, observedCount)) <= 0.0001;
+  const status =
+    validated &&
+    observedCount >= 3 &&
+    caseWikiObservedCount >= 1 &&
+    inputOnlyObservedCount >= 0 &&
+    unknownObservedCount === 0 &&
+    countsConserved &&
+    rateValid &&
+    caseWikiRate >= 0.95
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    observed,
+    observedCount,
+    caseWikiObservedCount,
+    inputOnlyObservedCount,
+    unknownObservedCount,
+    caseWikiRate,
+  };
+}
+
+function buildUiRefHealingEvidence(kpis) {
+  const validated = toBoolean(kpis.uiRefHealingValidated) === true;
+  const finalStatus = toOptionalString(kpis.uiRefHealingFinalStatus);
+  const adapterMode = toOptionalString(kpis.uiRefHealingAdapterMode);
+  const healedRefTargets = toStringArray(kpis.uiRefHealingHealedRefTargets);
+  const staleRefTargets = toStringArray(kpis.uiRefHealingStaleRefTargets);
+  const healedRefCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.uiRefHealingHealedRefCount) ?? healedRefTargets.length),
+  );
+  const staleRefCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.uiRefHealingStaleRefCount) ?? staleRefTargets.length),
+  );
+  const traceCount = Math.max(0, Math.trunc(toNumber(kpis.uiRefHealingTraceCount) ?? 0));
+  const retries = Math.max(0, Math.trunc(toNumber(kpis.uiRefHealingRetries) ?? 0));
+  const disabledSubmitSeen = toBoolean(kpis.uiRefHealingDisabledSubmitSeen);
+  const enabledSubmitSeen = toBoolean(kpis.uiRefHealingEnabledSubmitSeen);
+  const healingObservationSeen = toBoolean(kpis.uiRefHealingObservationSeen);
+  const healingNoteSeen = toBoolean(kpis.uiRefHealingNoteSeen);
+  const observed =
+    finalStatus !== null ||
+    adapterMode !== null ||
+    healedRefCount > 0 ||
+    staleRefCount > 0 ||
+    traceCount > 0;
+  const healedTargetsValid =
+    healedRefCount >= 2 &&
+    healedRefTargets.includes("email") &&
+    healedRefTargets.includes("submit_primary");
+  const countsConserved =
+    healedRefCount === healedRefTargets.length && staleRefCount === staleRefTargets.length;
+  const status =
+    validated &&
+    finalStatus === "completed" &&
+    adapterMode === "remote_http" &&
+    healedTargetsValid &&
+    countsConserved &&
+    staleRefCount === 0 &&
+    traceCount >= 5 &&
+    disabledSubmitSeen === true &&
+    enabledSubmitSeen === true &&
+    healingObservationSeen === true &&
+    healingNoteSeen === true
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    observed,
+    finalStatus,
+    adapterMode,
+    healedRefCount,
+    healedRefTargets,
+    staleRefCount,
+    staleRefTargets,
+    traceCount,
+    retries,
+    disabledSubmitSeen,
+    enabledSubmitSeen,
+    healingObservationSeen,
+    healingNoteSeen,
   };
 }
 
@@ -1215,6 +1399,9 @@ async function main() {
   const liveTransport = buildLiveTransport(summary, kpis);
   const caseWikiEvidenceSignature = buildCaseWikiEvidenceSignature(summary);
   const caseWikiRoutingContext = buildCaseWikiRoutingContextEvidence(kpis);
+  const caseWikiGatewayHydration = buildCaseWikiGatewayHydrationEvidence(kpis);
+  const caseWikiContextAdoption = buildCaseWikiContextAdoptionEvidence(kpis);
+  const uiRefHealing = buildUiRefHealingEvidence(kpis);
   const providerUsage = buildProviderUsage(kpis);
 
   let color = "red";
@@ -1263,6 +1450,9 @@ async function main() {
       runtimeGuardrailsSignalPaths: runtimeGuardrailsSignalPathsEvidence,
       caseWikiEvidenceSignature,
       caseWikiRoutingContext,
+      caseWikiGatewayHydration,
+      caseWikiContextAdoption,
+      uiRefHealing,
     },
     badge,
   };

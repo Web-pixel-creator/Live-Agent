@@ -337,6 +337,14 @@ $sourceRunManifest = [ordered]@{
       badgeEvidenceCaseWikiRoutingContextMode = "assistive_override"
       badgeEvidenceCaseWikiRoutingContextRequestedIntent = "conversation"
       badgeEvidenceCaseWikiRoutingContextRoutedIntent = "negotiation"
+      badgeEvidenceCaseWikiContextAdoptionStatus = "pass"
+      badgeEvidenceCaseWikiContextAdoptionValidated = $true
+      badgeEvidenceCaseWikiContextAdoptionObserved = $true
+      badgeEvidenceCaseWikiContextAdoptionObservedCount = 20
+      badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = 19
+      badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = 1
+      badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = 0
+      badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = 0.95
       badgeEvidenceProviderUsageStatus = "pass"
       badgeEvidenceProviderUsageValidated = $true
       badgeEvidenceProviderUsageActiveSecondaryProviders = 0
@@ -388,9 +396,17 @@ if ($StrictFinalRun) {
 }
 
 Write-Host "[artifact-only-smoke] Running release artifact-only gate with generated local artifacts..."
-& $resolvedPowerShell @args
-if ($LASTEXITCODE -ne 0) {
-  Fail ("release artifact-only smoke failed with exit code " + $LASTEXITCODE)
+$releaseExitCode = 0
+Push-Location $tempRoot
+try {
+  & $resolvedPowerShell @args
+  $releaseExitCode = $LASTEXITCODE
+}
+finally {
+  Pop-Location
+}
+if ($releaseExitCode -ne 0) {
+  Fail ("release artifact-only smoke failed with exit code " + $releaseExitCode)
 }
 
 Write-Host ("[artifact-only-smoke] Passed. temp_root=" + $tempRoot)

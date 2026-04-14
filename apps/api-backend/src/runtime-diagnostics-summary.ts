@@ -1,6 +1,10 @@
 import type { SkillsCatalogSnapshot, SkillsRuntimeSummary } from "@mla/skills";
 import type { EventListItem } from "./firestore.js";
 import type { OperatorTraceSummary } from "./operator-traces.js";
+import {
+  buildRuntimeEvidenceSigningPosture,
+  type RuntimeEvidenceSignerConfig,
+} from "./runtime-evidence-signer.js";
 
 type DiagnosticsSeverity = "info" | "warn" | "critical";
 
@@ -319,6 +323,7 @@ export function buildRuntimeDiagnosticsSummary(params: {
   operatorTraceSummary?: OperatorTraceSummary | null;
   events?: readonly EventListItem[];
   sloThresholds?: RuntimeDiagnosticsSloThresholds;
+  evidenceSigner?: RuntimeEvidenceSignerConfig | null;
 }): Record<string, unknown> {
   const generatedAt = new Date().toISOString();
   const services = params.services;
@@ -386,6 +391,7 @@ export function buildRuntimeDiagnosticsSummary(params: {
   const orchestrator = getService(services, "orchestrator");
   const uiExecutor = getService(services, "ui-executor");
   const apiBackend = getService(services, "api-backend");
+  const evidenceSigning = buildRuntimeEvidenceSigningPosture(params.evidenceSigner);
 
   const gatewayTransport = gateway && isRecord(gateway.transport) ? gateway.transport : null;
   const orchestratorWorkflow = orchestrator && isRecord(orchestrator.workflow) ? orchestrator.workflow : null;
@@ -509,6 +515,16 @@ export function buildRuntimeDiagnosticsSummary(params: {
       severity: "warn",
       message: "UI executor browser worker has paused jobs waiting for operator resume.",
       value: toNonNegativeInt(uiExecutorBrowserWorkerQueue?.paused),
+    });
+  }
+
+  if (evidenceSigning.enabled && !evidenceSigning.canSign) {
+    pushSignal(signals, {
+      key: "evidence_signing_key_unavailable",
+      service: "api-backend",
+      severity: "critical",
+      message: "Runtime evidence signing is enabled but the signing key is missing or invalid.",
+      value: evidenceSigning.keyState,
     });
   }
 
@@ -779,6 +795,7 @@ export function buildRuntimeDiagnosticsSummary(params: {
         apiGovernance ? toBoolean(apiGovernance.complianceTemplateFallbackApplied) : null,
       allowTenantHeaderOverride:
         apiGovernance ? toBoolean(apiGovernance.allowTenantHeaderOverride) : null,
+      evidenceSigning,
     },
     slo,
     skillsCatalog: {

@@ -686,6 +686,14 @@ $badgeEvidenceCaseWikiRoutingContextRoute = $null
 $badgeEvidenceCaseWikiRoutingContextMode = $null
 $badgeEvidenceCaseWikiRoutingContextRequestedIntent = $null
 $badgeEvidenceCaseWikiRoutingContextRoutedIntent = $null
+$badgeEvidenceCaseWikiContextAdoptionStatus = "unavailable"
+$badgeEvidenceCaseWikiContextAdoptionValidated = $false
+$badgeEvidenceCaseWikiContextAdoptionObserved = $false
+$badgeEvidenceCaseWikiContextAdoptionObservedCount = 0
+$badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = 0
+$badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = 0
+$badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = 0
+$badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = $null
 $badgeEvidenceProviderUsageStatus = "unavailable"
 $badgeEvidenceProviderUsageValidated = $false
 $badgeEvidenceProviderUsageActiveSecondaryProviders = 0
@@ -832,9 +840,46 @@ if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.caseW
     $badgeEvidenceCaseWikiRoutingContextRoutedIntent = [string]$releaseEvidenceReport.caseWikiRoutingContext.routedIntent
   }
 }
+if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.caseWikiContextAdoption) {
+  $badgeEvidenceCaseWikiContextAdoptionValidated = ($releaseEvidenceReport.caseWikiContextAdoption.validated -eq $true)
+  $badgeEvidenceCaseWikiContextAdoptionObserved = ($releaseEvidenceReport.caseWikiContextAdoption.observed -eq $true)
+  if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.observedCount) {
+    $parsedObservedCount = 0
+    if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.observedCount, [ref]$parsedObservedCount) -and $parsedObservedCount -ge 0) {
+      $badgeEvidenceCaseWikiContextAdoptionObservedCount = $parsedObservedCount
+    }
+  }
+  if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.caseWikiObservedCount) {
+    $parsedCaseWikiObservedCount = 0
+    if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.caseWikiObservedCount, [ref]$parsedCaseWikiObservedCount) -and $parsedCaseWikiObservedCount -ge 0) {
+      $badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = $parsedCaseWikiObservedCount
+    }
+  }
+  if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.inputOnlyObservedCount) {
+    $parsedInputOnlyObservedCount = 0
+    if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.inputOnlyObservedCount, [ref]$parsedInputOnlyObservedCount) -and $parsedInputOnlyObservedCount -ge 0) {
+      $badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = $parsedInputOnlyObservedCount
+    }
+  }
+  if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.unknownObservedCount) {
+    $parsedUnknownObservedCount = 0
+    if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.unknownObservedCount, [ref]$parsedUnknownObservedCount) -and $parsedUnknownObservedCount -ge 0) {
+      $badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = $parsedUnknownObservedCount
+    }
+  }
+  if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.caseWikiRate) {
+    $parsedCaseWikiRate = 0.0
+    if ([double]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.caseWikiRate, [System.Globalization.NumberStyles]::Float, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$parsedCaseWikiRate)) {
+      $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = $parsedCaseWikiRate
+    }
+  }
+}
 if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.statuses) {
   if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.caseWikiRoutingContextStatus)) {
     $badgeEvidenceCaseWikiRoutingContextStatus = [string]$releaseEvidenceReport.statuses.caseWikiRoutingContextStatus
+  }
+  if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.caseWikiContextAdoptionStatus)) {
+    $badgeEvidenceCaseWikiContextAdoptionStatus = [string]$releaseEvidenceReport.statuses.caseWikiContextAdoptionStatus
   }
   if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.providerUsageStatus)) {
     $badgeEvidenceProviderUsageStatus = [string]$releaseEvidenceReport.statuses.providerUsageStatus
@@ -1035,6 +1080,14 @@ $gateEvidenceSnapshot = [ordered]@{
   badgeEvidenceCaseWikiRoutingContextMode     = $badgeEvidenceCaseWikiRoutingContextMode
   badgeEvidenceCaseWikiRoutingContextRequestedIntent = $badgeEvidenceCaseWikiRoutingContextRequestedIntent
   badgeEvidenceCaseWikiRoutingContextRoutedIntent = $badgeEvidenceCaseWikiRoutingContextRoutedIntent
+  badgeEvidenceCaseWikiContextAdoptionStatus = $badgeEvidenceCaseWikiContextAdoptionStatus
+  badgeEvidenceCaseWikiContextAdoptionValidated = $badgeEvidenceCaseWikiContextAdoptionValidated
+  badgeEvidenceCaseWikiContextAdoptionObserved = $badgeEvidenceCaseWikiContextAdoptionObserved
+  badgeEvidenceCaseWikiContextAdoptionObservedCount = $badgeEvidenceCaseWikiContextAdoptionObservedCount
+  badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = $badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount
+  badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = $badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount
+  badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = $badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount
+  badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate
   badgeEvidenceProviderUsageStatus            = $badgeEvidenceProviderUsageStatus
   badgeEvidenceProviderUsageValidated         = $badgeEvidenceProviderUsageValidated
   badgeEvidenceProviderUsageActiveSecondaryProviders = $badgeEvidenceProviderUsageActiveSecondaryProviders
@@ -1187,6 +1240,14 @@ Write-Host ("- evidence snapshot (case wiki routing context route): " + $(if (-n
 Write-Host ("- evidence snapshot (case wiki routing context mode): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextMode)) { $badgeEvidenceCaseWikiRoutingContextMode } else { "(none)" }))
 Write-Host ("- evidence snapshot (case wiki routing context requested intent): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextRequestedIntent)) { $badgeEvidenceCaseWikiRoutingContextRequestedIntent } else { "(none)" }))
 Write-Host ("- evidence snapshot (case wiki routing context routed intent): " + $(if (-not [string]::IsNullOrWhiteSpace([string]$badgeEvidenceCaseWikiRoutingContextRoutedIntent)) { $badgeEvidenceCaseWikiRoutingContextRoutedIntent } else { "(none)" }))
+Write-Host ("- evidence snapshot (case wiki context adoption status): " + $badgeEvidenceCaseWikiContextAdoptionStatus)
+Write-Host ("- evidence snapshot (case wiki context adoption validated): " + $badgeEvidenceCaseWikiContextAdoptionValidated)
+Write-Host ("- evidence snapshot (case wiki context adoption observed): " + $badgeEvidenceCaseWikiContextAdoptionObserved)
+Write-Host ("- evidence snapshot (case wiki context adoption observed count): " + $badgeEvidenceCaseWikiContextAdoptionObservedCount)
+Write-Host ("- evidence snapshot (case wiki context adoption case-wiki observed count): " + $badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount)
+Write-Host ("- evidence snapshot (case wiki context adoption input-only observed count): " + $badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount)
+Write-Host ("- evidence snapshot (case wiki context adoption unknown observed count): " + $badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount)
+Write-Host ("- evidence snapshot (case wiki context adoption case-wiki rate): " + $(if ($null -ne $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate) { [string]$badgeEvidenceCaseWikiContextAdoptionCaseWikiRate } else { "(none)" }))
 Write-Host ("- evidence snapshot (provider usage status): " + $badgeEvidenceProviderUsageStatus)
 Write-Host ("- evidence snapshot (provider usage validated): " + $badgeEvidenceProviderUsageValidated)
 Write-Host ("- evidence snapshot (provider usage active secondary providers): " + $badgeEvidenceProviderUsageActiveSecondaryProviders)

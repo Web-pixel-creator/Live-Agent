@@ -26,25 +26,52 @@ function resolvePowerShellBinary(): string | null {
 const powershellBin = resolvePowerShellBinary();
 const skipIfNoPowerShell = powershellBin ? false : "PowerShell binary is not available";
 
-function withDefaultCaseWikiRoutingContext(details: Record<string, unknown>): Record<string, unknown> {
+function withDefaultCaseWikiEvidence(details: Record<string, unknown>): Record<string, unknown> {
   const cloned = JSON.parse(JSON.stringify(details)) as Record<string, unknown>;
   const evidence = (cloned.evidence ?? {}) as Record<string, unknown>;
   cloned.evidence = evidence;
-  if (!("caseWikiRoutingContext" in evidence)) {
-    evidence.caseWikiRoutingContext = {
-      status: "pass",
-      validated: true,
-      observed: true,
-      contextSource: "case_wiki",
-      focusId: "question:passport-scan",
-      blocker: "Do we have the passport scan?",
-      nextAction: "Request passport scan",
-      route: "live-agent",
-      mode: "assistive_override",
-      requestedIntent: "conversation",
-      routedIntent: "negotiation",
-    };
-  }
+  evidence.caseWikiRoutingContext = {
+    status: "pass",
+    validated: true,
+    observed: true,
+    contextSource: "case_wiki",
+    focusId: "question:passport-scan",
+    blocker: "Do we have the passport scan?",
+    nextAction: "Request passport scan",
+    route: "live-agent",
+    mode: "assistive_override",
+    requestedIntent: "conversation",
+    routedIntent: "negotiation",
+  };
+  evidence.caseWikiGatewayHydration = {
+    status: "pass",
+    validated: true,
+    observed: true,
+    sessionId: "session-hydration-042",
+    noteEventId: "event-case-wiki-note-042",
+    questionId: "question:operator-note:event-case-wiki-note-042",
+    questionMatched: true,
+    noteSourceRefSeen: true,
+    questionSuggestedNextStep: "Request passport scan",
+    contextSource: "case_wiki",
+    focusId: "question:operator-note:event-case-wiki-note-042",
+    blocker: "Passport scan is still missing from the case.",
+    nextAction: "Request passport scan",
+    route: "live-agent",
+    mode: "assistive_override",
+    requestedIntent: "conversation",
+    routedIntent: "conversation",
+  };
+  evidence.caseWikiContextAdoption = {
+    status: "pass",
+    validated: true,
+    observed: true,
+    observedCount: 21,
+    caseWikiObservedCount: 20,
+    inputOnlyObservedCount: 1,
+    unknownObservedCount: 0,
+    caseWikiRate: 0.952381,
+  };
   return cloned;
 }
 
@@ -52,7 +79,7 @@ async function withMockRailwayDeployment(
   run: (urls: { gatewayUrl: string; frontendUrl: string }) => Promise<void>,
 ): Promise<void> {
   const badge = JSON.parse(readFileSync(trackedBadgePath, "utf8")) as Record<string, unknown>;
-  const details = withDefaultCaseWikiRoutingContext(
+  const details = withDefaultCaseWikiEvidence(
     JSON.parse(readFileSync(trackedBadgeDetailsPath, "utf8")) as Record<string, unknown>,
   );
 

@@ -66,6 +66,14 @@ test("artifact-only smoke script is wired to release-readiness with local artifa
   assert.match(source, /badgeEvidenceCaseWikiRoutingContextMode/);
   assert.match(source, /badgeEvidenceCaseWikiRoutingContextRequestedIntent/);
   assert.match(source, /badgeEvidenceCaseWikiRoutingContextRoutedIntent/);
+  assert.match(source, /badgeEvidenceCaseWikiContextAdoptionStatus/);
+  assert.match(source, /badgeEvidenceCaseWikiContextAdoptionValidated/);
+  assert.match(source, /badgeEvidenceCaseWikiContextAdoptionObserved/);
+  assert.match(source, /badgeEvidenceCaseWikiContextAdoptionObservedCount/);
+  assert.match(source, /badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount/);
+  assert.match(source, /badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount/);
+  assert.match(source, /badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount/);
+  assert.match(source, /badgeEvidenceCaseWikiContextAdoptionCaseWikiRate/);
   assert.match(source, /badgeEvidenceProviderUsageStatus/);
   assert.match(source, /badgeEvidenceProviderUsageValidated/);
   assert.match(source, /badgeEvidenceProviderUsageActiveSecondaryProviders/);

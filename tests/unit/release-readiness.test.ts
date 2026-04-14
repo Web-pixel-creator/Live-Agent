@@ -22,6 +22,30 @@ function resolvePowerShellBinary(): string | null {
 
 const powershellBin = resolvePowerShellBinary();
 const skipIfNoPowerShell = powershellBin ? false : "PowerShell binary is not available";
+const isolatedReleaseReadinessEnvKeys = [
+  "RUNTIME_EVIDENCE_SIGNING_ENABLED",
+  "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM",
+  "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64",
+  "RUNTIME_EVIDENCE_SIGNING_KEY_ID",
+  "RUNTIME_EVIDENCE_SIGNING_SIGNER_ID",
+] as const;
+
+function createReleaseReadinessTestEnv(
+  overrides?: Record<string, string | undefined>,
+): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  for (const key of isolatedReleaseReadinessEnvKeys) {
+    delete env[key];
+  }
+  for (const [key, value] of Object.entries(overrides ?? {})) {
+    if (value === undefined) {
+      delete env[key];
+      continue;
+    }
+    env[key] = value;
+  }
+  return env;
+}
 
 test("release-readiness keeps provider env out of nested unit tests while preserving policy overrides", () => {
   const source = readFileSync(releaseScriptPath, "utf8");
@@ -40,8 +64,10 @@ test("release-readiness keeps provider env out of nested unit tests while preser
   assert.match(source, /RUNTIME_EVIDENCE_SIGNING_ENABLED/);
   assert.match(source, /caseWikiEvidenceSignature/);
   assert.match(source, /caseWikiRoutingContext/);
+  assert.match(source, /caseWikiContextAdoption/);
   assert.match(source, /case_wiki\.evidence_signature: validated=/);
   assert.match(source, /case_wiki\.routing_context: validated=/);
+  assert.match(source, /case_wiki\.context_adoption: validated=/);
   assert.match(source, /-IncludeFrontend/);
   assert.match(source, /--allowUiExecutorRuntimeFallback true/);
   assert.match(source, /--allowedTranslationProviders fallback,gemini,google_translate/);
@@ -749,7 +775,9 @@ function runReleaseReadiness(
       powershellBin,
       args,
       {
+        cwd: tempDir,
         encoding: "utf8",
+        env: createReleaseReadinessTestEnv(),
       },
     );
 
@@ -786,7 +814,7 @@ function createCaseWikiEvidenceSignatureBadgeDetails(
     violations: 0,
     evidence: {
       caseWikiEvidenceSignature: {
-        status: hasOverride("status") ? overrides.status : "pass",
+        status: hasOverride("status") ? overrides.status : "warn",
         validated: hasOverride("validated") ? overrides.validated : true,
         totalArtifacts: hasOverride("totalArtifacts") ? overrides.totalArtifacts : 1,
         signedArtifacts: hasOverride("signedArtifacts") ? overrides.signedArtifacts : 0,
@@ -823,6 +851,16 @@ function createCaseWikiEvidenceSignatureBadgeDetails(
         requestedIntent: "conversation",
         routedIntent: "negotiation",
       },
+      caseWikiContextAdoption: {
+        status: "pass",
+        validated: true,
+        observed: true,
+        observedCount: 21,
+        caseWikiObservedCount: 20,
+        inputOnlyObservedCount: 1,
+        unknownObservedCount: 0,
+        caseWikiRate: 0.952381,
+      },
     },
   };
 }
@@ -833,7 +871,7 @@ function runReleaseReadinessWithCaseWikiEvidence(
   options?: Partial<{
     strictFinalRun: boolean;
     promptfooEvalSummary: Record<string, unknown> | null;
-    env: Record<string, string>;
+    env: Record<string, string | undefined>;
   }>,
 ): { exitCode: number; stdout: string; stderr: string } {
   if (!powershellBin) {
@@ -893,11 +931,9 @@ function runReleaseReadinessWithCaseWikiEvidence(
     }
 
     const result = spawnSync(powershellBin, args, {
+      cwd: tempDir,
       encoding: "utf8",
-      env: {
-        ...process.env,
-        ...(options?.env ?? {}),
-      },
+      env: createReleaseReadinessTestEnv(options?.env),
     });
 
     return {
@@ -1029,6 +1065,14 @@ function createPassingSourceRunManifest(
     evidenceCaseWikiRoutingContextMode: string;
     evidenceCaseWikiRoutingContextRequestedIntent: string;
     evidenceCaseWikiRoutingContextRoutedIntent: string;
+    evidenceCaseWikiContextAdoptionStatus: string;
+    evidenceCaseWikiContextAdoptionValidated: boolean | string;
+    evidenceCaseWikiContextAdoptionObserved: boolean | string;
+    evidenceCaseWikiContextAdoptionObservedCount: number | string;
+    evidenceCaseWikiContextAdoptionCaseWikiObservedCount: number | string;
+    evidenceCaseWikiContextAdoptionInputOnlyObservedCount: number | string;
+    evidenceCaseWikiContextAdoptionUnknownObservedCount: number | string;
+    evidenceCaseWikiContextAdoptionCaseWikiRate: number | string;
     evidenceProviderUsageStatus: string;
     evidenceProviderUsageValidated: boolean;
     evidenceProviderUsageActiveSecondaryProviders: number | string;
@@ -1319,6 +1363,30 @@ function createPassingSourceRunManifest(
         badgeEvidenceCaseWikiRoutingContextRoutedIntent: hasOverride("evidenceCaseWikiRoutingContextRoutedIntent")
           ? overrides.evidenceCaseWikiRoutingContextRoutedIntent
           : "negotiation",
+        badgeEvidenceCaseWikiContextAdoptionStatus: hasOverride("evidenceCaseWikiContextAdoptionStatus")
+          ? overrides.evidenceCaseWikiContextAdoptionStatus
+          : "pass",
+        badgeEvidenceCaseWikiContextAdoptionValidated: hasOverride("evidenceCaseWikiContextAdoptionValidated")
+          ? overrides.evidenceCaseWikiContextAdoptionValidated
+          : true,
+        badgeEvidenceCaseWikiContextAdoptionObserved: hasOverride("evidenceCaseWikiContextAdoptionObserved")
+          ? overrides.evidenceCaseWikiContextAdoptionObserved
+          : true,
+        badgeEvidenceCaseWikiContextAdoptionObservedCount: hasOverride("evidenceCaseWikiContextAdoptionObservedCount")
+          ? overrides.evidenceCaseWikiContextAdoptionObservedCount
+          : 21,
+        badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount: hasOverride("evidenceCaseWikiContextAdoptionCaseWikiObservedCount")
+          ? overrides.evidenceCaseWikiContextAdoptionCaseWikiObservedCount
+          : 20,
+        badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount: hasOverride("evidenceCaseWikiContextAdoptionInputOnlyObservedCount")
+          ? overrides.evidenceCaseWikiContextAdoptionInputOnlyObservedCount
+          : 1,
+        badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount: hasOverride("evidenceCaseWikiContextAdoptionUnknownObservedCount")
+          ? overrides.evidenceCaseWikiContextAdoptionUnknownObservedCount
+          : 0,
+        badgeEvidenceCaseWikiContextAdoptionCaseWikiRate: hasOverride("evidenceCaseWikiContextAdoptionCaseWikiRate")
+          ? overrides.evidenceCaseWikiContextAdoptionCaseWikiRate
+          : 0.952381,
         badgeEvidenceProviderUsageStatus: hasOverride("evidenceProviderUsageStatus")
           ? overrides.evidenceProviderUsageStatus
           : "pass",
@@ -1468,7 +1536,9 @@ function runReleaseReadinessWithPerfArtifacts(
         releaseEvidenceManifestMarkdownPath,
       ],
       {
+        cwd: tempDir,
         encoding: "utf8",
+        env: createReleaseReadinessTestEnv(),
       },
     );
 
@@ -1542,7 +1612,9 @@ function runReleaseReadinessArtifactOnly(
         manifestPath,
       ],
       {
+        cwd: tempDir,
         encoding: "utf8",
+        env: createReleaseReadinessTestEnv(),
       },
     );
 
@@ -1576,11 +1648,63 @@ test(
     assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /case_wiki\.evidence_signature: validated=True/i);
+    assert.match(output, /case_wiki\.evidence_signature: .*status=warn/i);
     assert.match(output, /case_wiki\.routing_context: validated=True/i);
+    assert.match(output, /case_wiki\.context_adoption: validated=True/i);
+    assert.match(output, /case_wiki_rate=0\.95/i);
     assert.match(output, /context_source=case_wiki/i);
     assert.match(output, /signature_status=unsigned/i);
     assert.match(output, /signed=0/i);
     assert.match(output, /unsigned=1/i);
+  },
+);
+
+test(
+  "release-readiness ignores inherited runtime signing env for unsigned fixture checks",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const previousEnabled = process.env.RUNTIME_EVIDENCE_SIGNING_ENABLED;
+    const previousPrivateKeyBase64 = process.env.RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64;
+    const previousKeyId = process.env.RUNTIME_EVIDENCE_SIGNING_KEY_ID;
+    const previousSignerId = process.env.RUNTIME_EVIDENCE_SIGNING_SIGNER_ID;
+    process.env.RUNTIME_EVIDENCE_SIGNING_ENABLED = "true";
+    process.env.RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64 = Buffer.from("not-a-valid-private-key", "utf8").toString(
+      "base64",
+    );
+    process.env.RUNTIME_EVIDENCE_SIGNING_KEY_ID = "outer-shell-key";
+    process.env.RUNTIME_EVIDENCE_SIGNING_SIGNER_ID = "outer-shell-signer";
+
+    try {
+      const result = runReleaseReadinessWithCaseWikiEvidence(
+        createPassingSummary(),
+        createCaseWikiEvidenceSignatureBadgeDetails(),
+      );
+      assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+      const output = `${result.stderr}\n${result.stdout}`;
+      assert.match(output, /case_wiki\.evidence_signature: .*status=warn/i);
+      assert.match(output, /signature_status=unsigned/i);
+    } finally {
+      if (previousEnabled === undefined) {
+        delete process.env.RUNTIME_EVIDENCE_SIGNING_ENABLED;
+      } else {
+        process.env.RUNTIME_EVIDENCE_SIGNING_ENABLED = previousEnabled;
+      }
+      if (previousPrivateKeyBase64 === undefined) {
+        delete process.env.RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64;
+      } else {
+        process.env.RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64 = previousPrivateKeyBase64;
+      }
+      if (previousKeyId === undefined) {
+        delete process.env.RUNTIME_EVIDENCE_SIGNING_KEY_ID;
+      } else {
+        process.env.RUNTIME_EVIDENCE_SIGNING_KEY_ID = previousKeyId;
+      }
+      if (previousSignerId === undefined) {
+        delete process.env.RUNTIME_EVIDENCE_SIGNING_SIGNER_ID;
+      } else {
+        process.env.RUNTIME_EVIDENCE_SIGNING_SIGNER_ID = previousSignerId;
+      }
+    }
   },
 );
 
@@ -1601,7 +1725,51 @@ test(
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(
       output,
-      /caseWikiEvidenceSignature expected signedArtifacts=totalArtifacts and unsignedArtifacts=0 when\s+RUNTIME_EVIDENCE_SIGNING_ENABLED=true/i,
+      /caseWikiEvidenceSignature expected status=pass and validated=true, actual status=warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness fails when runtime signing key material is present but case wiki evidence remains unsigned",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessWithCaseWikiEvidence(
+      createPassingSummary(),
+      createCaseWikiEvidenceSignatureBadgeDetails(),
+      {
+        env: {
+          RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64: Buffer.from("not-a-valid-private-key", "utf8").toString("base64"),
+        },
+      },
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /caseWikiEvidenceSignature expected status=pass and validated=true, actual status=warn/i,
+    );
+  },
+);
+
+test(
+  "release-readiness fails when case wiki context adoption proof is below threshold",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const failingBadgeDetails = createCaseWikiEvidenceSignatureBadgeDetails();
+    (
+      ((failingBadgeDetails.evidence as Record<string, unknown>).caseWikiContextAdoption as Record<string, unknown>)
+    ).caseWikiRate = 0.9;
+
+    const result = runReleaseReadinessWithCaseWikiEvidence(
+      createPassingSummary(),
+      failingBadgeDetails,
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /release evidence caseWikiContextAdoption must prove observed\+validated adoption with count conservation[\s\S]*case[\s\S]*WikiRate>=0\.95/i,
     );
   },
 );
@@ -3309,6 +3477,22 @@ test(
     assert.match(
       output,
       /source run manifest evidenceSnapshot\.badgeEvidenceRuntimeGuardrailsSignalPathsPrimaryPath is required when\s*total\s*Paths > 0/i,
+    );
+  },
+);
+
+test(
+  "release-readiness artifact-only mode fails when source run evidence case wiki context adoption rate is below threshold",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadinessArtifactOnly({
+      manifest: createPassingSourceRunManifest({ evidenceCaseWikiContextAdoptionCaseWikiRate: 0.9 }),
+    });
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(
+      output,
+      /source run manifest evidenceSnapshot\.badgeEvidenceCaseWikiContextAdoptionCaseWikiRate expected 0\.95\.\.1, actual 0[\s\S]*\.9/i,
     );
   },
 );

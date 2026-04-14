@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync } from "node:crypto";
 import test from "node:test";
 import {
+  buildRuntimeEvidenceSigningPosture,
   canonicalizeEvidencePayload,
   hashEvidencePayload,
   signEvidencePayload,
@@ -106,4 +107,39 @@ test("runtime evidence signer canonicalization ignores existing evidenceSignatur
       caseId: "case-42",
     }),
   );
+});
+
+test("runtime evidence signer posture flags invalid signing keys and keeps payload signing unsigned", () => {
+  const posture = buildRuntimeEvidenceSigningPosture({
+    enabled: true,
+    privateKeyPem: "not-a-valid-private-key",
+    keyId: "broken-key",
+    signerId: "api-backend-test",
+  });
+
+  assert.equal(posture.enabled, true);
+  assert.equal(posture.keyState, "invalid");
+  assert.equal(posture.keyLoaded, false);
+  assert.equal(posture.canSign, false);
+  assert.equal(posture.expectedSignatureStatus, "unsigned");
+  assert.equal(posture.keyId, "broken-key");
+  assert.equal(posture.signerId, "api-backend-test");
+  assert.equal(posture.publicKeyFingerprint, null);
+
+  const signature = signEvidencePayload(
+    {
+      caseId: "case-invalid-key",
+    },
+    {
+      enabled: true,
+      privateKeyPem: "not-a-valid-private-key",
+      keyId: "broken-key",
+      signerId: "api-backend-test",
+      signedAt: "2026-04-10T09:00:00.000Z",
+    },
+  );
+
+  assert.equal(signature.status, "unsigned");
+  assert.equal(signature.signature, null);
+  assert.equal(signature.keyId, "broken-key");
 });

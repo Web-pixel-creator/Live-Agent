@@ -2,6 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { chromium } from "playwright";
 
+const DIRECT_LIVE_PROOF_MESSAGE = "Reply with a short greeting for direct live latency proof.";
+
 function parseArgs(argv) {
   const options = {
     frontendBaseUrl: "http://localhost:3000",
@@ -272,6 +274,20 @@ async function readText(page, selector) {
   return toOptionalString(value);
 }
 
+async function readTranscriptSnapshot(page, selector, timeoutMs, maxChars = 800) {
+  const locator = page.locator(selector).first();
+  await locator.waitFor({ state: "attached", timeout: timeoutMs });
+  const raw = await locator.innerText().catch(() => "");
+  if (!raw) {
+    return null;
+  }
+  const normalized = raw.trim();
+  if (normalized.length <= maxChars) {
+    return normalized;
+  }
+  return normalized.slice(0, maxChars) + "…";
+}
+
 async function ensureVoiceTrayConnectSurface(page, timeoutMs) {
   const voiceDockButton = page.locator("#liveDockVoiceBtn").first();
   if (await voiceDockButton.isVisible().catch(() => false)) {
@@ -279,7 +295,28 @@ async function ensureVoiceTrayConnectSurface(page, timeoutMs) {
   }
 
   const connectButton = page.locator("#connectBtn").first();
-  await connectButton.waitFor({ state: "visible", timeout: timeoutMs });
+  await connectButton.waitFor({ state: "attached", timeout: timeoutMs });
+}
+
+async function waitForFrontendRuntimeReady(page, timeoutMs) {
+  await page.waitForFunction(
+    () => {
+      const wsUrlNode = document.querySelector("#wsUrl");
+      const apiBaseUrlNode = document.querySelector("#apiBaseUrl");
+      const wsUrl =
+        wsUrlNode instanceof HTMLInputElement ? wsUrlNode.value.trim() : "";
+      const apiBaseUrl =
+        apiBaseUrlNode instanceof HTMLInputElement ? apiBaseUrlNode.value.trim() : "";
+      return (
+        wsUrl.length > 0 &&
+        apiBaseUrl.length > 0 &&
+        !wsUrl.includes("localhost:8080") &&
+        !apiBaseUrl.includes("localhost:8081")
+      );
+    },
+    null,
+    { timeout: timeoutMs },
+  );
 }
 
 async function triggerFrontendButtonClick(page, selector, timeoutMs) {
@@ -314,8 +351,31 @@ async function setFrontendInputValue(page, selector, value, timeoutMs) {
   await page.evaluate(
     ({ targetSelector, targetValue }) => {
       const node = document.querySelector(targetSelector);
-      if (!(node instanceof HTMLInputElement)) {
-        throw new Error(`input not found: ${targetSelector}`);
+      if (!(node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement)) {
+        throw new Error(`input/textarea not found: ${targetSelector}`);
+      }
+      node.value = targetValue;
+      node.dispatchEvent(new Event("input", { bubbles: true }));
+      node.dispatchEvent(new Event("change", { bubbles: true }));
+    },
+    { targetSelector: selector, targetValue: value },
+  );
+}
+
+async function setFrontendSelectValue(page, selector, value, timeoutMs) {
+  const locator = page.locator(selector).first();
+  await locator.waitFor({ state: "attached", timeout: timeoutMs });
+
+  if (await locator.isVisible().catch(() => false)) {
+    await locator.selectOption(value, { timeout: timeoutMs });
+    return;
+  }
+
+  await page.evaluate(
+    ({ targetSelector, targetValue }) => {
+      const node = document.querySelector(targetSelector);
+      if (!(node instanceof HTMLSelectElement)) {
+        throw new Error(`select not found: ${targetSelector}`);
       }
       node.value = targetValue;
       node.dispatchEvent(new Event("input", { bubbles: true }));
@@ -339,6 +399,35 @@ async function readFrontendInputValue(page, selector, timeoutMs) {
   }, selector);
 }
 
+async function sendDirectLiveServiceItem(page, timeoutMs) {
+  const directSend = await page.evaluate((prompt) => {
+    const debug = window.__liveDebug;
+    if (!debug || typeof debug.sendLiveText !== "function") {
+      return { ok: false, reason: "debug_send_unavailable" };
+    }
+    try {
+      const ok = debug.sendLiveText(prompt);
+      return { ok: ok === true, method: "window.__liveDebug.sendLiveText" };
+    } catch (error) {
+      return { ok: false, reason: String(error) };
+    }
+  }, DIRECT_LIVE_PROOF_MESSAGE);
+
+  if (directSend?.ok) {
+    return {
+      prompt: DIRECT_LIVE_PROOF_MESSAGE,
+      sendClickPath: directSend.method,
+    };
+  }
+
+  await setFrontendInputValue(page, "#message", DIRECT_LIVE_PROOF_MESSAGE, timeoutMs);
+  const sendClickPath = await triggerFrontendButtonClick(page, "#sendConversationItemBtn", timeoutMs);
+  return {
+    prompt: DIRECT_LIVE_PROOF_MESSAGE,
+    sendClickPath: directSend?.reason ? `${sendClickPath}:${directSend.reason}` : sendClickPath,
+  };
+}
+
 async function pollSessionReplay(apiBaseUrl, sessionId, timeoutMs) {
   const replayUrl = new URL(`${apiBaseUrl.replace(/\/+$/g, "")}/v1/runtime/session-replay`);
   replayUrl.searchParams.set("sessionId", sessionId);
@@ -350,6 +439,7 @@ async function pollSessionReplay(apiBaseUrl, sessionId, timeoutMs) {
 
   const startedAt = Date.now();
   let latestPayload = null;
+  let observed = false;
   while (Date.now() - startedAt < timeoutMs) {
     latestPayload = await fetchJson(replayUrl.toString(), {
       method: "GET",
@@ -357,19 +447,26 @@ async function pollSessionReplay(apiBaseUrl, sessionId, timeoutMs) {
     });
     const normalized = normalizeReplayLiveTransport(latestPayload.data);
     if (normalized?.activeMode === "direct_live" && normalized.evidenceSource === "session_events") {
-      return {
-        observed: true,
-        payload: latestPayload.data,
-        liveTransport: normalized,
-      };
+      observed = true;
+      if (normalized.firstAudioMs !== null || normalized.firstOutputMs !== null) {
+        return {
+          observed,
+          latencyObserved: true,
+          payload: latestPayload.data,
+          liveTransport: normalized,
+        };
+      }
     }
     await new Promise((resolveSleep) => setTimeout(resolveSleep, 500));
   }
 
+  const latestNormalized = normalizeReplayLiveTransport(latestPayload?.data);
   return {
-    observed: false,
+    observed,
+    latencyObserved:
+      (latestNormalized?.firstAudioMs ?? null) !== null || (latestNormalized?.firstOutputMs ?? null) !== null,
     payload: latestPayload?.data ?? null,
-    liveTransport: normalizeReplayLiveTransport(latestPayload?.data),
+    liveTransport: latestNormalized,
   };
 }
 
@@ -461,16 +558,20 @@ async function run() {
   });
   const page = await context.newPage();
   const screenshotPath = resolve(process.cwd(), options.screenshot);
+  const smokeStartedAt = Date.now();
 
   try {
     const forcedUrl = new URL(options.frontendBaseUrl);
     forcedUrl.searchParams.set("livePreferredMode", "direct_live");
+    forcedUrl.searchParams.set("debugLive", "true");
 
     await page.goto(forcedUrl.toString(), {
       waitUntil: "domcontentloaded",
       timeout: options.timeoutMs,
     });
+    await waitForFrontendRuntimeReady(page, options.timeoutMs);
     await ensureVoiceTrayConnectSurface(page, options.timeoutMs);
+    await setFrontendSelectValue(page, "#intent", "conversation", options.timeoutMs);
     await setFrontendInputValue(page, "#sessionId", options.sessionId, options.timeoutMs);
     await setFrontendInputValue(page, "#userId", options.userId, options.timeoutMs);
     const connectClickPath = await triggerFrontendButtonClick(page, "#connectBtn", options.timeoutMs);
@@ -486,10 +587,12 @@ async function run() {
           mode.includes("bootstrap_error")
         );
       },
+      null,
       { timeout: options.timeoutMs },
     );
 
-    await page.screenshot({ path: screenshotPath, fullPage: true });
+    const serviceItemRequest = await sendDirectLiveServiceItem(page, options.timeoutMs);
+    await page.waitForTimeout(2000);
 
     const ui = {
       connectionStatus: await readText(page, "#connectionStatus"),
@@ -499,26 +602,35 @@ async function run() {
       actualSessionId: await readFrontendInputValue(page, "#sessionId", options.timeoutMs),
       actualUserId: await readFrontendInputValue(page, "#userId", options.timeoutMs),
       connectClickPath,
+      serviceItemPrompt: serviceItemRequest.prompt,
+      serviceItemSendClickPath: serviceItemRequest.sendClickPath,
+      transcriptSnapshot: await readTranscriptSnapshot(page, "#transcript", options.timeoutMs),
+      conversationSnapshot: await readTranscriptSnapshot(page, "#conversationHistory", options.timeoutMs),
     };
 
     const replaySessionId = toOptionalString(ui.actualSessionId) ?? options.sessionId;
+    const remainingPollBudgetMs = Math.max(5000, options.timeoutMs - (Date.now() - smokeStartedAt));
     const replayResult = await pollSessionReplay(
       options.apiBaseUrl,
       replaySessionId,
-      Math.max(3000, Math.floor(options.timeoutMs / 2)),
+      remainingPollBudgetMs,
     );
     const caseWikiResult = await pollCaseWiki(
       options.apiBaseUrl,
       replaySessionId,
-      Math.max(3000, Math.floor(options.timeoutMs / 2)),
+      Math.max(3000, Math.floor(remainingPollBudgetMs / 2)),
     );
+    await page.screenshot({ path: screenshotPath, fullPage: true });
     const liveTransport = replayResult.liveTransport;
     const caseWiki = caseWikiResult.caseWiki;
     const observedDirectLive = liveTransport?.activeMode === "direct_live" && liveTransport?.evidenceSource === "session_events";
+    const latencyObserved = replayResult.latencyObserved === true;
 
-    const status = observedDirectLive ? "pass" : "fail";
+    const status = observedDirectLive && latencyObserved ? "pass" : "fail";
     const reason = observedDirectLive
-      ? null
+      ? latencyObserved
+        ? null
+        : "backend replay observed direct_live session_events but did not capture first-output or first-audio latency after service item send"
       : ui.modeStatus?.includes("fallback")
         ? "frontend fell back to relay while direct live was supported"
         : ui.connectionStatus === "error"
@@ -575,7 +687,7 @@ async function run() {
           },
       screenshotPath,
       summary: observedDirectLive
-        ? `direct_live observed via ${liveTransport?.evidenceSource ?? "unknown"} first_audio=${liveTransport?.firstAudioMs ?? "n/a"}ms first_output=${liveTransport?.firstOutputMs ?? "n/a"}ms fallback_events=${liveTransport?.fallbackEventCount ?? 0}`
+        ? `direct_live observed via ${liveTransport?.evidenceSource ?? "unknown"} first_audio=${liveTransport?.firstAudioMs ?? "n/a"}ms first_output=${liveTransport?.firstOutputMs ?? "n/a"}ms fallback_events=${liveTransport?.fallbackEventCount ?? 0} latency_observed=${latencyObserved}`
         : `direct_live not observed; connection=${ui.connectionStatus ?? "unknown"} mode=${ui.modeStatus ?? "unknown"}`,
     };
     const outputPath = await writeJson(options.output, result);

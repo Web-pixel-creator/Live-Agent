@@ -1558,6 +1558,8 @@ function mapEventRecord(docId: string, raw: Record<string, unknown>, fallbackSes
     liveTransportBootstrapState,
     liveTransportFallbackReason,
     liveTransportEvidenceSource,
+    payload: payload ?? undefined,
+    metadata: metadata ?? undefined,
   };
 }
 

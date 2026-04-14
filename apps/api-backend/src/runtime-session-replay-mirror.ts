@@ -5,6 +5,8 @@ import type {
   SessionListItem,
 } from "./firestore.js";
 import type { RuntimeWorkflowControlPlaneSummary } from "./runtime-workflow-control-plane.js";
+import type { EvidenceSignature } from "@mla/contracts";
+import { signEvidencePayload, type RuntimeEvidenceSignerConfig } from "./runtime-evidence-signer.js";
 
 export type RuntimeSessionReplayState = "empty" | "active" | "awaiting_approval" | "verified";
 
@@ -724,6 +726,7 @@ export type RuntimeSessionReplaySnapshot = {
   mirrorVersion: 1;
   selectedSessionId: string | null;
   workflowAvailable: boolean;
+  evidenceSignature?: EvidenceSignature;
   summary: {
     totalSessions: number;
     activeSessions: number;
@@ -5560,6 +5563,7 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
   selectedEvents: EventListItem[];
   selectedSessionId?: string | null;
   workflowSummary?: RuntimeWorkflowControlPlaneSummary | null;
+  evidenceSigner?: RuntimeEvidenceSignerConfig | null;
 }): RuntimeSessionReplaySnapshot {
   const sessions = sortByUpdatedAtDesc(params.sessions);
   const selectedSessionId = toNonEmptyString(params.selectedSessionId) ?? sessions[0]?.sessionId ?? null;
@@ -5694,8 +5698,9 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
     selectedSessionFound: selectedSession !== null,
   });
 
-  return {
-    generatedAt: new Date().toISOString(),
+  const generatedAt = new Date().toISOString();
+  const unsignedSnapshot: Omit<RuntimeSessionReplaySnapshot, "evidenceSignature"> = {
+    generatedAt,
     source: "repo_owned_runtime_session_replay",
     mirrorVersion: 1,
     selectedSessionId,
@@ -5787,5 +5792,16 @@ export function buildRuntimeSessionReplayMirrorSnapshot(params: {
         byRoute: selectedEventInsight.byRoute,
       },
     },
+  };
+
+  return {
+    ...unsignedSnapshot,
+    evidenceSignature: signEvidencePayload(unsignedSnapshot, {
+      enabled: params.evidenceSigner?.enabled ?? false,
+      privateKeyPem: params.evidenceSigner?.privateKeyPem ?? null,
+      keyId: params.evidenceSigner?.keyId ?? null,
+      signerId: params.evidenceSigner?.signerId ?? "api-backend",
+      signedAt: params.evidenceSigner?.signedAt ?? generatedAt,
+    }),
   };
 }

@@ -1,12 +1,30 @@
 import { createHash, createPrivateKey, createPublicKey, sign, verify } from "node:crypto";
 import type { EvidenceSignature } from "@mla/contracts";
 
+const EVIDENCE_SIGNATURE_ALGORITHM = "ed25519-sha256" as const;
+const EVIDENCE_SIGNATURE_CANONICALIZATION = "json-stable-v1" as const;
+
 export type RuntimeEvidenceSignerConfig = {
   enabled: boolean;
   privateKeyPem: string | null;
   keyId: string | null;
   signerId: string;
   signedAt?: string | Date | null;
+};
+
+export type RuntimeEvidenceSigningKeyState = "missing" | "loaded" | "invalid";
+
+export type RuntimeEvidenceSigningPosture = {
+  enabled: boolean;
+  keyState: RuntimeEvidenceSigningKeyState;
+  keyLoaded: boolean;
+  canSign: boolean;
+  expectedSignatureStatus: EvidenceSignature["status"];
+  keyId: string | null;
+  signerId: string;
+  algorithm: typeof EVIDENCE_SIGNATURE_ALGORITHM;
+  canonicalization: typeof EVIDENCE_SIGNATURE_CANONICALIZATION;
+  publicKeyFingerprint: string | null;
 };
 
 export type RuntimeEvidenceVerificationResult = {
@@ -61,6 +79,29 @@ function normalizeSignedAt(value: string | Date | null | undefined): string {
     return value.toISOString();
   }
   return toNonEmptyString(value) ?? new Date().toISOString();
+}
+
+function tryCreatePrivateKey(privateKeyPem: string | null) {
+  if (!privateKeyPem) {
+    return null;
+  }
+  try {
+    return createPrivateKey(privateKeyPem);
+  } catch {
+    return null;
+  }
+}
+
+function derivePublicKeyFingerprint(privateKeyPem: string | null): string | null {
+  const privateKey = tryCreatePrivateKey(privateKeyPem);
+  if (!privateKey) {
+    return null;
+  }
+  const publicKeyDer = createPublicKey(privateKey).export({
+    format: "der",
+    type: "spki",
+  });
+  return `sha256:${createHash("sha256").update(publicKeyDer).digest("hex")}`;
 }
 
 function stripEvidenceSignature(value: unknown): unknown {
@@ -129,6 +170,30 @@ export function resolveRuntimeEvidenceSignerConfig(
   };
 }
 
+export function buildRuntimeEvidenceSigningPosture(
+  config: RuntimeEvidenceSignerConfig | null | undefined,
+): RuntimeEvidenceSigningPosture {
+  const enabled = config?.enabled === true;
+  const signerId = toNonEmptyString(config?.signerId) ?? "api-backend";
+  const privateKeyPem = normalizePem(config?.privateKeyPem ?? null);
+  const keyState: RuntimeEvidenceSigningKeyState =
+    !privateKeyPem ? "missing" : tryCreatePrivateKey(privateKeyPem) ? "loaded" : "invalid";
+  const canSign = enabled && keyState === "loaded";
+
+  return {
+    enabled,
+    keyState,
+    keyLoaded: keyState === "loaded",
+    canSign,
+    expectedSignatureStatus: canSign ? "signed" : "unsigned",
+    keyId: toNonEmptyString(config?.keyId) ?? null,
+    signerId,
+    algorithm: EVIDENCE_SIGNATURE_ALGORITHM,
+    canonicalization: EVIDENCE_SIGNATURE_CANONICALIZATION,
+    publicKeyFingerprint: keyState === "loaded" ? derivePublicKeyFingerprint(privateKeyPem) : null,
+  };
+}
+
 export function signEvidencePayload(
   payload: unknown,
   config: RuntimeEvidenceSignerConfig | null | undefined,
@@ -138,15 +203,16 @@ export function signEvidencePayload(
   const signerId = toNonEmptyString(config?.signerId) ?? "api-backend";
   const base = {
     schemaVersion: 1 as const,
-    algorithm: "ed25519-sha256" as const,
-    canonicalization: "json-stable-v1" as const,
+    algorithm: EVIDENCE_SIGNATURE_ALGORITHM,
+    canonicalization: EVIDENCE_SIGNATURE_CANONICALIZATION,
     payloadHash,
     keyId: toNonEmptyString(config?.keyId) ?? null,
     signerId,
     signedAt,
   };
 
-  if (!config?.enabled || !config.privateKeyPem) {
+  const privateKey = tryCreatePrivateKey(normalizePem(config?.privateKeyPem ?? null));
+  if (!config?.enabled || !privateKey) {
     return {
       ...base,
       status: "unsigned",
@@ -154,7 +220,6 @@ export function signEvidencePayload(
     };
   }
 
-  const privateKey = createPrivateKey(config.privateKeyPem);
   const canonical = canonicalizeEvidencePayload(payload);
   return {
     ...base,

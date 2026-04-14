@@ -7,6 +7,7 @@ import {
 import type { DeviceNodeRecord } from "./firestore.js";
 import { buildRuntimeBootstrapDoctorSnapshot } from "./runtime-bootstrap-doctor.js";
 import { buildRuntimeDiagnosticsSummary } from "./runtime-diagnostics-summary.js";
+import { resolveRuntimeEvidenceSignerConfig } from "./runtime-evidence-signer.js";
 import {
   buildRuntimeSurfaceInventorySnapshot,
   type RuntimeSurfaceInventorySnapshot,
@@ -167,6 +168,7 @@ export async function buildRuntimeSurfaceReadinessSnapshot(params: {
     services: params.services,
     skillsCatalog: catalog,
     skillsRuntimeSummary: runtimeCatalogs[0]?.runtimeSummary ?? null,
+    evidenceSigner: resolveRuntimeEvidenceSignerConfig(env),
   });
 
   const degradedReasons = buildDegradedReasons({

@@ -936,6 +936,72 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextRoutedIntent is required")
     }
 
+    $manifestCaseWikiContextAdoptionStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionStatus
+    $manifestCaseWikiContextAdoptionStatus = $manifestCaseWikiContextAdoptionStatusRaw.ToLowerInvariant()
+    if ($manifestCaseWikiContextAdoptionStatus -ne "pass") {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionStatus expected pass, actual " +
+        $manifestCaseWikiContextAdoptionStatusRaw
+      )
+    }
+
+    $manifestCaseWikiContextAdoptionValidated = To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionValidated
+    if ($manifestCaseWikiContextAdoptionValidated -ne $true) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionValidated expected true")
+    }
+
+    $manifestCaseWikiContextAdoptionObserved = To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionObserved
+    if ($manifestCaseWikiContextAdoptionObserved -ne $true) {
+      Fail ("source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionObserved expected true")
+    }
+
+    $manifestCaseWikiContextAdoptionObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionObservedCount")
+    if ([double]::IsNaN($manifestCaseWikiContextAdoptionObservedCount) -or $manifestCaseWikiContextAdoptionObservedCount -lt 3) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionObservedCount expected >= 3, actual " +
+        (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionObservedCount")
+      )
+    }
+
+    $manifestCaseWikiContextAdoptionCaseWikiObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount")
+    if ([double]::IsNaN($manifestCaseWikiContextAdoptionCaseWikiObservedCount) -or $manifestCaseWikiContextAdoptionCaseWikiObservedCount -lt 3) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount expected >= 3, actual " +
+        (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount")
+      )
+    }
+
+    $manifestCaseWikiContextAdoptionInputOnlyObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount")
+    if ([double]::IsNaN($manifestCaseWikiContextAdoptionInputOnlyObservedCount) -or $manifestCaseWikiContextAdoptionInputOnlyObservedCount -lt 0) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount expected >= 0, actual " +
+        (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount")
+      )
+    }
+
+    $manifestCaseWikiContextAdoptionUnknownObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount")
+    if ([double]::IsNaN($manifestCaseWikiContextAdoptionUnknownObservedCount) -or $manifestCaseWikiContextAdoptionUnknownObservedCount -lt 0) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount expected >= 0, actual " +
+        (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount")
+      )
+    }
+
+    if (($manifestCaseWikiContextAdoptionCaseWikiObservedCount + $manifestCaseWikiContextAdoptionInputOnlyObservedCount + $manifestCaseWikiContextAdoptionUnknownObservedCount) -ne $manifestCaseWikiContextAdoptionObservedCount) {
+      Fail (
+        "source run manifest evidenceSnapshot.caseWikiContextAdoption counts must sum to observedCount, actual observedCount=" +
+        $manifestCaseWikiContextAdoptionObservedCount
+      )
+    }
+
+    $manifestCaseWikiContextAdoptionRate = To-NumberOrNaN (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionCaseWikiRate")
+    if ([double]::IsNaN($manifestCaseWikiContextAdoptionRate) -or $manifestCaseWikiContextAdoptionRate -lt 0.95 -or $manifestCaseWikiContextAdoptionRate -gt 1) {
+      Fail (
+        "source run manifest evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionCaseWikiRate expected 0.95..1, actual " +
+        (Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionCaseWikiRate")
+      )
+    }
+
     $manifestProviderUsageStatusRaw = [string]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageStatus
     $manifestProviderUsageStatus = $manifestProviderUsageStatusRaw.ToLowerInvariant()
     if ($manifestProviderUsageStatus -ne "pass") {
@@ -2264,6 +2330,10 @@ if (Test-Path $ReleaseEvidenceReportPath) {
   if ($null -eq $caseWikiRoutingContext) {
     Fail ("release evidence report missing caseWikiRoutingContext block: " + $ReleaseEvidenceReportPath)
   }
+  $caseWikiContextAdoption = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption"
+  if ($null -eq $caseWikiContextAdoption) {
+    Fail ("release evidence report missing caseWikiContextAdoption block: " + $ReleaseEvidenceReportPath)
+  }
 
   $caseWikiEvidenceStatus = [string](Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "status")
   $caseWikiEvidenceValidated = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "validated")
@@ -2283,9 +2353,23 @@ if (Test-Path $ReleaseEvidenceReportPath) {
     (-not [string]::IsNullOrWhiteSpace($caseWikiEvidencePayloadHash))
 
   if ($caseWikiEvidenceObserved) {
-    if ($caseWikiEvidenceStatus -ne "pass" -or $caseWikiEvidenceValidated -ne $true) {
+    $runtimeEvidenceSigningEnabled = To-BoolOrNull (Get-ReleaseReadinessEnvValue "RUNTIME_EVIDENCE_SIGNING_ENABLED")
+    if ($null -eq $runtimeEvidenceSigningEnabled) {
+      $runtimeEvidenceSigningEnabled = $false
+    }
+    $runtimeEvidenceSigningConfigured =
+      ($runtimeEvidenceSigningEnabled -eq $true) -or
+      (Test-ReleaseDemoAnyNonEmptyEnvVar @(
+        "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM",
+        "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64"
+      ))
+    $expectedCaseWikiEvidenceStatus = if ($runtimeEvidenceSigningConfigured) { "pass" } else { "warn" }
+
+    if ($caseWikiEvidenceStatus -ne $expectedCaseWikiEvidenceStatus -or $caseWikiEvidenceValidated -ne $true) {
       Fail (
-        "release evidence caseWikiEvidenceSignature expected status=pass and validated=true, actual status=" +
+        "release evidence caseWikiEvidenceSignature expected status=" +
+        $expectedCaseWikiEvidenceStatus +
+        " and validated=true, actual status=" +
         $caseWikiEvidenceStatus +
         ", validated=" +
         (Get-ObjectPropertyValue -Object $caseWikiEvidenceSignature -Name "validated")
@@ -2317,12 +2401,7 @@ if (Test-Path $ReleaseEvidenceReportPath) {
       Fail "release evidence caseWikiEvidenceSignature.payloadHash must be a canonical sha256:<hex> digest"
     }
 
-    $runtimeEvidenceSigningEnabled = To-BoolOrNull (Get-ReleaseReadinessEnvValue "RUNTIME_EVIDENCE_SIGNING_ENABLED")
-    if ($null -eq $runtimeEvidenceSigningEnabled) {
-      $runtimeEvidenceSigningEnabled = $false
-    }
-
-    if ($runtimeEvidenceSigningEnabled -eq $true) {
+    if ($runtimeEvidenceSigningConfigured -eq $true) {
       if (
         $caseWikiEvidenceSignatureStatus -ne "signed" -or
         $caseWikiEvidenceSignaturePresent -ne $true -or
@@ -2330,7 +2409,7 @@ if (Test-Path $ReleaseEvidenceReportPath) {
         $caseWikiEvidenceUnsignedArtifacts -ne 0
       ) {
         Fail (
-          "release evidence caseWikiEvidenceSignature expected signedArtifacts=totalArtifacts and unsignedArtifacts=0 when RUNTIME_EVIDENCE_SIGNING_ENABLED=true"
+          "release evidence caseWikiEvidenceSignature expected signedArtifacts=totalArtifacts and unsignedArtifacts=0 when runtime evidence signing is configured"
         )
       }
     }
@@ -2342,7 +2421,7 @@ if (Test-Path $ReleaseEvidenceReportPath) {
         $caseWikiEvidenceSignedArtifacts -ne 0
       ) {
         Fail (
-          "release evidence caseWikiEvidenceSignature expected unsignedArtifacts=totalArtifacts and signedArtifacts=0 when RUNTIME_EVIDENCE_SIGNING_ENABLED=false"
+          "release evidence caseWikiEvidenceSignature expected unsignedArtifacts=totalArtifacts and signedArtifacts=0 when runtime evidence signing is not configured"
         )
       }
     }
@@ -2404,6 +2483,34 @@ if (Test-Path $ReleaseEvidenceReportPath) {
     if ($allowedCaseWikiRoutingModes -notcontains $caseWikiRoutingContextMode) {
       Fail ("release evidence caseWikiRoutingContext.mode expected one of " + ($allowedCaseWikiRoutingModes -join ", ") + "; actual " + $caseWikiRoutingContextMode)
     }
+  }
+
+  $caseWikiContextAdoptionStatus = [string](Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "status")
+  $caseWikiContextAdoptionValidated = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "validated")
+  $caseWikiContextAdoptionObserved = To-BoolOrNull (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "observed")
+  $caseWikiContextAdoptionObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "observedCount")
+  $caseWikiContextAdoptionCaseWikiObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "caseWikiObservedCount")
+  $caseWikiContextAdoptionInputOnlyObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "inputOnlyObservedCount")
+  $caseWikiContextAdoptionUnknownObservedCount = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "unknownObservedCount")
+  $caseWikiContextAdoptionRate = To-NumberOrNaN (Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "caseWikiRate")
+  if (
+    $caseWikiContextAdoptionStatus -ne "pass" -or
+    $caseWikiContextAdoptionValidated -ne $true -or
+    $caseWikiContextAdoptionObserved -ne $true -or
+    [double]::IsNaN($caseWikiContextAdoptionObservedCount) -or
+    $caseWikiContextAdoptionObservedCount -lt 1 -or
+    [double]::IsNaN($caseWikiContextAdoptionCaseWikiObservedCount) -or
+    $caseWikiContextAdoptionCaseWikiObservedCount -lt 1 -or
+    [double]::IsNaN($caseWikiContextAdoptionInputOnlyObservedCount) -or
+    $caseWikiContextAdoptionInputOnlyObservedCount -lt 0 -or
+    [double]::IsNaN($caseWikiContextAdoptionUnknownObservedCount) -or
+    $caseWikiContextAdoptionUnknownObservedCount -lt 0 -or
+    (($caseWikiContextAdoptionCaseWikiObservedCount + $caseWikiContextAdoptionInputOnlyObservedCount + $caseWikiContextAdoptionUnknownObservedCount) -ne $caseWikiContextAdoptionObservedCount) -or
+    [double]::IsNaN($caseWikiContextAdoptionRate) -or
+    $caseWikiContextAdoptionRate -lt 0.95 -or
+    $caseWikiContextAdoptionRate -gt 1
+  ) {
+    Fail "release evidence caseWikiContextAdoption must prove observed+validated adoption with count conservation and caseWikiRate>=0.95"
   }
 }
 
@@ -2893,6 +3000,27 @@ if (Test-Path $ReleaseEvidenceReportPath) {
       ", mode=" + $caseWikiRoutingMode
     )
   }
+  $caseWikiContextAdoption = Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption"
+  if ($null -ne $caseWikiContextAdoption) {
+    $caseWikiContextAdoptionStatus = [string](Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "status")
+    $caseWikiContextAdoptionValidated = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "validated"
+    $caseWikiContextAdoptionObserved = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "observed"
+    $caseWikiContextAdoptionObservedCount = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "observedCount"
+    $caseWikiContextAdoptionCaseWikiObservedCount = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "caseWikiObservedCount"
+    $caseWikiContextAdoptionInputOnlyObservedCount = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "inputOnlyObservedCount"
+    $caseWikiContextAdoptionUnknownObservedCount = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "unknownObservedCount"
+    $caseWikiContextAdoptionRate = Get-ObjectPropertyValue -Object $caseWikiContextAdoption -Name "caseWikiRate"
+    Write-Host (
+      "case_wiki.context_adoption: validated=" + $caseWikiContextAdoptionValidated +
+      ", status=" + $caseWikiContextAdoptionStatus +
+      ", observed=" + $caseWikiContextAdoptionObserved +
+      ", observed_count=" + $caseWikiContextAdoptionObservedCount +
+      ", case_wiki_observed_count=" + $caseWikiContextAdoptionCaseWikiObservedCount +
+      ", input_only_observed_count=" + $caseWikiContextAdoptionInputOnlyObservedCount +
+      ", unknown_observed_count=" + $caseWikiContextAdoptionUnknownObservedCount +
+      ", case_wiki_rate=" + $caseWikiContextAdoptionRate
+    )
+  }
 }
 if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
   $sourceRunManifest = Get-Content $SourceRunManifestPath -Raw | ConvertFrom-Json
@@ -2936,6 +3064,14 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
     $manifestCaseWikiRoutingContextMode = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextMode")
     $manifestCaseWikiRoutingContextRequestedIntent = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRequestedIntent")
     $manifestCaseWikiRoutingContextRoutedIntent = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiRoutingContextRoutedIntent")
+    $manifestCaseWikiContextAdoptionStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionStatus
+    $manifestCaseWikiContextAdoptionValidated = if ((To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionValidated) -eq $true) { "true" } else { "false" }
+    $manifestCaseWikiContextAdoptionObserved = if ((To-BoolOrNull $manifestEvidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionObserved) -eq $true) { "true" } else { "false" }
+    $manifestCaseWikiContextAdoptionObservedCount = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionObservedCount")
+    $manifestCaseWikiContextAdoptionCaseWikiObservedCount = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount")
+    $manifestCaseWikiContextAdoptionInputOnlyObservedCount = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount")
+    $manifestCaseWikiContextAdoptionUnknownObservedCount = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount")
+    $manifestCaseWikiContextAdoptionCaseWikiRate = [string](Get-ObjectPropertyValue -Object $manifestEvidenceSnapshot -Name "badgeEvidenceCaseWikiContextAdoptionCaseWikiRate")
     $manifestProviderUsageStatus = [string]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageStatus
     $manifestProviderUsageValidated = if ([bool]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageValidated) { "true" } else { "false" }
     $manifestProviderUsageActiveSecondaryProviders = [string]$manifestEvidenceSnapshot.badgeEvidenceProviderUsageActiveSecondaryProviders
@@ -3015,6 +3151,14 @@ if ($IsArtifactOnlyMode -and (Test-Path $SourceRunManifestPath)) {
       ", case_wiki_routing_context_mode=" + $manifestCaseWikiRoutingContextMode +
       ", case_wiki_routing_context_requested_intent=" + $manifestCaseWikiRoutingContextRequestedIntent +
       ", case_wiki_routing_context_routed_intent=" + $manifestCaseWikiRoutingContextRoutedIntent +
+      ", case_wiki_context_adoption_status=" + $manifestCaseWikiContextAdoptionStatus +
+      ", case_wiki_context_adoption_validated=" + $manifestCaseWikiContextAdoptionValidated +
+      ", case_wiki_context_adoption_observed=" + $manifestCaseWikiContextAdoptionObserved +
+      ", case_wiki_context_adoption_observed_count=" + $manifestCaseWikiContextAdoptionObservedCount +
+      ", case_wiki_context_adoption_case_wiki_observed_count=" + $manifestCaseWikiContextAdoptionCaseWikiObservedCount +
+      ", case_wiki_context_adoption_input_only_observed_count=" + $manifestCaseWikiContextAdoptionInputOnlyObservedCount +
+      ", case_wiki_context_adoption_unknown_observed_count=" + $manifestCaseWikiContextAdoptionUnknownObservedCount +
+      ", case_wiki_context_adoption_case_wiki_rate=" + $manifestCaseWikiContextAdoptionCaseWikiRate +
       ", provider_usage_status=" + $manifestProviderUsageStatus +
       ", provider_usage_validated=" + $manifestProviderUsageValidated +
       ", provider_usage_active_secondary_providers=" + $manifestProviderUsageActiveSecondaryProviders +

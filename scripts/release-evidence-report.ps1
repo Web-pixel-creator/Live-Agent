@@ -245,14 +245,20 @@ function New-CaseWikiEvidenceSignatureSnapshot {
     $parsedSignedAt = [DateTimeOffset]::MinValue
     $signedAtIsIso = [DateTimeOffset]::TryParse($signedAt, [ref]$parsedSignedAt)
   }
+  $validated = ($Value.validated -eq $true)
+  $signatureStatus = $(if ([string]::IsNullOrWhiteSpace([string]$Value.signatureStatus)) { $null } else { [string]$Value.signatureStatus })
+  $status = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+  if ($validated -and $status -eq "pass" -and $signatureStatus -eq "unsigned") {
+    $status = "warn"
+  }
 
   return [ordered]@{
-    status            = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
-    validated         = ($Value.validated -eq $true)
+    status            = $status
+    validated         = $validated
     totalArtifacts    = Convert-ToNonNegativeIntOrDefault -Value $Value.totalArtifacts -DefaultValue 0
     signedArtifacts   = Convert-ToNonNegativeIntOrDefault -Value $Value.signedArtifacts -DefaultValue 0
     unsignedArtifacts = Convert-ToNonNegativeIntOrDefault -Value $Value.unsignedArtifacts -DefaultValue 0
-    signatureStatus   = $(if ([string]::IsNullOrWhiteSpace([string]$Value.signatureStatus)) { $null } else { [string]$Value.signatureStatus })
+    signatureStatus   = $signatureStatus
     algorithm         = $(if ([string]::IsNullOrWhiteSpace([string]$Value.algorithm)) { $null } else { [string]$Value.algorithm })
     canonicalization  = $(if ([string]::IsNullOrWhiteSpace([string]$Value.canonicalization)) { $null } else { [string]$Value.canonicalization })
     payloadHash       = $(if ([string]::IsNullOrWhiteSpace([string]$Value.payloadHash)) { $null } else { [string]$Value.payloadHash })
@@ -305,6 +311,136 @@ function New-CaseWikiRoutingContextSnapshot {
     mode            = $(if ([string]::IsNullOrWhiteSpace([string]$Value.mode)) { $null } else { [string]$Value.mode })
     requestedIntent = $(if ([string]::IsNullOrWhiteSpace([string]$Value.requestedIntent)) { $null } else { [string]$Value.requestedIntent })
     routedIntent    = $(if ([string]::IsNullOrWhiteSpace([string]$Value.routedIntent)) { $null } else { [string]$Value.routedIntent })
+  }
+}
+
+function New-CaseWikiGatewayHydrationSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status                    = "unavailable"
+      validated                 = $false
+      observed                  = $false
+      sessionId                 = $null
+      noteEventId               = $null
+      questionId                = $null
+      questionMatched           = $null
+      noteSourceRefSeen         = $null
+      questionSuggestedNextStep = $null
+      contextSource             = $null
+      focusId                   = $null
+      blocker                   = $null
+      nextAction                = $null
+      route                     = $null
+      mode                      = $null
+      requestedIntent           = $null
+      routedIntent              = $null
+    }
+  }
+
+  return [ordered]@{
+    status                    = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated                 = ($Value.validated -eq $true)
+    observed                  = ($Value.observed -eq $true)
+    sessionId                 = $(if ([string]::IsNullOrWhiteSpace([string]$Value.sessionId)) { $null } else { [string]$Value.sessionId })
+    noteEventId               = $(if ([string]::IsNullOrWhiteSpace([string]$Value.noteEventId)) { $null } else { [string]$Value.noteEventId })
+    questionId                = $(if ([string]::IsNullOrWhiteSpace([string]$Value.questionId)) { $null } else { [string]$Value.questionId })
+    questionMatched           = $(if ($null -eq $Value.questionMatched) { $null } else { $Value.questionMatched -eq $true })
+    noteSourceRefSeen         = $(if ($null -eq $Value.noteSourceRefSeen) { $null } else { $Value.noteSourceRefSeen -eq $true })
+    questionSuggestedNextStep = $(if ([string]::IsNullOrWhiteSpace([string]$Value.questionSuggestedNextStep)) { $null } else { [string]$Value.questionSuggestedNextStep })
+    contextSource             = $(if ([string]::IsNullOrWhiteSpace([string]$Value.contextSource)) { $null } else { [string]$Value.contextSource })
+    focusId                   = $(if ([string]::IsNullOrWhiteSpace([string]$Value.focusId)) { $null } else { [string]$Value.focusId })
+    blocker                   = $(if ([string]::IsNullOrWhiteSpace([string]$Value.blocker)) { $null } else { [string]$Value.blocker })
+    nextAction                = $(if ([string]::IsNullOrWhiteSpace([string]$Value.nextAction)) { $null } else { [string]$Value.nextAction })
+    route                     = $(if ([string]::IsNullOrWhiteSpace([string]$Value.route)) { $null } else { [string]$Value.route })
+    mode                      = $(if ([string]::IsNullOrWhiteSpace([string]$Value.mode)) { $null } else { [string]$Value.mode })
+    requestedIntent           = $(if ([string]::IsNullOrWhiteSpace([string]$Value.requestedIntent)) { $null } else { [string]$Value.requestedIntent })
+    routedIntent              = $(if ([string]::IsNullOrWhiteSpace([string]$Value.routedIntent)) { $null } else { [string]$Value.routedIntent })
+  }
+}
+
+function New-CaseWikiContextAdoptionSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status                = "unavailable"
+      validated             = $false
+      observed              = $false
+      observedCount         = 0
+      caseWikiObservedCount = 0
+      inputOnlyObservedCount = 0
+      unknownObservedCount  = 0
+      caseWikiRate          = $null
+    }
+  }
+
+  $caseWikiRate = $null
+  if ($null -ne $Value.caseWikiRate -and -not [string]::IsNullOrWhiteSpace([string]$Value.caseWikiRate)) {
+    $caseWikiRate = [double]$Value.caseWikiRate
+  }
+
+  return [ordered]@{
+    status                 = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated              = ($Value.validated -eq $true)
+    observed               = ($Value.observed -eq $true)
+    observedCount          = Convert-ToNonNegativeIntOrDefault -Value $Value.observedCount -DefaultValue 0
+    caseWikiObservedCount  = Convert-ToNonNegativeIntOrDefault -Value $Value.caseWikiObservedCount -DefaultValue 0
+    inputOnlyObservedCount = Convert-ToNonNegativeIntOrDefault -Value $Value.inputOnlyObservedCount -DefaultValue 0
+    unknownObservedCount   = Convert-ToNonNegativeIntOrDefault -Value $Value.unknownObservedCount -DefaultValue 0
+    caseWikiRate           = $caseWikiRate
+  }
+}
+
+function New-UiRefHealingSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status                 = "unavailable"
+      validated              = $false
+      observed               = $false
+      finalStatus            = $null
+      adapterMode            = $null
+      healedRefCount         = 0
+      healedRefTargets       = @()
+      staleRefCount          = 0
+      staleRefTargets        = @()
+      traceCount             = 0
+      retries                = 0
+      disabledSubmitSeen     = $null
+      enabledSubmitSeen      = $null
+      healingObservationSeen = $null
+      healingNoteSeen        = $null
+    }
+  }
+
+  return [ordered]@{
+    status                 = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated              = ($Value.validated -eq $true)
+    observed               = ($Value.observed -eq $true)
+    finalStatus            = $(if ([string]::IsNullOrWhiteSpace([string]$Value.finalStatus)) { $null } else { [string]$Value.finalStatus })
+    adapterMode            = $(if ([string]::IsNullOrWhiteSpace([string]$Value.adapterMode)) { $null } else { [string]$Value.adapterMode })
+    healedRefCount         = Convert-ToNonNegativeIntOrDefault -Value $Value.healedRefCount -DefaultValue 0
+    healedRefTargets       = @($Value.healedRefTargets | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { [string]$_ })
+    staleRefCount          = Convert-ToNonNegativeIntOrDefault -Value $Value.staleRefCount -DefaultValue 0
+    staleRefTargets        = @($Value.staleRefTargets | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { [string]$_ })
+    traceCount             = Convert-ToNonNegativeIntOrDefault -Value $Value.traceCount -DefaultValue 0
+    retries                = Convert-ToNonNegativeIntOrDefault -Value $Value.retries -DefaultValue 0
+    disabledSubmitSeen     = $(if ($null -eq $Value.disabledSubmitSeen) { $null } else { $Value.disabledSubmitSeen -eq $true })
+    enabledSubmitSeen      = $(if ($null -eq $Value.enabledSubmitSeen) { $null } else { $Value.enabledSubmitSeen -eq $true })
+    healingObservationSeen = $(if ($null -eq $Value.healingObservationSeen) { $null } else { $Value.healingObservationSeen -eq $true })
+    healingNoteSeen        = $(if ($null -eq $Value.healingNoteSeen) { $null } else { $Value.healingNoteSeen -eq $true })
   }
 }
 
@@ -517,6 +653,9 @@ $report = [ordered]@{
     providerUsageStatus       = "unavailable"
     caseWikiEvidenceSignatureStatus = "unavailable"
     caseWikiRoutingContextStatus = "unavailable"
+    caseWikiGatewayHydrationStatus = "unavailable"
+    caseWikiContextAdoptionStatus = "unavailable"
+    uiRefHealingStatus       = "unavailable"
     deviceNodeUpdatesStatus   = "unavailable"
   }
   deviceNodeUpdates = [ordered]@{
@@ -609,6 +748,52 @@ $report = [ordered]@{
     mode            = $null
     requestedIntent = $null
     routedIntent    = $null
+  }
+  caseWikiGatewayHydration = [ordered]@{
+    status                    = "unavailable"
+    validated                 = $false
+    observed                  = $false
+    sessionId                 = $null
+    noteEventId               = $null
+    questionId                = $null
+    questionMatched           = $null
+    noteSourceRefSeen         = $null
+    questionSuggestedNextStep = $null
+    contextSource             = $null
+    focusId                   = $null
+    blocker                   = $null
+    nextAction                = $null
+    route                     = $null
+    mode                      = $null
+    requestedIntent           = $null
+    routedIntent              = $null
+  }
+  caseWikiContextAdoption = [ordered]@{
+    status                 = "unavailable"
+    validated              = $false
+    observed               = $false
+    observedCount          = 0
+    caseWikiObservedCount  = 0
+    inputOnlyObservedCount = 0
+    unknownObservedCount   = 0
+    caseWikiRate           = $null
+  }
+  uiRefHealing = [ordered]@{
+    status                 = "unavailable"
+    validated              = $false
+    observed               = $false
+    finalStatus            = $null
+    adapterMode            = $null
+    healedRefCount         = 0
+    healedRefTargets       = @()
+    staleRefCount          = 0
+    staleRefTargets        = @()
+    traceCount             = 0
+    retries                = 0
+    disabledSubmitSeen     = $null
+    enabledSubmitSeen      = $null
+    healingObservationSeen = $null
+    healingNoteSeen        = $null
   }
   providerUsage = [ordered]@{
     status                  = "unavailable"
@@ -737,6 +922,18 @@ if (Test-Path $resolvedBadgeDetailsPath) {
       $report.caseWikiRoutingContext = New-CaseWikiRoutingContextSnapshot -Value $badgeDetails.evidence.caseWikiRoutingContext
       $report.statuses.caseWikiRoutingContextStatus = Get-StatusValueOrDefault -Value $report.caseWikiRoutingContext.status -DefaultValue "unavailable"
     }
+    if ($null -ne $badgeDetails.evidence.caseWikiGatewayHydration) {
+      $report.caseWikiGatewayHydration = New-CaseWikiGatewayHydrationSnapshot -Value $badgeDetails.evidence.caseWikiGatewayHydration
+      $report.statuses.caseWikiGatewayHydrationStatus = Get-StatusValueOrDefault -Value $report.caseWikiGatewayHydration.status -DefaultValue "unavailable"
+    }
+    if ($null -ne $badgeDetails.evidence.caseWikiContextAdoption) {
+      $report.caseWikiContextAdoption = New-CaseWikiContextAdoptionSnapshot -Value $badgeDetails.evidence.caseWikiContextAdoption
+      $report.statuses.caseWikiContextAdoptionStatus = Get-StatusValueOrDefault -Value $report.caseWikiContextAdoption.status -DefaultValue "unavailable"
+    }
+    if ($null -ne $badgeDetails.evidence.uiRefHealing) {
+      $report.uiRefHealing = New-UiRefHealingSnapshot -Value $badgeDetails.evidence.uiRefHealing
+      $report.statuses.uiRefHealingStatus = Get-StatusValueOrDefault -Value $report.uiRefHealing.status -DefaultValue "unavailable"
+    }
     if ($null -ne $badgeDetails.providerUsage) {
       $report.providerUsage.status = Get-StatusValueOrDefault -Value $badgeDetails.providerUsage.status -DefaultValue "unavailable"
       $report.statuses.providerUsageStatus = $report.providerUsage.status
@@ -789,6 +986,9 @@ $markdown = @(
   "| hostedDirectLiveProof | $($report.statuses.hostedDirectLiveProofStatus) |",
   "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
   "| caseWikiRoutingContext | $($report.statuses.caseWikiRoutingContextStatus) |",
+  "| caseWikiGatewayHydration | $($report.statuses.caseWikiGatewayHydrationStatus) |",
+  "| caseWikiContextAdoption | $($report.statuses.caseWikiContextAdoptionStatus) |",
+  "| uiRefHealing | $($report.statuses.uiRefHealingStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",
@@ -885,6 +1085,55 @@ $markdown = @(
   "- mode: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.mode)) { "n/a" } else { [string]$report.caseWikiRoutingContext.mode })",
   "- requestedIntent: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.requestedIntent)) { "n/a" } else { [string]$report.caseWikiRoutingContext.requestedIntent })",
   "- routedIntent: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiRoutingContext.routedIntent)) { "n/a" } else { [string]$report.caseWikiRoutingContext.routedIntent })",
+  "",
+  "## Case Wiki Gateway Hydration Snapshot",
+  "",
+  "- status: $($report.caseWikiGatewayHydration.status)",
+  "- validated: $($report.caseWikiGatewayHydration.validated)",
+  "- observed: $($report.caseWikiGatewayHydration.observed)",
+  "- sessionId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.sessionId)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.sessionId })",
+  "- noteEventId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.noteEventId)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.noteEventId })",
+  "- questionId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.questionId)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.questionId })",
+  "- questionMatched: $(if ($null -eq $report.caseWikiGatewayHydration.questionMatched) { "n/a" } else { [string]$report.caseWikiGatewayHydration.questionMatched })",
+  "- noteSourceRefSeen: $(if ($null -eq $report.caseWikiGatewayHydration.noteSourceRefSeen) { "n/a" } else { [string]$report.caseWikiGatewayHydration.noteSourceRefSeen })",
+  "- questionSuggestedNextStep: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.questionSuggestedNextStep)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.questionSuggestedNextStep })",
+  "- contextSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.contextSource)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.contextSource })",
+  "- focusId: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.focusId)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.focusId })",
+  "- blocker: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.blocker)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.blocker })",
+  "- nextAction: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.nextAction)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.nextAction })",
+  "- route: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.route)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.route })",
+  "- mode: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.mode)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.mode })",
+  "- requestedIntent: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.requestedIntent)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.requestedIntent })",
+  "- routedIntent: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiGatewayHydration.routedIntent)) { "n/a" } else { [string]$report.caseWikiGatewayHydration.routedIntent })",
+  "",
+  "## Case Wiki Context Adoption Snapshot",
+  "",
+  "- status: $($report.caseWikiContextAdoption.status)",
+  "- validated: $($report.caseWikiContextAdoption.validated)",
+  "- observed: $($report.caseWikiContextAdoption.observed)",
+  "- observedCount: $($report.caseWikiContextAdoption.observedCount)",
+  "- caseWikiObservedCount: $($report.caseWikiContextAdoption.caseWikiObservedCount)",
+  "- inputOnlyObservedCount: $($report.caseWikiContextAdoption.inputOnlyObservedCount)",
+  "- unknownObservedCount: $($report.caseWikiContextAdoption.unknownObservedCount)",
+  "- caseWikiRate: $(if ($null -eq $report.caseWikiContextAdoption.caseWikiRate) { "n/a" } else { [string]$report.caseWikiContextAdoption.caseWikiRate })",
+  "",
+  "## UI Ref Healing Snapshot",
+  "",
+  "- status: $($report.uiRefHealing.status)",
+  "- validated: $($report.uiRefHealing.validated)",
+  "- observed: $($report.uiRefHealing.observed)",
+  "- finalStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.uiRefHealing.finalStatus)) { "n/a" } else { [string]$report.uiRefHealing.finalStatus })",
+  "- adapterMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.uiRefHealing.adapterMode)) { "n/a" } else { [string]$report.uiRefHealing.adapterMode })",
+  "- healedRefCount: $($report.uiRefHealing.healedRefCount)",
+  "- healedRefTargets: $(if (@($report.uiRefHealing.healedRefTargets).Count -eq 0) { "(none)" } else { (@($report.uiRefHealing.healedRefTargets) -join ", ") })",
+  "- staleRefCount: $($report.uiRefHealing.staleRefCount)",
+  "- staleRefTargets: $(if (@($report.uiRefHealing.staleRefTargets).Count -eq 0) { "(none)" } else { (@($report.uiRefHealing.staleRefTargets) -join ", ") })",
+  "- traceCount: $($report.uiRefHealing.traceCount)",
+  "- retries: $($report.uiRefHealing.retries)",
+  "- disabledSubmitSeen: $(if ($null -eq $report.uiRefHealing.disabledSubmitSeen) { "n/a" } else { [string]$report.uiRefHealing.disabledSubmitSeen })",
+  "- enabledSubmitSeen: $(if ($null -eq $report.uiRefHealing.enabledSubmitSeen) { "n/a" } else { [string]$report.uiRefHealing.enabledSubmitSeen })",
+  "- healingObservationSeen: $(if ($null -eq $report.uiRefHealing.healingObservationSeen) { "n/a" } else { [string]$report.uiRefHealing.healingObservationSeen })",
+  "- healingNoteSeen: $(if ($null -eq $report.uiRefHealing.healingNoteSeen) { "n/a" } else { [string]$report.uiRefHealing.healingNoteSeen })",
   "",
   "## Secondary Provider Usage",
   "",
@@ -989,6 +1238,52 @@ $manifest = [ordered]@{
     requestedIntent = $report.caseWikiRoutingContext.requestedIntent
     routedIntent    = $report.caseWikiRoutingContext.routedIntent
   }
+  caseWikiGatewayHydration = [ordered]@{
+    status                    = $report.caseWikiGatewayHydration.status
+    validated                 = $report.caseWikiGatewayHydration.validated
+    observed                  = $report.caseWikiGatewayHydration.observed
+    sessionId                 = $report.caseWikiGatewayHydration.sessionId
+    noteEventId               = $report.caseWikiGatewayHydration.noteEventId
+    questionId                = $report.caseWikiGatewayHydration.questionId
+    questionMatched           = $report.caseWikiGatewayHydration.questionMatched
+    noteSourceRefSeen         = $report.caseWikiGatewayHydration.noteSourceRefSeen
+    questionSuggestedNextStep = $report.caseWikiGatewayHydration.questionSuggestedNextStep
+    contextSource             = $report.caseWikiGatewayHydration.contextSource
+    focusId                   = $report.caseWikiGatewayHydration.focusId
+    blocker                   = $report.caseWikiGatewayHydration.blocker
+    nextAction                = $report.caseWikiGatewayHydration.nextAction
+    route                     = $report.caseWikiGatewayHydration.route
+    mode                      = $report.caseWikiGatewayHydration.mode
+    requestedIntent           = $report.caseWikiGatewayHydration.requestedIntent
+    routedIntent              = $report.caseWikiGatewayHydration.routedIntent
+  }
+  caseWikiContextAdoption = [ordered]@{
+    status                 = $report.caseWikiContextAdoption.status
+    validated              = $report.caseWikiContextAdoption.validated
+    observed               = $report.caseWikiContextAdoption.observed
+    observedCount          = $report.caseWikiContextAdoption.observedCount
+    caseWikiObservedCount  = $report.caseWikiContextAdoption.caseWikiObservedCount
+    inputOnlyObservedCount = $report.caseWikiContextAdoption.inputOnlyObservedCount
+    unknownObservedCount   = $report.caseWikiContextAdoption.unknownObservedCount
+    caseWikiRate           = $report.caseWikiContextAdoption.caseWikiRate
+  }
+  uiRefHealing = [ordered]@{
+    status                 = $report.uiRefHealing.status
+    validated              = $report.uiRefHealing.validated
+    observed               = $report.uiRefHealing.observed
+    finalStatus            = $report.uiRefHealing.finalStatus
+    adapterMode            = $report.uiRefHealing.adapterMode
+    healedRefCount         = $report.uiRefHealing.healedRefCount
+    healedRefTargets       = @($report.uiRefHealing.healedRefTargets)
+    staleRefCount          = $report.uiRefHealing.staleRefCount
+    staleRefTargets        = @($report.uiRefHealing.staleRefTargets)
+    traceCount             = $report.uiRefHealing.traceCount
+    retries                = $report.uiRefHealing.retries
+    disabledSubmitSeen     = $report.uiRefHealing.disabledSubmitSeen
+    enabledSubmitSeen      = $report.uiRefHealing.enabledSubmitSeen
+    healingObservationSeen = $report.uiRefHealing.healingObservationSeen
+    healingNoteSeen        = $report.uiRefHealing.healingNoteSeen
+  }
   artifacts     = $artifactEntries
   submissionAssets = @(
     [ordered]@{
@@ -1053,6 +1348,9 @@ $manifestMarkdown = @(
   "| hostedDirectLiveProof | $($report.statuses.hostedDirectLiveProofStatus) |",
   "| caseWikiEvidenceSignature | $($report.statuses.caseWikiEvidenceSignatureStatus) |",
   "| caseWikiRoutingContext | $($report.statuses.caseWikiRoutingContextStatus) |",
+  "| caseWikiGatewayHydration | $($report.statuses.caseWikiGatewayHydrationStatus) |",
+  "| caseWikiContextAdoption | $($report.statuses.caseWikiContextAdoptionStatus) |",
+  "| uiRefHealing | $($report.statuses.uiRefHealingStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",
@@ -1098,6 +1396,61 @@ $manifestMarkdown = @(
   "| mode | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.mode)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.mode }) |",
   "| requestedIntent | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.requestedIntent)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.requestedIntent }) |",
   "| routedIntent | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiRoutingContext.routedIntent)) { "n/a" } else { [string]$manifest.caseWikiRoutingContext.routedIntent }) |",
+  "",
+  "## Case Wiki Gateway Hydration",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.caseWikiGatewayHydration.status) |",
+  "| validated | $($manifest.caseWikiGatewayHydration.validated) |",
+  "| observed | $($manifest.caseWikiGatewayHydration.observed) |",
+  "| sessionId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.sessionId)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.sessionId }) |",
+  "| noteEventId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.noteEventId)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.noteEventId }) |",
+  "| questionId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.questionId)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.questionId }) |",
+  "| questionMatched | $(if ($null -eq $manifest.caseWikiGatewayHydration.questionMatched) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.questionMatched }) |",
+  "| noteSourceRefSeen | $(if ($null -eq $manifest.caseWikiGatewayHydration.noteSourceRefSeen) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.noteSourceRefSeen }) |",
+  "| questionSuggestedNextStep | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.questionSuggestedNextStep)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.questionSuggestedNextStep }) |",
+  "| contextSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.contextSource)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.contextSource }) |",
+  "| focusId | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.focusId)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.focusId }) |",
+  "| blocker | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.blocker)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.blocker }) |",
+  "| nextAction | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.nextAction)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.nextAction }) |",
+  "| route | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.route)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.route }) |",
+  "| mode | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.mode)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.mode }) |",
+  "| requestedIntent | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.requestedIntent)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.requestedIntent }) |",
+  "| routedIntent | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiGatewayHydration.routedIntent)) { "n/a" } else { [string]$manifest.caseWikiGatewayHydration.routedIntent }) |",
+  "",
+  "## Case Wiki Context Adoption",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.caseWikiContextAdoption.status) |",
+  "| validated | $($manifest.caseWikiContextAdoption.validated) |",
+  "| observed | $($manifest.caseWikiContextAdoption.observed) |",
+  "| observedCount | $($manifest.caseWikiContextAdoption.observedCount) |",
+  "| caseWikiObservedCount | $($manifest.caseWikiContextAdoption.caseWikiObservedCount) |",
+  "| inputOnlyObservedCount | $($manifest.caseWikiContextAdoption.inputOnlyObservedCount) |",
+  "| unknownObservedCount | $($manifest.caseWikiContextAdoption.unknownObservedCount) |",
+  "| caseWikiRate | $(if ($null -eq $manifest.caseWikiContextAdoption.caseWikiRate) { "n/a" } else { [string]$manifest.caseWikiContextAdoption.caseWikiRate }) |",
+  "",
+  "## UI Ref Healing",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.uiRefHealing.status) |",
+  "| validated | $($manifest.uiRefHealing.validated) |",
+  "| observed | $($manifest.uiRefHealing.observed) |",
+  "| finalStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.uiRefHealing.finalStatus)) { "n/a" } else { [string]$manifest.uiRefHealing.finalStatus }) |",
+  "| adapterMode | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.uiRefHealing.adapterMode)) { "n/a" } else { [string]$manifest.uiRefHealing.adapterMode }) |",
+  "| healedRefCount | $($manifest.uiRefHealing.healedRefCount) |",
+  "| healedRefTargets | $(if (@($manifest.uiRefHealing.healedRefTargets).Count -eq 0) { "(none)" } else { (@($manifest.uiRefHealing.healedRefTargets) -join ", ") }) |",
+  "| staleRefCount | $($manifest.uiRefHealing.staleRefCount) |",
+  "| staleRefTargets | $(if (@($manifest.uiRefHealing.staleRefTargets).Count -eq 0) { "(none)" } else { (@($manifest.uiRefHealing.staleRefTargets) -join ", ") }) |",
+  "| traceCount | $($manifest.uiRefHealing.traceCount) |",
+  "| retries | $($manifest.uiRefHealing.retries) |",
+  "| disabledSubmitSeen | $(if ($null -eq $manifest.uiRefHealing.disabledSubmitSeen) { "n/a" } else { [string]$manifest.uiRefHealing.disabledSubmitSeen }) |",
+  "| enabledSubmitSeen | $(if ($null -eq $manifest.uiRefHealing.enabledSubmitSeen) { "n/a" } else { [string]$manifest.uiRefHealing.enabledSubmitSeen }) |",
+  "| healingObservationSeen | $(if ($null -eq $manifest.uiRefHealing.healingObservationSeen) { "n/a" } else { [string]$manifest.uiRefHealing.healingObservationSeen }) |",
+  "| healingNoteSeen | $(if ($null -eq $manifest.uiRefHealing.healingNoteSeen) { "n/a" } else { [string]$manifest.uiRefHealing.healingNoteSeen }) |",
   "",
   "## Artifact Inventory",
   "",

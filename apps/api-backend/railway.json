@@ -1,7 +1,6 @@
 {
-  "$schema": "https://railway.app/railway.schema.json",
+  "$schema": "https://railway.com/railway.schema.json",
   "build": {
-    "builder": "RAILPACK",
     "buildCommand": "echo \"[api-backend] skip compile build; runtime starts from tsx source\""
   },
   "deploy": {

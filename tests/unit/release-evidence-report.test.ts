@@ -97,6 +97,52 @@ test(
           requestedIntent: "conversation",
           routedIntent: "conversation",
         },
+        caseWikiGatewayHydration: {
+          status: "pass",
+          validated: true,
+          observed: true,
+          sessionId: "session-hydration-123",
+          noteEventId: "event-case-wiki-note-123",
+          questionId: "question:operator-note:event-case-wiki-note-123",
+          questionMatched: true,
+          noteSourceRefSeen: true,
+          questionSuggestedNextStep: "Request passport scan",
+          contextSource: "case_wiki",
+          focusId: "question:operator-note:event-case-wiki-note-123",
+          blocker: "Need passport scan",
+          nextAction: "Request passport scan",
+          route: "live-agent",
+          mode: "assistive_override",
+          requestedIntent: "conversation",
+          routedIntent: "conversation",
+        },
+        caseWikiContextAdoption: {
+          status: "pass",
+          validated: true,
+          observed: true,
+          observedCount: 21,
+          caseWikiObservedCount: 20,
+          inputOnlyObservedCount: 1,
+          unknownObservedCount: 0,
+          caseWikiRate: 0.952381,
+        },
+        uiRefHealing: {
+          status: "pass",
+          validated: true,
+          observed: true,
+          finalStatus: "completed",
+          adapterMode: "remote_http",
+          healedRefCount: 2,
+          healedRefTargets: ["email", "submit_primary"],
+          staleRefCount: 0,
+          staleRefTargets: [],
+          traceCount: 5,
+          retries: 0,
+          disabledSubmitSeen: true,
+          enabledSubmitSeen: true,
+          healingObservationSeen: true,
+          healingNoteSeen: true,
+        },
       },
       providerUsage: {
         status: "pass",
@@ -164,7 +210,12 @@ test(
     assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
 
     const report = JSON.parse(readFileSync(outputJsonPath, "utf8")) as {
-      statuses: { hostedDirectLiveProofStatus?: string };
+      statuses: {
+        hostedDirectLiveProofStatus?: string;
+        caseWikiGatewayHydrationStatus?: string;
+        caseWikiContextAdoptionStatus?: string;
+        uiRefHealingStatus?: string;
+      };
       hostedDirectLiveProof: {
         observed?: boolean;
         apiPublicUrlSource?: string;
@@ -174,8 +225,54 @@ test(
         caseWikiSignatureStatus?: string | null;
         latencyObserved?: boolean;
       };
+      caseWikiGatewayHydration: {
+        status?: string;
+        validated?: boolean;
+        observed?: boolean;
+        sessionId?: string | null;
+        noteEventId?: string | null;
+        questionId?: string | null;
+        questionMatched?: boolean | null;
+        noteSourceRefSeen?: boolean | null;
+        questionSuggestedNextStep?: string | null;
+        contextSource?: string | null;
+        focusId?: string | null;
+        blocker?: string | null;
+        nextAction?: string | null;
+        route?: string | null;
+        mode?: string | null;
+        requestedIntent?: string | null;
+        routedIntent?: string | null;
+      };
+      caseWikiContextAdoption: {
+        status?: string;
+        observedCount?: number;
+        caseWikiObservedCount?: number;
+        inputOnlyObservedCount?: number;
+        caseWikiRate?: number | null;
+      };
+      uiRefHealing: {
+        status?: string;
+        validated?: boolean;
+        observed?: boolean;
+        finalStatus?: string | null;
+        adapterMode?: string | null;
+        healedRefCount?: number;
+        healedRefTargets?: string[];
+        staleRefCount?: number;
+        staleRefTargets?: string[];
+        traceCount?: number;
+        retries?: number;
+        disabledSubmitSeen?: boolean | null;
+        enabledSubmitSeen?: boolean | null;
+        healingObservationSeen?: boolean | null;
+        healingNoteSeen?: boolean | null;
+      };
     };
     assert.equal(report.statuses.hostedDirectLiveProofStatus, "pass");
+    assert.equal(report.statuses.caseWikiGatewayHydrationStatus, "pass");
+    assert.equal(report.statuses.caseWikiContextAdoptionStatus, "pass");
+    assert.equal(report.statuses.uiRefHealingStatus, "pass");
     assert.equal(report.hostedDirectLiveProof.observed, true);
     assert.equal(report.hostedDirectLiveProof.apiPublicUrlSource, "frontend_config");
     assert.equal(report.hostedDirectLiveProof.replayEvidenceSource, "session_events");
@@ -183,9 +280,51 @@ test(
     assert.equal(report.hostedDirectLiveProof.firstOutputMs, 410);
     assert.equal(report.hostedDirectLiveProof.caseWikiSignatureStatus, "signed");
     assert.equal(report.hostedDirectLiveProof.latencyObserved, true);
+    assert.equal(report.caseWikiGatewayHydration.status, "pass");
+    assert.equal(report.caseWikiGatewayHydration.validated, true);
+    assert.equal(report.caseWikiGatewayHydration.observed, true);
+    assert.equal(report.caseWikiGatewayHydration.sessionId, "session-hydration-123");
+    assert.equal(report.caseWikiGatewayHydration.noteEventId, "event-case-wiki-note-123");
+    assert.equal(report.caseWikiGatewayHydration.questionId, "question:operator-note:event-case-wiki-note-123");
+    assert.equal(report.caseWikiGatewayHydration.questionMatched, true);
+    assert.equal(report.caseWikiGatewayHydration.noteSourceRefSeen, true);
+    assert.equal(report.caseWikiGatewayHydration.questionSuggestedNextStep, "Request passport scan");
+    assert.equal(report.caseWikiGatewayHydration.contextSource, "case_wiki");
+    assert.equal(report.caseWikiGatewayHydration.focusId, "question:operator-note:event-case-wiki-note-123");
+    assert.equal(report.caseWikiGatewayHydration.blocker, "Need passport scan");
+    assert.equal(report.caseWikiGatewayHydration.nextAction, "Request passport scan");
+    assert.equal(report.caseWikiGatewayHydration.route, "live-agent");
+    assert.equal(report.caseWikiGatewayHydration.mode, "assistive_override");
+    assert.equal(report.caseWikiGatewayHydration.requestedIntent, "conversation");
+    assert.equal(report.caseWikiGatewayHydration.routedIntent, "conversation");
+    assert.equal(report.caseWikiContextAdoption.status, "pass");
+    assert.equal(report.caseWikiContextAdoption.observedCount, 21);
+    assert.equal(report.caseWikiContextAdoption.caseWikiObservedCount, 20);
+    assert.equal(report.caseWikiContextAdoption.inputOnlyObservedCount, 1);
+    assert.equal(report.caseWikiContextAdoption.caseWikiRate, 0.952381);
+    assert.equal(report.uiRefHealing.status, "pass");
+    assert.equal(report.uiRefHealing.validated, true);
+    assert.equal(report.uiRefHealing.observed, true);
+    assert.equal(report.uiRefHealing.finalStatus, "completed");
+    assert.equal(report.uiRefHealing.adapterMode, "remote_http");
+    assert.equal(report.uiRefHealing.healedRefCount, 2);
+    assert.deepEqual(report.uiRefHealing.healedRefTargets, ["email", "submit_primary"]);
+    assert.equal(report.uiRefHealing.staleRefCount, 0);
+    assert.deepEqual(report.uiRefHealing.staleRefTargets, []);
+    assert.equal(report.uiRefHealing.traceCount, 5);
+    assert.equal(report.uiRefHealing.retries, 0);
+    assert.equal(report.uiRefHealing.disabledSubmitSeen, true);
+    assert.equal(report.uiRefHealing.enabledSubmitSeen, true);
+    assert.equal(report.uiRefHealing.healingObservationSeen, true);
+    assert.equal(report.uiRefHealing.healingNoteSeen, true);
 
     const manifest = JSON.parse(readFileSync(outputManifestJsonPath, "utf8")) as {
-      criticalEvidenceStatuses: { hostedDirectLiveProofStatus?: string };
+      criticalEvidenceStatuses: {
+        hostedDirectLiveProofStatus?: string;
+        caseWikiGatewayHydrationStatus?: string;
+        caseWikiContextAdoptionStatus?: string;
+        uiRefHealingStatus?: string;
+      };
       hostedDirectLiveProof: {
         observed?: boolean;
         replayEvidenceSource?: string | null;
@@ -194,15 +333,98 @@ test(
         caseWikiSignatureStatus?: string | null;
         latencyObserved?: boolean;
       };
+      caseWikiGatewayHydration: {
+        status?: string;
+        validated?: boolean;
+        observed?: boolean;
+        sessionId?: string | null;
+        noteEventId?: string | null;
+        questionId?: string | null;
+        questionMatched?: boolean | null;
+        noteSourceRefSeen?: boolean | null;
+        questionSuggestedNextStep?: string | null;
+        contextSource?: string | null;
+        focusId?: string | null;
+        blocker?: string | null;
+        nextAction?: string | null;
+        route?: string | null;
+        mode?: string | null;
+        requestedIntent?: string | null;
+        routedIntent?: string | null;
+      };
+      caseWikiContextAdoption: {
+        status?: string;
+        observedCount?: number;
+        caseWikiObservedCount?: number;
+        inputOnlyObservedCount?: number;
+        caseWikiRate?: number | null;
+      };
+      uiRefHealing: {
+        status?: string;
+        validated?: boolean;
+        observed?: boolean;
+        finalStatus?: string | null;
+        adapterMode?: string | null;
+        healedRefCount?: number;
+        healedRefTargets?: string[];
+        staleRefCount?: number;
+        staleRefTargets?: string[];
+        traceCount?: number;
+        retries?: number;
+        disabledSubmitSeen?: boolean | null;
+        enabledSubmitSeen?: boolean | null;
+        healingObservationSeen?: boolean | null;
+        healingNoteSeen?: boolean | null;
+      };
       artifacts: Array<{ id?: string; present?: boolean }>;
     };
     assert.equal(manifest.criticalEvidenceStatuses.hostedDirectLiveProofStatus, "pass");
+    assert.equal(manifest.criticalEvidenceStatuses.caseWikiGatewayHydrationStatus, "pass");
+    assert.equal(manifest.criticalEvidenceStatuses.caseWikiContextAdoptionStatus, "pass");
+    assert.equal(manifest.criticalEvidenceStatuses.uiRefHealingStatus, "pass");
     assert.equal(manifest.hostedDirectLiveProof.observed, true);
     assert.equal(manifest.hostedDirectLiveProof.replayEvidenceSource, "session_events");
     assert.equal(manifest.hostedDirectLiveProof.firstAudioMs, 640);
     assert.equal(manifest.hostedDirectLiveProof.firstOutputMs, 410);
     assert.equal(manifest.hostedDirectLiveProof.caseWikiSignatureStatus, "signed");
     assert.equal(manifest.hostedDirectLiveProof.latencyObserved, true);
+    assert.equal(manifest.caseWikiGatewayHydration.status, "pass");
+    assert.equal(manifest.caseWikiGatewayHydration.validated, true);
+    assert.equal(manifest.caseWikiGatewayHydration.observed, true);
+    assert.equal(manifest.caseWikiGatewayHydration.sessionId, "session-hydration-123");
+    assert.equal(manifest.caseWikiGatewayHydration.noteEventId, "event-case-wiki-note-123");
+    assert.equal(manifest.caseWikiGatewayHydration.questionId, "question:operator-note:event-case-wiki-note-123");
+    assert.equal(manifest.caseWikiGatewayHydration.questionMatched, true);
+    assert.equal(manifest.caseWikiGatewayHydration.noteSourceRefSeen, true);
+    assert.equal(manifest.caseWikiGatewayHydration.questionSuggestedNextStep, "Request passport scan");
+    assert.equal(manifest.caseWikiGatewayHydration.contextSource, "case_wiki");
+    assert.equal(manifest.caseWikiGatewayHydration.focusId, "question:operator-note:event-case-wiki-note-123");
+    assert.equal(manifest.caseWikiGatewayHydration.blocker, "Need passport scan");
+    assert.equal(manifest.caseWikiGatewayHydration.nextAction, "Request passport scan");
+    assert.equal(manifest.caseWikiGatewayHydration.route, "live-agent");
+    assert.equal(manifest.caseWikiGatewayHydration.mode, "assistive_override");
+    assert.equal(manifest.caseWikiGatewayHydration.requestedIntent, "conversation");
+    assert.equal(manifest.caseWikiGatewayHydration.routedIntent, "conversation");
+    assert.equal(manifest.caseWikiContextAdoption.status, "pass");
+    assert.equal(manifest.caseWikiContextAdoption.observedCount, 21);
+    assert.equal(manifest.caseWikiContextAdoption.caseWikiObservedCount, 20);
+    assert.equal(manifest.caseWikiContextAdoption.inputOnlyObservedCount, 1);
+    assert.equal(manifest.caseWikiContextAdoption.caseWikiRate, 0.952381);
+    assert.equal(manifest.uiRefHealing.status, "pass");
+    assert.equal(manifest.uiRefHealing.validated, true);
+    assert.equal(manifest.uiRefHealing.observed, true);
+    assert.equal(manifest.uiRefHealing.finalStatus, "completed");
+    assert.equal(manifest.uiRefHealing.adapterMode, "remote_http");
+    assert.equal(manifest.uiRefHealing.healedRefCount, 2);
+    assert.deepEqual(manifest.uiRefHealing.healedRefTargets, ["email", "submit_primary"]);
+    assert.equal(manifest.uiRefHealing.staleRefCount, 0);
+    assert.deepEqual(manifest.uiRefHealing.staleRefTargets, []);
+    assert.equal(manifest.uiRefHealing.traceCount, 5);
+    assert.equal(manifest.uiRefHealing.retries, 0);
+    assert.equal(manifest.uiRefHealing.disabledSubmitSeen, true);
+    assert.equal(manifest.uiRefHealing.enabledSubmitSeen, true);
+    assert.equal(manifest.uiRefHealing.healingObservationSeen, true);
+    assert.equal(manifest.uiRefHealing.healingNoteSeen, true);
     assert.equal(
       manifest.artifacts.find((entry) => entry.id === "deploy.directLiveProofJson")?.present,
       true,
@@ -212,10 +434,133 @@ test(
     assert.match(reportMarkdown, /## Hosted Direct-Live Proof Snapshot/);
     assert.match(reportMarkdown, /- firstAudioMs: 640/);
     assert.match(reportMarkdown, /- firstOutputMs: 410/);
+    assert.match(reportMarkdown, /## Case Wiki Gateway Hydration Snapshot/);
+    assert.match(reportMarkdown, /- sessionId: session-hydration-123/);
+    assert.match(reportMarkdown, /## Case Wiki Context Adoption Snapshot/);
+    assert.match(reportMarkdown, /- observedCount: 21/);
+    assert.match(reportMarkdown, /## UI Ref Healing Snapshot/);
+    assert.match(reportMarkdown, /- healedRefTargets: email, submit_primary/);
 
     const manifestMarkdown = readFileSync(outputManifestMarkdownPath, "utf8");
     assert.match(manifestMarkdown, /## Hosted Direct-Live Proof/);
     assert.match(manifestMarkdown, /\| firstAudioMs \| 640 \|/);
     assert.match(manifestMarkdown, /\| firstOutputMs \| 410 \|/);
+    assert.match(manifestMarkdown, /## Case Wiki Gateway Hydration/);
+    assert.match(manifestMarkdown, /\| sessionId \| session-hydration-123 \|/);
+    assert.match(manifestMarkdown, /## Case Wiki Context Adoption/);
+    assert.match(manifestMarkdown, /\| observedCount \| 21 \|/);
+    assert.match(manifestMarkdown, /## UI Ref Healing/);
+    assert.match(manifestMarkdown, /\| healedRefTargets \| email, submit_primary \|/);
+  },
+);
+
+test(
+  "release evidence report normalizes legacy unsigned case wiki signature evidence from pass to warn",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), "release-evidence-report-unsigned-signature-"));
+    const badgeDetailsPath = join(tempRoot, "artifacts", "demo-e2e", "badge-details.json");
+    const outputJsonPath = join(tempRoot, "artifacts", "release-evidence", "report.json");
+    const outputMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "report.md");
+    const outputManifestJsonPath = join(tempRoot, "artifacts", "release-evidence", "manifest.json");
+    const outputManifestMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "manifest.md");
+
+    writeJson(badgeDetailsPath, {
+      evidence: {
+        caseWikiEvidenceSignature: {
+          status: "pass",
+          validated: true,
+          totalArtifacts: 1,
+          signedArtifacts: 0,
+          unsignedArtifacts: 1,
+          signatureStatus: "unsigned",
+          algorithm: "ed25519-sha256",
+          canonicalization: "json-stable-v1",
+          payloadHash: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          signerId: "api-backend",
+          signedAt: "2026-04-14T09:00:00.000Z",
+          signedAtIsIso: true,
+          signaturePresent: false,
+          caseId: "case-unsigned-123",
+          sessionId: "session-unsigned-123",
+          overviewStatus: "waiting_on_operator",
+          nextAction: "Resolve pending approval",
+          sourceRefsCount: 0,
+        },
+      },
+    });
+
+    const result = spawnSync(
+      powershellBin!,
+      [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        releaseEvidenceReportScriptPath,
+        "-BadgeDetailsPath",
+        badgeDetailsPath,
+        "-OutputJsonPath",
+        outputJsonPath,
+        "-OutputMarkdownPath",
+        outputMarkdownPath,
+        "-OutputManifestJsonPath",
+        outputManifestJsonPath,
+        "-OutputManifestMarkdownPath",
+        outputManifestMarkdownPath,
+      ],
+      {
+        cwd: tempRoot,
+        encoding: "utf8",
+      },
+    );
+
+    assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+
+    const report = JSON.parse(readFileSync(outputJsonPath, "utf8")) as {
+      statuses: { caseWikiEvidenceSignatureStatus?: string };
+      caseWikiEvidenceSignature: {
+        status?: string;
+        validated?: boolean;
+        signatureStatus?: string | null;
+        signedArtifacts?: number;
+        unsignedArtifacts?: number;
+        signaturePresent?: boolean | null;
+      };
+    };
+    assert.equal(report.statuses.caseWikiEvidenceSignatureStatus, "warn");
+    assert.equal(report.caseWikiEvidenceSignature.status, "warn");
+    assert.equal(report.caseWikiEvidenceSignature.validated, true);
+    assert.equal(report.caseWikiEvidenceSignature.signatureStatus, "unsigned");
+    assert.equal(report.caseWikiEvidenceSignature.signedArtifacts, 0);
+    assert.equal(report.caseWikiEvidenceSignature.unsignedArtifacts, 1);
+    assert.equal(report.caseWikiEvidenceSignature.signaturePresent, false);
+
+    const manifest = JSON.parse(readFileSync(outputManifestJsonPath, "utf8")) as {
+      criticalEvidenceStatuses: { caseWikiEvidenceSignatureStatus?: string };
+      caseWikiEvidenceSignature: {
+        status?: string;
+        signatureStatus?: string | null;
+        signedArtifacts?: number;
+        unsignedArtifacts?: number;
+      };
+    };
+    assert.equal(manifest.criticalEvidenceStatuses.caseWikiEvidenceSignatureStatus, "warn");
+    assert.equal(manifest.caseWikiEvidenceSignature.status, "warn");
+    assert.equal(manifest.caseWikiEvidenceSignature.signatureStatus, "unsigned");
+    assert.equal(manifest.caseWikiEvidenceSignature.signedArtifacts, 0);
+    assert.equal(manifest.caseWikiEvidenceSignature.unsignedArtifacts, 1);
+
+    const reportMarkdown = readFileSync(outputMarkdownPath, "utf8");
+    assert.match(reportMarkdown, /\| caseWikiEvidenceSignature \| warn \|/);
+    assert.match(reportMarkdown, /## Case Wiki Evidence Signature Snapshot/);
+    assert.match(reportMarkdown, /- status: warn/);
+    assert.match(reportMarkdown, /- signatureStatus: unsigned/);
+
+    const manifestMarkdown = readFileSync(outputManifestMarkdownPath, "utf8");
+    assert.match(manifestMarkdown, /\| caseWikiEvidenceSignature \| warn \|/);
+    assert.match(manifestMarkdown, /## Case Wiki Evidence Signature/);
+    assert.match(manifestMarkdown, /\| status \| warn \|/);
+    assert.match(manifestMarkdown, /\| signatureStatus \| unsigned \|/);
   },
 );

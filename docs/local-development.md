@@ -24,6 +24,11 @@ npm run dev:ui-executor
 npm run dev:frontend
 ```
 
+`apps/realtime-gateway` pulls compiled Case Wiki snapshots from `apps/api-backend`
+before dispatching `orchestrator.request`. Local development assumes
+`API_BACKEND_BASE_URL=http://localhost:8081`; override that env var if your API
+is bound elsewhere.
+
 Frontend: `http://localhost:3000`
 
 ## Dev Cost Profiles
@@ -83,6 +88,14 @@ Key knobs:
 When enabled, the session pool is surfaced in `GET /status` and
 `GET /runtime/config`, and background browser job metadata now reports explicit
 session state (`ephemeral`, `pending`, `ready`, `released`, `closed`, `expired`).
+Stable `ref:` targets now also get one stale-selector recovery pass from
+`refMap` id/name/label hints before the executor surfaces `staleRefTargets`.
+Successful recoveries are reported through `grounding.healedRefTargets`, while
+unresolved cases still return the usual `Refresh snapshot and rerun` hint.
+`npm run demo:e2e` now includes one deterministic `/execute` proof on the local
+profile-settings fixture so `badge-details.json` and unified release evidence
+show the healed ids, zero residual stale refs, and the disabled-to-enabled
+submit transition from the same real Playwright run.
 
 ## GCP Judge Runtime
 
@@ -157,14 +170,30 @@ For local `Research` runs, skill directives stay in provider context instead of 
 
 ## Runtime Evidence Signing
 
-`GET /v1/runtime/case-wiki` always emits `evidenceSignature.payloadHash` as a canonical SHA256 over the Case Wiki snapshot without the signature field. To sign snapshots locally, configure:
+`GET /v1/runtime/case-wiki` and `GET /v1/runtime/session-replay` always emit `evidenceSignature.payloadHash` as a canonical SHA256 over the snapshot without the signature field. To sign snapshots locally, configure:
 
 1. `RUNTIME_EVIDENCE_SIGNING_ENABLED=true`
 2. `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM` or `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64`
 3. `RUNTIME_EVIDENCE_SIGNING_KEY_ID=local-dev-key`
 4. `RUNTIME_EVIDENCE_SIGNING_SIGNER_ID=api-backend`
 
-Without a private key, snapshots stay `unsigned` but keep the canonical hash for deterministic artifact comparison.
+Fast bootstrap:
+
+```bash
+npm run runtime:evidence:keygen -- --outputDir ./.credentials/runtime-evidence-signing --keyId local-dev-key
+```
+
+The helper writes:
+
+1. `.credentials/runtime-evidence-signing/runtime-evidence-private-key.pem`
+2. `.credentials/runtime-evidence-signing/runtime-evidence-private-key.base64.txt`
+3. `.credentials/runtime-evidence-signing/runtime-evidence-public-key.pem`
+4. `.credentials/runtime-evidence-signing/runtime-evidence.env`
+5. `.credentials/runtime-evidence-signing/runtime-evidence-summary.json`
+
+Use `runtime-evidence.env` for local `.env` bootstrapping, or paste the contents of `runtime-evidence-private-key.base64.txt` into `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64` for Railway/GitHub secrets. Re-running the helper against the same output path requires `--overwrite true` so accidental key rotation is explicit.
+
+Without a private key, snapshots stay `unsigned` but keep the canonical hash for deterministic artifact comparison. `GET /v1/runtime/diagnostics` reflects the same signer posture and will raise `evidence_signing_key_unavailable` when signing is enabled but the key is missing or invalid.
 
 ## Storyteller Secondary Media Paths
 

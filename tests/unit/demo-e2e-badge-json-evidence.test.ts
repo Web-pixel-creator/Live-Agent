@@ -138,6 +138,40 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         caseWikiRoutingContextMode: "assistive_override",
         caseWikiRoutingContextRequestedIntent: "conversation",
         caseWikiRoutingContextRoutedIntent: "negotiation",
+        caseWikiGatewayHydrationValidated: true,
+        caseWikiGatewayHydrationSessionId: "session-hydration-042",
+        caseWikiGatewayHydrationNoteEventId: "event-case-wiki-note-042",
+        caseWikiGatewayHydrationQuestionId: "question:operator-note:event-case-wiki-note-042",
+        caseWikiGatewayHydrationQuestionMatched: true,
+        caseWikiGatewayHydrationNoteSourceRefSeen: true,
+        caseWikiGatewayHydrationQuestionSuggestedNextStep: "Request passport scan",
+        caseWikiGatewayHydrationContextSource: "case_wiki",
+        caseWikiGatewayHydrationFocusId: "question:operator-note:event-case-wiki-note-042",
+        caseWikiGatewayHydrationBlocker: "Passport scan is still missing from the case.",
+        caseWikiGatewayHydrationNextAction: "Request passport scan",
+        caseWikiGatewayHydrationRoute: "live-agent",
+        caseWikiGatewayHydrationMode: "assistive_override",
+        caseWikiGatewayHydrationRequestedIntent: "conversation",
+        caseWikiGatewayHydrationRoutedIntent: "conversation",
+        caseWikiContextAdoptionObservedCount: 21,
+        caseWikiContextAdoptionCaseWikiCount: 20,
+        caseWikiContextAdoptionInputOnlyCount: 1,
+        caseWikiContextAdoptionUnknownCount: 0,
+        caseWikiContextAdoptionRate: 0.952381,
+        caseWikiContextAdoptionValidated: true,
+        uiRefHealingFinalStatus: "completed",
+        uiRefHealingAdapterMode: "remote_http",
+        uiRefHealingHealedRefTargets: ["email", "submit_primary"],
+        uiRefHealingHealedRefCount: 2,
+        uiRefHealingStaleRefTargets: [],
+        uiRefHealingStaleRefCount: 0,
+        uiRefHealingTraceCount: 5,
+        uiRefHealingRetries: 0,
+        uiRefHealingDisabledSubmitSeen: true,
+        uiRefHealingEnabledSubmitSeen: true,
+        uiRefHealingObservationSeen: true,
+        uiRefHealingNoteSeen: true,
+        uiRefHealingValidated: true,
         operatorTurnTruncationSummaryValidated: true,
         operatorTurnTruncationExpectedEventSeen: true,
         operatorTurnTruncationTotal: 1,
@@ -427,6 +461,9 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   const runtimeGuardrailsSignalPaths = evidence.runtimeGuardrailsSignalPaths as Record<string, unknown>;
   const caseWikiEvidenceSignature = evidence.caseWikiEvidenceSignature as Record<string, unknown>;
   const caseWikiRoutingContext = evidence.caseWikiRoutingContext as Record<string, unknown>;
+  const caseWikiGatewayHydration = evidence.caseWikiGatewayHydration as Record<string, unknown>;
+  const caseWikiContextAdoption = evidence.caseWikiContextAdoption as Record<string, unknown>;
+  const uiRefHealing = evidence.uiRefHealing as Record<string, unknown>;
   assert.equal(turnTruncation.status, "pass");
   assert.equal(turnDelete.status, "pass");
   assert.equal(damageControl.status, "pass");
@@ -486,7 +523,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
     runtimeGuardrailsSignalPaths.sloSummary,
     "liveFirstAudioP95=1200ms/2500ms | navigatorStepP95=4300ms/25000ms | caseWikiQueryP95=missing",
   );
-  assert.equal(caseWikiEvidenceSignature.status, "pass");
+  assert.equal(caseWikiEvidenceSignature.status, "warn");
   assert.equal(caseWikiEvidenceSignature.validated, true);
   assert.equal(caseWikiEvidenceSignature.totalArtifacts, 1);
   assert.equal(caseWikiEvidenceSignature.signedArtifacts, 0);
@@ -513,6 +550,46 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(caseWikiRoutingContext.mode, "assistive_override");
   assert.equal(caseWikiRoutingContext.requestedIntent, "conversation");
   assert.equal(caseWikiRoutingContext.routedIntent, "negotiation");
+  assert.equal(caseWikiGatewayHydration.status, "pass");
+  assert.equal(caseWikiGatewayHydration.validated, true);
+  assert.equal(caseWikiGatewayHydration.observed, true);
+  assert.equal(caseWikiGatewayHydration.sessionId, "session-hydration-042");
+  assert.equal(caseWikiGatewayHydration.noteEventId, "event-case-wiki-note-042");
+  assert.equal(caseWikiGatewayHydration.questionId, "question:operator-note:event-case-wiki-note-042");
+  assert.equal(caseWikiGatewayHydration.questionMatched, true);
+  assert.equal(caseWikiGatewayHydration.noteSourceRefSeen, true);
+  assert.equal(caseWikiGatewayHydration.questionSuggestedNextStep, "Request passport scan");
+  assert.equal(caseWikiGatewayHydration.contextSource, "case_wiki");
+  assert.equal(caseWikiGatewayHydration.focusId, "question:operator-note:event-case-wiki-note-042");
+  assert.equal(caseWikiGatewayHydration.blocker, "Passport scan is still missing from the case.");
+  assert.equal(caseWikiGatewayHydration.nextAction, "Request passport scan");
+  assert.equal(caseWikiGatewayHydration.route, "live-agent");
+  assert.equal(caseWikiGatewayHydration.mode, "assistive_override");
+  assert.equal(caseWikiGatewayHydration.requestedIntent, "conversation");
+  assert.equal(caseWikiGatewayHydration.routedIntent, "conversation");
+  assert.equal(caseWikiContextAdoption.status, "pass");
+  assert.equal(caseWikiContextAdoption.validated, true);
+  assert.equal(caseWikiContextAdoption.observed, true);
+  assert.equal(caseWikiContextAdoption.observedCount, 21);
+  assert.equal(caseWikiContextAdoption.caseWikiObservedCount, 20);
+  assert.equal(caseWikiContextAdoption.inputOnlyObservedCount, 1);
+  assert.equal(caseWikiContextAdoption.unknownObservedCount, 0);
+  assert.equal(caseWikiContextAdoption.caseWikiRate, 0.952381);
+  assert.equal(uiRefHealing.status, "pass");
+  assert.equal(uiRefHealing.validated, true);
+  assert.equal(uiRefHealing.observed, true);
+  assert.equal(uiRefHealing.finalStatus, "completed");
+  assert.equal(uiRefHealing.adapterMode, "remote_http");
+  assert.equal(uiRefHealing.healedRefCount, 2);
+  assert.deepEqual(uiRefHealing.healedRefTargets, ["email", "submit_primary"]);
+  assert.equal(uiRefHealing.staleRefCount, 0);
+  assert.deepEqual(uiRefHealing.staleRefTargets, []);
+  assert.equal(uiRefHealing.traceCount, 5);
+  assert.equal(uiRefHealing.retries, 0);
+  assert.equal(uiRefHealing.disabledSubmitSeen, true);
+  assert.equal(uiRefHealing.enabledSubmitSeen, true);
+  assert.equal(uiRefHealing.healingObservationSeen, true);
+  assert.equal(uiRefHealing.healingNoteSeen, true);
   assert.equal(runtimeGuardrailsSignalPaths.totalPaths, 3);
   assert.equal(runtimeGuardrailsSignalPaths.lifecycleSummary, "active=3");
   const runtimeGuardrailsCounts = runtimeGuardrailsSignalPaths.lifecycleCounts as Record<string, unknown>;

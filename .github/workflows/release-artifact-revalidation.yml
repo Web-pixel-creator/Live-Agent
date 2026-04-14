@@ -697,6 +697,14 @@ jobs:
           $badgeEvidenceCaseWikiRoutingContextMode = $null
           $badgeEvidenceCaseWikiRoutingContextRequestedIntent = $null
           $badgeEvidenceCaseWikiRoutingContextRoutedIntent = $null
+          $badgeEvidenceCaseWikiContextAdoptionStatus = "unavailable"
+          $badgeEvidenceCaseWikiContextAdoptionValidated = $false
+          $badgeEvidenceCaseWikiContextAdoptionObserved = $false
+          $badgeEvidenceCaseWikiContextAdoptionObservedCount = 0
+          $badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = 0
+          $badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = 0
+          $badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = 0
+          $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = $null
           $badgeEvidenceProviderUsageStatus = "unavailable"
           $badgeEvidenceProviderUsageValidated = $false
           $badgeEvidenceProviderUsageActiveSecondaryProviders = 0
@@ -776,6 +784,9 @@ jobs:
             if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.caseWikiRoutingContextStatus)) {
               $badgeEvidenceCaseWikiRoutingContextStatus = [string]$releaseEvidenceReport.statuses.caseWikiRoutingContextStatus
             }
+            if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.caseWikiContextAdoptionStatus)) {
+              $badgeEvidenceCaseWikiContextAdoptionStatus = [string]$releaseEvidenceReport.statuses.caseWikiContextAdoptionStatus
+            }
             if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.statuses.providerUsageStatus)) {
               $badgeEvidenceProviderUsageStatus = [string]$releaseEvidenceReport.statuses.providerUsageStatus
             }
@@ -820,6 +831,40 @@ jobs:
             }
             if (-not [string]::IsNullOrWhiteSpace([string]$releaseEvidenceReport.caseWikiRoutingContext.routedIntent)) {
               $badgeEvidenceCaseWikiRoutingContextRoutedIntent = [string]$releaseEvidenceReport.caseWikiRoutingContext.routedIntent
+            }
+          }
+          if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.caseWikiContextAdoption) {
+            $badgeEvidenceCaseWikiContextAdoptionValidated = ($releaseEvidenceReport.caseWikiContextAdoption.validated -eq $true)
+            $badgeEvidenceCaseWikiContextAdoptionObserved = ($releaseEvidenceReport.caseWikiContextAdoption.observed -eq $true)
+            if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.observedCount) {
+              $parsedObservedCount = 0
+              if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.observedCount, [ref]$parsedObservedCount) -and $parsedObservedCount -ge 0) {
+                $badgeEvidenceCaseWikiContextAdoptionObservedCount = $parsedObservedCount
+              }
+            }
+            if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.caseWikiObservedCount) {
+              $parsedCaseWikiObservedCount = 0
+              if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.caseWikiObservedCount, [ref]$parsedCaseWikiObservedCount) -and $parsedCaseWikiObservedCount -ge 0) {
+                $badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = $parsedCaseWikiObservedCount
+              }
+            }
+            if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.inputOnlyObservedCount) {
+              $parsedInputOnlyObservedCount = 0
+              if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.inputOnlyObservedCount, [ref]$parsedInputOnlyObservedCount) -and $parsedInputOnlyObservedCount -ge 0) {
+                $badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = $parsedInputOnlyObservedCount
+              }
+            }
+            if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.unknownObservedCount) {
+              $parsedUnknownObservedCount = 0
+              if ([int]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.unknownObservedCount, [ref]$parsedUnknownObservedCount) -and $parsedUnknownObservedCount -ge 0) {
+                $badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = $parsedUnknownObservedCount
+              }
+            }
+            if ($null -ne $releaseEvidenceReport.caseWikiContextAdoption.caseWikiRate) {
+              $parsedCaseWikiRate = 0.0
+              if ([double]::TryParse([string]$releaseEvidenceReport.caseWikiContextAdoption.caseWikiRate, [System.Globalization.NumberStyles]::Float, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$parsedCaseWikiRate)) {
+                $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = $parsedCaseWikiRate
+              }
             }
           }
           if ($null -ne $releaseEvidenceReport -and $null -ne $releaseEvidenceReport.providerUsage) {
@@ -1016,6 +1061,14 @@ jobs:
             badgeEvidenceCaseWikiRoutingContextMode = $badgeEvidenceCaseWikiRoutingContextMode
             badgeEvidenceCaseWikiRoutingContextRequestedIntent = $badgeEvidenceCaseWikiRoutingContextRequestedIntent
             badgeEvidenceCaseWikiRoutingContextRoutedIntent = $badgeEvidenceCaseWikiRoutingContextRoutedIntent
+            badgeEvidenceCaseWikiContextAdoptionStatus = $badgeEvidenceCaseWikiContextAdoptionStatus
+            badgeEvidenceCaseWikiContextAdoptionValidated = $badgeEvidenceCaseWikiContextAdoptionValidated
+            badgeEvidenceCaseWikiContextAdoptionObserved = $badgeEvidenceCaseWikiContextAdoptionObserved
+            badgeEvidenceCaseWikiContextAdoptionObservedCount = $badgeEvidenceCaseWikiContextAdoptionObservedCount
+            badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = $badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount
+            badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = $badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount
+            badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = $badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount
+            badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate
             badgeEvidenceProviderUsageStatus = $badgeEvidenceProviderUsageStatus
             badgeEvidenceProviderUsageValidated = $badgeEvidenceProviderUsageValidated
             badgeEvidenceProviderUsageActiveSecondaryProviders = $badgeEvidenceProviderUsageActiveSecondaryProviders
@@ -1093,6 +1146,14 @@ jobs:
           ("case_wiki_routing_context_mode=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextMode) { [string]$badgeEvidenceCaseWikiRoutingContextMode } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("case_wiki_routing_context_requested_intent=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextRequestedIntent) { [string]$badgeEvidenceCaseWikiRoutingContextRequestedIntent } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("case_wiki_routing_context_routed_intent=" + $(if ($null -ne $badgeEvidenceCaseWikiRoutingContextRoutedIntent) { [string]$badgeEvidenceCaseWikiRoutingContextRoutedIntent } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_status=" + [string]$badgeEvidenceCaseWikiContextAdoptionStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_validated=" + $(if ($badgeEvidenceCaseWikiContextAdoptionValidated) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_observed=" + $(if ($badgeEvidenceCaseWikiContextAdoptionObserved) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_observed_count=" + [string]$badgeEvidenceCaseWikiContextAdoptionObservedCount) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_case_wiki_observed_count=" + [string]$badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_input_only_observed_count=" + [string]$badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_unknown_observed_count=" + [string]$badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          ("case_wiki_context_adoption_case_wiki_rate=" + $(if ($null -ne $badgeEvidenceCaseWikiContextAdoptionCaseWikiRate) { [string]$badgeEvidenceCaseWikiContextAdoptionCaseWikiRate } else { "" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("provider_usage_status=" + [string]$badgeEvidenceProviderUsageStatus) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("provider_usage_validated=" + $(if ($badgeEvidenceProviderUsageValidated) { "true" } else { "false" })) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           ("provider_usage_active_secondary_providers=" + [string]$badgeEvidenceProviderUsageActiveSecondaryProviders) | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -1209,6 +1270,14 @@ jobs:
           ("Case-wiki-routing-context mode (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_mode }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Case-wiki-routing-context requested intent (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_requested_intent }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Case-wiki-routing-context routed intent (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_routing_context_routed_intent }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption status (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption validated (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_validated }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption observed (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_observed }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption observed count (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_observed_count }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption case-wiki observed count (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_case_wiki_observed_count }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption input-only observed count (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_input_only_observed_count }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption unknown observed count (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_unknown_observed_count }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          ("Case-wiki-context-adoption case-wiki rate (badge evidence): ${{ steps.write_manifest.outputs.case_wiki_context_adoption_case_wiki_rate }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Provider-usage status (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_status }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Provider-usage validated (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_validated }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           ("Provider-usage active secondary providers (badge evidence): ${{ steps.write_manifest.outputs.provider_usage_active_secondary_providers }}") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

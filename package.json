@@ -64,6 +64,7 @@
     "verify:deploy:readiness": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-readiness-preflight.ps1",
     "verify:deploy:production-smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-production-smoke.ps1",
     "verify:deploy:direct-live-proof": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-direct-live-proof.ps1",
+    "runtime:evidence:keygen": "node ./scripts/runtime-evidence-signing-keygen.mjs",
     "repo:publish": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/github-repo-publish.ps1",
     "deploy:railway": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy.ps1",
     "deploy:railway:frontend": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/railway-deploy-frontend.ps1",

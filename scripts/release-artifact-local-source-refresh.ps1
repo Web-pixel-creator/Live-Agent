@@ -466,6 +466,14 @@ $sourceRunManifest = [ordered]@{
       badgeEvidenceCaseWikiRoutingContextMode = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "mode")
       badgeEvidenceCaseWikiRoutingContextRequestedIntent = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "requestedIntent")
       badgeEvidenceCaseWikiRoutingContextRoutedIntent = Get-NonEmptyStringOrNull (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiRoutingContext") -Name "routedIntent")
+      badgeEvidenceCaseWikiContextAdoptionStatus = Get-StatusOrFallback -Primary (Get-ObjectPropertyValue -Object $reportStatuses -Name "caseWikiContextAdoptionStatus") -Secondary (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $badgeEvidence -Name "caseWikiContextAdoption") -Name "status")
+      badgeEvidenceCaseWikiContextAdoptionValidated = ((Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "validated") -eq $true)
+      badgeEvidenceCaseWikiContextAdoptionObserved = ((Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "observed") -eq $true)
+      badgeEvidenceCaseWikiContextAdoptionObservedCount = Get-IntOrDefault (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "observedCount") 0
+      badgeEvidenceCaseWikiContextAdoptionCaseWikiObservedCount = Get-IntOrDefault (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "caseWikiObservedCount") 0
+      badgeEvidenceCaseWikiContextAdoptionInputOnlyObservedCount = Get-IntOrDefault (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "inputOnlyObservedCount") 0
+      badgeEvidenceCaseWikiContextAdoptionUnknownObservedCount = Get-IntOrDefault (Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "unknownObservedCount") 0
+      badgeEvidenceCaseWikiContextAdoptionCaseWikiRate = Get-ObjectPropertyValue -Object (Get-ObjectPropertyValue -Object $releaseEvidenceReport -Name "caseWikiContextAdoption") -Name "caseWikiRate"
       badgeEvidenceProviderUsageStatus = Get-StatusOrFallback -Primary (Get-ObjectPropertyValue -Object $providerUsage -Name "status") -Secondary (Get-ObjectPropertyValue -Object $providerUsageBadge -Name "status")
       badgeEvidenceProviderUsageValidated = $providerUsageValidated
       badgeEvidenceProviderUsageActiveSecondaryProviders = Get-IntOrDefault (Get-ObjectPropertyValue -Object $providerUsage -Name "activeSecondaryProviders") (Get-IntOrDefault (Get-ObjectPropertyValue -Object $providerUsageBadge -Name "activeSecondaryProviders") 0)
@@ -489,4 +497,5 @@ Write-Host ("[local-source-refresh] Branch guard: allowAnySourceBranch=" + [stri
 Write-Host ("[local-source-refresh] Perf mode: " + $perfMode)
 Write-Host ("[local-source-refresh] Runtime guardrails status: " + [string]$sourceRunManifest.gate.evidenceSnapshot.badgeEvidenceRuntimeGuardrailsSignalPathsStatus)
 Write-Host ("[local-source-refresh] Case wiki routing context status: " + [string]$sourceRunManifest.gate.evidenceSnapshot.badgeEvidenceCaseWikiRoutingContextStatus)
+Write-Host ("[local-source-refresh] Case wiki context adoption status: " + [string]$sourceRunManifest.gate.evidenceSnapshot.badgeEvidenceCaseWikiContextAdoptionStatus)
 Write-Host ("[local-source-refresh] Provider usage status: " + [string]$sourceRunManifest.gate.evidenceSnapshot.badgeEvidenceProviderUsageStatus)

@@ -218,10 +218,11 @@ const runtimeCostTrackerConfig = {
   pricePer1kInputUsd: operatorCostPer1kInputUsd,
   pricePer1kOutputUsd: operatorCostPer1kOutputUsd,
 };
+const runtimeEvidenceSignerConfig = resolveRuntimeEvidenceSignerConfig(process.env);
 
-async function loadWorkflowControlPlaneSummary():
-  | ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>["summary"]
-  | null {
+async function loadWorkflowControlPlaneSummary(): Promise<
+  ReturnType<typeof buildRuntimeWorkflowControlPlaneSnapshot>["summary"] | null
+> {
   try {
     const upstream = await fetchJsonWithTimeout(`${orchestratorBaseUrl}/workflow/config`, 8000);
     const workflowControlPlane = isRecord(upstream)
@@ -287,7 +288,7 @@ async function buildRuntimeCaseWikiSnapshot(params: {
     selectedEvents,
     selectedSessionId,
     workflowSummary,
-    evidenceSigner: resolveRuntimeEvidenceSignerConfig(process.env),
+    evidenceSigner: runtimeEvidenceSignerConfig,
     costSummary: caseCostSummary,
   });
 
@@ -4464,6 +4465,7 @@ export const server = createServer(async (req, res) => {
         skillsRuntimeSummary: skillsRuntimeCatalog?.runtimeSummary ?? null,
         events: recentEvents,
         sloThresholds: runtimeDiagnosticsSloThresholds,
+        evidenceSigner: runtimeEvidenceSignerConfig,
       });
       writeJson(res, 200, {
         data: runtimeDiagnostics,
@@ -4803,6 +4805,7 @@ export const server = createServer(async (req, res) => {
         selectedEvents,
         selectedSessionId,
         workflowSummary: workflowControlPlaneSummary,
+        evidenceSigner: runtimeEvidenceSignerConfig,
       });
 
       writeJson(res, 200, {

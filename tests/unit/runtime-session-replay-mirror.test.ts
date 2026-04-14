@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { generateKeyPairSync } from "node:crypto";
 import test from "node:test";
 import type {
   ApprovalRecord,
@@ -6,6 +7,7 @@ import type {
   RunListItem,
   SessionListItem,
 } from "../../apps/api-backend/src/firestore.js";
+import { verifyEvidencePayloadSignature } from "../../apps/api-backend/src/runtime-evidence-signer.js";
 import type { RuntimeWorkflowControlPlaneSummary } from "../../apps/api-backend/src/runtime-workflow-control-plane.js";
 import { buildRuntimeSessionReplayMirrorSnapshot } from "../../apps/api-backend/src/runtime-session-replay-mirror.js";
 
@@ -198,6 +200,8 @@ test("runtime session replay mirror aggregates selected session replay, approval
   assert.equal(snapshot.summary.sessionsWithReplay, 2);
   assert.equal(snapshot.summary.sessionsAwaitingApproval, 1);
   assert.equal(snapshot.summary.sessionsWithVerifiedProof, 1);
+  assert.equal(snapshot.evidenceSignature?.status, "unsigned");
+  assert.match(snapshot.evidenceSignature?.payloadHash ?? "", /^sha256:[a-f0-9]{64}$/);
   assert.equal(snapshot.selectedSession.workflow.linked, true);
   assert.equal(snapshot.selectedSession.workflow.workflowCurrentStage, "review");
   assert.equal(snapshot.selectedSession.workflow.handoff?.kind, "handoff");
@@ -314,6 +318,56 @@ test("runtime session replay mirror aggregates selected session replay, approval
   assert.ok(snapshot.sessions.some((item) => item.sessionId === "session-a" && item.replayState === "verified"));
   assert.ok(
     snapshot.sessions.some((item) => item.sessionId === "session-b" && item.replayState === "awaiting_approval"),
+  );
+});
+
+test("runtime session replay mirror can attach a signed evidence envelope", () => {
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  const privateKeyPem = privateKey.export({ format: "pem", type: "pkcs8" }).toString();
+  const publicKeyPem = publicKey.export({ format: "pem", type: "spki" }).toString();
+
+  const snapshot = buildRuntimeSessionReplayMirrorSnapshot({
+    sessions: [
+      {
+        sessionId: "session-signed",
+        tenantId: "tenant-a",
+        mode: "live",
+        status: "active",
+        version: 1,
+        lastMutationId: "mutation-signed",
+        updatedAt: "2026-04-01T12:00:00.000Z",
+      },
+    ],
+    runs: [],
+    approvals: [],
+    recentEvents: [],
+    selectedEvents: [],
+    selectedSessionId: "session-signed",
+    workflowSummary: null,
+    evidenceSigner: {
+      enabled: true,
+      privateKeyPem,
+      keyId: "unit-session-replay-key",
+      signerId: "api-backend-test",
+    },
+  });
+
+  assert.equal(snapshot.evidenceSignature?.status, "signed");
+  assert.equal(snapshot.evidenceSignature?.keyId, "unit-session-replay-key");
+  assert.equal(snapshot.evidenceSignature?.signerId, "api-backend-test");
+  assert.equal(snapshot.evidenceSignature?.signedAt, snapshot.generatedAt);
+
+  assert.deepEqual(
+    verifyEvidencePayloadSignature({
+      payload: snapshot,
+      evidenceSignature: snapshot.evidenceSignature!,
+      publicKeyPem,
+    }),
+    {
+      ok: true,
+      reason: "verified",
+      payloadHash: snapshot.evidenceSignature!.payloadHash,
+    },
   );
 });
 

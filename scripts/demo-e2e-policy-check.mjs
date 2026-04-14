@@ -210,6 +210,7 @@ async function main() {
         "ui.sandbox.policy_modes",
         "ui.visual_testing",
         "multi_agent.delegation",
+        "gateway.websocket.case_wiki_hydration",
         "gateway.websocket.roundtrip",
         "gateway.websocket.task_progress",
         "gateway.websocket.request_replay",
@@ -1950,6 +1951,142 @@ async function main() {
     ["gemini_api", "openai", "anthropic", "deepseek", "moonshot"].includes(String(kpis.assistiveRouterProvider)),
     kpis.assistiveRouterProvider,
     "gemini_api | openai | anthropic | deepseek | moonshot",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationValidated",
+    kpis.caseWikiGatewayHydrationValidated === true,
+    kpis.caseWikiGatewayHydrationValidated,
+    true,
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationSessionId",
+    typeof kpis.caseWikiGatewayHydrationSessionId === "string" &&
+      String(kpis.caseWikiGatewayHydrationSessionId).trim().length > 0,
+    kpis.caseWikiGatewayHydrationSessionId,
+    "non-empty sessionId",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationNoteEventId",
+    typeof kpis.caseWikiGatewayHydrationNoteEventId === "string" &&
+      String(kpis.caseWikiGatewayHydrationNoteEventId).trim().length > 0,
+    kpis.caseWikiGatewayHydrationNoteEventId,
+    "non-empty note event id",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationQuestionId",
+    typeof kpis.caseWikiGatewayHydrationQuestionId === "string" &&
+      String(kpis.caseWikiGatewayHydrationQuestionId).trim().length > 0,
+    kpis.caseWikiGatewayHydrationQuestionId,
+    "non-empty question id",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationQuestionMatched",
+    kpis.caseWikiGatewayHydrationQuestionMatched === true,
+    kpis.caseWikiGatewayHydrationQuestionMatched,
+    true,
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationNoteSourceRefSeen",
+    kpis.caseWikiGatewayHydrationNoteSourceRefSeen === true,
+    kpis.caseWikiGatewayHydrationNoteSourceRefSeen,
+    true,
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationQuestionSuggestedNextStep",
+    typeof kpis.caseWikiGatewayHydrationQuestionSuggestedNextStep === "string" &&
+      String(kpis.caseWikiGatewayHydrationQuestionSuggestedNextStep).trim().length > 0,
+    kpis.caseWikiGatewayHydrationQuestionSuggestedNextStep,
+    "non-empty suggested next step",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationContextSource",
+    String(kpis.caseWikiGatewayHydrationContextSource) === "case_wiki",
+    kpis.caseWikiGatewayHydrationContextSource,
+    "case_wiki",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationFocusId",
+    typeof kpis.caseWikiGatewayHydrationFocusId === "string" &&
+      String(kpis.caseWikiGatewayHydrationFocusId).trim().length > 0,
+    kpis.caseWikiGatewayHydrationFocusId,
+    "non-empty focusId",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationBlocker",
+    typeof kpis.caseWikiGatewayHydrationBlocker === "string" &&
+      String(kpis.caseWikiGatewayHydrationBlocker).trim().length > 0,
+    kpis.caseWikiGatewayHydrationBlocker,
+    "non-empty blocker",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationNextAction",
+    typeof kpis.caseWikiGatewayHydrationNextAction === "string" &&
+      String(kpis.caseWikiGatewayHydrationNextAction).trim().length > 0,
+    kpis.caseWikiGatewayHydrationNextAction,
+    "non-empty next action",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationRoute",
+    String(kpis.caseWikiGatewayHydrationRoute) === "live-agent",
+    kpis.caseWikiGatewayHydrationRoute,
+    "live-agent",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationMode",
+    allowedAssistiveRouterModes.includes(String(kpis.caseWikiGatewayHydrationMode)),
+    kpis.caseWikiGatewayHydrationMode,
+    allowedAssistiveRouterModes.join(" | "),
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationRequestedIntent",
+    String(kpis.caseWikiGatewayHydrationRequestedIntent) === "conversation",
+    kpis.caseWikiGatewayHydrationRequestedIntent,
+    "conversation",
+  );
+  addCheck(
+    "kpi.caseWikiGatewayHydrationRoutedIntent",
+    typeof kpis.caseWikiGatewayHydrationRoutedIntent === "string" &&
+      String(kpis.caseWikiGatewayHydrationRoutedIntent).trim().length > 0,
+    kpis.caseWikiGatewayHydrationRoutedIntent,
+    "non-empty routed intent",
+  );
+  addCheck(
+    "kpi.caseWikiContextAdoptionValidated",
+    kpis.caseWikiContextAdoptionValidated === true,
+    kpis.caseWikiContextAdoptionValidated,
+    true,
+  );
+  addCheck(
+    "kpi.caseWikiContextAdoptionObservedCount",
+    toNumber(kpis.caseWikiContextAdoptionObservedCount) >= 3,
+    kpis.caseWikiContextAdoptionObservedCount,
+    ">= 3",
+  );
+  addCheck(
+    "kpi.caseWikiContextAdoptionCaseWikiCount",
+    toNumber(kpis.caseWikiContextAdoptionCaseWikiCount) >= 1,
+    kpis.caseWikiContextAdoptionCaseWikiCount,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.caseWikiContextAdoptionInputOnlyCount",
+    toNumber(kpis.caseWikiContextAdoptionInputOnlyCount) >= 0,
+    kpis.caseWikiContextAdoptionInputOnlyCount,
+    ">= 0",
+  );
+  addCheck(
+    "kpi.caseWikiContextAdoptionUnknownCount",
+    toNumber(kpis.caseWikiContextAdoptionUnknownCount) === 0,
+    kpis.caseWikiContextAdoptionUnknownCount,
+    0,
+  );
+  addCheck(
+    "kpi.caseWikiContextAdoptionRate",
+    Number.isFinite(toNumber(kpis.caseWikiContextAdoptionRate)) &&
+      toNumber(kpis.caseWikiContextAdoptionRate) >= 0.95 &&
+      toNumber(kpis.caseWikiContextAdoptionRate) <= 1,
+    kpis.caseWikiContextAdoptionRate,
+    "0.95..1",
   );
   addCheck(
     "kpi.lifecycleEndpointsValidated",

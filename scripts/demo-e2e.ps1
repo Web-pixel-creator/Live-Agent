@@ -2752,6 +2752,147 @@ try {
   } | Out-Null
 
   Invoke-Scenario `
+    -Name "ui.executor.ref_healing" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    if (-not $IncludeFrontend) {
+      Start-ManagedService -Name "demo-frontend" -HealthUrl "http://localhost:3000/healthz" -NodeArgs @("--import", "tsx", "apps/demo-frontend/src/server.ts")
+    }
+    $uiExecutorRequestTimeoutSec = [Math]::Max($RequestTimeoutSec, 60)
+    $fixtureUrl = "http://localhost:3000/ui-task-profile-settings-demo.html"
+    $request = [ordered]@{
+      actions = @(
+        [ordered]@{
+          id = "navigate-profile-settings"
+          type = "navigate"
+          target = $fixtureUrl
+        }
+        [ordered]@{
+          id = "verify-submit-disabled"
+          type = "verify"
+          target = 'css:button[type="submit"]:disabled'
+        }
+        [ordered]@{
+          id = "verify-email-visible"
+          type = "verify"
+          target = "ref:email"
+        }
+        [ordered]@{
+          id = "type-email"
+          type = "type"
+          target = "css:#email"
+          text = "agent@example.com"
+        }
+        [ordered]@{
+          id = "verify-submit-enabled"
+          type = "verify"
+          target = 'css:button[type="submit"]:not(:disabled)'
+        }
+        [ordered]@{
+          id = "verify-submit-ref"
+          type = "verify"
+          target = "ref:submit_primary"
+        }
+        [ordered]@{
+          id = "submit-profile"
+          type = "click"
+          target = "ref:submit_primary"
+        }
+      )
+      context = [ordered]@{
+        goal = "Fill the email field, verify the submit button unlocks, and submit the profile settings form."
+        url = $fixtureUrl
+        screenshotRef = "ui://demo/ref-healing"
+        domSnapshot = "<main><form id='profile-form' aria-label='Profile settings form'><label for='email'>Email<input id='email' name='email' type='email' autocomplete='email' placeholder='operator@example.com' /></label><p id='form-status' aria-live='polite'>Submit is disabled until the email field is filled.</p><div><button id='submit-profile' type='submit' disabled>Submit changes</button><button id='preview-card' type='button'>Preview profile card</button></div></form></main>"
+        accessibilityTree = "main > form[name=Profile settings form] > textbox[name=Email]; main > form[name=Profile settings form] > button[name=Submit changes]; main > form[name=Profile settings form] > button[name=Preview profile card]"
+        markHints = @(
+          "email_field@(404,244)"
+          "submit_changes@(416,348)"
+          "preview_profile_card@(600,348)"
+        )
+        refMap = [ordered]@{
+          email = [ordered]@{
+            selector = "#legacy-email"
+            kind = "field"
+            label = "Email"
+            aliases = @("email", "work email")
+          }
+          submit_primary = [ordered]@{
+            selector = "#legacy-submit"
+            kind = "submit"
+            label = "Submit changes"
+            aliases = @("submit", "save profile")
+          }
+        }
+      }
+    }
+
+    $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8090/execute" -Body $request -TimeoutSec $uiExecutorRequestTimeoutSec
+
+    $finalStatus = [string](Get-FieldValue -Object $response -Path @("finalStatus"))
+    Assert-Condition -Condition ($finalStatus -eq "completed") -Message "UI executor ref-healing scenario did not complete."
+
+    $adapterMode = [string](Get-FieldValue -Object $response -Path @("adapterMode"))
+    Assert-Condition -Condition ($adapterMode -eq "remote_http") -Message "UI executor ref-healing scenario must use remote_http adapter."
+
+    $grounding = Get-FieldValue -Object $response -Path @("grounding")
+    Assert-Condition -Condition ($null -ne $grounding) -Message "UI executor ref-healing scenario is missing grounding metadata."
+
+    $healedRefTargets = @((Get-FieldValue -Object $grounding -Path @("healedRefTargets")))
+    $staleRefTargets = @((Get-FieldValue -Object $grounding -Path @("staleRefTargets")))
+    Assert-Condition -Condition ($healedRefTargets -contains "email") -Message "UI executor ref-healing should recover the email ref."
+    Assert-Condition -Condition ($healedRefTargets -contains "submit_primary") -Message "UI executor ref-healing should recover the submit ref."
+    Assert-Condition -Condition (@($staleRefTargets).Count -eq 0) -Message "Recovered UI refs should not remain in staleRefTargets."
+
+    $trace = @((Get-FieldValue -Object $response -Path @("trace")))
+    Assert-Condition -Condition ($trace.Count -ge 5) -Message "UI executor ref-healing trace should include all expected steps."
+
+    $traceObservations = @(
+      $trace |
+      ForEach-Object { [string](Get-FieldValue -Object $_ -Path @("observation")) } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
+    )
+    $traceNotes = @(
+      $trace |
+      ForEach-Object { [string](Get-FieldValue -Object $_ -Path @("notes")) } |
+      Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }
+    )
+    $healingObservationSeen = @($traceObservations | Where-Object { [string]$_ -like "*grounding-healed ref:email*" -or [string]$_ -like "*grounding-healed ref:submit_primary*" }).Count -ge 2
+    $disabledSubmitSeen = @($traceObservations | Where-Object { [string]$_ -eq "submit state=disabled" }).Count -ge 1
+    $enabledSubmitSeen = @($traceObservations | Where-Object { [string]$_ -eq "submit state=enabled" }).Count -ge 1
+    $healingNoteSeen = @($traceNotes | Where-Object { [string]$_ -like "Recovered stale grounding ref*" }).Count -ge 2
+
+    Assert-Condition -Condition $disabledSubmitSeen -Message "UI executor ref-healing should observe the disabled submit state before typing."
+    Assert-Condition -Condition $enabledSubmitSeen -Message "UI executor ref-healing should observe the enabled submit state after typing."
+    Assert-Condition -Condition $healingObservationSeen -Message "UI executor ref-healing trace should record healed grounding observations."
+    Assert-Condition -Condition $healingNoteSeen -Message "UI executor ref-healing trace should record healed grounding notes."
+
+    $inputApproxTokens = Estimate-ApproxTokensFromObject -Value $request
+    $outputApproxTokens = Estimate-ApproxTokensFromObject -Value $response
+
+    return [ordered]@{
+      finalStatus = $finalStatus
+      adapterMode = $adapterMode
+      healedRefTargets = $healedRefTargets
+      healedRefCount = @($healedRefTargets).Count
+      staleRefTargets = $staleRefTargets
+      staleRefCount = @($staleRefTargets).Count
+      traceCount = $trace.Count
+      retries = [int](Get-FieldValue -Object $response -Path @("retries"))
+      disabledSubmitSeen = $disabledSubmitSeen
+      enabledSubmitSeen = $enabledSubmitSeen
+      healingObservationSeen = $healingObservationSeen
+      healingNoteSeen = $healingNoteSeen
+      healingObservations = @($traceObservations | Where-Object { [string]$_ -like "*grounding-healed ref:*" })
+      timeoutSec = $uiExecutorRequestTimeoutSec
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
+    }
+  } | Out-Null
+
+  Invoke-Scenario `
     -Name "multi_agent.delegation" `
     -MaxAttempts $ScenarioRetryMaxAttempts `
     -InitialBackoffMs $ScenarioRetryBackoffMs `
@@ -2759,9 +2900,34 @@ try {
     -Action {
     $delegationRequestTimeoutSec = [Math]::Max($RequestTimeoutSec, 120)
     $runId = "demo-delegation-" + [Guid]::NewGuid().Guid
-    $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "conversation" -RequestInput @{
+    $request = New-OrchestratorRequest -SessionId $sessionId -RunId $runId -Intent "conversation" -RequestInput ([ordered]@{
       text = "delegate story: write a short branch about a final contract handshake. text only. no images. no video. 2 scenes."
-    }
+      caseWiki = [ordered]@{
+        overview = [ordered]@{
+          summary = "Customer requested a short contract-handshake branch."
+          status = "ready"
+          currentStage = "closing_narrative"
+        }
+        workspacePack = [ordered]@{
+          defaultFocus = [ordered]@{
+            focusKind = "task"
+            focusId = "story:contract-handshake-branch"
+            focusLabel = "Short contract handshake branch"
+          }
+          summaryValue = "Customer requested a short contract-handshake branch."
+          nextActionValue = "Delegate the story-only branch."
+        }
+        highlights = [ordered]@{
+          topBlockingQuestion = [ordered]@{
+            question = "Can we produce a short story-only branch without images or video?"
+          }
+        }
+        recommendedNextAction = [ordered]@{
+          title = "Delegate the story-only branch."
+          summary = "Write a short contract-handshake branch with text only."
+        }
+      }
+    })
     $response = Invoke-JsonRequest -Method POST -Uri "http://localhost:8082/orchestrate" -Body $request -TimeoutSec $delegationRequestTimeoutSec
 
     $status = [string](Get-FieldValue -Object $response -Path @("payload", "status"))
@@ -2782,6 +2948,7 @@ try {
     $routingBudgetPolicy = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "budgetPolicy"))
     $routingPromptCaching = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "promptCaching"))
     $routingWatchlistEnabled = Get-FieldValue -Object $response -Path @("payload", "output", "routing", "watchlistEnabled")
+    $routingContextSource = [string](Get-FieldValue -Object $response -Path @("payload", "output", "routing", "contextSource"))
     $routingConfidenceRaw = Get-FieldValue -Object $response -Path @("payload", "output", "routing", "confidence")
     $routingConfidence = $null
     if ($null -ne $routingConfidenceRaw -and -not [string]::IsNullOrWhiteSpace([string]$routingConfidenceRaw)) {
@@ -2821,6 +2988,7 @@ try {
       routingBudgetPolicy = $routingBudgetPolicy
       routingPromptCaching = $routingPromptCaching
       routingWatchlistEnabled = [bool]$routingWatchlistEnabled
+      routingContextSource = $routingContextSource
       routingConfidence = $routingConfidence
       timeoutSec = $delegationRequestTimeoutSec
       inputApproxTokens = $inputApproxTokens
@@ -2923,6 +3091,209 @@ try {
       blocker = $contextBlocker
       nextAction = $contextNextAction
       timeoutSec = $caseWikiRoutingRequestTimeoutSec
+    }
+  } | Out-Null
+
+  Invoke-Scenario `
+    -Name "gateway.websocket.case_wiki_hydration" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    $hydrationSessionCreateResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/sessions" -Body @{
+      userId = $script:DemoUserId
+      mode = "multi"
+    } -TimeoutSec $RequestTimeoutSec
+    $hydrationSessionId = [string](Get-FieldValue -Object $hydrationSessionCreateResponse -Path @("data", "sessionId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($hydrationSessionId)) -Message "Gateway Case Wiki hydration proof failed to create a fresh session."
+
+    $hydrationOperatorHeaders = @{ "x-operator-role" = "operator" }
+    $hydrationViewerHeaders = @{ "x-operator-role" = "viewer" }
+    $hydrationQuestionText = "Passport scan is still missing from the case."
+    $hydrationNextActionLabel = "Request passport scan"
+    $hydrationNoteRunId = "demo-case-wiki-hydration-note-" + [Guid]::NewGuid().Guid
+    $hydrationNoteResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8081/v1/runtime/case-wiki/notes" -Headers $hydrationOperatorHeaders -Body @{
+      sessionId = $hydrationSessionId
+      userId = $script:DemoUserId
+      runId = $hydrationNoteRunId
+      title = "Passport scan follow-up"
+      note = $hydrationQuestionText
+      priority = "high"
+      blocking = $true
+      owner = "customer"
+      suggestedNextStep = $hydrationNextActionLabel
+    } -TimeoutSec $RequestTimeoutSec
+    $hydrationNoteEventId = [string](Get-FieldValue -Object $hydrationNoteResponse -Path @("data", "eventId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($hydrationNoteEventId)) -Message "Gateway Case Wiki hydration proof note append did not return an eventId."
+
+    $hydrationCaseWikiUri = "http://localhost:8081/v1/runtime/case-wiki?sessionId=$([Uri]::EscapeDataString([string]$hydrationSessionId))&sessionLimit=20&eventLimit=120&runLimit=120&approvalLimit=120&recentEventLimit=200"
+    $hydrationCaseWikiData = $null
+    $hydrationFocusId = $null
+    $hydrationBlocker = $null
+    $hydrationNextAction = $null
+    $hydrationQuestionId = $null
+    $hydrationQuestionSuggestedNextStep = $null
+    $hydrationNoteSourceRefSeen = $false
+    $hydrationQuestionMatched = $false
+    $hydrationSnapshotValidated = $false
+
+    for ($hydrationAttempt = 1; $hydrationAttempt -le 5; $hydrationAttempt += 1) {
+      $hydrationCaseWikiResponse = Invoke-JsonRequest -Method GET -Uri $hydrationCaseWikiUri -Headers $hydrationViewerHeaders -TimeoutSec $RequestTimeoutSec
+      $candidateCaseWikiData = Get-FieldValue -Object $hydrationCaseWikiResponse -Path @("data")
+      if ($null -eq $candidateCaseWikiData) {
+        if ($hydrationAttempt -lt 5) {
+          Start-Sleep -Milliseconds 250
+          continue
+        }
+        throw "Gateway Case Wiki hydration proof did not return a case wiki payload."
+      }
+
+      $candidateDefaultFocus = Get-FieldValue -Object $candidateCaseWikiData -Path @("workspacePack", "defaultFocus")
+      $candidateFocusIdRaw = if ($null -eq $candidateDefaultFocus) {
+        $null
+      } else {
+        Get-FieldValue -Object $candidateDefaultFocus -Path @("focusId")
+      }
+      $candidateFocusId = if ([string]::IsNullOrWhiteSpace([string]$candidateFocusIdRaw)) { $null } else { [string]$candidateFocusIdRaw }
+      $candidateBlockerRaw = Get-FieldValue -Object $candidateCaseWikiData -Path @("workspacePack", "blockerValue")
+      if ([string]::IsNullOrWhiteSpace([string]$candidateBlockerRaw)) {
+        $candidateBlockerRaw = Get-FieldValue -Object $candidateCaseWikiData -Path @("highlights", "topBlockingQuestion", "question")
+      }
+      $candidateBlocker = if ([string]::IsNullOrWhiteSpace([string]$candidateBlockerRaw)) { $null } else { [string]$candidateBlockerRaw }
+      $candidateNextActionRaw = Get-FieldValue -Object $candidateCaseWikiData -Path @("workspacePack", "nextActionValue")
+      if ([string]::IsNullOrWhiteSpace([string]$candidateNextActionRaw)) {
+        $candidateNextActionRaw = Get-FieldValue -Object $candidateCaseWikiData -Path @("recommendedNextAction", "title")
+      }
+      if ([string]::IsNullOrWhiteSpace([string]$candidateNextActionRaw)) {
+        $candidateNextActionRaw = Get-FieldValue -Object $candidateCaseWikiData -Path @("recommendedNextAction", "type")
+      }
+      $candidateNextAction = if ([string]::IsNullOrWhiteSpace([string]$candidateNextActionRaw)) { $null } else { [string]$candidateNextActionRaw }
+
+      $candidateOpenQuestionsRaw = Get-FieldValue -Object $candidateCaseWikiData -Path @("openQuestions")
+      if ($candidateOpenQuestionsRaw -is [System.Array]) {
+        $candidateOpenQuestions = @($candidateOpenQuestionsRaw)
+      }
+      elseif ($null -ne $candidateOpenQuestionsRaw) {
+        $candidateOpenQuestions = @($candidateOpenQuestionsRaw)
+      }
+      else {
+        $candidateOpenQuestions = @()
+      }
+      $candidateBlockingQuestion = $candidateOpenQuestions | Where-Object { (Get-FieldValue -Object $_ -Path @("blocking")) -eq $true } | Select-Object -First 1
+      if ($null -eq $candidateBlockingQuestion -and $candidateOpenQuestions.Count -gt 0) {
+        $candidateBlockingQuestion = $candidateOpenQuestions[0]
+      }
+      $candidateQuestionIdRaw = if ($null -eq $candidateBlockingQuestion) { $null } else { Get-FieldValue -Object $candidateBlockingQuestion -Path @("id") }
+      $candidateQuestionId = if ([string]::IsNullOrWhiteSpace([string]$candidateQuestionIdRaw)) { $null } else { [string]$candidateQuestionIdRaw }
+      $candidateQuestionTextRaw = if ($null -eq $candidateBlockingQuestion) { $null } else { Get-FieldValue -Object $candidateBlockingQuestion -Path @("question") }
+      $candidateQuestionText = if ([string]::IsNullOrWhiteSpace([string]$candidateQuestionTextRaw)) { $null } else { [string]$candidateQuestionTextRaw }
+      $candidateQuestionSuggestedNextStepRaw = if ($null -eq $candidateBlockingQuestion) { $null } else { Get-FieldValue -Object $candidateBlockingQuestion -Path @("suggestedNextStep") }
+      $candidateQuestionSuggestedNextStep = if ([string]::IsNullOrWhiteSpace([string]$candidateQuestionSuggestedNextStepRaw)) { $null } else { [string]$candidateQuestionSuggestedNextStepRaw }
+      $candidateQuestionSourceRefsRaw = if ($null -eq $candidateBlockingQuestion) { $null } else { Get-FieldValue -Object $candidateBlockingQuestion -Path @("sourceRefs") }
+      if ($candidateQuestionSourceRefsRaw -is [System.Array]) {
+        $candidateQuestionSourceRefs = @($candidateQuestionSourceRefsRaw)
+      }
+      elseif ($null -ne $candidateQuestionSourceRefsRaw) {
+        $candidateQuestionSourceRefs = @($candidateQuestionSourceRefsRaw)
+      }
+      else {
+        $candidateQuestionSourceRefs = @()
+      }
+      $candidateNoteSourceRefSeen = @($candidateQuestionSourceRefs | Where-Object { [string]$_ -like ("*" + $hydrationNoteEventId + "*") }).Count -ge 1
+      $candidateQuestionMatched = ($candidateQuestionText -eq $hydrationQuestionText)
+
+      $candidateSnapshotValidated = (
+        [string](Get-FieldValue -Object $candidateCaseWikiData -Path @("sessionId")) -eq $hydrationSessionId -and
+        -not [string]::IsNullOrWhiteSpace([string]$candidateFocusId) -and
+        -not [string]::IsNullOrWhiteSpace([string]$candidateBlocker) -and
+        -not [string]::IsNullOrWhiteSpace([string]$candidateNextAction) -and
+        -not [string]::IsNullOrWhiteSpace([string]$candidateQuestionId) -and
+        $candidateQuestionMatched -and
+        $candidateNoteSourceRefSeen -and
+        $candidateQuestionSuggestedNextStep -eq $hydrationNextActionLabel
+      )
+
+      if ($candidateSnapshotValidated) {
+        $hydrationCaseWikiData = $candidateCaseWikiData
+        $hydrationFocusId = $candidateFocusId
+        $hydrationBlocker = $candidateBlocker
+        $hydrationNextAction = $candidateNextAction
+        $hydrationQuestionId = $candidateQuestionId
+        $hydrationQuestionSuggestedNextStep = $candidateQuestionSuggestedNextStep
+        $hydrationNoteSourceRefSeen = $candidateNoteSourceRefSeen
+        $hydrationQuestionMatched = $candidateQuestionMatched
+        $hydrationSnapshotValidated = $true
+        break
+      }
+
+      if ($hydrationAttempt -lt 5) {
+        Start-Sleep -Milliseconds 250
+      }
+    }
+
+    Assert-Condition -Condition ($null -ne $hydrationCaseWikiData) -Message "Gateway Case Wiki hydration proof failed to resolve a compiled Case Wiki snapshot."
+    Assert-Condition -Condition $hydrationSnapshotValidated -Message "Gateway Case Wiki hydration proof snapshot did not compile the note into the expected focus/question state."
+
+    $hydrationRunId = "demo-gateway-case-wiki-hydration-" + [Guid]::NewGuid().Guid
+    $hydrationTimeoutMs = [Math]::Max(4000, $RequestTimeoutSec * 1000)
+    $hydrationResult = Invoke-NodeJsonCommand -Args @(
+      "scripts/gateway-ws-check.mjs",
+      "--url",
+      "ws://localhost:8080/realtime",
+      "--sessionId",
+      $hydrationSessionId,
+      "--runId",
+      $hydrationRunId,
+      "--userId",
+      $script:DemoUserId,
+      "--intent",
+      "conversation",
+      "--inputText",
+      "Continue with this case.",
+      "--expectTranslation",
+      "false",
+      "--timeoutMs",
+      [string]$hydrationTimeoutMs
+    )
+
+    $hydrationResponseStatus = [string](Get-FieldValue -Object $hydrationResult -Path @("responseStatus"))
+    $hydrationResponseRoute = [string](Get-FieldValue -Object $hydrationResult -Path @("responseRoute"))
+    $hydrationContextSource = [string](Get-FieldValue -Object $hydrationResult -Path @("routingContextSource"))
+    $hydrationRoutingFocusId = [string](Get-FieldValue -Object $hydrationResult -Path @("routingFocusId"))
+    $hydrationRoutingBlocker = [string](Get-FieldValue -Object $hydrationResult -Path @("routingBlocker"))
+    $hydrationRoutingNextAction = [string](Get-FieldValue -Object $hydrationResult -Path @("routingNextAction"))
+    $hydrationRoutingMode = [string](Get-FieldValue -Object $hydrationResult -Path @("routingMode"))
+    $hydrationRequestedIntent = [string](Get-FieldValue -Object $hydrationResult -Path @("routingRequestedIntent"))
+    $hydrationRoutedIntent = [string](Get-FieldValue -Object $hydrationResult -Path @("routingRoutedIntent"))
+
+    Assert-Condition -Condition ($hydrationResponseStatus -eq "completed") -Message "Gateway Case Wiki hydration websocket response did not complete."
+    Assert-Condition -Condition ($hydrationResponseRoute -eq "live-agent") -Message "Gateway Case Wiki hydration websocket response should stay on live-agent."
+    Assert-Condition -Condition ($hydrationContextSource -eq "case_wiki") -Message "Gateway Case Wiki hydration websocket contextSource should be case_wiki."
+    Assert-Condition -Condition ($hydrationRoutingFocusId -eq $hydrationFocusId) -Message "Gateway Case Wiki hydration websocket focusId did not match the compiled Case Wiki snapshot."
+    Assert-Condition -Condition ($hydrationRoutingBlocker -eq $hydrationBlocker) -Message "Gateway Case Wiki hydration websocket blocker did not match the compiled Case Wiki snapshot."
+    Assert-Condition -Condition ($hydrationRoutingNextAction -eq $hydrationNextAction) -Message "Gateway Case Wiki hydration websocket nextAction did not match the compiled Case Wiki snapshot."
+    Assert-Condition -Condition ($hydrationRequestedIntent -eq "conversation") -Message "Gateway Case Wiki hydration websocket should preserve the requested conversation intent."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($hydrationRoutedIntent)) -Message "Gateway Case Wiki hydration websocket should emit a routed intent."
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($hydrationRoutingMode)) -Message "Gateway Case Wiki hydration websocket should emit a routing mode."
+
+    return [ordered]@{
+      sessionId = $hydrationSessionId
+      noteEventId = $hydrationNoteEventId
+      questionId = $hydrationQuestionId
+      questionMatched = $hydrationQuestionMatched
+      noteSourceRefSeen = $hydrationNoteSourceRefSeen
+      questionSuggestedNextStep = $hydrationQuestionSuggestedNextStep
+      snapshotValidated = $hydrationSnapshotValidated
+      responseRoute = $hydrationResponseRoute
+      contextSource = $hydrationContextSource
+      focusId = $hydrationRoutingFocusId
+      blocker = $hydrationRoutingBlocker
+      nextAction = $hydrationRoutingNextAction
+      route = $hydrationResponseRoute
+      mode = $hydrationRoutingMode
+      requestedIntent = $hydrationRequestedIntent
+      routedIntent = $hydrationRoutedIntent
+      timeoutMs = $hydrationTimeoutMs
     }
   } | Out-Null
 
@@ -5320,8 +5691,10 @@ $storyData = Get-ScenarioData -Name "storyteller.pipeline"
 $uiApproveData = Get-ScenarioData -Name "ui.approval.approve_resume"
 $uiSandboxData = Get-ScenarioData -Name "ui.sandbox.policy_modes"
 $uiVisualTestingData = Get-ScenarioData -Name "ui.visual_testing"
+$uiRefHealingData = Get-ScenarioData -Name "ui.executor.ref_healing"
 $delegationData = Get-ScenarioData -Name "multi_agent.delegation"
 $gatewayWsData = Get-ScenarioData -Name "gateway.websocket.roundtrip"
+$gatewayCaseWikiHydrationData = Get-ScenarioData -Name "gateway.websocket.case_wiki_hydration"
 $gatewayWsTaskData = Get-ScenarioData -Name "gateway.websocket.task_progress"
 $gatewayWsReplayData = Get-ScenarioData -Name "gateway.websocket.request_replay"
 $gatewayWsInterruptData = Get-ScenarioData -Name "gateway.websocket.interrupt_signal"
@@ -5346,7 +5719,9 @@ $negotiationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "l
 $contextCompactionScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "live.context_compaction" } | Select-Object -First 1)
 $storytellerScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "storyteller.pipeline" } | Select-Object -First 1)
 $uiSandboxScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.sandbox.policy_modes" } | Select-Object -First 1)
+$uiRefHealingScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.executor.ref_healing" } | Select-Object -First 1)
 $gatewayRoundTripScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.roundtrip" } | Select-Object -First 1)
+$gatewayCaseWikiHydrationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.case_wiki_hydration" } | Select-Object -First 1)
 $gatewayTaskProgressScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.task_progress" } | Select-Object -First 1)
 $gatewayRequestReplayScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.request_replay" } | Select-Object -First 1)
 $gatewayInterruptScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.interrupt_signal" } | Select-Object -First 1)
@@ -5380,6 +5755,85 @@ $uiExecutorLifecycleService = $null
 if ($null -ne $runtimeLifecycleData) {
   $uiExecutorLifecycleService = @($runtimeLifecycleData.services | Where-Object { $_.name -eq "ui-executor" }) | Select-Object -First 1
 }
+
+$caseWikiContextAdoptionObservations = @()
+if ($null -ne $delegationData -and -not [string]::IsNullOrWhiteSpace([string]$delegationData.routingContextSource)) {
+  $caseWikiContextAdoptionObservations += [ordered]@{
+    scenario = "multi_agent.delegation"
+    contextSource = [string]$delegationData.routingContextSource
+  }
+}
+if ($null -ne $caseWikiRoutingContextData -and -not [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextData.contextSource)) {
+  $caseWikiContextAdoptionObservations += [ordered]@{
+    scenario = "orchestrator.case_wiki_routing_context"
+    contextSource = [string]$caseWikiRoutingContextData.contextSource
+  }
+}
+if ($null -ne $gatewayCaseWikiHydrationData -and -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.contextSource)) {
+  $caseWikiContextAdoptionObservations += [ordered]@{
+    scenario = "gateway.websocket.case_wiki_hydration"
+    contextSource = [string]$gatewayCaseWikiHydrationData.contextSource
+  }
+}
+$caseWikiContextAdoptionObservedCount = @($caseWikiContextAdoptionObservations).Count
+$caseWikiContextAdoptionCaseWikiCount = @($caseWikiContextAdoptionObservations | Where-Object { [string]$_.contextSource -eq "case_wiki" }).Count
+$caseWikiContextAdoptionInputOnlyCount = @($caseWikiContextAdoptionObservations | Where-Object { [string]$_.contextSource -eq "input_only" }).Count
+$caseWikiContextAdoptionUnknownCount = @($caseWikiContextAdoptionObservations | Where-Object {
+  @("case_wiki", "input_only") -notcontains [string]$_.contextSource
+}).Count
+$caseWikiContextAdoptionRate = if ($caseWikiContextAdoptionObservedCount -gt 0) {
+  [Math]::Round(([double]$caseWikiContextAdoptionCaseWikiCount / [double]$caseWikiContextAdoptionObservedCount), 4)
+} else {
+  $null
+}
+$caseWikiContextAdoptionCountsConserved = (
+  ($caseWikiContextAdoptionCaseWikiCount + $caseWikiContextAdoptionInputOnlyCount + $caseWikiContextAdoptionUnknownCount) -eq
+  $caseWikiContextAdoptionObservedCount
+)
+$caseWikiContextAdoptionRateValid = (
+  $null -ne $caseWikiContextAdoptionRate -and
+  $caseWikiContextAdoptionRate -ge 0.95 -and
+  $caseWikiContextAdoptionRate -le 1
+)
+$caseWikiRoutingContextProofValid = if (
+  $null -ne $caseWikiRoutingContextData -and
+  [string]$caseWikiRoutingContextData.contextSource -eq "case_wiki" -and
+  [string]$caseWikiRoutingContextData.focusId -eq "question:passport-scan" -and
+  [string]$caseWikiRoutingContextData.blocker -eq "Do we have the passport scan?" -and
+  [string]$caseWikiRoutingContextData.nextAction -eq "Request passport scan" -and
+  [string]$caseWikiRoutingContextData.route -eq "live-agent" -and
+  [string]$caseWikiRoutingContextData.requestedIntent -eq "conversation" -and
+  -not [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextData.routedIntent) -and
+  -not [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextData.mode)
+) { $true } else { $false }
+$caseWikiGatewayHydrationProofValid = if (
+  $null -ne $gatewayCaseWikiHydrationData -and
+  [bool]$gatewayCaseWikiHydrationData.snapshotValidated -eq $true -and
+  [bool]$gatewayCaseWikiHydrationData.questionMatched -eq $true -and
+  [bool]$gatewayCaseWikiHydrationData.noteSourceRefSeen -eq $true -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.sessionId) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.noteEventId) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.questionId) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.questionSuggestedNextStep) -and
+  [string]$gatewayCaseWikiHydrationData.contextSource -eq "case_wiki" -and
+  [string]$gatewayCaseWikiHydrationData.route -eq "live-agent" -and
+  [string]$gatewayCaseWikiHydrationData.requestedIntent -eq "conversation" -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.focusId) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.blocker) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.nextAction) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.routedIntent) -and
+  -not [string]::IsNullOrWhiteSpace([string]$gatewayCaseWikiHydrationData.mode)
+) { $true } else { $false }
+$caseWikiContextAdoptionValidated = if (
+  $caseWikiContextAdoptionObservedCount -ge 3 -and
+  $caseWikiContextAdoptionCaseWikiCount -ge 1 -and
+  $caseWikiContextAdoptionInputOnlyCount -ge 0 -and
+  $caseWikiContextAdoptionUnknownCount -eq 0 -and
+  $caseWikiContextAdoptionCountsConserved -and
+  $caseWikiContextAdoptionRateValid -and
+  $caseWikiRoutingContextProofValid -and
+  $caseWikiGatewayHydrationProofValid
+) { $true } else { $false }
 
 function Get-ScenarioApproxTokenTotal {
   param(
@@ -5771,6 +6225,32 @@ $summary = [ordered]@{
       [int]$uiVisualTestingData.checksCount -ge 3 -and
       [int]$uiVisualTestingData.regressionCount -eq 0
     ) { $true } else { $false }
+    uiRefHealingFinalStatus = if ($null -ne $uiRefHealingData) { $uiRefHealingData.finalStatus } else { $null }
+    uiRefHealingAdapterMode = if ($null -ne $uiRefHealingData) { $uiRefHealingData.adapterMode } else { $null }
+    uiRefHealingHealedRefTargets = if ($null -ne $uiRefHealingData) { $uiRefHealingData.healedRefTargets } else { @() }
+    uiRefHealingHealedRefCount = if ($null -ne $uiRefHealingData) { $uiRefHealingData.healedRefCount } else { 0 }
+    uiRefHealingStaleRefTargets = if ($null -ne $uiRefHealingData) { $uiRefHealingData.staleRefTargets } else { @() }
+    uiRefHealingStaleRefCount = if ($null -ne $uiRefHealingData) { $uiRefHealingData.staleRefCount } else { 0 }
+    uiRefHealingTraceCount = if ($null -ne $uiRefHealingData) { $uiRefHealingData.traceCount } else { 0 }
+    uiRefHealingRetries = if ($null -ne $uiRefHealingData) { $uiRefHealingData.retries } else { $null }
+    uiRefHealingDisabledSubmitSeen = if ($null -ne $uiRefHealingData) { $uiRefHealingData.disabledSubmitSeen } else { $null }
+    uiRefHealingEnabledSubmitSeen = if ($null -ne $uiRefHealingData) { $uiRefHealingData.enabledSubmitSeen } else { $null }
+    uiRefHealingObservationSeen = if ($null -ne $uiRefHealingData) { $uiRefHealingData.healingObservationSeen } else { $null }
+    uiRefHealingNoteSeen = if ($null -ne $uiRefHealingData) { $uiRefHealingData.healingNoteSeen } else { $null }
+    uiRefHealingValidated = if (
+      $null -ne $uiRefHealingData -and
+      [string]$uiRefHealingData.finalStatus -eq "completed" -and
+      [string]$uiRefHealingData.adapterMode -eq "remote_http" -and
+      @($uiRefHealingData.healedRefTargets) -contains "email" -and
+      @($uiRefHealingData.healedRefTargets) -contains "submit_primary" -and
+      [int]$uiRefHealingData.healedRefCount -ge 2 -and
+      [int]$uiRefHealingData.staleRefCount -eq 0 -and
+      [int]$uiRefHealingData.traceCount -ge 5 -and
+      [bool]$uiRefHealingData.disabledSubmitSeen -eq $true -and
+      [bool]$uiRefHealingData.enabledSubmitSeen -eq $true -and
+      [bool]$uiRefHealingData.healingObservationSeen -eq $true -and
+      [bool]$uiRefHealingData.healingNoteSeen -eq $true
+    ) { $true } else { $false }
     scenarioRetriesUsedCount = $scenarioRetriedSet.Count
     scenarioRetriesUsedNames = @($scenarioRetriedSet | ForEach-Object { [string]$_.name })
     scenarioRetryableFailuresTotal = [int]$scenarioRetryableFailuresTotal
@@ -5780,7 +6260,9 @@ $summary = [ordered]@{
     liveContextCompactionScenarioAttempts = if ($contextCompactionScenario.Count -gt 0) { [int]$contextCompactionScenario[0].attempts } else { $null }
     storytellerPipelineScenarioAttempts = if ($storytellerScenario.Count -gt 0) { [int]$storytellerScenario[0].attempts } else { $null }
     uiSandboxPolicyModesScenarioAttempts = if ($uiSandboxScenario.Count -gt 0) { [int]$uiSandboxScenario[0].attempts } else { $null }
+    uiRefHealingScenarioAttempts = if ($uiRefHealingScenario.Count -gt 0) { [int]$uiRefHealingScenario[0].attempts } else { $null }
     gatewayWsRoundTripScenarioAttempts = if ($gatewayRoundTripScenario.Count -gt 0) { [int]$gatewayRoundTripScenario[0].attempts } else { $null }
+    gatewayCaseWikiHydrationScenarioAttempts = if ($gatewayCaseWikiHydrationScenario.Count -gt 0) { [int]$gatewayCaseWikiHydrationScenario[0].attempts } else { $null }
     gatewayTaskProgressScenarioAttempts = if ($gatewayTaskProgressScenario.Count -gt 0) { [int]$gatewayTaskProgressScenario[0].attempts } else { $null }
     gatewayRequestReplayScenarioAttempts = if ($gatewayRequestReplayScenario.Count -gt 0) { [int]$gatewayRequestReplayScenario[0].attempts } else { $null }
     gatewayInterruptSignalScenarioAttempts = if ($gatewayInterruptScenario.Count -gt 0) { [int]$gatewayInterruptScenario[0].attempts } else { $null }
@@ -5823,17 +6305,28 @@ $summary = [ordered]@{
     caseWikiRoutingContextMode = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.mode } else { $null }
     caseWikiRoutingContextRequestedIntent = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.requestedIntent } else { $null }
     caseWikiRoutingContextRoutedIntent = if ($null -ne $caseWikiRoutingContextData) { $caseWikiRoutingContextData.routedIntent } else { $null }
-    caseWikiRoutingContextValidated = if (
-      $null -ne $caseWikiRoutingContextData -and
-      [string]$caseWikiRoutingContextData.contextSource -eq "case_wiki" -and
-      [string]$caseWikiRoutingContextData.focusId -eq "question:passport-scan" -and
-      [string]$caseWikiRoutingContextData.blocker -eq "Do we have the passport scan?" -and
-      [string]$caseWikiRoutingContextData.nextAction -eq "Request passport scan" -and
-      [string]$caseWikiRoutingContextData.route -eq "live-agent" -and
-      [string]$caseWikiRoutingContextData.requestedIntent -eq "conversation" -and
-      -not [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextData.routedIntent) -and
-      -not [string]::IsNullOrWhiteSpace([string]$caseWikiRoutingContextData.mode)
-    ) { $true } else { $false }
+    caseWikiRoutingContextValidated = $caseWikiRoutingContextProofValid
+    caseWikiGatewayHydrationSessionId = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.sessionId } else { $null }
+    caseWikiGatewayHydrationNoteEventId = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.noteEventId } else { $null }
+    caseWikiGatewayHydrationQuestionId = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.questionId } else { $null }
+    caseWikiGatewayHydrationQuestionMatched = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.questionMatched } else { $null }
+    caseWikiGatewayHydrationNoteSourceRefSeen = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.noteSourceRefSeen } else { $null }
+    caseWikiGatewayHydrationQuestionSuggestedNextStep = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.questionSuggestedNextStep } else { $null }
+    caseWikiGatewayHydrationContextSource = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.contextSource } else { $null }
+    caseWikiGatewayHydrationFocusId = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.focusId } else { $null }
+    caseWikiGatewayHydrationBlocker = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.blocker } else { $null }
+    caseWikiGatewayHydrationNextAction = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.nextAction } else { $null }
+    caseWikiGatewayHydrationRoute = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.route } else { $null }
+    caseWikiGatewayHydrationMode = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.mode } else { $null }
+    caseWikiGatewayHydrationRequestedIntent = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.requestedIntent } else { $null }
+    caseWikiGatewayHydrationRoutedIntent = if ($null -ne $gatewayCaseWikiHydrationData) { $gatewayCaseWikiHydrationData.routedIntent } else { $null }
+    caseWikiGatewayHydrationValidated = $caseWikiGatewayHydrationProofValid
+    caseWikiContextAdoptionObservedCount = $caseWikiContextAdoptionObservedCount
+    caseWikiContextAdoptionCaseWikiCount = $caseWikiContextAdoptionCaseWikiCount
+    caseWikiContextAdoptionInputOnlyCount = $caseWikiContextAdoptionInputOnlyCount
+    caseWikiContextAdoptionUnknownCount = $caseWikiContextAdoptionUnknownCount
+    caseWikiContextAdoptionRate = $caseWikiContextAdoptionRate
+    caseWikiContextAdoptionValidated = $caseWikiContextAdoptionValidated
     assistiveRouterDiagnosticsValidated = if (
       $null -ne $delegationData -and
       @("deterministic", "assistive_override", "assistive_match", "assistive_fallback") -contains [string]$delegationData.routingMode -and

@@ -53,6 +53,33 @@ function stageReason(stage: OrchestratorWorkflowStage, detail: string): string {
   return `${stage}:${detail}`;
 }
 
+type RoutingEventMetadata = Pick<
+  AssistiveRoutingDecision,
+  | "route"
+  | "requestedIntent"
+  | "routedIntent"
+  | "mode"
+  | "contextSource"
+  | "contextFocusId"
+  | "contextBlocker"
+  | "contextNextAction"
+>;
+
+function buildRoutingEventMetadata(routing?: RoutingEventMetadata | null): Record<string, unknown> {
+  if (!routing) {
+    return {};
+  }
+  return {
+    routingRequestedIntent: routing.requestedIntent,
+    routingRoutedIntent: routing.routedIntent,
+    routingMode: routing.mode,
+    routingContextSource: routing.contextSource,
+    routingContextFocusId: routing.contextFocusId,
+    routingContextBlocker: routing.contextBlocker,
+    routingContextNextAction: routing.contextNextAction,
+  };
+}
+
 async function persistWorkflowStageTransition(params: {
   request: OrchestratorRequest;
   taskId: string | null;
@@ -60,6 +87,7 @@ async function persistWorkflowStageTransition(params: {
   status: "running" | "pending_approval" | "completed" | "failed";
   reason: string;
   route: string | null;
+  routing?: RoutingEventMetadata | null;
 }): Promise<void> {
   const activeRole = WORKFLOW_STAGE_ROLES[params.stage];
   setOrchestratorWorkflowExecutionState({
@@ -90,6 +118,7 @@ async function persistWorkflowStageTransition(params: {
         activeRole,
         status: params.status,
         reason: params.reason,
+        ...buildRoutingEventMetadata(params.routing),
         updatedAt: new Date().toISOString(),
       },
     }),
@@ -279,8 +308,9 @@ async function persistTaskStatus(params: {
   status: TaskStatus;
   stage: string;
   error?: unknown;
+  routing?: RoutingEventMetadata | null;
 }): Promise<void> {
-  const route = params.response?.payload.route ?? null;
+  const route = params.response?.payload.route ?? params.routing?.route ?? null;
   const activeRole =
     params.stage === "intake" ||
     params.stage === "planning" ||
@@ -306,6 +336,7 @@ async function persistTaskStatus(params: {
       workflowStage: params.stage,
       activeRole,
       error: params.error ?? null,
+      ...buildRoutingEventMetadata(params.routing),
       updatedAt: new Date().toISOString(),
     },
   });
@@ -922,6 +953,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
       taskId: taskContext.taskId,
       status: "running",
       stage: "intake",
+      routing,
     });
   }
 
@@ -932,6 +964,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
     status: "running",
     reason: stageReason("intake", "request received"),
     route: null,
+    routing,
   });
   await persistWorkflowStageTransition({
     request: normalizedRequest,
@@ -940,6 +973,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
     status: "running",
     reason: stageReason("planning", routing.reason),
     route: routing.route,
+    routing,
   });
 
   const route = routing.route;
@@ -952,6 +986,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
       status: "running",
       reason: stageReason("safety_review", `preparing ${route}`),
       route,
+      routing,
     });
     if (budgetGuard.action === "approval_required") {
       await persistWorkflowStageTransition({
@@ -961,6 +996,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
         status: "pending_approval",
         reason: stageReason("safety_review", budgetGuard.reason),
         route,
+        routing,
       });
       let budgetResponse = buildRuntimeBudgetApprovalResponse({
         request: normalizedRequest,
@@ -974,6 +1010,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
           taskId: taskContext.taskId,
           status: "pending_approval",
           stage: "safety_review",
+          routing,
         });
         budgetResponse = {
           ...budgetResponse,
@@ -997,6 +1034,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
       status: "running",
       reason: stageReason("execution", `dispatching ${route}`),
       route,
+      routing,
     });
     response = await executeRoute({
       route,
@@ -1035,6 +1073,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
         status: "failed",
         stage,
         error: normalized,
+        routing,
       });
     }
     throw error;
@@ -1113,6 +1152,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
           status: "failed",
           stage,
           error: normalized,
+          routing,
         });
       }
       throw error;
@@ -1168,6 +1208,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
             ? stageReason(finalStage, "response verified and ready to report")
             : stageReason(finalStage, "response reported with errors"),
       route,
+      routing,
     });
     await persistTaskStatus({
       request: normalizedRequest,
@@ -1176,6 +1217,7 @@ async function orchestrateCore(request: OrchestratorRequest): Promise<Orchestrat
       status: mappedStatus,
       stage: finalStage,
       error: response.payload.error ?? null,
+      routing,
     });
     response = {
       ...response,

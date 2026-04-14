@@ -181,6 +181,9 @@ test("runtime diagnostics summary stays healthy when all guardrails are nominal"
   assert.equal(summary.orchestrator.workflowActiveRole, "planner");
   assert.equal(summary.orchestrator.workflowRoute, "live-agent");
   assert.deepEqual(summary.orchestrator.assistiveRouterAllowIntents, ["conversation", "translation"]);
+  assert.equal(summary.apiBackend.evidenceSigning.enabled, false);
+  assert.equal(summary.apiBackend.evidenceSigning.keyState, "missing");
+  assert.equal(summary.apiBackend.evidenceSigning.expectedSignatureStatus, "unsigned");
   assert.equal(summary.slo.status, "missing");
   assert.equal(summary.slo.validated, true);
   assert.deepEqual(summary.activeSignals, []);
@@ -475,4 +478,65 @@ test("runtime diagnostics summary flags unrestricted ui-executor egress in enfor
   assert.equal(summary.status, "critical");
   assert.ok(summary.activeSignals.some((item) => item.key === "ui_executor_sandbox_network_open"));
   assert.equal(summary.uiExecutor.sandboxNetworkPolicy, "allow_all");
+});
+
+test("runtime diagnostics summary flags evidence signing when enabled without a valid key", () => {
+  const summary = buildRuntimeDiagnosticsSummary({
+    services: [
+      {
+        name: "realtime-gateway",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {},
+      },
+      {
+        name: "orchestrator",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {},
+      },
+      {
+        name: "ui-executor",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {},
+      },
+      {
+        name: "api-backend",
+        healthy: true,
+        ready: true,
+        draining: false,
+        startupFailureCount: 0,
+        startupBlockingFailure: false,
+        profile: {},
+        metrics: {},
+      },
+    ],
+    skillsCatalog: baseCatalog,
+    evidenceSigner: {
+      enabled: true,
+      privateKeyPem: "not-a-valid-private-key",
+      keyId: "broken-key",
+      signerId: "api-backend-test",
+    },
+  });
+
+  assert.equal(summary.status, "critical");
+  assert.equal(summary.apiBackend.evidenceSigning.enabled, true);
+  assert.equal(summary.apiBackend.evidenceSigning.keyState, "invalid");
+  assert.equal(summary.apiBackend.evidenceSigning.canSign, false);
+  assert.equal(summary.apiBackend.evidenceSigning.expectedSignatureStatus, "unsigned");
+  assert.ok(summary.activeSignals.some((item) => item.key === "evidence_signing_key_unavailable"));
 });

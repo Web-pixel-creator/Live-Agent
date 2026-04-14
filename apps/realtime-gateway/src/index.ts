@@ -19,6 +19,7 @@ import {
 } from "@mla/contracts";
 import { WebSocketServer } from "ws";
 import { AnalyticsExporter } from "./analytics-export.js";
+import { createCaseWikiRequestAttacher } from "./case-wiki-client.js";
 import { loadGatewayConfig, type GatewayConfig } from "./config.js";
 import { LiveApiBridge } from "./live-bridge.js";
 import { sendToOrchestrator } from "./orchestrator-client.js";
@@ -29,6 +30,7 @@ import { TaskRegistry, type TaskRecord } from "./task-registry.js";
 const serviceName = "realtime-gateway";
 const runtimeProfile = applyRuntimeProfile(serviceName);
 const config = loadGatewayConfig();
+const attachCaseWikiToOrchestratorRequest = createCaseWikiRequestAttacher(config);
 const serviceVersion = process.env.REALTIME_GATEWAY_VERSION ?? process.env.SERVICE_VERSION ?? "0.1.0";
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 
@@ -1401,7 +1403,7 @@ wss.on("connection", (ws) => {
     });
 
     try {
-      const request = createEnvelope({
+      let request = createEnvelope({
         userId: currentUserId,
         sessionId: currentSessionId,
         runId: functionRunId,
@@ -1420,6 +1422,7 @@ wss.on("connection", (ws) => {
           input,
         },
       }) as OrchestratorRequest;
+      request = await attachCaseWikiToOrchestratorRequest(request);
 
       let response = await sendToOrchestrator(config.orchestratorUrl, request, {
         timeoutMs: resolveOrchestratorRequestTimeoutMs(config, request),
@@ -1928,6 +1931,8 @@ wss.on("connection", (ws) => {
           });
         }
       }
+
+      request = await attachCaseWikiToOrchestratorRequest(request);
 
       if (!isOutOfBandRequest) {
         emitSessionState(
