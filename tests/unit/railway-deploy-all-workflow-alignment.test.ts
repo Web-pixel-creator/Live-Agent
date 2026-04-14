@@ -83,6 +83,9 @@ test("railway deploy-all workflow is wired to combined helper with required secr
   assert.match(source, /Direct-live proof transport:/);
   assert.match(source, /Direct-live proof latency:/);
   assert.match(source, /Direct-live proof fallback events:/);
+  assert.match(source, /Direct-live proof runtime evidence expectation:/);
+  assert.match(source, /Direct-live proof case-wiki signature expectation:/);
+  assert.match(source, /Direct-live proof case-wiki signature observed:/);
   assert.match(source, /Direct-live proof was not generated\./);
   assert.match(source, /- name:\s*Upload Railway Deploy Artifacts/);
   assert.match(source, /name:\s*railway-deploy-all-artifacts/);

@@ -520,6 +520,10 @@ function New-HostedDirectLiveProofSnapshot {
       firstOutputMs            = $null
       fallbackEventCount       = 0
       fallbackReason           = $null
+      runtimeEvidenceExpectedSignatureStatus = $null
+      runtimeEvidenceKeyState  = $null
+      caseWikiExpectedSignatureStatus = $null
+      caseWikiExpectedSignatureSource = $null
       caseWikiSignatureStatus  = $null
       caseWikiSignaturePresent = $null
       latencyObserved          = $false
@@ -531,6 +535,15 @@ function New-HostedDirectLiveProofSnapshot {
   $replay = if ($null -ne $Value.replay) { $Value.replay } else { $null }
   $replayLiveTransport = if ($null -ne $replay -and $null -ne $replay.liveTransport) { $replay.liveTransport } else { $null }
   $caseWiki = if ($null -ne $Value.caseWiki) { $Value.caseWiki } else { $null }
+  $runtimeDiagnostics = if ($null -ne $Value.runtimeDiagnostics) { $Value.runtimeDiagnostics } else { $null }
+  $runtimeDiagnosticsApiBackendEvidenceSigning =
+    if ($null -ne $runtimeDiagnostics -and $null -ne $runtimeDiagnostics.apiBackendEvidenceSigning) {
+      $runtimeDiagnostics.apiBackendEvidenceSigning
+    } else {
+      $null
+    }
+  $caseWikiEvidenceSignatureExpectation =
+    if ($null -ne $Value.caseWikiEvidenceSignatureExpectation) { $Value.caseWikiEvidenceSignatureExpectation } else { $null }
   $caseWikiEvidenceSignature =
     if ($null -ne $caseWiki -and $null -ne $caseWiki.evidenceSignature) { $caseWiki.evidenceSignature } else { $null }
 
@@ -562,6 +575,14 @@ function New-HostedDirectLiveProofSnapshot {
     firstOutputMs            = $firstOutputMs
     fallbackEventCount       = $(if ($null -eq $replayLiveTransport) { 0 } else { Convert-ToNonNegativeIntOrDefault -Value $replayLiveTransport.fallbackEventCount -DefaultValue 0 })
     fallbackReason           = $(if ($null -eq $replayLiveTransport) { $null } else { Get-StatusValueOrDefault -Value $replayLiveTransport.fallbackReason -DefaultValue "" })
+    runtimeEvidenceExpectedSignatureStatus =
+      $(if ($null -eq $runtimeDiagnosticsApiBackendEvidenceSigning) { $null } else { Get-StatusValueOrDefault -Value $runtimeDiagnosticsApiBackendEvidenceSigning.expectedSignatureStatus -DefaultValue "" })
+    runtimeEvidenceKeyState  =
+      $(if ($null -eq $runtimeDiagnosticsApiBackendEvidenceSigning) { $null } else { Get-StatusValueOrDefault -Value $runtimeDiagnosticsApiBackendEvidenceSigning.keyState -DefaultValue "" })
+    caseWikiExpectedSignatureStatus =
+      $(if ($null -eq $caseWikiEvidenceSignatureExpectation) { $null } else { Get-StatusValueOrDefault -Value $caseWikiEvidenceSignatureExpectation.expectedStatus -DefaultValue "" })
+    caseWikiExpectedSignatureSource =
+      $(if ($null -eq $caseWikiEvidenceSignatureExpectation) { $null } else { Get-StatusValueOrDefault -Value $caseWikiEvidenceSignatureExpectation.source -DefaultValue "" })
     caseWikiSignatureStatus  = $(if ($null -eq $caseWikiEvidenceSignature) { $null } else { Get-StatusValueOrDefault -Value $caseWikiEvidenceSignature.status -DefaultValue "" })
     caseWikiSignaturePresent = $(if ($null -eq $caseWikiEvidenceSignature -or $null -eq $caseWikiEvidenceSignature.signaturePresent) { $null } else { $caseWikiEvidenceSignature.signaturePresent -eq $true })
     latencyObserved          = ($null -ne $firstAudioMs) -or ($null -ne $firstOutputMs)
@@ -762,6 +783,10 @@ $report = [ordered]@{
     firstOutputMs            = $null
     fallbackEventCount       = 0
     fallbackReason           = $null
+    runtimeEvidenceExpectedSignatureStatus = $null
+    runtimeEvidenceKeyState  = $null
+    caseWikiExpectedSignatureStatus = $null
+    caseWikiExpectedSignatureSource = $null
     caseWikiSignatureStatus  = $null
     caseWikiSignaturePresent = $null
     latencyObserved          = $false
@@ -1123,6 +1148,10 @@ $markdown = @(
   "- firstOutputMs: $(if ($null -eq $report.hostedDirectLiveProof.firstOutputMs) { "n/a" } else { [string]$report.hostedDirectLiveProof.firstOutputMs })",
   "- fallbackEventCount: $($report.hostedDirectLiveProof.fallbackEventCount)",
   "- fallbackReason: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.fallbackReason)) { "n/a" } else { [string]$report.hostedDirectLiveProof.fallbackReason })",
+  "- runtimeEvidenceExpectedSignatureStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.runtimeEvidenceExpectedSignatureStatus)) { "n/a" } else { [string]$report.hostedDirectLiveProof.runtimeEvidenceExpectedSignatureStatus })",
+  "- runtimeEvidenceKeyState: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.runtimeEvidenceKeyState)) { "n/a" } else { [string]$report.hostedDirectLiveProof.runtimeEvidenceKeyState })",
+  "- caseWikiExpectedSignatureStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.caseWikiExpectedSignatureStatus)) { "n/a" } else { [string]$report.hostedDirectLiveProof.caseWikiExpectedSignatureStatus })",
+  "- caseWikiExpectedSignatureSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.caseWikiExpectedSignatureSource)) { "n/a" } else { [string]$report.hostedDirectLiveProof.caseWikiExpectedSignatureSource })",
   "- caseWikiSignatureStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.caseWikiSignatureStatus)) { "n/a" } else { [string]$report.hostedDirectLiveProof.caseWikiSignatureStatus })",
   "- caseWikiSignaturePresent: $(if ($null -eq $report.hostedDirectLiveProof.caseWikiSignaturePresent) { "n/a" } else { [string]$report.hostedDirectLiveProof.caseWikiSignaturePresent })",
   "- latencyObserved: $($report.hostedDirectLiveProof.latencyObserved)",
@@ -1314,6 +1343,10 @@ $manifest = [ordered]@{
     firstAudioMs            = $report.hostedDirectLiveProof.firstAudioMs
     firstOutputMs           = $report.hostedDirectLiveProof.firstOutputMs
     fallbackEventCount      = $report.hostedDirectLiveProof.fallbackEventCount
+    runtimeEvidenceExpectedSignatureStatus = $report.hostedDirectLiveProof.runtimeEvidenceExpectedSignatureStatus
+    runtimeEvidenceKeyState = $report.hostedDirectLiveProof.runtimeEvidenceKeyState
+    caseWikiExpectedSignatureStatus = $report.hostedDirectLiveProof.caseWikiExpectedSignatureStatus
+    caseWikiExpectedSignatureSource = $report.hostedDirectLiveProof.caseWikiExpectedSignatureSource
     caseWikiSignatureStatus = $report.hostedDirectLiveProof.caseWikiSignatureStatus
     latencyObserved         = $report.hostedDirectLiveProof.latencyObserved
   }
@@ -1502,6 +1535,10 @@ $manifestMarkdown = @(
   "| firstAudioMs | $(if ($null -eq $manifest.hostedDirectLiveProof.firstAudioMs) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.firstAudioMs }) |",
   "| firstOutputMs | $(if ($null -eq $manifest.hostedDirectLiveProof.firstOutputMs) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.firstOutputMs }) |",
   "| fallbackEventCount | $($manifest.hostedDirectLiveProof.fallbackEventCount) |",
+  "| runtimeEvidenceExpectedSignatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.runtimeEvidenceExpectedSignatureStatus)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.runtimeEvidenceExpectedSignatureStatus }) |",
+  "| runtimeEvidenceKeyState | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.runtimeEvidenceKeyState)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.runtimeEvidenceKeyState }) |",
+  "| caseWikiExpectedSignatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.caseWikiExpectedSignatureStatus)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.caseWikiExpectedSignatureStatus }) |",
+  "| caseWikiExpectedSignatureSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.caseWikiExpectedSignatureSource)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.caseWikiExpectedSignatureSource }) |",
   "| caseWikiSignatureStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.caseWikiSignatureStatus)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.caseWikiSignatureStatus }) |",
   "| latencyObserved | $($manifest.hostedDirectLiveProof.latencyObserved) |",
   "",

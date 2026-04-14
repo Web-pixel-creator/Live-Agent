@@ -194,6 +194,16 @@ test(
           fallbackReason: null,
         },
       },
+      runtimeDiagnostics: {
+        apiBackendEvidenceSigning: {
+          expectedSignatureStatus: "signed",
+          keyState: "loaded",
+        },
+      },
+      caseWikiEvidenceSignatureExpectation: {
+        expectedStatus: "signed",
+        source: "runtime_diagnostics",
+      },
       caseWiki: {
         evidenceSignature: {
           status: "signed",
@@ -244,6 +254,10 @@ test(
         firstAudioMs?: number | null;
         firstOutputMs?: number | null;
         replayEvidenceSource?: string | null;
+        runtimeEvidenceExpectedSignatureStatus?: string | null;
+        runtimeEvidenceKeyState?: string | null;
+        caseWikiExpectedSignatureStatus?: string | null;
+        caseWikiExpectedSignatureSource?: string | null;
         caseWikiSignatureStatus?: string | null;
         latencyObserved?: boolean;
       };
@@ -322,6 +336,10 @@ test(
     assert.equal(report.hostedDirectLiveProof.replayEvidenceSource, "session_events");
     assert.equal(report.hostedDirectLiveProof.firstAudioMs, 640);
     assert.equal(report.hostedDirectLiveProof.firstOutputMs, 410);
+    assert.equal(report.hostedDirectLiveProof.runtimeEvidenceExpectedSignatureStatus, "signed");
+    assert.equal(report.hostedDirectLiveProof.runtimeEvidenceKeyState, "loaded");
+    assert.equal(report.hostedDirectLiveProof.caseWikiExpectedSignatureStatus, "signed");
+    assert.equal(report.hostedDirectLiveProof.caseWikiExpectedSignatureSource, "runtime_diagnostics");
     assert.equal(report.hostedDirectLiveProof.caseWikiSignatureStatus, "signed");
     assert.equal(report.hostedDirectLiveProof.latencyObserved, true);
     assert.equal(report.caseWikiGatewayHydration.status, "pass");
@@ -394,6 +412,10 @@ test(
         replayEvidenceSource?: string | null;
         firstAudioMs?: number | null;
         firstOutputMs?: number | null;
+        runtimeEvidenceExpectedSignatureStatus?: string | null;
+        runtimeEvidenceKeyState?: string | null;
+        caseWikiExpectedSignatureStatus?: string | null;
+        caseWikiExpectedSignatureSource?: string | null;
         caseWikiSignatureStatus?: string | null;
         latencyObserved?: boolean;
       };
@@ -472,6 +494,10 @@ test(
     assert.equal(manifest.hostedDirectLiveProof.replayEvidenceSource, "session_events");
     assert.equal(manifest.hostedDirectLiveProof.firstAudioMs, 640);
     assert.equal(manifest.hostedDirectLiveProof.firstOutputMs, 410);
+    assert.equal(manifest.hostedDirectLiveProof.runtimeEvidenceExpectedSignatureStatus, "signed");
+    assert.equal(manifest.hostedDirectLiveProof.runtimeEvidenceKeyState, "loaded");
+    assert.equal(manifest.hostedDirectLiveProof.caseWikiExpectedSignatureStatus, "signed");
+    assert.equal(manifest.hostedDirectLiveProof.caseWikiExpectedSignatureSource, "runtime_diagnostics");
     assert.equal(manifest.hostedDirectLiveProof.caseWikiSignatureStatus, "signed");
     assert.equal(manifest.hostedDirectLiveProof.latencyObserved, true);
     assert.equal(manifest.caseWikiGatewayHydration.status, "pass");
@@ -539,6 +565,8 @@ test(
     assert.match(reportMarkdown, /## Hosted Direct-Live Proof Snapshot/);
     assert.match(reportMarkdown, /- firstAudioMs: 640/);
     assert.match(reportMarkdown, /- firstOutputMs: 410/);
+    assert.match(reportMarkdown, /- runtimeEvidenceExpectedSignatureStatus: signed/);
+    assert.match(reportMarkdown, /- caseWikiExpectedSignatureSource: runtime_diagnostics/);
     assert.match(reportMarkdown, /## Case Wiki Gateway Hydration Snapshot/);
     assert.match(reportMarkdown, /- sessionId: session-hydration-123/);
     assert.match(reportMarkdown, /## Case Wiki Context Adoption Snapshot/);
@@ -552,6 +580,8 @@ test(
     assert.match(manifestMarkdown, /## Hosted Direct-Live Proof/);
     assert.match(manifestMarkdown, /\| firstAudioMs \| 640 \|/);
     assert.match(manifestMarkdown, /\| firstOutputMs \| 410 \|/);
+    assert.match(manifestMarkdown, /\| runtimeEvidenceExpectedSignatureStatus \| signed \|/);
+    assert.match(manifestMarkdown, /\| caseWikiExpectedSignatureSource \| runtime_diagnostics \|/);
     assert.match(manifestMarkdown, /## Case Wiki Gateway Hydration/);
     assert.match(manifestMarkdown, /\| sessionId \| session-hydration-123 \|/);
     assert.match(manifestMarkdown, /## Case Wiki Context Adoption/);

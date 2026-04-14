@@ -66,6 +66,10 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /Runtime Guardrails Signal Paths Snapshot/);
   assert.match(source, /Live Transport Snapshot/);
   assert.match(source, /Hosted Direct-Live Proof Snapshot/);
+  assert.match(source, /runtimeEvidenceExpectedSignatureStatus/);
+  assert.match(source, /runtimeEvidenceKeyState/);
+  assert.match(source, /caseWikiExpectedSignatureStatus/);
+  assert.match(source, /caseWikiExpectedSignatureSource/);
   assert.match(source, /Case Wiki Evidence Signature Snapshot/);
   assert.match(source, /Case Wiki Routing Context Snapshot/);
   assert.match(source, /Browser Worker Recovery Snapshot/);

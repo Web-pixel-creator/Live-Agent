@@ -169,6 +169,9 @@ test("release strict workflow runs verify:release with strict final mode", () =>
   assert.match(source, /Direct-live proof transport:/);
   assert.match(source, /Direct-live proof latency:/);
   assert.match(source, /Direct-live proof fallback events:/);
+  assert.match(source, /Direct-live proof runtime evidence expectation:/);
+  assert.match(source, /Direct-live proof case-wiki signature expectation:/);
+  assert.match(source, /Direct-live proof case-wiki signature observed:/);
   assert.match(source, /Direct-live proof was not generated\./);
   assert.match(source, /Release evidence report JSON: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_json_path\s*\}\}/);
   assert.match(source, /Release evidence report Markdown: \$\{\{\s*steps\.release_evidence_report\.outputs\.report_md_path\s*\}\}/);

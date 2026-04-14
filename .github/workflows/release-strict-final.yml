@@ -610,6 +610,9 @@ jobs:
             ("Direct-live proof transport: " + [string]$directLiveProof.replay.liveTransport.activeMode + " via " + [string]$directLiveProof.replay.liveTransport.evidenceSource) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             ("Direct-live proof latency: firstAudioMs=" + [string]$directLiveProof.replay.liveTransport.firstAudioMs + " firstOutputMs=" + [string]$directLiveProof.replay.liveTransport.firstOutputMs) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
             ("Direct-live proof fallback events: " + [string]$directLiveProof.replay.liveTransport.fallbackEventCount + " reason=" + [string]$directLiveProof.replay.liveTransport.fallbackReason) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Direct-live proof runtime evidence expectation: " + [string]$directLiveProof.runtimeDiagnostics.apiBackendEvidenceSigning.expectedSignatureStatus + " keyState=" + [string]$directLiveProof.runtimeDiagnostics.apiBackendEvidenceSigning.keyState) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Direct-live proof case-wiki signature expectation: " + [string]$directLiveProof.caseWikiEvidenceSignatureExpectation.expectedStatus + " source=" + [string]$directLiveProof.caseWikiEvidenceSignatureExpectation.source) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+            ("Direct-live proof case-wiki signature observed: " + [string]$directLiveProof.caseWiki.evidenceSignature.status + " present=" + [string]$directLiveProof.caseWiki.evidenceSignature.signaturePresent) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           } else {
             ("Direct-live proof was not generated.") | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
           }
