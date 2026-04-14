@@ -119,6 +119,12 @@ For final pre-submission validation, enforce strict no-retry discipline:
 npm run verify:release:strict
 ```
 This alias maps to `verify:release -- -StrictFinalRun`; strict mode uses one demo-run attempt and policy enforces `scenarioRetriesUsedCount=0`.
+For a locally signed variant of the same gate, bootstrap a git-ignored signing bundle once and run:
+```powershell
+npm run runtime:evidence:keygen -- --outputDir ./.credentials/runtime-evidence-signing --keyId local-release-key
+npm run verify:release:strict:signed
+```
+The signed aliases load `./.credentials/runtime-evidence-signing/runtime-evidence.env` only when runtime signing is not already configured through process env or repo-local `.env`, so CI/hosted secret-backed signing still wins over the local bundle.
 If perf artifacts are already present and you only want to skip rerunning perf profile, use:
 ```powershell
 npm run verify:release:strict:skip-perf-run

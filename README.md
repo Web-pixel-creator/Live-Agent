@@ -941,10 +941,25 @@ npm run verify:release
 Note: `verify:release` reuses the prebuilt workspace and runs `demo:e2e:fast` with `RequestTimeoutSec=45` for stability of long approval-resume paths. If `DEMO_E2E_STORYTELLER_MEDIA_MODE` is not already `default` or `simulated`, the release wrapper defaults it to `simulated` so repo-local `.env` fallback profiles do not fail the release policy gate. When direct-live bootstrap is configured, the release wrapper also appends `-IncludeFrontend` so the browser lane can emit repo-owned replay proof; otherwise it keeps the browser lane off by default. `DEMO_E2E_INCLUDE_FRONTEND=true|false|auto` overrides that decision explicitly. When `DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK=true`, the policy gate also accepts the explicit fallback-safe `remote_http` UI executor profile (`strictPlaywright=false`, `simulateIfUnavailable=true`, `forceSimulation=false`) instead of requiring live Playwright runtime validation. The release policy allows `fallback`, `gemini`, or `google_translate` translation providers because CI can expose Google provider keys for promptfoo without forcing the demo runtime into one provider. The gate also syncs `artifacts/demo-e2e/badge*.json` into `public/demo-e2e/` for runtime badge endpoints.
 The WebSocket roundtrip KPI uses a warmup plus a compact best-of-three measured sample set, preserving all sample latencies in scenario evidence while gating on the steady-state sample against the release threshold. The release wrapper's default policy budget is `6000ms` to tolerate real provider latency when repo-local Gemini credentials are present; the standalone GitHub Demo E2E workflow still passes an explicit `1800ms` gate for fallback-speed CI smoke. The perf-load fast profile keeps UI/gateway budgets unchanged but uses a `4500ms` live p95 budget for provider-backed local release verification.
 
+Signed local release gate (same flow, but it bootstraps runtime evidence signing from the git-ignored local bundle at `./.credentials/runtime-evidence-signing/runtime-evidence.env` so `caseWikiEvidenceSignature` must end in `pass/signed` instead of `warn/unsigned`):
+
+```powershell
+npm run runtime:evidence:keygen -- --outputDir ./.credentials/runtime-evidence-signing --keyId local-release-key
+npm run verify:release:signed
+```
+
+If runtime signing is already configured through process env or repo-local `.env`, the signed alias leaves that configuration in place and skips bundle bootstrap.
+
 Strict final pre-submission gate (one demo-run attempt, zero accepted scenario retries):
 
 ```powershell
 npm run verify:release:strict
+```
+
+Strict final gate with the same local signing bundle bootstrap:
+
+```powershell
+npm run verify:release:strict:signed
 ```
 
 Strict gate with existing perf artifacts (skip perf rerun):

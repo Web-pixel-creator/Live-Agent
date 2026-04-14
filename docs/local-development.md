@@ -268,10 +268,25 @@ npm run build
 npm run verify:release
 ```
 
+3.1. Signed local release gate:
+
+```bash
+npm run runtime:evidence:keygen -- --outputDir ./.credentials/runtime-evidence-signing --keyId local-release-key
+npm run verify:release:signed
+```
+
+This alias uses the git-ignored local bundle at `./.credentials/runtime-evidence-signing/runtime-evidence.env` so release evidence must prove `caseWikiEvidenceSignature.status=pass` with `signatureStatus=signed`. If runtime signing is already configured through process env or repo-local `.env`, that configuration takes precedence and the local bundle bootstrap is skipped.
+
 4. Strict release gate:
 
 ```bash
 npm run verify:release:strict
+```
+
+4.1. Strict signed local release gate:
+
+```bash
+npm run verify:release:strict:signed
 ```
 
 ## Autoresearch Runtime-Perf Loop

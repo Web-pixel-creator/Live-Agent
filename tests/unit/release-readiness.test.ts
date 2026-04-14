@@ -53,9 +53,14 @@ test("release-readiness keeps provider env out of nested unit tests while preser
   assert.match(source, /function Invoke-WithTemporaryClearedEnvVars/);
   assert.match(source, /function Resolve-ReleaseDemoFrontendDecision/);
   assert.match(source, /function Get-ReleaseReadinessDotEnvValues/);
+  assert.match(source, /function Read-EnvStyleFileValues/);
+  assert.match(source, /function Enable-ReleaseRuntimeEvidenceSigningFromLocalBundle/);
   assert.match(source, /function Get-ReleaseReadinessEnvValue/);
   assert.match(source, /"GOOGLE_API_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_GENAI_API_KEY"/);
   assert.match(source, /Join-Path \(Join-Path \$PSScriptRoot "\.\."\) "\.env"/);
+  assert.match(source, /runtime-evidence\.env/);
+  assert.match(source, /UseLocalRuntimeEvidenceSigningBundle/);
+  assert.match(source, /RuntimeEvidenceSigningBundleDir/);
   assert.match(source, /-ScriptBlock \{ Run-Step "Run unit tests" "npm run test:unit" \}/);
   assert.match(source, /DEMO_E2E_ALLOW_UI_EXECUTOR_RUNTIME_FALLBACK/);
   assert.match(source, /DEMO_E2E_INCLUDE_FRONTEND/);
@@ -717,6 +722,8 @@ function runReleaseReadiness(
   options?: Partial<{
     strictFinalRun: boolean;
     promptfooEvalSummary: Record<string, unknown> | null;
+    useLocalRuntimeEvidenceSigningBundle: boolean;
+    runtimeEvidenceSigningBundleDir: string;
   }>,
 ): { exitCode: number; stdout: string; stderr: string } {
   if (!powershellBin) {
@@ -769,6 +776,12 @@ function runReleaseReadiness(
     ];
     if (options?.strictFinalRun) {
       args.push("-StrictFinalRun");
+    }
+    if (options?.useLocalRuntimeEvidenceSigningBundle) {
+      args.push("-UseLocalRuntimeEvidenceSigningBundle");
+    }
+    if (options?.runtimeEvidenceSigningBundleDir) {
+      args.push("-RuntimeEvidenceSigningBundleDir", options.runtimeEvidenceSigningBundleDir);
     }
 
     const result = spawnSync(
@@ -872,6 +885,8 @@ function runReleaseReadinessWithCaseWikiEvidence(
     strictFinalRun: boolean;
     promptfooEvalSummary: Record<string, unknown> | null;
     env: Record<string, string | undefined>;
+    useLocalRuntimeEvidenceSigningBundle: boolean;
+    runtimeEvidenceSigningBundleDir: string;
   }>,
 ): { exitCode: number; stdout: string; stderr: string } {
   if (!powershellBin) {
@@ -928,6 +943,12 @@ function runReleaseReadinessWithCaseWikiEvidence(
     ];
     if (options?.strictFinalRun) {
       args.push("-StrictFinalRun");
+    }
+    if (options?.useLocalRuntimeEvidenceSigningBundle) {
+      args.push("-UseLocalRuntimeEvidenceSigningBundle");
+    }
+    if (options?.runtimeEvidenceSigningBundleDir) {
+      args.push("-RuntimeEvidenceSigningBundleDir", options.runtimeEvidenceSigningBundleDir);
     }
 
     const result = spawnSync(powershellBin, args, {
@@ -1660,6 +1681,52 @@ test(
 );
 
 test(
+  "release-readiness can bootstrap signed case wiki evidence from a local signing bundle",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const bundleDir = mkdtempSync(join(tmpdir(), "mla-release-readiness-signing-bundle-"));
+    try {
+      writeFileSync(
+        join(bundleDir, "runtime-evidence.env"),
+        [
+          "RUNTIME_EVIDENCE_SIGNING_ENABLED=true",
+          `RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64=${Buffer.from("fake-private-key", "utf8").toString("base64")}`,
+          "RUNTIME_EVIDENCE_SIGNING_KEY_ID=local-release-key",
+          "RUNTIME_EVIDENCE_SIGNING_SIGNER_ID=api-backend-local",
+          "",
+        ].join("\n"),
+        "utf8",
+      );
+
+      const result = runReleaseReadinessWithCaseWikiEvidence(
+        createPassingSummary(),
+        createCaseWikiEvidenceSignatureBadgeDetails({
+          status: "pass",
+          signedArtifacts: 1,
+          unsignedArtifacts: 0,
+          signatureStatus: "signed",
+          signaturePresent: true,
+          signerId: "api-backend-local",
+        }),
+        {
+          useLocalRuntimeEvidenceSigningBundle: true,
+          runtimeEvidenceSigningBundleDir: bundleDir,
+        },
+      );
+      assert.equal(result.exitCode, 0, `${result.stderr}\n${result.stdout}`);
+      const output = `${result.stderr}\n${result.stdout}`;
+      assert.match(output, /Loaded local runtime evidence signing bundle/i);
+      assert.match(output, /case_wiki\.evidence_signature: .*status=pass/i);
+      assert.match(output, /signature_status=signed/i);
+      assert.match(output, /signed=1/i);
+      assert.match(output, /unsigned=0/i);
+    } finally {
+      rmSync(bundleDir, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
   "release-readiness ignores inherited runtime signing env for unsigned fixture checks",
   { skip: skipIfNoPowerShell },
   () => {
@@ -1705,6 +1772,31 @@ test(
         process.env.RUNTIME_EVIDENCE_SIGNING_SIGNER_ID = previousSignerId;
       }
     }
+  },
+);
+
+test(
+  "release-readiness fails fast when the requested local signing bundle is missing",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const missingBundleDir = join(tmpdir(), `mla-release-readiness-missing-signing-bundle-${Date.now()}`);
+    const result = runReleaseReadinessWithCaseWikiEvidence(
+      createPassingSummary(),
+      createCaseWikiEvidenceSignatureBadgeDetails({
+        status: "pass",
+        signedArtifacts: 1,
+        unsignedArtifacts: 0,
+        signatureStatus: "signed",
+        signaturePresent: true,
+      }),
+      {
+        useLocalRuntimeEvidenceSigningBundle: true,
+        runtimeEvidenceSigningBundleDir: missingBundleDir,
+      },
+    );
+    assert.equal(result.exitCode, 1);
+    assert.match(`${result.stderr}\n${result.stdout}`, /Local runtime evidence signing bundle is missing/i);
+    assert.match(`${result.stderr}\n${result.stdout}`, /runtime:evidence:keygen/i);
   },
 );
 

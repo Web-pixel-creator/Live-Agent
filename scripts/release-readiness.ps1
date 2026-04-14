@@ -8,6 +8,7 @@ param(
   [switch]$SkipDemoRun,
   [switch]$UseFastDemoE2E,
   [switch]$StrictFinalRun,
+  [switch]$UseLocalRuntimeEvidenceSigningBundle,
   [switch]$SkipPolicy,
   [switch]$SkipBadge,
   [switch]$SkipPublicBadgeSync,
@@ -37,7 +38,8 @@ param(
   [string]$ReleaseEvidenceReportPath = "artifacts/release-evidence/report.json",
   [string]$ReleaseEvidenceReportMarkdownPath = "artifacts/release-evidence/report.md",
   [string]$ReleaseEvidenceManifestPath = "artifacts/release-evidence/manifest.json",
-  [string]$ReleaseEvidenceManifestMarkdownPath = "artifacts/release-evidence/manifest.md"
+  [string]$ReleaseEvidenceManifestMarkdownPath = "artifacts/release-evidence/manifest.md",
+  [string]$RuntimeEvidenceSigningBundleDir = ".credentials/runtime-evidence-signing"
 )
 
 $ErrorActionPreference = "Stop"
@@ -275,19 +277,13 @@ function Ensure-ReleaseDemoStorytellerMediaMode {
   Write-Host "[release-check] DEMO_E2E_STORYTELLER_MEDIA_MODE defaulted to simulated for release verification."
 }
 
-function Get-ReleaseReadinessDotEnvValues {
-  if ($null -ne $script:ReleaseReadinessDotEnvValues) {
-    return $script:ReleaseReadinessDotEnvValues
-  }
-
+function Read-EnvStyleFileValues([string]$Path) {
   $values = @{}
-  $envPath = Join-Path (Join-Path $PSScriptRoot "..") ".env"
-  if (-not (Test-Path $envPath)) {
-    $script:ReleaseReadinessDotEnvValues = $values
-    return $script:ReleaseReadinessDotEnvValues
+  if (-not (Test-Path $Path)) {
+    return $values
   }
 
-  foreach ($line in (Get-Content $envPath)) {
+  foreach ($line in (Get-Content $Path)) {
     if ([string]::IsNullOrWhiteSpace($line)) {
       continue
     }
@@ -312,9 +308,19 @@ function Get-ReleaseReadinessDotEnvValues {
       $value = $value.Substring(1, $value.Length - 2)
     }
 
-    $values[$name] = $value
+    $values[$name] = [string]$value
   }
 
+  return $values
+}
+
+function Get-ReleaseReadinessDotEnvValues {
+  if ($null -ne $script:ReleaseReadinessDotEnvValues) {
+    return $script:ReleaseReadinessDotEnvValues
+  }
+
+  $envPath = Join-Path (Join-Path $PSScriptRoot "..") ".env"
+  $values = Read-EnvStyleFileValues -Path $envPath
   $script:ReleaseReadinessDotEnvValues = $values
   return $script:ReleaseReadinessDotEnvValues
 }
@@ -342,6 +348,18 @@ function Test-ReleaseDemoAnyNonEmptyEnvVar([string[]]$Names) {
   }
 
   return $false
+}
+
+function Test-ReleaseRuntimeEvidenceSigningConfigured {
+  $runtimeEvidenceSigningEnabled = To-BoolOrNull (Get-ReleaseReadinessEnvValue "RUNTIME_EVIDENCE_SIGNING_ENABLED")
+  if ($runtimeEvidenceSigningEnabled -eq $true) {
+    return $true
+  }
+
+  return Test-ReleaseDemoAnyNonEmptyEnvVar @(
+    "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM",
+    "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64"
+  )
 }
 
 function Resolve-ReleaseDemoFrontendDecision {
@@ -426,6 +444,86 @@ function Get-FullPathString([string]$Path) {
   }
 }
 
+function Enable-ReleaseRuntimeEvidenceSigningFromLocalBundle {
+  if (-not $UseLocalRuntimeEvidenceSigningBundle) {
+    return
+  }
+
+  if (Test-ReleaseRuntimeEvidenceSigningConfigured) {
+    Write-Host "[release-check] Runtime evidence signing already configured by env/.env; local bundle bootstrap skipped."
+    return
+  }
+
+  $repoRoot = Get-FullPathString (Join-Path $PSScriptRoot "..")
+  $resolvedBundleDir = if ([System.IO.Path]::IsPathRooted($RuntimeEvidenceSigningBundleDir)) {
+    Get-FullPathString $RuntimeEvidenceSigningBundleDir
+  } else {
+    Get-FullPathString (Join-Path $repoRoot $RuntimeEvidenceSigningBundleDir)
+  }
+  $envSnippetPath = Join-Path $resolvedBundleDir "runtime-evidence.env"
+  if (-not (Test-Path $envSnippetPath)) {
+    Fail (
+      "Local runtime evidence signing bundle is missing: " +
+      $envSnippetPath +
+      ". Run npm run runtime:evidence:keygen -- --outputDir " +
+      $RuntimeEvidenceSigningBundleDir +
+      " --keyId local-release-key or configure runtime signing env vars directly."
+    )
+  }
+
+  $bundleValues = Read-EnvStyleFileValues -Path $envSnippetPath
+  $enabledRaw = if ($bundleValues.ContainsKey("RUNTIME_EVIDENCE_SIGNING_ENABLED")) {
+    [string]$bundleValues["RUNTIME_EVIDENCE_SIGNING_ENABLED"]
+  } else {
+    ""
+  }
+  $privateKeyPem = if ($bundleValues.ContainsKey("RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM")) {
+    [string]$bundleValues["RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM"]
+  } else {
+    ""
+  }
+  $privateKeyBase64 = if ($bundleValues.ContainsKey("RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64")) {
+    [string]$bundleValues["RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64"]
+  } else {
+    ""
+  }
+
+  if ((To-BoolOrNull $enabledRaw) -ne $true) {
+    Fail ("Local runtime evidence signing bundle must set RUNTIME_EVIDENCE_SIGNING_ENABLED=true: " + $envSnippetPath)
+  }
+  if ([string]::IsNullOrWhiteSpace($privateKeyPem) -and [string]::IsNullOrWhiteSpace($privateKeyBase64)) {
+    Fail (
+      "Local runtime evidence signing bundle requires RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM or " +
+      "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64: " +
+      $envSnippetPath
+    )
+  }
+
+  foreach ($name in @(
+      "RUNTIME_EVIDENCE_SIGNING_ENABLED",
+      "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_PEM",
+      "RUNTIME_EVIDENCE_SIGNING_PRIVATE_KEY_BASE64",
+      "RUNTIME_EVIDENCE_SIGNING_KEY_ID",
+      "RUNTIME_EVIDENCE_SIGNING_SIGNER_ID"
+    )) {
+    if ($bundleValues.ContainsKey($name)) {
+      [Environment]::SetEnvironmentVariable($name, [string]$bundleValues[$name], "Process")
+    }
+  }
+
+  $loadedKeyId = [string][Environment]::GetEnvironmentVariable("RUNTIME_EVIDENCE_SIGNING_KEY_ID", "Process")
+  $loadedSignerId = [string][Environment]::GetEnvironmentVariable("RUNTIME_EVIDENCE_SIGNING_SIGNER_ID", "Process")
+  Write-Host (
+    "[release-check] Loaded local runtime evidence signing bundle from " +
+    $envSnippetPath +
+    " (keyId=" +
+    $(if ([string]::IsNullOrWhiteSpace($loadedKeyId)) { "n/a" } else { $loadedKeyId }) +
+    ", signerId=" +
+    $(if ([string]::IsNullOrWhiteSpace($loadedSignerId)) { "api-backend" } else { $loadedSignerId }) +
+    ")."
+  )
+}
+
 function Assert-PromptfooRedTeamSummary([string]$Path) {
   if (-not (Test-Path $Path)) {
     Fail ("Promptfoo red-team summary missing: " + $Path)
@@ -502,6 +600,8 @@ if (-not $SkipUnitTests) {
     -Names @("GOOGLE_API_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_GENAI_API_KEY") `
     -ScriptBlock { Run-Step "Run unit tests" "npm run test:unit" }
 }
+
+Enable-ReleaseRuntimeEvidenceSigningFromLocalBundle
 
 if (-not $SkipPromptfooRedTeam) {
   $defaultPromptfooEvalSummaryPath = Join-Path $PSScriptRoot "..\artifacts\evals\latest-run.json"
