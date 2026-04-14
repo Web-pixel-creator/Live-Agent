@@ -110,6 +110,21 @@ function Ensure-RailwayAuthContext([string]$LogPrefix) {
     return
   }
 
+  if (
+    [string]::IsNullOrWhiteSpace($accountToken) -and
+    [string]::IsNullOrWhiteSpace($legacyToken) -and
+    [string]::IsNullOrWhiteSpace($projectToken)
+  ) {
+    Invoke-AuthProbe
+    if ($authProbeExitCode -eq 0) {
+      Remove-Item Env:RAILWAY_AUTH_PROJECT_MODE -ErrorAction SilentlyContinue
+      return
+    }
+    if (-not [string]::IsNullOrWhiteSpace($authProbe)) {
+      Write-Host $authProbe
+    }
+  }
+
   Remove-Item Env:RAILWAY_AUTH_PROJECT_MODE -ErrorAction SilentlyContinue
   Fail ("[" + $LogPrefix + "] Railway authentication failed. Set RAILWAY_API_TOKEN (account token), or set RAILWAY_TOKEN/RAILWAY_LEGACY_TOKEN (legacy account token), or set RAILWAY_PROJECT_TOKEN, or run 'railway login'.")
 }

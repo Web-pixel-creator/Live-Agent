@@ -536,6 +536,33 @@ Set-RailwayVariableIfProvided -Name "RUNTIME_EVIDENCE_SIGNING_SIGNER_ID" -Value 
 try {
   Push-Location $deployWorkspacePath
 
+  if (-not [string]::IsNullOrWhiteSpace($ProjectId) -and -not [string]::IsNullOrWhiteSpace($Service)) {
+    $workspaceLinkArgs = @("link", "-p", $ProjectId, "-s", $Service, "-e", $Environment)
+    Write-Host "[railway-api] Linking clean deploy worktree to Railway service..."
+    $workspaceLinkOutput = @()
+    $workspaceLinkExitCode = 1
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+      $ErrorActionPreference = "Continue"
+      $workspaceLinkOutput = (& railway @workspaceLinkArgs 2>&1)
+      $workspaceLinkExitCode = $LASTEXITCODE
+    }
+    finally {
+      $ErrorActionPreference = $previousErrorActionPreference
+    }
+    if ($workspaceLinkOutput) {
+      $workspaceLinkOutput | ForEach-Object { Write-Host $_ }
+    }
+    if ($workspaceLinkExitCode -ne 0) {
+      if ($env:RAILWAY_AUTH_PROJECT_MODE -eq "true") {
+        Write-Warning "[railway-api] clean worktree railway link failed; continuing with direct project/service flags in project-token fallback mode."
+      }
+      else {
+        Fail "Unable to link clean Railway API deploy worktree."
+      }
+    }
+  }
+
   $deployArgs = @("up", "-d", "-s", $Service, "-e", $Environment, "-m", $DeployMessage)
   if (-not [string]::IsNullOrWhiteSpace($ProjectId)) {
     $deployArgs += @("-p", $ProjectId)
