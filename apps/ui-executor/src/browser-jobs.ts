@@ -552,13 +552,14 @@ function buildBrowserJobReplayVerification(job: InternalBrowserJob): BrowserJobR
 
 function buildBrowserJobReplayRecovery(job: InternalBrowserJob): BrowserJobReplayRecovery {
   const grounding = cloneBrowserJobGroundingRecovery(job.grounding);
+  const observedStaleRefTargets = mergeUniqueStrings(grounding.staleRefTargets, grounding.healedRefTargets);
   const retryCount = Math.max(
     typeof job.retries === "number" && Number.isFinite(job.retries) && job.retries > 0 ? Math.floor(job.retries) : 0,
     job.trace.filter((step) => step.status === "retry").length,
   );
   const checkpointCount = job.checkpoints.length;
   const resumedCheckpointCount = job.checkpoints.filter((item) => item.status === "resumed").length;
-  const staleRefCount = grounding.staleRefTargets.length;
+  const staleRefCount = observedStaleRefTargets.length;
   const healedRefCount = grounding.healedRefTargets.length;
 
   let summary = "No grounding recovery or resume activity recorded.";
@@ -591,7 +592,7 @@ function buildBrowserJobReplayRecovery(job: InternalBrowserJob): BrowserJobRepla
     resumedCheckpointCount,
     staleRefCount,
     healedRefCount,
-    staleRefTargets: grounding.staleRefTargets,
+    staleRefTargets: observedStaleRefTargets,
     healedRefTargets: grounding.healedRefTargets,
     summary,
   };

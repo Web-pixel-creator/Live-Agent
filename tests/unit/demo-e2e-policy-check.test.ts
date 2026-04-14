@@ -22,6 +22,7 @@ const requiredScenarioNames = [
   "ui.approval.approve_resume",
   "ui.sandbox.policy_modes",
   "ui.visual_testing",
+  "ui.browser_worker.checkpoint_resume",
   "multi_agent.delegation",
   "gateway.websocket.case_wiki_hydration",
   "gateway.websocket.roundtrip",
@@ -261,6 +262,7 @@ function createPassingSummary(overrides?: {
     pluginMarketplaceScenarioAttempts: 1,
     sessionVersioningScenarioAttempts: 1,
     uiVisualTestingScenarioAttempts: 1,
+    uiBrowserWorkerRecoveryScenarioAttempts: 1,
     operatorConsoleActionsScenarioAttempts: 1,
     runtimeLifecycleScenarioAttempts: 1,
     runtimeMetricsScenarioAttempts: 1,
@@ -279,6 +281,7 @@ function createPassingSummary(overrides?: {
     uiGroundingMarkHintsCount: 2,
     uiGroundingAdapterNoteSeen: true,
     uiGroundingSignalsValidated: true,
+    browserWorkerRecoveryValidated: true,
     gatewayWsRoundTripMs: 120,
     costEstimateGeminiLiveUsd: 0.12,
     costEstimateImagenUsd: 0.35,
@@ -596,6 +599,22 @@ test("demo-e2e policy check fails when ui remote fallback mode is not strict", (
   assert.ok(Array.isArray(details?.violations));
   const violations = details.violations as string[];
   assert.ok(violations.some((item) => item.includes("options.uiNavigatorRemoteHttpFallbackMode")));
+});
+
+test("demo-e2e policy check fails when browser worker recovery proof is missing", () => {
+  const result = runPolicyCheck(
+    createPassingSummary({
+      kpis: {
+        browserWorkerRecoveryValidated: false,
+      },
+    }),
+  );
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.payload.ok, false);
+  const details = result.payload.details as Record<string, unknown>;
+  assert.ok(Array.isArray(details?.violations));
+  const violations = details.violations as string[];
+  assert.ok(violations.some((item) => item.includes("kpi.browserWorkerRecoveryValidated")));
 });
 
 test("demo-e2e policy check fails when damage-control diagnostics KPI is invalid", () => {

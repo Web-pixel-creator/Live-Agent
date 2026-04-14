@@ -172,6 +172,23 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         uiRefHealingObservationSeen: true,
         uiRefHealingNoteSeen: true,
         uiRefHealingValidated: true,
+        browserWorkerRecoveryFinalStatus: "completed",
+        browserWorkerRecoveryAdapterMode: "remote_http",
+        browserWorkerRecoveryCheckpointCount: 1,
+        browserWorkerRecoveryResumedCheckpointCount: 1,
+        browserWorkerRecoveryHealedRefTargets: ["email", "submit_primary"],
+        browserWorkerRecoveryHealedRefCount: 2,
+        browserWorkerRecoveryStaleRefTargets: ["email", "submit_primary"],
+        browserWorkerRecoveryStaleRefCount: 2,
+        browserWorkerRecoveryTraceCount: 7,
+        browserWorkerRecoveryRetryCount: 0,
+        browserWorkerRecoveryRuntimeRetryCount: 0,
+        browserWorkerRecoveryRuntimeResumedCheckpointCount: 1,
+        browserWorkerRecoveryRuntimeStaleRefCount: 2,
+        browserWorkerRecoveryRuntimeHealedRefCount: 2,
+        browserWorkerRecoveryCheckpointReadyCleared: true,
+        browserWorkerRecoverySummary: "healed 2 stale grounding refs; resumed 1 checkpoint.",
+        browserWorkerRecoveryValidated: true,
         operatorTurnTruncationSummaryValidated: true,
         operatorTurnTruncationExpectedEventSeen: true,
         operatorTurnTruncationTotal: 1,
@@ -464,6 +481,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   const caseWikiGatewayHydration = evidence.caseWikiGatewayHydration as Record<string, unknown>;
   const caseWikiContextAdoption = evidence.caseWikiContextAdoption as Record<string, unknown>;
   const uiRefHealing = evidence.uiRefHealing as Record<string, unknown>;
+  const browserWorkerRecovery = evidence.browserWorkerRecovery as Record<string, unknown>;
   assert.equal(turnTruncation.status, "pass");
   assert.equal(turnDelete.status, "pass");
   assert.equal(damageControl.status, "pass");
@@ -590,6 +608,25 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(uiRefHealing.enabledSubmitSeen, true);
   assert.equal(uiRefHealing.healingObservationSeen, true);
   assert.equal(uiRefHealing.healingNoteSeen, true);
+  assert.equal(browserWorkerRecovery.status, "pass");
+  assert.equal(browserWorkerRecovery.validated, true);
+  assert.equal(browserWorkerRecovery.observed, true);
+  assert.equal(browserWorkerRecovery.finalStatus, "completed");
+  assert.equal(browserWorkerRecovery.adapterMode, "remote_http");
+  assert.equal(browserWorkerRecovery.checkpointCount, 1);
+  assert.equal(browserWorkerRecovery.resumedCheckpointCount, 1);
+  assert.equal(browserWorkerRecovery.healedRefCount, 2);
+  assert.deepEqual(browserWorkerRecovery.healedRefTargets, ["email", "submit_primary"]);
+  assert.equal(browserWorkerRecovery.staleRefCount, 2);
+  assert.deepEqual(browserWorkerRecovery.staleRefTargets, ["email", "submit_primary"]);
+  assert.equal(browserWorkerRecovery.traceCount, 7);
+  assert.equal(browserWorkerRecovery.retryCount, 0);
+  assert.equal(browserWorkerRecovery.runtimeRetryCount, 0);
+  assert.equal(browserWorkerRecovery.runtimeResumedCheckpointCount, 1);
+  assert.equal(browserWorkerRecovery.runtimeStaleRefCount, 2);
+  assert.equal(browserWorkerRecovery.runtimeHealedRefCount, 2);
+  assert.equal(browserWorkerRecovery.checkpointReadyCleared, true);
+  assert.equal(browserWorkerRecovery.summary, "healed 2 stale grounding refs; resumed 1 checkpoint.");
   assert.equal(runtimeGuardrailsSignalPaths.totalPaths, 3);
   assert.equal(runtimeGuardrailsSignalPaths.lifecycleSummary, "active=3");
   const runtimeGuardrailsCounts = runtimeGuardrailsSignalPaths.lifecycleCounts as Record<string, unknown>;

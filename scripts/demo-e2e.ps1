@@ -552,6 +552,42 @@ function Invoke-JsonRequestWithRetry {
   throw "Request retry loop exhausted for $Method $Uri."
 }
 
+function Wait-ForBrowserJobState {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$JobId,
+    [Parameter(Mandatory = $true)]
+    [string[]]$Statuses,
+    [Parameter(Mandatory = $false)]
+    [int]$TimeoutSec = 45,
+    [Parameter(Mandatory = $false)]
+    [int]$PollMs = 150
+  )
+
+  if ($Statuses.Count -eq 0) {
+    throw "Statuses must include at least one target state."
+  }
+
+  $deadline = [DateTime]::UtcNow.AddSeconds([Math]::Max(1, $TimeoutSec))
+  $lastResponse = $null
+
+  while ([DateTime]::UtcNow -lt $deadline) {
+    $response = Invoke-JsonRequest -Method GET -Uri ("http://localhost:8090/browser-jobs/" + [Uri]::EscapeDataString($JobId)) -TimeoutSec ([Math]::Min([Math]::Max(5, $TimeoutSec), 15))
+    $job = Get-FieldValue -Object $response -Path @("data", "job")
+    if ($null -ne $job) {
+      $lastResponse = $response
+      $status = [string](Get-FieldValue -Object $job -Path @("status"))
+      if ($Statuses -contains $status) {
+        return $response
+      }
+    }
+    Start-Sleep -Milliseconds ([Math]::Max(50, $PollMs))
+  }
+
+  $lastStatus = if ($null -ne $lastResponse) { [string](Get-FieldValue -Object $lastResponse -Path @("data", "job", "status")) } else { "unknown" }
+  throw ("Timed out waiting for browser job {0} to reach one of: {1}. Last status: {2}" -f $JobId, ($Statuses -join ", "), $lastStatus)
+}
+
 function Invoke-NodeJsonCommand {
   param(
     [Parameter(Mandatory = $true)]
@@ -2886,6 +2922,190 @@ try {
       healingObservationSeen = $healingObservationSeen
       healingNoteSeen = $healingNoteSeen
       healingObservations = @($traceObservations | Where-Object { [string]$_ -like "*grounding-healed ref:*" })
+      timeoutSec = $uiExecutorRequestTimeoutSec
+      inputApproxTokens = $inputApproxTokens
+      outputApproxTokens = $outputApproxTokens
+    }
+  } | Out-Null
+
+  Invoke-Scenario `
+    -Name "ui.browser_worker.checkpoint_resume" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    if (-not $IncludeFrontend) {
+      Start-ManagedService -Name "demo-frontend" -HealthUrl "http://localhost:3000/healthz" -NodeArgs @("--import", "tsx", "apps/demo-frontend/src/server.ts")
+    }
+    $uiExecutorRequestTimeoutSec = [Math]::Max($RequestTimeoutSec, 60)
+    $fixtureUrl = "http://localhost:3000/ui-task-profile-settings-demo.html"
+    $submitRequest = [ordered]@{
+      sessionId = "browser-worker-demo-session-" + [Guid]::NewGuid().Guid
+      runId = "browser-worker-demo-run-" + [Guid]::NewGuid().Guid
+      actions = @(
+        [ordered]@{
+          id = "navigate-profile-settings"
+          type = "navigate"
+          target = $fixtureUrl
+        }
+        [ordered]@{
+          id = "verify-submit-disabled"
+          type = "verify"
+          target = 'css:button[type="submit"]:disabled'
+        }
+        [ordered]@{
+          id = "verify-email-visible"
+          type = "verify"
+          target = "ref:email"
+        }
+        [ordered]@{
+          id = "type-email"
+          type = "type"
+          target = "css:#email"
+          text = "agent@example.com"
+        }
+        [ordered]@{
+          id = "verify-submit-enabled"
+          type = "verify"
+          target = 'css:button[type="submit"]:not(:disabled)'
+        }
+        [ordered]@{
+          id = "verify-submit-ref"
+          type = "verify"
+          target = "ref:submit_primary"
+        }
+        [ordered]@{
+          id = "submit-profile"
+          type = "click"
+          target = "ref:submit_primary"
+        }
+      )
+      context = [ordered]@{
+        goal = "Run the repo-owned browser worker, pause at a checkpoint, resume the persistent session, and submit the profile settings form."
+        url = $fixtureUrl
+        screenshotRef = "ui://demo/browser-worker"
+        domSnapshot = "<main><form id='profile-form' aria-label='Profile settings form'><label for='email'>Email<input id='email' name='email' type='email' autocomplete='email' placeholder='operator@example.com' /></label><p id='form-status' aria-live='polite'>Submit is disabled until the email field is filled.</p><div><button id='submit-profile' type='submit' disabled>Submit changes</button><button id='preview-card' type='button'>Preview profile card</button></div></form></main>"
+        accessibilityTree = "main > form[name=Profile settings form] > textbox[name=Email]; main > form[name=Profile settings form] > button[name=Submit changes]; main > form[name=Profile settings form] > button[name=Preview profile card]"
+        markHints = @(
+          "email_field@(404,244)"
+          "submit_changes@(416,348)"
+          "preview_profile_card@(600,348)"
+        )
+        refMap = [ordered]@{
+          email = [ordered]@{
+            selector = "#legacy-email"
+            kind = "field"
+            label = "Email"
+            aliases = @("email", "work email")
+          }
+          submit_primary = [ordered]@{
+            selector = "#legacy-submit"
+            kind = "submit"
+            label = "Submit changes"
+            aliases = @("submit", "save profile")
+          }
+        }
+      }
+      options = [ordered]@{
+        checkpointEverySteps = 4
+        label = "demo browser worker checkpoint proof"
+        reason = "demo_browser_worker_checkpoint_resume"
+      }
+    }
+
+    $submitResponse = Invoke-JsonRequest -Method POST -Uri "http://localhost:8090/browser-jobs" -Body $submitRequest -TimeoutSec $uiExecutorRequestTimeoutSec
+    $submittedJob = Get-FieldValue -Object $submitResponse -Path @("data", "job")
+    Assert-Condition -Condition ($null -ne $submittedJob) -Message "Browser worker submit response is missing job data."
+
+    $jobId = [string](Get-FieldValue -Object $submittedJob -Path @("jobId"))
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($jobId)) -Message "Browser worker submit response is missing jobId."
+
+    $pausedResponse = Wait-ForBrowserJobState -JobId $jobId -Statuses @("paused") -TimeoutSec $uiExecutorRequestTimeoutSec
+    $pausedJob = Get-FieldValue -Object $pausedResponse -Path @("data", "job")
+    $pausedRuntime = Get-FieldValue -Object $pausedResponse -Path @("data", "runtime")
+    Assert-Condition -Condition ($null -ne $pausedJob) -Message "Browser worker paused state is missing job data."
+    Assert-Condition -Condition ([string](Get-FieldValue -Object $pausedJob -Path @("status")) -eq "paused") -Message "Browser worker should pause at the configured checkpoint."
+    Assert-Condition -Condition ([int](Get-FieldValue -Object $pausedJob -Path @("replayBundle", "recovery", "checkpointCount")) -ge 1) -Message "Browser worker paused replay bundle must include at least one checkpoint."
+    Assert-Condition -Condition ([int](Get-FieldValue -Object $pausedJob -Path @("replayBundle", "recovery", "resumedCheckpointCount")) -eq 0) -Message "Paused browser worker should not report resumed checkpoints yet."
+    Assert-Condition -Condition ([int](Get-FieldValue -Object $pausedRuntime -Path @("queue", "checkpointReady")) -ge 1) -Message "Browser worker runtime should report a checkpoint-ready job while paused."
+
+    $resumeResponse = Invoke-JsonRequest -Method POST -Uri ("http://localhost:8090/browser-jobs/" + [Uri]::EscapeDataString($jobId) + "/resume") -Body @{
+      reason = "Resume browser worker from demo-e2e proof."
+    } -TimeoutSec $uiExecutorRequestTimeoutSec
+    $resumedJob = Get-FieldValue -Object $resumeResponse -Path @("data", "job")
+    Assert-Condition -Condition ($null -ne $resumedJob) -Message "Browser worker resume response is missing job data."
+
+    $completedResponse = Wait-ForBrowserJobState -JobId $jobId -Statuses @("completed") -TimeoutSec $uiExecutorRequestTimeoutSec
+    $completedJob = Get-FieldValue -Object $completedResponse -Path @("data", "job")
+    $completedRuntime = Get-FieldValue -Object $completedResponse -Path @("data", "runtime")
+    Assert-Condition -Condition ($null -ne $completedJob) -Message "Browser worker completed state is missing job data."
+
+    $finalStatus = [string](Get-FieldValue -Object $completedJob -Path @("status"))
+    $adapterMode = [string](Get-FieldValue -Object $completedJob -Path @("adapterMode"))
+    $recovery = Get-FieldValue -Object $completedJob -Path @("replayBundle", "recovery")
+    Assert-Condition -Condition ($null -ne $recovery) -Message "Browser worker replay bundle is missing recovery data."
+
+    $healedRefTargets = @((Get-FieldValue -Object $recovery -Path @("healedRefTargets")))
+    $staleRefTargets = @((Get-FieldValue -Object $recovery -Path @("staleRefTargets")))
+    $checkpointCount = [int](Get-FieldValue -Object $recovery -Path @("checkpointCount"))
+    $resumedCheckpointCount = [int](Get-FieldValue -Object $recovery -Path @("resumedCheckpointCount"))
+    $healedRefCount = [int](Get-FieldValue -Object $recovery -Path @("healedRefCount"))
+    $staleRefCount = [int](Get-FieldValue -Object $recovery -Path @("staleRefCount"))
+    $retryCount = [int](Get-FieldValue -Object $recovery -Path @("retryCount"))
+    $recoverySummary = [string](Get-FieldValue -Object $recovery -Path @("summary"))
+    $traceCount = @((Get-FieldValue -Object $completedJob -Path @("trace"))).Count
+    $runtimeRecovery = Get-FieldValue -Object $completedRuntime -Path @("recovery")
+    $runtimeRetryCount = [int](Get-FieldValue -Object $runtimeRecovery -Path @("retryCount"))
+    $runtimeResumedCheckpointCount = [int](Get-FieldValue -Object $runtimeRecovery -Path @("resumedCheckpointCount"))
+    $runtimeStaleRefCount = [int](Get-FieldValue -Object $runtimeRecovery -Path @("staleRefCount"))
+    $runtimeHealedRefCount = [int](Get-FieldValue -Object $runtimeRecovery -Path @("healedRefCount"))
+    $completedCheckpointReady = [int](Get-FieldValue -Object $completedRuntime -Path @("queue", "checkpointReady"))
+    $checkpointReadyCleared = ($completedCheckpointReady -eq 0)
+
+    Assert-Condition -Condition ($finalStatus -eq "completed") -Message "Browser worker checkpoint/resume scenario did not complete."
+    Assert-Condition -Condition ($adapterMode -eq "remote_http") -Message "Browser worker checkpoint/resume scenario must use remote_http adapter."
+    Assert-Condition -Condition ($checkpointCount -ge 1) -Message "Browser worker replay bundle should include at least one checkpoint."
+    Assert-Condition -Condition ($resumedCheckpointCount -ge 1) -Message "Browser worker replay bundle should include at least one resumed checkpoint."
+    Assert-Condition -Condition ($healedRefTargets -contains "email") -Message "Browser worker recovery should heal the email ref."
+    Assert-Condition -Condition ($healedRefTargets -contains "submit_primary") -Message "Browser worker recovery should heal the submit ref."
+    Assert-Condition -Condition ($healedRefCount -ge 2) -Message "Browser worker recovery should record both healed refs."
+    Assert-Condition -Condition ($staleRefCount -ge $healedRefCount) -Message "Browser worker recovery should expose observed stale refs alongside healed refs."
+    Assert-Condition -Condition ($staleRefTargets -contains "email") -Message "Browser worker recovery should record email as an observed stale ref."
+    Assert-Condition -Condition ($staleRefTargets -contains "submit_primary") -Message "Browser worker recovery should record submit_primary as an observed stale ref."
+    Assert-Condition -Condition ($traceCount -ge 7) -Message "Browser worker trace should include all expected actions."
+    Assert-Condition -Condition ($runtimeResumedCheckpointCount -ge $resumedCheckpointCount) -Message "Browser worker runtime recovery counters should include resumed checkpoints."
+    Assert-Condition -Condition ($runtimeHealedRefCount -ge $healedRefCount) -Message "Browser worker runtime recovery counters should include healed refs."
+    Assert-Condition -Condition ($runtimeStaleRefCount -ge $staleRefCount) -Message "Browser worker runtime recovery counters should include observed stale refs."
+    Assert-Condition -Condition $checkpointReadyCleared -Message "Browser worker runtime should clear checkpoint-ready queue entries after resume."
+
+    $inputApproxTokens = Estimate-ApproxTokensFromObject -Value $submitRequest
+    $outputApproxTokens =
+      (Estimate-ApproxTokensFromObject -Value $pausedResponse) +
+      (Estimate-ApproxTokensFromObject -Value $resumeResponse) +
+      (Estimate-ApproxTokensFromObject -Value $completedResponse)
+
+    return [ordered]@{
+      jobId = $jobId
+      finalStatus = $finalStatus
+      adapterMode = $adapterMode
+      checkpointCount = $checkpointCount
+      resumedCheckpointCount = $resumedCheckpointCount
+      healedRefTargets = $healedRefTargets
+      healedRefCount = $healedRefCount
+      staleRefTargets = $staleRefTargets
+      staleRefCount = $staleRefCount
+      traceCount = $traceCount
+      retryCount = $retryCount
+      recoverySummary = $recoverySummary
+      latestCheckpointRef = [string](Get-FieldValue -Object $completedJob -Path @("replayBundle", "latestCheckpointRef"))
+      latestResultRef = [string](Get-FieldValue -Object $completedJob -Path @("replayBundle", "latestResultRef"))
+      runtimeRetryCount = $runtimeRetryCount
+      runtimeResumedCheckpointCount = $runtimeResumedCheckpointCount
+      runtimeStaleRefCount = $runtimeStaleRefCount
+      runtimeHealedRefCount = $runtimeHealedRefCount
+      pausedCheckpointReady = [int](Get-FieldValue -Object $pausedRuntime -Path @("queue", "checkpointReady"))
+      completedCheckpointReady = $completedCheckpointReady
+      checkpointReadyCleared = $checkpointReadyCleared
       timeoutSec = $uiExecutorRequestTimeoutSec
       inputApproxTokens = $inputApproxTokens
       outputApproxTokens = $outputApproxTokens
@@ -5692,6 +5912,7 @@ $uiApproveData = Get-ScenarioData -Name "ui.approval.approve_resume"
 $uiSandboxData = Get-ScenarioData -Name "ui.sandbox.policy_modes"
 $uiVisualTestingData = Get-ScenarioData -Name "ui.visual_testing"
 $uiRefHealingData = Get-ScenarioData -Name "ui.executor.ref_healing"
+$uiBrowserWorkerRecoveryData = Get-ScenarioData -Name "ui.browser_worker.checkpoint_resume"
 $delegationData = Get-ScenarioData -Name "multi_agent.delegation"
 $gatewayWsData = Get-ScenarioData -Name "gateway.websocket.roundtrip"
 $gatewayCaseWikiHydrationData = Get-ScenarioData -Name "gateway.websocket.case_wiki_hydration"
@@ -5720,6 +5941,7 @@ $contextCompactionScenario = @($script:ScenarioResults | Where-Object { $_.name 
 $storytellerScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "storyteller.pipeline" } | Select-Object -First 1)
 $uiSandboxScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.sandbox.policy_modes" } | Select-Object -First 1)
 $uiRefHealingScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.executor.ref_healing" } | Select-Object -First 1)
+$uiBrowserWorkerRecoveryScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.browser_worker.checkpoint_resume" } | Select-Object -First 1)
 $gatewayRoundTripScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.roundtrip" } | Select-Object -First 1)
 $gatewayCaseWikiHydrationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.case_wiki_hydration" } | Select-Object -First 1)
 $gatewayTaskProgressScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.task_progress" } | Select-Object -First 1)
@@ -6251,6 +6473,40 @@ $summary = [ordered]@{
       [bool]$uiRefHealingData.healingObservationSeen -eq $true -and
       [bool]$uiRefHealingData.healingNoteSeen -eq $true
     ) { $true } else { $false }
+    browserWorkerRecoveryFinalStatus = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.finalStatus } else { $null }
+    browserWorkerRecoveryAdapterMode = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.adapterMode } else { $null }
+    browserWorkerRecoveryCheckpointCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.checkpointCount } else { 0 }
+    browserWorkerRecoveryResumedCheckpointCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.resumedCheckpointCount } else { 0 }
+    browserWorkerRecoveryHealedRefTargets = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.healedRefTargets } else { @() }
+    browserWorkerRecoveryHealedRefCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.healedRefCount } else { 0 }
+    browserWorkerRecoveryStaleRefTargets = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.staleRefTargets } else { @() }
+    browserWorkerRecoveryStaleRefCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.staleRefCount } else { 0 }
+    browserWorkerRecoveryTraceCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.traceCount } else { 0 }
+    browserWorkerRecoveryRetryCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.retryCount } else { 0 }
+    browserWorkerRecoverySummary = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.recoverySummary } else { $null }
+    browserWorkerRecoveryRuntimeRetryCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.runtimeRetryCount } else { 0 }
+    browserWorkerRecoveryRuntimeResumedCheckpointCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.runtimeResumedCheckpointCount } else { 0 }
+    browserWorkerRecoveryRuntimeStaleRefCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.runtimeStaleRefCount } else { 0 }
+    browserWorkerRecoveryRuntimeHealedRefCount = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.runtimeHealedRefCount } else { 0 }
+    browserWorkerRecoveryCheckpointReadyCleared = if ($null -ne $uiBrowserWorkerRecoveryData) { $uiBrowserWorkerRecoveryData.checkpointReadyCleared } else { $null }
+    browserWorkerRecoveryValidated = if (
+      $null -ne $uiBrowserWorkerRecoveryData -and
+      [string]$uiBrowserWorkerRecoveryData.finalStatus -eq "completed" -and
+      [string]$uiBrowserWorkerRecoveryData.adapterMode -eq "remote_http" -and
+      [int]$uiBrowserWorkerRecoveryData.checkpointCount -ge 1 -and
+      [int]$uiBrowserWorkerRecoveryData.resumedCheckpointCount -ge 1 -and
+      @($uiBrowserWorkerRecoveryData.healedRefTargets) -contains "email" -and
+      @($uiBrowserWorkerRecoveryData.healedRefTargets) -contains "submit_primary" -and
+      [int]$uiBrowserWorkerRecoveryData.healedRefCount -ge 2 -and
+      [int]$uiBrowserWorkerRecoveryData.staleRefCount -ge [int]$uiBrowserWorkerRecoveryData.healedRefCount -and
+      @($uiBrowserWorkerRecoveryData.staleRefTargets) -contains "email" -and
+      @($uiBrowserWorkerRecoveryData.staleRefTargets) -contains "submit_primary" -and
+      [int]$uiBrowserWorkerRecoveryData.traceCount -ge 7 -and
+      [bool]$uiBrowserWorkerRecoveryData.checkpointReadyCleared -eq $true -and
+      [int]$uiBrowserWorkerRecoveryData.runtimeResumedCheckpointCount -ge [int]$uiBrowserWorkerRecoveryData.resumedCheckpointCount -and
+      [int]$uiBrowserWorkerRecoveryData.runtimeHealedRefCount -ge [int]$uiBrowserWorkerRecoveryData.healedRefCount -and
+      [int]$uiBrowserWorkerRecoveryData.runtimeStaleRefCount -ge [int]$uiBrowserWorkerRecoveryData.staleRefCount
+    ) { $true } else { $false }
     scenarioRetriesUsedCount = $scenarioRetriedSet.Count
     scenarioRetriesUsedNames = @($scenarioRetriedSet | ForEach-Object { [string]$_.name })
     scenarioRetryableFailuresTotal = [int]$scenarioRetryableFailuresTotal
@@ -6261,6 +6517,7 @@ $summary = [ordered]@{
     storytellerPipelineScenarioAttempts = if ($storytellerScenario.Count -gt 0) { [int]$storytellerScenario[0].attempts } else { $null }
     uiSandboxPolicyModesScenarioAttempts = if ($uiSandboxScenario.Count -gt 0) { [int]$uiSandboxScenario[0].attempts } else { $null }
     uiRefHealingScenarioAttempts = if ($uiRefHealingScenario.Count -gt 0) { [int]$uiRefHealingScenario[0].attempts } else { $null }
+    uiBrowserWorkerRecoveryScenarioAttempts = if ($uiBrowserWorkerRecoveryScenario.Count -gt 0) { [int]$uiBrowserWorkerRecoveryScenario[0].attempts } else { $null }
     gatewayWsRoundTripScenarioAttempts = if ($gatewayRoundTripScenario.Count -gt 0) { [int]$gatewayRoundTripScenario[0].attempts } else { $null }
     gatewayCaseWikiHydrationScenarioAttempts = if ($gatewayCaseWikiHydrationScenario.Count -gt 0) { [int]$gatewayCaseWikiHydrationScenario[0].attempts } else { $null }
     gatewayTaskProgressScenarioAttempts = if ($gatewayTaskProgressScenario.Count -gt 0) { [int]$gatewayTaskProgressScenario[0].attempts } else { $null }

@@ -1136,6 +1136,105 @@ function buildUiRefHealingEvidence(kpis) {
   };
 }
 
+function buildBrowserWorkerRecoveryEvidence(kpis) {
+  const validated = toBoolean(kpis.browserWorkerRecoveryValidated) === true;
+  const finalStatus = toOptionalString(kpis.browserWorkerRecoveryFinalStatus);
+  const adapterMode = toOptionalString(kpis.browserWorkerRecoveryAdapterMode);
+  const checkpointCount = Math.max(0, Math.trunc(toNumber(kpis.browserWorkerRecoveryCheckpointCount) ?? 0));
+  const resumedCheckpointCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryResumedCheckpointCount) ?? 0),
+  );
+  const healedRefTargets = toStringArray(kpis.browserWorkerRecoveryHealedRefTargets);
+  const healedRefCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryHealedRefCount) ?? healedRefTargets.length),
+  );
+  const staleRefTargets = toStringArray(kpis.browserWorkerRecoveryStaleRefTargets);
+  const staleRefCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryStaleRefCount) ?? staleRefTargets.length),
+  );
+  const traceCount = Math.max(0, Math.trunc(toNumber(kpis.browserWorkerRecoveryTraceCount) ?? 0));
+  const retryCount = Math.max(0, Math.trunc(toNumber(kpis.browserWorkerRecoveryRetryCount) ?? 0));
+  const runtimeRetryCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryRuntimeRetryCount) ?? 0),
+  );
+  const runtimeResumedCheckpointCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryRuntimeResumedCheckpointCount) ?? 0),
+  );
+  const runtimeStaleRefCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryRuntimeStaleRefCount) ?? 0),
+  );
+  const runtimeHealedRefCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.browserWorkerRecoveryRuntimeHealedRefCount) ?? 0),
+  );
+  const checkpointReadyCleared = toBoolean(kpis.browserWorkerRecoveryCheckpointReadyCleared);
+  const summary = toOptionalString(kpis.browserWorkerRecoverySummary);
+  const observed =
+    finalStatus !== null ||
+    adapterMode !== null ||
+    checkpointCount > 0 ||
+    resumedCheckpointCount > 0 ||
+    healedRefCount > 0 ||
+    staleRefCount > 0 ||
+    traceCount > 0;
+  const healedTargetsValid =
+    healedRefCount >= 2 &&
+    healedRefTargets.includes("email") &&
+    healedRefTargets.includes("submit_primary");
+  const staleTargetsValid =
+    staleRefCount >= healedRefCount &&
+    staleRefTargets.includes("email") &&
+    staleRefTargets.includes("submit_primary");
+  const countsConserved =
+    healedRefCount === healedRefTargets.length && staleRefCount === staleRefTargets.length;
+  const status =
+    validated &&
+    finalStatus === "completed" &&
+    adapterMode === "remote_http" &&
+    checkpointCount >= 1 &&
+    resumedCheckpointCount >= 1 &&
+    healedTargetsValid &&
+    staleTargetsValid &&
+    countsConserved &&
+    traceCount >= 7 &&
+    checkpointReadyCleared === true &&
+    runtimeResumedCheckpointCount >= resumedCheckpointCount &&
+    runtimeHealedRefCount >= healedRefCount &&
+    runtimeStaleRefCount >= staleRefCount
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    observed,
+    finalStatus,
+    adapterMode,
+    checkpointCount,
+    resumedCheckpointCount,
+    healedRefCount,
+    healedRefTargets,
+    staleRefCount,
+    staleRefTargets,
+    traceCount,
+    retryCount,
+    runtimeRetryCount,
+    runtimeResumedCheckpointCount,
+    runtimeStaleRefCount,
+    runtimeHealedRefCount,
+    checkpointReadyCleared,
+    summary,
+  };
+}
+
 function buildProviderUsage(kpis) {
   const entries = [];
   let validated = true;
@@ -1402,6 +1501,7 @@ async function main() {
   const caseWikiGatewayHydration = buildCaseWikiGatewayHydrationEvidence(kpis);
   const caseWikiContextAdoption = buildCaseWikiContextAdoptionEvidence(kpis);
   const uiRefHealing = buildUiRefHealingEvidence(kpis);
+  const browserWorkerRecovery = buildBrowserWorkerRecoveryEvidence(kpis);
   const providerUsage = buildProviderUsage(kpis);
 
   let color = "red";
@@ -1453,6 +1553,7 @@ async function main() {
       caseWikiGatewayHydration,
       caseWikiContextAdoption,
       uiRefHealing,
+      browserWorkerRecovery,
     },
     badge,
   };

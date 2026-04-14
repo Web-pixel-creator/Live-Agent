@@ -444,6 +444,59 @@ function New-UiRefHealingSnapshot {
   }
 }
 
+function New-BrowserWorkerRecoverySnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status                         = "unavailable"
+      validated                      = $false
+      observed                       = $false
+      finalStatus                    = $null
+      adapterMode                    = $null
+      checkpointCount                = 0
+      resumedCheckpointCount         = 0
+      healedRefCount                 = 0
+      healedRefTargets               = @()
+      staleRefCount                  = 0
+      staleRefTargets                = @()
+      traceCount                     = 0
+      retryCount                     = 0
+      runtimeRetryCount              = 0
+      runtimeResumedCheckpointCount  = 0
+      runtimeStaleRefCount           = 0
+      runtimeHealedRefCount          = 0
+      checkpointReadyCleared         = $null
+      summary                        = $null
+    }
+  }
+
+  return [ordered]@{
+    status                         = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated                      = ($Value.validated -eq $true)
+    observed                       = ($Value.observed -eq $true)
+    finalStatus                    = $(if ([string]::IsNullOrWhiteSpace([string]$Value.finalStatus)) { $null } else { [string]$Value.finalStatus })
+    adapterMode                    = $(if ([string]::IsNullOrWhiteSpace([string]$Value.adapterMode)) { $null } else { [string]$Value.adapterMode })
+    checkpointCount                = Convert-ToNonNegativeIntOrDefault -Value $Value.checkpointCount -DefaultValue 0
+    resumedCheckpointCount         = Convert-ToNonNegativeIntOrDefault -Value $Value.resumedCheckpointCount -DefaultValue 0
+    healedRefCount                 = Convert-ToNonNegativeIntOrDefault -Value $Value.healedRefCount -DefaultValue 0
+    healedRefTargets               = @($Value.healedRefTargets | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { [string]$_ })
+    staleRefCount                  = Convert-ToNonNegativeIntOrDefault -Value $Value.staleRefCount -DefaultValue 0
+    staleRefTargets                = @($Value.staleRefTargets | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { [string]$_ })
+    traceCount                     = Convert-ToNonNegativeIntOrDefault -Value $Value.traceCount -DefaultValue 0
+    retryCount                     = Convert-ToNonNegativeIntOrDefault -Value $Value.retryCount -DefaultValue 0
+    runtimeRetryCount              = Convert-ToNonNegativeIntOrDefault -Value $Value.runtimeRetryCount -DefaultValue 0
+    runtimeResumedCheckpointCount  = Convert-ToNonNegativeIntOrDefault -Value $Value.runtimeResumedCheckpointCount -DefaultValue 0
+    runtimeStaleRefCount           = Convert-ToNonNegativeIntOrDefault -Value $Value.runtimeStaleRefCount -DefaultValue 0
+    runtimeHealedRefCount          = Convert-ToNonNegativeIntOrDefault -Value $Value.runtimeHealedRefCount -DefaultValue 0
+    checkpointReadyCleared         = $(if ($null -eq $Value.checkpointReadyCleared) { $null } else { $Value.checkpointReadyCleared -eq $true })
+    summary                        = $(if ([string]::IsNullOrWhiteSpace([string]$Value.summary)) { $null } else { [string]$Value.summary })
+  }
+}
+
 function New-HostedDirectLiveProofSnapshot {
   param(
     [Parameter(Mandatory = $false)]
@@ -656,6 +709,7 @@ $report = [ordered]@{
     caseWikiGatewayHydrationStatus = "unavailable"
     caseWikiContextAdoptionStatus = "unavailable"
     uiRefHealingStatus       = "unavailable"
+    browserWorkerRecoveryStatus = "unavailable"
     deviceNodeUpdatesStatus   = "unavailable"
   }
   deviceNodeUpdates = [ordered]@{
@@ -794,6 +848,27 @@ $report = [ordered]@{
     enabledSubmitSeen      = $null
     healingObservationSeen = $null
     healingNoteSeen        = $null
+  }
+  browserWorkerRecovery = [ordered]@{
+    status                        = "unavailable"
+    validated                     = $false
+    observed                      = $false
+    finalStatus                   = $null
+    adapterMode                   = $null
+    checkpointCount               = 0
+    resumedCheckpointCount        = 0
+    healedRefCount                = 0
+    healedRefTargets              = @()
+    staleRefCount                 = 0
+    staleRefTargets               = @()
+    traceCount                    = 0
+    retryCount                    = 0
+    runtimeRetryCount             = 0
+    runtimeResumedCheckpointCount = 0
+    runtimeStaleRefCount          = 0
+    runtimeHealedRefCount         = 0
+    checkpointReadyCleared        = $null
+    summary                       = $null
   }
   providerUsage = [ordered]@{
     status                  = "unavailable"
@@ -934,6 +1009,10 @@ if (Test-Path $resolvedBadgeDetailsPath) {
       $report.uiRefHealing = New-UiRefHealingSnapshot -Value $badgeDetails.evidence.uiRefHealing
       $report.statuses.uiRefHealingStatus = Get-StatusValueOrDefault -Value $report.uiRefHealing.status -DefaultValue "unavailable"
     }
+    if ($null -ne $badgeDetails.evidence.browserWorkerRecovery) {
+      $report.browserWorkerRecovery = New-BrowserWorkerRecoverySnapshot -Value $badgeDetails.evidence.browserWorkerRecovery
+      $report.statuses.browserWorkerRecoveryStatus = Get-StatusValueOrDefault -Value $report.browserWorkerRecovery.status -DefaultValue "unavailable"
+    }
     if ($null -ne $badgeDetails.providerUsage) {
       $report.providerUsage.status = Get-StatusValueOrDefault -Value $badgeDetails.providerUsage.status -DefaultValue "unavailable"
       $report.statuses.providerUsageStatus = $report.providerUsage.status
@@ -989,6 +1068,7 @@ $markdown = @(
   "| caseWikiGatewayHydration | $($report.statuses.caseWikiGatewayHydrationStatus) |",
   "| caseWikiContextAdoption | $($report.statuses.caseWikiContextAdoptionStatus) |",
   "| uiRefHealing | $($report.statuses.uiRefHealingStatus) |",
+  "| browserWorkerRecovery | $($report.statuses.browserWorkerRecoveryStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",
@@ -1134,6 +1214,28 @@ $markdown = @(
   "- enabledSubmitSeen: $(if ($null -eq $report.uiRefHealing.enabledSubmitSeen) { "n/a" } else { [string]$report.uiRefHealing.enabledSubmitSeen })",
   "- healingObservationSeen: $(if ($null -eq $report.uiRefHealing.healingObservationSeen) { "n/a" } else { [string]$report.uiRefHealing.healingObservationSeen })",
   "- healingNoteSeen: $(if ($null -eq $report.uiRefHealing.healingNoteSeen) { "n/a" } else { [string]$report.uiRefHealing.healingNoteSeen })",
+  "",
+  "## Browser Worker Recovery Snapshot",
+  "",
+  "- status: $($report.browserWorkerRecovery.status)",
+  "- validated: $($report.browserWorkerRecovery.validated)",
+  "- observed: $($report.browserWorkerRecovery.observed)",
+  "- finalStatus: $(if ([string]::IsNullOrWhiteSpace([string]$report.browserWorkerRecovery.finalStatus)) { "n/a" } else { [string]$report.browserWorkerRecovery.finalStatus })",
+  "- adapterMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.browserWorkerRecovery.adapterMode)) { "n/a" } else { [string]$report.browserWorkerRecovery.adapterMode })",
+  "- checkpointCount: $($report.browserWorkerRecovery.checkpointCount)",
+  "- resumedCheckpointCount: $($report.browserWorkerRecovery.resumedCheckpointCount)",
+  "- healedRefCount: $($report.browserWorkerRecovery.healedRefCount)",
+  "- healedRefTargets: $(if (@($report.browserWorkerRecovery.healedRefTargets).Count -eq 0) { "(none)" } else { (@($report.browserWorkerRecovery.healedRefTargets) -join ", ") })",
+  "- staleRefCount: $($report.browserWorkerRecovery.staleRefCount)",
+  "- staleRefTargets: $(if (@($report.browserWorkerRecovery.staleRefTargets).Count -eq 0) { "(none)" } else { (@($report.browserWorkerRecovery.staleRefTargets) -join ", ") })",
+  "- traceCount: $($report.browserWorkerRecovery.traceCount)",
+  "- retryCount: $($report.browserWorkerRecovery.retryCount)",
+  "- runtimeRetryCount: $($report.browserWorkerRecovery.runtimeRetryCount)",
+  "- runtimeResumedCheckpointCount: $($report.browserWorkerRecovery.runtimeResumedCheckpointCount)",
+  "- runtimeStaleRefCount: $($report.browserWorkerRecovery.runtimeStaleRefCount)",
+  "- runtimeHealedRefCount: $($report.browserWorkerRecovery.runtimeHealedRefCount)",
+  "- checkpointReadyCleared: $(if ($null -eq $report.browserWorkerRecovery.checkpointReadyCleared) { "n/a" } else { [string]$report.browserWorkerRecovery.checkpointReadyCleared })",
+  "- summary: $(if ([string]::IsNullOrWhiteSpace([string]$report.browserWorkerRecovery.summary)) { "n/a" } else { [string]$report.browserWorkerRecovery.summary })",
   "",
   "## Secondary Provider Usage",
   "",
@@ -1284,6 +1386,27 @@ $manifest = [ordered]@{
     healingObservationSeen = $report.uiRefHealing.healingObservationSeen
     healingNoteSeen        = $report.uiRefHealing.healingNoteSeen
   }
+  browserWorkerRecovery = [ordered]@{
+    status                        = $report.browserWorkerRecovery.status
+    validated                     = $report.browserWorkerRecovery.validated
+    observed                      = $report.browserWorkerRecovery.observed
+    finalStatus                   = $report.browserWorkerRecovery.finalStatus
+    adapterMode                   = $report.browserWorkerRecovery.adapterMode
+    checkpointCount               = $report.browserWorkerRecovery.checkpointCount
+    resumedCheckpointCount        = $report.browserWorkerRecovery.resumedCheckpointCount
+    healedRefCount                = $report.browserWorkerRecovery.healedRefCount
+    healedRefTargets              = @($report.browserWorkerRecovery.healedRefTargets)
+    staleRefCount                 = $report.browserWorkerRecovery.staleRefCount
+    staleRefTargets               = @($report.browserWorkerRecovery.staleRefTargets)
+    traceCount                    = $report.browserWorkerRecovery.traceCount
+    retryCount                    = $report.browserWorkerRecovery.retryCount
+    runtimeRetryCount             = $report.browserWorkerRecovery.runtimeRetryCount
+    runtimeResumedCheckpointCount = $report.browserWorkerRecovery.runtimeResumedCheckpointCount
+    runtimeStaleRefCount          = $report.browserWorkerRecovery.runtimeStaleRefCount
+    runtimeHealedRefCount         = $report.browserWorkerRecovery.runtimeHealedRefCount
+    checkpointReadyCleared        = $report.browserWorkerRecovery.checkpointReadyCleared
+    summary                       = $report.browserWorkerRecovery.summary
+  }
   artifacts     = $artifactEntries
   submissionAssets = @(
     [ordered]@{
@@ -1351,6 +1474,7 @@ $manifestMarkdown = @(
   "| caseWikiGatewayHydration | $($report.statuses.caseWikiGatewayHydrationStatus) |",
   "| caseWikiContextAdoption | $($report.statuses.caseWikiContextAdoptionStatus) |",
   "| uiRefHealing | $($report.statuses.uiRefHealingStatus) |",
+  "| browserWorkerRecovery | $($report.statuses.browserWorkerRecoveryStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",
@@ -1451,6 +1575,30 @@ $manifestMarkdown = @(
   "| enabledSubmitSeen | $(if ($null -eq $manifest.uiRefHealing.enabledSubmitSeen) { "n/a" } else { [string]$manifest.uiRefHealing.enabledSubmitSeen }) |",
   "| healingObservationSeen | $(if ($null -eq $manifest.uiRefHealing.healingObservationSeen) { "n/a" } else { [string]$manifest.uiRefHealing.healingObservationSeen }) |",
   "| healingNoteSeen | $(if ($null -eq $manifest.uiRefHealing.healingNoteSeen) { "n/a" } else { [string]$manifest.uiRefHealing.healingNoteSeen }) |",
+  "",
+  "## Browser Worker Recovery",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.browserWorkerRecovery.status) |",
+  "| validated | $($manifest.browserWorkerRecovery.validated) |",
+  "| observed | $($manifest.browserWorkerRecovery.observed) |",
+  "| finalStatus | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.browserWorkerRecovery.finalStatus)) { "n/a" } else { [string]$manifest.browserWorkerRecovery.finalStatus }) |",
+  "| adapterMode | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.browserWorkerRecovery.adapterMode)) { "n/a" } else { [string]$manifest.browserWorkerRecovery.adapterMode }) |",
+  "| checkpointCount | $($manifest.browserWorkerRecovery.checkpointCount) |",
+  "| resumedCheckpointCount | $($manifest.browserWorkerRecovery.resumedCheckpointCount) |",
+  "| healedRefCount | $($manifest.browserWorkerRecovery.healedRefCount) |",
+  "| healedRefTargets | $(if (@($manifest.browserWorkerRecovery.healedRefTargets).Count -eq 0) { "(none)" } else { (@($manifest.browserWorkerRecovery.healedRefTargets) -join ", ") }) |",
+  "| staleRefCount | $($manifest.browserWorkerRecovery.staleRefCount) |",
+  "| staleRefTargets | $(if (@($manifest.browserWorkerRecovery.staleRefTargets).Count -eq 0) { "(none)" } else { (@($manifest.browserWorkerRecovery.staleRefTargets) -join ", ") }) |",
+  "| traceCount | $($manifest.browserWorkerRecovery.traceCount) |",
+  "| retryCount | $($manifest.browserWorkerRecovery.retryCount) |",
+  "| runtimeRetryCount | $($manifest.browserWorkerRecovery.runtimeRetryCount) |",
+  "| runtimeResumedCheckpointCount | $($manifest.browserWorkerRecovery.runtimeResumedCheckpointCount) |",
+  "| runtimeStaleRefCount | $($manifest.browserWorkerRecovery.runtimeStaleRefCount) |",
+  "| runtimeHealedRefCount | $($manifest.browserWorkerRecovery.runtimeHealedRefCount) |",
+  "| checkpointReadyCleared | $(if ($null -eq $manifest.browserWorkerRecovery.checkpointReadyCleared) { "n/a" } else { [string]$manifest.browserWorkerRecovery.checkpointReadyCleared }) |",
+  "| summary | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.browserWorkerRecovery.summary)) { "n/a" } else { [string]$manifest.browserWorkerRecovery.summary }) |",
   "",
   "## Artifact Inventory",
   "",

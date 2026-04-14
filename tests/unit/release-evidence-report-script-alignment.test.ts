@@ -29,6 +29,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /hostedDirectLiveProofStatus/);
   assert.match(source, /caseWikiEvidenceSignatureStatus/);
   assert.match(source, /caseWikiRoutingContextStatus/);
+  assert.match(source, /browserWorkerRecoveryStatus/);
   assert.match(source, /providerUsageStatus/);
   assert.match(source, /deviceNodeUpdatesStatus/);
   assert.match(source, /runtimeGuardrailsSignalPaths = \[ordered\]@/);
@@ -49,6 +50,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /New-HostedDirectLiveProofSnapshot/);
   assert.match(source, /New-CaseWikiEvidenceSignatureSnapshot/);
   assert.match(source, /New-CaseWikiRoutingContextSnapshot/);
+  assert.match(source, /New-BrowserWorkerRecoverySnapshot/);
   assert.match(source, /New-ProviderUsagePrimaryEntry/);
   assert.match(source, /\$maxAttempts = 8/);
   assert.match(source, /\$baseRetryDelayMs = 80/);
@@ -66,6 +68,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /Hosted Direct-Live Proof Snapshot/);
   assert.match(source, /Case Wiki Evidence Signature Snapshot/);
   assert.match(source, /Case Wiki Routing Context Snapshot/);
+  assert.match(source, /Browser Worker Recovery Snapshot/);
   assert.match(source, /Secondary Provider Usage/);
   assert.match(source, /Artifact Inventory/);
   assert.match(source, /GCP Submission Follow-Up/);

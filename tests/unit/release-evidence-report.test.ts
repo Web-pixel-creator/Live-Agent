@@ -143,6 +143,27 @@ test(
           healingObservationSeen: true,
           healingNoteSeen: true,
         },
+        browserWorkerRecovery: {
+          status: "pass",
+          validated: true,
+          observed: true,
+          finalStatus: "completed",
+          adapterMode: "remote_http",
+          checkpointCount: 1,
+          resumedCheckpointCount: 1,
+          healedRefCount: 2,
+          healedRefTargets: ["email", "submit_primary"],
+          staleRefCount: 2,
+          staleRefTargets: ["email", "submit_primary"],
+          traceCount: 7,
+          retryCount: 0,
+          runtimeRetryCount: 0,
+          runtimeResumedCheckpointCount: 1,
+          runtimeStaleRefCount: 2,
+          runtimeHealedRefCount: 2,
+          checkpointReadyCleared: true,
+          summary: "healed 2 stale grounding refs; resumed 1 checkpoint.",
+        },
       },
       providerUsage: {
         status: "pass",
@@ -215,6 +236,7 @@ test(
         caseWikiGatewayHydrationStatus?: string;
         caseWikiContextAdoptionStatus?: string;
         uiRefHealingStatus?: string;
+        browserWorkerRecoveryStatus?: string;
       };
       hostedDirectLiveProof: {
         observed?: boolean;
@@ -268,11 +290,33 @@ test(
         healingObservationSeen?: boolean | null;
         healingNoteSeen?: boolean | null;
       };
+      browserWorkerRecovery: {
+        status?: string;
+        validated?: boolean;
+        observed?: boolean;
+        finalStatus?: string | null;
+        adapterMode?: string | null;
+        checkpointCount?: number;
+        resumedCheckpointCount?: number;
+        healedRefCount?: number;
+        healedRefTargets?: string[];
+        staleRefCount?: number;
+        staleRefTargets?: string[];
+        traceCount?: number;
+        retryCount?: number;
+        runtimeRetryCount?: number;
+        runtimeResumedCheckpointCount?: number;
+        runtimeStaleRefCount?: number;
+        runtimeHealedRefCount?: number;
+        checkpointReadyCleared?: boolean | null;
+        summary?: string | null;
+      };
     };
     assert.equal(report.statuses.hostedDirectLiveProofStatus, "pass");
     assert.equal(report.statuses.caseWikiGatewayHydrationStatus, "pass");
     assert.equal(report.statuses.caseWikiContextAdoptionStatus, "pass");
     assert.equal(report.statuses.uiRefHealingStatus, "pass");
+    assert.equal(report.statuses.browserWorkerRecoveryStatus, "pass");
     assert.equal(report.hostedDirectLiveProof.observed, true);
     assert.equal(report.hostedDirectLiveProof.apiPublicUrlSource, "frontend_config");
     assert.equal(report.hostedDirectLiveProof.replayEvidenceSource, "session_events");
@@ -317,6 +361,25 @@ test(
     assert.equal(report.uiRefHealing.enabledSubmitSeen, true);
     assert.equal(report.uiRefHealing.healingObservationSeen, true);
     assert.equal(report.uiRefHealing.healingNoteSeen, true);
+    assert.equal(report.browserWorkerRecovery.status, "pass");
+    assert.equal(report.browserWorkerRecovery.validated, true);
+    assert.equal(report.browserWorkerRecovery.observed, true);
+    assert.equal(report.browserWorkerRecovery.finalStatus, "completed");
+    assert.equal(report.browserWorkerRecovery.adapterMode, "remote_http");
+    assert.equal(report.browserWorkerRecovery.checkpointCount, 1);
+    assert.equal(report.browserWorkerRecovery.resumedCheckpointCount, 1);
+    assert.equal(report.browserWorkerRecovery.healedRefCount, 2);
+    assert.deepEqual(report.browserWorkerRecovery.healedRefTargets, ["email", "submit_primary"]);
+    assert.equal(report.browserWorkerRecovery.staleRefCount, 2);
+    assert.deepEqual(report.browserWorkerRecovery.staleRefTargets, ["email", "submit_primary"]);
+    assert.equal(report.browserWorkerRecovery.traceCount, 7);
+    assert.equal(report.browserWorkerRecovery.retryCount, 0);
+    assert.equal(report.browserWorkerRecovery.runtimeRetryCount, 0);
+    assert.equal(report.browserWorkerRecovery.runtimeResumedCheckpointCount, 1);
+    assert.equal(report.browserWorkerRecovery.runtimeStaleRefCount, 2);
+    assert.equal(report.browserWorkerRecovery.runtimeHealedRefCount, 2);
+    assert.equal(report.browserWorkerRecovery.checkpointReadyCleared, true);
+    assert.equal(report.browserWorkerRecovery.summary, "healed 2 stale grounding refs; resumed 1 checkpoint.");
 
     const manifest = JSON.parse(readFileSync(outputManifestJsonPath, "utf8")) as {
       criticalEvidenceStatuses: {
@@ -324,6 +387,7 @@ test(
         caseWikiGatewayHydrationStatus?: string;
         caseWikiContextAdoptionStatus?: string;
         uiRefHealingStatus?: string;
+        browserWorkerRecoveryStatus?: string;
       };
       hostedDirectLiveProof: {
         observed?: boolean;
@@ -376,12 +440,34 @@ test(
         healingObservationSeen?: boolean | null;
         healingNoteSeen?: boolean | null;
       };
+      browserWorkerRecovery: {
+        status?: string;
+        validated?: boolean;
+        observed?: boolean;
+        finalStatus?: string | null;
+        adapterMode?: string | null;
+        checkpointCount?: number;
+        resumedCheckpointCount?: number;
+        healedRefCount?: number;
+        healedRefTargets?: string[];
+        staleRefCount?: number;
+        staleRefTargets?: string[];
+        traceCount?: number;
+        retryCount?: number;
+        runtimeRetryCount?: number;
+        runtimeResumedCheckpointCount?: number;
+        runtimeStaleRefCount?: number;
+        runtimeHealedRefCount?: number;
+        checkpointReadyCleared?: boolean | null;
+        summary?: string | null;
+      };
       artifacts: Array<{ id?: string; present?: boolean }>;
     };
     assert.equal(manifest.criticalEvidenceStatuses.hostedDirectLiveProofStatus, "pass");
     assert.equal(manifest.criticalEvidenceStatuses.caseWikiGatewayHydrationStatus, "pass");
     assert.equal(manifest.criticalEvidenceStatuses.caseWikiContextAdoptionStatus, "pass");
     assert.equal(manifest.criticalEvidenceStatuses.uiRefHealingStatus, "pass");
+    assert.equal(manifest.criticalEvidenceStatuses.browserWorkerRecoveryStatus, "pass");
     assert.equal(manifest.hostedDirectLiveProof.observed, true);
     assert.equal(manifest.hostedDirectLiveProof.replayEvidenceSource, "session_events");
     assert.equal(manifest.hostedDirectLiveProof.firstAudioMs, 640);
@@ -425,6 +511,25 @@ test(
     assert.equal(manifest.uiRefHealing.enabledSubmitSeen, true);
     assert.equal(manifest.uiRefHealing.healingObservationSeen, true);
     assert.equal(manifest.uiRefHealing.healingNoteSeen, true);
+    assert.equal(manifest.browserWorkerRecovery.status, "pass");
+    assert.equal(manifest.browserWorkerRecovery.validated, true);
+    assert.equal(manifest.browserWorkerRecovery.observed, true);
+    assert.equal(manifest.browserWorkerRecovery.finalStatus, "completed");
+    assert.equal(manifest.browserWorkerRecovery.adapterMode, "remote_http");
+    assert.equal(manifest.browserWorkerRecovery.checkpointCount, 1);
+    assert.equal(manifest.browserWorkerRecovery.resumedCheckpointCount, 1);
+    assert.equal(manifest.browserWorkerRecovery.healedRefCount, 2);
+    assert.deepEqual(manifest.browserWorkerRecovery.healedRefTargets, ["email", "submit_primary"]);
+    assert.equal(manifest.browserWorkerRecovery.staleRefCount, 2);
+    assert.deepEqual(manifest.browserWorkerRecovery.staleRefTargets, ["email", "submit_primary"]);
+    assert.equal(manifest.browserWorkerRecovery.traceCount, 7);
+    assert.equal(manifest.browserWorkerRecovery.retryCount, 0);
+    assert.equal(manifest.browserWorkerRecovery.runtimeRetryCount, 0);
+    assert.equal(manifest.browserWorkerRecovery.runtimeResumedCheckpointCount, 1);
+    assert.equal(manifest.browserWorkerRecovery.runtimeStaleRefCount, 2);
+    assert.equal(manifest.browserWorkerRecovery.runtimeHealedRefCount, 2);
+    assert.equal(manifest.browserWorkerRecovery.checkpointReadyCleared, true);
+    assert.equal(manifest.browserWorkerRecovery.summary, "healed 2 stale grounding refs; resumed 1 checkpoint.");
     assert.equal(
       manifest.artifacts.find((entry) => entry.id === "deploy.directLiveProofJson")?.present,
       true,
@@ -440,6 +545,8 @@ test(
     assert.match(reportMarkdown, /- observedCount: 21/);
     assert.match(reportMarkdown, /## UI Ref Healing Snapshot/);
     assert.match(reportMarkdown, /- healedRefTargets: email, submit_primary/);
+    assert.match(reportMarkdown, /## Browser Worker Recovery Snapshot/);
+    assert.match(reportMarkdown, /- resumedCheckpointCount: 1/);
 
     const manifestMarkdown = readFileSync(outputManifestMarkdownPath, "utf8");
     assert.match(manifestMarkdown, /## Hosted Direct-Live Proof/);
@@ -451,6 +558,8 @@ test(
     assert.match(manifestMarkdown, /\| observedCount \| 21 \|/);
     assert.match(manifestMarkdown, /## UI Ref Healing/);
     assert.match(manifestMarkdown, /\| healedRefTargets \| email, submit_primary \|/);
+    assert.match(manifestMarkdown, /## Browser Worker Recovery/);
+    assert.match(manifestMarkdown, /\| resumedCheckpointCount \| 1 \|/);
   },
 );
 

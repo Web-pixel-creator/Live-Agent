@@ -209,6 +209,7 @@ async function main() {
         "ui.approval.approve_resume",
         "ui.sandbox.policy_modes",
         "ui.visual_testing",
+        "ui.browser_worker.checkpoint_resume",
         "multi_agent.delegation",
         "gateway.websocket.case_wiki_hydration",
         "gateway.websocket.roundtrip",
@@ -1620,6 +1621,16 @@ async function main() {
     kpis.uiVisualTestingScenarioAttempts,
     "1..options.scenarioRetryMaxAttempts",
   );
+  const uiBrowserWorkerRecoveryScenarioAttempts = toNumber(kpis.uiBrowserWorkerRecoveryScenarioAttempts);
+  addCheck(
+    "kpi.uiBrowserWorkerRecoveryScenarioAttempts",
+    Number.isFinite(uiBrowserWorkerRecoveryScenarioAttempts) &&
+      uiBrowserWorkerRecoveryScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      uiBrowserWorkerRecoveryScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.uiBrowserWorkerRecoveryScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
   const operatorConsoleActionsScenarioAttempts = toNumber(kpis.operatorConsoleActionsScenarioAttempts);
   addCheck(
     "kpi.operatorConsoleActionsScenarioAttempts",
@@ -1754,6 +1765,12 @@ async function main() {
     "kpi.uiGroundingSignalsValidated",
     kpis.uiGroundingSignalsValidated === true,
     kpis.uiGroundingSignalsValidated,
+    true,
+  );
+  addCheck(
+    "kpi.browserWorkerRecoveryValidated",
+    kpis.browserWorkerRecoveryValidated === true,
+    kpis.browserWorkerRecoveryValidated,
     true,
   );
   addCheck(
