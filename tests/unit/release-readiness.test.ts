@@ -3584,7 +3584,7 @@ test(
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(
       output,
-      /source run manifest evidenceSnapshot\.badgeEvidenceCaseWikiContextAdoptionCaseWikiRate expected 0\.95\.\.1, actual 0[\s\S]*\.9/i,
+      /source run manifest evidenceSnapshot\.badgeEvidenceCaseWikiContextAdoptionCaseWikiRate expected 0\.95\.\.1, actual\s*0\s*\.9/i,
     );
   },
 );
