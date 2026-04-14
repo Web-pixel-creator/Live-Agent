@@ -43,24 +43,48 @@ function Ensure-RailwayAuthContext([string]$LogPrefix) {
   $accountToken = $env:RAILWAY_API_TOKEN
   $legacyToken = if (-not [string]::IsNullOrWhiteSpace($env:RAILWAY_LEGACY_TOKEN)) { $env:RAILWAY_LEGACY_TOKEN } else { $env:RAILWAY_TOKEN }
   $projectToken = $env:RAILWAY_PROJECT_TOKEN
-  $usingProjectTokenMode = $false
-  $authProbe = ""
-  $authProbeExitCode = 1
 
   function Invoke-AuthProbe {
+    $probeText = ""
+    $probeExitCode = 1
     $previousErrorActionPreference = $ErrorActionPreference
     try {
       $ErrorActionPreference = "Continue"
-      $script:authProbe = (& railway whoami 2>&1 | Out-String).Trim()
-      $script:authProbeExitCode = $LASTEXITCODE
+      $probeText = (& railway whoami 2>&1 | Out-String).Trim()
+      $probeExitCode = $LASTEXITCODE
     }
     catch {
-      $script:authProbe = [string]$_.Exception.Message
-      $script:authProbeExitCode = 1
+      $probeText = [string]$_.Exception.Message
+      $probeExitCode = 1
     }
     finally {
       $ErrorActionPreference = $previousErrorActionPreference
     }
+
+    return [pscustomobject]@{
+      Output = $probeText
+      ExitCode = $probeExitCode
+    }
+  }
+
+  function Use-ActiveRailwayCliSession([string]$Reason) {
+    $env:RAILWAY_API_TOKEN = ""
+    $env:RAILWAY_TOKEN = ""
+    Remove-Item Env:RAILWAY_AUTH_PROJECT_MODE -ErrorAction SilentlyContinue
+
+    $sessionProbe = Invoke-AuthProbe
+    if ($sessionProbe.ExitCode -eq 0) {
+      if (-not [string]::IsNullOrWhiteSpace($Reason)) {
+        Write-Host ("[" + $LogPrefix + "] " + $Reason)
+      }
+      return $true
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($sessionProbe.Output)) {
+      Write-Host $sessionProbe.Output
+    }
+
+    return $false
   }
 
   if (-not [string]::IsNullOrWhiteSpace($accountToken)) {
@@ -68,29 +92,33 @@ function Ensure-RailwayAuthContext([string]$LogPrefix) {
       Write-Warning ("[" + $LogPrefix + "] Ignoring RAILWAY_TOKEN because RAILWAY_API_TOKEN is already set.")
     }
     $env:RAILWAY_TOKEN = ""
-    Invoke-AuthProbe
-    if ($authProbeExitCode -eq 0) {
+    $authProbe = Invoke-AuthProbe
+    if ($authProbe.ExitCode -eq 0) {
       Remove-Item Env:RAILWAY_AUTH_PROJECT_MODE -ErrorAction SilentlyContinue
       return
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($authProbe)) {
-      Write-Host $authProbe
+    if (-not [string]::IsNullOrWhiteSpace($authProbe.Output)) {
+      Write-Host $authProbe.Output
     }
 
     if (-not [string]::IsNullOrWhiteSpace($legacyToken) -and $legacyToken -ne $accountToken) {
       $env:RAILWAY_API_TOKEN = $legacyToken
       $env:RAILWAY_TOKEN = ""
       Write-Warning ("[" + $LogPrefix + "] railway whoami failed with RAILWAY_API_TOKEN; retrying legacy RAILWAY_TOKEN fallback.")
-      Invoke-AuthProbe
-      if ($authProbeExitCode -eq 0) {
+      $authProbe = Invoke-AuthProbe
+      if ($authProbe.ExitCode -eq 0) {
         Remove-Item Env:RAILWAY_AUTH_PROJECT_MODE -ErrorAction SilentlyContinue
         return
       }
 
-      if (-not [string]::IsNullOrWhiteSpace($authProbe)) {
-        Write-Host $authProbe
+      if (-not [string]::IsNullOrWhiteSpace($authProbe.Output)) {
+        Write-Host $authProbe.Output
       }
+    }
+
+    if (Use-ActiveRailwayCliSession -Reason "Using active Railway CLI session from 'railway login' after token auth failed.") {
+      return
     }
   }
 
@@ -99,12 +127,12 @@ function Ensure-RailwayAuthContext([string]$LogPrefix) {
     $env:RAILWAY_TOKEN = $projectToken
     $env:RAILWAY_AUTH_PROJECT_MODE = "true"
     Write-Host ("[" + $LogPrefix + "] RAILWAY_API_TOKEN is empty or failed auth; using RAILWAY_PROJECT_TOKEN as RAILWAY_TOKEN for CLI auth.")
-    Invoke-AuthProbe
-    if ($authProbeExitCode -eq 0) {
+    $authProbe = Invoke-AuthProbe
+    if ($authProbe.ExitCode -eq 0) {
       return
     }
-    if (-not [string]::IsNullOrWhiteSpace($authProbe)) {
-      Write-Host $authProbe
+    if (-not [string]::IsNullOrWhiteSpace($authProbe.Output)) {
+      Write-Host $authProbe.Output
     }
     Write-Warning ("[" + $LogPrefix + "] railway whoami failed; continuing with project-token fallback mode.")
     return
@@ -115,13 +143,8 @@ function Ensure-RailwayAuthContext([string]$LogPrefix) {
     [string]::IsNullOrWhiteSpace($legacyToken) -and
     [string]::IsNullOrWhiteSpace($projectToken)
   ) {
-    Invoke-AuthProbe
-    if ($authProbeExitCode -eq 0) {
-      Remove-Item Env:RAILWAY_AUTH_PROJECT_MODE -ErrorAction SilentlyContinue
+    if (Use-ActiveRailwayCliSession -Reason "Using active Railway CLI session from 'railway login'.") {
       return
-    }
-    if (-not [string]::IsNullOrWhiteSpace($authProbe)) {
-      Write-Host $authProbe
     }
   }
 
