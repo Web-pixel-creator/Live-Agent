@@ -118,6 +118,10 @@ jobs:
         run: npm ci
         shell: powershell
 
+      - name: Install Playwright Browser
+        run: npx playwright install chromium
+        shell: powershell
+
       - name: Run Release Strict Final Gate
         run: npm run verify:release:strict
         shell: powershell
@@ -264,11 +268,6 @@ jobs:
           }
 
           npm run verify:deploy:production-smoke -- -GatewayPublicUrl $gatewayPublicUrl -FrontendPublicUrl $frontendBaseUrl
-
-      - name: Install Playwright Browser
-        if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true && (steps.combined_deploy.outcome == 'success' || steps.verify_only_fallback.outcome == 'success')
-        shell: powershell
-        run: npx playwright install chromium
 
       - name: Run Direct-Live Proof
         if: github.event_name == 'workflow_dispatch' && inputs.deploy_to_railway == true && (steps.combined_deploy.outcome == 'success' || steps.verify_only_fallback.outcome == 'success')

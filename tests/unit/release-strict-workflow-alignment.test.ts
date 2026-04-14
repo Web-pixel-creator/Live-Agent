@@ -211,6 +211,18 @@ test("release strict workflow publishes release-critical artifacts", () => {
   assert.match(source, /artifacts\/evals\/latest-run\.json/);
 });
 
+test("release strict workflow installs playwright before the strict gate runs", () => {
+  const workflowPath = resolve(process.cwd(), ".github", "workflows", "release-strict-final.yml");
+  const source = readFileSync(workflowPath, "utf8");
+
+  const installIndex = source.indexOf("- name: Install Playwright Browser");
+  const gateIndex = source.indexOf("- name: Run Release Strict Final Gate");
+
+  assert.notEqual(installIndex, -1);
+  assert.notEqual(gateIndex, -1);
+  assert.ok(installIndex < gateIndex);
+});
+
 test("strict release npm script stays aligned with release-readiness strict flag", () => {
   const packagePath = resolve(process.cwd(), "package.json");
   const pkgRaw = readFileSync(packagePath, "utf8");

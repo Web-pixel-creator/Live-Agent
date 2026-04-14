@@ -124,3 +124,15 @@ test("readme documents deploy-all workflow and required secrets", () => {
   assert.match(readme, /frontend_api_base_url/);
   assert.match(readme, /frontend_ws_url/);
 });
+
+test("railway deploy-all workflow installs playwright before combined deploy", () => {
+  const workflowPath = resolve(process.cwd(), ".github", "workflows", "railway-deploy-all.yml");
+  const source = readFileSync(workflowPath, "utf8");
+
+  const installIndex = source.indexOf("- name: Install Playwright Browser");
+  const deployIndex = source.indexOf("- name: Run Combined Railway Deploy");
+
+  assert.notEqual(installIndex, -1);
+  assert.notEqual(deployIndex, -1);
+  assert.ok(installIndex < deployIndex);
+});

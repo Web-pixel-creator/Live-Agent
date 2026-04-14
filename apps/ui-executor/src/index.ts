@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { applyRuntimeProfile, RollingMetrics } from "./contracts/index.js";
 import {
   clearUiExecutorRuntimeControlPlaneOverride,
@@ -1418,8 +1419,14 @@ async function canUsePlaywright(): Promise<boolean> {
     "return import(specifier)",
   ) as (specifier: string) => Promise<unknown>;
   try {
-    await dynamicImport("playwright");
-    return true;
+    const playwrightModule = (await dynamicImport("playwright")) as {
+      chromium?: { executablePath?: () => string };
+    };
+    const executablePath =
+      typeof playwrightModule?.chromium?.executablePath === "function"
+        ? playwrightModule.chromium.executablePath()
+        : "";
+    return typeof executablePath === "string" && executablePath.trim().length > 0 && existsSync(executablePath);
   } catch {
     return false;
   }
