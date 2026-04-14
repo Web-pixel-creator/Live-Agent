@@ -16,6 +16,11 @@ test("api backend exposes repo-owned browser worker control-plane endpoints", ()
     "buildBrowserWorkersSummary",
     "verificationState",
     "verificationSummary",
+    "recoveryRetryCount",
+    "recoveryStaleRefCount",
+    "recoveryHealedRefCount",
+    "resumedCheckpointCount",
+    "recoverySummary",
     "latestResultRef",
     "latestCheckpointRef",
     "targetUrl",
@@ -37,8 +42,10 @@ test("docs describe browser worker control plane and operator summary surface", 
   assert.match(readme, /\/v1\/runtime\/browser-jobs/);
   assert.match(readme, /background browser worker/i);
   assert.match(readme, /replay bundle/i);
+  assert.match(readme, /stale refs observed\/healed/i);
   assert.match(operatorGuide, /Browser Worker Control/i);
   assert.match(operatorGuide, /replay bundle/i);
+  assert.match(operatorGuide, /resumed checkpoints/i);
   assert.match(operatorGuide, /resume/i);
   assert.match(architecture, /background browser worker/i);
 });

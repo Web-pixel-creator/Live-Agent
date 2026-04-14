@@ -126,6 +126,23 @@ test("runtime diagnostics summary stays healthy when all guardrails are nominal"
         strictPlaywright: true,
         simulateIfUnavailable: false,
         registeredDeviceNodes: 2,
+        browserWorkers: {
+          runtime: {
+            enabled: true,
+          },
+          queue: {
+            running: 0,
+            paused: 0,
+            failed: 0,
+            checkpointReady: 0,
+          },
+          recovery: {
+            retryCount: 2,
+            resumedCheckpointCount: 1,
+            staleRefCount: 3,
+            healedRefCount: 2,
+          },
+        },
         sandbox: {
           mode: "enforce",
           networkPolicy: "same_origin",
@@ -170,6 +187,11 @@ test("runtime diagnostics summary stays healthy when all guardrails are nominal"
   assert.equal(summary.uiExecutor.sandboxAllowedWriteRootsCount, 1);
   assert.equal(summary.uiExecutor.sandboxBlockFileUrls, true);
   assert.equal(summary.uiExecutor.sandboxAllowLoopbackHosts, false);
+  assert.equal(summary.uiExecutor.browserWorkerCheckpointReady, 0);
+  assert.equal(summary.uiExecutor.browserWorkerRetryCount, 2);
+  assert.equal(summary.uiExecutor.browserWorkerResumedCheckpointCount, 1);
+  assert.equal(summary.uiExecutor.browserWorkerStaleRefCount, 3);
+  assert.equal(summary.uiExecutor.browserWorkerHealedRefCount, 2);
   assert.equal(summary.skillsRuntime?.activeCount, 1);
   assert.equal(summary.orchestrator.workflowControlPlaneOverrideActive, false);
   assert.equal(summary.orchestrator.assistiveRouterProvider, "gemini_api");

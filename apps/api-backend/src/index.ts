@@ -2324,6 +2324,7 @@ function buildBrowserWorkersSummary(snapshot: unknown): Record<string, unknown> 
   const typed = isRecord(snapshot) ? snapshot : {};
   const runtime = isRecord(typed.runtime) ? typed.runtime : {};
   const queue = isRecord(typed.queue) ? typed.queue : {};
+  const recovery = isRecord(typed.recovery) ? typed.recovery : {};
   const jobs = Array.isArray(typed.jobs) ? typed.jobs.filter((item): item is Record<string, unknown> => isRecord(item)) : [];
   const recent = jobs.slice(0, 10).map((job) => ({
     jobId: toOptionalString(job.jobId),
@@ -2353,6 +2354,31 @@ function buildBrowserWorkersSummary(snapshot: unknown): Record<string, unknown> 
     latestResultRef: toOptionalString(job.replayBundle && isRecord(job.replayBundle) ? job.replayBundle.latestResultRef : null),
     latestCheckpointRef: toOptionalString(
       job.replayBundle && isRecord(job.replayBundle) ? job.replayBundle.latestCheckpointRef : null,
+    ),
+    recoveryRetryCount: toNullableInt(
+      job.replayBundle && isRecord(job.replayBundle) && isRecord(job.replayBundle.recovery)
+        ? job.replayBundle.recovery.retryCount
+        : null,
+    ),
+    recoveryStaleRefCount: toNullableInt(
+      job.replayBundle && isRecord(job.replayBundle) && isRecord(job.replayBundle.recovery)
+        ? job.replayBundle.recovery.staleRefCount
+        : null,
+    ),
+    recoveryHealedRefCount: toNullableInt(
+      job.replayBundle && isRecord(job.replayBundle) && isRecord(job.replayBundle.recovery)
+        ? job.replayBundle.recovery.healedRefCount
+        : null,
+    ),
+    resumedCheckpointCount: toNullableInt(
+      job.replayBundle && isRecord(job.replayBundle) && isRecord(job.replayBundle.recovery)
+        ? job.replayBundle.recovery.resumedCheckpointCount
+        : null,
+    ),
+    recoverySummary: toOptionalString(
+      job.replayBundle && isRecord(job.replayBundle) && isRecord(job.replayBundle.recovery)
+        ? job.replayBundle.recovery.summary
+        : null,
     ),
     screenshotRefs: Array.isArray(job.replayBundle && isRecord(job.replayBundle) ? job.replayBundle.screenshotRefs : null)
       ? (job.replayBundle as { screenshotRefs?: unknown[] }).screenshotRefs?.length ?? 0
@@ -2428,6 +2454,12 @@ function buildBrowserWorkersSummary(snapshot: unknown): Record<string, unknown> 
       backlog: toNullableInt(queue.backlog) ?? queueQueued + queuePaused,
       checkpointReady,
       oldestQueuedAgeMs: toNullableInt(queue.oldestQueuedAgeMs),
+    },
+    recovery: {
+      retryCount: toNullableInt(recovery.retryCount) ?? 0,
+      resumedCheckpointCount: toNullableInt(recovery.resumedCheckpointCount) ?? 0,
+      staleRefCount: toNullableInt(recovery.staleRefCount) ?? 0,
+      healedRefCount: toNullableInt(recovery.healedRefCount) ?? 0,
     },
     latestJobId,
     latestPausedJobId,

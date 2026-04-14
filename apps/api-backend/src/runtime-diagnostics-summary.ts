@@ -403,6 +403,8 @@ export function buildRuntimeDiagnosticsSummary(params: {
   const uiExecutorBrowserWorkers = uiExecutor && isRecord(uiExecutor.browserWorkers) ? uiExecutor.browserWorkers : null;
   const uiExecutorBrowserWorkerQueue =
     uiExecutorBrowserWorkers && isRecord(uiExecutorBrowserWorkers.queue) ? uiExecutorBrowserWorkers.queue : null;
+  const uiExecutorBrowserWorkerRecovery =
+    uiExecutorBrowserWorkers && isRecord(uiExecutorBrowserWorkers.recovery) ? uiExecutorBrowserWorkers.recovery : null;
   const apiGovernance = apiBackend && isRecord(apiBackend.governance) ? apiBackend.governance : null;
   const uiExecutorSandboxMode = uiExecutorSandbox ? toNonEmptyString(uiExecutorSandbox.mode) ?? "off" : null;
   const uiExecutorSandboxNetworkPolicy = uiExecutorSandbox
@@ -788,6 +790,16 @@ export function buildRuntimeDiagnosticsSummary(params: {
       browserWorkerFailed: uiExecutorBrowserWorkerQueue ? toNonNegativeInt(uiExecutorBrowserWorkerQueue.failed) : null,
       browserWorkerCheckpointReady:
         uiExecutorBrowserWorkerQueue ? toNonNegativeInt(uiExecutorBrowserWorkerQueue.checkpointReady) : null,
+      browserWorkerRetryCount:
+        uiExecutorBrowserWorkerRecovery ? toNonNegativeInt(uiExecutorBrowserWorkerRecovery.retryCount) : null,
+      browserWorkerResumedCheckpointCount:
+        uiExecutorBrowserWorkerRecovery
+          ? toNonNegativeInt(uiExecutorBrowserWorkerRecovery.resumedCheckpointCount)
+          : null,
+      browserWorkerStaleRefCount:
+        uiExecutorBrowserWorkerRecovery ? toNonNegativeInt(uiExecutorBrowserWorkerRecovery.staleRefCount) : null,
+      browserWorkerHealedRefCount:
+        uiExecutorBrowserWorkerRecovery ? toNonNegativeInt(uiExecutorBrowserWorkerRecovery.healedRefCount) : null,
     },
     apiBackend: {
       complianceTemplate: apiGovernance ? toNonEmptyString(apiGovernance.complianceTemplate) : null,

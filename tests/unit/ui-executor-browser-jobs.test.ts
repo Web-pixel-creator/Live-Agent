@@ -42,6 +42,11 @@ test("ui-executor browser worker pauses at checkpoint and resumes to completion"
       adapterMode: "remote_http",
       adapterNotes: ["unit runner"],
       deviceNode: null,
+      grounding: {
+        staleRefTargets: input.persistSessionAfterRun ? ["submit-button"] : [],
+        healedRefTargets: input.persistSessionAfterRun ? ["submit-button"] : [],
+        recoveryHint: null,
+      },
     };
   });
 
@@ -70,8 +75,15 @@ test("ui-executor browser worker pauses at checkpoint and resumes to completion"
   assert.equal(paused.checkpoints[0]?.status, "ready");
   assert.equal(paused.replayBundle.targetUrl, "https://example.com");
   assert.equal(paused.replayBundle.verification.state, "partially_verified");
+  assert.equal(paused.replayBundle.recovery.retryCount, 0);
+  assert.equal(paused.replayBundle.recovery.staleRefCount, 1);
+  assert.equal(paused.replayBundle.recovery.healedRefCount, 1);
+  assert.equal(paused.replayBundle.recovery.resumedCheckpointCount, 0);
+  assert.match(paused.replayBundle.recovery.summary, /healed 1 stale grounding ref/i);
   assert.equal(paused.replayBundle.screenshotRefs.length >= 2, true);
   assert.equal(getBrowserJobRuntimeSnapshot().queue.paused, 1);
+  assert.equal(getBrowserJobRuntimeSnapshot().recovery.staleRefCount, 1);
+  assert.equal(getBrowserJobRuntimeSnapshot().recovery.healedRefCount, 1);
 
   const resumed = resumeBrowserJob(job.jobId, "unit resume");
   assert.ok(resumed);
@@ -82,9 +94,13 @@ test("ui-executor browser worker pauses at checkpoint and resumes to completion"
   assert.equal(completed.status, "completed");
   assert.equal(completed.checkpoints[0]?.status, "resumed");
   assert.equal(completed.trace.length >= 3, true);
+  assert.equal(completed.replayBundle.recovery.resumedCheckpointCount, 1);
+  assert.equal(completed.replayBundle.recovery.healedRefCount, 1);
+  assert.match(completed.replayBundle.recovery.summary, /resumed 1 checkpoint/i);
   assert.equal(completed.replayBundle.verification.state, "verified");
   assert.match(String(completed.replayBundle.latestResultRef ?? ""), /result-completed/i);
   assert.equal(completed.replayBundle.stepSummaries.length >= 3, true);
+  assert.equal(getBrowserJobRuntimeSnapshot().recovery.resumedCheckpointCount, 1);
 });
 
 test("ui-executor browser worker cancel stops an active job deterministically", async () => {
@@ -248,6 +264,11 @@ test("ui-executor browser worker forwards summary-backed draft context to the ru
       adapterMode: "remote_http",
       adapterNotes: ["unit runner"],
       deviceNode: null,
+      grounding: {
+        staleRefTargets: input.persistSessionAfterRun ? ["submit-button"] : [],
+        healedRefTargets: input.persistSessionAfterRun ? ["submit-button"] : [],
+        recoveryHint: null,
+      },
     };
   });
 

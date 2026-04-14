@@ -1517,6 +1517,11 @@ setBrowserJobRunner(async (input): Promise<BrowserJobExecutionResult> => {
             : [],
         }
       : null,
+    grounding: {
+      staleRefTargets: [...response.grounding.staleRefTargets],
+      healedRefTargets: [...response.grounding.healedRefTargets],
+      recoveryHint: response.grounding.recoveryHint,
+    },
     verification: response.verification,
     session: response.session,
   };
