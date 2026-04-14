@@ -138,6 +138,42 @@ function New-MarkdownSummary {
   $caseWikiSignatureSignedAt = if ($null -ne $Summary.caseWiki -and $null -ne $Summary.caseWiki.evidenceSignature -and $null -ne $Summary.caseWiki.evidenceSignature.signedAt) { [string]$Summary.caseWiki.evidenceSignature.signedAt } else { "" }
   $caseWikiSignaturePresent = if ($null -ne $Summary.caseWiki -and $null -ne $Summary.caseWiki.evidenceSignature -and $null -ne $Summary.caseWiki.evidenceSignature.signaturePresent) { [string]$Summary.caseWiki.evidenceSignature.signaturePresent } else { "" }
   $caseWikiSignaturePayloadHash = if ($null -ne $Summary.caseWiki -and $null -ne $Summary.caseWiki.evidenceSignature -and $null -ne $Summary.caseWiki.evidenceSignature.payloadHash) { [string]$Summary.caseWiki.evidenceSignature.payloadHash } else { "" }
+  $runtimeEvidenceSigningExpectedSignatureStatus =
+    if ($null -ne $Summary.runtimeDiagnostics -and $null -ne $Summary.runtimeDiagnostics.apiBackendEvidenceSigning -and $null -ne $Summary.runtimeDiagnostics.apiBackendEvidenceSigning.expectedSignatureStatus) {
+      [string]$Summary.runtimeDiagnostics.apiBackendEvidenceSigning.expectedSignatureStatus
+    } else {
+      ""
+    }
+  $runtimeEvidenceSigningEnabled =
+    if ($null -ne $Summary.runtimeDiagnostics -and $null -ne $Summary.runtimeDiagnostics.apiBackendEvidenceSigning -and $null -ne $Summary.runtimeDiagnostics.apiBackendEvidenceSigning.enabled) {
+      [string]$Summary.runtimeDiagnostics.apiBackendEvidenceSigning.enabled
+    } else {
+      ""
+    }
+  $runtimeEvidenceSigningCanSign =
+    if ($null -ne $Summary.runtimeDiagnostics -and $null -ne $Summary.runtimeDiagnostics.apiBackendEvidenceSigning -and $null -ne $Summary.runtimeDiagnostics.apiBackendEvidenceSigning.canSign) {
+      [string]$Summary.runtimeDiagnostics.apiBackendEvidenceSigning.canSign
+    } else {
+      ""
+    }
+  $runtimeEvidenceSigningKeyState =
+    if ($null -ne $Summary.runtimeDiagnostics -and $null -ne $Summary.runtimeDiagnostics.apiBackendEvidenceSigning -and $null -ne $Summary.runtimeDiagnostics.apiBackendEvidenceSigning.keyState) {
+      [string]$Summary.runtimeDiagnostics.apiBackendEvidenceSigning.keyState
+    } else {
+      ""
+    }
+  $caseWikiExpectedSignatureStatus =
+    if ($null -ne $Summary.caseWikiEvidenceSignatureExpectation -and $null -ne $Summary.caseWikiEvidenceSignatureExpectation.expectedStatus) {
+      [string]$Summary.caseWikiEvidenceSignatureExpectation.expectedStatus
+    } else {
+      ""
+    }
+  $caseWikiExpectedSignatureSource =
+    if ($null -ne $Summary.caseWikiEvidenceSignatureExpectation -and $null -ne $Summary.caseWikiEvidenceSignatureExpectation.source) {
+      [string]$Summary.caseWikiEvidenceSignatureExpectation.source
+    } else {
+      ""
+    }
 
   $lines = @(
     "# Direct Live Proof",
@@ -169,6 +205,12 @@ function New-MarkdownSummary {
     "- Case Wiki Overview Status: $caseWikiOverviewStatus",
     "- Case Wiki Focus: $caseWikiFocusKind / $caseWikiFocusLabel",
     "- Case Wiki Next Action: $caseWikiNextAction",
+    "- Runtime Evidence Expected Signature: $runtimeEvidenceSigningExpectedSignatureStatus",
+    "- Runtime Evidence Enabled: $runtimeEvidenceSigningEnabled",
+    "- Runtime Evidence Can Sign: $runtimeEvidenceSigningCanSign",
+    "- Runtime Evidence Key State: $runtimeEvidenceSigningKeyState",
+    "- Case Wiki Expected Signature: $caseWikiExpectedSignatureStatus",
+    "- Case Wiki Expected Signature Source: $caseWikiExpectedSignatureSource",
     "- Case Wiki Signature Status: $caseWikiSignatureStatus",
     "- Case Wiki Signature Signer: $caseWikiSignatureSignerId",
     "- Case Wiki Signature Signed At: $caseWikiSignatureSignedAt",
@@ -266,14 +308,42 @@ $summary = [ordered]@{
   summary = if ($null -ne $smokeSummary.summary) { [string]$smokeSummary.summary } else { "" }
   browserSmokeExitCode = $browserSmokeExitCode
   browserSmokeOutputPath = if ($null -ne $smokeSummary.outputPath) { [string]$smokeSummary.outputPath } else { $OutputPath }
+  runtimeDiagnostics = $smokeSummary.runtimeDiagnostics
 }
 
-$requiredCaseWikiSignatureStatus = if (-not [string]::IsNullOrWhiteSpace($ExpectedCaseWikiEvidenceSignatureStatus)) {
-  $ExpectedCaseWikiEvidenceSignatureStatus
+$runtimeDiagnosticsExpectedCaseWikiSignatureStatus =
+  if (
+    $null -ne $summary.runtimeDiagnostics -and
+    $null -ne $summary.runtimeDiagnostics.apiBackendEvidenceSigning -and
+    $null -ne $summary.runtimeDiagnostics.apiBackendEvidenceSigning.expectedSignatureStatus
+  ) {
+    [string]$summary.runtimeDiagnostics.apiBackendEvidenceSigning.expectedSignatureStatus
+  } else {
+    ""
+  }
+
+$requiredCaseWikiSignatureStatus = ""
+$requiredCaseWikiSignatureSource = "none"
+if (-not [string]::IsNullOrWhiteSpace($ExpectedCaseWikiEvidenceSignatureStatus)) {
+  $requiredCaseWikiSignatureStatus = $ExpectedCaseWikiEvidenceSignatureStatus
+  $requiredCaseWikiSignatureSource = "explicit"
 } elseif ($RequireCaseWikiEvidenceSignature) {
-  "signed"
-} else {
-  ""
+  $requiredCaseWikiSignatureStatus = "signed"
+  $requiredCaseWikiSignatureSource = "require_switch"
+} elseif (
+  [string]$summary.status -ne "skipped" -and
+  $runtimeDiagnosticsExpectedCaseWikiSignatureStatus -in @("signed", "unsigned")
+) {
+  $requiredCaseWikiSignatureStatus = $runtimeDiagnosticsExpectedCaseWikiSignatureStatus
+  $requiredCaseWikiSignatureSource = "runtime_diagnostics"
+}
+
+$summary.caseWikiEvidenceSignatureExpectation = [ordered]@{
+  enforced = -not [string]::IsNullOrWhiteSpace($requiredCaseWikiSignatureStatus)
+  expectedStatus = if (-not [string]::IsNullOrWhiteSpace($requiredCaseWikiSignatureStatus)) { $requiredCaseWikiSignatureStatus } else { $null }
+  source = $requiredCaseWikiSignatureSource
+  runtimeDiagnosticsExpectedStatus =
+    if (-not [string]::IsNullOrWhiteSpace($runtimeDiagnosticsExpectedCaseWikiSignatureStatus)) { $runtimeDiagnosticsExpectedCaseWikiSignatureStatus } else { $null }
 }
 
 if (-not [string]::IsNullOrWhiteSpace($requiredCaseWikiSignatureStatus)) {
@@ -312,6 +382,22 @@ Write-Utf8NoBomFile -Path $MarkdownOutputPath -Content $markdown
 Write-Host ("direct_live.proof.status: " + $summary.status)
 Write-Host ("direct_live.proof.json: " + $OutputPath)
 Write-Host ("direct_live.proof.md: " + $MarkdownOutputPath)
+if ($null -ne $summary.runtimeDiagnostics -and $null -ne $summary.runtimeDiagnostics.apiBackendEvidenceSigning) {
+  if ($null -ne $summary.runtimeDiagnostics.apiBackendEvidenceSigning.expectedSignatureStatus) {
+    Write-Host ("direct_live.proof.runtime_evidence.expected_signature_status: " + [string]$summary.runtimeDiagnostics.apiBackendEvidenceSigning.expectedSignatureStatus)
+  }
+  if ($null -ne $summary.runtimeDiagnostics.apiBackendEvidenceSigning.keyState) {
+    Write-Host ("direct_live.proof.runtime_evidence.key_state: " + [string]$summary.runtimeDiagnostics.apiBackendEvidenceSigning.keyState)
+  }
+}
+if ($null -ne $summary.caseWikiEvidenceSignatureExpectation) {
+  if ($null -ne $summary.caseWikiEvidenceSignatureExpectation.expectedStatus) {
+    Write-Host ("direct_live.proof.case_wiki.expected_signature_status: " + [string]$summary.caseWikiEvidenceSignatureExpectation.expectedStatus)
+  }
+  if ($null -ne $summary.caseWikiEvidenceSignatureExpectation.source) {
+    Write-Host ("direct_live.proof.case_wiki.expected_signature_source: " + [string]$summary.caseWikiEvidenceSignatureExpectation.source)
+  }
+}
 if ($null -ne $summary.caseWiki -and $null -ne $summary.caseWiki.evidenceSignature) {
   Write-Host ("direct_live.proof.case_wiki.signature_status: " + [string]$summary.caseWiki.evidenceSignature.status)
 }

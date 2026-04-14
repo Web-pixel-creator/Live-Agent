@@ -264,6 +264,47 @@ function normalizeCaseWikiSnapshot(payload) {
   };
 }
 
+function normalizeRuntimeDiagnosticsEvidenceSigning(payload) {
+  const data = isObject(payload?.data) ? payload.data : {};
+  const apiBackend = isObject(data.apiBackend) ? data.apiBackend : {};
+  const evidenceSigning = isObject(apiBackend.evidenceSigning) ? apiBackend.evidenceSigning : {};
+  const expectedSignatureStatus = toOptionalString(evidenceSigning.expectedSignatureStatus);
+  const keyState = toOptionalString(evidenceSigning.keyState);
+  const signerId = toOptionalString(evidenceSigning.signerId);
+  const publicKeyFingerprint = toOptionalString(evidenceSigning.publicKeyFingerprint);
+  const algorithm = toOptionalString(evidenceSigning.algorithm);
+  const canonicalization = toOptionalString(evidenceSigning.canonicalization);
+  const enabled = toBoolean(evidenceSigning.enabled);
+  const canSign = toBoolean(evidenceSigning.canSign);
+  const keyLoaded = toBoolean(evidenceSigning.keyLoaded);
+
+  if (
+    expectedSignatureStatus === null &&
+    keyState === null &&
+    signerId === null &&
+    publicKeyFingerprint === null &&
+    algorithm === null &&
+    canonicalization === null &&
+    enabled === null &&
+    canSign === null &&
+    keyLoaded === null
+  ) {
+    return null;
+  }
+
+  return {
+    enabled,
+    keyState,
+    keyLoaded,
+    canSign,
+    expectedSignatureStatus,
+    signerId,
+    algorithm,
+    canonicalization,
+    publicKeyFingerprint,
+  };
+}
+
 async function readText(page, selector) {
   const locator = page.locator(selector);
   const count = await locator.count();
@@ -509,6 +550,19 @@ async function pollCaseWiki(apiBaseUrl, sessionId, timeoutMs) {
   };
 }
 
+async function readRuntimeDiagnostics(apiBaseUrl) {
+  const diagnosticsUrl = `${apiBaseUrl.replace(/\/+$/g, "")}/v1/runtime/diagnostics`;
+  const payload = await fetchJson(diagnosticsUrl, {
+    method: "GET",
+    headers: buildOperatorHeaders(false),
+  });
+  return {
+    observed: payload.ok,
+    statusCode: payload.status,
+    apiBackendEvidenceSigning: normalizeRuntimeDiagnosticsEvidenceSigning(payload.data),
+  };
+}
+
 async function run() {
   const options = parseArgs(process.argv.slice(2));
   if (!toOptionalString(options.sessionId)) {
@@ -525,6 +579,7 @@ async function run() {
   }
 
   const runtimeStatus = normalizeLiveRuntimeStatus(capabilitiesResponse.data);
+  const runtimeDiagnostics = await readRuntimeDiagnostics(options.apiBaseUrl);
   if (!runtimeStatus.ephemeralTokensSupported) {
     const skippedResult = {
       generatedAt,
@@ -535,6 +590,7 @@ async function run() {
       sessionId: options.sessionId,
       userId: options.userId,
       runtimeStatus,
+      runtimeDiagnostics,
       ui: null,
       replay: {
         selectedSessionId: options.sessionId,
@@ -655,6 +711,7 @@ async function run() {
       sessionId: replaySessionId,
       userId: options.userId,
       runtimeStatus,
+      runtimeDiagnostics,
       ui,
       replay: {
         selectedSessionId: replaySessionId,
@@ -711,6 +768,7 @@ run().catch(async (error) => {
     sessionId: null,
     userId: null,
     runtimeStatus: null,
+    runtimeDiagnostics: null,
     ui: null,
     replay: {
       selectedSessionId: null,

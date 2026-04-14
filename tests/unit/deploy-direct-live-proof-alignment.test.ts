@@ -24,6 +24,9 @@ test("deploy direct-live proof helper is wired across package, script, and docs"
   assert.match(scriptRaw, /RequireCaseWikiEvidenceSignature/);
   assert.match(scriptRaw, /ExpectedCaseWikiEvidenceSignatureStatus/);
   assert.match(scriptRaw, /direct_live\.proof\.status/);
+  assert.match(scriptRaw, /direct_live\.proof\.runtime_evidence\.expected_signature_status/);
+  assert.match(scriptRaw, /direct_live\.proof\.case_wiki\.expected_signature_status/);
+  assert.match(scriptRaw, /direct_live\.proof\.case_wiki\.expected_signature_source/);
   assert.match(scriptRaw, /direct_live\.proof\.case_wiki\.signature_status/);
   assert.match(scriptRaw, /direct_live\.proof\.replay\.first_audio_ms/);
   assert.match(scriptRaw, /direct_live\.proof\.replay\.first_output_ms/);
@@ -32,6 +35,8 @@ test("deploy direct-live proof helper is wired across package, script, and docs"
   assert.match(scriptRaw, /Replay First Audio \(ms\)/);
   assert.match(scriptRaw, /Replay First Output \(ms\)/);
   assert.match(scriptRaw, /Replay Fallback Events/);
+  assert.match(scriptRaw, /Runtime Evidence Expected Signature/);
+  assert.match(scriptRaw, /Case Wiki Expected Signature/);
   assert.match(scriptRaw, /Case Wiki Signature Status/);
 
   const readme = readFileSync(resolve(process.cwd(), "README.md"), "utf8");
@@ -39,9 +44,11 @@ test("deploy direct-live proof helper is wired across package, script, and docs"
   assert.match(readme, /direct-live-proof\.json/);
   assert.match(readme, /first-audio\/first-output latency/i);
   assert.match(readme, /case wiki evidence signature/i);
+  assert.match(readme, /runtime diagnostics/i);
 
   const runbook = readFileSync(resolve(process.cwd(), "docs", "challenge-demo-runbook.md"), "utf8");
   assert.match(runbook, /verify:deploy:direct-live-proof/);
   assert.match(runbook, /first-audio\/first-output latency/i);
   assert.match(runbook, /case wiki evidence signature/i);
+  assert.match(runbook, /runtime\/diagnostics/i);
 });

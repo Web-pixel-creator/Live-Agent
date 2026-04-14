@@ -30,10 +30,22 @@ function writeStubBrowserSmokeScript(args: {
   includeCaseWiki?: boolean;
   caseWikiSignatureStatus?: "signed" | "unsigned";
   caseWikiSignaturePresent?: boolean;
+  runtimeDiagnosticsExpectedSignatureStatus?: "signed" | "unsigned";
+  runtimeDiagnosticsEnabled?: boolean;
+  runtimeDiagnosticsCanSign?: boolean;
+  runtimeDiagnosticsKeyState?: "missing" | "loaded" | "invalid";
 }) {
   const includeCaseWiki = args.includeCaseWiki ?? args.status === "pass";
   const caseWikiSignatureStatus = args.caseWikiSignatureStatus ?? "signed";
   const caseWikiSignaturePresent = args.caseWikiSignaturePresent ?? (caseWikiSignatureStatus === "signed");
+  const runtimeDiagnosticsExpectedSignatureStatus =
+    args.runtimeDiagnosticsExpectedSignatureStatus ?? caseWikiSignatureStatus;
+  const runtimeDiagnosticsEnabled =
+    args.runtimeDiagnosticsEnabled ?? (runtimeDiagnosticsExpectedSignatureStatus === "signed");
+  const runtimeDiagnosticsCanSign =
+    args.runtimeDiagnosticsCanSign ?? (runtimeDiagnosticsExpectedSignatureStatus === "signed");
+  const runtimeDiagnosticsKeyState =
+    args.runtimeDiagnosticsKeyState ?? (runtimeDiagnosticsExpectedSignatureStatus === "signed" ? "loaded" : "missing");
   const script = `
 const args = process.argv.slice(2);
 function readArg(name, fallback = "") {
@@ -62,6 +74,21 @@ const payload = {
     provider: status === "pass" ? "gemini_live_api" : null,
     model: status === "pass" ? "gemini-live-2.5-flash-native-audio" : null,
     ephemeralTokensSupported: status === "pass",
+  },
+  runtimeDiagnostics: {
+    observed: true,
+    statusCode: 200,
+    apiBackendEvidenceSigning: {
+      enabled: ${runtimeDiagnosticsEnabled ? "true" : "false"},
+      keyState: ${JSON.stringify(runtimeDiagnosticsKeyState)},
+      keyLoaded: ${runtimeDiagnosticsKeyState === "loaded" ? "true" : "false"},
+      canSign: ${runtimeDiagnosticsCanSign ? "true" : "false"},
+      expectedSignatureStatus: ${JSON.stringify(runtimeDiagnosticsExpectedSignatureStatus)},
+      signerId: "api-backend",
+      algorithm: "ed25519-sha256",
+      canonicalization: "json-stable-v1",
+      publicKeyFingerprint: ${runtimeDiagnosticsKeyState === "loaded" ? JSON.stringify("sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb") : "null"}
+    }
   },
   ui: {
     connectionStatus: status === "pass" ? "connected" : "disconnected",
@@ -239,6 +266,16 @@ test(
       apiPublicUrlSource?: string;
       sessionId?: string;
       requestedSessionId?: string;
+      runtimeDiagnostics?: {
+        apiBackendEvidenceSigning?: {
+          expectedSignatureStatus?: string;
+          keyState?: string;
+        };
+      };
+      caseWikiEvidenceSignatureExpectation?: {
+        expectedStatus?: string;
+        source?: string;
+      };
       replay?: {
         liveTransport?: {
           activeMode?: string;
@@ -260,6 +297,10 @@ test(
     assert.equal(summary.replay?.liveTransport?.firstAudioMs, 640);
     assert.equal(summary.replay?.liveTransport?.firstOutputMs, 410);
     assert.equal(summary.replay?.liveTransport?.fallbackEventCount, 0);
+    assert.equal(summary.runtimeDiagnostics?.apiBackendEvidenceSigning?.expectedSignatureStatus, "signed");
+    assert.equal(summary.runtimeDiagnostics?.apiBackendEvidenceSigning?.keyState, "loaded");
+    assert.equal(summary.caseWikiEvidenceSignatureExpectation?.expectedStatus, "signed");
+    assert.equal(summary.caseWikiEvidenceSignatureExpectation?.source, "runtime_diagnostics");
     assert.equal(summary.caseWiki?.evidenceSignature?.status, "signed");
     assert.equal(summary.caseWiki?.evidenceSignature?.signaturePresent, true);
 
@@ -269,6 +310,8 @@ test(
     assert.match(markdown, /Replay Evidence Source: session_events/);
     assert.match(markdown, /Replay First Audio \(ms\): 640/);
     assert.match(markdown, /Replay Fallback Events: 0/);
+    assert.match(markdown, /Runtime Evidence Expected Signature: signed/);
+    assert.match(markdown, /Case Wiki Expected Signature Source: runtime_diagnostics/);
   },
 );
 
@@ -353,6 +396,84 @@ test(
 );
 
 test(
+  "deploy direct-live proof auto-detects unsigned case wiki evidence posture from runtime diagnostics",
+  { skip: skipIfNoPowerShell },
+  async () => {
+    const outputDir = mkdtempSync(join(tmpdir(), "deploy-direct-live-proof-runtime-unsigned-"));
+    const outputPath = join(outputDir, "direct-live-proof.json");
+    const markdownPath = join(outputDir, "direct-live-proof.md");
+    const browserSmokeScriptPath = join(outputDir, "browser-smoke-runtime-unsigned.mjs");
+    writeStubBrowserSmokeScript({
+      scriptPath: browserSmokeScriptPath,
+      status: "pass",
+      caseWikiSignatureStatus: "unsigned",
+      caseWikiSignaturePresent: false,
+      runtimeDiagnosticsExpectedSignatureStatus: "unsigned",
+      runtimeDiagnosticsEnabled: false,
+      runtimeDiagnosticsCanSign: false,
+      runtimeDiagnosticsKeyState: "missing",
+    });
+
+    const result = await runDirectLiveProof({
+      frontendUrl: "https://live-agent-frontend-production.up.railway.app",
+      apiUrl: "https://live-agent-api-production.up.railway.app",
+      outputPath,
+      markdownPath,
+      browserSmokeScriptPath,
+      sessionId: "requested-session",
+    });
+
+    assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+    assert.match(result.stdout, /direct_live\.proof\.runtime_evidence\.expected_signature_status: unsigned/);
+    assert.match(result.stdout, /direct_live\.proof\.case_wiki\.expected_signature_source: runtime_diagnostics/);
+  },
+);
+
+test(
+  "deploy direct-live proof fails when runtime diagnostics expect signed case wiki evidence but runtime stays unsigned",
+  { skip: skipIfNoPowerShell },
+  async () => {
+    const outputDir = mkdtempSync(join(tmpdir(), "deploy-direct-live-proof-runtime-signed-mismatch-"));
+    const outputPath = join(outputDir, "direct-live-proof.json");
+    const markdownPath = join(outputDir, "direct-live-proof.md");
+    const browserSmokeScriptPath = join(outputDir, "browser-smoke-runtime-signed-mismatch.mjs");
+    writeStubBrowserSmokeScript({
+      scriptPath: browserSmokeScriptPath,
+      status: "pass",
+      caseWikiSignatureStatus: "unsigned",
+      caseWikiSignaturePresent: false,
+      runtimeDiagnosticsExpectedSignatureStatus: "signed",
+      runtimeDiagnosticsEnabled: true,
+      runtimeDiagnosticsCanSign: true,
+      runtimeDiagnosticsKeyState: "loaded",
+    });
+
+    const result = await runDirectLiveProof({
+      frontendUrl: "https://live-agent-frontend-production.up.railway.app",
+      apiUrl: "https://live-agent-api-production.up.railway.app",
+      outputPath,
+      markdownPath,
+      browserSmokeScriptPath,
+      sessionId: "requested-session",
+    });
+
+    assert.notEqual(result.status, 0, `${result.stderr}\n${result.stdout}`);
+    const summary = JSON.parse(readFileSync(outputPath, "utf8")) as {
+      status?: string;
+      reason?: string;
+      caseWikiEvidenceSignatureExpectation?: {
+        expectedStatus?: string;
+        source?: string;
+      };
+    };
+    assert.equal(summary.status, "fail");
+    assert.equal(summary.caseWikiEvidenceSignatureExpectation?.expectedStatus, "signed");
+    assert.equal(summary.caseWikiEvidenceSignatureExpectation?.source, "runtime_diagnostics");
+    assert.match(summary.reason ?? "", /expected 'signed' but observed 'unsigned'/i);
+  },
+);
+
+test(
   "deploy direct-live proof can require signed case wiki evidence signature",
   { skip: skipIfNoPowerShell },
   async () => {
@@ -379,6 +500,47 @@ test(
 
     assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
     assert.match(result.stdout, /direct_live\.proof\.case_wiki\.signature_status: signed/);
+  },
+);
+
+test(
+  "deploy direct-live proof lets explicit signature expectation override runtime diagnostics",
+  { skip: skipIfNoPowerShell },
+  async () => {
+    const outputDir = mkdtempSync(join(tmpdir(), "deploy-direct-live-proof-explicit-override-"));
+    const outputPath = join(outputDir, "direct-live-proof.json");
+    const markdownPath = join(outputDir, "direct-live-proof.md");
+    const browserSmokeScriptPath = join(outputDir, "browser-smoke-explicit-override.mjs");
+    writeStubBrowserSmokeScript({
+      scriptPath: browserSmokeScriptPath,
+      status: "pass",
+      caseWikiSignatureStatus: "signed",
+      caseWikiSignaturePresent: true,
+      runtimeDiagnosticsExpectedSignatureStatus: "unsigned",
+      runtimeDiagnosticsEnabled: false,
+      runtimeDiagnosticsCanSign: false,
+      runtimeDiagnosticsKeyState: "missing",
+    });
+
+    const result = await runDirectLiveProof({
+      frontendUrl: "https://live-agent-frontend-production.up.railway.app",
+      apiUrl: "https://live-agent-api-production.up.railway.app",
+      outputPath,
+      markdownPath,
+      browserSmokeScriptPath,
+      sessionId: "requested-session",
+      expectedCaseWikiEvidenceSignatureStatus: "signed",
+    });
+
+    assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+    const summary = JSON.parse(readFileSync(outputPath, "utf8")) as {
+      caseWikiEvidenceSignatureExpectation?: {
+        expectedStatus?: string;
+        source?: string;
+      };
+    };
+    assert.equal(summary.caseWikiEvidenceSignatureExpectation?.expectedStatus, "signed");
+    assert.equal(summary.caseWikiEvidenceSignatureExpectation?.source, "explicit");
   },
 );
 
