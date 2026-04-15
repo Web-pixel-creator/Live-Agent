@@ -1235,6 +1235,80 @@ function buildBrowserWorkerRecoveryEvidence(kpis) {
   };
 }
 
+function buildNavigatorVisaFlowsEvidence(kpis) {
+  const validated = toBoolean(kpis.navigatorVisaFlowsValidated) === true;
+  const totalFlows = Math.max(0, Math.trunc(toNumber(kpis.navigatorVisaFlowsTotal) ?? 0));
+  const succeededFlows = Math.max(0, Math.trunc(toNumber(kpis.navigatorVisaFlowsSucceeded) ?? 0));
+  const successRate = Math.max(0, toNumber(kpis.navigatorVisaFlowsSuccessRate) ?? 0);
+  const persistentSessionCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.navigatorVisaFlowsPersistentSessionCount) ?? 0),
+  );
+  const replayBundleCount = Math.max(0, Math.trunc(toNumber(kpis.navigatorVisaFlowsReplayBundleCount) ?? 0));
+  const verifiedCount = Math.max(0, Math.trunc(toNumber(kpis.navigatorVisaFlowsVerifiedCount) ?? 0));
+  const staleRecoveryObservedCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.navigatorVisaFlowsStaleRecoveryObservedCount) ?? 0),
+  );
+  const healedRecoveryObservedCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.navigatorVisaFlowsHealedRecoveryObservedCount) ?? 0),
+  );
+  const resumedCheckpointCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.navigatorVisaFlowsResumedCheckpointCount) ?? 0),
+  );
+  const checkpointReadyClearedCount = Math.max(
+    0,
+    Math.trunc(toNumber(kpis.navigatorVisaFlowsCheckpointReadyClearedCount) ?? 0),
+  );
+  const scenarioNames = toStringArray(kpis.navigatorVisaFlowsScenarioNames);
+  const summary = toOptionalString(kpis.navigatorVisaFlowsSummary);
+  const observed =
+    totalFlows > 0 ||
+    succeededFlows > 0 ||
+    scenarioNames.length > 0 ||
+    persistentSessionCount > 0 ||
+    replayBundleCount > 0 ||
+    verifiedCount > 0;
+  const countsConserved = succeededFlows <= totalFlows && scenarioNames.length === totalFlows;
+  const status =
+    validated &&
+    totalFlows >= 3 &&
+    succeededFlows === totalFlows &&
+    successRate >= 1 &&
+    countsConserved &&
+    persistentSessionCount === totalFlows &&
+    replayBundleCount === totalFlows &&
+    verifiedCount === totalFlows &&
+    staleRecoveryObservedCount === totalFlows &&
+    healedRecoveryObservedCount === totalFlows &&
+    resumedCheckpointCount === totalFlows &&
+    checkpointReadyClearedCount === totalFlows
+      ? "pass"
+      : observed
+        ? "fail"
+        : "unavailable";
+
+  return {
+    status,
+    validated,
+    observed,
+    totalFlows,
+    succeededFlows,
+    successRate,
+    persistentSessionCount,
+    replayBundleCount,
+    verifiedCount,
+    staleRecoveryObservedCount,
+    healedRecoveryObservedCount,
+    resumedCheckpointCount,
+    checkpointReadyClearedCount,
+    scenarioNames,
+    summary,
+  };
+}
+
 function buildProviderUsage(kpis) {
   const entries = [];
   let validated = true;
@@ -1502,6 +1576,7 @@ async function main() {
   const caseWikiContextAdoption = buildCaseWikiContextAdoptionEvidence(kpis);
   const uiRefHealing = buildUiRefHealingEvidence(kpis);
   const browserWorkerRecovery = buildBrowserWorkerRecoveryEvidence(kpis);
+  const navigatorVisaFlows = buildNavigatorVisaFlowsEvidence(kpis);
   const providerUsage = buildProviderUsage(kpis);
 
   let color = "red";
@@ -1554,6 +1629,7 @@ async function main() {
       caseWikiContextAdoption,
       uiRefHealing,
       browserWorkerRecovery,
+      navigatorVisaFlows,
     },
     badge,
   };

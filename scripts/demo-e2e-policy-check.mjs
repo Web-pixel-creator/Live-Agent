@@ -210,6 +210,7 @@ async function main() {
         "ui.sandbox.policy_modes",
         "ui.visual_testing",
         "ui.browser_worker.checkpoint_resume",
+        "ui.navigator.visa_vertical_flows",
         "multi_agent.delegation",
         "gateway.websocket.case_wiki_hydration",
         "gateway.websocket.roundtrip",
@@ -1631,6 +1632,16 @@ async function main() {
     kpis.uiBrowserWorkerRecoveryScenarioAttempts,
     "1..options.scenarioRetryMaxAttempts",
   );
+  const navigatorVisaFlowsScenarioAttempts = toNumber(kpis.navigatorVisaFlowsScenarioAttempts);
+  addCheck(
+    "kpi.navigatorVisaFlowsScenarioAttempts",
+    Number.isFinite(navigatorVisaFlowsScenarioAttempts) &&
+      navigatorVisaFlowsScenarioAttempts >= 1 &&
+      Number.isFinite(scenarioRetryMaxAttempts) &&
+      navigatorVisaFlowsScenarioAttempts <= scenarioRetryMaxAttempts,
+    kpis.navigatorVisaFlowsScenarioAttempts,
+    "1..options.scenarioRetryMaxAttempts",
+  );
   const operatorConsoleActionsScenarioAttempts = toNumber(kpis.operatorConsoleActionsScenarioAttempts);
   addCheck(
     "kpi.operatorConsoleActionsScenarioAttempts",
@@ -1772,6 +1783,73 @@ async function main() {
     kpis.browserWorkerRecoveryValidated === true,
     kpis.browserWorkerRecoveryValidated,
     true,
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsValidated",
+    kpis.navigatorVisaFlowsValidated === true,
+    kpis.navigatorVisaFlowsValidated,
+    true,
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsTotal",
+    toNumber(kpis.navigatorVisaFlowsTotal) >= 3,
+    kpis.navigatorVisaFlowsTotal,
+    ">= 3",
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsSucceeded",
+    toNumber(kpis.navigatorVisaFlowsSucceeded) === toNumber(kpis.navigatorVisaFlowsTotal),
+    kpis.navigatorVisaFlowsSucceeded,
+    "== navigatorVisaFlowsTotal",
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsSuccessRate",
+    Number.isFinite(toNumber(kpis.navigatorVisaFlowsSuccessRate)) &&
+      toNumber(kpis.navigatorVisaFlowsSuccessRate) >= 1,
+    kpis.navigatorVisaFlowsSuccessRate,
+    ">= 1",
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsPersistentSessionCount",
+    toNumber(kpis.navigatorVisaFlowsPersistentSessionCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+    kpis.navigatorVisaFlowsPersistentSessionCount,
+    "== navigatorVisaFlowsTotal",
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsReplayBundleCount",
+    toNumber(kpis.navigatorVisaFlowsReplayBundleCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+    kpis.navigatorVisaFlowsReplayBundleCount,
+    "== navigatorVisaFlowsTotal",
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsVerifiedCount",
+    toNumber(kpis.navigatorVisaFlowsVerifiedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+    kpis.navigatorVisaFlowsVerifiedCount,
+    "== navigatorVisaFlowsTotal",
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsStaleRecoveryObservedCount",
+    toNumber(kpis.navigatorVisaFlowsStaleRecoveryObservedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+    kpis.navigatorVisaFlowsStaleRecoveryObservedCount,
+    "== navigatorVisaFlowsTotal",
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsHealedRecoveryObservedCount",
+    toNumber(kpis.navigatorVisaFlowsHealedRecoveryObservedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+    kpis.navigatorVisaFlowsHealedRecoveryObservedCount,
+    "== navigatorVisaFlowsTotal",
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsResumedCheckpointCount",
+    toNumber(kpis.navigatorVisaFlowsResumedCheckpointCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+    kpis.navigatorVisaFlowsResumedCheckpointCount,
+    "== navigatorVisaFlowsTotal",
+  );
+  addCheck(
+    "kpi.navigatorVisaFlowsCheckpointReadyClearedCount",
+    toNumber(kpis.navigatorVisaFlowsCheckpointReadyClearedCount) === toNumber(kpis.navigatorVisaFlowsTotal),
+    kpis.navigatorVisaFlowsCheckpointReadyClearedCount,
+    "== navigatorVisaFlowsTotal",
   );
   addCheck(
     "kpi.gatewayWsRoundTripMs",

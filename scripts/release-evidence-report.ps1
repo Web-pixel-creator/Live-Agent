@@ -4,7 +4,8 @@ param(
   [string]$OutputJsonPath = "artifacts/release-evidence/report.json",
   [string]$OutputMarkdownPath = "artifacts/release-evidence/report.md",
   [string]$OutputManifestJsonPath = "artifacts/release-evidence/manifest.json",
-  [string]$OutputManifestMarkdownPath = "artifacts/release-evidence/manifest.md"
+  [string]$OutputManifestMarkdownPath = "artifacts/release-evidence/manifest.md",
+  [int]$HostedDirectLiveProofMaxAgeHours = 24
 )
 
 $ErrorActionPreference = "Stop"
@@ -80,6 +81,91 @@ function Convert-ToNonNegativeIntOrDefault {
   }
 
   return $parsed
+}
+
+function Convert-ToNullableDateTimeOffset {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  $raw = [string]$Value
+  if ([string]::IsNullOrWhiteSpace($raw)) {
+    return $null
+  }
+
+  $parsed = [DateTimeOffset]::MinValue
+  if (-not [DateTimeOffset]::TryParse($raw, [ref]$parsed)) {
+    return $null
+  }
+
+  return $parsed.ToUniversalTime()
+}
+
+function New-HostedDirectLiveProofFreshnessSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$GeneratedAt,
+    [Parameter(Mandatory = $true)]
+    [DateTimeOffset]$ReferenceTimeUtc,
+    [Parameter(Mandatory = $true)]
+    [int]$MaxAgeHours
+  )
+
+  $default = [ordered]@{
+    generatedAt      = $null
+    generatedAtIsIso = $false
+    ageMinutes       = $null
+    maxAgeHours      = $(if ($MaxAgeHours -gt 0) { $MaxAgeHours } else { $null })
+    status           = "unavailable"
+    summary          = "unavailable"
+  }
+
+  if ($MaxAgeHours -lt 1) {
+    $default.status = "disabled"
+    $default.summary = "disabled"
+    return $default
+  }
+
+  $parsedGeneratedAt = Convert-ToNullableDateTimeOffset -Value $GeneratedAt
+  if ($null -eq $parsedGeneratedAt) {
+    $default.status = "fail"
+    $default.summary = "generatedAt missing or invalid"
+    return $default
+  }
+
+  $age = $ReferenceTimeUtc - $parsedGeneratedAt
+  if ($age.TotalMinutes -lt -5) {
+    return [ordered]@{
+      generatedAt      = $parsedGeneratedAt.ToString("o")
+      generatedAtIsIso = $true
+      ageMinutes       = $null
+      maxAgeHours      = $MaxAgeHours
+      status           = "fail"
+      summary          = "generatedAt is in the future"
+    }
+  }
+
+  $ageMinutes = [int][Math]::Floor([Math]::Max($age.TotalMinutes, 0))
+  if ($age.TotalHours -gt $MaxAgeHours) {
+    return [ordered]@{
+      generatedAt      = $parsedGeneratedAt.ToString("o")
+      generatedAtIsIso = $true
+      ageMinutes       = $ageMinutes
+      maxAgeHours      = $MaxAgeHours
+      status           = "fail"
+      summary          = ("stale: age=" + $ageMinutes + "m exceeds max=" + ($MaxAgeHours * 60) + "m")
+    }
+  }
+
+  return [ordered]@{
+    generatedAt      = $parsedGeneratedAt.ToString("o")
+    generatedAtIsIso = $true
+    ageMinutes       = $ageMinutes
+    maxAgeHours      = $MaxAgeHours
+    status           = "pass"
+    summary          = ("fresh: age=" + $ageMinutes + "m within max=" + ($MaxAgeHours * 60) + "m")
+  }
 }
 
 function New-RuntimeGuardrailsPrimaryPath {
@@ -589,10 +675,64 @@ function New-BrowserWorkerRecoverySnapshot {
   }
 }
 
-function New-HostedDirectLiveProofSnapshot {
+function New-NavigatorVisaFlowsSnapshot {
   param(
     [Parameter(Mandatory = $false)]
     [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return [ordered]@{
+      status                       = "unavailable"
+      validated                    = $false
+      observed                     = $false
+      totalFlows                   = 0
+      succeededFlows               = 0
+      successRate                  = $null
+      persistentSessionCount       = 0
+      replayBundleCount            = 0
+      verifiedCount                = 0
+      staleRecoveryObservedCount   = 0
+      healedRecoveryObservedCount  = 0
+      resumedCheckpointCount       = 0
+      checkpointReadyClearedCount  = 0
+      scenarioNames                = @()
+      summary                      = $null
+    }
+  }
+
+  $successRate = $null
+  if ($null -ne $Value.successRate -and -not [string]::IsNullOrWhiteSpace([string]$Value.successRate)) {
+    $successRate = [double]$Value.successRate
+  }
+
+  return [ordered]@{
+    status                       = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    validated                    = ($Value.validated -eq $true)
+    observed                     = ($Value.observed -eq $true)
+    totalFlows                   = Convert-ToNonNegativeIntOrDefault -Value $Value.totalFlows -DefaultValue 0
+    succeededFlows               = Convert-ToNonNegativeIntOrDefault -Value $Value.succeededFlows -DefaultValue 0
+    successRate                  = $successRate
+    persistentSessionCount       = Convert-ToNonNegativeIntOrDefault -Value $Value.persistentSessionCount -DefaultValue 0
+    replayBundleCount            = Convert-ToNonNegativeIntOrDefault -Value $Value.replayBundleCount -DefaultValue 0
+    verifiedCount                = Convert-ToNonNegativeIntOrDefault -Value $Value.verifiedCount -DefaultValue 0
+    staleRecoveryObservedCount   = Convert-ToNonNegativeIntOrDefault -Value $Value.staleRecoveryObservedCount -DefaultValue 0
+    healedRecoveryObservedCount  = Convert-ToNonNegativeIntOrDefault -Value $Value.healedRecoveryObservedCount -DefaultValue 0
+    resumedCheckpointCount       = Convert-ToNonNegativeIntOrDefault -Value $Value.resumedCheckpointCount -DefaultValue 0
+    checkpointReadyClearedCount  = Convert-ToNonNegativeIntOrDefault -Value $Value.checkpointReadyClearedCount -DefaultValue 0
+    scenarioNames                = @($Value.scenarioNames | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { [string]$_ })
+    summary                      = $(if ([string]::IsNullOrWhiteSpace([string]$Value.summary)) { $null } else { [string]$Value.summary })
+  }
+}
+
+function New-HostedDirectLiveProofSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value,
+    [Parameter(Mandatory = $true)]
+    [DateTimeOffset]$ReferenceTimeUtc,
+    [Parameter(Mandatory = $true)]
+    [int]$MaxAgeHours
   )
 
   if ($null -eq $Value) {
@@ -604,6 +744,12 @@ function New-HostedDirectLiveProofSnapshot {
       frontendPublicUrl        = $null
       requestedSessionId       = $null
       sessionId                = $null
+      generatedAt              = $null
+      generatedAtIsIso         = $false
+      freshnessStatus          = "unavailable"
+      freshnessSummary         = "unavailable"
+      freshnessAgeMinutes      = $null
+      freshnessMaxAgeHours     = $(if ($MaxAgeHours -gt 0) { $MaxAgeHours } else { $null })
       runtimePreferredMode     = $null
       runtimeActiveMode        = $null
       replayActiveMode         = $null
@@ -638,6 +784,9 @@ function New-HostedDirectLiveProofSnapshot {
     if ($null -ne $Value.caseWikiEvidenceSignatureExpectation) { $Value.caseWikiEvidenceSignatureExpectation } else { $null }
   $caseWikiEvidenceSignature =
     if ($null -ne $caseWiki -and $null -ne $caseWiki.evidenceSignature) { $caseWiki.evidenceSignature } else { $null }
+  $freshness = New-HostedDirectLiveProofFreshnessSnapshot -GeneratedAt $Value.generatedAt -ReferenceTimeUtc $ReferenceTimeUtc -MaxAgeHours $MaxAgeHours
+  $status = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+  $summary = Get-StatusValueOrDefault -Value $Value.summary -DefaultValue "unavailable"
 
   $firstAudioMs = if ($null -eq $replayLiveTransport) { $null } else { Convert-ToNonNegativeIntOrDefault -Value $replayLiveTransport.firstAudioMs -DefaultValue -1 }
   if ($firstAudioMs -lt 0) {
@@ -648,8 +797,17 @@ function New-HostedDirectLiveProofSnapshot {
     $firstOutputMs = $null
   }
 
+  if ($freshness.status -eq "fail") {
+    $status = "fail"
+    if ([string]::IsNullOrWhiteSpace($summary) -or $summary -eq "unavailable") {
+      $summary = $freshness.summary
+    } else {
+      $summary = ($summary + " | " + $freshness.summary)
+    }
+  }
+
   return [ordered]@{
-    status                   = Get-StatusValueOrDefault -Value $Value.status -DefaultValue "unavailable"
+    status                   = $status
     observed                 = (
       (Get-StatusValueOrDefault -Value $replayLiveTransport.activeMode -DefaultValue "") -eq "direct_live" -and
       (Get-StatusValueOrDefault -Value $replayLiveTransport.evidenceSource -DefaultValue "") -eq "session_events"
@@ -659,6 +817,12 @@ function New-HostedDirectLiveProofSnapshot {
     frontendPublicUrl        = $(if ([string]::IsNullOrWhiteSpace([string]$Value.frontendPublicUrl)) { $null } else { [string]$Value.frontendPublicUrl })
     requestedSessionId       = $(if ([string]::IsNullOrWhiteSpace([string]$Value.requestedSessionId)) { $null } else { [string]$Value.requestedSessionId })
     sessionId                = $(if ([string]::IsNullOrWhiteSpace([string]$Value.sessionId)) { $null } else { [string]$Value.sessionId })
+    generatedAt              = $freshness.generatedAt
+    generatedAtIsIso         = $freshness.generatedAtIsIso
+    freshnessStatus          = $freshness.status
+    freshnessSummary         = $freshness.summary
+    freshnessAgeMinutes      = $freshness.ageMinutes
+    freshnessMaxAgeHours     = $freshness.maxAgeHours
     runtimePreferredMode     = $(if ($null -eq $runtimeStatus) { $null } else { Get-StatusValueOrDefault -Value $runtimeStatus.preferredMode -DefaultValue "" })
     runtimeActiveMode        = $(if ($null -eq $runtimeStatus) { $null } else { Get-StatusValueOrDefault -Value $runtimeStatus.activeMode -DefaultValue "" })
     replayActiveMode         = $(if ($null -eq $replayLiveTransport) { $null } else { Get-StatusValueOrDefault -Value $replayLiveTransport.activeMode -DefaultValue "" })
@@ -678,7 +842,7 @@ function New-HostedDirectLiveProofSnapshot {
     caseWikiSignatureStatus  = $(if ($null -eq $caseWikiEvidenceSignature) { $null } else { Get-StatusValueOrDefault -Value $caseWikiEvidenceSignature.status -DefaultValue "" })
     caseWikiSignaturePresent = $(if ($null -eq $caseWikiEvidenceSignature -or $null -eq $caseWikiEvidenceSignature.signaturePresent) { $null } else { $caseWikiEvidenceSignature.signaturePresent -eq $true })
     latencyObserved          = ($null -ne $firstAudioMs) -or ($null -ne $firstOutputMs)
-    summary                  = Get-StatusValueOrDefault -Value $Value.summary -DefaultValue "unavailable"
+    summary                  = $summary
   }
 }
 
@@ -746,10 +910,13 @@ $resolvedOutputJsonPath = [System.IO.Path]::GetFullPath($OutputJsonPath)
 $resolvedOutputMarkdownPath = [System.IO.Path]::GetFullPath($OutputMarkdownPath)
 $resolvedOutputManifestJsonPath = [System.IO.Path]::GetFullPath($OutputManifestJsonPath)
 $resolvedOutputManifestMarkdownPath = [System.IO.Path]::GetFullPath($OutputManifestMarkdownPath)
+$reportGeneratedAtUtc = [DateTimeOffset]::UtcNow
+$reportGeneratedAt = $reportGeneratedAtUtc.ToString("o")
 
 $resolvedDemoSummaryPath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/summary.json")
 $resolvedDemoPolicyPath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/policy-check.json")
 $resolvedDemoBadgePath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/badge.json")
+$resolvedNavigatorVisaFlowsPath = [System.IO.Path]::GetFullPath("artifacts/demo-e2e/navigator-visa-flows.json")
 $resolvedPerfSummaryPath = [System.IO.Path]::GetFullPath("artifacts/perf-load/summary.json")
 $resolvedPerfPolicyPath = [System.IO.Path]::GetFullPath("artifacts/perf-load/policy-check.json")
 $resolvedDirectLiveProofJsonPath = [System.IO.Path]::GetFullPath("artifacts/deploy/direct-live-proof.json")
@@ -797,7 +964,7 @@ $submissionSafeSummaryGate = if ($null -ne $gcpRuntimeProof -and $null -ne $gcpR
 
 $report = [ordered]@{
   schemaVersion = "1.0"
-  generatedAt   = [datetime]::UtcNow.ToString("o")
+  generatedAt   = $reportGeneratedAt
   source        = [ordered]@{
     badgeDetailsPath    = $resolvedBadgeDetailsPath
     badgeDetailsPresent = $false
@@ -823,6 +990,7 @@ $report = [ordered]@{
     caseWikiContextAdoptionStatus = "unavailable"
     uiRefHealingStatus       = "unavailable"
     browserWorkerRecoveryStatus = "unavailable"
+    navigatorVisaFlowsStatus = "unavailable"
     deviceNodeUpdatesStatus   = "unavailable"
   }
   deviceNodeUpdates = [ordered]@{
@@ -867,6 +1035,12 @@ $report = [ordered]@{
     frontendPublicUrl        = $null
     requestedSessionId       = $null
     sessionId                = $null
+    generatedAt              = $null
+    generatedAtIsIso         = $false
+    freshnessStatus          = "unavailable"
+    freshnessSummary         = "unavailable"
+    freshnessAgeMinutes      = $null
+    freshnessMaxAgeHours     = $(if ($HostedDirectLiveProofMaxAgeHours -gt 0) { $HostedDirectLiveProofMaxAgeHours } else { $null })
     runtimePreferredMode     = $null
     runtimeActiveMode        = $null
     replayActiveMode         = $null
@@ -988,6 +1162,23 @@ $report = [ordered]@{
     checkpointReadyCleared        = $null
     summary                       = $null
   }
+  navigatorVisaFlows = [ordered]@{
+    status                      = "unavailable"
+    validated                   = $false
+    observed                    = $false
+    totalFlows                  = 0
+    succeededFlows              = 0
+    successRate                 = $null
+    persistentSessionCount      = 0
+    replayBundleCount           = 0
+    verifiedCount               = 0
+    staleRecoveryObservedCount  = 0
+    healedRecoveryObservedCount = 0
+    resumedCheckpointCount      = 0
+    checkpointReadyClearedCount = 0
+    scenarioNames               = @()
+    summary                     = $null
+  }
   providerUsage = [ordered]@{
     status                  = "unavailable"
     validated               = $false
@@ -1026,7 +1217,10 @@ $hostedCaseWikiEvidenceSignatureSnapshot = $null
 
 $hostedDirectLiveProofRead = Read-JsonIfExists -Path $resolvedDirectLiveProofJsonPath
 if ($hostedDirectLiveProofRead.present -and $hostedDirectLiveProofRead.parsed) {
-  $report.hostedDirectLiveProof = New-HostedDirectLiveProofSnapshot -Value $hostedDirectLiveProofRead.value
+  $report.hostedDirectLiveProof = New-HostedDirectLiveProofSnapshot `
+    -Value $hostedDirectLiveProofRead.value `
+    -ReferenceTimeUtc $reportGeneratedAtUtc `
+    -MaxAgeHours $HostedDirectLiveProofMaxAgeHours
   $report.statuses.hostedDirectLiveProofStatus = Get-StatusValueOrDefault -Value $report.hostedDirectLiveProof.status -DefaultValue "unavailable"
   $hostedCaseWikiEvidenceSignatureValue = New-HostedCaseWikiEvidenceSignatureValue -Value $hostedDirectLiveProofRead.value
   if ($null -ne $hostedCaseWikiEvidenceSignatureValue) {
@@ -1137,6 +1331,10 @@ if (Test-Path $resolvedBadgeDetailsPath) {
       $report.browserWorkerRecovery = New-BrowserWorkerRecoverySnapshot -Value $badgeDetails.evidence.browserWorkerRecovery
       $report.statuses.browserWorkerRecoveryStatus = Get-StatusValueOrDefault -Value $report.browserWorkerRecovery.status -DefaultValue "unavailable"
     }
+    if ($null -ne $badgeDetails.evidence.navigatorVisaFlows) {
+      $report.navigatorVisaFlows = New-NavigatorVisaFlowsSnapshot -Value $badgeDetails.evidence.navigatorVisaFlows
+      $report.statuses.navigatorVisaFlowsStatus = Get-StatusValueOrDefault -Value $report.navigatorVisaFlows.status -DefaultValue "unavailable"
+    }
     if ($null -ne $badgeDetails.providerUsage) {
       $report.providerUsage.status = Get-StatusValueOrDefault -Value $badgeDetails.providerUsage.status -DefaultValue "unavailable"
       $report.statuses.providerUsageStatus = $report.providerUsage.status
@@ -1199,6 +1397,7 @@ $markdown = @(
   "| caseWikiContextAdoption | $($report.statuses.caseWikiContextAdoptionStatus) |",
   "| uiRefHealing | $($report.statuses.uiRefHealingStatus) |",
   "| browserWorkerRecovery | $($report.statuses.browserWorkerRecoveryStatus) |",
+  "| navigatorVisaFlows | $($report.statuses.navigatorVisaFlowsStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",
@@ -1245,6 +1444,12 @@ $markdown = @(
   "- apiPublicUrlSource: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.apiPublicUrlSource)) { "n/a" } else { [string]$report.hostedDirectLiveProof.apiPublicUrlSource })",
   "- requestedSessionId: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.requestedSessionId)) { "n/a" } else { [string]$report.hostedDirectLiveProof.requestedSessionId })",
   "- sessionId: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.sessionId)) { "n/a" } else { [string]$report.hostedDirectLiveProof.sessionId })",
+  "- generatedAt: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.generatedAt)) { "n/a" } else { [string]$report.hostedDirectLiveProof.generatedAt })",
+  "- generatedAtIsIso: $($report.hostedDirectLiveProof.generatedAtIsIso)",
+  "- freshnessStatus: $($report.hostedDirectLiveProof.freshnessStatus)",
+  "- freshnessSummary: $($report.hostedDirectLiveProof.freshnessSummary)",
+  "- freshnessAgeMinutes: $(if ($null -eq $report.hostedDirectLiveProof.freshnessAgeMinutes) { "n/a" } else { [string]$report.hostedDirectLiveProof.freshnessAgeMinutes })",
+  "- freshnessMaxAgeHours: $(if ($null -eq $report.hostedDirectLiveProof.freshnessMaxAgeHours) { "n/a" } else { [string]$report.hostedDirectLiveProof.freshnessMaxAgeHours })",
   "- runtimePreferredMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.runtimePreferredMode)) { "n/a" } else { [string]$report.hostedDirectLiveProof.runtimePreferredMode })",
   "- runtimeActiveMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.runtimeActiveMode)) { "n/a" } else { [string]$report.hostedDirectLiveProof.runtimeActiveMode })",
   "- replayActiveMode: $(if ([string]::IsNullOrWhiteSpace([string]$report.hostedDirectLiveProof.replayActiveMode)) { "n/a" } else { [string]$report.hostedDirectLiveProof.replayActiveMode })",
@@ -1372,6 +1577,24 @@ $markdown = @(
   "- checkpointReadyCleared: $(if ($null -eq $report.browserWorkerRecovery.checkpointReadyCleared) { "n/a" } else { [string]$report.browserWorkerRecovery.checkpointReadyCleared })",
   "- summary: $(if ([string]::IsNullOrWhiteSpace([string]$report.browserWorkerRecovery.summary)) { "n/a" } else { [string]$report.browserWorkerRecovery.summary })",
   "",
+  "## Navigator Visa Flows Snapshot",
+  "",
+  "- status: $($report.navigatorVisaFlows.status)",
+  "- validated: $($report.navigatorVisaFlows.validated)",
+  "- observed: $($report.navigatorVisaFlows.observed)",
+  "- totalFlows: $($report.navigatorVisaFlows.totalFlows)",
+  "- succeededFlows: $($report.navigatorVisaFlows.succeededFlows)",
+  "- successRate: $(if ($null -eq $report.navigatorVisaFlows.successRate) { "n/a" } else { [string]$report.navigatorVisaFlows.successRate })",
+  "- persistentSessionCount: $($report.navigatorVisaFlows.persistentSessionCount)",
+  "- replayBundleCount: $($report.navigatorVisaFlows.replayBundleCount)",
+  "- verifiedCount: $($report.navigatorVisaFlows.verifiedCount)",
+  "- staleRecoveryObservedCount: $($report.navigatorVisaFlows.staleRecoveryObservedCount)",
+  "- healedRecoveryObservedCount: $($report.navigatorVisaFlows.healedRecoveryObservedCount)",
+  "- resumedCheckpointCount: $($report.navigatorVisaFlows.resumedCheckpointCount)",
+  "- checkpointReadyClearedCount: $($report.navigatorVisaFlows.checkpointReadyClearedCount)",
+  "- scenarioNames: $(if (@($report.navigatorVisaFlows.scenarioNames).Count -eq 0) { "(none)" } else { (@($report.navigatorVisaFlows.scenarioNames) -join ", ") })",
+  "- summary: $(if ([string]::IsNullOrWhiteSpace([string]$report.navigatorVisaFlows.summary)) { "n/a" } else { [string]$report.navigatorVisaFlows.summary })",
+  "",
   "## Secondary Provider Usage",
   "",
   "- status: $($report.providerUsage.status)",
@@ -1412,6 +1635,7 @@ $artifactEntries = @(
   (New-ArtifactEntry -Id "demo.policy" -Category "demo" -Label "Demo policy-check JSON" -Path $resolvedDemoPolicyPath -Required $true -Present (Test-Path $resolvedDemoPolicyPath)),
   (New-ArtifactEntry -Id "demo.badge" -Category "demo" -Label "Demo badge JSON" -Path $resolvedDemoBadgePath -Required $true -Present (Test-Path $resolvedDemoBadgePath)),
   (New-ArtifactEntry -Id "demo.badgeDetails" -Category "demo" -Label "Demo badge-details JSON" -Path $resolvedBadgeDetailsPath -Required $true -Present (Test-Path $resolvedBadgeDetailsPath)),
+  (New-ArtifactEntry -Id "demo.navigatorVisaFlows" -Category "demo" -Label "Demo navigator visa flows JSON" -Path $resolvedNavigatorVisaFlowsPath -Required $false -Present (Test-Path $resolvedNavigatorVisaFlowsPath)),
   (New-ArtifactEntry -Id "perf.summary" -Category "perf" -Label "Perf summary JSON" -Path $resolvedPerfSummaryPath -Required $false -Present (Test-Path $resolvedPerfSummaryPath)),
   (New-ArtifactEntry -Id "perf.policy" -Category "perf" -Label "Perf policy-check JSON" -Path $resolvedPerfPolicyPath -Required $false -Present (Test-Path $resolvedPerfPolicyPath)),
   (New-ArtifactEntry -Id "deploy.directLiveProofJson" -Category "deploy" -Label "Hosted direct-live proof JSON" -Path $resolvedDirectLiveProofJsonPath -Required $false -Present (Test-Path $resolvedDirectLiveProofJsonPath)),
@@ -1444,6 +1668,12 @@ $manifest = [ordered]@{
   hostedDirectLiveProof = [ordered]@{
     status                  = $report.hostedDirectLiveProof.status
     observed                = $report.hostedDirectLiveProof.observed
+    generatedAt             = $report.hostedDirectLiveProof.generatedAt
+    generatedAtIsIso        = $report.hostedDirectLiveProof.generatedAtIsIso
+    freshnessStatus         = $report.hostedDirectLiveProof.freshnessStatus
+    freshnessSummary        = $report.hostedDirectLiveProof.freshnessSummary
+    freshnessAgeMinutes     = $report.hostedDirectLiveProof.freshnessAgeMinutes
+    freshnessMaxAgeHours    = $report.hostedDirectLiveProof.freshnessMaxAgeHours
     apiPublicUrlSource      = $report.hostedDirectLiveProof.apiPublicUrlSource
     replayEvidenceSource    = $report.hostedDirectLiveProof.replayEvidenceSource
     firstAudioMs            = $report.hostedDirectLiveProof.firstAudioMs
@@ -1547,6 +1777,23 @@ $manifest = [ordered]@{
     checkpointReadyCleared        = $report.browserWorkerRecovery.checkpointReadyCleared
     summary                       = $report.browserWorkerRecovery.summary
   }
+  navigatorVisaFlows = [ordered]@{
+    status                      = $report.navigatorVisaFlows.status
+    validated                   = $report.navigatorVisaFlows.validated
+    observed                    = $report.navigatorVisaFlows.observed
+    totalFlows                  = $report.navigatorVisaFlows.totalFlows
+    succeededFlows              = $report.navigatorVisaFlows.succeededFlows
+    successRate                 = $report.navigatorVisaFlows.successRate
+    persistentSessionCount      = $report.navigatorVisaFlows.persistentSessionCount
+    replayBundleCount           = $report.navigatorVisaFlows.replayBundleCount
+    verifiedCount               = $report.navigatorVisaFlows.verifiedCount
+    staleRecoveryObservedCount  = $report.navigatorVisaFlows.staleRecoveryObservedCount
+    healedRecoveryObservedCount = $report.navigatorVisaFlows.healedRecoveryObservedCount
+    resumedCheckpointCount      = $report.navigatorVisaFlows.resumedCheckpointCount
+    checkpointReadyClearedCount = $report.navigatorVisaFlows.checkpointReadyClearedCount
+    scenarioNames               = @($report.navigatorVisaFlows.scenarioNames)
+    summary                     = $report.navigatorVisaFlows.summary
+  }
   artifacts     = $artifactEntries
   submissionAssets = @(
     [ordered]@{
@@ -1615,6 +1862,7 @@ $manifestMarkdown = @(
   "| caseWikiContextAdoption | $($report.statuses.caseWikiContextAdoptionStatus) |",
   "| uiRefHealing | $($report.statuses.uiRefHealingStatus) |",
   "| browserWorkerRecovery | $($report.statuses.browserWorkerRecoveryStatus) |",
+  "| navigatorVisaFlows | $($report.statuses.navigatorVisaFlowsStatus) |",
   "| providerUsage | $($report.statuses.providerUsageStatus) |",
   "| deviceNodeUpdates | $($report.statuses.deviceNodeUpdatesStatus) |",
   "",
@@ -1638,6 +1886,12 @@ $manifestMarkdown = @(
   "|---|---|",
   "| status | $($manifest.hostedDirectLiveProof.status) |",
   "| observed | $($manifest.hostedDirectLiveProof.observed) |",
+  "| generatedAt | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.generatedAt)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.generatedAt }) |",
+  "| generatedAtIsIso | $($manifest.hostedDirectLiveProof.generatedAtIsIso) |",
+  "| freshnessStatus | $($manifest.hostedDirectLiveProof.freshnessStatus) |",
+  "| freshnessSummary | $($manifest.hostedDirectLiveProof.freshnessSummary) |",
+  "| freshnessAgeMinutes | $(if ($null -eq $manifest.hostedDirectLiveProof.freshnessAgeMinutes) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.freshnessAgeMinutes }) |",
+  "| freshnessMaxAgeHours | $(if ($null -eq $manifest.hostedDirectLiveProof.freshnessMaxAgeHours) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.freshnessMaxAgeHours }) |",
   "| apiPublicUrlSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.apiPublicUrlSource)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.apiPublicUrlSource }) |",
   "| replayEvidenceSource | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.hostedDirectLiveProof.replayEvidenceSource)) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.replayEvidenceSource }) |",
   "| firstAudioMs | $(if ($null -eq $manifest.hostedDirectLiveProof.firstAudioMs) { "n/a" } else { [string]$manifest.hostedDirectLiveProof.firstAudioMs }) |",
@@ -1744,6 +1998,26 @@ $manifestMarkdown = @(
   "| runtimeHealedRefCount | $($manifest.browserWorkerRecovery.runtimeHealedRefCount) |",
   "| checkpointReadyCleared | $(if ($null -eq $manifest.browserWorkerRecovery.checkpointReadyCleared) { "n/a" } else { [string]$manifest.browserWorkerRecovery.checkpointReadyCleared }) |",
   "| summary | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.browserWorkerRecovery.summary)) { "n/a" } else { [string]$manifest.browserWorkerRecovery.summary }) |",
+  "",
+  "## Navigator Visa Flows",
+  "",
+  "| Field | Value |",
+  "|---|---|",
+  "| status | $($manifest.navigatorVisaFlows.status) |",
+  "| validated | $($manifest.navigatorVisaFlows.validated) |",
+  "| observed | $($manifest.navigatorVisaFlows.observed) |",
+  "| totalFlows | $($manifest.navigatorVisaFlows.totalFlows) |",
+  "| succeededFlows | $($manifest.navigatorVisaFlows.succeededFlows) |",
+  "| successRate | $(if ($null -eq $manifest.navigatorVisaFlows.successRate) { "n/a" } else { [string]$manifest.navigatorVisaFlows.successRate }) |",
+  "| persistentSessionCount | $($manifest.navigatorVisaFlows.persistentSessionCount) |",
+  "| replayBundleCount | $($manifest.navigatorVisaFlows.replayBundleCount) |",
+  "| verifiedCount | $($manifest.navigatorVisaFlows.verifiedCount) |",
+  "| staleRecoveryObservedCount | $($manifest.navigatorVisaFlows.staleRecoveryObservedCount) |",
+  "| healedRecoveryObservedCount | $($manifest.navigatorVisaFlows.healedRecoveryObservedCount) |",
+  "| resumedCheckpointCount | $($manifest.navigatorVisaFlows.resumedCheckpointCount) |",
+  "| checkpointReadyClearedCount | $($manifest.navigatorVisaFlows.checkpointReadyClearedCount) |",
+  "| scenarioNames | $(if (@($manifest.navigatorVisaFlows.scenarioNames).Count -eq 0) { "(none)" } else { (@($manifest.navigatorVisaFlows.scenarioNames) -join ", ") }) |",
+  "| summary | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.navigatorVisaFlows.summary)) { "n/a" } else { [string]$manifest.navigatorVisaFlows.summary }) |",
   "",
   "## Artifact Inventory",
   "",

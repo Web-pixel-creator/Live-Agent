@@ -164,6 +164,23 @@ test(
           checkpointReadyCleared: true,
           summary: "healed 2 stale grounding refs; resumed 1 checkpoint.",
         },
+        navigatorVisaFlows: {
+          status: "pass",
+          validated: true,
+          observed: true,
+          totalFlows: 3,
+          succeededFlows: 3,
+          successRate: 1,
+          persistentSessionCount: 3,
+          replayBundleCount: 3,
+          verifiedCount: 3,
+          staleRecoveryObservedCount: 3,
+          healedRecoveryObservedCount: 3,
+          resumedCheckpointCount: 3,
+          checkpointReadyClearedCount: 3,
+          scenarioNames: ["reminder", "handoff", "escalation"],
+          summary: "3/3 visa flows passed; persistent=3; verified=3; staleRecovery=3; resumed=3.",
+        },
       },
       providerUsage: {
         status: "pass",
@@ -173,7 +190,10 @@ test(
       },
     });
 
+    const hostedProofGeneratedAt = new Date().toISOString();
+
     writeJson(directLiveProofPath, {
+      generatedAt: hostedProofGeneratedAt,
       status: "pass",
       frontendPublicUrl: "https://live-agent-frontend-production.up.railway.app",
       apiPublicUrl: "https://live-agent-api-production.up.railway.app",
@@ -247,9 +267,16 @@ test(
         caseWikiContextAdoptionStatus?: string;
         uiRefHealingStatus?: string;
         browserWorkerRecoveryStatus?: string;
+        navigatorVisaFlowsStatus?: string;
       };
       hostedDirectLiveProof: {
         observed?: boolean;
+        generatedAt?: string | null;
+        generatedAtIsIso?: boolean;
+        freshnessStatus?: string;
+        freshnessSummary?: string | null;
+        freshnessAgeMinutes?: number | null;
+        freshnessMaxAgeHours?: number | null;
         apiPublicUrlSource?: string;
         firstAudioMs?: number | null;
         firstOutputMs?: number | null;
@@ -331,13 +358,37 @@ test(
         checkpointReadyCleared?: boolean | null;
         summary?: string | null;
       };
+      navigatorVisaFlows: {
+        status?: string;
+        validated?: boolean;
+        observed?: boolean;
+        totalFlows?: number;
+        succeededFlows?: number;
+        successRate?: number | null;
+        persistentSessionCount?: number;
+        replayBundleCount?: number;
+        verifiedCount?: number;
+        staleRecoveryObservedCount?: number;
+        healedRecoveryObservedCount?: number;
+        resumedCheckpointCount?: number;
+        checkpointReadyClearedCount?: number;
+        scenarioNames?: string[];
+        summary?: string | null;
+      };
     };
     assert.equal(report.statuses.hostedDirectLiveProofStatus, "pass");
     assert.equal(report.statuses.caseWikiGatewayHydrationStatus, "pass");
     assert.equal(report.statuses.caseWikiContextAdoptionStatus, "pass");
     assert.equal(report.statuses.uiRefHealingStatus, "pass");
     assert.equal(report.statuses.browserWorkerRecoveryStatus, "pass");
+    assert.equal(report.statuses.navigatorVisaFlowsStatus, "pass");
     assert.equal(report.hostedDirectLiveProof.observed, true);
+    assert.equal(Date.parse(report.hostedDirectLiveProof.generatedAt ?? ""), Date.parse(hostedProofGeneratedAt));
+    assert.equal(report.hostedDirectLiveProof.generatedAtIsIso, true);
+    assert.equal(report.hostedDirectLiveProof.freshnessStatus, "pass");
+    assert.equal(report.hostedDirectLiveProof.freshnessMaxAgeHours, 24);
+    assert.equal(typeof report.hostedDirectLiveProof.freshnessAgeMinutes, "number");
+    assert.match(report.hostedDirectLiveProof.freshnessSummary ?? "", /fresh:/);
     assert.equal(report.hostedDirectLiveProof.apiPublicUrlSource, "frontend_config");
     assert.equal(report.hostedDirectLiveProof.replayEvidenceSource, "session_events");
     assert.equal(report.hostedDirectLiveProof.firstAudioMs, 640);
@@ -408,6 +459,24 @@ test(
     assert.equal(report.browserWorkerRecovery.runtimeHealedRefCount, 2);
     assert.equal(report.browserWorkerRecovery.checkpointReadyCleared, true);
     assert.equal(report.browserWorkerRecovery.summary, "healed 2 stale grounding refs; resumed 1 checkpoint.");
+    assert.equal(report.navigatorVisaFlows.status, "pass");
+    assert.equal(report.navigatorVisaFlows.validated, true);
+    assert.equal(report.navigatorVisaFlows.observed, true);
+    assert.equal(report.navigatorVisaFlows.totalFlows, 3);
+    assert.equal(report.navigatorVisaFlows.succeededFlows, 3);
+    assert.equal(report.navigatorVisaFlows.successRate, 1);
+    assert.equal(report.navigatorVisaFlows.persistentSessionCount, 3);
+    assert.equal(report.navigatorVisaFlows.replayBundleCount, 3);
+    assert.equal(report.navigatorVisaFlows.verifiedCount, 3);
+    assert.equal(report.navigatorVisaFlows.staleRecoveryObservedCount, 3);
+    assert.equal(report.navigatorVisaFlows.healedRecoveryObservedCount, 3);
+    assert.equal(report.navigatorVisaFlows.resumedCheckpointCount, 3);
+    assert.equal(report.navigatorVisaFlows.checkpointReadyClearedCount, 3);
+    assert.deepEqual(report.navigatorVisaFlows.scenarioNames, ["reminder", "handoff", "escalation"]);
+    assert.equal(
+      report.navigatorVisaFlows.summary,
+      "3/3 visa flows passed; persistent=3; verified=3; staleRecovery=3; resumed=3.",
+    );
 
     const manifest = JSON.parse(readFileSync(outputManifestJsonPath, "utf8")) as {
       criticalEvidenceStatuses: {
@@ -416,9 +485,16 @@ test(
         caseWikiContextAdoptionStatus?: string;
         uiRefHealingStatus?: string;
         browserWorkerRecoveryStatus?: string;
+        navigatorVisaFlowsStatus?: string;
       };
       hostedDirectLiveProof: {
         observed?: boolean;
+        generatedAt?: string | null;
+        generatedAtIsIso?: boolean;
+        freshnessStatus?: string;
+        freshnessSummary?: string | null;
+        freshnessAgeMinutes?: number | null;
+        freshnessMaxAgeHours?: number | null;
         replayEvidenceSource?: string | null;
         firstAudioMs?: number | null;
         firstOutputMs?: number | null;
@@ -498,6 +574,23 @@ test(
         checkpointReadyCleared?: boolean | null;
         summary?: string | null;
       };
+      navigatorVisaFlows: {
+        status?: string;
+        validated?: boolean;
+        observed?: boolean;
+        totalFlows?: number;
+        succeededFlows?: number;
+        successRate?: number | null;
+        persistentSessionCount?: number;
+        replayBundleCount?: number;
+        verifiedCount?: number;
+        staleRecoveryObservedCount?: number;
+        healedRecoveryObservedCount?: number;
+        resumedCheckpointCount?: number;
+        checkpointReadyClearedCount?: number;
+        scenarioNames?: string[];
+        summary?: string | null;
+      };
       artifacts: Array<{ id?: string; present?: boolean }>;
     };
     assert.equal(manifest.criticalEvidenceStatuses.hostedDirectLiveProofStatus, "pass");
@@ -505,7 +598,14 @@ test(
     assert.equal(manifest.criticalEvidenceStatuses.caseWikiContextAdoptionStatus, "pass");
     assert.equal(manifest.criticalEvidenceStatuses.uiRefHealingStatus, "pass");
     assert.equal(manifest.criticalEvidenceStatuses.browserWorkerRecoveryStatus, "pass");
+    assert.equal(manifest.criticalEvidenceStatuses.navigatorVisaFlowsStatus, "pass");
     assert.equal(manifest.hostedDirectLiveProof.observed, true);
+    assert.equal(Date.parse(manifest.hostedDirectLiveProof.generatedAt ?? ""), Date.parse(hostedProofGeneratedAt));
+    assert.equal(manifest.hostedDirectLiveProof.generatedAtIsIso, true);
+    assert.equal(manifest.hostedDirectLiveProof.freshnessStatus, "pass");
+    assert.equal(manifest.hostedDirectLiveProof.freshnessMaxAgeHours, 24);
+    assert.equal(typeof manifest.hostedDirectLiveProof.freshnessAgeMinutes, "number");
+    assert.match(manifest.hostedDirectLiveProof.freshnessSummary ?? "", /fresh:/);
     assert.equal(manifest.hostedDirectLiveProof.replayEvidenceSource, "session_events");
     assert.equal(manifest.hostedDirectLiveProof.firstAudioMs, 640);
     assert.equal(manifest.hostedDirectLiveProof.firstOutputMs, 410);
@@ -574,6 +674,24 @@ test(
     assert.equal(manifest.browserWorkerRecovery.runtimeHealedRefCount, 2);
     assert.equal(manifest.browserWorkerRecovery.checkpointReadyCleared, true);
     assert.equal(manifest.browserWorkerRecovery.summary, "healed 2 stale grounding refs; resumed 1 checkpoint.");
+    assert.equal(manifest.navigatorVisaFlows.status, "pass");
+    assert.equal(manifest.navigatorVisaFlows.validated, true);
+    assert.equal(manifest.navigatorVisaFlows.observed, true);
+    assert.equal(manifest.navigatorVisaFlows.totalFlows, 3);
+    assert.equal(manifest.navigatorVisaFlows.succeededFlows, 3);
+    assert.equal(manifest.navigatorVisaFlows.successRate, 1);
+    assert.equal(manifest.navigatorVisaFlows.persistentSessionCount, 3);
+    assert.equal(manifest.navigatorVisaFlows.replayBundleCount, 3);
+    assert.equal(manifest.navigatorVisaFlows.verifiedCount, 3);
+    assert.equal(manifest.navigatorVisaFlows.staleRecoveryObservedCount, 3);
+    assert.equal(manifest.navigatorVisaFlows.healedRecoveryObservedCount, 3);
+    assert.equal(manifest.navigatorVisaFlows.resumedCheckpointCount, 3);
+    assert.equal(manifest.navigatorVisaFlows.checkpointReadyClearedCount, 3);
+    assert.deepEqual(manifest.navigatorVisaFlows.scenarioNames, ["reminder", "handoff", "escalation"]);
+    assert.equal(
+      manifest.navigatorVisaFlows.summary,
+      "3/3 visa flows passed; persistent=3; verified=3; staleRecovery=3; resumed=3.",
+    );
     assert.equal(
       manifest.artifacts.find((entry) => entry.id === "deploy.directLiveProofJson")?.present,
       true,
@@ -581,6 +699,9 @@ test(
 
     const reportMarkdown = readFileSync(outputMarkdownPath, "utf8");
     assert.match(reportMarkdown, /## Hosted Direct-Live Proof Snapshot/);
+    assert.match(reportMarkdown, /- generatedAt: /);
+    assert.match(reportMarkdown, /- generatedAtIsIso: True/i);
+    assert.match(reportMarkdown, /- freshnessStatus: pass/);
     assert.match(reportMarkdown, /- firstAudioMs: 640/);
     assert.match(reportMarkdown, /- firstOutputMs: 410/);
     assert.match(reportMarkdown, /- runtimeEvidenceExpectedSignatureStatus: signed/);
@@ -593,9 +714,13 @@ test(
     assert.match(reportMarkdown, /- healedRefTargets: email, submit_primary/);
     assert.match(reportMarkdown, /## Browser Worker Recovery Snapshot/);
     assert.match(reportMarkdown, /- resumedCheckpointCount: 1/);
+    assert.match(reportMarkdown, /## Navigator Visa Flows Snapshot/);
+    assert.match(reportMarkdown, /- totalFlows: 3/);
+    assert.match(reportMarkdown, /- scenarioNames: reminder, handoff, escalation/);
 
     const manifestMarkdown = readFileSync(outputManifestMarkdownPath, "utf8");
     assert.match(manifestMarkdown, /## Hosted Direct-Live Proof/);
+    assert.match(manifestMarkdown, /\| freshnessStatus \| pass \|/);
     assert.match(manifestMarkdown, /\| firstAudioMs \| 640 \|/);
     assert.match(manifestMarkdown, /\| firstOutputMs \| 410 \|/);
     assert.match(manifestMarkdown, /\| runtimeEvidenceExpectedSignatureStatus \| signed \|/);
@@ -608,6 +733,178 @@ test(
     assert.match(manifestMarkdown, /\| healedRefTargets \| email, submit_primary \|/);
     assert.match(manifestMarkdown, /## Browser Worker Recovery/);
     assert.match(manifestMarkdown, /\| resumedCheckpointCount \| 1 \|/);
+    assert.match(manifestMarkdown, /\| navigatorVisaFlows \| pass \|/);
+    assert.match(manifestMarkdown, /## Navigator Visa Flows/);
+    assert.match(manifestMarkdown, /\| totalFlows \| 3 \|/);
+  },
+);
+
+test(
+  "release evidence report fails stale hosted direct-live proof and falls back to local case wiki signature evidence",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), "release-evidence-report-stale-hosted-proof-"));
+    const badgeDetailsPath = join(tempRoot, "artifacts", "demo-e2e", "badge-details.json");
+    const directLiveProofPath = join(tempRoot, "artifacts", "deploy", "direct-live-proof.json");
+    const outputJsonPath = join(tempRoot, "artifacts", "release-evidence", "report.json");
+    const outputMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "report.md");
+    const outputManifestJsonPath = join(tempRoot, "artifacts", "release-evidence", "manifest.json");
+    const outputManifestMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "manifest.md");
+
+    writeJson(badgeDetailsPath, {
+      evidence: {
+        caseWikiEvidenceSignature: {
+          status: "pass",
+          validated: true,
+          totalArtifacts: 1,
+          signedArtifacts: 1,
+          unsignedArtifacts: 0,
+          signatureStatus: "signed",
+          algorithm: "ed25519-sha256",
+          canonicalization: "json-stable-v1",
+          payloadHash: "sha256:local-signed-payload",
+          keyId: "local-dev-key",
+          signerId: "api-backend",
+          signedAt: "2026-04-15T09:10:00.000Z",
+          signedAtIsIso: true,
+          signaturePresent: true,
+          caseId: "local-case-123",
+          sessionId: "local-session-123",
+          overviewStatus: "active",
+          nextAction: "Review the latest case evidence",
+          sourceRefsCount: 0,
+        },
+      },
+    });
+
+    writeJson(directLiveProofPath, {
+      generatedAt: "2020-01-01T00:00:00.000Z",
+      status: "pass",
+      runtimeStatus: {
+        preferredMode: "direct_live",
+        activeMode: "direct_live",
+      },
+      replay: {
+        liveTransport: {
+          activeMode: "direct_live",
+          evidenceSource: "session_events",
+          firstAudioMs: 964,
+          firstOutputMs: 964,
+          fallbackEventCount: 0,
+        },
+      },
+      runtimeDiagnostics: {
+        apiBackendEvidenceSigning: {
+          expectedSignatureStatus: "signed",
+          keyState: "loaded",
+        },
+      },
+      caseWikiEvidenceSignatureExpectation: {
+        expectedStatus: "signed",
+        source: "runtime_diagnostics",
+      },
+      caseWiki: {
+        evidenceSignature: {
+          status: "signed",
+          signaturePresent: true,
+        },
+      },
+      summary: "direct_live observed via session_events first_audio=964ms",
+    });
+
+    const result = spawnSync(
+      powershellBin!,
+      [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        releaseEvidenceReportScriptPath,
+        "-BadgeDetailsPath",
+        badgeDetailsPath,
+        "-OutputJsonPath",
+        outputJsonPath,
+        "-OutputMarkdownPath",
+        outputMarkdownPath,
+        "-OutputManifestJsonPath",
+        outputManifestJsonPath,
+        "-OutputManifestMarkdownPath",
+        outputManifestMarkdownPath,
+        "-HostedDirectLiveProofMaxAgeHours",
+        "24",
+      ],
+      {
+        cwd: tempRoot,
+        encoding: "utf8",
+      },
+    );
+
+    assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+
+    const report = JSON.parse(readFileSync(outputJsonPath, "utf8")) as {
+      statuses: {
+        hostedDirectLiveProofStatus?: string;
+        caseWikiEvidenceSignatureStatus?: string;
+      };
+      hostedDirectLiveProof: {
+        status?: string;
+        generatedAt?: string | null;
+        generatedAtIsIso?: boolean;
+        freshnessStatus?: string;
+        freshnessSummary?: string | null;
+        freshnessAgeMinutes?: number | null;
+      };
+      caseWikiEvidenceSignature: {
+        source?: string | null;
+        status?: string;
+        signatureStatus?: string | null;
+        keyId?: string | null;
+      };
+    };
+    assert.equal(report.statuses.hostedDirectLiveProofStatus, "fail");
+    assert.equal(report.hostedDirectLiveProof.status, "fail");
+    assert.equal(report.hostedDirectLiveProof.generatedAt, "2020-01-01T00:00:00.0000000+00:00");
+    assert.equal(report.hostedDirectLiveProof.generatedAtIsIso, true);
+    assert.equal(report.hostedDirectLiveProof.freshnessStatus, "fail");
+    assert.match(report.hostedDirectLiveProof.freshnessSummary ?? "", /stale:/);
+    assert.equal(typeof report.hostedDirectLiveProof.freshnessAgeMinutes, "number");
+    assert.equal(report.statuses.caseWikiEvidenceSignatureStatus, "pass");
+    assert.equal(report.caseWikiEvidenceSignature.source, "badge_details");
+    assert.equal(report.caseWikiEvidenceSignature.status, "pass");
+    assert.equal(report.caseWikiEvidenceSignature.signatureStatus, "signed");
+    assert.equal(report.caseWikiEvidenceSignature.keyId, "local-dev-key");
+
+    const manifest = JSON.parse(readFileSync(outputManifestJsonPath, "utf8")) as {
+      criticalEvidenceStatuses: {
+        hostedDirectLiveProofStatus?: string;
+        caseWikiEvidenceSignatureStatus?: string;
+      };
+      hostedDirectLiveProof: {
+        status?: string;
+        freshnessStatus?: string;
+        freshnessSummary?: string | null;
+      };
+      caseWikiEvidenceSignature: {
+        source?: string | null;
+        status?: string;
+      };
+    };
+    assert.equal(manifest.criticalEvidenceStatuses.hostedDirectLiveProofStatus, "fail");
+    assert.equal(manifest.hostedDirectLiveProof.status, "fail");
+    assert.equal(manifest.hostedDirectLiveProof.freshnessStatus, "fail");
+    assert.match(manifest.hostedDirectLiveProof.freshnessSummary ?? "", /stale:/);
+    assert.equal(manifest.criticalEvidenceStatuses.caseWikiEvidenceSignatureStatus, "pass");
+    assert.equal(manifest.caseWikiEvidenceSignature.source, "badge_details");
+    assert.equal(manifest.caseWikiEvidenceSignature.status, "pass");
+
+    const reportMarkdown = readFileSync(outputMarkdownPath, "utf8");
+    assert.match(reportMarkdown, /\| hostedDirectLiveProof \| fail \|/);
+    assert.match(reportMarkdown, /- freshnessStatus: fail/);
+    assert.match(reportMarkdown, /- freshnessSummary: stale:/);
+
+    const manifestMarkdown = readFileSync(outputManifestMarkdownPath, "utf8");
+    assert.match(manifestMarkdown, /\| hostedDirectLiveProof \| fail \|/);
+    assert.match(manifestMarkdown, /\| freshnessStatus \| fail \|/);
   },
 );
 
@@ -760,6 +1057,7 @@ test(
     });
 
     writeJson(directLiveProofPath, {
+      generatedAt: new Date().toISOString(),
       status: "pass",
       runtimeStatus: {
         preferredMode: "direct_live",

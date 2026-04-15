@@ -189,6 +189,19 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
         browserWorkerRecoveryCheckpointReadyCleared: true,
         browserWorkerRecoverySummary: "healed 2 stale grounding refs; resumed 1 checkpoint.",
         browserWorkerRecoveryValidated: true,
+        navigatorVisaFlowsTotal: 3,
+        navigatorVisaFlowsSucceeded: 3,
+        navigatorVisaFlowsSuccessRate: 1,
+        navigatorVisaFlowsPersistentSessionCount: 3,
+        navigatorVisaFlowsReplayBundleCount: 3,
+        navigatorVisaFlowsVerifiedCount: 3,
+        navigatorVisaFlowsStaleRecoveryObservedCount: 3,
+        navigatorVisaFlowsHealedRecoveryObservedCount: 3,
+        navigatorVisaFlowsResumedCheckpointCount: 3,
+        navigatorVisaFlowsCheckpointReadyClearedCount: 3,
+        navigatorVisaFlowsScenarioNames: ["reminder", "handoff", "escalation"],
+        navigatorVisaFlowsSummary: "3/3 visa flows passed; persistent=3; verified=3; staleRecovery=3; resumed=3.",
+        navigatorVisaFlowsValidated: true,
         operatorTurnTruncationSummaryValidated: true,
         operatorTurnTruncationExpectedEventSeen: true,
         operatorTurnTruncationTotal: 1,
@@ -482,6 +495,7 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   const caseWikiContextAdoption = evidence.caseWikiContextAdoption as Record<string, unknown>;
   const uiRefHealing = evidence.uiRefHealing as Record<string, unknown>;
   const browserWorkerRecovery = evidence.browserWorkerRecovery as Record<string, unknown>;
+  const navigatorVisaFlows = evidence.navigatorVisaFlows as Record<string, unknown>;
   assert.equal(turnTruncation.status, "pass");
   assert.equal(turnDelete.status, "pass");
   assert.equal(damageControl.status, "pass");
@@ -627,6 +641,24 @@ test("demo-e2e badge details include operator turn truncation/delete evidence bl
   assert.equal(browserWorkerRecovery.runtimeHealedRefCount, 2);
   assert.equal(browserWorkerRecovery.checkpointReadyCleared, true);
   assert.equal(browserWorkerRecovery.summary, "healed 2 stale grounding refs; resumed 1 checkpoint.");
+  assert.equal(navigatorVisaFlows.status, "pass");
+  assert.equal(navigatorVisaFlows.validated, true);
+  assert.equal(navigatorVisaFlows.observed, true);
+  assert.equal(navigatorVisaFlows.totalFlows, 3);
+  assert.equal(navigatorVisaFlows.succeededFlows, 3);
+  assert.equal(navigatorVisaFlows.successRate, 1);
+  assert.equal(navigatorVisaFlows.persistentSessionCount, 3);
+  assert.equal(navigatorVisaFlows.replayBundleCount, 3);
+  assert.equal(navigatorVisaFlows.verifiedCount, 3);
+  assert.equal(navigatorVisaFlows.staleRecoveryObservedCount, 3);
+  assert.equal(navigatorVisaFlows.healedRecoveryObservedCount, 3);
+  assert.equal(navigatorVisaFlows.resumedCheckpointCount, 3);
+  assert.equal(navigatorVisaFlows.checkpointReadyClearedCount, 3);
+  assert.deepEqual(navigatorVisaFlows.scenarioNames, ["reminder", "handoff", "escalation"]);
+  assert.equal(
+    navigatorVisaFlows.summary,
+    "3/3 visa flows passed; persistent=3; verified=3; staleRecovery=3; resumed=3.",
+  );
   assert.equal(runtimeGuardrailsSignalPaths.totalPaths, 3);
   assert.equal(runtimeGuardrailsSignalPaths.lifecycleSummary, "active=3");
   const runtimeGuardrailsCounts = runtimeGuardrailsSignalPaths.lifecycleCounts as Record<string, unknown>;

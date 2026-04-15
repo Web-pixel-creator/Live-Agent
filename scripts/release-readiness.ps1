@@ -2271,6 +2271,20 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     )
   }
 
+  $navigatorVisaFlowsScenarioAttempts = To-NumberOrNaN $summary.kpis.navigatorVisaFlowsScenarioAttempts
+  if (
+    [double]::IsNaN($navigatorVisaFlowsScenarioAttempts) -or
+    $navigatorVisaFlowsScenarioAttempts -lt 1 -or
+    $navigatorVisaFlowsScenarioAttempts -gt $scenarioRetryMaxAttempts
+  ) {
+    Fail (
+      "Critical KPI check failed: kpi.navigatorVisaFlowsScenarioAttempts expected 1.." +
+      $summary.options.scenarioRetryMaxAttempts +
+      ", actual " +
+      $summary.kpis.navigatorVisaFlowsScenarioAttempts
+    )
+  }
+
   $operatorConsoleActionsScenarioAttempts = To-NumberOrNaN $summary.kpis.operatorConsoleActionsScenarioAttempts
   if (
     [double]::IsNaN($operatorConsoleActionsScenarioAttempts) -or
@@ -2776,6 +2790,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
   $pluginMarketplaceAttempts = $summary.kpis.pluginMarketplaceScenarioAttempts
   $sessionVersioningAttempts = $summary.kpis.sessionVersioningScenarioAttempts
   $uiVisualAttempts = $summary.kpis.uiVisualTestingScenarioAttempts
+  $navigatorVisaFlowsAttempts = $summary.kpis.navigatorVisaFlowsScenarioAttempts
   $operatorActionsAttempts = $summary.kpis.operatorConsoleActionsScenarioAttempts
   $runtimeLifecycleAttempts = $summary.kpis.runtimeLifecycleScenarioAttempts
   $runtimeMetricsAttempts = $summary.kpis.runtimeMetricsScenarioAttempts
@@ -2806,6 +2821,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
     $null -ne $pluginMarketplaceAttempts -or
     $null -ne $sessionVersioningAttempts -or
     $null -ne $uiVisualAttempts -or
+    $null -ne $navigatorVisaFlowsAttempts -or
     $null -ne $operatorActionsAttempts -or
     $null -ne $runtimeLifecycleAttempts -or
     $null -ne $runtimeMetricsAttempts
@@ -2838,6 +2854,7 @@ if ((-not $SkipDemoE2E) -and (Test-Path $SummaryPath)) {
       ", operator.plugin_marketplace.lifecycle_attempts=" + $pluginMarketplaceAttempts +
       ", api.sessions.versioning_attempts=" + $sessionVersioningAttempts +
       ", ui.visual_testing_attempts=" + $uiVisualAttempts +
+      ", ui.navigator.visa_vertical_flows_attempts=" + $navigatorVisaFlowsAttempts +
       ", operator.console.actions_attempts=" + $operatorActionsAttempts +
       ", runtime.lifecycle.endpoints_attempts=" + $runtimeLifecycleAttempts +
       ", runtime.metrics.endpoints_attempts=" + $runtimeMetricsAttempts

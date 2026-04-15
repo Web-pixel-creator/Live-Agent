@@ -12,6 +12,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /OutputMarkdownPath/);
   assert.match(source, /OutputManifestJsonPath/);
   assert.match(source, /OutputManifestMarkdownPath/);
+  assert.match(source, /HostedDirectLiveProofMaxAgeHours/);
   assert.match(source, /artifacts\/release-evidence\/report\.json/);
   assert.match(source, /artifacts\/release-evidence\/report\.md/);
   assert.match(source, /artifacts\/release-evidence\/manifest\.json/);
@@ -30,6 +31,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /caseWikiEvidenceSignatureStatus/);
   assert.match(source, /caseWikiRoutingContextStatus/);
   assert.match(source, /browserWorkerRecoveryStatus/);
+  assert.match(source, /navigatorVisaFlowsStatus/);
   assert.match(source, /providerUsageStatus/);
   assert.match(source, /deviceNodeUpdatesStatus/);
   assert.match(source, /runtimeGuardrailsSignalPaths = \[ordered\]@/);
@@ -37,6 +39,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /hostedDirectLiveProof = \[ordered\]@/);
   assert.match(source, /caseWikiEvidenceSignature = \[ordered\]@/);
   assert.match(source, /caseWikiRoutingContext = \[ordered\]@/);
+  assert.match(source, /navigatorVisaFlows = \[ordered\]@/);
   assert.match(source, /providerUsage = \[ordered\]@/);
   assert.match(source, /summaryStatus\s*=\s*"unavailable"/);
   assert.match(source, /totalPaths\s*=\s*0/);
@@ -47,12 +50,14 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /Convert-ToNonNegativeIntOrDefault/);
   assert.match(source, /New-RuntimeGuardrailsPrimaryPath/);
   assert.match(source, /New-LiveTransportSnapshot/);
+  assert.match(source, /New-HostedDirectLiveProofFreshnessSnapshot/);
   assert.match(source, /New-HostedDirectLiveProofSnapshot/);
   assert.match(source, /New-CaseWikiEvidenceSignatureSnapshot/);
   assert.match(source, /New-HostedCaseWikiEvidenceSignatureValue/);
   assert.match(source, /Resolve-CaseWikiEvidenceSignatureSnapshot/);
   assert.match(source, /New-CaseWikiRoutingContextSnapshot/);
   assert.match(source, /New-BrowserWorkerRecoverySnapshot/);
+  assert.match(source, /New-NavigatorVisaFlowsSnapshot/);
   assert.match(source, /New-ProviderUsagePrimaryEntry/);
   assert.match(source, /\$maxAttempts = 8/);
   assert.match(source, /\$baseRetryDelayMs = 80/);
@@ -68,6 +73,10 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /Runtime Guardrails Signal Paths Snapshot/);
   assert.match(source, /Live Transport Snapshot/);
   assert.match(source, /Hosted Direct-Live Proof Snapshot/);
+  assert.match(source, /freshnessStatus/);
+  assert.match(source, /freshnessSummary/);
+  assert.match(source, /freshnessAgeMinutes/);
+  assert.match(source, /freshnessMaxAgeHours/);
   assert.match(source, /runtimeEvidenceExpectedSignatureStatus/);
   assert.match(source, /runtimeEvidenceKeyState/);
   assert.match(source, /caseWikiExpectedSignatureStatus/);
@@ -75,6 +84,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /Case Wiki Evidence Signature Snapshot/);
   assert.match(source, /Case Wiki Routing Context Snapshot/);
   assert.match(source, /Browser Worker Recovery Snapshot/);
+  assert.match(source, /Navigator Visa Flows Snapshot/);
   assert.match(source, /Secondary Provider Usage/);
   assert.match(source, /Artifact Inventory/);
   assert.match(source, /GCP Submission Follow-Up/);
@@ -86,6 +96,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /deploy\.directLiveProofJson/);
   assert.match(source, /deploy\.directLiveProofMarkdown/);
   assert.match(source, /deploy\.directLiveProofScreenshot/);
+  assert.match(source, /demo\.navigatorVisaFlows/);
   assert.match(source, /artifactRevalidation\.sourceRunManifest/);
   assert.match(source, /artifacts\/deploy\/direct-live-proof\.json/);
   assert.match(source, /artifacts\/deploy\/direct-live-proof\.md/);
@@ -106,6 +117,7 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /\$report\.statuses\.liveTransportStatus = Get-StatusValueOrDefault/);
   assert.match(source, /\$report\.statuses\.hostedDirectLiveProofStatus = Get-StatusValueOrDefault/);
   assert.match(source, /\$report\.statuses\.caseWikiEvidenceSignatureStatus = Get-StatusValueOrDefault/);
+  assert.match(source, /\$report\.statuses\.navigatorVisaFlowsStatus = Get-StatusValueOrDefault/);
   assert.match(source, /hosted_direct_live_proof/);
   assert.match(source, /badge_details/);
   assert.match(source, /\$report\.caseWikiEvidenceSignature = Resolve-CaseWikiEvidenceSignatureSnapshot/);

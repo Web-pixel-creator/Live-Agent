@@ -169,10 +169,22 @@ function createPassingSummary(
     storytellerPipelineScenarioAttempts: number | string;
     uiSandboxPolicyModesScenarioAttempts: number | string;
     uiVisualTestingScenarioAttempts: number | string;
+    navigatorVisaFlowsScenarioAttempts: number | string;
     operatorConsoleActionsScenarioAttempts: number | string;
     runtimeLifecycleScenarioAttempts: number | string;
     runtimeMetricsScenarioAttempts: number | string;
     scenarioRetryableFailuresTotal: number | string;
+    navigatorVisaFlowsValidated: boolean | string;
+    navigatorVisaFlowsTotal: number | string;
+    navigatorVisaFlowsSucceeded: number | string;
+    navigatorVisaFlowsSuccessRate: number | string;
+    navigatorVisaFlowsPersistentSessionCount: number | string;
+    navigatorVisaFlowsReplayBundleCount: number | string;
+    navigatorVisaFlowsVerifiedCount: number | string;
+    navigatorVisaFlowsStaleRecoveryObservedCount: number | string;
+    navigatorVisaFlowsHealedRecoveryObservedCount: number | string;
+    navigatorVisaFlowsResumedCheckpointCount: number | string;
+    navigatorVisaFlowsCheckpointReadyClearedCount: number | string;
     analyticsSplitTargetsValidated: boolean | string;
     analyticsBigQueryConfigValidated: boolean | string;
     analyticsServicesValidated: number | string;
@@ -255,6 +267,7 @@ function createPassingSummary(
       { name: "governance.policy.lifecycle", status: "passed" },
       { name: "skills.registry.lifecycle", status: "passed" },
       { name: "api.sessions.versioning", status: "passed" },
+      { name: "ui.navigator.visa_vertical_flows", status: "passed" },
     ],
     kpis: {
       gatewayItemTruncateValidated: hasOverride("gatewayItemTruncateValidated")
@@ -693,6 +706,9 @@ function createPassingSummary(
       uiVisualTestingScenarioAttempts: hasOverride("uiVisualTestingScenarioAttempts")
         ? overrides.uiVisualTestingScenarioAttempts
         : 1,
+      navigatorVisaFlowsScenarioAttempts: hasOverride("navigatorVisaFlowsScenarioAttempts")
+        ? overrides.navigatorVisaFlowsScenarioAttempts
+        : 1,
       operatorConsoleActionsScenarioAttempts: hasOverride("operatorConsoleActionsScenarioAttempts")
         ? overrides.operatorConsoleActionsScenarioAttempts
         : 1,
@@ -705,6 +721,39 @@ function createPassingSummary(
       scenarioRetryableFailuresTotal: hasOverride("scenarioRetryableFailuresTotal")
         ? overrides.scenarioRetryableFailuresTotal
         : 0,
+      navigatorVisaFlowsValidated: hasOverride("navigatorVisaFlowsValidated")
+        ? overrides.navigatorVisaFlowsValidated
+        : true,
+      navigatorVisaFlowsTotal: hasOverride("navigatorVisaFlowsTotal")
+        ? overrides.navigatorVisaFlowsTotal
+        : 3,
+      navigatorVisaFlowsSucceeded: hasOverride("navigatorVisaFlowsSucceeded")
+        ? overrides.navigatorVisaFlowsSucceeded
+        : 3,
+      navigatorVisaFlowsSuccessRate: hasOverride("navigatorVisaFlowsSuccessRate")
+        ? overrides.navigatorVisaFlowsSuccessRate
+        : 1,
+      navigatorVisaFlowsPersistentSessionCount: hasOverride("navigatorVisaFlowsPersistentSessionCount")
+        ? overrides.navigatorVisaFlowsPersistentSessionCount
+        : 3,
+      navigatorVisaFlowsReplayBundleCount: hasOverride("navigatorVisaFlowsReplayBundleCount")
+        ? overrides.navigatorVisaFlowsReplayBundleCount
+        : 3,
+      navigatorVisaFlowsVerifiedCount: hasOverride("navigatorVisaFlowsVerifiedCount")
+        ? overrides.navigatorVisaFlowsVerifiedCount
+        : 3,
+      navigatorVisaFlowsStaleRecoveryObservedCount: hasOverride("navigatorVisaFlowsStaleRecoveryObservedCount")
+        ? overrides.navigatorVisaFlowsStaleRecoveryObservedCount
+        : 3,
+      navigatorVisaFlowsHealedRecoveryObservedCount: hasOverride("navigatorVisaFlowsHealedRecoveryObservedCount")
+        ? overrides.navigatorVisaFlowsHealedRecoveryObservedCount
+        : 3,
+      navigatorVisaFlowsResumedCheckpointCount: hasOverride("navigatorVisaFlowsResumedCheckpointCount")
+        ? overrides.navigatorVisaFlowsResumedCheckpointCount
+        : 3,
+      navigatorVisaFlowsCheckpointReadyClearedCount: hasOverride("navigatorVisaFlowsCheckpointReadyClearedCount")
+        ? overrides.navigatorVisaFlowsCheckpointReadyClearedCount
+        : 3,
     },
     options: {
       serviceStartMaxAttempts: hasOverride("serviceStartMaxAttempts") ? overrides.serviceStartMaxAttempts : "2",
@@ -2230,6 +2279,22 @@ test(
     assert.equal(result.exitCode, 1);
     const output = `${result.stderr}\n${result.stdout}`;
     assert.match(output, /kpi\.uiVisualTestingScenarioAttempts expected 1\.\.2, actual 3/i);
+  },
+);
+
+test(
+  "release-readiness fails when navigator visa flow scenario attempts exceed configured retry max",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const result = runReleaseReadiness(
+      createPassingSummary({
+        scenarioRetryMaxAttempts: "2",
+        navigatorVisaFlowsScenarioAttempts: "3",
+      }),
+    );
+    assert.equal(result.exitCode, 1);
+    const output = `${result.stderr}\n${result.stdout}`;
+    assert.match(output, /kpi\.navigatorVisaFlowsScenarioAttempts expected 1\.\.2, actual 3/i);
   },
 );
 

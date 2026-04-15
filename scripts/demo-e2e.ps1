@@ -84,6 +84,17 @@ function Write-Utf8NoBomFile {
   [System.IO.File]::WriteAllText($Path, $Content, $encoding)
 }
 
+function Initialize-DemoUiExecutorSandboxSetupMarker {
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]$Version = "demo-e2e-enforce-v1"
+  )
+
+  $markerPath = Join-Path $script:RepoRoot "artifacts/runtime/ui-executor-sandbox/demo-e2e.marker"
+  Write-Utf8NoBomFile -Path $markerPath -Content ($Version + [Environment]::NewLine)
+  return $markerPath
+}
+
 function Get-FieldValue {
   param(
     [Parameter(Mandatory = $true)]
@@ -874,6 +885,46 @@ function Get-DemoManagedServiceReuseMismatchReason {
     if ($forceSimulation -ne $false) {
       return "forceSimulation=true"
     }
+
+    $sandboxMode = [string](Get-FieldValue -Object $runtime -Path @("sandbox", "mode"))
+    if ($sandboxMode -ne "enforce") {
+      return "sandbox.mode=$sandboxMode"
+    }
+
+    $sandboxNetworkPolicy = [string](Get-FieldValue -Object $runtime -Path @("sandbox", "networkPolicy"))
+    if ($sandboxNetworkPolicy -ne "allow_list") {
+      return "sandbox.networkPolicy=$sandboxNetworkPolicy"
+    }
+
+    $sandboxAllowedOriginsCount = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $runtime -Path @("sandbox", "allowedOriginsCount"))
+    if ($sandboxAllowedOriginsCount -le 0) {
+      return "sandbox.allowedOriginsCount=$sandboxAllowedOriginsCount"
+    }
+
+    $sandboxAllowedReadRootsCount = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $runtime -Path @("sandbox", "allowedReadRootsCount"))
+    if ($sandboxAllowedReadRootsCount -le 0) {
+      return "sandbox.allowedReadRootsCount=$sandboxAllowedReadRootsCount"
+    }
+
+    $sandboxAllowedWriteRootsCount = Convert-ToNonNegativeInt -Value (Get-FieldValue -Object $runtime -Path @("sandbox", "allowedWriteRootsCount"))
+    if ($sandboxAllowedWriteRootsCount -le 0) {
+      return "sandbox.allowedWriteRootsCount=$sandboxAllowedWriteRootsCount"
+    }
+
+    $sandboxBlockFileUrls = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $runtime -Path @("sandbox", "blockFileUrls"))
+    if ($sandboxBlockFileUrls -ne $true) {
+      return "sandbox.blockFileUrls=false"
+    }
+
+    $sandboxAllowLoopbackHosts = Convert-ToBooleanOrNull -Value (Get-FieldValue -Object $runtime -Path @("sandbox", "allowLoopbackHosts"))
+    if ($sandboxAllowLoopbackHosts -ne $true) {
+      return "sandbox.allowLoopbackHosts=false"
+    }
+
+    $sandboxSetupStatus = [string](Get-FieldValue -Object $runtime -Path @("sandbox", "setupMarker", "status"))
+    if ($sandboxSetupStatus -ne "current") {
+      return "sandbox.setupMarker.status=$sandboxSetupStatus"
+    }
   }
 
   return $null
@@ -1560,6 +1611,18 @@ function New-RuntimeGuardrailAction {
         buttonLabel       = "Jump to Live Bridge"
       }
     }
+    "ui_executor_sandbox_loopback_allowed" {
+      return [ordered]@{
+        kind              = "jump_card"
+        signalKey         = $signalKey
+        signalService     = $signalService
+        signalKeys        = @($signalKey)
+        signalDescriptors = @("$signalSeverity $signalKey@$signalService")
+        targetStatusId    = "operatorRuntimeGuardrailsStatus"
+        summaryText       = "Manual triage: loopback access remains enabled only for repo-owned local demo fixtures. Inspect Runtime Guardrails before judged flow."
+        buttonLabel       = "Jump to Runtime Guardrails"
+      }
+    }
     default {
       return $null
     }
@@ -1854,6 +1917,7 @@ if ([string]::IsNullOrWhiteSpace($resolvedOutputDir)) {
 }
 $resolvedDirectLiveBrowserSmokePath = Join-Path $resolvedOutputDir "direct-live-browser-smoke.json"
 $resolvedDirectLiveBrowserSmokeScreenshotPath = Join-Path $resolvedOutputDir "direct-live-browser-smoke.png"
+$resolvedNavigatorVisaFlowsPath = Join-Path $resolvedOutputDir "navigator-visa-flows.json"
 if (-not [string]::IsNullOrWhiteSpace($resolvedOutputDir)) {
   New-Item -ItemType Directory -Force -Path $resolvedOutputDir | Out-Null
 }
@@ -1889,9 +1953,21 @@ try {
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_MAX_RETRIES" -Value "1"
   Set-EnvDefault -Name "UI_NAVIGATOR_EXECUTOR_RETRY_BACKOFF_MS" -Value "300"
   Set-EnvValue -Name "UI_NAVIGATOR_GEMINI_TIMEOUT_MS" -Value "60000"
+  $uiExecutorSandboxSetupMarkerVersion = "demo-e2e-enforce-v1"
+  $uiExecutorSandboxSetupMarkerPath = Initialize-DemoUiExecutorSandboxSetupMarker -Version $uiExecutorSandboxSetupMarkerVersion
   Set-EnvDefault -Name "UI_EXECUTOR_STRICT_PLAYWRIGHT" -Value "true"
   Set-EnvDefault -Name "UI_EXECUTOR_SIMULATE_IF_UNAVAILABLE" -Value "false"
   Set-EnvDefault -Name "UI_EXECUTOR_FORCE_SIMULATION" -Value "false"
+  Set-EnvValue -Name "UI_EXECUTOR_DEFAULT_URL" -Value "https://example.com/app"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_MODE" -Value "enforce"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_NETWORK_POLICY" -Value "allow_list"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_ALLOWED_ORIGINS" -Value "https://example.com;http://localhost:3000;http://127.0.0.1:3000"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_ALLOWED_READ_ROOTS" -Value "artifacts;apps/demo-frontend/public"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_ALLOWED_WRITE_ROOTS" -Value "artifacts"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_BLOCK_FILE_URLS" -Value "true"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_ALLOW_LOOPBACK_HOSTS" -Value "true"
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_SETUP_MARKER_PATH" -Value $uiExecutorSandboxSetupMarkerPath
+  Set-EnvValue -Name "UI_EXECUTOR_SANDBOX_SETUP_MARKER_VERSION" -Value $uiExecutorSandboxSetupMarkerVersion
   Set-EnvDefault -Name "DEMO_E2E_SERVICE_START_MAX_ATTEMPTS" -Value "2"
   Set-EnvDefault -Name "DEMO_E2E_SERVICE_START_RETRY_BACKOFF_MS" -Value "1200"
   Set-EnvValue -Name "ANALYTICS_EXPORT_ENABLED" -Value "true"
@@ -3110,6 +3186,38 @@ try {
       inputApproxTokens = $inputApproxTokens
       outputApproxTokens = $outputApproxTokens
     }
+  } | Out-Null
+
+  Invoke-Scenario `
+    -Name "ui.navigator.visa_vertical_flows" `
+    -MaxAttempts $ScenarioRetryMaxAttempts `
+    -InitialBackoffMs $ScenarioRetryBackoffMs `
+    -RetryTransientFailures `
+    -Action {
+    if (-not $IncludeFrontend) {
+      Start-ManagedService -Name "demo-frontend" -HealthUrl "http://localhost:3000/healthz" -NodeArgs @("--import", "tsx", "apps/demo-frontend/src/server.ts")
+    }
+
+    $navigatorVisaFlowData = Invoke-NodeJsonCommand -Args @(
+      "--import",
+      "tsx",
+      ".\\scripts\\demo-e2e-navigator-visa-flows.ts",
+      "--frontendBaseUrl",
+      "http://localhost:3000",
+      "--uiExecutorBaseUrl",
+      "http://localhost:8090",
+      "--timeoutMs",
+      ([string]([Math]::Max(($RequestTimeoutSec * 1000), 45000))),
+      "--output",
+      $resolvedNavigatorVisaFlowsPath
+    )
+
+    Assert-Condition -Condition ($null -ne $navigatorVisaFlowData) -Message "Navigator visa proof returned no data."
+    Assert-Condition -Condition ([bool](Get-FieldValue -Object $navigatorVisaFlowData -Path @("validated")) -eq $true) -Message "Navigator visa proof must validate all configured flows."
+    Assert-Condition -Condition ([int](Get-FieldValue -Object $navigatorVisaFlowData -Path @("totalFlows")) -ge 3) -Message "Navigator visa proof must cover at least three flows."
+    Assert-Condition -Condition ([int](Get-FieldValue -Object $navigatorVisaFlowData -Path @("succeededFlows")) -eq [int](Get-FieldValue -Object $navigatorVisaFlowData -Path @("totalFlows"))) -Message "Navigator visa proof must succeed across all configured flows."
+
+    return $navigatorVisaFlowData
   } | Out-Null
 
   Invoke-Scenario `
@@ -5913,6 +6021,7 @@ $uiSandboxData = Get-ScenarioData -Name "ui.sandbox.policy_modes"
 $uiVisualTestingData = Get-ScenarioData -Name "ui.visual_testing"
 $uiRefHealingData = Get-ScenarioData -Name "ui.executor.ref_healing"
 $uiBrowserWorkerRecoveryData = Get-ScenarioData -Name "ui.browser_worker.checkpoint_resume"
+$uiNavigatorVisaFlowsData = Get-ScenarioData -Name "ui.navigator.visa_vertical_flows"
 $delegationData = Get-ScenarioData -Name "multi_agent.delegation"
 $gatewayWsData = Get-ScenarioData -Name "gateway.websocket.roundtrip"
 $gatewayCaseWikiHydrationData = Get-ScenarioData -Name "gateway.websocket.case_wiki_hydration"
@@ -5942,6 +6051,7 @@ $storytellerScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "s
 $uiSandboxScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.sandbox.policy_modes" } | Select-Object -First 1)
 $uiRefHealingScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.executor.ref_healing" } | Select-Object -First 1)
 $uiBrowserWorkerRecoveryScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.browser_worker.checkpoint_resume" } | Select-Object -First 1)
+$uiNavigatorVisaFlowsScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "ui.navigator.visa_vertical_flows" } | Select-Object -First 1)
 $gatewayRoundTripScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.roundtrip" } | Select-Object -First 1)
 $gatewayCaseWikiHydrationScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.case_wiki_hydration" } | Select-Object -First 1)
 $gatewayTaskProgressScenario = @($script:ScenarioResults | Where-Object { $_.name -eq "gateway.websocket.task_progress" } | Select-Object -First 1)
@@ -6507,6 +6617,30 @@ $summary = [ordered]@{
       [int]$uiBrowserWorkerRecoveryData.runtimeHealedRefCount -ge [int]$uiBrowserWorkerRecoveryData.healedRefCount -and
       [int]$uiBrowserWorkerRecoveryData.runtimeStaleRefCount -ge [int]$uiBrowserWorkerRecoveryData.staleRefCount
     ) { $true } else { $false }
+    navigatorVisaFlowsTotal = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.totalFlows } else { 0 }
+    navigatorVisaFlowsSucceeded = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.succeededFlows } else { 0 }
+    navigatorVisaFlowsSuccessRate = if ($null -ne $uiNavigatorVisaFlowsData) { [double]$uiNavigatorVisaFlowsData.successRate } else { 0.0 }
+    navigatorVisaFlowsPersistentSessionCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.persistentSessionCount } else { 0 }
+    navigatorVisaFlowsReplayBundleCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.replayBundleCount } else { 0 }
+    navigatorVisaFlowsVerifiedCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.verifiedCount } else { 0 }
+    navigatorVisaFlowsStaleRecoveryObservedCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.staleRecoveryObservedCount } else { 0 }
+    navigatorVisaFlowsHealedRecoveryObservedCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.healedRecoveryObservedCount } else { 0 }
+    navigatorVisaFlowsResumedCheckpointCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.resumedCheckpointCount } else { 0 }
+    navigatorVisaFlowsCheckpointReadyClearedCount = if ($null -ne $uiNavigatorVisaFlowsData) { [int]$uiNavigatorVisaFlowsData.checkpointReadyClearedCount } else { 0 }
+    navigatorVisaFlowsScenarioNames = if ($null -ne $uiNavigatorVisaFlowsData) { @($uiNavigatorVisaFlowsData.scenarioNames) } else { @() }
+    navigatorVisaFlowsSummary = if ($null -ne $uiNavigatorVisaFlowsData) { [string]$uiNavigatorVisaFlowsData.summary } else { $null }
+    navigatorVisaFlowsValidated = if (
+      $null -ne $uiNavigatorVisaFlowsData -and
+      [bool]$uiNavigatorVisaFlowsData.validated -eq $true -and
+      [int]$uiNavigatorVisaFlowsData.totalFlows -ge 3 -and
+      [int]$uiNavigatorVisaFlowsData.succeededFlows -eq [int]$uiNavigatorVisaFlowsData.totalFlows -and
+      [int]$uiNavigatorVisaFlowsData.persistentSessionCount -eq [int]$uiNavigatorVisaFlowsData.totalFlows -and
+      [int]$uiNavigatorVisaFlowsData.replayBundleCount -eq [int]$uiNavigatorVisaFlowsData.totalFlows -and
+      [int]$uiNavigatorVisaFlowsData.verifiedCount -eq [int]$uiNavigatorVisaFlowsData.totalFlows -and
+      [int]$uiNavigatorVisaFlowsData.staleRecoveryObservedCount -eq [int]$uiNavigatorVisaFlowsData.totalFlows -and
+      [int]$uiNavigatorVisaFlowsData.healedRecoveryObservedCount -eq [int]$uiNavigatorVisaFlowsData.totalFlows -and
+      [int]$uiNavigatorVisaFlowsData.resumedCheckpointCount -eq [int]$uiNavigatorVisaFlowsData.totalFlows
+    ) { $true } else { $false }
     scenarioRetriesUsedCount = $scenarioRetriedSet.Count
     scenarioRetriesUsedNames = @($scenarioRetriedSet | ForEach-Object { [string]$_.name })
     scenarioRetryableFailuresTotal = [int]$scenarioRetryableFailuresTotal
@@ -6518,6 +6652,7 @@ $summary = [ordered]@{
     uiSandboxPolicyModesScenarioAttempts = if ($uiSandboxScenario.Count -gt 0) { [int]$uiSandboxScenario[0].attempts } else { $null }
     uiRefHealingScenarioAttempts = if ($uiRefHealingScenario.Count -gt 0) { [int]$uiRefHealingScenario[0].attempts } else { $null }
     uiBrowserWorkerRecoveryScenarioAttempts = if ($uiBrowserWorkerRecoveryScenario.Count -gt 0) { [int]$uiBrowserWorkerRecoveryScenario[0].attempts } else { $null }
+    navigatorVisaFlowsScenarioAttempts = if ($uiNavigatorVisaFlowsScenario.Count -gt 0) { [int]$uiNavigatorVisaFlowsScenario[0].attempts } else { $null }
     gatewayWsRoundTripScenarioAttempts = if ($gatewayRoundTripScenario.Count -gt 0) { [int]$gatewayRoundTripScenario[0].attempts } else { $null }
     gatewayCaseWikiHydrationScenarioAttempts = if ($gatewayCaseWikiHydrationScenario.Count -gt 0) { [int]$gatewayCaseWikiHydrationScenario[0].attempts } else { $null }
     gatewayTaskProgressScenarioAttempts = if ($gatewayTaskProgressScenario.Count -gt 0) { [int]$gatewayTaskProgressScenario[0].attempts } else { $null }

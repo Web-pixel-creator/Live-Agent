@@ -96,6 +96,7 @@ Supporting product surfaces:
 4. Rebuild the judged pack with `pwsh ./infra/gcp/refresh-submission-pack.ps1 -ProjectId "<your-project-id>" -Region "us-central1" -DatasetId "agent_analytics" -ImageTag "<release-tag>"`.
 5. If `gcloud` is unavailable in the current shell, the wrapper can now read repo-local `.env`; if `.env` only contains Gemini-style keys it will reuse that key for `LIVE_API_API_KEY` and default `LIVE_API_AUTH_HEADER` to `x-goog-api-key`. You can still pass `-GoogleGenAiApiKey`, `-LiveApiApiKey`, and `-LiveApiAuthHeader` explicitly when needed.
 6. Open `artifacts/release-evidence/submission-refresh-status.md` and `artifacts/demo-e2e/badge-details.json` for judge-facing evidence lanes. Release evidence now also expects a dedicated `caseWikiGatewayHydration` proof block plus aggregate `caseWikiContextAdoption` counters with at least three observed routing samples and `caseWikiRate >= 0.95`.
+7. For the UI Navigator reliability lane, inspect `artifacts/demo-e2e/navigator-visa-flows.json` and confirm the `reminder`, `handoff`, and `escalation` browser-worker flows all completed with persistent session, replay bundle, verification, stale-ref recovery, and checkpoint resume evidence.
 
 ## Autoresearch
 
