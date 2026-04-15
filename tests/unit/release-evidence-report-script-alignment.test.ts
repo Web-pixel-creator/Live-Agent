@@ -49,6 +49,8 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /New-LiveTransportSnapshot/);
   assert.match(source, /New-HostedDirectLiveProofSnapshot/);
   assert.match(source, /New-CaseWikiEvidenceSignatureSnapshot/);
+  assert.match(source, /New-HostedCaseWikiEvidenceSignatureValue/);
+  assert.match(source, /Resolve-CaseWikiEvidenceSignatureSnapshot/);
   assert.match(source, /New-CaseWikiRoutingContextSnapshot/);
   assert.match(source, /New-BrowserWorkerRecoverySnapshot/);
   assert.match(source, /New-ProviderUsagePrimaryEntry/);
@@ -104,6 +106,9 @@ test("release evidence report helper keeps required evidence lanes and outputs",
   assert.match(source, /\$report\.statuses\.liveTransportStatus = Get-StatusValueOrDefault/);
   assert.match(source, /\$report\.statuses\.hostedDirectLiveProofStatus = Get-StatusValueOrDefault/);
   assert.match(source, /\$report\.statuses\.caseWikiEvidenceSignatureStatus = Get-StatusValueOrDefault/);
+  assert.match(source, /hosted_direct_live_proof/);
+  assert.match(source, /badge_details/);
+  assert.match(source, /\$report\.caseWikiEvidenceSignature = Resolve-CaseWikiEvidenceSignatureSnapshot/);
   assert.match(source, /\[release-evidence-report\] JSON:/);
   assert.match(source, /\[release-evidence-report\] Markdown:/);
   assert.match(source, /\[release-evidence-report\] Manifest JSON:/);

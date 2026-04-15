@@ -261,6 +261,12 @@ test(
         caseWikiSignatureStatus?: string | null;
         latencyObserved?: boolean;
       };
+      caseWikiEvidenceSignature: {
+        source?: string | null;
+        status?: string;
+        validated?: boolean;
+        signatureStatus?: string | null;
+      };
       caseWikiGatewayHydration: {
         status?: string;
         validated?: boolean;
@@ -342,6 +348,10 @@ test(
     assert.equal(report.hostedDirectLiveProof.caseWikiExpectedSignatureSource, "runtime_diagnostics");
     assert.equal(report.hostedDirectLiveProof.caseWikiSignatureStatus, "signed");
     assert.equal(report.hostedDirectLiveProof.latencyObserved, true);
+    assert.equal(report.caseWikiEvidenceSignature.source, "hosted_direct_live_proof");
+    assert.equal(report.caseWikiEvidenceSignature.status, "pass");
+    assert.equal(report.caseWikiEvidenceSignature.validated, true);
+    assert.equal(report.caseWikiEvidenceSignature.signatureStatus, "signed");
     assert.equal(report.caseWikiGatewayHydration.status, "pass");
     assert.equal(report.caseWikiGatewayHydration.validated, true);
     assert.equal(report.caseWikiGatewayHydration.observed, true);
@@ -418,6 +428,11 @@ test(
         caseWikiExpectedSignatureSource?: string | null;
         caseWikiSignatureStatus?: string | null;
         latencyObserved?: boolean;
+      };
+      caseWikiEvidenceSignature: {
+        source?: string | null;
+        status?: string;
+        signatureStatus?: string | null;
       };
       caseWikiGatewayHydration: {
         status?: string;
@@ -500,6 +515,9 @@ test(
     assert.equal(manifest.hostedDirectLiveProof.caseWikiExpectedSignatureSource, "runtime_diagnostics");
     assert.equal(manifest.hostedDirectLiveProof.caseWikiSignatureStatus, "signed");
     assert.equal(manifest.hostedDirectLiveProof.latencyObserved, true);
+    assert.equal(manifest.caseWikiEvidenceSignature.source, "hosted_direct_live_proof");
+    assert.equal(manifest.caseWikiEvidenceSignature.status, "pass");
+    assert.equal(manifest.caseWikiEvidenceSignature.signatureStatus, "signed");
     assert.equal(manifest.caseWikiGatewayHydration.status, "pass");
     assert.equal(manifest.caseWikiGatewayHydration.validated, true);
     assert.equal(manifest.caseWikiGatewayHydration.observed, true);
@@ -701,5 +719,172 @@ test(
     assert.match(manifestMarkdown, /## Case Wiki Evidence Signature/);
     assert.match(manifestMarkdown, /\| status \| warn \|/);
     assert.match(manifestMarkdown, /\| signatureStatus \| unsigned \|/);
+  },
+);
+
+test(
+  "release evidence report prefers hosted signed case wiki signature proof when direct-live runtime proves signed posture",
+  { skip: skipIfNoPowerShell },
+  () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), "release-evidence-report-hosted-signed-case-wiki-"));
+    const badgeDetailsPath = join(tempRoot, "artifacts", "demo-e2e", "badge-details.json");
+    const directLiveProofPath = join(tempRoot, "artifacts", "deploy", "direct-live-proof.json");
+    const outputJsonPath = join(tempRoot, "artifacts", "release-evidence", "report.json");
+    const outputMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "report.md");
+    const outputManifestJsonPath = join(tempRoot, "artifacts", "release-evidence", "manifest.json");
+    const outputManifestMarkdownPath = join(tempRoot, "artifacts", "release-evidence", "manifest.md");
+
+    writeJson(badgeDetailsPath, {
+      evidence: {
+        caseWikiEvidenceSignature: {
+          status: "pass",
+          validated: true,
+          totalArtifacts: 1,
+          signedArtifacts: 0,
+          unsignedArtifacts: 1,
+          signatureStatus: "unsigned",
+          algorithm: "ed25519-sha256",
+          canonicalization: "json-stable-v1",
+          payloadHash: "sha256:local-unsigned-payload",
+          signerId: "api-backend",
+          signedAt: "2026-04-15T09:00:00.000Z",
+          signedAtIsIso: true,
+          signaturePresent: false,
+          caseId: "local-case-123",
+          sessionId: "local-session-123",
+          overviewStatus: "waiting_on_operator",
+          nextAction: "Resolve pending approval",
+          sourceRefsCount: 0,
+        },
+      },
+    });
+
+    writeJson(directLiveProofPath, {
+      status: "pass",
+      runtimeStatus: {
+        preferredMode: "direct_live",
+        activeMode: "direct_live",
+      },
+      replay: {
+        liveTransport: {
+          activeMode: "direct_live",
+          evidenceSource: "session_events",
+          firstAudioMs: 964,
+          firstOutputMs: 964,
+          fallbackEventCount: 0,
+        },
+      },
+      runtimeDiagnostics: {
+        apiBackendEvidenceSigning: {
+          expectedSignatureStatus: "signed",
+          keyState: "loaded",
+        },
+      },
+      caseWikiEvidenceSignatureExpectation: {
+        expectedStatus: "signed",
+        source: "runtime_diagnostics",
+      },
+      caseWiki: {
+        caseId: "deploy-direct-live-proof-case-123",
+        sessionId: "deploy-direct-live-proof-session-123",
+        overviewStatus: "active",
+        recommendedNextAction: "Review the latest case evidence",
+        sourceRefsCount: 0,
+        evidenceSignature: {
+          status: "signed",
+          algorithm: "ed25519-sha256",
+          canonicalization: "json-stable-v1",
+          payloadHash: "sha256:hosted-signed-payload",
+          keyId: "runtime-evidence-20260410",
+          signerId: "api-backend",
+          signedAt: "2026-04-15T09:10:00.000Z",
+          signaturePresent: true,
+        },
+      },
+      summary: "direct_live observed via session_events first_audio=964ms",
+    });
+
+    const result = spawnSync(
+      powershellBin!,
+      [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        releaseEvidenceReportScriptPath,
+        "-BadgeDetailsPath",
+        badgeDetailsPath,
+        "-OutputJsonPath",
+        outputJsonPath,
+        "-OutputMarkdownPath",
+        outputMarkdownPath,
+        "-OutputManifestJsonPath",
+        outputManifestJsonPath,
+        "-OutputManifestMarkdownPath",
+        outputManifestMarkdownPath,
+      ],
+      {
+        cwd: tempRoot,
+        encoding: "utf8",
+      },
+    );
+
+    assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+
+    const report = JSON.parse(readFileSync(outputJsonPath, "utf8")) as {
+      statuses: { caseWikiEvidenceSignatureStatus?: string };
+      caseWikiEvidenceSignature: {
+        source?: string | null;
+        status?: string;
+        validated?: boolean;
+        signatureStatus?: string | null;
+        signedArtifacts?: number;
+        unsignedArtifacts?: number;
+        signerId?: string | null;
+        keyId?: string | null;
+        payloadHash?: string | null;
+        caseId?: string | null;
+        sessionId?: string | null;
+      };
+    };
+    assert.equal(report.statuses.caseWikiEvidenceSignatureStatus, "pass");
+    assert.equal(report.caseWikiEvidenceSignature.source, "hosted_direct_live_proof");
+    assert.equal(report.caseWikiEvidenceSignature.status, "pass");
+    assert.equal(report.caseWikiEvidenceSignature.validated, true);
+    assert.equal(report.caseWikiEvidenceSignature.signatureStatus, "signed");
+    assert.equal(report.caseWikiEvidenceSignature.signedArtifacts, 1);
+    assert.equal(report.caseWikiEvidenceSignature.unsignedArtifacts, 0);
+    assert.equal(report.caseWikiEvidenceSignature.signerId, "api-backend");
+    assert.equal(report.caseWikiEvidenceSignature.keyId, "runtime-evidence-20260410");
+    assert.equal(report.caseWikiEvidenceSignature.payloadHash, "sha256:hosted-signed-payload");
+    assert.equal(report.caseWikiEvidenceSignature.caseId, "deploy-direct-live-proof-case-123");
+    assert.equal(report.caseWikiEvidenceSignature.sessionId, "deploy-direct-live-proof-session-123");
+
+    const manifest = JSON.parse(readFileSync(outputManifestJsonPath, "utf8")) as {
+      criticalEvidenceStatuses: { caseWikiEvidenceSignatureStatus?: string };
+      caseWikiEvidenceSignature: {
+        source?: string | null;
+        status?: string;
+        signatureStatus?: string | null;
+        signedArtifacts?: number;
+        unsignedArtifacts?: number;
+      };
+    };
+    assert.equal(manifest.criticalEvidenceStatuses.caseWikiEvidenceSignatureStatus, "pass");
+    assert.equal(manifest.caseWikiEvidenceSignature.source, "hosted_direct_live_proof");
+    assert.equal(manifest.caseWikiEvidenceSignature.status, "pass");
+    assert.equal(manifest.caseWikiEvidenceSignature.signatureStatus, "signed");
+    assert.equal(manifest.caseWikiEvidenceSignature.signedArtifacts, 1);
+    assert.equal(manifest.caseWikiEvidenceSignature.unsignedArtifacts, 0);
+
+    const reportMarkdown = readFileSync(outputMarkdownPath, "utf8");
+    assert.match(reportMarkdown, /\| caseWikiEvidenceSignature \| pass \|/);
+    assert.match(reportMarkdown, /- source: hosted_direct_live_proof/);
+    assert.match(reportMarkdown, /- signatureStatus: signed/);
+
+    const manifestMarkdown = readFileSync(outputManifestMarkdownPath, "utf8");
+    assert.match(manifestMarkdown, /\| caseWikiEvidenceSignature \| pass \|/);
+    assert.match(manifestMarkdown, /\| source \| hosted_direct_live_proof \|/);
+    assert.match(manifestMarkdown, /\| signatureStatus \| signed \|/);
   },
 );

@@ -215,6 +215,7 @@ function New-CaseWikiEvidenceSignatureSnapshot {
 
   if ($null -eq $Value) {
     return [ordered]@{
+      source            = $null
       status            = "unavailable"
       validated         = $false
       totalArtifacts    = 0
@@ -253,6 +254,7 @@ function New-CaseWikiEvidenceSignatureSnapshot {
   }
 
   return [ordered]@{
+    source            = $(if ([string]::IsNullOrWhiteSpace([string]$Value.source)) { "badge_details" } else { [string]$Value.source })
     status            = $status
     validated         = $validated
     totalArtifacts    = Convert-ToNonNegativeIntOrDefault -Value $Value.totalArtifacts -DefaultValue 0
@@ -275,6 +277,96 @@ function New-CaseWikiEvidenceSignatureSnapshot {
     nextAction        = $(if ([string]::IsNullOrWhiteSpace([string]$Value.nextAction)) { $null } else { [string]$Value.nextAction })
     sourceRefsCount   = Convert-ToNonNegativeIntOrDefault -Value $Value.sourceRefsCount -DefaultValue 0
   }
+}
+
+function New-HostedCaseWikiEvidenceSignatureValue {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$Value
+  )
+
+  if ($null -eq $Value) {
+    return $null
+  }
+
+  $caseWiki = if ($null -ne $Value.caseWiki) { $Value.caseWiki } else { $null }
+  if ($null -eq $caseWiki) {
+    return $null
+  }
+
+  $evidenceSignature = if ($null -ne $caseWiki.evidenceSignature) { $caseWiki.evidenceSignature } else { $null }
+  if ($null -eq $evidenceSignature) {
+    return $null
+  }
+
+  $signatureStatus = Get-StatusValueOrDefault -Value $evidenceSignature.status -DefaultValue ""
+  $signaturePresent = if ($null -eq $evidenceSignature.signaturePresent) { $null } else { $evidenceSignature.signaturePresent -eq $true }
+  $signedArtifacts = if ($signatureStatus -eq "signed" -and $signaturePresent -eq $true) { 1 } else { 0 }
+  $unsignedArtifacts = if ($signatureStatus -eq "unsigned") { 1 } else { 0 }
+  $totalArtifacts = if ($signedArtifacts -gt 0 -or $unsignedArtifacts -gt 0 -or -not [string]::IsNullOrWhiteSpace($signatureStatus)) { 1 } else { 0 }
+  $status = if ($signatureStatus -eq "signed" -and $signaturePresent -eq $true) { "pass" } elseif ($signatureStatus -eq "unsigned") { "warn" } else { "unavailable" }
+
+  return [ordered]@{
+    source            = "hosted_direct_live_proof"
+    status            = $status
+    validated         = ($status -ne "unavailable")
+    totalArtifacts    = $totalArtifacts
+    signedArtifacts   = $signedArtifacts
+    unsignedArtifacts = $unsignedArtifacts
+    signatureStatus   = $(if ([string]::IsNullOrWhiteSpace($signatureStatus)) { $null } else { $signatureStatus })
+    algorithm         = $(if ([string]::IsNullOrWhiteSpace([string]$evidenceSignature.algorithm)) { $null } else { [string]$evidenceSignature.algorithm })
+    canonicalization  = $(if ([string]::IsNullOrWhiteSpace([string]$evidenceSignature.canonicalization)) { $null } else { [string]$evidenceSignature.canonicalization })
+    payloadHash       = $(if ([string]::IsNullOrWhiteSpace([string]$evidenceSignature.payloadHash)) { $null } else { [string]$evidenceSignature.payloadHash })
+    keyId             = $(if ([string]::IsNullOrWhiteSpace([string]$evidenceSignature.keyId)) { $null } else { [string]$evidenceSignature.keyId })
+    signerId          = $(if ([string]::IsNullOrWhiteSpace([string]$evidenceSignature.signerId)) { $null } else { [string]$evidenceSignature.signerId })
+    signedAt          = $(if ([string]::IsNullOrWhiteSpace([string]$evidenceSignature.signedAt)) { $null } else { [string]$evidenceSignature.signedAt })
+    signaturePresent  = $signaturePresent
+    caseId            = $(if ([string]::IsNullOrWhiteSpace([string]$caseWiki.caseId)) { $null } else { [string]$caseWiki.caseId })
+    sessionId         = $(if ([string]::IsNullOrWhiteSpace([string]$caseWiki.sessionId)) { $null } else { [string]$caseWiki.sessionId })
+    overviewStatus    = $(if ([string]::IsNullOrWhiteSpace([string]$caseWiki.overviewStatus)) { $null } else { [string]$caseWiki.overviewStatus })
+    focusKind         = $(if ([string]::IsNullOrWhiteSpace([string]$caseWiki.focusKind)) { $null } else { [string]$caseWiki.focusKind })
+    focusLabel        = $(if ([string]::IsNullOrWhiteSpace([string]$caseWiki.focusLabel)) { $null } else { [string]$caseWiki.focusLabel })
+    nextAction        = $(if ([string]::IsNullOrWhiteSpace([string]$caseWiki.recommendedNextAction)) { $null } else { [string]$caseWiki.recommendedNextAction })
+    sourceRefsCount   = Convert-ToNonNegativeIntOrDefault -Value $caseWiki.sourceRefsCount -DefaultValue 0
+  }
+}
+
+function Resolve-CaseWikiEvidenceSignatureSnapshot {
+  param(
+    [Parameter(Mandatory = $false)]
+    [object]$BadgeSnapshot,
+    [Parameter(Mandatory = $false)]
+    [object]$HostedDirectLiveProofSnapshot,
+    [Parameter(Mandatory = $false)]
+    [object]$HostedSnapshot
+  )
+
+  $fallbackSnapshot = if ($null -eq $BadgeSnapshot) {
+    New-CaseWikiEvidenceSignatureSnapshot -Value $null
+  } else {
+    $BadgeSnapshot
+  }
+
+  if ($null -eq $HostedDirectLiveProofSnapshot -or $null -eq $HostedSnapshot) {
+    return $fallbackSnapshot
+  }
+
+  $hostedStatus = Get-StatusValueOrDefault -Value $HostedDirectLiveProofSnapshot.status -DefaultValue "unavailable"
+  $hostedExpectedSignatureStatus = Get-StatusValueOrDefault -Value $HostedDirectLiveProofSnapshot.caseWikiExpectedSignatureStatus -DefaultValue ""
+  $hostedObservedSignatureStatus = Get-StatusValueOrDefault -Value $HostedDirectLiveProofSnapshot.caseWikiSignatureStatus -DefaultValue ""
+  $hostedObservedSignaturePresent = ($HostedDirectLiveProofSnapshot.caseWikiSignaturePresent -eq $true)
+
+  if (
+    $hostedStatus -eq "pass" -and
+    $HostedDirectLiveProofSnapshot.observed -eq $true -and
+    $hostedExpectedSignatureStatus -eq "signed" -and
+    $hostedObservedSignatureStatus -eq "signed" -and
+    $hostedObservedSignaturePresent
+  ) {
+    return $HostedSnapshot
+  }
+
+  return $fallbackSnapshot
 }
 
 function New-CaseWikiRoutingContextSnapshot {
@@ -793,6 +885,7 @@ $report = [ordered]@{
     summary                  = "unavailable"
   }
   caseWikiEvidenceSignature = [ordered]@{
+    source            = $null
     status            = "unavailable"
     validated         = $false
     totalArtifacts    = 0
@@ -929,10 +1022,16 @@ $report = [ordered]@{
   }
 }
 
+$hostedCaseWikiEvidenceSignatureSnapshot = $null
+
 $hostedDirectLiveProofRead = Read-JsonIfExists -Path $resolvedDirectLiveProofJsonPath
 if ($hostedDirectLiveProofRead.present -and $hostedDirectLiveProofRead.parsed) {
   $report.hostedDirectLiveProof = New-HostedDirectLiveProofSnapshot -Value $hostedDirectLiveProofRead.value
   $report.statuses.hostedDirectLiveProofStatus = Get-StatusValueOrDefault -Value $report.hostedDirectLiveProof.status -DefaultValue "unavailable"
+  $hostedCaseWikiEvidenceSignatureValue = New-HostedCaseWikiEvidenceSignatureValue -Value $hostedDirectLiveProofRead.value
+  if ($null -ne $hostedCaseWikiEvidenceSignatureValue) {
+    $hostedCaseWikiEvidenceSignatureSnapshot = New-CaseWikiEvidenceSignatureSnapshot -Value $hostedCaseWikiEvidenceSignatureValue
+  }
 } elseif ($hostedDirectLiveProofRead.present) {
   $report.hostedDirectLiveProof.status = "fail"
   $report.hostedDirectLiveProof.summary = Get-StatusValueOrDefault -Value $hostedDirectLiveProofRead.parseError -DefaultValue "invalid hosted direct-live proof artifact"
@@ -1055,6 +1154,12 @@ if (Test-Path $resolvedBadgeDetailsPath) {
   }
 }
 
+$report.caseWikiEvidenceSignature = Resolve-CaseWikiEvidenceSignatureSnapshot `
+  -BadgeSnapshot $report.caseWikiEvidenceSignature `
+  -HostedDirectLiveProofSnapshot $report.hostedDirectLiveProof `
+  -HostedSnapshot $hostedCaseWikiEvidenceSignatureSnapshot
+$report.statuses.caseWikiEvidenceSignatureStatus = Get-StatusValueOrDefault -Value $report.caseWikiEvidenceSignature.status -DefaultValue "unavailable"
+
 $json = $report | ConvertTo-Json -Depth 10
 Write-Utf8NoBomFile -Path $resolvedOutputJsonPath -Content $json
 
@@ -1160,6 +1265,7 @@ $markdown = @(
   "## Case Wiki Evidence Signature Snapshot",
   "",
   "- status: $($report.caseWikiEvidenceSignature.status)",
+  "- source: $(if ([string]::IsNullOrWhiteSpace([string]$report.caseWikiEvidenceSignature.source)) { "n/a" } else { [string]$report.caseWikiEvidenceSignature.source })",
   "- validated: $($report.caseWikiEvidenceSignature.validated)",
   "- totalArtifacts: $($report.caseWikiEvidenceSignature.totalArtifacts)",
   "- signedArtifacts: $($report.caseWikiEvidenceSignature.signedArtifacts)",
@@ -1351,6 +1457,7 @@ $manifest = [ordered]@{
     latencyObserved         = $report.hostedDirectLiveProof.latencyObserved
   }
   caseWikiEvidenceSignature = [ordered]@{
+    source            = $report.caseWikiEvidenceSignature.source
     status            = $report.caseWikiEvidenceSignature.status
     validated         = $report.caseWikiEvidenceSignature.validated
     totalArtifacts    = $report.caseWikiEvidenceSignature.totalArtifacts
@@ -1515,6 +1622,7 @@ $manifestMarkdown = @(
   "",
   "| Field | Value |",
   "|---|---|",
+  "| source | $(if ([string]::IsNullOrWhiteSpace([string]$manifest.caseWikiEvidenceSignature.source)) { "n/a" } else { [string]$manifest.caseWikiEvidenceSignature.source }) |",
   "| status | $($manifest.caseWikiEvidenceSignature.status) |",
   "| validated | $($manifest.caseWikiEvidenceSignature.validated) |",
   "| totalArtifacts | $($manifest.caseWikiEvidenceSignature.totalArtifacts) |",
